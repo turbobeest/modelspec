@@ -38,6 +38,8 @@ class Expect:
     code: str | None = None
     status: tuple[str, ...] | None = None
     answer: str | None = None
+    #: Text the first refusal issue's reason must contain.
+    reason: str | None = None
 
 
 @dataclass(frozen=True)
@@ -66,7 +68,8 @@ def _expect(raw: Mapping[str, Any]) -> Expect:
     if isinstance(status, str):
         status = (status,)
     return Expect(http=int(raw["http"]), code=raw.get("code"),
-                  status=tuple(status) if status else None, answer=raw.get("answer"))
+                  status=tuple(status) if status else None, answer=raw.get("answer"),
+                  reason=raw.get("reason"))
 
 
 def _hand_written() -> list[Case]:
@@ -170,8 +173,11 @@ def _facet_cases() -> Iterator[Case]:
             intent=f"{facet.id} as a Prefer"
                    + ("" if expect.http == 200 else ", which has no order to prefer"),
             snapshot="repo",
-            spec={"spec_version": 1, "optimize": {"weights": weights}, "explain": "summary",
-                  "limit": 5},
+            # Beside a capability weight, as the board sends it, and at full: a
+            # value preference's explanation failed only there (MODEL-203).
+            spec={"spec_version": 1,
+                  "optimize": {"weights": weights | {"software_engineering": 1}},
+                  "explain": "full", "limit": 5},
             expect=expect,
             covers=(f"prefer:{facet.id}",),
             generated=True,
@@ -295,8 +301,14 @@ def vocabulary(snapshot) -> dict[str, Any]:
 
 # ── surfaces ───────────────────────────────────────────────────────────────
 
+#: Where ``worker_service`` loads ``decide_service.py`` from. ``python -m
+#: tests.corpus decisions --bundle`` points it, and ``sys.path``, at the vendored
+#: bundle, so the corpus runs on what the isolate holds (MODEL-203).
+WORKER_SRC = REPO / "api" / "worker" / "src"
+
+
 def worker_service():
-    source = REPO / "api" / "worker" / "src" / "decide_service.py"
+    source = WORKER_SRC / "decide_service.py"
     loader = importlib.util.spec_from_file_location("modelspec_corpus_decide_service", source)
     module = importlib.util.module_from_spec(loader)
     loader.loader.exec_module(module)
@@ -324,10 +336,18 @@ def payload(case: Case) -> Any:
 
 
 def run_worker(case: Case, snapshot, service=None) -> tuple[int, bytes]:
-    """The Worker's answer: HTTP status and the exact body bytes it sends."""
+    """The Worker's answer: HTTP status and the exact body bytes it sends.
+
+    An exception is what the isolate turns into a 500 (Cloudflare 1101), so it
+    is recorded as one and fails this case alone, not the whole corpus.
+    """
     service = service or worker_service()
-    status, body = service.decide(payload(case), snapshot,
-                                  expected_snapshot=header_for(case, snapshot))
+    try:
+        status, body = service.decide(payload(case), snapshot,
+                                      expected_snapshot=header_for(case, snapshot))
+    except Exception as exc:  # noqa: BLE001 - the Worker would have thrown this
+        return 500, json.dumps({"error": {"code": "worker_exception",
+                                          "message": f"{type(exc).__name__}: {exc}"}}).encode()
     return status, service.serialise(body)
 
 
@@ -362,6 +382,11 @@ def problems(case: Case, status: int, body: Mapping[str, Any]) -> list[str]:
         code = error.get("code") if isinstance(error, Mapping) else error
         if code != expect.code:
             found.append(f"error code {code!r}, expected {expect.code!r}")
+    if expect.reason is not None:
+        issues = (body.get("error") or {}).get("issues") or [{}]
+        if expect.reason not in str(issues[0].get("reason")):
+            found.append(f"refused because {issues[0].get('reason')!r}, "
+                         f"expected {expect.reason!r}")
     if expect.status is not None and body.get("status") not in expect.status:
         found.append(f"status {body.get('status')!r}, expected one of {expect.status}")
     if expect.answer is not None:
@@ -374,8 +399,10 @@ def problems(case: Case, status: int, body: Mapping[str, Any]) -> list[str]:
 
 #: What the Worker's error code is at the CLI. A spec the engine rejects after
 #: parsing is ``invalid_spec`` from the Worker and ``decision_failed`` from the
-#: CLI (docs/decision-contract.md, "--check").
-CLI_CODES = {"invalid_spec": {"invalid_spec", "decision_failed"}}
+#: CLI (docs/decision-contract.md, "--check"); so is a pin to another snapshot,
+#: which the Worker answers ``snapshot_not_loaded``.
+CLI_CODES = {"invalid_spec": {"invalid_spec", "decision_failed"},
+             "snapshot_not_loaded": {"decision_failed"}}
 
 
 def cli_matches_worker(case: Case, worker: tuple[int, bytes],
@@ -403,8 +430,10 @@ def cli_matches_worker(case: Case, worker: tuple[int, bytes],
     return []
 
 
-def write_decisions(out: Path, cases: list[Case], cache: Path | None) -> dict[str, Any]:
-    """One ``<case>.json`` per case (the Worker's status and body) and each snapshot's vocabulary."""
+def write_decisions(out: Path, cases: list[Case], cache: Path | None, *,
+                    vocabularies: bool = True) -> dict[str, Any]:
+    """One ``<case>.json`` per case (the Worker's status and body), and each
+    snapshot's vocabulary."""
     out.mkdir(parents=True, exist_ok=True)
     service = worker_service()
     index: dict[str, Any] = {"cases": [], "vocabularies": {}}
@@ -412,10 +441,12 @@ def write_decisions(out: Path, cases: list[Case], cache: Path | None) -> dict[st
     for case in cases:
         if case.snapshot not in loaded:
             loaded[case.snapshot] = load(snapshot_bytes(case.snapshot, cache))
-            vocab = vocabulary(loaded[case.snapshot])
-            name = f"vocabulary-{case.snapshot}.json"
-            (out / name).write_text(json.dumps(vocab, ensure_ascii=False) + "\n", encoding="utf-8")
-            index["vocabularies"][case.snapshot] = name
+            if vocabularies:
+                name = f"vocabulary-{case.snapshot}.json"
+                vocab = vocabulary(loaded[case.snapshot])
+                (out / name).write_text(json.dumps(vocab, ensure_ascii=False) + "\n",
+                                        encoding="utf-8")
+                index["vocabularies"][case.snapshot] = name
         status, body = run_worker(case, loaded[case.snapshot], service)
         (out / f"{case.id}.json").write_bytes(body)
         index["cases"].append({"id": case.id, "intent": case.intent, "snapshot": case.snapshot,

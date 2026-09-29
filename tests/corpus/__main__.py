@@ -1,8 +1,13 @@
 """Run the decision spec corpus outside pytest (MODEL-203).
 
-    python -m tests.corpus decisions --out DIR [--cache DIR]
+    python -m tests.corpus decisions --out DIR [--cache DIR] [--bundle DIR]
         The Worker's answer to every case, one <case>.json each, plus the page
-        vocabulary of each snapshot, for the web suite and Playwright.
+        vocabulary of each snapshot, for the web suite and Playwright. With
+        --bundle (api/worker/vendor.py's output), the engine is imported from
+        the bundle alone, as the isolate imports it; the snapshots must already
+        be in --cache, and no vocabulary is written.
+    python -m tests.corpus compare REFERENCE CANDIDATE
+        Every case's status and body bytes in CANDIDATE match REFERENCE.
     python -m tests.corpus wait-worker --origin https://api.modelspec.dev --commit SHA
         Wait up to --minutes for /v1/health to report SHA; warn, never fail.
     python -m tests.corpus live --origin https://api.modelspec.dev --out DIR
@@ -39,10 +44,44 @@ def _error(message: str) -> None:
 
 
 def _decisions(args) -> int:
-    index = write_decisions(Path(args.out), load_cases(), Path(args.cache) if args.cache else None)
+    if args.bundle:
+        from tests.corpus import corpus
+
+        bundle = Path(args.bundle).resolve()
+        if any(name == "decision" or name.startswith("decision.") for name in sys.modules):
+            raise SystemExit("decision was imported before the bundle went on sys.path")
+        sys.path.insert(0, str(bundle))
+        corpus.WORKER_SRC = bundle
+    index = write_decisions(Path(args.out), load_cases(), Path(args.cache) if args.cache else None,
+                            vocabularies=not args.bundle)
+    if args.bundle:
+        import decision
+
+        print(f"engine imported from {Path(decision.__file__).parent}")
     print(f"wrote {len(index['cases'])} decisions and "
           f"{len(index['vocabularies'])} vocabularies to {args.out}")
     return 0
+
+
+def _compare(args) -> int:
+    reference, candidate = Path(args.reference), Path(args.candidate)
+    ref = {row["id"]: row for row in json.loads((reference / "index.json").read_text())["cases"]}
+    new = {row["id"]: row for row in json.loads((candidate / "index.json").read_text())["cases"]}
+    failed = 0
+    for case_id in sorted(ref.keys() | new.keys()):
+        a, b = ref.get(case_id), new.get(case_id)
+        if a is None or b is None:
+            _error(f"{case_id} is only in {candidate if a is None else reference}")
+        elif a["http"] != b["http"]:
+            _error(f"{case_id}: HTTP {b['http']} in {candidate}, {a['http']} in {reference}: "
+                   f"{(candidate / b['file']).read_bytes()[:300]!r}")
+        elif (reference / a["file"]).read_bytes() != (candidate / b["file"]).read_bytes():
+            _error(f"{case_id}: the body bytes differ")
+        else:
+            continue
+        failed += 1
+    print(f"{len(ref) - failed} of {len(ref)} cases match byte for byte")
+    return 1 if failed else 0
 
 
 def _post(url: str, body: bytes) -> tuple[int, bytes]:
@@ -105,8 +144,25 @@ def _live(args) -> int:
         (out / f"{case.id}.json").write_bytes(raw)
         index["cases"].append({"id": case.id, "intent": case.intent, "snapshot": "live",
                                "http": status, "file": f"{case.id}.json"})
+    # The refusals /v1/decide makes before a spec is read: entry.py, not the
+    # decide service, so only a deployed Worker answers them.
+    for label, body, want_status, want_code in (
+        ("a body that is not JSON", b"{not json", 400, "invalid_request"),
+        ("a body over 64 KiB", b" " * (64 * 1024 + 1), 413, "payload_too_large"),
+    ):
+        status, raw = _post(url, body)
+        try:
+            code = json.loads(raw)["error"]["code"]
+        except (ValueError, KeyError, TypeError):
+            code = None
+        if (status, code) == (want_status, want_code):
+            print(f"ok   {label}: HTTP {status} {code}")
+        else:
+            failed += 1
+            _error(f"POST {url} with {label}: HTTP {status} {code}, "
+                   f"expected {want_status} {want_code}: {raw[:200]!r}")
     (out / "index.json").write_text(json.dumps(index, indent=1) + "\n", encoding="utf-8")
-    print(f"{len(cases) - failed} of {len(cases)} live cases answered as expected")
+    print(f"{failed} failure(s) over {len(cases)} live cases and 2 transport refusals")
     return 1 if failed else 0
 
 
@@ -158,7 +214,9 @@ def _cli_matrix(args) -> int:
     m.check("vocab templates", human.returncode == 0 and all(t in human.stdout for t in templates),
             human.stdout + human.stderr)
 
-    top = None
+    models = m.run("vocab", "--json")
+    lineup = sorted(json.loads(models.stdout or "{}").get("result", {}).get("models", {}))
+    top = None  # (template, a lineup model that template's answer does not rank)
     for template in templates:
         for level in ("none", "summary", "full"):
             ran = m.run("decide", "--template", template, "--explain", level, "--json")
@@ -170,8 +228,10 @@ def _cli_matrix(args) -> int:
                     ("answered", "partial", "no_feasible"), ran.stdout[:300])
             m.check(f"{label}: signature_verified", answer.get("signature_verified") is True,
                     ran.stdout[:300])
-            if top is None and answer.get("results"):
-                top = answer["results"][0]["offering"]["model"]
+            if top is None and answer.get("status") != "no_feasible":
+                ranked = {row["offering"]["model"] for row in answer.get("results", [])}
+                outside = [model for model in lineup if model not in ranked]
+                top = (template, outside[0]) if outside else None
 
     if templates:
         readable = m.run("decide", "--template", templates[0])
@@ -179,13 +239,17 @@ def _cli_matrix(args) -> int:
                 readable.returncode == 0 and readable.stdout.startswith("status: ")
                 and "--why-not MODEL_ID" in readable.stdout,
                 readable.stdout + readable.stderr)
-    if top is not None:
-        why = m.run("decide", "--template", templates[0], "--why-not", top, "--json")
-        m.check(f"decide --why-not {top} --json",
-                why.returncode == 0 and "why_not" in json.loads(why.stdout or "{}"), why.stderr)
-        why_text = m.run("decide", "--template", templates[0], "--why-not", top)
-        m.check(f"decide --why-not {top}", why_text.returncode == 0 and why_text.stdout.strip(),
-                why_text.stderr)
+    if m.check("a lineup model outside some template's answer, for --why-not", top is not None):
+        template, model = top
+        why = m.run("decide", "--template", template, "--why-not", model, "--json")
+        answer = json.loads(why.stdout or "{}").get("why_not", {})
+        m.check(f"decide --template {template} --why-not {model} --json",
+                why.returncode == 0 and answer.get("model") == model
+                and bool(answer.get("summary")),
+                why.stdout[:300] + why.stderr)
+        why_text = m.run("decide", "--template", template, "--why-not", model)
+        m.check(f"decide --template {template} --why-not {model}",
+                why_text.returncode == 0 and why_text.stdout.strip(), why_text.stderr)
 
     ok_spec = work / "ok.yaml"
     ok_spec.write_text("spec_version: 1\noptimize: {max: software_engineering}\n", encoding="utf-8")
@@ -221,6 +285,10 @@ def main(argv: list[str] | None = None) -> int:
     decisions = commands.add_parser("decisions")
     decisions.add_argument("--out", required=True)
     decisions.add_argument("--cache")
+    decisions.add_argument("--bundle")
+    compare = commands.add_parser("compare")
+    compare.add_argument("reference")
+    compare.add_argument("candidate")
     live = commands.add_parser("live")
     live.add_argument("--origin", required=True)
     live.add_argument("--out", required=True)
@@ -233,8 +301,8 @@ def main(argv: list[str] | None = None) -> int:
     matrix.add_argument("--modelspec", required=True)
     matrix.add_argument("--work", required=True)
     args = parser.parse_args(argv)
-    return {"decisions": _decisions, "wait-worker": _wait_worker, "live": _live,
-            "cli-matrix": _cli_matrix}[args.command](args)
+    return {"decisions": _decisions, "compare": _compare, "wait-worker": _wait_worker,
+            "live": _live, "cli-matrix": _cli_matrix}[args.command](args)
 
 
 if __name__ == "__main__":

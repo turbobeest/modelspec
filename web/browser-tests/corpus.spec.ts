@@ -85,17 +85,29 @@ for (const row of drawn) {
   });
 }
 
+async function applyTemplateThenReset(page: Page) {
+  const template = drawn.find((row) => row.id.startsWith("template-") && row.snapshot === "repo");
+  expect(template, "no template decision in the corpus").toBeTruthy();
+  await stub(page, "repo", read(template!.file));
+  await openBoard(page);
+  const templates = page.locator(".board-templates");
+  await expect(templates.getByRole("button").first()).toBeVisible();
+  await templates.getByRole("button").first().click();
+  await expect(page.getByLabel("Facet board answer")).toBeVisible();
+  await page.getByRole("button", { name: "Reset all" }).click();
+}
+
+// The setup on its own, so the expected failure below cannot pass because the
+// board never offered a template or never reached Reset all.
+test("a template applies and Reset all runs", async ({ page }) => {
+  await applyTemplateThenReset(page);
+  await expect(page.getByRole("heading", { name: "Set what matters. Watch the field narrow." })).toBeVisible();
+});
+
 test("the templates are offered again after Reset all", async ({ page }) => {
   // MODEL-204 fixes this; until it lands the board hides the templates for good
   // once one is applied. Remove test.fail when 204 merges.
   test.fail();
-  const template = drawn.find((row) => row.id.startsWith("template-") && row.snapshot === "repo");
-  test.skip(!template, "no template decision in the corpus");
-  await stub(page, "repo", read(template!.file));
-  await openBoard(page);
-  const templates = page.locator(".board-templates");
-  await expect(templates).toBeVisible();
-  await templates.getByRole("button").first().click();
-  await page.getByRole("button", { name: "Reset all" }).click();
+  await applyTemplateThenReset(page);
   await expect(page.getByText("Start from a template")).toBeVisible({ timeout: 5000 });
 });

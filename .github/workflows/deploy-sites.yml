@@ -421,6 +421,8 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     environment: production
+    outputs:
+      deployed: ${{ steps.creds.outputs.ready }}
     steps:
       - name: Check the deploy credentials are present
         id: creds
@@ -508,9 +510,11 @@ jobs:
     # fails loudly and rolls nothing back: the deploy already happened.
     name: Smoke-test the deployed decide surfaces
     needs: [build, deploy]
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    # Only after a real deploy: without credentials the deploy job succeeds
+    # with its steps skipped, and nothing new is live to test.
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && needs.deploy.outputs.deployed == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
     env:
       API: https://api.modelspec.dev
     steps:

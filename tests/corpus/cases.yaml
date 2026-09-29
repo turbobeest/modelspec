@@ -174,6 +174,9 @@ cases:
   live: true
 
 # ── refinements ────────────────────────────────────────────────────────────
+# These need the real refinement registry and its benchmark tags, so they run on
+# `repo`: a research PR that measures SQL or code review flips the first two.
+# `reason` pins why each is refused, so a refusal for another reason fails.
 
 - id: refinement-live
   intent: A live refinement (Python) nests its estimate in software engineering.
@@ -194,21 +197,21 @@ cases:
   intent: A refinement no lineup model is measured on cannot rank and is refused.
   spec: {spec_version: 1, optimize: {weights: {software_engineering/sql_text_to_sql: 1}},
          explain: summary}
-  expect: {http: 400, code: invalid_spec}
+  expect: {http: 400, code: invalid_spec, reason: evidence_state not_measured}
   covers: [refinement:not_measured, error:invalid_spec]
 
 - id: refinement-no-benchmark
   intent: A registered refinement no benchmark measures is refused.
   spec: {spec_version: 1, optimize: {weights: {software_engineering/code_review: 1}},
          explain: summary}
-  expect: {http: 400, code: invalid_spec}
+  expect: {http: 400, code: invalid_spec, reason: evidence_state no_benchmark}
   covers: [refinement:not_measured]
 
 - id: refinement-unregistered
   intent: A refinement the registry does not know is refused, naming its parent.
   spec: {spec_version: 1, optimize: {weights: {software_engineering/cobol: 1}},
          explain: summary}
-  expect: {http: 400, code: invalid_spec}
+  expect: {http: 400, code: invalid_spec, reason: is not a registered refinement}
   covers: [refinement:unregistered]
 
 - id: refinement-bad-parent
@@ -436,9 +439,6 @@ cases:
   spec: {spec_version: 1, snapshot: snap_0000000000000000, optimize: {max: software_engineering}}
   expect: {http: 409, code: snapshot_not_loaded}
   covers: [error:snapshot_not_loaded]
-  divergence: >-
-    `modelspec decide` answers from the local snapshot whatever the spec pins;
-    only `--check` warns about a pin.
 
 - id: malformed-stale-vocabulary
   intent: A request built from an older vocabulary is told the snapshot changed.

@@ -1,11 +1,10 @@
 """The decision spec corpus across the CLI and the Worker (MODEL-203).
 
 Every case in ``tests/corpus`` answers as its ``expect`` says, and
-``modelspec decide --json`` prints the Worker's body byte for byte. With
-``MODELSPEC_CORPUS_REFERENCE`` set to a directory ``python -m tests.corpus
-decisions`` wrote under another pydantic, the Worker's bytes must match those
-too: rank-api.yml runs this under the Worker's own pydantic (pylock.toml), the
-version gap behind the 2026-09-29 outage.
+``modelspec decide --json`` prints the Worker's body byte for byte. The Worker
+under its own pydantic (pylock.toml), run from the vendored bundle, is held to
+these bytes in rank-api.yml (``python -m tests.corpus compare``): the version
+gap behind the 2026-09-29 outage.
 """
 
 from __future__ import annotations
@@ -99,31 +98,14 @@ def test_modelspec_decide_prints_the_workers_bytes(case, answers, snapshots, tmp
     if case.divergence is None:
         assert found == [], case.intent
     else:
+        # The divergence left is the CLI answering from its own snapshot.
+        assert cli[0] == 0, f"{case.id}: the CLI refused ({cli[2][:200]!r}); read its divergence"
         assert found, f"{case.id} no longer diverges; drop its `divergence`"
 
 
 @pytest.mark.parametrize("case", [c for c in CASES if c.same_as], ids=lambda case: case.id)
 def test_equivalent_specs_answer_byte_for_byte_alike(case, answers):
     assert answers[case.id] == answers[case.same_as], case.intent
-
-
-def test_the_worker_matches_a_reference_run_under_another_pydantic(answers):
-    """rank-api.yml: the reference is the CPython build's, this run is Pyodide's pin."""
-    reference = env_path("MODELSPEC_CORPUS_REFERENCE")
-    if reference is None:
-        pytest.skip("MODELSPEC_CORPUS_REFERENCE is not set")
-    import pydantic
-
-    index = json.loads((reference / "index.json").read_text(encoding="utf-8"))
-    drifted = []
-    for row in index["cases"]:
-        status, body = answers[row["id"]]
-        if status != row["http"] or body != (reference / row["file"]).read_bytes():
-            drifted.append(row["id"])
-    assert drifted == [], (
-        f"under pydantic {pydantic.VERSION} the Worker's bytes differ from the reference for "
-        f"{len(drifted)} of {len(index['cases'])} cases: {drifted[:10]}")
-    assert {row["id"] for row in index["cases"]} == set(answers)
 
 
 def test_the_fixed_identity_preference_explains_without_a_record(answers):

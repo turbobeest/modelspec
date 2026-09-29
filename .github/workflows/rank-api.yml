@@ -95,9 +95,6 @@ jobs:
         # byte-identity suites under the pinned version, and the whole spec
         # corpus against the reference above (MODEL-203). JSON-schema generation
         # needs 2.12+ and never runs in the Worker, so its test is skipped.
-        env:
-          MODELSPEC_CORPUS_REFERENCE: ${{ runner.temp }}/corpus
-          MODELSPEC_CORPUS_CACHE: ${{ runner.temp }}/corpus-snapshots
         run: |
           pins=$(python -c "import tomllib; d = tomllib.load(open('api/worker/pylock.toml', 'rb')); print(' '.join(f\"{p['name']}=={p['version']}\" for p in d['packages'] if p['name'] in ('pydantic', 'pydantic-core')))")
           uv venv -q "$RUNNER_TEMP/pyodide-pins"
@@ -106,10 +103,12 @@ jobs:
           "$RUNNER_TEMP/pyodide-pins/bin/python" -m pytest -q -W ignore \
             tests/test_decision_plans.py tests/test_decide_worker.py tests/test_decide_page_fixtures.py \
             --deselect tests/test_decision_plans.py::test_the_contract_took_the_next_minor_and_publishes_the_plan_types
-          # The corpus's Worker side only: the CLI never runs under this pin, and
-          # test.yml already holds it to the Worker's bytes under 2.13.
-          "$RUNNER_TEMP/pyodide-pins/bin/python" -m pytest -q -W ignore tests/test_corpus.py \
-            -k "reference or expects or byte_for_byte or identity_preference"
+          # The corpus from the vendored bundle alone, as the isolate imports it,
+          # held byte for byte to the CPython reference above (MODEL-203). A file
+          # the bundle lacks (the hardware/ device IDs were one) fails here.
+          "$RUNNER_TEMP/pyodide-pins/bin/python" -m tests.corpus decisions --bundle api/worker/src \
+            --cache "$RUNNER_TEMP/corpus-snapshots" --out "$RUNNER_TEMP/corpus-worker"
+          python -m tests.corpus compare "$RUNNER_TEMP/corpus" "$RUNNER_TEMP/corpus-worker"
 
       - name: The policy-check endpoint (MODEL-80)
         # Runs under CPython against the real catalogue, with no determinations
