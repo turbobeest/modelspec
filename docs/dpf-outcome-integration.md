@@ -72,7 +72,7 @@ cached catalogue rather than store its name.
 any text from the ticket. No flag accepts them.
 
 `--latency-ms` and `--cost-usd` are optional. Pass them only if DPF measured
-them for this task.
+them for this task. `record` rounds both to 3 significant figures.
 
 ## When DPF got the decision from the API
 

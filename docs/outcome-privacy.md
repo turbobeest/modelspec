@@ -34,7 +34,10 @@ modelspec outcome disable --delete   # also delete every record
 ## What is on disk
 
 Everything lives under `~/.modelspec/`, or under `$MODELSPEC_HOME` if you set
-it. The directory is created with mode `0700` and each file with mode `0600`.
+it. Each write sets the directory to mode `0700` and the file to mode `0600`,
+tightening them if they already existed with looser modes. A write refuses to
+follow a symlink at the file's path. `export --out` also writes its file with
+mode `0600`.
 
 | file | when it exists | what it holds |
 | --- | --- | --- |
@@ -49,9 +52,9 @@ name, and it does not coerce types:
 | field | what it is | what it can hold |
 | --- | --- | --- |
 | `record_version` | the record format | `1` |
-| `decision_id` | the decision you acted on | `dec_` and letters or digits |
+| `decision_id` | the decision you acted on | `dec_` and 24 lowercase hex |
 | `spec_hash` | the hash of the decision's spec, not the spec | `sha256:` and 64 hex, or null |
-| `snapshot` | the snapshot the decision used | `snap_…`, or null |
+| `snapshot` | the snapshot the decision used | `snap_` and 16 lowercase hex, or null |
 | `contract_version` | the decision contract version | `major.minor`, or null |
 | `adopted_model` | the model you used | a catalogued `lab/model`, or `other` |
 | `adopted_offering` | the provider you used it through | a catalogued provider slug, or null |
@@ -59,10 +62,10 @@ name, and it does not coerce types:
 | `in_best_band` | whether it was in the best band | true, false, or null |
 | `result` | how the task went | `success`, `partial`, `failure` |
 | `task_kind` | the kind of task, optional | one of the 12 fixed task types, or null |
-| `latency_ms` | wall time, optional | a whole number from 0 to 86,400,000, or null |
-| `cost_usd` | cost, optional | a finite number from 0 to 10,000, or null |
+| `latency_ms` | wall time, optional | a whole number from 0 to 86,400,000, rounded to 3 significant figures, or null |
+| `cost_usd` | cost, optional | a finite number from 0 to 10,000, rounded to 3 significant figures, or null |
 | `recorded_at` | when | UTC, to the minute |
-| `cli_version` | this CLI's release | a release number, or null |
+| `cli_version` | this CLI's release | the public release number, never a `+local` segment, or null |
 
 A null in `spec_hash`, `snapshot`, `contract_version`, `was_leader` or
 `in_best_band` means the CLI could not find the decision: no stub and no
@@ -72,25 +75,36 @@ A null in `spec_hash`, `snapshot`, `contract_version`, `was_leader` or
 version, the leader's model ID and the best band's model IDs. `decide` writes
 one only while recording is on, so that `record` can work out `was_leader` and
 `in_best_band`. `decide` keeps at most 500 stubs and deletes the oldest ones
-first. `disable` deletes all of them.
+first. `disable` deletes all of them. The decision ID must equal
+`dec_` + the first 24 hex of SHA-256 over the spec hash and snapshot, exactly
+as the engine computes it. A stub whose ID does not match is refused.
 
 ## What is never recorded
 
 The rule from REV-9: record only what answers "was this recommendation adopted,
 and did the task succeed?". Specifically:
 
-- **No prompt or task text.** No field accepts free text. Each string field is
-  a closed list or an identifier pattern of at most 128 characters that allows
-  no spaces.
+- **No prompt or task text.** No field accepts free text. The decision ID,
+  spec hash and snapshot are fixed-length hex. `result` and `task_kind` are
+  closed lists. The model and provider must be in the catalogue (next point).
+  Latency and cost are rounded, so their digits cannot carry text either.
 - **No API key values, and not whether you have keys.** No field can hold a
-  key, and `record` does not look at your environment.
+  key. `record` reads no environment variable except `MODELSPEC_HOME` and
+  `MODELSPEC_CACHE`, which say where its own files are.
 - **No customer, user, machine or repository identifiers.** A model or provider
   must be in the cached ModelSpec catalogue. Otherwise `record` refuses it and
   tells you to pass `--adopted other`, which records the word `other` and never
   the name. This matters because a private fine-tune's name can identify a
-  customer.
+  customer. The only exception is a model in the best band of a decision stub
+  that `decide` wrote on this machine. A `--decision` file cannot vouch for a
+  model in this way, because anyone can write one. `cli_version` drops any
+  `+local` segment, which can carry a hostname or a git hash.
 - **Not the spec.** Only its hash is recorded, and that is the same hash
-  `decide` already prints.
+  `decide` already prints. The hash is unsalted, so someone who can guess
+  your whole spec can confirm the guess by hashing it. A spec can name the
+  providers and plans you hold. Anyone who holds the same spec and snapshot
+  gets the same decision ID. That does not matter while the log stays on your
+  machine. The upload design has to deal with it (see below).
 - **Not the rest of a decision.** `--decision FILE` reads the six stub fields
   from the file and ignores everything else in it.
 
@@ -103,6 +117,9 @@ sees anything.)
 `show` and `export` check every line against the schema again before they print
 it. A line that someone edited by hand to add a field is skipped and counted.
 It is never passed through.
+
+If a later CLI bumps the consent version, recording stops. The records and
+stubs you already have stay on disk until you run `disable --delete`.
 
 ## What leaves your machine
 

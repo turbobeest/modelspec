@@ -256,12 +256,14 @@ with `error.code` on stderr, for:
   the rule, never the value.
 - `invalid_adopted`: `--adopted` is not `lab/model`, `lab/model/provider`,
   `other` or `other/provider`.
-- `unknown_model` or `unknown_provider`: not in the cached decision
-  vocabulary, and the model is not in the decision's best band. The catalogue
-  check keeps private names out of the log. Pass `--adopted other` for a model
-  ModelSpec does not list.
+- `unknown_model` or `unknown_provider`: the model or provider is not in the
+  cached decision vocabulary, and the model is not in the best band of a stub
+  that `decide` wrote locally. (A `--decision` file cannot vouch for a model.)
+  The catalogue check keeps private names out of the log. Pass
+  `--adopted other` for a model ModelSpec does not list.
 - `invalid_decision` or `unreadable`: the `--decision` file is not a decision,
-  or it names a different decision ID.
+  names a different decision ID, or has a decision ID that is not the hash of
+  its spec hash and snapshot.
 - `unwritable`: the log cannot be written.
 
 **The record.** These fields, and no others. The schema is `OutcomeRecord` in
@@ -271,9 +273,9 @@ with `error.code` on stderr, for:
 | field | type |
 | --- | --- |
 | `record_version` | `1` |
-| `decision_id` | `dec_<id>` |
+| `decision_id` | `dec_<24 hex>` |
 | `spec_hash` | `sha256:<64 hex>` or null |
-| `snapshot` | `snap_<id>` or null |
+| `snapshot` | `snap_<16 hex>` or null |
 | `contract_version` | the decision contract's `major.minor`, or null |
 | `adopted_model` | a catalogued `lab/model`, or `"other"` |
 | `adopted_offering` | a catalogued provider slug, or null |
@@ -281,10 +283,10 @@ with `error.code` on stderr, for:
 | `in_best_band` | bool or null |
 | `result` | `success`, `partial` or `failure` |
 | `task_kind` | a decision-contract `task_type`, or null |
-| `latency_ms` | integer, 0 to 86,400,000, or null |
-| `cost_usd` | finite number, 0 to 10,000, or null |
+| `latency_ms` | integer, 0 to 86,400,000, 3 significant figures, or null |
+| `cost_usd` | finite number, 0 to 10,000, 3 significant figures, or null |
 | `recorded_at` | `YYYY-MM-DDTHH:MMZ`, UTC |
-| `cli_version` | the installed CLI release, or null |
+| `cli_version` | the installed CLI's public release (no `+local` segment), or null |
 
 `spec_hash`, `snapshot`, `contract_version`, `was_leader` and `in_best_band`
 come from the decision. `record` finds the decision in the `--decision` file

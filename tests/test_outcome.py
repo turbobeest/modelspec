@@ -37,7 +37,7 @@ VALID = {
     "record_version": 1,
     "decision_id": "dec_0123456789abcdef01234567",
     "spec_hash": "sha256:" + "0" * 64,
-    "snapshot": "snap_2026-09-24T06:00Z",
+    "snapshot": "snap_0123456789abcdef",
     "contract_version": "2.7",
     "adopted_model": "lab/coder",
     "adopted_offering": "provider",
@@ -131,6 +131,13 @@ def test_no_string_field_accepts_prompt_key_or_identifier_text(field: str, smugg
 
 
 @pytest.mark.parametrize(("field", "value"), [
+    # Pattern-shaped payloads: no spaces, no capitals where the pattern allows none.
+    ("decision_id", "dec_AcmeCorpJaneSmithSaysLoginBug500s"),
+    ("decision_id", "dec_" + "a" * 25),
+    ("snapshot", "snap_acme-corp.customer:jane"),
+    ("cli_version", "1.4.0+acmecorp"),
+    ("cli_version", "0.1.dev123+g1a2b3c4.d20260929"),
+    ("latency_ms", 48213), ("cost_usd", 1234.56789012345),
     ("latency_ms", "1200"), ("latency_ms", -1), ("latency_ms", 1.5),
     ("cost_usd", "0.04"), ("cost_usd", float("nan")), ("cost_usd", -0.01),
     ("was_leader", "yes"), ("in_best_band", 1), ("record_version", 2),
@@ -151,7 +158,7 @@ def test_the_consent_text_names_every_field() -> None:
 
 
 def test_record_is_a_no_op_until_enabled(home: Path) -> None:
-    result = _invoke("record", "dec_0123456789abcdef", "--adopted", "lab/coder",
+    result = _invoke("record", "dec_0123456789abcdef01234567", "--adopted", "lab/coder",
                      "--result", "success", "--json")
     assert result.exit_code == 0, result.output
     assert json.loads(result.stdout) == {
@@ -174,15 +181,50 @@ def test_enable_with_yes_prints_the_consent_and_turns_it_on(home: Path) -> None:
     assert (home / "outcomes-consent.json").stat().st_mode & 0o777 == 0o600
 
 
-def test_a_consent_for_another_version_does_not_count(home: Path) -> None:
+@pytest.mark.parametrize("consent", ['{"consent_version": 0}', '{"consent_version": true}',
+                                     '{"consent_version": 1.0}', '[1]',
+                                     '{"consent_version": 1, "all": true}'])
+def test_a_consent_for_another_version_does_not_count(home: Path, consent: str) -> None:
     home.mkdir()
-    (home / "outcomes-consent.json").write_text('{"consent_version": 0}')
+    (home / "outcomes-consent.json").write_text(consent)
     assert not outcome.enabled()
+
+
+def test_the_cli_version_drops_a_local_segment(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(outcome.metadata, "version", lambda _: "0.1.1.dev3+g1a2b3c4.laptop")
+    assert outcome.cli_version() == "0.1.1.dev3"
+
+
+def test_latency_and_cost_are_coarsened_to_three_figures(home: Path) -> None:
+    _invoke("enable", "--yes")
+    result = _invoke("record", VALID["decision_id"], "--adopted", "other", "--result", "success",
+                     "--latency-ms", "48213", "--cost-usd", "1234.56789012345", "--json")
+    assert result.exit_code == 0, result.output
+    record = json.loads(result.stdout)["record"]
+    assert (record["latency_ms"], record["cost_usd"]) == (48200, 1230.0)
+
+
+def test_loose_permissions_are_tightened_and_symlinks_refused(tmp_path: Path, home: Path) -> None:
+    home.mkdir(mode=0o755)
+    (home / "outcomes.jsonl").write_text("")
+    (home / "outcomes.jsonl").chmod(0o644)
+    _invoke("enable", "--yes")
+    assert _invoke("record", VALID["decision_id"], "--adopted", "other",
+                   "--result", "success").exit_code == 0
+    assert home.stat().st_mode & 0o777 == 0o700
+    assert (home / "outcomes.jsonl").stat().st_mode & 0o777 == 0o600
+
+    elsewhere = tmp_path / "elsewhere.jsonl"
+    (home / "outcomes.jsonl").unlink()
+    (home / "outcomes.jsonl").symlink_to(elsewhere)
+    refused = _invoke("record", VALID["decision_id"], "--adopted", "other", "--result", "success")
+    assert refused.exit_code == 1
+    assert not elsewhere.exists()
 
 
 def test_disable_is_one_command_and_delete_removes_the_records(home: Path) -> None:
     _invoke("enable", "--yes")
-    _invoke("record", "dec_0123456789abcdef", "--adopted", "other", "--result", "failure")
+    _invoke("record", "dec_0123456789abcdef01234567", "--adopted", "other", "--result", "failure")
     assert (home / "outcomes.jsonl").is_file()
 
     kept = _invoke("disable")
@@ -199,24 +241,28 @@ def test_disable_is_one_command_and_delete_removes_the_records(home: Path) -> No
 # ── recording ─────────────────────────────────────────────────────────────
 
 
-def test_rejected_text_is_never_echoed() -> None:
+@pytest.mark.parametrize(("args", "field"), [
+    ((PROMPT, "--task-kind", "bug_fix"), "decision_id"),
+    ((VALID["decision_id"], "--task-kind", KEY), "task_kind"),
+])
+def test_rejected_text_is_never_echoed(args: tuple[str, str, str], field: str) -> None:
     _invoke("enable", "--yes")
-    result = _invoke("record", PROMPT, "--adopted", "other", "--result", "success",
-                     "--task-kind", KEY)
+    decision_id, *rest = args
+    result = _invoke("record", decision_id, "--adopted", "other", "--result", "success", *rest)
     assert result.exit_code == 1
     assert PROMPT not in result.output
     assert KEY not in result.output
-    assert "decision_id" in result.output and "task_kind" in result.output
+    assert f"{field}:" in result.output
 
 
 def test_an_uncatalogued_model_is_refused_and_other_names_nothing(home: Path) -> None:
     _invoke("enable", "--yes")
-    refused = _invoke("record", "dec_0123456789abcdef", "--adopted", f"{CUSTOMER}/private-ft",
+    refused = _invoke("record", "dec_0123456789abcdef01234567", "--adopted", f"{CUSTOMER}/private-ft",
                       "--result", "success")
     assert refused.exit_code == 1
     assert "--adopted other" in refused.output
 
-    recorded = _invoke("record", "dec_0123456789abcdef", "--adopted", "other",
+    recorded = _invoke("record", "dec_0123456789abcdef01234567", "--adopted", "other",
                        "--result", "success", "--json")
     assert recorded.exit_code == 0, recorded.output
     line = (home / "outcomes.jsonl").read_text()
@@ -226,7 +272,7 @@ def test_an_uncatalogued_model_is_refused_and_other_names_nothing(home: Path) ->
 
 def test_an_uncatalogued_provider_is_refused(spec: Path, home: Path) -> None:
     _invoke("enable", "--yes")
-    result = _invoke("record", "dec_0123456789abcdef", "--adopted", f"lab/coder/{CUSTOMER}",
+    result = _invoke("record", "dec_0123456789abcdef01234567", "--adopted", f"lab/coder/{CUSTOMER}",
                      "--result", "success")
     assert result.exit_code == 1
     assert "provider" in result.output
@@ -294,9 +340,10 @@ def test_record_resolves_from_a_decision_file_and_keeps_none_of_it(
     decision_file.write_text(json.dumps(decision | {"prompt": PROMPT}))
     _invoke("enable", "--yes")
 
-    wrong = _invoke("record", "dec_0000000000000000", "--adopted", "lab/coder",
+    wrong = _invoke("record", "dec_000000000000000000000000", "--adopted", "lab/coder",
                     "--result", "success", "--decision", str(decision_file))
     assert wrong.exit_code == 1
+    assert "dec_000000000000000000000000" not in wrong.output
 
     result = _invoke("record", decision["decision_id"], "--adopted", "lab/coder",
                      "--result", "success", "--decision", str(decision_file), "--json")
@@ -308,7 +355,7 @@ def test_record_resolves_from_a_decision_file_and_keeps_none_of_it(
 
 def test_show_and_export_emit_only_schema_valid_records(home: Path) -> None:
     _invoke("enable", "--yes")
-    _invoke("record", "dec_0123456789abcdef", "--adopted", "other", "--result", "success")
+    _invoke("record", "dec_0123456789abcdef01234567", "--adopted", "other", "--result", "success")
     with (home / "outcomes.jsonl").open("a") as handle:
         handle.write(json.dumps(VALID | {"prompt": PROMPT}) + "\n")
         handle.write("not json\n")
@@ -325,3 +372,44 @@ def test_show_and_export_emit_only_schema_valid_records(home: Path) -> None:
     payload = json.loads(shown.stdout)
     assert (payload["enabled"], payload["count"], payload["refused_lines"]) == (True, 1, 2)
     assert PROMPT not in shown.stdout
+
+
+def test_a_decision_file_cannot_vouch_for_an_uncatalogued_model(
+    tmp_path: Path, spec: Path, home: Path,
+) -> None:
+    decision = json.loads(_decide(spec).stdout)
+    private = f"{CUSTOMER}/jane-private-finetune"
+    crafted = decision | {"bands": decision["bands"] | {
+        "leader": private, "best": [{"model": private}]}}
+    decision_file = tmp_path / "crafted.json"
+    decision_file.write_text(json.dumps(crafted))
+    _invoke("enable", "--yes")
+    result = _invoke("record", decision["decision_id"], "--adopted", private,
+                     "--result", "success", "--decision", str(decision_file))
+    assert result.exit_code == 1
+    assert "--adopted other" in result.output
+    assert not (home / "outcomes.jsonl").exists()
+
+
+@pytest.mark.parametrize("change", [
+    {"snapshot": "snap_0123456789abcdef"},       # the ID no longer hashes these fields
+    {"spec_hash": "sha256:" + "1" * 64},
+    {"bands": "leader"},                          # malformed shapes fail cleanly
+    {"answer": "lab/coder"},
+    {"bands": {"best": ["lab/coder"]}},
+])
+def test_a_crafted_or_malformed_decision_file_is_refused(
+    tmp_path: Path, spec: Path, home: Path, change: dict,
+) -> None:
+    decision = json.loads(_decide(spec).stdout)
+    decision_file = tmp_path / "crafted.json"
+    decision_file.write_text(json.dumps(decision | change))
+    _invoke("enable", "--yes")
+    result = _invoke("record", decision["decision_id"], "--adopted", "lab/coder",
+                     "--result", "success", "--decision", str(decision_file))
+    assert result.exit_code == 1
+    assert isinstance(result.exception, SystemExit)  # an error message, not a traceback
+    assert "invalid_decision" in _invoke(
+        "record", decision["decision_id"], "--adopted", "lab/coder", "--result", "success",
+        "--decision", str(decision_file), "--json").stderr
+    assert not (home / "outcomes.jsonl").exists()

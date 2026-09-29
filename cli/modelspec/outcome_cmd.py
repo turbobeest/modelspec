@@ -9,6 +9,7 @@ touches the network.
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Any, NoReturn, Optional
@@ -36,11 +37,11 @@ def _fail(command: str, code: str, message: str, as_json: bool) -> NoReturn:
     raise typer.Exit(EXIT_ERROR)
 
 
-def _validation_message(exc: ValidationError) -> str:
+def _validation_message(exc: ValidationError, field: str = "record") -> str:
     # The field and the reason, never the rejected value: it may be the very
     # text the schema exists to keep out.
     return "; ".join(
-        f"{'.'.join(str(part) for part in error['loc']) or 'record'}: {error['msg']}"
+        f"{'.'.join(str(part) for part in error['loc']) or field}: {error['msg']}"
         for error in exc.errors(include_input=False)
     )
 
@@ -105,16 +106,23 @@ def _stub_from_file(path: Path, decision_id: str, as_json: bool) -> outcome.Deci
     except ValidationError as exc:
         _fail("record", "invalid_decision",
               f"{path} is not a decision: {_validation_message(exc)}", as_json)
-    except (ValueError, KeyError, TypeError) as exc:
-        _fail("record", "invalid_decision", f"{path} is not a decision: {exc}", as_json)
+    except (ValueError, KeyError, TypeError, AttributeError) as exc:
+        detail = f"missing {exc}" if isinstance(exc, KeyError) else "unexpected shape"
+        _fail("record", "invalid_decision", f"{path} is not a decision: {detail}", as_json)
     if stub.decision_id != decision_id:
         _fail("record", "invalid_decision",
-              f"{path} is decision {stub.decision_id}, not {decision_id}", as_json)
+              f"{path} is a different decision from the one named", as_json)
     return stub
 
 
-def _adopted(value: str, stub: outcome.DecisionStub | None,
+def _adopted(value: str, local: outcome.DecisionStub | None,
              as_json: bool) -> tuple[str, str | None]:
+    """Parse --adopted and check it against the catalogue.
+
+    Only a stub ``decide`` wrote on this machine can vouch for a model the
+    cached vocabulary lacks; a ``--decision`` file cannot, or a hand-made file
+    would carry any ``lab/model`` string past the check.
+    """
     parts = value.split("/")
     if parts[0] == outcome.OTHER and len(parts) <= 2:
         model, provider = outcome.OTHER, (parts[1] if len(parts) == 2 else None)
@@ -124,7 +132,7 @@ def _adopted(value: str, stub: outcome.DecisionStub | None,
         _fail("record", "invalid_adopted",
               "--adopted is lab/model, lab/model/provider, other or other/provider", as_json)
     catalogue = _catalogue()
-    decided = set(stub.best) | {stub.leader} if stub is not None else set()
+    decided = set(local.best) | {local.leader} if local is not None else set()
     if model != outcome.OTHER and model not in decided and (
         catalogue is None or model not in catalogue[0]
     ):
@@ -172,9 +180,13 @@ def record(
         typer.echo("not recorded: outcome recording is off "
                    "(`modelspec outcome enable` turns it on)", err=True)
         return
-    stub = (_stub_from_file(decision_file, decision_id, as_json)
-            if decision_file is not None else outcome.load_stub(decision_id))
-    model, provider = _adopted(adopted, stub, as_json)
+    try:
+        outcome.check_decision_id(decision_id)
+    except ValidationError as exc:
+        _fail("record", "invalid_record", _validation_message(exc, "decision_id"), as_json)
+    local = outcome.load_stub(decision_id) if decision_file is None else None
+    stub = _stub_from_file(decision_file, decision_id, as_json) if decision_file else local
+    model, provider = _adopted(adopted, local, as_json)
     try:
         entry = outcome.build_record(
             decision_id=decision_id, stub=stub, adopted_model=model,
@@ -246,6 +258,11 @@ def export(
     if out is None:
         typer.echo(text, nl=False)
         return
-    out.write_text(text, encoding="utf-8")
+    try:
+        descriptor = outcome.open_private(out, os.O_WRONLY | os.O_TRUNC)
+        with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
+            handle.write(text)
+    except OSError as exc:
+        _fail("export", "unwritable", f"cannot write {out}: {exc.strerror or exc}", False)
     typer.echo(f"wrote {len(records)} record{'' if len(records) == 1 else 's'} to {out}",
                err=True)

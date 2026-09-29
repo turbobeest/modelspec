@@ -52,8 +52,8 @@ Three fields change on the way out:
 | field | locally | uploaded | why |
 | --- | --- | --- | --- |
 | `recorded_at` | to the minute | to the **day** (`YYYY-MM-DD`) | a minute plus a decision ID can be joined to a caller's own logs |
-| `cost_usd` | as given | rounded to 2 significant figures | an exact cost can fingerprint one account's pricing |
-| `latency_ms` | as given | rounded to 2 significant figures | the same, for latency |
+| `cost_usd` | 3 significant figures | 2 significant figures | an exact cost can fingerprint one account's pricing |
+| `latency_ms` | 3 significant figures | 2 significant figures | the same, for latency |
 
 Nothing is added on the way out. There is no install ID, machine ID, user ID,
 IP-derived field or API key ID in the body. See section 4 for how the Worker
@@ -73,10 +73,13 @@ besides `records`.
   aggregate is computed only for a cell with at least 20 records from at least
   5 distinct upload batches. A cell below that threshold is not computed, not
   stored and not published. The thresholds are *Jamie's call*.
-- **Deletion on request.** `upload disable --delete-remote` sends the decision
-  IDs this client uploaded, and the Worker deletes those records. Decision IDs
-  are the only handle the store has, which is why the client keeps a local list
-  of the IDs it has sent (`outcomes-uploaded.jsonl`, IDs only).
+- **Deletion on request.** A decision ID cannot be the deletion handle. It is
+  deterministic, so anyone with a public or template spec could delete every
+  caller's records for it. Instead, each accepted batch gets a random 128-bit
+  receipt. The Worker stores the receipt's SHA-256 beside the batch's rows, and
+  the client keeps the receipts locally (`outcomes-uploaded.jsonl`, receipts
+  only). `upload disable --delete-remote` sends the receipts, and the Worker
+  deletes those batches.
 
 ## 4. Anonymisation, and what it cannot do
 
@@ -97,11 +100,18 @@ What this cannot remove, stated plainly so that nobody overclaims:
   and snapshot can compute them, so two callers with identical specs produce
   identical IDs. The store can therefore tell "these records came from the same
   spec", but not who wrote it. A caller who wants even that hidden should not
-  upload. *Option for Jamie:* hash `decision_id` with a per-deployment secret
-  pepper on arrival. That breaks joins to public specs but also breaks
-  `--delete-remote`, unless the client sends the same peppered hash, which it
-  cannot compute. The recommendation is to keep the raw ID and rely on the
-  retention limit.
+  upload.
+- **The spec hash is a guessable fingerprint.** It is unsalted SHA-256 over the
+  canonical spec (`decision/contract.py`), and a spec can carry an `estate`:
+  the providers, plans and devices the caller holds. Whoever holds the store
+  can confirm a guessed spec, including a guessed estate, by hashing it.
+  Knowing which providers someone holds is close to REV-9's "whether keys are
+  present". Before this is built, Jamie decides between two options. One is to
+  upload no `spec_hash` and a peppered `decision_id`, which loses the join to
+  published specs. The other is to upload both and state this risk in the
+  consent text and the privacy statement. The recommendation is the first.
+  Deletion by receipt (section 3) does not depend on the ID, so peppering it
+  costs nothing there.
 - A caller with a very unusual `(model, offering, task_kind)` combination may
   be the only contributor to a cell. The minimum-count rule keeps that cell out
   of anything published, but the raw rows exist for up to 180 days.
@@ -125,7 +135,8 @@ A new binding on the keyed Worker (`api.modelspec.dev`), beside `ACCESS` and
 `DETERMINATIONS`:
 
 - **Endpoint:** `POST /v1/outcomes`, with the body `{"records": [...]}`.
-  `DELETE /v1/outcomes` takes `{"decision_ids": [...]}`. There is no GET, so
+  It answers with the batch's receipt. `DELETE /v1/outcomes` takes
+  `{"receipts": [...]}`. There is no GET, so
   the store cannot be read over the API.
 - **Storage:** a D1 database, `OUTCOMES`, not KV, because retention deletion
   and aggregation are range queries over dates. It has one table whose columns

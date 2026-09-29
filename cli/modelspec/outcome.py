@@ -13,6 +13,7 @@ is a separate, unbuilt design (``docs/design/outcome-upload.md``).
 
 from __future__ import annotations
 
+import hashlib
 import json
 import math
 import os
@@ -23,7 +24,16 @@ from importlib import metadata
 from pathlib import Path
 from typing import Annotated, Any, Literal
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, StrictBool, StrictInt
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    ConfigDict,
+    Field,
+    StrictBool,
+    StrictInt,
+    TypeAdapter,
+    model_validator,
+)
 
 from decision import contract
 
@@ -44,15 +54,24 @@ RESULTS = ("success", "partial", "failure")
 #: never recorded: a private fine-tune's name can identify a customer.
 OTHER = "other"
 
+#: Exactly what the engine emits: "dec_" + sha256(spec_hash + snapshot)[:24]
+#: (``decision/engine.py``). The contract's looser ``dec_<id>`` would carry text.
+DECISION_ID_PATTERN = r"^dec_[0-9a-f]{24}$"
+#: Exactly what ``decision.snapshot.snapshot_id_for`` emits.
+SNAPSHOT_PATTERN = r"^snap_[0-9a-f]{16}$"
 PROVIDER_PATTERN = r"^[a-z0-9][a-z0-9_-]{0,63}$"
 CONTRACT_VERSION_PATTERN = r"^[0-9]{1,3}\.[0-9]{1,3}$"
-CLI_VERSION_PATTERN = r"^[0-9]{1,4}(\.[0-9]{1,4}){1,3}([.+-][a-z0-9]{1,16}){0,3}$"
+#: A public release: no ``+local`` segment, which can carry a hostname or a git hash.
+CLI_VERSION_PATTERN = r"^[0-9]{1,4}(\.[0-9]{1,4}){1,3}((a|b|rc)[0-9]{1,4})?(\.post[0-9]{1,4})?(\.dev[0-9]{1,4})?$"
 #: Minute precision, UTC. Enough to order records; no finer.
 RECORDED_AT_PATTERN = r"^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}Z$"
 
 MAX_LATENCY_MS = 86_400_000  # one day
 MAX_COST_USD = 10_000.0
 MAX_ID_LENGTH = 128
+#: Latency and cost are kept to this many significant figures, so neither can
+#: carry more than a coarse measurement.
+SIGNIFICANT_FIGURES = 3
 
 CONSENT_TEXT = f"""\
 ModelSpec outcome recording (consent version {CONSENT_VERSION})
@@ -72,10 +91,10 @@ Each line holds exactly these fields and nothing else:
   in_best_band      whether it was in the decision's best band
   result            success, partial or failure
   task_kind         optional, one of a fixed list (bug_fix, refactor, ...)
-  latency_ms        optional, a whole number of milliseconds
-  cost_usd          optional, a number of US dollars
+  latency_ms        optional, milliseconds, rounded to 3 significant figures
+  cost_usd          optional, US dollars, rounded to 3 significant figures
   recorded_at       the time, to the minute, in UTC
-  cli_version       this CLI's version
+  cli_version       this CLI's public release number
   record_version    the version of this record format
 
 It never records your prompt or task text, your API keys or whether you have
@@ -106,9 +125,9 @@ def _pattern(pattern: str, what: str, *, max_length: int = MAX_ID_LENGTH) -> Any
     return Annotated[str, Field(max_length=max_length), AfterValidator(check)]
 
 
-DecisionId = _pattern(contract.DECISION_ID_PATTERN, "a decision ID is dec_<id>")
+DecisionId = _pattern(DECISION_ID_PATTERN, "a decision ID is dec_ and 24 hex")
 SpecHash = _pattern(contract.SPEC_HASH_PATTERN, "a spec hash is sha256:<64 hex>")
-SnapshotId = _pattern(contract.SNAPSHOT_PATTERN, "a snapshot ID is snap_<id>")
+SnapshotId = _pattern(SNAPSHOT_PATTERN, "a snapshot ID is snap_ and 16 hex")
 ModelId = _pattern(contract.MODEL_PATTERN, "a model ID is lab/model")
 ProviderId = _pattern(PROVIDER_PATTERN, "a provider is a lowercase slug")
 ContractVersion = _pattern(CONTRACT_VERSION_PATTERN, "a contract version is major.minor")
@@ -119,6 +138,25 @@ RecordedAt = _pattern(RECORDED_AT_PATTERN, "recorded_at is YYYY-MM-DDTHH:MMZ, UT
 def _finite(value: float) -> float:
     if not math.isfinite(value):
         raise ValueError("cost_usd must be a finite number")
+    return value
+
+
+def _coarse(value: float) -> float:
+    """``value`` to ``SIGNIFICANT_FIGURES`` significant figures."""
+    if value == 0 or not math.isfinite(value):
+        return value
+    return round(value, SIGNIFICANT_FIGURES - 1 - math.floor(math.log10(abs(value))))
+
+
+def _coarse_int(value: int) -> int:
+    if not math.isfinite(value) or value < 0:
+        return value
+    return int(_coarse(float(value)))
+
+
+def _is_coarse(value: float) -> float:
+    if _coarse(value) != value:
+        raise ValueError(f"must be rounded to {SIGNIFICANT_FIGURES} significant figures")
     return value
 
 
@@ -142,9 +180,10 @@ class OutcomeRecord(_Strict):
     in_best_band: StrictBool | None
     result: Literal["success", "partial", "failure"]
     task_kind: contract.TaskType | None
-    latency_ms: Annotated[StrictInt, Field(ge=0, le=MAX_LATENCY_MS)] | None
+    latency_ms: Annotated[StrictInt, Field(ge=0, le=MAX_LATENCY_MS),
+                          AfterValidator(_is_coarse)] | None
     cost_usd: Annotated[float, Field(ge=0, le=MAX_COST_USD),
-                        AfterValidator(_finite)] | None
+                        AfterValidator(_finite), AfterValidator(_is_coarse)] | None
     recorded_at: RecordedAt
     cli_version: CliVersion | None
 
@@ -158,6 +197,23 @@ class DecisionStub(_Strict):
     contract_version: ContractVersion
     leader: ModelId | None
     best: list[ModelId] = Field(max_length=64)
+
+    @model_validator(mode="after")
+    def _bound(self) -> DecisionStub:
+        # The ID is a hash of the other two, so a hand-made stub cannot pair
+        # a real ID with made-up fields.
+        digest = hashlib.sha256((self.spec_hash + self.snapshot).encode()).hexdigest()
+        if self.decision_id != "dec_" + digest[:24]:
+            raise ValueError("decision_id does not match spec_hash and snapshot")
+        return self
+
+
+_DECISION_ID = TypeAdapter(DecisionId)
+
+
+def check_decision_id(value: str) -> str:
+    """Validate a decision ID; the error never echoes it."""
+    return _DECISION_ID.validate_python(value)
 
 
 # ── where things live ─────────────────────────────────────────────────────
@@ -185,13 +241,24 @@ def consent_text() -> str:
 
 
 def _private_dir(path: Path) -> None:
+    """Create ``path`` 0700, and tighten it if it already existed looser."""
     path.mkdir(mode=0o700, parents=True, exist_ok=True)
+    home().chmod(0o700)
+    path.chmod(0o700)
+
+
+def open_private(path: Path, flags: int) -> int:
+    """Open a file 0600 without following a symlink, tightening an existing one."""
+    descriptor = os.open(path, flags | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+    os.fchmod(descriptor, 0o600)
+    return descriptor
 
 
 def _write_private(path: Path, text: str) -> None:
     _private_dir(path.parent)
     temporary = path.with_name(path.name + ".tmp")
-    descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    temporary.unlink(missing_ok=True)
+    descriptor = open_private(temporary, os.O_WRONLY | os.O_EXCL)
     with os.fdopen(descriptor, "w", encoding="utf-8") as handle:
         handle.write(text)
     os.replace(temporary, path)
@@ -206,7 +273,9 @@ def enabled() -> bool:
         value = json.loads(consent_path().read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return False
-    return bool(value == {"consent_version": CONSENT_VERSION})
+    return (isinstance(value, dict) and set(value) == {"consent_version"}
+            and type(value["consent_version"]) is int
+            and value["consent_version"] == CONSENT_VERSION)
 
 
 def enable() -> None:
@@ -221,7 +290,7 @@ def disable(*, delete: bool) -> int:
     consent_path().unlink(missing_ok=True)
     stubs = stubs_path()
     if stubs.is_dir():
-        for stub in stubs.glob("*.json"):
+        for stub in stubs.iterdir():
             stub.unlink(missing_ok=True)
         try:
             stubs.rmdir()
@@ -240,7 +309,12 @@ def stub_from_decision(decision: dict[str, Any]) -> DecisionStub:
     """Take only the stub's fields from a decision's JSON; drop everything else."""
     bands = decision.get("bands") or {}
     answer = decision.get("answer") or {}
-    best = [entry["model"] for entry in bands.get("best") or []]
+    if not isinstance(bands, dict) or not isinstance(answer, dict):
+        raise ValueError("bands and answer must be objects")
+    entries = bands.get("best") or []
+    if not isinstance(entries, list) or not all(isinstance(entry, dict) for entry in entries):
+        raise ValueError("bands.best must be a list of objects")
+    best = [entry.get("model") for entry in entries]
     if not best and answer:
         best = list(answer.get("members") or [])
     leader = bands.get("leader") or answer.get("leader") or (best[0] if best else None)
@@ -266,7 +340,7 @@ def save_stub(stub: DecisionStub) -> None:
 
 
 def load_stub(decision_id: str) -> DecisionStub | None:
-    if re.fullmatch(contract.DECISION_ID_PATTERN, decision_id) is None:
+    if re.fullmatch(DECISION_ID_PATTERN, decision_id) is None:
         return None
     try:
         text = (stubs_path() / f"{decision_id}.json").read_text(encoding="utf-8")
@@ -284,8 +358,10 @@ def cli_version() -> str | None:
             version = metadata.version(distribution)
         except metadata.PackageNotFoundError:
             continue
-        # A version the pattern refuses (a local build tag) is unknown, not an error.
-        return version if re.fullmatch(CLI_VERSION_PATTERN, version) else None
+        # The public part only: a local segment (+hostname, +g<hash>) is dropped,
+        # and a version the pattern still refuses is unknown, not an error.
+        public = version.split("+", 1)[0]
+        return public if re.fullmatch(CLI_VERSION_PATTERN, public) else None
     return None
 
 
@@ -317,8 +393,8 @@ def build_record(
         "in_best_band": (adopted_model in stub.best) if stub else None,
         "result": result,
         "task_kind": task_kind,
-        "latency_ms": latency_ms,
-        "cost_usd": cost_usd,
+        "latency_ms": _coarse_int(latency_ms) if latency_ms is not None else None,
+        "cost_usd": _coarse(cost_usd) if cost_usd is not None else None,
         "recorded_at": now_minute(),
         "cli_version": cli_version(),
     })
@@ -331,7 +407,7 @@ def append(record: OutcomeRecord) -> None:
     path = outcomes_path()
     _private_dir(path.parent)
     line = OutcomeRecord.model_validate_json(record.model_dump_json()).model_dump_json()
-    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+    descriptor = open_private(path, os.O_WRONLY | os.O_APPEND)
     with os.fdopen(descriptor, "a", encoding="utf-8") as handle:
         handle.write(line + "\n")
 
