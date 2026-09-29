@@ -373,7 +373,7 @@ def with_estate(
     if access is not None and access.kind == "own_software" and any(
         catalogue.plans[plan_id].surfaces is not None
         and plans_module.API not in catalogue.plans[plan_id].surfaces
-        for plan_id in estate.plans
+        for plan_id in plans
     ):
         warnings.append(PLAN_EXCLUDES_OWN_SOFTWARE)
     return WithEstate(

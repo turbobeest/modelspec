@@ -419,7 +419,12 @@ def _refinement_estimate(key: str, found) -> RefinementEstimate | None:
 
 
 def _plan_routes(cid: str, snapshot, access, reach) -> list:
-    """The plans that reach ``cid`` on ``access``, cheapest first (MODEL-200)."""
+    """The plans that reach ``cid`` on ``access``, cheapest first (MODEL-200).
+
+    None for a row the caller already holds: at the margin it has no
+    pay-per-use cost to break even against."""
+    if cid in reach.marginal:
+        return []
     ref = offering_ref(snapshot, cid)
     where = f"{ref.model} through {ref.provider}" if ref.provider else ref.model
     cost = _candidate_cost(snapshot, cid)

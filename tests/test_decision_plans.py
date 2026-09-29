@@ -454,3 +454,9 @@ def test_the_contract_drops_what_exclude_if_drops_on_any_pydantic(undisclosed) -
     if mark is not None:
         native = mark.model_dump(mode="json")
         assert c.apply_exclude_if(mark, native | {"coverage": None}) == native
+
+
+def test_an_exhausted_plan_raises_no_own_software_warning(sourced) -> None:
+    spent = _decide(sourced, "own_software", {"plans": [MAX], "exhausted": [MAX]})
+
+    assert spent.with_estate.warnings == []
