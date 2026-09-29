@@ -116,6 +116,9 @@ class RuleSet:
     #: Render ``<svg role="img" aria-label="…">`` as its label rather than dropping
     #: it, for pages whose table cells are icons (GitHub Docs' "Included").
     label_icons: bool = False
+    #: Keep the text of a ``<button>`` inside a table header cell. Anthropic's pricing
+    #: table names its cache columns with buttons that open a tooltip (MODEL-235).
+    header_buttons: bool = False
     #: Skip footnote reference marks (``<sup><a data-footnote-ref>2</a></sup>``), which
     #: otherwise run into the text they annotate ("Claude Fable 5.12").
     drop_footnote_refs: bool = False
@@ -151,6 +154,9 @@ NORMALISERS: dict[str, RuleSet] = {
         # recipe of their own; html-default's text, and every source's, is unchanged.
         RuleSet("html-icon-labels", "html", drop_tags=_HTML_DROP_TAGS, label_icons=True,
                 drop_footnote_refs=True),
+        # MODEL-235: a recipe of its own for the same reason as icon labels.
+        RuleSet("html-header-buttons", "html", drop_tags=_HTML_DROP_TAGS,
+                header_buttons=True),
         RuleSet("text-default", "text"),
     )
 }
@@ -421,6 +427,15 @@ def _footnote_ref(node: Node) -> bool:
         isinstance(c, Node) and _footnote_ref(c) for c in node.children)
 
 
+def _in_header_cell(node: Node) -> bool:
+    ancestor = node.parent
+    while ancestor is not None:
+        if ancestor.tag == "th":
+            return True
+        ancestor = ancestor.parent
+    return False
+
+
 def _prune(node: Node, rules: RuleSet) -> None:
     kept: list[Node | str] = []
     for child in node.children:
@@ -430,6 +445,9 @@ def _prune(node: Node, rules: RuleSet) -> None:
                 kept.append(label)
                 continue
             if rules.drop_footnote_refs and _footnote_ref(child):
+                continue
+            if rules.header_buttons and child.tag == "button" and _in_header_cell(child):
+                kept.append(_inline(child))
                 continue
             if _is_furniture(child, rules):
                 continue

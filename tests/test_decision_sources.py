@@ -690,3 +690,19 @@ def test_icon_labels_render_an_icon_cell_as_its_label_and_leave_html_default_alo
                                      "GPT-6 Sol | Not included | Included"]
     assert default.splitlines() == ["Available models | Copilot Pro | Copilot Max",
                                     "GPT-6 Sol 2 | |"]
+
+
+def test_header_buttons_keep_a_column_name_and_leave_html_default_alone():
+    """MODEL-235: Anthropic names its cache columns with tooltip buttons."""
+    page = (b'<main><table><thead><tr><th>Name</th><th>Input</th>'
+            b'<th><button type="button">Hits and refreshes</button></th></tr></thead>'
+            b'<tbody><tr><td>Claude Opus 5.5</td><td>$4 / MTok</td><td>$0.40 / MTok</td></tr>'
+            b'</tbody></table><button>Copy page</button></main>')
+
+    kept = normalise_document(page, NORMALISERS["html-header-buttons"]).text
+    default = normalise_document(page, NORMALISERS["html-default"]).text
+
+    assert kept.splitlines() == ["Name | Input | Hits and refreshes",
+                                 "Claude Opus 5.5 | $4 / MTok | $0.40 / MTok"]
+    assert default.splitlines() == ["Name | Input |",
+                                    "Claude Opus 5.5 | $4 / MTok | $0.40 / MTok"]
