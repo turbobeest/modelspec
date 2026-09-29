@@ -1,0 +1,4004 @@
+{
+  "vocabulary_version": 1,
+  "contract_version": "2.7",
+  "snapshot": "snap_0fdad8b995d919c7",
+  "default_task_tokens": {
+    "input": 40000,
+    "output": 4000
+  },
+  "task_types": [
+    "new_feature",
+    "bug_fix",
+    "refactor",
+    "test_writing",
+    "docs",
+    "migration",
+    "performance",
+    "security_fix",
+    "review",
+    "analysis",
+    "data_transform",
+    "config_infra"
+  ],
+  "facets": [
+    {
+      "id": "model.class",
+      "label": "Model class",
+      "definition": "The model's class as derived from its model type by `api/classes.py`: what it consumes, what it emits and what decision it makes. One value per model. Class is derived, not authored, and says nothing about quality.",
+      "subject": "model",
+      "value_type": "enum",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "enum value",
+          "weight": "positive number"
+        }
+      },
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 6,
+      "values": []
+    },
+    {
+      "id": "model.input_modalities",
+      "label": "Input modalities",
+      "definition": "Every modality the model accepts as input natively, without a separate model transcribing or captioning it first. `document` means files such as PDF read as documents, not text extracted by the caller.",
+      "subject": "model",
+      "value_type": "set",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "preference": null,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 6,
+      "values": []
+    },
+    {
+      "id": "model.output_modalities",
+      "label": "Output modalities",
+      "definition": "Every modality the model emits natively. `embedding` is a vector, `score` a relevance or reward number, `label` a class from a fixed or caller-defined set, and `action` a tool or environment action.",
+      "subject": "model",
+      "value_type": "set",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "preference": null,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 6,
+      "values": []
+    },
+    {
+      "id": "model.context_window",
+      "label": "Context window",
+      "definition": "The maximum number of tokens the model accepts in one request, input and output together, as documented by its lab for its largest supported configuration. A provider that serves a smaller window records that on the offering, not here.",
+      "subject": "model",
+      "value_type": "number",
+      "unit": "tokens",
+      "unit_definition": "Tokens as counted by the model's own tokenizer, as documented by its lab. Not words, characters or another model's tokens.",
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": true,
+      "preference": {
+        "kind": "continuous",
+        "directions": [
+          "max",
+          "min"
+        ],
+        "threshold": "where"
+      },
+      "risk": "capability",
+      "computed_by": null,
+      "known": 6,
+      "of": 6,
+      "range": {
+        "min": 50000,
+        "max": 500000
+      }
+    },
+    {
+      "id": "model.max_output_tokens",
+      "label": "Maximum output tokens",
+      "definition": "The maximum number of tokens the model can emit in one response, including any reasoning tokens the lab counts against the limit, as documented by its lab.",
+      "subject": "model",
+      "value_type": "number",
+      "unit": "tokens",
+      "unit_definition": "Tokens as counted by the model's own tokenizer, as documented by its lab. Not words, characters or another model's tokens.",
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": true,
+      "preference": {
+        "kind": "continuous",
+        "directions": [
+          "max",
+          "min"
+        ],
+        "threshold": "where"
+      },
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 6,
+      "range": null
+    },
+    {
+      "id": "model.weights_openness",
+      "label": "Open weights",
+      "definition": "`open_weights` when the lab publishes the trained weights for download under any licence, including a gated or restrictive one; `closed_weights` otherwise. Says nothing about the licence terms, which are the `licence.*` facets.",
+      "subject": "model",
+      "value_type": "enum",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "enum value",
+          "weight": "positive number"
+        }
+      },
+      "risk": "capability",
+      "computed_by": null,
+      "known": 6,
+      "of": 6,
+      "values": [
+        {
+          "value": "closed_weights",
+          "count": 4,
+          "label": "Closed weights"
+        },
+        {
+          "value": "open_weights",
+          "count": 2,
+          "label": "Open weights"
+        }
+      ]
+    },
+    {
+      "id": "model.parameters_total",
+      "label": "Total parameters",
+      "definition": "The total number of parameters in the released model, counting every expert of a mixture-of-experts model. `not_disclosed` is a state of the fact, never an estimate.",
+      "subject": "model",
+      "value_type": "number",
+      "unit": "parameters",
+      "unit_definition": "A count of trainable weights (not billions; 7e9 is written 7000000000).",
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": true,
+      "preference": {
+        "kind": "continuous",
+        "directions": [
+          "max",
+          "min"
+        ],
+        "threshold": "where"
+      },
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 6,
+      "range": null
+    },
+    {
+      "id": "model.parameters_active",
+      "label": "Active parameters",
+      "definition": "The number of parameters used to process one token. Equal to the total for a dense model; for a mixture-of-experts model, as the lab documents it.",
+      "subject": "model",
+      "value_type": "number",
+      "unit": "parameters",
+      "unit_definition": "A count of trainable weights (not billions; 7e9 is written 7000000000).",
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": true,
+      "preference": {
+        "kind": "continuous",
+        "directions": [
+          "max",
+          "min"
+        ],
+        "threshold": "where"
+      },
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 6,
+      "range": null
+    },
+    {
+      "id": "model.architecture",
+      "label": "Architecture",
+      "definition": "The model's architecture family as `ArchitectureType` in `schema/enums.py` names it. An undisclosed architecture is unknown, never inapplicable.",
+      "subject": "model",
+      "value_type": "enum",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "enum value",
+          "weight": "positive number"
+        }
+      },
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 6,
+      "values": []
+    },
+    {
+      "id": "licence.commercial_use",
+      "label": "Commercial use",
+      "definition": "Whether the licence governing the model lets a customer use the model or its outputs in a commercial product. `permitted_with_conditions` covers any condition (user caps, attribution, field-of-use limits); the other `licence.*` facets say which.",
+      "subject": "model",
+      "value_type": "enum",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "enum value",
+          "weight": "positive number"
+        }
+      },
+      "risk": "governance",
+      "computed_by": null,
+      "known": 0,
+      "of": 6,
+      "values": []
+    },
+    {
+      "id": "licence.user_cap",
+      "label": "Licence user cap",
+      "definition": "The largest number of monthly active users a licensee may serve before the licence requires a separate agreement. `unbounded` when the licence sets no such cap.",
+      "subject": "model",
+      "value_type": "number",
+      "unit": "monthly_active_users",
+      "unit_definition": "Distinct end users in a calendar month, as the licence itself defines the count.",
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": true,
+      "preference": {
+        "kind": "continuous",
+        "directions": [
+          "max",
+          "min"
+        ],
+        "threshold": "where"
+      },
+      "risk": "governance",
+      "computed_by": null,
+      "known": 0,
+      "of": 6,
+      "range": null
+    },
+    {
+      "id": "licence.output_training",
+      "label": "Training on outputs",
+      "definition": "Whether the licence or terms let a customer use the model's outputs to train or improve another model. `restricted` when permitted only for some purposes or models (for example not for a competing model).",
+      "subject": "model",
+      "value_type": "enum",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "enum value",
+          "weight": "positive number"
+        }
+      },
+      "risk": "governance",
+      "computed_by": null,
+      "known": 0,
+      "of": 6,
+      "values": []
+    },
+    {
+      "id": "licence.fine_tuning",
+      "label": "Fine-tuning rights",
+      "definition": "Whether the licence lets a customer modify the model's weights by further training and use the result. Whether a provider offers fine-tuning as a service is `offering.fine_tuning`, a different fact.",
+      "subject": "model",
+      "value_type": "enum",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "enum value",
+          "weight": "positive number"
+        }
+      },
+      "risk": "governance",
+      "computed_by": null,
+      "known": 0,
+      "of": 6,
+      "values": []
+    },
+    {
+      "id": "origin.lab_jurisdiction",
+      "label": "Lab jurisdiction",
+      "definition": "The country or countries where the lab that trained this model is incorporated, as ISO 3166-1 alpha-2 codes. Where the lab has a parent company, the parent's country is included too. Says nothing about where the model was based on or where it runs.",
+      "subject": "model",
+      "value_type": "set",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "preference": null,
+      "risk": "governance",
+      "computed_by": null,
+      "known": 0,
+      "of": 6,
+      "values": []
+    },
+    {
+      "id": "origin.base_lineage",
+      "label": "Base model lineage",
+      "definition": "The countries of incorporation of the labs that trained every model this model's weights were derived from (fine-tuned, distilled into, merged or continued from), as ISO 3166-1 alpha-2 codes. The empty set when the model was trained from random initialisation. Excludes this model's own lab unless it also trained an ancestor.",
+      "subject": "model",
+      "value_type": "set",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "preference": null,
+      "risk": "governance",
+      "computed_by": null,
+      "known": 0,
+      "of": 6,
+      "values": []
+    },
+    {
+      "id": "origin.weights_hosting",
+      "label": "Weights hosted in",
+      "definition": "The countries in which the lab itself stores and serves the weights for the hosted inference it sells first-party, as ISO 3166-1 alpha-2 codes. The empty set when the lab sells no hosted inference of this model. Where a third-party provider runs the model is `offering.region`, not this.",
+      "subject": "model",
+      "value_type": "set",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "preference": null,
+      "risk": "governance",
+      "computed_by": null,
+      "known": 0,
+      "of": 6,
+      "values": []
+    },
+    {
+      "id": "origin.base_models",
+      "label": "Base models",
+      "definition": "The `lab/model-id` of every model this model's weights were directly derived from. The empty set when trained from random initialisation. Backs `origin.base_lineage` with the models themselves.",
+      "subject": "model",
+      "value_type": "set",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "preference": null,
+      "risk": "governance",
+      "computed_by": null,
+      "known": 0,
+      "of": 6,
+      "values": []
+    },
+    {
+      "id": "model.release_date",
+      "label": "Release date",
+      "definition": "The date the lab first made the model generally available to the public, by API or download. A preview or waitlist release counts only if anyone could sign up.",
+      "subject": "model",
+      "value_type": "date",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": false,
+      "preference": null,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 6,
+      "range": null
+    },
+    {
+      "id": "model.lifecycle",
+      "label": "Lifecycle",
+      "definition": "`deprecated` when the lab has announced a retirement date; `retired` when the lab no longer serves or supports the model; `active` otherwise. Retired models are excluded from decisions unless a spec asks for them.",
+      "subject": "model",
+      "value_type": "enum",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "enum value",
+          "weight": "positive number"
+        }
+      },
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 6,
+      "values": []
+    },
+    {
+      "id": "model.knowledge_cutoff",
+      "label": "Knowledge cutoff",
+      "definition": "The latest date of training data the lab documents for the model. A month is recorded as its first day, and the fact's qualifiers say so.",
+      "subject": "model",
+      "value_type": "date",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": false,
+      "preference": null,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 6,
+      "range": null
+    },
+    {
+      "id": "model.deprecation_date",
+      "label": "Deprecation date",
+      "definition": "The date the lab has announced the model will stop being served by its own API. Unknown until announced; not the date of the announcement.",
+      "subject": "model",
+      "value_type": "date",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": false,
+      "preference": null,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 6,
+      "range": null
+    },
+    {
+      "id": "feature.tool_calling",
+      "label": "Tool calling",
+      "definition": "True when the lab documents that the model emits structured function or tool calls against caller-supplied tool definitions through at least one first-party interface.",
+      "subject": "model",
+      "value_type": "boolean",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "known"
+      ],
+      "objective": false,
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "boolean value",
+          "weight": "positive number"
+        }
+      },
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 6,
+      "values": []
+    },
+    {
+      "id": "feature.structured_output",
+      "label": "Structured output",
+      "definition": "True when the lab documents constrained output that conforms to a caller-supplied JSON schema. A prompt-only \"JSON mode\" without a schema guarantee is false.",
+      "subject": "model",
+      "value_type": "boolean",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "known"
+      ],
+      "objective": false,
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "boolean value",
+          "weight": "positive number"
+        }
+      },
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 6,
+      "values": []
+    },
+    {
+      "id": "feature.effort_controls",
+      "label": "Effort controls",
+      "definition": "True when the lab documents a request parameter that changes how much reasoning the model does (a reasoning effort level or thinking budget).",
+      "subject": "model",
+      "value_type": "boolean",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "known"
+      ],
+      "objective": false,
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "boolean value",
+          "weight": "positive number"
+        }
+      },
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 6,
+      "values": []
+    },
+    {
+      "id": "feature.batch",
+      "label": "Batch interface",
+      "definition": "True when the lab's first-party API offers an asynchronous batch interface for this model. Batch pricing is `offering.price.batch_*`.",
+      "subject": "model",
+      "value_type": "boolean",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "known"
+      ],
+      "objective": false,
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "boolean value",
+          "weight": "positive number"
+        }
+      },
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 6,
+      "values": []
+    },
+    {
+      "id": "feature.streaming",
+      "label": "Streaming",
+      "definition": "True when the lab's first-party API can return the response incrementally as it is generated.",
+      "subject": "model",
+      "value_type": "boolean",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "known"
+      ],
+      "objective": false,
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "boolean value",
+          "weight": "positive number"
+        }
+      },
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 6,
+      "values": []
+    },
+    {
+      "id": "model.languages",
+      "label": "Languages",
+      "definition": "The natural languages the lab documents the model as supporting, as BCP 47 tags. Absence from the set means undocumented, not unsupported.",
+      "subject": "model",
+      "value_type": "set",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "preference": null,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 6,
+      "values": []
+    },
+    {
+      "id": "model.fits_hardware",
+      "label": "Fits hardware",
+      "definition": "The hardware SKUs in `hardware/` on which some published quantisation of the model's weights is estimated to load and run. An estimate, always labelled as one.",
+      "subject": "model",
+      "value_type": "set",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "preference": null,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 1,
+      "of": 6,
+      "values": [
+        {
+          "value": "apple_m3_max",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "model.hardware_fit_indeterminate",
+      "label": "Hardware fit indeterminate",
+      "definition": "The hardware SKUs in `hardware/` for which ModelSpec's single-memory-pool weight-fit formula does not apply. Membership conditions on `model.fits_hardware` treat these device legs as unknown, not as false.",
+      "subject": "model",
+      "value_type": "set",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "preference": null,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 6,
+      "values": []
+    },
+    {
+      "id": "offering.provider",
+      "label": "Provider",
+      "definition": "The provider in `registry/providers.yaml` that sells the offering and bills the customer for it.",
+      "subject": "offering",
+      "value_type": "enum",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "enum value",
+          "weight": "positive number"
+        }
+      },
+      "risk": "capability",
+      "computed_by": null,
+      "known": 4,
+      "of": 4,
+      "values": [
+        {
+          "value": "anthropic",
+          "count": 2
+        },
+        {
+          "value": "aws-bedrock",
+          "count": 1
+        },
+        {
+          "value": "openai",
+          "count": 1
+        }
+      ]
+    },
+    {
+      "id": "offering.region",
+      "label": "Inference region",
+      "definition": "The countries in which the provider documents that inference for this offering runs, as ISO 3166-1 alpha-2 codes. A global or routed offering lists every country it may run in. The provider's own region name is a qualifier on the fact.",
+      "subject": "offering",
+      "value_type": "set",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "preference": null,
+      "risk": "governance",
+      "computed_by": null,
+      "known": 4,
+      "of": 4,
+      "values": [
+        {
+          "value": "global",
+          "count": 4,
+          "label": "Global"
+        }
+      ]
+    },
+    {
+      "id": "offering.tier",
+      "label": "Account tier",
+      "definition": "The account tier the offering is sold under. A tier is its own offering only when a guaranteed fact differs from the standard tier: price, data handling or an attestation (design §4.1).",
+      "subject": "offering",
+      "value_type": "enum",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "enum value",
+          "weight": "positive number"
+        }
+      },
+      "risk": "capability",
+      "computed_by": null,
+      "known": 4,
+      "of": 4,
+      "values": [
+        {
+          "value": "standard",
+          "count": 4,
+          "label": "Standard"
+        }
+      ]
+    },
+    {
+      "id": "offering.price.input",
+      "label": "Input price",
+      "definition": "The list price of uncached input tokens for a synchronous request. Where the price varies with prompt length, the lowest band, with the band as a qualifier.",
+      "subject": "offering",
+      "value_type": "number",
+      "unit": "usd_per_1m_tokens",
+      "unit_definition": "United States dollars per 1,000,000 tokens, at the provider's list price for the offering, before discounts, credits or committed-use pricing. Tokens are counted by the provider's own tokenizer for that model.",
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": true,
+      "preference": {
+        "kind": "continuous",
+        "directions": [
+          "max",
+          "min"
+        ],
+        "threshold": "where"
+      },
+      "risk": "capability",
+      "computed_by": null,
+      "known": 4,
+      "of": 4,
+      "range": {
+        "min": 3.0,
+        "max": 30.0
+      }
+    },
+    {
+      "id": "offering.price.output",
+      "label": "Output price",
+      "definition": "The list price of output tokens, including reasoning tokens the provider bills as output, for a synchronous request, lowest band as for input.",
+      "subject": "offering",
+      "value_type": "number",
+      "unit": "usd_per_1m_tokens",
+      "unit_definition": "United States dollars per 1,000,000 tokens, at the provider's list price for the offering, before discounts, credits or committed-use pricing. Tokens are counted by the provider's own tokenizer for that model.",
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": true,
+      "preference": {
+        "kind": "continuous",
+        "directions": [
+          "max",
+          "min"
+        ],
+        "threshold": "where"
+      },
+      "risk": "capability",
+      "computed_by": null,
+      "known": 4,
+      "of": 4,
+      "range": {
+        "min": 3.0,
+        "max": 30.0
+      }
+    },
+    {
+      "id": "offering.price.cached_input",
+      "label": "Cached input price",
+      "definition": "The list price of input tokens read from the provider's prompt cache. Cache-write surcharges are a qualifier. `not_offered` when the provider has no prompt cache for this offering, which is a known value, not an unknown one.",
+      "subject": "offering",
+      "value_type": "number",
+      "unit": "usd_per_1m_tokens",
+      "unit_definition": "United States dollars per 1,000,000 tokens, at the provider's list price for the offering, before discounts, credits or committed-use pricing. Tokens are counted by the provider's own tokenizer for that model.",
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": true,
+      "preference": {
+        "kind": "continuous",
+        "directions": [
+          "max",
+          "min"
+        ],
+        "threshold": "where"
+      },
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 4,
+      "range": null
+    },
+    {
+      "id": "offering.price.batch_input",
+      "label": "Batch input price",
+      "definition": "The list price of input tokens submitted through the provider's asynchronous batch interface. `not_offered` when the provider has no batch interface for this offering.",
+      "subject": "offering",
+      "value_type": "number",
+      "unit": "usd_per_1m_tokens",
+      "unit_definition": "United States dollars per 1,000,000 tokens, at the provider's list price for the offering, before discounts, credits or committed-use pricing. Tokens are counted by the provider's own tokenizer for that model.",
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": true,
+      "preference": {
+        "kind": "continuous",
+        "directions": [
+          "max",
+          "min"
+        ],
+        "threshold": "where"
+      },
+      "risk": "capability",
+      "computed_by": null,
+      "known": 4,
+      "of": 4,
+      "range": null,
+      "literals": [
+        "not_offered"
+      ]
+    },
+    {
+      "id": "offering.price.batch_output",
+      "label": "Batch output price",
+      "definition": "The list price of output tokens returned through the provider's asynchronous batch interface. `not_offered` when the provider has no batch interface for this offering.",
+      "subject": "offering",
+      "value_type": "number",
+      "unit": "usd_per_1m_tokens",
+      "unit_definition": "United States dollars per 1,000,000 tokens, at the provider's list price for the offering, before discounts, credits or committed-use pricing. Tokens are counted by the provider's own tokenizer for that model.",
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": true,
+      "preference": {
+        "kind": "continuous",
+        "directions": [
+          "max",
+          "min"
+        ],
+        "threshold": "where"
+      },
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 4,
+      "range": null
+    },
+    {
+      "id": "offering.cost_per_task",
+      "label": "Cost per task",
+      "definition": "What one task costs on this offering at list prices, computed per decision from the spec's `task_tokens`: (offering.price.input × input tokens + offering.price.output × output tokens) / 1,000,000. Unknown when either price is unknown. Never authored on a card.",
+      "subject": "offering",
+      "value_type": "number",
+      "unit": "usd_per_task",
+      "unit_definition": "United States dollars for one task, at list prices: the offering's input price times the spec's input tokens per task, plus its output price times the spec's output tokens per task, divided by 1,000,000. Excludes cached, batch and committed-use pricing.",
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": true,
+      "preference": {
+        "kind": "continuous",
+        "directions": [
+          "max",
+          "min"
+        ],
+        "threshold": "where"
+      },
+      "risk": "capability",
+      "computed_by": "MODEL-153",
+      "known": 4,
+      "of": 4,
+      "range": {
+        "min": 0.132,
+        "max": 1.32
+      }
+    },
+    {
+      "id": "offering.speed.time_to_first_token",
+      "label": "Time to first token",
+      "definition": "The median time from sending a request to receiving the first output token. Always carries the method: prompt length, output length, effort, region of the client, sample size and date.",
+      "subject": "offering",
+      "value_type": "number",
+      "unit": "milliseconds",
+      "unit_definition": "Milliseconds of wall-clock time.",
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": true,
+      "preference": {
+        "kind": "continuous",
+        "directions": [
+          "max",
+          "min"
+        ],
+        "threshold": "where"
+      },
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 4,
+      "range": null
+    },
+    {
+      "id": "offering.speed.throughput",
+      "label": "Output throughput",
+      "definition": "The median output throughput of one request after its first token. Always carries the method, as for time to first token. Self-hosted throughput is a labelled estimate only.",
+      "subject": "offering",
+      "value_type": "number",
+      "unit": "tokens_per_second",
+      "unit_definition": "Output tokens generated per second of wall-clock time, measured from the first output token to the last, for a single request.",
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": true,
+      "preference": {
+        "kind": "continuous",
+        "directions": [
+          "max",
+          "min"
+        ],
+        "threshold": "where"
+      },
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 4,
+      "range": null
+    },
+    {
+      "id": "offering.rate_limit.requests",
+      "label": "Request rate limit",
+      "definition": "The documented default request rate limit for a new account at this tier, at the lowest paid usage level the provider documents.",
+      "subject": "offering",
+      "value_type": "number",
+      "unit": "requests_per_minute",
+      "unit_definition": "Requests accepted per 60-second window for one account at the tier the offering names, before any limit increase negotiated by contract.",
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": true,
+      "preference": {
+        "kind": "continuous",
+        "directions": [
+          "max",
+          "min"
+        ],
+        "threshold": "where"
+      },
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 4,
+      "range": null
+    },
+    {
+      "id": "offering.rate_limit.tokens",
+      "label": "Token rate limit",
+      "definition": "The documented default token rate limit for a new account at this tier, at the lowest paid usage level the provider documents.",
+      "subject": "offering",
+      "value_type": "number",
+      "unit": "tokens_per_minute",
+      "unit_definition": "Tokens (input plus output unless the provider states otherwise, in which case the fact's qualifiers say so) accepted per 60-second window for one account at the tier the offering names.",
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": true,
+      "preference": {
+        "kind": "continuous",
+        "directions": [
+          "max",
+          "min"
+        ],
+        "threshold": "where"
+      },
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 4,
+      "range": null
+    },
+    {
+      "id": "offering.sla_uptime",
+      "label": "SLA uptime",
+      "definition": "The monthly uptime the provider commits to in a published service level agreement for this offering, with service credits. A status-page history is not an SLA.",
+      "subject": "offering",
+      "value_type": "number",
+      "unit": "percent",
+      "unit_definition": "A percentage from 0 to 100.",
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": true,
+      "preference": {
+        "kind": "continuous",
+        "directions": [
+          "max",
+          "min"
+        ],
+        "threshold": "where"
+      },
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 4,
+      "range": null
+    },
+    {
+      "id": "offering.data.retention",
+      "label": "Data retention",
+      "definition": "The longest period the provider's terms say it keeps prompts and outputs for this offering by default, for any purpose including abuse monitoring. 0 means not stored after the response. `unbounded` when the terms set no limit.",
+      "subject": "offering",
+      "value_type": "number",
+      "unit": "days",
+      "unit_definition": "Calendar days.",
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": true,
+      "preference": {
+        "kind": "continuous",
+        "directions": [
+          "max",
+          "min"
+        ],
+        "threshold": "where"
+      },
+      "risk": "governance",
+      "computed_by": null,
+      "known": 0,
+      "of": 4,
+      "range": null
+    },
+    {
+      "id": "offering.data.trains_on_customer_data",
+      "label": "Trains on customer data",
+      "definition": "True when the provider's default terms for this offering let it use customer prompts or outputs to train or improve models. An opt-out the customer must take still makes this true.",
+      "subject": "offering",
+      "value_type": "boolean",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "known"
+      ],
+      "objective": false,
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "boolean value",
+          "weight": "positive number"
+        }
+      },
+      "risk": "governance",
+      "computed_by": null,
+      "known": 0,
+      "of": 4,
+      "values": []
+    },
+    {
+      "id": "offering.data.zero_retention",
+      "label": "Zero retention available",
+      "definition": "True when the provider documents that a customer can have prompts and outputs for this offering not stored at all, including for abuse monitoring, whether by default or on request.",
+      "subject": "offering",
+      "value_type": "boolean",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "known"
+      ],
+      "objective": false,
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "boolean value",
+          "weight": "positive number"
+        }
+      },
+      "risk": "governance",
+      "computed_by": null,
+      "known": 0,
+      "of": 4,
+      "values": []
+    },
+    {
+      "id": "offering.attestation.soc2",
+      "label": "SOC 2 report",
+      "definition": "The SOC 2 report type the provider documents for the service this offering runs on, when that report's scope covers the service. `none` when the provider documents no such report. Documented, never \"compliant\".",
+      "subject": "offering",
+      "value_type": "enum",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "enum value",
+          "weight": "positive number"
+        }
+      },
+      "risk": "governance",
+      "computed_by": null,
+      "known": 0,
+      "of": 4,
+      "values": []
+    },
+    {
+      "id": "offering.attestation.baa",
+      "label": "HIPAA BAA",
+      "definition": "True when the provider documents that it will sign a HIPAA business associate agreement that covers this offering. Says nothing about whether a customer's use is compliant.",
+      "subject": "offering",
+      "value_type": "boolean",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "known"
+      ],
+      "objective": false,
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "boolean value",
+          "weight": "positive number"
+        }
+      },
+      "risk": "governance",
+      "computed_by": null,
+      "known": 0,
+      "of": 4,
+      "values": []
+    },
+    {
+      "id": "offering.attestation.fedramp",
+      "label": "FedRAMP level",
+      "definition": "The FedRAMP authorization level of the cloud service offering this offering runs in, as the FedRAMP marketplace lists it for this model. `none` when not listed.",
+      "subject": "offering",
+      "value_type": "enum",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "enum value",
+          "weight": "positive number"
+        }
+      },
+      "risk": "governance",
+      "computed_by": null,
+      "known": 0,
+      "of": 4,
+      "values": []
+    },
+    {
+      "id": "offering.attestation.iso_27001",
+      "label": "ISO/IEC 27001",
+      "definition": "True when the provider documents an ISO/IEC 27001 certificate whose scope covers the service this offering runs on.",
+      "subject": "offering",
+      "value_type": "boolean",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "known"
+      ],
+      "objective": false,
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "boolean value",
+          "weight": "positive number"
+        }
+      },
+      "risk": "governance",
+      "computed_by": null,
+      "known": 0,
+      "of": 4,
+      "values": []
+    },
+    {
+      "id": "offering.fine_tuning",
+      "label": "Fine-tuning service",
+      "definition": "True when the provider sells fine-tuning of this model as a service and serves the tuned model under this offering's terms.",
+      "subject": "offering",
+      "value_type": "boolean",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "known"
+      ],
+      "objective": false,
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "boolean value",
+          "weight": "positive number"
+        }
+      },
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 4,
+      "values": []
+    },
+    {
+      "id": "offering.private_deployment",
+      "label": "Private deployment",
+      "definition": "True when the provider sells dedicated capacity for this model that is not shared with other customers (provisioned throughput, a dedicated endpoint or deployment in the customer's own cloud account).",
+      "subject": "offering",
+      "value_type": "boolean",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "=",
+        "!=",
+        "known"
+      ],
+      "objective": false,
+      "preference": {
+        "kind": "value",
+        "term": {
+          "prefer": "boolean value",
+          "weight": "positive number"
+        }
+      },
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 4,
+      "values": []
+    },
+    {
+      "id": "offering.harness_compatibility",
+      "label": "Harness compatibility",
+      "definition": "The registered harnesses whose own documentation names this provider as a supported backend for this model. Absence means undocumented.",
+      "subject": "offering",
+      "value_type": "set",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "preference": null,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 4,
+      "values": []
+    }
+  ],
+  "benchmarks": [],
+  "domains": [],
+  "refinements": [
+    {
+      "id": "python",
+      "parent_domain": "software_engineering",
+      "kind": "language",
+      "name": "Python",
+      "definition": "Measures work in the named programming or natural language for software engineering: Python.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "software_engineering/python"
+    },
+    {
+      "id": "javascript_typescript",
+      "parent_domain": "software_engineering",
+      "kind": "language",
+      "name": "JavaScript/TypeScript",
+      "definition": "Measures work in the named programming or natural language for software engineering: JavaScript/TypeScript.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "software_engineering/javascript_typescript"
+    },
+    {
+      "id": "java",
+      "parent_domain": "software_engineering",
+      "kind": "language",
+      "name": "Java",
+      "definition": "Measures work in the named programming or natural language for software engineering: Java.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "software_engineering/java"
+    },
+    {
+      "id": "rust",
+      "parent_domain": "software_engineering",
+      "kind": "language",
+      "name": "Rust",
+      "definition": "Measures work in the named programming or natural language for software engineering: Rust.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "software_engineering/rust"
+    },
+    {
+      "id": "go",
+      "parent_domain": "software_engineering",
+      "kind": "language",
+      "name": "Go",
+      "definition": "Measures work in the named programming or natural language for software engineering: Go.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "software_engineering/go"
+    },
+    {
+      "id": "c_cpp",
+      "parent_domain": "software_engineering",
+      "kind": "language",
+      "name": "C/C++",
+      "definition": "Measures work in the named programming or natural language for software engineering: C/C++.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "software_engineering/c_cpp"
+    },
+    {
+      "id": "other_csharp_php_ruby_kotlin_swift_scala_r_julia_lua_perl",
+      "parent_domain": "software_engineering",
+      "kind": "language",
+      "name": "other (C#, PHP, Ruby, Kotlin, Swift, Scala, R, Julia, Lua, Perl)",
+      "definition": "Measures work in the named programming or natural language for software engineering: other (C#, PHP, Ruby, Kotlin, Swift, Scala, R, Julia, Lua, Perl).",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "software_engineering/other_csharp_php_ruby_kotlin_swift_scala_r_julia_lua_perl"
+    },
+    {
+      "id": "sql_text_to_sql",
+      "parent_domain": "software_engineering",
+      "kind": "language",
+      "name": "SQL (text-to-SQL)",
+      "definition": "Measures work in the named programming or natural language for software engineering: SQL (text-to-SQL).",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "software_engineering/sql_text_to_sql"
+    },
+    {
+      "id": "cuda_gpu_kernels",
+      "parent_domain": "software_engineering",
+      "kind": "language",
+      "name": "CUDA / GPU kernels",
+      "definition": "Measures work in the named programming or natural language for software engineering: CUDA / GPU kernels.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "software_engineering/cuda_gpu_kernels"
+    },
+    {
+      "id": "bug_fix",
+      "parent_domain": "software_engineering",
+      "kind": "task",
+      "name": "bug fix / issue resolution",
+      "definition": "Measures the named task rather than the parent domain as a whole for software engineering: bug fix / issue resolution.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "software_engineering/bug_fix"
+    },
+    {
+      "id": "new_feature_build_from_a_brief",
+      "parent_domain": "software_engineering",
+      "kind": "task",
+      "name": "new feature / build from a brief",
+      "definition": "Measures the named task rather than the parent domain as a whole for software engineering: new feature / build from a brief.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "software_engineering/new_feature_build_from_a_brief"
+    },
+    {
+      "id": "refactor",
+      "parent_domain": "software_engineering",
+      "kind": "task",
+      "name": "refactor",
+      "definition": "Measures the named task rather than the parent domain as a whole for software engineering: refactor.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "software_engineering/refactor"
+    },
+    {
+      "id": "code_quality_mergeability_review_grade",
+      "parent_domain": "software_engineering",
+      "kind": "task",
+      "name": "code quality / mergeability (review-grade)",
+      "definition": "Measures the named task rather than the parent domain as a whole for software engineering: code quality / mergeability (review-grade).",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "software_engineering/code_quality_mergeability_review_grade"
+    },
+    {
+      "id": "code_review",
+      "parent_domain": "software_engineering",
+      "kind": "task",
+      "name": "code review (reviewing others' changes)",
+      "definition": "Measures the named task rather than the parent domain as a whole for software engineering: code review (reviewing others' changes).",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "software_engineering/code_review"
+    },
+    {
+      "id": "test_writing",
+      "parent_domain": "software_engineering",
+      "kind": "task",
+      "name": "test writing",
+      "definition": "Measures the named task rather than the parent domain as a whole for software engineering: test writing.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "software_engineering/test_writing"
+    },
+    {
+      "id": "code_localisation_repo_exploration",
+      "parent_domain": "software_engineering",
+      "kind": "task",
+      "name": "code localisation / repo exploration",
+      "definition": "Measures the named task rather than the parent domain as a whole for software engineering: code localisation / repo exploration.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "software_engineering/code_localisation_repo_exploration"
+    },
+    {
+      "id": "performance_optimisation",
+      "parent_domain": "software_engineering",
+      "kind": "task",
+      "name": "performance optimisation",
+      "definition": "Measures the named task rather than the parent domain as a whole for software engineering: performance optimisation.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "software_engineering/performance_optimisation"
+    },
+    {
+      "id": "security_fix_repair_a_vulnerability",
+      "parent_domain": "software_engineering",
+      "kind": "task",
+      "name": "security fix (repair a vulnerability)",
+      "definition": "Measures the named task rather than the parent domain as a whole for software engineering: security fix (repair a vulnerability).",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "software_engineering/security_fix_repair_a_vulnerability"
+    },
+    {
+      "id": "secure_code_generation",
+      "parent_domain": "software_engineering",
+      "kind": "task",
+      "name": "secure code generation",
+      "definition": "Measures the named task rather than the parent domain as a whole for software engineering: secure code generation.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "software_engineering/secure_code_generation"
+    },
+    {
+      "id": "documentation",
+      "parent_domain": "software_engineering",
+      "kind": "task",
+      "name": "documentation",
+      "definition": "Measures the named task rather than the parent domain as a whole for software engineering: documentation.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "software_engineering/documentation"
+    },
+    {
+      "id": "migration_code_translation",
+      "parent_domain": "software_engineering",
+      "kind": "task",
+      "name": "migration / code translation",
+      "definition": "Measures the named task rather than the parent domain as a whole for software engineering: migration / code translation.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "software_engineering/migration_code_translation"
+    },
+    {
+      "id": "agentic_repo_level",
+      "parent_domain": "software_engineering",
+      "kind": "mode",
+      "name": "agentic repo-level",
+      "definition": "Measures work performed in the named operating mode or environment for software engineering: agentic repo-level.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "software_engineering/agentic_repo_level"
+    },
+    {
+      "id": "function_level_completion",
+      "parent_domain": "software_engineering",
+      "kind": "mode",
+      "name": "function-level completion",
+      "definition": "Measures work performed in the named operating mode or environment for software engineering: function-level completion.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "software_engineering/function_level_completion"
+    },
+    {
+      "id": "competitive_programming",
+      "parent_domain": "software_engineering",
+      "kind": "mode",
+      "name": "competitive programming",
+      "definition": "Measures work performed in the named operating mode or environment for software engineering: competitive programming.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "software_engineering/competitive_programming"
+    },
+    {
+      "id": "in_ide_product_harness",
+      "parent_domain": "software_engineering",
+      "kind": "mode",
+      "name": "in-IDE product harness",
+      "definition": "Measures work performed in the named operating mode or environment for software engineering: in-IDE product harness.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "software_engineering/in_ide_product_harness"
+    },
+    {
+      "id": "terminal_agent",
+      "parent_domain": "software_engineering",
+      "kind": "mode",
+      "name": "terminal agent",
+      "definition": "Measures work performed in the named operating mode or environment for software engineering: terminal agent.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "software_engineering/terminal_agent"
+    },
+    {
+      "id": "long_horizon_autonomy",
+      "parent_domain": "software_engineering",
+      "kind": "mode",
+      "name": "long-horizon autonomy",
+      "definition": "Measures work performed in the named operating mode or environment for software engineering: long-horizon autonomy.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "software_engineering/long_horizon_autonomy"
+    },
+    {
+      "id": "web_front_end",
+      "parent_domain": "software_engineering",
+      "kind": "material",
+      "name": "web front-end",
+      "definition": "Measures work on the named input, subject matter, or artifact for software engineering: web front-end.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "software_engineering/web_front_end"
+    },
+    {
+      "id": "scientific_research_code",
+      "parent_domain": "software_engineering",
+      "kind": "material",
+      "name": "scientific / research code",
+      "definition": "Measures work on the named input, subject matter, or artifact for software engineering: scientific / research code.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "software_engineering/scientific_research_code"
+    },
+    {
+      "id": "data_science_ml_engineering",
+      "parent_domain": "software_engineering",
+      "kind": "material",
+      "name": "data science / ML engineering",
+      "definition": "Measures work on the named input, subject matter, or artifact for software engineering: data science / ML engineering.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "software_engineering/data_science_ml_engineering"
+    },
+    {
+      "id": "offensive_security_ctf",
+      "parent_domain": "software_engineering",
+      "kind": "material",
+      "name": "offensive security / CTF",
+      "definition": "Measures work on the named input, subject matter, or artifact for software engineering: offensive security / CTF.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "software_engineering/offensive_security_ctf"
+    },
+    {
+      "id": "coding_prompts",
+      "parent_domain": "software_engineering",
+      "kind": "mode",
+      "name": "coding prompts",
+      "definition": "Measures work performed in the named operating mode or environment for software engineering: coding prompts.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "software_engineering/coding_prompts"
+    },
+    {
+      "id": "shell_terminal",
+      "parent_domain": "agentic_tool_use",
+      "kind": "mode",
+      "name": "shell / terminal",
+      "definition": "Measures work performed in the named operating mode or environment for agentic tool use: shell / terminal.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "agentic_tool_use/shell_terminal"
+    },
+    {
+      "id": "computer_use_gui",
+      "parent_domain": "agentic_tool_use",
+      "kind": "mode",
+      "name": "computer use / GUI",
+      "definition": "Measures work performed in the named operating mode or environment for agentic tool use: computer use / GUI.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "agentic_tool_use/computer_use_gui"
+    },
+    {
+      "id": "browser_web_research",
+      "parent_domain": "agentic_tool_use",
+      "kind": "mode",
+      "name": "browser / web research",
+      "definition": "Measures work performed in the named operating mode or environment for agentic tool use: browser / web research.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "agentic_tool_use/browser_web_research"
+    },
+    {
+      "id": "api_function_calling",
+      "parent_domain": "agentic_tool_use",
+      "kind": "mode",
+      "name": "API / function calling",
+      "definition": "Measures work performed in the named operating mode or environment for agentic tool use: API / function calling.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "agentic_tool_use/api_function_calling"
+    },
+    {
+      "id": "customer_support_under_policy",
+      "parent_domain": "agentic_tool_use",
+      "kind": "task",
+      "name": "customer support under policy",
+      "definition": "Measures the named task rather than the parent domain as a whole for agentic tool use: customer support under policy.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "agentic_tool_use/customer_support_under_policy"
+    },
+    {
+      "id": "long_horizon_business_operation",
+      "parent_domain": "agentic_tool_use",
+      "kind": "task",
+      "name": "long-horizon business operation",
+      "definition": "Measures the named task rather than the parent domain as a whole for agentic tool use: long-horizon business operation.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "agentic_tool_use/long_horizon_business_operation"
+    },
+    {
+      "id": "long_horizon_autonomy_duration",
+      "parent_domain": "agentic_tool_use",
+      "kind": "task",
+      "name": "long-horizon autonomy (duration)",
+      "definition": "Measures the named task rather than the parent domain as a whole for agentic tool use: long-horizon autonomy (duration).",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "agentic_tool_use/long_horizon_autonomy_duration"
+    },
+    {
+      "id": "professional_deliverables_docs_sheets_slides",
+      "parent_domain": "agentic_tool_use",
+      "kind": "task",
+      "name": "professional deliverables (docs, sheets, slides)",
+      "definition": "Measures the named task rather than the parent domain as a whole for agentic tool use: professional deliverables (docs, sheets, slides).",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "agentic_tool_use/professional_deliverables_docs_sheets_slides"
+    },
+    {
+      "id": "research_science_agent",
+      "parent_domain": "agentic_tool_use",
+      "kind": "task",
+      "name": "research / science agent",
+      "definition": "Measures the named task rather than the parent domain as a whole for agentic tool use: research / science agent.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "agentic_tool_use/research_science_agent"
+    },
+    {
+      "id": "tool_augmented_reasoning_with_vs_without_tools",
+      "parent_domain": "agentic_tool_use",
+      "kind": "mode",
+      "name": "Tool-augmented reasoning (with vs without tools)",
+      "definition": "Measures work performed in the named operating mode or environment for agentic tool use: Tool-augmented reasoning (with vs without tools).",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "agentic_tool_use/tool_augmented_reasoning_with_vs_without_tools"
+    },
+    {
+      "id": "prompt_injection_robustness",
+      "parent_domain": "agentic_tool_use",
+      "kind": "mode",
+      "name": "prompt-injection robustness",
+      "definition": "Measures work performed in the named operating mode or environment for agentic tool use: prompt-injection robustness.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "agentic_tool_use/prompt_injection_robustness"
+    },
+    {
+      "id": "agent_sessions_coding_agents",
+      "parent_domain": "agentic_tool_use",
+      "kind": "mode",
+      "name": "agent sessions (coding agents)",
+      "definition": "Measures work performed in the named operating mode or environment for agentic tool use: agent sessions (coding agents).",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "agentic_tool_use/agent_sessions_coding_agents"
+    },
+    {
+      "id": "competition_maths",
+      "parent_domain": "maths",
+      "kind": "task",
+      "name": "Competition maths",
+      "definition": "Measures the named task rather than the parent domain as a whole for maths: Competition maths.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "maths/competition_maths"
+    },
+    {
+      "id": "research_level_maths",
+      "parent_domain": "maths",
+      "kind": "task",
+      "name": "Research-level maths",
+      "definition": "Measures the named task rather than the parent domain as a whole for maths: Research-level maths.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "maths/research_level_maths"
+    },
+    {
+      "id": "proof_writing_formal_proof",
+      "parent_domain": "maths",
+      "kind": "task",
+      "name": "Proof writing / formal proof",
+      "definition": "Measures the named task rather than the parent domain as a whole for maths: Proof writing / formal proof.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "maths/proof_writing_formal_proof"
+    },
+    {
+      "id": "school_word_problems",
+      "parent_domain": "maths",
+      "kind": "task",
+      "name": "School / word problems",
+      "definition": "Measures the named task rather than the parent domain as a whole for maths: School / word problems.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "maths/school_word_problems"
+    },
+    {
+      "id": "visual_maths",
+      "parent_domain": "maths",
+      "kind": "material",
+      "name": "Visual maths",
+      "definition": "Measures work on the named input, subject matter, or artifact for maths: Visual maths.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "maths/visual_maths"
+    },
+    {
+      "id": "multilingual_maths",
+      "parent_domain": "maths",
+      "kind": "language",
+      "name": "Multilingual maths",
+      "definition": "Measures work in the named programming or natural language for maths: Multilingual maths.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "maths/multilingual_maths"
+    },
+    {
+      "id": "maths_prompts",
+      "parent_domain": "maths",
+      "kind": "mode",
+      "name": "maths prompts",
+      "definition": "Measures work performed in the named operating mode or environment for maths: maths prompts.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "maths/maths_prompts"
+    },
+    {
+      "id": "science_discipline_physics_chemistry_biology",
+      "parent_domain": "engineering_stem",
+      "kind": "material",
+      "name": "Science discipline (physics / chemistry / biology)",
+      "definition": "Measures work on the named input, subject matter, or artifact for engineering stem: Science discipline (physics / chemistry / biology).",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "engineering_stem/science_discipline_physics_chemistry_biology"
+    },
+    {
+      "id": "frontier_research_questions",
+      "parent_domain": "engineering_stem",
+      "kind": "task",
+      "name": "Frontier research questions",
+      "definition": "Measures the named task rather than the parent domain as a whole for engineering stem: Frontier research questions.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "engineering_stem/frontier_research_questions"
+    },
+    {
+      "id": "scientific_figures_lab_protocols",
+      "parent_domain": "engineering_stem",
+      "kind": "material",
+      "name": "Scientific figures / lab protocols",
+      "definition": "Measures work on the named input, subject matter, or artifact for engineering stem: Scientific figures / lab protocols.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "engineering_stem/scientific_figures_lab_protocols"
+    },
+    {
+      "id": "engineering_disciplines",
+      "parent_domain": "engineering_stem",
+      "kind": "task",
+      "name": "Engineering disciplines",
+      "definition": "Measures the named task rather than the parent domain as a whole for engineering stem: Engineering disciplines.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "engineering_stem/engineering_disciplines"
+    },
+    {
+      "id": "scientific_computing_agent",
+      "parent_domain": "engineering_stem",
+      "kind": "mode",
+      "name": "Scientific computing agent",
+      "definition": "Measures work performed in the named operating mode or environment for engineering stem: Scientific computing agent.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "engineering_stem/scientific_computing_agent"
+    },
+    {
+      "id": "science_prompts",
+      "parent_domain": "engineering_stem",
+      "kind": "mode",
+      "name": "science prompts",
+      "definition": "Measures work performed in the named operating mode or environment for engineering stem: science prompts.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "engineering_stem/science_prompts"
+    },
+    {
+      "id": "abstraction_novel_puzzles",
+      "parent_domain": "reasoning",
+      "kind": "task",
+      "name": "Abstraction / novel puzzles",
+      "definition": "Measures the named task rather than the parent domain as a whole for reasoning: Abstraction / novel puzzles.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "reasoning/abstraction_novel_puzzles"
+    },
+    {
+      "id": "multi_step_knowledge_light_reasoning",
+      "parent_domain": "reasoning",
+      "kind": "task",
+      "name": "Multi-step knowledge-light reasoning",
+      "definition": "Measures the named task rather than the parent domain as a whole for reasoning: Multi-step knowledge-light reasoning.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "reasoning/multi_step_knowledge_light_reasoning"
+    },
+    {
+      "id": "hard_expert_prompts_preference",
+      "parent_domain": "reasoning",
+      "kind": "task",
+      "name": "Hard / expert prompts (preference)",
+      "definition": "Measures the named task rather than the parent domain as a whole for reasoning: Hard / expert prompts (preference).",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "reasoning/hard_expert_prompts_preference"
+    },
+    {
+      "id": "legal_reasoning_type_issue_spotting_rule_recall_application_interpretation",
+      "parent_domain": "legal",
+      "kind": "task",
+      "name": "Legal reasoning type (issue spotting, rule recall/application, interpretation)",
+      "definition": "Measures the named task rather than the parent domain as a whole for legal: Legal reasoning type (issue spotting, rule recall/application, interpretation).",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "legal/legal_reasoning_type_issue_spotting_rule_recall_application_interpretation"
+    },
+    {
+      "id": "case_law_litigation",
+      "parent_domain": "legal",
+      "kind": "task",
+      "name": "Case law / litigation",
+      "definition": "Measures the named task rather than the parent domain as a whole for legal: Case law / litigation.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "legal/case_law_litigation"
+    },
+    {
+      "id": "contracts_terms",
+      "parent_domain": "legal",
+      "kind": "task",
+      "name": "Contracts / terms",
+      "definition": "Measures the named task rather than the parent domain as a whole for legal: Contracts / terms.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "legal/contracts_terms"
+    },
+    {
+      "id": "regulatory_compliance",
+      "parent_domain": "legal",
+      "kind": "task",
+      "name": "Regulatory compliance",
+      "definition": "Measures the named task rather than the parent domain as a whole for legal: Regulatory compliance.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "legal/regulatory_compliance"
+    },
+    {
+      "id": "jurisdiction_us_eu_cn_kr_br_uae_ch",
+      "parent_domain": "legal",
+      "kind": "task",
+      "name": "Jurisdiction (US, EU, CN, KR, BR, UAE, CH)",
+      "definition": "Measures the named task rather than the parent domain as a whole for legal: Jurisdiction (US, EU, CN, KR, BR, UAE, CH).",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "legal/jurisdiction_us_eu_cn_kr_br_uae_ch"
+    },
+    {
+      "id": "bar_exam_knowledge",
+      "parent_domain": "legal",
+      "kind": "task",
+      "name": "Bar-exam knowledge",
+      "definition": "Measures the named task rather than the parent domain as a whole for legal: Bar-exam knowledge.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "legal/bar_exam_knowledge"
+    },
+    {
+      "id": "legal_and_government_prompts",
+      "parent_domain": "legal",
+      "kind": "mode",
+      "name": "legal and government prompts",
+      "definition": "Measures work performed in the named operating mode or environment for legal: legal and government prompts.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "legal/legal_and_government_prompts"
+    },
+    {
+      "id": "clinician_facing_tasks",
+      "parent_domain": "medical",
+      "kind": "task",
+      "name": "Clinician-facing tasks",
+      "definition": "Measures the named task rather than the parent domain as a whole for medical: Clinician-facing tasks.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "medical/clinician_facing_tasks"
+    },
+    {
+      "id": "consumer_health_conversations",
+      "parent_domain": "medical",
+      "kind": "task",
+      "name": "Consumer health conversations",
+      "definition": "Measures the named task rather than the parent domain as a whole for medical: Consumer health conversations.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "medical/consumer_health_conversations"
+    },
+    {
+      "id": "licensing_exam_knowledge",
+      "parent_domain": "medical",
+      "kind": "task",
+      "name": "Licensing-exam knowledge",
+      "definition": "Measures the named task rather than the parent domain as a whole for medical: Licensing-exam knowledge.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "medical/licensing_exam_knowledge"
+    },
+    {
+      "id": "clinical_documentation_notes_summaries_coding",
+      "parent_domain": "medical",
+      "kind": "task",
+      "name": "Clinical documentation (notes, summaries, coding)",
+      "definition": "Measures the named task rather than the parent domain as a whole for medical: Clinical documentation (notes, summaries, coding).",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "medical/clinical_documentation_notes_summaries_coding"
+    },
+    {
+      "id": "specialty_radiology_palliative_paediatrics",
+      "parent_domain": "medical",
+      "kind": "material",
+      "name": "Specialty (radiology, palliative, paediatrics, ...)",
+      "definition": "Measures work on the named input, subject matter, or artifact for medical: Specialty (radiology, palliative, paediatrics, ...).",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "medical/specialty_radiology_palliative_paediatrics"
+    },
+    {
+      "id": "medical_imaging_multimodal",
+      "parent_domain": "medical",
+      "kind": "material",
+      "name": "Medical imaging / multimodal",
+      "definition": "Measures work on the named input, subject matter, or artifact for medical: Medical imaging / multimodal.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "medical/medical_imaging_multimodal"
+    },
+    {
+      "id": "medicine_prompts",
+      "parent_domain": "medical",
+      "kind": "mode",
+      "name": "medicine prompts",
+      "definition": "Measures work performed in the named operating mode or environment for medical: medicine prompts.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "medical/medicine_prompts"
+    },
+    {
+      "id": "business_finance_prompts_preference",
+      "parent_domain": "finance",
+      "kind": "task",
+      "name": "Business / finance prompts (preference)",
+      "definition": "Measures the named task rather than the parent domain as a whole for finance: Business / finance prompts (preference).",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "finance/business_finance_prompts_preference"
+    },
+    {
+      "id": "banking_operations_agentic",
+      "parent_domain": "finance",
+      "kind": "task",
+      "name": "Banking operations (agentic)",
+      "definition": "Measures the named task rather than the parent domain as a whole for finance: Banking operations (agentic).",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "finance/banking_operations_agentic"
+    },
+    {
+      "id": "business_judgement_simulation",
+      "parent_domain": "finance",
+      "kind": "task",
+      "name": "Business judgement (simulation)",
+      "definition": "Measures the named task rather than the parent domain as a whole for finance: Business judgement (simulation).",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "finance/business_judgement_simulation"
+    },
+    {
+      "id": "filings_financial_statements_qa",
+      "parent_domain": "finance",
+      "kind": "task",
+      "name": "Filings / financial statements QA",
+      "definition": "Measures the named task rather than the parent domain as a whole for finance: Filings / financial statements QA.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "finance/filings_financial_statements_qa"
+    },
+    {
+      "id": "accounting",
+      "parent_domain": "finance",
+      "kind": "task",
+      "name": "Accounting",
+      "definition": "Measures the named task rather than the parent domain as a whole for finance: Accounting.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "finance/accounting"
+    },
+    {
+      "id": "equity_research_valuation",
+      "parent_domain": "finance",
+      "kind": "task",
+      "name": "Equity research / valuation",
+      "definition": "Measures the named task rather than the parent domain as a whole for finance: Equity research / valuation.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "finance/equity_research_valuation"
+    },
+    {
+      "id": "economics_quantitative",
+      "parent_domain": "finance",
+      "kind": "task",
+      "name": "Economics / quantitative",
+      "definition": "Measures the named task rather than the parent domain as a whole for finance: Economics / quantitative.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "finance/economics_quantitative"
+    },
+    {
+      "id": "financial_text_classification",
+      "parent_domain": "finance",
+      "kind": "task",
+      "name": "Financial text classification",
+      "definition": "Measures the named task rather than the parent domain as a whole for finance: Financial text classification.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "finance/financial_text_classification"
+    },
+    {
+      "id": "marketing_knowledge",
+      "parent_domain": "marketing_seo",
+      "kind": "task",
+      "name": "Marketing knowledge",
+      "definition": "Measures the named task rather than the parent domain as a whole for marketing seo: Marketing knowledge.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "marketing_seo/marketing_knowledge"
+    },
+    {
+      "id": "marketing_advertising_writing",
+      "parent_domain": "marketing_seo",
+      "kind": "task",
+      "name": "Marketing / advertising writing",
+      "definition": "Measures the named task rather than the parent domain as a whole for marketing seo: Marketing / advertising writing.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "marketing_seo/marketing_advertising_writing"
+    },
+    {
+      "id": "seo_commercial_effect",
+      "parent_domain": "marketing_seo",
+      "kind": "task",
+      "name": "SEO / commercial effect",
+      "definition": "Measures the named task rather than the parent domain as a whole for marketing seo: SEO / commercial effect.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "marketing_seo/seo_commercial_effect"
+    },
+    {
+      "id": "creative_writing",
+      "parent_domain": "writing",
+      "kind": "task",
+      "name": "Creative writing",
+      "definition": "Measures the named task rather than the parent domain as a whole for writing: Creative writing.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "writing/creative_writing"
+    },
+    {
+      "id": "writing_literature_and_language_occupational",
+      "parent_domain": "writing",
+      "kind": "task",
+      "name": "Writing, literature and language (occupational)",
+      "definition": "Measures the named task rather than the parent domain as a whole for writing: Writing, literature and language (occupational).",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "writing/writing_literature_and_language_occupational"
+    },
+    {
+      "id": "professional_writing_by_domain_academic_business_legal_education_marketing",
+      "parent_domain": "writing",
+      "kind": "task",
+      "name": "Professional writing by domain (academic, business, legal, education, marketing)",
+      "definition": "Measures the named task rather than the parent domain as a whole for writing: Professional writing by domain (academic, business, legal, education, marketing).",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "writing/professional_writing_by_domain_academic_business_legal_education_marketing"
+    },
+    {
+      "id": "summarisation",
+      "parent_domain": "writing",
+      "kind": "task",
+      "name": "Summarisation",
+      "definition": "Measures the named task rather than the parent domain as a whole for writing: Summarisation.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "writing/summarisation"
+    },
+    {
+      "id": "instruction_constraint_adherence",
+      "parent_domain": "writing",
+      "kind": "task",
+      "name": "Instruction / constraint adherence",
+      "definition": "Measures the named task rather than the parent domain as a whole for writing: Instruction / constraint adherence.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "writing/instruction_constraint_adherence"
+    },
+    {
+      "id": "emotional_intelligence_empathy",
+      "parent_domain": "writing",
+      "kind": "task",
+      "name": "Emotional intelligence / empathy",
+      "definition": "Measures the named task rather than the parent domain as a whole for writing: Emotional intelligence / empathy.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "writing/emotional_intelligence_empathy"
+    },
+    {
+      "id": "role_play_character",
+      "parent_domain": "writing",
+      "kind": "task",
+      "name": "Role-play / character",
+      "definition": "Measures the named task rather than the parent domain as a whole for writing: Role-play / character.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "writing/role_play_character"
+    },
+    {
+      "id": "entertainment_sports_and_media_prompts",
+      "parent_domain": "writing",
+      "kind": "task",
+      "name": "Entertainment, sports and media prompts",
+      "definition": "Measures the named task rather than the parent domain as a whole for writing: Entertainment, sports and media prompts.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "writing/entertainment_sports_and_media_prompts"
+    },
+    {
+      "id": "charts_diagrams_figures",
+      "parent_domain": "vision_documents",
+      "kind": "material",
+      "name": "Charts, diagrams, figures",
+      "definition": "Measures work on the named input, subject matter, or artifact for vision documents: Charts, diagrams, figures.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "vision_documents/charts_diagrams_figures"
+    },
+    {
+      "id": "ocr_scanned_documents",
+      "parent_domain": "vision_documents",
+      "kind": "material",
+      "name": "OCR / scanned documents",
+      "definition": "Measures work on the named input, subject matter, or artifact for vision documents: OCR / scanned documents.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "vision_documents/ocr_scanned_documents"
+    },
+    {
+      "id": "screenshots_gui_grounding",
+      "parent_domain": "vision_documents",
+      "kind": "material",
+      "name": "Screenshots / GUI grounding",
+      "definition": "Measures work on the named input, subject matter, or artifact for vision documents: Screenshots / GUI grounding.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "vision_documents/screenshots_gui_grounding"
+    },
+    {
+      "id": "photos_real_world_scenes",
+      "parent_domain": "vision_documents",
+      "kind": "material",
+      "name": "Photos / real-world scenes",
+      "definition": "Measures work on the named input, subject matter, or artifact for vision documents: Photos / real-world scenes.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "vision_documents/photos_real_world_scenes"
+    },
+    {
+      "id": "expert_multimodal_exam_style",
+      "parent_domain": "vision_documents",
+      "kind": "material",
+      "name": "Expert multimodal (exam-style)",
+      "definition": "Measures work on the named input, subject matter, or artifact for vision documents: Expert multimodal (exam-style).",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "vision_documents/expert_multimodal_exam_style"
+    },
+    {
+      "id": "visual_maths_homework",
+      "parent_domain": "vision_documents",
+      "kind": "material",
+      "name": "Visual maths / homework",
+      "definition": "Measures work on the named input, subject matter, or artifact for vision documents: Visual maths / homework.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "vision_documents/visual_maths_homework"
+    },
+    {
+      "id": "humour_creative_from_images",
+      "parent_domain": "vision_documents",
+      "kind": "material",
+      "name": "Humour / creative from images",
+      "definition": "Measures work on the named input, subject matter, or artifact for vision documents: Humour / creative from images.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "vision_documents/humour_creative_from_images"
+    },
+    {
+      "id": "video_understanding",
+      "parent_domain": "vision_documents",
+      "kind": "material",
+      "name": "Video understanding",
+      "definition": "Measures work on the named input, subject matter, or artifact for vision documents: Video understanding.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "vision_documents/video_understanding"
+    },
+    {
+      "id": "vision_prompts",
+      "parent_domain": "vision_documents",
+      "kind": "mode",
+      "name": "vision prompts",
+      "definition": "Measures work performed in the named operating mode or environment for vision documents: vision prompts.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "vision_documents/vision_prompts"
+    },
+    {
+      "id": "chinese",
+      "parent_domain": "multilingual",
+      "kind": "language",
+      "name": "Chinese",
+      "definition": "Measures work in the named programming or natural language for multilingual: Chinese.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "multilingual/chinese"
+    },
+    {
+      "id": "japanese",
+      "parent_domain": "multilingual",
+      "kind": "language",
+      "name": "Japanese",
+      "definition": "Measures work in the named programming or natural language for multilingual: Japanese.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "multilingual/japanese"
+    },
+    {
+      "id": "korean",
+      "parent_domain": "multilingual",
+      "kind": "language",
+      "name": "Korean",
+      "definition": "Measures work in the named programming or natural language for multilingual: Korean.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "multilingual/korean"
+    },
+    {
+      "id": "spanish",
+      "parent_domain": "multilingual",
+      "kind": "language",
+      "name": "Spanish",
+      "definition": "Measures work in the named programming or natural language for multilingual: Spanish.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "multilingual/spanish"
+    },
+    {
+      "id": "german",
+      "parent_domain": "multilingual",
+      "kind": "language",
+      "name": "German",
+      "definition": "Measures work in the named programming or natural language for multilingual: German.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "multilingual/german"
+    },
+    {
+      "id": "french",
+      "parent_domain": "multilingual",
+      "kind": "language",
+      "name": "French",
+      "definition": "Measures work in the named programming or natural language for multilingual: French.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "multilingual/french"
+    },
+    {
+      "id": "russian",
+      "parent_domain": "multilingual",
+      "kind": "language",
+      "name": "Russian",
+      "definition": "Measures work in the named programming or natural language for multilingual: Russian.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "multilingual/russian"
+    },
+    {
+      "id": "polish",
+      "parent_domain": "multilingual",
+      "kind": "language",
+      "name": "Polish",
+      "definition": "Measures work in the named programming or natural language for multilingual: Polish.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "multilingual/polish"
+    },
+    {
+      "id": "arabic",
+      "parent_domain": "multilingual",
+      "kind": "language",
+      "name": "Arabic",
+      "definition": "Measures work in the named programming or natural language for multilingual: Arabic.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "multilingual/arabic"
+    },
+    {
+      "id": "low_resource_indic_african_languages",
+      "parent_domain": "multilingual",
+      "kind": "language",
+      "name": "Low-resource / Indic / African languages",
+      "definition": "Measures work in the named programming or natural language for multilingual: Low-resource / Indic / African languages.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "multilingual/low_resource_indic_african_languages"
+    },
+    {
+      "id": "translation",
+      "parent_domain": "multilingual",
+      "kind": "task",
+      "name": "Translation",
+      "definition": "Measures the named task rather than the parent domain as a whole for multilingual: Translation.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "multilingual/translation"
+    },
+    {
+      "id": "multilingual_retrieval_embeddings",
+      "parent_domain": "multilingual",
+      "kind": "task",
+      "name": "Multilingual retrieval (embeddings)",
+      "definition": "Measures the named task rather than the parent domain as a whole for multilingual: Multilingual retrieval (embeddings).",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "multilingual/multilingual_retrieval_embeddings"
+    },
+    {
+      "id": "non_english_prompts_preference_any_language",
+      "parent_domain": "multilingual",
+      "kind": "language",
+      "name": "Non-English prompts (preference, any language)",
+      "definition": "Measures work in the named programming or natural language for multilingual: Non-English prompts (preference, any language).",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "multilingual/non_english_prompts_preference_any_language"
+    },
+    {
+      "id": "retrieval_vs_reranking_task_type",
+      "parent_domain": "retrieval",
+      "kind": "task",
+      "name": "Retrieval vs reranking (task type)",
+      "definition": "Measures the named task rather than the parent domain as a whole for retrieval: Retrieval vs reranking (task type).",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "retrieval/retrieval_vs_reranking_task_type"
+    },
+    {
+      "id": "other_embedding_tasks_classification_clustering_sts",
+      "parent_domain": "retrieval",
+      "kind": "task",
+      "name": "Other embedding tasks (classification, clustering, STS)",
+      "definition": "Measures the named task rather than the parent domain as a whole for retrieval: Other embedding tasks (classification, clustering, STS).",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "retrieval/other_embedding_tasks_classification_clustering_sts"
+    },
+    {
+      "id": "english_vs_multilingual",
+      "parent_domain": "retrieval",
+      "kind": "language",
+      "name": "English vs multilingual",
+      "definition": "Measures work in the named programming or natural language for retrieval: English vs multilingual.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "retrieval/english_vs_multilingual"
+    },
+    {
+      "id": "domain_retrieval_biomedical",
+      "parent_domain": "retrieval",
+      "kind": "material",
+      "name": "Domain retrieval (biomedical)",
+      "definition": "Measures work on the named input, subject matter, or artifact for retrieval: Domain retrieval (biomedical).",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "retrieval/domain_retrieval_biomedical"
+    },
+    {
+      "id": "natural_language_of_the_task",
+      "parent_domain": "any",
+      "kind": "language",
+      "name": "Natural language of the task",
+      "definition": "Measures work in the named programming or natural language for all capability domains: Natural language of the task.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "any/natural_language_of_the_task"
+    },
+    {
+      "id": "input_length_long_context",
+      "parent_domain": "any",
+      "kind": "material",
+      "name": "Input length / long context",
+      "definition": "Measures work on the named input, subject matter, or artifact for all capability domains: Input length / long context.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "any/input_length_long_context"
+    },
+    {
+      "id": "multi_turn_conversation",
+      "parent_domain": "any",
+      "kind": "mode",
+      "name": "Multi-turn conversation",
+      "definition": "Measures work performed in the named operating mode or environment for all capability domains: Multi-turn conversation.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "any/multi_turn_conversation"
+    },
+    {
+      "id": "difficulty_tier",
+      "parent_domain": "any",
+      "kind": "mode",
+      "name": "Difficulty tier",
+      "definition": "Measures work performed in the named operating mode or environment for all capability domains: Difficulty tier.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "any/difficulty_tier"
+    },
+    {
+      "id": "factuality_hallucination",
+      "parent_domain": "any",
+      "kind": "task",
+      "name": "Factuality / hallucination",
+      "definition": "Measures the named task rather than the parent domain as a whole for all capability domains: Factuality / hallucination.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "any/factuality_hallucination"
+    },
+    {
+      "id": "image",
+      "parent_domain": "any",
+      "kind": "material",
+      "name": "image",
+      "definition": "Measures work on the named input, subject matter, or artifact for all capability domains: image.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "any/image"
+    },
+    {
+      "id": "audio_speech",
+      "parent_domain": "any",
+      "kind": "material",
+      "name": "audio / speech",
+      "definition": "Measures work on the named input, subject matter, or artifact for all capability domains: audio / speech.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "any/audio_speech"
+    },
+    {
+      "id": "instruction_following",
+      "parent_domain": "any",
+      "kind": "task",
+      "name": "Instruction following",
+      "definition": "Measures the named task rather than the parent domain as a whole for all capability domains: Instruction following.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "any/instruction_following"
+    },
+    {
+      "id": "with_tools_vs_without",
+      "parent_domain": "any",
+      "kind": "mode",
+      "name": "With tools vs without",
+      "definition": "Measures work performed in the named operating mode or environment for all capability domains: With tools vs without.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "any/with_tools_vs_without"
+    },
+    {
+      "id": "industry_occupation",
+      "parent_domain": "any",
+      "kind": "material",
+      "name": "Industry / occupation",
+      "definition": "Measures work on the named input, subject matter, or artifact for all capability domains: Industry / occupation.",
+      "evidence_state": "no_benchmark",
+      "measured_models": 0,
+      "of_models": 0,
+      "benchmarks": [],
+      "weight_key": "any/industry_occupation"
+    }
+  ],
+  "models": {
+    "acme/closed": {
+      "display_name": null,
+      "lab": "acme",
+      "lab_name": null,
+      "class": null
+    },
+    "acme/tiny": {
+      "display_name": null,
+      "lab": "acme",
+      "lab_name": null,
+      "class": null
+    },
+    "acme/unfit": {
+      "display_name": null,
+      "lab": "acme",
+      "lab_name": null,
+      "class": null
+    },
+    "anthropic/claude-opus-3": {
+      "display_name": null,
+      "lab": "anthropic",
+      "lab_name": null,
+      "class": null
+    },
+    "anthropic/claude-opus-5-5": {
+      "display_name": null,
+      "lab": "anthropic",
+      "lab_name": null,
+      "class": null
+    },
+    "anthropic/claude-sonnet-5": {
+      "display_name": null,
+      "lab": "anthropic",
+      "lab_name": null,
+      "class": null
+    },
+    "other/huge": {
+      "display_name": null,
+      "lab": "other",
+      "lab_name": null,
+      "class": null
+    }
+  },
+  "providers": {
+    "openai": "OpenAI API",
+    "anthropic": "Anthropic API",
+    "google-gemini-api": "Gemini API (Google AI Studio)",
+    "xai": "xAI API",
+    "mistral": "Mistral AI La Plateforme",
+    "cohere": "Cohere API",
+    "deepseek": "DeepSeek Open Platform",
+    "alibaba-model-studio": "Alibaba Cloud Model Studio",
+    "moonshot": "Kimi Open Platform (Moonshot AI)",
+    "zai": "Z.ai API",
+    "minimax": "MiniMax API Platform",
+    "ai21": "AI21 Studio",
+    "meta-model-api": "Meta Model API",
+    "typesafe": "TypeSafe API",
+    "aws-bedrock": "Amazon Bedrock",
+    "google-vertex-ai": "Vertex AI (Google Cloud)",
+    "azure-ai-foundry": "Azure AI Foundry",
+    "groq": "GroqCloud",
+    "together-ai": "Together AI",
+    "fireworks-ai": "Fireworks AI",
+    "deepinfra": "DeepInfra",
+    "cerebras": "Cerebras Inference",
+    "sambanova": "SambaNova Cloud",
+    "nvidia-nim": "NVIDIA NIM (build.nvidia.com)",
+    "replicate": "Replicate",
+    "openrouter": "OpenRouter"
+  },
+  "vendors": {
+    "cursor": "Cursor",
+    "github-copilot": "GitHub Copilot",
+    "perplexity": "Perplexity"
+  },
+  "estate": {
+    "providers": [
+      "ai21",
+      "alibaba-model-studio",
+      "anthropic",
+      "aws-bedrock",
+      "azure-ai-foundry",
+      "cerebras",
+      "cohere",
+      "deepinfra",
+      "deepseek",
+      "fireworks-ai",
+      "google-gemini-api",
+      "google-vertex-ai",
+      "groq",
+      "meta-model-api",
+      "minimax",
+      "mistral",
+      "moonshot",
+      "nvidia-nim",
+      "openai",
+      "openrouter",
+      "replicate",
+      "sambanova",
+      "together-ai",
+      "typesafe",
+      "xai",
+      "zai"
+    ],
+    "plans": [
+      {
+        "id": "anthropic/subscription/max-20x",
+        "provider": "anthropic",
+        "name": "Claude Max 20x",
+        "price": {
+          "amount": 200.0,
+          "currency": "USD",
+          "period": "monthly"
+        },
+        "surfaces": [
+          "chat_app",
+          "coding_tool:claude-code",
+          "desktop_app",
+          "mobile_app"
+        ],
+        "coverage": [
+          {
+            "family": "anthropic/claude-opus",
+            "quote": "Opus and Sonnet models",
+            "resolves_to": [
+              "anthropic/claude-opus-5-5"
+            ],
+            "rule": "Claude Opus: every model in the snapshot's lineup, not retired, whose ID starts with anthropic/claude-opus-"
+          },
+          {
+            "family": "anthropic/claude-sonnet",
+            "quote": "Opus and Sonnet models",
+            "resolves_to": [
+              "anthropic/claude-sonnet-5"
+            ],
+            "rule": "Claude Sonnet: every model in the snapshot's lineup, not retired, whose ID starts with anthropic/claude-sonnet-"
+          }
+        ],
+        "allowance": {
+          "relative_to": "anthropic/subscription/pro",
+          "multiplier": 20.0,
+          "window": null,
+          "tokens": null
+        }
+      },
+      {
+        "id": "anthropic/subscription/pro",
+        "provider": "anthropic",
+        "name": "Claude Pro",
+        "price": {
+          "amount": 20.0,
+          "currency": "USD",
+          "period": "monthly"
+        },
+        "surfaces": [
+          "chat_app",
+          "coding_tool:claude-code",
+          "desktop_app",
+          "mobile_app"
+        ],
+        "coverage": [
+          {
+            "family": "anthropic/claude-sonnet",
+            "quote": "Sonnet models",
+            "resolves_to": [
+              "anthropic/claude-sonnet-5"
+            ],
+            "rule": "Claude Sonnet: every model in the snapshot's lineup, not retired, whose ID starts with anthropic/claude-sonnet-"
+          }
+        ],
+        "allowance": {
+          "relative_to": null,
+          "multiplier": null,
+          "window": null,
+          "tokens": null
+        }
+      },
+      {
+        "id": "anthropic/subscription/team-api",
+        "provider": "anthropic",
+        "name": "Team API",
+        "price": null,
+        "surfaces": [
+          "api"
+        ],
+        "coverage": [
+          {
+            "family": null,
+            "quote": null,
+            "resolves_to": [
+              "anthropic/claude-sonnet-5"
+            ],
+            "rule": "named directly in the plan's offering.subscription.models_covered"
+          }
+        ],
+        "allowance": {
+          "relative_to": null,
+          "multiplier": null,
+          "window": null,
+          "tokens": null
+        }
+      },
+      {
+        "id": "cursor/subscription/pro",
+        "provider": "cursor",
+        "name": "Cursor Pro",
+        "price": {
+          "amount": 20.0,
+          "currency": "USD",
+          "period": "monthly"
+        },
+        "surfaces": [
+          "coding_tool:cursor",
+          "coding_tool:cursor-agent"
+        ],
+        "coverage": [
+          {
+            "family": null,
+            "quote": null,
+            "resolves_to": [
+              "anthropic/claude-opus-5-5",
+              "other/huge"
+            ],
+            "rule": "named directly in the plan's offering.subscription.models_covered"
+          }
+        ],
+        "allowance": {
+          "relative_to": null,
+          "multiplier": null,
+          "window": null,
+          "tokens": null
+        }
+      },
+      {
+        "id": "openai/subscription/plus",
+        "provider": "openai",
+        "name": "ChatGPT Plus",
+        "price": {
+          "amount": 20.0,
+          "currency": "USD",
+          "period": "monthly"
+        },
+        "surfaces": null,
+        "coverage": null,
+        "allowance": {
+          "relative_to": null,
+          "multiplier": null,
+          "window": null,
+          "tokens": null
+        }
+      }
+    ],
+    "devices": [
+      "amd_instinct_mi210",
+      "amd_instinct_mi250x",
+      "amd_instinct_mi300x",
+      "amd_instinct_mi325x",
+      "amd_instinct_mi355x",
+      "amd_rx_7900_xt",
+      "amd_rx_7900_xtx",
+      "amd_rx_9070_xt",
+      "amd_ryzen_ai_max_plus_395",
+      "apple_m1_max",
+      "apple_m2_max",
+      "apple_m2_ultra",
+      "apple_m3_max",
+      "apple_m3_ultra",
+      "apple_m4",
+      "apple_m4_max",
+      "apple_m4_pro",
+      "apple_m5_max",
+      "cerebras_wse3",
+      "google_tpu7x",
+      "google_tpu_v4",
+      "google_tpu_v5e",
+      "google_tpu_v5p",
+      "google_tpu_v6e",
+      "intel_arc_a770_16gb",
+      "intel_gaudi_2",
+      "intel_gaudi_3",
+      "nvidia_a100_40gb_sxm",
+      "nvidia_a100_80gb_sxm",
+      "nvidia_b200",
+      "nvidia_b300",
+      "nvidia_dgx_spark",
+      "nvidia_gb200_superchip",
+      "nvidia_h100_nvl",
+      "nvidia_h100_pcie",
+      "nvidia_h100_sxm",
+      "nvidia_h200_sxm",
+      "nvidia_jetson_agx_orin_32gb",
+      "nvidia_jetson_agx_orin_64gb",
+      "nvidia_jetson_orin_nano_4gb",
+      "nvidia_jetson_orin_nano_8gb",
+      "nvidia_jetson_orin_nx_16gb",
+      "nvidia_jetson_orin_nx_8gb",
+      "nvidia_jetson_t4000",
+      "nvidia_jetson_t5000",
+      "nvidia_l4",
+      "nvidia_l40s",
+      "nvidia_rtx_3060_12gb",
+      "nvidia_rtx_3090",
+      "nvidia_rtx_4000_sff_ada",
+      "nvidia_rtx_4060_ti_16gb",
+      "nvidia_rtx_4070_ti_super",
+      "nvidia_rtx_4080_super",
+      "nvidia_rtx_4090",
+      "nvidia_rtx_4500_ada",
+      "nvidia_rtx_5000_ada",
+      "nvidia_rtx_5080",
+      "nvidia_rtx_5090",
+      "nvidia_rtx_6000_ada",
+      "nvidia_rtx_a6000",
+      "nvidia_rubin_gpu",
+      "nvidia_tesla_p40",
+      "nvidia_vera_rubin_superchip",
+      "qualcomm_snapdragon_x_elite"
+    ]
+  },
+  "coverage": {
+    "as_of": "2026-09-29",
+    "models": 6,
+    "verified": 0,
+    "classes": [
+      {
+        "id": "actor",
+        "models": 0,
+        "verified": 0,
+        "domains": []
+      },
+      {
+        "id": "analyser",
+        "models": 0,
+        "verified": 0,
+        "domains": []
+      },
+      {
+        "id": "decider",
+        "models": 0,
+        "verified": 0,
+        "domains": []
+      },
+      {
+        "id": "forecaster",
+        "models": 0,
+        "verified": 0,
+        "domains": []
+      },
+      {
+        "id": "labeller",
+        "models": 0,
+        "verified": 0,
+        "domains": []
+      },
+      {
+        "id": "media-generator",
+        "models": 0,
+        "verified": 0,
+        "domains": []
+      },
+      {
+        "id": "orderer",
+        "models": 0,
+        "verified": 0,
+        "domains": []
+      },
+      {
+        "id": "scorer",
+        "models": 0,
+        "verified": 0,
+        "domains": []
+      },
+      {
+        "id": "simulator",
+        "models": 0,
+        "verified": 0,
+        "domains": []
+      },
+      {
+        "id": "text-generator",
+        "models": 0,
+        "verified": 0,
+        "domains": []
+      },
+      {
+        "id": "transcriber",
+        "models": 0,
+        "verified": 0,
+        "domains": []
+      },
+      {
+        "id": "vectoriser",
+        "models": 0,
+        "verified": 0,
+        "domains": []
+      }
+    ],
+    "domains": [
+      {
+        "id": "software_engineering",
+        "name": "Software engineering",
+        "verified": 0,
+        "direct": 0
+      },
+      {
+        "id": "engineering_stem",
+        "name": "Engineering and STEM",
+        "verified": 0,
+        "direct": 0
+      },
+      {
+        "id": "maths",
+        "name": "Maths",
+        "verified": 0,
+        "direct": 0
+      },
+      {
+        "id": "reasoning",
+        "name": "General reasoning",
+        "verified": 0,
+        "direct": 0
+      },
+      {
+        "id": "legal",
+        "name": "Legal",
+        "verified": 0,
+        "direct": 0
+      },
+      {
+        "id": "medical",
+        "name": "Medical",
+        "verified": 0,
+        "direct": 0
+      },
+      {
+        "id": "finance",
+        "name": "Finance",
+        "verified": 0,
+        "direct": 0
+      },
+      {
+        "id": "writing",
+        "name": "Writing",
+        "verified": 0,
+        "direct": 0
+      },
+      {
+        "id": "marketing_seo",
+        "name": "Marketing and SEO",
+        "verified": 0,
+        "direct": 0
+      },
+      {
+        "id": "agentic_tool_use",
+        "name": "Agentic and tool use",
+        "verified": 0,
+        "direct": 0
+      },
+      {
+        "id": "vision_documents",
+        "name": "Vision and documents",
+        "verified": 0,
+        "direct": 0
+      },
+      {
+        "id": "multilingual",
+        "name": "Multilingual",
+        "verified": 0,
+        "direct": 0
+      },
+      {
+        "id": "chat_preference",
+        "name": "Chat and preference",
+        "verified": 0,
+        "direct": 0
+      },
+      {
+        "id": "retrieval",
+        "name": "Retrieval",
+        "verified": 0,
+        "direct": 0
+      }
+    ]
+  },
+  "templates": [
+    {
+      "id": "budget-coding",
+      "name": "Coding agent on a budget",
+      "purpose": "Find an active coding model with enough context while keeping one task under $0.25.",
+      "where": [
+        {
+          "condition": "model.class = text-generator",
+          "reason": "Coding work needs a model that generates text and code."
+        },
+        {
+          "condition": "model.lifecycle = active",
+          "reason": "An active model is still supported by its lab or provider."
+        },
+        {
+          "condition": "model.context_window >= 200000",
+          "reason": "A large repository needs room for code, tests, and instructions."
+        },
+        {
+          "condition": "offering.cost_per_task <= 0.25",
+          "reason": "The offering must stay within the per-task budget."
+        }
+      ],
+      "weights": {
+        "software_engineering": {
+          "weight": 0.6,
+          "reason": "Prefer stronger evidence on real software-engineering tasks."
+        },
+        "-offering.cost_per_task": {
+          "weight": 0.4,
+          "reason": "Among qualifying offerings, prefer the cheaper task."
+        }
+      },
+      "needs": {
+        "classes": [
+          "text-generator"
+        ],
+        "domains": [
+          "software_engineering"
+        ]
+      },
+      "teaches": "Use Must for non-negotiable context and budget limits, then Prefer to trade coding strength against cost.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "model.class = text-generator",
+          "model.lifecycle = active",
+          "model.context_window >= 200000",
+          "offering.cost_per_task <= 0.25"
+        ],
+        "optimize": {
+          "weights": {
+            "software_engineering": 0.6,
+            "-offering.cost_per_task": 0.4
+          }
+        }
+      },
+      "available": true,
+      "unavailable_reason": null
+    },
+    {
+      "id": "private-self-host",
+      "name": "Private assistant you host yourself",
+      "purpose": "Find a commercially usable open-weights assistant that you can operate yourself.",
+      "where": [
+        {
+          "condition": "model.class = text-generator",
+          "reason": "A conversational assistant needs a text-generating model."
+        },
+        {
+          "condition": "model.weights_openness = open_weights",
+          "reason": "Self-hosting requires downloadable weights; add a model.fits_hardware Must for the device you own."
+        },
+        {
+          "condition": "licence.commercial_use in {permitted, permitted_with_conditions}",
+          "reason": "The licence must allow commercial use, including use with stated conditions."
+        }
+      ],
+      "weights": {
+        "chat_preference": {
+          "weight": 0.7,
+          "reason": "Prefer assistants whose open-ended responses people rate more highly."
+        },
+        "-offering.cost_per_task": {
+          "weight": 0.3,
+          "reason": "Prefer lower task cost when the snapshot has an offering price."
+        }
+      },
+      "needs": {
+        "classes": [
+          "text-generator"
+        ],
+        "domains": [
+          "chat_preference"
+        ]
+      },
+      "teaches": "Use Must for deployment and licence requirements, then Prefer to balance assistant quality and cost.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "model.class = text-generator",
+          "model.weights_openness = open_weights",
+          "licence.commercial_use in {permitted, permitted_with_conditions}"
+        ],
+        "optimize": {
+          "weights": {
+            "chat_preference": 0.7,
+            "-offering.cost_per_task": 0.3
+          }
+        }
+      },
+      "available": false,
+      "unavailable_reason": "No model passes: Open weights — 0 of 0 models"
+    },
+    {
+      "id": "regulated-data",
+      "name": "Regulated data",
+      "purpose": "Find an offering with the data-handling commitments needed for regulated workloads.",
+      "where": [
+        {
+          "condition": "offering.data.trains_on_customer_data = false",
+          "reason": "Customer prompts and outputs must not be available for model training."
+        },
+        {
+          "condition": "offering.data.zero_retention = true",
+          "reason": "The provider must offer a mode that stores neither prompts nor outputs."
+        },
+        {
+          "condition": "offering.attestation.baa = true",
+          "reason": "The provider must offer a HIPAA business associate agreement for the service."
+        }
+      ],
+      "weights": {
+        "chat_preference": {
+          "weight": 0.6,
+          "reason": "Prefer the stronger general assistant among compliant offerings."
+        },
+        "-offering.cost_per_task": {
+          "weight": 0.4,
+          "reason": "Prefer the lower task cost after the compliance gates pass."
+        }
+      },
+      "needs": {
+        "classes": [],
+        "domains": [
+          "chat_preference"
+        ]
+      },
+      "teaches": "Governance promises are Musts because a high score cannot compensate for a missing data commitment.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "offering.data.trains_on_customer_data = false",
+          "offering.data.zero_retention = true",
+          "offering.attestation.baa = true"
+        ],
+        "optimize": {
+          "weights": {
+            "chat_preference": 0.6,
+            "-offering.cost_per_task": 0.4
+          }
+        }
+      },
+      "available": false,
+      "unavailable_reason": "No offering passes: Trains on customer data — 0 of 4 offerings"
+    },
+    {
+      "id": "maths",
+      "name": "Maths and proofs",
+      "purpose": "Find a text model with the strongest evidence on mathematical problems and proofs.",
+      "where": [
+        {
+          "condition": "model.class = text-generator",
+          "reason": "The answer must be generated as mathematical text or a proof."
+        }
+      ],
+      "weights": {
+        "maths": {
+          "weight": 1.0,
+          "reason": "Rank only by the maths capability estimate."
+        }
+      },
+      "needs": {
+        "classes": [
+          "text-generator"
+        ],
+        "domains": [
+          "maths"
+        ]
+      },
+      "teaches": "Use one Must to select the right model class and one Prefer to state what best means.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "model.class = text-generator"
+        ],
+        "optimize": {
+          "weights": {
+            "maths": 1.0
+          }
+        }
+      },
+      "available": true,
+      "unavailable_reason": null
+    },
+    {
+      "id": "retrieval-embeddings",
+      "name": "Retrieval embeddings",
+      "purpose": "Find an embedding model that ranks relevant documents well for retrieval.",
+      "where": [
+        {
+          "condition": "model.class = vectoriser",
+          "reason": "Retrieval embeddings require the model class that emits vectors."
+        }
+      ],
+      "weights": {
+        "retrieval": {
+          "weight": 1.0,
+          "reason": "Rank only by the retrieval capability estimate."
+        }
+      },
+      "needs": {
+        "classes": [
+          "vectoriser"
+        ],
+        "domains": [
+          "retrieval"
+        ]
+      },
+      "teaches": "Model class is a Must, while measured retrieval quality is a Prefer.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "model.class = vectoriser"
+        ],
+        "optimize": {
+          "weights": {
+            "retrieval": 1.0
+          }
+        }
+      },
+      "available": true,
+      "unavailable_reason": null
+    },
+    {
+      "id": "high-volume",
+      "name": "High volume, good enough",
+      "purpose": "Find a low-cost text model for many short assistant requests without ignoring response quality.",
+      "where": [
+        {
+          "condition": "model.class = text-generator",
+          "reason": "The workload needs generated text responses."
+        }
+      ],
+      "weights": {
+        "-offering.cost_per_task": {
+          "weight": 0.7,
+          "reason": "At high volume, small differences in task cost dominate total spend."
+        },
+        "chat_preference": {
+          "weight": 0.3,
+          "reason": "Keep a quality signal so cheap but poor responses do not win by cost alone."
+        }
+      },
+      "task_tokens": {
+        "input": 2000,
+        "output": 500
+      },
+      "needs": {
+        "classes": [
+          "text-generator"
+        ],
+        "domains": [
+          "chat_preference"
+        ]
+      },
+      "teaches": "Keep the model class as a Must, then make cost the stronger Prefer without turning quality into a gate.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "model.class = text-generator"
+        ],
+        "optimize": {
+          "weights": {
+            "-offering.cost_per_task": 0.7,
+            "chat_preference": 0.3
+          }
+        },
+        "task_tokens": {
+          "input": 2000,
+          "output": 500
+        }
+      },
+      "available": true,
+      "unavailable_reason": null
+    },
+    {
+      "id": "long-documents",
+      "name": "Long documents",
+      "purpose": "Find a text model that can accept million-token documents and produce strong written analysis.",
+      "where": [
+        {
+          "condition": "model.class = text-generator",
+          "reason": "The result must be generated as text."
+        },
+        {
+          "condition": "model.context_window >= 1000000",
+          "reason": "The model must accept a million-token document in one request."
+        }
+      ],
+      "weights": {
+        "writing": {
+          "weight": 0.5,
+          "reason": "Prefer clear, high-quality long-form writing."
+        },
+        "reasoning": {
+          "weight": 0.3,
+          "reason": "Prefer stronger multi-step analysis of the document."
+        },
+        "-offering.cost_per_task": {
+          "weight": 0.2,
+          "reason": "Use cost as a smaller tie-breaker after writing and reasoning quality."
+        }
+      },
+      "needs": {
+        "classes": [
+          "text-generator"
+        ],
+        "domains": [
+          "writing",
+          "reasoning"
+        ]
+      },
+      "teaches": "Context capacity is a Must; writing, reasoning, and cost remain trade-offs expressed as Prefers.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "model.class = text-generator",
+          "model.context_window >= 1000000"
+        ],
+        "optimize": {
+          "weights": {
+            "writing": 0.5,
+            "reasoning": 0.3,
+            "-offering.cost_per_task": 0.2
+          }
+        }
+      },
+      "available": false,
+      "unavailable_reason": "No model passes: Context window — 0 of 0 models"
+    },
+    {
+      "id": "eu-data",
+      "name": "EU-only data handling",
+      "purpose": "Find an offering that runs inference in an EU member state and does not train on customer data.",
+      "where": [
+        {
+          "condition": "offering.region in {AT, BE, BG, HR, CY, CZ, DE, DK, EE, ES, FI, FR, GR, HU, IE, IT, LT, LU, LV, MT, NL, PL, PT, RO, SE, SI, SK}",
+          "reason": "Inference must run in one of the EU's 27 member-state ISO country codes (EU Publications Office Interinstitutional Style Guide, https://style-guide.europa.eu/en/content/-/isg/topic?identifier=annex-a5-list-countries-territories-currencies, checked 2026-09-27)."
+        },
+        {
+          "condition": "offering.data.trains_on_customer_data = false",
+          "reason": "Customer prompts and outputs must not be available for model training."
+        }
+      ],
+      "weights": {
+        "chat_preference": {
+          "weight": 0.6,
+          "reason": "Prefer the stronger general assistant among offerings that meet the data rules."
+        },
+        "-offering.cost_per_task": {
+          "weight": 0.4,
+          "reason": "Prefer lower task cost after the data-handling gates pass."
+        }
+      },
+      "needs": {
+        "classes": [],
+        "domains": [
+          "chat_preference"
+        ]
+      },
+      "teaches": "Residency and training policy are Musts; quality and cost only rank offerings that pass them.",
+      "spec": {
+        "spec_version": 1,
+        "where": [
+          "offering.region in {AT, BE, BG, HR, CY, CZ, DE, DK, EE, ES, FI, FR, GR, HU, IE, IT, LT, LU, LV, MT, NL, PL, PT, RO, SE, SI, SK}",
+          "offering.data.trains_on_customer_data = false"
+        ],
+        "optimize": {
+          "weights": {
+            "chat_preference": 0.6,
+            "-offering.cost_per_task": 0.4
+          }
+        }
+      },
+      "available": false,
+      "unavailable_reason": "No offering passes: Inference region in the EU — 0 of 4 offerings"
+    }
+  ]
+}

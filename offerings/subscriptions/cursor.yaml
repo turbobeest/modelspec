@@ -1,0 +1,472 @@
+# MODEL-205. Primary sources read 2026-09-29; cursor is a subscription-only vendor
+# (registry/providers.yaml, subscription_vendors): it sells these plans and nothing
+# pay-per-use. Omissions and every null's reason:
+# docs/research/subscriptions/2026-09-29-vendors.md (scripts/model_205_collect.py).
+# unknown: not stated in the form the facet holds, or not researched this round.
+- kind: subscription
+  provider: cursor
+  plan: pro
+  name: Cursor Pro
+  facts:
+  - id: cursor/subscription/pro#offering.subscription.price
+    subject: {kind: offering, id: cursor/subscription/pro}
+    facet: offering.subscription.price
+    state: known
+    value: 20
+    sources:
+    - source_id: model-205-cursor-models-and-pricing
+      snapshot_ref: sha256:1a2f73d64bf0f7ce901f1445c42caa083fd16c107c90d96194582b3a633a07a2
+      cited_regions: [page]
+  - id: cursor/subscription/pro#offering.subscription.billing_period
+    subject: {kind: offering, id: cursor/subscription/pro}
+    facet: offering.subscription.billing_period
+    state: known
+    value: monthly
+    sources:
+    - source_id: model-205-cursor-models-and-pricing
+      snapshot_ref: sha256:1a2f73d64bf0f7ce901f1445c42caa083fd16c107c90d96194582b3a633a07a2
+      cited_regions: [page]
+  - id: cursor/subscription/pro#offering.subscription.models_covered
+    subject: {kind: offering, id: cursor/subscription/pro}
+    facet: offering.subscription.models_covered
+    state: known
+    value: [anthropic/claude-fable-5-1, anthropic/claude-opus-5-5, anthropic/claude-sonnet-5-5, google/gemini-3-8-flash,
+      meta/muse-spark-1-3, openai/gpt-5-6-luna, openai/gpt-5-6-sol, openai/gpt-5-6-terra, xai/grok-4-5,
+      xai/grok-4-6, xai/grok-4-7]
+    sources:
+    - source_id: model-205-cursor-models-and-pricing
+      snapshot_ref: sha256:1a2f73d64bf0f7ce901f1445c42caa083fd16c107c90d96194582b3a633a07a2
+      cited_regions: [page]
+  - id: cursor/subscription/pro#offering.subscription.usage_allowance
+    subject: {kind: offering, id: cursor/subscription/pro}
+    facet: offering.subscription.usage_allowance
+    state: known
+    value: There are two separate usage pools, each resetting with your monthly billing cycle
+    sources:
+    - source_id: model-205-cursor-models-and-pricing
+      snapshot_ref: sha256:1a2f73d64bf0f7ce901f1445c42caa083fd16c107c90d96194582b3a633a07a2
+      cited_regions: [page]
+  - id: cursor/subscription/pro#offering.subscription.programmatic_or_agent_use
+    subject: {kind: offering, id: cursor/subscription/pro}
+    facet: offering.subscription.programmatic_or_agent_use
+    state: known
+    value: Pro, Pro Plus, and Ultra include unlimited tab completions, extended agent usage limits on
+      all models, access to Bugbot, and access to Cloud Agents.
+    sources:
+    - source_id: model-205-cursor-models-and-pricing
+      snapshot_ref: sha256:1a2f73d64bf0f7ce901f1445c42caa083fd16c107c90d96194582b3a633a07a2
+      cited_regions: [page]
+  - id: cursor/subscription/pro#offering.subscription.surfaces
+    subject: {kind: offering, id: cursor/subscription/pro}
+    facet: offering.subscription.surfaces
+    state: known
+    value: ['coding_tool:cursor']
+    sources:
+    - source_id: model-205-cursor-models-and-pricing
+      snapshot_ref: sha256:1a2f73d64bf0f7ce901f1445c42caa083fd16c107c90d96194582b3a633a07a2
+      cited_regions: [page]
+  - id: cursor/subscription/pro#offering.subscription.families_covered
+    subject: {kind: offering, id: cursor/subscription/pro}
+    facet: offering.subscription.families_covered
+    state: unknown
+    value: null
+  - id: cursor/subscription/pro#offering.subscription.coverage_quote
+    subject: {kind: offering, id: cursor/subscription/pro}
+    facet: offering.subscription.coverage_quote
+    state: unknown
+    value: null
+  - id: cursor/subscription/pro#offering.subscription.allowance.relative_to
+    subject: {kind: offering, id: cursor/subscription/pro}
+    facet: offering.subscription.allowance.relative_to
+    state: unknown
+    value: null
+  - id: cursor/subscription/pro#offering.subscription.allowance.multiplier
+    subject: {kind: offering, id: cursor/subscription/pro}
+    facet: offering.subscription.allowance.multiplier
+    state: unknown
+    value: null
+  - id: cursor/subscription/pro#offering.subscription.allowance.window
+    subject: {kind: offering, id: cursor/subscription/pro}
+    facet: offering.subscription.allowance.window
+    state: unknown
+    value: null
+  - id: cursor/subscription/pro#offering.subscription.allowance.tokens
+    subject: {kind: offering, id: cursor/subscription/pro}
+    facet: offering.subscription.allowance.tokens
+    state: unknown
+    value: null
+- kind: subscription
+  provider: cursor
+  plan: pro-plus
+  name: Cursor Pro Plus
+  facts:
+  - id: cursor/subscription/pro-plus#offering.subscription.price
+    subject: {kind: offering, id: cursor/subscription/pro-plus}
+    facet: offering.subscription.price
+    state: known
+    value: 60
+    sources:
+    - source_id: model-205-cursor-models-and-pricing
+      snapshot_ref: sha256:1a2f73d64bf0f7ce901f1445c42caa083fd16c107c90d96194582b3a633a07a2
+      cited_regions: [page]
+  - id: cursor/subscription/pro-plus#offering.subscription.billing_period
+    subject: {kind: offering, id: cursor/subscription/pro-plus}
+    facet: offering.subscription.billing_period
+    state: known
+    value: monthly
+    sources:
+    - source_id: model-205-cursor-models-and-pricing
+      snapshot_ref: sha256:1a2f73d64bf0f7ce901f1445c42caa083fd16c107c90d96194582b3a633a07a2
+      cited_regions: [page]
+  - id: cursor/subscription/pro-plus#offering.subscription.models_covered
+    subject: {kind: offering, id: cursor/subscription/pro-plus}
+    facet: offering.subscription.models_covered
+    state: known
+    value: [anthropic/claude-fable-5-1, anthropic/claude-opus-5-5, anthropic/claude-sonnet-5-5, google/gemini-3-8-flash,
+      meta/muse-spark-1-3, openai/gpt-5-6-luna, openai/gpt-5-6-sol, openai/gpt-5-6-terra, xai/grok-4-5,
+      xai/grok-4-6, xai/grok-4-7]
+    sources:
+    - source_id: model-205-cursor-models-and-pricing
+      snapshot_ref: sha256:1a2f73d64bf0f7ce901f1445c42caa083fd16c107c90d96194582b3a633a07a2
+      cited_regions: [page]
+  - id: cursor/subscription/pro-plus#offering.subscription.usage_allowance
+    subject: {kind: offering, id: cursor/subscription/pro-plus}
+    facet: offering.subscription.usage_allowance
+    state: known
+    value: There are two separate usage pools, each resetting with your monthly billing cycle
+    sources:
+    - source_id: model-205-cursor-models-and-pricing
+      snapshot_ref: sha256:1a2f73d64bf0f7ce901f1445c42caa083fd16c107c90d96194582b3a633a07a2
+      cited_regions: [page]
+  - id: cursor/subscription/pro-plus#offering.subscription.programmatic_or_agent_use
+    subject: {kind: offering, id: cursor/subscription/pro-plus}
+    facet: offering.subscription.programmatic_or_agent_use
+    state: known
+    value: Pro, Pro Plus, and Ultra include unlimited tab completions, extended agent usage limits on
+      all models, access to Bugbot, and access to Cloud Agents.
+    sources:
+    - source_id: model-205-cursor-models-and-pricing
+      snapshot_ref: sha256:1a2f73d64bf0f7ce901f1445c42caa083fd16c107c90d96194582b3a633a07a2
+      cited_regions: [page]
+  - id: cursor/subscription/pro-plus#offering.subscription.surfaces
+    subject: {kind: offering, id: cursor/subscription/pro-plus}
+    facet: offering.subscription.surfaces
+    state: known
+    value: ['coding_tool:cursor']
+    sources:
+    - source_id: model-205-cursor-models-and-pricing
+      snapshot_ref: sha256:1a2f73d64bf0f7ce901f1445c42caa083fd16c107c90d96194582b3a633a07a2
+      cited_regions: [page]
+  - id: cursor/subscription/pro-plus#offering.subscription.families_covered
+    subject: {kind: offering, id: cursor/subscription/pro-plus}
+    facet: offering.subscription.families_covered
+    state: unknown
+    value: null
+  - id: cursor/subscription/pro-plus#offering.subscription.coverage_quote
+    subject: {kind: offering, id: cursor/subscription/pro-plus}
+    facet: offering.subscription.coverage_quote
+    state: unknown
+    value: null
+  - id: cursor/subscription/pro-plus#offering.subscription.allowance.relative_to
+    subject: {kind: offering, id: cursor/subscription/pro-plus}
+    facet: offering.subscription.allowance.relative_to
+    state: unknown
+    value: null
+  - id: cursor/subscription/pro-plus#offering.subscription.allowance.multiplier
+    subject: {kind: offering, id: cursor/subscription/pro-plus}
+    facet: offering.subscription.allowance.multiplier
+    state: unknown
+    value: null
+  - id: cursor/subscription/pro-plus#offering.subscription.allowance.window
+    subject: {kind: offering, id: cursor/subscription/pro-plus}
+    facet: offering.subscription.allowance.window
+    state: unknown
+    value: null
+  - id: cursor/subscription/pro-plus#offering.subscription.allowance.tokens
+    subject: {kind: offering, id: cursor/subscription/pro-plus}
+    facet: offering.subscription.allowance.tokens
+    state: unknown
+    value: null
+- kind: subscription
+  provider: cursor
+  plan: ultra
+  name: Cursor Ultra
+  facts:
+  - id: cursor/subscription/ultra#offering.subscription.price
+    subject: {kind: offering, id: cursor/subscription/ultra}
+    facet: offering.subscription.price
+    state: known
+    value: 200
+    sources:
+    - source_id: model-205-cursor-models-and-pricing
+      snapshot_ref: sha256:1a2f73d64bf0f7ce901f1445c42caa083fd16c107c90d96194582b3a633a07a2
+      cited_regions: [page]
+  - id: cursor/subscription/ultra#offering.subscription.billing_period
+    subject: {kind: offering, id: cursor/subscription/ultra}
+    facet: offering.subscription.billing_period
+    state: known
+    value: monthly
+    sources:
+    - source_id: model-205-cursor-models-and-pricing
+      snapshot_ref: sha256:1a2f73d64bf0f7ce901f1445c42caa083fd16c107c90d96194582b3a633a07a2
+      cited_regions: [page]
+  - id: cursor/subscription/ultra#offering.subscription.models_covered
+    subject: {kind: offering, id: cursor/subscription/ultra}
+    facet: offering.subscription.models_covered
+    state: known
+    value: [anthropic/claude-fable-5-1, anthropic/claude-opus-5-5, anthropic/claude-sonnet-5-5, google/gemini-3-8-flash,
+      meta/muse-spark-1-3, openai/gpt-5-6-luna, openai/gpt-5-6-sol, openai/gpt-5-6-terra, xai/grok-4-5,
+      xai/grok-4-6, xai/grok-4-7]
+    sources:
+    - source_id: model-205-cursor-models-and-pricing
+      snapshot_ref: sha256:1a2f73d64bf0f7ce901f1445c42caa083fd16c107c90d96194582b3a633a07a2
+      cited_regions: [page]
+  - id: cursor/subscription/ultra#offering.subscription.usage_allowance
+    subject: {kind: offering, id: cursor/subscription/ultra}
+    facet: offering.subscription.usage_allowance
+    state: known
+    value: There are two separate usage pools, each resetting with your monthly billing cycle
+    sources:
+    - source_id: model-205-cursor-models-and-pricing
+      snapshot_ref: sha256:1a2f73d64bf0f7ce901f1445c42caa083fd16c107c90d96194582b3a633a07a2
+      cited_regions: [page]
+  - id: cursor/subscription/ultra#offering.subscription.programmatic_or_agent_use
+    subject: {kind: offering, id: cursor/subscription/ultra}
+    facet: offering.subscription.programmatic_or_agent_use
+    state: known
+    value: Pro, Pro Plus, and Ultra include unlimited tab completions, extended agent usage limits on
+      all models, access to Bugbot, and access to Cloud Agents.
+    sources:
+    - source_id: model-205-cursor-models-and-pricing
+      snapshot_ref: sha256:1a2f73d64bf0f7ce901f1445c42caa083fd16c107c90d96194582b3a633a07a2
+      cited_regions: [page]
+  - id: cursor/subscription/ultra#offering.subscription.surfaces
+    subject: {kind: offering, id: cursor/subscription/ultra}
+    facet: offering.subscription.surfaces
+    state: known
+    value: ['coding_tool:cursor']
+    sources:
+    - source_id: model-205-cursor-models-and-pricing
+      snapshot_ref: sha256:1a2f73d64bf0f7ce901f1445c42caa083fd16c107c90d96194582b3a633a07a2
+      cited_regions: [page]
+  - id: cursor/subscription/ultra#offering.subscription.families_covered
+    subject: {kind: offering, id: cursor/subscription/ultra}
+    facet: offering.subscription.families_covered
+    state: unknown
+    value: null
+  - id: cursor/subscription/ultra#offering.subscription.coverage_quote
+    subject: {kind: offering, id: cursor/subscription/ultra}
+    facet: offering.subscription.coverage_quote
+    state: unknown
+    value: null
+  - id: cursor/subscription/ultra#offering.subscription.allowance.relative_to
+    subject: {kind: offering, id: cursor/subscription/ultra}
+    facet: offering.subscription.allowance.relative_to
+    state: unknown
+    value: null
+  - id: cursor/subscription/ultra#offering.subscription.allowance.multiplier
+    subject: {kind: offering, id: cursor/subscription/ultra}
+    facet: offering.subscription.allowance.multiplier
+    state: unknown
+    value: null
+  - id: cursor/subscription/ultra#offering.subscription.allowance.window
+    subject: {kind: offering, id: cursor/subscription/ultra}
+    facet: offering.subscription.allowance.window
+    state: unknown
+    value: null
+  - id: cursor/subscription/ultra#offering.subscription.allowance.tokens
+    subject: {kind: offering, id: cursor/subscription/ultra}
+    facet: offering.subscription.allowance.tokens
+    state: unknown
+    value: null
+# Cursor Teams (Standard seat): Per user. Third-party model requests add a Cursor Token Rate of $0.25 per million tokens on Teams and Enterprise.
+- kind: subscription
+  provider: cursor
+  plan: teams-standard
+  name: Cursor Teams (Standard seat)
+  facts:
+  - id: cursor/subscription/teams-standard#offering.subscription.price
+    subject: {kind: offering, id: cursor/subscription/teams-standard}
+    facet: offering.subscription.price
+    state: known
+    value: 40
+    sources:
+    - source_id: model-205-cursor-models-and-pricing
+      snapshot_ref: sha256:1a2f73d64bf0f7ce901f1445c42caa083fd16c107c90d96194582b3a633a07a2
+      cited_regions: [page]
+  - id: cursor/subscription/teams-standard#offering.subscription.billing_period
+    subject: {kind: offering, id: cursor/subscription/teams-standard}
+    facet: offering.subscription.billing_period
+    state: known
+    value: monthly
+    sources:
+    - source_id: model-205-cursor-models-and-pricing
+      snapshot_ref: sha256:1a2f73d64bf0f7ce901f1445c42caa083fd16c107c90d96194582b3a633a07a2
+      cited_regions: [page]
+  - id: cursor/subscription/teams-standard#offering.subscription.models_covered
+    subject: {kind: offering, id: cursor/subscription/teams-standard}
+    facet: offering.subscription.models_covered
+    state: not_disclosed
+    value: null
+    checked_sources: [model-205-cursor-models-and-pricing]
+    sources:
+    - source_id: model-205-cursor-models-and-pricing
+      snapshot_ref: sha256:1a2f73d64bf0f7ce901f1445c42caa083fd16c107c90d96194582b3a633a07a2
+      cited_regions: [page]
+  - id: cursor/subscription/teams-standard#offering.subscription.usage_allowance
+    subject: {kind: offering, id: cursor/subscription/teams-standard}
+    facet: offering.subscription.usage_allowance
+    state: not_disclosed
+    value: null
+    checked_sources: [model-205-cursor-models-and-pricing]
+    sources:
+    - source_id: model-205-cursor-models-and-pricing
+      snapshot_ref: sha256:1a2f73d64bf0f7ce901f1445c42caa083fd16c107c90d96194582b3a633a07a2
+      cited_regions: [page]
+  - id: cursor/subscription/teams-standard#offering.subscription.programmatic_or_agent_use
+    subject: {kind: offering, id: cursor/subscription/teams-standard}
+    facet: offering.subscription.programmatic_or_agent_use
+    state: known
+    value: Cloud agents and automations with shared team context
+    sources:
+    - source_id: model-205-cursor-pricing
+      snapshot_ref: sha256:f63d70b9ada007add6c002f1fc7efc7a1b81d138376f9acecc34117d10ac8298
+      cited_regions: [page]
+  - id: cursor/subscription/teams-standard#offering.subscription.surfaces
+    subject: {kind: offering, id: cursor/subscription/teams-standard}
+    facet: offering.subscription.surfaces
+    state: known
+    value: ['coding_tool:cursor']
+    sources:
+    - source_id: model-205-cursor-models-and-pricing
+      snapshot_ref: sha256:1a2f73d64bf0f7ce901f1445c42caa083fd16c107c90d96194582b3a633a07a2
+      cited_regions: [page]
+  - id: cursor/subscription/teams-standard#offering.subscription.families_covered
+    subject: {kind: offering, id: cursor/subscription/teams-standard}
+    facet: offering.subscription.families_covered
+    state: unknown
+    value: null
+  - id: cursor/subscription/teams-standard#offering.subscription.coverage_quote
+    subject: {kind: offering, id: cursor/subscription/teams-standard}
+    facet: offering.subscription.coverage_quote
+    state: unknown
+    value: null
+  - id: cursor/subscription/teams-standard#offering.subscription.allowance.relative_to
+    subject: {kind: offering, id: cursor/subscription/teams-standard}
+    facet: offering.subscription.allowance.relative_to
+    state: unknown
+    value: null
+  - id: cursor/subscription/teams-standard#offering.subscription.allowance.multiplier
+    subject: {kind: offering, id: cursor/subscription/teams-standard}
+    facet: offering.subscription.allowance.multiplier
+    state: unknown
+    value: null
+  - id: cursor/subscription/teams-standard#offering.subscription.allowance.window
+    subject: {kind: offering, id: cursor/subscription/teams-standard}
+    facet: offering.subscription.allowance.window
+    state: unknown
+    value: null
+  - id: cursor/subscription/teams-standard#offering.subscription.allowance.tokens
+    subject: {kind: offering, id: cursor/subscription/teams-standard}
+    facet: offering.subscription.allowance.tokens
+    state: unknown
+    value: null
+# Cursor Teams (Premium seat): Per user. Third-party model requests add a Cursor Token Rate of $0.25 per million tokens on Teams and Enterprise.
+- kind: subscription
+  provider: cursor
+  plan: teams-premium
+  name: Cursor Teams (Premium seat)
+  facts:
+  - id: cursor/subscription/teams-premium#offering.subscription.price
+    subject: {kind: offering, id: cursor/subscription/teams-premium}
+    facet: offering.subscription.price
+    state: known
+    value: 120
+    sources:
+    - source_id: model-205-cursor-models-and-pricing
+      snapshot_ref: sha256:1a2f73d64bf0f7ce901f1445c42caa083fd16c107c90d96194582b3a633a07a2
+      cited_regions: [page]
+  - id: cursor/subscription/teams-premium#offering.subscription.billing_period
+    subject: {kind: offering, id: cursor/subscription/teams-premium}
+    facet: offering.subscription.billing_period
+    state: known
+    value: monthly
+    sources:
+    - source_id: model-205-cursor-models-and-pricing
+      snapshot_ref: sha256:1a2f73d64bf0f7ce901f1445c42caa083fd16c107c90d96194582b3a633a07a2
+      cited_regions: [page]
+  - id: cursor/subscription/teams-premium#offering.subscription.models_covered
+    subject: {kind: offering, id: cursor/subscription/teams-premium}
+    facet: offering.subscription.models_covered
+    state: not_disclosed
+    value: null
+    checked_sources: [model-205-cursor-models-and-pricing]
+    sources:
+    - source_id: model-205-cursor-models-and-pricing
+      snapshot_ref: sha256:1a2f73d64bf0f7ce901f1445c42caa083fd16c107c90d96194582b3a633a07a2
+      cited_regions: [page]
+  - id: cursor/subscription/teams-premium#offering.subscription.usage_allowance
+    subject: {kind: offering, id: cursor/subscription/teams-premium}
+    facet: offering.subscription.usage_allowance
+    state: known
+    value: 5x the Standard limits on Agent
+    sources:
+    - source_id: model-205-cursor-models-and-pricing
+      snapshot_ref: sha256:1a2f73d64bf0f7ce901f1445c42caa083fd16c107c90d96194582b3a633a07a2
+      cited_regions: [page]
+  - id: cursor/subscription/teams-premium#offering.subscription.programmatic_or_agent_use
+    subject: {kind: offering, id: cursor/subscription/teams-premium}
+    facet: offering.subscription.programmatic_or_agent_use
+    state: known
+    value: Cloud agents and automations with shared team context
+    sources:
+    - source_id: model-205-cursor-pricing
+      snapshot_ref: sha256:f63d70b9ada007add6c002f1fc7efc7a1b81d138376f9acecc34117d10ac8298
+      cited_regions: [page]
+  - id: cursor/subscription/teams-premium#offering.subscription.surfaces
+    subject: {kind: offering, id: cursor/subscription/teams-premium}
+    facet: offering.subscription.surfaces
+    state: known
+    value: ['coding_tool:cursor']
+    sources:
+    - source_id: model-205-cursor-models-and-pricing
+      snapshot_ref: sha256:1a2f73d64bf0f7ce901f1445c42caa083fd16c107c90d96194582b3a633a07a2
+      cited_regions: [page]
+  - id: cursor/subscription/teams-premium#offering.subscription.families_covered
+    subject: {kind: offering, id: cursor/subscription/teams-premium}
+    facet: offering.subscription.families_covered
+    state: unknown
+    value: null
+  - id: cursor/subscription/teams-premium#offering.subscription.coverage_quote
+    subject: {kind: offering, id: cursor/subscription/teams-premium}
+    facet: offering.subscription.coverage_quote
+    state: unknown
+    value: null
+  - id: cursor/subscription/teams-premium#offering.subscription.allowance.relative_to
+    subject: {kind: offering, id: cursor/subscription/teams-premium}
+    facet: offering.subscription.allowance.relative_to
+    state: known
+    value: cursor/subscription/teams-standard
+    sources:
+    - source_id: model-205-cursor-models-and-pricing
+      snapshot_ref: sha256:1a2f73d64bf0f7ce901f1445c42caa083fd16c107c90d96194582b3a633a07a2
+      cited_regions: [page]
+  - id: cursor/subscription/teams-premium#offering.subscription.allowance.multiplier
+    subject: {kind: offering, id: cursor/subscription/teams-premium}
+    facet: offering.subscription.allowance.multiplier
+    state: known
+    value: 5
+    sources:
+    - source_id: model-205-cursor-models-and-pricing
+      snapshot_ref: sha256:1a2f73d64bf0f7ce901f1445c42caa083fd16c107c90d96194582b3a633a07a2
+      cited_regions: [page]
+  - id: cursor/subscription/teams-premium#offering.subscription.allowance.window
+    subject: {kind: offering, id: cursor/subscription/teams-premium}
+    facet: offering.subscription.allowance.window
+    state: unknown
+    value: null
+  - id: cursor/subscription/teams-premium#offering.subscription.allowance.tokens
+    subject: {kind: offering, id: cursor/subscription/teams-premium}
+    facet: offering.subscription.allowance.tokens
+    state: unknown
+    value: null

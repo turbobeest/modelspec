@@ -532,6 +532,33 @@ row's `estate` adds `coverage`, as above. For `own_software`, `with_estate`
 adds `warnings: [plan_excludes_own_software]` when a held plan's surfaces are
 known and lack `api`.
 
+### Subscription-only vendors (MODEL-205)
+
+Some plans are sold by a vendor that serves no model pay-per-use: Cursor,
+GitHub Copilot and Perplexity bundle several labs' models into their own tools.
+Such a vendor is listed under `subscription_vendors` in
+`registry/providers.yaml`, not among the providers, and:
+
+- it may sell plans (`offerings/subscriptions/<vendor>.yaml`, plan IDs
+  `cursor/subscription/pro`), whose surfaces are usually its own tool
+  (`coding_tool:cursor`);
+- it owns no metered offering, so it never appears as a pay-per-use route;
+- `estate.providers` refuses it (`invalid_spec`, saying to name its plan in
+  `estate.plans`); `estate.exhausted` accepts it, removing its plans.
+
+Its plan reaches each covered model's own row (`offering.provider` null), as a
+provider's plan reaches a covered model the provider does not sell. The route's
+`break_even_tasks_per_month` is null there, and its `basis` says why: the
+plan is not compared with any one provider's price, and each pay-per-use
+offering of the model is a result of its own. The vocabulary names vendors in
+`vendors`, apart from `providers`.
+
+Nothing in the decision's shape changes, so MODEL-205 does not bump `contract_version`:
+no response field is added, `estate.exhausted` accepts more IDs (compatible
+under MODEL-59), and the vocabulary's `vendors` is compatible under its own
+`vocabulary_version` 1. A provider kind was not added: `kind` in
+`registry/providers.yaml` is closed, and a fifth value would widen it.
+
 ### Contract note
 
 `access`, `plans`, `estate.coverage` and `with_estate.warnings` are new
@@ -1128,6 +1155,12 @@ it instead of carrying its own list of facets or benchmarks. Built by
 - `providers`: every registered provider's display name by ID
   (`registry/providers.yaml`), so a client shows "Anthropic API", not
   `anthropic`.
+- `vendors`: every subscription-only vendor's display name by ID
+  (`subscription_vendors` in `registry/providers.yaml`, MODEL-205), so a client
+  names the seller of a plan such as `cursor/subscription/pro`. A vendor sells
+  plans only: it is never in `providers`, `estate.providers` refuses it, and it
+  owns no pay-per-use offering. Adding this field is compatible, so
+  `vocabulary_version` remains `1`.
 - `models`: every snapshot model by ID, with `display_name`, `lab`, `lab_name`,
   and optional `class`. The class is the snapshot's `model.class` fact and may
   be null when that fact is unknown.

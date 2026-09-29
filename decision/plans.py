@@ -196,15 +196,21 @@ def _allowance_text(allowance: PlanAllowance) -> str:
 
 
 def route(plan: Plan, surface: str, coverage: PlanCoverage, access: Access,
-          cost_per_task: float | None, where: str) -> PlanRoute:
+          cost_per_task: float | None, where: str, *, bare: bool = False) -> PlanRoute:
     """``plan`` as a route to one row. ``cost_per_task`` is the row's pay-per-use
-    cost; ``where`` names the row, for the basis."""
+    cost; ``where`` names the row, for the basis. ``bare`` is a model's own row,
+    which a plan reaches when no offering of its seller does (a subscription-only
+    vendor's plans always do, MODEL-205)."""
     break_even = None
     if access.kind != "coding_tool":
         basis = ("A plan is paid by the month; ModelSpec does not turn its price into a "
                  "per-task cost.")
     elif plan.monthly is None:
         basis = f"{plan.name} does not publish a price, so no break-even is computed."
+    elif bare:
+        basis = (f"{plan.name} reaches {where} directly, not through a pay-per-use "
+                 "offering, so no break-even is computed; each pay-per-use offering of "
+                 "it is a result of its own.")
     elif cost_per_task is None:
         basis = (f"No pay-per-use price is known for {where}, so no break-even is computed.")
     elif cost_per_task == 0:
