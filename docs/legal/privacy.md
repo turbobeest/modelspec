@@ -1,6 +1,6 @@
 # Privacy statement
 
-Version `1.2`, effective 2026-09-26. Adopted by Sparks and Sawdust LLC, which
+Version `1.3`, effective 2026-09-29. Adopted by Sparks and Sawdust LLC, which
 operates the service. MODEL-70. Version 1.0 was adopted on 2026-09-19; what
 changed since is listed under [Changes](#changes).
 
@@ -11,12 +11,15 @@ switched on, it is marked **not yet live** and claims nothing.
 
 ## The short version
 
-We do not receive your prompts, because the API has no field for them. We do not
-proxy your model calls, so the content of your inference never reaches us. The
-The decision API keeps nothing from the content of a request: it reads your request,
-computes an answer, returns it and forgets it. The separate release-signal
-automation described below stores authenticated public release notices while it
-processes them. If you use an API key or buy credits, we keep a hash of the key
+We do not ask for your prompts: no field of the rank, decide or policy-check API
+takes one. The feedback endpoint has an optional free-text note, and asks you not
+to put a prompt, a key or personal details in it. We do not proxy your model
+calls, so the content of your inference never reaches us. The decision API keeps
+nothing from the content of a request: it reads your request, computes an answer,
+returns it and forgets it. The separate release-signal automation described below
+stores authenticated public release notices while it processes them. Feedback you
+choose to send about an answer is described below; storing it is not yet switched
+on. If you use an API key or buy credits, we keep a hash of the key
 (never the key), its usage counters and credit balance, and the Stripe identifiers
 of your purchase. Stripe, not us, handles your card. Cloudflare, our infrastructure
 provider, records request metadata as platform logs.
@@ -46,16 +49,40 @@ requirement you want checked, an optional name for the policy, and which models,
 platforms and verdicts to return (`api/worker/src/policy_service.py`). It has no
 field for prompt text either. Its body is capped at 256 KB.
 
+`POST https://api.modelspec.dev/v1/decide` accepts a **decision spec**
+(`api/worker/src/decide_service.py`; the fields are defined in
+`docs/decision-contract.md`): the capabilities you require, conditions on
+catalogued facets, what to optimise, how much explanation to return and how many
+results. A spec may also carry an **estate**: the providers, subscription plans
+and devices you hold, named by catalogue ids. `POST /v1/compare` takes the same
+spec and the id of an earlier published snapshot to compare it against. Neither
+has a field for prompt text or a description of your task, and a field the
+contract does not define is refused, not ignored. Their bodies are capped at 64
+KB.
+
+`POST https://api.modelspec.dev/v1/feedback` accepts **feedback on an answer**:
+a `rating` (reliable, unreliable, trustworthy, untrustworthy or confusing), a
+`client` (agent, cli, mcp or page), and, optionally, the `decision_id` of the
+answer, a `note` of up to 1,000 characters, what you were `trying_to_decide` in
+up to 300 characters, the site `page` and the `template` you used
+(`api/worker/src/feedback_service.py`). No key is needed and none is read. Any
+other field is refused. Its body is capped at 4 KB. Before anything is kept,
+text that looks like an email address, a phone number, an IP address, a card
+number, a social security number, a credential or a URL query is replaced by a
+placeholder; this catches the shape of such text, not its meaning, so please do
+not send a prompt, a key or personal details in the note.
+
 The remote MCP server at `https://api.modelspec.dev/mcp` (`mcp/`) is stateless.
 It passes each tool call through to those endpoints or to the public export,
 forwarding the `Authorization` header you sent, and stores nothing.
 
 ## What we store
 
-**Nothing from the content of a rank, decide or policy-check request.** Those
-endpoints compute each answer from your request, return it and forget the request:
-no body, no field of it and no answer is written anywhere. The release-signal
-intake is the deliberately narrow exception described below.
+**Nothing from the content of a rank, decide, compare or policy-check request.**
+Those endpoints compute each answer from your request, return it and forget the
+request: no body, no field of it and no answer is written anywhere. The
+release-signal intake is the deliberately narrow exception described below, and
+feedback, once its storage is switched on, is the other.
 
 The Worker binds two KV namespaces (`api/worker/wrangler.jsonc`) and one
 Durable Object, each described below. `DETERMINATIONS` holds **our own
@@ -101,8 +128,8 @@ record (`api/worker/src/access_keys.py`, `access_limits.py`,
 - **A keyref** (`keyref:<fingerprint>`). Fingerprint → subscription id, so
   rotation can find the billing row.
 
-It holds no prompt, no request body, no field of a rank or policy-check
-request, no answer, no IP address and no user-agent: our code reads none of
+It holds no prompt, no request body, no field of a rank, decide, compare or
+policy-check request, no answer, no IP address and no user-agent: our code reads none of
 those into it. A request that presents no key, or a `test_` sandbox key, writes
 nothing to it at all. Card data never reaches this store: Checkout is hosted on
 Stripe.
@@ -116,6 +143,14 @@ enables it, each pending record contains exactly the public model name, provider
 name, first-seen X URL, timestamp, confidence and signal id submitted by the bot.
 X is discovery only: none of these values becomes model-card evidence.
 
+A second submitter, our primary-source release watcher (MODEL-216,
+`release_signals/watch.py`), files the same fields for a release it finds on a
+lab's or provider's own public page, with that page's URL as the first-seen URL.
+It authenticates with the repository workflow's read key. For each of its
+discoveries the queue also keeps a marker holding the signal id and timestamp,
+so the same discovery is not queued twice. Its discoveries are not model-card
+evidence either.
+
 After the repository workflow handles the signal, it stores an audit record with
 that signal, the processing date, result and pull-request or issue URL. It also
 schedules copies for re-checks after 1, 7 and 30 days. A pending or scheduled
@@ -125,6 +160,47 @@ message, API key, IP address or user-agent. `SIGNALS_ENABLED` and the HMAC write
 secret must be configured before intake accepts anything. The separate read key
 protects retrieval and acknowledgement by the repository workflow
 (`api/worker/src/signals_service.py`).
+
+### The feedback store
+
+A third KV namespace, `FEEDBACK`, is to hold feedback on answers (MODEL-221). It
+is **not yet live**: `FEEDBACK_ENABLED` is `"false"` and the namespace is not
+bound, so feedback is checked, answered and not kept. While storage is off, the
+only limit applied is a per-minute count kept in the running Worker's memory,
+under a keyed hash of your address, and nothing is written anywhere.
+
+When it is live, each piece of feedback is one record holding exactly: the day
+it was received (`received_on`, never the time of day, which the record's expiry
+does not reveal either), the `rating`, the `client`, and whichever of
+`decision_id`, `page`, `template`, `note` and `trying_to_decide` you sent, after
+the replacement described above, plus which kinds of text were replaced
+(`redacted`). It holds no IP address, no key, no user-agent, no origin and no
+time of day. Records are deleted automatically 180 days after they are received.
+A `decision_id` identifies the question that was asked (it is derived from the
+question and the data it was answered from), not who asked it.
+
+A recorded response gives you a random receipt; we keep only its SHA-256 hash.
+Sending the receipt to `DELETE /v1/feedback` deletes the stored record at once.
+It cannot reach a copy already made for the weekly review described below.
+
+To limit abuse without keeping addresses, the Worker will then also count
+feedback per address (for IPv6, per /64 network) per day under a name derived
+from the address with a keyed hash (HMAC-SHA256 with a secret that is not
+published) and the day, so the count cannot be turned back into the address or
+linked across days, and it will keep a per-day total for the website and one for
+the API, which name no address. These counts expire within two days. The
+ModelSpec MCP server passes its caller's address to the Worker for these limits
+only.
+
+Once storage is live, once a week we will copy the feedback to our own computer,
+count it by rating, page and template, and group repeated negative feedback into
+issues in our private issue tracker (Linear), with the decision IDs and short
+excerpts of the scrubbed `note` and `trying_to_decide` text. The issues are
+drafted and filed with the help of an AI assistant, whose provider processes that
+text under its terms as our processor. The weekly copies are deleted within 14
+days; an issue keeps its excerpts until the issue is deleted. What we change
+because of feedback is listed, in our own words and never quoting anyone, at
+https://modelspec.dev/feedback/.
 
 ### The credit ledger
 
@@ -196,9 +272,12 @@ you.
 
 ## What Cloudflare records
 
-The API and both sites run on Cloudflare, and Cloudflare records request
+The API and the website run on Cloudflare, and Cloudflare records request
 metadata as any host does: the source IP address, timestamp, request method and
-path, response status, and user-agent. Cloudflare **Workers observability is
+path, response status, and user-agent. Cloudflare also asks your browser, in the
+`NEL` and `Report-To` headers of its responses, to report connections that fail
+to `a.nel.cloudflare.com`; it asks for no report of a request that succeeds.
+Cloudflare **Workers observability is
 enabled** on the API Worker and the MCP Worker (`api/worker/wrangler.jsonc`,
 `mcp/wrangler.jsonc`), which retains invocation logs — request metadata,
 outcome and any uncaught error — under Cloudflare's own retention. We use this
@@ -209,14 +288,30 @@ you. Cloudflare processes it under its own terms as our infrastructure provider.
 
 ## The websites
 
-`modelspec.dev` and `benchgraph.dev` are static pages on Cloudflare Pages.
+`modelspec.dev` is a static site on Cloudflare Pages. `benchgraph.dev`
+redirects to it.
 
 - **No cookies are set.** No analytics, no tag manager, no tracking pixel, no
   advertising network.
 - **No account exists** to sign into, so there is nothing about you to hold.
-- The downselect wizard ranks **in your browser**, from the same public JSON
-  anyone can fetch. The choices you make in it are not sent anywhere and are not
-  saved (`web3d/downselect.v2.html`).
+- The **decide page** (`/decide/`) answers by sending the board's current spec
+  to `POST /v1/decide`, described above, whenever it needs an answer, including
+  when it first loads (`web/src/decide/adapter/hosted.ts`). That endpoint keeps
+  nothing of it. The board itself is kept in the page address after the
+  `#`, which your browser does not send to any server.
+- **Your browser keeps three things for the decide page**, in its
+  `localStorage`: your light or dark theme (`modelspec-theme`,
+  `web/src/decide/theme.ts`); the providers, plans and devices the board is set
+  to hold (`modelspec-estate-v1`, `web/src/decide/facet-board/model.ts`), which
+  leave your browser only as the estate of a spec sent to `/v1/decide`; and, if
+  you press **Save and watch**, the spec and the alerts you ticked
+  (`modelspec-alerts`, or `modelspec-sample-alerts` on a sample,
+  `web/src/decide/components/Share.tsx`). The saved spec and alerts are never
+  sent to us, and the service holds no watch list. Clearing this site's data in
+  your browser removes all three.
+- The **Feedback** button, on every page, and the "Was this answer reliable?"
+  prompt on the decide page send what you enter to `/v1/feedback` only when you
+  press Send. They set no cookie and store nothing in your browser.
 - **No third-party requests:** pages load nothing from a third party. Web fonts
   and the graph explorer's libraries are served from our own origin rather than
   a CDN.
@@ -232,6 +327,17 @@ than a retention promise: there is no path by which that data could reach us.
 The ModelSpec CLI, which runs on your machine, reads **which** provider API keys
 are present in your environment and never their values. The keys stay with you.
 
+From the first CLI release after 0.2.0, the CLI can also keep a log of outcomes
+on your machine: whether you adopted a decision and whether the task succeeded.
+It records **nothing until you turn it on** with `modelspec outcome enable`,
+which shows you every field it records and asks you to agree
+(`cli/modelspec/outcome.py`, `docs/outcome-privacy.md`). The log lives under
+`~/.modelspec/`, or `$MODELSPEC_HOME` if you set it. It holds identifiers,
+catalogue names, fixed-choice results and rounded numbers, and no free text.
+**It never leaves your machine:** no `outcome` command opens a network
+connection, and we never receive the log. `modelspec outcome disable --delete`
+stops recording and deletes it.
+
 ## Not yet live
 
 Named so that this statement can be checked against the code, and so that
@@ -243,11 +349,26 @@ nothing below is read as describing the service today:
   payload in order to verify and settle it; that payload is the caller's, not a
   store of ours. No private key for receiving funds is in this repository.
   `X402_PAY_TO` is an on-chain address in configuration, currently empty.
-- **Outcome logging.** Not built. The service does not record what you chose,
-  whether a recommendation worked, or anything about the result of acting on
-  one. When it is built it will record the profile, the recommendation and the
-  outcome — never prompt text — and this statement will be updated before it
-  ships, not after.
+
+  Turning x402 on would also change two things this statement says today, and
+  each has to be settled before it is turned on. A request from a browser on
+  this site that presents no key would be metered in `ACCESS`, under counters
+  named from the SHA-256 of your IP address
+  (`_site_free_visitor` in `api/worker/src/entry.py`). An unsalted hash of an IP
+  address can be reversed by trying every address, so it is a pseudonymous
+  address, not an anonymous one; a keyed or rotating scheme replaces it, and this
+  statement is revised, before x402 is switched on. And a payment made without a
+  key would be recorded in the credit ledger under the paying wallet's public
+  address, with the credits it bought, which are spent at once.
+- **Outcome logging by the service.** Not built. The service does not receive or
+  record what you chose, whether a recommendation worked, or anything about the
+  result of acting on one. The CLI's local log (see *Inference, and why there is nothing to say
+  about it*) is not sent to us, and uploading it is designed but not built
+  (`docs/design/outcome-upload.md`). The feedback described under
+  [the feedback store](#the-feedback-store) is separate: a rating you choose to
+  send, with optional text. When upload is built it will send only records you
+  choose to upload, under a consent of its own, and never prompt text, and this
+  statement will be updated before it ships, not after.
 
 ## Your requests about your data
 
@@ -257,11 +378,32 @@ hold the records described above, linked to your Stripe customer id. To ask
 what we hold about you, or to have it corrected or deleted, write to
 **sales@modelspec.dev**. Never send us your API key.
 
+Feedback is not linked to you. To delete a piece of feedback, send its receipt
+to `DELETE /v1/feedback`, or write to us with it.
+
 ## Changes
 
 A change to what the service records is a change to this statement, and it is
 published here before the change ships. The version above is the one in force.
 
+- **1.3, 2026-09-29.** Brought the statement back in line with the service.
+  Described `POST /v1/decide` and `/v1/compare`, their fields and their 64 KB
+  cap, and what the decide page sends to them. Replaced the retired downselect
+  wizard with the decide page, and disclosed the three things it keeps in your
+  browser's `localStorage`. Said that `benchgraph.dev` now redirects to
+  `modelspec.dev`, and that Cloudflare asks browsers to report failed
+  connections to it. Disclosed the primary-source release watcher as a second
+  submitter to the release-signal queue, and the duplicate marker it keeps
+  (MODEL-216). Described the CLI's opt-in outcome log, which stays on your
+  machine (MODEL-211), and narrowed "Outcome logging" under *Not yet live* to
+  the service and to upload. Under *Not yet live*, disclosed that x402, if
+  turned on as built, would meter keyless browser requests under an unsalted
+  hash of the IP address and record keyless payments under the paying wallet's
+  address, and that the first is replaced before x402 is turned on. Disclosed
+  the feedback endpoint before it is deployed, with its storage not yet live:
+  the fields it accepts, what a record would hold, the 180-day retention,
+  deletion by receipt, the keyed per-day abuse counter and the weekly review
+  into our issue tracker (MODEL-221).
 - **1.2, 2026-09-26.** Disclosed the release-signal queue before it is enabled:
   the public release fields it stores, its processing audit, its 1-, 7- and
   30-day re-check records, and its `SIGNALS_ENABLED` switch (MODEL-113).

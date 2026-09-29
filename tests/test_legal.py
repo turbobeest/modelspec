@@ -16,8 +16,8 @@ Three things are worth a test here, and they are not the prose.
 3. **Nothing claims a capability that is not shipped, and what is shipped is
    described as it is.** The documents were adopted as v1.0 on 2026-09-19. The
    billing terms are checked against `api/worker/tiers.json`, the privacy
-   statement against what the Worker binds and writes, and outcome logging and
-   x402 must stay described as not live until they are.
+   statement against what the Worker binds and writes, and outcome logging by
+   the service and x402 must stay described as not live until they are.
 """
 
 from __future__ import annotations
@@ -292,13 +292,65 @@ def test_the_terms_do_not_offer_x402_while_it_is_off() -> None:
 
 
 def test_the_privacy_statement_does_not_describe_outcome_logging_as_built() -> None:
-    """Outcome logging is not built. Describing it would be the exact failure to avoid."""
+    """The service records no outcomes. Describing it as built would be the exact
+    failure to avoid; MODEL-211's log is the CLI's, local and opt-in."""
     section = PRIVACY.split("## Not yet live", 1)
     assert len(section) == 2, "the privacy statement must keep a 'Not yet live' section"
     before, after = flat(section[0]), flat(section[1])
     assert "Outcome logging" not in before
-    assert "Outcome logging" in after
+    assert "Outcome logging by the service" in after
     assert "Not built" in after
+    assert "docs/design/outcome-upload.md" in after
+
+
+def test_the_privacy_statement_describes_the_local_outcome_log() -> None:
+    """MODEL-211 ships an opt-in log that stays on the machine. v1.2 called outcome
+    logging "Not built", which stopped being the whole truth when it merged."""
+    assert (REPO_ROOT / "cli" / "modelspec" / "outcome.py").is_file()
+    before = flat(PRIVACY.split("## Not yet live", 1)[0])
+    for claim in ("`modelspec outcome enable`", "nothing until you turn it on",
+                  "It never leaves your machine", "`cli/modelspec/outcome.py`"):
+        assert claim in before, claim
+
+
+def test_the_privacy_statement_names_every_browser_storage_key() -> None:
+    """No cookie is set, but the decide page writes `localStorage` (MODEL-237).
+    Every key a shipped page writes must be named, so a new one fails here."""
+    import re
+
+    keys = set()
+    for src in (REPO_ROOT / "web").rglob("*"):
+        if (src.suffix not in {".ts", ".tsx", ".html", ".js"} or "node_modules" in src.parts
+                or "__tests__" in src.parts or not src.is_file()):
+            continue
+        text = src.read_text(encoding="utf-8", errors="ignore")
+        if "localStorage.setItem" not in text:
+            continue
+        keys |= set(re.findall(r'"(modelspec-[a-z0-9-]+)"', text))
+    assert {"modelspec-theme", "modelspec-estate-v1", "modelspec-alerts"} <= keys
+    for key in sorted(keys):
+        assert f"`{key}`" in PRIVACY, (
+            f"a page writes {key!r} to localStorage and the privacy statement does not name it")
+    assert "No cookies are set" in FLAT_PRIVACY
+
+
+def test_x402_stays_off_while_keyless_visitors_are_metered_by_a_bare_ip_hash() -> None:
+    """MODEL-237. With x402 on, `_site_free_visitor` names keyless browser meters
+    after an unsalted SHA-256 of the IP address, which enumeration reverses. The
+    statement promises that is replaced before x402 goes on; this holds it."""
+    entry = (REPO_ROOT / "api" / "worker" / "src" / "entry.py").read_text(encoding="utf-8")
+    unsalted = "hashlib.sha256(connecting_ip.encode(" in entry
+    if unsalted:
+        assert '"X402_ENABLED": "false"' in _production_vars(), (
+            "X402_ENABLED is on while keyless visitors are metered under an unsalted "
+            "SHA-256 of their IP address; the privacy statement says that is replaced first")
+        assert "unsalted hash of an IP address" in FLAT_PRIVACY
+
+
+def _production_vars() -> str:
+    """The top-level `vars` block of wrangler.jsonc: production, not `env.staging`."""
+    config = _wrangler_config()
+    return config.split('"vars"', 1)[1].split("}", 1)[0]
 
 
 def _wrangler_config() -> str:
@@ -526,7 +578,7 @@ def test_the_privacy_statement_claims_no_prompt_field_and_the_api_has_none() -> 
 IN_FORCE = {
     "terms": "Version `1.0`, effective 2026-09-19.",
     "neutrality": "Version `1.1`, effective 2026-09-23.",
-    "privacy": "Version `1.2`, effective 2026-09-26.",
+    "privacy": "Version `1.3`, effective 2026-09-29.",
 }
 
 
