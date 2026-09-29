@@ -29,7 +29,7 @@ modelspec offline fit [<hardware-id>]     what a given machine can run, or list 
 modelspec offline class-fit [<task>]      which *class* of model a problem needs (MODEL-100)
 ```
 
-`modelspec decide [SPEC.yaml] [--template ID] [--check] [--explain …] [--why-not MODEL_ID] [--json]`
+`modelspec decide [SPEC.yaml] [--template ID] [--check] [--explain …] [--why-not MODEL_ID] [--emit-router-config FORMAT [--out PATH] [--include-rest] [--include-thin]] [--json]`
 is the decision engine's command (MODEL-135). It speaks the **decision
 contract**, which is versioned on its own (`contract_version`) and documented in
 [`decision-contract.md`](decision-contract.md). With neither `--snapshot-file`
@@ -111,6 +111,48 @@ eliminated model is known. It cannot be combined with `--check` or
 `why_not` object is CLI output, not part of the decision contract, and carries
 `model`, `verdict`, `model_rank`, `ranked_models`, `offerings`, `failed`,
 `unknown`, `constraint_costs`, `tipping_points` and a one-line `summary`.
+
+`modelspec decide SPEC.yaml --emit-router-config FORMAT [--out PATH]` turns
+the decision into a router or gateway allow-list (MODEL-208). ModelSpec decides
+which models belong on the list; the router picks among them per request. The
+file is configuration only: ModelSpec never proxies inference, never holds a
+prompt, never calls the router, and never writes a credential or a referral
+parameter.
+
+The list is the decision's `bands` (contract 2.7). By default it holds the
+`best` band. `--include-rest` adds the `rest` band: the other ranked models,
+all of which passed every Must. `--include-thin` adds the models with not
+enough evidence yet, labelled `thin` in every format. Order is best, then
+rest, then thin, each in band order. A listed model carries each of its ranked
+offerings as a route, the band's own offering first.
+
+| `FORMAT` | What it writes | Checked against |
+| --- | --- | --- |
+| `litellm` | A LiteLLM proxy `config.yaml`: one `model_list` deployment per route, `model_name` the ModelSpec model ID, `model_info.id` `modelspec:<offering>`. No `api_key`: LiteLLM reads each provider's own environment variables. | `ConfigYAML` in `litellm.proxy._types` (litellm 1.103.0), and the proxy's own `load_config` |
+| `openrouter` | The body of OpenRouter's `POST /api/v1/guardrails`: `allowed_models`, and `allowed_providers` when every route names a provider | `CreateGuardrailRequest` in `https://openrouter.ai/openapi.json` |
+| `json` | ModelSpec's own format: per model the band, `p_best`, `p_beats_leader`, score, routes (provider, region, tier, cost) and reasons | [`schemas/router-config-v1.schema.json`](../schemas/router-config-v1.schema.json) |
+
+Every file carries an audit header: `decision_id`, `spec_hash`, `snapshot`,
+`contract_version`, and the command that regenerates it. In LiteLLM the header
+is a YAML comment block. In OpenRouter it is the guardrail's `description`. In
+`json` it is the `audit` object.
+
+The snapshot does not publish each provider's or router's own model ID. The
+file writes a `<...>` placeholder in its place, and `json` writes
+`provider_model_id: null`. A router rejects a placeholder, so an unedited file
+admits nothing. It never admits a guessed ID. The command warns on stderr.
+
+The config goes to stdout, or to `PATH` with `--out`. With `--out`, stdout is
+what `decide` prints without the flag (the readable summary, or with `--json`
+the unchanged decision JSON), and a one-line note goes to stderr. `--json` without
+`--out` exits 1, because stdout can carry only one document. The flag cannot be
+combined with `--check`, `--compare-to` or `--why-not`. `--out`,
+`--include-rest` and `--include-thin` need `--emit-router-config`. Errors exit
+1 with these codes: `router_config_usage`; `no_qualifying_models`
+(`no_feasible`); `no_bands` (a lexicographic or Pareto objective has no
+bands); and `empty_allow_list` (the selected bands are empty, for example when
+no model has enough evidence to lead; the message names the flag that would
+add models).
 
 Options on legacy v1 `offline rank`: `--limit/-n`, `--open-weights`, `--fits <hardware-id>`,
 `--max-cost <dollars per million input tokens>`, `--price-sensitivity <0..1>`,
