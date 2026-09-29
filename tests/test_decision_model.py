@@ -52,6 +52,11 @@ class RegistryStub:
             raise KeyError(id)
         return SimpleNamespace(id=id)
 
+    def plan_owner(self, id):
+        if id not in {"fake-provider", "fake-vendor"}:
+            raise KeyError(id)
+        return SimpleNamespace(id=id)
+
     def harness(self, id):
         if id != "fake-harness@1.0":
             raise KeyError(id)

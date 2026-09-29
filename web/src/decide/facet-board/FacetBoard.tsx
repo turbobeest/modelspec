@@ -145,6 +145,7 @@ function EstateStrip({ vocabulary, estate, onChange }: { vocabulary: Vocabulary;
   const plans = vocabulary.estate.plans;
   const planLabel = (id: string) => planName(plans.find((plan) => plan.id === id)?.name ?? id);
   const providerName = (id: string) => payee(vocabulary.providers[id] ?? id);
+  const sellerName = (id: string) => payee(vocabulary.providers[id] ?? vocabulary.vendors[id] ?? id);
   const chip = (label: string, remove: () => void) =>
     <button key={label} className="estate-chip" aria-label={`Remove ${label}`} onClick={remove}>{label} <span aria-hidden="true">×</span></button>;
   const planGroups = [...new Set(plans.filter((plan) => !estate.plans.includes(plan.id)).map((plan) => plan.provider))];
@@ -154,7 +155,7 @@ function EstateStrip({ vocabulary, estate, onChange }: { vocabulary: Vocabulary;
       {estate.plans.map((id) => chip(planLabel(id), () => update({ ...estate, plans: estate.plans.filter((item) => item !== id) })))}
       {estate.providers.map((id) => chip(`${providerName(id)} account`, () => update({ ...estate, providers: estate.providers.filter((item) => item !== id) })))}
       {estate.hardware.map((id) => chip(deviceName(id), () => update({ ...estate, hardware: estate.hardware.filter((item) => item !== id) })))}
-      {plans.length > 0 && <label>+ plan <select aria-label="Add plan" value="" onChange={(event) => event.target.value && update({ ...estate, plans: [...new Set([...estate.plans, event.target.value])] })}><option value="">Choose…</option>{planGroups.map((provider) => <optgroup key={provider} label={providerName(provider)}>{plans.filter((plan) => plan.provider === provider && !estate.plans.includes(plan.id)).map((plan) => <option key={plan.id} value={plan.id}>{planName(plan.name)}</option>)}</optgroup>)}</select></label>}
+      {plans.length > 0 && <label>+ plan <select aria-label="Add plan" value="" onChange={(event) => event.target.value && update({ ...estate, plans: [...new Set([...estate.plans, event.target.value])] })}><option value="">Choose…</option>{planGroups.map((provider) => <optgroup key={provider} label={sellerName(provider)}>{plans.filter((plan) => plan.provider === provider && !estate.plans.includes(plan.id)).map((plan) => <option key={plan.id} value={plan.id}>{planName(plan.name)}</option>)}</optgroup>)}</select></label>}
       <label>+ pay-per-use account <select aria-label="Add provider" value="" onChange={(event) => event.target.value && update({ ...estate, providers: [...new Set([...estate.providers, event.target.value])] })}><option value="">Choose…</option>{Object.entries(vocabulary.providers).filter(([id]) => !estate.providers.includes(id)).map(([id, label]) => <option key={id} value={id}>{payee(label)}</option>)}</select></label>
       {vocabulary.estate.devices.length > 0 && <label>+ device <select aria-label="Add device" value="" onChange={(event) => event.target.value && update({ ...estate, hardware: [...new Set([...estate.hardware, event.target.value])] })}><option value="">Choose…</option>{devices.map((id) => <option key={id} value={id}>{deviceName(id)}</option>)}</select></label>}
     </div>

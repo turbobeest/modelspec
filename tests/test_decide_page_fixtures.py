@@ -107,16 +107,21 @@ PLAN_SPECS = {
     # No access ("Doesn't matter"): every route, the cheapest named per model.
     "plans-any-full": (None, {"plans": ["anthropic/subscription/max-20x"],
                               "devices": ["apple_m3_max"]}, True),
+    # MODEL-205: a Cursor Pro holder in a coding tool. Cursor sells no
+    # pay-per-use, so its plan reaches each covered model's own row.
+    "plans-vendor-coding-full": ("coding_tool", {"plans": ["cursor/subscription/pro"]},
+                                 "vendor"),
 }
 
 
 @pytest.mark.parametrize("name", sorted(PLAN_SPECS))
 def test_the_plan_page_fixtures_are_the_engines_answer(name):
-    from tests.plan_records import CONTEXT, inputs
+    from tests.plan_records import CONTEXT, inputs, vendor_inputs
 
     access, estate, max_coverage = PLAN_SPECS[name]
+    records = vendor_inputs() if max_coverage == "vendor" else inputs(max_coverage=max_coverage)
     snapshot = load_built_snapshot(
-        build_snapshot(inputs(max_coverage=max_coverage), as_of=date(2026, 9, 29)),
+        build_snapshot(records, as_of=date(2026, 9, 29)),
         include_archive=True, source="plan page fixture build")
     spec = {"spec_version": 1, "optimize": {"max": CONTEXT}, "explain": "full", "estate": estate}
     if access is not None:

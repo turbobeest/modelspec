@@ -95,7 +95,8 @@ class UnknownIdError(RegistryError, KeyError):
 
 _FILE_FOR = {
     "facet": "facets.yaml", "unit": "facets.yaml", "source_kind": "facets.yaml",
-    "provider": "providers.yaml", "harness": "harnesses.yaml", "domain": "domains.yaml",
+    "provider": "providers.yaml", "vendor": "providers.yaml", "plan owner": "providers.yaml",
+    "harness": "harnesses.yaml", "domain": "domains.yaml",
     "refinement": "refinements.yaml", "family": "families.yaml",
 }
 
@@ -198,6 +199,15 @@ class Provider:
 
 
 @dataclass(frozen=True)
+class Vendor:
+    """A subscription-only vendor (MODEL-205): it sells plans and nothing else."""
+    id: str
+    name: str
+    url: str
+    note: str = ""
+
+
+@dataclass(frozen=True)
 class HarnessVersion:
     id: str
     source: str | None
@@ -263,11 +273,12 @@ class Registry:
 
     def __init__(self, *, units, source_kinds, facets, providers, harnesses, domains,
                  named_lists: Mapping[str, Callable[[], frozenset[str]] | None],
-                 refinements=None, families=None):
+                 refinements=None, families=None, vendors=None):
         self._units: Mapping[str, Unit] = MappingProxyType(units)
         self._source_kinds: Mapping[str, SourceKind] = MappingProxyType(source_kinds)
         self._facets: Mapping[str, Facet] = MappingProxyType(facets)
         self._providers: Mapping[str, Provider] = MappingProxyType(providers)
+        self._vendors: Mapping[str, Vendor] = MappingProxyType(vendors or {})
         self._harnesses: Mapping[str, Harness] = MappingProxyType(harnesses)
         self._domains: Mapping[str, Domain] = MappingProxyType(domains)
         self._refinements: Mapping[tuple[str, str], Refinement] = MappingProxyType(
@@ -314,6 +325,13 @@ class Registry:
     def provider(self, id_: str) -> Provider:
         return self._get("provider", self._providers, id_)
 
+    def vendor(self, id_: str) -> Vendor:
+        return self._get("vendor", self._vendors, id_)
+
+    def plan_owner(self, id_: str) -> Provider | Vendor:
+        """Who may sell a subscription plan: a provider or a subscription-only vendor."""
+        return self._get("plan owner", {**self._providers, **self._vendors}, id_)
+
     def harness(self, id_: str) -> Harness:
         """A harness by name (`claude-code`), not by version."""
         return self._get("harness", self._harnesses, id_)
@@ -354,6 +372,9 @@ class Registry:
 
     def providers(self) -> tuple[Provider, ...]:
         return tuple(self._providers.values())
+
+    def vendors(self) -> tuple[Vendor, ...]:
+        return tuple(self._vendors.values())
 
     def harnesses(self) -> tuple[Harness, ...]:
         return tuple(self._harnesses.values())
@@ -706,6 +727,30 @@ def _load_providers(err: _Errors, root: Path) -> dict[str, Provider]:
     return out
 
 
+def _load_vendors(err: _Errors, root: Path, providers: Mapping[str, Provider]) -> dict[str, Vendor]:
+    """`subscription_vendors` in providers.yaml (MODEL-205). Absent means none."""
+    path = root / "providers.yaml"
+    entries = (yaml.safe_load(path.read_text(encoding="utf-8")) or {}).get(
+        "subscription_vendors", [])
+    if not isinstance(entries, list) or not all(isinstance(e, dict) for e in entries):
+        err.add("providers.yaml", "`subscription_vendors` must be a list of mappings")
+        return {}
+    _unique(err, "providers.yaml subscription_vendors", entries, KEBAB_ID, "kebab-case")
+    out: dict[str, Vendor] = {}
+    for e in entries:
+        where = f"providers.yaml subscription vendor {e.get('id')!r}"
+        _keys(err, where, e, {"id", "name", "url"}, {"note"})
+        if not _https(e.get("url")):
+            err.add(where, "url must be an https URL")
+        if e.get("id") in providers:
+            err.add(where, "id is already a provider: a vendor sells plans only")
+        if isinstance(e.get("id"), str):
+            out.setdefault(e["id"], Vendor(
+                id=e["id"], name=str(e.get("name", "")), url=str(e.get("url", "")),
+                note=str(e.get("note", ""))))
+    return out
+
+
 def _load_harnesses(err: _Errors, root: Path) -> dict[str, Harness]:
     entries = _read(root, "harnesses", "harnesses")
     _unique(err, "harnesses.yaml", entries, KEBAB_ID, "kebab-case")
@@ -871,6 +916,7 @@ def load(root: Path | None = None, *, repo_root: Path | None = None) -> Registry
     units, kinds = _load_units_and_kinds(err, root)
     facets = _load_facets(err, root, units, kinds, lists)
     providers = _load_providers(err, root)
+    vendors = _load_vendors(err, root, providers)
     harnesses = _load_harnesses(err, root)
     domains = _load_domains(err, root)
     model_classes = lists["model_classes"]()
@@ -879,7 +925,7 @@ def load(root: Path | None = None, *, repo_root: Path | None = None) -> Registry
     err.raise_if_any()
     return Registry(units=units, source_kinds=kinds, facets=facets, providers=providers,
                     harnesses=harnesses, domains=domains, refinements=refinements,
-                    named_lists=lists, families=families)
+                    named_lists=lists, families=families, vendors=vendors)
 
 
 @cache
@@ -896,6 +942,10 @@ def facet(id_: str) -> Facet:
 
 def provider(id_: str) -> Provider:
     return default().provider(id_)
+
+
+def plan_owner(id_: str) -> Provider | Vendor:
+    return default().plan_owner(id_)
 
 
 def harness(id_: str) -> Harness:

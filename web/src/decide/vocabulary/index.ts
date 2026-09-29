@@ -151,6 +151,11 @@ export const vocabularySchema = z.object({
   /** Provider display names by ID. */
   providers: z.record(z.string(), z.string()).default({}),
   /**
+   * Subscription-only vendors' display names by ID (MODEL-205): they sell
+   * plans only, so they are never a pay-per-use account.
+   */
+  vendors: z.record(z.string(), z.string()).default({}),
+  /**
    * The IDs a spec's `estate` accepts (MODEL-179). From 2.6 each plan also
    * carries its price, surfaces and coverage, each null when not published.
    */
