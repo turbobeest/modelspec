@@ -75,6 +75,15 @@ SOURCES: dict[str, tuple[str, str, str]] = {
     "model-201-alibaba-coding-plan": (
         "https://www.alibabacloud.com/help/en/model-studio/coding-plan",
         "conditional_http", "html-default"),
+    "model-201-anthropic-pro-plan": (
+        "https://support.claude.com/en/articles/8325606-what-is-the-pro-plan",
+        "conditional_http", "html-default"),
+    "model-201-anthropic-claude-code-team": (
+        "https://support.claude.com/en/articles/11845131-use-claude-code-with-your-team-or-enterprise-plan",
+        "conditional_http", "html-default"),
+    "model-201-kimi-membership": (
+        "https://www.kimi.com/en/help/membership/membership-pricing",
+        "conditional_http", "html-default"),
 }
 
 #: The retained copy read for each source, new or re-read.
@@ -109,7 +118,19 @@ COPIES: dict[str, str] = {
         "sha256:afd01792fed84deccc30029de5d3030c0883b28c36176908df38f988e15b8afa",
     "model-201-alibaba-coding-plan":
         "sha256:448994e29950b133d818855ed649a212ec2c147dc21160d4ebf4de54c4b5afdf",
+    "model-201-anthropic-pro-plan":
+        "sha256:01fa20e44e7c80cf840086c02d1d56c8820fb9a8d2ab4c450f0246a4d0b76fc9",
+    "model-201-anthropic-claude-code-team":
+        "sha256:1f2055813aab9ba7063df94a46806b8d4f17a462abeca2758fbd229a3cc282fc",
+    "model-201-kimi-membership":
+        "sha256:692bd34aaa5d8ff63d8515df0f283eaeec658b165ec6d16dfa8333bf566bf5b9",
     # MODEL-173 registrations, re-read 2026-09-29.
+    "model-173-anthropic-consumer-pricing":
+        "sha256:e082158312a3a626aa9d6dfde56884fe9b9bf478135f2cffbfd5ad89f864362e",
+    "model-173-anthropic-claude-code":
+        "sha256:45aefc6ec3726c45a6f520264cd8bee4890ace58184af1f8a7994fe74f330550",
+    "model-173-openai-pro":
+        "sha256:3f5c03587133bf3d59c4c2c2a04e9e3bdfe52ac50c63ac267e1f2454b8d3d6b9",
     "model-173-google-ai-plans":
         "sha256:7cf6d7992c5522395ac6d5bf80077873593224f09a052a358a2d3c259a73749f",
     "model-173-google-gemini-limits":
@@ -133,7 +154,11 @@ PLAN_FACETS = (
     "offering.subscription.allowance.multiplier",
     "offering.subscription.allowance.window",
     "offering.subscription.allowance.tokens",
+    "offering.subscription.price_cny",
 )
+SURFACES, FAMILIES, QUOTE = PLAN_FACETS[:3]
+RELATIVE_TO, MULTIPLIER, WINDOW = PLAN_FACETS[3:6]
+PRICE_CNY = PLAN_FACETS[7]
 
 LABELS = {
     PRICE: "Price",
@@ -141,6 +166,13 @@ LABELS = {
     MODELS: "Models covered",
     ALLOWANCE: "Usage limits",
     ACCESS: "Agent or coding tool access",
+    SURFACES: "Surfaces",
+    FAMILIES: "Families covered",
+    QUOTE: "Coverage wording",
+    RELATIVE_TO: "Allowance relative to",
+    MULTIPLIER: "Allowance multiplier",
+    WINDOW: "Allowance window",
+    PRICE_CNY: "Price",
 }
 #: A price claim carries no unit: the verifier then takes the unit the source
 #: states ("$200 per month"), as MODEL-173's re-filed price claims do. A claimed
@@ -377,6 +409,138 @@ PLANS: list[dict[str, Any]] = [
                    "Code, Qoder, Qoder CN, and OpenClaw.", "model-201-alibaba-coding-plan")},
 ]
 
+PLANS += [
+    {"provider": "anthropic", "plan": "pro", "name": "Claude Pro"},
+    {"provider": "anthropic", "plan": "max-5x", "name": "Claude Max 5x", "names": ["Max 5x"]},
+    *[
+        {"provider": "moonshot", "plan": tier.lower(), "name": f"Kimi {tier}", "names": [tier],
+         "note": "Priced in CNY only; the US dollar price is not published, and the CNY "
+                 "price is never converted.",
+         PRICE: undisclosed("model-201-kimi-membership"),
+         PERIOD: known("monthly", "model-201-kimi-membership"),
+         MODELS: undisclosed("model-201-kimi-membership"),
+         ALLOWANCE: known(f"About {uses} Agent uses", "model-201-kimi-membership"),
+         ACCESS: known("Kimi Code available", "model-201-kimi-membership")}
+        for tier, uses in (("Andante", 30), ("Moderato", 60), ("Allegretto", 150),
+                           ("Allegro", 360))
+    ],
+]
+
+CLAUDE_ROWS = ("Fable | No | Usage credits | 50% of weekly limits* | 50% of weekly limits*\n"
+               "Opus | No | Yes | Yes | Yes\nSonnet | Yes | Yes | Yes | Yes\n"
+               "Haiku | Yes | Yes | Yes | Yes")
+CLAUDE_APPS = ["chat_app", "coding_tool:claude-code", "desktop_app", "mobile_app"]
+GEMINI_ROWS = ("Plan | Gemini 3 Flash-lite | Gemini 3 Flash | Gemini 3 Pro\n"
+               "Without an AI Plan | Yes | Yes | Yes\nAI Plus | Yes | Yes | Yes\n"
+               "AI Pro | Yes | Yes | Yes\nAI Ultra | Yes | Yes | Yes")
+PRICING, MODELS_REGION = "model-173-anthropic-consumer-pricing", "models-and-usage"
+
+#: Phase 2 (MODEL-200's plan facts), by plan ID: the names the plan-scoped text
+#: uses, and one spec per plan fact a primary page states. An absent plan fact is
+#: unknown; docs/research/subscriptions/2026-09-29.md says why for each.
+PLAN_FACTS: dict[str, dict[str, Any]] = {
+    "anthropic/subscription/pro": {
+        "names": ["Pro plan"],
+        SURFACES: known(CLAUDE_APPS, "model-173-anthropic-claude-code"),
+        FAMILIES: known(["anthropic/claude-opus", "anthropic/claude-sonnet",
+                         "anthropic/claude-haiku"], PRICING, MODELS_REGION),
+        QUOTE: known(CLAUDE_ROWS, PRICING, MODELS_REGION),
+        WINDOW: known("five hours", "model-201-anthropic-pro-plan"),
+    },
+    **{
+        f"anthropic/subscription/max-{tier}": {
+            "names": ["Max plan"],
+            SURFACES: known(CLAUDE_APPS, "model-173-anthropic-claude-code"),
+            FAMILIES: known(["anthropic/claude-fable", "anthropic/claude-opus",
+                             "anthropic/claude-sonnet", "anthropic/claude-haiku"],
+                            PRICING, MODELS_REGION),
+            QUOTE: known(CLAUDE_ROWS, PRICING, MODELS_REGION),
+            RELATIVE_TO: known("anthropic/subscription/pro", "model-201-anthropic-max-plan"),
+            MULTIPLIER: known(multiple, "model-201-anthropic-max-plan"),
+            WINDOW: known("five hours", "model-201-anthropic-max-plan"),
+        }
+        for tier, multiple in (("5x", 5), ("20x", 20))
+    },
+    **{
+        f"anthropic/subscription/team-{seat}": {
+            "names": ["Team"],
+            SURFACES: known(CLAUDE_APPS, "model-201-anthropic-claude-code-team"),
+            QUOTE: known("Access to all available models.", "model-201-anthropic-team-plan"),
+            RELATIVE_TO: known("anthropic/subscription/pro", "model-201-anthropic-team-plan"),
+            MULTIPLIER: known(multiple, "model-201-anthropic-team-plan"),
+            WINDOW: known("five hours", "model-201-anthropic-team-plan"),
+        }
+        for seat, multiple in (("standard", 1.25), ("premium", 6.25))
+    },
+    "anthropic/subscription/enterprise": {
+        SURFACES: known(CLAUDE_APPS, "model-201-anthropic-enterprise-plan"),
+    },
+    **{
+        f"openai/subscription/pro-{tier}": {
+            RELATIVE_TO: known("openai/subscription/plus", "model-173-openai-pro"),
+            MULTIPLIER: known(multiple, "model-173-openai-pro"),
+        }
+        for tier, multiple in (("5x", 5), ("20x", 20))
+    },
+    **{
+        f"google-gemini-api/subscription/{plan}": {
+            QUOTE: known(GEMINI_ROWS, "model-173-google-gemini-limits", "model-access"),
+        }
+        for plan in ("ai-plus", "ai-pro")
+    },
+    **{
+        f"google-gemini-api/subscription/ai-ultra-{tier}": {
+            QUOTE: known(GEMINI_ROWS, "model-173-google-gemini-limits", "model-access"),
+            RELATIVE_TO: known("google-gemini-api/subscription/ai-pro",
+                               "model-201-gemini-subscriptions"),
+            MULTIPLIER: known(multiple, "model-201-gemini-subscriptions"),
+        }
+        for tier, multiple in (("5x", 5), ("20x", 20))
+    },
+    **{
+        f"xai/subscription/{plan}": {QUOTE: known("Grok 4.6 model", "model-173-xai-consumer-pricing")}
+        for plan in ("supergrok", "supergrok-plus")
+    },
+    **{
+        f"xai/subscription/{plan}": {
+            QUOTE: known("Unlock the full power of Chat with Grok 4.6", "model-201-grok-supergrok"),
+        }
+        for plan in ("supergrok-lite", "supergrok-heavy")
+    },
+    "xai/subscription/business": {
+        QUOTE: known("Models\nImagine\nVoice\nGrok 4.6", "model-201-xai-business"),
+    },
+    **{
+        f"zai/subscription/glm-coding-{tier}": {
+            QUOTE: known("All plans support GLM-5.3, GLM-5.3-Flash.", "model-201-zai-devpack"),
+            WINDOW: known("five hours", "model-201-zai-devpack"),
+        }
+        for tier in ("lite", "pro", "max")
+    },
+    **{
+        f"minimax/subscription/token-{tier}": {
+            QUOTE: known("Available model coverage includes the full MiniMax lineup "
+                         "(M3 / M2.7 / image / speech).", "model-201-minimax-token-plan"),
+            WINDOW: known("five hours", "model-201-minimax-token-plan"),
+        }
+        for tier in ("plus", "max", "ultra")
+    },
+    "alibaba-model-studio/subscription/coding-pro": {
+        QUOTE: known("Only the following exact model versions are supported: Recommended "
+                     "models: qwen3.7-plus (vision), qwen3.6-plus (vision), kimi-k2.5 (vision), "
+                     "glm-5 , and MiniMax-M2.5 More models: qwen3.5-plus (vision) , "
+                     "qwen3-max-2026-01-23 , qwen3-coder-next , qwen3-coder-plus , and glm-4.7 "
+                     "Models not listed above are not supported.",
+                     "model-201-alibaba-coding-plan"),
+        WINDOW: known("five hours", "model-201-alibaba-coding-plan"),
+    },
+    **{
+        f"moonshot/subscription/{tier}": {PRICE_CNY: known(price, "model-201-kimi-membership")}
+        for tier, price in (("andante", 49), ("moderato", 99), ("allegretto", 199),
+                            ("allegro", 699))
+    },
+}
+
 #: Plans withdrawn from the catalogue, with why.
 REMOVED = {
     "google-gemini-api/subscription/ai-ultra":
@@ -396,6 +560,7 @@ HEADERS = {
     "zai": "MODEL-201. Primary sources read 2026-09-29.",
     "minimax": "MODEL-201. Primary sources read 2026-09-29.",
     "alibaba-model-studio": "MODEL-201. Primary sources read 2026-09-29.",
+    "moonshot": "MODEL-201. Primary sources read 2026-09-29.",
 }
 
 
@@ -482,9 +647,10 @@ def register_sources() -> None:
         path.write_text(text.rstrip("\n") + "\n" + block, encoding="utf-8")
 
 
-def main(dry_run: bool = False) -> None:
+def main(dry_run: bool = False, refile: bool = False) -> None:
     """Write the records; file claims unless ``dry_run`` (validate first: the queue is
-    append-only)."""
+    append-only). ``refile`` files every value again, verified or not, for a fresh
+    second key (MODEL-201 re-verified all of its values after the reader-cache fix)."""
     store = CopyStore()
     missing = sorted(s for s, ref in COPIES.items() if not store.has(ref))
     if missing:
@@ -523,9 +689,12 @@ def main(dry_run: bool = False) -> None:
         if spec.get("note"):
             notes[sid] = spec["note"]
         existing = {f["facet"]: f for f in row["facts"]}
-        names = [spec["name"], *spec.get("names", []), spec["plan"]]
-        for facet in FACETS:
-            fs = spec.get(facet, KEEP if facet in existing else None)
+        phase2 = PLAN_FACTS.get(sid, {})
+        names = [spec["name"], *spec.get("names", []), *phase2.get("names", []), spec["plan"]]
+        for facet in (*FACETS, *PLAN_FACETS):
+            fs = phase2.get(facet) or spec.get(facet, KEEP if facet in existing else None)
+            if fs is None and facet in PLAN_FACETS:
+                continue  # absent: unknown
             if fs is None:
                 raise SystemExit(f"{sid}: no value or KEEP for {facet}")
             if fs["state"] == "keep":
@@ -534,15 +703,16 @@ def main(dry_run: bool = False) -> None:
             existing[facet] = fact_row(fact)
             # Idempotent: a value already verified at this ID is not filed again.
             if (fact.state != "unknown" and not dry_run
-                    and (fact.id, value_hash(fact.value)) not in verified):
+                    and (refile or (fact.id, value_hash(fact.value)) not in verified)):
                 queue.file(
                     Claim.from_fact(fact, names=names, collector=COLLECTOR,
                                     unit=UNITS.get(facet), label=LABELS[facet]),
                     at=READ_AT,
                 )
                 filed += 1
-        row["facts"] = [existing[f] for f in FACETS] + [
-            fact for facet, fact in existing.items() if facet not in FACETS]
+        order = {f: i for i, f in enumerate((*FACETS, *PLAN_FACETS))}
+        row["facts"] = sorted(existing.values(),
+                              key=lambda fact: order.get(fact["facet"], len(order)))
 
     for provider, rows in by_provider.items():
         (directory / f"{provider}.yaml").write_text(
@@ -553,4 +723,4 @@ def main(dry_run: bool = False) -> None:
 if __name__ == "__main__":
     import sys
 
-    main(dry_run="--dry-run" in sys.argv[1:])
+    main(dry_run="--dry-run" in sys.argv[1:], refile="--refile" in sys.argv[1:])

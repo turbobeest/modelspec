@@ -167,7 +167,7 @@
     value: openai/subscription/plus
     sources:
     - source_id: model-173-openai-pro
-      snapshot_ref: sha256:2bb0e076dfef2eb4dd05680b965debca5634110203d3dff32e6901e9086400e9
+      snapshot_ref: sha256:3f5c03587133bf3d59c4c2c2a04e9e3bdfe52ac50c63ac267e1f2454b8d3d6b9
       cited_regions: [page]
   - id: openai/subscription/pro-5x#offering.subscription.allowance.multiplier
     subject: {kind: offering, id: openai/subscription/pro-5x}
@@ -176,7 +176,7 @@
     value: 5
     sources:
     - source_id: model-173-openai-pro
-      snapshot_ref: sha256:2bb0e076dfef2eb4dd05680b965debca5634110203d3dff32e6901e9086400e9
+      snapshot_ref: sha256:3f5c03587133bf3d59c4c2c2a04e9e3bdfe52ac50c63ac267e1f2454b8d3d6b9
       cited_regions: [page]
   - id: openai/subscription/pro-5x#offering.subscription.allowance.window
     subject: {kind: offering, id: openai/subscription/pro-5x}
@@ -263,7 +263,7 @@
     value: openai/subscription/plus
     sources:
     - source_id: model-173-openai-pro
-      snapshot_ref: sha256:2bb0e076dfef2eb4dd05680b965debca5634110203d3dff32e6901e9086400e9
+      snapshot_ref: sha256:3f5c03587133bf3d59c4c2c2a04e9e3bdfe52ac50c63ac267e1f2454b8d3d6b9
       cited_regions: [page]
   - id: openai/subscription/pro-20x#offering.subscription.allowance.multiplier
     subject: {kind: offering, id: openai/subscription/pro-20x}
@@ -272,7 +272,7 @@
     value: 20
     sources:
     - source_id: model-173-openai-pro
-      snapshot_ref: sha256:2bb0e076dfef2eb4dd05680b965debca5634110203d3dff32e6901e9086400e9
+      snapshot_ref: sha256:3f5c03587133bf3d59c4c2c2a04e9e3bdfe52ac50c63ac267e1f2454b8d3d6b9
       cited_regions: [page]
   - id: openai/subscription/pro-20x#offering.subscription.allowance.window
     subject: {kind: offering, id: openai/subscription/pro-20x}

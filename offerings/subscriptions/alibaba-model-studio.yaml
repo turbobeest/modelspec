@@ -57,3 +57,24 @@
     - source_id: model-201-alibaba-coding-plan
       snapshot_ref: sha256:448994e29950b133d818855ed649a212ec2c147dc21160d4ebf4de54c4b5afdf
       cited_regions: [page]
+  - id: alibaba-model-studio/subscription/coding-pro#offering.subscription.coverage_quote
+    subject: {kind: offering, id: alibaba-model-studio/subscription/coding-pro}
+    facet: offering.subscription.coverage_quote
+    state: known
+    value: 'Only the following exact model versions are supported: Recommended models: qwen3.7-plus (vision),
+      qwen3.6-plus (vision), kimi-k2.5 (vision), glm-5 , and MiniMax-M2.5 More models: qwen3.5-plus (vision)
+      , qwen3-max-2026-01-23 , qwen3-coder-next , qwen3-coder-plus , and glm-4.7 Models not listed above
+      are not supported.'
+    sources:
+    - source_id: model-201-alibaba-coding-plan
+      snapshot_ref: sha256:448994e29950b133d818855ed649a212ec2c147dc21160d4ebf4de54c4b5afdf
+      cited_regions: [page]
+  - id: alibaba-model-studio/subscription/coding-pro#offering.subscription.allowance.window
+    subject: {kind: offering, id: alibaba-model-studio/subscription/coding-pro}
+    facet: offering.subscription.allowance.window
+    state: known
+    value: five hours
+    sources:
+    - source_id: model-201-alibaba-coding-plan
+      snapshot_ref: sha256:448994e29950b133d818855ed649a212ec2c147dc21160d4ebf4de54c4b5afdf
+      cited_regions: [page]

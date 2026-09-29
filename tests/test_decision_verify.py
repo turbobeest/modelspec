@@ -1574,3 +1574,155 @@ def test_an_effort_written_as_prose_is_read_as_its_level(store, regions, found, 
         "quoted_sentence": "It accepts up to 400,000 tokens of context.",
     }]))
     assert verify.verify(claim, regions, [reading.extractor], today=TODAY).outcome == outcome
+
+
+# --- MODEL-201: plan facts (surfaces, families, quotes, allowance, CNY price) ----
+
+CLAUDE_MODELS_TABLE = """Models and usage
+Features | Free | Pro | Max 5x | Max 20x
+Fable | No | Usage credits | 50% of weekly limits* | 50% of weekly limits*
+Opus | No | Yes | Yes | Yes
+Sonnet | Yes | Yes | Yes | Yes
+Haiku | Yes | Yes | Yes | Yes
+Context window | Up to 1M | Up to 1M | Up to 1M | Up to 1M
+"""
+CLAUDE_CODE_ARTICLE = """Use Claude Code with your Pro or Max plan
+With Pro and Max plans, you now have access to both Claude on the web, desktop, and mobile apps and Claude Code in your terminal with one unified subscription.
+Your Pro or Max plan also covers Claude Code in supported IDEs, including VS Code, Cursor and other VS Code forks.
+"""
+MAX_ARTICLE = """What is the Max plan?
+Max 5x includes five times the Pro plan's per-session usage allowance. This tier is ideal for frequent users.
+Max 20x includes 20 times the Pro plan's per-session usage allowance.
+Your session-based usage limit will reset every five hours.
+"""
+PRO_TIERS = """General FAQ
+Both Pro tiers include the same core capabilities. The main difference is usage allowance: Pro $100 unlocks 5x higher usage than Plus, while Pro $200 unlocks 20x usage than Plus.
+"""
+KIMI_PAGE = """Plan | Best for | Auto-renewing monthly | Auto-renewing annual
+Andante | Everyday use | ¥49/month | Better value annually
+Moderato | Productivity upgrade | ¥99/month | Better value annually
+Plan Benefits
+Andante — ¥49/month
+About 30 Agent uses
+Kimi Code available
+Moderato — ¥99/month
+Everything in Andante, plus:
+About 60 Agent uses
+Kimi Code available
+Kimi Code also has a separate limit of 5 hours per week, which applies only to Kimi Code.
+"""
+
+
+def _plan_claim(field, value, names, subject="provider/subscription/plan"):
+    return verify.Claim(
+        target=verify.TargetRef(kind="fact", id=f"{subject}#{field}"),
+        subject=subject,
+        names=names,
+        field=field,
+        value=value,
+        collector=COLLECTOR,
+        sources=(verify.SourceRef(
+            source_id="subscription-page",
+            snapshot_ref="sha256:" + "0" * 64,
+            cited_regions=["page"],
+        ),),
+    )
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "names", "subject", "page"),
+    [
+        ("offering.subscription.families_covered",
+         ["anthropic/claude-opus", "anthropic/claude-sonnet", "anthropic/claude-haiku"],
+         ("Claude Pro", "Pro"), "anthropic/subscription/pro", CLAUDE_MODELS_TABLE),
+        ("offering.subscription.families_covered",
+         ["anthropic/claude-fable", "anthropic/claude-opus", "anthropic/claude-sonnet",
+          "anthropic/claude-haiku"],
+         ("Claude Max 5x", "Max 5x"), "anthropic/subscription/max-5x", CLAUDE_MODELS_TABLE),
+        ("offering.subscription.coverage_quote",
+         "Opus | No | Yes | Yes | Yes\nSonnet | Yes | Yes | Yes | Yes",
+         ("Claude Pro", "Pro"), "anthropic/subscription/pro", CLAUDE_MODELS_TABLE),
+        ("offering.subscription.surfaces",
+         ["chat_app", "coding_tool:claude-code", "desktop_app", "mobile_app"],
+         ("Claude Pro", "Pro"), "anthropic/subscription/pro", CLAUDE_CODE_ARTICLE),
+        ("offering.subscription.allowance.multiplier", 20,
+         ("Claude Max 20x", "Max 20x", "Max plan"), "anthropic/subscription/max-20x", MAX_ARTICLE),
+        ("offering.subscription.allowance.relative_to", "anthropic/subscription/pro",
+         ("Claude Max 5x", "Max 5x", "Max plan"), "anthropic/subscription/max-5x", MAX_ARTICLE),
+        ("offering.subscription.allowance.window", "five hours",
+         ("Claude Max 5x", "Max 5x", "Max plan"), "anthropic/subscription/max-5x", MAX_ARTICLE),
+        ("offering.subscription.allowance.multiplier", 20,
+         ("ChatGPT Pro 20x", "Pro $200", "Pro"), "openai/subscription/pro-20x", PRO_TIERS),
+        ("offering.subscription.allowance.relative_to", "openai/subscription/plus",
+         ("ChatGPT Pro 5x", "Pro $100", "Pro"), "openai/subscription/pro-5x", PRO_TIERS),
+        ("offering.subscription.allowance.multiplier", 20,
+         ("Google AI Ultra 20x", "Ultra 20x"), "google-gemini-api/subscription/ai-ultra-20x",
+         GEMINI_TIERS),
+        ("offering.subscription.allowance.relative_to", "google-gemini-api/subscription/ai-pro",
+         ("Google AI Ultra 5x", "Ultra 5x"), "google-gemini-api/subscription/ai-ultra-5x",
+         GEMINI_TIERS),
+        ("offering.subscription.allowance.window", "five hours", ("Lite",),
+         "zai/subscription/glm-coding-lite",
+         "Each plan is subject to both a 5-hour usage limit and a weekly usage limit.\n"),
+        ("offering.subscription.allowance.window", "five hours", ("Max",),
+         "minimax/subscription/token-max",
+         "| Plus | Max\nQuota windows | 5-hour rolling and weekly windows | 5-hour rolling and weekly windows\n"),
+        ("offering.subscription.price_cny", 99, ("Moderato",), "moonshot/subscription/moderato",
+         KIMI_PAGE),
+        ("offering.subscription.billing_period", "monthly", ("Moderato",),
+         "moonshot/subscription/moderato", KIMI_PAGE),
+        ("offering.subscription.usage_allowance", "About 60 Agent uses", ("Moderato",),
+         "moonshot/subscription/moderato", KIMI_PAGE),
+        ("offering.subscription.programmatic_or_agent_use", "Kimi Code available",
+         ("Moderato",), "moonshot/subscription/moderato", KIMI_PAGE),
+        ("offering.subscription.usage_allowance", "More messages and web searches.", ("Pro",),
+         "mistral/subscription/pro",
+         MISTRAL_CARD + "More access and usage.\nMore messages and web searches.\nTeam\nSecure.\n$24.99\n"),
+    ],
+)
+def test_plan_facts_are_read_from_plan_scoped_text(field, value, names, subject, page) -> None:
+    claim = _plan_claim(field, value, names, subject)
+
+    readings = verify.SubscriptionPageExtractor().extract(claim, page)
+
+    assert verify.compare(claim, readings) == []
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "names", "subject", "page"),
+    [
+        # Pro's Fable cell is "Usage credits": paid per use, not covered.
+        ("offering.subscription.families_covered",
+         ["anthropic/claude-fable", "anthropic/claude-opus", "anthropic/claude-sonnet",
+          "anthropic/claude-haiku"],
+         ("Claude Pro", "Pro"), "anthropic/subscription/pro", CLAUDE_MODELS_TABLE),
+        # The sibling tier's multiplier, and a plan named in its own alias.
+        ("offering.subscription.allowance.multiplier", 20,
+         ("ChatGPT Pro 5x", "Pro $100", "Pro"), "openai/subscription/pro-5x", PRO_TIERS),
+        ("offering.subscription.allowance.multiplier", 5,
+         ("Claude Max 20x", "Max 20x", "Max plan"), "anthropic/subscription/max-20x", MAX_ARTICLE),
+        # "no 5-hour usage limit" and "5 hours per week" are not a five-hour window.
+        ("offering.subscription.allowance.window", "five hours", ("Premium seat", "Premium"),
+         "openai/subscription/business-premium",
+         "Premium includes 5x more usage than Standard seats, no 5-hour usage limit.\n"),
+        ("offering.subscription.allowance.window", "five hours", ("Moderato",),
+         "moonshot/subscription/moderato", KIMI_PAGE),
+        # A yuan amount is not a dollar price.
+        ("offering.subscription.price", 99, ("Moderato",), "moonshot/subscription/moderato",
+         KIMI_PAGE),
+        # A quote that is not on the page.
+        ("offering.subscription.coverage_quote", "Opus | Yes | Yes | Yes | Yes",
+         ("Claude Pro", "Pro"), "anthropic/subscription/pro", CLAUDE_MODELS_TABLE),
+        # The IDE sentence names Cursor, but not the web, desktop or mobile apps.
+        ("offering.subscription.surfaces", ["coding_tool:claude-code"],
+         ("Claude Pro", "Pro"), "anthropic/subscription/pro",
+         "Your Pro or Max plan also covers Claude Code in supported IDEs.\n"
+         "With Pro and Max plans you get Claude on the web.\n"),
+    ],
+)
+def test_plan_facts_reject_what_the_page_does_not_say(field, value, names, subject, page) -> None:
+    claim = _plan_claim(field, value, names, subject)
+
+    readings = verify.SubscriptionPageExtractor().extract(claim, page)
+
+    assert verify.compare(claim, readings) != []

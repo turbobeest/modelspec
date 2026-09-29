@@ -495,6 +495,7 @@ class SubscriptionOffering(Record):
         "offering.subscription.allowance.multiplier",
         "offering.subscription.allowance.window",
         "offering.subscription.allowance.tokens",
+        "offering.subscription.price_cny",
     })
 
     @property

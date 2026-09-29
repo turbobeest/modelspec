@@ -71,8 +71,12 @@
   - id: xai/subscription/supergrok#offering.subscription.coverage_quote
     subject: {kind: offering, id: xai/subscription/supergrok}
     facet: offering.subscription.coverage_quote
-    state: unknown
-    value: null
+    state: known
+    value: Grok 4.6 model
+    sources:
+    - source_id: model-173-xai-consumer-pricing
+      snapshot_ref: sha256:6fa0677fdddfe3963d6134a243f72cb8949a7df8539b200353b2c65ba508df14
+      cited_regions: [page]
   - id: xai/subscription/supergrok#offering.subscription.allowance.relative_to
     subject: {kind: offering, id: xai/subscription/supergrok}
     facet: offering.subscription.allowance.relative_to
@@ -160,8 +164,12 @@
   - id: xai/subscription/supergrok-plus#offering.subscription.coverage_quote
     subject: {kind: offering, id: xai/subscription/supergrok-plus}
     facet: offering.subscription.coverage_quote
-    state: unknown
-    value: null
+    state: known
+    value: Grok 4.6 model
+    sources:
+    - source_id: model-173-xai-consumer-pricing
+      snapshot_ref: sha256:6fa0677fdddfe3963d6134a243f72cb8949a7df8539b200353b2c65ba508df14
+      cited_regions: [page]
   - id: xai/subscription/supergrok-plus#offering.subscription.allowance.relative_to
     subject: {kind: offering, id: xai/subscription/supergrok-plus}
     facet: offering.subscription.allowance.relative_to
@@ -230,6 +238,15 @@
     - source_id: model-201-grok-supergrok
       snapshot_ref: sha256:e3b66f22dc28fdd435f16fb2f9ecf943981d09003f620efbeee0f310d164f6bf
       cited_regions: [page]
+  - id: xai/subscription/supergrok-lite#offering.subscription.coverage_quote
+    subject: {kind: offering, id: xai/subscription/supergrok-lite}
+    facet: offering.subscription.coverage_quote
+    state: known
+    value: Unlock the full power of Chat with Grok 4.6
+    sources:
+    - source_id: model-201-grok-supergrok
+      snapshot_ref: sha256:e3b66f22dc28fdd435f16fb2f9ecf943981d09003f620efbeee0f310d164f6bf
+      cited_regions: [page]
 # SuperGrok Heavy: Price drawn as a digit animation, as for Lite. Includes X Premium+.
 - kind: subscription
   provider: xai
@@ -273,6 +290,15 @@
     state: not_disclosed
     value: null
     checked_sources: [model-201-grok-supergrok]
+    sources:
+    - source_id: model-201-grok-supergrok
+      snapshot_ref: sha256:e3b66f22dc28fdd435f16fb2f9ecf943981d09003f620efbeee0f310d164f6bf
+      cited_regions: [page]
+  - id: xai/subscription/supergrok-heavy#offering.subscription.coverage_quote
+    subject: {kind: offering, id: xai/subscription/supergrok-heavy}
+    facet: offering.subscription.coverage_quote
+    state: known
+    value: Unlock the full power of Chat with Grok 4.6
     sources:
     - source_id: model-201-grok-supergrok
       snapshot_ref: sha256:e3b66f22dc28fdd435f16fb2f9ecf943981d09003f620efbeee0f310d164f6bf
@@ -324,6 +350,21 @@
     facet: offering.subscription.programmatic_or_agent_use
     state: known
     value: Grok Build
+    sources:
+    - source_id: model-201-xai-business
+      snapshot_ref: sha256:4229887c1ce257e1c78412c3d0cf1011248565a7f04d76e02ac9699d93056a72
+      cited_regions: [page]
+  - id: xai/subscription/business#offering.subscription.coverage_quote
+    subject: {kind: offering, id: xai/subscription/business}
+    facet: offering.subscription.coverage_quote
+    state: known
+    value: 'Models
+
+      Imagine
+
+      Voice
+
+      Grok 4.6'
     sources:
     - source_id: model-201-xai-business
       snapshot_ref: sha256:4229887c1ce257e1c78412c3d0cf1011248565a7f04d76e02ac9699d93056a72

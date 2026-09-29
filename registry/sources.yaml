@@ -4471,3 +4471,24 @@ sources:
   cited_regions:
   - id: page
     locator: {kind: page, value: ''}
+- id: model-201-anthropic-pro-plan
+  url: https://support.claude.com/en/articles/8325606-what-is-the-pro-plan
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator: {kind: page, value: ''}
+- id: model-201-anthropic-claude-code-team
+  url: https://support.claude.com/en/articles/11845131-use-claude-code-with-your-team-or-enterprise-plan
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator: {kind: page, value: ''}
+- id: model-201-kimi-membership
+  url: https://www.kimi.com/en/help/membership/membership-pricing
+  fetch: conditional_http
+  normaliser: html-default
+  cited_regions:
+  - id: page
+    locator: {kind: page, value: ''}

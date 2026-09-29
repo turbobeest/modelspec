@@ -55,6 +55,24 @@
     - source_id: model-201-zai-devpack
       snapshot_ref: sha256:1eab0aa0d83b34e7170c3350b1e9b38ba51fc197dcc258795475b39b0abaa952
       cited_regions: [page]
+  - id: zai/subscription/glm-coding-lite#offering.subscription.coverage_quote
+    subject: {kind: offering, id: zai/subscription/glm-coding-lite}
+    facet: offering.subscription.coverage_quote
+    state: known
+    value: All plans support GLM-5.3, GLM-5.3-Flash.
+    sources:
+    - source_id: model-201-zai-devpack
+      snapshot_ref: sha256:1eab0aa0d83b34e7170c3350b1e9b38ba51fc197dcc258795475b39b0abaa952
+      cited_regions: [page]
+  - id: zai/subscription/glm-coding-lite#offering.subscription.allowance.window
+    subject: {kind: offering, id: zai/subscription/glm-coding-lite}
+    facet: offering.subscription.allowance.window
+    state: known
+    value: five hours
+    sources:
+    - source_id: model-201-zai-devpack
+      snapshot_ref: sha256:1eab0aa0d83b34e7170c3350b1e9b38ba51fc197dcc258795475b39b0abaa952
+      cited_regions: [page]
 # GLM Coding Plan Pro: Monthly list price; the page defaults to the discounted yearly
 #   rate.
 - kind: subscription
@@ -107,6 +125,24 @@
     - source_id: model-201-zai-devpack
       snapshot_ref: sha256:1eab0aa0d83b34e7170c3350b1e9b38ba51fc197dcc258795475b39b0abaa952
       cited_regions: [page]
+  - id: zai/subscription/glm-coding-pro#offering.subscription.coverage_quote
+    subject: {kind: offering, id: zai/subscription/glm-coding-pro}
+    facet: offering.subscription.coverage_quote
+    state: known
+    value: All plans support GLM-5.3, GLM-5.3-Flash.
+    sources:
+    - source_id: model-201-zai-devpack
+      snapshot_ref: sha256:1eab0aa0d83b34e7170c3350b1e9b38ba51fc197dcc258795475b39b0abaa952
+      cited_regions: [page]
+  - id: zai/subscription/glm-coding-pro#offering.subscription.allowance.window
+    subject: {kind: offering, id: zai/subscription/glm-coding-pro}
+    facet: offering.subscription.allowance.window
+    state: known
+    value: five hours
+    sources:
+    - source_id: model-201-zai-devpack
+      snapshot_ref: sha256:1eab0aa0d83b34e7170c3350b1e9b38ba51fc197dcc258795475b39b0abaa952
+      cited_regions: [page]
 # GLM Coding Plan Max: Monthly list price; the page defaults to the discounted yearly
 #   rate.
 - kind: subscription
@@ -155,6 +191,24 @@
     facet: offering.subscription.programmatic_or_agent_use
     state: known
     value: The plan can be applied to coding tools such as Claude Code, Cline, and OpenCode
+    sources:
+    - source_id: model-201-zai-devpack
+      snapshot_ref: sha256:1eab0aa0d83b34e7170c3350b1e9b38ba51fc197dcc258795475b39b0abaa952
+      cited_regions: [page]
+  - id: zai/subscription/glm-coding-max#offering.subscription.coverage_quote
+    subject: {kind: offering, id: zai/subscription/glm-coding-max}
+    facet: offering.subscription.coverage_quote
+    state: known
+    value: All plans support GLM-5.3, GLM-5.3-Flash.
+    sources:
+    - source_id: model-201-zai-devpack
+      snapshot_ref: sha256:1eab0aa0d83b34e7170c3350b1e9b38ba51fc197dcc258795475b39b0abaa952
+      cited_regions: [page]
+  - id: zai/subscription/glm-coding-max#offering.subscription.allowance.window
+    subject: {kind: offering, id: zai/subscription/glm-coding-max}
+    facet: offering.subscription.allowance.window
+    state: known
+    value: five hours
     sources:
     - source_id: model-201-zai-devpack
       snapshot_ref: sha256:1eab0aa0d83b34e7170c3350b1e9b38ba51fc197dcc258795475b39b0abaa952
