@@ -71,6 +71,12 @@ def test_every_filed_premier_model_fact_has_registered_sources_and_verification(
         if model["id"] not in premier:
             continue
         for fact in model["facts"]:
+            if fact["state"] == "unknown":
+                assert fact["value"] is None, fact["id"]
+                checked = fact.get("checked_sources")
+                assert checked, f"{fact['id']}: unknown without checked sources"
+                assert set(checked) <= set(inputs.sources), fact["id"]
+                continue
             assert fact["sources"], fact["id"]
             assert all(ref["source_id"] in inputs.sources for ref in fact["sources"]), fact["id"]
             if fact["state"] == "not_disclosed":

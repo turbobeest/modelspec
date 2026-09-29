@@ -1149,16 +1149,91 @@ sources:
   last_scraped_benchmarks: ''
   last_scraped_pricing: ''
 facts:
-- facet: model.fits_hardware
+- id: microsoft/phi-4#model.fits_hardware
+  subject:
+    kind: model
+    id: microsoft/phi-4
+  facet: model.fits_hardware
   value:
+  - amd_instinct_mi210
+  - amd_instinct_mi250x
+  - amd_instinct_mi300x
+  - amd_instinct_mi325x
+  - amd_instinct_mi355x
+  - amd_rx_7900_xt
+  - amd_rx_7900_xtx
+  - amd_rx_9070_xt
+  - amd_ryzen_ai_max_plus_395
+  - apple_m1_max
+  - apple_m2_max
+  - apple_m2_ultra
+  - apple_m3_max
+  - apple_m3_ultra
+  - apple_m4
+  - apple_m4_max
+  - apple_m4_pro
+  - apple_m5_max
+  - google_tpu7x
+  - google_tpu_v4
+  - google_tpu_v5e
+  - google_tpu_v5p
+  - google_tpu_v6e
+  - intel_arc_a770_16gb
+  - intel_gaudi_2
+  - intel_gaudi_3
+  - nvidia_a100_40gb_sxm
+  - nvidia_a100_80gb_sxm
+  - nvidia_b200
+  - nvidia_b300
+  - nvidia_dgx_spark
+  - nvidia_gb200_superchip
+  - nvidia_h100_nvl
+  - nvidia_h100_pcie
+  - nvidia_h100_sxm
+  - nvidia_h200_sxm
+  - nvidia_jetson_agx_orin_32gb
+  - nvidia_jetson_agx_orin_64gb
+  - nvidia_jetson_orin_nx_16gb
+  - nvidia_jetson_t4000
+  - nvidia_jetson_t5000
+  - nvidia_l4
+  - nvidia_l40s
+  - nvidia_rtx_3060_12gb
+  - nvidia_rtx_3090
+  - nvidia_rtx_4000_sff_ada
+  - nvidia_rtx_4060_ti_16gb
+  - nvidia_rtx_4070_ti_super
+  - nvidia_rtx_4080_super
   - nvidia_rtx_4090
+  - nvidia_rtx_4500_ada
+  - nvidia_rtx_5000_ada
+  - nvidia_rtx_5080
+  - nvidia_rtx_5090
+  - nvidia_rtx_6000_ada
+  - nvidia_rtx_a6000
+  - nvidia_rubin_gpu
+  - nvidia_tesla_p40
+  - qualcomm_snapdragon_x_elite
   state: known
+  derivation:
+    method: decision.hardware.compute_fit@1
+    formula: parameters_total * bytes_per_parameter <= memory_capacity_gb * (1 - working_allowance) *
+      1e9
+    inputs:
+      weights_openness: open_weights
+      parameters_total: 14659507200
+      working_allowance: 0.25
+      quant_bytes: '{''bf16'': 2.0, ''fp16'': 2.0, ''fp8'': 1.0, ''int4'': 0.5, ''int8'': 1.0, ''q4'':
+        0.5, ''q5'': 0.625, ''q6'': 0.75}'
+      has_device_unknowns: 'true'
+      model_snapshot_ref: sha256:0e394453714ab51cb14ff738e0e01ae07ddcc32af427acf5cf09416589b3933d
+      hardware_registry_sha256: sha256:10baf5e1ce9e5a1e5b970f4fdc25d9f67db8c562c8c109157ae9722bf6357bff
+      hardware_device_count: 64
   sources:
-  - source_id: model-163-local-microsoft-phi-4-memory
-    snapshot_ref: sha256:9728c0372325064b05e65f6b2ad680a9918671fdde986a865ecd85b4b25bdfea
+  - source_id: model-174-microsoft-phi-4-hardware-input
+    snapshot_ref: sha256:0e394453714ab51cb14ff738e0e01ae07ddcc32af427acf5cf09416589b3933d
     cited_regions:
-    - row
-  checked_sources: []
+    - rows
 - facet: model.class
   value: text-generator
   state: known
@@ -1356,10 +1431,50 @@ facts:
     - model-spec
   checked_sources:
   - model-163-microsoft-phi-4
+- id: microsoft/phi-4#model.parameters_total
+  subject:
+    kind: model
+    id: microsoft/phi-4
+  facet: model.parameters_total
+  value: 14659507200
+  state: known
+  sources:
+  - source_id: model-174-microsoft-phi-4-hardware-input
+    snapshot_ref: sha256:0e394453714ab51cb14ff738e0e01ae07ddcc32af427acf5cf09416589b3933d
+    cited_regions:
+    - rows
+- id: microsoft/phi-4#model.hardware_fit_indeterminate
+  subject:
+    kind: model
+    id: microsoft/phi-4
+  facet: model.hardware_fit_indeterminate
+  value:
+  - cerebras_wse3
+  - nvidia_vera_rubin_superchip
+  state: known
+  sources:
+  - source_id: model-174-microsoft-phi-4-hardware-input
+    snapshot_ref: sha256:0e394453714ab51cb14ff738e0e01ae07ddcc32af427acf5cf09416589b3933d
+    cited_regions:
+    - rows
+  derivation:
+    method: decision.hardware.compute_fit@1
+    formula: parameters_total * bytes_per_parameter <= memory_capacity_gb * (1 - working_allowance) *
+      1e9
+    inputs:
+      weights_openness: open_weights
+      parameters_total: 14659507200
+      working_allowance: 0.25
+      quant_bytes: '{''bf16'': 2.0, ''fp16'': 2.0, ''fp8'': 1.0, ''int4'': 0.5, ''int8'': 1.0, ''q4'':
+        0.5, ''q5'': 0.625, ''q6'': 0.75}'
+      has_device_unknowns: 'true'
+      model_snapshot_ref: sha256:0e394453714ab51cb14ff738e0e01ae07ddcc32af427acf5cf09416589b3933d
+      hardware_registry_sha256: sha256:10baf5e1ce9e5a1e5b970f4fdc25d9f67db8c562c8c109157ae9722bf6357bff
+      hardware_device_count: 64
 card_schema_version: '3.0'
 card_author: huggingface-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-18'
+card_updated: '2026-09-28'
 authoring_guide:
   applies_to:
     model_id: microsoft/phi-4

@@ -143,3 +143,14 @@
     checked_sources:
     - alibaba-model-studio-pricing
     - model-143-qwen-qwen3-8-max-0902
+  - id: alibaba-model-studio/qwen/qwen3-8-max-0902/singapore/standard#offering.private_deployment
+    subject:
+      kind: offering
+      id: alibaba-model-studio/qwen/qwen3-8-max-0902/singapore/standard
+    facet: offering.private_deployment
+    value: null
+    state: unknown
+    checked_sources:
+    - alibaba-model-studio-pricing
+    - alibaba-model-studio-privacy
+    - model-143-qwen-qwen3-8-max-0902

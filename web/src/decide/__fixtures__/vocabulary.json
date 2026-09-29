@@ -945,6 +945,27 @@
       "preference": null
     },
     {
+      "id": "model.hardware_fit_indeterminate",
+      "label": "Hardware fit indeterminate",
+      "definition": "The hardware SKUs in `hardware/` for which ModelSpec's single-memory-pool weight-fit formula does not apply. Membership conditions on `model.fits_hardware` treat these device legs as unknown, not as false.",
+      "subject": "model",
+      "value_type": "set",
+      "unit": null,
+      "unit_definition": null,
+      "operators": [
+        "in",
+        "not in",
+        "known"
+      ],
+      "objective": false,
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 32,
+      "values": [],
+      "preference": null
+    },
+    {
       "id": "offering.provider",
       "label": "Provider",
       "definition": "The provider in `registry/providers.yaml` that sells the offering and bills the customer for it.",

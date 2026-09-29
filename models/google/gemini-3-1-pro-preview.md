@@ -2437,10 +2437,56 @@ facts:
     snapshot_ref: sha256:9624fe558574d3c33ca6a6a0f9451a2fdba6e11e465de1d5a822d2e3d70042bc
     cited_regions:
     - audit
+- id: google/gemini-3-1-pro-preview#model.fits_hardware
+  subject:
+    kind: model
+    id: google/gemini-3-1-pro-preview
+  facet: model.fits_hardware
+  value: []
+  state: known
+  derivation:
+    method: decision.hardware.compute_fit@1
+    formula: parameters_total * bytes_per_parameter <= memory_capacity_gb * (1 - working_allowance) *
+      1e9
+    inputs:
+      weights_openness: closed_weights
+      parameters_total: null
+      working_allowance: 0.25
+      quant_bytes: '{''bf16'': 2.0, ''fp16'': 2.0, ''fp8'': 1.0, ''int4'': 0.5, ''int8'': 1.0, ''q4'':
+        0.5, ''q5'': 0.625, ''q6'': 0.75}'
+      has_device_unknowns: 'false'
+      model_snapshot_ref: sha256:1464f91de929c463b7f6ff34b03d21930dead83a86a32db0bf4d0968449265f1
+      hardware_registry_sha256: sha256:10baf5e1ce9e5a1e5b970f4fdc25d9f67db8c562c8c109157ae9722bf6357bff
+      hardware_device_count: 64
+  sources:
+  - source_id: model-143-google-gemini-3-1-pro-preview
+    snapshot_ref: sha256:1464f91de929c463b7f6ff34b03d21930dead83a86a32db0bf4d0968449265f1
+    cited_regions:
+    - model-spec
+  - source_id: model-143-google-deprecations
+    snapshot_ref: sha256:ba167204b2fcda0540af24c209b447e7f7c93e07a93a5325914fd4921e00a8dd
+    cited_regions:
+    - audit
+  - source_id: model-143-google-streaming
+    snapshot_ref: sha256:891afedb041a982cd2cda18e69e62801dca2cb3a7f9d61eccb7ae5fd214aa5cc
+    cited_regions:
+    - audit
+  - source_id: model-143-google-terms
+    snapshot_ref: sha256:698c8ccbb493d4806c4424549eb84baa69ffcad3fd0e37769d89c41c74a28501
+    cited_regions:
+    - audit
+  - source_id: model-143-google-company
+    snapshot_ref: sha256:330037a17276cde421aaa59c82be2e81253a115eeb13dcad397e96f61bd8df5c
+    cited_regions:
+    - audit
+  - source_id: model-143-google-sec
+    snapshot_ref: sha256:9624fe558574d3c33ca6a6a0f9451a2fdba6e11e465de1d5a822d2e3d70042bc
+    cited_regions:
+    - audit
 card_schema_version: '3.0'
 card_author: models.dev-seeder
 card_created: '2026-04-05'
-card_updated: '2026-09-26'
+card_updated: '2026-09-28'
 ---
 
 

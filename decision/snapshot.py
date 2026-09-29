@@ -1069,6 +1069,13 @@ def _holds(value: Any, op: str, arg: Any) -> bool:
     raise SnapshotError(f"unknown operator {op!r}")
 
 
+def _or_all(masks: Iterable[int]) -> int:
+    combined = 0
+    for mask in masks:
+        combined |= mask
+    return combined
+
+
 def _equality_key(value: Any) -> tuple[str, Any]:
     ordered = _ordered(value)
     if isinstance(ordered, list):
@@ -1374,7 +1381,37 @@ class LoadedSnapshot:
             for row in self._rows(known):
                 if _holds(by_row[row].value, op, arg):
                     passing |= 1 << row
-        return Bitset3(passing, known & ~passing, self._all & ~known)
+        failing = known & ~passing
+        unknown = self._all & ~known
+        if facet_id == "model.fits_hardware" and op in {
+            "contains", "contains_all", "contains_any",
+        }:
+            indeterminate = self._hardware_indeterminate(column, op, arg) & ~passing
+            unknown |= indeterminate
+            failing &= ~indeterminate
+        return Bitset3(passing, failing, unknown)
+
+    def _hardware_indeterminate(self, fits: "_FacetBitsets | None", op: str, arg: Any) -> int:
+        """Rows whose fit on a named device is unknown and could still satisfy ``op``.
+
+        A device a row fits counts as passing, one it is indeterminate on as
+        unknown, so ``contains_all`` stays may-qualify when every named device
+        is one or the other and at least one is unknown.
+        """
+        values = [arg] if op == "contains" else list(arg)
+        refused = self._facet_bits.get("model.hardware_fit_indeterminate")
+
+        def bits(column: "_FacetBitsets | None", value: Any) -> int:
+            return 0 if column is None else column.passing("contains", value) or 0
+
+        if op != "contains_all":
+            return _or_all(bits(refused, value) for value in values)
+        if not values:
+            return 0
+        reachable = self._all
+        for value in values:
+            reachable &= bits(fits, value) | bits(refused, value)
+        return reachable
 
     def evidence_where(
         self,

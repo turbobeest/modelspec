@@ -143,3 +143,14 @@
     checked_sources:
     - openai-data
     - model-143-openai-gpt-6-astra
+  - id: openai/openai/gpt-6-astra/global/standard#offering.private_deployment
+    subject:
+      kind: offering
+      id: openai/openai/gpt-6-astra/global/standard
+    facet: offering.private_deployment
+    value: null
+    state: unknown
+    checked_sources:
+    - model-143-openai-gpt-6-astra
+    - openai-data
+    - openai-gpt-6-astra-pricing

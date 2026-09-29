@@ -151,3 +151,15 @@
     checked_sources:
     - aws-pricing
     - model-s55-anthropic-claude-sonnet-5-5
+  - id: aws-bedrock/anthropic/claude-sonnet-5-5/global-cross-region/standard#offering.private_deployment
+    subject:
+      kind: offering
+      id: aws-bedrock/anthropic/claude-sonnet-5-5/global-cross-region/standard
+    facet: offering.private_deployment
+    value: false
+    state: known
+    sources:
+    - source_id: model-174-aws-bedrock-anthropic-claude-sonnet-5-5-global-cross-region-standard-primary
+      snapshot_ref: sha256:f479a2cbe5f9541c71412217c4cb3f54574d46c79e86283f13f3d798f77c4e56
+      cited_regions:
+      - rows

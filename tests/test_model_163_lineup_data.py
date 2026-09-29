@@ -309,9 +309,20 @@ def test_local_rule_inputs_have_counting_two_key_verifications(
         ):
             verification = latest_verifications[("fact", f"{row['model_id']}#{suffix}")]
             assert verification["outcome"] == "verified"
-            assert verification["collector"]["agent"] == "openai-codex-model-163"
             assert verification["verifier"]["model_family"] == "deterministic"
-            assert verification["method"] == "local-fact-structured-row@1"
+            if suffix == "model.parameters_total":
+                assert verification["collector"]["agent"] in {
+                    "openai-codex-model-163",
+                    "codex-model-174",
+                }
+                assert verification["method"] in {
+                    "local-fact-structured-row@1",
+                    "structured-row-match@1",
+                    "independent-derived-recompute@1",
+                }
+            else:
+                assert verification["collector"]["agent"] == "openai-codex-model-163"
+                assert verification["method"] == "local-fact-structured-row@1"
             assert (
                 verification["collector"]["model_family"]
                 != verification["verifier"]["model_family"]
@@ -333,12 +344,12 @@ def test_local_candidates_publish_the_verified_hardware_fit_facet(
         facts = [fact for fact in card["facts"] if fact["facet"] == "model.fits_hardware"]
         assert len(facts) == 1
         assert facts[0]["state"] == "known"
-        assert facts[0]["value"] == ["nvidia_rtx_4090"]
-        assert facts[0]["sources"][0]["source_id"].endswith("-memory")
+        assert "nvidia_rtx_4090" in facts[0]["value"]
+        assert facts[0]["sources"][0]["source_id"].endswith("-hardware-input")
 
         verification = latest_verifications[("fact", f"{row['model_id']}#model.fits_hardware")]
         assert verification["outcome"] == "verified"
-        assert verification["target"]["value_hash"] == value_hash(["nvidia_rtx_4090"])
+        assert verification["target"]["value_hash"] == value_hash(facts[0]["value"])
 
 
 def test_budget_input_contains_a_quota_not_a_named_candidate_list(slice_2) -> None:
