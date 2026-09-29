@@ -26,7 +26,13 @@ from decision.filter import (
 )
 from decision.filter import apply as filter_apply
 from decision.resolve import resolve
-from decision.snapshot import EvidenceValue, FactValue, build_snapshot, load_snapshot
+from decision.snapshot import (
+    CapabilityEstimateValue,
+    EvidenceValue,
+    FactValue,
+    build_snapshot,
+    load_snapshot,
+)
 from tests.snapshot_records import loaded_index, thirty_models
 
 LEGS = ("pass", "fail", "unknown")
@@ -72,12 +78,17 @@ def spec_of(*where: str, profile: dict | str | None = None, snapshot: str = "lat
 class RecordingSnapshot:
     """Record calls while delegating every index operation to a real snapshot."""
 
-    def __init__(self, snapshot):
+    def __init__(self, snapshot, estimates: dict[str, dict[str, float]] | None = None):
         self.snapshot = snapshot
+        self.estimates = estimates or {}
         self.calls: list[tuple[object, ...]] = []
 
     def __getattr__(self, name: str):
         return getattr(self.snapshot, name)
+
+    def capability_estimate(self, cid: str, domain: str):
+        value = self.estimates.get(cid, {}).get(domain)
+        return None if value is None else CapabilityEstimateValue(value, value - 1, value + 1, 0.5)
 
     def ids_where(self, facet_id: str, op: str, arg: object):
         self.calls.append(("ids_where", facet_id, op, arg))
@@ -101,6 +112,7 @@ class RecordingSnapshot:
 
 def run(*where: str, rows: dict[str, dict], life: dict[str, str] | None = None,
         evidence: dict | None = None, extras: dict[str, dict] | None = None,
+        estimates: dict[str, dict[str, float]] | None = None,
         snapshot: str = "latest", index_id: str | None = None, **spec_kw: object):
     del index_id
     real = loaded_index(
@@ -109,7 +121,7 @@ def run(*where: str, rows: dict[str, dict], life: dict[str, str] | None = None,
         evidence_rows={key: tuple(value) for key, value in (evidence or {}).items()},
         extras=extras,
     )
-    index = RecordingSnapshot(real)
+    index = RecordingSnapshot(real, estimates)
     resolved = resolve(spec_of(*where, snapshot=snapshot, **spec_kw), facets=registry.facet)
     return filter_apply(resolved, index), index, resolved
 
@@ -364,8 +376,9 @@ def test_groups_follow_the_truth_table() -> None:
 
 
 def test_a_later_pass_does_not_restore_may_qualify() -> None:
-    rows = {"lab/gap": {"model.context_window": FactValue("unknown"), "software_engineering": 5}}
-    result, _, _ = run("model.context_window >= 1", "software_engineering >= 1", rows=rows)
+    rows = {"lab/gap": {"model.context_window": FactValue("unknown")}}
+    result, _, _ = run("model.context_window >= 1", "software_engineering >= 1", rows=rows,
+                       estimates={"lab/gap": {"software_engineering": 5.0}})
     assert names(result, "feasible") == []
     assert names(result, "maybe") == ["lab/gap"]
     assert result.may_qualify[0].unknown == ("model.context_window",)
@@ -460,33 +473,73 @@ def test_any_passes_when_another_branch_is_a_known_pass() -> None:
 
 def test_relative_condition_resolves_the_reference_then_compares() -> None:
     rows = {
-        "lab/a": {"software_engineering": 10},
-        "lab/b": {"software_engineering": 20},
-        "lab/c": {"software_engineering": FactValue("unknown")},
+        "lab/a": {"model.context_window": 10},
+        "lab/b": {"model.context_window": 20},
+        "lab/c": {"model.context_window": FactValue("unknown")},
     }
     result, index, _ = run(
-        "software_engineering >= model(lab/ref)", rows=rows, extras={"lab/ref": {"software_engineering": 15}},
+        "model.context_window >= model(lab/ref)", rows=rows,
+        extras={"lab/ref": {"model.context_window": 15}},
     )
     assert names(result, "feasible") == ["lab/b"]
     assert "lab/c" in names(result, "maybe")
-    assert ("ids_where", "software_engineering", ">=", 15) in index.calls
+    assert ("ids_where", "model.context_window", ">=", 15) in index.calls
     failed = next(row for row in result.eliminated if row.candidate == "lab/a")
     assert failed.value == 10 and failed.threshold == 15
 
 
-def test_an_unknown_reference_makes_the_condition_unknown() -> None:
-    rows = {"lab/a": {"software_engineering": 10}}
+def test_a_domain_condition_reads_the_capability_estimate() -> None:
+    """A built snapshot holds no fact for a domain: its value is the estimate."""
+    rows = {cid: {"model.context_window": 1} for cid in ("lab/a", "lab/b", "lab/c")}
+    estimates = {"lab/a": {"software_engineering": 0.4}, "lab/b": {"software_engineering": 1.3}}
+
+    absolute, index, _ = run("software_engineering >= 0.5", rows=rows, estimates=estimates)
+    assert names(absolute, "feasible") == ["lab/b"]
+    assert names(absolute, "maybe") == ["lab/c"]
+    failed = next(row for row in absolute.eliminated if row.candidate == "lab/a")
+    assert (failed.value, failed.threshold, failed.facet) == (0.4, 0.5, "software_engineering")
+    assert not [call for call in index.calls if call[1] == "software_engineering"]
+
+    windowed, _, _ = run("software_engineering in [1.0, 2.0]", rows=rows, estimates=estimates)
+    assert names(windowed, "feasible") == ["lab/b"]
+
+    known, _, _ = run("known(software_engineering)", rows=rows, estimates=estimates)
+    assert names(known, "feasible") == ["lab/a", "lab/b"]
+    missing = next(row for row in known.eliminated if row.candidate == "lab/c")
+    assert missing.value == "unknown"
+
+
+def test_a_relative_domain_condition_compares_estimates() -> None:
+    rows = {cid: {"model.context_window": 1} for cid in ("lab/a", "lab/b", "lab/c")}
+    estimates = {
+        "lab/a": {"software_engineering": 0.9},
+        "lab/b": {"software_engineering": 1.6},
+        "lab/c": {"software_engineering": 1.2},
+        "lab/ref": {"software_engineering": 1.2},
+    }
     result, _, _ = run(
         "software_engineering >= model(lab/ref)", rows=rows,
-        extras={"lab/ref": {"software_engineering": FactValue("unknown")}},
+        extras={"lab/ref": {"model.context_window": 1}}, estimates=estimates,
+    )
+    assert names(result, "feasible") == ["lab/b", "lab/c"]
+    assert names(result, "maybe") == []
+    failed = next(row for row in result.eliminated if row.candidate == "lab/a")
+    assert (failed.value, failed.threshold) == (0.9, 1.2)
+
+
+def test_an_unknown_reference_makes_the_condition_unknown() -> None:
+    rows = {"lab/a": {"model.context_window": 10}}
+    result, _, _ = run(
+        "model.context_window >= model(lab/ref)", rows=rows,
+        extras={"lab/ref": {"model.context_window": FactValue("unknown")}},
     )
     assert names(result, "maybe") == ["lab/a"]
 
 
 def test_a_missing_reference_model_is_an_error() -> None:
-    rows = {"lab/a": {"software_engineering": 10}}
+    rows = {"lab/a": {"model.context_window": 10}}
     with pytest.raises(c.SpecError) as info:
-        run("software_engineering >= model(lab/missing)", rows=rows)
+        run("model.context_window >= model(lab/missing)", rows=rows)
     assert "not in the snapshot" in info.value.issues[0].reason
 
 
@@ -678,15 +731,17 @@ def test_a_known_passing_model_is_never_dropped() -> None:
         threshold = rng.randint(0, 40)
         cids = [f"lab/m{i}" for i in range(n)]
         rows = {}
+        estimates = {}
         passing = []
         for cid in cids:
             ctx = rng.randint(0, 80)
-            rows[cid] = {"model.context_window": ctx, "software_engineering": rng.randint(0, 5)}
+            rows[cid] = {"model.context_window": ctx}
+            estimates[cid] = {"software_engineering": float(rng.randint(0, 5))}
             if ctx >= threshold:
                 passing.append(cid)
         result, _, _ = run(
             f"model.context_window >= {threshold}", "software_engineering >= 0",
-            "model.context_window >= 100000 soft(0.2)", rows=rows,
+            "model.context_window >= 100000 soft(0.2)", rows=rows, estimates=estimates,
         )
         for cid in passing:
             assert cid in result.feasible
