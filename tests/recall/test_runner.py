@@ -209,7 +209,7 @@ def test_the_runner_judges_one_row_per_model() -> None:
 
 
 def test_rule_based_must_flag_ignores_models_that_fail_another_condition() -> None:
-    from decision.snapshot import load_snapshot_bytes
+    from decision.snapshot import load_built_snapshot
     from scripts.recall_run import _rule_flag_models
 
     def generator(mid: str, openness: str) -> dict:
@@ -231,11 +231,7 @@ def test_rule_based_must_flag_ignores_models_that_fail_another_condition() -> No
         ),
         as_of=date(2026, 9, 26),
     )
-    index = load_snapshot_bytes(
-        snapshot.to_bytes(key=None),
-        key=None,
-        public_keys={},
-    )
+    index = load_built_snapshot(snapshot, source="recall rule flag test build")
     registry = default_registry()
     spec = parse_spec(
         {
@@ -285,7 +281,14 @@ def test_known_elimination_supersedes_an_older_must_flag_expectation() -> None:
 
 
 def test_overlapping_capability_intervals_count_as_not_separable() -> None:
-    from decision.contract import Decision, Estimate, OfferingRef, Result
+    from decision.contract import (
+        Decision,
+        Estimate,
+        OfferingRef,
+        Result,
+        SeparatedAnswer,
+        TieBreakers,
+    )
     from scripts.recall_run import _top_is_tied
 
     def ranked(rank: int, model_id: str, interval: tuple[float, float]) -> Result:
@@ -299,7 +302,6 @@ def test_overlapping_capability_intervals_count_as_not_separable() -> None:
                     interval=interval,
                 )
             ],
-            warnings=["not_separable"],
         )
 
     decision = Decision(
@@ -308,6 +310,14 @@ def test_overlapping_capability_intervals_count_as_not_separable() -> None:
         spec_hash="sha256:" + "0" * 64,
         explain="none",
         status="answered",
+        answer=SeparatedAnswer(
+            kind="separated",
+            members=["lab/a"],
+            leader="lab/a",
+            basis="leader-overlap score intervals; capability estimates use 80% intervals",
+            tie_breakers=TieBreakers(),
+            deterministic_order=["lab/a"],
+        ),
         results=[ranked(1, "lab/a", (1.0, 2.0)), ranked(2, "lab/b", (1.8, 2.4))],
     )
 

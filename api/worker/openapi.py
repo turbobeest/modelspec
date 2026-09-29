@@ -1957,6 +1957,8 @@ def _decision_schemas() -> dict[str, Any]:
         if isinstance(value, list):
             return [rewrite(item) for item in value]
         if isinstance(value, str):
+            if value.startswith("#/$defs/"):
+                return "#/components/schemas/" + names[value.removeprefix("#/$defs/")]
             return re.sub(
                 r"model\([a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*\)",
                 "model(lab/example-model)",
