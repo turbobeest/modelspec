@@ -41,7 +41,7 @@ class RootGroup(_offline.ContractGroup):
         name: index
         for index, name in enumerate(
             (
-                "snapshot", "vocab", "decide", "verify",
+                "snapshot", "vocab", "decide", "outcome", "verify",
                 "rank", "search", "compare", "hardware",
                 "info", "stats", "gaps", "offline",
                 "research", "contribute", "validate",
@@ -95,6 +95,11 @@ _offline.snapshot_app.command("build", cls=_offline.ContractCommand)(_snapshot_b
 from . import verify_cmd as _verify_cmd  # noqa: E402
 
 app.add_typer(_verify_cmd.app, name="verify", rich_help_panel=_DECISION_PANEL)
+
+# Opt-in, local outcome records (MODEL-211): off until a person enables them.
+from . import outcome_cmd as _outcome_cmd  # noqa: E402
+
+app.add_typer(_outcome_cmd.app, name="outcome", rich_help_panel=_DECISION_PANEL)
 
 console = Console()
 

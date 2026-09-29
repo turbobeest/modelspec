@@ -19,6 +19,8 @@ modelspec snapshot fetch [--origin URL] [--api-key KEY] [--json]
 modelspec snapshot status [--json]        what is cached, how old, which build or decision
 modelspec vocab [SECTION] [--json]        inspect the cached decision vocabulary
 modelspec decide SPEC.yaml --check        validate a spec without running a decision
+modelspec outcome enable|disable|record|show|export
+                                          opt-in, local outcome records (MODEL-211)
 ```
 
 Legacy v1 commands:
@@ -216,6 +218,100 @@ ordering: neither class is placed above the other, and no number is attached.
 The whole rule, including the term list the matcher uses, is published keyless
 at `https://modelspec.dev/api/rank/class-fit.json`, so a caller can run the
 same match locally without calling anything.
+
+## Outcome records (MODEL-211)
+
+`modelspec outcome` keeps an opt-in, local log that answers one question: was
+this decision adopted, and did the task succeed? It is ADR 0004 step 1 under the
+REV-9 rules. What the log holds and what stays local is in
+[`outcome-privacy.md`](outcome-privacy.md). How DPF calls it is in
+[`dpf-outcome-integration.md`](dpf-outcome-integration.md). No `outcome`
+command makes a network request.
+
+```
+modelspec outcome enable [--yes]          print what is recorded; turn recording on if you agree
+modelspec outcome disable [--delete]      turn it off; --delete also deletes every record
+modelspec outcome record DECISION_ID --adopted MODEL[/PROVIDER] --result success|partial|failure
+                         [--task-kind KIND] [--latency-ms N] [--cost-usd X]
+                         [--decision FILE] [--json]
+modelspec outcome show [--limit N] [--json]
+modelspec outcome export [--out PATH]     JSON Lines, every line re-checked against the schema
+```
+
+**Consent.** Recording is off until `enable` is run. `enable` prints every
+field below and asks for a yes. With no terminal it exits 1 unless `--yes` is
+passed. The consent file is `~/.modelspec/outcomes-consent.json`
+(`$MODELSPEC_HOME` overrides the directory) and holds
+`{"consent_version": 1}`. A consent with any other version counts as off.
+
+**`record` while off** reads nothing, writes nothing and exits 0. With `--json`,
+stdout is `{"command": "outcome record", "recorded": false, "reason": "disabled"}`.
+
+**`record` while on** appends one record to `~/.modelspec/outcomes.jsonl` and
+exits 0. With `--json`, stdout is
+`{"command": "outcome record", "recorded": true, "record": {…}}`. It exits 1,
+with `error.code` on stderr, for:
+
+- `invalid_record`: a value failed the schema. The message names the field and
+  the rule, never the value.
+- `invalid_adopted`: `--adopted` is not `lab/model`, `lab/model/provider`,
+  `other` or `other/provider`.
+- `unknown_model` or `unknown_provider`: the model or provider is not in the
+  cached decision vocabulary. That vocabulary is the only catalogue, and
+  neither a stub nor a `--decision` file can vouch for a model. The check
+  keeps private names out of the log. Pass `--adopted other` for a model
+  ModelSpec does not list.
+- `invalid_decision` or `unreadable`: the `--decision` file is not a decision,
+  names a different decision ID, or has a decision ID that is not the hash of
+  its spec hash and snapshot.
+- `unwritable`: the log cannot be written.
+
+**The record.** These fields, and no others. The schema is `OutcomeRecord` in
+`cli/modelspec/outcome.py`. It has `extra="forbid"` and strict types, and
+`tests/test_outcome.py` pins the field set.
+
+| field | type |
+| --- | --- |
+| `record_version` | `1` |
+| `decision_id` | `dec_<24 hex>` |
+| `spec_hash` | `sha256:<64 hex>` or null |
+| `snapshot` | `snap_<16 hex>` or null |
+| `contract_version` | the decision contract's `major.minor`, or null |
+| `adopted_model` | a catalogued `lab/model`, or `"other"` |
+| `adopted_offering` | a catalogued provider slug, or null |
+| `was_leader` | bool or null |
+| `in_best_band` | bool or null |
+| `result` | `success`, `partial` or `failure` |
+| `task_kind` | a decision-contract `task_type`, or null |
+| `latency_ms` | integer, 0 to 86,400,000, 3 significant figures, or null |
+| `cost_usd` | finite number, 0 to 10,000, 3 significant figures, or null |
+| `recorded_at` | `YYYY-MM-DDTHH:MMZ`, UTC |
+| `cli_version` | the installed CLI's public release (no `+local` segment), or null |
+
+`spec_hash`, `snapshot`, `contract_version`, `was_leader` and `in_best_band`
+come from the decision. `record` finds the decision in the `--decision` file
+if one is given, and otherwise in the stub that `decide` kept. If it finds
+neither, those five fields are null. `was_leader` compares the adopted model
+with `bands.leader` (or `answer.leader`). `in_best_band` checks the adopted
+model against `bands.best`. For `other`, both are false.
+
+**`decide` while on** keeps a stub in `~/.modelspec/decision-stubs/` holding
+the decision ID, spec hash, snapshot, contract version, leader and best-band
+model IDs. It keeps at most 500 stubs. It also prints one line to stderr naming
+the `outcome record` command to run. stdout, including `--json`, is unchanged,
+and `decide` never writes an outcome record. While recording is off, `decide`
+does neither.
+
+**`show` and `export`** validate every stored line again. A line that fails,
+for example one edited by hand to add a field, is left out and counted on
+stderr (`show --json` reports it as `refused_lines`).
+
+**Versioning.** `outcome` is a new command group. It does not change the
+envelope or any field of an existing command, so `schema_version` stays
+`"1.0"`. A new record field bumps `record_version` and the consent version, so
+recording stays off until the person reads the new text and consents again.
+Upload is not built; the design is
+[`design/outcome-upload.md`](design/outcome-upload.md).
 
 ## The JSON envelope
 
