@@ -666,6 +666,9 @@ def test_the_cli_passes_the_workers_refusal_through(cli_against_worker) -> None:
 def test_the_root_help_tells_an_agent_about_feedback() -> None:
     from typer.testing import CliRunner
     from cli.modelspec import cli as cli_mod
-    help_text = CliRunner().invoke(cli_mod.app, ["--help"]).stdout
+    import re
+    raw = CliRunner().invoke(cli_mod.app, ["--help"], env={"COLUMNS": "200"}).stdout
+    # CI forces colour and may wrap; compare the words, not the rendering.
+    help_text = " ".join(re.sub(r"\x1b\[[0-9;]*m", "", raw).replace("│", " ").split())
     assert "modelspec feedback <decision_id> --rating" in help_text
     assert "feedback" in help_text.split("Decision commands", 1)[1]
