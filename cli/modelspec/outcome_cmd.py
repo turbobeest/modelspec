@@ -85,7 +85,7 @@ def disable(
         typer.echo(f"error: recording is off, but a file could not be deleted: "
                    f"{exc.strerror or exc}", err=True)
         raise typer.Exit(EXIT_ERROR) from None
-    typer.echo("Outcome recording is off. Decision stubs were deleted.")
+    typer.echo("Outcome recording is off. The decision stubs this CLI wrote were deleted.")
     if delete:
         typer.echo(f"Every record was deleted from {outcome.outcomes_path()}.")
     elif remaining:
