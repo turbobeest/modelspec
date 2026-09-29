@@ -2699,6 +2699,11 @@ class Queue:
             claims.append(replace(entry.claim, sources=sources))
         return claims, unknown
 
+    def filed(self) -> dict[tuple[str, str], Claim]:
+        """The latest claim a collector filed for each target, keyed ``(kind, id)``."""
+        return {key: entry.claim for key, entry in self._state().items()
+                if entry.claim is not None}
+
     def recrawl_requests(self) -> list[tuple[TargetRef, str]]:
         """Targets whose last check failed and that no collector has filed again."""
         return [
