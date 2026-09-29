@@ -193,6 +193,40 @@ def cmd_verify(args: argparse.Namespace) -> int:
     return 0 if set(outcomes) <= {"verified"} else 1
 
 
+def _cell(summary: dict | None, digits: int) -> str:
+    if summary is None:
+        return "none"
+    low, high = summary["interval"]
+    return f"{summary['median']:.{digits}f} [{low:.{digits}f}, {high:.{digits}f}]"
+
+
+def report(window: Path) -> str:
+    """A window as Markdown: spend per run, then every offering and workload."""
+    runs = window_runs(window)
+    measurement = json.loads((window / "measurement.json").read_text(encoding="utf-8"))
+    lines = ["| Run | Slot | Vantage | Requests | Spent | Cap | Stopped |",
+             "|---|---|---|---|---|---|---|"]
+    for r in runs:
+        lines.append(f"| {r['run_id']} | {r['slot']} | {r['vantage']} | {len(r['samples'])} "
+                     f"| ${r['spent_usd']:.2f} | ${r['cap_usd']:.2f} | {r['stopped'] or 'no'} |")
+    lines += ["", f"Total spent: ${sum(r['spent_usd'] for r in runs):.2f}", "",
+              "| Offering | Workload | Good / attempted | Failures | TTFT ms, median [95%] "
+              "| Tokens/s, median [95%] | Gates |",
+              "|---|---|---|---|---|---|---|"]
+    for row in measurement["results"]:
+        ttft, tps = row["ttft_ms"], row["throughput_tps"]
+        gates = "pass" if row["publishable"] else "; ".join(row["reasons"])
+        failures = ", ".join(f"{k} {v}" for k, v in row["failures"].items()) or "none"
+        lines.append(f"| {row['offering']} | {row['workload']} | {row['n']} / {row['attempted']} "
+                     f"| {failures} | {_cell(ttft, 0)} | {_cell(tps, 1)} | {gates} |")
+    return "\n".join(lines) + "\n"
+
+
+def cmd_report(args: argparse.Namespace) -> int:
+    print(report(Path(args.window)), end="")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="python -m scripts.speed", description=__doc__)
     sub = parser.add_subparsers(dest="command", required=True)
@@ -225,6 +259,9 @@ def main(argv: list[str] | None = None) -> int:
     p = sub.add_parser("verify", help="re-derive a window's facts from its raw runs")
     p.add_argument("window")
     p.set_defaults(func=cmd_verify)
+    p = sub.add_parser("report", help="a window's spend and results as Markdown")
+    p.add_argument("window")
+    p.set_defaults(func=cmd_report)
     args = parser.parse_args(argv)
     return args.func(args)
 

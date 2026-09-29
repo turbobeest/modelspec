@@ -16,6 +16,7 @@ import threading
 import time
 from datetime import UTC, datetime, timedelta
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 
 import pytest
 
@@ -44,6 +45,7 @@ from scripts.speed.transport import (
     Profile,
 )
 
+ROOT = Path(__file__).resolve().parents[1]
 FASTEST = "google-gemini-api/google/gemini-3-8-flash/global/standard"
 
 
@@ -412,3 +414,39 @@ def test_one_thinking_request_holds_an_offering_that_claims_none(dry):
                if (r["offering"], r["workload"]) == (offering, "short_chat"))
     assert not row["publishable"]
     assert "1 counted requests reasoned" in " ".join(row["reasons"])
+
+
+# ── the probe workflow ─────────────────────────────────────────────────────
+
+
+def test_the_probe_runs_only_by_hand_under_a_fixed_cap():
+    """Jamie approved the pilot alone at $15: no schedule, no PR trigger, and a
+    cap no dispatch can raise. Keys reach only the steps that call providers."""
+    import yaml
+
+    path = ROOT / ".github" / "workflows" / "speed-probe.yml"
+    workflow = yaml.safe_load(path.read_text(encoding="utf-8"))
+    triggers = workflow[True]  # PyYAML reads the key `on` as True.
+    assert set(triggers) == {"workflow_dispatch"}
+    assert set(triggers["workflow_dispatch"]["inputs"]) == {"mode"}
+    assert workflow["env"]["SPEED_CAP_USD"] == "15"
+    steps = workflow["jobs"]["probe"]["steps"]
+    keyed = [s["name"] for s in steps if "secrets.ANTHROPIC_API_KEY" in str(s.get("env"))]
+    assert keyed == ["Preflight (free)", "Run the pilot slot (paid, capped)"]
+    names = [s.get("name") for s in steps]
+    assert names.index("Preflight (free)") < names.index("Run the pilot slot (paid, capped)")
+    pr = next(s for s in steps if s.get("uses", "").startswith("peter-evans/create-pull-request"))
+    assert pr["with"]["branch"].startswith("data/")
+    assert pr["with"]["add-paths"].strip() == "measurements/speed/**"
+
+
+def test_the_report_names_spend_and_every_result(dry, tmp_path):
+    from scripts.speed.__main__ import _write, report
+
+    for run in dry["runs"]:
+        _write(tmp_path / "runs" / f"{run['run_id']}.json.gz", run)
+    _write(tmp_path / "measurement.json", dry["measurement"])
+    text = report(tmp_path)
+    assert f"Total spent: ${sum(r['spent_usd'] for r in dry['runs']):.2f}" in text
+    assert text.count("| short_chat |") == 10
+    assert "| pass |" in text
