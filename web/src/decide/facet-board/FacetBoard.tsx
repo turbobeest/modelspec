@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { Spec } from "../engine/types";
 import type { Vocabulary, VocabFacet, VocabRefinement, VocabTemplate } from "../vocabulary";
@@ -224,6 +224,18 @@ export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections,
     if (canvas && isCanvasAxisId(canvas.x) && isCanvasAxisId(canvas.y)) onCanvasAxes?.({ x: canvas.x, y: canvas.y });
     onSpec(boardToSpec(templateSpec, vocabulary, all, sanitized.mustOrder));
   };
+  // A use-case page links here as `/decide/?template=<id>` (MODEL-219). A
+  // saved board in the hash wins; an unknown or unavailable id is ignored.
+  const deepLinked = useRef(false);
+  useEffect(() => {
+    if (deepLinked.current) return;
+    deepLinked.current = true;
+    const id = new URLSearchParams(location.search).get("template");
+    if (!id || location.hash.startsWith("#s=")) return;
+    const template = vocabulary.templates?.find((row) => row.id === id && row.available);
+    if (template) applyTemplate(template);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once, on the first vocabulary
+  }, []);
   const resetAll = () => {
     const empty = sanitizeBoardState({ selections: {}, mustOrder: [], estate }, vocabulary);
     setSelected(empty.selections);

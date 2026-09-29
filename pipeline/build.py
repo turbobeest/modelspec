@@ -609,6 +609,10 @@ def main(argv: list[str] | None = None) -> int:
     from pipeline import method
     method_counts = method.write(ms, root, landing_data)
     ms_paths.extend(method_counts["sitemap_paths"])
+    # One page per template and head-to-head pairs, from live decisions (MODEL-219).
+    from pipeline import uses
+    uses_counts = uses.write(ms, uses.build_data(str(root), today))
+    ms_paths.extend(uses_counts["sitemap_paths"])
     from pipeline import social_cards
     if social_cards.render_enabled():
         social_cards.render(ms, landing_data)

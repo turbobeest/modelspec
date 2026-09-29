@@ -221,7 +221,8 @@ def _plot_axes(models: list[PlotModel]) -> PlotAxes:
     )
 
 
-def _input_digest(root: Path, as_of: date) -> str:
+def input_digest(root: Path, as_of: date, *extra: Path, snapshot_only: bool = False) -> str:
+    """Hash the snapshot's inputs, plus this module (unless `snapshot_only`) and `extra`."""
     digest = hashlib.sha256(as_of.isoformat().encode())
     for name in ("models", "offerings", "benchmarks", "verification", "registry", "decision"):
         base = (root / name).resolve()
@@ -229,17 +230,24 @@ def _input_digest(root: Path, as_of: date) -> str:
             digest.update(name.encode())
             digest.update(path.relative_to(base).as_posix().encode())
             digest.update(path.read_bytes())
-    digest.update(Path(__file__).read_bytes())
+    for path in ((() if snapshot_only else (Path(__file__),)) + extra):
+        digest.update(path.read_bytes())
     return digest.hexdigest()
+
+
+@lru_cache(maxsize=2)
+def loaded_snapshot(root_value: str, as_of: date, _digest: str) -> Any:
+    """The build-time snapshot the landing and the use-case pages both read."""
+    snapshot = build_from_repo(Path(root_value), premier=None, as_of=as_of, gate=False)
+    # This snapshot never leaves the build process. Check its content hash, but
+    # do not sign it or require a publisher signature meant for public clients.
+    return load_built_snapshot(snapshot, source="landing-page build")
 
 
 @lru_cache(maxsize=4)
 def _build_data(root_value: str, as_of: date, _digest: str) -> LandingData:
     root = Path(root_value)
-    snapshot = build_from_repo(root, premier=None, as_of=as_of, gate=False)
-    # This snapshot never leaves the build process. Check its content hash, but
-    # do not sign it or require a publisher signature meant for public clients.
-    loaded = load_built_snapshot(snapshot, source="landing-page build")
+    loaded = loaded_snapshot(root_value, as_of, input_digest(root, as_of, snapshot_only=True))
     cards = {model.model_id: model for model in load_models(root)}
 
     registry = default()
@@ -332,7 +340,7 @@ def _build_data(root_value: str, as_of: date, _digest: str) -> LandingData:
 def build_data(root_value: str, as_of: date) -> LandingData:
     """Compute landing facts once per repository input set, across build workers."""
     root = Path(root_value).resolve()
-    digest = _input_digest(root, as_of)
+    digest = input_digest(root, as_of)
     cache = Path(tempfile.gettempdir()) / f"modelspec-landing-{digest}.json"
     lock = cache.with_suffix(".lock")
     lock.parent.mkdir(parents=True, exist_ok=True)
@@ -371,7 +379,8 @@ def render(data: LandingData, *, variant: Literal["live", "holding"],
              else '<span class="board-status">Board opening soon</span>')
     board_compact = (f'<a class="button primary" href="{DECIDE_PATH}">Open the board</a>'
                      if variant == "live" else '<span class="board-status">Board opening soon</span>')
-    graph_link = '<a href="/graph/">Explore the graph</a>' if variant == "live" else ""
+    graph_link = ('<a href="/graph/">Explore the graph</a><a href="/use/">Use cases</a>'
+                  '<a href="/compare/">Comparisons</a>' if variant == "live" else "")
     install = ('<pre class="install" aria-label="First run">'
                + "\n".join(f'<code>{line}</code>' for line in FIRST_RUN) + '</pre>'
                if package_published else

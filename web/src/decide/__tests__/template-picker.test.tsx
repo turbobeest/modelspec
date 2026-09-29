@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 import { FacetBoard } from "../facet-board/FacetBoard";
 import { toBoardDecisionSpec } from "../facet-board/model";
@@ -143,4 +143,30 @@ it("lists templates flat when the vocabulary predates categories", () => {
   board(legacy);
   expect(screen.queryByRole("table")).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: /Coding agent on a budget/ })).toBeVisible();
+});
+
+it("applies the template a use-case page links with ?template=, once (MODEL-219)", () => {
+  window.history.replaceState(null, "", "/decide/?template=budget-coding");
+  try {
+    const { bar, onSpec } = board();
+    expect(bar()).toHaveTextContent("Applied: Coding · Budget");
+    expect(onSpec).toHaveBeenCalledTimes(1);
+  } finally {
+    window.history.replaceState(null, "", "/");
+  }
+});
+
+it("ignores ?template= for an unknown id, and when a saved board is in the hash", () => {
+  try {
+    window.history.replaceState(null, "", "/decide/?template=no-such-template");
+    const first = board();
+    expect(first.bar()).not.toHaveTextContent("Applied");
+    cleanup();
+    window.history.replaceState(null, "", "/decide/?template=budget-coding#s=abc");
+    const second = board();
+    expect(second.bar()).not.toHaveTextContent("Applied");
+    expect(second.onSpec).not.toHaveBeenCalled();
+  } finally {
+    window.history.replaceState(null, "", "/");
+  }
 });

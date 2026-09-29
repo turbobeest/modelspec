@@ -241,6 +241,10 @@ def test_live_and_holding_variants_differ_only_where_the_contract_requires(
     assert live.count('href="/graph/">Explore the graph</a>') == 1
     assert live.index('href="/graph/">Explore the graph</a>') > live.index("<footer>")
     assert 'href="/graph/">Explore the graph</a>' not in holding
+    # MODEL-219's pages are dark in holding mode, so only the live footer links them.
+    for path in ("/use/", "/compare/"):
+        assert live.index(f'href="{path}"') > live.index("<footer>")
+        assert f'href="{path}"' not in holding
     for page in (live, holding):
         assert page.count('href="/pricing/">Pricing</a>') == 2
         assert page.rindex('href="/pricing/">Pricing</a>') > page.index("<footer>")
