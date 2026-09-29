@@ -828,6 +828,86 @@ def test_a_plan_article_does_not_speak_for_another_plan() -> None:
     assert verify.compare(claim, readings) != []
 
 
+#: An abridged Team plan help article (support.claude.com, read 2026-09-29): a skip
+#: link, title, "Updated" stamp, one labelled line per seat, then the help
+#: centre's footer (MODEL-240).
+TEAM_HELP_PAGE = """Skip to main content
+What is the Team plan?
+Updated over a week ago
+The Team plan is a paid plan for our Claude chat experience built for ambitious teams.
+Usage limits differ between Standard and Premium seats in the following ways:
+Standard seats: Team plan Standard seats include 1.25x the Pro plan's per-session usage \
+allowance and have a weekly usage limit that applies across all models.
+Premium seats: Team plan Premium seats include 6.25x the Pro plan's per-session usage \
+allowance and have a weekly usage limit that applies across all models.
+Did this answer your question?
+Related Articles
+What is the Enterprise plan?
+"""
+
+_CHROME = {"Skip to main content", "Updated over a week ago", "Did this answer your question?",
+           "Related Articles", "What is the Enterprise plan?"}
+
+
+#: The names MODEL-201 filed for the Premium seat, as the verification queue has them.
+_PREMIUM = ("Claude Team (Premium seat)", "Premium seats", "Team plan", "Team", "team-premium")
+
+
+def _seat_claim(names, value, field="offering.subscription.usage_allowance"):
+    return verify.Claim(
+        target=verify.TargetRef(kind="fact", id=f"anthropic/subscription/team#{field}"),
+        subject="anthropic/subscription/team",
+        names=names,
+        field=field,
+        value=value,
+        collector=COLLECTOR,
+        sources=(verify.SourceRef(
+            source_id="subscription-page",
+            snapshot_ref="sha256:" + "0" * 64,
+            cited_regions=["page"],
+        ),),
+    )
+
+
+@pytest.mark.parametrize(
+    ("names", "value"),
+    [
+        (_PREMIUM, "6.25x the Pro plan's per-session usage allowance"),
+        (("Claude Team (Standard seat)", "Standard seats", "Team plan", "Team", "team-standard"),
+         "1.25x the Pro plan's per-session usage allowance"),
+    ],
+)
+def test_a_plan_article_reads_the_allowance_its_seat_line_states(names, value) -> None:
+    claim = _seat_claim(names, value)
+
+    readings = verify.SubscriptionPageExtractor().extract(claim, TEAM_HELP_PAGE)
+
+    assert verify.compare(claim, readings) == []
+
+
+def test_a_seat_line_does_not_speak_for_another_seat() -> None:
+    claim = _seat_claim(_PREMIUM, "1.25x the Pro plan's per-session usage allowance")
+
+    readings = verify.SubscriptionPageExtractor().extract(claim, TEAM_HELP_PAGE)
+
+    assert verify.compare(claim, readings) != []
+
+
+@pytest.mark.parametrize(
+    "field",
+    ["offering.subscription.usage_allowance", "offering.subscription.coverage_quote",
+     "offering.subscription.programmatic_or_agent_use"],
+)
+def test_no_subscription_reading_is_page_chrome(field) -> None:
+    claim = _seat_claim(_PREMIUM, "a value this page does not state", field)
+
+    readings = verify.SubscriptionPageExtractor().extract(claim, TEAM_HELP_PAGE)
+    diffs = verify.compare(claim, readings)
+
+    assert not {r.value for r in readings} & _CHROME
+    assert not {d.found for d in diffs} & _CHROME
+
+
 @pytest.mark.parametrize(
     ("field", "value", "names", "page"),
     [
