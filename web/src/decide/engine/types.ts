@@ -123,7 +123,9 @@ export type Cond = CondBase &
   );
 /** A condition on any facet the published vocabulary lists (real mode only). */
 export type FacetOp = "=" | "!=" | "<=" | ">=" | "in" | "not in";
-export type FacetValue = string | number | boolean | string[];
+/** `facet >= best(m)`: within `m` of the best eligible value (contract 2.11). */
+export interface BestValue { best: number }
+export type FacetValue = string | number | boolean | string[] | BestValue;
 export type CondField = Cond["f"];
 
 export interface Weights {

@@ -1,5 +1,6 @@
 import type {
   BenchDef,
+  BestValue,
   Cond,
   Evidence,
   FacetValue,
@@ -108,8 +109,16 @@ function classId(type: Extract<Cond, { f: "type" }>["v"]): string {
 const BARE = /^[A-Za-z0-9_][A-Za-z0-9_.:/+@-]*$/;
 const RESERVED = new Set(["in", "not", "measured_after", "soft", "unknown", "true", "false"]);
 
+export const isBestValue = (value: unknown): value is BestValue =>
+  typeof value === "object" && value !== null && !Array.isArray(value) && "best" in value;
+
+/** A margin as the engine renders it: always with a decimal point, as in `best(1.0)`. */
+export const bestMargin = (value: number): string =>
+  Number.isInteger(value) ? value.toFixed(1) : String(value);
+
 /** A value in the compact condition syntax: bare when it would read back as itself. */
 export function compactValue(value: FacetValue): string {
+  if (isBestValue(value)) return `best(${bestMargin(value.best)})`;
   if (Array.isArray(value)) return `{${value.map(compactValue).join(", ")}}`;
   if (typeof value === "boolean" || typeof value === "number") return JSON.stringify(value);
   const looksTyped = /^-?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$/.test(value);

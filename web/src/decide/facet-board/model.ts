@@ -44,6 +44,7 @@ const UNRANKED_OBJECTIVE = { "-offering.cost_per_task": 1 };
 
 const facetValueSchema = z.union([
   z.string(), z.number().finite(), z.boolean(), z.array(z.string()),
+  z.object({ best: z.number().finite().nonnegative() }).strict(),
 ]);
 const selectionSchema = z.object({
   mode: z.enum(["off", "must", "prefer", "both"]),
@@ -176,6 +177,8 @@ function conditionFor(facet: VocabFacet, choice: FacetSelection): Cond | null {
 const BOARD_CONDITION = /^(\S+) (not in|in|!=|<=|>=|=) (.+)$/;
 
 function parseConditionValue(text: string): FacetValue {
+  const best = /^best\((.+)\)$/.exec(text);
+  if (best) return { best: Number(best[1]) };
   if (text.startsWith("{") && text.endsWith("}")) {
     const body = text.slice(1, -1);
     return body ? body.split(", ").map(parseScalarValue).map(String) : [];
@@ -227,23 +230,26 @@ export function templateToBoard(
     const current = selections[facetId]?.reason;
     return current && current !== reason ? `${current} ${reason}` : reason;
   };
+  // The board shows a domain as its capability row; the contract names the domain.
+  const boardId = (id: string) =>
+    template.needs.domains.includes(id) || vocabulary.domains.some((domain) => domain.id === id)
+      ? `capability.${id}` : id;
   for (const row of template.where) {
     const parsed = parseBoardCondition(row.condition);
-    if (!mustOrder.includes(parsed.facetId)) mustOrder.push(parsed.facetId);
-    const current = selections[parsed.facetId];
-    selections[parsed.facetId] = {
+    const facetId = boardId(parsed.facetId);
+    if (!mustOrder.includes(facetId)) mustOrder.push(facetId);
+    const current = selections[facetId];
+    selections[facetId] = {
       ...current,
       mode: current?.mode === "prefer" ? "both" : "must",
       op: parsed.op,
       value: parsed.value,
-      reason: addReason(parsed.facetId, row.reason),
+      reason: addReason(facetId, row.reason),
     };
   }
   for (const [weightKey, preference] of Object.entries(template.weights)) {
     const objective = weightKey.startsWith("-") ? weightKey.slice(1) : weightKey;
-    const facetId = template.needs.domains.includes(objective) ||
-      vocabulary.domains.some((domain) => domain.id === objective)
-      ? `capability.${objective}` : objective;
+    const facetId = boardId(objective);
     const current = selections[facetId];
     selections[facetId] = {
       ...current,

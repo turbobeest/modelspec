@@ -12,6 +12,7 @@ import { realVocabulary, smallVocabulary } from "./vocab-fixtures";
 import { toDecisionSpec } from "../adapter/view-model";
 import { decisionSpecSchema } from "../adapter/contract";
 import { decodeSpec } from "../state/spec";
+import { renderContractCondition } from "../adapter/condition-label";
 import { LEGACY_PERMALINKS } from "../__fixtures__/legacy-permalinks";
 import refinementVocabularyJson from "../__fixtures__/vocabulary-refinements.json";
 import { vocabularySchema } from "../vocabulary";
@@ -615,6 +616,61 @@ it("reopens Must, Prefer and Must+Prefer selections and keeps them after another
     expect.objectContaining({ facet: "offering.cost_per_task", value: 0.25 }),
   ]));
   expect(next.boardWeights).toEqual({ software_engineering: 0.6, "-offering.cost_per_task": 0.4 });
+});
+
+describe("a best(m) floor from a Fastest template", () => {
+  const fixture = realVocabulary.templates?.find((template) => template.id === "coding-fastest");
+  if (!fixture) throw new Error("coding-fastest fixture is missing");
+  const floor = "software_engineering >= best(1.0)";
+  const codingFastest = {
+    ...fixture,
+    where: [...fixture.where, { condition: floor, reason: "Keep only strong coding models." }],
+    weights: { "offering.speed.throughput": { weight: 1, reason: "Fastest among them." } },
+    spec: { ...fixture.spec, where: [...fixture.spec.where, floor],
+            optimize: { weights: { "offering.speed.throughput": 1 } } },
+  };
+
+  it("shows the floor as a Must on the capability row", () => {
+    const { selections, mustOrder } = templateToBoard(codingFastest, realVocabulary);
+    expect(selections["capability.software_engineering"]).toEqual({
+      mode: "must", op: ">=", value: { best: 1 }, reason: "Keep only strong coding models.",
+    });
+    expect(selections.software_engineering).toBeUndefined();
+    expect(mustOrder).toEqual(["model.class", "model.lifecycle", "capability.software_engineering"]);
+    render(<FacetBoard vocabulary={realVocabulary} spec={realBaseSpec(realVocabulary)} selections={selections} onSpec={vi.fn()} estate={emptyEstate} onEstate={vi.fn()} />);
+    const capability = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
+    expect(within(capability).getByLabelText("Must")).toBeChecked();
+    expect(within(capability).getByText("Within 1.0 of the best eligible model")).toBeInTheDocument();
+  });
+
+  it("sends exactly the template's floor", () => {
+    const { selections, mustOrder } = templateToBoard(codingFastest, realVocabulary);
+    const spec = boardSpec({ ...realBaseSpec(realVocabulary), conds: [] }, realVocabulary, selections, mustOrder);
+    expect(toDecisionSpec(spec, "full").where).toEqual([
+      "model.class = text-generator", "model.lifecycle = active", floor,
+    ]);
+    expect(decisionSpecSchema.parse(toBoardDecisionSpec(spec, "full")).where).toContain(floor);
+  });
+
+  it("keeps the floor through the board URL", () => {
+    const { selections, mustOrder } = templateToBoard(codingFastest, realVocabulary);
+    const spec = boardSpec({ ...realBaseSpec(realVocabulary), conds: [] }, realVocabulary, selections, mustOrder);
+    const hash = encodeBoardSpec(spec, "task$", { selections, mustOrder, estate: emptyEstate });
+    expect(decodeBoardState(hash)?.selections["capability.software_engineering"]?.value).toEqual({ best: 1 });
+    expect(decodeSpec(hash)?.spec.conds).toContainEqual(expect.objectContaining({
+      facet: "software_engineering", op: ">=", value: { best: 1 },
+    }));
+  });
+
+  it("reads the floor in a funnel or elimination label", () => {
+    expect(renderContractCondition(floor)).toBe("Software engineering: within 1.0 of the best");
+  });
+
+  it("formats a fractional margin as the engine does", () => {
+    expect(parseBoardCondition("software_engineering >= best(0.5)").value).toEqual({ best: 0.5 });
+    expect(formatBoardCondition("software_engineering", { mode: "must", op: ">=", value: { best: 0.5 } }))
+      .toBe("software_engineering >= best(0.5)");
+  });
 });
 
 describe("a stored estate after the vocabulary changes", () => {

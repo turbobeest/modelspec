@@ -13,6 +13,7 @@ import {
 } from "./model";
 import type { BoardSelections, Estate, FacetMode, FacetSelection } from "./model";
 import { ACCESS_ANSWERS, deviceName, payee, planName } from "./routes";
+import { bestMargin, isBestValue } from "../adapter/view-model";
 import type { AccessAnswer } from "./routes";
 
 const numberText = (value: unknown) => typeof value === "number" ? String(value) : "";
@@ -24,6 +25,9 @@ function ValueControl({ facet, choice, onChange }: {
 }) {
   const value = choice.value;
   const op = choice.op ?? defaultFacetOp(facet);
+  if (isBestValue(value)) return (
+    <p className="facet-value">Within {bestMargin(value.best)} of the best eligible model</p>
+  );
   if (facet.value_type === "boolean") return (
     <label className="facet-value">Required value
       <select value={value === undefined ? "" : String(value)} onChange={(event) => onChange({ ...choice, value: event.target.value === "" ? undefined : event.target.value === "true" })}>
