@@ -1159,7 +1159,7 @@ benchmarks:
     id: google/gemini-2-5-flash#hle#4bd99ee3c2ef
     sources:
     - source_id: model-143-evidence-scale-hle-json
-      snapshot_ref: sha256:ed8318afc3b822d4f773ca68e50554d1e6104feee3439ef5b9b84952803a46e6
+      snapshot_ref: sha256:468427a64fe93d81faf76ed7419aac970b442379a637e74c75117982512028bb
       cited_regions:
       - rows
     measured_by: independent_evaluator

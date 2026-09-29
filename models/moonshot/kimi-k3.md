@@ -1108,7 +1108,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-143-evidence-epoch-gpqa-diamond-csv
-      snapshot_ref: sha256:39583bb153c2d06652ef7e4886b645abb7ea53fe3b7bb6c8aaeccef4055705cb
+      snapshot_ref: sha256:2170dd89d5d68d21790626cdefaa361e5f7e9d7f2c543b74c46f75886451e3af
       cited_regions:
       - rows
     observed_at: '2026-09-29'
@@ -1132,7 +1132,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-143-evidence-epoch-frontiermath-tiers-1-3-v2-csv
-      snapshot_ref: sha256:cae4d7f40f600006a0cbd47a4ced7d916a96f50953b9a454830dd46b20aa4c1a
+      snapshot_ref: sha256:290afed31fc291e207d29c71b15aea9b6ad5e6bd50795136d1a6781e259aabcd
       cited_regions:
       - rows
     observed_at: '2026-09-29'
@@ -1157,7 +1157,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-epoch-simpleqa-verified-csv
-      snapshot_ref: sha256:33e4a89c307a2e5d6941be7ad13770315c4eff899ed69e92490cd697bdb5a584
+      snapshot_ref: sha256:563eeb084e21ec07a8843924df2451b3e802138eac826f0956d19c4bf37fa4fb
       cited_regions:
       - rows
     observed_at: '2026-09-29'
@@ -1182,7 +1182,7 @@ benchmarks:
     harness: unregistered
     sources:
     - source_id: model-160-frontiercode
-      snapshot_ref: sha256:cd845eb12dc06498f07c3729c9725cf61ad153cacb7580918f8b955e443b4add
+      snapshot_ref: sha256:946a90057bea730dbfa5a27ab38168e01b5269492c1b41f46cf4ec29dd0d3cf3
       cited_regions:
       - rows
     observed_at: '2026-09-29'
@@ -1598,8 +1598,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-07-23'
     date_type: evaluated
-    observed_at: '2026-09-28'
-    verified_at: '2026-09-28'
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
     benchmark_version: Finance Benchmark v2, harness 0.2.0
     configuration: 73 v2 tasks; three attempts per task; temperature zero.
     limitations: Passes at least once, so this value does not measure repeated-run consistency.
@@ -1608,7 +1608,7 @@ benchmarks:
     harness: unregistered
     sources:
     - source_id: model-192-finance-benchmark-v2
-      snapshot_ref: sha256:a8d3d8dec4605e37bf43a29ef09b35b6e47a78e4bc9e64b701d620d9dfb668d7
+      snapshot_ref: sha256:9e10ecf98bc44ca664396e7a752fd46c9a08466f368aa35c8ff6456b0f1c4540
       cited_regions:
       - rows
     id: moonshot/kimi-k3#finance_benchmark_v2#7bd71048e277

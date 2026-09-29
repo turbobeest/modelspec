@@ -732,7 +732,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-08-06'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: GPQA Diamond (Epoch AI run)
     configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (gpqa_diamond.csv),
       read 2026-09-24. Run started 2026-08-06T23:59:38.000Z; effort minimal; highest-effort
@@ -744,9 +744,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-143-evidence-epoch-gpqa-diamond-csv
-      snapshot_ref: sha256:d5f11aa4a63411b644aa536119ea1a7665c4f56ca47d8e11c97fc4e314449fec
+      snapshot_ref: sha256:2170dd89d5d68d21790626cdefaa361e5f7e9d7f2c543b74c46f75886451e3af
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
   - benchmark_id: simpleqa_verified
     model_id_as_evaluated: gemma-4-31b-it
     score: 10.4
@@ -755,7 +756,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-08-27'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: SimpleQA Verified, proportion correct, Epoch AI protocol with anti-abstention
       prompt
     configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (simpleqa_verified.csv),
@@ -763,6 +764,13 @@ benchmarks:
       run for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 0.97 points.
     limitations: Epoch AI data, CC BY 4.0.
     measured_by: independent_evaluator
+    observed_at: '2026-09-29'
+    id: google/gemma-4-31b-it#simpleqa_verified#6ef1aa665084
+    sources:
+    - source_id: model-160-epoch-simpleqa-verified-csv
+      snapshot_ref: sha256:563eeb084e21ec07a8843924df2451b3e802138eac826f0956d19c4bf37fa4fb
+      cited_regions:
+      - rows
 deployment:
   api_only: false
   local_inference: true
