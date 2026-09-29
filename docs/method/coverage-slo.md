@@ -124,7 +124,7 @@ reported to the orchestrator for tickets:
    re-reads and re-verifies the registered boards weekly, through a PR. It
    has no reader for finbenchmark.ai (`finance_benchmark_v2`), which eight
    lineup models cite, so those readings breach `live-reading-age` from
-   2026-10-28. A refresh PR left unmerged also stops the clock resetting,
+   2026-10-29. A refresh PR left unmerged also stops the clock resetting,
    because the report reads main.
 5. **`accuracy-nightly.yml` has failed every night from 2026-09-26 to
    2026-09-29.**
