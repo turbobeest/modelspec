@@ -638,7 +638,7 @@ def skill_markdown() -> str:
         f"- MCP card (SEP-2127): {MS_BASE}/.well-known/mcp.json\n"
         f"- Auth: {MS_BASE}/auth.md\n"
         f"- llms.txt: {MS_BASE}/llms.txt\n"
-        f"- Markdown: send `Accept: text/markdown` or fetch `<page>/index.md`\n"
+        f"- Markdown: {MS_BASE}/index.md\n"
     )
 
 
@@ -796,7 +796,7 @@ def _model_blocks(models: Iterable[Model]) -> list[str]:
             f"pricing: {_fmt(facts['pricing'])}\n"
             f"licence: {_fmt(facts['licence'])}\n"
             f"commercial_use: {_fmt(facts['commercial_use'])}\n"
-            f"url: {facts['url']}\n"
+            f"json: {MS_BASE}/api/models/{facts['id']}.json\n"
         )
     return blocks
 
@@ -811,7 +811,7 @@ def _benchmark_blocks(benchmarks: Iterable[Benchmark], catalogue: Catalogue) -> 
             f"name: {bench.name}\n"
             f"category: {_fmt(category)}\n"
             f"status: {status}\n"
-            f"url: {MS_BASE}/b/{bench.benchmark_id}/\n"
+            f"json: {MS_BASE}/api/benchmarks/{bench.benchmark_id}.json\n"
         )
     return blocks
 

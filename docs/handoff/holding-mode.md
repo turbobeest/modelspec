@@ -23,6 +23,12 @@ The real tree serves the MODEL-186 landing at `/` and the decision board at
 `/decide/`. The `internal` preview is a byte-identical copy. `/landing/`
 permanently redirects to `/`.
 
+`pipeline/live.py` composes that tree from the full build. It is an allowlist,
+and it fails the build when llms.txt, the Markdown twin, a `.well-known` file,
+the `Link` header or a published page names a path the tree lacks. After every
+deploy, `python -m pipeline.live smoke` fetches each discovery file and page
+from the preview, and from modelspec.dev when live (MODEL-214).
+
 ## benchgraph.dev
 
 benchgraph.dev is redirect-only in both modes (MODEL-126). During holding its

@@ -790,6 +790,9 @@ def human_count(value: Any) -> str:
 
 
 MS_NAV = [("Decide", "/decide/"), ("How we decide", "/method/"), ("Graph", "/graph/"), ("Models", "/models/"), ("Providers", "/providers/"), ("Pricing", "/pricing/"), ("Benchmarks", "/benchmarks/"), ("API", "/api/index.json")]
+#: For pages the live site publishes (the legal pages). MS_NAV also names the v1
+#: catalogue pages, which neither site mode publishes (MODEL-214).
+LIVE_NAV = [("Decide", "/decide/"), ("How we decide", "/method/"), ("Graph", "/graph/"), ("Pricing", "/pricing/"), ("API", "/api/index.json")]
 
 
 def _write(path: Path, text: str) -> None:

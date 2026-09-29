@@ -147,7 +147,7 @@ def page(doc: LegalDoc, text: str, build: Build, base: str = "https://modelspec.
         body=f"<h1>{r.esc(title)}</h1>{banner}{cross_links(doc)}{r.render_markdown_body(body)}",
         build=build,
         site="ModelSpec",
-        nav_links=r.MS_NAV,
+        nav_links=r.LIVE_NAV,
         robots="noindex, nofollow" if DRAFT else "index, follow",
     )
 

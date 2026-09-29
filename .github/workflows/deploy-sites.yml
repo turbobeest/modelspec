@@ -144,62 +144,11 @@ jobs:
       - name: Assemble the live and internal decide sites
         run: |
           # Holding must derive from the untouched full build above. Live is a
-          # whitelist so a new v1 page cannot reappear merely by being generated.
+          # whitelist (pipeline/live.py) so a new v1 page cannot reappear merely
+          # by being generated, and it fails if llms.txt, the Markdown twin, the
+          # MCP card or the agent skill names a path the tree lacks (MODEL-214).
           mv dist dist-v1
-          mkdir -p dist/modelspec dist/benchgraph
-          cp -a dist-v1/modelspec/api dist/modelspec/api
-          cp -a dist-v1/modelspec/legal dist/modelspec/legal
-          cp -a dist-v1/modelspec/.well-known dist/modelspec/.well-known
-          cp -a dist-v1/modelspec/openapi.yaml dist/modelspec/openapi.yaml
-          cp -a dist-v1/benchgraph/_redirects dist/benchgraph/_redirects
-          cp dist-v1/modelspec/index.html dist/modelspec/index.html
-          cp -a dist-v1/modelspec/method dist/modelspec/method
-          mkdir -p dist/modelspec/decide
-          cp web/dist/decide.html dist/modelspec/decide/index.html
-          cp web/dist/decide.html dist/modelspec/404.html
-          cp -a web/dist/assets dist/modelspec/assets
-          cp -a dist-v1/modelspec/landing-assets dist/modelspec/landing-assets
-          cp -a dist-v1/modelspec/pricing dist/modelspec/pricing
-          cp -a dist-v1/modelspec/pricing-assets dist/modelspec/pricing-assets
-          cp -a dist-v1/modelspec/fonts dist/modelspec/fonts
-          cp -a dist-v1/modelspec/graph dist/modelspec/graph
-          find dist/modelspec/assets -type f -name 'main-*' -delete
-          # The 2a icon set, fallback card, and build-rendered page cards.
-          for icon in favicon.ico favicon-64.png icon.svg apple-touch-icon.png icon-192.png icon-512.png og-card.png site.webmanifest $(python -m pipeline.social_cards filenames); do
-            cp dist-v1/modelspec/$icon dist/modelspec/$icon
-          done
-          python - <<'PY'
-          from pathlib import Path
-
-          root = Path("dist/modelspec")
-          (root / "_redirects").write_text("/landing/  /  301\n", encoding="utf-8")
-          (root / "robots.txt").write_text(
-              "User-agent: *\nAllow: /\n\nSitemap: https://modelspec.dev/sitemap.xml\n",
-              encoding="utf-8",
-          )
-          (root / "sitemap.xml").write_text(
-              '<?xml version="1.0" encoding="UTF-8"?>\n'
-              '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-              + "".join(
-                  f"  <url><loc>https://modelspec.dev{path}</loc></url>\n"
-                  for path in ("/", "/method/", "/decide/", "/graph/", "/pricing/", "/legal/terms/", "/legal/privacy/", "/legal/neutrality/")
-              )
-              + "</urlset>\n",
-              encoding="utf-8",
-          )
-          (root / "_headers").write_text(
-              "/*\n"
-              "  X-Content-Type-Options: nosniff\n"
-              "  Referrer-Policy: strict-origin-when-cross-origin\n"
-              "  Permissions-Policy: camera=(), microphone=(), geolocation=()\n"
-              "  Strict-Transport-Security: max-age=63072000; includeSubDomains; preload\n"
-              "/api/*\n"
-              "  Access-Control-Allow-Origin: *\n"
-              "/assets/*\n"
-              "  Cache-Control: public, max-age=31536000, immutable\n",
-              encoding="utf-8",
-          )
-          PY
+          python -m pipeline.live build --src dist-v1 --web web/dist --out dist
           cp -a dist dist-internal
           diff -r dist dist-internal
           rm -rf dist-v1
@@ -266,6 +215,7 @@ jobs:
           grep -Fq '/landing/  /  301' dist/modelspec/_redirects
           test ! -e dist/modelspec/landing
           test -s dist/modelspec/sitemap.xml
+          for f in llms.txt llms-full.txt index.md auth.md .well-known/mcp.json .well-known/api-catalog; do test -s dist/modelspec/$f; done
           test -s dist/modelspec/404.html
           test -s dist/modelspec/api/index.json
           test -s dist/modelspec/api/build.json
@@ -551,6 +501,18 @@ jobs:
           MODELSPEC_CORPUS_DIR: ../live-corpus
           MODELSPEC_CORPUS_REQUIRED: '1'
         run: npx vitest run src/decide/__tests__/corpus.test.ts
+
+      - name: Fetch agent discovery from the deployed sites
+        # MODEL-214. llms.txt, llms-full.txt, index.md and auth.md were absent
+        # from production from the 2026-09-25 flip until MODEL-214, and nothing failed.
+        if: ${{ !cancelled() }}
+        run: |
+          status=0
+          python -m pipeline.live smoke --origin https://internal.modelspec-7np.pages.dev || status=1
+          if [ "${{ needs.build.outputs.mode }}" = "live" ]; then
+            python -m pipeline.live smoke --origin https://modelspec.dev || status=1
+          fi
+          exit $status
 
       - name: Load the deployed /decide/ in Chromium
         if: ${{ !cancelled() }}
