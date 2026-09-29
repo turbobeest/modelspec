@@ -243,6 +243,77 @@ Gemini 3.7 Flash
         assert verify.compare(claim, extractor.extract(claim, text)) == []
 
 
+ANTHROPIC_TABLES = """\
+Model | Base tokens | Prompt caching
+Name | Input | Output | 5m writes | 1h writes | Hits and refreshes
+Claude Opus 5.5 For agentic coding | $4 / MTok | $20 / MTok | $5 / MTok | $8 / MTok | $0.40 / MTok
+Claude Sonnet 5.5 The best mix | $2 / MTok | $10 / MTok | $2.50 / MTok | $4 / MTok | $0.20 / MTok
+ Additional models
+Claude Opus 5 | $5 / MTok | $25 / MTok | $6.25 / MTok | $10 / MTok | $0.50 / MTok
+Claude Sonnet 5 | / MTok | / MTok | $2.50 / MTok | $4 / MTok | $0.30 / MTok
+Batch processing
+Model | Batch tokens
+Name | Input | Output
+Claude Opus 5.5 For agentic coding | $2 / MTok | $10 / MTok
+Claude Opus 5 | $2.50 / MTok | $12.50 / MTok
+"""
+
+
+@pytest.mark.parametrize(("name", "field", "value"), [
+    ("Claude Opus 5.5", "input", 4), ("Claude Opus 5.5", "cached_input", .4),
+    ("Claude Opus 5.5", "batch_input", 2), ("Claude Opus 5.5", "batch_output", 10),
+    ("Claude Sonnet 5.5", "output", 10), ("Claude Sonnet 5.5", "cached_input", .2),
+    # Below the "Additional models" label, in the same table.
+    ("Claude Opus 5", "input", 5), ("Claude Opus 5", "cached_input", .5),
+    ("Claude Opus 5", "batch_output", 12.5), ("Claude Sonnet 5", "cached_input", .3),
+])
+def test_grouped_header_price_tables_are_read(name: str, field: str, value: float) -> None:
+    """MODEL-235: Anthropic's two-row headers, read table by table."""
+    claim = _price_claim(field, value, name=name)
+    readings = verify.OfferingPriceExtractor().extract(claim, ANTHROPIC_TABLES)
+    assert verify.compare(claim, readings) == []
+
+
+@pytest.mark.parametrize(("name", "field", "sibling_value"), [
+    ("Claude Opus 5", "input", 4), ("Claude Opus 5", "batch_output", 10),
+    ("Claude Sonnet 5", "cached_input", .2), ("Claude Opus 5.5", "input", 5),
+    # Sonnet 5 publishes no input price: a sibling's must not stand in for it.
+    ("Claude Sonnet 5", "input", 2),
+])
+def test_grouped_header_tables_never_read_a_sibling_row(
+        name: str, field: str, sibling_value: float) -> None:
+    claim = _price_claim(field, sibling_value, name=name)
+    readings = verify.OfferingPriceExtractor().extract(claim, ANTHROPIC_TABLES)
+    assert verify.compare(claim, readings) != []
+
+
+def test_a_continuation_row_is_never_another_models_scoped_price() -> None:
+    """MODEL-235: "| Output | $10.00" under Sonnet 5.5 is not Opus 5.5's output."""
+    text = """\
+Model | Type | Price (/1M tokens) | Price (/1M tokens) > 200K
+Sonnet 5.5 | Input | $2.00 | $2.00
+| Output | $10.00 | $10.00
+| Batch Output | $5.00 |
+Opus 5.5 | Input | $4.00 | $4.00
+| Output | $20.00 | $20.00
+| Batch Output | $12.50 |
+"""
+    extractor = verify.OfferingPriceExtractor()
+    right = _price_claim("output", 20, name="Opus 5.5")
+    assert verify.compare(right, extractor.extract(right, text)) == []
+    sibling = _price_claim("output", 10, name="Opus 5.5")
+    assert verify.compare(sibling, extractor.extract(sibling, text)) != []
+
+
+def test_a_usd_per_million_caching_price_needs_the_whole_name() -> None:
+    text = "Claude Opus 5.5 caching is billed at a lower rate ($0.20 USD per million tokens)."
+    claim = _price_claim("cached_input", .2, name="Claude Opus 5")
+    with pytest.raises(verify.ExtractorError):
+        verify.OfferingPriceExtractor().extract(claim, text)
+    own = _price_claim("cached_input", .2, name="Claude Opus 5.5")
+    assert verify.compare(own, verify.OfferingPriceExtractor().extract(own, text)) == []
+
+
 def test_scoped_provider_price_table_and_free_output_are_read() -> None:
     meta = """Models: muse-spark-1.3, muse-spark-1.1.
 Usage | Price per 1M tokens
@@ -1992,3 +2063,15 @@ def test_a_name_on_two_cards_is_the_card_so_named_and_a_literal_id_is_that_id() 
     assert verify._catalogue_model_matches("Claude Haiku 4.5") == {
         "anthropic/claude-haiku-4-5-20251001"}
     assert verify._catalogue_model_matches("claude-haiku-4-5") == {"anthropic/claude-haiku-4-5"}
+
+
+@pytest.mark.parametrize(("claimed", "published", "agrees"), [
+    (0.2, "$0.20 / MTok", True), (0.2, "$0.25 / MTok", False),
+    (2.0, "$2 / MTok", True), (2.0, "$2.50 / MTok", False), (0.075, "$0.075", True),
+])
+def test_a_pay_per_use_list_price_is_exact(claimed: float, published: str, agrees: bool) -> None:
+    """MODEL-235: the rounding tolerance let 0.2 agree with $0.25, so the weekly
+    re-read would have missed that price change."""
+    claim = _price_claim("cached_input", claimed, name="Claude Opus 5")
+    reading = verify.Reading("Claude Opus 5", published, "usd_per_1m_tokens")
+    assert (verify.compare(claim, [reading]) == []) is agrees

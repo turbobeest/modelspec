@@ -571,7 +571,15 @@ class OfferingPriceExtractor:
         simple_label = {"input": "input", "output": "output",
                         "cached_input": "cached input"}.get(wanted)
         if scoped_subject and simple_label:
-            for line in lines:
+            markdown = False
+            for i, line in enumerate(lines):
+                if "|" in line and (i == 0 or "|" not in lines[i - 1]):
+                    markdown = line.startswith("|")  # the table's header row
+                # In an HTML table a leading pipe is an empty first cell: the row
+                # continues the model named above it (Vertex), so it is not this
+                # page's own price (MODEL-235). Markdown rows all start with one.
+                if line.startswith("|") and not markdown:
+                    continue
                 cells = [cell.strip() for cell in line.strip("| ").split("|")]
                 if len(cells) >= 2 and normalise_name(cells[0]) == simple_label:
                     if match := re.search(r"\\?\$\s*[0-9]+(?:\.[0-9]+)?", cells[1]):
@@ -586,7 +594,9 @@ class OfferingPriceExtractor:
                 return [Reading(scoped_subject, "0", claim.unit)]
         if scoped_subject and wanted == "cached_input":
             name = re.escape(scoped_subject)
-            pattern = rf"(?is){name}.{{0,160}}?\((\\?\$[0-9.]+)\s+USD per million tokens\)"
+            # The name must end there: "Claude Opus 5" is not "Claude Opus 5.5".
+            pattern = (rf"(?is){name}(?![\w.]).{{0,160}}?"
+                       r"\((\\?\$[0-9.]+)\s+USD per million tokens\)")
             match = re.search(pattern, text)
             if match:
                 return [Reading(scoped_subject, match.group(1), claim.unit)]
@@ -701,7 +711,73 @@ class OfferingPriceExtractor:
                             continue
                         readings.append(Reading(subject, row[i], claim.unit))
                         break
-        return readings
+        return readings or _grouped_header_tables(claim, text, wanted)
+
+
+#: A price cell: a dollar amount, however the unit after it is written.
+_PRICE_CELL = re.compile(r"\\?\$\s*[0-9]+(?:\.[0-9]+)?")
+
+
+def _grouped_header_tables(claim: Claim, text: str, wanted: str) -> list[Reading]:
+    """Prices from tables with a grouped two-row header (MODEL-235).
+
+    Anthropic's pricing tables put column groups ("Model | Base tokens | Prompt
+    caching", "Model | Batch tokens") above the column names ("Name | Input |
+    Output | … | Hits and refreshes"), and each row's first cell is the model's
+    name, sometimes followed by a description. Each table is read on its own: a
+    group row naming batch makes it the batch table. A row is the subject's only
+    when its first cell starts with one of the subject's names and the name is
+    not followed by a digit or a dot, so "Claude Sonnet 5" never reads the
+    "Claude Sonnet 5.5" row.
+    """
+    def cells(line: str) -> list[str]:
+        return [cell.strip() for cell in line.strip().strip("|").split("|")]
+
+    lines = text.splitlines()
+    tables: list[list[list[str]]] = []
+    current: list[list[str]] = []
+    for i, line in enumerate(lines):
+        if "|" in line:
+            current.append(cells(line))
+            continue
+        # A one-cell row ("Additional models") labels a section of the same table:
+        # the rows after it are as wide as the rows before it.
+        after = lines[i + 1] if i + 1 < len(lines) else ""
+        if len(current) > 2 and line.strip() and "|" in after \
+                and len(cells(after)) == len(current[-1]):
+            continue
+        if current:
+            tables.append(current)
+            current = []
+    if current:
+        tables.append(current)
+
+    column = {"input": "input", "output": "output", "cached_input": "hits",
+              "batch_input": "input", "batch_output": "output"}[wanted]
+    readings: list[Reading] = []
+    for rows in tables:
+        if len(rows) < 3 or len(rows[1]) <= len(rows[0]) \
+                or normalise_name(rows[1][0]) not in {"name", "model"}:
+            continue
+        batch = any("batch" in normalise_name(cell) for cell in rows[0])
+        if batch != wanted.startswith("batch_"):
+            continue
+        headers = [normalise_name(cell) for cell in rows[1]]
+        if column == "hits":
+            index = next((i for i, h in enumerate(headers)
+                          if any(word in {"hit", "hits"} for word in h.split())), None)
+        else:
+            index = next((i for i, h in enumerate(headers) if h == column), None)
+        if index is None:
+            continue
+        for row in rows[2:]:
+            if len(row) != len(headers):
+                continue
+            name = next((n for n in claim.names
+                         if re.match(rf"(?i){re.escape(n)}(?![\w.])", row[0])), None)
+            if name and (match := _PRICE_CELL.search(row[index])):
+                readings.append(Reading(name, match.group(0), claim.unit))
+    return readings
 
 
 _KEY_VALUE = re.compile(r"^([^:|]{1,60}?)\s*:\s+(.+)$")
@@ -2231,8 +2307,11 @@ def _value_diff(claim: Claim, reading: Reading) -> Diff | None:
         q = parse_quantity(reading.value, reading.unit)
         if q is None:
             return Diff("value", expected, reading.value)
-        if claim.field in {"offering.subscription.price", "offering.subscription.price_cny"}:
-            # A list price is exact: $19.99 is not $20.
+        if claim.field in {"offering.subscription.price", "offering.subscription.price_cny"} \
+                or (claim.field.startswith("offering.price.")
+                    and unit_id(q.unit) == unit_id(claim.unit)):
+            # A list price is exact: $19.99 is not $20, and $0.25 is not 0.2
+            # (MODEL-235; a rounding tolerance would hide a price change).
             return None if Decimal(str(q.number)) == Decimal(str(value)) \
                 else Diff("value", expected, q.show())
         if numbers_agree(value, claim.unit, q):

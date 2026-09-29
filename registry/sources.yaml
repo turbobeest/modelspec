@@ -31,7 +31,7 @@ sources:
 - id: anthropic-pricing
   url: https://platform.claude.com/docs/en/about-claude/pricing
   fetch: conditional_http
-  normaliser: html-default
+  normaliser: html-header-buttons
   cited_regions:
   - id: page
     locator:

@@ -3,13 +3,23 @@
 from __future__ import annotations
 
 import json
+from dataclasses import replace
 from datetime import UTC, date, datetime
 from pathlib import Path
 
 import pytest
 import yaml
 
-from decision.model import DETERMINISTIC, SourceRef, TargetRef, VerificationActor, value_hash
+from decision import verify as verify_module
+from decision.model import (
+    DETERMINISTIC,
+    SourceRef,
+    TargetRef,
+    Verification,
+    VerificationActor,
+    VerificationTarget,
+    value_hash,
+)
 from decision.sources import CopyStore, FetchResult
 from decision.verify import (
     Claim,
@@ -470,3 +480,78 @@ def test_page_text_cannot_close_the_diff_fence() -> None:
     report = price_reread.Report(TODAY, diffs={"example-plans": ["+```", "+# injected"]})
     body = render_report(report)
     assert "````diff\n+```\n+# injected\n````" in body
+
+
+MISTRAL = VerificationActor(agent="ollama", model_family="mistral", method="llm-extract:mistral")
+LARGE_OUTPUT = "example/example/example-large/global/standard#offering.price.output"
+
+
+def _llm_verified(root: Path, fact_id: str, value: object) -> None:
+    """Log that an LLM reader last verified ``value`` for this fact."""
+    VerificationLog(root / "verification").append(Verification(
+        target=VerificationTarget(kind="fact", id=fact_id, value_hash=value_hash(value)),
+        collector=COLLECTOR, verifier=MISTRAL, method=MISTRAL.method, outcome="verified",
+        date=date(2026, 9, 29)))
+
+
+def test_an_llm_verified_value_the_readers_confirm_is_reconfirmed(estate) -> None:
+    """MODEL-235: a value a Mistral reader verified is reconfirmed deterministically."""
+    root, _ = estate
+    _llm_verified(root, LARGE_INPUT, 3.0)
+    report, _ = reread(estate, [page("plans.html")], write=True)
+
+    assert by_id(report)[LARGE_INPUT].status is Status.UNCHANGED
+    latest = VerificationLog(root / "verification").latest()[("fact", LARGE_INPUT)]
+    assert (latest.date, latest.verifier.model_family) == (TODAY, DETERMINISTIC)
+
+
+def test_an_llm_verified_value_read_otherwise_alerts_and_is_never_written(estate) -> None:
+    root, _ = estate
+    _llm_verified(root, LARGE_INPUT, 3.0)
+    before = (root / API_FILE).read_text()
+    report, _ = reread(estate, [page("plans.html")], [page("api-pricing-change.html")],
+                       write=True)
+
+    result = by_id(report)[LARGE_INPUT]
+    assert result.status is Status.NEEDS_REVIEW
+    assert result.reason == ("last verified by an LLM reader (mistral); "
+                             "a deterministic reader now reads 2.5")
+    assert report.changes == []
+    assert (root / API_FILE).read_text() == before
+
+
+def test_an_llm_verified_value_the_readers_cannot_read_is_not_an_alert(estate) -> None:
+    root, _ = estate
+    _llm_verified(root, LARGE_INPUT, 3.0)
+    # The API page now serves no price table at all.
+    report, _ = reread(estate, [page("plans.html")], [page("plans.html")])
+
+    result = by_id(report)[LARGE_INPUT]
+    assert result.status is Status.NOT_REREAD
+    assert result.reason == ("last verified by an LLM reader (mistral); "
+                             "the deterministic readers cannot read it")
+    # The deterministically verified output price on the same page does alert.
+    assert by_id(report)[LARGE_OUTPUT].status is Status.UNREADABLE
+
+
+def test_a_value_the_page_did_not_state_is_reviewed_not_written(estate) -> None:
+    """MODEL-235: a price that was not disclosed and now reads as one goes to a person."""
+    root, store = estate
+    text = (root / API_FILE).read_text()
+    (root / API_FILE).write_text(text.replace("    value: 15.0\n    state: known",
+                                              "    value: null\n    state: not_disclosed"))
+    queue = Queue(root / "verification")
+    old = queue.filed()[("fact", LARGE_OUTPUT)]
+    queue.file(replace(old, value=None), at=AT)
+    VerificationLog(root / "verification").append(Verification(
+        target=VerificationTarget(kind="fact", id=LARGE_OUTPUT, value_hash=value_hash(None)),
+        collector=COLLECTOR, verifier=verify_module.OfferingPriceExtractor.actor,
+        method="offering-price-table@1", outcome="verified", date=date(2026, 9, 29)))
+    before = (root / API_FILE).read_text()
+
+    report, _ = reread(estate, [page("plans.html")], write=True)
+
+    result = by_id(report)[LARGE_OUTPUT]
+    assert result.status is Status.NEEDS_REVIEW
+    assert result.reason.startswith("was not_disclosed; a reader now reads 15:")
+    assert (root / API_FILE).read_text() == before
