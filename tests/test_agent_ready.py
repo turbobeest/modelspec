@@ -178,7 +178,8 @@ def test_agent_landing_leads_with_decisions_and_marks_v1_rank_legacy() -> None:
         ),
     )
 
-    assert text.index("modelspec decide --template <id>") < text.index("Legacy v1 rank")
+    assert "POST https://api.modelspec.dev/v1/decide" in text
+    assert "modelspec snapshot fetch" not in text
 
 
 def test_auth_md_billing_copy_follows_the_flag() -> None:

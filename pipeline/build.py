@@ -65,8 +65,6 @@ def llms_txt(*, site: str, base: str, build: exporter.Build) -> str:
         f"- Benchmark catalogue: {base}/api/catalogue.json\n"
         f"- Decide: {base}/decide/\n"
         f"- How it decides: {base}/method/\n"
-        f"- Decision CLI: modelspec snapshot fetch; modelspec vocab; "
-        f"modelspec decide --template <id>\n"
         f"- Legacy v1 rank API: {RANK_API}\n"
         f"- API docs: {API_DOCS}\n"
         f"- MCP: {MCP_ENDPOINT}\n"
@@ -74,7 +72,7 @@ def llms_txt(*, site: str, base: str, build: exporter.Build) -> str:
         f'{{"rating": "reliable|unreliable|trustworthy|untrustworthy|confusing", '
         f'"client": "agent", "decision_id": "dec_…"}}. '
         f"Schema: {base}/api/feedback/v1.schema.json. "
-        f"CLI: modelspec feedback DECISION_ID --rating <rating>. MCP tool: feedback. "
+        f"MCP tool: feedback. "
         f"Send one after you act on an answer.\n"
         f"- Source: https://github.com/turbobeest/modelspec\n"
     )

@@ -50,7 +50,7 @@ def test_every_page_gets_one_block_and_a_rerun_replaces_it(tmp_path: Path) -> No
     sd.inject(tree, ROOT)
 
     assert _types(_graph(tree, "/")) == [
-        "Organization", "WebSite", "Dataset", "SoftwareApplication",
+        "Organization", "WebSite", "Dataset",
         "WebAPI/SoftwareApplication", "SoftwareApplication",
     ]
     assert _types(_graph(tree, "/decide/")) == ["BreadcrumbList", "WebApplication"]
@@ -133,8 +133,8 @@ def test_configured_profiles_become_the_organization_same_as(tmp_path: Path) -> 
 
     assert nodes[0]["sameAs"] == [
         "https://x.com/modelspecdev", "https://www.linkedin.com/company/modelspec-dev/"]
-    assert nodes[3]["softwareVersion"] == "9.9.9"
-    assert nodes[3]["downloadUrl"] == "https://pypi.org/project/modelspec-dev/"
+    assert nodes[3]["name"] == "ModelSpec API"
+    assert all("downloadUrl" not in node for node in nodes)
 
 
 def test_markup_in_a_value_cannot_end_the_script() -> None:

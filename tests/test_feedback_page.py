@@ -44,11 +44,12 @@ def test_the_page_publishes_the_form_the_agent_path_and_the_schema(tmp_path) -> 
     html = (tmp_path / "feedback" / "index.html").read_text(encoding="utf-8")
     for needle in ("data-feedback-inline", "https://api.modelspec.dev/v1/feedback",
                    "https://modelspec.dev/api/feedback/v1.schema.json",
-                   "modelspec feedback DECISION_ID --rating", 'id="privacy"',
+                   "https://api.modelspec.dev/mcp", 'id="privacy"',
                    "Feedback storage is switched off", 'id="changes"',
                    '<link rel="canonical" href="https://modelspec.dev/feedback/">',
                    "/feedback-assets/feedback.js"):
         assert needle in html, needle
+    assert "modelspec feedback DECISION_ID" not in html
     assert (tmp_path / "feedback-assets" / "feedback.js").is_file()
     published = json.loads((tmp_path / "api" / "feedback" / "v1.schema.json").read_text())
     assert published["$id"] == "https://modelspec.dev/api/feedback/v1.schema.json"

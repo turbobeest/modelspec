@@ -439,10 +439,8 @@ it("runs the designed App on a full hosted decision without fictional labels", a
   expect(dialog).toHaveTextContent("https://api.modelspec.dev/v1/decide");
   expect(dialog).not.toHaveTextContent(/fictional/i);
   expect(dialog).not.toHaveTextContent('"task"');
-  fireEvent.click(within(dialog).getByRole("tab", { name: "CLI" }));
-  expect(dialog).toHaveTextContent(
-    "pipx install modelspec-dev modelspec snapshot fetch modelspec decide spec.yaml --explain full --json",
-  );
+  expect(within(dialog).queryByRole("tab", { name: "CLI" })).not.toBeInTheDocument();
+  expect(dialog).toHaveTextContent("Authorization: Bearer <API_KEY>");
 });
 
 it("keeps ticket IDs and future promises out of every applied template surface", async () => {

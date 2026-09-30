@@ -1,3 +1,11 @@
+> **Retired 2026-09-30.** The CLI is no longer distributed. All releases of
+> `modelspec-dev` on PyPI were yanked and the trusted publisher was removed.
+> DPF and other callers must use the hosted API,
+> `POST https://api.modelspec.dev/v1/decide`, with a paid API key, or the remote
+> MCP Worker. People can use the free, rate-limited website at modelspec.dev.
+> The rest of this document preserves the historical CLI contract. No contract
+> versions changed. The CLI source remains in this repository under MIT.
+
 # The ModelSpec CLI contract
 
 The decision commands are the primary interface for agents. Start with

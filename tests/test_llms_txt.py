@@ -27,8 +27,8 @@ def test_llms_txt_names_the_mcp_endpoint_and_api_docs() -> None:
     assert RANK_API in text
     assert "https://modelspec.dev/api/index.json" in text
     assert "Null means not researched." in text
-    assert text.index("Decision CLI") < text.index("Legacy v1 rank API")
-    assert "modelspec decide --template <id>" in text
+    assert "Decision CLI" not in text
+    assert "modelspec decide --template <id>" not in text
 
 
 def test_llms_txt_points_the_benchmark_catalogue_at_this_site() -> None:

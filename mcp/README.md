@@ -1,7 +1,7 @@
 # ModelSpec remote MCP server
 
-Read-only MCP tools over the public ModelSpec catalogue. No key. The site
-stays on Cloudflare Pages; this Worker only answers
+Read-only MCP tools over the ModelSpec catalogue. Decision tools require an
+API key. The site stays on Cloudflare Pages; this Worker only answers
 `https://api.modelspec.dev/mcp`.
 
 ## SDK and transport
@@ -33,7 +33,7 @@ new hostname.
 
 ## Tools
 
-All seven pass through the origin. Null on a card means not researched.
+Successful calls pass through the origin. Null on a card means not researched.
 
 | Tool | Origin |
 |---|---|
@@ -47,8 +47,17 @@ All seven pass through the origin. Null on a card means not researched.
 
 `rank`, `policy_check`, and `decide` use the `RANK` service binding because a
 same-zone Worker fetch to the public API hostname reaches the zone origin and
-returns 522. `policy_check` and `decide` forward an `Authorization` header if
-the MCP client sent one. Without a key the origin answers the free tier.
+returns 522. All three forward the client's `Authorization: Bearer <key>` header.
+The API validates presented keys and returns its auth/payment errors unchanged.
+
+`MCP_REQUIRE_API_KEY` defaults to requiring a key, including when unset. Only
+explicit `"false"` permits anonymous decision calls. With the default, `rank`,
+`policy_check` and `decide` return a 401 `missing_api_key` tool error before
+contacting the API when a Bearer credential is absent or malformed. This guard
+is necessary because the API can serve keyless requests while its
+`ACCESS_ENFORCED` flag is off. That API flag, `BILLING_ENABLED` and
+`X402_ENABLED` are unchanged. Catalogue and vocabulary reads and feedback
+remain keyless; they do not produce decisions.
 
 `decide` accepts the decision spec defined by
 [`docs/decision-contract.md`](../docs/decision-contract.md). Its MCP input
@@ -67,7 +76,8 @@ Claude Code / Claude Desktop:
   "mcpServers": {
     "modelspec": {
       "type": "http",
-      "url": "https://api.modelspec.dev/mcp"
+      "url": "https://api.modelspec.dev/mcp",
+      "headers": { "Authorization": "Bearer <API_KEY>" }
     }
   }
 }

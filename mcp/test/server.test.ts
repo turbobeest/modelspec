@@ -41,7 +41,7 @@ async function rpc(
   method: string,
   params: Record<string, unknown>,
   id = 1,
-  headers: Record<string, string> = {},
+  headers: Record<string, string> = { authorization: "Bearer test_key" },
   env: Env = ENV,
 ): Promise<{ status: number; payload: Record<string, unknown> }> {
   const response = await workerFetch(
@@ -156,7 +156,7 @@ describe("modelspec MCP worker", () => {
           : name === "policy_check"
             ? { policy: { origin: { permitted_countries: ["US"] } }, limit: 1 }
             : { spec_version: 1, optimize: { min: "offering.cost_per_task" } };
-      const { payload } = await rpc("tools/call", { name, arguments: args }, 1, {}, env);
+      const { payload } = await rpc("tools/call", { name, arguments: args }, 1, { authorization: "Bearer test_key" }, env);
       expect(envelopeFromCall(payload).status).toBe(200);
     }
     expect(bound).toHaveBeenCalledTimes(3);
@@ -166,6 +166,64 @@ describe("modelspec MCP worker", () => {
       "https://api.modelspec.dev/v1/decide",
     ]);
     expect(originFetch).not.toHaveBeenCalled();
+  });
+
+  const decisionTools = [
+    { name: "rank", arguments: { use_case: "coding" }, path: "/v1/rank" },
+    { name: "policy_check", arguments: { policy: {} }, path: "/v1/policy-check" },
+    { name: "decide", arguments: { spec_version: 1, optimize: { min: "offering.cost_per_task" } }, path: "/v1/decide" },
+  ];
+
+  for (const tool of decisionTools) {
+    it.each([undefined, "", "Bearer", "Bearer   ", "Basic test_key", "Bearer\ttest_key"])(
+      `${tool.name} refuses absent or malformed credentials (%s) even if the API would answer free`,
+      async (authorization) => {
+        const bound = vi.fn(async () => jsonResponse(200, { results: [{ model: "free-answer" }] }));
+        const env: Env = { ...ENV, RANK: { fetch: bound } as unknown as Fetcher };
+        const headers = authorization === undefined ? {} : { authorization };
+        const { payload } = await rpc("tools/call", { name: tool.name, arguments: tool.arguments }, 1, headers, env);
+        expect(envelopeFromCall(payload)).toEqual({
+          origin: `https://api.modelspec.dev${tool.path}`,
+          status: 401,
+          body: {
+            error: {
+              code: "missing_api_key",
+              message: "MCP decisions require an API key. Send Authorization: Bearer <key>. Get one at https://modelspec.dev/pricing/.",
+            },
+            result: [],
+          },
+        });
+        const result = payload.result as { isError?: boolean; content: unknown[] };
+        expect(result.isError).toBe(true);
+        expect(result.content).toHaveLength(1);
+        expect(bound).not.toHaveBeenCalled();
+        expect(originFetch).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([401, 402, 403])(`${tool.name} passes through the API's %s auth/payment refusal`, async (status) => {
+      const body = { error: { code: "upstream_refusal", message: "No decision available" }, result: [] };
+      const bound = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => jsonResponse(status, body));
+      const env: Env = { ...ENV, RANK: { fetch: bound } as unknown as Fetcher };
+      const { payload } = await rpc("tools/call", { name: tool.name, arguments: tool.arguments }, 1, { authorization: "Bearer presented_key" }, env);
+      expect(envelopeFromCall(payload)).toEqual({ origin: `https://api.modelspec.dev${tool.path}`, status, body });
+      expect((payload.result as { isError?: boolean }).isError).toBe(true);
+      const init = bound.mock.calls[0]?.[1] as RequestInit;
+      expect(new Headers(init.headers).get("authorization")).toBe("Bearer presented_key");
+    });
+  }
+
+  it.each([undefined, "true", "typo", "", "0"])("requires a key unless the MCP setting explicitly says false (%s)", async (setting) => {
+    const { payload } = await rpc("tools/call", { name: "rank", arguments: { use_case: "coding" } }, 1, {}, { ...ENV, MCP_REQUIRE_API_KEY: setting });
+    expect(envelopeFromCall(payload).status).toBe(401);
+    expect(originFetch).not.toHaveBeenCalled();
+  });
+
+  it("permits anonymous calls only with the explicit MCP opt-out", async () => {
+    originFetch.mockResolvedValueOnce(jsonResponse(200, { result: [] }));
+    const { payload } = await rpc("tools/call", { name: "rank", arguments: { use_case: "coding" } }, 1, {}, { ...ENV, MCP_REQUIRE_API_KEY: "false" });
+    expect(envelopeFromCall(payload).status).toBe(200);
+    expect(originFetch).toHaveBeenCalledOnce();
   });
 
   it("rank happy path proxies the origin JSON and URL", async () => {
