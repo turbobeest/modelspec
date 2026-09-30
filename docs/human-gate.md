@@ -71,12 +71,15 @@ is public configuration, not a secret. Both are unset by default.
 The page obtains the current allowance from `GET /v1/human-status`, which is
 origin restricted and never spends a lookup. When no state exists, a
 status-only visit returns the full allowance without creating a table, writing
-state or scheduling an alarm. A gated build waits for the status response. When
+state or scheduling an alarm. A gated build waits for the status response without showing manual-gate
+wording or controls. The board remains editable; once status resolves, the
+first ungated lookup answers the current edited Spec. When
 it reports `enabled: false`, the page uses the existing ungated behavior,
 including automatic lookups and CSV download, without loading Turnstile or
 showing an unavailable message. Only `enabled: true` activates the manual
 flow. A transient status failure shows a retry button and can recover without
-a reload. A manual button sends one full decision. The
+a reload. A `human_challenge_required` response refreshes status so an open
+tab can adopt a newly enabled Worker gate. A manual button sends one full decision. The
 page disables automatic lookup on edits, explanation requests,
 canvas plot requests, estate requests, question probes and automatic Spec
 fallback/retry. Estate data can accompany that single manual lookup.

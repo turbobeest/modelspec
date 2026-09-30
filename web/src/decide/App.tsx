@@ -94,7 +94,9 @@ export function DesignedApp({
   simulate?: "loading" | "error" | "none";
 }) {
   const [gateStatus, setGateStatus] = useState<boolean | null>(HUMAN_GATE_ENABLED ? null : false);
-  const humanGateEnabled = gateStatus !== false;
+  const [gateRefresh, setGateRefresh] = useState(0);
+  const humanGateEnabled = gateStatus === true;
+  const pendingSpec = useRef<Spec | null>(null);
   const [initial] = useState(() => decodeSpec(location.hash)),
     [initialBoard] = useState(() => decodeBoardState(location.hash)),
     [spec, setSpec] = useState<Spec>(initial?.spec || baseSpec),
@@ -327,7 +329,7 @@ export function DesignedApp({
   const specIssues = placed.filter((issue) => issue.target.kind === "spec");
 
   async function runDecision(requested: Spec, humanToken?: string, onRemaining?: (remaining: number) => void) {
-    if (humanGateEnabled && !humanToken) return;
+    if (gateStatus === null || (humanGateEnabled && !humanToken)) return;
     requestAbort.current?.abort();
     questionsAbort.current?.abort();
     const controller = new AbortController();
@@ -420,6 +422,10 @@ export function DesignedApp({
     } catch (cause) {
       // Aborted by a newer request or by the watchdog: whichever did owns the state.
       if (controller.signal.aborted) return;
+      if (HUMAN_GATE_ENABLED && cause instanceof DecideApiError && cause.code === "human_challenge_required") {
+        setGateStatus(null);
+        setGateRefresh((value) => value + 1);
+      }
       const refinementKeys = used ? refinementWeightKeys(used) : new Set<string>();
       const requestHadRefinementWeights = Object.keys(
         used ? sendableSpec(used, requested).boardWeights ?? {} : {},
@@ -485,12 +491,13 @@ export function DesignedApp({
   }
 
   function scheduleDecision(nextSpec: Spec) {
-    if (humanGateEnabled) return;
+    if (gateStatus === null || humanGateEnabled) return;
     if (requestTimer.current) clearTimeout(requestTimer.current);
     requestTimer.current = setTimeout(() => void runDecision(nextSpec), 300);
   }
 
   function changeSpec(nextSpec: Spec) {
+    if (gateStatus === null) pendingSpec.current = nextSpec;
     if (humanGateEnabled) {
       requestAbort.current?.abort();
       setHostedDecision(null);
@@ -621,6 +628,14 @@ export function DesignedApp({
   }, [vocabAttempt]);
   useEffect(() => {
     if (!vocabulary || gateStatus === null) return;
+    if (pendingSpec.current) {
+      const edited = pendingSpec.current;
+      pendingSpec.current = null;
+      initialAnswered.current = true;
+      setInitialRestored(true);
+      void runDecision(edited);
+      return;
+    }
     if (initial) {
       // A shared link: answer it as written. What the engine refuses is shown on its chip.
       // Once: a vocabulary reloaded after a deploy must not answer it again.
@@ -941,7 +956,7 @@ export function DesignedApp({
       </header>
       <main className="work">
           <BoardIntro />
-          {HUMAN_GATE_ENABLED && <HumanGate onEnabled={setGateStatus} disabled={!vocabulary} onLookup={(token, onRemaining) => runDecision(spec, token, onRemaining)} />}
+          {HUMAN_GATE_ENABLED && <HumanGate key={gateRefresh} onEnabled={setGateStatus} disabled={!vocabulary} onLookup={(token, onRemaining) => runDecision(spec, token, onRemaining)} />}
           {vocabAlert}
           {vocabState.kind === "loading" && (
             <div role="status" aria-busy="true" className="loading">

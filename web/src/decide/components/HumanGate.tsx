@@ -86,27 +86,27 @@ export function HumanGate({ onLookup, onEnabled, disabled = false }: {
     }).catch(() => { if (active) setUnavailable(true); });
     return () => { active = false; if (widget !== null) window.turnstile?.remove(widget); };
   }, [challenge, canVerify]);
-  if (enabled === false) return null;
+  if (enabled === false || (enabled === null && !unavailable)) return null;
   return <section className="human-gate" aria-label="Manual lookups">
     <p role="status">{unavailable
       ? "Manual decisions are temporarily unavailable. Please try again later."
       : remaining === 0
         ? "You have used today's 20 manual decisions. Come back after midnight UTC."
         : remaining === null ? "Checking today's allowance…" : `${remaining} decisions remaining today. Resets at midnight UTC.`}</p>
-    <p>Manual lookups are limited to 20 per day and 3 per minute. For machine access, use the <a href="/pricing/">paid API or MCP</a>.</p>
+    {enabled === true && <p>Manual lookups are limited to 20 per day and 3 per minute. For machine access, use the <a href="/pricing/">paid API or MCP</a>.</p>}
     {unavailable && (enabled !== true || SITE_KEY) && <button disabled={busy} onClick={() => {
       setUnavailable(false);
       setToken(null);
       setChallenge((value) => value + 1);
     }}>Retry verification</button>}
     <div ref={container} />
-    <button className="primary" disabled={disabled || busy || unavailable || remaining === null || remaining === 0 || !token}
+    {enabled === true && <button className="primary" disabled={disabled || busy || unavailable || remaining === null || remaining === 0 || !token}
       onClick={async () => {
         if (!token || busy) return;
         setBusy(true);
         setToken(null);
         try { await onLookup(token, setRemaining); }
         finally { setBusy(false); setUnavailable(!SITE_KEY); setChallenge((value) => value + 1); }
-      }}>Look up this decision</button>
+      }}>Look up this decision</button>}
   </section>;
 }
