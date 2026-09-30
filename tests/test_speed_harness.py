@@ -465,7 +465,7 @@ def test_the_report_names_spend_and_every_result(dry, tmp_path):
 
 
 def _request(offering_fragment: str):
-    plan = load_plan()
+    plan = load_plan(smoke=True)
     entry = next(e for e in plan.entries if offering_fragment in e.offering)
     return entry, APIS[entry.api].request(
         "KEY", entry.api_model, "PROMPT", 256, entry.params)
@@ -506,7 +506,10 @@ def test_anthropic_sends_no_temperature_and_pins_thinking_off():
     for fragment in ("claude-opus-5-5", "claude-sonnet-5-5"):
         body = _request(fragment)[1].body
         assert "temperature" not in body
-        assert body["thinking"] == {"type": "disabled"}
+        assert body["thinking"] != {"type": "disabled"}
+    assert _request("claude-opus-5-5")[1].body["thinking"] == {"type": "adaptive"}
+    assert _request("claude-opus-5-5")[1].body["output_config"] == {"effort": "low"}
+    assert _request("claude-sonnet-5-5")[1].body["thinking"] == {"type": "between_tools"}
 
 
 def test_openai_asks_for_reasoning_effort_none_not_minimal():
@@ -522,7 +525,8 @@ def test_deepseek_disables_thinking_at_the_top_level():
 def test_zai_sends_no_undocumented_stream_options():
     body = _request("glm-5-3")[1].body
     assert "stream_options" not in body
-    assert body["thinking"] == {"type": "disabled"}
+    assert body["reasoning_effort"] == "low"
+    assert "thinking" not in body
 
 
 def test_gemini_names_its_thinking_level_not_a_budget():

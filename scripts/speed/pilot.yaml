@@ -4,7 +4,8 @@
 # provider's free model list before any paid request. `params` pins the effort
 # the method measures at (the lowest the offering accepts; see the method doc).
 # Request shapes follow each provider's docs (checked 2026-09-29):
-#   Anthropic  thinking {type: disabled}; Claude 4.7+ rejects type "enabled" and any
+#   Anthropic  Opus 5.5 thinking adaptive + output_config.effort low; Sonnet 5.5
+#              thinking between_tools (both per the API's own 400s); Claude 4.7+ rejects type "enabled" and any
 #              temperature but 1.0. https://docs.claude.com/en/api/messages
 #   OpenAI     reasoning_effort "none"; gpt-6-sol and gpt-5.6-sol reject "minimal".
 #              https://developers.openai.com/api/docs/guides/reasoning
@@ -25,15 +26,14 @@ offerings:
   - offering: anthropic/anthropic/claude-opus-5-5/global/standard
     api: anthropic
     api_model: claude-opus-5-5
-    effort: thinking disabled
-    reasoning_off: true
-    params: {thinking: {type: disabled}}
+    effort: adaptive thinking, effort low (thinking cannot be disabled)
+    params: {thinking: {type: adaptive}, output_config: {effort: low}}
   - offering: anthropic/anthropic/claude-sonnet-5-5/global/standard
     api: anthropic
     api_model: claude-sonnet-5-5
-    effort: thinking disabled
+    effort: thinking off (between_tools)
     reasoning_off: true
-    params: {thinking: {type: disabled}}
+    params: {thinking: {type: between_tools}}
   - offering: openai/openai/gpt-6-sol/global/standard
     api: openai
     api_model: gpt-6-sol
@@ -55,6 +55,8 @@ offerings:
     api: gemini
     api_model: gemini-3.1-pro-preview
     effort: thinking level low (the lowest)
+    # Smoke only: the key's quota tier returns 429 RESOURCE_EXHAUSTED (Jamie's to lift).
+    smoke_only: true
     params: {thinkingConfig: {thinkingLevel: low}}
     output_bound_extra: 128
   - offering: xai/xai/grok-4-7/global/standard
@@ -79,6 +81,5 @@ offerings:
   - offering: zai/zhipu/glm-5-3/global/standard
     api: zai
     api_model: glm-5.3
-    effort: thinking disabled
-    reasoning_off: true
-    params: {thinking: {type: disabled}}
+    effort: reasoning_effort low (thinking cannot be disabled)
+    params: {reasoning_effort: low}
