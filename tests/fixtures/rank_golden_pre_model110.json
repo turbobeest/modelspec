@@ -1,5 +1,5 @@
 {
- "about": "A frozen slice of the built export and, per vector, the sha256 of the rank_report in canonical form (floats to 10 significant digits, keys sorted), without unranked_candidates. Captured from the pre-MODEL-110 scorer; re-frozen on 2026-09-24 after MODEL-117 removed two sources' values from the export and the benchmarks those sources own from the profiles, with the digests recomputed from the same scorer; openai/gpt-6-astra was added so a thin-evidence reason still appears. See tests/test_unranked_candidates.py.",
+ "about": "A frozen slice of the built export and, per vector, the sha256 of the rank_report in canonical form (floats to 10 significant digits, keys sorted), without unranked_candidates. Captured from the pre-MODEL-110 scorer; re-frozen on 2026-09-24 after MODEL-117 removed two sources' values from the export and the benchmarks those sources own from the profiles, with the digests recomputed from the same scorer; openai/gpt-6-astra was added so a thin-evidence reason still appears. Digests recomputed again on 2026-09-30 when the policy block's neutrality.operator became \"Sparks & Sawdust LLC\"; the old digests reproduce exactly with the old name substituted back, so nothing else moved. See tests/test_unranked_candidates.py.",
  "candidates": [
   {
    "benchmark_scores": {},
@@ -3560,31 +3560,31 @@
  "device": "apple_m3_ultra",
  "golden": {
   "agentic_price": {
-   "canonical_sha256": "4b2ff20cc9809ea7c74761bd63313fed647cba4cf8c6d69db54496f1fbb00ef6",
+   "canonical_sha256": "38ffba501f64c8fa04fbacd6a76a15384040f9e96bb52df3c952ed698e9ae012",
    "ranked_count": 11
   },
   "coding": {
-   "canonical_sha256": "ffbecf3d1391c4f2873b462e4fc3730d0d4a1aae7797059e50a0b9106280be48",
+   "canonical_sha256": "44d40a098ac5fe9643ff99d2c84248b746b6d318d07bb8ece93ea8d460502b26",
    "ranked_count": 18
   },
   "embedding_rehosts": {
-   "canonical_sha256": "8bac91c9dd968cfc41e3aba1354b44e8a781cbaaa611499ed6095df3c62d2040",
+   "canonical_sha256": "de8bec16b92685cf19766b037b15f4121b032e79db59e4a5ba05807567958781",
    "ranked_count": 7
   },
   "general_wizard_floor": {
-   "canonical_sha256": "1accad5080f85d042729571da30dd38e323c71b67df1c15f128cdb62c554f433",
+   "canonical_sha256": "428881c043961cb7fbfa339abc50bc6dafb032540457b1827c535c1756db8465",
    "ranked_count": 26
   },
   "rag_open_weights": {
-   "canonical_sha256": "a19a2434d355d6d1e473a75d42fdb5bd82be3204319e0b3dac935c9b6f7dd10e",
+   "canonical_sha256": "b50abe819ab91a270c4d259be50c9aed6f26d0303978132df764aba54ce823df",
    "ranked_count": 6
   },
   "reasoning_on_device": {
-   "canonical_sha256": "cef0180fa10adea013ae539d44421b0d80ec88b9fcf002ff2440d76737f1e7f0",
+   "canonical_sha256": "df28733fa9868c7986c632682992853b774d52e9e0f74081edc0e06f98534277",
    "ranked_count": 3
   },
   "vision_limit_zero": {
-   "canonical_sha256": "a432f2835ee8f161f79e30cce1c51e8158250e33445748da2bb9f13032d4fb1c",
+   "canonical_sha256": "25718559887e0202c1057bfba0640eafe1b23bf351240b1b88f2ba433b867cbd",
    "ranked_count": 13
   }
  },

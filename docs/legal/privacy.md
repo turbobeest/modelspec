@@ -1,6 +1,6 @@
 # Privacy statement
 
-Version `1.4`, effective 2026-09-30. Adopted by Sparks and Sawdust LLC, which
+Version `1.5`, effective 2026-09-30. Adopted by Sparks & Sawdust LLC, which
 operates the service. MODEL-70. Version 1.0 was adopted on 2026-09-19; what
 changed since is listed under [Changes](#changes).
 
@@ -485,6 +485,9 @@ to `DELETE /v1/feedback`, or write to us with it.
 A change to what the service records is a change to this statement, and it is
 published here before the change ships. The version above is the one in force.
 
+- **1.5, 2026-09-30.** Corrected the operator's legal name to Sparks & Sawdust
+  LLC, the name registered with Rhode Island and the IRS. Nothing the service
+  records changed.
 - **1.4, 2026-09-30.** Under *Not yet live*, replaced the description of the
   keyless visitor meter, which named an unsalted SHA-256 of the IP address, with
   the keyed id that replaced it: HMAC-SHA256 with a secret held by the Worker,

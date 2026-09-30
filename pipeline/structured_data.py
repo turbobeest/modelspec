@@ -63,7 +63,7 @@ def organization(root: Path) -> dict[str, Any]:
         "@type": "Organization",
         "@id": ORG,
         "name": "ModelSpec",
-        "legalName": "Sparks and Sawdust LLC",
+        "legalName": "Sparks & Sawdust LLC",
         "url": f"{BASE}/",
         "logo": f"{BASE}/icon-512.png",
     }

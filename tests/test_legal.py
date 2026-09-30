@@ -72,7 +72,7 @@ def test_the_commitment_rides_with_the_floors() -> None:
     neutrality = policy["neutrality"]
     assert neutrality["rule"] == HONEST_BROKER_RULE
     assert neutrality["pledge"] == NEUTRALITY_PLEDGE
-    assert neutrality["operator"] == "Sparks and Sawdust LLC"
+    assert neutrality["operator"] == "Sparks & Sawdust LLC"
     assert neutrality["permanent"] is True
 
 
@@ -241,8 +241,8 @@ def test_the_terms_state_a_refund_position() -> None:
 
 
 def test_the_operator_is_named() -> None:
-    assert "Sparks and Sawdust LLC" in FLAT_TERMS
-    assert "Sparks and Sawdust LLC" in FLAT_NEUTRALITY
+    assert "Sparks & Sawdust LLC" in FLAT_TERMS
+    assert "Sparks & Sawdust LLC" in FLAT_NEUTRALITY
 
 
 # ── nothing claims what is not shipped ───────────────────────────────────────
@@ -270,7 +270,7 @@ def test_the_terms_state_the_plans_and_packs_that_are_configured() -> None:
 
 
 def test_the_terms_name_the_seller_processor_and_statement_descriptor() -> None:
-    assert "The seller is **Sparks and Sawdust LLC**" in FLAT_TERMS
+    assert "The seller is **Sparks & Sawdust LLC**" in FLAT_TERMS
     assert "processed by Stripe" in FLAT_TERMS
     assert "SPARKS & SAWDUST LLC" in FLAT_TERMS
     assert "https://modelspec.dev/pricing" in FLAT_TERMS
@@ -795,20 +795,20 @@ def test_the_decide_contract_refuses_its_free_text_task() -> None:
 #: commitment is a change to that; each gets a new version and date rather than
 #: a silent edit of the adopted one.
 IN_FORCE = {
-    "terms": "Version `1.1`, effective 2026-09-30.",
-    "neutrality": "Version `1.2`, effective 2026-09-30.",
-    "privacy": "Version `1.4`, effective 2026-09-30.",
+    "terms": "Version `1.2`, effective 2026-09-30.",
+    "neutrality": "Version `1.3`, effective 2026-09-30.",
+    "privacy": "Version `1.5`, effective 2026-09-30.",
 }
 
 
 def test_every_document_is_adopted_and_versioned() -> None:
-    """Adopted by Sparks and Sawdust LLC on 2026-09-19 (v1.0). The version and
+    """Adopted by Sparks & Sawdust LLC on 2026-09-19 (v1.0). The version and
     date in force are at the top of each document, and no draft banner survives."""
     assert legal.DRAFT is False
     for name, text in (("terms", TERMS), ("neutrality", NEUTRALITY), ("privacy", PRIVACY)):
         head = flat(text[:400])
         assert IN_FORCE[name] in head, name
-        assert "Adopted by Sparks and Sawdust LLC" in head, name
+        assert "Adopted by Sparks & Sawdust LLC" in head, name
         assert "DRAFT" not in text, name
         assert "Not adopted" not in text, name
 

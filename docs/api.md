@@ -103,7 +103,7 @@ curl -sS -X POST https://api.modelspec.dev/v1/rank \
     "uncertainty": "missing-benchmark bounds, not statistical confidence intervals",
     "neutrality": {
       "version": "neutrality-v1",
-      "operator": "Sparks and Sawdust LLC",
+      "operator": "Sparks & Sawdust LLC",
       "rule": "Charging the consumer of a recommendation is compatible with being an honest broker. Charging the subjects of one is not.",
       "pledge": "No referral fees, no paid placement, no provider-paid visibility, permanently.",
       "permanent": true,

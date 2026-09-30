@@ -7,7 +7,7 @@ Read the [handle availability report](handle-availability.md) first. Use `models
 ## Before account creation
 
 - [ ] Confirm the final shared handle set: `________________`.
-- [ ] Confirm that the legal owner is `Sparks and Sawdust LLC`.
+- [ ] Confirm that the legal owner is `Sparks & Sawdust LLC`.
 - [ ] Use `https://modelspec.dev` for every website or link-in-bio field.
 - [ ] Open the upload files in `brand/social/` and the paste-ready text in `brand/social/profile-copy.md`.
 - [ ] Prepare a unique password for each platform.
@@ -67,7 +67,7 @@ TikTok has no profile banner.
 - [ ] Upload `brand/social/linkedin-logo.png` as the logo.
 - [ ] Upload `brand/social/linkedin-cover.png` as the cover image.
 - [ ] Paste the About text from `brand/social/profile-copy.md`.
-- [ ] Confirm that the Page identifies `Sparks and Sawdust LLC` as the owner or operator wherever LinkedIn provides an appropriate field.
+- [ ] Confirm that the Page identifies `Sparks & Sawdust LLC` as the owner or operator wherever LinkedIn provides an appropriate field.
 - [ ] Confirm that the public URL opens while logged out.
 - [ ] Enable 2FA and store the credentials in 1Password (AI-LAN vault).
 
