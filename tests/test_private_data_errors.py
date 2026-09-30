@@ -57,3 +57,105 @@ def test_private_source_validation_redacts_values(monkeypatch, tmp_path):
     message = "".join(traceback.format_exception(found.value))
     assert str(path) in message and "line 4" in message
     assert "PRIVATE_SENTINEL" not in message and "input_value" not in message
+
+
+def test_plain_yaml_separator_value_never_escapes_through_traceback(monkeypatch, tmp_path):
+    from decision.sources import load_sources
+
+    monkeypatch.setenv("MODELSPEC_DATA_DIR", str(tmp_path))
+    path = tmp_path / "sources.yaml"
+    path.write_text(
+        'schema_version: 1\nsources:\n- id: bad\n  url: 123\n  note: "SECRETVALUE --- a"\n'
+    )
+    with pytest.raises(ValueError) as found:
+        load_sources(path)
+    rendered = "".join(traceback.format_exception(found.value))
+    assert "SECRETVALUE" not in rendered and "input_value" not in rendered
+    assert str(path) in rendered and "line 4" in rendered
+
+
+def test_line_recovery_failure_is_value_free(monkeypatch, tmp_path):
+    import yaml
+
+    from decision.sources import load_sources
+
+    monkeypatch.setenv("MODELSPEC_DATA_DIR", str(tmp_path))
+    monkeypatch.setattr(
+        yaml, "compose", lambda *a: (_ for _ in ()).throw(ValueError("SECRETVALUE"))
+    )
+    path = tmp_path / "sources.yaml"
+    path.write_text("schema_version: 1\nsources:\n- id: bad\n  url: 123\n")
+    with pytest.raises(ValueError) as found:
+        load_sources(path)
+    rendered = "".join(traceback.format_exception(found.value))
+    assert "SECRETVALUE" not in rendered and "input_value" not in rendered
+    assert "line 1" in rendered
+
+
+@pytest.mark.parametrize(
+    "loader", ["registry_yaml", "registry_ids", "hardware", "hosts", "verification"]
+)
+def test_all_private_loaders_suppress_values_and_chains(monkeypatch, tmp_path, loader):
+    from decision import registry
+    from decision.registry import _read
+    from decision.verify import VerificationLog
+    from pipeline.hardware import load_devices
+    from pipeline.hosts import load_hosts
+
+    monkeypatch.setenv("MODELSPEC_DATA_DIR", str(tmp_path))
+    if loader == "registry_yaml":
+        path = tmp_path / "providers.yaml"
+        path.write_text("schema_version: [SECRETVALUE\n")
+
+        def call():
+            return _read(tmp_path, "providers", "providers")
+    elif loader == "registry_ids":
+        path = tmp_path / "providers.yaml"
+
+        import shutil
+        from pathlib import Path
+
+        source = Path(__file__).resolve().parents[1] / "registry"
+        shutil.copytree(source, tmp_path / "registry")
+        path = tmp_path / "registry/providers.yaml"
+        path.write_text(path.read_text().replace("kind: lab_api", "kind: SECRETVALUE", 1))
+
+        def call():
+            return registry.load(path.parent)
+    elif loader == "hardware":
+        path = tmp_path / "hardware/bad.yaml"
+        path.parent.mkdir()
+        path.write_text("memory: [SECRETVALUE\n")
+
+        def call():
+            return load_devices(tmp_path)
+    elif loader == "hosts":
+        path = tmp_path / "hosts/bad.yaml"
+        path.parent.mkdir()
+        path.write_text("id: SECRETVALUE\n")
+
+        def call():
+            return load_hosts(tmp_path)
+    else:
+        path = tmp_path / "verification/log.jsonl"
+        path.parent.mkdir()
+        path.write_text('\n{"target": "SECRETVALUE"}\n')
+
+        def call():
+            return VerificationLog(path.parent).records()
+
+    with pytest.raises(ValueError) as found:
+        call()
+    rendered = "".join(traceback.format_exception(found.value))
+    assert str(path) in rendered and "line " in rendered
+    assert "SECRETVALUE" not in rendered and "input_value" not in rendered
+
+
+def test_nested_private_checkout_activates_redaction_without_env(monkeypatch):
+    from pathlib import Path
+
+    from schema import private_data
+
+    monkeypatch.delenv("MODELSPEC_DATA_DIR", raising=False)
+    monkeypatch.delenv("MODELSPEC_REQUIRE_DATA_DIR", raising=False)
+    assert private_data(Path(__file__).resolve().parents[1] / "modelspec-data/models/a.md")

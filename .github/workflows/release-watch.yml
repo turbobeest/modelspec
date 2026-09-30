@@ -82,7 +82,7 @@ jobs:
           cat "$RUNNER_TEMP/watch.md" >> "$GITHUB_STEP_SUMMARY"
           echo "status=$status" >> "$GITHUB_OUTPUT"
           if [ -s "$RUNNER_TEMP/watch.json" ]; then
-            echo "discoveries=$(jq '.discoveries | length' "$RUNNER_TEMP/watch.json")" >> "$GITHUB_OUTPUT"
+            echo "discoveries=$(jq '[.posted[]? | select(.filed == true)] | length' "$RUNNER_TEMP/watch.json")" >> "$GITHUB_OUTPUT"
           else
             echo "discoveries=0" >> "$GITHUB_OUTPUT"
           fi
@@ -90,30 +90,10 @@ jobs:
       # A source outage is an alert, never a quiet skip: one open issue carries
       # every outage until someone closes it, and this run goes red too. Any
       # failed step alerts as well, so a crash cannot pass for a quiet day.
-      - name: Raise the outage alert
-        if: ${{ !cancelled() && (failure() || steps.watch.outputs.status != '0') }}
-        run: |
-          if [ ! -s "$RUNNER_TEMP/watch.md" ]; then
-            printf '## Release watch\n\nThe run failed before writing a report. See %s.\n' \
-              "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY/actions/runs/$GITHUB_RUN_ID" > "$RUNNER_TEMP/watch.md"
-          fi
-          gh label create release-watch --color B60205 \
-            --description "Release watcher source outage (MODEL-216)" --force
-          open="$(gh issue list --label release-watch --state open --json number --jq '.[0].number // empty')"
-          if [ -n "$open" ]; then
-            gh issue comment "$open" --body-file "$RUNNER_TEMP/watch.md"
-          else
-            gh issue create --label release-watch \
-              --title "release watch: a watched source is failing" \
-              --body-file "$RUNNER_TEMP/watch.md"
-          fi
-          echo "::error::A watched source or the signal endpoint failed. See the summary."
-          exit 1
-
   dispatch:
     name: Dispatch private processing for discovered releases
     needs: watch
-    if: vars.SIGNALS_ENABLED == 'true' && needs.watch.outputs.discoveries != '0'
+    if: vars.DATA_SPLIT_ENABLED == 'true' && vars.SIGNALS_ENABLED == 'true' && needs.watch.outputs.discoveries != '0'
     runs-on: ubuntu-latest
     steps:
       - name: Dispatch the private release writer

@@ -59,6 +59,7 @@ jobs:
             echo "Reason: ${REASON:-(none reported)}"
           } >> "$GITHUB_STEP_SUMMARY"
     env:
+      MODELSPEC_REQUIRE_DATA_DIR: '1'
       PYTHONPATH: ${{ github.workspace }}/data
       MODELSPEC_DATA_DIR: ${{ github.workspace }}/data
     defaults:
@@ -75,6 +76,7 @@ jobs:
       has_work: ${{ steps.plan.outputs.has_work }}
       has_dead: ${{ steps.plan.outputs.has_dead }}
     env:
+      MODELSPEC_REQUIRE_DATA_DIR: '1'
       AXIS: ${{ inputs.axis || 'benchmarks' }}
       PAGES: ${{ inputs.pages || 'pilot' }}
       BRIEF: ${{ inputs.immediate_brief || '' }}
@@ -144,6 +146,7 @@ jobs:
       contents: write
       pull-requests: write
     env:
+      MODELSPEC_REQUIRE_DATA_DIR: '1'
       AXIS: ${{ inputs.axis || 'benchmarks' }}
       PYTHONPATH: ${{ github.workspace }}/data
       MODELSPEC_DATA_DIR: ${{ github.workspace }}/data
@@ -224,6 +227,7 @@ jobs:
       contents: read
       issues: write
     env:
+      MODELSPEC_REQUIRE_DATA_DIR: '1'
       AXIS: ${{ inputs.axis || 'benchmarks' }}
       PYTHONPATH: ${{ github.workspace }}/data
       MODELSPEC_DATA_DIR: ${{ github.workspace }}/data

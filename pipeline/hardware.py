@@ -22,6 +22,8 @@ closed-weights model "fits" on your GPU is meaningless — you cannot obtain it.
 
 from __future__ import annotations
 
+from schema import private_errors
+
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -175,26 +177,27 @@ def load_devices(root: Path) -> list[Device]:
     for path in sorted((root / "hardware").glob("*.yaml")):
         if path.name.startswith("_"):
             continue
-        raw = yaml.safe_load(path.read_text(encoding="utf-8"))
-        memory = raw["memory"]
-        bandwidth = memory.get("bandwidth_gb_s")
-        if not bandwidth:
-            raise ValueError(
-                f"{path.name}: no memory.bandwidth_gb_s. A device without bandwidth "
-                "cannot answer how fast a model will run, which is the question this "
-                "layer exists to answer. Fix the definition or remove it."
-            )
-        options = memory.get("capacity_options_gb") or [memory["capacity_gb"]]
-        fit, fit_reason = _single_device_fit(raw, path)
-        out.append(Device(
-            id=raw["id"], display_name=raw["display_name"], vendor=raw["vendor"],
-            device_class=_device_class(raw, path), bandwidth_gb_s=float(bandwidth),
-            capacity_options_gb=tuple(float(c) for c in options),
-            precisions_native=tuple(raw.get("precisions_native") or []),
-            unified=bool(memory.get("unified_with_host")),
-            single_device_fit=fit,
-            single_device_fit_reason=fit_reason,
-        ))
+        with private_errors(path):
+            raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+            memory = raw["memory"]
+            bandwidth = memory.get("bandwidth_gb_s")
+            if not bandwidth:
+                raise ValueError(
+                    f"{path.name}: no memory.bandwidth_gb_s. A device without bandwidth "
+                    "cannot answer how fast a model will run, which is the question this "
+                    "layer exists to answer. Fix the definition or remove it."
+                )
+            options = memory.get("capacity_options_gb") or [memory["capacity_gb"]]
+            fit, fit_reason = _single_device_fit(raw, path)
+            out.append(Device(
+                id=raw["id"], display_name=raw["display_name"], vendor=raw["vendor"],
+                device_class=_device_class(raw, path), bandwidth_gb_s=float(bandwidth),
+                capacity_options_gb=tuple(float(c) for c in options),
+                precisions_native=tuple(raw.get("precisions_native") or []),
+                unified=bool(memory.get("unified_with_host")),
+                single_device_fit=fit,
+                single_device_fit_reason=fit_reason,
+            ))
     return out
 
 

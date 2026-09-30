@@ -134,6 +134,12 @@ Rank Worker: it needs no runtime access to the private repository, but its
 bundle step is not data-free: `api/worker/vendor.py` copies registry and
 hardware files from the repository root. See "Gaps 245-B must close" below.
 
+The Actions read+write permission on `MODELSPEC_DATA_DISPATCH_TOKEN` also
+allows reading private Actions artifacts and logs. Treat it like
+`MODELSPEC_DATA_TOKEN`: keep it away from checked-out code and installs in
+public jobs, and never expose it to pull-request or fork runs. Its intended
+use is dispatch, but its permission is broader than dispatch.
+
 ## Writers
 
 All six data writers run in `turbobeest/modelspec-data`. Their workflow files
@@ -156,7 +162,9 @@ The six old public workflow files have no schedules. Their manual dispatches
 only print the private workflow URL. `release-watch.yml` remains a public-source
 watcher and dispatches private processing when it posts discoveries. The new `release-signals-gate.yml` publishes only a pending-work count,
 with no pending payload artifact, and `curation-gate.yml` decides only whether
-its cadence is due. Both dispatch with `MODELSPEC_DATA_DISPATCH_TOKEN`.
+its cadence is due. Both dispatch with `MODELSPEC_DATA_DISPATCH_TOKEN`. Curation stays disabled
+until the existing `DATA_SPLIT_ENABLED` repository variable is true. Its
+dispatch job has no checkout or dependency installation.
 
 ### Writer root and git audit, closed by MODEL-247 W
 
@@ -201,20 +209,29 @@ MODEL-247 W closes these gaps:
 
 - All six fresh-data writers and their data PRs move to the private repository.
   Writer artifacts, including raw speed runs, remain there.
-- The public leak guard rejects `actions/cache`, `actions/cache/save`, artifact
-  upload and `upload-pages-artifact` in jobs with private access.
-- Workflow-level environment and any name containing `MODELSPEC_DATA` mark a
-  job as private. Reusable workflows with `secrets: inherit` are treated as
-  private access and refused because the caller cannot audit their log and
-  artifact channels.
-- Print detection covers `python -c`, `jq`, `grep`, `ls`, `diff`, `set -x`,
-  `tee`, git output and variables assigned data paths, including aliases and
-  values set through `GITHUB_ENV`. Guard diagnostics name the step without
-  quoting its command.
-- YAML parse errors and card/source-registry validation errors redact private
-  values and suppress the original exception chain. They retain the file path
-  and line number. Environment switches, explicit private paths and overlay
-  paths activate redaction. Public parser diagnostics remain available.
+- The public leak guard scans `.yml` and `.yaml` workflows and local composite
+  actions, follows local reusable workflows, and treats inherited secrets,
+  any `MODELSPEC_DATA` marker and any `turbobeest/modelspec-data` reference as
+  private access. In those jobs it rejects artifact uploads, cache actions
+  including restore and third-party caches, public PR creation and git push.
+  Only `data-lag.yml` may open the eligible old-image PR.
+- Shell checks flag common output commands, including `sed`, `awk`, `find`,
+  `base64`, tracing, summary writes and aliases for data paths. Job outputs
+  are restricted to literal scalar decisions. Diagnostics name steps without
+  quoting commands. This is a static lint, not a proof that arbitrary scripts
+  or third-party actions cannot leak. It cannot follow arbitrary subprocesses,
+  dynamic shell evaluation or arbitrary output transformations; review remains
+  necessary. External reusable workflows with private access are refused.
+- Private parser and loader boundaries redact YAML, card, source, registry,
+  hardware, host and verification-log errors and suppress exception chains.
+  Location recovery fails closed to line 1. A plain YAML value containing
+  `---` is never treated as a front-matter separator. Private writer jobs set
+  `MODELSPEC_REQUIRE_DATA_DIR=1`; data-dir arguments, environment, checkout
+  origins and nested `modelspec-data` paths also activate redaction.
+- Public release watching detects source changes without reading the frozen
+  catalogue. Private release processing resolves catalogue identity. Public
+  watching opens no burst or outage issues and dispatches only newly filed
+  discoveries, so a deduplicated discovery does not dispatch on every run.
 
 MODEL-247 S separately owns these deployment gaps:
 
@@ -236,8 +253,9 @@ must have no artifact upload, Pages artifact upload or cache save. It must
 never print data: no `cat`, `head`, `tail`, `echo`, `git diff`, `git show` or
   `git log` of data paths, and no workflow-command annotations quoting rows.
 
-Counts and pass/fail are fine. `tests/test_data_workflows.py` parses every
-workflow and fails on a violation, so the rule holds for 245-B's edits too.
+Counts and pass/fail are fine. `tests/test_data_workflows.py` statically checks
+workflow declarations and local actions. Passing the lint does not prove that
+all scripts or third-party actions run by a workflow are safe.
 
 Existing artifact uploads that would carry fresh data once repointed. 245-B
 must move each into the private repository, drop it, or reduce it to counts:

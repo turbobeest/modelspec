@@ -16,6 +16,7 @@ jobs:
       matrix: ${{ steps.matrix.outputs.matrix }}
       count: ${{ steps.matrix.outputs.count }}
     env:
+      MODELSPEC_REQUIRE_DATA_DIR: '1'
       SIGNALS_ORIGIN: https://api.modelspec.dev
       MODELSPEC_SIGNALS_READ_KEY: ${{ secrets.MODELSPEC_SIGNALS_READ_KEY }}
       PYTHONPATH: ${{ github.workspace }}/data
@@ -66,6 +67,7 @@ jobs:
       matrix: ${{ fromJSON(needs.pending.outputs.matrix) }}
     runs-on: ubuntu-latest
     env:
+      MODELSPEC_REQUIRE_DATA_DIR: '1'
       PYTHONPATH: ${{ github.workspace }}/data
       SIGNALS_ORIGIN: https://api.modelspec.dev
       MODELSPEC_SIGNALS_READ_KEY: ${{ secrets.MODELSPEC_SIGNALS_READ_KEY }}

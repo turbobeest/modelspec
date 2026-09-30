@@ -41,7 +41,6 @@ from release_signals.watch import (  # noqa: E402
     discoveries,
     extract,
     load_baseline,
-    load_catalogue,
     load_registry,
     run_all,
     write_baseline,
@@ -159,8 +158,7 @@ def file_issues(
 def _issue_body(signal: ReleaseSignal) -> str:
     return (
         f"The release watcher (MODEL-216) saw **{signal.model_name}** listed at "
-        f"{signal.first_seen_url}. It matches no catalogue alias for "
-        f"`{signal.provider}`.\n\n"
+        f"{signal.first_seen_url}. Private processing decides whether it is catalogued.\n\n"
         "This is a trigger, not evidence: nothing here may be copied to a card. "
         "The release-signal queue is off (`SIGNALS_ENABLED`), so the watcher files "
         "an issue instead. With the queue on, this would be a pending signal and "
@@ -279,7 +277,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     registry = load_registry(args.registry)
     runs = run_all(
         registry, load_baseline(args.baseline),
-        fetch=http_fetch(registry.user_agent), now=now, catalogued=load_catalogue(ROOT).catalogued,
+        fetch=http_fetch(registry.user_agent), now=now, catalogued=None,
     )
     signals = discoveries(runs, now)
     posted = None

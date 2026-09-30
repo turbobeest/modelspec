@@ -143,6 +143,7 @@ jobs:
             🤖 Opened by the daily research workflow
           path: data
     env:
+      MODELSPEC_REQUIRE_DATA_DIR: '1'
       PYTHONPATH: ${{ github.workspace }}/data
       MODELSPEC_DATA_DIR: ${{ github.workspace }}/data
     defaults:

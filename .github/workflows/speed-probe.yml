@@ -1,11 +1,11 @@
 name: Speed probe (moved to private data)
-on:
-  workflow_dispatch:
+true:
+  workflow_dispatch: null
 permissions:
   contents: read
 jobs:
   moved:
     runs-on: ubuntu-latest
     steps:
-      - name: Run this writer in the private repository
-        run: echo 'Use https://github.com/turbobeest/modelspec-data/actions/workflows/speed-probe.yml'
+    - name: Run this writer in https://github.com/turbobeest/modelspec-data/actions/workflows/speed-probe.yml
+      run: 'true'

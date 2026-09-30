@@ -25,6 +25,8 @@ docs/host-layer.md.
 
 from __future__ import annotations
 
+from schema import private_errors
+
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -113,11 +115,12 @@ def load_hosts(root: Path) -> list[Host]:
     for path in sorted((root / "hosts").glob("*.yaml")):
         if path.name.startswith("_"):
             continue
-        raw = yaml.safe_load(path.read_text(encoding="utf-8"))
-        validate(raw, path.name)
-        if raw["id"] != path.stem:
-            raise ValueError(f"{path.name}: id {raw['id']!r} does not match the file name")
-        out.append(host_from_raw(raw))
+        with private_errors(path):
+            raw = yaml.safe_load(path.read_text(encoding="utf-8"))
+            validate(raw, path.name)
+            if raw["id"] != path.stem:
+                raise ValueError(f"{path.name}: id {raw['id']!r} does not match the file name")
+            out.append(host_from_raw(raw))
     return out
 
 

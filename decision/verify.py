@@ -45,6 +45,8 @@ are ``"fact:<id>"`` or ``"evidence:<id>"``.
 
 from __future__ import annotations
 
+from schema import private_errors
+
 import csv
 import hashlib
 import io
@@ -2758,9 +2760,10 @@ class VerificationLog:
     def records(self) -> list[Verification]:
         records = []
         for path in sorted(self.directory.glob("*.jsonl")):
-            for line in path.read_text(encoding="utf-8").splitlines():
+            for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
                 if line.strip():
-                    records.append(Verification.model_validate_json(line))
+                    with private_errors(path, line=number):
+                        records.append(Verification.model_validate_json(line))
         return records
 
     def latest(self) -> dict[tuple[str, str], Verification]:

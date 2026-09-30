@@ -81,6 +81,15 @@ DOMAINS = {
 HARNESSES = {"claude-code", "codex-cli", "aider", "openhands", "cursor-agent", "dpf-native"}
 
 
+@pytest.fixture(autouse=True)
+def public_fixture_diagnostics(monkeypatch):
+    """These synthetic catalogue fixtures exercise the public diagnostic mode.
+
+    Private loader diagnostics are covered by test_private_data_errors.py.
+    """
+    monkeypatch.setattr("schema.private_data", lambda path=None: False)
+
+
 @pytest.fixture(scope="module")
 def registry() -> reg.Registry:
     return reg.load()

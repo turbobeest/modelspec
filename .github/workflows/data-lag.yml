@@ -26,6 +26,8 @@ jobs:
     if: vars.DATA_SPLIT_ENABLED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      MODELSPEC_REQUIRE_DATA_DIR: '1'
     steps:
       - name: Fail if a token is empty
         env:

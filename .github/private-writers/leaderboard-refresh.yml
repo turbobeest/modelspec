@@ -13,6 +13,7 @@ jobs:
     name: Re-read live boards
     runs-on: ubuntu-latest
     env:
+      MODELSPEC_REQUIRE_DATA_DIR: '1'
       PYTHONPATH: ${{ github.workspace }}/data
       MODELSPEC_DATA_DIR: ${{ github.workspace }}/data
     steps:

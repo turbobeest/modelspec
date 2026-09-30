@@ -38,6 +38,12 @@ from schema.graph import CollectingSink, derive_graph  # noqa: E402
 
 
 @functools.lru_cache(maxsize=1)
+@pytest.fixture(autouse=True)
+def public_fixture_diagnostics(monkeypatch):
+    """Synthetic hardware fixtures exercise public diagnostics; private errors have separate tests."""
+    monkeypatch.setattr("schema.private_data", lambda path=None: False)
+
+
 def _devices():
     return load_devices(REPO_ROOT)
 

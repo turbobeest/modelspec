@@ -7,6 +7,9 @@ permissions:
   contents: read
 jobs:
   gate:
+    if: vars.DATA_SPLIT_ENABLED == 'true'
+    outputs:
+      run: ${{ steps.gate.outputs.run }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -21,8 +24,12 @@ jobs:
         env:
           SCHEDULE: ${{ github.event.schedule }}
         run: python scripts/curation/ci.py gate --event schedule --schedule "$SCHEDULE" >> "$GITHUB_OUTPUT"
+  dispatch:
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    steps:
       - name: Dispatch private curation when due
-        if: steps.gate.outputs.run == 'true'
         env:
           GH_TOKEN: ${{ secrets.MODELSPEC_DATA_DISPATCH_TOKEN }}
         run: |

@@ -14,6 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
+      MODELSPEC_REQUIRE_DATA_DIR: '1'
       PYTHONPATH: ${{ github.workspace }}/data
       MODELSPEC_DATA_DIR: ${{ github.workspace }}/data
     steps:
