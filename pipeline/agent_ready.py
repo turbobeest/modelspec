@@ -57,6 +57,16 @@ MCP_DESCRIPTION_MAX = 100
 MCP_TOOLS = (
     "decide", "rank", "model_info", "list_use_cases", "policy_check", "vocab", "feedback"
 )
+MCP_AUTH_DESCRIPTION = (
+    "MCP decision tools rank, policy_check and decide require "
+    "`Authorization: Bearer <key>`. "
+    "MCP model_info, list_use_cases, vocab and feedback stay keyless."
+)
+HOSTED_API_AUTH_DESCRIPTION = (
+    "The hosted API is a paid service; get a key at https://modelspec.dev/pricing/. "
+    "Key enforcement is being switched on. Today, hosted API requests without "
+    "a key are served while ACCESS_ENFORCED is off."
+)
 _BYTES_WIDTH = 8
 PAGES_FILE_LIMIT = 20_000
 PAGES_ROUTES = {
@@ -414,8 +424,9 @@ def modelspec_landing_markdown(models: list[Model], benchmarks: list[Benchmark],
         f"- llms: {MS_BASE}/llms.txt\n"
         f"- llms-full: {MS_BASE}/llms-full.txt\n"
         f"\n"
-        f"Start with `modelspec snapshot fetch`, then `modelspec vocab`, then "
-        f"`modelspec decide --template <id>` or a spec file. Use class-fit if "
+        f"Use the hosted API at `POST https://api.modelspec.dev/v1/decide` "
+        f"or the remote MCP Worker. {HOSTED_API_AUTH_DESCRIPTION} "
+        f"{MCP_AUTH_DESCRIPTION} The CLI is retired. Use class-fit if "
         f"you have not decided what class the problem needs; it names candidate "
         f"classes and refuses to order them. Legacy v1 rank uses retired "
         f"fixed-benchmark profiles. Use policy-check to "
@@ -562,26 +573,26 @@ def skill_markdown() -> str:
         "\n"
         "## When to call what\n"
         "\n"
-        "- **decide** — run `modelspec snapshot fetch`, inspect valid values "
-        "with `modelspec vocab`, then run `modelspec decide --template <id>` "
-        "or `modelspec decide SPEC.yaml`. The MCP server also has a `decide` "
-        "tool.\n"
+        "- **decide** — POST a decision spec to `https://api.modelspec.dev/v1/decide` "
+        "or use the remote MCP `decide` tool. Read its `vocab` "
+        "tool for valid values. The CLI was retired on 2026-09-30.\n"
         "- **rank (legacy v1)** (`POST https://api.modelspec.dev/v1/rank`) — "
         "uses the retired fixed-benchmark profiles. It remains available for "
         "existing callers during the decision-contract cutover.\n"
         "- **policy-check** (`POST https://api.modelspec.dev/v1/policy-check`) "
         "— pass / fail / undetermined per model and per platform against a "
         "caller's licence, origin, residency and commercial-use policy. Use "
-        "this when the question is compliance, not quality. Without a paid "
-        "key it answers from the public export; undetermined is not a pass.\n"
+        "this when the question is compliance, not quality. "
+        "Undetermined is not a pass.\n"
         "- **MCP** (`https://api.modelspec.dev/mcp`) — Streamable HTTP. Tools: "
         + ", ".join(MCP_TOOLS)
-        + ". Same origins as the HTTP API. No key.\n"
+        + f". {MCP_AUTH_DESCRIPTION}\n"
+        f"- {HOSTED_API_AUTH_DESCRIPTION}\n"
         "- **feedback** (`POST https://api.modelspec.dev/v1/feedback`, no key) — "
         "after you act on an answer, send one rating: `reliable`, `unreliable`, "
         "`trustworthy`, `untrustworthy` or `confusing`, with `client: \"agent\"` "
         "and the answer's `decision_id`. Every decision's `feedback` block names "
-        "the endpoint. CLI: `modelspec feedback DECISION_ID --rating <rating>`. "
+        "the endpoint. "
         "Never put a prompt, a key or personal details in `note`.\n"
         "- Do not call rank to answer a policy question, and do not treat a "
         "rank score as a licence determination.\n"
@@ -661,7 +672,8 @@ def auth_markdown(root: Path) -> str:
     ]
     if access_off:
         lines.append(
-            "**No key is required.** `ACCESS_ENFORCED` in the Worker is off. "
+            "**No key is required for the hosted API.** "
+            "`ACCESS_ENFORCED` in the Worker is off. "
             "A request without a key is served as the free tier, unmetered. "
             "A request that presents a key is checked: unknown and revoked "
             "keys are refused rather than ignored."
@@ -673,7 +685,10 @@ def auth_markdown(root: Path) -> str:
         )
     lines += [
         "",
-        "### Free tier (no key)",
+        (HOSTED_API_AUTH_DESCRIPTION if access_off else
+         "The hosted API is a paid service; get a key at https://modelspec.dev/pricing/."),
+        "",
+        "### Hosted API free tier (no key)",
         "",
         "- `POST /v1/decide` — downselect from a decision spec, no signup.",
         "- `POST /v1/rank` (legacy v1) — retired fixed-benchmark ranking, "
@@ -682,7 +697,11 @@ def auth_markdown(root: Path) -> str:
         "Checks that need the private determination store stay "
         "`undetermined` with `why: tier`. That is not a pass.",
         "- `GET /v1/health` — deploy pin.",
-        "- MCP `https://api.modelspec.dev/mcp` — the six tools, no key.",
+        "",
+        "### MCP",
+        "",
+        f"MCP `{MCP_ENDPOINT}` has {len(MCP_TOOLS)} tools: " + ", ".join(MCP_TOOLS) + ".",
+        MCP_AUTH_DESCRIPTION,
         "",
         "### Sandbox (`test_` keys)",
         "",

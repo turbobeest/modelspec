@@ -87,14 +87,13 @@ def _tie_plot(data: LandingData) -> str:
 def _signing(signing: SigningState) -> str:
     if signing.signed_key_id:
         key_id = html.escape(signing.signed_key_id)
-        return ('<div class="terminal"><span>reproduce a decision, offline</span><pre>'
-                '<b>$</b> modelspec snapshot fetch\n<b>$</b> modelspec decide spec.yaml --json\n'
+        return ('<div class="terminal"><span>reproduce a decision through the API</span><pre>'
+                'POST https://api.modelspec.dev/v1/decide\n'
                 '  "snapshot": "[SNAPSHOT ID]",\n  "spec_hash": "sha256:[SPEC HASH]",\n'
                 '  "signature_verified": true</pre></div><div class="key">'
                 f'<h3>Public signing key</h3><p>This snapshot is Ed25519-signed with published '
                 f'key ID <code>{key_id}</code>. The signature was verified when this page was '
-                'built, with the same check the CLI runs.</p><p>Run <code>modelspec snapshot '
-                'fetch</code> to download the snapshot and verify its signature yourself.</p>'
+                'built. Use the hosted API to reproduce a decision against this snapshot.</p>'
                 '<p>The content hash is checked separately.</p></div>')
     if signing.published_key_ids:
         ids = ", ".join(f"<code>{html.escape(key_id)}</code>"
@@ -234,7 +233,7 @@ def page(data: LandingData, signing: SigningState) -> str:
                     + _sources((("docs/decision-snapshot.md", "the file format, hash and id", "file-format"),
                                 ("docs/decision-contract.md", "the canonical spec hash", "the-canonical-spec-hash"),
                                 ("docs/snapshot-signing.md", "how snapshots are signed", ""),
-                                ("decision/snapshot_keys.json", "the public keys the CLI pins", ""))))
+                                ("decision/snapshot_keys.json", "the public snapshot signing keys", ""))))
     neutrality = (f'<blockquote>“{html.escape(str(commitment["pledge"]))}”<footer>The neutrality '
                   f'commitment, {html.escape(str(commitment["version"]))}</footer></blockquote>'
                   f'<ul class="assertions">{assertions}</ul>' + _sources((

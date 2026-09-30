@@ -20,11 +20,13 @@ DECIDE_ENDPOINT = "https://api.modelspec.dev/v1/decide"
 MCP_ENDPOINT = "https://api.modelspec.dev/mcp"
 TITLE = "ModelSpec pricing — people decide free, agents pay per answer"
 FREE_TIER_TITLE = "ModelSpec pricing — free hosted answers and paid-access prices"
-DESCRIPTION = ("The ModelSpec board and offline CLI are free. Hosted API and MCP "
-               "answers use credits, with plans and packs.")
-FREE_TIER_DESCRIPTION = ("The ModelSpec board and offline CLI cost nothing. The hosted "
-                         "API and MCP server answer on a free tier today, with prices "
-                         "published for paid access.")
+DESCRIPTION = ("The ModelSpec board is free. Hosted API and MCP "
+               "answers use credits, with plans and packs. MCP decision tools "
+               "(rank, policy_check, decide) require an API key.")
+FREE_TIER_DESCRIPTION = ("The ModelSpec board costs nothing. The hosted "
+                         "API answers on a free tier today, with prices "
+                         "published for paid access. MCP decision tools "
+                         "(rank, policy_check, decide) require an API key.")
 NETWORK_NAMES = {"eip155:8453": "Base mainnet", "eip155:84532": "Base Sepolia"}
 
 
@@ -169,11 +171,13 @@ def page(tiers: dict[str, Any], *, build: Build | None = None,
                    f"One credit. The low end is the {cheapest_label}'s rate; the range "
                    "covers the plans and packs below. A full explanation costs two credits.")
     hero_heading = f"People decide free. {agent_line}"
-    hero_copy = (f"The board on this site and the offline CLI cost nothing. Hosted API and "
-                 f"MCP answers use {hero_payment}." if access_enforced else
-                 "The board on this site and the offline CLI cost nothing. The hosted API "
-                 "and MCP server answer on a free tier today; these are the credit prices "
-                 "for paid access.")
+    hero_copy = (f"The board on this site costs nothing. Hosted API and "
+                 f"MCP answers use {hero_payment}. MCP decision tools "
+                 "(rank, policy_check, decide) require an API key." if access_enforced else
+                 "The board on this site costs nothing. The hosted API "
+                 "answers on a free tier today; these are the credit prices "
+                 "for paid access. MCP decision tools "
+                 "(rank, policy_check, decide) require an API key.")
     buy_heading = "Buy credits for your agents" if billing_live else "Plans and packs"
     buy_copy = ("Pay by card. You get one API key and one balance; every agent that carries "
                 "the key draws from it." if billing_live else

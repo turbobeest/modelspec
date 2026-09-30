@@ -229,6 +229,30 @@ function postInit(
 
 export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) {
   const authorization = incomingAuthorization(mcpCtx.requestInfo);
+  async function fetchDecision(origin: string, body: unknown) {
+    // The API permits anonymous answers while ACCESS_ENFORCED is off.
+    // Require credentials here before that request can reach its anonymous path.
+    if (
+      env.MCP_REQUIRE_API_KEY !== "false" &&
+      !/^Bearer +\S+$/i.test(authorization ?? "")
+    ) {
+      return {
+        origin,
+        status: 401,
+        body: {
+          error: {
+            code: "missing_api_key",
+            message:
+              "MCP decisions require an API key. Send Authorization: Bearer <key>. " +
+              "Get one at https://modelspec.dev/pricing/.",
+          },
+          result: [],
+        },
+      };
+    }
+    return fetchOrigin(origin, postInit(body, authorization), env.RANK);
+  }
+
   const server = new McpServer({
     name: "modelspec",
     version: env.BUILD_COMMIT,
@@ -241,13 +265,13 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
         "Rank models for a use case by proxying POST https://api.modelspec.dev/v1/rank " +
         "with this tool's arguments as the JSON body. Does not re-implement ranking. " +
         "evidence_basis is input provenance (none, unverified-legacy, mixed, " +
-        "partial-verified, verified), not a quality verdict. Free tier; no key required. " +
+        "partial-verified, verified), not a quality verdict. Requires an API key. " +
         NULL_RULE,
       inputSchema: rankInput,
     },
     async (args) => {
       const origin = `${env.RANK_API_ORIGIN.replace(/\/$/, "")}/v1/rank`;
-      return asToolResult(await fetchOrigin(origin, postInit(args, authorization), env.RANK));
+      return asToolResult(await fetchDecision(origin, args));
     },
   );
 
@@ -297,15 +321,15 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
       description:
         "Check a policy document per model and per platform by proxying POST " +
         "https://api.modelspec.dev/v1/policy-check with this tool's arguments as the " +
-        "JSON body. Free-tier answer only unless the MCP client sent Authorization, " +
-        "which is forwarded. Verdicts are pass, fail, or undetermined — undetermined " +
+        "JSON body. Requires an API key; Authorization is forwarded. " +
+        "Verdicts are pass, fail, or undetermined. Undetermined " +
         "is not a pass. " +
         NULL_RULE,
       inputSchema: policyInput,
     },
     async (args) => {
       const origin = `${env.RANK_API_ORIGIN.replace(/\/$/, "")}/v1/policy-check`;
-      return asToolResult(await fetchOrigin(origin, postInit(args, authorization), env.RANK));
+      return asToolResult(await fetchDecision(origin, args));
     },
   );
 
@@ -320,17 +344,13 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
         'explain: "full" also lists every eliminated candidate and returns about 670 KB, ' +
         "so ask for it only to see why one model was excluded. " +
         "The decision response is returned unchanged with a short summary. " +
-        "Authorization from the MCP client is forwarded. " +
+        "Requires an API key; Authorization from the MCP client is forwarded. " +
         NULL_RULE,
       inputSchema: decisionSpecInput,
     },
     async (spec) => {
       const origin = `${env.RANK_API_ORIGIN.replace(/\/$/, "")}/v1/decide`;
-      const envelope = await fetchOrigin(
-        origin,
-        postInit(spec, authorization),
-        env.RANK,
-      );
+      const envelope = await fetchDecision(origin, spec);
       const result = asToolResult(envelope);
       if (result.isError) return result;
       return {

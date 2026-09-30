@@ -1,4 +1,4 @@
-"""The PyPI distribution keeps its public name and installs as a standalone CLI."""
+"""CLI source stays buildable locally, but public distribution is retired."""
 
 from __future__ import annotations
 
@@ -47,20 +47,12 @@ def test_wheel_has_an_explicit_runtime_file_set() -> None:
     assert wheel["force-include"] == {"registry": "registry"}
 
 
-def test_release_uses_trusted_publishing_from_version_tags() -> None:
-    path = REPO_ROOT / ".github" / "workflows" / "release-pypi.yml"
-    text = path.read_text(encoding="utf-8")
-    workflow = yaml.safe_load(text)
-    publish = workflow["jobs"]["publish"]
-
-    assert "v*" in text
-    assert publish["permissions"] == {"id-token": "write", "contents": "read"}
-    assert publish["environment"] == "pypi"
-    assert any(
-        step.get("uses", "").startswith("pypa/gh-action-pypi-publish@") for step in publish["steps"]
-    )
-    assert "password:" not in text
-    assert "PYPI_API_TOKEN" not in text
+def test_no_workflow_publishes_to_pypi() -> None:
+    for path in (REPO_ROOT / ".github" / "workflows").glob("*.yml"):
+        text = path.read_text()
+        assert "pypa/gh-action-pypi-publish" not in text
+        assert "twine upload" not in text
+    assert not (REPO_ROOT / "docs" / "releasing.md").exists()
 
 
 def test_ci_builds_and_installs_the_wheel_in_a_fresh_environment() -> None:
@@ -87,15 +79,12 @@ def test_ci_builds_and_installs_the_wheel_in_a_fresh_environment() -> None:
     assert "No such command 'accuracy'" in commands
 
 
-def test_public_install_instructions_use_the_pypi_distribution_name() -> None:
-    readme = (REPO_ROOT / "README.md").read_text()
-    assert "pipx install modelspec-dev" in readme
-    assert readme.index("modelspec decide --template") < readme.index("Legacy (v1)")
-    assert (
-        "pip install modelspec +"
-        not in (REPO_ROOT / "docs" / "system-architecture-v3.md").read_text()
-    )
-    assert (
-        "pipx install modelspec-dev"
-        in (REPO_ROOT / "web" / "src" / "decide" / "components" / "Share.tsx").read_text()
-    )
+def test_public_install_instructions_are_retired() -> None:
+    for name in ("README.md", "pipeline/landing.py", "pipeline/build.py",
+                 "pipeline/agent_ready.py", "web/src/decide/components/Share.tsx"):
+        text = (REPO_ROOT / name).read_text()
+        assert "pipx install modelspec-dev" not in text
+        assert "pip install modelspec-dev" not in text
+    notice = (REPO_ROOT / "docs" / "cli-contract.md").read_text()
+    assert notice.startswith("> **Retired 2026-09-30.")
+    assert "https://api.modelspec.dev/v1/decide" in notice

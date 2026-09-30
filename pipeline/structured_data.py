@@ -4,7 +4,7 @@
 
 One `<script type="application/ld+json">` per page, holding a `@graph`. The
 home page describes who publishes the site, the data (a Dataset with its
-downloads), and the three ways to use it: the CLI, the HTTP API and the MCP
+downloads), and the hosted HTTP API and the MCP
 server. The decide board is a free WebApplication. Every other page carries a
 BreadcrumbList back to the home page.
 
@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import json
 import re
-import tomllib
 from pathlib import Path
 from typing import Any
 
@@ -111,23 +110,6 @@ def dataset(tree: Path) -> dict[str, Any]:
     }
 
 
-def cli(root: Path) -> dict[str, Any]:
-    project = tomllib.loads((root / "pyproject.toml").read_text(encoding="utf-8"))["project"]
-    return {
-        "@type": "SoftwareApplication",
-        "@id": f"{BASE}/#cli",
-        "name": "ModelSpec CLI",
-        "description": "Decide which AI model fits a task, offline, from the published snapshot.",
-        "applicationCategory": "DeveloperApplication",
-        "operatingSystem": "Windows, macOS, Linux",
-        "softwareVersion": project["version"],
-        "downloadUrl": f"https://pypi.org/project/{project['name']}/",
-        "isBasedOn": _source(),
-        "offers": _free(),
-        "publisher": {"@id": ORG},
-    }
-
-
 def api() -> dict[str, Any]:
     return {
         "@type": ["WebAPI", "SoftwareApplication"],
@@ -169,7 +151,7 @@ def graph(path: str, tree: Path, root: Path = ROOT) -> list[dict[str, Any]]:
             organization(root),
             {"@type": "WebSite", "@id": f"{BASE}/#website", "name": "ModelSpec",
              "url": f"{BASE}/", "publisher": {"@id": ORG}},
-            dataset(tree), cli(root), api(), mcp(),
+            dataset(tree), api(), mcp(),
         ]
     nodes = [breadcrumbs(path)]
     if path == "/decide/":
