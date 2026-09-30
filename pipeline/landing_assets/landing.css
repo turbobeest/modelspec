@@ -127,6 +127,21 @@ nav > a:not(.button) {
   color: var(--light) !important;
   padding: 13px 22px;
 }
+/* Hero call to action: the agent path is the filled, high-contrast button
+   (navy on green, about 7:1); the board is the outlined alternative. */
+.agents {
+  background: var(--green);
+  color: var(--navy) !important;
+  box-shadow: 0 0 0 3px rgba(63, 182, 139, 0.25);
+}
+.agents:hover {
+  filter: brightness(1.08);
+}
+.board-alt {
+  border: 2px solid var(--yellow);
+  color: var(--light) !important;
+  padding: 13px 22px;
+}
 .hero {
   min-height: 880px;
   padding: 64px 64px 80px 72px;
@@ -733,12 +748,10 @@ footer a {
   .actions {
     order: 2;
   }
-  .actions .primary,
+  .actions .agents,
+  .actions .board-alt,
   .actions .board-status {
     width: 100%;
-  }
-  .actions .secondary {
-    display: none;
   }
   .receipt {
     padding: 44px var(--right) 44px var(--left);
@@ -965,7 +978,8 @@ footer a {
     background: rgba(11, 20, 38, 0.96);
     border-top: 1px solid #1d2c48;
   }
-  .sticky .primary,
+  .sticky .agents,
+  .sticky .board-alt,
   .sticky .board-status {
     flex: 1;
   }
