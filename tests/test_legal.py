@@ -361,32 +361,48 @@ def test_the_privacy_statement_names_every_browser_storage_key() -> None:
     assert "No cookies are set" in FLAT_PRIVACY
 
 
-def test_x402_stays_off_while_keyless_visitors_are_metered_by_a_bare_ip_hash() -> None:
-    """MODEL-237. With x402 on, `_site_free_visitor` names keyless browser meters
-    after an unsalted SHA-256 of the IP address, which enumeration reverses. The
-    statement promises that is replaced before x402 goes on; this holds it."""
-    import ast
+def _meter_hashes_ip_without_a_key(source: str) -> bool:
+    """True when the visitor meter reads the address and no HMAC keys it."""
+    return "CF-Connecting-IP" in source and "hmac" not in source.lower()
 
+
+def _x402_is_on_in_production() -> bool:
     from pipeline.worker_flags import parse_jsonc
 
-    worker = REPO_ROOT / "api" / "worker"
-    tree = ast.parse((worker / "src" / "entry.py").read_text(encoding="utf-8"))
-    meter = next(node for node in ast.walk(tree)
-                 if isinstance(node, ast.FunctionDef) and node.name == "_site_free_visitor")
-    source = ast.unparse(meter)
-    reads_ip = "CF-Connecting-IP" in source
-    keyed = "hmac" in source.lower()
-    if reads_ip and not keyed:
-        config = parse_jsonc((worker / "wrangler.jsonc").read_text(encoding="utf-8"))
-        flag = str(config["vars"].get("X402_ENABLED", "false")).strip().lower()
-        assert flag in {"", "0", "false", "no", "off"}, (
-            "X402_ENABLED is on in production while keyless visitors are metered under "
-            "an unkeyed hash of their IP address; the privacy statement says that is "
-            "replaced first")
-        # A deploy-time `--var X402_ENABLED:true` would dodge the check above.
-        for workflow in (REPO_ROOT / ".github" / "workflows").glob("*.y*ml"):
-            assert "X402_ENABLED" not in workflow.read_text(encoding="utf-8"), workflow.name
-        assert "unsalted hash of an IP address" in FLAT_PRIVACY
+    config = parse_jsonc((REPO_ROOT / "api" / "worker" / "wrangler.jsonc").read_text(encoding="utf-8"))
+    flag = str(config["vars"].get("X402_ENABLED", "false")).strip().lower()
+    return flag not in {"", "0", "false", "no", "off"}
+
+
+def test_x402_stays_off_while_keyless_visitors_are_metered_by_a_bare_ip_hash() -> None:
+    """MODEL-237/241. With x402 on, keyless browser meters are named from the
+    visitor id. A bare hash of the IP is reversed by enumeration, so the id must
+    be keyed (`visitor.py`) and `_site_free_visitor` must go through it."""
+    worker = REPO_ROOT / "api" / "worker" / "src"
+    visitor_source = (worker / "visitor.py").read_text(encoding="utf-8")
+    entry_source = (worker / "entry.py").read_text(encoding="utf-8")
+    import ast
+
+    tree = ast.parse(entry_source)
+    meter = ast.unparse(next(n for n in ast.walk(tree)
+                             if isinstance(n, ast.FunctionDef) and n.name == "_site_free_visitor"))
+    assert "hashlib" not in meter and "visitor.visitor_id_for" in meter
+    assert not _meter_hashes_ip_without_a_key(visitor_source)
+    if _meter_hashes_ip_without_a_key(visitor_source):
+        assert not _x402_is_on_in_production()
+
+
+def test_the_guard_still_fails_for_a_meter_with_no_key() -> None:
+    bare = 'def f(r):\n    return sha256(r.headers.get("CF-Connecting-IP"))'
+    assert _meter_hashes_ip_without_a_key(bare)
+    keyed = 'def f(r):\n    return hmac.new(k, r.headers.get("CF-Connecting-IP"))'
+    assert not _meter_hashes_ip_without_a_key(keyed)
+
+
+def test_the_visitor_key_is_documented_as_a_secret_not_a_var() -> None:
+    text = (REPO_ROOT / "api" / "worker" / "wrangler.jsonc").read_text(encoding="utf-8")
+    assert "wrangler secret put VISITOR_HMAC_KEY" in text
+    assert "VISITOR_HMAC_KEY\":" not in text
 
 
 def _wrangler_config() -> str:
