@@ -52,6 +52,23 @@ ARENA_BOARDS = {
     **readers.ARENA,
     "arena_webdev": ("webdev", "overall"),
 }
+MTEB_API = "https://mteb-leaderboard-backend.hf.space/v1/benchmarks/{}/scores"
+#: (key, board URL, registered source, {benchmark id: projected column}). A task-type
+#: column is the board's own mean over that type's tasks; the board publishes it only
+#: for a model scored on every one of them (MODEL-242).
+MTEB_BOARDS = (
+    ("eng", readers.MTEB_URL, "model-160-mteb-eng-v2",
+     {"mteb_eng_v2": "mean_task", "mteb_v2_reranking": "reranking",
+      "mteb_v2_retrieval": "retrieval"}),
+    ("multilingual", MTEB_API.format("MTEB(Multilingual,%20v2)"),
+     "model-143-evidence-mteb-multilingual-v2-json",
+     {"mteb_multilingual_v2": "mean_task", "mteb_multilingual_v2_reranking": "reranking"}),
+    ("cmn", MTEB_API.format("MTEB(cmn,%20v1)"), "model-242-mteb-cmn-v1-json",
+     {"mteb_cmn_v1_reranking": "reranking"}),
+    ("followir", MTEB_API.format("FollowIR"), "model-242-mteb-followir-json",
+     {"followir": "mean_task"}),
+)
+MTEB_ROW = {"unit": "percent", "source_kind": "benchmark_author"}
 COLLECTOR = VerificationActor(
     agent="codex-model-124",
     model_family="openai",
@@ -80,6 +97,9 @@ class BoardReading:
     fraction: bool = False
     snapshot_ref: str | None = None
     card_urls: frozenset[str] = frozenset()
+    #: ``unit`` and ``source_kind`` for a row the board adds. A board that declares
+    #: them can seed a benchmark no card carries yet; otherwise a card row is the template.
+    row_template: Mapping[str, str] | None = None
 
     def __post_init__(self) -> None:
         date.fromisoformat(self.observed_at)
@@ -375,7 +395,7 @@ def _matching_new_row(board: BoardReading, front: Mapping[str, Any]) -> Mapping[
     aliases = {
         readers.normalise_name(str(value))
         for value in (
-            front.get("display_name"), front.get("version"),
+            front.get("display_name"), front.get("version"), front.get("model_id"),
             str(front.get("model_id") or "").rsplit("/", 1)[-1],
         )
         if value
@@ -391,6 +411,8 @@ def _matching_new_row(board: BoardReading, front: Mapping[str, Any]) -> Mapping[
 def _evidence_template(
     root: Path, board: BoardReading, benchmark_id: str,
 ) -> Mapping[str, Any] | None:
+    if board.row_template is not None:
+        return {**board.row_template, "source_url": board.source_url}
     allowed_urls = board.card_urls or frozenset({board.source_url})
     templates = []
     for path in sorted((root / "models").glob("*/*.md")):
@@ -412,7 +434,7 @@ def _new_evidence(
     *, root: Path, model_id: str, front: Mapping[str, Any], board: BoardReading,
 ) -> tuple[list[dict[str, Any]], list[RowFailure]]:
     matched = _matching_new_row(board, front)
-    if matched is None:
+    if matched is None or matched.get(board.value_field) is None:
         return [], []
     rows: list[dict[str, Any]] = []
     failures: list[RowFailure] = []
@@ -775,12 +797,13 @@ def _reading_from_projection(
     *, key: str, source_id: str, benchmarks: Iterable[str], source_url: str,
     projected: bytes, observed_at: str, value_field: str, store: CopyStore,
     fraction: bool = False, card_urls: Iterable[str] = (),
+    row_template: Mapping[str, str] | None = None,
 ) -> BoardReading:
     payload = json.loads(projected)
     rows = tuple({**row, "observed_at": observed_at} for row in payload["rows"])
     return BoardReading(
         key, source_id, frozenset(benchmarks), source_url, observed_at, rows,
-        value_field, fraction, store.put(projected), frozenset(card_urls),
+        value_field, fraction, store.put(projected), frozenset(card_urls), row_template,
     )
 
 
@@ -1033,36 +1056,18 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
         failures.append(RowFailure("*", "metr", readers.METR_URL,
                                    f"{type(exc).__name__}: {exc}"))
 
-    # MTEB needs one projection per task-type/value column and language board.
-    for key, url, benchmarks in (
-        ("eng", readers.MTEB_URL, ("mteb_eng_v2", "mteb_v2_reranking", "mteb_v2_retrieval")),
-        (
-            "multilingual",
-            "https://mteb-leaderboard-backend.hf.space/v1/benchmarks/"
-            "MTEB(Multilingual,%20v2)/scores",
-            ("mteb_multilingual_v2",),
-        ),
-    ):
+    for key, url, source_id, columns in MTEB_BOARDS:
         try:
             raw = _fetch(url)
             raw_ref = store.put(raw)
             projected = readers.project_mteb(raw, url=url, page_ref=raw_ref,
                                              read_date=observed_at)
-            for benchmark in benchmarks:
-                label = {
-                    "mteb_v2_reranking": "reranking",
-                    "mteb_v2_retrieval": "retrieval",
-                }.get(benchmark, "mean_task")
-                source_id = (
-                    "model-160-mteb-eng-v2"
-                    if key == "eng"
-                    else "model-143-evidence-mteb-multilingual-v2-json"
-                )
+            for benchmark, label in columns.items():
                 readings.append(_reading_from_projection(
                     key=f"mteb:{benchmark}", source_id=source_id,
                     benchmarks=(benchmark,), source_url=url, projected=projected,
                     observed_at=observed_at, value_field=label, fraction=True, store=store,
-                    card_urls=(url,),
+                    card_urls=(url,), row_template=MTEB_ROW,
                 ))
         except Exception as exc:
             failures.append(RowFailure("*", f"mteb:{key}", url, f"{type(exc).__name__}: {exc}"))

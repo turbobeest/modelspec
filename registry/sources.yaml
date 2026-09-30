@@ -4564,3 +4564,23 @@ sources:
     locator:
       kind: heading
       value: 'language'
+- id: model-242-mteb-cmn-v1-json
+  volatility: live
+  url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(cmn,%20v1)/scores
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-242-mteb-followir-json
+  volatility: live
+  url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/FollowIR/scores
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''

@@ -692,6 +692,50 @@ benchmarks:
       cited_regions:
       - rows
     observed_at: '2026-09-29'
+  - benchmark_id: mteb_multilingual_v2_reranking
+    model_id_as_evaluated: tencent/KaLM-Embedding-Gemma3-12B-2511
+    score: 67.2726170138889
+    unit: percent
+    source_url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores
+    source_kind: benchmark_author
+    evidence_date: '2026-09-29'
+    date_type: evaluated
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
+    benchmark_version: 'MTEB(Multilingual, v2), Reranking task type'
+    configuration: 'MTEB leaderboard backend JSON, benchmarkName MTEB(Multilingual, v2), read 2026-09-29. Field scoresByTaskType.Reranking times 100: the board''s mean over the six Reranking tasks, published only when all six are scored. The JSON has no per-row run date, so this date is the day the board was read.'
+    limitations: 'Reranking tasks only; not the benchmark''s mean over all task types.'
+    measured_by: benchmark_author
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-mteb-multilingual-v2-json
+      snapshot_ref: sha256:777a386241c32131f7fa6275f3d92fae55175e12dfa1bce64022bafd3efd9d44
+      cited_regions:
+      - rows
+    id: tencent/kalm-embedding-gemma3-12b-2511#mteb_multilingual_v2_reranking#7d53766a7838
+  - benchmark_id: followir
+    model_id_as_evaluated: tencent/KaLM-Embedding-Gemma3-12B-2511
+    score: 5.491833333333334
+    unit: percent
+    source_url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/FollowIR/scores
+    source_kind: benchmark_author
+    evidence_date: '2026-09-29'
+    date_type: evaluated
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
+    benchmark_version: 'FollowIR, p-MRR mean over three tasks'
+    configuration: 'MTEB leaderboard backend JSON, benchmarkName FollowIR, read 2026-09-29. Field meanTask times 100: the mean p-MRR over Robust04, News21 and Core17 instruction retrieval, on the paper''s -100 to 100 scale (stored with unit percent, as the board''s fraction times 100). The JSON has no per-row run date, so this date is the day the board was read.'
+    limitations: 'Measures whether ranking changes when the instruction changes, not ranking quality; about 100 queries.'
+    measured_by: benchmark_author
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-242-mteb-followir-json
+      snapshot_ref: sha256:df279a7c4b45ccb920aee58a512745653462c944ac7d6c002852479bea7a43d4
+      cited_regions:
+      - rows
+    id: tencent/kalm-embedding-gemma3-12b-2511#followir#1bfe7cf4ff6d
 deployment:
   api_only: false
   local_inference: true
