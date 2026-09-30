@@ -227,7 +227,8 @@ nav > a:not(.button) {
 }
 .plot {
   margin: 0;
-  padding-top: 94px;
+  /* Top-aligned with the headline, which now opens the copy column (no eyebrow). */
+  padding-top: 56px;
   display: flex;
   flex-direction: column;
   gap: 14px;
