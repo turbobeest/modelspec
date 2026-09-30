@@ -39,14 +39,23 @@ first. Deterministic extractors always run first:
   temperature 0 in JSON mode. Its actor is `ollama`, model family `mistral`: the
   reader for values a Claude collector filed. Both readers get the same prompt.
   It asks for the value, unit, conditions and a source sentence. The verifier
-  checks that sentence against the retained cited region. Ollama's JSON mode
+  checks that sentence against the retained cited region. A region can state
+  a condition once for a whole table, in a heading ("Comparison with frontier
+  models (Max reasoning effort)") or a caption ("all Claude Opus 5.5 results
+  use ... max effort"). The prompt asks the reader to give each value the
+  conditions the region states for it, and to quote the heading or caption
+  sentence as `condition_sentence` (MODEL-233). An effort the reader reports
+  must be written in the region, and a condition sentence must be verbatim
+  region text. Otherwise the reply is unparseable and the region is not
+  evidence. Which values a caption covers ("unless otherwise noted", one
+  model's results only) is the reader's reading; the code cannot check it. Ollama's JSON mode
   returns one object, not an array, so a system turn asks Mistral to wrap the
   array as `{"values": [...]}`. Without it, Mistral reports only the first
   value in a region.
 
 Reader replies are cached outside the repository under
-`~/.cache/modelspec/llm-reader` by source-copy hash, cited region, facet and the
-subject's published names. The names are in the key because the prompt carries
+`~/.cache/modelspec/llm-reader` by the prompt's hash, source-copy hash, cited
+region, facet and the subject's published names. A changed prompt asks again. The names are in the key because the prompt carries
 them: a reader answers mostly for the named subject, so a reply cached for one
 plan or model must not answer for a sibling on the same page (MODEL-201).
 Mistral's replies are also keyed by its model and request shape, so neither
@@ -155,6 +164,9 @@ runner, with no model and no paid scraper.
 `tests/fixtures/verification/` seeds these errors: a score copied from a
 sibling, a wrong unit (in both directions), a max-effort value filed as default
 or with no effort, a stale date, a value absent from the source, a missing copy
-and a missing region. `tests/test_decision_verify.py` requires every seeded
+and a missing region. Its `reader_claims` are read only by an LLM reader,
+replayed from `captioned-results.reader.yaml`: a caption states max effort for
+a whole table and names one high-effort exception. A value filed as default,
+with no effort, or at max for the exception must end as a mismatch. `tests/test_decision_verify.py` requires every seeded
 error to end as a mismatch or quarantined, and every correct value to end as
 verified.

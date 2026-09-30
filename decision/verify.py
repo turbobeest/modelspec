@@ -374,6 +374,10 @@ _QUALIFIER = re.compile(r"[\(\[]([^\)\]]*)[\)\]]")
 _EFFORT_QUALIFIER = re.compile(
     r"^(?:(?:(?:reasoning|thinking)\s+)?effort\s*[:=]?\s*)?(\w+)"
     r"(?:\s+(?:(?:reasoning|thinking)\s+)?effort)?$")
+#: A level named inside a longer phrase: "adaptive thinking at max effort".
+_EFFORT_IN_PHRASE = re.compile(
+    r"\b(\w+)\s+(?:(?:reasoning|thinking)\s+)?effort\b"
+    r"|\beffort\s*[:=]?\s*(?:of\s+|at\s+)?(\w+)")
 
 
 def normalise_name(name: str) -> str:
@@ -408,6 +412,12 @@ def _condition(key: str, value: str | None) -> str | None:
         q = _EFFORT_QUALIFIER.match(s)
         if q and q.group(1) in EFFORT_LEVELS:
             s = q.group(1)
+        else:
+            # A caption's phrase names one level; a phrase naming two stays as written.
+            named = {_EFFORT_ALIASES.get(w, w) for m in _EFFORT_IN_PHRASE.finditer(s)
+                     for w in m.groups() if w in EFFORT_LEVELS}
+            if len(named) == 1:
+                s = named.pop()
         return _EFFORT_ALIASES.get(s, s)
     if key == "date":
         parsed = _parse_date(str(value).strip())
@@ -1929,10 +1939,17 @@ report every value it gives for "{label}", for any model.
 Return only a JSON array. One object per value, with these string fields (null
 when the region does not say): "subject" (the model name exactly as written),
 "value" (the number or text exactly as written), "unit", "effort", "harness",
-"date", and "quoted_sentence" (the exact sentence containing the value).
+"date", "quoted_sentence" (the exact sentence containing the value) and
+"condition_sentence" (the exact heading, caption or sentence that states the
+effort or harness, when the quoted sentence does not).
 Return [] if the region gives no such value. Do not infer, convert, combine
 sentences, or use knowledge outside the source region. A quoted sentence must
 appear verbatim in the source region.
+
+A region can state a condition once for many values: in a heading such as
+"Results (max reasoning effort)", or in a caption or note such as "all X results
+use high effort". Give each value every condition the region states for it, unless
+the region states a different condition for that value or that model.
 
 The model being checked is published as: {names}.
 
@@ -2023,6 +2040,25 @@ class LLMCache:
             path.write_text(reply, encoding="utf-8")
 
 
+def _check_effort_is_stated(row: Mapping[str, Any], text: str) -> None:
+    """Refuse a reader's effort that the region does not write down (MODEL-233).
+
+    The prompt asks the reader to carry a heading's or caption's condition to the
+    values it covers. Which values a caption covers is the reader's judgement; that
+    the level is written in the region at all, and that a quoted
+    ``condition_sentence`` is the region's own text, is checked here.
+    """
+    stated = row.get("condition_sentence")
+    if isinstance(stated, str) and normalise_name(stated) not in normalise_name(text):
+        raise ValueError("condition_sentence is not verbatim source text")
+    level = _condition("effort", _text(row.get("effort")))
+    if level is None:
+        return
+    spellings = {level, *(k for k, v in _EFFORT_ALIASES.items() if v == level)}
+    if not any(f" {normalise_name(w)} " in f" {normalise_name(text)} " for w in spellings):
+        raise ValueError(f"effort {level!r} is not written in the source region")
+
+
 class LLMExtractor:
     """Reads prose through ``complete(prompt) -> str``, an injected model call.
 
@@ -2044,6 +2080,10 @@ class LLMExtractor:
                 cache_key: tuple[str, ...] | None = None) -> list[Reading]:
         prompt = LLM_PROMPT.format(label=claim.label or claim.field.replace("_", " "),
                                    names=", ".join(claim.names), text=text)
+        if cache_key:
+            # A reply answers the prompt it was given: a changed prompt must ask again.
+            digest = hashlib.sha256(LLM_PROMPT.encode("utf-8")).hexdigest()[:16]
+            cache_key = (f"prompt:{digest}", *cache_key)
         reply = self.cache.get(cache_key) if self.cache is not None and cache_key else None
         if reply is None:
             reply = self.complete(prompt)
@@ -2059,6 +2099,7 @@ class LLMExtractor:
                 if not isinstance(quote, str) or not quote.strip() or \
                         normalise_name(quote) not in normalise_name(text):
                     raise ValueError("quoted_sentence is missing or is not verbatim source text")
+                _check_effort_is_stated(row, text)
             readings = [
                 Reading(subject=_text(r.get("subject")) or claim.names[0],
                         value=_text(r.get("value")),

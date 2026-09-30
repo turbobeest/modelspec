@@ -21,3 +21,9 @@ sources:
     cited_regions:
       - id: results
         locator: {kind: table, value: "0"}
+  - id: seeded-captioned-results
+    url: https://lab.example.test/nimbus-3/system-card
+    normaliser: html-default
+    cited_regions:
+      - id: summary
+        locator: {kind: heading_anchor, value: Evaluation summary}
