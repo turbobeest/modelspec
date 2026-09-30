@@ -653,10 +653,11 @@ def main(argv: list[str] | None = None) -> int:
     # Here as well as in `live.build`: the holding and live trees copy the legal
     # pages from this tree, and the deploy workflow diffs them byte for byte.
     from pipeline import structured_data
-    structured_data.inject(ms, root)
-
-    # The Feedback control on every page, last, so no later writer drops it.
+    # The Feedback control on every page, just before the JSON-LD: live.build
+    # strips and re-inserts that block at the end of <head>, so the two trees
+    # only match byte for byte if the control's stylesheet link comes first.
     feedback_counts["pages_with_control"] = feedback_page.inject_tree(ms)
+    structured_data.inject(ms, root)
 
     missing = missing_internal_hrefs(ms)
     if missing:
