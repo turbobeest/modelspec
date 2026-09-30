@@ -102,21 +102,42 @@ jobs:
           ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
         run: python -m scripts.speed run --live --cap-usd "$SPEED_CAP_USD" --window measurements/speed/pilot
 
+      # Paid data must survive a failed aggregate: the raw runs are uploaded and
+      # opened as a data PR whatever happens after the pilot step.
+      - name: Upload the raw runs
+        if: always() && inputs.mode == 'pilot'
+        uses: actions/upload-artifact@v4
+        with:
+          name: speed-pilot-runs-${{ github.run_id }}
+          path: measurements/speed/pilot/runs/
+          if-no-files-found: warn
+
       - name: Aggregate, verify and report (free)
+        id: aggregate
         if: inputs.mode == 'pilot'
         run: |
           python -m scripts.speed aggregate measurements/speed/pilot
           python -m scripts.speed verify measurements/speed/pilot
           python -m scripts.speed report measurements/speed/pilot | tee -a "$GITHUB_STEP_SUMMARY" > "$RUNNER_TEMP/report.md"
+
+      - name: Write the data pull request body
+        if: always() && inputs.mode == 'pilot'
+        env:
+          AGGREGATE_OUTCOME: ${{ steps.aggregate.outcome }}
+        run: |
           {
             echo 'The speed-v1 pilot (MODEL-212): one live slot under a $'"$SPEED_CAP_USD"' cap.'
             echo 'One slot cannot pass the publication gates, so no speed fact enters the snapshot.'
             echo
-            cat "$RUNNER_TEMP/report.md"
+            if [ "$AGGREGATE_OUTCOME" = success ]; then
+              cat "$RUNNER_TEMP/report.md"
+            else
+              echo "Aggregate outcome: $AGGREGATE_OUTCOME. This PR carries the raw runs only; see the workflow run."
+            fi
           } > "$RUNNER_TEMP/pr-body.md"
 
       - name: Open the data pull request
-        if: inputs.mode == 'pilot'
+        if: always() && inputs.mode == 'pilot'
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.RESEARCH_PR_TOKEN }}
