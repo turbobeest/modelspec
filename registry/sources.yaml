@@ -4564,3 +4564,24 @@ sources:
     locator:
       kind: heading
       value: 'language'
+# MODEL-233: MathArena research-maths boards (projections); read 2026-09-29.
+- id: model-233-matharena-brokenarxiv
+  volatility: live
+  url: https://matharena.ai/competition_tables/overall--brokenarxiv
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''
+- id: model-233-matharena-arxivmath
+  volatility: live
+  url: https://matharena.ai/competition_tables/overall--arxivmath
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator:
+      kind: page
+      value: ''

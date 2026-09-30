@@ -291,7 +291,13 @@ def _fallback_home(site: str, headline: str, lede: str, links: list[tuple[str, s
                    build=build, site=site, nav_links=nav)
 
 
-def write_decision_vocabulary(root: Path, snapshot_path: Path, *, key: bytes | None) -> Path:
+_FROM_ENV = object()
+
+
+def write_decision_vocabulary(
+    root: Path, snapshot_path: Path, *, key: bytes | None,
+    ed25519_signer: object = _FROM_ENV,
+) -> Path:
     """Write ``vocabulary.json`` beside the snapshot it describes (MODEL-153)."""
     import json
 
@@ -303,14 +309,19 @@ def write_decision_vocabulary(root: Path, snapshot_path: Path, *, key: bytes | N
     pages = {b.benchmark_id: b.front for b in load_benchmarks(root)}
     cards = {m.model_id: m.front for m in load_models(root)}
     target = snapshot_path.parent / "vocabulary.json"
+    vocabulary = build_vocabulary(
+        loaded,
+        pages=pages,
+        cards=cards,
+        enforce_frontier_coverage=True,
+    )
+    signer = (decision_snapshot.env_ed25519_signer()
+              if ed25519_signer is _FROM_ENV else ed25519_signer)
+    if signer is not None:
+        vocabulary = decision_snapshot.sign_vocabulary(vocabulary, signer)
     target.write_text(
         json.dumps(
-            build_vocabulary(
-                loaded,
-                pages=pages,
-                cards=cards,
-                enforce_frontier_coverage=True,
-            ),
+            vocabulary,
             indent=2,
             ensure_ascii=False,
             allow_nan=False,

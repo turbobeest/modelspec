@@ -29,7 +29,12 @@ from typing import Any
 import yaml
 
 from decision.excluded import excluded_sources
-from decision.model import SourceRef, TargetRef, VerificationActor
+from decision.model import (
+    SourceRef,
+    TargetRef,
+    VerificationActor,
+    evidence_verification_value,
+)
 from decision.sources import CopyStore, load_sources
 from decision.verify import (
     Claim,
@@ -362,7 +367,8 @@ def _claim(model_id: str, front: Mapping[str, Any], row: Mapping[str, Any],
         names=names,
         field=str(row["benchmark_id"]),
         label=board.value_field,
-        value=row["score"],
+        # The value the snapshot checks: with interval, n or quality flags, all of them.
+        value=evidence_verification_value(row),
         unit=row.get("unit"),
         conditions={"effort": row.get("effort"), "harness": row.get("harness"),
                     "date": row.get("evidence_date")},
@@ -874,6 +880,16 @@ def _project_scale_hle(html: str, *, url: str, page_ref: str,
                             note="entries from the page's React payload; score as accuracy")
 
 
+#: MathArena's research-maths boards, the Overall table of each (MODEL-233). The
+#: site marks its final-answer and proof competitions deprecated; these still run.
+MATHARENA_BOARDS = {
+    "brokenarxiv": ("model-233-matharena-brokenarxiv",
+                    "https://matharena.ai/competition_tables/overall--brokenarxiv"),
+    "arxivmath": ("model-233-matharena-arxivmath",
+                  "https://matharena.ai/competition_tables/overall--arxivmath"),
+}
+
+
 FINBENCH_URL = "https://finbenchmark.ai/"
 
 
@@ -1010,12 +1026,29 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
         failures.append(RowFailure("*", "epoch", readers.EPOCH_ZIP,
                                    f"{type(exc).__name__}: {exc}"))
 
-    collect("matharena", "model-160-matharena-aime-2026", ("aime_2026",),
-            readers.MATHARENA_URL, readers.MATHARENA_URL,
-            lambda body, **kw: readers.project_matharena(body, read_date=observed_at,
-                                                          **{k: v for k, v in kw.items()
-                                                             if k != "observed_at"}),
-            "accuracy")
+    # MathArena: MIT-licensed code, CC BY-SA 4.0 datasets; the site asks only to be
+    # cited (checked 2026-09-29). Its index marks retired competitions, and a row's
+    # `deprecated` flag must come from the same reading as its score.
+    matharena = {
+        "matharena": ("model-160-matharena-aime-2026", "aime_2026", readers.MATHARENA_URL),
+        **{f"matharena:{benchmark}": (source_id, benchmark, url)
+           for benchmark, (source_id, url) in MATHARENA_BOARDS.items()},
+    }
+    try:
+        index = _fetch(readers.MATHARENA_INDEX)
+        index_ref = store.put(index)
+    except Exception as exc:
+        failures.append(RowFailure("*", "matharena", readers.MATHARENA_INDEX,
+                                   f"{type(exc).__name__}: {exc}"))
+    else:
+        for key, (source_id, benchmark, url) in matharena.items():
+            def project(body: bytes, *, url: str, page_ref: str, observed_at: str,
+                        competition: str = url.rsplit("/", 1)[1]) -> bytes:
+                return readers.project_matharena(
+                    body, url=url, read_date=observed_at,
+                    page_ref=f"{page_ref}; index {index_ref} {readers.MATHARENA_INDEX}",
+                    deprecated=readers.matharena_deprecated(index.decode(), competition))
+            collect(key, source_id, (benchmark,), url, url, project, "accuracy")
     try:
         raw = _fetch(readers.METR_URL)
         raw_ref = store.put(raw)

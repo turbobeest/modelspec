@@ -1,0 +1,798 @@
+{
+ "dropped_runs": [],
+ "evidence_sha256": "sha256:46c244390fbc090df3bba2cdc0c2555cb03520410a75c7c649ecc4cb7c3166ea",
+ "facts": [],
+ "format": "modelspec.speed-measurement",
+ "measurement_id": "speed-v1-2026-09-30-4e4dc9f76018",
+ "method": "speed-v1",
+ "method_url": "https://github.com/turbobeest/modelspec/blob/main/docs/method/speed-measurement.md",
+ "provenance": "live",
+ "results": [
+  {
+   "attempted": 2,
+   "days": 0,
+   "effort": "thinking off",
+   "failure_rate": 1.0,
+   "failures": {
+    "http_error": 2
+   },
+   "n": 0,
+   "offering": "anthropic/anthropic/claude-opus-5-5/global/standard",
+   "publishable": false,
+   "reasoning_tokens": null,
+   "reasons": [
+    "0 good samples; the gate is 20",
+    "0 time slots; the gate is 8",
+    "slots cover 0 of the 4 scheduled hours",
+    "0 days; the gate is 2",
+    "100% of requests failed; the gate is 20%"
+   ],
+   "throughput_tps": null,
+   "time_slots": 0,
+   "ttft_ms": null,
+   "window": null,
+   "workload": "short_chat"
+  },
+  {
+   "attempted": 2,
+   "days": 0,
+   "effort": "thinking off",
+   "failure_rate": 1.0,
+   "failures": {
+    "http_error": 2
+   },
+   "n": 0,
+   "offering": "anthropic/anthropic/claude-opus-5-5/global/standard",
+   "publishable": false,
+   "reasoning_tokens": null,
+   "reasons": [
+    "0 good samples; the gate is 20",
+    "0 time slots; the gate is 8",
+    "slots cover 0 of the 4 scheduled hours",
+    "0 days; the gate is 2",
+    "100% of requests failed; the gate is 20%"
+   ],
+   "throughput_tps": null,
+   "time_slots": 0,
+   "ttft_ms": null,
+   "window": null,
+   "workload": "coding"
+  },
+  {
+   "attempted": 2,
+   "days": 0,
+   "effort": "thinking off",
+   "failure_rate": 1.0,
+   "failures": {
+    "http_error": 2
+   },
+   "n": 0,
+   "offering": "anthropic/anthropic/claude-opus-5-5/global/standard",
+   "publishable": false,
+   "reasoning_tokens": null,
+   "reasons": [
+    "0 good samples; the gate is 20",
+    "0 time slots; the gate is 8",
+    "slots cover 0 of the 4 scheduled hours",
+    "0 days; the gate is 2",
+    "100% of requests failed; the gate is 20%"
+   ],
+   "throughput_tps": null,
+   "time_slots": 0,
+   "ttft_ms": null,
+   "window": null,
+   "workload": "long_context"
+  },
+  {
+   "attempted": 2,
+   "days": 0,
+   "effort": "thinking off",
+   "failure_rate": 1.0,
+   "failures": {
+    "http_error": 2
+   },
+   "n": 0,
+   "offering": "anthropic/anthropic/claude-sonnet-5-5/global/standard",
+   "publishable": false,
+   "reasoning_tokens": null,
+   "reasons": [
+    "0 good samples; the gate is 20",
+    "0 time slots; the gate is 8",
+    "slots cover 0 of the 4 scheduled hours",
+    "0 days; the gate is 2",
+    "100% of requests failed; the gate is 20%"
+   ],
+   "throughput_tps": null,
+   "time_slots": 0,
+   "ttft_ms": null,
+   "window": null,
+   "workload": "short_chat"
+  },
+  {
+   "attempted": 2,
+   "days": 0,
+   "effort": "thinking off",
+   "failure_rate": 1.0,
+   "failures": {
+    "http_error": 2
+   },
+   "n": 0,
+   "offering": "anthropic/anthropic/claude-sonnet-5-5/global/standard",
+   "publishable": false,
+   "reasoning_tokens": null,
+   "reasons": [
+    "0 good samples; the gate is 20",
+    "0 time slots; the gate is 8",
+    "slots cover 0 of the 4 scheduled hours",
+    "0 days; the gate is 2",
+    "100% of requests failed; the gate is 20%"
+   ],
+   "throughput_tps": null,
+   "time_slots": 0,
+   "ttft_ms": null,
+   "window": null,
+   "workload": "coding"
+  },
+  {
+   "attempted": 2,
+   "days": 0,
+   "effort": "thinking off",
+   "failure_rate": 1.0,
+   "failures": {
+    "http_error": 2
+   },
+   "n": 0,
+   "offering": "anthropic/anthropic/claude-sonnet-5-5/global/standard",
+   "publishable": false,
+   "reasoning_tokens": null,
+   "reasons": [
+    "0 good samples; the gate is 20",
+    "0 time slots; the gate is 8",
+    "slots cover 0 of the 4 scheduled hours",
+    "0 days; the gate is 2",
+    "100% of requests failed; the gate is 20%"
+   ],
+   "throughput_tps": null,
+   "time_slots": 0,
+   "ttft_ms": null,
+   "window": null,
+   "workload": "long_context"
+  },
+  {
+   "attempted": 2,
+   "days": 0,
+   "effort": "non-thinking mode",
+   "failure_rate": 1.0,
+   "failures": {
+    "no_content": 2
+   },
+   "n": 0,
+   "offering": "deepseek/deepseek/deepseek-flash/global/standard",
+   "publishable": false,
+   "reasoning_tokens": null,
+   "reasons": [
+    "0 good samples; the gate is 20",
+    "0 time slots; the gate is 8",
+    "slots cover 0 of the 4 scheduled hours",
+    "0 days; the gate is 2",
+    "100% of requests failed; the gate is 20%",
+    "the effort claims no reasoning, but 2 counted requests reasoned"
+   ],
+   "throughput_tps": null,
+   "time_slots": 0,
+   "ttft_ms": null,
+   "window": null,
+   "workload": "short_chat"
+  },
+  {
+   "attempted": 2,
+   "days": 0,
+   "effort": "non-thinking mode",
+   "failure_rate": 1.0,
+   "failures": {
+    "no_content": 2
+   },
+   "n": 0,
+   "offering": "deepseek/deepseek/deepseek-flash/global/standard",
+   "publishable": false,
+   "reasoning_tokens": null,
+   "reasons": [
+    "0 good samples; the gate is 20",
+    "0 time slots; the gate is 8",
+    "slots cover 0 of the 4 scheduled hours",
+    "0 days; the gate is 2",
+    "100% of requests failed; the gate is 20%",
+    "the effort claims no reasoning, but 2 counted requests reasoned"
+   ],
+   "throughput_tps": null,
+   "time_slots": 0,
+   "ttft_ms": null,
+   "window": null,
+   "workload": "coding"
+  },
+  {
+   "attempted": 2,
+   "days": 0,
+   "effort": "non-thinking mode",
+   "failure_rate": 1.0,
+   "failures": {
+    "no_content": 2
+   },
+   "n": 0,
+   "offering": "deepseek/deepseek/deepseek-flash/global/standard",
+   "publishable": false,
+   "reasoning_tokens": null,
+   "reasons": [
+    "0 good samples; the gate is 20",
+    "0 time slots; the gate is 8",
+    "slots cover 0 of the 4 scheduled hours",
+    "0 days; the gate is 2",
+    "100% of requests failed; the gate is 20%",
+    "the effort claims no reasoning, but 2 counted requests reasoned"
+   ],
+   "throughput_tps": null,
+   "time_slots": 0,
+   "ttft_ms": null,
+   "window": null,
+   "workload": "long_context"
+  },
+  {
+   "attempted": 2,
+   "days": 0,
+   "effort": "non-thinking mode",
+   "failure_rate": 1.0,
+   "failures": {
+    "no_content": 2
+   },
+   "n": 0,
+   "offering": "deepseek/deepseek/deepseek-v4-pro/global/standard",
+   "publishable": false,
+   "reasoning_tokens": null,
+   "reasons": [
+    "0 good samples; the gate is 20",
+    "0 time slots; the gate is 8",
+    "slots cover 0 of the 4 scheduled hours",
+    "0 days; the gate is 2",
+    "100% of requests failed; the gate is 20%",
+    "the effort claims no reasoning, but 2 counted requests reasoned"
+   ],
+   "throughput_tps": null,
+   "time_slots": 0,
+   "ttft_ms": null,
+   "window": null,
+   "workload": "short_chat"
+  },
+  {
+   "attempted": 2,
+   "days": 0,
+   "effort": "non-thinking mode",
+   "failure_rate": 1.0,
+   "failures": {
+    "no_content": 2
+   },
+   "n": 0,
+   "offering": "deepseek/deepseek/deepseek-v4-pro/global/standard",
+   "publishable": false,
+   "reasoning_tokens": null,
+   "reasons": [
+    "0 good samples; the gate is 20",
+    "0 time slots; the gate is 8",
+    "slots cover 0 of the 4 scheduled hours",
+    "0 days; the gate is 2",
+    "100% of requests failed; the gate is 20%",
+    "the effort claims no reasoning, but 2 counted requests reasoned"
+   ],
+   "throughput_tps": null,
+   "time_slots": 0,
+   "ttft_ms": null,
+   "window": null,
+   "workload": "coding"
+  },
+  {
+   "attempted": 2,
+   "days": 0,
+   "effort": "non-thinking mode",
+   "failure_rate": 1.0,
+   "failures": {
+    "no_content": 2
+   },
+   "n": 0,
+   "offering": "deepseek/deepseek/deepseek-v4-pro/global/standard",
+   "publishable": false,
+   "reasoning_tokens": null,
+   "reasons": [
+    "0 good samples; the gate is 20",
+    "0 time slots; the gate is 8",
+    "slots cover 0 of the 4 scheduled hours",
+    "0 days; the gate is 2",
+    "100% of requests failed; the gate is 20%",
+    "the effort claims no reasoning, but 2 counted requests reasoned"
+   ],
+   "throughput_tps": null,
+   "time_slots": 0,
+   "ttft_ms": null,
+   "window": null,
+   "workload": "long_context"
+  },
+  {
+   "attempted": 2,
+   "days": 0,
+   "effort": "thinking budget 128 (the minimum)",
+   "failure_rate": 1.0,
+   "failures": {
+    "http_error": 2
+   },
+   "n": 0,
+   "offering": "google-gemini-api/google/gemini-3-1-pro-preview/global/standard",
+   "publishable": false,
+   "reasoning_tokens": null,
+   "reasons": [
+    "0 good samples; the gate is 20",
+    "0 time slots; the gate is 8",
+    "slots cover 0 of the 4 scheduled hours",
+    "0 days; the gate is 2",
+    "100% of requests failed; the gate is 20%"
+   ],
+   "throughput_tps": null,
+   "time_slots": 0,
+   "ttft_ms": null,
+   "window": null,
+   "workload": "short_chat"
+  },
+  {
+   "attempted": 2,
+   "days": 0,
+   "effort": "thinking budget 128 (the minimum)",
+   "failure_rate": 1.0,
+   "failures": {
+    "http_error": 2
+   },
+   "n": 0,
+   "offering": "google-gemini-api/google/gemini-3-1-pro-preview/global/standard",
+   "publishable": false,
+   "reasoning_tokens": null,
+   "reasons": [
+    "0 good samples; the gate is 20",
+    "0 time slots; the gate is 8",
+    "slots cover 0 of the 4 scheduled hours",
+    "0 days; the gate is 2",
+    "100% of requests failed; the gate is 20%"
+   ],
+   "throughput_tps": null,
+   "time_slots": 0,
+   "ttft_ms": null,
+   "window": null,
+   "workload": "coding"
+  },
+  {
+   "attempted": 2,
+   "days": 0,
+   "effort": "thinking budget 128 (the minimum)",
+   "failure_rate": 1.0,
+   "failures": {
+    "http_error": 2
+   },
+   "n": 0,
+   "offering": "google-gemini-api/google/gemini-3-1-pro-preview/global/standard",
+   "publishable": false,
+   "reasoning_tokens": null,
+   "reasons": [
+    "0 good samples; the gate is 20",
+    "0 time slots; the gate is 8",
+    "slots cover 0 of the 4 scheduled hours",
+    "0 days; the gate is 2",
+    "100% of requests failed; the gate is 20%"
+   ],
+   "throughput_tps": null,
+   "time_slots": 0,
+   "ttft_ms": null,
+   "window": null,
+   "workload": "long_context"
+  },
+  {
+   "attempted": 2,
+   "days": 0,
+   "effort": "thinking budget 0",
+   "failure_rate": 1.0,
+   "failures": {
+    "stream_error": 2
+   },
+   "n": 0,
+   "offering": "google-gemini-api/google/gemini-3-8-flash/global/standard",
+   "publishable": false,
+   "reasoning_tokens": null,
+   "reasons": [
+    "0 good samples; the gate is 20",
+    "0 time slots; the gate is 8",
+    "slots cover 0 of the 4 scheduled hours",
+    "0 days; the gate is 2",
+    "100% of requests failed; the gate is 20%"
+   ],
+   "throughput_tps": null,
+   "time_slots": 0,
+   "ttft_ms": null,
+   "window": null,
+   "workload": "short_chat"
+  },
+  {
+   "attempted": 2,
+   "days": 1,
+   "effort": "thinking budget 0",
+   "failure_rate": 0.5,
+   "failures": {
+    "http_error": 1
+   },
+   "n": 1,
+   "offering": "google-gemini-api/google/gemini-3-8-flash/global/standard",
+   "publishable": false,
+   "reasoning_tokens": 0,
+   "reasons": [
+    "1 good samples; the gate is 20",
+    "1 time slots; the gate is 8",
+    "slots cover 1 of the 4 scheduled hours",
+    "1 days; the gate is 2",
+    "50% of requests failed; the gate is 20%"
+   ],
+   "throughput_tps": {
+    "interval": [
+     918217.13,
+     918217.13
+    ],
+    "iqr": [
+     918217.13,
+     918217.13
+    ],
+    "median": 918217.13,
+    "n": 1
+   },
+   "time_slots": 1,
+   "ttft_ms": {
+    "interval": [
+     7185.4,
+     7185.4
+    ],
+    "iqr": [
+     7185.4,
+     7185.4
+    ],
+    "median": 7185.4,
+    "n": 1
+   },
+   "window": {
+    "end": "2026-09-30T00:11:24.163959+00:00",
+    "start": "2026-09-30T00:11:24.163959+00:00"
+   },
+   "workload": "coding"
+  },
+  {
+   "attempted": 2,
+   "days": 0,
+   "effort": "thinking budget 0",
+   "failure_rate": 1.0,
+   "failures": {
+    "not_streamed": 1,
+    "stream_error": 1
+   },
+   "n": 0,
+   "offering": "google-gemini-api/google/gemini-3-8-flash/global/standard",
+   "publishable": false,
+   "reasoning_tokens": null,
+   "reasons": [
+    "0 good samples; the gate is 20",
+    "0 time slots; the gate is 8",
+    "slots cover 0 of the 4 scheduled hours",
+    "0 days; the gate is 2",
+    "100% of requests failed; the gate is 20%"
+   ],
+   "throughput_tps": null,
+   "time_slots": 0,
+   "ttft_ms": null,
+   "window": null,
+   "workload": "long_context"
+  },
+  {
+   "attempted": 2,
+   "days": 0,
+   "effort": "reasoning_effort minimal",
+   "failure_rate": 1.0,
+   "failures": {
+    "http_error": 2
+   },
+   "n": 0,
+   "offering": "openai/openai/gpt-5-6-sol/global/standard",
+   "publishable": false,
+   "reasoning_tokens": null,
+   "reasons": [
+    "0 good samples; the gate is 20",
+    "0 time slots; the gate is 8",
+    "slots cover 0 of the 4 scheduled hours",
+    "0 days; the gate is 2",
+    "100% of requests failed; the gate is 20%"
+   ],
+   "throughput_tps": null,
+   "time_slots": 0,
+   "ttft_ms": null,
+   "window": null,
+   "workload": "short_chat"
+  },
+  {
+   "attempted": 2,
+   "days": 0,
+   "effort": "reasoning_effort minimal",
+   "failure_rate": 1.0,
+   "failures": {
+    "http_error": 2
+   },
+   "n": 0,
+   "offering": "openai/openai/gpt-5-6-sol/global/standard",
+   "publishable": false,
+   "reasoning_tokens": null,
+   "reasons": [
+    "0 good samples; the gate is 20",
+    "0 time slots; the gate is 8",
+    "slots cover 0 of the 4 scheduled hours",
+    "0 days; the gate is 2",
+    "100% of requests failed; the gate is 20%"
+   ],
+   "throughput_tps": null,
+   "time_slots": 0,
+   "ttft_ms": null,
+   "window": null,
+   "workload": "coding"
+  },
+  {
+   "attempted": 2,
+   "days": 0,
+   "effort": "reasoning_effort minimal",
+   "failure_rate": 1.0,
+   "failures": {
+    "http_error": 2
+   },
+   "n": 0,
+   "offering": "openai/openai/gpt-5-6-sol/global/standard",
+   "publishable": false,
+   "reasoning_tokens": null,
+   "reasons": [
+    "0 good samples; the gate is 20",
+    "0 time slots; the gate is 8",
+    "slots cover 0 of the 4 scheduled hours",
+    "0 days; the gate is 2",
+    "100% of requests failed; the gate is 20%"
+   ],
+   "throughput_tps": null,
+   "time_slots": 0,
+   "ttft_ms": null,
+   "window": null,
+   "workload": "long_context"
+  },
+  {
+   "attempted": 2,
+   "days": 0,
+   "effort": "reasoning_effort minimal",
+   "failure_rate": 1.0,
+   "failures": {
+    "http_error": 2
+   },
+   "n": 0,
+   "offering": "openai/openai/gpt-6-sol/global/standard",
+   "publishable": false,
+   "reasoning_tokens": null,
+   "reasons": [
+    "0 good samples; the gate is 20",
+    "0 time slots; the gate is 8",
+    "slots cover 0 of the 4 scheduled hours",
+    "0 days; the gate is 2",
+    "100% of requests failed; the gate is 20%"
+   ],
+   "throughput_tps": null,
+   "time_slots": 0,
+   "ttft_ms": null,
+   "window": null,
+   "workload": "short_chat"
+  },
+  {
+   "attempted": 2,
+   "days": 0,
+   "effort": "reasoning_effort minimal",
+   "failure_rate": 1.0,
+   "failures": {
+    "http_error": 2
+   },
+   "n": 0,
+   "offering": "openai/openai/gpt-6-sol/global/standard",
+   "publishable": false,
+   "reasoning_tokens": null,
+   "reasons": [
+    "0 good samples; the gate is 20",
+    "0 time slots; the gate is 8",
+    "slots cover 0 of the 4 scheduled hours",
+    "0 days; the gate is 2",
+    "100% of requests failed; the gate is 20%"
+   ],
+   "throughput_tps": null,
+   "time_slots": 0,
+   "ttft_ms": null,
+   "window": null,
+   "workload": "coding"
+  },
+  {
+   "attempted": 2,
+   "days": 0,
+   "effort": "reasoning_effort minimal",
+   "failure_rate": 1.0,
+   "failures": {
+    "http_error": 2
+   },
+   "n": 0,
+   "offering": "openai/openai/gpt-6-sol/global/standard",
+   "publishable": false,
+   "reasoning_tokens": null,
+   "reasons": [
+    "0 good samples; the gate is 20",
+    "0 time slots; the gate is 8",
+    "slots cover 0 of the 4 scheduled hours",
+    "0 days; the gate is 2",
+    "100% of requests failed; the gate is 20%"
+   ],
+   "throughput_tps": null,
+   "time_slots": 0,
+   "ttft_ms": null,
+   "window": null,
+   "workload": "long_context"
+  },
+  {
+   "attempted": 2,
+   "days": 0,
+   "effort": "provider default",
+   "failure_rate": 1.0,
+   "failures": {
+    "cache_hit": 2
+   },
+   "n": 0,
+   "offering": "xai/xai/grok-4-7/global/standard",
+   "publishable": false,
+   "reasoning_tokens": null,
+   "reasons": [
+    "0 good samples; the gate is 20",
+    "0 time slots; the gate is 8",
+    "slots cover 0 of the 4 scheduled hours",
+    "0 days; the gate is 2",
+    "100% of requests failed; the gate is 20%"
+   ],
+   "throughput_tps": null,
+   "time_slots": 0,
+   "ttft_ms": null,
+   "window": null,
+   "workload": "short_chat"
+  },
+  {
+   "attempted": 2,
+   "days": 0,
+   "effort": "provider default",
+   "failure_rate": 1.0,
+   "failures": {
+    "cache_hit": 2
+   },
+   "n": 0,
+   "offering": "xai/xai/grok-4-7/global/standard",
+   "publishable": false,
+   "reasoning_tokens": null,
+   "reasons": [
+    "0 good samples; the gate is 20",
+    "0 time slots; the gate is 8",
+    "slots cover 0 of the 4 scheduled hours",
+    "0 days; the gate is 2",
+    "100% of requests failed; the gate is 20%"
+   ],
+   "throughput_tps": null,
+   "time_slots": 0,
+   "ttft_ms": null,
+   "window": null,
+   "workload": "coding"
+  },
+  {
+   "attempted": 2,
+   "days": 0,
+   "effort": "provider default",
+   "failure_rate": 1.0,
+   "failures": {
+    "cache_hit": 2
+   },
+   "n": 0,
+   "offering": "xai/xai/grok-4-7/global/standard",
+   "publishable": false,
+   "reasoning_tokens": null,
+   "reasons": [
+    "0 good samples; the gate is 20",
+    "0 time slots; the gate is 8",
+    "slots cover 0 of the 4 scheduled hours",
+    "0 days; the gate is 2",
+    "100% of requests failed; the gate is 20%"
+   ],
+   "throughput_tps": null,
+   "time_slots": 0,
+   "ttft_ms": null,
+   "window": null,
+   "workload": "long_context"
+  },
+  {
+   "attempted": 2,
+   "days": 0,
+   "effort": "thinking disabled",
+   "failure_rate": 1.0,
+   "failures": {
+    "http_error": 2
+   },
+   "n": 0,
+   "offering": "zai/zhipu/glm-5-3/global/standard",
+   "publishable": false,
+   "reasoning_tokens": null,
+   "reasons": [
+    "0 good samples; the gate is 20",
+    "0 time slots; the gate is 8",
+    "slots cover 0 of the 4 scheduled hours",
+    "0 days; the gate is 2",
+    "100% of requests failed; the gate is 20%"
+   ],
+   "throughput_tps": null,
+   "time_slots": 0,
+   "ttft_ms": null,
+   "window": null,
+   "workload": "short_chat"
+  },
+  {
+   "attempted": 2,
+   "days": 0,
+   "effort": "thinking disabled",
+   "failure_rate": 1.0,
+   "failures": {
+    "http_error": 2
+   },
+   "n": 0,
+   "offering": "zai/zhipu/glm-5-3/global/standard",
+   "publishable": false,
+   "reasoning_tokens": null,
+   "reasons": [
+    "0 good samples; the gate is 20",
+    "0 time slots; the gate is 8",
+    "slots cover 0 of the 4 scheduled hours",
+    "0 days; the gate is 2",
+    "100% of requests failed; the gate is 20%"
+   ],
+   "throughput_tps": null,
+   "time_slots": 0,
+   "ttft_ms": null,
+   "window": null,
+   "workload": "coding"
+  },
+  {
+   "attempted": 2,
+   "days": 0,
+   "effort": "thinking disabled",
+   "failure_rate": 1.0,
+   "failures": {
+    "http_error": 2
+   },
+   "n": 0,
+   "offering": "zai/zhipu/glm-5-3/global/standard",
+   "publishable": false,
+   "reasoning_tokens": null,
+   "reasons": [
+    "0 good samples; the gate is 20",
+    "0 time slots; the gate is 8",
+    "slots cover 0 of the 4 scheduled hours",
+    "0 days; the gate is 2",
+    "100% of requests failed; the gate is 20%"
+   ],
+   "throughput_tps": null,
+   "time_slots": 0,
+   "ttft_ms": null,
+   "window": null,
+   "workload": "long_context"
+  }
+ ],
+ "runs": [
+  "speed-v1-2026-09-29T18-8e19404d5a1f"
+ ],
+ "vantage": "cloudflare-colo:IAD/US"
+}
