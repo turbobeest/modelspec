@@ -1,6 +1,6 @@
 # Privacy statement
 
-Version `1.3`, effective 2026-09-29. Adopted by Sparks and Sawdust LLC, which
+Version `1.4`, effective 2026-09-30. Adopted by Sparks and Sawdust LLC, which
 operates the service. MODEL-70. Version 1.0 was adopted on 2026-09-19; what
 changed since is listed under [Changes](#changes).
 
@@ -314,7 +314,7 @@ you. Cloudflare processes it under its own terms as our infrastructure provider.
 `modelspec.dev` is a static site on Cloudflare Pages. `benchgraph.dev`
 redirects to it.
 
-- **No cookies are set.** No tag manager, no tracking pixel, no advertising
+- **No cookies are set by ModelSpec.** No tag manager, no tracking pixel, no advertising
   network.
 - **Cloudflare Web Analytics is on**, as described under *Cloudflare Web
   Analytics* below.
@@ -412,16 +412,53 @@ nothing below is read as describing the service today:
   separate staging copy of the API, on a `workers.dev` address that the site
   never calls, runs with x402 on, on a test network, for testing; a request
   sent to it directly can be metered as described next. Turning x402 on would
-  also change two things this statement says today, and each has to be settled
-  before it is turned on. A request from a browser on this site that presents
-  no key would be metered in `ACCESS`, under counters named from the SHA-256
-  of your IP address (`_site_free_visitor` in `api/worker/src/entry.py`). An
-  unsalted hash of an IP address can be reversed by trying every address, so
-  it is a pseudonymous address, not an anonymous one; a keyed or rotating
-  scheme replaces it, and this statement is revised, before x402 is switched
-  on. And a payment made without a key would be recorded in the credit ledger
-  under the paying wallet's public address, with the credits it bought, which
-  are spent at once.
+  also change two things this statement says today. A request from a browser on
+  this site that presents no key would be metered in `ACCESS`, under counters
+  named from a visitor id: `HMAC-SHA256(VISITOR_HMAC_KEY, IP | UTC day)`, where
+  `VISITOR_HMAC_KEY` is a secret held by the Worker and not in this repository
+  (`api/worker/src/visitor.py`). The address is read transiently to derive the
+  id and is not stored; no bare hash of an address is kept. Because the key is
+  secret, the id cannot be reversed by trying every address, and because the
+  day is part of the input, the id changes each UTC day and cannot be followed
+  from one day to the next. People who share a public IP address share an id
+  for that day. And a payment made without a key would be recorded in the
+  credit ledger under the paying wallet's public address, with the credits it
+  bought, which are spent at once.
+- **The human gate on the decide page (Cloudflare Turnstile).** Built, and
+  **not yet enabled**: it ships off (`HUMAN_GATE_ENABLED`) in production, and
+  this describes what would happen once it is switched on. Until
+  then no Turnstile challenge is loaded and nothing below happens.
+  When on, a manual lookup from the decide page must carry a fresh
+  Cloudflare Turnstile token, which distinguishes people from automated access.
+  Your browser then loads a Cloudflare script and challenge frame and connects
+  to `challenges.cloudflare.com`. Cloudflare processes browser and network
+  signals, including your IP address, TLS fingerprint, User-Agent, the site key
+  and the origin. Cloudflare acts as our processor for protecting the site and
+  as a controller for improving Turnstile's bot detection; see its
+  [Turnstile Privacy Addendum](https://www.cloudflare.com/turnstile-privacy-policy/).
+  We receive a challenge token and send it, with our secret, to Cloudflare's
+  Siteverify service, checking that it succeeded and matches our hostname and
+  the `decide` action. We omit the optional `remoteip` parameter. A token
+  expires after five minutes and is single-use; we neither store nor log it.
+  The Worker also reads `CF-Connecting-IP` transiently to derive the same daily
+  keyed visitor id, `HMAC-SHA256(VISITOR_HMAC_KEY, IP | UTC day)`; it stores no
+  raw IP and no bare hash of one. For this gate only, an IPv6 address is
+  first reduced to its /64 network, so people who share a /64 share one
+  allowance; the paid-access meter above uses the address as supplied. A Cloudflare Durable Object keeps, for each
+  daily visitor id, the count of lookups admitted that day, the day, the times
+  of recent lookups and, if triggered, a suspicion expiry. It holds no value
+  derived from the spec, no raw spec, no token and no raw IP. An admitted lookup uses up
+  allowance even if the decision then fails. History older than ten minutes is
+  dropped on the next admission, and each daily object's state is scheduled for
+  deletion at the following UTC midnight; a delayed or retried alarm can delay
+  the physical deletion, and Cloudflare's point-in-time recovery for
+  SQLite-backed storage can retain earlier states for up to 30 days. A visitor
+  may make at most 20 admitted lookups a day and 3 in any minute, and
+  five requests at nearly equal intervals are refused for ten minutes as
+  automated-looking. Failed verification is
+  refused, not treated as human. No network-operator or headless score is
+  stored. ModelSpec sets no cookie for this and does not enable Turnstile
+  pre-clearance; we do not say that Cloudflare sets none of its own.
 - **Outcome logging by the service.** Not built. The service does not receive or
   record what you chose, whether a recommendation worked, or anything about the
   result of acting on one. The CLI's local log (see *Inference, and why there is nothing to say
@@ -448,6 +485,14 @@ to `DELETE /v1/feedback`, or write to us with it.
 A change to what the service records is a change to this statement, and it is
 published here before the change ships. The version above is the one in force.
 
+- **1.4, 2026-09-30.** Under *Not yet live*, replaced the description of the
+  keyless visitor meter, which named an unsalted SHA-256 of the IP address, with
+  the keyed id that replaced it: HMAC-SHA256 with a secret held by the Worker,
+  over the address and the UTC day, so it cannot be reversed by enumeration and
+  changes daily (MODEL-241). Disclosed, before it is enabled, the Cloudflare
+  Turnstile human gate on the decide page: what Cloudflare receives, what we
+  verify, what the Worker's Durable Object keeps and for how long, the daily and
+  per-minute limits, and the automated-behaviour refusal (MODEL-248).
 - **1.3, 2026-09-29.** Brought the statement back in line with the service.
   Described `POST /v1/decide` and `/v1/compare`, their fields and their 64 KB
   cap, and what the decide page sends to them. Replaced the retired downselect
