@@ -24,7 +24,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: turbobeest/modelspec
-          ref: 6b156165e37be699c9d87882aad446bc36f11813
+          ref: 69871e3a554cd0affa26a0d78d5663b576f07003
           path: engine
           persist-credentials: false
       - name: Compose code into the private checkout
@@ -93,7 +93,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: turbobeest/modelspec
-          ref: 6b156165e37be699c9d87882aad446bc36f11813
+          ref: 69871e3a554cd0affa26a0d78d5663b576f07003
           path: engine
           persist-credentials: false
       - name: Compose code into the private checkout
@@ -161,7 +161,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: turbobeest/modelspec
-          ref: 6b156165e37be699c9d87882aad446bc36f11813
+          ref: 69871e3a554cd0affa26a0d78d5663b576f07003
           path: engine
           persist-credentials: false
       - name: Compose code into the private checkout
@@ -242,7 +242,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: turbobeest/modelspec
-          ref: 6b156165e37be699c9d87882aad446bc36f11813
+          ref: 69871e3a554cd0affa26a0d78d5663b576f07003
           path: engine
           persist-credentials: false
       - name: Compose code into the private checkout
