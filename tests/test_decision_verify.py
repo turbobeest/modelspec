@@ -1154,15 +1154,108 @@ def test_an_effort_the_region_does_not_state_is_not_evidence(
     assert "extractor_error" in result.reason
 
 
+CAPTION = ("Unless otherwise noted, all Nimbus 3 results use extended thinking at max effort, "
+           "default sampling settings, averaged over five trials.")
+
+
+@pytest.mark.parametrize("subject, value, effort", [
+    ("GPT-6 Sol", "64.0", "max"),
+    ("Nimbus 3", "71.2", "default"),
+], ids=["caption-for-another-model", "caption-word-that-is-not-an-effort"])
+def test_a_caption_does_not_lend_an_effort_it_does_not_state_for_the_value(
+        subject, value, effort, store, regions) -> None:
+    # The caption states max for Nimbus 3 only, and "default" only for sampling.
+    claim = _claim({**READER_CLAIMS["nimbus-caption-max"], "names": [subject],
+                    "value": float(value), "conditions": {"effort": effort}}, store)
+    reader = _replay({"Coding": [{
+        "subject": subject, "value": value, "effort": effort,
+        "quoted_sentence": "Coding | 71.2 | 64.0", "condition_sentence": CAPTION,
+    }]})
+    result = verify.verify(claim, regions, [reader], today=TODAY)
+    assert result.outcome == "skipped"
+    assert "extractor_error" in result.reason
+
+
+@pytest.mark.parametrize("sibling_in_reply", [True, False], ids=["sibling-row", "no-sibling-row"])
+def test_a_caption_for_a_longer_name_does_not_lend_its_effort_to_a_sibling(
+        sibling_in_reply, store) -> None:
+    # The Opus 5.5 system card caption names "Claude Opus 5.5"; the Claude Opus 5
+    # column beside it has no stated effort (MODEL-233 review).
+    caption = ("Unless otherwise noted, all Claude Opus 5.5 results use the following "
+               "standard configuration: adaptive thinking at max effort.")
+    regions = _InlineRegions("Evaluation | Claude Opus 5.5 | Claude Opus 5\n"
+                             f"SWE-bench Pro | 89.9 | 79.2\n{caption}\n")
+    claim = _claim({**READER_CLAIMS["nimbus-caption-max"], "names": ["Claude Opus 5"],
+                    "label": "SWE-bench Pro", "value": 79.2}, store)
+    rows = [{"subject": "Claude Opus 5", "value": "79.2", "effort": "max",
+             "quoted_sentence": "SWE-bench Pro | 89.9 | 79.2", "condition_sentence": caption}]
+    if sibling_in_reply:
+        rows.append({**rows[0], "subject": "Claude Opus 5.5", "value": "89.9"})
+    result = verify.verify(claim, regions, [_replay({"SWE-bench Pro": rows})], today=TODAY)
+    assert result.outcome == "skipped"
+    assert "extractor_error" in result.reason
+
+
+OPUS_TABLE = "Evaluation | Claude Opus 5.5 | Claude Opus 5\nSWE-bench Pro | 89.9 | 79.2\n"
+
+
+@pytest.mark.parametrize("region, effort, quote, condition_sentence", [
+    (OPUS_TABLE + "Default sampling settings were used.\n", "default",
+     "SWE-bench Pro | 89.9 | 79.2\nDefault sampling settings were used.", None),
+    (OPUS_TABLE + "Claude Opus 5.5 SWE-bench Pro results use max effort.\n", "max",
+     "SWE-bench Pro | 89.9 | 79.2", "Claude Opus 5.5 SWE-bench Pro results use max effort."),
+    ("Claude Opus 5.5 uses max effort.\n" + OPUS_TABLE, "max",
+     "SWE-bench Pro | 89.9 | 79.2", None),
+    (OPUS_TABLE, "max", "SWE-bench Pro | 89.9 | 79.2", None),
+    (OPUS_TABLE + "Claude Opus 5.5 uses max effort.\n", "max",
+     "SWE-bench Pro | 89.9 | 79.2\nClaude Opus 5.5 uses max effort.", None),
+], ids=["row-word-that-is-not-an-effort", "benchmark-sentence-about-another-model",
+        "first-line-about-another-model", "qualifier-the-source-does-not-have",
+        "quote-line-without-the-value"])
+def test_the_region_must_state_the_effort_for_this_model(
+        region, effort, quote, condition_sentence, store) -> None:
+    # Independent review (codex) of the MODEL-233 fix: each of these verified a
+    # Claude Opus 5 value at an effort the region states for no Opus 5 value.
+    claim = _claim({**READER_CLAIMS["nimbus-caption-max"], "names": ["Claude Opus 5"],
+                    "label": "SWE-bench Pro", "value": 79.2,
+                    "conditions": {"effort": effort}}, store)
+    subject = "Claude Opus 5 (max effort)" if region == OPUS_TABLE else "Claude Opus 5"
+    rows = [{"subject": subject, "value": "79.2", "effort": effort,
+             "quoted_sentence": quote, "condition_sentence": condition_sentence},
+            {"subject": "Claude Opus 5.5", "value": "89.9", "effort": None,
+             "quoted_sentence": quote}]
+    result = verify.verify(claim, _InlineRegions(region), [_replay({"SWE-bench Pro": rows})],
+                           today=TODAY)
+    assert result.outcome == "skipped"
+    assert "extractor_error" in result.reason
+
+
+def test_an_effort_column_with_a_standard_cell_reads_as_default(store) -> None:
+    claim = _claim({**READER_CLAIMS["nimbus-caption-max"], "value": 1.0,
+                    "conditions": {"effort": "default"}}, store)
+    reader = _replay({"Coding": [{"subject": "Nimbus 3", "value": "1", "effort": "default",
+                                  "quoted_sentence": "Nimbus 3 | standard | 1"}]})
+    regions = _InlineRegions("Model | Effort | Coding\nNimbus 3 | standard | 1\n")
+    assert verify.verify(claim, regions, [reader], today=TODAY).outcome == "verified"
+
+
 def test_a_heading_effort_needs_no_condition_sentence(store, regions) -> None:
     # Mistral's reply for DeepSeek-V4.1-Flash's HLE w/ tools row (MODEL-233): the
-    # heading's effort, with no condition sentence quoted.
+    # heading's effort, with no condition sentence quoted. A caption is not a
+    # heading, so the same reply against the captioned region is refused.
     claim = _claim(READER_CLAIMS["nimbus-caption-max"], store)
     reader = _replay({"Coding": [{
         "subject": "Nimbus 3", "value": "71.2", "effort": "max", "condition_sentence": None,
         "quoted_sentence": "Coding | 71.2 | 64.0",
     }]})
-    assert verify.verify(claim, regions, [reader], today=TODAY).outcome == "verified"
+    headed = _InlineRegions("Comparison with frontier models (Max reasoning effort)\n"
+                            "Benchmark | Nimbus 3 | GPT-6 Sol\nCoding | 71.2 | 64.0\n")
+    assert verify.verify(claim, headed, [reader], today=TODAY).outcome == "verified"
+    assert verify.verify(claim, regions, [reader], today=TODAY).outcome == "skipped"
+    row_first = _InlineRegions("GPT-6 Sol (max effort) | 64.0\nNimbus 3 | 71.2\n")
+    reader = _replay({"Coding": [{"subject": "Nimbus 3", "value": "71.2", "effort": "max",
+                                  "quoted_sentence": "Nimbus 3 | 71.2"}]})
+    assert verify.verify(claim, row_first, [reader], today=TODAY).outcome == "skipped"
 
 
 class _InlineRegions:
@@ -1832,6 +1925,10 @@ def test_an_unregistered_harness_claim_matches_a_named_unregistered_harness(
     # Mistral's reading of the Opus 5.5 system card caption (MODEL-233).
     ("adaptive thinking at max effort", "verified"),
     ("max effort, xhigh effort for one benchmark", "mismatch"),
+    ("no max effort", "mismatch"),
+    ("without max reasoning effort", "mismatch"),
+    ("without adaptive thinking at max effort", "mismatch"),
+    ("low effort rather than max effort", "mismatch"),
 ])
 def test_an_effort_written_as_prose_is_read_as_its_level(store, found, outcome) -> None:
     claim = _prose_claim(store)
