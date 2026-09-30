@@ -446,9 +446,8 @@ nothing below is read as describing the service today:
   first reduced to its /64 network, so people who share a /64 share one
   allowance; the paid-access meter above uses the address as supplied. A Cloudflare Durable Object keeps, for each
   daily visitor id, the count of lookups admitted that day, the day, the times
-  of recent lookups, a keyed fingerprint of each spec sent (scoped to that
-  visitor id, not the spec itself; no limit currently compares them) and, if triggered, a suspicion expiry.
-  It holds no raw spec, no token and no raw IP. An admitted lookup uses up
+  of recent lookups and, if triggered, a suspicion expiry. It holds no value
+  derived from the spec, no raw spec, no token and no raw IP. An admitted lookup uses up
   allowance even if the decision then fails. History older than ten minutes is
   dropped on the next admission, and each daily object's state is scheduled for
   deletion at the following UTC midnight; a delayed or retried alarm can delay
