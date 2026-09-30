@@ -894,10 +894,11 @@ class Default(WorkerEntrypoint):
         try:
             stub = human_gate.stub_for(request, self.env)
             if stub is None:
-                raise RuntimeError("unconfigured")
+                raise RuntimeError(human_gate.unconfigured_reason(request, self.env))
             remaining = int(await stub.remaining())
             return _json_response(200, {"enabled": True, "remaining": remaining}, cors)
-        except Exception:
+        except Exception as exc:
+            human_gate.log_unavailable("status", exc)
             return _json_response(503, {"enabled": True, "message": human_gate.UNAVAILABLE}, cors)
 
     async def _feedback(self, request, method: str, service_commit: str):
