@@ -99,6 +99,22 @@ _SKIP_MD_EXT = re.compile(
 _WRANGLER_FLAG = re.compile(r'"([A-Z0-9_]+)"\s*:\s*"([^"]*)"')
 
 
+
+def _repo_rel(path: Path, top: str) -> str:
+    """The repository-relative path of a card, whichever root it was loaded from.
+
+    A build over a composed data root (MODEL-246) loads cards from a temporary
+    directory, so the path is anchored on the data directory's name instead.
+    """
+    try:
+        return path.relative_to(REPO_ROOT).as_posix()
+    except ValueError:
+        pass
+    parts = path.parts
+    if top in parts:
+        return "/".join(parts[len(parts) - 1 - parts[::-1].index(top):])
+    return path.as_posix()
+
 def _dig(front: Any, *keys: str) -> Any:
     node = front
     for key in keys:
@@ -274,10 +290,7 @@ def model_markdown(model: Model) -> str:
         "",
         "## Provenance",
     ]
-    try:
-        rel = model.path.relative_to(REPO_ROOT).as_posix()
-    except ValueError:
-        rel = model.path.as_posix()
+    rel = _repo_rel(model.path, "models")
     lines.append(f"- card: https://github.com/turbobeest/modelspec/blob/main/{rel}")
     if model.scores_source:
         lines.append(f"- scores_source: {model.scores_source}")
@@ -362,10 +375,7 @@ def benchmark_markdown(bench: Benchmark, catalogue: Catalogue) -> str:
     else:
         lines.append("null")
     lines += ["", "## Provenance"]
-    try:
-        rel = bench.path.relative_to(REPO_ROOT).as_posix()
-    except ValueError:
-        rel = bench.path.as_posix()
+    rel = _repo_rel(bench.path, "benchmarks")
     lines.append(f"- page_source: https://github.com/turbobeest/modelspec/blob/main/{rel}")
     sources = bench.front.get("sources") if isinstance(bench.front, dict) else None
     found = False

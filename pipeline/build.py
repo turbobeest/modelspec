@@ -15,10 +15,11 @@ import json
 import re
 import shutil
 import sys
+import tempfile
 from datetime import date
 from pathlib import Path
 
-from pipeline import brand
+from pipeline import brand, data_source
 from pipeline import export as exporter
 from pipeline import graph as graph_export
 from pipeline import render as r
@@ -402,6 +403,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", default="dist", help="output directory (default: dist)")
     parser.add_argument("--root", default=str(REPO_ROOT), help="repository root")
+    parser.add_argument(
+        "--data-dir", default=None,
+        help="private data checkout (MODEL-246); default: the data in --root. "
+             "Also read from MODELSPEC_DATA_DIR.",
+    )
     # MODEL-138: off by default. Writes the decision snapshot beside the export,
     # linked from no page, and fails the build if the completeness gate fails.
     snapshot = parser.add_mutually_exclusive_group()
@@ -419,8 +425,19 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    data_dir = Path(args.data_dir) if args.data_dir else data_source.data_dir_from_env()
+    if data_dir is None:
+        return build_site(args, Path(args.root).resolve())
+    with tempfile.TemporaryDirectory(prefix="modelspec-root-") as tmp:
+        try:
+            composed = data_source.overlay(Path(args.root), data_dir, Path(tmp) / "root")
+        except data_source.DataSourceError as exc:
+            print(f"build: {exc}", file=sys.stderr)
+            return 2
+        return build_site(args, composed)
 
-    root = Path(args.root).resolve()
+
+def build_site(args: argparse.Namespace, root: Path) -> int:
     out = Path(args.out).resolve()
     if out.exists():
         shutil.rmtree(out)
