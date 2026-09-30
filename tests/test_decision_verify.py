@@ -10,6 +10,7 @@ exercised with a fake completion.
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -1093,6 +1094,118 @@ def test_llm_reader_accepts_cli_markdown_fence_and_scoped_absence(store, regions
     assert result.outcome == "verified"
 
 
+# --- conditions stated once for a region (MODEL-233) -------------------------------------------
+
+READER_REPLIES = yaml.safe_load((FIXTURES / "captioned-results.reader.yaml").read_text())
+READER_CLAIMS = {e["id"]: e for e in SPEC["reader_claims"]}
+
+
+def _replay(replies: dict) -> verify.LLMExtractor:
+    """A reader that answers from recorded replies, by the label the prompt asks about."""
+
+    def complete(prompt: str) -> str:
+        label = re.search(r'gives for "([^"]+)"', prompt).group(1)
+        return json.dumps(replies.get(label, []))
+
+    return verify.LLMExtractor(complete, agent="verify-llm", model="claude-sonnet-5",
+                               model_family="claude")
+
+
+@pytest.mark.parametrize("claim_id", list(READER_CLAIMS))
+def test_every_reader_claim_ends_as_expected(claim_id, store, regions) -> None:
+    entry = READER_CLAIMS[claim_id]
+    claim = _claim(entry, store)
+    reader = _replay(READER_REPLIES["replies"])
+
+    result = verify.verify(claim, regions, [*verify.deterministic_extractors(), reader],
+                           today=TODAY)
+    assert result.outcome == entry["expect"], result
+    if "expect_reader_diff" in entry:
+        alone = verify.verify(claim, regions, [reader], today=TODAY)
+        assert sorted(d.field for d in alone.diffs) == entry["expect_reader_diff"], alone.diffs
+
+
+def test_a_caption_effort_the_reader_leaves_null_is_the_model_233_mismatch(store, regions) -> None:
+    claim = _claim(READER_CLAIMS["nimbus-caption-max"], store)
+    result = verify.verify(claim, regions, [_replay(READER_REPLIES["before_model_233"])],
+                           today=TODAY)
+    assert result.outcome == "mismatch"
+    assert [d.to_dict() for d in result.diffs] == [
+        {"field": "effort", "expected": "max", "found": None}]
+
+
+@pytest.mark.parametrize("effort, condition_sentence", [
+    ("xhigh", None),
+    ("xhigh", "Unless otherwise noted, all Nimbus 3 results use extended thinking at max effort"),
+    ("max", "All Nimbus 3 results use max effort."),
+], ids=["level-not-in-region", "level-not-in-sentence-or-region", "sentence-not-in-region"])
+def test_an_effort_the_region_does_not_state_is_not_evidence(
+        effort, condition_sentence, store, regions) -> None:
+    # Told to carry a caption's condition to every value, a reader can attach one the
+    # region never states, or quote a caption the region does not have.
+    claim = _claim({**READER_CLAIMS["nimbus-caption-max"], "conditions": {"effort": effort}},
+                   store)
+    reader = _replay({"Coding": [{
+        "subject": "Nimbus 3", "value": "71.2", "effort": effort,
+        "quoted_sentence": "Coding | 71.2 | 64.0", "condition_sentence": condition_sentence,
+    }]})
+    result = verify.verify(claim, regions, [reader], today=TODAY)
+    assert result.outcome == "skipped"
+    assert "extractor_error" in result.reason
+
+
+def test_a_heading_effort_needs_no_condition_sentence(store, regions) -> None:
+    # Mistral's reply for DeepSeek-V4.1-Flash's HLE w/ tools row (MODEL-233): the
+    # heading's effort, with no condition sentence quoted.
+    claim = _claim(READER_CLAIMS["nimbus-caption-max"], store)
+    reader = _replay({"Coding": [{
+        "subject": "Nimbus 3", "value": "71.2", "effort": "max", "condition_sentence": None,
+        "quoted_sentence": "Coding | 71.2 | 64.0",
+    }]})
+    assert verify.verify(claim, regions, [reader], today=TODAY).outcome == "verified"
+
+
+class _InlineRegions:
+    """Every cited region is ``text``."""
+
+    def __init__(self, text: str) -> None:
+        self.body = text
+
+    def text(self, source_id, copy_ref, region_id):
+        return self.body
+
+
+def test_an_effort_named_in_the_model_cell_needs_no_condition_sentence(store) -> None:
+    claim = _claim(READER_CLAIMS["nimbus-caption-max"], store)
+    claim = verify.Claim(**{**claim.__dict__, "value": 66.6})
+    reader = _replay({"Coding": [{
+        "subject": "Nimbus 3 (max effort)", "value": "66.6", "effort": "max",
+        "quoted_sentence": "Nimbus 3 (max effort) | 66.6",
+    }]})
+    regions = _InlineRegions("Model | Score\nNimbus 3 (max effort) | 66.6\n")
+    assert verify.verify(claim, regions, [reader], today=TODAY).outcome == "verified"
+
+
+def test_a_prompt_change_does_not_reuse_cached_replies(tmp_path, store, regions,
+                                                        monkeypatch) -> None:
+    calls: list[str] = []
+    replies = READER_REPLIES["replies"]
+
+    def complete(prompt: str) -> str:
+        calls.append(prompt)
+        return json.dumps(replies["Coding"])
+
+    reader = verify.LLMExtractor(complete, agent="verify-llm", model="claude-sonnet-5",
+                                 model_family="claude",
+                                 cache=verify.LLMCache(tmp_path / "llm-cache"))
+    claim = _claim(READER_CLAIMS["nimbus-caption-max"], store)
+    verify.verify(claim, regions, [reader], today=TODAY)
+    verify.verify(claim, regions, [reader], today=TODAY)
+    monkeypatch.setattr(verify, "LLM_PROMPT", verify.LLM_PROMPT + "\nOne more rule.\n")
+    verify.verify(claim, regions, [reader], today=TODAY)
+    assert len(calls) == 2
+
+
 def test_a_scoped_key_value_region_can_verify_not_disclosed(store) -> None:
     from decision.model import Fact
 
@@ -1716,14 +1829,19 @@ def test_an_unregistered_harness_claim_matches_a_named_unregistered_harness(
     ("maximum thinking effort", "verified"),
     ("max reasoning effort", "verified"),
     ("high thinking effort", "mismatch"),
+    # Mistral's reading of the Opus 5.5 system card caption (MODEL-233).
+    ("adaptive thinking at max effort", "verified"),
+    ("max effort, xhigh effort for one benchmark", "mismatch"),
 ])
-def test_an_effort_written_as_prose_is_read_as_its_level(store, regions, found, outcome) -> None:
+def test_an_effort_written_as_prose_is_read_as_its_level(store, found, outcome) -> None:
     claim = _prose_claim(store)
     claim = verify.Claim(**{**claim.__dict__, "conditions": {"effort": "max"}})
+    sentence = f"At {found}, it accepts up to 400,000 tokens of context."
     reading = _FakeLLM(json.dumps([{
         "subject": "GPT-6 Sol", "value": "400,000", "unit": "tokens", "effort": found,
-        "quoted_sentence": "It accepts up to 400,000 tokens of context.",
+        "quoted_sentence": sentence,
     }]))
+    regions = _InlineRegions(f"GPT-6 Sol is our most capable model. {sentence}")
     assert verify.verify(claim, regions, [reading.extractor], today=TODAY).outcome == outcome
 
 

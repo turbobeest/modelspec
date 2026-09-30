@@ -222,3 +222,60 @@ claims:
     unit: tokens
     source: {id: seeded-model-page, copy: model-page.html, regions: [overview]}
     expect: skipped
+
+# Read only by an LLM reader (MODEL-233). The region states the effort once, in a
+# caption under a table, for every Nimbus 3 result, and names one exception. The
+# test replays the reader's replies from `captioned-results.reader.yaml`.
+reader_claims:
+  # --- correct values --------------------------------------------------------
+  - id: nimbus-caption-max
+    subject: nimbus/nimbus-3
+    names: [Nimbus 3]
+    field: seeded-coding
+    label: Coding
+    value: 71.2
+    conditions: {effort: max}
+    source: {id: seeded-captioned-results, copy: captioned-results.html, regions: [summary]}
+    expect: verified
+  - id: nimbus-caption-exception-high
+    subject: nimbus/nimbus-3
+    names: [Nimbus 3]
+    field: seeded-agentic
+    label: Agentic
+    value: 58.0
+    conditions: {effort: high}
+    source: {id: seeded-captioned-results, copy: captioned-results.html, regions: [summary]}
+    expect: verified
+  # --- seeded errors ---------------------------------------------------------
+  - id: nimbus-caption-max-filed-as-default
+    error: a value the caption puts at max effort, filed as default
+    subject: nimbus/nimbus-3
+    names: [Nimbus 3]
+    field: seeded-coding
+    label: Coding
+    value: 71.2
+    conditions: {effort: default}
+    source: {id: seeded-captioned-results, copy: captioned-results.html, regions: [summary]}
+    expect: mismatch
+    expect_reader_diff: [effort]
+  - id: nimbus-caption-max-filed-without-effort
+    error: a value the caption puts at max effort, filed with no effort
+    subject: nimbus/nimbus-3
+    names: [Nimbus 3]
+    field: seeded-coding
+    label: Coding
+    value: 71.2
+    source: {id: seeded-captioned-results, copy: captioned-results.html, regions: [summary]}
+    expect: mismatch
+    expect_reader_diff: [effort]
+  - id: nimbus-caption-exception-filed-as-max
+    error: the caption's high-effort exception, filed at the table-wide max
+    subject: nimbus/nimbus-3
+    names: [Nimbus 3]
+    field: seeded-agentic
+    label: Agentic
+    value: 58.0
+    conditions: {effort: max}
+    source: {id: seeded-captioned-results, copy: captioned-results.html, regions: [summary]}
+    expect: mismatch
+    expect_reader_diff: [effort]
