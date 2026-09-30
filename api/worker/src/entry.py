@@ -718,7 +718,7 @@ class Default(WorkerEntrypoint):
             # Other callers can still pay per call through x402 when it is on.
             if site_origin or not x402.load_config(self.env).enabled:
                 status, code, message, gate_headers = await human_gate.admit(
-                    request, self.env, payload, CORS_ORIGINS, _verify_turnstile)
+                    request, self.env, CORS_ORIGINS, _verify_turnstile)
                 if status == 200:
                     status, body = await _anonymous()
                 else:
