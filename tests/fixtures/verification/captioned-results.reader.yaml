@@ -7,7 +7,7 @@ replies:
     - {subject: Nimbus 3, value: "71.2", unit: null, effort: extended thinking at max effort,
        harness: null, date: null,
        quoted_sentence: "Coding | 71.2 | 64.0",
-       condition_sentence: "Unless otherwise noted, all Nimbus 3 results use extended thinking at max effort, averaged over five trials."}
+       condition_sentence: "Unless otherwise noted, all Nimbus 3 results use extended thinking at max effort, default sampling settings, averaged over five trials."}
     - {subject: GPT-6 Sol, value: "64.0", unit: null, effort: null, harness: null, date: null,
        quoted_sentence: "Coding | 71.2 | 64.0", condition_sentence: null}
   Agentic:

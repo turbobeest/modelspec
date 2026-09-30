@@ -44,18 +44,27 @@ first. Deterministic extractors always run first:
   models (Max reasoning effort)") or a caption ("all Claude Opus 5.5 results
   use ... max effort"). The prompt asks the reader to give each value the
   conditions the region states for it, and to quote the heading or caption
-  sentence as `condition_sentence` (MODEL-233). An effort the reader reports
-  must be written in the region, and a condition sentence must be verbatim
-  region text. Otherwise the reply is unparseable and the region is not
-  evidence. Which values a caption covers ("unless otherwise noted", one
-  model's results only) is the reader's reading; the code cannot check it. Ollama's JSON mode
-  returns one object, not an array, so a system turn asks Mistral to wrap the
-  array as `{"values": [...]}`. Without it, Mistral reports only the first
+  sentence as `condition_sentence` (MODEL-233). Which values a caption covers
+  ("unless otherwise noted", one model's results only) is the reader's
+  reading, and the collector's is the other key. The code refuses the plain
+  inventions: a reported effort counts only when the row gives it (the model
+  cell's qualifier, a cell that is the level, or an effort phrase), when the
+  region's first line names it as an effort and is neither a table row nor
+  about another model in the reply, or when a verbatim condition sentence
+  names it as an effort and names the row's model, or names the benchmark and
+  no other model. So the Opus caption lends max to Claude Opus 5.5 and not to
+  Claude Opus 5 or GPT-6 Astra, "default sampling" is no effort, and a
+  negated phrase names no level. Otherwise the reply is unparseable and the
+  region is not evidence. Not refused: a model the reader leaves out of its
+  reply, a cell equal to a level in a column that is not an effort column, and
+  a sentence stitched from fragments of the region. Ollama's JSON mode returns one object, not an array, so a system
+  turn asks Mistral to wrap the array as `{"values": [...]}`. Without it, Mistral reports only the first
   value in a region.
 
 Reader replies are cached outside the repository under
 `~/.cache/modelspec/llm-reader` by the prompt's hash, source-copy hash, cited
-region, facet and the subject's published names. A changed prompt asks again. The names are in the key because the prompt carries
+region, facet and the subject's published names. A changed prompt asks again.
+The names are in the key because the prompt carries
 them: a reader answers mostly for the named subject, so a reply cached for one
 plan or model must not answer for a sibling on the same page (MODEL-201).
 Mistral's replies are also keyed by its model and request shape, so neither
