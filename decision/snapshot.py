@@ -784,6 +784,11 @@ class _Compiler:
             evidence_verification_value(e),
             source_ids,
                              extra_urls=[e.get("source_url")], benchmark=e.get("benchmark_id"))
+        if reason is None and not e.get("measured_by"):
+            # Who measured a row is never inferred (MODEL-239): the decision
+            # contract requires it, so a row without it would fail every
+            # decision that cites it.
+            reason = "unclassified"
         if reason is not None:
             self._exclude(sid, reason)
             return

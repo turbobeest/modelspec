@@ -571,3 +571,49 @@ def test_access_and_billing_switches_stay_off() -> None:
     config = (WORKER_ROOT / "wrangler.jsonc").read_text(encoding="utf-8")
     for name in ("ACCESS_ENFORCED", "BILLING_ENABLED", "X402_ENABLED"):
         assert f'"{name}": "false"' in config
+
+
+def test_an_evidence_row_without_measured_by_is_kept_out_and_no_decision_breaks():
+    """MODEL-239: a refresh can admit a verified row whose card never said who
+    measured it. Admission drops it as ``unclassified`` instead of letting the
+    contract's required ``measured_by`` fail every decision that cites it.
+
+    Runs under the Worker's own pinned pydantic too (rank-api.yml lists this
+    file), the pair the 2026-09-29 corpus drift was found on."""
+    import dataclasses
+
+    from tests.corpus import corpus
+
+    inputs = collect_repo(REPO_ROOT)
+    stripped = [
+        {**dict(row), "measured_by": None} if position % 4 == 0 else row
+        for position, row in enumerate(inputs.evidence)
+    ]
+    dropped = sum(1 for a, b in zip(inputs.evidence, stripped, strict=True) if a is not b)
+    assert dropped > 0
+    tampered = build_snapshot(
+        dataclasses.replace(inputs, evidence=stripped), registry=default_registry(),
+        premier=load_premier(REPO_ROOT / "premier" / "slice-1.yaml"),
+        as_of=corpus.AS_OF, guard=excluded_sources(), gate=False,
+    )
+    assert 0 < tampered.content["excluded"]["unclassified"] <= dropped
+    snapshot = load_snapshot_bytes(tampered.to_bytes(key=corpus.KEY), key=corpus.KEY,
+                                   include_archive=True, source="model-239 test")
+    rows = [row for _, row in snapshot.corpus_evidence()]
+    assert rows and all(row.measured_by for row in rows)
+
+    service = corpus.worker_service()
+    cases = corpus.load_cases()
+    loaded = {}
+    failed = []
+    for case in cases:
+        if case.snapshot == "repo":
+            answer = corpus.run_worker(case, snapshot, service)
+        else:
+            if case.snapshot not in loaded:
+                loaded[case.snapshot] = corpus.load(corpus.snapshot_bytes(case.snapshot))
+            answer = corpus.run_worker(case, loaded[case.snapshot], service)
+        if b"worker_exception" in answer[1]:
+            failed.append((case.id, answer[1][:200]))
+    assert len(cases) > 0
+    assert failed == []
