@@ -20,8 +20,8 @@ by accident.
 What the modelspec holding tree is, and why:
 
 * **Copied, not rebuilt.** `/api/**`, `/legal/**` and `openapi.yaml` are copied
-  byte for byte from the real build, so what the CLI (`modelspec snapshot
-  fetch`), DPF, the rank Worker and the MCP server read is exactly what the
+  byte for byte from the real build, so what DPF, the rank Worker and the MCP
+  server read is exactly what the
   real site would publish. The legal pages stay reachable because Stripe's
   account review and past purchasers rely on them.
 * **An allowlist.** Nothing else of the real build is kept but the landing

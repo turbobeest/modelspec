@@ -412,7 +412,7 @@ def modelspec_landing_markdown(models: list[Model], benchmarks: list[Benchmark],
         f"# ModelSpec\n\n"
         f"> {MS_BASE}\n\n"
         f"{brand.POSITIONING}\n\n"
-        f"Open catalogue of AI models. Null means not researched.\n\n"
+        f"Decision data on AI models, served online. Null means not researched.\n\n"
         f"- models: {len(models)}\n"
         f"- providers: {len(providers)}\n"
         f"- benchmarks: {len(benchmarks)}\n"
@@ -422,7 +422,6 @@ def modelspec_landing_markdown(models: list[Model], benchmarks: list[Benchmark],
         f"- html: {MS_BASE}/\n"
         f"- decide: {MS_BASE}/decide/\n"
         f"- method: {MS_BASE}/method/\n"
-        f"- json: {MS_BASE}/api/index.json\n"
         f"- rank: {RANK_API}\n"
         f"- policy-check: {POLICY_API}\n"
         # MODEL-100. The whole class-fit rule as static data, no key: which

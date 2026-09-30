@@ -795,8 +795,8 @@ def test_the_decide_contract_refuses_its_free_text_task() -> None:
 #: commitment is a change to that; each gets a new version and date rather than
 #: a silent edit of the adopted one.
 IN_FORCE = {
-    "terms": "Version `1.0`, effective 2026-09-19.",
-    "neutrality": "Version `1.1`, effective 2026-09-23.",
+    "terms": "Version `1.1`, effective 2026-09-30.",
+    "neutrality": "Version `1.2`, effective 2026-09-30.",
     "privacy": "Version `1.3`, effective 2026-09-29.",
 }
 
@@ -930,3 +930,17 @@ def test_the_privacy_statement_describes_what_refunds_record() -> None:
     assert "chargeback" in FLAT_PRIVACY
     assert "no card detail" in FLAT_PRIVACY
     assert "1.1, 2026-09-23" in FLAT_PRIVACY
+
+
+def test_the_access_model_wording_is_in_the_terms_neutrality_and_licence() -> None:
+    """MODEL-249: people free, machines paid and hosted, a delayed public image, no CLI."""
+    assert "delayed image" in FLAT_TERMS
+    assert "no data download and no command-line client" in FLAT_TERMS
+    assert "Machine access is a paid product" in FLAT_TERMS
+    assert "No account, no key, no charge" not in FLAT_TERMS
+    flat_neutrality = flat(NEUTRALITY)
+    assert "the sites and the CLI read" not in flat_neutrality
+    assert "about nine months" in flat_neutrality
+    licence = flat((REPO_ROOT / "LICENSE").read_text(encoding="utf-8"))
+    assert "so the CLI can be embedded anywhere" not in licence
+    assert "delayed public image" in licence

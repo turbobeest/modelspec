@@ -3,14 +3,13 @@
     structured_data.inject(tree, root)
 
 One `<script type="application/ld+json">` per page, holding a `@graph`. The
-home page describes who publishes the site, the data (a Dataset with its
-downloads), and the hosted HTTP API and the MCP
-server. The decide board is a free WebApplication. Every other page carries a
+home page describes who publishes the site, the data (a Dataset with no
+download: current data is served only by the hosted service), and the hosted
+HTTP API and the MCP server. The decide board is a WebApplication for people. Every other page carries a
 BreadcrumbList back to the home page.
 
 Everything is read from the tree being published: the build stamp from
-`api/build.json`, the model count from `api/index.json`, and a download is
-listed only when its file is in the tree. Nothing is rated or reviewed here,
+`api/build.json` and the model count from `api/index.json`. Nothing is rated or reviewed here,
 so no SoftwareApplication gets Google's rich-result card; that needs an
 aggregateRating or review, and this site does not invent either.
 """
@@ -44,14 +43,6 @@ CRUMBS = {
     "/legal/neutrality/": "Neutrality commitment",
     "/feedback/": "Feedback",
 }
-
-#: Downloads, in the order the Dataset lists them. Each is listed only when the
-#: file is in the tree: the decision snapshot is written by main builds only.
-DOWNLOADS = (
-    ("api/index.json", "application/json"),
-    ("api/decision/snapshot.json.gz", "application/gzip"),
-    ("llms-full.txt", "text/plain"),
-)
 
 _BLOCK = re.compile(r'<script type="application/ld\+json" data-structured-data>.*?</script>\n?',
                     re.DOTALL)
@@ -91,22 +82,18 @@ def dataset(tree: Path) -> dict[str, Any]:
         "name": "ModelSpec catalogue and decision snapshot",
         "description": (
             f"Sourced evidence on {count} AI models: model cards, benchmark "
-            "results, prices, licences and where each model runs, exported as "
-            "versioned JSON with a signed decision snapshot. A null field means "
-            "not yet researched, never a guess."
+            "results, prices, licences and where each model runs. Current data is served by "
+            "the hosted API and MCP server; the public copy is a delayed image "
+            "about nine months old. A null field means not yet researched, "
+            "never a guess."
         ),
         "url": f"{BASE}/",
         "keywords": ["AI models", "LLM benchmarks", "model selection", "model pricing"],
         "license": DATA_LICENSE,
-        "isAccessibleForFree": True,
         "creator": {"@id": ORG},
         "publisher": {"@id": ORG},
         "version": build["export_schema_version"],
         "dateModified": build["built_at"],
-        "distribution": [
-            {"@type": "DataDownload", "contentUrl": f"{BASE}/{rel}", "encodingFormat": kind}
-            for rel, kind in DOWNLOADS if (tree / rel).is_file()
-        ],
     }
 
 
