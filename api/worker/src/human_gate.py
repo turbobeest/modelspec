@@ -42,6 +42,25 @@ def identity_for(request, env):
     return visitor.visitor_id(ip, getattr(env, visitor.KEY_VAR, None))
 
 
+def unconfigured_reason(request, env) -> str:
+    """Which prerequisite of `stub_for` is missing: a name, never a value."""
+    if not identity_for(request, env):
+        return "no_visitor_identity"
+    if getattr(env, "HUMAN_GATE", None) is None:
+        return "no_human_gate_binding"
+    return "no_turnstile_secret"
+
+
+def log_unavailable(where: str, exc: BaseException) -> None:
+    """Log why the gate failed closed: the exception type and a short message.
+
+    Never logs a request, spec, token, key or address. Messages come from the
+    runtime or `unconfigured_reason`, and are cut to 160 characters.
+    """
+    print(f"human_gate_unavailable where={where} type={type(exc).__name__} "
+          f"detail={str(exc)[:160]}")
+
+
 def stub_for(request, env):
     identity = identity_for(request, env)
     binding = getattr(env, "HUMAN_GATE", None)
@@ -92,6 +111,7 @@ async def admit(request, env, origins, verify):
             }
             return 429, LIMIT_CODES[reason], messages[reason], headers
         return 200, "", "", headers
-    except Exception:
+    except Exception as exc:
         # An unavailable verifier or counter must never grant a free decision.
+        log_unavailable("admit", exc)
         return 503, "human_gate_unavailable", UNAVAILABLE, {}
