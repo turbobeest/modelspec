@@ -412,7 +412,7 @@ def modelspec_landing_markdown(models: list[Model], benchmarks: list[Benchmark],
         f"# ModelSpec\n\n"
         f"> {MS_BASE}\n\n"
         f"{brand.POSITIONING}\n\n"
-        f"Open catalogue of AI models. Null means not researched.\n\n"
+        f"Decision data on AI models, served online. Null means not researched.\n\n"
         f"- models: {len(models)}\n"
         f"- providers: {len(providers)}\n"
         f"- benchmarks: {len(benchmarks)}\n"
