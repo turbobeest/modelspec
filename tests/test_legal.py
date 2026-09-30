@@ -797,7 +797,7 @@ def test_the_decide_contract_refuses_its_free_text_task() -> None:
 IN_FORCE = {
     "terms": "Version `1.1`, effective 2026-09-30.",
     "neutrality": "Version `1.2`, effective 2026-09-30.",
-    "privacy": "Version `1.3`, effective 2026-09-29.",
+    "privacy": "Version `1.4`, effective 2026-09-30.",
 }
 
 
@@ -944,3 +944,15 @@ def test_the_access_model_wording_is_in_the_terms_neutrality_and_licence() -> No
     licence = flat((REPO_ROOT / "LICENSE").read_text(encoding="utf-8"))
     assert "so the CLI can be embedded anywhere" not in licence
     assert "delayed public image" in licence
+
+
+def test_the_privacy_statement_describes_the_keyed_visitor_id_and_the_gate_as_not_enabled() -> None:
+    """MODEL-249b: the visitor id is keyed and daily, and Turnstile is disclosed as off."""
+    assert "HMAC-SHA256(VISITOR_HMAC_KEY, IP | UTC day)" in FLAT_PRIVACY
+    body = FLAT_PRIVACY.split("## Changes")[0]  # the Changes list keeps 1.3 as history
+    assert "unsalted hash of an IP address" not in body
+    assert "is replaced before x402" not in body
+    assert "Cloudflare Turnstile" in FLAT_PRIVACY
+    assert "not yet enabled" in FLAT_PRIVACY
+    assert "`HUMAN_GATE_ENABLED`" in FLAT_PRIVACY
+    assert "omit the optional `remoteip` parameter" in FLAT_PRIVACY
