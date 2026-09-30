@@ -36,7 +36,10 @@ FIRST_RUN = (
     "modelspec decide --template budget-coding",
 )
 EYEBROW = "Your model is a guess."
-HEADLINE = "Model routers only guess. ModelSpec justifies the model decision and shows its work."
+HEADLINE_LEAD = "Model routers make educated guesses."
+HEADLINE_SUB = ("ModelSpec performs unbiased, data-backed model justification across the "
+                "entire market to pick the best model for every prompt.")
+HEADLINE = f"{HEADLINE_LEAD} {HEADLINE_SUB}"
 TITLE = "ModelSpec — justifies the model decision and shows its work"
 DESCRIPTION = ("Decide which AI model your job needs, and see why: your requirements, every "
                "benchmark, real cost and the uncertainty, from sourced evidence. Nobody pays "
@@ -437,8 +440,7 @@ def render(data: LandingData, *, variant: Literal["live", "holding"],
 {robots}{canonical}{brand.head_links()}{social_cards.social_meta_for_page("/", data)}<link rel="stylesheet" href="/{ASSET_DIR}/landing.css">{landing_chrome.lockup_style()}</head>
 <body><div class="axis" aria-hidden="true"></div>
 <header>{landing_chrome.lockup(href=None)}<nav><a href="#receipt">What it costs you</a><a href="#routers">Routers</a><a href="#teams">For teams</a><a href="#agents">For agents</a><a href="/pricing/">Pricing</a><a href="#pick-a-model">Test your pick</a>{board}</nav></header>
-<main><section class="hero"><div class="hero-copy"><p class="eyebrow">{EYEBROW}</p><h1>{HEADLINE}</h1>
-<p class="fud"><span class="desktop-only">{social_cards.landing_tie_line(data)} Benchmarks disagree, leaderboards reshuffle, and nothing in your stack will ever tell you that you chose wrong.</span><span class="mobile-only">{social_cards.landing_tie_line(data)} Nothing in your stack will tell you.</span></p>
+<main><section class="hero"><div class="hero-copy"><p class="eyebrow">{EYEBROW}</p><h1><span class="h1-lead">{HEADLINE_LEAD}</span> <span class="h1-sub">{HEADLINE_SUB}</span></h1>
 <p class="close">ModelSpec picks the model your job needs from <a href="/method/#must-prefer">your requirements</a>, <a href="/method/#estimate">every admitted benchmark</a> and <a href="{GH}docs/decision-contract.md#cost-per-task">real cost</a>, and <a href="/method/">shows how it got there</a>. When one model wins, it says so. When the evidence can't separate them, it <a href="/method/#ties">says that too</a>, and hands you the cheapest. <a href="/legal/neutrality/">Nobody pays to rank higher.</a></p>
 <div class="actions">{board}<a class="button secondary" href="#agents">Give it to your agents</a></div></div>
 <figure class="plot"><div class="chips" aria-hidden="true"><span data-stage="1">The top estimate</span><span data-stage="2">Can't be told apart from it</span><span data-stage="3">The cheapest of those</span></div>
