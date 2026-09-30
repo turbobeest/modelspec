@@ -48,8 +48,8 @@ SMOKE_CAP_USD = 0.25
 DRY_RUN_START = datetime(2026, 9, 1, tzinfo=UTC)
 
 
-def _plan(args: argparse.Namespace) -> Plan:
-    plan = load_plan(Path(args.plan))
+def _plan(args: argparse.Namespace, *, smoke: bool = False) -> Plan:
+    plan = load_plan(Path(args.plan), smoke=smoke)
     if args.schedule == "baseline":
         plan = dataclasses.replace(plan, name="baseline", repetitions=REPETITIONS_PER_SLOT,
                                    warmups=WARMUPS_PER_SLOT)
@@ -155,7 +155,7 @@ def smoke_report(run: dict) -> str:
 
 
 def cmd_smoke(args: argparse.Namespace) -> int:
-    plan = smoke_plan(_plan(args))
+    plan = smoke_plan(_plan(args, smoke=True))
     keys = keys_from_env()
     try:
         run = run_slot(plan, LiveTransport(), cap_usd=SMOKE_CAP_USD, keys=keys,

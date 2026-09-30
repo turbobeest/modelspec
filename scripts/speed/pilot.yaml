@@ -61,6 +61,9 @@ offerings:
     api: xai
     api_model: grok-4.7
     effort: provider default (reasoning cannot be disabled)
+    # Smoke only: cache_hit holds its results, and its reasoning is the one
+    # cost max_tokens does not bound.
+    smoke_only: true
   - offering: deepseek/deepseek/deepseek-v4-pro/global/standard
     api: deepseek
     api_model: deepseek-v4-pro

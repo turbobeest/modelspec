@@ -49,6 +49,7 @@ ROOT = Path(__file__).resolve().parents[1]
 FASTEST = "google-gemini-api/google/gemini-3-8-flash/global/standard"
 #: An offering whose plan row claims reasoning is off (Gemini 3 cannot switch it off).
 CLAIMS_NONE = "anthropic/anthropic/claude-sonnet-5-5/global/standard"
+OFFERINGS = len(load_plan().entries)
 
 
 def _baseline():
@@ -280,9 +281,9 @@ def test_the_dry_run_opens_no_socket(monkeypatch, tmp_path):
 def test_the_dry_run_publishes_every_headline_result_and_verifies_it(dry):
     measurement = dry["measurement"]
     headline = [r for r in measurement["results"] if r["workload"] == "short_chat"]
-    assert len(headline) == 10 and all(r["publishable"] for r in headline)
+    assert len(headline) == OFFERINGS and all(r["publishable"] for r in headline)
     assert {r["n"] for r in headline} == {24}
-    assert len(measurement["facts"]) == 20
+    assert len(measurement["facts"]) == 2 * OFFERINGS
     fact = next(f for f in measurement["facts"]
                 if f["id"] == "google-gemini-api/google/gemini-3-8-flash/global/standard"
                               "#offering.speed.throughput")
@@ -291,7 +292,7 @@ def test_the_dry_run_publishes_every_headline_result_and_verifies_it(dry):
             block["n"], block["time_slots"]) == (
         "ModelSpec", "speed-v1", "short_chat", "fixture", 24, 12)
     assert block["interval"][0] <= fact["value"] == block["median"] <= block["interval"][1]
-    assert [v["outcome"] for v in dry["verifications"]] == ["verified"] * 20
+    assert [v["outcome"] for v in dry["verifications"]] == ["verified"] * (2 * OFFERINGS)
 
 
 def test_a_single_pilot_slot_publishes_nothing():
@@ -456,7 +457,7 @@ def test_the_report_names_spend_and_every_result(dry, tmp_path):
     _write(tmp_path / "measurement.json", dry["measurement"])
     text = report(tmp_path)
     assert f"Total spent: ${sum(r['spent_usd'] for r in dry['runs']):.2f}" in text
-    assert text.count("| short_chat |") == 10
+    assert text.count("| short_chat |") == OFFERINGS
     assert "| pass |" in text
 
 
@@ -484,7 +485,7 @@ def test_a_non_2xx_keeps_its_first_kilobyte_with_keys_redacted():
     key = "sk-ant-api03-thisisnotarealkeyvalue0123456789"
     body = ('{"error":{"message":"bad key ' + key + ' sent as x-api-key: ' + key
             + ' Authorization: Bearer abcdef123456"}}' + " pad" * 600)
-    run = run_slot(smoke_plan(load_plan()), _Refusing(400, body), cap_usd=SMOKE_CAP_USD,
+    run = run_slot(smoke_plan(load_plan(smoke=True)), _Refusing(400, body), cap_usd=SMOKE_CAP_USD,
                    keys={api: key for api in APIS}, vantage="test")
     sample = run["samples"][0]
     assert sample["http_status"] == 400
@@ -566,7 +567,7 @@ def test_a_gemini_in_stream_503_is_a_stream_error_not_a_short_success():
 
 
 def test_the_smoke_plan_is_one_request_per_offering_far_under_its_cap():
-    plan = load_plan()
+    plan = load_plan(smoke=True)
     smoke = smoke_plan(plan)
     cost = slot_cost(smoke)
     assert cost.calls == len(plan.entries)
@@ -575,7 +576,7 @@ def test_the_smoke_plan_is_one_request_per_offering_far_under_its_cap():
 
 
 def test_the_smoke_report_prints_status_usage_and_the_refusal_body():
-    plan = smoke_plan(load_plan())
+    plan = smoke_plan(load_plan(smoke=True))
     transport = _Refusing(400, '{"error":{"message":"temperature is deprecated"}}')
     run = run_slot(plan, transport, cap_usd=SMOKE_CAP_USD, keys={api: "k" for api in APIS},
                    vantage="test")
@@ -597,3 +598,12 @@ def test_the_smoke_command_prints_a_redacted_report_and_writes_nothing(monkeypat
     out = capsys.readouterr().out
     assert "sk-secret-value" not in out
     assert "[redacted]" in out
+
+
+def test_grok_is_smoked_but_not_in_the_pilot_slot_whose_bound_stays_under_the_cap():
+    """xAI reasoning is the one cost max_tokens does not bound, and cache_hit holds its results."""
+    pilot, smoke = load_plan(), load_plan(smoke=True)
+    grok = "xai/xai/grok-4-7/global/standard"
+    assert grok not in {e.offering for e in pilot.entries}
+    assert grok in {e.offering for e in smoke.entries}
+    assert slot_cost(pilot).bound_usd < 13
