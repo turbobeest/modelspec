@@ -12,6 +12,8 @@ Design rules this module enforces, rather than leaves to the author:
 
 from __future__ import annotations
 
+from pipeline.public_data import enabled as private_serving
+
 import html
 import math
 import posixpath
@@ -701,7 +703,7 @@ NAV_PLACEHOLDER = "<!-- site-nav -->"
 
 
 def site_nav(nav_links: Iterable[tuple[str, str]]) -> str:
-    links = "".join(f'<a href="{esc(h)}">{esc(t)}</a>' for t, h in nav_links)
+    links = "".join(f'<a href="{esc("/openapi.yaml" if private_serving() and h == "/api/index.json" else h)}">{esc(t)}</a>' for t, h in nav_links)
     return f'<nav>{landing_chrome.lockup()}<div class="links">{links}</div></nav>'
 
 
@@ -1436,7 +1438,7 @@ def model_page(model: Model, build: Build, benchmarks: dict[str, Benchmark],
 {not_applicable_section(front)}
 {unresearched_section(front, rel, scores)}
 <h2>Data</h2>
-<p><a href="/api/models/{esc(model.model_id)}.json">This card as JSON</a> &middot;
+<p>{'' if private_serving() else f'<a href="/api/models/{esc(model.model_id)}.json">This card as JSON</a>'} &middot;
 <a href="/graph/">See it in the graph</a> &middot;
 <a href="https://github.com/turbobeest/modelspec/blob/main/{esc(model.path.relative_to(model.path.parents[2]))}">Edit on GitHub</a></p>
 """
@@ -1922,7 +1924,7 @@ def benchmark_page(bench: Benchmark, build: Build, catalogue: Catalogue,
 <h2>Models reporting this benchmark</h2>
 {covered_block}
 <h2>Data</h2>
-<p><a href="/api/benchmarks/{esc(bench.benchmark_id)}.json">This page as JSON</a> &middot;
+<p>{'' if private_serving() else f'<a href="/api/benchmarks/{esc(bench.benchmark_id)}.json">This page as JSON</a>'} &middot;
 <a href="https://github.com/turbobeest/modelspec/blob/main/benchmarks/{esc(bench.path.name)}">Edit on GitHub</a></p>
 """
     return shell(

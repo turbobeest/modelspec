@@ -1974,6 +1974,70 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TransportError'
+  /v1/vocabulary:
+    get:
+      operationId: displayVocabulary
+      summary: Display definitions and names for /decide
+      description: 'Available with DATA_SPLIT_ENABLED. Facet definitions, benchmark and domain names,
+        templates, and model/plan IDs and display names only. No prices, allowances, score ranges, value
+        counts or archived model names. HUMAN_GATE_ENABLED meters the same keyed visitor Durable Object
+        with an independent 60 per UTC day and 10 per minute budget. Successful responses use Cache-Control:
+        private, max-age=3600.'
+      security: []
+      x-modelspec-probe: skip
+      responses:
+        '200':
+          description: Display vocabulary
+          headers:
+            Cache-Control:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  facets:
+                    type: array
+                    items:
+                      type: object
+                  benchmarks:
+                    type: array
+                    items:
+                      type: object
+                  domains:
+                    type: array
+                    items:
+                      type: object
+                  templates:
+                    type: array
+                    items:
+                      type: object
+                  models:
+                    type: object
+                    additionalProperties:
+                      type: object
+                      properties:
+                        display_name:
+                          type: string
+                          nullable: true
+                      additionalProperties: false
+                  estate:
+                    type: object
+                required:
+                - facets
+                - domains
+                - templates
+                - models
+                - estate
+        '404':
+          description: Data splitting is disabled
+        '429':
+          description: Vocabulary visitor cap exceeded; Retry-After names the wait
+        '503':
+          description: Visitor identity or counter unavailable
+        '502':
+          description: Bundled vocabulary unavailable
 components:
   securitySchemes:
     bearer:

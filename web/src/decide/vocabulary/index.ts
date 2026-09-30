@@ -46,8 +46,8 @@ const facetSchema = z.object({
   ]).nullable(),
   risk: z.string(),
   computed_by: z.string().nullable(),
-  known: z.number().int().nonnegative(),
-  of: z.number().int().nonnegative(),
+  known: z.number().int().nonnegative().optional(),
+  of: z.number().int().nonnegative().optional(),
   range: z
     .object({ min: z.union([z.number(), z.string()]), max: z.union([z.number(), z.string()]) })
     .nullable()
@@ -55,7 +55,7 @@ const facetSchema = z.object({
   literals: z.array(z.string()).optional(),
   // `label`: the registry's plain name for an enum value (MODEL-153).
   values: z
-    .array(z.object({ value: scalar, count: z.number().int(), label: z.string().optional() }))
+    .array(z.object({ value: scalar, count: z.number().int().optional(), label: z.string().optional() }))
     .optional(),
   /** 2.9 (MODEL-212): who measured the lineup's values, how, and how thinly. */
   measurement: z
@@ -75,9 +75,9 @@ const benchmarkSchema = z.object({
   name: z.string(),
   unit: z.string().nullable(),
   higher_is_better: z.boolean(),
-  models: z.number().int().nonnegative(),
-  independent_models: z.number().int().nonnegative(),
-  range: z.object({ min: z.number(), max: z.number() }),
+  models: z.number().int().nonnegative().optional(),
+  independent_models: z.number().int().nonnegative().optional(),
+  range: z.object({ min: z.number(), max: z.number() }).optional(),
   domains: z.array(
     z.object({ id: z.string(), directness: z.enum(["direct", "proxy"]) }),
   ),
@@ -124,8 +124,8 @@ const templateSchema = z.object({
       .object({ input: z.number().int().nonnegative(), output: z.number().int().nonnegative() })
       .optional(),
   }),
-  available: z.boolean(),
-  unavailable_reason: z.string().nullable(),
+  available: z.boolean().default(true),
+  unavailable_reason: z.string().nullable().default(null),
 });
 export const vocabularySchema = z.object({
   vocabulary_version: z.literal(1),
@@ -144,9 +144,9 @@ export const vocabularySchema = z.object({
       name: z.string(),
       proxy_only: z.boolean(),
       default_basis: z.literal("capability_estimate").default("capability_estimate"),
-      estimate_models: z.number().int().nonnegative().default(0),
+      estimate_models: z.number().int().nonnegative().optional(),
       estimate_benchmarks: z.array(z.string()).optional(),
-      direct_models: z.number().int().nonnegative().default(0),
+      direct_models: z.number().int().nonnegative().optional(),
       /** The preselected explicit benchmark drill-down, when it has verified data. */
       default_benchmark: z.string().nullable().optional(),
       benchmarks: z.array(z.string()),
@@ -160,8 +160,8 @@ export const vocabularySchema = z.object({
       z.string(),
       z.object({
         display_name: z.string().nullable(),
-        lab: z.string(),
-        lab_name: z.string().nullable(),
+        lab: z.string().optional(),
+        lab_name: z.string().nullable().optional(),
         class: z.string().nullable().optional(),
       }),
     )
@@ -250,15 +250,14 @@ export class VocabularyError extends Error {
   }
 }
 
-export async function loadVocabulary(signal?: AbortSignal): Promise<Vocabulary> {
+export async function loadVocabulary(signal?: AbortSignal, refresh = false): Promise<Vocabulary> {
   let response: Response;
   try {
     response = await fetch(VOCABULARY_URL, {
       headers: { Accept: "application/json" },
-      // The site serves this with max-age=14400; after a deploy (or a 409
-      // snapshot_changed) a cached copy would describe the old snapshot.
-      // no-cache revalidates with the ETag, so an unchanged file is a 304.
-      cache: "no-cache",
+      // Session loads reuse the trimmed response. A snapshot_changed reload
+      // bypasses that cache so a newly deployed snapshot can answer at once.
+      cache: !refresh && VOCABULARY_URL.includes("/v1/vocabulary") ? "default" : "no-cache",
       signal,
     });
   } catch (error) {
@@ -292,19 +291,19 @@ export async function loadVocabulary(signal?: AbortSignal): Promise<Vocabulary> 
 /** A facet the page may offer: registered and known for at least one candidate. */
 export function offeredFacet(v: Vocabulary, id: string): VocabFacet | null {
   const row = v.facets.find((facet) => facet.id === id);
-  return row && row.known > 0 ? row : null;
+  return row && row.known !== 0 ? row : null;
 }
 
 /** Benchmarks with verified evidence, most covered first. */
 export function offeredBenchmarks(v: Vocabulary): VocabBenchmark[] {
   return v.benchmarks
-    .filter((b) => b.models > 0)
+    .filter((b) => b.models !== 0)
     .slice()
-    .sort((a, b) => b.models - a.models || a.id.localeCompare(b.id));
+    .sort((a, b) => (b.models ?? 0) - (a.models ?? 0) || a.id.localeCompare(b.id));
 }
 
 export function benchmark(v: Vocabulary, id: string): VocabBenchmark | null {
-  return v.benchmarks.find((b) => b.id === id && b.models > 0) ?? null;
+  return v.benchmarks.find((b) => b.id === id && b.models !== 0) ?? null;
 }
 
 /** Plain copy for the learned domain basis shown throughout the decision UI. */
@@ -339,7 +338,7 @@ export function pickDrilldownBenchmark(v: Vocabulary, domain: string): VocabBenc
       .sort(
         (a, b) =>
           Number(directFor(b, domain)) - Number(directFor(a, domain)) ||
-          b.models - a.models ||
+          (b.models ?? 0) - (a.models ?? 0) ||
           a.id.localeCompare(b.id),
       )[0] ?? null
   );
@@ -432,6 +431,7 @@ const nice = (value: number) => Number(value.toPrecision(2));
 
 /** A floor that keeps the stronger three quarters of the measured range. */
 export function floorFor(b: VocabBenchmark): number {
+  if (!b.range) return 0;
   const { min, max } = b.range;
   return nice(b.higher_is_better ? min + 0.25 * (max - min) : max - 0.25 * (max - min));
 }
@@ -441,7 +441,7 @@ function benchCond(b: VocabBenchmark, from?: boolean): Cond {
     f: "bench",
     b: b.id,
     min: floorFor(b),
-    ...(b.independent_models > 0 ? { indep: true } : {}),
+    ...((b.independent_models ?? 0) > 0 ? { indep: true } : {}),
     ...(from ? { from } : {}),
   };
 }
@@ -494,7 +494,7 @@ export function defaultCondition(v: Vocabulary, row: VocabFacet): Cond | null {
   }
   const values = (row.values ?? [])
     .slice()
-    .sort((a, b) => b.count - a.count)
+    .sort((a, b) => (b.count ?? 0) - (a.count ?? 0))
     .map((item) => item.value);
   const facet = (op: FacetOp, value: FacetValue): Cond => ({
     f: "facet",
@@ -531,7 +531,7 @@ export function facetOptions(v: Vocabulary): Facet[] {
       {
         k: [row.id, row.label, row.definition].join(" ").toLowerCase(),
         label: row.label,
-        hint: `${unit} · known for ${row.known} of ${row.of} ${row.subject === "model" ? "models" : "offerings"}`,
+        hint: row.known === undefined ? unit : `${unit} · known for ${row.known} of ${row.of} ${row.subject === "model" ? "models" : "offerings"}`,
         c,
       },
     ];
@@ -540,7 +540,7 @@ export function facetOptions(v: Vocabulary): Facet[] {
     (b): Facet => ({
       k: ["benchmark", b.id, b.name, ...b.domains.map((d) => d.id)].join(" ").toLowerCase(),
       label: `${b.name} floor`,
-      hint: `${b.unit ?? "unit not recorded"} · verified for ${b.models} models`,
+      hint: b.models === undefined ? (b.unit ?? "unit not recorded") : `${b.unit ?? "unit not recorded"} · verified for ${b.models} models`,
       c: benchCond(b),
     }),
   );
@@ -593,16 +593,16 @@ export interface RealParsedTask extends ParsedTask {
 }
 
 const estimatedDomain = (v: Vocabulary, id: string) =>
-  v.domains.find((domain) => domain.id === id && domain.estimate_models > 0) ?? null;
+  v.domains.find((domain) => domain.id === id && domain.estimate_models !== 0) ?? null;
 
 /** The domain ranked on when the task names none: software engineering, else best-covered. */
 function defaultDomain(v: Vocabulary): string | null {
   if (estimatedDomain(v, "software_engineering")) return "software_engineering";
   return (
     v.domains
-      .filter((domain) => domain.estimate_models > 0)
+      .filter((domain) => domain.estimate_models !== 0)
       .slice()
-      .sort((a, b) => b.estimate_models - a.estimate_models || a.id.localeCompare(b.id))[0]?.id ??
+      .sort((a, b) => (b.estimate_models ?? 0) - (a.estimate_models ?? 0) || a.id.localeCompare(b.id))[0]?.id ??
     null
   );
 }
@@ -629,7 +629,8 @@ export function parseRealTask(v: Vocabulary, text: string | null | undefined): R
     const others = rankChoices(v, domain)
       .filter((b) => b.id !== ranked.id)
       .map((b) => `${b.name} (${b.models})`);
-    trace.push({
+    if (ranked.models === undefined) trace.push({word: word ?? "(no domain named)", note: `${domainName} capability; ${ranked.name} is the benchmark drill-down.`});
+    else trace.push({
       word: word ?? "(no domain named)",
       note:
         `${domainName} capability: estimated from ${v.domains.find((d) => d.id === domain)?.benchmarks.length ?? 0} benchmarks; ` +

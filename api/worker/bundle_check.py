@@ -137,6 +137,10 @@ def missing_imports(bundle: Path) -> tuple[list[MissingImport], set[str]]:
             if top_level in stdlib or top_level in RUNTIME_MODULES:
                 continue
             imported_path = modules.get(imported)
+            if imported_path is None and imported == "bundled_data":
+                # This generated module exists only in private builds. --require-data
+                # enforces its presence when checking that deployment artifact.
+                continue
             if imported_path is None:
                 missing.add(MissingImport(imported, module))
                 continue
@@ -178,9 +182,12 @@ def missing_vendored_files(bundle: Path) -> list[Path]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("bundle", type=Path, help="Wrangler --outdir directory")
+    parser.add_argument("--require-data", action="store_true", help="Require the private bundled catalogue.")
     args = parser.parse_args()
     missing, visited = missing_imports(args.bundle)
     missing_files = missing_vendored_files(args.bundle)
+    if args.require_data and not (args.bundle / "bundled_data.py").is_file():
+        missing_files.append(Path("bundled_data.py"))
     if missing:
         for item in missing:
             print(f"missing {item.module} (imported by {item.imported_by})", file=sys.stderr)

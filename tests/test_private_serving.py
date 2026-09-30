@@ -12,10 +12,12 @@ import yaml
 from pipeline import build, holding, live
 from pipeline.data_source import DATA_PATHS
 from pipeline.public_data import KEEP_API
-from schema.card import Identity, ModelCard
+from schema.card import Identity, ModelCard, Cost, Benchmarks
 
 ROOT = Path(__file__).resolve().parents[1]
 SENTINEL = "model247-private-sentinel-8675309"
+PRICE = 8675.309123
+SCORE = 98.7654321
 
 
 def _vendor():
@@ -36,7 +38,8 @@ def private(tmp_path_factory):
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, target)
     card = ModelCard(identity=Identity(model_id="lab/" + SENTINEL,
-                                     display_name=SENTINEL, provider="lab"))
+                                     display_name=SENTINEL, provider="lab"),
+                     cost=Cost(input=PRICE), benchmarks=Benchmarks(scores={"gpqa_diamond": SCORE}))
     (tree / "models" / (SENTINEL + ".md")).write_text(
         card.to_yaml().replace("---\n", "---\nlifecycle: retired\n", 1))
     return tree
@@ -59,7 +62,8 @@ def test_private_model_is_absent_from_every_public_file(private, tmp_path, monke
                 raw = path.read_bytes()
                 if path.suffix == ".gz":
                     raw = gzip.decompress(raw)
-                assert SENTINEL.encode() not in raw, path.relative_to(tree)
+                for value in (SENTINEL, str(PRICE), str(SCORE)):
+                    assert value.encode() not in raw, path.relative_to(tree)
     api = out / "modelspec/api"
     assert {p.relative_to(api).as_posix() for p in api.rglob("*") if p.is_file()} == KEEP_API
     assert (out / "modelspec/graph/data/views.json").is_file()
@@ -80,7 +84,10 @@ def test_private_bundle_contains_the_model_and_private_registry(private, tmp_pat
     spec.loader.exec_module(data)
     assert SENTINEL.encode() in data.read("/api/rank/candidates.json")
     assert SENTINEL.encode() in gzip.decompress(data.read("/api/decision/snapshot.json.gz"))
-    assert SENTINEL.encode() in data.read("/api/decision/vocabulary.json")
+    for value in (SENTINEL, str(PRICE), str(SCORE)):
+        assert value.encode() not in data.read("/api/decision/vocabulary.json")
+    assert str(PRICE).encode() in data.read("/api/rank/candidates.json")
+    assert str(SCORE).encode() in data.read("/api/rank/candidates.json")
     assert data.read("/api/decision/snapshots/missing.json.gz") is None
 
 
@@ -137,3 +144,111 @@ def test_worker_reads_bundled_bytes_without_any_public_fetch(monkeypatch):
         asyncio.run(exercise())
     finally:
         context.close()
+
+
+def test_vocabulary_has_no_fact_fields():
+    from api.worker.src.display_vocabulary import trim
+    source = {
+        "facets": [{"id": "offering.price.input", "known": 19, "of": 21, "range": {"min": PRICE, "max": PRICE}, "values": [{"value": PRICE, "count": 19}]}],
+        "benchmarks": [{"id": "gpqa_diamond", "range": {"min": SCORE, "max": SCORE}, "models": 19}],
+        "domains": [{"id": "reasoning", "name": "Reasoning", "estimate_models": 19}],
+        "models": {"lab/" + SENTINEL: {"display_name": SENTINEL}},
+        "estate": {"plans": [{"id": "plan", "name": "Plan", "price": {"amount": PRICE}, "allowances": {"score": SCORE}}]},
+        "templates": [],
+    }
+    response = trim(source, model_ids=set(), facet_values={})
+    import json
+    encoded = json.dumps(response)
+    for value in (SENTINEL, str(PRICE), str(SCORE), '"price"', '"range"', '"known"', '"count"', '"allowances"'):
+        assert value not in encoded
+    assert response["estate"]["plans"] == [{"id": "plan", "name": "Plan"}]
+
+
+def test_vocabulary_cap_uses_persistent_visitor_identity(monkeypatch):
+    import asyncio
+    import sys
+    from types import SimpleNamespace
+    from tests.test_feedback import entry as entry_fixture, Request
+    from tests.test_human_gate import env
+    import human_gate_do
+    now = [10000]
+    monkeypatch.setattr(human_gate_do.time, "time", lambda: now[0])
+    monkeypatch.setitem(sys.modules, "bundled_data", SimpleNamespace(read=lambda _: b'{"models":{}}'))
+    context = entry_fixture.__wrapped__()
+    module = next(context)
+    worker = module.Default()
+    worker.env = env()
+    request = Request("GET", headers={"Origin": "https://modelspec.dev", "CF-Connecting-IP": "203.0.113.9"})
+    request.url = "https://api.modelspec.dev/v1/vocabulary"
+    try:
+        responses = [asyncio.run(worker.fetch(request)) for _ in range(11)]
+        assert [r.status for r in responses] == [200] * 10 + [429]
+        assert responses[0].headers["cache-control"] == "private, max-age=3600"
+        # Vocabulary never spends the decision allowance in the same object.
+        obj = next(iter(worker.env.HUMAN_GATE.objects.values()))
+        assert asyncio.run(obj.remaining()) == 20
+        for _ in range(50):
+            now[0] += 61
+            assert asyncio.run(worker.fetch(request)).status == 200
+        now[0] += 61
+        assert asyncio.run(worker.fetch(request)).status == 429
+        now[0] = 86400
+        assert asyncio.run(worker.fetch(request)).status == 200
+    finally:
+        context.close()
+
+
+def test_policy_bytes_and_neutrality_survive_enabled_build(tmp_path, monkeypatch):
+    from pipeline import export
+    from pipeline.load import load_catalogue
+    from api.ranking.engine import neutrality_commitment
+    identity = export.make_build(load_catalogue(ROOT), ROOT)
+    monkeypatch.setattr(build.exporter, "make_build", lambda *_: identity)
+    off, on = tmp_path / "off", tmp_path / "on"
+    monkeypatch.setenv("DATA_SPLIT_ENABLED", "false")
+    assert build.main(["--out", str(off)]) == 0
+    monkeypatch.setenv("DATA_SPLIT_ENABLED", "true")
+    assert build.main(["--out", str(on)]) == 0
+    for route in ("api/rank/profiles.json", "api/rank/class-fit.json"):
+        assert (off / "modelspec" / route).read_bytes() == (on / "modelspec" / route).read_bytes()
+    before = (off / "modelspec/method/index.html").read_text()
+    after = (on / "modelspec/method/index.html").read_text()
+    commitment = neutrality_commitment()
+    # Compare the adopted policy's exact strings and method_source, including punctuation.
+    import html
+    assert html.escape(commitment["pledge"]) in before
+    assert html.escape(commitment["pledge"]) in after
+    def neutrality_section(page):
+        start = page.index('id="neutrality"')
+        return page[start:page.index('</section>', start)]
+    assert neutrality_section(before) == neutrality_section(after)
+    assert "https://modelspec.dev/api/rank/profiles.json" in after
+
+
+def test_private_policy_guard_reports_only_the_count(tmp_path, capsys):
+    import json
+    path = tmp_path / "catalogue.json"
+    path.write_text(json.dumps({"models": [{"model_id": SENTINEL, "primary_provider": {
+        "data_residency_disclosure": "published", "data_residency_source": {"read_on": None}}}]}))
+    with pytest.raises(ValueError):
+        _vendor().require_cited_policy(path)
+    assert capsys.readouterr().err == "uncited policy rows: 1\n"
+
+
+def test_vendor_diagnostics_keep_public_tracebacks_but_hide_private_values(tmp_path, monkeypatch, capsys):
+    import sys
+    vendor = _vendor()
+    def fail(*args, **kwargs):
+        raise ValueError(SENTINEL)
+    monkeypatch.setattr(vendor, "build", fail)
+    monkeypatch.delenv("MODELSPEC_REQUIRE_DATA_DIR", raising=False)
+    monkeypatch.setattr(sys, "argv", ["vendor.py"])
+    assert vendor.main() == 2
+    public = capsys.readouterr().err
+    assert "Traceback" in public and SENTINEL in public
+    monkeypatch.setenv("MODELSPEC_SNAPSHOT_KEY", "fixture-key")
+    monkeypatch.setattr(sys, "argv", ["vendor.py", "--data-dir", str(tmp_path)])
+    assert vendor.main() == 2
+    private = capsys.readouterr().err
+    assert str(tmp_path) in private and "ValueError" in private
+    assert SENTINEL not in private and "Traceback" not in private

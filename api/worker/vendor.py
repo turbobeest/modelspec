@@ -29,6 +29,8 @@ The check below refuses any undeclared dependency before deployment.
 
 from __future__ import annotations
 
+import json
+import traceback
 import argparse
 import os
 import subprocess
@@ -166,7 +168,11 @@ def bundle_data(out: Path, data_dir: Path) -> None:
             cwd=REPO_ROOT, env=env, capture_output=True,
         )
         if completed.returncode:
-            raise RuntimeError("private Worker data build failed; output withheld")
+            # The child emits only path/category diagnostics in private mode.
+            for line in completed.stderr.decode("utf-8", errors="replace").splitlines():
+                if line.startswith(("Worker bundle build failed: path=", "uncited policy rows:")):
+                    print(line, file=sys.stderr)
+            raise RuntimeError("private Worker data build failed")
         api = site
         paths = ("rank/candidates.json", "rank/hardware.json", "policy/catalogue.json",
                  "decision/snapshot.json.gz", "decision/vocabulary.json")
@@ -206,10 +212,34 @@ def export_data(out: Path, data_dir: Path) -> None:
         hardware.compute(graph, cards, devices)
         ranking.write_export(out / "rank", cards, graph, build)
         policy_export.write_export(out, cards, build)
+        require_cited_policy(out / "policy/catalogue.json")
         written = snapshot.build_from_repo(
             root, premier=root / "premier/slice-1.yaml", as_of=date.today(),
         ).write(out / "decision/snapshot.json.gz")
         write_decision_vocabulary(root, written, key=snapshot.env_key())
+        from api.worker.src.display_vocabulary import trim
+        display_models = {model.model_id for model in models
+                          if model.front.get("lifecycle") != "retired"}
+        values = {}
+        for facet in registry.default().facets():
+            if facet.value_type.kind in {"enum", "boolean"}:
+                values[facet.id] = [True, False] if facet.value_type.kind == "boolean" else sorted(registry.default().allowed_values(facet) or ())
+        vocabulary_path = out / "decision/vocabulary.json"
+        vocabulary = trim(json.loads(vocabulary_path.read_text()), model_ids=display_models, facet_values=values)
+        vocabulary_path.write_text(json.dumps(vocabulary), encoding="utf-8")
+
+
+def require_cited_policy(path: Path) -> None:
+    """Refuse uncited residency claims in the private bundled catalogue."""
+    policy = json.loads(path.read_text())
+    uncited = sum(row["primary_provider"]["data_residency_disclosure"] == "published"
+                  and not (row["primary_provider"]["data_residency_source"] or {}).get("read_on")
+                  for row in policy["models"])
+    if uncited:
+        print(f"uncited policy rows: {uncited}", file=sys.stderr)
+        error = ValueError("uncited policy catalogue")
+        error.filename = str(path)
+        raise error
 
 
 def check_imports_are_stdlib_only(bundle: Path) -> list[str]:
@@ -263,20 +293,28 @@ def main() -> int:
             export_data(args.export_data, args.data_dir)
             return 0
         bundle = build(Path(args.out) if args.out else None, data_dir=args.data_dir)
-    except Exception:
-        print("Worker bundle build failed; private output withheld", file=sys.stderr)
+        print(f"vendored {len(SOURCES)} files into {bundle}")
+        if args.check:
+            stray = check_imports_are_stdlib_only(bundle)
+            if stray:
+                print(
+                    "error: the Worker bundle imports modules the isolate does not have: "
+                    + ", ".join(stray),
+                    file=sys.stderr,
+                )
+                return 1
+            print("bundle imports cleanly with only declared dependencies")
+    except Exception as error:
+        if args.data_dir is None:
+            traceback.print_exc()
+        else:
+            # Exception messages and validation errors can contain private values.
+            path = getattr(error, "filename", None)
+            if path is None and getattr(error, "_modelspec_redacted", False):
+                path = str(error).split(": line ", 1)[0]
+            path = path or str(args.data_dir)
+            print(f"Worker bundle build failed: path={path}; category={type(error).__name__}", file=sys.stderr)
         return 2
-    print(f"vendored {len(SOURCES)} files into {bundle}")
-    if args.check:
-        stray = check_imports_are_stdlib_only(bundle)
-        if stray:
-            print(
-                "error: the Worker bundle imports modules the isolate does not have: "
-                + ", ".join(stray),
-                file=sys.stderr,
-            )
-            return 1
-        print("bundle imports cleanly with only declared dependencies")
     return 0
 
 

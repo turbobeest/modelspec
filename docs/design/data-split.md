@@ -237,9 +237,10 @@ MODEL-247 S separately owns these deployment gaps:
 
 - `api/worker/vendor.py` must use private registry and hardware data, supplied
   through `--data-dir`, and `rank-api.yml` must check out that data.
-- `deploy-sites.yml` must restrict private access to main deployment, avoid
-  uploading fresh builds as public artifacts and deploy from the same job or a
-  non-public channel.
+- `deploy-sites.yml` uses only the frozen image in every flag state. The
+  existing build and deploy jobs remain; no site job checks out private data.
+  Worker jobs check out private data only on enabled main pushes, main manual
+  dispatches and scheduled main refreshes, without artifact uploads.
 
 The freeze guard's documented limits remain: it trusts branch names, ignores
 some derived files and skips binary contents. Repointing writers stops public
@@ -263,7 +264,7 @@ must move each into the private repository, drop it, or reduce it to counts:
 | Workflow | Artifact | Carries |
 | --- | --- | --- |
 | `speed-probe.yml` | `speed-pilot-runs-*` | raw pilot runs under `measurements/`. Must run in the private repository |
-| `deploy-sites.yml` | `sites`, `sites-holding`, `sites-internal` | built site JSON. Rebuilt from fresh data. Keep only where the artifact is exactly what is published |
+| `deploy-sites.yml` | `sites`, `sites-holding`, `sites-internal` | built site JSON from the frozen public image in both flag states; these jobs never read private data |
 | `price-reread.yml` | `price-reread-copies` | copies of the pages read, with fresh prices |
 | `curation-benchmarks.yml` | `curation-change-report-*` | `benchmarks/_curation/reports/` |
 | `leaderboard-refresh.yml` | `leaderboard-refresh-audit-*` | audit of fresh scores |
@@ -425,31 +426,53 @@ Worker reads those bundled bytes and never falls back to a public URL, even
 when a requested historical snapshot is absent. Its existing snapshot
 signature validation still applies. No export shape or version changes.
 
-The decide app loads its vocabulary from `GET api.modelspec.dev/v1/vocabulary`
-in enabled builds and asks the existing per-request decision API for answers.
-The vocabulary retains the existing UI schema: names, available axes and
-aggregate coverage, without per-model score or price rows. No fresh vocabulary
-file is published on modelspec.dev.
+The decide app loads its display vocabulary from
+`GET api.modelspec.dev/v1/vocabulary` in enabled builds. The response contains
+facet definitions, benchmark and domain names, template definitions, and
+model/plan IDs and display names. Model names come only from the current active lineup;
+archived private models are omitted because the page does not need them to draw.
+Plan rows contain only `id`, `provider` and `name`. They contain no price,
+allowance, surface coverage, score range, facet value count or model count.
+The page hides statistics absent from this response and requests current facts
+through the existing decision API. No fresh vocabulary file is published on
+modelspec.dev. With `HUMAN_GATE_ENABLED`, the same keyed visitor Durable Object
+meters vocabulary separately at 60 requests per UTC day and 10 per minute.
+Successful responses use `Cache-Control: private, max-age=3600` for browser
+session reuse. The generated OpenAPI documents this route.
 
-Only main pushes and main manual dispatches reach the private checkout.
-`deploy-sites.yml` keeps its public fixture build and artifacts, then builds
-and deploys all three site compositions within a separate private job. That
-job has no upload step or dependency cache. `rank-api.yml` keeps the shared
-bundle check credential-free; private data is vendored within the main deploy
-jobs and no bundle artifact is uploaded. Missing private credentials, private
-input or signing keys fail before deployment. Private bundle-build output is
-withheld; only counts and status reach logs.
+Only Worker jobs read private inputs. Public PR checks remain credential-free.
+Missing private credentials, input or signing keys fail before deployment.
+`vendor.py export_data` checks every bundled policy row for the MODEL-80
+uncited-residency guard and reports only the failing count. Private failures
+report a path and exception category, with no values. Flag-off failures retain
+full tracebacks. Site filtering only moves graph assets and removes bulk
+routes. It never rewrites file contents; discovery links change at their source,
+and policy JSON and neutrality strings remain intact.
 
-The sentinel test in `tests/test_private_serving.py` injects a private model,
-crawls every file in full, holding and live outputs, decompresses gzip files,
-and verifies the model reaches the Worker bundle and vocabulary only. The
-memory probe is `api/worker/measure_memory.cjs`, using Pyodide 0.28.3 from the
-Worker lock, retaining the entire snapshot archive and all bundled exports.
-The Wrangler-built seeded bundle measured **122.03 MiB** of combined V8 heap
-and external memory, including **71.875 MiB** of allocated WebAssembly memory,
-after importing the services and retaining the full archive and all exports.
-Both measurements fit the 128 MiB limit. This is a local Pyodide probe rather
-than Cloudflare isolate telemetry. Enabled deploys run the same memory gate.
+`rank-api.yml` schedules an enabled main deployment every six hours, at minute
+17. Each scheduled deployment checks out the latest modelspec-data revision.
+Private writer merges therefore reach production within six hours without
+publishing a bundle artifact. Jamie must leave scheduled Actions enabled in
+this repository and configure `MODELSPEC_DATA_TOKEN`; no dispatch token is
+needed in the private writers under `.github/private-writers/`.
+
+The sentinel tests inject a retired private model with a unique price and
+score. They crawl full, holding and live outputs, decompress gzip files, and
+verify the name and values are absent from static files, the display vocabulary
+and MCP outputs. Private bundled candidates retain the injected facts as a
+positive control. Profiles, class-fit and method neutrality content are compared
+between enabled and disabled builds at the same build identity.
+
+`api/worker/measure_memory.cjs` uses the Worker's pinned Pyodide 0.28.3 runtime.
+The real request loads the full signed corpus including its archive. The probe
+makes one real Worker decide call and one
+vocabulary call, and samples combined V8 heap and external memory and allocated
+WebAssembly memory. The private Worker releases the mutable filesystem copy
+of Pydantic's compiled library after import. The probe also discards Node's
+one-use Wasm bootstrap loader after instantiation. Enabled CI deployments fail if the observed peak exceeds
+104 MiB, leaving 24 MiB below the platform's 128 MiB limit. The measured peak after both calls was 103.07 MiB (108,075,638 bytes),
+with a WebAssembly allocation peak of 71.875 MiB. This is a local runtime probe,
+not Cloudflare isolate telemetry.
 
 Jamie enables the split in this order:
 
@@ -459,10 +482,12 @@ Jamie enables the split in this order:
    `MODELSPEC_DATA_TOKEN`. Keep the snapshot verification key configured.
 3. Set `DATA_SPLIT_ENABLED=true`. Dispatch Rank API on main first and verify
    the bundled Worker answers decisions and vocabulary from that commit.
-4. Dispatch Build and deploy the sites on main. Verify production, holding
+4. Dispatch the MCP workflow on main so its consumers use the display vocabulary.
+   Dispatch Build and deploy the sites on main. Verify production, holding
    and internal outputs have no removed bulk routes and `/decide/` loads the
    Worker's vocabulary and draws fresh per-request answers.
-5. Verify the private writer workflows, then make Data freeze a required
+5. Enable scheduled Rank API Actions and verify one refresh picks up a private
+   writer merge. Verify the private writer workflows, then make Data freeze a required
    check. The weekly lag job becomes eligible under the same switch; it
    publishes no new image until the nine-month cutoff reaches the seed.
 

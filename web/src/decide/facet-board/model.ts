@@ -303,10 +303,10 @@ export function sanitizeBoardState(
   priorNotes: readonly string[] = [],
 ): SanitizedBoardState {
   const editableFacets = new Set(
-    vocabulary.facets.filter((facet) => facet.known > 0).map((facet) => facet.id),
+    vocabulary.facets.filter((facet) => facet.known !== 0).map((facet) => facet.id),
   );
   const editableDomains = new Set(
-    vocabulary.domains.filter((domain) => domain.estimate_models > 0)
+    vocabulary.domains.filter((domain) => domain.estimate_models !== 0)
       .map((domain) => `capability.${domain.id}`),
   );
   const editableRefinements = new Set(
@@ -577,8 +577,8 @@ export function legacySpecToBoard(spec: Spec, vocabulary: Vocabulary, estate: Es
     ...vocabulary.domains.map((domain) => `capability.${domain.id}`),
   ]);
   const editableFacets = new Set([
-    ...vocabulary.facets.filter((facet) => facet.known > 0).map((facet) => facet.id),
-    ...vocabulary.domains.filter((domain) => domain.estimate_models > 0).map((domain) => `capability.${domain.id}`),
+    ...vocabulary.facets.filter((facet) => facet.known !== 0).map((facet) => facet.id),
+    ...vocabulary.domains.filter((domain) => domain.estimate_models !== 0).map((domain) => `capability.${domain.id}`),
   ]);
   const facetLabels = new Map([
     ...vocabulary.facets.map((facet) => [facet.id, facet.label] as const),
@@ -676,7 +676,7 @@ export function groupFacets(vocabulary: Vocabulary) {
     risk: "capability",
     computed_by: "capability_estimate",
     known: domain.estimate_models,
-    of: vocabulary.coverage?.models ?? Math.max(...vocabulary.facets.filter((facet) => facet.subject === "model").map((facet) => facet.of), 0),
+    of: vocabulary.coverage?.models ?? Math.max(...vocabulary.facets.filter((facet) => facet.subject === "model").map((facet) => facet.of ?? 0), 0),
     range: { min: 0, max: 1 },
     preference: {
       kind: "continuous",
@@ -685,7 +685,7 @@ export function groupFacets(vocabulary: Vocabulary) {
     },
   }));
   const all = [...capabilityFacets, ...vocabulary.facets];
-  const tracked = all.filter((facet) => facet.known > 0);
+  const tracked = all.filter((facet) => facet.known !== 0);
   const groups = GROUP_ORDER.map((name) => ({
     name,
     facets: tracked.filter((facet) => facetGroup(facet.id) === name),

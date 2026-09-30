@@ -476,3 +476,19 @@ describe("modelspec MCP worker", () => {
     expect(envelopeFromCall(payload).body).toEqual(facets);
   });
 });
+
+describe("private display vocabulary", () => {
+  it("vocab and model_info use the trimmed Worker response without sentinel facts", async () => {
+    const vocabulary = { facets: [], domains: [], templates: [], models: { "public/model": { display_name: "Public" } }, estate: { plans: [{ id: "plan", name: "Plan" }] } };
+    const forbidden = ["model247-private-sentinel-8675309", "8675.309123", "98.7654321"];
+    const via = { fetch: vi.fn().mockImplementation(async () => jsonResponse(200, vocabulary)) };
+    const env = { ...ENV, DATA_SPLIT_ENABLED: "true", RANK: via };
+    for (const [name, args] of [["vocab", {}], ["model_info", { model_id: "lab/model247-private-sentinel-8675309" }]] as const) {
+      const { payload } = await rpc("tools/call", { name, arguments: args }, 1, { authorization: "Bearer test_key", "CF-Connecting-IP": "203.0.113.9" }, env);
+      const envelope = envelopeFromCall(payload);
+      expect(envelope.origin).toBe("https://api.modelspec.dev/v1/vocabulary");
+      for (const value of forbidden) expect(JSON.stringify(envelope.body)).not.toContain(value);
+    }
+    expect(via.fetch).toHaveBeenCalledTimes(2);
+  });
+});

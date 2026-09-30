@@ -336,7 +336,7 @@ describe("what is offered", () => {
     expect(offeredAxes(v)).not.toContain("tps");
     expect(offeredAxes(v)).not.toContain("ttft");
     expect(offeredWeights(v)).toEqual(["cap", "cost"]);
-    expect(offeredBenchmarks(v).every((b) => b.models > 0)).toBe(true);
+    expect(offeredBenchmarks(v).every((b) => (b.models ?? 0) > 0)).toBe(true);
   });
 
   it("builds templates only on benchmarks that exist", () => {

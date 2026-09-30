@@ -112,8 +112,8 @@ function FacetRow({ facet, choice, refinements = [], selections = {}, fallbackKe
   const must = choice.mode === "must" || choice.mode === "both";
   const prefer = choice.mode === "prefer" || choice.mode === "both";
   return <div className={`facet-row ${choice.mode === "off" ? "facet-off" : ""}`} data-facet={facet.id}>
-    <div className="facet-copy"><span className="facet-label"><strong>{facet.label}</strong><button className="facet-info" aria-label={`About ${facet.label}`} aria-expanded={infoOpen} onClick={() => setInfoOpen(!infoOpen)}>i</button></span>{infoOpen && <small className="facet-definition">{facet.definition}</small>}{choice.mode === "off" && facet.values?.[0] && <small>If Must: {facet.values[0].count} survive</small>}{choice.reason && <small className="template-reason">Why: {choice.reason}</small>}</div>
-    <span className="facet-known">{facet.known}/{facet.of}</span>
+    <div className="facet-copy"><span className="facet-label"><strong>{facet.label}</strong><button className="facet-info" aria-label={`About ${facet.label}`} aria-expanded={infoOpen} onClick={() => setInfoOpen(!infoOpen)}>i</button></span>{infoOpen && <small className="facet-definition">{facet.definition}</small>}{choice.mode === "off" && typeof facet.values?.[0]?.count === "number" && <small>If Must: {facet.values[0].count} survive</small>}{choice.reason && <small className="template-reason">Why: {choice.reason}</small>}</div>
+    {facet.known !== undefined && <span className="facet-known">{facet.known}/{facet.of}</span>}
     <div className="facet-controls">
       <div className="facet-state" role="radiogroup" aria-label={`State for ${facet.label}`}>
         <label><input type="radio" name={`state-${facet.id}`} checked={choice.mode === "off"} onChange={() => setMode("off")} />Doesn't matter</label>

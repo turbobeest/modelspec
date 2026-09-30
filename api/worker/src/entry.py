@@ -59,6 +59,25 @@ from dataclasses import replace
 from datetime import UTC, datetime
 from urllib.parse import urlparse
 
+# Load the private bundle before request schemas.
+try:
+    import bundled_data
+except ModuleNotFoundError as exc:
+    if exc.name != "bundled_data":
+        raise
+else:
+    import sys
+    if sys.platform == "emscripten":
+        # The compiled extension is already resident. Release the mutable
+        # filesystem's duplicate shared-library image before building schemas.
+        from pydantic_core import _pydantic_core as _core
+        from pathlib import Path
+        try:
+            Path(_core.__file__).unlink(missing_ok=True)
+        except OSError:
+            # Read-only platform package images are shared; retain that image.
+            pass
+
 import access
 import access_config
 import access_keys
@@ -138,7 +157,7 @@ ACCEPTED_ENDPOINTS = (
     "POST /v1/policy-check", "POST /v1/feedback", "DELETE /v1/feedback", "GET /v1/health",
     "POST /v1/signals", "POST /v1/signals/discovered",
     "GET /v1/signals/pending", "POST /v1/signals/ack",
-    "GET /v1/credits", "GET /v1/human-status",
+    "GET /v1/credits", "GET /v1/human-status", "GET /v1/vocabulary",
     "POST /v1/billing/checkout", "POST /v1/billing/stripe-webhook",
     "GET /v1/billing/claim", "POST /v1/billing/claim", "POST /v1/billing/rotate",
 )
@@ -572,13 +591,29 @@ class Default(WorkerEntrypoint):
         if path == "/v1/vocabulary":
             bundled, raw = _bundled_read(origin + "/api/decision/vocabulary.json")
             if bundled:
+                cors = _cors_headers(request)
+                if method == "OPTIONS":
+                    return Response("", status=204, headers={**cors, "access-control-allow-methods": "GET, HEAD, OPTIONS"})
                 if method not in ("GET", "HEAD"):
                     return self._method_not_allowed(service_commit, path, "GET", method)
+                if human_gate.enabled(self.env):
+                    try:
+                        stub = human_gate.stub_for(request, self.env)
+                        if stub is None:
+                            raise RuntimeError("visitor identity unavailable")
+                        meter = human_gate.as_dict(await stub.take_vocabulary())
+                    except Exception:
+                        return _json_response(503, {"error": {"code": "human_gate_unavailable", "message": human_gate.UNAVAILABLE}}, cors)
+                    if meter["reason"]:
+                        return _json_response(429, {"error": {"code": human_gate.LIMIT_CODES[meter["reason"]], "message": "Vocabulary lookup limit reached."}},
+                                              {**cors, "retry-after": str(meter["retry_after"])})
                 if raw is None:
                     return _json_response(service.HTTP_BAD_GATEWAY, {"error": {
                         "code": "export_unavailable", "message": "bundled vocabulary is missing",
-                    }})
-                return _json_response(200, json.loads(raw), extra_headers=_cors_headers(request))
+                    }}, cors)
+                return Response("" if method == "HEAD" else raw.decode("utf-8"), status=200,
+                                headers={**cors, "content-type": "application/json; charset=utf-8",
+                                         "cache-control": "private, max-age=3600", "vary": "Origin"})
         if path == "/v1/feedback":
             return await self._feedback(request, method, service_commit)
         if path == "/v1/human-status":
@@ -604,7 +639,8 @@ class Default(WorkerEntrypoint):
                 "schema_version": service.SCHEMA_VERSION,
                 "service_commit": service_commit,
                 "error": {"code": "not_found", "message": f"no endpoint at {path}",
-                          "accepted": list(ACCEPTED_ENDPOINTS)},
+                          "accepted": [route for route in ACCEPTED_ENDPOINTS
+                                       if route != "GET /v1/vocabulary" or globals().get("bundled_data") is not None]},
                 "result": [],
             })
         if method != "POST":
@@ -1037,7 +1073,8 @@ class Default(WorkerEntrypoint):
                 "schema_version": service.SCHEMA_VERSION,
                 "service_commit": service_commit,
                 "error": {"code": "not_found", "message": f"no endpoint at {path}",
-                          "accepted": list(ACCEPTED_ENDPOINTS)},
+                          "accepted": [route for route in ACCEPTED_ENDPOINTS
+                                       if route != "GET /v1/vocabulary" or globals().get("bundled_data") is not None]},
                 "result": [],
             })
 

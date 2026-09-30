@@ -81,7 +81,7 @@ const slug = (value: string) =>
 
 /** Display and lab names by model ID, from the published vocabulary. */
 export type ModelNames = Readonly<
-  Record<string, { display_name: string | null; lab: string; lab_name: string | null; class?: string | null }>
+  Record<string, { display_name: string | null; lab?: string; lab_name?: string | null; class?: string | null }>
 >;
 interface Names {
   models: ModelNames;

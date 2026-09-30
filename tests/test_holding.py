@@ -101,10 +101,6 @@ def test_the_workflow_sends_the_holding_trees_to_production_unless_live():
         (f"{production}/benchgraph", "benchgraph", "main"),
         ("dist-internal/modelspec", "modelspec", "internal"),
         ("dist/benchgraph", "benchgraph", "internal"),
-        ("${{ steps.holding.outputs.production || 'dist-holding' }}/modelspec", "modelspec", "main"),
-        ("${{ steps.holding.outputs.production || 'dist-holding' }}/benchgraph", "benchgraph", "main"),
-        ("dist-internal/modelspec", "modelspec", "internal"),
-        ("dist/benchgraph", "benchgraph", "internal"),
     ])
 
 
