@@ -274,8 +274,7 @@ def test_plain_and_campaign_root_urls_stay_on_the_landing(search: str) -> None:
 def test_the_landing_head_carries_the_current_headline(data: landing.LandingData) -> None:
     assert landing.HEADLINE_LEAD == "Model routers make educated guesses."
     assert landing.HEADLINE_SUB == (
-        "ModelSpec performs unbiased, data-backed model justification across the entire "
-        "market to pick the best model for every prompt.")
+        "ModelSpec makes an informed, unbiased decision from the evidence.")
     assert landing.EYEBROW == "Your model is a guess."
     for variant in ("live", "holding"):
         page = landing.render(data, variant=variant)

@@ -30,8 +30,7 @@ SOFTWARE_ENGINEERING = "software_engineering"
 MONTHLY_TASKS = 10_000
 EYEBROW = "Your model is a guess."
 HEADLINE_LEAD = "Model routers make educated guesses."
-HEADLINE_SUB = ("ModelSpec performs unbiased, data-backed model justification across the "
-                "entire market to pick the best model for every prompt.")
+HEADLINE_SUB = "ModelSpec makes an informed, unbiased decision from the evidence."
 HEADLINE = f"{HEADLINE_LEAD} {HEADLINE_SUB}"
 TITLE = "ModelSpec — justifies the model decision and shows its work"
 DESCRIPTION = ("Decide which AI model your job needs, and see why: your requirements, every "
@@ -366,6 +365,12 @@ def render(data: LandingData, *, variant: Literal["live", "holding"]) -> str:
              else '<span class="board-status">Board opening soon</span>')
     board_compact = (f'<a class="button primary" href="{DECIDE_PATH}">Open the board</a>'
                      if variant == "live" else '<span class="board-status">Board opening soon</span>')
+    # The hero leads with the agent path (the paid machine tier); the free
+    # board is the secondary action. The nav keeps its own board button.
+    board_alt = (f'<a class="button board-alt" href="{DECIDE_PATH}">Open the board</a>'
+                 if variant == "live" else '<span class="board-status">Board opening soon</span>')
+    board_alt_compact = (f'<a class="button board-alt" href="{DECIDE_PATH}">Board</a>'
+                         if variant == "live" else '<span class="board-status">Board opening soon</span>')
     graph_link = '<a href="/graph/">Explore the graph</a>' if variant == "live" else ""
     install = ('<p class="release-note">Use the hosted API or remote MCP Worker with an API key. '
                '<a href="/auth.md">API access</a>. The CLI was retired on 2026-09-30.</p>')
@@ -432,7 +437,7 @@ def render(data: LandingData, *, variant: Literal["live", "holding"]) -> str:
 <header>{landing_chrome.lockup(href=None)}<nav><a href="#receipt">What it costs you</a><a href="#routers">Routers</a><a href="#teams">For teams</a><a href="#agents">For agents</a><a href="/pricing/">Pricing</a><a href="#pick-a-model">Test your pick</a>{board}</nav></header>
 <main><section class="hero"><div class="hero-copy"><p class="eyebrow">{EYEBROW}</p><h1><span class="h1-lead">{HEADLINE_LEAD}</span> <span class="h1-sub">{HEADLINE_SUB}</span></h1>
 <p class="close">ModelSpec picks the model your job needs from <a href="/method/#must-prefer">your requirements</a>, <a href="/method/#estimate">every admitted benchmark</a> and <a href="{GH}docs/decision-contract.md#cost-per-task">real cost</a>, and <a href="/method/">shows how it got there</a>. When one model wins, it says so. When the evidence can't separate them, it <a href="/method/#ties">says that too</a>, and hands you the cheapest. <a href="/legal/neutrality/">Nobody pays to rank higher.</a></p>
-<div class="actions">{board}<a class="button secondary" href="#agents">Give it to your agents</a></div></div>
+<div class="actions"><a class="button agents" href="#agents">Give it to your agents</a>{board_alt}</div></div>
 <figure class="plot"><div class="chips" aria-hidden="true"><span data-stage="1">The top estimate</span><span data-stage="2">Can't be told apart from it</span><span data-stage="3">The cheapest of those</span></div>
 <svg id="plot" viewBox="0 0 680 560" role="img" aria-label="{html.escape(cheapest.name)} is in the tie at {_money(cheapest.cost, 3)} a task: {data.ratio:.1f}× less."></svg>
 <figcaption id="plot-caption"></figcaption></figure></section>
@@ -460,7 +465,7 @@ def render(data: LandingData, *, variant: Literal["live", "holding"]) -> str:
 <section class="challenge" id="pick-a-model"><h2>Think you know the best coding model?</h2><form id="pick-form"><label for="model-pick"><span class="desktop-only">Put your pick on the board. See exactly where it lands, and why.</span><span class="mobile-only">Put your pick on the board and see where it lands.</span></label><div><select id="model-pick">{options}</select><button type="submit">Check my pick</button></div><output id="pick-result" aria-live="polite">Choose a model to compare with the top estimate.</output></form></section>
 <section class="trust"><div>{trust_source}<a href="/method/">How we decide</a></div><div><h3>Unknown means unknown.</h3><p>A model with no published answer to your question stays on the board as "may qualify". It never becomes a zero, and it never quietly disappears.</p><a href="/method/#unknown">How unknowns work</a></div><div><h3>Nobody pays to rank higher.</h3><p>No referral fees, no paid placement, no sponsored slots. It's a published commitment you can check.</p><a href="/legal/neutrality/">Read the commitment</a></div></section></main>
 <footer><span>© Sparks and Sawdust LLC</span>{graph_link}<a href="/method/">How we decide</a><a href="/pricing/">Pricing</a><a href="/legal/terms/">Terms</a><a href="/legal/privacy/">Privacy</a><a href="/legal/neutrality/">Neutrality commitment</a><span class="snapshot">Snapshot of {date_label} · {len(data.models)} models · {data.benchmark_count} benchmarks</span></footer>
-<div class="sticky">{board_compact}<a class="button secondary" href="#agents">Agents</a></div>
+<div class="sticky"><a class="button agents" href="#agents">Agents</a>{board_alt_compact}</div>
 <script id="{DATA_ID}" type="application/json">{payload}</script><script src="/{ASSET_DIR}/landing.js" defer></script></body></html>\n'''
 
 
