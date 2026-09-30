@@ -192,7 +192,7 @@ def test_auth_md_billing_copy_follows_the_flag() -> None:
         assert "Billing is enabled" in text
         assert "Billing is not live" not in text
     assert "test_" in text
-    assert "No key is required" in text
+    assert "No key is required for the hosted API" in text
     assert ar.RANK_API.split("/v1")[0] in text or "api.modelspec.dev" in text
     assert text.index("`POST /v1/decide`") < text.index("`POST /v1/rank`")
     assert "`POST /v1/rank` (legacy v1)" in text
@@ -424,3 +424,28 @@ def test_auth_md_opens_with_the_auth_md_heading(tmp_path):
     from pathlib import Path
     root = Path(__file__).resolve().parents[1]
     assert auth_markdown(root).splitlines()[0] == "# Auth.md"
+
+
+@pytest.mark.parametrize("document", ["auth", "llms", "skill"])
+def test_published_auth_copy_separates_mcp_from_hosted_api(document: str) -> None:
+    text = {
+        "auth": ar.auth_markdown(ROOT),
+        "llms": ar.modelspec_landing_markdown([], [], BUILD),
+        "skill": ar.skill_markdown(),
+    }[document]
+    assert "MCP decision tools rank, policy_check and decide require `Authorization: Bearer <key>`." in text
+    assert "MCP model_info, list_use_cases, vocab and feedback stay keyless." in text
+    assert "Today, hosted API requests without a key are served while ACCESS_ENFORCED is off." in text
+    assert "with a paid API key" not in text
+    assert "Requires a paid API key" not in text
+    if document == "auth":
+        free_tier = text.split("### Hosted API free tier (no key)")[1].split("### MCP")[0]
+        assert "MCP" not in free_tier
+        assert "has 7 tools" in text
+
+
+def test_documented_mcp_tools_match_registered_tools() -> None:
+    source = (ROOT / "mcp/src/server.ts").read_text()
+    registered = re.findall(r'server\.registerTool\(\s*"([^"]+)"', source)
+    assert set(ar.MCP_TOOLS) == set(registered)
+    assert len(ar.MCP_TOOLS) == len(registered) == 7

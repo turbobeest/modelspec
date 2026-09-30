@@ -112,7 +112,7 @@ def test_billing_off_presents_a_price_list_without_purchase_language() -> None:
     assert "Purchase" not in html
     assert "What would your agents spend at these prices?" in html
     assert "Cheapest published option" in html
-    assert ("The hosted API and MCP server answer on a free tier today; these are the "
+    assert ("The hosted API answers on a free tier today; these are the "
             "credit prices for paid access.") in html
     assert "Hosted API and MCP answers use prepaid credits" not in html
     assert re.search(r"\b(buy|checkout|card|cancel(?:ling)?)\b", _rendered_text(html), re.I) is None
@@ -149,7 +149,8 @@ def test_hero_names_the_cheapest_product_kind_and_matches_the_shown_rates() -> N
 
 def test_honesty_contracts_match_cli_billing_and_legal_docs() -> None:
     html = _page()
-    assert "offline CLI cost nothing" in html
+    assert "The board on this site costs nothing." in html
+    assert "offline CLI" not in html
     assert re.search(r"CLI.{0,30}(metered|costs? credits)", html, re.I) is None
     assert "No answer, no charge" not in html
     assert "Only a successful answer draws credits." in html
@@ -214,7 +215,7 @@ def test_production_switches_generate_what_ships_today(tmp_path: Path) -> None:
     assert "Or let your agents pay as they go" not in html
     assert "Plans and packs" in html
     assert "Purchase" not in html
-    assert "answer on a free tier today" in html
+    assert "answers on a free tier today" in html
     assert re.search(r"\b(buy|checkout|card|cancel(?:ling)?)\b", _rendered_text(html), re.I) is None
     assert _payload(html)["payPerCall"] is False
     assert "perCall" not in _payload(html)
@@ -285,3 +286,15 @@ def test_landing_and_decide_link_pricing() -> None:
     decide = (REPO_ROOT / "web/src/decide/App.tsx").read_text()
     assert landing.count('href="/pricing/"') >= 2
     assert '<a href="/pricing/">Pricing</a>' in decide
+
+
+def test_pricing_descriptions_and_hero_state_mcp_decision_key_requirement() -> None:
+    requirement = "MCP decision tools (rank, policy_check, decide) require an API key."
+    for enforced in (False, True):
+        page = _page(access_enforced=enforced)
+        description = pricing.DESCRIPTION if enforced else pricing.FREE_TIER_DESCRIPTION
+        assert requirement in description
+        assert requirement in _rendered_text(page)
+        assert "offline CLI" not in page
+        if not enforced:
+            assert "API and MCP server answer on a free tier" not in page
