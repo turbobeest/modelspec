@@ -87,19 +87,15 @@ def test_the_breadcrumb_names_the_page_and_links_home(tmp_path: Path) -> None:
     ]
 
 
-@pytest.mark.parametrize("snapshot,expected", [
-    (False, ["https://modelspec.dev/api/index.json"]),
-    (True, ["https://modelspec.dev/api/index.json",
-            "https://modelspec.dev/api/decision/snapshot.json.gz"]),
-])
-def test_the_dataset_lists_only_downloads_the_tree_publishes(
-        tmp_path: Path, snapshot: bool, expected: list[str]) -> None:
-    tree = _tree(tmp_path, snapshot=snapshot)
+def test_the_dataset_offers_no_download_and_no_free_flag(tmp_path: Path) -> None:
+    tree = _tree(tmp_path, snapshot=True)
     sd.inject(tree, ROOT)
 
     dataset = _graph(tree, "/")[2]
 
-    assert [d["contentUrl"] for d in dataset["distribution"]] == expected
+    assert "distribution" not in dataset
+    assert "isAccessibleForFree" not in dataset
+    assert "delayed image" in dataset["description"]
     assert dataset["version"] == "3.0"
     assert dataset["dateModified"] == "2026-09-29T19:11:08+00:00"
     assert "1372 AI models" in dataset["description"]

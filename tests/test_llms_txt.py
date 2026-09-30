@@ -25,15 +25,18 @@ def test_llms_txt_names_the_mcp_endpoint_and_api_docs() -> None:
     assert MCP_ENDPOINT in text
     assert API_DOCS in text
     assert RANK_API in text
-    assert "https://modelspec.dev/api/index.json" in text
+    assert "https://modelspec.dev/api/index.json" not in text
+    assert "no CLI and no data download" in text
+    assert "delayed image" in text
+    assert "https://modelspec.dev/api/rank/profiles.json" in text
     assert "Null means not researched." in text
     assert "Decision CLI" not in text
     assert "modelspec decide --template <id>" not in text
 
 
-def test_llms_txt_points_the_benchmark_catalogue_at_this_site() -> None:
+def test_llms_txt_offers_no_catalogue_download() -> None:
     text = _text()
-    assert "https://modelspec.dev/api/catalogue.json" in text
+    assert "https://modelspec.dev/api/catalogue.json" not in text
     assert "https://benchgraph.dev" not in text
     assert MCP_ENDPOINT in text
     assert API_DOCS in text

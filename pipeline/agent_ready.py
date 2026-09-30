@@ -422,7 +422,6 @@ def modelspec_landing_markdown(models: list[Model], benchmarks: list[Benchmark],
         f"- html: {MS_BASE}/\n"
         f"- decide: {MS_BASE}/decide/\n"
         f"- method: {MS_BASE}/method/\n"
-        f"- json: {MS_BASE}/api/index.json\n"
         f"- rank: {RANK_API}\n"
         f"- policy-check: {POLICY_API}\n"
         # MODEL-100. The whole class-fit rule as static data, no key: which
