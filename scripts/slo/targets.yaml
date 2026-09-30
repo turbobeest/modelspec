@@ -41,6 +41,13 @@ targets:
     # MIN_BENCHMARK_COUNT in api/ranking/engine.py; the test holds them equal.
     min_benchmarks: 2
 
+  # MODEL-239. Admission drops any evidence row with no measured_by and counts
+  # it as `unclassified`; a row dropped that way is a card to fix, not a value
+  # to guess.
+  - id: unclassified-evidence
+    title: No evidence row is kept out for want of a measured_by
+    in_force: true
+
   - id: lineup-facts-verified
     title: Every fact stated on a lineup model or offering is verified
     in_force: true

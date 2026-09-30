@@ -677,7 +677,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-23'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: webdev / overall, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset webdev, category overall, leaderboard_publish_date
       2026-09-23; no style-controlled variant. Highest-effort row for the product (effort: default;
@@ -690,9 +690,76 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-143-evidence-arena-webdev-json
-      snapshot_ref: sha256:8c88f6e665fc8a5667d5b00b1a3ef24d70773f37f9f2fe917623c8c29895c5cf
+      snapshot_ref: sha256:1342f43f483667f8e4313a1fb517522e1f18aa1b09d4812f8d3163c4ff30b9bc
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: Qwen3.8-Flash-Next
+    score: 91.7
+    unit: percent
+    source_url: https://huggingface.co/Qwen/Qwen3.8-Flash-Next
+    source_kind: provider_self_report
+    evidence_date: '2026-08-27'
+    date_type: published
+    verified_at: '2026-09-29'
+    benchmark_version: GPQA Diamond
+    configuration: Qwen3.8-Flash-Next model card on Hugging Face, Benchmark Results, Language
+      table, Qwen3.8-Flash-Next column only.
+    limitations: ''
+    measured_by: provider_self_report
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-233-qwen3-8-flash-next-model-card
+      snapshot_ref: sha256:e744d7dc4fa4dd5a7bdaf851c336583289f9a718b704ab7b09b4fbf964e985b3
+      cited_regions:
+      - benchmark-results-language
+    id: qwen/qwen3-8-flash-next#gpqa_diamond#a6b486b111de
+  - benchmark_id: hle
+    model_id_as_evaluated: Qwen3.8-Flash-Next
+    score: 35.9
+    unit: percent
+    source_url: https://huggingface.co/Qwen/Qwen3.8-Flash-Next
+    source_kind: provider_self_report
+    evidence_date: '2026-08-27'
+    date_type: published
+    verified_at: '2026-09-29'
+    benchmark_version: HLE
+    configuration: Qwen3.8-Flash-Next model card on Hugging Face, Benchmark Results, Language
+      table, Qwen3.8-Flash-Next column only. The card notes HLE is judged by GPT-4o.
+    limitations: ''
+    measured_by: provider_self_report
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-233-qwen3-8-flash-next-model-card
+      snapshot_ref: sha256:e744d7dc4fa4dd5a7bdaf851c336583289f9a718b704ab7b09b4fbf964e985b3
+      cited_regions:
+      - benchmark-results-language
+    id: qwen/qwen3-8-flash-next#hle#1da3aded8b80
+  - benchmark_id: ifbench
+    model_id_as_evaluated: Qwen3.8-Flash-Next
+    score: 81.3
+    unit: percent
+    source_url: https://huggingface.co/Qwen/Qwen3.8-Flash-Next
+    source_kind: provider_self_report
+    evidence_date: '2026-08-27'
+    date_type: published
+    verified_at: '2026-09-29'
+    benchmark_version: IFBench
+    configuration: Qwen3.8-Flash-Next model card on Hugging Face, Benchmark Results, Language
+      table, Qwen3.8-Flash-Next column only.
+    limitations: ''
+    measured_by: provider_self_report
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-233-qwen3-8-flash-next-model-card
+      snapshot_ref: sha256:e744d7dc4fa4dd5a7bdaf851c336583289f9a718b704ab7b09b4fbf964e985b3
+      cited_regions:
+      - benchmark-results-language
+    id: qwen/qwen3-8-flash-next#ifbench#5de9d05073d3
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''

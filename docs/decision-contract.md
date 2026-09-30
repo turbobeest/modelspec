@@ -1168,6 +1168,21 @@ it instead of carrying its own list of facets or benchmarks. Built by
   plans only: it is never in `providers`, `estate.providers` refuses it, and it
   owns no pay-per-use offering. Adding this field is compatible, so
   `vocabulary_version` remains `1`.
+- `signatures` (MODEL-227): an Ed25519 signature over the vocabulary, made
+  with the snapshot's release key. The signed message is
+  `"modelspec.vocabulary\n"` plus `sha256:` and the SHA-256 of the canonical
+  JSON of the vocabulary without this block (sorted keys, compact separators),
+  so the snapshot's signature cannot be replayed on it. The vocabulary's
+  `snapshot` field is inside that digest, which ties it to one snapshot. Each
+  row is `{alg, key_id, value}` with `value` base64. `modelspec snapshot
+  fetch` verifies it against the pinned key set and refuses a vocabulary whose
+  block is present but has no valid signature from a pinned key. A vocabulary
+  with no `signatures` (published before MODEL-227) is still accepted on the
+  snapshot ID alone, with a warning, and `decision_fetch.vocabulary_signature`
+  reports `verified`, `unsigned` or `unpinned`. The block is optional and
+  additive, so `vocabulary_version` remains `1` and `contract_version` is
+  unchanged. The decide page ignores it: the browser fetches both files over
+  HTTPS from the origin it trusts, and does not verify the snapshot either.
 - `models`: every snapshot model by ID, with `display_name`, `lab`, `lab_name`,
   and optional `class`. The class is the snapshot's `model.class` fact and may
   be null when that fact is unknown.
@@ -1241,6 +1256,9 @@ that used to be accepted is a major change; accepting more is not.
 
 ## Change log
 
+- **2.9, unchanged — MODEL-227:** The vocabulary gains an optional `signatures`
+  block (see above). No decision field changes and no closed range widens, so
+  neither `contract_version` nor `vocabulary_version` moves.
 - **2.9 — MODEL-212:** A vocabulary facet adds `measurement` when ModelSpec
   measured any of its lineup values, so a client can say who measured a speed
   and how. A measured fact carries its method, workload, sample size, median,

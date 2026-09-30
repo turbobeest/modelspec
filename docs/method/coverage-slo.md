@@ -36,6 +36,7 @@ per breached target raises the alarm.
 | `lineup-domain-evidence` | Every lineup model has admitted evidence in each domain its premier clauses claim | none | yes |
 | `live-reading-age` | Every live board reading on a lineup model was re-read within 30 days | 30 days | yes |
 | `thin-evidence` | Every lineup model has admitted evidence on at least two benchmarks | 2 benchmarks (`MIN_BENCHMARK_COUNT`) | yes |
+| `unclassified-evidence` | No evidence row is kept out of the snapshot for want of a `measured_by` | none | yes |
 | `lineup-facts-verified` | Every fact stated on a lineup model or offering is verified, and no guaranteed facet is missing | none | yes |
 | `offering-price-age` | Every lineup offering's prices were re-read within 7 days | 7 days | yes |
 | `plan-age` | Every subscription plan was re-read within 7 days, and its facts are verified | 7 days | yes |
@@ -57,6 +58,11 @@ per breached target raises the alarm.
 - **`lineup-domain-evidence`.** Premier domains map to registry domains in
   `domain_map` in `targets.yaml`. Evidence in any mapped domain satisfies the
   claim. The evidence must be admitted: verified, sourced and not excluded.
+- **`unclassified-evidence`.** Snapshot admission keeps out any evidence row
+  with no `measured_by`, under the reason `unclassified` (MODEL-239). Who
+  measured a row is never inferred, and the decision contract requires it. The
+  target counts those rows over the whole catalogue, not only the lineup, and
+  one finding names each model that has any. The fix is on the card.
 - **`lineup-facts-verified`.** A fact stated as `unknown` is honest and is not a
   breach. Any other fact the snapshot keeps out is a breach, with the
   compiler's reason (for example `quarantined (mismatch)`), and so is a

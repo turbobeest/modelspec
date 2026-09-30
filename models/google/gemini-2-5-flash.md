@@ -1159,7 +1159,7 @@ benchmarks:
     id: google/gemini-2-5-flash#hle#4bd99ee3c2ef
     sources:
     - source_id: model-143-evidence-scale-hle-json
-      snapshot_ref: sha256:ed8318afc3b822d4f773ca68e50554d1e6104feee3439ef5b9b84952803a46e6
+      snapshot_ref: sha256:77df372d1ff8a2008807a7a397c6388666efcdf417c2f5711c392b6c2c176b16
       cited_regions:
       - rows
     measured_by: independent_evaluator
@@ -1179,6 +1179,380 @@ benchmarks:
     limitations: 'MathArena marks this row: model was released after competition release, so
       contamination is possible.'
     measured_by: independent_evaluator
+  - benchmark_id: arena_sc_factuality
+    model_id_as_evaluated: gemini-2.5-flash
+    score: 1436.5672969425964
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: evaluated
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
+    benchmark_version: ''
+    configuration: ''
+    limitations: ''
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-factuality
+      snapshot_ref: sha256:ece0fd0afe2b42a38bce698a6be5329044b5503f5edb7f43473c19394b38fc28
+      cited_regions:
+      - rows
+    id: google/gemini-2-5-flash#arena_sc_factuality#1380b98d944a
+  - benchmark_id: arena_sc_english
+    model_id_as_evaluated: gemini-2.5-flash
+    score: 1413.1526534766867
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: evaluated
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
+    benchmark_version: ''
+    configuration: ''
+    limitations: ''
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:cee57baa7239c5aa2091dcb5db0b4c2ac22cec732b235d66c0cda2ee55bdcb44
+      cited_regions:
+      - rows
+    id: google/gemini-2-5-flash#arena_sc_english#a1c122472042
+  - benchmark_id: arena_sc_chinese
+    model_id_as_evaluated: gemini-2.5-flash
+    score: 1438.551159423747
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: evaluated
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
+    benchmark_version: ''
+    configuration: ''
+    limitations: ''
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:9bf00fc37e8a997735f423949aba6ffc5551990b6f835297d3fed2b364abe02b
+      cited_regions:
+      - rows
+    id: google/gemini-2-5-flash#arena_sc_chinese#45471d7337d7
+  - benchmark_id: arena_sc_japanese
+    model_id_as_evaluated: gemini-2.5-flash
+    score: 1391.9533422126951
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: evaluated
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
+    benchmark_version: ''
+    configuration: ''
+    limitations: ''
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:13b68c219a1ec549a9336846ddacaf97471f6323c09e4f45a73eab7a0857a9ca
+      cited_regions:
+      - rows
+    id: google/gemini-2-5-flash#arena_sc_japanese#ac7e0f0484c7
+  - benchmark_id: arena_sc_korean
+    model_id_as_evaluated: gemini-2.5-flash
+    score: 1372.0849796785787
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: evaluated
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
+    benchmark_version: ''
+    configuration: ''
+    limitations: ''
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:96706e685de18541b6ad515db22607a7840bad8bc902a30a8a38f949cd409c08
+      cited_regions:
+      - rows
+    id: google/gemini-2-5-flash#arena_sc_korean#8e60f8fe3eae
+  - benchmark_id: arena_sc_russian
+    model_id_as_evaluated: gemini-2.5-flash
+    score: 1409.692764828731
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: evaluated
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
+    benchmark_version: ''
+    configuration: ''
+    limitations: ''
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:eb77af068077fa90a9514ad454b6a65f061a176f0d68897132e1526f3be743dd
+      cited_regions:
+      - rows
+    id: google/gemini-2-5-flash#arena_sc_russian#fba890236d01
+  - benchmark_id: arena_sc_spanish
+    model_id_as_evaluated: gemini-2.5-flash
+    score: 1405.8987859835715
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: evaluated
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
+    benchmark_version: ''
+    configuration: ''
+    limitations: ''
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:e56e27431afb859f3376e3d5609785906e24647b4c0c65a324b7995944b9573b
+      cited_regions:
+      - rows
+    id: google/gemini-2-5-flash#arena_sc_spanish#d4d9b68f9737
+  - benchmark_id: arena_sc_german
+    model_id_as_evaluated: gemini-2.5-flash
+    score: 1406.7010285918066
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: evaluated
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
+    benchmark_version: ''
+    configuration: ''
+    limitations: ''
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:098d6730e0b426da68eee86ddfd97bb03c3b1048e178378de1ec3924fa209c6d
+      cited_regions:
+      - rows
+    id: google/gemini-2-5-flash#arena_sc_german#a00404441ab5
+  - benchmark_id: arena_sc_french
+    model_id_as_evaluated: gemini-2.5-flash
+    score: 1424.79612570021
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: evaluated
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
+    benchmark_version: ''
+    configuration: ''
+    limitations: ''
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:c6c9f83eb7147bedac479a445a3803aad09d613643414d3cd5035dbde46d6f2f
+      cited_regions:
+      - rows
+    id: google/gemini-2-5-flash#arena_sc_french#908e2c948776
+  - benchmark_id: arena_sc_polish
+    model_id_as_evaluated: gemini-2.5-flash
+    score: 1399.161677862202
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: evaluated
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
+    benchmark_version: ''
+    configuration: ''
+    limitations: ''
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:a99daf2dc2fbf9b06de90a127cc1408c7a19e4fa45a1a4d538b668211c4b5892
+      cited_regions:
+      - rows
+    id: google/gemini-2-5-flash#arena_sc_polish#7a48e49e5214
+  - benchmark_id: arena_sc_industry_software_it_services
+    model_id_as_evaluated: gemini-2.5-flash
+    score: 1420.9827682508285
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: evaluated
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
+    benchmark_version: ''
+    configuration: ''
+    limitations: ''
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:4eaa9890dce0719aa263af890c9f2a7bb1a3198e291d84dbf8c1371d4f150c52
+      cited_regions:
+      - rows
+    id: google/gemini-2-5-flash#arena_sc_industry_software_it_services#64f5d17a86ad
+  - benchmark_id: arena_sc_industry_entertainment_sports_media
+    model_id_as_evaluated: gemini-2.5-flash
+    score: 1386.9174855746019
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: evaluated
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
+    benchmark_version: ''
+    configuration: ''
+    limitations: ''
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:df0d5e7c4d4ce1f683618242c0786eafd164d98b3b49dbaa6e699476bec94ccf
+      cited_regions:
+      - rows
+    id: google/gemini-2-5-flash#arena_sc_industry_entertainment_sports_media#40d9d0af685e
+  - benchmark_id: arena_sc_industry_mathematical
+    model_id_as_evaluated: gemini-2.5-flash
+    score: 1416.2080990590348
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: evaluated
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
+    benchmark_version: ''
+    configuration: ''
+    limitations: ''
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-text-style-control
+      snapshot_ref: sha256:b0f3ee924239a7a9a1e60676935d0c83091f29517b8acb95e07868e370822e82
+      cited_regions:
+      - rows
+    id: google/gemini-2-5-flash#arena_sc_industry_mathematical#118a7f9ff014
+  - benchmark_id: arena_elo_vision
+    model_id_as_evaluated: gemini-2.5-flash
+    score: 1235.977495939284
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: evaluated
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
+    benchmark_version: ''
+    configuration: ''
+    limitations: ''
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-vision
+      snapshot_ref: sha256:756812129fdf26cd49d126a785b01e1ede317aa6f2cb5d47cbd6893d883bedae
+      cited_regions:
+      - rows
+    id: google/gemini-2-5-flash#arena_elo_vision#469306deb397
+  - benchmark_id: arena_sc_vision_ocr
+    model_id_as_evaluated: gemini-2.5-flash
+    score: 1222.7386908468304
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: evaluated
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
+    benchmark_version: ''
+    configuration: ''
+    limitations: ''
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-vision-style-control
+      snapshot_ref: sha256:72ff33856df7c05e7611f78bd6f0a13fc422694ad107f25e00c11b10edb14422
+      cited_regions:
+      - rows
+    id: google/gemini-2-5-flash#arena_sc_vision_ocr#6a281518d49d
+  - benchmark_id: arena_sc_vision_diagram
+    model_id_as_evaluated: gemini-2.5-flash
+    score: 1234.017225440668
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: evaluated
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
+    benchmark_version: ''
+    configuration: ''
+    limitations: ''
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-vision-style-control
+      snapshot_ref: sha256:f70ad4aae81aa8b6cca27735001f45704e13f64af12ad93244cd19ca60d98085
+      cited_regions:
+      - rows
+    id: google/gemini-2-5-flash#arena_sc_vision_diagram#674765d9ba04
+  - benchmark_id: arena_sc_vision_homework
+    model_id_as_evaluated: gemini-2.5-flash
+    score: 1239.0784738969742
+    unit: Arena score (Elo scale)
+    source_url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-13'
+    date_type: evaluated
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
+    benchmark_version: ''
+    configuration: ''
+    limitations: ''
+    measured_by: independent_evaluator
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-arena-vision-style-control
+      snapshot_ref: sha256:8015c65e88084d6c6b25f9787fb1528f550abd8e055cf8f3b753e863296d3176
+      cited_regions:
+      - rows
+    id: google/gemini-2-5-flash#arena_sc_vision_homework#a8cce3054240
 deployment:
   api_only: false
   local_inference: false

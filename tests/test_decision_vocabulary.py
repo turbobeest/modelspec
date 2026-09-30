@@ -505,6 +505,46 @@ def test_the_site_build_writes_the_vocabulary_beside_the_snapshot(tmp_path, monk
                       "class": None}}
 
 
+def test_the_site_build_signs_the_vocabulary_with_the_snapshot_key(tmp_path, monkeypatch):
+    import base64
+
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
+    from decision import snapshot as snap
+    from pipeline import build as site_build
+    from tests.test_decision_snapshot import COMPLETENESS_REGISTRY, KEY, _mini_repo
+
+    private = Ed25519PrivateKey.generate()
+    public = private.public_key().public_bytes(
+        serialization.Encoding.Raw, serialization.PublicFormat.Raw)
+    key_set = tmp_path / "snapshot-keys.json"
+    key_set.write_text(json.dumps({
+        "format": "modelspec.snapshot-keys", "version": 1,
+        "keys": [{"alg": "ed25519", "key_id": "test-ci",
+                  "public_key": base64.b64encode(public).decode()}],
+    }))
+    root = _mini_repo(tmp_path)
+    monkeypatch.setattr(snap, "PUBLIC_KEY_SET_PATH", key_set)
+    monkeypatch.setenv(snap.ED25519_KEY_ENV, base64.b64encode(private.private_bytes(
+        serialization.Encoding.Raw, serialization.PrivateFormat.Raw,
+        serialization.NoEncryption())).decode())
+    monkeypatch.setattr(snap, "default_registry", lambda: COMPLETENESS_REGISTRY)
+    monkeypatch.setattr("decision.vocabulary.MIN_FRONTIER_COVERAGE", 0)
+    monkeypatch.setenv(snap.KEY_ENV, KEY.decode())
+    target = tmp_path / "site" / "api" / "decision" / "snapshot.json.gz"
+
+    assert site_build.write_decision_snapshot_if_ready(
+        root, target, premier=root / "premier" / "slice-1.yaml", as_of=AS_OF) is True
+
+    written = json.loads((target.parent / "vocabulary.json").read_text())
+    assert written["signatures"][0]["key_id"] == "test-ci"
+    assert snap.verify_vocabulary(written) == "verified"
+    written["models"]["lab/alpha"]["display_name"] = "Tampered"
+    with pytest.raises(snap.SnapshotIntegrityError):
+        snap.verify_vocabulary(written)
+
+
 def test_no_snapshot_means_no_vocabulary(tmp_path, monkeypatch):
     from decision import snapshot as snap
     from pipeline import build as site_build

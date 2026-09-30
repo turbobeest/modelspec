@@ -382,6 +382,79 @@ benchmarks:
     assert report.quarantined == []
 
 
+def test_added_row_takes_the_board_rows_date_and_keeps_the_card_text(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    """MODEL-233: a board row's own date is the evidence date, as for an update.
+
+    The add path stamped the observation date, so the verifier, which reads the
+    row's date from the projection, quarantined every added row; and it left out
+    ``measured_by``, which the snapshot requires. The card's existing text is
+    appended to, not re-serialised.
+    """
+    root = tmp_path / "repo"
+    cache = tmp_path / "copies"
+    (root / "models" / "lab").mkdir(parents=True)
+    (root / "registry").mkdir(parents=True)
+    (root / "verification").mkdir(parents=True)
+    (root / "registry" / "sources.yaml").write_text(
+        """schema_version: 1
+sources:
+- id: fixture-source
+  url: https://example.test/leaderboard.json
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator: {kind: page, value: ''}
+""",
+        encoding="utf-8",
+    )
+    card = root / "models" / "lab" / "new.md"
+    before = _card("2026-09-01").replace("fixture_benchmark", "other_benchmark").replace(
+        "lab/model", "lab/new").replace("Stable Model", "New Model").replace(
+        "model_id: lab/new\n", "model_id: lab/new\ndisplay_name: New Model  # kept\n")
+    card.write_text(before, encoding="utf-8")
+    (root / "models" / "lab" / "template.md").write_text(
+        _card("2026-09-25").replace("lab/model", "lab/template").replace(
+            "Stable Model", "Template Model"
+        ).replace("prose\n", ""),
+        encoding="utf-8",
+    )
+    store = refresh.CopyStore(cache)
+    projection = refresh.readers.document(
+        [{"model": "New Model", "score": "81.5%", "date": "2026-09-13"}],
+        url="https://example.test/leaderboard.json",
+        page_ref="sha256:" + "b" * 64,
+        read_date="2026-09-26",
+        note="fixture",
+    )
+    board = refresh._reading_from_projection(
+        key="fixture", source_id="fixture-source", benchmarks=("fixture_benchmark",),
+        source_url="https://example.test/leaderboard.json", projected=projection,
+        observed_at="2026-09-26", value_field="score", store=store,
+    )
+    monkeypatch.setattr(refresh, "collect_readings", lambda *_: ([board], []))
+
+    report = refresh.run(
+        observed_at="2026-09-26", dry_run=False, root=root, source_cache=cache,
+        model_ids=("lab/new",), add_missing=True,
+    )
+
+    after = card.read_text(encoding="utf-8")
+    added = yaml.safe_load(after.split("---", 2)[1])["benchmarks"]["evidence"][-1]
+    assert (added["benchmark_id"], added["evidence_date"], added["observed_at"]) == (
+        "fixture_benchmark", "2026-09-13", "2026-09-26"
+    )
+    assert (added["measured_by"], added["effort"], added["harness"]) == (
+        "benchmark_author", None, None
+    )
+    assert report.added == 1
+    assert report.quarantined == []
+    assert after.startswith(before.removesuffix("---\nprose\n"))
+    assert after.endswith("---\nprose\n")
+
+
 def test_signal_refresh_changes_only_the_resolved_model(monkeypatch, tmp_path: Path) -> None:
     root = tmp_path / "repo"
     cache = tmp_path / "copies"
@@ -656,17 +729,18 @@ FINANCE_CARDS = (
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
-def _finance_repo(tmp_path: Path) -> Path:
-    """The eight lineup cards with finance_benchmark_v2 rows, and the real registry."""
+def _finance_repo(tmp_path: Path, cards: tuple[str, ...] = FINANCE_CARDS) -> Path:
+    """The given lineup cards (by default those with finance_benchmark_v2 rows) and the
+    real registry."""
     root = tmp_path / "repo"
     (root / "premier").mkdir(parents=True)
     (root / "registry").mkdir()
     (root / "verification").mkdir()
     (root / "premier" / "slice-1.yaml").write_text(
-        "models:\n" + "".join(f"- model_id: {m}\n" for m in FINANCE_CARDS), encoding="utf-8")
+        "models:\n" + "".join(f"- model_id: {m}\n" for m in cards), encoding="utf-8")
     (root / "registry" / "sources.yaml").write_bytes(
         (REPO_ROOT / "registry" / "sources.yaml").read_bytes())
-    for model_id in FINANCE_CARDS:
+    for model_id in cards:
         rel = Path("models") / f"{model_id}.md"
         (root / rel).parent.mkdir(parents=True, exist_ok=True)
         (root / rel).write_bytes((REPO_ROOT / rel).read_bytes())
@@ -765,3 +839,88 @@ def test_finance_projection_refuses_a_page_without_run_records(payload: str) -> 
     with pytest.raises(ValueError, match="Finance Benchmark"):
         refresh._project_finbenchmark(_rsc_page(payload), url=refresh.FINBENCH_URL,
                                       page_ref="sha256:" + "c" * 64, observed_at="2026-09-29")
+
+
+MATHARENA_CARDS = (
+    "anthropic/claude-fable-5-1", "anthropic/claude-opus-5-5", "deepseek/deepseek-flash",
+    "google/gemini-3-8-flash", "meta/muse-spark-1-3", "openai/gpt-6-astra",
+    "openai/gpt-6-sol", "xai/grok-4-7",
+)
+
+
+def _replay_matharena(monkeypatch) -> None:
+    """Serve the 2026-09-29 MathArena Overall tables; every other board is unreachable."""
+    import gzip
+
+    pages = {url: gzip.decompress(
+        (FIXTURES / f"matharena_{url.rsplit('/', 1)[1]}_2026-09-29.json.gz").read_bytes())
+        for _, url in refresh.MATHARENA_BOARDS.values()}
+    pages[refresh.readers.MATHARENA_INDEX] = gzip.decompress(
+        (FIXTURES / "matharena_index_2026-09-29.html.gz").read_bytes())
+
+    def fetch(url: str) -> bytes:
+        if url in pages:
+            return pages[url]
+        raise OSError(f"offline replay: {url}")
+
+    monkeypatch.setattr(refresh, "_fetch", fetch)
+
+
+def test_a_later_matharena_reread_keeps_every_flagged_row_admitted(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    """A re-read re-dates the row, so its only verification is the refresh's own.
+
+    The rows carry MathArena's contamination warning. The snapshot counts a
+    verification only when it binds the score and the flags together.
+    """
+    from decision.model import evidence_verification_value, value_hash
+
+    root = _finance_repo(tmp_path, MATHARENA_CARDS)
+    _replay_matharena(monkeypatch)
+
+    report = refresh.run(observed_at="2026-10-06", dry_run=False, root=root,
+                         source_cache=tmp_path / "copies")
+
+    for benchmark in ("brokenarxiv", "arxivmath"):
+        assert report.boards[f"matharena:{benchmark}"] == {
+            "models_read": 8, "models_reconfirmed": 8, "values_changed": 0, "failures": [],
+        }
+    assert report.changes == []
+    assert report.quarantined == []
+    sol = {row["benchmark_id"]: row for row in
+           refresh._front(root / "models" / "openai" / "gpt-6-sol.md")["benchmarks"]["evidence"]}
+    assert (sol["brokenarxiv"]["score"], sol["arxivmath"]["score"]) == (86.98, 91.32)
+    assert sol["brokenarxiv"]["quality_flags"] == ["contamination_warning"]
+    log = [json.loads(line) for line in
+           (root / "verification" / "log.jsonl").read_text(encoding="utf-8").splitlines()]
+    counted = {(e["target"]["id"], e["target"]["value_hash"]) for e in log
+               if e["outcome"] == "verified"}
+    reread = [row for model_id in MATHARENA_CARDS
+              for row in refresh._front(root / "models" / f"{model_id}.md")
+              ["benchmarks"]["evidence"] if row["benchmark_id"] in ("brokenarxiv", "arxivmath")]
+    assert len(reread) == 16
+    assert {str(row["evidence_date"]) for row in reread} == {"2026-10-06"}
+    assert [row["id"] for row in reread
+            if (row["id"], value_hash(evidence_verification_value(row))) not in counted] == []
+
+
+def test_matharena_research_boards_are_registered_sources() -> None:
+    from decision.sources import load_sources
+
+    registered = load_sources(REPO_ROOT / "registry" / "sources.yaml")
+    for source_id, url in refresh.MATHARENA_BOARDS.values():
+        assert str(registered[source_id].url) == url
+
+
+def test_the_matharena_index_marks_only_retired_competitions() -> None:
+    import gzip
+
+    index = gzip.decompress(
+        (FIXTURES / "matharena_index_2026-09-29.html.gz").read_bytes()).decode()
+    assert refresh.readers.matharena_deprecated(index, "aime--aime_2026") is True
+    assert refresh.readers.matharena_deprecated(index, "overall--brokenarxiv") is False
+    assert refresh.readers.matharena_deprecated(index, "overall--arxivmath") is False
+    with pytest.raises(ValueError, match="no competition"):
+        refresh.readers.matharena_deprecated(index, "aime--aime_2099")
+

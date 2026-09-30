@@ -739,6 +739,60 @@ benchmarks:
       snapshot_ref: sha256:8f663ca9611104e24712ac2c6e42e0c7444850db6ce29d3d17a046b1d4bd973b
       cited_regions:
       - rows
+  - benchmark_id: brokenarxiv
+    model_id_as_evaluated: Grok 4.7 (xhigh)
+    score: 42.63
+    unit: percent
+    source_url: https://matharena.ai/competition_tables/overall--brokenarxiv
+    source_kind: benchmark_author
+    evidence_date: '2026-09-29'
+    date_type: evaluated
+    verified_at: '2026-09-29'
+    benchmark_version: BrokenArXiv, MathArena Overall table
+    configuration: MathArena competition table read 2026-09-29; the table states no run date,
+      so the reading is dated by the observation. Accuracy averaged over four runs per problem.
+      Effort xhigh, as the model cell names it.
+    limitations: Overall pools MathArena's monthly editions, so it moves when an edition is added.
+      MathArena warns the model was released after the problems were.
+    measured_by: benchmark_author
+    effort: xhigh
+    harness: null
+    sources:
+    - source_id: model-233-matharena-brokenarxiv
+      snapshot_ref: sha256:9e6bec6f0629ee06703efda42486ad2fdec7f268ef21e0ba7210d6463cd99c8f
+      cited_regions:
+      - rows
+    quality_flags:
+    - contamination_warning
+    observed_at: '2026-09-29'
+    id: xai/grok-4-7#brokenarxiv#1be54340f2e7
+  - benchmark_id: arxivmath
+    model_id_as_evaluated: Grok 4.7 (xhigh)
+    score: 59.15
+    unit: percent
+    source_url: https://matharena.ai/competition_tables/overall--arxivmath
+    source_kind: benchmark_author
+    evidence_date: '2026-09-29'
+    date_type: evaluated
+    verified_at: '2026-09-29'
+    benchmark_version: ArXivMath, MathArena Overall table
+    configuration: MathArena competition table read 2026-09-29; the table states no run date,
+      so the reading is dated by the observation. Accuracy averaged over four runs per problem.
+      Effort xhigh, as the model cell names it.
+    limitations: Overall pools MathArena's monthly editions, so it moves when an edition is added.
+      MathArena warns the model was released after the problems were.
+    measured_by: benchmark_author
+    effort: xhigh
+    harness: null
+    sources:
+    - source_id: model-233-matharena-arxivmath
+      snapshot_ref: sha256:64e10664a248ffe6c983a0cbdcd1f118e1093f94d584af3f08081768076bafe0
+      cited_regions:
+      - rows
+    quality_flags:
+    - contamination_warning
+    observed_at: '2026-09-29'
+    id: xai/grok-4-7#arxivmath#7f40867b031d
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''

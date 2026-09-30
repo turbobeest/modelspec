@@ -205,3 +205,12 @@ Action: `humaneval_multi: multipl_e` added to `_census/aliases.yaml` so the fold
 future census pass. `multipl_e.md`'s own `aliases` field was not edited by this batch (out of scope: it was not one
 of this batch's assigned ids), so a future pass on that page should add `humaneval_multi` there too, and may want to
 note in its Lineage section that OpenCompass reports the HumanEval-derived half of the family under that name.
+
+## 2026-09-29: `aime_2026.md` contradicts itself and repeats a front-matter key
+
+Found while writing `arxivmath` and `brokenarxiv` (MODEL-233). `benchmarks/aime_2026.md` declares `aliases` twice in
+its front matter (`["aime2026"]`, then a list with `AIME26`); YAML keeps only the last, so `aime2026` is silently
+dropped. Its `saturation` block records a top score of 100.0 read from MathArena on 2026-09-24, while its "Saturation
+and contamination" and "Reading the numbers" sections still say no top score could be extracted. The body predates
+the 2026-09-24 front-matter update. Action: merge the two `aliases` lists and rewrite those two body sections from the
+2026-09-24 reading.

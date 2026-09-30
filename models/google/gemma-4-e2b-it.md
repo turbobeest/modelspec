@@ -667,7 +667,139 @@ availability:
   other_platforms: []
 benchmarks:
   scores: {}
-  evidence: []
+  evidence:
+  - benchmark_id: mmlu_pro
+    model_id_as_evaluated: Gemma 4 E2B
+    score: 60.0
+    unit: percent
+    source_url: https://ai.google.dev/gemma/docs/core/model_card_4
+    source_kind: provider_self_report
+    evidence_date: '2026-07-30'
+    date_type: published
+    verified_at: '2026-09-29'
+    benchmark_version: MMLU-Pro
+    configuration: Google's Gemma 4 model card (last updated 2026-07-30), Benchmark Results table;
+      the page states the results are for the instruction-tuned models.
+    limitations: ''
+    measured_by: provider_self_report
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-233-google-gemma-4-model-card
+      snapshot_ref: sha256:5793665e8eea120093150c2c6f87362e152c6e0db0fa26130beb59ccd2c07992
+      cited_regions:
+      - benchmark-results
+    id: google/gemma-4-e2b-it#mmlu_pro#853a817a6f12
+  - benchmark_id: aime_2026
+    model_id_as_evaluated: Gemma 4 E2B
+    score: 37.5
+    unit: percent
+    source_url: https://ai.google.dev/gemma/docs/core/model_card_4
+    source_kind: provider_self_report
+    evidence_date: '2026-07-30'
+    date_type: published
+    verified_at: '2026-09-29'
+    benchmark_version: AIME 2026, no tools
+    configuration: Google's Gemma 4 model card (last updated 2026-07-30), Benchmark Results table;
+      the page states the results are for the instruction-tuned models.
+    limitations: ''
+    measured_by: provider_self_report
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-233-google-gemma-4-model-card
+      snapshot_ref: sha256:5793665e8eea120093150c2c6f87362e152c6e0db0fa26130beb59ccd2c07992
+      cited_regions:
+      - benchmark-results
+    id: google/gemma-4-e2b-it#aime_2026#38045f7d6961
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: Gemma 4 E2B
+    score: 43.4
+    unit: percent
+    source_url: https://ai.google.dev/gemma/docs/core/model_card_4
+    source_kind: provider_self_report
+    evidence_date: '2026-07-30'
+    date_type: published
+    verified_at: '2026-09-29'
+    benchmark_version: GPQA Diamond
+    configuration: Google's Gemma 4 model card (last updated 2026-07-30), Benchmark Results table;
+      the page states the results are for the instruction-tuned models.
+    limitations: ''
+    measured_by: provider_self_report
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-233-google-gemma-4-model-card
+      snapshot_ref: sha256:5793665e8eea120093150c2c6f87362e152c6e0db0fa26130beb59ccd2c07992
+      cited_regions:
+      - benchmark-results
+    id: google/gemma-4-e2b-it#gpqa_diamond#622ad3d67b8f
+  - benchmark_id: bbeh
+    model_id_as_evaluated: Gemma 4 E2B
+    score: 21.9
+    unit: percent
+    source_url: https://ai.google.dev/gemma/docs/core/model_card_4
+    source_kind: provider_self_report
+    evidence_date: '2026-07-30'
+    date_type: published
+    verified_at: '2026-09-29'
+    benchmark_version: BIG-Bench Extra Hard
+    configuration: Google's Gemma 4 model card (last updated 2026-07-30), Benchmark Results table;
+      the page states the results are for the instruction-tuned models.
+    limitations: ''
+    measured_by: provider_self_report
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-233-google-gemma-4-model-card
+      snapshot_ref: sha256:5793665e8eea120093150c2c6f87362e152c6e0db0fa26130beb59ccd2c07992
+      cited_regions:
+      - benchmark-results
+    id: google/gemma-4-e2b-it#bbeh#8169beba632e
+  - benchmark_id: mmmlu
+    model_id_as_evaluated: Gemma 4 E2B
+    score: 67.4
+    unit: percent
+    source_url: https://ai.google.dev/gemma/docs/core/model_card_4
+    source_kind: provider_self_report
+    evidence_date: '2026-07-30'
+    date_type: published
+    verified_at: '2026-09-29'
+    benchmark_version: MMMLU
+    configuration: Google's Gemma 4 model card (last updated 2026-07-30), Benchmark Results table;
+      the page states the results are for the instruction-tuned models.
+    limitations: ''
+    measured_by: provider_self_report
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-233-google-gemma-4-model-card
+      snapshot_ref: sha256:5793665e8eea120093150c2c6f87362e152c6e0db0fa26130beb59ccd2c07992
+      cited_regions:
+      - benchmark-results
+    id: google/gemma-4-e2b-it#mmmlu#6e7820b2692c
+  - benchmark_id: deepmind_mrcr_v2
+    model_id_as_evaluated: Gemma 4 E2B
+    score: 19.1
+    unit: percent
+    source_url: https://ai.google.dev/gemma/docs/core/model_card_4
+    source_kind: provider_self_report
+    evidence_date: '2026-07-30'
+    date_type: published
+    verified_at: '2026-09-29'
+    benchmark_version: MRCR v2, 8 needles, up to 128K tokens, average
+    configuration: Google's Gemma 4 model card (last updated 2026-07-30), Benchmark Results table;
+      the page states the results are for the instruction-tuned models.
+    limitations: ''
+    measured_by: provider_self_report
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-233-google-gemma-4-model-card
+      snapshot_ref: sha256:5793665e8eea120093150c2c6f87362e152c6e0db0fa26130beb59ccd2c07992
+      cited_regions:
+      - benchmark-results
+    id: google/gemma-4-e2b-it#deepmind_mrcr_v2#3417b6ba271e
 deployment:
   api_only: false
   local_inference: true

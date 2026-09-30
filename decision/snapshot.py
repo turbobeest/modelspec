@@ -467,6 +467,75 @@ def env_ed25519_signer() -> Ed25519Signer | None:
     )
 
 
+VOCABULARY_SIGNATURES_FIELD = "signatures"
+_VOCABULARY_DOMAIN = "modelspec.vocabulary\n"
+
+
+def vocabulary_digest(vocabulary: Mapping[str, Any]) -> str:
+    """SHA-256 of the vocabulary with its own ``signatures`` block left out."""
+    body = {k: v for k, v in vocabulary.items() if k != VOCABULARY_SIGNATURES_FIELD}
+    return "sha256:" + hashlib.sha256(canonical_json(body)).hexdigest()
+
+
+def _vocabulary_message(vocabulary: Mapping[str, Any]) -> bytes:
+    return (_VOCABULARY_DOMAIN + vocabulary_digest(vocabulary)).encode("ascii")
+
+
+def sign_vocabulary(vocabulary: Mapping[str, Any], signer: Ed25519Signer) -> dict[str, Any]:
+    """Return the vocabulary with an Ed25519 signature made by the snapshot's key (MODEL-227).
+
+    The signed message is domain-separated from the snapshot's, so a snapshot
+    signature can never be replayed as a vocabulary signature. The vocabulary's
+    own ``snapshot`` field is inside the digest, which ties it to one snapshot.
+    """
+    key = _load_ed25519_private_key(signer.private_key)
+    value = base64.b64encode(key.sign(_vocabulary_message(vocabulary))).decode("ascii")
+    signed = {k: v for k, v in vocabulary.items() if k != VOCABULARY_SIGNATURES_FIELD}
+    signed[VOCABULARY_SIGNATURES_FIELD] = [
+        {"alg": ED25519_SIGNATURE_ALG, "key_id": signer.key_id, "value": value}
+    ]
+    return signed
+
+
+def verify_vocabulary(vocabulary: Mapping[str, Any]) -> str:
+    """Check a vocabulary against the pinned Ed25519 key set.
+
+    Returns ``"verified"``, ``"unsigned"`` (no signature block: a vocabulary
+    published before MODEL-227) or ``"unpinned"`` (the pinned set is empty, the
+    same hash-only mode the snapshot loader allows). Raises
+    ``SnapshotIntegrityError`` when a signature block is present and none of its
+    signatures verifies.
+    """
+    signatures = vocabulary.get(VOCABULARY_SIGNATURES_FIELD)
+    if signatures is None:
+        return "unsigned"
+    public_keys = load_public_keys()
+    if not public_keys:
+        return "unpinned"
+    if not isinstance(signatures, list) or not signatures:
+        raise SnapshotIntegrityError("the vocabulary signature block is malformed")
+    from cryptography.exceptions import InvalidSignature
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+
+    message = _vocabulary_message(vocabulary)
+    for row in signatures:
+        try:
+            if row["alg"] != ED25519_SIGNATURE_ALG:
+                continue
+            public = public_keys.get(str(row["key_id"]))
+            if public is None:
+                continue
+            Ed25519PublicKey.from_public_bytes(public).verify(
+                base64.b64decode(row["value"], validate=True), message
+            )
+        except (KeyError, TypeError, ValueError, InvalidSignature):
+            continue
+        return "verified"
+    raise SnapshotIntegrityError(
+        "the vocabulary has no valid Ed25519 signature from a pinned key"
+    )
+
+
 def _record_fields(
     record: Mapping[str, Any], prefix: tuple[str, ...] = (),
 ) -> Iterable[tuple[tuple[str, ...], Any]]:
@@ -784,6 +853,11 @@ class _Compiler:
             evidence_verification_value(e),
             source_ids,
                              extra_urls=[e.get("source_url")], benchmark=e.get("benchmark_id"))
+        if reason is None and not e.get("measured_by"):
+            # Who measured a row is never inferred (MODEL-239): the decision
+            # contract requires it, so a row without it would fail every
+            # decision that cites it.
+            reason = "unclassified"
         if reason is not None:
             self._exclude(sid, reason)
             return
