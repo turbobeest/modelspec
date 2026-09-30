@@ -255,7 +255,6 @@ The Worker echoes the exact requesting origin from that list and handles its
 | 200 | none | A Decision, including `no_feasible`. | Read `status`, `results`, `may_qualify`, and `relax`. |
 | 400 | `invalid_request` | The body is not valid JSON. | Send one JSON object as the request body. |
 | 400 | `invalid_spec` | The body is not a valid decision Spec. This includes an `optimize.weights` refinement key whose vocabulary `evidence_state` is `not_measured` or `no_benchmark`, or that the snapshot does not register. | Apply every item in `error.issues`; unknown fields are not ignored. For a refinement weight, remove the named key or use its parent domain. |
-| 404 | `origin_not_allowed` | A browser preflight came from another origin. | Call from the internal preview origin or make a server-side request. |
 | 409 | `snapshot_changed` | `X-ModelSpec-Snapshot` names another Snapshot than the one answering. | Reload `/api/decision/vocabulary.json`, rebuild the Spec from it, and retry once with its `snapshot`. |
 | 409 | `snapshot_not_loaded` | The Spec pinned a different Snapshot. | Send `latest`, use the response's loaded Snapshot ID, or retry after the requested Snapshot is deployed. |
 | 409 | `comparison_snapshot_changed` | The retained Snapshot does not match `compare_to`. | Send the retained Snapshot's exact ID. |
@@ -264,6 +263,23 @@ The Worker echoes the exact requesting origin from that list and handles its
 | 502 | `snapshot_unavailable` | The static Snapshot could not be fetched. | Retry after the static origin is healthy. |
 | 503 | `no_snapshot` | Pages has not published a complete signed Snapshot. | Retry after the `Retry-After` interval. `/v1/rank` remains available. |
 | 503 | `snapshot_refused` | The Snapshot is unsigned, altered, or wrongly signed. | Fix the site build or Worker secret. Never retry as if this were a valid empty answer. |
+
+## Access errors
+
+These refusals occur before a Decision is produced. They sit outside the
+closed decision-contract error enum and do not change its version. The
+`human_*` responses use the same transport envelope and route as
+`origin_not_allowed`, with `endpoint: decide` and `snapshot: null`.
+
+| Status | `error.code` | Meaning | Fix |
+|---|---|---|---|
+| 404 | `origin_not_allowed` | A browser preflight came from another origin. | Call from a permitted site origin or make a server-side request. |
+| 401 | `human_origin_required` | Keyless manual access requires a permitted site origin. | Use the paid API or MCP for machine access. |
+| 403 | `human_challenge_required` | The Turnstile token is absent, invalid, expired or replayed. | Complete fresh verification before each lookup. |
+| 429 | `human_burst_limit` | Three admitted lookups in a rolling minute. | Wait for `Retry-After`, then verify again. |
+| 429 | `human_day_limit` | The daily allowance of 20 is spent. | Return after midnight UTC or use the paid API or MCP. |
+| 429 | `human_sweep_limit` | Five lookups have four nearly equal intervals. | Wait for `Retry-After`, then verify again or use the paid API or MCP. |
+| 503 | `human_gate_unavailable` | Verification, identity configuration or storage is unavailable. | Retry verification after the service recovers. |
 
 The shared access layer can also return its documented `401`, `402`, `403`,
 `429`, and `503` responses. See [`api-access.md`](api-access.md) and

@@ -95,6 +95,8 @@
     // before then refuses every anonymous caller. Any value other than
     // "false", "0", "no", "off" or "" reads as ON. See docs/api-access.md.
     "ACCESS_ENFORCED": "false",
+    // MODEL-248. Jamie enables only after both secrets and the Pages site key exist.
+    "HUMAN_GATE_ENABLED": "false",
     // MODEL-73. Hosted Stripe Checkout and the webhook that records the entitlement.
     // OFF since 2026-09-24 (holding mode, docs/handoff/holding-mode.md): the
     // flag closes Checkout only. The webhook, claim and rotate still serve
@@ -155,11 +157,14 @@
   // there is no pre-created id to paste. Idle while X402_ENABLED is false.
   "durable_objects": {
     "bindings": [
-      { "name": "CREDITS", "class_name": "CreditsObject" }
+      { "name": "CREDITS", "class_name": "CreditsObject" },
+      // MODEL-248: new binding, reviewed and merged by Jamie. Idle with gate off.
+      { "name": "HUMAN_GATE", "class_name": "HumanGateObject" }
     ]
   },
   "migrations": [
-    { "tag": "v1-credits", "new_sqlite_classes": ["CreditsObject"] }
+    { "tag": "v1-credits", "new_sqlite_classes": ["CreditsObject"] },
+    { "tag": "v2-human-gate", "new_sqlite_classes": ["HumanGateObject"] }
   ],
   // MODEL-166 follow-up. Wrangler environments deploy as separate Workers;
   // `staging` therefore becomes modelspec-rank-staging. It has a workers.dev
@@ -181,6 +186,8 @@
         "EXPORT_ORIGIN": "https://modelspec.dev",
         "BUILD_COMMIT": "dev",
         "ACCESS_ENFORCED": "false",
+        // MODEL-248. Explicitly off in the isolated staging environment too.
+        "HUMAN_GATE_ENABLED": "false",
         "BILLING_ENABLED": "false",
         "FEEDBACK_ENABLED": "false",
         "X402_ENABLED": "true",
@@ -192,7 +199,9 @@
       },
       "durable_objects": {
         "bindings": [
-          { "name": "CREDITS", "class_name": "CreditsObject" }
+          { "name": "CREDITS", "class_name": "CreditsObject" },
+          // MODEL-248: isolated staging namespace, idle with gate off.
+          { "name": "HUMAN_GATE", "class_name": "HumanGateObject" }
         ]
       }
     }

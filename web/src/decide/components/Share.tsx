@@ -1,3 +1,4 @@
+import { HUMAN_GATE_ENABLED } from "./HumanGate";
 import { useEffect, useRef, useState } from "react";
 import { fmtB } from "../adapter";
 import { useVocab } from "../vocabulary/context";
@@ -296,7 +297,7 @@ export function Share({
                 </tbody>
               </table>
             </div>
-            <button onClick={download}>Download CSV</button>
+            {!HUMAN_GATE_ENABLED && <button onClick={download}>Download CSV</button>}
           </>
         )}
       </div>

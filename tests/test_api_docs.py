@@ -512,7 +512,7 @@ def test_every_error_code_the_worker_emits_has_a_documented_fix(
         reference: str, policy_reference: str) -> None:
     assert _codes_of(
         "rank_service", "decide_service", "policy_service", "entry"
-    ) == generator.source_error_codes()
+    ) | set(generator.human_error_codes()) == generator.source_error_codes()
     decide_transport = {
         "no_snapshot", "origin_not_allowed", "snapshot_refused", "snapshot_unavailable"
     }
@@ -528,7 +528,7 @@ def test_every_error_code_the_worker_emits_has_a_documented_fix(
 
     decide_fixes = _error_table(DECIDE_REFERENCE.read_text(encoding="utf-8"))
     decide_codes = _codes_of("decide_service") | {
-        "invalid_request", "payload_too_large", *decide_transport,
+        "invalid_request", "payload_too_large", *decide_transport, *generator.human_error_codes(),
     }
     missing = sorted(decide_codes - set(decide_fixes))
     assert missing == [], f"docs/decide-api.md has no fix for: {missing}"
@@ -781,3 +781,13 @@ def test_probe_validator_accepts_json_schema_null_type():
     assert mod._validate(None, {"type": "null"}, {}) == []
     assert mod._validate("x", {"type": "null"}, {}) != []
     assert mod._validate(None, {"type": "string"}, {}) != []
+
+
+def test_human_access_errors_leave_decision_error_enum_unchanged(spec):
+    schemas = spec["components"]["schemas"]
+    codes = schemas["DecisionRequestRefused"]["properties"]["error"]["properties"]["code"]["enum"]
+    assert codes == [
+        "invalid_spec", "origin_not_allowed", "payload_too_large",
+        "snapshot_changed", "snapshot_not_loaded", "snapshot_refused", "snapshot_unavailable",
+    ]
+    assert schemas["HumanGateRefused"]["properties"]["error"]["properties"]["code"]["enum"] == sorted(generator.human_error_codes())

@@ -5,8 +5,8 @@ the Worker secret ``VISITOR_HMAC_KEY``. The key stops enumeration of the IPv4
 space; the day rotates the id so it cannot follow a visitor across days. Nothing
 raw or unkeyed is stored or logged. With no key, or no address, there is no id:
 the caller treats the request as not identifiable, never falls back to a bare
-hash. Anything that meters a person (the keyless meter, and the human rate
-limit that follows it) calls this and nothing else.
+hash. The MODEL-241 keyless meter uses the address as supplied. The human
+gate normalises IPv6 to /64 before calling visitor_id.
 """
 
 from __future__ import annotations

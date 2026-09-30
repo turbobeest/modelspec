@@ -77,6 +77,8 @@ export class DecideApiError extends Error {
 }
 
 export interface DecideOptions {
+  humanToken?: string;
+  onRemaining?: (remaining: number) => void;
   signal?: AbortSignal;
   /** The vocabulary's snapshot. A Worker holding another answers `snapshot_changed`. */
   snapshot?: string;
@@ -121,6 +123,7 @@ export const hostedEngine: HostedDecisionEngine = {
           headers: {
             Accept: "application/json",
             "Content-Type": "application/json",
+            ...(options.humanToken ? { "X-ModelSpec-Turnstile": options.humanToken } : {}),
             ...(options.snapshot ? { [SNAPSHOT_HEADER]: options.snapshot } : {}),
           },
           body: JSON.stringify(spec),
@@ -133,6 +136,11 @@ export const hostedEngine: HostedDecisionEngine = {
         throw new DecideApiError("The decision service could not be reached.", null, null);
       }
 
+      const remainingHeader = response.headers.get("x-modelspec-decisions-remaining");
+      if (remainingHeader !== null && /^\d+$/.test(remainingHeader)) {
+        const remaining = Number(remainingHeader);
+        if (remaining >= 0 && remaining <= 20) options.onRemaining?.(remaining);
+      }
       let payload: unknown;
       try {
         payload = await unlessAborted(response.json() as Promise<unknown>, timeout.signal, stopped);

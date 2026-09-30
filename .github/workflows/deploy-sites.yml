@@ -66,6 +66,9 @@ jobs:
           cache-dependency-path: web/package-lock.json
 
       - name: Build the decide app
+        env:
+          VITE_HUMAN_GATE_ENABLED: ${{ vars.HUMAN_GATE_ENABLED || 'false' }}
+          VITE_TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
         working-directory: web
         run: |
           npm ci

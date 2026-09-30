@@ -11,7 +11,8 @@ they need no entry.
 Third parties, all of them: `static.cloudflareinsights.com` (the analytics
 beacon script) and `cloudflareinsights.com` (where it reports), disclosed in the
 privacy notice; `api.modelspec.dev` (the decide app and the pricing page call
-it). Nothing else may load.
+it); `challenges.cloudflare.com` (the optional human gate). Jamie adopts the
+Turnstile disclosure separately before enabling that gate.
 """
 
 from __future__ import annotations
@@ -21,6 +22,7 @@ import hashlib
 import re
 from pathlib import Path
 
+TURNSTILE = "https://challenges.cloudflare.com"
 API = "https://api.modelspec.dev"
 BEACON_SCRIPT = "https://static.cloudflareinsights.com"
 BEACON_CONNECT = "https://cloudflareinsights.com"
@@ -44,14 +46,15 @@ def inline_script_hashes(tree: Path) -> list[str]:
 
 
 def csp(tree: Path) -> str:
-    scripts = " ".join(["'self'", *inline_script_hashes(tree), BEACON_SCRIPT])
+    scripts = " ".join(["'self'", *inline_script_hashes(tree), TURNSTILE, BEACON_SCRIPT])
     return "; ".join([
         "default-src 'self'",
         f"script-src {scripts}",
         "style-src 'self' 'unsafe-inline'",
         "img-src 'self' data:",
         "font-src 'self'",
-        f"connect-src 'self' {API} {BEACON_CONNECT}",
+        f"connect-src 'self' {API} {BEACON_CONNECT} {TURNSTILE}",
+        f"frame-src {TURNSTILE}",
         "object-src 'none'",
         "base-uri 'self'",
         "form-action 'self'",

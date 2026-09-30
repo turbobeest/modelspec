@@ -586,13 +586,18 @@ _DECIDE_ONLY = {
 }
 
 
+def human_error_codes() -> dict[str, int]:
+    import human_gate
+    return human_gate.REFUSALS
+
+
 def source_error_codes() -> set[str]:
     """Every `error.code` string any Worker module can emit.
 
     Read from the syntax tree rather than from a list kept beside it, so that
     adding a refusal to the Worker and forgetting the docs is a failed build.
     """
-    codes: set[str] = set()
+    codes: set[str] = set(human_error_codes())
     for path in (
         SRC / "rank_service.py",
         SRC / "decide_service.py",
@@ -783,7 +788,7 @@ def _probe_policy_errors() -> dict[str, tuple[int, dict[str, Any]]]:
 def _check_every_code_is_probed(rank_errors: dict[str, Any],
                                 policy_errors: dict[str, Any]) -> None:
     missing = (source_error_codes() - set(rank_errors) - set(policy_errors)
-               - _ENTRY_ONLY - _DECIDE_ONLY)
+               - _ENTRY_ONLY - _DECIDE_ONLY - set(human_error_codes()))
     if missing:
         raise SystemExit(
             "the Worker can return error code(s) the spec would not document: "
@@ -2198,6 +2203,7 @@ def _decision_schemas() -> dict[str, Any]:
         "decide",
         shared_refusals | {"invalid_spec", "snapshot_changed", "snapshot_not_loaded"},
     )
+    schemas["HumanGateRefused"] = refused("decide", set(human_error_codes()))
     schemas["DecisionSnapshotUnavailable"] = snapshot_unavailable("decide")
     schemas["ComparisonRequestRefused"] = refused(
         "compare",
@@ -2450,7 +2456,7 @@ def build_spec() -> dict[str, Any]:
     empty_shortlist = _answer({"use_case": "coding", "limit": 0})
     errors = _probe_errors()
     _check_every_code_is_probed(errors, _probe_policy_errors())
-    entry_codes = entry_error_codes()
+    entry_codes = {**entry_error_codes(), **human_error_codes()}
 
     used: set[str] = set()
     response_schema = _apply_vocabularies(
@@ -2679,6 +2685,31 @@ def build_spec() -> dict[str, Any]:
         "security": security,
         "servers": [{"url": SERVER_URL, "description": "production"}],
         "paths": {
+            "/v1/human-status": {
+                "get": {
+                    "operationId": "humanStatus",
+                    "summary": "Read today's manual lookup allowance without spending or creating durable state.",
+                    "responses": {
+                        "200": _json_body("Gate disabled, or the remaining daily allowance.", {
+                            "oneOf": [
+                                {"type": "object", "required": ["enabled"], "additionalProperties": False,
+                                 "properties": {"enabled": {"type": "boolean", "enum": [False]}}},
+                                {"type": "object", "required": ["enabled", "remaining"], "additionalProperties": False,
+                                 "properties": {"enabled": {"type": "boolean", "enum": [True]},
+                                                "remaining": {"type": "integer", "minimum": 0, "maximum": 20}}},
+                            ]}),
+                        "403": _json_body("The request origin is not a permitted site origin.", {
+                            "type": "object", "required": ["enabled"],
+                            "properties": {"enabled": {"type": "boolean"}}}),
+                        "405": _json_body("This endpoint takes GET.", {
+                            "type": "object", "required": ["error"],
+                            "properties": {"error": {"type": "string", "enum": ["method_not_allowed"]}}}),
+                        "503": _json_body("The gate secrets or storage are unavailable. Retry later.", {
+                            "type": "object", "required": ["enabled", "message"],
+                            "properties": {"enabled": {"type": "boolean", "enum": [True]}, "message": {"type": "string"}}}),
+                    },
+                },
+            },
             "/v1/credits": {
                 "get": {
                     "operationId": "credits",
@@ -2816,8 +2847,23 @@ def build_spec() -> dict[str, Any]:
                             "USDC per credit, multiplied by this spec's explanation weight.",
                             {"$ref": "#/components/schemas/PaymentRequired"},
                         ),
-                        **access_responses(),
-                        str(access.HTTP_STORE_UNAVAILABLE): decision_unavailable,
+                        **{
+                            code: refused_by_access(description, {"$ref": "#/components/schemas/HumanGateRefused"})
+                            for code, description in {
+                                "401": "Missing or invalid API key, or human_origin_required: use the paid API or MCP.",
+                                "403": "Key revoked, or human_challenge_required: complete fresh verification.",
+                                "429": "Key quota, or human day, burst or even-interval limit. Wait for Retry-After.",
+                            }.items()
+                        },
+                        str(access.HTTP_MISCONFIGURED): access_responses()[str(access.HTTP_MISCONFIGURED)],
+                        str(access.HTTP_STORE_UNAVAILABLE): {
+                            **decision_unavailable,
+                            "content": {"application/json": {"schema": {"oneOf": [
+                                decision_unavailable["content"]["application/json"]["schema"],
+                                {"$ref": "#/components/schemas/HumanGateRefused"},
+                            ]}}},
+                            "description": "Snapshot, access store or human gate unavailable. Retry later.",
+                        },
                     },
                 },
             },

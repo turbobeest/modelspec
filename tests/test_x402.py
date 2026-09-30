@@ -832,6 +832,7 @@ def test_staging_x402_config_is_isolated_on_base_sepolia():
         "EXPORT_ORIGIN": "https://modelspec.dev",
         "BUILD_COMMIT": "dev",
         "ACCESS_ENFORCED": "false",
+        "HUMAN_GATE_ENABLED": "false",
         "BILLING_ENABLED": "false",
         "FEEDBACK_ENABLED": "false",
         "X402_ENABLED": "true",
