@@ -19,6 +19,7 @@ from decision.snapshot import (
     Ed25519Signer,
     Snapshot,
     load_built_snapshot,
+    sign_vocabulary,
 )
 
 SNAPSHOT_ROUTE = "/api/decision/snapshot.json.gz"
@@ -76,13 +77,16 @@ def install_fixture(origin: str, cache: Path, key_id: str) -> str:
     root = cache / "decision"
     generation = root / loaded.snapshot_id
     generation.mkdir(parents=True, exist_ok=True)
+    signer = Ed25519Signer(key_id, private_raw)
     snapshot.write(
         generation / "snapshot.json.gz",
         key=None,
-        ed25519_signer=Ed25519Signer(key_id, private_raw),
+        ed25519_signer=signer,
     )
+    # The public vocabulary is signed by the production key (MODEL-227); the
+    # fixture pins only the test key, so re-sign the vocabulary with it too.
     (generation / "vocabulary.json").write_text(
-        json.dumps(vocabulary),
+        json.dumps(sign_vocabulary(vocabulary, signer)),
         encoding="utf-8",
     )
     (root / "current").write_text(loaded.snapshot_id + "\n", encoding="utf-8")
