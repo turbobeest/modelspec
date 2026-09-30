@@ -38,19 +38,26 @@ or vocabulary and stays public.
 | `measurements/` | speed pilot measurements | speed-probe |
 | `premier/` | curated premier sets | humans |
 | `research/` | research outputs and sources | daily-research |
+| `registry/sources.yaml` | dated source-of-record entries | humans, curation |
+| `registry/providers.yaml` | provider records | humans, price-reread |
+| `registry/harnesses.yaml` | harness records | humans |
+| `registry/release-watch-baseline.json` | last-seen release state | release-signals |
 
 Kept public on purpose:
 
-- `registry/` (vocabulary) changes in lock step with the engine and holds no
-  fresh observation.
+- The rest of `registry/` is vocabulary that changes in lock step with the
+  engine: `domains.yaml`, `facets.yaml`, `families.yaml`, `templates.yaml`,
+  `refinements.yaml`, `release-watch.yaml`. An audit on 2026-09-30 found
+  the four data files above among them and declared them data. They are
+  declared, not moved: the public copies stay where they are, frozen.
 - `decision/` is code.
 - `scripts/*.jsonl.gz` and `attribution.yaml` are historical evaluation
   evidence, already public, and not refreshed.
 - `docs/`, `schema/`, `pipeline/`, `api/`, `cli/`, `web3d/`, `tests/`.
 
-Open question for Jamie: if `registry/` ever carries dated observations, it
-joins `DATA_PATHS`. That is a one-line change and the guard and the overlay
-both follow it.
+A path in `DATA_PATHS` may be a directory or a single file. When a file sits
+in a directory that also holds public vocabulary, the overlay makes that
+directory real and links each entry separately.
 
 ## Reading the private data: the overlay root
 
@@ -66,7 +73,9 @@ overlay/
   verification  -> modelspec-data/verification
   ...
   pipeline      -> public/pipeline
-  registry      -> public/registry
+  registry/             # a real directory, entries linked one by one
+    sources.yaml -> modelspec-data/registry/sources.yaml
+    facets.yaml  -> public/registry/facets.yaml
   .git          -> public/.git      # the export pin stays the code commit
 ```
 
@@ -75,8 +84,14 @@ overlay/
   publish old data as fresh.
 - The private checkout must contain `models/` and `benchmarks/`, or the overlay
   refuses to build (`DataSourceError`, exit 2).
-- Writes through the overlay land in the private checkout. That is what lets
-  the existing writers run unchanged.
+- Writes through the overlay land in the private checkout.
+- Code that finds its files from its own `__file__` resolves through the
+  symlink back to the public tree and would read the stale copy. The build
+  handles the one that matters: `decision.registry.use_root(root)` points the
+  decision registry at the overlay for the duration of the build. Every other
+  such script is an audit item for 245-B (for example
+  `release_signals/watch.py`); it must be given the overlay root, or the
+  private checkout, explicitly.
 - `.git` is the public one, so `build.commit` in the export is still the code
   commit. The export contract gains no field and there is no contract bump.
 
@@ -127,12 +142,41 @@ Six workflows write data today (verified from the workflow files):
 | `release-signals.yml` | `git add models verification` | hourly gate, work-driven |
 | `curation-benchmarks.yml` | `benchmarks/` (through `scripts/curation/propose.py`) | daily trial, then weekly |
 
-Plan (245-B): each writer keeps its scripts unchanged and runs in an overlay
-root. It commits and opens its pull request **in the private repository**.
+Plan (245-B): each writer keeps its logic and runs in an overlay root, with
+any `__file__`-derived root replaced by an explicit one. It commits and opens its pull request **in the private repository**.
 Scripts that call `git` relative to the repository root need a per-script check
 before the move; the overlay's `.git` points at the public repository, so a
 writer that shells out to `git add` must run `git -C <private checkout>` instead.
 That check is the first task of 245-B.
+
+### Public CI must not leak the private data
+
+Actions logs and artifacts on a public repository are public. So a job that
+holds `MODELSPEC_DATA_TOKEN`, or checks out `modelspec-data`, must:
+
+- have no `actions/upload-artifact` step, and
+- never print data: no `cat`, `head`, `tail`, `echo`, `git diff`, `git show` or
+  `git log` of data paths, and no workflow-command annotations quoting rows.
+
+Counts and pass/fail are fine. `tests/test_data_workflows.py` parses every
+workflow and fails on a violation, so the rule holds for 245-B's edits too.
+
+Existing artifact uploads that would carry fresh data once repointed. 245-B
+must move each into the private repository, drop it, or reduce it to counts:
+
+| Workflow | Artifact | Carries |
+| --- | --- | --- |
+| `speed-probe.yml` | `speed-pilot-runs-*` | raw pilot runs under `measurements/`. Must run in the private repository |
+| `deploy-sites.yml` | `sites`, `sites-holding`, `sites-internal` | built site JSON. Rebuilt from fresh data. Keep only where the artifact is exactly what is published |
+| `price-reread.yml` | `price-reread-copies` | copies of the pages read, with fresh prices |
+| `curation-benchmarks.yml` | `curation-change-report-*` | `benchmarks/_curation/reports/` |
+| `leaderboard-refresh.yml` | `leaderboard-refresh-audit-*` | audit of fresh scores |
+| `release-signals.yml` | `release-signals-pending`, `release-signal-audit-*` | pending signals and audit |
+| `coverage-slo.yml` | `coverage-report` | per-model coverage from fresh cards |
+| `accuracy.yml`, `accuracy-nightly.yml` | `decision-accuracy*` | accuracy reports over fresh cards |
+| `benchgraph-graph.yml` | `benchgraph-graph-*` | graph export from benchmark data |
+
+`test.yml` uploads only collection lists and timings and stays as is.
 
 Cheap watchers and gates that only read public sources or decide whether work
 exists (`release-watch`, the release-signals pending matrix) stay in this
@@ -234,8 +278,8 @@ stays public.
 | --- | --- |
 | Create `MODELSPEC_DATA_TOKEN` (read-only) and store it in this repository's secrets | Jamie |
 | Set `DATA_SPLIT_ENABLED=true` when ready | Jamie |
-| Seed `modelspec-data` (after this document is acked) | this ticket |
+| Seed `modelspec-data` (single commit, current `DATA_PATHS` including the four registry files) | this ticket |
 | Add the checkout step and `--data-dir` to `deploy-sites.yml` and `rank-api.yml` | 245-B |
-| Repoint the six writers; audit their `git` calls | 245-B |
+| Repoint the six writers; audit their `git` calls and any `__file__`-derived roots; resolve the artifact table above | 245-B |
 | Move public engine tests to fixtures | 245-C |
 | Make "Data freeze" a required check, after the writers are repointed | Jamie |

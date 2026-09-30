@@ -112,3 +112,16 @@ def test_main_prints_the_result(repos, capsys):
     code = data_lag.main(["--private", str(private), "--public", str(public), "--today", "2026-10-01"])
     assert code == 0
     assert json.loads(capsys.readouterr().out)["status"] == "no-image-yet"
+
+
+def test_a_single_data_file_inside_a_public_directory_is_published(repos):
+    private, public = repos
+    (public / "registry").mkdir()
+    (public / "registry" / "facets.yaml").write_text("vocab")
+    (public / "registry" / "sources.yaml").write_text("stale")
+    _commit(private, "2026-09-30", {
+        "models/a.md": "v1", "benchmarks/b.md": "v1", "registry/sources.yaml": "v1",
+    })
+    run(private, public, date(2027, 6, 30))
+    assert (public / "registry" / "sources.yaml").read_text() == "v1"
+    assert (public / "registry" / "facets.yaml").read_text() == "vocab"

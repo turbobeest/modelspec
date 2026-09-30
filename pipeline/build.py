@@ -19,6 +19,7 @@ import tempfile
 from datetime import date
 from pathlib import Path
 
+from decision import registry as decision_registry
 from pipeline import brand, data_source
 from pipeline import export as exporter
 from pipeline import graph as graph_export
@@ -434,7 +435,12 @@ def main(argv: list[str] | None = None) -> int:
         except data_source.DataSourceError as exc:
             print(f"build: {exc}", file=sys.stderr)
             return 2
-        return build_site(args, composed)
+        saved = decision_registry.REPO_ROOT
+        decision_registry.use_root(composed)
+        try:
+            return build_site(args, composed)
+        finally:
+            decision_registry.use_root(saved)
 
 
 def build_site(args: argparse.Namespace, root: Path) -> int:

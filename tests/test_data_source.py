@@ -97,6 +97,9 @@ def test_a_used_target_is_refused(pair, tmp_path):
     ("./offerings/x.yaml", True),
     ("measurements/speed/pilot/measurement.json", True),
     ("registry/facets.yaml", False),
+    ("registry/sources.yaml", True),
+    ("registry/release-watch-baseline.json", True),
+    ("registry/sources.yaml.bak", False),
     ("decision/bands.py", False),
     ("modelsx/a.md", False),
     ("docs/models/a.md", False),
@@ -123,3 +126,34 @@ def test_card_links_do_not_leak_the_composed_root():
     assert _repo_rel(Path("/var/tmp/root/benchmarks/medbench.md"), "benchmarks") == "benchmarks/medbench.md"
     assert _repo_rel(Path("/var/tmp/root/models/openai/gpt.md"), "models") == "models/openai/gpt.md"
     assert _repo_rel(Path("/x/models/models/a.md"), "models") == "models/a.md"
+
+
+def test_registry_data_files_come_from_private_and_vocabulary_stays_public(tmp_path):
+    public = _tree(tmp_path / "public", {
+        "registry/facets.yaml": "vocab",
+        "registry/sources.yaml": "stale sources",
+        "registry/providers.yaml": "stale providers",
+    })
+    private = _tree(tmp_path / "private", {
+        "models/a.md": "x", "benchmarks/b.md": "x",
+        "registry/sources.yaml": "fresh sources",
+    })
+    root = overlay(public, private, tmp_path / "root")
+    assert (root / "registry").is_dir() and not (root / "registry").is_symlink()
+    assert (root / "registry" / "facets.yaml").read_text() == "vocab"
+    assert (root / "registry" / "sources.yaml").read_text() == "fresh sources"
+    assert not (root / "registry" / "providers.yaml").exists()
+    (root / "registry" / "sources.yaml").write_text("newer")
+    assert (private / "registry" / "sources.yaml").read_text() == "newer"
+
+
+def test_decision_registry_can_be_pointed_at_a_composed_root(tmp_path):
+    from decision import registry
+
+    saved = registry.REPO_ROOT
+    try:
+        registry.use_root(tmp_path)
+        assert registry.REGISTRY_DIR == tmp_path / "registry"
+    finally:
+        registry.use_root(saved)
+    assert registry.REGISTRY_DIR == saved / "registry"

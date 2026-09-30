@@ -64,8 +64,10 @@ def commit_at_or_before(private: Path, cutoff: date) -> str | None:
 
 
 def _existing_paths(private: Path, commit: str) -> list[str]:
-    listed = _git(private, "ls-tree", "--name-only", commit).stdout.split()
-    return [p for p in DATA_PATHS if p in listed]
+    return [
+        p for p in DATA_PATHS
+        if _git(private, "ls-tree", "--name-only", commit, "--", p).stdout.strip()
+    ]
 
 
 def read_manifest(public: Path) -> dict | None:
@@ -84,8 +86,15 @@ def sync(private: Path, commit: str, public: Path, cutoff: date) -> list[str]:
             target = public / name
             if target.is_dir():
                 shutil.rmtree(target)
+            else:
+                target.unlink(missing_ok=True)
             if name in present:
-                shutil.copytree(Path(tmp) / name, target)
+                source = Path(tmp) / name
+                target.parent.mkdir(parents=True, exist_ok=True)
+                if source.is_dir():
+                    shutil.copytree(source, target)
+                else:
+                    shutil.copy2(source, target)
     manifest = {
         "as_of": cutoff.isoformat(),
         "lag_months": LAG_MONTHS,

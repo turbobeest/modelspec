@@ -6,7 +6,7 @@ nine months. Everything that reads or writes data addresses it through a *root*
 directory that has the code and the data side by side, so the split is done by
 composing a root, not by teaching every reader a second path.
 
-`overlay()` builds that root: every top-level entry of the public checkout is
+`overlay()` builds that root: every entry of the public checkout is
 symlinked, except the `DATA_PATHS`, which are symlinked to the private
 checkout. Readers (the site build, the export, the ranking) see one tree.
 Writers (leaderboard refresh, price re-read, the speed probe) write through the
@@ -25,10 +25,11 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-# Paths that hold fresh curated data or the evidence for it. Each is a
-# top-level entry, relative to the repository root. Inventory and reasoning:
-# docs/design/data-split.md. `registry/` and `decision/` are deliberately absent:
-# they are vocabulary and code that change in lock step with the engine.
+# Paths that hold fresh curated data or the evidence for it, relative to the
+# repository root: a directory, or a single file inside a directory that is
+# otherwise public (`registry/`). Inventory and reasoning:
+# docs/design/data-split.md. The rest of `registry/` (vocabulary) and
+# `decision/` (code) change in lock step with the engine and stay public.
 DATA_PATHS: tuple[str, ...] = (
     "models",
     "benchmarks",
@@ -39,6 +40,10 @@ DATA_PATHS: tuple[str, ...] = (
     "measurements",
     "premier",
     "research",
+    "registry/sources.yaml",
+    "registry/providers.yaml",
+    "registry/harnesses.yaml",
+    "registry/release-watch-baseline.json",
 )
 
 DATA_DIR_ENV = "MODELSPEC_DATA_DIR"
@@ -50,8 +55,8 @@ class DataSourceError(RuntimeError):
 
 def is_data_path(path: str) -> bool:
     """True when a repo-relative path is inside one of the `DATA_PATHS`."""
-    head = path.replace("\\", "/").lstrip("./").split("/", 1)[0]
-    return head in DATA_PATHS
+    parts = tuple(p for p in path.replace("\\", "/").split("/") if p not in ("", "."))
+    return any(parts[: len(d.split("/"))] == tuple(d.split("/")) for d in DATA_PATHS)
 
 
 def check_private(private: Path) -> Path:
@@ -81,15 +86,31 @@ def overlay(public: Path, private: Path, out: Path) -> Path:
     out.mkdir(parents=True, exist_ok=True)
     if any(out.iterdir()):
         raise DataSourceError(f"overlay target {out} is not empty")
-    for entry in sorted(public.iterdir()):
-        if entry.name in DATA_PATHS:
-            continue
-        (out / entry.name).symlink_to(entry)
-    for name in DATA_PATHS:
-        source = private / name
-        if source.exists():
-            (out / name).symlink_to(source)
+    _compose(public, private, out, ())
     return out
+
+
+def _compose(public: Path, private: Path, out: Path, rel: tuple[str, ...]) -> None:
+    """Fill `out` (the directory at `rel`) from the two checkouts.
+
+    A directory that only holds data paths deeper down (`registry/`) becomes a
+    real directory of links, so its vocabulary files stay public and its data
+    files come from the private checkout.
+    """
+    here = "/".join(rel)
+    for entry in sorted((public / here).iterdir() if here else public.iterdir()):
+        path = "/".join((*rel, entry.name))
+        if path in DATA_PATHS:
+            continue
+        if entry.is_dir() and any(d.startswith(path + "/") for d in DATA_PATHS):
+            (out / entry.name).mkdir()
+            _compose(public, private, out / entry.name, (*rel, entry.name))
+        else:
+            (out / entry.name).symlink_to(entry)
+    for path in DATA_PATHS:
+        parent, _, name = path.rpartition("/")
+        if parent == here and (private / path).exists():
+            (out / name).symlink_to(private / path)
 
 
 def data_dir_from_env(env: dict[str, str] | None = None) -> Path | None:
