@@ -274,8 +274,7 @@ def test_plain_and_campaign_root_urls_stay_on_the_landing(search: str) -> None:
 def test_the_landing_head_carries_the_current_headline(data: landing.LandingData) -> None:
     assert landing.HEADLINE_LEAD == "Model routers make educated guesses."
     assert landing.HEADLINE_SUB == (
-        "ModelSpec makes an informed, unbiased decision from the evidence.")
-    assert landing.EYEBROW == "Your model is a guess."
+        "ModelSpec makes informed, unbiased decisions from evidence.")
     for variant in ("live", "holding"):
         page = landing.render(data, variant=variant)
         assert f"<title>{landing.TITLE}</title>" in page
@@ -309,7 +308,7 @@ def test_the_headline_figures_come_from_the_engine(data: landing.LandingData) ->
     page = landing.render(data, variant="live")
     assert (f'<h1><span class="h1-lead">{landing.HEADLINE_LEAD}</span> '
             f'<span class="h1-sub">{landing.HEADLINE_SUB}</span></h1>') in page
-    assert f'<p class="eyebrow">{landing.EYEBROW}</p>' in page
+    assert 'class="eyebrow"' not in page
     hero = page[page.index('<section class="hero">'):page.index('<section class="receipt"')]
     assert f"{ratio:.1f}× less" in hero
     assert 'class="fud"' not in page
@@ -330,7 +329,7 @@ def test_the_positioning_copy_types_no_numbers(data: landing.LandingData) -> Non
     teams = page[page.index('<section class="teams"'):page.index('<section class="agents"')]
     text = html.unescape(re.sub(r"<[^>]+>", " ", routers + teams))
     assert re.search(r"\d", text) is None, text
-    assert re.search(r"\d", landing.HEADLINE + landing.EYEBROW) is None
+    assert re.search(r"\d", landing.HEADLINE) is None
 
 
 def test_every_analysis_row_links_to_a_proof_that_exists(data: landing.LandingData) -> None:
