@@ -140,6 +140,43 @@ def test_matharena_projection_parses_the_accuracy_cell() -> None:
     assert diffs(body, ok) == []
 
 
+def test_matharena_projection_carries_the_deprecation_to_the_verifier() -> None:
+    table = ("<table><thead><tr><th>Rank</th><th>Model Name</th><th>Provider</th>"
+             "<th>Accuracy (± 95% CI)</th></tr></thead><tbody>"
+             "<tr><td>1</td><td>GPT-5.5 (xhigh) ⚠️</td><td>OpenAI</td>"
+             "<td>100.00% ± 0.00%</td></tr></tbody></table>")
+    body = m160.project_matharena(json.dumps({"table": table}).encode(),
+                                  url="https://example.test", page_ref="sha256:x",
+                                  read_date="2026-09-29", deprecated=True)
+    flagged = {"score": 100.0, "interval": None, "n": None,
+               "quality_flags": ["contamination_warning", "deprecated"]}
+    c = claim(flagged, names=("GPT-5.5 (xhigh)",), label="accuracy", effort="xhigh",
+              day="2026-09-29")
+    text = normalise_document(body, replace(NORMALISERS["text-default"],
+                                            strip_volatile=False)).text
+    (reading,) = StructuredDataExtractor().extract(c, text)
+    assert reading.value == {"score": "100.0",
+                             "quality_flags": ["deprecated", "contamination_warning"]}
+
+
+def test_matharena_projection_drops_a_predicted_cell() -> None:
+    table = ("<table><thead><tr><th>Rank</th><th>Model Name</th><th>Provider</th>"
+             "<th>Accuracy (± 95% CI)</th></tr></thead><tbody>"
+             '<tr><td>1</td><td class="model-name"><a>GPT-6 Sol (max) '
+             '<span title="Model was released after competition release.">⚠️</span></a></td>'
+             '<td>OpenAI</td><td data-predicted="no">86.98% ± 4.41%</td></tr>'
+             '<tr><td>2</td><td class="model-name"><a>Grok 4.7 (xhigh)</a></td>'
+             '<td>xAI</td><td data-predicted="yes">42.63% ± 5.00%</td></tr>'
+             "</tbody></table>")
+    body = m160.project_matharena(json.dumps({"table": table}).encode(),
+                                  url="https://example.test", page_ref="sha256:x",
+                                  read_date="2026-09-29")
+    assert json.loads(body)["rows"] == [
+        {"model": "GPT-6 Sol (max)", "accuracy": 86.98, "release_warning": True},
+        {"model": "Grok 4.7 (xhigh)", "predicted": True},
+    ]
+
+
 def test_metr_projection_states_minutes() -> None:
     document = {"results": {"gpt_5_4": {
         "release_date": date(2026, 3, 5),
