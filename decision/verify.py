@@ -374,6 +374,12 @@ _QUALIFIER = re.compile(r"[\(\[]([^\)\]]*)[\)\]]")
 _EFFORT_QUALIFIER = re.compile(
     r"^(?:(?:(?:reasoning|thinking)\s+)?effort\s*[:=]?\s*)?(\w+)"
     r"(?:\s+(?:(?:reasoning|thinking)\s+)?effort)?$")
+#: A level named inside a longer phrase: "adaptive thinking at max effort".
+_EFFORT_IN_PHRASE = re.compile(r"\b(\w+)\s+(?:(?:reasoning|thinking)\s+)?effort\b")
+#: A phrase with a negation in it ("without adaptive thinking at max effort")
+#: names no level: which words it negates is not decided here.
+_NEGATION = re.compile(
+    r"\b(no|not|without|non|never|except|excluding|unlike|rather than|instead of|other than)\b")
 
 
 def normalise_name(name: str) -> str:
@@ -399,6 +405,15 @@ def split_model_cell(cell: str) -> tuple[str, str | None]:
     return normalise_name(_QUALIFIER.sub(take, cell)), effort
 
 
+def _effort_levels_in(text: str) -> set[str]:
+    """The effort levels ``text`` names as an effort: "max effort", "high reasoning effort"."""
+    text = text.casefold()
+    if _NEGATION.search(text):
+        return set()
+    return {_EFFORT_ALIASES.get(level, level)
+            for level in _EFFORT_IN_PHRASE.findall(text) if level in EFFORT_LEVELS}
+
+
 def _condition(key: str, value: str | None) -> str | None:
     if value is None or not str(value).strip():
         return None
@@ -408,6 +423,11 @@ def _condition(key: str, value: str | None) -> str | None:
         q = _EFFORT_QUALIFIER.match(s)
         if q and q.group(1) in EFFORT_LEVELS:
             s = q.group(1)
+        else:
+            # A caption's phrase names one level; a phrase naming two stays as written.
+            named = _effort_levels_in(s)
+            if len(named) == 1:
+                s = named.pop()
         return _EFFORT_ALIASES.get(s, s)
     if key == "date":
         parsed = _parse_date(str(value).strip())
@@ -1929,10 +1949,17 @@ report every value it gives for "{label}", for any model.
 Return only a JSON array. One object per value, with these string fields (null
 when the region does not say): "subject" (the model name exactly as written),
 "value" (the number or text exactly as written), "unit", "effort", "harness",
-"date", and "quoted_sentence" (the exact sentence containing the value).
+"date", "quoted_sentence" (the exact sentence containing the value) and
+"condition_sentence" (the exact heading, caption or sentence that states the
+effort or harness, when the quoted sentence does not).
 Return [] if the region gives no such value. Do not infer, convert, combine
 sentences, or use knowledge outside the source region. A quoted sentence must
 appear verbatim in the source region.
+
+A region can state a condition once for many values: in a heading such as
+"Results (max reasoning effort)", or in a caption or note such as "all X results
+use high effort". Give each value every condition the region states for it, unless
+the region states a different condition for that value or that model.
 
 The model being checked is published as: {names}.
 
@@ -2023,6 +2050,62 @@ class LLMCache:
             path.write_text(reply, encoding="utf-8")
 
 
+def _check_effort_is_stated(claim: Claim, row: Mapping[str, Any], text: str,
+                            subjects: Sequence[str] = ()) -> None:
+    """Refuse a reader's effort the region does not plainly state for the value (MODEL-233).
+
+    The prompt asks the reader to carry a heading's or caption's condition to the
+    values it covers. Which values a caption covers is the reader's reading, and the
+    collector's is the other key; this only refuses the plain inventions. The level
+    counts when the row gives it (the model cell's qualifier, a cell that is the
+    level, or an effort phrase); when the region's first line, not a table row and
+    naming no other of ``subjects`` (the reply's models), names it as an effort; or when
+    a verbatim ``condition_sentence`` does, and names the row's model, or names the
+    benchmark and none of the other models.
+
+    Not refused, and left to the two keys: a model the reader leaves out of its
+    reply (its caption can then pass as unowned), a cell equal to a level in a
+    column that is not an effort column, and a sentence stitched from fragments
+    that each occur in the region (the ``quoted_sentence`` check shares this).
+    """
+    stated = row.get("condition_sentence")
+    if isinstance(stated, str) and normalise_name(stated) not in normalise_name(text):
+        raise ValueError("condition_sentence is not verbatim source text")
+    level = _condition("effort", _text(row.get("effort")))
+    if level not in EFFORT_LEVELS:
+        return  # no level, or none this module can name: it can only mismatch a claim
+    subject = _text(row.get("subject")) or claim.names[0]
+    own_name, own_effort = split_model_cell(subject)
+    if own_effort is not None and normalise_name(subject) not in normalise_name(text):
+        own_effort = None  # the qualifier is the reader's, not the source's
+    quote = str(row.get("quoted_sentence") or "")
+    value = str(row.get("value") or "")
+    lines = [line for line in quote.splitlines() if value and value in line] or [quote]
+    cells = [normalise_name(c) for line in lines for c in line.split("|")]
+    if own_effort == level or any(level in _effort_levels_in(line) for line in lines) or any(
+            _EFFORT_ALIASES.get(c, c) == level for c in cells
+            if c in EFFORT_LEVELS or c in _EFFORT_ALIASES):
+        return
+    others = [o for o in subjects if o != own_name]
+
+    def names(sentence: str, name: str) -> bool:
+        said = f" {normalise_name(sentence)} "
+        for other in sorted(others, key=len, reverse=True):
+            if other != name and f" {name} " in f" {other} ":
+                said = said.replace(f" {other} ", " ")  # "Claude Opus 5.5" is not "Claude Opus 5"
+        return bool(name) and re.search(rf" {re.escape(name)} (?!\d)", said) is not None
+
+    first = text.strip().splitlines()[0] if text.strip() else ""
+    scoped = []
+    if " | " not in first and not any(names(first, o) for o in others):
+        scoped.append(first)
+    if isinstance(stated, str) and (names(stated, own_name) or (
+            names(stated, _label(claim)) and not any(names(stated, o) for o in others))):
+        scoped.append(stated)
+    if not any(level in _effort_levels_in(line) for line in scoped):
+        raise ValueError(f"effort {level!r} is not stated for this value in the source region")
+
+
 class LLMExtractor:
     """Reads prose through ``complete(prompt) -> str``, an injected model call.
 
@@ -2044,6 +2127,10 @@ class LLMExtractor:
                 cache_key: tuple[str, ...] | None = None) -> list[Reading]:
         prompt = LLM_PROMPT.format(label=claim.label or claim.field.replace("_", " "),
                                    names=", ".join(claim.names), text=text)
+        if cache_key:
+            # A reply answers the prompt it was given: a changed prompt must ask again.
+            digest = hashlib.sha256(LLM_PROMPT.encode("utf-8")).hexdigest()[:16]
+            cache_key = (f"prompt:{digest}", *cache_key)
         reply = self.cache.get(cache_key) if self.cache is not None and cache_key else None
         if reply is None:
             reply = self.complete(prompt)
@@ -2054,11 +2141,13 @@ class LLMExtractor:
             rows = json.loads(cleaned)
             if not isinstance(rows, list) or not all(isinstance(r, dict) for r in rows):
                 raise ValueError("not a list of objects")
+            subjects = [split_model_cell(str(r["subject"]))[0] for r in rows if r.get("subject")]
             for row in rows:
                 quote = row.get("quoted_sentence")
                 if not isinstance(quote, str) or not quote.strip() or \
                         normalise_name(quote) not in normalise_name(text):
                     raise ValueError("quoted_sentence is missing or is not verbatim source text")
+                _check_effort_is_stated(claim, row, text, subjects)
             readings = [
                 Reading(subject=_text(r.get("subject")) or claim.names[0],
                         value=_text(r.get("value")),
