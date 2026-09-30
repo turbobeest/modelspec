@@ -36217,3 +36217,29 @@
 {"at": "2026-09-29T22:13:17.201839+00:00", "diff": [], "event": "checked", "outcome": "verified", "target": {"id": "qwen/qwen3-8-flash-next#gpqa_diamond#a6b486b111de", "kind": "evidence"}}
 {"at": "2026-09-29T22:13:17.201839+00:00", "diff": [], "event": "checked", "outcome": "verified", "target": {"id": "qwen/qwen3-8-flash-next#hle#1da3aded8b80", "kind": "evidence"}}
 {"at": "2026-09-29T22:13:17.201839+00:00", "diff": [], "event": "checked", "outcome": "verified", "target": {"id": "qwen/qwen3-8-flash-next#ifbench#5de9d05073d3", "kind": "evidence"}}
+{"at": "2026-09-30T01:23:16.834471+00:00", "copies": {}, "event": "changed", "target": {"id": "anthropic/claude-opus-5-5#swe_bench_multimodal#5b5ebe3653cc", "kind": "evidence"}}
+{"at": "2026-09-30T01:23:16.834471+00:00", "copies": {}, "event": "changed", "target": {"id": "anthropic/claude-opus-5-5#terminal_bench_science#8cfae823fdc4", "kind": "evidence"}}
+{"at": "2026-09-30T01:23:16.834471+00:00", "copies": {}, "event": "changed", "target": {"id": "anthropic/claude-opus-5-5#hle_tools#2575e2613692", "kind": "evidence"}}
+{"at": "2026-09-30T01:23:16.834471+00:00", "copies": {}, "event": "changed", "target": {"id": "anthropic/claude-opus-5-5#swe_bench_pro#28e9858e5132", "kind": "evidence"}}
+{"at": "2026-09-30T01:23:16.834471+00:00", "copies": {}, "event": "changed", "target": {"id": "anthropic/claude-opus-5-5#swe_bench_multilingual#0656e8a710e5", "kind": "evidence"}}
+{"at": "2026-09-30T01:23:16.834471+00:00", "copies": {}, "event": "changed", "target": {"id": "anthropic/claude-opus-5-5#hle#d31fe5331e1f", "kind": "evidence"}}
+{"at": "2026-09-30T01:23:16.834471+00:00", "copies": {}, "event": "changed", "target": {"id": "deepseek/deepseek-flash#hle#5aa976480984", "kind": "evidence"}}
+{"at": "2026-09-30T01:23:16.834471+00:00", "copies": {}, "event": "changed", "target": {"id": "deepseek/deepseek-flash#hle_tools#619ab50681a4", "kind": "evidence"}}
+{"at": "2026-09-30T01:23:16.834471+00:00", "copies": {}, "event": "changed", "target": {"id": "deepseek/deepseek-flash#terminal_bench_v2_1#428207633f83", "kind": "evidence"}}
+{"at": "2026-09-30T01:23:16.834471+00:00", "copies": {}, "event": "changed", "target": {"id": "deepseek/deepseek-flash#terminal_bench_3_0#d51f155e47cc", "kind": "evidence"}}
+{"at": "2026-09-30T01:23:16.834471+00:00", "copies": {}, "event": "changed", "target": {"id": "deepseek/deepseek-flash#terminal_bench_v4_0#8686f38d6b8d", "kind": "evidence"}}
+{"at": "2026-09-30T01:23:16.834471+00:00", "copies": {}, "event": "changed", "target": {"id": "deepseek/deepseek-flash#deepswe_v1_1#239e2cd499c6", "kind": "evidence"}}
+{"at": "2026-09-30T01:23:16.834471+00:00", "copies": {}, "event": "changed", "target": {"id": "deepseek/deepseek-flash#cybergym#dbc33b8e6302", "kind": "evidence"}}
+{"at": "2026-09-30T01:23:17.483624+00:00", "diff": [], "event": "checked", "outcome": "verified", "target": {"id": "anthropic/claude-opus-5-5#swe_bench_multimodal#5b5ebe3653cc", "kind": "evidence"}}
+{"at": "2026-09-30T01:23:17.483624+00:00", "diff": [], "event": "checked", "outcome": "verified", "target": {"id": "anthropic/claude-opus-5-5#terminal_bench_science#8cfae823fdc4", "kind": "evidence"}}
+{"at": "2026-09-30T01:23:17.483624+00:00", "diff": [], "event": "checked", "outcome": "verified", "target": {"id": "anthropic/claude-opus-5-5#hle_tools#2575e2613692", "kind": "evidence"}}
+{"at": "2026-09-30T01:23:17.483624+00:00", "diff": [], "event": "checked", "outcome": "verified", "target": {"id": "anthropic/claude-opus-5-5#swe_bench_pro#28e9858e5132", "kind": "evidence"}}
+{"at": "2026-09-30T01:23:17.483624+00:00", "diff": [], "event": "checked", "outcome": "verified", "target": {"id": "anthropic/claude-opus-5-5#swe_bench_multilingual#0656e8a710e5", "kind": "evidence"}}
+{"at": "2026-09-30T01:23:17.483624+00:00", "diff": [], "event": "checked", "outcome": "verified", "target": {"id": "anthropic/claude-opus-5-5#hle#d31fe5331e1f", "kind": "evidence"}}
+{"at": "2026-09-30T01:23:17.483624+00:00", "diff": [], "event": "checked", "outcome": "verified", "target": {"id": "deepseek/deepseek-flash#hle#5aa976480984", "kind": "evidence"}}
+{"at": "2026-09-30T01:23:17.483624+00:00", "diff": [], "event": "checked", "outcome": "verified", "target": {"id": "deepseek/deepseek-flash#hle_tools#619ab50681a4", "kind": "evidence"}}
+{"at": "2026-09-30T01:23:17.483624+00:00", "diff": [], "event": "checked", "outcome": "verified", "target": {"id": "deepseek/deepseek-flash#terminal_bench_v2_1#428207633f83", "kind": "evidence"}}
+{"at": "2026-09-30T01:23:17.483624+00:00", "diff": [], "event": "checked", "outcome": "verified", "target": {"id": "deepseek/deepseek-flash#terminal_bench_3_0#d51f155e47cc", "kind": "evidence"}}
+{"at": "2026-09-30T01:23:17.483624+00:00", "diff": [], "event": "checked", "outcome": "verified", "target": {"id": "deepseek/deepseek-flash#terminal_bench_v4_0#8686f38d6b8d", "kind": "evidence"}}
+{"at": "2026-09-30T01:23:17.483624+00:00", "diff": [], "event": "checked", "outcome": "verified", "target": {"id": "deepseek/deepseek-flash#deepswe_v1_1#239e2cd499c6", "kind": "evidence"}}
+{"at": "2026-09-30T01:23:17.483624+00:00", "diff": [], "event": "checked", "outcome": "verified", "target": {"id": "deepseek/deepseek-flash#cybergym#dbc33b8e6302", "kind": "evidence"}}
