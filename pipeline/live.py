@@ -34,7 +34,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-from pipeline import brand, landing, social_cards, structured_data
+from pipeline import brand, landing, landing_chrome, security_headers, social_cards, structured_data
 
 BASE = "https://modelspec.dev"
 
@@ -61,7 +61,17 @@ DISCOVERY = (
     ".well-known/agent-skills/index.json", ".well-known/agent-skills/modelspec/SKILL.md",
 )
 
-REDIRECTS = "/landing/  /  301\n"
+#: The v1 site's URLs. Each answered 404 with the decide app for a body until
+#: these rules (MODEL-238). Never a rule on /api/*.
+LEGACY = (
+    "/downselect", "/models", "/providers", "/benchmarks",
+    "/m/*", "/p/*", "/b/*",
+)
+REDIRECTS = "/landing/  /  301\n" + "".join(
+    f"{rule}{suffix}  /decide/  301\n"
+    for rule in LEGACY
+    for suffix in (("",) if rule.endswith("*") else ("", "/"))
+)
 ROBOTS = f"User-agent: *\nAllow: /\n\nSitemap: {BASE}/sitemap.xml\n"
 #: Appended to the v1 build's `_headers` (site/holding/_headers), which carries
 #: the discovery `Link` header and the content types of llms.txt, the Markdown
@@ -93,6 +103,22 @@ def sitemap() -> str:
     )
 
 
+def not_found() -> str:
+    """The 404 page: noindex, no canonical, and the three ways back in."""
+    from pipeline import holding
+    links = "".join(f'<a href="{href}">{label}</a>' for href, label in
+                    (("/", "Home"), ("/decide/", "Decide"), ("/method/", "Method")))
+    return (
+        '<!doctype html><html lang="en"><head><meta charset="utf-8">'
+        '<meta name="viewport" content="width=device-width,initial-scale=1">\n'
+        '<meta name="robots" content="noindex"><title>Page not found · ModelSpec</title>\n'
+        + brand.head_links() +
+        f"<style>{holding._STYLE}nav a{{margin:0 .75rem}}</style></head>\n"
+        f"<body><header>{landing_chrome.lockup()}</header><main><h1>Page not found</h1>"
+        f"<p>Nothing is published at this address.</p><nav>{links}</nav></main></body></html>\n"
+    )
+
+
 def build(src: Path, web: Path, out: Path) -> None:
     """Write the live modelspec and benchgraph trees under `out`."""
     real = src / "modelspec"
@@ -111,7 +137,7 @@ def build(src: Path, web: Path, out: Path) -> None:
             shutil.copy2(real / rel, tree / rel)
     (tree / "decide").mkdir()
     shutil.copy2(web / "decide.html", tree / "decide" / "index.html")
-    shutil.copy2(web / "decide.html", tree / "404.html")
+    (tree / "404.html").write_text(not_found(), encoding="utf-8")
     shutil.copytree(web / "assets", tree / "assets",
                     ignore=shutil.ignore_patterns("main-*"))
     (tree / "_redirects").write_text(REDIRECTS, encoding="utf-8")
@@ -119,7 +145,8 @@ def build(src: Path, web: Path, out: Path) -> None:
     (tree / "sitemap.xml").write_text(sitemap(), encoding="utf-8")
     structured_data.inject(tree)
     headers = (real / "_headers").read_text(encoding="utf-8")
-    (tree / "_headers").write_text(headers.rstrip("\n") + "\n" + HEADERS, encoding="utf-8")
+    (tree / "_headers").write_text(
+        headers.rstrip("\n") + "\n" + HEADERS + security_headers.block(tree), encoding="utf-8")
     (out / "benchgraph").mkdir()
     shutil.copy2(src / "benchgraph" / "_redirects", out / "benchgraph" / "_redirects")
 
