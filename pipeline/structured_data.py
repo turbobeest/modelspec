@@ -75,7 +75,8 @@ def organization(root: Path) -> dict[str, Any]:
 
 def dataset(tree: Path) -> dict[str, Any]:
     build = json.loads((tree / "api" / "build.json").read_text(encoding="utf-8"))
-    count = json.loads((tree / "api" / "index.json").read_text(encoding="utf-8"))["count"]
+    index = tree / "api" / "index.json"
+    count = json.loads(index.read_text(encoding="utf-8"))["count"] if index.is_file() else None
     return {
         "@type": "Dataset",
         "@id": f"{BASE}/#dataset",
@@ -86,6 +87,9 @@ def dataset(tree: Path) -> dict[str, Any]:
             "the hosted API and MCP server; the public copy is a delayed image "
             "about nine months old. A null field means not yet researched, "
             "never a guess."
+        ) if count is not None else (
+            "The frozen public image of ModelSpec model cards and benchmark evidence. "
+            "Current model selection answers are computed per request by the API."
         ),
         "url": f"{BASE}/",
         "keywords": ["AI models", "LLM benchmarks", "model selection", "model pricing"],

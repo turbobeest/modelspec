@@ -130,9 +130,9 @@ lag job and the writers need a *write* path to the private repository; that is
 a separate credential (or the private repository's own `GITHUB_TOKEN`, once the
 writers run there).
 
-Rank Worker: it needs no runtime access to the private repository, but its
-bundle step is not data-free: `api/worker/vendor.py` copies registry and
-hardware files from the repository root. See "Gaps 245-B must close" below.
+Rank Worker: it needs no runtime access to the private repository. MODEL-247 S
+gives `api/worker/vendor.py` an explicit private data directory and embeds the
+required exports in its generated Python bundle. See the serving rollout below.
 
 The Actions read+write permission on `MODELSPEC_DATA_DISPATCH_TOKEN` also
 allows reading private Actions artifacts and logs. Treat it like
@@ -384,3 +384,91 @@ stays public.
 | Enable private Actions to create PRs and provide the writers' existing provider/research credentials listed in its README | Jamie |
 | Move public engine tests to fixtures | 245-C |
 | Make "Data freeze" a required check, after the writers are repointed | Jamie |
+
+## MODEL-247 S: serving implementation and rollout
+
+The serving switch is the repository variable `DATA_SPLIT_ENABLED`, read as
+exactly `true`. With another value, the existing export, snapshot, Pages
+artifact deployment and Worker fetch path remain active.
+
+With the switch enabled, `pipeline.build` renders every public page from the
+repository's frozen image even when given a private checkout. This covers the
+full tree, landing statistics, graph, model and benchmark pages, structured
+data, social cards, Markdown twins and `llms-full.txt`. The output filter keeps
+only these `/api` files: `build.json`, `rank/profiles.json`,
+`rank/class-fit.json` and `feedback/v1.schema.json`. Class-fit examples also
+come from the frozen image. New bulk exports are denied by default.
+
+Removed routes, including every member of the wildcard families:
+
+- `/api/index.json`
+- `/api/catalogue.json`
+- `/api/models/**/*.json`
+- `/api/benchmarks/**/*.json`
+- `/api/hosts.json`
+- `/api/rank/candidates.json`
+- `/api/rank/hardware.json`
+- `/api/rank/rankings.json`
+- `/api/policy/catalogue.json`
+- `/api/decision/snapshot.json.gz`
+- `/api/decision/vocabulary.json`
+- `/api/graph/**/*.json`
+
+The graph's frozen assets move to `/graph/data/`; its client reads those paths.
+No private data enters that directory. Agent discovery points callers to the
+per-request API rather than to removed bulk exports.
+
+`vendor.py --data-dir` copies the private registry data files and enumerates
+private hardware files. It also builds and embeds the rank, hardware, policy,
+decision snapshot and vocabulary exports in a generated Python module. The
+Worker reads those bundled bytes and never falls back to a public URL, even
+when a requested historical snapshot is absent. Its existing snapshot
+signature validation still applies. No export shape or version changes.
+
+The decide app loads its vocabulary from `GET api.modelspec.dev/v1/vocabulary`
+in enabled builds and asks the existing per-request decision API for answers.
+The vocabulary retains the existing UI schema: names, available axes and
+aggregate coverage, without per-model score or price rows. No fresh vocabulary
+file is published on modelspec.dev.
+
+Only main pushes and main manual dispatches reach the private checkout.
+`deploy-sites.yml` keeps its public fixture build and artifacts, then builds
+and deploys all three site compositions within a separate private job. That
+job has no upload step or dependency cache. `rank-api.yml` keeps the shared
+bundle check credential-free; private data is vendored within the main deploy
+jobs and no bundle artifact is uploaded. Missing private credentials, private
+input or signing keys fail before deployment. Private bundle-build output is
+withheld; only counts and status reach logs.
+
+The sentinel test in `tests/test_private_serving.py` injects a private model,
+crawls every file in full, holding and live outputs, decompresses gzip files,
+and verifies the model reaches the Worker bundle and vocabulary only. The
+memory probe is `api/worker/measure_memory.cjs`, using Pyodide 0.28.3 from the
+Worker lock, retaining the entire snapshot archive and all bundled exports.
+The Wrangler-built seeded bundle measured **122.03 MiB** of combined V8 heap
+and external memory, including **71.875 MiB** of allocated WebAssembly memory,
+after importing the services and retaining the full archive and all exports.
+Both measurements fit the 128 MiB limit. This is a local Pyodide probe rather
+than Cloudflare isolate telemetry. Enabled deploys run the same memory gate.
+
+Jamie enables the split in this order:
+
+1. Merge MODEL-247 W and S by hand while `DATA_SPLIT_ENABLED` remains false.
+2. Seed and verify the private repository, including every `DATA_PATHS` entry.
+   Configure its writer credentials and this repository's read-only
+   `MODELSPEC_DATA_TOKEN`. Keep the snapshot verification key configured.
+3. Set `DATA_SPLIT_ENABLED=true`. Dispatch Rank API on main first and verify
+   the bundled Worker answers decisions and vocabulary from that commit.
+4. Dispatch Build and deploy the sites on main. Verify production, holding
+   and internal outputs have no removed bulk routes and `/decide/` loads the
+   Worker's vocabulary and draws fresh per-request answers.
+5. Verify the private writer workflows, then make Data freeze a required
+   check. The weekly lag job becomes eligible under the same switch; it
+   publishes no new image until the nine-month cutoff reaches the seed.
+
+`ACCESS_ENFORCED`, `BILLING_ENABLED`, `X402_ENABLED`, `FEEDBACK_ENABLED` and
+`SITE_MODE` are separate decisions and this rollout does not change them.
+The old clean-install CLI smoke that downloads the public snapshot is skipped
+in enabled site deploys because that route is removed; per-request API and
+browser smoke checks still run. The offline CLI's distribution channel is
+separate follow-up work, with its contract unchanged here.

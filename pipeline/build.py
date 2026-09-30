@@ -430,12 +430,28 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    split = os.environ.get("DATA_SPLIT_ENABLED") == "true"
     data_dir = Path(args.data_dir) if args.data_dir else data_source.data_dir_from_env()
     if data_dir is None and os.environ.get(data_source.REQUIRE_DATA_ENV, "").strip() not in ("", "0"):
         print(f"build: {data_source.REQUIRE_DATA_ENV} is set but no --data-dir or "
               f"{data_source.DATA_DIR_ENV} was given; refusing to build from the public data image.",
               file=sys.stderr)
         return 2
+    if split:
+        if data_dir is not None:
+            try:
+                data_source.check_private(data_dir)
+            except data_source.DataSourceError:
+                print("build: private data checkout is missing or incomplete", file=sys.stderr)
+                return 2
+        # Public pages always render the frozen image, even on private deploys.
+        args.decision_snapshot = False
+        args.decision_snapshot_if_ready = False
+        result = build_site(args, Path(args.root).resolve())
+        if result == 0:
+            from pipeline.public_data import restrict
+            restrict(Path(args.out).resolve() / "modelspec")
+        return result
     if data_dir is None:
         return build_site(args, Path(args.root).resolve())
     with tempfile.TemporaryDirectory(prefix="modelspec-root-") as tmp:

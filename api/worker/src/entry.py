@@ -185,7 +185,23 @@ def _decide_service():
     return importlib.import_module("decide_service")
 
 
+def _bundled_read(url: str):
+    try:
+        import bundled_data
+    except ModuleNotFoundError as exc:
+        if exc.name != "bundled_data":
+            raise
+        return False, None
+    # A bundled deployment never falls back to public data, including history.
+    return True, bundled_data.read(urlparse(url).path)
+
+
 async def _get_json(url: str):
+    bundled, raw = _bundled_read(url)
+    if bundled:
+        if raw is None:
+            raise RuntimeError("private bundle is missing a required export")
+        return json.loads(raw)
     response = await fetch(url)
     if not response.ok:
         raise RuntimeError(f"{url} returned HTTP {response.status}")
@@ -201,6 +217,13 @@ def _snapshot_fetcher(url: str):
     """A conditional GET of the snapshot, for `decide_service.SnapshotHolder`."""
 
     async def fetch_snapshot(etag: str | None) -> _Fetched:
+        bundled, raw = _bundled_read(url)
+        if bundled:
+            if raw is None:
+                return _Fetched(404, None, None)
+            import hashlib
+            tag = hashlib.sha256(raw).hexdigest()
+            return _Fetched(304, tag, None) if etag == tag else _Fetched(200, tag, raw)
         headers = {"If-None-Match": etag} if etag else {}
         try:  # pragma: no cover - isolate only
             from js import Object  # type: ignore[import-not-found]
@@ -546,6 +569,16 @@ class Default(WorkerEntrypoint):
                 })
             return Response("", status=204, headers=headers)
 
+        if path == "/v1/vocabulary":
+            bundled, raw = _bundled_read(origin + "/api/decision/vocabulary.json")
+            if bundled:
+                if method not in ("GET", "HEAD"):
+                    return self._method_not_allowed(service_commit, path, "GET", method)
+                if raw is None:
+                    return _json_response(service.HTTP_BAD_GATEWAY, {"error": {
+                        "code": "export_unavailable", "message": "bundled vocabulary is missing",
+                    }})
+                return _json_response(200, json.loads(raw), extra_headers=_cors_headers(request))
         if path == "/v1/feedback":
             return await self._feedback(request, method, service_commit)
         if path == "/v1/human-status":

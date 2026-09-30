@@ -326,7 +326,7 @@ def test_staging_rank_worker_deploy_is_manual_and_targets_only_staging() -> None
 
     workflow = yaml.safe_load(RANK_API.read_text(encoding="utf-8"))
     staging = workflow["jobs"]["deploy-staging"]
-    assert staging["if"] == "github.event_name == 'workflow_dispatch'"
+    assert staging["if"] == "github.event_name == 'workflow_dispatch' && (vars.DATA_SPLIT_ENABLED != 'true' || github.ref == 'refs/heads/main')"
     assert staging["needs"] == "bundle"
     staging_text = yaml.safe_dump(staging)
     assert "vendor.py" in staging_text

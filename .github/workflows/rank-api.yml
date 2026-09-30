@@ -32,6 +32,7 @@ concurrency:
 env:
   # Pinned. Python dependencies are resolved by pywrangler, which delegates the
   # final bundle to this local Wrangler installation.
+  DATA_SPLIT_ENABLED: ${{ vars.DATA_SPLIT_ENABLED }}
   WRANGLER_VERSION: 4.139.0
   RANK_HOST: api.modelspec.dev
 
@@ -45,12 +46,11 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
-          cache: pip
 
       - uses: astral-sh/setup-uv@v6
         with:
           version: '0.12.19'
-          enable-cache: true
+          enable-cache: false
 
       - uses: actions/setup-node@v4
         with:
@@ -151,7 +151,7 @@ jobs:
   deploy-staging:
     name: Deploy the staging rank Worker
     needs: bundle
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' && (vars.DATA_SPLIT_ENABLED != 'true' || github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -165,6 +165,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Require the private checkout credential
+        if: vars.DATA_SPLIT_ENABLED == 'true' && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        env:
+          DATA_TOKEN: ${{ secrets.MODELSPEC_DATA_TOKEN }}
+        run: test -n "$DATA_TOKEN"
+
+      - uses: actions/checkout@v4
+        if: vars.DATA_SPLIT_ENABLED == 'true' && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        with:
+          repository: turbobeest/modelspec-data
+          token: ${{ secrets.MODELSPEC_DATA_TOKEN }}
+          path: modelspec-data
+          persist-credentials: false
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
@@ -172,14 +186,31 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           version: '0.12.19'
-          enable-cache: true
+          enable-cache: false
 
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
 
       - name: Vendor the scorer into the Worker bundle
-        run: python api/worker/vendor.py
+        env:
+          MODELSPEC_REQUIRE_DATA_DIR: ${{ vars.DATA_SPLIT_ENABLED == 'true' && github.ref == 'refs/heads/main' && '1' || '0' }}
+          MODELSPEC_SNAPSHOT_KEY: ${{ secrets.MODELSPEC_SNAPSHOT_KEY }}
+        run: |
+          args=()
+          if [ -d modelspec-data ]; then
+            python -m pip install pydantic pyyaml httpx cryptography
+            args+=(--data-dir modelspec-data)
+          fi
+          python api/worker/vendor.py "${args[@]}"
+
+      - name: Check private bundle memory against 128 MiB
+        if: vars.DATA_SPLIT_ENABLED == 'true' && github.ref == 'refs/heads/main'
+        env:
+          MODELSPEC_SNAPSHOT_KEY: ${{ secrets.MODELSPEC_SNAPSHOT_KEY }}
+        run: |
+          npm install --prefix "$RUNNER_TEMP/memory" --no-save pyodide@0.28.3
+          NODE_PATH="$RUNNER_TEMP/memory/node_modules" node api/worker/measure_memory.cjs api/worker/src
 
       - name: Resolve the Worker's Python dependencies
         run: |
@@ -203,7 +234,7 @@ jobs:
   deploy:
     name: Deploy the rank Worker
     needs: bundle
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' || vars.DATA_SPLIT_ENABLED == 'true' && github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -221,6 +252,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Require the private checkout credential
+        if: vars.DATA_SPLIT_ENABLED == 'true' && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        env:
+          DATA_TOKEN: ${{ secrets.MODELSPEC_DATA_TOKEN }}
+        run: test -n "$DATA_TOKEN"
+
+      - uses: actions/checkout@v4
+        if: vars.DATA_SPLIT_ENABLED == 'true' && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+        with:
+          repository: turbobeest/modelspec-data
+          token: ${{ secrets.MODELSPEC_DATA_TOKEN }}
+          path: modelspec-data
+          persist-credentials: false
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
@@ -228,14 +273,31 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           version: '0.12.19'
-          enable-cache: true
+          enable-cache: false
 
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
 
       - name: Vendor the scorer into the Worker bundle
-        run: python api/worker/vendor.py
+        env:
+          MODELSPEC_REQUIRE_DATA_DIR: ${{ vars.DATA_SPLIT_ENABLED == 'true' && github.ref == 'refs/heads/main' && '1' || '0' }}
+          MODELSPEC_SNAPSHOT_KEY: ${{ secrets.MODELSPEC_SNAPSHOT_KEY }}
+        run: |
+          args=()
+          if [ -d modelspec-data ]; then
+            python -m pip install pydantic pyyaml httpx cryptography
+            args+=(--data-dir modelspec-data)
+          fi
+          python api/worker/vendor.py "${args[@]}"
+
+      - name: Check private bundle memory against 128 MiB
+        if: vars.DATA_SPLIT_ENABLED == 'true' && github.ref == 'refs/heads/main'
+        env:
+          MODELSPEC_SNAPSHOT_KEY: ${{ secrets.MODELSPEC_SNAPSHOT_KEY }}
+        run: |
+          npm install --prefix "$RUNNER_TEMP/memory" --no-save pyodide@0.28.3
+          NODE_PATH="$RUNNER_TEMP/memory/node_modules" node api/worker/measure_memory.cjs api/worker/src
 
       - name: Resolve the Worker's Python dependencies
         run: |
@@ -441,4 +503,4 @@ jobs:
           python3 api/worker/openapi.py --probe "https://${RANK_HOST}" \
             || fail "a request built only from api/worker/openapi.yaml does not work against ${RANK_HOST}"
 
-          echo "api.modelspec.dev is live on ${GITHUB_SHA}"
+          echo "Worker is live on ${GITHUB_SHA}"
