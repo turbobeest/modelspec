@@ -677,43 +677,43 @@ benchmarks:
     unit: percent
     source_url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
     source_kind: benchmark_author
-    evidence_date: '2026-09-29'
+    evidence_date: '2026-09-30'
     date_type: published
-    verified_at: '2026-09-29'
+    verified_at: '2026-09-30'
     benchmark_version: MTEB(eng, v2), mean over tasks
     configuration: MTEB leaderboard backend JSON, benchmarkName MTEB(eng, v2), read
       2026-09-24. Score is meanTask times 100. The JSON has no per-row run date, so
       this date is the day the board was read.
     limitations: Mean over the benchmark's tasks. Not a single-task score.
-    id: bytedance/seed1-5-embedding#mteb_eng_v2#a61ba53a0d4c
+    id: bytedance/seed1-5-embedding#mteb_eng_v2#400e29c4a6ff
     measured_by: benchmark_author
     effort: null
     harness: null
     sources:
     - source_id: model-160-mteb-eng-v2
-      snapshot_ref: sha256:83fde6c5b95636a9b2d753d8c18dd3d7118c619795dccee1b402dbe9189c37c8
+      snapshot_ref: sha256:f50594bdc9bc03678461b1fd1af71cef4e85d788482b5645a7abd24ad6420f3d
       cited_regions:
       - rows
-    observed_at: '2026-09-29'
+    observed_at: '2026-09-30'
   - benchmark_id: mteb_v2_retrieval
     model_id_as_evaluated: ByteDance-Seed/Seed1.5-Embedding
     score: 67.45
     unit: percent
     source_url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
     source_kind: benchmark_author
-    evidence_date: '2026-09-29'
+    evidence_date: '2026-09-30'
     date_type: published
-    verified_at: '2026-09-29'
+    verified_at: '2026-09-30'
     benchmark_version: MTEB(eng, v2), Retrieval task type
     configuration: Same JSON read, field scoresByTaskType.Retrieval times 100. Dated
       by the day the board was read.
     limitations: ''
     measured_by: benchmark_author
-    observed_at: '2026-09-29'
-    id: bytedance/seed1-5-embedding#mteb_v2_retrieval#e1565e8e5650
+    observed_at: '2026-09-30'
+    id: bytedance/seed1-5-embedding#mteb_v2_retrieval#629984ae0a2e
     sources:
     - source_id: model-160-mteb-eng-v2
-      snapshot_ref: sha256:83fde6c5b95636a9b2d753d8c18dd3d7118c619795dccee1b402dbe9189c37c8
+      snapshot_ref: sha256:f50594bdc9bc03678461b1fd1af71cef4e85d788482b5645a7abd24ad6420f3d
       cited_regions:
       - rows
   benchmark_source: ''

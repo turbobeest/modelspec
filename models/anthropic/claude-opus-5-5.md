@@ -831,7 +831,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-23'
     date_type: published
-    verified_at: '2026-09-29'
+    verified_at: '2026-09-30'
     benchmark_version: webdev / overall, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset webdev, category overall, leaderboard_publish_date
       2026-09-23; no style-controlled variant. Highest-effort row for the product (effort: max;
@@ -844,34 +844,34 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-143-evidence-arena-webdev-json
-      snapshot_ref: sha256:1342f43f483667f8e4313a1fb517522e1f18aa1b09d4812f8d3163c4ff30b9bc
+      snapshot_ref: sha256:31b3d323e3968c31c3238ed5782c805c2ae4be8758520c2e6837e2f3cb7633cb
       cited_regions:
       - rows
-    observed_at: '2026-09-29'
+    observed_at: '2026-09-30'
   - benchmark_id: cursorbench_4
     model_id_as_evaluated: Opus 5.5 (max)
     score: 57.8
     unit: percent
     source_url: https://cursor.com/cursorbench
     source_kind: benchmark_author
-    evidence_date: '2026-09-29'
+    evidence_date: '2026-09-30'
     date_type: evaluated
-    verified_at: '2026-09-29'
+    verified_at: '2026-09-30'
     benchmark_version: CursorBench 4.0
     configuration: Cursor's CursorBench 4.0 board read 2026-09-24 (tasks updated 2026-09-10
       per its changelog); the board states no row date, so the reading is dated by the observation.
       Highest-effort row (max); $13.43 a task.
     limitations: Runs only in Cursor's production agent harness.
-    id: anthropic/claude-opus-5-5#cursorbench_4#fd2dcb7a4013
+    id: anthropic/claude-opus-5-5#cursorbench_4#4ad6a2ce889e
     measured_by: benchmark_author
     effort: max
     harness: null
     sources:
     - source_id: model-160-cursorbench
-      snapshot_ref: sha256:b49a5d5cb43476f9ef20fef431f3677fa11cb6523453499c336dc64cdc298b30
+      snapshot_ref: sha256:b4348223b746be823e859c53f5f915636067e44aa6e798994655b8400a148bc2
       cited_regions:
       - rows
-    observed_at: '2026-09-29'
+    observed_at: '2026-09-30'
   - benchmark_id: healthbench_professional
     model_id_as_evaluated: Claude Opus 5.5
     score: 65.6
@@ -905,8 +905,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-22'
     date_type: evaluated
-    observed_at: '2026-09-29'
-    verified_at: '2026-09-29'
+    observed_at: '2026-09-30'
+    verified_at: '2026-09-30'
     benchmark_version: ''
     configuration: ''
     limitations: ''
@@ -915,7 +915,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-143-evidence-epoch-frontiermath-tiers-1-3-v2-csv
-      snapshot_ref: sha256:290afed31fc291e207d29c71b15aea9b6ad5e6bd50795136d1a6781e259aabcd
+      snapshot_ref: sha256:37e80df4aa6aaec8c5ecd855ad6acf066d090004587859f657853c31991b0046
       cited_regions:
       - rows
     id: anthropic/claude-opus-5-5#frontiermath_tiers_1_3_v2#c221ece8b08d
@@ -927,8 +927,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-22'
     date_type: evaluated
-    observed_at: '2026-09-29'
-    verified_at: '2026-09-29'
+    observed_at: '2026-09-30'
+    verified_at: '2026-09-30'
     benchmark_version: ''
     configuration: ''
     limitations: ''
@@ -937,7 +937,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-epoch-simpleqa-verified-csv
-      snapshot_ref: sha256:563eeb084e21ec07a8843924df2451b3e802138eac826f0956d19c4bf37fa4fb
+      snapshot_ref: sha256:b73919dc0a37684a121e15559fdf4b73ef909848db133faa8ab2ce0cc4ddccae
       cited_regions:
       - rows
     id: anthropic/claude-opus-5-5#simpleqa_verified#4892045d6e63
@@ -947,10 +947,10 @@ benchmarks:
     unit: USD
     source_url: https://andonlabs.com/evals/vending-bench-2
     source_kind: benchmark_author
-    evidence_date: '2026-09-29'
+    evidence_date: '2026-09-30'
     date_type: evaluated
-    observed_at: '2026-09-29'
-    verified_at: '2026-09-29'
+    observed_at: '2026-09-30'
+    verified_at: '2026-09-30'
     benchmark_version: ''
     configuration: ''
     limitations: ''
@@ -959,19 +959,19 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-vending-bench-2
-      snapshot_ref: sha256:94074584ec83e973b31884f48956a6bc43e36a33d47dc3feaa7c52adf23a9c12
+      snapshot_ref: sha256:56dc9c006a5dd8343157e3122937b85758f2d208dec87e0c61a3eab1c750efbf
       cited_regions:
       - rows
-    id: anthropic/claude-opus-5-5#vending_bench_2#713bfb101310
+    id: anthropic/claude-opus-5-5#vending_bench_2#e93970e1923c
   - benchmark_id: brokenarxiv
     model_id_as_evaluated: Claude-Opus-5.5 (high)
     score: 90.79
     unit: percent
     source_url: https://matharena.ai/competition_tables/overall--brokenarxiv
     source_kind: benchmark_author
-    evidence_date: '2026-09-29'
+    evidence_date: '2026-09-30'
     date_type: evaluated
-    verified_at: '2026-09-29'
+    verified_at: '2026-09-30'
     benchmark_version: BrokenArXiv, MathArena Overall table
     configuration: MathArena competition table read 2026-09-29; the table states no run date,
       so the reading is dated by the observation. Accuracy averaged over four runs per problem.
@@ -983,22 +983,22 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-233-matharena-brokenarxiv
-      snapshot_ref: sha256:9e6bec6f0629ee06703efda42486ad2fdec7f268ef21e0ba7210d6463cd99c8f
+      snapshot_ref: sha256:6d37ddbf9d94259ac1372ebffce5792c896cf14d81297a7af9b2d846d538254b
       cited_regions:
       - rows
     quality_flags:
     - contamination_warning
-    observed_at: '2026-09-29'
-    id: anthropic/claude-opus-5-5#brokenarxiv#7debc5fb3c09
+    observed_at: '2026-09-30'
+    id: anthropic/claude-opus-5-5#brokenarxiv#85f772cb2f88
   - benchmark_id: arxivmath
     model_id_as_evaluated: Claude-Opus-5.5 (high)
     score: 83.65
     unit: percent
     source_url: https://matharena.ai/competition_tables/overall--arxivmath
     source_kind: benchmark_author
-    evidence_date: '2026-09-29'
+    evidence_date: '2026-09-30'
     date_type: evaluated
-    verified_at: '2026-09-29'
+    verified_at: '2026-09-30'
     benchmark_version: ArXivMath, MathArena Overall table
     configuration: MathArena competition table read 2026-09-29; the table states no run date,
       so the reading is dated by the observation. Accuracy averaged over four runs per problem.
@@ -1010,13 +1010,13 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-233-matharena-arxivmath
-      snapshot_ref: sha256:64e10664a248ffe6c983a0cbdcd1f118e1093f94d584af3f08081768076bafe0
+      snapshot_ref: sha256:8a7a53d402a60a08b27d509895c3ffadb2737db7a41e78b074f9783b0c6333a9
       cited_regions:
       - rows
     quality_flags:
     - contamination_warning
-    observed_at: '2026-09-29'
-    id: anthropic/claude-opus-5-5#arxivmath#3a0dd6e1178d
+    observed_at: '2026-09-30'
+    id: anthropic/claude-opus-5-5#arxivmath#96013c0c234d
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''
