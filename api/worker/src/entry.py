@@ -68,6 +68,7 @@ import billing
 import billing_page
 import credits
 import feedback_service
+import human_gate
 import kv_value
 import policy_service
 import rank_service as service
@@ -75,6 +76,7 @@ import signals_service
 import visitor
 import x402
 from credits_do import CreditsObject  # noqa: F401 — Wrangler class_name
+from human_gate_do import HumanGateObject  # noqa: F401 — Wrangler class_name
 from js import fetch
 from workers import Response, WorkerEntrypoint
 
@@ -136,7 +138,7 @@ ACCEPTED_ENDPOINTS = (
     "POST /v1/policy-check", "POST /v1/feedback", "DELETE /v1/feedback", "GET /v1/health",
     "POST /v1/signals", "POST /v1/signals/discovered",
     "GET /v1/signals/pending", "POST /v1/signals/ack",
-    "GET /v1/credits",
+    "GET /v1/credits", "GET /v1/human-status",
     "POST /v1/billing/checkout", "POST /v1/billing/stripe-webhook",
     "GET /v1/billing/claim", "POST /v1/billing/claim", "POST /v1/billing/rotate",
 )
@@ -407,13 +409,17 @@ def _billing_unconfigured(service_commit: str):
     return outcome.status, outcome.body
 
 
-async def _stripe_http(url: str, *, method: str, headers: dict, body: str):
-    """POST to Stripe. Injected into billing so tests never import `js`."""
+async def _stripe_http(url: str, *, method: str, headers: dict, body: str,
+                       timeout_ms: int | None = None):
+    """Workers HTTP adapter, injected into billing and Turnstile tests."""
     try:  # pragma: no cover - isolate only
         from js import Object  # type: ignore[import-not-found]
         from pyodide.ffi import to_js  # type: ignore[import-not-found]
-        options = to_js({"method": method, "headers": headers, "body": body},
-                        dict_converter=Object.fromEntries)
+        native = {"method": method, "headers": headers, "body": body}
+        if timeout_ms is not None:
+            from js import AbortSignal
+            native["signal"] = AbortSignal.timeout(timeout_ms)
+        options = to_js(native, dict_converter=Object.fromEntries)
     except ImportError:
         options = {"method": method, "headers": headers, "body": body}
     return await fetch(url, options)
@@ -430,6 +436,14 @@ def _known_hardware_for_sandbox(payload) -> set[str]:
     environment = payload.get("environment") if isinstance(payload, dict) else None
     hardware = environment.get("hardware") if isinstance(environment, dict) else None
     return {hardware} if isinstance(hardware, str) else set()
+
+
+async def _verify_turnstile(secret: str, token: str) -> dict:
+    response = await _stripe_http(
+        human_gate.SITEVERIFY, method="POST",
+        headers={"content-type": "application/json"},
+        body=json.dumps({"secret": secret, "response": token}), timeout_ms=10_000)
+    return json.loads(await response.text()) if int(response.status) == 200 else {"success": False}
 
 
 def _json_response(status: int, body: dict, extra_headers: dict | None = None) -> Response:
@@ -473,8 +487,8 @@ def _cors_headers(request) -> dict[str, str]:
         "access-control-allow-origin": origin,
         "access-control-allow-methods": "POST, OPTIONS",
         "access-control-allow-headers":
-            "authorization, content-type, x-api-key, x-payment, x-modelspec-snapshot",
-        "access-control-expose-headers": "x-modelspec-snapshot, x-modelspec-snapshot-stale",
+            "authorization, content-type, x-api-key, x-payment, x-modelspec-snapshot, x-modelspec-turnstile",
+        "access-control-expose-headers": "x-modelspec-snapshot, x-modelspec-snapshot-stale, x-modelspec-decisions-remaining, retry-after",
         "access-control-max-age": "86400",
         "vary": "Origin",
     }
@@ -534,6 +548,8 @@ class Default(WorkerEntrypoint):
 
         if path == "/v1/feedback":
             return await self._feedback(request, method, service_commit)
+        if path == "/v1/human-status":
+            return await self._human_status(request, method)
         if path == "/v1/health":
             if method not in ("GET", "HEAD"):
                 return self._method_not_allowed(service_commit, path, "GET", method)
@@ -664,6 +680,11 @@ class Default(WorkerEntrypoint):
                 return await _answer()
 
             async def _live_unfunded(record, tier):
+                if path == "/v1/decide" and human_gate.enabled(self.env):
+                    return decider.error_response(
+                        "payment_required", "Machine decisions require remaining paid credits. "
+                        "Use a funded API key or the paid MCP service.",
+                        status=402, snapshot_id=envelope["snapshot"])
                 return await _answer()
 
             def sandbox():
@@ -691,6 +712,22 @@ class Default(WorkerEntrypoint):
                 except service.RequestError as exc:
                     return service.error_response(exc, None, service_commit, origin)
                 return access_sandbox.rank_response(parsed, envelope=envelope)
+
+        if path == "/v1/decide" and api_key is None and human_gate.enabled(self.env):
+            site_origin = str(request.headers.get("origin") or "") in CORS_ORIGINS
+            # Other callers can still pay per call through x402 when it is on.
+            if site_origin or not x402.load_config(self.env).enabled:
+                status, code, message, gate_headers = await human_gate.admit(
+                    request, self.env, payload, CORS_ORIGINS, _verify_turnstile)
+                if status == 200:
+                    status, body = await _anonymous()
+                else:
+                    status, body = decider.error_response(
+                        code, message, status=status, snapshot_id=None)
+                return _decision_response(status, body, {
+                    **gate_headers, **_decision_holder(origin).headers(),
+                    **_cors_headers(request),
+                })
 
         # MODEL-75. One wrap around the live/anonymous producers: x402 verify
         # and settle run before either of them writes an answer. The sandbox
@@ -839,6 +876,25 @@ class Default(WorkerEntrypoint):
             outcome = signals_service._error(404, "not_found", f"no endpoint at {path}")
         outcome.body["service_commit"] = service_commit
         return _json_response(outcome.status, outcome.body)
+
+    async def _human_status(self, request, method):
+        cors = _cors_headers(request)
+        if not cors:
+            return _json_response(403, {"enabled": human_gate.enabled(self.env)})
+        if method == "OPTIONS":
+            return Response("", status=204, headers={**cors, "access-control-allow-methods": "GET, OPTIONS"})
+        if method != "GET":
+            return _json_response(405, {"error": "method_not_allowed"}, cors)
+        if not human_gate.enabled(self.env):
+            return _json_response(200, {"enabled": False}, cors)
+        try:
+            stub = human_gate.stub_for(request, self.env)
+            if stub is None:
+                raise RuntimeError("unconfigured")
+            remaining = int(await stub.remaining())
+            return _json_response(200, {"enabled": True, "remaining": remaining}, cors)
+        except Exception:
+            return _json_response(503, {"enabled": True, "message": human_gate.UNAVAILABLE}, cors)
 
     async def _feedback(self, request, method: str, service_commit: str):
         """`POST` and `DELETE /v1/feedback` (MODEL-221). No key is read."""

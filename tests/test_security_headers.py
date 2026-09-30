@@ -35,7 +35,9 @@ def test_only_executable_inline_scripts_are_hashed(tmp_path: Path) -> None:
 def test_the_policy_allows_exactly_the_named_origins(tmp_path: Path) -> None:
     policy = dict(part.split(" ", 1) for part in security_headers.csp(_tree(tmp_path)).split("; "))
 
-    assert policy["connect-src"] == "'self' https://api.modelspec.dev https://cloudflareinsights.com"
+    assert policy["connect-src"] == "'self' https://api.modelspec.dev https://cloudflareinsights.com https://challenges.cloudflare.com"
+    assert policy["frame-src"] == "https://challenges.cloudflare.com"
+    assert "https://challenges.cloudflare.com" in policy["script-src"].split()
     assert policy["frame-ancestors"] == "'none'"
     assert policy["object-src"] == "'none'"
     assert policy["script-src"].endswith("https://static.cloudflareinsights.com")
