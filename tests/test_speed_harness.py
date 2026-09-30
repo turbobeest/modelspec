@@ -611,3 +611,40 @@ def test_grok_is_smoked_but_not_in_the_pilot_slot_whose_bound_stays_under_the_ca
     assert grok not in {e.offering for e in pilot.entries}
     assert grok in {e.offering for e in smoke.entries}
     assert slot_cost(pilot).bound_usd < 13
+
+
+# ── MODEL-243: paid data survives a failed aggregate; a settings change starts a new window ──
+
+
+def test_raw_runs_are_uploaded_and_pr_opened_even_when_aggregate_fails():
+    import yaml
+
+    path = ROOT / ".github" / "workflows" / "speed-probe.yml"
+    steps = yaml.safe_load(path.read_text(encoding="utf-8"))["jobs"]["probe"]["steps"]
+    names = [s.get("name") for s in steps]
+    pilot = names.index("Run the pilot slot (paid, capped)")
+    upload = next(s for s in steps if s.get("uses", "").startswith("actions/upload-artifact"))
+    aggregate = next(s for s in steps if s.get("id") == "aggregate")
+    body = next(s for s in steps if s.get("name") == "Write the data pull request body")
+    pr = next(s for s in steps if s.get("uses", "").startswith("peter-evans/create-pull-request"))
+    assert pilot < steps.index(upload) < steps.index(aggregate) < steps.index(body) < steps.index(pr)
+    for step in (upload, body, pr):
+        assert step["if"].startswith("always()")
+    assert "always()" not in aggregate["if"]
+    assert "measurements/speed/pilot/runs" in upload["with"]["path"]
+
+
+def test_superseded_runs_are_outside_the_window(tmp_path):
+    from scripts.speed.__main__ import window_runs
+
+    superseded = ROOT / "measurements/speed/pilot/superseded"
+    old = next(superseded.glob("*.json.gz"))
+    assert (superseded / "README.md").exists()
+    assert not (ROOT / "measurements/speed/pilot/runs" / old.name).exists()
+    window = tmp_path / "w"
+    (window / "runs").mkdir(parents=True)
+    (window / "superseded").mkdir()
+    (window / "superseded" / old.name).write_bytes(old.read_bytes())
+    assert window_runs(window) == []
+    with pytest.raises(AggregateError):
+        aggregate(window_runs(window))
