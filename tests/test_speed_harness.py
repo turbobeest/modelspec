@@ -431,7 +431,7 @@ def test_the_probe_runs_only_by_hand_under_a_fixed_cap():
     triggers = workflow[True]  # PyYAML reads the key `on` as True.
     assert set(triggers) == {"workflow_dispatch"}
     assert set(triggers["workflow_dispatch"]["inputs"]) == {"mode"}
-    assert workflow["env"]["SPEED_CAP_USD"] == "15"
+    assert workflow["env"]["SPEED_CAP_USD"] == "13"
     steps = workflow["jobs"]["probe"]["steps"]
     keyed = [s["name"] for s in steps if "secrets.ANTHROPIC_API_KEY" in str(s.get("env"))]
     assert keyed == ["Preflight (free)", "Smoke, one request per offering (paid, capped)",

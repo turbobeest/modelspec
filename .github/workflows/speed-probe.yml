@@ -1,7 +1,7 @@
 name: Speed probe
 
 # MODEL-212, ADR 0004 step 2. Manual only: nothing here runs on a schedule.
-# Jamie approved the pilot alone, with a $15 cap. The baseline and any
+# Jamie approved the pilot alone, with $15 in total; $0.76 is spent, so the cap is 13. The baseline and any
 # refresh need a separate go and a change to this file, which a person merges.
 #
 # preflight  free: checks every key is set, every pinned model ID is listed,
@@ -35,7 +35,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  SPEED_CAP_USD: '15'
+  SPEED_CAP_USD: '13'
   SPEED_SMOKE_CAP_USD: '0.25'
   PYTHONPATH: ${{ github.workspace }}
 
