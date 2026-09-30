@@ -103,6 +103,12 @@
     // STRIPE_WEBHOOK_SECRET) are Wrangler secrets, never in this file. See
     // docs/billing.md.
     "BILLING_ENABLED": "false",
+    // MODEL-241. Keyless browser visitors are metered under
+    // HMAC-SHA256(VISITOR_HMAC_KEY, IP | UTC day), from src/visitor.py. The key
+    // is a Wrangler secret, set per environment, never in this file:
+    //   npx wrangler secret put VISITOR_HMAC_KEY
+    //   npx wrangler secret put VISITOR_HMAC_KEY --env staging
+    // Without it a keyless visitor gets no meter id and takes the paid path.
     // MODEL-113. Grok Bot release-signal intake. Keep this off until Jamie
     // creates the two Wrangler secrets and configures Grok Bot.
     "SIGNALS_ENABLED": "false",

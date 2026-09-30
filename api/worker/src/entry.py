@@ -72,6 +72,7 @@ import kv_value
 import policy_service
 import rank_service as service
 import signals_service
+import visitor
 import x402
 from credits_do import CreditsObject  # noqa: F401 — Wrangler class_name
 from js import fetch
@@ -479,15 +480,17 @@ def _cors_headers(request) -> dict[str, str]:
     }
 
 
-def _site_free_visitor(request, api_key: str | None, enabled: bool) -> str | None:
-    """Return the anonymous meter key for an admitted browser request."""
+def _site_free_visitor(request, api_key: str | None, enabled: bool, env=None) -> str | None:
+    """Return the anonymous meter key for an admitted browser request.
+
+    None when the keyed visitor id is unavailable (no VISITOR_HMAC_KEY): the
+    request then takes the paid path rather than a bare-hash meter."""
     if api_key is not None or not enabled:
         return None
     origin = str(request.headers.get("origin") or request.headers.get("Origin") or "")
     if origin not in CORS_ORIGINS:
         return None
-    connecting_ip = str(request.headers.get("CF-Connecting-IP") or "").strip()
-    return "visitor:" + hashlib.sha256(connecting_ip.encode("utf-8")).hexdigest()
+    return visitor.visitor_id_for(request, env)
 
 
 def _html_response(status: int, page: str, service_commit: str,
@@ -694,7 +697,7 @@ class Default(WorkerEntrypoint):
         # is not wrapped. X402_ENABLED default off is a no-op.
         x402_trace = x402.ChargeTrace()
         free_visitor = _site_free_visitor(
-            request, api_key, x402.load_config(self.env).enabled)
+            request, api_key, x402.load_config(self.env).enabled, self.env)
         anonymous = (
             _anonymous
             if free_visitor is not None

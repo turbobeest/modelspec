@@ -951,6 +951,7 @@ def _entry_env(**overrides):
         "ACCESS": KVBinding(),
         "CREDITS": credits.MemoryLedger(),
         "X402_FACILITATOR": StubFacilitator(),
+        "VISITOR_HMAC_KEY": "fixture-visitor-key-0123456789",
     }
     values.update(overrides)
     return type("E", (), values)()
@@ -1015,6 +1016,27 @@ def test_entry_site_origin_is_limited_per_visitor_when_x402_is_on(entry):
         "https://modelspec.dev", ip="198.51.100.21",
     )))
     assert another_visitor.status == 200
+
+
+def test_entry_meter_writes_neither_the_ip_nor_its_bare_hash(entry):
+    import hashlib
+
+    env = _entry_env()
+    ip = "203.0.113.8"
+    asyncio.run(_decision_worker(entry, env).fetch(_decision_request("https://modelspec.dev", ip=ip)))
+    blob = " ".join(env.ACCESS.store.data) + " " + " ".join(env.ACCESS.store.data.values())
+    assert env.ACCESS.store.data
+    assert ip not in blob
+    assert hashlib.sha256(ip.encode()).hexdigest() not in blob
+
+
+def test_entry_site_origin_without_the_visitor_key_takes_the_paid_path(entry):
+    env = _entry_env(VISITOR_HMAC_KEY=None)
+    response = asyncio.run(_decision_worker(entry, env).fetch(
+        _decision_request("https://modelspec.dev")))
+
+    assert response.status == 402
+    assert env.ACCESS.store.data == {}
 
 
 @pytest.mark.parametrize("origin", [None, "https://agent.example"])
