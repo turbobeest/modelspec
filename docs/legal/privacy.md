@@ -425,8 +425,8 @@ nothing below is read as describing the service today:
   credit ledger under the paying wallet's public address, with the credits it
   bought, which are spent at once.
 - **The human gate on the decide page (Cloudflare Turnstile).** Built, and
-  **not yet enabled**: it ships off (`HUMAN_GATE_ENABLED`), in production and
-  staging, and this describes what would happen once it is switched on. Until
+  **not yet enabled**: it ships off (`HUMAN_GATE_ENABLED`) in production, and
+  this describes what would happen once it is switched on. Until
   then no Turnstile challenge is loaded and nothing below happens.
   When on, a manual lookup from the decide page must carry a fresh
   Cloudflare Turnstile token, which distinguishes people from automated access.
@@ -442,19 +442,21 @@ nothing below is read as describing the service today:
   expires after five minutes and is single-use; we neither store nor log it.
   The Worker also reads `CF-Connecting-IP` transiently to derive the same daily
   keyed visitor id, `HMAC-SHA256(VISITOR_HMAC_KEY, IP | UTC day)`; it stores no
-  raw IP and no bare hash of one. A Cloudflare Durable Object keeps, for each
+  raw IP and no bare hash of one. For this gate only, an IPv6 address is
+  first reduced to its /64 network, so people who share a /64 share one
+  allowance; the paid-access meter above uses the address as supplied. A Cloudflare Durable Object keeps, for each
   daily visitor id, the count of lookups admitted that day, the day, the times
-  of recent lookups, keyed fingerprints of the specs sent (scoped to that
-  visitor id, not the specs themselves) and, if triggered, a suspicion expiry.
+  of recent lookups, a keyed fingerprint of each spec sent (scoped to that
+  visitor id, not the spec itself; no limit currently compares them) and, if triggered, a suspicion expiry.
   It holds no raw spec, no token and no raw IP. An admitted lookup uses up
   allowance even if the decision then fails. History older than ten minutes is
   dropped on the next admission, and each daily object's state is scheduled for
   deletion at the following UTC midnight; a delayed or retried alarm can delay
   the physical deletion, and Cloudflare's point-in-time recovery for
   SQLite-backed storage can retain earlier states for up to 30 days. A visitor
-  may make at most 20 admitted lookups a day and 3 in any minute, and six
-  different specs in ten minutes, or five requests at nearly equal intervals,
-  is refused for ten minutes as automated-looking. Failed verification is
+  may make at most 20 admitted lookups a day and 3 in any minute, and
+  five requests at nearly equal intervals are refused for ten minutes as
+  automated-looking. Failed verification is
   refused, not treated as human. No network-operator or headless score is
   stored. ModelSpec sets no cookie for this and does not enable Turnstile
   pre-clearance; we do not say that Cloudflare sets none of its own.
