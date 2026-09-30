@@ -47,6 +47,7 @@ DATA_PATHS: tuple[str, ...] = (
 )
 
 DATA_DIR_ENV = "MODELSPEC_DATA_DIR"
+REQUIRE_DATA_ENV = "MODELSPEC_REQUIRE_DATA_DIR"
 
 
 class DataSourceError(RuntimeError):

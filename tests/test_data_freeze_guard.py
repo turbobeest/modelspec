@@ -59,7 +59,7 @@ def test_a_lag_change_without_the_manifest_fails():
 
 def test_a_lag_change_with_an_unreadable_manifest_fails():
     verdict = judge(["models/a.md", "data-image.json"], {}, None, "data-lag/image", TODAY)
-    assert not verdict.ok and any("no readable as_of" in p for p in verdict.problems)
+    assert not verdict.ok and any("no readable source_committed" in p for p in verdict.problems)
 
 
 def test_the_cutoff_moves_with_today():
@@ -88,7 +88,7 @@ def test_collect_reads_the_three_dot_diff_from_git(tmp_path, monkeypatch):
     _git(repo, "commit", "-q", "-m", "base")
     _git(repo, "switch", "-q", "-c", "data-lag/image")
     (repo / "models" / "a.md").write_text("last_updated: 2020-01-01\nseen: 2026-10-03\n")
-    (repo / "data-image.json").write_text('{"as_of": "2026-09-30"}')
+    (repo / "data-image.json").write_text('{"as_of": "2026-09-30", "source_committed": "2026-09-30"}')
     _git(repo, "add", "-A")
     _git(repo, "commit", "-q", "-m", "lag")
     _git(repo, "switch", "-q", "main")

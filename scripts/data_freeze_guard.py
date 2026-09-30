@@ -5,7 +5,7 @@ repository the data paths (`pipeline.data_source.DATA_PATHS`) are frozen: the
 only change allowed is the scheduled lag job's, which arrives on a `data-lag/*`
 branch and must satisfy all of:
 
-  * `data-image.json` is part of the change, and its `as_of` is not after the
+  * `data-image.json` is part of the change, and its `source_committed` is not after the
     cutoff (`today - 9 months`);
   * no line the change adds carries an ISO date (YYYY-MM-DD) after the cutoff.
 
@@ -63,7 +63,7 @@ def judge(
     """Decide on a change. `changed` is every touched path, repo-relative.
 
     `added_text` maps a touched data path to the text of its added lines
-    (absent for binary files); `manifest_as_of` is `data-image.json`'s `as_of`
+    (absent for binary files); `manifest_as_of` is `data-image.json`'s `source_committed`
     in the head tree, or None when the file is missing or unreadable.
     """
     data = sorted(p for p in changed if is_data_path(p))
@@ -83,9 +83,9 @@ def judge(
     if not manifest_touched:
         problems.append(f"{MANIFEST} is not part of the lag change")
     if manifest_as_of is None:
-        problems.append(f"{MANIFEST} is missing or has no readable as_of")
+        problems.append(f"{MANIFEST} is missing or has no readable source_committed")
     elif manifest_as_of > cutoff:
-        problems.append(f"{MANIFEST} as_of {manifest_as_of} is after the cutoff {cutoff}")
+        problems.append(f"{MANIFEST} source_committed {manifest_as_of} is after the cutoff {cutoff}")
     for path in data:
         for value in sorted(set(newer_than(added_text.get(path, ""), cutoff)))[:3]:
             problems.append(f"{path} adds {value}, after the cutoff {cutoff}")
@@ -114,7 +114,7 @@ def collect(base: str, head: str) -> tuple[list[str], dict[str, str], date | Non
     as_of = None
     try:
         raw = json.loads(_git("show", f"{head}:{MANIFEST}"))
-        as_of = date.fromisoformat(raw["as_of"])
+        as_of = date.fromisoformat(raw["source_committed"])
     except (subprocess.CalledProcessError, ValueError, KeyError, TypeError):
         pass
     return changed, added, as_of

@@ -107,6 +107,11 @@ to the plain build (7,988 files, timestamps normalised). That check caught one
 leak, card links in `pipeline/agent_ready.py` embedding the temporary root,
 now fixed and tested.
 
+Deploy jobs set `MODELSPEC_REQUIRE_DATA_DIR=1` when `DATA_SPLIT_ENABLED` is
+true. The build then fails, exit 2, if neither `--data-dir` nor
+`MODELSPEC_DATA_DIR` is given, instead of silently publishing the public image
+as if it were fresh.
+
 With neither set the build reads the repository's own directories exactly as
 before, which is what public pull requests and forks get.
 
@@ -125,9 +130,9 @@ lag job and the writers need a *write* path to the private repository; that is
 a separate credential (or the private repository's own `GITHUB_TOKEN`, once the
 writers run there).
 
-Rank Worker: it builds from the same static export, so it needs no runtime
-access to the private repository. The private data reaches it only inside the
-built JSON.
+Rank Worker: it needs no runtime access to the private repository, but its
+bundle step is not data-free: `api/worker/vendor.py` copies registry and
+hardware files from the repository root. See "Gaps 245-B must close" below.
 
 ## Writers
 
@@ -148,6 +153,37 @@ Scripts that call `git` relative to the repository root need a per-script check
 before the move; the overlay's `.git` points at the public repository, so a
 writer that shells out to `git add` must run `git -C <private checkout>` instead.
 That check is the first task of 245-B.
+
+### Gaps 245-B (MODEL-247) must close
+
+The Rank Worker bundle reads data outside the built JSON:
+`api/worker/vendor.py` copies `registry/{harnesses,providers,sources}.yaml` and
+`hardware/*.yaml` from the repository root. Private data therefore reaches the
+Worker by that path too. 245-B gives `vendor.py` a `--data-dir` and makes
+`rank-api.yml` check out the data.
+
+`deploy-sites.yml`: `build` runs on `pull_request` and uploads `sites`,
+`sites-holding` and `sites-internal`. 245-B gates the private checkout to
+pushes to `main` (as `MODELSPEC_SNAPSHOT_KEY` already is), stops uploading fresh
+builds as public artifacts, and deploys from the same job or through a
+non-public channel.
+
+The leak guard test is deliberately narrow. Not yet covered:
+
+- `actions/cache` and `cache/save` in a job that reaches data (fork pull
+  requests can restore default-branch caches; `curation-benchmarks.yml` already
+  caches `benchmarks/_curation/state`);
+- error messages that echo data (`pipeline/load.py` puts YAML errors into
+  `LoadError`; pydantic `input_value`), which need redaction on private data;
+- markers are checked per job, so workflow-level `env`, reusable workflows with
+  `secrets: inherit` and other secret names are missed;
+- `upload-pages-artifact`;
+- print detection misses `python -c`, `jq`, `grep`, `ls`, `diff`, `set -x`,
+  `tee` and shell variables.
+
+The freeze guard trusts the branch name (a fork can spoof it), ignores derived
+files such as `docs/audits`, and skips binaries. A merge gate cannot stop
+publication when a pull request is opened; only repointing the writers does.
 
 ### Public CI must not leak the private data
 
@@ -194,14 +230,18 @@ and it becomes required only after the writers are repointed.
 
 1. `cutoff = today - 9 calendar months`, clamped to the month end
    (`2027-05-31 -> 2026-08-31`, `2026-11-30 -> 2026-02-28`).
-2. Pick the last commit on the private default branch whose **committer date is
-   at or before the cutoff**. None means no-op (`no-image-yet`).
+2. Walk the private default branch first-parent and pick the newest commit
+   whose committer date is at or before the cutoff **and whose whole history
+   has nothing newer**. A backdated commit on top of fresh history is
+   refused. None means no-op (`no-image-yet`).
 3. Extract that commit's data paths (`git archive`), replace the public data
    directories with them, and write `data-image.json`:
-   `as_of`, `lag_months`, `source_repo`, `source_commit`, `paths`.
+   `as_of` (the cutoff), `lag_months`, `source_repo`, `source_commit`,
+   `source_committed` (that commit's own committer date), `paths`.
 4. If the tree is already that image the job reports `unchanged` and opens
    nothing.
-5. Otherwise it opens a pull request from `data-lag/image`.
+5. Otherwise it opens a pull request from `data-lag/image`. `automerge.yml`
+   skips `data-lag/image` (the only lag branch): a human merges it.
 
 The private repository is seeded with a single commit dated 2026-09-30. The
 cutoff reaches it on 2027-06-30, so **the public image does not change until
@@ -219,7 +259,7 @@ every pull request. It reads the three-dot diff against the base and fails when:
 - a data path or `data-image.json` changes on any branch other than
   `data-lag/*`; or
 - on a `data-lag/*` branch, `data-image.json` is missing, unreadable, or has
-  `as_of` after today's cutoff; or
+  `source_committed` after today's cutoff; or
 - on a `data-lag/*` branch, a changed data file adds an ISO date after the
   cutoff.
 

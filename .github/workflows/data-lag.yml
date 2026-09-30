@@ -75,6 +75,10 @@ jobs:
             measurements
             premier
             research
+            registry/sources.yaml
+            registry/providers.yaml
+            registry/harnesses.yaml
+            registry/release-watch-baseline.json
           signoff: true
           commit-message: 'data: publish the lagged data image (MODEL-246)'
           title: '(MODEL-246) data: publish the lagged data image'

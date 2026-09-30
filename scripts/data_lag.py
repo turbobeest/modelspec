@@ -27,7 +27,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -56,11 +56,23 @@ def _git(repo: Path, *args: str, binary: bool = False) -> subprocess.CompletedPr
                           text=not binary, check=True)
 
 
-def commit_at_or_before(private: Path, cutoff: date) -> str | None:
-    """The newest commit whose committer date is on or before `cutoff` (UTC)."""
-    before = f"{cutoff.isoformat()}T23:59:59+00:00"
-    out = _git(private, "rev-list", "-1", f"--before={before}", "HEAD").stdout.strip()
-    return out or None
+def _end_of(cutoff: date) -> int:
+    return int(datetime(cutoff.year, cutoff.month, cutoff.day, 23, 59, 59, tzinfo=timezone.utc).timestamp())
+
+
+def commit_at_or_before(private: Path, cutoff: date) -> tuple[str, date] | None:
+    """The newest first-parent commit with nothing newer than `cutoff` in its history.
+
+    A backdated commit on top of fresh history has an old committer date but
+    carries the fresh data, so every ancestor's date is checked, not just the
+    commit's own. Returns the commit and its committer date (UTC).
+    """
+    limit = _end_of(cutoff)
+    for commit in _git(private, "rev-list", "--first-parent", "HEAD").stdout.split():
+        stamps = [int(t) for t in _git(private, "log", "--format=%ct", commit).stdout.split()]
+        if max(stamps) <= limit:
+            return commit, datetime.fromtimestamp(stamps[0], timezone.utc).date()
+    return None
 
 
 def _existing_paths(private: Path, commit: str) -> list[str]:
@@ -75,7 +87,7 @@ def read_manifest(public: Path) -> dict | None:
     return json.loads(path.read_text()) if path.is_file() else None
 
 
-def sync(private: Path, commit: str, public: Path, cutoff: date) -> list[str]:
+def sync(private: Path, commit: str, committed: date, public: Path, cutoff: date) -> list[str]:
     """Make each data path in `public` equal to `commit`; return paths present."""
     present = _existing_paths(private, commit)
     archive = _git(private, "archive", "--format=tar", commit, *present, binary=True).stdout
@@ -100,6 +112,7 @@ def sync(private: Path, commit: str, public: Path, cutoff: date) -> list[str]:
         "lag_months": LAG_MONTHS,
         "source_repo": "turbobeest/modelspec-data",
         "source_commit": commit,
+        "source_committed": committed.isoformat(),
         "paths": present,
     }
     (public / MANIFEST).write_text(json.dumps(manifest, indent=2) + "\n")
@@ -109,10 +122,11 @@ def sync(private: Path, commit: str, public: Path, cutoff: date) -> list[str]:
 def run(private: Path, public: Path, today: date, *, dry_run: bool = False) -> dict:
     cutoff = cutoff_for(today)
     result = {"cutoff": cutoff.isoformat(), "status": "", "commit": None}
-    commit = commit_at_or_before(private, cutoff)
-    if commit is None:
+    picked = commit_at_or_before(private, cutoff)
+    if picked is None:
         result["status"] = "no-image-yet"
         return result
+    commit, committed = picked
     result["commit"] = commit
     current = read_manifest(public)
     if current and current.get("source_commit") == commit:
@@ -120,7 +134,7 @@ def run(private: Path, public: Path, today: date, *, dry_run: bool = False) -> d
         return result
     result["status"] = "would-publish" if dry_run else "published"
     if not dry_run:
-        sync(private, commit, public, cutoff)
+        sync(private, commit, committed, public, cutoff)
     return result
 
 

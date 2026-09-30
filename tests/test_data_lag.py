@@ -78,6 +78,7 @@ def test_the_seed_publishes_on_the_ninth_month(repos):
     assert (public / "pipeline" / "code.py").read_text() == "code"
     manifest = json.loads((public / "data-image.json").read_text())
     assert manifest["as_of"] == "2026-09-30" and manifest["source_commit"] == seed
+    assert manifest["source_committed"] == "2026-09-30"
 
 
 def test_a_rerun_is_unchanged(repos):
@@ -125,3 +126,31 @@ def test_a_single_data_file_inside_a_public_directory_is_published(repos):
     run(private, public, date(2027, 6, 30))
     assert (public / "registry" / "sources.yaml").read_text() == "v1"
     assert (public / "registry" / "facets.yaml").read_text() == "vocab"
+
+
+def test_a_backdated_commit_on_top_of_fresh_history_is_not_picked(repos):
+    private, public = repos
+    seed = _commit(private, "2026-09-30", {"models/a.md": "v1", "benchmarks/b.md": "v1"})
+    _commit(private, "2027-03-01", {"models/a.md": "fresh"})
+    _commit(private, "2026-09-15", {"models/c.md": "backdated"})
+    result = run(private, public, date(2027, 6, 30))
+    assert result["commit"] == seed
+    assert (public / "models" / "a.md").read_text() == "v1"
+    assert not (public / "models" / "c.md").exists()
+
+
+def test_add_paths_in_the_lag_workflow_match_the_data_paths():
+    import yaml
+    from pipeline.data_source import DATA_PATHS
+
+    root = Path(__file__).resolve().parent.parent
+    doc = yaml.safe_load((root / ".github/workflows/data-lag.yml").read_text())
+    steps = [s for job in doc["jobs"].values() for s in job["steps"]
+             if "create-pull-request" in str(s.get("uses", ""))]
+    listed = set(steps[0]["with"]["add-paths"].split())
+    assert listed == set(DATA_PATHS) | {"data-image.json"}
+
+
+def test_the_automerge_workflow_skips_lag_branches():
+    root = Path(__file__).resolve().parent.parent
+    assert "github.head_ref != 'data-lag/image'" in (root / ".github/workflows/automerge.yml").read_text()

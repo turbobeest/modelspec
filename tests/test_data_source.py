@@ -157,3 +157,12 @@ def test_decision_registry_can_be_pointed_at_a_composed_root(tmp_path):
     finally:
         registry.use_root(saved)
     assert registry.REGISTRY_DIR == saved / "registry"
+
+
+def test_require_switch_refuses_a_build_without_private_data(monkeypatch, capsys):
+    from pipeline import build
+
+    monkeypatch.delenv(data_source.DATA_DIR_ENV, raising=False)
+    monkeypatch.setenv(data_source.REQUIRE_DATA_ENV, "1")
+    assert build.main(["--out", "unused"]) == 2
+    assert "refusing" in capsys.readouterr().err
