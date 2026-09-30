@@ -70,7 +70,9 @@ async def verified(secret, token):
 
 
 def admit(request, environment, payload=None, verify=verified):
-    return human_gate.admit(request, environment, payload or {"spec_version": 1}, {ORIGIN}, verify)
+    if payload is not None:
+        request._body = json.dumps(payload)
+    return human_gate.admit(request, environment, {ORIGIN}, verify)
 
 
 def test_scripted_loop_is_refused_on_fourth_request(monkeypatch):
@@ -175,6 +177,8 @@ def test_no_ip_unkeyed_id_token_or_spec_is_stored(monkeypatch):
     blob = json.dumps(list(e.HUMAN_GATE.objects)) + json.dumps(obj.ctx.storage.sql.exec("SELECT * FROM human_state").toArray())
     for raw in (IP, hashlib.sha256(IP.encode()).hexdigest(), "private-task", "private-token", KEY):
         assert raw not in blob
+    state = json.loads(obj.ctx.storage.sql.exec("SELECT v FROM human_state").toArray()[0]["v"])
+    assert state == {"day": 0, "count": 1, "events": [10000]}
     asyncio.run(obj.alarm())
     assert asyncio.run(obj.remaining()) == 20
 
@@ -332,3 +336,31 @@ def test_gate_refusal_uses_transport_route_without_decision_error_builder(entry,
         "endpoint": "decide", "snapshot": None,
         "error": {"code": "human_challenge_required", "message": "Complete the human verification before each lookup."},
     }
+
+
+@pytest.mark.parametrize("timestamps,now,reason", [
+    ([10000, 10001, 10002], 10003, "burst"),
+    ([10000, 10070, 10140, 10210], 10280, "sweep"),
+    ([9399, 10000, 10061], 10124, ""),
+])
+def test_legacy_events_load_and_write_only_timestamps(monkeypatch, timestamps, now, reason):
+    monkeypatch.setattr(human_gate_do.time, "time", lambda: now)
+    storage = Storage()
+    storage.sql.exec("CREATE TABLE human_state (k TEXT PRIMARY KEY, v TEXT)")
+    old_state = {"day": 0, "count": len(timestamps),
+                 "events": [[stamp, "legacy-spec-fingerprint"] for stamp in timestamps]}
+    storage.sql.exec("INSERT INTO human_state VALUES ('state', ?)", json.dumps(old_state))
+    obj = human_gate_do.HumanGateObject(SimpleNamespace(storage=storage), None)
+    assert asyncio.run(obj.remaining()) == 20 - len(timestamps)
+    outcome = asyncio.run(obj.take())
+    assert outcome["reason"] == reason
+    state = json.loads(storage.sql.exec("SELECT v FROM human_state").toArray()[0]["v"])
+    expected = [stamp for stamp in timestamps if now - stamp < 600]
+    if not reason:
+        expected.append(now)
+    assert state["events"] == expected
+    assert state["count"] == len(timestamps) + (not reason)
+    assert "legacy-spec-fingerprint" not in json.dumps(state)
+    # A new instance must also accept the timestamp-only rows just written.
+    recreated = human_gate_do.HumanGateObject(obj.ctx, None)
+    assert asyncio.run(recreated.take())["reason"] == reason

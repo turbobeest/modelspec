@@ -32,11 +32,12 @@ even if the decision engine subsequently refuses the Spec or fails. Failed
 verification and cap refusals do not consume a lookup. This prevents concurrent
 or deliberately invalid requests from obtaining more answers than the cap.
 
-The state contains a UTC day, admitted count, recent timestamps, keyed Spec
-fingerprints and a suspicion expiry. Fingerprints are scoped to the daily
-visitor ID and exclude `explain`, `limit`
-and `snapshot`. Every admitted lookup counts toward interval detection,
-regardless of whether its fingerprint matches an earlier lookup.
+The state contains a UTC day, admitted count, recent timestamps and a suspicion
+expiry. The gate does not compute or store Spec fingerprints or other
+Spec-derived values. Every admitted lookup counts toward interval detection.
+Already-deployed objects may contain timestamp/fingerprint pairs. Admission
+reads their timestamps and writes only timestamps, discarding the fingerprints
+on the next admission attempt, including a refusal.
 It retains ten minutes of lookup history on the next admission. Five lookups
 with four nearly equal intervals within ten minutes set a ten-minute refusal.
 Distinct Specs do not trigger a refusal. Equal means the interval spread

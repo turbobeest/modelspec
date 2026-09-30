@@ -1,9 +1,6 @@
 """Keyless /decide admission. Tokens and addresses are never persisted."""
 from __future__ import annotations
 
-import hashlib
-import hmac
-import json
 from ipaddress import ip_address, ip_network
 from urllib.parse import urlparse
 
@@ -58,16 +55,7 @@ def as_dict(value):
     return dict(to_py() if callable(to_py) else value)
 
 
-def spec_fingerprint(payload, secret, identity):
-    # Count variants of a lookup once, regardless of explanation or result limit.
-    shape = dict(payload) if isinstance(payload, dict) else {"invalid": payload}
-    for name in ("explain", "limit", "snapshot"):
-        shape.pop(name, None)
-    data = (identity + "|" + json.dumps(shape, sort_keys=True, separators=(",", ":"))).encode()
-    return hmac.new(str(secret).encode(), data, hashlib.sha256).hexdigest()
-
-
-async def admit(request, env, payload, origins, verify):
+async def admit(request, env, origins, verify):
     """Return (status, error code, message, headers), or an admitted 200."""
     origin = str(request.headers.get("origin") or "")
     if origin not in origins:
@@ -90,9 +78,9 @@ async def admit(request, env, payload, origins, verify):
         if identity is None:
             return 503, "human_gate_unavailable", UNAVAILABLE, {}
         # Verification may have crossed UTC midnight. Resolve the daily object
-        # again so admission and the fingerprint use the current visitor ID.
+        # again so admission uses the current visitor ID.
         stub = env.HUMAN_GATE.get(env.HUMAN_GATE.idFromName(identity))
-        meter = as_dict(await stub.take(spec_fingerprint(payload, env.VISITOR_HMAC_KEY, identity)))
+        meter = as_dict(await stub.take())
         headers = {REMAINING_HEADER: str(meter["remaining"])}
         reason = meter["reason"]
         if reason:
