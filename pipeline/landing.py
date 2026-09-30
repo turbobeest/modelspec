@@ -28,9 +28,8 @@ from pipeline.load import load_models
 
 SOFTWARE_ENGINEERING = "software_engineering"
 MONTHLY_TASKS = 10_000
-EYEBROW = "Your model is a guess."
 HEADLINE_LEAD = "Model routers make educated guesses."
-HEADLINE_SUB = "ModelSpec makes an informed, unbiased decision from the evidence."
+HEADLINE_SUB = "ModelSpec makes informed, unbiased decisions from evidence."
 HEADLINE = f"{HEADLINE_LEAD} {HEADLINE_SUB}"
 TITLE = "ModelSpec — justifies the model decision and shows its work"
 DESCRIPTION = ("Decide which AI model your job needs, and see why: your requirements, every "
@@ -435,7 +434,7 @@ def render(data: LandingData, *, variant: Literal["live", "holding"]) -> str:
 {robots}{canonical}{brand.head_links()}{social_cards.social_meta_for_page("/", data)}<link rel="stylesheet" href="/{ASSET_DIR}/landing.css">{landing_chrome.lockup_style()}</head>
 <body><div class="axis" aria-hidden="true"></div>
 <header>{landing_chrome.lockup(href=None)}<nav><a href="#receipt">What it costs you</a><a href="#routers">Routers</a><a href="#teams">For teams</a><a href="#agents">For agents</a><a href="/pricing/">Pricing</a><a href="#pick-a-model">Test your pick</a>{board}</nav></header>
-<main><section class="hero"><div class="hero-copy"><p class="eyebrow">{EYEBROW}</p><h1><span class="h1-lead">{HEADLINE_LEAD}</span> <span class="h1-sub">{HEADLINE_SUB}</span></h1>
+<main><section class="hero"><div class="hero-copy"><h1><span class="h1-lead">{HEADLINE_LEAD}</span> <span class="h1-sub">{HEADLINE_SUB}</span></h1>
 <p class="close">ModelSpec picks the model your job needs from <a href="/method/#must-prefer">your requirements</a>, <a href="/method/#estimate">every admitted benchmark</a> and <a href="{GH}docs/decision-contract.md#cost-per-task">real cost</a>, and <a href="/method/">shows how it got there</a>. When one model wins, it says so. When the evidence can't separate them, it <a href="/method/#ties">says that too</a>, and hands you the cheapest. <a href="/legal/neutrality/">Nobody pays to rank higher.</a></p>
 <div class="actions"><a class="button agents" href="#agents">Give it to your agents</a>{board_alt}</div></div>
 <figure class="plot"><div class="chips" aria-hidden="true"><span data-stage="1">The top estimate</span><span data-stage="2">Can't be told apart from it</span><span data-stage="3">The cheapest of those</span></div>

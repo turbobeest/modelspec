@@ -174,12 +174,13 @@ nav > a:not(.button) {
   display: block;
 }
 .h1-sub {
-  margin-top: 0.4em;
-  color: var(--light);
-  font-size: 0.62em;
-  line-height: 1.12;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  margin-top: 0.15em;
+}
+/* Both headline lines: one size, in the brand yellow (Jamie, 2026-09-30). */
+.hero h1,
+.hero h1 .h1-lead,
+.hero h1 .h1-sub {
+  color: var(--yellow);
 }
 .eyebrow,
 .kicker {
@@ -226,7 +227,8 @@ nav > a:not(.button) {
 }
 .plot {
   margin: 0;
-  padding-top: 94px;
+  /* Top-aligned with the headline, which now opens the copy column (no eyebrow). */
+  padding-top: 56px;
   display: flex;
   flex-direction: column;
   gap: 14px;
