@@ -677,7 +677,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-23'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-29'
     benchmark_version: webdev / overall, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset webdev, category overall, leaderboard_publish_date
       2026-09-23; no style-controlled variant. Highest-effort row for the product (effort: max;
@@ -690,9 +690,32 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-143-evidence-arena-webdev-json
-      snapshot_ref: sha256:8c88f6e665fc8a5667d5b00b1a3ef24d70773f37f9f2fe917623c8c29895c5cf
+      snapshot_ref: sha256:1342f43f483667f8e4313a1fb517522e1f18aa1b09d4812f8d3163c4ff30b9bc
       cited_regions:
       - rows
+    observed_at: '2026-09-29'
+  - benchmark_id: vending_bench_2
+    model_id_as_evaluated: GPT-6 Sol
+    score: 14427.848333333333
+    unit: USD
+    source_url: https://andonlabs.com/evals/vending-bench-2
+    source_kind: benchmark_author
+    evidence_date: '2026-09-29'
+    date_type: evaluated
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
+    benchmark_version: ''
+    configuration: ''
+    limitations: ''
+    measured_by: benchmark_author
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-160-vending-bench-2
+      snapshot_ref: sha256:94074584ec83e973b31884f48956a6bc43e36a33d47dc3feaa7c52adf23a9c12
+      cited_regions:
+      - rows
+    id: openai/gpt-6-sol#vending_bench_2#536e7b52c24e
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''
