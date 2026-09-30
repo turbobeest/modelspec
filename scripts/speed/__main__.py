@@ -1,6 +1,7 @@
-"""``python -m scripts.speed``: plan, preflight, run, dry-run, aggregate, verify.
+"""``python -m scripts.speed``: plan, preflight, smoke, run, dry-run, aggregate, verify.
 
-Only ``run --live`` sends a paid request, and only with ``--cap-usd``. Every
+Only ``run --live`` and ``smoke`` send paid requests: ``run`` under ``--cap-usd``,
+``smoke`` (one request per offering) under a fixed cap. Every
 other command is free: ``preflight`` reads model lists, ``dry-run`` replays
 fixtures and opens no socket.
 """
@@ -29,16 +30,26 @@ from scripts.speed.method import (
 )
 from scripts.speed.plan import PILOT, Plan, entry_cost, load_plan, slot_cost
 from scripts.speed.providers import APIS
-from scripts.speed.run import SpendRefusedError, keys_from_env, probe_vantage, run_slot
+from scripts.speed.run import (
+    ERROR_BODY_CHARS,
+    SpendRefusedError,
+    keys_from_env,
+    probe_vantage,
+    redact,
+    run_slot,
+)
 from scripts.speed.transport import FIXTURES, FixtureTransport, LiveTransport, Profile
 from scripts.speed.verify import verify
+
+#: The most a smoke run may spend. Not an argument: raising it is a reviewed edit.
+SMOKE_CAP_USD = 0.25
 
 #: The first simulated slot of a dry run. Fixed, so a dry run is reproducible.
 DRY_RUN_START = datetime(2026, 9, 1, tzinfo=UTC)
 
 
-def _plan(args: argparse.Namespace) -> Plan:
-    plan = load_plan(Path(args.plan))
+def _plan(args: argparse.Namespace, *, smoke: bool = False) -> Plan:
+    plan = load_plan(Path(args.plan), smoke=smoke)
     if args.schedule == "baseline":
         plan = dataclasses.replace(plan, name="baseline", repetitions=REPETITIONS_PER_SLOT,
                                    warmups=WARMUPS_PER_SLOT)
@@ -111,6 +122,48 @@ def cmd_run(args: argparse.Namespace) -> int:
     ok = sum(s["status"] == "ok" for s in run["samples"])
     print(f"{out}: {ok} of {len(run['samples'])} requests ok, ${run['spent_usd']:.2f} spent "
           f"of a ${run['cap_usd']:.2f} cap" + (" (stopped at the cap)" if run["stopped"] else ""))
+    return 0
+
+
+def smoke_plan(plan: Plan) -> Plan:
+    """One request per offering: the plan's one warm-up call, no measured ones."""
+    return dataclasses.replace(plan, name="smoke", repetitions=0, warmups=1)
+
+
+def smoke_report(run: dict) -> str:
+    """Every smoke request's status, usage and, when it failed, what the provider said."""
+    params = {o["offering"]: o["params"] for o in run["offerings"]}
+    lines = [f"Smoke: {len(run['samples'])} requests, ${run['spent_usd']:.4f} spent of a "
+             f"${run['cap_usd']:.2f} cap" + (" (stopped at the cap)" if run["stopped"] else ""),
+             "", "| Offering | Status | HTTP | In | Cached | Out | Reasoning | Visible "
+             "| Content events | Params |", "|---|---|---|---|---|---|---|---|---|---|"]
+    for s in run["samples"]:
+        lines.append(
+            f"| {s['offering']} | {s['status']} | {s['http_status']} | {s['input_tokens']} "
+            f"| {s['cached_input_tokens']} | {s['billed_output_tokens']} "
+            f"| {s['reasoning_tokens']} | {s['visible_tokens']} | {s['content_events']} "
+            f"| `{json.dumps(params[s['offering']], sort_keys=True)}` |")
+    for s in run["samples"]:
+        if s["status"] == "ok":
+            continue
+        detail = s["error_body"] or s["error"] or ""
+        if not detail:
+            detail = " ".join(p for _, p in s["events"] if '"error"' in p)
+        lines += ["", f"{s['offering']}: {s['status']} (HTTP {s['http_status']})",
+                  "```", detail[:ERROR_BODY_CHARS] or "(no body)", "```"]
+    return "\n".join(lines) + "\n"
+
+
+def cmd_smoke(args: argparse.Namespace) -> int:
+    plan = smoke_plan(_plan(args, smoke=True))
+    keys = keys_from_env()
+    try:
+        run = run_slot(plan, LiveTransport(), cap_usd=SMOKE_CAP_USD, keys=keys,
+                       vantage=probe_vantage())
+    except SpendRefusedError as exc:
+        print(f"refused: {exc}", file=sys.stderr)
+        return 2
+    print(redact(smoke_report(run), keys.values()), end="")
     return 0
 
 
@@ -249,6 +302,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--window", default="measurements/speed/pilot",
                    help="the window directory; the run file goes in its runs/")
     p.set_defaults(func=cmd_run)
+    p = with_plan(sub.add_parser("smoke", help="one live request per offering; paid, capped"),
+                  "pilot")
+    p.set_defaults(func=cmd_smoke)
     p = with_plan(sub.add_parser("dry-run", help="replay fixtures; free"), "baseline")
     p.add_argument("--slots", type=int, default=12)
     p.add_argument("--out")

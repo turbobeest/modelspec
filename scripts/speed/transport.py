@@ -73,7 +73,7 @@ class LiveTransport:
         connection.request("POST", request.path, body=body, headers=dict(request.headers))
         response = connection.getresponse()
         if response.status != 200:
-            detail = response.read(2000).decode("utf-8", "replace")
+            detail = response.read(4096).decode("utf-8", "replace")
             connection.close()
             return Exchange(response.status, connect_s, iter(()), detail)
 

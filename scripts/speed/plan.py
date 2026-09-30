@@ -53,6 +53,8 @@ class Entry:
     #: The pinned effort claims no reasoning. Aggregation holds the offering's
     #: numbers if its streams report reasoning tokens anyway.
     reasoning_off: bool = False
+    #: Smoke sends it; the pilot slot does not.
+    smoke_only: bool = False
 
 
 @dataclass(frozen=True)
@@ -93,10 +95,12 @@ def _prices(root: Path, offering: str) -> tuple[float, float]:
     raise PlanError(f"{offering}: no {region}/{tier} row in {path}")
 
 
-def load_plan(path: Path = PILOT, root: Path = ROOT) -> Plan:
+def load_plan(path: Path = PILOT, root: Path = ROOT, *, smoke: bool = False) -> Plan:
     data = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
     entries = []
     for row in data["offerings"]:
+        if row.get("smoke_only") and not smoke:
+            continue
         if row["api"] not in APIS:
             raise PlanError(f"{row['offering']}: unknown api {row['api']!r}")
         price_input, price_output = _prices(root, row["offering"])
@@ -106,6 +110,7 @@ def load_plan(path: Path = PILOT, root: Path = ROOT) -> Plan:
             params=dict(row.get("params") or {}),
             output_bound_extra=int(row.get("output_bound_extra") or 0),
             reasoning_off=bool(row.get("reasoning_off", False)),
+            smoke_only=bool(row.get("smoke_only", False)),
         ))
     return Plan(str(data["plan"]), tuple(entries), int(data["repetitions_per_slot"]),
                 int(data["warmups_per_slot"]))
