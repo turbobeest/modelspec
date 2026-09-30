@@ -27,6 +27,7 @@ origin after every deploy.
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import shutil
 import sys
@@ -212,7 +213,8 @@ def smoke(origin: str, fetch=None) -> list[str]:
 
     fetch = fetch or get
     failed: list[str] = []
-    for path in (*(f"/{rel}" for rel in DISCOVERY), "/openapi.yaml", *PAGES, *DEPLOYED_ONLY):
+    deployed = () if os.environ.get("DATA_SPLIT_ENABLED") == "true" else DEPLOYED_ONLY
+    for path in (*(f"/{rel}" for rel in DISCOVERY), "/openapi.yaml", *PAGES, *deployed):
         status, headers, body = fetch(origin.rstrip("/") + path)
         if status != 200 or not body:
             failed.append(f"{path}: {status}")

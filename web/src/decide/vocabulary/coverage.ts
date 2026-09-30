@@ -82,7 +82,7 @@ function neededLine(
   }
   const known = v.facets.find((f) => f.id === facet);
   if (known && known.known === 0)
-    return `${label} — not recorded for any of the ${count(known.of, known.subject)} yet${mayText}`;
+    return `${label} — not recorded for any of the ${known.of === undefined ? "lineup" : count(known.of, known.subject)} yet${mayText}`;
   const remaining = new Set(out.map((m) => m.model)).size;
   let closest = "";
   const values = out.map((m) => m.value).filter((x): x is number => typeof x === "number");

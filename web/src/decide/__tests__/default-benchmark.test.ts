@@ -31,7 +31,7 @@ describe("benchmark drill-down per domain", () => {
 
   it("falls back to the most-covered direct benchmark without a default", () => {
     const v = withDefault(realVocabulary, "software_engineering", null);
-    const expected = [...offered].sort((a, b) => b.models - a.models || a.id.localeCompare(b.id))[0];
+    const expected = [...offered].sort((a, b) => (b.models ?? 0) - (a.models ?? 0) || a.id.localeCompare(b.id))[0];
     expect(pickDrilldownBenchmark(v, "software_engineering")?.id).toBe(expected.id);
   });
 

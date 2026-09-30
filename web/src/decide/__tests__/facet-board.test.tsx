@@ -663,3 +663,22 @@ describe("a stored estate after the vocabulary changes", () => {
     expect(sanitized.notes).toEqual([]);
   });
 });
+
+
+it("leaves a numeric Must blank without a range and omits an unset bound", () => {
+  const vocabulary = vocabularySchema.parse({
+    ...realVocabulary,
+    facets: realVocabulary.facets.map((facet) => facet.id === "offering.price.input"
+      ? { ...facet, range: undefined } : facet),
+  });
+  const base = { ...realBaseSpec(vocabulary), conds: [] };
+  const initial: BoardSelections = { "offering.price.input": { mode: "must", op: "<=" } };
+  const where = (selections: BoardSelections) => toDecisionSpec(boardSpec(base, vocabulary, selections), "full").where;
+  expect(where(initial)).toEqual([]);
+  const { unmount } = render(<FacetBoard vocabulary={vocabulary} spec={base} selections={initial}
+    onSpec={vi.fn()} estate={emptyEstate} onEstate={vi.fn()} />);
+  expect(screen.getByRole("spinbutton", { name: "Threshold" })).toHaveValue(null);
+  unmount();
+  expect(where({ "offering.price.input": { mode: "must", op: "<=", value: 2 } })).toEqual(["offering.price.input <= 2"]);
+  expect(where({ "offering.price.input": { mode: "must", op: "<=", value: 0 } })).toEqual(["offering.price.input <= 0"]);
+});

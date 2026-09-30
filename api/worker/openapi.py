@@ -3094,7 +3094,47 @@ def _health_samples() -> list[dict[str, Any]]:
 
 
 def render() -> str:
-    return HEADER + yaml.safe_dump(build_spec(), sort_keys=False, allow_unicode=True, width=100)
+    spec = build_spec()
+    from pipeline.public_data import enabled
+    if enabled():
+        spec["paths"]["/v1/vocabulary"] = {
+            "get": {
+                "operationId": "displayVocabulary",
+                "summary": "Display definitions and names for /decide",
+                "description": "Available with DATA_SPLIT_ENABLED. Facet definitions, benchmark and domain names, templates, and model/plan IDs and display names only. Aggregate answerability, facet/enum data availability, refinement definitions and a thin boolean are included. Benchmark min/max is included only when at least 3 models have a score on that benchmark; ranges for 1 or 2 scored models are omitted. No prices, allowances, counts, individual scores or archived model names. HUMAN_GATE_ENABLED meters the same keyed visitor Durable Object with an independent 60 per UTC day and 10 per minute budget. Successful responses use Cache-Control: private, max-age=3600.",
+                "security": [],
+                "x-modelspec-probe": "skip",
+                "responses": {
+                    "200": {"description": "Display vocabulary", "headers": {"Cache-Control": {"schema": {"type": "string"}}},
+                            "content": {"application/json": {"schema": {"type": "object", "properties": {
+                                "facets": {"type": "array", "items": {"type": "object"}},
+                                "benchmarks": {"type": "array", "items": {"type": "object"}},
+                                "domains": {"type": "array", "items": {"type": "object"}},
+                                "templates": {"type": "array", "items": {"type": "object"}},
+                                "models": {"type": "object", "additionalProperties": {"type": "object", "properties": {"display_name": {"type": "string", "nullable": True}}, "additionalProperties": False}},
+                                "estate": {"type": "object"}}, "required": ["facets", "domains", "templates", "models", "estate"]}}}},
+                    "404": {"description": "Data splitting is disabled"},
+                    "429": {"description": "Vocabulary visitor cap exceeded; Retry-After names the wait"},
+                    "503": {"description": "Visitor identity or counter unavailable"},
+                    "502": {"description": "Bundled vocabulary unavailable"},
+                },
+            },
+        }
+    if enabled():
+        spec["info"]["description"] = spec["info"]["description"].replace("current public export", "private bundled catalogue").replace("public export (the", "bundled catalogue (the")
+        # Hardware names are display vocabulary; public policy URLs stay intact.
+        spec["components"]["schemas"] = _split_hardware_description(spec["components"]["schemas"])
+    return HEADER + yaml.safe_dump(spec, sort_keys=False, allow_unicode=True, width=100)
+
+
+def _split_hardware_description(value):
+    if isinstance(value, dict):
+        return {key: _split_hardware_description(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_split_hardware_description(item) for item in value]
+    if isinstance(value, str):
+        return value.replace("https://modelspec.dev/api/rank/hardware.json", "https://api.modelspec.dev/v1/vocabulary")
+    return value
 
 
 # ── the live proof ───────────────────────────────────────────────────────────

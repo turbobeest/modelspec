@@ -183,6 +183,9 @@ def ship_explorer(root: Path, ms: Path, freshness: str) -> bool:
         return False
     page = ms / "graph/index.html"
     _inject(explorer, page, "<!-- catalogue-freshness -->", freshness)
+    from pipeline.public_data import enabled
+    if enabled():
+        page.write_text(page.read_text(encoding="utf-8").replace("/api/graph/", "/graph/data/"), encoding="utf-8")
     vendor = root / "web3d/vendor"
     for name in ("three.min.js", "3d-force-graph.min.js"):
         source = vendor / name
@@ -430,12 +433,28 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    split = os.environ.get("DATA_SPLIT_ENABLED") == "true"
     data_dir = Path(args.data_dir) if args.data_dir else data_source.data_dir_from_env()
     if data_dir is None and os.environ.get(data_source.REQUIRE_DATA_ENV, "").strip() not in ("", "0"):
         print(f"build: {data_source.REQUIRE_DATA_ENV} is set but no --data-dir or "
               f"{data_source.DATA_DIR_ENV} was given; refusing to build from the public data image.",
               file=sys.stderr)
         return 2
+    if split:
+        if data_dir is not None:
+            try:
+                data_source.check_private(data_dir)
+            except data_source.DataSourceError:
+                print("build: private data checkout is missing or incomplete", file=sys.stderr)
+                return 2
+        # Public pages always render the frozen image, even on private deploys.
+        args.decision_snapshot = False
+        args.decision_snapshot_if_ready = False
+        result = build_site(args, Path(args.root).resolve())
+        if result == 0:
+            from pipeline.public_data import restrict
+            restrict(Path(args.out).resolve() / "modelspec")
+        return result
     if data_dir is None:
         return build_site(args, Path(args.root).resolve())
     with tempfile.TemporaryDirectory(prefix="modelspec-root-") as tmp:
@@ -642,7 +661,7 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
             f"The open knowledge graph of AI models. {len(models)} cards, "
             f"{counts['score_keys']} benchmarks reported.",
             [("Every model", "/models/"), ("Providers", "/providers/"),
-             ("Benchmark catalogue", "/benchmarks/"), ("API", "/api/index.json")],
+             ("Benchmark catalogue", "/benchmarks/"), ("API", "/openapi.yaml" if os.environ.get("DATA_SPLIT_ENABLED") == "true" else "/api/index.json")],
             build, r.MS_NAV, "https://modelspec.dev/"), encoding="utf-8")
 
     # MODEL-186 replaces the old catalogue home. The deploy workflow adds the

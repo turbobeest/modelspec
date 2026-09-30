@@ -1,5 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
+const graphData = process.env.DATA_SPLIT_ENABLED === "true" ? "/graph/data" : "/api/graph";
+
 interface View {
   key: string;
   title: string;
@@ -41,7 +43,7 @@ test("dense views say how much they will download before loading", async ({
 }) => {
   await openGraph(page);
   const { views } = (await (
-    await page.request.get("/api/graph/views.json")
+    await page.request.get(`${graphData}/views.json`)
   ).json()) as { views: View[] };
   const dense = views.filter((v) => !v.legible && v.bytes);
   expect(dense.length, "the export must publish a dense view").toBeGreaterThan(0);
@@ -65,10 +67,10 @@ test("opening a node shows its facts and no link to a catalogue page", async ({
 }) => {
   await openGraph(page);
   const { views } = (await (
-    await page.request.get("/api/graph/views.json")
+    await page.request.get(`${graphData}/views.json`)
   ).json()) as { views: View[] };
   const first = (await (
-    await page.request.get(`/api/graph/views/${views[0].key}.json`)
+    await page.request.get(`${graphData}/views/${views[0].key}.json`)
   ).json()) as {
     nodes: { key: string; display_name?: string; name?: string; id?: string }[];
     edges: { from: string }[];

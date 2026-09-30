@@ -39,8 +39,8 @@ const CORS = {
 
 async function stub(page: Page, snapshot: string, decision: string) {
   const vocabulary = read(index!.vocabularies[snapshot]);
-  await page.route("**/api/decision/vocabulary.json", (route) =>
-    route.fulfill({ status: 200, contentType: "application/json", body: vocabulary }),
+  await page.route(/\/(?:api\/decision\/vocabulary\.json|v1\/vocabulary)(?:\?.*)?$/, (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", headers: CORS, body: vocabulary }),
   );
   await page.route("**/v1/decide", (route: Route) =>
     route.request().method() === "OPTIONS"

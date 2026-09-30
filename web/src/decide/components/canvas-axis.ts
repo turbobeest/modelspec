@@ -11,7 +11,7 @@ export type CanvasAxisOption =
       label: string;
       unit: string | null;
       valueType: "number" | "date";
-      known: number;
+      known?: number;
       disabled: boolean;
       disabledReason: string | null;
       mustOp: "<=" | ">=" | null;
@@ -24,7 +24,7 @@ export type CanvasAxisOption =
       label: string;
       unit: "capability score";
       valueType: "number";
-      known: number;
+      known?: number;
       disabled: boolean;
       disabledReason: string | null;
       mustOp: ">=";

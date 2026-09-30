@@ -8,6 +8,8 @@ JSON-LD, llms-full.txt, and the Pages Function that serves Markdown for
 
 from __future__ import annotations
 
+from pipeline.public_data import enabled as private_serving
+
 import hashlib
 import json
 import re
@@ -294,7 +296,7 @@ def model_markdown(model: Model) -> str:
         f"- open_weights: {_fmt(_dig(front, 'licensing', 'open_weights'))}",
         f"- release_date: {_fmt(front.get('release_date'))}",
         f"- page: {facts['url']}",
-        f"- json: {MS_BASE}/api/models/{model.model_id}.json",
+        *([] if private_serving() else [f"- json: {MS_BASE}/api/models/{model.model_id}.json"]),
         "",
         "Null means not researched or not published, never a guess.",
         "",
@@ -560,6 +562,11 @@ def skill_markdown() -> str:
     )
 
     n = neutrality_commitment()
+    display_guidance = (
+        "GET https://api.modelspec.dev/v1/vocabulary returns display definitions "
+        "and names, plus aggregate answerability, data availability, refinement thinness and benchmark min/max only when at least 3 models have a score on that benchmark. No prices, allowances, counts or per-model scores. "
+        "MCP model_info returns a display name; use keyed decide for current facts. "
+    ) if private_serving() else ""
     return (
         "---\n"
         "name: modelspec\n"
@@ -584,7 +591,9 @@ def skill_markdown() -> str:
         "\n"
         "- **decide** — POST a decision spec to `https://api.modelspec.dev/v1/decide` "
         "or use the remote MCP `decide` tool. Read its `vocab` "
-        "tool for valid values. The CLI was retired on 2026-09-30.\n"
+        "tool for valid values. "
+        + display_guidance
+        + "The CLI was retired on 2026-09-30.\n"
         "- **rank (legacy v1)** (`POST https://api.modelspec.dev/v1/rank`) — "
         "uses the retired fixed-benchmark profiles. It remains available for "
         "existing callers during the decision-contract cutover.\n"
@@ -798,7 +807,7 @@ def _model_blocks(models: Iterable[Model]) -> list[str]:
             f"pricing: {_fmt(facts['pricing'])}\n"
             f"licence: {_fmt(facts['licence'])}\n"
             f"commercial_use: {_fmt(facts['commercial_use'])}\n"
-            f"json: {MS_BASE}/api/models/{facts['id']}.json\n"
+            + (f"source: https://github.com/turbobeest/modelspec/blob/main/models/{model.path.name}\n" if private_serving() else f"json: {MS_BASE}/api/models/{facts['id']}.json\n")
         )
     return blocks
 
@@ -813,7 +822,7 @@ def _benchmark_blocks(benchmarks: Iterable[Benchmark], catalogue: Catalogue) -> 
             f"name: {bench.name}\n"
             f"category: {_fmt(category)}\n"
             f"status: {status}\n"
-            f"json: {MS_BASE}/api/benchmarks/{bench.benchmark_id}.json\n"
+            + (f"source: https://github.com/turbobeest/modelspec/blob/main/benchmarks/{bench.path.name}\n" if private_serving() else f"json: {MS_BASE}/api/benchmarks/{bench.benchmark_id}.json\n")
         )
     return blocks
 
@@ -888,7 +897,14 @@ def ship(*, root: Path, ms: Path, models: list[Model],
 
     openapi_src = root / "api" / "worker" / "openapi.yaml"
     if openapi_src.is_file():
-        shutil.copy2(openapi_src, ms / "openapi.yaml")
+        if private_serving():
+            import importlib.util
+            spec = importlib.util.spec_from_file_location("site_openapi", root / "api/worker/openapi.py")
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            (ms / "openapi.yaml").write_text(module.render(), encoding="utf-8")
+        else:
+            shutil.copy2(openapi_src, ms / "openapi.yaml")
 
     well = ms / ".well-known"
     well.mkdir(parents=True, exist_ok=True)

@@ -23,8 +23,10 @@ def _checker():
 def test_the_mcp_worker_deploys_only_from_main() -> None:
     workflow = WORKFLOW.read_text(encoding="utf-8")
     assert "    name: Deploy the MCP Worker\n" in workflow
-    assert ("if: github.event_name == 'push' && github.ref == 'refs/heads/main'"
-            in workflow)
+    gate = yaml.safe_load(workflow)["jobs"]["deploy"]["if"]
+    assert "github.ref == 'refs/heads/main'" in gate
+    assert "github.event_name == 'push'" in gate
+    assert "vars.DATA_SPLIT_ENABLED == 'true' && github.event_name == 'workflow_dispatch'" in gate
 
 
 def test_deploy_secrets_are_not_in_scope_on_a_pull_request() -> None:

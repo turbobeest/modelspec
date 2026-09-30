@@ -19,6 +19,7 @@ import type {
 } from "./adapter";
 import {
   VocabularyError,
+  VOCABULARY_URL,
   loadVocabulary,
   realBaseSpec,
   realQuestions,
@@ -143,7 +144,7 @@ export function DesignedApp({
     initialAnswered = useRef(false);
   // A site deploy can change the snapshot under an open page (MODEL-159). The
   // Worker says so with a 409; every request that hears it shares one reload.
-  const [reloadVocabulary] = useState(() => sharedReload(() => loadVocabulary()));
+  const [reloadVocabulary] = useState(() => sharedReload(() => loadVocabulary(undefined, true)));
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
   const [hostedDecision, setHostedDecision] = useState<Decision | null>(null),
     [plotDecision, setPlotDecision] = useState<Decision | null>(null),
@@ -1132,7 +1133,7 @@ export function DesignedApp({
           <a href="/legal/neutrality/">Neutrality</a>
           <a href="/legal/terms/">Terms</a>
           <a href="/legal/privacy/">Privacy</a>
-          <a href="/api/decision/vocabulary.json">Data</a>
+          <a href={VOCABULARY_URL.includes("/v1/vocabulary") ? "/openapi.yaml" : "/api/decision/vocabulary.json"}>Data</a>
           <a href="/feedback/">Feedback</a>
         </nav>
       </footer>

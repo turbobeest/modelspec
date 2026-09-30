@@ -5,9 +5,10 @@ const vocabulary = readFileSync(new URL("../src/decide/__fixtures__/vocabulary.j
 const decision = readFileSync(new URL("../src/decide/__fixtures__/live-empty-board-full.json", import.meta.url), "utf8");
 
 test.beforeEach(async ({ page }) => {
-  await page.route("**/api/decision/vocabulary.json", (route) => route.fulfill({
+  await page.route(/\/(?:api\/decision\/vocabulary\.json|v1\/vocabulary)(?:\?.*)?$/, (route) => route.fulfill({
     status: 200,
     contentType: "application/json",
+    headers: { "access-control-allow-origin": "*" },
     body: vocabulary,
   }));
   await page.route("**/v1/decide", (route) => route.fulfill({

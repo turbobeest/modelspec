@@ -229,6 +229,13 @@ function postInit(
 
 export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) {
   const authorization = incomingAuthorization(mcpCtx.requestInfo);
+  async function fetchDisplayVocabulary() {
+    const headers = new Headers();
+    const address = incomingClientAddress(mcpCtx.requestInfo);
+    if (address) headers.set("CF-Connecting-IP", address);
+    const origin = `${env.RANK_API_ORIGIN.replace(/\/$/, "")}/v1/vocabulary`;
+    return fetchOrigin(origin, { headers }, env.RANK);
+  }
   async function fetchDecision(origin: string, body: unknown) {
     // The API permits anonymous answers while ACCESS_ENFORCED is off.
     // Require credentials here before that request can reach its anonymous path.
@@ -281,6 +288,8 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
       description:
         "Read one published model card from the static export at " +
         "https://modelspec.dev/api/models/<model_id>.json (model_id is provider/slug). " +
+        "With data splitting enabled, returns only this model’s display name from " +
+        "the Worker vocabulary. Use keyed decide for current evidence. " +
         "The card is catalogue data, not a ranking. " +
         NULL_RULE,
       inputSchema: z.object({
@@ -294,6 +303,14 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
           content: [{ type: "text", text: located.error }],
           isError: true,
         };
+      }
+      if (env.DATA_SPLIT_ENABLED === "true") {
+        const origin = `${env.RANK_API_ORIGIN.replace(/\/$/, "")}/v1/vocabulary`;
+        const envelope = await fetchDisplayVocabulary();
+        if (envelope.status < 400 && isRecord(envelope.body) && isRecord(envelope.body.models)) {
+          envelope.body = envelope.body.models[model_id] ?? null;
+        }
+        return asToolResult(envelope);
       }
       return asToolResult(await fetchOrigin(located.origin));
     },
@@ -369,13 +386,17 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
       description:
         "Read the decision vocabulary from the public static site before writing a " +
         "decide spec. It lists valid facet ids, benchmarks, domains, providers, task " +
-        "types, and coverage. Pass section to return only one section. " +
+        "types. In split mode it contains definitions and names only, with no " +
+        "prices, allowances, score ranges or counts. Pass section to return only one section. " +
         SPEC_GUIDANCE,
       inputSchema: vocabInput,
     },
     async ({ section }) => {
-      const origin = `${env.EXPORT_ORIGIN.replace(/\/$/, "")}/api/decision/vocabulary.json`;
-      const envelope = await fetchOrigin(origin);
+      const split = env.DATA_SPLIT_ENABLED === "true";
+      const origin = split
+        ? `${env.RANK_API_ORIGIN.replace(/\/$/, "")}/v1/vocabulary`
+        : `${env.EXPORT_ORIGIN.replace(/\/$/, "")}/api/decision/vocabulary.json`;
+      const envelope = split ? await fetchDisplayVocabulary() : await fetchOrigin(origin);
       if (envelope.status < 400 && section && isRecord(envelope.body)) {
         envelope.body = envelope.body[section];
       }

@@ -2015,8 +2015,12 @@ def load_snapshot_bytes(
             if "content" in envelope:
                 raise SnapshotIntegrityError(f"{source}: duplicate content member")
             envelope["content"] = content
-            stored_digest = "sha256:" + hashlib.sha256(
-                text[len('{"content":'):end].encode("utf-8")).hexdigest()
+            # Hash the canonical content without copying the full JSON string
+            # and then allocating a second full UTF-8 buffer in the isolate.
+            digest = hashlib.sha256()
+            for offset in range(len('{"content":'), end, 4096):
+                digest.update(text[offset:min(offset + 4096, end)].encode("utf-8"))
+            stored_digest = "sha256:" + digest.hexdigest()
         else:
             envelope = json.loads(text)
     except (OSError, EOFError, ValueError) as exc:

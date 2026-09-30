@@ -113,14 +113,14 @@ export const facetGroup = (id: string): string =>
 
 export const supportsPreference = (facet: VocabFacet): boolean => facet.preference !== null;
 
-export function defaultFacetValue(facet: VocabFacet): FacetValue {
+export function defaultFacetValue(facet: VocabFacet): FacetValue | undefined {
   if (facet.value_type === "boolean") return true;
   if (facet.value_type === "number") {
-    const min = typeof facet.range?.min === "number" ? facet.range.min : 0;
-    const max = typeof facet.range?.max === "number" ? facet.range.max : min;
+    if (typeof facet.range?.min !== "number" || typeof facet.range?.max !== "number") return undefined;
+    const { min, max } = facet.range;
     return min + (max - min) / 2;
   }
-  const first = facet.values?.[0]?.value ?? facet.literals?.[0] ?? "";
+  const first = facet.values?.find((item) => item.has_data !== false)?.value ?? facet.literals?.[0] ?? "";
   return facet.value_type === "set" ? [String(first)] : first;
 }
 
@@ -163,11 +163,13 @@ export function nextMustOrder(
 function conditionFor(facet: VocabFacet, choice: FacetSelection): Cond | null {
   if (choice.value === undefined && !["number", "date"].includes(facet.value_type)) return null;
   if (Array.isArray(choice.value) && choice.value.length === 0) return null;
+  const value = choice.value ?? defaultFacetValue(facet);
+  if (value === undefined) return null;
   return {
     f: "facet",
     facet: facet.id.replace(/^capability\./, ""),
     op: choice.op ?? defaultFacetOp(facet) ?? "=",
-    value: choice.value ?? defaultFacetValue(facet),
+    value,
   };
 }
 
@@ -303,10 +305,10 @@ export function sanitizeBoardState(
   priorNotes: readonly string[] = [],
 ): SanitizedBoardState {
   const editableFacets = new Set(
-    vocabulary.facets.filter((facet) => facet.known > 0).map((facet) => facet.id),
+    vocabulary.facets.filter((facet) => facet.has_data !== false && facet.known !== 0).map((facet) => facet.id),
   );
   const editableDomains = new Set(
-    vocabulary.domains.filter((domain) => domain.estimate_models > 0)
+    vocabulary.domains.filter((domain) => domain.estimate_models !== 0)
       .map((domain) => `capability.${domain.id}`),
   );
   const editableRefinements = new Set(
@@ -577,8 +579,8 @@ export function legacySpecToBoard(spec: Spec, vocabulary: Vocabulary, estate: Es
     ...vocabulary.domains.map((domain) => `capability.${domain.id}`),
   ]);
   const editableFacets = new Set([
-    ...vocabulary.facets.filter((facet) => facet.known > 0).map((facet) => facet.id),
-    ...vocabulary.domains.filter((domain) => domain.estimate_models > 0).map((domain) => `capability.${domain.id}`),
+    ...vocabulary.facets.filter((facet) => facet.has_data !== false && facet.known !== 0).map((facet) => facet.id),
+    ...vocabulary.domains.filter((domain) => domain.estimate_models !== 0).map((domain) => `capability.${domain.id}`),
   ]);
   const facetLabels = new Map([
     ...vocabulary.facets.map((facet) => [facet.id, facet.label] as const),
@@ -676,7 +678,7 @@ export function groupFacets(vocabulary: Vocabulary) {
     risk: "capability",
     computed_by: "capability_estimate",
     known: domain.estimate_models,
-    of: vocabulary.coverage?.models ?? Math.max(...vocabulary.facets.filter((facet) => facet.subject === "model").map((facet) => facet.of), 0),
+    of: vocabulary.coverage?.models ?? Math.max(...vocabulary.facets.filter((facet) => facet.subject === "model").map((facet) => facet.of ?? 0), 0),
     range: { min: 0, max: 1 },
     preference: {
       kind: "continuous",
@@ -685,12 +687,12 @@ export function groupFacets(vocabulary: Vocabulary) {
     },
   }));
   const all = [...capabilityFacets, ...vocabulary.facets];
-  const tracked = all.filter((facet) => facet.known > 0);
+  const tracked = all.filter((facet) => facet.has_data !== false && facet.known !== 0);
   const groups = GROUP_ORDER.map((name) => ({
     name,
     facets: tracked.filter((facet) => facetGroup(facet.id) === name),
   })).filter((group) => group.facets.length);
-  return { groups, untracked: all.filter((facet) => facet.known === 0) };
+  return { groups, untracked: all.filter((facet) => facet.has_data === false || facet.known === 0) };
 }
 
 export function readEstate(): Estate {

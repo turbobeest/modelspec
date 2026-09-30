@@ -54,3 +54,5 @@ api/worker/src/hardware/
 # Local implementation screenshots and visual QA evidence.
 .artifacts/
 web/src/decide/__corpus__/
+
+api/worker/src/bundled_data.py

@@ -69,3 +69,23 @@ class HumanGateObject(DurableObject):
 
     async def alarm(self):
         await self.ctx.storage.deleteAll()
+
+    async def take_vocabulary(self):
+        """A separate 60/day, 10/minute display budget in the same visitor object."""
+        now = time.time()
+        self.ctx.storage.sql.exec("CREATE TABLE IF NOT EXISTS human_state (k TEXT PRIMARY KEY, v TEXT)")
+        row = _one_row(self.ctx.storage.sql.exec("SELECT v FROM human_state WHERE k = 'vocabulary'"))
+        state = json.loads(str(_cell(row, "v"))) if row is not None else {}
+        day = int(now // 86400)
+        if state.get("day") != day:
+            state = {"day": day, "count": 0, "events": []}
+        events = [stamp for stamp in state["events"] if now - stamp < 60]
+        reason = "day" if state["count"] >= 60 else "burst" if len(events) >= 10 else ""
+        retry = ((day + 1) * 86400 - int(now)) if reason == "day" else max(1, int(60 - (now - events[0])) + 1) if reason else 0
+        if not reason:
+            state["count"] += 1
+            events.append(now)
+        state["events"] = events
+        self.ctx.storage.sql.exec("INSERT OR REPLACE INTO human_state (k, v) VALUES ('vocabulary', ?)", json.dumps(state))
+        await self.ctx.storage.setAlarm((day + 1) * 86400 * 1000)
+        return {"remaining": max(0, 60 - state["count"]), "reason": reason, "retry_after": retry}

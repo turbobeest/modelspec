@@ -130,9 +130,9 @@ lag job and the writers need a *write* path to the private repository; that is
 a separate credential (or the private repository's own `GITHUB_TOKEN`, once the
 writers run there).
 
-Rank Worker: it needs no runtime access to the private repository, but its
-bundle step is not data-free: `api/worker/vendor.py` copies registry and
-hardware files from the repository root. See "Gaps 245-B must close" below.
+Rank Worker: it needs no runtime access to the private repository. MODEL-247 S
+gives `api/worker/vendor.py` an explicit private data directory and embeds the
+required exports in its generated Python bundle. See the serving rollout below.
 
 The Actions read+write permission on `MODELSPEC_DATA_DISPATCH_TOKEN` also
 allows reading private Actions artifacts and logs. Treat it like
@@ -237,9 +237,10 @@ MODEL-247 S separately owns these deployment gaps:
 
 - `api/worker/vendor.py` must use private registry and hardware data, supplied
   through `--data-dir`, and `rank-api.yml` must check out that data.
-- `deploy-sites.yml` must restrict private access to main deployment, avoid
-  uploading fresh builds as public artifacts and deploy from the same job or a
-  non-public channel.
+- `deploy-sites.yml` uses only the frozen image in every flag state. The
+  existing build and deploy jobs remain; no site job checks out private data.
+  Worker jobs check out private data only on enabled main pushes, main manual
+  dispatches and scheduled main refreshes, without artifact uploads.
 
 The freeze guard's documented limits remain: it trusts branch names, ignores
 some derived files and skips binary contents. Repointing writers stops public
@@ -263,7 +264,7 @@ must move each into the private repository, drop it, or reduce it to counts:
 | Workflow | Artifact | Carries |
 | --- | --- | --- |
 | `speed-probe.yml` | `speed-pilot-runs-*` | raw pilot runs under `measurements/`. Must run in the private repository |
-| `deploy-sites.yml` | `sites`, `sites-holding`, `sites-internal` | built site JSON. Rebuilt from fresh data. Keep only where the artifact is exactly what is published |
+| `deploy-sites.yml` | `sites`, `sites-holding`, `sites-internal` | built site JSON from the frozen public image in both flag states; these jobs never read private data |
 | `price-reread.yml` | `price-reread-copies` | copies of the pages read, with fresh prices |
 | `curation-benchmarks.yml` | `curation-change-report-*` | `benchmarks/_curation/reports/` |
 | `leaderboard-refresh.yml` | `leaderboard-refresh-audit-*` | audit of fresh scores |
@@ -384,3 +385,147 @@ stays public.
 | Enable private Actions to create PRs and provide the writers' existing provider/research credentials listed in its README | Jamie |
 | Move public engine tests to fixtures | 245-C |
 | Make "Data freeze" a required check, after the writers are repointed | Jamie |
+
+## MODEL-247 S: serving implementation and rollout
+
+The serving switch is the repository variable `DATA_SPLIT_ENABLED`, read as
+exactly `true`. With another value, the existing export, snapshot, Pages
+artifact deployment and Worker fetch path remain active.
+
+With the switch enabled, `pipeline.build` renders every public page from the
+repository's frozen image even when given a private checkout. This covers the
+full tree, landing statistics, graph, model and benchmark pages, structured
+data, social cards, Markdown twins and `llms-full.txt`. The output filter keeps
+only these `/api` files: `build.json`, `rank/profiles.json`,
+`rank/class-fit.json` and `feedback/v1.schema.json`. Class-fit examples also
+come from the frozen image. New bulk exports are denied by default.
+
+Removed routes, including every member of the wildcard families:
+
+- `/api/index.json`
+- `/api/catalogue.json`
+- `/api/models/**/*.json`
+- `/api/benchmarks/**/*.json`
+- `/api/hosts.json`
+- `/api/rank/candidates.json`
+- `/api/rank/hardware.json`
+- `/api/rank/rankings.json`
+- `/api/policy/catalogue.json`
+- `/api/decision/snapshot.json.gz`
+- `/api/decision/vocabulary.json`
+- `/api/graph/**/*.json`
+
+The graph's frozen assets move to `/graph/data/`; its client reads those paths.
+No private data enters that directory. Agent discovery points callers to the
+per-request API rather than to removed bulk exports.
+
+`vendor.py --data-dir` copies the private registry data files and enumerates
+private hardware files. It also builds and embeds the rank, hardware, policy,
+decision snapshot and vocabulary exports in a generated Python module. The
+Worker reads those bundled bytes and never falls back to a public URL, even
+when a requested historical snapshot is absent. Its existing snapshot
+signature validation still applies. No export shape or version changes.
+
+The decide app loads its display vocabulary from
+`GET api.modelspec.dev/v1/vocabulary` in enabled builds. The response contains
+facet definitions, benchmark and domain names, template definitions, and
+model/plan IDs and display names. Model names come from non-retired current models;
+archived private models are omitted because the page does not need them to draw.
+Plan rows contain only `id`, `provider` and `name`. They contain no price,
+allowance, surface coverage, facet value count or model count.
+The allowed aggregate fields are template `available` booleans, per-facet
+`has_data` booleans, per-enum-value `has_data` booleans, refinement IDs/names
+and their static definitions and aggregate `thin` boolean, and benchmark
+`range.min`/`range.max` only when at least 3 models have a score on that
+benchmark. Ranges for 1 or 2 scored models are omitted to avoid exposing
+individual scores. These
+signals restore template answerability, hide empty facet and enum choices,
+restore refinement drill-down without promoting thin evidence to live, and
+set benchmark floors when ranges are available. Numeric Must bounds with no
+range stay blank until entered and are omitted from requests while unset. Numeric facet ranges,
+individual model scores, counts and per-model facts remain excluded.
+The page hides statistics absent from this response and requests current facts
+through the existing decision API. No fresh vocabulary file is published on
+modelspec.dev. With `HUMAN_GATE_ENABLED`, the same keyed visitor Durable Object
+meters vocabulary separately at 60 requests per UTC day and 10 per minute.
+Successful responses use `Cache-Control: private, max-age=3600` for browser
+session reuse. The generated OpenAPI documents this route only with `DATA_SPLIT_ENABLED=true`.
+The committed flag-off OpenAPI remains byte-identical to main. MCP `model_info`
+currently fetches the full trimmed vocabulary on each call and selects one
+model display row. This is acceptable for now; it does not fetch a bulk model
+card or bypass the vocabulary cap.
+
+Only Worker jobs read private inputs. Public PR checks remain credential-free.
+Missing private credentials, input or signing keys fail before deployment.
+`vendor.py export_data` checks every bundled policy row for the MODEL-80
+uncited-residency guard and reports only the failing count. Private failures
+report a path and exception category, with no values. Flag-off failures retain
+full tracebacks. Site filtering only moves graph assets and removes bulk
+routes. It never rewrites file contents; discovery links change at their source,
+and policy JSON and neutrality strings remain intact.
+
+`rank-api.yml` schedules an enabled main deployment every six hours, at minute
+17. Each scheduled deployment checks out the latest modelspec-data revision.
+Private writer merges therefore reach production within six hours without
+publishing a bundle artifact. Jamie must leave scheduled Actions enabled in
+this repository and configure `MODELSPEC_DATA_TOKEN`; no dispatch token is
+needed in the private writers under `.github/private-writers/`.
+
+The sentinel tests inject a non-retired private model into the premier lineup
+with a unique price and score, complete admitted facts and verification records. They crawl full, holding and live outputs, decompress gzip files, and
+verify its name and values are absent from static files. Its ID/display name
+are allowed in vocabulary and MCP, but its price and individual score are
+absent. MCP positive controls deliberately serve an untrimmed row and prove
+both tools would expose the forbidden values if the Worker trim failed. Private bundled candidates retain the injected facts as a
+positive control. Profiles, class-fit and method neutrality content are compared
+between enabled and disabled builds at the same build identity.
+
+`api/worker/measure_memory.cjs` uses the Worker's pinned Pyodide 0.28.3 runtime.
+The real request loads the full signed corpus including its archive. The probe
+makes one real Worker decide call and one
+vocabulary call, and samples combined V8 heap and external memory and allocated
+WebAssembly memory. Snapshot verification hashes canonical JSON in 4 KiB chunks, avoiding two
+full-size temporary copies while preserving the wire format, content hash and
+signature checks. The Worker does not delete native libraries. The probe performs one explicit V8 garbage collection at the end, after one
+decide and one vocabulary call. Steady memory is the full allocated WebAssembly
+memory plus live non-Wasm V8 heap/external memory after that collection, with
+the Wasm buffer counted once. Enabled private deploys fail above 120 MiB steady
+memory, leaving 8 MiB below 128 MiB; a noisy peak above 112 MiB only warns.
+A steady-memory failure blocks deployment, including the six-hourly refresh,
+so the currently deployed Worker remains until a passing refresh. The public
+PR/bundle probe uses public fixtures and a synthetic key, is warning-only,
+and reports its outcome in the step summary. A flaky probe therefore cannot
+block flag-off production deploys. Runtime loaders and native libraries stay
+intact. Deploy probes use private data.
+The schedule runs no job when the split is off. Pip/uv caches retain their
+original flag-off behavior and are disabled for private builds. MCP does not
+pass an empty data-split variable when the repository variable is unset.
+The active premier-sentinel probe measured 103.42 MiB steady
+(108,441,889 bytes) and 108.81 MiB noisy peak (114,097,037 bytes), with
+59.875 MiB of allocated WebAssembly memory. These measurements are also
+recorded in the PR report. This is a local runtime
+probe, not Cloudflare isolate telemetry.
+
+Jamie enables the split in this order:
+
+1. Merge MODEL-247 W and S by hand while `DATA_SPLIT_ENABLED` remains false.
+2. Seed and verify the private repository, including every `DATA_PATHS` entry.
+   Configure its writer credentials and this repository's read-only
+   `MODELSPEC_DATA_TOKEN`. Keep the snapshot verification key configured.
+3. Set `DATA_SPLIT_ENABLED=true`. Dispatch Rank API on main first and verify
+   the bundled Worker answers decisions and vocabulary from that commit.
+4. Dispatch the MCP workflow on main so its consumers use the display vocabulary.
+   Dispatch Build and deploy the sites on main. Verify production, holding
+   and internal outputs have no removed bulk routes and `/decide/` loads the
+   Worker's vocabulary and draws fresh per-request answers.
+5. Enable scheduled Rank API Actions and verify one refresh picks up a private
+   writer merge. Verify the private writer workflows, then make Data freeze a required
+   check. The weekly lag job becomes eligible under the same switch; it
+   publishes no new image until the nine-month cutoff reaches the seed.
+
+`ACCESS_ENFORCED`, `BILLING_ENABLED`, `X402_ENABLED`, `FEEDBACK_ENABLED` and
+`SITE_MODE` are separate decisions and this rollout does not change them.
+The old clean-install CLI smoke that downloads the public snapshot is skipped
+in enabled site deploys because that route is removed; per-request API and
+browser smoke checks still run. The offline CLI's distribution channel is
+separate follow-up work, with its contract unchanged here.

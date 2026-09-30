@@ -33,6 +33,7 @@ permissions:
 
 env:
   SITE_MODE: ${{ vars.SITE_MODE }}
+  DATA_SPLIT_ENABLED: ${{ vars.DATA_SPLIT_ENABLED }}
 
 concurrency:
   group: deploy-sites-${{ github.ref }}
@@ -69,6 +70,7 @@ jobs:
         env:
           VITE_HUMAN_GATE_ENABLED: ${{ vars.HUMAN_GATE_ENABLED || 'false' }}
           VITE_TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
+          VITE_VOCABULARY_URL: ${{ vars.DATA_SPLIT_ENABLED == 'true' && 'https://api.modelspec.dev/v1/vocabulary' || '/api/decision/vocabulary.json' }}
         working-directory: web
         run: |
           npm ci
@@ -225,13 +227,23 @@ jobs:
           test -s dist/modelspec/sitemap.xml
           for f in llms.txt llms-full.txt index.md auth.md .well-known/mcp.json .well-known/api-catalog; do test -s dist/modelspec/$f; done
           test -s dist/modelspec/404.html
+          if [ "$DATA_SPLIT_ENABLED" != "true" ]; then
           test -s dist/modelspec/api/index.json
+          fi
           test -s dist/modelspec/api/build.json
+          if [ "$DATA_SPLIT_ENABLED" != "true" ]; then
           test -s dist/modelspec/api/catalogue.json
+          fi
+          if [ "$DATA_SPLIT_ENABLED" != "true" ]; then
           test -s dist/modelspec/api/rank/candidates.json
+          fi
           test -s dist/modelspec/api/rank/profiles.json
+          if [ "$DATA_SPLIT_ENABLED" != "true" ]; then
           test -s dist/modelspec/api/policy/catalogue.json
+          fi
+          if [ "$DATA_SPLIT_ENABLED" != "true" ]; then
           test -s dist/modelspec/api/graph/views/hardware.json
+          fi
           test -s dist/modelspec/legal/terms/index.html
           test -s dist/modelspec/legal/privacy/index.html
           test -s dist/modelspec/legal/neutrality/index.html
@@ -282,8 +294,12 @@ jobs:
           test ! -e dist-holding/modelspec/llms.txt
           test ! -e dist-holding/modelspec/b
           diff -r dist/modelspec/api dist-holding/modelspec/api
+          if [ "$DATA_SPLIT_ENABLED" != "true" ]; then
           test -s dist-holding/modelspec/api/catalogue.json
+          fi
+          if [ "$DATA_SPLIT_ENABLED" != "true" ]; then
           test -n "$(find dist-holding/modelspec/api/benchmarks -name '*.json' -print -quit)"
+          fi
           diff -r dist/modelspec/legal dist-holding/modelspec/legal
           cmp dist/modelspec/openapi.yaml dist-holding/modelspec/openapi.yaml
           # benchgraph is the redirect file in both trees. No holding page, no local /api.
@@ -292,6 +308,7 @@ jobs:
           test "$(find dist-holding/benchgraph -type f | wc -l)" -eq 1
 
       - name: Check the export carries a pin-able schema version
+        if: vars.DATA_SPLIT_ENABLED != 'true'
         run: |
           python - <<'PY'
           import json
@@ -540,7 +557,7 @@ jobs:
           exit $status
 
       - name: Run the CLI matrix from a clean install of this commit's wheel
-        if: ${{ !cancelled() }}
+        if: ${{ !cancelled() && vars.DATA_SPLIT_ENABLED != 'true' }}
         run: |
           python -m build --wheel --outdir "$RUNNER_TEMP/wheel"
           python -m venv "$RUNNER_TEMP/cli"
