@@ -278,8 +278,10 @@ def test_plain_and_campaign_root_urls_stay_on_the_landing(search: str) -> None:
 
 
 def test_the_landing_head_carries_the_current_headline(data: landing.LandingData) -> None:
-    assert landing.HEADLINE == (
-        "Model routers only guess. ModelSpec justifies the model decision and shows its work.")
+    assert landing.HEADLINE_LEAD == "Model routers make educated guesses."
+    assert landing.HEADLINE_SUB == (
+        "ModelSpec performs unbiased, data-backed model justification across the entire "
+        "market to pick the best model for every prompt.")
     assert landing.EYEBROW == "Your model is a guess."
     for variant in ("live", "holding"):
         page = landing.render(data, variant=variant)
@@ -312,14 +314,14 @@ def test_the_headline_figures_come_from_the_engine(data: landing.LandingData) ->
     assert data.cheapest_p == cheapest.p_beats_leader
 
     page = landing.render(data, variant="live")
-    assert f"<h1>{landing.HEADLINE}</h1>" in page
+    assert (f'<h1><span class="h1-lead">{landing.HEADLINE_LEAD}</span> '
+            f'<span class="h1-sub">{landing.HEADLINE_SUB}</span></h1>') in page
     assert f'<p class="eyebrow">{landing.EYEBROW}</p>' in page
     hero = page[page.index('<section class="hero">'):page.index('<section class="receipt"')]
-    from pipeline import social_cards
-
-    assert social_cards.landing_tie_line(data) in hero
-    assert f"can't tell {len(best) - 1} " in hero
-    assert f"costs {ratio:.1f}× less" in hero
+    assert f"{ratio:.1f}× less" in hero
+    assert 'class="fud"' not in page
+    assert page.index('<h1>') < page.index('<p class="close">') < page.index('class="actions"')
+    assert page.index('class="actions"') < page.index('<figure class="plot">')
     if cheapest.p_beats_leader is not None:
         assert f"a {cheapest.p_beats_leader:.0%} chance of scoring at least as well" in page
         assert f"At {bands.band_probability:.0%} or more" in page

@@ -160,13 +160,13 @@ def _landing_plot(data: LandingData) -> str:
 
 def landing_card(data: LandingData) -> SocialCard:
     """Create the landing card from the same computed data as the page."""
-    from pipeline.landing import HEADLINE
+    from pipeline.landing import HEADLINE, HEADLINE_LEAD
 
     tie_line = landing_tie_line(data)
     return SocialCard(
         filename=LANDING_IMAGE,
         alt=f"ModelSpec. {HEADLINE} {tie_line}",
-        headline=html.escape(HEADLINE),
+        headline=html.escape(HEADLINE_LEAD),
         content=f'<p class="tie-line">{html.escape(tie_line)}</p>{_landing_plot(data)}',
         headline_class="long",
     )
