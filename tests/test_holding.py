@@ -8,6 +8,8 @@ variable is unset). benchgraph.dev is the same redirect file in both.
 
 from __future__ import annotations
 
+import base64
+import hashlib
 import json
 import re
 import shutil
@@ -331,7 +333,12 @@ def test_the_live_tree_is_an_allowlist(trees):
         assert not (ms / gone).exists(), gone
     assert (ms / "assets" / "decide-x.js").is_file()
     decide = (ms / "decide" / "index.html").read_text(encoding="utf-8")
-    assert structured_data.strip(decide) == (ms / "404.html").read_text(encoding="utf-8")
+    not_found = (ms / "404.html").read_text(encoding="utf-8")
+    assert not_found != decide
+    assert '<meta name="robots" content="noindex">' in not_found
+    assert 'rel="canonical"' not in not_found
+    for href in ("/", "/decide/", "/method/"):
+        assert f'href="{href}"' in not_found, href
     assert _files(trees["live"] / "benchgraph") == _files(trees["real"] / "benchgraph")
     for rel in ("api", "legal"):
         assert _files(ms / rel) == _files(trees["real"] / "modelspec" / rel), rel
@@ -390,3 +397,32 @@ def test_the_workflow_assembles_live_with_the_module_and_smokes_discovery():
     assert "python -m pipeline.live build --src dist-v1 --web web/dist --out dist" in text
     assert "python -m pipeline.live smoke --origin https://modelspec.dev" in text
     assert "python -m pipeline.live smoke --origin https://internal.modelspec-7np.pages.dev" in text
+
+
+def test_every_executable_inline_script_is_in_the_policy_and_both_trees_carry_it(trees):
+    exec_types = {"", "module", "text/javascript", "application/javascript"}
+    inline = re.compile(r"<script((?:\s[^>]*)?)>(.*?)</script>", re.S)
+    for name in ("live", "holding"):
+        ms = trees[name] / "modelspec"
+        policy = next(line for line in (ms / "_headers").read_text(encoding="utf-8").splitlines()
+                      if "Content-Security-Policy:" in line)
+        assert "X-Frame-Options: DENY" in (ms / "_headers").read_text(encoding="utf-8")
+        assert "frame-ancestors 'none'" in policy
+        for page in ms.rglob("*.html"):
+            for attrs, body in inline.findall(page.read_text(encoding="utf-8")):
+                if "src=" in attrs:
+                    continue
+                kind = re.search(r'type="([^"]*)"', attrs)
+                if kind and kind.group(1) not in exec_types:
+                    continue
+                digest = base64.b64encode(hashlib.sha256(body.encode()).digest()).decode()
+                assert f"'sha256-{digest}'" in policy, (name, page.name)
+
+
+def test_legacy_v1_urls_redirect_to_decide_and_the_api_is_untouched(trees):
+    rules = (trees["live"] / "modelspec" / "_redirects").read_text(encoding="utf-8")
+    for source in ("/models", "/models/", "/providers/", "/benchmarks/", "/downselect/",
+                   "/m/*", "/p/*", "/b/*"):
+        assert f"{source}  /decide/  301\n" in rules, source
+    assert "/landing/  /  301\n" in rules
+    assert "/api" not in rules

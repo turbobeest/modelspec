@@ -91,7 +91,7 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
     assert page('modelspec/decide/index.html') == fixture['web/dist/decide.html']
     assert page('modelspec/graph/index.html') == fixture['dist/modelspec/graph/index.html']
     assert live['modelspec/graph/vendor/three.min.js'] == b'three'
-    assert live['modelspec/404.html'] == fixture['web/dist/decide.html']
+    assert b'noindex' in live['modelspec/404.html']
     index = live['modelspec/index.html'].decode()
     decide = live['modelspec/decide/index.html'].decode()
     headers = live['modelspec/_headers'].decode()
@@ -112,7 +112,7 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
     assert live['modelspec/assets/decide-abc.js'] == b'decide bundle'
     assert 'modelspec/assets/main-old.js' not in live
     assert 'modelspec/favicon.svg' not in live
-    assert live['modelspec/_redirects'] == b'/landing/  /  301\n'
+    assert live['modelspec/_redirects'].decode() == live_site.REDIRECTS
     assert 'modelspec/landing/index.html' not in live
     for name in brand.FILES:
         assert live[f'modelspec/{name}'] == f'2a {name}'.encode(), name
