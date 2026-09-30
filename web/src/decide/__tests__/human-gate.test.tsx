@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import fixture from "../__fixtures__/full-decision.json";
 import { json, routeFetch, realVocabulary, sentSpecs } from "./vocab-fixtures";
@@ -47,7 +47,7 @@ it("fails closed with an unavailable message when secrets are missing", async ()
   const { HumanGate } = await import("../components/HumanGate");
   render(<HumanGate onLookup={vi.fn()} />);
   expect(await screen.findByText(/Manual decisions are temporarily unavailable/)).toBeVisible();
-  expect(screen.getByRole("button", { name: "Look up this decision" })).toBeDisabled();
+  expect(screen.queryByRole("button", { name: "Look up this decision" })).not.toBeInTheDocument();
 });
 
 it("fails closed when the public site key is missing", async () => {
@@ -55,7 +55,7 @@ it("fails closed when the public site key is missing", async () => {
   vi.stubGlobal("fetch", vi.fn(async () => json({ enabled: true, remaining: 20 })));
   const { HumanGate } = await import("../components/HumanGate");
   render(<HumanGate onLookup={vi.fn()} />);
-  expect(screen.getByText(/Manual decisions are temporarily unavailable/)).toBeVisible();
+  expect(await screen.findByText(/Manual decisions are temporarily unavailable/)).toBeVisible();
   expect(window.turnstile?.render).not.toHaveBeenCalled();
 });
 
@@ -90,6 +90,11 @@ it("the real app waits for a person and sends one full lookup without background
   await waitFor(() => expect(sentSpecs(vi.mocked(fetch))).toHaveLength(1));
   await waitFor(() => expect(button).toBeEnabled());
   expect(sentSpecs(vi.mocked(fetch))).toHaveLength(1);
+  expect(window.turnstile?.render).toHaveBeenCalled();
+  fireEvent.click(button);
+  await waitFor(() => expect(sentSpecs(vi.mocked(fetch))).toHaveLength(2));
+  await waitFor(() => expect(button).toBeEnabled());
+  expect(sentSpecs(vi.mocked(fetch))).toHaveLength(2);
 });
 
 it("shows a burst refusal in the page and asks for fresh verification", async () => {
@@ -128,4 +133,82 @@ it("recovers from a transient status 503 after retry without a reload", async ()
   expect(fetchStatus).toHaveBeenCalledTimes(2);
   fireEvent.click(button);
   await waitFor(() => expect(onLookup).toHaveBeenCalledTimes(1));
+});
+
+
+it("a gated build uses automatic lookups when the Worker gate is disabled, even without a site key", async () => {
+  vi.stubEnv("VITE_TURNSTILE_SITE_KEY", "");
+  const routed = routeFetch({ vocabulary: () => json(realVocabulary), decide: () => json(fixture) });
+  vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) =>
+    String(input).endsWith("/v1/human-status")
+      ? Promise.resolve(json({ enabled: false }))
+      : routed(input, init)));
+  const { DesignedApp } = await import("../App");
+  render(<DesignedApp />);
+  await waitFor(() => expect(sentSpecs(vi.mocked(fetch)).length).toBeGreaterThan(0));
+  expect(screen.queryByRole("button", { name: "Look up this decision" })).not.toBeInTheDocument();
+  expect(screen.queryByText(/Manual decisions are temporarily unavailable/)).not.toBeInTheDocument();
+  expect(window.turnstile?.render).not.toHaveBeenCalled();
+  const requests = vi.mocked(fetch).mock.calls.filter(([input]) => String(input).endsWith("/v1/decide"));
+  for (const [, init] of requests) {
+    expect(init?.headers).not.toHaveProperty("X-ModelSpec-Turnstile");
+  }
+});
+
+it("recovers to ungated behavior when a retry reports the Worker gate disabled", async () => {
+  vi.stubGlobal("fetch", vi.fn()
+    .mockResolvedValueOnce(json({ enabled: true }, 503))
+    .mockResolvedValue(json({ enabled: false })));
+  const onEnabled = vi.fn();
+  const { HumanGate } = await import("../components/HumanGate");
+  render(<HumanGate onEnabled={onEnabled} onLookup={vi.fn()} />);
+  fireEvent.click(await screen.findByRole("button", { name: "Retry verification" }));
+  await waitFor(() => expect(onEnabled).toHaveBeenCalledWith(false));
+  expect(screen.queryByRole("region", { name: "Manual lookups" })).not.toBeInTheDocument();
+  expect(window.turnstile?.render).not.toHaveBeenCalled();
+});
+
+
+it("answers edits made while status is pending without flashing gated UI", async () => {
+  let resolveStatus: (response: Response) => void = () => { throw new Error("Status not initialized"); };
+  const status = new Promise<Response>((resolve) => { resolveStatus = resolve; });
+  const routed = routeFetch({ vocabulary: () => json(realVocabulary), decide: () => json(fixture) });
+  vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) =>
+    String(input).endsWith("/v1/human-status") ? status : routed(input, init)));
+  const { DesignedApp } = await import("../App");
+  render(<DesignedApp />);
+  const capability = (await screen.findByText("Software engineering")).closest<HTMLElement>(".facet-row");
+  if (!capability) throw new Error("Software engineering facet missing");
+  expect(screen.queryByText(/Checking today's allowance/)).not.toBeInTheDocument();
+  expect(screen.queryByText(/limited to 20 per day/)).not.toBeInTheDocument();
+  expect(screen.queryByText(/Choose your facets, then verify/)).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Look up this decision" })).not.toBeInTheDocument();
+  fireEvent.click(within(capability).getByLabelText("Prefer"));
+  expect(sentSpecs(vi.mocked(fetch))).toHaveLength(0);
+  await act(async () => { resolveStatus(json({ enabled: false })); });
+  await waitFor(() => expect(sentSpecs(vi.mocked(fetch)).length).toBeGreaterThan(0));
+  const lookups = sentSpecs(vi.mocked(fetch)).filter((body) => body.explain !== "none");
+  expect(lookups[0].optimize.weights).toEqual({ software_engineering: 0.5 });
+  expect(within(capability).getByLabelText("Prefer")).toBeChecked();
+  expect(window.turnstile?.render).not.toHaveBeenCalled();
+  expect(screen.queryByRole("region", { name: "Manual lookups" })).not.toBeInTheDocument();
+});
+
+
+it("an open ungated tab refreshes status after the Worker enables the gate", async () => {
+  const fetchStatus = vi.fn()
+    .mockResolvedValueOnce(json({ enabled: false }))
+    .mockResolvedValue(json({ enabled: true, remaining: 20 }));
+  const routed = routeFetch({ vocabulary: () => json(realVocabulary), decide: () => json({
+    error: { code: "human_challenge_required", message: "Complete human verification before each lookup." },
+  }, 403) });
+  vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) =>
+    String(input).endsWith("/v1/human-status") ? fetchStatus() : routed(input, init)));
+  const { DesignedApp } = await import("../App");
+  render(<DesignedApp />);
+  const button = await screen.findByRole("button", { name: "Look up this decision" });
+  await waitFor(() => expect(button).toBeEnabled());
+  expect(fetchStatus).toHaveBeenCalledTimes(2);
+  expect(window.turnstile?.render).toHaveBeenCalledTimes(1);
+  expect(sentSpecs(vi.mocked(fetch))).toHaveLength(1);
 });

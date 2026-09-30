@@ -810,6 +810,7 @@ def _wrangler_config() -> dict[str, Any]:
 
 def test_production_x402_config_stays_off_and_has_no_receiver():
     config = _wrangler_config()
+    assert config["vars"]["HUMAN_GATE_ENABLED"] == "false"
     assert config["vars"]["ACCESS_ENFORCED"] == "false"
     assert config["vars"]["BILLING_ENABLED"] == "false"
     assert config["vars"]["X402_ENABLED"] == "false"
@@ -832,7 +833,7 @@ def test_staging_x402_config_is_isolated_on_base_sepolia():
         "EXPORT_ORIGIN": "https://modelspec.dev",
         "BUILD_COMMIT": "dev",
         "ACCESS_ENFORCED": "false",
-        "HUMAN_GATE_ENABLED": "false",
+        "HUMAN_GATE_ENABLED": "true",
         "BILLING_ENABLED": "false",
         "FEEDBACK_ENABLED": "false",
         "X402_ENABLED": "true",

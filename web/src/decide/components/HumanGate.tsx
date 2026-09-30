@@ -38,14 +38,16 @@ function loadWidget(): Promise<void> {
   return scriptReady;
 }
 
-export function HumanGate({ onLookup, disabled = false }: {
+export function HumanGate({ onLookup, onEnabled, disabled = false }: {
   onLookup: (token: string, onRemaining: (remaining: number) => void) => Promise<void>;
   disabled?: boolean;
+  onEnabled?: (enabled: boolean) => void;
 }) {
   const container = useRef<HTMLDivElement>(null);
+  const [enabled, setEnabled] = useState<boolean | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [remaining, setRemaining] = useState<number | null>(null);
-  const [unavailable, setUnavailable] = useState(!SITE_KEY);
+  const [unavailable, setUnavailable] = useState(false);
   const [busy, setBusy] = useState(false);
   const [challenge, setChallenge] = useState(0);
   useEffect(() => {
@@ -55,15 +57,18 @@ export function HumanGate({ onLookup, disabled = false }: {
     }).then(async (response) => {
       if (!response.ok) throw new Error("Unavailable");
       const status = statusSchema.parse(await response.json());
+      if (controller.signal.aborted) return;
+      setEnabled(status.enabled);
+      onEnabled?.(status.enabled);
       if (status.enabled) {
         setRemaining(status.remaining);
         setUnavailable(!SITE_KEY);
       }
-      else setUnavailable(true);
+      else setUnavailable(false);
     }).catch(() => { if (!controller.signal.aborted) setUnavailable(true); });
     return () => controller.abort();
-  }, [challenge]);
-  const canVerify = !!SITE_KEY && !unavailable && remaining !== null && remaining > 0;
+  }, [challenge, onEnabled]);
+  const canVerify = enabled === true && !!SITE_KEY && !unavailable && remaining !== null && remaining > 0;
   useEffect(() => {
     if (!canVerify) return;
     let active = true;
@@ -81,26 +86,27 @@ export function HumanGate({ onLookup, disabled = false }: {
     }).catch(() => { if (active) setUnavailable(true); });
     return () => { active = false; if (widget !== null) window.turnstile?.remove(widget); };
   }, [challenge, canVerify]);
+  if (enabled === false || (enabled === null && !unavailable)) return null;
   return <section className="human-gate" aria-label="Manual lookups">
     <p role="status">{unavailable
       ? "Manual decisions are temporarily unavailable. Please try again later."
       : remaining === 0
         ? "You have used today's 20 manual decisions. Come back after midnight UTC."
         : remaining === null ? "Checking today's allowance…" : `${remaining} decisions remaining today. Resets at midnight UTC.`}</p>
-    <p>Manual lookups are limited to 20 per day and 3 per minute. For machine access, use the <a href="/pricing/">paid API or MCP</a>.</p>
-    {unavailable && SITE_KEY && <button disabled={busy} onClick={() => {
+    {enabled === true && <p>Manual lookups are limited to 20 per day and 3 per minute. For machine access, use the <a href="/pricing/">paid API or MCP</a>.</p>}
+    {unavailable && (enabled !== true || SITE_KEY) && <button disabled={busy} onClick={() => {
       setUnavailable(false);
       setToken(null);
       setChallenge((value) => value + 1);
     }}>Retry verification</button>}
     <div ref={container} />
-    <button className="primary" disabled={disabled || busy || unavailable || remaining === null || remaining === 0 || !token}
+    {enabled === true && <button className="primary" disabled={disabled || busy || unavailable || remaining === null || remaining === 0 || !token}
       onClick={async () => {
         if (!token || busy) return;
         setBusy(true);
         setToken(null);
         try { await onLookup(token, setRemaining); }
         finally { setBusy(false); setUnavailable(!SITE_KEY); setChallenge((value) => value + 1); }
-      }}>Look up this decision</button>
+      }}>Look up this decision</button>}
   </section>;
 }

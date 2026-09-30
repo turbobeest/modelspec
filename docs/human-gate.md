@@ -1,6 +1,7 @@
 # Manual decision gate (MODEL-248)
 
-`HUMAN_GATE_ENABLED` ships `false` in production and staging. Off preserves
+`HUMAN_GATE_ENABLED` ships `false` in production and `true` in isolated staging
+for verifying the gate on Cloudflare before production. Off preserves
 the existing access and x402 paths. On, keyless `/v1/decide` calls from the
 three existing site origins need a fresh Turnstile token in the
 `X-ModelSpec-Turnstile` header. The decision Spec, response body and contract
@@ -71,7 +72,15 @@ is public configuration, not a secret. Both are unset by default.
 The page obtains the current allowance from `GET /v1/human-status`, which is
 origin restricted and never spends a lookup. When no state exists, a
 status-only visit returns the full allowance without creating a table, writing
-state or scheduling an alarm. A manual button sends one full decision. The
+state or scheduling an alarm. A gated build waits for the status response without showing manual-gate
+wording or controls. The board remains editable; once status resolves, the
+first ungated lookup answers the current edited Spec. When
+it reports `enabled: false`, the page uses the existing ungated behavior,
+including automatic lookups and CSV download, without loading Turnstile or
+showing an unavailable message. Only `enabled: true` activates the manual
+flow. A transient status failure shows a retry button and can recover without
+a reload. A `human_challenge_required` response refreshes status so an open
+tab can adopt a newly enabled Worker gate. A manual button sends one full decision. The
 page disables automatic lookup on edits, explanation requests,
 canvas plot requests, estate requests, question probes and automatic Spec
 fallback/retry. Estate data can accompany that single manual lookup.
@@ -95,16 +104,23 @@ npx wrangler secret put TURNSTILE_SECRET --config api/worker/wrangler.jsonc
 ```
 
 For an isolated staging check, use those commands with `--env staging` and
-staging-specific values. Never reuse or publish secret values in a PR.
+staging-specific values. The staging Worker is
+`https://modelspec-rank-staging.flat-snowflake-881f.workers.dev`; it allows
+`Origin: https://internal.modelspec-7np.pages.dev`. The current Rank API
+workflow deploys staging only on `workflow_dispatch`, so dispatch it on `main`
+after the merge before verifying the gate. Never reuse or publish secret values in a PR.
 Create a Turnstile widget permitting the production, www and internal preview
 hostnames. Configure its public key in the Pages build variables above.
 Jamie adopts the separate privacy disclosure before enabling the gate. Publish
 the page gate first: set repository variable `HUMAN_GATE_ENABLED=true`,
-rebuild the site and verify that the gated page is live. Only then enable the
-Worker's `HUMAN_GATE_ENABLED`. The current ungated page receives 403 responses
+rebuild the site and verify that the gated build is live and still performs
+automatic lookups while the Worker reports `enabled: false`. Only then enable
+the Worker's `HUMAN_GATE_ENABLED`. This order keeps lookups working throughout
+the rollout. The current ungated page receives 403 responses
 if the Worker flag flips before the rebuilt page is live. Missing either Worker
 secret, the binding or the request IP fails closed with a temporarily unavailable message.
-Missing public site configuration also disables the page's lookup button.
+Missing public site configuration disables the lookup button only when the
+Worker reports `enabled: true`. It does not prevent ungated lookups.
 
 This ticket gates `/v1/decide`. Existing static exports and the offline CLI
 remain existing repository behavior; retiring downloads and all other machine
