@@ -677,7 +677,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-23'
     date_type: published
-    verified_at: '2026-09-29'
+    verified_at: '2026-09-30'
     benchmark_version: webdev / overall, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset webdev, category overall, leaderboard_publish_date
       2026-09-23; no style-controlled variant. Highest-effort row for the product (effort: max;
@@ -690,20 +690,20 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-143-evidence-arena-webdev-json
-      snapshot_ref: sha256:1342f43f483667f8e4313a1fb517522e1f18aa1b09d4812f8d3163c4ff30b9bc
+      snapshot_ref: sha256:31b3d323e3968c31c3238ed5782c805c2ae4be8758520c2e6837e2f3cb7633cb
       cited_regions:
       - rows
-    observed_at: '2026-09-29'
+    observed_at: '2026-09-30'
   - benchmark_id: vending_bench_2
     model_id_as_evaluated: GPT-6 Sol
     score: 14427.848333333333
     unit: USD
     source_url: https://andonlabs.com/evals/vending-bench-2
     source_kind: benchmark_author
-    evidence_date: '2026-09-29'
+    evidence_date: '2026-09-30'
     date_type: evaluated
-    observed_at: '2026-09-29'
-    verified_at: '2026-09-29'
+    observed_at: '2026-09-30'
+    verified_at: '2026-09-30'
     benchmark_version: ''
     configuration: ''
     limitations: ''
@@ -712,19 +712,19 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-vending-bench-2
-      snapshot_ref: sha256:94074584ec83e973b31884f48956a6bc43e36a33d47dc3feaa7c52adf23a9c12
+      snapshot_ref: sha256:56dc9c006a5dd8343157e3122937b85758f2d208dec87e0c61a3eab1c750efbf
       cited_regions:
       - rows
-    id: openai/gpt-6-sol#vending_bench_2#536e7b52c24e
+    id: openai/gpt-6-sol#vending_bench_2#22c2deaa323b
   - benchmark_id: brokenarxiv
     model_id_as_evaluated: GPT-6 Sol (max)
     score: 86.98
     unit: percent
     source_url: https://matharena.ai/competition_tables/overall--brokenarxiv
     source_kind: benchmark_author
-    evidence_date: '2026-09-29'
+    evidence_date: '2026-09-30'
     date_type: evaluated
-    verified_at: '2026-09-29'
+    verified_at: '2026-09-30'
     benchmark_version: BrokenArXiv, MathArena Overall table
     configuration: MathArena competition table read 2026-09-29; the table states no run date,
       so the reading is dated by the observation. Accuracy averaged over four runs per problem.
@@ -736,22 +736,22 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-233-matharena-brokenarxiv
-      snapshot_ref: sha256:9e6bec6f0629ee06703efda42486ad2fdec7f268ef21e0ba7210d6463cd99c8f
+      snapshot_ref: sha256:6d37ddbf9d94259ac1372ebffce5792c896cf14d81297a7af9b2d846d538254b
       cited_regions:
       - rows
     quality_flags:
     - contamination_warning
-    observed_at: '2026-09-29'
-    id: openai/gpt-6-sol#brokenarxiv#7e530274d2e6
+    observed_at: '2026-09-30'
+    id: openai/gpt-6-sol#brokenarxiv#921e0a9a45f8
   - benchmark_id: arxivmath
     model_id_as_evaluated: GPT-6 Sol (max)
     score: 91.32
     unit: percent
     source_url: https://matharena.ai/competition_tables/overall--arxivmath
     source_kind: benchmark_author
-    evidence_date: '2026-09-29'
+    evidence_date: '2026-09-30'
     date_type: evaluated
-    verified_at: '2026-09-29'
+    verified_at: '2026-09-30'
     benchmark_version: ArXivMath, MathArena Overall table
     configuration: MathArena competition table read 2026-09-29; the table states no run date,
       so the reading is dated by the observation. Accuracy averaged over four runs per problem.
@@ -763,13 +763,13 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-233-matharena-arxivmath
-      snapshot_ref: sha256:64e10664a248ffe6c983a0cbdcd1f118e1093f94d584af3f08081768076bafe0
+      snapshot_ref: sha256:8a7a53d402a60a08b27d509895c3ffadb2737db7a41e78b074f9783b0c6333a9
       cited_regions:
       - rows
     quality_flags:
     - contamination_warning
-    observed_at: '2026-09-29'
-    id: openai/gpt-6-sol#arxivmath#10511e74d485
+    observed_at: '2026-09-30'
+    id: openai/gpt-6-sol#arxivmath#a4ec1759b291
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''

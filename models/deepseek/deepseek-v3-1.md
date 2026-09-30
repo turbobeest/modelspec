@@ -704,7 +704,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-29'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / overall, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category overall,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -713,11 +713,11 @@ benchmarks:
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
     measured_by: independent_evaluator
-    observed_at: '2026-09-29'
+    observed_at: '2026-09-30'
     id: deepseek/deepseek-v3-1#arena_elo_style_control#3b78cb8124fc
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:bea7ea9d7344aeccaed159b64f2f3aa97e84231d3723b02f9d4a5672b6b889b8
+      snapshot_ref: sha256:1bc41471fa63c00d5e990f8ff6c7ae8d343321a704311ca8585bda974efd153d
       cited_regions:
       - rows
   - benchmark_id: arena_sc_coding
@@ -728,7 +728,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-29'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / coding, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category coding,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -737,11 +737,11 @@ benchmarks:
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
     measured_by: independent_evaluator
-    observed_at: '2026-09-29'
+    observed_at: '2026-09-30'
     id: deepseek/deepseek-v3-1#arena_sc_coding#f4d574508e37
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:da249e40e0397ffcd8dd5f738c4c91f9a389869f8ae9e26c425a1187f04c7118
+      snapshot_ref: sha256:089deb374ac3c4b394209968c2abcb3cf655a1b9a30a4131b30ac8c829a701b0
       cited_regions:
       - rows
   - benchmark_id: arena_sc_hard_prompts
@@ -752,7 +752,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-29'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / hard_prompts, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category hard_prompts,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -761,11 +761,11 @@ benchmarks:
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
     measured_by: independent_evaluator
-    observed_at: '2026-09-29'
+    observed_at: '2026-09-30'
     id: deepseek/deepseek-v3-1#arena_sc_hard_prompts#33f39ee8c80c
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:5a69c3a3a5f23cf6bfd2b0ecae495ec9731f62df889f4147793616588a2d4f8b
+      snapshot_ref: sha256:1b7b4656ca832e762e7f13e33eaaf32c7340cd045337d7ac1f054ef70c4bf1bf
       cited_regions:
       - rows
   - benchmark_id: arena_sc_math
@@ -776,7 +776,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-29'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / math, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category math, leaderboard_publish_date
       2026-09-13; style control. Highest-effort row for the product (effort: thinking; MODEL-123
@@ -784,11 +784,11 @@ benchmarks:
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
     measured_by: independent_evaluator
-    observed_at: '2026-09-29'
+    observed_at: '2026-09-30'
     id: deepseek/deepseek-v3-1#arena_sc_math#944adebb5d90
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:41e622d3837a9ab1577d975e3c57ae92db367c09f45606ed1870a32a4591335a
+      snapshot_ref: sha256:1874a1ccff7caa3c0046e181bbaeb0b8343bce7adb4066b951bc9c44d194ec6d
       cited_regions:
       - rows
   - benchmark_id: arena_sc_creative_writing
@@ -799,7 +799,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-29'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / creative_writing, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category creative_writing,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -808,11 +808,11 @@ benchmarks:
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
     measured_by: independent_evaluator
-    observed_at: '2026-09-29'
+    observed_at: '2026-09-30'
     id: deepseek/deepseek-v3-1#arena_sc_creative_writing#a864b6225c16
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:4ca49a5b7efede8e577057d10266b363a837e56331ac79f7540f7da349a3eee5
+      snapshot_ref: sha256:fc5f6716f31834193f7b2136ea74bde411ae5ba90fc4ac118d482310e61b38d2
       cited_regions:
       - rows
   - benchmark_id: arena_sc_instruction_following
@@ -823,7 +823,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-29'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / instruction_following, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category instruction_following,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -832,11 +832,11 @@ benchmarks:
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
     measured_by: independent_evaluator
-    observed_at: '2026-09-29'
+    observed_at: '2026-09-30'
     id: deepseek/deepseek-v3-1#arena_sc_instruction_following#086ff094caff
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:6bcc35b68ac189cda1a204de4fab84c84fcd9d853dc2c3265e68366133d9093b
+      snapshot_ref: sha256:8dcf9ad77990db5c111c78a9d921ba5a078255a7268d36cda182d9e2e8baed14
       cited_regions:
       - rows
   - benchmark_id: arena_sc_multi_turn
@@ -847,7 +847,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-29'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / multi_turn, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category multi_turn,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -856,11 +856,11 @@ benchmarks:
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
     measured_by: independent_evaluator
-    observed_at: '2026-09-29'
+    observed_at: '2026-09-30'
     id: deepseek/deepseek-v3-1#arena_sc_multi_turn#94a53d4328a1
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:76f93ba07e2611ee096faf4210eb6b965b5b113b375cb5edec5f224be61fc346
+      snapshot_ref: sha256:669cce652634672175a1aa830b1e106cc211f20e4f5a8190f41be169b0e8780e
       cited_regions:
       - rows
   - benchmark_id: arena_sc_expert
@@ -871,7 +871,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-29'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / expert, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category expert,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -880,11 +880,11 @@ benchmarks:
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
     measured_by: independent_evaluator
-    observed_at: '2026-09-29'
+    observed_at: '2026-09-30'
     id: deepseek/deepseek-v3-1#arena_sc_expert#fabc3700150f
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:ebf8116274f3815b353511b1829bd763a0817e2a0c5d3669072ebd5571271745
+      snapshot_ref: sha256:db8d6995a9ec2ba53e4d4d240df0cce213a4b54b2143ae674970e3afa1dfe764
       cited_regions:
       - rows
   - benchmark_id: arena_sc_longer_query
@@ -895,7 +895,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-29'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / longer_query, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category longer_query,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -904,11 +904,11 @@ benchmarks:
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
     measured_by: independent_evaluator
-    observed_at: '2026-09-29'
+    observed_at: '2026-09-30'
     id: deepseek/deepseek-v3-1#arena_sc_longer_query#11b956ec3a7c
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:3c7de94587c842e12c134292a7df52a9faafb46f877d184d8f235d5c1d466737
+      snapshot_ref: sha256:f27585ee7eee36757893f733b338f207eabe2f9fb0349b6b539f7cb5c60fd4ab
       cited_regions:
       - rows
   - benchmark_id: arena_sc_non_english
@@ -919,7 +919,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-29'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / non_english, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category non_english,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -928,11 +928,11 @@ benchmarks:
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
     measured_by: independent_evaluator
-    observed_at: '2026-09-29'
+    observed_at: '2026-09-30'
     id: deepseek/deepseek-v3-1#arena_sc_non_english#ab53500cabd5
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:47f41bf8222f55644ca4a36db5ad4178546c5d3e2982bcda2dc08798f9776a65
+      snapshot_ref: sha256:52e386a612514d210b1d77719363e4ca268905f06901681ab924fac1d9520304
       cited_regions:
       - rows
   - benchmark_id: arena_sc_medicine
@@ -943,7 +943,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-29'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / industry_medicine_and_healthcare, latest split,
       revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_medicine_and_healthcare,
@@ -953,11 +953,11 @@ benchmarks:
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
     measured_by: independent_evaluator
-    observed_at: '2026-09-29'
+    observed_at: '2026-09-30'
     id: deepseek/deepseek-v3-1#arena_sc_medicine#8022ae85cca7
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:31163709a3917ed23ec956a2589a6a5ad30924817977652909218ecbbf9a8d0e
+      snapshot_ref: sha256:544b6524228d2e78462111b28f6dc4d5ae76d82f8ba52fd6040b0639e1f4856c
       cited_regions:
       - rows
   - benchmark_id: arena_sc_legal
@@ -968,7 +968,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-29'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / industry_legal_and_government, latest split, revision
       1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_legal_and_government,
@@ -978,11 +978,11 @@ benchmarks:
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
     measured_by: independent_evaluator
-    observed_at: '2026-09-29'
+    observed_at: '2026-09-30'
     id: deepseek/deepseek-v3-1#arena_sc_legal#d8188d4fb977
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:6aec9d4dd9fc82958ffeceea56c977de5d8204f6c62ad5113657b828f9bc55da
+      snapshot_ref: sha256:07e3a236f9ee5e0cecac83995952d8e94413e872035c5ccae1efa23137a236ed
       cited_regions:
       - rows
   - benchmark_id: arena_sc_business
@@ -993,7 +993,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-29'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / industry_business_and_management_and_financial_operations,
       latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_business_and_management_and_financial_operations,
@@ -1003,11 +1003,11 @@ benchmarks:
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
     measured_by: independent_evaluator
-    observed_at: '2026-09-29'
+    observed_at: '2026-09-30'
     id: deepseek/deepseek-v3-1#arena_sc_business#b52897d5a124
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:ba565a81fbb65e9d13c80776fda09aabedc819d64793b355a5a5fe836212472e
+      snapshot_ref: sha256:d1da5448d5afc01a34ae83fe1a795ef9a79a434bfe906fe2426ce82a67b36755
       cited_regions:
       - rows
   - benchmark_id: arena_sc_science
@@ -1018,7 +1018,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-29'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / industry_life_and_physical_and_social_science, latest
       split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_life_and_physical_and_social_science,
@@ -1028,11 +1028,11 @@ benchmarks:
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
     measured_by: independent_evaluator
-    observed_at: '2026-09-29'
+    observed_at: '2026-09-30'
     id: deepseek/deepseek-v3-1#arena_sc_science#967982fe8560
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:dff891db693196c263ad841fcb75cf135a4529936b386a76fc324e6b66bb2d2e
+      snapshot_ref: sha256:1017485e0b9dcfcf7d1a4dfeeed89d314f2f74f8131a3f8e05d6b833360bea76
       cited_regions:
       - rows
   - benchmark_id: arena_sc_writing
@@ -1043,7 +1043,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-29'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / industry_writing_and_literature_and_language, latest
       split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_writing_and_literature_and_language,
@@ -1053,11 +1053,11 @@ benchmarks:
     limitations: Crowd preference votes, not a checked answer. Data (c) LMArena, CC BY 4.0;
       attribution on the benchmark page.
     measured_by: independent_evaluator
-    observed_at: '2026-09-29'
+    observed_at: '2026-09-30'
     id: deepseek/deepseek-v3-1#arena_sc_writing#27104d722efa
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:451771d6d03dfcdc902ebbb505ce47bfc614e33bde751b42f3be31d89d416086
+      snapshot_ref: sha256:60b89142370aecd9137ff982bd144e8628dc8abadd10f41b90d334d34878bae0
       cited_regions:
       - rows
   - benchmark_id: aime_2025
@@ -1084,8 +1084,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: evaluated
-    observed_at: '2026-09-29'
-    verified_at: '2026-09-29'
+    observed_at: '2026-09-30'
+    verified_at: '2026-09-30'
     benchmark_version: ''
     configuration: ''
     limitations: ''
@@ -1094,7 +1094,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:cee57baa7239c5aa2091dcb5db0b4c2ac22cec732b235d66c0cda2ee55bdcb44
+      snapshot_ref: sha256:1e2fcc24a5c8cdcd90c665aaa64b557f473180d9ce1725066717e04bfd10e5f1
       cited_regions:
       - rows
     id: deepseek/deepseek-v3-1#arena_sc_english#f2740e50ab87
@@ -1106,8 +1106,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: evaluated
-    observed_at: '2026-09-29'
-    verified_at: '2026-09-29'
+    observed_at: '2026-09-30'
+    verified_at: '2026-09-30'
     benchmark_version: ''
     configuration: ''
     limitations: ''
@@ -1116,7 +1116,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:9bf00fc37e8a997735f423949aba6ffc5551990b6f835297d3fed2b364abe02b
+      snapshot_ref: sha256:449b90746065449e59f0dd2bbdfcb8ef55aa5fe42c1b6beb8c930eb79a68224d
       cited_regions:
       - rows
     id: deepseek/deepseek-v3-1#arena_sc_chinese#e35025d70f6e
@@ -1128,8 +1128,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: evaluated
-    observed_at: '2026-09-29'
-    verified_at: '2026-09-29'
+    observed_at: '2026-09-30'
+    verified_at: '2026-09-30'
     benchmark_version: ''
     configuration: ''
     limitations: ''
@@ -1138,7 +1138,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:13b68c219a1ec549a9336846ddacaf97471f6323c09e4f45a73eab7a0857a9ca
+      snapshot_ref: sha256:7839399ba846da94c65849c08837839d515c8b37ae6314453bedf1c962846be2
       cited_regions:
       - rows
     id: deepseek/deepseek-v3-1#arena_sc_japanese#ceba83c789fd
@@ -1150,8 +1150,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: evaluated
-    observed_at: '2026-09-29'
-    verified_at: '2026-09-29'
+    observed_at: '2026-09-30'
+    verified_at: '2026-09-30'
     benchmark_version: ''
     configuration: ''
     limitations: ''
@@ -1160,7 +1160,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:96706e685de18541b6ad515db22607a7840bad8bc902a30a8a38f949cd409c08
+      snapshot_ref: sha256:8a792645624d2854a8bb09bcb4bbfee6219a8e973f03fb84a4e42716cb635ae8
       cited_regions:
       - rows
     id: deepseek/deepseek-v3-1#arena_sc_korean#b0f20edb1149
@@ -1172,8 +1172,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: evaluated
-    observed_at: '2026-09-29'
-    verified_at: '2026-09-29'
+    observed_at: '2026-09-30'
+    verified_at: '2026-09-30'
     benchmark_version: ''
     configuration: ''
     limitations: ''
@@ -1182,7 +1182,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:eb77af068077fa90a9514ad454b6a65f061a176f0d68897132e1526f3be743dd
+      snapshot_ref: sha256:5364bedcc9fe8a9598db9c20aabead5411e9c132021ef8e55da2be02c0a36c67
       cited_regions:
       - rows
     id: deepseek/deepseek-v3-1#arena_sc_russian#47b4d7c0b90c
@@ -1194,8 +1194,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: evaluated
-    observed_at: '2026-09-29'
-    verified_at: '2026-09-29'
+    observed_at: '2026-09-30'
+    verified_at: '2026-09-30'
     benchmark_version: ''
     configuration: ''
     limitations: ''
@@ -1204,7 +1204,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:e56e27431afb859f3376e3d5609785906e24647b4c0c65a324b7995944b9573b
+      snapshot_ref: sha256:8d2651582e59832130a278d4b2efb6e4c03ae6e796506ad9930aec870da2547b
       cited_regions:
       - rows
     id: deepseek/deepseek-v3-1#arena_sc_spanish#6ae9d5750caf
@@ -1216,8 +1216,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: evaluated
-    observed_at: '2026-09-29'
-    verified_at: '2026-09-29'
+    observed_at: '2026-09-30'
+    verified_at: '2026-09-30'
     benchmark_version: ''
     configuration: ''
     limitations: ''
@@ -1226,7 +1226,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:098d6730e0b426da68eee86ddfd97bb03c3b1048e178378de1ec3924fa209c6d
+      snapshot_ref: sha256:5b6244cf0e66d4e7a6c2239bd4aedb255de731f67f134c7be235df3f2266be4b
       cited_regions:
       - rows
     id: deepseek/deepseek-v3-1#arena_sc_german#d8e81037f4a7
@@ -1238,8 +1238,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: evaluated
-    observed_at: '2026-09-29'
-    verified_at: '2026-09-29'
+    observed_at: '2026-09-30'
+    verified_at: '2026-09-30'
     benchmark_version: ''
     configuration: ''
     limitations: ''
@@ -1248,7 +1248,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:c6c9f83eb7147bedac479a445a3803aad09d613643414d3cd5035dbde46d6f2f
+      snapshot_ref: sha256:4425fd6448ec82f9820e7f3c151d3e136d0ec46a97a44a53afbe50c9c35efb7a
       cited_regions:
       - rows
     id: deepseek/deepseek-v3-1#arena_sc_french#c169d67eca40
@@ -1260,8 +1260,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: evaluated
-    observed_at: '2026-09-29'
-    verified_at: '2026-09-29'
+    observed_at: '2026-09-30'
+    verified_at: '2026-09-30'
     benchmark_version: ''
     configuration: ''
     limitations: ''
@@ -1270,7 +1270,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:a99daf2dc2fbf9b06de90a127cc1408c7a19e4fa45a1a4d538b668211c4b5892
+      snapshot_ref: sha256:97e2e1ee9652b13516342dcba0cf4472957d6b7e4a17134aafdf774b2d57516d
       cited_regions:
       - rows
     id: deepseek/deepseek-v3-1#arena_sc_polish#f2b4ee283a5c
@@ -1282,8 +1282,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: evaluated
-    observed_at: '2026-09-29'
-    verified_at: '2026-09-29'
+    observed_at: '2026-09-30'
+    verified_at: '2026-09-30'
     benchmark_version: ''
     configuration: ''
     limitations: ''
@@ -1292,7 +1292,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:4eaa9890dce0719aa263af890c9f2a7bb1a3198e291d84dbf8c1371d4f150c52
+      snapshot_ref: sha256:eea47e91c8bc87fe0b61f2a3c0e4eba132c33a7b65597a78092fce12744d989a
       cited_regions:
       - rows
     id: deepseek/deepseek-v3-1#arena_sc_industry_software_it_services#d079a7bd053e
@@ -1304,8 +1304,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: evaluated
-    observed_at: '2026-09-29'
-    verified_at: '2026-09-29'
+    observed_at: '2026-09-30'
+    verified_at: '2026-09-30'
     benchmark_version: ''
     configuration: ''
     limitations: ''
@@ -1314,7 +1314,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:df0d5e7c4d4ce1f683618242c0786eafd164d98b3b49dbaa6e699476bec94ccf
+      snapshot_ref: sha256:dd31fbcb0b964ee4faa128a3bcac1f1ad740ec5fa6755b63a7cdd8654950bf11
       cited_regions:
       - rows
     id: deepseek/deepseek-v3-1#arena_sc_industry_entertainment_sports_media#e39cb917fb85
@@ -1326,8 +1326,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: evaluated
-    observed_at: '2026-09-29'
-    verified_at: '2026-09-29'
+    observed_at: '2026-09-30'
+    verified_at: '2026-09-30'
     benchmark_version: ''
     configuration: ''
     limitations: ''
@@ -1336,7 +1336,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:b0f3ee924239a7a9a1e60676935d0c83091f29517b8acb95e07868e370822e82
+      snapshot_ref: sha256:6061abfc8f62e0094fea0e87ea00b13d5f43d12e35990052572243771c51f1db
       cited_regions:
       - rows
     id: deepseek/deepseek-v3-1#arena_sc_industry_mathematical#09005e9159ee
