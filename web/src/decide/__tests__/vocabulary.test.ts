@@ -411,3 +411,14 @@ describe("private aggregate vocabulary", () => {
     expect(aggregate.templates?.every((row) => !row.available)).toBe(true);
   });
 });
+
+
+it("preserves thin refinement evidence without counts or benchmark ranges", () => {
+  const parsed = vocabularySchema.parse({ ...v,
+    benchmarks: v.benchmarks.map((row) => ({ ...row, range: undefined })),
+    refinements: [{ id: "python", parent_domain: "software_engineering", kind: "language",
+      name: "Python", definition: "Python tasks", weight_key: "software_engineering/python",
+      thin: true, benchmarks: [{ id: v.benchmarks[0].id, directness: "direct" }] }],
+  });
+  expect(parsed.refinements?.[0].evidence_state).toBe("thin");
+});

@@ -179,6 +179,7 @@ def test_vocabulary_has_no_fact_fields():
         "models": {"lab/" + SENTINEL: {"display_name": SENTINEL}},
         "estate": {"plans": [{"id": "plan", "name": "Plan", "price": {"amount": PRICE}, "allowances": {"score": SCORE}}]},
         "templates": [],
+        "refinements": [{"id": "python", "name": "Python", "evidence_state": "thin", "measured_models": 2}],
     }
     response = trim(source, model_ids=set(), facet_values={})
     import json
@@ -188,6 +189,24 @@ def test_vocabulary_has_no_fact_fields():
     assert response["estate"]["plans"] == [{"id": "plan", "name": "Plan"}]
     assert response["benchmarks"] == [{"id": "gpqa_diamond", "range": {"min": SCORE, "max": SCORE}}]
     assert response["facets"] == [{"id": "offering.price.input", "has_data": True}]
+    assert response["refinements"] == [{"id": "python", "name": "Python", "thin": True}]
+
+
+@pytest.mark.parametrize("models", [1, 2, 3])
+def test_benchmark_range_requires_three_scored_models(models):
+    import json
+    from api.worker.src.display_vocabulary import trim
+    # The value-bearing sentinel is an endpoint: an unsuppressed sparse range
+    # would expose its individual score even without a model row.
+    source = {"benchmarks": [{"id": "sentinel_benchmark", "models": models,
+                              "range": {"min": SCORE, "max": SCORE + 1}}]}
+    assert str(SCORE) in json.dumps(source)
+    public = trim(source, model_ids=set(), facet_values={})
+    if models < 3:
+        assert public["benchmarks"] == [{"id": "sentinel_benchmark"}]
+        assert str(SCORE) not in json.dumps(public)
+    else:
+        assert public["benchmarks"] == [{"id": "sentinel_benchmark", "range": {"min": SCORE, "max": SCORE + 1}}]
 
 
 def test_openapi_off_matches_main_and_on_documents_vocabulary():

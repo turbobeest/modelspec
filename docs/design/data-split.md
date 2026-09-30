@@ -435,9 +435,14 @@ Plan rows contain only `id`, `provider` and `name`. They contain no price,
 allowance, surface coverage, facet value count or model count.
 The allowed aggregate fields are template `available` booleans, per-facet
 `has_data` booleans, per-enum-value `has_data` booleans, refinement IDs/names
-and their static definitions, and benchmark `range.min`/`range.max`. These
+and their static definitions and aggregate `thin` boolean, and benchmark
+`range.min`/`range.max` only when at least 3 models have a score on that
+benchmark. Ranges for 1 or 2 scored models are omitted to avoid exposing
+individual scores. These
 signals restore template answerability, hide empty facet and enum choices,
-restore refinement drill-down and set benchmark floors. Numeric facet ranges,
+restore refinement drill-down without promoting thin evidence to live, and
+set benchmark floors when ranges are available. Numeric Must bounds with no
+range stay blank until entered and are omitted from requests while unset. Numeric facet ranges,
 individual model scores, counts and per-model facts remain excluded.
 The page hides statistics absent from this response and requests current facts
 through the existing decision API. No fresh vocabulary file is published on
@@ -481,15 +486,24 @@ makes one real Worker decide call and one
 vocabulary call, and samples combined V8 heap and external memory and allocated
 WebAssembly memory. Snapshot verification hashes canonical JSON in 4 KiB chunks, avoiding two
 full-size temporary copies while preserving the wire format, content hash and
-signature checks. The Worker does not delete native libraries. The probe does
-not force garbage collection or discard runtime loaders. It samples natural
-V8 heap/external usage and Wasm allocation during requests. CI gates the peak
-at 112 MiB, leaving 16 MiB below the 128 MiB limit, and runs the same probe on
-PRs using public fixtures and a synthetic signing key. Deploys use private data.
+signature checks. The Worker does not delete native libraries. The probe performs one explicit V8 garbage collection at the end, after one
+decide and one vocabulary call. Steady memory is the full allocated WebAssembly
+memory plus live non-Wasm V8 heap/external memory after that collection, with
+the Wasm buffer counted once. Enabled private deploys fail above 120 MiB steady
+memory, leaving 8 MiB below 128 MiB; a noisy peak above 112 MiB only warns.
+A steady-memory failure blocks deployment, including the six-hourly refresh,
+so the currently deployed Worker remains until a passing refresh. The public
+PR/bundle probe uses public fixtures and a synthetic key, is warning-only,
+and reports its outcome in the step summary. A flaky probe therefore cannot
+block flag-off production deploys. Runtime loaders and native libraries stay
+intact. Deploy probes use private data.
 The schedule runs no job when the split is off. Pip/uv caches retain their
 original flag-off behavior and are disabled for private builds. MCP does not
 pass an empty data-split variable when the repository variable is unset.
-The final honest peak is recorded in the PR report. This is a local runtime
+The active premier-sentinel probe measured 103.42 MiB steady
+(108,441,889 bytes) and 108.81 MiB noisy peak (114,097,037 bytes), with
+59.875 MiB of allocated WebAssembly memory. These measurements are also
+recorded in the PR report. This is a local runtime
 probe, not Cloudflare isolate telemetry.
 
 Jamie enables the split in this order:

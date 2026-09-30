@@ -89,6 +89,7 @@ const refinementSchema = z.object({
   kind: z.enum(["language", "task", "mode", "material"]),
   name: z.string(),
   definition: z.string(),
+  thin: z.boolean().optional(),
   evidence_state: z.enum(["live", "thin", "not_measured", "no_benchmark"]).optional(),
   measured_models: z.number().int().nonnegative().optional(),
   of_models: z.number().int().nonnegative().optional(),
@@ -238,7 +239,7 @@ export const vocabularySchema = z.object({
   ...rest,
   ...(refinements ? { refinements: refinements.map((row) => ({
     ...row,
-    evidence_state: row.evidence_state ?? (row.benchmarks.some((tag) => v.benchmarks.some((b) => b.id === tag.id && b.range))
+    evidence_state: row.evidence_state ?? (row.thin ? "thin" as const : row.benchmarks.some((tag) => v.benchmarks.some((b) => b.id === tag.id && b.range))
       ? "live" as const : row.benchmarks.length ? "not_measured" as const : "no_benchmark" as const),
   })) } : {}),
   };

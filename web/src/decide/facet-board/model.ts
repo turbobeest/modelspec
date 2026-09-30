@@ -113,11 +113,11 @@ export const facetGroup = (id: string): string =>
 
 export const supportsPreference = (facet: VocabFacet): boolean => facet.preference !== null;
 
-export function defaultFacetValue(facet: VocabFacet): FacetValue {
+export function defaultFacetValue(facet: VocabFacet): FacetValue | undefined {
   if (facet.value_type === "boolean") return true;
   if (facet.value_type === "number") {
-    const min = typeof facet.range?.min === "number" ? facet.range.min : 0;
-    const max = typeof facet.range?.max === "number" ? facet.range.max : min;
+    if (typeof facet.range?.min !== "number" || typeof facet.range?.max !== "number") return undefined;
+    const { min, max } = facet.range;
     return min + (max - min) / 2;
   }
   const first = facet.values?.find((item) => item.has_data !== false)?.value ?? facet.literals?.[0] ?? "";
@@ -163,11 +163,13 @@ export function nextMustOrder(
 function conditionFor(facet: VocabFacet, choice: FacetSelection): Cond | null {
   if (choice.value === undefined && !["number", "date"].includes(facet.value_type)) return null;
   if (Array.isArray(choice.value) && choice.value.length === 0) return null;
+  const value = choice.value ?? defaultFacetValue(facet);
+  if (value === undefined) return null;
   return {
     f: "facet",
     facet: facet.id.replace(/^capability\./, ""),
     op: choice.op ?? defaultFacetOp(facet) ?? "=",
-    value: choice.value ?? defaultFacetValue(facet),
+    value,
   };
 }
 

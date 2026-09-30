@@ -287,13 +287,21 @@ def test_validation_workflow_checks_status_and_report_shape() -> None:
 
 
 def test_workflow_failure_masking_is_explicitly_audited() -> None:
-    """Only the no-match grep count is allowed to use ``|| true``."""
+    """Audit the one warning-only memory probe; other failures still gate CI."""
     unexpected: list[str] = []
+    import yaml
     for workflow_path in sorted(WORKFLOWS.glob("*.yml")):
+        doc = yaml.safe_load(workflow_path.read_text())
+        for job_name, job in doc.get("jobs", {}).items():
+            assert not job.get("continue-on-error"), (workflow_path.name, job_name)
+            for step in job.get("steps", []):
+                if step.get("continue-on-error"):
+                    assert (workflow_path.name, job_name, step.get("id")) == (
+                        "rank-api.yml", "bundle", "memory-public")
         for line_number, line in enumerate(
             workflow_path.read_text(encoding="utf-8").splitlines(), start=1
         ):
-            if "2>/dev/null" in line or "continue-on-error" in line:
+            if "2>/dev/null" in line:
                 unexpected.append(f"{workflow_path.name}:{line_number}: {line.strip()}")
             if "|| true" in line and not (
                 workflow_path.name == "daily-research.yml"
@@ -441,7 +449,10 @@ def test_the_smoke_test_asserts_the_deployed_version_is_the_one_answering() -> N
 
 def test_the_smoke_test_fails_loudly_rather_than_passing_silently() -> None:
     workflow = RANK_API.read_text(encoding="utf-8")
-    assert "continue-on-error" not in workflow
+    import yaml
+    jobs = yaml.safe_load(workflow)["jobs"]
+    for name in ("deploy", "deploy-staging"):
+        assert not any(step.get("continue-on-error") for step in jobs[name]["steps"])
     assert "|| true" not in workflow
     assert "2>/dev/null" not in workflow
     # `fail` annotates with ::error::, prints the body and exits non-zero. Each

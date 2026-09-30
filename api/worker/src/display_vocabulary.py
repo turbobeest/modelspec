@@ -26,8 +26,10 @@ def trim(vocabulary, *, model_ids, facet_values):
             row["values"] = [dict(pick(observed.get(value, {"value": value}), ("value", "label")),
                                   has_data=observed.get(value, {}).get("count", 0) > 0)
                              for value in values]
-    result["benchmarks"] = [pick(row, BENCHMARK_FIELDS + ("range",)) for row in vocabulary.get("benchmarks", [])]
-    result["refinements"] = [pick(row, ("id", "name", "parent_domain", "kind", "definition", "benchmarks", "weight_key"))
+    result["benchmarks"] = [pick(row, BENCHMARK_FIELDS + (("range",) if row.get("models", 0) >= 3 else ()))
+                            for row in vocabulary.get("benchmarks", [])]
+    result["refinements"] = [dict(pick(row, ("id", "name", "parent_domain", "kind", "definition", "benchmarks", "weight_key")),
+                                  thin=row.get("evidence_state") == "thin")
                              for row in vocabulary.get("refinements", [])]
     result["domains"] = [pick(row, DOMAIN_FIELDS) for row in vocabulary.get("domains", [])]
     result["models"] = {mid: {"display_name": row.get("display_name")} for mid, row in

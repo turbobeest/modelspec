@@ -15,7 +15,7 @@ import type { BoardSelections, Estate, FacetMode, FacetSelection } from "./model
 import { ACCESS_ANSWERS, deviceName, payee, planName } from "./routes";
 import type { AccessAnswer } from "./routes";
 
-const numberText = (value: unknown) => typeof value === "number" ? String(value) : "0";
+const numberText = (value: unknown) => typeof value === "number" ? String(value) : "";
 
 function ValueControl({ facet, choice, onChange }: {
   facet: VocabFacet;
@@ -37,7 +37,7 @@ function ValueControl({ facet, choice, onChange }: {
       <label>Operator <select value={op} onChange={(event) => onChange({ ...choice, op: event.target.value as FacetSelection["op"] })}>
         {facet.operators.filter((item) => ["<=", ">=", "=", "!="].includes(item)).map((item) => <option key={item}>{item}</option>)}
       </select></label>
-      <label>Threshold <input type={facet.value_type === "date" ? "date" : "number"} value={facet.value_type === "number" ? numberText(value ?? defaultFacetValue(facet)) : String(value ?? defaultFacetValue(facet))} onChange={(event) => onChange({ ...choice, value: facet.value_type === "number" ? Number(event.target.value) : event.target.value })} /></label>
+      <label>Threshold <input type={facet.value_type === "date" ? "date" : "number"} value={facet.value_type === "number" ? numberText(value ?? defaultFacetValue(facet)) : String(value ?? defaultFacetValue(facet))} onChange={(event) => onChange({ ...choice, value: event.target.value === "" ? undefined : facet.value_type === "number" ? Number(event.target.value) : event.target.value })} /></label>
       {facet.unit && <span>{facet.unit.replaceAll("_", " ")}</span>}
     </div>
   );

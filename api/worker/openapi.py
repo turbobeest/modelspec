@@ -3101,7 +3101,7 @@ def render() -> str:
             "get": {
                 "operationId": "displayVocabulary",
                 "summary": "Display definitions and names for /decide",
-                "description": "Available with DATA_SPLIT_ENABLED. Facet definitions, benchmark and domain names, templates, and model/plan IDs and display names only. Aggregate answerability, facet/enum data availability, refinement definitions and benchmark min/max are included. No prices, allowances, counts, individual scores or archived model names. HUMAN_GATE_ENABLED meters the same keyed visitor Durable Object with an independent 60 per UTC day and 10 per minute budget. Successful responses use Cache-Control: private, max-age=3600.",
+                "description": "Available with DATA_SPLIT_ENABLED. Facet definitions, benchmark and domain names, templates, and model/plan IDs and display names only. Aggregate answerability, facet/enum data availability, refinement definitions and a thin boolean are included. Benchmark min/max is included only when at least 3 models have a score on that benchmark; ranges for 1 or 2 scored models are omitted. No prices, allowances, counts, individual scores or archived model names. HUMAN_GATE_ENABLED meters the same keyed visitor Durable Object with an independent 60 per UTC day and 10 per minute budget. Successful responses use Cache-Control: private, max-age=3600.",
                 "security": [],
                 "x-modelspec-probe": "skip",
                 "responses": {
