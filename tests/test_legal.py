@@ -16,8 +16,8 @@ Three things are worth a test here, and they are not the prose.
 3. **Nothing claims a capability that is not shipped, and what is shipped is
    described as it is.** The documents were adopted as v1.0 on 2026-09-19. The
    billing terms are checked against `api/worker/tiers.json`, the privacy
-   statement against what the Worker binds and writes, and outcome logging and
-   x402 must stay described as not live until they are.
+   statement against what the Worker binds and writes, and outcome logging by
+   the service and x402 must stay described as not live until they are.
 """
 
 from __future__ import annotations
@@ -292,13 +292,101 @@ def test_the_terms_do_not_offer_x402_while_it_is_off() -> None:
 
 
 def test_the_privacy_statement_does_not_describe_outcome_logging_as_built() -> None:
-    """Outcome logging is not built. Describing it would be the exact failure to avoid."""
+    """The service records no outcomes. Describing it as built would be the exact
+    failure to avoid; MODEL-211's log is the CLI's, local and opt-in."""
     section = PRIVACY.split("## Not yet live", 1)
     assert len(section) == 2, "the privacy statement must keep a 'Not yet live' section"
     before, after = flat(section[0]), flat(section[1])
     assert "Outcome logging" not in before
-    assert "Outcome logging" in after
+    assert "Outcome logging by the service" in after
     assert "Not built" in after
+    assert "docs/design/outcome-upload.md" in after
+
+
+def test_the_privacy_statement_describes_the_local_outcome_log() -> None:
+    """MODEL-211 ships an opt-in log that stays on the machine. v1.2 called outcome
+    logging "Not built", which stopped being the whole truth when it merged."""
+    assert (REPO_ROOT / "cli" / "modelspec" / "outcome.py").is_file()
+    before = flat(PRIVACY.split("## Not yet live", 1)[0])
+    for claim in ("`modelspec outcome enable`", "nothing until you turn it on",
+                  "It never leaves your machine", "`cli/modelspec/outcome.py`"):
+        assert claim in before, claim
+
+
+def test_the_outcome_modules_open_no_connection() -> None:
+    """"It never leaves your machine" holds only while the outcome code imports
+    nothing that can reach a network. Upload is a separate, unbuilt path."""
+    import ast
+
+    network = {"socket", "ssl", "http", "urllib", "urllib3", "httpx", "requests",
+               "aiohttp", "ftplib", "smtplib"}
+    for name in ("outcome.py", "outcome_cmd.py"):
+        tree = ast.parse((REPO_ROOT / "cli" / "modelspec" / name).read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                roots = {alias.name.split(".")[0] for alias in node.names}
+            elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+                roots = {node.module.split(".")[0]}
+            else:
+                continue
+            assert not roots & network, (
+                f"cli/modelspec/{name} imports {sorted(roots & network)}; the privacy "
+                "statement says the outcome log never leaves your machine")
+
+
+def test_the_privacy_statement_names_every_browser_storage_key() -> None:
+    """No cookie is set, but the decide page writes `localStorage` (MODEL-237).
+    Every key a shipped page writes must be named, so a new one fails here."""
+    import re
+
+    keys = set()
+    for folder in ("web", "web3d", "pipeline", "site"):
+        for src in (REPO_ROOT / folder).rglob("*"):
+            if (src.suffix not in {".ts", ".tsx", ".html", ".js", ".mjs", ".py"}
+                    or not src.is_file()
+                    or {"node_modules", "__tests__", "vendor", "dist"} & set(src.parts)
+                    or ".test." in src.name):
+                continue
+            text = src.read_text(encoding="utf-8", errors="ignore")
+            for other in ("sessionStorage", "indexedDB", "document.cookie"):
+                assert other not in text, (
+                    f"{src.relative_to(REPO_ROOT)} uses {other}; the privacy statement "
+                    "says no cookie is set and names only localStorage")
+            if "localStorage.setItem" in text:
+                keys |= set(re.findall(r"""["'`](modelspec-[a-z0-9-]+)["'`]""", text))
+    assert {"modelspec-theme", "modelspec-estate-v1", "modelspec-alerts"} <= keys
+    for key in sorted(keys):
+        assert f"`{key}`" in PRIVACY, (
+            f"a page writes {key!r} to localStorage and the privacy statement does not name it")
+    assert "No cookies are set" in FLAT_PRIVACY
+
+
+def test_x402_stays_off_while_keyless_visitors_are_metered_by_a_bare_ip_hash() -> None:
+    """MODEL-237. With x402 on, `_site_free_visitor` names keyless browser meters
+    after an unsalted SHA-256 of the IP address, which enumeration reverses. The
+    statement promises that is replaced before x402 goes on; this holds it."""
+    import ast
+
+    from pipeline.worker_flags import parse_jsonc
+
+    worker = REPO_ROOT / "api" / "worker"
+    tree = ast.parse((worker / "src" / "entry.py").read_text(encoding="utf-8"))
+    meter = next(node for node in ast.walk(tree)
+                 if isinstance(node, ast.FunctionDef) and node.name == "_site_free_visitor")
+    source = ast.unparse(meter)
+    reads_ip = "CF-Connecting-IP" in source
+    keyed = "hmac" in source.lower()
+    if reads_ip and not keyed:
+        config = parse_jsonc((worker / "wrangler.jsonc").read_text(encoding="utf-8"))
+        flag = str(config["vars"].get("X402_ENABLED", "false")).strip().lower()
+        assert flag in {"", "0", "false", "no", "off"}, (
+            "X402_ENABLED is on in production while keyless visitors are metered under "
+            "an unkeyed hash of their IP address; the privacy statement says that is "
+            "replaced first")
+        # A deploy-time `--var X402_ENABLED:true` would dodge the check above.
+        for workflow in (REPO_ROOT / ".github" / "workflows").glob("*.y*ml"):
+            assert "X402_ENABLED" not in workflow.read_text(encoding="utf-8"), workflow.name
+        assert "unsalted hash of an IP address" in FLAT_PRIVACY
 
 
 def _wrangler_config() -> str:
@@ -496,16 +584,108 @@ def test_the_privacy_statement_discloses_cloudflare_observability() -> None:
     assert "Workers observability is enabled" in FLAT_PRIVACY
 
 
-def test_the_privacy_statement_says_pages_load_nothing_third_party() -> None:
+#: Third-party script hosts a page may load, each disclosed in the privacy
+#: statement. Cloudflare injects Web Analytics at the edge (MODEL-236), so it is
+#: not in the source tree; it is listed so that the live smoke check or a later
+#: move into the source cannot add it silently. Adding a host here is a change to
+#: the privacy statement.
+DISCLOSED_THIRD_PARTY_SCRIPTS = {"static.cloudflareinsights.com": "### Cloudflare Web Analytics"}
+_OWN_HOSTS = {"modelspec.dev", "www.modelspec.dev", "api.modelspec.dev"}
+_LOADING_RELS = {"stylesheet", "preload", "modulepreload", "preconnect", "prefetch",
+                 "dns-prefetch", "icon", "manifest"}
+
+
+def _third_party_hosts(text: str) -> set[str]:
+    """Hosts other than ours that markup or code loads a script, style or font from."""
+    import re
+
+    found = set(re.findall(
+        r"""<script\b[^>]*?\bsrc\s*=\s*["']?(?:https?:)?//([^/"'\s>]+)""", text, re.I))
+    found |= set(re.findall(r"""\b(?:fetch|import)\s*\(\s*["'`]https?://([^/"'`\s]+)""", text))
+    for tag in re.findall(r"<link\b[^>]*>", text, re.I):
+        rel = re.search(r"""\brel\s*=\s*["']?([^"'>]+)""", tag, re.I)
+        href = re.search(r"""\bhref\s*=\s*["']?(?:https?:)?//([^/"'\s>]+)""", tag, re.I)
+        if rel and href and _LOADING_RELS & set(rel.group(1).lower().split()):
+            found.add(href.group(1))
+    return {host.lower() for host in found} - _OWN_HOSTS
+
+
+def test_the_host_detector_allows_the_beacon_and_nothing_else() -> None:
+    """The guard below is only as good as this detector, so prove it on the tag
+    Cloudflare injects (as captured from modelspec.dev on 2026-09-29) and on the
+    loads it has to refuse."""
+    beacon = ('<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v31" '
+              'data-cf-beacon=\'{"token":"t","spa":2}\' crossorigin="anonymous"></script>')
+    assert _third_party_hosts(beacon) == {"static.cloudflareinsights.com"}
+    assert set(_third_party_hosts(beacon)) <= set(DISCLOSED_THIRD_PARTY_SCRIPTS)
+    for load, host in (
+            ('<script src="https://cdn.jsdelivr.net/npm/x.js"></script>', "cdn.jsdelivr.net"),
+            ('<script async src=//www.googletagmanager.com/gtag/js></script>',
+             "www.googletagmanager.com"),
+            ('<link rel="stylesheet" href="https://fonts.googleapis.com/css2">',
+             "fonts.googleapis.com"),
+            ('fetch("https://plausible.io/api/event", {})', "plausible.io")):
+        assert _third_party_hosts(load) == {host}, load
+        assert host not in DISCLOSED_THIRD_PARTY_SCRIPTS
+    ours = ('<script src="/assets/decide.js"></script><link rel="canonical" '
+            'href="https://modelspec.dev/decide/"><a href="https://github.com/x">x</a>'
+            'fetch("https://api.modelspec.dev/v1/decide")')
+    assert _third_party_hosts(ours) == set()
+
+
+def test_pages_load_no_third_party_script_but_the_disclosed_beacon(tmp_path: Path) -> None:
+    """MODEL-236 / MODEL-237. The statement says the pages' one third-party request
+    is Cloudflare's analytics script. Any other third-party script, stylesheet or
+    font in a page's source, or in a rendered legal page, fails here."""
+    hits: dict[str, set[str]] = {}
+    for folder in ("site", "web", "web3d", "pipeline"):
+        for src in (REPO_ROOT / folder).rglob("*"):
+            if (src.suffix not in {".html", ".js", ".mjs", ".ts", ".tsx", ".py", ".css"}
+                    or not src.is_file()
+                    or {"node_modules", "__tests__", "vendor", "dist"} & set(src.parts)
+                    or ".test." in src.name):
+                continue
+            hosts = _third_party_hosts(src.read_text(encoding="utf-8", errors="ignore"))
+            if hosts - set(DISCLOSED_THIRD_PARTY_SCRIPTS):
+                hits[str(src.relative_to(REPO_ROOT))] = hosts
+    legal.write(tmp_path, REPO_ROOT, _build())
+    for page in (tmp_path / legal.LEGAL_ROOT).rglob("*.html"):
+        hosts = _third_party_hosts(page.read_text(encoding="utf-8"))
+        if hosts - set(DISCLOSED_THIRD_PARTY_SCRIPTS):
+            hits[str(page.relative_to(tmp_path))] = hosts
+    assert hits == {}, (
+        f"pages load third-party scripts the privacy statement does not disclose: {hits}")
+
+    for host, section in DISCLOSED_THIRD_PARTY_SCRIPTS.items():
+        assert section in PRIVACY, (host, section)
+        assert f"`{host}`" in FLAT_PRIVACY, host
+    assert "pages load nothing else from a third party" in FLAT_PRIVACY
+
+
+def test_the_analytics_disclosure_states_its_purpose_and_its_limits() -> None:
+    """Jamie's intent (MODEL-236): say why the beacon runs, in the short version
+    and in its own section, and say that it does not identify anyone."""
+    purpose = ("We want to know where our visitors come from and how they use the site, "
+               "so we can make a better product. That is why we run Cloudflare Web Analytics.")
+    short = flat(PRIVACY.split("## The short version", 1)[1].split("\n## ", 1)[0])
+    section = flat(PRIVACY.split("### Cloudflare Web Analytics", 1)[1].split("\n## ", 1)[0])
+    for text in (short, section):
+        assert purpose in text
+        assert "It does not tell us who you are" in text
+    for claim in ("sets no cookie", "never shows us an IP address", "as our processor",
+                  "https://www.cloudflare.com/web-analytics/"):
+        assert claim in section, claim
+
+
+def test_no_page_loads_a_font_from_a_cdn() -> None:
     """No page on either site loads a font from a CDN any more (MODEL-92, with
-    explorer.html switched in MODEL-24's PR #115), so the draft must not disclose
-    a Google Fonts request that no longer happens. tests/test_no_font_cdn.py
+    explorer.html switched in MODEL-24's PR #115), so the statement must not
+    disclose a Google Fonts request that no longer happens. tests/test_no_font_cdn.py
     proves the premise against the source tree and a built site."""
     from pipeline import render as r
     assert "fonts.googleapis.com" not in r.FONTS
     assert "fonts.googleapis.com" not in FLAT_PRIVACY
     assert "Google Fonts" not in FLAT_PRIVACY
-    assert "pages load nothing from a third party" in FLAT_PRIVACY
 
 
 def test_the_privacy_statement_claims_no_prompt_field_and_the_api_has_none() -> None:
@@ -519,6 +699,19 @@ def test_the_privacy_statement_claims_no_prompt_field_and_the_api_has_none() -> 
     assert "There is no field" in FLAT_PRIVACY
 
 
+def test_the_decide_contract_refuses_its_free_text_task() -> None:
+    """The statement says `task`, the contract's one free-text field, is refused,
+    and that fields a spec does not define are refused rather than ignored."""
+    from decision import contract
+
+    base = {"spec_version": 1, "optimize": {"max": "swe_bench_pro"}}
+    assert contract.parse_spec(dict(base), facets=None).spec_version == 1
+    for extra in ({"task": "summarise my contract"}, {"prompt": "hello"}):
+        with pytest.raises(contract.SpecError):
+            contract.parse_spec({**base, **extra}, facets=None)
+    assert "`task`, is refused" in FLAT_PRIVACY
+
+
 #: The version in force for each document. A change to what the service records
 #: is a change to the privacy statement, and a commitment added to the neutrality
 #: commitment is a change to that; each gets a new version and date rather than
@@ -526,7 +719,7 @@ def test_the_privacy_statement_claims_no_prompt_field_and_the_api_has_none() -> 
 IN_FORCE = {
     "terms": "Version `1.0`, effective 2026-09-19.",
     "neutrality": "Version `1.1`, effective 2026-09-23.",
-    "privacy": "Version `1.2`, effective 2026-09-26.",
+    "privacy": "Version `1.3`, effective 2026-09-29.",
 }
 
 
