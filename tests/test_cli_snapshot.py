@@ -14,6 +14,7 @@ import gzip
 import json
 import subprocess
 import sys
+import warnings
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
@@ -354,6 +355,156 @@ def test_fetch_refuses_a_tampered_ed25519_snapshot(
     assert result.decision_fetch["available"] is False
     assert "Ed25519 signature" in result.decision_fetch["error"]
     assert not (cache / "decision" / "current").exists()
+
+
+def _signed_vocabulary(vocabulary: dict) -> dict:
+    return decision_snapshot.sign_vocabulary(
+        {**vocabulary, "vendors": ["genuine"]}, _TEST_SIGNER
+    )
+
+
+def test_fetch_accepts_a_genuinely_signed_vocabulary(
+    cache: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    decision, vocabulary = _decision_artifacts()
+    bodies = _fetch_bodies()
+    bodies[snapshot.DECISION_SNAPSHOT_ROUTE] = decision
+    bodies[snapshot.DECISION_VOCABULARY_ROUTE] = _signed_vocabulary(vocabulary)
+    _mock_http_client(monkeypatch, bodies)
+
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        result = snapshot.fetch("https://example.test", cache)
+
+    assert result.decision_fetch["available"] is True
+    assert result.decision_fetch["vocabulary_signature"] == "verified"
+    cached = json.loads(snapshot.decision_vocabulary_path(cache).read_text())
+    assert cached["vendors"] == ["genuine"]
+
+
+def test_fetch_refuses_a_tampered_vocabulary_that_names_the_right_snapshot(
+    cache: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    decision, vocabulary = _decision_artifacts()
+    old_snapshot, old_vocabulary = _write_old_decision_pair(cache)
+    forged = _signed_vocabulary(vocabulary)
+    forged["vendors"] = ["attacker"]
+    bodies = _fetch_bodies()
+    bodies[snapshot.DECISION_SNAPSHOT_ROUTE] = decision
+    bodies[snapshot.DECISION_VOCABULARY_ROUTE] = forged
+    _mock_http_client(monkeypatch, bodies)
+
+    result = snapshot.fetch("https://example.test", cache)
+
+    assert result.decision_fetch["available"] is False
+    assert "no valid Ed25519 signature" in result.decision_fetch["error"]
+    assert snapshot.decision_vocabulary_path(cache).read_bytes() == old_vocabulary
+
+
+def test_fetch_refuses_a_vocabulary_signed_by_an_unpinned_key(
+    cache: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    decision, vocabulary = _decision_artifacts()
+    stranger = decision_snapshot.Ed25519Signer(
+        "test-fixture",
+        Ed25519PrivateKey.generate().private_bytes(
+            serialization.Encoding.Raw,
+            serialization.PrivateFormat.Raw,
+            serialization.NoEncryption(),
+        ),
+    )
+    bodies = _fetch_bodies()
+    bodies[snapshot.DECISION_SNAPSHOT_ROUTE] = decision
+    bodies[snapshot.DECISION_VOCABULARY_ROUTE] = decision_snapshot.sign_vocabulary(
+        vocabulary, stranger
+    )
+    _mock_http_client(monkeypatch, bodies)
+
+    result = snapshot.fetch("https://example.test", cache)
+
+    assert result.decision_fetch["available"] is False
+    assert "no valid Ed25519 signature" in result.decision_fetch["error"]
+
+
+def test_a_snapshot_signature_is_not_a_vocabulary_signature(
+    cache: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    decision, vocabulary = _decision_artifacts()
+    envelope = json.loads(gzip.decompress(decision))
+    replayed = {
+        **vocabulary,
+        "signatures": envelope["signatures"],
+    }
+    bodies = _fetch_bodies()
+    bodies[snapshot.DECISION_SNAPSHOT_ROUTE] = decision
+    bodies[snapshot.DECISION_VOCABULARY_ROUTE] = replayed
+    _mock_http_client(monkeypatch, bodies)
+
+    result = snapshot.fetch("https://example.test", cache)
+
+    assert result.decision_fetch["available"] is False
+
+
+def test_fetch_falls_back_with_a_warning_for_an_unsigned_legacy_vocabulary(
+    cache: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _mock_http_client(monkeypatch, _fetch_bodies())
+
+    with pytest.warns(RuntimeWarning, match="vocabulary is unsigned"):
+        result = snapshot.fetch("https://example.test", cache)
+
+    assert result.decision_fetch["available"] is True
+    assert result.decision_fetch["vocabulary_signature"] == "unsigned"
+
+
+def test_a_cached_vocabulary_edited_after_fetch_fails_generation_validation(
+    cache: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    decision, vocabulary = _decision_artifacts()
+    generation = _install_decision_pair(cache, decision, _signed_vocabulary(vocabulary))
+    assert snapshot._validate_decision_generation(generation) == vocabulary["snapshot"]
+    path = generation / "vocabulary.json"
+    edited = json.loads(path.read_text())
+    edited["vendors"] = ["attacker"]
+    path.write_text(json.dumps(edited))
+
+    with pytest.raises(ValueError, match="no valid Ed25519 signature"):
+        snapshot._validate_decision_generation(generation)
+
+
+def test_a_genuine_fetch_replaces_a_cached_unsigned_vocabulary_for_the_same_snapshot(
+    cache: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    decision, vocabulary = _decision_artifacts()
+    poisoned = dict(vocabulary, vendors=["attacker"])
+    generation = _install_decision_pair(cache, decision, poisoned)
+    bodies = _fetch_bodies()
+    bodies[snapshot.DECISION_SNAPSHOT_ROUTE] = decision
+    bodies[snapshot.DECISION_VOCABULARY_ROUTE] = _signed_vocabulary(vocabulary)
+    _mock_http_client(monkeypatch, bodies)
+
+    result = snapshot._fetch_decision_files("https://example.test", cache, None)
+
+    assert result["vocabulary_signature"] == "verified"
+    cached = json.loads((generation / "vocabulary.json").read_text())
+    assert cached == _signed_vocabulary(vocabulary)
+
+
+def test_the_vocabulary_the_commands_read_is_verified_on_load(
+    cache: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from cli.modelspec import vocabulary_cache
+
+    decision, vocabulary = _decision_artifacts()
+    generation = _install_decision_pair(cache, decision, _signed_vocabulary(vocabulary))
+    monkeypatch.setattr(snapshot, "cache_dir", lambda: cache)
+    assert vocabulary_cache.load_cached_vocabulary()["snapshot"] == vocabulary["snapshot"]
+    edited = json.loads((generation / "vocabulary.json").read_text())
+    edited["vendors"] = ["attacker"]
+    (generation / "vocabulary.json").write_text(json.dumps(edited))
+
+    with pytest.raises(vocabulary_cache.VocabularyInvalidError, match="no valid Ed25519"):
+        vocabulary_cache.load_cached_vocabulary()
 
 
 def test_successive_fetches_keep_current_and_previous_generations(
