@@ -110,3 +110,22 @@ it("shows a burst refusal in the page and asks for fresh verification", async ()
   await waitFor(() => expect(window.turnstile?.render).toHaveBeenCalledTimes(2));
   expect(sentSpecs(vi.mocked(fetch))).toHaveLength(1);
 });
+
+
+it("recovers from a transient status 503 after retry without a reload", async () => {
+  const fetchStatus = vi.fn()
+    .mockResolvedValueOnce(json({ enabled: true }, 503))
+    .mockResolvedValue(json({ enabled: true, remaining: 20 }));
+  vi.stubGlobal("fetch", fetchStatus);
+  const onLookup = vi.fn(async () => {});
+  const { HumanGate } = await import("../components/HumanGate");
+  render(<HumanGate onLookup={onLookup} />);
+  expect(await screen.findByText(/Manual decisions are temporarily unavailable/)).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Retry verification" }));
+  expect(await screen.findByText(/20 decisions remaining today/)).toBeVisible();
+  const button = screen.getByRole("button", { name: "Look up this decision" });
+  await waitFor(() => expect(button).toBeEnabled());
+  expect(fetchStatus).toHaveBeenCalledTimes(2);
+  fireEvent.click(button);
+  await waitFor(() => expect(onLookup).toHaveBeenCalledTimes(1));
+});

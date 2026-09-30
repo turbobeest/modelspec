@@ -27,7 +27,7 @@ def take(state, fingerprint, now):
         times = [row[0] for row in events[-4:]] + [now]
         gaps = [b - a for a, b in zip(times, times[1:])]
         even = len(gaps) == 4 and min(gaps) >= 1 and max(gaps) - min(gaps) <= max(0.25, sum(gaps) / 4 * 0.05)
-        if len({row[1] for row in events} | {fingerprint}) >= 6 or even:
+        if even:
             reason, retry = "sweep", WINDOW_SECONDS
             state["blocked_until"] = now + WINDOW_SECONDS
     if not reason:
@@ -56,7 +56,10 @@ class HumanGateObject(DurableObject):
         return result
 
     async def remaining(self):
-        self.ctx.storage.sql.exec("CREATE TABLE IF NOT EXISTS human_state (k TEXT PRIMARY KEY, v TEXT)")
+        table = _one_row(self.ctx.storage.sql.exec(
+            "SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'human_state'"))
+        if table is None:
+            return DAY_LIMIT
         row = _one_row(self.ctx.storage.sql.exec("SELECT v FROM human_state WHERE k = 'state'"))
         state = json.loads(str(_cell(row, "v"))) if row is not None else {}
         count = state.get("count", 0) if state.get("day") == int(time.time() // 86400) else 0

@@ -55,7 +55,10 @@ export function HumanGate({ onLookup, disabled = false }: {
     }).then(async (response) => {
       if (!response.ok) throw new Error("Unavailable");
       const status = statusSchema.parse(await response.json());
-      if (status.enabled) setRemaining(status.remaining);
+      if (status.enabled) {
+        setRemaining(status.remaining);
+        setUnavailable(!SITE_KEY);
+      }
       else setUnavailable(true);
     }).catch(() => { if (!controller.signal.aborted) setUnavailable(true); });
     return () => controller.abort();
@@ -68,7 +71,10 @@ export function HumanGate({ onLookup, disabled = false }: {
     void loadWidget().then(() => {
       if (!active || !container.current || !window.turnstile) return;
       widget = window.turnstile.render(container.current, {
-        sitekey: SITE_KEY, action: "decide", callback: setToken,
+        sitekey: SITE_KEY, action: "decide", callback: (value) => {
+          setToken(value);
+          setUnavailable(false);
+        },
         "expired-callback": () => setToken(null),
         "error-callback": () => { setToken(null); setUnavailable(true); },
       });
@@ -82,6 +88,11 @@ export function HumanGate({ onLookup, disabled = false }: {
         ? "You have used today's 20 manual decisions. Come back after midnight UTC."
         : remaining === null ? "Checking today's allowance…" : `${remaining} decisions remaining today. Resets at midnight UTC.`}</p>
     <p>Manual lookups are limited to 20 per day and 3 per minute. For machine access, use the <a href="/pricing/">paid API or MCP</a>.</p>
+    {unavailable && SITE_KEY && <button disabled={busy} onClick={() => {
+      setUnavailable(false);
+      setToken(null);
+      setChallenge((value) => value + 1);
+    }}>Retry verification</button>}
     <div ref={container} />
     <button className="primary" disabled={disabled || busy || unavailable || remaining === null || remaining === 0 || !token}
       onClick={async () => {
@@ -89,7 +100,7 @@ export function HumanGate({ onLookup, disabled = false }: {
         setBusy(true);
         setToken(null);
         try { await onLookup(token, setRemaining); }
-        finally { setBusy(false); setChallenge((value) => value + 1); }
+        finally { setBusy(false); setUnavailable(!SITE_KEY); setChallenge((value) => value + 1); }
       }}>Look up this decision</button>
   </section>;
 }

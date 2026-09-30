@@ -722,8 +722,12 @@ class Default(WorkerEntrypoint):
                 if status == 200:
                     status, body = await _anonymous()
                 else:
-                    status, body = decider.error_response(
-                        code, message, status=status, snapshot_id=None)
+                    return _json_response(status, {
+                        "contract_version": decider.contract.CONTRACT_VERSION,
+                        "endpoint": "decide",
+                        "snapshot": None,
+                        "error": {"code": code, "message": message},
+                    }, {**gate_headers, **_cors_headers(request)})
                 return _decision_response(status, body, {
                     **gate_headers, **_decision_holder(origin).headers(),
                     **_cors_headers(request),

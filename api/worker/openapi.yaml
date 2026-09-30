@@ -46,6 +46,12 @@ info:
   - comparison_snapshot_unavailable
   - determinations_unavailable
   - export_unavailable
+  - human_burst_limit
+  - human_challenge_required
+  - human_day_limit
+  - human_gate_unavailable
+  - human_origin_required
+  - human_sweep_limit
   - insufficient_evidence
   - invalid_api_key
   - invalid_request
@@ -58,6 +64,7 @@ info:
   - not_found
   - origin_not_allowed
   - payload_too_large
+  - payment_required
   - rate_limited
   - sandbox_not_available
   - snapshot_changed
@@ -74,6 +81,12 @@ info:
   - unknown_use_case
   x-transport-error-statuses:
     export_unavailable: 502
+    human_burst_limit: 429
+    human_challenge_required: 403
+    human_day_limit: 429
+    human_gate_unavailable: 503
+    human_origin_required: 401
+    human_sweep_limit: 429
     method_not_allowed: 405
     not_found: 404
     origin_not_allowed: 404
@@ -190,6 +203,80 @@ servers:
 - url: https://api.modelspec.dev
   description: production
 paths:
+  /v1/human-status:
+    get:
+      operationId: humanStatus
+      summary: Read today's manual lookup allowance without spending or creating durable state.
+      responses:
+        '200':
+          description: Gate disabled, or the remaining daily allowance.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - type: object
+                  required:
+                  - enabled
+                  additionalProperties: false
+                  properties:
+                    enabled:
+                      type: boolean
+                      enum:
+                      - false
+                - type: object
+                  required:
+                  - enabled
+                  - remaining
+                  additionalProperties: false
+                  properties:
+                    enabled:
+                      type: boolean
+                      enum:
+                      - true
+                    remaining:
+                      type: integer
+                      minimum: 0
+                      maximum: 20
+        '403':
+          description: The request origin is not a permitted site origin.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - enabled
+                properties:
+                  enabled:
+                    type: boolean
+        '405':
+          description: This endpoint takes GET.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - error
+                properties:
+                  error:
+                    type: string
+                    enum:
+                    - method_not_allowed
+        '503':
+          description: The gate secrets or storage are unavailable. Retry later.
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - enabled
+                - message
+                properties:
+                  enabled:
+                    type: boolean
+                    enum:
+                    - true
+                  message:
+                    type: string
   /v1/credits:
     get:
       operationId: credits
@@ -434,25 +521,29 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaymentRequired'
         '401':
-          description: No key while keys are enforced (missing_api_key), or a key that is not ours (invalid_api_key).
-            `error.how_to_get_a_key` says where to get one.
+          description: 'Missing or invalid API key, or human_origin_required: use the paid API or MCP.'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AccessRefused'
+                oneOf:
+                - $ref: '#/components/schemas/HumanGateRefused'
+                - $ref: '#/components/schemas/AccessRefused'
         '403':
-          description: 'key_revoked: a key we know and will not serve. Retrying will not help.'
+          description: 'Key revoked, or human_challenge_required: complete fresh verification.'
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AccessRefused'
+                oneOf:
+                - $ref: '#/components/schemas/HumanGateRefused'
+                - $ref: '#/components/schemas/AccessRefused'
         '429':
-          description: 'rate_limited: the key''s daily or per-minute window is spent. States the limit,
-            the window and `resets_at`; `Retry-After` is set.'
+          description: Key quota, or human day, burst or even-interval limit. Wait for Retry-After.
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AccessRefused'
+                oneOf:
+                - $ref: '#/components/schemas/HumanGateRefused'
+                - $ref: '#/components/schemas/AccessRefused'
         '500':
           description: 'Ours, not the caller''s: the key names a tier the service does not carry (tier_not_configured),
             or the deployment has no tier table (access_not_configured).'
@@ -461,16 +552,17 @@ paths:
               schema:
                 $ref: '#/components/schemas/AccessRefused'
         '503':
-          description: The snapshot is not published, it cannot be verified, or a live key cannot reach
-            the access store. A no_snapshot response includes Retry-After.
+          description: Snapshot, access store or human gate unavailable. Retry later.
           content:
             application/json:
               schema:
                 oneOf:
                 - oneOf:
-                  - $ref: '#/components/schemas/DecisionSnapshotUnavailable'
-                  - $ref: '#/components/schemas/DecisionRequestRefused'
-                - $ref: '#/components/schemas/AccessRefused'
+                  - oneOf:
+                    - $ref: '#/components/schemas/DecisionSnapshotUnavailable'
+                    - $ref: '#/components/schemas/DecisionRequestRefused'
+                  - $ref: '#/components/schemas/AccessRefused'
+                - $ref: '#/components/schemas/HumanGateRefused'
           headers:
             Retry-After:
               description: Seconds before retrying a no_snapshot response.
@@ -5946,6 +6038,56 @@ components:
             current:
               type: string
               description: 'snapshot_changed only: the snapshot that answers now.'
+    HumanGateRefused:
+      type: object
+      additionalProperties: false
+      required:
+      - contract_version
+      - endpoint
+      - snapshot
+      - error
+      properties:
+        contract_version:
+          type: string
+          enum:
+          - '2.10'
+        endpoint:
+          type: string
+          enum:
+          - decide
+        snapshot:
+          anyOf:
+          - type: string
+            pattern: ^snap_[A-Za-z0-9:._-]+$
+          - type: 'null'
+        error:
+          type: object
+          additionalProperties: false
+          required:
+          - code
+          - message
+          properties:
+            code:
+              type: string
+              enum:
+              - human_burst_limit
+              - human_challenge_required
+              - human_day_limit
+              - human_gate_unavailable
+              - human_origin_required
+              - human_sweep_limit
+            message:
+              type: string
+            issues:
+              type: array
+              items:
+                type: object
+            requested:
+              type: string
+              description: 'snapshot_changed only: the X-ModelSpec-Snapshot sent.'
+            current:
+              type: string
+              description: 'snapshot_changed only: the snapshot that answers now.'
     DecisionSnapshotUnavailable:
       type: object
       additionalProperties: false
@@ -7980,6 +8122,12 @@ components:
               type: string
               enum:
               - export_unavailable
+              - human_burst_limit
+              - human_challenge_required
+              - human_day_limit
+              - human_gate_unavailable
+              - human_origin_required
+              - human_sweep_limit
               - method_not_allowed
               - not_found
               - origin_not_allowed

@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
+from ipaddress import ip_address, ip_network
 from urllib.parse import urlparse
 
 import access
@@ -22,8 +23,30 @@ def enabled(env):
     return access.enforcement(getattr(env, "HUMAN_GATE_ENABLED", None))
 
 
+# Access/transport refusals, outside the closed decision contract.
+REFUSALS = {
+    "human_origin_required": 401,
+    "human_challenge_required": 403,
+    "human_gate_unavailable": 503,
+    "human_day_limit": 429,
+    "human_burst_limit": 429,
+    "human_sweep_limit": 429,
+}
+LIMIT_CODES = {"day": "human_day_limit", "burst": "human_burst_limit", "sweep": "human_sweep_limit"}
+
+
+def identity_for(request, env):
+    ip = str(request.headers.get("CF-Connecting-IP") or "").strip()
+    if not ip:
+        return None
+    address = ip_address(ip)
+    if address.version == 6:
+        ip = str(ip_network(f"{address}/64", strict=False))
+    return visitor.visitor_id(ip, getattr(env, visitor.KEY_VAR, None))
+
+
 def stub_for(request, env):
-    identity = visitor.visitor_id_for(request, env)
+    identity = identity_for(request, env)
     binding = getattr(env, "HUMAN_GATE", None)
     if not identity or binding is None or not getattr(env, "TURNSTILE_SECRET", None):
         return None
@@ -63,7 +86,7 @@ async def admit(request, env, payload, origins, verify):
                 or result.get("hostname") != urlparse(origin).hostname \
                 or result.get("action") != "decide":
             return 403, "human_challenge_required", "Human verification failed or expired. Please verify again.", {}
-        identity = visitor.visitor_id_for(request, env)
+        identity = identity_for(request, env)
         if identity is None:
             return 503, "human_gate_unavailable", UNAVAILABLE, {}
         # Verification may have crossed UTC midnight. Resolve the daily object
@@ -79,7 +102,7 @@ async def admit(request, env, payload, origins, verify):
                 "burst": "Three decisions per minute is the manual lookup limit. Wait a minute, then verify again.",
                 "sweep": "This lookup pattern resembles an automated sweep. Wait ten minutes and verify again, or use the paid API or MCP.",
             }
-            return 429, "human_" + reason + "_limit", messages[reason], headers
+            return 429, LIMIT_CODES[reason], messages[reason], headers
         return 200, "", "", headers
     except Exception:
         # An unavailable verifier or counter must never grant a free decision.

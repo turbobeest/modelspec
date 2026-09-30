@@ -10,6 +10,10 @@ their existing access and billing behavior. Unfunded keys receive 402 on
 `/v1/decide` while the human gate is on, even when x402 is off, so presenting an
 empty key cannot bypass the human gate.
 
+The `human_*` refusals are access/transport errors outside the decision
+contract, routed like `origin_not_allowed`. They do not widen its closed
+error-code enum or change its version. See [access errors](decide-api.md#access-errors).
+
 ## Admission and storage
 
 Siteverify must return boolean `success: true`, the hostname matching the
@@ -19,9 +23,11 @@ timeout. The optional `remoteip` parameter is omitted. No token is logged or
 persisted by this code. See [Cloudflare's validation contract](https://developers.cloudflare.com/turnstile/get-started/server-side-validation/).
 
 The `HUMAN_GATE` binding points to `HumanGateObject`, with one instance named
-by the existing daily HMAC visitor ID. It uses synchronous SQLite reads and
-writes without yielding during admission. The caps are 20 admitted lookups
-per UTC day and three in a rolling 60 seconds. Admission consumes a lookup
+by a daily HMAC visitor ID. For this gate only, IPv6 addresses are normalised
+to their /64 network before deriving the ID. IPv4 stays as supplied, and the
+MODEL-241 keyless meter keeps its existing identity behavior. The object uses
+synchronous SQLite reads and writes without yielding during admission. The
+caps are 20 admitted lookups per UTC day and three in a rolling 60 seconds. Admission consumes a lookup
 even if the decision engine subsequently refuses the Spec or fails. Failed
 verification and cap refusals do not consume a lookup. This prevents concurrent
 or deliberately invalid requests from obtaining more answers than the cap.
@@ -29,10 +35,11 @@ or deliberately invalid requests from obtaining more answers than the cap.
 The state contains a UTC day, admitted count, recent timestamps, keyed Spec
 fingerprints and a suspicion expiry. Fingerprints are scoped to the daily
 visitor ID and exclude `explain`, `limit`
-and `snapshot`, so those variants count as the same lookup for sweep detection.
-It retains ten minutes of lookup history on the next admission. Six distinct
-Specs within ten minutes, or five lookups with four nearly equal intervals
-within ten minutes, set a ten-minute refusal. Equal means the interval spread
+and `snapshot`. Every admitted lookup counts toward interval detection,
+regardless of whether its fingerprint matches an earlier lookup.
+It retains ten minutes of lookup history on the next admission. Five lookups
+with four nearly equal intervals within ten minutes set a ten-minute refusal.
+Distinct Specs do not trigger a refusal. Equal means the interval spread
 is at most 5% of their mean or 250 milliseconds, whichever is larger, with
 intervals at least one second long. Suspicion persists through later uneven
 requests until it expires. Detection is per visitor, not a shared ASN cap.
@@ -43,7 +50,9 @@ exact retention deadline. Daily ID rotation prevents the next day's requests
 from reading yesterday's object. Cloudflare's SQLite point-in-time recovery
 can retain historical storage for up to 30 days. No raw IP, bare IP hash, raw
 Spec or Turnstile token enters the object. People sharing one public IP share
-a daily allowance. Changing networks can yield another allowance.
+a daily allowance. IPv6 addresses within one /64 share that allowance;
+different /64s have separate allowances. Changing networks can yield another
+allowance.
 
 Siteverify does not expose a documented headless flag or bot score. Turnstile
 uses browser signals internally and this gate refuses failed validation.
@@ -59,8 +68,10 @@ repository variables `HUMAN_GATE_ENABLED` and `TURNSTILE_SITE_KEY`. The key
 is public configuration, not a secret. Both are unset by default.
 
 The page obtains the current allowance from `GET /v1/human-status`, which is
-origin restricted and never spends a lookup. A manual button sends one full
-decision. The page disables automatic lookup on edits, explanation requests,
+origin restricted and never spends a lookup. When no state exists, a
+status-only visit returns the full allowance without creating a table, writing
+state or scheduling an alarm. A manual button sends one full decision. The
+page disables automatic lookup on edits, explanation requests,
 canvas plot requests, estate requests, question probes and automatic Spec
 fallback/retry. Estate data can accompany that single manual lookup.
 The widget is replaced after every submission, including a refusal, and token
@@ -87,9 +98,11 @@ staging-specific values. Never reuse or publish secret values in a PR.
 Create a Turnstile widget permitting the production, www and internal preview
 hostnames. Configure its public key in the Pages build variables above.
 Jamie adopts the separate privacy disclosure before enabling the gate. Publish
-the page with the build gate enabled and enable the Worker's
-`HUMAN_GATE_ENABLED` in the same rollout. Missing either Worker secret, the
-binding or the request IP fails closed with a temporarily unavailable message.
+the page gate first: set repository variable `HUMAN_GATE_ENABLED=true`,
+rebuild the site and verify that the gated page is live. Only then enable the
+Worker's `HUMAN_GATE_ENABLED`. The current ungated page receives 403 responses
+if the Worker flag flips before the rebuilt page is live. Missing either Worker
+secret, the binding or the request IP fails closed with a temporarily unavailable message.
 Missing public site configuration also disables the page's lookup button.
 
 This ticket gates `/v1/decide`. Existing static exports and the offline CLI

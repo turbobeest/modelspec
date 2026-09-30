@@ -113,7 +113,6 @@ def test_twenty_day_cap_and_utc_reset(monkeypatch):
 
 
 @pytest.mark.parametrize("times,payloads", [
-    ([0, 61, 123, 187, 252, 318], [str(i) for i in range(6)]),
     ([0, 70, 140, 210, 280], ["same"] * 5),
 ])
 def test_sweeps_and_even_intervals_trigger_sticky_refusal(monkeypatch, times, payloads):
@@ -218,10 +217,14 @@ def test_worker_siteverify_posts_only_secret_and_token(entry, monkeypatch):
 
 
 def test_status_reads_current_allowance_without_consuming(entry):
-    worker = _decision_worker(entry, _entry_env(**vars(env())))
+    environment = _entry_env(**vars(env()))
+    worker = _decision_worker(entry, environment)
     response = asyncio.run(worker.fetch(_Req("/v1/human-status", method="GET", headers={"origin": ORIGIN, "CF-Connecting-IP": IP})))
     assert response.status == 200
     assert response.json() == {"enabled": True, "remaining": 20}
+    obj = next(iter(environment.HUMAN_GATE.objects.values()))
+    assert obj.ctx.storage.sql.exec("SELECT name FROM sqlite_master WHERE type = 'table'").toArray() == []
+    assert obj.ctx.storage.alarm_at is None
 
 
 def test_rolling_burst_recovers_at_sixty_seconds(monkeypatch):
@@ -275,3 +278,57 @@ def test_keyed_decisions_need_paid_credits_and_do_not_need_human_secrets(entry, 
         assert asyncio.run(environment.CREDITS.balance(holder)).available == 4
     else:
         assert response.json()["error"]["code"] == "payment_required"
+
+
+@pytest.mark.parametrize("times", [
+    [0, 61, 123, 187, 252, 318],
+    [0, 60, 125, 185, 255, 317, 385, 446, 512, 576],
+])
+def test_irregular_distinct_specs_are_admitted(monkeypatch, times):
+    now = [10000]
+    monkeypatch.setattr(human_gate_do.time, "time", lambda: now[0])
+    e = env()
+    for index, offset in enumerate(times):
+        now[0] = 10000 + offset
+        out = asyncio.run(admit(req(str(index)), e, {"task": str(index)}))
+        assert out[0] == 200
+        assert out[3][human_gate.REMAINING_HEADER] == str(19 - index)
+    # Further distinct edits remain subject to the burst and daily caps.
+    for i in range(2):
+        assert asyncio.run(admit(req(), e, {"task": f"burst-{i}"}))[0] == 200
+    assert asyncio.run(admit(req(), e, {"task": "burst-refused"}))[1] == "human_burst_limit"
+    now[0] += 601
+    for i in range(20 - len(times) - 2):
+        assert asyncio.run(admit(req(), e, {"task": f"later-{i}"}))[0] == 200
+        now[0] += 601
+    assert asyncio.run(admit(req(), e))[1] == "human_day_limit"
+
+
+def test_ipv6_same_network_shares_allowance_other_network_does_not(monkeypatch):
+    monkeypatch.setattr(human_gate_do.time, "time", lambda: 10000)
+    e = env()
+    def request(address):
+        return _Req("/v1/decide", {"spec_version": 1}, headers={
+            "origin": ORIGIN, "CF-Connecting-IP": address, human_gate.TOKEN_HEADER: "token"})
+    assert asyncio.run(admit(request("2001:db8:abcd:1234::1"), e))[3][human_gate.REMAINING_HEADER] == "19"
+    assert asyncio.run(admit(request("2001:db8:abcd:1234:ffff::2"), e))[3][human_gate.REMAINING_HEADER] == "18"
+    assert asyncio.run(admit(request("2001:db8:abcd:1235::1"), e))[3][human_gate.REMAINING_HEADER] == "19"
+    assert len(e.HUMAN_GATE.objects) == 2
+    # MODEL-241 still distinguishes individual IPv6 addresses.
+    assert human_gate.visitor.visitor_id_for(request("2001:db8:abcd:1234::1"), e) != human_gate.visitor.visitor_id_for(request("2001:db8:abcd:1234:ffff::2"), e)
+    assert human_gate.identity_for(req(), e) == human_gate.visitor.visitor_id_for(req(), e)
+
+
+def test_gate_refusal_uses_transport_route_without_decision_error_builder(entry, monkeypatch):
+    worker = _decision_worker(entry, _entry_env(**vars(env())))
+    decider = entry._decide_service()
+    def never(*args, **kwargs):
+        pytest.fail("access refusal reached decision-contract error builder")
+    monkeypatch.setattr(decider, "error_response", never)
+    response = asyncio.run(worker.fetch(req(token="")))
+    assert response.status == 403
+    assert response.json() == {
+        "contract_version": decider.contract.CONTRACT_VERSION,
+        "endpoint": "decide", "snapshot": None,
+        "error": {"code": "human_challenge_required", "message": "Complete the human verification before each lookup."},
+    }
