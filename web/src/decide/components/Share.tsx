@@ -1,4 +1,3 @@
-import { HUMAN_GATE_ENABLED } from "./HumanGate";
 import { useEffect, useRef, useState } from "react";
 import { fmtB } from "../adapter";
 import { useVocab } from "../vocabulary/context";
@@ -22,6 +21,7 @@ export function Share({
   row,
   demo,
   refinementsFolded = false,
+  humanGateEnabled = false,
   boardPermalink,
   onClose,
 }: {
@@ -31,6 +31,7 @@ export function Share({
   row: Row | null;
   demo: boolean;
   refinementsFolded?: boolean;
+  humanGateEnabled?: boolean;
   boardPermalink?: { spec: Spec; state: BoardUrlState };
   onClose: () => void;
 }) {
@@ -297,7 +298,7 @@ export function Share({
                 </tbody>
               </table>
             </div>
-            {!HUMAN_GATE_ENABLED && <button onClick={download}>Download CSV</button>}
+            {!humanGateEnabled && <button onClick={download}>Download CSV</button>}
           </>
         )}
       </div>

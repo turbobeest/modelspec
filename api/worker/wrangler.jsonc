@@ -186,8 +186,8 @@
         "EXPORT_ORIGIN": "https://modelspec.dev",
         "BUILD_COMMIT": "dev",
         "ACCESS_ENFORCED": "false",
-        // MODEL-248. Explicitly off in the isolated staging environment too.
-        "HUMAN_GATE_ENABLED": "false",
+        // MODEL-248. Staging-only: verify the gate on Cloudflare before production.
+        "HUMAN_GATE_ENABLED": "true",
         "BILLING_ENABLED": "false",
         "FEEDBACK_ENABLED": "false",
         "X402_ENABLED": "true",
@@ -200,7 +200,7 @@
       "durable_objects": {
         "bindings": [
           { "name": "CREDITS", "class_name": "CreditsObject" },
-          // MODEL-248: isolated staging namespace, idle with gate off.
+          // MODEL-248: isolated staging namespace.
           { "name": "HUMAN_GATE", "class_name": "HumanGateObject" }
         ]
       }

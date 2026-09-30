@@ -93,6 +93,8 @@ export function DesignedApp({
 }: {
   simulate?: "loading" | "error" | "none";
 }) {
+  const [gateStatus, setGateStatus] = useState<boolean | null>(HUMAN_GATE_ENABLED ? null : false);
+  const humanGateEnabled = gateStatus !== false;
   const [initial] = useState(() => decodeSpec(location.hash)),
     [initialBoard] = useState(() => decodeBoardState(location.hash)),
     [spec, setSpec] = useState<Spec>(initial?.spec || baseSpec),
@@ -232,7 +234,7 @@ export function DesignedApp({
   useEffect(() => {
     if (
       !vocabulary ||
-      HUMAN_GATE_ENABLED ||
+      humanGateEnabled ||
       !hostedDecision ||
       !lastSentSpec ||
       !shownCanvasAxes
@@ -277,6 +279,7 @@ export function DesignedApp({
       });
     return () => controller.abort();
   }, [
+    humanGateEnabled,
     hostedDecision,
     lastSentSpec,
     shownCanvasAxes,
@@ -324,7 +327,7 @@ export function DesignedApp({
   const specIssues = placed.filter((issue) => issue.target.kind === "spec");
 
   async function runDecision(requested: Spec, humanToken?: string, onRemaining?: (remaining: number) => void) {
-    if (HUMAN_GATE_ENABLED && !humanToken) return;
+    if (humanGateEnabled && !humanToken) return;
     requestAbort.current?.abort();
     questionsAbort.current?.abort();
     const controller = new AbortController();
@@ -363,7 +366,7 @@ export function DesignedApp({
       const source = override ?? requested;
       const nextSpec = current ? sendableSpec(current, source) : source;
       return hostedEngine
-        .decide({ ...toBoardDecisionSpec(nextSpec, explain), ...(HUMAN_GATE_ENABLED && hasEstate(estate) ? { estate: estatePayload(estate) } : {}) }, {
+        .decide({ ...toBoardDecisionSpec(nextSpec, explain), ...(humanGateEnabled && hasEstate(estate) ? { estate: estatePayload(estate) } : {}) }, {
           humanToken, onRemaining,
           signal: controller.signal,
           snapshot: current?.snapshot,
@@ -383,7 +386,7 @@ export function DesignedApp({
       // so the ranking draws at once. The full explanation and the probes
       // follow only once it has answered, so a cold Worker meets one request
       // before the burst; if `full` fails, the summary stands (MODEL-153).
-      const answer = HUMAN_GATE_ENABLED
+      const answer = humanGateEnabled
         ? { result: await ask(vocabulary, "full"), vocabulary }
         : await retryOnSnapshotChange(
         vocabulary,
@@ -406,7 +409,7 @@ export function DesignedApp({
       setHostedQuestions(
         used ? realQuestions(used, nextSpec, dismissed) : questionsFor(nextSpec),
       );
-      if (HUMAN_GATE_ENABLED && answer.result.decision.with_estate) {
+      if (humanGateEnabled && answer.result.decision.with_estate) {
         setEstateRequest((current) => ({
           kind: "done", settledSpecHash: specHash(requested),
           requestKey: `${specHash(requested)}:${JSON.stringify(estate)}`,
@@ -422,7 +425,7 @@ export function DesignedApp({
         used ? sendableSpec(used, requested).boardWeights ?? {} : {},
       ).some((key) => refinementKeys.has(key));
       if (
-        !HUMAN_GATE_ENABLED &&
+        !humanGateEnabled &&
         used &&
         cause instanceof DecideApiError &&
         cause.status === 400 &&
@@ -459,7 +462,7 @@ export function DesignedApp({
     } finally {
       clearTimeout(watchdog);
     }
-    if (HUMAN_GATE_ENABLED) {
+    if (humanGateEnabled) {
       setRequestState({ kind: "success", details: "ready" });
       return;
     }
@@ -482,13 +485,13 @@ export function DesignedApp({
   }
 
   function scheduleDecision(nextSpec: Spec) {
-    if (HUMAN_GATE_ENABLED) return;
+    if (humanGateEnabled) return;
     if (requestTimer.current) clearTimeout(requestTimer.current);
     requestTimer.current = setTimeout(() => void runDecision(nextSpec), 300);
   }
 
   function changeSpec(nextSpec: Spec) {
-    if (HUMAN_GATE_ENABLED) {
+    if (humanGateEnabled) {
       requestAbort.current?.abort();
       setHostedDecision(null);
       setHostedQuestions([]);
@@ -547,7 +550,7 @@ export function DesignedApp({
   const effectiveSpec = lastSentSpec ?? spec;
   const estateRequestKey = `${specHash(spec)}:${JSON.stringify(estate)}`;
   useEffect(() => {
-    if (HUMAN_GATE_ENABLED || !answered) return;
+    if (humanGateEnabled || !answered) return;
     questionsAbort.current?.abort();
     const controller = new AbortController();
     questionsAbort.current = controller;
@@ -589,7 +592,7 @@ export function DesignedApp({
     // `answered`, not the decision: the full explanation replacing the summary
     // must not send every probe again.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [answered, effectiveSpec, dismissed, vocabulary]);
+  }, [humanGateEnabled, answered, effectiveSpec, dismissed, vocabulary]);
   useEffect(() => {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 20_000);
@@ -617,7 +620,7 @@ export function DesignedApp({
     };
   }, [vocabAttempt]);
   useEffect(() => {
-    if (!vocabulary) return;
+    if (!vocabulary || gateStatus === null) return;
     if (initial) {
       // A shared link: answer it as written. What the engine refuses is shown on its chip.
       // Once: a vocabulary reloaded after a deploy must not answer it again.
@@ -669,9 +672,9 @@ export function DesignedApp({
     }
     // Once per loaded vocabulary; runDecision reads the latest state itself.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vocabulary]);
+  }, [vocabulary, gateStatus]);
   useEffect(() => {
-    if (HUMAN_GATE_ENABLED) return;
+    if (humanGateEnabled) return;
     if (
       !vocabulary ||
       !hasEstate(estate) ||
@@ -764,7 +767,7 @@ export function DesignedApp({
     };
     // The key, not the summary/full response object, owns this request.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vocabulary, estateRequest.settledSpecHash, estateRequest.generation, estateRequestKey]);
+  }, [humanGateEnabled, vocabulary, estateRequest.settledSpecHash, estateRequest.generation, estateRequestKey]);
   useEffect(() => {
     if (!vocabulary || !initialRestored) return;
     history.replaceState(
@@ -938,7 +941,7 @@ export function DesignedApp({
       </header>
       <main className="work">
           <BoardIntro />
-          {HUMAN_GATE_ENABLED && <HumanGate disabled={!vocabulary} onLookup={(token, onRemaining) => runDecision(spec, token, onRemaining)} />}
+          {HUMAN_GATE_ENABLED && <HumanGate onEnabled={setGateStatus} disabled={!vocabulary} onLookup={(token, onRemaining) => runDecision(spec, token, onRemaining)} />}
           {vocabAlert}
           {vocabState.kind === "loading" && (
             <div role="status" aria-busy="true" className="loading">
@@ -954,7 +957,7 @@ export function DesignedApp({
             mustOrder={boardMustOrder}
             onMustOrder={setBoardMustOrder}
             estate={estate}
-            onEstate={HUMAN_GATE_ENABLED ? (next) => {
+            onEstate={humanGateEnabled ? (next) => {
               setEstate(next);
               changeSpec(spec);
             } : setEstate}
@@ -991,7 +994,7 @@ export function DesignedApp({
               {hostedDecision && <section className="answer-feedback" aria-label="Was this answer reliable?">
                 <FeedbackForm key={hostedDecision.decision_id} compact question="Was this answer reliable?" decisionId={hostedDecision.decision_id} template={activeTemplateId} page="/decide/" />
               </section>}
-            </> : <section className="panel board-answer-loading" aria-live="polite">{HUMAN_GATE_ENABLED ? "Choose your facets, then verify and look up this decision." : "The live answer will appear here."}</section>}
+            </> : <section className="panel board-answer-loading" aria-live="polite">{humanGateEnabled ? "Choose your facets, then verify and look up this decision." : "The live answer will appear here."}</section>}
           />}
           {error ? (
             <div role="alert" className="error">
@@ -1008,7 +1011,7 @@ export function DesignedApp({
                   </ul>
                 )}
               </div>
-              {!HUMAN_GATE_ENABLED && <button
+              {!humanGateEnabled && <button
                 className="ink-button"
                 onClick={() => {
                   setRetried(true);
@@ -1017,7 +1020,7 @@ export function DesignedApp({
               >
                 Retry
               </button>}
-              {HUMAN_GATE_ENABLED && <p>Verify again above before your next lookup.</p>}
+              {humanGateEnabled && <p>Verify again above before your next lookup.</p>}
             </div>
           ) : loading ? (
             <div role="status" aria-busy="true" className="loading">
@@ -1177,6 +1180,7 @@ export function DesignedApp({
       )}
       {share && (
         <Share
+          humanGateEnabled={humanGateEnabled}
           spec={lastSentSpec ?? shownSpec}
           snapshot={decision?.snapshot ?? "latest"}
           axis={shownAxis}
