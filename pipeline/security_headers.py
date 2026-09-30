@@ -1,8 +1,8 @@
 """Content-Security-Policy and framing headers for the modelspec.dev trees (MODEL-238).
 
-    security_headers.block(tree)
+    security_headers.add_to(headers, tree)
 
-One `/*` block for a Cloudflare Pages `_headers` file. The policy is written
+The policy for a Cloudflare Pages `_headers` file. The policy is written
 from the tree it protects: every executable inline `<script>` is allowed by its
 SHA-256 hash, so the policy carries no `'unsafe-inline'` for scripts and cannot
 drift from the pages. JSON-LD and the JSON data islands are not executed, so
@@ -59,9 +59,21 @@ def csp(tree: Path) -> str:
     ])
 
 
-def block(tree: Path) -> str:
-    return (
-        "/*\n"
-        f"  Content-Security-Policy: {csp(tree)}\n"
-        "  X-Frame-Options: DENY\n"
-    )
+def add_to(headers: str, tree: Path) -> str:
+    """`headers` with the policy inside its one `/*` rule.
+
+    Cloudflare Pages drops the earlier of two `/*` rules, which lost the
+    discovery `Link` and HSTS once, so the lines join the existing rule.
+    """
+    lines = headers.splitlines(keepends=True)
+    at = [i for i, line in enumerate(lines) if line.rstrip() == "/*"]
+    if len(at) != 1:
+        raise ValueError(f"_headers must have exactly one /* rule, found {len(at)}")
+    end = at[0] + 1
+    while end < len(lines) and lines[end].startswith("  "):
+        end += 1
+    lines[end:end] = [
+        f"  Content-Security-Policy: {csp(tree)}\n",
+        "  X-Frame-Options: DENY\n",
+    ]
+    return "".join(lines)

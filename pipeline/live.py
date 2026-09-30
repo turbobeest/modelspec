@@ -146,7 +146,7 @@ def build(src: Path, web: Path, out: Path) -> None:
     structured_data.inject(tree)
     headers = (real / "_headers").read_text(encoding="utf-8")
     (tree / "_headers").write_text(
-        headers.rstrip("\n") + "\n" + HEADERS + security_headers.block(tree), encoding="utf-8")
+        security_headers.add_to(headers.rstrip("\n") + "\n" + HEADERS, tree), encoding="utf-8")
     (out / "benchgraph").mkdir()
     shutil.copy2(src / "benchgraph" / "_redirects", out / "benchgraph" / "_redirects")
 

@@ -399,6 +399,27 @@ def test_the_workflow_assembles_live_with_the_module_and_smokes_discovery():
     assert "python -m pipeline.live smoke --origin https://internal.modelspec-7np.pages.dev" in text
 
 
+def test_each_headers_file_has_one_star_rule_carrying_everything(trees):
+    # Cloudflare Pages drops the earlier of two `/*` rules (MODEL-238 regression).
+    needed = {
+        "live": ("Link:", "Strict-Transport-Security:", "Permissions-Policy:",
+                 "X-Content-Type-Options:", "Content-Security-Policy:", "X-Frame-Options:"),
+        "holding": ("Strict-Transport-Security:", "X-Content-Type-Options:",
+                    "Content-Security-Policy:", "X-Frame-Options:"),
+    }
+    for name, wanted in needed.items():
+        lines = (trees[name] / "modelspec" / "_headers").read_text(encoding="utf-8").splitlines()
+        assert lines.count("/*") == 1, name
+        start = lines.index("/*") + 1
+        rule = []
+        for line in lines[start:]:
+            if not line.startswith("  "):
+                break
+            rule.append(line.strip())
+        for header in wanted:
+            assert any(r.startswith(header) for r in rule), (name, header)
+
+
 def test_every_executable_inline_script_is_in_the_policy_and_both_trees_carry_it(trees):
     exec_types = {"", "module", "text/javascript", "application/javascript"}
     inline = re.compile(r"<script((?:\s[^>]*)?)>(.*?)</script>", re.S)

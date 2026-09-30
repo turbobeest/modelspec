@@ -6,6 +6,8 @@ import base64
 import hashlib
 from pathlib import Path
 
+import pytest
+
 from pipeline import security_headers
 
 
@@ -41,9 +43,14 @@ def test_the_policy_allows_exactly_the_named_origins(tmp_path: Path) -> None:
     assert "'unsafe-inline'" not in policy["script-src"]
 
 
-def test_the_block_sets_the_policy_and_denies_framing(tmp_path: Path) -> None:
-    block = security_headers.block(_tree(tmp_path))
+def test_the_policy_joins_the_one_star_rule_and_a_second_one_is_refused(tmp_path: Path) -> None:
+    tree = _tree(tmp_path)
+    merged = security_headers.add_to("/*\n  Link: </x>\n/a\n  X: y\n", tree)
 
-    assert block.startswith("/*\n  Content-Security-Policy: default-src 'self'; ")
-    assert block.endswith("  X-Frame-Options: DENY\n")
-
+    lines = merged.splitlines()
+    assert lines[:2] == ["/*", "  Link: </x>"]
+    assert lines[2].startswith("  Content-Security-Policy: default-src 'self'; ")
+    assert lines[3:] == ["  X-Frame-Options: DENY", "/a", "  X: y"]
+    for bad in ("/a\n  X: y\n", "/*\n  A: b\n/*\n  C: d\n"):
+        with pytest.raises(ValueError):
+            security_headers.add_to(bad, tree)
