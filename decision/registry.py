@@ -17,8 +17,6 @@ Two rules the engine depends on:
 
 from __future__ import annotations
 
-from schema import private_errors
-
 import difflib
 import re
 from dataclasses import dataclass, replace
@@ -29,6 +27,8 @@ from types import MappingProxyType
 from typing import Any, Callable, Iterable, Literal, Mapping
 
 import yaml
+
+from schema import private_errors
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 REGISTRY_DIR = REPO_ROOT / "registry"

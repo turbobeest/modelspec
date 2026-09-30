@@ -1,5 +1,5 @@
 name: Curation watcher (moved to private data)
-true:
+on:
   workflow_dispatch: null
 permissions:
   contents: read

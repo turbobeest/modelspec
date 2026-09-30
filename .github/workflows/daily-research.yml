@@ -1,5 +1,5 @@
 name: Daily model research (moved to private data)
-true:
+on:
   workflow_dispatch: null
 permissions:
   contents: read

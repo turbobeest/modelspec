@@ -291,7 +291,11 @@ def test_guard_follows_environment_path_variables():
 )
 def test_public_writers_are_dispatch_notices_only(name):
     doc = yaml.safe_load((WORKFLOWS[0].parent / (name + ".yml")).read_text())
-    assert set(doc.get("on", doc.get(True))) == {"workflow_dispatch"}
+    trigger_doc = yaml.load(
+        (WORKFLOWS[0].parent / (name + ".yml")).read_text(), Loader=yaml.BaseLoader
+    )
+    assert set(trigger_doc["on"]) == {"workflow_dispatch"}
+    assert "true" not in trigger_doc
     assert set(doc["jobs"]) == {"moved"}
     assert doc["permissions"] == {"contents": "read"}
     assert "modelspec-data/actions/workflows/" + name in yaml.safe_dump(doc)

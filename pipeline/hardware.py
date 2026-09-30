@@ -22,14 +22,13 @@ closed-weights model "fits" on your GPU is meaningless — you cannot obtain it.
 
 from __future__ import annotations
 
-from schema import private_errors
-
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import yaml
 
+from schema import private_errors
 from schema.enums import DeviceClass, ModelType
 from schema.graph import CollectingSink
 

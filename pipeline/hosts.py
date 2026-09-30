@@ -25,8 +25,6 @@ docs/host-layer.md.
 
 from __future__ import annotations
 
-from schema import private_errors
-
 import json
 from dataclasses import dataclass
 from pathlib import Path
@@ -42,6 +40,7 @@ from pipeline.hardware import (
     predicted_decode_tps,
     weights_gb,
 )
+from schema import private_errors
 
 #: RAM held back for the OS and everything that is not model weights. One
 #: constant, not a per-OS table (Jamie, 2026-09-15). `--host-ram` overrides the

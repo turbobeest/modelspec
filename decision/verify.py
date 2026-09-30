@@ -45,8 +45,6 @@ are ``"fact:<id>"`` or ``"evidence:<id>"``.
 
 from __future__ import annotations
 
-from schema import private_errors
-
 import csv
 import hashlib
 import io
@@ -85,6 +83,7 @@ from decision.normalise import (
 from decision.registry import UNREGISTERED
 from decision.registry import default as default_registry
 from decision.sources import CopyStore, RecheckReport, Source, load_sources
+from schema import private_errors
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_DIRECTORY = REPO_ROOT / "verification"

@@ -159,3 +159,69 @@ def test_nested_private_checkout_activates_redaction_without_env(monkeypatch):
     monkeypatch.delenv("MODELSPEC_DATA_DIR", raising=False)
     monkeypatch.delenv("MODELSPEC_REQUIRE_DATA_DIR", raising=False)
     assert private_data(Path(__file__).resolve().parents[1] / "modelspec-data/models/a.md")
+
+
+def test_data_dir_argument_activates_private_diagnostics(monkeypatch):
+    import sys
+
+    from schema import private_data
+
+    monkeypatch.delenv("MODELSPEC_DATA_DIR", raising=False)
+    monkeypatch.delenv("MODELSPEC_REQUIRE_DATA_DIR", raising=False)
+    monkeypatch.setattr(sys, "argv", ["build", "--data-dir", "data"])
+    assert private_data()
+
+
+def test_private_checkout_origin_inside_public_root(monkeypatch, tmp_path):
+    import schema
+
+    monkeypatch.delenv("MODELSPEC_DATA_DIR", raising=False)
+    monkeypatch.delenv("MODELSPEC_REQUIRE_DATA_DIR", raising=False)
+    public = tmp_path / "public"
+    private = public / "data"
+    config = private / ".git/config"
+    config.parent.mkdir(parents=True)
+    monkeypatch.setattr(schema, "__file__", str(public / "schema/__init__.py"))
+    assert not schema.private_data(private / "registry/sources.yaml")
+    config.write_text('[remote "origin"]\nurl = https://github.com/turbobeest/modelspec-data.git\n')
+    assert schema.private_data(private / "registry/sources.yaml")
+
+
+@pytest.mark.parametrize("loader", ["hardware", "hosts"])
+def test_private_profile_validation_does_not_quote_values(monkeypatch, tmp_path, loader):
+    from pipeline.hardware import load_devices
+    from pipeline.hosts import _SECTIONS, load_hosts
+
+    monkeypatch.setenv("MODELSPEC_DATA_DIR", str(tmp_path))
+    path = tmp_path / loader / "bad.yaml"
+    path.parent.mkdir()
+    if loader == "hardware":
+        raw = {
+            "id": "bad",
+            "display_name": "Bad",
+            "vendor": "lab",
+            "device_class": "SECRETVALUE",
+            "memory": {"bandwidth_gb_s": 1, "capacity_gb": 1},
+        }
+        call = load_devices
+    else:
+        raw = {
+            "id": "SECRETVALUE",
+            "display_name": "Bad",
+            "kind": "system",
+            "unified": False,
+            "hardware_ref": None,
+            "field_sources": {},
+            "figures_are": "test",
+            "notes": "test",
+        }
+        raw.update({section: dict.fromkeys(keys) for section, keys in _SECTIONS.items()})
+        call = load_hosts
+    import yaml
+
+    path.write_text(yaml.safe_dump(raw))
+    with pytest.raises(ValueError) as found:
+        call(tmp_path)
+    rendered = "".join(traceback.format_exception(found.value))
+    assert str(path) in rendered and "line " in rendered
+    assert "SECRETVALUE" not in rendered and "input_value" not in rendered
