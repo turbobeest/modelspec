@@ -427,9 +427,9 @@ def test_the_probe_runs_only_by_hand_under_a_fixed_cap():
     cap no dispatch can raise. Keys reach only the steps that call providers."""
     import yaml
 
-    path = ROOT / ".github" / "workflows" / "speed-probe.yml"
+    path = ROOT / ".github" / "private-writers" / "speed-probe.yml"
     workflow = yaml.safe_load(path.read_text(encoding="utf-8"))
-    triggers = workflow[True]  # PyYAML reads the key `on` as True.
+    triggers = workflow["on"]
     assert set(triggers) == {"workflow_dispatch"}
     assert set(triggers["workflow_dispatch"]["inputs"]) == {"mode"}
     assert workflow["env"]["SPEED_CAP_USD"] == "13"
@@ -438,7 +438,7 @@ def test_the_probe_runs_only_by_hand_under_a_fixed_cap():
     assert keyed == ["Preflight (free)", "Smoke, one request per offering (paid, capped)",
                      "Run the pilot slot (paid, capped)"]
     assert workflow["env"]["SPEED_SMOKE_CAP_USD"] == "0.25"
-    assert workflow["jobs"]["probe"]["steps"][0]["if"] == "inputs.mode == 'pilot'"
+    assert steps[0]["with"]["path"] == "data"
     smoke = next(s for s in steps if s.get("name", "").startswith("Smoke"))
     assert smoke["if"] == "inputs.mode == 'smoke'"
     assert "--cap" not in smoke["run"]
@@ -619,7 +619,7 @@ def test_grok_is_smoked_but_not_in_the_pilot_slot_whose_bound_stays_under_the_ca
 def test_raw_runs_are_uploaded_and_pr_opened_even_when_aggregate_fails():
     import yaml
 
-    path = ROOT / ".github" / "workflows" / "speed-probe.yml"
+    path = ROOT / ".github" / "private-writers" / "speed-probe.yml"
     steps = yaml.safe_load(path.read_text(encoding="utf-8"))["jobs"]["probe"]["steps"]
     names = [s.get("name") for s in steps]
     pilot = names.index("Run the pilot slot (paid, capped)")

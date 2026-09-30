@@ -260,7 +260,7 @@ def test_draft_adding_unrelated_url_rejected(bench, tmp_path):
     assert page.read_text() == before and not (tmp_path / "out").exists()
 
 
-WORKFLOW = REPO_ROOT / ".github" / "workflows" / "curation-benchmarks.yml"
+WORKFLOW = REPO_ROOT / ".github" / "private-writers" / "curation-benchmarks.yml"
 
 
 def _wf():
@@ -274,7 +274,7 @@ def _steps_with(wf, needle):
 
 def test_workflow_triggers_and_jobs():
     wf, triggers = _wf()
-    assert set(triggers) == {"schedule", "workflow_dispatch"}  # never pull_request
+    assert set(triggers) == {"workflow_dispatch"}  # never pull_request
     assert {"axis", "pages", "immediate_brief"} <= set(triggers["workflow_dispatch"]["inputs"])
     assert wf["permissions"] == {"contents": "read"}
     assert wf["concurrency"]["cancel-in-progress"] is False
@@ -282,7 +282,7 @@ def test_workflow_triggers_and_jobs():
     d = wf["jobs"]["draft"]
     assert "pull_request" not in d["if"] and "github.event_name == 'schedule'" in d["if"]
     assert "workflow_dispatch" in d["if"] and "has_work" in d["if"]
-    assert d["permissions"] == {"contents": "read"}
+    assert d["permissions"] == {"contents": "write", "pull-requests": "write"}
     assert "daily-research" not in WORKFLOW.read_text()
 
 
@@ -298,17 +298,18 @@ def test_oauth_token_only_in_drafter_step():
     assert _re.search(r"@anthropic-ai/claude-code@\d+\.\d+\.\d+\b", install["run"])
 
 
-def test_pr_creation_uses_research_pr_token():
+def test_pr_creation_uses_private_repository_token():
     wf, _ = _wf()
-    hits = _steps_with(wf, "RESEARCH_PR_TOKEN")
+    hits = _steps_with(wf, "secrets.GITHUB_TOKEN")
+    hits = [(job, step) for job, step in hits if job == "draft"]
     assert len(hits) == 1
     job, step = hits[0]
-    assert job == "draft" and step["env"]["GH_TOKEN"] == "${{ secrets.RESEARCH_PR_TOKEN }}"
+    assert job == "draft" and step["env"]["GH_TOKEN"] == "${{ secrets.GITHUB_TOKEN }}"
     assert "propose.py" in step["run"] and "--open-prs" in step["run"]
     assert "::add-mask::" in step["run"]
     for s in wf["jobs"]["draft"]["steps"]:
         if s.get("uses", "").startswith("actions/checkout"):
-            assert s["with"]["persist-credentials"] is False
+            assert s["with"].get("persist-credentials", True) is (s["with"]["path"] == "data")
 
 
 def test_issues_job_uses_github_token():
@@ -350,9 +351,9 @@ def test_daily_trial_guard():
     from datetime import date
     from scripts.curation import ci
     wf, triggers = _wf()
-    crons = [c["cron"] for c in triggers["schedule"]]
+    gate = yaml.safe_load((REPO_ROOT / ".github/workflows/curation-gate.yml").read_text())
+    crons = [c["cron"] for c in gate[True]["schedule"]]
     assert ci.DAILY_CRON in crons and ci.WEEKLY_CRON in crons
-    assert "REVERT TO WEEKLY AFTER 7 RUNS" in WORKFLOW.read_text()
     assert wf["jobs"]["watch"]["needs"] == "gate" and "needs.gate.outputs.run" in wf["jobs"]["watch"]["if"]
     daily = [d for d in (date(2026, 9, 1 + i) for i in range(29)) if ci.gate("schedule", ci.DAILY_CRON, d)[0]]
     # 9 runs: the 2026-09-16 run was lost to the gate crash fixed here, so the window

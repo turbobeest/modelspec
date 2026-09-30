@@ -1,0 +1,319 @@
+# MODEL-247: install in modelspec-data. This directory is not an Actions workflow directory.
+name: Process release signals
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  actions: read
+concurrency:
+  group: release-signals
+  cancel-in-progress: false
+jobs:
+  pending:
+    name: Build pending-work matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+      count: ${{ steps.matrix.outputs.count }}
+    env:
+      SIGNALS_ORIGIN: https://api.modelspec.dev
+      MODELSPEC_SIGNALS_READ_KEY: ${{ secrets.MODELSPEC_SIGNALS_READ_KEY }}
+      PYTHONPATH: ${{ github.workspace }}/data
+      MODELSPEC_DATA_DIR: ${{ github.workspace }}/data
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Refuse missing repository credentials
+        run: |
+          if [ -z "$MODELSPEC_SIGNALS_READ_KEY" ] || [ -z "$GITHUB_TOKEN" ]; then
+            echo "::error::MODELSPEC_SIGNALS_READ_KEY and GITHUB_TOKEN are required."
+            exit 1
+          fi
+      - name: Pull all pending signals and due re-checks
+        run: |
+          curl --fail --silent --show-error \
+            -H "Authorization: Bearer $MODELSPEC_SIGNALS_READ_KEY" \
+            "$SIGNALS_ORIGIN/v1/signals/pending" \
+            --output "$RUNNER_TEMP/pending.json"
+      - name: Build the isolated-work matrix
+        id: matrix
+        run: |
+          matrix="$(jq -c '{work: (
+            [.signals[]? | {signal_id: .signal_id, recheck_day: 0, pr_url: null}] +
+            [.rechecks[]? | {
+              signal_id: .signal.signal_id,
+              recheck_day: .day,
+              pr_url: (.pr_url // null)
+            }]
+          )}' "$RUNNER_TEMP/pending.json")"
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          echo "count=$(jq '[.signals[]?, .rechecks[]?] | length' "$RUNNER_TEMP/pending.json")" >> "$GITHUB_OUTPUT"
+      - name: Preserve pending work for each isolated job
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-signals-pending
+          path: ${{ runner.temp }}/pending.json
+          if-no-files-found: error
+    defaults:
+      run:
+        working-directory: .
+  process:
+    name: Release signal to card change
+    needs: pending
+    if: needs.pending.outputs.count != '0'
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix: ${{ fromJSON(needs.pending.outputs.matrix) }}
+    runs-on: ubuntu-latest
+    env:
+      PYTHONPATH: ${{ github.workspace }}/data
+      SIGNALS_ORIGIN: https://api.modelspec.dev
+      MODELSPEC_SIGNALS_READ_KEY: ${{ secrets.MODELSPEC_SIGNALS_READ_KEY }}
+      MODELSPEC_DATA_DIR: ${{ github.workspace }}/data
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - name: Refuse missing repository credentials
+        run: |
+          if [ -z "$MODELSPEC_SIGNALS_READ_KEY" ] || [ -z "$GITHUB_TOKEN" ]; then
+            echo "::error::MODELSPEC_SIGNALS_READ_KEY and GITHUB_TOKEN are required."
+            exit 1
+          fi
+        working-directory: .
+      - name: Select the re-check base
+        id: recheck
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_URL: ${{ matrix.work.pr_url }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          REPOSITORY_OWNER: ${{ github.repository_owner }}
+        run: |
+          mode=initial
+          ref="$DEFAULT_BRANCH"
+          branch=
+          if [[ "$PR_URL" == https://github.com/turbobeest/modelspec-data/pull/* ]]; then
+            details="$(gh pr view "$PR_URL" --json state,headRefName,headRepositoryOwner)"
+            state="$(jq -r '.state' <<<"$details")"
+            case "$state" in
+              OPEN)
+                owner="$(jq -r '.headRepositoryOwner.login // ""' <<<"$details")"
+                if [ "$owner" != "$REPOSITORY_OWNER" ]; then
+                  echo "::error::Refusing to update a release-signal PR from another repository."
+                  exit 1
+                fi
+                mode=open
+                ref="$(jq -r '.headRefName' <<<"$details")"
+                branch="$ref"
+                ;;
+              MERGED)
+                mode=merged
+                ;;
+              CLOSED)
+                mode=closed
+                ;;
+              *)
+                echo "::error::Unknown pull request state: $state"
+                exit 1
+                ;;
+            esac
+          elif [ -n "$PR_URL" ]; then
+            mode=unlinked
+          fi
+          {
+            echo "mode=$mode"
+            echo "ref=$ref"
+            echo "branch=$branch"
+          } >> "$GITHUB_OUTPUT"
+        working-directory: .
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ github.token }}
+          ref: ${{ steps.recheck.outputs.ref }}
+          path: data
+      - name: Check out the pinned public engine
+        uses: actions/checkout@v4
+        with:
+          repository: turbobeest/modelspec
+          ref: ENGINE_PIN
+          path: engine
+          persist-credentials: false
+      - name: Compose code into the private checkout
+        run: python ../engine/scripts/prepare_data_writer.py --engine ../engine --data .
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install pipeline dependencies
+        run: python -m pip install -e '.[dev]' pyarrow
+      - name: Prepare the private review label
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh label create new-model --color 0E8A16 --description 'Release identity needs human review' --force
+      - name: Download the pending-work snapshot
+        uses: actions/download-artifact@v4
+        with:
+          name: release-signals-pending
+          path: ${{ runner.temp }}
+      - name: Preserve the mechanically checked baseline
+        run: |
+          mkdir -p "$RUNNER_TEMP/before"
+          cp -R models verification "$RUNNER_TEMP/before/"
+      - name: Process one isolated work item
+        env:
+          MODELSPEC_SOURCE_CACHE: ${{ runner.temp }}/source-copies
+          PR_MODE: ${{ steps.recheck.outputs.mode }}
+          PR_URL: ${{ matrix.work.pr_url }}
+        run: |
+          closed_pr=()
+          if [ "$PR_MODE" = closed ]; then
+            closed_pr=(--closed-unmerged-pr "$PR_URL")
+          fi
+          python scripts/process_release_signals.py \
+            --pending "$RUNNER_TEMP/pending.json" \
+            --result "$RUNNER_TEMP/result.json" \
+            --audit-json "$RUNNER_TEMP/audit.json" \
+            --report-json "$RUNNER_TEMP/refresh-report.json" \
+            --signal-id "${{ matrix.work.signal_id }}" \
+            --recheck-day "${{ matrix.work.recheck_day }}" \
+            "${closed_pr[@]}"
+          cat "$RUNNER_TEMP/result.json" >> "$GITHUB_STEP_SUMMARY"
+      - name: Classify the generated change
+        id: classify
+        run: |
+          mkdir -p "$RUNNER_TEMP/after"
+          cp -R models verification "$RUNNER_TEMP/after/"
+          python - "$RUNNER_TEMP/before" "$RUNNER_TEMP/after" "$RUNNER_TEMP/result.json" "$GITHUB_OUTPUT" <<'PY'
+          import json, sys
+          from pathlib import Path
+          from release_signals.pipeline import ChangePolicy
+
+          before, after, result_file, output = map(Path, sys.argv[1:])
+          result = json.loads(result_file.read_text())
+          decision = ChangePolicy.classify(before, after)
+          with output.open("a") as handle:
+              print(f"changed={'true' if decision.changed else 'false'}", file=handle)
+              print(f"signal_id={result.get('signal_id', '')}", file=handle)
+              print(f"resolution={result.get('status', 'empty')}", file=handle)
+              print(f"score_only={'true' if decision.score_only else 'false'}", file=handle)
+              print(f"human={'true' if decision.merge == 'human' else 'false'}", file=handle)
+              print(f"recheck_day={result.get('recheck_day') or 'initial'}", file=handle)
+              print(f"failures={result.get('failures', 0)}", file=handle)
+              print(f"quarantined={result.get('quarantined', 0)}", file=handle)
+          PY
+      - name: Flag an uncertain identity
+        id: uncertain
+        if: steps.classify.outputs.resolution == 'uncertain'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          issue_url="$(gh issue create \
+            --title "release signal needs identity review: ${{ steps.classify.outputs.signal_id }}" \
+            --label new-model \
+            --body-file "$RUNNER_TEMP/result.json")"
+          echo "url=$issue_url" >> "$GITHUB_OUTPUT"
+      - name: Flag a new-model PR closed without merge
+        id: closed_pr
+        if: steps.classify.outputs.resolution == 'closed_unmerged'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          issue_url="$(gh issue create \
+            --title "release signal PR closed without merge: ${{ steps.classify.outputs.signal_id }}" \
+            --label new-model \
+            --body-file "$RUNNER_TEMP/result.json")"
+          echo "url=$issue_url" >> "$GITHUB_OUTPUT"
+      - name: Validate cards and run two-key verification
+        if: steps.classify.outputs.changed == 'true'
+        run: |
+          python scripts/validate_pr.py --all > "$RUNNER_TEMP/card-validation.json"
+          modelspec verify --json > "$RUNNER_TEMP/verification.json"
+      - name: Run the MODEL-111 accuracy harness
+        if: steps.classify.outputs.changed == 'true'
+        run: python scripts/accuracy.py --profile pr --output-dir "$RUNNER_TEMP/accuracy"
+      - name: Run the MODEL-160 recall report
+        if: steps.classify.outputs.changed == 'true'
+        run: |
+          python scripts/recall_run.py \
+            --output-dir "$RUNNER_TEMP/recall" \
+            --date "$(date -u +%F)"
+      - name: Commit and push the isolated signal branch
+        if: steps.classify.outputs.changed == 'true'
+        env:
+          SIGNAL_ID: ${{ steps.classify.outputs.signal_id }}
+          RECHECK_DAY: ${{ steps.classify.outputs.recheck_day }}
+          PR_MODE: ${{ steps.recheck.outputs.mode }}
+          EXISTING_BRANCH: ${{ steps.recheck.outputs.branch }}
+        run: |
+          git config user.name "modelspec-release-signals"
+          git config user.email "noreply@modelspec.dev"
+          if [ "$PR_MODE" = open ]; then
+            branch="$EXISTING_BRANCH"
+          else
+            branch="data/release-signal-${SIGNAL_ID//[^A-Za-z0-9._-]/-}-${RECHECK_DAY}"
+            git switch -c "$branch"
+          fi
+          git add models verification
+          git commit -s \
+            -m "pipeline: process release signal ${SIGNAL_ID} (MODEL-113)" \
+            -m "Co-Authored-By: Codex (GPT-6.1 Sol) <noreply@openai.com>"
+          git push --set-upstream origin "HEAD:$branch"
+          echo "BRANCH=$branch" >> "$GITHUB_ENV"
+      - name: Open or update the pull request
+        id: pr
+        if: steps.classify.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_MODE: ${{ steps.recheck.outputs.mode }}
+          EXISTING_PR_URL: ${{ matrix.work.pr_url }}
+        run: |
+          model_id="$(python -c 'import json,os; print(json.load(open(os.environ["RUNNER_TEMP"] + "/result.json")).get("model_id") or "release signal")')"
+          if [ "$PR_MODE" = open ]; then
+            gh pr comment "$EXISTING_PR_URL" --body-file "$RUNNER_TEMP/result.json"
+            pr_url="$EXISTING_PR_URL"
+          elif [ "${{ steps.classify.outputs.human }}" = "true" ]; then
+            pr_url="$(gh pr create --draft --head "$BRANCH" --label new-model \
+              --title "data: add or identify $model_id (MODEL-113)" \
+              --body-file "$RUNNER_TEMP/result.json")"
+          else
+            pr_url="$(gh pr create --head "$BRANCH" \
+              --title "data: refresh $model_id release evidence (MODEL-113)" \
+              --body-file "$RUNNER_TEMP/result.json")"
+          fi
+          echo "url=$pr_url" >> "$GITHUB_OUTPUT"
+      - name: Upload the score-only audit table
+        if: steps.classify.outputs.score_only == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-signal-audit-${{ steps.classify.outputs.signal_id }}
+          path: ${{ runner.temp }}/audit.json
+          if-no-files-found: error
+      - name: Acknowledge the signal and schedule its 1, 7, and 30 day re-checks
+        if: steps.classify.outputs.resolution != 'empty'
+        env:
+          RESULT_URL: ${{ steps.pr.outputs.url || steps.closed_pr.outputs.url || steps.uncertain.outputs.url || matrix.work.pr_url || '' }}
+        run: |
+          python - "$RUNNER_TEMP/ack.json" <<'PY'
+          import json, os, sys
+          from pathlib import Path
+          result = json.load(open(os.environ["RUNNER_TEMP"] + "/result.json"))
+          acknowledgement = {
+              "signal_id": result["signal_id"],
+              "result": result["status"],
+              "pr_url": os.environ["RESULT_URL"] or None,
+          }
+          if result.get("recheck_day"):
+              acknowledgement["recheck_day"] = result["recheck_day"]
+              acknowledgement["recheck_due"] = result["recheck_due"]
+          Path(sys.argv[1]).write_text(json.dumps(acknowledgement))
+          PY
+          curl --fail --silent --show-error \
+            -X POST \
+            -H "Authorization: Bearer $MODELSPEC_SIGNALS_READ_KEY" \
+            -H 'Content-Type: application/json' \
+            --data-binary "@$RUNNER_TEMP/ack.json" \
+            "$SIGNALS_ORIGIN/v1/signals/ack"
+    defaults:
+      run:
+        working-directory: data
+'on':
+  workflow_dispatch: null

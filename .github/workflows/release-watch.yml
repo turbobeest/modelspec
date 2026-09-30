@@ -31,6 +31,8 @@ jobs:
     name: Diff watched sources and file discoveries
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    outputs:
+      discoveries: ${{ steps.watch.outputs.discoveries }}
     env:
       PYTHONPATH: ${{ github.workspace }}
       SIGNALS_ENABLED: ${{ vars.SIGNALS_ENABLED }}
@@ -79,6 +81,11 @@ jobs:
           fi
           cat "$RUNNER_TEMP/watch.md" >> "$GITHUB_STEP_SUMMARY"
           echo "status=$status" >> "$GITHUB_OUTPUT"
+          if [ -s "$RUNNER_TEMP/watch.json" ]; then
+            echo "discoveries=$(jq '.discoveries | length' "$RUNNER_TEMP/watch.json")" >> "$GITHUB_OUTPUT"
+          else
+            echo "discoveries=0" >> "$GITHUB_OUTPUT"
+          fi
 
       # A source outage is an alert, never a quiet skip: one open issue carries
       # every outage until someone closes it, and this run goes red too. Any
@@ -102,3 +109,16 @@ jobs:
           fi
           echo "::error::A watched source or the signal endpoint failed. See the summary."
           exit 1
+
+  dispatch:
+    name: Dispatch private processing for discovered releases
+    needs: watch
+    if: vars.SIGNALS_ENABLED == 'true' && needs.watch.outputs.discoveries != '0'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch the private release writer
+        env:
+          GH_TOKEN: ${{ secrets.MODELSPEC_DATA_DISPATCH_TOKEN }}
+        run: |
+          test -n "$GH_TOKEN"
+          gh workflow run release-signals.yml --repo turbobeest/modelspec-data --ref main

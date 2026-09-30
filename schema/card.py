@@ -1270,11 +1270,29 @@ class ModelCard(BaseModel):
         """Load a model card from a YAML+Markdown file."""
         path = Path(path)
         content = path.read_text(encoding="utf-8")
-        return cls.from_yaml_string(content)
+        from schema import private_data, redacted_error
+
+        try:
+            return cls._parse_yaml_string(content)
+        except (yaml.YAMLError, ValueError) as exc:
+            if private_data(path):
+                raise ValueError(redacted_error(exc, path, content=content)) from None
+            raise
 
     @classmethod
     def from_yaml_string(cls, content: str) -> "ModelCard":
         """Parse a model card from a string with YAML frontmatter."""
+        from schema import private_data, redacted_error
+
+        try:
+            return cls._parse_yaml_string(content)
+        except (yaml.YAMLError, ValueError) as exc:
+            if private_data():
+                raise ValueError(redacted_error(exc, content=content)) from None
+            raise
+
+    @classmethod
+    def _parse_yaml_string(cls, content: str) -> "ModelCard":
         parts = content.split("---", 2)
         if len(parts) >= 3:
             yaml_str = parts[1]

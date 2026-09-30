@@ -67,8 +67,11 @@ sources:
         locator: {kind: xpath, value: "//table[1]"}
 """
     )
-    with pytest.raises(ValueError, match="xpath cited-region locators are not supported"):
+    with pytest.raises(ValueError, match="values redacted") as found:
         load_sources(path)
+    assert str(path) in str(found.value)
+    assert "line 3" in str(found.value)
+    assert "//table[1]" not in str(found.value)
 
 
 def test_source_registry_loads_live_volatility_and_defaults_to_static(tmp_path: Path) -> None:
@@ -660,7 +663,7 @@ def test_change_detection_has_no_llm_or_agent_hook() -> None:
         env={"PYTHONPATH": str(REPO_ROOT), "PATH": "/usr/bin:/bin"},
     )
     assert out.stdout.strip() == ""
-    # And statically: the modules import the standard library, httpx and each other only.
+    # Also reject paid clients in the static imports; schema supplies error redaction.
     for name in ("sources.py", "normalise.py"):
         tree = ast.parse((REPO_ROOT / "decision" / name).read_text())
         imported = {
@@ -671,7 +674,7 @@ def test_change_detection_has_no_llm_or_agent_hook() -> None:
             for alias in node.names
         }
         third_party = imported - set(sys.stdlib_module_names) - {"__future__", "decision"}
-        assert third_party <= {"httpx", "yaml"}, f"{name} imports {third_party}"
+        assert third_party <= {"httpx", "yaml", "schema"}, f"{name} imports {third_party}"
 
 
 def test_icon_labels_render_an_icon_cell_as_its_label_and_leave_html_default_alone():

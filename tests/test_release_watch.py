@@ -499,9 +499,11 @@ def test_the_workflow_alerts_on_outage_and_holds_no_pr_credential() -> None:
     assert 'sink=--post' in text and 'sink=--issues' in text
     assert 'python scripts/release_watch.py "$sink"' in text
     assert job["timeout-minutes"] <= 10
-    # The read key it already holds is the only secret: no PR token, no
-    # Firecrawl key, nothing Jamie has to create for it.
-    assert set(re.findall(r"secrets\.(\w+)", text)) == {"MODELSPEC_SIGNALS_READ_KEY"}
+    # Source watching holds only the signal read key; dispatch is a separate job.
+    assert set(re.findall(r"secrets\.(\w+)", json.dumps(job))) == {"MODELSPEC_SIGNALS_READ_KEY"}
+    dispatch = workflow["jobs"]["dispatch"]
+    assert set(re.findall(r"secrets\.(\w+)", json.dumps(dispatch))) == {"MODELSPEC_DATA_DISPATCH_TOKEN"}
+    assert "--repo turbobeest/modelspec-data" in json.dumps(dispatch)
     alert = next(step for step in job["steps"] if step.get("name") == "Raise the outage alert")
     # A crash before the report, or any failed step, still alerts.
     assert alert["if"] == "${{ !cancelled() && (failure() || steps.watch.outputs.status != '0') }}"

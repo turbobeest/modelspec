@@ -1,10 +1,10 @@
 # Data split: a frozen public image, a private working copy (MODEL-246)
 
-Status: design, with the parts that do not need the private repository built
-(`pipeline/data_source.py`, `scripts/data_lag.py`,
-`scripts/data_freeze_guard.py`, two workflows, tests).
-Parent: MODEL-245. This ticket is 245-A. Repointing the writer workflows is
-245-B and is not in this change.
+Status: MODEL-246 built the overlay, lag job and freeze guard. MODEL-247 W
+closes the writer and leak-guard gaps below. The private workflows are submitted
+on `modelspec-data` branch `writers-setup` for human merge. MODEL-247 S owns
+site deployment and Worker bundling. No split or access flag changes here.
+Parent: MODEL-245. MODEL-247 is 245-B.
 
 ## Decision
 
@@ -136,62 +136,104 @@ hardware files from the repository root. See "Gaps 245-B must close" below.
 
 ## Writers
 
-Six workflows write data today (verified from the workflow files):
+All six data writers run in `turbobeest/modelspec-data`. Their workflow files
+are submitted there on `writers-setup`. Reviewable source copies live in the
+public engine under `.github/private-writers/`, which Actions does not execute.
+Each private workflow checks out the public engine at a full commit SHA,
+without a private-engine credential, and uses its own `GITHUB_TOKEN` for git,
+issues and pull requests. No writer auto-merges a pull request.
 
-| Workflow | Writes | Cadence |
+| Workflow | Writes | Cadence in the private repo |
 | --- | --- | --- |
-| `daily-research.yml` | `models/**`, `research/**` | daily |
-| `leaderboard-refresh.yml` | `models/`, `verification/log.jsonl`, `verification/queue/events.jsonl` | weekly |
-| `price-reread.yml` | `offerings/`, `verification/` | weekly |
-| `speed-probe.yml` | `measurements/speed/**` | manual dispatch |
-| `release-signals.yml` | `git add models verification` | hourly gate, work-driven |
-| `curation-benchmarks.yml` | `benchmarks/` (through `scripts/curation/propose.py`) | daily trial, then weekly |
+| `daily-research.yml` | `models/**`; research scratch outputs stay uncommitted | daily; manual dry run |
+| `leaderboard-refresh.yml` | `models/`, verification log and queue events | weekly; manual dry run |
+| `price-reread.yml` | `offerings/`, verification log and queue events | weekly; manual dry run |
+| `speed-probe.yml` | `measurements/speed/**` | manual only; existing paid caps preserved |
+| `release-signals.yml` | `models/`, `verification/` | public hourly count gate dispatches only when work exists |
+| `curation-benchmarks.yml` | `benchmarks/` | public trial/weekly cadence gate dispatches when due; private watcher decides whether drafting is needed |
 
-Plan (245-B): each writer keeps its logic and runs in an overlay root, with
-any `__file__`-derived root replaced by an explicit one. It commits and opens its pull request **in the private repository**.
-Scripts that call `git` relative to the repository root need a per-script check
-before the move; the overlay's `.git` points at the public repository, so a
-writer that shells out to `git add` must run `git -C <private checkout>` instead.
-That check is the first task of 245-B.
+The six old public workflow files have no schedules. Their manual dispatches
+only print the private workflow URL. `release-watch.yml` remains a public-source
+watcher and dispatches private processing when it posts discoveries. The new `release-signals-gate.yml` publishes only a pending-work count,
+with no pending payload artifact, and `curation-gate.yml` decides only whether
+its cadence is due. Both dispatch with `MODELSPEC_DATA_DISPATCH_TOKEN`.
+
+### Writer root and git audit, closed by MODEL-247 W
+
+Writers run in the private checkout rather than in the reader overlay. The
+reader overlay's `.git` still belongs to the public engine.
+`scripts/prepare_data_writer.py` copies tracked engine code beside private data,
+excluding every `DATA_PATHS` entry, `.github/` and the private README. It puts
+copied code and generated Python files in the private checkout's local git
+exclude file. It refuses any origin other than `turbobeest/modelspec-data`.
+Physical copies make `__file__`-derived roots resolve to the private checkout;
+registry vocabulary comes from the pin and registry data remains private.
+
+The audit covered writer scripts, their validators, the speed harness, curation,
+release-signal processing, accuracy and recall checks, and workflow git calls:
+
+- Daily research, leaderboard refresh and speed scripts have no git subprocess
+  calls. Their PR action uses `path: data`, stages only declared data paths, and
+  authenticates with the private repository's token.
+- Price re-read's workflow checks git status and the verification-log diff from
+  the private working directory. Its two PR actions also use `path: data`.
+- `scripts/validate_pr.py` sets git's working directory from its own file root.
+  The copied validator reads and compares the private `origin/main`.
+- Release-signal workflow git config, branch, add, commit and push commands all
+  run under `data/`. Rechecks follow only private PR URLs; old public links do
+  not receive new comments or updates. The private pending job builds its own
+  matrix and holds its snapshot as a private artifact.
+- `scripts/curation/propose.py` uses the caller's working directory for every
+  git operation and derives page paths from its copied file root. The private
+  workflow supplies `github.repository` to every issue and PR operation.
+- The accuracy and recall scripts and `modelspec verify` resolve their roots to
+  copied engine code in the private checkout. Their workflow runs do not call
+  the CLI's separate PR-opening command.
+
+A fixture test executes copied writer code, stages its output in a real private
+checkout, and proves the public checkout receives no write. It also checks that
+private sources, README and workflows survive composition, code is ignored,
+and a public git origin is refused.
 
 ### Gaps 245-B (MODEL-247) must close
 
-The Rank Worker bundle reads data outside the built JSON:
-`api/worker/vendor.py` copies `registry/{harnesses,providers,sources}.yaml` and
-`hardware/*.yaml` from the repository root. Private data therefore reaches the
-Worker by that path too. 245-B gives `vendor.py` a `--data-dir` and makes
-`rank-api.yml` check out the data.
+MODEL-247 W closes these gaps:
 
-`deploy-sites.yml`: `build` runs on `pull_request` and uploads `sites`,
-`sites-holding` and `sites-internal`. 245-B gates the private checkout to
-pushes to `main` (as `MODELSPEC_SNAPSHOT_KEY` already is), stops uploading fresh
-builds as public artifacts, and deploys from the same job or through a
-non-public channel.
+- All six fresh-data writers and their data PRs move to the private repository.
+  Writer artifacts, including raw speed runs, remain there.
+- The public leak guard rejects `actions/cache`, `actions/cache/save`, artifact
+  upload and `upload-pages-artifact` in jobs with private access.
+- Workflow-level environment and any name containing `MODELSPEC_DATA` mark a
+  job as private. Reusable workflows with `secrets: inherit` are treated as
+  private access and refused because the caller cannot audit their log and
+  artifact channels.
+- Print detection covers `python -c`, `jq`, `grep`, `ls`, `diff`, `set -x`,
+  `tee`, git output and variables assigned data paths, including aliases and
+  values set through `GITHUB_ENV`. Guard diagnostics name the step without
+  quoting its command.
+- YAML parse errors and card/source-registry validation errors redact private
+  values and suppress the original exception chain. They retain the file path
+  and line number. Environment switches, explicit private paths and overlay
+  paths activate redaction. Public parser diagnostics remain available.
 
-The leak guard test is deliberately narrow. Not yet covered:
+MODEL-247 S separately owns these deployment gaps:
 
-- `actions/cache` and `cache/save` in a job that reaches data (fork pull
-  requests can restore default-branch caches; `curation-benchmarks.yml` already
-  caches `benchmarks/_curation/state`);
-- error messages that echo data (`pipeline/load.py` puts YAML errors into
-  `LoadError`; pydantic `input_value`), which need redaction on private data;
-- markers are checked per job, so workflow-level `env`, reusable workflows with
-  `secrets: inherit` and other secret names are missed;
-- `upload-pages-artifact`;
-- print detection misses `python -c`, `jq`, `grep`, `ls`, `diff`, `set -x`,
-  `tee` and shell variables.
+- `api/worker/vendor.py` must use private registry and hardware data, supplied
+  through `--data-dir`, and `rank-api.yml` must check out that data.
+- `deploy-sites.yml` must restrict private access to main deployment, avoid
+  uploading fresh builds as public artifacts and deploy from the same job or a
+  non-public channel.
 
-The freeze guard trusts the branch name (a fork can spoof it), ignores derived
-files such as `docs/audits`, and skips binaries. A merge gate cannot stop
-publication when a pull request is opened; only repointing the writers does.
+The freeze guard's documented limits remain: it trusts branch names, ignores
+some derived files and skips binary contents. Repointing writers stops public
+PR publication; branch protection and human review still matter.
 
 ### Public CI must not leak the private data
 
-Actions logs and artifacts on a public repository are public. So a job that
-holds `MODELSPEC_DATA_TOKEN`, or checks out `modelspec-data`, must:
-
-- have no `actions/upload-artifact` step, and
-- never print data: no `cat`, `head`, `tail`, `echo`, `git diff`, `git show` or
+Actions logs, artifacts and caches on a public repository are public. A job
+with any `MODELSPEC_DATA` environment or secret marker, or a private checkout,
+must have no artifact upload, Pages artifact upload or cache save. It must
+never print data: no `cat`, `head`, `tail`, `echo`, `git diff`, `git show` or
   `git log` of data paths, and no workflow-command annotations quoting rows.
 
 Counts and pass/fail are fine. `tests/test_data_workflows.py` parses every
@@ -219,10 +261,9 @@ exists (`release-watch`, the release-signals pending matrix) stay in this
 repository, where they cost nothing, and dispatch the private workflow only
 when there is work.
 
-Until 245-B lands, the existing writers still open pull requests that touch
-`models/`. Those will fail the freeze guard (below). That is intended: the guard
-is not yet a required check, so it reports the drift without blocking merges,
-and it becomes required only after the writers are repointed.
+After the private writer PR and public W change merge, no fresh writer opens
+public data PRs. Jamie can then make `Data freeze` required. The lag job alone
+publishes eligible old data images through human-reviewed public PRs.
 
 ## The lag job
 
@@ -285,10 +326,9 @@ they are independent of the data.
 
 ## Seeding the private repository
 
-After this document is reviewed: create one commit in `modelspec-data` holding
-the current `DATA_PATHS`, dated 2026-09-30. A single seed commit is enough for
-the schedule above; carrying history is optional and does not change it. The
-public repository, its data and its history are read only for the seed.
+The private repository was seeded on 2026-09-30 with the current `DATA_PATHS`.
+The W setup PR adds only workflows and its minimal README. A single seed commit
+is enough for the lag schedule. Public data and history remain unchanged.
 
 ## Estimated Actions minutes in the private repository
 
@@ -318,8 +358,11 @@ stays public.
 | --- | --- |
 | Create `MODELSPEC_DATA_TOKEN` (read-only) and store it in this repository's secrets | Jamie |
 | Set `DATA_SPLIT_ENABLED=true` when ready | Jamie |
-| Seed `modelspec-data` (single commit, current `DATA_PATHS` including the four registry files) | this ticket |
-| Add the checkout step and `--data-dir` to `deploy-sites.yml` and `rank-api.yml` | 245-B |
-| Repoint the six writers; audit their `git` calls and any `__file__`-derived roots; resolve the artifact table above | 245-B |
+| Seed `modelspec-data` with the current `DATA_PATHS` | Done, 2026-09-30 |
+| Main-only private site deployment and private Worker bundling | MODEL-247 S |
+| Repoint six writers and audit git/file roots; harden leak guard and parser errors | MODEL-247 W, submitted |
+| Create `MODELSPEC_DATA_DISPATCH_TOKEN` in the public repo, fine-grained, scoped only to `modelspec-data`, Actions read+write | Jamie |
+| Merge the private `writers-setup` PR after the pinned public engine commit is available | Jamie |
+| Enable private Actions to create PRs and provide the writers' existing provider/research credentials listed in its README | Jamie |
 | Move public engine tests to fixtures | 245-C |
 | Make "Data freeze" a required check, after the writers are repointed | Jamie |
