@@ -42,6 +42,8 @@ BASE = "https://modelspec.dev"
 KEEP_DIRS = (
     "api", "legal", ".well-known", "method", landing.ASSET_DIR, "pricing",
     "pricing-assets", "fonts", "graph",
+    # MODEL-221: the feedback page, and the control every page loads.
+    "feedback", "feedback-assets",
 )
 #: Copied from the v1 build. The discovery files are what MODEL-214 restored.
 KEEP_FILES = (
@@ -51,7 +53,7 @@ KEEP_FILES = (
 )
 #: The public pages, in sitemap order.
 PAGES = (
-    "/", "/method/", "/decide/", "/graph/", "/pricing/",
+    "/", "/method/", "/decide/", "/graph/", "/pricing/", "/feedback/",
     "/legal/terms/", "/legal/privacy/", "/legal/neutrality/",
 )
 #: Files an agent is pointed at. Every modelspec.dev link in them must resolve.
@@ -146,7 +148,7 @@ def build(src: Path, web: Path, out: Path) -> None:
     structured_data.inject(tree)
     headers = (real / "_headers").read_text(encoding="utf-8")
     (tree / "_headers").write_text(
-        headers.rstrip("\n") + "\n" + HEADERS + security_headers.block(tree), encoding="utf-8")
+        security_headers.add_to(headers.rstrip("\n") + "\n" + HEADERS, tree), encoding="utf-8")
     (out / "benchgraph").mkdir()
     shutil.copy2(src / "benchgraph" / "_redirects", out / "benchgraph" / "_redirects")
 

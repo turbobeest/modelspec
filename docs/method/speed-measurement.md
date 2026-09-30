@@ -180,6 +180,25 @@ offering file holds a fixture measurement.
   several Azure regions. Runs from a vantage other than the window's most
   common one are dropped, and the drop is reported.
 
+## Request shapes and smoke mode (MODEL-243)
+
+The pilot's first slot failed on request shape, not on speed. Shapes are
+pinned per provider in `scripts/speed/providers.py` and `pilot.yaml`, each with
+the doc URL it was checked against, and none of it changes the speed-v1 rules
+above: no retry, no workload change, the same gates.
+
+`mode=smoke` in the speed-probe workflow sends one short_chat request per
+offering under a fixed $0.25 cap (the cap is a constant, not an input) and
+prints each status, usage and the first 1 KB of any non-2xx body with keys and
+auth values redacted. A shape that no doc settles is settled by that output,
+not by a guess. Every non-2xx sample in a pilot or baseline run carries the
+same redacted `error_body`.
+
+Two speed-v1 rules the pilot showed to be awkward, left as they are until a
+method version changes them: a provider-injected cached prefix (xAI, 1152
+tokens on every request) collides with the `cache_hit` rule, and a provider that
+streams under 16 chunks for 256 tokens (Gemini) ends `not_streamed`.
+
 ## Spend control
 
 No request is sent without an explicit `--live` and `--cap-usd`. Before the

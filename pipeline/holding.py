@@ -66,7 +66,9 @@ SITES = {"modelspec": "ModelSpec"}
 
 #: What is copied from the real build, byte for byte. Directories whole.
 #: modelspec only. benchgraph.dev is one redirect file, copied unchanged.
-KEEP_DIRS = {"modelspec": ("api", "legal", "fonts", landing.ASSET_DIR)}
+#: `feedback-assets` because the legal pages, copied byte for byte, carry the
+#: Feedback control (MODEL-221); the /feedback/ page itself stays dark.
+KEEP_DIRS = {"modelspec": ("api", "legal", "fonts", landing.ASSET_DIR, "feedback-assets")}
 KEEP_FILES = ("openapi.yaml", *brand.FILES, social_cards.LANDING_IMAGE)
 #: What this module writes itself.
 WRITTEN = ("index.html", "404.html", "_headers", "robots.txt")
@@ -174,7 +176,7 @@ def build(src: Path, out: Path) -> dict[str, list[str]]:
         data = landing.extract_data(live_landing.read_text(encoding="utf-8"))
         landing.write(tree, data, variant="holding")
         (tree / "404.html").write_text(dark_page(site), encoding="utf-8")
-        (tree / "_headers").write_text(HEADERS + security_headers.block(tree), encoding="utf-8")
+        (tree / "_headers").write_text(security_headers.add_to(HEADERS, tree), encoding="utf-8")
         (tree / "robots.txt").write_text(ROBOTS, encoding="utf-8")
     shutil.copytree(src / "benchgraph", out / "benchgraph")
     return kept

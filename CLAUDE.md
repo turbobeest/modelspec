@@ -167,6 +167,14 @@ credits and the credit ledger ([`docs/billing.md`](docs/billing.md),
 `X402_ENABLED` ship **off** in `api/worker/wrangler.jsonc`; turning any of them
 on, or putting live Stripe keys in the Worker, is Jamie's call.
 
+MODEL-221 added `POST /v1/feedback` (no key) on the same Worker, with the CLI
+command, the MCP tool and a Feedback control on every page. `FEEDBACK_ENABLED`
+ships **off** and no `FEEDBACK` namespace is bound: feedback is validated and
+answered `not_recorded`. Turning storage on waits for Jamie to adopt the privacy
+wording in [`docs/design/feedback-privacy.md`](docs/design/feedback-privacy.md);
+`tests/test_legal.py` fails if it is switched on first. The digest runs on the
+operator's machine, never in CI (the repository and its logs are public).
+
 Do not auto-merge `research/*`: a human reviews every daily-research PR.
 MODEL-5's workflow opens them with the `RESEARCH_PR_TOKEN` PAT (it fails fast
 if the secret is empty), so required checks do run and they can merge.

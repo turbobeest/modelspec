@@ -1,0 +1,14 @@
+# "What you told us / what we changed" on https://modelspec.dev/feedback/ (MODEL-221).
+#
+# One entry per change made because of feedback, newest first, added when the
+# change ships. `told` paraphrases a cluster of feedback in aggregate: never a
+# quotation, never anything that could identify who sent it. `changed` says
+# what shipped. `link` is the public pull request or page, if there is one.
+#
+#   - date: 2026-10-06
+#     told: "Several of you found the answer bands confusing on the decide page."
+#     changed: "Each band now says in one sentence why its models are grouped."
+#     link: https://github.com/turbobeest/modelspec/pull/0
+#
+# Empty until feedback storage is switched on and the first digest is acted on.
+changes: []

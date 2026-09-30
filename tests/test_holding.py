@@ -143,7 +143,8 @@ def test_the_holding_tree_is_exactly_its_expected_file_set(trees):
     ms = trees["holding"] / "modelspec"
     top = sorted(p.name + ("/" if p.is_dir() else "") for p in ms.iterdir())
     card = [social_cards.LANDING_IMAGE] if social_cards.render_enabled() else []
-    assert top == sorted(["api/", "legal/", "fonts/", "landing-assets/", "openapi.yaml",
+    assert top == sorted(["api/", "legal/", "fonts/", "landing-assets/",
+                          "feedback-assets/", "openapi.yaml",
                           *brand.FILES, *card, *holding.WRITTEN])
     for name in (*brand.FILES, *card):
         assert (ms / name).read_bytes() == (trees["real"] / "modelspec" / name).read_bytes(), name
@@ -252,7 +253,7 @@ def test_full_build_still_contains_every_source_page_before_composition(trees):
 def test_a_redirect_only_benchgraph_is_copied_and_modelspec_still_goes_dark(tmp_path):
     src = tmp_path / "src"
     ms = src / "modelspec"
-    for rel in ("api", "legal", "fonts", "landing-assets"):
+    for rel in ("api", "legal", "fonts", "landing-assets", "feedback-assets"):
         (ms / rel).mkdir(parents=True)
     decision = ms / "api" / "decision" / "snapshot.json.gz"
     decision.parent.mkdir()
@@ -397,6 +398,27 @@ def test_the_workflow_assembles_live_with_the_module_and_smokes_discovery():
     assert "python -m pipeline.live build --src dist-v1 --web web/dist --out dist" in text
     assert "python -m pipeline.live smoke --origin https://modelspec.dev" in text
     assert "python -m pipeline.live smoke --origin https://internal.modelspec-7np.pages.dev" in text
+
+
+def test_each_headers_file_has_one_star_rule_carrying_everything(trees):
+    # Cloudflare Pages drops the earlier of two `/*` rules (MODEL-238 regression).
+    needed = {
+        "live": ("Link:", "Strict-Transport-Security:", "Permissions-Policy:",
+                 "X-Content-Type-Options:", "Content-Security-Policy:", "X-Frame-Options:"),
+        "holding": ("Strict-Transport-Security:", "X-Content-Type-Options:",
+                    "Content-Security-Policy:", "X-Frame-Options:"),
+    }
+    for name, wanted in needed.items():
+        lines = (trees[name] / "modelspec" / "_headers").read_text(encoding="utf-8").splitlines()
+        assert lines.count("/*") == 1, name
+        start = lines.index("/*") + 1
+        rule = []
+        for line in lines[start:]:
+            if not line.startswith("  "):
+                break
+            rule.append(line.strip())
+        for header in wanted:
+            assert any(r.startswith(header) for r in rule), (name, header)
 
 
 def test_every_executable_inline_script_is_in_the_policy_and_both_trees_carry_it(trees):

@@ -1002,8 +1002,8 @@
           "type": "array"
         },
         "contract_version": {
-          "const": "2.9",
-          "default": "2.9",
+          "const": "2.10",
+          "default": "2.10",
           "title": "Contract Version",
           "type": "string"
         },
@@ -1023,6 +1023,9 @@
           ],
           "title": "Explain",
           "type": "string"
+        },
+        "feedback": {
+          "$ref": "#/$defs/FeedbackPointer"
         },
         "may_qualify": {
           "items": {
@@ -1813,6 +1816,52 @@
         }
       },
       "title": "EvidenceQualifiers",
+      "type": "object"
+    },
+    "FeedbackPointer": {
+      "additionalProperties": false,
+      "description": "Where to say whether this answer held up. The same on every decision.\n\nAdded in 2.10 (MODEL-221), so that an agent holding an answer finds the\nfeedback endpoint without reading anything else. No key is needed.",
+      "properties": {
+        "cli": {
+          "const": "modelspec feedback <decision_id> --rating <rating>",
+          "default": "modelspec feedback <decision_id> --rating <rating>",
+          "title": "Cli",
+          "type": "string"
+        },
+        "endpoint": {
+          "const": "https://api.modelspec.dev/v1/feedback",
+          "default": "https://api.modelspec.dev/v1/feedback",
+          "title": "Endpoint",
+          "type": "string"
+        },
+        "method": {
+          "const": "POST",
+          "default": "POST",
+          "title": "Method",
+          "type": "string"
+        },
+        "ratings": {
+          "items": {
+            "enum": [
+              "reliable",
+              "unreliable",
+              "trustworthy",
+              "untrustworthy",
+              "confusing"
+            ],
+            "type": "string"
+          },
+          "title": "Ratings",
+          "type": "array"
+        },
+        "request_schema": {
+          "const": "https://modelspec.dev/api/feedback/v1.schema.json",
+          "default": "https://modelspec.dev/api/feedback/v1.schema.json",
+          "title": "Request Schema",
+          "type": "string"
+        }
+      },
+      "title": "FeedbackPointer",
       "type": "object"
     },
     "FunnelStep": {
@@ -4534,5 +4583,5 @@
   ],
   "description": "Generated from decision/contract.py by `python -m decision.schema`. Do not edit by hand. The prose is docs/decision-contract.md.",
   "title": "ModelSpec decision contract",
-  "x-contract-version": "2.9"
+  "x-contract-version": "2.10"
 }

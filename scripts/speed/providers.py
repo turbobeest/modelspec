@@ -76,7 +76,10 @@ def _int(value: Any) -> int | None:
 
 
 def _anthropic_body(model: str, prompt: str, max_tokens: int, params: Mapping) -> dict:
-    return {"model": model, "max_tokens": max_tokens, "stream": True, "temperature": 0,
+    # No ``temperature``: Claude models after Opus 4.6 reject any value but 1.0
+    # with a 400, and the method sets 0 only "where the API accepts it".
+    # https://docs.claude.com/en/api/messages
+    return {"model": model, "max_tokens": max_tokens, "stream": True,
             "messages": [{"role": "user", "content": prompt}], **params}
 
 
@@ -116,8 +119,31 @@ def _chat_body_max_tokens(model: str, prompt: str, max_tokens: int, params: Mapp
     return body
 
 
+def _zai_body(model: str, prompt: str, max_tokens: int, params: Mapping) -> dict:
+    # Z.ai documents ``stream`` and ``tool_stream`` but no ``stream_options``, so
+    # it is not sent; usage rides the final chunk. Smoke confirms this.
+    # https://docs.z.ai/api-reference/llm/chat-completion
+    body = _chat_body_max_tokens(model, prompt, max_tokens, params)
+    del body["stream_options"]
+    return body
+
+
 def _bearer(key: str) -> dict[str, str]:
     return {"authorization": f"Bearer {key}", "content-type": "application/json"}
+
+
+def _billed_output(usage: Mapping[str, Any]) -> int | None:
+    """Output tokens billed. ``total - prompt`` where it exceeds ``completion_tokens``.
+
+    OpenAI, DeepSeek and Z.ai count reasoning inside ``completion_tokens``. xAI's
+    pilot streams report it beside it (total = prompt + completion + reasoning),
+    so ``completion_tokens`` alone left ``visible_tokens`` negative.
+    """
+    completion = _int(usage.get("completion_tokens"))
+    prompt, total = _int(usage.get("prompt_tokens")), _int(usage.get("total_tokens"))
+    if completion is None or prompt is None or total is None:
+        return completion
+    return max(completion, total - prompt)
 
 
 def _chat_event(result: StreamResult, t: float, event: Mapping[str, Any]) -> None:
@@ -131,7 +157,7 @@ def _chat_event(result: StreamResult, t: float, event: Mapping[str, Any]) -> Non
     usage = event.get("usage")
     if usage:
         result.input_tokens = _int(usage.get("prompt_tokens"))
-        result.billed_output_tokens = _int(usage.get("completion_tokens"))
+        result.billed_output_tokens = _billed_output(usage)
         details = usage.get("completion_tokens_details") or {}
         result.reasoning_tokens = _int(details.get("reasoning_tokens")) or 0
         prompt_details = usage.get("prompt_tokens_details") or {}
@@ -223,5 +249,5 @@ APIS: dict[str, Api] = {
                     _chat_body_max_tokens, _bearer, _chat_event),
     "zai": Api("zai", "api.z.ai", "ZAI_API_KEY",
                lambda m: "/api/paas/v4/chat/completions", None,
-               _chat_body_max_tokens, _bearer, _chat_event),
+               _zai_body, _bearer, _chat_event),
 }

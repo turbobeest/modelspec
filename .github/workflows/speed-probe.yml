@@ -1,11 +1,14 @@
 name: Speed probe
 
 # MODEL-212, ADR 0004 step 2. Manual only: nothing here runs on a schedule.
-# Jamie approved the pilot alone, with a $15 cap. The baseline and any
+# Jamie approved the pilot alone, with $15 in total; $0.76 is spent, so the cap is 13. The baseline and any
 # refresh need a separate go and a change to this file, which a person merges.
 #
 # preflight  free: checks every key is set, every pinned model ID is listed,
 #            and prints the runner's vantage. No paid request.
+# smoke      one minimal live request per offering under SPEED_SMOKE_CAP_USD.
+#            Prints each status, usage and redacted error body to the step
+#            summary, to settle request shapes. Writes no data and opens no PR.
 # pilot      one live slot of scripts/speed/pilot.yaml under SPEED_CAP_USD.
 #            It cannot publish (one slot fails the gates). Its run file,
 #            measurement and verification records go to a data PR, never to
@@ -18,9 +21,9 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'preflight (free) or pilot (paid, capped at SPEED_CAP_USD)'
+        description: 'preflight (free), smoke (paid, SPEED_SMOKE_CAP_USD) or pilot (paid, SPEED_CAP_USD)'
         type: choice
-        options: [preflight, pilot]
+        options: [preflight, smoke, pilot]
         default: preflight
 
 permissions:
@@ -32,7 +35,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  SPEED_CAP_USD: '15'
+  SPEED_CAP_USD: '13'
+  SPEED_SMOKE_CAP_USD: '0.25'
   PYTHONPATH: ${{ github.workspace }}
 
 jobs:
@@ -72,6 +76,17 @@ jobs:
           ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
         run: python -m scripts.speed preflight | tee -a "$GITHUB_STEP_SUMMARY"
 
+      - name: Smoke, one request per offering (paid, capped)
+        if: inputs.mode == 'smoke'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
+        run: python -m scripts.speed smoke | tee -a "$GITHUB_STEP_SUMMARY"
+
       - name: The pilot's worst case against the cap (free)
         if: inputs.mode == 'pilot'
         run: python -m scripts.speed plan | tee -a "$GITHUB_STEP_SUMMARY"
@@ -87,21 +102,42 @@ jobs:
           ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
         run: python -m scripts.speed run --live --cap-usd "$SPEED_CAP_USD" --window measurements/speed/pilot
 
+      # Paid data must survive a failed aggregate: the raw runs are uploaded and
+      # opened as a data PR whatever happens after the pilot step.
+      - name: Upload the raw runs
+        if: always() && inputs.mode == 'pilot'
+        uses: actions/upload-artifact@v4
+        with:
+          name: speed-pilot-runs-${{ github.run_id }}
+          path: measurements/speed/pilot/runs/
+          if-no-files-found: warn
+
       - name: Aggregate, verify and report (free)
+        id: aggregate
         if: inputs.mode == 'pilot'
         run: |
           python -m scripts.speed aggregate measurements/speed/pilot
           python -m scripts.speed verify measurements/speed/pilot
           python -m scripts.speed report measurements/speed/pilot | tee -a "$GITHUB_STEP_SUMMARY" > "$RUNNER_TEMP/report.md"
+
+      - name: Write the data pull request body
+        if: always() && inputs.mode == 'pilot'
+        env:
+          AGGREGATE_OUTCOME: ${{ steps.aggregate.outcome }}
+        run: |
           {
             echo 'The speed-v1 pilot (MODEL-212): one live slot under a $'"$SPEED_CAP_USD"' cap.'
             echo 'One slot cannot pass the publication gates, so no speed fact enters the snapshot.'
             echo
-            cat "$RUNNER_TEMP/report.md"
+            if [ "$AGGREGATE_OUTCOME" = success ]; then
+              cat "$RUNNER_TEMP/report.md"
+            else
+              echo "Aggregate outcome: $AGGREGATE_OUTCOME. This PR carries the raw runs only; see the workflow run."
+            fi
           } > "$RUNNER_TEMP/pr-body.md"
 
       - name: Open the data pull request
-        if: inputs.mode == 'pilot'
+        if: always() && inputs.mode == 'pilot'
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.RESEARCH_PR_TOKEN }}

@@ -37,6 +37,7 @@ from scripts.speed.method import METHOD_URL, REPETITIONS_PER_SLOT, WARMUPS_PER_S
 from scripts.speed.plan import load_plan
 
 ROOT = Path(__file__).resolve().parents[1]
+OFFERINGS = len(load_plan().entries)
 THROUGHPUT = "offering.speed.throughput"
 FASTEST = "google-gemini-api/google/gemini-3-8-flash/global/standard"
 
@@ -149,7 +150,7 @@ def test_a_stale_measurement_stops_deciding(measured_inputs, window_end):
     late = window_end + timedelta(days=MEASUREMENT_STALE_AFTER_DAYS + 1)
     stale = load_built_snapshot(_build(measured_inputs, late, allow_fixture_measurements=True))
     assert stale.fact(FASTEST, THROUGHPUT).state == "unknown"
-    assert stale.excluded["stale_measurement"] == 20
+    assert stale.excluded["stale_measurement"] == 2 * OFFERINGS
 
 
 def test_the_snapshot_carries_each_measured_value_with_its_interval(snapshot, dry):
@@ -166,13 +167,13 @@ def test_the_snapshot_carries_each_measured_value_with_its_interval(snapshot, dr
 
 def test_the_vocabulary_says_who_measured_speed_and_how(vocabulary):
     row = next(f for f in vocabulary["facets"] if f["id"] == THROUGHPUT)
-    assert row["known"] == 10
+    assert row["known"] == OFFERINGS
     assert {k: row["measurement"][k] for k in ("measured_by", "methods", "workloads",
                                                 "measured", "min_n")} == {
         "measured_by": ["ModelSpec"],
         "methods": [{"id": "speed-v1", "url": METHOD_URL}],
         "workloads": ["short_chat"],
-        "measured": 10,
+        "measured": OFFERINGS,
         "min_n": 24,
     }
     unmeasured = next(f for f in vocabulary["facets"] if f["id"] == "offering.price.input")
@@ -208,7 +209,7 @@ def test_a_speed_prefer_ranks_from_the_measured_medians(snapshot):
     speeds = [snapshot.fact(o, THROUGHPUT).value for o in ranked]
     assert ranked[0] == FASTEST
     assert speeds == sorted(speeds, reverse=True)
-    assert len(ranked) == 10
+    assert len(ranked) == OFFERINGS
 
 
 def test_a_measured_interval_widens_the_answer_band(snapshot):

@@ -167,7 +167,7 @@ function EstateStrip({ vocabulary, estate, onChange }: { vocabulary: Vocabulary;
   </section>;
 }
 
-export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections, mustOrder, onMustOrder, estate, onEstate, access = "any", onAccess, answer, fit = 0, may = 0, notes = [], onNotes, refinementFallbackKeys = new Set(), onCanvasAxes }: { vocabulary: Vocabulary; spec: Spec; onSpec: (spec: Spec) => void; selections?: BoardSelections; onSelections?: (selections: BoardSelections) => void; mustOrder?: string[]; onMustOrder?: (mustOrder: string[]) => void; estate: Estate; onEstate: (estate: Estate) => void; access?: AccessAnswer; onAccess?: (access: AccessAnswer) => void; answer?: ReactNode; fit?: number; may?: number; notes?: string[]; onNotes?: (notes: string[]) => void; refinementFallbackKeys?: ReadonlySet<string>; onCanvasAxes?: (axes: CanvasAxes) => void }) {
+export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections, mustOrder, onMustOrder, estate, onEstate, access = "any", onAccess, answer, fit = 0, may = 0, notes = [], onNotes, refinementFallbackKeys = new Set(), onCanvasAxes, onTemplate }: { vocabulary: Vocabulary; spec: Spec; onSpec: (spec: Spec) => void; selections?: BoardSelections; onSelections?: (selections: BoardSelections) => void; mustOrder?: string[]; onMustOrder?: (mustOrder: string[]) => void; estate: Estate; onEstate: (estate: Estate) => void; access?: AccessAnswer; onAccess?: (access: AccessAnswer) => void; answer?: ReactNode; fit?: number; may?: number; notes?: string[]; onNotes?: (notes: string[]) => void; refinementFallbackKeys?: ReadonlySet<string>; onCanvasAxes?: (axes: CanvasAxes) => void; onTemplate?: (id: string | null) => void }) {
   const [localSelections, setLocalSelections] = useState<BoardSelections>({});
   const [localMustOrder, setLocalMustOrder] = useState<string[]>([]);
   const selected = selections ?? localSelections;
@@ -220,6 +220,7 @@ export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections,
     if (onMustOrder) onMustOrder(sanitized.mustOrder); else setLocalMustOrder(sanitized.mustOrder);
     setSelected(all); onNotes?.(sanitized.notes); setTemplatesOpen(false);
     setActiveTemplate({ id: template.id, refinement: refinement?.id ?? null });
+    onTemplate?.(template.id);
     const canvas = template.canvas;
     if (canvas && isCanvasAxisId(canvas.x) && isCanvasAxisId(canvas.y)) onCanvasAxes?.({ x: canvas.x, y: canvas.y });
     onSpec(boardToSpec(templateSpec, vocabulary, all, sanitized.mustOrder));
@@ -231,7 +232,7 @@ export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections,
     onNotes?.([]);
     setExpandedGroups({ "What it's good at": true });
     // Reset clears the spec, never the template card: it returns to its bar.
-    setActiveTemplate(null); setTemplatesOpen(false);
+    setActiveTemplate(null); onTemplate?.(null); setTemplatesOpen(false);
     onSpec(boardToSpec(spec, vocabulary, empty.selections, []));
   };
   return <div className="facet-board">

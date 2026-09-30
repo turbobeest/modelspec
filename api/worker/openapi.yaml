@@ -12,6 +12,8 @@ info:
     returns ranked models with scores, cost and reasons; on failure, it returns which constraint eliminated
     every option. POST /v1/policy-check returns, per model and per platform, pass, fail or undetermined
     against a licence, origin, residency and commercial-use policy, citing the document behind each verdict.
+    After you act on an answer, POST /v1/feedback with a rating (reliable, unreliable, trustworthy, untrustworthy,
+    confusing) and its decision_id; no key.
 
 
     One call, and no state on your side. Each answer is computed per request from the current public export;
@@ -82,6 +84,7 @@ info:
     /v1/policy-check: 262144
     /v1/signals: 4096
     /v1/signals/discovered: 4096
+    /v1/feedback: 4096
 x-modelspec-access:
   status: wired; enforcement off
   ticket: MODEL-69
@@ -688,6 +691,111 @@ paths:
                 oneOf:
                 - $ref: '#/components/schemas/DeterminationsUnavailable'
                 - $ref: '#/components/schemas/AccessRefused'
+  /v1/feedback:
+    post:
+      operationId: feedback
+      summary: Tell ModelSpec whether an answer was reliable, unreliable, trustworthy, untrustworthy or
+        confusing. No key.
+      description: 'Send one rating after you act on an answer, with the decision_id when it is about
+        a decision. Never include a prompt, a key or anything that identifies a person: free text is scrubbed,
+        and `redacted` says what was replaced. Storage ships off: a 200 is `not_recorded` and nothing
+        is kept; a 202 is `recorded`. Request schema: https://modelspec.dev/api/feedback/v1.schema.json.
+        Reference: docs/feedback-api.md.'
+      security:
+      - {}
+      x-modelspec-probe: skip
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedbackRequest'
+            example:
+              rating: unreliable
+              client: agent
+              decision_id: dec_3f9a1c2b7d4e
+              note: The top pick has no pricing for my region.
+      responses:
+        '200':
+          description: 'Valid, and storage is off: nothing was kept.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackResult'
+        '202':
+          description: Recorded. Keep `receipt` to delete it later.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackResult'
+        '400': &id004
+          description: '`invalid_request`: Fix the body against the published schema and send it again.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackError'
+        '403': &id005
+          description: '`origin_not_allowed`: Send it from modelspec.dev, or from a client with no Origin
+            header.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackError'
+        '413': &id006
+          description: '`payload_too_large`: Keep the body under 4096 bytes; shorten the note.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackError'
+        '429': &id007
+          description: '`rate_limited`: Wait retry_after seconds, then send it once.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackError'
+        '503':
+          description: '`feedback_store_unavailable`: Storage is on but not configured; retry later.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackError'
+        '405': &id008
+          description: Use POST to send and DELETE to withdraw.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransportError'
+    delete:
+      operationId: feedbackWithdraw
+      summary: Delete one piece of feedback by the receipt it was given.
+      security:
+      - {}
+      x-modelspec-probe: skip
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedbackWithdrawal'
+      responses:
+        '200':
+          description: Deleted.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackResult'
+        '400': *id004
+        '403': *id005
+        '404':
+          description: '`receipt_not_found`: Nothing is stored under that receipt; it was deleted or never
+            kept.'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FeedbackError'
+        '413': *id006
+        '429': *id007
+        '405': *id008
   /v1/signals:
     post:
       operationId: releaseSignalIntake
@@ -714,19 +822,19 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SignalMutation'
-        '400': &id004
+        '400': &id009
           description: The feature is off, authentication failed, the request is invalid, or storage is
             unavailable.
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SignalError'
-        '401': *id004
-        '404': *id004
-        '409': *id004
-        '413': *id004
-        '503': *id004
-        '405': &id005
+        '401': *id009
+        '404': *id009
+        '409': *id009
+        '413': *id009
+        '503': *id009
+        '405': &id010
           description: Wrong method for this path.
           content:
             application/json:
@@ -758,12 +866,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SignalMutation'
-        '400': *id004
-        '401': *id004
-        '404': *id004
-        '413': *id004
-        '503': *id004
-        '405': *id005
+        '400': *id009
+        '401': *id009
+        '404': *id009
+        '413': *id009
+        '503': *id009
+        '405': *id010
   /v1/signals/pending:
     get:
       operationId: releaseSignalsPending
@@ -778,10 +886,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SignalsPending'
-        '401': *id004
-        '404': *id004
-        '503': *id004
-        '405': *id005
+        '401': *id009
+        '404': *id009
+        '503': *id009
+        '405': *id010
   /v1/signals/ack:
     post:
       operationId: releaseSignalAcknowledge
@@ -802,11 +910,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SignalMutation'
-        '400': *id004
-        '401': *id004
-        '404': *id004
-        '503': *id004
-        '405': *id005
+        '400': *id009
+        '401': *id009
+        '404': *id009
+        '503': *id009
+        '405': *id010
   /v1/billing/checkout:
     post:
       operationId: billingCheckout
@@ -3505,8 +3613,8 @@ components:
           - type: 'null'
           default: null
         contract_version:
-          const: '2.9'
-          default: '2.9'
+          const: '2.10'
+          default: '2.10'
           title: Contract Version
           type: string
         decision_id:
@@ -3617,6 +3725,8 @@ components:
           - $ref: '#/components/schemas/DecisionWithEstate'
           - type: 'null'
           default: null
+        feedback:
+          $ref: '#/components/schemas/DecisionFeedbackPointer'
       required:
       - decision_id
       - snapshot
@@ -4070,6 +4180,48 @@ components:
           title: Direct
           type: boolean
       title: EvidenceQualifiers
+      type: object
+    DecisionFeedbackPointer:
+      additionalProperties: false
+      description: 'Where to say whether this answer held up. The same on every decision.
+
+
+        Added in 2.10 (MODEL-221), so that an agent holding an answer finds the
+
+        feedback endpoint without reading anything else. No key is needed.'
+      properties:
+        endpoint:
+          const: https://api.modelspec.dev/v1/feedback
+          default: https://api.modelspec.dev/v1/feedback
+          title: Endpoint
+          type: string
+        method:
+          const: POST
+          default: POST
+          title: Method
+          type: string
+        request_schema:
+          const: https://modelspec.dev/api/feedback/v1.schema.json
+          default: https://modelspec.dev/api/feedback/v1.schema.json
+          title: Request Schema
+          type: string
+        ratings:
+          items:
+            enum:
+            - reliable
+            - unreliable
+            - trustworthy
+            - untrustworthy
+            - confusing
+            type: string
+          title: Ratings
+          type: array
+        cli:
+          const: modelspec feedback <decision_id> --rating <rating>
+          default: modelspec feedback <decision_id> --rating <rating>
+          title: Cli
+          type: string
+      title: FeedbackPointer
       type: object
     DecisionFunnelStep:
       additionalProperties: false
@@ -5755,7 +5907,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.9'
+          - '2.10'
         endpoint:
           type: string
           enum:
@@ -5807,7 +5959,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.9'
+          - '2.10'
         endpoint:
           type: string
           enum:
@@ -5832,7 +5984,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.9'
+          - '2.10'
         endpoint:
           type: string
           enum:
@@ -5886,7 +6038,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.9'
+          - '2.10'
         endpoint:
           type: string
           enum:
@@ -5923,12 +6075,12 @@ components:
         model:
           type: string
           pattern: ^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$
-        provider: &id006
+        provider: &id011
           anyOf:
           - type: string
           - type: 'null'
-        region: *id006
-        tier: *id006
+        region: *id011
+        tier: *id011
     ComparisonOfferingChange:
       type: object
       additionalProperties: false
@@ -5966,8 +6118,8 @@ components:
               - type: string
             type: array
           - type: 'null'
-        unit: *id006
-        records: &id007
+        unit: *id011
+        records: &id012
           type: array
           items:
             type: string
@@ -5982,8 +6134,8 @@ components:
         value:
           type: number
           nullable: true
-        unit: *id006
-        records: *id007
+        unit: *id011
+        records: *id012
     ComparisonCapabilityValue:
       type: object
       additionalProperties: false
@@ -6000,7 +6152,7 @@ components:
             type: number
           minItems: 2
           maxItems: 2
-        records: *id007
+        records: *id012
     ComparisonFacetChange:
       type: object
       additionalProperties: false
@@ -6017,7 +6169,7 @@ components:
           - facet
         facet:
           type: string
-        offering: &id008
+        offering: &id013
           oneOf:
           - $ref: '#/components/schemas/ComparisonOfferingRef'
           - $ref: '#/components/schemas/ComparisonOfferingChange'
@@ -6038,7 +6190,7 @@ components:
           type: string
           enum:
           - cost_per_task
-        offering: *id008
+        offering: *id013
         old:
           $ref: '#/components/schemas/ComparisonCostValue'
         new:
@@ -6059,7 +6211,7 @@ components:
           - capability
         domain:
           type: string
-        offering: *id008
+        offering: *id013
         old:
           $ref: '#/components/schemas/ComparisonCapabilityValue'
         new:
@@ -6154,7 +6306,7 @@ components:
           - old
           - new
           properties:
-            old: &id009
+            old: &id014
               type: object
               additionalProperties: false
               required:
@@ -6164,8 +6316,8 @@ components:
                 id:
                   type: string
                   pattern: ^snap_[A-Za-z0-9:._-]+$
-                as_of: *id006
-            new: *id009
+                as_of: *id011
+            new: *id014
         status:
           type: object
           additionalProperties: false
@@ -6226,7 +6378,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.9'
+          - '2.10'
         endpoint:
           type: string
           enum:
@@ -6727,7 +6879,7 @@ components:
       properties:
         checks:
           type: array
-          items: &id010
+          items: &id015
             $ref: '#/components/schemas/PolicyCheck'
         display_name:
           type: string
@@ -6801,7 +6953,7 @@ components:
       properties:
         checks:
           type: array
-          items: *id010
+          items: *id015
         display_name:
           type: string
         failed:
@@ -6860,7 +7012,7 @@ components:
       properties:
         checks:
           type: array
-          items: *id010
+          items: *id015
         display_name:
           type: string
         model_id:
@@ -7876,7 +8028,7 @@ components:
           type: number
           minimum: 0
           maximum: 1
-        signal_id: &id011
+        signal_id: &id016
           type: string
           minLength: 1
           maxLength: 128
@@ -7933,7 +8085,7 @@ components:
       - signal_id
       - result
       properties:
-        signal_id: *id011
+        signal_id: *id016
         result:
           type: string
           nullable: true
@@ -7973,7 +8125,7 @@ components:
           - accepted
           - duplicate
           - acknowledged
-        signal_id: *id011
+        signal_id: *id016
         recheck_days:
           type: array
           items:
@@ -8037,3 +8189,146 @@ components:
               type: string
             message:
               type: string
+    FeedbackRequest:
+      title: ModelSpec feedback
+      description: 'POST this to https://api.modelspec.dev/v1/feedback. No key. One rating from a fixed
+        set, optionally tied to the decision_id of a ModelSpec answer. Never include a prompt, a key,
+        or anything that identifies a person. Reference: https://github.com/turbobeest/modelspec/blob/main/docs/feedback-api.md'
+      type: object
+      additionalProperties: false
+      required:
+      - rating
+      - client
+      properties:
+        rating:
+          enum:
+          - reliable
+          - unreliable
+          - trustworthy
+          - untrustworthy
+          - confusing
+          description: What you thought of the answer or the page.
+          type: string
+        client:
+          enum:
+          - agent
+          - cli
+          - mcp
+          - page
+          description: 'What is sending it: an agent, the CLI, the MCP server, or the website.'
+          type: string
+        decision_id:
+          type: string
+          pattern: ^dec_[0-9A-Za-z]{8,64}$
+          description: The decision_id of the answer this is about.
+          nullable: true
+        note:
+          type: string
+          maxLength: 1000
+          description: Optional. What was wrong or right, in your words.
+          nullable: true
+        trying_to_decide:
+          type: string
+          maxLength: 300
+          description: Optional. What you were trying to decide.
+          nullable: true
+        page:
+          type: string
+          pattern: ^/[A-Za-z0-9._~/-]{0,199}$
+          description: Optional. The site path, such as /decide/.
+          nullable: true
+        template:
+          type: string
+          pattern: ^[a-z0-9][a-z0-9-]{0,63}$
+          description: Optional. The decision template in use.
+          nullable: true
+    FeedbackWithdrawal:
+      type: object
+      additionalProperties: false
+      required:
+      - receipt
+      properties:
+        receipt:
+          type: string
+          pattern: ^fbr_(\d{8})_([0-9a-f]{32})$
+    FeedbackResult:
+      type: object
+      required:
+      - schema_version
+      - service_commit
+      - endpoint
+      - status
+      - recorded
+      properties:
+        schema_version: &id017
+          type: string
+          enum:
+          - '1.0'
+        service_commit: &id018
+          type: string
+        endpoint: &id019
+          type: string
+          enum:
+          - feedback
+        status:
+          type: string
+          enum:
+          - recorded
+          - not_recorded
+          - deleted
+        recorded:
+          type: boolean
+        receipt:
+          type: string
+          nullable: true
+          pattern: ^fbr_(\d{8})_([0-9a-f]{32})$
+        retention_days:
+          type: integer
+          nullable: true
+        redacted:
+          type: array
+          items:
+            type: string
+            enum:
+            - card
+            - email
+            - id_number
+            - ip
+            - phone
+            - secret
+            - url_query
+        message:
+          type: string
+        privacy:
+          type: string
+          format: uri
+    FeedbackError:
+      type: object
+      required:
+      - schema_version
+      - service_commit
+      - endpoint
+      - error
+      properties:
+        schema_version: *id017
+        service_commit: *id018
+        endpoint: *id019
+        error:
+          type: object
+          required:
+          - code
+          - message
+          properties:
+            code:
+              type: string
+              enum:
+              - feedback_store_unavailable
+              - invalid_request
+              - origin_not_allowed
+              - payload_too_large
+              - rate_limited
+              - receipt_not_found
+            message:
+              type: string
+            retry_after:
+              type: integer

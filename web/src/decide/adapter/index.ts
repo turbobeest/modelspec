@@ -21,6 +21,7 @@ import {
 import type { Row, FullEval, RankedRow } from "../engine/reference";
 import type { BenchDef, Cond, Evidence, Spec } from "../engine/types";
 import type { Decision, EvidenceItem, OfferingRef } from "./contract";
+import { FEEDBACK_RATINGS } from "./contract";
 export {
   DECIDE_ENDPOINT,
   DECIDE_TIMEOUT_MS,
@@ -316,7 +317,14 @@ export const fictionalEngine: SampleDecisionEngine = {
         : [],
     );
     return {
-      contract_version: "2.9",
+      contract_version: "2.10",
+      feedback: {
+        endpoint: "https://api.modelspec.dev/v1/feedback",
+        method: "POST",
+        request_schema: "https://modelspec.dev/api/feedback/v1.schema.json",
+        ratings: [...FEEDBACK_RATINGS],
+        cli: "modelspec feedback <decision_id> --rating <rating>",
+      },
       by_model: [],
       blend: [],
       truncated: { offerings: 0, models: 0 },
