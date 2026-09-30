@@ -1,0 +1,37 @@
+name: Dispatch curation on its active cadence
+on:
+  schedule:
+    - cron: '17 6 * * 1'
+    - cron: '47 6 * * *'
+permissions:
+  contents: read
+jobs:
+  gate:
+    if: vars.DATA_SPLIT_ENABLED == 'true'
+    outputs:
+      run: ${{ steps.gate.outputs.run }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install pyyaml pydantic
+      - name: Decide whether the trial or weekly run is due
+        id: gate
+        env:
+          SCHEDULE: ${{ github.event.schedule }}
+        run: python scripts/curation/ci.py gate --event schedule --schedule "$SCHEDULE" >> "$GITHUB_OUTPUT"
+  dispatch:
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch private curation when due
+        env:
+          GH_TOKEN: ${{ secrets.MODELSPEC_DATA_DISPATCH_TOKEN }}
+        run: |
+          test -n "$GH_TOKEN"
+          gh workflow run curation-benchmarks.yml --repo turbobeest/modelspec-data --ref main

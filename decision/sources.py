@@ -73,7 +73,15 @@ def load_sources(path: str | Path) -> dict[str, Source]:
     path = Path(path)
     if not path.is_file():
         return {}
-    data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+    from schema import private_data, redacted_error
+
+    content = path.read_text(encoding="utf-8")
+    try:
+        data = yaml.safe_load(content) or {}
+    except yaml.YAMLError as exc:
+        if private_data(path):
+            raise ValueError(redacted_error(exc, path)) from None
+        raise
     if not isinstance(data, Mapping) or data.get("schema_version") != 1:
         raise ValueError(f"{path}: schema_version must be 1")
     rows = data.get("sources")
@@ -84,8 +92,12 @@ def load_sources(path: str | Path) -> dict[str, Source]:
         try:
             source = Source.model_validate(raw)
         except ValueError as exc:
+            if private_data(path):
+                raise ValueError(redacted_error(exc, path, content=content, field_prefix=("sources", i))) from None
             raise ValueError(f"{path}: sources[{i}]: {exc}") from exc
         if source.id in registered:
+            if private_data(path):
+                raise ValueError(f"{path}: duplicate source ID; values redacted") from None
             raise ValueError(f"{path}: duplicate source ID {source.id!r}")
         registered[source.id] = source
     return registered

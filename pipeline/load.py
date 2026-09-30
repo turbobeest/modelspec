@@ -24,6 +24,8 @@ from typing import Any
 
 import yaml
 
+from schema import private_data, redacted_error
+
 REPO_ROOT = Path(__file__).resolve().parent.parent
 FRONT_MATTER = re.compile(r"^---\n(.*?)\n---\n?(.*)\Z", re.S)
 
@@ -35,13 +37,15 @@ class LoadError(RuntimeError):
     """A file that should have parsed did not."""
 
 
-def split_front_matter(text: str) -> tuple[dict[str, Any], str]:
+def split_front_matter(text: str, *, path: Path | None = None) -> tuple[dict[str, Any], str]:
     match = FRONT_MATTER.match(text)
     if not match:
         raise LoadError("no YAML front matter")
     try:
         front = yaml.safe_load(match.group(1))
     except yaml.YAMLError as exc:
+        if private_data(path):
+            raise LoadError(redacted_error(exc, path, line_offset=1)) from None
         raise LoadError(f"front matter is not valid YAML: {exc}") from exc
     if not isinstance(front, dict):
         raise LoadError("front matter is not a mapping")
@@ -173,7 +177,7 @@ def load_models(root: Path | None = None) -> list[Model]:
     for path in sorted(directory.rglob("*.md")):
         if path.name in NOT_CONTENT:
             continue
-        front, body = split_front_matter(path.read_text(encoding="utf-8", errors="replace"))
+        front, body = split_front_matter(path.read_text(encoding="utf-8", errors="replace"), path=path)
         model_id = front.get("model_id")
         if not model_id:
             # Prose without a model_id is not a card; skip rather than fail, the
@@ -190,7 +194,7 @@ def load_benchmarks(root: Path | None = None) -> list[Benchmark]:
     for path in sorted(directory.glob("*.md")):
         if path.name in NOT_CONTENT:
             continue
-        front, body = split_front_matter(path.read_text(encoding="utf-8", errors="replace"))
+        front, body = split_front_matter(path.read_text(encoding="utf-8", errors="replace"), path=path)
         benchmark_id = front.get("id")
         if not benchmark_id:
             raise LoadError(f"{path}: benchmark page has no id")

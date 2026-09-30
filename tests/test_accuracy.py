@@ -769,7 +769,7 @@ def test_accuracy_workflows_split_pr_and_nightly_layers() -> None:
     pr_workflow = yaml.load(pr, Loader=yaml.BaseLoader)
     pr_paths = pr_workflow["on"]["pull_request"]["paths"]
     nightly = Path(".github/workflows/accuracy-nightly.yml").read_text()
-    refresh = Path(".github/workflows/leaderboard-refresh.yml").read_text()
+    refresh = Path(".github/private-writers/leaderboard-refresh.yml").read_text()
 
     for path in ("decision/**", "registry/**", "models/**", "offerings/**", "verification/**"):
         assert path in pr
@@ -790,7 +790,6 @@ def test_accuracy_workflows_split_pr_and_nightly_layers() -> None:
     assert "--approved-recall-baseline" in pr
     assert 'cp tests/recall/baseline.json' not in pr
     assert "scripts/recall_run.py" in pr_paths
-    assert "Decision accuracy" in refresh
-    assert "gh run watch" in refresh
-    assert refresh.index("gh run watch") < refresh.index("gh pr merge --auto --squash")
+    assert "check_score_only" in refresh
+    assert "gh pr merge" not in refresh
     assert "continue-on-error" not in pr + nightly

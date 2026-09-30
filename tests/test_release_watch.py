@@ -499,12 +499,23 @@ def test_the_workflow_alerts_on_outage_and_holds_no_pr_credential() -> None:
     assert 'sink=--post' in text and 'sink=--issues' in text
     assert 'python scripts/release_watch.py "$sink"' in text
     assert job["timeout-minutes"] <= 10
-    # The read key it already holds is the only secret: no PR token, no
-    # Firecrawl key, nothing Jamie has to create for it.
-    assert set(re.findall(r"secrets\.(\w+)", text)) == {"MODELSPEC_SIGNALS_READ_KEY"}
-    alert = next(step for step in job["steps"] if step.get("name") == "Raise the outage alert")
-    # A crash before the report, or any failed step, still alerts.
-    assert alert["if"] == "${{ !cancelled() && (failure() || steps.watch.outputs.status != '0') }}"
-    assert "before writing a report" in text
-    assert "gh issue create --label release-watch" in alert["run"]
-    assert alert["run"].rstrip().endswith("exit 1")
+    # Source watching holds only the signal read key; dispatch is a separate job.
+    assert set(re.findall(r"secrets\.(\w+)", json.dumps(job))) == {"MODELSPEC_SIGNALS_READ_KEY"}
+    dispatch = workflow["jobs"]["dispatch"]
+    assert set(re.findall(r"secrets\.(\w+)", json.dumps(dispatch))) == {"MODELSPEC_DATA_DISPATCH_TOKEN"}
+    assert "--repo turbobeest/modelspec-data" in json.dumps(dispatch)
+    assert not any("gh issue create --label release-watch" in step.get("run", "") for step in job["steps"])
+    assert 'select(.filed == true)' in text
+    assert "DATA_SPLIT_ENABLED" in dispatch["if"]
+
+
+def test_public_source_detection_does_not_use_catalogue_or_hold_bursts(world):
+    registry, baseline, _ = world
+    runs = run_all(registry, baseline, fetch=replay("after"), now=NOW)
+    assert discoveries(runs, NOW)
+    source = registry.sources[0]
+    from dataclasses import replace
+    limited = replace(registry, sources=(replace(source, max_new=0),))
+    runs = run_all(limited, baseline, fetch=replay("after"), now=NOW)
+    assert runs[0].status == "ok"
+    assert "load_catalogue" not in __import__('inspect').getsource(release_watch.main)

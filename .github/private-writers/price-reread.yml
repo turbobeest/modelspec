@@ -1,0 +1,177 @@
+# MODEL-247: install in modelspec-data. This directory is not an Actions workflow directory.
+name: Weekly price and plan re-read
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  actions: read
+concurrency:
+  group: weekly-price-reread
+  cancel-in-progress: false
+jobs:
+  reread:
+    name: Re-read price and plan pages
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      MODELSPEC_REQUIRE_DATA_DIR: '1'
+      PYTHONPATH: ${{ github.workspace }}/data
+      MODELSPEC_DATA_DIR: ${{ github.workspace }}/data
+    steps:
+      - name: Keep retained copies outside the checkout
+        run: echo "MODELSPEC_SOURCE_CACHE=$RUNNER_TEMP/source-copies" >> "$GITHUB_ENV"
+        working-directory: .
+      - uses: actions/checkout@v4
+        with:
+          path: data
+          token: ${{ github.token }}
+          fetch-depth: 0
+      - name: Check out the pinned public engine
+        uses: actions/checkout@v4
+        with:
+          repository: turbobeest/modelspec
+          ref: 6b156165e37be699c9d87882aad446bc36f11813
+          path: engine
+          persist-credentials: false
+      - name: Compose code into the private checkout
+        run: python ../engine/scripts/prepare_data_writer.py --engine ../engine --data .
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install re-read dependencies
+        run: pip install pydantic pyyaml httpx
+      - name: Restore last week's retained copies
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir -p "$MODELSPEC_SOURCE_CACHE"
+          run_id="$(gh api "repos/${{ github.repository }}/actions/artifacts?name=price-reread-copies&per_page=1" \
+            --jq '.artifacts[0] | select(.expired | not) | .workflow_run.id // empty')"
+          if [ -n "$run_id" ]; then
+            gh run download "$run_id" --repo "${{ github.repository }}" \
+              --name price-reread-copies --dir "$MODELSPEC_SOURCE_CACHE" \
+              || echo "::notice::could not restore the copies from run $run_id"
+          fi
+      - name: Re-read every page once
+        run: |
+          args=(--report-json "$RUNNER_TEMP/report.json" --report-md "$RUNNER_TEMP/report.md" --retain-only-cited)
+          if [ "${{ inputs.dry_run }}" != "true" ]; then
+            args+=(--write)
+          fi
+          python scripts/price_reread.py "${args[@]}" > /dev/null
+          cat "$RUNNER_TEMP/report.md" >> "$GITHUB_STEP_SUMMARY"
+      - name: Count changes and alerts
+        id: result
+        run: |
+          python - "$RUNNER_TEMP/report.json" "$GITHUB_OUTPUT" <<'PY'
+          import json, sys
+          report = json.load(open(sys.argv[1]))
+          with open(sys.argv[2], "a") as out:
+              print(f"changes={len(report['changes'])}", file=out)
+              print(f"reconfirmed={len(report['reconfirmed'])}", file=out)
+              print(f"alerts={len(report['alerts'])}", file=out)
+          PY
+      - name: Keep this week's copies for next week's diff
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: price-reread-copies
+          path: ${{ runner.temp }}/source-copies
+          retention-days: 35
+          if-no-files-found: ignore
+      - name: Prepare the pull-request body
+        if: inputs.dry_run != true && steps.result.outputs.changes != '0'
+        run: |
+          {
+            echo 'The weekly re-read found values that no longer match their pages. Each new value below was read by the verifier'"'"'s deterministic readers from a fresh copy of the page, and the verifier confirmed it. Both of those keys are code in this repository, so check the source diff before merging. This pull request is never auto-merged.'
+            echo
+            # A pull-request body holds at most 65,536 characters.
+            head -c 60000 "$RUNNER_TEMP/report.md"
+          } > "$RUNNER_TEMP/pr-body.md"
+      - name: Open the re-read pull request
+        if: inputs.dry_run != true && steps.result.outputs.changes != '0'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: data/weekly-price-reread
+          delete-branch: true
+          add-paths: |
+            offerings/**
+            verification/log.jsonl
+            verification/queue/events.jsonl
+          signoff: true
+          commit-message: |-
+            data: re-read prices and plans (MODEL-217)
+
+            Co-Authored-By: Codex (GPT-6.1 Sol) <noreply@openai.com>
+          title: 'data: re-read prices and plans (MODEL-217)'
+          body-path: ${{ runner.temp }}/pr-body.md
+          path: data
+      - name: Prove a no-change run only appended to the verification log
+        id: reconfirm
+        if: inputs.dry_run != true && steps.result.outputs.changes == '0' && steps.result.outputs.reconfirmed != '0'
+        run: |
+          changed="$(git status --porcelain -- offerings verification)"
+          if [ "$changed" != " M verification/log.jsonl" ]; then
+            echo "::error::a run with no value change touched more than the log:"
+            echo "$changed"
+            exit 1
+          fi
+          if git diff --numstat verification/log.jsonl | awk '$2 != 0 { bad = 1 } END { exit !bad }'; then
+            echo "::error::the log was edited, not appended to"
+            exit 1
+          fi
+          echo "log_only=true" >> "$GITHUB_OUTPUT"
+      - name: Open the reconfirmation pull request
+        if: steps.reconfirm.outputs.log_only == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: data/weekly-price-reconfirm
+          delete-branch: true
+          add-paths: verification/log.jsonl
+          signoff: true
+          commit-message: |-
+            data: reconfirm prices and plans (MODEL-217)
+
+            Co-Authored-By: Codex (GPT-6.1 Sol) <noreply@openai.com>
+          title: 'data: reconfirm prices and plans (MODEL-217)'
+          body-path: ${{ runner.temp }}/report.md
+          path: data
+      - name: Open or update the alert issue
+        if: inputs.dry_run != true && steps.result.outputs.alerts != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TITLE: Price and plan re-read needs a person
+        run: |
+          {
+            echo "Run: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+            echo
+            head -c 60000 "$RUNNER_TEMP/report.md"
+          } > "$RUNNER_TEMP/issue-body.md"
+          # One open issue collects every week's alerts.
+          number="$(gh issue list --repo "${{ github.repository }}" --state open --limit 100 \
+            --json number,title --jq '.[] | select(.title == env.TITLE) | .number' | head -n 1)"
+          if [ -n "$number" ]; then
+            gh issue comment "$number" --repo "${{ github.repository }}" --body-file "$RUNNER_TEMP/issue-body.md"
+          else
+            gh issue create --repo "${{ github.repository }}" --title "$TITLE" --body-file "$RUNNER_TEMP/issue-body.md"
+          fi
+      - name: Fail a run with alerts
+        if: steps.result.outputs.alerts != '0'
+        run: |
+          echo "::error::${{ steps.result.outputs.alerts }} price or plan facts could not be re-read; see the run summary."
+          exit 1
+    defaults:
+      run:
+        working-directory: data
+'on':
+  schedule:
+    - cron: 41 7 * * 2
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Re-read and report without opening a pull request or an issue
+        type: boolean
+        default: false

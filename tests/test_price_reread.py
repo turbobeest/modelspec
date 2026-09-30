@@ -383,7 +383,7 @@ def test_the_guard_refuses_a_rewrite_of_another_fact(estate) -> None:
 
 def test_price_pull_requests_are_never_auto_merged() -> None:
     automerge = (ROOT / ".github" / "workflows" / "automerge.yml").read_text()
-    workflow = (ROOT / ".github" / "workflows" / "price-reread.yml").read_text()
+    workflow = (ROOT / ".github" / "private-writers" / "price-reread.yml").read_text()
     assert f"github.head_ref != '{BRANCH}'" in automerge
     assert f"branch: {BRANCH}" in workflow
     assert "gh pr merge" not in workflow

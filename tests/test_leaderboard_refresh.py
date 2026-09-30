@@ -210,18 +210,18 @@ def test_excluded_sources_are_refused_before_fetch(url: str) -> None:
         refresh.require_allowed_source(url)
 
 
-def test_weekly_workflow_uses_the_guard_pat_and_audit_artifact() -> None:
-    workflow = (Path(__file__).parents[1] / ".github" / "workflows" /
+def test_private_weekly_workflow_uses_guard_token_and_audit_artifact() -> None:
+    workflow = (Path(__file__).parents[1] / ".github" / "private-writers" /
                 "leaderboard-refresh.yml").read_text(encoding="utf-8")
 
-    assert "cron: '20 6 * * 1'" in workflow
+    assert "cron: 20 6 * * 1" in workflow
     assert "workflow_dispatch:" in workflow
-    assert "RESEARCH_PR_TOKEN" in workflow
+    assert "secrets.GITHUB_TOKEN" in workflow
     assert "check_score_only" in workflow
     assert "actions/upload-artifact@v4" in workflow
     assert "steps.result.outputs.updates != '0'" in workflow
     assert "len(report['changes']) + len(report['reconfirmed'])" in workflow
-    assert "gh pr merge --auto --squash" in workflow
+    assert "gh pr merge" not in workflow
     assert "signoff: true" in workflow
     assert "draft: true" not in workflow
 

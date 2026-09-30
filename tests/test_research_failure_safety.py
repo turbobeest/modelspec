@@ -27,7 +27,7 @@ import pytest
 import yaml
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-WORKFLOW_PATH = REPO_ROOT / ".github" / "workflows" / "daily-research.yml"
+WORKFLOW_PATH = REPO_ROOT / ".github" / "private-writers" / "daily-research.yml"
 
 from scripts import seed_models_dev as seeder  # noqa: E402
 

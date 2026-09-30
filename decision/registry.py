@@ -28,6 +28,8 @@ from typing import Any, Callable, Iterable, Literal, Mapping
 
 import yaml
 
+from schema import private_errors
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 REGISTRY_DIR = REPO_ROOT / "registry"
 
@@ -453,32 +455,41 @@ def _named_lists(repo_root: Path, raw: Mapping[str, list[dict]]) -> dict[str, Ca
 
 
 class _Errors:
-    def __init__(self) -> None:
+    def __init__(self, root: Path | None = None) -> None:
         self.items: list[str] = []
+        self.root = root
+        self.location: Path | None = None
 
     def add(self, where: str, message: str) -> None:
         self.items.append(f"{where}: {message}")
+        filename = where.split()[0]
+        if self.location is None and self.root is not None and re.fullmatch(r"[a-z-]+\.yaml", filename):
+            self.location = self.root / filename
 
     def raise_if_any(self) -> None:
         if self.items:
-            raise RegistryError("invalid registry:\n  " + "\n  ".join(self.items))
+            error = RegistryError("invalid registry:\n  " + "\n  ".join(self.items))
+            if self.location is not None:
+                error._modelspec_path = self.location
+            raise error
 
 
 def _read(root: Path, name: str, key: str) -> list[dict]:
     path = root / f"{name}.yaml"
     if not path.is_file():
         raise RegistryError(f"missing registry file {path}")
-    try:
-        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-    except yaml.YAMLError as exc:
-        raise RegistryError(f"{path}: not valid YAML: {exc}") from exc
-    expected_version = REGISTRY_SCHEMA_VERSIONS[name]
-    if data.get("schema_version") != expected_version:
-        raise RegistryError(f"{path}: schema_version must be {expected_version}")
-    entries = data.get(key)
-    if not isinstance(entries, list) or not all(isinstance(e, dict) for e in entries):
-        raise RegistryError(f"{path}: `{key}` must be a list of mappings")
-    return entries
+    with private_errors(path, error_type=RegistryError):
+        try:
+            data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        except yaml.YAMLError as exc:
+            raise RegistryError(f"{path}: not valid YAML: {exc}") from exc
+        expected_version = REGISTRY_SCHEMA_VERSIONS[name]
+        if data.get("schema_version") != expected_version:
+            raise RegistryError(f"{path}: schema_version must be {expected_version}")
+        entries = data.get(key)
+        if not isinstance(entries, list) or not all(isinstance(e, dict) for e in entries):
+            raise RegistryError(f"{path}: `{key}` must be a list of mappings")
+        return entries
 
 
 def _keys(err: _Errors, where: str, entry: dict, required: set[str], optional: set[str]) -> None:
@@ -904,28 +915,29 @@ def load(root: Path | None = None, *, repo_root: Path | None = None) -> Registry
     """
     root = Path(root) if root is not None else REGISTRY_DIR
     repo_root = Path(repo_root) if repo_root is not None else REPO_ROOT
-    err = _Errors()
-    raw = {
-        "providers": _read(root, "providers", "providers"),
-        "harnesses": _read(root, "harnesses", "harnesses"),
-        "domains": _read(root, "domains", "domains"),
-        "refinements": _read(root, "refinements", "refinements"),
-        "families": _read(root, "families", "families"),
-    }
-    lists = _named_lists(repo_root, raw)
-    units, kinds = _load_units_and_kinds(err, root)
-    facets = _load_facets(err, root, units, kinds, lists)
-    providers = _load_providers(err, root)
-    vendors = _load_vendors(err, root, providers)
-    harnesses = _load_harnesses(err, root)
-    domains = _load_domains(err, root)
-    model_classes = lists["model_classes"]()
-    refinements = _load_refinements(err, root, domains, model_classes)
-    families = _load_families(err, raw["families"])
-    err.raise_if_any()
-    return Registry(units=units, source_kinds=kinds, facets=facets, providers=providers,
-                    harnesses=harnesses, domains=domains, refinements=refinements,
-                    named_lists=lists, families=families, vendors=vendors)
+    with private_errors(root, error_type=RegistryError):
+        err = _Errors(root)
+        raw = {
+            "providers": _read(root, "providers", "providers"),
+            "harnesses": _read(root, "harnesses", "harnesses"),
+            "domains": _read(root, "domains", "domains"),
+            "refinements": _read(root, "refinements", "refinements"),
+            "families": _read(root, "families", "families"),
+        }
+        lists = _named_lists(repo_root, raw)
+        units, kinds = _load_units_and_kinds(err, root)
+        facets = _load_facets(err, root, units, kinds, lists)
+        providers = _load_providers(err, root)
+        vendors = _load_vendors(err, root, providers)
+        harnesses = _load_harnesses(err, root)
+        domains = _load_domains(err, root)
+        model_classes = lists["model_classes"]()
+        refinements = _load_refinements(err, root, domains, model_classes)
+        families = _load_families(err, raw["families"])
+        err.raise_if_any()
+        return Registry(units=units, source_kinds=kinds, facets=facets, providers=providers,
+                        harnesses=harnesses, domains=domains, refinements=refinements,
+                        named_lists=lists, families=families, vendors=vendors)
 
 
 def use_root(root: Path) -> None:

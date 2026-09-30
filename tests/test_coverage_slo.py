@@ -303,7 +303,7 @@ def test_the_refresh_pr_fetch_reads_each_branch_once() -> None:
 
 
 def test_the_weekly_refresh_branch_is_watched() -> None:
-    workflow = (ROOT / ".github" / "workflows" / "leaderboard-refresh.yml").read_text()
+    workflow = (ROOT / ".github" / "private-writers" / "leaderboard-refresh.yml").read_text()
     for branch in CONFIG.target("refresh-pr-merged").params["branches"]:
         assert f"branch: {branch}" in workflow
 

@@ -25,6 +25,12 @@ KEY = b"model-205-test-key"
 CURSOR = {"kind": "coding_tool", "harness": "cursor"}
 
 
+@pytest.fixture(autouse=True)
+def public_fixture_diagnostics(monkeypatch):
+    """Registry fixtures here exercise public errors; private errors have separate tests."""
+    monkeypatch.setattr("schema.private_data", lambda path=None: False)
+
+
 @pytest.fixture(scope="module")
 def snapshot():
     data = build_snapshot(vendor_inputs()).to_bytes(key=KEY)

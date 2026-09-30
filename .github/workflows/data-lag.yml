@@ -26,6 +26,8 @@ jobs:
     if: vars.DATA_SPLIT_ENABLED == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      MODELSPEC_REQUIRE_DATA_DIR: '1'
     steps:
       - name: Fail if a token is empty
         env:
@@ -54,9 +56,8 @@ jobs:
       - name: Publish the image as of today minus nine months
         id: lag
         run: |
-          result=$(python scripts/data_lag.py --private modelspec-data)
-          echo "$result"
-          echo "status=$(echo "$result" | python -c 'import json,sys; print(json.load(sys.stdin)["status"])')" >> "$GITHUB_OUTPUT"
+          python scripts/data_lag.py --private modelspec-data > "$RUNNER_TEMP/lag-status.json"
+          python -c 'import json,os; print("status=" + json.load(open(os.environ["RUNNER_TEMP"] + "/lag-status.json"))["status"])' >> "$GITHUB_OUTPUT"
 
       - name: Open the pull request
         if: steps.lag.outputs.status == 'published'

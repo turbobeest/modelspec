@@ -1,0 +1,33 @@
+name: Dispatch pending release signals
+on:
+  schedule:
+    - cron: '17 * * * *'
+permissions:
+  contents: read
+concurrency:
+  group: release-signals-gate
+  cancel-in-progress: false
+jobs:
+  pending:
+    if: vars.SIGNALS_ENABLED == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Count pending work without publishing signal contents
+        id: pending
+        env:
+          READ_KEY: ${{ secrets.MODELSPEC_SIGNALS_READ_KEY }}
+        run: |
+          test -n "$READ_KEY"
+          curl --fail --silent --show-error \
+            -H "Authorization: Bearer $READ_KEY" \
+            https://api.modelspec.dev/v1/signals/pending \
+            --output "$RUNNER_TEMP/pending.json"
+          count=$(jq '[.signals[]?, .rechecks[]?] | length' "$RUNNER_TEMP/pending.json")
+          echo "count=$count" >> "$GITHUB_OUTPUT"
+      - name: Dispatch the private processor when work exists
+        if: steps.pending.outputs.count != '0'
+        env:
+          GH_TOKEN: ${{ secrets.MODELSPEC_DATA_DISPATCH_TOKEN }}
+        run: |
+          test -n "$GH_TOKEN"
+          gh workflow run release-signals.yml --repo turbobeest/modelspec-data --ref main
