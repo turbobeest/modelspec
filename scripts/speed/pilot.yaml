@@ -3,6 +3,17 @@
 # identifier; `python -m scripts.speed preflight` checks each one against the
 # provider's free model list before any paid request. `params` pins the effort
 # the method measures at (the lowest the offering accepts; see the method doc).
+# Request shapes follow each provider's docs (checked 2026-09-29):
+#   Anthropic  thinking {type: disabled}; Claude 4.7+ rejects type "enabled" and any
+#              temperature but 1.0. https://docs.claude.com/en/api/messages
+#   OpenAI     reasoning_effort "none"; gpt-6-sol and gpt-5.6-sol reject "minimal".
+#              https://developers.openai.com/api/docs/guides/reasoning
+#   DeepSeek   thinking {type: disabled}; thinking is on by default.
+#              https://api-docs.deepseek.com/guides/thinking_mode
+#   Gemini 3   thinkingLevel; Gemini 3 thinking cannot be turned off, and the
+#              lowest level is "low". https://ai.google.dev/gemini-api/docs/thinking
+#   xAI        reasoning cannot be disabled; low/medium/high only, default high.
+#              https://docs.x.ai/docs/guides/reasoning
 # `output_bound_extra` is output the provider may bill beyond `max_tokens`.
 # `reasoning_off: true` claims the pinned effort does no reasoning; an offering
 # whose streams report reasoning tokens anyway is held, never published.
@@ -14,49 +25,54 @@ offerings:
   - offering: anthropic/anthropic/claude-opus-5-5/global/standard
     api: anthropic
     api_model: claude-opus-5-5
-    effort: thinking off
+    effort: thinking disabled
     reasoning_off: true
+    params: {thinking: {type: disabled}}
   - offering: anthropic/anthropic/claude-sonnet-5-5/global/standard
     api: anthropic
     api_model: claude-sonnet-5-5
-    effort: thinking off
+    effort: thinking disabled
     reasoning_off: true
+    params: {thinking: {type: disabled}}
   - offering: openai/openai/gpt-6-sol/global/standard
     api: openai
     api_model: gpt-6-sol
-    effort: reasoning_effort minimal
-    params: {reasoning_effort: minimal}
+    effort: reasoning_effort none
+    reasoning_off: true
+    params: {reasoning_effort: none}
   - offering: openai/openai/gpt-5-6-sol/global/standard
     api: openai
     api_model: gpt-5.6-sol
-    effort: reasoning_effort minimal
-    params: {reasoning_effort: minimal}
+    effort: reasoning_effort none
+    reasoning_off: true
+    params: {reasoning_effort: none}
   - offering: google-gemini-api/google/gemini-3-8-flash/global/standard
     api: gemini
     api_model: gemini-3.8-flash
-    effort: thinking budget 0
-    reasoning_off: true
-    params: {thinkingConfig: {thinkingBudget: 0}}
+    effort: thinking level low (the lowest)
+    params: {thinkingConfig: {thinkingLevel: low}}
   - offering: google-gemini-api/google/gemini-3-1-pro-preview/global/standard
     api: gemini
     api_model: gemini-3.1-pro-preview
-    effort: thinking budget 128 (the minimum)
-    params: {thinkingConfig: {thinkingBudget: 128}}
+    effort: thinking level low (the lowest)
+    params: {thinkingConfig: {thinkingLevel: low}}
     output_bound_extra: 128
   - offering: xai/xai/grok-4-7/global/standard
     api: xai
     api_model: grok-4.7
-    effort: provider default
+    effort: provider default (reasoning cannot be disabled)
   - offering: deepseek/deepseek/deepseek-v4-pro/global/standard
     api: deepseek
     api_model: deepseek-v4-pro
-    effort: non-thinking mode
+    effort: thinking disabled
     reasoning_off: true
+    params: {thinking: {type: disabled}}
   - offering: deepseek/deepseek/deepseek-flash/global/standard
     api: deepseek
     api_model: deepseek-flash
-    effort: non-thinking mode
+    effort: thinking disabled
     reasoning_off: true
+    params: {thinking: {type: disabled}}
   - offering: zai/zhipu/glm-5-3/global/standard
     api: zai
     api_model: glm-5.3

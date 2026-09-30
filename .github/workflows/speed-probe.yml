@@ -6,6 +6,9 @@ name: Speed probe
 #
 # preflight  free: checks every key is set, every pinned model ID is listed,
 #            and prints the runner's vantage. No paid request.
+# smoke      one minimal live request per offering under SPEED_SMOKE_CAP_USD.
+#            Prints each status, usage and redacted error body to the step
+#            summary, to settle request shapes. Writes no data and opens no PR.
 # pilot      one live slot of scripts/speed/pilot.yaml under SPEED_CAP_USD.
 #            It cannot publish (one slot fails the gates). Its run file,
 #            measurement and verification records go to a data PR, never to
@@ -18,9 +21,9 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'preflight (free) or pilot (paid, capped at SPEED_CAP_USD)'
+        description: 'preflight (free), smoke (paid, SPEED_SMOKE_CAP_USD) or pilot (paid, SPEED_CAP_USD)'
         type: choice
-        options: [preflight, pilot]
+        options: [preflight, smoke, pilot]
         default: preflight
 
 permissions:
@@ -33,6 +36,7 @@ concurrency:
 
 env:
   SPEED_CAP_USD: '15'
+  SPEED_SMOKE_CAP_USD: '0.25'
   PYTHONPATH: ${{ github.workspace }}
 
 jobs:
@@ -71,6 +75,17 @@ jobs:
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
         run: python -m scripts.speed preflight | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Smoke, one request per offering (paid, capped)
+        if: inputs.mode == 'smoke'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
+        run: python -m scripts.speed smoke | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: The pilot's worst case against the cap (free)
         if: inputs.mode == 'pilot'

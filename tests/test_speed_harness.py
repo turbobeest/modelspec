@@ -21,7 +21,7 @@ from pathlib import Path
 import pytest
 
 from scripts.speed import verify as verify_module
-from scripts.speed.__main__ import dry_run
+from scripts.speed.__main__ import SMOKE_CAP_USD, dry_run, smoke_plan, smoke_report
 from scripts.speed.aggregate import AggregateError, aggregate
 from scripts.speed.method import (
     MIN_SAMPLES,
@@ -36,7 +36,7 @@ from scripts.speed.method import (
 )
 from scripts.speed.plan import Call, call_bound_usd, calls, load_plan, slot_cost
 from scripts.speed.providers import APIS, FIRST_PARTY_HOSTS, Request
-from scripts.speed.run import SpendRefusedError, run_slot
+from scripts.speed.run import ERROR_BODY_CHARS, SpendRefusedError, redact, run_slot
 from scripts.speed.transport import (
     FIXTURES,
     Exchange,
@@ -47,6 +47,8 @@ from scripts.speed.transport import (
 
 ROOT = Path(__file__).resolve().parents[1]
 FASTEST = "google-gemini-api/google/gemini-3-8-flash/global/standard"
+#: An offering whose plan row claims reasoning is off (Gemini 3 cannot switch it off).
+CLAIMS_NONE = "anthropic/anthropic/claude-sonnet-5-5/global/standard"
 
 
 def _baseline():
@@ -351,10 +353,10 @@ def test_hidden_reasoning_holds_an_offering_that_claims_none(dry):
     runs = json.loads(json.dumps(dry["runs"]))
     for run in runs:
         for sample in run["samples"]:
-            if sample["offering"] == FASTEST:
+            if sample["offering"] == CLAIMS_NONE:
                 sample["reasoning_tokens"] = 40
     row = next(r for r in aggregate(runs)["results"]
-               if (r["offering"], r["workload"]) == (FASTEST, "short_chat"))
+               if (r["offering"], r["workload"]) == (CLAIMS_NONE, "short_chat"))
     assert not row["publishable"]
     assert any("claims no reasoning" in reason for reason in row["reasons"])
 
@@ -432,7 +434,13 @@ def test_the_probe_runs_only_by_hand_under_a_fixed_cap():
     assert workflow["env"]["SPEED_CAP_USD"] == "15"
     steps = workflow["jobs"]["probe"]["steps"]
     keyed = [s["name"] for s in steps if "secrets.ANTHROPIC_API_KEY" in str(s.get("env"))]
-    assert keyed == ["Preflight (free)", "Run the pilot slot (paid, capped)"]
+    assert keyed == ["Preflight (free)", "Smoke, one request per offering (paid, capped)",
+                     "Run the pilot slot (paid, capped)"]
+    assert workflow["env"]["SPEED_SMOKE_CAP_USD"] == "0.25"
+    assert workflow["jobs"]["probe"]["steps"][0]["if"] == "inputs.mode == 'pilot'"
+    smoke = next(s for s in steps if s.get("name", "").startswith("Smoke"))
+    assert smoke["if"] == "inputs.mode == 'smoke'"
+    assert "--cap" not in smoke["run"]
     names = [s.get("name") for s in steps]
     assert names.index("Preflight (free)") < names.index("Run the pilot slot (paid, capped)")
     pr = next(s for s in steps if s.get("uses", "").startswith("peter-evans/create-pull-request"))
@@ -450,3 +458,142 @@ def test_the_report_names_spend_and_every_result(dry, tmp_path):
     assert f"Total spent: ${sum(r['spent_usd'] for r in dry['runs']):.2f}" in text
     assert text.count("| short_chat |") == 10
     assert "| pass |" in text
+
+
+# ── MODEL-243: what a failed request says, and the shapes that caused the 400s ──
+
+
+def _request(offering_fragment: str):
+    plan = load_plan()
+    entry = next(e for e in plan.entries if offering_fragment in e.offering)
+    return entry, APIS[entry.api].request(
+        "KEY", entry.api_model, "PROMPT", 256, entry.params)
+
+
+class _Refusing:
+    provenance = "fixture"
+
+    def __init__(self, status: int, body: str):
+        self.status, self.body = status, body
+
+    def send(self, request):
+        return Exchange(self.status, 0.0, iter(()), error_body=self.body)
+
+
+def test_a_non_2xx_keeps_its_first_kilobyte_with_keys_redacted():
+    key = "sk-ant-api03-thisisnotarealkeyvalue0123456789"
+    body = ('{"error":{"message":"bad key ' + key + ' sent as x-api-key: ' + key
+            + ' Authorization: Bearer abcdef123456"}}' + " pad" * 600)
+    run = run_slot(smoke_plan(load_plan()), _Refusing(400, body), cap_usd=SMOKE_CAP_USD,
+                   keys={api: key for api in APIS}, vantage="test")
+    sample = run["samples"][0]
+    assert sample["http_status"] == 400
+    assert len(sample["error_body"]) <= ERROR_BODY_CHARS
+    assert sample["error_body"].startswith('{"error":{"message":"bad key [redacted]')
+    dumped = json.dumps(run)
+    assert key not in dumped and "abcdef123456" not in dumped
+
+
+def test_redaction_leaves_ordinary_error_prose_alone():
+    text = '{"error":"the x-api-key header is required for model gpt-6-sol"}'
+    assert redact(text) == text
+    assert redact("Authorization: Bearer abc.def") == "[redacted]"
+    assert redact("key AIzaSyA1234567890abcdefghij") == "key [redacted]"
+
+
+def test_anthropic_sends_no_temperature_and_pins_thinking_off():
+    for fragment in ("claude-opus-5-5", "claude-sonnet-5-5"):
+        body = _request(fragment)[1].body
+        assert "temperature" not in body
+        assert body["thinking"] == {"type": "disabled"}
+
+
+def test_openai_asks_for_reasoning_effort_none_not_minimal():
+    for fragment in ("gpt-6-sol", "gpt-5-6-sol"):
+        assert _request(fragment)[1].body["reasoning_effort"] == "none"
+
+
+def test_deepseek_disables_thinking_at_the_top_level():
+    for fragment in ("deepseek-v4-pro", "deepseek-flash"):
+        assert _request(fragment)[1].body["thinking"] == {"type": "disabled"}
+
+
+def test_zai_sends_no_undocumented_stream_options():
+    body = _request("glm-5-3")[1].body
+    assert "stream_options" not in body
+    assert body["thinking"] == {"type": "disabled"}
+
+
+def test_gemini_names_its_thinking_level_not_a_budget():
+    for fragment in ("gemini-3-8-flash", "gemini-3-1-pro-preview"):
+        config = _request(fragment)[1].body["generationConfig"]
+        assert config["thinkingConfig"] == {"thinkingLevel": "low"}
+
+
+def test_xai_output_excludes_reasoning_so_visible_tokens_are_never_negative():
+    """Recorded from the pilot (run 36647712056): the usage event of a Grok 4.7
+    short_chat request. completion_tokens is 256 with 433 reasoning tokens on top."""
+    usage = ('{"choices":[],"usage":{"prompt_tokens":1380,"completion_tokens":256,'
+             '"total_tokens":2069,"prompt_tokens_details":{"cached_tokens":1152},'
+             '"completion_tokens_details":{"reasoning_tokens":433}}}')
+    result = APIS["xai"].parse([(0.5, '{"choices":[{"delta":{"content":"hi"}}]}'), (0.6, usage)])
+    assert (result.billed_output_tokens, result.reasoning_tokens, result.visible_tokens) == (
+        689, 433, 256)
+    assert result.cached_input_tokens == 1152
+
+
+def test_a_provider_that_folds_reasoning_into_completion_is_not_double_counted():
+    usage = ('{"choices":[],"usage":{"prompt_tokens":10,"completion_tokens":300,'
+             '"total_tokens":310,"completion_tokens_details":{"reasoning_tokens":200}}}')
+    result = APIS["openai"].parse([(0.5, '{"choices":[{"delta":{"content":"hi"}}]}'), (0.6, usage)])
+    assert (result.billed_output_tokens, result.visible_tokens) == (300, 100)
+
+
+def test_a_gemini_in_stream_503_is_a_stream_error_not_a_short_success():
+    """Recorded from the pilot: two chunks, then an error event on a 200 stream."""
+    events = [
+        (2.17, '{"candidates":[{"content":{"parts":[{"text":"Welcome to the team"}],'
+               '"role":"model"},"index":0}],"usageMetadata":{"promptTokenCount":149,'
+               '"candidatesTokenCount":13,"totalTokenCount":162}}'),
+        (2.18, '{"error":{"code":503,"message":"This model is currently experiencing high '
+               'demand.","status":"UNAVAILABLE"}}'),
+    ]
+    result = APIS["gemini"].parse(events)
+    assert result.error == "UNAVAILABLE"
+
+
+# ── smoke mode ──────────────────────────────────────────────────────────────
+
+
+def test_the_smoke_plan_is_one_request_per_offering_far_under_its_cap():
+    plan = load_plan()
+    smoke = smoke_plan(plan)
+    cost = slot_cost(smoke)
+    assert cost.calls == len(plan.entries)
+    assert cost.bound_usd < SMOKE_CAP_USD
+    assert SMOKE_CAP_USD == 0.25
+
+
+def test_the_smoke_report_prints_status_usage_and_the_refusal_body():
+    plan = smoke_plan(load_plan())
+    transport = _Refusing(400, '{"error":{"message":"temperature is deprecated"}}')
+    run = run_slot(plan, transport, cap_usd=SMOKE_CAP_USD, keys={api: "k" for api in APIS},
+                   vantage="test")
+    report = smoke_report(run)
+    assert "| Offering | Status | HTTP |" in report
+    assert report.count("temperature is deprecated") == len(plan.entries)
+    assert "$0.00" in report
+
+
+def test_the_smoke_command_prints_a_redacted_report_and_writes_nothing(monkeypatch, capsys):
+    from scripts.speed import __main__ as cli
+
+    monkeypatch.setattr(cli, "keys_from_env", lambda: {api: "sk-secret-value-0123456789abcdef"
+                                                        for api in APIS})
+    monkeypatch.setattr(cli, "LiveTransport", lambda: _Refusing(
+        401, '{"error":"bad key sk-secret-value-0123456789abcdef"}'))
+    monkeypatch.setattr(cli, "probe_vantage", lambda: "test")
+    assert cli.main(["smoke"]) == 0
+    out = capsys.readouterr().out
+    assert "sk-secret-value" not in out
+    assert "[redacted]" in out
