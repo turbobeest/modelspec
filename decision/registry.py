@@ -928,6 +928,20 @@ def load(root: Path | None = None, *, repo_root: Path | None = None) -> Registry
                     named_lists=lists, families=families, vendors=vendors)
 
 
+def use_root(root: Path) -> None:
+    """Read the registry from `root` instead of this checkout (MODEL-246).
+
+    A build over a composed data root (`pipeline.data_source.overlay`) holds
+    registry data files that come from the private checkout. This module
+    locates its files from its own path, which resolves through the links to the
+    public checkout, so the build points it at the composed root explicitly.
+    """
+    global REPO_ROOT, REGISTRY_DIR
+    REPO_ROOT = Path(root)
+    REGISTRY_DIR = REPO_ROOT / "registry"
+    default.cache_clear()
+
+
 @cache
 def default() -> Registry:
     """The repository's own registries, loaded once."""
