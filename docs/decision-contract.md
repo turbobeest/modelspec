@@ -1,6 +1,6 @@
 # The ModelSpec decision contract
 
-Contract version: **2.9**
+Contract version: **2.10**
 
 A **spec** asks for a decision. A **decision** is the engine's answer to one
 spec against one snapshot. This document is the public contract for both. The
@@ -590,7 +590,7 @@ same canonical representation it had in 1.0.
 
 ```json decision
 {
-  "contract_version": "2.9",
+  "contract_version": "2.10",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
   "signature_verified": true,
@@ -720,13 +720,20 @@ same canonical representation it had in 1.0.
   "relax": [],
   "relax_to": [],
   "warnings": [],
-  "out_of_lineup": 1334
+  "out_of_lineup": 1334,
+  "feedback": {
+    "endpoint": "https://api.modelspec.dev/v1/feedback",
+    "method": "POST",
+    "request_schema": "https://modelspec.dev/api/feedback/v1.schema.json",
+    "ratings": ["reliable", "unreliable", "trustworthy", "untrustworthy", "confusing"],
+    "cli": "modelspec feedback <decision_id> --rating <rating>"
+  }
 }
 ```
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"2.9"`. |
+| `contract_version` | `"2.10"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
 | `signature_verified` | `true` when this process verified either the pinned Ed25519 signature or the private Worker HMAC. |
@@ -748,6 +755,7 @@ same canonical representation it had in 1.0.
 | `relax_to` | For `no_feasible` only (1.5): for each numeric cap or floor, the smallest change that admits a model. Each names the spec's `condition`, the `relaxed` condition (same facet and direction, at the nearest value an excluded candidate has), the `facet`, that `value`, its `unit`, and how many models it `admits`. |
 | `warnings` | Codes about the decision as a whole. |
 | `out_of_lineup` | How many active catalogue models the snapshot leaves outside its lineup, and so outside this decision. `0` when the snapshot was built without a premier list. |
+| `feedback` | Where to say whether this answer held up: send the `method` (`POST`) to the `endpoint`, with a body that follows `request_schema` and a rating from `ratings` (`reliable`, `unreliable`, `trustworthy`, `untrustworthy`, `confusing`) and this `decision_id`, or run the `cli` line. No key. The same on every decision. See [`feedback-api.md`](feedback-api.md). Added in 2.10. |
 
 **`status`:**
 
@@ -1256,6 +1264,11 @@ that used to be accepted is a major change; accepting more is not.
 
 ## Change log
 
+- **2.10 — MODEL-221:** A decision adds `feedback`: the endpoint, request
+  schema, the five ratings and the CLI line for telling ModelSpec whether the
+  answer was reliable, unreliable, trustworthy, untrustworthy or confusing. It
+  is a constant, so the CLI and the Worker still return the same bytes.
+  Additive: no existing field changes.
 - **2.9, unchanged — MODEL-227:** The vocabulary gains an optional `signatures`
   block (see above). No decision field changes and no closed range widens, so
   neither `contract_version` nor `vocabulary_version` moves.

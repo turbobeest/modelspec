@@ -33,7 +33,7 @@ new hostname.
 
 ## Tools
 
-All six pass through the origin. Null on a card means not researched.
+All seven pass through the origin. Null on a card means not researched.
 
 | Tool | Origin |
 |---|---|
@@ -43,6 +43,7 @@ All six pass through the origin. Null on a card means not researched.
 | `policy_check` | `POST https://api.modelspec.dev/v1/policy-check` |
 | `decide` | `POST https://api.modelspec.dev/v1/decide` |
 | `vocab` | `GET https://modelspec.dev/api/decision/vocabulary.json` |
+| `feedback` | `POST https://api.modelspec.dev/v1/feedback` (no key; `client` is always `mcp`; the caller's address is forwarded only for the rate limit) |
 
 `rank`, `policy_check`, and `decide` use the `RANK` service binding because a
 same-zone Worker fetch to the public API hostname reaches the zone origin and

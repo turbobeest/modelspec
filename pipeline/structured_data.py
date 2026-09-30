@@ -43,6 +43,7 @@ CRUMBS = {
     "/legal/terms/": "Terms",
     "/legal/privacy/": "Privacy",
     "/legal/neutrality/": "Neutrality commitment",
+    "/feedback/": "Feedback",
 }
 
 #: Downloads, in the order the Dataset lists them. Each is listed only when the

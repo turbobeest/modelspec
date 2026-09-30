@@ -348,6 +348,26 @@ export const withEstateSchema = z
   })
   .strict();
 
+/** The feedback ratings, in the order a person sees them (MODEL-221). */
+export const FEEDBACK_RATINGS = [
+  "reliable",
+  "unreliable",
+  "trustworthy",
+  "untrustworthy",
+  "confusing",
+] as const;
+export type FeedbackRating = (typeof FEEDBACK_RATINGS)[number];
+
+export const feedbackPointerSchema = z
+  .object({
+    endpoint: z.literal("https://api.modelspec.dev/v1/feedback"),
+    method: z.literal("POST"),
+    request_schema: z.literal("https://modelspec.dev/api/feedback/v1.schema.json"),
+    ratings: z.array(z.enum(FEEDBACK_RATINGS)),
+    cli: z.literal("modelspec feedback <decision_id> --rating <rating>"),
+  })
+  .strict();
+
 export const decisionSchema = z
   .object({
     near_misses: z
@@ -473,6 +493,7 @@ export const decisionSchema = z
       "2.7",
       "2.8",
       "2.9",
+      "2.10",
     ]),
     decision_id: z.string().regex(/^dec_[0-9A-Za-z]{8,}$/),
     snapshot: z.string().regex(/^snap_[A-Za-z0-9:._-]+$/),
@@ -612,6 +633,9 @@ export const decisionSchema = z
       .default([]),
     warnings: z.array(z.string().regex(/^[a-z0-9_]+$/)),
     out_of_lineup: z.number().int().nonnegative().optional().default(0),
+    // 2.10 (MODEL-221): where to say whether the answer held up. Absent from
+    // decisions saved before 2.10.
+    feedback: feedbackPointerSchema.optional(),
   })
   .strict();
 

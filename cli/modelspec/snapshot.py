@@ -483,7 +483,7 @@ def _check_refusal(response: Any, origin: str, presented: Credential | None) -> 
 
 def fetch(origin: str = DEFAULT_ORIGIN, target: Path | None = None,
           credential: Credential | None = None) -> Snapshot:
-    """Download the export. The only command that needs the network.
+    """Download the export. The only decision command that needs the network.
 
     With no `credential` this is the call it has always been. With one, the key
     rides on an `Authorization` header — never in the URL, never in the cached

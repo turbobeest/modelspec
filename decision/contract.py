@@ -41,7 +41,7 @@ from pydantic import (
 )
 from pydantic.fields import FieldInfo
 
-CONTRACT_VERSION = "2.9"
+CONTRACT_VERSION = "2.10"
 
 # ── identifiers ────────────────────────────────────────────────────────────
 
@@ -130,6 +130,12 @@ DateType = Literal["observed", "published"]
 Directness = Literal["direct", "proxy"]
 CapabilityLevel = Literal["required", "preferred"]
 PreferenceStatus = Literal["satisfied", "not_satisfied", "unknown"]
+#: How an answer held up, as a person or an agent tells ModelSpec (MODEL-221).
+#: The same five values `api/worker/src/feedback_service.py` accepts.
+FeedbackRating = Literal["reliable", "unreliable", "trustworthy", "untrustworthy", "confusing"]
+FEEDBACK_ENDPOINT = "https://api.modelspec.dev/v1/feedback"
+FEEDBACK_SCHEMA = "https://modelspec.dev/api/feedback/v1.schema.json"
+FEEDBACK_CLI = "modelspec feedback <decision_id> --rating <rating>"
 # The outcome protocol's task types (DPF integration spec §9.3).
 TaskType = Literal["new_feature", "bug_fix", "refactor", "test_writing", "docs", "migration",
                    "performance", "security_fix", "review", "analysis", "data_transform",
@@ -1743,6 +1749,21 @@ class ModelRow(_Strict):
     offerings: list[ModelOffering] = Field(default_factory=list)
 
 
+class FeedbackPointer(_Strict):
+    """Where to say whether this answer held up. The same on every decision.
+
+    Added in 2.10 (MODEL-221), so that an agent holding an answer finds the
+    feedback endpoint without reading anything else. No key is needed.
+    """
+
+    endpoint: Literal["https://api.modelspec.dev/v1/feedback"] = FEEDBACK_ENDPOINT
+    method: Literal["POST"] = "POST"
+    request_schema: Literal["https://modelspec.dev/api/feedback/v1.schema.json"] = FEEDBACK_SCHEMA
+    ratings: list[FeedbackRating] = Field(
+        default_factory=lambda: list(typing.get_args(FeedbackRating)))
+    cli: Literal["modelspec feedback <decision_id> --rating <rating>"] = FEEDBACK_CLI
+
+
 class Decision(_Strict):
     """The engine's answer to one spec against one snapshot."""
 
@@ -1756,7 +1777,7 @@ class Decision(_Strict):
         default=None,
         exclude_if=lambda value: value is None,
     )
-    contract_version: Literal["2.9"] = CONTRACT_VERSION
+    contract_version: Literal["2.10"] = CONTRACT_VERSION
     decision_id: DecisionId
     snapshot: SnapshotId
     #: Whether this process verified a publisher signature. Added in 1.10.
@@ -1791,6 +1812,8 @@ class Decision(_Strict):
     out_of_lineup: int = Field(default=0, ge=0)
     #: The same answer from what the spec's ``estate`` holds. Added in 2.3.
     with_estate: WithEstate | None = Field(default=None, exclude_if=lambda value: value is None)
+    #: Where to report whether this answer held up. Added in 2.10 (MODEL-221).
+    feedback: FeedbackPointer = Field(default_factory=FeedbackPointer)
 
     @model_validator(mode="after")
     def _status_agrees(self) -> Decision:
@@ -1819,7 +1842,7 @@ CONTRACT_TYPES: tuple[type[BaseModel], ...] = (
     ModelEliminationGroup, ConstraintCost, TippingPoint, ModelRow, ModelOffering,
     NearMiss, ShownFact, CandidateValues, NumberOrigin, CitedSource, Relaxation,
     Estate, EstateHold, EstateMark, EstateResult, EstateGap, GainItem, WithEstate,
-    Access, PlanPrice, PlanCoverage, PlanAllowance, PlanRoute,
+    Access, PlanPrice, PlanCoverage, PlanAllowance, PlanRoute, FeedbackPointer,
 )
 
 
@@ -1828,7 +1851,7 @@ def closed_values() -> list[str]:
     values: list[str] = []
     for alias in (Op, UnknownPolicy, MeasuredByQualifier, MeasuredBy, Explain, Status, DateType,
                   Directness, CapabilityLevel, PreferenceStatus, TaskType, ModelRowStatus,
-                  AccessKind):
+                  AccessKind, FeedbackRating):
         values.extend(str(v) for v in typing.get_args(alias))
     values.extend(QUALIFIER_KEYWORDS)
     return sorted(set(values))

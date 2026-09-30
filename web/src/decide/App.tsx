@@ -43,6 +43,7 @@ import {
 } from "./components/canvas-axis";
 import { RankedAnswer } from "./facet-board/RankedAnswer";
 import { DecisionTable } from "./components/DecisionTable";
+import { FeedbackForm, FeedbackLauncher } from "./feedback/FeedbackForm";
 import { Why } from "./components/Why";
 import { Coverage } from "./components/Coverage";
 import { Share } from "./components/Share";
@@ -138,6 +139,7 @@ export function DesignedApp({
   // A site deploy can change the snapshot under an open page (MODEL-159). The
   // Worker says so with a 409; every request that hears it shares one reload.
   const [reloadVocabulary] = useState(() => sharedReload(() => loadVocabulary()));
+  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
   const [hostedDecision, setHostedDecision] = useState<Decision | null>(null),
     [plotDecision, setPlotDecision] = useState<Decision | null>(null),
     [hostedQuestions, setHostedQuestions] = useState<Question[]>([]),
@@ -933,6 +935,7 @@ export function DesignedApp({
             onNotes={setLegacyNotes}
             refinementFallbackKeys={refinementFallbackKeys}
             onCanvasAxes={setCanvasAxes}
+            onTemplate={setActiveTemplateId}
             answer={decision ? <>
               <Field
                 decision={decision}
@@ -954,6 +957,9 @@ export function DesignedApp({
                     <section><strong>If you could use anything</strong><RankedAnswer decision={decision} spec={shownSpec} vocabulary={vocabulary} access={answeredAccess} held={estate} excludedPlans={answeredAccess === "own_software" ? estateAnswer.excludedPlans : []} /></section>
                   </div>
                 : <RankedAnswer decision={decision} spec={shownSpec} vocabulary={vocabulary} access={answeredAccess} held={estate} />}
+              {hostedDecision && <section className="answer-feedback" aria-label="Was this answer reliable?">
+                <FeedbackForm key={hostedDecision.decision_id} compact question="Was this answer reliable?" decisionId={hostedDecision.decision_id} template={activeTemplateId} page="/decide/" />
+              </section>}
             </> : <section className="panel board-answer-loading" aria-live="polite">The live answer will appear here.</section>}
           />}
           {error ? (
@@ -1077,8 +1083,10 @@ export function DesignedApp({
           <a href="/legal/terms/">Terms</a>
           <a href="/legal/privacy/">Privacy</a>
           <a href="/api/decision/vocabulary.json">Data</a>
+          <a href="/feedback/">Feedback</a>
         </nav>
       </footer>
+      <FeedbackLauncher page="/decide/" />
       {provenance && (
         <div
           className="provenance-popover"

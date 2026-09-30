@@ -128,10 +128,12 @@ def test_model_jsonld_has_no_invented_rating() -> None:
     assert "ratingValue" not in dumped
 
 
-def test_api_catalog_lists_rank_policy_and_mcp() -> None:
+def test_api_catalog_lists_rank_policy_feedback_and_mcp() -> None:
     catalog = ar.api_catalog()
     anchors = {row["anchor"] for row in catalog["linkset"]}
-    assert anchors == {ar.RANK_API, ar.POLICY_API, ar.MCP_ENDPOINT}
+    assert anchors == {ar.RANK_API, ar.POLICY_API, ar.FEEDBACK_API, ar.MCP_ENDPOINT}
+    feedback = next(row for row in catalog["linkset"] if row["anchor"] == ar.FEEDBACK_API)
+    assert feedback["describedby"][0]["href"] == ar.FEEDBACK_SCHEMA
     for row in catalog["linkset"]:
         assert row["service-desc"][0]["href"] == ar.OPENAPI_URL
         assert row["service-doc"][0]["href"].startswith("https://github.com/turbobeest/modelspec")

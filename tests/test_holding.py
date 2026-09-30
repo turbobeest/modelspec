@@ -143,7 +143,8 @@ def test_the_holding_tree_is_exactly_its_expected_file_set(trees):
     ms = trees["holding"] / "modelspec"
     top = sorted(p.name + ("/" if p.is_dir() else "") for p in ms.iterdir())
     card = [social_cards.LANDING_IMAGE] if social_cards.render_enabled() else []
-    assert top == sorted(["api/", "legal/", "fonts/", "landing-assets/", "openapi.yaml",
+    assert top == sorted(["api/", "legal/", "fonts/", "landing-assets/",
+                          "feedback-assets/", "openapi.yaml",
                           *brand.FILES, *card, *holding.WRITTEN])
     for name in (*brand.FILES, *card):
         assert (ms / name).read_bytes() == (trees["real"] / "modelspec" / name).read_bytes(), name
@@ -252,7 +253,7 @@ def test_full_build_still_contains_every_source_page_before_composition(trees):
 def test_a_redirect_only_benchgraph_is_copied_and_modelspec_still_goes_dark(tmp_path):
     src = tmp_path / "src"
     ms = src / "modelspec"
-    for rel in ("api", "legal", "fonts", "landing-assets"):
+    for rel in ("api", "legal", "fonts", "landing-assets", "feedback-assets"):
         (ms / rel).mkdir(parents=True)
     decision = ms / "api" / "decision" / "snapshot.json.gz"
     decision.parent.mkdir()

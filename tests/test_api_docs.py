@@ -237,6 +237,7 @@ def test_the_request_vocabulary_is_the_engines(spec: dict[str, Any]) -> None:
         "/v1/policy-check": policy.MAX_BODY_BYTES,
         "/v1/signals": generator.signals.MAX_BODY_BYTES,
         "/v1/signals/discovered": generator.signals.MAX_BODY_BYTES,
+        "/v1/feedback": generator.feedback.MAX_BODY_BYTES,
     }
 
 

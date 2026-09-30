@@ -7,6 +7,7 @@ import {
   asToolResult,
   fetchOrigin,
   incomingAuthorization,
+  incomingClientAddress,
   modelCardUrl,
 } from "./origin";
 
@@ -17,6 +18,7 @@ export const TOOL_NAMES = [
   "policy_check",
   "decide",
   "vocab",
+  "feedback",
 ] as const;
 
 const NULL_RULE =
@@ -87,6 +89,35 @@ const policyInput = z
     offset: z.number().int().min(0).optional(),
   })
   .passthrough();
+
+/** MODEL-221. The same fields /v1/feedback accepts, minus `client`, which is always "mcp". */
+const feedbackInput = z
+  .object({
+    rating: z
+      .enum(["reliable", "unreliable", "trustworthy", "untrustworthy", "confusing"])
+      .describe("How the answer held up when you acted on it."),
+    decision_id: z
+      .string()
+      .regex(/^dec_[0-9A-Za-z]{8,64}$/)
+      .optional()
+      .describe("The decision_id of the answer this is about."),
+    note: z
+      .string()
+      .max(1000)
+      .optional()
+      .describe("Optional. What was wrong or right. Never a prompt, a key or personal details."),
+    trying_to_decide: z
+      .string()
+      .max(300)
+      .optional()
+      .describe("Optional. What you were trying to decide."),
+    template: z
+      .string()
+      .regex(/^[a-z0-9][a-z0-9-]{0,63}$/)
+      .optional()
+      .describe("Optional. The decision template you used."),
+  })
+  .strict();
 
 type JsonSchemaObject = Exclude<
   Parameters<typeof z.fromJSONSchema>[0],
@@ -329,6 +360,36 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
         envelope.body = envelope.body[section];
       }
       return asToolResult(envelope);
+    },
+  );
+
+  server.registerTool(
+    "feedback",
+    {
+      description:
+        "After you act on a ModelSpec answer, say whether it was reliable, unreliable, " +
+        "trustworthy, untrustworthy or confusing, by proxying POST " +
+        "https://api.modelspec.dev/v1/feedback. Include the answer's decision_id. No key, " +
+        "and no Authorization header is forwarded. Never put a prompt, a key or personal " +
+        'details in note. The response says status "recorded" or "not_recorded" (storage ' +
+        "is off until the privacy statement covers it).",
+      inputSchema: feedbackInput,
+    },
+    async (args) => {
+      const origin = `${env.RANK_API_ORIGIN.replace(/\/$/, "")}/v1/feedback`;
+      const headers = new Headers({ "content-type": "application/json" });
+      // The rank Worker limits feedback per caller. Through the service binding
+      // it sees no caller address of its own, so this one is forwarded. It is
+      // an HMAC input there and is never stored.
+      const address = incomingClientAddress(mcpCtx.requestInfo);
+      if (address) headers.set("x-modelspec-client-ip", address);
+      return asToolResult(
+        await fetchOrigin(
+          origin,
+          { method: "POST", headers, body: jsonBody({ ...args, client: "mcp" }) },
+          env.RANK,
+        ),
+      );
     },
   );
 

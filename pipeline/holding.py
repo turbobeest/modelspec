@@ -66,7 +66,9 @@ SITES = {"modelspec": "ModelSpec"}
 
 #: What is copied from the real build, byte for byte. Directories whole.
 #: modelspec only. benchgraph.dev is one redirect file, copied unchanged.
-KEEP_DIRS = {"modelspec": ("api", "legal", "fonts", landing.ASSET_DIR)}
+#: `feedback-assets` because the legal pages, copied byte for byte, carry the
+#: Feedback control (MODEL-221); the /feedback/ page itself stays dark.
+KEEP_DIRS = {"modelspec": ("api", "legal", "fonts", landing.ASSET_DIR, "feedback-assets")}
 KEEP_FILES = ("openapi.yaml", *brand.FILES, social_cards.LANDING_IMAGE)
 #: What this module writes itself.
 WRITTEN = ("index.html", "404.html", "_headers", "robots.txt")

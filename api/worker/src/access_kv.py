@@ -35,7 +35,8 @@ class AsyncKV(Protocol):
     async def get(self, name: str) -> str | None: ...
 
     async def put(self, name: str, value: str, *,
-                  expiration_ttl: int | None = None) -> None: ...
+                  expiration_ttl: int | None = None,
+                  expiration: int | None = None) -> None: ...
 
     async def delete(self, name: str) -> None: ...
 
@@ -52,6 +53,9 @@ class MemoryKV:
     def __init__(self, initial: dict[str, str] | None = None) -> None:
         self.data: dict[str, str] = dict(initial or {})
         self.ttl: dict[str, int] = {}
+        #: Absolute expiries (epoch seconds), for writers that must not reveal
+        #: when they wrote: a TTL makes the write time readable from the expiry.
+        self.expiration: dict[str, int] = {}
         #: Every operation, in order, for tests that assert the sandbox never
         #: reached the store at all.
         self.calls: list[tuple[str, str]] = []
@@ -61,11 +65,14 @@ class MemoryKV:
         return self.data.get(name)
 
     async def put(self, name: str, value: str, *,
-                  expiration_ttl: int | None = None) -> None:
+                  expiration_ttl: int | None = None,
+                  expiration: int | None = None) -> None:
         self.calls.append(("put", name))
         self.data[name] = value
         if expiration_ttl is not None:
             self.ttl[name] = expiration_ttl
+        if expiration is not None:
+            self.expiration[name] = expiration
 
     async def delete(self, name: str) -> None:
         self.calls.append(("delete", name))
@@ -102,7 +109,11 @@ class CloudflareKV:
         return None if absent(value) else str(value)
 
     async def put(self, name: str, value: str, *,
-                  expiration_ttl: int | None = None) -> None:
+                  expiration_ttl: int | None = None,
+                  expiration: int | None = None) -> None:
+        if expiration is not None:
+            await self._binding.put(name, value, _options(expiration=int(expiration)))
+            return
         if expiration_ttl is None:
             await self._binding.put(name, value)
             return
@@ -157,7 +168,8 @@ class UnboundKV:
         raise self._refuse()
 
     async def put(self, name: str, value: str, *,
-                  expiration_ttl: int | None = None) -> None:
+                  expiration_ttl: int | None = None,
+                  expiration: int | None = None) -> None:
         raise self._refuse()
 
     async def delete(self, name: str) -> None:

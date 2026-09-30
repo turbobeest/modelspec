@@ -114,6 +114,8 @@ def _same_bytes(decision, golden) -> None:
     # every answer's basis; the golden predates both.
     ours.pop("bands", None)
     ours.pop("blend", None)
+    # 2.10 (MODEL-221) adds the constant feedback pointer; the golden predates it.
+    ours.pop("feedback", None)
     text = json.dumps(ours, sort_keys=True).replace(
         json.dumps(BASIS), json.dumps("leader-overlap score intervals; "
                                       "capability estimates use 80% intervals"))
@@ -384,7 +386,7 @@ def test_the_vocabulary_publishes_each_plan_record(sourced) -> None:
 
 
 def test_the_contract_took_the_next_minor_and_publishes_the_plan_types() -> None:
-    assert c.CONTRACT_VERSION == "2.9"
+    assert c.CONTRACT_VERSION == "2.10"
     defs = c.json_schema()["$defs"]
     for name in ("Access", "PlanRoute", "PlanCoverage", "PlanPrice", "PlanAllowance"):
         assert name in defs, name

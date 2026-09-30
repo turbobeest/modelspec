@@ -27,6 +27,9 @@ MS_BASE = "https://modelspec.dev"
 RANK_API = "https://api.modelspec.dev/v1/rank"
 POLICY_API = "https://api.modelspec.dev/v1/policy-check"
 HEALTH_API = "https://api.modelspec.dev/v1/health"
+FEEDBACK_API = "https://api.modelspec.dev/v1/feedback"
+FEEDBACK_DOCS = "https://github.com/turbobeest/modelspec/blob/main/docs/feedback-api.md"
+FEEDBACK_SCHEMA = f"{MS_BASE}/api/feedback/v1.schema.json"
 MCP_ENDPOINT = "https://api.modelspec.dev/mcp"
 API_DOCS = "https://github.com/turbobeest/modelspec/blob/main/docs/api.md"
 POLICY_DOCS = (
@@ -52,7 +55,7 @@ MCP_NAME = "dev.modelspec/catalogue"
 MCP_NAME_PATTERN = r"^[a-zA-Z0-9.-]+/[a-zA-Z0-9._-]+$"
 MCP_DESCRIPTION_MAX = 100
 MCP_TOOLS = (
-    "decide", "rank", "model_info", "list_use_cases", "policy_check", "vocab"
+    "decide", "rank", "model_info", "list_use_cases", "policy_check", "vocab", "feedback"
 )
 _BYTES_WIDTH = 8
 PAGES_FILE_LIMIT = 20_000
@@ -481,6 +484,8 @@ def api_catalog() -> dict[str, Any]:
         "linkset": [
             entry(RANK_API, API_DOCS),
             entry(POLICY_API, POLICY_DOCS),
+            {**entry(FEEDBACK_API, FEEDBACK_DOCS),
+             "describedby": [{"href": FEEDBACK_SCHEMA, "type": "application/schema+json"}]},
             entry(MCP_ENDPOINT, MCP_DOCS),
         ]
     }
@@ -521,6 +526,8 @@ def mcp_card() -> dict[str, Any]:
              "description": "POST /v1/policy-check. pass/fail/undetermined."},
             {"name": "vocab",
              "description": "GET the decision vocabulary for valid spec values."},
+            {"name": "feedback",
+             "description": "POST /v1/feedback. Rate an answer: reliable ... confusing."},
         ],
     }
 
@@ -570,6 +577,12 @@ def skill_markdown() -> str:
         "- **MCP** (`https://api.modelspec.dev/mcp`) — Streamable HTTP. Tools: "
         + ", ".join(MCP_TOOLS)
         + ". Same origins as the HTTP API. No key.\n"
+        "- **feedback** (`POST https://api.modelspec.dev/v1/feedback`, no key) — "
+        "after you act on an answer, send one rating: `reliable`, `unreliable`, "
+        "`trustworthy`, `untrustworthy` or `confusing`, with `client: \"agent\"` "
+        "and the answer's `decision_id`. Every decision's `feedback` block names "
+        "the endpoint. CLI: `modelspec feedback DECISION_ID --rating <rating>`. "
+        "Never put a prompt, a key or personal details in `note`.\n"
         "- Do not call rank to answer a policy question, and do not treat a "
         "rank score as a licence determination.\n"
         "\n"
@@ -598,6 +611,7 @@ def skill_markdown() -> str:
         f"- MCP card (SEP-2127): {MS_BASE}/.well-known/mcp.json\n"
         f"- Auth: {MS_BASE}/auth.md\n"
         f"- llms.txt: {MS_BASE}/llms.txt\n"
+        f"- Feedback schema: {FEEDBACK_SCHEMA}\n"
         f"- Markdown: {MS_BASE}/index.md\n"
     )
 

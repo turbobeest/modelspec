@@ -2608,3 +2608,99 @@ body {
 .site-footer a:focus-visible {
   color: var(--ink);
 }
+
+/* MODEL-221: the per-answer prompt and the page-wide Feedback control. */
+.decide-app .answer-feedback {
+  margin-top: 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+}
+.decide-app .feedback-form {
+  display: grid;
+  gap: 10px;
+}
+.decide-app .feedback-ratings {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  border: 0;
+  margin: 0;
+  padding: 0;
+}
+.decide-app .feedback-ratings legend {
+  font-weight: 600;
+  margin-bottom: 6px;
+  padding: 0;
+}
+.decide-app .feedback-ratings label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 4px 10px;
+  border: 1px solid var(--line2);
+  border-radius: 2px;
+  cursor: pointer;
+}
+.decide-app .feedback-ratings label.chosen {
+  border-color: var(--accent);
+  background: var(--accentSoft);
+}
+.decide-app .feedback-field {
+  display: grid;
+  gap: 4px;
+}
+.decide-app .feedback-field em {
+  color: var(--muted);
+  font-style: normal;
+}
+.decide-app .feedback-field textarea,
+.decide-app .feedback-field input {
+  width: 100%;
+  max-width: 100%;
+  border: 1px solid var(--line2);
+  background: var(--surface);
+  padding: 6px 8px;
+}
+.decide-app .feedback-privacy {
+  color: var(--muted);
+  font-size: 12.5px;
+  margin: 0;
+}
+.decide-app .feedback-privacy a {
+  color: var(--accentText);
+}
+.decide-app .feedback-error {
+  color: var(--bad);
+  margin: 0;
+}
+.decide-app .feedback-launcher {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 40;
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--accentInk);
+  font-weight: 600;
+  box-shadow: var(--shadow);
+}
+.decide-app .feedback-dialog {
+  width: min(480px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  overflow: auto;
+  border: 1px solid var(--line2);
+  background: var(--surface);
+  color: var(--ink);
+  padding: 16px;
+}
+.decide-app .feedback-dialog::backdrop {
+  background: rgba(11, 20, 38, 0.45);
+}
+.decide-app .feedback-dialog-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
