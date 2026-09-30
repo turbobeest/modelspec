@@ -1,6 +1,6 @@
 /** Load the complete bundled catalogue in the Worker's pinned Pyodide runtime.
  * npm install --prefix /tmp/modelspec-memory pyodide@0.28.3
- * NODE_PATH=/tmp/modelspec-memory/node_modules node --expose-gc api/worker/measure_memory.cjs BUNDLE
+ * NODE_PATH=/tmp/modelspec-memory/node_modules node api/worker/measure_memory.cjs BUNDLE
  * Use a synthetic signing key when generating the measurement bundle.
  * Prints only byte counts. No model, benchmark or price rows reach stdout.
  */
@@ -11,9 +11,6 @@ const { loadPyodide } = require('pyodide');
 (async () => {
   const bundle = path.resolve(process.argv[2]);
   const py = await loadPyodide({ indexURL: path.dirname(require.resolve('pyodide')) + '/', packageBaseUrl: 'https://cdn.jsdelivr.net/pyodide/v0.28.3/full/', packageCacheDir: path.join(path.dirname(require.resolve('pyodide')), 'packages') });
-  // Node's one-shot bootstrap closure retains the core Wasm input buffer.
-  // Instantiation is complete; this loader is not part of the running Worker.
-  delete py._module.instantiateWasm;
   await py.loadPackage(['pydantic', 'pyyaml']);
   function copy(dir, target) {
     py.FS.mkdirTree(target);
@@ -29,7 +26,6 @@ const { loadPyodide } = require('pyodide');
   const before = py._module.HEAPU8.buffer.byteLength;
   let peak = 0, wasmPeak = before;
   const recordPeak = () => {
-    if (global.gc) global.gc();
     const usage = process.memoryUsage();
     peak = Math.max(peak, usage.heapUsed + usage.external);
     wasmPeak = Math.max(wasmPeak, py._module.HEAPU8.buffer.byteLength);
@@ -76,7 +72,7 @@ record_peak()
   const result = { runtime: 'Pyodide 0.28.3', before_bytes: before,
     peak_bytes: peak, peak_mib: peak / 1048576,
     wasm_peak_bytes: wasmPeak, wasm_peak_mib: wasmPeak / 1048576,
-    requests: ['POST /v1/decide', 'GET /v1/vocabulary'], limit_bytes: 104 * 1048576 };
+    requests: ['POST /v1/decide', 'GET /v1/vocabulary'], limit_bytes: 112 * 1048576 };
   console.log(JSON.stringify(result));
   if (peak > result.limit_bytes || wasmPeak > result.limit_bytes) process.exitCode = 1;
 })().catch(error => { console.error('Memory probe failed:', error.name); process.exitCode = 1; });

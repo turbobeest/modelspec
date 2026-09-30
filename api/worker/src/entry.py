@@ -65,18 +65,6 @@ try:
 except ModuleNotFoundError as exc:
     if exc.name != "bundled_data":
         raise
-else:
-    import sys
-    if sys.platform == "emscripten":
-        # The compiled extension is already resident. Release the mutable
-        # filesystem's duplicate shared-library image before building schemas.
-        from pydantic_core import _pydantic_core as _core
-        from pathlib import Path
-        try:
-            Path(_core.__file__).unlink(missing_ok=True)
-        except OSError:
-            # Read-only platform package images are shared; retain that image.
-            pass
 
 import access
 import access_config
@@ -157,7 +145,7 @@ ACCEPTED_ENDPOINTS = (
     "POST /v1/policy-check", "POST /v1/feedback", "DELETE /v1/feedback", "GET /v1/health",
     "POST /v1/signals", "POST /v1/signals/discovered",
     "GET /v1/signals/pending", "POST /v1/signals/ack",
-    "GET /v1/credits", "GET /v1/human-status", "GET /v1/vocabulary",
+    "GET /v1/credits", "GET /v1/human-status",
     "POST /v1/billing/checkout", "POST /v1/billing/stripe-webhook",
     "GET /v1/billing/claim", "POST /v1/billing/claim", "POST /v1/billing/rotate",
 )
@@ -639,8 +627,7 @@ class Default(WorkerEntrypoint):
                 "schema_version": service.SCHEMA_VERSION,
                 "service_commit": service_commit,
                 "error": {"code": "not_found", "message": f"no endpoint at {path}",
-                          "accepted": [route for route in ACCEPTED_ENDPOINTS
-                                       if route != "GET /v1/vocabulary" or globals().get("bundled_data") is not None]},
+                          "accepted": [*ACCEPTED_ENDPOINTS, *(["GET /v1/vocabulary"] if globals().get("bundled_data") is not None else [])]},
                 "result": [],
             })
         if method != "POST":
@@ -1073,8 +1060,7 @@ class Default(WorkerEntrypoint):
                 "schema_version": service.SCHEMA_VERSION,
                 "service_commit": service_commit,
                 "error": {"code": "not_found", "message": f"no endpoint at {path}",
-                          "accepted": [route for route in ACCEPTED_ENDPOINTS
-                                       if route != "GET /v1/vocabulary" or globals().get("bundled_data") is not None]},
+                          "accepted": [*ACCEPTED_ENDPOINTS, *(["GET /v1/vocabulary"] if globals().get("bundled_data") is not None else [])]},
                 "result": [],
             })
 

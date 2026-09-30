@@ -371,7 +371,9 @@ def test_deploy_syncs_the_snapshot_verification_secret() -> None:
     workflow = yaml.safe_load(RANK_API.read_text(encoding="utf-8"))
     bundle = workflow["jobs"]["bundle"]
     deploy = workflow["jobs"]["deploy"]
-    assert "MODELSPEC_SNAPSHOT_KEY" not in yaml.safe_dump(bundle)
+    assert "secrets.MODELSPEC_SNAPSHOT_KEY" not in yaml.safe_dump(bundle)
+    probe = next(step for step in bundle["steps"] if step.get("name") == "Measure full snapshot memory with public fixtures")
+    assert probe["env"]["MODELSPEC_SNAPSHOT_KEY"] == "model247-ci-fixture-key"
     assert deploy["env"]["MODELSPEC_SNAPSHOT_KEY"] == \
         "${{ secrets.MODELSPEC_SNAPSHOT_KEY }}"
     deploy_text = yaml.safe_dump(deploy)

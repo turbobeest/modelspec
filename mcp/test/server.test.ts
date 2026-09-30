@@ -479,16 +479,26 @@ describe("modelspec MCP worker", () => {
 
 describe("private display vocabulary", () => {
   it("vocab and model_info use the trimmed Worker response without sentinel facts", async () => {
-    const vocabulary = { facets: [], domains: [], templates: [], models: { "public/model": { display_name: "Public" } }, estate: { plans: [{ id: "plan", name: "Plan" }] } };
-    const forbidden = ["model247-private-sentinel-8675309", "8675.309123", "98.7654321"];
+    const vocabulary = { facets: [], domains: [], templates: [], models: { "lab/model247-private-sentinel-8675309": { display_name: "model247-private-sentinel-8675309" } }, estate: { plans: [{ id: "plan", name: "Plan" }] } };
+    const forbidden = ["8675.309123", "50.1234567"];
+    // This active model must exist in the response: a missing-model refusal
+    // would make the assertions pass without exercising model_info.
+    const untrimmed = { ...vocabulary, models: { "lab/model247-private-sentinel-8675309": {
+      display_name: "model247-private-sentinel-8675309", price: 8675.309123, score: 50.1234567,
+    } } };
+    for (const value of forbidden) expect(JSON.stringify(untrimmed)).toContain(value);
     const via = { fetch: vi.fn().mockImplementation(async () => jsonResponse(200, vocabulary)) };
     const env = { ...ENV, DATA_SPLIT_ENABLED: "true", RANK: via };
     for (const [name, args] of [["vocab", {}], ["model_info", { model_id: "lab/model247-private-sentinel-8675309" }]] as const) {
+      via.fetch.mockImplementationOnce(async () => jsonResponse(200, untrimmed));
+      const control = await rpc("tools/call", { name, arguments: args }, 1, { authorization: "Bearer test_key", "CF-Connecting-IP": "203.0.113.9" }, env);
+      for (const value of forbidden) expect(JSON.stringify(envelopeFromCall(control.payload).body)).toContain(value);
       const { payload } = await rpc("tools/call", { name, arguments: args }, 1, { authorization: "Bearer test_key", "CF-Connecting-IP": "203.0.113.9" }, env);
       const envelope = envelopeFromCall(payload);
       expect(envelope.origin).toBe("https://api.modelspec.dev/v1/vocabulary");
+      expect(JSON.stringify(envelope.body)).toContain("model247-private-sentinel-8675309");
       for (const value of forbidden) expect(JSON.stringify(envelope.body)).not.toContain(value);
     }
-    expect(via.fetch).toHaveBeenCalledTimes(2);
+    expect(via.fetch).toHaveBeenCalledTimes(4);
   });
 });

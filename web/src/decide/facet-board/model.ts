@@ -120,7 +120,7 @@ export function defaultFacetValue(facet: VocabFacet): FacetValue {
     const max = typeof facet.range?.max === "number" ? facet.range.max : min;
     return min + (max - min) / 2;
   }
-  const first = facet.values?.[0]?.value ?? facet.literals?.[0] ?? "";
+  const first = facet.values?.find((item) => item.has_data !== false)?.value ?? facet.literals?.[0] ?? "";
   return facet.value_type === "set" ? [String(first)] : first;
 }
 
@@ -303,7 +303,7 @@ export function sanitizeBoardState(
   priorNotes: readonly string[] = [],
 ): SanitizedBoardState {
   const editableFacets = new Set(
-    vocabulary.facets.filter((facet) => facet.known !== 0).map((facet) => facet.id),
+    vocabulary.facets.filter((facet) => facet.has_data !== false && facet.known !== 0).map((facet) => facet.id),
   );
   const editableDomains = new Set(
     vocabulary.domains.filter((domain) => domain.estimate_models !== 0)
@@ -577,7 +577,7 @@ export function legacySpecToBoard(spec: Spec, vocabulary: Vocabulary, estate: Es
     ...vocabulary.domains.map((domain) => `capability.${domain.id}`),
   ]);
   const editableFacets = new Set([
-    ...vocabulary.facets.filter((facet) => facet.known !== 0).map((facet) => facet.id),
+    ...vocabulary.facets.filter((facet) => facet.has_data !== false && facet.known !== 0).map((facet) => facet.id),
     ...vocabulary.domains.filter((domain) => domain.estimate_models !== 0).map((domain) => `capability.${domain.id}`),
   ]);
   const facetLabels = new Map([
@@ -685,12 +685,12 @@ export function groupFacets(vocabulary: Vocabulary) {
     },
   }));
   const all = [...capabilityFacets, ...vocabulary.facets];
-  const tracked = all.filter((facet) => facet.known !== 0);
+  const tracked = all.filter((facet) => facet.has_data !== false && facet.known !== 0);
   const groups = GROUP_ORDER.map((name) => ({
     name,
     facets: tracked.filter((facet) => facetGroup(facet.id) === name),
   })).filter((group) => group.facets.length);
-  return { groups, untracked: all.filter((facet) => facet.known === 0) };
+  return { groups, untracked: all.filter((facet) => facet.has_data === false || facet.known === 0) };
 }
 
 export function readEstate(): Estate {

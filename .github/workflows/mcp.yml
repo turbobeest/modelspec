@@ -79,7 +79,12 @@ jobs:
 
       - name: Deploy
         working-directory: mcp
-        run: npx --yes "$WRANGLER" deploy --var "BUILD_COMMIT:${GITHUB_SHA}" --var "DATA_SPLIT_ENABLED:${DATA_SPLIT_ENABLED}"
+        run: |
+          args=(--var "BUILD_COMMIT:${GITHUB_SHA}")
+          if [ -n "$DATA_SPLIT_ENABLED" ]; then
+            args+=(--var "DATA_SPLIT_ENABLED:${DATA_SPLIT_ENABLED}")
+          fi
+          npx --yes "$WRANGLER" deploy "${args[@]}"
 
       - name: Smoke-test api.modelspec.dev/mcp
         run: |

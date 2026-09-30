@@ -46,6 +46,7 @@ const facetSchema = z.object({
   ]).nullable(),
   risk: z.string(),
   computed_by: z.string().nullable(),
+  has_data: z.boolean().optional(),
   known: z.number().int().nonnegative().optional(),
   of: z.number().int().nonnegative().optional(),
   range: z
@@ -55,7 +56,7 @@ const facetSchema = z.object({
   literals: z.array(z.string()).optional(),
   // `label`: the registry's plain name for an enum value (MODEL-153).
   values: z
-    .array(z.object({ value: scalar, count: z.number().int().optional(), label: z.string().optional() }))
+    .array(z.object({ value: scalar, has_data: z.boolean().optional(), count: z.number().int().optional(), label: z.string().optional() }))
     .optional(),
   /** 2.9 (MODEL-212): who measured the lineup's values, how, and how thinly. */
   measurement: z
@@ -88,9 +89,9 @@ const refinementSchema = z.object({
   kind: z.enum(["language", "task", "mode", "material"]),
   name: z.string(),
   definition: z.string(),
-  evidence_state: z.enum(["live", "thin", "not_measured", "no_benchmark"]),
-  measured_models: z.number().int().nonnegative(),
-  of_models: z.number().int().nonnegative(),
+  evidence_state: z.enum(["live", "thin", "not_measured", "no_benchmark"]).optional(),
+  measured_models: z.number().int().nonnegative().optional(),
+  of_models: z.number().int().nonnegative().optional(),
   benchmarks: z.array(
     z.object({ id: z.string(), directness: z.enum(["direct", "proxy"]) }),
   ),
@@ -231,6 +232,16 @@ export const vocabularySchema = z.object({
   template_tiers: z.array(z.object({ id: z.string(), name: z.string() }).strict()).optional(),
   /** Data-defined templates. Absent from vocabularies published before MODEL-178. */
   templates: z.array(templateSchema).optional(),
+}).transform((v) => {
+  const { refinements, ...rest } = v;
+  return {
+  ...rest,
+  ...(refinements ? { refinements: refinements.map((row) => ({
+    ...row,
+    evidence_state: row.evidence_state ?? (row.benchmarks.some((tag) => v.benchmarks.some((b) => b.id === tag.id && b.range))
+      ? "live" as const : row.benchmarks.length ? "not_measured" as const : "no_benchmark" as const),
+  })) } : {}),
+  };
 });
 export type Vocabulary = z.infer<typeof vocabularySchema>;
 export type VocabFacet = Vocabulary["facets"][number];
@@ -291,7 +302,7 @@ export async function loadVocabulary(signal?: AbortSignal, refresh = false): Pro
 /** A facet the page may offer: registered and known for at least one candidate. */
 export function offeredFacet(v: Vocabulary, id: string): VocabFacet | null {
   const row = v.facets.find((facet) => facet.id === id);
-  return row && row.known !== 0 ? row : null;
+  return row && row.has_data !== false && row.known !== 0 ? row : null;
 }
 
 /** Benchmarks with verified evidence, most covered first. */
@@ -316,7 +327,7 @@ export function domainEstimateLabel(v: Vocabulary, domain: string): string {
 }
 
 const hasValue = (row: VocabFacet | null, value: FacetValue) =>
-  !!row?.values?.some((item) => item.value === value);
+  !!row?.values?.some((item) => item.value === value && item.has_data !== false);
 
 /**
  * Whether a benchmark measures a domain directly (not as a proxy).
@@ -492,7 +503,7 @@ export function defaultCondition(v: Vocabulary, row: VocabFacet): Cond | null {
       return type ? { f: "type", v: type } : null;
     }
   }
-  const values = (row.values ?? [])
+  const values = (row.values ?? []).filter((item) => item.has_data !== false)
     .slice()
     .sort((a, b) => (b.count ?? 0) - (a.count ?? 0))
     .map((item) => item.value);
@@ -523,7 +534,7 @@ export function defaultCondition(v: Vocabulary, row: VocabFacet): Cond | null {
 /** Every option "+ add condition" offers: facets and benchmarks with verified data. */
 export function facetOptions(v: Vocabulary): Facet[] {
   const facets = v.facets.flatMap((row): Facet[] => {
-    if (row.known === 0 || row.id === "model.lifecycle") return [];
+    if (row.has_data === false || row.known === 0 || row.id === "model.lifecycle") return [];
     const c = defaultCondition(v, row);
     if (!c) return [];
     const unit = row.unit ? row.unit.replaceAll("_", " ") : row.value_type;

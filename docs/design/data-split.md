@@ -429,16 +429,26 @@ signature validation still applies. No export shape or version changes.
 The decide app loads its display vocabulary from
 `GET api.modelspec.dev/v1/vocabulary` in enabled builds. The response contains
 facet definitions, benchmark and domain names, template definitions, and
-model/plan IDs and display names. Model names come only from the current active lineup;
+model/plan IDs and display names. Model names come from non-retired current models;
 archived private models are omitted because the page does not need them to draw.
 Plan rows contain only `id`, `provider` and `name`. They contain no price,
-allowance, surface coverage, score range, facet value count or model count.
+allowance, surface coverage, facet value count or model count.
+The allowed aggregate fields are template `available` booleans, per-facet
+`has_data` booleans, per-enum-value `has_data` booleans, refinement IDs/names
+and their static definitions, and benchmark `range.min`/`range.max`. These
+signals restore template answerability, hide empty facet and enum choices,
+restore refinement drill-down and set benchmark floors. Numeric facet ranges,
+individual model scores, counts and per-model facts remain excluded.
 The page hides statistics absent from this response and requests current facts
 through the existing decision API. No fresh vocabulary file is published on
 modelspec.dev. With `HUMAN_GATE_ENABLED`, the same keyed visitor Durable Object
 meters vocabulary separately at 60 requests per UTC day and 10 per minute.
 Successful responses use `Cache-Control: private, max-age=3600` for browser
-session reuse. The generated OpenAPI documents this route.
+session reuse. The generated OpenAPI documents this route only with `DATA_SPLIT_ENABLED=true`.
+The committed flag-off OpenAPI remains byte-identical to main. MCP `model_info`
+currently fetches the full trimmed vocabulary on each call and selects one
+model display row. This is acceptable for now; it does not fetch a bulk model
+card or bypass the vocabulary cap.
 
 Only Worker jobs read private inputs. Public PR checks remain credential-free.
 Missing private credentials, input or signing keys fail before deployment.
@@ -456,10 +466,12 @@ publishing a bundle artifact. Jamie must leave scheduled Actions enabled in
 this repository and configure `MODELSPEC_DATA_TOKEN`; no dispatch token is
 needed in the private writers under `.github/private-writers/`.
 
-The sentinel tests inject a retired private model with a unique price and
-score. They crawl full, holding and live outputs, decompress gzip files, and
-verify the name and values are absent from static files, the display vocabulary
-and MCP outputs. Private bundled candidates retain the injected facts as a
+The sentinel tests inject a non-retired private model into the premier lineup
+with a unique price and score, complete admitted facts and verification records. They crawl full, holding and live outputs, decompress gzip files, and
+verify its name and values are absent from static files. Its ID/display name
+are allowed in vocabulary and MCP, but its price and individual score are
+absent. MCP positive controls deliberately serve an untrimmed row and prove
+both tools would expose the forbidden values if the Worker trim failed. Private bundled candidates retain the injected facts as a
 positive control. Profiles, class-fit and method neutrality content are compared
 between enabled and disabled builds at the same build identity.
 
@@ -467,12 +479,18 @@ between enabled and disabled builds at the same build identity.
 The real request loads the full signed corpus including its archive. The probe
 makes one real Worker decide call and one
 vocabulary call, and samples combined V8 heap and external memory and allocated
-WebAssembly memory. The private Worker releases the mutable filesystem copy
-of Pydantic's compiled library after import. The probe also discards Node's
-one-use Wasm bootstrap loader after instantiation. Enabled CI deployments fail if the observed peak exceeds
-104 MiB, leaving 24 MiB below the platform's 128 MiB limit. The measured peak after both calls was 103.07 MiB (108,075,638 bytes),
-with a WebAssembly allocation peak of 71.875 MiB. This is a local runtime probe,
-not Cloudflare isolate telemetry.
+WebAssembly memory. Snapshot verification hashes canonical JSON in 4 KiB chunks, avoiding two
+full-size temporary copies while preserving the wire format, content hash and
+signature checks. The Worker does not delete native libraries. The probe does
+not force garbage collection or discard runtime loaders. It samples natural
+V8 heap/external usage and Wasm allocation during requests. CI gates the peak
+at 112 MiB, leaving 16 MiB below the 128 MiB limit, and runs the same probe on
+PRs using public fixtures and a synthetic signing key. Deploys use private data.
+The schedule runs no job when the split is off. Pip/uv caches retain their
+original flag-off behavior and are disabled for private builds. MCP does not
+pass an empty data-split variable when the repository variable is unset.
+The final honest peak is recorded in the PR report. This is a local runtime
+probe, not Cloudflare isolate telemetry.
 
 Jamie enables the split in this order:
 

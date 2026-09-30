@@ -13,6 +13,8 @@ import type { DecisionSpec } from "../adapter";
 import type { Cond, FacetOp, Spec, TypeKey } from "../engine/types";
 import {
   facetOptions,
+  offeredFacet,
+  defaultCondition,
   offeredAxes,
   offeredBenchmarks,
   offeredTypes,
@@ -383,4 +385,29 @@ describe("every spec the page can generate", () => {
       expect(spec.optimize).not.toHaveProperty("weights.offering.speed.throughput");
     },
   );
+});
+
+
+describe("private aggregate vocabulary", () => {
+  it("hides empty facets and enum choices and restores refinement availability", () => {
+    const base = v.facets.find((row) => row.value_type === "enum");
+    expect(base).toBeDefined();
+    const aggregate = vocabularySchema.parse({
+      ...v,
+      facets: [{ ...base, id: "test.enum", has_data: true, known: undefined, of: undefined,
+        values: [{ value: "empty", has_data: false }, { value: "ready", has_data: true }] },
+        { ...base, id: "test.empty", has_data: false, known: undefined, of: undefined }],
+      refinements: [{ id: "python", parent_domain: "software_engineering", kind: "language",
+        name: "Python", definition: "Python tasks", weight_key: "software_engineering/python",
+        benchmarks: [{ id: v.benchmarks[0].id, directness: "direct" }] }],
+      templates: v.templates?.map((row) => ({ ...row, available: false })),
+    });
+    expect(offeredFacet(aggregate, "test.empty")).toBeNull();
+    const ready = offeredFacet(aggregate, "test.enum");
+    expect(ready).not.toBeNull();
+    if (!ready) throw new Error("expected offered enum");
+    expect(defaultCondition(aggregate, ready)).toEqual({ f: "facet", facet: "test.enum", op: "=", value: "ready" });
+    expect(aggregate.refinements?.[0].evidence_state).toBe("live");
+    expect(aggregate.templates?.every((row) => !row.available)).toBe(true);
+  });
 });

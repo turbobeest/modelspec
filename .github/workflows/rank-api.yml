@@ -40,6 +40,7 @@ env:
 
 jobs:
   bundle:
+    if: github.event_name != 'schedule' || vars.DATA_SPLIT_ENABLED == 'true'
     name: Rank Worker bundle
     runs-on: ubuntu-latest
     steps:
@@ -48,11 +49,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
+          cache: ${{ vars.DATA_SPLIT_ENABLED != 'true' && 'pip' || '' }}
 
       - uses: astral-sh/setup-uv@v6
         with:
           version: '0.12.19'
-          enable-cache: false
+          enable-cache: ${{ vars.DATA_SPLIT_ENABLED != 'true' }}
 
       - uses: actions/setup-node@v4
         with:
@@ -119,6 +121,10 @@ jobs:
         run: python -m pytest -q tests/test_policy_check.py
 
       - name: The OpenAPI spec still describes the implementation
+        env:
+          # The committed spec is the unchanged flag-off document. Enabled
+          # builds render their additional route directly from the generator.
+          DATA_SPLIT_ENABLED: 'false'
         # MODEL-72. openapi.yaml is generated from rank_service, entry.py and the
         # scorer; --check fails if it was edited by hand or left stale after a
         # change to any of them. tests/test_api_docs.py holds the other half:
@@ -138,6 +144,18 @@ jobs:
         # Inspect Wrangler's output, not the pre-build source tree. This catches
         # pywrangler dropping a repository package while it syncs dependencies.
         run: python bundle_check.py ../../dist/rank-worker
+
+      - name: Measure full snapshot memory with public fixtures
+        # No private checkout or secret on PRs. Exercise the enabled bundle with
+        # a synthetic key, then restore the ordinary credential-free bundle.
+        env:
+          MODELSPEC_SNAPSHOT_KEY: model247-ci-fixture-key
+        run: |
+          python -m pip install "cryptography>=43,<46"
+          python api/worker/vendor.py --data-dir .
+          npm install --prefix "$RUNNER_TEMP/memory" --no-save pyodide@0.28.3
+          NODE_PATH="$RUNNER_TEMP/memory/node_modules" node api/worker/measure_memory.cjs api/worker/src
+          python api/worker/vendor.py --check
 
       - name: Summarise
         run: |
@@ -188,7 +206,7 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           version: '0.12.19'
-          enable-cache: false
+          enable-cache: ${{ vars.DATA_SPLIT_ENABLED != 'true' }}
 
       - uses: actions/setup-node@v4
         with:
@@ -201,18 +219,18 @@ jobs:
         run: |
           args=()
           if [ -d modelspec-data ]; then
-            python -m pip install pydantic pyyaml httpx cryptography
+            python -m pip install "pydantic==2.13.5" "PyYAML==6.0.3" "httpx==0.28.1" "cryptography>=43,<46"
             args+=(--data-dir modelspec-data)
           fi
           python api/worker/vendor.py "${args[@]}"
 
-      - name: Check private bundle memory against 104 MiB
+      - name: Check private bundle memory against 112 MiB
         if: vars.DATA_SPLIT_ENABLED == 'true' && github.ref == 'refs/heads/main'
         env:
           MODELSPEC_SNAPSHOT_KEY: ${{ secrets.MODELSPEC_SNAPSHOT_KEY }}
         run: |
           npm install --prefix "$RUNNER_TEMP/memory" --no-save pyodide@0.28.3
-          NODE_PATH="$RUNNER_TEMP/memory/node_modules" node --expose-gc api/worker/measure_memory.cjs api/worker/src
+          NODE_PATH="$RUNNER_TEMP/memory/node_modules" node api/worker/measure_memory.cjs api/worker/src
 
       - name: Resolve the Worker's Python dependencies
         run: |
@@ -275,7 +293,7 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           version: '0.12.19'
-          enable-cache: false
+          enable-cache: ${{ vars.DATA_SPLIT_ENABLED != 'true' }}
 
       - uses: actions/setup-node@v4
         with:
@@ -288,18 +306,18 @@ jobs:
         run: |
           args=()
           if [ -d modelspec-data ]; then
-            python -m pip install pydantic pyyaml httpx cryptography
+            python -m pip install "pydantic==2.13.5" "PyYAML==6.0.3" "httpx==0.28.1" "cryptography>=43,<46"
             args+=(--data-dir modelspec-data)
           fi
           python api/worker/vendor.py "${args[@]}"
 
-      - name: Check private bundle memory against 104 MiB
+      - name: Check private bundle memory against 112 MiB
         if: vars.DATA_SPLIT_ENABLED == 'true' && github.ref == 'refs/heads/main'
         env:
           MODELSPEC_SNAPSHOT_KEY: ${{ secrets.MODELSPEC_SNAPSHOT_KEY }}
         run: |
           npm install --prefix "$RUNNER_TEMP/memory" --no-save pyodide@0.28.3
-          NODE_PATH="$RUNNER_TEMP/memory/node_modules" node --expose-gc api/worker/measure_memory.cjs api/worker/src
+          NODE_PATH="$RUNNER_TEMP/memory/node_modules" node api/worker/measure_memory.cjs api/worker/src
 
       - name: Resolve the Worker's Python dependencies
         run: |

@@ -42,9 +42,9 @@ function ValueControl({ facet, choice, onChange }: {
     </div>
   );
   const selected = value === undefined ? [] : Array.isArray(value) ? value.map(String) : [String(value)];
-  const listed = new Set(facet.values?.map((item) => String(item.value)) ?? []);
+  const listed = new Set(facet.values?.filter((value) => value.has_data !== false).map((item) => String(item.value)) ?? []);
   const legacyValues = selected.filter((item) => !listed.has(item));
-  return <fieldset className="facet-values"><legend>{selected.length ? "Values" : "Choose value(s)"}</legend>{legacyValues.map((item) => <label key={`legacy-${item}`}><input type="checkbox" checked readOnly />{item} (from older link)</label>)}{facet.values?.map((item) => {
+  return <fieldset className="facet-values"><legend>{selected.length ? "Values" : "Choose value(s)"}</legend>{legacyValues.map((item) => <label key={`legacy-${item}`}><input type="checkbox" checked readOnly />{item} (from older link)</label>)}{facet.values?.filter((value) => value.has_data !== false).map((item) => {
     const checked = selected.includes(String(item.value));
     return <label key={String(item.value)}><input type="checkbox" checked={checked} onChange={() => {
       const values = checked ? selected.filter((v) => v !== String(item.value)) : [...selected, String(item.value)];
@@ -247,7 +247,7 @@ export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections,
         {grouped.groups.map((group) => {
           const active = group.facets.filter((facet) => selected[facet.id]?.mode && selected[facet.id]?.mode !== "off");
           const activeCount = active.length + activeRefinementCount(new Set(group.facets.map((facet) => facet.id)));
-          const survival = active.flatMap((facet) => facet.values?.map((value) => value.count) ?? []).filter((count): count is number => typeof count === "number");
+          const survival = active.flatMap((facet) => facet.values?.filter((value) => value.has_data !== false).map((value) => value.count) ?? []).filter((count): count is number => typeof count === "number");
           const open = expandedGroups[group.name] === true;
           return <section className="facet-group" key={group.name}><button className="facet-group-summary" aria-expanded={open} onClick={() => setExpandedGroups((current) => ({ ...current, [group.name]: !open }))}><span>{group.name}</span><small>{activeCount ? `${activeCount} set` : "all Doesn't matter"}{survival.length ? ` · → ${Math.min(...survival)} survive` : " · no change"}</small><b aria-hidden="true">{open ? "−" : "+"}</b></button>{open && <div>{group.facets.map((facet) => <FacetRow key={facet.id} facet={facet} choice={selected[facet.id] ?? { mode: "off" }} refinements={(vocabulary.refinements ?? []).filter((row) => facet.id === `capability.${row.parent_domain}`)} selections={selected} fallbackKeys={refinementFallbackKeys} onChange={(choice) => update(facet.id, choice)} onRefinementChange={update} />)}</div>}</section>;
         })}

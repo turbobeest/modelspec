@@ -564,7 +564,7 @@ def skill_markdown() -> str:
     n = neutrality_commitment()
     display_guidance = (
         "GET https://api.modelspec.dev/v1/vocabulary returns display definitions "
-        "and names only, with no prices, allowances, score ranges or counts. "
+        "and names, plus aggregate answerability, data availability and benchmark min/max. No prices, allowances, counts or per-model scores. "
         "MCP model_info returns a display name; use keyed decide for current facts. "
     ) if private_serving() else ""
     return (

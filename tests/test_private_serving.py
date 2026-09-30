@@ -17,7 +17,7 @@ from schema.card import Identity, ModelCard, Cost, Benchmarks
 ROOT = Path(__file__).resolve().parents[1]
 SENTINEL = "model247-private-sentinel-8675309"
 PRICE = 8675.309123
-SCORE = 98.7654321
+SCORE = 50.1234567
 
 
 def _vendor():
@@ -38,10 +38,28 @@ def private(tmp_path_factory):
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, target)
     card = ModelCard(identity=Identity(model_id="lab/" + SENTINEL,
-                                     display_name=SENTINEL, provider="lab"),
+                                     display_name=SENTINEL, provider="lab", model_type="llm-reasoning"),
                      cost=Cost(input=PRICE), benchmarks=Benchmarks(scores={"gpqa_diamond": SCORE}))
+    # Clone the first complete premier model's admitted facts and log records.
+    # The synthetic active model must pass the same completeness gate as real data.
+    from pipeline.load import load_models
+    base_id = yaml.safe_load((tree / "premier/slice-1.yaml").read_text())["models"][0]["model_id"]
+    base = next(row for row in load_models(tree) if row.model_id == base_id)
+    text = card.to_yaml()
+    parts = text.split("---", 2)
+    front = yaml.safe_load(parts[1])
+    front["facts"] = yaml.safe_load(yaml.safe_dump(base.front["facts"]).replace(base_id, "lab/" + SENTINEL))
     (tree / "models" / (SENTINEL + ".md")).write_text(
-        card.to_yaml().replace("---\n", "---\nlifecycle: retired\n", 1))
+        "---\n" + yaml.safe_dump(front) + "---" + parts[2])
+    log = tree / "verification/log.jsonl"
+    copied = [line.replace(base_id, "lab/" + SENTINEL)
+              for line in log.read_text().splitlines() if base_id in line]
+    with log.open("a") as stream:
+        stream.write("\n" + "\n".join(copied) + "\n")
+    premier = tree / "premier/slice-1.yaml"
+    content = yaml.safe_load(premier.read_text())
+    content["models"].append({"model_id": "lab/" + SENTINEL})
+    premier.write_text(yaml.safe_dump(content))
     return tree
 
 
@@ -83,8 +101,14 @@ def test_private_bundle_contains_the_model_and_private_registry(private, tmp_pat
     data = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(data)
     assert SENTINEL.encode() in data.read("/api/rank/candidates.json")
-    assert SENTINEL.encode() in gzip.decompress(data.read("/api/decision/snapshot.json.gz"))
-    for value in (SENTINEL, str(PRICE), str(SCORE)):
+    import json
+    signed = json.loads(gzip.decompress(data.read("/api/decision/snapshot.json.gz")))
+    assert "lab/" + SENTINEL in {row["id"] for row in signed["content"]["lineup"]["candidates"]}
+    assert "lab/" + SENTINEL not in {row["id"] for row in signed["content"]["archive"]["candidates"]}
+    import json
+    vocabulary = json.loads(data.read("/api/decision/vocabulary.json"))
+    assert vocabulary["models"]["lab/" + SENTINEL] == {"display_name": SENTINEL}
+    for value in (str(PRICE), str(SCORE)):
         assert value.encode() not in data.read("/api/decision/vocabulary.json")
     assert str(PRICE).encode() in data.read("/api/rank/candidates.json")
     assert str(SCORE).encode() in data.read("/api/rank/candidates.json")
@@ -159,9 +183,27 @@ def test_vocabulary_has_no_fact_fields():
     response = trim(source, model_ids=set(), facet_values={})
     import json
     encoded = json.dumps(response)
-    for value in (SENTINEL, str(PRICE), str(SCORE), '"price"', '"range"', '"known"', '"count"', '"allowances"'):
+    for value in (SENTINEL, str(PRICE), '"price"', '"known"', '"count"', '"allowances"'):
         assert value not in encoded
     assert response["estate"]["plans"] == [{"id": "plan", "name": "Plan"}]
+    assert response["benchmarks"] == [{"id": "gpqa_diamond", "range": {"min": SCORE, "max": SCORE}}]
+    assert response["facets"] == [{"id": "offering.price.input", "has_data": True}]
+
+
+def test_openapi_off_matches_main_and_on_documents_vocabulary():
+    from api.worker import openapi
+    import os
+    previous = os.environ.pop("DATA_SPLIT_ENABLED", None)
+    try:
+        expected = (ROOT / "api/worker/openapi.yaml").read_text()
+        assert openapi.render() == expected
+        os.environ["DATA_SPLIT_ENABLED"] = "true"
+        assert "/v1/vocabulary:" in openapi.render()
+    finally:
+        if previous is None:
+            os.environ.pop("DATA_SPLIT_ENABLED", None)
+        else:
+            os.environ["DATA_SPLIT_ENABLED"] = previous
 
 
 def test_vocabulary_cap_uses_persistent_visitor_identity(monkeypatch):
