@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from decision.snapshot import SnapshotIntegrityError, verify_vocabulary
+
 from . import snapshot
 
 
@@ -51,4 +53,8 @@ def load_cached_vocabulary() -> dict[str, Any]:
         ) from exc
     if not isinstance(value, dict):
         raise VocabularyInvalidError("cached decision vocabulary is not a JSON object")
+    try:
+        verify_vocabulary(value)
+    except SnapshotIntegrityError as exc:
+        raise VocabularyInvalidError(f"cached decision vocabulary: {exc}") from exc
     return value

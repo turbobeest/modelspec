@@ -299,6 +299,7 @@ def test_keyed_origin_falls_back_for_public_decision_files_without_sending_key(
             "signature_verified": True,
             "signature_status": "verified (ed25519 key test-fixture)",
             "signature_key_id": "test-fixture",
+            "vocabulary_signature": "unsigned",
         }
         assert all("Authorization" not in headers for _, headers in public.seen)
         assert snapshot.decision_snapshot_path(cache).exists()
@@ -328,6 +329,7 @@ def test_keyed_origin_falls_back_when_decision_route_refuses_key(
             "signature_verified": True,
             "signature_status": "verified (ed25519 key test-fixture)",
             "signature_key_id": "test-fixture",
+            "vocabulary_signature": "unsigned",
         }
         assert all("Authorization" not in headers for _, headers in public.seen)
         assert snapshot.decision_snapshot_path(cache).exists()
