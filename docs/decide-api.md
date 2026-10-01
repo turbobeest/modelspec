@@ -287,13 +287,13 @@ The shared access layer can also return its documented `401`, `402`, `403`,
 
 ## Local parity and timing
 
-Successful production responses include `Server-Timing: decide;dur=12.3`,
-exposed to browsers through CORS. The Worker uses `time.perf_counter()` to
-measure Spec validation, the decision engine, and Decision JSON serialization
-after it has a verified Snapshot. The duration is in milliseconds with one
-decimal place. It excludes network transfer and snapshot loading or
-revalidation. If the request loads, revalidates, or waits for a Snapshot load,
-the header reports that time separately as `, snapshot;dur=45.6`.
+When a request had to load, revalidate, or wait for the Snapshot, its
+successful response carries `Server-Timing: snapshot;dur=45.6` (milliseconds,
+one decimal), exposed to browsers through CORS. The decision itself is not
+timed in the Worker: Cloudflare freezes the clock during synchronous work, so
+an in-Worker timer reads 0.0 ms however long the engine runs (MODEL-263, seen
+in production on 2026-10-01). Decision latency is measured from outside, as a
+round trip, and from Cloudflare's per-request CPU-time metrics (MODEL-269).
 
 `tests/test_decide_worker.py` builds one signed Snapshot, invokes the endpoint
 adapter and `modelspec decide` for each explanation level, and compares their

@@ -7,7 +7,6 @@ import asyncio
 import gzip
 import importlib.util
 import json
-import re
 import sys
 from datetime import date
 from pathlib import Path
@@ -572,7 +571,7 @@ def test_cors_is_for_the_production_site_and_the_preview_only() -> None:
 
 
 @pytest.mark.parametrize("human_access", [False, True])
-def test_production_decision_timing_excludes_snapshot_and_access_work(
+def test_server_timing_reports_only_snapshot_work(
     entry, service, snapshot_bytes, snapshot, monkeypatch, human_access,  # noqa: F811
 ):
     elapsed = [0.0]
@@ -622,10 +621,10 @@ def test_production_decision_timing_excludes_snapshot_and_access_work(
                             HUMAN_GATE_ENABLED=str(human_access).lower())
     expected_bytes = serialise(decide(_payload(), snapshot)[1])
     for state, now, expected_timing in (
-        ("cold", 0, "decide;dur=3.5, snapshot;dur=12.3"),
-        ("warm", 1, "decide;dur=3.5"),
-        ("revalidated", 61, "decide;dur=3.5, snapshot;dur=12.3"),
-        ("failed", 122, "decide;dur=3.5, snapshot;dur=12.3"),
+        ("cold", 0, "snapshot;dur=12.3"),
+        ("warm", 1, None),
+        ("revalidated", 61, "snapshot;dur=12.3"),
+        ("failed", 122, "snapshot;dur=12.3"),
     ):
         refresh[0], clock[0] = state, now
         request = _Req("/v1/decide", _payload(),
@@ -633,9 +632,7 @@ def test_production_decision_timing_excludes_snapshot_and_access_work(
         response = asyncio.run(worker.fetch(request))
         assert response.status == 200
         assert response.body.encode("utf-8") == expected_bytes
-        timing = response.headers["Server-Timing"]
-        assert re.fullmatch(r"decide;dur=\d+(\.\d)?(, snapshot;dur=\d+(\.\d)?)?", timing)
-        assert timing == expected_timing
+        assert response.headers.get("Server-Timing") == expected_timing
         exposed = response.headers["access-control-expose-headers"].lower().split(", ")
         assert "server-timing" in exposed
 
