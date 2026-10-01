@@ -217,10 +217,13 @@ def test_every_path_the_cli_workers_and_mcp_fetch_is_still_published(trees):
     mcp = (ROOT / "mcp" / "src" / "server.ts").read_text(encoding="utf-8")
     assert "/api/rank/profiles.json`" in mcp
     always_published = [path for path in worker if path != "/api/decision/snapshot.json.gz"]
+    # MODEL-251 removed the /api/graph/ export with the 3D explorer. Its last
+    # reader was the retired CLI's `fit` command (PyPI yanked 2026-09-30).
+    retired = {snapshot.PARTS["hardware"]}
     paths = [*snapshot.PARTS.values(), *snapshot.OPTIONAL_PARTS.values(), *always_published,
              "/api/rank/profiles.json", "/api/rank/class-fit.json", "/api/build.json"]
     for path in paths:
-        assert (ms / path.lstrip("/")).is_file(), path
+        assert (ms / path.lstrip("/")).is_file() != (path in retired), path
     # MCP `model_info` reads /api/models/<provider>/<slug>.json for any card.
     for model in load_models(ROOT)[:25]:
         assert (ms / "api" / "models" / f"{model.model_id}.json").is_file(), model.model_id
