@@ -123,4 +123,4 @@ def test_an_answered_decision_suggests_nothing():
 
 
 def test_relax_to_remains_in_the_current_contract():
-    assert CONTRACT_VERSION == "2.10"
+    assert CONTRACT_VERSION == "2.11"

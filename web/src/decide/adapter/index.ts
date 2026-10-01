@@ -318,7 +318,7 @@ export const fictionalEngine: SampleDecisionEngine = {
         : [],
     );
     return {
-      contract_version: "2.10",
+      contract_version: "2.11",
       feedback: {
         endpoint: "https://api.modelspec.dev/v1/feedback",
         method: "POST",

@@ -1,6 +1,6 @@
 # The ModelSpec decision contract
 
-Contract version: **2.10**
+Contract version: **2.11**
 
 A **spec** asks for a decision. A **decision** is the engine's answer to one
 spec against one snapshot. This document is the public contract for both. The
@@ -189,6 +189,7 @@ offering.provider = aws-bedrock
 offering.provider = "a value with spaces, or a comma"
 known(model.parameters_total)
 software_engineering >= model(openai/gpt-6-sol)
+software_engineering >= best(1.0)
 model.context_window >= 200000 soft(0.2)
 offering.data.trains_on_customer_data = false unknown(fail)
 swe_bench_pro >= 55 @independent @default_effort measured_after 2026-06-01
@@ -209,7 +210,13 @@ not(licence.commercial_use = prohibited)
 - **Existence:** `known(facet)` passes when the value is known. It is never
   unknown itself, so it takes no unknown policy.
 - **Relative:** `facet op model(<model ID>)` compares against another model's
-  value on the same facet.
+  value on the same facet. `facet >= best(m)` keeps the models within `m` of
+  the highest value on the facet among the models that pass every other hard
+  condition; see [Relative to the best](#relative-to-the-best). Only `>=` takes
+  `best(m)`, `m` is a number of 0 or more, and the facet must be a number.
+- **Capability domains:** a condition on a domain, such as
+  `software_engineering >= 0.5` or `known(software_engineering)`, reads the
+  model's capability estimate on that domain (after `exclude_benchmarks`).
 - **Groups:** `any(…; …)`, `all(…; …)` with at least two conditions, and
   `not(…)` with one, separated by `;`.
 - **Values:** `true` and `false`; numbers; ISO dates (`2026-06-01`); bare
@@ -226,7 +233,7 @@ is refused with a message that says to quote the condition.
 
 | Condition | Keys |
 |---|---|
-| Comparison, relative | `facet`, `op`, `value` (a scalar, or `{ model: <model ID> }`) |
+| Comparison, relative | `facet`, `op`, `value` (a scalar, `{ model: <model ID> }`, or `{ best: <margin> }` with `op: ">="`) |
 | Window | `facet`, and `between` as `[low, high]` |
 | Set | `facet`, and a list under one of `in` or `not_in` |
 | Existence | `known`, naming the facet |
@@ -249,6 +256,30 @@ Comparisons and windows also take `qualifiers`. Every condition except
     - { facet: model.weights_openness, op: "=", value: open_weights }
   unknown: list
 ```
+
+### Relative to the best
+
+`facet >= best(m)` is a floor that moves with the answer, not with the lineup.
+Its anchor is the set of models still feasible once every hard condition
+without `best(…)` has run: never a model that only may qualify, and never one
+already eliminated. The bar is the highest known value on the facet among the
+anchor models, less `m`: for an evidence facet, each model's highest admitted
+result; for a domain, its capability estimate. With no known value in the
+anchor, the condition is unknown for every model. A model below the bar is
+eliminated with its own value, and a near miss's `distance` is measured to the
+bar: 0.28 against a bar of 0.32 is a distance of 0.04.
+
+Every condition that contains `best(…)` runs after the others, in the spec's
+order, and the funnel lists it after them. All of them share the one anchor,
+so two `best(…)` conditions give the same answer in either order, and a
+`best(…)` written first still anchors on what the other conditions leave. A
+soft `best(…)` costs its penalty and removes no one.
+
+The margin is on the point value, not a probability such as the bands' `P(its
+score >= the leader's)`. A probability floor would let a model pass because it
+has little evidence: a wide interval cannot be shown to be worse. Every other
+condition compares point values too. Among the models that pass, the bands
+still decide the answer.
 
 ### Evidence qualifiers
 
@@ -590,7 +621,7 @@ same canonical representation it had in 1.0.
 
 ```json decision
 {
-  "contract_version": "2.10",
+  "contract_version": "2.11",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
   "signature_verified": true,
@@ -733,7 +764,7 @@ same canonical representation it had in 1.0.
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"2.10"`. |
+| `contract_version` | `"2.11"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
 | `signature_verified` | `true` when this process verified either the pinned Ed25519 signature or the private Worker HMAC. |
@@ -1264,6 +1295,16 @@ that used to be accepted is a major change; accepting more is not.
 
 ## Change log
 
+- **2.11 — MODEL-228:** A comparison takes `facet >= best(m)`, compact `best(1.0)` or YAML
+  `value: { best: 1.0 }`: within `m` of the highest value among the models that
+  pass every other hard condition. Such a condition runs after the others and
+  the funnel lists it after them; see [Relative to the best](#relative-to-the-best).
+  A condition on a capability domain now reads the capability estimate: before,
+  `software_engineering >= model(…)`, `software_engineering >= 0.5` and
+  `known(software_engineering)` left every model unknown. Every Fastest
+  template now keeps the models within `best(1.0)` on its domain and ranks
+  them by speed alone (High volume: speed 0.6, cost 0.4). Additive:
+  `Compare.value` accepts one more shape, and no decision field changes.
 - **2.10 — MODEL-221:** A decision adds `feedback`: the endpoint, request
   schema, the five ratings and the CLI line for telling ModelSpec whether the
   answer was reliable, unreliable, trustworthy, untrustworthy or confusing. It

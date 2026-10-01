@@ -182,6 +182,8 @@ function renderCore(condition: string): string {
   if (comparison) {
     const [, facet, operator, rawValue] = comparison;
     const name = facetName(facet);
+    const best = /^best\((.+)\)$/.exec(rawValue);
+    if (best && operator === ">=") return `${name}: within ${best[1]} of the best`;
     const value = valueWithUnit(facet, rawValue);
     switch (operator) {
       case "=":

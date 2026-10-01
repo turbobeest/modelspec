@@ -18,6 +18,11 @@ condition calls ``evidence`` and then applies its qualifiers; ``@direct`` asks
 whether the benchmark is direct for a capability the spec requests. Retired
 candidates are excluded unless the resolved spec asks for lifecycle ``retired``.
 
+A capability domain (``software_engineering``) has no fact: its value is the
+capability estimate. ``facet >= best(m)`` is within ``m`` of the highest value
+among the candidates feasible once every condition without ``best`` has run, so
+such a condition runs after them, and the funnel lists it after them.
+
 A model with offerings is represented by them (MODEL-159). Its bare model row
 would tie with them on the evidence they inherit, so it never enters the
 lineup and is not reported as eliminated. A model with no offering (open
@@ -35,6 +40,7 @@ from typing import Any, Literal
 from decision.contract import (
     AllOf,
     AnyOf,
+    BestRef,
     Compare,
     EvidenceQualifiers,
     FunnelStep,
@@ -296,6 +302,16 @@ def _children(cond: Any) -> tuple[Any, ...]:
     return ()
 
 
+def _has_best(cond: Any) -> bool:
+    if isinstance(cond, Compare):
+        return isinstance(cond.value, BestRef)
+    return any(_has_best(child) for child in _children(cond))
+
+
+def _numeric(value: Any) -> bool:
+    return isinstance(value, int | float) and not isinstance(value, bool)
+
+
 def _facet_of(cond: Any) -> str | None:
     if isinstance(cond, Known):
         return cond.known
@@ -337,12 +353,17 @@ class _Run:
         self.id_sets: dict[int, tuple[str, ...]] = {}
         self.grain_counts: dict[int, tuple[int, int]] = {}
         self.lifecycles: dict[str, str] = {}
+        self.domain_values: dict[str, tuple[Any, ...]] = {}
         self.evidence_conditions: dict[int, bool] = {}
         self.unknown_leaf_facets: dict[int, tuple[str, ...]] = {}
         self.resolved_threshold: dict[int, Any] = {}
         self.penalties: list[SoftPenalty] = []
         self.path = ""
         self.lineup = 0
+        #: Who ``best(m)`` is relative to: the feasible set once every
+        #: condition without ``best`` has run. Fixed once, so two ``best``
+        #: conditions do not depend on each other's order.
+        self.anchor: int | None = None
         #: The capabilities asked about, which ``@direct`` is relative to.
         self.domains = frozenset(resolved.spec.capabilities or {})
 
@@ -378,6 +399,58 @@ class _Run:
             raise SpecError([Issue(
                 None, facet_id, f"unknown facet {facet_id!r}: not in the facet registry", self.path,
             )]) from None
+
+    def _is_domain(self, facet_id: str) -> bool:
+        try:
+            facet = self._facet(facet_id)
+        except SpecError:
+            return False  # unregistered: the index answers, as before domains were read
+        parameter = getattr(facet, "parameter", None)
+        return getattr(parameter, "values_from", None) == "registry:domains"
+
+    def _estimates(self, domain: str) -> tuple[Any, ...]:
+        """Each candidate's capability estimate on ``domain``, or ``None``.
+
+        A built snapshot holds no fact for a domain: its value is the estimate,
+        read through the index this run was given so ``exclude_benchmarks``
+        refits it.
+        """
+        if domain not in self.domain_values:
+            values = []
+            for cid in self.ids:
+                estimate = self.index.capability_estimate(cid, domain)
+                values.append(None if estimate is None else estimate.value)
+            self.domain_values[domain] = tuple(values)
+        return self.domain_values[domain]
+
+    def _known_value(self, cid: str, facet_id: str) -> Any:
+        """``cid``'s known value on a non-evidence facet, or ``None``."""
+        if self._is_domain(facet_id):
+            return self._estimates(facet_id)[self.pos[cid]]
+        fact = self.index.fact(cid, facet_id)
+        return fact.value if fact.state == "known" and fact.value is not None else None
+
+    def _where(self, facet_id: str, op: str, arg: Any) -> Bits:
+        """``facet_id op arg`` for every candidate, as ``ids_where`` answers it."""
+        if not self._is_domain(facet_id):
+            return _as_bits(self.index.ids_where(facet_id, op, arg), self.universe)
+        estimates = self._estimates(facet_id)
+        if op == "known":
+            known = sum(1 << i for i, value in enumerate(estimates) if value is not None)
+            return Bits(known, self.universe & ~known, 0)
+        passing = failing = 0
+        for i, value in enumerate(estimates):
+            if value is None:
+                continue
+            try:
+                ok = _op(op, value, arg)
+            except TypeError:
+                continue
+            if ok:
+                passing |= 1 << i
+            else:
+                failing |= 1 << i
+        return Bits(passing, failing, self.universe & ~passing & ~failing)
 
     def _is_evidence(self, cond: Any) -> bool:
         key = id(cond)
@@ -445,12 +518,31 @@ class _Run:
                 values = self._admitted(ref, cond)
                 got: Any = _MISSING if not values else _shown(values, cond.op)
             else:
-                fact = self.index.fact(ref, cond.facet)
-                got = fact.value if fact.state == "known" and fact.value is not None else _MISSING
+                value = self._known_value(ref, cond.facet)
+                got = _MISSING if value is None else value
         except KeyError:
             raise SpecError([Issue(
                 render_condition(cond), ref, f"model {ref} is not in the snapshot", self.path,
             )]) from None
+        self.resolved_threshold[key] = got
+        return got
+
+    def _best(self, cond: Compare) -> Any:
+        """The highest value among the anchor candidates, less the margin."""
+        assert isinstance(cond.value, BestRef) and self.anchor is not None
+        key = id(cond)
+        if key in self.resolved_threshold:
+            return self.resolved_threshold[key]
+        values = []
+        for cid in self._ids_of(self.anchor):
+            if self._is_evidence(cond):
+                admitted = self._admitted(cid, cond)
+                value = _shown(admitted, cond.op) if admitted else None
+            else:
+                value = self._known_value(cid, cond.facet)
+            if _numeric(value):
+                values.append(value)
+        got = max(values) - cond.value.best if values else _MISSING
         self.resolved_threshold[key] = got
         return got
 
@@ -492,22 +584,23 @@ class _Run:
         return Bits(passing, failing, self.universe & ~passing & ~failing)
 
     def _compare(self, cond: Compare) -> Bits:
-        if isinstance(cond.value, ModelRef):
-            threshold = self._reference(cond)
+        if isinstance(cond.value, ModelRef | BestRef):
+            threshold = (self._reference(cond) if isinstance(cond.value, ModelRef)
+                         else self._best(cond))
             if threshold is _MISSING:
                 return Bits(0, 0, self.universe)
         else:
             threshold = cond.value
         if self._is_evidence(cond):
             return self._evidence_bits(cond, cond.op, threshold)
-        return _as_bits(self.index.ids_where(cond.facet, cond.op, threshold), self.universe)
+        return self._where(cond.facet, cond.op, threshold)
 
     def _window(self, cond: Window) -> Bits:
         low, high = cond.between
         if self._is_evidence(cond):
             return self._evidence_bits(cond, "between", (low, high))
-        lo = _as_bits(self.index.ids_where(cond.facet, ">=", low), self.universe)
-        hi = _as_bits(self.index.ids_where(cond.facet, "<=", high), self.universe)
+        lo = self._where(cond.facet, ">=", low)
+        hi = self._where(cond.facet, "<=", high)
         return bit_and(lo, hi, self.universe)
 
     def _set(self, cond: InSet) -> Bits:
@@ -524,13 +617,11 @@ class _Run:
         elif getattr(getattr(self._facet(cond.facet), "value_type", None), "kind", None) == "set":
             # A set-valued facet is in {a, b} when it holds a or b, and not in
             # {a, b} when it holds neither. Equality never matches a set.
-            bits = _as_bits(
-                self.index.ids_where(cond.facet, "contains_any", list(values)), self.universe
-            )
+            bits = self._where(cond.facet, "contains_any", list(values))
         else:
             acc: Bits | None = None
             for value in values:
-                bit = _as_bits(self.index.ids_where(cond.facet, "=", value), self.universe)
+                bit = self._where(cond.facet, "=", value)
                 acc = bit if acc is None else bit_or(acc, bit, self.universe)
             assert acc is not None
             bits = acc
@@ -539,7 +630,7 @@ class _Run:
         return bits
 
     def _known(self, cond: Known) -> Bits:
-        bits = _as_bits(self.index.ids_where(cond.known, "known", None), self.universe)
+        bits = self._where(cond.known, "known", None)
         return Bits(bits.passing, self.universe & ~bits.passing, 0)
 
     def _presented(self, cond: Any, raw: Bits) -> Bits:
@@ -649,6 +740,8 @@ class _Run:
 
     def _value(self, cond: Any, cid: str) -> Any:
         if isinstance(cond, Known):
+            if self._is_domain(cond.known):
+                return "unknown" if self._known_value(cid, cond.known) is None else "known"
             try:
                 return self.index.fact(cid, cond.known).state
             except KeyError:
@@ -661,12 +754,9 @@ class _Run:
             op = cond.op if isinstance(cond, Compare) else None
             return _shown(values, op) if values else None
         try:
-            fact = self.index.fact(cid, facet_id)
+            return self._known_value(cid, facet_id)
         except KeyError:
             return None
-        if fact.state != "known" or fact.value is None:
-            return None
-        return fact.value
 
     def _threshold(self, cond: Any) -> Any:
         if isinstance(cond, Compare):
@@ -674,6 +764,9 @@ class _Run:
                 got = self.resolved_threshold.get(id(cond), _MISSING)
                 if got is _MISSING:
                     got = self._reference(cond)
+                return None if got is _MISSING else got
+            if isinstance(cond.value, BestRef):
+                got = self._best(cond)
                 return None if got is _MISSING else got
             return cond.value
         if isinstance(cond, Window):
@@ -752,7 +845,11 @@ class _Run:
         rules = 0 if self.resolved.profile is None else len(self.resolved.profile.rules)
         self._cover(feasible, maybe, eliminated)
 
-        for index, cond in enumerate(self.resolved.conditions):
+        # Stable: every condition without best(m) first, in the spec's order.
+        ordered = sorted(enumerate(self.resolved.conditions), key=lambda pair: _has_best(pair[1]))
+        for index, cond in ordered:
+            if self.anchor is None and _has_best(cond):
+                self.anchor = feasible
             self.path = (f"profile.rules[{index}]" if index < rules
                          else f"where[{index - rules}]")
             before = feasible.bit_count()
