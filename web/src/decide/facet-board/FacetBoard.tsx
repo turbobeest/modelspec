@@ -263,5 +263,5 @@ export { readEstate, writeEstate };
 /** The board's heading. App renders it before the vocabulary loads, so the
  * page's largest paint does not wait on a fetch (MODEL-218). */
 export function BoardIntro() {
-  return <div className="board-intro"><div><span className="eyebrow">Model decision engine</span><h1>Set what matters. Watch the field narrow.</h1><p>Every facet is here. Must is a gate. Prefer changes ranking and never excludes. Nothing is guessed from your words.</p></div></div>;
+  return <div className="board-intro"><div><span className="eyebrow">Model decision engine</span><h1>Here's how our API helps an agent pick the optimal model in about a tenth of a second. It might take you a little longer.</h1><h2>Set what matters. Watch the field narrow.</h2><p>Every facet is here. Must is a gate. Prefer changes ranking and never excludes. Nothing is guessed from your words.</p><p className="board-intro-note">About a tenth of a second: the median time to first byte for an agent's API decision, measured from Boston on 2026-10-01.</p></div></div>;
 }

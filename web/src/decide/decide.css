@@ -564,6 +564,8 @@ body {
 .legacy-notes li + li { margin-top: 4px; }
 .board-intro { display: flex; align-items: end; justify-content: space-between; gap: 24px; }
 .board-intro h1 { margin: 4px 0; font-size: clamp(1.8rem, 4vw, 2.3rem); font-weight: 300; }
+.board-intro h2 { margin: 6px 0 8px; font-size: clamp(1.2rem, 2.4vw, 1.45rem); font-weight: 300; }
+.board-intro .board-intro-note { margin-top: 6px; font-size: 12px; }
 .board-intro p { margin: 0; color: var(--muted); }
 /* MODEL-204: the template card is always on the board, as a bar or a category-by-tier grid. */
 .template-picker { background: var(--surface); border: 1px solid var(--line); border-top: 2px solid var(--ink); }
@@ -760,6 +762,7 @@ body {
   .work { padding: 12px 10px 48px; }
   .board-intro { display: grid; align-items: start; gap: 10px; }
   .board-intro h1 { font-size: 27px; }
+  .board-intro h2 { font-size: 19px; }
   .template-flat { grid-template-columns: minmax(0, 1fr); }
   .template-bar { flex-wrap: wrap; gap: 4px 10px; }
   .template-bar .template-active, .template-bar .template-count { white-space: normal; }
