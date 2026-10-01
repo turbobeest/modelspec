@@ -76,7 +76,14 @@ export class DecideApiError extends Error {
   }
 }
 
+/** A fresh 128-bit action id, shared by its primary and auxiliary requests. */
+export function newIntent(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return btoa(String.fromCharCode(...bytes)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
 export interface DecideOptions {
+  intent?: string;
   humanToken?: string;
   onRemaining?: (remaining: number) => void;
   signal?: AbortSignal;
@@ -122,6 +129,7 @@ export const hostedEngine: HostedDecisionEngine = {
           mode: "cors",
           headers: {
             Accept: "application/json",
+            ...(options.intent ? { "x-modelspec-intent": options.intent } : {}),
             "Content-Type": "application/json",
             ...(options.humanToken ? { "X-ModelSpec-Turnstile": options.humanToken } : {}),
             ...(options.snapshot ? { [SNAPSHOT_HEADER]: options.snapshot } : {}),

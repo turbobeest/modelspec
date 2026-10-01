@@ -75,7 +75,7 @@ it("sends the token in a header, preserves the Spec body and reads allowance on 
   expect(onRemaining).toHaveBeenCalledWith(17);
 });
 
-it("the real app waits for a person and sends one full lookup without background probes", async () => {
+it("the real app verifies each action and preserves its background requests", async () => {
   const routed = routeFetch({ vocabulary: () => json(realVocabulary), decide: () => json(fixture) });
   vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) =>
     String(input).endsWith("/v1/human-status")
@@ -87,15 +87,22 @@ it("the real app waits for a person and sends one full lookup without background
   await waitFor(() => expect(button).toBeEnabled());
   expect(sentSpecs(vi.mocked(fetch))).toHaveLength(0);
   fireEvent.click(button);
-  await waitFor(() => expect(sentSpecs(vi.mocked(fetch))).toHaveLength(1));
+  await waitFor(() => expect(sentSpecs(vi.mocked(fetch))).toHaveLength(12));
   await waitFor(() => expect(button).toBeEnabled());
-  expect(sentSpecs(vi.mocked(fetch))).toHaveLength(1);
+  expect(sentSpecs(vi.mocked(fetch))).toHaveLength(12);
+  const firstIds = new Set(routed.mock.calls.filter(([url]) => String(url).endsWith("/v1/decide"))
+    .map(([, init]) => new Headers(init.headers).get("x-modelspec-intent")));
+  expect(firstIds.size).toBe(1);
+  expect([...firstIds][0]).toMatch(/^[A-Za-z0-9_-]{21}[AQgw]$/);
   expect(window.turnstile?.render).toHaveBeenCalled();
   fireEvent.click(button);
-  await waitFor(() => expect(sentSpecs(vi.mocked(fetch))).toHaveLength(2));
+  await waitFor(() => expect(sentSpecs(vi.mocked(fetch))).toHaveLength(24));
   await waitFor(() => expect(button).toBeEnabled());
-  expect(sentSpecs(vi.mocked(fetch))).toHaveLength(2);
-});
+  expect(sentSpecs(vi.mocked(fetch))).toHaveLength(24);
+  const allIds = new Set(routed.mock.calls.filter(([url]) => String(url).endsWith("/v1/decide"))
+    .map(([, init]) => new Headers(init.headers).get("x-modelspec-intent")));
+  expect(allIds.size).toBe(2);
+}, 20_000);
 
 it("shows a burst refusal in the page and asks for fresh verification", async () => {
   const routed = routeFetch({ vocabulary: () => json(realVocabulary), decide: () => json({

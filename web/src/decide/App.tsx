@@ -1,6 +1,7 @@
 import { HumanGate, HUMAN_GATE_ENABLED } from "./components/HumanGate";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  newIntent,
   candidateQuestions,
   hostedEngine,
   retryOnSnapshotChange,
@@ -10,6 +11,7 @@ import {
   fmtCI,
 } from "./adapter";
 import type {
+  DecideOptions,
   Cond,
   Decision,
   Evidence,
@@ -97,6 +99,7 @@ export function DesignedApp({
   const [gateStatus, setGateStatus] = useState<boolean | null>(HUMAN_GATE_ENABLED ? null : false);
   const [gateRefresh, setGateRefresh] = useState(0);
   const humanGateEnabled = gateStatus === true;
+  const action = useRef<DecideOptions>({});
   const pendingSpec = useRef<Spec | null>(null);
   const [initial] = useState(() => decodeSpec(location.hash)),
     [initialBoard] = useState(() => decodeBoardState(location.hash)),
@@ -235,9 +238,9 @@ export function DesignedApp({
   }, [hostedDecision, shownSpec, shownAxis, dismissed, hostedQuestions, vocabulary, vocab]);
   const liveDecision = mapped.decision;
   useEffect(() => {
+    if (requestTimer.current) return;
     if (
       !vocabulary ||
-      humanGateEnabled ||
       !hostedDecision ||
       !lastSentSpec ||
       !shownCanvasAxes
@@ -246,6 +249,7 @@ export function DesignedApp({
       setPlotDecision(null);
       return;
     }
+    const intentOptions = action.current;
     const options = new Map(
       canvasAxisOptions(vocabulary).map((option) => [option.id, option]),
     );
@@ -266,6 +270,7 @@ export function DesignedApp({
       vocabulary,
       (current) =>
         hostedEngine.decide(plotSpec, {
+          ...intentOptions,
           signal: controller.signal,
           snapshot: (current ?? vocabulary).snapshot,
         }),
@@ -331,6 +336,8 @@ export function DesignedApp({
 
   async function runDecision(requested: Spec, humanToken?: string, onRemaining?: (remaining: number) => void) {
     if (gateStatus === null || (humanGateEnabled && !humanToken)) return;
+    const intentOptions = { intent: newIntent(), humanToken, onRemaining };
+    action.current = intentOptions;
     requestAbort.current?.abort();
     questionsAbort.current?.abort();
     const controller = new AbortController();
@@ -369,8 +376,8 @@ export function DesignedApp({
       const source = override ?? requested;
       const nextSpec = current ? sendableSpec(current, source) : source;
       return hostedEngine
-        .decide({ ...toBoardDecisionSpec(nextSpec, explain), ...(humanGateEnabled && hasEstate(estate) ? { estate: estatePayload(estate) } : {}) }, {
-          humanToken, onRemaining,
+        .decide({ ...toBoardDecisionSpec(nextSpec, explain) }, {
+          ...intentOptions,
           signal: controller.signal,
           snapshot: current?.snapshot,
         })
@@ -389,9 +396,7 @@ export function DesignedApp({
       // so the ranking draws at once. The full explanation and the probes
       // follow only once it has answered, so a cold Worker meets one request
       // before the burst; if `full` fails, the summary stands (MODEL-153).
-      const answer = humanGateEnabled
-        ? { result: await ask(vocabulary, "full"), vocabulary }
-        : await retryOnSnapshotChange(
+      const answer = await retryOnSnapshotChange(
         vocabulary,
         (current) => ask(current, "summary"),
         reloadVocabulary,
@@ -412,13 +417,6 @@ export function DesignedApp({
       setHostedQuestions(
         used ? realQuestions(used, nextSpec, dismissed) : questionsFor(nextSpec),
       );
-      if (humanGateEnabled && answer.result.decision.with_estate) {
-        setEstateRequest((current) => ({
-          kind: "done", settledSpecHash: specHash(requested),
-          requestKey: `${specHash(requested)}:${JSON.stringify(estate)}`,
-          generation: current.generation, decision: answer.result.decision,
-        }));
-      }
       setRequestState({ kind: "success", details: "loading" });
     } catch (cause) {
       // Aborted by a newer request or by the watchdog: whichever did owns the state.
@@ -432,7 +430,6 @@ export function DesignedApp({
         used ? sendableSpec(used, requested).boardWeights ?? {} : {},
       ).some((key) => refinementKeys.has(key));
       if (
-        !humanGateEnabled &&
         used &&
         cause instanceof DecideApiError &&
         cause.status === 400 &&
@@ -469,10 +466,6 @@ export function DesignedApp({
     } finally {
       clearTimeout(watchdog);
     }
-    if (humanGateEnabled) {
-      setRequestState({ kind: "success", details: "ready" });
-      return;
-    }
     try {
       // Once the summary has reloaded, a second 409 here leaves the summary
       // standing: the background request never starts another reload.
@@ -494,17 +487,22 @@ export function DesignedApp({
   function scheduleDecision(nextSpec: Spec) {
     if (gateStatus === null || humanGateEnabled) return;
     if (requestTimer.current) clearTimeout(requestTimer.current);
-    requestTimer.current = setTimeout(() => void runDecision(nextSpec), 300);
+    requestTimer.current = setTimeout(() => {
+      requestTimer.current = null;
+      void runDecision(nextSpec);
+    }, 300);
   }
 
   function changeSpec(nextSpec: Spec) {
     if (gateStatus === null) pendingSpec.current = nextSpec;
     if (humanGateEnabled) {
       requestAbort.current?.abort();
+      questionsAbort.current?.abort();
       setHostedDecision(null);
       setHostedQuestions([]);
       setLastSentSpec(null);
       setRequestState({ kind: "idle" });
+      setEstateRequest((current) => ({ kind: "idle", settledSpecHash: null, generation: current.generation }));
     }
     setSpec(nextSpec);
     scheduleDecision(nextSpec);
@@ -558,7 +556,8 @@ export function DesignedApp({
   const effectiveSpec = lastSentSpec ?? spec;
   const estateRequestKey = `${specHash(spec)}:${JSON.stringify(estate)}`;
   useEffect(() => {
-    if (humanGateEnabled || !answered) return;
+    if (requestTimer.current || !answered) return;
+    const intentOptions = action.current;
     questionsAbort.current?.abort();
     const controller = new AbortController();
     questionsAbort.current = controller;
@@ -569,7 +568,7 @@ export function DesignedApp({
       decide: (next, options) =>
         retryOnSnapshotChange(
           current,
-          (v) => hostedEngine.decide(next, { ...options, snapshot: v?.snapshot }),
+          (v) => hostedEngine.decide(next, { ...intentOptions, ...options, snapshot: v?.snapshot }),
           reloadVocabulary,
         ).then((answer) => {
           current = answer.vocabulary;
@@ -690,7 +689,8 @@ export function DesignedApp({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vocabulary, gateStatus]);
   useEffect(() => {
-    if (humanGateEnabled) return;
+    if (requestTimer.current) return;
+    const intentOptions = action.current;
     if (
       !vocabulary ||
       !hasEstate(estate) ||
@@ -736,6 +736,7 @@ export function DesignedApp({
             estate: estatePayload(estate),
           }, {
             signal: controller.signal,
+            ...intentOptions,
             snapshot: pinned.snapshot,
           });
         },
@@ -973,10 +974,10 @@ export function DesignedApp({
             mustOrder={boardMustOrder}
             onMustOrder={setBoardMustOrder}
             estate={estate}
-            onEstate={humanGateEnabled ? (next) => {
+            onEstate={(next) => {
               setEstate(next);
               changeSpec(spec);
-            } : setEstate}
+            }}
             access={access}
             onAccess={changeAccess}
             fit={decision?.explanation.feasible.length}
@@ -998,7 +999,7 @@ export function DesignedApp({
               />
               <section className="board-answer-head" aria-label="Facet board answer">
                 <span className="eyebrow">The answer</span>
-                {hasEstate(estate) && <div className="answer-pair"><div><strong>With what you have</strong><span>{estateDecision ? `${estateDecision.explanation.feasible.length} models qualify · ${estateDecision.explanation.may.length} may qualify` : estateRequest.kind === "error" || estateRequest.kind === "done" ? <>Couldn't load: <button className="text-button" onClick={() => setEstateRequest((current) => ({ kind: "idle", settledSpecHash: current.settledSpecHash, generation: current.generation + 1 }))}>retry</button></> : "Checking…"}</span></div><div><strong>If you could use anything</strong><span>{decision.explanation.feasible.length} models qualify · {decision.explanation.may.length} may qualify</span></div></div>}
+                {hasEstate(estate) && <div className="answer-pair"><div><strong>With what you have</strong><span>{estateDecision ? `${estateDecision.explanation.feasible.length} models qualify · ${estateDecision.explanation.may.length} may qualify` : estateRequest.kind === "error" || estateRequest.kind === "done" ? <>Couldn't load: <button className="text-button" onClick={() => { if (humanGateEnabled) changeSpec(spec); else { action.current = { intent: newIntent() }; setEstateRequest((current) => ({ kind: "idle", settledSpecHash: current.settledSpecHash, generation: current.generation + 1 })); } }}>retry</button></> : "Checking…"}</span></div><div><strong>If you could use anything</strong><span>{decision.explanation.feasible.length} models qualify · {decision.explanation.may.length} may qualify</span></div></div>}
                 {answeredAccess === "own_software" && estateAnswer?.excludedPlans.map((plan) => <p className="board-own-software-note" role="note" key={plan.id}>{ownSoftwareNote(plan)}</p>)}
               </section>
               {hasEstate(estate) && estateAnswer
@@ -1064,7 +1065,11 @@ export function DesignedApp({
                   plotDecision={plotDecision}
                   vocabulary={vocabulary}
                   axes={shownCanvasAxes}
-                  onAxes={setCanvasAxes}
+                  onAxes={(next) => {
+                    if (humanGateEnabled) changeSpec(spec);
+                    else action.current = { intent: newIntent() };
+                    setCanvasAxes(next);
+                  }}
                   onMust={setCanvasMust}
                   selections={boardSelections}
                   selected={selectedId}

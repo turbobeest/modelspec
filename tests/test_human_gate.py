@@ -364,3 +364,104 @@ def test_legacy_events_load_and_write_only_timestamps(monkeypatch, timestamps, n
     # A new instance must also accept the timestamp-only rows just written.
     recreated = human_gate_do.HumanGateObject(obj.ctx, None)
     assert asyncio.run(recreated.take())["reason"] == reason
+
+
+INTENT = "AAAAAAAAAAAAAAAAAAAAAA"
+
+
+def intent_req(intent=INTENT, ip=IP, token="token"):
+    return _Req("/v1/decide", {"spec_version": 1}, headers={
+        "origin": ORIGIN, "CF-Connecting-IP": ip,
+        human_gate.TOKEN_HEADER: token, human_gate.INTENT_HEADER: intent})
+
+
+def test_intent_continuations_share_one_verified_admission(monkeypatch):
+    monkeypatch.setattr(human_gate_do.time, "time", lambda: 10000)
+    e = env()
+    calls = []
+    async def once(secret, token):
+        calls.append(token)
+        return await verified(secret, token) if len(calls) == 1 else {"success": False}
+    async def race():
+        first = await admit(intent_req(), e, verify=once)
+        rest = await asyncio.gather(*(admit(intent_req(token=""), e, verify=once) for _ in range(30)))
+        return [first, *rest]
+    outcomes = asyncio.run(race())
+    assert all(out[0] == 200 for out in outcomes)
+    assert all(out[3][human_gate.REMAINING_HEADER] == "19" for out in outcomes)
+    assert calls == ["token"]
+    obj = next(iter(e.HUMAN_GATE.objects.values()))
+    e.HUMAN_GATE.objects[next(iter(e.HUMAN_GATE.objects))] = human_gate_do.HumanGateObject(obj.ctx, None)
+    assert asyncio.run(admit(intent_req(token=""), e))[0] == 200
+    assert asyncio.run(admit(intent_req(), e))[:2] == (429, "human_intent_limit")
+
+
+def test_fourth_distinct_intent_is_refused(monkeypatch):
+    monkeypatch.setattr(human_gate_do.time, "time", lambda: 10000)
+    e = env()
+    outcomes = [asyncio.run(admit(intent_req(chr(65 + i) * 21 + "A"), e)) for i in range(4)]
+    assert [out[0] for out in outcomes] == [200, 200, 200, 429]
+    assert outcomes[-1][1] == "human_burst_limit"
+    # Existing admission is free even when new actions are blocked.
+    assert asyncio.run(admit(intent_req(), e))[3][human_gate.REMAINING_HEADER] == "17"
+
+
+def test_twenty_first_distinct_intent_is_refused(monkeypatch):
+    now = [10000]
+    monkeypatch.setattr(human_gate_do.time, "time", lambda: now[0])
+    e = env()
+    for i in range(20):
+        now[0] += 601
+        assert asyncio.run(admit(intent_req(chr(65 + i) * 21 + "A"), e))[0] == 200
+    now[0] += 601
+    assert asyncio.run(admit(intent_req("Z" * 21 + "A"), e))[:2] == (429, "human_day_limit")
+
+
+def test_intent_expires_at_sixty_seconds_and_cannot_be_readmitted(monkeypatch):
+    now = [10000]
+    monkeypatch.setattr(human_gate_do.time, "time", lambda: now[0])
+    e = env()
+    assert asyncio.run(admit(intent_req(), e))[0] == 200
+    now[0] += 59.99
+    assert asyncio.run(admit(intent_req(), e))[0] == 200
+    now[0] += .01
+    assert asyncio.run(admit(intent_req(), e))[:2] == (429, "human_intent_limit")
+    now[0] += 601
+    assert asyncio.run(admit(intent_req(), e))[:2] == (429, "human_intent_limit")
+
+
+@pytest.mark.parametrize("intent", ["", "short", "A" * 22 + "=", "!" * 22, "A" * 21 + "B"])
+def test_malformed_intent_meters_every_request(monkeypatch, intent):
+    monkeypatch.setattr(human_gate_do.time, "time", lambda: 10000)
+    e = env()
+    assert [asyncio.run(admit(intent_req(intent), e))[0] for _ in range(4)] == [200, 200, 200, 429]
+
+
+def test_intent_is_scoped_to_visitor_and_requires_verification(monkeypatch):
+    monkeypatch.setattr(human_gate_do.time, "time", lambda: 10000)
+    e = env()
+    assert asyncio.run(admit(intent_req(), e))[0] == 200
+    assert asyncio.run(admit(intent_req(ip="203.0.113.10", token=""), e))[0] == 403
+    assert asyncio.run(admit(intent_req(ip="203.0.113.10"), e))[3][human_gate.REMAINING_HEADER] == "19"
+    assert len(e.HUMAN_GATE.objects) == 2
+
+
+def test_even_intervals_count_distinct_intents_only(monkeypatch):
+    now = [10000]
+    monkeypatch.setattr(human_gate_do.time, "time", lambda: now[0])
+    e = env()
+    for i in range(5):
+        now[0] = 10000 + i * 70
+        intent = chr(65 + i) * 21 + "A"
+        out = asyncio.run(admit(intent_req(intent), e))
+        if i < 4:
+            assert out[0] == 200
+            for _ in range(10):
+                assert asyncio.run(admit(intent_req(intent), e))[0] == 200
+    assert out[:2] == (429, "human_sweep_limit")
+
+
+def test_cors_accepts_intent_header(entry):
+    worker = _decision_worker(entry, _entry_env(**vars(env())))
+    response = asyncio.run(worker.fetch(_Req("/v1/decide", method="OPTIONS", headers={"origin": ORIGIN})))
+    assert human_gate.INTENT_HEADER in response.headers["access-control-allow-headers"]

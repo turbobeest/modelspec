@@ -2,7 +2,7 @@
 
 `HUMAN_GATE_ENABLED` ships `false` in production and `true` in isolated staging
 for verifying the gate on Cloudflare before production. Off preserves
-the existing access and x402 paths. On, keyless `/v1/decide` calls from the
+the existing access and x402 paths. On, keyless `/v1/decide` actions from the
 three existing site origins need a fresh Turnstile token in the
 `X-ModelSpec-Turnstile` header. The decision Spec, response body and contract
 versions do not change. Other keyless callers use the paid x402 path when
@@ -28,14 +28,14 @@ by a daily HMAC visitor ID. For this gate only, IPv6 addresses are normalised
 to their /64 network before deriving the ID. IPv4 stays as supplied, and the
 MODEL-241 keyless meter keeps its existing identity behavior. The object uses
 synchronous SQLite reads and writes without yielding during admission. The
-caps are 20 admitted lookups per UTC day and three in a rolling 60 seconds. Admission consumes a lookup
+caps are 20 distinct admitted intents per UTC day and three in a rolling 60 seconds. Admission consumes an intent
 even if the decision engine subsequently refuses the Spec or fails. Failed
 verification and cap refusals do not consume a lookup. This prevents concurrent
 or deliberately invalid requests from obtaining more answers than the cap.
 
-The state contains a UTC day, admitted count, recent timestamps and a suspicion
-expiry. The gate does not compute or store Spec fingerprints or other
-Spec-derived values. Every admitted lookup counts toward interval detection.
+The state contains a UTC day, admitted count, recent timestamps, a suspicion
+expiry and at most 20 admitted intent IDs with their first-request times and request counts. The gate does not compute or store Spec fingerprints or other
+Spec-derived values. Only the first admission of each intent counts toward interval detection.
 Already-deployed objects may contain timestamp/fingerprint pairs. Admission
 reads their timestamps and writes only timestamps, discarding the fingerprints
 on the next admission attempt, including a refusal.
@@ -80,10 +80,11 @@ including automatic lookups and CSV download, without loading Turnstile or
 showing an unavailable message. Only `enabled: true` activates the manual
 flow. A transient status failure shows a retry button and can recover without
 a reload. A `human_challenge_required` response refreshes status so an open
-tab can adopt a newly enabled Worker gate. A manual button sends one full decision. The
-page disables automatic lookup on edits, explanation requests,
-canvas plot requests, estate requests, question probes and automatic Spec
-fallback/retry. Estate data can accompany that single manual lookup.
+tab can adopt a newly enabled Worker gate. A manual button starts one intent after verification. The page retains summary-then-full
+explanations, follow-up question probes, canvas plot decisions, estate requests,
+Spec fallback and the 409 snapshot-change retry. Every request caused by that
+action carries the same intent header. Automatic Spec edits still wait for the
+manual button while the gate is enabled.
 The widget is replaced after every submission, including a refusal, and token
 expiry disables submission. A cap message links to the paid API/MCP without
 quoting prices. CSV download is hidden while the page gate is enabled.
@@ -92,6 +93,59 @@ quoting prices. CSV download is hidden while the page gate is enabled.
 `Retry-After` reports the wait for caps and suspicion. CORS exposes both.
 The CSP allows `challenges.cloudflare.com` for scripts, frames and connections,
 inside the existing single `/*` headers rule.
+
+
+## Action intents (MODEL-270)
+
+The page mints a cryptographically random 128-bit ID encoded as 22 unpadded
+base64url characters in `x-modelspec-intent`. Initial answers, template applies,
+facet edits and retries each start a new intent. The existing 300 ms debounce
+groups rapid facet changes into one action. Each asynchronous request captures
+its action's options, including snapshot retries, so later actions cannot
+change the ID of an in-flight request. CORS allows this header.
+
+The first request verifies Turnstile and atomically admits the intent in the
+visitor's daily SQLite object. Continuations use that verified admission,
+without replaying a single-use Turnstile token. They spend no further daily or
+minute allowance and add no interval samples. An intent permits at most 32
+requests, including its first, strictly within 60 seconds of its first request.
+The 33rd request or a request at or after 60 seconds receives HTTP 429 with
+`human_intent_limit`. Refusals do not extend the window. Expired and exhausted
+IDs remain until daily cleanup so they cannot be readmitted in the same day.
+Missing or malformed IDs meter every request individually and require fresh
+verification. IDs are scoped to the daily visitor object; another visitor must
+verify and pay its own admission even when it presents the same ID. The keyed
+daily HMAC, fail-closed behavior and Turnstile validation conditions stay intact.
+
+The deterministic real-vocabulary fixture measures this inventory for both a
+fresh load and one Coding Budget template apply, with no saved estate:
+
+| Request purpose | Fresh load | Template apply |
+| --- | ---: | ---: |
+| Main summary | 1 | 1 |
+| Main full details | 1 | 1 |
+| Canvas plot | 1 | 1 |
+| Follow-up option probes | 9 | 9 |
+| Total POST /v1/decide | 12 | 12 |
+| Distinct intents / admissions | 1 | 1 |
+
+Before this change, each fixture action required 12 admissions, so the fourth
+request within a minute was refused by the gate.
+Production reported 22 requests for a load plus template click. Request counts
+remain intact; each action now consumes one admission. A saved estate adds an
+estate comparison request. Snapshot changes can add a retry per request path;
+32 gives headroom over the 12-call fixture and its retries. The tests retain
+coverage for estate, full-details fallback and snapshot reload behavior.
+
+Sweeps remain subject to 20 new intents per day, three per minute and the
+existing even-interval rule. A conforming caller must mint a new intent for a
+new distinct question. The server cannot infer user intent from an opaque ID,
+so a malicious caller can relabel different questions with an admitted ID.
+The hard 32-request cap and 60-second window bound that abuse rather than
+trusting the label indefinitely. This is a bounded increase in requests per
+admission, necessary for the page's auxiliary questions, not proof that every
+request is for one question. It prevents unlimited smuggling under an intent;
+Turnstile, visitor scoping and new-intent limits still apply.
 
 ## Launch, owned by Jamie
 

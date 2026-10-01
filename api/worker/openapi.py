@@ -2801,6 +2801,15 @@ def build_spec() -> dict[str, Any]:
                             "Worker answers from another snapshot it returns 409 "
                             "snapshot_changed before reading the spec (MODEL-159)."),
                         "schema": {"type": "string", "pattern": "^snap_[A-Za-z0-9:._-]+$"},
+                    }, {
+                        "name": "x-modelspec-intent", "in": "header", "required": False,
+                        "schema": {"type": "string", "pattern": "^[A-Za-z0-9_-]{21}[AQgw]$"},
+                        "description": (
+                            "Random 128-bit action ID encoded as unpadded base64url. "
+                            "The human gate meters distinct intents per visitor. Admitted intents "
+                            "allow at most 32 requests strictly within 60 seconds of their first request. "
+                            "Missing or malformed IDs meter each request separately."
+                        ),
                     }],
                     "requestBody": {
                         "required": True,

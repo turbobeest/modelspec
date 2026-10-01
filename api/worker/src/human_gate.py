@@ -1,6 +1,8 @@
 """Keyless /decide admission. Tokens and addresses are never persisted."""
 from __future__ import annotations
 
+import re
+
 from ipaddress import ip_address, ip_network
 from urllib.parse import urlparse
 
@@ -10,6 +12,17 @@ import visitor
 TOKEN_HEADER = "x-modelspec-turnstile"
 REMAINING_HEADER = "x-modelspec-decisions-remaining"
 SITEVERIFY = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
+INTENT_HEADER = "x-modelspec-intent"
+INTENT_REQUEST_LIMIT = 32
+INTENT_WINDOW_SECONDS = 60
+
+
+def intent_for(request):
+    value = str(request.headers.get(INTENT_HEADER) or "")
+    # Canonical unpadded base64url encoding of exactly 16 random bytes.
+    return value if re.fullmatch(r"[A-Za-z0-9_-]{21}[AQgw]", value) else None
+
+
 DAY_LIMIT = 20
 BURST_LIMIT = 3
 WINDOW_SECONDS = 600
@@ -28,8 +41,9 @@ REFUSALS = {
     "human_day_limit": 429,
     "human_burst_limit": 429,
     "human_sweep_limit": 429,
+    "human_intent_limit": 429,
 }
-LIMIT_CODES = {"day": "human_day_limit", "burst": "human_burst_limit", "sweep": "human_sweep_limit"}
+LIMIT_CODES = {"day": "human_day_limit", "burst": "human_burst_limit", "sweep": "human_sweep_limit", "intent": "human_intent_limit"}
 
 
 def identity_for(request, env):
@@ -83,28 +97,35 @@ async def admit(request, env, origins, verify):
         stub = stub_for(request, env)
         if stub is None:
             return 503, "human_gate_unavailable", UNAVAILABLE, {}
-        token = str(request.headers.get(TOKEN_HEADER) or "")
-        if not token or len(token) > 2048:
-            return 403, "human_challenge_required", "Complete the human verification before each lookup.", {}
-        result = await verify(str(env.TURNSTILE_SECRET), token)
-        # Siteverify uses bot/headless signals internally, but exposes no separate
-        # headless flag. A failed validation is refused, never inferred as human.
-        if not isinstance(result, dict) or result.get("success") is not True \
-                or result.get("hostname") != urlparse(origin).hostname \
-                or result.get("action") != "decide":
-            return 403, "human_challenge_required", "Human verification failed or expired. Please verify again.", {}
-        identity = identity_for(request, env)
-        if identity is None:
-            return 503, "human_gate_unavailable", UNAVAILABLE, {}
-        # Verification may have crossed UTC midnight. Resolve the daily object
-        # again so admission uses the current visitor ID.
-        stub = env.HUMAN_GATE.get(env.HUMAN_GATE.idFromName(identity))
-        meter = as_dict(await stub.take())
+        intent = intent_for(request)
+        # Only a visitor's already verified admission can bypass Siteverify.
+        # This also consumes the continuation atomically against its cap.
+        continued = await stub.continue_intent(intent) if intent else None
+        meter = as_dict(continued) if continued is not None else None
+        if meter is None:
+            token = str(request.headers.get(TOKEN_HEADER) or "")
+            if not token or len(token) > 2048:
+                return 403, "human_challenge_required", "Complete the human verification before each lookup.", {}
+            result = await verify(str(env.TURNSTILE_SECRET), token)
+            # Siteverify uses bot/headless signals internally, but exposes no separate
+            # headless flag. A failed validation is refused, never inferred as human.
+            if not isinstance(result, dict) or result.get("success") is not True \
+                    or result.get("hostname") != urlparse(origin).hostname \
+                    or result.get("action") != "decide":
+                return 403, "human_challenge_required", "Human verification failed or expired. Please verify again.", {}
+            identity = identity_for(request, env)
+            if identity is None:
+                return 503, "human_gate_unavailable", UNAVAILABLE, {}
+            # Verification may have crossed UTC midnight. Resolve the daily object
+            # again so admission uses the current visitor ID.
+            stub = env.HUMAN_GATE.get(env.HUMAN_GATE.idFromName(identity))
+            meter = as_dict(await stub.take(intent))
         headers = {REMAINING_HEADER: str(meter["remaining"])}
         reason = meter["reason"]
         if reason:
             headers["retry-after"] = str(meter["retry_after"])
             messages = {
+                "intent": "This decision action has expired or used its request allowance. Start a new lookup and verify again.",
                 "day": "You have used today's 20 manual decisions. Come back after midnight UTC or use the paid API or MCP.",
                 "burst": "Three decisions per minute is the manual lookup limit. Wait a minute, then verify again.",
                 "sweep": "This lookup pattern resembles an automated sweep. Wait ten minutes and verify again, or use the paid API or MCP.",

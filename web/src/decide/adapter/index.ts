@@ -28,6 +28,7 @@ export {
   DecideApiError,
   PUBLIC_DECIDE_ENDPOINT,
   SNAPSHOT_HEADER,
+  newIntent,
   hostedEngine,
   retryOnSnapshotChange,
   sharedReload,
