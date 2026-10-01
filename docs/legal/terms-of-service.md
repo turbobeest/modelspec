@@ -1,12 +1,12 @@
 # Terms of service
 
-Version `1.1`, effective 2026-09-30. Adopted by Sparks and Sawdust LLC.
+Version `1.2`, effective 2026-09-30. Adopted by Sparks & Sawdust LLC.
 MODEL-70.
 
 ## 1. Who you are contracting with
 
 The ModelSpec API and the modelspec.dev and benchgraph.dev sites are operated by
-**Sparks and Sawdust LLC** ("we", "us"). "You" is whoever calls the service,
+**Sparks & Sawdust LLC** ("we", "us"). "You" is whoever calls the service,
 including an autonomous agent calling it on somebody's behalf. An agent that
 accepts these terms binds the person or organisation it acts for.
 
@@ -105,12 +105,12 @@ We may refuse or withdraw service for any of the above.
 These are the rules that govern every purchase. They were written before any
 money moved, so that they could not be written to suit the first dispute.
 
-**Seller and payment.** The seller is **Sparks and Sawdust LLC**. Payments are
-processed by Stripe on a Stripe-hosted Checkout page; we never receive your
-card number. Charges appear on your card statement as **SPARKS & SAWDUST LLC**.
-Current plans, prices and availability are published at
-`https://modelspec.dev/pricing`. Checkout asks you to accept these terms before
-you pay.
+**Seller and payment.** The seller is **Sparks & Sawdust LLC**. Payments are
+processed by Stripe on a Stripe-hosted Checkout page; we never receive your card
+number. Charges appear on your card statement as **SPARKS AND SAWDUST LLC**,
+because a statement descriptor cannot contain an ampersand. Current plans,
+prices and availability are published at `https://modelspec.dev/pricing`.
+Checkout asks you to accept these terms before you pay.
 
 **What you buy.** Paid access is metered in credits, one balance per API key.
 There are two ways to buy them:
@@ -264,10 +264,13 @@ You may stop using the service at any time. We may suspend or end access for a
 breach of §5. §4 does not expire, is not suspended, and does not change with a
 new version of these terms.
 
-Version 1.1 (2026-09-30) changed §2 and §8: it states that only a person
-looking things up by hand gets the site free, that machine access is paid and
-hosted, and that the public copy of the data is a delayed image with no download
-of current data. Version 1.0 (2026-09-19) was the adoption.
+Version 1.2 (2026-09-30) corrected our legal name to Sparks & Sawdust LLC, the
+name registered with Rhode Island and the IRS, and corrected the card-statement
+name in §6 to SPARKS AND SAWDUST LLC, which is what Stripe sends; no term
+changed. Version 1.1 (2026-09-30) changed §2 and §8: it states that only a
+person looking things up by hand gets the site free, that machine access is paid
+and hosted, and that the public copy of the data is a delayed image with no
+download of current data. Version 1.0 (2026-09-19) was the adoption.
 
 ## 11. What this version does not address
 
@@ -278,6 +281,6 @@ the law that applies. Adding any of these later is a change under §10.
 
 ## 12. Contact
 
-Sparks and Sawdust LLC. Questions, cancellation and privacy requests:
+Sparks & Sawdust LLC. Questions, cancellation and privacy requests:
 **sales@modelspec.dev**. Our postal address is available on request at
 sales@modelspec.dev.

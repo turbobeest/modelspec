@@ -1,6 +1,6 @@
 # The neutrality commitment
 
-Version `1.2`, effective 2026-09-30. Adopted by Sparks and Sawdust LLC.
+Version `1.3`, effective 2026-09-30. Adopted by Sparks & Sawdust LLC.
 MODEL-70. Version 1.0 was adopted on 2026-09-19; what changed in 1.1 is listed
 under [Changes](#changes). The commitment itself is `neutrality-v1`, which is
 the same string the machine-readable copy carries.
@@ -76,7 +76,7 @@ about nine months; the commitment and the ranking policy do not lag.
 ```json
 {
   "version": "neutrality-v1",
-  "operator": "Sparks and Sawdust LLC",
+  "operator": "Sparks & Sawdust LLC",
   "rule": "Charging the consumer of a recommendation is compatible with being an honest broker. Charging the subjects of one is not.",
   "pledge": "No referral fees, no paid placement, no provider-paid visibility, permanently.",
   "permanent": true,
@@ -119,6 +119,10 @@ putting it there.
 A change to this commitment gets a new version and date here; the version above
 is the one in force.
 
+- **1.3, 2026-09-30.** Corrected the operator's legal name to Sparks & Sawdust
+  LLC, the name registered with Rhode Island and the IRS, here and in the
+  `operator` field of the published data. The commitment itself is unchanged,
+  so the identifier stays `neutrality-v1`.
 - **1.2, 2026-09-30.** Corrected the description of who reads the published
   policy: the sites, and no command-line client (there is none). Stated that
   the public cards are a delayed image about nine months behind and that this

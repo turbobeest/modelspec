@@ -226,7 +226,7 @@ artifact `benchgraph-graph-<sha>`. No R2 upload. It is not a required check;
 
 ## Part 2: Cloudflare deploy
 
-Created by Jamie on 2026-09-15 (account "Sparks and Sawdust LLC",
+Created by Jamie on 2026-09-15 (account "Sparks & Sawdust LLC",
 `43840d11c8c4586acdba8b048414900a`, Workers Paid, Containers enabled):
 
 - **R2 bucket** `benchgraph-graph-exports` (Standard). Public custom domain

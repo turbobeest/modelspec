@@ -51,6 +51,7 @@ module copies onto modelspec.dev.
 from __future__ import annotations
 
 import argparse
+import html
 import os
 import shutil
 import sys
@@ -74,7 +75,7 @@ KEEP_FILES = ("openapi.yaml", *brand.FILES, social_cards.LANDING_IMAGE)
 WRITTEN = ("index.html", "404.html", "_headers", "robots.txt")
 
 LINE = "{site} is in preparation. Check back soon."
-OPERATOR = "Sparks and Sawdust LLC"
+OPERATOR = "Sparks & Sawdust LLC"
 #: modelspec.dev only: benchgraph.dev has no legal pages of its own.
 LEGAL_LINKS = (("Terms", "/legal/terms/"), ("Privacy", "/legal/privacy/"))
 
@@ -127,7 +128,7 @@ def dark_page(site: str) -> str:
         + brand.head_links() + brand.social_meta(site) +
         f"<style>{_STYLE}</style></head>\n"
         f"<body><header>{landing_chrome.lockup()}</header><main><h1>{site}</h1><p>{line}</p>{footer}"
-        f'<p class="l">© {OPERATOR}</p></main></body></html>\n'
+        f'<p class="l">© {html.escape(OPERATOR)}</p></main></body></html>\n'
     )
 
 
