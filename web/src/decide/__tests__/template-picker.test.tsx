@@ -26,9 +26,10 @@ function board(vocabulary: Vocabulary = realVocabulary) {
   return { onSpec, onCanvasAxes, bar: () => screen.getByRole("button", { name: /Start from a template/ }) };
 }
 
-it("collapses to a one-line bar and expands again", () => {
+it("opens by default and names the action when collapsed or expanded", () => {
   const { bar } = board();
   expect(bar()).toHaveAttribute("aria-expanded", "true");
+  expect(bar()).toHaveAccessibleName("Start from a template Hide templates");
   const panel = document.getElementById(bar().getAttribute("aria-controls")!)!;
   expect(panel).toBeVisible();
 
@@ -36,11 +37,12 @@ it("collapses to a one-line bar and expands again", () => {
   expect(bar()).toHaveAttribute("aria-expanded", "false");
   expect(panel).not.toBeVisible();
   expect(screen.queryByRole("button", { name: /^Coding · Budget:/ })).not.toBeInTheDocument();
-  expect(bar()).toHaveTextContent("Start from a template40 templates");
+  expect(bar()).toHaveAccessibleName(`Start from a template Show all ${realVocabulary.templates!.length} templates`);
 
   fireEvent.click(bar());
   expect(bar()).toHaveAttribute("aria-expanded", "true");
   expect(screen.getByRole("button", { name: /^Coding · Budget:/ })).toBeVisible();
+  expect(bar()).toHaveAccessibleName("Start from a template Hide templates");
 });
 
 it("names the applied template in the bar, and Reset all returns to the bar without it", () => {
@@ -49,9 +51,13 @@ it("names the applied template in the bar, and Reset all returns to the bar with
   cell.focus();
   fireEvent.click(cell);
   expect(bar()).toHaveAttribute("aria-expanded", "false");
-  expect(bar()).toHaveTextContent("Applied: Coding · Budget");
+  expect(bar()).toHaveAccessibleName(`Start from a template Applied: Coding · Budget Show all ${realVocabulary.templates!.length} templates`);
   // The cell unmounted; focus lands on the bar that names the result.
   expect(bar()).toHaveFocus();
+
+  fireEvent.click(bar());
+  expect(bar()).toHaveAccessibleName("Start from a template Applied: Coding · Budget Hide templates");
+  fireEvent.click(bar());
 
   fireEvent.click(screen.getByRole("button", { name: "Reset all" }));
   expect(bar()).toBeVisible();
