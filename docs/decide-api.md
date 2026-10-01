@@ -288,13 +288,13 @@ The shared access layer can also return its documented `401`, `402`, `403`,
 
 ## Local parity and timing
 
-Successful production responses include `Server-Timing: decide;dur=12.3`,
-exposed to browsers through CORS. The Worker uses `time.perf_counter()` to
-measure Spec validation, the decision engine, and Decision JSON serialization
-after it has a verified Snapshot. The duration is in milliseconds with one
-decimal place. It excludes network transfer and snapshot loading or
-revalidation. If the request loads, revalidates, or waits for a Snapshot load,
-the header reports that time separately as `, snapshot;dur=45.6`.
+When a request had to load, revalidate, or wait for the Snapshot, its
+successful response carries `Server-Timing: snapshot;dur=45.6` (milliseconds,
+one decimal), exposed to browsers through CORS. The decision itself is not
+timed in the Worker: Cloudflare freezes the clock during synchronous work, so
+an in-Worker timer reads 0.0 ms however long the engine runs (MODEL-263, seen
+in production on 2026-10-01). Decision latency is measured from outside, as a
+round trip, and from Cloudflare's per-request CPU-time metrics (MODEL-269).
 
 `tests/test_decide_worker.py` builds one signed Snapshot, invokes the endpoint
 adapter and `modelspec decide` for each explanation level, and compares their
@@ -308,3 +308,104 @@ benchmarks at two effort levels. On 2026-09-25, 1,000 measured calls on CPython
 3.14.4 produced p50 0.617 ms, p95 0.971 ms, and max 7.202 ms. Snapshot loading
 and network transfer are excluded because the Worker performs them once per
 isolate.
+
+### MODEL-269 offline profile, 2026-10-01
+
+Cloudflare freezes the clock during CPU work. `Server-Timing` can therefore
+report zero and cannot establish the latency SLO. The offline profile uses
+live timers in Node with Pyodide 0.28.3 and in CPython 3.14.4. Pyodide runs
+Python 3.13.2 and its bundled Pydantic 2.10.6.
+
+`scripts/profile_decide.py` drives `entry.Default.fetch` with the same public
+card data as `measure_memory.cjs`. The ordinary memory fixture keeps the
+premier lineup, 44 models and 87 candidates. Because the public catalogue is
+available, this profile also builds a signed snapshot without the premier
+restriction: 1,372 models, 1,415 candidates, snapshot
+`snap_15b0a6fb295a206e`. It loads and verifies through the real Worker holder.
+No private checkout or production signing key is needed.
+
+The Spec asks for active text generators, software-engineering weight 1,
+and limit 500, matching the reported template-1 workload. Each explanation
+level has 50 warm runs. p95 is the nearest-rank 95th percentile. Phase times
+are exclusive: nested filtering, ranking, and serialization are subtracted
+from explanation time. JSON serialization includes Pydantic's JSON conversion
+and the compact UTF-8 response. Other work includes result construction and
+transport overhead. The cold first full request includes snapshot loading and
+verification, but excludes runtime startup and imports. Local timings exclude
+the network and do not prove the production round-trip SLO.
+
+Before and after response SHA-256 hashes match for every explanation level in
+both runtimes, including cross-runtime equality. The engine retains parsed
+evidence records and benchmark tags with each snapshot. The deterministic
+probability cache holds at most 16 entries and keys on the complete seed,
+ordered model IDs, means, standard deviations, and sample count. The older
+Pydantic serializer inspects exclusion metadata once per contract type, and
+number origins dump only the sections they traverse. None of these changes
+alters the Spec, ranking, probabilities, explanations, or JSON format.
+
+All warm values below are **p50 / p95 in milliseconds**. Phase percentiles
+need not add to the whole-request percentiles.
+
+| Explain | Phase | CPython before | CPython after | Pyodide before | Pyodide after |
+| --- | --- | ---: | ---: | ---: | ---: |
+| none | Spec parse and validation | 0.25 / 0.34 | 0.17 / 0.20 | 0.52 / 0.74 | 0.36 / 0.66 |
+| none | Filtering | 10.23 / 20.06 | 5.88 / 6.65 | 34.20 / 38.35 | 21.97 / 27.03 |
+| none | Capability estimate and ranking | 0.33 / 0.44 | 0.21 / 0.28 | 0.72 / 0.85 | 0.47 / 0.64 |
+| none | Tie bands and probability draws | 7.48 / 15.99 | 1.01 / 1.37 | 16.53 / 18.53 | 2.18 / 3.17 |
+| none | Explanation building | 0.00 / 0.00 | 0.00 / 0.00 | 0.00 / 0.00 | 0.00 / 0.00 |
+| none | JSON serialization | 9.20 / 15.29 | 4.86 / 6.06 | 62.66 / 92.59 | 32.78 / 46.31 |
+| none | Other Worker and engine work | 17.75 / 34.67 | 9.14 / 14.85 | 38.11 / 69.32 | 23.38 / 56.80 |
+| none | Whole request | 49.34 / 66.40 | 21.65 / 27.12 | 155.84 / 194.64 | 82.34 / 118.74 |
+| summary | Spec parse and validation | 0.24 / 0.37 | 0.17 / 0.23 | 0.51 / 0.95 | 0.35 / 0.47 |
+| summary | Filtering | 37.98 / 51.44 | 20.93 / 22.35 | 113.62 / 150.30 | 77.34 / 104.03 |
+| summary | Capability estimate and ranking | 1.06 / 1.42 | 0.65 / 0.76 | 2.21 / 2.62 | 1.51 / 1.88 |
+| summary | Tie bands and probability draws | 6.81 / 11.82 | 0.99 / 1.14 | 15.69 / 18.36 | 2.14 / 2.73 |
+| summary | Explanation building | 10.90 / 15.64 | 4.68 / 5.02 | 20.94 / 25.17 | 11.14 / 12.63 |
+| summary | JSON serialization | 9.78 / 15.78 | 5.67 / 6.40 | 69.04 / 115.39 | 38.20 / 48.54 |
+| summary | Other Worker and engine work | 16.50 / 28.72 | 8.73 / 14.94 | 37.35 / 71.49 | 24.41 / 58.50 |
+| summary | Whole request | 88.72 / 105.68 | 41.92 / 49.06 | 266.42 / 322.92 | 158.07 / 195.18 |
+| full | Spec parse and validation | 0.25 / 0.34 | 0.17 / 0.19 | 0.47 / 0.73 | 0.36 / 0.46 |
+| full | Filtering | 37.23 / 68.68 | 20.98 / 22.35 | 109.26 / 119.91 | 76.84 / 85.77 |
+| full | Capability estimate and ranking | 1.08 / 2.82 | 0.66 / 0.77 | 2.13 / 2.37 | 1.52 / 1.73 |
+| full | Tie bands and probability draws | 6.71 / 30.08 | 0.99 / 1.07 | 14.60 / 16.73 | 2.19 / 2.77 |
+| full | Explanation building | 23.38 / 57.50 | 11.25 / 17.04 | 46.13 / 56.05 | 28.05 / 36.95 |
+| full | JSON serialization | 19.23 / 26.23 | 8.09 / 9.14 | 142.18 / 164.27 | 54.75 / 85.97 |
+| full | Other Worker and engine work | 27.15 / 68.68 | 12.83 / 18.22 | 52.21 / 99.68 | 36.00 / 67.27 |
+| full | Whole request | 118.96 / 236.09 | 55.81 / 62.76 | 376.11 / 439.89 | 202.82 / 244.94 |
+
+The cold first full request has one observation per phase, in milliseconds.
+
+| Phase | CPython before | CPython after | Pyodide before | Pyodide after |
+| --- | ---: | ---: | ---: | ---: |
+| Spec parse and validation | 301.32 | 147.06 | 554.16 | 313.44 |
+| Filtering | 74.54 | 21.71 | 127.98 | 76.33 |
+| Capability estimate and ranking | 1.05 | 0.70 | 3.23 | 1.60 |
+| Tie bands and probability draws | 15.76 | 5.40 | 20.99 | 14.26 |
+| Explanation building | 29.39 | 16.73 | 93.12 | 39.60 |
+| JSON serialization | 22.39 | 7.78 | 282.50 | 56.45 |
+| Other Worker and engine work | 100.53 | 45.23 | 211.15 | 119.38 |
+| Whole request | 544.98 | 244.61 | 1293.13 | 621.07 |
+
+To reproduce against public data from the repository root:
+
+```sh
+export MODELSPEC_SNAPSHOT_KEY=model247-memory-fixture-key
+python api/worker/vendor.py --data-dir .
+python scripts/profile_decide.py --build-public-snapshot /tmp/model269-full-snapshot.json.gz
+python scripts/profile_decide.py api/worker/src --snapshot /tmp/model269-full-snapshot.json.gz --out /tmp/model269-cpython.json
+npm install --cache /tmp/model269-npm-cache --prefix /tmp/model269-profile --no-save pyodide@0.28.3
+NODE_PATH=/tmp/model269-profile/node_modules node api/worker/profile_decide.cjs api/worker/src /tmp/model269-pyodide.json /tmp/model269-full-snapshot.json.gz
+```
+
+Omit the snapshot argument to measure the ordinary public memory fixture.
+Keep the same signed snapshot for before and after measurements. The JSON
+reports include response hashes, response sizes, phase percentiles, and cold
+phase times. Run each runtime in a fresh process. Restore the ordinary bundle
+with `python api/worker/vendor.py --check` after profiling.
+
+After the existing deployment smoke, `rank-api.yml` runs one warmup followed
+by 20 POST requests with the same public Spec and `explain: full`. It writes
+p50 and p95 round-trip times to the step summary and warns above 500 ms p95.
+The existing smoke has no API-key credential. `BUILD_COMMIT` identifies the
+deployment and grants no access. If anonymous decisions require a key or are
+unavailable, the timing step records a skip. No secret is added.

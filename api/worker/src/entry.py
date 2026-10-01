@@ -1234,16 +1234,15 @@ class Default(WorkerEntrypoint):
                 status=decider.HTTP_BAD_GATEWAY,
                 snapshot_id=None,
             )
-        started = time.perf_counter()
         status, body = decider.decide(payload, snapshot, expected_snapshot=expected)
         if status == decider.HTTP_OK and transport is not None:
             transport.body = body
             transport.serialised = decider.serialise(body)
-            duration_ms = (time.perf_counter() - started) * 1000
-            timing = f"decide;dur={duration_ms:.1f}"
+            # Workers freeze the clock during synchronous work (it moves only at
+            # I/O), so the decision itself always measured 0.0 ms in production.
+            # Only snapshot work, which waits on a fetch, has a real duration.
             if snapshot_timings:
-                timing += f", snapshot;dur={sum(snapshot_timings):.1f}"
-            transport.headers["Server-Timing"] = timing
+                transport.headers["Server-Timing"] = f"snapshot;dur={sum(snapshot_timings):.1f}"
         return status, body
 
     async def _compare(self, payload, origin: str, expected: str | None = None):

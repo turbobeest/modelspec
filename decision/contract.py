@@ -20,6 +20,7 @@ import typing
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import date
+from functools import cache
 from typing import Annotated, Any, Literal
 
 import yaml
@@ -30,11 +31,11 @@ from pydantic import (
     ConfigDict,
     Discriminator,
     Field,
+    SerializerFunctionWrapHandler,
     StringConstraints,
     Tag,
     ValidationError,
     WithJsonSchema,
-    SerializerFunctionWrapHandler,
     field_validator,
     model_serializer,
     model_validator,
@@ -180,15 +181,27 @@ Day = date
 NATIVE_EXCLUDE_IF = "exclude_if" in FieldInfo.__slots__
 
 
-def apply_exclude_if(model: BaseModel, data: dict[str, Any]) -> dict[str, Any]:
-    """Drop from ``data`` (``model``'s own dump) each field whose
-    ``exclude_if`` predicate holds, as pydantic 2.12 and later do natively."""
-    for name, field in type(model).model_fields.items():
+@cache
+def _exclude_if_fields(model_type: type[BaseModel]) -> tuple:
+    fields = []
+    for name, field in model_type.model_fields.items():
         extra = field.json_schema_extra
         excluded = getattr(field, "exclude_if", None) or (
             extra.get("exclude_if") if isinstance(extra, dict) else None)
-        key = name if name in data else field.serialization_alias or field.alias
-        if callable(excluded) and key in data and excluded(getattr(model, name)):
+        if callable(excluded):
+            fields.append((name, field.serialization_alias or field.alias, excluded))
+    return tuple(fields)
+
+
+def apply_exclude_if(model: BaseModel, data: dict[str, Any]) -> dict[str, Any]:
+    """Apply the native exclusion predicates on older Worker pydantic.
+
+    Field metadata is fixed when pydantic builds each contract type. Inspect
+    it once per type, rather than once per field of every serialized row.
+    """
+    for name, alias, excluded in _exclude_if_fields(type(model)):
+        key = name if name in data else alias
+        if key in data and excluded(getattr(model, name)):
             del data[key]
     return data
 

@@ -818,7 +818,14 @@ def number_origins(decision, snapshot):
     """
     from decision.contract import NumberOrigin
 
-    data = decision.model_dump(mode="json")
+    data = decision.model_dump(mode="json", include={
+        "results": True,
+        "top": {"__all__": {"evidence"}},
+        "near_misses": True,
+        "constraint_costs": True,
+        "tipping_points": True,
+        "eliminated": {"models"},
+    })
     for path, value in presented_values(data):
         parent, key, list_index = _node(data, path)
         records = parent.get("records", []) if isinstance(parent, dict) else []

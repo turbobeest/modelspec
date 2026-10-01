@@ -216,12 +216,12 @@ jobs:
           grep -Fq '<link rel="canonical" href="https://modelspec.dev/decide/"' dist/modelspec/decide/index.html
           grep -Fq '<link rel="canonical" href="https://modelspec.dev/graph/"' dist/modelspec/graph/index.html
           grep -Fq '<link rel="canonical" href="https://modelspec.dev/pricing/"' dist/modelspec/pricing/index.html
-          ! grep -Eiq '<meta[^>]+noindex' dist/modelspec/index.html
-          ! grep -Eiq '<meta[^>]+noindex' dist/modelspec/method/index.html
-          ! grep -Eiq '<meta[^>]+noindex' dist/modelspec/decide/index.html
-          ! grep -Eiq '<meta[^>]+noindex' dist/modelspec/graph/index.html
-          ! grep -Eiq '<meta[^>]+noindex' dist/modelspec/pricing/index.html
-          ! grep -Fiq 'X-Robots-Tag' dist/modelspec/_headers
+          if grep -Eiq '<meta[^>]+noindex' dist/modelspec/index.html; then echo '::error::dist/modelspec/index.html carries a noindex meta tag'; exit 1; fi
+          if grep -Eiq '<meta[^>]+noindex' dist/modelspec/method/index.html; then echo '::error::dist/modelspec/method/index.html carries a noindex meta tag'; exit 1; fi
+          if grep -Eiq '<meta[^>]+noindex' dist/modelspec/decide/index.html; then echo '::error::dist/modelspec/decide/index.html carries a noindex meta tag'; exit 1; fi
+          if grep -Eiq '<meta[^>]+noindex' dist/modelspec/graph/index.html; then echo '::error::dist/modelspec/graph/index.html carries a noindex meta tag'; exit 1; fi
+          if grep -Eiq '<meta[^>]+noindex' dist/modelspec/pricing/index.html; then echo '::error::dist/modelspec/pricing/index.html carries a noindex meta tag'; exit 1; fi
+          if grep -Fiq 'X-Robots-Tag' dist/modelspec/_headers; then echo '::error::dist/modelspec/_headers must not carry X-Robots-Tag; the live build has to be indexable'; exit 1; fi
           grep -Fq '/landing/  /  301' dist/modelspec/_redirects
           test ! -e dist/modelspec/landing
           test -s dist/modelspec/sitemap.xml
@@ -287,7 +287,7 @@ jobs:
           test -s dist-holding/modelspec/404.html
           grep -q 'X-Robots-Tag: noindex' dist-holding/modelspec/_headers
           grep -Fq '<link rel="canonical" href="https://modelspec.dev/">' dist-holding/modelspec/index.html
-          ! grep -Eiq '<meta[^>]+noindex' dist-holding/modelspec/index.html
+          if grep -Eiq '<meta[^>]+noindex' dist-holding/modelspec/index.html; then echo '::error::dist-holding/modelspec/index.html carries a noindex meta tag'; exit 1; fi
           grep -Eiq '<meta[^>]+noindex' dist-holding/modelspec/404.html
           test ! -e dist-holding/modelspec/sitemap.xml
           test ! -e dist-holding/modelspec/_worker.js

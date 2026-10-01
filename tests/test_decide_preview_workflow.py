@@ -161,8 +161,8 @@ def test_live_build_checks_canonical_and_indexability():
     assert "grep -Fq '<link rel=\"canonical\" href=\"https://modelspec.dev/decide/\"'" in checks
     assert "grep -Fq '<link rel=\"canonical\" href=\"https://modelspec.dev/graph/\"'" in checks
     assert "grep -Fq '<link rel=\"canonical\" href=\"https://modelspec.dev/pricing/\"'" in checks
-    assert "! grep -Eiq '<meta[^>]+noindex'" in checks
-    assert "! grep -Fiq 'X-Robots-Tag'" in checks
+    assert "if grep -Eiq '<meta[^>]+noindex'" in checks
+    assert "if grep -Fiq 'X-Robots-Tag'" in checks
 
 
 def test_preview_artifact_keeps_hidden_files_and_reaches_deploy():
