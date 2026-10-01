@@ -111,15 +111,15 @@ export function Why({
             {m.labName} ·{" "}
             {m.rel
               ? `released ${m.rel} (${daysAgo(m.rel)} days ago)`
-              : "release date not available in this snapshot"}
+              : "release date not available in this response"}
           </p>
           <div className="inline">
             <span className="badge">
-              {m.type ? (vocab.types[m.type] ?? TYPES[m.type]) : "Class not available in this snapshot"}
+              {m.type ? (vocab.types[m.type] ?? TYPES[m.type]) : "Class not available in this response"}
             </span>
             <span className="badge">
               {m.open === null
-                ? "Weights not available in this snapshot"
+                ? "Weights not available in this response"
                 : m.open
                   ? "Open weights"
                   : "Closed weights"}
@@ -313,24 +313,24 @@ export function Why({
               <dt>Context</dt>
               <dd>
                 {m.ctx === null
-                  ? "not available in this snapshot"
+                  ? "not available in this response"
                   : num(m.ctx) + " tokens"}
               </dd>
             </div>
             <div>
               <dt>Licence</dt>
               <dd>
-                {m.lic ?? "not available in this snapshot"}
+                {m.lic ?? "not available in this response"}
                 {m.commercial === false ? " (no commercial use)" : ""}
               </dd>
             </div>
             <div>
               <dt>Origin jurisdiction</dt>
-              <dd>{m.origin ?? "not available in this snapshot"}</dd>
+              <dd>{m.origin ?? "not available in this response"}</dd>
             </div>
             <div>
               <dt>Lifecycle</dt>
-              <dd>{m.status ?? "not available in this snapshot"}</dd>
+              <dd>{m.status ?? "not available in this response"}</dd>
             </div>
             <div>
               <dt>Offerings</dt>

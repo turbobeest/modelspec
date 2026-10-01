@@ -640,7 +640,7 @@ it("plots and tabulates domain estimates while the board is unranked", async () 
     .find((row) => row.textContent?.includes(modelName));
   expect(modelRow).toHaveTextContent(first.value.toFixed(2));
   expect(modelRow).toHaveTextContent("±");
-  expect(modelRow?.children[3]).not.toHaveTextContent("not available in this snapshot");
+  expect(modelRow?.children[3]).not.toHaveTextContent("not available in this response");
 });
 
 it("keeps capability-unknown models outside the ranked board answer", async () => {
@@ -984,7 +984,7 @@ it("renders unavailable snapshot facets instead of hiding them", async () => {
   const table = await screen.findByRole("region", { name: "Decision table" });
   fireEvent.click(within(table).getAllByRole("button", { name: "Delta 4.7" })[0]);
   const detail = await screen.findByRole("region", { name: "Why this model" });
-  expect(within(detail).getAllByText("not available in this snapshot").length).toBeGreaterThan(0);
+  expect(within(detail).getAllByText("not available in this response").length).toBeGreaterThan(0);
 });
 
 it("renders capability intervals, probability of best and top-three stability", async () => {
