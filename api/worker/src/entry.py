@@ -495,14 +495,25 @@ def _json_response(status: int, body: dict, extra_headers: dict | None = None) -
     )
 
 
+class _DecisionTransport:
+    def __init__(self):
+        self.serialised: bytes | None = None
+        self.headers: dict[str, str] = {}
+
+
 def _decision_response(status: int, body: dict,
-                       extra_headers: dict | None = None) -> Response:
+                       extra_headers: dict | None = None,
+                       transport: _DecisionTransport | None = None) -> Response:
     decider = _decide_service()
+    if status != decider.HTTP_OK:
+        transport = None
+    serialised = transport.serialised if transport is not None else None
     return Response(
-        decider.serialise(body).decode("utf-8"),
+        (serialised if serialised is not None else decider.serialise(body)).decode("utf-8"),
         status=status,
         headers={
             **(extra_headers or {}),
+            **(transport.headers if transport is not None else {}),
             "content-type": "application/json; charset=utf-8",
             "cache-control": "no-store",
         },
@@ -518,7 +529,10 @@ def _cors_headers(request) -> dict[str, str]:
         "access-control-allow-methods": "POST, OPTIONS",
         "access-control-allow-headers":
             "authorization, content-type, x-api-key, x-payment, x-modelspec-snapshot, x-modelspec-turnstile",
-        "access-control-expose-headers": "x-modelspec-snapshot, x-modelspec-snapshot-stale, x-modelspec-decisions-remaining, retry-after",
+        "access-control-expose-headers": (
+            "x-modelspec-snapshot, x-modelspec-snapshot-stale, "
+            "x-modelspec-decisions-remaining, retry-after, Server-Timing"
+        ),
         "access-control-max-age": "86400",
         "vary": "Origin",
     }
@@ -561,6 +575,7 @@ class Default(WorkerEntrypoint):
         method = str(request.method).upper()
 
         decider = None
+        decision_transport = _DecisionTransport()
         if path in ("/v1/decide", "/v1/compare"):
             decider = _decide_service()
 
@@ -727,7 +742,7 @@ class Default(WorkerEntrypoint):
             async def _answer():
                 if path == "/v1/compare":
                     return await self._compare(payload, origin, expected)
-                return await self._decide(payload, origin, expected)
+                return await self._decide(payload, origin, expected, decision_transport)
 
             async def _anonymous():
                 return await _answer()
@@ -787,7 +802,7 @@ class Default(WorkerEntrypoint):
                 return _decision_response(status, body, {
                     **gate_headers, **_decision_holder(origin).headers(),
                     **_cors_headers(request),
-                })
+                }, decision_transport)
 
         # MODEL-75. One wrap around the live/anonymous producers: x402 verify
         # and settle run before either of them writes an answer. The sandbox
@@ -828,6 +843,7 @@ class Default(WorkerEntrypoint):
             return _decision_response(
                 outcome.status, outcome.body,
                 {**headers, **_decision_holder(origin).headers(), **_cors_headers(request)},
+                decision_transport,
             )
         return _json_response(outcome.status, outcome.body, headers)
 
@@ -1178,7 +1194,8 @@ class Default(WorkerEntrypoint):
         except service.RequestError as exc:
             return service.error_response(exc, candidates, service_commit, origin)
 
-    async def _decide(self, payload, origin: str, expected: str | None = None):
+    async def _decide(self, payload, origin: str, expected: str | None = None,
+                      transport: _DecisionTransport | None = None):
         """``POST /v1/decide`` against the isolate's verified snapshot.
 
         ``expected`` is the snapshot the caller's vocabulary names. When this
@@ -1193,10 +1210,11 @@ class Default(WorkerEntrypoint):
                 "is not configured"
             )
         holder = _decision_holder(origin)
+        snapshot_timings = []
         try:
-            snapshot = await holder.current(key)
+            snapshot = await holder.current(key, timings=snapshot_timings)
             if expected and expected != snapshot.snapshot_id:
-                snapshot = await holder.current(key, force=True)
+                snapshot = await holder.current(key, force=True, timings=snapshot_timings)
         except decider.SnapshotMissingError:
             return decider.no_snapshot("the published decision snapshot does not exist")
         except decider.SnapshotRefusalError as exc:
@@ -1213,7 +1231,16 @@ class Default(WorkerEntrypoint):
                 status=decider.HTTP_BAD_GATEWAY,
                 snapshot_id=None,
             )
-        return decider.decide(payload, snapshot, expected_snapshot=expected)
+        started = time.perf_counter()
+        status, body = decider.decide(payload, snapshot, expected_snapshot=expected)
+        if status == decider.HTTP_OK and transport is not None:
+            transport.serialised = decider.serialise(body)
+            duration_ms = (time.perf_counter() - started) * 1000
+            timing = f"decide;dur={duration_ms:.1f}"
+            if snapshot_timings:
+                timing += f", snapshot;dur={sum(snapshot_timings):.1f}"
+            transport.headers["Server-Timing"] = timing
+        return status, body
 
     async def _compare(self, payload, origin: str, expected: str | None = None):
         """``POST /v1/compare`` against the current and one named snapshot."""

@@ -158,19 +158,30 @@ class SnapshotHolder:
     def _live(self, load: _Load | None) -> bool:
         return load is not None and self._clock() - load.started < LOAD_WAIT_SECONDS
 
-    async def current(self, key: bytes | str | None, *, force: bool = False):
+    async def current(self, key: bytes | str | None, *, force: bool = False,
+                      timings: list[float] | None = None):
         """The snapshot to answer from, revalidating first when it is due."""
         load = self._load
         if self._live(load):
             if self._held is not None and not force:
                 return self._held.snapshot
-            return await self._wait(load, key, force)
+            started = time.perf_counter()
+            try:
+                return await self._wait(load, key, force)
+            finally:
+                if timings is not None:
+                    timings.append((time.perf_counter() - started) * 1000)
         if not self._due(force):
             if self._held is not None:
                 return self._held.snapshot
             if self._refusal is not None:
                 raise self._refusal
-        return await self._revalidate(key)
+        started = time.perf_counter()
+        try:
+            return await self._revalidate(key)
+        finally:
+            if timings is not None:
+                timings.append((time.perf_counter() - started) * 1000)
 
     async def _wait(self, load: _Load, key, force: bool):
         while not load.done:
