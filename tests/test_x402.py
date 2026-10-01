@@ -978,7 +978,7 @@ def _decision_worker(entry, env=None):
     worker.env = env or _entry_env()
     entry._decision_holder = lambda _origin: _decision_holder()
 
-    async def decide(_payload, _origin, _expected):
+    async def decide(_payload, _origin, _expected, _transport):
         return 200, {
             "contract_version": "1.0",
             "endpoint": "decide",
