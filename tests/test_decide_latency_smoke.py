@@ -82,3 +82,37 @@ def test_access_refusal_records_a_skip_and_stops_sampling(monkeypatch):
     assert rows[0]["warm_ms"] == []
     assert "Skipped: anonymous callers require a key or are rate limited (HTTP 401)" in summary
     assert warnings
+
+
+def test_unavailable_template_is_reported_without_a_decide_request(monkeypatch):
+    templates = [
+        {"id": f"template-{i}", "available": i != 2, "spec": {"spec_version": 1}}
+        for i in range(8)
+    ]
+    calls = []
+
+    def request(url, response_path, spec=None):
+        if spec is None:
+            return {"templates": templates}, 10, None
+        calls.append(spec)
+        return {"decision_id": "dec_test", "snapshot": "snap_test"}, 100, None
+
+    monkeypatch.setattr(smoke, "request", request)
+    rows, reason = smoke.measure("api.example.test", count=1, warmups=1)
+    summary, warnings = smoke.report(rows, reason, 1, 1, "full")
+    assert len(calls) == 21
+    assert rows[2]["warm_ms"] == []
+    assert "Skipped 1 unavailable vocabulary templates: template-2." in summary
+    assert "Skipped: unavailable in vocabulary (available: false)" in summary
+    assert warnings == []
+
+
+def test_likely_new_isolate_share_uses_only_warm_samples():
+    rows = [
+        {"id": "a", "initial_ms": 5000, "warm_ms": [100, 1000, 1001], "reason": None},
+        {"id": "b", "initial_ms": 5000, "warm_ms": [2000], "reason": None},
+        {"id": "c", "initial_ms": None, "warm_ms": [],
+         "reason": "unavailable in vocabulary (available: false)"},
+    ]
+    summary, _ = smoke.report(rows, None, 5, 20, "full")
+    assert "Likely new isolate: 2/4 warm samples (50.0%) exceeded 1 s." in summary

@@ -738,7 +738,8 @@ def _decide(
         out_of_lineup=getattr(snapshot, "out_of_lineup", 0),
     )
     cost_of = _offering_costs(snapshot)
-    decision.by_model = build_by_model(decision, cost_of)
+    if spec.explain != "full":
+        decision.by_model = build_by_model(decision, cost_of)
     if spec.explain != "none":
         from decision.explain import explain
 

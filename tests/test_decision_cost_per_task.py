@@ -217,3 +217,16 @@ def test_the_worker_answers_a_spec_with_task_tokens():
     }, index())
     assert status == 200, body
     assert body["contract_version"] == "2.10"
+
+
+def test_computed_view_only_needs_the_index_methods_it_uses():
+    from decision.computed import with_computed
+    from decision.snapshot import FactValue
+
+    class Prices:
+        def fact(self, cid, facet):
+            return FactValue("known", {"offering.price.input": 1.0,
+                                        "offering.price.output": 5.0}[facet], ())
+
+    view = with_computed(Prices(), DEFAULT_TASK_TOKENS)
+    assert view.fact("lab/model", "offering.cost_per_task").value == 0.06

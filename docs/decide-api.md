@@ -536,8 +536,9 @@ The reproduction commands above still work. Append the Spec path to select one
 of these workloads, and retain the same signed snapshot for both revisions.
 
 `.github/scripts/check_decide_latency.py` reads `/v1/vocabulary` from the deployed
-Worker and samples every template, including unavailable templates that should
-produce valid `no_feasible` Decisions. By default it uses `explain: full` and
+Worker and samples templates that are available. Phase 3 skips entries marked
+`available: false` and names them in the summary. Unavailable templates still
+enter offline byte-parity checks. By default it uses `explain: full` and
 limit 500, records one initial call, excludes five warmups, then measures 20 calls
 per template. `--warmups`, `--count`, `--explain`, and `--vocabulary-url` configure
 the measurement. The step summary reports initial latency and warm p50/p95 for
@@ -545,3 +546,193 @@ each template. Initial calls are cold candidates; the client cannot force or
 identify a fresh isolate, and even later samples can encounter one. Only warm
 p95 warns against the 500 ms target. Access refusals record a skip and stop
 sampling. The smoke remains warning-only and uses no new credential.
+
+
+### MODEL-269 phase 3, 2026-10-01
+
+The page sends limit 500. These measurements replay the exact 40 vocabulary
+specs retrieved on 2026-10-01 with that limit, `snapshot: latest`, and each of
+`explain: none`, `summary`, and `full`. They reuse the signed public fixture
+`snap_15b0a6fb295a206e` from phases 1 and 2. The fixture has 1,372 models and
+1,415 candidate rows. It cannot represent the private production catalogue,
+and its local CPU timings exclude connection setup and response transfer.
+
+The heavy templates have relatively few ranked rows but over 1,300
+`may_qualify` rows in this public fixture. Those unknowns remain in the
+Decision. The largest measured costs were serialization, model grouping,
+and the repeated filter passes used to explain alternatives. Capability
+estimates are already stored in the snapshot, and warm probability draws
+already hit the bounded phase-1 cache.
+
+On Pyodide's Pydantic 2.10.6, every contract object previously entered a
+Python serialization callback to handle `exclude_if`. Only ten contract types
+have conditional fields. The callback now applies to those types, and their
+field metadata is prepared at import time. Other contract types serialize
+without a Python callback. Native Pydantic exclusion remains unchanged.
+
+Full explanations also built `by_model` twice. The engine now builds it after
+the full explanation, when eliminated model groups are available. Computed
+views bind unchanged snapshot methods on first use within a decision. Filter
+passes reuse their decoded bitsets, lifecycle values, and funnel grain counts.
+These per-call caches are released after the decision and do not retain
+caller specs across requests.
+
+The all-template table uses 20 warm samples per explanation level after five
+excluded warmups. Fresh-process heavy profiles use 50 warm samples per level.
+Before and after run sequentially after pytest finishes. p95 is nearest rank.
+Raw phase times, exact Specs, response sizes, hashes, and cold stages are in
+[the phase-3 measurements](performance/model-269-phase3.json).
+
+| Template | Available | Before p50 / p95 ms | After p50 / p95 ms | p50 reduction | Response KiB |
+| --- | --- | ---: | ---: | ---: | ---: |
+| coding-best | yes | 148.37 / 168.42 | 93.98 / 116.50 | 36.7% | 1252.7 |
+| coding-balanced | yes | 158.25 / 184.37 | 107.44 / 135.86 | 32.1% | 1332.3 |
+| budget-coding | yes | 154.90 / 175.63 | 102.10 / 123.75 | 34.1% | 967.9 |
+| coding-fastest | no | 100.99 / 132.81 | 55.29 / 74.02 | 45.3% | 674.6 |
+| coding-private | yes | 200.72 / 227.78 | 132.87 / 153.74 | 33.8% | 1503.2 |
+| writing-best | yes | 126.06 / 158.10 | 78.53 / 98.80 | 37.7% | 1027.8 |
+| writing-balanced | yes | 134.02 / 155.80 | 79.68 / 100.53 | 40.5% | 1034.2 |
+| writing-budget | yes | 138.60 / 166.60 | 80.73 / 100.44 | 41.8% | 921.3 |
+| writing-fastest | no | 97.79 / 120.37 | 54.15 / 74.00 | 44.6% | 674.6 |
+| writing-private | yes | 200.20 / 222.49 | 129.77 / 151.40 | 35.2% | 1477.0 |
+| maths | yes | 130.50 / 156.47 | 82.65 / 101.44 | 36.7% | 1080.2 |
+| maths-reasoning-balanced | yes | 147.14 / 178.90 | 93.62 / 117.79 | 36.4% | 1254.4 |
+| maths-reasoning-budget | yes | 144.62 / 178.09 | 82.57 / 103.41 | 42.9% | 945.8 |
+| maths-reasoning-fastest | no | 96.49 / 121.81 | 54.65 / 76.32 | 43.4% | 674.4 |
+| maths-reasoning-private | yes | 203.31 / 224.75 | 132.79 / 152.36 | 34.7% | 1508.9 |
+| documents-best | yes | 133.33 / 160.30 | 87.69 / 109.15 | 34.2% | 1184.4 |
+| long-documents | yes | 139.06 / 168.12 | 89.46 / 110.25 | 35.7% | 1218.0 |
+| documents-budget | yes | 120.31 / 142.62 | 78.06 / 97.14 | 35.1% | 1047.6 |
+| documents-fastest | no | 107.35 / 125.35 | 55.00 / 74.34 | 48.8% | 696.8 |
+| documents-private | yes | 216.04 / 236.59 | 154.31 / 174.87 | 28.6% | 1489.2 |
+| retrieval-embeddings | yes | 109.75 / 133.57 | 62.14 / 81.89 | 43.4% | 690.5 |
+| retrieval-balanced | no | 103.97 / 129.41 | 63.02 / 81.82 | 39.4% | 646.0 |
+| retrieval-budget | no | 103.13 / 127.05 | 62.16 / 82.56 | 39.7% | 646.0 |
+| retrieval-fastest | no | 103.40 / 125.09 | 61.56 / 81.43 | 40.5% | 646.1 |
+| retrieval-private | yes | 189.06 / 213.24 | 128.59 / 146.36 | 32.0% | 1452.2 |
+| assistant-best | yes | 153.79 / 173.36 | 100.59 / 124.07 | 34.6% | 1378.4 |
+| assistant-balanced | yes | 148.58 / 173.41 | 98.90 / 119.16 | 33.4% | 1349.4 |
+| assistant-budget | yes | 137.47 / 160.58 | 83.61 / 102.28 | 39.2% | 927.3 |
+| assistant-fastest | no | 95.30 / 114.91 | 54.57 / 74.25 | 42.7% | 674.6 |
+| private-self-host | yes | 197.50 / 221.25 | 132.69 / 158.83 | 32.8% | 1492.1 |
+| high-volume-best | yes | 138.88 / 168.09 | 98.13 / 118.74 | 29.3% | 1304.7 |
+| high-volume-balanced | yes | 140.87 / 166.90 | 97.73 / 119.03 | 30.6% | 1301.7 |
+| high-volume | yes | 145.68 / 174.39 | 97.59 / 120.05 | 33.0% | 1301.5 |
+| high-volume-fastest | no | 108.34 / 204.58 | 57.77 / 76.47 | 46.7% | 628.2 |
+| regulated-best | yes | 335.22 / 384.69 | 201.12 / 216.77 | 40.0% | 2260.2 |
+| regulated-data | yes | 304.44 / 327.84 | 216.39 / 241.10 | 28.9% | 2278.4 |
+| regulated-budget | yes | 313.25 / 366.02 | 209.71 / 252.69 | 33.1% | 2278.8 |
+| regional-best | no | 231.28 / 249.92 | 162.12 / 193.07 | 29.9% | 2053.6 |
+| eu-data | no | 228.41 / 248.16 | 159.51 / 186.25 | 30.2% | 2053.6 |
+| regional-budget | no | 229.42 / 248.32 | 157.95 / 181.48 | 31.2% | 2053.6 |
+
+The four fresh-process full profiles have these exclusive phases. Phase
+percentiles do not add to whole-request percentiles.
+
+| Template | Full response phase | Before p50 / p95 ms | After p50 / p95 ms |
+| --- | --- | ---: | ---: |
+| coding-best | Parse and validation | 0.32 / 0.36 | 0.30 / 0.36 |
+| coding-best | Filtering | 29.67 / 34.16 | 18.72 / 37.48 |
+| coding-best | Capability and ranking | 1.33 / 1.42 | 1.30 / 1.37 |
+| coding-best | Tie bands and draws | 1.95 / 2.13 | 1.87 / 1.99 |
+| coding-best | Explanation | 25.31 / 27.61 | 22.33 / 24.00 |
+| coding-best | Serialization | 48.73 / 71.17 | 27.48 / 29.71 |
+| coding-best | Other Worker and engine work | 30.91 / 52.83 | 20.82 / 40.73 |
+| coding-best | Whole request | 139.85 / 162.37 | 93.44 / 113.49 |
+| assistant-balanced | Parse and validation | 0.33 / 0.36 | 0.32 / 0.35 |
+| assistant-balanced | Filtering | 30.98 / 33.98 | 18.77 / 21.39 |
+| assistant-balanced | Capability and ranking | 2.38 / 2.55 | 2.29 / 2.53 |
+| assistant-balanced | Tie bands and draws | 3.36 / 3.82 | 3.20 / 3.39 |
+| assistant-balanced | Explanation | 28.58 / 30.95 | 25.40 / 27.26 |
+| assistant-balanced | Serialization | 50.66 / 73.75 | 29.32 / 50.00 |
+| assistant-balanced | Other Worker and engine work | 31.30 / 53.37 | 20.42 / 40.35 |
+| assistant-balanced | Whole request | 149.81 / 174.22 | 101.55 / 121.32 |
+| high-volume | Parse and validation | 0.31 / 0.41 | 0.31 / 0.34 |
+| high-volume | Filtering | 13.49 / 15.57 | 8.76 / 9.84 |
+| high-volume | Capability and ranking | 12.73 / 15.05 | 12.76 / 14.55 |
+| high-volume | Tie bands and draws | 2.91 / 3.34 | 2.85 / 3.03 |
+| high-volume | Explanation | 28.65 / 31.56 | 26.29 / 30.23 |
+| high-volume | Serialization | 51.50 / 78.56 | 29.44 / 32.69 |
+| high-volume | Other Worker and engine work | 29.90 / 51.16 | 20.16 / 43.59 |
+| high-volume | Whole request | 142.16 / 178.06 | 100.74 / 132.82 |
+| maths | Parse and validation | 0.29 / 0.33 | 0.30 / 0.35 |
+| maths | Filtering | 13.30 / 31.25 | 8.56 / 26.56 |
+| maths | Capability and ranking | 8.21 / 10.45 | 8.12 / 9.89 |
+| maths | Tie bands and draws | 1.58 / 1.70 | 1.55 / 1.71 |
+| maths | Explanation | 20.93 / 23.16 | 18.68 / 38.81 |
+| maths | Serialization | 44.38 / 50.05 | 27.51 / 30.23 |
+| maths | Other Worker and engine work | 29.77 / 50.16 | 18.93 / 21.02 |
+| maths | Whole request | 120.09 / 146.23 | 84.86 / 113.86 |
+
+Each cold stage has one observation per revision. The HMAC and whole-request
+rows overlap. The stages before the first request are local bootstrap and
+module initialization, not an estimate of Cloudflare snapshot restore latency.
+
+| Fresh-process stage | Before ms | After ms | Cloudflare execution point |
+| --- | ---: | ---: | --- |
+| Runtime startup | 694.10 | 685.91 | Node bootstrap, not restore timing |
+| Package loading | 90.09 | 89.90 | Deployment initialization |
+| Copy bundle into Pyodide FS | 22.02 | 22.78 | Local transport, not a Cloudflare phase |
+| Bundled-module parse | 13.54 | 13.49 | Deployment initialization, captured |
+| Registry | 289.93 | 290.24 | Deployment initialization, captured |
+| Snapshot read | 0.00 | 0.00 | Deployment initialization, captured |
+| Snapshot parse and hash checks | 45.46 | 46.09 | Deployment initialization, captured |
+| Snapshot index | 20.32 | 21.79 | Deployment initialization, captured |
+| Other Python imports | 718.68 | 688.34 | Deployment initialization, captured |
+| First-request HMAC | 0.09 | 0.09 | First request, needs runtime key |
+| First full request: coding-best | 168.52 | 124.32 | First request after initialization |
+| First full request: assistant-balanced | 204.79 | 129.89 | First request after initialization |
+| First full request: high-volume | 195.11 | 130.87 | First request after initialization |
+| First full request: maths | 145.66 | 112.51 | First request after initialization |
+
+All 120 Decision hashes match before and after in Pyodide, and match CPython.
+That covers all 40 templates at all three explanation levels, including all
+12 unavailable templates. The four fresh-process profiles also match at each
+level. Recall matches all 20 approved verdicts, with 16 pass and four partial.
+The Python and web output-parity suites pass. The required full suite reports
+`5914 passed, 26 skipped, 11 warnings in 522.33s (0:08:42)`. The additional cost-view and smoke tests pass. Chromium cannot
+run under this sandbox, so the repository's 12 landing browser cases skip.
+
+Public bundled memory after the four heavy full requests is 103.47 MiB
+steady, below the 120 MiB gate, with a measured peak of 108.74 MiB.
+
+
+Cloudflare executes the entrypoint and its top-level imports at deployment,
+then saves WebAssembly linear memory. A new isolate restores that memory
+instead of repeating Python initialization. See the
+[Python Worker lifecycle](https://developers.cloudflare.com/workers/languages/python/how-python-workers-work/#deployment-lifecycle-and-cold-start-optimizations).
+Phase 2 already moved registry loading, bundled snapshot decompression,
+parsing, hash checks, and index construction into that captured work.
+Phase 3 also prepares conditional-field metadata there. HMAC authentication
+uses the runtime key and remains on the first request. Request-specific
+filtering, ranking, probability cache misses, and explanation construction
+also remain there.
+
+The fresh Node measurements separate runtime startup, package loading,
+bundle copying, bundled-module parse, registry loading, snapshot parse and
+index construction, other imports, and the first full request. They do not
+measure Cloudflare's snapshot restoration or edge scheduling. The client's
+one-second threshold cannot establish that an isolate was new, or establish
+that all production warm p95 values are below 500 ms.
+
+The deployment smoke skips `available: false` templates, records their names,
+and reports the count and share of warm samples above one second as "likely
+new isolate". That description is explicitly a heuristic. The initial request
+and excluded warmups do not enter the share. The smoke still warns on each
+sampled template's warm p95 above 500 ms.
+
+To replay a saved deployed vocabulary in either runtime:
+
+```sh
+python scripts/profile_decide.py api/worker/src --snapshot /tmp/model269-full-snapshot.json.gz --vocabulary /tmp/vocabulary.json --runs 20 --out /tmp/templates-cpython.json
+PROFILE_RUNS=20 NODE_PATH=/tmp/model269-profile/node_modules node api/worker/profile_decide.cjs api/worker/src /tmp/templates-pyodide.json /tmp/model269-full-snapshot.json.gz /tmp/vocabulary.json
+```
+
+The fifth Node argument accepts either an exact Spec or a vocabulary document.
+`PROFILE_RUNS` controls the warm sample count, with 50 as its default. Batch
+profiles share one initialized Worker and restore instrumentation between
+specs. Each template has five excluded warmups at each explanation level.
+The `cold_full_ms` value in a batch is the first call for that template, not
+proof of a fresh isolate for each template. Separate fresh-process runs
+measure the four requested heavy templates. Reports include response hashes,
+response sizes, and the filtered and returned row counts.

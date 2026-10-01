@@ -209,6 +209,10 @@ def apply_exclude_if(model: BaseModel, data: dict[str, Any]) -> dict[str, Any]:
 class _Strict(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
+
+class _ExcludeIf(_Strict):
+    """Compatibility serialization only for contracts with conditional fields."""
+
     if not NATIVE_EXCLUDE_IF:
         @model_serializer(mode="wrap")
         def _exclude_if(self, handler: SerializerFunctionWrapHandler) -> dict[str, Any]:
@@ -1067,7 +1071,7 @@ def _canonical_ids(value: list[str]) -> list[str]:
     return sorted(set(value))
 
 
-class Estate(_Strict):
+class Estate(_ExcludeIf):
     """What the caller holds, sent with the spec and never stored. Added in 2.3.
 
     ``providers`` are provider IDs the caller has a key for, ``plans`` are
@@ -1091,7 +1095,7 @@ class Estate(_Strict):
 AccessKind = Literal["chat_app", "coding_tool", "own_software", "own_hardware"]
 
 
-class Access(_Strict):
+class Access(_ExcludeIf):
     """How the caller will use the model. Added in 2.6.
 
     ``chat_app``: a provider's chat app, through a subscription plan.
@@ -1117,7 +1121,7 @@ class Access(_Strict):
         return self
 
 
-class Spec(_Strict):
+class Spec(_ExcludeIf):
     """A request for a decision."""
 
     spec_version: Literal[1]
@@ -1244,7 +1248,7 @@ class BenchmarkExclusions(_Strict):
     estimate_changes: list[BenchmarkEstimateChange] = Field(default_factory=list)
 
 
-class Contribution(_Strict):
+class Contribution(_ExcludeIf):
     raw_value: float | None = None
     unit: str | None = None
     records: list[str] = Field(default_factory=list)
@@ -1314,7 +1318,7 @@ class PlanRoute(_Strict):
     basis: str
 
 
-class Result(_Strict):
+class Result(_ExcludeIf):
     rank: int = Field(ge=1)
     offering: OfferingRef
     #: The model, flat: ``offering.model``. Added in 2.5.
@@ -1578,7 +1582,7 @@ class RefinementGain(_Strict):
     gain: float
 
 
-class ConstraintCost(_Strict):
+class ConstraintCost(_ExcludeIf):
     units: dict[str, str | None] = Field(default_factory=dict)
     records: list[str] = Field(default_factory=list)
     condition: str
@@ -1590,7 +1594,7 @@ class ConstraintCost(_Strict):
     )
 
 
-class TippingPoint(_Strict):
+class TippingPoint(_ExcludeIf):
     description: str
     dimension: SignedFacetId | None = None
     threshold: float | None = None
@@ -1679,7 +1683,7 @@ class EstateHold(_Strict):
     id: EstateId
 
 
-class EstateMark(_Strict):
+class EstateMark(_ExcludeIf):
     """How the estate reaches one row, and what one more task costs the caller."""
 
     via: EstateHold
@@ -1716,7 +1720,7 @@ class GainItem(_Strict):
     answer: Answer | None = None
 
 
-class WithEstate(_Strict):
+class WithEstate(_ExcludeIf):
     """The same question answered from what the caller holds. Added in 2.3."""
 
     status: Status
@@ -1777,7 +1781,7 @@ class FeedbackPointer(_Strict):
     cli: Literal["modelspec feedback <decision_id> --rating <rating>"] = FEEDBACK_CLI
 
 
-class Decision(_Strict):
+class Decision(_ExcludeIf):
     """The engine's answer to one spec against one snapshot."""
 
     near_misses: list[NearMiss] = Field(default_factory=list)
@@ -1857,6 +1861,15 @@ CONTRACT_TYPES: tuple[type[BaseModel], ...] = (
     Estate, EstateHold, EstateMark, EstateResult, EstateGap, GainItem, WithEstate,
     Access, PlanPrice, PlanCoverage, PlanAllowance, PlanRoute, FeedbackPointer,
 )
+
+
+# Cloudflare snapshots import-time Python state. Prepare the older runtime's
+# conditional-field metadata there, before the first request serializes it.
+if not NATIVE_EXCLUDE_IF:
+    for _contract_type in CONTRACT_TYPES:
+        if issubclass(_contract_type, _ExcludeIf):
+            _exclude_if_fields(_contract_type)
+    del _contract_type
 
 
 def closed_values() -> list[str]:

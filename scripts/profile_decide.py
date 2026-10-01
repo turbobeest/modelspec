@@ -6,7 +6,9 @@ Both produce JSON with initialization timings and exclusive request phases,
 five warmups and 50 samples per explain level, and the first full request. No timers or
 instrumentation are installed in production. --out retains response hashes
 for comparison between revisions; --runs changes the warm sample count.
---spec selects an exact JSON Spec; the Pyodide driver takes it as argument five.
+--spec selects an exact JSON Spec. --vocabulary replays every template at the
+page limit of 500. The Pyodide driver accepts either document as argument five
+and reads PROFILE_RUNS for the warm sample count.
 """
 
 from __future__ import annotations
@@ -65,12 +67,17 @@ def install_worker(bundle, snapshot_path=None, startup=None):
     sys.modules["workers"] = types.SimpleNamespace(
         Response=Response, WorkerEntrypoint=type("WorkerEntrypoint", (), {})
     )
+    bundle_started = time.perf_counter()
+    try:
+        import bundled_data
+    except ModuleNotFoundError as exc:
+        if exc.name != "bundled_data":
+            raise
+        bundled_data = None
+    if startup is not None:
+        startup["bundle_module_parse"] = (time.perf_counter() - bundle_started) * 1000
     if snapshot_path is not None:
-        try:
-            import bundled_data
-        except ModuleNotFoundError as exc:
-            if exc.name != "bundled_data":
-                raise
+        if bundled_data is None:
             bundled_data = types.ModuleType("bundled_data")
             bundled_data.read = lambda path: None
             sys.modules["bundled_data"] = bundled_data
@@ -135,26 +142,34 @@ def install_worker(bundle, snapshot_path=None, startup=None):
     return entry, decide_service, engine, explain, worker, Request
 
 
-async def profile(bundle, runs=50, snapshot_path=None, spec=None):
+async def profile(bundle, runs=50, snapshot_path=None, spec=None, *, installed=None):
     startup = {}
     started = time.perf_counter()
-    entry, service, engine, explain, worker, request_type = install_worker(
+    entry, service, engine, explain, worker, request_type = installed or install_worker(
         bundle, snapshot_path, startup
     )
     imports_ms = (time.perf_counter() - started) * 1000
     startup["other_imports"] = imports_ms - sum(startup.values())
     spec = SPEC if spec is None else spec
-    totals, stack = {}, []
+    totals, stack, originals, counts = {}, [], [], {}
+    last_body = None
 
     def instrument(module, name, phase):
         original = getattr(module, name)
+        originals.append((module, name, original))
 
         @functools.wraps(original)
         def timed(*args, **kwargs):
             frame = [time.perf_counter(), 0.0]
             stack.append(frame)
             try:
-                return original(*args, **kwargs)
+                value = original(*args, **kwargs)
+                if phase == "filtering" and not counts:
+                    counts.update(
+                        feasible=len(value.feasible),
+                        filter_may_qualify=len(value.may_qualify),
+                    )
+                return value
             finally:
                 elapsed = time.perf_counter() - frame[0]
                 stack.pop()
@@ -181,6 +196,7 @@ async def profile(bundle, runs=50, snapshot_path=None, spec=None):
     from decision import filter as filtering
 
     instrument(filtering, "apply", "filtering")
+    original_apply = engine.apply
     engine.apply = filtering.apply
     instrument(engine, "run_optimise", "capability_ranking")
     from decision import capability
@@ -195,11 +211,14 @@ async def profile(bundle, runs=50, snapshot_path=None, spec=None):
     instrument(service.contract.Decision, "model_dump", "json_serialisation")
 
     async def one(level):
+        nonlocal last_body
+        counts.clear()
         totals.update(dict.fromkeys((*PHASES, *snapshot_phases), 0.0))
         started = time.perf_counter()
         response = await worker.fetch(request_type({**spec, "explain": level}))
         elapsed = (time.perf_counter() - started) * 1000
         assert response.status == 200, response.body
+        last_body = response.body
         raw = response.body.encode() if isinstance(response.body, str) else bytes(response.body)
         return (
             {**totals, "total": elapsed, "other": elapsed - sum(totals.values())},
@@ -233,7 +252,15 @@ async def profile(bundle, runs=50, snapshot_path=None, spec=None):
             rows.append(row)
             hashes.add(digest)
         assert len(hashes) == 1, "response changed across warm runs"
+        body = json.loads(last_body)
         result["levels"][level] = {
+            "shape": {
+                **counts,
+                "results": len(body["results"]),
+                "may_qualify": len(body["may_qualify"]),
+                "eliminated": len(body["eliminated"]["models"]),
+                "number_origins": len(body["number_origins"]),
+            },
             "sha256": digest,
             "bytes": size,
             "phases": {
@@ -244,7 +271,28 @@ async def profile(bundle, runs=50, snapshot_path=None, spec=None):
                 for phase in (*PHASES, *snapshot_phases, "other", "total")
             },
         }
+    for module, name, original in reversed(originals):
+        setattr(module, name, original)
+    engine.apply = original_apply
     return result
+
+
+async def profile_templates(bundle, vocabulary, runs=50, snapshot_path=None):
+    """Replay every exact vocabulary spec at the page limit in one isolate."""
+    startup = {}
+    started = time.perf_counter()
+    installed = install_worker(bundle, snapshot_path, startup)
+    imports_ms = (time.perf_counter() - started) * 1000
+    startup["other_imports"] = imports_ms - sum(startup.values())
+    results = {}
+    for template in vocabulary["templates"]:
+        spec = {"snapshot": "latest", "limit": 500, **template["spec"]}
+        results[template["id"]] = await profile(
+            bundle, runs, spec=spec, installed=installed
+        )
+        results[template["id"]]["available"] = template.get("available", True)
+        print("profiled " + template["id"], file=sys.stderr, flush=True)
+    return {"imports_ms": imports_ms, "initialization_ms": startup, "templates": results}
 
 
 if __name__ == "__main__":
@@ -260,7 +308,9 @@ if __name__ == "__main__":
         type=Path,
         help="build the same public card fixture without the premier restriction",
     )
-    parser.add_argument("--spec", type=Path, help="exact JSON Spec to profile")
+    selection = parser.add_mutually_exclusive_group()
+    selection.add_argument("--spec", type=Path, help="exact JSON Spec to profile")
+    selection.add_argument("--vocabulary", type=Path, help="profile all template specs at limit 500")
     parser.add_argument("--runs", type=int, default=50)
     parser.add_argument("--out", type=Path)
     args = parser.parse_args()
@@ -278,14 +328,20 @@ if __name__ == "__main__":
         sys.exit(0)
     if args.bundle is None or args.runs < 1:
         parser.error("bundle and a positive run count are required")
-    result = asyncio.run(
-        profile(
-            args.bundle.resolve(),
-            args.runs,
-            args.snapshot,
-            json.loads(args.spec.read_text()) if args.spec else None,
+    if args.vocabulary:
+        result = asyncio.run(profile_templates(
+            args.bundle.resolve(), json.loads(args.vocabulary.read_text()),
+            args.runs, args.snapshot,
+        ))
+    else:
+        result = asyncio.run(
+            profile(
+                args.bundle.resolve(),
+                args.runs,
+                args.snapshot,
+                json.loads(args.spec.read_text()) if args.spec else None,
+            )
         )
-    )
     output = json.dumps(result, indent=2)
     if args.out:
         args.out.write_text(output + "\n")
