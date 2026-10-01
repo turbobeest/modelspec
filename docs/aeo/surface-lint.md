@@ -36,7 +36,7 @@ Owned surfaces must not contain these. Each rule names the decision behind it so
 | `x402`, "pay per call without a key", "Bazaar" | `X402_ENABLED` is false | The PR that turns x402 on (MODEL-261) |
 | The CLI described as current ("pip install modelspec", "the CLI lets you") | The CLI was retired on 2026-09-30 | Never |
 | "sponsored", "featured partner", "promoted", "affiliate" | Neutrality commitment | Never |
-| "Artificial Analysis", "Zapier" as a source | Excluded sources | Never |
+| A removed source, matched by `REMOVED_TEXT` in `decision/excluded.py` (reuse it; never restate the names) | MODEL-117 excluded sources | Never |
 | A named competitor product in a comparison | Comparisons are by category | A decision by Jamie |
 
 Words such as "router" are allowed when they describe *other* tools, for example "a router chooses per request". The rule matches self-description patterns, not the bare word. Every pattern has a fixture that must fail and a fixture that must pass.
