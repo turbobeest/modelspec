@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections import Counter
 
 from decision import contract, registry
 
@@ -27,10 +26,8 @@ def fingerprint(raw):
     data.pop("explain")
     data.pop("limit")
     conditions = [digest(condition) for condition in where]
-    atomic = [digest(condition) for condition in where
-              if not any(key in condition for key in ("any", "all", "not"))]
     return {
-        "fixed": digest(data), "where": sorted(conditions), "atomic": atomic,
+        "fixed": digest(data), "where": sorted(conditions),
         "optimize": digest(objective), "capabilities": digest(capabilities),
         "estate": digest(estate), "no_estate": estate is None,
         "estate_allowed": spec.estate is not None and not spec.estate.exhausted,
@@ -69,17 +66,8 @@ def derivation(primary, next_spec):
                          for key in ("optimize", "capabilities"))
     same_where = primary["where"] == next_spec["where"]
     same_estate = primary["estate"] == next_spec["estate"]
-    if same_objective and same_estate:
-        if same_where:
-            return "same"
-        removed = Counter(primary["where"]) - Counter(next_spec["where"])
-        added = Counter(next_spec["where"]) - Counter(primary["where"])
-        # Replacing a condition changes two entries. Compound groups cannot
-        # smuggle several changed conditions through the one-condition rule.
-        if sum(removed.values()) + sum(added.values()) == 1:
-            changed, source = (removed, primary) if removed else (added, next_spec)
-            if all(condition in source["atomic"] for condition in changed):
-                return "what_if"
+    if same_objective and same_estate and same_where:
+        return "same"
     if same_objective and same_where and primary["no_estate"] and next_spec["estate_allowed"]:
         return "estate"
     if same_estate and next_spec["plot"]:

@@ -12,7 +12,7 @@ async function settle() {
     await act(async () => { await vi.advanceTimersByTimeAsync(500); });
 }
 
-it("preserves the request inventory and shares one intent for load and template apply", async () => {
+it("sends only displayed variants and shares one intent for load and template apply", async () => {
   vi.useFakeTimers();
   const fetch = routeFetch({ vocabulary: () => json(realVocabulary), decide: () => json(fixture) });
   vi.stubGlobal("fetch", fetch);
@@ -20,7 +20,7 @@ it("preserves the request inventory and shares one intent for load and template 
   await settle();
   const calls = () => fetch.mock.calls.filter(([url]) => url === DECIDE_ENDPOINT);
   const ids = () => calls().map(([, init]) => new Headers(init.headers).get("x-modelspec-intent"));
-  expect(sentSpecs(fetch)).toHaveLength(12);
+  expect(sentSpecs(fetch)).toHaveLength(3);
   expect(new Set(ids()).size).toBe(1);
   expect(ids()[0]).toMatch(/^[A-Za-z0-9_-]{21}[AQgw]$/);
   const initial = ids()[0];
@@ -28,12 +28,12 @@ it("preserves the request inventory and shares one intent for load and template 
     counts[spec.explain] = (counts[spec.explain] ?? 0) + 1;
     return counts;
   }, {});
-  expect(inventory()).toEqual({ summary: 1, full: 2, none: 9 });
+  expect(inventory()).toEqual({ summary: 1, full: 2 });
   fetch.mockClear();
   fireEvent.click(screen.getByRole("button", { name: /^Coding · Budget:/ }));
   await settle();
-  expect(sentSpecs(fetch)).toHaveLength(12);
-  expect(inventory()).toEqual({ summary: 1, full: 2, none: 9 });
+  expect(sentSpecs(fetch)).toHaveLength(3);
+  expect(inventory()).toEqual({ summary: 1, full: 2 });
   expect(new Set(ids()).size).toBe(1);
   expect(ids()[0]).not.toBe(initial);
 }, 20_000);
@@ -55,7 +55,7 @@ it("keeps snapshot-change retries and a burst of edits within one intent", async
   const calls = () => fetch.mock.calls.filter(([url]) => url === DECIDE_ENDPOINT);
   const ids = () => new Set(calls().map(([, init]) => new Headers(init.headers).get("x-modelspec-intent")));
   expect(loads).toBe(2);
-  expect(calls().length).toBeGreaterThan(12);
+  expect(calls().length).toBe(4);
   expect(ids().size).toBe(1);
   expect(new Headers(calls()[1][1].headers).get("X-ModelSpec-Snapshot")).toBe("fresh-snapshot");
   fetch.mockClear();
@@ -67,6 +67,6 @@ it("keeps snapshot-change retries and a burst of edits within one intent", async
   fireEvent.click(template);
   expect(calls()).toHaveLength(0);
   await settle();
-  expect(calls()).toHaveLength(12);
+  expect(calls()).toHaveLength(3);
   expect(ids().size).toBe(1);
 }, 20_000);

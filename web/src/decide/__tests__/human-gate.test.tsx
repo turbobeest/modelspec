@@ -104,11 +104,12 @@ it("sends the token in a header, preserves the Spec body and reads allowance on 
 });
 
 it("the real app verifies each action and preserves its background requests", async () => {
+  let remaining = 20;
   const trace: { intent: string; token: string; spec: unknown; now: number }[] = [];
   const outcomeSchema = z.array(z.tuple([z.number(), z.string(), z.string(), z.record(z.string(), z.string())]));
   const routed = routeFetch({ vocabulary: () => json(realVocabulary), decide: () => json(fixture) });
   vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-    if (String(input).endsWith("/v1/human-status")) return json({ enabled: true, remaining: 20 });
+    if (String(input).endsWith("/v1/human-status")) return json({ enabled: true, remaining });
     if (String(input).endsWith("/v1/decide")) {
       const headers = new Headers(init?.headers);
       trace.push({ intent: headers.get("x-modelspec-intent") ?? "",
@@ -119,6 +120,7 @@ it("the real app verifies each action and preserves its background requests", as
         { input: JSON.stringify(trace), encoding: "utf8" },
       )));
       const [status, code, message, gateHeaders] = outcomes[outcomes.length - 1];
+      remaining = Number(gateHeaders["x-modelspec-decisions-remaining"]);
       if (status !== 200) return json({ error: { code, message } }, status);
       const response = await routed(input, init);
       for (const [key, value] of Object.entries(gateHeaders)) response.headers.set(key, value);
@@ -132,9 +134,9 @@ it("the real app verifies each action and preserves its background requests", as
   await waitFor(() => expect(button).toBeEnabled());
   expect(sentSpecs(vi.mocked(fetch))).toHaveLength(0);
   fireEvent.click(button);
-  await waitFor(() => expect(sentSpecs(vi.mocked(fetch))).toHaveLength(12), { timeout: 10_000 });
+  await waitFor(() => expect(sentSpecs(vi.mocked(fetch))).toHaveLength(3), { timeout: 10_000 });
   await waitFor(() => expect(button).toBeEnabled());
-  expect(sentSpecs(vi.mocked(fetch))).toHaveLength(12);
+  expect(sentSpecs(vi.mocked(fetch))).toHaveLength(3);
   const firstIds = new Set(routed.mock.calls.filter(([url]) => String(url).endsWith("/v1/decide"))
     .map(([, init]) => new Headers(init.headers).get("x-modelspec-intent")));
   expect(firstIds.size).toBe(1);
@@ -142,15 +144,15 @@ it("the real app verifies each action and preserves its background requests", as
   expect(window.turnstile?.render).toHaveBeenCalled();
   expect(await screen.findByText(/19 decisions remaining today/)).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: /^Coding · Budget:/ }));
-  expect(sentSpecs(vi.mocked(fetch))).toHaveLength(12);
+  expect(sentSpecs(vi.mocked(fetch))).toHaveLength(3);
   fireEvent.click(button);
-  await waitFor(() => expect(sentSpecs(vi.mocked(fetch))).toHaveLength(24), { timeout: 10_000 });
+  await waitFor(() => expect(sentSpecs(vi.mocked(fetch))).toHaveLength(6), { timeout: 10_000 });
   await waitFor(() => expect(button).toBeEnabled());
-  expect(sentSpecs(vi.mocked(fetch))).toHaveLength(24);
+  expect(sentSpecs(vi.mocked(fetch))).toHaveLength(6);
   const allIds = new Set(routed.mock.calls.filter(([url]) => String(url).endsWith("/v1/decide"))
     .map(([, init]) => new Headers(init.headers).get("x-modelspec-intent")));
   expect(allIds.size).toBe(2);
-  expect(trace).toHaveLength(24);
+  expect(trace).toHaveLength(6);
   expect(await screen.findByText(/18 decisions remaining today/)).toBeVisible();
 }, 30_000);
 

@@ -18,17 +18,18 @@ def continue_intent(state, now, intent, question=None):
         return None
     remaining = max(0, DAY_LIMIT - state["count"])
     refused = {"remaining": remaining, "reason": "intent", "retry_after": 1}
+    if admission.get("question") is None or question is None:
+        return refused
+    kind = derivation(admission["question"], question)
+    # The first estate/plot variant fixes that auxiliary for the whole action.
+    variant = digest({key: question[key] for key in ("optimize", "capabilities", "estate")})
+    if kind is None or (kind in ("estate", "plot") and admission.get(kind, variant) != variant):
+        # The visitor already verified this ID. A new question spends another
+        # admission atomically, replacing the primary only when admitted.
+        return take_primary(state, now, intent, question)
     if now - admission["first"] >= INTENT_WINDOW_SECONDS or admission["requests"] >= INTENT_REQUEST_LIMIT:
         return {"remaining": remaining, "reason": "intent",
                 "retry_after": max(1, (int(now // 86400) + 1) * 86400 - int(now))}
-    kind = derivation(admission.get("question"), question)
-    if kind is None:
-        return refused
-    # The first estate/plot variant fixes that auxiliary for the whole action.
-    # Later calls cannot sweep resources or axes.
-    variant = digest({key: question[key] for key in ("optimize", "capabilities", "estate")})
-    if kind in ("estate", "plot") and admission.get(kind, variant) != variant:
-        return refused
     events = [stamp for stamp in admission.get("events", [admission["first"]])
               if now - stamp < CONTINUATION_BURST_SECONDS]
     if len(events) >= CONTINUATION_BURST_LIMIT:
@@ -49,6 +50,12 @@ def take(state, now, intent=None, question=None):
         continued = continue_intent(state, now, intent, question)
         if continued is not None:
             return continued
+    return take_primary(state, now, intent, question)
+
+
+def take_primary(state, now, intent, question):
+    """Meter a new question, including one sent under an already verified ID."""
+    day = int(now // 86400)
     # Deployed objects may still contain [timestamp, fingerprint] pairs.
     times = [row[0] if isinstance(row, list) else row for row in state["events"]]
     events = [stamp for stamp in times if now - stamp < WINDOW_SECONDS]

@@ -14,7 +14,7 @@ TOKEN_HEADER = "x-modelspec-turnstile"
 REMAINING_HEADER = "x-modelspec-decisions-remaining"
 SITEVERIFY = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 INTENT_HEADER = "x-modelspec-intent"
-INTENT_REQUEST_LIMIT = 32
+INTENT_REQUEST_LIMIT = 8
 INTENT_WINDOW_SECONDS = 60
 CONTINUATION_BURST_LIMIT = 8
 CONTINUATION_BURST_SECONDS = 1
@@ -133,7 +133,7 @@ async def admit(request, env, origins, verify, payload=None):
         if reason:
             headers["retry-after"] = str(meter["retry_after"])
             messages = {
-                "intent": "This request is outside this decision action's question, pace or allowance. Wait, or start a new lookup and verify again.",
+                "intent": "This request exceeds this decision action's pace, window or allowance. Wait, or start a new lookup and verify again.",
                 "day": "You have used today's 20 manual decisions. Come back after midnight UTC or use the paid API or MCP.",
                 "burst": "Three decisions per minute is the manual lookup limit. Wait a minute, then verify again.",
                 "sweep": "This lookup pattern resembles an automated sweep. Wait ten minutes and verify again, or use the paid API or MCP.",

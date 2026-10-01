@@ -3,7 +3,6 @@ import { decisionAction } from "./adapter/hosted";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   newIntent,
-  candidateQuestions,
   hostedEngine,
   retryOnSnapshotChange,
   sharedReload,
@@ -16,7 +15,6 @@ import type {
   Cond,
   Decision,
   Evidence,
-  HostedDecisionEngine,
   Spec,
   SpecIssue,
 } from "./adapter";
@@ -25,7 +23,6 @@ import {
   VOCABULARY_URL,
   loadVocabulary,
   realBaseSpec,
-  realQuestions,
   sendable as sendableSpec,
 } from "./vocabulary";
 import type { Vocabulary } from "./vocabulary";
@@ -56,8 +53,6 @@ import { BrandMark } from "./components/BrandMark";
 import { initialTheme, storeTheme, storedTheme, type Theme } from "./theme";
 import "./decide.css";
 import { mapDecisionToViewModel } from "./adapter/view-model";
-import { evaluateQuestionOptions } from "./adapter/questions";
-import type { Question } from "./engine/reference";
 import { BoardIntro, FacetBoard, readEstate, writeEstate } from "./facet-board/FacetBoard";
 import {
   boardHasPreference, boardToSpec, decodeBoardState, encodeBoardSpec, estatePayload, foldRefinementWeights, hasEstate,
@@ -141,7 +136,6 @@ export function DesignedApp({
     });
   const requestTimer = useRef<ReturnType<typeof setTimeout> | null>(null),
     requestAbort = useRef<AbortController | null>(null),
-    questionsAbort = useRef<AbortController | null>(null),
     plotKey = useRef(""),
     provTrigger = useRef<HTMLElement | null>(null),
     hashNavigation = useRef<() => void>(() => undefined),
@@ -152,7 +146,6 @@ export function DesignedApp({
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
   const [hostedDecision, setHostedDecision] = useState<Decision | null>(null),
     [plotDecision, setPlotDecision] = useState<Decision | null>(null),
-    [hostedQuestions, setHostedQuestions] = useState<Question[]>([]),
     [requestState, setRequestState] = useState<
       | { kind: "idle" }
       | { kind: "loading" }
@@ -193,11 +186,6 @@ export function DesignedApp({
     return realVocab(vocabulary);
   }, [vocabulary]);
   const shownAxis = vocab.axes.includes(axis) ? axis : (vocab.axes[0] ?? axis);
-  /** Only the sliders the snapshot can answer, as the engine will be asked. */
-  const sendable = (next: Spec): Spec =>
-    vocabulary ? sendableSpec(vocabulary, next) : next;
-  const questionsFor = (next: Spec) =>
-    vocabulary ? realQuestions(vocabulary, next, dismissed) : candidateQuestions(next, dismissed);
   const shownSpec = useMemo(() => {
     if (!hostedDecision || vocabulary) return spec;
     const availableBenchmarks = [
@@ -222,7 +210,7 @@ export function DesignedApp({
         decision: mapDecisionToViewModel(hostedDecision, shownSpec, {
           axis: shownAxis,
           dismissed,
-          questions: hostedQuestions,
+          questions: [],
           ...(vocabulary
             ? { benchmarks: vocab.benchmarks, models: vocabulary.models, providers: vocabulary.providers }
             : {}),
@@ -236,7 +224,7 @@ export function DesignedApp({
         error: cause instanceof Error ? cause.message : String(cause),
       };
     }
-  }, [hostedDecision, shownSpec, shownAxis, dismissed, hostedQuestions, vocabulary, vocab]);
+  }, [hostedDecision, shownSpec, shownAxis, dismissed, vocabulary, vocab]);
   const liveDecision = mapped.decision;
   useEffect(() => {
     if (requestTimer.current) return;
@@ -340,11 +328,9 @@ export function DesignedApp({
     const intentOptions = decisionAction(humanToken, onRemaining);
     action.current = intentOptions;
     requestAbort.current?.abort();
-    questionsAbort.current?.abort();
     const controller = new AbortController();
     requestAbort.current = controller;
     setHostedDecision(null);
-    setHostedQuestions([]);
     setLastSentSpec(null);
     setEstateRequest((current) => ({
       kind: "idle",
@@ -394,7 +380,7 @@ export function DesignedApp({
     };
     try {
       // Summary first: it is small and answers well inside the Worker's limits,
-      // so the ranking draws at once. The full explanation and the probes
+      // so the ranking draws at once. The full explanation and plot
       // follow only once it has answered, so a cold Worker meets one request
       // before the burst; if `full` fails, the summary stands (MODEL-153).
       const answer = await retryOnSnapshotChange(
@@ -415,9 +401,6 @@ export function DesignedApp({
         settledSpecHash: specHash(requested),
         generation: current.generation,
       }));
-      setHostedQuestions(
-        used ? realQuestions(used, nextSpec, dismissed) : questionsFor(nextSpec),
-      );
       setRequestState({ kind: "success", details: "loading" });
     } catch (cause) {
       // Aborted by a newer request or by the watchdog: whichever did owns the state.
@@ -445,7 +428,6 @@ export function DesignedApp({
           used = effectiveVocabulary;
           nextSpec = answer.result.nextSpec;
           setHostedDecision(answer.result.decision);
-          setHostedQuestions(realQuestions(effectiveVocabulary, nextSpec, dismissed));
           setRefinementFallbackKeys(refinementWeightKeys(effectiveVocabulary));
           setLastSentSpec(nextSpec);
           setEstateRequest((current) => ({
@@ -498,9 +480,7 @@ export function DesignedApp({
     if (gateStatus === null) pendingSpec.current = nextSpec;
     if (humanGateEnabled) {
       requestAbort.current?.abort();
-      questionsAbort.current?.abort();
       setHostedDecision(null);
-      setHostedQuestions([]);
       setLastSentSpec(null);
       setRequestState({ kind: "idle" });
       setEstateRequest((current) => ({ kind: "idle", settledSpecHash: null, generation: current.generation }));
@@ -553,54 +533,8 @@ export function DesignedApp({
     );
   }
 
-  const answered = hostedDecision !== null;
   const effectiveSpec = lastSentSpec ?? spec;
   const estateRequestKey = `${specHash(spec)}:${JSON.stringify(estate)}`;
-  useEffect(() => {
-    if (requestTimer.current || !answered) return;
-    const intentOptions = action.current;
-    questionsAbort.current?.abort();
-    const controller = new AbortController();
-    questionsAbort.current = controller;
-    const candidates = questionsFor(effectiveSpec);
-    // Each probe names the snapshot too; after one 409 the rest use the reload.
-    let current = vocabulary;
-    const pinned: HostedDecisionEngine = {
-      decide: (next, options) =>
-        retryOnSnapshotChange(
-          current,
-          (v) => hostedEngine.decide(next, { ...intentOptions, ...options, snapshot: v?.snapshot }),
-          reloadVocabulary,
-        ).then((answer) => {
-          current = answer.vocabulary;
-          return answer.result;
-        }),
-    };
-    void evaluateQuestionOptions({
-      engine: pinned,
-      spec: toBoardDecisionSpec(sendable(effectiveSpec), "none"),
-      questions: candidates,
-      signal: controller.signal,
-      deduplicateConditions: true,
-      onUpdate: (next) =>
-        setHostedQuestions(
-          next.map((question) => ({
-            ...question,
-            opts: question.opts.map((option) => ({ ...option })),
-          })),
-        ),
-    })
-      .then(setHostedQuestions)
-      .catch((cause: unknown) => {
-        if (!(cause instanceof Error && cause.name === "AbortError"))
-          setHostedQuestions([]);
-      });
-    return () => controller.abort();
-    // questionsFor and sendable read only vocabulary and dismissed, listed here.
-    // `answered`, not the decision: the full explanation replacing the summary
-    // must not send every probe again.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [humanGateEnabled, answered, effectiveSpec, dismissed, vocabulary]);
   useEffect(() => {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 20_000);
@@ -849,7 +783,6 @@ export function DesignedApp({
       window.removeEventListener("hashchange", hash);
       if (requestTimer.current) clearTimeout(requestTimer.current);
       requestAbort.current?.abort();
-      questionsAbort.current?.abort();
     };
   }, []);
   function add(c: Cond) {
