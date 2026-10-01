@@ -540,3 +540,8 @@ jobs:
             || fail "a request built only from api/worker/openapi.yaml does not work against ${RANK_HOST}"
 
           echo "Worker is live on ${GITHUB_SHA}"
+
+      - name: Decision latency smoke (warning only)
+        # Existing smokes carry no API key. The probe records a skip when
+        # anonymous decide calls are keyed; BUILD_COMMIT is identity only.
+        run: python3 .github/scripts/check_decide_latency.py --host "$RANK_HOST"

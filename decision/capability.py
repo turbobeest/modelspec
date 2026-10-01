@@ -28,6 +28,7 @@ from collections import Counter, defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass, field, replace
 from datetime import date
+from functools import lru_cache
 from typing import Any, Literal, cast
 
 Direction = Literal["higher_is_better", "lower_is_better"]
@@ -1259,21 +1260,30 @@ def deterministic_probabilities(
     draw deterministic sample keeps that honesty while bounding the dominant
     CPU loop on a cold Python Worker request.
     """
-    ordered = sorted(estimates)
-    if not ordered:
-        return {}
+    distributions = tuple((model_id, estimates[model_id].value, estimates[model_id].sd)
+                          for model_id in sorted(estimates))
+    return dict(_probability_draws(distributions, seed_material, samples))
+
+
+@lru_cache(maxsize=16)
+def _probability_draws(
+    distributions: tuple[tuple[str, float, float], ...], seed_material: str, samples: int,
+) -> tuple[tuple[str, tuple[float, float]], ...]:
+    # Cache only the sufficient inputs and immutable output, never a snapshot
+    # or caller's spec. New estimates, seed or sample count cannot reuse a draw.
+    if not distributions:
+        return ()
     seed = int.from_bytes(hashlib.sha256(seed_material.encode()).digest()[:8], "big")
     rng = random.Random(seed)
-    best = {model_id: 0 for model_id in ordered}
-    top3 = {model_id: 0 for model_id in ordered}
+    best = {model_id: 0 for model_id, _, _ in distributions}
+    top3 = dict(best)
     for _ in range(samples):
         drawn = sorted(
-            ((rng.gauss(estimates[model_id].value, estimates[model_id].sd), model_id)
-             for model_id in ordered),
+            ((rng.gauss(value, sd), model_id) for model_id, value, sd in distributions),
             key=lambda pair: (-pair[0], pair[1]),
         )
         best[drawn[0][1]] += 1
         for _, model_id in drawn[:3]:
             top3[model_id] += 1
-    return {model_id: (best[model_id] / samples, top3[model_id] / samples)
-            for model_id in ordered}
+    return tuple((model_id, (best[model_id] / samples, top3[model_id] / samples))
+                 for model_id, _, _ in distributions)
