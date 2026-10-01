@@ -136,8 +136,9 @@ export function TemplatePicker({ vocabulary, active, open, onOpen, onApply }: {
   return (
     <section className="template-picker" aria-label="Templates">
       <button ref={bar} type="button" className="template-bar" aria-expanded={open} aria-controls={panel} onClick={() => onOpen(!open)}>
-        <span className="eyebrow">Start from a template</span>
-        {label ? <span className="template-active">Applied: <strong>{label}</strong></span> : <span className="template-count">{templates.length} templates</span>}
+        <span className="eyebrow">Start from a template</span>{" "}
+        {label && <><span className="template-active">Applied: <strong>{label}</strong></span>{" "}</>}
+        <span className={label ? "template-action" : "template-count"}>{open ? "Hide templates" : `Show all ${templates.length} templates`}</span>
         <b aria-hidden="true">{open ? "▴" : "▾"}</b>
       </button>
       <div className="board-templates" id={panel} hidden={!open}>
