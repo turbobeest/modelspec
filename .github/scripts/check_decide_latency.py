@@ -66,6 +66,10 @@ def measure(host, count=20, warmups=5, *, vocabulary_url=None, explain="full"):
                 return rows, "vocabulary contains an invalid template"
             spec = {"snapshot": "latest", "limit": 500, **template["spec"], "explain": explain}
             row = {"id": template["id"], "initial_ms": None, "warm_ms": [], "reason": None}
+            if template.get("available") is False:
+                row["reason"] = "unavailable in vocabulary (available: false)"
+                rows.append(row)
+                continue
             for index in range(1 + warmups + count):
                 body, elapsed, reason = request(f"https://{host}/v1/decide", response_path, spec)
                 if reason is None and (
@@ -93,7 +97,7 @@ def percentile(values, fraction):
 
 def report(rows, reason, warmups, count, explain):
     lines = [
-        f"Decision latency smoke, explain `{explain}`. Each template has an initial request, "
+        f"Decision latency smoke, explain `{explain}`. Each available template has an initial request, "
         f"{warmups} excluded warmups, then {count} warm samples. Target warm p95 ≤ 500 ms.",
         "Initial requests are cold candidates; the client cannot force or identify "
         "a fresh isolate. "
@@ -102,6 +106,17 @@ def report(rows, reason, warmups, count, explain):
         "",
         "| Template | Initial / cold candidate ms | Warm p50 ms | Warm p95 ms | Samples / status |",
         "| --- | ---: | ---: | ---: | --- |",
+    ]
+    samples = [value for row in rows for value in row["warm_ms"]]
+    likely_new = sum(value > 1000 for value in samples)
+    share = 100 * likely_new / len(samples) if samples else 0.0
+    skipped = [row["id"] for row in rows
+               if row["reason"] == "unavailable in vocabulary (available: false)"]
+    lines[2:2] = [
+        f"Likely new isolate: {likely_new}/{len(samples)} warm samples "
+        f"({share:.1f}%) exceeded 1 s. This threshold is a heuristic, not isolate telemetry.",
+        f"Skipped {len(skipped)} unavailable vocabulary templates"
+        + (": " + ", ".join(skipped) if skipped else "") + ".",
     ]
     warnings = []
     if reason:
@@ -114,7 +129,8 @@ def report(rows, reason, warmups, count, explain):
         values = row["warm_ms"]
         if row["reason"]:
             lines.append(f"| {row['id']} | {initial} | — | — | Skipped: {row['reason']} |")
-            warnings.append(f"Decision template {row['id']} skipped: {row['reason']}")
+            if row["id"] not in skipped:
+                warnings.append(f"Decision template {row['id']} skipped: {row['reason']}")
             continue
         p50, p95 = statistics.median(values), percentile(values, 0.95)
         lines.append(f"| {row['id']} | {initial} | {p50:.1f} | {p95:.1f} | {len(values)} |")

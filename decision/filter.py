@@ -334,6 +334,9 @@ class _Run:
         self.universe = (1 << self.n) - 1
         self.pos = {cid: i for i, cid in enumerate(self.ids)}
         self.cache: dict[int, Bits] = {}
+        self.id_sets: dict[int, tuple[str, ...]] = {}
+        self.grain_counts: dict[int, tuple[int, int]] = {}
+        self.lifecycles: dict[str, str] = {}
         self.evidence_conditions: dict[int, bool] = {}
         self.unknown_leaf_facets: dict[int, tuple[str, ...]] = {}
         self.resolved_threshold: dict[int, Any] = {}
@@ -344,17 +347,24 @@ class _Run:
         self.domains = frozenset(resolved.spec.capabilities or {})
 
     def _ids_of(self, bits: int) -> tuple[str, ...]:
+        if bits in self.id_sets:
+            return self.id_sets[bits]
+        key = bits
         ids = []
         while bits:
             bit = bits & -bits
             ids.append(self.ids[bit.bit_length() - 1])
             bits ^= bit
-        return tuple(ids)
+        found = self.id_sets[key] = tuple(ids)
+        return found
 
     def _life(self, cid: str) -> str:
+        if cid in self.lifecycles:
+            return self.lifecycles[cid]
         life = self.index.lifecycle(cid)
         if life not in ("active", "deprecated", "retired"):
             raise ValueError(f"lifecycle of {cid} is {life!r}, not active, deprecated or retired")
+        self.lifecycles[cid] = life
         return life
 
     def _facet(self, facet_id: str) -> Any:
@@ -689,11 +699,14 @@ class _Run:
             raise RuntimeError("filter partition does not cover the lineup")
 
     def _grain_counts(self, bits: int) -> tuple[int, int]:
+        if bits in self.grain_counts:
+            return self.grain_counts[bits]
         ids = self._ids_of(bits)
-        return (
+        found = self.grain_counts[bits] = (
             len({self.index.model_of(cid) for cid in ids}),
             sum(self.index.kind(cid) == "offering" for cid in ids),
         )
+        return found
 
     def run(self) -> FilterResult:
         wanted = self.resolved.spec.snapshot

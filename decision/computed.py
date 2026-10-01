@@ -29,6 +29,10 @@ PLAN_PRICE_MONTHLY = "offering.plan.price_monthly"
 COMPUTED_FACETS = (COST_PER_TASK, PLAN_PRICE_MONTHLY)
 _PRICE_INPUT = "offering.price.input"
 _PRICE_OUTPUT = "offering.price.output"
+_DELEGATED_METHODS = frozenset({
+    "candidates", "model_of", "kind", "lifecycle", "evidence", "capability_estimate",
+    "capability_drivers", "record", "source_url",
+})
 
 
 @dataclass(frozen=True)
@@ -68,7 +72,12 @@ class ComputedFacets:
         self._columns: dict[str, _FacetBitsets] = {}
 
     def __getattr__(self, name: str) -> Any:
-        return getattr(self._base, name)
+        value = getattr(self._base, name)
+        # Bind unchanged methods on first use. Minimal index implementations
+        # need only the methods the decision actually calls.
+        if name in _DELEGATED_METHODS:
+            setattr(self, name, value)
+        return value
 
     def computed(self, cid: str, facet_id: str) -> Computed | None:
         """The computed value of ``facet_id`` for ``cid``, or ``None`` when unknown
