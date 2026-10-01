@@ -198,17 +198,6 @@ def test_auth_md_billing_copy_follows_the_flag() -> None:
     assert "`POST /v1/rank` (legacy v1)" in text
 
 
-def test_llms_full_states_cap_and_stays_under_it() -> None:
-    models = [_model(f"p/m{i}", display_name=f"M{i}", model_type="llm") for i in range(50)]
-    text, stats = ar.llms_full_models(models, cap=2_000)
-    assert stats["bytes"] <= 2_000
-    assert stats["bytes"] == len(text.encode("utf-8"))
-    assert "# cap_bytes: 2000" in text
-    match = re.search(r"# bytes: (\d+)", text)
-    assert match is not None
-    assert int(match.group(1)) == stats["bytes"]
-    assert stats["omitted"] > 0
-    assert "truncated" in text
 
 
 def test_middleware_and_worker_share_the_accept_rule() -> None:
@@ -352,24 +341,10 @@ def test_built_jsonld_dataset_and_per_page(dist: Path) -> None:
     assert "https://benchgraph.dev" not in bench_html
 
 
-def test_built_llms_full_under_cap(dist: Path) -> None:
-    path = dist / "modelspec" / "llms-full.txt"
-    data = path.read_bytes()
-    text = data.decode("utf-8")
-    assert len(data) <= ar.LLMS_FULL_CAP
-    assert f"# cap_bytes: {ar.LLMS_FULL_CAP}" in text
-    match = re.search(r"# bytes: (\d+)", text)
-    assert match is not None
-    assert int(match.group(1)) == len(data)
-    assert "## " in text
-    # The v1 /m/ and /b/ pages are published in neither mode; the JSON is.
-    assert "https://modelspec.dev/m/" not in text
-    assert "https://modelspec.dev/b/" not in text
-    for path in re.findall(r"^json: https://modelspec\.dev(/api/\S+)$", text, re.M):
-        assert (dist / "modelspec" / path.lstrip("/")).is_file(), path
-    assert "json: https://modelspec.dev/api/models/" in text
-    assert "json: https://modelspec.dev/api/benchmarks/" in text
-    assert not (dist / "benchgraph" / "llms-full.txt").exists()
+def test_the_built_tree_has_no_catalogue_digest(dist: Path) -> None:
+    """MODEL-251: a frozen catalogue dump is not something engines should quote."""
+    assert not (dist / "modelspec" / "llms-full.txt").exists()
+    assert "llms-full.txt" not in (dist / "modelspec" / "llms.txt").read_text(encoding="utf-8")
 
 
 def test_built_openapi_and_functions_uploaded_alongside(dist: Path) -> None:

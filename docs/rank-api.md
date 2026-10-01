@@ -279,11 +279,11 @@ run needs no credential.
 
 The `deploy` job uses `CLOUDFLARE_API_MODELSPEC_TOKEN` — Workers Scripts:Edit,
 Workers KV Storage:Edit and Workers Routes:Edit on the `modelspec.dev` zone, and
-nothing else. It is **not** `CLOUDFLARE_API_TOKEN` (Pages) or
-`CLOUDFLARE_GRAPH_API_TOKEN` (benchgraph).
+nothing else. It is **not** `CLOUDFLARE_API_TOKEN` (Pages).
 
-Wrangler is pinned at `4.134.0`. The `4.94.0` that `graph-service` uses ships a
-workerd older than this Worker's `compatibility_date` and refuses to start it.
+Wrangler is pinned at `4.134.0`. Version `4.94.0` (the removed `graph-service`
+used it) ships a workerd older than this Worker's `compatibility_date` and
+refuses to start it.
 
 ### Issue an operator key
 

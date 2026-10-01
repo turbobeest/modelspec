@@ -217,10 +217,13 @@ def test_every_path_the_cli_workers_and_mcp_fetch_is_still_published(trees):
     mcp = (ROOT / "mcp" / "src" / "server.ts").read_text(encoding="utf-8")
     assert "/api/rank/profiles.json`" in mcp
     always_published = [path for path in worker if path != "/api/decision/snapshot.json.gz"]
+    # MODEL-251 removed the /api/graph/ export with the 3D explorer. Its last
+    # reader was the retired CLI's `fit` command (PyPI yanked 2026-09-30).
+    retired = {snapshot.PARTS["hardware"]}
     paths = [*snapshot.PARTS.values(), *snapshot.OPTIONAL_PARTS.values(), *always_published,
              "/api/rank/profiles.json", "/api/rank/class-fit.json", "/api/build.json"]
     for path in paths:
-        assert (ms / path.lstrip("/")).is_file(), path
+        assert (ms / path.lstrip("/")).is_file() != (path in retired), path
     # MCP `model_info` reads /api/models/<provider>/<slug>.json for any card.
     for model in load_models(ROOT)[:25]:
         assert (ms / "api" / "models" / f"{model.model_id}.json").is_file(), model.model_id
@@ -234,9 +237,9 @@ def test_full_build_still_contains_every_source_page_before_composition(trees):
     """The workflow derives holding before replacing dist with the live composition."""
     ms, bg = trees["real"] / "modelspec", trees["real"] / "benchgraph"
     assert len(list((ms / "m").glob("*/*/index.html"))) == len(load_models(ROOT))
-    for rel in ("sitemap.xml", "llms.txt", "llms-full.txt", "index.md", "_worker.js",
+    for rel in ("sitemap.xml", "llms.txt", "index.md", "_worker.js",
                 ".well-known/mcp.json", "openapi.yaml", "auth.md", "pricing/index.html",
-                "downselect/index.html", "graph/index.html", "models/index.html",
+                "downselect/index.html", "models/index.html",
                 "decide/index.html", "landing-assets/landing.css", "landing-assets/landing.js"):
         assert (ms / rel).is_file(), rel
     files = sorted(path.relative_to(bg).as_posix() for path in bg.rglob("*") if path.is_file())
@@ -308,9 +311,14 @@ def test_the_live_tree_publishes_agent_discovery_and_every_link_in_it_resolves(t
         assert (ms / rel).is_file(), rel
     assert live.dead_links(ms) == []
     llms = (ms / "llms.txt").read_text(encoding="utf-8")
-    for url in ("https://modelspec.dev/llms-full.txt", "https://modelspec.dev/auth.md",
+    for url in ("https://modelspec.dev/auth.md",
                 "https://modelspec.dev/.well-known/mcp.json"):
         assert url in llms
+    # MODEL-251: the 3D graph and the catalogue digest are retired.
+    assert "llms-full.txt" not in llms
+    assert not (ms / "graph").exists()
+    assert not (ms / "llms-full.txt").exists()
+    assert "/graph/*  /  301" in (ms / "_redirects").read_text(encoding="utf-8")
     assert 'type="text/markdown" href="/index.md"' in (ms / "index.html").read_text(encoding="utf-8")
     for page in live.PAGES:
         assert live.resolves(ms, page), page

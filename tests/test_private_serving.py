@@ -84,7 +84,7 @@ def test_private_model_is_absent_from_every_public_file(private, tmp_path, monke
                     assert value.encode() not in raw, path.relative_to(tree)
     api = out / "modelspec/api"
     assert {p.relative_to(api).as_posix() for p in api.rglob("*") if p.is_file()} == KEEP_API
-    assert (out / "modelspec/graph/data/views.json").is_file()
+    assert not (out / "modelspec/graph").exists()
     assert live.dead_links(tmp_path / "live/modelspec") == []
 
 

@@ -271,7 +271,6 @@ must move each into the private repository, drop it, or reduce it to counts:
 | `release-signals.yml` | `release-signals-pending`, `release-signal-audit-*` | pending signals and audit |
 | `coverage-slo.yml` | `coverage-report` | per-model coverage from fresh cards |
 | `accuracy.yml`, `accuracy-nightly.yml` | `decision-accuracy*` | accuracy reports over fresh cards |
-| `benchgraph-graph.yml` | `benchgraph-graph-*` | graph export from benchmark data |
 
 `test.yml` uploads only collection lists and timings and stays as is.
 

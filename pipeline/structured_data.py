@@ -36,7 +36,6 @@ ROOT = Path(__file__).resolve().parents[1]
 CRUMBS = {
     "/method/": "Method",
     "/decide/": "Decide",
-    "/graph/": "Graph",
     "/pricing/": "Pricing",
     "/legal/terms/": "Terms",
     "/legal/privacy/": "Privacy",

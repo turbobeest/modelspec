@@ -15,8 +15,6 @@
   Access-Control-Allow-Methods: GET
 /llms.txt
   Content-Type: text/plain; charset=utf-8
-/llms-full.txt
-  Content-Type: text/plain; charset=utf-8
 /.well-known/agent-skills/index.json
   Content-Type: application/json
   Access-Control-Allow-Origin: *

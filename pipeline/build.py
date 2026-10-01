@@ -23,7 +23,7 @@ from pathlib import Path
 from decision import registry as decision_registry
 from pipeline import brand, data_source
 from pipeline import export as exporter
-from pipeline import graph as graph_export
+from pipeline import card_ids
 from pipeline import render as r
 from pipeline.load import REPO_ROOT, load_benchmarks, load_catalogue, load_models
 
@@ -171,31 +171,6 @@ def with_site_nav(html: str, nav: str, page: str) -> str:
     return html.replace(r.NAV_PLACEHOLDER, nav, 1)
 
 
-def ship_explorer(root: Path, ms: Path, freshness: str) -> bool:
-    """Write the graph explorer to /graph/ with its vendored libraries.
-
-    A full-viewport canvas app, so it is copied rather than rendered through the
-    document shell. Its libraries are vendored so the page does not depend on a
-    CDN at runtime.
-    """
-    explorer = root / "web3d/explorer.html"
-    if not explorer.is_file():
-        return False
-    page = ms / "graph/index.html"
-    _inject(explorer, page, "<!-- catalogue-freshness -->", freshness)
-    from pipeline.public_data import enabled
-    if enabled():
-        page.write_text(page.read_text(encoding="utf-8").replace("/api/graph/", "/graph/data/"), encoding="utf-8")
-    vendor = root / "web3d/vendor"
-    for name in ("three.min.js", "3d-force-graph.min.js"):
-        source = vendor / name
-        if source.is_file():
-            target = ms / "graph/vendor" / name
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(source, target)
-    return True
-
-
 def wire_landing(html: str, stats: dict[str, int], freshness: str = "") -> str:
     """Point the front door at the site, and keep its numbers honest.
 
@@ -216,7 +191,6 @@ def wire_landing(html: str, stats: dict[str, int], freshness: str = "") -> str:
         html = html.replace(answer_anchor, answer_anchor + (
             '\n      <div class="btns go">'
             '<a class="btn primary" href="/downselect/">Answer it now &rarr;</a>'
-            '<a class="btn" href="/graph/">Explore the graph</a>'
             '<a class="btn" href="/models/">Browse every model</a>'
             "</div>"), 1)
 
@@ -516,7 +490,7 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
         )
 
     # The graph is derived through the same code path as the FalkorDB ingest, so
-    # the published graph and the database cannot disagree about the cards.
+    # relations, competition, hardware fit and ranking read what the cards say.
     from schema.card import ModelCard
     from schema.graph import derive_graph
     from pipeline import competition, hardware
@@ -527,14 +501,15 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
     derived = derive_graph(cards, hardware.device_classes(devices))
     competition_counts = competition.compute(derived, today)
     hardware_counts = hardware.compute(derived, cards, devices)
-    card_ids = {c.identity.model_id for c in cards}
-    graph_export.resolve_card_ids(
-        derived, card_ids=card_ids,
-        huggingface_ids=graph_export.huggingface_ids(cards),
+    model_ids = {c.identity.model_id for c in cards}
+    card_ids.resolve_card_ids(
+        derived, card_ids=model_ids,
+        huggingface_ids=card_ids.huggingface_ids(cards),
     )
-    graph_counts = graph_export.write(
-        ms / "api" / "graph", derived, build.to_json(), card_ids=card_ids)
-    graph_counts["competition"] = competition_counts
+    graph_counts: dict = {
+        "nodes": len(derived.nodes), "edges": len(derived.edges),
+        "competition": competition_counts,
+    }
     graph_counts["hardware"] = hardware_counts
 
     # Host profiles for offload-aware fit (MODEL-26). A new file; additive.
@@ -598,9 +573,6 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
         page.write_text(with_site_nav(page.read_text(encoding="utf-8"), r.site_nav(r.MS_NAV),
                                       "web3d/downselect.v2.html"), encoding="utf-8")
         ms_paths.append("/downselect/")
-
-    if ship_explorer(root, ms, freshness):
-        ms_paths.append("/graph/")
 
     (ms / "models").mkdir(exist_ok=True)
     (ms / "models/index.html").write_text(r.models_index(models, build), encoding="utf-8")

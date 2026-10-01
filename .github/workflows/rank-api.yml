@@ -276,8 +276,7 @@ jobs:
     env:
       # Scoped to Workers Scripts:Edit, Workers KV Storage:Edit and Workers
       # Routes:Edit on the modelspec.dev zone. No DNS, no R2, no Containers.
-      # CLOUDFLARE_API_TOKEN (Pages) and CLOUDFLARE_GRAPH_API_TOKEN (benchgraph)
-      # are different credentials and are not used here.
+      # CLOUDFLARE_API_TOKEN (Pages) is a different credential and is not used here.
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_MODELSPEC_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       MODELSPEC_SNAPSHOT_KEY: ${{ secrets.MODELSPEC_SNAPSHOT_KEY }}
