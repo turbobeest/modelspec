@@ -335,6 +335,7 @@ class _Run:
         self.pos = {cid: i for i, cid in enumerate(self.ids)}
         self.cache: dict[int, Bits] = {}
         self.evidence_conditions: dict[int, bool] = {}
+        self.unknown_leaf_facets: dict[int, tuple[str, ...]] = {}
         self.resolved_threshold: dict[int, Any] = {}
         self.penalties: list[SoftPenalty] = []
         self.path = ""
@@ -390,6 +391,13 @@ class _Run:
         if explicit == "fail" or isinstance(cond, Known):
             return 0, 0, unk_bits
         if explicit == "list":
+            return 0, unk_bits, 0
+        # A leaf has one unknown facet and therefore one policy for every
+        # unknown row. Compound conditions still select facets per candidate.
+        if _is_leaf(cond):
+            facets = self._unknown_facets(cond, 0)
+            if not facets or any(self._facet(facet_id).risk == "governance" for facet_id in facets):
+                return 0, 0, unk_bits
             return 0, unk_bits, 0
         listed = failed = 0
         for cid in self._ids_of(unk_bits):
@@ -607,7 +615,10 @@ class _Run:
                 return self._decisive(child, bit, "unknown")
         return cond
 
-    def _unknown_facets(self, cond: Any, bit: int) -> list[str]:
+    def _unknown_facets(self, cond: Any, bit: int) -> Sequence[str]:
+        key = id(cond)
+        if key in self.unknown_leaf_facets:
+            return self.unknown_leaf_facets[key]
         if isinstance(cond, NotOf):
             return self._unknown_facets(cond.not_, bit)
         children = _children(cond)
@@ -622,7 +633,9 @@ class _Run:
                             found.append(facet_id)
             return found
         facet_id = _facet_of(cond)
-        return [facet_id] if facet_id else []
+        facets = (facet_id,) if facet_id else ()
+        self.unknown_leaf_facets[key] = facets
+        return facets
 
     def _value(self, cond: Any, cid: str) -> Any:
         if isinstance(cond, Known):

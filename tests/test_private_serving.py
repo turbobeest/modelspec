@@ -234,7 +234,8 @@ def test_vocabulary_cap_uses_persistent_visitor_identity(monkeypatch):
     import human_gate_do
     now = [10000]
     monkeypatch.setattr(human_gate_do.time, "time", lambda: now[0])
-    monkeypatch.setitem(sys.modules, "bundled_data", SimpleNamespace(read=lambda _: b'{"models":{}}'))
+    blobs = {"/api/decision/vocabulary.json": b'{"models":{}}'}
+    monkeypatch.setitem(sys.modules, "bundled_data", SimpleNamespace(read=blobs.get))
     context = entry_fixture.__wrapped__()
     module = next(context)
     worker = module.Default()

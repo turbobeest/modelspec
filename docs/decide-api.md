@@ -163,7 +163,8 @@ The site build signs the Snapshot content hash with HMAC-SHA256. The build and
 Worker receive `MODELSPEC_SNAPSHOT_KEY` as a secret. The secret is never in the
 Snapshot, repository, response, or Worker variables.
 
-On the first decision request in an isolate, the Worker:
+For a deployment without `bundled_data.py`, on the first decision request in
+an isolate the Worker:
 
 1. downloads `/api/decision/snapshot.json.gz` from `EXPORT_ORIGIN`;
 2. checks its format version, canonical content hash, and Snapshot ID;
@@ -176,7 +177,14 @@ no verified Snapshot held, a failed verification is cached as a refusal for one
 revalidation interval, then tried again. The Worker never answers from an
 unverified Snapshot.
 
-An isolate runs one load at a time (MODEL-153). Requests that arrive while a
+A bundled deployment parses, hash-checks, and indexes its snapshot at module
+scope, which Cloudflare captures in the deployment memory snapshot. The first
+request still requires the runtime verification key and authenticates the
+checked content hash before serving that index. The bundle is immutable for a
+deployment, so requests reuse it without decompressing, parsing, or indexing it
+again. A deployment replaces the bundled snapshot. See the phase-2 profile below.
+
+An isolate that fetches its snapshot runs one load at a time (MODEL-153). Requests that arrive while a
 cold isolate is loading wait for that load and share its outcome, a Snapshot
 or an error, so a burst costs one download and one parsed Snapshot in memory.
 During a refresh, requests that can answer from the held Snapshot do so
@@ -186,7 +194,9 @@ presumed dead, and the next request starts another.
 ## Snapshot refresh
 
 A site deploy publishes a new Snapshot and a new `vocabulary.json` together
-(MODEL-159). A warm isolate picks the new Snapshot up without a restart:
+(MODEL-159). A warm isolate that fetches static exports picks the new Snapshot up without
+a restart. Bundled deployments replace their Snapshot on the next Worker deploy.
+The fetched path works as follows:
 
 1. At most once every 60 seconds (`REVALIDATE_SECONDS`), the next decision
    request sends a conditional `GET` of the Snapshot with `If-None-Match` set
@@ -402,9 +412,135 @@ reports include response hashes, response sizes, phase percentiles, and cold
 phase times. Run each runtime in a fresh process. Restore the ordinary bundle
 with `python api/worker/vendor.py --check` after profiling.
 
-After the existing deployment smoke, `rank-api.yml` runs one warmup followed
-by 20 POST requests with the same public Spec and `explain: full`. It writes
-p50 and p95 round-trip times to the step summary and warns above 500 ms p95.
-The existing smoke has no API-key credential. `BUILD_COMMIT` identifies the
-deployment and grants no access. If anonymous decisions require a key or are
-unavailable, the timing step records a skip. No secret is added.
+The deployment smoke is extended by the phase-2 measurements below.
+
+### MODEL-269 phase 2, 2026-10-01
+
+The Worker now imports the decision stack and loads the registry at module scope.
+For bundled deployments, it also decompresses, hash-checks, parses, and indexes
+the decision snapshot there. Cloudflare captures this work in the deployment
+[memory snapshot](https://developers.cloudflare.com/workers/languages/python/how-python-workers-work/#deployment-lifecycle-and-cold-start-optimizations).
+The first request authenticates the checked content hash with the runtime HMAC
+key before serving the prepared index. Missing keys and invalid signatures still
+refuse. Fetched snapshots retain their complete hash, ID, and signature checks.
+Bundled data is immutable for a deployment, so forced refreshes reuse the index.
+Fetched deployments retain conditional revalidation and stale-snapshot handling.
+
+The dominant warm phase was filtering. `_unknown_disposition` previously walked
+every unknown candidate and repeatedly inspected the same Pydantic condition.
+A leaf has one facet and one unknown policy, so the filter now partitions its
+whole unknown bitset once. Compound conditions still select unknown facets per
+candidate. A per-filter cache retains each leaf's facet tuple.
+
+The live vocabulary fetched on 2026-10-01 has 40 templates. Its first template,
+`coding-best`, contains class/lifecycle conditions and `software_engineering: 1.0`.
+It has no task type, capability preference, token counts, or cost objective.
+The exact vocabulary spec is measured separately below, with its default limit
+of 20. The supplied heavier workload description is measured with this explicit
+Spec; its cost weight of 0.25 is an assumption because the supplied description
+does not give that weight:
+
+```json
+{
+  "spec_version": 1,
+  "where": [
+    "model.class = text-generator",
+    "model.lifecycle = active"
+  ],
+  "optimize": {
+    "weights": {
+      "software_engineering": 1,
+      "-offering.cost_per_task": 0.25
+    }
+  },
+  "task_type": "new_feature",
+  "capabilities": {
+    "software_engineering": "preferred"
+  },
+  "task_tokens": {
+    "input": 40000,
+    "output": 4000
+  },
+  "limit": 500
+}
+```
+
+Both revisions use the same signed public full-catalogue fixture from phase 1,
+`snap_15b0a6fb295a206e`: 1,372 models and 1,415 candidate rows, including the archive.
+Pyodide is 0.28.3 with Python 3.13.2 and Pydantic 2.10.6. Each explanation level
+has five excluded warmups and 50 samples. p95 is nearest rank. The Node process
+has live timers; Cloudflare's frozen clock is not used.
+
+Cold measurements have one observation per revision. The fixture substitutes
+local signed bytes for bundle retrieval, so network transfer is excluded.
+Runtime startup and package loading are fresh Node/Pyodide measurements, not
+Cloudflare memory-snapshot restore measurements. Deploy-time work moves out of
+requests; these results do not measure Cloudflare's restore cost.
+
+| Cold stage, heavy full response | Before ms | After ms | After execution point |
+| --- | ---: | ---: | --- |
+| Pyodide runtime startup | 729.93 | 702.10 | Local runtime bootstrap |
+| Package loading | 100.50 | 96.65 | Local bootstrap; captured on Cloudflare |
+| Other Python imports | 766.14 | 759.38 | Deploy initialization |
+| Registry / first validation | 315.14 | 301.62 | Deploy initialization; request validation 1.11 ms |
+| Snapshot retrieval from local fixture | 0.01 | 0.02 | Deploy initialization |
+| Snapshot decompression, parse, hash checks | 48.02 | 47.18 | Deploy initialization |
+| Snapshot index construction | 24.04 | 21.97 | Deploy initialization |
+| HMAC computation | 0.14 | 0.09 | First request |
+| First full request after module initialization | 701.52 | 229.52 | First request |
+| First full request, exact vocabulary template 1 | 566.31 | 172.74 | First request |
+
+The first-request rows include the request phases above and are not additive
+with them. All warm values below are p50 / p95 in milliseconds.
+
+| Workload | Explain | Before | After |
+| --- | --- | ---: | ---: |
+| Described heavy spec | none | 76.90 / 100.24 | 60.19 / 80.71 |
+| Described heavy spec | summary | 164.97 / 192.35 | 112.99 / 134.72 |
+| Described heavy spec | full | 222.15 / 253.16 | 167.62 / 193.49 |
+| Exact vocabulary template 1 | none | 74.22 / 93.43 | 69.59 / 95.14 |
+| Exact vocabulary template 1 | summary | 139.13 / 160.52 | 101.67 / 125.32 |
+| Exact vocabulary template 1 | full | 169.53 / 190.97 | 130.15 / 155.98 |
+
+| Heavy full response phase | Before | After |
+| --- | ---: | ---: |
+| Spec parse and validation | 0.37 / 0.45 | 0.34 / 0.38 |
+| Filtering | 78.25 / 84.63 | 31.99 / 34.20 |
+| Capability and ranking | 2.66 / 2.86 | 2.47 / 2.60 |
+| Tie bands and probability draws | 1.58 / 1.79 | 1.52 / 1.71 |
+| Explanation | 39.52 / 42.08 | 37.97 / 40.51 |
+| JSON serialization | 62.67 / 89.38 | 60.31 / 81.55 |
+| Other Worker and engine work | 34.59 / 61.99 | 32.59 / 53.35 |
+| Whole request | 222.15 / 253.16 | 167.62 / 193.49 |
+
+Response hashes match before and after for both profiled workloads at all three
+explanation levels in Pyodide. The heavier workload's response hashes also match
+across CPython and Pyodide. A separate CPython Worker replay checks all 40
+vocabulary templates at limit 500: all 120 response hashes match before and after.
+The public bundled memory fixture passes the steady gate at 103.43 MiB, with
+a measured peak of 108.70 MiB. This memory fixture retains the ordinary premier
+lineup, as in the deployment gate; timing uses the separate full-catalogue fixture.
+
+The production measurements supplied for phase 2 remain the deployment baseline:
+warm template 1 p50/p95 541/940 ms, warm template 2 209/390 ms, and immediate
+post-deploy smoke 1,000/6,800 ms. Local results exclude the network and cannot
+establish the production p95 ≤ 500 ms target. The new smoke measures that after
+a deployment.
+
+`profile_decide.py --spec exact-spec.json` and the optional fifth argument to
+`profile_decide.cjs` select an exact JSON Spec. Reports now separate runtime
+startup, package loading, import initialization, snapshot retrieval, parsing and
+hash checks, index construction, HMAC computation, and the first full request.
+The reproduction commands above still work. Append the Spec path to select one
+of these workloads, and retain the same signed snapshot for both revisions.
+
+`.github/scripts/check_decide_latency.py` reads `/v1/vocabulary` from the deployed
+Worker and samples every template, including unavailable templates that should
+produce valid `no_feasible` Decisions. By default it uses `explain: full` and
+limit 500, records one initial call, excludes five warmups, then measures 20 calls
+per template. `--warmups`, `--count`, `--explain`, and `--vocabulary-url` configure
+the measurement. The step summary reports initial latency and warm p50/p95 for
+each template. Initial calls are cold candidates; the client cannot force or
+identify a fresh isolate, and even later samples can encounter one. Only warm
+p95 warns against the 500 ms target. Access refusals record a skip and stop
+sampling. The smoke remains warning-only and uses no new credential.

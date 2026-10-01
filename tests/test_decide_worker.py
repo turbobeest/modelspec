@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import ast
 import asyncio
 import gzip
 import importlib.util
@@ -543,20 +542,38 @@ def test_entry_routes_compare_through_the_existing_access_gate() -> None:
     assert "await self._compare(" in source
 
 
-def test_entry_imports_the_decision_stack_only_for_decision_routes() -> None:
-    source = (WORKER_SRC / "entry.py").read_text(encoding="utf-8")
-    tree = ast.parse(source)
-    top_level_imports = {
-        alias.name
-        for node in tree.body
-        if isinstance(node, ast.Import)
-        for alias in node.names
-    }
+def test_entry_prepares_bundle_before_the_first_request(monkeypatch, snapshot_bytes):
+    bundle = SimpleNamespace(read=lambda path: snapshot_bytes)
+    monkeypatch.setitem(sys.modules, "bundled_data", bundle)
+    module = entry.__wrapped__(monkeypatch)
+    prepared = module._bundled_decision_snapshot
+    assert prepared is not None
+    assert not prepared.signature_verified
 
-    assert "decide_service" not in top_level_imports
-    assert 'if path in ("/v1/decide", "/v1/compare"):' in source
-    assert "decider = _decide_service()" in source
-    assert 'headers["retry-after"] = str(decider.RETRY_AFTER_SECONDS)' in source
+    def no_read(path):
+        raise AssertionError("cold request read or reparsed the deployment bundle")
+
+    bundle.read = no_read
+    holder = module._decision_holder("https://modelspec.dev")
+    assert asyncio.run(holder.current(KEY)) is prepared
+    assert prepared.signature_verified
+    assert asyncio.run(holder.current(KEY, force=True)) is prepared
+    assert holder.headers()["x-modelspec-snapshot"] == prepared.snapshot_id
+
+
+@pytest.mark.parametrize("key", [None, "", b"", "wrong-key"])
+def test_prepared_bundle_still_requires_runtime_authentication(service, snapshot_bytes, key):
+    prepared = load_snapshot_bytes(snapshot_bytes, key=None, public_keys={})
+
+    async def no_fetch(etag):
+        raise AssertionError("immutable bundle attempted network access")
+
+    holder = service.SnapshotHolder(no_fetch, bundled_snapshot=prepared)
+    with pytest.raises(service.SnapshotRefusalError):
+        asyncio.run(holder.current(key))
+    assert holder.snapshot is None
+    assert not prepared.signature_verified
+    assert asyncio.run(holder.current(KEY)) is prepared
 
 
 def test_cors_is_for_the_production_site_and_the_preview_only() -> None:
