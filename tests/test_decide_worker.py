@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import ast
+import asyncio
 import gzip
 import importlib.util
 import json
@@ -10,6 +11,7 @@ import sys
 from datetime import date
 from pathlib import Path
 from time import perf_counter
+from types import SimpleNamespace
 
 import pytest
 from typer.testing import CliRunner
@@ -39,6 +41,7 @@ from tests.snapshot_records import (  # noqa: E402
     offering,
     thirty_models,
 )
+from tests.test_x402 import _entry_env, _Req, entry  # noqa: E402, F401
 
 KEY = b"model-151-test-key"
 COLD_DOMAIN_DECISION_BUDGET_MS = 1_000
@@ -567,6 +570,73 @@ def test_cors_is_for_the_production_site_and_the_preview_only() -> None:
     assert '"access-control-allow-origin": "*"' not in source.lower()
 
 
+@pytest.mark.parametrize("human_access", [False, True])
+def test_server_timing_reports_only_snapshot_work(
+    entry, service, snapshot_bytes, snapshot, monkeypatch, human_access,  # noqa: F811
+):
+    elapsed = [0.0]
+    clock = [0.0]
+    refresh = ["cold"]
+
+    async def fetch_snapshot(etag):
+        elapsed[0] += 0.0123
+        if refresh[0] == "failed":
+            raise OSError("origin unavailable")
+        return SimpleNamespace(status=200 if etag is None else 304,
+                               etag='"snapshot"', body=snapshot_bytes)
+
+    holder = service.SnapshotHolder(fetch_snapshot, clock=lambda: clock[0])
+    monkeypatch.setattr(entry, "_decide_service", lambda: service)
+    monkeypatch.setattr(entry, "_decision_holder", lambda origin: holder)
+    monkeypatch.setattr(entry.time, "perf_counter", lambda: elapsed[0])
+    decide = service.decide
+    serialise = service.serialise
+
+    def measured_decide(*args, **kwargs):
+        elapsed[0] += 0.001
+        return decide(*args, **kwargs)
+
+    def measured_serialise(body):
+        elapsed[0] += 0.0025
+        return serialise(body)
+
+    monkeypatch.setattr(service, "decide", measured_decide)
+    monkeypatch.setattr(service, "serialise", measured_serialise)
+    gate = entry.access.gate
+
+    async def slow_gate(**kwargs):
+        result = await gate(**kwargs)
+        elapsed[0] += 10
+        return result
+
+    async def admit(*args):
+        elapsed[0] += 10
+        return 200, None, None, {}
+
+    monkeypatch.setattr(entry.access, "gate", slow_gate)
+    monkeypatch.setattr(entry.human_gate, "admit", admit)
+    worker = entry.Default()
+    worker.env = _entry_env(MODELSPEC_SNAPSHOT_KEY=KEY.decode(),
+                            X402_ENABLED="false",
+                            HUMAN_GATE_ENABLED=str(human_access).lower())
+    expected_bytes = serialise(decide(_payload(), snapshot)[1])
+    for state, now, expected_timing in (
+        ("cold", 0, "snapshot;dur=12.3"),
+        ("warm", 1, None),
+        ("revalidated", 61, "snapshot;dur=12.3"),
+        ("failed", 122, "snapshot;dur=12.3"),
+    ):
+        refresh[0], clock[0] = state, now
+        request = _Req("/v1/decide", _payload(),
+                       headers={"Origin": "https://modelspec.dev"})
+        response = asyncio.run(worker.fetch(request))
+        assert response.status == 200
+        assert response.body.encode("utf-8") == expected_bytes
+        assert response.headers.get("Server-Timing") == expected_timing
+        exposed = response.headers["access-control-expose-headers"].lower().split(", ")
+        assert "server-timing" in exposed
+
+
 def test_access_and_billing_switches_stay_off() -> None:
     config = (WORKER_ROOT / "wrangler.jsonc").read_text(encoding="utf-8")
     for name in ("ACCESS_ENFORCED", "BILLING_ENABLED", "X402_ENABLED"):
@@ -617,3 +687,19 @@ def test_an_evidence_row_without_measured_by_is_kept_out_and_no_decision_breaks(
             failed.append((case.id, answer[1][:200]))
     assert len(cases) > 0
     assert failed == []
+
+
+def test_timed_bytes_are_never_served_for_a_rewritten_body(entry, service, monkeypatch):  # noqa: F811
+    # x402's unfunded fallback answers with a copy of the decision that adds
+    # credits.exhausted; the bytes timed for the original must not stand in.
+    monkeypatch.setattr(entry, "_decide_service", lambda: service)
+    original = {"decision": "x"}
+    transport = entry._DecisionTransport()
+    transport.body = original
+    transport.serialised = service.serialise(original)
+    transport.headers["Server-Timing"] = "decide;dur=1.0"
+    rewritten = {**original, "credits": {"exhausted": True}}
+    response = entry._decision_response(service.HTTP_OK, rewritten, None, transport)
+    assert json.loads(response.body)["credits"] == {"exhausted": True}
+    same = entry._decision_response(service.HTTP_OK, original, None, transport)
+    assert json.loads(same.body) == original
