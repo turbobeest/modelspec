@@ -89,6 +89,21 @@ export interface DecideOptions {
   signal?: AbortSignal;
   /** The vocabulary's snapshot. A Worker holding another answers `snapshot_changed`. */
   snapshot?: string;
+  /** Shared by every auxiliary of a verified action. */
+  pace?: () => Promise<void>;
+}
+
+export function decisionAction(humanToken?: string, onRemaining?: DecideOptions["onRemaining"]): DecideOptions {
+  let nextAt = 0;
+  return {
+    intent: newIntent(), humanToken, onRemaining,
+    ...(humanToken ? { pace: async () => {
+      const now = Date.now();
+      const at = Math.max(now, nextAt);
+      nextAt = at + 150;
+      if (at > now) await new Promise<void>((resolve) => setTimeout(resolve, at - now));
+    } } : {}),
+  };
 }
 
 export interface HostedDecisionEngine {
@@ -111,6 +126,7 @@ export const hostedEngine: HostedDecisionEngine = {
     const timer = setTimeout(() => timeout.abort(), DECIDE_TIMEOUT_MS);
     const abort = () => timeout.abort();
     options.signal?.addEventListener("abort", abort, { once: true });
+    if (options.signal?.aborted) timeout.abort();
     // The timeout covers the whole exchange, body included: a response whose
     // body stalls is as unanswered as one that never arrives.
     const stopped = () =>
@@ -122,6 +138,8 @@ export const hostedEngine: HostedDecisionEngine = {
             "timeout",
           );
     try {
+      if (options.pace) await unlessAborted(options.pace(), timeout.signal, stopped);
+      if (timeout.signal.aborted) throw stopped();
       let response: Response;
       try {
         response = await fetch(DECIDE_ENDPOINT, {

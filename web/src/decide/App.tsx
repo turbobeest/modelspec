@@ -1,4 +1,5 @@
 import { HumanGate, HUMAN_GATE_ENABLED } from "./components/HumanGate";
+import { decisionAction } from "./adapter/hosted";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   newIntent,
@@ -336,7 +337,7 @@ export function DesignedApp({
 
   async function runDecision(requested: Spec, humanToken?: string, onRemaining?: (remaining: number) => void) {
     if (gateStatus === null || (humanGateEnabled && !humanToken)) return;
-    const intentOptions = { intent: newIntent(), humanToken, onRemaining };
+    const intentOptions = decisionAction(humanToken, onRemaining);
     action.current = intentOptions;
     requestAbort.current?.abort();
     questionsAbort.current?.abort();

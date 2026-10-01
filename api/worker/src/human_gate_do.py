@@ -5,30 +5,48 @@ import json
 import time
 
 from credits_do import DurableObject, _cell, _one_row
-from human_gate import BURST_LIMIT, DAY_LIMIT, WINDOW_SECONDS, INTENT_REQUEST_LIMIT, INTENT_WINDOW_SECONDS
+from human_gate import (BURST_LIMIT, DAY_LIMIT, WINDOW_SECONDS, INTENT_REQUEST_LIMIT,
+                        INTENT_WINDOW_SECONDS, CONTINUATION_BURST_LIMIT, CONTINUATION_BURST_SECONDS)
+from human_question import derivation, fingerprint, digest
 
 
-def continue_intent(state, now, intent):
+def continue_intent(state, now, intent, question=None):
     if state.get("day") != int(now // 86400):
         return None
     admission = state.get("intents", {}).get(intent)
     if admission is None:
         return None
     remaining = max(0, DAY_LIMIT - state["count"])
+    refused = {"remaining": remaining, "reason": "intent", "retry_after": 1}
     if now - admission["first"] >= INTENT_WINDOW_SECONDS or admission["requests"] >= INTENT_REQUEST_LIMIT:
         return {"remaining": remaining, "reason": "intent",
                 "retry_after": max(1, (int(now // 86400) + 1) * 86400 - int(now))}
+    kind = derivation(admission.get("question"), question)
+    if kind is None:
+        return refused
+    # The first estate/plot variant fixes that auxiliary for the whole action.
+    # Later calls cannot sweep resources or axes.
+    variant = digest({key: question[key] for key in ("optimize", "capabilities", "estate")})
+    if kind in ("estate", "plot") and admission.get(kind, variant) != variant:
+        return refused
+    events = [stamp for stamp in admission.get("events", [admission["first"]])
+              if now - stamp < CONTINUATION_BURST_SECONDS]
+    if len(events) >= CONTINUATION_BURST_LIMIT:
+        return refused
+    if kind in ("estate", "plot"):
+        admission[kind] = variant
+    admission["events"] = [*events, now]
     admission["requests"] += 1
     return {"remaining": remaining, "reason": "", "retry_after": 0}
 
 
-def take(state, now, intent=None):
+def take(state, now, intent=None, question=None):
     day = int(now // 86400)
     if state.get("day") != day:
         state.clear()
         state.update(day=day, count=0, events=[])
     if intent:
-        continued = continue_intent(state, now, intent)
+        continued = continue_intent(state, now, intent, question)
         if continued is not None:
             return continued
     # Deployed objects may still contain [timestamp, fingerprint] pairs.
@@ -55,7 +73,8 @@ def take(state, now, intent=None):
         state["events"].append(now)
         remaining -= 1
         if intent:
-            state.setdefault("intents", {})[intent] = {"first": now, "requests": 1}
+            state.setdefault("intents", {})[intent] = {
+                "first": now, "requests": 1, "question": question, "events": [now]}
     return {"remaining": remaining, "reason": reason, "retry_after": retry}
 
 
@@ -65,18 +84,19 @@ class HumanGateObject(DurableObject):
         self.ctx = ctx
         self.env = env
 
-    async def take(self, intent=None):
-        return await self._admit(intent, False)
+    async def take(self, intent=None, spec=None):
+        return await self._admit(intent, False, spec)
 
-    async def continue_intent(self, intent):
-        return await self._admit(intent, True)
+    async def continue_intent(self, intent, spec=None):
+        return await self._admit(intent, True, spec)
 
-    async def _admit(self, intent, admitted_only):
+    async def _admit(self, intent, admitted_only, spec):
         now = time.time()
         self.ctx.storage.sql.exec("CREATE TABLE IF NOT EXISTS human_state (k TEXT PRIMARY KEY, v TEXT)")
         row = _one_row(self.ctx.storage.sql.exec("SELECT v FROM human_state WHERE k = 'state'"))
         state = json.loads(str(_cell(row, "v"))) if row is not None else {}
-        result = continue_intent(state, now, intent) if admitted_only else take(state, now, intent)
+        question = fingerprint(spec) if intent else None
+        result = continue_intent(state, now, intent, question) if admitted_only else take(state, now, intent, question)
         if result is None:
             return None
         # No await between load, admission and save: concurrent calls cannot

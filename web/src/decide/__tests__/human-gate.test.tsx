@@ -1,5 +1,7 @@
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { execFileSync } from "node:child_process";
+import { z } from "zod";
 import fixture from "../__fixtures__/full-decision.json";
 import { json, routeFetch, realVocabulary, sentSpecs } from "./vocab-fixtures";
 
@@ -13,9 +15,35 @@ beforeEach(() => {
   };
 });
 afterEach(() => {
+  vi.useRealTimers();
   delete window.turnstile;
   vi.unstubAllGlobals();
   vi.unstubAllEnvs();
+});
+
+it("paces verified auxiliaries and cancels queued calls before fetch", async () => {
+  vi.useFakeTimers();
+  const fetch = vi.fn(async () => json(fixture));
+  vi.stubGlobal("fetch", fetch);
+  const { hostedEngine, decisionAction } = await import("../adapter/hosted");
+  const options = decisionAction("token");
+  const spec = { spec_version: 1, optimize: { max: "software_engineering" } } satisfies Parameters<typeof hostedEngine.decide>[0];
+  await hostedEngine.decide(spec, options);
+  expect(fetch).toHaveBeenCalledTimes(1);
+  const controller = new AbortController();
+  const queued = hostedEngine.decide(spec, { ...options, signal: controller.signal });
+  const refusal = expect(queued).rejects.toMatchObject({ name: "AbortError" });
+  controller.abort();
+  await refusal;
+  const next = hostedEngine.decide(spec, options);
+  await vi.advanceTimersByTimeAsync(299);
+  expect(fetch).toHaveBeenCalledTimes(1);
+  await vi.advanceTimersByTimeAsync(1);
+  await next;
+  expect(fetch).toHaveBeenCalledTimes(2);
+  await expect(hostedEngine.decide(spec, { ...options, signal: controller.signal }))
+    .rejects.toMatchObject({ name: "AbortError" });
+  expect(fetch).toHaveBeenCalledTimes(2);
 });
 
 it("shows the remaining allowance and consumes one token per manual lookup", async () => {
@@ -76,18 +104,35 @@ it("sends the token in a header, preserves the Spec body and reads allowance on 
 });
 
 it("the real app verifies each action and preserves its background requests", async () => {
+  const trace: { intent: string; token: string; spec: unknown; now: number }[] = [];
+  const outcomeSchema = z.array(z.tuple([z.number(), z.string(), z.string(), z.record(z.string(), z.string())]));
   const routed = routeFetch({ vocabulary: () => json(realVocabulary), decide: () => json(fixture) });
-  vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) =>
-    String(input).endsWith("/v1/human-status")
-      ? Promise.resolve(json({ enabled: true, remaining: 20 }))
-      : routed(input, init)));
+  vi.stubGlobal("fetch", vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (String(input).endsWith("/v1/human-status")) return json({ enabled: true, remaining: 20 });
+    if (String(input).endsWith("/v1/decide")) {
+      const headers = new Headers(init?.headers);
+      trace.push({ intent: headers.get("x-modelspec-intent") ?? "",
+        token: headers.get("x-modelspec-turnstile") ?? "",
+        spec: JSON.parse(String(init?.body)), now: Date.now() / 1000 });
+      const outcomes = outcomeSchema.parse(JSON.parse(execFileSync(
+        process.env.MODELSPEC_TEST_PYTHON ?? "python3", ["../tests/replay_human_gate.py"],
+        { input: JSON.stringify(trace), encoding: "utf8" },
+      )));
+      const [status, code, message, gateHeaders] = outcomes[outcomes.length - 1];
+      if (status !== 200) return json({ error: { code, message } }, status);
+      const response = await routed(input, init);
+      for (const [key, value] of Object.entries(gateHeaders)) response.headers.set(key, value);
+      return response;
+    }
+    return routed(input, init);
+  }));
   const { DesignedApp } = await import("../App");
   render(<DesignedApp />);
   const button = await screen.findByRole("button", { name: "Look up this decision" });
   await waitFor(() => expect(button).toBeEnabled());
   expect(sentSpecs(vi.mocked(fetch))).toHaveLength(0);
   fireEvent.click(button);
-  await waitFor(() => expect(sentSpecs(vi.mocked(fetch))).toHaveLength(12));
+  await waitFor(() => expect(sentSpecs(vi.mocked(fetch))).toHaveLength(12), { timeout: 10_000 });
   await waitFor(() => expect(button).toBeEnabled());
   expect(sentSpecs(vi.mocked(fetch))).toHaveLength(12);
   const firstIds = new Set(routed.mock.calls.filter(([url]) => String(url).endsWith("/v1/decide"))
@@ -95,14 +140,19 @@ it("the real app verifies each action and preserves its background requests", as
   expect(firstIds.size).toBe(1);
   expect([...firstIds][0]).toMatch(/^[A-Za-z0-9_-]{21}[AQgw]$/);
   expect(window.turnstile?.render).toHaveBeenCalled();
+  expect(await screen.findByText(/19 decisions remaining today/)).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: /^Coding · Budget:/ }));
+  expect(sentSpecs(vi.mocked(fetch))).toHaveLength(12);
   fireEvent.click(button);
-  await waitFor(() => expect(sentSpecs(vi.mocked(fetch))).toHaveLength(24));
+  await waitFor(() => expect(sentSpecs(vi.mocked(fetch))).toHaveLength(24), { timeout: 10_000 });
   await waitFor(() => expect(button).toBeEnabled());
   expect(sentSpecs(vi.mocked(fetch))).toHaveLength(24);
   const allIds = new Set(routed.mock.calls.filter(([url]) => String(url).endsWith("/v1/decide"))
     .map(([, init]) => new Headers(init.headers).get("x-modelspec-intent")));
   expect(allIds.size).toBe(2);
-}, 20_000);
+  expect(trace).toHaveLength(24);
+  expect(await screen.findByText(/18 decisions remaining today/)).toBeVisible();
+}, 30_000);
 
 it("shows a burst refusal in the page and asks for fresh verification", async () => {
   const routed = routeFetch({ vocabulary: () => json(realVocabulary), decide: () => json({

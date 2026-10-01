@@ -1,6 +1,7 @@
 """Keyless /decide admission. Tokens and addresses are never persisted."""
 from __future__ import annotations
 
+import json
 import re
 
 from ipaddress import ip_address, ip_network
@@ -15,6 +16,8 @@ SITEVERIFY = "https://challenges.cloudflare.com/turnstile/v0/siteverify"
 INTENT_HEADER = "x-modelspec-intent"
 INTENT_REQUEST_LIMIT = 32
 INTENT_WINDOW_SECONDS = 60
+CONTINUATION_BURST_LIMIT = 8
+CONTINUATION_BURST_SECONDS = 1
 
 
 def intent_for(request):
@@ -88,7 +91,7 @@ def as_dict(value):
     return dict(to_py() if callable(to_py) else value)
 
 
-async def admit(request, env, origins, verify):
+async def admit(request, env, origins, verify, payload=None):
     """Return (status, error code, message, headers), or an admitted 200."""
     origin = str(request.headers.get("origin") or "")
     if origin not in origins:
@@ -98,9 +101,14 @@ async def admit(request, env, origins, verify):
         if stub is None:
             return 503, "human_gate_unavailable", UNAVAILABLE, {}
         intent = intent_for(request)
+        if intent and payload is None:
+            payload = json.loads(await request.text())
+        # RPC transports JSON text, not a client-supplied fingerprint. The
+        # Durable Object parses and fingerprints the actual producer payload.
+        spec = json.dumps(payload) if intent else None
         # Only a visitor's already verified admission can bypass Siteverify.
         # This also consumes the continuation atomically against its cap.
-        continued = await stub.continue_intent(intent) if intent else None
+        continued = await stub.continue_intent(intent, spec) if intent else None
         meter = as_dict(continued) if continued is not None else None
         if meter is None:
             token = str(request.headers.get(TOKEN_HEADER) or "")
@@ -119,13 +127,13 @@ async def admit(request, env, origins, verify):
             # Verification may have crossed UTC midnight. Resolve the daily object
             # again so admission uses the current visitor ID.
             stub = env.HUMAN_GATE.get(env.HUMAN_GATE.idFromName(identity))
-            meter = as_dict(await stub.take(intent))
+            meter = as_dict(await stub.take(intent, spec))
         headers = {REMAINING_HEADER: str(meter["remaining"])}
         reason = meter["reason"]
         if reason:
             headers["retry-after"] = str(meter["retry_after"])
             messages = {
-                "intent": "This decision action has expired or used its request allowance. Start a new lookup and verify again.",
+                "intent": "This request is outside this decision action's question, pace or allowance. Wait, or start a new lookup and verify again.",
                 "day": "You have used today's 20 manual decisions. Come back after midnight UTC or use the paid API or MCP.",
                 "burst": "Three decisions per minute is the manual lookup limit. Wait a minute, then verify again.",
                 "sweep": "This lookup pattern resembles an automated sweep. Wait ten minutes and verify again, or use the paid API or MCP.",

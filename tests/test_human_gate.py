@@ -367,31 +367,42 @@ def test_legacy_events_load_and_write_only_timestamps(monkeypatch, timestamps, n
 
 
 INTENT = "AAAAAAAAAAAAAAAAAAAAAA"
+PRIMARY = {
+    "spec_version": 1, "optimize": {"weights": {"software_engineering": 1}},
+    "where": ["model.context_window >= 32000", "model.weights_openness = open_weights"],
+    "access": "own_software", "task_tokens": {"input": 1000, "output": 500},
+    "explain": "summary", "limit": 20,
+}
 
 
-def intent_req(intent=INTENT, ip=IP, token="token"):
-    return _Req("/v1/decide", {"spec_version": 1}, headers={
+def intent_req(intent=INTENT, ip=IP, token="token", spec=None):
+    return _Req("/v1/decide", PRIMARY if spec is None else spec, headers={
         "origin": ORIGIN, "CF-Connecting-IP": ip,
         human_gate.TOKEN_HEADER: token, human_gate.INTENT_HEADER: intent})
 
 
 def test_intent_continuations_share_one_verified_admission(monkeypatch):
-    monkeypatch.setattr(human_gate_do.time, "time", lambda: 10000)
+    now = [10000]
+    monkeypatch.setattr(human_gate_do.time, "time", lambda: now[0])
     e = env()
     calls = []
     async def once(secret, token):
         calls.append(token)
         return await verified(secret, token) if len(calls) == 1 else {"success": False}
-    async def race():
+    async def action():
         first = await admit(intent_req(), e, verify=once)
-        rest = await asyncio.gather(*(admit(intent_req(token=""), e, verify=once) for _ in range(30)))
+        rest = []
+        for _ in range(30):
+            now[0] += .15
+            rest.append(await admit(intent_req(token=""), e, verify=once))
         return [first, *rest]
-    outcomes = asyncio.run(race())
+    outcomes = asyncio.run(action())
     assert all(out[0] == 200 for out in outcomes)
     assert all(out[3][human_gate.REMAINING_HEADER] == "19" for out in outcomes)
     assert calls == ["token"]
     obj = next(iter(e.HUMAN_GATE.objects.values()))
     e.HUMAN_GATE.objects[next(iter(e.HUMAN_GATE.objects))] = human_gate_do.HumanGateObject(obj.ctx, None)
+    now[0] += .15
     assert asyncio.run(admit(intent_req(token=""), e))[0] == 200
     assert asyncio.run(admit(intent_req(), e))[:2] == (429, "human_intent_limit")
 
@@ -457,6 +468,7 @@ def test_even_intervals_count_distinct_intents_only(monkeypatch):
         if i < 4:
             assert out[0] == 200
             for _ in range(10):
+                now[0] += .15
                 assert asyncio.run(admit(intent_req(intent), e))[0] == 200
     assert out[:2] == (429, "human_sweep_limit")
 
@@ -465,3 +477,140 @@ def test_cors_accepts_intent_header(entry):
     worker = _decision_worker(entry, _entry_env(**vars(env())))
     response = asyncio.run(worker.fetch(_Req("/v1/decide", method="OPTIONS", headers={"origin": ORIGIN})))
     assert human_gate.INTENT_HEADER in response.headers["access-control-allow-headers"]
+
+
+PLOT = {
+    **PRIMARY, "where": [], "explain": "full", "limit": 500,
+    "optimize": {"weights": {"-offering.cost_per_task": .5, "software_engineering": .5}},
+    "capabilities": {"software_engineering": "preferred"},
+}
+
+
+@pytest.mark.parametrize("spec", [
+    {**PRIMARY, "explain": "full", "limit": 500},
+    {**PRIMARY, "where": [*PRIMARY["where"], "offering.price.input <= 2"], "explain": "none", "limit": 500},
+    {**PRIMARY, "where": PRIMARY["where"][:1]},
+    PLOT,
+    {**PRIMARY, "estate": {"providers": ["openai"], "plans": ["claude-pro"], "devices": ["apple-m4-max"]}},
+    # Defaults, condition syntax/order, access spelling and numeric spelling
+    # are canonical, while objective and condition semantics stay fixed.
+    {**PRIMARY, "where": ['model.weights_openness = "open_weights"',
+                           {"facet": "model.context_window", "op": ">=", "value": 32000.0}],
+     "access": {"kind": "own_software"}, "unknowns": "default", "snapshot": "latest"},
+])
+def test_each_permitted_derivation_is_admitted(monkeypatch, spec):
+    monkeypatch.setattr(human_gate_do.time, "time", lambda: 10000)
+    e = env()
+    assert asyncio.run(admit(intent_req(), e))[0] == 200
+    assert asyncio.run(admit(intent_req(token="", spec=spec), e))[0] == 200
+    obj = next(iter(e.HUMAN_GATE.objects.values()))
+    assert asyncio.run(obj.remaining()) == 19
+
+
+@pytest.mark.parametrize("spec", [
+    {**PRIMARY, "optimize": {"max": "general_reasoning"}},
+    {**PRIMARY, "where": ["offering.price.input <= 1"]},
+    {**PRIMARY, "where": []},
+    {**PRIMARY, "where": [*PRIMARY["where"], "offering.price.input <= 1", "offering.price.output <= 2"]},
+    {**PRIMARY, "where": [*PRIMARY["where"], "all(offering.price.input <= 1; offering.price.output <= 2)"]},
+    {**PRIMARY, "access": "chat_app"},
+    {**PRIMARY, "task_tokens": {"input": 9999, "output": 999}},
+    {**PRIMARY, "capabilities": {"general_reasoning": "required"}},
+    {**PRIMARY, "exclude_benchmarks": ["swe_bench_pro"]},
+    {**PRIMARY, "task_type": "migration"},
+    {**PRIMARY, "snapshot": "snap_unrelated"},
+    {**PRIMARY, "profile": "profile:other"},
+    {**PRIMARY, "save_as": "other"},
+    {**PRIMARY, "estate": {"providers": ["openai"], "exhausted": ["openai"]}},
+    {**PLOT, "optimize": {"weights": {"-offering.cost_per_task": .2, "software_engineering": .8}}},
+    {**PLOT, "capabilities": {"general_reasoning": "preferred"}},
+    {**PLOT, "capabilities": {"software_engineering": "required"}},
+    {**PLOT, "estate": {"providers": ["openai"]}},
+    {"spec_version": 1},
+])
+def test_unrelated_or_broader_derivations_are_refused_without_siteverify(monkeypatch, spec):
+    monkeypatch.setattr(human_gate_do.time, "time", lambda: 10000)
+    e = env()
+    assert asyncio.run(admit(intent_req(), e))[0] == 200
+    async def never(*args):
+        pytest.fail("known intent refusal must not fall back to Siteverify")
+    assert asyncio.run(admit(intent_req(spec=spec), e, verify=never))[:2] == (429, "human_intent_limit")
+    assert asyncio.run(admit(intent_req(token=""), e))[0] == 200
+
+
+def test_auxiliaries_cannot_chain_or_sweep_plot_and_estate_variants(monkeypatch):
+    monkeypatch.setattr(human_gate_do.time, "time", lambda: 10000)
+    e = env()
+    assert asyncio.run(admit(intent_req(), e))[0] == 200
+    first_probe = {**PRIMARY, "where": [*PRIMARY["where"], "offering.price.input <= 1"]}
+    assert asyncio.run(admit(intent_req(spec=first_probe), e))[0] == 200
+    chained = {**first_probe, "where": [*first_probe["where"], "offering.price.output <= 1"]}
+    assert asyncio.run(admit(intent_req(spec=chained), e))[1] == "human_intent_limit"
+    assert asyncio.run(admit(intent_req(spec=PLOT), e))[0] == 200
+    assert asyncio.run(admit(intent_req(spec={**PLOT, "explain": "full"}), e))[0] == 200
+    other_plot = {**PLOT, "optimize": {"weights": {"general_reasoning": 1}}, "capabilities": {"general_reasoning": "preferred"}}
+    assert asyncio.run(admit(intent_req(spec=other_plot), e))[1] == "human_intent_limit"
+    estate = {**PRIMARY, "estate": {"providers": ["openai", "anthropic"]}}
+    assert asyncio.run(admit(intent_req(spec=estate), e))[0] == 200
+    assert asyncio.run(admit(intent_req(spec={**estate, "estate": {"providers": ["anthropic", "openai"]}}), e))[0] == 200
+    assert asyncio.run(admit(intent_req(spec={**estate, "estate": {"providers": ["google"]}}), e))[1] == "human_intent_limit"
+
+
+def test_continuation_burst_is_atomic_persistent_and_recovers(monkeypatch):
+    now = [10000]
+    monkeypatch.setattr(human_gate_do.time, "time", lambda: now[0])
+    e = env()
+    assert asyncio.run(admit(intent_req(), e))[0] == 200
+    async def race():
+        return await asyncio.gather(*(admit(intent_req(token=""), e) for _ in range(31)))
+    outcomes = asyncio.run(race())
+    assert sum(out[0] == 200 for out in outcomes) == 7
+    assert sum(out[1] == "human_intent_limit" for out in outcomes) == 24
+    identity, obj = next(iter(e.HUMAN_GATE.objects.items()))
+    e.HUMAN_GATE.objects[identity] = human_gate_do.HumanGateObject(obj.ctx, None)
+    now[0] += .999
+    assert asyncio.run(admit(intent_req(token=""), e))[1] == "human_intent_limit"
+    now[0] += .001
+    assert asyncio.run(admit(intent_req(token=""), e))[0] == 200
+
+
+def test_legacy_unbound_intent_fails_closed(monkeypatch):
+    monkeypatch.setattr(human_gate_do.time, "time", lambda: 10000)
+    e = env()
+    assert asyncio.run(admit(intent_req(), e))[0] == 200
+    obj = next(iter(e.HUMAN_GATE.objects.values()))
+    state = {"day": 0, "count": 1, "events": [10000],
+             "intents": {INTENT: {"first": 10000, "requests": 1}}}
+    obj.ctx.storage.sql.exec("INSERT OR REPLACE INTO human_state VALUES ('state', ?)", json.dumps(state))
+    assert asyncio.run(admit(intent_req(), e))[:2] == (429, "human_intent_limit")
+
+
+@pytest.mark.parametrize("offsets,expected", [
+    ([0, 1, 2, 3], "human_burst_limit"),
+    ([0, 70, 140, 210, 280], "human_sweep_limit"),
+    ([i * 601 for i in range(21)], "human_day_limit"),
+])
+def test_sweeper_cannot_vary_questions_under_one_intent_to_bypass_meter(monkeypatch, offsets, expected):
+    now = [10000]
+    monkeypatch.setattr(human_gate_do.time, "time", lambda: now[0])
+    e = env()
+    for i, offset in enumerate(offsets):
+        now[0] = 10000 + offset
+        spec = {**PRIMARY, "task_tokens": {"input": 1000 + i, "output": 500}}
+        if i:
+            assert asyncio.run(admit(intent_req(token="", spec=spec), e))[1] == "human_intent_limit"
+        out = asyncio.run(admit(intent_req(chr(65 + i) * 21 + "A", spec=spec), e))
+    assert out[:2] == (429, expected)
+
+
+def test_worker_uses_same_payload_for_gate_and_producer(entry, monkeypatch):
+    monkeypatch.setattr(human_gate_do.time, "time", lambda: 10000)
+    monkeypatch.setattr(entry, "_verify_turnstile", verified)
+    worker = _decision_worker(entry, _entry_env(**vars(env())))
+    assert asyncio.run(worker.fetch(intent_req())).status == 200
+    async def never(*args):
+        pytest.fail("unrelated continuation reached producer")
+    worker._decide = never
+    response = asyncio.run(worker.fetch(intent_req(spec={**PRIMARY, "access": "chat_app"})))
+    assert response.status == 429
+    assert response.json()["error"]["code"] == "human_intent_limit"
