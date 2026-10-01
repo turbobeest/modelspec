@@ -1099,9 +1099,7 @@ it("on a 409 to the summary, reloads once, retries the summary, then asks for fu
       .map(([, init]) => new Headers(init?.headers).get("x-modelspec-snapshot"));
   await waitFor(() => expect(sent("full")).toEqual([fresh.snapshot]));
   expect(sent("summary")).toEqual([smallVocabulary.snapshot, fresh.snapshot]);
-  // Probes follow the reloaded vocabulary; none of them reloads it again.
-  await waitFor(() => expect(sent("none").length).toBeGreaterThan(0));
-  expect(new Set(sent("none"))).toEqual(new Set([fresh.snapshot]));
+  expect(sent("none")).toEqual([]);
   expect(vocabularyLoads).toBe(2);
 });
 

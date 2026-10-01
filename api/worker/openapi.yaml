@@ -50,6 +50,7 @@ info:
   - human_challenge_required
   - human_day_limit
   - human_gate_unavailable
+  - human_intent_limit
   - human_origin_required
   - human_sweep_limit
   - insufficient_evidence
@@ -85,6 +86,7 @@ info:
     human_challenge_required: 403
     human_day_limit: 429
     human_gate_unavailable: 503
+    human_intent_limit: 429
     human_origin_required: 401
     human_sweep_limit: 429
     method_not_allowed: 405
@@ -446,6 +448,15 @@ paths:
         schema:
           type: string
           pattern: ^snap_[A-Za-z0-9:._-]+$
+      - name: x-modelspec-intent
+        in: header
+        required: false
+        schema:
+          type: string
+          pattern: ^[A-Za-z0-9_-]{21}[AQgw]$
+        description: Random 128-bit action ID encoded as unpadded base64url. The human gate meters distinct
+          intents per visitor. Admitted intents allow at most 32 requests strictly within 60 seconds of
+          their first request. Missing or malformed IDs meter each request separately.
       requestBody:
         required: true
         content:
@@ -6074,6 +6085,7 @@ components:
               - human_challenge_required
               - human_day_limit
               - human_gate_unavailable
+              - human_intent_limit
               - human_origin_required
               - human_sweep_limit
             message:
@@ -8126,6 +8138,7 @@ components:
               - human_challenge_required
               - human_day_limit
               - human_gate_unavailable
+              - human_intent_limit
               - human_origin_required
               - human_sweep_limit
               - method_not_allowed

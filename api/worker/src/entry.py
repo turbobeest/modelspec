@@ -531,7 +531,7 @@ def _cors_headers(request) -> dict[str, str]:
         "access-control-allow-origin": origin,
         "access-control-allow-methods": "POST, OPTIONS",
         "access-control-allow-headers":
-            "authorization, content-type, x-api-key, x-payment, x-modelspec-snapshot, x-modelspec-turnstile",
+            "authorization, content-type, x-api-key, x-payment, x-modelspec-snapshot, x-modelspec-turnstile, x-modelspec-intent",
         "access-control-expose-headers": (
             "x-modelspec-snapshot, x-modelspec-snapshot-stale, "
             "x-modelspec-decisions-remaining, retry-after, Server-Timing"
@@ -792,7 +792,7 @@ class Default(WorkerEntrypoint):
             # Other callers can still pay per call through x402 when it is on.
             if site_origin or not x402.load_config(self.env).enabled:
                 status, code, message, gate_headers = await human_gate.admit(
-                    request, self.env, CORS_ORIGINS, _verify_turnstile)
+                    request, self.env, CORS_ORIGINS, _verify_turnstile, payload)
                 if status == 200:
                     status, body = await _anonymous()
                 else:

@@ -2,7 +2,7 @@
 
 `HUMAN_GATE_ENABLED` ships `false` in production and `true` in isolated staging
 for verifying the gate on Cloudflare before production. Off preserves
-the existing access and x402 paths. On, keyless `/v1/decide` calls from the
+the existing access and x402 paths. On, keyless `/v1/decide` actions from the
 three existing site origins need a fresh Turnstile token in the
 `X-ModelSpec-Turnstile` header. The decision Spec, response body and contract
 versions do not change. Other keyless callers use the paid x402 path when
@@ -28,17 +28,25 @@ by a daily HMAC visitor ID. For this gate only, IPv6 addresses are normalised
 to their /64 network before deriving the ID. IPv4 stays as supplied, and the
 MODEL-241 keyless meter keeps its existing identity behavior. The object uses
 synchronous SQLite reads and writes without yielding during admission. The
-caps are 20 admitted lookups per UTC day and three in a rolling 60 seconds. Admission consumes a lookup
-even if the decision engine subsequently refuses the Spec or fails. Failed
-verification and cap refusals do not consume a lookup. This prevents concurrent
-or deliberately invalid requests from obtaining more answers than the cap.
+caps are 20 admitted questions per visitor per UTC day and three in a rolling
+60 seconds. Admission consumes a question allowance even if the decision
+engine subsequently refuses the Spec or fails. Failed verification and cap
+refusals do not consume a lookup. This prevents concurrent or deliberately
+invalid requests from obtaining more answers than the cap.
 
-The state contains a UTC day, admitted count, recent timestamps and a suspicion
-expiry. The gate does not compute or store Spec fingerprints or other
-Spec-derived values. Every admitted lookup counts toward interval detection.
-Already-deployed objects may contain timestamp/fingerprint pairs. Admission
-reads their timestamps and writes only timestamps, discarding the fingerprints
-on the next admission attempt, including a refusal.
+The state contains a UTC day, admitted count, recent timestamps, a suspicion
+expiry and at most 20 verified intent IDs. Each intent stores its first-request
+time, request count, recent continuation timestamps and canonical Spec
+fingerprints. These are SHA-256 digests, not the raw Spec, conditions, resource
+IDs or objective. The hashes support equality checks; they are not encryption
+and guessable Specs can be matched against them. Every new question admission
+counts toward interval detection, including a question admitted under a reused
+intent ID. The continuation rule below binds each admission to its primary
+question.
+Already-deployed objects may contain timestamp/fingerprint pairs in the meter
+history. Admission keeps only their timestamps. Legacy intents without a
+question fingerprint fail closed with `human_intent_limit`; a fresh intent
+needs a fresh verification and admission.
 It retains ten minutes of lookup history on the next admission. Five lookups
 with four nearly equal intervals within ten minutes set a ten-minute refusal.
 Distinct Specs do not trigger a refusal. Equal means the interval spread
@@ -80,10 +88,11 @@ including automatic lookups and CSV download, without loading Turnstile or
 showing an unavailable message. Only `enabled: true` activates the manual
 flow. A transient status failure shows a retry button and can recover without
 a reload. A `human_challenge_required` response refreshes status so an open
-tab can adopt a newly enabled Worker gate. A manual button sends one full decision. The
-page disables automatic lookup on edits, explanation requests,
-canvas plot requests, estate requests, question probes and automatic Spec
-fallback/retry. Estate data can accompany that single manual lookup.
+tab can adopt a newly enabled Worker gate. A manual button starts one intent after verification. The page retains summary-then-full
+explanations, canvas plot decisions, estate requests,
+the 409 snapshot-change retry and compatible Spec fallback. Every request caused
+by that action carries the same intent header. Automatic Spec edits still wait for the
+manual button while the gate is enabled.
 The widget is replaced after every submission, including a refusal, and token
 expiry disables submission. A cap message links to the paid API/MCP without
 quoting prices. CSV download is hidden while the page gate is enabled.
@@ -92,6 +101,109 @@ quoting prices. CSV download is hidden while the page gate is enabled.
 `Retry-After` reports the wait for caps and suspicion. CORS exposes both.
 The CSP allows `challenges.cloudflare.com` for scripts, frames and connections,
 inside the existing single `/*` headers rule.
+
+
+## Action intents (MODEL-270)
+
+The page mints a cryptographically random 128-bit ID encoded as 22 unpadded
+base64url characters in `x-modelspec-intent`. Initial answers, template applies,
+facet edits and retries each start a new intent. The existing 300 ms debounce
+groups rapid facet changes into one action. Each asynchronous request captures
+its action's options, including snapshot retries, so later actions cannot
+change the ID of an in-flight request. CORS allows this header.
+
+The first request for a new ID verifies Turnstile and atomically admits its
+question in the visitor's daily SQLite object. The Worker passes the same
+parsed body to the gate and decision producer. The object parses the Spec with the decision
+contract and fingerprints its canonical representation, including defaults,
+normalised `where`, `optimize`, `access` and every other question field.
+Condition order does not affect equality; duplicate conditions remain counted.
+`explain` and `limit` do not define the question. A structurally invalid primary
+still spends admission but permits no continuations.
+
+Continuations use that verified admission without replaying a single-use
+Turnstile token. They spend no further daily or minute allowance and add no
+primary interval samples. Every continuation must match a permitted derivation
+of the immutable primary, never of the previous continuation. An admission permits
+at most eight requests, including its first, strictly within 60 seconds of its
+first request. The ninth request or a continuation at or after 60 seconds receives
+HTTP 429 with `human_intent_limit`. Refusals do not extend the window. Expired
+and exhausted admissions remain closed to continuations.
+Missing or malformed IDs meter every request individually and require fresh
+verification. IDs are scoped to the daily visitor object; another visitor must
+verify and spend its own admission even when it presents the same ID. The keyed
+daily HMAC, fail-closed behavior and Turnstile validation conditions stay intact.
+
+The auxiliary inventory and admission rules come from `App.tsx`,
+`components/canvas-axis.ts` and `facet-board/model.ts`:
+
+| Call | Difference from the primary | Permitted rule |
+| --- | --- | --- |
+| Full details | `explain: full` | The identical question with a different `explain` or `limit`. |
+| Canvas plot | Clears `where`; replaces `optimize` with one or two numeric axes at equal weights; replaces `capabilities` with the selected capability axes marked `preferred`; `explain: full`, `limit: 500` | Accepts this exact transformation using registered numeric facets or capability domains. Optional preferred capability keys must be objective axes. The first accepted plot fixes the objective and capabilities for that admission. Date axes use the numeric fallback and do not add objective dimensions. |
+| Estate comparison | Adds held provider, plan and device IDs | Adds only the contract's `estate.providers`, `estate.plans` and `estate.devices`. The primary question otherwise stays identical. The first accepted estate fixes those IDs for the admission; reordering IDs is canonical. `exhausted` is not a page derivation. |
+| 409 retry | Reloads vocabulary, changes the snapshot header and resends | Header-only changes are admitted. A body change must independently meet the same derivation rules or spend a new admission. The body `snapshot` field defines part of the question. |
+| Refinement compatibility fallback | Folds refinement objective weights into parent domains after a 400 | A changed objective is a new metered question, including when vocabulary re-filtering changes the objective on retry. |
+
+The hosted page neither computes candidate next questions nor calls
+`evaluateQuestionOptions` / `probeSpec`. Its only `Field` has
+`showQuestions={false}`. Question rendering and the probe adapter remain
+available for a future page that shows questions and sends metered intents for
+its probes. Adding or removing even one atomic where-condition is a new question.
+
+Plot and estate changes cannot be combined as a free continuation. Task tokens,
+task type, profile, exclusions, capabilities outside the plot rule, access and
+any future question fields define part of the question. The object stores only
+digests for comparisons and never accepts a fingerprint supplied by the caller.
+
+A well-formed new primary under an already verified ID spends a fresh daily and
+minute admission, using that visitor's existing verification. This includes a
+one-condition what-if, a different plot or estate variant, and a compatibility
+fallback. The object atomically replaces the primary and resets its presentation
+allowance only after admission succeeds. New questions still face the 20/day,
+3/minute and even-interval sweep limits, including when the previous admission
+has expired or exhausted its requests. A refused new question leaves the
+previous primary and its fixed variants intact. An invalid continuation or a
+legacy ID without a primary fingerprint fails closed with `human_intent_limit`.
+
+Within the 60-second window, an admission permits at most eight requests in any
+rolling second, including its primary. Concurrent admissions use the same
+synchronous SQLite update. A pace refusal uses `human_intent_limit` and
+`Retry-After: 1`. The browser reserves slots 150 ms apart across details, plot,
+estate and snapshot retries. Aborted queued calls do not reach the producer.
+This pacing applies to verified manual actions.
+
+The deterministic real-vocabulary fixture measures this inventory for both a
+fresh load and one Coding Budget template apply, with no saved estate:
+
+| Request purpose | Fresh load | Template apply |
+| --- | ---: | ---: |
+| Main summary | 1 | 1 |
+| Main full details | 1 | 1 |
+| Canvas plot | 1 | 1 |
+| Follow-up option probes | 0 | 0 |
+| Total POST /v1/decide | 3 | 3 |
+| Metered admissions | 1 | 1 |
+
+Each action drops from 12 requests to three. A saved estate adds one comparison
+request, for four. One snapshot retry on each of these four paths fits the
+eight-request cap. Tests retain coverage for estate, full-details fallback,
+compatibility fallback and snapshot reload behavior.
+
+The bound is **at most 20 distinct questions per visitor per UTC day**, each
+with at most the fixed set of presentation variants: the identical question
+with different `explain` or `limit`, one fixed plot, one fixed estate comparison,
+and snapshot retries of those requests. New questions are limited to three per
+rolling minute, with the existing even-interval refusal. A varied-spec sweeper
+spends another admission for every independently chosen question, even when it
+reuses a verified ID or changes only one filter. Presentation variants and
+retries share the eight-request cap for each admission.
+
+Vitest drives a gated page load and a Coding Budget template apply through
+the actual Python/SQLite admission code, with external Turnstile validation
+replaced by the test verifier. Each action sends three successful requests
+and spends one daily admission. `MODELSPEC_TEST_PYTHON` can select the Python environment;
+otherwise this test uses `python3` with the repository's Python dependencies.
 
 ## Launch, owned by Jamie
 
@@ -111,7 +223,9 @@ workflow deploys staging only on `workflow_dispatch`, so dispatch it on `main`
 after the merge before verifying the gate. Never reuse or publish secret values in a PR.
 Create a Turnstile widget permitting the production, www and internal preview
 hostnames. Configure its public key in the Pages build variables above.
-Jamie adopts the separate privacy disclosure before enabling the gate. Publish
+Before enabling the gate, Jamie adopts a privacy disclosure covering the
+Spec-derived fingerprints described above. The published human-gate disclosure
+predates that storage. Publish
 the page gate first: set repository variable `HUMAN_GATE_ENABLED=true`,
 rebuild the site and verify that the gated build is live and still performs
 automatic lookups while the Worker reports `enabled: false`. Only then enable
