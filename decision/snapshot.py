@@ -1583,6 +1583,7 @@ class LoadedSnapshot:
             "verified" if signature_verified else UNPROVISIONED_SIGNATURE_STATUS
         )
         self.signature_key_id = signature_key_id
+        self.publisher_signature = envelope.get("signature")
         self.as_of = _date(content.get("as_of"))
         self.excluded: dict[str, int] = dict(content.get("excluded") or {})
         #: Per kept subject, the ``excluded`` counts (MODEL-224); ``None`` when
@@ -2000,6 +2001,17 @@ class LoadedSnapshot:
             row += 1
 
 
+def verify_hmac_signature(digest: str, signature: Mapping[str, Any] | None,
+                          key: bytes | str | None, *, source: str) -> None:
+    """Authenticate an already checked content hash with the publisher's key."""
+    key = _key_bytes(key)
+    if not signature:
+        raise SnapshotIntegrityError(f"{source}: unsigned snapshot, but a key was given")
+    if (key is None or signature.get("alg") != SIGNATURE_ALG
+            or not hmac.compare_digest(str(signature.get("value")), _sign(digest, key))):
+        raise SnapshotIntegrityError(f"{source}: signature does not verify with this key")
+
+
 def load_snapshot_bytes(
     data: bytes,
     *,
@@ -2052,12 +2064,7 @@ def load_snapshot_bytes(
     signature_status = UNPROVISIONED_SIGNATURE_STATUS
     signature_key_id = None
     if key is not None:
-        signature = envelope.get("signature")
-        if not signature:
-            raise SnapshotIntegrityError(f"{source}: unsigned snapshot, but a key was given")
-        if (signature.get("alg") != SIGNATURE_ALG
-                or not hmac.compare_digest(str(signature.get("value")), _sign(digest, key))):
-            raise SnapshotIntegrityError(f"{source}: signature does not verify with this key")
+        verify_hmac_signature(digest, envelope.get("signature"), key, source=source)
         verified = True
         signature_status = "verified (hmac-sha256)"
     else:

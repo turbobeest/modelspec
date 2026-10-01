@@ -14,7 +14,7 @@ from decision import contract
 from decision.compare import compare as compare_decisions
 from decision.engine import decide as run_decision
 from decision.registry import facet
-from decision.snapshot import SnapshotIntegrityError, load_snapshot_bytes
+from decision.snapshot import SnapshotIntegrityError, load_snapshot_bytes, verify_hmac_signature
 
 HTTP_OK = 200
 HTTP_BAD_REQUEST = 400
@@ -125,8 +125,10 @@ class SnapshotHolder:
     def __init__(self, fetch: FetchSnapshot, *, clock: Callable[[], float] = time.monotonic,
                  interval: float = REVALIDATE_SECONDS,
                  forced_interval: float = FORCED_REVALIDATE_SECONDS,
-                 sleep: Callable[[float], Awaitable[Any]] = asyncio.sleep):
+                 sleep: Callable[[float], Awaitable[Any]] = asyncio.sleep,
+                 bundled_snapshot=None):
         self._fetch = fetch
+        self._bundled_snapshot = bundled_snapshot
         self._clock = clock
         self._sleep = sleep
         self._interval = interval
@@ -161,6 +163,21 @@ class SnapshotHolder:
     async def current(self, key: bytes | str | None, *, force: bool = False,
                       timings: list[float] | None = None):
         """The snapshot to answer from, revalidating first when it is due."""
+        if self._bundled_snapshot is not None:
+            if self._held is None:
+                if key is None or key == "" or key == b"":
+                    raise SnapshotRefusalError(
+                        "the decision snapshot verification key is not configured")
+                snapshot = self._bundled_snapshot
+                try:
+                    verify_hmac_signature(snapshot.content_hash, snapshot.publisher_signature,
+                                          key, source="bundled decision snapshot")
+                except SnapshotIntegrityError as exc:
+                    raise SnapshotRefusalError(str(exc)) from None
+                snapshot.signature_verified = True
+                snapshot.signature_status = "verified (hmac-sha256)"
+                self._held = _Held(snapshot, None, "")
+            return self._held.snapshot
         load = self._load
         if self._live(load):
             if self._held is not None and not force:

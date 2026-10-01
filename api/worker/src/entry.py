@@ -51,7 +51,6 @@ instance still answering; this is the cheap version of that lesson for a Worker.
 from __future__ import annotations
 
 import hashlib
-import importlib
 import json
 import re
 import time
@@ -74,6 +73,7 @@ import access_sandbox
 import billing
 import billing_page
 import credits
+import decide_service
 import feedback_service
 import human_gate
 import kv_value
@@ -86,6 +86,8 @@ from credits_do import CreditsObject  # noqa: F401 — Wrangler class_name
 from human_gate_do import HumanGateObject  # noqa: F401 — Wrangler class_name
 from js import fetch
 from workers import Response, WorkerEntrypoint
+
+from decision.registry import default as _decision_registry
 
 #: Files the endpoint reads. `candidates.json` is the catalogue; `hardware.json`
 #: is the device vocabulary, added by MODEL-68 and absent from older exports —
@@ -187,9 +189,23 @@ _store_cache: dict[str, object] = {"at": 0.0, "store": None, "error": None,
                                    "state": None, "message": None}
 
 
+# Cloudflare captures top-level Python work in its deployment memory snapshot.
+# No network or deployment secret is needed to parse/index the bundled bytes.
+# The first request still authenticates their checked hash with the runtime key.
+_decision_registry()
+_bundled_decision_snapshot = None
+if globals().get("bundled_data") is not None:
+    _snapshot_bytes = bundled_data.read(DECISION_SNAPSHOT_PATH)
+    if _snapshot_bytes is not None:
+        _bundled_decision_snapshot = decide_service.load_snapshot_bytes(
+            _snapshot_bytes, key=None, public_keys={}, include_archive=True,
+            source="bundled decision snapshot",
+        )
+    del _snapshot_bytes
+
+
 def _decide_service():
-    """Import the decision stack only after the router selects a decision route."""
-    return importlib.import_module("decide_service")
+    return decide_service
 
 
 def _bundled_read(url: str):
@@ -261,7 +277,8 @@ def _decision_holder(origin: str):
     holder = _decision_holders.get(origin)
     if holder is None:
         holder = _decide_service().SnapshotHolder(
-            _snapshot_fetcher(origin + DECISION_SNAPSHOT_PATH))
+            _snapshot_fetcher(origin + DECISION_SNAPSHOT_PATH),
+            bundled_snapshot=_bundled_decision_snapshot)
         _decision_holders[origin] = holder
     return holder
 
