@@ -1524,6 +1524,7 @@ class _Evidence(dict[str, tuple[EvidenceValue, ...]]):
         super().__init__()
         self.rows = rows
         self.model_of = model_of
+        self._parsed_records: dict[tuple[str, str], EvidenceValue] = {}
         self.records = {
             (model_of.get(cid, cid), row[10]): row
             for cid, candidate_rows in rows.items()
@@ -1546,8 +1547,13 @@ class _Evidence(dict[str, tuple[EvidenceValue, ...]]):
         )
 
     def record(self, cid: str, record_id: str) -> EvidenceValue | None:
-        row = self.records.get((self.model_of.get(cid, cid), record_id))
-        return None if row is None else self._value(row)
+        key = self.model_of.get(cid, cid), record_id
+        row = self.records.get(key)
+        if row is None:
+            return None
+        if key not in self._parsed_records:
+            self._parsed_records[key] = self._value(row)
+        return self._parsed_records[key]
 
     def _rows(self, cid: str) -> list[Sequence[Any]]:
         own = list(self.rows.get(cid, ()))
@@ -1692,6 +1698,10 @@ class LoadedSnapshot:
         for bench, tags in content["benchmark_domains"].items():
             for domain_id, directness in tags:
                 self._domains.setdefault(domain_id, []).append((bench, directness))
+        self._benchmark_domain_tags = {
+            benchmark: tuple(sorted(tuple(tag) for tag in content["benchmark_domains"][benchmark]))
+            for benchmark in self._benchmarks
+        }
 
     # SnapshotIndex -----------------------------------------------------------
 
@@ -1971,11 +1981,7 @@ class LoadedSnapshot:
 
     def benchmark_domain_tags(self) -> dict[str, tuple[tuple[str, str], ...]]:
         """Each benchmark's (domain, directness) tags, sorted by domain."""
-        tags: dict[str, list[tuple[str, str]]] = {b: [] for b in self._benchmarks}
-        for domain_id, rows in self._domains.items():
-            for bench, directness in rows:
-                tags.setdefault(bench, []).append((domain_id, directness))
-        return {b: tuple(sorted(t)) for b, t in tags.items()}
+        return dict(self._benchmark_domain_tags)
 
     def source_url(self, source_id: str) -> str:
         return self._sources[source_id]
