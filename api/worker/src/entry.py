@@ -497,6 +497,7 @@ def _json_response(status: int, body: dict, extra_headers: dict | None = None) -
 
 class _DecisionTransport:
     def __init__(self):
+        self.body: dict | None = None
         self.serialised: bytes | None = None
         self.headers: dict[str, str] = {}
 
@@ -507,7 +508,9 @@ def _decision_response(status: int, body: dict,
     decider = _decide_service()
     if status != decider.HTTP_OK:
         transport = None
-    serialised = transport.serialised if transport is not None else None
+    # The timed bytes are reused only for the very body they encode: x402's
+    # unfunded fallback answers with a copy that adds credits.exhausted.
+    serialised = transport.serialised if transport is not None and transport.body is body else None
     return Response(
         (serialised if serialised is not None else decider.serialise(body)).decode("utf-8"),
         status=status,
@@ -1234,6 +1237,7 @@ class Default(WorkerEntrypoint):
         started = time.perf_counter()
         status, body = decider.decide(payload, snapshot, expected_snapshot=expected)
         if status == decider.HTTP_OK and transport is not None:
+            transport.body = body
             transport.serialised = decider.serialise(body)
             duration_ms = (time.perf_counter() - started) * 1000
             timing = f"decide;dur={duration_ms:.1f}"

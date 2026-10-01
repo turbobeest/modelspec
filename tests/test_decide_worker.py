@@ -690,3 +690,19 @@ def test_an_evidence_row_without_measured_by_is_kept_out_and_no_decision_breaks(
             failed.append((case.id, answer[1][:200]))
     assert len(cases) > 0
     assert failed == []
+
+
+def test_timed_bytes_are_never_served_for_a_rewritten_body(entry, service, monkeypatch):  # noqa: F811
+    # x402's unfunded fallback answers with a copy of the decision that adds
+    # credits.exhausted; the bytes timed for the original must not stand in.
+    monkeypatch.setattr(entry, "_decide_service", lambda: service)
+    original = {"decision": "x"}
+    transport = entry._DecisionTransport()
+    transport.body = original
+    transport.serialised = service.serialise(original)
+    transport.headers["Server-Timing"] = "decide;dur=1.0"
+    rewritten = {**original, "credits": {"exhausted": True}}
+    response = entry._decision_response(service.HTTP_OK, rewritten, None, transport)
+    assert json.loads(response.body)["credits"] == {"exhausted": True}
+    same = entry._decision_response(service.HTTP_OK, original, None, transport)
+    assert json.loads(same.body) == original
