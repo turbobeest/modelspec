@@ -160,6 +160,8 @@ jobs:
           assert {'api', 'cli', 'decision', 'pipeline', 'registry', 'schema'} <= roots;
           assert not ({'docs', 'models', 'tests', 'web'} & roots)"
       - name: Install and run the wheel outside the checkout
+        env:
+          DATA_SPLIT_ENABLED: ${{ vars.DATA_SPLIT_ENABLED }}
         run: |
           repo_root="$PWD"
           wheel="$(realpath dist/*.whl)"
@@ -182,11 +184,18 @@ jobs:
             exit 1
           fi
           grep -Fq "No such command 'accuracy'" verify-accuracy.txt
-          modelspec snapshot fetch
-          "$venv/bin/python" "$repo_root/scripts/package_smoke_fixture.py" \
-            --cache "$MODELSPEC_CACHE" --key-id test-package-smoke
-          modelspec vocab >/dev/null
-          modelspec decide --template budget-coding >/dev/null
+          # The data split (MODEL-247) removes the public snapshot this part
+          # downloads; the CLI is retired (MODEL-250), so the wheel's install
+          # and help checks above are what still apply.
+          if [ "$DATA_SPLIT_ENABLED" != "true" ]; then
+            modelspec snapshot fetch
+            "$venv/bin/python" "$repo_root/scripts/package_smoke_fixture.py" \
+              --cache "$MODELSPEC_CACHE" --key-id test-package-smoke
+            modelspec vocab >/dev/null
+            modelspec decide --template budget-coding >/dev/null
+          else
+            echo "Data split on: snapshot fetch and offline decide skipped." >> "$GITHUB_STEP_SUMMARY"
+          fi
           python -c "from decision.registry import default; assert default().facets()"
 
   required-pytest:
