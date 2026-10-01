@@ -1,14 +1,13 @@
 """The graph must derive without a database, and stay internally consistent.
 
 The derivation in `schema/graph.py` is shared with the FalkorDB ingest. These
-tests pin the sink contract that makes that sharing safe, so the published
-graph and the database cannot drift apart.
+tests pin the sink contract that makes that sharing safe, so what the build
+reads and the database cannot drift apart.
 """
 
 from __future__ import annotations
 
 import functools
-import json
 import sys
 from pathlib import Path
 
@@ -17,10 +16,7 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from pipeline.graph import (  # noqa: E402
-    CLOUDFLARE_PAGES_MAX_FILE_BYTES, LEGIBLE_EDGE_LIMIT, VIEWS,
-    node_key, prefer_card, resolve_card_ids, write,
-)
+from pipeline.card_ids import prefer_card, resolve_card_ids  # noqa: E402
 from schema.card import HardwareProfile, ModelCard  # noqa: E402
 from schema.graph import (  # noqa: E402
     INDEXES, CollectingSink, CypherSink, derive_graph, ingest_model_card,
@@ -145,115 +141,30 @@ def test_huggingface_lineage_ids_resolve_to_cards() -> None:
     assert sink.edges[0]["to"] == "qwen/qwen3-0-6b"
 
 
-def test_unresolved_hub_ids_stay_but_are_marked_as_having_no_page(tmp_path: Path) -> None:
+def test_unresolved_hub_ids_stay_in_place() -> None:
     sink = CollectingSink()
     sink.node("Model", "id", "child", {"id": "child", "display_name": "Child"})
     sink.node("Model", "id", "Qwen/Qwen2.5-32B", {"id": "Qwen/Qwen2.5-32B"})
     sink.edge("Model", "child", "DERIVED_FROM", "Model", "Qwen/Qwen2.5-32B")
-    resolve_card_ids(sink, card_ids={"child"}, huggingface_ids={})
-    write(tmp_path, sink, {"commit": "test"}, card_ids={"child"})
-    nodes = {n["id"]: n for n in json.loads((tmp_path / "nodes.json").read_text())["nodes"]}
-    assert nodes["child"]["has_page"] is True
-    assert nodes["Qwen/Qwen2.5-32B"]["has_page"] is False
-    assert nodes["Qwen/Qwen2.5-32B"]["huggingface_url"] == "https://huggingface.co/Qwen/Qwen2.5-32B"
+    counts = resolve_card_ids(sink, card_ids={"child"}, huggingface_ids={})
+    assert counts == {"rewritten": 0, "unresolved": 1}
+    assert ("Model", "Qwen/Qwen2.5-32B") in sink.nodes
+    assert sink.edges[0]["to"] == "Qwen/Qwen2.5-32B"
 
 
-# ── the published views ──────────────────────────────────────────────────────
-
-def test_views_are_written_and_self_describing(tmp_path: Path) -> None:
-    counts = write(tmp_path, _sink(), {"commit": "test"})
-    index = json.loads((tmp_path / "views.json").read_text())
-    assert {v["key"] for v in index["views"]} == {v.key for v in VIEWS}
-    for view in index["views"]:
-        assert view["question"], "a view must say which question it answers"
-        payload = json.loads((tmp_path / "views" / f"{view['key']}.json").read_text())
-        assert payload["counts"]["edges"] == view["edges"]
-    assert counts["nodes"] == len(_sink().nodes)
 
 
-def test_a_view_carries_only_the_nodes_its_edges_touch(tmp_path: Path) -> None:
-    write(tmp_path, _sink(), {"commit": "test"})
-    payload = json.loads((tmp_path / "views" / "lineage.json").read_text())
-    touched = {e["from"] for e in payload["edges"]} | {e["to"] for e in payload["edges"]}
-    assert {n["key"] for n in payload["nodes"]} == touched
 
 
-def test_an_illegible_view_says_so(tmp_path: Path) -> None:
-    """Publishing a hairball without warning the client is how tabs hang."""
-    write(tmp_path, _sink(), {"commit": "test"})
-    payload = json.loads((tmp_path / "views" / "benchmarks.json").read_text())
-    assert payload["counts"]["edges"] > LEGIBLE_EDGE_LIMIT
-    assert payload["legible"] is False
-    assert payload["edge_properties"] is False
-    assert payload["edges"], "the hairball is still published, just without props"
-    assert "props" not in payload["edges"][0]
 
 
-def test_a_legible_view_keeps_edge_props(tmp_path: Path) -> None:
-    """A small view is self-contained JSON, not topology-only."""
-    sink = CollectingSink()
-    sink.node("Model", "id", "child", {"id": "child", "display_name": "Child"})
-    sink.node("Model", "id", "base", {"id": "base", "display_name": "Base"})
-    sink.edge("Model", "child", "DERIVED_FROM", "Model", "base", {"relation": "finetune"})
-    write(tmp_path, sink, {"commit": "test"})
-    payload = json.loads((tmp_path / "views" / "lineage.json").read_text())
-    assert payload["legible"] is True
-    assert payload["edge_properties"] is True
-    assert payload["edges"][0]["props"]["relation"] == "finetune"
 
 
-def test_an_illegible_hardware_view_omits_edge_props(tmp_path: Path) -> None:
-    """FITS_ON props on every (model, device) pair is what blew the 25 MiB cap."""
-    sink = CollectingSink()
-    sink.node("Hardware", "id", "gpu", {"id": "gpu", "display_name": "GPU"})
-    for i in range(LEGIBLE_EDGE_LIMIT + 1):
-        mid = f"m/{i}"
-        sink.node("Model", "id", mid, {"id": mid, "display_name": mid})
-        sink.edge("Model", mid, "FITS_ON", "Hardware", "gpu", {
-            "basis": "computed",
-            "predicted_decode_tps": 1.0,
-            "assumes_working_allowance": 0.25,
-        })
-    write(tmp_path, sink, {"commit": "test"})
-    payload = json.loads((tmp_path / "views" / "hardware.json").read_text())
-    assert payload["counts"]["edges"] == LEGIBLE_EDGE_LIMIT + 1
-    assert payload["legible"] is False
-    assert payload["edge_properties"] is False
-    assert "props" not in payload["edges"][0]
-    assert payload["edges"][0]["from"].startswith("Model:")
-    assert payload["edges"][0]["to"] == "Hardware:gpu"
-    size = (tmp_path / "views" / "hardware.json").stat().st_size
-    assert size < CLOUDFLARE_PAGES_MAX_FILE_BYTES
 
 
-def test_ids_reused_across_labels_stay_distinct(tmp_path: Path) -> None:
-    """`deepseek` is a Provider, a Platform and a License in the current corpus.
-
-    Keyed on the bare id those would collapse into one node and their edges
-    would become ambiguous. The published key carries the label.
-    """
-    sink = _sink()
-    by_id: dict[str, set[str]] = {}
-    for label, node_id in sink.nodes:
-        by_id.setdefault(node_id, set()).add(label)
-    reused = {i: labels for i, labels in by_id.items() if len(labels) > 1}
-    assert reused, "expected at least one id reused across labels in this corpus"
-
-    write(tmp_path, sink, {"commit": "test"})
-    published = json.loads((tmp_path / "nodes.json").read_text())
-    keys = {n["key"] for n in published["nodes"]}
-    assert len(keys) == len(sink.nodes), "no node may be lost to an id collision"
-    for node_id, labels in reused.items():
-        for label in labels:
-            assert node_key(label, node_id) in keys
 
 
-def test_dangling_edges_fail_the_build(tmp_path: Path) -> None:
-    sink = CollectingSink()
-    sink.node("Model", "id", "m1", {"id": "m1"})
-    sink.edge("Model", "m1", "DERIVED_FROM", "Model", "ghost")
-    with pytest.raises(ValueError, match="unknown nodes"):
-        write(tmp_path, sink, {"commit": "test"})
+
 
 
 # ── Hardware nodes carry their device class (MODEL-76) ───────────────────────
@@ -276,17 +187,6 @@ def test_a_derived_hardware_node_carries_its_device_class() -> None:
     assert sink.nodes[("Hardware", "nvidia_rtx_5090")]["device_class"] == "consumer"
 
 
-def test_a_hardware_node_round_trips_its_class_through_the_export(tmp_path: Path) -> None:
-    """The published node, not just the sink, is what a consumer groups on."""
-    sink = derive_graph([_fitting_card("nvidia_h100_sxm")],
-                        {"nvidia_h100_sxm": "datacentre"})
-    write(tmp_path, sink, {"commit": "test"})
-    nodes = {n["key"]: n for n in json.loads((tmp_path / "nodes.json").read_text())["nodes"]}
-    assert nodes["Hardware:nvidia_h100_sxm"]["device_class"] == "datacentre"
-
-    view = json.loads((tmp_path / "views" / "hardware.json").read_text())
-    published = {n["key"]: n for n in view["nodes"]}
-    assert published["Hardware:nvidia_h100_sxm"]["device_class"] == "datacentre"
 
 
 def test_an_unknown_hardware_id_gets_no_class_rather_than_a_guess() -> None:

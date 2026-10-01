@@ -182,7 +182,6 @@ def test_the_landing_calls_to_action_use_the_shared_button_classes() -> None:
     cta = html.split(LANDING_ANSWER, 1)[1]
     assert cta == ('\n      <div class="btns go">'
                    '<a class="btn primary" href="/downselect/">Answer it now &rarr;</a>'
-                   '<a class="btn" href="/graph/">Explore the graph</a>'
                    '<a class="btn" href="/models/">Browse every model</a></div>')
     assert re.search(r"#[0-9a-fA-F]{3,8}\b", cta) is None
     assert "style=" not in cta
@@ -260,7 +259,6 @@ def test_the_generated_shell_and_the_static_pages_share_one_nav() -> None:
                                    r.site_nav(r.MS_NAV), "landing")
     assert filled == (f'<body><nav>{landing_chrome.lockup()}<div class="links">'
                       '<a href="/decide/">Decide</a><a href="/method/">How we decide</a>'
-                      '<a href="/graph/">Graph</a>'
                       '<a href="/models/">Models</a><a href="/providers/">Providers</a>'
                       '<a href="/pricing/">Pricing</a>'
                       '<a href="/benchmarks/">Benchmarks</a>'

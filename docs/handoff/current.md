@@ -132,7 +132,6 @@ Source locators:
 | Snapshot fetch, pin, refuse other major | `cli/modelspec/snapshot.py` (`DEFAULT_ORIGIN`, `PARTS`, `EXPORT_SCHEMA_VERSION`) |
 | CLI `--json` envelope `schema_version` `"1.0"` and exit codes 0–4 | `cli/modelspec/offline.py`; contract: [`../cli-contract.md`](../cli-contract.md) |
 | Site + CLI consume one export | `pipeline/export.py` module docstring; `pipeline/build.py` |
-| Pages 25 MiB file cap | `pipeline/graph.py` (`CLOUDFLARE_PAGES_MAX_FILE_BYTES`) |
 | Rank implementation | `pipeline/ranking.py` (`rank`, `rank_report`, `_basis`) — one implementation, shared by the CLI, the sites and the rank Worker |
 | Rank API (MODEL-68) | `api/worker/` (`src/rank_service.py`, `vendor.py`); contract [`../rank-api.md`](../rank-api.md) |
 | Policy-check API (MODEL-80) | `api/worker/src/policy_service.py`, `load_determinations.py`, `pipeline/policy_export.py`; contract [`../policy-check-api.md`](../policy-check-api.md) |

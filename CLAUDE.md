@@ -38,7 +38,7 @@ models/*.md ──▶ pipeline/build.py ──▶ static JSON on Cloudflare Page
                                       (modelspec.dev /api/*.json)
                                             │
 CLI `snapshot fetch` ───────────────────────┤
-Wizard / 3D graph read the same JSON in the browser.
+The decide board reads the same JSON in the browser.
                                             │
 Worker `POST api.modelspec.dev/v1/rank` ────┘  MODEL-68; stateless, same JSON,
                                                same scorer, no store of its own.
@@ -132,7 +132,7 @@ hardware/    DATA — device SKUs
 pipeline/    export, ranking, site build
 cli/         Typer CLI; offline path in cli/modelspec/offline.py + snapshot.py
 api/         ranking engine shared with the pipeline
-web3d/       static explorer + wizard
+web3d/       v1 wizard (not on the live site; the 3D explorer was removed by MODEL-251)
 docs/        contracts and handoff
 tests/
 ```
