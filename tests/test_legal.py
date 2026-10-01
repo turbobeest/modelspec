@@ -272,7 +272,9 @@ def test_the_terms_state_the_plans_and_packs_that_are_configured() -> None:
 def test_the_terms_name_the_seller_processor_and_statement_descriptor() -> None:
     assert "The seller is **Sparks & Sawdust LLC**" in FLAT_TERMS
     assert "processed by Stripe" in FLAT_TERMS
-    assert "SPARKS & SAWDUST LLC" in FLAT_TERMS
+    # Stripe refuses an ampersand in a statement descriptor (Jamie, 2026-09-30).
+    assert "SPARKS AND SAWDUST LLC" in FLAT_TERMS
+    assert "SPARKS & SAWDUST" not in FLAT_TERMS
     assert "https://modelspec.dev/pricing" in FLAT_TERMS
 
 

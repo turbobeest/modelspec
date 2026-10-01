@@ -106,11 +106,11 @@ These are the rules that govern every purchase. They were written before any
 money moved, so that they could not be written to suit the first dispute.
 
 **Seller and payment.** The seller is **Sparks & Sawdust LLC**. Payments are
-processed by Stripe on a Stripe-hosted Checkout page; we never receive your
-card number. Charges appear on your card statement as **SPARKS & SAWDUST LLC**.
-Current plans, prices and availability are published at
-`https://modelspec.dev/pricing`. Checkout asks you to accept these terms before
-you pay.
+processed by Stripe on a Stripe-hosted Checkout page; we never receive your card
+number. Charges appear on your card statement as **SPARKS AND SAWDUST LLC**,
+because a statement descriptor cannot contain an ampersand. Current plans,
+prices and availability are published at `https://modelspec.dev/pricing`.
+Checkout asks you to accept these terms before you pay.
 
 **What you buy.** Paid access is metered in credits, one balance per API key.
 There are two ways to buy them:
@@ -265,11 +265,12 @@ breach of §5. §4 does not expire, is not suspended, and does not change with a
 new version of these terms.
 
 Version 1.2 (2026-09-30) corrected our legal name to Sparks & Sawdust LLC, the
-name registered with Rhode Island and the IRS; no term changed. Version 1.1
-(2026-09-30) changed §2 and §8: it states that only a person looking things up
-by hand gets the site free, that machine access is paid and hosted, and that the
-public copy of the data is a delayed image with no download of current data.
-Version 1.0 (2026-09-19) was the adoption.
+name registered with Rhode Island and the IRS, and corrected the card-statement
+name in §6 to SPARKS AND SAWDUST LLC, which is what Stripe sends; no term
+changed. Version 1.1 (2026-09-30) changed §2 and §8: it states that only a
+person looking things up by hand gets the site free, that machine access is paid
+and hosted, and that the public copy of the data is a delayed image with no
+download of current data. Version 1.0 (2026-09-19) was the adoption.
 
 ## 11. What this version does not address
 
