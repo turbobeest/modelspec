@@ -100,12 +100,14 @@ def _decision_artifacts(
     content = {
         "format_version": 1,
         "as_of": as_of,
-        "facet_subjects": {"model.context_window": "model"},
+        "facet_subjects": {"model.context_window": "model", "model.weights_openness": "model"},
         "lineup": {
             "candidates": [{"id": "a/one", "kind": "model", "model": "a/one",
                             "lifecycle": "active"}],
             "facets": {"model.context_window": {
                 "row": [0], "state": ["known"], "value": [128000], "sources": [[]],
+            }, "model.weights_openness": {
+                "row": [0], "state": ["known"], "value": ["open_weights"], "sources": [[]],
             }},
             "evidence": {},
         },

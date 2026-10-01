@@ -1,5 +1,5 @@
 {
- "_comment": "MODEL-200: decisions from origin/main (5b52373e) for tests/plan_records.py NO_ACCESS_SPECS. A spec without access must reproduce them; only contract_version moves.",
+ "_comment": "MODEL-200 access-less decisions updated for MODEL-266 route eligibility. Generated with tests.plan_records.inputs and NO_ACCESS_SPECS through decision.engine.decide; compatibility fields retain the original golden format.",
  "sourced_without_estate": [
   {
    "answer": {
@@ -98,12 +98,12 @@
     },
     {
      "cost_per_task": null,
-     "model": "acme/closed",
+     "model": "acme/unfit",
      "offerings": [
       {
        "cost_per_task": null,
        "offering": {
-        "model": "acme/closed",
+        "model": "acme/unfit",
         "provider": null,
         "region": null,
         "tier": null
@@ -119,12 +119,12 @@
     },
     {
      "cost_per_task": null,
-     "model": "acme/unfit",
+     "model": "acme/tiny",
      "offerings": [
       {
        "cost_per_task": null,
        "offering": {
-        "model": "acme/unfit",
+        "model": "acme/tiny",
         "provider": null,
         "region": null,
         "tier": null
@@ -136,27 +136,6 @@
       }
      ],
      "rank": 5,
-     "status": "ranked"
-    },
-    {
-     "cost_per_task": null,
-     "model": "acme/tiny",
-     "offerings": [
-      {
-       "cost_per_task": null,
-       "offering": {
-        "model": "acme/tiny",
-        "provider": null,
-        "region": null,
-        "tier": null
-       },
-       "rank": 7,
-       "reason": null,
-       "status": "ranked",
-       "unknown": []
-      }
-     ],
-     "rank": 6,
      "status": "ranked"
     }
    ],
@@ -268,10 +247,10 @@
      "estimates": null,
      "evidence": [],
      "harness": null,
-     "model": "acme/closed",
+     "model": "acme/unfit",
      "model_rank": 4,
      "offering": {
-      "model": "acme/closed",
+      "model": "acme/unfit",
       "provider": null,
       "region": null,
       "tier": null
@@ -289,29 +268,8 @@
      "estimates": null,
      "evidence": [],
      "harness": null,
-     "model": "acme/unfit",
-     "model_rank": 5,
-     "offering": {
-      "model": "acme/unfit",
-      "provider": null,
-      "region": null,
-      "tier": null
-     },
-     "p_best": null,
-     "rank": 6,
-     "soft_penalty": 0.0,
-     "top3_stability": null,
-     "warnings": []
-    },
-    {
-     "contributions": [],
-     "cost_per_task": null,
-     "effort": null,
-     "estimates": null,
-     "evidence": [],
-     "harness": null,
      "model": "acme/tiny",
-     "model_rank": 6,
+     "model_rank": 5,
      "offering": {
       "model": "acme/tiny",
       "provider": null,
@@ -319,7 +277,7 @@
       "tier": null
      },
      "p_best": null,
-     "rank": 7,
+     "rank": 6,
      "soft_penalty": 0.0,
      "top3_stability": null,
      "warnings": []
@@ -435,12 +393,12 @@
     },
     {
      "cost_per_task": null,
-     "model": "acme/closed",
+     "model": "acme/unfit",
      "offerings": [
       {
        "cost_per_task": null,
        "offering": {
-        "model": "acme/closed",
+        "model": "acme/unfit",
         "provider": null,
         "region": null,
         "tier": null
@@ -456,12 +414,12 @@
     },
     {
      "cost_per_task": null,
-     "model": "acme/unfit",
+     "model": "acme/tiny",
      "offerings": [
       {
        "cost_per_task": null,
        "offering": {
-        "model": "acme/unfit",
+        "model": "acme/tiny",
         "provider": null,
         "region": null,
         "tier": null
@@ -473,27 +431,6 @@
       }
      ],
      "rank": 5,
-     "status": "ranked"
-    },
-    {
-     "cost_per_task": null,
-     "model": "acme/tiny",
-     "offerings": [
-      {
-       "cost_per_task": null,
-       "offering": {
-        "model": "acme/tiny",
-        "provider": null,
-        "region": null,
-        "tier": null
-       },
-       "rank": 7,
-       "reason": null,
-       "status": "ranked",
-       "unknown": []
-      }
-     ],
-     "rank": 6,
      "status": "ranked"
     }
    ],
@@ -671,43 +608,6 @@
        "normalisation": "feasible min-max; max; minimum=50000.0 tokens; maximum=500000.0 tokens; constant dimensions contribute zero dimensionless",
        "preference_status": null,
        "preferred_value": null,
-       "raw_value": 70000.0,
-       "records": [
-        "acme/closed#model.context_window"
-       ],
-       "unit": "tokens",
-       "value": 0.044444444444444446,
-       "weight": 1.0
-      }
-     ],
-     "cost_per_task": null,
-     "effort": null,
-     "estimates": null,
-     "evidence": [],
-     "harness": null,
-     "model": "acme/closed",
-     "model_rank": 4,
-     "offering": {
-      "model": "acme/closed",
-      "provider": null,
-      "region": null,
-      "tier": null
-     },
-     "p_best": null,
-     "rank": 5,
-     "soft_penalty": 0.0,
-     "top3_stability": null,
-     "warnings": []
-    },
-    {
-     "contributions": [
-      {
-       "dimension": "model.context_window",
-       "evidence": [],
-       "formula": null,
-       "normalisation": "feasible min-max; max; minimum=50000.0 tokens; maximum=500000.0 tokens; constant dimensions contribute zero dimensionless",
-       "preference_status": null,
-       "preferred_value": null,
        "raw_value": 60000.0,
        "records": [
         "acme/unfit#model.context_window"
@@ -723,7 +623,7 @@
      "evidence": [],
      "harness": null,
      "model": "acme/unfit",
-     "model_rank": 5,
+     "model_rank": 4,
      "offering": {
       "model": "acme/unfit",
       "provider": null,
@@ -731,7 +631,7 @@
       "tier": null
      },
      "p_best": null,
-     "rank": 6,
+     "rank": 5,
      "soft_penalty": 0.0,
      "top3_stability": null,
      "warnings": []
@@ -760,7 +660,7 @@
      "evidence": [],
      "harness": null,
      "model": "acme/tiny",
-     "model_rank": 6,
+     "model_rank": 5,
      "offering": {
       "model": "acme/tiny",
       "provider": null,
@@ -768,7 +668,7 @@
       "tier": null
      },
      "p_best": null,
-     "rank": 7,
+     "rank": 6,
      "soft_penalty": 0.0,
      "top3_stability": null,
      "warnings": []
@@ -884,29 +784,6 @@
     },
     {
      "cost_per_task": null,
-     "model": "acme/closed",
-     "offerings": [
-      {
-       "cost_per_task": null,
-       "offering": {
-        "model": "acme/closed",
-        "provider": null,
-        "region": null,
-        "tier": null
-       },
-       "rank": null,
-       "reason": null,
-       "status": "may_qualify",
-       "unknown": [
-        "offering.cost_per_task"
-       ]
-      }
-     ],
-     "rank": null,
-     "status": "may_qualify"
-    },
-    {
-     "cost_per_task": null,
      "model": "acme/tiny",
      "offerings": [
       {
@@ -963,18 +840,6 @@
    },
    "explain": "none",
    "may_qualify": [
-    {
-     "model": "acme/closed",
-     "offering": {
-      "model": "acme/closed",
-      "provider": null,
-      "region": null,
-      "tier": null
-     },
-     "unknown": [
-      "offering.cost_per_task"
-     ]
-    },
     {
      "model": "acme/tiny",
      "offering": {
@@ -1203,12 +1068,12 @@
     },
     {
      "cost_per_task": null,
-     "model": "acme/closed",
+     "model": "acme/unfit",
      "offerings": [
       {
        "cost_per_task": null,
        "offering": {
-        "model": "acme/closed",
+        "model": "acme/unfit",
         "provider": null,
         "region": null,
         "tier": null
@@ -1224,12 +1089,12 @@
     },
     {
      "cost_per_task": null,
-     "model": "acme/unfit",
+     "model": "acme/tiny",
      "offerings": [
       {
        "cost_per_task": null,
        "offering": {
-        "model": "acme/unfit",
+        "model": "acme/tiny",
         "provider": null,
         "region": null,
         "tier": null
@@ -1241,27 +1106,6 @@
       }
      ],
      "rank": 5,
-     "status": "ranked"
-    },
-    {
-     "cost_per_task": null,
-     "model": "acme/tiny",
-     "offerings": [
-      {
-       "cost_per_task": null,
-       "offering": {
-        "model": "acme/tiny",
-        "provider": null,
-        "region": null,
-        "tier": null
-       },
-       "rank": 7,
-       "reason": null,
-       "status": "ranked",
-       "unknown": []
-      }
-     ],
-     "rank": 6,
      "status": "ranked"
     }
    ],
@@ -1373,10 +1217,10 @@
      "estimates": null,
      "evidence": [],
      "harness": null,
-     "model": "acme/closed",
+     "model": "acme/unfit",
      "model_rank": 4,
      "offering": {
-      "model": "acme/closed",
+      "model": "acme/unfit",
       "provider": null,
       "region": null,
       "tier": null
@@ -1394,29 +1238,8 @@
      "estimates": null,
      "evidence": [],
      "harness": null,
-     "model": "acme/unfit",
-     "model_rank": 5,
-     "offering": {
-      "model": "acme/unfit",
-      "provider": null,
-      "region": null,
-      "tier": null
-     },
-     "p_best": null,
-     "rank": 6,
-     "soft_penalty": 0.0,
-     "top3_stability": null,
-     "warnings": []
-    },
-    {
-     "contributions": [],
-     "cost_per_task": null,
-     "effort": null,
-     "estimates": null,
-     "evidence": [],
-     "harness": null,
      "model": "acme/tiny",
-     "model_rank": 6,
+     "model_rank": 5,
      "offering": {
       "model": "acme/tiny",
       "provider": null,
@@ -1424,7 +1247,7 @@
       "tier": null
      },
      "p_best": null,
-     "rank": 7,
+     "rank": 6,
      "soft_penalty": 0.0,
      "top3_stability": null,
      "warnings": []
@@ -1540,12 +1363,12 @@
     },
     {
      "cost_per_task": null,
-     "model": "acme/closed",
+     "model": "acme/unfit",
      "offerings": [
       {
        "cost_per_task": null,
        "offering": {
-        "model": "acme/closed",
+        "model": "acme/unfit",
         "provider": null,
         "region": null,
         "tier": null
@@ -1561,12 +1384,12 @@
     },
     {
      "cost_per_task": null,
-     "model": "acme/unfit",
+     "model": "acme/tiny",
      "offerings": [
       {
        "cost_per_task": null,
        "offering": {
-        "model": "acme/unfit",
+        "model": "acme/tiny",
         "provider": null,
         "region": null,
         "tier": null
@@ -1578,27 +1401,6 @@
       }
      ],
      "rank": 5,
-     "status": "ranked"
-    },
-    {
-     "cost_per_task": null,
-     "model": "acme/tiny",
-     "offerings": [
-      {
-       "cost_per_task": null,
-       "offering": {
-        "model": "acme/tiny",
-        "provider": null,
-        "region": null,
-        "tier": null
-       },
-       "rank": 7,
-       "reason": null,
-       "status": "ranked",
-       "unknown": []
-      }
-     ],
-     "rank": 6,
      "status": "ranked"
     }
    ],
@@ -1776,43 +1578,6 @@
        "normalisation": "feasible min-max; max; minimum=50000.0 tokens; maximum=500000.0 tokens; constant dimensions contribute zero dimensionless",
        "preference_status": null,
        "preferred_value": null,
-       "raw_value": 70000.0,
-       "records": [
-        "acme/closed#model.context_window"
-       ],
-       "unit": "tokens",
-       "value": 0.044444444444444446,
-       "weight": 1.0
-      }
-     ],
-     "cost_per_task": null,
-     "effort": null,
-     "estimates": null,
-     "evidence": [],
-     "harness": null,
-     "model": "acme/closed",
-     "model_rank": 4,
-     "offering": {
-      "model": "acme/closed",
-      "provider": null,
-      "region": null,
-      "tier": null
-     },
-     "p_best": null,
-     "rank": 5,
-     "soft_penalty": 0.0,
-     "top3_stability": null,
-     "warnings": []
-    },
-    {
-     "contributions": [
-      {
-       "dimension": "model.context_window",
-       "evidence": [],
-       "formula": null,
-       "normalisation": "feasible min-max; max; minimum=50000.0 tokens; maximum=500000.0 tokens; constant dimensions contribute zero dimensionless",
-       "preference_status": null,
-       "preferred_value": null,
        "raw_value": 60000.0,
        "records": [
         "acme/unfit#model.context_window"
@@ -1828,7 +1593,7 @@
      "evidence": [],
      "harness": null,
      "model": "acme/unfit",
-     "model_rank": 5,
+     "model_rank": 4,
      "offering": {
       "model": "acme/unfit",
       "provider": null,
@@ -1836,7 +1601,7 @@
       "tier": null
      },
      "p_best": null,
-     "rank": 6,
+     "rank": 5,
      "soft_penalty": 0.0,
      "top3_stability": null,
      "warnings": []
@@ -1865,7 +1630,7 @@
      "evidence": [],
      "harness": null,
      "model": "acme/tiny",
-     "model_rank": 6,
+     "model_rank": 5,
      "offering": {
       "model": "acme/tiny",
       "provider": null,
@@ -1873,7 +1638,7 @@
       "tier": null
      },
      "p_best": null,
-     "rank": 7,
+     "rank": 6,
      "soft_penalty": 0.0,
      "top3_stability": null,
      "warnings": []
@@ -1989,29 +1754,6 @@
     },
     {
      "cost_per_task": null,
-     "model": "acme/closed",
-     "offerings": [
-      {
-       "cost_per_task": null,
-       "offering": {
-        "model": "acme/closed",
-        "provider": null,
-        "region": null,
-        "tier": null
-       },
-       "rank": null,
-       "reason": null,
-       "status": "may_qualify",
-       "unknown": [
-        "offering.cost_per_task"
-       ]
-      }
-     ],
-     "rank": null,
-     "status": "may_qualify"
-    },
-    {
-     "cost_per_task": null,
      "model": "acme/tiny",
      "offerings": [
       {
@@ -2068,18 +1810,6 @@
    },
    "explain": "none",
    "may_qualify": [
-    {
-     "model": "acme/closed",
-     "offering": {
-      "model": "acme/closed",
-      "provider": null,
-      "region": null,
-      "tier": null
-     },
-     "unknown": [
-      "offering.cost_per_task"
-     ]
-    },
     {
      "model": "acme/tiny",
      "offering": {
@@ -2306,12 +2036,12 @@
     },
     {
      "cost_per_task": null,
-     "model": "acme/closed",
+     "model": "acme/unfit",
      "offerings": [
       {
        "cost_per_task": null,
        "offering": {
-        "model": "acme/closed",
+        "model": "acme/unfit",
         "provider": null,
         "region": null,
         "tier": null
@@ -2327,12 +2057,12 @@
     },
     {
      "cost_per_task": null,
-     "model": "acme/unfit",
+     "model": "acme/tiny",
      "offerings": [
       {
        "cost_per_task": null,
        "offering": {
-        "model": "acme/unfit",
+        "model": "acme/tiny",
         "provider": null,
         "region": null,
         "tier": null
@@ -2344,27 +2074,6 @@
       }
      ],
      "rank": 5,
-     "status": "ranked"
-    },
-    {
-     "cost_per_task": null,
-     "model": "acme/tiny",
-     "offerings": [
-      {
-       "cost_per_task": null,
-       "offering": {
-        "model": "acme/tiny",
-        "provider": null,
-        "region": null,
-        "tier": null
-       },
-       "rank": 7,
-       "reason": null,
-       "status": "ranked",
-       "unknown": []
-      }
-     ],
-     "rank": 6,
      "status": "ranked"
     }
    ],
@@ -2476,10 +2185,10 @@
      "estimates": null,
      "evidence": [],
      "harness": null,
-     "model": "acme/closed",
+     "model": "acme/unfit",
      "model_rank": 4,
      "offering": {
-      "model": "acme/closed",
+      "model": "acme/unfit",
       "provider": null,
       "region": null,
       "tier": null
@@ -2497,29 +2206,8 @@
      "estimates": null,
      "evidence": [],
      "harness": null,
-     "model": "acme/unfit",
-     "model_rank": 5,
-     "offering": {
-      "model": "acme/unfit",
-      "provider": null,
-      "region": null,
-      "tier": null
-     },
-     "p_best": null,
-     "rank": 6,
-     "soft_penalty": 0.0,
-     "top3_stability": null,
-     "warnings": []
-    },
-    {
-     "contributions": [],
-     "cost_per_task": null,
-     "effort": null,
-     "estimates": null,
-     "evidence": [],
-     "harness": null,
      "model": "acme/tiny",
-     "model_rank": 6,
+     "model_rank": 5,
      "offering": {
       "model": "acme/tiny",
       "provider": null,
@@ -2527,7 +2215,7 @@
       "tier": null
      },
      "p_best": null,
-     "rank": 7,
+     "rank": 6,
      "soft_penalty": 0.0,
      "top3_stability": null,
      "warnings": []
@@ -2682,7 +2370,6 @@
       "other/huge",
       "anthropic/claude-opus-5-5",
       "anthropic/claude-sonnet-5",
-      "acme/closed",
       "acme/unfit",
       "acme/tiny"
      ]
@@ -2818,12 +2505,12 @@
     },
     {
      "cost_per_task": null,
-     "model": "acme/closed",
+     "model": "acme/unfit",
      "offerings": [
       {
        "cost_per_task": null,
        "offering": {
-        "model": "acme/closed",
+        "model": "acme/unfit",
         "provider": null,
         "region": null,
         "tier": null
@@ -2839,12 +2526,12 @@
     },
     {
      "cost_per_task": null,
-     "model": "acme/unfit",
+     "model": "acme/tiny",
      "offerings": [
       {
        "cost_per_task": null,
        "offering": {
-        "model": "acme/unfit",
+        "model": "acme/tiny",
         "provider": null,
         "region": null,
         "tier": null
@@ -2856,27 +2543,6 @@
       }
      ],
      "rank": 5,
-     "status": "ranked"
-    },
-    {
-     "cost_per_task": null,
-     "model": "acme/tiny",
-     "offerings": [
-      {
-       "cost_per_task": null,
-       "offering": {
-        "model": "acme/tiny",
-        "provider": null,
-        "region": null,
-        "tier": null
-       },
-       "rank": 7,
-       "reason": null,
-       "status": "ranked",
-       "unknown": []
-      }
-     ],
-     "rank": 6,
      "status": "ranked"
     }
    ],
@@ -2988,10 +2654,10 @@
      "estimates": null,
      "evidence": [],
      "harness": null,
-     "model": "acme/closed",
+     "model": "acme/unfit",
      "model_rank": 4,
      "offering": {
-      "model": "acme/closed",
+      "model": "acme/unfit",
       "provider": null,
       "region": null,
       "tier": null
@@ -3009,29 +2675,8 @@
      "estimates": null,
      "evidence": [],
      "harness": null,
-     "model": "acme/unfit",
-     "model_rank": 5,
-     "offering": {
-      "model": "acme/unfit",
-      "provider": null,
-      "region": null,
-      "tier": null
-     },
-     "p_best": null,
-     "rank": 6,
-     "soft_penalty": 0.0,
-     "top3_stability": null,
-     "warnings": []
-    },
-    {
-     "contributions": [],
-     "cost_per_task": null,
-     "effort": null,
-     "estimates": null,
-     "evidence": [],
-     "harness": null,
      "model": "acme/tiny",
-     "model_rank": 6,
+     "model_rank": 5,
      "offering": {
       "model": "acme/tiny",
       "provider": null,
@@ -3039,7 +2684,7 @@
       "tier": null
      },
      "p_best": null,
-     "rank": 7,
+     "rank": 6,
      "soft_penalty": 0.0,
      "top3_stability": null,
      "warnings": []
@@ -3277,12 +2922,12 @@
     },
     {
      "cost_per_task": null,
-     "model": "acme/closed",
+     "model": "acme/unfit",
      "offerings": [
       {
        "cost_per_task": null,
        "offering": {
-        "model": "acme/closed",
+        "model": "acme/unfit",
         "provider": null,
         "region": null,
         "tier": null
@@ -3298,12 +2943,12 @@
     },
     {
      "cost_per_task": null,
-     "model": "acme/unfit",
+     "model": "acme/tiny",
      "offerings": [
       {
        "cost_per_task": null,
        "offering": {
-        "model": "acme/unfit",
+        "model": "acme/tiny",
         "provider": null,
         "region": null,
         "tier": null
@@ -3315,27 +2960,6 @@
       }
      ],
      "rank": 5,
-     "status": "ranked"
-    },
-    {
-     "cost_per_task": null,
-     "model": "acme/tiny",
-     "offerings": [
-      {
-       "cost_per_task": null,
-       "offering": {
-        "model": "acme/tiny",
-        "provider": null,
-        "region": null,
-        "tier": null
-       },
-       "rank": 7,
-       "reason": null,
-       "status": "ranked",
-       "unknown": []
-      }
-     ],
-     "rank": 6,
      "status": "ranked"
     }
    ],
@@ -3447,10 +3071,10 @@
      "estimates": null,
      "evidence": [],
      "harness": null,
-     "model": "acme/closed",
+     "model": "acme/unfit",
      "model_rank": 4,
      "offering": {
-      "model": "acme/closed",
+      "model": "acme/unfit",
       "provider": null,
       "region": null,
       "tier": null
@@ -3468,29 +3092,8 @@
      "estimates": null,
      "evidence": [],
      "harness": null,
-     "model": "acme/unfit",
-     "model_rank": 5,
-     "offering": {
-      "model": "acme/unfit",
-      "provider": null,
-      "region": null,
-      "tier": null
-     },
-     "p_best": null,
-     "rank": 6,
-     "soft_penalty": 0.0,
-     "top3_stability": null,
-     "warnings": []
-    },
-    {
-     "contributions": [],
-     "cost_per_task": null,
-     "effort": null,
-     "estimates": null,
-     "evidence": [],
-     "harness": null,
      "model": "acme/tiny",
-     "model_rank": 6,
+     "model_rank": 5,
      "offering": {
       "model": "acme/tiny",
       "provider": null,
@@ -3498,7 +3101,7 @@
       "tier": null
      },
      "p_best": null,
-     "rank": 7,
+     "rank": 6,
      "soft_penalty": 0.0,
      "top3_stability": null,
      "warnings": []

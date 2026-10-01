@@ -44,6 +44,7 @@ def index(tmp_path):
         model(
             "lab/" + name,
             facts=[
+                fact("model", "lab/" + name, "model.weights_openness", "open_weights"),
                 fact("model", "lab/" + name, "model.context_window", price),
                 fact("model", "lab/" + name, "model.max_output_tokens", context),
             ],
@@ -135,7 +136,7 @@ def test_value_preference_explains_matches_unknowns_and_keeps_musts_as_gates():
             "model.context_window": 100,
             "model.weights_openness": FactValue("unknown", None),
         },
-    })
+    }, hosted=True)
     request = parse_spec({
         "spec_version": 1,
         "where": ["model.context_window >= 50"],
@@ -238,7 +239,7 @@ def test_costs_and_near_misses_measure_one_relaxed_condition(index):
 
 def test_full_adds_all_values_and_reasons_while_none_skips_explanation(index):
     full = decide(spec(limit=1), index, facets=facets)
-    assert {fact.value for fact in full.top[0].facts} == {3, 100}
+    assert {fact.value for fact in full.top[0].facts} == {3, 100, "open_weights"}
     assert len(full.eliminated.models) == 2
     assert "<svg" in full.chart
     summary = decide(spec("summary"), index, facets=facets)
@@ -557,7 +558,8 @@ def test_full_explains_multiple_measurements_failing_an_evidence_window(tmp_path
             models=[
                 model(
                     "lab/a",
-                    facts=[fact("model", "lab/a", "model.context_window", 1)],
+                    facts=[fact("model", "lab/a", "model.context_window", 1),
+                           fact("model", "lab/a", "model.weights_openness", "open_weights")],
                 )
             ],
             evidence=rows,

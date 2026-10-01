@@ -85,6 +85,7 @@ def snapshot_bytes() -> bytes:
     built = build_snapshot(
         SnapshotInputs(
             models=models,
+            offerings=[offering("lab/b")],
             evidence=rows,
             sources=SOURCES,
             benchmark_domains={"swe_bench_pro": [("software_engineering", "direct")]},
