@@ -224,7 +224,7 @@ export function Canvas({
                 {axisDefs[k].label} ({axisDefs[k].unit})
                 {decision.available_axes[k]
                   ? ""
-                  : " — not available in this snapshot"}
+                  : " — not available in this response"}
               </option>
             ))}
           </select>

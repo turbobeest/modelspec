@@ -11,7 +11,7 @@ import {
 import { useVocab } from "../vocabulary/context";
 import type { AdapterDecision, Row, Spec } from "../adapter";
 import { boardHasPreference } from "../facet-board/model";
-const unavailable = "not available in this snapshot";
+const unavailable = "not available in this response";
 const columns: [string, string, (r: Row) => number | string][] = [
   ["rank", "#", (r) => r.rank ?? (r.status === 0 ? 500 : 1000 + r.dropAt)],
   ["name", "Model", (r) => r.m.name],
