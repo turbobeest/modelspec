@@ -51,7 +51,9 @@ test("share dialog copies the board permalink and restores focus", async ({ page
   const trigger = page.getByRole("button", { name: "Share or act" });
   await trigger.click();
   const dialog = page.getByRole("dialog");
+  await dialog.getByRole("tab", { name: "Procurement review" }).click();
   await expect(dialog.getByRole("button", { name: "Download CSV" })).toBeVisible();
+  await dialog.getByRole("tab", { name: "Permalink" }).click();
   await dialog.getByRole("button", { name: "Copy", exact: true }).click();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("#s=");
   await page.keyboard.press("Escape");
@@ -117,6 +119,7 @@ test.describe("the Worker gate is enabled", () => {
     await expect(page.getByLabel("Facet board answer")).toBeVisible();
     expect(decisions).toBeGreaterThan(0);
     await page.getByRole("button", { name: "Share or act" }).click();
+    await page.getByRole("dialog").getByRole("tab", { name: "Procurement review" }).click();
     await expect(page.getByRole("dialog").getByRole("button", { name: /CSV/ })).toHaveCount(0);
   });
 });
