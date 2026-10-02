@@ -40,13 +40,68 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  decide-browser:
+    name: Test decide page (human gate ${{ matrix.human_gate }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        human_gate: ['false', 'true']
+    env:
+      CI: true
+      VITE_HUMAN_GATE_ENABLED: ${{ matrix.human_gate }}
+      VITE_TURNSTILE_SITE_KEY: public-browser-test-key
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      - name: Install dependencies
+        run: pip install pydantic pyyaml "httpx==0.28.1" "cryptography>=43,<46"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Write the spec corpus's decisions for the web suite
+        run: python -m tests.corpus decisions --out web/src/decide/__corpus__
+      - name: Build the test variant
+        working-directory: web
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          npm run build
+      - name: Test the built page with the Worker disabled and enabled
+        # Corpus and automatic-lookups tests use enabled:false. The gated
+        # variant also verifies enabled:true and a manual lookup, offline.
+        working-directory: web
+        env:
+          MODELSPEC_CORPUS_REQUIRED: '1'
+        run: |
+          npx vitest run
+          npx playwright test --config=playwright.corpus.config.ts
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: decide-browser-human-gate-${{ matrix.human_gate }}
+          path: web/test-results
+          retention-days: 7
+
   build:
     name: Build both sites
+    needs: decide-browser
+    if: always()
     runs-on: ubuntu-latest
     outputs:
       mode: ${{ steps.holding.outputs.mode }}
       production: ${{ steps.holding.outputs.production }}
     steps:
+      - name: Require both decide page variants to succeed
+        env:
+          BROWSER_RESULT: ${{ needs.decide-browser.result }}
+        run: test "$BROWSER_RESULT" = success
+
       - uses: actions/checkout@v4
 
       - uses: actions/setup-python@v5

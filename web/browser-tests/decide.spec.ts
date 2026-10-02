@@ -1,4 +1,5 @@
-import { expect, test } from "@playwright/test";
+import { expect } from "@playwright/test";
+import { test } from "./human-gate-fixtures";
 import { readFileSync } from "node:fs";
 
 const vocabulary = readFileSync(new URL("../src/decide/__fixtures__/vocabulary.json", import.meta.url), "utf8");
@@ -46,9 +47,11 @@ test("a board facet updates the decision and survives reload", async ({ page }) 
 test("share dialog copies the board permalink and restores focus", async ({ page, context }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await openBoard(page);
+  await expect(page.getByLabel("Facet board answer")).toBeVisible();
   const trigger = page.getByRole("button", { name: "Share or act" });
   await trigger.click();
   const dialog = page.getByRole("dialog");
+  await expect(dialog.getByRole("button", { name: "Download CSV" })).toBeVisible();
   await dialog.getByRole("button", { name: "Copy", exact: true }).click();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("#s=");
   await page.keyboard.press("Escape");
@@ -78,4 +81,42 @@ test("the board and its explanation fit a 320px viewport in light and dark mode"
     await page.getByRole("button", { name: buttonName }).click();
     await expect.poll(scrollWidth).toBeLessThanOrEqual(320);
   }
+});
+
+test.describe("the Worker gate is enabled", () => {
+  test.use({ humanStatus: { enabled: true, remaining: 20 } });
+  test.skip(process.env.VITE_HUMAN_GATE_ENABLED !== "true", "requires the gated page build");
+
+  test("shows verification and waits for a manual lookup", async ({ page }) => {
+    let decisions = 0;
+    page.on("request", (request) => {
+      if (request.url().endsWith("/v1/decide") && request.method() === "POST") decisions++;
+    });
+    await page.route("https://challenges.cloudflare.com/turnstile/**", (route) => route.fulfill({
+      contentType: "application/javascript",
+      body: `window.turnstile = {
+        render(container, options) { options.callback("browser-test-token"); return "test-widget"; },
+        remove() {}
+      };`,
+    }));
+    await openBoard(page);
+    const gate = page.getByRole("region", { name: "Manual lookups" });
+    await expect(gate).toBeVisible();
+    await expect(gate.getByText("20 decisions remaining today. Resets at midnight UTC.")).toBeVisible();
+    await expect(gate.getByRole("link", { name: "paid API or MCP" })).toBeVisible();
+    const lookup = gate.getByRole("button", { name: "Look up this decision" });
+    await expect(lookup).toBeEnabled();
+    await expect(page.getByLabel("Facet board answer")).toHaveCount(0);
+    expect(decisions).toBe(0);
+
+    const request = page.waitForRequest((request) =>
+      request.url().endsWith("/v1/decide") && request.method() === "POST",
+    );
+    await lookup.click();
+    expect((await request).headers()["x-modelspec-turnstile"]).toBe("browser-test-token");
+    await expect(page.getByLabel("Facet board answer")).toBeVisible();
+    expect(decisions).toBeGreaterThan(0);
+    await page.getByRole("button", { name: "Share or act" }).click();
+    await expect(page.getByRole("dialog").getByRole("button", { name: /CSV/ })).toHaveCount(0);
+  });
 });
