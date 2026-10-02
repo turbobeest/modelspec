@@ -1,8 +1,8 @@
 {
   "source_hashes": {
     "mcp/src/server.ts": "cbfc6eb071637cf68f31bfe4733ad6b406cda082db9c414a22710c8dab1177c6",
-    "docs/decision-contract.schema.json": "96393ca3f2f4666964b4a109e9e0e606060f14ccb89c6cbc8431dd4d4920f9c5",
-    "api/worker/openapi.yaml": "6f6daff7b871a3b15ddefbf7d0669974583d7afc6c5a486cddc0397c7a5ea418"
+    "docs/decision-contract.schema.json": "b60400ec66fc776d0c92135bebdd0903abeb3ca67c2331774f6709e26f099013",
+    "api/worker/openapi.yaml": "e8878a90685a08ffddd8795c8da3972e26abb3322062a624dd77b811e323a438"
   },
   "tools": [
     {
@@ -1045,7 +1045,7 @@
           },
           "Compare": {
             "additionalProperties": false,
-            "description": "``facet op value``; the value may be ``model(<id>)`` for a relative condition.",
+            "description": "``facet op value``; the value may be ``model(<id>)`` or ``best(m)`` for a relative\ncondition.",
             "properties": {
               "facet": {
                 "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
@@ -1109,6 +1109,9 @@
                     "$ref": "#/$defs/ModelRef"
                   },
                   {
+                    "$ref": "#/$defs/BestRef"
+                  },
+                  {
                     "type": "boolean"
                   },
                   {
@@ -1134,6 +1137,22 @@
               "value"
             ],
             "title": "Compare",
+            "type": "object"
+          },
+          "BestRef": {
+            "additionalProperties": false,
+            "description": "``facet >= best(m)``: within ``m`` of the highest value among the candidates\nthat pass every other hard condition. Added in 2.11.",
+            "properties": {
+              "best": {
+                "minimum": 0,
+                "title": "Best",
+                "type": "number"
+              }
+            },
+            "required": [
+              "best"
+            ],
+            "title": "BestRef",
             "type": "object"
           },
           "ModelRef": {
