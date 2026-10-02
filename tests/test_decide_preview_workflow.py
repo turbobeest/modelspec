@@ -26,9 +26,14 @@ def files(root):
             for path in root.rglob('*') if path.is_file()}
 
 
+def readable(marker: bytes) -> bytes:
+    """A stand-in page that clears the live build's crawlability gate (MODEL-253)."""
+    return marker + b"<h1>Stand-in</h1><p>" + b"word " * 80 + b"</p>"
+
+
 def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_path):
     fixture = {
-        'dist/modelspec/index.html': b'<link rel="canonical" href="https://modelspec.dev/">landing',
+        'dist/modelspec/index.html': readable(b'<link rel="canonical" href="https://modelspec.dev/">landing'),
         'dist/modelspec/api/index.json': b'{"live":true,"count":1}',
         'dist/modelspec/api/build.json': b'{"built_at":"2026-09-29T00:00:00+00:00","export_schema_version":"3.0"}',
         'dist/modelspec/.well-known/api-catalog': b'catalog',
@@ -40,15 +45,15 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
         'dist/modelspec/index.md': b'# ModelSpec',
         'dist/modelspec/auth.md': b'# Auth.md',
         'dist/modelspec/_headers': b'/*\n  Link: </llms.txt>; rel="describedby"\n',
-        'dist/modelspec/legal/terms/index.html': b'terms',
-        'dist/modelspec/legal/privacy/index.html': b'privacy',
-        'dist/modelspec/legal/neutrality/index.html': b'neutrality',
+        'dist/modelspec/legal/terms/index.html': readable(b'terms'),
+        'dist/modelspec/legal/privacy/index.html': readable(b'privacy'),
+        'dist/modelspec/legal/neutrality/index.html': readable(b'neutrality'),
         'dist/modelspec/openapi.yaml': b'openapi',
         'dist/modelspec/downselect/index.html': b'v1 wizard',
         'dist/modelspec/models/index.html': b'v1 rankings',
         'dist/modelspec/m/lab/model/index.html': b'unverified model page',
-        'dist/modelspec/pricing/index.html': b'v1 pricing',
-        'dist/modelspec/method/index.html': b'v1 method',
+        'dist/modelspec/pricing/index.html': readable(b'v1 pricing'),
+        'dist/modelspec/method/index.html': readable(b'v1 method'),
         'dist/modelspec/graph/index.html': b'<link rel="canonical" href="https://modelspec.dev/graph/">graph',
         'dist/modelspec/graph/vendor/three.min.js': b'three',
         'dist/modelspec/graph/vendor/3d-force-graph.min.js': b'force graph',
@@ -57,7 +62,7 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
         'dist/modelspec/landing-assets/landing.css': b'landing styles',
         'dist/modelspec/landing-assets/landing.js': b'landing script',
         'dist/modelspec/fonts/instrument-sans-latin-wdth-normal.woff2': b'instrument font',
-        'dist/modelspec/feedback/index.html': b'feedback page',
+        'dist/modelspec/feedback/index.html': readable(b'feedback page'),
         'dist/modelspec/feedback-assets/feedback.js': b'feedback control',
         'dist/benchgraph/_redirects': b'redirects',
         'dist-holding/modelspec/index.html': b'holding page',
@@ -90,7 +95,10 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
     # Pages are copied unchanged apart from the JSON-LD block (MODEL-218).
     page = lambda rel: structured_data.strip(live[rel].decode()).encode()
     assert page('modelspec/index.html') == fixture['dist/modelspec/index.html']
-    assert page('modelspec/decide/index.html') == fixture['web/dist/decide.html']
+    # MODEL-253: the app's empty root carries the crawlable capsule; nothing else changes.
+    built_decide = fixture['web/dist/decide.html'].replace(
+        b'<div id="root"></div>', f'<div id="root">{live_site.decide_capsule()}</div>'.encode())
+    assert page('modelspec/decide/index.html') == built_decide
     assert b'noindex' in live['modelspec/404.html']
     index = live['modelspec/index.html'].decode()
     decide = live['modelspec/decide/index.html'].decode()
@@ -103,9 +111,9 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
     for name in ('llms.txt', 'index.md', 'auth.md'):
         assert live[f'modelspec/{name}'] == fixture[f'dist/modelspec/{name}'], name
     assert live['modelspec/api/index.json'] == fixture['dist/modelspec/api/index.json']
-    assert page('modelspec/legal/terms/index.html') == b'terms'
-    assert page('modelspec/pricing/index.html') == b'v1 pricing'
-    assert page('modelspec/method/index.html') == b'v1 method'
+    assert page('modelspec/legal/terms/index.html') == readable(b'terms')
+    assert page('modelspec/pricing/index.html') == readable(b'v1 pricing')
+    assert page('modelspec/method/index.html') == readable(b'v1 method')
     assert live['modelspec/pricing-assets/pricing.js'] == b'pricing script'
     assert live['modelspec/openapi.yaml'] == b'openapi'
     assert live['modelspec/.well-known/api-catalog'] == b'catalog'
@@ -124,7 +132,7 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
     for removed in ('downselect', 'models', 'm', 'graph'):
         assert not (tmp_path / 'dist' / 'modelspec' / removed).exists()
     # MODEL-221: the feedback page and its control, in the sitemap.
-    assert page('modelspec/feedback/index.html') == b'feedback page'
+    assert page('modelspec/feedback/index.html') == readable(b'feedback page')
     assert live['modelspec/feedback-assets/feedback.js'] == b'feedback control'
     assert b'/feedback/' in live['modelspec/sitemap.xml']
 
