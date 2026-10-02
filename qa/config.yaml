@@ -21,6 +21,11 @@ agents:
     source: https://developers.openai.com/api/docs/models/gpt-6.1-sol
   gemini:
     model: gemini-3.8-flash
+    fallback:
+      model: gemini-3.7-flash
+      price: {input: 0.75, output: 3.75}
+      ceiling_price: {input: 1.5, output: 7.5}
+      source: https://ai.google.dev/gemini-api/docs/pricing
     price: {input: 0.75, output: 3.75}
     ceiling_price: {input: 1.5, output: 7.5}
     source: https://ai.google.dev/gemini-api/docs/pricing
