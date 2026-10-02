@@ -1223,3 +1223,14 @@ def test_signed_noncanonical_json_remains_loadable(tmp_path, layout):
         raw = " " + raw
     path.write_bytes(gzip.compress(raw.encode()))
     assert load(path, key=KEY).signature_verified
+
+
+@pytest.mark.parametrize('score,unit', [(101, 'percent'), (50, 'fraction'), (-1, 'percent')])
+def test_verified_benchmark_with_invalid_board_scale_is_not_admitted(score, unit):
+    row = evidence('lab/alpha', 'swe_bench_pro', score)
+    row['unit'] = unit
+    built = build_snapshot(inputs(evidence=[row], benchmark_metadata={
+        'swe_bench_pro': {'unit': '%', 'min_score': 0, 'max_score': 100},
+    }), registry=REGISTRY)
+    assert built.content['lineup']['evidence'] == {}
+    assert built.content['excluded']['invalid_benchmark_value'] == 1

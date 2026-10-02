@@ -257,6 +257,9 @@ def main() -> int:
         if not fresh:
             print(f"  UNCHANGED {model_id}: already carries this evidence")
             continue
+        from schema.benchmark_values import validate_rows
+
+        validate_rows(PROJECT_ROOT, fresh)
         block["evidence"] = (block.get("evidence") or []) + fresh
         front["benchmarks"] = block
 

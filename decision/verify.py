@@ -83,6 +83,7 @@ from decision.normalise import (
 from decision.registry import UNREGISTERED
 from decision.registry import default as default_registry
 from decision.sources import CopyStore, RecheckReport, Source, load_sources
+from decision.units import UNITS, _MAGNITUDE, unit_id
 from schema import private_errors
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -216,71 +217,6 @@ def _key(target: TargetRef) -> tuple[str, str]:
 
 # --- units and numbers ---------------------------------------------------------------------------
 
-#: Unit ID -> (dimension, factor to the dimension's base unit). IDs follow the
-#: facet registry's ``units`` where one exists.
-UNITS: Mapping[str, tuple[str, float]] = {
-    "percent": ("ratio", 0.01),
-    "fraction": ("ratio", 1.0),
-    "tokens": ("tokens", 1.0),
-    "k_tokens": ("tokens", 1e3),
-    "m_tokens": ("tokens", 1e6),
-    "usd_per_1m_tokens": ("usd_per_token", 1e-6),
-    "usd_per_1k_tokens": ("usd_per_token", 1e-3),
-    "usd_per_token": ("usd_per_token", 1.0),
-    "milliseconds": ("seconds", 1e-3),
-    "seconds": ("seconds", 1.0),
-    "tokens_per_second": ("tokens_per_second", 1.0),
-    "tokens_per_minute": ("tokens_per_minute", 1.0),
-    "requests_per_minute": ("requests_per_minute", 1.0),
-    "parameters": ("parameters", 1.0),
-    "m_parameters": ("parameters", 1e6),
-    "b_parameters": ("parameters", 1e9),
-    "days": ("days", 1.0),
-}
-
-_UNIT_SPELLINGS = {
-    "%": "percent", "percent": "percent", "pct": "percent", "per cent": "percent",
-    "fraction": "fraction", "ratio": "fraction",
-    "token": "tokens", "tokens": "tokens", "tok": "tokens",
-    "ktok": "k_tokens", "mtok": "m_tokens",
-    "ms": "milliseconds", "millisecond": "milliseconds", "milliseconds": "milliseconds",
-    "s": "seconds", "sec": "seconds", "second": "seconds", "seconds": "seconds",
-    "tokens/s": "tokens_per_second", "tok/s": "tokens_per_second",
-    "tokens/sec": "tokens_per_second", "tokens/second": "tokens_per_second",
-    "tokens/min": "tokens_per_minute", "tpm": "tokens_per_minute",
-    "requests/min": "requests_per_minute", "rpm": "requests_per_minute",
-    "parameter": "parameters", "parameters": "parameters", "params": "parameters",
-    "day": "days", "days": "days",
-    "usd/token": "usd_per_token",
-}
-_MAGNITUDE = {"k": "k", "thousand": "k", "m": "m", "million": "m", "b": "b", "billion": "b"}
-_SCALED = re.compile(r"^(k|m|b|thousand|million|billion)\s*(tokens?|parameters?|params)$")
-_PRICE = re.compile(r"^usd\s*/\s*(1\s*)?(k|m|thousand|million)\s*(tokens?|tok)?$")
-
-
-def unit_id(text: str | None) -> str | None:
-    """A unit spelling ("%", "K tokens", "$/1M tokens") as a unit ID, or ``None``.
-
-    An unrecognised spelling is returned cleaned, so it still compares exactly.
-    """
-    if text is None:
-        return None
-    s = text.strip().casefold().replace("$", "usd ").replace(" per ", "/")
-    s = re.sub(r"\s*/\s*", "/", re.sub(r"\s+", " ", s)).strip()
-    if not s:
-        return None
-    if s in {"/1m tokens", "per 1m tokens", "per million tokens"}:
-        return "usd_per_1m_tokens"
-    if s in UNITS:
-        return s
-    if s in _UNIT_SPELLINGS:
-        return _UNIT_SPELLINGS[s]
-    if m := _SCALED.match(s):
-        base = "tokens" if m.group(2).startswith("tok") else "parameters"
-        return f"{_MAGNITUDE[m.group(1)]}_{base}"
-    if m := _PRICE.match(s):
-        return f"usd_per_1{_MAGNITUDE[m.group(2)]}_tokens"
-    return s
 
 
 @dataclass(frozen=True)
@@ -549,6 +485,35 @@ class TableExtractor:
             )
             for row in rows
         ]
+
+
+class TransposedTableExtractor:
+    """Read benchmark rows under exact model-name column headers."""
+
+    actor = VerificationActor(agent=VERIFY_AGENT, model_family=DETERMINISTIC,
+                              method="transposed-table-label-match@1")
+
+    def accepts(self, text: str) -> bool:
+        return any(line.startswith("| ") for line in text.splitlines())
+
+    def extract(self, claim: Claim, text: str) -> list[Reading]:
+        rows = [[cell.strip() for cell in re.split(r" ?\| ?", line)]
+                for line in text.splitlines()]
+        names = {normalise_name(name): name for name in claim.names}
+        readings = []
+        for i, header in enumerate(rows):
+            if len(header) < 2 or header[0]:
+                continue
+            columns = [(j, names[normalise_name(cell)]) for j, cell in enumerate(header)
+                       if j and normalise_name(cell) in names]
+            for row in rows[i + 1:]:
+                if len(row) != len(header):
+                    break
+                if normalise_name(row[0]) != _label(claim):
+                    continue
+                readings.extend(Reading(subject=name, value=row[j] or None)
+                                for j, name in columns)
+        return readings
 
 
 class OfferingPriceExtractor:
@@ -1777,6 +1742,12 @@ class ModelPageExtractor:
             if normal in aliases:
                 value = lines[i + 1] if i + 1 < len(lines) else None
                 unit = claim.unit if claim.field.startswith("offering.price.") else None
+                if unit is not None:
+                    # Model price pages can place a category label before the amount.
+                    if normalise_name(value or "") == "tokens":
+                        value = lines[i + 2] if i + 2 < len(lines) else None
+                    if value is None or parse_quantity(value, unit) is None:
+                        continue
                 readings.append(Reading(subject=subject, value=value, unit=unit))
                 continue
             suffix = next((alias for alias in aliases if normal.endswith(" " + alias)), None)
@@ -2277,7 +2248,7 @@ def _text(value: Any) -> str | None:
 
 def deterministic_extractors() -> list[Extractor]:
     return [StructuredDataExtractor(), OfferingPriceExtractor(), SubscriptionPageExtractor(),
-            TableExtractor(),
+            TableExtractor(), TransposedTableExtractor(),
             GovernanceProseExtractor(), KeyValueExtractor(), ModelPageExtractor()]
 
 

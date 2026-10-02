@@ -2370,3 +2370,30 @@ def test_a_pay_per_use_list_price_is_exact(claimed: float, published: str, agree
     claim = _price_claim("cached_input", claimed, name="Claude Opus 5")
     reading = verify.Reading("Claude Opus 5", published, "usd_per_1m_tokens")
     assert (verify.compare(claim, [reading]) == []) is agrees
+
+
+def test_model_price_page_reads_amount_after_tokens_category():
+    text = 'Example Model\nPricing\nInput\nTokens\n$4.00/ 1M tokens\nOutput\nTokens\n$12.00/ 1M tokens\n'
+    for field, amount in [('input', 4), ('output', 12)]:
+        claim = _price_claim(field, amount, name='Example Model')
+        readings = verify.ModelPageExtractor().extract(claim, text)
+        assert verify.compare(claim, readings) == []
+
+
+def test_model_price_page_without_numeric_amount_has_no_price_reading():
+    claim = _price_claim('input', 4, name='Example Model')
+    readings = verify.ModelPageExtractor().extract(claim, 'Example Model\nInput\nTokens\nOutput\nTokens\n')
+    assert not any(reading.value is not None for reading in readings)
+
+
+def test_transposed_benchmark_table_converts_percent_to_fraction_and_selects_exact_column(store):
+    claim = verify.Claim(target=TargetRef(kind='evidence', id='fixture-score'),
+                         subject='lab/model', names=('Example Model',), field='fixture',
+                         label='8 needle average', value=.42, unit='fraction',
+                         collector=COLLECTOR, sources=(SourceRef(source_id='fixture',
+                             snapshot_ref='sha256:' + '0' * 64, cited_regions=['rows']),))
+    text = '| Example Model | Example Model Small\n8 needle average | 42% | 24%\n4 needle average | 84% | 48%\n'
+    extractor = verify.TransposedTableExtractor()
+    assert verify.compare(claim, extractor.extract(claim, text)) == []
+    from dataclasses import replace
+    assert verify.compare(replace(claim, value=.24), extractor.extract(claim, text))

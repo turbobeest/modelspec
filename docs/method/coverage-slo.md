@@ -155,3 +155,19 @@ reported to the orchestrator for tickets:
    mismatched verification.
 8. **The seeder's coverage stops at models.dev.** A lab not on models.dev
    cannot be tracked by the current feed at all.
+
+### Price re-read age guard
+
+The private weekly `scripts/price_reread.py` job uses N = 7 days, matching
+`offering-price-age` and `decision.sources.DEFAULT_INTERVALS`. It attempts
+**every** eligible sourced offering price and plan on each run, including
+values previously verified by an LLM. There is no recent-value filter that
+could omit an older source. Successful reads refresh the dated verification;
+changed values require human review of the data PR.
+
+The report records `max_read_age_days: 7` and lists facts whose last usable verification of the current value
+is older than seven days or missing in `overdue`. An overdue fact that cannot
+enter the read queue also appears in `alerts`, including missing claims,
+quarantined values, and pages requiring rendering. It cannot silently remain
+outside the job. These reads run in the private writer workflow. Public tests
+replay local fixtures and make no network requests.
