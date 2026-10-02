@@ -18,6 +18,7 @@ sys.path.insert(0, str(ROOT))
 from decision.snapshot import load_public_keys  # noqa: E402
 from pipeline import agent_ready as ar  # noqa: E402
 from pipeline import brand  # noqa: E402
+from pipeline import entity  # noqa: E402
 from pipeline import build as builder  # noqa: E402
 from pipeline.export import Build  # noqa: E402
 from pipeline.load import Benchmark, Catalogue, Model  # noqa: E402
@@ -144,7 +145,7 @@ def test_mcp_card_leads_with_decide_and_marks_rank_legacy_v1() -> None:
     assert card["$schema"] == ar.MCP_SCHEMA
     assert re.fullmatch(ar.MCP_NAME_PATTERN, card["name"])
     assert len(card["description"]) <= ar.MCP_DESCRIPTION_MAX
-    assert card["description"].startswith("Decide")
+    assert card["description"] == entity.SHORT  # MODEL-252: from the registry
     assert card["remotes"][0]["url"] == ar.MCP_ENDPOINT
     assert card["remotes"][0]["type"] == "streamable-http"
     assert [t["name"] for t in card["tools"]] == list(ar.MCP_TOOLS)

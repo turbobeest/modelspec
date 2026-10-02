@@ -22,7 +22,7 @@ from decision.engine import decide
 from decision.registry import default
 from decision.snapshot import build_from_repo, load_built_snapshot
 from decision.templates import load_catalogue
-from pipeline import brand, landing_chrome
+from pipeline import brand, entity, landing_chrome
 from pipeline import social_cards
 from pipeline.load import load_models
 
@@ -31,10 +31,8 @@ MONTHLY_TASKS = 10_000
 HEADLINE_LEAD = "Model routers make educated guesses."
 HEADLINE_SUB = "ModelSpec makes informed, unbiased decisions from evidence."
 HEADLINE = f"{HEADLINE_LEAD} {HEADLINE_SUB}"
-TITLE = "ModelSpec — justifies the model decision and shows its work"
-DESCRIPTION = ("Decide which AI model your job needs, and see why: your requirements, every "
-               "benchmark, real cost and the uncertainty, from sourced evidence. Nobody pays "
-               "to rank higher.")
+TITLE = entity.TITLE
+DESCRIPTION = f"{entity.ONE_SENTENCE} Nobody pays to rank higher."
 GH = "https://github.com/turbobeest/modelspec/blob/main/"
 #: Each element of an analysis of alternatives, what ModelSpec does for it,
 #: and where to check it. Every row is a live capability; the proof is the
@@ -425,6 +423,12 @@ def render(data: LandingData, *, variant: Literal["live", "holding"]) -> str:
         f'<a href="{html.escape(proof)}">Check it</a></li>'
         for element, what, proof in ANALYSIS
     )
+    lead = entity.linked(entity.ONE_SENTENCE, {
+        "your requirements": "/method/#must-prefer",
+        "sourced benchmarks": "/method/#estimate",
+        "real cost": f"{GH}docs/decision-contract.md#cost-per-task",
+        "shows its work": "/method/",
+    })
     return f'''<!doctype html>
 <html lang="en"><head><meta charset="utf-8">{forward}<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{TITLE}</title>
@@ -434,7 +438,7 @@ def render(data: LandingData, *, variant: Literal["live", "holding"]) -> str:
 <body><div class="axis" aria-hidden="true"></div>
 <header>{landing_chrome.lockup(href=None)}<nav><a href="#receipt">What it costs you</a><a href="#routers">Routers</a><a href="#teams">For teams</a><a href="#agents">For agents</a><a href="/pricing/">Pricing</a><a href="#pick-a-model">Test your pick</a>{board}</nav></header>
 <main><section class="hero"><div class="hero-copy"><h1><span class="h1-lead">{HEADLINE_LEAD}</span> <span class="h1-sub">{HEADLINE_SUB}</span></h1>
-<p class="close">ModelSpec picks the model your job needs from <a href="/method/#must-prefer">your requirements</a>, <a href="/method/#estimate">every admitted benchmark</a> and <a href="{GH}docs/decision-contract.md#cost-per-task">real cost</a>, and <a href="/method/">shows how it got there</a>. When one model wins, it says so. When the evidence can't separate them, it <a href="/method/#ties">says that too</a>, and hands you the cheapest. <a href="/legal/neutrality/">Nobody pays to rank higher.</a></p>
+<p class="close">{lead} When one model wins, it says so. When the evidence can't separate them, it <a href="/method/#ties">says that too</a>, and hands you the cheapest. <a href="/legal/neutrality/">Nobody pays to rank higher.</a></p>
 <div class="actions"><a class="button cta-agents" href="#agents">Give it to your agents</a>{board_alt}</div></div>
 <figure class="plot"><div class="chips" aria-hidden="true"><span data-stage="1">The top estimate</span><span data-stage="2">Can't be told apart from it</span><span data-stage="3">The cheapest of those</span></div>
 <svg id="plot" viewBox="0 0 680 560" role="img" aria-label="{html.escape(cheapest.name)} is in the tie at {_money(cheapest.cost, 3)} a task: {data.ratio:.1f}× less."></svg>

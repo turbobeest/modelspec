@@ -12,6 +12,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
+from pipeline import entity
+
 if TYPE_CHECKING:
     from pipeline.landing import LandingData, PlotModel
 
@@ -225,7 +227,7 @@ def _pricing_factory(data: LandingData | None) -> SocialCard:
 
 
 CARD_REGISTRY = (
-    CardRegistration(page="/", title="ModelSpec — justifies the model decision and shows its work",
+    CardRegistration(page="/", title=entity.TITLE,
                      filename=LANDING_IMAGE,
                      factory=_landing_factory),
     CardRegistration(

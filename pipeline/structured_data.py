@@ -21,6 +21,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+from pipeline import entity
 from pipeline.social_profiles import profile_urls
 
 BASE = "https://modelspec.dev"
@@ -65,10 +66,9 @@ def organization(root: Path) -> dict[str, Any]:
         "legalName": "Sparks & Sawdust LLC",
         "url": f"{BASE}/",
         "logo": f"{BASE}/icon-512.png",
+        "description": entity.ONE_SENTENCE,
     }
-    same_as = profile_urls(root / "brand" / "social" / "profiles.json")
-    if same_as:
-        org["sameAs"] = list(same_as)
+    org["sameAs"] = [*entity.SAME_AS, *profile_urls(root / "brand" / "social" / "profiles.json")]
     return org
 
 

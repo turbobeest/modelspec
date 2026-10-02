@@ -17,7 +17,7 @@ import shutil
 from pathlib import Path
 from typing import Any
 
-from pipeline import brand
+from pipeline import brand, entity
 from pipeline.export import Build
 from pipeline.load import Benchmark, Catalogue, Model, REPO_ROOT
 
@@ -513,7 +513,7 @@ def mcp_card() -> dict[str, Any]:
     `tools` is extra; draft-07 additionalProperties default to true, and the
     The public card lists every MCP tool named here.
     """
-    description = "Decide which model fits a task, inspect cards, and check policy."
+    description = entity.SHORT
     if len(description) > MCP_DESCRIPTION_MAX:
         raise ValueError("MCP description exceeds schema maxLength 100")
     return {
