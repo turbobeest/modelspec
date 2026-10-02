@@ -28,6 +28,13 @@ from qa.providers import Budget, HttpAgent, ProviderError, SpendLimitError
 from qa.tools import LiveTools, require_nonproduction, tool_result
 
 
+@pytest.fixture(autouse=True)
+def _no_retry_sleep(monkeypatch):
+    import qa.providers
+
+    monkeypatch.setattr(qa.providers, "sleep", lambda seconds: None)
+
+
 @pytest.fixture
 def config():
     return yaml.safe_load((HERE / "config.yaml").read_text())

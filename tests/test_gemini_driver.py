@@ -155,6 +155,23 @@ def test_other_http_statuses_do_not_retry_or_fallback(status, config):
     assert agent.last_model == "gemini-3.8-flash"
 
 
+def test_timeouts_retry_within_the_cap_and_keep_every_reservation(config):
+    requests = []
+
+    def handler(request):
+        requests.append(request)
+        raise httpx.ReadTimeout("private transport detail", request=request)
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        agent = driver(client, config)
+        with pytest.raises(ProviderError, match="response or transport failed") as error:
+            agent.step()
+    assert len(requests) == len(agent.budget.calls) == 3
+    assert agent.budget.spent_usd == sum(call["reserved_usd"] for call in agent.budget.calls)
+    assert error.value.details == {"type": "ReadTimeout"}
+    assert "private transport detail" not in str(error.value)
+
+
 @pytest.mark.parametrize("failure", ["timeout", "malformed"])
 def test_transport_and_decoding_failures_keep_reservation_without_retry(failure, config):
     requests = []
@@ -167,6 +184,8 @@ def test_transport_and_decoding_failures_keep_reservation_without_retry(failure,
 
     with httpx.Client(transport=httpx.MockTransport(handler)) as client:
         agent = driver(client, config)
+        if failure == "timeout":
+            agent.family = "claude"  # one attempt: non-Gemini families never retry
         with pytest.raises(ProviderError, match="response or transport failed") as error:
             agent.step()
     assert len(requests) == 1

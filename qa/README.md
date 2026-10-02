@@ -53,14 +53,15 @@ an inference. The sanitised declarations use Google's documented
 field and pass offline schema validation. No request-shape defect was found.
 
 Gemini now makes at most three HTTP attempts per `step()`, including fallback.
-Only HTTP 429 and 503 permit retries, with exponential waits of `1 + U(0,1)`
+Only HTTP 429, 503 and client timeouts permit retries (a timed-out attempt
+keeps its reservation charged), with exponential waits of `1 + U(0,1)`
 and `2 + U(0,1)` seconds. The final attempt can use `agents.gemini.fallback`
 before the first successful reply; it stays selected thereafter. A fallback
 requires its own model, price and ceiling_price settings. The default is the
 current `gemini-3.7-flash`, with the same documented text rates as 3.8 Flash.
 Remove the fallback setting to retry only the primary. Once a model has replied,
 its thought signatures prevent a model switch, so subsequent retries keep it.
-Transport errors and other HTTP statuses do not retry. Safe transport exception
+Other transport errors and HTTP statuses do not retry. Safe transport exception
 types now enter private diagnostics to distinguish future timeouts.
 
 Every attempt reserves against the shared invocation budget before HTTP.

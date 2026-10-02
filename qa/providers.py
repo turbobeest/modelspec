@@ -219,6 +219,15 @@ class HttpAgent:
             payload["tools"] = [{"functionDeclarations": functions}]
         return payload
 
+    def _before_retry(self, attempt: int, attempts: int) -> None:
+        # The final attempt may use a different model only before any reply:
+        # thought signatures belong to their model.
+        if attempt + 1 == attempts - 1 and self.fallback and len(self.history) == 1:
+            self.model = self.fallback["model"]
+            self.price = self.fallback["price"]
+            self.ceiling_price = self.fallback["ceiling_price"]
+        sleep(2**attempt + uniform(0, 1))
+
     def step(self) -> Reply:
         attempts = GEMINI_MAX_ATTEMPTS if self.family == "gemini" else 1
         for attempt in range(attempts):
@@ -250,13 +259,7 @@ class HttpAgent:
                     ):
                         self.budget.release(reserved)
                     if response.status_code in (429, 503) and attempt + 1 < attempts:
-                        # The final attempt may use a different model only before
-                        # any reply: thought signatures belong to their model.
-                        if attempt + 1 == attempts - 1 and self.fallback and len(self.history) == 1:
-                            self.model = self.fallback["model"]
-                            self.price = self.fallback["price"]
-                            self.ceiling_price = self.fallback["ceiling_price"]
-                        sleep(2**attempt + uniform(0, 1))
+                        self._before_retry(attempt, attempts)
                         continue
                     raise ProviderError(f"{self.family} HTTP {response.status_code}", details)
                 data = response.json()
@@ -269,6 +272,15 @@ class HttpAgent:
                     self.ceiling_price if reply.tokens_in > 200_000 else self.price,
                 )
                 return reply
+            except httpx.TimeoutException as exc:
+                # A timeout keeps its reservation charged, so retrying stays inside the cap.
+                if attempt + 1 < attempts:
+                    self._before_retry(attempt, attempts)
+                    continue
+                raise ProviderError(
+                    f"{self.family} response or transport failed",
+                    {"type": type(exc).__name__},
+                ) from None
             except httpx.HTTPError as exc:
                 raise ProviderError(
                     f"{self.family} response or transport failed",
