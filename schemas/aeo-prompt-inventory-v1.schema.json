@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://modelspec.dev/schemas/aeo-prompt-inventory-v1.schema.json",
+  "title": "AEO prompt inventory",
+  "description": "The prompts ModelSpec measures answer engines on (MODEL-254). Contract: docs/aeo/prompt-inventory.md. Semantic checks the schema cannot express (unique ids, registry-known constraints) live in scripts/aeo/inventory.py.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "prompts"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "prompts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {"$ref": "#/$defs/prompt"}
+    }
+  },
+  "$defs": {
+    "prompt": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "text", "cluster", "icp", "intent", "locale", "engines", "expected_entities", "success", "source"],
+      "properties": {
+        "id": {"type": "string", "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"},
+        "text": {"type": "string", "minLength": 3, "description": "Exact buyer phrasing. Never rewritten into our own words."},
+        "cluster": {"enum": ["category", "constrained", "agent", "disambiguation"]},
+        "icp": {"enum": ["builder", "team-lead", "agent"]},
+        "intent": {"enum": ["discover", "compare", "implement", "buy"]},
+        "locale": {"type": "string", "pattern": "^[a-z]{2}-[A-Z]{2}$"},
+        "engines": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"enum": ["openai", "anthropic", "perplexity", "gemini", "chatgpt_ui", "ai_overviews"]}
+        },
+        "expected_entities": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1}
+        },
+        "success": {"enum": ["cited", "mentioned", "recommended", "disambiguated"]},
+        "source": {
+          "enum": ["jamie", "decide-template", "feedback-log", "dpf", "release-blog", "sales", "chat-export", "proposed"],
+          "description": "Where the phrasing came from. 'proposed' is a placeholder to be replaced by real phrasing; a keyword tool is never a source."
+        },
+        "constraints": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {"type": "string", "minLength": 1},
+          "description": "Registry facet IDs or capability domain IDs the prompt names. Required for the constrained cluster."
+        },
+        "template": {"type": "string", "description": "A decide template ID (registry/templates.yaml) the prompt corresponds to."},
+        "notes": {"type": "string"}
+      }
+    }
+  }
+}
