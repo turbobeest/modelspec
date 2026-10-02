@@ -4,10 +4,13 @@ from __future__ import annotations
 
 import json
 import os
+import re
 from dataclasses import dataclass, field
 from typing import Any
 
 import httpx
+
+from qa.schemas import provider_schema
 
 KEY_ENV = {"claude": "ANTHROPIC_API_KEY", "openai": "OPENAI_API_KEY", "gemini": "GEMINI_API_KEY"}
 
@@ -18,6 +21,55 @@ class SpendLimitError(Exception):
 
 class ProviderError(Exception):
     """A vendor failed, refused, or omitted billable usage."""
+
+    def __init__(self, summary: str, details: dict | None = None):
+        super().__init__(summary)
+        # Only the private run record may consume these details. str(exc) stays safe.
+        self.details = details
+
+
+def redact(text: str) -> str:
+    for name in (*KEY_ENV.values(), "MODELSPEC_API_KEY"):
+        secret = os.environ.get(name)
+        if secret:
+            text = text.replace(secret, "[REDACTED]")
+    return re.sub(
+        r"\b(?:(?:sk|rk|ghp|gho|ghs|ghu|github_pat|xox[abpr]|hf|glpat|msk)[-_]"
+        r"[A-Za-z0-9_-]{8,}|AIza[A-Za-z0-9_-]{8,}|ya29\.[A-Za-z0-9_.-]{10,}"
+        r"|(?:live|test)_[A-Za-z0-9]{16,}|(?:AKIA|ASIA)[0-9A-Z]{12,}|Bearer\s+\S+)",
+        "[REDACTED]",
+        text,
+        flags=re.I,
+    )
+
+
+def _error_details(response: httpx.Response) -> tuple[dict, bool]:
+    """Extract only the error fields, never headers, URLs or the full body."""
+    try:
+        data = response.json()
+    except ValueError:
+        data = {}
+    if not isinstance(data, dict):
+        data = {}
+    error = data.get("error", {})
+    if not isinstance(error, dict):
+        error = {}
+    details = {"http_status": response.status_code}
+    for key, value in (
+        ("type", error.get("type", error.get("status"))),
+        ("message", error.get("message")),
+    ):
+        if isinstance(value, str):
+            details[key] = redact(value)[:300]
+    # A rejected request is free unless the response indicates possible usage.
+    # Unexpected usage shapes and request timeouts retain the reservation.
+    usage = data.get("usage", data.get("usageMetadata"))
+    zero_usage = usage is None or (
+        isinstance(usage, dict)
+        and bool(usage)
+        and all(type(v) is int and v == 0 for v in usage.values())
+    )
+    return details, zero_usage
 
 
 @dataclass
@@ -50,6 +102,10 @@ class Budget:
             self.halted = True
             raise ProviderError("Vendor usage exceeded its reservation; refusing further calls")
         return cost
+
+    def release(self, reserved: float) -> None:
+        self.spent_usd -= reserved
+        self.calls[-1].update(cost_usd=0.0, usage_known=True, tokens_in=0, tokens_out=0)
 
 
 @dataclass
@@ -87,7 +143,18 @@ class HttpAgent:
         ceiling_price: dict | None = None,
     ):
         self.family, self.model, self.system = family, model, system
-        self.tools, self.budget, self.price = tools, budget, price
+        if any(not re.fullmatch(r"[a-zA-Z0-9_-]{1,64}", t["name"]) for t in tools):
+            raise ValueError(
+                "Tool names must contain 1 to 64 letters, digits, underscores or hyphens"
+            )
+        if type(max_output) is not int or max_output < (16 if family == "openai" else 1):
+            raise ValueError("Output token limit is below the provider minimum")
+        if not model.strip() or not request.strip():
+            raise ValueError("Model and initial user message must be nonempty")
+        self.tools = [
+            t | {"input_schema": provider_schema(t["input_schema"], family)} for t in tools
+        ]
+        self.budget, self.price = budget, price
         self.max_output, self.client = max_output, client
         self.ceiling_price = ceiling_price or price
         self.key = os.environ.get(KEY_ENV[family])
@@ -163,8 +230,10 @@ class HttpAgent:
         try:
             response = self.client.post(url, json=payload, headers=headers)
             if response.status_code >= 400:
-                # Never include a URL/query/header or vendor body in exceptions.
-                raise ProviderError(f"{self.family} HTTP {response.status_code}")
+                details, zero_usage = _error_details(response)
+                if 400 <= response.status_code < 500 and response.status_code != 408 and zero_usage:
+                    self.budget.release(reserved)
+                raise ProviderError(f"{self.family} HTTP {response.status_code}", details)
             data = response.json()
             reply = self.decode(data)
             reply.cost_usd = self.budget.settle(

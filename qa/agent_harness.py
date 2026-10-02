@@ -22,7 +22,7 @@ import httpx
 import yaml
 
 from qa.contracts import ROOT, source_hashes
-from qa.providers import KEY_ENV, Budget, HttpAgent, ProviderError, Reply, SpendLimitError
+from qa.providers import KEY_ENV, Budget, HttpAgent, ProviderError, Reply, SpendLimitError, redact
 from qa.tools import USER_AGENT, LiveTools
 
 HERE = ROOT / "qa"
@@ -242,6 +242,8 @@ def run_scenario(scenario: dict, family: str, agent, shim, judge, config: dict) 
         row["status"] = "spend_cap"
     except ProviderError as exc:
         row["status"], row["error"] = "provider_error", str(exc)
+        if exc.details is not None:
+            row["provider_error"] = exc.details
     except (ValueError, json.JSONDecodeError):
         row["status"], row["error"] = "evaluation_error", "Invalid fixture or judge response"
     row["wall_time_ms"] = (perf_counter() - started) * 1000
@@ -419,13 +421,6 @@ def write_report(report: dict, directory: Path) -> tuple[Path, Path]:
     directory.mkdir(parents=True, exist_ok=True)
     stem = directory / f"{report['report_date']}-agent-scenarios"
     md, js = stem.with_suffix(".md"), stem.with_suffix(".json")
-
-    def redact(text):
-        for name in (*KEY_ENV.values(), "MODELSPEC_API_KEY"):
-            secret = os.environ.get(name)
-            if secret:
-                text = text.replace(secret, "[REDACTED]")
-        return text
 
     md.write_text(redact(markdown(report)))
     js.write_text(redact(json.dumps(report, indent=2, ensure_ascii=False)) + "\n")

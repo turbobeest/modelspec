@@ -21,7 +21,10 @@ SOURCE_PATHS = (
 
 
 def source_hashes() -> dict[str, str]:
-    return {p: hashlib.sha256((ROOT / p).read_bytes()).hexdigest() for p in SOURCE_PATHS}
+    paths = list(SOURCE_PATHS)
+    if (ROOT / "mcp/src/agent-copy.json").exists():
+        paths.append("mcp/src/agent-copy.json")
+    return {p: hashlib.sha256((ROOT / p).read_bytes()).hexdigest() for p in paths}
 
 
 def _prose(expression: str, constants: dict[str, str]) -> str:
@@ -49,8 +52,11 @@ def capture_tools() -> dict:
     source = (ROOT / "mcp/src/server.ts").read_text()
     constants = {}
     for name in ("NULL_RULE", "SPEC_GUIDANCE"):
-        expression = re.search(rf"const {name}\s*=\s*(.*?);\n", source, re.S).group(1)
-        constants[name] = _prose(expression, constants)
+        match = re.search(rf"const {name}\s*=\s*(.*?);\s*\n", source, re.S)
+        if match:
+            constants[name] = _prose(match.group(1), constants)
+    copy_path = ROOT / "mcp/src/agent-copy.json"
+    agent_copy = json.loads(copy_path.read_text()) if copy_path.exists() else None
     api = yaml.safe_load((ROOT / "api/worker/openapi.yaml").read_text())
     schemas = api["components"]["schemas"]
 
@@ -142,16 +148,25 @@ def capture_tools() -> dict:
     }
     tools = []
     for name in TOOL_NAMES:
-        expression = re.search(
-            rf'server\.registerTool\(\s*"{name}",\s*\{{\s*description:\s*'
+        match = re.search(
+            rf'server\.registerTool\(\s*"{name}"\s*,\s*\{{\s*description:\s*'
             r"(.*?),\s*inputSchema:",
             source,
             re.S,
-        ).group(1)
+        )
+        if match is None:
+            raise ValueError(f"Cannot capture MCP description for {name}")
+        expression = match.group(1).strip()
+        if re.fullmatch(rf"agentCopy\s*\.\s*tools\s*\.\s*{name}", expression):
+            if agent_copy is None:
+                raise ValueError("MCP descriptions require mcp/src/agent-copy.json")
+            description = agent_copy["tools"][name]
+        else:
+            description = _prose(expression, constants)
         tools.append(
             {
                 "name": name,
-                "description": _prose(expression, constants),
+                "description": description,
                 "input_schema": inputs[name],
             }
         )

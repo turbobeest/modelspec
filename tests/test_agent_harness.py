@@ -72,6 +72,38 @@ def test_mcp_capture_matches_current_public_sources():
     assert "input_schema" in recorded["tools"][4]
 
 
+def test_mcp_capture_reads_generated_copy_and_pins_its_hash(tmp_path, monkeypatch):
+    from qa import contracts
+
+    recorded = capture_tools()
+    for path in contracts.SOURCE_PATHS:
+        target = tmp_path / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes((ROOT / path).read_bytes())
+    copy_path = tmp_path / "mcp/src/agent-copy.json"
+    descriptions = {name: f"Generated description for {name}" for name in TOOL_NAMES}
+    copy_path.write_text(json.dumps({"tools": descriptions}))
+    # MODEL-257 removed the prose constants and registers generated descriptions.
+    (tmp_path / "mcp/src/server.ts").write_text(
+        'import agentCopy from "./agent-copy.json";\n'
+        + "\n".join(
+            f'server.registerTool(\n  "{name}" , {{\n'
+            f' description: agentCopy.tools.{name},\n inputSchema: input,\n}}, handler);'
+            for name in TOOL_NAMES
+        )
+    )
+    monkeypatch.setattr(contracts, "ROOT", tmp_path)
+    captured = capture_tools()
+    assert [t["description"] for t in captured["tools"]] == list(descriptions.values())
+    assert [t["input_schema"] for t in captured["tools"]] == [
+        t["input_schema"] for t in recorded["tools"]
+    ]
+    pinned = captured["source_hashes"]["mcp/src/agent-copy.json"]
+    copy_path.write_text(json.dumps({"tools": descriptions | {"decide": "Changed copy"}}))
+    assert source_hashes()["mcp/src/agent-copy.json"] != pinned
+    assert capture_tools()["tools"][4]["description"] == "Changed copy"
+
+
 @pytest.mark.parametrize("family", ["claude", "openai", "gemini"])
 def test_full_dry_replay_has_no_network_or_keys(monkeypatch, tmp_path, family):
     def forbidden(*args, **kwargs):
@@ -581,3 +613,319 @@ def test_strips_nested_fields_the_way_mcp_zod_does(config, definitions):
     assert shim.prepare("vocab", {"section": "facets", "private": "ignored"}) == {
         "section": "facets"
     }
+
+
+@pytest.mark.parametrize("family", ["claude", "openai", "gemini"])
+def test_fixture_request_has_a_literal_object_tool_root(family, config, definitions, monkeypatch):
+    import re
+
+    from jsonschema import Draft202012Validator
+
+    from qa.agent_harness import SYSTEM_NOTE
+    from qa.providers import KEY_ENV
+
+    monkeypatch.setenv(KEY_ENV[family], "offline-key")
+    settings = config["agents"][family]
+    with httpx.Client(
+        transport=httpx.MockTransport(lambda r: pytest.fail("Network call"))
+    ) as client:
+        agent = HttpAgent(
+            family,
+            settings["model"],
+            SYSTEM_NOTE + (ROOT / "api/worker/openapi.yaml").read_text(),
+            agent_request(load_scenarios()[0]),
+            definitions,
+            Budget(2),
+            settings["price"],
+            config["max_output_tokens"],
+            client,
+        )
+        payload = agent.payload()
+    if family == "claude":
+        tools = payload["tools"]
+        schemas = [t["input_schema"] for t in tools]
+        assert payload["model"] == "claude-sonnet-5"
+        assert payload["max_tokens"] == 4096 and payload["max_tokens"] <= 128_000
+        assert isinstance(payload["system"], str) and payload["system"].startswith(SYSTEM_NOTE)
+        assert payload["messages"] == [
+            {"role": "user", "content": agent_request(load_scenarios()[0])}
+        ]
+    elif family == "openai":
+        tools = payload["tools"]
+        schemas = [t["parameters"] for t in tools]
+        assert all(t["strict"] is False and t["type"] == "function" for t in tools)
+        assert payload["max_output_tokens"] == 4096
+        assert payload["instructions"].startswith(SYSTEM_NOTE)
+        assert payload["input"][0]["role"] == "user" and payload["input"][0]["content"]
+        assert payload["store"] is False
+    else:
+        tools = payload["tools"][0]["functionDeclarations"]
+        schemas = [t["parametersJsonSchema"] for t in tools]
+        assert payload["generationConfig"]["maxOutputTokens"] == 4096
+        assert payload["systemInstruction"]["parts"][0]["text"].startswith(SYSTEM_NOTE)
+        assert payload["contents"][0]["role"] == "user"
+        assert payload["contents"][0]["parts"][0]["text"]
+        # Conservative JSON vocabulary, independent of the converter's allowlist.
+        allowed = {
+            "type",
+            "description",
+            "properties",
+            "required",
+            "items",
+            "enum",
+            "anyOf",
+            "minimum",
+            "maximum",
+            "minLength",
+            "maxLength",
+            "pattern",
+            "format",
+            "minItems",
+            "maxItems",
+            "minProperties",
+            "maxProperties",
+        }
+        assert all(node.keys() <= allowed for schema in schemas for node in schema_nodes(schema))
+    assert all(re.fullmatch(r"[a-zA-Z0-9_-]{1,64}", t["name"]) for t in tools)
+    assert all(s.get("type") == "object" for s in schemas)
+    for schema in schemas:
+        Draft202012Validator.check_schema(schema)
+        assert not {"oneOf", "anyOf", "allOf"} & schema.keys()
+        assert all(not {"$ref", "$defs"} & node.keys() for node in schema_nodes(schema))
+    assert len(json.dumps(payload).encode()) < 1_000_000
+
+
+def schema_nodes(schema):
+    yield schema
+    for keyword in ("properties", "patternProperties"):
+        for child in schema.get(keyword, {}).values():
+            yield from schema_nodes(child)
+    for keyword in ("items", "additionalProperties", "not"):
+        if isinstance(schema.get(keyword), dict):
+            yield from schema_nodes(schema[keyword])
+    for keyword in ("anyOf", "oneOf", "allOf", "prefixItems"):
+        for child in schema.get(keyword, []):
+            yield from schema_nodes(child)
+
+
+@pytest.mark.parametrize("family", ["claude", "openai", "gemini"])
+def test_provider_schemas_preserve_valid_mcp_arguments(family, definitions):
+    from jsonschema import Draft202012Validator
+
+    from qa.schemas import provider_schema
+
+    original = copy.deepcopy(definitions)
+    examples = {
+        "rank": {"use_case": "coding", "environment": {"hardware": None}},
+        "model_info": {"model_id": "lab/a"},
+        "list_use_cases": {},
+        "policy_check": {"policy": {"commercial_use": {"required": True}}},
+        "vocab": {"section": "providers"},
+        "feedback": {"rating": "confusing"},
+        "decide": {
+            "spec_version": 1,
+            "capabilities": {"software_engineering": "required"},
+            "optimize": {
+                "weights": {
+                    "reasoning": 0.6,
+                    "model.class": {"prefer": "text-generator", "weight": 0.4},
+                }
+            },
+            "where": [{"all": [{"any": [{"not": {"all": ["model.context_window >= 4000"]}}]}]}],
+        },
+    }
+    for tool in definitions:
+        schema = provider_schema(tool["input_schema"], family)
+        Draft202012Validator.check_schema(schema)
+        Draft202012Validator(tool["input_schema"]).validate(examples[tool["name"]])
+        Draft202012Validator(schema).validate(examples[tool["name"]])
+        assert len(json.dumps(schema)) < 100_000
+        for node in schema_nodes(schema):
+            assert not {"$ref", "$defs", "$schema", "default", "title", "x-meaning"} & node.keys()
+            if family == "gemini":
+                assert (
+                    not {
+                        "additionalProperties",
+                        "patternProperties",
+                        "oneOf",
+                        "prefixItems",
+                        "const",
+                        "exclusiveMinimum",
+                        "exclusiveMaximum",
+                    }
+                    & node.keys()
+                )
+            if "type" in node:
+                assert isinstance(node["type"], str)
+        if tool["name"] == "decide":
+            assert schema["required"] == ["spec_version", "optimize"]
+            assert schema["properties"]["spec_version"]["enum"] == [1]
+            if family == "gemini":
+                assert (
+                    "patternProperties"
+                    in schema["properties"]["capabilities"]["anyOf"][0]["description"]
+                )
+                assert "additionalProperties: false" in schema["description"]
+    assert definitions == original
+
+
+@pytest.mark.parametrize("family", ["claude", "openai", "gemini"])
+def test_schema_annotations_do_not_strip_parameter_names(family):
+    from qa.schemas import provider_schema
+
+    schema = {
+        "type": "object",
+        "properties": {
+            name: {"type": "string"}
+            for name in ("title", "default", "$ref", "additionalProperties")
+        },
+        "required": ["title"],
+    }
+    assert provider_schema(schema, family)["properties"] == schema["properties"]
+
+
+@pytest.mark.parametrize("family", ["claude", "openai", "gemini"])
+def test_local_pointer_escaping_and_unsupported_constraints(family):
+    from qa.schemas import provider_schema
+
+    schema = {
+        "$ref": "#/$defs/a~1b~0c",
+        "$defs": {
+            "a/b~c": {
+                "type": "object",
+                "properties": {"value": {"type": "number", "madeUp": 7}},
+            }
+        },
+    }
+    result = provider_schema(schema, family)
+    assert result["type"] == "object"
+    assert "madeUp: 7" in result["properties"]["value"]["description"]
+    with pytest.raises(ValueError, match="local JSON pointers"):
+        provider_schema({"$ref": "https://private.example/schema"}, family)
+    with pytest.raises(ValueError, match="single object root"):
+        provider_schema({"anyOf": [{"type": "object"}, {"type": "string"}]}, family)
+
+
+@pytest.mark.parametrize("family", ["claude", "openai", "gemini"])
+@pytest.mark.parametrize("status", [400, 401, 403, 404, 422, 429, 500, 503])
+def test_provider_http_error_is_private_redacted_and_rejected_calls_are_free(
+    family,
+    status,
+    monkeypatch,
+    config,
+    tmp_path,
+    capsys,
+    caplog,
+):
+    from qa.agent_harness import write_report
+    from qa.providers import KEY_ENV
+
+    monkeypatch.setenv(KEY_ENV[family], "environment-secret")
+    error = {
+        "type" if family != "gemini" else "status": "invalid_request_error",
+        "message": (
+            "private-diagnostic environment-secret sk-ant-abcdefgh123456 AIzaabcdefgh123456 "
+            "live_abcdefghijklmnop Bearer opaque-secret " + "x" * 400
+        ),
+    }
+
+    def handler(request):
+        return httpx.Response(status, json={"error": error, "unrelated": "do-not-capture"})
+
+    budget = Budget(2)
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        agent = HttpAgent(
+            family, "model", "docs", "question", [], budget, {"input": 2, "output": 10}, 100, client
+        )
+        row = run_scenario(load_scenarios()[0], family, agent, None, None, config)
+        assert row["status"] == "provider_error" and row["error"] == f"{family} HTTP {status}"
+        details = row["provider_error"]
+        assert details["http_status"] == status and details["type"] == "invalid_request_error"
+        assert details["message"].startswith("private-diagnostic [REDACTED]")
+        assert len(details["message"]) == 300
+        serialized = json.dumps(row)
+        for secret in (
+            "environment-secret",
+            "sk-ant-abcdefgh123456",
+            "AIzaabcdefgh123456",
+            "live_abcdefghijklmnop",
+            "opaque-secret",
+            "do-not-capture",
+        ):
+            assert secret not in serialized
+        assert not row["tool_calls"] and row["tokens_in"] == row["tokens_out"] == 0
+        if status < 500:
+            assert budget.spent_usd == 0
+            assert budget.calls[-1]["usage_known"]
+            assert budget.calls[-1]["cost_usd"] == 0
+            with pytest.raises(ProviderError) as caught:
+                agent.step()
+            assert "private-diagnostic" not in str(caught.value) + repr(caught.value)
+            assert budget.spent_usd == 0
+        else:
+            assert budget.spent_usd > 0 and not budget.calls[-1]["usage_known"]
+    # Write the actual run via the same private report writer, without a summary.
+    from qa.agent_harness import make_report
+
+    report = make_report(
+        [row], load_scenarios()[:1], False, budget, "2026-10-02", {"agents": [family]}
+    )
+    _, path = write_report(report, tmp_path)
+    assert json.loads(path.read_text())["runs"][0]["provider_error"] == details
+    captured = capsys.readouterr()
+    assert "private-diagnostic" not in captured.out + captured.err + caplog.text
+
+
+@pytest.mark.parametrize("body", [None, [], {"error": "not-an-object"}])
+def test_malformed_http_error_body_is_not_captured(body, monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "offline-key")
+    with httpx.Client(
+        transport=httpx.MockTransport(
+            lambda r: (
+                httpx.Response(400, json=body)
+                if body is not None
+                else httpx.Response(400, text="private HTML")
+            )
+        )
+    ) as client:
+        budget = Budget(2)
+        agent = HttpAgent(
+            "claude",
+            "model",
+            "docs",
+            "question",
+            [],
+            budget,
+            {"input": 2, "output": 10},
+            100,
+            client,
+        )
+        with pytest.raises(ProviderError) as caught:
+            agent.step()
+    assert caught.value.details == {"http_status": 400}
+    assert budget.spent_usd == 0
+
+
+@pytest.mark.parametrize(
+    "status,usage", [(408, None), (400, {"input_tokens": 2, "output_tokens": 0}), (400, "unknown")]
+)
+def test_ambiguous_4xx_usage_keeps_the_reservation(status, usage, monkeypatch):
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "offline-key")
+    with httpx.Client(
+        transport=httpx.MockTransport(lambda r: httpx.Response(status, json={"usage": usage}))
+    ) as client:
+        budget = Budget(2)
+        agent = HttpAgent(
+            "claude",
+            "model",
+            "docs",
+            "question",
+            [],
+            budget,
+            {"input": 2, "output": 10},
+            100,
+            client,
+        )
+        with pytest.raises(ProviderError):
+            agent.step()
+    assert budget.spent_usd > 0 and not budget.calls[-1]["usage_known"]
