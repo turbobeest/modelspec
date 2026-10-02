@@ -1,6 +1,6 @@
 # Privacy statement
 
-Version `1.5`, effective 2026-09-30. Adopted by Sparks & Sawdust LLC, which
+Version `1.6`, effective 2026-10-02. Adopted by Sparks & Sawdust LLC, which
 operates the service. MODEL-70. Version 1.0 was adopted on 2026-09-19; what
 changed since is listed under [Changes](#changes).
 
@@ -428,8 +428,9 @@ nothing below is read as describing the service today:
   **not yet enabled**: it ships off (`HUMAN_GATE_ENABLED`) in production, and
   this describes what would happen once it is switched on. Until
   then no Turnstile challenge is loaded and nothing below happens.
-  When on, a manual lookup from the decide page must carry a fresh
-  Cloudflare Turnstile token, which distinguishes people from automated access.
+  When on, the first request for a manual action from the decide page must
+  carry a fresh Cloudflare Turnstile token, which distinguishes people from
+  automated access. Follow-up requests use that verified admission.
   Your browser then loads a Cloudflare script and challenge frame and connects
   to `challenges.cloudflare.com`. Cloudflare processes browser and network
   signals, including your IP address, TLS fingerprint, User-Agent, the site key
@@ -444,18 +445,43 @@ nothing below is read as describing the service today:
   keyed visitor id, `HMAC-SHA256(VISITOR_HMAC_KEY, IP | UTC day)`; it stores no
   raw IP and no bare hash of one. For this gate only, an IPv6 address is
   first reduced to its /64 network, so people who share a /64 share one
-  allowance; the paid-access meter above uses the address as supplied. A Cloudflare Durable Object keeps, for each
-  daily visitor id, the count of lookups admitted that day, the day, the times
-  of recent lookups and, if triggered, a suspicion expiry. It holds no value
-  derived from the spec, no raw spec, no token and no raw IP. An admitted lookup uses up
-  allowance even if the decision then fails. History older than ten minutes is
-  dropped on the next admission, and each daily object's state is scheduled for
-  deletion at the following UTC midnight; a delayed or retried alarm can delay
-  the physical deletion, and Cloudflare's point-in-time recovery for
-  SQLite-backed storage can retain earlier states for up to 30 days. A visitor
-  may make at most 20 admitted lookups a day and 3 in any minute, and
-  five requests at nearly equal intervals are refused for ten minutes as
-  automated-looking. Failed verification is
+  allowance; the paid-access meter above uses the address as supplied.
+  A Cloudflare Durable Object keeps, for each daily visitor id, the count of
+  questions admitted that day, the day, the times of recent admissions and,
+  if triggered, a suspicion expiry. For each admitted page action it also
+  keeps the random intent id the page sends in `x-modelspec-intent`, the
+  admission's first-request time, request count and recent request times.
+  The page makes a new random 128-bit intent id per action and shares it with
+  that action's follow-up requests. We scope these ids to the daily visitor
+  object and do not link them across days.
+  The object computes a primary question fingerprint from the canonical
+  decision spec. It stores SHA-256 digests of the question's fixed fields,
+  individual conditions, objective, capabilities and estate, plus flags
+  recording whether the estate is absent, whether it permits an estate
+  comparison and whether the question is a plot. It also keeps digests fixing
+  the first accepted plot and estate variants. These values recognise
+  follow-up requests for the same question and its permitted presentation
+  variants; they are not used for another purpose. A spec that cannot be
+  parsed has no question fingerprint. These hashes are not encryption:
+  someone who can guess the question can compute matching digests. No raw spec,
+  caller-supplied fingerprint, token or raw IP is stored
+  (`api/worker/src/human_gate.py`, `human_gate_do.py`, `human_question.py`).
+  The same object separately keeps the vocabulary meter's day, count and
+  recent request times to limit vocabulary lookups to 60 a day and 10 in a
+  rolling minute. An admitted question uses up allowance even if the decision
+  then fails. Admission history older than ten minutes is dropped on the next
+  admission. During an accepted follow-up, request times older than a second
+  are dropped; vocabulary request times older than a minute are dropped on its
+  next meter update. Follow-ups are limited to eight requests including the first, within
+  60 seconds of admission. That window does not delete the action's stored
+  record. All this state is in the same daily object, scheduled for deletion
+  at the following UTC midnight; a delayed or retried alarm can delay the
+  physical deletion, and Cloudflare's point-in-time recovery for SQLite-backed
+  storage can retain earlier states for up to 30 days. The daily visitor id
+  changes, so the next day's requests cannot read the previous day's object.
+  A visitor may have at most 20 questions admitted a day and 3 in a rolling
+  minute, and five admissions at nearly equal intervals are refused for ten
+  minutes as automated-looking. Failed verification is
   refused, not treated as human. No network-operator or headless score is
   stored. ModelSpec sets no cookie for this and does not enable Turnstile
   pre-clearance; we do not say that Cloudflare sets none of its own.
@@ -485,6 +511,13 @@ to `DELETE /v1/feedback`, or write to us with it.
 A change to what the service records is a change to this statement, and it is
 published here before the change ships. The version above is the one in force.
 
+- **1.6, 2026-10-02.** Updated the human gate disclosure under *Not yet live*
+  for MODEL-270: the per-action intent ids, request times and counts, primary
+  question fingerprints and fixed variant digests, and the vocabulary meter.
+  Replaced the claim that the object holds no value derived from the spec.
+  All of this state shares the daily object's scheduled midnight deletion and
+  the existing alarm and point-in-time recovery caveats. The gate remains
+  not yet enabled.
 - **1.5, 2026-09-30.** Corrected the operator's legal name to Sparks & Sawdust
   LLC, the name registered with Rhode Island and the IRS. Nothing the service
   records changed.
