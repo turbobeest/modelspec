@@ -32,6 +32,8 @@ jobs:
           PROBE_COUNT: ${{ inputs.count }}
           PROBE_ENCODING: ${{ inputs.encoding }}
         run: |
+          # A production key may be set; keep one dispatch to a bounded number of calls.
+          if [ "$PROBE_COUNT" -gt 100 ]; then echo "count must be at most 100" >&2; exit 2; fi
           python qa/latency_probe.py --count "$PROBE_COUNT" \
             --encoding "$PROBE_ENCODING" --output "$RUNNER_TEMP/latency.json"
       - uses: actions/upload-artifact@v4
