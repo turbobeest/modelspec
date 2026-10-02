@@ -1,0 +1,67 @@
+id: recall-q15
+family: F1
+persona: Developer choosing a model for production work
+request: Choose an embedding model for semantic search over English documents.
+constraints:
+  class: embed
+  task: English document retrieval
+  open_weights: false
+  languages:
+  - English
+expected:
+  id: Q15
+  notes: 'MTEB English v2 retrieval mean, over models with all ten retrieval tasks, is the comparison.
+    The leading means are 0.7069, 0.7000 and 0.6944. The gaps are about 0.006, so a unique winner
+    is not established. Ingot''s MTEB row lists training on datasets that overlap retrieval tasks,
+    and its openWeights field is false. The MODEL-161 triage at docs/recall/2026-09-25-model-161-triage.md
+    records the approved QZhou addition (read 2026-09-25).
+
+    '
+  acceptable:
+  - name: IEITYuan/Yuan-embedding-2.0-en
+    reason: English v2 retrieval mean 0.7069. Apache-2.0. Open weights. No catalogue card.
+    sources:
+    - url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
+      read: '2026-09-24'
+  - name: jcorners/ingot-8b-r3
+    reason: English v2 retrieval mean 0.7000. Closed weights on the MTEB row. Licence field empty.
+    sources:
+    - url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
+      read: '2026-09-24'
+  - model_id: qwen/qwen3-embedding-8b
+    reason: English v2 retrieval mean 0.6944. Apache-2.0 and open weights.
+    sources:
+    - url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
+      read: '2026-09-24'
+  - model_id: kingsoft/qzhou-embedding
+    reason: Verified English v2 retrieval evidence covers all ten retrieval tasks.
+    sources:
+    - url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
+      read: '2026-09-24'
+  must_never:
+  - model_id: openai/gpt-6-astra
+    reason: A text generator, not an embedding model.
+    sources:
+    - url: https://developers.openai.com/api/docs/models/gpt-6-astra
+      read: '2026-09-24'
+  must_flag: []
+  missing_cards:
+  - name: IEITYuan/Yuan-embedding-2.0-en
+    reason: Leading English v2 retrieval mean. No card under models/.
+    sources:
+    - url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
+      read: '2026-09-24'
+  - name: jcorners/ingot-8b-r3
+    reason: Second English v2 retrieval mean. No card under models/.
+    sources:
+    - url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
+      read: '2026-09-24'
+expected_source: tests/recall/expected.yaml#Q15
+sources:
+- tests/recall/questions.yaml#Q15
+- tests/recall/specs/Q15.yaml
+gaps: []
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.

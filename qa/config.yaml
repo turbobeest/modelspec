@@ -1,0 +1,31 @@
+# Standard text rates checked against vendor documentation on 2026-10-01.
+# Reservation ceilings also cover published long-context premiums.
+spend_cap_usd: 25
+turn_cap: 8
+tool_call_cap: 12
+max_output_tokens: 4096
+api_base_url: http://127.0.0.1:8787
+export_base_url: http://127.0.0.1:8788
+vocabulary_path: /v1/vocabulary
+data_split: true
+agents:
+  claude:
+    model: claude-sonnet-5
+    price: {input: 2, output: 10}
+    ceiling_price: {input: 4, output: 15}
+    source: https://platform.claude.com/docs/en/models/sonnet-5/overview
+  openai:
+    model: gpt-6.1-sol
+    price: {input: 2, output: 10}
+    ceiling_price: {input: 4, output: 15}
+    source: https://developers.openai.com/api/docs/models/gpt-6.1-sol
+  gemini:
+    model: gemini-3.8-flash
+    price: {input: 0.75, output: 3.75}
+    ceiling_price: {input: 1.5, output: 7.5}
+    source: https://ai.google.dev/gemini-api/docs/pricing
+judge:
+  family: openai
+  model: gpt-6.1-sol
+  price: {input: 2, output: 10}
+  ceiling_price: {input: 4, output: 15}

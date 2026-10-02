@@ -1,0 +1,94 @@
+id: recall-q16
+family: F3
+persona: Developer choosing a model for production work
+request: Choose open-weights embeddings for multilingual semantic search.
+constraints:
+  class: embed
+  task: multilingual retrieval
+  open_weights: true
+  hosting: self_hosted
+expected:
+  id: Q16
+  notes: 'Semantic search is retrieval. On MTEB multilingual v2, open-weight models with all 18 retrieval
+    tasks, harrier-oss-v1-27b (0.7827) and KaLM-Embedding-Gemma3-12B-2511 (0.7566) lead. Octen-Embedding-8B
+    (0.7161), geevec-embeddings-1.0-lite (0.7091) and Qwen3-Embedding-8B (0.7088) form an unresolved
+    third-place group. The all-task public mean, a different aggregate, puts Qwen3-Embedding-8B third
+    and does not put Octen or the geevec lite model in the top three. Harrier is first and KaLM is
+    second; only the third-place group remains unresolved. The MODEL-161 triage at docs/recall/2026-09-25-model-161-triage.md
+    records the approved separability and licence evidence (read 2026-09-25).
+
+    '
+  acceptable:
+  - name: microsoft/harrier-oss-v1-27b
+    reason: Open-weight multilingual v2 retrieval mean 0.7827. MIT on the MTEB row. Also first on
+      the all-task mean.
+    sources:
+    - url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores
+      read: '2026-09-24'
+  - model_id: tencent/kalm-embedding-gemma3-12b-2511
+    reason: Open-weight retrieval mean 0.7566. Verified licence facts identify the MIT licence.
+    sources:
+    - url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores
+      read: '2026-09-24'
+    - url: https://huggingface.co/tencent/KaLM-Embedding-Gemma3-12B-2511/raw/main/LICENSE.txt
+      read: '2026-09-25'
+  - name: Octen/Octen-Embedding-8B
+    reason: Open-weight retrieval mean 0.7161. Not separated from the next two.
+    sources:
+    - url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores
+      read: '2026-09-24'
+  - name: geevec-ai/geevec-embeddings-1.0-lite
+    reason: Open-weight retrieval mean 0.7091. Apache-2.0 on the MTEB row.
+    sources:
+    - url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores
+      read: '2026-09-24'
+  - model_id: qwen/qwen3-embedding-8b
+    reason: Open-weight retrieval mean 0.7088. Third on the all-task open-weight mean (0.7058).
+    sources:
+    - url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores
+      read: '2026-09-24'
+  must_never:
+  - name: jcorners/ingot-8b-r3
+    reason: MTEB marks openWeights false. This question requires open weights.
+    sources:
+    - url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
+      read: '2026-09-24'
+  - model_id: openai/text-embedding-3-large
+    reason: An API embedding, not a weights download, and not in the open-weight multilingual table.
+    sources:
+    - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/openai/text-embedding-3-large.md
+      read: '2026-09-24'
+  must_flag: []
+  missing_cards:
+  - name: microsoft/harrier-oss-v1-27b
+    reason: Leading open-weight multilingual retrieval mean. No card under models/.
+    sources:
+    - url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores
+      read: '2026-09-24'
+  - name: Octen/Octen-Embedding-8B
+    reason: In the unresolved third-place retrieval group. No card under models/.
+    sources:
+    - url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores
+      read: '2026-09-24'
+  - name: geevec-ai/geevec-embeddings-1.0-lite
+    reason: In the unresolved third-place retrieval group. No card under models/.
+    sources:
+    - url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores
+      read: '2026-09-24'
+expected_source: tests/recall/expected.yaml#Q16
+sources:
+- tests/recall/questions.yaml#Q16
+- tests/recall/specs/Q16.yaml
+gaps:
+- reason: multilingual does not name which languages must be supported.
+  suggested_fix: Publish a dedicated facet or measured capability, or expose a clarification tool
+    before deciding.
+  source: tests/recall/specs/Q16.yaml
+- reason: the registry has no model-level self-hosting facet; open weights does not prove deployability.
+  suggested_fix: Publish a dedicated facet or measured capability, or expose a clarification tool
+    before deciding.
+  source: tests/recall/specs/Q16.yaml
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.

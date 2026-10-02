@@ -1,0 +1,22 @@
+id: template-coding-private
+family: F3
+persona: Engineer applying a published decision template
+request: Find a commercially usable open-weights coding model that you can run on your own hardware.
+constraints:
+  must:
+  - model.class = text-generator
+  - model.weights_openness = open_weights
+  - licence.commercial_use in {permitted, permitted_with_conditions}
+  prefer:
+    software_engineering:
+      weight: 1.0
+      reason: Rank only by the software-engineering capability estimate among self-hostable models.
+sources:
+- registry/templates.yaml#coding-private
+template: coding-private
+expected: null
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.
+gaps: []

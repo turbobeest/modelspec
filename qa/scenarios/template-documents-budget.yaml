@@ -1,0 +1,25 @@
+id: template-documents-budget
+family: F4
+persona: Engineer applying a published decision template
+request: Find the cheapest text model that still takes a long document, with writing quality kept
+  in the ranking.
+constraints:
+  must:
+  - model.class = text-generator
+  - model.context_window >= 400000
+  prefer:
+    -offering.cost_per_task:
+      weight: 0.6
+      reason: Prefer the cheaper task; long inputs make price differences large.
+    writing:
+      weight: 0.4
+      reason: Keep writing quality so the cheapest poor summary does not win on cost alone.
+sources:
+- registry/templates.yaml#documents-budget
+template: documents-budget
+expected: null
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.
+gaps: []

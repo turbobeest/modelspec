@@ -1,0 +1,25 @@
+id: template-regulated-budget
+family: F4
+persona: Engineer applying a published decision template
+request: Find the cheapest offering with the data-handling commitments regulated workloads need.
+constraints:
+  must:
+  - offering.data.trains_on_customer_data = false
+  - offering.data.zero_retention = true
+  - offering.attestation.baa = true
+  prefer:
+    -offering.cost_per_task:
+      weight: 0.7
+      reason: Prefer the lower task cost after the compliance gates pass.
+    chat_preference:
+      weight: 0.3
+      reason: Keep a quality signal so a cheap but poor assistant does not win on cost alone.
+sources:
+- registry/templates.yaml#regulated-budget
+template: regulated-budget
+expected: null
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.
+gaps: []

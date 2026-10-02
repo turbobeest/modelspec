@@ -1,0 +1,25 @@
+id: template-private-self-host
+family: F3
+persona: Engineer applying a published decision template
+request: Find a commercially usable open-weights assistant that you can operate yourself.
+constraints:
+  must:
+  - model.class = text-generator
+  - model.weights_openness = open_weights
+  - licence.commercial_use in {permitted, permitted_with_conditions}
+  prefer:
+    chat_preference:
+      weight: 0.7
+      reason: Prefer assistants whose open-ended responses people rate more highly.
+    -offering.cost_per_task:
+      weight: 0.3
+      reason: Prefer lower task cost when the snapshot has an offering price.
+sources:
+- registry/templates.yaml#private-self-host
+template: private-self-host
+expected: null
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.
+gaps: []

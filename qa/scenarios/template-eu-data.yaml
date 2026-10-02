@@ -1,0 +1,26 @@
+id: template-eu-data
+family: F4
+persona: Engineer applying a published decision template
+request: Find an offering that runs inference in an EU member state and does not train on customer
+  data.
+constraints:
+  must:
+  - offering.region in {AT, BE, BG, HR, CY, CZ, DE, DK, EE, ES, FI, FR, GR, HU, IE, IT, LT, LU, LV,
+    MT, NL, PL, PT, RO, SE, SI, SK}
+  - offering.data.trains_on_customer_data = false
+  prefer:
+    chat_preference:
+      weight: 0.6
+      reason: Prefer the stronger general assistant among offerings that meet the data rules.
+    -offering.cost_per_task:
+      weight: 0.4
+      reason: Prefer lower task cost after the data-handling gates pass.
+sources:
+- registry/templates.yaml#eu-data
+template: eu-data
+expected: null
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.
+gaps: []

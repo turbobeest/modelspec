@@ -1,0 +1,21 @@
+id: template-assistant-best
+family: F1
+persona: Engineer applying a published decision template
+request: Find the active assistant whose open-ended responses people rate most highly.
+constraints:
+  must:
+  - model.class = text-generator
+  - model.lifecycle = active
+  prefer:
+    chat_preference:
+      weight: 1.0
+      reason: Rank only by the chat-preference capability estimate.
+sources:
+- registry/templates.yaml#assistant-best
+template: assistant-best
+expected: null
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.
+gaps: []
