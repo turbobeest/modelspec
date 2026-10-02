@@ -1,4 +1,4 @@
-"""Weekly answer-engine visibility runs (MODEL-256).
+"""Answer-engine visibility runs (MODEL-256): monthly, on low-cost models, for now.
 
     python -m scripts.aeo.visibility run --inventory PROMPTS --config ENGINES --out RUNS_DIR
     python -m scripts.aeo.visibility report RUN_DIR [--baseline BASELINE_DIR]
