@@ -309,6 +309,7 @@ body {
   --preferInk: #ffffff;
   --groupBg: #f5f4f2;
   --answerBg: #e8f1fb;
+  --templateBg: #dcebfb;
   --hero-bg: #0b1426;
   --hero-line: #24375c;
   --hero-rule: #f2c94c;
@@ -352,6 +353,7 @@ body {
   --preferInk: #0b1426;
   --groupBg: #152548;
   --answerBg: #0c2445;
+  --templateBg: #cfe2f8;
   --hero-bg: linear-gradient(115deg, #1a2f5a 0%, #12224a 55%, #10203f 100%);
   --hero-line: #2f4878;
 }
@@ -649,17 +651,29 @@ body {
   background: var(--hero-bg); color: var(--hero-ink); border: 1px solid var(--hero-line);
   border-left: 3px solid var(--hero-rule); padding: 28px 32px 22px; }
 .board-intro .eyebrow { color: var(--hero-title); font-size: 13px; letter-spacing: .02em; }
-.decide-app .board-intro h1 { margin: 12px 0 20px; max-width: 24em; color: var(--hero-title);
+.board-intro > div { flex: 1; }
+.decide-app .board-intro h1 { margin: 12px 0 20px; color: var(--hero-title);
   font-family: var(--sans); font-size: clamp(30px, 3.1vw, 44px); font-weight: 650;
-  font-stretch: 78%; letter-spacing: -0.035em; line-height: 1.06; text-wrap: balance; }
+  font-stretch: 78%; letter-spacing: -0.035em; line-height: 1.06; }
 .decide-app .board-intro h2 { margin: 0 0 6px; color: var(--hero-ink); font-family: var(--sans);
   font-size: clamp(19px, 1.6vw, 22px); font-weight: 600; letter-spacing: -0.01em; line-height: 1.25; }
-.board-intro p { margin: 0; max-width: 72ch; color: var(--hero-muted); font-size: 15px; line-height: 1.5; }
+.board-intro p { margin: 0; color: var(--hero-muted); font-size: 15px; line-height: 1.5; }
 .board-intro .board-intro-note { margin-top: 16px; padding-top: 10px; border-top: 1px solid var(--hero-line);
   color: var(--hero-faint); font: 11.5px/1.5 var(--mono); }
 /* MODEL-204: the template card is always on the board, as a bar or a category-by-tier grid. */
-.template-picker { background: var(--surface); border: 1px solid var(--line); border-top: 2px solid var(--ink); }
-.template-bar { width: 100%; display: flex; align-items: baseline; gap: 12px; padding: 12px 16px; border: 0; border-radius: 0; background: transparent; text-align: left; cursor: pointer; }
+/* MODEL-277: the template card is a light-blue island in both themes, so it
+   stands out from the tool. It redefines the theme's tokens for everything
+   inside it: the bar, the grid, the subcategory select and focus rings. */
+.decide-app .template-picker {
+  --surface: #f5f9ff; --surface2: #e8f1fc; --line: #b7cfea; --line2: #8eb0d8;
+  --ink: #0b1426; --ink2: #1b2a45; --muted: #34496a; --faint: #5d7090;
+  --accent: #0a58a8; --accentText: #0a58a8;
+  background: var(--templateBg); color: var(--ink); color-scheme: light;
+  border: 1px solid var(--line2); border-left: 4px solid var(--accent);
+}
+.decide-app .template-bar { width: 100%; display: flex; align-items: baseline; gap: 12px; padding: 13px 16px; border: 0; border-radius: 0; background: transparent; text-align: left; cursor: pointer; font-size: 13.5px; }
+.decide-app .template-bar:hover { background: var(--surface2); }
+.template-bar .eyebrow { color: var(--accent); font-weight: 600; }
 .template-bar .eyebrow { flex: none; }
 .template-bar .template-active, .template-bar .template-count { flex: 1; min-width: 0; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .template-bar .template-active strong { color: var(--ink); font-weight: 500; }
@@ -671,7 +685,6 @@ body {
 .template-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .template-grid { width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 10px; font-size: 12px; }
 .template-grid caption { text-align: left; padding: 4px 0 6px; font-size: 11.5px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
-.template-grid caption small { margin-left: 10px; text-transform: none; letter-spacing: normal; }
 .template-grid thead th { font-weight: 500; text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--line); color: var(--muted); }
 .template-grid thead th:first-child { width: 17%; }
 .template-grid tbody th { text-align: left; vertical-align: top; padding: 8px 10px 8px 0; font-weight: 400; }
@@ -683,16 +696,13 @@ body {
 .template-grid td button { background: var(--surface); cursor: pointer; }
 .template-grid td button:hover { border-color: var(--accent); }
 .template-grid td button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-.template-grid td.template-unavailable > div { background: var(--surface2); color: var(--muted); }
-.template-grid td.template-unavailable strong { font-weight: 500; font-size: 11px; }
 .template-grid td.template-empty { color: var(--muted); text-align: center; vertical-align: middle; }
 .template-tier-label { display: none; }
 .template-subcategory { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; color: var(--muted); font-size: 11px; }
 .template-subcategory select { max-width: 100%; font-size: 12px; }
 .template-flat { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-top: 10px; }
 .template-flat button, .template-flat > div { min-height: 82px; text-align: left; display: flex; flex-direction: column; gap: 5px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 3px; }
-.template-flat span, .template-flat .template-unavailable { color: var(--muted); }
-.template-flat .template-unavailable { background: var(--surface2); }
+.template-flat span { color: var(--muted); }
 @media (max-width: 760px) {
   /* Each category is one row of tier cards that scrolls sideways; the page never does. */
   .template-grid, .template-grid tbody, .template-grid caption { display: block; width: auto; }
@@ -704,11 +714,9 @@ body {
   .template-grid tbody th strong, .template-grid tbody th small { display: inline; }
   .template-subcategory { flex-direction: row; align-items: center; gap: 6px; margin-top: 2px; width: 100%; }
   .template-subcategory select { flex: 1; min-width: 0; }
-  .template-grid td { display: block; padding: 0; scroll-snap-align: start; }
+  .decide-app .template-grid td { display: block; padding: 0; border-bottom: 0; scroll-snap-align: start; }
   .template-grid td.template-empty { display: none; }
   .template-tier-label { display: block; font-weight: 500; color: var(--ink); }
-  .template-grid td.template-unavailable .template-tier-label { color: var(--muted); }
-  .template-grid td.template-unavailable span:last-child { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 }
 .estate-strip { display: grid; grid-template-columns: auto 1fr; gap: 10px 16px; align-items: center; }
 .estate-strip > div { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
@@ -753,7 +761,6 @@ body {
 .facet-definition { padding: 5px 7px; margin-top: 3px; background: var(--surface2); }
 .facet-known { text-align: right; padding-top: 3px; font: 11px var(--mono); }
 .template-reason { color: var(--accentText) !important; }
-.template-unavailable { color: var(--muted); opacity: .65; }
 .facet-controls { min-width: 0; grid-column: -2 / -1; }
 /* The Known cell renders only when the vocabulary carries counts, and the
    private-data vocabulary carries none (MODEL-247): without the pin the

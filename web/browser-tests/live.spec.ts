@@ -19,9 +19,11 @@ test("the deployed page draws a decision, and another after a template", async (
   await expect(page.getByRole("heading", { name: "Set what matters. Watch the field narrow." })).toBeVisible({ timeout: 30000 });
   await answered(page);
 
-  const templates = page.locator(".board-templates button");
-  if ((await templates.count()) > 0) {
-    await templates.first().click();
+  // The template card starts collapsed (MODEL-277); it is absent only when no template is available.
+  const bar = page.getByRole("button", { name: /Start from a template/ });
+  if ((await bar.count()) > 0) {
+    await bar.click();
+    await page.locator(".board-templates button").first().click();
     await answered(page);
   }
   expect(errors, "uncaught page errors").toEqual([]);

@@ -71,6 +71,7 @@ test("the board and its explanation fit a 320px viewport in light and dark mode"
   await openBoard(page);
   const scrollWidth = () => page.evaluate(() => document.documentElement.scrollWidth);
   await expect.poll(scrollWidth).toBeLessThanOrEqual(320);
+  await page.getByRole("button", { name: /Start from a template/ }).click();
   await page.locator(".board-templates button").nth(1).click();
   await expect(page.locator(".why-panel .contribution").first()).toBeVisible();
   for (const buttonName of ["Light mode", "Dark mode"]) {

@@ -95,6 +95,8 @@ async function applyTemplateThenReset(page: Page) {
   expect(template, "no template decision in the corpus").toBeTruthy();
   await stub(page, "repo", read(template!.file));
   await openBoard(page);
+  // The template card starts collapsed (MODEL-277).
+  await page.getByRole("button", { name: /Start from a template/ }).click();
   const templates = page.locator(".board-templates");
   await expect(templates.getByRole("button").first()).toBeVisible();
   await templates.getByRole("button").first().click();
