@@ -75,10 +75,10 @@ function RefinementRow({ row, choice, parent, allocation, fallback, onChange }: 
     : row.evidence_state === "thin" ? proxyOnly ? "proxy evidence only" : "Order may rest on 1–2 models"
     : null;
   const preferReasonId = reason ? `refinement-${row.id}-prefer-reason` : undefined;
-  return <div className={`refinement-row ${disabled ? "refinement-unavailable" : ""}`} data-refinement={row.id}>
+  return <div className={`refinement-row ${disabled ? "refinement-unavailable" : ""}`} data-refinement={row.id} data-mode={choice.mode === "prefer" ? "prefer" : "off"}>
     <div className="refinement-heading"><span><strong>{row.name}</strong><button className="facet-info" aria-label={`About ${row.name}`} aria-expanded={infoOpen} onClick={() => setInfoOpen(!infoOpen)}>i</button></span><span className={`refinement-badge evidence-${row.evidence_state}`}>{EVIDENCE_LABELS[row.evidence_state]}</span><small>measured on {row.measured_models} of {row.of_models}</small></div>
     {infoOpen && <div className="refinement-definition"><p>{row.definition}</p>{row.benchmarks.length > 0 && <ul>{row.benchmarks.map((benchmark) => <li key={`${benchmark.id}-${benchmark.directness}`}><code>{benchmark.id}</code> · {benchmark.directness}</li>)}</ul>}</div>}
-    <div className="facet-state refinement-state" role="radiogroup" aria-label={`State for ${row.name}`}><label><input type="radio" name={`state-refinement-${row.id}`} checked={choice.mode !== "prefer"} onChange={() => onChange({ ...choice, mode: "off" })} />Doesn't matter</label><label><input type="radio" name={`state-refinement-${row.id}`} disabled={disabled} aria-describedby={disabled ? preferReasonId : undefined} checked={choice.mode === "prefer"} onChange={() => onChange({ ...choice, mode: "prefer", weight })} />Prefer</label></div>
+    <div className="facet-state refinement-state" role="radiogroup" aria-label={`State for ${row.name}`}><label className="state-off"><input type="radio" name={`state-refinement-${row.id}`} checked={choice.mode !== "prefer"} onChange={() => onChange({ ...choice, mode: "off" })} />Doesn't matter</label><label className="state-prefer"><input type="radio" name={`state-refinement-${row.id}`} disabled={disabled} aria-describedby={disabled ? preferReasonId : undefined} checked={choice.mode === "prefer"} onChange={() => onChange({ ...choice, mode: "prefer", weight })} />Prefer</label></div>
     {reason && <small id={preferReasonId} className="refinement-reason">{reason}</small>}
     {fallback && choice.mode === "prefer" && <small className="refinement-fallback">Ranked by general {row.parent_domain.replaceAll("_", " ")}: {row.name} isn't ranked separately today.</small>}
     {choice.mode === "prefer" && !disabled && <label className="refinement-weight">{row.name} weight <input aria-label={`Weight for ${row.name}`} type="range" min="0.05" max={max} step="0.05" value={weight} onChange={(event) => onChange({ ...choice, mode: "prefer", weight: Number(event.target.value) })} />{weight.toFixed(2)}</label>}
@@ -115,14 +115,14 @@ function FacetRow({ facet, choice, refinements = [], selections = {}, fallbackKe
   };
   const must = choice.mode === "must" || choice.mode === "both";
   const prefer = choice.mode === "prefer" || choice.mode === "both";
-  return <div className={`facet-row ${choice.mode === "off" ? "facet-off" : ""}`} data-facet={facet.id}>
+  return <div className={`facet-row ${choice.mode === "off" ? "facet-off" : ""}`} data-facet={facet.id} data-mode={choice.mode}>
     <div className="facet-copy"><span className="facet-label"><strong>{facet.label}</strong><button className="facet-info" aria-label={`About ${facet.label}`} aria-expanded={infoOpen} onClick={() => setInfoOpen(!infoOpen)}>i</button></span>{infoOpen && <small className="facet-definition">{facet.definition}</small>}{choice.mode === "off" && typeof facet.values?.[0]?.count === "number" && <small>If Must: {facet.values[0].count} survive</small>}{choice.reason && <small className="template-reason">Why: {choice.reason}</small>}</div>
     {facet.known !== undefined && <span className="facet-known">{facet.known}/{facet.of}</span>}
     <div className="facet-controls">
       <div className="facet-state" role="radiogroup" aria-label={`State for ${facet.label}`}>
-        <label><input type="radio" name={`state-${facet.id}`} checked={choice.mode === "off"} onChange={() => setMode("off")} />Doesn't matter</label>
-        <label><input type="radio" name={`state-${facet.id}`} disabled={unavailable} checked={must && !prefer} onChange={() => setMode("must")} />Must</label>
-        {preference && <label><input type="radio" name={`state-${facet.id}`} disabled={unavailable} checked={prefer} onChange={() => setMode("prefer")} />Prefer</label>}
+        <label className="state-off"><input type="radio" name={`state-${facet.id}`} checked={choice.mode === "off"} onChange={() => setMode("off")} />Doesn't matter</label>
+        <label className="state-must"><input type="radio" name={`state-${facet.id}`} disabled={unavailable} checked={must && !prefer} onChange={() => setMode("must")} />Must</label>
+        {preference && <label className="state-prefer"><input type="radio" name={`state-${facet.id}`} disabled={unavailable} checked={prefer} onChange={() => setMode("prefer")} />Prefer</label>}
       </div>
       {unavailable && <small>Not yet tracked; Must and Prefer are unavailable.</small>}
       {(must || prefer) && !unavailable && <div className="facet-settings">
