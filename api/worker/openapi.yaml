@@ -341,7 +341,7 @@ paths:
   /v1/rank:
     post:
       operationId: rank
-      summary: Rank the catalogue for one profile.
+      summary: 'Legacy v1: rank the catalogue for one profile. Use decide.'
       requestBody:
         required: true
         content:
@@ -435,10 +435,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AccessRefused'
+      description: 'Legacy v1; use decide for new work. Which models rank highest for one fixed use-case
+        profile? Returns a shortlist for that profile with evidence_basis, which is input provenance (none,
+        unverified-legacy, mixed, partial-verified, verified), not a quality verdict. Needs an API key
+        (Authorization: Bearer). Costs 1 credit a call; a credit costs $0.0017–$0.004 depending on the
+        plan or pack (https://modelspec.dev/pricing/). Don''t call it when you can state requirements:
+        decide takes them, rank doesn''t.'
   /v1/decide:
     post:
       operationId: decide
-      summary: Return a decision from the signed published snapshot.
+      summary: Decide which models fit a job, and show the work.
       parameters:
       - name: X-ModelSpec-Snapshot
         in: header
@@ -580,6 +586,14 @@ paths:
               schema:
                 type: integer
                 minimum: 1
+      description: 'Which models fit this job? ModelSpec is an analysis of alternatives for AI models:
+        it decides which models fit a job from your requirements, sourced benchmarks and real cost, and
+        shows its work. Returns the answer (one model, or a declared tie that names the cheapest, open-weights
+        and best-measured members), ranked results with cost per task and uncertainty, the models screened
+        out with the reason for each, may_qualify for missing facts, and a decision_id and snapshot so
+        the same spec gives the same answer later. Needs an API key (Authorization: Bearer). Costs 1 or
+        2 credits a call; a credit costs $0.0017–$0.004 depending on the plan or pack (https://modelspec.dev/pricing/).
+        Not a router: call it once per job or role, not per request, then route among the models it recommends.'
   /v1/compare:
     post:
       operationId: compareDecisions
@@ -693,7 +707,7 @@ paths:
   /v1/policy-check:
     post:
       operationId: policyCheck
-      summary: Check the catalogue, per model and per platform, against a policy.
+      summary: Check a policy per model and per platform.
       requestBody:
         required: true
         content:
@@ -794,16 +808,24 @@ paths:
                 oneOf:
                 - $ref: '#/components/schemas/DeterminationsUnavailable'
                 - $ref: '#/components/schemas/AccessRefused'
+      description: 'Which models, on which platforms, does my policy allow? Checks a policy document (licence,
+        origin, data handling) per model and per platform. Returns pass, fail or undetermined for each
+        row; undetermined is not a pass. Needs an API key (Authorization: Bearer). Costs 5 credits a call;
+        a credit costs $0.0017–$0.004 depending on the plan or pack (https://modelspec.dev/pricing/).
+        It doesn''t choose a model: use decide to choose among the ones that pass.'
   /v1/feedback:
     post:
       operationId: feedback
-      summary: Tell ModelSpec whether an answer was reliable, unreliable, trustworthy, untrustworthy or
-        confusing. No key.
-      description: 'Send one rating after you act on an answer, with the decision_id when it is about
-        a decision. Never include a prompt, a key or anything that identifies a person: free text is scrubbed,
-        and `redacted` says what was replaced. Storage ships off: a 200 is `not_recorded` and nothing
-        is kept; a 202 is `recorded`. Request schema: https://modelspec.dev/api/feedback/v1.schema.json.
-        Reference: docs/feedback-api.md.'
+      summary: Say whether a ModelSpec answer was reliable.
+      description: 'Was a ModelSpec answer reliable? Rate it after you act on it, with the decision_id.
+        Free, no key. Not for questions or support.
+
+
+        Send one rating after you act on an answer, with the decision_id when it is about a decision.
+        Never include a prompt, a key or anything that identifies a person: free text is scrubbed, and
+        `redacted` says what was replaced. Storage ships off: a 200 is `not_recorded` and nothing is kept;
+        a 202 is `recorded`. Request schema: https://modelspec.dev/api/feedback/v1.schema.json. Reference:
+        docs/feedback-api.md.'
       security:
       - {}
       x-modelspec-probe: skip
