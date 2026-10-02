@@ -62,3 +62,15 @@ def test_each_evidence_writer_refuses_invalid_batch_before_modifying_card(tmp_pa
         else:
             model_163_evidence.replace_evidence(card, original, ('fixture',), row)
     assert card.read_text() == original
+
+
+def test_open_scale_boards_keep_negative_scores():
+    # MODEL-276 review: Vending-Bench 2 reports a money balance in USD with no
+    # declared floor, and GPT-5 mini (-31.18) is a valid live row.
+    validate_value(-31.18, "USD", {"unit": "USD", "max_score": None})
+
+
+@pytest.mark.parametrize("unit,high", [("%", 100), ("fraction", 1), ("", 1), (None, 100)])
+def test_bounded_scales_still_refuse_negative_scores(unit, high):
+    with pytest.raises(ValueError):
+        validate_value(-1, unit, {"unit": unit, "max_score": high})

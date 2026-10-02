@@ -11,11 +11,19 @@ import yaml
 from decision.units import unit_id
 
 
+_BOUNDED_UNITS = {"percent", "fraction", "0-1 scale", "accuracy", "f1 x100"}
+
+
 def validate_value(score: Any, unit: str | None, metric: Mapping[str, Any]) -> None:
     if isinstance(score, bool) or not isinstance(score, (int, float)) or not math.isfinite(score):
         raise ValueError("benchmark score must be a finite number")
-    low, high = metric.get("min_score", 0), metric.get("max_score")
-    if score < low or high is not None and score > high:
+    high = metric.get("max_score")
+    low = metric.get("min_score")
+    # No board declares a floor yet. Bounded scales cannot go below zero;
+    # open ones can (Vending-Bench 2's money balance is negative), so they get none.
+    if low is None and (unit_id(metric.get("unit")) in _BOUNDED_UNITS or high in (1, 100)):
+        low = 0
+    if low is not None and score < low or high is not None and score > high:
         raise ValueError("benchmark score is outside the board's declared range")
     expected, actual = unit_id(metric.get("unit")), unit_id(unit)
     # Older fraction boards left their dimensionless unit blank.
