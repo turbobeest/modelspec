@@ -528,3 +528,15 @@ describe("compact HTTP vocabulary requests", () => {
     expect(envelopeFromCall(payload).body).toEqual([]);
   });
 });
+
+describe("vocabulary rollout", () => {
+  it("compacts a legacy Worker response that ignores the query parameters", async () => {
+    const via = { fetch: vi.fn().mockResolvedValue(jsonResponse(200, {
+      vocabulary_version: 1,
+      facets: [{ id: "model.context_window", label: "Context", definition: "Token window. More details.", value_type: "number", operators: [">="], has_data: true }],
+      templates: [{ spec: { where: ["model.context_window >= 32000"] } }],
+    })) };
+    const { payload } = await rpc("tools/call", { name: "vocab", arguments: {} }, 1, {}, { ...ENV, DATA_SPLIT_ENABLED: "true", RANK: via });
+    expect(envelopeFromCall(payload).body).toEqual([{ id: "model.context_window", label: "Context", definition: "Token window.", value_type: "number" }]);
+  });
+});

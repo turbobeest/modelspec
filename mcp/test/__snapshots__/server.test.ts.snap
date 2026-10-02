@@ -4908,6 +4908,7 @@ candidate has; \`\`admits\`\` counts the models that then qualify.",
           "items": {
             "type": "string",
           },
+          "maxItems": 100,
           "type": "array",
         },
         "limit": {

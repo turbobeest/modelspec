@@ -347,7 +347,11 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
       const origin = `${env.EXPORT_ORIGIN.replace(/\/$/, "")}/api/decision/vocabulary.json`;
       const envelope = split ? await fetchDisplayVocabulary(`?${query}`) : await fetchOrigin(origin);
       if (envelope.status < 400 && isRecord(envelope.body)) {
-        envelope.body = split ? envelope.body[section] : lookupVocabulary(envelope.body, args);
+        // Older Workers ignore lookup parameters and return the full vocabulary.
+        // Keep agent responses compact while the two Workers roll out independently.
+        envelope.body = split && !("vocabulary_version" in envelope.body)
+          ? envelope.body[section]
+          : lookupVocabulary(envelope.body, args);
       }
       return asToolResult(envelope);
     },

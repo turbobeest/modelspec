@@ -8,7 +8,7 @@ export const vocabInput = z.object({
   ]).optional().describe("Return only this vocabulary section; defaults to starter"),
   search: z.string().optional().describe("Case-insensitive substring over id and label or display name"),
   id: z.string().optional().describe("Return full details for this exact id"),
-  ids: z.array(z.string()).optional().describe("Return full details for these exact ids"),
+  ids: z.array(z.string()).max(100).optional().describe("Return full details for these exact ids"),
   detail: z.enum(["compact", "full"]).optional().describe("Full returns all display details; defaults to compact"),
   offset: z.number().int().min(0).optional().describe("Skip this many matching rows; defaults to 0"),
   limit: z.number().int().min(1).max(20).optional().describe("Compact page size; defaults to 20"),
@@ -24,7 +24,7 @@ function pick(row: Record<string, unknown>, keys: string[]) {
 
 export function lookupVocabulary(vocabulary: Record<string, unknown>, args: VocabInput) {
   const section = args.section ?? "starter";
-  const ids = [...(args.ids ?? []), ...(args.id === undefined ? [] : [args.id])];
+  const ids = [...new Set([...(args.ids ?? []), ...(args.id === undefined ? [] : [args.id])])];
   const full = args.detail === "full" || ids.length > 0;
   let source = vocabulary[section] ?? [];
   if (section === "coverage" && !full) return {};

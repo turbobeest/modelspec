@@ -238,7 +238,7 @@ class LiveTools:
                                 for key in ("id", "weight_key"):
                                     if isinstance(row.get(key), str):
                                         self.valid_ids.add(row[key])
-                if self.vocabulary_path == "/v1/vocabulary":
+                if self.vocabulary_path == "/v1/vocabulary" and "vocabulary_version" not in body:
                     selected = body.get(arguments.get("section", "starter"))
                 else:
                     from api.worker.src.display_vocabulary import lookup

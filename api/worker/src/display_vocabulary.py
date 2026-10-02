@@ -50,11 +50,14 @@ def trim(vocabulary, *, model_ids, facet_values):
     return result
 
 
+MAX_IDS = 100
+
+
 def starter_ids(vocabulary):
     """Count each registered facet once per template spec; break ties by ID."""
     counts = Counter()
     for template in vocabulary.get("templates", []):
-        spec = json.dumps(template["spec"])
+        spec = json.dumps(template.get("spec") or {})
         counts.update(row["id"] for row in vocabulary.get("facets", [])
                       if re.search(r"(?<![\w.])" + re.escape(row["id"]) + r"(?![\w.])", spec))
     return sorted(counts, key=lambda fid: (-counts[fid], fid))[:15]
@@ -69,6 +72,9 @@ def lookup(vocabulary, *, section="starter", search="", ids=(), detail="compact"
         raise ValueError("detail must be compact or full")
     if offset < 0 or not 1 <= limit <= PAGE_SIZE:
         raise ValueError("offset must be nonnegative; limit must be between 1 and 20")
+    ids = set(ids)
+    if len(ids) > MAX_IDS:
+        raise ValueError(f"at most {MAX_IDS} ids per lookup")
     source = vocabulary.get(section, {} if section in {"models", "providers", "vendors", "coverage", "estate"} else [])
     if section == "coverage" and detail == "compact" and not ids:
         return {section: {}}
@@ -86,7 +92,7 @@ def lookup(vocabulary, *, section="starter", search="", ids=(), detail="compact"
     def matches(key, row):
         label = row.get("label", row.get("name", row.get("display_name", ""))) if isinstance(row, dict) else row
         return (not ids or key in ids) and (not search or search.lower() in str(key).lower()
-                                           or search.lower() in str(label).lower())
+                                           or search.lower() in str(label if label is not None else "").lower())
 
     rows = [(key, row) for key, row in rows if matches(key, row)]
     full = detail == "full" or bool(ids)

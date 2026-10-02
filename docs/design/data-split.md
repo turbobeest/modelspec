@@ -495,7 +495,8 @@ case-insensitive substring. Compact pages hold at most 20 rows; `offset` skips
 matching rows and an empty page ends the list. IDs select exact rows and return
 their full display details; `detail=full` returns every row in the section.
 IDs are combined by union and intersected with search. Full detail and IDs
-bypass pagination. Unknown IDs and searches with no match return an empty
+bypass pagination. MCP also compacts full responses from an older Worker
+during an independent rollout. Unknown IDs and searches with no match return an empty
 section. Invalid sections, detail flags or pagination bounds return 400.
 
 Starter ranks registered facets by the number of template specs that use each

@@ -85,6 +85,7 @@ def test_search_ids_intersection_full_detail_and_pages(display):
     assert lookup(source, section="facets", offset=3)["facets"] == []
     assert lookup(source, section="facets")["facets"][0]["definition"] == "First sentence."
     assert lookup({"models": {"lab/id": {"display_name": "Friendly Model", "lab": "lab"}}}, section="models", search="FRIENDLY") == {"models": {"lab/id": {"display_name": "Friendly Model"}}}
+    assert lookup({"models": {"lab/id": {"display_name": None}}}, section="models", search="NONE") == {"models": {}}
     assert lookup({"providers": {"id": "Provider Name"}}, section="providers", search="NAME") == {"providers": {"id": "Provider Name"}}
 
 
@@ -145,3 +146,11 @@ def test_openapi_documents_query_lookup_without_changing_legacy_schema(monkeypat
     assert {p["name"] for p in operation["parameters"]} == {"section", "search", "id", "ids", "detail", "offset", "limit"}
     schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
     assert schema["required"] == ["facets", "domains", "templates", "models", "estate"]
+
+
+def test_lookup_caps_ids_and_tolerates_a_template_without_a_spec():
+    vocabulary = {"facets": [{"id": "a", "label": "A"}], "templates": [{"id": "t"}]}
+    assert starter_ids(vocabulary) == []
+    with pytest.raises(ValueError):
+        lookup(vocabulary, section="facets", ids=[str(i) for i in range(101)])
+    assert lookup(vocabulary, section="facets", ids=["a", "a"])["facets"]
