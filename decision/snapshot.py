@@ -853,6 +853,14 @@ class _Compiler:
             evidence_verification_value(e),
             source_ids,
                              extra_urls=[e.get("source_url")], benchmark=e.get("benchmark_id"))
+        if reason is None:
+            from schema.benchmark_values import validate_value
+
+            metric = self.inputs.benchmark_metadata.get(str(e["benchmark_id"]), {})
+            try:
+                validate_value(e.get("score"), e.get("unit"), metric)
+            except ValueError:
+                reason = "invalid_benchmark_value"
         if reason is None and not e.get("measured_by"):
             # Who measured a row is never inferred (MODEL-239): the decision
             # contract requires it, so a row without it would fail every
@@ -1278,6 +1286,9 @@ def collect_repo(root: Path) -> SnapshotInputs:
         metric = b.front.get("metric") or {}
         dataset = b.front.get("dataset") or {}
         metadata[b.benchmark_id] = {
+            "min_score": metric.get("min_score", 0),
+            "max_score": metric.get("max_score"),
+            "unit": metric.get("unit"),
             "random_baseline": metric.get("random_baseline"),
             "sample_size": dataset.get("size"),
             "direction": metric.get("direction", "higher_is_better"),

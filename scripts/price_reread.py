@@ -85,6 +85,7 @@ BRANCH = "data/weekly-price-reread"
 RECONFIRM_BRANCH = "data/weekly-price-reconfirm"
 USER_AGENT = "ModelSpec-Price-Reread/1.0 (+https://modelspec.dev)"
 FACET_PREFIXES = ("offering.price.", "offering.subscription.")
+MAX_READ_AGE_DAYS = 7
 REREAD = VerificationActor(
     agent="modelspec-price-reread",
     model_family=DETERMINISTIC,
@@ -154,6 +155,7 @@ class Report:
     sources: dict[str, SourceFetch] = field(default_factory=dict)
     #: source_id -> unified diff lines of its cited regions, old copy to new.
     diffs: dict[str, list[str]] = field(default_factory=dict)
+    overdue: list[str] = field(default_factory=list)
 
     @property
     def changes(self) -> list[FactResult]:
@@ -161,7 +163,8 @@ class Report:
 
     @property
     def alerts(self) -> list[FactResult]:
-        return [f for f in self.facts if f.status in ALERTS]
+        return [f for f in self.facts if f.status in ALERTS
+                or f.status is Status.NOT_REREAD and f.fact_id in self.overdue]
 
     def counts(self) -> dict[str, int]:
         counts = Counter(f.status.value for f in self.facts)
@@ -170,6 +173,8 @@ class Report:
     def to_dict(self) -> dict[str, Any]:
         return {
             "checked_on": self.checked_on.isoformat(),
+            "max_read_age_days": MAX_READ_AGE_DAYS,
+            "overdue": self.overdue,
             "counts": self.counts(),
             "changes": [f.to_dict() for f in self.changes],
             "reconfirmed": [f.fact_id for f in self.facts if f.status is Status.UNCHANGED],
@@ -427,6 +432,11 @@ def run(*, root: Path = ROOT, fetcher: Fetcher, store: CopyStore, today: date,
     facts = tracked_facts(root)
     scoped: list[tuple[Tracked, Claim, str | None]] = []
     for tracked in facts:
+        baseline = latest.get(("fact", tracked.fact["id"]))
+        if (baseline is None or baseline.outcome != "verified"
+                or baseline.target.value_hash != value_hash(tracked.fact.get("value"))
+                or (today - baseline.date).days > MAX_READ_AGE_DAYS):
+            report.overdue.append(tracked.fact["id"])
         claim = filed.get(("fact", tracked.fact["id"]))
         reason = _in_scope(tracked.fact, claim, latest)
         if reason is None:

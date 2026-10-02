@@ -327,6 +327,9 @@ def plan_rows(
 
 
 def _rewrite_card(path: Path, updates: list[tuple[tuple[object, ...], dict[str, Any]]]) -> None:
+    from schema.benchmark_values import validate_card_rows
+
+    validate_card_rows(path, [row for _, row in updates])
     wanted = dict(updates)
     text = path.read_text(encoding="utf-8")
     fields = ("score", "evidence_date", "observed_at", "verified_at", "id", "sources")
@@ -459,6 +462,9 @@ def _new_evidence(
 
 
 def _append_evidence(path: Path, rows: Sequence[Mapping[str, Any]]) -> None:
+    from schema.benchmark_values import validate_card_rows
+
+    validate_card_rows(path, rows)
     text = path.read_text(encoding="utf-8")
     parts = text.split("---", 2)
     # Append to the block list as text, so the rest of the card is untouched.
