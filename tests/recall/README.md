@@ -1,4 +1,4 @@
-# Recall set (MODEL-139)
+# Recall answers and frozen-image engine regression test
 
 Research phase of slice 1. These files restate the independent audit's 20
 questions and record what a correct decision may contain. They are data.
@@ -14,10 +14,24 @@ changes documented in
 [`docs/recall/2026-09-25-model-161-triage.md`](../../docs/recall/2026-09-25-model-161-triage.md)
 are approved.
 
-The runner **reports; it does not gate CI yet.** At approval the engine scored
-1 pass, 6 partial, 13 fail. The fails are "cannot separate a single winner"
-(intervals arrive with MODEL-129) and questions outside the slice-1 lineup.
-Gating is proposed once MODEL-129 lands and the pass rate supports it.
+Jamie decided on 2026-10-01, Q04 option b, that approved answers are judged
+against the private data production serves. The private repository runs recall
+on every data PR, weekly, and on manual dispatch, with its own baseline at
+`reports/recall/baseline.json`. Its summary contains only verdict counts and
+question ids. Existing partial answers remain recorded limitations; a drop in
+an approved-answer verdict fails the private gate, including a proposed
+baseline below the merge-base baseline.
+
+Public CI runs recall as an **engine regression test on the frozen public
+image**. `baseline.json` records what that image yields, not a revision of the
+approved answers. It currently records 16 pass and 4 partial. Every verdict
+below `pass` needs a per-question `frozen_image_reason`. A lower public baseline
+requires a new or changed reason explaining the image limitation, with private
+recall evidence where available. The current run must still match the proposed
+baseline. See [RATCHET.md](RATCHET.md) for the update command and merge-base check.
+
+The expected answers in `expected.yaml` stay unchanged. Changing them or the
+specs requires Jamie's approval. The historical sign-offs above still apply.
 
 ## Method
 
