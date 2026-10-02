@@ -1,0 +1,83 @@
+id: recall-q03
+family: F1
+persona: Developer choosing a model for production work
+request: Which model should review a complex pull request for defects?
+constraints:
+  class: generate
+  task: defect review of a pull request, not patch generation
+  open_weights: false
+  price_cap_usd_per_million_input: null
+expected:
+  id: Q03
+  notes: 'No defect-review benchmark was found on SWE-bench, Terminal-Bench, Scale, or Arena. Arena
+    coding preference (snapshot 2026-09-13) puts Claude Opus 4.6 high at 1535.27, and that interval
+    does not overlap GPT-6 Astra max (upper 1512.2). Repository-editing boards put newer models first.
+    Those are different measurements. A refusal to order them is the accurate decision. The MODEL-161
+    triage at docs/recall/2026-09-25-model-161-triage.md records the approved additional Arena coding
+    evidence (read 2026-09-25).
+
+    '
+  acceptable:
+  - model_id: anthropic/claude-opus-4-6
+    reason: 'Highest Arena coding rating in the 2026-09-13 snapshot, 1535.27 for the high-effort
+      variant, with a large vote count.
+
+      '
+    sources:
+    - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+      read: '2026-09-24'
+  - model_id: anthropic/claude-opus-5
+    reason: SWE-bench Pro V2 hard leader at 98.00, and an Arena coding row of 1531.98 at high effort.
+    sources:
+    - url: https://labs.scale.com/leaderboard/swe_bench_pro_public_v2
+      read: '2026-09-24'
+    - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+      read: '2026-09-24'
+  - model_id: anthropic/claude-fable-5-1
+    reason: Strong on both Terminal-Bench 4.0 and SWE-bench Pro V2 hard. Arena coding interval is
+      wide.
+    sources:
+    - url: https://www.tbench.ai/leaderboard
+      read: '2026-09-24'
+    - url: https://labs.scale.com/leaderboard/swe_bench_pro_public_v2
+      read: '2026-09-24'
+  - model_id: openai/gpt-6-astra
+    reason: Terminal-Bench 4.0 leader. Arena coding rating 1488.58 sits below Opus 4.6's interval.
+    sources:
+    - url: https://www.tbench.ai/leaderboard
+      read: '2026-09-24'
+    - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+      read: '2026-09-24'
+  - model_id: google/gemini-3-8-flash
+    reason: Arena coding rating 1513.97, second in the current decision.
+    sources:
+    - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+      read: '2026-09-25'
+  must_never:
+  - model_id: openai/text-embedding-3-large
+    reason: An embedding model does not review a pull request.
+    sources:
+    - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/openai/text-embedding-3-large.md
+      read: '2026-09-24'
+  must_flag:
+  - model_id: anthropic/claude-opus-5-5
+    reason: No row on the coding boards read today.
+    sources:
+    - url: https://matharena.ai/models
+      read: '2026-09-24'
+    - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+      read: '2026-09-24'
+  missing_cards: []
+expected_source: tests/recall/expected.yaml#Q03
+sources:
+- tests/recall/questions.yaml#Q03
+- tests/recall/specs/Q03.yaml
+gaps:
+- reason: no registered domain distinguishes defect review from patch generation.
+  suggested_fix: Publish a dedicated facet or measured capability, or expose a clarification tool
+    before deciding.
+  source: tests/recall/specs/Q03.yaml
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.

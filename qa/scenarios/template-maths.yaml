@@ -1,0 +1,20 @@
+id: template-maths
+family: F1
+persona: Engineer applying a published decision template
+request: Find a text model with the strongest evidence on mathematical problems and proofs.
+constraints:
+  must:
+  - model.class = text-generator
+  prefer:
+    maths:
+      weight: 1.0
+      reason: Rank only by the maths capability estimate.
+sources:
+- registry/templates.yaml#maths
+template: maths
+expected: null
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.
+gaps: []

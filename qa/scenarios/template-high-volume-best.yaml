@@ -1,0 +1,27 @@
+id: template-high-volume-best
+family: F4
+persona: Engineer applying a published decision template
+request: Find a text model for many short assistant requests where response quality still leads the
+  ranking.
+constraints:
+  must:
+  - model.class = text-generator
+  prefer:
+    chat_preference:
+      weight: 0.7
+      reason: Prefer assistants whose responses people rate more highly.
+    -offering.cost_per_task:
+      weight: 0.3
+      reason: At volume, cost still matters as the second term.
+  task_tokens:
+    input: 2000
+    output: 500
+sources:
+- registry/templates.yaml#high-volume-best
+template: high-volume-best
+expected: null
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.
+gaps: []

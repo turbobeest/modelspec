@@ -1,0 +1,80 @@
+id: recall-q05
+family: F1
+persona: Developer choosing a model for production work
+request: Which model should power natural, helpful chat?
+constraints:
+  class: generate
+  task: conversational helpfulness
+  open_weights: false
+  price_cap_usd_per_million_input: null
+expected:
+  id: Q05
+  notes: 'Same Arena snapshot as Q04. Raw overall and style control do not agree on a winner, and
+    the leading intervals overlap. GPT-4.1 (2025-04-14) is overall rank 157 at 1382.77, far below
+    that cluster. The MODEL-161 triage at docs/recall/2026-09-25-model-161-triage.md records the
+    approved additional Arena overall evidence (read 2026-09-25).
+
+    '
+  acceptable:
+  - model_id: anthropic/claude-fable-5-1
+    reason: Highest raw Arena overall rating, not separated by its interval from Opus 5 or Opus 4.6
+      high.
+    sources:
+    - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+      read: '2026-09-24'
+  - model_id: anthropic/claude-opus-5
+    reason: Arena overall ranks 2 and 3. Style control does not put it first.
+    sources:
+    - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+      read: '2026-09-24'
+  - model_id: anthropic/claude-opus-4-6
+    reason: Arena overall rank 4 at high effort, interval overlapping the models above.
+    sources:
+    - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+      read: '2026-09-24'
+  - model_id: anthropic/claude-fable-5
+    reason: Style-controlled overall leader. Raw overall is outside the top cluster's point estimate.
+    sources:
+    - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+      read: '2026-09-24'
+  - model_id: google/gemini-3-8-flash
+    reason: Arena overall rating 1494.67, third in the current decision.
+    sources:
+    - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+      read: '2026-09-25'
+  must_never:
+  - model_id: openai/gpt-4-1
+    reason: 'Arena overall rank 157 at 1382.77. It is not a leading chat model on this snapshot.
+
+      '
+    sources:
+    - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+      read: '2026-09-24'
+  - model_id: openai/text-embedding-3-large
+    reason: An embedding model is not a chat model.
+    sources:
+    - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/openai/text-embedding-3-large.md
+      read: '2026-09-24'
+  must_flag:
+  - model_id: anthropic/claude-opus-5-5
+    reason: Not in the Arena snapshot published 2026-09-13.
+    sources:
+    - url: https://matharena.ai/models
+      read: '2026-09-24'
+    - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+      read: '2026-09-24'
+  - model_id: openai/gpt-6-sol
+    reason: Dated 2026-09-22 by MathArena, after the Arena snapshot.
+    sources:
+    - url: https://matharena.ai/models
+      read: '2026-09-24'
+  missing_cards: []
+expected_source: tests/recall/expected.yaml#Q05
+sources:
+- tests/recall/questions.yaml#Q05
+- tests/recall/specs/Q05.yaml
+gaps: []
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.

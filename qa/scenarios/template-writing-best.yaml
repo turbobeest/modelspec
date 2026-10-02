@@ -1,0 +1,21 @@
+id: template-writing-best
+family: F1
+persona: Engineer applying a published decision template
+request: Find the active text model with the strongest evidence on long-form writing.
+constraints:
+  must:
+  - model.class = text-generator
+  - model.lifecycle = active
+  prefer:
+    writing:
+      weight: 1.0
+      reason: Rank only by the writing capability estimate.
+sources:
+- registry/templates.yaml#writing-best
+template: writing-best
+expected: null
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.
+gaps: []

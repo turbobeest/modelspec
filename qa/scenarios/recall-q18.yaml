@@ -1,0 +1,81 @@
+id: recall-q18
+family: F3
+persona: Developer choosing a model for production work
+request: Choose a local chat model for a base Apple M4 device.
+constraints:
+  class: generate
+  task: chat
+  hosting: local
+  device: base Apple M4, product and RAM not named
+  open_weights: true
+expected:
+  id: Q18
+  notes: '"Base Apple M4" names neither the product nor the RAM. The MacBook Air specs page read
+    today is the M5, with 16 GB unified memory on the first memory row, and it is not an M4 specification.
+    A Mac mini specs page the same day is also the M5. Fit on a base M4 was therefore not established.
+    No chat-quality order on that device was found.
+
+    '
+  acceptable:
+  - rule: no established local chat winner for an unspecified base M4
+    reason: RAM is unknown, and no on-device chat comparison was read.
+    sources:
+    - url: https://www.apple.com/macbook-air/specs/
+      read: '2026-09-24'
+    - url: https://www.apple.com/mac-mini/specs/
+      read: '2026-09-24'
+  must_never:
+  - model_id: openai/gpt-6-astra
+    reason: No local weights for an Apple device.
+    sources:
+    - url: https://developers.openai.com/api/docs/models/gpt-6-astra
+      read: '2026-09-24'
+  - model_id: openai/text-embedding-3-large
+    reason: Not a chat model.
+    sources:
+    - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/openai/text-embedding-3-large.md
+      read: '2026-09-24'
+  must_flag:
+  - model_id: google/gemma-4-e2b-it
+    reason: About 5.12 billion parameters. Whether a base M4 can hold it depends on RAM that was
+      not established.
+    sources:
+    - url: https://huggingface.co/api/models/google/gemma-4-E2B-it
+      read: '2026-09-24'
+    - url: https://www.apple.com/macbook-air/specs/
+      read: '2026-09-24'
+  - model_id: google/gemma-4-e4b-it
+    reason: About 8.00 billion parameters. Fit on an unspecified base M4 is unknown.
+    sources:
+    - url: https://huggingface.co/api/models/google/gemma-4-E4B-it
+      read: '2026-09-24'
+  - model_id: google/gemma-4-26b-a4b-it
+    reason: About 25.8 billion parameters. Fit depends on RAM and quant, both unknown for a base
+      M4.
+    sources:
+    - url: https://huggingface.co/api/models/google/gemma-4-26B-A4B-it
+      read: '2026-09-24'
+  - model_id: microsoft/phi-4
+    reason: A small local chat candidate in the catalogue. Its weight size was not re-read, so fit
+      is unknown.
+    sources:
+    - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/microsoft/phi-4.md
+      read: '2026-09-24'
+  missing_cards: []
+expected_source: tests/recall/expected.yaml#Q18
+sources:
+- tests/recall/questions.yaml#Q18
+- tests/recall/specs/Q18.yaml
+gaps:
+- reason: '"base Apple M4" does not identify a product, RAM amount, or registered hardware SKU.'
+  suggested_fix: Publish a dedicated facet or measured capability, or expose a clarification tool
+    before deciding.
+  source: tests/recall/specs/Q18.yaml
+- reason: the registry has no model-level local-hosting facet; open weights does not prove deployability.
+  suggested_fix: Publish a dedicated facet or measured capability, or expose a clarification tool
+    before deciding.
+  source: tests/recall/specs/Q18.yaml
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.
