@@ -805,6 +805,12 @@ models enter a decision only when a condition asks for lifecycle `retired`.
 Every other catalogue model is left out and counted in `out_of_lineup`; it is
 never listed as a candidate or in `may_qualify`.
 
+A model with offerings is represented by those offerings. A model without an
+offering can rank only when its verified `model.weights_openness` is `open_weights`.
+Closed or unknown weights establish no self-host route. The engine eliminates
+those rows using `model.weights_openness = open_weights unknown(fail)` before
+the user's conditions, including when the user permits unknown values.
+
 ### The answer
 
 `answer` is the evidence-supported model-level conclusion. Each model is

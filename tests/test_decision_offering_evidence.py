@@ -24,6 +24,7 @@ PRICES = {"p1": 1.0, "p2": 2.0, "p3": 3.0}
 
 def generator(mid: str):
     return model(mid, facts=[
+        fact("model", mid, "model.weights_openness", "open_weights"),
         fact("model", mid, "model.class", "text-generator"),
         fact("model", mid, "model.context_window", 200000),
         fact("model", mid, "model.lifecycle", "active"),
@@ -167,7 +168,7 @@ def test_limit_reports_qualifying_rows_as_truncated_not_eliminated():
     assert "outside requested result limit" not in decision.model_dump_json()
 
 
-def test_a_model_with_no_offering_ranks_as_itself():
+def test_an_open_weights_model_with_no_offering_ranks_as_itself():
     built = build_snapshot(SnapshotInputs(
         models=[generator("lab/m"), generator("lab/open")],
         offerings=[sold("lab/m", "p1", 1.0)],

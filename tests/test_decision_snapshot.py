@@ -878,9 +878,9 @@ def test_ids_where_on_numbers_windows_enums_and_sets(tmp_path):
     assert _ids(index, ge.passing) == {"lab/alpha", "lab-api/lab/alpha/global/standard"}
     window = index.ids_where("model.context_window", "between", (30000, 40000))
     assert _ids(index, window.passing) == {"lab/beta", "lab-api/lab/beta/global/standard"}
-    eq = index.ids_where("model.weights_openness", "=", "closed_weights")
+    eq = index.ids_where("model.weights_openness", "=", "open_weights")
     assert len(_ids(index, eq.passing)) == 4 and eq.failing == 0
-    ne = index.ids_where("model.weights_openness", "in", ["open_weights"])
+    ne = index.ids_where("model.weights_openness", "in", ["closed_weights"])
     assert ne.passing == 0 and len(_ids(index, ne.failing)) == 4
     has_image = index.ids_where("model.input_modalities", "contains", "image")
     assert len(_ids(index, has_image.passing)) == 4

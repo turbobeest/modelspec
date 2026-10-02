@@ -25,6 +25,7 @@ DOMAINS = {TERMINAL: [("agentic_tool_use", "direct"), ("software_engineering", "
 
 def generator(mid: str, *, lifecycle: str = "active"):
     facts = [
+        fact("model", mid, "model.weights_openness", "open_weights"),
         fact("model", mid, "model.class", "text-generator"),
         fact("model", mid, "model.context_window", 200000),
         fact("model", mid, "model.lifecycle", lifecycle),

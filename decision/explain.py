@@ -547,6 +547,8 @@ def _alternatives(decision, resolved, snapshot, filtered, ordered, selectors, do
             )
         )
         for reason in single.eliminated:
+            if reason._condition != condition:
+                continue
             is_collection = isinstance(reason.value, (tuple, list))
             values = list(reason.value) if is_collection else []
             value = None if is_collection else reason.value

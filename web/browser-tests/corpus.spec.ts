@@ -42,6 +42,11 @@ async function stub(page: Page, snapshot: string, decision: string) {
   await page.route(/\/(?:api\/decision\/vocabulary\.json|v1\/vocabulary)(?:\?.*)?$/, (route) =>
     route.fulfill({ status: 200, contentType: "application/json", headers: CORS, body: vocabulary }),
   );
+  // A build with the human gate on (vars.HUMAN_GATE_ENABLED) asks the Worker
+  // first; unstubbed, the live Worker refuses this origin and no answer is drawn.
+  await page.route("**/v1/human-status", (route) =>
+    route.fulfill({ status: 200, contentType: "application/json", headers: CORS, body: '{"enabled":false}' }),
+  );
   await page.route("**/v1/decide", (route: Route) =>
     route.request().method() === "OPTIONS"
       ? route.fulfill({ status: 204, headers: CORS })

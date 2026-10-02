@@ -799,7 +799,7 @@ def test_the_decide_contract_refuses_its_free_text_task() -> None:
 IN_FORCE = {
     "terms": "Version `1.2`, effective 2026-09-30.",
     "neutrality": "Version `1.3`, effective 2026-09-30.",
-    "privacy": "Version `1.5`, effective 2026-09-30.",
+    "privacy": "Version `1.6`, effective 2026-10-02.",
 }
 
 
@@ -958,3 +958,63 @@ def test_the_privacy_statement_describes_the_keyed_visitor_id_and_the_gate_as_no
     assert "not yet enabled" in FLAT_PRIVACY
     assert "`HUMAN_GATE_ENABLED`" in FLAT_PRIVACY
     assert "omit the optional `remoteip` parameter" in FLAT_PRIVACY
+
+
+def test_the_privacy_statement_discloses_the_human_gate_question_storage() -> None:
+    """MODEL-270: question fingerprints and vocabulary share daily retention."""
+    gate = FLAT_PRIVACY.split("**The human gate", 1)[1].split("**Outcome logging", 1)[0]
+    for claim in (
+        "random 128-bit intent id per action", "`x-modelspec-intent`",
+        "do not link them across days", "first-request time, request count",
+        "SHA-256 digests", "fixed fields, individual conditions, objective, capabilities and estate",
+        "flags", "first accepted plot and estate variants", "not encryption",
+        "No raw spec, caller-supplied fingerprint, token or raw IP is stored",
+        "vocabulary meter's day, count and recent request times",
+        "60 a day and 10 in a rolling minute", "eight requests including the first",
+        "60 seconds of admission", "does not delete the action's stored record",
+        "following UTC midnight", "delayed or retried alarm", "up to 30 days",
+    ):
+        assert claim in gate, claim
+    assert "holds no value derived from the spec" not in gate
+    assert "1.6, 2026-10-02" in FLAT_PRIVACY
+
+
+def test_disclosed_gate_records_persist_until_the_daily_alarm(monkeypatch) -> None:
+    """Inspect actual SQLite state, including after the continuation window closes."""
+    import asyncio
+    from types import SimpleNamespace
+
+    from tests.test_human_gate import Storage, human_gate_do
+
+    now = [10000]
+    monkeypatch.setattr(human_gate_do.time, "time", lambda: now[0])
+    storage = Storage()
+    obj = human_gate_do.HumanGateObject(SimpleNamespace(storage=storage), None)
+    intent = "A" * 22
+    spec = json.dumps({"spec_version": 1, "optimize": {"max": "swe_bench_pro"}})
+    assert asyncio.run(obj.take(intent, spec))["reason"] == ""
+    assert asyncio.run(obj.take_vocabulary())["reason"] == ""
+    now[0] += 60
+    assert asyncio.run(obj.continue_intent(intent, spec))["reason"] == "intent"
+    rows = {row["k"]: json.loads(row["v"]) for row in
+            storage.sql.exec("SELECT k, v FROM human_state").toArray()}
+    assert set(rows) == {"state", "vocabulary"}
+    assert rows["vocabulary"] == {"day": 0, "count": 1, "events": [10000]}
+    state = rows["state"]
+    assert set(state) == {"day", "count", "events", "intents"}
+    assert (state["day"], state["count"], state["events"]) == (0, 1, [10000])
+    action = state["intents"][intent]
+    assert set(action) == {"first", "requests", "question", "events"}
+    assert (action["first"], action["requests"], action["events"]) == (10000, 1, [10000])
+    question = action["question"]
+    assert set(question) == {"fixed", "where", "optimize", "capabilities", "estate",
+                             "no_estate", "estate_allowed", "plot"}
+    assert question["where"] == []
+    assert (question["no_estate"], question["estate_allowed"], question["plot"]) == (True, False, False)
+    for name in ("fixed", "optimize", "capabilities", "estate"):
+        assert len(question[name]) == 64
+        assert set(question[name]) <= set("0123456789abcdef")
+    assert "swe_bench_pro" not in json.dumps(rows)
+    assert storage.alarm_at == 86400000
+    asyncio.run(obj.alarm())
+    assert storage.sql.exec("SELECT name FROM sqlite_master WHERE name = 'human_state'").toArray() == []
