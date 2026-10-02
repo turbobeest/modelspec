@@ -754,7 +754,10 @@ body {
 .facet-known { text-align: right; padding-top: 3px; font: 11px var(--mono); }
 .template-reason { color: var(--accentText) !important; }
 .template-unavailable { color: var(--muted); opacity: .65; }
-.facet-controls { min-width: 0; }
+.facet-controls { min-width: 0; grid-column: -2 / -1; }
+/* The Known cell renders only when the vocabulary carries counts, and the
+   private-data vocabulary carries none (MODEL-247): without the pin the
+   controls fell into the 54px Known column and were clipped. */
 .facet-state { display: flex; border: 1px solid var(--line2); border-radius: 3px; overflow: hidden; width: 100%; min-height: 30px; background: var(--surface); }
 .facet-state label { flex: 1; display: flex; align-items: center; justify-content: center; padding: 5px 4px; border-left: 1px solid var(--line); cursor: pointer; white-space: nowrap; font-size: 11.5px; text-align: center; }
 .facet-state label:first-child { border-left: 0; }
