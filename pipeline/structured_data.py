@@ -75,7 +75,9 @@ def organization(root: Path) -> dict[str, Any]:
 def dataset(tree: Path) -> dict[str, Any]:
     build = json.loads((tree / "api" / "build.json").read_text(encoding="utf-8"))
     index = tree / "api" / "index.json"
-    count = json.loads(index.read_text(encoding="utf-8"))["count"] if index.is_file() else None
+    # With data splitting, the index path contains a removal notice instead
+    # of a catalogue. Its missing count has the same meaning as an absent file.
+    count = json.loads(index.read_text(encoding="utf-8")).get("count") if index.is_file() else None
     return {
         "@type": "Dataset",
         "@id": f"{BASE}/#dataset",

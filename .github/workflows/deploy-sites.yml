@@ -490,6 +490,13 @@ jobs:
           pip install pydantic pyyaml "httpx==0.28.1" build
           cd web && npm ci
 
+      - name: Check withdrawn bulk routes on the production custom domain
+        # Bare URLs expose Pages' custom-domain cache. A preview URL or a
+        # cache-busting query passed while modelspec.dev still served old JSON.
+        # Run in holding mode too, and fail on any data-bearing 200 response.
+        if: ${{ !cancelled() && vars.DATA_SPLIT_ENABLED == 'true' }}
+        run: python -m pipeline.public_data smoke --origin https://modelspec.dev
+
       - name: Wait for the Worker from this commit
         # rank-api.yml deploys it from the same push; up to 10 minutes, then a
         # warning and the Worker that is serving is tested anyway.
