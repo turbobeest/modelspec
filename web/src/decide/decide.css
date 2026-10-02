@@ -1,5 +1,50 @@
+/* The site's faces (pipeline/landing_assets/landing.css), self-hosted at /fonts/
+   on the same origin. Instrument Sans is the display and body face; JetBrains
+   Mono the eyebrows and figures. */
+@font-face {
+  font-family: "Instrument Sans";
+  font-style: normal;
+  font-weight: 400 700;
+  font-stretch: 75% 100%;
+  font-display: swap;
+  src: url("/fonts/instrument-sans-latin-ext-wdth-normal.woff2") format("woff2-variations");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+    U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+    U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "Instrument Sans";
+  font-style: normal;
+  font-weight: 400 700;
+  font-stretch: 75% 100%;
+  font-display: swap;
+  src: url("/fonts/instrument-sans-latin-wdth-normal.woff2") format("woff2-variations");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191,
+    U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/jetbrains-mono-latin-ext.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF,
+    U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020,
+    U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: "JetBrains Mono";
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url("/fonts/jetbrains-mono-latin.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA,
+    U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191,
+    U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
 :root {
-  font-family: "Segoe UI Variable Text", "Segoe UI", system-ui, sans-serif;
+  font-family: "Instrument Sans", system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
   background: #0b1426;
 }
@@ -247,8 +292,32 @@ body {
   --good: #0b6a0b;
   --shadow: 0 10px 32px rgba(11, 20, 38, 0.16);
   --accentText: #006bbd;
-  --mono: "Cascadia Code", "Cascadia Mono", Consolas, ui-monospace, monospace;
+  --sans: "Instrument Sans", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --line-soft: #f3f2f1;
+  --surface-subtle: var(--surface2);
+  --success: var(--good);
+  --warning: var(--warn);
+  /* Wayfinding on the board (MODEL-264 follow-up). Must is a gate, Prefer
+     ranks: each has one hue wherever it appears. The answer has its own tone,
+     and the intro sits outside the tool on the landing page's navy. */
+  --must: #5b47c7;
+  --mustSoft: #f1eefc;
+  --mustInk: #ffffff;
+  --prefer: #0a7553;
+  --preferSoft: #e5f4ed;
+  --preferInk: #ffffff;
+  --groupBg: #f5f4f2;
+  --answerBg: #e8f1fb;
+  --hero-bg: #0b1426;
+  --hero-line: #24375c;
+  --hero-rule: #f2c94c;
+  --hero-title: #f2c94c;
+  --hero-ink: #eef2f7;
+  --hero-muted: #c7d1e0;
+  --hero-faint: #9fb0c8;
   background: var(--bg);
+  font-family: var(--sans);
   color: var(--ink);
   min-height: 100vh;
   font-size: 14px;
@@ -274,6 +343,17 @@ body {
   --good: #7fd07a;
   --shadow: 0 10px 32px rgba(0, 0, 0, 0.5);
   --accentText: #5aa9ec;
+  --line-soft: #19294a;
+  --must: #b7adff;
+  --mustSoft: #1f1d47;
+  --mustInk: #0b1426;
+  --prefer: #5fd4a5;
+  --preferSoft: #0e2e33;
+  --preferInk: #0b1426;
+  --groupBg: #152548;
+  --answerBg: #0c2445;
+  --hero-bg: linear-gradient(115deg, #1a2f5a 0%, #12224a 55%, #10203f 100%);
+  --hero-line: #2f4878;
 }
 .decide-app * {
   box-sizing: border-box;
@@ -553,20 +633,30 @@ body {
 }
 
 /* MODEL-168 preview board. It inherits the decision page's light/dark tokens. */
-.facet-board { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; min-width: 0; }
+.facet-board { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; min-width: 0; }
 .facet-board > *, .board-intro > *, .estate-strip > *, .access-question > *, .board-workspace > * { min-width: 0; }
-.board-intro, .estate-strip, .access-question, .facet-list, .board-answer-head {
+.estate-strip, .access-question, .facet-list, .board-answer-head {
   background: var(--surface); border: 1px solid var(--line); border-top: 2px solid var(--ink);
   padding: 14px 16px;
 }
 .legacy-notes { margin: 0 0 12px; padding: 12px 16px; border: 1px solid var(--warning, #b7791f); border-radius: 8px; background: color-mix(in srgb, var(--warning, #b7791f) 8%, transparent); }
 .legacy-notes ul { margin: 6px 0 0; padding-left: 20px; }
 .legacy-notes li + li { margin-top: 4px; }
-.board-intro { display: flex; align-items: end; justify-content: space-between; gap: 24px; }
-.board-intro h1 { margin: 4px 0; font-size: clamp(1.8rem, 4vw, 2.3rem); font-weight: 300; }
-.board-intro h2 { margin: 6px 0 8px; font-size: clamp(1.2rem, 2.4vw, 1.45rem); font-weight: 300; }
-.board-intro .board-intro-note { margin-top: 6px; font-size: 12px; }
-.board-intro p { margin: 0; color: var(--muted); }
+/* The intro is a page header, not a panel: the landing page's navy and type in
+   both themes, so it reads as outside the tool. Headline as on the landing:
+   one size, yellow, condensed Instrument Sans. */
+.board-intro { display: flex; align-items: end; justify-content: space-between; gap: 24px;
+  background: var(--hero-bg); color: var(--hero-ink); border: 1px solid var(--hero-line);
+  border-left: 3px solid var(--hero-rule); padding: 28px 32px 22px; }
+.board-intro .eyebrow { color: var(--hero-title); font-size: 13px; letter-spacing: .02em; }
+.decide-app .board-intro h1 { margin: 12px 0 20px; max-width: 24em; color: var(--hero-title);
+  font-family: var(--sans); font-size: clamp(30px, 3.1vw, 44px); font-weight: 650;
+  font-stretch: 78%; letter-spacing: -0.035em; line-height: 1.06; text-wrap: balance; }
+.decide-app .board-intro h2 { margin: 0 0 6px; color: var(--hero-ink); font-family: var(--sans);
+  font-size: clamp(19px, 1.6vw, 22px); font-weight: 600; letter-spacing: -0.01em; line-height: 1.25; }
+.board-intro p { margin: 0; max-width: 72ch; color: var(--hero-muted); font-size: 15px; line-height: 1.5; }
+.board-intro .board-intro-note { margin-top: 16px; padding-top: 10px; border-top: 1px solid var(--hero-line);
+  color: var(--hero-faint); font: 11.5px/1.5 var(--mono); }
 /* MODEL-204: the template card is always on the board, as a bar or a category-by-tier grid. */
 .template-picker { background: var(--surface); border: 1px solid var(--line); border-top: 2px solid var(--ink); }
 .template-bar { width: 100%; display: flex; align-items: baseline; gap: 12px; padding: 12px 16px; border: 0; border-radius: 0; background: transparent; text-align: left; cursor: pointer; }
@@ -584,10 +674,10 @@ body {
 .template-grid caption small { margin-left: 10px; text-transform: none; letter-spacing: normal; }
 .template-grid thead th { font-weight: 500; text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--line); color: var(--muted); }
 .template-grid thead th:first-child { width: 17%; }
-.template-grid tbody th { text-align: left; vertical-align: top; padding: 6px 6px 6px 0; font-weight: 400; }
+.template-grid tbody th { text-align: left; vertical-align: top; padding: 8px 10px 8px 0; font-weight: 400; }
 .template-grid tbody th strong { display: block; font-weight: 500; }
 .template-grid tbody th small { display: block; color: var(--muted); margin-top: 2px; }
-.template-grid td { vertical-align: top; padding: 3px; }
+.template-grid td { vertical-align: top; padding: 5px 4px; }
 .template-grid tbody tr + tr > * { border-top: 1px solid var(--line); }
 .template-grid td button, .template-grid td > div { width: 100%; min-height: 58px; padding: 6px 8px; text-align: left; display: flex; flex-direction: column; gap: 3px; border: 1px solid var(--line); border-radius: 3px; font-size: 12px; line-height: 1.35; }
 .template-grid td button { background: var(--surface); cursor: pointer; }
@@ -640,12 +730,21 @@ body {
 .facet-columns, .facet-row { display: grid; grid-template-columns: minmax(0, 1fr) 54px 224px; gap: 8px; }
 .facet-columns { padding: 5px 16px; color: var(--faint); font: 10.5px var(--mono); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .facet-columns span:nth-child(2) { text-align: right; }
-.facet-group { border-bottom: 1px solid var(--line); }
-.decide-app .facet-group-summary { width: 100%; min-height: 39px; padding: 8px 16px; border: 0; display: grid; grid-template-columns: auto 1fr auto; align-items: baseline; gap: 8px; text-align: left; background: var(--surface); }
-.facet-group-summary span { font-size: 13px; font-weight: 650; }
+.facet-group { border-bottom: 1px solid var(--line2); }
+/* Each group opens on a tinted band. Its left edge says which states it holds:
+   violet for a Must, green for a Prefer, both when it has both. */
+.decide-app .facet-group-summary { width: 100%; min-height: 44px; padding: 11px 16px; border: 0; border-radius: 0; display: grid; grid-template-columns: auto 1fr auto; align-items: baseline; gap: 10px; text-align: left; background: var(--groupBg); }
+.facet-group-summary span { font-size: 14px; font-weight: 650; letter-spacing: -0.005em; }
+.facet-group:has(.facet-row:is([data-mode="must"], [data-mode="both"])) > .facet-group-summary { box-shadow: inset 4px 0 0 var(--must); }
+.facet-group:has(.facet-row[data-mode="prefer"], .refinement-row[data-mode="prefer"]) > .facet-group-summary { box-shadow: inset 4px 0 0 var(--prefer); }
+.facet-group:has(.facet-row:is([data-mode="must"], [data-mode="both"])):has(.facet-row:is([data-mode="prefer"], [data-mode="both"])) > .facet-group-summary { box-shadow: inset 4px 0 0 var(--must), inset 8px 0 0 var(--prefer); }
 .facet-group-summary small { color: var(--muted); }
 .facet-group-summary b { font-size: 16px; font-weight: 400; color: var(--muted); }
-.facet-row { min-height: 48px; align-items: start; padding: 7px 16px; border-top: 1px solid var(--line-soft); }
+.facet-row { min-height: 52px; align-items: start; padding: 11px 16px; border-top: 1px solid var(--line-soft); }
+.facet-group-summary + div > .facet-row:first-child { border-top: 0; }
+.facet-row[data-mode="must"] { background: var(--mustSoft); box-shadow: inset 4px 0 0 var(--must); }
+.facet-row[data-mode="prefer"] { background: var(--preferSoft); box-shadow: inset 4px 0 0 var(--prefer); }
+.facet-row[data-mode="both"] { background: var(--preferSoft); box-shadow: inset 4px 0 0 var(--must), inset 8px 0 0 var(--prefer); }
 .facet-off { opacity: .72; }
 .facet-copy { display: flex; flex-direction: column; min-width: 0; }
 .facet-copy small, .facet-controls small, .facet-known { color: var(--muted); }
@@ -653,20 +752,36 @@ body {
 .decide-app .facet-info { width: 17px; height: 17px; padding: 0; border: 1px solid var(--line); border-radius: 50%; color: var(--muted); font: 600 10px var(--mono); line-height: 15px; }
 .facet-definition { padding: 5px 7px; margin-top: 3px; background: var(--surface2); }
 .facet-known { text-align: right; padding-top: 3px; font: 11px var(--mono); }
-.template-reason { color: var(--accent) !important; }
+.template-reason { color: var(--accentText) !important; }
 .template-unavailable { color: var(--muted); opacity: .65; }
 .facet-controls { min-width: 0; }
-.facet-state { display: flex; border: 1px solid var(--line); width: 100%; min-height: 28px; }
-.facet-state label { flex: 1; padding: 5px 4px; border-left: 1px solid var(--line); cursor: pointer; white-space: nowrap; font-size: 11px; text-align: center; }
+.facet-state { display: flex; border: 1px solid var(--line2); border-radius: 3px; overflow: hidden; width: 100%; min-height: 30px; background: var(--surface); }
+.facet-state label { flex: 1; display: flex; align-items: center; justify-content: center; padding: 5px 4px; border-left: 1px solid var(--line); cursor: pointer; white-space: nowrap; font-size: 11.5px; text-align: center; }
 .facet-state label:first-child { border-left: 0; }
-.facet-state input { width: 10px; height: 10px; margin: 0 3px 0 0; }
-.facet-settings { grid-column: 1 / -1; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 6px; font-size: 11px; }
+.facet-state input { width: 10px; height: 10px; margin: 0 4px 0 0; }
+/* Must and Prefer carry their hue even when unchosen, so the board is its own legend. */
+.facet-state .state-must { color: var(--must); font-weight: 550; }
+.facet-state .state-prefer { color: var(--prefer); font-weight: 550; }
+.facet-state .state-must input { accent-color: var(--must); }
+.facet-state .state-prefer input { accent-color: var(--prefer); }
+.facet-state .state-off:has(input:checked) { background: var(--surface2); color: var(--ink); }
+.facet-state .state-must:has(input:checked) { background: var(--must); color: var(--mustInk); font-weight: 650; }
+.facet-state .state-prefer:has(input:checked) { background: var(--prefer); color: var(--preferInk); font-weight: 650; }
+.facet-state label:has(input:checked) input { accent-color: currentColor; }
+.facet-state label:has(input:disabled) { color: var(--faint); font-weight: 400; cursor: not-allowed; }
+.facet-settings { grid-column: 1 / -1; display: flex; gap: 8px 12px; flex-wrap: wrap; align-items: center; margin-top: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 3px; background: var(--surface); font-size: 11.5px; }
+.facet-row:is([data-mode="must"], [data-mode="both"]) .facet-settings { border-color: color-mix(in srgb, var(--must) 35%, var(--line)); }
+.facet-row[data-mode="prefer"] .facet-settings { border-color: color-mix(in srgb, var(--prefer) 35%, var(--line)); }
+.decide-app .facet-row:is([data-mode="must"], [data-mode="both"]) .facet-settings input { accent-color: var(--must); }
+.decide-app .facet-row[data-mode="prefer"] .facet-settings input,
+.decide-app .facet-row[data-mode="both"] .facet-settings input[type="range"],
+.decide-app .refinements input[type="range"] { accent-color: var(--prefer); }
 .facet-settings input[type="number"] { width: 76px; }
 .facet-settings input[type="range"] { width: 110px; }
 .facet-value { display: flex; gap: 6px; align-items: center; }
 .facet-values { display: flex; gap: 8px; flex-wrap: wrap; border: 0; padding: 0; }
 .benchmarks { margin-top: 5px; font-size: 11px; }
-.refinements { grid-column: 1 / -1; margin-top: 7px; border-left: 2px solid var(--line); padding-left: 8px; }
+.refinements { grid-column: 1 / -1; margin-top: 8px; border-left: 2px solid color-mix(in srgb, var(--prefer) 45%, var(--line)); padding-left: 10px; }
 .decide-app .refine-toggle { padding: 3px 7px; font-size: 11px; }
 .refinement-group h4 { margin: 9px 0 3px; color: var(--muted); font: 600 10px var(--mono); text-transform: uppercase; letter-spacing: .06em; }
 .refinement-row { display: grid; gap: 5px; padding: 7px 0; border-top: 1px solid var(--line-soft); }
@@ -687,11 +802,19 @@ body {
 .group-coming { margin: 0; padding: 6px 16px 8px; color: var(--muted); font-size: 11.5px; background: var(--surface-subtle); }
 .untracked { background: var(--surface-subtle); }
 .untracked > div > p { margin: 0; padding: 8px 16px; color: var(--muted); font-size: 12px; }
-.board-answer { position: sticky; top: 74px; display: flex; flex-direction: column; gap: 14px; min-width: 0; max-height: calc(100vh - 88px); overflow: auto; scrollbar-gutter: stable; }
+.board-answer { position: sticky; top: 74px; display: flex; flex-direction: column; gap: 12px; min-width: 0; max-height: calc(100vh - 88px); overflow: auto; scrollbar-gutter: stable;
+  padding: 12px; background: var(--answerBg); border-top: 3px solid var(--accent); }
+.board-answer .panel, .board-answer .board-answer-head { border-top: 1px solid var(--line); }
+.board-answer .board-answer-head .eyebrow { color: var(--accentText); }
+/* The narrowing reads in the board's colours: each gate is a Must, the last step ranks. */
+.board-answer .funnel li:not(:first-child):not(.ranked) .count { color: var(--must); }
+.board-answer .funnel li:not(:first-child):not(.ranked) .funnel-track > span { background: var(--must); }
+.board-answer .funnel .ranked .count { color: var(--prefer); }
+.board-answer .funnel .ranked .funnel-track > span { background: var(--prefer); }
 .board-answer .narrowing { display: block; }
 .board-answer-head { display: flex; flex-direction: column; gap: 7px; }
 .board-answer-head h2, .board-answer-head p { margin: 0; }
-.board-ranked-answer { padding: 6px 16px 12px; border-top: 2px solid var(--ink); }
+.board-ranked-answer { padding: 6px 16px 12px; }
 .board-ranked-answer > ol { list-style: none; margin: 0; padding: 0; }
 .board-ranked-answer > ol > li { display: grid; grid-template-columns: minmax(150px, 1fr) 112px minmax(120px, .8fr); gap: 12px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line-soft); }
 .board-ranked-answer > ol > li.without-capability { grid-template-columns: minmax(150px, 1fr) 112px; }
@@ -714,7 +837,7 @@ body {
 .board-own-software-note { margin: 0; font-size: 12.5px; }
 .board-may-note { grid-column: 1 / -1; margin: -4px 0 0; color: var(--warning, #9a6510); font-size: 12px; }
 .board-interval-track { position: relative; height: 8px; margin: 4px 3px; border-radius: 999px; background: var(--surface2); }
-.board-interval-track i { position: absolute; top: 1px; height: 6px; border-radius: 999px; background: var(--accent); opacity: .65; }
+.board-interval-track i { position: absolute; top: 1px; height: 6px; border-radius: 999px; background: var(--prefer); opacity: .65; }
 .board-interval-track b { position: absolute; top: -2px; width: 2px; height: 12px; background: var(--ink); }
 .funnel .engine-added { color: var(--muted); }
 .funnel .engine-added .funnel-track { opacity: .55; }
@@ -760,9 +883,10 @@ body {
   .global-header .segments button { flex: 1; }
   .global-header > button:not(.brand) { flex: 1; }
   .work { padding: 12px 10px 48px; }
-  .board-intro { display: grid; align-items: start; gap: 10px; }
-  .board-intro h1 { font-size: 27px; }
-  .board-intro h2 { font-size: 19px; }
+  .board-intro { display: grid; align-items: start; gap: 10px; padding: 20px 18px 16px; }
+  .decide-app .board-intro h1 { font-size: 30px; margin: 10px 0 16px; }
+  .decide-app .board-intro h2 { font-size: 18px; }
+  .board-intro p { font-size: 14px; }
   .template-flat { grid-template-columns: minmax(0, 1fr); }
   .template-bar { flex-wrap: wrap; gap: 4px 10px; }
   .template-bar .template-active, .template-bar .template-count { white-space: normal; }
