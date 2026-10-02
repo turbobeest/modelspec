@@ -156,6 +156,8 @@ def landing_browser_results(tmp_path_factory: pytest.TempPathFactory) -> dict[st
         assembled / "decide" / "index.html",
     )
     shutil.copytree(ROOT / "web" / "dist" / "assets", assembled / "assets")
+    # The decide page loads the site's faces from /fonts/, as deployed.
+    shutil.copytree(ROOT / "site" / "fonts", assembled / "fonts")
     try:
         completed = subprocess.run(
             ["node", str(browser_script), str(live), str(holding), str(method_page), str(assembled)],
