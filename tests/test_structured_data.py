@@ -128,6 +128,7 @@ def test_configured_profiles_become_the_organization_same_as(tmp_path: Path) -> 
     nodes = _graph(tree, "/")
 
     assert nodes[0]["sameAs"] == [
+        "https://github.com/turbobeest/modelspec",
         "https://x.com/modelspecdev", "https://www.linkedin.com/company/modelspec-dev/"]
     assert nodes[3]["name"] == "ModelSpec API"
     assert all("downloadUrl" not in node for node in nodes)

@@ -7,6 +7,7 @@ from dataclasses import replace
 from datetime import date
 from pathlib import Path
 
+import pytest
 import yaml
 from typer.testing import CliRunner
 
@@ -342,7 +343,9 @@ def test_report_writes_publishable_markdown_and_json(tmp_path: Path) -> None:
         snapshot="snap_test_accuracy",
         layers=(
             accuracy.LayerResult("freshness", "pass", True, "Fresh enough", {"checked": 1}),
-            accuracy.LayerResult("golden_answers", "report", False, "Jamie approval pending"),
+            accuracy.LayerResult(
+                "frozen_image_engine_recall", "report", False, "Jamie approval pending"
+            ),
         ),
     )
 
@@ -776,7 +779,7 @@ def test_accuracy_workflows_split_pr_and_nightly_layers() -> None:
     assert "scripts/accuracy.py --profile pr" in pr
     assert "scripts/accuracy.py --profile nightly" in nightly
     assert (
-        '"nightly": ("data_fidelity", "reference_agreement", "golden_answers")'
+        '"nightly": ("data_fidelity", "reference_agreement", "frozen_image_engine_recall")'
         in Path("scripts/accuracy.py").read_text()
     )
     assert "cron:" in nightly
@@ -793,3 +796,98 @@ def test_accuracy_workflows_split_pr_and_nightly_layers() -> None:
     assert "check_score_only" in refresh
     assert "gh pr merge" not in refresh
     assert "continue-on-error" not in pr + nightly
+
+
+def test_frozen_image_change_requires_recorded_verdict_and_changed_reason() -> None:
+    kwargs = dict(gating=True, update_command="unused", approved_baseline={"Q04": "pass"})
+    question = (_recall_question("Q04", "fail"),)
+    reason = {"Q04": "No offering in the frozen image; private Q04 passes."}
+    allowed = accuracy.recall_ratchet(
+        {"Q04": "fail"}, question, frozen_image_reason=reason, **kwargs
+    )
+    assert allowed.status == "pass"
+    assert allowed.details == [
+        {
+            "id": "Q04",
+            "change": "frozen_image_baseline_change",
+            "transition": "pass -> fail",
+            "frozen_image_reason": reason["Q04"],
+        }
+    ]
+    unchanged = accuracy.recall_ratchet(
+        {"Q04": "fail"},
+        question,
+        frozen_image_reason=reason,
+        approved_frozen_image_reason=reason,
+        **kwargs,
+    )
+    assert unchanged.status == "fail"
+    unrecorded = accuracy.recall_ratchet(
+        {"Q04": "partial"}, question, frozen_image_reason=reason, **kwargs
+    )
+    assert unrecorded.status == "fail"
+    assert unrecorded.counts["regressions"] == 1
+
+
+def test_frozen_image_gate_requires_reasons_for_every_below_pass_baseline() -> None:
+    result = accuracy.recall_ratchet(
+        {"Q07": "partial"},
+        (_recall_question("Q07", "partial"),),
+        gating=True,
+        update_command="unused",
+        frozen_image_reason={},
+    )
+    assert result.status == "fail"
+    assert result.details == [{"id": "Q07", "change": "missing_frozen_image_reason"}]
+
+
+def test_frozen_image_reason_cannot_hide_a_removed_question() -> None:
+    result = accuracy.recall_ratchet(
+        {},
+        (),
+        gating=True,
+        update_command="unused",
+        approved_baseline={"Q04": "pass"},
+        frozen_image_reason={"Q04": "missing frozen data"},
+    )
+    assert result.status == "fail"
+
+
+def test_baseline_update_refuses_unexplained_drop_and_preserves_reasons(
+    tmp_path, monkeypatch
+) -> None:
+    from types import SimpleNamespace
+
+    import scripts.recall_run as recall
+
+    baseline_path = tmp_path / "tests/recall/baseline.json"
+    baseline_path.parent.mkdir(parents=True)
+    baseline_path.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "as_of": "2026-09-27",
+                "snapshot": "before",
+                "verdicts": {"Q04": "pass"},
+            }
+        )
+    )
+    monkeypatch.setattr(
+        recall,
+        "run",
+        lambda **kwargs: SimpleNamespace(
+            snapshot_id="after", questions=(_recall_question("Q04", "fail"),)
+        ),
+    )
+    with pytest.raises(ValueError, match="frozen_image_reason required"):
+        accuracy.update_recall_baseline(root=tmp_path, snapshot_file=None, as_of=date(2026, 10, 1))
+    result = accuracy.update_recall_baseline(
+        root=tmp_path,
+        snapshot_file=None,
+        as_of=date(2026, 10, 1),
+        frozen_image_reason={"Q04": "No frozen offering; private passes."},
+    )
+    assert result.verdicts == {"Q04": "fail"}
+    assert accuracy.load_recall_baseline(baseline_path).frozen_image_reason == {
+        "Q04": "No frozen offering; private passes."
+    }

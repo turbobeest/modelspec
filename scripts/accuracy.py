@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Publishable accuracy report for the decision engine (MODEL-111 and MODEL-160).
 
-The PR profile runs deterministic correctness, freshness, the approved recall
-limit, and output parity. The nightly profile re-reads verified values, compares
+The PR profile runs deterministic correctness, freshness, frozen-image engine
+recall, and output parity. The nightly profile re-reads verified values, compares
 domain leaders with permitted independent boards, and reports recall changes
 without gating on them.
 """
@@ -31,8 +31,8 @@ DEFAULT_CONFIG = ROOT / "accuracy.yaml"
 DEFAULT_OUTPUT = ROOT / "accuracy-report"
 DEFAULT_RECALL_BASELINE = ROOT / "tests" / "recall" / "baseline.json"
 PROFILES = {
-    "pr": ("deterministic_correctness", "freshness", "golden_answers", "output_parity"),
-    "nightly": ("data_fidelity", "reference_agreement", "golden_answers"),
+    "pr": ("deterministic_correctness", "freshness", "frozen_image_engine_recall", "output_parity"),
+    "nightly": ("data_fidelity", "reference_agreement", "frozen_image_engine_recall"),
 }
 Status = Literal["pass", "fail", "report", "undetermined"]
 RecallVerdict = Literal["pass", "partial", "fail"]
@@ -81,6 +81,7 @@ class RecallBaseline:
     snapshot: str
     as_of: date
     verdicts: Mapping[str, RecallVerdict]
+    frozen_image_reason: Mapping[str, str] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)
@@ -359,7 +360,13 @@ def load_recall_baseline(path: str | Path = DEFAULT_RECALL_BASELINE) -> RecallBa
     snapshot = raw.get("snapshot")
     if not isinstance(snapshot, str) or not snapshot:
         raise ValueError(f"{path}: snapshot must be a non-empty string")
-    return RecallBaseline(snapshot, as_of, dict(verdicts))
+    reasons = _mapping(raw.get("frozen_image_reason", {}), f"{path}: frozen_image_reason")
+    if any(
+        key not in verdicts or not isinstance(reason, str) or not reason.strip()
+        for key, reason in reasons.items()
+    ):
+        raise ValueError(f"{path}: frozen_image_reason must map question ids to non-empty reasons")
+    return RecallBaseline(snapshot, as_of, dict(verdicts), dict(reasons))
 
 
 def _recall_causes(question: Any) -> list[str]:
@@ -376,13 +383,46 @@ def recall_ratchet(
     gating: bool,
     update_command: str,
     approved_baseline: Mapping[str, RecallVerdict] | None = None,
+    frozen_image_reason: Mapping[str, str] | None = None,
+    approved_frozen_image_reason: Mapping[str, str] | None = None,
 ) -> LayerResult:
     current = {row.id: row for row in questions}
     details: list[dict[str, Any]] = []
+    reasons = frozen_image_reason or {}
+    previous_reasons = approved_frozen_image_reason or {}
+    missing_reasons = (
+        []
+        if frozen_image_reason is None
+        else [
+            question_id
+            for question_id, verdict in sorted(baseline.items())
+            if verdict != "pass" and not reasons.get(question_id, "").strip()
+        ]
+    )
+    details.extend(
+        {"id": question_id, "change": "missing_frozen_image_reason"}
+        for question_id in missing_reasons
+    )
     baseline_regressions = regressions = improvements = 0
     for question_id, before in sorted((approved_baseline or {}).items()):
         after = baseline.get(question_id)
         if after is not None and _VERDICT_LEVEL[after] >= _VERDICT_LEVEL[before]:
+            continue
+        # A changed reason is the reviewable exception to the merge-base minimum.
+        # It only records the proposed verdict; it never excuses a live regression.
+        if (
+            after is not None
+            and reasons.get(question_id, "").strip()
+            and reasons[question_id] != previous_reasons.get(question_id)
+        ):
+            details.append(
+                {
+                    "id": question_id,
+                    "change": "frozen_image_baseline_change",
+                    "transition": f"{before} -> {after}",
+                    "frozen_image_reason": reasons[question_id],
+                }
+            )
             continue
         baseline_regressions += 1
         details.append(
@@ -432,17 +472,19 @@ def recall_ratchet(
         "regressions": regressions,
         "improvements": improvements,
     }
-    changed = baseline_regressions + regressions + improvements
+    changed = baseline_regressions + regressions + improvements + len(missing_reasons)
     if changed == 0:
         return LayerResult(
-            "golden_answers",
+            "frozen_image_engine_recall",
             "pass",
             gating,
-            f"All {len(questions)} approved recall verdicts match the baseline.",
+            f"All {len(questions)} frozen-image engine recall verdicts match the public baseline.",
             counts,
             details,
         )
     messages = []
+    if missing_reasons:
+        messages.append(f"{len(missing_reasons)} missing frozen_image_reason entries")
     if baseline_regressions:
         messages.append(f"{baseline_regressions} proposed baseline regression(s)")
     if regressions:
@@ -452,7 +494,7 @@ def recall_ratchet(
             f"{improvements} unrecorded improvement(s); update the baseline with: {update_command}"
         )
     return LayerResult(
-        "golden_answers",
+        "frozen_image_engine_recall",
         "fail" if gating else "report",
         gating,
         "; ".join(messages) + ".",
@@ -607,11 +649,17 @@ def run_golden(
             gating=gating,
             update_command=_recall_update_command(as_of),
             approved_baseline=None if approved is None else approved.verdicts,
+            frozen_image_reason=baseline.frozen_image_reason,
+            approved_frozen_image_reason=None if approved is None else approved.frozen_image_reason,
         )
 
 
 def update_recall_baseline(
-    *, root: Path, snapshot_file: Path | None, as_of: date
+    *,
+    root: Path,
+    snapshot_file: Path | None,
+    as_of: date,
+    frozen_image_reason: Mapping[str, str] | None = None,
 ) -> RecallBaseline:
     from scripts.recall_run import run
 
@@ -624,15 +672,39 @@ def update_recall_baseline(
             report_date=as_of,
         )
     verdicts = {row.id: row.verdict for row in result.questions}
-    if path.is_file():
-        previous = load_recall_baseline(path)
+    previous = load_recall_baseline(path) if path.is_file() else None
+    reasons = dict(previous.frozen_image_reason) if previous is not None else {}
+    supplied_reasons = _mapping(frozen_image_reason or {}, "frozen_image_reason")
+    if any(
+        key not in verdicts or not isinstance(reason, str) or not reason.strip()
+        for key, reason in supplied_reasons.items()
+    ):
+        raise ValueError("frozen_image_reason must map current question ids to non-empty reasons")
+    reasons.update(supplied_reasons)
+    reasons = {key: reason for key, reason in reasons.items() if verdicts.get(key) != "pass"}
+    missing = [
+        key
+        for key, verdict in verdicts.items()
+        if verdict != "pass" and not reasons.get(key, "").strip()
+    ]
+    if missing:
+        raise ValueError("frozen_image_reason required for " + ", ".join(missing))
+    if previous is not None:
         comparison = recall_ratchet(
             previous.verdicts,
             result.questions,
             gating=True,
             update_command=_recall_update_command(as_of),
         )
-        regressions = [row for row in comparison.details if row["change"] == "regression"]
+        regressions = [
+            row
+            for row in comparison.details
+            if row["change"] == "regression"
+            and (
+                not reasons.get(row["id"], "").strip()
+                or reasons[row["id"]] == previous.frozen_image_reason.get(row["id"])
+            )
+        ]
         if regressions:
             transitions = ", ".join(f"{row['id']} {row['transition']}" for row in regressions)
             raise ValueError(f"refusing to lower the recall baseline: {transitions}")
@@ -642,9 +714,10 @@ def update_recall_baseline(
         "snapshot": result.snapshot_id,
         "generated_by": _recall_update_command(as_of),
         "verdicts": verdicts,
+        "frozen_image_reason": reasons,
     }
     path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    return RecallBaseline(result.snapshot_id, as_of, verdicts)
+    return load_recall_baseline(path)
 
 
 def claim_category(claim: Any) -> Literal["fact", "evidence", "offering"]:
@@ -1351,7 +1424,7 @@ def run_profile(
         elif layer == "freshness":
             snapshot = snapshot or _load_snapshot(root, snapshot_file, as_of)
             results.append(check_freshness(snapshot, as_of=as_of, config=config.freshness))
-        elif layer == "golden_answers":
+        elif layer == "frozen_image_engine_recall":
             results.append(
                 run_golden(
                     root,
@@ -1410,7 +1483,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--approved-recall-baseline",
         type=Path,
-        help="Reject a proposed recall baseline below this merge-base baseline.",
+        help="Compare the public engine baseline with the merge-base baseline.",
     )
     parser.add_argument("--date", type=date.fromisoformat, default=date.today())
     parser.add_argument("--llm-reader", choices=("claude", "mistral"))
@@ -1419,7 +1492,12 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument(
         "--update-recall-baseline",
         action="store_true",
-        help="Raise tests/recall/baseline.json to the current recall verdicts.",
+        help="Record frozen-image engine verdicts in tests/recall/baseline.json.",
+    )
+    parser.add_argument(
+        "--frozen-image-reasons",
+        type=Path,
+        help="JSON map of question ids to reviewed frozen-image baseline-change reasons.",
     )
     parser.add_argument(
         "--check-recall-approval",
@@ -1439,7 +1517,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.update_recall_baseline:
         try:
             baseline = update_recall_baseline(
-                root=args.root.resolve(), snapshot_file=args.snapshot_file, as_of=args.date
+                root=args.root.resolve(),
+                snapshot_file=args.snapshot_file,
+                as_of=args.date,
+                frozen_image_reason=(
+                    json.loads(args.frozen_image_reasons.read_text(encoding="utf-8"))
+                    if args.frozen_image_reasons
+                    else None
+                ),
             )
         except ValueError as exc:
             parser.error(str(exc))
