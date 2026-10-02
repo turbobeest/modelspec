@@ -35,7 +35,7 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-from pipeline import brand, landing, landing_chrome, security_headers, social_cards, structured_data
+from pipeline import brand, landing, landing_chrome, public_data, security_headers, social_cards, structured_data
 
 BASE = "https://modelspec.dev"
 
@@ -151,13 +151,17 @@ def build(src: Path, web: Path, out: Path) -> None:
     (tree / "404.html").write_text(not_found(), encoding="utf-8")
     shutil.copytree(web / "assets", tree / "assets",
                     ignore=shutil.ignore_patterns("main-*"))
-    (tree / "_redirects").write_text(REDIRECTS, encoding="utf-8")
+    redirects = (public_data.REDIRECTS if public_data.enabled() else "") + REDIRECTS
+    (tree / "_redirects").write_text(redirects, encoding="utf-8")
     (tree / "robots.txt").write_text(ROBOTS, encoding="utf-8")
     (tree / "sitemap.xml").write_text(sitemap(), encoding="utf-8")
     structured_data.inject(tree)
     headers = (real / "_headers").read_text(encoding="utf-8")
+    headers = headers.rstrip("\n") + "\n" + HEADERS
+    if public_data.enabled():
+        headers = public_data.cache_headers(headers)
     (tree / "_headers").write_text(
-        security_headers.add_to(headers.rstrip("\n") + "\n" + HEADERS, tree), encoding="utf-8")
+        security_headers.add_to(headers, tree), encoding="utf-8")
     (out / "benchgraph").mkdir()
     shutil.copy2(src / "benchgraph" / "_redirects", out / "benchgraph" / "_redirects")
 
