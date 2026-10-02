@@ -89,8 +89,9 @@ test.describe("the Worker gate is enabled", () => {
   test.use({ humanStatus: { enabled: true, remaining: 20 } });
   test.skip(process.env.VITE_HUMAN_GATE_ENABLED !== "true", "requires the gated page build");
 
-  test("shows verification and waits for a manual lookup", async ({ page }) => {
-    let decisions = 0;
+  let decisions = 0;
+  test.beforeEach(async ({ page }) => {
+    decisions = 0;
     page.on("request", (request) => {
       if (request.url().endsWith("/v1/decide") && request.method() === "POST") decisions++;
     });
@@ -101,9 +102,15 @@ test.describe("the Worker gate is enabled", () => {
         remove() {}
       };`,
     }));
+  });
+
+  test("shows verification and waits for a manual lookup", async ({ page }) => {
     await openBoard(page);
     const gate = page.getByRole("region", { name: "Manual lookups" });
     await expect(gate).toBeVisible();
+    // MODEL-281: the control heads the answer panel, in view beside the facets.
+    await expect(page.locator("#facet-board-answer").getByRole("region", { name: "Manual lookups" })).toBeVisible();
+    await expect(gate).toBeInViewport();
     await expect(gate.getByText("20 decisions remaining today. Resets at midnight UTC.")).toBeVisible();
     await expect(gate.getByRole("link", { name: "paid API or MCP" })).toBeVisible();
     const lookup = gate.getByRole("button", { name: "Look up this decision" });
@@ -117,9 +124,35 @@ test.describe("the Worker gate is enabled", () => {
     await lookup.click();
     expect((await request).headers()["x-modelspec-turnstile"]).toBe("browser-test-token");
     await expect(page.getByLabel("Facet board answer")).toBeVisible();
+    await expect(page.locator(".narrowing .funnel")).toBeVisible();
     expect(decisions).toBeGreaterThan(0);
+
+    // A facet change keeps the answer, marks it stale and asks nothing of the Worker.
+    await expect(lookup).toBeEnabled();
+    const sent = decisions;
+    await page.getByRole("button", { name: /Start from a template/ }).click();
+    await page.locator(".board-templates button").first().click();
+    await expect(gate.getByRole("status")).toHaveText(/^Facets changed\. Look up again \(\d+ left\)\.$/);
+    await expect(page.getByLabel("Facet board answer")).toBeVisible();
+    await expect(gate).toBeInViewport();
+    await page.waitForTimeout(500);
+    expect(decisions).toBe(sent);
     await page.getByRole("button", { name: "Share or act" }).click();
     await page.getByRole("dialog").getByRole("tab", { name: "Procurement review" }).click();
     await expect(page.getByRole("dialog").getByRole("button", { name: /CSV/ })).toHaveCount(0);
+  });
+
+  test("keeps a compact lookup bar in reach at 390px", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openBoard(page);
+    const bar = page.getByRole("button", { name: "Look up (20 left)" });
+    await expect(bar).toBeInViewport();
+    await expect(page.locator(".mobile-answer-bar")).toHaveCount(0);
+    await page.getByRole("button", { name: /What it does/ }).click();
+    await expect(bar).toBeInViewport();
+    await bar.click();
+    await expect(page.getByLabel("Facet board answer")).toBeVisible();
+    expect(decisions).toBeGreaterThan(0);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   });
 });

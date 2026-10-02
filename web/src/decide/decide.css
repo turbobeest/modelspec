@@ -822,6 +822,20 @@ body {
 .board-answer .funnel .ranked .count { color: var(--prefer); }
 .board-answer .funnel .ranked .funnel-track > span { background: var(--prefer); }
 .board-answer .narrowing { display: block; }
+/* MODEL-281: under the human gate, the lookup control heads the answer column
+   and stays in view while it scrolls. The answer it produced dims, rather than
+   disappears, once the facets change. */
+.board-answer-body { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.board-answer-body[data-stale], .results[data-stale] { opacity: .55; filter: saturate(.6); transition: opacity .2s; }
+.decide-app .human-gate { position: sticky; top: 0; z-index: 3; display: flex; flex-direction: column; gap: 6px;
+  margin: -12px -12px 0; padding: 12px 14px; background: var(--surface); border-bottom: 2px solid var(--accent);
+  box-shadow: 0 6px 14px -10px rgb(0 0 0 / .35); }
+.decide-app .human-gate p { margin: 0; font-size: 12.5px; color: var(--muted); }
+.decide-app .human-gate p[role="status"] { color: var(--ink); font-weight: 600; font-size: 13.5px; }
+.decide-app .human-gate .primary { align-self: flex-start; padding: 8px 16px; font-size: 13.5px; }
+.decide-app .human-gate a { color: var(--accentText); }
+.decide-app .human-gate .primary:disabled { opacity: .55; cursor: not-allowed; }
+.human-gate-bar { display: none; }
 .board-answer-head { display: flex; flex-direction: column; gap: 7px; }
 .board-answer-head h2, .board-answer-head p { margin: 0; }
 .board-ranked-answer { padding: 6px 16px 12px; }
@@ -884,6 +898,14 @@ body {
   .board-workspace { grid-template-columns: minmax(0, 1fr); }
   .board-answer { position: static; max-height: none; overflow: visible; scroll-margin-top: 58px; }
   .mobile-answer-bar { position: sticky; top: 0; z-index: 20; display: flex; justify-content: space-between; padding: 9px 12px; color: var(--accentText); background: var(--surface); border: 1px solid var(--accent); font-weight: 650; text-decoration: none; }
+  /* The gate sits below the facets here, so a fixed bar keeps the lookup in reach. */
+  .decide-app .human-gate { position: static; margin: 0; }
+  .human-gate-bar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; display: flex; padding: 10px 16px calc(10px + env(safe-area-inset-bottom));
+    background: var(--surface); border-top: 2px solid var(--accent); box-shadow: 0 -6px 16px -10px rgb(0 0 0 / .4); }
+  .decide-app .human-gate-bar .primary { flex: 1; padding: 11px 14px; font-size: 15px; }
+  .decide-app .human-gate-bar .primary:disabled { opacity: .55; }
+  .decide-app:has(.human-gate-bar) .work { padding-bottom: 88px; }
+  .decide-app:has(.human-gate-bar) .feedback-launcher { bottom: 76px; }
 }
 @media (max-width: 620px) {
   .global-header { position: static; padding: 8px 12px; flex-wrap: wrap; gap: 6px 8px; }

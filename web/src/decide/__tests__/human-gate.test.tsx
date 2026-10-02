@@ -157,6 +157,45 @@ it("the real app verifies each action and preserves its background requests", as
   expect(await screen.findByText(/18 decisions remaining today/)).toBeVisible();
 }, 30_000);
 
+it("heads the answer panel and keeps the last answer, marked stale, when facets change", async () => {
+  // MODEL-281: the lookup control sits where the answer draws, not above the templates.
+  let remaining = 20;
+  const routed = routeFetch({ vocabulary: () => json(realVocabulary), decide: () => json(fixture) });
+  vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+    if (String(input).endsWith("/v1/human-status")) return Promise.resolve(json({ enabled: true, remaining }));
+    if (String(input).endsWith("/v1/decide") && JSON.parse(String(init?.body)).explain === "summary") remaining -= 1;
+    return routed(input, init);
+  }));
+  const { DesignedApp } = await import("../App");
+  render(<DesignedApp />);
+  const gate = await screen.findByRole("region", { name: "Manual lookups" });
+  const panel = document.getElementById("facet-board-answer")!;
+  expect(panel).toContainElement(gate);
+  expect(within(panel).getByText(/Set your facets, then look up/)).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Look up (20 left)" })).toBeInTheDocument();
+
+  const button = within(gate).getByRole("button", { name: "Look up this decision" });
+  await waitFor(() => expect(button).toBeEnabled());
+  fireEvent.click(button);
+  const answer = await screen.findByLabelText("Facet board answer");
+  await waitFor(() => expect(button).toBeEnabled());
+  await act(async () => { await new Promise((resolve) => setTimeout(resolve, 400)); });
+  const sent = sentSpecs(vi.mocked(fetch)).length;
+  expect(sent).toBeGreaterThan(0);
+
+  fireEvent.click(templateCell(/^Coding · Budget:/));
+  expect(answer).toBeInTheDocument();
+  expect(answer.closest(".board-answer-body")).toHaveAttribute("data-stale");
+  expect(within(gate).getByRole("status")).toHaveTextContent("Facets changed. Look up again (19 left).");
+  expect(screen.getByRole("button", { name: "Look up again (19 left)" })).toBeInTheDocument();
+  await act(async () => { await new Promise((resolve) => setTimeout(resolve, 400)); });
+  expect(sentSpecs(vi.mocked(fetch))).toHaveLength(sent);
+
+  fireEvent.click(button);
+  await waitFor(() => expect(sentSpecs(vi.mocked(fetch)).length).toBeGreaterThan(sent));
+  await waitFor(() => expect(screen.getByLabelText("Facet board answer").closest(".board-answer-body")).not.toHaveAttribute("data-stale"));
+}, 20_000);
+
 it("shows a burst refusal in the page and asks for fresh verification", async () => {
   const routed = routeFetch({ vocabulary: () => json(realVocabulary), decide: () => json({
     error: { code: "human_burst_limit", message: "Three decisions per minute is the manual lookup limit. Wait a minute, then verify again." },
@@ -171,7 +210,7 @@ it("shows a burst refusal in the page and asks for fresh verification", async ()
   await waitFor(() => expect(button).toBeEnabled());
   fireEvent.click(button);
   expect(await screen.findByText(/Three decisions per minute is the manual lookup limit/)).toBeVisible();
-  expect(screen.getByText("Verify again above before your next lookup.")).toBeVisible();
+  expect(screen.getByText("Verify again beside the answer before your next lookup.")).toBeVisible();
   await waitFor(() => expect(window.turnstile?.render).toHaveBeenCalledTimes(2));
   expect(sentSpecs(vi.mocked(fetch))).toHaveLength(1);
 });

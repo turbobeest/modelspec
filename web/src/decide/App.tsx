@@ -95,6 +95,10 @@ export function DesignedApp({
   const [gateStatus, setGateStatus] = useState<boolean | null>(HUMAN_GATE_ENABLED ? null : false);
   const [gateRefresh, setGateRefresh] = useState(0);
   const humanGateEnabled = gateStatus === true;
+  // Under the human gate, a facet change after a lookup keeps that answer on
+  // screen, marked stale, until the next lookup (MODEL-281). `axes` are the
+  // canvas axes it was plotted on. Nothing is requested while it is stale.
+  const [stale, setStale] = useState<{ axes: CanvasAxes | null } | null>(null);
   const action = useRef<DecideOptions>({});
   const pendingSpec = useRef<Spec | null>(null);
   const [initial] = useState(() => decodeSpec(location.hash)),
@@ -186,7 +190,9 @@ export function DesignedApp({
     return realVocab(vocabulary);
   }, [vocabulary]);
   const shownAxis = vocab.axes.includes(axis) ? axis : (vocab.axes[0] ?? axis);
+  const answeredSpec = stale && lastSentSpec ? lastSentSpec : spec;
   const shownSpec = useMemo(() => {
+    const spec = answeredSpec;
     if (!hostedDecision || vocabulary) return spec;
     const availableBenchmarks = [
       ...new Set(
@@ -201,7 +207,7 @@ export function DesignedApp({
       !availableBenchmarks.includes(spec.bench)
       ? { ...spec, bench: availableBenchmarks[0] }
       : spec;
-  }, [hostedDecision, spec, vocabulary]);
+  }, [hostedDecision, answeredSpec, vocabulary]);
   const boardRanked = shownSpec.boardWeights === undefined || boardHasPreference(shownSpec);
   const mapped = useMemo(() => {
     if (!hostedDecision) return { decision: null, error: null };
@@ -227,7 +233,7 @@ export function DesignedApp({
   }, [hostedDecision, shownSpec, shownAxis, dismissed, vocabulary, vocab]);
   const liveDecision = mapped.decision;
   useEffect(() => {
-    if (requestTimer.current) return;
+    if (requestTimer.current || stale) return;
     if (
       !vocabulary ||
       !hostedDecision ||
@@ -277,6 +283,7 @@ export function DesignedApp({
     return () => controller.abort();
   }, [
     humanGateEnabled,
+    stale,
     hostedDecision,
     lastSentSpec,
     shownCanvasAxes,
@@ -327,6 +334,7 @@ export function DesignedApp({
     if (gateStatus === null || (humanGateEnabled && !humanToken)) return;
     const intentOptions = decisionAction(humanToken, onRemaining);
     action.current = intentOptions;
+    setStale(null);
     requestAbort.current?.abort();
     const controller = new AbortController();
     requestAbort.current = controller;
@@ -478,7 +486,9 @@ export function DesignedApp({
 
   function changeSpec(nextSpec: Spec) {
     if (gateStatus === null) pendingSpec.current = nextSpec;
-    if (humanGateEnabled) {
+    if (humanGateEnabled && hostedDecision && requestState.kind !== "loading") {
+      setStale((current) => current ?? { axes: shownCanvasAxes });
+    } else if (humanGateEnabled) {
       requestAbort.current?.abort();
       setHostedDecision(null);
       setLastSentSpec(null);
@@ -624,7 +634,8 @@ export function DesignedApp({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vocabulary, gateStatus]);
   useEffect(() => {
-    if (requestTimer.current) return;
+    // A stale answer keeps its estate result; a new one waits for the next lookup.
+    if (requestTimer.current || stale) return;
     const intentOptions = action.current;
     if (
       !vocabulary ||
@@ -719,7 +730,7 @@ export function DesignedApp({
     };
     // The key, not the summary/full response object, owns this request.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [humanGateEnabled, vocabulary, estateRequest.settledSpecHash, estateRequest.generation, estateRequestKey]);
+  }, [humanGateEnabled, stale, vocabulary, estateRequest.settledSpecHash, estateRequest.generation, estateRequestKey]);
   useEffect(() => {
     if (!vocabulary || !initialRestored) return;
     history.replaceState(
@@ -892,7 +903,6 @@ export function DesignedApp({
       </header>
       <main className="work">
           <BoardIntro />
-          {HUMAN_GATE_ENABLED && <HumanGate key={gateRefresh} onEnabled={setGateStatus} disabled={!vocabulary} onLookup={(token, onRemaining) => runDecision(spec, token, onRemaining)} />}
           {vocabAlert}
           {vocabState.kind === "loading" && (
             <div role="status" aria-busy="true" className="loading">
@@ -921,7 +931,9 @@ export function DesignedApp({
             refinementFallbackKeys={refinementFallbackKeys}
             onCanvasAxes={setCanvasAxes}
             onTemplate={setActiveTemplateId}
-            answer={decision ? <>
+            answer={<>
+              {HUMAN_GATE_ENABLED && <HumanGate key={gateRefresh} onEnabled={setGateStatus} disabled={!vocabulary} stale={!!stale} onLookup={(token, onRemaining) => runDecision(spec, token, onRemaining)} />}
+              {decision ? <div className="board-answer-body" data-stale={stale ? "" : undefined}>
               <Field
                 decision={decision}
                 spec={shownSpec}
@@ -945,7 +957,8 @@ export function DesignedApp({
               {hostedDecision && <section className="answer-feedback" aria-label="Was this answer reliable?">
                 <FeedbackForm key={hostedDecision.decision_id} compact question="Was this answer reliable?" decisionId={hostedDecision.decision_id} template={activeTemplateId} page="/decide/" />
               </section>}
-            </> : <section className="panel board-answer-loading" aria-live="polite">{humanGateEnabled ? "Choose your facets, then verify and look up this decision." : "The live answer will appear here."}</section>}
+              </div> : <section className="panel board-answer-loading" aria-live="polite">{humanGateEnabled ? "Set your facets, then look up: you'll see the field narrow, the models ranked, and what each route costs." : "The live answer will appear here."}</section>}
+            </>}
           />}
           {error ? (
             <div role="alert" className="error">
@@ -971,7 +984,7 @@ export function DesignedApp({
               >
                 Retry
               </button>}
-              {humanGateEnabled && <p>Verify again above before your next lookup.</p>}
+              {humanGateEnabled && <p>Verify again beside the answer before your next lookup.</p>}
             </div>
           ) : loading ? (
             <div role="status" aria-busy="true" className="loading">
@@ -991,12 +1004,12 @@ export function DesignedApp({
           ) : decision ? (
             <>
             <Coverage decision={decision} spec={shownSpec} onSpec={changeSpec} />
-            <div className="results">
+            <div className="results" data-stale={stale ? "" : undefined}>
               {vocabulary && hostedDecision && shownCanvasAxes ? (
                 <FreeAxisCanvas
                   decision={decision}
                   rankingDecision={hostedDecision}
-                  plotDecision={plotDecision}
+                  plotDecision={stale && (stale.axes?.x !== shownCanvasAxes.x || stale.axes?.y !== shownCanvasAxes.y) ? null : plotDecision}
                   vocabulary={vocabulary}
                   axes={shownCanvasAxes}
                   onAxes={(next) => {
