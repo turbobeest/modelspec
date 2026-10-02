@@ -8,6 +8,7 @@ import json
 from datetime import date
 
 import httpx
+from decision.excluded import REMOVED_HOSTS
 import pytest
 import yaml
 
@@ -82,7 +83,7 @@ def test_fact_invariants(catalogue, registry, change, expected):
 
 
 def test_excluded_and_unresolved_sources(catalogue, registry):
-    catalogue.sources["src-lab-docs"]["url"] = "https://docs.zapier.com/models"
+    catalogue.sources["src-lab-docs"]["url"] = f"https://docs.{REMOVED_HOSTS[1]}/models"
     assert "excluded_source" in rules(catalogue, registry)
     catalogue.sources.clear()
     assert {"source_id_resolves", "source_required"} <= rules(catalogue, registry)
@@ -269,8 +270,8 @@ def test_primary_source_fetch_once(catalogue, registry):
 @pytest.mark.parametrize(
     "url",
     [
-        "https://artificialanalysis.ai/test",
-        "https://zapier.com/test",
+        f"https://{REMOVED_HOSTS[0]}/test",
+        f"https://{REMOVED_HOSTS[1]}/test",
         "https://user:password@example.test/docs",
         "https://example.test/?token=secret",
     ],
@@ -347,7 +348,7 @@ def test_redirect_to_excluded_source_never_sent():
 
     def respond(request):
         calls.append(str(request.url))
-        return httpx.Response(302, headers={"location": "https://zapier.com/docs"})
+        return httpx.Response(302, headers={"location": f"https://{REMOVED_HOSTS[1]}/docs"})
 
     with httpx.Client(
         transport=httpx.MockTransport(respond), event_hooks={"request": [sample.guard_request]}
