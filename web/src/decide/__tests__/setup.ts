@@ -1,6 +1,9 @@
 import "@testing-library/jest-dom/vitest";
-import { afterEach } from "vitest";
+import { afterEach, vi } from "vitest";
 import { cleanup } from "@testing-library/react";
+
+// Ordinary UI tests mock automatic decisions. Human-gate tests opt in explicitly.
+vi.stubEnv("VITE_HUMAN_GATE_ENABLED", "false");
 
 afterEach(() => {
   cleanup();

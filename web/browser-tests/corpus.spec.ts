@@ -1,10 +1,11 @@
-import { expect, test, type Page, type Route } from "@playwright/test";
+import { expect, type Page, type Route } from "@playwright/test";
+import { test } from "./human-gate-fixtures";
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // MODEL-203: the built decide page renders every answered corpus spec. The
-// vocabulary and /v1/decide are stubbed with what the engine answers for each
+// Worker gate is disabled; vocabulary and /v1/decide use the engine's answers for each
 // case (`python -m tests.corpus decisions --out DIR`), so a decision the page
 // cannot draw fails here rather than on modelspec.dev.
 const dir = resolve(process.env.MODELSPEC_CORPUS_DIR ?? fileURLToPath(new URL("../src/decide/__corpus__", import.meta.url)));
@@ -42,11 +43,6 @@ async function stub(page: Page, snapshot: string, decision: string) {
   await page.route(/\/(?:api\/decision\/vocabulary\.json|v1\/vocabulary)(?:\?.*)?$/, (route) =>
     route.fulfill({ status: 200, contentType: "application/json", headers: CORS, body: vocabulary }),
   );
-  // A build with the human gate on (vars.HUMAN_GATE_ENABLED) asks the Worker
-  // first; unstubbed, the live Worker refuses this origin and no answer is drawn.
-  await page.route("**/v1/human-status", (route) =>
-    route.fulfill({ status: 200, contentType: "application/json", headers: CORS, body: '{"enabled":false}' }),
-  );
   await page.route("**/v1/decide", (route: Route) =>
     route.request().method() === "OPTIONS"
       ? route.fulfill({ status: 204, headers: CORS })
@@ -73,6 +69,7 @@ for (const row of drawn) {
 
     await expect(page.getByLabel("Facet board answer")).toBeVisible();
     await expect(page.getByText(/invalid_response|Decision unavailable/)).toHaveCount(0);
+    await expect(page.getByRole("region", { name: "Manual lookups" })).toHaveCount(0);
     expect(errors, "uncaught page errors").toEqual([]);
 
     // No blank tables: every table drawn has rows, and every row says something.

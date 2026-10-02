@@ -57,6 +57,32 @@ def test_required_check_job_names_match_branch_protection() -> None:
     assert "    name: Build both sites\n" in deploy_workflow
 
 
+def test_site_build_requires_both_human_gate_browser_variants() -> None:
+    import yaml
+
+    workflow = yaml.safe_load((WORKFLOWS / "deploy-sites.yml").read_text(encoding="utf-8"))
+    jobs = workflow["jobs"]
+    browser = jobs["decide-browser"]
+    assert browser["strategy"]["matrix"]["human_gate"] == ["false", "true"]
+    assert browser["env"]["VITE_HUMAN_GATE_ENABLED"] == "${{ matrix.human_gate }}"
+    assert browser["env"]["VITE_TURNSTILE_SITE_KEY"]
+    assert "playwright test --config=playwright.corpus.config.ts" in yaml.safe_dump(browser)
+    test_step = next(step for step in browser["steps"]
+                     if step.get("name") == "Test the built page with the Worker disabled and enabled")
+    assert test_step["env"]["MODELSPEC_CORPUS_REQUIRED"] == "1"
+    assert "npx vitest run" in test_step["run"]
+    build = jobs["build"]
+    assert build["needs"] == "decide-browser"
+    assert build["if"] == "always()"
+    gate = build["steps"][0]
+    assert gate["env"]["BROWSER_RESULT"] == "${{ needs.decide-browser.result }}"
+    assert gate["run"] == 'test "$BROWSER_RESULT" = success'
+    production = next(step for step in build["steps"] if step.get("name") == "Build the decide app")
+    assert production["env"]["VITE_HUMAN_GATE_ENABLED"] == "${{ vars.HUMAN_GATE_ENABLED || 'false' }}"
+    assert production["env"]["VITE_TURNSTILE_SITE_KEY"] == "${{ vars.TURNSTILE_SITE_KEY }}"
+    assert jobs["deploy"]["needs"] == "build"
+
+
 def test_pytest_aggregator_preserves_the_required_check_contract() -> None:
     import yaml
 
@@ -705,7 +731,11 @@ def test_site_artifact_keeps_hidden_files() -> None:
     sites carry /.well-known/ (api-catalog, mcp.json, agent-skills), so the
     artifact that carries dist/ to the deploy job must include hidden files,
     or those discovery documents 404 in production (MODEL-94)."""
-    workflow = (WORKFLOWS / "deploy-sites.yml").read_text(encoding="utf-8")
-    upload = workflow.split("actions/upload-artifact@", 1)[1].split("- uses:", 1)[0]
-    assert "name: sites" in upload
-    assert "include-hidden-files: true" in upload
+    import yaml
+
+    workflow = yaml.safe_load((WORKFLOWS / "deploy-sites.yml").read_text(encoding="utf-8"))
+    uploads = [step["with"] for step in workflow["jobs"]["build"]["steps"]
+               if step.get("uses", "").startswith("actions/upload-artifact@")]
+    sites = next(upload for upload in uploads if upload["name"] == "sites")
+    assert sites["path"] == "dist"
+    assert sites["include-hidden-files"] is True
