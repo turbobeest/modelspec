@@ -2634,7 +2634,8 @@ body {
   display: inline;
 }
 .loading {
-  grid-template-columns: minmax(0, 1fr) 400px;
+  /* The cards column shrinks: a fixed 400px made the page scroll sideways on phones. */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 400px);
 }
 .loading-canvas {
   height: 560px;
