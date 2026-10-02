@@ -1,9 +1,10 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render } from "@testing-library/react";
 import { afterEach, expect, it, vi } from "vitest";
 import { DesignedApp } from "../App";
 import { DECIDE_ENDPOINT } from "../adapter/hosted";
 import fixture from "../__fixtures__/full-decision.json";
 import { json, realVocabulary, routeFetch, sentSpecs } from "./vocab-fixtures";
+import { templateCell } from "./board-helpers";
 
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
 
@@ -30,7 +31,7 @@ it("sends only displayed variants and shares one intent for load and template ap
   }, {});
   expect(inventory()).toEqual({ summary: 1, full: 2 });
   fetch.mockClear();
-  fireEvent.click(screen.getByRole("button", { name: /^Coding · Budget:/ }));
+  fireEvent.click(templateCell(/^Coding · Budget:/));
   await settle();
   expect(sentSpecs(fetch)).toHaveLength(3);
   expect(inventory()).toEqual({ summary: 1, full: 2 });
@@ -59,7 +60,7 @@ it("keeps snapshot-change retries and a burst of edits within one intent", async
   expect(ids().size).toBe(1);
   expect(new Headers(calls()[1][1].headers).get("X-ModelSpec-Snapshot")).toBe("fresh-snapshot");
   fetch.mockClear();
-  const template = screen.getByRole("button", { name: /^Coding · Budget:/ });
+  const template = templateCell(/^Coding · Budget:/);
   fireEvent.click(template);
   await act(async () => { await vi.advanceTimersByTimeAsync(100); });
   fireEvent.click(template);

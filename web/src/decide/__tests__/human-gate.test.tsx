@@ -4,6 +4,7 @@ import { execFileSync } from "node:child_process";
 import { z } from "zod";
 import fixture from "../__fixtures__/full-decision.json";
 import { json, routeFetch, realVocabulary, sentSpecs } from "./vocab-fixtures";
+import { capabilityRow, templateCell } from "./board-helpers";
 
 beforeEach(() => {
   vi.resetModules();
@@ -143,7 +144,7 @@ it("the real app verifies each action and preserves its background requests", as
   expect([...firstIds][0]).toMatch(/^[A-Za-z0-9_-]{21}[AQgw]$/);
   expect(window.turnstile?.render).toHaveBeenCalled();
   expect(await screen.findByText(/19 decisions remaining today/)).toBeVisible();
-  fireEvent.click(screen.getByRole("button", { name: /^Coding · Budget:/ }));
+  fireEvent.click(templateCell(/^Coding · Budget:/));
   expect(sentSpecs(vi.mocked(fetch))).toHaveLength(3);
   fireEvent.click(button);
   await waitFor(() => expect(sentSpecs(vi.mocked(fetch))).toHaveLength(6), { timeout: 10_000 });
@@ -236,7 +237,8 @@ it("answers edits made while status is pending without flashing gated UI", async
     String(input).endsWith("/v1/human-status") ? status : routed(input, init)));
   const { DesignedApp } = await import("../App");
   render(<DesignedApp />);
-  const capability = (await screen.findByText("Software engineering")).closest<HTMLElement>(".facet-row");
+  await screen.findByRole("button", { name: /^What it's good at/ });
+  const capability = capabilityRow("Software engineering");
   if (!capability) throw new Error("Software engineering facet missing");
   expect(screen.queryByText(/Checking today's allowance/)).not.toBeInTheDocument();
   expect(screen.queryByText(/limited to 20 per day/)).not.toBeInTheDocument();

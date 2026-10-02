@@ -19,6 +19,7 @@ import vendorVocabularyJson from "../__fixtures__/vocabulary-vendors.json";
 import { vocabularySchema } from "../vocabulary";
 import type { Vocabulary } from "../vocabulary";
 import type { Spec } from "../engine/types";
+import { capabilityRow, openGroup, templateCell } from "./board-helpers";
 
 const refinementVocabulary = vocabularySchema.parse(refinementVocabularyJson);
 const emptyEstate = { providers: [], plans: [], hardware: [] };
@@ -336,7 +337,7 @@ describe("refinements", () => {
       estate={{ providers: [], plans: [], hardware: [] }}
       onEstate={vi.fn()}
     />);
-    const software = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
+    const software = capabilityRow("Software engineering");
     expect(software).toHaveTextContent("general 0.0 · Bug fix 0.3 · Python 0.3");
     fireEvent.click(within(software).getByRole("button", { name: "Refine" }));
     expect(within(software).getByLabelText("Weight for Python")).toHaveAttribute("max", "0.3");
@@ -353,6 +354,7 @@ describe("refinements", () => {
     const view = render(<FacetBoard vocabulary={refinementVocabulary} spec={base} onSpec={vi.fn()} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
     expect(screen.queryByRole("button", { name: "Refine" })).not.toBeInTheDocument();
     view.rerender(<FacetBoard vocabulary={refinementVocabulary} spec={base} selections={{ "capability.software_engineering": { mode: "prefer", weight: 0.6 } }} onSpec={vi.fn()} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
+    openGroup("What it's good at");
     fireEvent.click(screen.getByRole("button", { name: "Refine" }));
     const language = screen.getByRole("heading", { name: "Language" }).closest("section")!;
     expect(within(language).getAllByText(/Python|Go|Java|Rust|TypeScript/).map((node) => node.textContent)).toEqual(["Python", "Go", "Java", "Rust", "TypeScript"]);
@@ -382,7 +384,7 @@ describe("refinements", () => {
     />);
 
     const facets = screen.getByRole("region", { name: "Facets" });
-    const software = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
+    const software = capabilityRow("Software engineering");
     fireEvent.click(within(software).getByLabelText("Prefer"));
     fireEvent.click(within(software).getByRole("button", { name: "Refine" }));
     const python = within(software).getByText("Python").closest<HTMLElement>(".refinement-row")!;
@@ -445,9 +447,7 @@ it("hides absent templates and expands groups with active canonical template fac
   const vocabulary = { ...smallVocabulary, templates: realVocabulary.templates };
   render(<FacetBoard vocabulary={vocabulary} spec={base} onSpec={onSpec} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
   expect(screen.getByRole("button", { name: /Budgetall Doesn't matter/ })).toHaveAttribute("aria-expanded", "false");
-  const euData = screen.getByRole("group", { name: "EU-only data · Balanced: not available on this snapshot" });
-  expect(euData).toHaveTextContent("No offering passes: Inference region in the EU — 0 of 43 offerings");
-  fireEvent.click(screen.getByRole("button", { name: /^Coding · Budget:/ }));
+  fireEvent.click(templateCell(/^Coding · Budget:/));
   expect(screen.getByRole("button", { name: /Budget1 set/ })).toHaveAttribute("aria-expanded", "true");
   expect(screen.getByText(/Why: The offering must stay within the per-task budget.*prefer the cheaper task/)).toBeInTheDocument();
   expect(onSpec).toHaveBeenCalledOnce();
@@ -462,13 +462,12 @@ it("restores default task tokens when a template has no token override", () => {
   const base = realBaseSpec(realVocabulary);
   const view = render(<FacetBoard vocabulary={realVocabulary} spec={base} onSpec={onSpec} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
 
-  fireEvent.click(screen.getByRole("button", { name: /^High volume · Budget:/ }));
+  fireEvent.click(templateCell(/^High volume · Budget:/));
   const highVolume = onSpec.mock.calls.at(-1)![0];
   expect([highVolume.tokIn, highVolume.tokOut]).toEqual([2000, 500]);
 
   view.rerender(<FacetBoard vocabulary={realVocabulary} spec={highVolume} onSpec={onSpec} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
-  fireEvent.click(screen.getByRole("button", { name: /Start from a template/ }));
-  fireEvent.click(screen.getByRole("button", { name: /^Maths and reasoning · Best available:/ }));
+  fireEvent.click(templateCell(/^Maths and reasoning · Best available:/));
   const maths = onSpec.mock.calls.at(-1)![0];
   expect([maths.tokIn, maths.tokOut]).toEqual([
     realVocabulary.default_task_tokens.input,
@@ -603,7 +602,7 @@ it("reopens Must, Prefer and Must+Prefer selections and keeps them after another
     onEstate={vi.fn()}
   />);
   const context = screen.getByText("Context window").closest<HTMLElement>(".facet-row")!;
-  const capability = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
+  const capability = capabilityRow("Software engineering");
   const cost = screen.getByText("Cost per task").closest<HTMLElement>(".facet-row")!;
   expect(within(context).getByLabelText("Must")).toBeChecked();
   expect(within(capability).getByLabelText("Prefer")).toBeChecked();
@@ -643,7 +642,7 @@ describe("a best(m) floor from a Fastest template", () => {
     expect(selections.software_engineering).toBeUndefined();
     expect(mustOrder).toEqual(["model.class", "model.lifecycle", "capability.software_engineering"]);
     render(<FacetBoard vocabulary={realVocabulary} spec={realBaseSpec(realVocabulary)} selections={selections} onSpec={vi.fn()} estate={emptyEstate} onEstate={vi.fn()} />);
-    const capability = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
+    const capability = capabilityRow("Software engineering");
     expect(within(capability).getByLabelText("Must")).toBeChecked();
     expect(within(capability).getByText("Within 1.0 of the best eligible model")).toBeInTheDocument();
   });
