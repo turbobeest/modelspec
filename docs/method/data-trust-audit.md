@@ -85,7 +85,7 @@ board projections are rebuilt from fresh bytes. Raw HTML uses the HTML
 normaliser even when the retained source was a text projection. No Firecrawl
 or LLM runs. Arena's existing reader needs the optional `pyarrow` dependency.
 
-Artificial Analysis and Zapier are excluded, including redirect destinations.
+Sources removed by policy (`decision/excluded.py`) are excluded, including redirect destinations.
 URLs containing credentials or secret query parameters are refused. Ordinary
 queries and fragments are valid source URLs. Fetch failures and unreadable
 regions or values are `unreadable` with reasons, never evidence of mismatch.
