@@ -506,6 +506,11 @@ def api_catalog() -> dict[str, Any]:
     }
 
 
+def _agent_copy() -> dict[str, Any]:
+    from pipeline import agent_copy
+    return json.loads(agent_copy.OUT.read_text(encoding="utf-8"))
+
+
 def mcp_card() -> dict[str, Any]:
     """SEP-2127 / Agent Readiness card at /.well-known/mcp.json.
 
@@ -528,22 +533,8 @@ def mcp_card() -> dict[str, Any]:
             "source": "github",
         },
         "remotes": [{"type": "streamable-http", "url": MCP_ENDPOINT}],
-        "tools": [
-            {"name": "decide",
-             "description": "POST /v1/decide. Downselect from a decision spec."},
-            {"name": "rank",
-             "description": "POST /v1/rank (legacy v1). Fixed-benchmark shortlist."},
-            {"name": "model_info",
-             "description": "GET a model card as JSON from the public export."},
-            {"name": "list_use_cases",
-             "description": "GET /api/rank/profiles.json ranking profiles."},
-            {"name": "policy_check",
-             "description": "POST /v1/policy-check. pass/fail/undetermined."},
-            {"name": "vocab",
-             "description": "GET the decision vocabulary for valid spec values."},
-            {"name": "feedback",
-             "description": "POST /v1/feedback. Rate an answer: reliable ... confusing."},
-        ],
+        # MODEL-257: the same generated copy the MCP server serves.
+        "tools": [{"name": name, "description": _agent_copy()["card"][name]} for name in MCP_TOOLS],
     }
 
 

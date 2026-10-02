@@ -3102,8 +3102,27 @@ def _health_samples() -> list[dict[str, Any]]:
     return samples
 
 
+#: MODEL-257: the operations an agent pays for or acts on take their summary and a
+#: lead paragraph from pipeline/agent_copy.py (via the generated agent-copy.json,
+#: the same text the MCP server serves). The operation's own technical description
+#: follows the lead.
+AGENT_COPY = REPO_ROOT / "mcp" / "src" / "agent-copy.json"
+AGENT_OPERATIONS = {"/v1/decide": "decide", "/v1/rank": "rank",
+                    "/v1/policy-check": "policyCheck", "/v1/feedback": "feedback"}
+
+
+def apply_agent_copy(spec: dict[str, Any]) -> dict[str, Any]:
+    copy = json.loads(AGENT_COPY.read_text(encoding="utf-8"))["openapi"]
+    for path, key in AGENT_OPERATIONS.items():
+        operation = spec["paths"][path]["post"]
+        operation["summary"] = copy[key]["summary"]
+        own = operation.get("description")
+        operation["description"] = copy[key]["lead"] + (f"\n\n{own}" if own else "")
+    return spec
+
+
 def render() -> str:
-    spec = build_spec()
+    spec = apply_agent_copy(build_spec())
     from pipeline.public_data import enabled
     if enabled():
         spec["paths"]["/v1/vocabulary"] = {
