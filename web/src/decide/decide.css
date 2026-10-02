@@ -585,7 +585,7 @@ body {
 }
 .templates {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 260px), 1fr));
   gap: 12px;
   margin-top: 12px;
 }
@@ -900,7 +900,7 @@ body {
   .facet-state label { font-size: 10.5px; }
   .answer-pair { grid-template-columns: 1fr; }
   .answer-lists { grid-template-columns: 1fr; }
-  .board-ranked-answer > ol > li { grid-template-columns: minmax(0, 1fr) 104px; }
+  .board-ranked-answer > ol > li, .board-ranked-answer > ol > li.without-capability { grid-template-columns: minmax(0, 1fr) 104px; }
   .board-ranked-columns { grid-template-columns: minmax(0, 1fr) 104px; }
   .board-may-qualify li { grid-template-columns: minmax(0, 1fr) 104px; }
   .board-ranked-columns small { grid-column: 1 / -1; }
@@ -1757,7 +1757,7 @@ body {
 }
 .why-columns {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
   gap: 24px;
   margin-top: 14px;
 }
@@ -2678,7 +2678,7 @@ body {
 }
 .coverage-columns {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 280px), 1fr));
   gap: 8px 28px;
   margin-top: 6px;
 }
