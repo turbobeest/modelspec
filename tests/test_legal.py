@@ -799,7 +799,7 @@ def test_the_decide_contract_refuses_its_free_text_task() -> None:
 IN_FORCE = {
     "terms": "Version `1.2`, effective 2026-09-30.",
     "neutrality": "Version `1.3`, effective 2026-09-30.",
-    "privacy": "Version `1.6`, effective 2026-10-02.",
+    "privacy": "Version `1.7`, effective 2026-10-02.",
 }
 
 
@@ -948,21 +948,42 @@ def test_the_access_model_wording_is_in_the_terms_neutrality_and_licence() -> No
     assert "delayed public image" in licence
 
 
-def test_the_privacy_statement_describes_the_keyed_visitor_id_and_the_gate_as_not_enabled() -> None:
-    """MODEL-249b: the visitor id is keyed and daily, and Turnstile is disclosed as off."""
+def test_the_privacy_statement_describes_the_keyed_visitor_id_and_the_gate_flag() -> None:
+    """The production gate flag and its current privacy disclosure must agree."""
+    import re
+
+    from pipeline.worker_flags import OFF_VALUES, production_vars
+
     assert "HMAC-SHA256(VISITOR_HMAC_KEY, IP | UTC day)" in FLAT_PRIVACY
     body = FLAT_PRIVACY.split("## Changes")[0]  # the Changes list keeps 1.3 as history
     assert "unsalted hash of an IP address" not in body
     assert "is replaced before x402" not in body
     assert "Cloudflare Turnstile" in FLAT_PRIVACY
-    assert "not yet enabled" in FLAT_PRIVACY
+    current = PRIVACY.split("## Changes", 1)[0]
+    live, not_live = current.split("## Not yet live", 1)
+    on = str(production_vars(REPO_ROOT).get("HUMAN_GATE_ENABLED", "false")).strip().lower() not in OFF_VALUES
+    if on:
+        assert "### The human gate on the decide page" in live, (
+            "the production human gate is on but its disclosure is not live")
+        assert "The human gate on the decide page" not in not_live
+        assert "not yet enabled" not in flat(current), (
+            "the production human gate is on but the statement still says it is off")
+    else:
+        gate = current.split("The human gate on the decide page", 1)[1]
+        gate = re.split(r"\n(?:#{2,3} |\- \*\*)", gate, maxsplit=1)[0]
+        assert "not yet enabled" in flat(gate), (
+            "the production human gate is off but the statement does not say so")
+    # Deploy-time vars must not bypass the production configuration check.
+    for workflow in (REPO_ROOT / ".github" / "workflows").glob("*.y*ml"):
+        assert not re.search(r"--var(?:=|\s+)HUMAN_GATE_ENABLED\b",
+                             workflow.read_text(encoding="utf-8")), workflow.name
     assert "`HUMAN_GATE_ENABLED`" in FLAT_PRIVACY
     assert "omit the optional `remoteip` parameter" in FLAT_PRIVACY
 
 
 def test_the_privacy_statement_discloses_the_human_gate_question_storage() -> None:
     """MODEL-270: question fingerprints and vocabulary share daily retention."""
-    gate = FLAT_PRIVACY.split("**The human gate", 1)[1].split("**Outcome logging", 1)[0]
+    gate = flat(PRIVACY.split("### The human gate on the decide page", 1)[1].split("\n## ", 1)[0])
     for claim in (
         "random 128-bit intent id per action", "`x-modelspec-intent`",
         "do not link them across days", "first-request time, request count",
