@@ -56,7 +56,7 @@ import re
 import time
 from dataclasses import replace
 from datetime import UTC, datetime
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
 
 # Load the private bundle before request schemas.
 try:
@@ -634,6 +634,22 @@ class Default(WorkerEntrypoint):
                     return _json_response(service.HTTP_BAD_GATEWAY, {"error": {
                         "code": "export_unavailable", "message": "bundled vocabulary is missing",
                     }}, cors)
+                query = parse_qs(urlparse(str(request.url)).query, keep_blank_values=True)
+                if any(key in query for key in ("section", "search", "id", "ids", "detail", "offset", "limit")):
+                    import display_vocabulary
+                    try:
+                        selected = display_vocabulary.lookup(
+                            json.loads(raw), section=query.get("section", ["starter"])[0],
+                            search=query.get("search", [""])[0],
+                            ids=[*query.get("id", []), *(item for value in query.get("ids", []) for item in value.split(","))],
+                            detail=query.get("detail", ["compact"])[0],
+                            offset=int(query.get("offset", ["0"])[0]),
+                            limit=int(query.get("limit", ["20"])[0]),
+                        )
+                    except ValueError as exc:
+                        return _json_response(400, {"error": {"code": "invalid_request", "message": str(exc)}}, cors)
+                    raw = json.dumps({"facets": [], "domains": [], "templates": [], "models": {}, "estate": {},
+                                      **selected}, ensure_ascii=False).encode("utf-8")
                 return Response("" if method == "HEAD" else raw.decode("utf-8"), status=200,
                                 headers={**cors, "content-type": "application/json; charset=utf-8",
                                          "cache-control": "private, max-age=3600", "vary": "Origin"})

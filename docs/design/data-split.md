@@ -487,6 +487,28 @@ currently fetches the full trimmed vocabulary on each call and selects one
 model display row. This is acceptable for now; it does not fetch a bulk model
 card or bypass the vocabulary cap.
 
+MODEL-280 keeps the no-query HTTP response byte-identical for the decide page.
+MCP `vocab` explicitly opts into a compact lookup and defaults to `starter`.
+The lookup accepts `section`, `search`, `id`, `ids`, `detail`, `offset` and
+`limit` on HTTP and MCP. Search matches IDs and labels or display names by
+case-insensitive substring. Compact pages hold at most 20 rows; `offset` skips
+matching rows and an empty page ends the list. IDs select exact rows and return
+their full display details; `detail=full` returns every row in the section.
+IDs are combined by union and intersected with search. Full detail and IDs
+bypass pagination. MCP also compacts full responses from an older Worker
+during an independent rollout. Unknown IDs and searches with no match return an empty
+section. Invalid sections, detail flags or pagination bounds return 400.
+
+Starter ranks registered facets by the number of template specs that use each
+facet, counting once per spec and breaking ties by ID. The 40 templates use
+11 facets today, so all 11 appear; the maximum is 15. Compact facets publish
+`id`, `label`, the definition's first sentence, `value_type` and finite
+`allowed_values`, plus special `literals` where present. Models and providers
+publish IDs and display names only. Other row sections publish IDs and names;
+compact coverage is empty and compact estate contains provider/device IDs.
+Full display details remain inside the MODEL-247 trim. No lookup adds counts,
+numeric facet ranges, sparse benchmark ranges or per-model facts.
+
 Only Worker jobs read private inputs. Public PR checks remain credential-free.
 Missing private credentials, input or signing keys fail before deployment.
 `vendor.py export_data` checks every bundled policy row for the MODEL-80

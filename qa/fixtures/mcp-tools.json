@@ -1,9 +1,10 @@
 {
   "source_hashes": {
-    "mcp/src/server.ts": "7acbe29f1eb4863a08998d7bbaf34b1ebd18c0f57f31d5196fc125d6a5bc7ffa",
+    "mcp/src/server.ts": "f25156ebc74c28f9766b06f293ca1a40ddef984e868855bb5a640305f2246c2f",
+    "mcp/src/vocabulary.ts": "9ceaa1d4d7d6a4cd1b5f472c47f711133672189d5deecb3e81d85dd34292c437",
     "docs/decision-contract.schema.json": "b60400ec66fc776d0c92135bebdd0903abeb3ca67c2331774f6709e26f099013",
     "api/worker/openapi.yaml": "dcd2101291c3fc428a8aa88fd25c3edb707b3854271e047a1b501ce6eef44014",
-    "mcp/src/agent-copy.json": "3525bd352b112cf85a876b6913c570a904d8f5cc342f977feda0e3c564510944"
+    "mcp/src/agent-copy.json": "0962d3cf4cdbea4992c45cf431af250c2c31bf62470ccd9ae320d7aa2d3e14ec"
   },
   "tools": [
     {
@@ -287,7 +288,7 @@
     },
     {
       "name": "decide",
-      "description": "Which models fit this job? ModelSpec is an analysis of alternatives for AI models: it decides which models fit a job from your requirements, sourced benchmarks and real cost, and shows its work. Returns the answer (one model, or a declared tie that names the cheapest, open-weights and best-measured members), ranked results with cost per task and uncertainty, the models screened out with the reason for each, may_qualify for missing facts, and a decision_id and snapshot so the same spec gives the same answer later. Needs an API key (Authorization: Bearer). Costs 1 or 2 credits a call; a credit costs $0.0017–$0.004 depending on the plan or pack (https://modelspec.dev/pricing/). Not a router: call it once per job or role, not per request, then route among the models it recommends. Proxies POST https://api.modelspec.dev/v1/decide. Read vocab first for valid facet ids. Put Musts in where: these gates exclude. Put Prefers in optimize.weights: weights rank and never exclude. Unknown values go to may_qualify instead of being dropped. Pin snapshot for reproducibility. Example for a coding agent on a budget: {\"spec_version\":1,\"snapshot\":\"latest\",\"capabilities\":{\"software_engineering\":\"required\"},\"where\":[\"model.class = text-generator\",\"model.context_window >= 200000\",\"offering.cost_per_task <= 0.25\"],\"optimize\":{\"weights\":{\"software_engineering\":0.6,\"-offering.cost_per_task\":0.4}}}. Use explain: \"summary\" (the default): 1 credit, and it carries the answer, results, by_model and may_qualify. explain: \"full\" (2 credits) also lists every eliminated candidate and returns about 670 KB, so ask for it only to see why one model was excluded. The decision response is returned unchanged with a short summary. Authorization from the MCP client is forwarded. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
+      "description": "Which models fit this job? ModelSpec is an analysis of alternatives for AI models: it decides which models fit a job from your requirements, sourced benchmarks and real cost, and shows its work. Returns the answer (one model, or a declared tie that names the cheapest, open-weights and best-measured members), ranked results with cost per task and uncertainty, the models screened out with the reason for each, may_qualify for missing facts, and a decision_id and snapshot so the same spec gives the same answer later. Needs an API key (Authorization: Bearer). Costs 1 or 2 credits a call; a credit costs $0.0017–$0.004 depending on the plan or pack (https://modelspec.dev/pricing/). Not a router: call it once per job or role, not per request, then route among the models it recommends. Proxies POST https://api.modelspec.dev/v1/decide. Read vocab first with section=starter for valid facet ids. Put Musts in where: these gates exclude. Put Prefers in optimize.weights: weights rank and never exclude. Unknown values go to may_qualify instead of being dropped. Pin snapshot for reproducibility. Example for a coding agent on a budget: {\"spec_version\":1,\"snapshot\":\"latest\",\"capabilities\":{\"software_engineering\":\"required\"},\"where\":[\"model.class = text-generator\",\"model.context_window >= 200000\",\"offering.cost_per_task <= 0.25\"],\"optimize\":{\"weights\":{\"software_engineering\":0.6,\"-offering.cost_per_task\":0.4}}}. Use explain: \"summary\" (the default): 1 credit, and it carries the answer, results, by_model and may_qualify. explain: \"full\" (2 credits) also lists every eliminated candidate and returns about 670 KB, so ask for it only to see why one model was excluded. The decision response is returned unchanged with a short summary. Authorization from the MCP client is forwarded. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "$defs": {
@@ -1725,21 +1726,63 @@
     },
     {
       "name": "vocab",
-      "description": "What can a decide spec say? Returns the decision vocabulary: valid facet ids, benchmarks, domains, providers and task types. In split mode it contains definitions and names only, with no prices, allowances, score ranges or counts. Free, no key. Call it before writing a spec, not to compare models. Pass section to return only one section. Read vocab first for valid facet ids. Put Musts in where: these gates exclude. Put Prefers in optimize.weights: weights rank and never exclude. Unknown values go to may_qualify instead of being dropped. Pin snapshot for reproducibility. Example for a coding agent on a budget: {\"spec_version\":1,\"snapshot\":\"latest\",\"capabilities\":{\"software_engineering\":\"required\"},\"where\":[\"model.class = text-generator\",\"model.context_window >= 200000\",\"offering.cost_per_task <= 0.25\"],\"optimize\":{\"weights\":{\"software_engineering\":0.6,\"-offering.cost_per_task\":0.4}}}. ",
+      "description": "What can a decide spec say? Returns the decision vocabulary: valid facet ids, benchmarks, domains, providers and task types. Compact by default, with 20 rows per page and no counts. In split mode full details still exclude per-model facts and counts. Free, no key. Call it before writing a spec, not to compare models. Call vocab section=starter first for the facets used most by the 40 template specs. Use search for a case-insensitive substring of id or label, then call decide. Pass id or ids for full details of specific rows, or detail=full for all display details. Use offset and limit to page compact sections; an empty page ends the list. Read vocab first with section=starter for valid facet ids. Put Musts in where: these gates exclude. Put Prefers in optimize.weights: weights rank and never exclude. Unknown values go to may_qualify instead of being dropped. Pin snapshot for reproducibility. Example for a coding agent on a budget: {\"spec_version\":1,\"snapshot\":\"latest\",\"capabilities\":{\"software_engineering\":\"required\"},\"where\":[\"model.class = text-generator\",\"model.context_window >= 200000\",\"offering.cost_per_task <= 0.25\"],\"optimize\":{\"weights\":{\"software_engineering\":0.6,\"-offering.cost_per_task\":0.4}}}. ",
       "input_schema": {
         "type": "object",
         "properties": {
           "section": {
             "type": "string",
             "enum": [
+              "starter",
               "facets",
               "benchmarks",
               "domains",
               "providers",
+              "models",
               "task_types",
-              "coverage"
+              "coverage",
+              "templates",
+              "refinements",
+              "estate",
+              "vendors",
+              "template_categories",
+              "template_tiers"
             ],
-            "description": "Return only this vocabulary section"
+            "description": "Return only this vocabulary section; defaults to starter"
+          },
+          "search": {
+            "type": "string",
+            "description": "Case-insensitive substring over id and label or display name"
+          },
+          "id": {
+            "type": "string",
+            "description": "Return full details for this exact id"
+          },
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Return full details for these exact ids"
+          },
+          "detail": {
+            "type": "string",
+            "enum": [
+              "compact",
+              "full"
+            ],
+            "description": "Full returns all display details; defaults to compact"
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Skip this many matching rows; defaults to 0"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20,
+            "description": "Compact page size; defaults to 20"
           }
         }
       }

@@ -522,7 +522,11 @@ def build_vocabulary(snapshot: Any, *, pages: Mapping[str, Mapping[str, Any]] | 
         if facet.parameter is not None:
             continue
         unit = registry.unit(facet.unit).definition if facet.unit else None
-        facets.append(_facet_row(facet, view, by_kind[facet.subject], unit))
+        row = _facet_row(facet, view, by_kind[facet.subject], unit)
+        allowed = registry.allowed_values(facet)
+        if allowed is not None or facet.value_type.kind == "boolean":
+            row["allowed_values"] = [True, False] if facet.value_type.kind == "boolean" else sorted(allowed)
+        facets.append(row)
     benchmarks = _benchmark_rows(view, lineup, pages or {})
     covered = {row["id"]: row for row in benchmarks}
     domains = []

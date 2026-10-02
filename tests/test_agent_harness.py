@@ -929,3 +929,16 @@ def test_ambiguous_4xx_usage_keeps_the_reservation(status, usage, monkeypatch):
         with pytest.raises(ProviderError):
             agent.step()
     assert budget.spent_usd > 0 and not budget.calls[-1]["usage_known"]
+
+
+def test_live_vocabulary_compacts_a_legacy_worker_during_rollout(config, definitions):
+    source = {
+        "vocabulary_version": 1,
+        "facets": [{"id": "model.context_window", "label": "Context", "definition": "Token window. More details.", "value_type": "number", "has_data": True}],
+        "templates": [{"spec": {"where": ["model.context_window >= 32000"]}}],
+    }
+    with httpx.Client(transport=httpx.MockTransport(lambda _: httpx.Response(200, json=source))) as client:
+        shim = LiveTools(config, definitions, None, client)
+        observed = shim.execute("vocab", {})
+        envelope = json.loads(observed["result"]["content"][0]["text"])
+        assert envelope["body"] == [{"id": "model.context_window", "label": "Context", "definition": "Token window.", "value_type": "number"}]

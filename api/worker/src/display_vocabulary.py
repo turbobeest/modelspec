@@ -1,6 +1,15 @@
 """Names and definitions for drawing /decide, without catalogue statistics."""
 from __future__ import annotations
 
+import json
+import re
+from collections import Counter
+
+SECTIONS = ("starter", "facets", "benchmarks", "domains", "providers", "models",
+            "task_types", "coverage", "templates", "refinements", "estate", "vendors",
+            "template_categories", "template_tiers")
+PAGE_SIZE = 20
+
 FACET_FIELDS = ("id", "label", "definition", "subject", "value_type", "unit", "unit_definition",
                 "operators", "objective", "preference", "risk", "computed_by", "literals")
 BENCHMARK_FIELDS = ("id", "name", "unit", "higher_is_better", "domains")
@@ -39,3 +48,72 @@ def trim(vocabulary, *, model_ids, facet_values):
                         "plans": [pick(row, ("id", "provider", "name")) for row in estate.get("plans", [])]}
     result["templates"] = [pick(row, TEMPLATE_FIELDS) for row in vocabulary.get("templates", [])]
     return result
+
+
+MAX_IDS = 100
+
+
+def starter_ids(vocabulary):
+    """Count each registered facet once per template spec; break ties by ID."""
+    counts = Counter()
+    for template in vocabulary.get("templates", []):
+        spec = json.dumps(template.get("spec") or {})
+        counts.update(row["id"] for row in vocabulary.get("facets", [])
+                      if re.search(r"(?<![\w.])" + re.escape(row["id"]) + r"(?![\w.])", spec))
+    return sorted(counts, key=lambda fid: (-counts[fid], fid))[:15]
+
+
+def lookup(vocabulary, *, section="starter", search="", ids=(), detail="compact",
+           offset=0, limit=PAGE_SIZE):
+    """An opt-in lookup. Full detail stays inside the existing display boundary."""
+    if section not in SECTIONS:
+        raise ValueError("unknown vocabulary section")
+    if detail not in {"compact", "full"}:
+        raise ValueError("detail must be compact or full")
+    if offset < 0 or not 1 <= limit <= PAGE_SIZE:
+        raise ValueError("offset must be nonnegative; limit must be between 1 and 20")
+    ids = set(ids)
+    if len(ids) > MAX_IDS:
+        raise ValueError(f"at most {MAX_IDS} ids per lookup")
+    source = vocabulary.get(section, {} if section in {"models", "providers", "vendors", "coverage", "estate"} else [])
+    if section == "coverage" and detail == "compact" and not ids:
+        return {section: {}}
+    if section == "estate" and detail == "compact" and not ids:
+        source = {key: vocabulary.get("estate", {}).get(key, []) for key in ("providers", "devices")}
+    if section == "starter":
+        by_id = {row["id"]: row for row in vocabulary.get("facets", [])}
+        source = [by_id[fid] for fid in starter_ids(vocabulary)]
+    mapping = isinstance(source, dict)
+    if mapping:
+        rows = [(key, value) for key, value in source.items()]
+    else:
+        rows = [(row.get("id", "") if isinstance(row, dict) else row, row) for row in source]
+
+    def matches(key, row):
+        label = row.get("label", row.get("name", row.get("display_name", ""))) if isinstance(row, dict) else row
+        return (not ids or key in ids) and (not search or search.lower() in str(key).lower()
+                                           or search.lower() in str(label if label is not None else "").lower())
+
+    rows = [(key, row) for key, row in rows if matches(key, row)]
+    full = detail == "full" or bool(ids)
+    if not full:
+        rows = rows[offset:offset + limit]
+
+    def compact(row):
+        if section in {"facets", "starter"}:
+            result = pick(row, ("id", "label", "definition", "value_type", "literals"))
+            if isinstance(result.get("definition"), str):
+                result["definition"] = re.split(r"\.\s", " ".join(result["definition"].split()))[0].rstrip(".") + "."
+            if "allowed_values" in row:
+                result["allowed_values"] = row["allowed_values"]
+            elif "values" in row:
+                result["allowed_values"] = [value["value"] for value in row["values"]]
+            return result
+        if section == "models":
+            return pick(row, ("display_name",))
+        if isinstance(row, dict):
+            return pick(row, ("id", "name", "label"))
+        return row
+
+    selected = [(key, row if full else compact(row)) for key, row in rows]
+    return {section: dict(selected) if mapping else [row for _, row in selected]}

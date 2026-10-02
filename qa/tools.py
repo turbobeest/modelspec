@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import re
 from time import perf_counter
-from urllib.parse import urlparse
+from urllib.parse import urlencode, urlparse
 
 import httpx
 from jsonschema import Draft202012Validator
@@ -204,6 +204,10 @@ class LiveTools:
             url = (
                 self.api if self.vocabulary_path == "/v1/vocabulary" else self.export
             ) + self.vocabulary_path
+        if name == "vocab" and self.vocabulary_path == "/v1/vocabulary":
+            query = {"section": arguments.get("section", "starter"), "detail": arguments.get("detail", "compact")}
+            query.update({key: value for key, value in arguments.items() if key != "section"})
+            url += "?" + urlencode(query, doseq=True)
         try:
             response = self.client.request(method, url, json=body, headers=headers)
             try:
@@ -225,7 +229,7 @@ class LiveTools:
         body = envelope["body"]
         if envelope["status"] < 400 and isinstance(body, dict):
             if name == "vocab":
-                self.valid_ids = set()
+                self.valid_ids = self.valid_ids or set()
                 for section in ("facets", "benchmarks", "domains", "refinements"):
                     rows = body.get(section)
                     if isinstance(rows, list):
@@ -234,8 +238,18 @@ class LiveTools:
                                 for key in ("id", "weight_key"):
                                     if isinstance(row.get(key), str):
                                         self.valid_ids.add(row[key])
-                if arguments.get("section"):
-                    envelope = envelope | {"body": body.get(arguments["section"])}
+                if self.vocabulary_path == "/v1/vocabulary" and "vocabulary_version" not in body:
+                    selected = body.get(arguments.get("section", "starter"))
+                else:
+                    from api.worker.src.display_vocabulary import lookup
+                    selected = lookup(body, section=arguments.get("section", "starter"),
+                                      search=arguments.get("search", ""),
+                                      ids=[*arguments.get("ids", []), *([arguments["id"]] if "id" in arguments else [])],
+                                      detail=arguments.get("detail", "compact"),
+                                      offset=arguments.get("offset", 0), limit=arguments.get("limit", 20))[arguments.get("section", "starter")]
+                if arguments.get("section", "starter") in {"starter", "facets", "benchmarks", "domains", "refinements"} and isinstance(selected, list):
+                    self.valid_ids.update(row["id"] for row in selected if isinstance(row, dict) and isinstance(row.get("id"), str))
+                envelope = envelope | {"body": selected}
             elif name == "model_info" and self.split and isinstance(body.get("models"), dict):
                 envelope = envelope | {"body": body.get("models", {}).get(arguments["model_id"])}
         validation = []

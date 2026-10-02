@@ -5,6 +5,8 @@ import agentCopy from "./agent-copy.json";
 import { createMcpHandler } from "agents/mcp/server";
 import { z } from "zod";
 
+import { lookupVocabulary, vocabInput } from "./vocabulary";
+
 import decisionContract from "../../docs/decision-contract.schema.json";
 import {
   asToolResult,
@@ -154,19 +156,6 @@ const decisionSpecInput = {
   },
 };
 
-const vocabInput = z.object({
-  section: z
-    .enum([
-      "facets",
-      "benchmarks",
-      "domains",
-      "providers",
-      "task_types",
-      "coverage",
-    ])
-    .optional()
-    .describe("Return only this vocabulary section"),
-});
 
 
 type DecisionBody = {
@@ -219,11 +208,11 @@ function postInit(
 
 export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) {
   const authorization = incomingAuthorization(mcpCtx.requestInfo);
-  async function fetchDisplayVocabulary() {
+  async function fetchDisplayVocabulary(query = "") {
     const headers = new Headers();
     const address = incomingClientAddress(mcpCtx.requestInfo);
     if (address) headers.set("CF-Connecting-IP", address);
-    const origin = `${env.RANK_API_ORIGIN.replace(/\/$/, "")}/v1/vocabulary`;
+    const origin = `${env.RANK_API_ORIGIN.replace(/\/$/, "")}/v1/vocabulary${query}`;
     return fetchOrigin(origin, { headers }, env.RANK);
   }
   async function fetchDecision(origin: string, body: unknown) {
@@ -346,14 +335,23 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
       description: agentCopy.tools.vocab,
       inputSchema: vocabInput,
     },
-    async ({ section }) => {
+    async (args) => {
+      const section = args.section ?? "starter";
       const split = env.DATA_SPLIT_ENABLED === "true";
-      const origin = split
-        ? `${env.RANK_API_ORIGIN.replace(/\/$/, "")}/v1/vocabulary`
-        : `${env.EXPORT_ORIGIN.replace(/\/$/, "")}/api/decision/vocabulary.json`;
-      const envelope = split ? await fetchDisplayVocabulary() : await fetchOrigin(origin);
-      if (envelope.status < 400 && section && isRecord(envelope.body)) {
-        envelope.body = envelope.body[section];
+      const query = new URLSearchParams({ section, detail: args.detail ?? "compact" });
+      if (args.search !== undefined) query.set("search", args.search);
+      if (args.id !== undefined) query.append("id", args.id);
+      for (const id of args.ids ?? []) query.append("ids", id);
+      if (args.offset !== undefined) query.set("offset", String(args.offset));
+      if (args.limit !== undefined) query.set("limit", String(args.limit));
+      const origin = `${env.EXPORT_ORIGIN.replace(/\/$/, "")}/api/decision/vocabulary.json`;
+      const envelope = split ? await fetchDisplayVocabulary(`?${query}`) : await fetchOrigin(origin);
+      if (envelope.status < 400 && isRecord(envelope.body)) {
+        // Older Workers ignore lookup parameters and return the full vocabulary.
+        // Keep agent responses compact while the two Workers roll out independently.
+        envelope.body = split && !("vocabulary_version" in envelope.body)
+          ? envelope.body[section]
+          : lookupVocabulary(envelope.body, args);
       }
       return asToolResult(envelope);
     },
