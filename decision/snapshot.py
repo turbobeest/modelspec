@@ -204,20 +204,25 @@ def refinement_fallback_value(base: Any, prior_sd: float) -> RefinementEstimateV
     )
 
 
-def _drivers(raw: Mapping[str, Mapping[str, Any]] | None,
-             ) -> dict[tuple[str, str], tuple[CapabilityDriverValue, ...]]:
-    return {
-        (model_id, key): tuple(
+class _Drivers(dict[tuple[str, str], tuple[CapabilityDriverValue, ...]]):
+    """Materialise provenance only for a model/dimension being explained."""
+
+    def __init__(self, raw: Mapping[str, Mapping[str, Any]] | None):
+        super().__init__()
+        self._raw = raw or {}
+
+    def __missing__(self, pair):
+        model_id, key = pair
+        value = tuple(
             CapabilityDriverValue(
                 record_id=row[0], benchmark_id=row[1], version=row[2],
                 loading=float(row[3]), weight=float(row[4]),
                 recency_weight=float(row[5]),
             )
-            for row in rows
+            for row in self._raw.get(model_id, {}).get(key, ())
         )
-        for model_id, keyed in (raw or {}).items()
-        for key, rows in keyed.items()
-    }
+        self[pair] = value
+        return value
 
 
 @dataclass(frozen=True)
@@ -1688,7 +1693,7 @@ class LoadedSnapshot:
             for model_id, domains in (capability.get("estimates") or {}).items()
             for domain_id, row in domains.items()
         }
-        self._capability_drivers = _drivers(capability.get("drivers"))
+        self._capability_drivers = _Drivers(capability.get("drivers"))
         # Refinements (MODEL-190): stored estimates exist only where a model
         # has refinement evidence; everyone else falls back at read time.
         self._refinements: Mapping[str, Mapping[str, Any]] = content.get("refinements") or {}
@@ -1701,7 +1706,7 @@ class LoadedSnapshot:
             for model_id, keys in (capability.get("refinement_estimates") or {}).items()
             for key, row in keys.items()
         }
-        self._refinement_drivers = _drivers(capability.get("refinement_drivers"))
+        self._refinement_drivers = _Drivers(capability.get("refinement_drivers"))
         self._fitted_models = frozenset(model for model, _ in self._capability_estimates)
         self.capability_method = capability.get("method")
         self.capability_items = capability.get("items") or {}
@@ -1893,7 +1898,7 @@ class LoadedSnapshot:
     ) -> Sequence[CapabilityDriverValue]:
         self._check(cid)
         model_id = self._meta[cid]["model"]
-        return self._capability_drivers.get((model_id, domain_id), ())
+        return self._capability_drivers[model_id, domain_id]
 
     def refinement_keys(self) -> tuple[str, ...]:
         """Every registered refinement's weight key, when the snapshot carries them."""
@@ -1931,7 +1936,7 @@ class LoadedSnapshot:
 
     def refinement_drivers(self, cid: str, key: str) -> Sequence[CapabilityDriverValue]:
         self._check(cid)
-        return self._refinement_drivers.get((self.model_of(cid), key), ())
+        return self._refinement_drivers[self.model_of(cid), key]
 
     def evidence_record(self, cid: str, record_id: str) -> EvidenceValue | None:
         """Return retained model evidence by record ID in constant time."""

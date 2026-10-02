@@ -1,0 +1,42 @@
+name: API latency probe
+
+on:
+  workflow_dispatch:
+    inputs:
+      count:
+        description: Calls per generic request shape
+        default: '30'
+        required: true
+      encoding:
+        description: Response encoding to negotiate
+        type: choice
+        options: ['br, gzip', gzip, identity]
+        default: 'br, gzip'
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: python -m pip install 'brotli==1.2.0'
+      - name: Measure generic API requests
+        env:
+          MODELSPEC_API_KEY: ${{ secrets.MODELSPEC_API_KEY }}
+          PROBE_COUNT: ${{ inputs.count }}
+          PROBE_ENCODING: ${{ inputs.encoding }}
+        run: |
+          python qa/latency_probe.py --count "$PROBE_COUNT" \
+            --encoding "$PROBE_ENCODING" --output "$RUNNER_TEMP/latency.json"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: api-latency-${{ github.run_id }}
+          path: ${{ runner.temp }}/latency.json
+          retention-days: 14

@@ -23,6 +23,30 @@ from schema.benchmark import BenchmarkCard
 
 ROOT = Path(__file__).resolve().parent.parent
 
+
+def test_parameterised_vocabularies_are_cached_for_one_loaded_registry():
+    values = {"example-benchmark"}
+    calls = []
+
+    def produce():
+        calls.append(1)
+        return frozenset(values)
+
+    def loaded():
+        template = reg.default().facet("evidence.benchmark")
+        return reg.Registry(units={}, source_kinds={}, facets={template.id: template},
+                            providers={}, harnesses={}, domains={},
+                            named_lists={"benchmarks": produce})
+
+    registry = loaded()
+    for _ in range(3):
+        assert registry.facet("example-benchmark").id == "example-benchmark"
+    assert len(calls) == 1
+    values.add("new-benchmark")
+    with pytest.raises(UnknownIdError):
+        registry.facet("new-benchmark")
+    assert loaded().facet("new-benchmark").id == "new-benchmark"
+
 #: Every guaranteed facet in design §8, by the ID this registry gives it. The
 #: test fails if one is missing or has been downgraded to best effort.
 GUARANTEED = {
