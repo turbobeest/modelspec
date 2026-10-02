@@ -76,7 +76,7 @@ def test_live_structured_data_reads_a_tombstone_as_a_withdrawn_catalogue(tmp_pat
     (404, {}, b"not found"),
     (410, {}, b"gone"),
     (200, {"Cache-Control": "no-store"}, BODY),
-    (200, {"cache-control": "no-store"}, gzip.compress(BODY)),
+    (200, {"cache-control": "no-store"}, gzip.compress(BODY, mtime=0)),
 ])
 def test_smoke_accepts_only_absence_or_uncached_tombstones(status, headers, body):
     seen = []
@@ -93,7 +93,7 @@ def test_smoke_accepts_only_absence_or_uncached_tombstones(status, headers, body
 @pytest.mark.parametrize("status,headers,body", [
     (200, {"cache-control": "public, s-maxage=604800"}, b'{"models":[{"id":"old"}]}'),
     (200, {"cache-control": "no-store"}, b'{"models":[]}'),
-    (200, {"cache-control": "no-store"}, gzip.compress(b'{"snapshot":"old"}')),
+    (200, {"cache-control": "no-store"}, gzip.compress(b'{"snapshot":"old"}', mtime=0)),
     (200, {"cache-control": "no-store"}, b'<html>decide app</html>'),
     (200, {"cache-control": "no-store"}, b"\x1f\x8btruncated"),
     (200, {}, BODY),
