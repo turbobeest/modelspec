@@ -71,6 +71,20 @@ test("the board fits a 390px viewport in light and dark mode", async ({ page }) 
   }
 });
 
+test("the loading skeleton fits a 390px viewport", async ({ page }) => {
+  // Hold the decision so the skeleton stays up: a fixed 400px cards column once
+  // made a phone scroll sideways while a decision loaded.
+  let release = () => {};
+  const held = new Promise<void>((resolve) => { release = resolve; });
+  await page.route("**/v1/decide", async (route) => { await held; await route.fallback(); });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openBoard(page);
+  await expect(page.locator(".loading-cards")).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  release();
+  await expect(page.getByLabel("Facet board answer")).toBeVisible();
+});
+
 test("the board and its explanation fit a 320px viewport in light and dark mode", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 800 });
   await openBoard(page);
