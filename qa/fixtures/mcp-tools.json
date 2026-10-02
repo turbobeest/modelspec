@@ -1,13 +1,14 @@
 {
   "source_hashes": {
-    "mcp/src/server.ts": "cbfc6eb071637cf68f31bfe4733ad6b406cda082db9c414a22710c8dab1177c6",
+    "mcp/src/server.ts": "7acbe29f1eb4863a08998d7bbaf34b1ebd18c0f57f31d5196fc125d6a5bc7ffa",
     "docs/decision-contract.schema.json": "b60400ec66fc776d0c92135bebdd0903abeb3ca67c2331774f6709e26f099013",
-    "api/worker/openapi.yaml": "e8878a90685a08ffddd8795c8da3972e26abb3322062a624dd77b811e323a438"
+    "api/worker/openapi.yaml": "dcd2101291c3fc428a8aa88fd25c3edb707b3854271e047a1b501ce6eef44014",
+    "mcp/src/agent-copy.json": "3525bd352b112cf85a876b6913c570a904d8f5cc342f977feda0e3c564510944"
   },
   "tools": [
     {
       "name": "rank",
-      "description": "Rank models for a use case by proxying POST https://api.modelspec.dev/v1/rank with this tool's arguments as the JSON body. Does not re-implement ranking. evidence_basis is input provenance (none, unverified-legacy, mixed, partial-verified, verified), not a quality verdict. Requires an API key. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
+      "description": "Legacy v1; use decide for new work. Which models rank highest for one fixed use-case profile? Returns a shortlist for that profile with evidence_basis, which is input provenance (none, unverified-legacy, mixed, partial-verified, verified), not a quality verdict. Needs an API key (Authorization: Bearer). Costs 1 credit a call; a credit costs $0.0017–$0.004 depending on the plan or pack (https://modelspec.dev/pricing/). Don't call it when you can state requirements: decide takes them, rank doesn't. Proxies POST https://api.modelspec.dev/v1/rank with this tool's arguments as the JSON body. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
       "input_schema": {
         "type": "object",
         "additionalProperties": true,
@@ -89,7 +90,7 @@
     },
     {
       "name": "model_info",
-      "description": "Read one published model card from the static export at https://modelspec.dev/api/models/<model_id>.json (model_id is provider/slug). With data splitting enabled, returns only this model’s display name from the Worker vocabulary. Use keyed decide for current evidence. The card is catalogue data, not a ranking. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
+      "description": "What does ModelSpec's published card say about one model? Reads https://modelspec.dev/api/models/<model_id>.json (model_id is provider/slug). With data splitting enabled, returns only the model's display name from the Worker vocabulary. Free, no key. Not current evidence and not a ranking: use decide for that. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -105,7 +106,7 @@
     },
     {
       "name": "list_use_cases",
-      "description": "List ranking profiles and the published ranking policy from https://modelspec.dev/api/rank/profiles.json. Floors and neutrality are data on that document. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
+      "description": "Which ranking profiles exist, and what is the ranking policy? Returns https://modelspec.dev/api/rank/profiles.json: the profiles, the evidence floors and the neutrality commitment, as data. Free, no key. Not a decision: use decide for that. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
       "input_schema": {
         "type": "object",
         "properties": {}
@@ -113,7 +114,7 @@
     },
     {
       "name": "policy_check",
-      "description": "Check a policy document per model and per platform by proxying POST https://api.modelspec.dev/v1/policy-check with this tool's arguments as the JSON body. Requires an API key; Authorization is forwarded. Verdicts are pass, fail, or undetermined. Undetermined is not a pass. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
+      "description": "Which models, on which platforms, does my policy allow? Checks a policy document (licence, origin, data handling) per model and per platform. Returns pass, fail or undetermined for each row; undetermined is not a pass. Needs an API key (Authorization: Bearer). Costs 5 credits a call; a credit costs $0.0017–$0.004 depending on the plan or pack (https://modelspec.dev/pricing/). It doesn't choose a model: use decide to choose among the ones that pass. Proxies POST https://api.modelspec.dev/v1/policy-check with this tool's arguments as the JSON body; Authorization is forwarded. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
       "input_schema": {
         "type": "object",
         "additionalProperties": true,
@@ -286,7 +287,7 @@
     },
     {
       "name": "decide",
-      "description": "Downselect models by proxying POST https://api.modelspec.dev/v1/decide. Read vocab first for valid facet ids. Put Musts in where: these gates exclude. Put Prefers in optimize.weights: weights rank and never exclude. Unknown values go to may_qualify instead of being dropped. Pin snapshot for reproducibility. Example for a coding agent on a budget: {\"spec_version\":1,\"snapshot\":\"latest\",\"capabilities\":{\"software_engineering\":\"required\"},\"where\":[\"model.class = text-generator\",\"model.context_window >= 200000\",\"offering.cost_per_task <= 0.25\"],\"optimize\":{\"weights\":{\"software_engineering\":0.6,\"-offering.cost_per_task\":0.4}}}. Use explain: \"summary\" (the default): it carries the answer, results, by_model and may_qualify. explain: \"full\" also lists every eliminated candidate and returns about 670 KB, so ask for it only to see why one model was excluded. The decision response is returned unchanged with a short summary. Requires an API key; Authorization from the MCP client is forwarded. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
+      "description": "Which models fit this job? ModelSpec is an analysis of alternatives for AI models: it decides which models fit a job from your requirements, sourced benchmarks and real cost, and shows its work. Returns the answer (one model, or a declared tie that names the cheapest, open-weights and best-measured members), ranked results with cost per task and uncertainty, the models screened out with the reason for each, may_qualify for missing facts, and a decision_id and snapshot so the same spec gives the same answer later. Needs an API key (Authorization: Bearer). Costs 1 or 2 credits a call; a credit costs $0.0017–$0.004 depending on the plan or pack (https://modelspec.dev/pricing/). Not a router: call it once per job or role, not per request, then route among the models it recommends. Proxies POST https://api.modelspec.dev/v1/decide. Read vocab first for valid facet ids. Put Musts in where: these gates exclude. Put Prefers in optimize.weights: weights rank and never exclude. Unknown values go to may_qualify instead of being dropped. Pin snapshot for reproducibility. Example for a coding agent on a budget: {\"spec_version\":1,\"snapshot\":\"latest\",\"capabilities\":{\"software_engineering\":\"required\"},\"where\":[\"model.class = text-generator\",\"model.context_window >= 200000\",\"offering.cost_per_task <= 0.25\"],\"optimize\":{\"weights\":{\"software_engineering\":0.6,\"-offering.cost_per_task\":0.4}}}. Use explain: \"summary\" (the default): 1 credit, and it carries the answer, results, by_model and may_qualify. explain: \"full\" (2 credits) also lists every eliminated candidate and returns about 670 KB, so ask for it only to see why one model was excluded. The decision response is returned unchanged with a short summary. Authorization from the MCP client is forwarded. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "$defs": {
@@ -1724,7 +1725,7 @@
     },
     {
       "name": "vocab",
-      "description": "Read the decision vocabulary from the public static site before writing a decide spec. It lists valid facet ids, benchmarks, domains, providers, task types. In split mode it contains definitions and names only, with no prices, allowances, score ranges or counts. Pass section to return only one section. Read vocab first for valid facet ids. Put Musts in where: these gates exclude. Put Prefers in optimize.weights: weights rank and never exclude. Unknown values go to may_qualify instead of being dropped. Pin snapshot for reproducibility. Example for a coding agent on a budget: {\"spec_version\":1,\"snapshot\":\"latest\",\"capabilities\":{\"software_engineering\":\"required\"},\"where\":[\"model.class = text-generator\",\"model.context_window >= 200000\",\"offering.cost_per_task <= 0.25\"],\"optimize\":{\"weights\":{\"software_engineering\":0.6,\"-offering.cost_per_task\":0.4}}}. ",
+      "description": "What can a decide spec say? Returns the decision vocabulary: valid facet ids, benchmarks, domains, providers and task types. In split mode it contains definitions and names only, with no prices, allowances, score ranges or counts. Free, no key. Call it before writing a spec, not to compare models. Pass section to return only one section. Read vocab first for valid facet ids. Put Musts in where: these gates exclude. Put Prefers in optimize.weights: weights rank and never exclude. Unknown values go to may_qualify instead of being dropped. Pin snapshot for reproducibility. Example for a coding agent on a budget: {\"spec_version\":1,\"snapshot\":\"latest\",\"capabilities\":{\"software_engineering\":\"required\"},\"where\":[\"model.class = text-generator\",\"model.context_window >= 200000\",\"offering.cost_per_task <= 0.25\"],\"optimize\":{\"weights\":{\"software_engineering\":0.6,\"-offering.cost_per_task\":0.4}}}. ",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -1745,7 +1746,7 @@
     },
     {
       "name": "feedback",
-      "description": "After you act on a ModelSpec answer, say whether it was reliable, unreliable, trustworthy, untrustworthy or confusing, by proxying POST https://api.modelspec.dev/v1/feedback. Include the answer's decision_id. No key, and no Authorization header is forwarded. Never put a prompt, a key or personal details in note. The response says status \"recorded\" or \"not_recorded\" (storage is off until the privacy statement covers it).",
+      "description": "Was a ModelSpec answer reliable? After you act on an answer, say whether it was reliable, unreliable, trustworthy, untrustworthy or confusing, by proxying POST https://api.modelspec.dev/v1/feedback. Include the answer's decision_id. Free, no key, and no Authorization header is forwarded. Not for questions or support. Never put a prompt, a key or personal details in note. The response says status \"recorded\" or \"not_recorded\" (storage is off until the privacy statement covers it).",
       "input_schema": {
         "title": "ModelSpec feedback",
         "description": "POST this to https://api.modelspec.dev/v1/feedback. No key. One rating from a fixed set, optionally tied to the decision_id of a ModelSpec answer. Never include a prompt, a key, or anything that identifies a person. Reference: https://github.com/turbobeest/modelspec/blob/main/docs/feedback-api.md",
