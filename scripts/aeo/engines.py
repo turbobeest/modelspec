@@ -211,9 +211,41 @@ def gemini_call(model: str, key: str, prompt: str, max_output_tokens: int) -> An
     return gemini_parse(r.json())
 
 
+# ── xAI (Grok) Responses API with web and X search ───────────────────────────
+# OpenAI-compatible, so the OpenAI parser reads it. Left alone, Grok searches in
+# several rounds (seven searches on a 2026-10-01 probe, ~8¢ an answer). One turn
+# keeps it to one parallel round (four searches, ~6¢). `max_tool_calls` is
+# accepted but not honoured; `max_turns` is.
+
+XAI_MAX_TURNS = 1
+XAI_TICKS_PER_USD = 10_000_000_000
+
+
+def xai_request(model: str, prompt: str, max_output_tokens: int) -> dict[str, Any]:
+    return {"model": model, "input": prompt, "tools": [{"type": "web_search"}, {"type": "x_search"}],
+            "max_turns": XAI_MAX_TURNS, "max_output_tokens": max_output_tokens}
+
+
+def xai_parse(body: Mapping[str, Any]) -> Answer:
+    answer = openai_parse(body)
+    ticks = (body.get("usage") or {}).get("cost_in_usd_ticks")
+    if ticks is not None:
+        answer.reported_cost_usd = ticks / XAI_TICKS_PER_USD
+    return answer
+
+
+def xai_call(model: str, key: str, prompt: str, max_output_tokens: int) -> Answer:
+    r = httpx.post("https://api.x.ai/v1/responses", timeout=TIMEOUT,
+                   headers={"Authorization": f"Bearer {key}"},
+                   json=xai_request(model, prompt, max_output_tokens))
+    _raise_for(r, "xai")
+    return xai_parse(r.json())
+
+
 CALLS: dict[str, Callable[[str, str, str, int], Answer]] = {
     "openai": openai_call,
     "anthropic": anthropic_call,
     "perplexity": perplexity_call,
     "gemini": gemini_call,
+    "xai": xai_call,
 }

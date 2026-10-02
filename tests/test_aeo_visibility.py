@@ -69,6 +69,20 @@ def test_gemini_parse_takes_the_domain_from_the_title_behind_the_redirect() -> N
     assert (a.fanout_queries, a.searched) == (["q1"], True)
 
 
+def test_xai_parse_reads_the_openai_shape_and_its_own_reported_cost() -> None:
+    body = {"model": "grok-4.20-0309-non-reasoning",
+            "usage": {"input_tokens": 58191, "output_tokens": 1657, "cost_in_usd_ticks": 790876500},
+            "output": [{"type": "web_search_call", "action": {"type": "search", "query": "choose ai model"}},
+                       {"type": "web_search_call", "action": {"type": "open_page", "url": "https://benchlm.ai/x"}},
+                       {"type": "message", "content": [{"type": "output_text", "text": "Pick by task.", "annotations": [
+                           {"type": "url_citation", "url": "https://benchlm.ai/tools/llm-selector"}]}]}]}
+    a = engines.xai_parse(body)
+    assert (a.text, a.fanout_queries, a.searches) == ("Pick by task.", ["choose ai model"], 2)
+    assert [c.domain for c in a.citations] == ["benchlm.ai"]
+    assert a.reported_cost_usd == pytest.approx(0.0790876)
+    assert engines.xai_request("m", "q", 100)["max_turns"] == engines.XAI_MAX_TURNS == 1
+
+
 def test_a_quota_refusal_is_unavailable_not_retried() -> None:
     import httpx
 
