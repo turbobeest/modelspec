@@ -37,7 +37,7 @@ ROOT = Path(__file__).resolve().parents[1]
 RECALL = ROOT / "tests" / "recall"
 NON_GATING = (
     "This report does not gate CI by itself; scripts/accuracy.py compares it with the "
-    "approved baseline."
+    "public frozen-image engine baseline; private CI compares verdicts with its own baseline."
 )
 _CANNOT_SEPARATE = re.compile(
     r"no unique winner|not separate|does not separate|cannot separate|"
