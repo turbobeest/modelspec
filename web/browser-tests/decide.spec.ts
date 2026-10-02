@@ -65,3 +65,16 @@ test("the board fits a 390px viewport in light and dark mode", async ({ page }) 
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   }
 });
+
+test("the board and its explanation fit a 320px viewport in light and dark mode", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 800 });
+  await openBoard(page);
+  const scrollWidth = () => page.evaluate(() => document.documentElement.scrollWidth);
+  await expect.poll(scrollWidth).toBeLessThanOrEqual(320);
+  await page.locator(".board-templates button").nth(1).click();
+  await expect(page.locator(".why-panel .contribution").first()).toBeVisible();
+  for (const buttonName of ["Light mode", "Dark mode"]) {
+    await page.getByRole("button", { name: buttonName }).click();
+    await expect.poll(scrollWidth).toBeLessThanOrEqual(320);
+  }
+});
