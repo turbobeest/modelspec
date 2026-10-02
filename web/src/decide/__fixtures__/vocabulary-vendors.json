@@ -3721,7 +3721,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 7 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 6 models may qualify once it is published"
     },
     {
       "id": "coding-balanced",
@@ -3904,7 +3904,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 7 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 6 models may qualify once it is published"
     },
     {
       "id": "coding-private",
@@ -4011,7 +4011,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 7 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 6 models may qualify once it is published"
     },
     {
       "id": "writing-balanced",
@@ -4067,7 +4067,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 7 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 6 models may qualify once it is published"
     },
     {
       "id": "writing-budget",
@@ -4128,7 +4128,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 3 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 2 models may qualify once it is published"
     },
     {
       "id": "writing-fastest",
@@ -4184,7 +4184,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 7 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 6 models may qualify once it is published"
     },
     {
       "id": "writing-private",
@@ -4286,7 +4286,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 7 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 6 models may qualify once it is published"
     },
     {
       "id": "maths-reasoning-balanced",
@@ -4348,7 +4348,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 7 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 6 models may qualify once it is published"
     },
     {
       "id": "maths-reasoning-budget",
@@ -4409,7 +4409,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 3 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 2 models may qualify once it is published"
     },
     {
       "id": "maths-reasoning-fastest",
@@ -4465,7 +4465,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 7 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 6 models may qualify once it is published"
     },
     {
       "id": "maths-reasoning-private",
@@ -4870,7 +4870,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 7 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 6 models may qualify once it is published"
     },
     {
       "id": "retrieval-balanced",
@@ -4921,7 +4921,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 7 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 6 models may qualify once it is published"
     },
     {
       "id": "retrieval-budget",
@@ -4972,7 +4972,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 7 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 6 models may qualify once it is published"
     },
     {
       "id": "retrieval-fastest",
@@ -5023,7 +5023,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 7 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 6 models may qualify once it is published"
     },
     {
       "id": "retrieval-private",
@@ -5130,7 +5130,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 7 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 6 models may qualify once it is published"
     },
     {
       "id": "assistant-balanced",
@@ -5186,7 +5186,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 7 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 6 models may qualify once it is published"
     },
     {
       "id": "assistant-budget",
@@ -5247,7 +5247,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 3 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 2 models may qualify once it is published"
     },
     {
       "id": "assistant-fastest",
@@ -5303,7 +5303,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 7 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 6 models may qualify once it is published"
     },
     {
       "id": "private-self-host",
@@ -5423,7 +5423,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 7 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 6 models may qualify once it is published"
     },
     {
       "id": "high-volume-balanced",
@@ -5482,7 +5482,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 7 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 6 models may qualify once it is published"
     },
     {
       "id": "high-volume",
@@ -5541,7 +5541,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 7 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 6 models may qualify once it is published"
     },
     {
       "id": "high-volume-fastest",
@@ -5605,7 +5605,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 7 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 6 models may qualify once it is published"
     },
     {
       "id": "regulated-best",

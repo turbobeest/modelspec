@@ -123,7 +123,7 @@ def _same_bytes(decision, golden) -> None:
 
 
 @pytest.mark.parametrize("index", range(len(NO_ACCESS_SPECS)))
-def test_an_omitted_access_reproduces_the_decision_from_before_model_200(
+def test_an_omitted_access_reproduces_the_current_policy_golden(
     undisclosed, index,
 ) -> None:
     golden = json.loads(GOLDEN.read_text())["undisclosed"][index]

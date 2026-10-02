@@ -52,6 +52,8 @@ ACCURACY = {"profile": "pr", "status": "pass"}
 
 def _model(mid: str) -> dict:
     row = model(mid)
+    row["facts"] = [f for f in row["facts"] if f["facet"] != "model.weights_openness"]
+    row["facts"].append(fact("model", mid, "model.weights_openness", "closed_weights"))
     row["facts"] += [fact("model", mid, "model.class", "text-generator"),
                      fact("model", mid, "model.lifecycle", "active")]
     return row
