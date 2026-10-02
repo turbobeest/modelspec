@@ -95,8 +95,8 @@
     // before then refuses every anonymous caller. Any value other than
     // "false", "0", "no", "off" or "" reads as ON. See docs/api-access.md.
     "ACCESS_ENFORCED": "false",
-    // MODEL-248/270. Jamie enabled the human gate in production on 2026-10-02.
-    "HUMAN_GATE_ENABLED": "true",
+    // MODEL-248. Jamie enables only after both secrets and the Pages site key exist.
+    "HUMAN_GATE_ENABLED": "false",
     // MODEL-73. Hosted Stripe Checkout and the webhook that records the entitlement.
     // OFF since 2026-09-24 (holding mode, docs/handoff/holding-mode.md): the
     // flag closes Checkout only. The webhook, claim and rotate still serve

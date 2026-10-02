@@ -1,7 +1,7 @@
 # Manual decision gate (MODEL-248)
 
-`HUMAN_GATE_ENABLED` is `true` in production as of 2026-10-02, enabled by
-Jamie (MODEL-248/270), and stays `true` in isolated staging. Off preserves
+`HUMAN_GATE_ENABLED` ships `false` in production and `true` in isolated staging
+for verifying the gate on Cloudflare before production. Off preserves
 the existing access and x402 paths. On, keyless `/v1/decide` actions from the
 three existing site origins need a fresh Turnstile token in the
 `X-ModelSpec-Turnstile` header. The decision Spec, response body and contract
@@ -207,13 +207,6 @@ otherwise this test uses `python3` with the repository's Python dependencies.
 
 ## Launch, owned by Jamie
 
-Jamie confirmed "gate go" on 2026-10-02. Step 4 sets production
-`HUMAN_GATE_ENABLED=true` as of that date and proposes privacy v1.7 for his
-wording approval. Merge only after Jamie approves that wording, #477 has merged
-so the post-deploy smoke handles a gated page, the isolated staging check
-passes, and the gated Pages build is verified live before the Worker is enabled.
-The rollout order below still applies.
-
 Merge the clearly marked Durable Object binding and migration in
 `api/worker/wrangler.jsonc`. No existing flags change. Set the secrets manually:
 
@@ -230,8 +223,9 @@ workflow deploys staging only on `workflow_dispatch`, so dispatch it on `main`
 after the merge before verifying the gate. Never reuse or publish secret values in a PR.
 Create a Turnstile widget permitting the production, www and internal preview
 hostnames. Configure its public key in the Pages build variables above.
-Before enabling the gate, Jamie adopts privacy v1.7, which moves the v1.6
-Spec-derived fingerprint disclosure into the live statement. Publish
+Before enabling the gate, Jamie adopts a privacy disclosure covering the
+Spec-derived fingerprints described above. The published human-gate disclosure
+predates that storage. Publish
 the page gate first: set repository variable `HUMAN_GATE_ENABLED=true`,
 rebuild the site and verify that the gated build is live and still performs
 automatic lookups while the Worker reports `enabled: false`. Only then enable

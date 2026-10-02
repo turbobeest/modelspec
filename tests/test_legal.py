@@ -23,6 +23,7 @@ Three things are worth a test here, and they are not the prose.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -799,7 +800,7 @@ def test_the_decide_contract_refuses_its_free_text_task() -> None:
 IN_FORCE = {
     "terms": "Version `1.2`, effective 2026-09-30.",
     "neutrality": "Version `1.3`, effective 2026-09-30.",
-    "privacy": "Version `1.7`, effective 2026-10-02.",
+    "privacy": "Version `1.8`, effective 2026-10-02.",
 }
 
 
@@ -983,7 +984,9 @@ def test_the_privacy_statement_describes_the_keyed_visitor_id_and_the_gate_flag(
 
 def test_the_privacy_statement_discloses_the_human_gate_question_storage() -> None:
     """MODEL-270: question fingerprints and vocabulary share daily retention."""
-    gate = flat(PRIVACY.split("### The human gate on the decide page", 1)[1].split("\n## ", 1)[0])
+    # The disclosure is a section while the gate is on and a "Not yet live" item while it is off.
+    rest = PRIVACY.split("The human gate on the decide page", 1)[1]
+    gate = flat(re.split(r"\n## |\n- \*\*", rest, maxsplit=1)[0])
     for claim in (
         "random 128-bit intent id per action", "`x-modelspec-intent`",
         "do not link them across days", "first-request time, request count",

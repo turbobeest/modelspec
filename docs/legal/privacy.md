@@ -1,6 +1,6 @@
 # Privacy statement
 
-Version `1.7`, effective 2026-10-02. Adopted by Sparks & Sawdust LLC, which
+Version `1.8`, effective 2026-10-02. Adopted by Sparks & Sawdust LLC, which
 operates the service. MODEL-70. Version 1.0 was adopted on 2026-09-19; what
 changed since is listed under [Changes](#changes).
 
@@ -278,67 +278,6 @@ analytics script (see *The websites*) is inserted into the one HTML page the API
 serves, the page that shows a purchased key, but that page's content security
 policy stops a browser from loading it (`api/worker/src/billing_page.py`).
 
-### The human gate on the decide page
-
-The human gate is enabled (`HUMAN_GATE_ENABLED`) in production.
-The first request for a manual action from the decide page must
-carry a fresh Cloudflare Turnstile token, which distinguishes people from
-automated access. Follow-up requests use that verified admission.
-Your browser then loads a Cloudflare script and challenge frame and connects
-to `challenges.cloudflare.com`. Cloudflare processes browser and network
-signals, including your IP address, TLS fingerprint, User-Agent, the site key
-and the origin. Cloudflare acts as our processor for protecting the site and
-as a controller for improving Turnstile's bot detection; see its
-[Turnstile Privacy Addendum](https://www.cloudflare.com/turnstile-privacy-policy/).
-We receive a challenge token and send it, with our secret, to Cloudflare's
-Siteverify service, checking that it succeeded and matches our hostname and
-the `decide` action. We omit the optional `remoteip` parameter. A token
-expires after five minutes and is single-use; we neither store nor log it.
-The Worker also reads `CF-Connecting-IP` transiently to derive the same daily
-keyed visitor id, `HMAC-SHA256(VISITOR_HMAC_KEY, IP | UTC day)`; it stores no
-raw IP and no bare hash of one. For this gate only, an IPv6 address is
-first reduced to its /64 network, so people who share a /64 share one
-allowance; the paid-access meter above uses the address as supplied.
-A Cloudflare Durable Object keeps, for each daily visitor id, the count of
-questions admitted that day, the day, the times of recent admissions and,
-if triggered, a suspicion expiry. For each admitted page action it also
-keeps the random intent id the page sends in `x-modelspec-intent`, the
-admission's first-request time, request count and recent request times.
-The page makes a new random 128-bit intent id per action and shares it with
-that action's follow-up requests. We scope these ids to the daily visitor
-object and do not link them across days.
-The object computes a primary question fingerprint from the canonical
-decision spec. It stores SHA-256 digests of the question's fixed fields,
-individual conditions, objective, capabilities and estate, plus flags
-recording whether the estate is absent, whether it permits an estate
-comparison and whether the question is a plot. It also keeps digests fixing
-the first accepted plot and estate variants. These values recognise
-follow-up requests for the same question and its permitted presentation
-variants; they are not used for another purpose. A spec that cannot be
-parsed has no question fingerprint. These hashes are not encryption:
-someone who can guess the question can compute matching digests. No raw spec,
-caller-supplied fingerprint, token or raw IP is stored
-(`api/worker/src/human_gate.py`, `human_gate_do.py`, `human_question.py`).
-The same object separately keeps the vocabulary meter's day, count and
-recent request times to limit vocabulary lookups to 60 a day and 10 in a
-rolling minute. An admitted question uses up allowance even if the decision
-then fails. Admission history older than ten minutes is dropped on the next
-admission. During an accepted follow-up, request times older than a second
-are dropped; vocabulary request times older than a minute are dropped on its
-next meter update. Follow-ups are limited to eight requests including the first, within
-60 seconds of admission. That window does not delete the action's stored
-record. All this state is in the same daily object, scheduled for deletion
-at the following UTC midnight; a delayed or retried alarm can delay the
-physical deletion, and Cloudflare's point-in-time recovery for SQLite-backed
-storage can retain earlier states for up to 30 days. The daily visitor id
-changes, so the next day's requests cannot read the previous day's object.
-A visitor may have at most 20 questions admitted a day and 3 in a rolling
-minute, and five admissions at nearly equal intervals are refused for ten
-minutes as automated-looking. Failed verification is
-refused, not treated as human. No network-operator or headless score is
-stored. ModelSpec sets no cookie for this and does not enable Turnstile
-pre-clearance; we do not say that Cloudflare sets none of its own.
-
 ## What Stripe holds
 
 Purchases are made on Checkout pages hosted by Stripe
@@ -485,6 +424,67 @@ nothing below is read as describing the service today:
   for that day. And a payment made without a key would be recorded in the
   credit ledger under the paying wallet's public address, with the credits it
   bought, which are spent at once.
+- **The human gate on the decide page (Cloudflare Turnstile).** Built, and
+  **not yet enabled**: it ships off (`HUMAN_GATE_ENABLED`) in production, and
+  this describes what would happen once it is switched on. Until
+  then no Turnstile challenge is loaded and nothing below happens.
+  When on, the first request for a manual action from the decide page must
+  carry a fresh Cloudflare Turnstile token, which distinguishes people from
+  automated access. Follow-up requests use that verified admission.
+  Your browser then loads a Cloudflare script and challenge frame and connects
+  to `challenges.cloudflare.com`. Cloudflare processes browser and network
+  signals, including your IP address, TLS fingerprint, User-Agent, the site key
+  and the origin. Cloudflare acts as our processor for protecting the site and
+  as a controller for improving Turnstile's bot detection; see its
+  [Turnstile Privacy Addendum](https://www.cloudflare.com/turnstile-privacy-policy/).
+  We receive a challenge token and send it, with our secret, to Cloudflare's
+  Siteverify service, checking that it succeeded and matches our hostname and
+  the `decide` action. We omit the optional `remoteip` parameter. A token
+  expires after five minutes and is single-use; we neither store nor log it.
+  The Worker also reads `CF-Connecting-IP` transiently to derive the same daily
+  keyed visitor id, `HMAC-SHA256(VISITOR_HMAC_KEY, IP | UTC day)`; it stores no
+  raw IP and no bare hash of one. For this gate only, an IPv6 address is
+  first reduced to its /64 network, so people who share a /64 share one
+  allowance; the paid-access meter above uses the address as supplied.
+  A Cloudflare Durable Object keeps, for each daily visitor id, the count of
+  questions admitted that day, the day, the times of recent admissions and,
+  if triggered, a suspicion expiry. For each admitted page action it also
+  keeps the random intent id the page sends in `x-modelspec-intent`, the
+  admission's first-request time, request count and recent request times.
+  The page makes a new random 128-bit intent id per action and shares it with
+  that action's follow-up requests. We scope these ids to the daily visitor
+  object and do not link them across days.
+  The object computes a primary question fingerprint from the canonical
+  decision spec. It stores SHA-256 digests of the question's fixed fields,
+  individual conditions, objective, capabilities and estate, plus flags
+  recording whether the estate is absent, whether it permits an estate
+  comparison and whether the question is a plot. It also keeps digests fixing
+  the first accepted plot and estate variants. These values recognise
+  follow-up requests for the same question and its permitted presentation
+  variants; they are not used for another purpose. A spec that cannot be
+  parsed has no question fingerprint. These hashes are not encryption:
+  someone who can guess the question can compute matching digests. No raw spec,
+  caller-supplied fingerprint, token or raw IP is stored
+  (`api/worker/src/human_gate.py`, `human_gate_do.py`, `human_question.py`).
+  The same object separately keeps the vocabulary meter's day, count and
+  recent request times to limit vocabulary lookups to 60 a day and 10 in a
+  rolling minute. An admitted question uses up allowance even if the decision
+  then fails. Admission history older than ten minutes is dropped on the next
+  admission. During an accepted follow-up, request times older than a second
+  are dropped; vocabulary request times older than a minute are dropped on its
+  next meter update. Follow-ups are limited to eight requests including the first, within
+  60 seconds of admission. That window does not delete the action's stored
+  record. All this state is in the same daily object, scheduled for deletion
+  at the following UTC midnight; a delayed or retried alarm can delay the
+  physical deletion, and Cloudflare's point-in-time recovery for SQLite-backed
+  storage can retain earlier states for up to 30 days. The daily visitor id
+  changes, so the next day's requests cannot read the previous day's object.
+  A visitor may have at most 20 questions admitted a day and 3 in a rolling
+  minute, and five admissions at nearly equal intervals are refused for ten
+  minutes as automated-looking. Failed verification is
+  refused, not treated as human. No network-operator or headless score is
+  stored. ModelSpec sets no cookie for this and does not enable Turnstile
+  pre-clearance; we do not say that Cloudflare sets none of its own.
 - **Outcome logging by the service.** Not built. The service does not receive or
   record what you chose, whether a recommendation worked, or anything about the
   result of acting on one. The CLI's local log (see *Inference, and why there is nothing to say
@@ -511,6 +511,9 @@ to `DELETE /v1/feedback`, or write to us with it.
 A change to what the service records is a change to this statement, and it is
 published here before the change ships. The version above is the one in force.
 
+- **1.8, 2026-10-02.** Switched the human gate off again in production and
+  moved its disclosure back to *Not yet live*, with its wording as in 1.6.
+  Nothing it would store changed; while it is off it stores nothing.
 - **1.7, 2026-10-02.** Enabled the human gate in production (MODEL-248/270)
   and moved its disclosure from *Not yet live* to *What we store*. Its stored
   data, retention, Cloudflare roles and cookie behavior are unchanged.
