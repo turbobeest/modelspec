@@ -57,7 +57,7 @@ import shutil
 import sys
 from pathlib import Path
 
-from pipeline import brand, landing, landing_chrome, security_headers, social_cards
+from pipeline import brand, landing, landing_chrome, public_data, security_headers, social_cards
 
 MODE_ENV = "SITE_MODE"
 LIVE = "live"
@@ -177,7 +177,11 @@ def build(src: Path, out: Path) -> dict[str, list[str]]:
         data = landing.extract_data(live_landing.read_text(encoding="utf-8"))
         landing.write(tree, data, variant="holding")
         (tree / "404.html").write_text(dark_page(site), encoding="utf-8")
-        (tree / "_headers").write_text(security_headers.add_to(HEADERS, tree), encoding="utf-8")
+        headers = HEADERS
+        if public_data.enabled():
+            headers = public_data.cache_headers(headers)
+            (tree / "_redirects").write_text(public_data.REDIRECTS, encoding="utf-8")
+        (tree / "_headers").write_text(security_headers.add_to(headers, tree), encoding="utf-8")
         (tree / "robots.txt").write_text(ROBOTS, encoding="utf-8")
     shutil.copytree(src / "benchgraph", out / "benchgraph")
     return kept
@@ -201,7 +205,8 @@ def violations(tree: Path, name: str) -> list[str]:
                 bad.append(f"{rel}: /legal/ holds its pages only")
             elif top == "fonts" and path.suffix not in {".woff2", ".txt"}:
                 bad.append(f"{rel}: /fonts/ holds faces and their licences only")
-        elif rel not in KEEP_FILES and rel not in WRITTEN:
+        elif (rel not in KEEP_FILES and rel not in WRITTEN
+              and not (public_data.enabled() and rel == "_redirects")):
             bad.append(f"{rel}: not a holding file")
     index = (tree / "index.html").read_text(encoding="utf-8") if (tree / "index.html").is_file() else ""
     if ('<link rel="canonical" href="https://modelspec.dev/">' not in index

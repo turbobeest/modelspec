@@ -3354,6 +3354,20 @@ components:
       - benchmarks
       title: BenchmarkExclusions
       type: object
+    DecisionBestRef:
+      additionalProperties: false
+      description: '``facet >= best(m)``: within ``m`` of the highest value among the candidates
+
+        that pass every other hard condition. Added in 2.11.'
+      properties:
+        best:
+          minimum: 0
+          title: Best
+          type: number
+      required:
+      - best
+      title: BestRef
+      type: object
     DecisionBlendTerm:
       additionalProperties: false
       description: 'One weighted dimension, its share, and the order on it alone. Added in 2.7 (MODEL-206).
@@ -3505,7 +3519,9 @@ components:
       type: object
     DecisionCompare:
       additionalProperties: false
-      description: '``facet op value``; the value may be ``model(<id>)`` for a relative condition.'
+      description: '``facet op value``; the value may be ``model(<id>)`` or ``best(m)`` for a relative
+
+        condition.'
       properties:
         facet:
           pattern: ^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$
@@ -3524,6 +3540,7 @@ components:
         value:
           anyOf:
           - $ref: '#/components/schemas/DecisionModelRef'
+          - $ref: '#/components/schemas/DecisionBestRef'
           - type: boolean
           - type: integer
           - type: number
@@ -3716,8 +3733,8 @@ components:
           - type: 'null'
           default: null
         contract_version:
-          const: '2.10'
-          default: '2.10'
+          const: '2.11'
+          default: '2.11'
           title: Contract Version
           type: string
         decision_id:
@@ -6010,7 +6027,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.10'
+          - '2.11'
         endpoint:
           type: string
           enum:
@@ -6061,7 +6078,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.10'
+          - '2.11'
         endpoint:
           type: string
           enum:
@@ -6113,7 +6130,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.10'
+          - '2.11'
         endpoint:
           type: string
           enum:
@@ -6138,7 +6155,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.10'
+          - '2.11'
         endpoint:
           type: string
           enum:
@@ -6192,7 +6209,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.10'
+          - '2.11'
         endpoint:
           type: string
           enum:
@@ -6532,7 +6549,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.10'
+          - '2.11'
         endpoint:
           type: string
           enum:

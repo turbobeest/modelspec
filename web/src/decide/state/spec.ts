@@ -8,12 +8,14 @@ const positive = z.number().finite().nonnegative();
 const bench = z
   .string()
   .refine((v) => Object.hasOwn(BENCH, v) || /^[a-z][a-z0-9_]*$/.test(v));
-const facetId = z.string().regex(/^[a-z][a-z0-9_]*(\.[a-z0-9_]+)+$/);
+// A capability domain (software_engineering) is a facet with no dot.
+const facetId = z.string().regex(/^[a-z][a-z0-9_]*(\.[a-z0-9_]+)*$/);
 const facetValue = z.union([
   z.string().min(1).max(200),
   z.number().finite(),
   z.boolean(),
   z.array(z.string().min(1).max(200)).min(1),
+  z.object({ best: z.number().finite().nonnegative() }).strict(),
 ]);
 const metadata = {
   id: z.string().optional(),

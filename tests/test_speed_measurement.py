@@ -17,11 +17,13 @@ import pytest
 import yaml
 from pydantic import ValidationError
 
-from decision.contract import parse_spec
+from decision.contract import BestRef, Compare, parse_condition, parse_spec, render_condition
 from decision.engine import decide
 from decision.excluded import excluded_sources
+from decision.filter import apply
 from decision.model import MEASUREMENT_STALE_AFTER_DAYS, Fact
 from decision.registry import default
+from decision.resolve import resolve
 from decision.snapshot import (
     SnapshotBuildError,
     build_snapshot,
@@ -230,18 +232,83 @@ def test_the_coding_fastest_template_ranks_from_measured_throughput(snapshot):
         assert term.raw_value == snapshot.fact(_id(result.offering), THROUGHPUT).value
 
 
-def test_no_fastest_template_lets_speed_outweigh_capability():
+def _floor(template, domain):
+    """The template's hard ``<domain> >= best(m)`` condition, or ``None``."""
+    for text in template["spec"]["where"]:
+        cond = parse_condition(text)
+        if (isinstance(cond, Compare) and cond.facet == domain and cond.op == ">="
+                and isinstance(cond.value, BestRef) and cond.soft is None):
+            return cond
+    return None
+
+
+def test_every_template_that_prefers_speed_floors_capability_relative_to_the_best():
     """Latency without quality ranks models backwards (the 2026-09 programme's
-    finding). Terms are min-max normalised, so with capability at least three
-    times every other term together, a model that is best at everything else
-    still needs two thirds of the lineup's capability range to beat the
-    strongest model."""
+    finding). A weighting only bounds how far speed moves the order within the
+    lineup's range; a floor is a condition, so speed cannot buy capability back.
+
+    The margin is at most 1.0 on the capability scale. Between two well-measured
+    models (80% intervals 1.4 to 2.0 wide) a gap of 1.0 leaves the leader ahead
+    with probability about 0.82 to 0.90: a survivor may be measurably weaker, but
+    not decisively. A margin of 0.5 sits inside the Best band (P about 0.26 to
+    0.33), which the Best tier's `fastest` tie-breaker already answers.
+    """
+    speedy = [t for t in load_catalogue()["templates"]
+              if any(k.lstrip("-").startswith("offering.speed.") for k in t["weights"])]
+    assert len(speedy) == 7
+    for template in speedy:
+        for domain in template["needs"]["domains"]:
+            floor = _floor(template, domain)
+            assert floor is not None, (template["id"], domain)
+            assert floor.value.best <= 1.0, template["id"]
+
+
+def _without_floor(template, domain):
+    floor = render_condition(_floor(template, domain))
+    return parse_spec(template["spec"] | {"where": [w for w in template["spec"]["where"]
+                                                    if w != floor]},
+                      facets=default().facet)
+
+
+def test_every_fastest_answer_is_within_1_of_the_strongest_eligible_model(snapshot, vocabulary):
+    ranked = [t for t in vocabulary["templates"] if t["tier"] == "fastest" and t["available"]]
+    assert len(ranked) == 6
     registry = default()
-    domains = {d.id for d in registry.domains()}
-    for template in load_catalogue()["templates"]:
-        weights = template["spec"]["optimize"]["weights"]
-        speed = sum(w for k, w in weights.items() if k.lstrip("-").startswith("offering.speed."))
-        if not speed:
-            continue
-        capability = sum(w for k, w in weights.items() if k.split("/")[0] in domains)
-        assert capability >= 3 * (sum(weights.values()) - capability), template["id"]
+    for template in ranked:
+        [domain] = template["needs"]["domains"]
+        eligible = apply(resolve(_without_floor(template, domain), facets=registry.facet),
+                         snapshot).feasible
+        estimates = [e.value for cid in eligible
+                     if (e := snapshot.capability_estimate(cid, domain)) is not None]
+        bar = max(estimates) - 1.0
+        spec = parse_spec(template["spec"], facets=registry.facet)
+        decision = decide(spec, snapshot, facets=registry.facet)
+        assert decision.results, template["id"]
+        for result in decision.results:
+            estimate = snapshot.capability_estimate(_id(result.offering), domain).value
+            assert estimate >= bar, (template["id"], result.offering.model, estimate, bar)
+
+
+def test_the_fastest_measured_offering_is_below_the_coding_floor(snapshot):
+    """gemini-3-8-flash streams fastest of every measured offering, and Coding,
+    fastest eliminates it by the floor rather than outweighing it. Its estimate
+    and the bar move with the repository's evidence, so they are read, not pinned."""
+    speeds = {cid: fact.value for cid in snapshot.candidates()
+              if (fact := snapshot.fact(cid, THROUGHPUT)).state == "known"}
+    assert max(speeds, key=speeds.get) == FASTEST
+    template = next(t for t in load_catalogue()["templates"] if t["id"] == "coding-fastest")
+    registry = default()
+    domain = "software_engineering"
+    eligible = apply(resolve(_without_floor(template, domain), facets=registry.facet),
+                     snapshot).feasible
+    strongest = max(e.value for cid in eligible
+                    if (e := snapshot.capability_estimate(cid, domain)) is not None)
+    result = apply(resolve(parse_spec(template["spec"], facets=registry.facet),
+                           facets=registry.facet), snapshot)
+    [out] = [row for row in result.eliminated if row.candidate == FASTEST]
+    assert out.condition == "software_engineering >= best(1.0)"
+    assert out.facet == domain
+    assert out.threshold == strongest - 1.0
+    assert out.value == snapshot.capability_estimate(FASTEST, domain).value
+    assert out.value < out.threshold
+    assert [step.condition for step in result.funnel][-1] == "software_engineering >= best(1.0)"

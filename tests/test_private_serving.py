@@ -11,7 +11,7 @@ import yaml
 
 from pipeline import build, holding, live
 from pipeline.data_source import DATA_PATHS
-from pipeline.public_data import KEEP_API
+from pipeline.public_data import KEEP_API, REMOVED, TOMBSTONE_PATH, TOMBSTONE
 from schema.card import Identity, ModelCard, Cost, Benchmarks
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -83,8 +83,25 @@ def test_private_model_is_absent_from_every_public_file(private, tmp_path, monke
                 for value in (SENTINEL, str(PRICE), str(SCORE)):
                     assert value.encode() not in raw, path.relative_to(tree)
     api = out / "modelspec/api"
-    assert {p.relative_to(api).as_posix() for p in api.rglob("*") if p.is_file()} == KEEP_API
-    assert (out / "modelspec/graph/data/views.json").is_file()
+    tombstones = {route.removeprefix("/api/") for route in (*REMOVED, TOMBSTONE_PATH)}
+    assert {p.relative_to(api).as_posix() for p in api.rglob("*") if p.is_file()} == KEEP_API | tombstones
+    import json
+    for composition in (out, tmp_path / "holding", tmp_path / "live"):
+        tree = composition / "modelspec"
+        headers = (tree / "_headers").read_text()
+        assert headers.count("/api/*\n") == 1
+        assert "/api/*\n  Cache-Control: no-store\n" in headers
+        assert "604800" not in headers
+        for route in (*REMOVED, TOMBSTONE_PATH):
+            raw = (tree / route.lstrip("/")).read_bytes()
+            if route.endswith(".gz"):
+                raw = gzip.decompress(raw)
+            assert json.loads(raw) == TOMBSTONE
+        redirects = (tree / "_redirects").read_text()
+        for family in ("models", "benchmarks", "graph"):
+            assert f"/api/{family}/*  /api/removed.json  200\n" in redirects
+        assert holding.violations(tmp_path / "holding/modelspec", "modelspec") == []
+    assert not (out / "modelspec/graph").exists()
     assert live.dead_links(tmp_path / "live/modelspec") == []
 
 

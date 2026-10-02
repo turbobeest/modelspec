@@ -21,6 +21,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+from pipeline import entity
 from pipeline.social_profiles import profile_urls
 
 BASE = "https://modelspec.dev"
@@ -36,7 +37,6 @@ ROOT = Path(__file__).resolve().parents[1]
 CRUMBS = {
     "/method/": "Method",
     "/decide/": "Decide",
-    "/graph/": "Graph",
     "/pricing/": "Pricing",
     "/legal/terms/": "Terms",
     "/legal/privacy/": "Privacy",
@@ -66,17 +66,18 @@ def organization(root: Path) -> dict[str, Any]:
         "legalName": "Sparks & Sawdust LLC",
         "url": f"{BASE}/",
         "logo": f"{BASE}/icon-512.png",
+        "description": entity.ONE_SENTENCE,
     }
-    same_as = profile_urls(root / "brand" / "social" / "profiles.json")
-    if same_as:
-        org["sameAs"] = list(same_as)
+    org["sameAs"] = [*entity.SAME_AS, *profile_urls(root / "brand" / "social" / "profiles.json")]
     return org
 
 
 def dataset(tree: Path) -> dict[str, Any]:
     build = json.loads((tree / "api" / "build.json").read_text(encoding="utf-8"))
     index = tree / "api" / "index.json"
-    count = json.loads(index.read_text(encoding="utf-8"))["count"] if index.is_file() else None
+    # With data splitting, the index path contains a removal notice instead
+    # of a catalogue. Its missing count has the same meaning as an absent file.
+    count = json.loads(index.read_text(encoding="utf-8")).get("count") if index.is_file() else None
     return {
         "@type": "Dataset",
         "@id": f"{BASE}/#dataset",

@@ -271,7 +271,6 @@ must move each into the private repository, drop it, or reduce it to counts:
 | `release-signals.yml` | `release-signals-pending`, `release-signal-audit-*` | pending signals and audit |
 | `coverage-slo.yml` | `coverage-report` | per-model coverage from fresh cards |
 | `accuracy.yml`, `accuracy-nightly.yml` | `decision-accuracy*` | accuracy reports over fresh cards |
-| `benchgraph-graph.yml` | `benchgraph-graph-*` | graph export from benchmark data |
 
 `test.yml` uploads only collection lists and timings and stays as is.
 
@@ -414,6 +413,39 @@ Removed routes, including every member of the wildcard families:
 - `/api/decision/snapshot.json.gz`
 - `/api/decision/vocabulary.json`
 - `/api/graph/**/*.json`
+
+MODEL-273 adds uncached removal notices at the nine exact paths above and
+at `/api/removed.json`. Supported Pages 200 proxies send every member of
+`/api/models/*`, `/api/benchmarks/*` and `/api/graph/*` to that notice,
+including paths absent from the current checkout. The notice is
+`{"error":"removed","message":"Fresh data is served per request by the API","api":"https://api.modelspec.dev"}`.
+The snapshot notice retains gzip encoding. These files contain no model data.
+Full, live and holding compositions generate the notices, family rules and
+`Cache-Control: no-store` for `/api/*` only when the split is enabled.
+Unversioned PNGs use a five-minute browser lifetime in enabled builds; the
+live app's content-hashed `/assets/*` retain their immutable cache policy.
+Flag-off build output remains unchanged.
+
+The preferred 404/410 `_redirects` rules cannot implement this on Pages.
+[Cloudflare's redirect documentation](https://developers.cloudflare.com/pages/configuration/redirects/)
+lists rewrites with those statuses as unsupported. Redirects win over matching
+assets and headers, but they do not always run ahead of a custom-domain cache.
+[Cloudflare's serving documentation](https://developers.cloudflare.com/pages/configuration/serving-pages/)
+warns that cached responses can be served before redirects or Functions run.
+The generated headers contain no `s-maxage=604800` API rule. The source's
+seven-day rule applies only to PNGs. The observed API header and `Age` therefore
+come from outside the current generated header policy; the repository alone
+does not identify the responsible cache configuration.
+
+New assets and headers cannot retroactively expire a response in a cache that
+runs ahead of Pages. After every enabled production deploy, the smoke job
+requests every exact path and representative existing and unknown family
+members on **https://modelspec.dev**, with no query string or request cache
+bypass. It accepts 404/410 or the exact removal notice with `no-store`, and
+fails on all other 200 bodies. A successful deployment URL check is insufficient.
+If the custom-domain check still fails after deploying these tombstones, the
+stale cache needs an upstream bypass or invalidation before withdrawal is
+complete. Do not report immediate removal solely from the build artifact.
 
 The graph's frozen assets move to `/graph/data/`; its client reads those paths.
 No private data enters that directory. Agent discovery points callers to the

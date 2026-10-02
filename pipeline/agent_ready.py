@@ -2,7 +2,7 @@
 
 Called once from `pipeline.build.main` after the pages exist. Adds robots
 Content-Signals, favicon.ico, Markdown twins, well-known discovery documents,
-JSON-LD, llms-full.txt, and the Pages Function that serves Markdown for
+JSON-LD, and the Pages Function that serves Markdown for
 `Accept: text/markdown`. Does not restructure the build.
 """
 
@@ -15,15 +15,11 @@ import json
 import re
 import shutil
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
-from pipeline import brand
+from pipeline import brand, entity
 from pipeline.export import Build
 from pipeline.load import Benchmark, Catalogue, Model, REPO_ROOT
-
-#: Cap for /llms-full.txt. Cloudflare Pages refuses a file over 25 MiB;
-#: this is well under that and still fits a typical context window.
-LLMS_FULL_CAP = 1_048_576
 
 MS_BASE = "https://modelspec.dev"
 RANK_API = "https://api.modelspec.dev/v1/rank"
@@ -69,7 +65,6 @@ HOSTED_API_AUTH_DESCRIPTION = (
     "Key enforcement is being switched on. Today, hosted API requests without "
     "a key are served while ACCESS_ENFORCED is off."
 )
-_BYTES_WIDTH = 8
 PAGES_FILE_LIMIT = 20_000
 PAGES_ROUTES = {
     "version": 1,
@@ -77,7 +72,6 @@ PAGES_ROUTES = {
     "exclude": [
         "/api/*",
         "/fonts/*",
-        "/graph/vendor/*",
         "/functions/*",
         "/*.png",
         "/*.jpg",
@@ -433,7 +427,6 @@ def modelspec_landing_markdown(models: list[Model], benchmarks: list[Benchmark],
         f"- openapi: {OPENAPI_URL}\n"
         f"- auth: {MS_BASE}/auth.md\n"
         f"- llms: {MS_BASE}/llms.txt\n"
-        f"- llms-full: {MS_BASE}/llms-full.txt\n"
         f"\n"
         f"Use the hosted API at `POST https://api.modelspec.dev/v1/decide` "
         f"or the remote MCP Worker. {HOSTED_API_AUTH_DESCRIPTION} "
@@ -520,7 +513,7 @@ def mcp_card() -> dict[str, Any]:
     `tools` is extra; draft-07 additionalProperties default to true, and the
     The public card lists every MCP tool named here.
     """
-    description = "Decide which model fits a task, inspect cards, and check policy."
+    description = entity.SHORT
     if len(description) > MCP_DESCRIPTION_MAX:
         raise ValueError("MCP description exceeds schema maxLength 100")
     return {
@@ -758,93 +751,6 @@ def auth_markdown(root: Path) -> str:
     return "\n".join(lines)
 
 
-def _catalogue_digest(title: str, blocks: Iterable[str], *, cap: int,
-                      unit: str) -> tuple[str, dict[str, int]]:
-    """Single-file digest. Header states cap_bytes and the final byte count."""
-    zeros = "0" * _BYTES_WIDTH
-    header = f"# {title}\n# cap_bytes: {cap}\n# bytes: {zeros}\n"
-    reserve = 180
-    budget = cap - len(header.encode("utf-8")) - reserve
-    kept: list[str] = []
-    used = 0
-    included = 0
-    omitted = 0
-    block_list = list(blocks)
-    for i, block in enumerate(block_list):
-        size = len(block.encode("utf-8"))
-        if used + size > budget:
-            omitted = len(block_list) - i
-            break
-        kept.append(block)
-        used += size
-        included += 1
-    note = (
-        f"# truncated: {omitted} {unit} omitted (cap {cap} bytes)\n"
-        if omitted else ""
-    )
-    body = (header + note + "\n".join(kept)).rstrip() + "\n"
-    encoded = body.encode("utf-8")
-    if len(encoded) > cap:
-        body = encoded[: max(cap - 1, 0)].decode("utf-8", errors="ignore")
-        if not body.endswith("\n"):
-            body = body[: max(len(body) - 1, 0)] + "\n"
-    size = len(body.encode("utf-8"))
-    body = body.replace(f"# bytes: {zeros}", f"# bytes: {size:0{_BYTES_WIDTH}d}", 1)
-    size = len(body.encode("utf-8"))
-    return body, {"bytes": size, "cap": cap, "included": included, "omitted": omitted}
-
-
-def _model_blocks(models: Iterable[Model]) -> list[str]:
-    blocks = []
-    for model in models:
-        facts = model_facts(model)
-        blocks.append(
-            f"## {facts['id']}\n"
-            f"name: {facts['name']}\n"
-            f"provider: {_fmt(facts['provider'])}\n"
-            f"type: {_fmt(facts['type'])}\n"
-            f"context: {_fmt(facts['context'])}\n"
-            f"pricing: {_fmt(facts['pricing'])}\n"
-            f"licence: {_fmt(facts['licence'])}\n"
-            f"commercial_use: {_fmt(facts['commercial_use'])}\n"
-            + (f"source: https://github.com/turbobeest/modelspec/blob/main/models/{model.path.name}\n" if private_serving() else f"json: {MS_BASE}/api/models/{facts['id']}.json\n")
-        )
-    return blocks
-
-
-def _benchmark_blocks(benchmarks: Iterable[Benchmark], catalogue: Catalogue) -> list[str]:
-    blocks = []
-    for bench in benchmarks:
-        status = catalogue.for_benchmark(bench.benchmark_id).status
-        category = bench.front.get("category") if isinstance(bench.front, dict) else None
-        blocks.append(
-            f"## {bench.benchmark_id}\n"
-            f"name: {bench.name}\n"
-            f"category: {_fmt(category)}\n"
-            f"status: {status}\n"
-            + (f"source: https://github.com/turbobeest/modelspec/blob/main/benchmarks/{bench.path.name}\n" if private_serving() else f"json: {MS_BASE}/api/benchmarks/{bench.benchmark_id}.json\n")
-        )
-    return blocks
-
-
-def llms_full_models(models: Iterable[Model], *, cap: int = LLMS_FULL_CAP) -> tuple[str, dict[str, int]]:
-    return _catalogue_digest("ModelSpec catalogue digest", _model_blocks(models), cap=cap, unit="models")
-
-
-def llms_full_benchmarks(benchmarks: Iterable[Benchmark], catalogue: Catalogue,
-                         *, cap: int = LLMS_FULL_CAP) -> tuple[str, dict[str, int]]:
-    return _catalogue_digest(
-        "Benchmark catalogue digest", _benchmark_blocks(benchmarks, catalogue),
-        cap=cap, unit="benchmarks")
-
-
-def llms_full(models: Iterable[Model], benchmarks: Iterable[Benchmark], catalogue: Catalogue,
-              *, cap: int = LLMS_FULL_CAP) -> tuple[str, dict[str, int]]:
-    """One digest: model cards, then benchmark pages, under the same cap."""
-    blocks = _model_blocks(models) + _benchmark_blocks(benchmarks, catalogue)
-    return _catalogue_digest("ModelSpec catalogue digest", blocks, cap=cap, unit="records")
-
-
 def _write_favicon(tree: Path) -> int:
     brand.write_icons(tree)
     return (tree / "favicon.ico").stat().st_size
@@ -970,11 +876,7 @@ def ship(*, root: Path, ms: Path, models: list[Model],
                                        benchmark_jsonld(bench, catalogue))),
                 encoding="utf-8")
 
-    full, full_stats = llms_full(models, benchmarks, catalogue)
-    (ms / "llms-full.txt").write_text(full, encoding="utf-8")
-
     extra = (
-        f"- Catalogue digest: {MS_BASE}/llms-full.txt\n"
         f"- Auth: {MS_BASE}/auth.md\n"
         f"- MCP card: {MS_BASE}/.well-known/mcp.json\n"
     )
@@ -987,7 +889,6 @@ def ship(*, root: Path, ms: Path, models: list[Model],
     return {
         "markdown_pages": md_count,
         "favicon_bytes": ms_fav,
-        "llms_full": full_stats,
         "skill_bytes": len(skill_bytes),
         "openapi_published": (ms / "openapi.yaml").is_file(),
     }

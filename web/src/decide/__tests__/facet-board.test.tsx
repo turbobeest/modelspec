@@ -12,8 +12,10 @@ import { realVocabulary, smallVocabulary } from "./vocab-fixtures";
 import { toDecisionSpec } from "../adapter/view-model";
 import { decisionSpecSchema } from "../adapter/contract";
 import { decodeSpec } from "../state/spec";
+import { renderContractCondition } from "../adapter/condition-label";
 import { LEGACY_PERMALINKS } from "../__fixtures__/legacy-permalinks";
 import refinementVocabularyJson from "../__fixtures__/vocabulary-refinements.json";
+import vendorVocabularyJson from "../__fixtures__/vocabulary-vendors.json";
 import { vocabularySchema } from "../vocabulary";
 import type { Vocabulary } from "../vocabulary";
 import type { Spec } from "../engine/types";
@@ -615,6 +617,64 @@ it("reopens Must, Prefer and Must+Prefer selections and keeps them after another
     expect.objectContaining({ facet: "offering.cost_per_task", value: 0.25 }),
   ]));
   expect(next.boardWeights).toEqual({ software_engineering: 0.6, "-offering.cost_per_task": 0.4 });
+});
+
+describe("a best(m) floor from a Fastest template", () => {
+  // The templates as build_vocabulary writes them, on the live vocabulary's domains.
+  const fastest = (vocabularySchema.parse(vendorVocabularyJson).templates ?? [])
+    .filter((template) => template.tier === "fastest");
+  const codingFastest = fastest.find((template) => template.id === "coding-fastest");
+  if (!codingFastest) throw new Error("coding-fastest is missing from the vendor vocabulary");
+  const floor = "software_engineering >= best(1.0)";
+
+  it.each(fastest)("sends $id's floor exactly as the template writes it", (template) => {
+    const [domain] = template.needs.domains;
+    const { selections, mustOrder } = templateToBoard(template, realVocabulary);
+    const spec = boardSpec({ ...realBaseSpec(realVocabulary), conds: [] }, realVocabulary, selections, mustOrder);
+    expect(template.spec.where).toContain(`${domain} >= best(1.0)`);
+    expect(toDecisionSpec(spec, "full").where).toEqual(template.spec.where);
+  });
+
+  it("shows the floor as a Must on the capability row", () => {
+    const { selections, mustOrder } = templateToBoard(codingFastest, realVocabulary);
+    expect(selections["capability.software_engineering"]).toEqual({
+      mode: "must", op: ">=", value: { best: 1 }, reason: codingFastest.where[2].reason,
+    });
+    expect(selections.software_engineering).toBeUndefined();
+    expect(mustOrder).toEqual(["model.class", "model.lifecycle", "capability.software_engineering"]);
+    render(<FacetBoard vocabulary={realVocabulary} spec={realBaseSpec(realVocabulary)} selections={selections} onSpec={vi.fn()} estate={emptyEstate} onEstate={vi.fn()} />);
+    const capability = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
+    expect(within(capability).getByLabelText("Must")).toBeChecked();
+    expect(within(capability).getByText("Within 1.0 of the best eligible model")).toBeInTheDocument();
+  });
+
+  it("sends a spec the contract accepts", () => {
+    const { selections, mustOrder } = templateToBoard(codingFastest, realVocabulary);
+    const spec = boardSpec({ ...realBaseSpec(realVocabulary), conds: [] }, realVocabulary, selections, mustOrder);
+    expect(decisionSpecSchema.parse(toBoardDecisionSpec(spec, "full")).where).toEqual([
+      "model.class = text-generator", "model.lifecycle = active", floor,
+    ]);
+  });
+
+  it("keeps the floor through the board URL", () => {
+    const { selections, mustOrder } = templateToBoard(codingFastest, realVocabulary);
+    const spec = boardSpec({ ...realBaseSpec(realVocabulary), conds: [] }, realVocabulary, selections, mustOrder);
+    const hash = encodeBoardSpec(spec, "task$", { selections, mustOrder, estate: emptyEstate });
+    expect(decodeBoardState(hash)?.selections["capability.software_engineering"]?.value).toEqual({ best: 1 });
+    expect(decodeSpec(hash)?.spec.conds).toContainEqual(expect.objectContaining({
+      facet: "software_engineering", op: ">=", value: { best: 1 },
+    }));
+  });
+
+  it("reads the floor in a funnel or elimination label", () => {
+    expect(renderContractCondition(floor)).toBe("Software engineering: within 1.0 of the best");
+  });
+
+  it("formats a fractional margin as the engine does", () => {
+    expect(parseBoardCondition("software_engineering >= best(0.5)").value).toEqual({ best: 0.5 });
+    expect(formatBoardCondition("software_engineering", { mode: "must", op: ">=", value: { best: 0.5 } }))
+      .toBe("software_engineering >= best(0.5)");
+  });
 });
 
 describe("a stored estate after the vocabulary changes", () => {

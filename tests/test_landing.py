@@ -156,6 +156,8 @@ def landing_browser_results(tmp_path_factory: pytest.TempPathFactory) -> dict[st
         assembled / "decide" / "index.html",
     )
     shutil.copytree(ROOT / "web" / "dist" / "assets", assembled / "assets")
+    # The decide page loads the site's faces from /fonts/, as deployed.
+    shutil.copytree(ROOT / "site" / "fonts", assembled / "fonts")
     try:
         completed = subprocess.run(
             ["node", str(browser_script), str(live), str(holding), str(method_page), str(assembled)],
@@ -232,9 +234,8 @@ def test_live_and_holding_variants_differ_only_where_the_contract_requires(
     assert "Every number is one click from its source." not in holding
     assert 'href="/decide/">Open the board</a>' in live
     assert 'href="/decide/">Open the board</a>' not in holding
-    assert live.count('href="/graph/">Explore the graph</a>') == 1
-    assert live.index('href="/graph/">Explore the graph</a>') > live.index("<footer>")
-    assert 'href="/graph/">Explore the graph</a>' not in holding
+    for page in (live, holding):
+        assert 'href="/graph/"' not in page
     for page in (live, holding):
         assert page.count('href="/pricing/">Pricing</a>') == 2
         assert page.rindex('href="/pricing/">Pricing</a>') > page.index("<footer>")

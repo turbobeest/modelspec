@@ -70,9 +70,9 @@ def test_a_page_without_a_head_end_tag_gets_the_block_at_the_end(tmp_path: Path)
 
 def test_a_missing_page_is_skipped(tmp_path: Path) -> None:
     tree = _tree(tmp_path)
-    (tree / "graph" / "index.html").unlink()
+    (tree / "pricing" / "index.html").unlink()
 
-    assert "/graph/" not in sd.inject(tree, ROOT)
+    assert "/pricing/" not in sd.inject(tree, ROOT)
 
 
 def test_the_breadcrumb_names_the_page_and_links_home(tmp_path: Path) -> None:
@@ -128,6 +128,7 @@ def test_configured_profiles_become_the_organization_same_as(tmp_path: Path) -> 
     nodes = _graph(tree, "/")
 
     assert nodes[0]["sameAs"] == [
+        "https://github.com/turbobeest/modelspec",
         "https://x.com/modelspecdev", "https://www.linkedin.com/company/modelspec-dev/"]
     assert nodes[3]["name"] == "ModelSpec API"
     assert all("downloadUrl" not in node for node in nodes)

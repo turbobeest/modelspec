@@ -2,9 +2,9 @@
 <img width="2816" height="797" alt="modelspec" src="https://github.com/user-attachments/assets/1e344d67-605d-4577-8ea4-84148d5ae3d5" />
 </p>
 
-ModelSpec is a decision engine for AI models. It reads a spec, filters models and offerings against its constraints, and explains the decision from a versioned snapshot. The catalogue starts as YAML and Markdown, then exports to JSON on Cloudflare Pages ([modelspec.dev](https://modelspec.dev)). **No database is on the serving path.**
+ModelSpec is an analysis of alternatives for AI models: it decides which models fit a job from your requirements, sourced benchmarks and real cost, and shows its work. It reads a spec, filters models and offerings against its constraints, and explains the decision from a versioned snapshot. The catalogue starts as YAML and Markdown, then exports to JSON on Cloudflare Pages ([modelspec.dev](https://modelspec.dev)). **No database is on the serving path.**
 
-- Site: [modelspec.dev](https://modelspec.dev) · [decide](https://modelspec.dev/decide/) · [graph](https://modelspec.dev/graph/)
+- Site: [modelspec.dev](https://modelspec.dev) · [decide](https://modelspec.dev/decide/)
 - Historical CLI contract: [`docs/cli-contract.md`](docs/cli-contract.md)
 - Current state: [`docs/handoff/current.md`](docs/handoff/current.md)
 - Agent entry: [`AGENTS.md`](AGENTS.md)
@@ -27,7 +27,6 @@ models/*.md ──▶ pipeline/build.py ──▶ static JSON on Cloudflare Page
                                       (modelspec.dev /api/*.json)
                                             │
 Hosted API ──────────────────────────────────┘
-Wizard / 3D graph read the same JSON in the browser.
 ```
 
 FalkorDB is optional local graph exploration only. It is not required to rank, fit, or render the sites.

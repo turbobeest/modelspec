@@ -9,7 +9,7 @@ the Pages preview branch `internal` always, and to production when
 `SITE_MODE=live`.
 
 **An allowlist.** A page the v1 build still generates (model, provider and
-benchmark pages, the wizard, the explorer) is absent here unless this module
+benchmark pages, the wizard) is absent here unless this module
 names it, so it cannot reappear merely by being generated.
 
 **Discovery is checked, not trusted.** This allowlist used to be `cp` lines in
@@ -35,31 +35,31 @@ import urllib.error
 import urllib.request
 from pathlib import Path
 
-from pipeline import brand, landing, landing_chrome, security_headers, social_cards, structured_data
+from pipeline import brand, landing, landing_chrome, public_data, security_headers, social_cards, structured_data
 
 BASE = "https://modelspec.dev"
 
 #: Copied whole from the v1 build.
 KEEP_DIRS = (
     "api", "legal", ".well-known", "method", landing.ASSET_DIR, "pricing",
-    "pricing-assets", "fonts", "graph",
+    "pricing-assets", "fonts",
     # MODEL-221: the feedback page, and the control every page loads.
     "feedback", "feedback-assets",
 )
 #: Copied from the v1 build. The discovery files are what MODEL-214 restored.
 KEEP_FILES = (
     "index.html", "openapi.yaml",
-    "llms.txt", "llms-full.txt", "index.md", "auth.md",
+    "llms.txt", "index.md", "auth.md",
     *brand.FILES,
 )
 #: The public pages, in sitemap order.
 PAGES = (
-    "/", "/method/", "/decide/", "/graph/", "/pricing/", "/feedback/",
+    "/", "/method/", "/decide/", "/pricing/", "/feedback/",
     "/legal/terms/", "/legal/privacy/", "/legal/neutrality/",
 )
 #: Files an agent is pointed at. Every modelspec.dev link in them must resolve.
 DISCOVERY = (
-    "llms.txt", "llms-full.txt", "index.md", "auth.md", "robots.txt", "sitemap.xml",
+    "llms.txt", "index.md", "auth.md", "robots.txt", "sitemap.xml",
     ".well-known/api-catalog", ".well-known/mcp.json",
     ".well-known/agent-skills/index.json", ".well-known/agent-skills/modelspec/SKILL.md",
 )
@@ -70,11 +70,19 @@ LEGACY = (
     "/downselect", "/models", "/providers", "/benchmarks",
     "/m/*", "/p/*", "/b/*",
 )
+#: Retired by MODEL-251: the 3D graph explorer and the catalogue digest.
+#: Old links land on the home page and on llms.txt instead of a 404.
+RETIRED = (
+    "/graph  /  301\n",
+    "/graph/  /  301\n",
+    "/graph/*  /  301\n",
+    "/llms-full.txt  /llms.txt  301\n",
+)
 REDIRECTS = "/landing/  /  301\n" + "".join(
     f"{rule}{suffix}  /decide/  301\n"
     for rule in LEGACY
     for suffix in (("",) if rule.endswith("*") else ("", "/"))
-)
+) + "".join(RETIRED)
 ROBOTS = f"User-agent: *\nAllow: /\n\nSitemap: {BASE}/sitemap.xml\n"
 #: Appended to the v1 build's `_headers` (site/holding/_headers), which carries
 #: the discovery `Link` header and the content types of llms.txt, the Markdown
@@ -143,13 +151,17 @@ def build(src: Path, web: Path, out: Path) -> None:
     (tree / "404.html").write_text(not_found(), encoding="utf-8")
     shutil.copytree(web / "assets", tree / "assets",
                     ignore=shutil.ignore_patterns("main-*"))
-    (tree / "_redirects").write_text(REDIRECTS, encoding="utf-8")
+    redirects = (public_data.REDIRECTS if public_data.enabled() else "") + REDIRECTS
+    (tree / "_redirects").write_text(redirects, encoding="utf-8")
     (tree / "robots.txt").write_text(ROBOTS, encoding="utf-8")
     (tree / "sitemap.xml").write_text(sitemap(), encoding="utf-8")
     structured_data.inject(tree)
     headers = (real / "_headers").read_text(encoding="utf-8")
+    headers = headers.rstrip("\n") + "\n" + HEADERS
+    if public_data.enabled():
+        headers = public_data.cache_headers(headers)
     (tree / "_headers").write_text(
-        security_headers.add_to(headers.rstrip("\n") + "\n" + HEADERS, tree), encoding="utf-8")
+        security_headers.add_to(headers, tree), encoding="utf-8")
     (out / "benchgraph").mkdir()
     shutil.copy2(src / "benchgraph" / "_redirects", out / "benchgraph" / "_redirects")
 

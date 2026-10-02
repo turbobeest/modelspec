@@ -1,9 +1,8 @@
 """One brand lockup, one scale, on every page (MODEL-213).
 
 `pipeline.landing_chrome` owns the lockup's markup and its CSS. Pages the
-pipeline renders call it. The graph explorer and the decide app are built
-without the pipeline, so they carry verbatim copies, and these tests are what
-keeps those copies equal.
+pipeline renders call it. The decide app is built without the pipeline, so it
+carries a verbatim copy, and these tests are what keeps that copy equal.
 """
 
 from __future__ import annotations
@@ -31,7 +30,6 @@ PAGES = {
                                     build=BUILD),
     "legal": _legal_page,
     "holding 404": lambda: holding.dark_page(holding.SITES["modelspec"]),
-    "graph": lambda: (ROOT / "web3d/explorer.html").read_text(encoding="utf-8"),
 }
 
 

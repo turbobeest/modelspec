@@ -158,20 +158,6 @@ jobs:
           diff -r dist dist-internal
           rm -rf dist-v1
 
-      - name: Check the graph in Chromium
-        env:
-          CI: true
-          MODELSPEC_GRAPH_BASE_URL: http://127.0.0.1:8000
-        run: |
-          cd web
-          npx playwright install --with-deps chromium
-          cd ..
-          python -m http.server 8000 --bind 127.0.0.1 --directory dist/modelspec >/tmp/modelspec-http.log 2>&1 &
-          server_pid=$!
-          trap 'kill "$server_pid"' EXIT
-          cd web
-          npx playwright test --config=playwright.graph.config.ts
-
       - name: Guard the Cloudflare Pages limits
         run: |
           # Pages refuses a deployment over 20,000 files or with any file over 25 MiB.
@@ -197,11 +183,6 @@ jobs:
           test -s dist/modelspec/index.html
           test -s dist/modelspec/method/index.html
           test -s dist/modelspec/decide/index.html
-          test -s dist/modelspec/graph/index.html
-          test -s dist/modelspec/graph/vendor/three.min.js
-          test -s dist/modelspec/graph/vendor/3d-force-graph.min.js
-          test "$(find dist/modelspec/graph/vendor -type f | wc -l | tr -d ' ')" = 2
-          test ! -e dist/modelspec/graph/vendor/README.md
           test -s dist/modelspec/pricing/index.html
           test -s dist/modelspec/pricing-assets/pricing.css
           test -s dist/modelspec/pricing-assets/pricing.js
@@ -214,18 +195,21 @@ jobs:
           grep -Fq '<link rel="canonical" href="https://modelspec.dev/"' dist/modelspec/index.html
           grep -Fq '<link rel="canonical" href="https://modelspec.dev/method/"' dist/modelspec/method/index.html
           grep -Fq '<link rel="canonical" href="https://modelspec.dev/decide/"' dist/modelspec/decide/index.html
-          grep -Fq '<link rel="canonical" href="https://modelspec.dev/graph/"' dist/modelspec/graph/index.html
           grep -Fq '<link rel="canonical" href="https://modelspec.dev/pricing/"' dist/modelspec/pricing/index.html
           if grep -Eiq '<meta[^>]+noindex' dist/modelspec/index.html; then echo '::error::dist/modelspec/index.html carries a noindex meta tag'; exit 1; fi
           if grep -Eiq '<meta[^>]+noindex' dist/modelspec/method/index.html; then echo '::error::dist/modelspec/method/index.html carries a noindex meta tag'; exit 1; fi
           if grep -Eiq '<meta[^>]+noindex' dist/modelspec/decide/index.html; then echo '::error::dist/modelspec/decide/index.html carries a noindex meta tag'; exit 1; fi
-          if grep -Eiq '<meta[^>]+noindex' dist/modelspec/graph/index.html; then echo '::error::dist/modelspec/graph/index.html carries a noindex meta tag'; exit 1; fi
           if grep -Eiq '<meta[^>]+noindex' dist/modelspec/pricing/index.html; then echo '::error::dist/modelspec/pricing/index.html carries a noindex meta tag'; exit 1; fi
           if grep -Fiq 'X-Robots-Tag' dist/modelspec/_headers; then echo '::error::dist/modelspec/_headers must not carry X-Robots-Tag; the live build has to be indexable'; exit 1; fi
           grep -Fq '/landing/  /  301' dist/modelspec/_redirects
+          # MODEL-251: the 3D graph and the catalogue digest are retired, not 404s.
+          test ! -e dist/modelspec/graph
+          test ! -e dist/modelspec/llms-full.txt
+          grep -Fq '/graph/*  /  301' dist/modelspec/_redirects
+          grep -Fq '/llms-full.txt  /llms.txt  301' dist/modelspec/_redirects
           test ! -e dist/modelspec/landing
           test -s dist/modelspec/sitemap.xml
-          for f in llms.txt llms-full.txt index.md auth.md .well-known/mcp.json .well-known/api-catalog; do test -s dist/modelspec/$f; done
+          for f in llms.txt index.md auth.md .well-known/mcp.json .well-known/api-catalog; do test -s dist/modelspec/$f; done
           test -s dist/modelspec/404.html
           if [ "$DATA_SPLIT_ENABLED" != "true" ]; then
           test -s dist/modelspec/api/index.json
@@ -240,9 +224,6 @@ jobs:
           test -s dist/modelspec/api/rank/profiles.json
           if [ "$DATA_SPLIT_ENABLED" != "true" ]; then
           test -s dist/modelspec/api/policy/catalogue.json
-          fi
-          if [ "$DATA_SPLIT_ENABLED" != "true" ]; then
-          test -s dist/modelspec/api/graph/views/hardware.json
           fi
           test -s dist/modelspec/legal/terms/index.html
           test -s dist/modelspec/legal/privacy/index.html
@@ -321,7 +302,6 @@ jobs:
           build = load("dist/modelspec/api/build.json")
           candidates = load("dist/modelspec/api/rank/candidates.json")
           profiles = load("dist/modelspec/api/rank/profiles.json")
-          hardware = load("dist/modelspec/api/graph/views/hardware.json")
           policy = load("dist/modelspec/api/policy/catalogue.json")
           version = build["export_schema_version"]
           if not version or not str(version)[0].isdigit():
@@ -330,7 +310,6 @@ jobs:
               ("index.json", index),
               ("candidates.json", candidates),
               ("profiles.json", profiles),
-              ("hardware.json", hardware),
               ("policy/catalogue.json", policy),
           ):
               got = (payload.get("build") or {}).get("export_schema_version")
@@ -510,6 +489,13 @@ jobs:
         run: |
           pip install pydantic pyyaml "httpx==0.28.1" build
           cd web && npm ci
+
+      - name: Check withdrawn bulk routes on the production custom domain
+        # Bare URLs expose Pages' custom-domain cache. A preview URL or a
+        # cache-busting query passed while modelspec.dev still served old JSON.
+        # Run in holding mode too, and fail on any data-bearing 200 response.
+        if: ${{ !cancelled() && vars.DATA_SPLIT_ENABLED == 'true' }}
+        run: python -m pipeline.public_data smoke --origin https://modelspec.dev
 
       - name: Wait for the Worker from this commit
         # rank-api.yml deploys it from the same push; up to 10 minutes, then a
