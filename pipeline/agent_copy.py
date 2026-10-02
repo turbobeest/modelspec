@@ -37,7 +37,7 @@ NULL_RULE = (
     "This tool returns the origin's JSON plus the origin URL; it does not invent fields."
 )
 SPEC_GUIDANCE = (
-    "Read vocab first for valid facet ids. Put Musts in where: these gates exclude. "
+    "Read vocab first with section=starter for valid facet ids. Put Musts in where: these gates exclude. "
     "Put Prefers in optimize.weights: weights rank and never exclude. Unknown values "
     "go to may_qualify instead of being dropped. Pin snapshot for reproducibility. "
     "Example for a coding agent on a budget: "
@@ -122,10 +122,13 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
         "vocab": (
             "What can a decide spec say? "
             "Returns the decision vocabulary: valid facet ids, benchmarks, domains, providers "
-            "and task types. In split mode it contains definitions and names only, with no "
-            "prices, allowances, score ranges or counts. Free, no key. "
+            "and task types. Compact by default, with 20 rows per page and no counts. "
+            "In split mode full details still exclude per-model facts and counts. Free, no key. "
             "Call it before writing a spec, not to compare models. "
-            "Pass section to return only one section. "
+            "Call vocab section=starter first for the facets used most by the 40 template specs. "
+            "Use search for a case-insensitive substring of id or label, then call decide. "
+            "Pass id or ids for full details of specific rows, or detail=full for all display details. "
+            "Use offset and limit to page compact sections; an empty page ends the list. "
             f"{SPEC_GUIDANCE}"
         ),
         "model_info": (
@@ -178,7 +181,7 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
         "_generated": "by pipeline/agent_copy.py (MODEL-257); edit that, then run "
                       "python -m pipeline.agent_copy write",
         "instructions": f"{entity.ONE_SENTENCE} {entity.DISAMBIGUATION} "
-                        "Start with vocab, then call decide once per job or role.",
+                        "Start with vocab section=starter, use search, then call decide once per job or role.",
         "tools": tools,
         "card": card,
         "openapi": openapi,

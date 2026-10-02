@@ -3121,6 +3121,22 @@ def apply_agent_copy(spec: dict[str, Any]) -> dict[str, Any]:
     return spec
 
 
+def vocabulary_parameters():
+    from api.worker.src.display_vocabulary import SECTIONS, PAGE_SIZE
+    fields = {
+        "section": ({"type": "string", "enum": list(SECTIONS), "default": "starter"}, "Select a compact section. No query parameters returns the unchanged full display vocabulary for /decide."),
+        "search": ({"type": "string"}, "Case-insensitive substring over id and label or display name."),
+        "id": ({"type": "string"}, "Full display details for one exact id."),
+        "ids": ({"type": "array", "items": {"type": "string"}}, "Full display details for exact ids; comma-separated or repeated query parameters. Combined with id by union, then intersected with search."),
+        "detail": ({"type": "string", "enum": ["compact", "full"], "default": "compact"}, "Full selects all rows and existing display details in the section. It never adds private facts."),
+        "offset": ({"type": "integer", "minimum": 0, "default": 0}, "Skip matching rows in compact mode. An empty page ends the list."),
+        "limit": ({"type": "integer", "minimum": 1, "maximum": PAGE_SIZE, "default": PAGE_SIZE}, "Compact page size. Full detail or ids bypass pagination."),
+    }
+    return [{"name": key, "in": "query", "required": False, "schema": schema,
+             "description": description, **({"style": "form", "explode": False} if key == "ids" else {})}
+            for key, (schema, description) in fields.items()]
+
+
 def render() -> str:
     spec = apply_agent_copy(build_spec())
     from pipeline.public_data import enabled
@@ -3129,12 +3145,15 @@ def render() -> str:
             "get": {
                 "operationId": "displayVocabulary",
                 "summary": "Display definitions and names for /decide",
-                "description": "Available with DATA_SPLIT_ENABLED. Facet definitions, benchmark and domain names, templates, and model/plan IDs and display names only. Aggregate answerability, facet/enum data availability, refinement definitions and a thin boolean are included. Benchmark min/max is included only when at least 3 models have a score on that benchmark; ranges for 1 or 2 scored models are omitted. No prices, allowances, counts, individual scores or archived model names. HUMAN_GATE_ENABLED meters the same keyed visitor Durable Object with an independent 60 per UTC day and 10 per minute budget. Successful responses use Cache-Control: private, max-age=3600.",
+                "description": "Available with DATA_SPLIT_ENABLED. Facet definitions, benchmark and domain names, templates, and model/plan IDs and display names only. Aggregate answerability, facet/enum data availability, refinement definitions and a thin boolean are included. Benchmark min/max is included only when at least 3 models have a score on that benchmark; ranges for 1 or 2 scored models are omitted. No prices, allowances, counts, individual scores or archived model names. HUMAN_GATE_ENABLED meters the same keyed visitor Durable Object with an independent 60 per UTC day and 10 per minute budget. Successful responses use Cache-Control: private, max-age=3600. With lookup parameters, only the selected section is populated; the existing required envelope fields remain present. Compact facets carry id, label, a one-line definition, value_type and finite allowed_values. Providers and models carry IDs and display names. Compact pages contain at most 20 rows. The no-query response stays byte-identical for /decide.",
                 "security": [],
+                "parameters": vocabulary_parameters(),
                 "x-modelspec-probe": "skip",
                 "responses": {
+                    "400": {"description": "Invalid vocabulary query"},
                     "200": {"description": "Display vocabulary", "headers": {"Cache-Control": {"schema": {"type": "string"}}},
                             "content": {"application/json": {"schema": {"type": "object", "properties": {
+                                "starter": {"type": "array", "items": {"type": "object"}, "description": "Compact facets used most often in the template specs; only present in a starter lookup."},
                                 "facets": {"type": "array", "items": {"type": "object"}},
                                 "benchmarks": {"type": "array", "items": {"type": "object"}},
                                 "domains": {"type": "array", "items": {"type": "object"}},

@@ -64,7 +64,8 @@ def test_the_web_fixture_has_the_shape_the_builder_writes():
     fixture_facets = {row["id"]: set(row) for row in VOCABULARY["facets"]}
     for row in fresh["facets"]:
         assert fixture_facets[row["id"]] <= set(row) | {"range", "values", "literals"}, row["id"]
-        assert set(row) <= fixture_facets[row["id"]] | {"range", "values", "literals"}, row["id"]
+        # MODEL-280 adds finite allowed values; older page vocabularies omit it.
+        assert set(row) <= fixture_facets[row["id"]] | {"range", "values", "literals", "allowed_values"}, row["id"]
 
 
 PAGE_SNAPSHOT_KEY = b"model-111-page-parity"

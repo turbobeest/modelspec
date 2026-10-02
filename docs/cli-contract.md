@@ -63,6 +63,11 @@ Vocabulary domain rows may include `estimate_benchmarks`, the benchmark IDs
 that drive stored capability estimates. This list can differ from the domain's
 `benchmarks` drill-down. Vocabulary model rows may include `class`, the model's
 class from the snapshot; older cached vocabularies can omit both fields.
+Facet rows may also include `allowed_values`, the complete finite vocabulary
+from the facet registry, even when the snapshot has not observed every value
+(MODEL-280). This is a new optional field. Existing `values` rows and their
+counts retain their shape and meaning; the vocabulary and CLI envelope
+versions do not change.
 
 `modelspec decide SPEC.yaml --check` loads the cached decision snapshot, parses
 the spec with decide's registry, and runs decide's resolve stage. It stops before

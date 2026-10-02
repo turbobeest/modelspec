@@ -116,6 +116,7 @@ describe("modelspec MCP worker", () => {
       [...TOOL_NAMES].sort(),
     );
     expect(result.tools).toHaveLength(7);
+    expect(result.tools).toMatchSnapshot();
     for (const tool of result.tools) {
       expect(tool.inputSchema).toBeTruthy();
       expect(tool.inputSchema.type ?? "object").toBe("object");
@@ -447,10 +448,11 @@ describe("modelspec MCP worker", () => {
     expect((payload.result as { isError?: boolean }).isError).toBe(true);
   });
 
-  it("vocab returns the complete static decision vocabulary", async () => {
+  it("vocab defaults to starter facets from template specs", async () => {
     const vocabulary = {
       facets: [{ id: "model.context_window" }],
       task_types: ["new_feature"],
+      templates: [{ spec: { where: ["model.context_window >= 32000"] } }],
     };
     originFetch.mockResolvedValueOnce(jsonResponse(200, vocabulary));
     const { payload } = await rpc("tools/call", {
@@ -461,7 +463,7 @@ describe("modelspec MCP worker", () => {
     expect(envelope.origin).toBe(
       "https://modelspec.dev/api/decision/vocabulary.json",
     );
-    expect(envelope.body).toEqual(vocabulary);
+    expect(envelope.body).toEqual(vocabulary.facets);
   });
 
   it("vocab returns only the requested section", async () => {
@@ -489,16 +491,40 @@ describe("private display vocabulary", () => {
     for (const value of forbidden) expect(JSON.stringify(untrimmed)).toContain(value);
     const via = { fetch: vi.fn().mockImplementation(async () => jsonResponse(200, vocabulary)) };
     const env = { ...ENV, DATA_SPLIT_ENABLED: "true", RANK: via };
-    for (const [name, args] of [["vocab", {}], ["model_info", { model_id: "lab/model247-private-sentinel-8675309" }]] as const) {
+    for (const [name, args] of [["vocab", { section: "models", detail: "full" }], ["model_info", { model_id: "lab/model247-private-sentinel-8675309" }]] as const) {
       via.fetch.mockImplementationOnce(async () => jsonResponse(200, untrimmed));
       const control = await rpc("tools/call", { name, arguments: args }, 1, { authorization: "Bearer test_key", "CF-Connecting-IP": "203.0.113.9" }, env);
       for (const value of forbidden) expect(JSON.stringify(envelopeFromCall(control.payload).body)).toContain(value);
       const { payload } = await rpc("tools/call", { name, arguments: args }, 1, { authorization: "Bearer test_key", "CF-Connecting-IP": "203.0.113.9" }, env);
       const envelope = envelopeFromCall(payload);
-      expect(envelope.origin).toBe("https://api.modelspec.dev/v1/vocabulary");
+      expect(envelope.origin).toBe(name === "vocab" ? "https://api.modelspec.dev/v1/vocabulary?section=models&detail=full" : "https://api.modelspec.dev/v1/vocabulary");
       expect(JSON.stringify(envelope.body)).toContain("model247-private-sentinel-8675309");
       for (const value of forbidden) expect(JSON.stringify(envelope.body)).not.toContain(value);
     }
     expect(via.fetch).toHaveBeenCalledTimes(4);
+  });
+});
+
+describe("compact HTTP vocabulary requests", () => {
+  it("forwards the lookup options through the service binding and selects its section", async () => {
+    const rows = [{ id: "model.context_window", operators: [">="] }];
+    const via = { fetch: vi.fn().mockResolvedValue(jsonResponse(200, { facets: rows })) };
+    const { payload } = await rpc("tools/call", {
+      name: "vocab",
+      arguments: { section: "facets", search: "CONTEXT", id: "model.context_window", ids: ["missing"], offset: 1, limit: 2 },
+    }, 1, { "CF-Connecting-IP": "203.0.113.9" }, { ...ENV, DATA_SPLIT_ENABLED: "true", RANK: via });
+    const envelope = envelopeFromCall(payload);
+    expect(envelope.body).toEqual(rows);
+    const url = new URL(envelope.origin);
+    expect(Object.fromEntries(url.searchParams)).toEqual({ section: "facets", detail: "compact", search: "CONTEXT", id: "model.context_window", ids: "missing", offset: "1", limit: "2" });
+    const [, init] = via.fetch.mock.calls[0];
+    expect(new Headers(init.headers).get("CF-Connecting-IP")).toBe("203.0.113.9");
+  });
+
+  it("defaults the HTTP lookup to starter and compact", async () => {
+    const via = { fetch: vi.fn().mockResolvedValue(jsonResponse(200, { starter: [] })) };
+    const { payload } = await rpc("tools/call", { name: "vocab", arguments: {} }, 1, {}, { ...ENV, DATA_SPLIT_ENABLED: "true", RANK: via });
+    expect(envelopeFromCall(payload).origin).toBe("https://api.modelspec.dev/v1/vocabulary?section=starter&detail=compact");
+    expect(envelopeFromCall(payload).body).toEqual([]);
   });
 });

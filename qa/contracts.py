@@ -15,6 +15,7 @@ ROOT = Path(__file__).resolve().parents[1]
 TOOL_NAMES = ("rank", "model_info", "list_use_cases", "policy_check", "decide", "vocab", "feedback")
 SOURCE_PATHS = (
     "mcp/src/server.ts",
+    "mcp/src/vocabulary.ts",
     "docs/decision-contract.schema.json",
     "api/worker/openapi.yaml",
 )
@@ -134,15 +135,29 @@ def capture_tools() -> dict:
                 "section": {
                     "type": "string",
                     "enum": [
+                        "starter",
                         "facets",
                         "benchmarks",
                         "domains",
                         "providers",
+                        "models",
                         "task_types",
                         "coverage",
+                        "templates",
+                        "refinements",
+                        "estate",
+                        "vendors",
+                        "template_categories",
+                        "template_tiers",
                     ],
-                    "description": "Return only this vocabulary section",
-                }
+                    "description": "Return only this vocabulary section; defaults to starter",
+                },
+                "search": {"type": "string", "description": "Case-insensitive substring over id and label or display name"},
+                "id": {"type": "string", "description": "Return full details for this exact id"},
+                "ids": {"type": "array", "items": {"type": "string"}, "description": "Return full details for these exact ids"},
+                "detail": {"type": "string", "enum": ["compact", "full"], "description": "Full returns all display details; defaults to compact"},
+                "offset": {"type": "integer", "minimum": 0, "description": "Skip this many matching rows; defaults to 0"},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 20, "description": "Compact page size; defaults to 20"},
             },
         },
     }
