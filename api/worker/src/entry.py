@@ -173,7 +173,8 @@ EXPORT_TTL_SECONDS = 300
 
 #: Module-scope, so it survives across requests within an isolate and is
 #: rebuilt by the memory snapshot on a cold start.
-_cache: dict[str, object] = {"at": 0.0, "candidates": None, "hardware": None, "error": None}
+_cache: dict[str, object] = {"at": 0.0, "candidates": None, "hardware": None,
+                            "prepared": None, "error": None}
 
 #: The policy export and the determination store, cached on the same terms. The
 #: determinations change when someone runs the loader, which is rare; the TTL
@@ -229,6 +230,20 @@ async def _get_json(url: str):
     if not response.ok:
         raise RuntimeError(f"{url} returned HTTP {response.status}")
     return json.loads(await response.text())
+
+
+# Bundled exports cannot change within this deployment. Prepare them in the
+# deployment memory snapshot, as we already do for the decision snapshot.
+if globals().get("bundled_data") is not None:
+    _rank_bytes = bundled_data.read(CANDIDATES_PATH)
+    if _rank_bytes is not None:
+        _rank_export = json.loads(_rank_bytes)
+        _hardware_bytes = bundled_data.read(HARDWARE_PATH)
+        _cache.update(candidates=_rank_export,
+                      hardware=json.loads(_hardware_bytes) if _hardware_bytes else None,
+                      prepared=service.candidates_from_export(_rank_export))
+        del _rank_export, _hardware_bytes
+    del _rank_bytes
 
 
 class _Fetched:
@@ -290,7 +305,7 @@ async def _load_export(origin: str, *, force: bool = False):
     beats an error, which is the same call the CLI makes about a stale snapshot.
     """
     fresh = (time.time() - float(_cache["at"])) < EXPORT_TTL_SECONDS
-    if not force and fresh and _cache["candidates"] is not None:
+    if not force and (fresh or globals().get("bundled_data") is not None) and _cache["candidates"] is not None:
         return _cache["candidates"], _cache["hardware"]
 
     try:
@@ -307,6 +322,7 @@ async def _load_export(origin: str, *, force: bool = False):
         hardware = None
 
     _cache.update({"at": time.time(), "candidates": candidates,
+                   "prepared": service.candidates_from_export(candidates),
                    "hardware": hardware, "error": None})
     return candidates, hardware
 
@@ -587,8 +603,54 @@ def _html_response(status: int, page: str, service_commit: str,
     )
 
 
+def _response_encoding(accepted: str) -> str | None:
+    qualities = {}
+    for item in accepted.lower().split(","):
+        parts = item.strip().split(";")
+        quality = 1.0
+        for parameter in parts[1:]:
+            if parameter.strip().startswith("q="):
+                try:
+                    quality = float(parameter.strip()[2:])
+                except ValueError:
+                    quality = 0.0
+        qualities[parts[0].strip()] = quality if 0 <= quality <= 1 else 0.0
+    choices = [(qualities.get(coding, qualities.get("*", 0)), coding)
+               for coding in ("gzip", "br")]
+    quality, coding = max(choices, key=lambda choice: (choice[0], choice[1] == "br"))
+    return coding if quality > 0 else None
+
+
+def _compress_response(request, response):
+    """Let workerd encode JSON/HTML streams on every route, including refusals.
+
+    Response defaults to automatic encodeBody. Setting Content-Encoding selects
+    its native compressor, without a Python Brotli dependency or a second JSON
+    serialization. HEAD and bodyless responses must not acquire a body.
+    """
+    if str(request.method).upper() == "HEAD" or response.status in (204, 304) or response.body is None:
+        return response
+    headers = {key.lower(): value for key, value in response.headers.items()}
+    if "content-encoding" in headers or "no-transform" in headers.get("cache-control", ""):
+        return response
+    coding = _response_encoding(str(request.headers.get("accept-encoding") or ""))
+    if coding is None:
+        return response
+    headers["content-encoding"] = coding
+    headers.pop("content-length", None)
+    vary = [value.strip() for value in headers.get("vary", "").split(",") if value.strip()]
+    if not any(value.lower() in ("accept-encoding", "*") for value in vary):
+        vary.append("Accept-Encoding")
+    headers["vary"] = ", ".join(vary)
+    return Response(response.body, status=response.status, headers=headers)
+
+
 class Default(WorkerEntrypoint):
     async def fetch(self, request):
+        response = await self._fetch(request)
+        return _compress_response(request, response)
+
+    async def _fetch(self, request):
         service_commit = str(getattr(self.env, "BUILD_COMMIT", "") or "unknown")
         origin = str(getattr(self.env, "EXPORT_ORIGIN", "") or "https://modelspec.dev")
         path = urlparse(str(request.url)).path.rstrip("/") or "/"
@@ -1226,7 +1288,9 @@ class Default(WorkerEntrypoint):
             }
 
         try:
-            return service.rank(payload, candidates, hardware, service_commit, origin)
+            return service.rank(payload, candidates, hardware, service_commit, origin,
+                                prepared_candidates=_cache["prepared"]
+                                if _cache["candidates"] is candidates else None)
         except service.RequestError as exc:
             return service.error_response(exc, candidates, service_commit, origin)
 

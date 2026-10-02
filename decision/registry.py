@@ -286,7 +286,12 @@ class Registry:
         self._refinements: Mapping[tuple[str, str], Refinement] = MappingProxyType(
             refinements or {}
         )
-        self._named_lists = named_lists
+        # A Registry describes one loaded checkout. File-backed vocabularies
+        # must not glob that checkout again for every parameterised facet.
+        self._named_lists = {
+            name: cache(producer) if producer is not None else None
+            for name, producer in named_lists.items()
+        }
         self._families: Mapping[str, Family] = MappingProxyType(families or {})
         self._harness_versions = frozenset(v for h in harnesses.values() for v in h.versions)
 

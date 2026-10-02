@@ -477,6 +477,21 @@ def test_fresh_snapshot_load_and_first_domain_decision_stay_under_budget(service
         f"(load {load_ms:.2f} ms, decision and serialization {decision_ms:.2f} ms)"
     )
 
+    # Estate gain evaluates multiple alternatives. Guard its complete answer,
+    # including explanations and serialization, against the agent-path budget.
+    estate_payload = payload | {"explain": "summary", "limit": 10,
+                                "access": {"kind": "own_software"},
+                                "estate": {"providers": ["anthropic", "openai"]}}
+    samples, answers = [], set()
+    for _ in range(30):
+        start = perf_counter()
+        status, answer = service.decide(estate_payload, loaded)
+        answers.add(service.serialise(answer))
+        samples.append((perf_counter() - start) * 1_000)
+        assert status == 200
+    assert len(answers) == 1
+    assert sorted(samples)[28] < 500, "estate decision plus serialization exceeded 500 ms p95"
+
     excluded_payload = payload | {"exclude_benchmarks": ["swe_bench_pro"]}
     excluded_start = perf_counter()
     excluded_status, excluded_body = service.decide(excluded_payload, loaded)
@@ -544,7 +559,8 @@ def test_entry_routes_compare_through_the_existing_access_gate() -> None:
 
 
 def test_entry_prepares_bundle_before_the_first_request(monkeypatch, snapshot_bytes):
-    bundle = SimpleNamespace(read=lambda path: snapshot_bytes)
+    bundle = SimpleNamespace(read=lambda path: snapshot_bytes
+                             if path == "/api/decision/snapshot.json.gz" else None)
     monkeypatch.setitem(sys.modules, "bundled_data", bundle)
     module = entry.__wrapped__(monkeypatch)
     prepared = module._bundled_decision_snapshot

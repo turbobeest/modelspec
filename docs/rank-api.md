@@ -412,6 +412,42 @@ Pywrangler owns `python_modules/` and recreates it from `pylock.toml` before
 path. Repository packages belong under `src/`; putting them in
 `python_modules/` loses them on the next sync.
 
+## Measuring latency (MODEL-283)
+
+`qa/latency_probe.py` measures DNS, TCP connect, TLS, TTFB, total duration,
+encoded and decoded response bytes, `Server-Timing`, and the `cf-ray` colo.
+Install `brotli` for its default `br, gzip` negotiation, or select `--encoding
+gzip`. The only credential it reads is `MODELSPEC_API_KEY`, when set. It runs
+keyless where the deployment permits anonymous callers and records HTTP
+refusals as statuses. It saves no request bodies, response bodies or keys.
+
+```sh
+python qa/latency_probe.py --count 30 --output /tmp/latency.json
+```
+
+`--shapes /tmp/shapes.json` accepts a list of `{name, path, method, body}`
+objects for reproducing other request shapes. Use anonymous names and keep
+private manifests outside the repository. Each sample opens a new connection.
+The report retains the first call and separately aggregates later calls. A
+first call is not proof of a cold isolate. The manual-only **API latency
+probe** workflow runs generic public shapes on a GitHub runner and uploads
+only measurement metadata.
+
+Snapshot `Server-Timing` measures I/O, not synchronous compute: the
+[Workers clock freezes between I/O operations](https://developers.cloudflare.com/workers/runtime-apis/performance/).
+Subtracting it from TTFB does not isolate CPU time; that remainder includes
+network transit and isolate startup. Use `scripts/profile_decide.py` and
+`api/worker/profile_decide.cjs` for compute attribution and response-hash
+comparisons under the pinned runtime.
+
+Bundled rank exports and candidate records now join the decision snapshot in
+deployment initialization. A fetched export prepares its candidate records
+once per refresh. Explanation drivers materialise on first use per model and
+dimension. Neither cache changes ranking or decision response fields.
+Every body-bearing route negotiates Brotli or gzip through workerd's
+[automatic response encoding](https://developers.cloudflare.com/workers/runtime-apis/response/),
+including refusals. No Python compression package is deployed.
+
 ## Known limits
 
 * One isolate holds the whole 2.2 MB catalogue in memory after parsing it. At
