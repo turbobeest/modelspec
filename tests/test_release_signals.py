@@ -335,7 +335,7 @@ def test_ambiguous_lab_and_model_relationship_is_flagged_for_identity_review(
     assert result["reason"] == "the primary source does not identify the stated lab"
     assert json.loads(result_path.read_text(encoding="utf-8")) == result
     assert not (tmp_path / "models" / "acme" / "orbit-2.md").exists()
-    workflow = (ROOT / ".github" / "workflows" / "release-signals.yml").read_text(
+    workflow = (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(
         encoding="utf-8"
     )
     assert "if: steps.classify.outputs.resolution == 'uncertain'" in workflow
@@ -1043,21 +1043,22 @@ def test_worker_pending_follows_every_kv_page_after_an_empty_page() -> None:
 
 
 def test_hourly_workflow_keeps_github_credentials_out_of_the_signal_sender() -> None:
-    workflow = (ROOT / ".github" / "workflows" / "release-signals.yml").read_text(
+    workflow = (ROOT / ".github" / "private-writers" / "release-signals.yml").read_text(
         encoding="utf-8"
     )
 
-    assert "cron: '17 * * * *'" in workflow
+    gate = (ROOT / ".github/workflows/release-signals-gate.yml").read_text()
+    assert "cron: '17 * * * *'" in gate
+    assert "MODELSPEC_DATA_DISPATCH_TOKEN" in gate
+    assert "schedule:" not in workflow
     assert "MODELSPEC_SIGNALS_READ_KEY" in workflow
-    assert "RESEARCH_PR_TOKEN" in workflow
+    assert "secrets.GITHUB_TOKEN" in workflow
     assert "modelspec verify --json" in workflow
     assert "scripts/accuracy.py --profile pr" in workflow
     assert "scripts/recall_run.py" in workflow
     assert "new-model" in workflow
     assert "--draft" in workflow
-    assert "gh pr merge --auto --squash" in workflow
-    assert "steps.classify.outputs.failures == '0'" in workflow
-    assert "steps.classify.outputs.quarantined == '0'" in workflow
+    assert "gh pr merge" not in workflow
     assert "1, 7, and 30 day re-checks" in workflow
     assert "strategy:" in workflow
     assert "max-parallel: 4" in workflow
@@ -1070,7 +1071,6 @@ def test_hourly_workflow_keeps_github_credentials_out_of_the_signal_sender() -> 
     assert '--closed-unmerged-pr "$PR_URL"' in workflow
     assert 'git push --set-upstream origin "HEAD:$branch"' in workflow
     assert 'gh pr comment "$EXISTING_PR_URL"' in workflow
-    assert "steps.recheck.outputs.mode != 'open'" in workflow
     assert "Flag a new-model PR closed without merge" in workflow
 
 

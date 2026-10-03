@@ -28,6 +28,7 @@ BUILD_TIME = {
     ("decision/snapshot.py", "decision.sources"),
     # The v1 graph export and a type annotation; see the comment at the import.
     ("pipeline/ranking.py", "schema.graph"),
+    ("pipeline/ranking.py", "schema.card"),
 }
 
 

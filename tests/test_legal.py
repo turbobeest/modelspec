@@ -16,13 +16,14 @@ Three things are worth a test here, and they are not the prose.
 3. **Nothing claims a capability that is not shipped, and what is shipped is
    described as it is.** The documents were adopted as v1.0 on 2026-09-19. The
    billing terms are checked against `api/worker/tiers.json`, the privacy
-   statement against what the Worker binds and writes, and outcome logging and
-   x402 must stay described as not live until they are.
+   statement against what the Worker binds and writes, and outcome logging by
+   the service and x402 must stay described as not live until they are.
 """
 
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -72,7 +73,7 @@ def test_the_commitment_rides_with_the_floors() -> None:
     neutrality = policy["neutrality"]
     assert neutrality["rule"] == HONEST_BROKER_RULE
     assert neutrality["pledge"] == NEUTRALITY_PLEDGE
-    assert neutrality["operator"] == "Sparks and Sawdust LLC"
+    assert neutrality["operator"] == "Sparks & Sawdust LLC"
     assert neutrality["permanent"] is True
 
 
@@ -241,8 +242,8 @@ def test_the_terms_state_a_refund_position() -> None:
 
 
 def test_the_operator_is_named() -> None:
-    assert "Sparks and Sawdust LLC" in FLAT_TERMS
-    assert "Sparks and Sawdust LLC" in FLAT_NEUTRALITY
+    assert "Sparks & Sawdust LLC" in FLAT_TERMS
+    assert "Sparks & Sawdust LLC" in FLAT_NEUTRALITY
 
 
 # ── nothing claims what is not shipped ───────────────────────────────────────
@@ -270,9 +271,11 @@ def test_the_terms_state_the_plans_and_packs_that_are_configured() -> None:
 
 
 def test_the_terms_name_the_seller_processor_and_statement_descriptor() -> None:
-    assert "The seller is **Sparks and Sawdust LLC**" in FLAT_TERMS
+    assert "The seller is **Sparks & Sawdust LLC**" in FLAT_TERMS
     assert "processed by Stripe" in FLAT_TERMS
-    assert "SPARKS & SAWDUST LLC" in FLAT_TERMS
+    # Stripe refuses an ampersand in a statement descriptor (Jamie, 2026-09-30).
+    assert "SPARKS AND SAWDUST LLC" in FLAT_TERMS
+    assert "SPARKS & SAWDUST" not in FLAT_TERMS
     assert "https://modelspec.dev/pricing" in FLAT_TERMS
 
 
@@ -292,13 +295,117 @@ def test_the_terms_do_not_offer_x402_while_it_is_off() -> None:
 
 
 def test_the_privacy_statement_does_not_describe_outcome_logging_as_built() -> None:
-    """Outcome logging is not built. Describing it would be the exact failure to avoid."""
+    """The service records no outcomes. Describing it as built would be the exact
+    failure to avoid; MODEL-211's log is the CLI's, local and opt-in."""
     section = PRIVACY.split("## Not yet live", 1)
     assert len(section) == 2, "the privacy statement must keep a 'Not yet live' section"
     before, after = flat(section[0]), flat(section[1])
     assert "Outcome logging" not in before
-    assert "Outcome logging" in after
+    assert "Outcome logging by the service" in after
     assert "Not built" in after
+    assert "docs/design/outcome-upload.md" in after
+
+
+def test_the_privacy_statement_describes_the_local_outcome_log() -> None:
+    """MODEL-211 ships an opt-in log that stays on the machine. v1.2 called outcome
+    logging "Not built", which stopped being the whole truth when it merged."""
+    assert (REPO_ROOT / "cli" / "modelspec" / "outcome.py").is_file()
+    before = flat(PRIVACY.split("## Not yet live", 1)[0])
+    for claim in ("`modelspec outcome enable`", "nothing until you turn it on",
+                  "It never leaves your machine", "`cli/modelspec/outcome.py`"):
+        assert claim in before, claim
+
+
+def test_the_outcome_modules_open_no_connection() -> None:
+    """"It never leaves your machine" holds only while the outcome code imports
+    nothing that can reach a network. Upload is a separate, unbuilt path."""
+    import ast
+
+    network = {"socket", "ssl", "http", "urllib", "urllib3", "httpx", "requests",
+               "aiohttp", "ftplib", "smtplib"}
+    for name in ("outcome.py", "outcome_cmd.py"):
+        tree = ast.parse((REPO_ROOT / "cli" / "modelspec" / name).read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                roots = {alias.name.split(".")[0] for alias in node.names}
+            elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+                roots = {node.module.split(".")[0]}
+            else:
+                continue
+            assert not roots & network, (
+                f"cli/modelspec/{name} imports {sorted(roots & network)}; the privacy "
+                "statement says the outcome log never leaves your machine")
+
+
+def test_the_privacy_statement_names_every_browser_storage_key() -> None:
+    """No cookie is set, but the decide page writes `localStorage` (MODEL-237).
+    Every key a shipped page writes must be named, so a new one fails here."""
+    import re
+
+    keys = set()
+    for folder in ("web", "web3d", "pipeline", "site"):
+        for src in (REPO_ROOT / folder).rglob("*"):
+            if (src.suffix not in {".ts", ".tsx", ".html", ".js", ".mjs", ".py"}
+                    or not src.is_file()
+                    or {"node_modules", "__tests__", "vendor", "dist"} & set(src.parts)
+                    or ".test." in src.name):
+                continue
+            text = src.read_text(encoding="utf-8", errors="ignore")
+            for other in ("sessionStorage", "indexedDB", "document.cookie"):
+                assert other not in text, (
+                    f"{src.relative_to(REPO_ROOT)} uses {other}; the privacy statement "
+                    "says no cookie is set and names only localStorage")
+            if "localStorage.setItem" in text:
+                keys |= set(re.findall(r"""["'`](modelspec-[a-z0-9-]+)["'`]""", text))
+    assert {"modelspec-theme", "modelspec-estate-v1", "modelspec-alerts"} <= keys
+    for key in sorted(keys):
+        assert f"`{key}`" in PRIVACY, (
+            f"a page writes {key!r} to localStorage and the privacy statement does not name it")
+    assert "No cookies are set" in FLAT_PRIVACY
+
+
+def _meter_hashes_ip_without_a_key(source: str) -> bool:
+    """True when the visitor meter reads the address and no HMAC keys it."""
+    return "CF-Connecting-IP" in source and "hmac" not in source.lower()
+
+
+def _x402_is_on_in_production() -> bool:
+    from pipeline.worker_flags import parse_jsonc
+
+    config = parse_jsonc((REPO_ROOT / "api" / "worker" / "wrangler.jsonc").read_text(encoding="utf-8"))
+    flag = str(config["vars"].get("X402_ENABLED", "false")).strip().lower()
+    return flag not in {"", "0", "false", "no", "off"}
+
+
+def test_x402_stays_off_while_keyless_visitors_are_metered_by_a_bare_ip_hash() -> None:
+    """MODEL-237/241. With x402 on, keyless browser meters are named from the
+    visitor id. A bare hash of the IP is reversed by enumeration, so the id must
+    be keyed (`visitor.py`) and `_site_free_visitor` must go through it."""
+    worker = REPO_ROOT / "api" / "worker" / "src"
+    visitor_source = (worker / "visitor.py").read_text(encoding="utf-8")
+    entry_source = (worker / "entry.py").read_text(encoding="utf-8")
+    import ast
+
+    tree = ast.parse(entry_source)
+    meter = ast.unparse(next(n for n in ast.walk(tree)
+                             if isinstance(n, ast.FunctionDef) and n.name == "_site_free_visitor"))
+    assert "hashlib" not in meter and "visitor.visitor_id_for" in meter
+    assert not _meter_hashes_ip_without_a_key(visitor_source)
+    if _meter_hashes_ip_without_a_key(visitor_source):
+        assert not _x402_is_on_in_production()
+
+
+def test_the_guard_still_fails_for_a_meter_with_no_key() -> None:
+    bare = 'def f(r):\n    return sha256(r.headers.get("CF-Connecting-IP"))'
+    assert _meter_hashes_ip_without_a_key(bare)
+    keyed = 'def f(r):\n    return hmac.new(k, r.headers.get("CF-Connecting-IP"))'
+    assert not _meter_hashes_ip_without_a_key(keyed)
+
+
+def test_the_visitor_key_is_documented_as_a_secret_not_a_var() -> None:
+    text = (REPO_ROOT / "api" / "worker" / "wrangler.jsonc").read_text(encoding="utf-8")
+    assert "wrangler secret put VISITOR_HMAC_KEY" in text
+    assert "VISITOR_HMAC_KEY\":" not in text
 
 
 def _wrangler_config() -> str:
@@ -402,10 +509,13 @@ def test_the_privacy_statement_matches_what_the_worker_binds() -> None:
     # Only the access modules and disclosed release-signal service write KV.
     # billing*.py decides; access_billing.py stores.
     # credits*.py mutate the Durable Object via SQL, not Workers KV.
+    # feedback_service.py (MODEL-221) writes only its own FEEDBACK namespace,
+    # and may exist undisclosed only while that store can never be reached:
+    # see test_feedback_storage_is_unreachable_until_the_statement_covers_it.
     for src in sorted((worker / "src").glob("*.py")):
         body = src.read_text(encoding="utf-8")
         if (src.name.startswith("access") or src.name.startswith("credits")
-                or src.name == "signals_service.py"):
+                or src.name in ("signals_service.py", "feedback_service.py")):
             continue
         assert ".put(" not in body and ".delete(" not in body, (
             f"{src.name} writes to KV; the privacy statement says the Worker "
@@ -415,6 +525,65 @@ def test_the_privacy_statement_matches_what_the_worker_binds() -> None:
                   "confidence", "signal id", "1, 7 and 30 days", "SIGNALS_ENABLED"):
         assert claim in FLAT_PRIVACY, (
             f"the signal service writes ACCESS and the privacy statement does not say {claim!r}")
+
+
+def test_feedback_storage_is_unreachable_until_the_statement_covers_it() -> None:
+    """MODEL-221. The feedback endpoint ships with storage off.
+
+    While the privacy statement says nothing of feedback, the Worker must not be
+    able to keep any: `FEEDBACK_ENABLED` is off in production and staging and no
+    `FEEDBACK` namespace is bound. Turning either on without adopting the
+    wording in `docs/design/feedback-privacy.md` fails here. Once the statement
+    discloses the store, it must name what a record holds.
+    """
+    import ast
+    import sys
+
+    from pipeline.worker_flags import parse_jsonc
+
+    worker = REPO_ROOT / "api" / "worker"
+    config = parse_jsonc((worker / "wrangler.jsonc").read_text(encoding="utf-8"))
+    flags = [config["vars"].get("FEEDBACK_ENABLED", "false")] + [
+        env.get("vars", {}).get("FEEDBACK_ENABLED", "false")
+        for env in config.get("env", {}).values()]
+    on = any(str(flag).strip().lower() not in {"", "0", "false", "no", "off"}
+             for flag in flags)
+    bound = "FEEDBACK" in _kv_bindings(_wrangler_config()) or any(
+        kv.get("binding") == "FEEDBACK"
+        for env in config.get("env", {}).values() for kv in env.get("kv_namespaces", []))
+    disclosed = "`FEEDBACK`" in FLAT_PRIVACY
+    if on or bound:
+        assert disclosed, (
+            "feedback storage is switched on or bound, and the privacy statement does not "
+            "disclose the FEEDBACK store; adopt the wording in "
+            "docs/design/feedback-privacy.md first")
+        section = PRIVACY.split("### The feedback store", 1)[-1].split("\n#", 1)[0]
+        assert "not yet live" not in flat(section), (
+            "feedback storage is on and the statement still says it is not yet live")
+    # A deploy-time `--var FEEDBACK_ENABLED:true` would dodge the check above.
+    for workflow in (REPO_ROOT / ".github" / "workflows").glob("*.y*ml"):
+        assert "FEEDBACK_ENABLED" not in workflow.read_text(encoding="utf-8"), workflow.name
+    if disclosed:
+        sys.path.insert(0, str(worker / "src"))
+        try:
+            import feedback_service
+        finally:
+            sys.path.remove(str(worker / "src"))
+        for name in feedback_service.STORED_FIELDS:
+            assert f"`{name}`" in FLAT_PRIVACY, (
+                f"a feedback record holds {name!r} and the privacy statement does not say so")
+
+    # Whatever the switch, the service writes only a record, under a name built
+    # from the receipt's hash, and two counters.
+    tree = ast.parse((worker / "src" / "feedback_service.py").read_text(encoding="utf-8"))
+    for node in ast.walk(tree):
+        if (isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+                and node.func.attr == "put"):
+            target = node.args[0]
+            name = (target.func.id if isinstance(target, ast.Call)
+                    and isinstance(target.func, ast.Name) else
+                    target.id if isinstance(target, ast.Name) else None)
+            assert name in {"_record_name", "address_name", "global_name"}, ast.unparse(node)
 
 
 def _assert_access_writes_only_records_and_counters(src: Path) -> None:
@@ -496,16 +665,108 @@ def test_the_privacy_statement_discloses_cloudflare_observability() -> None:
     assert "Workers observability is enabled" in FLAT_PRIVACY
 
 
-def test_the_privacy_statement_says_pages_load_nothing_third_party() -> None:
+#: Third-party script hosts a page may load, each disclosed in the privacy
+#: statement. Cloudflare injects Web Analytics at the edge (MODEL-236), so it is
+#: not in the source tree; it is listed so that the live smoke check or a later
+#: move into the source cannot add it silently. Adding a host here is a change to
+#: the privacy statement.
+DISCLOSED_THIRD_PARTY_SCRIPTS = {"static.cloudflareinsights.com": "### Cloudflare Web Analytics"}
+_OWN_HOSTS = {"modelspec.dev", "www.modelspec.dev", "api.modelspec.dev"}
+_LOADING_RELS = {"stylesheet", "preload", "modulepreload", "preconnect", "prefetch",
+                 "dns-prefetch", "icon", "manifest"}
+
+
+def _third_party_hosts(text: str) -> set[str]:
+    """Hosts other than ours that markup or code loads a script, style or font from."""
+    import re
+
+    found = set(re.findall(
+        r"""<script\b[^>]*?\bsrc\s*=\s*["']?(?:https?:)?//([^/"'\s>]+)""", text, re.I))
+    found |= set(re.findall(r"""\b(?:fetch|import)\s*\(\s*["'`]https?://([^/"'`\s]+)""", text))
+    for tag in re.findall(r"<link\b[^>]*>", text, re.I):
+        rel = re.search(r"""\brel\s*=\s*["']?([^"'>]+)""", tag, re.I)
+        href = re.search(r"""\bhref\s*=\s*["']?(?:https?:)?//([^/"'\s>]+)""", tag, re.I)
+        if rel and href and _LOADING_RELS & set(rel.group(1).lower().split()):
+            found.add(href.group(1))
+    return {host.lower() for host in found} - _OWN_HOSTS
+
+
+def test_the_host_detector_allows_the_beacon_and_nothing_else() -> None:
+    """The guard below is only as good as this detector, so prove it on the tag
+    Cloudflare injects (as captured from modelspec.dev on 2026-09-29) and on the
+    loads it has to refuse."""
+    beacon = ('<script defer src="https://static.cloudflareinsights.com/beacon.min.js/v31" '
+              'data-cf-beacon=\'{"token":"t","spa":2}\' crossorigin="anonymous"></script>')
+    assert _third_party_hosts(beacon) == {"static.cloudflareinsights.com"}
+    assert set(_third_party_hosts(beacon)) <= set(DISCLOSED_THIRD_PARTY_SCRIPTS)
+    for load, host in (
+            ('<script src="https://cdn.jsdelivr.net/npm/x.js"></script>', "cdn.jsdelivr.net"),
+            ('<script async src=//www.googletagmanager.com/gtag/js></script>',
+             "www.googletagmanager.com"),
+            ('<link rel="stylesheet" href="https://fonts.googleapis.com/css2">',
+             "fonts.googleapis.com"),
+            ('fetch("https://plausible.io/api/event", {})', "plausible.io")):
+        assert _third_party_hosts(load) == {host}, load
+        assert host not in DISCLOSED_THIRD_PARTY_SCRIPTS
+    ours = ('<script src="/assets/decide.js"></script><link rel="canonical" '
+            'href="https://modelspec.dev/decide/"><a href="https://github.com/x">x</a>'
+            'fetch("https://api.modelspec.dev/v1/decide")')
+    assert _third_party_hosts(ours) == set()
+
+
+def test_pages_load_no_third_party_script_but_the_disclosed_beacon(tmp_path: Path) -> None:
+    """MODEL-236 / MODEL-237. The statement says the pages' one third-party request
+    is Cloudflare's analytics script. Any other third-party script, stylesheet or
+    font in a page's source, or in a rendered legal page, fails here."""
+    hits: dict[str, set[str]] = {}
+    for folder in ("site", "web", "web3d", "pipeline"):
+        for src in (REPO_ROOT / folder).rglob("*"):
+            if (src.suffix not in {".html", ".js", ".mjs", ".ts", ".tsx", ".py", ".css"}
+                    or not src.is_file()
+                    or {"node_modules", "__tests__", "vendor", "dist"} & set(src.parts)
+                    or ".test." in src.name):
+                continue
+            hosts = _third_party_hosts(src.read_text(encoding="utf-8", errors="ignore"))
+            if hosts - set(DISCLOSED_THIRD_PARTY_SCRIPTS):
+                hits[str(src.relative_to(REPO_ROOT))] = hosts
+    legal.write(tmp_path, REPO_ROOT, _build())
+    for page in (tmp_path / legal.LEGAL_ROOT).rglob("*.html"):
+        hosts = _third_party_hosts(page.read_text(encoding="utf-8"))
+        if hosts - set(DISCLOSED_THIRD_PARTY_SCRIPTS):
+            hits[str(page.relative_to(tmp_path))] = hosts
+    assert hits == {}, (
+        f"pages load third-party scripts the privacy statement does not disclose: {hits}")
+
+    for host, section in DISCLOSED_THIRD_PARTY_SCRIPTS.items():
+        assert section in PRIVACY, (host, section)
+        assert f"`{host}`" in FLAT_PRIVACY, host
+    assert "pages load nothing else from a third party" in FLAT_PRIVACY
+
+
+def test_the_analytics_disclosure_states_its_purpose_and_its_limits() -> None:
+    """Jamie's intent (MODEL-236): say why the beacon runs, in the short version
+    and in its own section, and say that it does not identify anyone."""
+    purpose = ("We want to know where our visitors come from and how they use the site, "
+               "so we can make a better product. That is why we run Cloudflare Web Analytics.")
+    short = flat(PRIVACY.split("## The short version", 1)[1].split("\n## ", 1)[0])
+    section = flat(PRIVACY.split("### Cloudflare Web Analytics", 1)[1].split("\n## ", 1)[0])
+    for text in (short, section):
+        assert purpose in text
+        assert "It does not tell us who you are" in text
+    for claim in ("sets no cookie", "never shows us an IP address", "as our processor",
+                  "https://www.cloudflare.com/web-analytics/"):
+        assert claim in section, claim
+
+
+def test_no_page_loads_a_font_from_a_cdn() -> None:
     """No page on either site loads a font from a CDN any more (MODEL-92, with
-    explorer.html switched in MODEL-24's PR #115), so the draft must not disclose
-    a Google Fonts request that no longer happens. tests/test_no_font_cdn.py
+    explorer.html switched in MODEL-24's PR #115), so the statement must not
+    disclose a Google Fonts request that no longer happens. tests/test_no_font_cdn.py
     proves the premise against the source tree and a built site."""
     from pipeline import render as r
     assert "fonts.googleapis.com" not in r.FONTS
     assert "fonts.googleapis.com" not in FLAT_PRIVACY
     assert "Google Fonts" not in FLAT_PRIVACY
-    assert "pages load nothing from a third party" in FLAT_PRIVACY
 
 
 def test_the_privacy_statement_claims_no_prompt_field_and_the_api_has_none() -> None:
@@ -519,25 +780,38 @@ def test_the_privacy_statement_claims_no_prompt_field_and_the_api_has_none() -> 
     assert "There is no field" in FLAT_PRIVACY
 
 
+def test_the_decide_contract_refuses_its_free_text_task() -> None:
+    """The statement says `task`, the contract's one free-text field, is refused,
+    and that fields a spec does not define are refused rather than ignored."""
+    from decision import contract
+
+    base = {"spec_version": 1, "optimize": {"max": "swe_bench_pro"}}
+    assert contract.parse_spec(dict(base), facets=None).spec_version == 1
+    for extra in ({"task": "summarise my contract"}, {"prompt": "hello"}):
+        with pytest.raises(contract.SpecError):
+            contract.parse_spec({**base, **extra}, facets=None)
+    assert "`task`, is refused" in FLAT_PRIVACY
+
+
 #: The version in force for each document. A change to what the service records
 #: is a change to the privacy statement, and a commitment added to the neutrality
 #: commitment is a change to that; each gets a new version and date rather than
 #: a silent edit of the adopted one.
 IN_FORCE = {
-    "terms": "Version `1.0`, effective 2026-09-19.",
-    "neutrality": "Version `1.1`, effective 2026-09-23.",
-    "privacy": "Version `1.2`, effective 2026-09-26.",
+    "terms": "Version `1.2`, effective 2026-09-30.",
+    "neutrality": "Version `1.3`, effective 2026-09-30.",
+    "privacy": "Version `1.9`, effective 2026-10-03.",
 }
 
 
 def test_every_document_is_adopted_and_versioned() -> None:
-    """Adopted by Sparks and Sawdust LLC on 2026-09-19 (v1.0). The version and
+    """Adopted by Sparks & Sawdust LLC on 2026-09-19 (v1.0). The version and
     date in force are at the top of each document, and no draft banner survives."""
     assert legal.DRAFT is False
     for name, text in (("terms", TERMS), ("neutrality", NEUTRALITY), ("privacy", PRIVACY)):
         head = flat(text[:400])
         assert IN_FORCE[name] in head, name
-        assert "Adopted by Sparks and Sawdust LLC" in head, name
+        assert "Adopted by Sparks & Sawdust LLC" in head, name
         assert "DRAFT" not in text, name
         assert "Not adopted" not in text, name
 
@@ -659,3 +933,135 @@ def test_the_privacy_statement_describes_what_refunds_record() -> None:
     assert "chargeback" in FLAT_PRIVACY
     assert "no card detail" in FLAT_PRIVACY
     assert "1.1, 2026-09-23" in FLAT_PRIVACY
+
+
+def test_the_access_model_wording_is_in_the_terms_neutrality_and_licence() -> None:
+    """MODEL-249: people free, machines paid and hosted, a delayed public image, no CLI."""
+    assert "delayed image" in FLAT_TERMS
+    assert "no data download and no command-line client" in FLAT_TERMS
+    assert "Machine access is a paid product" in FLAT_TERMS
+    assert "No account, no key, no charge" not in FLAT_TERMS
+    flat_neutrality = flat(NEUTRALITY)
+    assert "the sites and the CLI read" not in flat_neutrality
+    assert "about nine months" in flat_neutrality
+    licence = flat((REPO_ROOT / "LICENSE").read_text(encoding="utf-8"))
+    assert "so the CLI can be embedded anywhere" not in licence
+    assert "delayed public image" in licence
+
+
+def test_the_privacy_statement_describes_the_keyed_visitor_id_and_the_gate_flag() -> None:
+    """The production gate flag and its current privacy disclosure must agree."""
+    import re
+
+    from pipeline.worker_flags import OFF_VALUES, production_vars
+
+    assert "HMAC-SHA256(VISITOR_HMAC_KEY, IP | UTC day)" in FLAT_PRIVACY
+    body = FLAT_PRIVACY.split("## Changes")[0]  # the Changes list keeps 1.3 as history
+    assert "unsalted hash of an IP address" not in body
+    assert "is replaced before x402" not in body
+    assert "Cloudflare Turnstile" in FLAT_PRIVACY
+    current = PRIVACY.split("## Changes", 1)[0]
+    live, not_live = current.split("## Not yet live", 1)
+    on = str(production_vars(REPO_ROOT).get("HUMAN_GATE_ENABLED", "false")).strip().lower() not in OFF_VALUES
+    if on:
+        assert "### The human gate on the decide page" in live, (
+            "the production human gate is on but its disclosure is not live")
+        assert "The human gate on the decide page" not in not_live
+        assert "not yet enabled" not in flat(current), (
+            "the production human gate is on but the statement still says it is off")
+    else:
+        gate = current.split("The human gate on the decide page", 1)[1]
+        gate = re.split(r"\n(?:#{2,3} |\- \*\*)", gate, maxsplit=1)[0]
+        assert "not yet enabled" in flat(gate), (
+            "the production human gate is off but the statement does not say so")
+    # Deploy-time vars must not bypass the production configuration check.
+    for workflow in (REPO_ROOT / ".github" / "workflows").glob("*.y*ml"):
+        assert not re.search(r"--var(?:=|\s+)HUMAN_GATE_ENABLED\b",
+                             workflow.read_text(encoding="utf-8")), workflow.name
+    assert "`HUMAN_GATE_ENABLED`" in FLAT_PRIVACY
+    assert "omit the optional `remoteip` parameter" in FLAT_PRIVACY
+
+
+def test_visit_gate_requires_adopted_v19_privacy_before_enabling() -> None:
+    """MODEL-292 ships off until Jamie adopts the visit credential disclosure."""
+    from pipeline.worker_flags import OFF_VALUES, production_vars
+
+    config = production_vars(REPO_ROOT)
+    for workflow in (REPO_ROOT / ".github" / "workflows").glob("*.y*ml"):
+        assert not re.search(r"--var(?:=|\s+)VISIT_GATE_ENABLED\b", workflow.read_text(encoding="utf-8")), workflow.name
+    if str(config.get("VISIT_GATE_ENABLED", "false")).strip().lower() in OFF_VALUES:
+        return
+    version = re.search(r"Version `(\d+)\.(\d+)`", PRIVACY)
+    assert version and tuple(map(int, version.groups())) >= (1, 9), "Visit gate requires adopted privacy v1.9"
+    live, not_live = PRIVACY.split("## Changes", 1)[0].split("## Not yet live", 1)
+    assert "### The visit gate on the decide page" in live, "Visit gate is on but disclosure is not live"
+    assert "The visit gate on the decide page" not in not_live
+    for wording in ("`VISIT_GATE_ENABLED`", "HMAC-SHA256", "`VISIT_TOKEN_HMAC_KEY`", "daily visitor id",
+                    "origin", "issued-at", "expiry", "30-minute sliding window", "memory", "no cookie",
+                    f"{config['VISIT_DECIDE_DAY_LIMIT']} questions per UTC day",
+                    f"{config['VISIT_DECIDE_BURST_LIMIT']} in a rolling minute",
+                    f"{config['VISIT_VOCABULARY_DAY_LIMIT']} vocabulary lookups per UTC day",
+                    f"{config['VISIT_VOCABULARY_BURST_LIMIT']} in a rolling minute"):
+        assert wording in flat(live), wording
+
+
+def test_the_privacy_statement_discloses_the_human_gate_question_storage() -> None:
+    """MODEL-270: question fingerprints and vocabulary share daily retention."""
+    # The disclosure is a section while the gate is on and a "Not yet live" item while it is off.
+    rest = PRIVACY.split("The human gate on the decide page", 1)[1]
+    gate = flat(re.split(r"\n## |\n- \*\*", rest, maxsplit=1)[0])
+    for claim in (
+        "random 128-bit intent id per action", "`x-modelspec-intent`",
+        "do not link them across days", "first-request time, request count",
+        "SHA-256 digests", "fixed fields, individual conditions, objective, capabilities and estate",
+        "flags", "first accepted plot and estate variants", "not encryption",
+        "No raw spec, caller-supplied fingerprint, token or raw IP is stored",
+        "vocabulary meter's day, count and recent request times",
+        "60 a day and 10 in a rolling minute", "eight requests including the first",
+        "60 seconds of admission", "does not delete the action's stored record",
+        "following UTC midnight", "delayed or retried alarm", "up to 30 days",
+    ):
+        assert claim in gate, claim
+    assert "holds no value derived from the spec" not in gate
+    assert "1.6, 2026-10-02" in FLAT_PRIVACY
+
+
+def test_disclosed_gate_records_persist_until_the_daily_alarm(monkeypatch) -> None:
+    """Inspect actual SQLite state, including after the continuation window closes."""
+    import asyncio
+    from types import SimpleNamespace
+
+    from tests.test_human_gate import Storage, human_gate_do
+
+    now = [10000]
+    monkeypatch.setattr(human_gate_do.time, "time", lambda: now[0])
+    storage = Storage()
+    obj = human_gate_do.HumanGateObject(SimpleNamespace(storage=storage), None)
+    intent = "A" * 22
+    spec = json.dumps({"spec_version": 1, "optimize": {"max": "swe_bench_pro"}})
+    assert asyncio.run(obj.take(intent, spec))["reason"] == ""
+    assert asyncio.run(obj.take_vocabulary())["reason"] == ""
+    now[0] += 60
+    assert asyncio.run(obj.continue_intent(intent, spec))["reason"] == "intent"
+    rows = {row["k"]: json.loads(row["v"]) for row in
+            storage.sql.exec("SELECT k, v FROM human_state").toArray()}
+    assert set(rows) == {"state", "vocabulary"}
+    assert rows["vocabulary"] == {"day": 0, "count": 1, "events": [10000]}
+    state = rows["state"]
+    assert set(state) == {"day", "count", "events", "intents"}
+    assert (state["day"], state["count"], state["events"]) == (0, 1, [10000])
+    action = state["intents"][intent]
+    assert set(action) == {"first", "requests", "question", "events"}
+    assert (action["first"], action["requests"], action["events"]) == (10000, 1, [10000])
+    question = action["question"]
+    assert set(question) == {"fixed", "where", "optimize", "capabilities", "estate",
+                             "no_estate", "estate_allowed", "plot"}
+    assert question["where"] == []
+    assert (question["no_estate"], question["estate_allowed"], question["plot"]) == (True, False, False)
+    for name in ("fixed", "optimize", "capabilities", "estate"):
+        assert len(question[name]) == 64
+        assert set(question[name]) <= set("0123456789abcdef")
+    assert "swe_bench_pro" not in json.dumps(rows)
+    assert storage.alarm_at == 86400000
+    asyncio.run(obj.alarm())
+    assert storage.sql.exec("SELECT name FROM sqlite_master WHERE name = 'human_state'").toArray() == []

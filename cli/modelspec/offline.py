@@ -189,7 +189,7 @@ def snapshot_fetch(
              f"in shell history and in `ps`."),
     as_json: bool = typer.Option(False, "--json", help="Machine-readable output."),
 ) -> None:
-    """Download the published export. The only command that needs the network.
+    """Download the published export. The only decision command that needs the network.
 
     Unkeyed by default. With a credential — `MODELSPEC_API_KEY`, or `--api-key`
     — the same command fetches from an origin that keys its export, and the

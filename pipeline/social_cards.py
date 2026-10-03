@@ -12,6 +12,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
+from pipeline import entity
+
 if TYPE_CHECKING:
     from pipeline.landing import LandingData, PlotModel
 
@@ -160,13 +162,13 @@ def _landing_plot(data: LandingData) -> str:
 
 def landing_card(data: LandingData) -> SocialCard:
     """Create the landing card from the same computed data as the page."""
-    from pipeline.landing import HEADLINE
+    from pipeline.landing import HEADLINE, HEADLINE_LEAD
 
     tie_line = landing_tie_line(data)
     return SocialCard(
         filename=LANDING_IMAGE,
         alt=f"ModelSpec. {HEADLINE} {tie_line}",
-        headline=html.escape(HEADLINE),
+        headline=html.escape(HEADLINE_LEAD),
         content=f'<p class="tie-line">{html.escape(tie_line)}</p>{_landing_plot(data)}',
         headline_class="long",
     )
@@ -225,7 +227,7 @@ def _pricing_factory(data: LandingData | None) -> SocialCard:
 
 
 CARD_REGISTRY = (
-    CardRegistration(page="/", title="ModelSpec — justifies the model decision and shows its work",
+    CardRegistration(page="/", title=entity.TITLE,
                      filename=LANDING_IMAGE,
                      factory=_landing_factory),
     CardRegistration(

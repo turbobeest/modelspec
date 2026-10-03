@@ -1,0 +1,88 @@
+id: recall-q07
+family: F1
+persona: Developer choosing a model for production work
+request: Which model should solve competition mathematics?
+constraints:
+  class: generate
+  task: contest mathematics, such as AIME, not research mathematics
+  open_weights: false
+  price_cap_usd_per_million_input: null
+expected:
+  id: Q07
+  notes: 'Contest maths does not separate a winner. MathArena marks AIME 2026 deprecated. On that
+    table GPT-5.5 (xhigh) and Claude Opus 4.8 (max) score 100%, with a contamination warning, and
+    September 2026 models are absent. Epoch''s OTIS mock AIME is saturated at 100% for several models,
+    including Astra max and Fable 5.1 max. FrontierMath and MathArena''s live ArXiv sets are research
+    mathematics, not this question.
+
+    '
+  acceptable:
+  - model_id: openai/gpt-6-astra
+    reason: Epoch OTIS mock AIME mean 1.000 at max effort.
+    sources:
+    - url: https://epoch.ai/data/benchmark_data.zip
+      read: '2026-09-24'
+  - model_id: anthropic/claude-fable-5-1
+    reason: Epoch OTIS mock AIME mean 1.000 at max effort.
+    sources:
+    - url: https://epoch.ai/data/benchmark_data.zip
+      read: '2026-09-24'
+  - model_id: anthropic/claude-fable-5
+    reason: Epoch OTIS mock AIME mean 1.000 at high effort.
+    sources:
+    - url: https://epoch.ai/data/benchmark_data.zip
+      read: '2026-09-24'
+  - model_id: openai/gpt-5-6-sol
+    reason: Epoch OTIS mock AIME mean 1.000 at max effort.
+    sources:
+    - url: https://epoch.ai/data/benchmark_data.zip
+      read: '2026-09-24'
+  - model_id: openai/gpt-5-5
+    reason: 'MathArena AIME 2026 accuracy 100% at xhigh effort, with a contamination warning, on
+      a competition MathArena now marks deprecated.
+
+      '
+    sources:
+    - url: https://matharena.ai/competition_tables/aime--aime_2026
+      read: '2026-09-24'
+    - url: https://matharena.ai/
+      read: '2026-09-24'
+  - model_id: anthropic/claude-opus-4-8
+    reason: MathArena AIME 2026 accuracy 100% at max effort, with a contamination warning.
+    sources:
+    - url: https://matharena.ai/competition_tables/aime--aime_2026
+      read: '2026-09-24'
+  - model_id: qwen/qwen3-8-max
+    reason: Epoch OTIS mock AIME mean 1.000 for qwen3.8-max-0902 at xhigh effort.
+    sources:
+    - url: https://epoch.ai/data/benchmark_data.zip
+      read: '2026-09-24'
+  must_never:
+  - model_id: openai/text-embedding-3-large
+    reason: An embedding model does not sit a mathematics contest.
+    sources:
+    - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/openai/text-embedding-3-large.md
+      read: '2026-09-24'
+  must_flag:
+  - model_id: anthropic/claude-opus-5-5
+    reason: 'Absent from AIME 2026 and from the OTIS 100% rows. MathArena''s 83.4% expected performance
+      is over non-deprecated research sets.
+
+      '
+    sources:
+    - url: https://matharena.ai/competition_tables/aime--aime_2026
+      read: '2026-09-24'
+    - url: https://epoch.ai/data/benchmark_data.zip
+      read: '2026-09-24'
+    - url: https://matharena.ai/models
+      read: '2026-09-24'
+  missing_cards: []
+expected_source: tests/recall/expected.yaml#Q07
+sources:
+- tests/recall/questions.yaml#Q07
+- tests/recall/specs/Q07.yaml
+gaps: []
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.

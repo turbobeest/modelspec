@@ -29,6 +29,7 @@ from scripts.slo.report import (
     check_new_model_cards,
     check_plans,
     check_refresh_prs,
+    check_unclassified_evidence,
     check_workflows,
     load_config,
     measure,
@@ -302,7 +303,7 @@ def test_the_refresh_pr_fetch_reads_each_branch_once() -> None:
 
 
 def test_the_weekly_refresh_branch_is_watched() -> None:
-    workflow = (ROOT / ".github" / "workflows" / "leaderboard-refresh.yml").read_text()
+    workflow = (ROOT / ".github" / "private-writers" / "leaderboard-refresh.yml").read_text()
     for branch in CONFIG.target("refresh-pr-merged").params["branches"]:
         assert f"branch: {branch}" in workflow
 
@@ -425,3 +426,16 @@ def test_apply_speaks_gh_and_creates_the_label_before_the_first_issue() -> None:
     alerts.apply(actions, gh, CONFIG.issue_label, repo="o/r")
     assert [c[0][:2] for c in calls] == [["label", "create"], ["issue", "create"]]
     assert calls[1][0][-2:] == ["--body-file", "-"] and calls[1][1] == actions[0].body
+
+
+def test_unclassified_evidence_names_each_model_with_a_row_kept_out() -> None:
+    excluded = {"acme/m1": {"unclassified": 2, "unsourced": 1}, "acme/m2": {"unsourced": 4},
+                None: {"quarantined": 1}}
+    check = check_unclassified_evidence(excluded, admitted=10)
+    assert check.measured == 12
+    assert check.findings == (
+        Finding("acme/m1", "2 evidence row(s) kept out: no measured_by"),)
+    clean = check_unclassified_evidence({"acme/m2": {"unsourced": 4}}, admitted=10)
+    assert clean.findings == () and clean.measured == 10
+    assert settle(CONFIG.target("unclassified-evidence"), clean).status == "met"
+    assert settle(CONFIG.target("unclassified-evidence"), check).status == "breach"

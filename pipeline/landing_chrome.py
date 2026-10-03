@@ -40,7 +40,7 @@ def method_header() -> str:
 
 
 def footer(*, detail: str = "") -> str:
-    return ('<footer class="site-foot"><span>© Sparks and Sawdust LLC</span>'
+    return ('<footer class="site-foot"><span>© Sparks &amp; Sawdust LLC</span>'
             '<a href="/method/">How we decide</a><a href="/legal/terms/">Terms</a>'
             '<a href="/legal/privacy/">Privacy</a><a href="/legal/neutrality/">'
-            f'Neutrality commitment</a><span class="foot-detail">{detail}</span></footer>')
+            f'Neutrality commitment</a><a href="/brand/">Brand</a><span class="foot-detail">{detail}</span></footer>')

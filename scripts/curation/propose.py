@@ -128,7 +128,8 @@ def open_prs(manifest: list[dict], today: str, repo: str, leads: list[str] | Non
         else:
             title, body = pr_title(item), pr_body(item) + (census_body(added) if added else "")
         subprocess.run(["git", "add", *paths], check=True)
-        subprocess.run(["git", "commit", "-m", title], check=True)
+        subprocess.run(["git", "commit", "-m", title, "-m",
+                        "Co-Authored-By: Codex (GPT-6.1 Sol) <noreply@openai.com>"], check=True)
         subprocess.run(["git", "push", "-u", "origin", branch], check=True)
         subprocess.run(["gh", "pr", "create", "--repo", repo, "--base", "main", "--head", branch, "--draft",
                         "--title", title, "--body", body], check=True)

@@ -38,7 +38,7 @@ models/*.md ──▶ pipeline/build.py ──▶ static JSON on Cloudflare Page
                                       (modelspec.dev /api/*.json)
                                             │
 CLI `snapshot fetch` ───────────────────────┤
-Wizard / 3D graph read the same JSON in the browser.
+The decide board reads the same JSON in the browser.
                                             │
 Worker `POST api.modelspec.dev/v1/rank` ────┘  MODEL-68; stateless, same JSON,
                                                same scorer, no store of its own.
@@ -132,7 +132,7 @@ hardware/    DATA — device SKUs
 pipeline/    export, ranking, site build
 cli/         Typer CLI; offline path in cli/modelspec/offline.py + snapshot.py
 api/         ranking engine shared with the pipeline
-web3d/       static explorer + wizard
+web3d/       v1 wizard (not on the live site; the 3D explorer was removed by MODEL-251)
 docs/        contracts and handoff
 tests/
 ```
@@ -166,6 +166,14 @@ credits and the credit ledger ([`docs/billing.md`](docs/billing.md),
 [`docs/x402.md`](docs/x402.md)). `ACCESS_ENFORCED`, `BILLING_ENABLED` and
 `X402_ENABLED` ship **off** in `api/worker/wrangler.jsonc`; turning any of them
 on, or putting live Stripe keys in the Worker, is Jamie's call.
+
+MODEL-221 added `POST /v1/feedback` (no key) on the same Worker, with the CLI
+command, the MCP tool and a Feedback control on every page. `FEEDBACK_ENABLED`
+ships **off** and no `FEEDBACK` namespace is bound: feedback is validated and
+answered `not_recorded`. Turning storage on waits for Jamie to adopt the privacy
+wording in [`docs/design/feedback-privacy.md`](docs/design/feedback-privacy.md);
+`tests/test_legal.py` fails if it is switched on first. The digest runs on the
+operator's machine, never in CI (the repository and its logs are public).
 
 Do not auto-merge `research/*`: a human reviews every daily-research PR.
 MODEL-5's workflow opens them with the `RESEARCH_PR_TOKEN` PAT (it fails fast

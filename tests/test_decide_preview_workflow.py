@@ -35,10 +35,11 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
         'dist/modelspec/.well-known/mcp.json': b'{}',
         'dist/modelspec/.well-known/agent-skills/index.json': b'{}',
         'dist/modelspec/.well-known/agent-skills/modelspec/SKILL.md': b'skill',
-        'dist/modelspec/llms.txt': b'- https://modelspec.dev/llms-full.txt\n',
-        'dist/modelspec/llms-full.txt': b'digest',
+        'dist/modelspec/llms.txt': b'- https://modelspec.dev/auth.md\n',
+        'dist/modelspec/llms-full.txt': b'v1 digest',
         'dist/modelspec/index.md': b'# ModelSpec',
         'dist/modelspec/auth.md': b'# Auth.md',
+        'dist/modelspec/agents.md': b'# ModelSpec agent guide',
         'dist/modelspec/_headers': b'/*\n  Link: </llms.txt>; rel="describedby"\n',
         'dist/modelspec/legal/terms/index.html': b'terms',
         'dist/modelspec/legal/privacy/index.html': b'privacy',
@@ -57,6 +58,9 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
         'dist/modelspec/landing-assets/landing.css': b'landing styles',
         'dist/modelspec/landing-assets/landing.js': b'landing script',
         'dist/modelspec/fonts/instrument-sans-latin-wdth-normal.woff2': b'instrument font',
+        'dist/modelspec/feedback/index.html': b'feedback page',
+        'dist/modelspec/feedback-assets/feedback.js': b'feedback control',
+        'dist/modelspec/brand/index.html': b'brand kit page',
         'dist/benchgraph/_redirects': b'redirects',
         'dist-holding/modelspec/index.html': b'holding page',
         'dist-holding/modelspec/api/index.json': b'{"live":true,"count":1}',
@@ -89,9 +93,7 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
     page = lambda rel: structured_data.strip(live[rel].decode()).encode()
     assert page('modelspec/index.html') == fixture['dist/modelspec/index.html']
     assert page('modelspec/decide/index.html') == fixture['web/dist/decide.html']
-    assert page('modelspec/graph/index.html') == fixture['dist/modelspec/graph/index.html']
-    assert live['modelspec/graph/vendor/three.min.js'] == b'three'
-    assert live['modelspec/404.html'] == fixture['web/dist/decide.html']
+    assert b'noindex' in live['modelspec/404.html']
     index = live['modelspec/index.html'].decode()
     decide = live['modelspec/decide/index.html'].decode()
     headers = live['modelspec/_headers'].decode()
@@ -100,7 +102,7 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
     assert 'noindex' not in index.lower()
     assert 'x-robots-tag' not in headers.lower()
     assert headers.startswith('/*\n  Link: </llms.txt>; rel="describedby"\n')
-    for name in ('llms.txt', 'llms-full.txt', 'index.md', 'auth.md'):
+    for name in ('llms.txt', 'index.md', 'auth.md'):
         assert live[f'modelspec/{name}'] == fixture[f'dist/modelspec/{name}'], name
     assert live['modelspec/api/index.json'] == fixture['dist/modelspec/api/index.json']
     assert page('modelspec/legal/terms/index.html') == b'terms'
@@ -112,27 +114,33 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
     assert live['modelspec/assets/decide-abc.js'] == b'decide bundle'
     assert 'modelspec/assets/main-old.js' not in live
     assert 'modelspec/favicon.svg' not in live
-    assert live['modelspec/_redirects'] == b'/landing/  /  301\n'
+    assert live['modelspec/_redirects'].decode() == live_site.REDIRECTS
     assert 'modelspec/landing/index.html' not in live
     for name in brand.FILES:
         assert live[f'modelspec/{name}'] == f'2a {name}'.encode(), name
     assert live['modelspec/og-card-landing.png'] == b'landing card'
     assert live['modelspec/og-card-decide.png'] == b'decide card'
     assert live['modelspec/og-card-pricing.png'] == b'pricing card'
-    for removed in ('downselect', 'models', 'm'):
+    # MODEL-251: the v1 build may still hold a graph or a digest; live never does.
+    assert 'modelspec/llms-full.txt' not in live
+    for removed in ('downselect', 'models', 'm', 'graph'):
         assert not (tmp_path / 'dist' / 'modelspec' / removed).exists()
+    # MODEL-221: the feedback page and its control, in the sitemap.
+    assert page('modelspec/feedback/index.html') == b'feedback page'
+    assert live['modelspec/feedback-assets/feedback.js'] == b'feedback control'
+    assert b'/feedback/' in live['modelspec/sitemap.xml']
 
 
-def test_live_workflow_keeps_api_legal_graph_and_pricing():
+def test_live_workflow_keeps_api_legal_and_pricing():
     text = WORKFLOW.read_text(encoding='utf-8')
     assert 'python -m pipeline.live build --src dist-v1 --web web/dist --out dist' in text
-    for kept in ('api', 'legal', 'graph', 'pricing', 'pricing-assets', '.well-known'):
+    for kept in ('api', 'legal', 'pricing', 'pricing-assets', '.well-known'):
         assert kept in live_site.KEEP_DIRS, kept
+    assert 'graph' not in live_site.KEEP_DIRS
     assert 'cmp -s' not in text  # compare full trees, not one representative file
     assert 'diff -r dist dist-internal' in text
-    assert 'test -s dist/modelspec/graph/index.html' in text
-    assert 'test "$(find dist/modelspec/graph/vendor -type f | wc -l | tr -d \' \')" = 2' in text
-    assert 'test ! -e dist/modelspec/graph/vendor/README.md' in text
+    assert 'test ! -e dist/modelspec/graph' in text
+    assert "grep -Fq '/graph/*  /  301' dist/modelspec/_redirects" in text
     for old_path in ('downselect', 'models', 'providers', 'benchmarks'):
         assert f'test -s dist/modelspec/{old_path}' not in text
         assert f'test ! -e dist/modelspec/{old_path}' in text
@@ -153,10 +161,9 @@ def test_live_build_checks_canonical_and_indexability():
                   if step.get('name') == 'Check the pages we promise actually exist')
     assert "grep -Fq '<link rel=\"canonical\" href=\"https://modelspec.dev/\"'" in checks
     assert "grep -Fq '<link rel=\"canonical\" href=\"https://modelspec.dev/decide/\"'" in checks
-    assert "grep -Fq '<link rel=\"canonical\" href=\"https://modelspec.dev/graph/\"'" in checks
     assert "grep -Fq '<link rel=\"canonical\" href=\"https://modelspec.dev/pricing/\"'" in checks
-    assert "! grep -Eiq '<meta[^>]+noindex'" in checks
-    assert "! grep -Fiq 'X-Robots-Tag'" in checks
+    assert "if grep -Eiq '<meta[^>]+noindex'" in checks
+    assert "if grep -Fiq 'X-Robots-Tag'" in checks
 
 
 def test_preview_artifact_keeps_hidden_files_and_reaches_deploy():

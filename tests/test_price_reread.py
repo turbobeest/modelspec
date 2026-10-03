@@ -383,7 +383,7 @@ def test_the_guard_refuses_a_rewrite_of_another_fact(estate) -> None:
 
 def test_price_pull_requests_are_never_auto_merged() -> None:
     automerge = (ROOT / ".github" / "workflows" / "automerge.yml").read_text()
-    workflow = (ROOT / ".github" / "workflows" / "price-reread.yml").read_text()
+    workflow = (ROOT / ".github" / "private-writers" / "price-reread.yml").read_text()
     assert f"github.head_ref != '{BRANCH}'" in automerge
     assert f"branch: {BRANCH}" in workflow
     assert "gh pr merge" not in workflow
@@ -555,3 +555,24 @@ def test_a_value_the_page_did_not_state_is_reviewed_not_written(estate) -> None:
     assert result.status is Status.NEEDS_REVIEW
     assert result.reason.startswith("was not_disclosed; a reader now reads 15:")
     assert (root / API_FILE).read_text() == before
+
+
+def test_overdue_offering_is_fetched_and_reconfirmed(estate):
+    root, store = estate
+    fetcher = ReplayFetcher({PLANS_URL: [page('plans.html')], API_URL: [page('api-pricing.html')]})
+    report = price_reread.run(root=root, fetcher=fetcher, store=store,
+                              today=date(2026, 10, 20), write=True, at=AT)
+    assert API_URL in fetcher.fetched
+    assert LARGE_INPUT in report.overdue
+    assert next(f.status for f in report.facts if f.fact_id == LARGE_INPUT) is Status.UNCHANGED
+    assert VerificationLog(root / 'verification').latest()[('fact', LARGE_INPUT)].date == date(2026, 10, 20)
+    assert report.to_dict()['max_read_age_days'] == 7
+
+
+def test_overdue_price_without_filed_claim_alerts(estate):
+    root, store = estate
+    Queue(root / 'verification').path.unlink()
+    fetcher = ReplayFetcher({})
+    report = price_reread.run(root=root, fetcher=fetcher, store=store, today=date(2026, 10, 20))
+    assert LARGE_INPUT in {fact.fact_id for fact in report.alerts}
+    assert fetcher.fetched == []

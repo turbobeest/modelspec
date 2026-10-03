@@ -24,7 +24,7 @@ not in intent.
 | A solo operator cannot produce trustworthy **hardware-dependent** latency without a wide variety of hardware, networks and components. | speed-v1 measures only **hosted provider offerings**, where the programme itself found that about 96.6% of wall-clock time is the provider's infrastructure. It measures no hardware of ours. The TLS handshake is timed separately and left out of time to first token. Each run records where its traffic enters the internet (the Cloudflare location from `cdn-cgi/trace`), and runs from any other vantage are dropped before aggregation. |
 | Publishing numbers that cannot be trusted costs the catalogue its credibility. | **The instrument is tested against a known truth.** `tests/test_speed_harness.py` streams responses of known timing over a real local socket, with HTTP/1.1 chunked transfer, in all three wire formats (Anthropic, OpenAI-compatible, Gemini), through the transport and parsers a live run uses. Measured throughput must be within 5% of the truth, which the test sets, not the code under test. **The second key re-measures.** Every run file keeps each request's raw stream events. A deterministic verifier with its own parser re-times every counted sample from those events, re-derives the run set, vantage and every gate, and recomputes the statistics by a separate implementation. It trusts no number the collector wrote. A fact it cannot re-derive gets a `mismatch` record and stays out of the snapshot. A full dry run replays streams in each provider's wire format through the whole pipeline with no network. Until the pilot records real streams, those fixtures are synthetic, and they are labelled so. |
 | Thin or noisy results read as findings. | **Publication gates on independent slots.** Requests in one slot share provider load, so at most 2 count from each slot. A number is published only with at least 20 counted good samples from at least 8 slots that cover all four scheduled hours, on at least 2 days within 7, with at most 20% failed requests. A run file or sample given twice is refused. Anything short of the gates stays `unknown`, because a null beats a guess. The pilot is one slot, so it cannot pass. |
-| Latency without a pass rate ranks models backwards. | **Speed never outweighs quality.** Every template that prefers speed weighs capability at least three times all its other terms together (0.75 against 0.25), and a test enforces this. Terms are normalised over the feasible set, so a model that is fastest (and, for High volume, cheapest) still needs two thirds of the lineup's capability range to beat the strongest model. This is a weighting, not a floor: a relative capability floor, "within a margin of the leader", needs a new contract operator and is a follow-up. speed-v1 measures single streamed requests on fixed prompts, not agentic wall-clock. Its interval enters the answer bands, so two offerings whose speeds cannot be told apart are not separated by speed. |
+| Latency without a pass rate ranks models backwards. | **Speed never buys back quality.** Every template that prefers speed is the fastest among the models within 1.0 of the strongest eligible model on the tier's domain: a hard condition `<domain> >= best(1.0)` ([contract](../decision-contract.md#relative-to-the-best)), and a test enforces it. The floor is a condition, not a weight, so no speed, however high, admits a model below it, and it does not move with the weakest model in the lineup. Between two well-measured models (80% intervals 1.4 to 2.0 wide) a gap of 1.0 leaves the leader ahead with probability about 0.82 to 0.90, so a survivor may be measurably weaker, but not decisively. A margin of 0.5 would sit inside the Best band (probability about 0.26 to 0.33), which the Best tier's `fastest` tie-breaker already answers. On the 2026-09-29 lineup, 1.0 keeps 6 to 8 of 35 eligible text models on each text domain, and 4 of 6 embedders on retrieval. speed-v1 measures single streamed requests on fixed prompts, not agentic wall-clock. Its interval enters the answer bands, so two offerings whose speeds cannot be told apart are not separated by speed. |
 
 ## What is measured
 
@@ -179,6 +179,25 @@ offering file holds a fixture measurement.
 - **The cloud runner's location is not pinned.** GitHub-hosted runners run in
   several Azure regions. Runs from a vantage other than the window's most
   common one are dropped, and the drop is reported.
+
+## Request shapes and smoke mode (MODEL-243)
+
+The pilot's first slot failed on request shape, not on speed. Shapes are
+pinned per provider in `scripts/speed/providers.py` and `pilot.yaml`, each with
+the doc URL it was checked against, and none of it changes the speed-v1 rules
+above: no retry, no workload change, the same gates.
+
+`mode=smoke` in the speed-probe workflow sends one short_chat request per
+offering under a fixed $0.25 cap (the cap is a constant, not an input) and
+prints each status, usage and the first 1 KB of any non-2xx body with keys and
+auth values redacted. A shape that no doc settles is settled by that output,
+not by a guess. Every non-2xx sample in a pilot or baseline run carries the
+same redacted `error_body`.
+
+Two speed-v1 rules the pilot showed to be awkward, left as they are until a
+method version changes them: a provider-injected cached prefix (xAI, 1152
+tokens on every request) collides with the `cache_hit` rule, and a provider that
+streams under 16 chunks for 256 tokens (Gemini) ends `not_streamed`.
 
 ## Spend control
 

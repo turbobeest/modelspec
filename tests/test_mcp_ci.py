@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import importlib.util
+import re
 from pathlib import Path
 
 import pytest
@@ -23,8 +24,10 @@ def _checker():
 def test_the_mcp_worker_deploys_only_from_main() -> None:
     workflow = WORKFLOW.read_text(encoding="utf-8")
     assert "    name: Deploy the MCP Worker\n" in workflow
-    assert ("if: github.event_name == 'push' && github.ref == 'refs/heads/main'"
-            in workflow)
+    gate = yaml.safe_load(workflow)["jobs"]["deploy"]["if"]
+    assert "github.ref == 'refs/heads/main'" in gate
+    assert "github.event_name == 'push'" in gate
+    assert "vars.DATA_SPLIT_ENABLED == 'true' && github.event_name == 'workflow_dispatch'" in gate
 
 
 def test_deploy_secrets_are_not_in_scope_on_a_pull_request() -> None:
@@ -65,24 +68,29 @@ def test_no_mcp_response_body_can_make_the_smoke_test_raise(tmp_path: Path) -> N
     assert "HTTP 522" in line
 
 
-def test_tools_list_check_requires_all_six_tools() -> None:
+def test_tools_list_check_requires_every_server_tool() -> None:
     checker = _checker()
     payload = {
         "jsonrpc": "2.0",
         "id": 2,
         "result": {
             "tools": [
-                {"name": "rank", "inputSchema": {"type": "object"}},
-                {"name": "model_info", "inputSchema": {"type": "object"}},
-                {"name": "list_use_cases", "inputSchema": {"type": "object"}},
-                {"name": "policy_check", "inputSchema": {"type": "object"}},
-                {"name": "decide", "inputSchema": {"type": "object"}},
-                {"name": "vocab", "inputSchema": {"type": "object"}},
+                {"name": name, "inputSchema": {"type": "object"}}
+                for name in checker.EXPECTED_TOOLS
             ]
         },
     }
     assert checker.check_tools_list(payload) == []
     assert checker.check_tools_list({"result": {"tools": []}})
+
+
+def test_the_smoke_check_expects_exactly_the_servers_tools() -> None:
+    # The deploy smoke drifted to 6 when feedback became the seventh tool
+    # (MODEL-221) and failed every MCP deploy on main until this pinned it.
+    server = (REPO_ROOT / "mcp" / "src" / "server.ts").read_text()
+    block = server[server.index("export const TOOL_NAMES = ["):]
+    block = block[: block.index("] as const")]
+    assert tuple(re.findall(r'"([a-z_]+)"', block)) == _checker().EXPECTED_TOOLS
 
 
 @pytest.mark.parametrize("body", [

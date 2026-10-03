@@ -1,0 +1,25 @@
+id: template-documents-best
+family: F1
+persona: Engineer applying a published decision template
+request: Find a text model that accepts million-token documents and writes the strongest analysis
+  of them.
+constraints:
+  must:
+  - model.class = text-generator
+  - model.context_window >= 1000000
+  prefer:
+    writing:
+      weight: 0.6
+      reason: Prefer clear, high-quality long-form writing.
+    reasoning:
+      weight: 0.4
+      reason: Prefer stronger multi-step analysis of the document.
+sources:
+- registry/templates.yaml#documents-best
+template: documents-best
+expected: null
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.
+gaps: []

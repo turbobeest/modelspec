@@ -2,31 +2,32 @@
 
 Called once from `pipeline.build.main` after the pages exist. Adds robots
 Content-Signals, favicon.ico, Markdown twins, well-known discovery documents,
-JSON-LD, llms-full.txt, and the Pages Function that serves Markdown for
+JSON-LD, and the Pages Function that serves Markdown for
 `Accept: text/markdown`. Does not restructure the build.
 """
 
 from __future__ import annotations
+
+from pipeline.public_data import enabled as private_serving
 
 import hashlib
 import json
 import re
 import shutil
 from pathlib import Path
-from typing import Any, Iterable
+from typing import Any
 
-from pipeline import brand
+from pipeline import brand, entity
 from pipeline.export import Build
 from pipeline.load import Benchmark, Catalogue, Model, REPO_ROOT
-
-#: Cap for /llms-full.txt. Cloudflare Pages refuses a file over 25 MiB;
-#: this is well under that and still fits a typical context window.
-LLMS_FULL_CAP = 1_048_576
 
 MS_BASE = "https://modelspec.dev"
 RANK_API = "https://api.modelspec.dev/v1/rank"
 POLICY_API = "https://api.modelspec.dev/v1/policy-check"
 HEALTH_API = "https://api.modelspec.dev/v1/health"
+FEEDBACK_API = "https://api.modelspec.dev/v1/feedback"
+FEEDBACK_DOCS = "https://github.com/turbobeest/modelspec/blob/main/docs/feedback-api.md"
+FEEDBACK_SCHEMA = f"{MS_BASE}/api/feedback/v1.schema.json"
 MCP_ENDPOINT = "https://api.modelspec.dev/mcp"
 API_DOCS = "https://github.com/turbobeest/modelspec/blob/main/docs/api.md"
 POLICY_DOCS = (
@@ -52,9 +53,18 @@ MCP_NAME = "dev.modelspec/catalogue"
 MCP_NAME_PATTERN = r"^[a-zA-Z0-9.-]+/[a-zA-Z0-9._-]+$"
 MCP_DESCRIPTION_MAX = 100
 MCP_TOOLS = (
-    "decide", "rank", "model_info", "list_use_cases", "policy_check", "vocab"
+    "decide", "rank", "model_info", "list_use_cases", "policy_check", "vocab", "feedback"
 )
-_BYTES_WIDTH = 8
+MCP_AUTH_DESCRIPTION = (
+    "MCP decision tools rank, policy_check and decide require "
+    "`Authorization: Bearer <key>`. "
+    "MCP model_info, list_use_cases, vocab and feedback stay keyless."
+)
+HOSTED_API_AUTH_DESCRIPTION = (
+    "The hosted API is a paid service; get a key at https://modelspec.dev/pricing/. "
+    "Key enforcement is being switched on. Today, hosted API requests without "
+    "a key are served while ACCESS_ENFORCED is off."
+)
 PAGES_FILE_LIMIT = 20_000
 PAGES_ROUTES = {
     "version": 1,
@@ -62,7 +72,6 @@ PAGES_ROUTES = {
     "exclude": [
         "/api/*",
         "/fonts/*",
-        "/graph/vendor/*",
         "/functions/*",
         "/*.png",
         "/*.jpg",
@@ -95,6 +104,22 @@ _SKIP_MD_EXT = re.compile(
 )
 _WRANGLER_FLAG = re.compile(r'"([A-Z0-9_]+)"\s*:\s*"([^"]*)"')
 
+
+
+def _repo_rel(path: Path, top: str) -> str:
+    """The repository-relative path of a card, whichever root it was loaded from.
+
+    A build over a composed data root (MODEL-246) loads cards from a temporary
+    directory, so the path is anchored on the data directory's name instead.
+    """
+    try:
+        return path.relative_to(REPO_ROOT).as_posix()
+    except ValueError:
+        pass
+    parts = path.parts
+    if top in parts:
+        return "/".join(parts[len(parts) - 1 - parts[::-1].index(top):])
+    return path.as_posix()
 
 def _dig(front: Any, *keys: str) -> Any:
     node = front
@@ -265,16 +290,13 @@ def model_markdown(model: Model) -> str:
         f"- open_weights: {_fmt(_dig(front, 'licensing', 'open_weights'))}",
         f"- release_date: {_fmt(front.get('release_date'))}",
         f"- page: {facts['url']}",
-        f"- json: {MS_BASE}/api/models/{model.model_id}.json",
+        *([] if private_serving() else [f"- json: {MS_BASE}/api/models/{model.model_id}.json"]),
         "",
         "Null means not researched or not published, never a guess.",
         "",
         "## Provenance",
     ]
-    try:
-        rel = model.path.relative_to(REPO_ROOT).as_posix()
-    except ValueError:
-        rel = model.path.as_posix()
+    rel = _repo_rel(model.path, "models")
     lines.append(f"- card: https://github.com/turbobeest/modelspec/blob/main/{rel}")
     if model.scores_source:
         lines.append(f"- scores_source: {model.scores_source}")
@@ -359,10 +381,7 @@ def benchmark_markdown(bench: Benchmark, catalogue: Catalogue) -> str:
     else:
         lines.append("null")
     lines += ["", "## Provenance"]
-    try:
-        rel = bench.path.relative_to(REPO_ROOT).as_posix()
-    except ValueError:
-        rel = bench.path.as_posix()
+    rel = _repo_rel(bench.path, "benchmarks")
     lines.append(f"- page_source: https://github.com/turbobeest/modelspec/blob/main/{rel}")
     sources = bench.front.get("sources") if isinstance(bench.front, dict) else None
     found = False
@@ -389,7 +408,7 @@ def modelspec_landing_markdown(models: list[Model], benchmarks: list[Benchmark],
         f"# ModelSpec\n\n"
         f"> {MS_BASE}\n\n"
         f"{brand.POSITIONING}\n\n"
-        f"Open catalogue of AI models. Null means not researched.\n\n"
+        f"Decision data on AI models, served online. Null means not researched.\n\n"
         f"- models: {len(models)}\n"
         f"- providers: {len(providers)}\n"
         f"- benchmarks: {len(benchmarks)}\n"
@@ -399,7 +418,6 @@ def modelspec_landing_markdown(models: list[Model], benchmarks: list[Benchmark],
         f"- html: {MS_BASE}/\n"
         f"- decide: {MS_BASE}/decide/\n"
         f"- method: {MS_BASE}/method/\n"
-        f"- json: {MS_BASE}/api/index.json\n"
         f"- rank: {RANK_API}\n"
         f"- policy-check: {POLICY_API}\n"
         # MODEL-100. The whole class-fit rule as static data, no key: which
@@ -409,10 +427,10 @@ def modelspec_landing_markdown(models: list[Model], benchmarks: list[Benchmark],
         f"- openapi: {OPENAPI_URL}\n"
         f"- auth: {MS_BASE}/auth.md\n"
         f"- llms: {MS_BASE}/llms.txt\n"
-        f"- llms-full: {MS_BASE}/llms-full.txt\n"
         f"\n"
-        f"Start with `modelspec snapshot fetch`, then `modelspec vocab`, then "
-        f"`modelspec decide --template <id>` or a spec file. Use class-fit if "
+        f"Use the hosted API at `POST https://api.modelspec.dev/v1/decide` "
+        f"or the remote MCP Worker. {HOSTED_API_AUTH_DESCRIPTION} "
+        f"{MCP_AUTH_DESCRIPTION} The CLI is retired. Use class-fit if "
         f"you have not decided what class the problem needs; it names candidate "
         f"classes and refuses to order them. Legacy v1 rank uses retired "
         f"fixed-benchmark profiles. Use policy-check to "
@@ -481,9 +499,16 @@ def api_catalog() -> dict[str, Any]:
         "linkset": [
             entry(RANK_API, API_DOCS),
             entry(POLICY_API, POLICY_DOCS),
+            {**entry(FEEDBACK_API, FEEDBACK_DOCS),
+             "describedby": [{"href": FEEDBACK_SCHEMA, "type": "application/schema+json"}]},
             entry(MCP_ENDPOINT, MCP_DOCS),
         ]
     }
+
+
+def _agent_copy() -> dict[str, Any]:
+    from pipeline import agent_copy
+    return json.loads(agent_copy.OUT.read_text(encoding="utf-8"))
 
 
 def mcp_card() -> dict[str, Any]:
@@ -493,7 +518,7 @@ def mcp_card() -> dict[str, Any]:
     `tools` is extra; draft-07 additionalProperties default to true, and the
     The public card lists every MCP tool named here.
     """
-    description = "Decide which model fits a task, inspect cards, and check policy."
+    description = entity.SHORT
     if len(description) > MCP_DESCRIPTION_MAX:
         raise ValueError("MCP description exceeds schema maxLength 100")
     return {
@@ -508,20 +533,8 @@ def mcp_card() -> dict[str, Any]:
             "source": "github",
         },
         "remotes": [{"type": "streamable-http", "url": MCP_ENDPOINT}],
-        "tools": [
-            {"name": "decide",
-             "description": "POST /v1/decide. Downselect from a decision spec."},
-            {"name": "rank",
-             "description": "POST /v1/rank (legacy v1). Fixed-benchmark shortlist."},
-            {"name": "model_info",
-             "description": "GET a model card as JSON from the public export."},
-            {"name": "list_use_cases",
-             "description": "GET /api/rank/profiles.json ranking profiles."},
-            {"name": "policy_check",
-             "description": "POST /v1/policy-check. pass/fail/undetermined."},
-            {"name": "vocab",
-             "description": "GET the decision vocabulary for valid spec values."},
-        ],
+        # MODEL-257: the same generated copy the MCP server serves.
+        "tools": [{"name": name, "description": _agent_copy()["card"][name]} for name in MCP_TOOLS],
     }
 
 
@@ -533,6 +546,11 @@ def skill_markdown() -> str:
     )
 
     n = neutrality_commitment()
+    display_guidance = (
+        "GET https://api.modelspec.dev/v1/vocabulary returns display definitions "
+        "and names, plus aggregate answerability, data availability, refinement thinness and benchmark min/max only when at least 3 models have a score on that benchmark. No prices, allowances, counts or per-model scores. "
+        "MCP model_info returns a display name; use keyed decide for current facts. "
+    ) if private_serving() else ""
     return (
         "---\n"
         "name: modelspec\n"
@@ -555,21 +573,29 @@ def skill_markdown() -> str:
         "\n"
         "## When to call what\n"
         "\n"
-        "- **decide** — run `modelspec snapshot fetch`, inspect valid values "
-        "with `modelspec vocab`, then run `modelspec decide --template <id>` "
-        "or `modelspec decide SPEC.yaml`. The MCP server also has a `decide` "
-        "tool.\n"
+        "- **decide** — POST a decision spec to `https://api.modelspec.dev/v1/decide` "
+        "or use the remote MCP `decide` tool. Read its `vocab` "
+        "tool for valid values. "
+        + display_guidance
+        + "The CLI was retired on 2026-09-30.\n"
         "- **rank (legacy v1)** (`POST https://api.modelspec.dev/v1/rank`) — "
         "uses the retired fixed-benchmark profiles. It remains available for "
         "existing callers during the decision-contract cutover.\n"
         "- **policy-check** (`POST https://api.modelspec.dev/v1/policy-check`) "
         "— pass / fail / undetermined per model and per platform against a "
         "caller's licence, origin, residency and commercial-use policy. Use "
-        "this when the question is compliance, not quality. Without a paid "
-        "key it answers from the public export; undetermined is not a pass.\n"
+        "this when the question is compliance, not quality. "
+        "Undetermined is not a pass.\n"
         "- **MCP** (`https://api.modelspec.dev/mcp`) — Streamable HTTP. Tools: "
         + ", ".join(MCP_TOOLS)
-        + ". Same origins as the HTTP API. No key.\n"
+        + f". {MCP_AUTH_DESCRIPTION}\n"
+        f"- {HOSTED_API_AUTH_DESCRIPTION}\n"
+        "- **feedback** (`POST https://api.modelspec.dev/v1/feedback`, no key) — "
+        "after you act on an answer, send one rating: `reliable`, `unreliable`, "
+        "`trustworthy`, `untrustworthy` or `confusing`, with `client: \"agent\"` "
+        "and the answer's `decision_id`. Every decision's `feedback` block names "
+        "the endpoint. "
+        "Never put a prompt, a key or personal details in `note`.\n"
         "- Do not call rank to answer a policy question, and do not treat a "
         "rank score as a licence determination.\n"
         "\n"
@@ -596,8 +622,10 @@ def skill_markdown() -> str:
         f"- OpenAPI: {OPENAPI_URL}\n"
         f"- API catalog (RFC 9727): {MS_BASE}/.well-known/api-catalog\n"
         f"- MCP card (SEP-2127): {MS_BASE}/.well-known/mcp.json\n"
+        f"- Agent guide: {MS_BASE}/agents.md\n"
         f"- Auth: {MS_BASE}/auth.md\n"
         f"- llms.txt: {MS_BASE}/llms.txt\n"
+        f"- Feedback schema: {FEEDBACK_SCHEMA}\n"
         f"- Markdown: {MS_BASE}/index.md\n"
     )
 
@@ -647,7 +675,8 @@ def auth_markdown(root: Path) -> str:
     ]
     if access_off:
         lines.append(
-            "**No key is required.** `ACCESS_ENFORCED` in the Worker is off. "
+            "**No key is required for the hosted API.** "
+            "`ACCESS_ENFORCED` in the Worker is off. "
             "A request without a key is served as the free tier, unmetered. "
             "A request that presents a key is checked: unknown and revoked "
             "keys are refused rather than ignored."
@@ -659,7 +688,10 @@ def auth_markdown(root: Path) -> str:
         )
     lines += [
         "",
-        "### Free tier (no key)",
+        (HOSTED_API_AUTH_DESCRIPTION if access_off else
+         "The hosted API is a paid service; get a key at https://modelspec.dev/pricing/."),
+        "",
+        "### Hosted API free tier (no key)",
         "",
         "- `POST /v1/decide` — downselect from a decision spec, no signup.",
         "- `POST /v1/rank` (legacy v1) — retired fixed-benchmark ranking, "
@@ -668,7 +700,11 @@ def auth_markdown(root: Path) -> str:
         "Checks that need the private determination store stay "
         "`undetermined` with `why: tier`. That is not a pass.",
         "- `GET /v1/health` — deploy pin.",
-        "- MCP `https://api.modelspec.dev/mcp` — the six tools, no key.",
+        "",
+        "### MCP",
+        "",
+        f"MCP `{MCP_ENDPOINT}` has {len(MCP_TOOLS)} tools: " + ", ".join(MCP_TOOLS) + ".",
+        MCP_AUTH_DESCRIPTION,
         "",
         "### Sandbox (`test_` keys)",
         "",
@@ -705,93 +741,6 @@ def auth_markdown(root: Path) -> str:
         "",
     ]
     return "\n".join(lines)
-
-
-def _catalogue_digest(title: str, blocks: Iterable[str], *, cap: int,
-                      unit: str) -> tuple[str, dict[str, int]]:
-    """Single-file digest. Header states cap_bytes and the final byte count."""
-    zeros = "0" * _BYTES_WIDTH
-    header = f"# {title}\n# cap_bytes: {cap}\n# bytes: {zeros}\n"
-    reserve = 180
-    budget = cap - len(header.encode("utf-8")) - reserve
-    kept: list[str] = []
-    used = 0
-    included = 0
-    omitted = 0
-    block_list = list(blocks)
-    for i, block in enumerate(block_list):
-        size = len(block.encode("utf-8"))
-        if used + size > budget:
-            omitted = len(block_list) - i
-            break
-        kept.append(block)
-        used += size
-        included += 1
-    note = (
-        f"# truncated: {omitted} {unit} omitted (cap {cap} bytes)\n"
-        if omitted else ""
-    )
-    body = (header + note + "\n".join(kept)).rstrip() + "\n"
-    encoded = body.encode("utf-8")
-    if len(encoded) > cap:
-        body = encoded[: max(cap - 1, 0)].decode("utf-8", errors="ignore")
-        if not body.endswith("\n"):
-            body = body[: max(len(body) - 1, 0)] + "\n"
-    size = len(body.encode("utf-8"))
-    body = body.replace(f"# bytes: {zeros}", f"# bytes: {size:0{_BYTES_WIDTH}d}", 1)
-    size = len(body.encode("utf-8"))
-    return body, {"bytes": size, "cap": cap, "included": included, "omitted": omitted}
-
-
-def _model_blocks(models: Iterable[Model]) -> list[str]:
-    blocks = []
-    for model in models:
-        facts = model_facts(model)
-        blocks.append(
-            f"## {facts['id']}\n"
-            f"name: {facts['name']}\n"
-            f"provider: {_fmt(facts['provider'])}\n"
-            f"type: {_fmt(facts['type'])}\n"
-            f"context: {_fmt(facts['context'])}\n"
-            f"pricing: {_fmt(facts['pricing'])}\n"
-            f"licence: {_fmt(facts['licence'])}\n"
-            f"commercial_use: {_fmt(facts['commercial_use'])}\n"
-            f"json: {MS_BASE}/api/models/{facts['id']}.json\n"
-        )
-    return blocks
-
-
-def _benchmark_blocks(benchmarks: Iterable[Benchmark], catalogue: Catalogue) -> list[str]:
-    blocks = []
-    for bench in benchmarks:
-        status = catalogue.for_benchmark(bench.benchmark_id).status
-        category = bench.front.get("category") if isinstance(bench.front, dict) else None
-        blocks.append(
-            f"## {bench.benchmark_id}\n"
-            f"name: {bench.name}\n"
-            f"category: {_fmt(category)}\n"
-            f"status: {status}\n"
-            f"json: {MS_BASE}/api/benchmarks/{bench.benchmark_id}.json\n"
-        )
-    return blocks
-
-
-def llms_full_models(models: Iterable[Model], *, cap: int = LLMS_FULL_CAP) -> tuple[str, dict[str, int]]:
-    return _catalogue_digest("ModelSpec catalogue digest", _model_blocks(models), cap=cap, unit="models")
-
-
-def llms_full_benchmarks(benchmarks: Iterable[Benchmark], catalogue: Catalogue,
-                         *, cap: int = LLMS_FULL_CAP) -> tuple[str, dict[str, int]]:
-    return _catalogue_digest(
-        "Benchmark catalogue digest", _benchmark_blocks(benchmarks, catalogue),
-        cap=cap, unit="benchmarks")
-
-
-def llms_full(models: Iterable[Model], benchmarks: Iterable[Benchmark], catalogue: Catalogue,
-              *, cap: int = LLMS_FULL_CAP) -> tuple[str, dict[str, int]]:
-    """One digest: model cards, then benchmark pages, under the same cap."""
-    blocks = _model_blocks(models) + _benchmark_blocks(benchmarks, catalogue)
-    return _catalogue_digest("ModelSpec catalogue digest", blocks, cap=cap, unit="records")
 
 
 def _write_favicon(tree: Path) -> int:
@@ -846,7 +795,14 @@ def ship(*, root: Path, ms: Path, models: list[Model],
 
     openapi_src = root / "api" / "worker" / "openapi.yaml"
     if openapi_src.is_file():
-        shutil.copy2(openapi_src, ms / "openapi.yaml")
+        if private_serving():
+            import importlib.util
+            spec = importlib.util.spec_from_file_location("site_openapi", root / "api/worker/openapi.py")
+            module = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(module)
+            (ms / "openapi.yaml").write_text(module.render(), encoding="utf-8")
+        else:
+            shutil.copy2(openapi_src, ms / "openapi.yaml")
 
     well = ms / ".well-known"
     well.mkdir(parents=True, exist_ok=True)
@@ -868,6 +824,8 @@ def ship(*, root: Path, ms: Path, models: list[Model],
         skill_description(),
     )
     (well / "agent-skills" / "index.json").write_text(_json(index), encoding="utf-8")
+    from pipeline.agent_copy import guide
+    (ms / "agents.md").write_text(guide()[1], encoding="utf-8")
     (ms / "auth.md").write_text(auth_markdown(root), encoding="utf-8")
 
     md_count = 0
@@ -912,11 +870,8 @@ def ship(*, root: Path, ms: Path, models: list[Model],
                                        benchmark_jsonld(bench, catalogue))),
                 encoding="utf-8")
 
-    full, full_stats = llms_full(models, benchmarks, catalogue)
-    (ms / "llms-full.txt").write_text(full, encoding="utf-8")
-
     extra = (
-        f"- Catalogue digest: {MS_BASE}/llms-full.txt\n"
+        f"- Agent guide: {MS_BASE}/agents.md\n"
         f"- Auth: {MS_BASE}/auth.md\n"
         f"- MCP card: {MS_BASE}/.well-known/mcp.json\n"
     )
@@ -929,7 +884,6 @@ def ship(*, root: Path, ms: Path, models: list[Model],
     return {
         "markdown_pages": md_count,
         "favicon_bytes": ms_fav,
-        "llms_full": full_stats,
         "skill_bytes": len(skill_bytes),
         "openapi_published": (ms / "openapi.yaml").is_file(),
     }

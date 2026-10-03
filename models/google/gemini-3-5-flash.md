@@ -678,7 +678,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / overall, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category overall,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -692,9 +692,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:4662065250a8ba456c98963d631fa259b3f2c305e33d948af0f8907e71c23550
+      snapshot_ref: sha256:1bc41471fa63c00d5e990f8ff6c7ae8d343321a704311ca8585bda974efd153d
       cited_regions:
       - rows
+    observed_at: '2026-09-30'
   - benchmark_id: arena_sc_coding
     model_id_as_evaluated: gemini-3.5-flash-high
     score: 1505.69
@@ -703,7 +704,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / coding, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category coding,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -717,9 +718,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:861d314ad0c414b03631186d10aa7c7ce22220d9f005f2ff007b64e705982f88
+      snapshot_ref: sha256:089deb374ac3c4b394209968c2abcb3cf655a1b9a30a4131b30ac8c829a701b0
       cited_regions:
       - rows
+    observed_at: '2026-09-30'
   - benchmark_id: arena_sc_hard_prompts
     model_id_as_evaluated: gemini-3.5-flash-high
     score: 1495.21
@@ -728,7 +730,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / hard_prompts, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category hard_prompts,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -742,9 +744,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:c76b4360f6dd0a76db1c93cecd958df7ee2bac63ba20b42d7b97bdc0d4d367c0
+      snapshot_ref: sha256:1b7b4656ca832e762e7f13e33eaaf32c7340cd045337d7ac1f054ef70c4bf1bf
       cited_regions:
       - rows
+    observed_at: '2026-09-30'
   - benchmark_id: arena_sc_math
     model_id_as_evaluated: gemini-3.5-flash-high
     score: 1498.82
@@ -753,7 +756,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / math, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category math, leaderboard_publish_date
       2026-09-13; style control. Highest-effort row for the product (effort: high; MODEL-123
@@ -766,9 +769,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:3b05392555a93acf4a49b4db0f2c55b1706f39ad4af4fdda135d977a41d913bb
+      snapshot_ref: sha256:1874a1ccff7caa3c0046e181bbaeb0b8343bce7adb4066b951bc9c44d194ec6d
       cited_regions:
       - rows
+    observed_at: '2026-09-30'
   - benchmark_id: arena_sc_creative_writing
     model_id_as_evaluated: gemini-3.5-flash-high
     score: 1464.92
@@ -777,7 +781,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / creative_writing, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category creative_writing,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -791,9 +795,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:93f67d3f1afc6c8e089098ff841ea62a788d942bdfed88a5af59c391b50e85ba
+      snapshot_ref: sha256:fc5f6716f31834193f7b2136ea74bde411ae5ba90fc4ac118d482310e61b38d2
       cited_regions:
       - rows
+    observed_at: '2026-09-30'
   - benchmark_id: arena_sc_instruction_following
     model_id_as_evaluated: gemini-3.5-flash-high
     score: 1464.5
@@ -802,7 +807,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / instruction_following, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category instruction_following,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -816,9 +821,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:3a5c233b5a355ce846a9593281b3a329824f79715d7a088d43b4e16b4591d64d
+      snapshot_ref: sha256:8dcf9ad77990db5c111c78a9d921ba5a078255a7268d36cda182d9e2e8baed14
       cited_regions:
       - rows
+    observed_at: '2026-09-30'
   - benchmark_id: arena_sc_multi_turn
     model_id_as_evaluated: gemini-3.5-flash-high
     score: 1483.44
@@ -827,7 +833,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / multi_turn, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category multi_turn,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -841,9 +847,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:06bb5d8537c4748b32de8eebd54c17aa3f5be95aeb38c431641dfd64bf4fbf28
+      snapshot_ref: sha256:669cce652634672175a1aa830b1e106cc211f20e4f5a8190f41be169b0e8780e
       cited_regions:
       - rows
+    observed_at: '2026-09-30'
   - benchmark_id: arena_sc_expert
     model_id_as_evaluated: gemini-3.5-flash-high
     score: 1488.66
@@ -852,7 +859,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / expert, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category expert,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -866,9 +873,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:e096ca48998dee537b46e71137159b733af46c9e61a3b5d945bd96ccd2ddc70a
+      snapshot_ref: sha256:db8d6995a9ec2ba53e4d4d240df0cce213a4b54b2143ae674970e3afa1dfe764
       cited_regions:
       - rows
+    observed_at: '2026-09-30'
   - benchmark_id: arena_sc_longer_query
     model_id_as_evaluated: gemini-3.5-flash-high
     score: 1481.14
@@ -877,7 +885,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / longer_query, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category longer_query,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -891,9 +899,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:154dced7e2bf6cc0d1a39b9edb550ed79ffe348a92bb0251a522e3c9515e0ea6
+      snapshot_ref: sha256:f27585ee7eee36757893f733b338f207eabe2f9fb0349b6b539f7cb5c60fd4ab
       cited_regions:
       - rows
+    observed_at: '2026-09-30'
   - benchmark_id: arena_sc_non_english
     model_id_as_evaluated: gemini-3.5-flash-high
     score: 1470.07
@@ -902,7 +911,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / non_english, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category non_english,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -916,9 +925,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:baef93b79236b01c043c3d7d41cb98aace9ab4d718250dc82f863d3b692ddbe5
+      snapshot_ref: sha256:52e386a612514d210b1d77719363e4ca268905f06901681ab924fac1d9520304
       cited_regions:
       - rows
+    observed_at: '2026-09-30'
   - benchmark_id: arena_sc_medicine
     model_id_as_evaluated: gemini-3.5-flash-high
     score: 1491.21
@@ -927,7 +937,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / industry_medicine_and_healthcare, latest split,
       revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_medicine_and_healthcare,
@@ -942,9 +952,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:9ac8343014a6f3fa3a087f7596192bcc37d4be5873044ebb2fbf369eddc040f1
+      snapshot_ref: sha256:544b6524228d2e78462111b28f6dc4d5ae76d82f8ba52fd6040b0639e1f4856c
       cited_regions:
       - rows
+    observed_at: '2026-09-30'
   - benchmark_id: arena_sc_legal
     model_id_as_evaluated: gemini-3.5-flash-high
     score: 1475.24
@@ -953,7 +964,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / industry_legal_and_government, latest split, revision
       1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_legal_and_government,
@@ -968,9 +979,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:73dac5a7b8594e73268d51ccc9991781448045bed3be54cd741b37de4ea10317
+      snapshot_ref: sha256:07e3a236f9ee5e0cecac83995952d8e94413e872035c5ccae1efa23137a236ed
       cited_regions:
       - rows
+    observed_at: '2026-09-30'
   - benchmark_id: arena_sc_business
     model_id_as_evaluated: gemini-3.5-flash-high
     score: 1465.52
@@ -979,7 +991,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / industry_business_and_management_and_financial_operations,
       latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_business_and_management_and_financial_operations,
@@ -994,9 +1006,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:55a6c0caed26dbe460df511bb28bba4ccaa9aab5376e2efa6c7ecbdfca3605f0
+      snapshot_ref: sha256:d1da5448d5afc01a34ae83fe1a795ef9a79a434bfe906fe2426ce82a67b36755
       cited_regions:
       - rows
+    observed_at: '2026-09-30'
   - benchmark_id: arena_sc_science
     model_id_as_evaluated: gemini-3.5-flash-high
     score: 1488.4
@@ -1005,7 +1018,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / industry_life_and_physical_and_social_science, latest
       split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_life_and_physical_and_social_science,
@@ -1020,9 +1033,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:e480b4aa4e4c6687e8e7153b1a1e5fcb4b84cef3f20c7df6895c8f7b5b1fab4c
+      snapshot_ref: sha256:1017485e0b9dcfcf7d1a4dfeeed89d314f2f74f8131a3f8e05d6b833360bea76
       cited_regions:
       - rows
+    observed_at: '2026-09-30'
   - benchmark_id: arena_sc_writing
     model_id_as_evaluated: gemini-3.5-flash-high
     score: 1474.0
@@ -1031,7 +1045,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / industry_writing_and_literature_and_language, latest
       split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset text_style_control, category industry_writing_and_literature_and_language,
@@ -1046,9 +1060,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:cf0d8c375155a60a2cc2ed34fa27600c376b34ce75cd6d7db33dc51f8c6caade
+      snapshot_ref: sha256:60b89142370aecd9137ff982bd144e8628dc8abadd10f41b90d334d34878bae0
       cited_regions:
       - rows
+    observed_at: '2026-09-30'
   - benchmark_id: arena_sc_vision
     model_id_as_evaluated: gemini-3.5-flash-high
     score: 1283.7
@@ -1057,7 +1072,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-30'
     benchmark_version: vision_style_control / overall, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset vision_style_control, category overall,
       leaderboard_publish_date 2026-09-13; style control. Highest-effort row for the product
@@ -1071,9 +1086,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-vision-style-control
-      snapshot_ref: sha256:efd350d481ea9fcae6cff45c72c1226ed2df2a24aeece0839bfe4e0496368ffd
+      snapshot_ref: sha256:7cbeea3f83baaecb48aa1caac47e6a310b98842291087f21933928af691e694b
       cited_regions:
       - rows
+    observed_at: '2026-09-30'
   - benchmark_id: arena_webdev
     model_id_as_evaluated: gemini-3.5-flash-high
     score: 1499.92
@@ -1082,7 +1098,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-23'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-30'
     benchmark_version: webdev / overall, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset webdev, category overall, leaderboard_publish_date
       2026-09-23; no style-controlled variant. Highest-effort row for the product (effort: high;
@@ -1095,9 +1111,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-143-evidence-arena-webdev-json
-      snapshot_ref: sha256:8c88f6e665fc8a5667d5b00b1a3ef24d70773f37f9f2fe917623c8c29895c5cf
+      snapshot_ref: sha256:31b3d323e3968c31c3238ed5782c805c2ae4be8758520c2e6837e2f3cb7633cb
       cited_regions:
       - rows
+    observed_at: '2026-09-30'
   - benchmark_id: gpqa_diamond
     model_id_as_evaluated: gemini-3.5-flash_high
     score: 92.8
@@ -1106,7 +1123,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-05-22'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-30'
     benchmark_version: GPQA Diamond (Epoch AI run)
     configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (gpqa_diamond.csv),
       read 2026-09-24. Run started 2026-05-22T16:02:44.000Z; effort high; highest-effort run
@@ -1118,9 +1135,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-143-evidence-epoch-gpqa-diamond-csv
-      snapshot_ref: sha256:d5f11aa4a63411b644aa536119ea1a7665c4f56ca47d8e11c97fc4e314449fec
+      snapshot_ref: sha256:dda8f2d4af6df0de8c7a4490325bf0c217d3dc92c5d55d04d3f62d4d2ab529a2
       cited_regions:
       - rows
+    observed_at: '2026-09-30'
   - benchmark_id: frontiermath_tiers_1_3_v2
     model_id_as_evaluated: gemini-3.5-flash_high
     score: 62.81
@@ -1129,7 +1147,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-06-10'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-30'
     benchmark_version: FrontierMath-Tiers-1-3-v2-Private (Epoch AI run)
     configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (frontiermath_tiers_1_3_v2.csv),
       read 2026-09-24. Run started 2026-06-10T17:32:38.000Z; effort high; highest-effort run
@@ -1141,9 +1159,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-143-evidence-epoch-frontiermath-tiers-1-3-v2-csv
-      snapshot_ref: sha256:5f2d315d4902f61209df86bb3a90b5dee0946624126c126708f64c90af13a93a
+      snapshot_ref: sha256:37e80df4aa6aaec8c5ecd855ad6acf066d090004587859f657853c31991b0046
       cited_regions:
       - rows
+    observed_at: '2026-09-30'
   - benchmark_id: simpleqa_verified
     model_id_as_evaluated: gemini-3.5-flash_high
     score: 66.2
@@ -1152,7 +1171,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-08-27'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-30'
     benchmark_version: SimpleQA Verified, proportion correct, Epoch AI protocol with anti-abstention
       prompt
     configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (simpleqa_verified.csv),
@@ -1165,9 +1184,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-epoch-simpleqa-verified-csv
-      snapshot_ref: sha256:cd774c02710b0ebf922eb880c96df454e8c5c4ca53d828a8da2a557a00df5275
+      snapshot_ref: sha256:b73919dc0a37684a121e15559fdf4b73ef909848db133faa8ab2ce0cc4ddccae
       cited_regions:
       - rows
+    observed_at: '2026-09-30'
   - benchmark_id: swe_bench_verified
     model_id_as_evaluated: gemini-3.5-flash_high
     score: 79.34
@@ -1176,7 +1196,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-06-01'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-30'
     benchmark_version: SWE-bench Verified (Epoch AI run)
     configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (swe_bench_verified.csv),
       read 2026-09-24. Run started 2026-06-01T10:22:55.131Z; effort high; highest-effort run
@@ -1187,89 +1207,89 @@ benchmarks:
     effort: high
     harness: null
     sources:
-    - source_id: model-143-evidence-epoch-swe-bench-verified-csv
-      snapshot_ref: sha256:1b11e51afaab550c3cd39ceb4c28da4cbdd79208bf381dea2407a758cb8276b3
+    - source_id: model-160-epoch-swe-bench-verified-csv
+      snapshot_ref: sha256:ed1a16e9654e811735e5fd8ad2d3342b57cff954a552e663f601990b90f9febc
       cited_regions:
       - rows
+    observed_at: '2026-09-30'
   - benchmark_id: vending_bench_2
     model_id_as_evaluated: Gemini 3.5 Flash
     score: 5396.42
     unit: USD
     source_url: https://andonlabs.com/evals/vending-bench-2
     source_kind: benchmark_author
-    evidence_date: '2026-09-26'
+    evidence_date: '2026-09-30'
     date_type: evaluated
-    verified_at: '2026-09-26'
+    verified_at: '2026-09-30'
     benchmark_version: Vending-Bench 2, mean final balance over 5 runs
     configuration: Board row as copied in Epoch AI's benchmark data (vending_bench_2_external.csv,
       https://epoch.ai/data/benchmark_data.zip), read 2026-09-24. Effort unknown; the highest-effort
       row for the model (MODEL-123 max-effort rule).
     limitations: A live board's standing, dated by the day ModelSpec read Epoch AI's copy; the
       copy carries no per-row date. Epoch AI data, CC BY 4.0.
-    id: google/gemini-3-5-flash#vending_bench_2#2dd2518ca9d9
+    id: google/gemini-3-5-flash#vending_bench_2#8aec05f21a55
     measured_by: benchmark_author
     effort: null
     harness: null
     sources:
     - source_id: model-160-vending-bench-2
-      snapshot_ref: sha256:6d8ce9e4ae28f6ef99e0c6059b3cc96abf7fefafc7b90b65954fa6c758516731
+      snapshot_ref: sha256:56dc9c006a5dd8343157e3122937b85758f2d208dec87e0c61a3eab1c750efbf
       cited_regions:
       - rows
+    observed_at: '2026-09-30'
   - benchmark_id: deepswe_v1_1
     model_id_as_evaluated: gemini-3-5-flash (high)
     score: 36.06
     unit: percent
     source_url: https://deepswe.datacurve.ai/
     source_kind: benchmark_author
-    evidence_date: '2026-09-25'
+    evidence_date: '2026-09-30'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-30'
     benchmark_version: DeepSWE v1.1, pass@1, mini-swe-agent
     configuration: Board row as copied in Epoch AI's benchmark data (deepswe_external.csv, https://epoch.ai/data/benchmark_data.zip),
       read 2026-09-24. Effort high; the highest-effort row for the model (MODEL-123 max-effort
       rule). Harness mini-swe-agent.
     limitations: A live board's standing, dated by the day ModelSpec read Epoch AI's copy; the
       copy carries no per-row date. Epoch AI data, CC BY 4.0.
-    id: google/gemini-3-5-flash#deepswe_v1_1#3fc6389941e9
+    id: google/gemini-3-5-flash#deepswe_v1_1#873d88e1311d
     measured_by: benchmark_author
     effort: high
     harness: unregistered
     sources:
     - source_id: model-160-deepswe-v1-1
-      snapshot_ref: sha256:7fcc641eb55d3cfbc8429ea1ef26448ef44bb66772190ee69f8464958c0a79dc
+      snapshot_ref: sha256:893865e2bda8e1a02a8e7115c6e02a8f8c843dd0763b8fbb1db3af6c017860f9
       cited_regions:
       - rows
+    observed_at: '2026-09-30'
   - benchmark_id: aime_2026
     model_id_as_evaluated: Gemini 3.5 Flash
     score: 95.0
     unit: percent
     source_url: https://matharena.ai/competition_tables/aime--aime_2026
     source_kind: independent_evaluator
-    evidence_date: '2026-09-25'
+    evidence_date: '2026-09-30'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-30'
     benchmark_version: AIME 2026, MathArena final-answer table
     configuration: MathArena competition table read 2026-09-26; the table states no run
       date, so the reading is dated by the observation. Effort default; highest-effort
       row for the model. MathArena lists final-answer competitions as deprecated.
     limitations: 'MathArena marks this row: model was released after competition release, so
       contamination is possible.'
-    id: google/gemini-3-5-flash#aime_2026#da5e62335551
+    id: google/gemini-3-5-flash#aime_2026#99b1c3ccaf74
     measured_by: independent_evaluator
     effort: null
     harness: null
     sources:
-    - source_id: model-161-matharena-aime-2026
-      snapshot_ref: sha256:4e2ecda474f16b01f7431017114b165b5f28858663e7c409c944c7a902cbbad4
-      cited_regions:
-      - rows
-    - source_id: model-161-matharena-aime-2026-quality
-      snapshot_ref: sha256:42dc4483a15950bd8194ce41b09a56b419751989360e5eaf4c379e8a5f5e552e
+    - source_id: model-160-matharena-aime-2026
+      snapshot_ref: sha256:25c764c1cd0b46c303d73e75eef12617a5aaddae7301955b2d5438a66a53924c
       cited_regions:
       - rows
     quality_flags:
     - deprecated
     - contamination_warning
+    observed_at: '2026-09-30'
   - benchmark_id: arena_sc_english
     model_id_as_evaluated: gemini-3.5-flash-high
     score: 1477.78
@@ -1278,8 +1298,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-30'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / english, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1477.78 [1472.22,
       1483.35], 16593 votes, rank 38. Observed 2026-09-27.
@@ -1289,7 +1309,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:7ee2fd4e732d932f20af92fef5df27580f11fa7d0193ba863418e5a30a83ad34
+      snapshot_ref: sha256:1e2fcc24a5c8cdcd90c665aaa64b557f473180d9ce1725066717e04bfd10e5f1
       cited_regions:
       - rows
     id: google/gemini-3-5-flash#arena_sc_english#5a1a43349488
@@ -1301,8 +1321,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-30'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / chinese, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1518.77 [1506.07,
       1531.48], 2514 votes, rank 28. Observed 2026-09-27.
@@ -1312,7 +1332,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:4f9b057c43ffda40a378090f174780e72cae0520bd7fd9148920bcab4fc4ff16
+      snapshot_ref: sha256:449b90746065449e59f0dd2bbdfcb8ef55aa5fe42c1b6beb8c930eb79a68224d
       cited_regions:
       - rows
     id: google/gemini-3-5-flash#arena_sc_chinese#0860141bb54d
@@ -1324,8 +1344,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-30'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / japanese, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1467.72 [1440.89,
       1494.56], 533 votes, rank 19. Observed 2026-09-27.
@@ -1335,7 +1355,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:378ee68fcc262e62231ba63141c81baffe954e5edb48ca7f0d21726b0417dadb
+      snapshot_ref: sha256:7839399ba846da94c65849c08837839d515c8b37ae6314453bedf1c962846be2
       cited_regions:
       - rows
     id: google/gemini-3-5-flash#arena_sc_japanese#6d9660446ccd
@@ -1347,8 +1367,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-30'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / korean, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1438.89 [1417.15,
       1460.62], 786 votes, rank 26. Observed 2026-09-27.
@@ -1358,7 +1378,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:d02642dc7233db6fed665cc6abdf94d487b7d4d64a2d6bb7c33ff0bea0f8755c
+      snapshot_ref: sha256:8a792645624d2854a8bb09bcb4bbfee6219a8e973f03fb84a4e42716cb635ae8
       cited_regions:
       - rows
     id: google/gemini-3-5-flash#arena_sc_korean#ca69f54e89d3
@@ -1370,8 +1390,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-30'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / russian, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1487.78 [1477.90,
       1497.66], 4040 votes, rank 22. Observed 2026-09-27.
@@ -1381,7 +1401,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:f2074de854bb7edb88faaf979282daef785b0379f420c3049a9b03625aa55b10
+      snapshot_ref: sha256:5364bedcc9fe8a9598db9c20aabead5411e9c132021ef8e55da2be02c0a36c67
       cited_regions:
       - rows
     id: google/gemini-3-5-flash#arena_sc_russian#3ebe05400029
@@ -1393,8 +1413,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-30'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / spanish, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1465.81 [1447.43,
       1484.20], 1154 votes, rank 30. Observed 2026-09-27.
@@ -1404,7 +1424,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:53285f933382c2e23254c68a5e01a25705206262f3000e8f5954e40597697cc1
+      snapshot_ref: sha256:8d2651582e59832130a278d4b2efb6e4c03ae6e796506ad9930aec870da2547b
       cited_regions:
       - rows
     id: google/gemini-3-5-flash#arena_sc_spanish#b8ab5cc77e24
@@ -1416,8 +1436,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-30'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / german, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1478.85 [1454.40,
       1503.31], 628 votes, rank 21. Observed 2026-09-27.
@@ -1427,7 +1447,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:5bc7f8c29190254b708e3b1b9c9130570cb30292791a5ac70d6baf464245a845
+      snapshot_ref: sha256:5b6244cf0e66d4e7a6c2239bd4aedb255de731f67f134c7be235df3f2266be4b
       cited_regions:
       - rows
     id: google/gemini-3-5-flash#arena_sc_german#f99bb85855e1
@@ -1439,8 +1459,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-30'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / french, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1485.05 [1466.80,
       1503.30], 1258 votes, rank 42. Observed 2026-09-27.
@@ -1450,7 +1470,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:683dee4d22fbd524402e966151fce06f0d47b4e3178ce282727d0c5ce00917ca
+      snapshot_ref: sha256:4425fd6448ec82f9820e7f3c151d3e136d0ec46a97a44a53afbe50c9c35efb7a
       cited_regions:
       - rows
     id: google/gemini-3-5-flash#arena_sc_french#e3182d0815d6
@@ -1462,8 +1482,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-30'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / polish, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1510.24 [1486.76,
       1533.72], 661 votes, rank 1. Observed 2026-09-27.
@@ -1473,7 +1493,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:c24dd604059a7b6a389b724e9819f1da9b856a619642c7b69e5124f146a92635
+      snapshot_ref: sha256:97e2e1ee9652b13516342dcba0cf4472957d6b7e4a17134aafdf774b2d57516d
       cited_regions:
       - rows
     id: google/gemini-3-5-flash#arena_sc_polish#61559684976e
@@ -1485,8 +1505,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-30'
+    verified_at: '2026-09-30'
     benchmark_version: vision_style_control / ocr, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1292.71 [1284.35,
       1301.07], 6647 votes, rank 24. Observed 2026-09-27.
@@ -1496,7 +1516,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-vision-style-control
-      snapshot_ref: sha256:1370bca68e20f410db1d74c3c5cc4deade992317d0334c3516f50b66938da114
+      snapshot_ref: sha256:2dce15e32ba82760a14eb6d794d7a44e23c6445c5521dcc4b9663521e402f9d6
       cited_regions:
       - rows
     id: google/gemini-3-5-flash#arena_sc_vision_ocr#54db53c0bc8b
@@ -1508,8 +1528,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-30'
+    verified_at: '2026-09-30'
     benchmark_version: vision_style_control / diagram, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1306.14 [1293.37,
       1318.91], 2489 votes, rank 28. Observed 2026-09-27.
@@ -1519,7 +1539,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-vision-style-control
-      snapshot_ref: sha256:947bbb0cc1b11be394d53298f60b967420a1837ea2cccf9a2972bc6bd013c6bb
+      snapshot_ref: sha256:b3b3df0cdc8c9065197b822d9005d334197cf72b9da69ab35a05b6bb1401d9bd
       cited_regions:
       - rows
     id: google/gemini-3-5-flash#arena_sc_vision_diagram#1de43dbd202b
@@ -1531,8 +1551,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-30'
+    verified_at: '2026-09-30'
     benchmark_version: vision_style_control / homework, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1296.60 [1277.65,
       1315.55], 1045 votes, rank 30. Observed 2026-09-27.
@@ -1542,7 +1562,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-vision-style-control
-      snapshot_ref: sha256:1a362e13f2481ace58aff43129253330adaf3b8d01910b4be8bc67b8e87f68e7
+      snapshot_ref: sha256:c6cc8aff02e174d0d07d3b1062861395df1b9dcd3ea53fb5c3f7dfffc0de039f
       cited_regions:
       - rows
     id: google/gemini-3-5-flash#arena_sc_vision_homework#32d7f0f801cc
@@ -1554,8 +1574,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-30'
+    verified_at: '2026-09-30'
     benchmark_version: document / overall, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1461.40 [1452.14,
       1470.66], 4061 votes, rank 22. Observed 2026-09-27.
@@ -1565,7 +1585,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-document
-      snapshot_ref: sha256:ca71d77b360678771f5300146465c8e6298970b38f4dac38a224686a0af59f4d
+      snapshot_ref: sha256:5647d463e779905a42ab0cc56675629608fc252462f6535402778fc965f013f5
       cited_regions:
       - rows
     id: google/gemini-3-5-flash#arena_sc_document#68f3d4f6b01a
@@ -1577,8 +1597,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-30'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / industry_software_and_it_services, latest split, revision
       1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1500.13 [1494.32,
@@ -1589,7 +1609,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:8f283a6085e3c2b9abc2e3a34f88ebf7bb167bed07bb119965fb69a1fb819a77
+      snapshot_ref: sha256:eea47e91c8bc87fe0b61f2a3c0e4eba132c33a7b65597a78092fce12744d989a
       cited_regions:
       - rows
     id: google/gemini-3-5-flash#arena_sc_industry_software_it_services#e8443f1abf30
@@ -1601,8 +1621,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-30'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / industry_entertainment_and_sports_and_media, latest
       split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1455.27 [1448.05,
@@ -1613,7 +1633,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:a535a95b26e31751cc8a2cb8c94792f80aed7cfa0d7de5ff1a830a2b1e3bafba
+      snapshot_ref: sha256:dd31fbcb0b964ee4faa128a3bcac1f1ad740ec5fa6755b63a7cdd8654950bf11
       cited_regions:
       - rows
     id: google/gemini-3-5-flash#arena_sc_industry_entertainment_sports_media#405c93fbad00
@@ -1625,8 +1645,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-30'
+    verified_at: '2026-09-30'
     benchmark_version: text_style_control / industry_mathematical, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1481.91 [1468.60,
       1495.21], 2186 votes, rank 38. Observed 2026-09-27.
@@ -1636,7 +1656,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-style-control
-      snapshot_ref: sha256:cedc7c58bf1a4bcb857dac11e77e4156dd627f427a9ab56e677476d922247362
+      snapshot_ref: sha256:6061abfc8f62e0094fea0e87ea00b13d5f43d12e35990052572243771c51f1db
       cited_regions:
       - rows
     id: google/gemini-3-5-flash#arena_sc_industry_mathematical#dbc9b361e7ea
@@ -1648,8 +1668,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-13'
     date_type: published
-    observed_at: '2026-09-27'
-    verified_at: '2026-09-27'
+    observed_at: '2026-09-30'
+    verified_at: '2026-09-30'
     benchmark_version: text_factuality / overall, latest split, revision 1880dbebff5b
     configuration: Pinned LMArena dataset; publication date 2026-09-13; rating 1477.36 [1473.76,
       1480.96], 38019 votes, rank 16. Observed 2026-09-27.
@@ -1659,7 +1679,7 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-160-arena-text-factuality
-      snapshot_ref: sha256:ad0208bb70ebf27c7ed4bc24d30be8c210ed93792afd1b0f3921bdf26ffee461
+      snapshot_ref: sha256:6cd314acaa71574c46eb9bfadb9a78b786a28b13499126a045487d4aba292032
       cited_regions:
       - rows
     id: google/gemini-3-5-flash#arena_sc_factuality#f21ec3abd83c
@@ -1671,8 +1691,8 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-07-13'
     date_type: evaluated
-    observed_at: '2026-09-28'
-    verified_at: '2026-09-28'
+    observed_at: '2026-09-30'
+    verified_at: '2026-09-30'
     benchmark_version: Finance Benchmark v2, harness 0.2.0
     configuration: 73 v2 tasks; three attempts per task; temperature zero.
     limitations: Passes at least once, so this value does not measure repeated-run consistency.
@@ -1681,7 +1701,7 @@ benchmarks:
     harness: unregistered
     sources:
     - source_id: model-192-finance-benchmark-v2
-      snapshot_ref: sha256:a8d3d8dec4605e37bf43a29ef09b35b6e47a78e4bc9e64b701d620d9dfb668d7
+      snapshot_ref: sha256:449a202e4bd36854996cde8fb995fa5af39d5a15aa6022bb8dce718ab7cbde02
       cited_regions:
       - rows
     id: google/gemini-3-5-flash#finance_benchmark_v2#3c58e7a1764f

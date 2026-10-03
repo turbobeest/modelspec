@@ -68,6 +68,11 @@ export function incomingAuthorization(request: Request | undefined): string | un
   );
 }
 
+/** Cloudflare's address for the MCP caller, forwarded only to rate-limit feedback. */
+export function incomingClientAddress(request: Request | undefined): string | undefined {
+  return request?.headers.get("CF-Connecting-IP") ?? undefined;
+}
+
 /**
  * Catalogue ids are `provider/slug`. Reject anything that would not be a
  * path under /api/models/. A refused id is not fetched.

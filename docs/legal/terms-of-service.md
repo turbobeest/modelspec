@@ -1,12 +1,12 @@
 # Terms of service
 
-Version `1.0`, effective 2026-09-19. Adopted by Sparks and Sawdust LLC.
+Version `1.2`, effective 2026-09-30. Adopted by Sparks & Sawdust LLC.
 MODEL-70.
 
 ## 1. Who you are contracting with
 
 The ModelSpec API and the modelspec.dev and benchgraph.dev sites are operated by
-**Sparks and Sawdust LLC** ("we", "us"). "You" is whoever calls the service,
+**Sparks & Sawdust LLC** ("we", "us"). "You" is whoever calls the service,
 including an autonomous agent calling it on somebody's behalf. An agent that
 accepts these terms binds the person or organisation it acts for.
 
@@ -15,9 +15,10 @@ accepts these terms binds the person or organisation it acts for.
 ModelSpec catalogues AI models and ranks them against a published method. The
 service is:
 
-- The **static export** — versioned JSON under `https://modelspec.dev/api/`,
-  including the catalogue, the rankings and the ranking policy. No account, no
-  key, no charge.
+- The **site** at `https://modelspec.dev`. A person looking things up by hand
+  gets current data, free, at a rate limit. The ranking policy and the
+  neutrality commitment are also published as static JSON, with no key and no
+  account (§4).
 - The **API** at `https://api.modelspec.dev`: `POST /v1/rank`, which computes a
   ranking per request from that same published export; `POST /v1/policy-check`,
   which checks models, and the platforms that serve them, against a policy you
@@ -29,8 +30,10 @@ service is:
   beginning `test_` is a sandbox key: it is answered with synthetic results, not
   live data, and is never stored. Whether a call must carry a key, and the
   limits of each tier, are published at `https://modelspec.dev/auth.md` and
-  `https://modelspec.dev/pricing`. On the effective date above no key is
-  required: a call without one is answered at the free tier, at no charge.
+  `https://modelspec.dev/pricing`. Machine access is a paid product. On the
+  effective date above the switch that enforces keys is still off, so a call
+  without a key is still answered, at no charge; that is a transitional state,
+  not an offer, and it ends when enforcement is switched on.
 - **Paid access**, metered in credits and bought through Stripe (§6). A key with
   credits remaining receives the paid answer, which includes our commercial-use
   and data-residency determinations on policy-check. A key with none left
@@ -102,12 +105,12 @@ We may refuse or withdraw service for any of the above.
 These are the rules that govern every purchase. They were written before any
 money moved, so that they could not be written to suit the first dispute.
 
-**Seller and payment.** The seller is **Sparks and Sawdust LLC**. Payments are
-processed by Stripe on a Stripe-hosted Checkout page; we never receive your
-card number. Charges appear on your card statement as **SPARKS & SAWDUST LLC**.
-Current plans, prices and availability are published at
-`https://modelspec.dev/pricing`. Checkout asks you to accept these terms before
-you pay.
+**Seller and payment.** The seller is **Sparks & Sawdust LLC**. Payments are
+processed by Stripe on a Stripe-hosted Checkout page; we never receive your card
+number. Charges appear on your card statement as **SPARKS AND SAWDUST LLC**,
+because a statement descriptor cannot contain an ampersand. Current plans,
+prices and availability are published at `https://modelspec.dev/pricing`.
+Checkout asks you to accept these terms before you pay.
 
 **What you buy.** Paid access is metered in credits, one balance per API key.
 There are two ways to buy them:
@@ -210,6 +213,11 @@ including the ranking method, is licensed **MIT** (`LICENSE`). Those licences
 govern the data and the code; these terms govern the hosted service, and nothing
 here takes away a right either licence grants you.
 
+The public copy of the data, in the repository, is a **delayed image**: it is
+about nine months behind. Current data is available only through the service,
+by a person on the site or by a machine through the API or the MCP server. We
+offer no data download and no command-line client.
+
 Rankings are computed from that data, so redistributing a substantial part of it
 carries the CC BY-SA attribution and share-alike conditions with it. Acting on a
 ranking, quoting one, or building a product whose output is informed by one does
@@ -256,6 +264,14 @@ You may stop using the service at any time. We may suspend or end access for a
 breach of §5. §4 does not expire, is not suspended, and does not change with a
 new version of these terms.
 
+Version 1.2 (2026-09-30) corrected our legal name to Sparks & Sawdust LLC, the
+name registered with Rhode Island and the IRS, and corrected the card-statement
+name in §6 to SPARKS AND SAWDUST LLC, which is what Stripe sends; no term
+changed. Version 1.1 (2026-09-30) changed §2 and §8: it states that only a
+person looking things up by hand gets the site free, that machine access is paid
+and hosted, and that the public copy of the data is a delayed image with no
+download of current data. Version 1.0 (2026-09-19) was the adoption.
+
 ## 11. What this version does not address
 
 This version states no governing law, venue, limitation of liability,
@@ -265,6 +281,6 @@ the law that applies. Adding any of these later is a change under §10.
 
 ## 12. Contact
 
-Sparks and Sawdust LLC. Questions, cancellation and privacy requests:
+Sparks & Sawdust LLC. Questions, cancellation and privacy requests:
 **sales@modelspec.dev**. Our postal address is available on request at
 sales@modelspec.dev.

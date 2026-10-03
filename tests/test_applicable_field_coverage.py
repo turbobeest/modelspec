@@ -184,7 +184,7 @@ def test_owned_consumers_do_not_use_the_old_name() -> None:
         ROOT / "schema" / "card.py",  # deprecated alias for scripts/**
         ROOT / "cli" / "modelspec" / "cli.py",  # strips a stale FalkorDB key
         ROOT / "docs" / "cli-contract.md",  # names the key that left the export
-        ROOT / "tests" / "test_graph_export.py",  # asserts the key is absent
+        ROOT / "tests" / "test_graph_derivation.py",  # asserts the key is absent
     }
     roots = [
         ROOT / "schema" / "card.py",
@@ -316,21 +316,3 @@ def test_ingest_does_not_put_coverage_on_the_model_node() -> None:
     props = sink.nodes[("Model", card.identity.model_id)]
     for key in PUBLISHED_COVERAGE_KEYS:
         assert key not in props
-
-
-def test_graph_export_nodes_do_not_carry_coverage(tmp_path: Path) -> None:
-    import json
-
-    from pipeline.graph import write
-    from schema.graph import CollectingSink, ingest_model_card
-
-    card = ModelCard.from_yaml_file(ROOT / "models/zhipu/glm-5-3-flash.md")
-    assert card.applicable_field_coverage > 0
-    sink = CollectingSink()
-    ingest_model_card(sink, card)
-    write(tmp_path, sink, {"commit": "test"})
-    nodes = json.loads((tmp_path / "nodes.json").read_text(encoding="utf-8"))["nodes"]
-    assert nodes
-    for node in nodes:
-        for key in PUBLISHED_COVERAGE_KEYS:
-            assert key not in node

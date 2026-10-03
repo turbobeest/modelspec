@@ -1,0 +1,614 @@
+# Data split: a frozen public image, a private working copy (MODEL-246)
+
+Status: MODEL-246 built the overlay, lag job and freeze guard. MODEL-247 W
+closes the writer and leak-guard gaps below. The private workflows are submitted
+on `modelspec-data` branch `writers-setup` for human merge. MODEL-247 S owns
+site deployment and Worker bundling. No split or access flag changes here.
+Parent: MODEL-245. MODEL-247 is 245-B.
+
+## Decision
+
+Fresh curated data does not land in this repository. The public repository
+keeps a data image that is **nine months old**. The live site's manual lookup
+and the keyed API, MCP and CLI answer from the fresh data.
+
+- The fresh data lives in the private repository `turbobeest/modelspec-data`.
+- The public repository keeps all code, the schema, the vocabulary, the tests
+  and the frozen data image.
+- The image is refreshed by a scheduled job that publishes the private data
+  *as of today minus nine calendar months*. Nothing changes in the public
+  data directories until the first eligible commit ages past the cutoff.
+
+Nothing here moves, deletes or rewrites data already in this repository, and
+git history is untouched.
+
+## What counts as data
+
+`pipeline/data_source.DATA_PATHS` is the single list. Everything else is code
+or vocabulary and stays public.
+
+| Path | Holds | Written by |
+| --- | --- | --- |
+| `models/` | model cards | daily-research, leaderboard-refresh, release-signals, humans |
+| `benchmarks/` | benchmark wiki pages | curation watcher (via `scripts/curation/propose.py`), humans |
+| `hardware/` | device SKUs | humans |
+| `hosts/` | host and provider records | humans |
+| `offerings/` | prices and plans | price-reread |
+| `verification/` | evidence log, queue, event stream | leaderboard-refresh, price-reread, release-signals |
+| `measurements/` | speed pilot measurements | speed-probe |
+| `premier/` | curated premier sets | humans |
+| `research/` | research outputs and sources | daily-research |
+| `registry/sources.yaml` | dated source-of-record entries | humans, curation |
+| `registry/providers.yaml` | provider records | humans, price-reread |
+| `registry/harnesses.yaml` | harness records | humans |
+| `registry/release-watch-baseline.json` | last-seen release state | release-signals |
+
+Kept public on purpose:
+
+- The rest of `registry/` is vocabulary that changes in lock step with the
+  engine: `domains.yaml`, `facets.yaml`, `families.yaml`, `templates.yaml`,
+  `refinements.yaml`, `release-watch.yaml`. An audit on 2026-09-30 found
+  the four data files above among them and declared them data. They are
+  declared, not moved: the public copies stay where they are, frozen.
+- `decision/` is code.
+- `scripts/*.jsonl.gz` and `attribution.yaml` are historical evaluation
+  evidence, already public, and not refreshed.
+- `docs/`, `schema/`, `pipeline/`, `api/`, `cli/`, `web3d/`, `tests/`.
+
+A path in `DATA_PATHS` may be a directory or a single file. When a file sits
+in a directory that also holds public vocabulary, the overlay makes that
+directory real and links each entry separately.
+
+## Reading the private data: the overlay root
+
+Almost every reader and writer in the repository assumes the data directories
+sit next to the code. Changing each one to accept a second path is a large,
+error-prone edit. Instead the build composes a **overlay root**: a temporary
+directory whose entries are symlinks. Data paths point into the private
+checkout, everything else points into the public checkout.
+
+```
+overlay/
+  models        -> modelspec-data/models
+  verification  -> modelspec-data/verification
+  ...
+  pipeline      -> public/pipeline
+  registry/             # a real directory, entries linked one by one
+    sources.yaml -> modelspec-data/registry/sources.yaml
+    facets.yaml  -> public/registry/facets.yaml
+  .git          -> public/.git      # the export pin stays the code commit
+```
+
+- A data path absent from the private checkout is absent from the overlay. It
+  never falls back to the stale public copy, so a mistake cannot silently
+  publish old data as fresh.
+- The private checkout must contain `models/` and `benchmarks/`, or the overlay
+  refuses to build (`DataSourceError`, exit 2).
+- Writes through the overlay land in the private checkout.
+- Code that finds its files from its own `__file__` resolves through the
+  symlink back to the public tree and would read the stale copy. The build
+  handles the one that matters: `decision.registry.use_root(root)` points the
+  decision registry at the overlay for the duration of the build. Every other
+  such script is an audit item for 245-B (for example
+  `release_signals/watch.py`); it must be given the overlay root, or the
+  private checkout, explicitly.
+- `.git` is the public one, so `build.commit` in the export is still the code
+  commit. The export contract gains no field and there is no contract bump.
+
+Use:
+
+```bash
+python -m pipeline.build --data-dir ../modelspec-data     # or MODELSPEC_DATA_DIR
+python -m pipeline.data_source overlay --private ../modelspec-data --out /tmp/root
+```
+
+Verified: a build with `--data-dir` pointing at this repository is byte-identical
+to the plain build (7,988 files, timestamps normalised). That check caught one
+leak, card links in `pipeline/agent_ready.py` embedding the temporary root,
+now fixed and tested.
+
+Deploy jobs set `MODELSPEC_REQUIRE_DATA_DIR=1` when `DATA_SPLIT_ENABLED` is
+true. The build then fails, exit 2, if neither `--data-dir` nor
+`MODELSPEC_DATA_DIR` is given, instead of silently publishing the public image
+as if it were fresh.
+
+With neither set the build reads the repository's own directories exactly as
+before, which is what public pull requests and forks get.
+
+## Building the sites and the Worker
+
+`deploy-sites.yml` and `rank-api.yml` gain a checkout step for
+`turbobeest/modelspec-data` into `modelspec-data/`, using
+`secrets.MODELSPEC_DATA_TOKEN`, then build with `--data-dir modelspec-data`.
+The build fails, and does not deploy, if the secret is empty. Only the
+`main`-branch deploy jobs get the token. Pull-request builds and fork builds
+do not; they build from the frozen public image.
+
+`MODELSPEC_DATA_TOKEN` is a fine-grained token with **read-only Contents access
+to `turbobeest/modelspec-data` and nothing else**. It is created by Jamie. The
+lag job and the writers need a *write* path to the private repository; that is
+a separate credential (or the private repository's own `GITHUB_TOKEN`, once the
+writers run there).
+
+Rank Worker: it needs no runtime access to the private repository. MODEL-247 S
+gives `api/worker/vendor.py` an explicit private data directory and embeds the
+required exports in its generated Python bundle. See the serving rollout below.
+
+The Actions read+write permission on `MODELSPEC_DATA_DISPATCH_TOKEN` also
+allows reading private Actions artifacts and logs. Treat it like
+`MODELSPEC_DATA_TOKEN`: keep it away from checked-out code and installs in
+public jobs, and never expose it to pull-request or fork runs. Its intended
+use is dispatch, but its permission is broader than dispatch.
+
+## Writers
+
+All six data writers run in `turbobeest/modelspec-data`. Their workflow files
+are submitted there on `writers-setup`. Reviewable source copies live in the
+public engine under `.github/private-writers/`, which Actions does not execute.
+Each private workflow checks out the public engine at a full commit SHA,
+without a private-engine credential, and uses its own `GITHUB_TOKEN` for git,
+issues and pull requests. No writer auto-merges a pull request.
+
+| Workflow | Writes | Cadence in the private repo |
+| --- | --- | --- |
+| `daily-research.yml` | `models/**`; research scratch outputs stay uncommitted | daily; manual dry run |
+| `leaderboard-refresh.yml` | `models/`, verification log and queue events | weekly; manual dry run |
+| `price-reread.yml` | `offerings/`, verification log and queue events | weekly; manual dry run |
+| `speed-probe.yml` | `measurements/speed/**` | manual only; existing paid caps preserved |
+| `release-signals.yml` | `models/`, `verification/` | public hourly count gate dispatches only when work exists |
+| `curation-benchmarks.yml` | `benchmarks/` | public trial/weekly cadence gate dispatches when due; private watcher decides whether drafting is needed |
+
+The six old public workflow files have no schedules. Their manual dispatches
+only print the private workflow URL. `release-watch.yml` remains a public-source
+watcher and dispatches private processing when it posts discoveries. The new `release-signals-gate.yml` publishes only a pending-work count,
+with no pending payload artifact, and `curation-gate.yml` decides only whether
+its cadence is due. Both dispatch with `MODELSPEC_DATA_DISPATCH_TOKEN`. Curation stays disabled
+until the existing `DATA_SPLIT_ENABLED` repository variable is true. Its
+dispatch job has no checkout or dependency installation.
+
+### Writer root and git audit, closed by MODEL-247 W
+
+Writers run in the private checkout rather than in the reader overlay. The
+reader overlay's `.git` still belongs to the public engine.
+`scripts/prepare_data_writer.py` copies tracked engine code beside private data,
+excluding every `DATA_PATHS` entry, `.github/` and the private README. It puts
+copied code and generated Python files in the private checkout's local git
+exclude file. It refuses any origin other than `turbobeest/modelspec-data`.
+Physical copies make `__file__`-derived roots resolve to the private checkout;
+registry vocabulary comes from the pin and registry data remains private.
+
+The audit covered writer scripts, their validators, the speed harness, curation,
+release-signal processing, accuracy and recall checks, and workflow git calls:
+
+- Daily research, leaderboard refresh and speed scripts have no git subprocess
+  calls. Their PR action uses `path: data`, stages only declared data paths, and
+  authenticates with the private repository's token.
+- Price re-read's workflow checks git status and the verification-log diff from
+  the private working directory. Its two PR actions also use `path: data`.
+- `scripts/validate_pr.py` sets git's working directory from its own file root.
+  The copied validator reads and compares the private `origin/main`.
+- Release-signal workflow git config, branch, add, commit and push commands all
+  run under `data/`. Rechecks follow only private PR URLs; old public links do
+  not receive new comments or updates. The private pending job builds its own
+  matrix and holds its snapshot as a private artifact.
+- `scripts/curation/propose.py` uses the caller's working directory for every
+  git operation and derives page paths from its copied file root. The private
+  workflow supplies `github.repository` to every issue and PR operation.
+- The accuracy and recall scripts and `modelspec verify` resolve their roots to
+  copied engine code in the private checkout. Their workflow runs do not call
+  the CLI's separate PR-opening command.
+
+A fixture test executes copied writer code, stages its output in a real private
+checkout, and proves the public checkout receives no write. It also checks that
+private sources, README and workflows survive composition, code is ignored,
+and a public git origin is refused.
+
+### Gaps 245-B (MODEL-247) must close
+
+MODEL-247 W closes these gaps:
+
+- All six fresh-data writers and their data PRs move to the private repository.
+  Writer artifacts, including raw speed runs, remain there.
+- The public leak guard scans `.yml` and `.yaml` workflows and local composite
+  actions, follows local reusable workflows, and treats inherited secrets,
+  any `MODELSPEC_DATA` marker and any `turbobeest/modelspec-data` reference as
+  private access. In those jobs it rejects artifact uploads, cache actions
+  including restore and third-party caches, public PR creation and git push.
+  Only `data-lag.yml` may open the eligible old-image PR.
+- Shell checks flag common output commands, including `sed`, `awk`, `find`,
+  `base64`, tracing, summary writes and aliases for data paths. Job outputs
+  are restricted to literal scalar decisions. Diagnostics name steps without
+  quoting commands. This is a static lint, not a proof that arbitrary scripts
+  or third-party actions cannot leak. It cannot follow arbitrary subprocesses,
+  dynamic shell evaluation or arbitrary output transformations; review remains
+  necessary. External reusable workflows with private access are refused.
+- Private parser and loader boundaries redact YAML, card, source, registry,
+  hardware, host and verification-log errors and suppress exception chains.
+  Location recovery fails closed to line 1. A plain YAML value containing
+  `---` is never treated as a front-matter separator. Private writer jobs set
+  `MODELSPEC_REQUIRE_DATA_DIR=1`; data-dir arguments, environment, checkout
+  origins and nested `modelspec-data` paths also activate redaction.
+- Public release watching detects source changes without reading the frozen
+  catalogue. Private release processing resolves catalogue identity. Public
+  watching opens no burst or outage issues and dispatches only newly filed
+  discoveries, so a deduplicated discovery does not dispatch on every run.
+
+MODEL-247 S separately owns these deployment gaps:
+
+- `api/worker/vendor.py` must use private registry and hardware data, supplied
+  through `--data-dir`, and `rank-api.yml` must check out that data.
+- `deploy-sites.yml` uses only the frozen image in every flag state. The
+  existing build and deploy jobs remain; no site job checks out private data.
+  Worker jobs check out private data only on enabled main pushes, main manual
+  dispatches and scheduled main refreshes, without artifact uploads.
+
+The freeze guard's documented limits remain: it trusts branch names, ignores
+some derived files and skips binary contents. Repointing writers stops public
+PR publication; branch protection and human review still matter.
+
+### Public CI must not leak the private data
+
+Actions logs, artifacts and caches on a public repository are public. A job
+with any `MODELSPEC_DATA` environment or secret marker, or a private checkout,
+must have no artifact upload, Pages artifact upload or cache save. It must
+never print data: no `cat`, `head`, `tail`, `echo`, `git diff`, `git show` or
+  `git log` of data paths, and no workflow-command annotations quoting rows.
+
+Counts and pass/fail are fine. `tests/test_data_workflows.py` statically checks
+workflow declarations and local actions. Passing the lint does not prove that
+all scripts or third-party actions run by a workflow are safe.
+
+Existing artifact uploads that would carry fresh data once repointed. 245-B
+must move each into the private repository, drop it, or reduce it to counts:
+
+| Workflow | Artifact | Carries |
+| --- | --- | --- |
+| `speed-probe.yml` | `speed-pilot-runs-*` | raw pilot runs under `measurements/`. Must run in the private repository |
+| `deploy-sites.yml` | `sites`, `sites-holding`, `sites-internal` | built site JSON from the frozen public image in both flag states; these jobs never read private data |
+| `price-reread.yml` | `price-reread-copies` | copies of the pages read, with fresh prices |
+| `curation-benchmarks.yml` | `curation-change-report-*` | `benchmarks/_curation/reports/` |
+| `leaderboard-refresh.yml` | `leaderboard-refresh-audit-*` | audit of fresh scores |
+| `release-signals.yml` | `release-signals-pending`, `release-signal-audit-*` | pending signals and audit |
+| `coverage-slo.yml` | `coverage-report` | per-model coverage from fresh cards |
+| `accuracy.yml`, `accuracy-nightly.yml` | `decision-accuracy*` | accuracy reports over fresh cards |
+
+`test.yml` uploads only collection lists and timings and stays as is.
+
+Cheap watchers and gates that only read public sources or decide whether work
+exists (`release-watch`, the release-signals pending matrix) stay in this
+repository, where they cost nothing, and dispatch the private workflow only
+when there is work.
+
+After the private writer PR and public W change merge, no fresh writer opens
+public data PRs. Jamie can then make `Data freeze` required. The lag job alone
+publishes eligible old data images through human-reviewed public PRs.
+
+## The lag job
+
+`scripts/data_lag.py`, run weekly by `.github/workflows/data-lag.yml`.
+
+1. `cutoff = today - 9 calendar months`, clamped to the month end
+   (`2027-05-31 -> 2026-08-31`, `2026-11-30 -> 2026-02-28`).
+2. Walk the private default branch first-parent and pick the newest commit
+   whose committer date is at or before the cutoff **and whose whole history
+   has nothing newer**. A backdated commit on top of fresh history is
+   refused. None means no-op (`no-image-yet`).
+3. Extract that commit's data paths (`git archive`), replace the public data
+   directories with them, and write `data-image.json`:
+   `as_of` (the cutoff), `lag_months`, `source_repo`, `source_commit`,
+   `source_committed` (that commit's own committer date), `paths`.
+4. If the tree is already that image the job reports `unchanged` and opens
+   nothing.
+5. Otherwise it opens a pull request from `data-lag/image`. `automerge.yml`
+   skips `data-lag/image` (the only lag branch): a human merges it.
+
+The private repository is seeded with a single commit dated 2026-09-30. The
+cutoff reaches it on 2027-06-30, so **the public image does not change until
+2027-06-30**. `--dry-run` prints `would-publish` without writing.
+
+The workflow only runs when the repository variable `DATA_SPLIT_ENABLED` is
+`true`, and fails loudly if `MODELSPEC_DATA_TOKEN` or `RESEARCH_PR_TOKEN` is
+empty (the second so that the pull request runs the required checks).
+
+## The freeze guard
+
+`scripts/data_freeze_guard.py`, run by `.github/workflows/data-freeze.yml` on
+every pull request. It reads the three-dot diff against the base and fails when:
+
+- a data path or `data-image.json` changes on any branch other than
+  `data-lag/*`; or
+- on a `data-lag/*` branch, `data-image.json` is missing, unreadable, or has
+  `source_committed` after today's cutoff; or
+- on a `data-lag/*` branch, a changed data file adds an ISO date after the
+  cutoff.
+
+It judges the diff, not the tree, so data already in the repository is
+grandfathered and there is no baseline manifest to maintain. Binary files are
+skipped. Error lines name the file and point at the private repository.
+
+Limits, stated plainly: the guard checks the branch name, so it defends against
+mistakes, not a determined contributor; branch protection and review are what
+stop that. The new workflow is not a required check until Jamie adds it, and
+touching `.github/workflows/` means this PR is merged by hand.
+
+## Tests on fixtures
+
+About 99 test files read the real data directories. With a stale image that is
+acceptable for now, but the public engine tests should not depend on which
+image is checked out. Phase 245-C moves them onto `tests/fixtures/` (a small
+synthetic catalogue) and keeps a thin set of tests that assert the *shape* of
+whatever image is present. Not done here.
+
+New tests in this change use temporary trees and temporary git repositories, so
+they are independent of the data.
+
+## Seeding the private repository
+
+The private repository was seeded on 2026-09-30 with the current `DATA_PATHS`.
+The W setup PR adds only workflows and its minimal README. A single seed commit
+is enough for the lag schedule. Public data and history remain unchanged.
+
+## Estimated Actions minutes in the private repository
+
+Only workflows that run *in* `modelspec-data` count. Watchers, the guard, the
+lag job and the site builds run in the public repository. Estimates use the
+timeouts already declared and typical run lengths; they are planning figures to
+be replaced by measured values after a month.
+
+| Job | Runs per month | Minutes each | Minutes |
+| --- | --- | --- | --- |
+| daily research | 30 | 15-25 | 450-750 |
+| curation (daily trial; weekly afterwards) | 30 (then 4) | 5-10 | 150-300 (then 20-40) |
+| release signals, work-driven | ~100 | 2-4 | 200-400 |
+| leaderboard refresh | 4-5 | 8-10 | 32-50 |
+| price re-read | 4-5 | 8-15 | 32-75 |
+| speed probe (manual) | 2-4 | 20-45 | 40-180 |
+| seed, tidy-up, dispatch glue | - | - | ~20 |
+| **Total** | | | **~925-1,775** |
+
+If the hourly release-signals gate ran in the private repository instead, it
+would add about 720 minutes a month for a one-minute job. That is why the gate
+stays public.
+
+## What is left, and who does it
+
+| Item | Owner |
+| --- | --- |
+| Create `MODELSPEC_DATA_TOKEN` (read-only) and store it in this repository's secrets | Jamie |
+| Set `DATA_SPLIT_ENABLED=true` when ready | Jamie |
+| Seed `modelspec-data` with the current `DATA_PATHS` | Done, 2026-09-30 |
+| Main-only private site deployment and private Worker bundling | MODEL-247 S |
+| Repoint six writers and audit git/file roots; harden leak guard and parser errors | MODEL-247 W, submitted |
+| Create `MODELSPEC_DATA_DISPATCH_TOKEN` in the public repo, fine-grained, scoped only to `modelspec-data`, Actions read+write | Jamie |
+| Merge the private `writers-setup` PR after the pinned public engine commit is available | Jamie |
+| Enable private Actions to create PRs and provide the writers' existing provider/research credentials listed in its README | Jamie |
+| Move public engine tests to fixtures | 245-C |
+| Make "Data freeze" a required check, after the writers are repointed | Jamie |
+
+## MODEL-247 S: serving implementation and rollout
+
+The serving switch is the repository variable `DATA_SPLIT_ENABLED`, read as
+exactly `true`. With another value, the existing export, snapshot, Pages
+artifact deployment and Worker fetch path remain active.
+
+With the switch enabled, `pipeline.build` renders every public page from the
+repository's frozen image even when given a private checkout. This covers the
+full tree, landing statistics, graph, model and benchmark pages, structured
+data, social cards, Markdown twins and `llms-full.txt`. The output filter keeps
+only these `/api` files: `build.json`, `rank/profiles.json`,
+`rank/class-fit.json` and `feedback/v1.schema.json`. Class-fit examples also
+come from the frozen image. New bulk exports are denied by default.
+
+Removed routes, including every member of the wildcard families:
+
+- `/api/index.json`
+- `/api/catalogue.json`
+- `/api/models/**/*.json`
+- `/api/benchmarks/**/*.json`
+- `/api/hosts.json`
+- `/api/rank/candidates.json`
+- `/api/rank/hardware.json`
+- `/api/rank/rankings.json`
+- `/api/policy/catalogue.json`
+- `/api/decision/snapshot.json.gz`
+- `/api/decision/vocabulary.json`
+- `/api/graph/**/*.json`
+
+MODEL-273 adds uncached removal notices at the nine exact paths above and
+at `/api/removed.json`. Supported Pages 200 proxies send every member of
+`/api/models/*`, `/api/benchmarks/*` and `/api/graph/*` to that notice,
+including paths absent from the current checkout. The notice is
+`{"error":"removed","message":"Fresh data is served per request by the API","api":"https://api.modelspec.dev"}`.
+The snapshot notice retains gzip encoding. These files contain no model data.
+Full, live and holding compositions generate the notices, family rules and
+`Cache-Control: no-store` for `/api/*` only when the split is enabled.
+Unversioned PNGs use a five-minute browser lifetime in enabled builds; the
+live app's content-hashed `/assets/*` retain their immutable cache policy.
+Flag-off build output remains unchanged.
+
+The preferred 404/410 `_redirects` rules cannot implement this on Pages.
+[Cloudflare's redirect documentation](https://developers.cloudflare.com/pages/configuration/redirects/)
+lists rewrites with those statuses as unsupported. Redirects win over matching
+assets and headers, but they do not always run ahead of a custom-domain cache.
+[Cloudflare's serving documentation](https://developers.cloudflare.com/pages/configuration/serving-pages/)
+warns that cached responses can be served before redirects or Functions run.
+The generated headers contain no `s-maxage=604800` API rule. The source's
+seven-day rule applies only to PNGs. The observed API header and `Age` therefore
+come from outside the current generated header policy; the repository alone
+does not identify the responsible cache configuration.
+
+New assets and headers cannot retroactively expire a response in a cache that
+runs ahead of Pages. After every enabled production deploy, the smoke job
+requests every exact path and representative existing and unknown family
+members on **https://modelspec.dev**, with no query string or request cache
+bypass. It accepts 404/410 or the exact removal notice with `no-store`, and
+fails on all other 200 bodies. A successful deployment URL check is insufficient.
+If the custom-domain check still fails after deploying these tombstones, the
+stale cache needs an upstream bypass or invalidation before withdrawal is
+complete. Do not report immediate removal solely from the build artifact.
+
+The graph's frozen assets move to `/graph/data/`; its client reads those paths.
+No private data enters that directory. Agent discovery points callers to the
+per-request API rather than to removed bulk exports.
+
+`vendor.py --data-dir` copies the private registry data files and enumerates
+private hardware files. It also builds and embeds the rank, hardware, policy,
+decision snapshot and vocabulary exports in a generated Python module. The
+Worker reads those bundled bytes and never falls back to a public URL, even
+when a requested historical snapshot is absent. Its existing snapshot
+signature validation still applies. No export shape or version changes.
+
+The decide app loads its display vocabulary from
+`GET api.modelspec.dev/v1/vocabulary` in enabled builds. The response contains
+facet definitions, benchmark and domain names, template definitions, and
+model/plan IDs and display names. Model names come from non-retired current models;
+archived private models are omitted because the page does not need them to draw.
+Plan rows contain only `id`, `provider` and `name`. They contain no price,
+allowance, surface coverage, facet value count or model count.
+Facet rows carry the registry's per-facet metadata: `id`, `label`,
+`definition`, `subject`, `value_type`, `unit`, `unit_definition`, `operators`,
+`objective`, `preference`, `better`, `risk`, `computed_by` and `literals`.
+`better` (MODEL-297) is `higher`, `lower` or `neither` on a number facet and
+absent on every other kind. It says which way is better for the facet as a
+whole, from `registry/facets.yaml`, so it is metadata and not a per-model fact.
+The allowed aggregate fields are template `available` booleans, per-facet
+`has_data` booleans, per-enum-value `has_data` booleans, refinement IDs/names
+and their static definitions and aggregate `thin` boolean, and benchmark
+`range.min`/`range.max` only when at least 3 models have a score on that
+benchmark. Ranges for 1 or 2 scored models are omitted to avoid exposing
+individual scores. These
+signals restore template answerability, hide empty facet and enum choices,
+restore refinement drill-down without promoting thin evidence to live, and
+set benchmark floors when ranges are available. Numeric Must bounds with no
+range stay blank until entered and are omitted from requests while unset. Numeric facet ranges,
+individual model scores, counts and per-model facts remain excluded.
+The page hides statistics absent from this response and requests current facts
+through the existing decision API. No fresh vocabulary file is published on
+modelspec.dev. With `HUMAN_GATE_ENABLED`, the same keyed visitor Durable Object
+meters vocabulary separately at 60 requests per UTC day and 10 per minute, and
+successful responses use `Cache-Control: private, max-age=3600` for browser
+session reuse. With `VISIT_GATE_ENABLED` (MODEL-292) the visit gate replaces
+that: an API key takes precedence, otherwise a valid visit token admits a page
+caller against the separate visit vocabulary allowance (`VISIT_VOCABULARY_*`,
+60 per UTC day and 10 per minute by default). Every response then carries
+`Cache-Control: no-store`, because an admitted one returns a renewed credential;
+GET, HEAD and query variants are gated alike. See
+[`docs/human-gate.md`](../human-gate.md). The generated OpenAPI documents this route only with `DATA_SPLIT_ENABLED=true`.
+The committed flag-off OpenAPI remains byte-identical to main. MCP `model_info`
+currently fetches the full trimmed vocabulary on each call and selects one
+model display row. This is acceptable for now; it does not fetch a bulk model
+card or bypass the vocabulary cap.
+
+MODEL-280 keeps the no-query HTTP response byte-identical for the decide page.
+MCP `vocab` explicitly opts into a compact lookup and defaults to `starter`.
+The lookup accepts `section`, `search`, `id`, `ids`, `detail`, `offset` and
+`limit` on HTTP and MCP. Search matches IDs and labels or display names by
+case-insensitive substring. Compact pages hold at most 20 rows; `offset` skips
+matching rows and an empty page ends the list. IDs select exact rows and return
+their full display details; `detail=full` returns every row in the section.
+IDs are combined by union and intersected with search. Full detail and IDs
+bypass pagination. MCP also compacts full responses from an older Worker
+during an independent rollout. Unknown IDs and searches with no match return an empty
+section. Invalid sections, detail flags or pagination bounds return 400.
+
+Starter ranks registered facets by the number of template specs that use each
+facet, counting once per spec and breaking ties by ID. The 40 templates use
+11 facets today, so all 11 appear; the maximum is 15. Compact facets publish
+`id`, `label`, the definition's first sentence, `value_type`, `better` on a
+number facet, and finite `allowed_values`, plus special `literals` where present. Models and providers
+publish IDs and display names only. Other row sections publish IDs and names;
+compact coverage is empty and compact estate contains provider/device IDs.
+Full display details remain inside the MODEL-247 trim. No lookup adds counts,
+numeric facet ranges, sparse benchmark ranges or per-model facts.
+
+Only Worker jobs read private inputs. Public PR checks remain credential-free.
+Missing private credentials, input or signing keys fail before deployment.
+`vendor.py export_data` checks every bundled policy row for the MODEL-80
+uncited-residency guard and reports only the failing count. Private failures
+report a path and exception category, with no values. Flag-off failures retain
+full tracebacks. Site filtering only moves graph assets and removes bulk
+routes. It never rewrites file contents; discovery links change at their source,
+and policy JSON and neutrality strings remain intact.
+
+`rank-api.yml` schedules an enabled main deployment every six hours, at minute
+17. Each scheduled deployment checks out the latest modelspec-data revision.
+Private writer merges therefore reach production within six hours without
+publishing a bundle artifact. Jamie must leave scheduled Actions enabled in
+this repository and configure `MODELSPEC_DATA_TOKEN`; no dispatch token is
+needed in the private writers under `.github/private-writers/`.
+
+The sentinel tests inject a non-retired private model into the premier lineup
+with a unique price and score, complete admitted facts and verification records. They crawl full, holding and live outputs, decompress gzip files, and
+verify its name and values are absent from static files. Its ID/display name
+are allowed in vocabulary and MCP, but its price and individual score are
+absent. MCP positive controls deliberately serve an untrimmed row and prove
+both tools would expose the forbidden values if the Worker trim failed. Private bundled candidates retain the injected facts as a
+positive control. Profiles, class-fit and method neutrality content are compared
+between enabled and disabled builds at the same build identity.
+
+`api/worker/measure_memory.cjs` uses the Worker's pinned Pyodide 0.28.3 runtime.
+The real request loads the full signed corpus including its archive. The probe
+makes real Worker decide and vocabulary calls, a rank call with `limit: 100`,
+and a policy-check call that populates the policy catalogue cache. It samples
+combined V8 heap and external memory and allocated
+WebAssembly memory. Snapshot verification hashes canonical JSON in 4 KiB chunks, avoiding two
+full-size temporary copies while preserving the wire format, content hash and
+signature checks. The Worker does not delete native libraries. The probe
+transfers source buffers into MEMFS without a second copy and collects
+unreachable runtime/package setup allocations before sampling Worker imports.
+It performs no explicit V8 collection between imports and the four requests.
+One final collection measures retained memory with all caches populated.
+Steady memory is the full allocated WebAssembly
+memory plus live non-Wasm V8 heap/external memory after that collection, with
+the Wasm buffer counted once. Enabled private deploys fail above 120 MiB steady
+memory, leaving 8 MiB below 128 MiB; a noisy peak above 112 MiB only warns.
+A steady-memory failure blocks deployment, including the six-hourly refresh,
+so the currently deployed Worker remains until a passing refresh. The public
+PR/bundle probe uses public fixtures and a synthetic key, is warning-only,
+and reports its outcome in the step summary. A flaky probe therefore cannot
+block flag-off production deploys. Runtime loaders and native libraries stay
+intact. Deploy probes use private data.
+The schedule runs no job when the split is off. Pip/uv caches retain their
+original flag-off behavior and are disabled for private builds. MCP does not
+pass an empty data-split variable when the repository variable is unset.
+The original two-route active premier-sentinel probe measured 103.42 MiB steady
+(108,441,889 bytes) and 108.81 MiB noisy peak (114,097,037 bytes), with
+59.875 MiB of allocated WebAssembly memory. These measurements are also
+recorded in the PR report. This is a local runtime
+probe, not Cloudflare isolate telemetry.
+
+MODEL-283's review follow-up exercised all four routes on a fresh signed public
+fixture. Three quiet runs measured 103.413 MiB steady at most and sampled peaks
+of 106.970, 104.121 and 106.948 MiB, with the same 59.875 MiB Wasm allocation.
+The original two-route probe on that identical bundle produced peaks of
+105.277, 115.574 and 117.120 MiB. Its earlier 116.81 MiB reading was 8.00 MiB
+above the documented 108.81 MiB baseline, while steady memory and Wasm remained
+stable. Transferring source buffers and collecting discarded harness setup
+allocations before Worker sampling reduces that transient V8 overhead. This
+revises setup allocation accounting; the lower peak is not evidence of reduced
+Cloudflare isolate memory. All four-route runs remain below the unchanged
+120 MiB steady and 112 MiB peak thresholds, with no intervening collections.
+
+Jamie enables the split in this order:
+
+1. Merge MODEL-247 W and S by hand while `DATA_SPLIT_ENABLED` remains false.
+2. Seed and verify the private repository, including every `DATA_PATHS` entry.
+   Configure its writer credentials and this repository's read-only
+   `MODELSPEC_DATA_TOKEN`. Keep the snapshot verification key configured.
+3. Set `DATA_SPLIT_ENABLED=true`. Dispatch Rank API on main first and verify
+   the bundled Worker answers decisions and vocabulary from that commit.
+4. Dispatch the MCP workflow on main so its consumers use the display vocabulary.
+   Dispatch Build and deploy the sites on main. Verify production, holding
+   and internal outputs have no removed bulk routes and `/decide/` loads the
+   Worker's vocabulary and draws fresh per-request answers.
+5. Enable scheduled Rank API Actions and verify one refresh picks up a private
+   writer merge. Verify the private writer workflows, then make Data freeze a required
+   check. The weekly lag job becomes eligible under the same switch; it
+   publishes no new image until the nine-month cutoff reaches the seed.
+
+`ACCESS_ENFORCED`, `BILLING_ENABLED`, `X402_ENABLED`, `FEEDBACK_ENABLED` and
+`SITE_MODE` are separate decisions and this rollout does not change them.
+The old clean-install CLI smoke that downloads the public snapshot is skipped
+in enabled site deploys because that route is removed; per-request API and
+browser smoke checks still run. The offline CLI's distribution channel is
+separate follow-up work, with its contract unchanged here.

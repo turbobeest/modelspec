@@ -20,6 +20,7 @@ import typing
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
 from datetime import date
+from functools import cache
 from typing import Annotated, Any, Literal
 
 import yaml
@@ -30,18 +31,19 @@ from pydantic import (
     ConfigDict,
     Discriminator,
     Field,
+    SerializerFunctionWrapHandler,
     StringConstraints,
     Tag,
     ValidationError,
     WithJsonSchema,
-    SerializerFunctionWrapHandler,
+    create_model,
     field_validator,
     model_serializer,
     model_validator,
 )
 from pydantic.fields import FieldInfo
 
-CONTRACT_VERSION = "2.9"
+CONTRACT_VERSION = "2.12"
 
 # ── identifiers ────────────────────────────────────────────────────────────
 
@@ -130,6 +132,12 @@ DateType = Literal["observed", "published"]
 Directness = Literal["direct", "proxy"]
 CapabilityLevel = Literal["required", "preferred"]
 PreferenceStatus = Literal["satisfied", "not_satisfied", "unknown"]
+#: How an answer held up, as a person or an agent tells ModelSpec (MODEL-221).
+#: The same five values `api/worker/src/feedback_service.py` accepts.
+FeedbackRating = Literal["reliable", "unreliable", "trustworthy", "untrustworthy", "confusing"]
+FEEDBACK_ENDPOINT = "https://api.modelspec.dev/v1/feedback"
+FEEDBACK_SCHEMA = "https://modelspec.dev/api/feedback/v1.schema.json"
+FEEDBACK_CLI = "modelspec feedback <decision_id> --rating <rating>"
 # The outcome protocol's task types (DPF integration spec §9.3).
 TaskType = Literal["new_feature", "bug_fix", "refactor", "test_writing", "docs", "migration",
                    "performance", "security_fix", "review", "analysis", "data_transform",
@@ -151,6 +159,8 @@ QUALIFIER_KEYWORDS = (*_FLAG_QUALIFIERS, "@effort(x)", "@harness(x)", "measured_
 # on them are refused. Any other value type from the registry is taken as ordered.
 UNORDERED_VALUE_TYPES = frozenset({"bool", "boolean", "enum", "string", "str", "text", "set",
                                    "list"})
+#: Value types ``best(m)`` can subtract a margin from.
+NUMERIC_VALUE_TYPES = frozenset({"number", "range"})
 
 
 def _iso_date(value: Any) -> Any:
@@ -174,21 +184,37 @@ Day = date
 NATIVE_EXCLUDE_IF = "exclude_if" in FieldInfo.__slots__
 
 
-def apply_exclude_if(model: BaseModel, data: dict[str, Any]) -> dict[str, Any]:
-    """Drop from ``data`` (``model``'s own dump) each field whose
-    ``exclude_if`` predicate holds, as pydantic 2.12 and later do natively."""
-    for name, field in type(model).model_fields.items():
+@cache
+def _exclude_if_fields(model_type: type[BaseModel]) -> tuple:
+    fields = []
+    for name, field in model_type.model_fields.items():
         extra = field.json_schema_extra
         excluded = getattr(field, "exclude_if", None) or (
             extra.get("exclude_if") if isinstance(extra, dict) else None)
-        key = name if name in data else field.serialization_alias or field.alias
-        if callable(excluded) and key in data and excluded(getattr(model, name)):
+        if callable(excluded):
+            fields.append((name, field.serialization_alias or field.alias, excluded))
+    return tuple(fields)
+
+
+def apply_exclude_if(model: BaseModel, data: dict[str, Any]) -> dict[str, Any]:
+    """Apply the native exclusion predicates on older Worker pydantic.
+
+    Field metadata is fixed when pydantic builds each contract type. Inspect
+    it once per type, rather than once per field of every serialized row.
+    """
+    for name, alias, excluded in _exclude_if_fields(type(model)):
+        key = name if name in data else alias
+        if key in data and excluded(getattr(model, name)):
             del data[key]
     return data
 
 
 class _Strict(BaseModel):
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+
+class _ExcludeIf(_Strict):
+    """Compatibility serialization only for contracts with conditional fields."""
 
     if not NATIVE_EXCLUDE_IF:
         @model_serializer(mode="wrap")
@@ -209,6 +235,25 @@ class ModelRef(_Strict):
     """The right-hand side of a relative condition: ``coding >= model(openai/gpt-6-sol)``."""
 
     model: ModelId
+
+
+class BestRef(_Strict):
+    """``facet >= best(m)``: within ``m`` of the highest value among the candidates
+    that pass every other hard condition. Added in 2.11."""
+
+    best: float = Field(ge=0)
+
+    @field_validator("best", mode="before")
+    @classmethod
+    def _margin(cls, value: Any) -> Any:
+        # Before pydantic's own checks, so a bad margin is not reported as a
+        # missing model(…) by the value union.
+        if isinstance(value, bool) or not isinstance(value, int | float) or value < 0:
+            raise ValueError(f"the margin in best(m) is a number, 0 or more; got {value!r}")
+        return value
+
+
+BEST_ONLY_GTE = "best(m) keeps candidates within m of the highest value; write facet >= best(m)"
 
 
 class EvidenceQualifiers(_Strict):
@@ -232,14 +277,21 @@ Qualifiers = Annotated[EvidenceQualifiers | None, AfterValidator(_drop_empty_qua
 
 
 class Compare(_Strict):
-    """``facet op value``; the value may be ``model(<id>)`` for a relative condition."""
+    """``facet op value``; the value may be ``model(<id>)`` or ``best(m)`` for a relative
+    condition."""
 
     facet: FacetId
     op: Op
-    value: ModelRef | Scalar
+    value: ModelRef | BestRef | Scalar
     qualifiers: Qualifiers = None
     soft: Soft | None = None
     unknown: UnknownPolicy | None = None
+
+    @model_validator(mode="after")
+    def _best_is_a_floor(self) -> Compare:
+        if isinstance(self.value, BestRef) and self.op != ">=":
+            raise ValueError(BEST_ONLY_GTE)
+        return self
 
 
 class Window(_Strict):
@@ -643,6 +695,13 @@ def _compact_value(reader: _Reader, after: str) -> Any:
             parts.append(reader.take().text)  # type: ignore[union-attr]
         reader.expect(")", "to close model(")
         return {"model": " ".join(parts)}
+    if tok.text == "best" and reader.peek() and reader.peek().text == "(":  # type: ignore[union-attr]
+        reader.take()
+        margin = reader.take()
+        if margin is None or margin.kind != "word" or margin.text == ")":
+            raise _SyntaxError(reader.field, "best( needs a margin, e.g. best(1.0)")
+        reader.expect(")", "to close best(")
+        return {"best": _classify(margin.text)}
     return _classify(tok.text)
 
 
@@ -719,6 +778,8 @@ _RESERVED_WORDS = {"in", "not", "measured_after", "soft", "unknown"}
 def _render_value(value: Any) -> str:
     if isinstance(value, ModelRef):
         return f"model({value.model})"
+    if isinstance(value, BestRef):
+        return f"best({json.dumps(value.best)})"
     if isinstance(value, bool):
         return "true" if value else "false"
     if isinstance(value, int | float):
@@ -1048,7 +1109,7 @@ def _canonical_ids(value: list[str]) -> list[str]:
     return sorted(set(value))
 
 
-class Estate(_Strict):
+class Estate(_ExcludeIf):
     """What the caller holds, sent with the spec and never stored. Added in 2.3.
 
     ``providers`` are provider IDs the caller has a key for, ``plans`` are
@@ -1072,7 +1133,7 @@ class Estate(_Strict):
 AccessKind = Literal["chat_app", "coding_tool", "own_software", "own_hardware"]
 
 
-class Access(_Strict):
+class Access(_ExcludeIf):
     """How the caller will use the model. Added in 2.6.
 
     ``chat_app``: a provider's chat app, through a subscription plan.
@@ -1098,7 +1159,7 @@ class Access(_Strict):
         return self
 
 
-class Spec(_Strict):
+class Spec(_ExcludeIf):
     """A request for a decision."""
 
     spec_version: Literal[1]
@@ -1225,7 +1286,7 @@ class BenchmarkExclusions(_Strict):
     estimate_changes: list[BenchmarkEstimateChange] = Field(default_factory=list)
 
 
-class Contribution(_Strict):
+class Contribution(_ExcludeIf):
     raw_value: float | None = None
     unit: str | None = None
     records: list[str] = Field(default_factory=list)
@@ -1295,7 +1356,7 @@ class PlanRoute(_Strict):
     basis: str
 
 
-class Result(_Strict):
+class Result(_ExcludeIf):
     rank: int = Field(ge=1)
     offering: OfferingRef
     #: The model, flat: ``offering.model``. Added in 2.5.
@@ -1559,7 +1620,7 @@ class RefinementGain(_Strict):
     gain: float
 
 
-class ConstraintCost(_Strict):
+class ConstraintCost(_ExcludeIf):
     units: dict[str, str | None] = Field(default_factory=dict)
     records: list[str] = Field(default_factory=list)
     condition: str
@@ -1571,7 +1632,7 @@ class ConstraintCost(_Strict):
     )
 
 
-class TippingPoint(_Strict):
+class TippingPoint(_ExcludeIf):
     description: str
     dimension: SignedFacetId | None = None
     threshold: float | None = None
@@ -1660,7 +1721,7 @@ class EstateHold(_Strict):
     id: EstateId
 
 
-class EstateMark(_Strict):
+class EstateMark(_ExcludeIf):
     """How the estate reaches one row, and what one more task costs the caller."""
 
     via: EstateHold
@@ -1697,7 +1758,7 @@ class GainItem(_Strict):
     answer: Answer | None = None
 
 
-class WithEstate(_Strict):
+class WithEstate(_ExcludeIf):
     """The same question answered from what the caller holds. Added in 2.3."""
 
     status: Status
@@ -1743,7 +1804,36 @@ class ModelRow(_Strict):
     offerings: list[ModelOffering] = Field(default_factory=list)
 
 
-class Decision(_Strict):
+class FeedbackPointer(_Strict):
+    """Where to say whether this answer held up. The same on every decision.
+
+    Added in 2.10 (MODEL-221), so that an agent holding an answer finds the
+    feedback endpoint without reading anything else. No key is needed.
+    """
+
+    endpoint: Literal["https://api.modelspec.dev/v1/feedback"] = FEEDBACK_ENDPOINT
+    method: Literal["POST"] = "POST"
+    request_schema: Literal["https://modelspec.dev/api/feedback/v1.schema.json"] = FEEDBACK_SCHEMA
+    ratings: list[FeedbackRating] = Field(
+        default_factory=lambda: list(typing.get_args(FeedbackRating)))
+    cli: Literal["modelspec feedback <decision_id> --rating <rating>"] = FEEDBACK_CLI
+
+
+class Reading(_ExcludeIf):
+    """Reporting limits derived from a decision or its spec refusal (MODEL-284).
+
+    Empty lists are omitted. Identifiers refer to the answer, request fields,
+    or estimated response fields; they never repeat a free-text task.
+    """
+
+    tied: list[ModelId] = Field(default_factory=list, exclude_if=lambda value: not value)
+    not_applied: list[str] = Field(default_factory=list, exclude_if=lambda value: not value)
+    estimates: list[str] = Field(default_factory=list, exclude_if=lambda value: not value)
+    do_not_claim: list[str] = Field(default_factory=list, exclude_if=lambda value: not value)
+    omitted: dict[str, int] = Field(default_factory=dict, exclude_if=lambda value: not value)
+
+
+class Decision(_ExcludeIf):
     """The engine's answer to one spec against one snapshot."""
 
     near_misses: list[NearMiss] = Field(default_factory=list)
@@ -1756,7 +1846,7 @@ class Decision(_Strict):
         default=None,
         exclude_if=lambda value: value is None,
     )
-    contract_version: Literal["2.9"] = CONTRACT_VERSION
+    contract_version: Literal["2.12"] = CONTRACT_VERSION
     decision_id: DecisionId
     snapshot: SnapshotId
     #: Whether this process verified a publisher signature. Added in 1.10.
@@ -1791,6 +1881,10 @@ class Decision(_Strict):
     out_of_lineup: int = Field(default=0, ge=0)
     #: The same answer from what the spec's ``estate`` holds. Added in 2.3.
     with_estate: WithEstate | None = Field(default=None, exclude_if=lambda value: value is None)
+    #: Where to report whether this answer held up. Added in 2.10 (MODEL-221).
+    feedback: FeedbackPointer = Field(default_factory=FeedbackPointer)
+    #: Optional reporting limits. Added in 2.12 (MODEL-284).
+    reading: Reading | None = Field(default=None, exclude_if=lambda value: value is None)
 
     @model_validator(mode="after")
     def _status_agrees(self) -> Decision:
@@ -1807,9 +1901,77 @@ class Decision(_Strict):
         return self
 
 
+# HTTP response controls are separate from the canonical Spec and its hash.
+RowField = Literal[
+    "rank", "model", "model_rank", "offering", "cost_per_task", "harness", "effort",
+    "evidence", "estimates", "refinement_estimates", "p_best", "top3_stability",
+    "soft_penalty", "contributions", "warnings", "plans",
+]
+
+
+class ResponseOptions(_Strict):
+    fields: list[RowField] | None = Field(default=None, min_length=1, max_length=16)
+    evidence_for: ModelId | None = None
+
+
+class DecideRequest(Spec, ResponseOptions):
+    pass
+
+
+# Projected rows have their own type. Result's required fields stay required.
+ProjectedResult = create_model(
+    "ProjectedResult", __base__=_Strict,
+    **{name: (Annotated[info.annotation, *info.metadata] if info.metadata else info.annotation,
+              ... if name in {"rank", "model", "offering", "warnings"} else None)
+       for name, info in Result.model_fields.items()},
+)
+
+
+class ModelEvidence(_Strict):
+    model: ModelId
+    status: ModelRowStatus
+    offering: OfferingRef
+    rank: int | None = None
+    evidence: list[DomainEvidence] = Field(default_factory=list)
+    contributions: list[Contribution] = Field(default_factory=list)
+    unknown: list[str] = Field(default_factory=list)
+    reasons: list[str] = Field(default_factory=list)
+    warnings: list[Code] = Field(default_factory=list)
+
+
+class BoundedExplanation(_Strict):
+    not_applied: list[str] = Field(default_factory=list)
+    omitted: dict[str, int] = Field(default_factory=dict)
+    note: str = "Projected rows are incomplete; omissions are not eliminations or absent evidence."
+
+
+#: The bounded representation is versioned on its own, not as a 2.x minor:
+#: it omits lists a complete Decision always carries (MODEL-59), so it never
+#: claims a `contract_version`. `projects_contract` names the complete contract
+#: its fields are projected from.
+BOUNDED_VERSION = "1.0"
+
+BoundedDecision = create_model(
+    "BoundedDecision", __base__=_Strict,
+    representation=(Literal["bounded"], ...),
+    bounded_version=(Literal["1.0"], ...),
+    projects_contract=(Decision.model_fields["contract_version"].annotation, ...),
+    **{name: (Decision.model_fields[name].annotation, ...) for name in (
+        "decision_id", "snapshot", "signature_verified", "spec_hash", "explain", "status",
+        "answer", "warnings", "truncated", "out_of_lineup", "relax", "relax_to", "feedback",
+    )},
+    results=(list[ProjectedResult], ...),
+    may_qualify=(list[MayQualify], ...),
+    reading=(Reading | None, None),
+    with_estate=(WithEstate | None, None),
+    explanation=(BoundedExplanation, ...),
+    model_evidence=(ModelEvidence | None, None),
+)
+
+
 CONTRACT_TYPES: tuple[type[BaseModel], ...] = (
     Spec, TaskTokens, Objective, Preference, LexStep, Tolerance, EvidenceQualifiers, Soft, ModelRef,
-    Compare, Window, InSet, Known, AnyOf, AllOf, NotOf,
+    BestRef, Compare, Window, InSet, Known, AnyOf, AllOf, NotOf,
     InventoryProfile, ProfileOffering, LocalModel, Hardware, Budget,
     Decision, Result, OfferingRef, DomainEvidence, EvidenceItem, Estimate,
     BenchmarkEstimateChange, BenchmarkExclusions, Contribution,
@@ -1819,8 +1981,18 @@ CONTRACT_TYPES: tuple[type[BaseModel], ...] = (
     ModelEliminationGroup, ConstraintCost, TippingPoint, ModelRow, ModelOffering,
     NearMiss, ShownFact, CandidateValues, NumberOrigin, CitedSource, Relaxation,
     Estate, EstateHold, EstateMark, EstateResult, EstateGap, GainItem, WithEstate,
-    Access, PlanPrice, PlanCoverage, PlanAllowance, PlanRoute,
+    Access, PlanPrice, PlanCoverage, PlanAllowance, PlanRoute, FeedbackPointer, Reading,
+    ResponseOptions, DecideRequest, ProjectedResult, ModelEvidence, BoundedExplanation, BoundedDecision,
 )
+
+
+# Cloudflare snapshots import-time Python state. Prepare the older runtime's
+# conditional-field metadata there, before the first request serializes it.
+if not NATIVE_EXCLUDE_IF:
+    for _contract_type in CONTRACT_TYPES:
+        if issubclass(_contract_type, _ExcludeIf):
+            _exclude_if_fields(_contract_type)
+    del _contract_type
 
 
 def closed_values() -> list[str]:
@@ -1828,7 +2000,7 @@ def closed_values() -> list[str]:
     values: list[str] = []
     for alias in (Op, UnknownPolicy, MeasuredByQualifier, MeasuredBy, Explain, Status, DateType,
                   Directness, CapabilityLevel, PreferenceStatus, TaskType, ModelRowStatus,
-                  AccessKind):
+                  AccessKind, FeedbackRating, RowField):
         values.extend(str(v) for v in typing.get_args(alias))
     values.extend(QUALIFIER_KEYWORDS)
     return sorted(set(values))
@@ -1879,7 +2051,7 @@ def _loc(loc: tuple[Any, ...]) -> str:
 _ALIASES = {"in_": "in", "not_": "not", "class_": "class"}
 
 
-_UNION_TAGS = {"bool", "int", "float", "date", "str", "ModelRef", "tuple"}
+_UNION_TAGS = {"bool", "int", "float", "date", "str", "ModelRef", "BestRef", "tuple"}
 
 
 def _message(error: Mapping[str, Any]) -> str:
@@ -1941,6 +2113,7 @@ def check_facets(spec: Spec, facets: FacetLookup) -> list[Issue]:
         path: str,
         condition: str | None,
         qualifiers: EvidenceQualifiers | None = None,
+        best: bool = False,
     ) -> None:
         try:
             info = facets(facet_id)
@@ -1972,6 +2145,10 @@ def check_facets(spec: Spec, facets: FacetLookup) -> list[Issue]:
             issues.append(Issue(condition, facet_id,
                                 f"{facet_id} is a {kind} facet, which has no order; "
                                 "use = or in {…}", path))
+        elif best and kind not in NUMERIC_VALUE_TYPES:
+            issues.append(Issue(condition, facet_id,
+                                f"{facet_id} is a {kind} facet; best(m) needs a numeric facet",
+                                path))
 
     def walk(cond: Any, path: str) -> None:
         if isinstance(cond, AnyOf | AllOf):
@@ -1991,6 +2168,7 @@ def check_facets(spec: Spec, facets: FacetLookup) -> list[Issue]:
                 path,
                 render_condition(cond),
                 getattr(cond, "qualifiers", None),
+                best=isinstance(cond, Compare) and isinstance(cond.value, BestRef),
             )
 
     for i, cond in enumerate(spec.where):
@@ -2155,7 +2333,8 @@ def spec_hash(spec: Spec) -> str:
 def json_schema() -> dict[str, Any]:
     from pydantic.json_schema import models_json_schema
 
-    refs, defs = models_json_schema([(Spec, "validation"), (Decision, "serialization")],
+    refs, defs = models_json_schema([(Spec, "validation"), (Decision, "serialization"),
+                                     (DecideRequest, "validation"), (BoundedDecision, "serialization")],
                                     ref_template="#/$defs/{model}")
     return {
         "$schema": "https://json-schema.org/draft/2020-12/schema",

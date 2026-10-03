@@ -23,7 +23,8 @@ jobs:
       github.event.pull_request.draft == false &&
       github.event.pull_request.head.repo.full_name == github.repository &&
       github.head_ref != 'research/daily-models' &&
-      github.head_ref != 'data/weekly-price-reread'
+      github.head_ref != 'data/weekly-price-reread' &&
+      github.head_ref != 'data-lag/image'
     runs-on: ubuntu-latest
     steps:
       - name: Fail if RESEARCH_PR_TOKEN is empty

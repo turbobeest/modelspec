@@ -677,7 +677,7 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-09-23'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-30'
     benchmark_version: webdev / overall, latest split, revision 1880dbebff5b
     configuration: 'LMArena leaderboard dataset, subset webdev, category overall, leaderboard_publish_date
       2026-09-23; no style-controlled variant. Highest-effort row for the product (effort: xhigh;
@@ -690,9 +690,10 @@ benchmarks:
     harness: null
     sources:
     - source_id: model-143-evidence-arena-webdev-json
-      snapshot_ref: sha256:8c88f6e665fc8a5667d5b00b1a3ef24d70773f37f9f2fe917623c8c29895c5cf
+      snapshot_ref: sha256:31b3d323e3968c31c3238ed5782c805c2ae4be8758520c2e6837e2f3cb7633cb
       cited_regions:
       - rows
+    observed_at: '2026-09-30'
   - benchmark_id: terminal_bench_v4_0
     model_id_as_evaluated: Grok 4.7
     score: 37.58
@@ -701,7 +702,7 @@ benchmarks:
     source_kind: benchmark_author
     evidence_date: '2026-09-21'
     date_type: published
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-30'
     benchmark_version: Terminal-Bench 4.0
     configuration: 'tbench.ai leaderboard row read 2026-09-24: agent Grok Build (xAI), reasoning
       effort xhigh, 330 trials, accuracy 37.58 ± 3.54 (95% CI). The board''s row date is the
@@ -713,32 +714,88 @@ benchmarks:
     harness: unregistered
     sources:
     - source_id: model-143-evidence-terminal-bench-4-0-json
-      snapshot_ref: sha256:660c5a0fbc79f54671c60e88cced246abad7b9b9935e1db6d63dc2fe30bb3204
+      snapshot_ref: sha256:8583c498abed21892f796662082ec3497bf9829d0d98b952fa9f956ac6c8d582
       cited_regions:
       - rows
+    observed_at: '2026-09-30'
   - benchmark_id: cursorbench_4
     model_id_as_evaluated: Grok 4.7 (xhigh)
     score: 46.3
     unit: percent
     source_url: https://cursor.com/cursorbench
     source_kind: benchmark_author
-    evidence_date: '2026-09-25'
+    evidence_date: '2026-09-30'
     date_type: evaluated
-    verified_at: '2026-09-24'
+    verified_at: '2026-09-30'
     benchmark_version: CursorBench 4.0
     configuration: Cursor's CursorBench 4.0 board read 2026-09-24 (tasks updated 2026-09-10
       per its changelog); the board states no row date, so the reading is dated by the observation.
       Highest-effort row (xhigh); $6.01 a task.
     limitations: Runs only in Cursor's production agent harness.
-    id: xai/grok-4-7#cursorbench_4#5d63f6081a07
+    id: xai/grok-4-7#cursorbench_4#1cb05f600c0a
     measured_by: benchmark_author
     effort: xhigh
     harness: null
     sources:
     - source_id: model-160-cursorbench
-      snapshot_ref: sha256:8f663ca9611104e24712ac2c6e42e0c7444850db6ce29d3d17a046b1d4bd973b
+      snapshot_ref: sha256:b4348223b746be823e859c53f5f915636067e44aa6e798994655b8400a148bc2
       cited_regions:
       - rows
+    observed_at: '2026-09-30'
+  - benchmark_id: brokenarxiv
+    model_id_as_evaluated: Grok 4.7 (xhigh)
+    score: 42.63
+    unit: percent
+    source_url: https://matharena.ai/competition_tables/overall--brokenarxiv
+    source_kind: benchmark_author
+    evidence_date: '2026-09-30'
+    date_type: evaluated
+    verified_at: '2026-09-30'
+    benchmark_version: BrokenArXiv, MathArena Overall table
+    configuration: MathArena competition table read 2026-09-29; the table states no run date,
+      so the reading is dated by the observation. Accuracy averaged over four runs per problem.
+      Effort xhigh, as the model cell names it.
+    limitations: Overall pools MathArena's monthly editions, so it moves when an edition is added.
+      MathArena warns the model was released after the problems were.
+    measured_by: benchmark_author
+    effort: xhigh
+    harness: null
+    sources:
+    - source_id: model-233-matharena-brokenarxiv
+      snapshot_ref: sha256:6d37ddbf9d94259ac1372ebffce5792c896cf14d81297a7af9b2d846d538254b
+      cited_regions:
+      - rows
+    quality_flags:
+    - contamination_warning
+    observed_at: '2026-09-30'
+    id: xai/grok-4-7#brokenarxiv#89129c0ec6fb
+  - benchmark_id: arxivmath
+    model_id_as_evaluated: Grok 4.7 (xhigh)
+    score: 59.15
+    unit: percent
+    source_url: https://matharena.ai/competition_tables/overall--arxivmath
+    source_kind: benchmark_author
+    evidence_date: '2026-09-30'
+    date_type: evaluated
+    verified_at: '2026-09-30'
+    benchmark_version: ArXivMath, MathArena Overall table
+    configuration: MathArena competition table read 2026-09-29; the table states no run date,
+      so the reading is dated by the observation. Accuracy averaged over four runs per problem.
+      Effort xhigh, as the model cell names it.
+    limitations: Overall pools MathArena's monthly editions, so it moves when an edition is added.
+      MathArena warns the model was released after the problems were.
+    measured_by: benchmark_author
+    effort: xhigh
+    harness: null
+    sources:
+    - source_id: model-233-matharena-arxivmath
+      snapshot_ref: sha256:8a7a53d402a60a08b27d509895c3ffadb2737db7a41e78b074f9783b0c6333a9
+      cited_regions:
+      - rows
+    quality_flags:
+    - contamination_warning
+    observed_at: '2026-09-30'
+    id: xai/grok-4-7#arxivmath#55bbbd61282f
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''

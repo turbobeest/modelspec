@@ -76,7 +76,7 @@
       "date": "2026-09-20"
     }
   ],
-  "contract_version": "2.9",
+  "contract_version": "2.12",
   "decision_id": "dec_64e40d90584e3f91474fa358",
   "snapshot": "snap_71b689ca16c5a402",
   "signature_verified": false,
@@ -312,5 +312,18 @@
       "summary": "Unrestricted, the best is acme/tiny. With what you hold it is acme/tiny; no model ranked at or above it is outside your estate, so the answer differs only in cost or how the tie is broken."
     },
     "gain": []
+  },
+  "feedback": {
+    "endpoint": "https://api.modelspec.dev/v1/feedback",
+    "method": "POST",
+    "request_schema": "https://modelspec.dev/api/feedback/v1.schema.json",
+    "ratings": [
+      "reliable",
+      "unreliable",
+      "trustworthy",
+      "untrustworthy",
+      "confusing"
+    ],
+    "cli": "modelspec feedback <decision_id> --rating <rating>"
   }
 }

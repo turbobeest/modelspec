@@ -50,7 +50,7 @@ def test_every_page_gets_one_block_and_a_rerun_replaces_it(tmp_path: Path) -> No
     sd.inject(tree, ROOT)
 
     assert _types(_graph(tree, "/")) == [
-        "Organization", "WebSite", "Dataset", "SoftwareApplication",
+        "Organization", "WebSite", "Dataset",
         "WebAPI/SoftwareApplication", "SoftwareApplication",
     ]
     assert _types(_graph(tree, "/decide/")) == ["BreadcrumbList", "WebApplication"]
@@ -70,9 +70,9 @@ def test_a_page_without_a_head_end_tag_gets_the_block_at_the_end(tmp_path: Path)
 
 def test_a_missing_page_is_skipped(tmp_path: Path) -> None:
     tree = _tree(tmp_path)
-    (tree / "graph" / "index.html").unlink()
+    (tree / "pricing" / "index.html").unlink()
 
-    assert "/graph/" not in sd.inject(tree, ROOT)
+    assert "/pricing/" not in sd.inject(tree, ROOT)
 
 
 def test_the_breadcrumb_names_the_page_and_links_home(tmp_path: Path) -> None:
@@ -87,19 +87,15 @@ def test_the_breadcrumb_names_the_page_and_links_home(tmp_path: Path) -> None:
     ]
 
 
-@pytest.mark.parametrize("snapshot,expected", [
-    (False, ["https://modelspec.dev/api/index.json"]),
-    (True, ["https://modelspec.dev/api/index.json",
-            "https://modelspec.dev/api/decision/snapshot.json.gz"]),
-])
-def test_the_dataset_lists_only_downloads_the_tree_publishes(
-        tmp_path: Path, snapshot: bool, expected: list[str]) -> None:
-    tree = _tree(tmp_path, snapshot=snapshot)
+def test_the_dataset_offers_no_download_and_no_free_flag(tmp_path: Path) -> None:
+    tree = _tree(tmp_path, snapshot=True)
     sd.inject(tree, ROOT)
 
     dataset = _graph(tree, "/")[2]
 
-    assert [d["contentUrl"] for d in dataset["distribution"]] == expected
+    assert "distribution" not in dataset
+    assert "isAccessibleForFree" not in dataset
+    assert "delayed image" in dataset["description"]
     assert dataset["version"] == "3.0"
     assert dataset["dateModified"] == "2026-09-29T19:11:08+00:00"
     assert "1372 AI models" in dataset["description"]
@@ -132,9 +128,10 @@ def test_configured_profiles_become_the_organization_same_as(tmp_path: Path) -> 
     nodes = _graph(tree, "/")
 
     assert nodes[0]["sameAs"] == [
+        "https://github.com/turbobeest/modelspec",
         "https://x.com/modelspecdev", "https://www.linkedin.com/company/modelspec-dev/"]
-    assert nodes[3]["softwareVersion"] == "9.9.9"
-    assert nodes[3]["downloadUrl"] == "https://pypi.org/project/modelspec-dev/"
+    assert nodes[3]["name"] == "ModelSpec API"
+    assert all("downloadUrl" not in node for node in nodes)
 
 
 def test_markup_in_a_value_cannot_end_the_script() -> None:

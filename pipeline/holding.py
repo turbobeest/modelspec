@@ -20,12 +20,13 @@ by accident.
 What the modelspec holding tree is, and why:
 
 * **Copied, not rebuilt.** `/api/**`, `/legal/**` and `openapi.yaml` are copied
-  byte for byte from the real build, so what the CLI (`modelspec snapshot
-  fetch`), DPF, the rank Worker and the MCP server read is exactly what the
+  byte for byte from the real build, so what DPF, the rank Worker and the MCP
+  server read is exactly what the
   real site would publish. The legal pages stay reachable because Stripe's
   account review and past purchasers rely on them.
 * **An allowlist.** Nothing else of the real build is kept but the landing
-  assets, the fonts the legal pages load, and the icon set (`pipeline.brand`).
+  assets, the fonts the legal pages load, the icon set (`pipeline.brand`),
+  and the press and brand kit at /brand/ (`pipeline.brand_page`).
   A page added to the real site later is dark in holding mode unless this
   module names it.
 * **A 404, not a redirect.** Every other path (model and benchmark pages, the
@@ -51,12 +52,14 @@ module copies onto modelspec.dev.
 from __future__ import annotations
 
 import argparse
+import html
 import os
 import shutil
 import sys
 from pathlib import Path
 
-from pipeline import brand, landing, landing_chrome, social_cards
+from pipeline import (brand, brand_page, landing, landing_chrome, public_data, security_headers,
+                      social_cards)
 
 MODE_ENV = "SITE_MODE"
 LIVE = "live"
@@ -66,13 +69,18 @@ SITES = {"modelspec": "ModelSpec"}
 
 #: What is copied from the real build, byte for byte. Directories whole.
 #: modelspec only. benchgraph.dev is one redirect file, copied unchanged.
-KEEP_DIRS = {"modelspec": ("api", "legal", "fonts", landing.ASSET_DIR)}
+#: `feedback-assets` because the legal pages, copied byte for byte, carry the
+#: Feedback control (MODEL-221); the /feedback/ page itself stays dark.
+#: `brand` is the press and brand kit (MODEL-299): logo files and words about
+#: the company, no product data, so it stays up while the product is dark.
+KEEP_DIRS = {"modelspec": ("api", "legal", "fonts", landing.ASSET_DIR, "feedback-assets",
+                           brand_page.PAGE_DIR)}
 KEEP_FILES = ("openapi.yaml", *brand.FILES, social_cards.LANDING_IMAGE)
 #: What this module writes itself.
 WRITTEN = ("index.html", "404.html", "_headers", "robots.txt")
 
 LINE = "{site} is in preparation. Check back soon."
-OPERATOR = "Sparks and Sawdust LLC"
+OPERATOR = "Sparks & Sawdust LLC"
 #: modelspec.dev only: benchgraph.dev has no legal pages of its own.
 LEGAL_LINKS = (("Terms", "/legal/terms/"), ("Privacy", "/legal/privacy/"))
 
@@ -125,7 +133,7 @@ def dark_page(site: str) -> str:
         + brand.head_links() + brand.social_meta(site) +
         f"<style>{_STYLE}</style></head>\n"
         f"<body><header>{landing_chrome.lockup()}</header><main><h1>{site}</h1><p>{line}</p>{footer}"
-        f'<p class="l">© {OPERATOR}</p></main></body></html>\n'
+        f'<p class="l">© {html.escape(OPERATOR)}</p></main></body></html>\n'
     )
 
 
@@ -174,7 +182,11 @@ def build(src: Path, out: Path) -> dict[str, list[str]]:
         data = landing.extract_data(live_landing.read_text(encoding="utf-8"))
         landing.write(tree, data, variant="holding")
         (tree / "404.html").write_text(dark_page(site), encoding="utf-8")
-        (tree / "_headers").write_text(HEADERS, encoding="utf-8")
+        headers = HEADERS
+        if public_data.enabled():
+            headers = public_data.cache_headers(headers)
+            (tree / "_redirects").write_text(public_data.REDIRECTS, encoding="utf-8")
+        (tree / "_headers").write_text(security_headers.add_to(headers, tree), encoding="utf-8")
         (tree / "robots.txt").write_text(ROBOTS, encoding="utf-8")
     shutil.copytree(src / "benchgraph", out / "benchgraph")
     return kept
@@ -183,6 +195,7 @@ def build(src: Path, out: Path) -> dict[str, list[str]]:
 def violations(tree: Path, name: str) -> list[str]:
     """What a holding tree must not contain. Empty means it is dark."""
     bad: list[str] = []
+    brand_files = brand_page.published()
     for path in sorted(tree.rglob("*")):
         if not path.is_file():
             continue
@@ -198,7 +211,10 @@ def violations(tree: Path, name: str) -> list[str]:
                 bad.append(f"{rel}: /legal/ holds its pages only")
             elif top == "fonts" and path.suffix not in {".woff2", ".txt"}:
                 bad.append(f"{rel}: /fonts/ holds faces and their licences only")
-        elif rel not in KEEP_FILES and rel not in WRITTEN:
+            elif top == brand_page.PAGE_DIR and rel not in brand_files:
+                bad.append(f"{rel}: /brand/ holds its page, stylesheet, kit and zip only")
+        elif (rel not in KEEP_FILES and rel not in WRITTEN
+              and not (public_data.enabled() and rel == "_redirects")):
             bad.append(f"{rel}: not a holding file")
     index = (tree / "index.html").read_text(encoding="utf-8") if (tree / "index.html").is_file() else ""
     if ('<link rel="canonical" href="https://modelspec.dev/">' not in index

@@ -700,18 +700,18 @@ benchmarks:
     source_kind: independent_evaluator
     evidence_date: '2026-08-06'
     date_type: evaluated
-    verified_at: '2026-09-29'
+    verified_at: '2026-09-30'
     benchmark_version: GPQA Diamond (Epoch AI run)
     configuration: Epoch AI's own run, from https://epoch.ai/data/benchmark_data.zip (gpqa_diamond.csv),
       read 2026-09-24. Run started 2026-08-06T23:59:25.000Z; effort minimal; highest-effort
       run for the model (MODEL-123 max-effort rule), newest on a tie. Standard error 3.15 points.
     limitations: Epoch AI data, CC BY 4.0.
     effort: minimal
-    observed_at: '2026-09-29'
+    observed_at: '2026-09-30'
     id: google/gemma-4-26b-a4b-it#gpqa_diamond#a3cd726212d3
     sources:
     - source_id: model-143-evidence-epoch-gpqa-diamond-csv
-      snapshot_ref: sha256:2170dd89d5d68d21790626cdefaa361e5f7e9d7f2c543b74c46f75886451e3af
+      snapshot_ref: sha256:dda8f2d4af6df0de8c7a4490325bf0c217d3dc92c5d55d04d3f62d4d2ab529a2
       cited_regions:
       - rows
     measured_by: independent_evaluator

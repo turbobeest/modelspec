@@ -1,3 +1,11 @@
+> **Retired 2026-09-30.** The CLI is no longer distributed. All releases of
+> `modelspec-dev` on PyPI were yanked and the trusted publisher was removed.
+> DPF and other callers must use the hosted API,
+> `POST https://api.modelspec.dev/v1/decide`, with a paid API key, or the remote
+> MCP Worker. People can use the free, rate-limited website at modelspec.dev.
+> The rest of this document preserves the historical CLI contract. No contract
+> versions changed. The CLI source remains in this repository under MIT.
+
 # The ModelSpec CLI contract
 
 The decision commands are the primary interface for agents. Start with
@@ -15,10 +23,12 @@ major version changes.
 modelspec snapshot fetch [--origin URL] [--api-key KEY] [--json]
                                           download the rank snapshot and, when available,
                                           the decision snapshot and vocabulary
-                                          (the only networked command)
+                                          (networked, like feedback)
 modelspec snapshot status [--json]        what is cached, how old, which build or decision
 modelspec vocab [SECTION] [--json]        inspect the cached decision vocabulary
 modelspec decide SPEC.yaml --check        validate a spec without running a decision
+modelspec feedback [DECISION_ID] --rating RATING [--note TEXT] [--dry-run] [--json]
+                                          rate an answer; sends one request, no key (MODEL-221)
 modelspec outcome enable|disable|record|show|export
                                           opt-in, local outcome records (MODEL-211)
 ```
@@ -53,6 +63,21 @@ Vocabulary domain rows may include `estimate_benchmarks`, the benchmark IDs
 that drive stored capability estimates. This list can differ from the domain's
 `benchmarks` drill-down. Vocabulary model rows may include `class`, the model's
 class from the snapshot; older cached vocabularies can omit both fields.
+Facet rows may also include `allowed_values`, the complete finite vocabulary
+from the facet registry, even when the snapshot has not observed every value
+(MODEL-280). This is a new optional field. Existing `values` rows and their
+counts retain their shape and meaning; the vocabulary and CLI envelope
+versions do not change.
+
+Number facet rows also carry `better`: `higher`, `lower`, or `neither` (no
+inherent direction, such as a parameter count), read from the facet registry
+(MODEL-297). The same field is kept in the Worker's `GET /v1/vocabulary`
+display bundle and in the compact facet rows that the Worker lookup and MCP
+`vocab` return. To prefer less of a `lower` facet, weight its ID with a leading
+`-`, as in `-offering.price.input`. This is a new optional field on number rows
+only. Older cached vocabularies, and a Worker deployed before this change, omit
+it; no existing field's range widens, so the vocabulary and CLI envelope
+versions do not change.
 
 `modelspec decide SPEC.yaml --check` loads the cached decision snapshot, parses
 the spec with decide's registry, and runs decide's resolve stage. It stops before
@@ -95,6 +120,40 @@ per the decision's `answer` block), the top five rows with cost per task, the
 leading contributions behind the top row, and how many models may qualify.
 A `no_feasible` decision prints the `relax` suggestions. `--json` is unchanged
 and stays byte-identical to the Worker's `POST /v1/decide` body.
+
+Decision contract 2.12 adds an optional `reading` block (MODEL-284). It is
+derived from the engine's answer and the requirements it used, with empty
+lists omitted. `tied` names the engine's best-band tie (`answer.members`), including
+members beyond the result limit. Present that group as a tie; a tie-breaker
+is a conditional choice. A `do_not_claim` line also names a tied
+`with_estate.answer`; report that answer as a tie among its own members.
+`estimates` names estimated fields, such as
+`model.fits_hardware` and `results.estimates`. Hardware membership is a memory
+estimate for some supported quantization, not a measured fit for a concrete
+quantization, context length, KV cache and runtime workload. `do_not_claim`
+contains short reporting prohibitions derived from these facts and the
+objective. A cost or mixed-objective rank does not establish a quality rank.
+
+An `invalid_spec` refusal may also carry `reading.not_applied`, the field IDs
+or paths rejected by validation. No decision ran for that request. The
+existing `error.issues` supplies the reasons. If an agent removes a requirement
+and retries, it must still tell the user that requirement was not applied.
+The engine cannot recover requirements absent from the retried spec, and the
+block never repeats free-text task content.
+
+On a successful response, `not_applied` also names requested capabilities for
+which the snapshot has no domain evidence. These labels do not become gates
+or proof that the requested capability was evaluated.
+
+The block is absent when there is nothing to report and is limited to 600
+UTF-8 bytes of compact JSON. If identifiers exceed that budget, `omitted`
+counts the unlisted `tied` or `not_applied` identifiers. The complete tie stays
+in `answer.members`, rejected fields in `error.issues`, and requested
+capabilities in the spec. Agents must read those complete lists before
+reporting. The updated decide page decoder ignores the block. This is an
+additive change in decision contract `2.12`; no existing field's range widens.
+Published contract `2.11` has no `reading` field. The CLI envelope and export
+versions remain unchanged.
 
 `modelspec decide SPEC.yaml --why-not MODEL_ID` answers "why not this model?"
 from the finished decision. It runs at `explain: full` internally so an
@@ -218,6 +277,31 @@ ordering: neither class is placed above the other, and no number is attached.
 The whole rule, including the term list the matcher uses, is published keyless
 at `https://modelspec.dev/api/rank/class-fit.json`, so a caller can run the
 same match locally without calling anything.
+
+## Feedback (MODEL-221)
+
+`modelspec feedback` sends one rating of an answer to
+`POST https://api.modelspec.dev/v1/feedback` ([`feedback-api.md`](feedback-api.md)).
+It is the second command that uses the network, and it sends exactly one
+request, only when run.
+
+```
+modelspec feedback [DECISION_ID] --rating reliable|unreliable|trustworthy|untrustworthy|confusing
+                   [--note TEXT] [--trying-to-decide TEXT] [--template ID]
+                   [--endpoint URL] [--dry-run] [--json]
+```
+
+- **No key.** It never reads `MODELSPEC_API_KEY` and sends no `Authorization`
+  header. The body is `{"rating", "client": "cli"}` plus the options given, and
+  nothing else: no machine, user or install identifier.
+- The body is printed to stderr before it is sent. `--dry-run` prints it to
+  stdout as `{"command": "feedback", "dry_run": true, "endpoint", "body"}` and
+  sends nothing.
+- `--json` prints `{"command": "feedback", "result": <the Worker's answer>}`.
+  Check `result.status`: `recorded`, or `not_recorded` while storage is off.
+- A refusal exits 1 with `{"command": "feedback", "error": {"code", "message"}}`
+  on stderr, the code being the Worker's (`invalid_request`, `rate_limited`, …)
+  or `origin_unreachable` / `unexpected_response`.
 
 ## Outcome records (MODEL-211)
 

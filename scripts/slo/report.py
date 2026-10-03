@@ -277,6 +277,20 @@ def check_thin_evidence(lineup: Lineup, evidence: Mapping[str, Sequence[Any]],
     return Check(len(lineup.models), tuple(findings))
 
 
+def check_unclassified_evidence(excluded: Mapping[str | None, Mapping[str, int]],
+                                admitted: int) -> Check:
+    """Evidence rows kept out for want of ``measured_by`` (MODEL-239).
+
+    Any such row is a breach: the source was verified, but nobody said who
+    measured it, and that is never inferred. The fix is on the card.
+    """
+    findings = [Finding(str(sid), f"{counts['unclassified']} evidence row(s) kept out: "
+                                   "no measured_by")
+                for sid, counts in excluded.items() if counts.get("unclassified")]
+    return Check(admitted + sum(int(c.get("unclassified", 0)) for c in excluded.values()),
+                 tuple(findings))
+
+
 def check_facts_verified(lineup: Lineup, authored: Mapping[str, Sequence[str]],
                          rejected: Mapping[tuple[str, str], str],
                          gaps: Iterable[Any]) -> Check:
@@ -643,6 +657,8 @@ def measure(inputs: Inputs, config: Config, *, as_of: date, now: datetime,
             lineup, evidence, record, as_of, int(t("live-reading-age").params["max_age_days"])),
         "thin-evidence": check_thin_evidence(
             lineup, evidence, int(t("thin-evidence").params["min_benchmarks"])),
+        "unclassified-evidence": check_unclassified_evidence(
+            audit.excluded, sum(1 for _ in index.corpus_evidence())),
         "lineup-facts-verified": check_facts_verified(
             lineup, inputs.authored, audit.rejected, audit.gaps),
         "offering-price-age": check_fact_age(

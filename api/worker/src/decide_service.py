@@ -10,11 +10,21 @@ from collections.abc import Awaitable, Callable
 from dataclasses import replace
 from typing import Any, NamedTuple, Protocol
 
+from pydantic import ValidationError
+
 from decision import contract
+from decision.bounded import project as project_decision
 from decision.compare import compare as compare_decisions
 from decision.engine import decide as run_decision
 from decision.registry import facet
-from decision.snapshot import SnapshotIntegrityError, load_snapshot_bytes
+from decision.reading import for_refusal
+from decision.recovery import recovery_hints
+from decision.snapshot import (
+    SnapshotError,
+    SnapshotIntegrityError,
+    load_snapshot_bytes,
+    verify_hmac_signature,
+)
 
 HTTP_OK = 200
 HTTP_BAD_REQUEST = 400
@@ -125,8 +135,10 @@ class SnapshotHolder:
     def __init__(self, fetch: FetchSnapshot, *, clock: Callable[[], float] = time.monotonic,
                  interval: float = REVALIDATE_SECONDS,
                  forced_interval: float = FORCED_REVALIDATE_SECONDS,
-                 sleep: Callable[[float], Awaitable[Any]] = asyncio.sleep):
+                 sleep: Callable[[float], Awaitable[Any]] = asyncio.sleep,
+                 bundled_snapshot=None):
         self._fetch = fetch
+        self._bundled_snapshot = bundled_snapshot
         self._clock = clock
         self._sleep = sleep
         self._interval = interval
@@ -158,19 +170,45 @@ class SnapshotHolder:
     def _live(self, load: _Load | None) -> bool:
         return load is not None and self._clock() - load.started < LOAD_WAIT_SECONDS
 
-    async def current(self, key: bytes | str | None, *, force: bool = False):
+    async def current(self, key: bytes | str | None, *, force: bool = False,
+                      timings: list[float] | None = None):
         """The snapshot to answer from, revalidating first when it is due."""
+        if self._bundled_snapshot is not None:
+            if self._held is None:
+                if key is None or key == "" or key == b"":
+                    raise SnapshotRefusalError(
+                        "the decision snapshot verification key is not configured")
+                snapshot = self._bundled_snapshot
+                try:
+                    verify_hmac_signature(snapshot.content_hash, snapshot.publisher_signature,
+                                          key, source="bundled decision snapshot")
+                except SnapshotIntegrityError as exc:
+                    raise SnapshotRefusalError(str(exc)) from None
+                snapshot.signature_verified = True
+                snapshot.signature_status = "verified (hmac-sha256)"
+                self._held = _Held(snapshot, None, "")
+            return self._held.snapshot
         load = self._load
         if self._live(load):
             if self._held is not None and not force:
                 return self._held.snapshot
-            return await self._wait(load, key, force)
+            started = time.perf_counter()
+            try:
+                return await self._wait(load, key, force)
+            finally:
+                if timings is not None:
+                    timings.append((time.perf_counter() - started) * 1000)
         if not self._due(force):
             if self._held is not None:
                 return self._held.snapshot
             if self._refusal is not None:
                 raise self._refusal
-        return await self._revalidate(key)
+        started = time.perf_counter()
+        try:
+            return await self._revalidate(key)
+        finally:
+            if timings is not None:
+                timings.append((time.perf_counter() - started) * 1000)
 
     async def _wait(self, load: _Load, key, force: bool):
         while not load.done:
@@ -269,16 +307,41 @@ def error_response(
     status: int,
     snapshot_id: str | None,
     issues: list[dict[str, Any]] | None = None,
+    recovery: list[dict[str, Any]] | None = None,
     endpoint: str = "decide",
+    reading: contract.Reading | None = None,
 ) -> tuple[int, dict[str, Any]]:
     error: dict[str, Any] = {"code": code, "message": message}
     if issues is not None:
         error["issues"] = issues
-    return status, {
+    if recovery is not None:
+        error["recovery"] = recovery
+        error["recovery_omitted"] = len(issues or []) - len(recovery)
+    body = {
         "contract_version": contract.CONTRACT_VERSION,
         "endpoint": endpoint,
         "snapshot": snapshot_id,
         "error": error,
+    }
+    if reading is not None:
+        body["reading"] = reading.model_dump(mode="json")
+    return status, body
+
+
+def bounded_unavailable(message: str, *, snapshot_id: str) -> tuple[int, dict[str, Any]]:
+    """A refusal only a bounded drill-down can receive.
+
+    It belongs to the bounded representation, not to the 2.x error enum: a
+    caller that never sends ``evidence_for`` never sees it, so it carries the
+    bounded identity instead of a 2.x ``contract_version``.
+    """
+    return HTTP_SERVICE_UNAVAILABLE, {
+        "representation": "bounded",
+        "bounded_version": contract.BOUNDED_VERSION,
+        "projects_contract": contract.CONTRACT_VERSION,
+        "endpoint": "decide",
+        "snapshot": snapshot_id,
+        "error": {"code": "explanation_unavailable", "message": message},
     }
 
 
@@ -319,7 +382,17 @@ def decide(payload: Any, snapshot, *,
         return snapshot_changed(expected_snapshot, snapshot)
     facets = _facets(snapshot)
     try:
-        spec = contract.parse_spec(payload, facets=facets)
+        if isinstance(payload, dict):
+            controls = {key: payload[key] for key in ("fields", "evidence_for") if key in payload}
+            try:
+                options = contract.ResponseOptions.model_validate(controls)
+            except ValidationError as exc:
+                raise contract.SpecError(contract._issues(exc)) from None
+            raw_spec = {key: value for key, value in payload.items() if key not in controls}
+        else:
+            options = contract.ResponseOptions()
+            raw_spec = payload
+        spec = contract.parse_spec(raw_spec, facets=facets)
     except contract.SpecError as exc:
         return error_response(
             "invalid_spec",
@@ -327,6 +400,9 @@ def decide(payload: Any, snapshot, *,
             status=HTTP_BAD_REQUEST,
             snapshot_id=snapshot.snapshot_id,
             issues=_issues(exc),
+            recovery=recovery_hints(exc.issues, facets=facets,
+                                    benchmark_ids=tuple(snapshot.benchmark_ids()), payload=payload),
+            reading=for_refusal(exc.issues),
         )
     if spec.snapshot not in ("latest", snapshot.snapshot_id):
         return error_response(
@@ -336,7 +412,33 @@ def decide(payload: Any, snapshot, *,
             snapshot_id=snapshot.snapshot_id,
         )
     try:
-        decision = run_decision(spec, snapshot, facets=facets)
+        details = []
+        if options.evidence_for is not None and not any(
+            snapshot.model_of(cid) == options.evidence_for for cid in snapshot.candidates()
+        ):
+            raise contract.SpecError([contract.Issue(
+                None, "evidence_for", "model is not in this snapshot's active lineup", "evidence_for")])
+        if options.evidence_for is not None:
+            # Drill-down cites records even at explain=none. A snapshot built
+            # before provenance retention cannot; that is the server's state,
+            # not a fault in the request.
+            try:
+                snapshot.require_explanation_records()
+            except SnapshotError as exc:
+                return bounded_unavailable(
+                    f"evidence_for needs the snapshot's retained verification records: {exc}. "
+                    "Retry without evidence_for, or later against a rebuilt snapshot",
+                    snapshot_id=snapshot.snapshot_id,
+                )
+        decision = run_decision(
+            spec, snapshot, facets=facets,
+            _capture_evidence=None if options.evidence_for is None else (options.evidence_for, details.append),
+        )
+        if options.fields is not None or options.evidence_for is not None:
+            return HTTP_OK, project_decision(
+                decision, options, detail=details[0] if details else None,
+                not_applied=sorted(set(spec.capabilities or {}) - set(snapshot.domain_ids())),
+            )
     except contract.SpecError as exc:
         return error_response(
             "invalid_spec",
@@ -344,6 +446,9 @@ def decide(payload: Any, snapshot, *,
             status=HTTP_BAD_REQUEST,
             snapshot_id=snapshot.snapshot_id,
             issues=_issues(exc),
+            recovery=recovery_hints(exc.issues, facets=facets,
+                                    benchmark_ids=tuple(snapshot.benchmark_ids()), payload=payload),
+            reading=for_refusal(exc.issues),
         )
     return HTTP_OK, decision.model_dump(mode="json")
 

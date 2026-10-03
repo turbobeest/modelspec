@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pipeline.public_data import enabled as private_serving
+
 import html
 import json
 from dataclasses import dataclass
@@ -10,7 +12,7 @@ from typing import Any
 
 from api.ranking.engine import neutrality_commitment
 from decision.snapshot import SnapshotIntegrityError, load_public_keys, load_snapshot_bytes
-from pipeline import brand, landing_chrome
+from pipeline import brand, entity, landing_chrome
 from pipeline.landing import LandingData
 
 PAGE_PATH = Path("method/index.html")
@@ -87,14 +89,13 @@ def _tie_plot(data: LandingData) -> str:
 def _signing(signing: SigningState) -> str:
     if signing.signed_key_id:
         key_id = html.escape(signing.signed_key_id)
-        return ('<div class="terminal"><span>reproduce a decision, offline</span><pre>'
-                '<b>$</b> modelspec snapshot fetch\n<b>$</b> modelspec decide spec.yaml --json\n'
+        return ('<div class="terminal"><span>reproduce a decision through the API</span><pre>'
+                'POST https://api.modelspec.dev/v1/decide\n'
                 '  "snapshot": "[SNAPSHOT ID]",\n  "spec_hash": "sha256:[SPEC HASH]",\n'
                 '  "signature_verified": true</pre></div><div class="key">'
                 f'<h3>Public signing key</h3><p>This snapshot is Ed25519-signed with published '
                 f'key ID <code>{key_id}</code>. The signature was verified when this page was '
-                'built, with the same check the CLI runs.</p><p>Run <code>modelspec snapshot '
-                'fetch</code> to download the snapshot and verify its signature yourself.</p>'
+                'built. Use the hosted API to reproduce a decision against this snapshot.</p>'
                 '<p>The content hash is checked separately.</p></div>')
     if signing.published_key_ids:
         ids = ", ".join(f"<code>{html.escape(key_id)}</code>"
@@ -234,7 +235,7 @@ def page(data: LandingData, signing: SigningState) -> str:
                     + _sources((("docs/decision-snapshot.md", "the file format, hash and id", "file-format"),
                                 ("docs/decision-contract.md", "the canonical spec hash", "the-canonical-spec-hash"),
                                 ("docs/snapshot-signing.md", "how snapshots are signed", ""),
-                                ("decision/snapshot_keys.json", "the public keys the CLI pins", ""))))
+                                ("decision/snapshot_keys.json", "the public snapshot signing keys", ""))))
     neutrality = (f'<blockquote>“{html.escape(str(commitment["pledge"]))}”<footer>The neutrality '
                   f'commitment, {html.escape(str(commitment["version"]))}</footer></blockquote>'
                   f'<ul class="assertions">{assertions}</ul>' + _sources((
@@ -260,7 +261,10 @@ def page(data: LandingData, signing: SigningState) -> str:
              ("No prompts kept", "A request carries a profile, not prompt text, so there is nothing to keep."),
              ("No guessed values", "A missing value stays missing. It is never filled in, and never counted as zero."),
              ("No fixed benchmark list", "Nobody chooses which benchmarks matter. Every admitted benchmark counts, weighted by the same rules."))
-    return f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>How ModelSpec decides</title><meta name="description" content="How ModelSpec turns sourced evidence into model decisions, ties and reproducible answers."><link rel="canonical" href="https://modelspec.dev/method/">{brand.head_links()}{brand.social_meta("How ModelSpec decides")}<link rel="stylesheet" href="/landing-assets/landing.css"><link rel="stylesheet" href="/landing-assets/method.css">{landing_chrome.lockup_style()}</head><body><div class="axis" aria-hidden="true"></div>{landing_chrome.method_header()}<main><section class="method-hero"><div><h1>How ModelSpec decides.</h1><p>The front page says ModelSpec justifies the model decision and shows its work. This is the work: the front page's main claims, taken apart in plain language and linked to the code, the document or the public data that makes it true. Check it rather than trust it.</p><p>Everything here describes the code on main. Where a figure is needed, the page shows how it is computed, or reads it from the live snapshot.</p></div><nav aria-label="The claims, and where each is answered">{claim_links}</nav></section><section class="flow"><h2>From a published score to your answer</h2><ol>{''.join(f'<li><a href="{href}"><code>{n}</code><b>{title}</b><span>{text}</span></a></li>' for n, title, text, href in flow)}</ol></section>{sections}<section id="dont" class="dont"><code>8 · What we don't do</code><h2>What we don't do, on purpose.</h2><div>{''.join(f'<article><h3>{title}</h3><p>{text}</p></article>' for title, text in donts)}</div></section><section class="public-data"><div><h2>Check it yourself.</h2><p>The decision snapshot and vocabulary read by decision answers are public, versioned and free to fetch. So is the code that reads them. The <code>/v1/policy-check</code> determinations are private.</p><a class="button" href="/decide/">Open the board</a></div><ul><li><a href="https://modelspec.dev/api/decision/snapshot.json.gz"><code>modelspec.dev/api/decision/snapshot.json.gz</code></a><span>The snapshot that decision answers read.</span></li><li><a href="https://modelspec.dev/api/decision/vocabulary.json"><code>modelspec.dev/api/decision/vocabulary.json</code></a><span>Every facet, benchmark and domain decision answers know.</span></li><li><a href="https://modelspec.dev/api/rank/profiles.json"><code>modelspec.dev/api/rank/profiles.json</code></a><span>The ranking floors and the neutrality commitment, as data.</span></li><li><a href="https://modelspec.dev/.well-known/modelspec-snapshot-keys.json"><code>modelspec.dev/.well-known/modelspec-snapshot-keys.json</code></a><span>The public keys used to verify signed snapshots.</span></li></ul></section></main>{landing_chrome.footer(detail="This page describes the code on main.")}</body></html>'''
+    public_data_section = '<section class="public-data"><div><h2>Check it yourself.</h2><p>The decision snapshot and vocabulary read by decision answers are public, versioned and free to fetch. So is the code that reads them. The <code>/v1/policy-check</code> determinations are private.</p><a class="button" href="/decide/">Open the board</a></div><ul><li><a href="https://modelspec.dev/api/decision/snapshot.json.gz"><code>modelspec.dev/api/decision/snapshot.json.gz</code></a><span>The snapshot that decision answers read.</span></li><li><a href="https://modelspec.dev/api/decision/vocabulary.json"><code>modelspec.dev/api/decision/vocabulary.json</code></a><span>Every facet, benchmark and domain decision answers know.</span></li><li><a href="https://modelspec.dev/api/rank/profiles.json"><code>modelspec.dev/api/rank/profiles.json</code></a><span>The ranking floors and the neutrality commitment, as data.</span></li><li><a href="https://modelspec.dev/.well-known/modelspec-snapshot-keys.json"><code>modelspec.dev/.well-known/modelspec-snapshot-keys.json</code></a><span>The public keys used to verify signed snapshots.</span></li></ul></section>'
+    if private_serving():
+        public_data_section = '<section class="public-data"><h2>Check it yourself.</h2><p>The site is a frozen public image. Current answers are computed per request by the hosted API. The vocabulary contains display definitions and names only.</p><ul><li><a href="https://api.modelspec.dev/v1/vocabulary">Decision display vocabulary</a></li><li><a href="/openapi.yaml">API reference</a></li><li><a href="https://modelspec.dev/api/rank/profiles.json">Ranking floors and neutrality commitment</a></li></ul></section>'
+    return f'''<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>How ModelSpec decides</title><meta name="description" content="How ModelSpec turns sourced evidence into model decisions, ties and reproducible answers."><link rel="canonical" href="https://modelspec.dev/method/">{brand.head_links()}{brand.social_meta("How ModelSpec decides")}<link rel="stylesheet" href="/landing-assets/landing.css"><link rel="stylesheet" href="/landing-assets/method.css">{landing_chrome.lockup_style()}</head><body><div class="axis" aria-hidden="true"></div>{landing_chrome.method_header()}<main><section class="method-hero"><div><h1>How ModelSpec decides.</h1><p>{html.escape(entity.ONE_SENTENCE, quote=False)} {html.escape(entity.DISAMBIGUATION, quote=False)} This is the work: the front page's main claims, taken apart in plain language and linked to the code, the document or the public data that makes it true. Check it rather than trust it.</p><p>Everything here describes the code on main. Where a figure is needed, the page shows how it is computed, or reads it from the live snapshot.</p></div><nav aria-label="The claims, and where each is answered">{claim_links}</nav></section><section class="flow"><h2>From a published score to your answer</h2><ol>{''.join(f'<li><a href="{href}"><code>{n}</code><b>{title}</b><span>{text}</span></a></li>' for n, title, text, href in flow)}</ol></section>{sections}<section id="dont" class="dont"><code>8 · What we don't do</code><h2>What we don't do, on purpose.</h2><div>{''.join(f'<article><h3>{title}</h3><p>{text}</p></article>' for title, text in donts)}</div></section>{public_data_section}</main>{landing_chrome.footer(detail="This page describes the code on main.")}</body></html>'''
 
 
 def write(tree: Path, root: Path, data: LandingData) -> dict[str, Any]:

@@ -48,7 +48,7 @@
   // through nothing else: they are the paid product and are never committed to
   // this repository (docs/business/decision-record.md §2.2).
   //
-  // The namespace was created 2026-09-17 on the Sparks and Sawdust LLC account.
+  // The namespace was created 2026-09-17 on the Sparks & Sawdust LLC account.
   // Binding it does not by itself publish anything: the store is empty until
   // someone holding the private enrichment checkout runs
   // api/worker/load_determinations.py, and `_entitlement()` in src/entry.py
@@ -62,10 +62,15 @@
   // separate namespace from DETERMINATIONS on purpose: that one holds our
   // research and is only ever read; this one is written on every keyed call.
   //
-  // The namespace was created 2026-09-18 on the Sparks and Sawdust LLC account.
+  // The namespace was created 2026-09-18 on the Sparks & Sawdust LLC account.
   // Binding it does not require a key: ACCESS_ENFORCED stays off, and no key
   // has been issued (issuance is MODEL-73). A presented live key is checked
   // against the store; anonymous and `test_` requests are unaffected.
+  //
+  // MODEL-221. A FEEDBACK namespace is deliberately NOT bound yet. It is its
+  // own namespace, never ACCESS: feedback has its own retention, and wiping it
+  // must never touch a key record. It is created and bound as part of the
+  // launch Jamie signs off (docs/design/feedback-privacy.md).
   "kv_namespaces": [
     { "binding": "DETERMINATIONS", "id": "a73f33d391f74c3e88e45f47d8e50814" },
     { "binding": "ACCESS", "id": "ef86b7ce138d4891b3eb630cdd2ba4e5" }
@@ -90,6 +95,14 @@
     // before then refuses every anonymous caller. Any value other than
     // "false", "0", "no", "off" or "" reads as ON. See docs/api-access.md.
     "ACCESS_ENFORCED": "false",
+    // MODEL-292. Ships OFF; VISIT_TOKEN_HMAC_KEY is a new Wrangler secret.
+    "VISIT_GATE_ENABLED": "true",
+    "VISIT_DECIDE_DAY_LIMIT": "300",
+    "VISIT_DECIDE_BURST_LIMIT": "30",
+    "VISIT_VOCABULARY_DAY_LIMIT": "60",
+    "VISIT_VOCABULARY_BURST_LIMIT": "10",
+    // MODEL-248. Jamie enables only after both secrets and the Pages site key exist.
+    "HUMAN_GATE_ENABLED": "false",
     // MODEL-73. Hosted Stripe Checkout and the webhook that records the entitlement.
     // OFF since 2026-09-24 (holding mode, docs/handoff/holding-mode.md): the
     // flag closes Checkout only. The webhook, claim and rotate still serve
@@ -98,9 +111,24 @@
     // STRIPE_WEBHOOK_SECRET) are Wrangler secrets, never in this file. See
     // docs/billing.md.
     "BILLING_ENABLED": "false",
+    // MODEL-241. Keyless browser visitors are metered under
+    // HMAC-SHA256(VISITOR_HMAC_KEY, IP | UTC day), from src/visitor.py. The key
+    // is a Wrangler secret, set per environment, never in this file:
+    //   npx wrangler secret put VISITOR_HMAC_KEY
+    //   npx wrangler secret put VISITOR_HMAC_KEY --env staging
+    // Without it a keyless visitor gets no meter id and takes the paid path.
     // MODEL-113. Grok Bot release-signal intake. Keep this off until Jamie
     // creates the two Wrangler secrets and configures Grok Bot.
     "SIGNALS_ENABLED": "false",
+    // MODEL-221. Feedback storage (POST /v1/feedback). Ships OFF: the endpoint
+    // validates, rate-limits in memory and answers `not_recorded`, and writes
+    // nothing anywhere. Turning it on is Jamie's call, after the privacy
+    // statement covers it (docs/design/feedback-privacy.md, "Launch"). On also
+    // needs a FEEDBACK KV namespace in kv_namespaces and the Wrangler secret
+    // FEEDBACK_LIMIT_PEPPER; without either, the endpoint answers 503 rather
+    // than storing unkeyed. Any value other than "false", "0", "no", "off" or
+    // "" reads as ON.
+    "FEEDBACK_ENABLED": "false",
     // MODEL-75. x402 prepaid credits / per-call 402. Independent of Stripe
     // (MODEL-73) and of ACCESS_ENFORCED. Ships OFF. Any value other than
     // "false", "0", "no", "off" or "" reads as ON. See docs/x402.md.
@@ -135,11 +163,14 @@
   // there is no pre-created id to paste. Idle while X402_ENABLED is false.
   "durable_objects": {
     "bindings": [
-      { "name": "CREDITS", "class_name": "CreditsObject" }
+      { "name": "CREDITS", "class_name": "CreditsObject" },
+      // MODEL-248: new binding, reviewed and merged by Jamie. Idle with gate off.
+      { "name": "HUMAN_GATE", "class_name": "HumanGateObject" }
     ]
   },
   "migrations": [
-    { "tag": "v1-credits", "new_sqlite_classes": ["CreditsObject"] }
+    { "tag": "v1-credits", "new_sqlite_classes": ["CreditsObject"] },
+    { "tag": "v2-human-gate", "new_sqlite_classes": ["HumanGateObject"] }
   ],
   // MODEL-166 follow-up. Wrangler environments deploy as separate Workers;
   // `staging` therefore becomes modelspec-rank-staging. It has a workers.dev
@@ -161,7 +192,16 @@
         "EXPORT_ORIGIN": "https://modelspec.dev",
         "BUILD_COMMIT": "dev",
         "ACCESS_ENFORCED": "false",
+        // MODEL-292. Ships OFF; VISIT_TOKEN_HMAC_KEY is a new Wrangler secret.
+        "VISIT_GATE_ENABLED": "false",
+        "VISIT_DECIDE_DAY_LIMIT": "300",
+        "VISIT_DECIDE_BURST_LIMIT": "30",
+        "VISIT_VOCABULARY_DAY_LIMIT": "60",
+        "VISIT_VOCABULARY_BURST_LIMIT": "10",
+        // MODEL-248. Staging-only: verify the gate on Cloudflare before production.
+        "HUMAN_GATE_ENABLED": "true",
         "BILLING_ENABLED": "false",
+        "FEEDBACK_ENABLED": "false",
         "X402_ENABLED": "true",
         "X402_MAINNET": "false",
         "X402_NETWORK": "eip155:84532",
@@ -171,7 +211,9 @@
       },
       "durable_objects": {
         "bindings": [
-          { "name": "CREDITS", "class_name": "CreditsObject" }
+          { "name": "CREDITS", "class_name": "CreditsObject" },
+          // MODEL-248: isolated staging namespace.
+          { "name": "HUMAN_GATE", "class_name": "HumanGateObject" }
         ]
       }
     }

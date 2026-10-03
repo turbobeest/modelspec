@@ -1,0 +1,36 @@
+name: Data freeze
+
+# MODEL-246. Fresh curated data lives in turbobeest/modelspec-data. This check
+# fails a pull request that changes a frozen data path here, unless it is the
+# lag job's `data-lag/*` change and carries nothing newer than the cutoff.
+# Rules and reasoning: docs/design/data-split.md. No path filter: a check that
+# only sometimes reports cannot be made required.
+on:
+  pull_request: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: data-freeze-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  freeze:
+    name: Data freeze
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: No fresh data in the public repository
+        env:
+          BASE: origin/${{ github.base_ref }}
+          BRANCH: ${{ github.head_ref }}
+        run: python scripts/data_freeze_guard.py --base "$BASE" --head HEAD --branch "$BRANCH"

@@ -1,0 +1,81 @@
+id: recall-q14
+family: F1
+persona: Developer choosing a model for production work
+request: Which model should interpret charts and technical screenshots?
+constraints:
+  class: generate
+  modality_in: image
+  task: charts and technical screenshots
+  open_weights: false
+expected:
+  id: Q14
+  notes: 'The approved Arena dataset now supplies vision rows. Those rows are preference evidence,
+    not a chart-reading benchmark, and the document split remains only a proxy. A chart-specific
+    order is not established. The MODEL-161 triage at docs/recall/2026-09-25-model-161-triage.md
+    records the approved vision evidence (read 2026-09-25).
+
+    '
+  acceptable:
+  - model_id: anthropic/claude-opus-5
+    reason: Arena document rating 1516.3 at high effort. This is a document proxy, not a chart score.
+    sources:
+    - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+      read: '2026-09-24'
+  - model_id: anthropic/claude-fable-5-1
+    reason: Arena document rating 1512.6 at max effort, interval overlapping Opus 5.
+    sources:
+    - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+      read: '2026-09-24'
+  - model_id: anthropic/claude-opus-4-6
+    reason: Arena document rating 1507.3 at high effort, interval overlapping the two above.
+    sources:
+    - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+      read: '2026-09-24'
+  - model_id: meta/muse-spark-1-3
+    reason: Leading admitted Arena vision rating, 1314.56.
+    sources:
+    - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+      read: '2026-09-25'
+  - model_id: meta/muse-spark-1-1
+    reason: Second admitted Arena vision rating, 1294.16.
+    sources:
+    - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+      read: '2026-09-25'
+  must_never:
+  - model_id: openai/text-embedding-3-large
+    reason: An embedding model does not interpret an image.
+    sources:
+    - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/openai/text-embedding-3-large.md
+      read: '2026-09-24'
+  must_flag:
+  - model_id: google/gemini-3-8-flash
+    reason: 'The model card accepts images. It is not on the Arena document board, and no chart score
+      was read.
+
+      '
+    sources:
+    - url: https://deepmind.google/models/model-cards/gemini-3-8-flash/
+      read: '2026-09-24'
+    - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+      read: '2026-09-24'
+  - model_id: anthropic/claude-opus-5-5
+    reason: No Arena document row and no chart score read.
+    sources:
+    - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+      read: '2026-09-24'
+    - url: https://matharena.ai/models
+      read: '2026-09-24'
+  missing_cards: []
+expected_source: tests/recall/expected.yaml#Q14
+sources:
+- tests/recall/questions.yaml#Q14
+- tests/recall/specs/Q14.yaml
+gaps:
+- reason: chart and technical-screenshot interpretation has no distinct registered domain.
+  suggested_fix: Publish a dedicated facet or measured capability, or expose a clarification tool
+    before deciding.
+  source: tests/recall/specs/Q14.yaml
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.

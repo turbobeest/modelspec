@@ -1,0 +1,136 @@
+# MODEL-247: install in modelspec-data. This directory is not an Actions workflow directory.
+name: Speed probe
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  actions: read
+concurrency:
+  group: speed-probe
+  cancel-in-progress: false
+env:
+  SPEED_CAP_USD: '13'
+  SPEED_SMOKE_CAP_USD: '0.25'
+  PYTHONPATH: ${{ github.workspace }}
+jobs:
+  probe:
+    name: Speed probe (${{ inputs.mode }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: data
+          token: ${{ github.token }}
+          fetch-depth: 0
+      - name: Check out the pinned public engine
+        uses: actions/checkout@v4
+        with:
+          repository: turbobeest/modelspec
+          ref: 69871e3a554cd0affa26a0d78d5663b576f07003
+          path: engine
+          persist-credentials: false
+      - name: Compose code into the private checkout
+        run: python ../engine/scripts/prepare_data_writer.py --engine ../engine --data .
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install the harness dependencies
+        run: pip install pydantic pyyaml
+      - name: Preflight (free)
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
+        run: python -m scripts.speed preflight | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Smoke, one request per offering (paid, capped)
+        if: inputs.mode == 'smoke'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
+        run: python -m scripts.speed smoke | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: The pilot's worst case against the cap (free)
+        if: inputs.mode == 'pilot'
+        run: python -m scripts.speed plan | tee -a "$GITHUB_STEP_SUMMARY"
+      - name: Run the pilot slot (paid, capped)
+        if: inputs.mode == 'pilot'
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
+        run: python -m scripts.speed run --live --cap-usd "$SPEED_CAP_USD" --window measurements/speed/pilot
+      - name: Upload the raw runs
+        if: always() && inputs.mode == 'pilot'
+        uses: actions/upload-artifact@v4
+        with:
+          name: speed-pilot-runs-${{ github.run_id }}
+          path: data/measurements/speed/pilot/runs/
+          if-no-files-found: warn
+      - name: Aggregate, verify and report (free)
+        id: aggregate
+        if: inputs.mode == 'pilot'
+        run: |
+          python -m scripts.speed aggregate measurements/speed/pilot
+          python -m scripts.speed verify measurements/speed/pilot
+          python -m scripts.speed report measurements/speed/pilot | tee -a "$GITHUB_STEP_SUMMARY" > "$RUNNER_TEMP/report.md"
+      - name: Write the data pull request body
+        if: always() && inputs.mode == 'pilot'
+        env:
+          AGGREGATE_OUTCOME: ${{ steps.aggregate.outcome }}
+        run: |
+          {
+            echo 'The speed-v1 pilot (MODEL-212): one live slot under a $'"$SPEED_CAP_USD"' cap.'
+            echo 'One slot cannot pass the publication gates, so no speed fact enters the snapshot.'
+            echo
+            if [ "$AGGREGATE_OUTCOME" = success ]; then
+              cat "$RUNNER_TEMP/report.md"
+            else
+              echo "Aggregate outcome: $AGGREGATE_OUTCOME. This PR carries the raw runs only; see the workflow run."
+            fi
+          } > "$RUNNER_TEMP/pr-body.md"
+      - name: Open the data pull request
+        if: always() && inputs.mode == 'pilot'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: data/speed-pilot-${{ github.run_id }}
+          delete-branch: true
+          add-paths: |
+            measurements/speed/**
+          signoff: true
+          commit-message: |-
+            data: speed-v1 pilot run (MODEL-212)
+
+            Co-Authored-By: Codex (GPT-6.1 Sol) <noreply@openai.com>
+          title: 'data: speed-v1 pilot run (MODEL-212)'
+          body-path: ${{ runner.temp }}/pr-body.md
+          path: data
+    env:
+      MODELSPEC_REQUIRE_DATA_DIR: '1'
+      PYTHONPATH: ${{ github.workspace }}/data
+      MODELSPEC_DATA_DIR: ${{ github.workspace }}/data
+    defaults:
+      run:
+        working-directory: data
+'on':
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: preflight (free), smoke (paid, SPEED_SMOKE_CAP_USD) or pilot (paid, SPEED_CAP_USD)
+        type: choice
+        options:
+          - preflight
+          - smoke
+          - pilot
+        default: preflight

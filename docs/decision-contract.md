@@ -1,6 +1,10 @@
 # The ModelSpec decision contract
 
-Contract version: **2.9**
+Contract version: **2.12**
+
+The opt-in bounded HTTP response is a separate representation with its own
+version, **bounded 1.0**. It does not carry a 2.x `contract_version`. See
+[Bounded HTTP responses for agents](#bounded-http-responses-for-agents-model-293).
 
 A **spec** asks for a decision. A **decision** is the engine's answer to one
 spec against one snapshot. This document is the public contract for both. The
@@ -189,6 +193,7 @@ offering.provider = aws-bedrock
 offering.provider = "a value with spaces, or a comma"
 known(model.parameters_total)
 software_engineering >= model(openai/gpt-6-sol)
+software_engineering >= best(1.0)
 model.context_window >= 200000 soft(0.2)
 offering.data.trains_on_customer_data = false unknown(fail)
 swe_bench_pro >= 55 @independent @default_effort measured_after 2026-06-01
@@ -209,7 +214,13 @@ not(licence.commercial_use = prohibited)
 - **Existence:** `known(facet)` passes when the value is known. It is never
   unknown itself, so it takes no unknown policy.
 - **Relative:** `facet op model(<model ID>)` compares against another model's
-  value on the same facet.
+  value on the same facet. `facet >= best(m)` keeps the models within `m` of
+  the highest value on the facet among the models that pass every other hard
+  condition; see [Relative to the best](#relative-to-the-best). Only `>=` takes
+  `best(m)`, `m` is a number of 0 or more, and the facet must be a number.
+- **Capability domains:** a condition on a domain, such as
+  `software_engineering >= 0.5` or `known(software_engineering)`, reads the
+  model's capability estimate on that domain (after `exclude_benchmarks`).
 - **Groups:** `any(…; …)`, `all(…; …)` with at least two conditions, and
   `not(…)` with one, separated by `;`.
 - **Values:** `true` and `false`; numbers; ISO dates (`2026-06-01`); bare
@@ -226,7 +237,7 @@ is refused with a message that says to quote the condition.
 
 | Condition | Keys |
 |---|---|
-| Comparison, relative | `facet`, `op`, `value` (a scalar, or `{ model: <model ID> }`) |
+| Comparison, relative | `facet`, `op`, `value` (a scalar, `{ model: <model ID> }`, or `{ best: <margin> }` with `op: ">="`) |
 | Window | `facet`, and `between` as `[low, high]` |
 | Set | `facet`, and a list under one of `in` or `not_in` |
 | Existence | `known`, naming the facet |
@@ -249,6 +260,30 @@ Comparisons and windows also take `qualifiers`. Every condition except
     - { facet: model.weights_openness, op: "=", value: open_weights }
   unknown: list
 ```
+
+### Relative to the best
+
+`facet >= best(m)` is a floor that moves with the answer, not with the lineup.
+Its anchor is the set of models still feasible once every hard condition
+without `best(…)` has run: never a model that only may qualify, and never one
+already eliminated. The bar is the highest known value on the facet among the
+anchor models, less `m`: for an evidence facet, each model's highest admitted
+result; for a domain, its capability estimate. With no known value in the
+anchor, the condition is unknown for every model. A model below the bar is
+eliminated with its own value, and a near miss's `distance` is measured to the
+bar: 0.28 against a bar of 0.32 is a distance of 0.04.
+
+Every condition that contains `best(…)` runs after the others, in the spec's
+order, and the funnel lists it after them. All of them share the one anchor,
+so two `best(…)` conditions give the same answer in either order, and a
+`best(…)` written first still anchors on what the other conditions leave. A
+soft `best(…)` costs its penalty and removes no one.
+
+The margin is on the point value, not a probability such as the bands' `P(its
+score >= the leader's)`. A probability floor would let a model pass because it
+has little evidence: a wide interval cannot be shown to be worse. Every other
+condition compares point values too. Among the models that pass, the bands
+still decide the answer.
 
 ### Evidence qualifiers
 
@@ -588,9 +623,21 @@ same canonical representation it had in 1.0.
 
 ## The decision
 
+Responses may include the optional agent reporting block `reading` (MODEL-284).
+Its `tied`, `not_applied`, `estimates` and `do_not_claim` lists are derived from
+the answer, validation issues and applied objective. Empty lists are omitted;
+the block is absent when none applies. `omitted` counts identifiers removed
+to stay within 600 UTF-8 bytes of compact JSON; the complete tie remains in
+`answer.members`, and rejected fields remain in `error.issues`. This is additive
+in contract 2.12. Published contract 2.11 has no `reading` field.
+See [the reading rules](cli-contract.md) for reporting ties, rejected
+requirements and hardware estimates. The `tied` list names the engine's
+best-band tie (`answer.members`). A `do_not_claim` line also names a tied
+`with_estate.answer`. It changes no ranking; the updated page decoder ignores it.
+
 ```json decision
 {
-  "contract_version": "2.9",
+  "contract_version": "2.12",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
   "signature_verified": true,
@@ -720,13 +767,20 @@ same canonical representation it had in 1.0.
   "relax": [],
   "relax_to": [],
   "warnings": [],
-  "out_of_lineup": 1334
+  "out_of_lineup": 1334,
+  "feedback": {
+    "endpoint": "https://api.modelspec.dev/v1/feedback",
+    "method": "POST",
+    "request_schema": "https://modelspec.dev/api/feedback/v1.schema.json",
+    "ratings": ["reliable", "unreliable", "trustworthy", "untrustworthy", "confusing"],
+    "cli": "modelspec feedback <decision_id> --rating <rating>"
+  }
 }
 ```
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"2.9"`. |
+| `contract_version` | `"2.12"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
 | `signature_verified` | `true` when this process verified either the pinned Ed25519 signature or the private Worker HMAC. |
@@ -748,6 +802,8 @@ same canonical representation it had in 1.0.
 | `relax_to` | For `no_feasible` only (1.5): for each numeric cap or floor, the smallest change that admits a model. Each names the spec's `condition`, the `relaxed` condition (same facet and direction, at the nearest value an excluded candidate has), the `facet`, that `value`, its `unit`, and how many models it `admits`. |
 | `warnings` | Codes about the decision as a whole. |
 | `out_of_lineup` | How many active catalogue models the snapshot leaves outside its lineup, and so outside this decision. `0` when the snapshot was built without a premier list. |
+| `feedback` | Where to say whether this answer held up: send the `method` (`POST`) to the `endpoint`, with a body that follows `request_schema` and a rating from `ratings` (`reliable`, `unreliable`, `trustworthy`, `untrustworthy`, `confusing`) and this `decision_id`, or run the `cli` line. No key. The same on every decision. See [`feedback-api.md`](feedback-api.md). Added in 2.10. |
+| `reading` | Optional reporting limits: `tied` names the engine's best-band tie (`answer.members`), `not_applied` names requirements not applied, `estimates` names estimated fields, and `do_not_claim` lists claims to avoid, including a tied `with_estate.answer`. `omitted` counts identifiers removed to meet the 600-byte compact UTF-8 limit. Added in 2.12. |
 
 **`status`:**
 
@@ -765,6 +821,12 @@ models and their offerings, plus the live archive of retired models. Retired
 models enter a decision only when a condition asks for lifecycle `retired`.
 Every other catalogue model is left out and counted in `out_of_lineup`; it is
 never listed as a candidate or in `may_qualify`.
+
+A model with offerings is represented by those offerings. A model without an
+offering can rank only when its verified `model.weights_openness` is `open_weights`.
+Closed or unknown weights establish no self-host route. The engine eliminates
+those rows using `model.weights_openness = open_weights unknown(fail)` before
+the user's conditions, including when the user permits unknown values.
 
 ### The answer
 
@@ -967,6 +1029,133 @@ the estimate as proxy-only.
 The fields are always present. At a lower level, the lists it does not populate
 are empty.
 
+### Bounded HTTP responses for agents (MODEL-293)
+
+`POST /v1/decide` also accepts two optional response controls alongside the
+spec. These controls are HTTP-only; the offline Spec and its canonical hash
+are unchanged. The existing `limit` remains 1–500, default 20. It limits ranked
+offering rows, not unique models, and never changes the full `answer.members`.
+
+- `fields`: an array of 1–16 Result field names. The names are `rank`, `model`,
+  `model_rank`, `offering`, `cost_per_task`, `harness`, `effort`, `evidence`,
+  `estimates`, `refinement_estimates`, `p_best`, `top3_stability`, `soft_penalty`,
+  `contributions`, `warnings` and `plans`. Unknown names and invalid shapes
+  return HTTP 400 `invalid_spec`. `rank`, `model`, `offering` and row `warnings`
+  are always included. Unselected fields are absent only in the separate
+  `ProjectedResult` type. The complete `Result` type keeps its required fields.
+- `evidence_for`: one `lab/model` ID in the snapshot's active lineup. Resend
+  the same structured spec to inspect that model, even outside `limit`, or
+  when it was eliminated. A missing model returns HTTP 400 `invalid_spec`.
+  `model_evidence` contains its `model`, `status`, best ranked `offering` or a
+  representative offering for an unranked model, overall offering `rank` or
+  null, domain `evidence`, objective `contributions`, `unknown` facets and
+  elimination `reasons` and model-row `warnings`. It contains evidence for this model only. The ranking
+  and answer still use the full feasible set; this is not a model filter.
+
+#### A separate representation, versioned on its own
+
+Either non-null control opts into `BoundedDecision`, the **bounded
+representation, version 1.0**. It is not a 2.x minor version. A bounded body
+omits lists that every 2.x Decision always carries (`by_model`, `eliminated`,
+`number_origins` and the other explanation sections), and its rows omit fields
+a 2.x `Result` requires. Under the [versioning rule](#versioning-model-59) a
+field that may be absent is a widening, so labelling such a body as a 2.x
+contract would need a major bump. It is a different representation instead:
+
+- `representation` is always `"bounded"`. Branch on it first.
+- `bounded_version` is the bounded representation's own version, `"1.0"`. It
+  follows the same MODEL-59 rule on its own: widening any bounded field bumps
+  its major.
+- `projects_contract` names the complete contract the body is projected from,
+  currently `"2.12"`. Every field the bounded body does carry has that
+  contract's type and meaning.
+- A bounded body has **no** `contract_version`. A 2.x decoder that requires
+  `contract_version` refuses it rather than misreading it as a complete
+  Decision.
+
+Complete responses stay exactly contract 2.12, including requests with only
+`limit`, or `fields: null`. Requests without these controls, including the
+decide page, keep their current response bytes and hashes. The page never
+sends `fields` or `evidence_for`, so its decoder never sees a bounded body and
+needs no change.
+
+A bounded response retains the complete `answer`, `warnings`, `reading` when
+applicable, `with_estate` when applicable, status, identity, feedback pointer,
+`truncated`, `out_of_lineup`, `relax` and `relax_to`. It projects ranked
+`results` and shows at most 10 `may_qualify` rows. It adds required
+`explanation` with `not_applied`, explicit per-section `omitted` counts and a
+`note` that omitted data is incomplete. Ties and reporting limits cannot be
+projected away. Counts for omitted ancillary explanations do not imply an
+elimination or a missing fact. Use a complete response to inspect those
+sections. `explain` still controls which details the engine computes; selecting
+`contributions` with `explain: none` returns an empty list.
+
+Drill-down returns no ranked result rows or may-qualify rows; their omission
+counts are explicit, and `model_evidence` is the one-model detail. A
+summariser reads the answer from `answer.members` and the one model from
+`model_evidence.model`, `status` and `rank`, never from the empty `results`. The complete
+answer remains unchanged. The compact UTF-8 body is capped at 7,400 bytes,
+leaving room for the MCP envelope and summary under 2,000 estimated tokens.
+If needed, whole evidence records or contributions are omitted and counted in
+`explanation.omitted`. Provenance fields are never cut off. If reporting
+necessities alone exceed this budget, the call returns HTTP 400 `invalid_spec`
+with guidance to narrow the spec. An omission is not evidence of absence.
+Drill-down cites retained verification records even at `explain: none`. A
+snapshot built before provenance retention cannot cite them, so `evidence_for`
+against it returns HTTP 503 `explanation_unavailable`; retry without
+`evidence_for`. Only a request that sends `evidence_for` can receive this code,
+so it belongs to the bounded representation: its body carries `representation`,
+`bounded_version` and `projects_contract` instead of a `contract_version`, and
+the 2.x decision error enum is unchanged.
+
+No decision store is added. `decision_id` remains a citation, not a lookup
+handle. Pin `snapshot` before the first call for reproducibility and resend the
+same spec plus `evidence_for`. A `latest` call can observe a newer snapshot.
+Changing `snapshot`, `limit` or `explain` changes the existing canonical spec
+hash; adding `fields` or `evidence_for` does not. For example:
+
+```json
+{"spec_version":1,"snapshot":"snap_example","optimize":{"max":"software_engineering"},"explain":"none","limit":10,"evidence_for":"lab/model"}
+```
+
+The MCP decide tool returns a bounded answer by default. When `explain` is
+unset or `none`, it sends `explain: none`, `limit: 10` and `fields` of
+`model_rank`, `cost_per_task`, `estimates` and `p_best`. When the caller sets
+`explain` to `summary` or `full`, which cost the same or more, the tool sends
+`fields: null` and returns complete rows, unless the caller also passes
+`fields`. Caller controls always override these defaults. HTTP defaults remain
+unchanged.
+
+Size tests use the repository's public premier snapshot built as of
+2026-10-02, a software-engineering objective and `limit: 10`. The unit is
+compact UTF-8 bytes / 4, not a tokenizer count. The measured baselines and
+regression ceilings are:
+
+| Representation | Measured estimated tokens | Test ceiling |
+|---|---:|---:|
+| Complete `none` | 6,743 | 8,000 |
+| Complete `summary` | 24,107 | 28,000 |
+| Complete `full` | 69,991 | 80,000 |
+| MCP default projection | about 1,900 with envelope and summary | 3,000 |
+| One-model drill-down | about 1,600 with envelope and summary | 2,000 |
+
+There is no `evidence` explain level in this contract; drill-down uses
+`evidence_for`. These fixture measurements differ from the ticket's measured
+production response because the fixture and row limit differ. Tests cover all
+three current explanation levels. Regenerate the MCP public fixture with
+`python -m qa.decide_budget`; pytest also checks fresh public Worker responses against these budgets.
+
+#### Bounded representation change log
+
+- **bounded 1.0 — MODEL-293:** First version. HTTP-only `fields` and
+  `evidence_for` request controls; a `BoundedDecision` body with
+  `representation`, `bounded_version` and `projects_contract`, projected rows,
+  one-model provenance in `model_evidence` and explicit omission counts in
+  `explanation`. Projects contract 2.12. Complete decisions stay 2.12 and are
+  unchanged; `limit` was already supported and is unchanged. Adds the
+  bounded `explanation_unavailable` refusal, reachable only with
+  `evidence_for`; the 2.x error enum is unchanged.
+
 ## The library and the CLI
 
 ```python
@@ -1168,6 +1357,21 @@ it instead of carrying its own list of facets or benchmarks. Built by
   plans only: it is never in `providers`, `estate.providers` refuses it, and it
   owns no pay-per-use offering. Adding this field is compatible, so
   `vocabulary_version` remains `1`.
+- `signatures` (MODEL-227): an Ed25519 signature over the vocabulary, made
+  with the snapshot's release key. The signed message is
+  `"modelspec.vocabulary\n"` plus `sha256:` and the SHA-256 of the canonical
+  JSON of the vocabulary without this block (sorted keys, compact separators),
+  so the snapshot's signature cannot be replayed on it. The vocabulary's
+  `snapshot` field is inside that digest, which ties it to one snapshot. Each
+  row is `{alg, key_id, value}` with `value` base64. `modelspec snapshot
+  fetch` verifies it against the pinned key set and refuses a vocabulary whose
+  block is present but has no valid signature from a pinned key. A vocabulary
+  with no `signatures` (published before MODEL-227) is still accepted on the
+  snapshot ID alone, with a warning, and `decision_fetch.vocabulary_signature`
+  reports `verified`, `unsigned` or `unpinned`. The block is optional and
+  additive, so `vocabulary_version` remains `1` and `contract_version` is
+  unchanged. The decide page ignores it: the browser fetches both files over
+  HTTPS from the origin it trusts, and does not verify the snapshot either.
 - `models`: every snapshot model by ID, with `display_name`, `lab`, `lab_name`,
   and optional `class`. The class is the snapshot's `model.class` fact and may
   be null when that fact is unknown.
@@ -1241,6 +1445,33 @@ that used to be accepted is a major change; accepting more is not.
 
 ## Change log
 
+- **2.12 — MODEL-284:** A decision adds optional `reading` guidance derived
+  from the engine's answers, unapplied requirements, estimates and objective.
+  Refusals may also carry guidance for rejected fields. Empty lists are
+  omitted and the block is capped at 600 UTF-8 bytes with explicit omission
+  counts. Additive: no existing field changes. An `invalid_spec` refusal
+  carries both `error.recovery` (at most five registry-backed hints, with
+  `error.recovery_omitted` counting the issues left without one) and the
+  top-level `reading`. `error.recovery` (MODEL-285, #547/#551) first shipped
+  under 2.11 without a version bump; 2.12 records it here.
+- **2.11 — MODEL-228:** A comparison takes `facet >= best(m)`, compact `best(1.0)` or YAML
+  `value: { best: 1.0 }`: within `m` of the highest value among the models that
+  pass every other hard condition. Such a condition runs after the others and
+  the funnel lists it after them; see [Relative to the best](#relative-to-the-best).
+  A condition on a capability domain now reads the capability estimate: before,
+  `software_engineering >= model(…)`, `software_engineering >= 0.5` and
+  `known(software_engineering)` left every model unknown. Every Fastest
+  template now keeps the models within `best(1.0)` on its domain and ranks
+  them by speed alone (High volume: speed 0.6, cost 0.4). Additive:
+  `Compare.value` accepts one more shape, and no decision field changes.
+- **2.10 — MODEL-221:** A decision adds `feedback`: the endpoint, request
+  schema, the five ratings and the CLI line for telling ModelSpec whether the
+  answer was reliable, unreliable, trustworthy, untrustworthy or confusing. It
+  is a constant, so the CLI and the Worker still return the same bytes.
+  Additive: no existing field changes.
+- **2.9, unchanged — MODEL-227:** The vocabulary gains an optional `signatures`
+  block (see above). No decision field changes and no closed range widens, so
+  neither `contract_version` nor `vocabulary_version` moves.
 - **2.9 — MODEL-212:** A vocabulary facet adds `measurement` when ModelSpec
   measured any of its lineup values, so a client can say who measured a speed
   and how. A measured fact carries its method, workload, sample size, median,

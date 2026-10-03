@@ -1,0 +1,22 @@
+# What an LLM reader following `LLM_PROMPT` returns for the `summary` region of
+# captioned-results.html, by the label the prompt asks about (MODEL-233).
+# `before_model_233` is what Mistral returned before the prompt asked for
+# conditions stated once for the whole table: the caption's effort left null.
+replies:
+  Coding:
+    - {subject: Nimbus 3, value: "71.2", unit: null, effort: extended thinking at max effort,
+       harness: null, date: null,
+       quoted_sentence: "Coding | 71.2 | 64.0",
+       condition_sentence: "Unless otherwise noted, all Nimbus 3 results use extended thinking at max effort, default sampling settings, averaged over five trials."}
+    - {subject: GPT-6 Sol, value: "64.0", unit: null, effort: null, harness: null, date: null,
+       quoted_sentence: "Coding | 71.2 | 64.0", condition_sentence: null}
+  Agentic:
+    - {subject: Nimbus 3, value: "58.0", unit: null, effort: high, harness: null, date: null,
+       quoted_sentence: "Agentic | 58.0 | 55.1",
+       condition_sentence: "The Agentic score is reported at high effort."}
+    - {subject: GPT-6 Sol, value: "55.1", unit: null, effort: null, harness: null, date: null,
+       quoted_sentence: "Agentic | 58.0 | 55.1", condition_sentence: null}
+before_model_233:
+  Coding:
+    - {subject: Nimbus 3, value: "71.2", unit: null, effort: null, harness: null, date: null,
+       quoted_sentence: "Coding | 71.2 | 64.0"}

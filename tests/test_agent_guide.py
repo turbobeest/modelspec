@@ -1,0 +1,157 @@
+"""Agent entry context stays small, generated, and faithful to the contracts."""
+import asyncio
+import copy
+import json
+
+import pytest
+import yaml
+
+from pipeline import agent_copy, agent_ready, live
+from pipeline.agent_overhead import ROOT, measure, tokens
+from decision.contract import parse_spec
+from decision.registry import default
+from api.worker import openapi
+from qa.agent_harness import agent_context, agent_tools, HttpTools
+from qa.contracts import capture_tools
+from tests.test_x402 import entry, _entry_env, _Req  # noqa: F401
+
+
+def test_generated_guide_and_constants_are_stable_and_within_budget():
+    from api.worker.src.agent_guide import GUIDE_URL, GUIDE_VERSION
+    version, markdown = agent_copy.guide()
+    assert (version, markdown) == agent_copy.guide()
+    assert version == GUIDE_VERSION
+    assert GUIDE_URL in markdown
+    assert agent_copy.GUIDE_OUT.read_text() == markdown
+    assert tokens(markdown) <= 4000
+    data = agent_copy.copy()
+    assert data['guide_version'] == version
+    assert tokens(data['instructions']) <= 1000
+    assert all(tokens(d) <= 1500 for d in data['tools'].values())
+    # Client snippets are part of the versioned source, with explicit loading rules.
+    for snippet in ('CLAUDE.md', 'AGENTS.md', '.cursor/rules/modelspec.mdc',
+                    'initialize.result.instructions', 'tools/list'):
+        assert snippet in markdown
+
+
+def test_all_guide_specs_parse_against_the_registry():
+    registry = default()
+    parse_spec(agent_copy.MINIMAL_SPEC, facets=registry.facet)
+    examples = agent_copy.guide_examples()
+    assert len(examples) == 4
+    for row in examples:
+        parsed = parse_spec(row['spec'], facets=registry.facet)
+        assert parsed.spec_version == 1
+    hardware = examples[2]['spec']['where'][-1]
+    assert hardware['in'][0] in registry.allowed_values(registry.facet(hardware['facet']))
+    # Validate the actual fenced JSON an agent reads, not just generator objects.
+    import re
+    for fenced in re.findall(r'```json\n(.*?)\n```', agent_copy.guide()[1], re.S):
+        parse_spec(json.loads(fenced), facets=registry.facet)
+
+
+def test_guide_changes_get_a_new_version():
+    tiers = copy.deepcopy(agent_copy._tiers())
+    tiers['credits']['weights']['decide.summary'] += 1
+    assert agent_copy.guide(tiers)[0] != agent_copy.guide()[0]
+
+
+def test_schema_compaction_preserves_every_original_rule():
+    original = openapi.apply_agent_copy(openapi.build_spec())
+    compacted = openapi.compact_schemas(copy.deepcopy(original))
+    shared = {k: v for k, v in compacted['components']['schemas'].items() if k.startswith('Shared')}
+    assert shared
+
+    def expand(node):
+        if isinstance(node, dict):
+            if set(node) == {'$ref'} and node['$ref'].split('/')[-1] in shared:
+                return expand(shared[node['$ref'].split('/')[-1]])
+            return {k: expand(v) for k, v in node.items()}
+        if isinstance(node, list):
+            return [expand(v) for v in node]
+        return node
+
+    for key in shared:
+        compacted['components']['schemas'].pop(key)
+    assert expand(compacted) == original
+
+
+def test_openapi_size_and_all_response_header_descriptions():
+    text = (ROOT / 'api/worker/openapi.yaml').read_text()
+    # MODEL-291 baseline 249,369 bytes; resulting file 217,392 bytes.
+    # MODEL-293 adds the bounded representation (DecideRequest, ProjectedResult,
+    # BoundedDecision, ModelEvidence, BoundedExplanation, BoundedRefused): about
+    # 9 KB, already with copied properties pointing at their sources. 226,428 bytes.
+    assert len(text.encode()) <= 229_000
+    assert tokens(text) <= 57_500
+    spec = yaml.safe_load(text)
+    assert agent_copy.GUIDE_URL in spec['info']['description']
+    for path, operations in spec['paths'].items():
+        if path.startswith('/v1/'):
+            for operation in operations.values():
+                for response in operation['responses'].values():
+                    assert {'Link', 'x-modelspec-guide-version'} <= response['headers'].keys()
+
+
+@pytest.mark.parametrize('path,method,body', [
+    ('/v1/rank', 'POST', 'invalid JSON'), ('/v1/decide', 'POST', 'invalid JSON'),
+    ('/v1/rank', 'OPTIONS', None), ('/v1/rank', 'DELETE', None),
+    ('/v1/unknown', 'GET', None), ('/v1/human-status', 'GET', None),
+])
+def test_real_worker_responses_link_the_guide(entry, path, method, body):  # noqa: F811
+    worker = entry.Default()
+    worker.env = _entry_env(X402_ENABLED='false')
+    response = asyncio.run(worker.fetch(_Req(path, body, method, {
+        'origin': 'https://modelspec.dev', 'accept-encoding': 'br'})))
+    headers = {k.lower(): v for k, v in response.headers.items()}
+    assert headers['link'] == '<https://modelspec.dev/agents.md>; rel="describedby"'
+    assert headers['x-modelspec-guide-version'] == agent_copy.guide()[0]
+    assert 'Link' in headers['access-control-expose-headers']
+
+
+def test_compact_and_control_prompts_and_http_tools():
+    full = (ROOT / 'api/worker/openapi.yaml').read_text()
+    for interface in ('mcp', 'http'):
+        compact = agent_context(interface)
+        assert agent_copy.guide()[1] in compact
+        assert full not in compact
+        assert 'https://modelspec.dev/openapi.yaml' in compact
+        assert tokens(compact) <= 4100
+        assert full in agent_context(interface, control_full_spec=True)
+    tools = capture_tools()['tools']
+    assert agent_tools(tools, 'mcp') == tools
+    http = agent_tools(tools, 'http')
+    assert {t['name'] for t in http} == {t['name'] for t in tools}
+    assert all(t['input_schema'] == {'type': 'object', 'additionalProperties': True} for t in http)
+    assert 'POST /v1/decide' in next(t['description'] for t in http if t['name'] == 'decide')
+    assert tokens(json.dumps(http)) < 1000
+    raw = {'task': 'unsupported requirement', 'where': []}
+    # HTTP preserves unsupported fields for the server's recovery hints.
+    assert HttpTools.prepare(None, 'decide', raw) == raw
+
+
+def test_guide_survives_the_live_tree_copy():
+    assert 'agents.md' in live.KEEP_FILES
+    assert 'agents.md' in live.DISCOVERY
+
+
+@pytest.mark.parametrize('interface,control', [('mcp', False), ('http', False), ('mcp', True), ('http', True)])
+def test_harness_prompt_arms_replay_offline(monkeypatch, tmp_path, interface, control):
+    import httpx
+    from qa.agent_harness import main, load_scenarios
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError('Prompt arm attempted network I/O')
+
+    monkeypatch.setattr(httpx.Client, 'request', forbidden)
+    args = ['--dry-run', '--interface', interface, '--agent', 'openai',
+            '--scenario', load_scenarios()[0]['id'], '--output-dir', str(tmp_path),
+            '--date', '2026-10-03']
+    if control:
+        args.append('--control-full-spec')
+    assert main(args) == 0
+    report = json.loads((tmp_path / '2026-10-03-agent-scenarios.json').read_text())
+    assert report['metadata']['interface'] == interface
+    assert report['metadata']['control_full_spec'] is control
+    assert report['metadata']['guide_version'] == agent_copy.guide()[0]
+    assert report['budget']['real_spend_usd'] == 0

@@ -18,7 +18,8 @@ import sys
 from typing import Any
 
 EXPECTED_TOOLS = (
-    "rank", "model_info", "list_use_cases", "policy_check", "decide", "vocab"
+    "rank", "model_info", "list_use_cases", "policy_check", "decide", "vocab",
+    "feedback",
 )
 SNIPPET_BYTES = 200
 
@@ -107,8 +108,8 @@ def check_tools_list(parsed: Any) -> list[str]:
     problems: list[str] = []
     if missing:
         problems.append(f"missing tools: {missing}; saw {names}")
-    if len(tools) != 6:
-        problems.append(f"expected 6 tools, got {len(tools)}")
+    if len(tools) != len(EXPECTED_TOOLS):
+        problems.append(f"expected {len(EXPECTED_TOOLS)} tools, got {len(tools)}")
     for row in tools:
         if not isinstance(row, dict):
             problems.append("a tools/list entry is not an object")

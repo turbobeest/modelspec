@@ -1,5 +1,6 @@
 import type {
   BenchDef,
+  BestValue,
   Cond,
   Evidence,
   FacetValue,
@@ -81,7 +82,7 @@ const slug = (value: string) =>
 
 /** Display and lab names by model ID, from the published vocabulary. */
 export type ModelNames = Readonly<
-  Record<string, { display_name: string | null; lab: string; lab_name: string | null; class?: string | null }>
+  Record<string, { display_name: string | null; lab?: string; lab_name?: string | null; class?: string | null }>
 >;
 interface Names {
   models: ModelNames;
@@ -108,8 +109,16 @@ function classId(type: Extract<Cond, { f: "type" }>["v"]): string {
 const BARE = /^[A-Za-z0-9_][A-Za-z0-9_.:/+@-]*$/;
 const RESERVED = new Set(["in", "not", "measured_after", "soft", "unknown", "true", "false"]);
 
+export const isBestValue = (value: unknown): value is BestValue =>
+  typeof value === "object" && value !== null && !Array.isArray(value) && "best" in value;
+
+/** A margin as the engine renders it: always with a decimal point, as in `best(1.0)`. */
+export const bestMargin = (value: number): string =>
+  Number.isInteger(value) ? value.toFixed(1) : String(value);
+
 /** A value in the compact condition syntax: bare when it would read back as itself. */
 export function compactValue(value: FacetValue): string {
+  if (isBestValue(value)) return `best(${bestMargin(value.best)})`;
   if (Array.isArray(value)) return `{${value.map(compactValue).join(", ")}}`;
   if (typeof value === "boolean" || typeof value === "number") return JSON.stringify(value);
   const looksTyped = /^-?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?$/.test(value);
@@ -1021,14 +1030,17 @@ export function mapDecisionToViewModel(
     frontier: frontier.map((row) => row.m.id),
     shortlist: shortlist(feasible, spec),
     insep: (row) => {
-      if (!row?.capR || row.capR.ci === null) return [];
-      const interval = row.capR.ci;
+      if (row?.cap == null || row.capR?.ci == null) return [];
+      const { cap } = row,
+        interval = row.capR.ci;
+      // A row with no capability interval has nothing to overlap with: under a
+      // price-only Prefer some ranked rows carry no capability evidence at all.
       return feasible.filter(
         (other) =>
           other !== row &&
-          other.capR?.ci !== null &&
-          Math.abs((other.cap ?? 0) - (row.cap ?? 0)) <=
-            (other.capR?.ci ?? 0) + interval,
+          other.cap != null &&
+          other.capR?.ci != null &&
+          Math.abs(other.cap - cap) <= other.capR.ci + interval,
       );
     },
     nearMisses,

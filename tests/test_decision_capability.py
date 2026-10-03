@@ -639,11 +639,13 @@ def test_removed_drivers_name_only_evidence_that_was_a_baseline_driver() -> None
 
 def test_snapshot_stores_estimates_and_domain_objectives_read_them() -> None:
     index = snapshot()
+    assert not index._capability_drivers
     stored = index.capability_estimate("lab/model-9", "software_engineering")
     assert stored is not None and stored.low < stored.value < stored.high
     # Parsing the learned lookup belongs to snapshot load, not every request.
     assert index.capability_estimate("lab/model-9", "software_engineering") is stored
     drivers = index.capability_drivers("lab/model-9", "software_engineering")
+    assert len(index._capability_drivers) == 1
     assert index.capability_drivers("lab/model-9", "software_engineering") is drivers
     evidence_row = index.evidence_record("lab/model-9", drivers[0].record_id)
     assert evidence_row is not None and evidence_row.record_id == drivers[0].record_id

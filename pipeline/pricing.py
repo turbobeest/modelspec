@@ -19,12 +19,16 @@ CHECKOUT_URL = "https://api.modelspec.dev/v1/billing/checkout"
 DECIDE_ENDPOINT = "https://api.modelspec.dev/v1/decide"
 MCP_ENDPOINT = "https://api.modelspec.dev/mcp"
 TITLE = "ModelSpec pricing — people decide free, agents pay per answer"
-FREE_TIER_TITLE = "ModelSpec pricing — free hosted answers and paid-access prices"
-DESCRIPTION = ("The ModelSpec board and offline CLI are free. Hosted API and MCP "
-               "answers use credits, with plans and packs.")
-FREE_TIER_DESCRIPTION = ("The ModelSpec board and offline CLI cost nothing. The hosted "
-                         "API and MCP server answer on a free tier today, with prices "
-                         "published for paid access.")
+FREE_TIER_TITLE = "ModelSpec pricing — people decide free, machine access priced"
+DESCRIPTION = ("A person looking a model up on the ModelSpec board pays nothing. "
+               "Machine access is the hosted API and MCP server only, paid in credits, "
+               "with plans and packs. MCP decision tools "
+               "(rank, policy_check, decide) require an API key.")
+FREE_TIER_DESCRIPTION = ("A person looking a model up on the ModelSpec board pays nothing. "
+                         "Machine access is the hosted API and MCP server only. Keyless "
+                         "API calls are still answered while paid access is switched on; "
+                         "these are its prices. MCP decision tools "
+                         "(rank, policy_check, decide) require an API key.")
 NETWORK_NAMES = {"eip155:8453": "Base mainnet", "eip155:84532": "Base Sepolia"}
 
 
@@ -169,11 +173,15 @@ def page(tiers: dict[str, Any], *, build: Build | None = None,
                    f"One credit. The low end is the {cheapest_label}'s rate; the range "
                    "covers the plans and packs below. A full explanation costs two credits.")
     hero_heading = f"People decide free. {agent_line}"
-    hero_copy = (f"The board on this site and the offline CLI cost nothing. Hosted API and "
-                 f"MCP answers use {hero_payment}." if access_enforced else
-                 "The board on this site and the offline CLI cost nothing. The hosted API "
-                 "and MCP server answer on a free tier today; these are the credit prices "
-                 "for paid access.")
+    hero_copy = ("A person using the board on this site pays nothing. Machine "
+                 f"access is the hosted API and MCP server only, and it uses "
+                 f"{hero_payment}. There is no CLI and no data download. MCP decision "
+                 "tools (rank, policy_check, decide) require an API key." if access_enforced else
+                 "A person using the board on this site pays nothing. Machine "
+                 "access is the hosted API and MCP server only. Keyless API calls "
+                 "are still answered while paid access is being switched on; these "
+                 "are the credit prices for it. There is no CLI and no data download. "
+                 "MCP decision tools (rank, policy_check, decide) require an API key.")
     buy_heading = "Buy credits for your agents" if billing_live else "Plans and packs"
     buy_copy = ("Pay by card. You get one API key and one balance; every agent that carries "
                 "the key draws from it." if billing_live else
@@ -202,9 +210,9 @@ def page(tiers: dict[str, Any], *, build: Build | None = None,
 <section class="buy-grid"><div class="card buy-card"><h2>{buy_heading}</h2><p>{buy_copy}</p><table class="price-table" role="table"><caption>Monthly plans · allowance resets each invoice</caption><thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Plan</th><th scope="col" role="columnheader">Allowance</th><th scope="col" role="columnheader">Price</th>{purchase_header}</tr></thead><tbody role="rowgroup">{plan_rows}</tbody></table><table class="price-table" role="table"><caption>Packs · one-off, last {expiry} days</caption><thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Pack</th><th scope="col" role="columnheader">Rate</th><th scope="col" role="columnheader">Price</th>{purchase_header}</tr></thead><tbody role="rowgroup">{pack_rows}</tbody></table><p class="small">{buy_note}</p></div>
 {agents_panel}</section>
 <section class="calculator"><div class="controls"><h2>{calculator_heading}</h2><fieldset data-control="decisions"><legend>Decisions a day</legend><div>{decision_buttons}</div></fieldset><fieldset data-control="full"><legend>Explanation with each decision</legend><div><button type="button" data-value="false" aria-pressed="true">Summary · {weights['decide.summary']} credit</button><button type="button" data-value="true" aria-pressed="false">Full · {weights['decide.full']} credits</button></div></fieldset><fieldset data-control="checks"><legend>Licence and data-residency checks a day</legend><div>{check_buttons}</div></fieldset></div><div class="estimate" aria-live="polite"><span data-credits></span><div><b>{calculator_best}</b><strong><span data-best-name></span> · <span data-best-cost></span><small> a month</small></strong></div><div data-options></div><p>A month is 30 days. Prices from the published plan and pack list; the arithmetic runs in your browser. On an exact tie, the calculator prefers an option without a subscription.</p></div></section>
-<section class="costs"><div><h2>What an answer costs</h2><table class="cost-table"><caption>Credits drawn from a prepaid balance</caption><thead><tr><th scope="col">Answer</th><th scope="col">Cost</th></tr></thead><tbody><tr class="cost-row"><th scope="row">A decision<span>ranked answer with ties, no explanation or a summary</span></th><td>{weights['decide.summary']} credit</td></tr><tr class="cost-row"><th scope="row">A decision, fully explained<span>every fact, source and trade-off behind the order</span></th><td>{weights['decide.full']} credits</td></tr><tr class="cost-row"><th scope="row">A ranking<span>the ranked list for one capability</span></th><td>{weights['rank']} credit</td></tr><tr class="cost-row"><th scope="row">A licence and data-residency check<span>cited commercial-use and residency determinations</span></th><td>{weights['policy-check']} credits</td></tr><tr class="cost-row"><th scope="row">An error, a refusal, or no model fits<span>anything that is not a successful answer</span></th><td class="free">free</td></tr></tbody></table></div><div><h2>What stays free</h2><ul class="free-list"><li><b>The board, for people.</b> Every facet, every tie, every source, on this site. No account.</li><li><b>The CLI, offline.</b> Fetch the public snapshot once and decide locally, as often as you like.</li><li><b>The data.</b> The static export under /api is public, versioned JSON.</li><li><b>The sandbox.</b> Unlimited synthetic answers to build and test against. No signup.</li></ul></div></section>
+<section class="costs"><div><h2>What an answer costs</h2><table class="cost-table"><caption>Credits drawn from a prepaid balance</caption><thead><tr><th scope="col">Answer</th><th scope="col">Cost</th></tr></thead><tbody><tr class="cost-row"><th scope="row">A decision<span>ranked answer with ties, no explanation or a summary</span></th><td>{weights['decide.summary']} credit</td></tr><tr class="cost-row"><th scope="row">A decision, fully explained<span>every fact, source and trade-off behind the order</span></th><td>{weights['decide.full']} credits</td></tr><tr class="cost-row"><th scope="row">A ranking<span>the ranked list for one capability</span></th><td>{weights['rank']} credit</td></tr><tr class="cost-row"><th scope="row">A licence and data-residency check<span>cited commercial-use and residency determinations</span></th><td>{weights['policy-check']} credits</td></tr><tr class="cost-row"><th scope="row">An error, a refusal, or no model fits<span>anything that is not a successful answer</span></th><td class="free">free</td></tr></tbody></table></div><div><h2>What stays free</h2><ul class="free-list"><li><b>The board, for people.</b> Every facet, every tie, every source, on this site. No account. Rate-limited, not charged.</li><li><b>The public repository.</b> The engine is MIT and the data is CC BY-SA, as a delayed image about nine months behind. Current data is served only through the hosted API and MCP server.</li><li><b>The sandbox.</b> Unlimited synthetic answers to build and test against. No signup.</li></ul></div></section>
 <section class="trust"><div><h3>Paying never moves a model.</h3><p>Credits pay for answers and determinations, never for position. No referral fees, no paid placement, no provider-paid visibility. A published commitment you can check.</p></div><div><h3>Only a successful answer draws credits.</h3><p>Errors, refusals and "no model fits" release the credit reservation. Your balance is one call away.</p></div><div><h3>The same facts, the same answer.</h3><p>A spec and a snapshot always give the same result, so an agent's choice can be audited later.</p></div></section></main>
-<footer><span>© Sparks and Sawdust LLC</span><a href="/method/">Method</a><a href="/pricing/">Pricing</a><a href="/legal/terms/">Terms</a><a href="/legal/privacy/">Privacy</a><a href="/legal/neutrality/">Neutrality commitment</a><span>{footer_tax}</span></footer>
+<footer><span>© Sparks &amp; Sawdust LLC</span><a href="/method/">Method</a><a href="/pricing/">Pricing</a><a href="/legal/terms/">Terms</a><a href="/legal/privacy/">Privacy</a><a href="/legal/neutrality/">Neutrality commitment</a><a href="/brand/">Brand</a><span>{footer_tax}</span></footer>
 <script id="{DATA_ID}" type="application/json">{payload}</script><script type="module" src="/{ASSET_DIR}/pricing.js"></script></body></html>\n'''
 
 

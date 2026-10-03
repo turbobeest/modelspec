@@ -28,6 +28,8 @@ from typing import Any, Callable, Iterable, Literal, Mapping
 
 import yaml
 
+from schema import private_errors
+
 REPO_ROOT = Path(__file__).resolve().parents[1]
 REGISTRY_DIR = REPO_ROOT / "registry"
 
@@ -44,6 +46,8 @@ SUBJECTS = ("model", "offering", "evidence")
 TIERS = ("guaranteed", "best_effort")
 RISKS = ("capability", "governance")
 KINDS = ("number", "enum", "boolean", "date", "set", "range", "string")
+#: Which way is better for a number facet (MODEL-297).
+BETTER = ("higher", "lower", "neither")
 PROVIDER_KINDS = ("lab_api", "cloud", "inference", "aggregator")
 SHOWN_BY = ("address", "incorporation", "governing_law")
 BASES = ("service_terms", "website_terms")
@@ -157,6 +161,10 @@ class Facet:
     value_labels: tuple[tuple[str, str], ...] = ()
     #: Values accepted by an enum preference. ``None`` means the set is open.
     preference_values: tuple[str, ...] | None = None
+    #: Which way is better for a number facet: ``higher``, ``lower``, or
+    #: ``neither`` when the facet has no inherent direction. ``None`` for every
+    #: other kind. Prefer minimises a ``lower`` facet (MODEL-297).
+    better: str | None = None
 
     def value_label(self, value: str) -> str | None:
         return dict(self.value_labels).get(value)
@@ -284,7 +292,12 @@ class Registry:
         self._refinements: Mapping[tuple[str, str], Refinement] = MappingProxyType(
             refinements or {}
         )
-        self._named_lists = named_lists
+        # A Registry describes one loaded checkout. File-backed vocabularies
+        # must not glob that checkout again for every parameterised facet.
+        self._named_lists = {
+            name: cache(producer) if producer is not None else None
+            for name, producer in named_lists.items()
+        }
         self._families: Mapping[str, Family] = MappingProxyType(families or {})
         self._harness_versions = frozenset(v for h in harnesses.values() for v in h.versions)
 
@@ -453,32 +466,41 @@ def _named_lists(repo_root: Path, raw: Mapping[str, list[dict]]) -> dict[str, Ca
 
 
 class _Errors:
-    def __init__(self) -> None:
+    def __init__(self, root: Path | None = None) -> None:
         self.items: list[str] = []
+        self.root = root
+        self.location: Path | None = None
 
     def add(self, where: str, message: str) -> None:
         self.items.append(f"{where}: {message}")
+        filename = where.split()[0]
+        if self.location is None and self.root is not None and re.fullmatch(r"[a-z-]+\.yaml", filename):
+            self.location = self.root / filename
 
     def raise_if_any(self) -> None:
         if self.items:
-            raise RegistryError("invalid registry:\n  " + "\n  ".join(self.items))
+            error = RegistryError("invalid registry:\n  " + "\n  ".join(self.items))
+            if self.location is not None:
+                error._modelspec_path = self.location
+            raise error
 
 
 def _read(root: Path, name: str, key: str) -> list[dict]:
     path = root / f"{name}.yaml"
     if not path.is_file():
         raise RegistryError(f"missing registry file {path}")
-    try:
-        data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
-    except yaml.YAMLError as exc:
-        raise RegistryError(f"{path}: not valid YAML: {exc}") from exc
-    expected_version = REGISTRY_SCHEMA_VERSIONS[name]
-    if data.get("schema_version") != expected_version:
-        raise RegistryError(f"{path}: schema_version must be {expected_version}")
-    entries = data.get(key)
-    if not isinstance(entries, list) or not all(isinstance(e, dict) for e in entries):
-        raise RegistryError(f"{path}: `{key}` must be a list of mappings")
-    return entries
+    with private_errors(path, error_type=RegistryError):
+        try:
+            data = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+        except yaml.YAMLError as exc:
+            raise RegistryError(f"{path}: not valid YAML: {exc}") from exc
+        expected_version = REGISTRY_SCHEMA_VERSIONS[name]
+        if data.get("schema_version") != expected_version:
+            raise RegistryError(f"{path}: schema_version must be {expected_version}")
+        entries = data.get(key)
+        if not isinstance(entries, list) or not all(isinstance(e, dict) for e in entries):
+            raise RegistryError(f"{path}: `{key}` must be a list of mappings")
+        return entries
 
 
 def _keys(err: _Errors, where: str, entry: dict, required: set[str], optional: set[str]) -> None:
@@ -597,7 +619,7 @@ def _load_facets(err: _Errors, root: Path, units: Mapping, kinds: Mapping, lists
     required = {"id", "subject", "value_type", "definition", "tier", "risk", "permitted_source_kinds"}
     optional = {
         "unit", "parameter", "required_qualifiers", "computed_by", "addressable",
-        "label", "value_labels",
+        "label", "value_labels", "better",
     }
     out: dict[str, Facet] = {}
     for e in entries:
@@ -633,6 +655,14 @@ def _load_facets(err: _Errors, root: Path, units: Mapping, kinds: Mapping, lists
         if not isinstance(rq, list) or not all(isinstance(q, str) for q in rq):
             err.add(where, "required_qualifiers must be a list of names")
             rq = []
+        better = e.get("better")
+        if vt is not None and vt.kind == "number":
+            if better not in BETTER:
+                err.add(where, f"a number facet needs better: one of {', '.join(BETTER)}")
+                better = None
+        elif better is not None:
+            err.add(where, "better applies only to a number facet")
+            better = None
         addressable = e.get("addressable", True)
         if not isinstance(addressable, bool):
             err.add(where, "addressable must be true or false")
@@ -645,7 +675,7 @@ def _load_facets(err: _Errors, root: Path, units: Mapping, kinds: Mapping, lists
             tier=e.get("tier"), risk=e.get("risk"), permitted_source_kinds=tuple(psk),
             unit=e.get("unit"), parameter=parameter, required_qualifiers=tuple(rq),
             computed_by=e.get("computed_by"), addressable=addressable,
-            label=label, value_labels=value_labels,
+            label=label, value_labels=value_labels, better=better,
             preference_values=(
                 tuple(sorted(lists[vt.values_from]()))
                 if (
@@ -690,7 +720,7 @@ def _load_providers(err: _Errors, root: Path) -> dict[str, Provider]:
         field_ = e.get("v1_availability_field")
         if field_ is not None:
             if availability is None:
-                from schema.card import Availability, PlatformEntry
+                from schema.availability import Availability, PlatformEntry
                 availability = {n for n, f in Availability.model_fields.items() if f.annotation is PlatformEntry}
             if field_ not in availability:
                 err.add(where, f"v1_availability_field {field_!r} is not a platform field on Availability")
@@ -904,28 +934,43 @@ def load(root: Path | None = None, *, repo_root: Path | None = None) -> Registry
     """
     root = Path(root) if root is not None else REGISTRY_DIR
     repo_root = Path(repo_root) if repo_root is not None else REPO_ROOT
-    err = _Errors()
-    raw = {
-        "providers": _read(root, "providers", "providers"),
-        "harnesses": _read(root, "harnesses", "harnesses"),
-        "domains": _read(root, "domains", "domains"),
-        "refinements": _read(root, "refinements", "refinements"),
-        "families": _read(root, "families", "families"),
-    }
-    lists = _named_lists(repo_root, raw)
-    units, kinds = _load_units_and_kinds(err, root)
-    facets = _load_facets(err, root, units, kinds, lists)
-    providers = _load_providers(err, root)
-    vendors = _load_vendors(err, root, providers)
-    harnesses = _load_harnesses(err, root)
-    domains = _load_domains(err, root)
-    model_classes = lists["model_classes"]()
-    refinements = _load_refinements(err, root, domains, model_classes)
-    families = _load_families(err, raw["families"])
-    err.raise_if_any()
-    return Registry(units=units, source_kinds=kinds, facets=facets, providers=providers,
-                    harnesses=harnesses, domains=domains, refinements=refinements,
-                    named_lists=lists, families=families, vendors=vendors)
+    with private_errors(root, error_type=RegistryError):
+        err = _Errors(root)
+        raw = {
+            "providers": _read(root, "providers", "providers"),
+            "harnesses": _read(root, "harnesses", "harnesses"),
+            "domains": _read(root, "domains", "domains"),
+            "refinements": _read(root, "refinements", "refinements"),
+            "families": _read(root, "families", "families"),
+        }
+        lists = _named_lists(repo_root, raw)
+        units, kinds = _load_units_and_kinds(err, root)
+        facets = _load_facets(err, root, units, kinds, lists)
+        providers = _load_providers(err, root)
+        vendors = _load_vendors(err, root, providers)
+        harnesses = _load_harnesses(err, root)
+        domains = _load_domains(err, root)
+        model_classes = lists["model_classes"]()
+        refinements = _load_refinements(err, root, domains, model_classes)
+        families = _load_families(err, raw["families"])
+        err.raise_if_any()
+        return Registry(units=units, source_kinds=kinds, facets=facets, providers=providers,
+                        harnesses=harnesses, domains=domains, refinements=refinements,
+                        named_lists=lists, families=families, vendors=vendors)
+
+
+def use_root(root: Path) -> None:
+    """Read the registry from `root` instead of this checkout (MODEL-246).
+
+    A build over a composed data root (`pipeline.data_source.overlay`) holds
+    registry data files that come from the private checkout. This module
+    locates its files from its own path, which resolves through the links to the
+    public checkout, so the build points it at the composed root explicitly.
+    """
+    global REPO_ROOT, REGISTRY_DIR
+    REPO_ROOT = Path(root)
+    REGISTRY_DIR = REPO_ROOT / "registry"
+    default.cache_clear()
 
 
 @cache

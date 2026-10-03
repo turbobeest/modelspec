@@ -204,20 +204,25 @@ def refinement_fallback_value(base: Any, prior_sd: float) -> RefinementEstimateV
     )
 
 
-def _drivers(raw: Mapping[str, Mapping[str, Any]] | None,
-             ) -> dict[tuple[str, str], tuple[CapabilityDriverValue, ...]]:
-    return {
-        (model_id, key): tuple(
+class _Drivers(dict[tuple[str, str], tuple[CapabilityDriverValue, ...]]):
+    """Materialise provenance only for a model/dimension being explained."""
+
+    def __init__(self, raw: Mapping[str, Mapping[str, Any]] | None):
+        super().__init__()
+        self._raw = raw or {}
+
+    def __missing__(self, pair):
+        model_id, key = pair
+        value = tuple(
             CapabilityDriverValue(
                 record_id=row[0], benchmark_id=row[1], version=row[2],
                 loading=float(row[3]), weight=float(row[4]),
                 recency_weight=float(row[5]),
             )
-            for row in rows
+            for row in self._raw.get(model_id, {}).get(key, ())
         )
-        for model_id, keyed in (raw or {}).items()
-        for key, rows in keyed.items()
-    }
+        self[pair] = value
+        return value
 
 
 @dataclass(frozen=True)
@@ -464,6 +469,75 @@ def env_ed25519_signer() -> Ed25519Signer | None:
             return Ed25519Signer(key_id, value)
     raise SnapshotBuildError(
         f"the {ED25519_KEY_ENV} public key is not in {PUBLIC_KEY_SET_PATH.name}"
+    )
+
+
+VOCABULARY_SIGNATURES_FIELD = "signatures"
+_VOCABULARY_DOMAIN = "modelspec.vocabulary\n"
+
+
+def vocabulary_digest(vocabulary: Mapping[str, Any]) -> str:
+    """SHA-256 of the vocabulary with its own ``signatures`` block left out."""
+    body = {k: v for k, v in vocabulary.items() if k != VOCABULARY_SIGNATURES_FIELD}
+    return "sha256:" + hashlib.sha256(canonical_json(body)).hexdigest()
+
+
+def _vocabulary_message(vocabulary: Mapping[str, Any]) -> bytes:
+    return (_VOCABULARY_DOMAIN + vocabulary_digest(vocabulary)).encode("ascii")
+
+
+def sign_vocabulary(vocabulary: Mapping[str, Any], signer: Ed25519Signer) -> dict[str, Any]:
+    """Return the vocabulary with an Ed25519 signature made by the snapshot's key (MODEL-227).
+
+    The signed message is domain-separated from the snapshot's, so a snapshot
+    signature can never be replayed as a vocabulary signature. The vocabulary's
+    own ``snapshot`` field is inside the digest, which ties it to one snapshot.
+    """
+    key = _load_ed25519_private_key(signer.private_key)
+    value = base64.b64encode(key.sign(_vocabulary_message(vocabulary))).decode("ascii")
+    signed = {k: v for k, v in vocabulary.items() if k != VOCABULARY_SIGNATURES_FIELD}
+    signed[VOCABULARY_SIGNATURES_FIELD] = [
+        {"alg": ED25519_SIGNATURE_ALG, "key_id": signer.key_id, "value": value}
+    ]
+    return signed
+
+
+def verify_vocabulary(vocabulary: Mapping[str, Any]) -> str:
+    """Check a vocabulary against the pinned Ed25519 key set.
+
+    Returns ``"verified"``, ``"unsigned"`` (no signature block: a vocabulary
+    published before MODEL-227) or ``"unpinned"`` (the pinned set is empty, the
+    same hash-only mode the snapshot loader allows). Raises
+    ``SnapshotIntegrityError`` when a signature block is present and none of its
+    signatures verifies.
+    """
+    signatures = vocabulary.get(VOCABULARY_SIGNATURES_FIELD)
+    if signatures is None:
+        return "unsigned"
+    public_keys = load_public_keys()
+    if not public_keys:
+        return "unpinned"
+    if not isinstance(signatures, list) or not signatures:
+        raise SnapshotIntegrityError("the vocabulary signature block is malformed")
+    from cryptography.exceptions import InvalidSignature
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+
+    message = _vocabulary_message(vocabulary)
+    for row in signatures:
+        try:
+            if row["alg"] != ED25519_SIGNATURE_ALG:
+                continue
+            public = public_keys.get(str(row["key_id"]))
+            if public is None:
+                continue
+            Ed25519PublicKey.from_public_bytes(public).verify(
+                base64.b64decode(row["value"], validate=True), message
+            )
+        except (KeyError, TypeError, ValueError, InvalidSignature):
+            continue
+        return "verified"
+    raise SnapshotIntegrityError(
+        "the vocabulary has no valid Ed25519 signature from a pinned key"
     )
 
 
@@ -784,6 +858,19 @@ class _Compiler:
             evidence_verification_value(e),
             source_ids,
                              extra_urls=[e.get("source_url")], benchmark=e.get("benchmark_id"))
+        if reason is None:
+            from schema.benchmark_values import validate_value
+
+            metric = self.inputs.benchmark_metadata.get(str(e["benchmark_id"]), {})
+            try:
+                validate_value(e.get("score"), e.get("unit"), metric)
+            except ValueError:
+                reason = "invalid_benchmark_value"
+        if reason is None and not e.get("measured_by"):
+            # Who measured a row is never inferred (MODEL-239): the decision
+            # contract requires it, so a row without it would fail every
+            # decision that cites it.
+            reason = "unclassified"
         if reason is not None:
             self._exclude(sid, reason)
             return
@@ -1204,6 +1291,9 @@ def collect_repo(root: Path) -> SnapshotInputs:
         metric = b.front.get("metric") or {}
         dataset = b.front.get("dataset") or {}
         metadata[b.benchmark_id] = {
+            "min_score": metric.get("min_score", 0),
+            "max_score": metric.get("max_score"),
+            "unit": metric.get("unit"),
             "random_baseline": metric.get("random_baseline"),
             "sample_size": dataset.get("size"),
             "direction": metric.get("direction", "higher_is_better"),
@@ -1450,6 +1540,7 @@ class _Evidence(dict[str, tuple[EvidenceValue, ...]]):
         super().__init__()
         self.rows = rows
         self.model_of = model_of
+        self._parsed_records: dict[tuple[str, str], EvidenceValue] = {}
         self.records = {
             (model_of.get(cid, cid), row[10]): row
             for cid, candidate_rows in rows.items()
@@ -1472,8 +1563,13 @@ class _Evidence(dict[str, tuple[EvidenceValue, ...]]):
         )
 
     def record(self, cid: str, record_id: str) -> EvidenceValue | None:
-        row = self.records.get((self.model_of.get(cid, cid), record_id))
-        return None if row is None else self._value(row)
+        key = self.model_of.get(cid, cid), record_id
+        row = self.records.get(key)
+        if row is None:
+            return None
+        if key not in self._parsed_records:
+            self._parsed_records[key] = self._value(row)
+        return self._parsed_records[key]
 
     def _rows(self, cid: str) -> list[Sequence[Any]]:
         own = list(self.rows.get(cid, ()))
@@ -1503,6 +1599,7 @@ class LoadedSnapshot:
             "verified" if signature_verified else UNPROVISIONED_SIGNATURE_STATUS
         )
         self.signature_key_id = signature_key_id
+        self.publisher_signature = envelope.get("signature")
         self.as_of = _date(content.get("as_of"))
         self.excluded: dict[str, int] = dict(content.get("excluded") or {})
         #: Per kept subject, the ``excluded`` counts (MODEL-224); ``None`` when
@@ -1596,7 +1693,7 @@ class LoadedSnapshot:
             for model_id, domains in (capability.get("estimates") or {}).items()
             for domain_id, row in domains.items()
         }
-        self._capability_drivers = _drivers(capability.get("drivers"))
+        self._capability_drivers = _Drivers(capability.get("drivers"))
         # Refinements (MODEL-190): stored estimates exist only where a model
         # has refinement evidence; everyone else falls back at read time.
         self._refinements: Mapping[str, Mapping[str, Any]] = content.get("refinements") or {}
@@ -1609,7 +1706,7 @@ class LoadedSnapshot:
             for model_id, keys in (capability.get("refinement_estimates") or {}).items()
             for key, row in keys.items()
         }
-        self._refinement_drivers = _drivers(capability.get("refinement_drivers"))
+        self._refinement_drivers = _Drivers(capability.get("refinement_drivers"))
         self._fitted_models = frozenset(model for model, _ in self._capability_estimates)
         self.capability_method = capability.get("method")
         self.capability_items = capability.get("items") or {}
@@ -1618,6 +1715,10 @@ class LoadedSnapshot:
         for bench, tags in content["benchmark_domains"].items():
             for domain_id, directness in tags:
                 self._domains.setdefault(domain_id, []).append((bench, directness))
+        self._benchmark_domain_tags = {
+            benchmark: tuple(sorted(tuple(tag) for tag in content["benchmark_domains"][benchmark]))
+            for benchmark in self._benchmarks
+        }
 
     # SnapshotIndex -----------------------------------------------------------
 
@@ -1797,7 +1898,7 @@ class LoadedSnapshot:
     ) -> Sequence[CapabilityDriverValue]:
         self._check(cid)
         model_id = self._meta[cid]["model"]
-        return self._capability_drivers.get((model_id, domain_id), ())
+        return self._capability_drivers[model_id, domain_id]
 
     def refinement_keys(self) -> tuple[str, ...]:
         """Every registered refinement's weight key, when the snapshot carries them."""
@@ -1835,7 +1936,7 @@ class LoadedSnapshot:
 
     def refinement_drivers(self, cid: str, key: str) -> Sequence[CapabilityDriverValue]:
         self._check(cid)
-        return self._refinement_drivers.get((self.model_of(cid), key), ())
+        return self._refinement_drivers[self.model_of(cid), key]
 
     def evidence_record(self, cid: str, record_id: str) -> EvidenceValue | None:
         """Return retained model evidence by record ID in constant time."""
@@ -1897,11 +1998,7 @@ class LoadedSnapshot:
 
     def benchmark_domain_tags(self) -> dict[str, tuple[tuple[str, str], ...]]:
         """Each benchmark's (domain, directness) tags, sorted by domain."""
-        tags: dict[str, list[tuple[str, str]]] = {b: [] for b in self._benchmarks}
-        for domain_id, rows in self._domains.items():
-            for bench, directness in rows:
-                tags.setdefault(bench, []).append((domain_id, directness))
-        return {b: tuple(sorted(t)) for b, t in tags.items()}
+        return dict(self._benchmark_domain_tags)
 
     def source_url(self, source_id: str) -> str:
         return self._sources[source_id]
@@ -1918,6 +2015,17 @@ class LoadedSnapshot:
                 yield row
             bits >>= 1
             row += 1
+
+
+def verify_hmac_signature(digest: str, signature: Mapping[str, Any] | None,
+                          key: bytes | str | None, *, source: str) -> None:
+    """Authenticate an already checked content hash with the publisher's key."""
+    key = _key_bytes(key)
+    if not signature:
+        raise SnapshotIntegrityError(f"{source}: unsigned snapshot, but a key was given")
+    if (key is None or signature.get("alg") != SIGNATURE_ALG
+            or not hmac.compare_digest(str(signature.get("value")), _sign(digest, key))):
+        raise SnapshotIntegrityError(f"{source}: signature does not verify with this key")
 
 
 def load_snapshot_bytes(
@@ -1941,8 +2049,12 @@ def load_snapshot_bytes(
             if "content" in envelope:
                 raise SnapshotIntegrityError(f"{source}: duplicate content member")
             envelope["content"] = content
-            stored_digest = "sha256:" + hashlib.sha256(
-                text[len('{"content":'):end].encode("utf-8")).hexdigest()
+            # Hash the canonical content without copying the full JSON string
+            # and then allocating a second full UTF-8 buffer in the isolate.
+            digest = hashlib.sha256()
+            for offset in range(len('{"content":'), end, 4096):
+                digest.update(text[offset:min(offset + 4096, end)].encode("utf-8"))
+            stored_digest = "sha256:" + digest.hexdigest()
         else:
             envelope = json.loads(text)
     except (OSError, EOFError, ValueError) as exc:
@@ -1968,12 +2080,7 @@ def load_snapshot_bytes(
     signature_status = UNPROVISIONED_SIGNATURE_STATUS
     signature_key_id = None
     if key is not None:
-        signature = envelope.get("signature")
-        if not signature:
-            raise SnapshotIntegrityError(f"{source}: unsigned snapshot, but a key was given")
-        if (signature.get("alg") != SIGNATURE_ALG
-                or not hmac.compare_digest(str(signature.get("value")), _sign(digest, key))):
-            raise SnapshotIntegrityError(f"{source}: signature does not verify with this key")
+        verify_hmac_signature(digest, envelope.get("signature"), key, source=source)
         verified = True
         signature_status = "verified (hmac-sha256)"
     else:

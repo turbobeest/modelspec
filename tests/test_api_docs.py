@@ -213,6 +213,11 @@ def test_the_spec_describes_exactly_the_endpoints_the_worker_routes(spec: dict[s
         {elt.value for elt in node.value.elts}
         for node in ast.walk(tree)
         if isinstance(node, ast.Assign) and getattr(node.targets[0], "id", "") == "ACCEPTED_ENDPOINTS")
+    # MODEL-292: /v1/visit-token is routed (and documented) only while the
+    # production VISIT_GATE_ENABLED flag is on.
+    from pipeline.worker_flags import OFF_VALUES, production_vars
+    if str(production_vars(ENTRY.parents[3]).get("VISIT_GATE_ENABLED", "false")).strip().lower() not in OFF_VALUES:
+        routed = routed | {"POST /v1/visit-token"}
     described = {f"{method.upper()} {path}"
                  for path, operations in spec["paths"].items() for method in operations}
     assert described == routed, (
@@ -237,6 +242,7 @@ def test_the_request_vocabulary_is_the_engines(spec: dict[str, Any]) -> None:
         "/v1/policy-check": policy.MAX_BODY_BYTES,
         "/v1/signals": generator.signals.MAX_BODY_BYTES,
         "/v1/signals/discovered": generator.signals.MAX_BODY_BYTES,
+        "/v1/feedback": generator.feedback.MAX_BODY_BYTES,
     }
 
 
@@ -416,6 +422,13 @@ def test_decision_and_comparison_refusals_keep_endpoint_contracts_separate(
         "snapshot_refused",
         "snapshot_unavailable",
     ]
+    decision_error = schemas["DecisionRequestRefused"]["properties"]["error"]["properties"]
+    assert decision_error["recovery"]["maxItems"] == 5
+    assert decision_error["recovery_omitted"]["minimum"] == 0
+    for name in ("ComparisonRequestRefused", "HumanGateRefused"):
+        error_properties = schemas[name]["properties"]["error"]["properties"]
+        assert "recovery" not in error_properties
+        assert "recovery_omitted" not in error_properties
 
     responses = spec["paths"]["/v1/compare"]["post"]["responses"]
     assert responses["400"]["content"]["application/json"]["schema"] == {
@@ -511,7 +524,7 @@ def test_every_error_code_the_worker_emits_has_a_documented_fix(
         reference: str, policy_reference: str) -> None:
     assert _codes_of(
         "rank_service", "decide_service", "policy_service", "entry"
-    ) == generator.source_error_codes()
+    ) | set(generator.human_error_codes()) == generator.source_error_codes()
     decide_transport = {
         "no_snapshot", "origin_not_allowed", "snapshot_refused", "snapshot_unavailable"
     }
@@ -527,7 +540,7 @@ def test_every_error_code_the_worker_emits_has_a_documented_fix(
 
     decide_fixes = _error_table(DECIDE_REFERENCE.read_text(encoding="utf-8"))
     decide_codes = _codes_of("decide_service") | {
-        "invalid_request", "payload_too_large", *decide_transport,
+        "invalid_request", "payload_too_large", *decide_transport, *generator.human_error_codes(),
     }
     missing = sorted(decide_codes - set(decide_fixes))
     assert missing == [], f"docs/decide-api.md has no fix for: {missing}"
@@ -780,3 +793,13 @@ def test_probe_validator_accepts_json_schema_null_type():
     assert mod._validate(None, {"type": "null"}, {}) == []
     assert mod._validate("x", {"type": "null"}, {}) != []
     assert mod._validate(None, {"type": "string"}, {}) != []
+
+
+def test_human_access_errors_leave_decision_error_enum_unchanged(spec):
+    schemas = spec["components"]["schemas"]
+    codes = schemas["DecisionRequestRefused"]["properties"]["error"]["properties"]["code"]["enum"]
+    assert codes == [
+        "invalid_spec", "origin_not_allowed", "payload_too_large",
+        "snapshot_changed", "snapshot_not_loaded", "snapshot_refused", "snapshot_unavailable",
+    ]
+    assert schemas["HumanGateRefused"]["properties"]["error"]["properties"]["code"]["enum"] == sorted(generator.human_error_codes())

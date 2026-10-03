@@ -1,0 +1,86 @@
+id: recall-q09
+family: F1
+persona: Developer choosing a model for production work
+request: Choose a model to summarize a long technical document faithfully.
+constraints:
+  class: generate
+  task: faithful summary of a long technical document
+  context_tokens_at_least: null
+  open_weights: false
+expected:
+  id: Q09
+  notes: 'No faithfulness benchmark for long technical summaries was read. Arena document preference
+    (2026-09-13, 44 models) overlaps for Opus 5 high (1516.3), Fable 5.1 max (1512.6) and Opus 4.6
+    high (1507.3). That is preference, not faithfulness. Models with a published context of at least
+    the length of a long document may appear. Order is not established. The MODEL-161 triage at docs/recall/2026-09-25-model-161-triage.md
+    records the approved longer-query evidence (read 2026-09-25).
+
+    '
+  acceptable:
+  - model_id: anthropic/claude-opus-5
+    reason: Arena document rating 1516.3, interval overlapping Fable 5.1 and Opus 4.6.
+    sources:
+    - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+      read: '2026-09-24'
+  - model_id: anthropic/claude-fable-5-1
+    reason: Arena document rating 1512.6, wide interval, not separated from Opus 5.
+    sources:
+    - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+      read: '2026-09-24'
+  - model_id: anthropic/claude-opus-4-6
+    reason: Arena document rating 1507.3 at high effort, interval overlapping the two above.
+    sources:
+    - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+      read: '2026-09-24'
+  - model_id: openai/gpt-6-astra
+    reason: Context window 1,050,000. Arena document rank 16, so preference does not put it first.
+    sources:
+    - url: https://developers.openai.com/api/docs/models/gpt-6-astra
+      read: '2026-09-24'
+    - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+      read: '2026-09-24'
+  - model_id: google/gemini-3-8-flash
+    reason: Context up to 1M. It is not among the 44 Arena document rows.
+    sources:
+    - url: https://deepmind.google/models/model-cards/gemini-3-8-flash/
+      read: '2026-09-24'
+    - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+      read: '2026-09-24'
+  - model_id: anthropic/claude-fable-5
+    reason: Arena longer-query rating 1521.41; the evidence is preference, not faithfulness.
+    sources:
+    - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+      read: '2026-09-25'
+  - model_id: anthropic/claude-opus-4-7
+    reason: Arena longer-query rating 1514.43; the evidence is preference, not faithfulness.
+    sources:
+    - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+      read: '2026-09-25'
+  must_never:
+  - model_id: openai/text-embedding-3-large
+    reason: An embedding model does not write a summary.
+    sources:
+    - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/openai/text-embedding-3-large.md
+      read: '2026-09-24'
+  must_flag:
+  - model_id: anthropic/claude-opus-5-5
+    reason: 1M context by the Claude 4.6-and-later rule, and no Arena document row.
+    sources:
+    - url: https://platform.claude.com/docs/en/about-claude/pricing
+      read: '2026-09-24'
+    - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+      read: '2026-09-24'
+  missing_cards: []
+expected_source: tests/recall/expected.yaml#Q09
+sources:
+- tests/recall/questions.yaml#Q09
+- tests/recall/specs/Q09.yaml
+gaps:
+- reason: summary faithfulness has no distinct registered domain or facet;
+  suggested_fix: Publish a dedicated facet or measured capability, or expose a clarification tool
+    before deciding.
+  source: tests/recall/specs/Q09.yaml
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.

@@ -1,5 +1,12 @@
 {
   "as_of": "2026-09-27",
+  "frozen_image_reason": {
+    "Q04": "no GPT-6 Luna offering in the frozen public image; passes on current private data, see the private recall run",
+    "Q07": "The frozen image has no complete verified objective evidence for this question.",
+    "Q10": "The frozen image has no complete verified objective evidence; Gemini 2.0 Flash is outside its premier lineup.",
+    "Q11": "The frozen image has no complete verified objective evidence; Gemini 2.0 Flash is outside its premier lineup.",
+    "Q17": "The frozen image has no complete verified objective evidence for this question."
+  },
   "generated_by": "PYTHONPATH=$PWD python scripts/accuracy.py --update-recall-baseline --date 2026-09-27",
   "schema_version": 1,
   "snapshot": "snap_e9b14dc7baa15e56",
@@ -7,7 +14,7 @@
     "Q01": "pass",
     "Q02": "pass",
     "Q03": "pass",
-    "Q04": "pass",
+    "Q04": "fail",
     "Q05": "pass",
     "Q06": "pass",
     "Q07": "partial",

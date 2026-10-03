@@ -6,7 +6,7 @@ The counts below include spaces and punctuation. The copy stays below the platfo
 
 - Display name: `ModelSpec`
 - Website or link in bio: `https://modelspec.dev`
-- Owner: `Sparks and Sawdust LLC`
+- Owner: `Sparks & Sawdust LLC`
 
 ## X
 
@@ -50,7 +50,7 @@ About:
 >
 > ModelSpec does not accept referral fees, paid placement, or provider-paid visibility. Results are built from evidence, and unknowns remain visible instead of being guessed.
 >
-> ModelSpec is owned and operated by Sparks and Sawdust LLC. Read the source, methods, and neutrality commitment at https://modelspec.dev.
+> ModelSpec is owned and operated by Sparks & Sawdust LLC. Read the source, methods, and neutrality commitment at https://modelspec.dev.
 
 Website: `https://modelspec.dev`
 

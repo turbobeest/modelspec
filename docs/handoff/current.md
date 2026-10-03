@@ -50,7 +50,7 @@ auto-merge (`automerge.yml`).
 ### Waiting on Jamie, nobody else can do these
 
 1. **Rhode Island Division of Taxation.** Who holds the current sales tax
-   permit — Jamie personally under the dev-mux DBA, or Sparks and Sawdust LLC?
+   permit — Jamie personally under the dev-mux DBA, or Sparks & Sawdust LLC?
    That one answer unblocks MODEL-96 (and therefore any revenue) and decides 2.
 2. **Stripe's legal entity name** reads "James J Ter Beest III", not the LLC.
    It is the **shared** legal entity: changing it changes dev-mux's live
@@ -132,7 +132,6 @@ Source locators:
 | Snapshot fetch, pin, refuse other major | `cli/modelspec/snapshot.py` (`DEFAULT_ORIGIN`, `PARTS`, `EXPORT_SCHEMA_VERSION`) |
 | CLI `--json` envelope `schema_version` `"1.0"` and exit codes 0–4 | `cli/modelspec/offline.py`; contract: [`../cli-contract.md`](../cli-contract.md) |
 | Site + CLI consume one export | `pipeline/export.py` module docstring; `pipeline/build.py` |
-| Pages 25 MiB file cap | `pipeline/graph.py` (`CLOUDFLARE_PAGES_MAX_FILE_BYTES`) |
 | Rank implementation | `pipeline/ranking.py` (`rank`, `rank_report`, `_basis`) — one implementation, shared by the CLI, the sites and the rank Worker |
 | Rank API (MODEL-68) | `api/worker/` (`src/rank_service.py`, `vendor.py`); contract [`../rank-api.md`](../rank-api.md) |
 | Policy-check API (MODEL-80) | `api/worker/src/policy_service.py`, `load_determinations.py`, `pipeline/policy_export.py`; contract [`../policy-check-api.md`](../policy-check-api.md) |

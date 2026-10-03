@@ -4,6 +4,7 @@ import { contractCondition, toDecisionSpec } from "../adapter/view-model";
 import type { Axis } from "../state/spec";
 import { isCanvasAxisId } from "../components/canvas-axis";
 import type { CanvasAxisId } from "../components/canvas-axis";
+import { lowerIsBetter } from "../vocabulary";
 import type { VocabFacet, VocabRefinement, Vocabulary } from "../vocabulary";
 import { z } from "zod";
 
@@ -44,6 +45,7 @@ const UNRANKED_OBJECTIVE = { "-offering.cost_per_task": 1 };
 
 const facetValueSchema = z.union([
   z.string(), z.number().finite(), z.boolean(), z.array(z.string()),
+  z.object({ best: z.number().finite().nonnegative() }).strict(),
 ]);
 const selectionSchema = z.object({
   mode: z.enum(["off", "must", "prefer", "both"]),
@@ -113,22 +115,20 @@ export const facetGroup = (id: string): string =>
 
 export const supportsPreference = (facet: VocabFacet): boolean => facet.preference !== null;
 
-export function defaultFacetValue(facet: VocabFacet): FacetValue {
+export function defaultFacetValue(facet: VocabFacet): FacetValue | undefined {
   if (facet.value_type === "boolean") return true;
   if (facet.value_type === "number") {
-    const min = typeof facet.range?.min === "number" ? facet.range.min : 0;
-    const max = typeof facet.range?.max === "number" ? facet.range.max : min;
+    if (typeof facet.range?.min !== "number" || typeof facet.range?.max !== "number") return undefined;
+    const { min, max } = facet.range;
     return min + (max - min) / 2;
   }
-  const first = facet.values?.[0]?.value ?? facet.literals?.[0] ?? "";
+  const first = facet.values?.find((item) => item.has_data !== false)?.value ?? facet.literals?.[0] ?? "";
   return facet.value_type === "set" ? [String(first)] : first;
 }
 
 export function defaultFacetOp(facet: VocabFacet): FacetSelection["op"] {
   if (facet.value_type === "number" || facet.value_type === "date") {
-    const lowerIsBetter = facet.id.includes("cost") || facet.id.includes("price") ||
-      facet.id.includes("time_to_first_token") || facet.id.includes("retention");
-    return lowerIsBetter && facet.operators.includes("<=") ? "<=" : ">=";
+    return lowerIsBetter(facet) && facet.operators.includes("<=") ? "<=" : ">=";
   }
   return facet.value_type === "set" && facet.operators.includes("in") ? "in" : "=";
 }
@@ -163,17 +163,21 @@ export function nextMustOrder(
 function conditionFor(facet: VocabFacet, choice: FacetSelection): Cond | null {
   if (choice.value === undefined && !["number", "date"].includes(facet.value_type)) return null;
   if (Array.isArray(choice.value) && choice.value.length === 0) return null;
+  const value = choice.value ?? defaultFacetValue(facet);
+  if (value === undefined) return null;
   return {
     f: "facet",
     facet: facet.id.replace(/^capability\./, ""),
     op: choice.op ?? defaultFacetOp(facet) ?? "=",
-    value: choice.value ?? defaultFacetValue(facet),
+    value,
   };
 }
 
 const BOARD_CONDITION = /^(\S+) (not in|in|!=|<=|>=|=) (.+)$/;
 
 function parseConditionValue(text: string): FacetValue {
+  const best = /^best\((.+)\)$/.exec(text);
+  if (best) return { best: Number(best[1]) };
   if (text.startsWith("{") && text.endsWith("}")) {
     const body = text.slice(1, -1);
     return body ? body.split(", ").map(parseScalarValue).map(String) : [];
@@ -225,23 +229,26 @@ export function templateToBoard(
     const current = selections[facetId]?.reason;
     return current && current !== reason ? `${current} ${reason}` : reason;
   };
+  // The board shows a domain as its capability row; the contract names the domain.
+  const boardId = (id: string) =>
+    template.needs.domains.includes(id) || vocabulary.domains.some((domain) => domain.id === id)
+      ? `capability.${id}` : id;
   for (const row of template.where) {
     const parsed = parseBoardCondition(row.condition);
-    if (!mustOrder.includes(parsed.facetId)) mustOrder.push(parsed.facetId);
-    const current = selections[parsed.facetId];
-    selections[parsed.facetId] = {
+    const facetId = boardId(parsed.facetId);
+    if (!mustOrder.includes(facetId)) mustOrder.push(facetId);
+    const current = selections[facetId];
+    selections[facetId] = {
       ...current,
       mode: current?.mode === "prefer" ? "both" : "must",
       op: parsed.op,
       value: parsed.value,
-      reason: addReason(parsed.facetId, row.reason),
+      reason: addReason(facetId, row.reason),
     };
   }
   for (const [weightKey, preference] of Object.entries(template.weights)) {
     const objective = weightKey.startsWith("-") ? weightKey.slice(1) : weightKey;
-    const facetId = template.needs.domains.includes(objective) ||
-      vocabulary.domains.some((domain) => domain.id === objective)
-      ? `capability.${objective}` : objective;
+    const facetId = boardId(objective);
     const current = selections[facetId];
     selections[facetId] = {
       ...current,
@@ -303,10 +310,10 @@ export function sanitizeBoardState(
   priorNotes: readonly string[] = [],
 ): SanitizedBoardState {
   const editableFacets = new Set(
-    vocabulary.facets.filter((facet) => facet.known > 0).map((facet) => facet.id),
+    vocabulary.facets.filter((facet) => facet.has_data !== false && facet.known !== 0).map((facet) => facet.id),
   );
   const editableDomains = new Set(
-    vocabulary.domains.filter((domain) => domain.estimate_models > 0)
+    vocabulary.domains.filter((domain) => domain.estimate_models !== 0)
       .map((domain) => `capability.${domain.id}`),
   );
   const editableRefinements = new Set(
@@ -396,17 +403,18 @@ export function allocateBoardWeights(
   const normalized = { ...selections };
   const entries = Object.entries(selections).flatMap<[string, BoardWeight]>(([facetId, choice]) => {
     if (facetId.startsWith("refinement.")) return [];
+    const row = vocabulary.facets?.find((facet) => facet.id === facetId);
     const preference = facetId.startsWith("capability.")
       ? { kind: "continuous" as const }
-      : vocabulary.facets?.find((row) => row.id === facetId)?.preference;
+      : row?.preference;
     if (
       (choice.mode !== "prefer" && choice.mode !== "both") ||
       preference === null || preference === undefined
     ) return [];
+    // A leading `-` is how the engine minimises an objective (MODEL-297).
     const id = choice.weightKey ?? (facetId.startsWith("capability.")
       ? facetId.slice("capability.".length)
-      : facetId === "offering.cost_per_task" ? "-offering.cost_per_task"
-      : facetId === "offering.speed.time_to_first_token" ? "-offering.speed.time_to_first_token"
+      : row && preference.kind === "continuous" && lowerIsBetter(row) ? `-${facetId}`
       : facetId);
     const weight = choice.weight ?? 0.5;
     if (preference.kind === "value") {
@@ -577,8 +585,8 @@ export function legacySpecToBoard(spec: Spec, vocabulary: Vocabulary, estate: Es
     ...vocabulary.domains.map((domain) => `capability.${domain.id}`),
   ]);
   const editableFacets = new Set([
-    ...vocabulary.facets.filter((facet) => facet.known > 0).map((facet) => facet.id),
-    ...vocabulary.domains.filter((domain) => domain.estimate_models > 0).map((domain) => `capability.${domain.id}`),
+    ...vocabulary.facets.filter((facet) => facet.has_data !== false && facet.known !== 0).map((facet) => facet.id),
+    ...vocabulary.domains.filter((domain) => domain.estimate_models !== 0).map((domain) => `capability.${domain.id}`),
   ]);
   const facetLabels = new Map([
     ...vocabulary.facets.map((facet) => [facet.id, facet.label] as const),
@@ -676,7 +684,7 @@ export function groupFacets(vocabulary: Vocabulary) {
     risk: "capability",
     computed_by: "capability_estimate",
     known: domain.estimate_models,
-    of: vocabulary.coverage?.models ?? Math.max(...vocabulary.facets.filter((facet) => facet.subject === "model").map((facet) => facet.of), 0),
+    of: vocabulary.coverage?.models ?? Math.max(...vocabulary.facets.filter((facet) => facet.subject === "model").map((facet) => facet.of ?? 0), 0),
     range: { min: 0, max: 1 },
     preference: {
       kind: "continuous",
@@ -685,12 +693,12 @@ export function groupFacets(vocabulary: Vocabulary) {
     },
   }));
   const all = [...capabilityFacets, ...vocabulary.facets];
-  const tracked = all.filter((facet) => facet.known > 0);
+  const tracked = all.filter((facet) => facet.has_data !== false && facet.known !== 0);
   const groups = GROUP_ORDER.map((name) => ({
     name,
     facets: tracked.filter((facet) => facetGroup(facet.id) === name),
   })).filter((group) => group.facets.length);
-  return { groups, untracked: all.filter((facet) => facet.known === 0) };
+  return { groups, untracked: all.filter((facet) => facet.has_data === false || facet.known === 0) };
 }
 
 export function readEstate(): Estate {

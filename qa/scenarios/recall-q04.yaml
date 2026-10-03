@@ -1,0 +1,85 @@
+id: recall-q04
+family: F1
+persona: Developer choosing a model for production work
+request: Which model should power a high-quality general assistant?
+constraints:
+  class: generate
+  task: general assistance, not one specialist domain
+  open_weights: false
+  price_cap_usd_per_million_input: null
+expected:
+  id: Q04
+  notes: 'Arena text overall, published 2026-09-13, does not separate Fable 5.1 max (1507.58, interval
+    1499.4 to 1515.7), Opus 5 max (1504.96), Opus 5 high (1504.92) and Opus 4.6 high (1502.96). Style
+    control changes the leader to Fable 5 (1505.68) and the intervals still overlap. This is preference,
+    not a tool-use score. GPT-6 Astra max is overall rank 59. The MODEL-161 triage at docs/recall/2026-09-25-model-161-triage.md
+    records the approved additional Arena overall evidence (read 2026-09-25).
+
+    '
+  acceptable:
+  - model_id: anthropic/claude-fable-5-1
+    reason: Highest raw Arena overall rating. The interval overlaps Opus 5 and Opus 4.6 high.
+    sources:
+    - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+      read: '2026-09-24'
+  - model_id: anthropic/claude-opus-5
+    reason: Arena overall ranks 2 and 3 for the max and high effort variants, not separated from
+      Fable 5.1.
+    sources:
+    - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+      read: '2026-09-24'
+  - model_id: anthropic/claude-opus-4-6
+    reason: Arena overall rank 4 at high effort, interval overlapping the models above.
+    sources:
+    - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+      read: '2026-09-24'
+  - model_id: anthropic/claude-fable-5
+    reason: Style-controlled Arena overall leader at 1505.68. Raw overall is lower.
+    sources:
+    - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+      read: '2026-09-24'
+  - model_id: google/gemini-3-8-flash
+    reason: Arena overall rating 1494.67, third in the current decision.
+    sources:
+    - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+      read: '2026-09-25'
+  must_never:
+  - model_id: openai/text-embedding-3-large
+    reason: An embedding model is not a general assistant.
+    sources:
+    - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/openai/text-embedding-3-large.md
+      read: '2026-09-24'
+  must_flag:
+  - model_id: anthropic/claude-opus-5-5
+    reason: Released after the Arena snapshot, so its preference rating is unknown.
+    sources:
+    - url: https://matharena.ai/models
+      read: '2026-09-24'
+    - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+      read: '2026-09-24'
+  - model_id: openai/gpt-6-sol
+    reason: MathArena dates the max variant 2026-09-22, after the Arena snapshot.
+    sources:
+    - url: https://matharena.ai/models
+      read: '2026-09-24'
+  - model_id: openai/gpt-6-luna
+    reason: On the current OpenAI price list, and not in the Arena snapshot's leading rows.
+    sources:
+    - url: https://developers.openai.com/api/docs/pricing
+      read: '2026-09-24'
+    - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+      read: '2026-09-24'
+  missing_cards: []
+expected_source: tests/recall/expected.yaml#Q04
+sources:
+- tests/recall/questions.yaml#Q04
+- tests/recall/specs/Q04.yaml
+gaps:
+- reason: no registered domain represents general assistance across domains.
+  suggested_fix: Publish a dedicated facet or measured capability, or expose a clarification tool
+    before deciding.
+  source: tests/recall/specs/Q04.yaml
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.

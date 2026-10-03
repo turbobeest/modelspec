@@ -673,23 +673,23 @@ benchmarks:
     unit: percent
     source_url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores
     source_kind: benchmark_author
-    evidence_date: '2026-09-29'
+    evidence_date: '2026-09-30'
     date_type: published
-    verified_at: '2026-09-29'
+    verified_at: '2026-09-30'
     benchmark_version: MTEB(eng, v2), Reranking task type
     configuration: Same JSON read, field scoresByTaskType.Reranking times 100. These
       models have no meanTask on this benchmark. Dated by the day the board was read.
     limitations: Reranking tasks only. Not the embedding mean.
-    id: querit/querit#mteb_v2_reranking#89e06a68bb0c
+    id: querit/querit#mteb_v2_reranking#16c0dbeee948
     measured_by: benchmark_author
     effort: null
     harness: null
     sources:
     - source_id: model-160-mteb-eng-v2
-      snapshot_ref: sha256:83fde6c5b95636a9b2d753d8c18dd3d7118c619795dccee1b402dbe9189c37c8
+      snapshot_ref: sha256:f50594bdc9bc03678461b1fd1af71cef4e85d788482b5645a7abd24ad6420f3d
       cited_regions:
       - rows
-    observed_at: '2026-09-29'
+    observed_at: '2026-09-30'
   - benchmark_id: mteb_multilingual_v2_reranking
     model_id_as_evaluated: Querit/Querit
     score: 65.83555347222222

@@ -10,7 +10,6 @@ import type { BoardUrlState } from "../facet-board/model";
 const tabs = [
   "Permalink",
   "API call",
-  "CLI",
   "Spec YAML",
   "Save and alert",
   "Procurement review",
@@ -22,6 +21,7 @@ export function Share({
   row,
   demo,
   refinementsFolded = false,
+  humanGateEnabled = false,
   boardPermalink,
   onClose,
 }: {
@@ -31,6 +31,7 @@ export function Share({
   row: Row | null;
   demo: boolean;
   refinementsFolded?: boolean;
+  humanGateEnabled?: boolean;
   boardPermalink?: { spec: Spec; state: BoardUrlState };
   onClose: () => void;
 }) {
@@ -121,13 +122,9 @@ export function Share({
           : encodeSpec(spec, axis))
       : tab === "API call"
         ? demo
-          ? `# Fictional sample preview; this payload is not sent.\ncurl https://api.modelspec.example/v1/decide \\\n  -H 'Content-Type: application/json' \\\n  -d '${JSON.stringify(sample, null, 2).replaceAll("'", "'\\''")}'`
-          : `${unrankedBoard ? "# unranked: no Prefer set; the objective below only lets the spec run, it does not rank\n" : ""}curl https://api.modelspec.dev/v1/decide \\\n  -H 'Content-Type: application/json' \\\n  -d '${JSON.stringify(sharedContractSpec, null, 2).replaceAll("'", "'\\''")}'`
-        : tab === "CLI"
-          ? demo
-            ? "# Fictional sample preview\npipx install modelspec-dev\nmodelspec snapshot fetch\nmodelspec decide spec.yaml --explain full --json"
-            : "pipx install modelspec-dev\nmodelspec snapshot fetch\nmodelspec decide spec.yaml --explain full --json"
-          : yaml;
+          ? `# Fictional sample preview; this payload is not sent.\ncurl https://api.modelspec.example/v1/decide \\\n  -H 'Authorization: Bearer <API_KEY>' \\\n  -H 'Content-Type: application/json' \\\n  -d '${JSON.stringify(sample, null, 2).replaceAll("'", "'\\''")}'`
+          : `${unrankedBoard ? "# unranked: no Prefer set; the objective below only lets the spec run, it does not rank\n" : ""}curl https://api.modelspec.dev/v1/decide \\\n  -H 'Authorization: Bearer <API_KEY>' \\\n  -H 'Content-Type: application/json' \\\n  -d '${JSON.stringify(sharedContractSpec, null, 2).replaceAll("'", "'\\''")}'`
+        : yaml;
   const clauses = row
     ? spec.conds.map((c, i) => {
         const t = row.best.t[i],
@@ -301,7 +298,7 @@ export function Share({
                 </tbody>
               </table>
             </div>
-            <button onClick={download}>Download CSV</button>
+            {!humanGateEnabled && <button onClick={download}>Download CSV</button>}
           </>
         )}
       </div>

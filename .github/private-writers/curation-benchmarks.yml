@@ -1,0 +1,285 @@
+# MODEL-247: install in modelspec-data. This directory is not an Actions workflow directory.
+name: Curation watcher
+permissions:
+  contents: read
+concurrency:
+  group: curation-${{ github.workflow }}
+  cancel-in-progress: false
+jobs:
+  gate:
+    name: Trial gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      run: ${{ steps.gate.outputs.run }}
+      reason: ${{ steps.gate.outputs.reason }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: data
+          token: ${{ github.token }}
+          fetch-depth: 0
+      - name: Check out the pinned public engine
+        uses: actions/checkout@v4
+        with:
+          repository: turbobeest/modelspec
+          ref: 69871e3a554cd0affa26a0d78d5663b576f07003
+          path: engine
+          persist-credentials: false
+      - name: Compose code into the private checkout
+        run: python ../engine/scripts/prepare_data_writer.py --engine ../engine --data .
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install pyyaml pydantic
+      - name: Decide whether this run proceeds
+        id: gate
+        env:
+          EVENT: ${{ github.event_name }}
+          SCHEDULE: ${{ github.event.schedule }}
+        run: |
+          set -euo pipefail
+          python3 scripts/curation/ci.py gate --event "$EVENT" --schedule "$SCHEDULE" | tee -a "$GITHUB_OUTPUT"
+      - name: Record the gate decision
+        env:
+          RUN: ${{ steps.gate.outputs.run }}
+          REASON: ${{ steps.gate.outputs.reason }}
+        run: |
+          set -euo pipefail
+          if [ -z "${RUN:-}" ]; then
+            echo "::error::The trial gate produced no run= decision. Failing the workflow instead of silently skipping every downstream job."
+            exit 1
+          fi
+          {
+            echo "### Trial gate: run=${RUN}"
+            echo ""
+            echo "Reason: ${REASON:-(none reported)}"
+          } >> "$GITHUB_STEP_SUMMARY"
+    env:
+      MODELSPEC_REQUIRE_DATA_DIR: '1'
+      PYTHONPATH: ${{ github.workspace }}/data
+      MODELSPEC_DATA_DIR: ${{ github.workspace }}/data
+    defaults:
+      run:
+        working-directory: data
+  watch:
+    name: Watch sources
+    needs: gate
+    if: needs.gate.outputs.run == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      has_changes: ${{ steps.plan.outputs.has_changes }}
+      has_work: ${{ steps.plan.outputs.has_work }}
+      has_dead: ${{ steps.plan.outputs.has_dead }}
+    env:
+      MODELSPEC_REQUIRE_DATA_DIR: '1'
+      AXIS: ${{ inputs.axis || 'benchmarks' }}
+      PAGES: ${{ inputs.pages || 'pilot' }}
+      BRIEF: ${{ inputs.immediate_brief || '' }}
+      PYTHONPATH: ${{ github.workspace }}/data
+      MODELSPEC_DATA_DIR: ${{ github.workspace }}/data
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: data
+          token: ${{ github.token }}
+          fetch-depth: 0
+      - name: Check out the pinned public engine
+        uses: actions/checkout@v4
+        with:
+          repository: turbobeest/modelspec
+          ref: 69871e3a554cd0affa26a0d78d5663b576f07003
+          path: engine
+          persist-credentials: false
+      - name: Compose code into the private checkout
+        run: python ../engine/scripts/prepare_data_writer.py --engine ../engine --data .
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install pyyaml pydantic
+      - name: Restore watcher state
+        uses: actions/cache@v4
+        with:
+          path: data/benchmarks/_curation/state
+          key: curation-state-${{ env.AXIS }}-${{ github.run_id }}
+          restore-keys: curation-state-${{ env.AXIS }}-
+      - name: Run watcher and classifier (Firecrawl cap 10, plain HTTP if no key)
+        env:
+          FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [ -n "$BRIEF" ]; then
+            python scripts/curation/watch.py --axis "$AXIS" --immediate-brief "$BRIEF" --firecrawl-credit-cap 10 --firecrawl-key-from-env
+          else
+            python scripts/curation/watch.py --axis "$AXIS" --pages "$PAGES" --firecrawl-credit-cap 10 --firecrawl-key-from-env
+          fi
+          cat benchmarks/_curation/reports/change_report.md >> "$GITHUB_STEP_SUMMARY"
+      - name: Plan follow-up jobs
+        id: plan
+        run: |
+          set -euo pipefail
+          python scripts/curation/ci.py plan --report benchmarks/_curation/reports/change_report.json | tee -a "$GITHUB_OUTPUT"
+      - name: Upload change report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: curation-change-report-${{ env.AXIS }}-${{ github.run_id }}
+          path: data/benchmarks/_curation/reports/
+    defaults:
+      run:
+        working-directory: data
+  draft:
+    name: Draft and propose
+    needs: watch
+    if: |
+      (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch') && needs.watch.outputs.has_work == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      MODELSPEC_REQUIRE_DATA_DIR: '1'
+      AXIS: ${{ inputs.axis || 'benchmarks' }}
+      PYTHONPATH: ${{ github.workspace }}/data
+      MODELSPEC_DATA_DIR: ${{ github.workspace }}/data
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: data
+          token: ${{ github.token }}
+          fetch-depth: 0
+      - name: Check out the pinned public engine
+        uses: actions/checkout@v4
+        with:
+          repository: turbobeest/modelspec
+          ref: 69871e3a554cd0affa26a0d78d5663b576f07003
+          path: engine
+          persist-credentials: false
+      - name: Compose code into the private checkout
+        run: python ../engine/scripts/prepare_data_writer.py --engine ../engine --data .
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install pyyaml pydantic
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install Claude Code CLI (pinned)
+        run: npm install -g @anthropic-ai/claude-code@2.1.267
+      - name: Download change report
+        uses: actions/download-artifact@v4
+        with:
+          name: curation-change-report-${{ env.AXIS }}-${{ github.run_id }}
+          path: data/benchmarks/_curation/reports/
+      - name: Draft each change (claude -p, no tools, untrusted source)
+        if: needs.watch.outputs.has_changes == 'true'
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "$CLAUDE_CODE_OAUTH_TOKEN" ]; then
+            echo "::error::CLAUDE_CODE_OAUTH_TOKEN is empty; run claude setup-token and store it as a repo secret."
+            exit 1
+          fi
+          python scripts/curation/ci.py draft --drafter claude --report benchmarks/_curation/reports/change_report.json
+      - name: Open draft PRs (one per changed page)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          if [ -z "$GH_TOKEN" ]; then
+            echo "::error::GITHUB_TOKEN is empty."
+            exit 1
+          fi
+          [ -f benchmarks/_curation/reports/drafts.json ] || echo '[]' > benchmarks/_curation/reports/drafts.json
+          auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)
+          echo "::add-mask::$auth"
+          git config --local http.https://github.com/.extraheader "AUTHORIZATION: basic $auth"
+          git config --local user.name "modelspec-curation"
+          git config --local user.email "curation@modelspec.dev"
+          git fetch --no-tags origin main
+          python scripts/curation/propose.py --manifest benchmarks/_curation/reports/drafts.json \
+            --leads benchmarks/_curation/reports/change_report.json --repo "$REPO" --open-prs
+          git config --local --unset-all http.https://github.com/.extraheader
+    defaults:
+      run:
+        working-directory: data
+  issues:
+    name: Dead-leaderboard issues
+    needs: watch
+    if: needs.watch.outputs.has_dead == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      issues: write
+    env:
+      MODELSPEC_REQUIRE_DATA_DIR: '1'
+      AXIS: ${{ inputs.axis || 'benchmarks' }}
+      PYTHONPATH: ${{ github.workspace }}/data
+      MODELSPEC_DATA_DIR: ${{ github.workspace }}/data
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: data
+          token: ${{ github.token }}
+          fetch-depth: 0
+      - name: Check out the pinned public engine
+        uses: actions/checkout@v4
+        with:
+          repository: turbobeest/modelspec
+          ref: 69871e3a554cd0affa26a0d78d5663b576f07003
+          path: engine
+          persist-credentials: false
+      - name: Compose code into the private checkout
+        run: python ../engine/scripts/prepare_data_writer.py --engine ../engine --data .
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install pyyaml pydantic
+      - name: Download change report
+        uses: actions/download-artifact@v4
+        with:
+          name: curation-change-report-${{ env.AXIS }}-${{ github.run_id }}
+          path: data/benchmarks/_curation/reports/
+      - name: Open or comment on one issue per page
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+        run: python scripts/curation/ci.py issues --apply --repo "$REPO" --report benchmarks/_curation/reports/change_report.json
+    defaults:
+      run:
+        working-directory: data
+'on':
+  workflow_dispatch:
+    inputs:
+      axis:
+        description: benchmarks (models is reserved for MODEL-5)
+        type: choice
+        options:
+          - benchmarks
+        default: benchmarks
+      pages:
+        description: pilot | all | comma-separated page ids
+        type: string
+        default: pilot
+      immediate_brief:
+        description: optional page id or URL to watch right now (overrides pages)
+        type: string
+        default: ''

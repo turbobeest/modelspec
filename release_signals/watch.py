@@ -258,7 +258,7 @@ def watch_source(
     baseline: frozenset[str],
     fetch: Fetch,
     now: datetime,
-    catalogued: Callable[[Seen], bool],
+    catalogued: Callable[[Seen], bool] | None = None,
 ) -> SourceRun:
     try:
         if not allowed_by_robots(source.url, registry.user_agent, fetch):
@@ -287,9 +287,9 @@ def watch_source(
         seen for key, seen in sorted(listed.items())
         if key not in baseline
         and (seen.created is None or seen.created >= cutoff)
-        and not catalogued(seen)
+        and (catalogued is None or not catalogued(seen))
     )
-    if len(new) > source.max_new:
+    if catalogued is not None and len(new) > source.max_new:
         return SourceRun(
             source, "burst",
             f"{len(new)} new IDs at once, above {source.max_new}; the source may have "
@@ -353,7 +353,7 @@ def run_all(
     *,
     fetch: Fetch,
     now: datetime,
-    catalogued: Callable[[Seen], bool],
+    catalogued: Callable[[Seen], bool] | None = None,
 ) -> list[SourceRun]:
     missing = [source.id for source in registry.sources if source.id not in baseline]
     if missing:

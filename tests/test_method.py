@@ -99,7 +99,7 @@ def test_signing_section_reports_a_cryptographically_verified_signature(
     page = method.page(data, state)
     assert "This snapshot is Ed25519-signed with published key ID" in page
     assert KEY_ID in page
-    assert "modelspec snapshot fetch" in page
+    assert "POST https://api.modelspec.dev/v1/decide" in page
     assert 'signature_verified": true' in page
     assert "Signing key being re-issued" not in page
 

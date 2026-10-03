@@ -12,15 +12,18 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import shutil
 import sys
+import tempfile
 from datetime import date
 from pathlib import Path
 
-from pipeline import brand
+from decision import registry as decision_registry
+from pipeline import brand, data_source
 from pipeline import export as exporter
-from pipeline import graph as graph_export
+from pipeline import card_ids
 from pipeline import render as r
 from pipeline.load import REPO_ROOT, load_benchmarks, load_catalogue, load_models
 
@@ -38,6 +41,7 @@ BENCHGRAPH_REDIRECTS = (
 API_DOCS = "https://github.com/turbobeest/modelspec/blob/main/docs/api.md"
 RANK_API = "https://api.modelspec.dev/v1/rank"
 MCP_ENDPOINT = "https://api.modelspec.dev/mcp"
+FEEDBACK_API = "https://api.modelspec.dev/v1/feedback"
 MODEL_PAGE_MAX_BYTES = 512 * 1024
 
 
@@ -57,18 +61,29 @@ def llms_txt(*, site: str, base: str, build: exporter.Build) -> str:
         f"# {site}\n\n"
         f"> {base}\n\n"
         f"{brand.POSITIONING}\n\n"
-        f"Open data on AI models and benchmarks. "
+        f"Decision data on AI models and benchmarks, served online. "
         f"Built {build.built_at} from commit {build.commit[:12]}. "
         f"Null means not researched.\n\n"
-        f"- Machine-readable index: {base}/api/index.json\n"
-        f"- Benchmark catalogue: {base}/api/catalogue.json\n"
-        f"- Decide: {base}/decide/\n"
+        f"Access: a person looking a model up by hand on the site pays nothing. "
+        f"Machine access is the hosted API and the MCP server only, and it is a paid "
+        f"product (prices at {base}/pricing/). There is no CLI and no data download: "
+        f"current data is only available through the service, and the copy in the "
+        f"public repository is a delayed image, about nine months old.\n\n"
+        f"- Agent guide: {base}/agents.md\n"
+        f"- Decide (for people): {base}/decide/\n"
         f"- How it decides: {base}/method/\n"
-        f"- Decision CLI: modelspec snapshot fetch; modelspec vocab; "
-        f"modelspec decide --template <id>\n"
+        f"- Pricing: {base}/pricing/\n"
+        f"- Brand and press kit: {base}/brand/\n"
+        f"- Ranking policy, keyless: {base}/api/rank/profiles.json\n"
         f"- Legacy v1 rank API: {RANK_API}\n"
         f"- API docs: {API_DOCS}\n"
         f"- MCP: {MCP_ENDPOINT}\n"
+        f"- Feedback (no key): POST {FEEDBACK_API} with "
+        f'{{"rating": "reliable|unreliable|trustworthy|untrustworthy|confusing", '
+        f'"client": "agent", "decision_id": "dec_…"}}. '
+        f"Schema: {base}/api/feedback/v1.schema.json. "
+        f"MCP tool: feedback. "
+        f"Send one after you act on an answer.\n"
         f"- Source: https://github.com/turbobeest/modelspec\n"
     )
 
@@ -158,28 +173,6 @@ def with_site_nav(html: str, nav: str, page: str) -> str:
     return html.replace(r.NAV_PLACEHOLDER, nav, 1)
 
 
-def ship_explorer(root: Path, ms: Path, freshness: str) -> bool:
-    """Write the graph explorer to /graph/ with its vendored libraries.
-
-    A full-viewport canvas app, so it is copied rather than rendered through the
-    document shell. Its libraries are vendored so the page does not depend on a
-    CDN at runtime.
-    """
-    explorer = root / "web3d/explorer.html"
-    if not explorer.is_file():
-        return False
-    page = ms / "graph/index.html"
-    _inject(explorer, page, "<!-- catalogue-freshness -->", freshness)
-    vendor = root / "web3d/vendor"
-    for name in ("three.min.js", "3d-force-graph.min.js"):
-        source = vendor / name
-        if source.is_file():
-            target = ms / "graph/vendor" / name
-            target.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(source, target)
-    return True
-
-
 def wire_landing(html: str, stats: dict[str, int], freshness: str = "") -> str:
     """Point the front door at the site, and keep its numbers honest.
 
@@ -200,7 +193,6 @@ def wire_landing(html: str, stats: dict[str, int], freshness: str = "") -> str:
         html = html.replace(answer_anchor, answer_anchor + (
             '\n      <div class="btns go">'
             '<a class="btn primary" href="/downselect/">Answer it now &rarr;</a>'
-            '<a class="btn" href="/graph/">Explore the graph</a>'
             '<a class="btn" href="/models/">Browse every model</a>'
             "</div>"), 1)
 
@@ -291,7 +283,13 @@ def _fallback_home(site: str, headline: str, lede: str, links: list[tuple[str, s
                    build=build, site=site, nav_links=nav)
 
 
-def write_decision_vocabulary(root: Path, snapshot_path: Path, *, key: bytes | None) -> Path:
+_FROM_ENV = object()
+
+
+def write_decision_vocabulary(
+    root: Path, snapshot_path: Path, *, key: bytes | None,
+    ed25519_signer: object = _FROM_ENV,
+) -> Path:
     """Write ``vocabulary.json`` beside the snapshot it describes (MODEL-153)."""
     import json
 
@@ -303,14 +301,19 @@ def write_decision_vocabulary(root: Path, snapshot_path: Path, *, key: bytes | N
     pages = {b.benchmark_id: b.front for b in load_benchmarks(root)}
     cards = {m.model_id: m.front for m in load_models(root)}
     target = snapshot_path.parent / "vocabulary.json"
+    vocabulary = build_vocabulary(
+        loaded,
+        pages=pages,
+        cards=cards,
+        enforce_frontier_coverage=True,
+    )
+    signer = (decision_snapshot.env_ed25519_signer()
+              if ed25519_signer is _FROM_ENV else ed25519_signer)
+    if signer is not None:
+        vocabulary = decision_snapshot.sign_vocabulary(vocabulary, signer)
     target.write_text(
         json.dumps(
-            build_vocabulary(
-                loaded,
-                pages=pages,
-                cards=cards,
-                enforce_frontier_coverage=True,
-            ),
+            vocabulary,
             indent=2,
             ensure_ascii=False,
             allow_nan=False,
@@ -384,6 +387,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--out", default="dist", help="output directory (default: dist)")
     parser.add_argument("--root", default=str(REPO_ROOT), help="repository root")
+    parser.add_argument(
+        "--data-dir", default=None,
+        help="private data checkout (MODEL-246); default: the data in --root. "
+             "Also read from MODELSPEC_DATA_DIR.",
+    )
     # MODEL-138: off by default. Writes the decision snapshot beside the export,
     # linked from no page, and fails the build if the completeness gate fails.
     snapshot = parser.add_mutually_exclusive_group()
@@ -401,8 +409,45 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
+    split = os.environ.get("DATA_SPLIT_ENABLED") == "true"
+    data_dir = Path(args.data_dir) if args.data_dir else data_source.data_dir_from_env()
+    if data_dir is None and os.environ.get(data_source.REQUIRE_DATA_ENV, "").strip() not in ("", "0"):
+        print(f"build: {data_source.REQUIRE_DATA_ENV} is set but no --data-dir or "
+              f"{data_source.DATA_DIR_ENV} was given; refusing to build from the public data image.",
+              file=sys.stderr)
+        return 2
+    if split:
+        if data_dir is not None:
+            try:
+                data_source.check_private(data_dir)
+            except data_source.DataSourceError:
+                print("build: private data checkout is missing or incomplete", file=sys.stderr)
+                return 2
+        # Public pages always render the frozen image, even on private deploys.
+        args.decision_snapshot = False
+        args.decision_snapshot_if_ready = False
+        result = build_site(args, Path(args.root).resolve())
+        if result == 0:
+            from pipeline.public_data import restrict
+            restrict(Path(args.out).resolve() / "modelspec")
+        return result
+    if data_dir is None:
+        return build_site(args, Path(args.root).resolve())
+    with tempfile.TemporaryDirectory(prefix="modelspec-root-") as tmp:
+        try:
+            composed = data_source.overlay(Path(args.root), data_dir, Path(tmp) / "root")
+        except data_source.DataSourceError as exc:
+            print(f"build: {exc}", file=sys.stderr)
+            return 2
+        saved = decision_registry.REPO_ROOT
+        decision_registry.use_root(composed)
+        try:
+            return build_site(args, composed)
+        finally:
+            decision_registry.use_root(saved)
 
-    root = Path(args.root).resolve()
+
+def build_site(args: argparse.Namespace, root: Path) -> int:
     out = Path(args.out).resolve()
     if out.exists():
         shutil.rmtree(out)
@@ -447,7 +492,7 @@ def main(argv: list[str] | None = None) -> int:
         )
 
     # The graph is derived through the same code path as the FalkorDB ingest, so
-    # the published graph and the database cannot disagree about the cards.
+    # relations, competition, hardware fit and ranking read what the cards say.
     from schema.card import ModelCard
     from schema.graph import derive_graph
     from pipeline import competition, hardware
@@ -458,14 +503,15 @@ def main(argv: list[str] | None = None) -> int:
     derived = derive_graph(cards, hardware.device_classes(devices))
     competition_counts = competition.compute(derived, today)
     hardware_counts = hardware.compute(derived, cards, devices)
-    card_ids = {c.identity.model_id for c in cards}
-    graph_export.resolve_card_ids(
-        derived, card_ids=card_ids,
-        huggingface_ids=graph_export.huggingface_ids(cards),
+    model_ids = {c.identity.model_id for c in cards}
+    card_ids.resolve_card_ids(
+        derived, card_ids=model_ids,
+        huggingface_ids=card_ids.huggingface_ids(cards),
     )
-    graph_counts = graph_export.write(
-        ms / "api" / "graph", derived, build.to_json(), card_ids=card_ids)
-    graph_counts["competition"] = competition_counts
+    graph_counts: dict = {
+        "nodes": len(derived.nodes), "edges": len(derived.edges),
+        "competition": competition_counts,
+    }
     graph_counts["hardware"] = hardware_counts
 
     # Host profiles for offload-aware fit (MODEL-26). A new file; additive.
@@ -530,9 +576,6 @@ def main(argv: list[str] | None = None) -> int:
                                       "web3d/downselect.v2.html"), encoding="utf-8")
         ms_paths.append("/downselect/")
 
-    if ship_explorer(root, ms, freshness):
-        ms_paths.append("/graph/")
-
     (ms / "models").mkdir(exist_ok=True)
     (ms / "models/index.html").write_text(r.models_index(models, build), encoding="utf-8")
     (ms / "providers").mkdir(exist_ok=True)
@@ -592,7 +635,7 @@ def main(argv: list[str] | None = None) -> int:
             f"The open knowledge graph of AI models. {len(models)} cards, "
             f"{counts['score_keys']} benchmarks reported.",
             [("Every model", "/models/"), ("Providers", "/providers/"),
-             ("Benchmark catalogue", "/benchmarks/"), ("API", "/api/index.json")],
+             ("Benchmark catalogue", "/benchmarks/"), ("API", "/openapi.yaml" if os.environ.get("DATA_SPLIT_ENABLED") == "true" else "/api/index.json")],
             build, r.MS_NAV, "https://modelspec.dev/"), encoding="utf-8")
 
     # MODEL-186 replaces the old catalogue home. The deploy workflow adds the
@@ -614,6 +657,14 @@ def main(argv: list[str] | None = None) -> int:
         encoding="utf-8",
     )
     ms_paths.append("/decide/")
+    # MODEL-221. /feedback/, its assets and the published request schema.
+    from pipeline import feedback_page
+    feedback_counts = feedback_page.write(ms, root)
+    ms_paths.extend(feedback_counts["sitemap_paths"])
+    # MODEL-299. The press and brand kit: the package files, served unchanged.
+    from pipeline import brand_page
+    brand_counts = brand_page.write(ms)
+    ms_paths.extend(brand_counts["sitemap_paths"])
 
     (ms / "sitemap.xml").write_text(
         r.sitemap("https://modelspec.dev", ms_paths, today), encoding="utf-8")
@@ -631,6 +682,10 @@ def main(argv: list[str] | None = None) -> int:
     # Here as well as in `live.build`: the holding and live trees copy the legal
     # pages from this tree, and the deploy workflow diffs them byte for byte.
     from pipeline import structured_data
+    # The Feedback control on every page, just before the JSON-LD: live.build
+    # strips and re-inserts that block at the end of <head>, so the two trees
+    # only match byte for byte if the control's stylesheet link comes first.
+    feedback_counts["pages_with_control"] = feedback_page.inject_tree(ms)
     structured_data.inject(ms, root)
 
     missing = missing_internal_hrefs(ms)
@@ -653,6 +708,8 @@ def main(argv: list[str] | None = None) -> int:
         "export_schema_version": exporter.EXPORT_SCHEMA_VERSION,
         "modelspec_urls": len(ms_paths),
         "agent_ready": agent_counts,
+        "feedback": feedback_counts,
+        "brand": brand_counts,
     }
     print(json.dumps(summary, indent=1))
     return 0

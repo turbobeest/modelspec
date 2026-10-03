@@ -1,6 +1,8 @@
+import { VISIT_GATE_ENABLED, prepareVisit } from "./adapter/visit";
+import { VisitGate, HumanGate, HUMAN_GATE_ENABLED } from "./components/HumanGate";
+import { decisionAction } from "./adapter/hosted";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  candidateQuestions,
   hostedEngine,
   retryOnSnapshotChange,
   sharedReload,
@@ -9,18 +11,18 @@ import {
   fmtCI,
 } from "./adapter";
 import type {
+  DecideOptions,
   Cond,
   Decision,
   Evidence,
-  HostedDecisionEngine,
   Spec,
   SpecIssue,
 } from "./adapter";
 import {
   VocabularyError,
+  VOCABULARY_URL,
   loadVocabulary,
   realBaseSpec,
-  realQuestions,
   sendable as sendableSpec,
 } from "./vocabulary";
 import type { Vocabulary } from "./vocabulary";
@@ -43,15 +45,15 @@ import {
 } from "./components/canvas-axis";
 import { RankedAnswer } from "./facet-board/RankedAnswer";
 import { DecisionTable } from "./components/DecisionTable";
+import { FeedbackForm, FeedbackLauncher } from "./feedback/FeedbackForm";
 import { Why } from "./components/Why";
 import { Coverage } from "./components/Coverage";
+import { AnswerBoundary } from "./components/AnswerBoundary";
 import { Share } from "./components/Share";
 import { BrandMark } from "./components/BrandMark";
 import { initialTheme, storeTheme, storedTheme, type Theme } from "./theme";
 import "./decide.css";
 import { mapDecisionToViewModel } from "./adapter/view-model";
-import { evaluateQuestionOptions } from "./adapter/questions";
-import type { Question } from "./engine/reference";
 import { BoardIntro, FacetBoard, readEstate, writeEstate } from "./facet-board/FacetBoard";
 import {
   boardHasPreference, boardToSpec, decodeBoardState, encodeBoardSpec, estatePayload, foldRefinementWeights, hasEstate,
@@ -91,6 +93,11 @@ export function DesignedApp({
 }: {
   simulate?: "loading" | "error" | "none";
 }) {
+  const [gateStatus, setGateStatus] = useState<boolean | null>(HUMAN_GATE_ENABLED || VISIT_GATE_ENABLED ? null : false);
+  const [gateRefresh, setGateRefresh] = useState(0);
+  const humanGateEnabled = gateStatus === true;
+  const action = useRef<DecideOptions>({});
+  const pendingSpec = useRef<Spec | null>(null);
   const [initial] = useState(() => decodeSpec(location.hash)),
     [initialBoard] = useState(() => decodeBoardState(location.hash)),
     [spec, setSpec] = useState<Spec>(initial?.spec || baseSpec),
@@ -107,11 +114,6 @@ export function DesignedApp({
     [initialRestored, setInitialRestored] = useState(!initial);
   const [theme, setTheme] = useState<Theme>(() =>
       initialTheme(location.search, storedTheme()),
-    ),
-    [layout, setLayout] = useState(() =>
-      new URLSearchParams(location.search).get("layout") === "table"
-        ? "table"
-        : "canvas",
     );
   const [selected, setSelected] = useState<string | null>(null),
     [dismissed, setDismissed] = useState<string[]>([]),
@@ -130,17 +132,21 @@ export function DesignedApp({
     });
   const requestTimer = useRef<ReturnType<typeof setTimeout> | null>(null),
     requestAbort = useRef<AbortController | null>(null),
-    questionsAbort = useRef<AbortController | null>(null),
     plotKey = useRef(""),
+    // The plot request in flight, if any. It outlives effect re-runs that
+    // leave its key unchanged (the full explanation replacing the summary).
+    plotRequest = useRef<AbortController | null>(null),
     provTrigger = useRef<HTMLElement | null>(null),
     hashNavigation = useRef<() => void>(() => undefined),
     initialAnswered = useRef(false);
   // A site deploy can change the snapshot under an open page (MODEL-159). The
   // Worker says so with a 409; every request that hears it shares one reload.
-  const [reloadVocabulary] = useState(() => sharedReload(() => loadVocabulary()));
+  const [reloadVocabulary] = useState(() => sharedReload(() => loadVocabulary(undefined, true)));
+  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
+  // Bumped by the answer's Reset: remounting the board drops its open groups and template too.
+  const [boardGeneration, setBoardGeneration] = useState(0);
   const [hostedDecision, setHostedDecision] = useState<Decision | null>(null),
     [plotDecision, setPlotDecision] = useState<Decision | null>(null),
-    [hostedQuestions, setHostedQuestions] = useState<Question[]>([]),
     [requestState, setRequestState] = useState<
       | { kind: "idle" }
       | { kind: "loading" }
@@ -181,11 +187,6 @@ export function DesignedApp({
     return realVocab(vocabulary);
   }, [vocabulary]);
   const shownAxis = vocab.axes.includes(axis) ? axis : (vocab.axes[0] ?? axis);
-  /** Only the sliders the snapshot can answer, as the engine will be asked. */
-  const sendable = (next: Spec): Spec =>
-    vocabulary ? sendableSpec(vocabulary, next) : next;
-  const questionsFor = (next: Spec) =>
-    vocabulary ? realQuestions(vocabulary, next, dismissed) : candidateQuestions(next, dismissed);
   const shownSpec = useMemo(() => {
     if (!hostedDecision || vocabulary) return spec;
     const availableBenchmarks = [
@@ -210,7 +211,7 @@ export function DesignedApp({
         decision: mapDecisionToViewModel(hostedDecision, shownSpec, {
           axis: shownAxis,
           dismissed,
-          questions: hostedQuestions,
+          questions: [],
           ...(vocabulary
             ? { benchmarks: vocab.benchmarks, models: vocabulary.models, providers: vocabulary.providers }
             : {}),
@@ -224,19 +225,23 @@ export function DesignedApp({
         error: cause instanceof Error ? cause.message : String(cause),
       };
     }
-  }, [hostedDecision, shownSpec, shownAxis, dismissed, hostedQuestions, vocabulary, vocab]);
+  }, [hostedDecision, shownSpec, shownAxis, dismissed, vocabulary, vocab]);
   const liveDecision = mapped.decision;
   useEffect(() => {
+    if (requestTimer.current) return;
     if (
       !vocabulary ||
       !hostedDecision ||
       !lastSentSpec ||
       !shownCanvasAxes
     ) {
+      plotRequest.current?.abort();
+      plotRequest.current = null;
       plotKey.current = "";
       setPlotDecision(null);
       return;
     }
+    const intentOptions = action.current;
     const options = new Map(
       canvasAxisOptions(vocabulary).map((option) => [option.id, option]),
     );
@@ -249,14 +254,20 @@ export function DesignedApp({
     );
     const plotSpec = canvasPlotSpec(rankingSpec, x, y, numericFallback);
     const key = `${hostedDecision.snapshot}:${JSON.stringify(plotSpec)}`;
+    // Asked already, answered or still in flight: the same question is never
+    // sent twice. Aborting it on every re-run and asking again sent one action's
+    // plot twice whenever the full explanation landed first.
     if (plotKey.current === key) return;
+    plotRequest.current?.abort();
     const controller = new AbortController();
+    plotRequest.current = controller;
     plotKey.current = key;
     setPlotDecision(null);
     void retryOnSnapshotChange(
       vocabulary,
       (current) =>
         hostedEngine.decide(plotSpec, {
+          ...intentOptions,
           signal: controller.signal,
           snapshot: (current ?? vocabulary).snapshot,
         }),
@@ -264,21 +275,24 @@ export function DesignedApp({
       (fresh) => setVocabState({ kind: "ready", vocabulary: fresh }),
     )
       .then(({ result: plotDecision }) => {
-        if (!controller.signal.aborted)
-          setPlotDecision(plotDecision);
+        if (!controller.signal.aborted) setPlotDecision(plotDecision);
       })
       .catch((cause: unknown) => {
         if (!(cause instanceof Error && cause.name === "AbortError"))
           setPlotDecision(null);
+      })
+      .finally(() => {
+        if (plotRequest.current === controller) plotRequest.current = null;
       });
-    return () => controller.abort();
   }, [
+    humanGateEnabled,
     hostedDecision,
     lastSentSpec,
     shownCanvasAxes,
     vocabulary,
     reloadVocabulary,
   ]);
+  useEffect(() => () => plotRequest.current?.abort(), []);
   const access = accessAnswer(boardBaseSpec.access);
   // Routes are drawn for the access the shown decision answered, not the one
   // just chosen: until the new answer arrives, the old one keeps its routes.
@@ -319,13 +333,14 @@ export function DesignedApp({
   );
   const specIssues = placed.filter((issue) => issue.target.kind === "spec");
 
-  async function runDecision(requested: Spec) {
+  async function runDecision(requested: Spec, humanToken?: string, onRemaining?: (remaining: number) => void) {
+    if (gateStatus === null || (humanGateEnabled && !humanToken)) return;
+    const intentOptions = decisionAction(humanToken, onRemaining);
+    action.current = intentOptions;
     requestAbort.current?.abort();
-    questionsAbort.current?.abort();
     const controller = new AbortController();
     requestAbort.current = controller;
     setHostedDecision(null);
-    setHostedQuestions([]);
     setLastSentSpec(null);
     setEstateRequest((current) => ({
       kind: "idle",
@@ -344,7 +359,10 @@ export function DesignedApp({
         status: cause instanceof DecideApiError ? cause.status : null,
         issues: cause instanceof DecideApiError ? cause.issues : [],
       });
-    const watchdog = setTimeout(() => {
+    try { await prepareVisit(); }
+    catch (cause) { if (!controller.signal.aborted) fail(cause); return; }
+    if (controller.signal.aborted) return;
+    const watchdog = VISIT_GATE_ENABLED ? undefined : setTimeout(() => {
       controller.abort();
       fail(
         new DecideApiError(
@@ -358,7 +376,8 @@ export function DesignedApp({
       const source = override ?? requested;
       const nextSpec = current ? sendableSpec(current, source) : source;
       return hostedEngine
-        .decide(toBoardDecisionSpec(nextSpec, explain), {
+        .decide({ ...toBoardDecisionSpec(nextSpec, explain) }, {
+          ...intentOptions,
           signal: controller.signal,
           snapshot: current?.snapshot,
         })
@@ -374,7 +393,7 @@ export function DesignedApp({
     };
     try {
       // Summary first: it is small and answers well inside the Worker's limits,
-      // so the ranking draws at once. The full explanation and the probes
+      // so the ranking draws at once. The full explanation and plot
       // follow only once it has answered, so a cold Worker meets one request
       // before the burst; if `full` fails, the summary stands (MODEL-153).
       const answer = await retryOnSnapshotChange(
@@ -395,13 +414,14 @@ export function DesignedApp({
         settledSpecHash: specHash(requested),
         generation: current.generation,
       }));
-      setHostedQuestions(
-        used ? realQuestions(used, nextSpec, dismissed) : questionsFor(nextSpec),
-      );
       setRequestState({ kind: "success", details: "loading" });
     } catch (cause) {
       // Aborted by a newer request or by the watchdog: whichever did owns the state.
       if (controller.signal.aborted) return;
+      if ((HUMAN_GATE_ENABLED || VISIT_GATE_ENABLED) && cause instanceof DecideApiError && cause.code === "human_challenge_required") {
+        setGateStatus(null);
+        setGateRefresh((value) => value + 1);
+      }
       const refinementKeys = used ? refinementWeightKeys(used) : new Set<string>();
       const requestHadRefinementWeights = Object.keys(
         used ? sendableSpec(used, requested).boardWeights ?? {} : {},
@@ -421,7 +441,6 @@ export function DesignedApp({
           used = effectiveVocabulary;
           nextSpec = answer.result.nextSpec;
           setHostedDecision(answer.result.decision);
-          setHostedQuestions(realQuestions(effectiveVocabulary, nextSpec, dismissed));
           setRefinementFallbackKeys(refinementWeightKeys(effectiveVocabulary));
           setLastSentSpec(nextSpec);
           setEstateRequest((current) => ({
@@ -462,11 +481,23 @@ export function DesignedApp({
   }
 
   function scheduleDecision(nextSpec: Spec) {
+    if (gateStatus === null || humanGateEnabled) return;
     if (requestTimer.current) clearTimeout(requestTimer.current);
-    requestTimer.current = setTimeout(() => void runDecision(nextSpec), 300);
+    requestTimer.current = setTimeout(() => {
+      requestTimer.current = null;
+      void runDecision(nextSpec);
+    }, 300);
   }
 
   function changeSpec(nextSpec: Spec) {
+    if (gateStatus === null) pendingSpec.current = nextSpec;
+    if (humanGateEnabled) {
+      requestAbort.current?.abort();
+      setHostedDecision(null);
+      setLastSentSpec(null);
+      setRequestState({ kind: "idle" });
+      setEstateRequest((current) => ({ kind: "idle", settledSpecHash: null, generation: current.generation }));
+    }
     setSpec(nextSpec);
     scheduleDecision(nextSpec);
   }
@@ -515,58 +546,35 @@ export function DesignedApp({
     );
   }
 
-  const answered = hostedDecision !== null;
+  /** The answer area's Reset (MODEL-294): back to the default board, as "Reset all" does. */
+  function resetBoard() {
+    if (!vocabulary) return;
+    const empty = sanitizeBoardState({ selections: {}, mustOrder: [], estate }, vocabulary);
+    setBoardSelections(empty.selections);
+    setBoardMustOrder([]);
+    setLegacyNotes([]);
+    setActiveTemplateId(null);
+    setSelected(null);
+    setBoardGeneration((generation) => generation + 1);
+    changeSpec(boardToSpec(boardBaseSpec, vocabulary, empty.selections, []));
+  }
+
   const effectiveSpec = lastSentSpec ?? spec;
   const estateRequestKey = `${specHash(spec)}:${JSON.stringify(estate)}`;
   useEffect(() => {
-    if (!answered) return;
-    questionsAbort.current?.abort();
     const controller = new AbortController();
-    questionsAbort.current = controller;
-    const candidates = questionsFor(effectiveSpec);
-    // Each probe names the snapshot too; after one 409 the rest use the reload.
-    let current = vocabulary;
-    const pinned: HostedDecisionEngine = {
-      decide: (next, options) =>
-        retryOnSnapshotChange(
-          current,
-          (v) => hostedEngine.decide(next, { ...options, snapshot: v?.snapshot }),
-          reloadVocabulary,
-        ).then((answer) => {
-          current = answer.vocabulary;
-          return answer.result;
-        }),
-    };
-    void evaluateQuestionOptions({
-      engine: pinned,
-      spec: toBoardDecisionSpec(sendable(effectiveSpec), "none"),
-      questions: candidates,
-      signal: controller.signal,
-      deduplicateConditions: true,
-      onUpdate: (next) =>
-        setHostedQuestions(
-          next.map((question) => ({
-            ...question,
-            opts: question.opts.map((option) => ({ ...option })),
-          })),
-        ),
-    })
-      .then(setHostedQuestions)
-      .catch((cause: unknown) => {
-        if (!(cause instanceof Error && cause.name === "AbortError"))
-          setHostedQuestions([]);
-      });
-    return () => controller.abort();
-    // questionsFor and sendable read only vocabulary and dismissed, listed here.
-    // `answered`, not the decision: the full explanation replacing the summary
-    // must not send every probe again.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [answered, effectiveSpec, dismissed, vocabulary]);
-  useEffect(() => {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 20_000);
+    let timer: ReturnType<typeof setTimeout> | undefined;
     setVocabState({ kind: "loading" });
-    loadVocabulary(controller.signal)
+    prepareVisit().catch(() => {
+      throw new VocabularyError(
+        "Human verification did not complete, so the catalogue vocabulary was not requested.",
+        "network",
+      );
+    }).then(() => {
+      controller.signal.throwIfAborted();
+      timer = VISIT_GATE_ENABLED ? undefined : setTimeout(() => controller.abort(), 20_000);
+      return loadVocabulary(controller.signal);
+    })
       .then((loaded) => setVocabState({ kind: "ready", vocabulary: loaded }))
       .catch((cause: unknown) => {
         if (cause instanceof Error && cause.name === "AbortError" && !controller.signal.aborted)
@@ -589,7 +597,15 @@ export function DesignedApp({
     };
   }, [vocabAttempt]);
   useEffect(() => {
-    if (!vocabulary) return;
+    if (!vocabulary || gateStatus === null) return;
+    if (pendingSpec.current) {
+      const edited = pendingSpec.current;
+      pendingSpec.current = null;
+      initialAnswered.current = true;
+      setInitialRestored(true);
+      void runDecision(edited);
+      return;
+    }
     if (initial) {
       // A shared link: answer it as written. What the engine refuses is shown on its chip.
       // Once: a vocabulary reloaded after a deploy must not answer it again.
@@ -641,8 +657,10 @@ export function DesignedApp({
     }
     // Once per loaded vocabulary; runDecision reads the latest state itself.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vocabulary]);
+  }, [vocabulary, gateStatus]);
   useEffect(() => {
+    if (requestTimer.current) return;
+    const intentOptions = action.current;
     if (
       !vocabulary ||
       !hasEstate(estate) ||
@@ -669,7 +687,7 @@ export function DesignedApp({
       requestKey,
       generation: estateRequest.generation,
     });
-    const watchdog = setTimeout(() => {
+    const watchdog = VISIT_GATE_ENABLED ? undefined : setTimeout(() => {
       controller.abort();
       if (active) setEstateRequest({
         kind: "error",
@@ -688,6 +706,7 @@ export function DesignedApp({
             estate: estatePayload(estate),
           }, {
             signal: controller.signal,
+            ...intentOptions,
             snapshot: pinned.snapshot,
           });
         },
@@ -735,7 +754,7 @@ export function DesignedApp({
     };
     // The key, not the summary/full response object, owns this request.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [vocabulary, estateRequest.settledSpecHash, estateRequest.generation, estateRequestKey]);
+  }, [humanGateEnabled, vocabulary, estateRequest.settledSpecHash, estateRequest.generation, estateRequestKey]);
   useEffect(() => {
     if (!vocabulary || !initialRestored) return;
     history.replaceState(
@@ -799,7 +818,6 @@ export function DesignedApp({
       window.removeEventListener("hashchange", hash);
       if (requestTimer.current) clearTimeout(requestTimer.current);
       requestAbort.current?.abort();
-      questionsAbort.current?.abort();
     };
   }, []);
   function add(c: Cond) {
@@ -866,7 +884,7 @@ export function DesignedApp({
   };
   return (
     <VocabContext.Provider value={vocab}>
-    <div className="decide-app" data-theme={theme} data-layout={layout}>
+    <div className="decide-app" data-theme={theme}>
       <header className="global-header">
         <button
           className="brand lockup"
@@ -880,20 +898,6 @@ export function DesignedApp({
         </button>
         <div className="spacer" />
         {decision && <span className="snapshot">{decision.snapshot}</span>}
-        <div className="segments" role="group" aria-label="Layout">
-          <button
-            aria-pressed={layout === "canvas"}
-            onClick={() => setLayout("canvas")}
-          >
-            Canvas first
-          </button>
-          <button
-            aria-pressed={layout === "table"}
-            onClick={() => setLayout("table")}
-          >
-            Table first
-          </button>
-        </div>
         <button
           onClick={() => {
             const next = theme === "dark" ? "light" : "dark";
@@ -909,6 +913,8 @@ export function DesignedApp({
       </header>
       <main className="work">
           <BoardIntro />
+          {(HUMAN_GATE_ENABLED || VISIT_GATE_ENABLED) && <HumanGate key={gateRefresh} onEnabled={setGateStatus} disabled={!vocabulary} onLookup={(token, onRemaining) => runDecision(spec, token, onRemaining)} />}
+          {VISIT_GATE_ENABLED && !vocabulary && <aside className="board-answer"><VisitGate /></aside>}
           {vocabAlert}
           {vocabState.kind === "loading" && (
             <div role="status" aria-busy="true" className="loading">
@@ -916,6 +922,7 @@ export function DesignedApp({
             </div>
           )}
           {vocabulary && <FacetBoard
+            key={boardGeneration}
             vocabulary={vocabulary}
             spec={boardBaseSpec}
             onSpec={changeSpec}
@@ -924,7 +931,10 @@ export function DesignedApp({
             mustOrder={boardMustOrder}
             onMustOrder={setBoardMustOrder}
             estate={estate}
-            onEstate={setEstate}
+            onEstate={(next) => {
+              setEstate(next);
+              changeSpec(spec);
+            }}
             access={access}
             onAccess={changeAccess}
             fit={decision?.explanation.feasible.length}
@@ -933,7 +943,9 @@ export function DesignedApp({
             onNotes={setLegacyNotes}
             refinementFallbackKeys={refinementFallbackKeys}
             onCanvasAxes={setCanvasAxes}
-            answer={decision ? <>
+            onTemplate={setActiveTemplateId}
+            verification={VISIT_GATE_ENABLED ? <VisitGate /> : undefined}
+            answer={decision ? <AnswerBoundary resetKey={decision} onReset={resetBoard}>
               <Field
                 decision={decision}
                 spec={shownSpec}
@@ -945,7 +957,7 @@ export function DesignedApp({
               />
               <section className="board-answer-head" aria-label="Facet board answer">
                 <span className="eyebrow">The answer</span>
-                {hasEstate(estate) && <div className="answer-pair"><div><strong>With what you have</strong><span>{estateDecision ? `${estateDecision.explanation.feasible.length} models qualify · ${estateDecision.explanation.may.length} may qualify` : estateRequest.kind === "error" || estateRequest.kind === "done" ? <>Couldn't load: <button className="text-button" onClick={() => setEstateRequest((current) => ({ kind: "idle", settledSpecHash: current.settledSpecHash, generation: current.generation + 1 }))}>retry</button></> : "Checking…"}</span></div><div><strong>If you could use anything</strong><span>{decision.explanation.feasible.length} models qualify · {decision.explanation.may.length} may qualify</span></div></div>}
+                {hasEstate(estate) && <div className="answer-pair"><div><strong>With what you have</strong><span>{estateDecision ? `${estateDecision.explanation.feasible.length} models qualify · ${estateDecision.explanation.may.length} may qualify` : estateRequest.kind === "error" || estateRequest.kind === "done" ? <>Couldn't load: <button className="text-button" onClick={() => { if (humanGateEnabled) changeSpec(spec); else { action.current = decisionAction(); setEstateRequest((current) => ({ kind: "idle", settledSpecHash: current.settledSpecHash, generation: current.generation + 1 })); } }}>retry</button></> : "Checking…"}</span></div><div><strong>If you could use anything</strong><span>{decision.explanation.feasible.length} models qualify · {decision.explanation.may.length} may qualify</span></div></div>}
                 {answeredAccess === "own_software" && estateAnswer?.excludedPlans.map((plan) => <p className="board-own-software-note" role="note" key={plan.id}>{ownSoftwareNote(plan)}</p>)}
               </section>
               {hasEstate(estate) && estateAnswer
@@ -954,7 +966,13 @@ export function DesignedApp({
                     <section><strong>If you could use anything</strong><RankedAnswer decision={decision} spec={shownSpec} vocabulary={vocabulary} access={answeredAccess} held={estate} excludedPlans={answeredAccess === "own_software" ? estateAnswer.excludedPlans : []} /></section>
                   </div>
                 : <RankedAnswer decision={decision} spec={shownSpec} vocabulary={vocabulary} access={answeredAccess} held={estate} />}
-            </> : <section className="panel board-answer-loading" aria-live="polite">The live answer will appear here.</section>}
+              {!error && !loading && <AnswerBoundary resetKey={decision} onReset={resetBoard}>
+                <Coverage decision={decision} spec={shownSpec} onSpec={changeSpec} />
+              </AnswerBoundary>}
+              {hostedDecision && <section className="answer-feedback" aria-label="Was this answer reliable?">
+                <FeedbackForm key={hostedDecision.decision_id} compact question="Was this answer reliable?" decisionId={hostedDecision.decision_id} template={activeTemplateId} page="/decide/" />
+              </section>}
+            </AnswerBoundary> : <section className="panel board-answer-loading" aria-live="polite">{humanGateEnabled ? "Choose your facets, then verify and look up this decision." : "The live answer will appear here."}</section>}
           />}
           {error ? (
             <div role="alert" className="error">
@@ -971,7 +989,7 @@ export function DesignedApp({
                   </ul>
                 )}
               </div>
-              <button
+              {!humanGateEnabled && <button
                 className="ink-button"
                 onClick={() => {
                   setRetried(true);
@@ -979,7 +997,8 @@ export function DesignedApp({
                 }}
               >
                 Retry
-              </button>
+              </button>}
+              {humanGateEnabled && <p>Verify again above before your next lookup.</p>}
             </div>
           ) : loading ? (
             <div role="status" aria-busy="true" className="loading">
@@ -998,21 +1017,26 @@ export function DesignedApp({
             </div>
           ) : decision ? (
             <>
-            <Coverage decision={decision} spec={shownSpec} onSpec={changeSpec} />
-            <div className="results">
-              {vocabulary && hostedDecision && shownCanvasAxes ? (
+            {/* MODEL-298: the trade-off canvas spans the page under the facets and
+                the narrowing, in its own boundary: a canvas failure hides only
+                the canvas. */}
+            {vocabulary && <AnswerBoundary resetKey={decision} onReset={resetBoard}>
+              {hostedDecision && shownCanvasAxes ? (
                 <FreeAxisCanvas
                   decision={decision}
                   rankingDecision={hostedDecision}
                   plotDecision={plotDecision}
                   vocabulary={vocabulary}
                   axes={shownCanvasAxes}
-                  onAxes={setCanvasAxes}
+                  onAxes={(next) => {
+                    if (humanGateEnabled) changeSpec(spec);
+                    else action.current = decisionAction();
+                    setCanvasAxes(next);
+                  }}
                   onMust={setCanvasMust}
                   selections={boardSelections}
                   selected={selectedId}
                   onSelect={setSelected}
-                  compact={layout === "table"}
                 />
               ) : (
                 <Canvas
@@ -1025,10 +1049,12 @@ export function DesignedApp({
                   selected={selectedId}
                   onSelect={setSelected}
                   onRelax={relax}
-                  compact={layout === "table"}
                   boardRanked={boardRanked}
                 />
               )}
+            </AnswerBoundary>}
+            <AnswerBoundary resetKey={decision} onReset={resetBoard}>
+            <div className="results">
               <DecisionTable
                 decision={decision}
                 spec={shownSpec}
@@ -1065,6 +1091,7 @@ export function DesignedApp({
                 boardRanked={boardRanked}
               />
             </div>
+            </AnswerBoundary>
             </>
           ) : null}
       </main>
@@ -1076,9 +1103,11 @@ export function DesignedApp({
           <a href="/legal/neutrality/">Neutrality</a>
           <a href="/legal/terms/">Terms</a>
           <a href="/legal/privacy/">Privacy</a>
-          <a href="/api/decision/vocabulary.json">Data</a>
+          <a href={VOCABULARY_URL.includes("/v1/vocabulary") ? "/openapi.yaml" : "/api/decision/vocabulary.json"}>Data</a>
+          <a href="/feedback/">Feedback</a>
         </nav>
       </footer>
+      <FeedbackLauncher page="/decide/" />
       {provenance && (
         <div
           className="provenance-popover"
@@ -1137,6 +1166,7 @@ export function DesignedApp({
       )}
       {share && (
         <Share
+          humanGateEnabled={humanGateEnabled}
           spec={lastSentSpec ?? shownSpec}
           snapshot={decision?.snapshot ?? "latest"}
           axis={shownAxis}

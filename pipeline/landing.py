@@ -22,25 +22,17 @@ from decision.engine import decide
 from decision.registry import default
 from decision.snapshot import build_from_repo, load_built_snapshot
 from decision.templates import load_catalogue
-from pipeline import brand, landing_chrome
+from pipeline import brand, entity, landing_chrome
 from pipeline import social_cards
 from pipeline.load import load_models
 
 SOFTWARE_ENGINEERING = "software_engineering"
 MONTHLY_TASKS = 10_000
-PACKAGE_PUBLISHED = True  # modelspec-dev 0.1.0 on PyPI, 2026-09-27
-# First run, in order: `vocab` and `decide` need the cached snapshot.
-FIRST_RUN = (
-    "pipx install modelspec-dev",
-    "modelspec snapshot fetch",
-    "modelspec decide --template budget-coding",
-)
-EYEBROW = "Your model is a guess."
-HEADLINE = "Model routers only guess. ModelSpec justifies the model decision and shows its work."
-TITLE = "ModelSpec — justifies the model decision and shows its work"
-DESCRIPTION = ("Decide which AI model your job needs, and see why: your requirements, every "
-               "benchmark, real cost and the uncertainty, from sourced evidence. Nobody pays "
-               "to rank higher.")
+HEADLINE_LEAD = "Model routers make educated guesses."
+HEADLINE_SUB = "ModelSpec makes informed, unbiased decisions from evidence."
+HEADLINE = f"{HEADLINE_LEAD} {HEADLINE_SUB}"
+TITLE = entity.TITLE
+DESCRIPTION = f"{entity.ONE_SENTENCE} Nobody pays to rank higher."
 GH = "https://github.com/turbobeest/modelspec/blob/main/"
 #: Each element of an analysis of alternatives, what ModelSpec does for it,
 #: and where to check it. Every row is a live capability; the proof is the
@@ -62,7 +54,7 @@ ANALYSIS = (
     ("Cost", "Cost per task at your token counts, plan break-even, and what you "
      "already pay for.", GH + "docs/decision-contract.md#access-and-plans-model-200"),
     ("Audit trail", "A signed snapshot, a spec hash and a decision ID. Keep the "
-     "spec, the snapshot and the CLI version, and the same answer comes back next quarter.", "/method/#reproducible"),
+     "spec, the snapshot and the decision contract version, and the same answer comes back next quarter.", "/method/#reproducible"),
     ("Independence", "No referral fees, no paid placement. The commitment is "
      "published, and checkable as data.", "/legal/neutrality/"),
 )
@@ -362,8 +354,7 @@ def _compact_count(value: int) -> str:
     return f"{value:,}"
 
 
-def render(data: LandingData, *, variant: Literal["live", "holding"],
-           package_published: bool = PACKAGE_PUBLISHED) -> str:
+def render(data: LandingData, *, variant: Literal["live", "holding"]) -> str:
     """Render one page. Only the board state and indexing metadata vary."""
     leader, cheapest = data.leader, data.cheapest
     tied_others = len(data.tie) - 1
@@ -371,12 +362,15 @@ def render(data: LandingData, *, variant: Literal["live", "holding"],
              else '<span class="board-status">Board opening soon</span>')
     board_compact = (f'<a class="button primary" href="{DECIDE_PATH}">Open the board</a>'
                      if variant == "live" else '<span class="board-status">Board opening soon</span>')
-    graph_link = '<a href="/graph/">Explore the graph</a>' if variant == "live" else ""
-    install = ('<pre class="install" aria-label="First run">'
-               + "\n".join(f'<code>{line}</code>' for line in FIRST_RUN) + '</pre>'
-               if package_published else
-               '<p class="release-note">CLI, API and MCP. Install instructions arrive with the public release.</p>')
-    guide_href = "#agents"
+    # The hero leads with the agent path (the paid machine tier); the free
+    # board is the secondary action. The nav keeps its own board button.
+    board_alt = (f'<a class="button board-alt" href="{DECIDE_PATH}">Open the board</a>'
+                 if variant == "live" else '<span class="board-status">Board opening soon</span>')
+    board_alt_compact = (f'<a class="button board-alt" href="{DECIDE_PATH}">Board</a>'
+                         if variant == "live" else '<span class="board-status">Board opening soon</span>')
+    install = ('<p class="release-note">Use the hosted API or remote MCP Worker with an API key. '
+               '<a href="/auth.md">API access</a>. The CLI was retired on 2026-09-30.</p>')
+    guide_href = "/auth.md"
     canonical = '<link rel="canonical" href="https://modelspec.dev/">\n'
     robots = ''
     forward = ""
@@ -429,6 +423,12 @@ def render(data: LandingData, *, variant: Literal["live", "holding"],
         f'<a href="{html.escape(proof)}">Check it</a></li>'
         for element, what, proof in ANALYSIS
     )
+    lead = entity.linked(entity.ONE_SENTENCE, {
+        "your requirements": "/method/#must-prefer",
+        "sourced benchmarks": "/method/#estimate",
+        "real cost": f"{GH}docs/decision-contract.md#cost-per-task",
+        "shows its work": "/method/",
+    })
     return f'''<!doctype html>
 <html lang="en"><head><meta charset="utf-8">{forward}<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{TITLE}</title>
@@ -437,10 +437,9 @@ def render(data: LandingData, *, variant: Literal["live", "holding"],
 {robots}{canonical}{brand.head_links()}{social_cards.social_meta_for_page("/", data)}<link rel="stylesheet" href="/{ASSET_DIR}/landing.css">{landing_chrome.lockup_style()}</head>
 <body><div class="axis" aria-hidden="true"></div>
 <header>{landing_chrome.lockup(href=None)}<nav><a href="#receipt">What it costs you</a><a href="#routers">Routers</a><a href="#teams">For teams</a><a href="#agents">For agents</a><a href="/pricing/">Pricing</a><a href="#pick-a-model">Test your pick</a>{board}</nav></header>
-<main><section class="hero"><div class="hero-copy"><p class="eyebrow">{EYEBROW}</p><h1>{HEADLINE}</h1>
-<p class="fud"><span class="desktop-only">{social_cards.landing_tie_line(data)} Benchmarks disagree, leaderboards reshuffle, and nothing in your stack will ever tell you that you chose wrong.</span><span class="mobile-only">{social_cards.landing_tie_line(data)} Nothing in your stack will tell you.</span></p>
-<p class="close">ModelSpec picks the model your job needs from <a href="/method/#must-prefer">your requirements</a>, <a href="/method/#estimate">every admitted benchmark</a> and <a href="{GH}docs/decision-contract.md#cost-per-task">real cost</a>, and <a href="/method/">shows how it got there</a>. When one model wins, it says so. When the evidence can't separate them, it <a href="/method/#ties">says that too</a>, and hands you the cheapest. <a href="/legal/neutrality/">Nobody pays to rank higher.</a></p>
-<div class="actions">{board}<a class="button secondary" href="#agents">Give it to your agents</a></div></div>
+<main><section class="hero"><div class="hero-copy"><h1><span class="h1-lead">{HEADLINE_LEAD}</span> <span class="h1-sub">{HEADLINE_SUB}</span></h1>
+<p class="close">{lead} When one model wins, it says so. When the evidence can't separate them, it <a href="/method/#ties">says that too</a>, and hands you the cheapest. <a href="/legal/neutrality/">Nobody pays to rank higher.</a></p>
+<div class="actions"><a class="button cta-agents" href="#agents">Give it to your agents</a>{board_alt}</div></div>
 <figure class="plot"><div class="chips" aria-hidden="true"><span data-stage="1">The top estimate</span><span data-stage="2">Can't be told apart from it</span><span data-stage="3">The cheapest of those</span></div>
 <svg id="plot" viewBox="0 0 680 560" role="img" aria-label="{html.escape(cheapest.name)} is in the tie at {_money(cheapest.cost, 3)} a task: {data.ratio:.1f}× less."></svg>
 <figcaption id="plot-caption"></figcaption></figure></section>
@@ -461,14 +460,14 @@ def render(data: LandingData, *, variant: Literal["live", "holding"],
 <p class="routers-close">Decide what's worth routing to. Then let your router choose among those, request by request.</p></section>
 <section class="teams" id="teams"><div><p class="kicker">For teams and buyers</p><h2>An analysis of alternatives, for every model choice.</h2><p>When someone asks why you're on that model, the answer is a record, not a hunch: requirements, criteria, the alternatives and why each fell away, the evidence, its uncertainty and the cost. Each part links to how it works.</p></div>
 <ol class="analysis">{analysis}</ol></section>
-<section class="agents" id="agents"><div><h2>Your agents pick a model thousands of times a day.</h2>
-<p><span class="desktop-only">Most pick the same expensive one every time, because someone hard-coded it last quarter. Give them the board as a command. One offline call per task picks the model that fits that task, explains why, and gives <a href="/method/#reproducible">the same answer every time for the same facts</a>.</span><span class="mobile-only">Give them the board as a command. One offline call per task, explained, and the same answer every time for the same facts.</span></p>
-<div class="install-row">{install}<a href="{guide_href}">Read the agent guide</a></div><p class="note">Also as an API, and as an MCP server your agent platform can call.</p></div>
+<section class="agents" id="agents"><div><h2>The right model for every role in your agent stack.</h2>
+<p><span class="desktop-only">Most stacks hard-code the same expensive model into every role, because someone picked it last quarter. Give your agents the hosted API or remote MCP Worker. One call per role picks the model that fits it, explains why, and gives <a href="/method/#reproducible">the same answer every time for the same facts</a>.</span><span class="mobile-only">Give your agents the hosted API or remote MCP Worker. One call per role, explained, and the same answer every time for the same facts.</span></p>
+<div class="install-row">{install}<a href="{guide_href}">Read the agent guide</a></div><p class="note">Machine access requires an API key.</p></div>
 <div class="terminal"><div class="terminal-title">orchestrator — routing today's tickets</div><div class="routes">{routes}<div class="route-total"><span>same answer for the same spec and snapshot, every time</span><span>{len(data.routes)} of {data.template_count} templates · the others' top result has no published price</span></div></div></div></section>
 <section class="challenge" id="pick-a-model"><h2>Think you know the best coding model?</h2><form id="pick-form"><label for="model-pick"><span class="desktop-only">Put your pick on the board. See exactly where it lands, and why.</span><span class="mobile-only">Put your pick on the board and see where it lands.</span></label><div><select id="model-pick">{options}</select><button type="submit">Check my pick</button></div><output id="pick-result" aria-live="polite">Choose a model to compare with the top estimate.</output></form></section>
 <section class="trust"><div>{trust_source}<a href="/method/">How we decide</a></div><div><h3>Unknown means unknown.</h3><p>A model with no published answer to your question stays on the board as "may qualify". It never becomes a zero, and it never quietly disappears.</p><a href="/method/#unknown">How unknowns work</a></div><div><h3>Nobody pays to rank higher.</h3><p>No referral fees, no paid placement, no sponsored slots. It's a published commitment you can check.</p><a href="/legal/neutrality/">Read the commitment</a></div></section></main>
-<footer><span>© Sparks and Sawdust LLC</span>{graph_link}<a href="/method/">How we decide</a><a href="/pricing/">Pricing</a><a href="/legal/terms/">Terms</a><a href="/legal/privacy/">Privacy</a><a href="/legal/neutrality/">Neutrality commitment</a><span class="snapshot">Snapshot of {date_label} · {len(data.models)} models · {data.benchmark_count} benchmarks</span></footer>
-<div class="sticky">{board_compact}<a class="button secondary" href="#agents">Agents</a></div>
+<footer><span>© Sparks &amp; Sawdust LLC</span><a href="/method/">How we decide</a><a href="/pricing/">Pricing</a><a href="/legal/terms/">Terms</a><a href="/legal/privacy/">Privacy</a><a href="/legal/neutrality/">Neutrality commitment</a><a href="/brand/">Brand</a><span class="snapshot">Snapshot of {date_label} · {len(data.models)} models · {data.benchmark_count} benchmarks</span></footer>
+<div class="sticky"><a class="button cta-agents" href="#agents">Agents</a>{board_alt_compact}</div>
 <script id="{DATA_ID}" type="application/json">{payload}</script><script src="/{ASSET_DIR}/landing.js" defer></script></body></html>\n'''
 
 
@@ -480,12 +479,11 @@ def extract_data(page: str) -> LandingData:
     return _from_dict(raw)
 
 
-def write(tree: Path, data: LandingData, *, variant: Literal["live", "holding"],
-          package_published: bool = PACKAGE_PUBLISHED) -> None:
+def write(tree: Path, data: LandingData, *, variant: Literal["live", "holding"]) -> None:
     target = tree
     target.mkdir(parents=True, exist_ok=True)
     (target / "index.html").write_text(
-        render(data, variant=variant, package_published=package_published), encoding="utf-8")
+        render(data, variant=variant), encoding="utf-8")
     assets = tree / ASSET_DIR
     assets.mkdir(parents=True, exist_ok=True)
     source = Path(__file__).resolve().parent / "landing_assets"

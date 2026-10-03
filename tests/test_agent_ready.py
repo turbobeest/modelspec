@@ -18,6 +18,7 @@ sys.path.insert(0, str(ROOT))
 from decision.snapshot import load_public_keys  # noqa: E402
 from pipeline import agent_ready as ar  # noqa: E402
 from pipeline import brand  # noqa: E402
+from pipeline import entity  # noqa: E402
 from pipeline import build as builder  # noqa: E402
 from pipeline.export import Build  # noqa: E402
 from pipeline.load import Benchmark, Catalogue, Model  # noqa: E402
@@ -128,10 +129,12 @@ def test_model_jsonld_has_no_invented_rating() -> None:
     assert "ratingValue" not in dumped
 
 
-def test_api_catalog_lists_rank_policy_and_mcp() -> None:
+def test_api_catalog_lists_rank_policy_feedback_and_mcp() -> None:
     catalog = ar.api_catalog()
     anchors = {row["anchor"] for row in catalog["linkset"]}
-    assert anchors == {ar.RANK_API, ar.POLICY_API, ar.MCP_ENDPOINT}
+    assert anchors == {ar.RANK_API, ar.POLICY_API, ar.FEEDBACK_API, ar.MCP_ENDPOINT}
+    feedback = next(row for row in catalog["linkset"] if row["anchor"] == ar.FEEDBACK_API)
+    assert feedback["describedby"][0]["href"] == ar.FEEDBACK_SCHEMA
     for row in catalog["linkset"]:
         assert row["service-desc"][0]["href"] == ar.OPENAPI_URL
         assert row["service-doc"][0]["href"].startswith("https://github.com/turbobeest/modelspec")
@@ -142,7 +145,7 @@ def test_mcp_card_leads_with_decide_and_marks_rank_legacy_v1() -> None:
     assert card["$schema"] == ar.MCP_SCHEMA
     assert re.fullmatch(ar.MCP_NAME_PATTERN, card["name"])
     assert len(card["description"]) <= ar.MCP_DESCRIPTION_MAX
-    assert card["description"].startswith("Decide")
+    assert card["description"] == entity.SHORT  # MODEL-252: from the registry
     assert card["remotes"][0]["url"] == ar.MCP_ENDPOINT
     assert card["remotes"][0]["type"] == "streamable-http"
     assert [t["name"] for t in card["tools"]] == list(ar.MCP_TOOLS)
@@ -176,7 +179,8 @@ def test_agent_landing_leads_with_decisions_and_marks_v1_rank_legacy() -> None:
         ),
     )
 
-    assert text.index("modelspec decide --template <id>") < text.index("Legacy v1 rank")
+    assert "POST https://api.modelspec.dev/v1/decide" in text
+    assert "modelspec snapshot fetch" not in text
 
 
 def test_auth_md_billing_copy_follows_the_flag() -> None:
@@ -189,23 +193,12 @@ def test_auth_md_billing_copy_follows_the_flag() -> None:
         assert "Billing is enabled" in text
         assert "Billing is not live" not in text
     assert "test_" in text
-    assert "No key is required" in text
+    assert "No key is required for the hosted API" in text
     assert ar.RANK_API.split("/v1")[0] in text or "api.modelspec.dev" in text
     assert text.index("`POST /v1/decide`") < text.index("`POST /v1/rank`")
     assert "`POST /v1/rank` (legacy v1)" in text
 
 
-def test_llms_full_states_cap_and_stays_under_it() -> None:
-    models = [_model(f"p/m{i}", display_name=f"M{i}", model_type="llm") for i in range(50)]
-    text, stats = ar.llms_full_models(models, cap=2_000)
-    assert stats["bytes"] <= 2_000
-    assert stats["bytes"] == len(text.encode("utf-8"))
-    assert "# cap_bytes: 2000" in text
-    match = re.search(r"# bytes: (\d+)", text)
-    assert match is not None
-    assert int(match.group(1)) == stats["bytes"]
-    assert stats["omitted"] > 0
-    assert "truncated" in text
 
 
 def test_middleware_and_worker_share_the_accept_rule() -> None:
@@ -349,24 +342,10 @@ def test_built_jsonld_dataset_and_per_page(dist: Path) -> None:
     assert "https://benchgraph.dev" not in bench_html
 
 
-def test_built_llms_full_under_cap(dist: Path) -> None:
-    path = dist / "modelspec" / "llms-full.txt"
-    data = path.read_bytes()
-    text = data.decode("utf-8")
-    assert len(data) <= ar.LLMS_FULL_CAP
-    assert f"# cap_bytes: {ar.LLMS_FULL_CAP}" in text
-    match = re.search(r"# bytes: (\d+)", text)
-    assert match is not None
-    assert int(match.group(1)) == len(data)
-    assert "## " in text
-    # The v1 /m/ and /b/ pages are published in neither mode; the JSON is.
-    assert "https://modelspec.dev/m/" not in text
-    assert "https://modelspec.dev/b/" not in text
-    for path in re.findall(r"^json: https://modelspec\.dev(/api/\S+)$", text, re.M):
-        assert (dist / "modelspec" / path.lstrip("/")).is_file(), path
-    assert "json: https://modelspec.dev/api/models/" in text
-    assert "json: https://modelspec.dev/api/benchmarks/" in text
-    assert not (dist / "benchgraph" / "llms-full.txt").exists()
+def test_the_built_tree_has_no_catalogue_digest(dist: Path) -> None:
+    """MODEL-251: a frozen catalogue dump is not something engines should quote."""
+    assert not (dist / "modelspec" / "llms-full.txt").exists()
+    assert "llms-full.txt" not in (dist / "modelspec" / "llms.txt").read_text(encoding="utf-8")
 
 
 def test_built_openapi_and_functions_uploaded_alongside(dist: Path) -> None:
@@ -421,3 +400,28 @@ def test_auth_md_opens_with_the_auth_md_heading(tmp_path):
     from pathlib import Path
     root = Path(__file__).resolve().parents[1]
     assert auth_markdown(root).splitlines()[0] == "# Auth.md"
+
+
+@pytest.mark.parametrize("document", ["auth", "llms", "skill"])
+def test_published_auth_copy_separates_mcp_from_hosted_api(document: str) -> None:
+    text = {
+        "auth": ar.auth_markdown(ROOT),
+        "llms": ar.modelspec_landing_markdown([], [], BUILD),
+        "skill": ar.skill_markdown(),
+    }[document]
+    assert "MCP decision tools rank, policy_check and decide require `Authorization: Bearer <key>`." in text
+    assert "MCP model_info, list_use_cases, vocab and feedback stay keyless." in text
+    assert "Today, hosted API requests without a key are served while ACCESS_ENFORCED is off." in text
+    assert "with a paid API key" not in text
+    assert "Requires a paid API key" not in text
+    if document == "auth":
+        free_tier = text.split("### Hosted API free tier (no key)")[1].split("### MCP")[0]
+        assert "MCP" not in free_tier
+        assert "has 7 tools" in text
+
+
+def test_documented_mcp_tools_match_registered_tools() -> None:
+    source = (ROOT / "mcp/src/server.ts").read_text()
+    registered = re.findall(r'server\.registerTool\(\s*"([^"]+)"', source)
+    assert set(ar.MCP_TOOLS) == set(registered)
+    assert len(ar.MCP_TOOLS) == len(registered) == 7

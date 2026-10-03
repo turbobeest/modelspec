@@ -45,6 +45,10 @@ DEFAULT_OUTPUT = PROJECT_ROOT / "benchmarks" / "_census" / "fetch_manifest.json"
 #: BenchmarkEvidence. Date policy distinguishes a static published result from
 #: a live leaderboard reading — see BENCHMARK_WRITE_RULE.
 BENCHMARK_WRITE_RULE = (
+    "Before writing evidence, call schema.benchmark_values.validate_rows(root, rows) "
+    "against the target data root's benchmark metrics. Refuse nonfinite or out-of-range "
+    "scores and units that disagree with the declared scale. Convert a published scale "
+    "only when primary evidence establishes the units, and record that conversion. "
     "Any scraped benchmark value MUST be written as schema.card.BenchmarkEvidence "
     "with source_url (http/https), source_kind (benchmark_author | "
     "independent_evaluator | provider_self_report), evidence_date (YYYY-MM-DD), "

@@ -20,6 +20,8 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  schedule:
+    - cron: "17 */6 * * *"
 
 permissions:
   contents: read
@@ -32,11 +34,13 @@ concurrency:
 env:
   # Pinned. Python dependencies are resolved by pywrangler, which delegates the
   # final bundle to this local Wrangler installation.
+  DATA_SPLIT_ENABLED: ${{ vars.DATA_SPLIT_ENABLED }}
   WRANGLER_VERSION: 4.139.0
   RANK_HOST: api.modelspec.dev
 
 jobs:
   bundle:
+    if: github.event_name != 'schedule' || vars.DATA_SPLIT_ENABLED == 'true'
     name: Rank Worker bundle
     runs-on: ubuntu-latest
     steps:
@@ -45,12 +49,12 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
-          cache: pip
+          cache: ${{ vars.DATA_SPLIT_ENABLED != 'true' && 'pip' || '' }}
 
       - uses: astral-sh/setup-uv@v6
         with:
           version: '0.12.19'
-          enable-cache: true
+          enable-cache: ${{ vars.DATA_SPLIT_ENABLED != 'true' }}
 
       - uses: actions/setup-node@v4
         with:
@@ -117,6 +121,10 @@ jobs:
         run: python -m pytest -q tests/test_policy_check.py
 
       - name: The OpenAPI spec still describes the implementation
+        env:
+          # The committed spec is the unchanged flag-off document. Enabled
+          # builds render their additional route directly from the generator.
+          DATA_SPLIT_ENABLED: 'false'
         # MODEL-72. openapi.yaml is generated from rank_service, entry.py and the
         # scorer; --check fails if it was edited by hand or left stale after a
         # change to any of them. tests/test_api_docs.py holds the other half:
@@ -137,6 +145,30 @@ jobs:
         # pywrangler dropping a repository package while it syncs dependencies.
         run: python bundle_check.py ../../dist/rank-worker
 
+      - name: Measure full snapshot memory with public fixtures
+        id: memory-public
+        continue-on-error: true
+        # No private checkout or secret on PRs. Exercise the enabled bundle with
+        # a synthetic key, then restore the ordinary credential-free bundle.
+        env:
+          MODELSPEC_SNAPSHOT_KEY: model247-ci-fixture-key
+        run: |
+          python -m pip install "cryptography>=43,<46"
+          python api/worker/vendor.py --data-dir .
+          npm install --prefix "$RUNNER_TEMP/memory" --no-save pyodide@0.28.3
+          NODE_PATH="$RUNNER_TEMP/memory/node_modules" node --expose-gc api/worker/measure_memory.cjs api/worker/src
+
+      - name: Report public memory probe
+        if: always()
+        env:
+          PROBE_OUTCOME: ${{ steps.memory-public.outcome }}
+        run: |
+          echo "Public memory probe (warning only): $PROBE_OUTCOME; enabled private deploys enforce 120 MiB steady memory and warn at 112 MiB peak." >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Restore the credential-free bundle
+        if: always()
+        run: python api/worker/vendor.py --check
+
       - name: Summarise
         run: |
           {
@@ -151,7 +183,7 @@ jobs:
   deploy-staging:
     name: Deploy the staging rank Worker
     needs: bundle
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' && (vars.DATA_SPLIT_ENABLED != 'true' || github.ref == 'refs/heads/main')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -165,6 +197,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Require the private checkout credential
+        if: vars.DATA_SPLIT_ENABLED == 'true' && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule')
+        env:
+          DATA_TOKEN: ${{ secrets.MODELSPEC_DATA_TOKEN }}
+        run: test -n "$DATA_TOKEN"
+
+      - uses: actions/checkout@v4
+        if: vars.DATA_SPLIT_ENABLED == 'true' && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule')
+        with:
+          repository: turbobeest/modelspec-data
+          token: ${{ secrets.MODELSPEC_DATA_TOKEN }}
+          path: modelspec-data
+          persist-credentials: false
+
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
@@ -172,14 +218,31 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           version: '0.12.19'
-          enable-cache: true
+          enable-cache: ${{ vars.DATA_SPLIT_ENABLED != 'true' }}
 
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
 
       - name: Vendor the scorer into the Worker bundle
-        run: python api/worker/vendor.py
+        env:
+          MODELSPEC_REQUIRE_DATA_DIR: ${{ vars.DATA_SPLIT_ENABLED == 'true' && github.ref == 'refs/heads/main' && '1' || '0' }}
+          MODELSPEC_SNAPSHOT_KEY: ${{ secrets.MODELSPEC_SNAPSHOT_KEY }}
+        run: |
+          args=()
+          if [ -d modelspec-data ]; then
+            python -m pip install "pydantic==2.13.5" "PyYAML==6.0.3" "httpx==0.28.1" "cryptography>=43,<46"
+            args+=(--data-dir modelspec-data)
+          fi
+          python api/worker/vendor.py "${args[@]}"
+
+      - name: Check private steady bundle memory against 120 MiB
+        if: vars.DATA_SPLIT_ENABLED == 'true' && github.ref == 'refs/heads/main'
+        env:
+          MODELSPEC_SNAPSHOT_KEY: ${{ secrets.MODELSPEC_SNAPSHOT_KEY }}
+        run: |
+          npm install --prefix "$RUNNER_TEMP/memory" --no-save pyodide@0.28.3
+          NODE_PATH="$RUNNER_TEMP/memory/node_modules" node --expose-gc api/worker/measure_memory.cjs api/worker/src
 
       - name: Resolve the Worker's Python dependencies
         run: |
@@ -203,7 +266,7 @@ jobs:
   deploy:
     name: Deploy the rank Worker
     needs: bundle
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' || vars.DATA_SPLIT_ENABLED == 'true' && (github.event_name == 'workflow_dispatch' || github.event_name == 'schedule') && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -213,13 +276,26 @@ jobs:
     env:
       # Scoped to Workers Scripts:Edit, Workers KV Storage:Edit and Workers
       # Routes:Edit on the modelspec.dev zone. No DNS, no R2, no Containers.
-      # CLOUDFLARE_API_TOKEN (Pages) and CLOUDFLARE_GRAPH_API_TOKEN (benchgraph)
-      # are different credentials and are not used here.
+      # CLOUDFLARE_API_TOKEN (Pages) is a different credential and is not used here.
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_MODELSPEC_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       MODELSPEC_SNAPSHOT_KEY: ${{ secrets.MODELSPEC_SNAPSHOT_KEY }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Require the private checkout credential
+        if: vars.DATA_SPLIT_ENABLED == 'true' && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule')
+        env:
+          DATA_TOKEN: ${{ secrets.MODELSPEC_DATA_TOKEN }}
+        run: test -n "$DATA_TOKEN"
+
+      - uses: actions/checkout@v4
+        if: vars.DATA_SPLIT_ENABLED == 'true' && github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch' || github.event_name == 'schedule')
+        with:
+          repository: turbobeest/modelspec-data
+          token: ${{ secrets.MODELSPEC_DATA_TOKEN }}
+          path: modelspec-data
+          persist-credentials: false
 
       - uses: actions/setup-python@v5
         with:
@@ -228,14 +304,31 @@ jobs:
       - uses: astral-sh/setup-uv@v6
         with:
           version: '0.12.19'
-          enable-cache: true
+          enable-cache: ${{ vars.DATA_SPLIT_ENABLED != 'true' }}
 
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
 
       - name: Vendor the scorer into the Worker bundle
-        run: python api/worker/vendor.py
+        env:
+          MODELSPEC_REQUIRE_DATA_DIR: ${{ vars.DATA_SPLIT_ENABLED == 'true' && github.ref == 'refs/heads/main' && '1' || '0' }}
+          MODELSPEC_SNAPSHOT_KEY: ${{ secrets.MODELSPEC_SNAPSHOT_KEY }}
+        run: |
+          args=()
+          if [ -d modelspec-data ]; then
+            python -m pip install "pydantic==2.13.5" "PyYAML==6.0.3" "httpx==0.28.1" "cryptography>=43,<46"
+            args+=(--data-dir modelspec-data)
+          fi
+          python api/worker/vendor.py "${args[@]}"
+
+      - name: Check private steady bundle memory against 120 MiB
+        if: vars.DATA_SPLIT_ENABLED == 'true' && github.ref == 'refs/heads/main'
+        env:
+          MODELSPEC_SNAPSHOT_KEY: ${{ secrets.MODELSPEC_SNAPSHOT_KEY }}
+        run: |
+          npm install --prefix "$RUNNER_TEMP/memory" --no-save pyodide@0.28.3
+          NODE_PATH="$RUNNER_TEMP/memory/node_modules" node --expose-gc api/worker/measure_memory.cjs api/worker/src
 
       - name: Resolve the Worker's Python dependencies
         run: |
@@ -277,6 +370,10 @@ jobs:
       - name: Smoke-test api.modelspec.dev
         run: |
           set -uo pipefail
+          if [ "$DATA_SPLIT_ENABLED" = "true" ]; then
+            python3 .github/scripts/check_private_rank.py --host "$RANK_HOST" --commit "$GITHUB_SHA"
+            exit 0
+          fi
           host="${RANK_HOST}"
           checker=".github/scripts/check_rank_response.py"
           probe_path=""; status=""
@@ -286,7 +383,7 @@ jobs:
           # `body.json` is truncated first: a transport failure must never leave
           # the previous response in place to be read as this one's answer.
           #
-          # `|| echo 000` keeps a failed curl from killing the step. This step
+          # The fallback status keeps a failed curl from killing the step. This step
           # runs under GitHub's default `bash -e`; `set -uo pipefail` above does
           # not turn that off, so any unguarded non-zero exit — including one
           # inside `x=$(...)` — ends the run on the spot with no annotation.
@@ -294,7 +391,7 @@ jobs:
             probe_path="$1"; shift
             : > body.json
             status=$(curl -sS -o body.json -w '%{http_code}' --max-time 60 \
-              "https://${host}${probe_path}" "$@" || echo 000)
+              "https://${host}${probe_path}" "$@") || status=000
           }
 
           # What the last response actually was, on one line: status, the
@@ -345,7 +442,7 @@ jobs:
             sleep 10
           done
           if [ "$status" = 000 ]; then
-            fail "${host} is unreachable after 5 min. A 522 or a refused connection means the Workers route is not bound to the proxied DNS record for ${host} (AAAA -> 100::, proxied). See docs/rank-api.md."
+            fail "the rank Worker is unreachable after 5 min. A 522 or a refused connection means the Workers route is not bound to the proxied DNS record for ${host} (AAAA -> 100::, proxied). See docs/rank-api.md."
           fi
           if [ "$status" != 200 ] || [ "$commit" != "${GITHUB_SHA}" ]; then
             fail "the rank Worker never rolled onto ${GITHUB_SHA}: GET /v1/health reports service_commit=${commit:-none} after 5 min. An older script is still answering, or the route never bound, so nothing in this deploy was exercised."
@@ -441,4 +538,9 @@ jobs:
           python3 api/worker/openapi.py --probe "https://${RANK_HOST}" \
             || fail "a request built only from api/worker/openapi.yaml does not work against ${RANK_HOST}"
 
-          echo "api.modelspec.dev is live on ${GITHUB_SHA}"
+          echo "Worker is live on ${GITHUB_SHA}"
+
+      - name: Decision latency smoke (warning only)
+        # Existing smokes carry no API key. The probe records a skip when
+        # anonymous decide calls are keyed; BUILD_COMMIT is identity only.
+        run: python3 .github/scripts/check_decide_latency.py --host "$RANK_HOST"

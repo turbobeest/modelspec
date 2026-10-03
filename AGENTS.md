@@ -57,5 +57,8 @@ or `-n auto --dist loadfile` (what the "Run pytest" check uses).
 - MODEL-68/69/73/75/93 are built (rank Worker, keys, Stripe Checkout, x402,
   credit ledger). `ACCESS_ENFORCED`, `BILLING_ENABLED` and `X402_ENABLED` ship
   off; turning one on, or adding live Stripe keys, is Jamie's call.
+- MODEL-221 feedback storage. `FEEDBACK_ENABLED` ships off and no `FEEDBACK`
+  namespace is bound until Jamie adopts the wording in
+  `docs/design/feedback-privacy.md`. Never run the feedback digest in CI.
 - Auto-merge of `research/*`. Daily-research PRs need a human. They are opened
   with the `RESEARCH_PR_TOKEN` PAT, so required checks run and they can merge.

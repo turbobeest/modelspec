@@ -10,6 +10,7 @@ from math import inf, isfinite, sqrt
 from decision import bands as bands_module
 from decision import estate as estate_module
 from decision import plans as plans_module
+from decision import reading as reading_module
 from decision.by_model import build_by_model
 from decision.computed import with_computed
 from decision.contract import (
@@ -20,6 +21,7 @@ from decision.contract import (
     InventoryProfile,
     Issue,
     MayQualify,
+    ModelEvidence,
     OfferingRef,
     RefinementEstimate,
     Result,
@@ -438,6 +440,7 @@ def decide(
     evidence_selectors: Mapping[str, EvidenceSelector] | None = None,
     _filter_trace: Callable[[FilterResult], None] | None = None,
     comparison: bool = False,
+    _capture_evidence: tuple[str, Callable[[ModelEvidence], None]] | None = None,
 ) -> Decision:
     """Return a reproducible decision. Explanation work is skipped at ``none``.
 
@@ -456,7 +459,7 @@ def decide(
         return _decide(
             spec, snapshot, facets=facets, profiles=profiles,
             evidence_selectors=evidence_selectors, _filter_trace=_filter_trace,
-            comparison=comparison,
+            comparison=comparison, _capture_evidence=_capture_evidence,
         )
     if spec.estate is not None:
         estate_module.check(spec.estate, snapshot)
@@ -469,14 +472,14 @@ def decide(
         return _decide(
             spec, snapshot, facets=facets, profiles=profiles,
             evidence_selectors=evidence_selectors, _filter_trace=_filter_trace,
-            comparison=comparison, _reach=routes,
+            comparison=comparison, _capture_evidence=_capture_evidence, _reach=routes,
         )
     question = spec.model_copy(update={"estate": None})
     capture: dict = {}
     decision = _decide(
         question, snapshot, facets=facets, profiles=profiles,
         evidence_selectors=evidence_selectors, _filter_trace=_filter_trace,
-        comparison=comparison, _capture=capture, _identity=spec, _reach=routes,
+        comparison=comparison, _capture_evidence=_capture_evidence, _capture=capture, _identity=spec, _reach=routes,
     )
 
     def run(reach, limit):
@@ -492,6 +495,10 @@ def decide(
         decision, capture["models"], capture["rows"], capture["computed"])
     decision.with_estate = estate_module.with_estate(
         spec.estate, snapshot, unrestricted, run, spec.limit, spec.access, catalogue)
+    reading_inputs = capture["reading_inputs"]
+    if spec.estate.devices and (spec.access is None or spec.access.kind == "own_hardware"):
+        reading_inputs["hardware_fit"] = True
+    decision.reading = reading_module.for_decision(decision, **reading_inputs)
     return decision
 
 
@@ -504,6 +511,7 @@ def _decide(
     evidence_selectors: Mapping[str, EvidenceSelector] | None = None,
     _filter_trace: Callable[[FilterResult], None] | None = None,
     comparison: bool = False,
+    _capture_evidence: tuple[str, Callable[[ModelEvidence], None]] | None = None,
     _reach=None,
     _capture: dict | None = None,
     _identity: Spec | None = None,
@@ -630,31 +638,15 @@ def _decide(
         offerings=sum(snapshot.kind(row.candidate_id) == "offering" for row in omitted_rows),
         models=len(omitted_models),
     )
-    results = []
-    model_ranks: dict[str, int] = {}
-    for i, row in enumerate(returned_rows):
-        model_id = snapshot.model_of(row.candidate_id)
-        model_ranks.setdefault(model_id, len(model_ranks) + 1)
-        stored_estimates = [
-            (domain, snapshot.capability_estimate(row.candidate_id, domain))
-            for domain in shown_domains
-        ]
-        estimates = [
-            Estimate(domain=domain, value=estimate.value, interval=(estimate.low, estimate.high))
-            for domain, estimate in stored_estimates
-            if estimate is not None
-        ]
-        nested = [
-            _refinement_estimate(key, snapshot.refinement_estimate(row.candidate_id, key))
-            for key in shown_refinements
-        ]
-        nested = [estimate for estimate in nested if estimate is not None]
+
+    def row_warnings(row, model_id):
         warnings = list(row.warnings)
         if row.candidate_id in filtered.deprecated:
             warnings.append("deprecated")
-        if any(estimate.domain in proxy_only_domains for estimate in estimates) or any(
-            estimate.key in proxy_only_refinements and estimate.evidence_count
-            for estimate in nested
+        if any(domain in proxy_only_domains and snapshot.capability_estimate(row.candidate_id, domain)
+               for domain in shown_domains) or any(
+            key in proxy_only_refinements and (found := snapshot.refinement_estimate(row.candidate_id, key))
+            and found.evidence_count for key in shown_refinements
         ):
             warnings.append("proxy_evidence_only")
         current = model_estimates.get(model_id)
@@ -677,6 +669,28 @@ def _decide(
             and "not_separable" not in warnings
         ):
             warnings.append("not_separable")
+        return warnings
+
+    results = []
+    model_ranks: dict[str, int] = {}
+    for i, row in enumerate(returned_rows):
+        model_id = snapshot.model_of(row.candidate_id)
+        model_ranks.setdefault(model_id, len(model_ranks) + 1)
+        stored_estimates = [
+            (domain, snapshot.capability_estimate(row.candidate_id, domain))
+            for domain in shown_domains
+        ]
+        estimates = [
+            Estimate(domain=domain, value=estimate.value, interval=(estimate.low, estimate.high))
+            for domain, estimate in stored_estimates
+            if estimate is not None
+        ]
+        nested = [
+            _refinement_estimate(key, snapshot.refinement_estimate(row.candidate_id, key))
+            for key in shown_refinements
+        ]
+        nested = [estimate for estimate in nested if estimate is not None]
+        warnings = row_warnings(row, model_id)
         p_best, top3 = probabilities.get(model_id, (None, None))
         plan_routes = (
             _plan_routes(row.candidate_id, snapshot, access, _reach)
@@ -737,8 +751,23 @@ def _decide(
         truncated=truncated,
         out_of_lineup=getattr(snapshot, "out_of_lineup", 0),
     )
+    from decision.explain import named_facets
+
+    quality_dimensions = domains | set(snapshot.benchmark_ids()) | {"any"}
+    quality_objective = all(split_dimension(name.removeprefix("-"))[0]
+                            in quality_dimensions for name in names)
+    reading_inputs = {
+        "hardware_fit": (reading_module.HARDWARE_FIT in named_facets(resolved)
+                         or (spec.access is not None and spec.access.kind == "own_hardware")),
+        "quality_objective": quality_objective,
+        "not_applied": sorted(requested - domains),
+    }
+    if _capture is not None:
+        _capture["reading_inputs"] = reading_inputs
+    decision.reading = reading_module.for_decision(decision, **reading_inputs)
     cost_of = _offering_costs(snapshot)
-    decision.by_model = build_by_model(decision, cost_of)
+    if spec.explain != "full":
+        decision.by_model = build_by_model(decision, cost_of)
     if spec.explain != "none":
         from decision.explain import explain
 
@@ -748,4 +777,25 @@ def _decide(
         )
         if spec.explain == "full":
             decision.by_model = build_by_model(decision, cost_of)
+    if _capture_evidence is not None:
+        from decision.explain import contributions, domain_evidence
+
+        model_id, sink = _capture_evidence
+        snapshot.require_explanation_records()
+        ranked = [(index, row) for index, row in enumerate(ordered.results, 1)
+                  if snapshot.model_of(row.candidate_id) == model_id]
+        candidates = [cid for cid in snapshot.candidates() if snapshot.model_of(cid) == model_id]
+        position, row = ranked[0] if ranked else (None, None)
+        cid = row.candidate_id if row is not None else candidates[0]
+        unknown = sorted({facet for item in decision.may_qualify if item.model == model_id
+                          for facet in item.unknown})
+        groups = domain_evidence(snapshot, cid, requested | set(objective_domains))
+        sink(ModelEvidence(
+            model=model_id, status="ranked" if ranked else "may_qualify" if unknown else "eliminated",
+            offering=offering_ref(snapshot, cid), rank=position, evidence=groups,
+            contributions=[] if row is None else contributions(snapshot, cid, row.contributions, groups),
+            unknown=unknown, warnings=[] if row is None else row_warnings(row, model_id),
+            reasons=sorted({item.condition for item in filtered.eliminated
+                            if snapshot.model_of(item.candidate) == model_id}),
+        ))
     return decision

@@ -127,11 +127,26 @@ nav > a:not(.button) {
   color: var(--light) !important;
   padding: 13px 22px;
 }
+/* Hero call to action: the agent path is the filled, high-contrast button
+   (navy on green, about 7:1); the board is the outlined alternative. */
+.cta-agents {
+  background: var(--green);
+  color: var(--navy) !important;
+  box-shadow: 0 0 0 3px rgba(63, 182, 139, 0.25);
+}
+.cta-agents:hover {
+  filter: brightness(1.08);
+}
+.board-alt {
+  border: 2px solid var(--yellow);
+  color: var(--light) !important;
+  padding: 13px 22px;
+}
 .hero {
   min-height: 880px;
   padding: 64px 64px 80px 72px;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) min(760px, 60%);
+  grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
   gap: 48px;
 }
 .hero-copy {
@@ -153,6 +168,19 @@ nav > a:not(.button) {
   color: #fff;
   font-size: clamp(40px, 3.75vw, 54px);
   line-height: 1;
+}
+.h1-lead,
+.h1-sub {
+  display: block;
+}
+.h1-sub {
+  margin-top: 0.15em;
+}
+/* Both headline lines: one size, in the brand yellow (Jamie, 2026-09-30). */
+.hero h1,
+.hero h1 .h1-lead,
+.hero h1 .h1-sub {
+  color: var(--yellow);
 }
 .eyebrow,
 .kicker {
@@ -180,15 +208,11 @@ nav > a:not(.button) {
   clip: rect(0 0 0 0);
   white-space: nowrap;
 }
-.fud,
 .close {
   margin: 0;
   max-width: 560px;
   font-size: 23px;
   line-height: 1.45;
-}
-.fud {
-  color: var(--muted);
 }
 .close {
   border-top: 2px solid var(--green);
@@ -203,7 +227,8 @@ nav > a:not(.button) {
 }
 .plot {
   margin: 0;
-  padding-top: 24px;
+  /* Top-aligned with the headline, which now opens the copy column (no eyebrow). */
+  padding-top: 56px;
   display: flex;
   flex-direction: column;
   gap: 14px;
@@ -696,13 +721,9 @@ footer a {
     font-size: 32px;
     order: 0;
   }
-  .fud {
-    font-size: 18px;
-    order: 1;
-  }
   .plot {
     padding: 0;
-    order: 2;
+    order: 3;
     gap: 10px;
   }
   .chips {
@@ -724,17 +745,15 @@ footer a {
   .close {
     font-size: 18px;
     padding-top: 14px;
-    order: 3;
+    order: 1;
   }
   .actions {
-    order: 4;
+    order: 2;
   }
-  .actions .primary,
+  .actions .cta-agents,
+  .actions .board-alt,
   .actions .board-status {
     width: 100%;
-  }
-  .actions .secondary {
-    display: none;
   }
   .receipt {
     padding: 44px var(--right) 44px var(--left);
@@ -961,7 +980,8 @@ footer a {
     background: rgba(11, 20, 38, 0.96);
     border-top: 1px solid #1d2c48;
   }
-  .sticky .primary,
+  .sticky .cta-agents,
+  .sticky .board-alt,
   .sticky .board-status {
     flex: 1;
   }

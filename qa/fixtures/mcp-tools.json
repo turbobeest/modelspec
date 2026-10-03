@@ -1,0 +1,1891 @@
+{
+  "source_hashes": {
+    "mcp/src/server.ts": "1a48f780f0cfcd6ea82bc0d1a3b6df48eb4c236d82f25e1fcafc1f1ccb4ea994",
+    "mcp/src/vocabulary.ts": "44b35f6885f2c91597dd3f2bf29bb41634be7983dbf14a6d44ea15abb0e85a24",
+    "mcp/test/fixtures/decide-budget.json": "4d28b1dc876ed3ad4d17cb5438146696525fa7bd56b917c242dab23a3ad9de98",
+    "docs/decision-contract.schema.json": "9b70bf707f23ba1a236fe2f29e502377bc95d2213973df0acd89faee6c6afc32",
+    "api/worker/openapi.yaml": "181aedf7b20d43dd806ae206a23fb44bf5668add89251a5348614102919a17dd",
+    "docs/agents.md": "ed9301ac54e198cb3c6a241a5ce6442ed9c3fd7f7e8d12b9c7f81cbd9397b090",
+    "mcp/src/agent-copy.json": "88e55fd1ced8334d17f9ba98cdfd05592be949f0576e90a02c97cf867c8cc5df"
+  },
+  "tools": [
+    {
+      "name": "rank",
+      "description": "Legacy v1; use decide for new work. Which models rank highest for one fixed use-case profile? Returns a shortlist for that profile with evidence_basis, which is input provenance (none, unverified-legacy, mixed, partial-verified, verified), not a quality verdict. Needs an API key (Authorization: Bearer). Costs 1 credit a call; a credit costs $0.0017–$0.004 depending on the plan or pack (https://modelspec.dev/pricing/). Don't call it when you can state requirements: decide takes them, rank doesn't. Proxies POST https://api.modelspec.dev/v1/rank with this tool's arguments as the JSON body. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
+      "input_schema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "use_case": {
+            "type": "string",
+            "description": "Ranking profile id, as published in /api/rank/profiles.json"
+          },
+          "environment": {
+            "type": "object",
+            "properties": {
+              "hardware": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "hosting": {
+                "type": [
+                  "string",
+                  "null"
+                ],
+                "enum": [
+                  "local",
+                  "managed_api",
+                  "self_hosted",
+                  null
+                ],
+                "x-meaning": {
+                  "local": "on the caller's own machine; requires downloadable weights",
+                  "managed_api": "a provider or gateway API; no weights requirement",
+                  "self_hosted": "on infrastructure the caller runs; requires downloadable weights"
+                }
+              },
+              "runtime": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            }
+          },
+          "constraints": {
+            "type": "object",
+            "properties": {
+              "open_weights": {
+                "type": [
+                  "boolean",
+                  "null"
+                ]
+              },
+              "max_cost_per_million_input_tokens": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "price_sensitivity": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "include_rehosts": {
+                "type": "boolean"
+              }
+            }
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 100
+          }
+        },
+        "required": [
+          "use_case"
+        ]
+      }
+    },
+    {
+      "name": "model_info",
+      "description": "What does ModelSpec's published card say about one model? Reads https://modelspec.dev/api/models/<model_id>.json (model_id is provider/slug). With data splitting enabled, returns only the model's display name from the Worker vocabulary. Free, no key. Not current evidence and not a ranking: use decide for that. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "model_id": {
+            "type": "string",
+            "description": "Catalogue id, e.g. openai/gpt-5-6"
+          }
+        },
+        "required": [
+          "model_id"
+        ]
+      }
+    },
+    {
+      "name": "list_use_cases",
+      "description": "Which ranking profiles exist, and what is the ranking policy? Returns https://modelspec.dev/api/rank/profiles.json: the profiles, the evidence floors and the neutrality commitment, as data. Free, no key. Not a decision: use decide for that. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
+      "input_schema": {
+        "type": "object",
+        "properties": {}
+      }
+    },
+    {
+      "name": "policy_check",
+      "description": "Which models, on which platforms, does my policy allow? Checks a policy document (licence, origin, data handling) per model and per platform. Returns pass, fail or undetermined for each row; undetermined is not a pass. Needs an API key (Authorization: Bearer). Costs 5 credits a call; a credit costs $0.0017–$0.004 depending on the plan or pack (https://modelspec.dev/pricing/). It doesn't choose a model: use decide to choose among the ones that pass. Proxies POST https://api.modelspec.dev/v1/policy-check with this tool's arguments as the JSON body; Authorization is forwarded. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
+      "input_schema": {
+        "type": "object",
+        "additionalProperties": true,
+        "properties": {
+          "policy": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "licence": {
+                "type": "object",
+                "properties": {
+                  "allowed": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "prohibited": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "origin": {
+                "type": "object",
+                "properties": {
+                  "permitted_countries": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "prohibited_countries": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              "residency": {
+                "type": "object",
+                "properties": {
+                  "required_regions": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "match": {
+                    "type": "string",
+                    "enum": [
+                      "any",
+                      "all"
+                    ]
+                  }
+                }
+              },
+              "commercial_use": {
+                "type": "object",
+                "properties": {
+                  "accept_restricted": {
+                    "type": "boolean"
+                  },
+                  "required": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            },
+            "additionalProperties": true
+          },
+          "require_no_undetermined": {
+            "type": "boolean"
+          },
+          "models": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 500
+          },
+          "platforms": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "ai21_labs",
+                "aws_bedrock",
+                "azure_ai_foundry",
+                "baidu_ernie",
+                "bytedance_doubao",
+                "cerebras",
+                "chatgpt",
+                "claude_ai",
+                "cohere",
+                "copilot_microsoft",
+                "cursor",
+                "deepinfra",
+                "deepseek",
+                "fireworks_ai",
+                "gemini_app",
+                "github_copilot",
+                "google_vertex_ai",
+                "gpt4all",
+                "grok_xai",
+                "groq",
+                "huggingface",
+                "ibm_watsonx",
+                "jan_ai",
+                "kaggle_models",
+                "lm_studio",
+                "meta_ai",
+                "minimax",
+                "mistral_plateforme",
+                "mlx_community",
+                "modelscope",
+                "moonshot_kimi",
+                "nvidia_nim",
+                "ollama",
+                "open_webui",
+                "openrouter",
+                "perplexity",
+                "poe",
+                "qwen_alibaba",
+                "raycast",
+                "replicate",
+                "sambanova",
+                "samsung_gauss",
+                "snowflake_cortex",
+                "stability_ai",
+                "tencent_hunyuan",
+                "tii_falcon",
+                "together_ai",
+                "upstage_solar",
+                "zero_one_ai",
+                "zhipu_glm"
+              ]
+            }
+          },
+          "verdicts": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "pass",
+                "fail",
+                "undetermined"
+              ]
+            }
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 500
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "policy"
+        ]
+      }
+    },
+    {
+      "name": "decide",
+      "description": "Which models fit this job? Returns answer, ranked results, may_qualify, reading and recovery hints, decision_id and snapshot. Read reading when present. Present answer.kind=tied as a tie among all answer.members, never a single winner; tie-breakers are conditional choices. Report a tied with_estate.answer as a tie too. State requirements in reading.not_applied or error.issues that were not applied, including requirements removed after a rejected call. A retry does not verify them. Report estimates as estimates: fits_hardware membership is not measured fit for a specific quantization and context workload. Follow reading.do_not_claim. Never claim a rank the response does not show. Needs an API key (Authorization: Bearer). Costs 1 or 2 credits a call; a credit costs $0.0017–$0.004 depending on the plan or pack (https://modelspec.dev/pricing/). Not a router: call it once per job or role, not per request, then route among the models it recommends. Proxies POST https://api.modelspec.dev/v1/decide. Call decide early with a template-based Spec; refine from reading and recovery hints. Use vocab section=starter only when you need a facet id; use search for a targeted lookup. Put Musts in where: these gates exclude. Put Prefers in optimize.weights: weights rank and never exclude. Unknown values go to may_qualify. Pin snapshot for reproducibility. Minimal valid Spec: {\"spec_version\":1,\"optimize\":{\"min\":\"offering.cost_per_task\"}}. MCP decide returns a bounded answer by default; drill down with evidence_for, or ask for full rows with fields:null/explain. With explain unset or \"none\" it sends explain=none, limit=10 and row fields model_rank, cost_per_task, estimates and p_best, and the body says representation: bounded. The answer, reading, warnings and ties stay complete; explanation.omitted counts the sections left out. At explain=none eliminations are not computed, so a missing eliminated count does not mean nothing was screened out; ask explain=summary to count them. To see one model's evidence, status, rank and elimination reasons, resend the same spec with its returned snapshot and evidence_for: <model id>; that stateless call stays within 2k estimated tokens. For full rows pass fields: null, or set explain to summary or full, which return full rows unless you also pass fields. Full includes every eliminated candidate and can exceed the client context budget. decision_id is a citation, not a stored lookup. task free text is rejected; where is an array. Report any requirement dropped on retry. Call shape, examples, recovery and budgets: https://modelspec.dev/agents.md. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
+      "input_schema": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$defs": {
+          "DecideRequest": {
+            "additionalProperties": false,
+            "properties": {
+              "access": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/Access"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null
+              },
+              "capabilities": {
+                "anyOf": [
+                  {
+                    "patternProperties": {
+                      "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$": {
+                        "enum": [
+                          "required",
+                          "preferred"
+                        ],
+                        "type": "string"
+                      }
+                    },
+                    "type": "object"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Capabilities"
+              },
+              "estate": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/Estate"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null
+              },
+              "evidence_for": {
+                "anyOf": [
+                  {
+                    "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Evidence For"
+              },
+              "exclude_benchmarks": {
+                "items": {
+                  "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
+                  "type": "string"
+                },
+                "title": "Exclude Benchmarks",
+                "type": "array"
+              },
+              "explain": {
+                "default": "none",
+                "enum": [
+                  "none",
+                  "summary",
+                  "full"
+                ],
+                "title": "Explain",
+                "type": "string"
+              },
+              "fields": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "enum": [
+                        "rank",
+                        "model",
+                        "model_rank",
+                        "offering",
+                        "cost_per_task",
+                        "harness",
+                        "effort",
+                        "evidence",
+                        "estimates",
+                        "refinement_estimates",
+                        "p_best",
+                        "top3_stability",
+                        "soft_penalty",
+                        "contributions",
+                        "warnings",
+                        "plans"
+                      ],
+                      "type": "string"
+                    },
+                    "maxItems": 16,
+                    "minItems": 1,
+                    "type": "array"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": [
+                  "model_rank",
+                  "cost_per_task",
+                  "estimates",
+                  "p_best"
+                ],
+                "title": "Fields"
+              },
+              "limit": {
+                "default": 10,
+                "maximum": 500,
+                "minimum": 1,
+                "title": "Limit",
+                "type": "integer"
+              },
+              "optimize": {
+                "$ref": "#/$defs/Objective"
+              },
+              "profile": {
+                "anyOf": [
+                  {
+                    "oneOf": [
+                      {
+                        "pattern": "^profile:[a-z0-9][a-z0-9-]*$",
+                        "type": "string"
+                      },
+                      {
+                        "$ref": "#/$defs/InventoryProfile"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Profile"
+              },
+              "save_as": {
+                "anyOf": [
+                  {
+                    "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Save As"
+              },
+              "snapshot": {
+                "anyOf": [
+                  {
+                    "const": "latest"
+                  },
+                  {
+                    "pattern": "^snap_[A-Za-z0-9:._-]+$",
+                    "type": "string"
+                  }
+                ],
+                "default": "latest",
+                "title": "Snapshot"
+              },
+              "spec_version": {
+                "const": 1,
+                "title": "Spec Version",
+                "type": "integer"
+              },
+              "task": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Task"
+              },
+              "task_tokens": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/TaskTokens"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null
+              },
+              "task_type": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "new_feature",
+                      "bug_fix",
+                      "refactor",
+                      "test_writing",
+                      "docs",
+                      "migration",
+                      "performance",
+                      "security_fix",
+                      "review",
+                      "analysis",
+                      "data_transform",
+                      "config_infra"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Task Type"
+              },
+              "unknowns": {
+                "const": "default",
+                "default": "default",
+                "title": "Unknowns",
+                "type": "string"
+              },
+              "where": {
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "$ref": "#/$defs/Compare"
+                    },
+                    {
+                      "$ref": "#/$defs/Window"
+                    },
+                    {
+                      "$ref": "#/$defs/InSet"
+                    },
+                    {
+                      "$ref": "#/$defs/Known"
+                    },
+                    {
+                      "$ref": "#/$defs/AnyOf"
+                    },
+                    {
+                      "$ref": "#/$defs/AllOf"
+                    },
+                    {
+                      "$ref": "#/$defs/NotOf"
+                    }
+                  ]
+                },
+                "title": "Where",
+                "type": "array"
+              }
+            },
+            "required": [
+              "spec_version",
+              "optimize"
+            ],
+            "title": "DecideRequest",
+            "type": "object"
+          },
+          "NotOf": {
+            "additionalProperties": false,
+            "properties": {
+              "not": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "$ref": "#/$defs/Compare"
+                  },
+                  {
+                    "$ref": "#/$defs/Window"
+                  },
+                  {
+                    "$ref": "#/$defs/InSet"
+                  },
+                  {
+                    "$ref": "#/$defs/Known"
+                  },
+                  {
+                    "$ref": "#/$defs/AnyOf"
+                  },
+                  {
+                    "$ref": "#/$defs/AllOf"
+                  },
+                  {
+                    "$ref": "#/$defs/NotOf"
+                  }
+                ],
+                "title": "Not"
+              },
+              "soft": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/Soft"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null
+              },
+              "unknown": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "list",
+                      "fail",
+                      "pass"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Unknown"
+              }
+            },
+            "required": [
+              "not"
+            ],
+            "title": "NotOf",
+            "type": "object"
+          },
+          "Soft": {
+            "additionalProperties": false,
+            "description": "A soft condition: violating it costs ``penalty`` of the objective instead of eliminating.",
+            "properties": {
+              "penalty": {
+                "exclusiveMinimum": 0,
+                "maximum": 1,
+                "title": "Penalty",
+                "type": "number"
+              }
+            },
+            "required": [
+              "penalty"
+            ],
+            "title": "Soft",
+            "type": "object"
+          },
+          "AllOf": {
+            "additionalProperties": false,
+            "properties": {
+              "all": {
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "$ref": "#/$defs/Compare"
+                    },
+                    {
+                      "$ref": "#/$defs/Window"
+                    },
+                    {
+                      "$ref": "#/$defs/InSet"
+                    },
+                    {
+                      "$ref": "#/$defs/Known"
+                    },
+                    {
+                      "$ref": "#/$defs/AnyOf"
+                    },
+                    {
+                      "$ref": "#/$defs/AllOf"
+                    },
+                    {
+                      "$ref": "#/$defs/NotOf"
+                    }
+                  ]
+                },
+                "title": "All",
+                "type": "array"
+              },
+              "soft": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/Soft"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null
+              },
+              "unknown": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "list",
+                      "fail",
+                      "pass"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Unknown"
+              }
+            },
+            "required": [
+              "all"
+            ],
+            "title": "AllOf",
+            "type": "object"
+          },
+          "AnyOf": {
+            "additionalProperties": false,
+            "properties": {
+              "any": {
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "$ref": "#/$defs/Compare"
+                    },
+                    {
+                      "$ref": "#/$defs/Window"
+                    },
+                    {
+                      "$ref": "#/$defs/InSet"
+                    },
+                    {
+                      "$ref": "#/$defs/Known"
+                    },
+                    {
+                      "$ref": "#/$defs/AnyOf"
+                    },
+                    {
+                      "$ref": "#/$defs/AllOf"
+                    },
+                    {
+                      "$ref": "#/$defs/NotOf"
+                    }
+                  ]
+                },
+                "title": "Any",
+                "type": "array"
+              },
+              "soft": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/Soft"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null
+              },
+              "unknown": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "list",
+                      "fail",
+                      "pass"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Unknown"
+              }
+            },
+            "required": [
+              "any"
+            ],
+            "title": "AnyOf",
+            "type": "object"
+          },
+          "Known": {
+            "additionalProperties": false,
+            "description": "``known(facet)``: passes when the facet is known. It is never unknown itself.",
+            "properties": {
+              "known": {
+                "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
+                "title": "Known",
+                "type": "string"
+              },
+              "soft": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/Soft"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null
+              }
+            },
+            "required": [
+              "known"
+            ],
+            "title": "Known",
+            "type": "object"
+          },
+          "InSet": {
+            "additionalProperties": false,
+            "description": "``facet in {a, b}`` or ``facet not in {a, b}``. Values are kept sorted and unique.",
+            "properties": {
+              "facet": {
+                "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
+                "title": "Facet",
+                "type": "string"
+              },
+              "in": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "boolean"
+                        },
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "format": "date",
+                          "type": "string"
+                        },
+                        {
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "type": "array"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "In"
+              },
+              "not_in": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "anyOf": [
+                        {
+                          "type": "boolean"
+                        },
+                        {
+                          "type": "integer"
+                        },
+                        {
+                          "type": "number"
+                        },
+                        {
+                          "format": "date",
+                          "type": "string"
+                        },
+                        {
+                          "type": "string"
+                        }
+                      ]
+                    },
+                    "type": "array"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Not In"
+              },
+              "soft": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/Soft"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null
+              },
+              "unknown": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "list",
+                      "fail",
+                      "pass"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Unknown"
+              }
+            },
+            "required": [
+              "facet"
+            ],
+            "title": "InSet",
+            "type": "object"
+          },
+          "Window": {
+            "additionalProperties": false,
+            "description": "``facet in [low, high]``, both ends inclusive.",
+            "properties": {
+              "between": {
+                "maxItems": 2,
+                "minItems": 2,
+                "prefixItems": [
+                  {
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "format": "date",
+                        "type": "string"
+                      },
+                      {
+                        "type": "string"
+                      }
+                    ]
+                  },
+                  {
+                    "anyOf": [
+                      {
+                        "type": "boolean"
+                      },
+                      {
+                        "type": "integer"
+                      },
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "format": "date",
+                        "type": "string"
+                      },
+                      {
+                        "type": "string"
+                      }
+                    ]
+                  }
+                ],
+                "title": "Between",
+                "type": "array"
+              },
+              "facet": {
+                "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
+                "title": "Facet",
+                "type": "string"
+              },
+              "qualifiers": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/EvidenceQualifiers"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null
+              },
+              "soft": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/Soft"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null
+              },
+              "unknown": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "list",
+                      "fail",
+                      "pass"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Unknown"
+              }
+            },
+            "required": [
+              "facet",
+              "between"
+            ],
+            "title": "Window",
+            "type": "object"
+          },
+          "EvidenceQualifiers": {
+            "additionalProperties": false,
+            "description": "Which evidence may satisfy a condition on an evidence facet.",
+            "properties": {
+              "direct": {
+                "default": false,
+                "title": "Direct",
+                "type": "boolean"
+              },
+              "effort": {
+                "anyOf": [
+                  {
+                    "pattern": "^[a-z0-9_-]+$",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Effort"
+              },
+              "harness": {
+                "anyOf": [
+                  {
+                    "pattern": "^[a-z0-9][a-z0-9-]*@[0-9]+\\.[0-9]+$",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Harness"
+              },
+              "measured_after": {
+                "anyOf": [
+                  {
+                    "format": "date",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Measured After"
+              },
+              "measured_by": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "independent",
+                      "provider_self_report",
+                      "any"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Measured By"
+              }
+            },
+            "title": "EvidenceQualifiers",
+            "type": "object"
+          },
+          "Compare": {
+            "additionalProperties": false,
+            "description": "``facet op value``; the value may be ``model(<id>)`` or ``best(m)`` for a relative\ncondition.",
+            "properties": {
+              "facet": {
+                "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
+                "title": "Facet",
+                "type": "string"
+              },
+              "op": {
+                "enum": [
+                  "=",
+                  "!=",
+                  "<",
+                  "<=",
+                  ">",
+                  ">="
+                ],
+                "title": "Op",
+                "type": "string"
+              },
+              "qualifiers": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/EvidenceQualifiers"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null
+              },
+              "soft": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/Soft"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null
+              },
+              "unknown": {
+                "anyOf": [
+                  {
+                    "enum": [
+                      "list",
+                      "fail",
+                      "pass"
+                    ],
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Unknown"
+              },
+              "value": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/ModelRef"
+                  },
+                  {
+                    "$ref": "#/$defs/BestRef"
+                  },
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "format": "date",
+                    "type": "string"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ],
+                "title": "Value"
+              }
+            },
+            "required": [
+              "facet",
+              "op",
+              "value"
+            ],
+            "title": "Compare",
+            "type": "object"
+          },
+          "BestRef": {
+            "additionalProperties": false,
+            "description": "``facet >= best(m)``: within ``m`` of the highest value among the candidates\nthat pass every other hard condition. Added in 2.11.",
+            "properties": {
+              "best": {
+                "minimum": 0,
+                "title": "Best",
+                "type": "number"
+              }
+            },
+            "required": [
+              "best"
+            ],
+            "title": "BestRef",
+            "type": "object"
+          },
+          "ModelRef": {
+            "additionalProperties": false,
+            "description": "The right-hand side of a relative condition: ``coding >= model(openai/gpt-6-sol)``.",
+            "properties": {
+              "model": {
+                "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+                "title": "Model",
+                "type": "string"
+              }
+            },
+            "required": [
+              "model"
+            ],
+            "title": "ModelRef",
+            "type": "object"
+          },
+          "TaskTokens": {
+            "additionalProperties": false,
+            "description": "How many tokens one task takes. ``offering.cost_per_task`` is priced from it.",
+            "properties": {
+              "input": {
+                "minimum": 0,
+                "title": "Input",
+                "type": "integer"
+              },
+              "output": {
+                "minimum": 0,
+                "title": "Output",
+                "type": "integer"
+              }
+            },
+            "required": [
+              "input",
+              "output"
+            ],
+            "title": "TaskTokens",
+            "type": "object"
+          },
+          "InventoryProfile": {
+            "additionalProperties": false,
+            "properties": {
+              "budget": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/Budget"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null
+              },
+              "harnesses": {
+                "items": {
+                  "pattern": "^[a-z0-9][a-z0-9-]*@[0-9]+\\.[0-9]+$",
+                  "type": "string"
+                },
+                "title": "Harnesses",
+                "type": "array"
+              },
+              "id": {
+                "anyOf": [
+                  {
+                    "pattern": "^profile:[a-z0-9][a-z0-9-]*$",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Id"
+              },
+              "local": {
+                "items": {
+                  "$ref": "#/$defs/LocalModel"
+                },
+                "title": "Local",
+                "type": "array"
+              },
+              "offerings": {
+                "items": {
+                  "$ref": "#/$defs/ProfileOffering"
+                },
+                "title": "Offerings",
+                "type": "array"
+              },
+              "profile_version": {
+                "const": 1,
+                "title": "Profile Version",
+                "type": "integer"
+              },
+              "rules": {
+                "items": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "$ref": "#/$defs/Compare"
+                    },
+                    {
+                      "$ref": "#/$defs/Window"
+                    },
+                    {
+                      "$ref": "#/$defs/InSet"
+                    },
+                    {
+                      "$ref": "#/$defs/Known"
+                    },
+                    {
+                      "$ref": "#/$defs/AnyOf"
+                    },
+                    {
+                      "$ref": "#/$defs/AllOf"
+                    },
+                    {
+                      "$ref": "#/$defs/NotOf"
+                    }
+                  ]
+                },
+                "title": "Rules",
+                "type": "array"
+              }
+            },
+            "required": [
+              "profile_version"
+            ],
+            "title": "InventoryProfile",
+            "type": "object"
+          },
+          "ProfileOffering": {
+            "additionalProperties": false,
+            "properties": {
+              "model": {
+                "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+                "title": "Model",
+                "type": "string"
+              },
+              "provider": {
+                "title": "Provider",
+                "type": "string"
+              },
+              "region": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Region"
+              },
+              "tier": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Tier"
+              }
+            },
+            "required": [
+              "model",
+              "provider"
+            ],
+            "title": "ProfileOffering",
+            "type": "object"
+          },
+          "LocalModel": {
+            "additionalProperties": false,
+            "properties": {
+              "hardware": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/Hardware"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null
+              },
+              "model": {
+                "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+                "title": "Model",
+                "type": "string"
+              },
+              "runtime": {
+                "anyOf": [
+                  {
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Runtime"
+              }
+            },
+            "required": [
+              "model"
+            ],
+            "title": "LocalModel",
+            "type": "object"
+          },
+          "Hardware": {
+            "additionalProperties": false,
+            "properties": {
+              "class": {
+                "title": "Class",
+                "type": "string"
+              },
+              "count": {
+                "default": 1,
+                "minimum": 1,
+                "title": "Count",
+                "type": "integer"
+              },
+              "memory_gb": {
+                "anyOf": [
+                  {
+                    "exclusiveMinimum": 0,
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Memory Gb"
+              }
+            },
+            "required": [
+              "class"
+            ],
+            "title": "Hardware",
+            "type": "object"
+          },
+          "Budget": {
+            "additionalProperties": false,
+            "properties": {
+              "max_cost_per_task_usd": {
+                "anyOf": [
+                  {
+                    "exclusiveMinimum": 0,
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Max Cost Per Task Usd"
+              }
+            },
+            "title": "Budget",
+            "type": "object"
+          },
+          "Objective": {
+            "additionalProperties": false,
+            "description": "Exactly one of ``max``, ``min``, ``lexicographic``, ``weights``, ``pareto``.",
+            "properties": {
+              "lexicographic": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "$ref": "#/$defs/LexStep"
+                    },
+                    "type": "array"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Lexicographic"
+              },
+              "max": {
+                "anyOf": [
+                  {
+                    "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Max"
+              },
+              "min": {
+                "anyOf": [
+                  {
+                    "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Min"
+              },
+              "pareto": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "pattern": "^-?[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Pareto"
+              },
+              "qualifiers": {
+                "patternProperties": {
+                  "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$": {
+                    "$ref": "#/$defs/EvidenceQualifiers"
+                  }
+                },
+                "title": "Qualifiers",
+                "type": "object"
+              },
+              "weights": {
+                "anyOf": [
+                  {
+                    "patternProperties": {
+                      "^-?[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*(/[a-z][a-z0-9_]*)?$": {
+                        "anyOf": [
+                          {
+                            "type": "number"
+                          },
+                          {
+                            "$ref": "#/$defs/Preference"
+                          }
+                        ]
+                      }
+                    },
+                    "type": "object"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Weights"
+              }
+            },
+            "title": "Objective",
+            "type": "object"
+          },
+          "Preference": {
+            "additionalProperties": false,
+            "description": "A weighted preference for one value of a boolean or enum facet.",
+            "properties": {
+              "prefer": {
+                "anyOf": [
+                  {
+                    "type": "boolean"
+                  },
+                  {
+                    "type": "integer"
+                  },
+                  {
+                    "type": "number"
+                  },
+                  {
+                    "format": "date",
+                    "type": "string"
+                  },
+                  {
+                    "type": "string"
+                  }
+                ],
+                "title": "Prefer"
+              },
+              "weight": {
+                "exclusiveMinimum": 0,
+                "title": "Weight",
+                "type": "number"
+              }
+            },
+            "required": [
+              "prefer",
+              "weight"
+            ],
+            "title": "Preference",
+            "type": "object"
+          },
+          "LexStep": {
+            "additionalProperties": false,
+            "properties": {
+              "max": {
+                "anyOf": [
+                  {
+                    "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Max"
+              },
+              "min": {
+                "anyOf": [
+                  {
+                    "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Min"
+              },
+              "within": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/Tolerance"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null
+              }
+            },
+            "title": "LexStep",
+            "type": "object"
+          },
+          "Tolerance": {
+            "additionalProperties": false,
+            "description": "How far below the best a lexicographic step may be and still tie: ``5%`` or a number.",
+            "properties": {
+              "absolute": {
+                "anyOf": [
+                  {
+                    "exclusiveMinimum": 0,
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Absolute"
+              },
+              "relative": {
+                "anyOf": [
+                  {
+                    "exclusiveMaximum": 1,
+                    "exclusiveMinimum": 0,
+                    "type": "number"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Relative"
+              }
+            },
+            "title": "Tolerance",
+            "type": "object"
+          },
+          "Estate": {
+            "additionalProperties": false,
+            "description": "What the caller holds, sent with the spec and never stored. Added in 2.3.\n\n``providers`` are provider IDs the caller has a key for, ``plans`` are\nsubscription plan IDs, ``devices`` are hardware SKU IDs. ``exhausted`` lists\nproviders or plans that cannot be used right now; an exhausted provider\ntakes its key and its plans with it.",
+            "properties": {
+              "devices": {
+                "items": {
+                  "maxLength": 120,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "title": "Devices",
+                "type": "array"
+              },
+              "exhausted": {
+                "items": {
+                  "maxLength": 120,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "title": "Exhausted",
+                "type": "array"
+              },
+              "plans": {
+                "items": {
+                  "maxLength": 120,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "title": "Plans",
+                "type": "array"
+              },
+              "providers": {
+                "items": {
+                  "maxLength": 120,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                "maxItems": 64,
+                "title": "Providers",
+                "type": "array"
+              }
+            },
+            "title": "Estate",
+            "type": "object"
+          },
+          "Access": {
+            "additionalProperties": false,
+            "description": "How the caller will use the model. Added in 2.6.\n\n``chat_app``: a provider's chat app, through a subscription plan.\n``coding_tool``: a coding harness, through a plan or pay-per-use;\n``harness`` names one from ``registry/harnesses.yaml`` (any when absent).\n``own_software``: the caller's own software, pay-per-use (or a plan whose\nsurfaces include ``api``). ``own_hardware``: self-hosted on the caller's\ndevices. A spec may give the bare kind as a string.",
+            "properties": {
+              "harness": {
+                "anyOf": [
+                  {
+                    "pattern": "^[a-z0-9][a-z0-9-]*$",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Harness"
+              },
+              "kind": {
+                "enum": [
+                  "chat_app",
+                  "coding_tool",
+                  "own_software",
+                  "own_hardware"
+                ],
+                "title": "Kind",
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind"
+            ],
+            "title": "Access",
+            "type": "object"
+          }
+        },
+        "$ref": "#/$defs/DecideRequest"
+      }
+    },
+    {
+      "name": "vocab",
+      "description": "What can a decide spec say? Returns the decision vocabulary: valid facet ids, benchmarks, domains, providers and task types. Compact by default, with 20 rows per page and no counts. In split mode full details still exclude per-model facts and counts. Free, no key. Use it for missing ids, not to compare models. Call decide early with a template-based Spec. If you need ids, use section=starter. Use search for a case-insensitive substring of id or label, then call decide. Pass id or ids for full details of specific rows, or detail=full for all display details. Use offset and limit to page compact sections; an empty page ends the list. Call decide early with a template-based Spec; refine from reading and recovery hints. Use vocab section=starter only when you need a facet id; use search for a targeted lookup. Put Musts in where: these gates exclude. Put Prefers in optimize.weights: weights rank and never exclude. Unknown values go to may_qualify. Pin snapshot for reproducibility. ",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "section": {
+            "type": "string",
+            "enum": [
+              "starter",
+              "facets",
+              "benchmarks",
+              "domains",
+              "providers",
+              "models",
+              "task_types",
+              "coverage",
+              "templates",
+              "refinements",
+              "estate",
+              "vendors",
+              "template_categories",
+              "template_tiers"
+            ],
+            "description": "Return only this vocabulary section; defaults to starter"
+          },
+          "search": {
+            "type": "string",
+            "description": "Case-insensitive substring over id and label or display name"
+          },
+          "id": {
+            "type": "string",
+            "description": "Return full details for this exact id"
+          },
+          "ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Return full details for these exact ids"
+          },
+          "detail": {
+            "type": "string",
+            "enum": [
+              "compact",
+              "full"
+            ],
+            "description": "Full returns all display details; defaults to compact"
+          },
+          "offset": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Skip this many matching rows; defaults to 0"
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 20,
+            "description": "Compact page size; defaults to 20"
+          }
+        }
+      }
+    },
+    {
+      "name": "feedback",
+      "description": "Was a ModelSpec answer reliable? After you act on an answer, say whether it was reliable, unreliable, trustworthy, untrustworthy or confusing, by proxying POST https://api.modelspec.dev/v1/feedback. Include the answer's decision_id. Free, no key, and no Authorization header is forwarded. Not for questions or support. Never put a prompt, a key or personal details in note. The response says status \"recorded\" or \"not_recorded\" (storage is off until the privacy statement covers it).",
+      "input_schema": {
+        "title": "ModelSpec feedback",
+        "description": "POST this to https://api.modelspec.dev/v1/feedback. No key. One rating from a fixed set, optionally tied to the decision_id of a ModelSpec answer. Never include a prompt, a key, or anything that identifies a person. Reference: https://github.com/turbobeest/modelspec/blob/main/docs/feedback-api.md",
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "rating"
+        ],
+        "properties": {
+          "rating": {
+            "enum": [
+              "reliable",
+              "unreliable",
+              "trustworthy",
+              "untrustworthy",
+              "confusing"
+            ],
+            "description": "What you thought of the answer or the page.",
+            "type": "string"
+          },
+          "decision_id": {
+            "type": "string",
+            "pattern": "^dec_[0-9A-Za-z]{8,64}$",
+            "description": "The decision_id of the answer this is about."
+          },
+          "note": {
+            "type": "string",
+            "maxLength": 1000,
+            "description": "Optional. What was wrong or right, in your words."
+          },
+          "trying_to_decide": {
+            "type": "string",
+            "maxLength": 300,
+            "description": "Optional. What you were trying to decide."
+          },
+          "template": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+            "description": "Optional. The decision template in use."
+          }
+        }
+      }
+    }
+  ]
+}

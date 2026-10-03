@@ -71,6 +71,8 @@ COMPACT = [
     "offering.provider = aws-bedrock",
     "licence.commercial_use != prohibited",
     "software_engineering >= model(openai/gpt-6-sol)",
+    "software_engineering >= best(1.0)",
+    "swe_bench_pro >= best(5) @independent soft(0.2)",
     "model.context_window >= 200000 soft(0.2)",
     "model.context_window >= 200000 soft(penalty: 0.2)",
     "origin.lab_jurisdiction in {US}",
@@ -160,13 +162,32 @@ def test_objective_terms_accept_evidence_qualifiers() -> None:
         measured_by="independent", effort="default"
     )
     assert '"qualifiers"' in c.canonical_json(spec)
-    assert c.CONTRACT_VERSION == "2.9"
+    assert c.CONTRACT_VERSION == "2.12"
 
 
 def test_relative_condition_names_the_model() -> None:
     cond = c.parse_condition("software_engineering >= model(openai/gpt-6-sol)")
     assert isinstance(cond, c.Compare)
     assert cond.value == c.ModelRef(model="openai/gpt-6-sol")
+
+
+def test_best_is_a_margin_below_the_best_in_both_forms() -> None:
+    compact = c.parse_condition("software_engineering >= best(1)")
+    as_dict = c.parse_condition(
+        {"facet": "software_engineering", "op": ">=", "value": {"best": 1.0}})
+    assert compact == as_dict
+    assert compact.value == c.BestRef(best=1.0)
+    assert c.render_condition(compact) == "software_engineering >= best(1.0)"
+
+
+def test_best_on_a_facet_without_a_number_is_rejected() -> None:
+    raw = {"spec_version": 1, "where": ["model.release_date >= best(1)"],
+           "optimize": {"max": "software_engineering"}}
+    with pytest.raises(c.SpecError) as info:
+        c.parse_spec(raw, facets=registry_facet)
+    [issue] = info.value.issues
+    assert issue.field == "model.release_date"
+    assert issue.reason == "model.release_date is a date facet; best(m) needs a numeric facet"
 
 
 def test_set_values_are_canonically_ordered() -> None:
@@ -193,6 +214,10 @@ BAD_CONDITIONS = [
     ("swe_bench_pro > 1 @harness(claude-code)", "swe_bench_pro", "name@major.minor"),
     ("software_engineering >= model(GPT 6)", "software_engineering", "model"),
     ("software_engineering == 3", "software_engineering", "operator"),
+    ("software_engineering <= best(1.0)", "software_engineering",
+     "best(m) keeps candidates within m of the highest value; write facet >= best(m)"),
+    ("software_engineering >= best(-1)", "software_engineering", "a number, 0 or more"),
+    ("software_engineering >= best()", "software_engineering", "needs a margin"),
     ("software_engineering >= 3 unknown(maybe)", "software_engineering", "unknown"),
     ("software_engineering >= 3 measured_after yesterday", "software_engineering", "date"),
     ("Coding >= 3", "Coding", "facet"),
@@ -778,7 +803,18 @@ def _samples() -> list:
                                marginal_cost_per_task_usd=0)
     estate_result = c.EstateResult(rank=1, offering=result.offering, estate=estate_mark)
     estate_gap = c.EstateGap(same_answer=True, summary="What you hold reaches the answer.")
+    from decision.bounded import project
+    options = c.ResponseOptions(fields=["cost_per_task"])
+    bounded = c.BoundedDecision.model_validate(project(decision, options, not_applied=[]))
+    bounded.answer = separated_answer
     return [
+        options,
+        c.DecideRequest.model_validate({**spec.model_dump(mode="json", by_alias=True), "fields": ["cost_per_task"]}),
+        bounded,
+        bounded.results[0],
+        bounded.explanation,
+        c.ModelEvidence(model=result.model, status="ranked", offering=result.offering,
+                        rank=1, evidence=result.evidence, contributions=result.contributions),
         spec,
         spec.optimize,
         c.Objective(max="software_engineering"),
@@ -793,6 +829,7 @@ def _samples() -> list:
                              measured_after=date(2026, 1, 1), direct=True),
         c.Soft(penalty=0.2),
         c.ModelRef(model="openai/gpt-6-sol"),
+        c.BestRef(best=1.0),
         *[c.parse_condition(t) for t in COMPACT],
         c.InventoryProfile(profile_version=1, harnesses=["claude-code@2.1"]),
         c.ProfileOffering(model="openai/gpt-6-sol", provider="openai"),
@@ -878,6 +915,10 @@ def _samples() -> list:
                     surface="coding_tool:claude-code", price=plan_price, price_monthly_usd=200,
                     coverage=plan_coverage, allowance=plan_allowance,
                     break_even_tasks_per_month=303.0, basis="200 USD a month ÷ 0.66 USD a task"),
+        c.FeedbackPointer(),
+        c.Reading(tied=["lab/a", "lab/b"], not_applied=["task"],
+                  estimates=["model.fits_hardware"],
+                  do_not_claim=["Do not name a single winner among tied."]),
     ]
 
 
@@ -955,3 +996,19 @@ def test_doc_examples_are_valid() -> None:
         for line in block.splitlines():
             if line.strip():
                 c.parse_condition(line.strip())
+
+
+def test_every_decision_names_the_feedback_endpoint_the_worker_serves() -> None:
+    """MODEL-221: the pointer on a decision is the endpoint that exists, with its ratings."""
+    import sys
+    src = str(REPO_ROOT / "api" / "worker" / "src")
+    sys.path.insert(0, src)
+    try:
+        import feedback_service
+    finally:
+        sys.path.remove(src)
+    pointer = c.FeedbackPointer()
+    assert pointer.endpoint == feedback_service.ENDPOINT_URL
+    assert pointer.request_schema == feedback_service.SCHEMA_URL
+    assert tuple(pointer.ratings) == feedback_service.RATINGS
+    assert pointer.cli.startswith("modelspec feedback ")

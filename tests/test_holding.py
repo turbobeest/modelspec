@@ -8,6 +8,8 @@ variable is unset). benchgraph.dev is the same redirect file in both.
 
 from __future__ import annotations
 
+import base64
+import hashlib
 import json
 import re
 import shutil
@@ -128,7 +130,7 @@ def test_the_holding_root_is_the_landing_and_the_404_stays_dark(trees):
     tree = trees["holding"] / "modelspec"
     page = (tree / "index.html").read_text(encoding="utf-8")
     not_found = (tree / "404.html").read_text(encoding="utf-8")
-    assert "Your model is a guess." in page
+    assert "Model routers make educated guesses." in page
     assert "Board opening soon" in page
     assert '<link rel="canonical" href="https://modelspec.dev/">' in page
     assert 'content="noindex"' not in page
@@ -141,10 +143,21 @@ def test_the_holding_tree_is_exactly_its_expected_file_set(trees):
     ms = trees["holding"] / "modelspec"
     top = sorted(p.name + ("/" if p.is_dir() else "") for p in ms.iterdir())
     card = [social_cards.LANDING_IMAGE] if social_cards.render_enabled() else []
-    assert top == sorted(["api/", "legal/", "fonts/", "landing-assets/", "openapi.yaml",
+    assert top == sorted(["api/", "legal/", "fonts/", "landing-assets/",
+                          "feedback-assets/", "brand/", "openapi.yaml",
                           *brand.FILES, *card, *holding.WRITTEN])
     for name in (*brand.FILES, *card):
         assert (ms / name).read_bytes() == (trees["real"] / "modelspec" / name).read_bytes(), name
+
+
+def test_the_brand_kit_is_the_same_bytes_in_every_tree_and_in_both_sitemaps(trees):
+    real = trees["real"] / "modelspec" / "brand"
+    assert (real / "index.html").is_file()
+    assert _files(trees["holding"] / "modelspec" / "brand") == _files(real)
+    assert _files(trees["live"] / "modelspec" / "brand") == _files(real)
+    for tree in (trees["real"], trees["live"]):
+        sitemap = (tree / "modelspec" / "sitemap.xml").read_text(encoding="utf-8")
+        assert "<loc>https://modelspec.dev/brand/</loc>" in sitemap
 
 
 def test_the_holding_page_links_the_2a_icons_and_social_card(trees):
@@ -214,10 +227,13 @@ def test_every_path_the_cli_workers_and_mcp_fetch_is_still_published(trees):
     mcp = (ROOT / "mcp" / "src" / "server.ts").read_text(encoding="utf-8")
     assert "/api/rank/profiles.json`" in mcp
     always_published = [path for path in worker if path != "/api/decision/snapshot.json.gz"]
+    # MODEL-251 removed the /api/graph/ export with the 3D explorer. Its last
+    # reader was the retired CLI's `fit` command (PyPI yanked 2026-09-30).
+    retired = {snapshot.PARTS["hardware"]}
     paths = [*snapshot.PARTS.values(), *snapshot.OPTIONAL_PARTS.values(), *always_published,
              "/api/rank/profiles.json", "/api/rank/class-fit.json", "/api/build.json"]
     for path in paths:
-        assert (ms / path.lstrip("/")).is_file(), path
+        assert (ms / path.lstrip("/")).is_file() != (path in retired), path
     # MCP `model_info` reads /api/models/<provider>/<slug>.json for any card.
     for model in load_models(ROOT)[:25]:
         assert (ms / "api" / "models" / f"{model.model_id}.json").is_file(), model.model_id
@@ -231,9 +247,9 @@ def test_full_build_still_contains_every_source_page_before_composition(trees):
     """The workflow derives holding before replacing dist with the live composition."""
     ms, bg = trees["real"] / "modelspec", trees["real"] / "benchgraph"
     assert len(list((ms / "m").glob("*/*/index.html"))) == len(load_models(ROOT))
-    for rel in ("sitemap.xml", "llms.txt", "llms-full.txt", "index.md", "_worker.js",
+    for rel in ("sitemap.xml", "llms.txt", "index.md", "_worker.js",
                 ".well-known/mcp.json", "openapi.yaml", "auth.md", "pricing/index.html",
-                "downselect/index.html", "graph/index.html", "models/index.html",
+                "downselect/index.html", "models/index.html",
                 "decide/index.html", "landing-assets/landing.css", "landing-assets/landing.js"):
         assert (ms / rel).is_file(), rel
     files = sorted(path.relative_to(bg).as_posix() for path in bg.rglob("*") if path.is_file())
@@ -250,7 +266,7 @@ def test_full_build_still_contains_every_source_page_before_composition(trees):
 def test_a_redirect_only_benchgraph_is_copied_and_modelspec_still_goes_dark(tmp_path):
     src = tmp_path / "src"
     ms = src / "modelspec"
-    for rel in ("api", "legal", "fonts", "landing-assets"):
+    for rel in ("api", "legal", "fonts", "landing-assets", "feedback-assets", "brand"):
         (ms / rel).mkdir(parents=True)
     decision = ms / "api" / "decision" / "snapshot.json.gz"
     decision.parent.mkdir()
@@ -305,9 +321,14 @@ def test_the_live_tree_publishes_agent_discovery_and_every_link_in_it_resolves(t
         assert (ms / rel).is_file(), rel
     assert live.dead_links(ms) == []
     llms = (ms / "llms.txt").read_text(encoding="utf-8")
-    for url in ("https://modelspec.dev/llms-full.txt", "https://modelspec.dev/auth.md",
+    for url in ("https://modelspec.dev/auth.md",
                 "https://modelspec.dev/.well-known/mcp.json"):
         assert url in llms
+    # MODEL-251: the 3D graph and the catalogue digest are retired.
+    assert "llms-full.txt" not in llms
+    assert not (ms / "graph").exists()
+    assert not (ms / "llms-full.txt").exists()
+    assert "/graph/*  /  301" in (ms / "_redirects").read_text(encoding="utf-8")
     assert 'type="text/markdown" href="/index.md"' in (ms / "index.html").read_text(encoding="utf-8")
     for page in live.PAGES:
         assert live.resolves(ms, page), page
@@ -331,7 +352,12 @@ def test_the_live_tree_is_an_allowlist(trees):
         assert not (ms / gone).exists(), gone
     assert (ms / "assets" / "decide-x.js").is_file()
     decide = (ms / "decide" / "index.html").read_text(encoding="utf-8")
-    assert structured_data.strip(decide) == (ms / "404.html").read_text(encoding="utf-8")
+    not_found = (ms / "404.html").read_text(encoding="utf-8")
+    assert not_found != decide
+    assert '<meta name="robots" content="noindex">' in not_found
+    assert 'rel="canonical"' not in not_found
+    for href in ("/", "/decide/", "/method/"):
+        assert f'href="{href}"' in not_found, href
     assert _files(trees["live"] / "benchgraph") == _files(trees["real"] / "benchgraph")
     for rel in ("api", "legal"):
         assert _files(ms / rel) == _files(trees["real"] / "modelspec" / rel), rel
@@ -390,3 +416,53 @@ def test_the_workflow_assembles_live_with_the_module_and_smokes_discovery():
     assert "python -m pipeline.live build --src dist-v1 --web web/dist --out dist" in text
     assert "python -m pipeline.live smoke --origin https://modelspec.dev" in text
     assert "python -m pipeline.live smoke --origin https://internal.modelspec-7np.pages.dev" in text
+
+
+def test_each_headers_file_has_one_star_rule_carrying_everything(trees):
+    # Cloudflare Pages drops the earlier of two `/*` rules (MODEL-238 regression).
+    needed = {
+        "live": ("Link:", "Strict-Transport-Security:", "Permissions-Policy:",
+                 "X-Content-Type-Options:", "Content-Security-Policy:", "X-Frame-Options:"),
+        "holding": ("Strict-Transport-Security:", "X-Content-Type-Options:",
+                    "Content-Security-Policy:", "X-Frame-Options:"),
+    }
+    for name, wanted in needed.items():
+        lines = (trees[name] / "modelspec" / "_headers").read_text(encoding="utf-8").splitlines()
+        assert lines.count("/*") == 1, name
+        start = lines.index("/*") + 1
+        rule = []
+        for line in lines[start:]:
+            if not line.startswith("  "):
+                break
+            rule.append(line.strip())
+        for header in wanted:
+            assert any(r.startswith(header) for r in rule), (name, header)
+
+
+def test_every_executable_inline_script_is_in_the_policy_and_both_trees_carry_it(trees):
+    exec_types = {"", "module", "text/javascript", "application/javascript"}
+    inline = re.compile(r"<script((?:\s[^>]*)?)>(.*?)</script>", re.S)
+    for name in ("live", "holding"):
+        ms = trees[name] / "modelspec"
+        policy = next(line for line in (ms / "_headers").read_text(encoding="utf-8").splitlines()
+                      if "Content-Security-Policy:" in line)
+        assert "X-Frame-Options: DENY" in (ms / "_headers").read_text(encoding="utf-8")
+        assert "frame-ancestors 'none'" in policy
+        for page in ms.rglob("*.html"):
+            for attrs, body in inline.findall(page.read_text(encoding="utf-8")):
+                if "src=" in attrs:
+                    continue
+                kind = re.search(r'type="([^"]*)"', attrs)
+                if kind and kind.group(1) not in exec_types:
+                    continue
+                digest = base64.b64encode(hashlib.sha256(body.encode()).digest()).decode()
+                assert f"'sha256-{digest}'" in policy, (name, page.name)
+
+
+def test_legacy_v1_urls_redirect_to_decide_and_the_api_is_untouched(trees):
+    rules = (trees["live"] / "modelspec" / "_redirects").read_text(encoding="utf-8")
+    for source in ("/models", "/models/", "/providers/", "/benchmarks/", "/downselect/",
+                   "/m/*", "/p/*", "/b/*"):
+        assert f"{source}  /decide/  301\n" in rules, source
+    assert "/landing/  /  301\n" in rules
+    assert "/api" not in rules

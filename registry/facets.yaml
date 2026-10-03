@@ -29,6 +29,11 @@
 #                           value. Such facets are never authored on a card.
 #   label                   optional: a short name for people ("Input price").
 #                           The id stays the identifier; the label is display.
+#   better                  number facets only, required: `higher`, `lower`, or
+#                           `neither` when the facet has no inherent direction
+#                           (parameter counts; a benchmark result, whose page
+#                           states its own). Prefer minimises a `lower` facet
+#                           and maximises the others (MODEL-297).
 #
 # A fact's state (known, unknown, not_disclosed, requires_contract) is separate
 # from its value and is not declared here.
@@ -233,6 +238,7 @@ facets:
     label: Context window
     subject: model
     value_type: {kind: number}
+    better: higher
     unit: tokens
     definition: >-
       The maximum number of tokens the model accepts in one request, input and
@@ -246,6 +252,7 @@ facets:
     label: Maximum output tokens
     subject: model
     value_type: {kind: number}
+    better: higher
     unit: tokens
     definition: >-
       The maximum number of tokens the model can emit in one response,
@@ -275,6 +282,7 @@ facets:
     label: Total parameters
     subject: model
     value_type: {kind: number}
+    better: neither
     unit: parameters
     definition: >-
       The total number of parameters in the released model, counting every
@@ -287,6 +295,7 @@ facets:
     label: Active parameters
     subject: model
     value_type: {kind: number}
+    better: neither
     unit: parameters
     definition: >-
       The number of parameters used to process one token. Equal to the total
@@ -339,6 +348,7 @@ facets:
     label: Licence user cap
     subject: model
     value_type: {kind: number, unbounded: true}
+    better: higher
     unit: monthly_active_users
     definition: >-
       The largest number of monthly active users a licensee may serve before the
@@ -613,6 +623,7 @@ facets:
     label: Input price
     subject: offering
     value_type: {kind: number}
+    better: lower
     unit: usd_per_1m_tokens
     definition: >-
       The list price of uncached input tokens for a synchronous request. Where
@@ -625,6 +636,7 @@ facets:
     label: Output price
     subject: offering
     value_type: {kind: number}
+    better: lower
     unit: usd_per_1m_tokens
     definition: >-
       The list price of output tokens, including reasoning tokens the provider
@@ -636,6 +648,7 @@ facets:
     label: Cached input price
     subject: offering
     value_type: {kind: number, not_offered: true}
+    better: lower
     unit: usd_per_1m_tokens
     definition: >-
       The list price of input tokens read from the provider's prompt cache.
@@ -649,6 +662,7 @@ facets:
     label: Batch input price
     subject: offering
     value_type: {kind: number, not_offered: true}
+    better: lower
     unit: usd_per_1m_tokens
     definition: >-
       The list price of input tokens submitted through the provider's
@@ -661,6 +675,7 @@ facets:
     label: Batch output price
     subject: offering
     value_type: {kind: number, not_offered: true}
+    better: lower
     unit: usd_per_1m_tokens
     definition: >-
       The list price of output tokens returned through the provider's
@@ -674,6 +689,7 @@ facets:
     label: Cost per task
     subject: offering
     value_type: {kind: number}
+    better: lower
     unit: usd_per_task
     definition: >-
       What one task costs on this offering at list prices, computed per
@@ -690,6 +706,7 @@ facets:
     label: Time to first token
     subject: offering
     value_type: {kind: number}
+    better: lower
     unit: milliseconds
     definition: >-
       The median time from sending a request to receiving the first output
@@ -703,6 +720,7 @@ facets:
     label: Output throughput
     subject: offering
     value_type: {kind: number}
+    better: higher
     unit: tokens_per_second
     definition: >-
       The median output throughput of one request after its first token. Always
@@ -716,6 +734,7 @@ facets:
     label: Request rate limit
     subject: offering
     value_type: {kind: number}
+    better: higher
     unit: requests_per_minute
     definition: >-
       The documented default request rate limit for a new account at this tier,
@@ -727,6 +746,7 @@ facets:
     label: Token rate limit
     subject: offering
     value_type: {kind: number}
+    better: higher
     unit: tokens_per_minute
     definition: >-
       The documented default token rate limit for a new account at this tier,
@@ -738,6 +758,7 @@ facets:
     label: SLA uptime
     subject: offering
     value_type: {kind: number}
+    better: higher
     unit: percent
     definition: >-
       The monthly uptime the provider commits to in a published service level
@@ -752,6 +773,7 @@ facets:
     label: Data retention
     subject: offering
     value_type: {kind: number, unbounded: true}
+    better: lower
     unit: days
     definition: >-
       The longest period the provider's terms say it keeps prompts and outputs
@@ -878,6 +900,7 @@ facets:
     subject: offering
     addressable: false
     value_type: {kind: number}
+    better: lower
     unit: usd_per_billing_period
     definition: >-
       The published list price charged for one billing period of a subscription
@@ -990,6 +1013,7 @@ facets:
     subject: offering
     addressable: false
     value_type: {kind: number}
+    better: higher
     unit: multiple
     definition: >-
       How many times the base plan's usage allowance this plan includes, as the
@@ -1015,6 +1039,7 @@ facets:
     subject: offering
     addressable: false
     value_type: {kind: number}
+    better: higher
     unit: tokens
     definition: >-
       The number of tokens the plan includes per allowance window, only when
@@ -1028,6 +1053,7 @@ facets:
     subject: offering
     addressable: false
     value_type: {kind: number}
+    better: lower
     unit: cny_per_billing_period
     definition: >-
       The list price in Chinese yuan for one billing period, for a plan whose
@@ -1040,6 +1066,7 @@ facets:
     label: Plan price per month
     subject: offering
     value_type: {kind: number}
+    better: lower
     unit: usd_per_month
     definition: >-
       For a spec with access, the monthly price of the cheapest plan that
@@ -1057,6 +1084,7 @@ facets:
     label: Benchmark result
     subject: evidence
     value_type: {kind: number}
+    better: neither
     unit: benchmark_metric
     parameter: {name: benchmark, values_from: benchmarks}
     definition: >-
@@ -1071,6 +1099,7 @@ facets:
     label: Outcome success rate
     subject: evidence
     value_type: {kind: number}
+    better: higher
     unit: percent
     parameter: {name: task_type, values_from: outcome_task_types}
     definition: >-

@@ -1,0 +1,59 @@
+{
+  "unavailable": {
+    "error": {
+      "code": 503,
+      "status": "UNAVAILABLE",
+      "message": "This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later."
+    }
+  },
+  "rate_limited": {
+    "error": {
+      "code": 429,
+      "status": "RESOURCE_EXHAUSTED",
+      "message": "Quota exceeded."
+    }
+  },
+  "answer": {
+    "candidates": [
+      {
+        "content": {
+          "role": "model",
+          "parts": [
+            {
+              "text": "Fixture answer."
+            }
+          ]
+        }
+      }
+    ],
+    "usageMetadata": {
+      "promptTokenCount": 60,
+      "candidatesTokenCount": 2,
+      "thoughtsTokenCount": 3
+    }
+  },
+  "tool_call": {
+    "candidates": [
+      {
+        "content": {
+          "role": "model",
+          "parts": [
+            {
+              "functionCall": {
+                "id": "c1",
+                "name": "vocab",
+                "args": {}
+              },
+              "thoughtSignature": "fixture-signature"
+            }
+          ]
+        }
+      }
+    ],
+    "usageMetadata": {
+      "promptTokenCount": 60,
+      "candidatesTokenCount": 2,
+      "thoughtsTokenCount": 3
+    }
+  }
+}

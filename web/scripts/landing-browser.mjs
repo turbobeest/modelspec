@@ -51,7 +51,7 @@ function recordBrowserFailures(page) {
 }
 
 async function assertRankedBoard(page) {
-  await page.getByRole("heading", { name: "Set what matters. Watch the field narrow." }).waitFor();
+  await page.getByRole("heading", { name: "Set what matters across any/all facets. Try a template as a fast track. Watch the field narrow." }).waitFor();
   assert.equal(await page.locator("textarea").count(), 0);
   await page.locator(".board-ranked-answer li").first().waitFor();
 }
@@ -110,17 +110,19 @@ try {
     const copy = box(".hero-copy");
     const plot = box("#plot");
     return {
-      copyRight: copy.right, copyTop: copy.top, copyBottom: copy.bottom,
+      copyRight: copy.right, copyTop: copy.top, copyBottom: copy.bottom, copyWidth: copy.width,
+      h1Top: box(".hero h1").top, chipsTop: box(".chips").top,
       plotLeft: plot.left, plotTop: plot.top, plotWidth: plot.width,
       h1: size(".hero h1"), tie: size(".receipt h2"),
       scroll: document.documentElement.scrollWidth,
     };
   });
-  // MODEL-229: the graph sits beside the copy, larger than its old 680px
-  // column, and neither headline outgrows the smaller type.
+  // MODEL-244: the copy takes 60% on the left, the graph 40% on the right,
+  // top-aligned with the headline, and neither headline outgrows the smaller type.
   assert.equal(hero.plotLeft >= hero.copyRight, true, JSON.stringify(hero));
   assert.equal(hero.plotTop < hero.copyBottom && hero.plotTop >= hero.copyTop - 100, true, JSON.stringify(hero));
-  assert.equal(hero.plotWidth > 680, true, JSON.stringify(hero));
+  assert.equal(hero.plotWidth > 420 && hero.plotWidth < hero.copyWidth, true, JSON.stringify(hero));
+  assert.equal(Math.abs(hero.chipsTop - hero.h1Top) <= 8, true, JSON.stringify(hero));
   assert.equal(hero.h1 <= 56 && hero.tie <= 56, true, JSON.stringify(hero));
   assert.equal(hero.scroll <= 1440, true, JSON.stringify(hero));
   // Laptop widths keep a readable copy column beside the graph.
@@ -150,6 +152,13 @@ try {
       .slice(0, 5),
   }));
   assert.equal(overflow.scroll <= overflow.client, true, JSON.stringify(overflow));
+  // MODEL-244: below the tablet breakpoint the graph stacks under the copy at full width.
+  const stack = await page.evaluate(() => {
+    const box = (selector) => document.querySelector(selector).getBoundingClientRect();
+    return { closeBottom: box(".hero .close").bottom, plotTop: box("#plot").top,
+             plotWidth: box("#plot").width, client: document.documentElement.clientWidth };
+  });
+  assert.equal(stack.plotTop >= stack.closeBottom && stack.plotWidth >= stack.client - 48, true, JSON.stringify(stack));
   assert.notEqual(await page.locator(".sticky").evaluate((el) => getComputedStyle(el).display), "none");
   assert.equal(await page.locator(".sticky").isVisible(), true);
   results.responsive = true;
@@ -220,7 +229,7 @@ try {
       const types = { ".css": "text/css", ".html": "text/html", ".js": "text/javascript" };
       return route.fulfill({ status: 200, contentType: types[path.extname(staticFile)] ?? "application/octet-stream", body: fs.readFileSync(staticFile) });
     });
-    await context.route("**/api/decision/vocabulary.json", (route) => route.fulfill({ status: 200, contentType: "application/json", body: vocabularyFixture }));
+    await context.route(/\/(?:api\/decision\/vocabulary\.json|v1\/vocabulary)(?:\?.*)?$/, (route) => route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: vocabularyFixture }));
     await context.route("**/v1/decide", (route) => route.fulfill({ status: 200, contentType: "application/json", body: decisionFixture }));
   }
 

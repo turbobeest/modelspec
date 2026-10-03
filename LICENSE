@@ -9,7 +9,9 @@ ModelSpec is licensed in two parts.
 
 The data is share-alike so that anyone who builds on the corpus and
 redistributes it publishes their improvements under the same terms. The code is
-permissive so the CLI can be embedded anywhere. Individual cards and pages
+permissive so the engine can be embedded anywhere. The data directories are a
+delayed public image, about nine months behind the current data, which is
+served only through the hosted service. Individual cards and pages
 record the source and licence of the third-party material they draw on; those
 terms govern that material and are not altered by this file.
 

@@ -23,6 +23,12 @@ exact body with a Grok Bot HMAC secret and writes a pending record to the
 existing `ACCESS` KV namespace. Its read and acknowledgement routes require a
 different secret held only by the repository workflow. The feature ships off.
 
+`POST /v1/feedback` (MODEL-221) takes a rating of an answer from a person or an
+agent, with no key. Storage ships off (`FEEDBACK_ENABLED`); when on, a record
+goes to its own KV namespace, `FEEDBACK`, and holds no address, key or user
+agent. `feedback_service.py` owns the rules; `docs/design/feedback-privacy.md`
+says why.
+
 All decision POST endpoints pass through that gate (`access.gate`, `docs/api-access.md`)
 after the body is read and before any export is fetched. It ships with
 enforcement OFF (`ACCESS_ENFORCED`): an unkeyed request is answered exactly as
@@ -45,15 +51,22 @@ instance still answering; this is the cheap version of that lesson for a Worker.
 from __future__ import annotations
 
 import hashlib
-import importlib
 import json
 import re
 import time
 from dataclasses import replace
 from datetime import UTC, datetime
-from urllib.parse import urlparse
+from urllib.parse import parse_qs, urlparse
+
+# Load the private bundle before request schemas.
+try:
+    import bundled_data
+except ModuleNotFoundError as exc:
+    if exc.name != "bundled_data":
+        raise
 
 import access
+import agent_guide
 import access_config
 import access_keys
 import access_kv
@@ -61,14 +74,23 @@ import access_sandbox
 import billing
 import billing_page
 import credits
+import decide_service
+import display_vocabulary
+import feedback_service
+import human_gate
 import kv_value
 import policy_service
 import rank_service as service
 import signals_service
+import visitor
+import visit_token
 import x402
 from credits_do import CreditsObject  # noqa: F401 — Wrangler class_name
+from human_gate_do import HumanGateObject  # noqa: F401 — Wrangler class_name
 from js import fetch
 from workers import Response, WorkerEntrypoint
+
+from decision.registry import default as _decision_registry
 
 #: Files the endpoint reads. `candidates.json` is the catalogue; `hardware.json`
 #: is the device vocabulary, added by MODEL-68 and absent from older exports —
@@ -88,6 +110,14 @@ SNAPSHOT_KEY_VAR = "MODELSPEC_SNAPSHOT_KEY"
 SIGNALS_ENABLED_VAR = "SIGNALS_ENABLED"
 SIGNALS_HMAC_SECRET_VAR = "SIGNALS_HMAC_SECRET"
 SIGNALS_READ_KEY_VAR = "SIGNALS_READ_KEY"
+#: MODEL-221. Feedback storage: the switch (ships off), its own KV namespace,
+#: and the secret that keys the abuse-limit counters so no address is stored.
+FEEDBACK_ENABLED_VAR = "FEEDBACK_ENABLED"
+FEEDBACK_BINDING = "FEEDBACK"
+FEEDBACK_PEPPER_VAR = "FEEDBACK_LIMIT_PEPPER"
+#: Comma-separated extra browser origins for local development only
+#: (`--var FEEDBACK_DEV_ORIGINS:http://localhost:8000`). Empty in wrangler.jsonc.
+FEEDBACK_DEV_ORIGINS_VAR = "FEEDBACK_DEV_ORIGINS"
 
 #: KV keys holding the private determinations, staged by
 #: `api/worker/load_determinations.py`. The manifest is read first and verified
@@ -117,13 +147,22 @@ STRIPE_SECRET_KEY_VAR = "STRIPE_SECRET_KEY"
 #: `/v1/rank` is: a caller who mistypes it must be told it exists.
 ACCEPTED_ENDPOINTS = (
     "POST /v1/rank", "POST /v1/decide", "POST /v1/compare",
-    "POST /v1/policy-check", "GET /v1/health",
+    "POST /v1/policy-check", "POST /v1/feedback", "DELETE /v1/feedback", "GET /v1/health",
     "POST /v1/signals", "POST /v1/signals/discovered",
     "GET /v1/signals/pending", "POST /v1/signals/ack",
-    "GET /v1/credits",
+    "GET /v1/credits", "GET /v1/human-status",
     "POST /v1/billing/checkout", "POST /v1/billing/stripe-webhook",
     "GET /v1/billing/claim", "POST /v1/billing/claim", "POST /v1/billing/rotate",
 )
+
+
+
+def _accepted_endpoints(env) -> list[str]:
+    """ACCEPTED_ENDPOINTS plus the routes this deployment switches on."""
+    return [*ACCEPTED_ENDPOINTS,
+            *(["POST /v1/visit-token"] if visit_token.enabled(env) else []),
+            *(["GET /v1/vocabulary"] if globals().get("bundled_data") is not None else [])]
+
 
 #: The subset that takes a body. All refuse a wrong verb through the one
 #: `_method_not_allowed` below, and a path outside this tuple is a 404 before
@@ -146,7 +185,8 @@ EXPORT_TTL_SECONDS = 300
 
 #: Module-scope, so it survives across requests within an isolate and is
 #: rebuilt by the memory snapshot on a cold start.
-_cache: dict[str, object] = {"at": 0.0, "candidates": None, "hardware": None, "error": None}
+_cache: dict[str, object] = {"at": 0.0, "candidates": None, "hardware": None,
+                            "prepared": None, "error": None}
 
 #: The policy export and the determination store, cached on the same terms. The
 #: determinations change when someone runs the loader, which is rare; the TTL
@@ -162,16 +202,79 @@ _store_cache: dict[str, object] = {"at": 0.0, "store": None, "error": None,
                                    "state": None, "message": None}
 
 
+# Cloudflare captures top-level Python work in its deployment memory snapshot.
+# No network or deployment secret is needed to parse/index the bundled bytes.
+# The first request still authenticates their checked hash with the runtime key.
+_decision_registry()
+_bundled_decision_snapshot = None
+_bundled_vocabulary = None
+_bundled_vocabulary_text = None
+if globals().get("bundled_data") is not None:
+    _snapshot_bytes = bundled_data.read(DECISION_SNAPSHOT_PATH)
+    if _snapshot_bytes is not None:
+        _bundled_decision_snapshot = decide_service.load_snapshot_bytes(
+            _snapshot_bytes, key=None, public_keys={}, include_archive=True,
+            source="bundled decision snapshot",
+        )
+    del _snapshot_bytes
+    _vocabulary_bytes = bundled_data.read("/api/decision/vocabulary.json")
+    if _vocabulary_bytes is not None:
+        # A malformed required vocabulary must fail deployment snapshot creation,
+        # rather than publish an isolate that cannot serve its bundled data.
+        _bundled_vocabulary_text = _vocabulary_bytes.decode("utf-8")
+        _bundled_vocabulary = json.loads(_bundled_vocabulary_text)
+    del _vocabulary_bytes
+
+# Captured as False at deployment, then claimed before the first request awaits.
+# Never retain a request, environment, or timer from deployment in the snapshot.
+_isolate_served = False
+
+
 def _decide_service():
-    """Import the decision stack only after the router selects a decision route."""
-    return importlib.import_module("decide_service")
+    return decide_service
+
+
+def _bundled_read(url: str):
+    try:
+        import bundled_data
+    except ModuleNotFoundError as exc:
+        if exc.name != "bundled_data":
+            raise
+        return False, None
+    # A bundled deployment never falls back to public data, including history.
+    return True, bundled_data.read(urlparse(url).path)
 
 
 async def _get_json(url: str):
+    bundled, raw = _bundled_read(url)
+    if bundled:
+        if raw is None:
+            raise RuntimeError("private bundle is missing a required export")
+        return json.loads(raw)
     response = await fetch(url)
     if not response.ok:
         raise RuntimeError(f"{url} returned HTTP {response.status}")
     return json.loads(await response.text())
+
+
+# Bundled exports cannot change within this deployment. Prepare them in the
+# deployment memory snapshot, as we already do for the decision snapshot.
+if globals().get("bundled_data") is not None:
+    _rank_bytes = bundled_data.read(CANDIDATES_PATH)
+    if _rank_bytes is not None:
+        # Malformed required candidates must fail deployment snapshot creation.
+        _rank_export = json.loads(_rank_bytes)
+        _hardware_bytes = None
+        try:
+            _hardware_bytes = bundled_data.read(HARDWARE_PATH)
+            _hardware = json.loads(_hardware_bytes) if _hardware_bytes else None
+        except Exception:  # noqa: BLE001 - optional, just as in _load_export
+            _hardware = None
+        _cache.update(candidates=_rank_export,
+                      hardware=_hardware,
+                      prepared=service.candidates_from_export(_rank_export))
+        del _rank_export, _hardware_bytes, _hardware
+    del _rank_bytes
 
 
 class _Fetched:
@@ -183,6 +286,13 @@ def _snapshot_fetcher(url: str):
     """A conditional GET of the snapshot, for `decide_service.SnapshotHolder`."""
 
     async def fetch_snapshot(etag: str | None) -> _Fetched:
+        bundled, raw = _bundled_read(url)
+        if bundled:
+            if raw is None:
+                return _Fetched(404, None, None)
+            import hashlib
+            tag = hashlib.sha256(raw).hexdigest()
+            return _Fetched(304, tag, None) if etag == tag else _Fetched(200, tag, raw)
         headers = {"If-None-Match": etag} if etag else {}
         try:  # pragma: no cover - isolate only
             from js import Object  # type: ignore[import-not-found]
@@ -213,7 +323,8 @@ def _decision_holder(origin: str):
     holder = _decision_holders.get(origin)
     if holder is None:
         holder = _decide_service().SnapshotHolder(
-            _snapshot_fetcher(origin + DECISION_SNAPSHOT_PATH))
+            _snapshot_fetcher(origin + DECISION_SNAPSHOT_PATH),
+            bundled_snapshot=_bundled_decision_snapshot)
         _decision_holders[origin] = holder
     return holder
 
@@ -225,7 +336,7 @@ async def _load_export(origin: str, *, force: bool = False):
     beats an error, which is the same call the CLI makes about a stale snapshot.
     """
     fresh = (time.time() - float(_cache["at"])) < EXPORT_TTL_SECONDS
-    if not force and fresh and _cache["candidates"] is not None:
+    if not force and (fresh or globals().get("bundled_data") is not None) and _cache["candidates"] is not None:
         return _cache["candidates"], _cache["hardware"]
 
     try:
@@ -242,6 +353,7 @@ async def _load_export(origin: str, *, force: bool = False):
         hardware = None
 
     _cache.update({"at": time.time(), "candidates": candidates,
+                   "prepared": service.candidates_from_export(candidates),
                    "hardware": hardware, "error": None})
     return candidates, hardware
 
@@ -391,13 +503,17 @@ def _billing_unconfigured(service_commit: str):
     return outcome.status, outcome.body
 
 
-async def _stripe_http(url: str, *, method: str, headers: dict, body: str):
-    """POST to Stripe. Injected into billing so tests never import `js`."""
+async def _stripe_http(url: str, *, method: str, headers: dict, body: str,
+                       timeout_ms: int | None = None):
+    """Workers HTTP adapter, injected into billing and Turnstile tests."""
     try:  # pragma: no cover - isolate only
         from js import Object  # type: ignore[import-not-found]
         from pyodide.ffi import to_js  # type: ignore[import-not-found]
-        options = to_js({"method": method, "headers": headers, "body": body},
-                        dict_converter=Object.fromEntries)
+        native = {"method": method, "headers": headers, "body": body}
+        if timeout_ms is not None:
+            from js import AbortSignal
+            native["signal"] = AbortSignal.timeout(timeout_ms)
+        options = to_js(native, dict_converter=Object.fromEntries)
     except ImportError:
         options = {"method": method, "headers": headers, "body": body}
     return await fetch(url, options)
@@ -414,6 +530,14 @@ def _known_hardware_for_sandbox(payload) -> set[str]:
     environment = payload.get("environment") if isinstance(payload, dict) else None
     hardware = environment.get("hardware") if isinstance(environment, dict) else None
     return {hardware} if isinstance(hardware, str) else set()
+
+
+async def _verify_turnstile(secret: str, token: str) -> dict:
+    response = await _stripe_http(
+        human_gate.SITEVERIFY, method="POST",
+        headers={"content-type": "application/json"},
+        body=json.dumps({"secret": secret, "response": token}), timeout_ms=10_000)
+    return json.loads(await response.text()) if int(response.status) == 200 else {"success": False}
 
 
 def _json_response(status: int, body: dict, extra_headers: dict | None = None) -> Response:
@@ -435,44 +559,68 @@ def _json_response(status: int, body: dict, extra_headers: dict | None = None) -
     )
 
 
+class _DecisionTransport:
+    def __init__(self):
+        self.body: dict | None = None
+        self.serialised: bytes | None = None
+        self.headers: dict[str, str] = {}
+
+
 def _decision_response(status: int, body: dict,
-                       extra_headers: dict | None = None) -> Response:
+                       extra_headers: dict | None = None,
+                       transport: _DecisionTransport | None = None) -> Response:
     decider = _decide_service()
+    if status != decider.HTTP_OK:
+        transport = None
+    # The timed bytes are reused only for the very body they encode: x402's
+    # unfunded fallback answers with a copy that adds credits.exhausted.
+    serialised = transport.serialised if transport is not None and transport.body is body else None
     return Response(
-        decider.serialise(body).decode("utf-8"),
+        (serialised if serialised is not None else decider.serialise(body)).decode("utf-8"),
         status=status,
         headers={
             **(extra_headers or {}),
+            **(transport.headers if transport is not None else {}),
             "content-type": "application/json; charset=utf-8",
             "cache-control": "no-store",
         },
     )
 
 
-def _cors_headers(request) -> dict[str, str]:
+def _cors_headers(request, env=None) -> dict[str, str]:
     origin = str(request.headers.get("origin") or request.headers.get("Origin") or "")
     if origin not in CORS_ORIGINS:
         return {}
+    # MODEL-292: the visit credential headers exist only while its gate is on.
+    visit = visit_token.enabled(env)
     return {
         "access-control-allow-origin": origin,
         "access-control-allow-methods": "POST, OPTIONS",
         "access-control-allow-headers":
-            "authorization, content-type, x-api-key, x-payment, x-modelspec-snapshot",
-        "access-control-expose-headers": "x-modelspec-snapshot, x-modelspec-snapshot-stale",
+            "authorization, content-type, x-api-key, x-payment, x-modelspec-snapshot, x-modelspec-turnstile, x-modelspec-intent"
+            + (f", {visit_token.HEADER}" if visit else ""),
+        "access-control-expose-headers": (
+            "x-modelspec-snapshot, x-modelspec-snapshot-stale, "
+            "x-modelspec-decisions-remaining, "
+            + (f"{visit_token.HEADER}, {visit_token.EXPIRY_HEADER}, " if visit else "")
+            + "retry-after, Server-Timing"
+        ),
         "access-control-max-age": "86400",
         "vary": "Origin",
     }
 
 
-def _site_free_visitor(request, api_key: str | None, enabled: bool) -> str | None:
-    """Return the anonymous meter key for an admitted browser request."""
-    if api_key is not None or not enabled:
+def _site_free_visitor(request, api_key: str | None, enabled: bool, env=None) -> str | None:
+    """Return the anonymous meter key for an admitted browser request.
+
+    None when the keyed visitor id is unavailable (no VISITOR_HMAC_KEY): the
+    request then takes the paid path rather than a bare-hash meter."""
+    if api_key is not None or not enabled or visit_token.enabled(env):
         return None
     origin = str(request.headers.get("origin") or request.headers.get("Origin") or "")
     if origin not in CORS_ORIGINS:
         return None
-    connecting_ip = str(request.headers.get("CF-Connecting-IP") or "").strip()
-    return "visitor:" + hashlib.sha256(connecting_ip.encode("utf-8")).hexdigest()
+    return visitor.visitor_id_for(request, env)
 
 
 def _html_response(status: int, page: str, service_commit: str,
@@ -491,19 +639,90 @@ def _html_response(status: int, page: str, service_commit: str,
     )
 
 
+def _response_encoding(accepted: str) -> str | None:
+    qualities = {}
+    for item in accepted.lower().split(","):
+        parts = item.strip().split(";")
+        quality = 1.0
+        for parameter in parts[1:]:
+            if parameter.strip().startswith("q="):
+                try:
+                    quality = float(parameter.strip()[2:])
+                except ValueError:
+                    quality = 0.0
+        qualities[parts[0].strip()] = quality if 0 <= quality <= 1 else 0.0
+    choices = [(qualities.get(coding, qualities.get("*", 0)), coding)
+               for coding in ("gzip", "br")]
+    quality, coding = max(choices, key=lambda choice: (choice[0], choice[1] == "br"))
+    return coding if quality > 0 else None
+
+
+def _compress_response(request, response):
+    """Let workerd encode JSON/HTML streams on every route, including refusals.
+
+    Response defaults to automatic encodeBody. Setting Content-Encoding selects
+    its native compressor, without a Python Brotli dependency or a second JSON
+    serialization. HEAD and bodyless responses must not acquire a body.
+    """
+    if str(request.method).upper() == "HEAD" or response.status in (204, 304) or response.body is None:
+        return response
+    headers = {key.lower(): value for key, value in response.headers.items()}
+    if "content-encoding" in headers or "no-transform" in headers.get("cache-control", ""):
+        return response
+    coding = _response_encoding(str(request.headers.get("accept-encoding") or ""))
+    if coding is None:
+        return response
+    headers["content-encoding"] = coding
+    headers.pop("content-length", None)
+    vary = [value.strip() for value in headers.get("vary", "").split(",") if value.strip()]
+    if not any(value.lower() in ("accept-encoding", "*") for value in vary):
+        vary.append("Accept-Encoding")
+    headers["vary"] = ", ".join(vary)
+    return Response(response.body, status=response.status, headers=headers)
+
+
 class Default(WorkerEntrypoint):
     async def fetch(self, request):
+        global _isolate_served
+        cold = not _isolate_served
+        _isolate_served = True
+        response = await self._fetch(request)
+        headers = dict(response.headers.items())
+        previous = next((value for key, value in headers.items()
+                         if key.lower() == "server-timing"), "")
+        headers = {key: value for key, value in headers.items()
+                   if key.lower() != "server-timing"}
+        timing = 'isolate;desc="cold"' if cold else 'isolate;desc="warm"'
+        if cold:
+            # Python runs only after workerd has restored its memory. Its clock
+            # also freezes between I/O in production. Do not invent a duration.
+            timing += ', startup;desc="runtime restore unobservable from Python"'
+        if urlparse(str(request.url)).path.startswith("/v1/"):
+            headers["Link"] = f'<{agent_guide.GUIDE_URL}>; rel="describedby"'
+            headers["x-modelspec-guide-version"] = agent_guide.GUIDE_VERSION
+            exposed = headers.get("access-control-expose-headers", "")
+            headers["access-control-expose-headers"] = ", ".join(
+                filter(None, [exposed, "Link", "x-modelspec-guide-version"]))
+        headers["Server-Timing"] = f"{previous}, {timing}" if previous else timing
+        body = response.body
+        if str(request.method).upper() == "HEAD" or response.status in (204, 304):
+            body = None
+        response = Response(body, status=response.status, headers=headers)
+        return _compress_response(request, response)
+
+    async def _fetch(self, request):
         service_commit = str(getattr(self.env, "BUILD_COMMIT", "") or "unknown")
         origin = str(getattr(self.env, "EXPORT_ORIGIN", "") or "https://modelspec.dev")
         path = urlparse(str(request.url)).path.rstrip("/") or "/"
         method = str(request.method).upper()
 
         decider = None
+        decision_transport = _DecisionTransport()
         if path in ("/v1/decide", "/v1/compare"):
             decider = _decide_service()
 
         if decider is not None and method == "OPTIONS":
-            headers = _cors_headers(request)
+            headers = _cors_headers(request, self.env)
             if not headers:
                 return _json_response(service.HTTP_NOT_FOUND, {
                     "contract_version": decider.contract.CONTRACT_VERSION,
@@ -514,6 +733,84 @@ class Default(WorkerEntrypoint):
                 })
             return Response("", status=204, headers=headers)
 
+        # With its gate off, the route does not exist: the generic 404 below answers it.
+        if path == "/v1/visit-token" and visit_token.enabled(self.env):
+            cors = _cors_headers(request, self.env)
+            if method == "OPTIONS":
+                return Response("", status=204, headers=cors)
+            if method != "POST":
+                return self._method_not_allowed(service_commit, path, "POST", method)
+            status, body = await visit_token.exchange(request, self.env, CORS_ORIGINS, _verify_turnstile)
+            return _json_response(status, body, cors)
+
+        if path == "/v1/vocabulary":
+            if globals().get("bundled_data") is not None:
+                text = _bundled_vocabulary_text
+                cors = _cors_headers(request, self.env)
+                if method == "OPTIONS":
+                    return Response("", status=204, headers={**cors, "access-control-allow-methods": "GET, HEAD, OPTIONS"})
+                if method not in ("GET", "HEAD"):
+                    return self._method_not_allowed(service_commit, path, "GET", method)
+                if visit_token.enabled(self.env):
+                    api_key = access_keys.extract(lambda name: request.headers.get(name))
+                    admitted = False
+                    if api_key is None and request.headers.get(visit_token.HEADER):
+                        status, code, message, headers = await visit_token.admit(request, self.env, CORS_ORIGINS, "vocabulary")
+                        admitted = status == 200
+                        if not admitted and not (code == "visit_token_invalid" and not access.enforcement(getattr(self.env, ACCESS_ENFORCED_VAR, None))):
+                            return _json_response(status, {"error": {"code": code, "message": message}}, {**cors, **headers})
+                        if admitted:
+                            cors.update(headers)
+                    if not admitted:
+                        async def allowed(*args):
+                            return 200, {}
+                        outcome = await access.gate(
+                            api_key=api_key,
+                            enforced=access.enforcement(getattr(self.env, ACCESS_ENFORCED_VAR, None)),
+                            kv=_access_store(self.env), load_policy=lambda: access_config.load_policy(self.env),
+                            anonymous=allowed, live=allowed,
+                            sandbox=lambda: access.refusal(access.SANDBOX_NOT_AVAILABLE, "Use a live key for vocabulary.", envelope={}),
+                        )
+                        if not outcome.served:
+                            return _json_response(outcome.status, outcome.body, {**cors, **outcome.headers})
+                        cors.update(outcome.headers)
+                elif human_gate.enabled(self.env):
+                    try:
+                        stub = human_gate.stub_for(request, self.env)
+                        if stub is None:
+                            raise RuntimeError("visitor identity unavailable")
+                        meter = human_gate.as_dict(await stub.take_vocabulary())
+                    except Exception:
+                        return _json_response(503, {"error": {"code": "human_gate_unavailable", "message": human_gate.UNAVAILABLE}}, cors)
+                    if meter["reason"]:
+                        return _json_response(429, {"error": {"code": human_gate.LIMIT_CODES[meter["reason"]], "message": "Vocabulary lookup limit reached."}},
+                                              {**cors, "retry-after": str(meter["retry_after"])})
+                if text is None:
+                    return _json_response(service.HTTP_BAD_GATEWAY, {"error": {
+                        "code": "export_unavailable", "message": "bundled vocabulary is missing",
+                    }}, cors)
+                query = parse_qs(urlparse(str(request.url)).query, keep_blank_values=True)
+                if any(key in query for key in ("section", "search", "id", "ids", "detail", "offset", "limit")):
+                    try:
+                        selected = display_vocabulary.lookup(
+                            _bundled_vocabulary, section=query.get("section", ["starter"])[0],
+                            search=query.get("search", [""])[0],
+                            ids=[*query.get("id", []), *(item for value in query.get("ids", []) for item in value.split(","))],
+                            detail=query.get("detail", ["compact"])[0],
+                            offset=int(query.get("offset", ["0"])[0]),
+                            limit=int(query.get("limit", ["20"])[0]),
+                        )
+                    except ValueError as exc:
+                        return _json_response(400, {"error": {"code": "invalid_request", "message": str(exc)}}, cors)
+                    text = json.dumps({"facets": [], "domains": [], "templates": [], "models": {}, "estate": {},
+                                       **selected}, ensure_ascii=False)
+                return Response("" if method == "HEAD" else text, status=200,
+                                headers={**cors, "content-type": "application/json; charset=utf-8",
+                                         "cache-control": "no-store" if visit_token.enabled(self.env) else "private, max-age=3600", "vary": "Origin"})
+        if path == "/v1/feedback":
+            return await self._feedback(request, method, service_commit)
+        if path == "/v1/human-status":
+            return await self._human_status(request, method)
         if path == "/v1/health":
             if method not in ("GET", "HEAD"):
                 return self._method_not_allowed(service_commit, path, "GET", method)
@@ -535,7 +832,7 @@ class Default(WorkerEntrypoint):
                 "schema_version": service.SCHEMA_VERSION,
                 "service_commit": service_commit,
                 "error": {"code": "not_found", "message": f"no endpoint at {path}",
-                          "accepted": list(ACCEPTED_ENDPOINTS)},
+                          "accepted": _accepted_endpoints(self.env)},
                 "result": [],
             })
         if method != "POST":
@@ -566,7 +863,7 @@ class Default(WorkerEntrypoint):
                     endpoint=path.rsplit("/", 1)[-1],
                 )[1]
                 return _decision_response(
-                    service.HTTP_PAYLOAD_TOO_LARGE, response, _cors_headers(request)
+                    service.HTTP_PAYLOAD_TOO_LARGE, response, _cors_headers(request, self.env)
                 )
             return _json_response(service.HTTP_PAYLOAD_TOO_LARGE, response)
 
@@ -586,7 +883,7 @@ class Default(WorkerEntrypoint):
                     snapshot_id=None,
                     endpoint=path.rsplit("/", 1)[-1],
                 )
-                return _decision_response(status, body, _cors_headers(request))
+                return _decision_response(status, body, _cors_headers(request, self.env))
             else:
                 status, body = service.error_response(
                     service.RequestError(
@@ -635,7 +932,7 @@ class Default(WorkerEntrypoint):
             async def _answer():
                 if path == "/v1/compare":
                     return await self._compare(payload, origin, expected)
-                return await self._decide(payload, origin, expected)
+                return await self._decide(payload, origin, expected, decision_transport)
 
             async def _anonymous():
                 return await _answer()
@@ -644,6 +941,11 @@ class Default(WorkerEntrypoint):
                 return await _answer()
 
             async def _live_unfunded(record, tier):
+                if path == "/v1/decide" and human_gate.enabled(self.env):
+                    return decider.error_response(
+                        "payment_required", "Machine decisions require remaining paid credits. "
+                        "Use a funded API key or the paid MCP service.",
+                        status=402, snapshot_id=envelope["snapshot"])
                 return await _answer()
 
             def sandbox():
@@ -672,12 +974,44 @@ class Default(WorkerEntrypoint):
                     return service.error_response(exc, None, service_commit, origin)
                 return access_sandbox.rank_response(parsed, envelope=envelope)
 
+        if path == "/v1/decide" and api_key is None and visit_token.enabled(self.env) and request.headers.get(visit_token.HEADER):
+            status, code, message, gate_headers = await visit_token.admit(
+                request, self.env, CORS_ORIGINS, "decide", payload)
+            if status == 200:
+                status, body = await _anonymous()
+                return _decision_response(status, body, {
+                    **gate_headers, **_decision_holder(origin).headers(), **_cors_headers(request, self.env),
+                }, decision_transport)
+            if not (code == "visit_token_invalid" and not access.enforcement(getattr(self.env, ACCESS_ENFORCED_VAR, None))):
+                return _json_response(status, {**envelope, "error": {"code": code, "message": message}},
+                                      {**gate_headers, **_cors_headers(request, self.env)})
+
+        if path == "/v1/decide" and api_key is None and human_gate.enabled(self.env) and not visit_token.enabled(self.env):
+            site_origin = str(request.headers.get("origin") or "") in CORS_ORIGINS
+            # Other callers can still pay per call through x402 when it is on.
+            if site_origin or not x402.load_config(self.env).enabled:
+                status, code, message, gate_headers = await human_gate.admit(
+                    request, self.env, CORS_ORIGINS, _verify_turnstile, payload)
+                if status == 200:
+                    status, body = await _anonymous()
+                else:
+                    return _json_response(status, {
+                        "contract_version": decider.contract.CONTRACT_VERSION,
+                        "endpoint": "decide",
+                        "snapshot": None,
+                        "error": {"code": code, "message": message},
+                    }, {**gate_headers, **_cors_headers(request, self.env)})
+                return _decision_response(status, body, {
+                    **gate_headers, **_decision_holder(origin).headers(),
+                    **_cors_headers(request, self.env),
+                }, decision_transport)
+
         # MODEL-75. One wrap around the live/anonymous producers: x402 verify
         # and settle run before either of them writes an answer. The sandbox
         # is not wrapped. X402_ENABLED default off is a no-op.
         x402_trace = x402.ChargeTrace()
         free_visitor = _site_free_visitor(
-            request, api_key, x402.load_config(self.env).enabled)
+            request, api_key, x402.load_config(self.env).enabled, self.env)
         anonymous = (
             _anonymous
             if free_visitor is not None
@@ -710,7 +1044,8 @@ class Default(WorkerEntrypoint):
                 headers["retry-after"] = str(decider.RETRY_AFTER_SECONDS)
             return _decision_response(
                 outcome.status, outcome.body,
-                {**headers, **_decision_holder(origin).headers(), **_cors_headers(request)},
+                {**headers, **_decision_holder(origin).headers(), **_cors_headers(request, self.env)},
+                decision_transport,
             )
         return _json_response(outcome.status, outcome.body, headers)
 
@@ -820,6 +1155,80 @@ class Default(WorkerEntrypoint):
         outcome.body["service_commit"] = service_commit
         return _json_response(outcome.status, outcome.body)
 
+    async def _human_status(self, request, method):
+        cors = _cors_headers(request, self.env)
+        if not cors:
+            return _json_response(403, {"enabled": human_gate.enabled(self.env)})
+        if method == "OPTIONS":
+            return Response("", status=204, headers={**cors, "access-control-allow-methods": "GET, OPTIONS"})
+        if method != "GET":
+            return _json_response(405, {"error": "method_not_allowed"}, cors)
+        if visit_token.enabled(self.env):
+            try:
+                day, burst = visit_token.limits(self.env, "decide")
+                return _json_response(200, {"enabled": True, "mode": "visit", "day_limit": day, "burst_limit": burst}, cors)
+            except Exception:
+                return _json_response(503, {"enabled": True, "message": "Human verification is temporarily unavailable."}, cors)
+        if not human_gate.enabled(self.env):
+            return _json_response(200, {"enabled": False}, cors)
+        try:
+            stub = human_gate.stub_for(request, self.env)
+            if stub is None:
+                raise RuntimeError(human_gate.unconfigured_reason(request, self.env))
+            remaining = int(await stub.remaining())
+            return _json_response(200, {"enabled": True, "remaining": remaining}, cors)
+        except Exception as exc:
+            human_gate.log_unavailable("status", exc)
+            return _json_response(503, {"enabled": True, "message": human_gate.UNAVAILABLE}, cors)
+
+    async def _feedback(self, request, method: str, service_commit: str):
+        """`POST` and `DELETE /v1/feedback` (MODEL-221). No key is read."""
+        extra = str(getattr(self.env, FEEDBACK_DEV_ORIGINS_VAR, "") or "")
+        # Local development only: a value naming any other host is ignored,
+        # so a stray production setting cannot open the endpoint to a site.
+        allowed = CORS_ORIGINS | frozenset(
+            o.strip() for o in extra.split(",")
+            if re.fullmatch(r"http://(localhost|127\.0\.0\.1)(:\d+)?", o.strip()))
+        origin = str(request.headers.get("origin") or "") or None
+        cors = {}
+        if origin in allowed:
+            cors = {
+                "access-control-allow-origin": origin,
+                "access-control-allow-methods": "POST, DELETE, OPTIONS",
+                "access-control-allow-headers": "content-type",
+                "access-control-max-age": "86400",
+                "vary": "Origin",
+            }
+        if method == "OPTIONS":
+            return Response("", status=204 if cors else 403, headers=cors)
+        if method not in ("POST", "DELETE"):
+            return self._method_not_allowed(service_commit, "/v1/feedback", "POST or DELETE",
+                                            method)
+        binding = getattr(self.env, FEEDBACK_BINDING, None)
+        store = feedback_service.Store(
+            enabled=feedback_service.enabled(getattr(self.env, FEEDBACK_ENABLED_VAR, None)),
+            kv=None if binding is None else access_kv.CloudflareKV(binding),
+            pepper=str(getattr(self.env, FEEDBACK_PEPPER_VAR, "") or "").encode("utf-8"),
+        )
+        # Cloudflare sets CF-Connecting-IP on every request that reaches this
+        # route and overwrites any the client sent. A request with none came
+        # through a service binding: the MCP Worker, which forwards its own
+        # caller's address in x-modelspec-client-ip so its callers are limited
+        # one by one rather than as a crowd. Either way the address is only an
+        # HMAC input; it is never stored or logged.
+        address = str(request.headers.get("CF-Connecting-IP")
+                      or request.headers.get("x-modelspec-client-ip") or "")
+        handler = feedback_service.submit if method == "POST" else feedback_service.withdraw
+        outcome = await handler(
+            raw=(await request.text()).encode("utf-8"),
+            address=address,
+            origin=origin,
+            allowed_origins=allowed,
+            store=store,
+        )
+        outcome.body["service_commit"] = service_commit
+        return _json_response(outcome.status, outcome.body, {**outcome.headers, **cors})
+
     def _x402_wrap(self, produce, request, path, api_key, envelope, payload, trace, *,
                    keyed: bool, produce_unfunded=None):
         """MODEL-75/93 hook. `keyed` uses the presented API key as the credit holder."""
@@ -875,7 +1284,7 @@ class Default(WorkerEntrypoint):
                 "schema_version": service.SCHEMA_VERSION,
                 "service_commit": service_commit,
                 "error": {"code": "not_found", "message": f"no endpoint at {path}",
-                          "accepted": list(ACCEPTED_ENDPOINTS)},
+                          "accepted": _accepted_endpoints(self.env)},
                 "result": [],
             })
 
@@ -989,11 +1398,14 @@ class Default(WorkerEntrypoint):
             }
 
         try:
-            return service.rank(payload, candidates, hardware, service_commit, origin)
+            return service.rank(payload, candidates, hardware, service_commit, origin,
+                                prepared_candidates=_cache["prepared"]
+                                if _cache["candidates"] is candidates else None)
         except service.RequestError as exc:
             return service.error_response(exc, candidates, service_commit, origin)
 
-    async def _decide(self, payload, origin: str, expected: str | None = None):
+    async def _decide(self, payload, origin: str, expected: str | None = None,
+                      transport: _DecisionTransport | None = None):
         """``POST /v1/decide`` against the isolate's verified snapshot.
 
         ``expected`` is the snapshot the caller's vocabulary names. When this
@@ -1008,10 +1420,11 @@ class Default(WorkerEntrypoint):
                 "is not configured"
             )
         holder = _decision_holder(origin)
+        snapshot_timings = []
         try:
-            snapshot = await holder.current(key)
+            snapshot = await holder.current(key, timings=snapshot_timings)
             if expected and expected != snapshot.snapshot_id:
-                snapshot = await holder.current(key, force=True)
+                snapshot = await holder.current(key, force=True, timings=snapshot_timings)
         except decider.SnapshotMissingError:
             return decider.no_snapshot("the published decision snapshot does not exist")
         except decider.SnapshotRefusalError as exc:
@@ -1028,7 +1441,16 @@ class Default(WorkerEntrypoint):
                 status=decider.HTTP_BAD_GATEWAY,
                 snapshot_id=None,
             )
-        return decider.decide(payload, snapshot, expected_snapshot=expected)
+        status, body = decider.decide(payload, snapshot, expected_snapshot=expected)
+        if status == decider.HTTP_OK and transport is not None:
+            transport.body = body
+            transport.serialised = decider.serialise(body)
+            # Workers freeze the clock during synchronous work (it moves only at
+            # I/O), so the decision itself always measured 0.0 ms in production.
+            # Only snapshot work, which waits on a fetch, has a real duration.
+            if snapshot_timings:
+                transport.headers["Server-Timing"] = f"snapshot;dur={sum(snapshot_timings):.1f}"
+        return status, body
 
     async def _compare(self, payload, origin: str, expected: str | None = None):
         """``POST /v1/compare`` against the current and one named snapshot."""

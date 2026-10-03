@@ -156,6 +156,8 @@ def landing_browser_results(tmp_path_factory: pytest.TempPathFactory) -> dict[st
         assembled / "decide" / "index.html",
     )
     shutil.copytree(ROOT / "web" / "dist" / "assets", assembled / "assets")
+    # The decide page loads the site's faces from /fonts/, as deployed.
+    shutil.copytree(ROOT / "site" / "fonts", assembled / "fonts")
     try:
         completed = subprocess.run(
             ["node", str(browser_script), str(live), str(holding), str(method_page), str(assembled)],
@@ -221,16 +223,10 @@ def test_live_and_holding_variants_differ_only_where_the_contract_requires(
     assert '<link rel="canonical" href="https://modelspec.dev/">' in live
     assert '<link rel="canonical" href="https://modelspec.dev/">' in holding
     assert 'content="noindex"' not in holding
-    release = "CLI, API and MCP. Install instructions arrive with the public release."
     for page in (live, holding):
-        # First run in order: vocab and decide need the snapshot first.
-        steps = [page.index(f"<code>{line}</code>") for line in landing.FIRST_RUN]
-        assert steps == sorted(steps)
-        assert landing.FIRST_RUN[1] == "modelspec snapshot fetch"
-        assert release not in page
-    unpublished = landing.render(data, variant="holding", package_published=False)
-    assert "pipx install" not in unpublished
-    assert release in unpublished
+        assert "pipx install" not in page
+        assert "The CLI was retired on 2026-09-30" in page
+        assert "Use the hosted API or remote MCP Worker with an API key" in page
     assert "Every number is one click from its source." in live
     assert "Every number has a source." not in live
     assert "Every number has a source." in holding
@@ -238,9 +234,8 @@ def test_live_and_holding_variants_differ_only_where_the_contract_requires(
     assert "Every number is one click from its source." not in holding
     assert 'href="/decide/">Open the board</a>' in live
     assert 'href="/decide/">Open the board</a>' not in holding
-    assert live.count('href="/graph/">Explore the graph</a>') == 1
-    assert live.index('href="/graph/">Explore the graph</a>') > live.index("<footer>")
-    assert 'href="/graph/">Explore the graph</a>' not in holding
+    for page in (live, holding):
+        assert 'href="/graph/"' not in page
     for page in (live, holding):
         assert page.count('href="/pricing/">Pricing</a>') == 2
         assert page.rindex('href="/pricing/">Pricing</a>') > page.index("<footer>")
@@ -278,9 +273,9 @@ def test_plain_and_campaign_root_urls_stay_on_the_landing(search: str) -> None:
 
 
 def test_the_landing_head_carries_the_current_headline(data: landing.LandingData) -> None:
-    assert landing.HEADLINE == (
-        "Model routers only guess. ModelSpec justifies the model decision and shows its work.")
-    assert landing.EYEBROW == "Your model is a guess."
+    assert landing.HEADLINE_LEAD == "Model routers make educated guesses."
+    assert landing.HEADLINE_SUB == (
+        "ModelSpec makes informed, unbiased decisions from evidence.")
     for variant in ("live", "holding"):
         page = landing.render(data, variant=variant)
         assert f"<title>{landing.TITLE}</title>" in page
@@ -312,14 +307,14 @@ def test_the_headline_figures_come_from_the_engine(data: landing.LandingData) ->
     assert data.cheapest_p == cheapest.p_beats_leader
 
     page = landing.render(data, variant="live")
-    assert f"<h1>{landing.HEADLINE}</h1>" in page
-    assert f'<p class="eyebrow">{landing.EYEBROW}</p>' in page
+    assert (f'<h1><span class="h1-lead">{landing.HEADLINE_LEAD}</span> '
+            f'<span class="h1-sub">{landing.HEADLINE_SUB}</span></h1>') in page
+    assert 'class="eyebrow"' not in page
     hero = page[page.index('<section class="hero">'):page.index('<section class="receipt"')]
-    from pipeline import social_cards
-
-    assert social_cards.landing_tie_line(data) in hero
-    assert f"can't tell {len(best) - 1} " in hero
-    assert f"costs {ratio:.1f}× less" in hero
+    assert f"{ratio:.1f}× less" in hero
+    assert 'class="fud"' not in page
+    assert page.index('<h1>') < page.index('<p class="close">') < page.index('class="actions"')
+    assert page.index('class="actions"') < page.index('<figure class="plot">')
     if cheapest.p_beats_leader is not None:
         assert f"a {cheapest.p_beats_leader:.0%} chance of scoring at least as well" in page
         assert f"At {bands.band_probability:.0%} or more" in page
@@ -335,7 +330,7 @@ def test_the_positioning_copy_types_no_numbers(data: landing.LandingData) -> Non
     teams = page[page.index('<section class="teams"'):page.index('<section class="agents"')]
     text = html.unescape(re.sub(r"<[^>]+>", " ", routers + teams))
     assert re.search(r"\d", text) is None, text
-    assert re.search(r"\d", landing.HEADLINE + landing.EYEBROW) is None
+    assert re.search(r"\d", landing.HEADLINE) is None
 
 
 def test_every_analysis_row_links_to_a_proof_that_exists(data: landing.LandingData) -> None:

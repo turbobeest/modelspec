@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import functools
 import glob
-import json
 import re
 import sys
 from datetime import date
@@ -22,7 +21,6 @@ import yaml
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from pipeline.graph import CLOUDFLARE_PAGES_MAX_FILE_BYTES, write  # noqa: E402
 from pipeline.hardware import (  # noqa: E402
     BANDWIDTH_EFFICIENCY, KV_BYTES_PER_ELEMENT, QUANT_BYTES, WORKING_ALLOWANCE,
     Device, best_quant, compute, device_classes, fitting_quants,
@@ -35,6 +33,12 @@ from schema.card import (  # noqa: E402
 )
 from schema.enums import DeviceClass, ModelType  # noqa: E402
 from schema.graph import CollectingSink, derive_graph  # noqa: E402
+
+
+@pytest.fixture(autouse=True)
+def public_fixture_diagnostics(monkeypatch):
+    """Synthetic hardware fixtures exercise public diagnostics; private errors have separate tests."""
+    monkeypatch.setattr("schema.private_data", lambda path=None: False)
 
 
 @functools.lru_cache(maxsize=1)
@@ -523,24 +527,6 @@ def test_the_hardware_view_is_no_longer_empty() -> None:
     assert stats["edges"] > 0
 
 
-def test_published_hardware_view_fits_cloudflare_pages(tmp_path: Path) -> None:
-    """Wave-3 SKUs made the fat FITS_ON dump larger than Pages will host."""
-    sink, stats = _real()
-    assert stats["edges"] > 0
-    write(tmp_path, sink, {"commit": "test"})
-    path = tmp_path / "views" / "hardware.json"
-    size = path.stat().st_size
-    assert size < CLOUDFLARE_PAGES_MAX_FILE_BYTES, (
-        f"hardware.json is {size} bytes; Pages refuses files over "
-        f"{CLOUDFLARE_PAGES_MAX_FILE_BYTES}"
-    )
-    payload = json.loads(path.read_text(encoding="utf-8"))
-    assert payload["counts"]["edges"] == stats["edges"]
-    assert payload["edge_properties"] is False
-    hardware_nodes = [n for n in payload["nodes"] if n["label"] == "Hardware"]
-    eligible = {d.id for d in _devices() if d.single_device_fit}
-    assert {n["id"] for n in hardware_nodes} == eligible
-    assert "cerebras_wse3" not in eligible
 
 
 def test_closed_weights_models_get_no_fits_on_edge() -> None:
@@ -856,7 +842,7 @@ def test_device_classes_maps_every_device() -> None:
     assert set(mapping.values()) <= {c.value for c in DeviceClass}
 
 
-def test_every_published_hardware_node_carries_a_known_class(tmp_path: Path) -> None:
+def test_every_derived_hardware_node_carries_a_known_class() -> None:
     """The acceptance for MODEL-76, wired exactly as `pipeline.build` wires it.
 
     A Hardware node with no class is invisible to "which models fit datacentre
@@ -870,9 +856,8 @@ def test_every_published_hardware_node_carries_a_known_class(tmp_path: Path) -> 
     sink = derive_graph(cards, device_classes(devices))
     compute(sink, cards, devices)
 
-    write(tmp_path, sink, {"commit": "test"})
-    nodes = json.loads((tmp_path / "nodes.json").read_text(encoding="utf-8"))["nodes"]
-    hardware_nodes = [n for n in nodes if n["label"] == "Hardware"]
+    hardware_nodes = [{"id": nid, **props} for (label, nid), props in sink.nodes.items()
+                      if label == "Hardware"]
     assert len(hardware_nodes) == len(devices)
     known = {c.value for c in DeviceClass}
     unclassed = [n["id"] for n in hardware_nodes if n.get("device_class") not in known]

@@ -1,0 +1,64 @@
+id: recall-q19
+family: F1
+persona: Developer choosing a model for production work
+request: 'Choose a scientific research assistant that can search and use tools.
+
+  '
+constraints:
+  class: generate
+  task: scientific research with search and tools
+  open_weights: false
+  price_cap_usd_per_million_input: null
+expected:
+  id: Q19
+  notes: 'No Terminal-Bench Science board was present on tbench.ai. Epoch GPQA is a science exam,
+    not a tool-using research workflow. End-to-end research accuracy was not measured. The terminal-agent
+    leaders are a proxy for tool use only, and must not be presented as a science ranking. The MODEL-161
+    triage at docs/recall/2026-09-25-model-161-triage.md records Gemini 3.8 Flash as a ranked candidate
+    below the three-row response limit (read 2026-09-25).
+
+    '
+  acceptable:
+  - model_id: openai/gpt-6-astra
+    reason: Strongest tool-use proxy on Terminal-Bench 4.0. Not a science-workflow score.
+    sources:
+    - url: https://www.tbench.ai/leaderboard
+      read: '2026-09-24'
+  - model_id: anthropic/claude-fable-5-1
+    reason: Terminal-Bench 4.0 57.88%, not separated from Astra. Not a science-workflow score.
+    sources:
+    - url: https://www.tbench.ai/leaderboard
+      read: '2026-09-24'
+  - model_id: anthropic/claude-opus-5
+    reason: Next Terminal-Bench 4.0 row. Not a science-workflow score.
+    sources:
+    - url: https://www.tbench.ai/leaderboard
+      read: '2026-09-24'
+  must_never:
+  - model_id: openai/text-embedding-3-large
+    reason: An embedding model does not search or call tools.
+    sources:
+    - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/openai/text-embedding-3-large.md
+      read: '2026-09-24'
+  must_flag:
+  - model_id: anthropic/claude-opus-5-5
+    reason: No science-workflow row and no Terminal-Bench 4.0 row were read.
+    sources:
+    - url: https://www.tbench.ai/leaderboard
+      read: '2026-09-24'
+    - url: https://matharena.ai/models
+      read: '2026-09-24'
+  missing_cards: []
+expected_source: tests/recall/expected.yaml#Q19
+sources:
+- tests/recall/questions.yaml#Q19
+- tests/recall/specs/Q19.yaml
+gaps:
+- reason: scientific research workflow quality has no distinct registered domain.
+  suggested_fix: Publish a dedicated facet or measured capability, or expose a clarification tool
+    before deciding.
+  source: tests/recall/specs/Q19.yaml
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.

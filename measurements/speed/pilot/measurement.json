@@ -1,0 +1,1035 @@
+{
+ "dropped_runs": [],
+ "evidence_sha256": "sha256:a6c94bad454d9144f0a8cc6a3cc31478761d9f8ffc4a558cf6a7641689619518",
+ "facts": [],
+ "format": "modelspec.speed-measurement",
+ "measurement_id": "speed-v1-2026-09-30-ac2865559925",
+ "method": "speed-v1",
+ "method_url": "https://github.com/turbobeest/modelspec/blob/main/docs/method/speed-measurement.md",
+ "provenance": "live",
+ "results": [
+  {
+   "attempted": 2,
+   "days": 1,
+   "effort": "adaptive thinking, effort low (thinking cannot be disabled)",
+   "failure_rate": 0.0,
+   "failures": {},
+   "n": 2,
+   "offering": "anthropic/anthropic/claude-opus-5-5/global/standard",
+   "publishable": false,
+   "reasoning_tokens": 0.0,
+   "reasons": [
+    "2 good samples; the gate is 20",
+    "1 time slots; the gate is 8",
+    "slots cover 1 of the 4 scheduled hours",
+    "1 days; the gate is 2"
+   ],
+   "throughput_tps": {
+    "interval": [
+     69.8,
+     108.18
+    ],
+    "iqr": [
+     79.395,
+     98.58500000000001
+    ],
+    "median": 88.99000000000001,
+    "n": 2
+   },
+   "time_slots": 1,
+   "ttft_ms": {
+    "interval": [
+     2001.9,
+     3086.0
+    ],
+    "iqr": [
+     2272.925,
+     2814.975
+    ],
+    "median": 2543.95,
+    "n": 2
+   },
+   "window": {
+    "end": "2026-09-30T03:16:01.309275+00:00",
+    "start": "2026-09-30T03:14:07.957051+00:00"
+   },
+   "workload": "short_chat"
+  },
+  {
+   "attempted": 2,
+   "days": 0,
+   "effort": "adaptive thinking, effort low (thinking cannot be disabled)",
+   "failure_rate": 1.0,
+   "failures": {
+    "no_content": 2
+   },
+   "n": 0,
+   "offering": "anthropic/anthropic/claude-opus-5-5/global/standard",
+   "publishable": false,
+   "reasoning_tokens": null,
+   "reasons": [
+    "0 good samples; the gate is 20",
+    "0 time slots; the gate is 8",
+    "slots cover 0 of the 4 scheduled hours",
+    "0 days; the gate is 2",
+    "100% of requests failed; the gate is 20%"
+   ],
+   "throughput_tps": null,
+   "time_slots": 0,
+   "ttft_ms": null,
+   "window": null,
+   "workload": "coding"
+  },
+  {
+   "attempted": 2,
+   "days": 0,
+   "effort": "adaptive thinking, effort low (thinking cannot be disabled)",
+   "failure_rate": 1.0,
+   "failures": {
+    "no_content": 2
+   },
+   "n": 0,
+   "offering": "anthropic/anthropic/claude-opus-5-5/global/standard",
+   "publishable": false,
+   "reasoning_tokens": null,
+   "reasons": [
+    "0 good samples; the gate is 20",
+    "0 time slots; the gate is 8",
+    "slots cover 0 of the 4 scheduled hours",
+    "0 days; the gate is 2",
+    "100% of requests failed; the gate is 20%"
+   ],
+   "throughput_tps": null,
+   "time_slots": 0,
+   "ttft_ms": null,
+   "window": null,
+   "workload": "long_context"
+  },
+  {
+   "attempted": 2,
+   "days": 1,
+   "effort": "thinking off (between_tools)",
+   "failure_rate": 0.0,
+   "failures": {},
+   "n": 2,
+   "offering": "anthropic/anthropic/claude-sonnet-5-5/global/standard",
+   "publishable": false,
+   "reasoning_tokens": 0.0,
+   "reasons": [
+    "2 good samples; the gate is 20",
+    "1 time slots; the gate is 8",
+    "slots cover 1 of the 4 scheduled hours",
+    "1 days; the gate is 2"
+   ],
+   "throughput_tps": {
+    "interval": [
+     87.25,
+     131.88
+    ],
+    "iqr": [
+     98.4075,
+     120.7225
+    ],
+    "median": 109.565,
+    "n": 2
+   },
+   "time_slots": 1,
+   "ttft_ms": {
+    "interval": [
+     1108.9,
+     1326.4
+    ],
+    "iqr": [
+     1163.275,
+     1272.025
+    ],
+    "median": 1217.65,
+    "n": 2
+   },
+   "window": {
+    "end": "2026-09-30T03:16:52.256993+00:00",
+    "start": "2026-09-30T03:14:57.426117+00:00"
+   },
+   "workload": "short_chat"
+  },
+  {
+   "attempted": 2,
+   "days": 1,
+   "effort": "thinking off (between_tools)",
+   "failure_rate": 0.0,
+   "failures": {},
+   "n": 2,
+   "offering": "anthropic/anthropic/claude-sonnet-5-5/global/standard",
+   "publishable": false,
+   "reasoning_tokens": 0.0,
+   "reasons": [
+    "2 good samples; the gate is 20",
+    "1 time slots; the gate is 8",
+    "slots cover 1 of the 4 scheduled hours",
+    "1 days; the gate is 2"
+   ],
+   "throughput_tps": {
+    "interval": [
+     191.57,
+     216.03
+    ],
+    "iqr": [
+     197.685,
+     209.91500000000002
+    ],
+    "median": 203.8,
+    "n": 2
+   },
+   "time_slots": 1,
+   "ttft_ms": {
+    "interval": [
+     562.3,
+     1103.4
+    ],
+    "iqr": [
+     697.575,
+     968.125
+    ],
+    "median": 832.85,
+    "n": 2
+   },
+   "window": {
+    "end": "2026-09-30T03:16:56.499649+00:00",
+    "start": "2026-09-30T03:15:00.482164+00:00"
+   },
+   "workload": "coding"
+  },
+  {
+   "attempted": 2,
+   "days": 1,
+   "effort": "thinking off (between_tools)",
+   "failure_rate": 0.0,
+   "failures": {},
+   "n": 2,
+   "offering": "anthropic/anthropic/claude-sonnet-5-5/global/standard",
+   "publishable": false,
+   "reasoning_tokens": 0.0,
+   "reasons": [
+    "2 good samples; the gate is 20",
+    "1 time slots; the gate is 8",
+    "slots cover 1 of the 4 scheduled hours",
+    "1 days; the gate is 2"
+   ],
+   "throughput_tps": {
+    "interval": [
+     92.62,
+     130.71
+    ],
+    "iqr": [
+     102.14250000000001,
+     121.1875
+    ],
+    "median": 111.665,
+    "n": 2
+   },
+   "time_slots": 1,
+   "ttft_ms": {
+    "interval": [
+     1260.2,
+     2049.9
+    ],
+    "iqr": [
+     1457.625,
+     1852.4750000000001
+    ],
+    "median": 1655.0500000000002,
+    "n": 2
+   },
+   "window": {
+    "end": "2026-09-30T03:16:59.430987+00:00",
+    "start": "2026-09-30T03:15:04.259811+00:00"
+   },
+   "workload": "long_context"
+  },
+  {
+   "attempted": 2,
+   "days": 1,
+   "effort": "thinking disabled",
+   "failure_rate": 0.0,
+   "failures": {},
+   "n": 2,
+   "offering": "deepseek/deepseek/deepseek-flash/global/standard",
+   "publishable": false,
+   "reasoning_tokens": 0.0,
+   "reasons": [
+    "2 good samples; the gate is 20",
+    "1 time slots; the gate is 8",
+    "slots cover 1 of the 4 scheduled hours",
+    "1 days; the gate is 2"
+   ],
+   "throughput_tps": {
+    "interval": [
+     140.23,
+     146.5
+    ],
+    "iqr": [
+     141.79749999999999,
+     144.9325
+    ],
+    "median": 143.365,
+    "n": 2
+   },
+   "time_slots": 1,
+   "ttft_ms": {
+    "interval": [
+     685.7,
+     781.6
+    ],
+    "iqr": [
+     709.6750000000001,
+     757.625
+    ],
+    "median": 733.6500000000001,
+    "n": 2
+   },
+   "window": {
+    "end": "2026-09-30T03:17:17.974143+00:00",
+    "start": "2026-09-30T03:15:25.128319+00:00"
+   },
+   "workload": "short_chat"
+  },
+  {
+   "attempted": 2,
+   "days": 1,
+   "effort": "thinking disabled",
+   "failure_rate": 0.0,
+   "failures": {},
+   "n": 2,
+   "offering": "deepseek/deepseek/deepseek-flash/global/standard",
+   "publishable": false,
+   "reasoning_tokens": 0.0,
+   "reasons": [
+    "2 good samples; the gate is 20",
+    "1 time slots; the gate is 8",
+    "slots cover 1 of the 4 scheduled hours",
+    "1 days; the gate is 2"
+   ],
+   "throughput_tps": {
+    "interval": [
+     335.06,
+     335.28
+    ],
+    "iqr": [
+     335.115,
+     335.22499999999997
+    ],
+    "median": 335.16999999999996,
+    "n": 2
+   },
+   "time_slots": 1,
+   "ttft_ms": {
+    "interval": [
+     481.5,
+     650.9
+    ],
+    "iqr": [
+     523.85,
+     608.55
+    ],
+    "median": 566.2,
+    "n": 2
+   },
+   "window": {
+    "end": "2026-09-30T03:17:20.512548+00:00",
+    "start": "2026-09-30T03:15:27.682804+00:00"
+   },
+   "workload": "coding"
+  },
+  {
+   "attempted": 2,
+   "days": 1,
+   "effort": "thinking disabled",
+   "failure_rate": 0.0,
+   "failures": {},
+   "n": 2,
+   "offering": "deepseek/deepseek/deepseek-flash/global/standard",
+   "publishable": false,
+   "reasoning_tokens": 0.0,
+   "reasons": [
+    "2 good samples; the gate is 20",
+    "1 time slots; the gate is 8",
+    "slots cover 1 of the 4 scheduled hours",
+    "1 days; the gate is 2"
+   ],
+   "throughput_tps": {
+    "interval": [
+     150.22,
+     170.59
+    ],
+    "iqr": [
+     155.3125,
+     165.4975
+    ],
+    "median": 160.405,
+    "n": 2
+   },
+   "time_slots": 1,
+   "ttft_ms": {
+    "interval": [
+     1348.3,
+     1366.3
+    ],
+    "iqr": [
+     1352.8,
+     1361.8
+    ],
+    "median": 1357.3,
+    "n": 2
+   },
+   "window": {
+    "end": "2026-09-30T03:17:22.787303+00:00",
+    "start": "2026-09-30T03:15:29.729935+00:00"
+   },
+   "workload": "long_context"
+  },
+  {
+   "attempted": 2,
+   "days": 1,
+   "effort": "thinking disabled",
+   "failure_rate": 0.0,
+   "failures": {},
+   "n": 2,
+   "offering": "deepseek/deepseek/deepseek-v4-pro/global/standard",
+   "publishable": false,
+   "reasoning_tokens": 0.0,
+   "reasons": [
+    "2 good samples; the gate is 20",
+    "1 time slots; the gate is 8",
+    "slots cover 1 of the 4 scheduled hours",
+    "1 days; the gate is 2"
+   ],
+   "throughput_tps": {
+    "interval": [
+     60.53,
+     60.68
+    ],
+    "iqr": [
+     60.5675,
+     60.6425
+    ],
+    "median": 60.605000000000004,
+    "n": 2
+   },
+   "time_slots": 1,
+   "ttft_ms": {
+    "interval": [
+     790.9,
+     975.0
+    ],
+    "iqr": [
+     836.925,
+     928.975
+    ],
+    "median": 882.95,
+    "n": 2
+   },
+   "window": {
+    "end": "2026-09-30T03:16:36.941417+00:00",
+    "start": "2026-09-30T03:14:39.796427+00:00"
+   },
+   "workload": "short_chat"
+  },
+  {
+   "attempted": 2,
+   "days": 1,
+   "effort": "thinking disabled",
+   "failure_rate": 0.0,
+   "failures": {},
+   "n": 2,
+   "offering": "deepseek/deepseek/deepseek-v4-pro/global/standard",
+   "publishable": false,
+   "reasoning_tokens": 0.0,
+   "reasons": [
+    "2 good samples; the gate is 20",
+    "1 time slots; the gate is 8",
+    "slots cover 1 of the 4 scheduled hours",
+    "1 days; the gate is 2"
+   ],
+   "throughput_tps": {
+    "interval": [
+     132.81,
+     134.93
+    ],
+    "iqr": [
+     133.34,
+     134.4
+    ],
+    "median": 133.87,
+    "n": 2
+   },
+   "time_slots": 1,
+   "ttft_ms": {
+    "interval": [
+     826.8,
+     912.7
+    ],
+    "iqr": [
+     848.2749999999999,
+     891.2250000000001
+    ],
+    "median": 869.75,
+    "n": 2
+   },
+   "window": {
+    "end": "2026-09-30T03:16:42.037254+00:00",
+    "start": "2026-09-30T03:14:45.080699+00:00"
+   },
+   "workload": "coding"
+  },
+  {
+   "attempted": 2,
+   "days": 1,
+   "effort": "thinking disabled",
+   "failure_rate": 0.0,
+   "failures": {},
+   "n": 2,
+   "offering": "deepseek/deepseek/deepseek-v4-pro/global/standard",
+   "publishable": false,
+   "reasoning_tokens": 0.0,
+   "reasons": [
+    "2 good samples; the gate is 20",
+    "1 time slots; the gate is 8",
+    "slots cover 1 of the 4 scheduled hours",
+    "1 days; the gate is 2"
+   ],
+   "throughput_tps": {
+    "interval": [
+     62.78,
+     72.4
+    ],
+    "iqr": [
+     65.185,
+     69.995
+    ],
+    "median": 67.59,
+    "n": 2
+   },
+   "time_slots": 1,
+   "ttft_ms": {
+    "interval": [
+     1392.2,
+     4052.4
+    ],
+    "iqr": [
+     2057.25,
+     3387.3500000000004
+    ],
+    "median": 2722.3,
+    "n": 2
+   },
+   "window": {
+    "end": "2026-09-30T03:16:46.773954+00:00",
+    "start": "2026-09-30T03:14:49.791955+00:00"
+   },
+   "workload": "long_context"
+  },
+  {
+   "attempted": 2,
+   "days": 0,
+   "effort": "thinking level low (the lowest)",
+   "failure_rate": 1.0,
+   "failures": {
+    "http_error": 1,
+    "not_streamed": 1
+   },
+   "n": 0,
+   "offering": "google-gemini-api/google/gemini-3-8-flash/global/standard",
+   "publishable": false,
+   "reasoning_tokens": null,
+   "reasons": [
+    "0 good samples; the gate is 20",
+    "0 time slots; the gate is 8",
+    "slots cover 0 of the 4 scheduled hours",
+    "0 days; the gate is 2",
+    "100% of requests failed; the gate is 20%"
+   ],
+   "throughput_tps": null,
+   "time_slots": 0,
+   "ttft_ms": null,
+   "window": null,
+   "workload": "short_chat"
+  },
+  {
+   "attempted": 2,
+   "days": 0,
+   "effort": "thinking level low (the lowest)",
+   "failure_rate": 1.0,
+   "failures": {
+    "http_error": 2
+   },
+   "n": 0,
+   "offering": "google-gemini-api/google/gemini-3-8-flash/global/standard",
+   "publishable": false,
+   "reasoning_tokens": null,
+   "reasons": [
+    "0 good samples; the gate is 20",
+    "0 time slots; the gate is 8",
+    "slots cover 0 of the 4 scheduled hours",
+    "0 days; the gate is 2",
+    "100% of requests failed; the gate is 20%"
+   ],
+   "throughput_tps": null,
+   "time_slots": 0,
+   "ttft_ms": null,
+   "window": null,
+   "workload": "coding"
+  },
+  {
+   "attempted": 2,
+   "days": 0,
+   "effort": "thinking level low (the lowest)",
+   "failure_rate": 1.0,
+   "failures": {
+    "http_error": 2
+   },
+   "n": 0,
+   "offering": "google-gemini-api/google/gemini-3-8-flash/global/standard",
+   "publishable": false,
+   "reasoning_tokens": null,
+   "reasons": [
+    "0 good samples; the gate is 20",
+    "0 time slots; the gate is 8",
+    "slots cover 0 of the 4 scheduled hours",
+    "0 days; the gate is 2",
+    "100% of requests failed; the gate is 20%"
+   ],
+   "throughput_tps": null,
+   "time_slots": 0,
+   "ttft_ms": null,
+   "window": null,
+   "workload": "long_context"
+  },
+  {
+   "attempted": 2,
+   "days": 1,
+   "effort": "reasoning_effort none",
+   "failure_rate": 0.0,
+   "failures": {},
+   "n": 2,
+   "offering": "openai/openai/gpt-5-6-sol/global/standard",
+   "publishable": false,
+   "reasoning_tokens": 0.0,
+   "reasons": [
+    "2 good samples; the gate is 20",
+    "1 time slots; the gate is 8",
+    "slots cover 1 of the 4 scheduled hours",
+    "1 days; the gate is 2"
+   ],
+   "throughput_tps": {
+    "interval": [
+     66.44,
+     71.51
+    ],
+    "iqr": [
+     67.7075,
+     70.2425
+    ],
+    "median": 68.975,
+    "n": 2
+   },
+   "time_slots": 1,
+   "ttft_ms": {
+    "interval": [
+     671.2,
+     3242.9
+    ],
+    "iqr": [
+     1314.125,
+     2599.9750000000004
+    ],
+    "median": 1957.0500000000002,
+    "n": 2
+   },
+   "window": {
+    "end": "2026-09-30T03:17:03.447858+00:00",
+    "start": "2026-09-30T03:15:08.268286+00:00"
+   },
+   "workload": "short_chat"
+  },
+  {
+   "attempted": 2,
+   "days": 1,
+   "effort": "reasoning_effort none",
+   "failure_rate": 0.0,
+   "failures": {},
+   "n": 2,
+   "offering": "openai/openai/gpt-5-6-sol/global/standard",
+   "publishable": false,
+   "reasoning_tokens": 0.0,
+   "reasons": [
+    "2 good samples; the gate is 20",
+    "1 time slots; the gate is 8",
+    "slots cover 1 of the 4 scheduled hours",
+    "1 days; the gate is 2"
+   ],
+   "throughput_tps": {
+    "interval": [
+     132.09,
+     138.66
+    ],
+    "iqr": [
+     133.7325,
+     137.0175
+    ],
+    "median": 135.375,
+    "n": 2
+   },
+   "time_slots": 1,
+   "ttft_ms": {
+    "interval": [
+     1054.8,
+     1082.8
+    ],
+    "iqr": [
+     1061.8,
+     1075.8
+    ],
+    "median": 1068.8,
+    "n": 2
+   },
+   "window": {
+    "end": "2026-09-30T03:17:07.744267+00:00",
+    "start": "2026-09-30T03:15:15.378117+00:00"
+   },
+   "workload": "coding"
+  },
+  {
+   "attempted": 2,
+   "days": 1,
+   "effort": "reasoning_effort none",
+   "failure_rate": 0.0,
+   "failures": {},
+   "n": 2,
+   "offering": "openai/openai/gpt-5-6-sol/global/standard",
+   "publishable": false,
+   "reasoning_tokens": 0.0,
+   "reasons": [
+    "2 good samples; the gate is 20",
+    "1 time slots; the gate is 8",
+    "slots cover 1 of the 4 scheduled hours",
+    "1 days; the gate is 2"
+   ],
+   "throughput_tps": {
+    "interval": [
+     73.02,
+     83.24
+    ],
+    "iqr": [
+     75.575,
+     80.68499999999999
+    ],
+    "median": 78.13,
+    "n": 2
+   },
+   "time_slots": 1,
+   "ttft_ms": {
+    "interval": [
+     1224.4,
+     2291.2
+    ],
+    "iqr": [
+     1491.1,
+     2024.5
+    ],
+    "median": 1757.8,
+    "n": 2
+   },
+   "window": {
+    "end": "2026-09-30T03:17:12.541502+00:00",
+    "start": "2026-09-30T03:15:20.330158+00:00"
+   },
+   "workload": "long_context"
+  },
+  {
+   "attempted": 2,
+   "days": 1,
+   "effort": "reasoning_effort none",
+   "failure_rate": 0.0,
+   "failures": {},
+   "n": 2,
+   "offering": "openai/openai/gpt-6-sol/global/standard",
+   "publishable": false,
+   "reasoning_tokens": 0.0,
+   "reasons": [
+    "2 good samples; the gate is 20",
+    "1 time slots; the gate is 8",
+    "slots cover 1 of the 4 scheduled hours",
+    "1 days; the gate is 2"
+   ],
+   "throughput_tps": {
+    "interval": [
+     53.76,
+     78.62
+    ],
+    "iqr": [
+     59.975,
+     72.405
+    ],
+    "median": 66.19,
+    "n": 2
+   },
+   "time_slots": 1,
+   "ttft_ms": {
+    "interval": [
+     793.9,
+     1019.8
+    ],
+    "iqr": [
+     850.375,
+     963.3249999999999
+    ],
+    "median": 906.8499999999999,
+    "n": 2
+   },
+   "window": {
+    "end": "2026-09-30T03:16:20.700297+00:00",
+    "start": "2026-09-30T03:14:24.240776+00:00"
+   },
+   "workload": "short_chat"
+  },
+  {
+   "attempted": 2,
+   "days": 1,
+   "effort": "reasoning_effort none",
+   "failure_rate": 0.0,
+   "failures": {},
+   "n": 2,
+   "offering": "openai/openai/gpt-6-sol/global/standard",
+   "publishable": false,
+   "reasoning_tokens": 0.0,
+   "reasons": [
+    "2 good samples; the gate is 20",
+    "1 time slots; the gate is 8",
+    "slots cover 1 of the 4 scheduled hours",
+    "1 days; the gate is 2"
+   ],
+   "throughput_tps": {
+    "interval": [
+     105.72,
+     116.23
+    ],
+    "iqr": [
+     108.3475,
+     113.60249999999999
+    ],
+    "median": 110.975,
+    "n": 2
+   },
+   "time_slots": 1,
+   "ttft_ms": {
+    "interval": [
+     1221.1,
+     1225.9
+    ],
+    "iqr": [
+     1222.3,
+     1224.7
+    ],
+    "median": 1223.5,
+    "n": 2
+   },
+   "window": {
+    "end": "2026-09-30T03:16:26.267119+00:00",
+    "start": "2026-09-30T03:14:28.532405+00:00"
+   },
+   "workload": "coding"
+  },
+  {
+   "attempted": 2,
+   "days": 1,
+   "effort": "reasoning_effort none",
+   "failure_rate": 0.0,
+   "failures": {},
+   "n": 2,
+   "offering": "openai/openai/gpt-6-sol/global/standard",
+   "publishable": false,
+   "reasoning_tokens": 0.0,
+   "reasons": [
+    "2 good samples; the gate is 20",
+    "1 time slots; the gate is 8",
+    "slots cover 1 of the 4 scheduled hours",
+    "1 days; the gate is 2"
+   ],
+   "throughput_tps": {
+    "interval": [
+     63.53,
+     64.48
+    ],
+    "iqr": [
+     63.7675,
+     64.2425
+    ],
+    "median": 64.005,
+    "n": 2
+   },
+   "time_slots": 1,
+   "ttft_ms": {
+    "interval": [
+     893.9,
+     1130.6
+    ],
+    "iqr": [
+     953.0749999999999,
+     1071.425
+    ],
+    "median": 1012.25,
+    "n": 2
+   },
+   "window": {
+    "end": "2026-09-30T03:16:32.006239+00:00",
+    "start": "2026-09-30T03:14:34.622759+00:00"
+   },
+   "workload": "long_context"
+  },
+  {
+   "attempted": 2,
+   "days": 1,
+   "effort": "reasoning_effort low (thinking cannot be disabled)",
+   "failure_rate": 0.0,
+   "failures": {},
+   "n": 2,
+   "offering": "zai/zhipu/glm-5-3/global/standard",
+   "publishable": false,
+   "reasoning_tokens": 17.5,
+   "reasons": [
+    "2 good samples; the gate is 20",
+    "1 time slots; the gate is 8",
+    "slots cover 1 of the 4 scheduled hours",
+    "1 days; the gate is 2"
+   ],
+   "throughput_tps": {
+    "interval": [
+     53.97,
+     58.36
+    ],
+    "iqr": [
+     55.067499999999995,
+     57.262499999999996
+    ],
+    "median": 56.165,
+    "n": 2
+   },
+   "time_slots": 1,
+   "ttft_ms": {
+    "interval": [
+     3585.5,
+     3987.9
+    ],
+    "iqr": [
+     3686.1,
+     3887.3
+    ],
+    "median": 3786.7,
+    "n": 2
+   },
+   "window": {
+    "end": "2026-09-30T03:17:25.951747+00:00",
+    "start": "2026-09-30T03:15:32.627763+00:00"
+   },
+   "workload": "short_chat"
+  },
+  {
+   "attempted": 2,
+   "days": 1,
+   "effort": "reasoning_effort low (thinking cannot be disabled)",
+   "failure_rate": 0.0,
+   "failures": {},
+   "n": 2,
+   "offering": "zai/zhipu/glm-5-3/global/standard",
+   "publishable": false,
+   "reasoning_tokens": 4.5,
+   "reasons": [
+    "2 good samples; the gate is 20",
+    "1 time slots; the gate is 8",
+    "slots cover 1 of the 4 scheduled hours",
+    "1 days; the gate is 2"
+   ],
+   "throughput_tps": {
+    "interval": [
+     85.69,
+     89.98
+    ],
+    "iqr": [
+     86.7625,
+     88.9075
+    ],
+    "median": 87.83500000000001,
+    "n": 2
+   },
+   "time_slots": 1,
+   "ttft_ms": {
+    "interval": [
+     2532.1,
+     2536.6
+    ],
+    "iqr": [
+     2533.225,
+     2535.475
+    ],
+    "median": 2534.35,
+    "n": 2
+   },
+   "window": {
+    "end": "2026-09-30T03:17:33.794752+00:00",
+    "start": "2026-09-30T03:15:41.284440+00:00"
+   },
+   "workload": "coding"
+  },
+  {
+   "attempted": 2,
+   "days": 1,
+   "effort": "reasoning_effort low (thinking cannot be disabled)",
+   "failure_rate": 0.0,
+   "failures": {},
+   "n": 2,
+   "offering": "zai/zhipu/glm-5-3/global/standard",
+   "publishable": false,
+   "reasoning_tokens": 83.0,
+   "reasons": [
+    "2 good samples; the gate is 20",
+    "1 time slots; the gate is 8",
+    "slots cover 1 of the 4 scheduled hours",
+    "1 days; the gate is 2"
+   ],
+   "throughput_tps": {
+    "interval": [
+     47.97,
+     81.65
+    ],
+    "iqr": [
+     56.39,
+     73.23
+    ],
+    "median": 64.81,
+    "n": 2
+   },
+   "time_slots": 1,
+   "ttft_ms": {
+    "interval": [
+     4431.7,
+     5780.1
+    ],
+    "iqr": [
+     4768.799999999999,
+     5443.000000000001
+    ],
+    "median": 5105.9,
+    "n": 2
+   },
+   "window": {
+    "end": "2026-09-30T03:17:41.984917+00:00",
+    "start": "2026-09-30T03:15:49.774399+00:00"
+   },
+   "workload": "long_context"
+  }
+ ],
+ "runs": [
+  "speed-v1-2026-09-30T00-f30883892dcc"
+ ],
+ "vantage": "cloudflare-colo:IAD/US"
+}

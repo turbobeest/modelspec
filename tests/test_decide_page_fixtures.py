@@ -32,6 +32,12 @@ from tests.snapshot_records import (
 REPO = Path(__file__).resolve().parents[1]
 WEB = REPO / "web" / "src" / "decide" / "__fixtures__"
 
+
+def _page_bytes(body):
+    """The adapter discards additive agent reporting guidance. Keep page bytes pinned."""
+    return json.dumps({k: v for k, v in body.items() if k != "reading"},
+                      indent=2, ensure_ascii=False) + "\n"
+
 def _snapshot(intervals=None):
     return load_built_snapshot(build_lineup_snapshot(intervals), include_archive=True,
                                source="page fixture build")
@@ -67,7 +73,7 @@ def test_the_page_fixture_is_the_engines_answer(explain):
     status, body = service.decide(_spec(explain), _snapshot())
     assert status == 200, body
     path = WEB / f"compact-{explain}.json"
-    fresh = json.dumps(body, indent=2, ensure_ascii=False) + "\n"
+    fresh = _page_bytes(body)
     if os.environ.get("MODELSPEC_WRITE_FIXTURES"):
         path.write_text(fresh, encoding="utf-8")
     assert path.read_text(encoding="utf-8") == fresh, (
@@ -82,7 +88,7 @@ def test_the_tied_page_fixture_is_the_engines_answer():
     assert status == 200, body
     assert body["answer"]["kind"] == "tied"
     path = WEB / "compact-tied-full.json"
-    fresh = json.dumps(body, indent=2, ensure_ascii=False) + "\n"
+    fresh = _page_bytes(body)
     if os.environ.get("MODELSPEC_WRITE_FIXTURES"):
         path.write_text(fresh, encoding="utf-8")
     assert path.read_text(encoding="utf-8") == fresh, (
@@ -138,7 +144,7 @@ def test_the_plan_page_fixtures_are_the_engines_answer(name):
     assert status == 200, body
     assert body["with_estate"] is not None
     path = WEB / f"{name}.json"
-    fresh = json.dumps(body, indent=2, ensure_ascii=False) + "\n"
+    fresh = _page_bytes(body)
     if os.environ.get("MODELSPEC_WRITE_FIXTURES"):
         path.write_text(fresh, encoding="utf-8")
     assert path.read_text(encoding="utf-8") == fresh, (
@@ -234,7 +240,7 @@ def test_the_bands_page_fixture_is_the_engines_answer():
     assert [term["dimension"] for term in body["blend"]] == [
         "software_engineering", "-offering.cost_per_task"]
     path = WEB / "compact-bands-full.json"
-    fresh = json.dumps(body, indent=2, ensure_ascii=False) + "\n"
+    fresh = _page_bytes(body)
     if os.environ.get("MODELSPEC_WRITE_FIXTURES"):
         path.write_text(fresh, encoding="utf-8")
     assert path.read_text(encoding="utf-8") == fresh, (

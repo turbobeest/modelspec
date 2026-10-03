@@ -18,6 +18,7 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
+  DATA_SPLIT_ENABLED: ${{ vars.DATA_SPLIT_ENABLED }}
   WRANGLER: wrangler@4.134.0
   MCP_URL: https://api.modelspec.dev/mcp
 
@@ -53,7 +54,7 @@ jobs:
   deploy:
     name: Deploy the MCP Worker
     needs: test
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || vars.DATA_SPLIT_ENABLED == 'true' && github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -78,7 +79,12 @@ jobs:
 
       - name: Deploy
         working-directory: mcp
-        run: npx --yes "$WRANGLER" deploy --var "BUILD_COMMIT:${GITHUB_SHA}"
+        run: |
+          args=(--var "BUILD_COMMIT:${GITHUB_SHA}")
+          if [ -n "$DATA_SPLIT_ENABLED" ]; then
+            args+=(--var "DATA_SPLIT_ENABLED:${DATA_SPLIT_ENABLED}")
+          fi
+          npx --yes "$WRANGLER" deploy "${args[@]}"
 
       - name: Smoke-test api.modelspec.dev/mcp
         run: |

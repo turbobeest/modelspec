@@ -18,7 +18,7 @@ from scripts.card_updates import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
-WORKFLOW_PATH = ROOT / ".github" / "workflows" / "daily-research.yml"
+WORKFLOW_PATH = ROOT / ".github" / "private-writers" / "daily-research.yml"
 
 SOURCE = {
     "url": "https://docs.acme.example/prompting",

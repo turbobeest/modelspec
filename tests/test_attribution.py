@@ -30,7 +30,7 @@ from scripts import attribution as A  # noqa: N812
 from scripts import seed_models_dev as seeder
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-WORKFLOW_PATH = REPO_ROOT / ".github" / "workflows" / "daily-research.yml"
+WORKFLOW_PATH = REPO_ROOT / ".github" / "private-writers" / "daily-research.yml"
 PAGE_ORGS = {pid: cfg["slug"] for pid, cfg in seeder.PROVIDER_MAP.items()}
 
 KIMI = {"id": "kimi-k3", "name": "Kimi K3", "family": "kimi-k3"}

@@ -34,6 +34,7 @@ import re
 import secrets
 import shutil
 import time
+import warnings
 from collections.abc import Mapping
 from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
@@ -123,6 +124,12 @@ def _validate_decision_generation(generation: Path, *, require_named: bool = Tru
         raise ValueError("cached decision vocabulary is not a JSON object")
     if vocabulary.get("snapshot") != decision.snapshot_id:
         raise ValueError("cached decision vocabulary does not name the decision snapshot")
+    from decision.snapshot import SnapshotIntegrityError, verify_vocabulary
+
+    try:
+        verify_vocabulary(vocabulary)
+    except SnapshotIntegrityError as exc:
+        raise ValueError(f"cached decision vocabulary: {exc}") from exc
     if require_named and generation.name != decision.snapshot_id:
         raise ValueError("cached decision generation does not name the decision snapshot")
     return decision.snapshot_id
@@ -476,7 +483,7 @@ def _check_refusal(response: Any, origin: str, presented: Credential | None) -> 
 
 def fetch(origin: str = DEFAULT_ORIGIN, target: Path | None = None,
           credential: Credential | None = None) -> Snapshot:
-    """Download the export. The only command that needs the network.
+    """Download the export. The only decision command that needs the network.
 
     With no `credential` this is the call it has always been. With one, the key
     rides on an `Authorization` header — never in the URL, never in the cached
@@ -551,7 +558,11 @@ def _fetch_decision_files(origin: str, directory: Path,
     """Try to refresh the public decision pair without affecting rank fetch."""
     import httpx
 
-    from decision.snapshot import SnapshotIntegrityError, load_snapshot_bytes
+    from decision.snapshot import (
+        SnapshotIntegrityError,
+        load_snapshot_bytes,
+        verify_vocabulary,
+    )
 
     class DecisionRouteUnavailable(RuntimeError):  # noqa: N818 - describes route state
         pass
@@ -604,6 +615,15 @@ def _fetch_decision_files(origin: str, directory: Path,
                 "fetched decision vocabulary snapshot does not match the decision snapshot "
                 f"({vocabulary_raw.get('snapshot')!r} != {decision.snapshot_id!r})"
             )
+        vocabulary_status = verify_vocabulary(vocabulary_raw)
+        if vocabulary_status != "verified":
+            warnings.warn(
+                f"the fetched decision vocabulary is {vocabulary_status}: it carries no "
+                "Ed25519 signature the CLI can check, so its model and provider names, "
+                "outcome records and templates are trusted on the snapshot ID alone.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
     except SnapshotIntegrityError as exc:
         return {"available": False,
                 "error": f"fetched decision snapshot failed integrity check: {exc}"}
@@ -625,7 +645,12 @@ def _fetch_decision_files(origin: str, directory: Path,
         if generation.exists():
             try:
                 _validate_decision_generation(generation)
+                cached_vocabulary = json.loads(
+                    (generation / DECISION_VOCABULARY_FILENAME).read_text(encoding="utf-8"))
+                stale = cached_vocabulary != vocabulary_raw
             except (OSError, ValueError, KeyError, json.JSONDecodeError):
+                stale = True
+            if stale:
                 shutil.rmtree(generation)
                 os.replace(temporary, generation)
             else:
@@ -651,6 +676,7 @@ def _fetch_decision_files(origin: str, directory: Path,
         "signature_verified": decision.signature_verified,
         "signature_status": decision.signature_status,
         "signature_key_id": decision.signature_key_id,
+        "vocabulary_signature": vocabulary_status,
     }
 
 

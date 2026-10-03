@@ -48,6 +48,7 @@ describe("MCP client round-trip", () => {
       {
         fetch: (input: RequestInfo | URL, init?: RequestInit) => {
           const headers = new Headers(init?.headers);
+          headers.set("authorization", "Bearer test_key");
           if (!headers.has("host")) {
             const url =
               typeof input === "string"

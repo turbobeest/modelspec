@@ -13,8 +13,9 @@ import hashlib
 import http.client
 import json
 import os
+import re
 import secrets
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import asdict
 from datetime import UTC, datetime
 from typing import Any
@@ -33,6 +34,20 @@ from scripts.speed.providers import APIS, StreamResult
 from scripts.speed.transport import Transport
 
 RUN_FORMAT = "modelspec.speed-run"
+
+#: Characters of a non-2xx response body a sample keeps.
+ERROR_BODY_CHARS = 1024
+_KEY_SHAPES = re.compile(
+    r"(?i)(bearer\s+\S+"
+    r"|(?:x-api-key|x-goog-api-key|authorization)[\"']?\s*[:=]\s*[\"']?(?:bearer\s+)?\S+"
+    r"|\b(?:sk|xai|AIza)[-\w]{16,})")
+
+
+def redact(text: str, secrets_: Iterable[str] = ()) -> str:
+    """``text`` with every given secret and anything shaped like a key or auth value removed."""
+    for secret in sorted({s for s in secrets_ if s}, key=len, reverse=True):
+        text = text.replace(secret, "[redacted]")
+    return _KEY_SHAPES.sub("[redacted]", text)
 
 
 class SpendRefusedError(RuntimeError):
@@ -81,7 +96,8 @@ def _status(http_status: int, result: StreamResult) -> str:
 
 def _sample(call: Call, started_at: datetime, nonce: str, http_status: int,
             connect_s: float | None, result: StreamResult, cost: float,
-            error: str | None, events: list[tuple[float, str]]) -> dict[str, Any]:
+            error: str | None, events: list[tuple[float, str]],
+            error_body: str | None = None) -> dict[str, Any]:
     status = "transport_error" if error else _status(http_status, result)
     ttft = tps = None
     if status == "ok":
@@ -98,6 +114,7 @@ def _sample(call: Call, started_at: datetime, nonce: str, http_status: int,
         "status": status,
         "http_status": http_status,
         "error": error,
+        "error_body": error_body,
         "connect_ms": None if connect_s is None else round(connect_s * 1000, 1),
         "ttft_ms": ttft,
         "throughput_tps": tps,
@@ -144,6 +161,7 @@ def run_slot(plan: Plan, transport: Transport, *, cap_usd: float, keys: Mapping[
             tag=token)
         started_at = now()
         http_status, connect_s, result, error = 0, None, StreamResult(), None
+        error_body = None
         events: list[tuple[float, str]] = []
         try:
             exchange = transport.send(request)
@@ -151,7 +169,7 @@ def run_slot(plan: Plan, transport: Transport, *, cap_usd: float, keys: Mapping[
             if exchange.status == 200:
                 result = api.parse(_tap(exchange.events, events))
             else:
-                result.error = (exchange.error_body or "")[:300]
+                error_body = redact(exchange.error_body or "", keys.values())[:ERROR_BODY_CHARS]
         except Exception as exc:  # noqa: BLE001 - one bad reply must not lose a paid run
             error = f"{type(exc).__name__}: {exc}"[:300]
         if result.input_tokens is not None and result.billed_output_tokens is not None:
@@ -162,7 +180,7 @@ def run_slot(plan: Plan, transport: Transport, *, cap_usd: float, keys: Mapping[
             cost = 0.0
         spent += cost
         samples.append(_sample(call, started_at, token, http_status, connect_s, result,
-                               cost, error, events))
+                               cost, error, events, error_body))
     finished = now()
     run = {
         "format": RUN_FORMAT,

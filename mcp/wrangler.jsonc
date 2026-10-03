@@ -26,6 +26,7 @@
   "services": [{ "binding": "RANK", "service": "modelspec-rank" }],
   "observability": { "enabled": true },
   "vars": {
+    "MCP_REQUIRE_API_KEY": "true",
     "EXPORT_ORIGIN": "https://modelspec.dev",
     "RANK_API_ORIGIN": "https://api.modelspec.dev",
     // CI overrides with --var BUILD_COMMIT:$GITHUB_SHA. The smoke test

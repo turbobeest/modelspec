@@ -6,6 +6,9 @@ byte; `favicon.ico` wraps the 16, 32 and 48 PNGs without resampling. The social
 card `brand/og-card-2a.png` is the light lockup rendered by
 `web/scripts/render-og-card.mjs`, committed because CI has no Segoe UI.
 
+`pipeline.brand_page` publishes the whole package, with the social images, as
+the press kit at /brand/.
+
 `pipeline.agent_ready` writes the set into the real build. The holding tree
 keeps it (`pipeline.holding.KEEP_FILES`), and the live and internal decide
 compositions copy it from the real build (`.github/workflows/deploy-sites.yml`).
@@ -17,6 +20,8 @@ import json
 import shutil
 import struct
 from pathlib import Path
+
+from pipeline import entity
 
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE = ROOT / "brand" / "2a"
@@ -112,14 +117,13 @@ def social_meta(title: str, *, path: str = "/", image_name: str = "og-card.png",
     )
 
 
-#: What ModelSpec is, for agents: the outcome first, the category as the proof.
+#: What ModelSpec is, for agents: the registry sentence and disambiguation
+#: first (MODEL-252), then how it decides and what it is not.
 POSITIONING = (
-    "ModelSpec decides which AI model a job needs, justifies that decision, and "
-    "shows its work: your requirements as Must conditions, your priorities as "
-    "Prefer weights, ability estimated from every admitted benchmark, cost per "
-    "task, how sure the evidence is, and the models screened out, with the reason "
-    "for each. It is an analysis "
-    "of alternatives for AI models. It does not route or proxy requests: use it to "
-    "decide which models are worth routing to, then let a router choose among them "
-    "per request."
+    f"{entity.ONE_SENTENCE} {entity.DISAMBIGUATION} Your requirements are Must "
+    "conditions and your priorities Prefer weights. Ability is estimated from every "
+    "admitted benchmark, beside cost per task, how sure the evidence is, and the "
+    "models screened out, with the reason for each. It does not route or proxy "
+    "requests: use it to decide which models are worth routing to, then let a router "
+    "choose among them per request."
 )

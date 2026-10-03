@@ -2,7 +2,7 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { FacetBoard } from "../facet-board/FacetBoard";
 import {
-  allocateBoardWeights, boardToSpec, decodeBoardState, encodeBoardSpec, estatePayload, foldRefinementWeights, groupFacets,
+  allocateBoardWeights, boardToSpec, decodeBoardState, defaultFacetOp, encodeBoardSpec, estatePayload, foldRefinementWeights, groupFacets,
   formatBoardCondition, legacyBoardBaseSpec, legacySpecToBoard, nextMustOrder, parseBoardCondition, supportsPreference,
   sanitizeBoardState, templateToBoard, toBoardDecisionSpec,
 } from "../facet-board/model";
@@ -12,11 +12,14 @@ import { realVocabulary, smallVocabulary } from "./vocab-fixtures";
 import { toDecisionSpec } from "../adapter/view-model";
 import { decisionSpecSchema } from "../adapter/contract";
 import { decodeSpec } from "../state/spec";
+import { renderContractCondition } from "../adapter/condition-label";
 import { LEGACY_PERMALINKS } from "../__fixtures__/legacy-permalinks";
 import refinementVocabularyJson from "../__fixtures__/vocabulary-refinements.json";
+import vendorVocabularyJson from "../__fixtures__/vocabulary-vendors.json";
 import { vocabularySchema } from "../vocabulary";
 import type { Vocabulary } from "../vocabulary";
 import type { Spec } from "../engine/types";
+import { capabilityRow, openGroup, templateCell } from "./board-helpers";
 
 const refinementVocabulary = vocabularySchema.parse(refinementVocabularyJson);
 const emptyEstate = { providers: [], plans: [], hardware: [] };
@@ -221,6 +224,55 @@ describe("facet state mapping", () => {
     expect(estatePayload({ providers: [], plans: ["anthropic/subscription/pro"], hardware: [] }))
       .toEqual({ plans: ["anthropic/subscription/pro"] });
   });
+  // MODEL-297: Prefer on Input price sent `offering.price.input: 0.5`, and the
+  // engine maximised price. A leading `-` is how the engine minimises.
+  it("minimises every lower-is-better number facet and maximises the rest", () => {
+    const numeric = realVocabulary.facets.filter(
+      (facet) => facet.value_type === "number" && supportsPreference(facet),
+    );
+    const lower = numeric.filter((facet) => facet.better === "lower").map((facet) => facet.id);
+    expect(lower).toEqual(expect.arrayContaining([
+      "offering.price.input", "offering.price.output", "offering.price.cached_input",
+      "offering.price.batch_input", "offering.price.batch_output",
+      "offering.cost_per_task", "offering.speed.time_to_first_token",
+    ]));
+    expect(numeric.filter((facet) => facet.better === "higher").map((facet) => facet.id))
+      .toEqual(expect.arrayContaining(["model.context_window", "offering.speed.throughput"]));
+    for (const facet of numeric) {
+      const allocated = allocateBoardWeights(realVocabulary, {
+        [facet.id]: { mode: "prefer", weight: 0.5 },
+      }).weights;
+      const key = facet.better === "lower" ? `-${facet.id}` : facet.id;
+      expect(allocated, facet.id).toEqual({ [key]: 0.5 });
+      expect(defaultFacetOp(facet), facet.id).toBe(facet.better === "lower" ? "<=" : ">=");
+    }
+    expect(weights({ "offering.price.input": { mode: "prefer", weight: 0.5 } }))
+      .toEqual({ "-offering.price.input": 0.5 });
+  });
+  // A cached or trimmed vocabulary from before MODEL-297 has no `better`.
+  it("still minimises prices, cost and TTFT when the vocabulary omits better", () => {
+    const legacy: Vocabulary = {
+      ...realVocabulary,
+      facets: realVocabulary.facets.map(({ better: _better, ...facet }) => facet),
+    };
+    const lower = [
+      "offering.price.input", "offering.price.output", "offering.price.cached_input",
+      "offering.price.batch_input", "offering.price.batch_output",
+      "offering.cost_per_task", "offering.speed.time_to_first_token",
+    ];
+    for (const id of lower) {
+      const facet = legacy.facets.find((row) => row.id === id);
+      if (!facet) throw new Error(`${id} missing from the vocabulary fixture`);
+      expect(facet.better).toBeUndefined();
+      expect(allocateBoardWeights(legacy, { [id]: { mode: "prefer", weight: 0.5 } }).weights, id)
+        .toEqual({ [`-${id}`]: 0.5 });
+      expect(defaultFacetOp(facet), id).toBe("<=");
+    }
+    const context = legacy.facets.find((row) => row.id === "model.context_window")!;
+    expect(allocateBoardWeights(legacy, { [context.id]: { mode: "prefer", weight: 0.5 } }).weights)
+      .toEqual({ [context.id]: 0.5 });
+    expect(defaultFacetOp(context)).toBe(">=");
+  });
   it("only enables weights the engine supports", () => {
     expect(supportsPreference(smallVocabulary.facets.find((facet) => facet.id === "offering.cost_per_task")!)).toBe(true);
     expect(supportsPreference(smallVocabulary.facets.find((facet) => facet.id === "model.input_modalities")!)).toBe(false);
@@ -334,7 +386,7 @@ describe("refinements", () => {
       estate={{ providers: [], plans: [], hardware: [] }}
       onEstate={vi.fn()}
     />);
-    const software = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
+    const software = capabilityRow("Software engineering");
     expect(software).toHaveTextContent("general 0.0 · Bug fix 0.3 · Python 0.3");
     fireEvent.click(within(software).getByRole("button", { name: "Refine" }));
     expect(within(software).getByLabelText("Weight for Python")).toHaveAttribute("max", "0.3");
@@ -351,6 +403,7 @@ describe("refinements", () => {
     const view = render(<FacetBoard vocabulary={refinementVocabulary} spec={base} onSpec={vi.fn()} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
     expect(screen.queryByRole("button", { name: "Refine" })).not.toBeInTheDocument();
     view.rerender(<FacetBoard vocabulary={refinementVocabulary} spec={base} selections={{ "capability.software_engineering": { mode: "prefer", weight: 0.6 } }} onSpec={vi.fn()} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
+    openGroup("What it's good at");
     fireEvent.click(screen.getByRole("button", { name: "Refine" }));
     const language = screen.getByRole("heading", { name: "Language" }).closest("section")!;
     expect(within(language).getAllByText(/Python|Go|Java|Rust|TypeScript/).map((node) => node.textContent)).toEqual(["Python", "Go", "Java", "Rust", "TypeScript"]);
@@ -380,7 +433,7 @@ describe("refinements", () => {
     />);
 
     const facets = screen.getByRole("region", { name: "Facets" });
-    const software = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
+    const software = capabilityRow("Software engineering");
     fireEvent.click(within(software).getByLabelText("Prefer"));
     fireEvent.click(within(software).getByRole("button", { name: "Refine" }));
     const python = within(software).getByText("Python").closest<HTMLElement>(".refinement-row")!;
@@ -443,9 +496,7 @@ it("hides absent templates and expands groups with active canonical template fac
   const vocabulary = { ...smallVocabulary, templates: realVocabulary.templates };
   render(<FacetBoard vocabulary={vocabulary} spec={base} onSpec={onSpec} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
   expect(screen.getByRole("button", { name: /Budgetall Doesn't matter/ })).toHaveAttribute("aria-expanded", "false");
-  const euData = screen.getByRole("group", { name: "EU-only data · Balanced: not available on this snapshot" });
-  expect(euData).toHaveTextContent("No offering passes: Inference region in the EU — 0 of 43 offerings");
-  fireEvent.click(screen.getByRole("button", { name: /^Coding · Budget:/ }));
+  fireEvent.click(templateCell(/^Coding · Budget:/));
   expect(screen.getByRole("button", { name: /Budget1 set/ })).toHaveAttribute("aria-expanded", "true");
   expect(screen.getByText(/Why: The offering must stay within the per-task budget.*prefer the cheaper task/)).toBeInTheDocument();
   expect(onSpec).toHaveBeenCalledOnce();
@@ -460,13 +511,12 @@ it("restores default task tokens when a template has no token override", () => {
   const base = realBaseSpec(realVocabulary);
   const view = render(<FacetBoard vocabulary={realVocabulary} spec={base} onSpec={onSpec} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
 
-  fireEvent.click(screen.getByRole("button", { name: /^High volume · Budget:/ }));
+  fireEvent.click(templateCell(/^High volume · Budget:/));
   const highVolume = onSpec.mock.calls.at(-1)![0];
   expect([highVolume.tokIn, highVolume.tokOut]).toEqual([2000, 500]);
 
   view.rerender(<FacetBoard vocabulary={realVocabulary} spec={highVolume} onSpec={onSpec} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
-  fireEvent.click(screen.getByRole("button", { name: /Start from a template/ }));
-  fireEvent.click(screen.getByRole("button", { name: /^Maths and reasoning · Best available:/ }));
+  fireEvent.click(templateCell(/^Maths and reasoning · Best available:/));
   const maths = onSpec.mock.calls.at(-1)![0];
   expect([maths.tokIn, maths.tokOut]).toEqual([
     realVocabulary.default_task_tokens.input,
@@ -601,7 +651,7 @@ it("reopens Must, Prefer and Must+Prefer selections and keeps them after another
     onEstate={vi.fn()}
   />);
   const context = screen.getByText("Context window").closest<HTMLElement>(".facet-row")!;
-  const capability = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
+  const capability = capabilityRow("Software engineering");
   const cost = screen.getByText("Cost per task").closest<HTMLElement>(".facet-row")!;
   expect(within(context).getByLabelText("Must")).toBeChecked();
   expect(within(capability).getByLabelText("Prefer")).toBeChecked();
@@ -615,6 +665,64 @@ it("reopens Must, Prefer and Must+Prefer selections and keeps them after another
     expect.objectContaining({ facet: "offering.cost_per_task", value: 0.25 }),
   ]));
   expect(next.boardWeights).toEqual({ software_engineering: 0.6, "-offering.cost_per_task": 0.4 });
+});
+
+describe("a best(m) floor from a Fastest template", () => {
+  // The templates as build_vocabulary writes them, on the live vocabulary's domains.
+  const fastest = (vocabularySchema.parse(vendorVocabularyJson).templates ?? [])
+    .filter((template) => template.tier === "fastest");
+  const codingFastest = fastest.find((template) => template.id === "coding-fastest");
+  if (!codingFastest) throw new Error("coding-fastest is missing from the vendor vocabulary");
+  const floor = "software_engineering >= best(1.0)";
+
+  it.each(fastest)("sends $id's floor exactly as the template writes it", (template) => {
+    const [domain] = template.needs.domains;
+    const { selections, mustOrder } = templateToBoard(template, realVocabulary);
+    const spec = boardSpec({ ...realBaseSpec(realVocabulary), conds: [] }, realVocabulary, selections, mustOrder);
+    expect(template.spec.where).toContain(`${domain} >= best(1.0)`);
+    expect(toDecisionSpec(spec, "full").where).toEqual(template.spec.where);
+  });
+
+  it("shows the floor as a Must on the capability row", () => {
+    const { selections, mustOrder } = templateToBoard(codingFastest, realVocabulary);
+    expect(selections["capability.software_engineering"]).toEqual({
+      mode: "must", op: ">=", value: { best: 1 }, reason: codingFastest.where[2].reason,
+    });
+    expect(selections.software_engineering).toBeUndefined();
+    expect(mustOrder).toEqual(["model.class", "model.lifecycle", "capability.software_engineering"]);
+    render(<FacetBoard vocabulary={realVocabulary} spec={realBaseSpec(realVocabulary)} selections={selections} onSpec={vi.fn()} estate={emptyEstate} onEstate={vi.fn()} />);
+    const capability = capabilityRow("Software engineering");
+    expect(within(capability).getByLabelText("Must")).toBeChecked();
+    expect(within(capability).getByText("Within 1.0 of the best eligible model")).toBeInTheDocument();
+  });
+
+  it("sends a spec the contract accepts", () => {
+    const { selections, mustOrder } = templateToBoard(codingFastest, realVocabulary);
+    const spec = boardSpec({ ...realBaseSpec(realVocabulary), conds: [] }, realVocabulary, selections, mustOrder);
+    expect(decisionSpecSchema.parse(toBoardDecisionSpec(spec, "full")).where).toEqual([
+      "model.class = text-generator", "model.lifecycle = active", floor,
+    ]);
+  });
+
+  it("keeps the floor through the board URL", () => {
+    const { selections, mustOrder } = templateToBoard(codingFastest, realVocabulary);
+    const spec = boardSpec({ ...realBaseSpec(realVocabulary), conds: [] }, realVocabulary, selections, mustOrder);
+    const hash = encodeBoardSpec(spec, "task$", { selections, mustOrder, estate: emptyEstate });
+    expect(decodeBoardState(hash)?.selections["capability.software_engineering"]?.value).toEqual({ best: 1 });
+    expect(decodeSpec(hash)?.spec.conds).toContainEqual(expect.objectContaining({
+      facet: "software_engineering", op: ">=", value: { best: 1 },
+    }));
+  });
+
+  it("reads the floor in a funnel or elimination label", () => {
+    expect(renderContractCondition(floor)).toBe("Software engineering: within 1.0 of the best");
+  });
+
+  it("formats a fractional margin as the engine does", () => {
+    expect(parseBoardCondition("software_engineering >= best(0.5)").value).toEqual({ best: 0.5 });
+    expect(formatBoardCondition("software_engineering", { mode: "must", op: ">=", value: { best: 0.5 } }))
+      .toBe("software_engineering >= best(0.5)");
+  });
 });
 
 describe("a stored estate after the vocabulary changes", () => {
@@ -662,4 +770,23 @@ describe("a stored estate after the vocabulary changes", () => {
     expect(sanitized.estate).toEqual(held);
     expect(sanitized.notes).toEqual([]);
   });
+});
+
+
+it("leaves a numeric Must blank without a range and omits an unset bound", () => {
+  const vocabulary = vocabularySchema.parse({
+    ...realVocabulary,
+    facets: realVocabulary.facets.map((facet) => facet.id === "offering.price.input"
+      ? { ...facet, range: undefined } : facet),
+  });
+  const base = { ...realBaseSpec(vocabulary), conds: [] };
+  const initial: BoardSelections = { "offering.price.input": { mode: "must", op: "<=" } };
+  const where = (selections: BoardSelections) => toDecisionSpec(boardSpec(base, vocabulary, selections), "full").where;
+  expect(where(initial)).toEqual([]);
+  const { unmount } = render(<FacetBoard vocabulary={vocabulary} spec={base} selections={initial}
+    onSpec={vi.fn()} estate={emptyEstate} onEstate={vi.fn()} />);
+  expect(screen.getByRole("spinbutton", { name: "Threshold" })).toHaveValue(null);
+  unmount();
+  expect(where({ "offering.price.input": { mode: "must", op: "<=", value: 2 } })).toEqual(["offering.price.input <= 2"]);
+  expect(where({ "offering.price.input": { mode: "must", op: "<=", value: 0 } })).toEqual(["offering.price.input <= 0"]);
 });

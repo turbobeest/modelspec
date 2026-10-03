@@ -1,0 +1,160 @@
+# MODEL-247: install in modelspec-data. This directory is not an Actions workflow directory.
+name: Daily model research
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+  actions: read
+concurrency:
+  group: daily-research
+  cancel-in-progress: false
+jobs:
+  research:
+    name: Look for new models
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: data
+          token: ${{ github.token }}
+          fetch-depth: 0
+      - name: Check out the pinned public engine
+        uses: actions/checkout@v4
+        with:
+          repository: turbobeest/modelspec
+          ref: 69871e3a554cd0affa26a0d78d5663b576f07003
+          path: engine
+          persist-credentials: false
+      - name: Compose code into the private checkout
+        run: python ../engine/scripts/prepare_data_writer.py --engine ../engine --data .
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Install dependencies
+        run: pip install pydantic pyyaml httpx
+      - name: What is missing?
+        id: survey
+        run: |
+          # --new-only is not optional. Without it the seeder rewrites every
+          # card in the repository and discards all curation. See MODEL-31.
+          if ! python scripts/seed_models_dev.py --new-only --dry-run > survey.txt 2>&1; then
+            cat survey.txt
+            echo "::error::models.dev survey failed; see output above"
+            exit 1
+          fi
+          count=$(grep -c '^    NEW' survey.txt || true)
+          echo "count=${count:-0}" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Daily research"
+            echo
+            echo "${count:-0} models on models.dev have no card here."
+            echo
+            echo '```'
+            grep '^    NEW' survey.txt | head -60 || echo "(none)"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+      - name: Write the new cards
+        if: steps.survey.outputs.count != '0' && !inputs.dry_run
+        env:
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+        run: python scripts/seed_models_dev.py --new-only --stale-notices stale-guides.md --attribution-report attribution.md
+      - name: Validate everything, not just the new cards
+        if: steps.survey.outputs.count != '0' && !inputs.dry_run
+        run: |
+          # A new card that fails validation must not reach a pull request, and
+          # neither must a change that broke an existing one.
+          python scripts/validate_pr.py --all > validation.json
+          python - <<'PY'
+          import json, sys
+          report = json.load(open("validation.json"))
+          print(f"{report['total']} cards, {report['valid']} valid, {report['invalid']} invalid")
+          if report["invalid"]:
+              print("::error::new cards failed validation; not opening a pull request")
+              sys.exit(1)
+          PY
+      - name: Collect stale authoring guide notices
+        id: stale
+        if: steps.survey.outputs.count != '0' && !inputs.dry_run
+        run: |
+          # Random per-run delimiter: notice text comes from models.dev data.
+          delim="STALE_$(openssl rand -hex 16)"
+          {
+            echo "notices<<${delim}"
+            if [ -f stale-guides.md ]; then cat stale-guides.md; fi
+            echo "${delim}"
+          } >> "$GITHUB_OUTPUT"
+          rm -f stale-guides.md
+      - name: Collect attribution notices
+        id: attribution
+        if: steps.survey.outputs.count != '0' && !inputs.dry_run
+        run: |
+          delim="ATTRIBUTION_$(openssl rand -hex 16)"
+          {
+            echo "report<<${delim}"
+            if [ -f attribution.md ]; then cat attribution.md; fi
+            echo "${delim}"
+          } >> "$GITHUB_OUTPUT"
+          rm -f attribution.md
+      - name: Open a pull request, never merge one
+        if: steps.survey.outputs.count != '0' && !inputs.dry_run
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          branch: research/daily-models
+          delete-branch: true
+          add-paths: |
+            models/**
+          commit-message: |-
+            catalogue: ${{ steps.survey.outputs.count }} cards for newly released models
+
+            Written by the daily research job from the models.dev API, with
+            --new-only so no existing card was touched.
+
+            Co-Authored-By: Codex (GPT-6.1 Sol) <noreply@openai.com>
+          title: 'catalogue: ${{ steps.survey.outputs.count }} newly released models'
+          body: |
+            The daily research job found **${{ steps.survey.outputs.count }} models** on
+            models.dev with no card here, and wrote cards for them.
+
+            **Nothing existing was modified** — the seeder ran with `--new-only`.
+            All cards validate.
+
+            ### This needs a human
+
+            These cards carry only what the API publishes: identity, pricing,
+            context and modalities. Typically around 10% completeness. They are a
+            starting point for research, not finished records, and the project's
+            worth rests on somebody having actually looked at them.
+
+            Check before merging: that the models are real and not preview
+            duplicates, that the provider and type mapping is right, and that
+            nothing here is a rename of a card we already have under a different
+            id.
+
+            The provider on each card is the organisation that built the model,
+            never the page it was listed on (MODEL-82). A listing by someone
+            else is recorded under `availability`.
+
+            ${{ steps.attribution.outputs.report }}
+
+            ${{ steps.stale.outputs.notices }}
+
+            🤖 Opened by the daily research workflow
+          path: data
+    env:
+      MODELSPEC_REQUIRE_DATA_DIR: '1'
+      PYTHONPATH: ${{ github.workspace }}/data
+      MODELSPEC_DATA_DIR: ${{ github.workspace }}/data
+    defaults:
+      run:
+        working-directory: data
+'on':
+  schedule:
+    - cron: 0 6 * * *
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Report what would change without opening a pull request
+        type: boolean
+        default: false

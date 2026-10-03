@@ -1,0 +1,24 @@
+id: template-retrieval-balanced
+family: F1
+persona: Engineer applying a published decision template
+request: Find an embedding model that balances retrieval quality against the cost of embedding a
+  task.
+constraints:
+  must:
+  - model.class = vectoriser
+  prefer:
+    retrieval:
+      weight: 0.7
+      reason: Prefer stronger retrieval quality.
+    -offering.cost_per_task:
+      weight: 0.3
+      reason: Among strong embedders, prefer the cheaper task.
+sources:
+- registry/templates.yaml#retrieval-balanced
+template: retrieval-balanced
+expected: null
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.
+gaps: []

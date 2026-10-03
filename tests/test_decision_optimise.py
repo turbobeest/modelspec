@@ -5,7 +5,7 @@ from datetime import date
 
 from decision.contract import EvidenceQualifiers, Objective
 from decision.optimise import EvidenceSelector, optimise
-from decision.snapshot import EvidenceValue
+from decision.snapshot import EvidenceValue, FactValue
 from tests.snapshot_records import loaded_index
 
 
@@ -61,7 +61,7 @@ def test_value_preference_reorders_without_excluding_and_flags_unknown() -> None
     result = run(
         {
             "a-closed": {"model.weights_openness": "closed_weights"},
-            "b-unknown": {},
+            "b-unknown": {"model.weights_openness": FactValue("unknown")},
             "z-open": {"model.weights_openness": "open_weights"},
         },
         {"weights": {
@@ -124,7 +124,7 @@ def test_unknown_preference_warning_survives_a_missing_scale_value() -> None:
     result = run(
         {
             "a-complete": {"x": 1, "model.weights_openness": "open_weights"},
-            "b-unknown": {},
+            "b-unknown": {"model.weights_openness": FactValue("unknown")},
         },
         {"weights": {
             "x": 0.6,

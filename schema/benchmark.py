@@ -20,6 +20,7 @@ class Metric(BaseModel):
     name: str = ""                       # e.g. "accuracy", "pass@1", "% resolved", "Elo"
     direction: Literal["higher_is_better", "lower_is_better"] = "higher_is_better"
     unit: str = ""                       # "%", "points", "Elo"
+    min_score: float = 0
     max_score: float | None = None
     random_baseline: float | None = None
     human_baseline: float | None = None

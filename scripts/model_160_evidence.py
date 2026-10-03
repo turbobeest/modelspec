@@ -180,10 +180,31 @@ def project_cursorbench(html: str, *, url: str, page_ref: str,
                          "reasoning_effort (Extra High = xhigh); score column as accuracy")
 
 
+def matharena_deprecated(index_html: str, competition: str) -> bool:
+    """Whether MathArena's index marks the competition's selector button deprecated."""
+    button = re.search(rf'<button\b[^>]*data-competition-id="{re.escape(competition)}"[^>]*>',
+                       index_html)
+    if button is None:
+        raise ValueError(f"MathArena index lists no competition {competition!r}")
+    return "is-deprecated" in button.group(0)
+
+
 def project_matharena(body: bytes, *, url: str, page_ref: str,
-                      read_date: str = READ_DATE) -> bytes:
-    """MathArena competition table: the ``table`` HTML the JSON carries."""
-    lines = _table_lines(json.loads(body)["table"])
+                      read_date: str = READ_DATE, deprecated: bool = False) -> bytes:
+    """MathArena competition table: the ``table`` HTML the JSON carries.
+
+    A cell the site estimated rather than observed (``data-predicted="yes"``) is
+    kept as a row with no accuracy: an imputed value is not a measurement.
+    ``deprecated`` is the index's mark on the competition, put on every row so
+    one reading carries every flag a row claims.
+    """
+    table = json.loads(body)["table"]
+    predicted = {
+        re.sub(r"[\s⚠️]+$", "", " ".join(re.sub(r"<[^>]+>", " ", cell.group(1)).split()))
+        for block in re.split(r"<tr\b", table)[1:] if 'data-predicted="yes"' in block
+        if (cell := re.search(r'class="model-name">(.*?)</td>', block, re.S))
+    }
+    lines = _table_lines(table)
     header = [normalise_name(re.sub(r"\(.*?\)", "", c)) for c in lines[0]]
     name_at, value_at = header.index("model name"), header.index("accuracy")
     rows = []
@@ -192,15 +213,20 @@ def project_matharena(body: bytes, *, url: str, page_ref: str,
             continue
         value = re.match(r"(\d+(?:\.\d+)?)%", cells[value_at])
         name = cells[name_at]
-        flagged = "⚠" in name
+        model = re.sub(r"[\s⚠️]+$", "", name)
         rows.append({
-            "model": re.sub(r"[\s⚠️]+$", "", name),
-            "accuracy": float(value.group(1)) if value else None,
-            "release_warning": flagged or None,
+            "model": model,
+            "accuracy": float(value.group(1)) if value and model not in predicted else None,
+            "release_warning": "⚠" in name or None,
+            "predicted": model in predicted or None,
+            "deprecated": deprecated or None,
         })
     return document(rows, url=url, page_ref=page_ref, read_date=read_date,
                     note="the JSON's table field, table 0; the percentage before the CI as "
-                         "accuracy; the warning glyph as release_warning")
+                         "accuracy, dropped where the cell is data-predicted; the warning "
+                         "glyph as release_warning"
+                         + ("; the index marks the competition deprecated" if deprecated
+                            else ""))
 
 
 def project_metr(body: bytes, *, url: str, page_ref: str, read_date: str = READ_DATE) -> bytes:
@@ -432,6 +458,7 @@ SWEBENCH_URL = "https://www.swebench.com/"
 EPOCH_ZIP = "https://epoch.ai/data/benchmark_data.zip"
 CURSOR_URL = "https://cursor.com/cursorbench"
 MATHARENA_URL = "https://matharena.ai/competition_tables/aime--aime_2026"
+MATHARENA_INDEX = "https://matharena.ai/"
 METR_URL = "https://metr.org/assets/benchmark_results_1_1.yaml"
 MTEB_URL = "https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(eng,%20v2)/scores"
 DEEPSWE_URL = "https://deepswe.datacurve.ai/artifacts/v1.1/leaderboard-live.json"
@@ -774,6 +801,9 @@ FILED_FIELDS = ("model_id_as_evaluated", "score", "unit", "evidence_date", "id",
 
 def rewrite_rows(path: Path, text: str, updates: list[tuple[tuple, dict]]) -> None:
     """Rewrite the filed fields of the card's evidence rows keyed by ``evidence_key``."""
+    from schema.benchmark_values import validate_card_rows
+
+    validate_card_rows(path, [row for _, row in updates])
     wanted = dict(updates)
 
     def update(match: re.Match[str]) -> str:
@@ -795,6 +825,9 @@ def rewrite_rows(path: Path, text: str, updates: list[tuple[tuple, dict]]) -> No
 
 
 def append_rows(path: Path, blocks: list[str]) -> None:
+    from schema.benchmark_values import validate_card_rows
+
+    validate_card_rows(path, yaml.safe_load("evidence:\n" + "".join(blocks))["evidence"])
     text = path.read_text(encoding="utf-8")
     start = text.index("\n  evidence:\n")
     end = re.compile(r"^(?:  [a-z]|[a-z])", re.M).search(text, start + len("\n  evidence:\n"))

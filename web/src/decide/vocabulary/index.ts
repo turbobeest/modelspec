@@ -1,3 +1,4 @@
+import { VISIT_GATE_ENABLED, visitFetch } from "../adapter/visit";
 // The published decision vocabulary (MODEL-153): which facets and benchmarks
 // the current snapshot can answer. Real mode draws every template, parsed
 // condition, question, facet option, axis and weight from it, and offers
@@ -44,10 +45,13 @@ const facetSchema = z.object({
       }),
     }),
   ]).nullable(),
+  /** MODEL-297: which way is better for a number facet; Prefer minimises `lower`. */
+  better: z.enum(["higher", "lower", "neither"]).optional(),
   risk: z.string(),
   computed_by: z.string().nullable(),
-  known: z.number().int().nonnegative(),
-  of: z.number().int().nonnegative(),
+  has_data: z.boolean().optional(),
+  known: z.number().int().nonnegative().optional(),
+  of: z.number().int().nonnegative().optional(),
   range: z
     .object({ min: z.union([z.number(), z.string()]), max: z.union([z.number(), z.string()]) })
     .nullable()
@@ -55,7 +59,7 @@ const facetSchema = z.object({
   literals: z.array(z.string()).optional(),
   // `label`: the registry's plain name for an enum value (MODEL-153).
   values: z
-    .array(z.object({ value: scalar, count: z.number().int(), label: z.string().optional() }))
+    .array(z.object({ value: scalar, has_data: z.boolean().optional(), count: z.number().int().optional(), label: z.string().optional() }))
     .optional(),
   /** 2.9 (MODEL-212): who measured the lineup's values, how, and how thinly. */
   measurement: z
@@ -75,9 +79,9 @@ const benchmarkSchema = z.object({
   name: z.string(),
   unit: z.string().nullable(),
   higher_is_better: z.boolean(),
-  models: z.number().int().nonnegative(),
-  independent_models: z.number().int().nonnegative(),
-  range: z.object({ min: z.number(), max: z.number() }),
+  models: z.number().int().nonnegative().optional(),
+  independent_models: z.number().int().nonnegative().optional(),
+  range: z.object({ min: z.number(), max: z.number() }).optional(),
   domains: z.array(
     z.object({ id: z.string(), directness: z.enum(["direct", "proxy"]) }),
   ),
@@ -88,9 +92,10 @@ const refinementSchema = z.object({
   kind: z.enum(["language", "task", "mode", "material"]),
   name: z.string(),
   definition: z.string(),
-  evidence_state: z.enum(["live", "thin", "not_measured", "no_benchmark"]),
-  measured_models: z.number().int().nonnegative(),
-  of_models: z.number().int().nonnegative(),
+  thin: z.boolean().optional(),
+  evidence_state: z.enum(["live", "thin", "not_measured", "no_benchmark"]).optional(),
+  measured_models: z.number().int().nonnegative().optional(),
+  of_models: z.number().int().nonnegative().optional(),
   benchmarks: z.array(
     z.object({ id: z.string(), directness: z.enum(["direct", "proxy"]) }),
   ),
@@ -124,8 +129,8 @@ const templateSchema = z.object({
       .object({ input: z.number().int().nonnegative(), output: z.number().int().nonnegative() })
       .optional(),
   }),
-  available: z.boolean(),
-  unavailable_reason: z.string().nullable(),
+  available: z.boolean().default(true),
+  unavailable_reason: z.string().nullable().default(null),
 });
 export const vocabularySchema = z.object({
   vocabulary_version: z.literal(1),
@@ -144,9 +149,9 @@ export const vocabularySchema = z.object({
       name: z.string(),
       proxy_only: z.boolean(),
       default_basis: z.literal("capability_estimate").default("capability_estimate"),
-      estimate_models: z.number().int().nonnegative().default(0),
+      estimate_models: z.number().int().nonnegative().optional(),
       estimate_benchmarks: z.array(z.string()).optional(),
-      direct_models: z.number().int().nonnegative().default(0),
+      direct_models: z.number().int().nonnegative().optional(),
       /** The preselected explicit benchmark drill-down, when it has verified data. */
       default_benchmark: z.string().nullable().optional(),
       benchmarks: z.array(z.string()),
@@ -160,8 +165,8 @@ export const vocabularySchema = z.object({
       z.string(),
       z.object({
         display_name: z.string().nullable(),
-        lab: z.string(),
-        lab_name: z.string().nullable(),
+        lab: z.string().optional(),
+        lab_name: z.string().nullable().optional(),
         class: z.string().nullable().optional(),
       }),
     )
@@ -231,9 +236,38 @@ export const vocabularySchema = z.object({
   template_tiers: z.array(z.object({ id: z.string(), name: z.string() }).strict()).optional(),
   /** Data-defined templates. Absent from vocabularies published before MODEL-178. */
   templates: z.array(templateSchema).optional(),
+}).transform((v) => {
+  const { refinements, ...rest } = v;
+  return {
+  ...rest,
+  ...(refinements ? { refinements: refinements.map((row) => ({
+    ...row,
+    evidence_state: row.evidence_state ?? (row.thin ? "thin" as const : row.benchmarks.some((tag) => v.benchmarks.some((b) => b.id === tag.id && b.range))
+      ? "live" as const : row.benchmarks.length ? "not_measured" as const : "no_benchmark" as const),
+  })) } : {}),
+  };
 });
 export type Vocabulary = z.infer<typeof vocabularySchema>;
 export type VocabFacet = Vocabulary["facets"][number];
+
+/**
+ * Legacy fallback for a vocabulary without `better`: one cached, or trimmed by
+ * a Worker, from before MODEL-297. This is the guess the page made before the
+ * registry declared a direction. Never consulted when `better` is present.
+ */
+const LEGACY_LOWER_IS_BETTER = ["cost", "price", "time_to_first_token", "retention"];
+
+/**
+ * True when less of this facet is better (prices, cost, time to first token,
+ * retention), read from the registry's `better` (MODEL-297). Prefer minimises
+ * such a facet and a Must defaults to `<=`.
+ */
+export const lowerIsBetter = (
+  facet: Pick<VocabFacet, "id" | "value_type" | "better">,
+): boolean =>
+  facet.value_type === "number" && (facet.better !== undefined
+    ? facet.better === "lower"
+    : LEGACY_LOWER_IS_BETTER.some((part) => facet.id.includes(part)));
 export type VocabBenchmark = Vocabulary["benchmarks"][number];
 export type VocabRefinement = NonNullable<Vocabulary["refinements"]>[number];
 export type Coverage = NonNullable<Vocabulary["coverage"]>;
@@ -250,15 +284,14 @@ export class VocabularyError extends Error {
   }
 }
 
-export async function loadVocabulary(signal?: AbortSignal): Promise<Vocabulary> {
+export async function loadVocabulary(signal?: AbortSignal, refresh = false): Promise<Vocabulary> {
   let response: Response;
   try {
-    response = await fetch(VOCABULARY_URL, {
+    response = await (VISIT_GATE_ENABLED || VOCABULARY_URL.includes("/v1/vocabulary") ? visitFetch : fetch)(VOCABULARY_URL, {
       headers: { Accept: "application/json" },
-      // The site serves this with max-age=14400; after a deploy (or a 409
-      // snapshot_changed) a cached copy would describe the old snapshot.
-      // no-cache revalidates with the ETag, so an unchanged file is a 304.
-      cache: "no-cache",
+      // Session loads reuse the trimmed response. A snapshot_changed reload
+      // bypasses that cache so a newly deployed snapshot can answer at once.
+      cache: !refresh && VOCABULARY_URL.includes("/v1/vocabulary") ? "default" : "no-cache",
       signal,
     });
   } catch (error) {
@@ -292,19 +325,19 @@ export async function loadVocabulary(signal?: AbortSignal): Promise<Vocabulary> 
 /** A facet the page may offer: registered and known for at least one candidate. */
 export function offeredFacet(v: Vocabulary, id: string): VocabFacet | null {
   const row = v.facets.find((facet) => facet.id === id);
-  return row && row.known > 0 ? row : null;
+  return row && row.has_data !== false && row.known !== 0 ? row : null;
 }
 
 /** Benchmarks with verified evidence, most covered first. */
 export function offeredBenchmarks(v: Vocabulary): VocabBenchmark[] {
   return v.benchmarks
-    .filter((b) => b.models > 0)
+    .filter((b) => b.models !== 0)
     .slice()
-    .sort((a, b) => b.models - a.models || a.id.localeCompare(b.id));
+    .sort((a, b) => (b.models ?? 0) - (a.models ?? 0) || a.id.localeCompare(b.id));
 }
 
 export function benchmark(v: Vocabulary, id: string): VocabBenchmark | null {
-  return v.benchmarks.find((b) => b.id === id && b.models > 0) ?? null;
+  return v.benchmarks.find((b) => b.id === id && b.models !== 0) ?? null;
 }
 
 /** Plain copy for the learned domain basis shown throughout the decision UI. */
@@ -317,7 +350,7 @@ export function domainEstimateLabel(v: Vocabulary, domain: string): string {
 }
 
 const hasValue = (row: VocabFacet | null, value: FacetValue) =>
-  !!row?.values?.some((item) => item.value === value);
+  !!row?.values?.some((item) => item.value === value && item.has_data !== false);
 
 /**
  * Whether a benchmark measures a domain directly (not as a proxy).
@@ -339,7 +372,7 @@ export function pickDrilldownBenchmark(v: Vocabulary, domain: string): VocabBenc
       .sort(
         (a, b) =>
           Number(directFor(b, domain)) - Number(directFor(a, domain)) ||
-          b.models - a.models ||
+          (b.models ?? 0) - (a.models ?? 0) ||
           a.id.localeCompare(b.id),
       )[0] ?? null
   );
@@ -432,6 +465,7 @@ const nice = (value: number) => Number(value.toPrecision(2));
 
 /** A floor that keeps the stronger three quarters of the measured range. */
 export function floorFor(b: VocabBenchmark): number {
+  if (!b.range) return 0;
   const { min, max } = b.range;
   return nice(b.higher_is_better ? min + 0.25 * (max - min) : max - 0.25 * (max - min));
 }
@@ -441,7 +475,7 @@ function benchCond(b: VocabBenchmark, from?: boolean): Cond {
     f: "bench",
     b: b.id,
     min: floorFor(b),
-    ...(b.independent_models > 0 ? { indep: true } : {}),
+    ...((b.independent_models ?? 0) > 0 ? { indep: true } : {}),
     ...(from ? { from } : {}),
   };
 }
@@ -460,13 +494,6 @@ function middle(row: VocabFacet | null, fallback: number): number {
   if (range.min > 0) return nice(Math.sqrt(range.min * range.max));
   return nice((range.min + range.max) / 2);
 }
-
-const LOWER_IS_BETTER_UNITS = new Set([
-  "usd_per_1m_tokens",
-  "usd_per_task",
-  "milliseconds",
-  "days",
-]);
 
 /** The condition "+ add condition" starts from for a facet. */
 export function defaultCondition(v: Vocabulary, row: VocabFacet): Cond | null {
@@ -492,9 +519,9 @@ export function defaultCondition(v: Vocabulary, row: VocabFacet): Cond | null {
       return type ? { f: "type", v: type } : null;
     }
   }
-  const values = (row.values ?? [])
+  const values = (row.values ?? []).filter((item) => item.has_data !== false)
     .slice()
-    .sort((a, b) => b.count - a.count)
+    .sort((a, b) => (b.count ?? 0) - (a.count ?? 0))
     .map((item) => item.value);
   const facet = (op: FacetOp, value: FacetValue): Cond => ({
     f: "facet",
@@ -506,8 +533,7 @@ export function defaultCondition(v: Vocabulary, row: VocabFacet): Cond | null {
     case "number": {
       const range = numberRange(row);
       if (!range) return null;
-      const lower = LOWER_IS_BETTER_UNITS.has(row.unit ?? "");
-      return facet(lower ? "<=" : ">=", middle(row, range.min));
+      return facet(lowerIsBetter(row) ? "<=" : ">=", middle(row, range.min));
     }
     case "date":
       return typeof row.range?.min === "string" ? facet(">=", row.range.min) : null;
@@ -523,7 +549,7 @@ export function defaultCondition(v: Vocabulary, row: VocabFacet): Cond | null {
 /** Every option "+ add condition" offers: facets and benchmarks with verified data. */
 export function facetOptions(v: Vocabulary): Facet[] {
   const facets = v.facets.flatMap((row): Facet[] => {
-    if (row.known === 0 || row.id === "model.lifecycle") return [];
+    if (row.has_data === false || row.known === 0 || row.id === "model.lifecycle") return [];
     const c = defaultCondition(v, row);
     if (!c) return [];
     const unit = row.unit ? row.unit.replaceAll("_", " ") : row.value_type;
@@ -531,7 +557,7 @@ export function facetOptions(v: Vocabulary): Facet[] {
       {
         k: [row.id, row.label, row.definition].join(" ").toLowerCase(),
         label: row.label,
-        hint: `${unit} · known for ${row.known} of ${row.of} ${row.subject === "model" ? "models" : "offerings"}`,
+        hint: row.known === undefined ? unit : `${unit} · known for ${row.known} of ${row.of} ${row.subject === "model" ? "models" : "offerings"}`,
         c,
       },
     ];
@@ -540,7 +566,7 @@ export function facetOptions(v: Vocabulary): Facet[] {
     (b): Facet => ({
       k: ["benchmark", b.id, b.name, ...b.domains.map((d) => d.id)].join(" ").toLowerCase(),
       label: `${b.name} floor`,
-      hint: `${b.unit ?? "unit not recorded"} · verified for ${b.models} models`,
+      hint: b.models === undefined ? (b.unit ?? "unit not recorded") : `${b.unit ?? "unit not recorded"} · verified for ${b.models} models`,
       c: benchCond(b),
     }),
   );
@@ -593,16 +619,16 @@ export interface RealParsedTask extends ParsedTask {
 }
 
 const estimatedDomain = (v: Vocabulary, id: string) =>
-  v.domains.find((domain) => domain.id === id && domain.estimate_models > 0) ?? null;
+  v.domains.find((domain) => domain.id === id && domain.estimate_models !== 0) ?? null;
 
 /** The domain ranked on when the task names none: software engineering, else best-covered. */
 function defaultDomain(v: Vocabulary): string | null {
   if (estimatedDomain(v, "software_engineering")) return "software_engineering";
   return (
     v.domains
-      .filter((domain) => domain.estimate_models > 0)
+      .filter((domain) => domain.estimate_models !== 0)
       .slice()
-      .sort((a, b) => b.estimate_models - a.estimate_models || a.id.localeCompare(b.id))[0]?.id ??
+      .sort((a, b) => (b.estimate_models ?? 0) - (a.estimate_models ?? 0) || a.id.localeCompare(b.id))[0]?.id ??
     null
   );
 }
@@ -629,7 +655,8 @@ export function parseRealTask(v: Vocabulary, text: string | null | undefined): R
     const others = rankChoices(v, domain)
       .filter((b) => b.id !== ranked.id)
       .map((b) => `${b.name} (${b.models})`);
-    trace.push({
+    if (ranked.models === undefined) trace.push({word: word ?? "(no domain named)", note: `${domainName} capability; ${ranked.name} is the benchmark drill-down.`});
+    else trace.push({
       word: word ?? "(no domain named)",
       note:
         `${domainName} capability: estimated from ${v.domains.find((d) => d.id === domain)?.benchmarks.length ?? 0} benchmarks; ` +

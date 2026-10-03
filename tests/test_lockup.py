@@ -1,9 +1,8 @@
 """One brand lockup, one scale, on every page (MODEL-213).
 
 `pipeline.landing_chrome` owns the lockup's markup and its CSS. Pages the
-pipeline renders call it. The graph explorer and the decide app are built
-without the pipeline, so they carry verbatim copies, and these tests are what
-keeps those copies equal.
+pipeline renders call it. The decide app is built without the pipeline, so it
+carries a verbatim copy, and these tests are what keeps that copy equal.
 """
 
 from __future__ import annotations
@@ -31,7 +30,6 @@ PAGES = {
                                     build=BUILD),
     "legal": _legal_page,
     "holding 404": lambda: holding.dark_page(holding.SITES["modelspec"]),
-    "graph": lambda: (ROOT / "web3d/explorer.html").read_text(encoding="utf-8"),
 }
 
 
@@ -51,3 +49,15 @@ def test_the_holding_404_is_dark_whatever_the_colour_scheme() -> None:
     page = holding.dark_page(holding.SITES["modelspec"])
     assert "prefers-color-scheme" not in page
     assert "color-scheme:dark" in page
+
+
+@pytest.mark.parametrize("name", ["pricing", "legal", "holding 404"])
+def test_the_operator_name_is_escaped_in_html(name: str) -> None:
+    """The legal name has an ampersand (Jamie, 2026-09-30). In markup it is `&amp;`."""
+    page = PAGES[name]()
+    assert "Sparks &amp; Sawdust LLC" in page
+    assert "Sparks & Sawdust" not in page
+
+
+def test_the_shared_footer_escapes_the_operator_name() -> None:
+    assert "© Sparks &amp; Sawdust LLC" in landing_chrome.footer()

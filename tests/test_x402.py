@@ -810,6 +810,7 @@ def _wrangler_config() -> dict[str, Any]:
 
 def test_production_x402_config_stays_off_and_has_no_receiver():
     config = _wrangler_config()
+    assert config["vars"]["HUMAN_GATE_ENABLED"] == "false"
     assert config["vars"]["ACCESS_ENFORCED"] == "false"
     assert config["vars"]["BILLING_ENABLED"] == "false"
     assert config["vars"]["X402_ENABLED"] == "false"
@@ -832,7 +833,14 @@ def test_staging_x402_config_is_isolated_on_base_sepolia():
         "EXPORT_ORIGIN": "https://modelspec.dev",
         "BUILD_COMMIT": "dev",
         "ACCESS_ENFORCED": "false",
+        "VISIT_GATE_ENABLED": "false",
+        "VISIT_DECIDE_DAY_LIMIT": "300",
+        "VISIT_DECIDE_BURST_LIMIT": "30",
+        "VISIT_VOCABULARY_DAY_LIMIT": "60",
+        "VISIT_VOCABULARY_BURST_LIMIT": "10",
+        "HUMAN_GATE_ENABLED": "true",
         "BILLING_ENABLED": "false",
+        "FEEDBACK_ENABLED": "false",
         "X402_ENABLED": "true",
         "X402_MAINNET": "false",
         "X402_NETWORK": "eip155:84532",
@@ -950,6 +958,7 @@ def _entry_env(**overrides):
         "ACCESS": KVBinding(),
         "CREDITS": credits.MemoryLedger(),
         "X402_FACILITATOR": StubFacilitator(),
+        "VISITOR_HMAC_KEY": "fixture-visitor-key-0123456789",
     }
     values.update(overrides)
     return type("E", (), values)()
@@ -974,7 +983,7 @@ def _decision_worker(entry, env=None):
     worker.env = env or _entry_env()
     entry._decision_holder = lambda _origin: _decision_holder()
 
-    async def decide(_payload, _origin, _expected):
+    async def decide(_payload, _origin, _expected, _transport):
         return 200, {
             "contract_version": "1.0",
             "endpoint": "decide",
@@ -1014,6 +1023,27 @@ def test_entry_site_origin_is_limited_per_visitor_when_x402_is_on(entry):
         "https://modelspec.dev", ip="198.51.100.21",
     )))
     assert another_visitor.status == 200
+
+
+def test_entry_meter_writes_neither_the_ip_nor_its_bare_hash(entry):
+    import hashlib
+
+    env = _entry_env()
+    ip = "203.0.113.8"
+    asyncio.run(_decision_worker(entry, env).fetch(_decision_request("https://modelspec.dev", ip=ip)))
+    blob = " ".join(env.ACCESS.store.data) + " " + " ".join(env.ACCESS.store.data.values())
+    assert env.ACCESS.store.data
+    assert ip not in blob
+    assert hashlib.sha256(ip.encode()).hexdigest() not in blob
+
+
+def test_entry_site_origin_without_the_visitor_key_takes_the_paid_path(entry):
+    env = _entry_env(VISITOR_HMAC_KEY=None)
+    response = asyncio.run(_decision_worker(entry, env).fetch(
+        _decision_request("https://modelspec.dev")))
+
+    assert response.status == 402
+    assert env.ACCESS.store.data == {}
 
 
 @pytest.mark.parametrize("origin", [None, "https://agent.example"])

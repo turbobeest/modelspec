@@ -201,7 +201,7 @@ modelspec rank --use-case coding --hardware macbook_air_m4_24gb --format json
 
 ### Tech Stack
 - **Language**: Python (Click or Typer for CLI framework)
-- **Distribution**: `pipx install modelspec-dev`
+- **Distribution**: CLI retired 2026-09-30; use the hosted API or remote MCP Worker.
 - **Config**: ~/.modelspec/config.yaml for default hardware, downselect profiles
 - **Cache**: Local SQLite cache of recent queries
 - **Output**: Rich terminal formatting (Rich library) + JSON mode for piping

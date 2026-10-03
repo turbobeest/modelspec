@@ -13,9 +13,10 @@ import {
 } from "./model";
 import type { BoardSelections, Estate, FacetMode, FacetSelection } from "./model";
 import { ACCESS_ANSWERS, deviceName, payee, planName } from "./routes";
+import { bestMargin, isBestValue } from "../adapter/view-model";
 import type { AccessAnswer } from "./routes";
 
-const numberText = (value: unknown) => typeof value === "number" ? String(value) : "0";
+const numberText = (value: unknown) => typeof value === "number" ? String(value) : "";
 
 function ValueControl({ facet, choice, onChange }: {
   facet: VocabFacet;
@@ -24,6 +25,9 @@ function ValueControl({ facet, choice, onChange }: {
 }) {
   const value = choice.value;
   const op = choice.op ?? defaultFacetOp(facet);
+  if (isBestValue(value)) return (
+    <p className="facet-value">Within {bestMargin(value.best)} of the best eligible model</p>
+  );
   if (facet.value_type === "boolean") return (
     <label className="facet-value">Required value
       <select value={value === undefined ? "" : String(value)} onChange={(event) => onChange({ ...choice, value: event.target.value === "" ? undefined : event.target.value === "true" })}>
@@ -37,14 +41,14 @@ function ValueControl({ facet, choice, onChange }: {
       <label>Operator <select value={op} onChange={(event) => onChange({ ...choice, op: event.target.value as FacetSelection["op"] })}>
         {facet.operators.filter((item) => ["<=", ">=", "=", "!="].includes(item)).map((item) => <option key={item}>{item}</option>)}
       </select></label>
-      <label>Threshold <input type={facet.value_type === "date" ? "date" : "number"} value={facet.value_type === "number" ? numberText(value ?? defaultFacetValue(facet)) : String(value ?? defaultFacetValue(facet))} onChange={(event) => onChange({ ...choice, value: facet.value_type === "number" ? Number(event.target.value) : event.target.value })} /></label>
+      <label>Threshold <input type={facet.value_type === "date" ? "date" : "number"} value={facet.value_type === "number" ? numberText(value ?? defaultFacetValue(facet)) : String(value ?? defaultFacetValue(facet))} onChange={(event) => onChange({ ...choice, value: event.target.value === "" ? undefined : facet.value_type === "number" ? Number(event.target.value) : event.target.value })} /></label>
       {facet.unit && <span>{facet.unit.replaceAll("_", " ")}</span>}
     </div>
   );
   const selected = value === undefined ? [] : Array.isArray(value) ? value.map(String) : [String(value)];
-  const listed = new Set(facet.values?.map((item) => String(item.value)) ?? []);
+  const listed = new Set(facet.values?.filter((value) => value.has_data !== false).map((item) => String(item.value)) ?? []);
   const legacyValues = selected.filter((item) => !listed.has(item));
-  return <fieldset className="facet-values"><legend>{selected.length ? "Values" : "Choose value(s)"}</legend>{legacyValues.map((item) => <label key={`legacy-${item}`}><input type="checkbox" checked readOnly />{item} (from older link)</label>)}{facet.values?.map((item) => {
+  return <fieldset className="facet-values"><legend>{selected.length ? "Values" : "Choose value(s)"}</legend>{legacyValues.map((item) => <label key={`legacy-${item}`}><input type="checkbox" checked readOnly />{item} (from older link)</label>)}{facet.values?.filter((value) => value.has_data !== false).map((item) => {
     const checked = selected.includes(String(item.value));
     return <label key={String(item.value)}><input type="checkbox" checked={checked} onChange={() => {
       const values = checked ? selected.filter((v) => v !== String(item.value)) : [...selected, String(item.value)];
@@ -71,10 +75,10 @@ function RefinementRow({ row, choice, parent, allocation, fallback, onChange }: 
     : row.evidence_state === "thin" ? proxyOnly ? "proxy evidence only" : "Order may rest on 1–2 models"
     : null;
   const preferReasonId = reason ? `refinement-${row.id}-prefer-reason` : undefined;
-  return <div className={`refinement-row ${disabled ? "refinement-unavailable" : ""}`} data-refinement={row.id}>
+  return <div className={`refinement-row ${disabled ? "refinement-unavailable" : ""}`} data-refinement={row.id} data-mode={choice.mode === "prefer" ? "prefer" : "off"}>
     <div className="refinement-heading"><span><strong>{row.name}</strong><button className="facet-info" aria-label={`About ${row.name}`} aria-expanded={infoOpen} onClick={() => setInfoOpen(!infoOpen)}>i</button></span><span className={`refinement-badge evidence-${row.evidence_state}`}>{EVIDENCE_LABELS[row.evidence_state]}</span><small>measured on {row.measured_models} of {row.of_models}</small></div>
     {infoOpen && <div className="refinement-definition"><p>{row.definition}</p>{row.benchmarks.length > 0 && <ul>{row.benchmarks.map((benchmark) => <li key={`${benchmark.id}-${benchmark.directness}`}><code>{benchmark.id}</code> · {benchmark.directness}</li>)}</ul>}</div>}
-    <div className="facet-state refinement-state" role="radiogroup" aria-label={`State for ${row.name}`}><label><input type="radio" name={`state-refinement-${row.id}`} checked={choice.mode !== "prefer"} onChange={() => onChange({ ...choice, mode: "off" })} />Doesn't matter</label><label><input type="radio" name={`state-refinement-${row.id}`} disabled={disabled} aria-describedby={disabled ? preferReasonId : undefined} checked={choice.mode === "prefer"} onChange={() => onChange({ ...choice, mode: "prefer", weight })} />Prefer</label></div>
+    <div className="facet-state refinement-state" role="radiogroup" aria-label={`State for ${row.name}`}><label className="state-off"><input type="radio" name={`state-refinement-${row.id}`} checked={choice.mode !== "prefer"} onChange={() => onChange({ ...choice, mode: "off" })} />Doesn't matter</label><label className="state-prefer"><input type="radio" name={`state-refinement-${row.id}`} disabled={disabled} aria-describedby={disabled ? preferReasonId : undefined} checked={choice.mode === "prefer"} onChange={() => onChange({ ...choice, mode: "prefer", weight })} />Prefer</label></div>
     {reason && <small id={preferReasonId} className="refinement-reason">{reason}</small>}
     {fallback && choice.mode === "prefer" && <small className="refinement-fallback">Ranked by general {row.parent_domain.replaceAll("_", " ")}: {row.name} isn't ranked separately today.</small>}
     {choice.mode === "prefer" && !disabled && <label className="refinement-weight">{row.name} weight <input aria-label={`Weight for ${row.name}`} type="range" min="0.05" max={max} step="0.05" value={weight} onChange={(event) => onChange({ ...choice, mode: "prefer", weight: Number(event.target.value) })} />{weight.toFixed(2)}</label>}
@@ -111,14 +115,14 @@ function FacetRow({ facet, choice, refinements = [], selections = {}, fallbackKe
   };
   const must = choice.mode === "must" || choice.mode === "both";
   const prefer = choice.mode === "prefer" || choice.mode === "both";
-  return <div className={`facet-row ${choice.mode === "off" ? "facet-off" : ""}`} data-facet={facet.id}>
-    <div className="facet-copy"><span className="facet-label"><strong>{facet.label}</strong><button className="facet-info" aria-label={`About ${facet.label}`} aria-expanded={infoOpen} onClick={() => setInfoOpen(!infoOpen)}>i</button></span>{infoOpen && <small className="facet-definition">{facet.definition}</small>}{choice.mode === "off" && facet.values?.[0] && <small>If Must: {facet.values[0].count} survive</small>}{choice.reason && <small className="template-reason">Why: {choice.reason}</small>}</div>
-    <span className="facet-known">{facet.known}/{facet.of}</span>
+  return <div className={`facet-row ${choice.mode === "off" ? "facet-off" : ""}`} data-facet={facet.id} data-mode={choice.mode}>
+    <div className="facet-copy"><span className="facet-label"><strong>{facet.label}</strong><button className="facet-info" aria-label={`About ${facet.label}`} aria-expanded={infoOpen} onClick={() => setInfoOpen(!infoOpen)}>i</button></span>{infoOpen && <small className="facet-definition">{facet.definition}</small>}{choice.mode === "off" && typeof facet.values?.[0]?.count === "number" && <small>If Must: {facet.values[0].count} survive</small>}{choice.reason && <small className="template-reason">Why: {choice.reason}</small>}</div>
+    {facet.known !== undefined && <span className="facet-known">{facet.known}/{facet.of}</span>}
     <div className="facet-controls">
       <div className="facet-state" role="radiogroup" aria-label={`State for ${facet.label}`}>
-        <label><input type="radio" name={`state-${facet.id}`} checked={choice.mode === "off"} onChange={() => setMode("off")} />Doesn't matter</label>
-        <label><input type="radio" name={`state-${facet.id}`} disabled={unavailable} checked={must && !prefer} onChange={() => setMode("must")} />Must</label>
-        {preference && <label><input type="radio" name={`state-${facet.id}`} disabled={unavailable} checked={prefer} onChange={() => setMode("prefer")} />Prefer</label>}
+        <label className="state-off"><input type="radio" name={`state-${facet.id}`} checked={choice.mode === "off"} onChange={() => setMode("off")} />Doesn't matter</label>
+        <label className="state-must"><input type="radio" name={`state-${facet.id}`} disabled={unavailable} checked={must && !prefer} onChange={() => setMode("must")} />Must</label>
+        {preference && <label className="state-prefer"><input type="radio" name={`state-${facet.id}`} disabled={unavailable} checked={prefer} onChange={() => setMode("prefer")} />Prefer</label>}
       </div>
       {unavailable && <small>Not yet tracked; Must and Prefer are unavailable.</small>}
       {(must || prefer) && !unavailable && <div className="facet-settings">
@@ -167,7 +171,7 @@ function EstateStrip({ vocabulary, estate, onChange }: { vocabulary: Vocabulary;
   </section>;
 }
 
-export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections, mustOrder, onMustOrder, estate, onEstate, access = "any", onAccess, answer, fit = 0, may = 0, notes = [], onNotes, refinementFallbackKeys = new Set(), onCanvasAxes }: { vocabulary: Vocabulary; spec: Spec; onSpec: (spec: Spec) => void; selections?: BoardSelections; onSelections?: (selections: BoardSelections) => void; mustOrder?: string[]; onMustOrder?: (mustOrder: string[]) => void; estate: Estate; onEstate: (estate: Estate) => void; access?: AccessAnswer; onAccess?: (access: AccessAnswer) => void; answer?: ReactNode; fit?: number; may?: number; notes?: string[]; onNotes?: (notes: string[]) => void; refinementFallbackKeys?: ReadonlySet<string>; onCanvasAxes?: (axes: CanvasAxes) => void }) {
+export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections, mustOrder, onMustOrder, estate, onEstate, access = "any", onAccess, answer, verification, fit = 0, may = 0, notes = [], onNotes, refinementFallbackKeys = new Set(), onCanvasAxes, onTemplate }: { vocabulary: Vocabulary; spec: Spec; onSpec: (spec: Spec) => void; selections?: BoardSelections; onSelections?: (selections: BoardSelections) => void; mustOrder?: string[]; onMustOrder?: (mustOrder: string[]) => void; estate: Estate; onEstate: (estate: Estate) => void; access?: AccessAnswer; onAccess?: (access: AccessAnswer) => void; answer?: ReactNode; verification?: ReactNode; fit?: number; may?: number; notes?: string[]; onNotes?: (notes: string[]) => void; refinementFallbackKeys?: ReadonlySet<string>; onCanvasAxes?: (axes: CanvasAxes) => void; onTemplate?: (id: string | null) => void }) {
   const [localSelections, setLocalSelections] = useState<BoardSelections>({});
   const [localMustOrder, setLocalMustOrder] = useState<string[]>([]);
   const selected = selections ?? localSelections;
@@ -176,11 +180,11 @@ export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections,
     if (onSelections) onSelections(next);
     else setLocalSelections(next);
   };
-  const [templatesOpen, setTemplatesOpen] = useState(true);
+  const [templatesOpen, setTemplatesOpen] = useState(false);
   const [activeTemplate, setActiveTemplate] = useState<ActiveTemplate | null>(null);
   const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>(() => {
     const active = new Set(Object.entries(selections ?? {}).flatMap(([id, choice]) => choice.mode === "off" ? [] : [facetGroup(id)]));
-    return Object.fromEntries(GROUP_ORDER.map((name) => [name, name === "What it's good at" || active.has(name)]));
+    return Object.fromEntries(GROUP_ORDER.map((name) => [name, active.has(name)]));
   });
   const grouped = useMemo(() => groupFacets(vocabulary), [vocabulary]);
   const activeRefinementCount = (parentIds?: ReadonlySet<string>) => (vocabulary.refinements ?? []).filter((refinement) => {
@@ -214,12 +218,13 @@ export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections,
     const sanitized = sanitizeBoardState({ selections, mustOrder: converted.mustOrder, estate }, vocabulary);
     const all = sanitized.selections;
     const activeGroups = grouped.groups.filter((group) => group.facets.some((facet) => ["must", "prefer", "both"].includes(all[facet.id]?.mode)));
-    setExpandedGroups((current) => Object.fromEntries(grouped.groups.map((group) => [group.name, group.name === "What it's good at" || activeGroups.some((active) => active.name === group.name) || current[group.name] === true])));
+    setExpandedGroups((current) => Object.fromEntries(grouped.groups.map((group) => [group.name, activeGroups.some((active) => active.name === group.name) || current[group.name] === true])));
     const taskTokens = converted.taskTokens ?? vocabulary.default_task_tokens;
     const templateSpec = { ...spec, tokIn: taskTokens.input, tokOut: taskTokens.output };
     if (onMustOrder) onMustOrder(sanitized.mustOrder); else setLocalMustOrder(sanitized.mustOrder);
     setSelected(all); onNotes?.(sanitized.notes); setTemplatesOpen(false);
     setActiveTemplate({ id: template.id, refinement: refinement?.id ?? null });
+    onTemplate?.(template.id);
     const canvas = template.canvas;
     if (canvas && isCanvasAxisId(canvas.x) && isCanvasAxisId(canvas.y)) onCanvasAxes?.({ x: canvas.x, y: canvas.y });
     onSpec(boardToSpec(templateSpec, vocabulary, all, sanitized.mustOrder));
@@ -229,9 +234,9 @@ export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections,
     setSelected(empty.selections);
     if (onMustOrder) onMustOrder([]); else setLocalMustOrder([]);
     onNotes?.([]);
-    setExpandedGroups({ "What it's good at": true });
+    setExpandedGroups({});
     // Reset clears the spec, never the template card: it returns to its bar.
-    setActiveTemplate(null); setTemplatesOpen(false);
+    setActiveTemplate(null); onTemplate?.(null); setTemplatesOpen(false);
     onSpec(boardToSpec(spec, vocabulary, empty.selections, []));
   };
   return <div className="facet-board">
@@ -246,13 +251,13 @@ export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections,
         {grouped.groups.map((group) => {
           const active = group.facets.filter((facet) => selected[facet.id]?.mode && selected[facet.id]?.mode !== "off");
           const activeCount = active.length + activeRefinementCount(new Set(group.facets.map((facet) => facet.id)));
-          const survival = active.flatMap((facet) => facet.values?.map((value) => value.count) ?? []).filter((count): count is number => typeof count === "number");
+          const survival = active.flatMap((facet) => facet.values?.filter((value) => value.has_data !== false).map((value) => value.count) ?? []).filter((count): count is number => typeof count === "number");
           const open = expandedGroups[group.name] === true;
           return <section className="facet-group" key={group.name}><button className="facet-group-summary" aria-expanded={open} onClick={() => setExpandedGroups((current) => ({ ...current, [group.name]: !open }))}><span>{group.name}</span><small>{activeCount ? `${activeCount} set` : "all Doesn't matter"}{survival.length ? ` · → ${Math.min(...survival)} survive` : " · no change"}</small><b aria-hidden="true">{open ? "−" : "+"}</b></button>{open && <div>{group.facets.map((facet) => <FacetRow key={facet.id} facet={facet} choice={selected[facet.id] ?? { mode: "off" }} refinements={(vocabulary.refinements ?? []).filter((row) => facet.id === `capability.${row.parent_domain}`)} selections={selected} fallbackKeys={refinementFallbackKeys} onChange={(choice) => update(facet.id, choice)} onRefinementChange={update} />)}</div>}</section>;
         })}
         {!!grouped.untracked.length && <section className="facet-group untracked"><button className="facet-group-summary" aria-expanded={expandedGroups.untracked === true} onClick={() => setExpandedGroups((current) => ({ ...current, untracked: !current.untracked }))}><span>Not yet tracked</span><small>{grouped.untracked.length} facets · no values</small><b aria-hidden="true">{expandedGroups.untracked ? "−" : "+"}</b></button>{expandedGroups.untracked && <div><p>No model in this snapshot has a value. Must and Prefer are disabled; a null beats a guess.</p>{grouped.untracked.map((facet) => <FacetRow key={facet.id} facet={facet} choice={{ mode: "off" }} onChange={() => undefined} />)}</div>}</section>}
       </section>
-      {answer && <aside className="board-answer" id="facet-board-answer">{answer}</aside>}
+      {answer && <aside className="board-answer" id="facet-board-answer">{verification}{answer}</aside>}
     </div>
   </div>;
 }
@@ -262,5 +267,5 @@ export { readEstate, writeEstate };
 /** The board's heading. App renders it before the vocabulary loads, so the
  * page's largest paint does not wait on a fetch (MODEL-218). */
 export function BoardIntro() {
-  return <div className="board-intro"><div><span className="eyebrow">Model decision engine</span><h1>Set what matters. Watch the field narrow.</h1><p>Every facet is here. Must is a gate. Prefer changes ranking and never excludes. Nothing is guessed from your words.</p></div></div>;
+  return <div className="board-intro"><div><span className="eyebrow">Model decision engine</span><h1><span className="board-intro-line">Here's how our API helps an agent deterministically narrow every model down to the ones that fit…</span> <span className="board-intro-line">…in about 0.1 s. It might take you a little longer.</span></h1><h2>Set what matters across any/all facets. Try a template as a fast track. Watch the field narrow.</h2><p>'Must' is a gate; 'Prefer' changes the ranking and never excludes.</p><p className="board-intro-note">About 0.1 s: the median time to first byte for an agent's API decision, measured from Boston on 2026-10-01.</p></div></div>;
 }

@@ -460,6 +460,35 @@ def test_every_condition_and_objective_the_page_can_build_is_a_valid_spec(snapsh
     assert built > 100
 
 
+def test_number_facets_publish_which_way_is_better(vocabulary) -> None:
+    """MODEL-297: the page and agents read the direction; they never guess it."""
+    for row in vocabulary["facets"]:
+        if row["value_type"] == "number":
+            assert row["better"] == registry().facet(row["id"]).better, row["id"]
+        else:
+            assert "better" not in row, row["id"]
+    by_id = {row["id"]: row for row in vocabulary["facets"]}
+    assert by_id["offering.price.input"]["better"] == "lower"
+    assert by_id["offering.speed.throughput"]["better"] == "higher"
+
+
+def test_every_template_weight_points_the_better_way() -> None:
+    """MODEL-297: a template never maximises a price or minimises throughput."""
+    from decision.templates import load_templates
+
+    checked = 0
+    for template in load_templates():
+        for key in template["weights"]:
+            try:
+                facet = registry().facet(key.removeprefix("-"))
+            except KeyError:
+                continue  # a domain, not a facet
+            if facet.better in ("higher", "lower"):
+                checked += 1
+                assert key.startswith("-") == (facet.better == "lower"), (template["id"], key)
+    assert checked > 0
+
+
 def test_every_facet_reports_whether_and_how_it_can_be_preferred(vocabulary) -> None:
     by_id = {row["id"]: row for row in vocabulary["facets"]}
 
@@ -503,6 +532,46 @@ def test_the_site_build_writes_the_vocabulary_beside_the_snapshot(tmp_path, monk
     assert written["models"] == {
         "lab/alpha": {"display_name": None, "lab": "lab", "lab_name": None,
                       "class": None}}
+
+
+def test_the_site_build_signs_the_vocabulary_with_the_snapshot_key(tmp_path, monkeypatch):
+    import base64
+
+    from cryptography.hazmat.primitives import serialization
+    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+
+    from decision import snapshot as snap
+    from pipeline import build as site_build
+    from tests.test_decision_snapshot import COMPLETENESS_REGISTRY, KEY, _mini_repo
+
+    private = Ed25519PrivateKey.generate()
+    public = private.public_key().public_bytes(
+        serialization.Encoding.Raw, serialization.PublicFormat.Raw)
+    key_set = tmp_path / "snapshot-keys.json"
+    key_set.write_text(json.dumps({
+        "format": "modelspec.snapshot-keys", "version": 1,
+        "keys": [{"alg": "ed25519", "key_id": "test-ci",
+                  "public_key": base64.b64encode(public).decode()}],
+    }))
+    root = _mini_repo(tmp_path)
+    monkeypatch.setattr(snap, "PUBLIC_KEY_SET_PATH", key_set)
+    monkeypatch.setenv(snap.ED25519_KEY_ENV, base64.b64encode(private.private_bytes(
+        serialization.Encoding.Raw, serialization.PrivateFormat.Raw,
+        serialization.NoEncryption())).decode())
+    monkeypatch.setattr(snap, "default_registry", lambda: COMPLETENESS_REGISTRY)
+    monkeypatch.setattr("decision.vocabulary.MIN_FRONTIER_COVERAGE", 0)
+    monkeypatch.setenv(snap.KEY_ENV, KEY.decode())
+    target = tmp_path / "site" / "api" / "decision" / "snapshot.json.gz"
+
+    assert site_build.write_decision_snapshot_if_ready(
+        root, target, premier=root / "premier" / "slice-1.yaml", as_of=AS_OF) is True
+
+    written = json.loads((target.parent / "vocabulary.json").read_text())
+    assert written["signatures"][0]["key_id"] == "test-ci"
+    assert snap.verify_vocabulary(written) == "verified"
+    written["models"]["lab/alpha"]["display_name"] = "Tampered"
+    with pytest.raises(snap.SnapshotIntegrityError):
+        snap.verify_vocabulary(written)
 
 
 def test_no_snapshot_means_no_vocabulary(tmp_path, monkeypatch):

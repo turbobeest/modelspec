@@ -213,6 +213,13 @@ accepts any id and filters nothing by it.
 The gate is handed no part of the body — only the key, read off the headers.
 `tests/test_legal.py` checks that from the syntax tree.
 
+MODEL-292 adds an optional verified page exception, shipping off. With
+`VISIT_GATE_ENABLED` on, a keyless decide or Worker vocabulary request with a
+valid visitor-and-origin-bound visit token uses the HumanGate allowance before
+this key gate. A presented key always wins. Origin alone grants no admission
+in that mode, even when x402 is enabled. All other callers follow
+`ACCESS_ENFORCED`. See [the visit gate](human-gate.md#visit-gate-model-292).
+
 ## The switch: `ACCESS_ENFORCED`
 
 A `vars` entry in `api/worker/wrangler.jsonc`, shipped as `"false"`.

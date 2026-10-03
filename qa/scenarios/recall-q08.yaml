@@ -1,0 +1,118 @@
+id: recall-q08
+family: F1
+persona: Developer choosing a model for production work
+request: 'Choose the generator for retrieval-augmented generation over a collection of documents
+  that runs to 200,000 tokens.
+
+  '
+constraints:
+  class: generate
+  task: write an answer grounded in retrieved documents
+  context_tokens_at_least: 200000
+  not_class:
+  - embed
+  - rerank
+  open_weights: false
+expected:
+  id: Q08
+  notes: 'The class constraint is the part the evidence can settle. The model must generate, and
+    its published context must be at least 200,000 tokens. No allowed board measures grounded answer
+    quality over a 200,000-token collection. Arena''s document split is a preference board, published
+    2026-09-13, and its leading intervals overlap. Order among the generators below is not established.
+    The MODEL-161 triage at docs/recall/2026-09-25-model-161-triage.md records the approved longer-query
+    evidence (read 2026-09-25).
+
+    '
+  acceptable:
+  - model_id: openai/gpt-6-astra
+    reason: Published context window 1,050,000 tokens. It generates text.
+    sources:
+    - url: https://developers.openai.com/api/docs/models/gpt-6-astra
+      read: '2026-09-24'
+  - model_id: google/gemini-3-8-flash
+    reason: Model card says a context window of up to 1M tokens, and it accepts documents.
+    sources:
+    - url: https://deepmind.google/models/model-cards/gemini-3-8-flash/
+      read: '2026-09-24'
+  - model_id: anthropic/claude-opus-5-5
+    reason: 'Claude pricing says 4.6 and later models include a 1M token context window. Fast mode
+      also refers to Opus 5.5 requests over 200k tokens.
+
+      '
+    sources:
+    - url: https://platform.claude.com/docs/en/about-claude/pricing
+      read: '2026-09-24'
+  - model_id: anthropic/claude-opus-5
+    reason: A Claude model later than 4.6, so the same 1M context statement applies.
+    sources:
+    - url: https://platform.claude.com/docs/en/about-claude/pricing
+      read: '2026-09-24'
+  - model_id: anthropic/claude-fable-5-1
+    reason: A Claude model later than 4.6, so the same 1M context statement applies.
+    sources:
+    - url: https://platform.claude.com/docs/en/about-claude/pricing
+      read: '2026-09-24'
+  - model_id: anthropic/claude-opus-4-6
+    reason: Named by the 1M context statement for Claude 4.6 and later.
+    sources:
+    - url: https://platform.claude.com/docs/en/about-claude/pricing
+      read: '2026-09-24'
+  - model_id: google/gemini-2-5-flash
+    reason: Pricing page says a 1M token context window.
+    sources:
+    - url: https://ai.google.dev/gemini-api/docs/pricing
+      read: '2026-09-24'
+  - model_id: anthropic/claude-fable-5
+    reason: Arena longer-query rating 1521.41 and a published context over 200,000 tokens.
+    sources:
+    - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+      read: '2026-09-25'
+    - url: https://platform.claude.com/docs/en/about-claude/pricing
+      read: '2026-09-24'
+  - model_id: anthropic/claude-opus-4-7
+    reason: Arena longer-query rating 1514.43 and a published context over 200,000 tokens.
+    sources:
+    - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+      read: '2026-09-25'
+    - url: https://platform.claude.com/docs/en/about-claude/pricing
+      read: '2026-09-24'
+  must_never:
+  - model_id: openai/text-embedding-3-large
+    reason: The generator is not an embedding model.
+    sources:
+    - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/openai/text-embedding-3-large.md
+      read: '2026-09-24'
+  - model_id: nvidia/nv-embed-v2
+    reason: The generator is not an embedding model.
+    sources:
+    - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/nvidia/nv-embed-v2.md
+      read: '2026-09-24'
+  - model_id: baai/bge-m3
+    reason: The generator is not an embedding model.
+    sources:
+    - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/baai/bge-m3.md
+      read: '2026-09-24'
+  must_flag:
+  - rule: generator whose published context length was not read
+    reason: 'A context at least 200,000 tokens is required. Unknown context may still qualify and
+      must not be dropped.
+
+      '
+    sources:
+    - url: https://developers.openai.com/api/docs/models/gpt-6-astra
+      read: '2026-09-24'
+      note: Shows that context is a published fact, and that it was checked model by model.
+  missing_cards: []
+expected_source: tests/recall/expected.yaml#Q08
+sources:
+- tests/recall/questions.yaml#Q08
+- tests/recall/specs/Q08.yaml
+gaps:
+- reason: grounded generation over retrieved documents has no registered domain;
+  suggested_fix: Publish a dedicated facet or measured capability, or expose a clarification tool
+    before deciding.
+  source: tests/recall/specs/Q08.yaml
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.

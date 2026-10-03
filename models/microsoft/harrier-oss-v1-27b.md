@@ -674,25 +674,25 @@ benchmarks:
     unit: percent
     source_url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores
     source_kind: benchmark_author
-    evidence_date: '2026-09-29'
+    evidence_date: '2026-09-30'
     date_type: evaluated
-    verified_at: '2026-09-29'
+    verified_at: '2026-09-30'
     benchmark_version: MTEB(Multilingual, v2), mean over tasks
     configuration: MTEB leaderboard backend JSON, benchmarkName MTEB(Multilingual,
       v2), read 2026-09-24. Score is meanTask times 100. The JSON has no per-row run
       date, so this date is the day the board was read.
     limitations: Mean over the benchmark's 131 tasks. The leaderboard reports this
       model as 78% zero-shot on them.
-    id: microsoft/harrier-oss-v1-27b#mteb_multilingual_v2#f0e02dfff81d
+    id: microsoft/harrier-oss-v1-27b#mteb_multilingual_v2#8f0d5ede87b1
     measured_by: benchmark_author
     effort: null
     harness: null
     sources:
     - source_id: model-143-evidence-mteb-multilingual-v2-json
-      snapshot_ref: sha256:777a386241c32131f7fa6275f3d92fae55175e12dfa1bce64022bafd3efd9d44
+      snapshot_ref: sha256:b371ac5c3e0cd3ddee59bc20be89add80065d253cb98d9759876bb3e58148ebc
       cited_regions:
       - rows
-    observed_at: '2026-09-29'
+    observed_at: '2026-09-30'
   - benchmark_id: mteb_multilingual_v2
     model_id_as_evaluated: microsoft/harrier-oss-v1-27b
     score: 74.3
