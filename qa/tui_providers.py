@@ -1,0 +1,567 @@
+"""CLI commands, transcript decoding and subscription-preserving isolation.
+
+Unsupported adapters can decode fixtures, but cannot launch a process. Adding a
+flag that merely hides instructions is not sufficient to enable an adapter.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import re
+import subprocess
+from dataclasses import dataclass, field
+from pathlib import Path
+from time import perf_counter
+
+from qa.contracts import TOOL_NAMES
+from qa.providers import redact
+
+CLIS = ("claude", "codex", "gemini", "grok")
+FAMILY = {"claude": "anthropic", "codex": "openai", "gemini": "google", "grok": "xai"}
+# These are findings about the installed versions, not user-configurable claims.
+ISOLATION_REASONS = {
+    "claude": None,
+    "codex": (
+        "Codex 0.160 --ignore-user-config preserves login but retains an empty User "
+        "configuration layer, from which skill discovery still derives global roots. "
+        "skills.include_instructions=false only suppresses the catalog; per-skill "
+        "toggles require enumerating user skills. "
+        "A fresh CODEX_HOME also relocates the saved login. No auth workaround was built."
+    ),
+    "gemini": (
+        "Gemini 0.60 setGeminiMdFilename adds to the default GEMINI.md list, including "
+        "when context.fileName=[]; it cannot disable global instruction discovery. "
+        "GEMINI_CLI_HOME relocates both memory and OAuth state. No auth workaround was built."
+    ),
+    "grok": (
+        "Grok 1.0.46 has no verified exclusive configuration mode. GROK_CONFIG overrides "
+        "selected settings over user/project configuration, including MCP and plugin "
+        "discovery. GROK_HOME relocates both configuration and login. No auth workaround was built."
+    ),
+}
+CLAUDE_ENV = {
+    "CLAUDE_CODE_DISABLE_CLAUDE_MDS": "1",
+    "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1",
+    "CLAUDE_CODE_SKIP_PROMPT_HISTORY": "1",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+    "ENABLE_CLAUDEAI_MCP_SERVERS": "false",
+    "ENABLE_TOOL_SEARCH": "false",
+}
+CLAUDE_SETTINGS = {
+    "disableAllHooks": True,
+    "autoMemoryEnabled": False,
+    "disableClaudeAiConnectors": True,
+    "disableCommandPluginSources": True,
+    "enabledPlugins": {},
+}
+# Do not inherit API keys, prompt injection variables, remote-daemon addresses,
+# provider endpoints, config homes, plugin paths, or shell startup overrides.
+BASE_ENV = (
+    "PATH",
+    "HOME",
+    "USER",
+    "LOGNAME",
+    "SHELL",
+    "LANG",
+    "LC_ALL",
+    "TZ",
+    "SSL_CERT_FILE",
+    "SSL_CERT_DIR",
+    "SYSTEMROOT",
+    "WINDIR",
+)
+
+
+def child_environment(cli: str, workspace: Path, token_env: str | None = None) -> dict:
+    env = {key: os.environ[key] for key in BASE_ENV if key in os.environ}
+    env.update(TMPDIR=str(workspace), TMP=str(workspace), TEMP=str(workspace))
+    if cli == "claude":
+        env.update(CLAUDE_ENV)
+    if token_env and os.environ.get(token_env):
+        env[token_env] = os.environ[token_env]
+    return env
+
+
+def build_command(
+    cli: str, settings: dict, workspace: Path, prompt: str, mcp_file: Path, turn_cap: int
+) -> list[str]:
+    """Build native headless arguments; launch() separately enforces support.
+
+    The unsupported families' arguments are useful for format tests only. They
+    are never printed as runnable isolated commands or executed by the harness.
+    """
+    executable, model = settings["executable"], settings["model"]
+    if cli == "claude":
+        return [
+            executable,
+            "--print",
+            "--output-format",
+            "stream-json",
+            "--verbose",
+            "--model",
+            model,
+            "--effort",
+            settings["effort"],
+            "--max-turns",
+            str(turn_cap),
+            "--setting-sources",
+            "",
+            "--settings",
+            json.dumps(CLAUDE_SETTINGS),
+            "--disable-slash-commands",
+            "--no-session-persistence",
+            "--no-chrome",
+            "--strict-mcp-config",
+            "--mcp-config",
+            str(mcp_file),
+            "--tools",
+            "",
+            "--permission-mode",
+            "dontAsk",
+            "--allowedTools",
+            "mcp__modelspec__*",
+            "--",
+            prompt,
+        ]
+    if cli == "codex":
+        return [
+            executable,
+            "--no-daemon",
+            "exec",
+            "--ignore-user-config",
+            "--ignore-rules",
+            "--ephemeral",
+            "--skip-git-repo-check",
+            "--json",
+            "--sandbox",
+            "read-only",
+            "-m",
+            model,
+            "-c",
+            f"model_reasoning_effort={settings['effort']}",
+            "--cd",
+            str(workspace),
+            "--",
+            prompt,
+        ]
+    if cli == "gemini":
+        return [
+            executable,
+            "--model",
+            model,
+            "--output-format",
+            "stream-json",
+            "--extensions",
+            "none",
+            "--allowed-mcp-server-names",
+            "modelspec",
+            "--prompt",
+            prompt,
+        ]
+    if cli == "grok":
+        return [
+            executable,
+            "-m",
+            model,
+            "--reasoning-effort",
+            settings["effort"],
+            "--cwd",
+            str(workspace),
+            "--output-format",
+            "streaming-messages-json",
+            "--max-turns",
+            str(turn_cap),
+            "--no-subagents",
+            "--disable-web-search",
+            "--single",
+            prompt,
+        ]
+    raise ValueError(f"Unknown CLI: {cli}")
+
+
+def mcp_config(url: str, token_env: str | None, *, enabled: bool) -> dict:
+    if not enabled:
+        return {"mcpServers": {}}
+    server = {"type": "http", "url": url}
+    if token_env and os.environ.get(token_env):
+        # Claude expands this itself. The harness never puts the secret in argv.
+        server["headers"] = {"Authorization": "Bearer ${" + token_env + "}"}
+    return {"mcpServers": {"modelspec": server}}
+
+
+def json_events(output: str) -> list[dict]:
+    try:
+        document = json.loads(output)
+    except ValueError:
+        events = []
+        for line in output.splitlines():
+            try:
+                event = json.loads(line)
+            except ValueError:
+                continue
+            if isinstance(event, dict):
+                events.append(event)
+        return events
+    if isinstance(document, dict):
+        return [document]
+    if isinstance(document, list):
+        return [event for event in document if isinstance(event, dict)]
+    return []
+
+
+def _arguments(value):
+    if isinstance(value, str):
+        try:
+            return json.loads(value)
+        except ValueError:
+            pass
+    return value
+
+
+def _tool_name(name: str, server: str | None = None) -> tuple[str | None, str]:
+    if server is not None:
+        return server, name
+    for prefix in ("mcp__modelspec__", "modelspec__", "modelspec/", "modelspec."):
+        if name.startswith(prefix):
+            return "modelspec", name[len(prefix) :]
+    if name in TOOL_NAMES:
+        return "modelspec", name
+    if name.startswith("mcp__"):
+        parts = name.split("__", 2)
+        if len(parts) == 3:
+            return parts[1], parts[2]
+    return None, name
+
+
+def _result(value, is_error=False) -> dict:
+    if isinstance(value, dict) and "content" in value:
+        return value | {"isError": value.get("isError", is_error)}
+    return {
+        "content": value
+        if isinstance(value, list)
+        else [{"type": "text", "text": value if isinstance(value, str) else json.dumps(value)}],
+        "isError": is_error,
+    }
+
+
+@dataclass
+class Transcript:
+    final_answer: str = ""
+    turns: int | None = None
+    turns_basis: str = "unavailable"
+    tool_calls: list[dict] = field(default_factory=list)
+    other_tool_calls: list[dict] = field(default_factory=list)
+    tokens_in: int | None = None
+    tokens_out: int | None = None
+    cost_usd: float | None = None
+    usage: dict | None = None
+    init: dict | None = None
+    model: str | None = None
+    terminal: bool = False
+    errors: list[str] = field(default_factory=list)
+
+    @property
+    def first_decide_call(self) -> int | None:
+        return next(
+            (i for i, call in enumerate(self.tool_calls, 1) if call["name"] == "decide"), None
+        )
+
+
+def parse_transcript(cli: str, output: str) -> Transcript:
+    """Keep ordered calls and their results, never count streaming deltas twice."""
+    parsed = Transcript()
+    calls, message_ids = {}, set()
+    assistant_turns, codex_turns = 0, 0
+    gemini_text = ""
+
+    def call(identity, name, arguments, server=None):
+        server, name = _tool_name(name, server)
+        identity = str(identity)
+        if identity not in calls:
+            record = {
+                "id": identity,
+                "server": server,
+                "name": name,
+                "arguments": _arguments(arguments),
+                "result": _result(None),
+                "result_observed": False,
+                "latency_ms": None,
+                "api_call": True,
+                "validation_errors": [],
+                "unknown_facets": [],
+                "unadvertised_facets": [],
+            }
+            calls[identity] = record
+            (parsed.tool_calls if server is not None else parsed.other_tool_calls).append(record)
+        elif arguments:
+            calls[identity]["arguments"] = _arguments(arguments)
+        return calls[identity]
+
+    def finish(identity, value, is_error=False):
+        if str(identity) in calls:
+            calls[str(identity)].update(result=_result(value, is_error), result_observed=True)
+
+    for event in json_events(output):
+        kind = event.get("type")
+        if kind == "system" and event.get("subtype") == "init" or kind == "init":
+            parsed.init = event
+            parsed.model = event.get("model")
+        if kind in ("error", "turn.failed") or kind is None and event.get("error"):
+            parsed.errors.append(json.dumps(event.get("error", event.get("message", event))))
+        if kind in ("assistant", "user"):
+            message = event.get("message", {})
+            if kind == "assistant":
+                identity = message.get("id", event.get("uuid"))
+                if identity is None or identity not in message_ids:
+                    assistant_turns += 1
+                    message_ids.add(identity)
+                text = "".join(
+                    block.get("text", "")
+                    for block in message.get("content", [])
+                    if block.get("type") == "text"
+                )
+                if text:
+                    parsed.final_answer = text
+                for block in message.get("content", []):
+                    if block.get("type") in ("tool_use", "server_tool_use"):
+                        call(block["id"], block["name"], block.get("input", {}))
+            else:
+                for block in message.get("content", []):
+                    if block.get("type") == "tool_result":
+                        finish(
+                            block["tool_use_id"], block.get("content"), block.get("is_error", False)
+                        )
+        if cli == "codex":
+            if kind == "turn.started":
+                codex_turns += 1
+            if kind in ("item.started", "item.completed"):
+                item = event.get("item", {})
+                if item.get("type") == "mcp_tool_call":
+                    record = call(
+                        item["id"], item["tool"], item.get("arguments", {}), item["server"]
+                    )
+                    if kind == "item.completed":
+                        finish(
+                            item["id"],
+                            item.get("result", item.get("error")),
+                            bool(item.get("error")),
+                        )
+                    if "duration_ms" in item:
+                        record["latency_ms"] = item["duration_ms"]
+                elif item.get("type") == "agent_message" and kind == "item.completed":
+                    parsed.final_answer = item.get("text", "")
+                elif item.get("type") in ("command_execution", "web_search", "file_change"):
+                    call(item["id"], item["type"], item.get("command", {}))
+            if kind == "turn.completed":
+                parsed.terminal = True
+                parsed.usage = event.get("usage")
+                parsed.turns, parsed.turns_basis = codex_turns, "CLI turn.started events"
+        if cli == "gemini":
+            if kind == "message" and event.get("role") == "assistant":
+                if event.get("delta"):
+                    gemini_text += event.get("content", "")
+                else:
+                    gemini_text = event.get("content", "")
+                    assistant_turns += 1
+                parsed.final_answer = gemini_text
+            if kind == "tool_use":
+                call(event["tool_id"], event["tool_name"], event.get("parameters", {}))
+                gemini_text = ""
+            if kind == "tool_result":
+                finish(event["tool_id"], event.get("output"), event.get("status") == "error")
+        if kind in ("result", "end") or kind is None and "response" in event:
+            parsed.terminal = True
+            parsed.final_answer = event.get("result", event.get("response", parsed.final_answer))
+            if not isinstance(parsed.final_answer, str):
+                parsed.final_answer = json.dumps(parsed.final_answer)
+            if type(event.get("num_turns")) is int:
+                parsed.turns, parsed.turns_basis = event["num_turns"], "CLI num_turns"
+            if event.get("is_error") or event.get("status") == "error":
+                parsed.errors.append(
+                    json.dumps(event.get("error", event.get("errors", parsed.final_answer)))
+                )
+            parsed.usage = event.get("usage", event.get("stats"))
+            parsed.cost_usd = event.get("total_cost_usd", event.get("cost_usd"))
+            if event.get("model"):
+                parsed.model = event["model"]
+    if parsed.turns is None and assistant_turns:
+        parsed.turns, parsed.turns_basis = assistant_turns, "distinct assistant messages"
+    if parsed.usage:
+        usage = parsed.usage
+        if "input_tokens" in usage:
+            parsed.tokens_in = usage["input_tokens"] + usage.get("cache_creation_input_tokens", 0)
+            if cli in ("claude", "grok"):
+                parsed.tokens_in += usage.get("cache_read_input_tokens", 0)
+            parsed.tokens_out = usage.get("output_tokens")
+        elif "models" in usage:
+            token_rows = [row["tokens"] for row in usage["models"].values() if "tokens" in row]
+            if token_rows:
+                parsed.tokens_in = sum(row.get("prompt", 0) for row in token_rows)
+                parsed.tokens_out = sum(
+                    row.get("candidates", 0) + row.get("thoughts", 0) for row in token_rows
+                )
+                parsed.turns = (
+                    sum(
+                        row.get("api", {}).get("totalRequests", 0)
+                        for row in usage["models"].values()
+                    )
+                    or parsed.turns
+                )
+                parsed.turns_basis = "Gemini stats.models API requests"
+    return parsed
+
+
+LIMIT_MESSAGE = re.compile(
+    r"usage[_ -]?limit|rate[_ -]?limit|quota.{0,35}(?:exceed|exhaust)|resource_exhausted|"
+    r"too many requests|(?:hit|reached|exceeded).{0,25}(?:usage |rate |weekly |daily )?limit|"
+    r"(?:out of|exhausted|insufficient) credits|limit_reached",
+    re.I,
+)
+LIMIT_ANSWER = re.compile(
+    r"^\s*(?:you(?:'ve| have) (?:hit|reached)|usage limit|rate limit|"
+    r"quota exceeded|resource_exhausted)",
+    re.I,
+)
+
+
+def usage_limit(parsed: Transcript, stderr: str, code: int, exit_codes: list[int]) -> str | None:
+    if code in exit_codes:
+        return f"CLI usage-limit exit code {code}"
+    for message in [stderr, *parsed.errors]:
+        if LIMIT_MESSAGE.search(message):
+            return redact(message.strip())[:500]
+    if LIMIT_ANSWER.search(parsed.final_answer) and LIMIT_MESSAGE.search(parsed.final_answer):
+        return redact(parsed.final_answer)[:500]
+    return None
+
+
+def isolation_violation(parsed: Transcript, *, mcp_enabled: bool) -> str | None:
+    if parsed.init is None:
+        return "CLI did not expose its startup inventory"
+    if parsed.init.get("skills"):
+        return "CLI loaded skills"
+    if any(plugin.get("path") != "builtin" for plugin in parsed.init.get("plugins", [])):
+        return "CLI loaded a non-builtin plugin"
+    allowed = {"modelspec"} if mcp_enabled else set()
+    if any(server.get("name") not in allowed for server in parsed.init.get("mcp_servers", [])):
+        return "CLI loaded another MCP server"
+    if parsed.other_tool_calls or any(call["server"] not in allowed for call in parsed.tool_calls):
+        return "CLI used a tool outside the configured ModelSpec MCP"
+    for name in parsed.init.get("tools", []):
+        if _tool_name(name)[0] not in allowed:
+            return "CLI exposed an unapproved tool"
+    if mcp_enabled and not any(
+        server.get("name") == "modelspec" and server.get("status") == "connected"
+        for server in parsed.init.get("mcp_servers", [])
+    ):
+        return "ModelSpec MCP did not connect"
+    return None
+
+
+@dataclass
+class Execution:
+    transcript: Transcript
+    exit_code: int | None
+    wall_time_ms: float
+    status: str
+    error: str | None = None
+    limit_reason: str | None = None
+    observed_output: str = field(default="", repr=False)
+
+
+def launch(cli: str, config: dict, workspace: Path, prompt: str, *, mcp_enabled: bool) -> Execution:
+    if ISOLATION_REASONS[cli]:
+        raise ValueError(ISOLATION_REASONS[cli])
+    settings = config["clis"][cli]
+    mcp_file = workspace / "modelspec-mcp.json"
+    mcp_file.write_text(
+        json.dumps(mcp_config(config["mcp_url"], config.get("mcp_token_env"), enabled=mcp_enabled))
+    )
+    command = build_command(cli, settings, workspace, prompt, mcp_file, config["turn_cap"])
+    env = child_environment(cli, workspace, config.get("mcp_token_env") if mcp_enabled else None)
+    started = perf_counter()
+    try:
+        # Empty piped stdin is essential: a launching shell's heredoc must never
+        # become extra user context in a CLI that appends stdin to its prompt.
+        process = subprocess.run(
+            command,
+            cwd=workspace,
+            env=env,
+            input="",
+            text=True,
+            capture_output=True,
+            timeout=config["timeout_seconds"],
+        )
+    except subprocess.TimeoutExpired as exc:
+        output = exc.stdout or b""
+        output = output.decode(errors="replace") if isinstance(output, bytes) else output
+        stderr = exc.stderr or b""
+        stderr = stderr.decode(errors="replace") if isinstance(stderr, bytes) else stderr
+        try:
+            parsed = parse_transcript(cli, output)
+        except (ValueError, KeyError, TypeError, AttributeError):
+            parsed = Transcript()
+        limit = usage_limit(parsed, stderr, -1, [])
+        return Execution(
+            parsed,
+            None,
+            (perf_counter() - started) * 1000,
+            "usage_limit" if limit else "timeout",
+            "CLI timed out",
+            limit,
+            output + stderr,
+        )
+    except OSError as exc:
+        return Execution(
+            Transcript(),
+            None,
+            (perf_counter() - started) * 1000,
+            "cli_error",
+            f"Cannot start CLI ({type(exc).__name__})",
+        )
+    try:
+        parsed = parse_transcript(cli, process.stdout)
+        violation = isolation_violation(parsed, mcp_enabled=mcp_enabled)
+    except (ValueError, KeyError, TypeError, AttributeError):
+        return Execution(
+            Transcript(),
+            process.returncode,
+            (perf_counter() - started) * 1000,
+            "transcript_error",
+            "CLI emitted an invalid structured transcript",
+            observed_output=process.stdout + process.stderr,
+        )
+    limit = usage_limit(
+        parsed, process.stderr, process.returncode, settings["usage_limit_exit_codes"]
+    )
+    if limit:
+        status = "usage_limit"
+    elif process.returncode or parsed.errors:
+        status = "cli_error"
+    elif violation:
+        status = "isolation_failed"
+    elif not parsed.terminal:
+        status = "transcript_error"
+    elif not parsed.final_answer.strip():
+        status = "empty_answer"
+    else:
+        status = "completed"
+    error = (
+        violation
+        if status == "isolation_failed"
+        else (
+            redact("; ".join(parsed.errors) or process.stderr)[:500]
+            if status == "cli_error"
+            else None
+        )
+    )
+    return Execution(
+        parsed,
+        process.returncode,
+        (perf_counter() - started) * 1000,
+        status,
+        error,
+        limit,
+        process.stdout + process.stderr,
+    )

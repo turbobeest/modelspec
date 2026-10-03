@@ -120,3 +120,152 @@ Zod field stripping. The MCP arm uses the captured input schemas and stripping
 rules. Both arms use the existing HTTP execution shim, not a live MCP transport.
 Reports record interface, control_full_spec and guide_version. Dry runs replay
 scripted turns and do not measure a live agent's reaction to either prompt arm.
+
+## Subscription CLI runner (MODEL-301)
+
+`qa.tui_harness` uses headless agent CLIs and their existing subscription logins.
+It shares this catalogue, the compact guide, judge rubric, judgement parser,
+recall matching and report aggregation with the API runner. It configures the
+remote Streamable HTTP MCP at `https://api.modelspec.dev/mcp`, rather than the
+API runner's HTTP shim. Each scenario and judge gets a new temporary workspace.
+Agent prompts contain the request and constraints; the judge alone receives
+rubrics, recall expectations and tool evidence. Judges have no MCP servers or
+built-in tools.
+
+Agent-vendor API keys and customization environment variables are excluded from
+child processes. The runner does not open, copy, symlink or log auth files. It
+keeps HOME unchanged and lets the CLI load its own subscription login. Decision
+tools separately require a ModelSpec credential, as documented in
+[`mcp/README.md`](../mcp/README.md). If `MODELSPEC_API_KEY` is set, the runner uses
+Claude's native `${MODELSPEC_API_KEY}` header expansion; the secret never enters
+argv or generated configuration. Without it, the connection is anonymous and
+decision calls can return `missing_api_key`. This does not enable vendor API
+billing or change the deployed auth guard.
+
+### Isolation findings, 2026-10-03
+
+Only Claude is currently eligible to launch. A supported flag must exclude
+discovery, not merely hide its output. Configuration cannot turn an unsupported
+adapter on. Updating support requires reviewing the new CLI's controls and
+passing its canary. Headless argument builders and synthetic format fixtures
+exist for all four families; the launch guard prevents unsupported processes.
+
+| CLI inspected | Configured model / effort | Isolation result |
+| --- | --- | --- |
+| Claude Code 2.1.283 | `fable` / `high` (the private probe resolved `claude-fable-5-1`) | Eligible; parent instruction and hook canary passed |
+| ChatGPT.app Codex 0.160.0 | `gpt-6.1-sol` / `max` | Unsupported; ignoring config retains global skill roots |
+| Gemini CLI 0.60.0 | `gemini-3.8-pro` | Unsupported; changing context filenames retains default memory |
+| Grok 1.0.46 | `grok-4.7` / `xhigh` | Unsupported; no verified exclusive configuration mode |
+
+Claude uses `--setting-sources ''`, `--disable-slash-commands`,
+`--strict-mcp-config`, `--no-session-persistence`, `--no-chrome` and
+`--tools ''`. Inline settings disable all hooks, auto memory, connectors and
+command plugin sources. `CLAUDE_CODE_DISABLE_CLAUDE_MDS=1` excludes user,
+project and automatic instruction files. The environment also disables auto
+memory, prompt history, claude.ai MCP discovery and MCP tool search. Its startup
+inventory must contain no skills, non-builtin plugins, other MCP servers or
+built-in tools. A scenario additionally requires a connected ModelSpec server.
+The built-in `agents-md` plugin remains visible in inventory, with instruction
+discovery disabled; the planted AGENTS.md is part of the canary. See the
+[Claude flags](https://code.claude.com/docs/en/cli-reference) and
+[environment reference](https://code.claude.com/docs/en/env-vars).
+
+Claude's `--safe-mode` cannot serve this task: the installed CLI also drops
+explicit HTTP MCP servers in that mode. `--bare` excludes OAuth/keychain auth
+and therefore cannot use Jamie's subscription. Neither is used by the runner.
+
+Codex `exec --ignore-user-config` preserves login, but its
+[loader](https://github.com/openai/codex/blob/main/codex-rs/config/src/loader/mod.rs)
+returns an empty `User` layer. The
+[skill-root resolver](https://github.com/openai/codex/blob/main/codex-rs/ext/skills/src/host_roots.rs)
+still derives `$CODEX_HOME/skills` and `~/.agents/skills` from that layer.
+`skills.include_instructions=false` suppresses the catalog without excluding
+discovery. Profiles layer configuration over the same home. A fresh CODEX_HOME
+relocates login state too. No auth-copying alternative is implemented.
+
+Gemini's installed `setGeminiMdFilename` adds configured names to the default
+`GEMINI.md` list, even for `context.fileName=[]`. `--extensions none`, disabled
+skills/hooks and an MCP allowlist do not resolve that memory issue.
+`GEMINI_CLI_HOME` relocates both memory and OAuth state. See
+[Gemini configuration](https://geminicli.com/docs/reference/configuration/).
+Grok's `GROK_CONFIG`/`GROK_CONFIG_PATH` overrides selected settings over its
+existing configuration; `--system-prompt-override` and `GROK_MEMORY=0` do not
+establish that plugins, hooks, rules and other MCP servers are excluded.
+`GROK_HOME` relocates login as well. See
+[Grok settings](https://docs.x.ai/build/settings) and the
+[headless reference](https://docs.x.ai/build/cli/headless-scripting).
+
+The supported CLI runs one non-MCP canary before scenarios. It plants instruction
+files, an always-use skill and a hook in a temporary parent directory, then
+starts from a fresh child directory and asks for exactly `OK`. It checks all
+stdout/stderr for the planted marker, checks the hook's filesystem side effect,
+requires a successful answer and validates startup inventory. No real user
+instruction files are edited. Empty piped stdin prevents the launching shell's
+heredoc from becoming extra CLI context. Canaries are not ModelSpec scenarios.
+
+### Commands and reports
+
+`--out` is mandatory and names a private directory. The runner rejects this
+public checkout, other worktrees sharing its git directory, symlink aliases and
+symlink report files. It never defaults to `qa/reports`. Raw transcripts remain
+in memory; JSON contains final answers and ordered tool calls with deduplicated
+results, while Markdown contains aggregates and statuses. Child session history
+is disabled for the supported adapter.
+
+```sh
+# Offline preview. Unsupported CLIs have reasons instead of runnable commands.
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m qa.tui_harness \
+  --dry-run --scenario budget-approved --max-runs-per-cli 1 --out /tmp/tui-preview
+
+# One tiny non-MCP canary; no scenarios or judges.
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m qa.tui_harness \
+  --verify-isolation --cli claude --out /tmp/tui-isolation
+
+# Smoke refuses before scenarios if a selected CLI or judge is unsupported.
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m qa.tui_harness \
+  --smoke --max-runs-per-cli 1 --quiet-hours --out /tmp/tui-smoke
+
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest \
+  tests/test_tui_harness.py -q
+```
+
+`--cli` and `--scenario` can be repeated. Models, effort and judge routes live in
+`qa/tui_config.yaml`; `--judge claude=codex` overrides one route. A same-family
+judge is rejected before launch. With the current support findings there is no
+eligible cross-family judge for Claude, so ordinary live invocations record
+`judge_unavailable` before spending a scenario call. `--smoke` fixes the scenario
+to `budget-approved`, requires all selected CLIs and judges to pass isolation,
+and fixes the quota to one. The current all-CLI smoke is refused, not measured.
+
+The runner is serial, giving concurrency one per CLI. `--max-runs-per-cli`
+counts scenario and judge subprocesses together, including failed starts;
+each supported CLI has one separate preflight canary. That overhead and each
+role's count appear in the report. Shared judges consume the same quota as
+their own scenarios. A usage-limit error or an explicitly configured limit
+exit code stops that family for both roles; other families continue. Generic
+exit code 1 does not imply a quota failure, and a ModelSpec tool's rate limit
+does not imply a vendor subscription limit. There are no harness retries.
+`--quiet-hours` refuses new CLI starts from 08:00 through 21:59 local;
+`--force` overrides only that guard. Dry-run can run at any time.
+
+Dry-run prints exact argv, cwd, stdin, an environment policy and MCP JSON;
+temporary preview workspaces are removed on return. Judge prompts depend on
+answers captured at runtime, so their route is reported without inventing an
+answer or a judge command. Dry-run creates reports with zero executed runs.
+
+Reports retain the API harness's `runs`, `tool_responses`, `overall`,
+`per_family`, `per_agent`, `per_family_agent`, `misuse_patterns` and `gap_list`
+shape, and add `isolation`, `cli_invocations`, `stopped_clis` and `per_cli`.
+Every run records CLI exit status, wall time, turns with their counting basis,
+MCP calls, the one-based index of the first `decide`, final answer and exposed
+usage/cost. Unavailable measurements are null; tool response latency is not
+inferred from whole-run wall time. Subscription token-equivalent cost does not
+establish money charged. A missing judgement is a failed evaluation. Unsupported,
+capped and skipped rows remain explicit in aggregate denominators.
+
+`qa/fixtures/tui-streams.json` contains handwritten, synthetic protocol samples.
+Claude keys were checked against a private tiny print probe; the other adapters
+use the vendors' documented streams because their isolation is unsupported.
+No live transcript or real scenario answer is committed. Offline tests exercise
+command construction, stream decoding, limits, routing, recall, aggregation,
+private output checks, canary failures and launch refusal.
