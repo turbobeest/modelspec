@@ -48,6 +48,7 @@ import { DecisionTable } from "./components/DecisionTable";
 import { FeedbackForm, FeedbackLauncher } from "./feedback/FeedbackForm";
 import { Why } from "./components/Why";
 import { Coverage } from "./components/Coverage";
+import { AnswerBoundary } from "./components/AnswerBoundary";
 import { Share } from "./components/Share";
 import { BrandMark } from "./components/BrandMark";
 import { initialTheme, storeTheme, storedTheme, type Theme } from "./theme";
@@ -144,6 +145,8 @@ export function DesignedApp({
   // Worker says so with a 409; every request that hears it shares one reload.
   const [reloadVocabulary] = useState(() => sharedReload(() => loadVocabulary(undefined, true)));
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
+  // Bumped by the answer's Reset: remounting the board drops its open groups and template too.
+  const [boardGeneration, setBoardGeneration] = useState(0);
   const [hostedDecision, setHostedDecision] = useState<Decision | null>(null),
     [plotDecision, setPlotDecision] = useState<Decision | null>(null),
     [requestState, setRequestState] = useState<
@@ -533,6 +536,19 @@ export function DesignedApp({
     );
   }
 
+  /** The answer area's Reset (MODEL-294): back to the default board, as "Reset all" does. */
+  function resetBoard() {
+    if (!vocabulary) return;
+    const empty = sanitizeBoardState({ selections: {}, mustOrder: [], estate }, vocabulary);
+    setBoardSelections(empty.selections);
+    setBoardMustOrder([]);
+    setLegacyNotes([]);
+    setActiveTemplateId(null);
+    setSelected(null);
+    setBoardGeneration((generation) => generation + 1);
+    changeSpec(boardToSpec(boardBaseSpec, vocabulary, empty.selections, []));
+  }
+
   const effectiveSpec = lastSentSpec ?? spec;
   const estateRequestKey = `${specHash(spec)}:${JSON.stringify(estate)}`;
   useEffect(() => {
@@ -900,6 +916,7 @@ export function DesignedApp({
             </div>
           )}
           {vocabulary && <FacetBoard
+            key={boardGeneration}
             vocabulary={vocabulary}
             spec={boardBaseSpec}
             onSpec={changeSpec}
@@ -921,7 +938,7 @@ export function DesignedApp({
             refinementFallbackKeys={refinementFallbackKeys}
             onCanvasAxes={setCanvasAxes}
             onTemplate={setActiveTemplateId}
-            answer={decision ? <>
+            answer={decision ? <AnswerBoundary resetKey={decision} onReset={resetBoard}>
               <Field
                 decision={decision}
                 spec={shownSpec}
@@ -945,7 +962,7 @@ export function DesignedApp({
               {hostedDecision && <section className="answer-feedback" aria-label="Was this answer reliable?">
                 <FeedbackForm key={hostedDecision.decision_id} compact question="Was this answer reliable?" decisionId={hostedDecision.decision_id} template={activeTemplateId} page="/decide/" />
               </section>}
-            </> : <section className="panel board-answer-loading" aria-live="polite">{humanGateEnabled ? "Choose your facets, then verify and look up this decision." : "The live answer will appear here."}</section>}
+            </AnswerBoundary> : <section className="panel board-answer-loading" aria-live="polite">{humanGateEnabled ? "Choose your facets, then verify and look up this decision." : "The live answer will appear here."}</section>}
           />}
           {error ? (
             <div role="alert" className="error">
@@ -989,7 +1006,7 @@ export function DesignedApp({
               </div>
             </div>
           ) : decision ? (
-            <>
+            <AnswerBoundary resetKey={decision} onReset={resetBoard}>
             <Coverage decision={decision} spec={shownSpec} onSpec={changeSpec} />
             <div className="results">
               {vocabulary && hostedDecision && shownCanvasAxes ? (
@@ -1061,7 +1078,7 @@ export function DesignedApp({
                 boardRanked={boardRanked}
               />
             </div>
-            </>
+            </AnswerBoundary>
           ) : null}
       </main>
       <footer className="site-footer" aria-label="About ModelSpec">

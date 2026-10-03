@@ -187,10 +187,10 @@ export function Why({
               {insep
                 .map(
                   (r) =>
-                    `${r.m.name}: ${fmtB(spec.bench, r.cap!)} ${fmtCI(spec.bench, r.capR!)}`,
+                    `${r.m.name}: ${fmtB(spec.bench, r.cap)} ${r.capR ? fmtCI(spec.bench, r.capR) : "no interval"}`,
                 )
                 .join("; ")}{" "}
-              vs {m.name}: {fmtB(spec.bench, row.cap!)}{" "}
+              vs {m.name}: {fmtB(spec.bench, row.cap)}{" "}
               {row.capR && fmtCI(spec.bench, row.capR)}. The order between them is
               decided by cost and speed.
             </>
