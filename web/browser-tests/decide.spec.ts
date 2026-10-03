@@ -74,8 +74,14 @@ test("the board fits a 390px viewport in light and dark mode", async ({ page }) 
 for (const width of [1440, 1024, 390, 320]) {
   test(`a template puts the canvas beside or below facets and the full-width table underneath at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: width >= 1024 ? 900 : 844 });
+    // The gated build re-renders the board when /v1/human-status answers; apply
+    // the template only after that, or the template can be applied and reset.
+    const status = process.env.VITE_HUMAN_GATE_ENABLED === "true"
+      ? page.waitForResponse((response) => response.url().includes("/v1/human-status"))
+      : null;
     // Old table-first links load the same fixed composition.
     await page.goto("/decide.html?layout=table");
+    if (status) await status;
     await expect(page.getByRole("group", { name: "Layout" })).toHaveCount(0);
     await page.getByRole("button", { name: /Start from a template/ }).click();
     await page.locator(".board-templates button").nth(1).click();
@@ -92,7 +98,7 @@ for (const width of [1440, 1024, 390, 320]) {
       page.locator(".why-panel"),
     ]) await expect(region).toBeVisible();
 
-    const [facets, chart, answers, table, workspace, details] = await Promise.all([
+    const measure = () => Promise.all([
       page.getByRole("region", { name: "Facets", exact: true }).boundingBox(),
       canvas.boundingBox(),
       page.locator(".board-answer").boundingBox(),
@@ -100,6 +106,9 @@ for (const width of [1440, 1024, 390, 320]) {
       page.locator(".board-workspace").boundingBox(),
       page.locator(".why-panel").boundingBox(),
     ]);
+    // A live update can briefly remount a region; read the boxes once all exist.
+    await expect.poll(async () => (await measure()).every(Boolean)).toBe(true);
+    const [facets, chart, answers, table, workspace, details] = await measure();
     if (!facets || !chart || !answers || !table || !workspace || !details) {
       throw new Error("the applied template did not render all layout regions");
     }
