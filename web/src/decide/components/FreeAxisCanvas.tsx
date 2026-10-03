@@ -177,7 +177,6 @@ export function FreeAxisCanvas({
   selections,
   selected,
   onSelect,
-  compact,
 }: {
   decision: AdapterDecision;
   rankingDecision: Decision;
@@ -189,7 +188,6 @@ export function FreeAxisCanvas({
   selections: BoardSelections;
   selected: string | null;
   onSelect: (id: string) => void;
-  compact: boolean;
 }) {
   const options = useMemo(() => canvasAxisOptions(vocabulary), [vocabulary]);
   const byId = useMemo(
@@ -232,7 +230,7 @@ export function FreeAxisCanvas({
   );
   const xMust = mustValue(xAxis, selections);
   const yMust = mustValue(yAxis, selections);
-  const height = compact ? 300 : 460;
+  const height = 460;
   const frontier = frontierIds(points, xAxis, yAxis);
   const winner = decision.explanation.shortlist.top?.m.id;
   const nearMisses = new Set(

@@ -349,7 +349,6 @@ it("draws capability intervals on either axis and leaves no-data models at the m
       selections={{}}
       selected={null}
       onSelect={vi.fn()}
-      compact={false}
     />,
   );
 
@@ -430,7 +429,6 @@ it("renders a date against a capability without optimizing the date", () => {
       selections={{}}
       selected={null}
       onSelect={vi.fn()}
-      compact={false}
     />,
   );
 

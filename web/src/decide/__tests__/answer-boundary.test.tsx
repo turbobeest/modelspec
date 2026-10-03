@@ -87,7 +87,7 @@ it("keeps the facets usable when the narrowing answer throws", async () => {
 
   expect(failure()).toHaveLength(1);
   expect(screen.getByRole("region", { name: "Facets" })).toHaveTextContent("1 set");
-  // The canvas, table and Why below the narrowing still render.
+  // The table and Why below the board still render (the canvas sits inside the narrowing since #549).
   expect(screen.getByRole("region", { name: "Why this model" })).toBeInTheDocument();
 
   broken.rankedAnswer = false;
