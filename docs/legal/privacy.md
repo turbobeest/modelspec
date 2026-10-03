@@ -17,7 +17,9 @@ takes one. The feedback endpoint has an optional free-text note, and asks you no
 to put a prompt, a key or personal details in it. We do not proxy your model
 calls, so the content of your inference never reaches us. The decision API keeps
 nothing from the content of a request: it reads your request, computes an answer,
-returns it and forgets it. The separate release-signal automation described below
+returns it and forgets it. The one exception is the decide page's visit gate,
+which keeps hashed digests of each page question until the next UTC midnight,
+as described below. The separate release-signal automation described below
 stores authenticated public release notices while it processes them. Feedback you
 choose to send about an answer is described below; storing it is not yet switched
 on. If you use an API key or buy credits, we keep a hash of the key
@@ -94,11 +96,13 @@ only for the feedback limits described under *The feedback store*.
 **Nothing from the content of a rank, decide, compare or policy-check request.**
 Those endpoints compute each answer from your request, return it and forget the
 request: no body, no field of it and no answer is written anywhere. The
-release-signal intake is the deliberately narrow exception described below, and
-feedback, once its storage is switched on, is the other.
+release-signal intake is the deliberately narrow exception described below;
+feedback, once its storage is switched on, is another; and the visit gate on the
+decide page keeps hashed digests of each page question for the day, described
+under *The visit gate on the decide page*.
 
-The Worker binds two KV namespaces (`api/worker/wrangler.jsonc`) and one
-Durable Object, each described below. `DETERMINATIONS` holds **our own
+The Worker binds two KV namespaces (`api/worker/wrangler.jsonc`) and two
+Durable Objects (`CREDITS` and `HUMAN_GATE`), each described below. `DETERMINATIONS` holds **our own
 research** — the licence and data-residency determinations the paid tier
 serves — and the Worker only ever reads from it. There is no code path that
 writes to it. No D1 database, R2 bucket, queue or analytics dataset is bound.
@@ -280,42 +284,69 @@ policy stops a browser from loading it (`api/worker/src/billing_page.py`).
 
 ### The visit gate on the decide page
 
-`VISIT_GATE_ENABLED` is on in production. A managed Cloudflare Turnstile check
-runs on the first request of a visit. The browser and network signals,
-Cloudflare roles and Siteverify checks are those described for the human gate
-under *Not yet live*; we omit the optional `remoteip` parameter and do not
-enable pre-clearance. Most people pass in the background. If interaction is
-required, the challenge appears beside the answer.
+`VISIT_GATE_ENABLED` is on in production. It lets people use the decide page
+without a key while separating them from automated access.
 
-After successful verification, the Worker issues a visit token signed with
-HMAC-SHA256 under a separate secret, `VISIT_TOKEN_HMAC_KEY`. It binds the
-daily visitor id, exact page origin, the time of the original verification,
-issued-at and expiry. The visitor id comes from the same keyed daily IP
-identity described for the human gate, with IPv6 reduced to its /64 network.
-A token cannot be used from another visitor id or origin. The page keeps it
-only in memory and sets no cookie for it. The token has a 30-minute sliding
-window: each admitted decide or vocabulary request renews it for 30 minutes,
-but never beyond four hours from the original verification. After an idle
-expiry, or at four hours, the page runs another managed check and retries
-once. UTC-day identity rotation invalidates the previous day's token.
-ModelSpec application code neither logs nor persists the Turnstile or visit
-token in server storage.
+**Verification.** On the first request of a visit, the page runs a Cloudflare
+Turnstile check that is shown only if interaction is required; most people pass
+in the background, and when interaction is needed the challenge appears beside
+the answer. Your browser loads a Cloudflare script and challenge frame and
+connects to `challenges.cloudflare.com`. Cloudflare processes browser and
+network signals, including your IP address, TLS fingerprint, User-Agent, the
+site key and the origin. Cloudflare acts as our processor for protecting the
+site and as a controller for improving Turnstile's bot detection; see its
+[Turnstile Privacy Addendum](https://www.cloudflare.com/turnstile-privacy-policy/).
+We receive a challenge token and send it, with our secret, to Cloudflare's
+Siteverify service, checking that it succeeded and matches our hostname and the
+`decide` action. We omit the optional `remoteip` parameter and do not enable
+Turnstile pre-clearance.
 
-A separate visit meter in the existing daily HumanGate Durable Object admits
-at most 300 questions per UTC day and 30 in a rolling minute. A separate
-vocabulary meter permits 60 vocabulary lookups per UTC day and 10 in a rolling
+**The visit token.** After successful verification, the Worker issues a visit
+token signed with HMAC-SHA256 under a separate secret, `VISIT_TOKEN_HMAC_KEY`
+(`api/worker/src/visit_token.py`). It binds the daily visitor id, exact page
+origin, the time of the original verification, issued-at and expiry. The daily
+visitor id is `HMAC-SHA256(VISITOR_HMAC_KEY, IP | UTC day)`, derived from
+`CF-Connecting-IP` with an IPv6 address first reduced to its /64 network; no raw
+IP and no bare hash of one is stored. A token cannot be used from another
+visitor id or origin. The page keeps it only in memory and sets no cookie for
+it (`web/src/decide/adapter/visit.ts`). The token has a 30-minute sliding
+window: each admitted decide or vocabulary request renews it for 30 minutes, but
+never beyond four hours from the original verification. After an idle expiry,
+or at four hours, the page runs another check and retries once. UTC-day identity
+rotation invalidates the previous day's token. ModelSpec application code
+neither logs nor persists the Turnstile or visit token. The visit token travels
+in request and response headers, which Cloudflare's Workers observability may
+record in its invocation logs, described under *What Cloudflare records*.
+
+**What the gate stores.** A Cloudflare Durable Object (`HUMAN_GATE`) keeps, for
+each daily visitor id, a visit meter: the count of questions admitted that day,
+the day, the times of recent admissions and, if triggered, a suspicion expiry.
+It admits at most 300 questions per UTC day and 30 in a rolling minute, and five
+admissions at nearly equal intervals are refused for ten minutes as
+automated-looking. A separate vocabulary meter keeps its day, count and recent
+request times and permits 60 vocabulary lookups per UTC day and 10 in a rolling
 minute. These numbers are operator configuration and may be changed only
-alongside this disclosure. The intent ids, Spec-derived fingerprints,
-admission times, request counts and suspicion expiry have the same purpose,
-storage rules and retention as described for the human gate, except that the
-visit meter keeps an intent only for its 60-second continuation window. One
-facet action is one question, including its permitted presentation requests;
-an admitted question consumes allowance even if its answer fails. Verification
-and token renewal do not reset these allowances. The existing even-interval
-sweep detection still applies. Daily state is scheduled for deletion at the
-following UTC midnight, subject to delayed alarms and Cloudflare's SQLite
-point-in-time recovery retention of up to 30 days. Shared IPs or IPv6 /64
-networks share allowances. API keys take precedence over visit tokens.
+alongside this disclosure. For each admitted page action the object also keeps
+the random intent id the page sends in `x-modelspec-intent`, the admission's
+first-request time, request count and recent request times, and SHA-256 digests
+of the question computed from the canonical decision spec: its fixed fields,
+individual conditions, objective, capabilities and estate, with flags for
+whether the estate is absent, permits a comparison, or the question is a plot.
+These recognise follow-up requests for the same question and are not used for
+another purpose. These hashes are not encryption: someone who can guess the
+question can compute matching digests. No raw spec, token or raw IP is stored
+(`api/worker/src/human_gate.py`, `human_gate_do.py`, `human_question.py`). One
+facet action is one question, including its permitted presentation requests; an
+admitted question consumes allowance even if its answer fails, and verification
+and token renewal do not reset the allowances. After 60 seconds an intent can no
+longer be continued; it is dropped from storage on the visitor's next question,
+and in any case with the day's state. All of it is scheduled for deletion at the
+following UTC midnight; a delayed or retried alarm can delay the physical
+deletion, and Cloudflare's point-in-time recovery for SQLite-backed storage can
+retain earlier states for up to 30 days. Shared IPs or IPv6 /64 networks share
+allowances. API keys take precedence over visit tokens. While access enforcement
+(`ACCESS_ENFORCED`) is off, a request with no visit token is answered without
+these meters, so the gate meters the decide page rather than every caller.
 
 ## What Stripe holds
 
@@ -361,7 +392,8 @@ redirects to it.
 - The **decide page** (`/decide/`) answers by sending the board's current spec
   to `POST /v1/decide`, described above, whenever it needs an answer, including
   when it first loads (`web/src/decide/adapter/hosted.ts`). That endpoint keeps
-  nothing of it. The board itself, including the estate below, is kept in the
+  nothing of it beyond the visit gate's daily digests, described under *The visit
+  gate on the decide page*. The board itself, including the estate below, is kept in the
   page address after the `#`, which your browser does not send to any server; a
   link you copy or share from the page carries it.
 - **Your browser keeps three things for the decide page**, in its
@@ -378,9 +410,11 @@ redirects to it.
 - The **Feedback** button, on every page, and the "Was this answer reliable?"
   prompt on the decide page send what you enter to `/v1/feedback` only when you
   press Send. They set no cookie and store nothing in your browser.
-- **One third-party request:** each page loads Cloudflare's analytics script,
-  above, from `static.cloudflareinsights.com`, and pages load nothing else from
-  a third party. Web fonts and the graph explorer's libraries are served from
+- **Third-party requests:** each page loads Cloudflare's analytics script,
+  above, from `static.cloudflareinsights.com`. The decide page also loads
+  Cloudflare's Turnstile script and challenge frame from
+  `challenges.cloudflare.com`, for the visit gate described under *What we
+  store*, and pages load nothing else from a third party. Web fonts and the graph explorer's libraries are served from
   our own origin rather than a CDN.
 
 ### Cloudflare Web Analytics
@@ -466,7 +500,8 @@ nothing below is read as describing the service today:
 - **The human gate on the decide page (Cloudflare Turnstile).** Built, and
   **not yet enabled**: it ships off (`HUMAN_GATE_ENABLED`) in production, and
   this describes what would happen once it is switched on. Until
-  then no Turnstile challenge is loaded and nothing below happens.
+  then nothing below happens in this manual mode. The separate visit gate,
+  which is on, is described under *What we store*.
   When on, the first request for a manual action from the decide page must
   carry a fresh Cloudflare Turnstile token, which distinguishes people from
   automated access. Follow-up requests use that verified admission.
@@ -536,8 +571,11 @@ nothing below is read as describing the service today:
 
 ## Your requests about your data
 
-Without a key, the service holds nothing that identifies you, so there is
-generally nothing to access, correct, export or delete. With a purchased key, we
+Without a key, the service holds nothing that names you. The decide page's
+visit gate keeps a day's counts and question digests under a keyed daily id
+derived from your IP address; it is deleted at the following UTC midnight, and we
+cannot find it without your IP address and the day. So there is generally
+nothing to access, correct, export or delete. With a purchased key, we
 hold the records described above, linked to your Stripe customer id. To ask
 what we hold about you, or to have it corrected or deleted, write to
 **sales@modelspec.dev**. Never send us your API key.
@@ -551,9 +589,12 @@ A change to what the service records is a change to this statement, and it is
 published here before the change ships. The version above is the one in force.
 
 - **1.9, 2026-10-03.** Enabled the visit gate on the decide page (MODEL-292)
-  and disclosed it under *What we store*: its signed credential, what it
-  binds, its 30-minute sliding window and four-hour maximum, and the
-  configurable human allowances.
+  and disclosed it under *What we store*: the Turnstile check it loads, its
+  signed visit token (what it binds, its 30-minute sliding window and four-hour
+  maximum), its visit and vocabulary meters and question digests, and when they
+  are deleted. Updated the short version, *What we store*, the websites'
+  third-party requests and *Your requests about your data* to match, and noted
+  under *Not yet live* that the manual gate remains off.
 - **1.8, 2026-10-02.** Switched the human gate off again in production and
   moved its disclosure back to *Not yet live*, with its wording as in 1.6.
   Nothing it would store changed; while it is off it stores nothing.
