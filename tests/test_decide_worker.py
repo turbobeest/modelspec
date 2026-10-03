@@ -408,6 +408,24 @@ def test_recovery_work_and_size_are_bounded_for_2000_unknown_facets(
     assert len(json.dumps(error["recovery"]).encode()) < 8 * 1024
 
 
+def test_one_invalid_spec_refusal_carries_bounded_recovery_and_reading(service, snapshot):
+    payload = _payload() | {"where": [{"known": f"bad_{i}"} for i in range(7)]}
+    status, body = service.decide(payload, snapshot)
+    assert status == 400
+    assert body["contract_version"] == CONTRACT_VERSION
+    error = body["error"]
+    assert error["code"] == "invalid_spec"
+    assert len(error["issues"]) == 7
+    assert [hint["path"] for hint in error["recovery"]] == [f"where[{i}]" for i in range(5)]
+    assert error["recovery_omitted"] == 2
+    assert "reading" not in error
+    reading = body["reading"]
+    assert reading["not_applied"] == [f"bad_{i}" for i in range(7)]
+    assert reading["do_not_claim"] == [
+        "Do not claim rejected requirements were checked, including after retry."]
+    assert len(json.dumps(reading, separators=(",", ":")).encode()) <= 600
+
+
 @pytest.mark.parametrize("length,searches", [(64, 1), (65, 0), (2000, 0)])
 @pytest.mark.parametrize("unknown", [True, False], ids=["unknown-facet", "invalid-field"])
 def test_recovery_skips_nearest_search_for_long_ids_and_bounds_echoes(length, searches, unknown):
@@ -558,7 +576,7 @@ def test_a_refinement_weight_the_snapshot_cannot_rank_is_an_invalid_spec(
     status, body = service.decide(payload, snapshot)
 
     assert status == 400
-    assert body["contract_version"] == "2.12"
+    assert body["contract_version"] == CONTRACT_VERSION
     assert body["error"]["code"] == "invalid_spec"
     [issue] = body["error"]["issues"]
     assert issue["field"] == "software_engineering/python"

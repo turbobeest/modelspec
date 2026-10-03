@@ -1318,7 +1318,11 @@ that used to be accepted is a major change; accepting more is not.
   from the engine's answers, unapplied requirements, estimates and objective.
   Refusals may also carry guidance for rejected fields. Empty lists are
   omitted and the block is capped at 600 UTF-8 bytes with explicit omission
-  counts. Additive: no existing field changes.
+  counts. Additive: no existing field changes. An `invalid_spec` refusal
+  carries both `error.recovery` (at most five registry-backed hints, with
+  `error.recovery_omitted` counting the issues left without one) and the
+  top-level `reading`. `error.recovery` (MODEL-285, #547/#551) first shipped
+  under 2.11 without a version bump; 2.12 records it here.
 - **2.11 — MODEL-228:** A comparison takes `facet >= best(m)`, compact `best(1.0)` or YAML
   `value: { best: 1.0 }`: within `m` of the highest value among the models that
   pass every other hard condition. Such a condition runs after the others and
