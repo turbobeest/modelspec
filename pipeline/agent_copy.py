@@ -66,8 +66,9 @@ BOUNDED_MCP = (
 BOUNDED_MCP_DETAIL = (
     'With explain unset or "none" it sends explain=none, limit=10 and row fields model_rank, '
     "cost_per_task, estimates and p_best, and the body says representation: bounded. The answer, "
-    "reading, warnings and ties stay complete; explanation.omitted counts what was left out, "
-    "including screened-out models, which are counted, not listed. To see one model's evidence, "
+    "reading, warnings and ties stay complete; explanation.omitted counts the sections left out. "
+    "At explain=none eliminations are not computed, so a missing eliminated count does not mean "
+    "nothing was screened out; ask explain=summary to count them. To see one model's evidence, "
     "status, rank and elimination reasons, resend the same spec with its returned snapshot and "
     "evidence_for: <model id>; that stateless call stays within 2k estimated tokens. "
     "For full rows pass fields: null, or set explain to summary or full, which return full rows "
@@ -150,9 +151,11 @@ and row `fields` of `model_rank`, `cost_per_task`, `estimates` and `p_best`.
 The body says `representation: bounded`, `bounded_version: 1.0` and the
 complete contract it projects in `projects_contract`; it has no
 `contract_version`. The answer, reading, warnings and ties stay complete.
-`explanation.omitted` counts what was left out, including screened-out models,
-which are counted there, not listed. An omission is not an elimination or an
-absent fact.
+`explanation.omitted` counts the sections left out. At `explain: none`
+eliminations are not computed, so a missing eliminated count does not mean
+nothing was screened out; request `explain: summary` to count them, or
+`evidence_for` for one model's elimination reasons. An omission is not an
+elimination or an absent fact.
 
 To see one model's evidence, status, rank or elimination reasons, resend the
 same Spec with its returned `snapshot` plus `"evidence_for": "<lab/model>"`.

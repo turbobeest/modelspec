@@ -754,6 +754,7 @@ def test_vendor_copies_the_shared_decision_engine_and_registry(tmp_path: Path) -
 
     required = {
         Path("api/classes.py"),
+        Path("decision/bounded.py"),
         Path("decision/capability.py"),
         Path("decision/contract.py"),
         Path("decision/engine.py"),
