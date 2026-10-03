@@ -423,6 +423,8 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
         envelope.body = vocabularyResponse(selected, args);
       }
       const result = asToolResult(envelope);
+      // A failed lookup gets no "call decide next" hint: the agent should fix the lookup first.
+      if (result.isError) return result;
       return {
         ...result,
         content: [...result.content, { type: "text" as const, text:
