@@ -157,3 +157,181 @@ Zod field stripping. The MCP arm uses the captured input schemas and stripping
 rules. Both arms use the existing HTTP execution shim, not a live MCP transport.
 Reports record interface, control_full_spec and guide_version. Dry runs replay
 scripted turns and do not measure a live agent's reaction to either prompt arm.
+
+## Subscription CLI runner (MODEL-301)
+
+`qa.tui_harness` uses headless agent CLIs with subscription logins that Jamie
+creates in dedicated test homes. It shares the catalogue, compact guide, judge
+rubric, recall matching and aggregation with the API runner. Scenarios use the
+remote Streamable HTTP MCP at `https://api.modelspec.dev/mcp`. Each scenario and
+judge gets a fresh temporary workspace. Judges receive the rubric and tool
+evidence, with no ModelSpec connection or built-in tools.
+
+The harness never opens, copies or creates credentials. CLI processes handle
+login and token refresh themselves. Children receive a small environment
+allowlist, a dedicated `HOME`, dedicated XDG directories and the CLI's home
+override. Vendor API keys, agent customization variables and shell startup
+overrides are excluded. Claude must attest subscription authentication through
+init `apiKeySource`, accepting `none`, `subscription` or `oauth`. Missing or
+API-key sources refuse the result and revoke eligibility.
+
+Decision tools separately use the ModelSpec connection credential described in
+[`mcp/README.md`](../mcp/README.md). Native MCP configurations reference the
+configured `MODELSPEC_*` variable; its value never enters argv or a config file.
+All `MODELSPEC_*` environment values are redacted in reports. Without a ModelSpec
+credential, decision calls may return `missing_api_key`.
+
+### Home overrides and evidence, 2026-10-03
+
+No CLI is eligible by default. The earlier claim that Claude's hook canary
+passed is withdrawn. Its probes were in an ancestor directory that Claude did
+not search for project hooks or skills, and it had no positive control. That
+run did not prove hook or skill isolation. This follow-up used help commands
+with empty temporary homes, installed source/bundled docs and official docs.
+It made no signed-in CLI calls and opened no existing credential files.
+
+| CLI inspected | Dedicated home mechanism | macOS storage caveat |
+| --- | --- | --- |
+| Claude Code 2.1.283 | `HOME=<home>` and `CLAUDE_CONFIG_DIR=<home>/.claude` | The documented Keychain item is keyed to the config directory. A separate login is required. |
+| Codex 0.160.0 adapter from the original PR | `HOME=<home>` and `CODEX_HOME=<home>/.codex` | Codex supports file and OS credential-store modes. A home override alone does not establish whether a store item is shared. Shared subscription login is acceptable. |
+| Gemini CLI 0.60.0 | `HOME=<home>` and `GEMINI_CLI_HOME=<home>`; Gemini appends `.gemini` | Installed OAuth storage uses service `gemini-cli-oauth` and account `main-account`, so homes can share a Keychain login. File fallback follows the dedicated home. |
+| Grok Build 1.0.46 | `HOME=<home>` and `GROK_HOME=<home>/.grok` | Bundled authentication docs describe file storage in the relocated Grok home. No shared Keychain login was established for this version. |
+
+Sources: [Claude environment](https://code.claude.com/docs/en/env-vars) and
+[authentication](https://code.claude.com/docs/en/authentication),
+[Codex config/state locations](https://developers.openai.com/codex/config-advanced/)
+and [authentication/storage modes](https://developers.openai.com/codex/auth/),
+[Gemini home configuration](https://geminicli.com/docs/reference/configuration/),
+[Gemini enterprise isolation](https://geminicli.com/docs/cli/enterprise/),
+[Grok home/settings reference](https://docs.x.ai/build/settings/reference).
+Gemini 0.60's installed `bundle/chunk-M6NSK26M.js` contains `homedir()` at
+251981, `Storage.getGlobalGeminiDir()` at 253138 and
+`OAuthCredentialStorage` at 278715. Grok 1.0.46's binary embeds
+`02-authentication.md` and `12-project-rules.md`. These are source inspections,
+not observations of saved account data.
+
+`HOME` also contains secondary discovery paths, including Codex and Grok's
+`.agents` skills, Grok's Claude/Cursor compatibility paths and Gemini's `.env`
+lookup. The environment redirects those known roots. This source review does
+not claim to trace every filesystem read a signed-in CLI could make. Shared OS
+credential stores are permitted; the harness never queries them.
+
+Binaries resolve through `PATH` and `shutil.which`. `TUI_CLAUDE_BIN`,
+`TUI_CODEX_BIN`, `TUI_GEMINI_BIN` and `TUI_GROK_BIN` override that selection. Use a
+native CLI executable. The inspected local Gemini wrapper looks for npm under
+`$HOME/.nvm`, so it cannot start after `HOME` changes. Set `TUI_GEMINI_BIN` to the
+npm installation's `bin/gemini` or `bundle/gemini.js` and keep Node on `PATH`.
+There are no machine-specific binary paths in `qa/tui_config.yaml`.
+
+### Setup, manual login and doctor
+
+Each profile has `harness_home`, defaulting to
+`~/.modelspec-harness/<cli>/home`, and its native `config_dir` name. Setup
+requires an empty private directory. It creates only the native ModelSpec MCP
+configuration inside that home, plus a setup receipt beside it. Repeating setup
+preserves state created by the CLI. It never imports a real user's config or
+login. It prints an exact one-line command using the resolved binary, dedicated
+cwd and the same environment allowlist. Jamie runs that command himself.
+
+```sh
+python -m qa.tui_harness setup --cli codex
+# Run the printed login command yourself, then:
+python -m qa.tui_harness doctor --cli codex --out /tmp/tui-codex-doctor
+```
+
+The portable login forms below use the default directories. Setup prints the
+resolved absolute paths and allowlisted environment values for this machine.
+For Gemini, choose "Sign in with Google" in the interactive CLI, then exit.
+
+```sh
+cd ~/.modelspec-harness/claude/home && env -i PATH="$PATH" HOME="$PWD" CLAUDE_CONFIG_DIR="$PWD/.claude" claude auth login --claudeai
+cd ~/.modelspec-harness/codex/home && env -i PATH="$PATH" HOME="$PWD" CODEX_HOME="$PWD/.codex" codex login
+cd ~/.modelspec-harness/gemini/home && env -i PATH="$PATH" HOME="$PWD" GEMINI_CLI_HOME="$PWD" "$TUI_GEMINI_BIN"
+cd ~/.modelspec-harness/grok/home && env -i PATH="$PATH" HOME="$PWD" GROK_HOME="$PWD/.grok" grok login
+```
+
+Doctor runs four tiny probes: a relaxed positive control and an isolated run
+for cwd, then the same pair for the config home. It plants instructions,
+`SKILL.md`, a SessionStart hook and a harmless local stdio MCP server at native
+discovery locations. Claude uses `CLAUDE.md`, `.claude/skills`,
+`.claude/settings.json` and `.mcp.json` in cwd, and their config-directory
+counterparts. Its relaxed control explicitly supplies the planted `.mcp.json`,
+including the config-home copy, so that MCP discovery cannot be vacuous.
+Codex uses `AGENTS.md`, cwd `.agents/skills`, `CODEX_HOME/skills`, native
+`hooks.json` and MCP config tables. Gemini uses `GEMINI.md`, `.gemini/skills`
+and `.gemini/settings.json`. Grok uses `AGENTS.md`, `.grok/skills`,
+`.grok/hooks/*.json` and `.grok/config.toml`. Home-level counterparts live in
+each CLI's relocated config directory. Existing config files are temporarily
+renamed and restored without reading their contents. Doctor serializes writes
+to each home and removes its probes and side effects on exit.
+
+Every positive control must show the instruction marker in the answer, the
+skill in startup inventory, the hook's filesystem effect and the MCP process's
+filesystem effect. Every isolated run must answer exactly `OK`, expose all four
+inventory keys (`skills`, `plugins`, `mcp_servers`, `tools`) as lists, and show no
+canary marker, hook event, filesystem effect or unapproved customization. Missing
+keys, controls that do not fire, failed launches, limits and ambiguous evidence
+produce `unproven`, which counts as unsupported. Scenario starts also require a
+connected ModelSpec server. Hook events in stdout or stderr's init/system stream
+are violations. Invalid startup evidence revokes the receipt and stops further
+starts for that family.
+
+Claude retains its explicit exclusion flags and settings. Codex still hides
+skill instructions without proving discovery exclusion. Gemini 0.60's
+`gemini-LUNNHKPJ.js:11299` init contains only timestamp, session id and model;
+that stream cannot meet the mandatory inventory requirement. Its configured
+context filenames also retain default `GEMINI.md` discovery. Grok's home
+override does not establish exclusion of native hooks, plugins and rules. These
+limitations remain unsupported unless a later adapter and CLI actually pass
+doctor. No inventory fields are synthesized from configuration.
+
+A successful doctor receipt is bound to the resolved executable's build
+identity, profile, home, MCP settings and adapter source hashes. Ordinary runs
+reuse that result, so positive controls are paid only during doctor for a new
+CLI build or changed adapter/configuration, or an explicit repeat doctor.
+Missing, stale, incomplete or failed receipts refuse launch. YAML eligibility
+flags and `--force` cannot enable a CLI. `--verify-isolation --cli X` is retained
+as an alias for doctor. Doctor calls no ModelSpec scenario or judge; its local
+MCP probe is separate from the ModelSpec service.
+
+### Commands and reports
+
+Run and doctor require a private `--out` directory. The runner rejects this
+public checkout, other worktrees sharing its git directory, symlink aliases and
+symlink report files. Raw transcripts stay in memory. JSON contains final
+answers and ordered tool calls with deduplicated results; Markdown contains
+aggregates and statuses. Models, effort and judge routes live in
+`qa/tui_config.yaml`; `--judge claude=codex` overrides one cross-family route.
+
+```sh
+python -m qa.tui_harness --dry-run --scenario budget-approved --out /tmp/tui-preview
+python -m qa.tui_harness --smoke --max-runs-per-cli 1 --quiet-hours --out /tmp/tui-smoke
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest tests/test_tui_harness.py -q
+```
+
+Dry-run starts no CLI or network calls and reports unproven adapters without
+runnable commands. `--smoke` fixes the scenario to `budget-approved` and quota
+to one, and requires eligible selected CLIs and cross-family judges before any
+scenario starts. There are no eligible defaults until manual login and doctor.
+
+The runner is serial. `--max-runs-per-cli` counts scenario and judge starts
+together, including failed starts. Doctor's four control calls are separate and
+reported individually with status, timing, usage and exposed cost. A vendor
+usage-limit error stops that CLI for both roles and stops doctor immediately;
+other families can continue. Generic exit code 1 and ModelSpec rate limits do
+not establish a vendor subscription limit. There are no harness retries.
+`--quiet-hours` refuses new starts from 08:00 through 21:59 local; `--force`
+overrides only that guard. Dry-run can run at any time.
+
+Reports retain the API harness's aggregation and evidence shape and add
+`isolation`, `cli_invocations`, `stopped_clis` and `per_cli`. Missing measurements
+are null. Tool latency is not inferred from whole-run wall time. CLI token cost
+does not establish money charged. Missing judgements, unsupported, capped and
+skipped rows stay explicit in aggregate denominators.
+
+`qa/fixtures/tui-streams.json` contains synthetic protocol samples, with no live
+transcript or real scenario answer. Offline tests cover every credential read
+and copy entry point, reject credential-path literals in `qa/tui_*.py`, test
+positive controls and incomplete inventories, preserve configuration without
+reads, reject stale receipts, and exercise setup, doctor and a full `main` run
+with faked launches. They do not certify a signed-in vendor session.

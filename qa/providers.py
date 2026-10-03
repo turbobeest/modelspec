@@ -5,9 +5,9 @@ from __future__ import annotations
 import json
 import os
 import re
+from dataclasses import dataclass, field
 from random import uniform
 from time import sleep
-from dataclasses import dataclass, field
 from typing import Any
 
 import httpx
@@ -33,10 +33,15 @@ class ProviderError(Exception):
 
 
 def redact(text: str) -> str:
-    for name in (*KEY_ENV.values(), "MODELSPEC_API_KEY"):
-        secret = os.environ.get(name)
-        if secret:
-            text = text.replace(secret, "[REDACTED]")
+    secrets = {
+        value
+        for name, value in os.environ.items()
+        if value and (name in KEY_ENV.values() or name.startswith("MODELSPEC_"))
+    }
+    for secret in sorted(secrets, key=len, reverse=True):
+        forms = {secret, json.dumps(secret)[1:-1], json.dumps(secret, ensure_ascii=False)[1:-1]}
+        for form in sorted(forms, key=len, reverse=True):
+            text = text.replace(form, "[REDACTED]")
     return re.sub(
         r"\b(?:(?:sk|rk|ghp|gho|ghs|ghu|github_pat|xox[abpr]|hf|glpat|msk)[-_]"
         r"[A-Za-z0-9_-]{8,}|AIza[A-Za-z0-9_-]{8,}|ya29\.[A-Za-z0-9_.-]{10,}"
@@ -45,6 +50,19 @@ def redact(text: str) -> str:
         text,
         flags=re.I,
     )
+
+
+def redact_structure(value):
+    if isinstance(value, str):
+        return redact(value)
+    if isinstance(value, dict):
+        return {
+            redact(key) if isinstance(key, str) else key: redact_structure(item)
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [redact_structure(item) for item in value]
+    return value
 
 
 MAX_RETRY_DELAY_S = 65.0
