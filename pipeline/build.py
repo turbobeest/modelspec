@@ -73,6 +73,7 @@ def llms_txt(*, site: str, base: str, build: exporter.Build) -> str:
         f"- Decide (for people): {base}/decide/\n"
         f"- How it decides: {base}/method/\n"
         f"- Pricing: {base}/pricing/\n"
+        f"- Brand and press kit: {base}/brand/\n"
         f"- Ranking policy, keyless: {base}/api/rank/profiles.json\n"
         f"- Legacy v1 rank API: {RANK_API}\n"
         f"- API docs: {API_DOCS}\n"
@@ -660,6 +661,10 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
     from pipeline import feedback_page
     feedback_counts = feedback_page.write(ms, root)
     ms_paths.extend(feedback_counts["sitemap_paths"])
+    # MODEL-299. The press and brand kit: the package files, served unchanged.
+    from pipeline import brand_page
+    brand_counts = brand_page.write(ms)
+    ms_paths.extend(brand_counts["sitemap_paths"])
 
     (ms / "sitemap.xml").write_text(
         r.sitemap("https://modelspec.dev", ms_paths, today), encoding="utf-8")
@@ -704,6 +709,7 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
         "modelspec_urls": len(ms_paths),
         "agent_ready": agent_counts,
         "feedback": feedback_counts,
+        "brand": brand_counts,
     }
     print(json.dumps(summary, indent=1))
     return 0
