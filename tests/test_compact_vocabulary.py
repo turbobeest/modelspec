@@ -129,7 +129,7 @@ def test_http_keeps_the_page_bytes_and_handles_optional_queries(monkeypatch, dis
         assert fetch("?section=facets&search=CONTEXT").json()["facets"] == lookup(display, section="facets", search="CONTEXT")["facets"]
         selected = fetch("?section=facets&id=model.context_window&ids=model.class,missing&ids=model.class").json()["facets"]
         assert {row["id"] for row in selected} == {"model.context_window", "model.class"}
-        assert fetch("?section=starter", "HEAD").body == ""
+        assert fetch("?section=starter", "HEAD").body is None
         assert set(fetch("?section=starter").json()) == {"starter", "facets", "domains", "templates", "models", "estate"}
         for query in ("?section=bad", "?detail=bad", "?limit=0", "?limit=21", "?offset=-1", "?offset=1.5"):
             response = fetch(query)

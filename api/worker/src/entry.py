@@ -208,6 +208,8 @@ if globals().get("bundled_data") is not None:
     del _snapshot_bytes
     _vocabulary_bytes = bundled_data.read("/api/decision/vocabulary.json")
     if _vocabulary_bytes is not None:
+        # A malformed required vocabulary must fail deployment snapshot creation,
+        # rather than publish an isolate that cannot serve its bundled data.
         _bundled_vocabulary_text = _vocabulary_bytes.decode("utf-8")
         _bundled_vocabulary = json.loads(_bundled_vocabulary_text)
     del _vocabulary_bytes
@@ -249,12 +251,18 @@ async def _get_json(url: str):
 if globals().get("bundled_data") is not None:
     _rank_bytes = bundled_data.read(CANDIDATES_PATH)
     if _rank_bytes is not None:
+        # Malformed required candidates must fail deployment snapshot creation.
         _rank_export = json.loads(_rank_bytes)
-        _hardware_bytes = bundled_data.read(HARDWARE_PATH)
+        _hardware_bytes = None
+        try:
+            _hardware_bytes = bundled_data.read(HARDWARE_PATH)
+            _hardware = json.loads(_hardware_bytes) if _hardware_bytes else None
+        except Exception:  # noqa: BLE001 - optional, just as in _load_export
+            _hardware = None
         _cache.update(candidates=_rank_export,
-                      hardware=json.loads(_hardware_bytes) if _hardware_bytes else None,
+                      hardware=_hardware,
                       prepared=service.candidates_from_export(_rank_export))
-        del _rank_export, _hardware_bytes
+        del _rank_export, _hardware_bytes, _hardware
     del _rank_bytes
 
 
@@ -674,7 +682,10 @@ class Default(WorkerEntrypoint):
             # also freezes between I/O in production. Do not invent a duration.
             timing += ', startup;desc="runtime restore unobservable from Python"'
         headers["Server-Timing"] = f"{previous}, {timing}" if previous else timing
-        response = Response(response.body, status=response.status, headers=headers)
+        body = response.body
+        if str(request.method).upper() == "HEAD" or response.status in (204, 304):
+            body = None
+        response = Response(body, status=response.status, headers=headers)
         return _compress_response(request, response)
 
     async def _fetch(self, request):

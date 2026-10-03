@@ -536,12 +536,17 @@ between enabled and disabled builds at the same build identity.
 
 `api/worker/measure_memory.cjs` uses the Worker's pinned Pyodide 0.28.3 runtime.
 The real request loads the full signed corpus including its archive. The probe
-makes one real Worker decide call and one
-vocabulary call, and samples combined V8 heap and external memory and allocated
+makes real Worker decide and vocabulary calls, a rank call with `limit: 100`,
+and a policy-check call that populates the policy catalogue cache. It samples
+combined V8 heap and external memory and allocated
 WebAssembly memory. Snapshot verification hashes canonical JSON in 4 KiB chunks, avoiding two
 full-size temporary copies while preserving the wire format, content hash and
-signature checks. The Worker does not delete native libraries. The probe performs one explicit V8 garbage collection at the end, after one
-decide and one vocabulary call. Steady memory is the full allocated WebAssembly
+signature checks. The Worker does not delete native libraries. The probe
+transfers source buffers into MEMFS without a second copy and collects
+unreachable runtime/package setup allocations before sampling Worker imports.
+It performs no explicit V8 collection between imports and the four requests.
+One final collection measures retained memory with all caches populated.
+Steady memory is the full allocated WebAssembly
 memory plus live non-Wasm V8 heap/external memory after that collection, with
 the Wasm buffer counted once. Enabled private deploys fail above 120 MiB steady
 memory, leaving 8 MiB below 128 MiB; a noisy peak above 112 MiB only warns.
@@ -554,11 +559,23 @@ intact. Deploy probes use private data.
 The schedule runs no job when the split is off. Pip/uv caches retain their
 original flag-off behavior and are disabled for private builds. MCP does not
 pass an empty data-split variable when the repository variable is unset.
-The active premier-sentinel probe measured 103.42 MiB steady
+The original two-route active premier-sentinel probe measured 103.42 MiB steady
 (108,441,889 bytes) and 108.81 MiB noisy peak (114,097,037 bytes), with
 59.875 MiB of allocated WebAssembly memory. These measurements are also
 recorded in the PR report. This is a local runtime
 probe, not Cloudflare isolate telemetry.
+
+MODEL-283's review follow-up exercised all four routes on a fresh signed public
+fixture. Three quiet runs measured 103.413 MiB steady at most and sampled peaks
+of 106.970, 104.121 and 106.948 MiB, with the same 59.875 MiB Wasm allocation.
+The original two-route probe on that identical bundle produced peaks of
+105.277, 115.574 and 117.120 MiB. Its earlier 116.81 MiB reading was 8.00 MiB
+above the documented 108.81 MiB baseline, while steady memory and Wasm remained
+stable. Transferring source buffers and collecting discarded harness setup
+allocations before Worker sampling reduces that transient V8 overhead. This
+revises setup allocation accounting; the lower peak is not evidence of reduced
+Cloudflare isolate memory. All four-route runs remain below the unchanged
+120 MiB steady and 112 MiB peak thresholds, with no intervening collections.
 
 Jamie enables the split in this order:
 
