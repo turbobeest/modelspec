@@ -11,7 +11,7 @@ const preview = "http://127.0.0.1:4173/decide.html";
 
 export default defineConfig({
   testDir: "./browser-tests",
-  testMatch: url ? /live\.spec\.ts$/ : /(?:corpus|decide)\.spec\.ts$/,
+  testMatch: url ? /live\.spec\.ts$/ : /(?:corpus|decide|billing-launch)\.spec\.ts$/,
   timeout: 30000,
   fullyParallel: true,
   workers: process.env.CI ? 4 : undefined,

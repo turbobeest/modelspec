@@ -19,6 +19,7 @@ from decision.snapshot import load_public_keys  # noqa: E402
 from pipeline import agent_ready as ar  # noqa: E402
 from pipeline import brand  # noqa: E402
 from pipeline import entity  # noqa: E402
+from pipeline import worker_flags  # noqa: E402
 from pipeline import build as builder  # noqa: E402
 from pipeline.export import Build  # noqa: E402
 from pipeline.load import Benchmark, Catalogue, Model  # noqa: E402
@@ -187,16 +188,38 @@ def test_auth_md_billing_copy_follows_the_flag() -> None:
     """Whether billing is live is `BILLING_ENABLED`'s to say, not the terms'.
     The adopted terms (MODEL-70) do not decide it; this copy follows the flag."""
     text = ar.auth_markdown(ROOT)
-    if ar._flag_off(ar.wrangler_vars(ROOT).get("BILLING_ENABLED")):
+    if not worker_flags.enabled(worker_flags.production_vars(ROOT), "BILLING_ENABLED"):
         assert "Billing is not live" in text
     else:
         assert "Billing is enabled" in text
         assert "Billing is not live" not in text
+        assert "Stripe hosts Checkout" in text
+        assert "claim your API key at the Checkout success link" in text
+        assert "503 billing_not_enabled" not in text
     assert "test_" in text
     assert "No key is required for the hosted API" in text
     assert ar.RANK_API.split("/v1")[0] in text or "api.modelspec.dev" in text
     assert text.index("`POST /v1/decide`") < text.index("`POST /v1/rank`")
     assert "`POST /v1/rank` (legacy v1)" in text
+
+
+@pytest.mark.parametrize("billing_live", [False, True])
+def test_auth_copy_uses_production_flags_instead_of_staging(tmp_path: Path, billing_live: bool) -> None:
+    config = tmp_path / "api/worker/wrangler.jsonc"
+    config.parent.mkdir(parents=True)
+    config.write_text(json.dumps({
+        "vars": {"BILLING_ENABLED": str(billing_live).lower(),
+                 "ACCESS_ENFORCED": "false", "X402_ENABLED": "false"},
+        "env": {"staging": {"vars": {
+            "BILLING_ENABLED": str(not billing_live).lower(),
+            "ACCESS_ENFORCED": "true", "X402_ENABLED": "true",
+        }}},
+    }))
+    text = ar.auth_markdown(tmp_path)
+    assert ("Billing is enabled" in text) is billing_live
+    assert ("503 billing_not_enabled" in text) is not billing_live
+    assert "No key is required for the hosted API" in text
+    assert "x402 prepaid credits are not live" in text
 
 
 
@@ -311,13 +334,19 @@ def test_built_auth_mcp_and_skills_are_modelspec_only(dist: Path) -> None:
     ms = dist / "modelspec"
     bg = dist / "benchgraph"
     auth = (ms / "auth.md").read_text(encoding="utf-8")
-    if ar._flag_off(ar.wrangler_vars(ROOT).get("BILLING_ENABLED")):
+    if not worker_flags.enabled(worker_flags.production_vars(ROOT), "BILLING_ENABLED"):
         assert "Billing is not live" in auth
         assert "503 billing_not_enabled" in auth
         assert "keeps its credits" in auth
     else:
         assert "Billing is enabled" in auth
         assert "Billing is not live" not in auth
+        assert "https://modelspec.dev/pricing/" in auth
+        assert "Stripe hosts Checkout" in auth
+        assert "claim your API key at the Checkout success link" in auth
+        assert "503 billing_not_enabled" not in auth
+    assert "## Billing and payments" in auth
+    assert "No key is required for the hosted API" in auth
     assert "test_" in auth
     card = json.loads((ms / ".well-known" / "mcp.json").read_text(encoding="utf-8"))
     assert card["remotes"][0]["url"] == ar.MCP_ENDPOINT

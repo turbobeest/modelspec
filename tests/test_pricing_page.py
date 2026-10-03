@@ -208,19 +208,26 @@ def test_endpoints_contact_and_no_third_party_assets() -> None:
 
 def test_production_switches_generate_what_ships_today(tmp_path: Path) -> None:
     variables = worker_flags.production_vars(REPO_ROOT)
-    assert worker_flags.enabled(variables, "BILLING_ENABLED") is False
+    assert worker_flags.enabled(variables, "BILLING_ENABLED") is True
     assert worker_flags.enabled(variables, "X402_ENABLED") is False
     assert worker_flags.enabled(variables, "X402_MAINNET") is False
     assert worker_flags.enabled(variables, "ACCESS_ENFORCED") is False
     pricing.write(tmp_path, REPO_ROOT, _build())
     html = (tmp_path / "pricing" / "index.html").read_text()
-    assert "<form" not in html
+    prices = json.loads(TIERS_PATH.read_text())["billing"]["prices"]
+    for price_id, row in prices.items():
+        assert f'name="price_id" value="{price_id}"' in html
+        assert f"{row['credits']:,}" in html
+        assert f"${row['usd']}" in html
+    assert html.count('<form method="post"') == len(prices)
     assert "x402" not in html.lower()
     assert "Or let your agents pay as they go" not in html
-    assert "Plans and packs" in html
-    assert "Purchase" not in html
+    assert "Buy credits for your agents" in html
+    assert "Purchase" in html
     assert "Keyless API calls are still answered" in html
-    assert re.search(r"\b(buy|checkout|card|cancel(?:ling)?)\b", _rendered_text(html), re.I) is None
+    assert "Checkout is hosted by Stripe" in html
+    assert "access enforcement is off" in html
+    assert "paid access is being switched on" not in html
     assert _payload(html)["payPerCall"] is False
     assert "perCall" not in _payload(html)
     assert "coming soon" not in html.lower()

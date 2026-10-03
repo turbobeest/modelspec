@@ -98,13 +98,16 @@
     // MODEL-248. Jamie enables only after both secrets and the Pages site key exist.
     "HUMAN_GATE_ENABLED": "false",
     // MODEL-73. Hosted Stripe Checkout and the webhook that records the entitlement.
-    // OFF since 2026-09-24 (holding mode, docs/handoff/holding-mode.md): the
-    // flag closes Checkout only. The webhook, claim and rotate still serve
+    // MODEL-96 draft: reopen Checkout after Jamie's live-payment checklist.
+    // ACCESS_ENFORCED stays off: with the human gate and x402 off, enforcing
+    // access would reject the keyless decide page. This alone does not require
+    // payment for machine decisions. The flag gates Checkout only.
+    // The webhook, claim and rotate still serve
     // purchases already paid for, so refunds and chargebacks still apply and
     // existing keys keep their credits. Secrets (STRIPE_SECRET_KEY,
     // STRIPE_WEBHOOK_SECRET) are Wrangler secrets, never in this file. See
     // docs/billing.md.
-    "BILLING_ENABLED": "false",
+    "BILLING_ENABLED": "true",
     // MODEL-241. Keyless browser visitors are metered under
     // HMAC-SHA256(VISITOR_HMAC_KEY, IP | UTC day), from src/visitor.py. The key
     // is a Wrangler secret, set per environment, never in this file:

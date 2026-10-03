@@ -249,8 +249,13 @@ and does not reload again.
 ## Access and browser calls
 
 The endpoint runs through the same `access.gate` and x402 wrapper as
-`POST /v1/rank`. `ACCESS_ENFORCED`, `BILLING_ENABLED`, and `X402_ENABLED` remain
-off in `wrangler.jsonc`. A sandbox key is refused because there is no synthetic
+`POST /v1/rank`. The MODEL-96 draft enables `BILLING_ENABLED` for Checkout;
+`ACCESS_ENFORCED` and `X402_ENABLED` remain off in `wrangler.jsonc`.
+With the human gate and x402 off, enabling access enforcement would reject the
+keyless decide page. With the human gate on, verified manual admission returns
+before the access gate. Jamie must choose and deploy that access boundary
+before completing the paid machine-access launch.
+A sandbox key is refused because there is no synthetic
 signed Snapshot.
 
 Browser access is allowed only from `https://modelspec.dev`,
