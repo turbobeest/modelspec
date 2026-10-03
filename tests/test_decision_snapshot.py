@@ -878,9 +878,9 @@ def test_ids_where_on_numbers_windows_enums_and_sets(tmp_path):
     assert _ids(index, ge.passing) == {"lab/alpha", "lab-api/lab/alpha/global/standard"}
     window = index.ids_where("model.context_window", "between", (30000, 40000))
     assert _ids(index, window.passing) == {"lab/beta", "lab-api/lab/beta/global/standard"}
-    eq = index.ids_where("model.weights_openness", "=", "closed_weights")
+    eq = index.ids_where("model.weights_openness", "=", "open_weights")
     assert len(_ids(index, eq.passing)) == 4 and eq.failing == 0
-    ne = index.ids_where("model.weights_openness", "in", ["open_weights"])
+    ne = index.ids_where("model.weights_openness", "in", ["closed_weights"])
     assert ne.passing == 0 and len(_ids(index, ne.failing)) == 4
     has_image = index.ids_where("model.input_modalities", "contains", "image")
     assert len(_ids(index, has_image.passing)) == 4
@@ -1223,3 +1223,14 @@ def test_signed_noncanonical_json_remains_loadable(tmp_path, layout):
         raw = " " + raw
     path.write_bytes(gzip.compress(raw.encode()))
     assert load(path, key=KEY).signature_verified
+
+
+@pytest.mark.parametrize('score,unit', [(101, 'percent'), (50, 'fraction'), (-1, 'percent')])
+def test_verified_benchmark_with_invalid_board_scale_is_not_admitted(score, unit):
+    row = evidence('lab/alpha', 'swe_bench_pro', score)
+    row['unit'] = unit
+    built = build_snapshot(inputs(evidence=[row], benchmark_metadata={
+        'swe_bench_pro': {'unit': '%', 'min_score': 0, 'max_score': 100},
+    }), registry=REGISTRY)
+    assert built.content['lineup']['evidence'] == {}
+    assert built.content['excluded']['invalid_benchmark_value'] == 1

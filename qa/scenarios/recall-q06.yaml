@@ -1,0 +1,83 @@
+id: recall-q06
+family: F1
+persona: Developer choosing a model for production work
+request: Which model should solve difficult reasoning problems?
+constraints:
+  class: generate
+  task: hard reasoning, no benchmark named by the asker
+  open_weights: false
+  price_cap_usd_per_million_input: null
+expected:
+  id: Q06
+  notes: 'Epoch GPQA Diamond does not separate the top. Astra max is 0.9577 (stderr 0.0137), Gemini
+    3.8 Flash high is 0.9539 (stderr 0.0140), and Gemini 3.7 Flash high is 0.9482 (stderr 0.0135).
+    FrontierMath Tier 4 v2, a research-math benchmark, puts Astra near 0.976 and Fable 5 / 5.1 at
+    0.902 and 0.878. Those are different tasks. Neither orders all difficult reasoning.
+
+    '
+  acceptable:
+  - model_id: openai/gpt-6-astra
+    reason: Highest Epoch GPQA Diamond mean, and the FrontierMath Tier 4 v2 leader, at max or high
+      effort.
+    sources:
+    - url: https://epoch.ai/data/benchmark_data.zip
+      read: '2026-09-24'
+  - model_id: google/gemini-3-8-flash
+    reason: Epoch GPQA Diamond 0.9539 at high effort, overlapping Astra.
+    sources:
+    - url: https://epoch.ai/data/benchmark_data.zip
+      read: '2026-09-24'
+  - model_id: google/gemini-3-7-flash
+    reason: Epoch GPQA Diamond 0.9482 at high effort, overlapping Astra.
+    sources:
+    - url: https://epoch.ai/data/benchmark_data.zip
+      read: '2026-09-24'
+  - model_id: anthropic/claude-opus-5
+    reason: Epoch GPQA Diamond 0.9388 at max effort, within about two standard errors of Astra.
+    sources:
+    - url: https://epoch.ai/data/benchmark_data.zip
+      read: '2026-09-24'
+  - model_id: anthropic/claude-fable-5
+    reason: FrontierMath Tier 4 v2 mean 0.902 at max effort. Not a GPQA leader in this download.
+    sources:
+    - url: https://epoch.ai/data/benchmark_data.zip
+      read: '2026-09-24'
+  - model_id: anthropic/claude-fable-5-1
+    reason: FrontierMath Tier 4 v2 mean 0.878 at max effort.
+    sources:
+    - url: https://epoch.ai/data/benchmark_data.zip
+      read: '2026-09-24'
+  must_never:
+  - model_id: openai/text-embedding-3-large
+    reason: An embedding model does not solve reasoning problems.
+    sources:
+    - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/openai/text-embedding-3-large.md
+      read: '2026-09-24'
+  must_flag:
+  - model_id: anthropic/claude-opus-5-5
+    reason: Absent from Epoch GPQA Diamond and from FrontierMath Tier 4 v2 in the 2026-09-24 download.
+    sources:
+    - url: https://epoch.ai/data/benchmark_data.zip
+      read: '2026-09-24'
+  - model_id: xai/grok-4-7
+    reason: Absent from Epoch GPQA Diamond in the 2026-09-24 download.
+    sources:
+    - url: https://epoch.ai/data/benchmark_data.zip
+      read: '2026-09-24'
+  - model_id: openai/gpt-6-sol
+    reason: Absent from Epoch GPQA Diamond. MathArena dates a max variant 2026-09-22.
+    sources:
+    - url: https://epoch.ai/data/benchmark_data.zip
+      read: '2026-09-24'
+    - url: https://matharena.ai/models
+      read: '2026-09-24'
+  missing_cards: []
+expected_source: tests/recall/expected.yaml#Q06
+sources:
+- tests/recall/questions.yaml#Q06
+- tests/recall/specs/Q06.yaml
+gaps: []
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.

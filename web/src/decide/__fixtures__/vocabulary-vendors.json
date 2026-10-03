@@ -1,6 +1,6 @@
 {
   "vocabulary_version": 1,
-  "contract_version": "2.11",
+  "contract_version": "2.12",
   "snapshot": "snap_0fdad8b995d919c7",
   "default_task_tokens": {
     "input": 40000,
@@ -48,7 +48,21 @@
       "computed_by": null,
       "known": 0,
       "of": 6,
-      "values": []
+      "values": [],
+      "allowed_values": [
+        "actor",
+        "analyser",
+        "decider",
+        "forecaster",
+        "labeller",
+        "media-generator",
+        "orderer",
+        "scorer",
+        "simulator",
+        "text-generator",
+        "transcriber",
+        "vectoriser"
+      ]
     },
     {
       "id": "model.input_modalities",
@@ -69,7 +83,15 @@
       "computed_by": null,
       "known": 0,
       "of": 6,
-      "values": []
+      "values": [],
+      "allowed_values": [
+        "audio",
+        "document",
+        "image",
+        "structured",
+        "text",
+        "video"
+      ]
     },
     {
       "id": "model.output_modalities",
@@ -90,7 +112,17 @@
       "computed_by": null,
       "known": 0,
       "of": 6,
-      "values": []
+      "values": [],
+      "allowed_values": [
+        "action",
+        "audio",
+        "embedding",
+        "image",
+        "label",
+        "score",
+        "text",
+        "video"
+      ]
     },
     {
       "id": "model.context_window",
@@ -126,7 +158,8 @@
       "range": {
         "min": 50000,
         "max": 500000
-      }
+      },
+      "better": "higher"
     },
     {
       "id": "model.max_output_tokens",
@@ -159,7 +192,8 @@
       "computed_by": null,
       "known": 0,
       "of": 6,
-      "range": null
+      "range": null,
+      "better": "higher"
     },
     {
       "id": "model.weights_openness",
@@ -199,6 +233,10 @@
           "count": 2,
           "label": "Open weights"
         }
+      ],
+      "allowed_values": [
+        "closed_weights",
+        "open_weights"
       ]
     },
     {
@@ -232,7 +270,8 @@
       "computed_by": null,
       "known": 0,
       "of": 6,
-      "range": null
+      "range": null,
+      "better": "neither"
     },
     {
       "id": "model.parameters_active",
@@ -265,7 +304,8 @@
       "computed_by": null,
       "known": 0,
       "of": 6,
-      "range": null
+      "range": null,
+      "better": "neither"
     },
     {
       "id": "model.architecture",
@@ -294,7 +334,20 @@
       "computed_by": null,
       "known": 0,
       "of": 6,
-      "values": []
+      "values": [],
+      "allowed_values": [
+        "GAN",
+        "MoE",
+        "SSM",
+        "decoder-only",
+        "dense-transformer",
+        "diffusion",
+        "encoder-decoder",
+        "encoder-only",
+        "flow-matching",
+        "hybrid-SSM-transformer",
+        "other"
+      ]
     },
     {
       "id": "licence.commercial_use",
@@ -323,7 +376,12 @@
       "computed_by": null,
       "known": 0,
       "of": 6,
-      "values": []
+      "values": [],
+      "allowed_values": [
+        "permitted",
+        "permitted_with_conditions",
+        "prohibited"
+      ]
     },
     {
       "id": "licence.user_cap",
@@ -356,7 +414,8 @@
       "computed_by": null,
       "known": 0,
       "of": 6,
-      "range": null
+      "range": null,
+      "better": "higher"
     },
     {
       "id": "licence.output_training",
@@ -385,7 +444,12 @@
       "computed_by": null,
       "known": 0,
       "of": 6,
-      "values": []
+      "values": [],
+      "allowed_values": [
+        "permitted",
+        "prohibited",
+        "restricted"
+      ]
     },
     {
       "id": "licence.fine_tuning",
@@ -414,7 +478,12 @@
       "computed_by": null,
       "known": 0,
       "of": 6,
-      "values": []
+      "values": [],
+      "allowed_values": [
+        "permitted",
+        "permitted_with_conditions",
+        "prohibited"
+      ]
     },
     {
       "id": "origin.lab_jurisdiction",
@@ -553,7 +622,12 @@
       "computed_by": null,
       "known": 0,
       "of": 6,
-      "values": []
+      "values": [],
+      "allowed_values": [
+        "active",
+        "deprecated",
+        "retired"
+      ]
     },
     {
       "id": "model.knowledge_cutoff",
@@ -632,7 +706,11 @@
       "computed_by": null,
       "known": 0,
       "of": 6,
-      "values": []
+      "values": [],
+      "allowed_values": [
+        true,
+        false
+      ]
     },
     {
       "id": "feature.structured_output",
@@ -659,7 +737,11 @@
       "computed_by": null,
       "known": 0,
       "of": 6,
-      "values": []
+      "values": [],
+      "allowed_values": [
+        true,
+        false
+      ]
     },
     {
       "id": "feature.effort_controls",
@@ -686,7 +768,11 @@
       "computed_by": null,
       "known": 0,
       "of": 6,
-      "values": []
+      "values": [],
+      "allowed_values": [
+        true,
+        false
+      ]
     },
     {
       "id": "feature.batch",
@@ -713,7 +799,11 @@
       "computed_by": null,
       "known": 0,
       "of": 6,
-      "values": []
+      "values": [],
+      "allowed_values": [
+        true,
+        false
+      ]
     },
     {
       "id": "feature.streaming",
@@ -740,7 +830,11 @@
       "computed_by": null,
       "known": 0,
       "of": 6,
-      "values": []
+      "values": [],
+      "allowed_values": [
+        true,
+        false
+      ]
     },
     {
       "id": "model.languages",
@@ -787,6 +881,72 @@
           "value": "apple_m3_max",
           "count": 1
         }
+      ],
+      "allowed_values": [
+        "amd_instinct_mi210",
+        "amd_instinct_mi250x",
+        "amd_instinct_mi300x",
+        "amd_instinct_mi325x",
+        "amd_instinct_mi355x",
+        "amd_rx_7900_xt",
+        "amd_rx_7900_xtx",
+        "amd_rx_9070_xt",
+        "amd_ryzen_ai_max_plus_395",
+        "apple_m1_max",
+        "apple_m2_max",
+        "apple_m2_ultra",
+        "apple_m3_max",
+        "apple_m3_ultra",
+        "apple_m4",
+        "apple_m4_max",
+        "apple_m4_pro",
+        "apple_m5_max",
+        "cerebras_wse3",
+        "google_tpu7x",
+        "google_tpu_v4",
+        "google_tpu_v5e",
+        "google_tpu_v5p",
+        "google_tpu_v6e",
+        "intel_arc_a770_16gb",
+        "intel_gaudi_2",
+        "intel_gaudi_3",
+        "nvidia_a100_40gb_sxm",
+        "nvidia_a100_80gb_sxm",
+        "nvidia_b200",
+        "nvidia_b300",
+        "nvidia_dgx_spark",
+        "nvidia_gb200_superchip",
+        "nvidia_h100_nvl",
+        "nvidia_h100_pcie",
+        "nvidia_h100_sxm",
+        "nvidia_h200_sxm",
+        "nvidia_jetson_agx_orin_32gb",
+        "nvidia_jetson_agx_orin_64gb",
+        "nvidia_jetson_orin_nano_4gb",
+        "nvidia_jetson_orin_nano_8gb",
+        "nvidia_jetson_orin_nx_16gb",
+        "nvidia_jetson_orin_nx_8gb",
+        "nvidia_jetson_t4000",
+        "nvidia_jetson_t5000",
+        "nvidia_l4",
+        "nvidia_l40s",
+        "nvidia_rtx_3060_12gb",
+        "nvidia_rtx_3090",
+        "nvidia_rtx_4000_sff_ada",
+        "nvidia_rtx_4060_ti_16gb",
+        "nvidia_rtx_4070_ti_super",
+        "nvidia_rtx_4080_super",
+        "nvidia_rtx_4090",
+        "nvidia_rtx_4500_ada",
+        "nvidia_rtx_5000_ada",
+        "nvidia_rtx_5080",
+        "nvidia_rtx_5090",
+        "nvidia_rtx_6000_ada",
+        "nvidia_rtx_a6000",
+        "nvidia_rubin_gpu",
+        "nvidia_tesla_p40",
+        "nvidia_vera_rubin_superchip",
+        "qualcomm_snapdragon_x_elite"
       ]
     },
     {
@@ -808,7 +968,73 @@
       "computed_by": null,
       "known": 0,
       "of": 6,
-      "values": []
+      "values": [],
+      "allowed_values": [
+        "amd_instinct_mi210",
+        "amd_instinct_mi250x",
+        "amd_instinct_mi300x",
+        "amd_instinct_mi325x",
+        "amd_instinct_mi355x",
+        "amd_rx_7900_xt",
+        "amd_rx_7900_xtx",
+        "amd_rx_9070_xt",
+        "amd_ryzen_ai_max_plus_395",
+        "apple_m1_max",
+        "apple_m2_max",
+        "apple_m2_ultra",
+        "apple_m3_max",
+        "apple_m3_ultra",
+        "apple_m4",
+        "apple_m4_max",
+        "apple_m4_pro",
+        "apple_m5_max",
+        "cerebras_wse3",
+        "google_tpu7x",
+        "google_tpu_v4",
+        "google_tpu_v5e",
+        "google_tpu_v5p",
+        "google_tpu_v6e",
+        "intel_arc_a770_16gb",
+        "intel_gaudi_2",
+        "intel_gaudi_3",
+        "nvidia_a100_40gb_sxm",
+        "nvidia_a100_80gb_sxm",
+        "nvidia_b200",
+        "nvidia_b300",
+        "nvidia_dgx_spark",
+        "nvidia_gb200_superchip",
+        "nvidia_h100_nvl",
+        "nvidia_h100_pcie",
+        "nvidia_h100_sxm",
+        "nvidia_h200_sxm",
+        "nvidia_jetson_agx_orin_32gb",
+        "nvidia_jetson_agx_orin_64gb",
+        "nvidia_jetson_orin_nano_4gb",
+        "nvidia_jetson_orin_nano_8gb",
+        "nvidia_jetson_orin_nx_16gb",
+        "nvidia_jetson_orin_nx_8gb",
+        "nvidia_jetson_t4000",
+        "nvidia_jetson_t5000",
+        "nvidia_l4",
+        "nvidia_l40s",
+        "nvidia_rtx_3060_12gb",
+        "nvidia_rtx_3090",
+        "nvidia_rtx_4000_sff_ada",
+        "nvidia_rtx_4060_ti_16gb",
+        "nvidia_rtx_4070_ti_super",
+        "nvidia_rtx_4080_super",
+        "nvidia_rtx_4090",
+        "nvidia_rtx_4500_ada",
+        "nvidia_rtx_5000_ada",
+        "nvidia_rtx_5080",
+        "nvidia_rtx_5090",
+        "nvidia_rtx_6000_ada",
+        "nvidia_rtx_a6000",
+        "nvidia_rubin_gpu",
+        "nvidia_tesla_p40",
+        "nvidia_vera_rubin_superchip",
+        "qualcomm_snapdragon_x_elite"
+      ]
     },
     {
       "id": "offering.provider",
@@ -850,6 +1076,34 @@
           "value": "openai",
           "count": 1
         }
+      ],
+      "allowed_values": [
+        "ai21",
+        "alibaba-model-studio",
+        "anthropic",
+        "aws-bedrock",
+        "azure-ai-foundry",
+        "cerebras",
+        "cohere",
+        "deepinfra",
+        "deepseek",
+        "fireworks-ai",
+        "google-gemini-api",
+        "google-vertex-ai",
+        "groq",
+        "meta-model-api",
+        "minimax",
+        "mistral",
+        "moonshot",
+        "nvidia-nim",
+        "openai",
+        "openrouter",
+        "replicate",
+        "sambanova",
+        "together-ai",
+        "typesafe",
+        "xai",
+        "zai"
       ]
     },
     {
@@ -912,6 +1166,12 @@
           "count": 4,
           "label": "Standard"
         }
+      ],
+      "allowed_values": [
+        "enterprise",
+        "government",
+        "standard",
+        "zero_retention"
       ]
     },
     {
@@ -948,7 +1208,8 @@
       "range": {
         "min": 3.0,
         "max": 30.0
-      }
+      },
+      "better": "lower"
     },
     {
       "id": "offering.price.output",
@@ -984,7 +1245,8 @@
       "range": {
         "min": 3.0,
         "max": 30.0
-      }
+      },
+      "better": "lower"
     },
     {
       "id": "offering.price.cached_input",
@@ -1017,7 +1279,8 @@
       "computed_by": null,
       "known": 0,
       "of": 4,
-      "range": null
+      "range": null,
+      "better": "lower"
     },
     {
       "id": "offering.price.batch_input",
@@ -1053,7 +1316,8 @@
       "range": null,
       "literals": [
         "not_offered"
-      ]
+      ],
+      "better": "lower"
     },
     {
       "id": "offering.price.batch_output",
@@ -1086,7 +1350,8 @@
       "computed_by": null,
       "known": 0,
       "of": 4,
-      "range": null
+      "range": null,
+      "better": "lower"
     },
     {
       "id": "offering.cost_per_task",
@@ -1122,7 +1387,8 @@
       "range": {
         "min": 0.132,
         "max": 1.32
-      }
+      },
+      "better": "lower"
     },
     {
       "id": "offering.speed.time_to_first_token",
@@ -1155,7 +1421,8 @@
       "computed_by": null,
       "known": 0,
       "of": 4,
-      "range": null
+      "range": null,
+      "better": "lower"
     },
     {
       "id": "offering.speed.throughput",
@@ -1188,7 +1455,8 @@
       "computed_by": null,
       "known": 0,
       "of": 4,
-      "range": null
+      "range": null,
+      "better": "higher"
     },
     {
       "id": "offering.rate_limit.requests",
@@ -1221,7 +1489,8 @@
       "computed_by": null,
       "known": 0,
       "of": 4,
-      "range": null
+      "range": null,
+      "better": "higher"
     },
     {
       "id": "offering.rate_limit.tokens",
@@ -1254,7 +1523,8 @@
       "computed_by": null,
       "known": 0,
       "of": 4,
-      "range": null
+      "range": null,
+      "better": "higher"
     },
     {
       "id": "offering.sla_uptime",
@@ -1287,7 +1557,8 @@
       "computed_by": null,
       "known": 0,
       "of": 4,
-      "range": null
+      "range": null,
+      "better": "higher"
     },
     {
       "id": "offering.data.retention",
@@ -1320,7 +1591,8 @@
       "computed_by": null,
       "known": 0,
       "of": 4,
-      "range": null
+      "range": null,
+      "better": "lower"
     },
     {
       "id": "offering.data.trains_on_customer_data",
@@ -1347,7 +1619,11 @@
       "computed_by": null,
       "known": 0,
       "of": 4,
-      "values": []
+      "values": [],
+      "allowed_values": [
+        true,
+        false
+      ]
     },
     {
       "id": "offering.data.zero_retention",
@@ -1374,7 +1650,11 @@
       "computed_by": null,
       "known": 0,
       "of": 4,
-      "values": []
+      "values": [],
+      "allowed_values": [
+        true,
+        false
+      ]
     },
     {
       "id": "offering.attestation.soc2",
@@ -1403,7 +1683,12 @@
       "computed_by": null,
       "known": 0,
       "of": 4,
-      "values": []
+      "values": [],
+      "allowed_values": [
+        "none",
+        "type_1",
+        "type_2"
+      ]
     },
     {
       "id": "offering.attestation.baa",
@@ -1430,7 +1715,11 @@
       "computed_by": null,
       "known": 0,
       "of": 4,
-      "values": []
+      "values": [],
+      "allowed_values": [
+        true,
+        false
+      ]
     },
     {
       "id": "offering.attestation.fedramp",
@@ -1459,7 +1748,14 @@
       "computed_by": null,
       "known": 0,
       "of": 4,
-      "values": []
+      "values": [],
+      "allowed_values": [
+        "high",
+        "li_saas",
+        "low",
+        "moderate",
+        "none"
+      ]
     },
     {
       "id": "offering.attestation.iso_27001",
@@ -1486,7 +1782,11 @@
       "computed_by": null,
       "known": 0,
       "of": 4,
-      "values": []
+      "values": [],
+      "allowed_values": [
+        true,
+        false
+      ]
     },
     {
       "id": "offering.fine_tuning",
@@ -1513,7 +1813,11 @@
       "computed_by": null,
       "known": 0,
       "of": 4,
-      "values": []
+      "values": [],
+      "allowed_values": [
+        true,
+        false
+      ]
     },
     {
       "id": "offering.private_deployment",
@@ -1540,7 +1844,11 @@
       "computed_by": null,
       "known": 0,
       "of": 4,
-      "values": []
+      "values": [],
+      "allowed_values": [
+        true,
+        false
+      ]
     },
     {
       "id": "offering.harness_compatibility",
@@ -1561,7 +1869,17 @@
       "computed_by": null,
       "known": 0,
       "of": 4,
-      "values": []
+      "values": [],
+      "allowed_values": [
+        "aider@0.86",
+        "claude-code@2.1",
+        "codex-cli@0.156",
+        "copilot-cli@1.0",
+        "cursor-agent@2026.09",
+        "cursor@3.22",
+        "dpf-native@1.0",
+        "openhands@1.11"
+      ]
     }
   ],
   "benchmarks": [],
@@ -3721,7 +4039,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 7 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 6 models may qualify once it is published"
     },
     {
       "id": "coding-balanced",
@@ -3904,7 +4222,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 7 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 6 models may qualify once it is published"
     },
     {
       "id": "coding-private",
@@ -4011,7 +4329,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 7 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 6 models may qualify once it is published"
     },
     {
       "id": "writing-balanced",
@@ -4067,7 +4385,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 7 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 6 models may qualify once it is published"
     },
     {
       "id": "writing-budget",
@@ -4128,7 +4446,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 3 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 2 models may qualify once it is published"
     },
     {
       "id": "writing-fastest",
@@ -4184,7 +4502,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 7 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 6 models may qualify once it is published"
     },
     {
       "id": "writing-private",
@@ -4286,7 +4604,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 7 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 6 models may qualify once it is published"
     },
     {
       "id": "maths-reasoning-balanced",
@@ -4348,7 +4666,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 7 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 6 models may qualify once it is published"
     },
     {
       "id": "maths-reasoning-budget",
@@ -4409,7 +4727,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 3 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 2 models may qualify once it is published"
     },
     {
       "id": "maths-reasoning-fastest",
@@ -4465,7 +4783,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 7 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 6 models may qualify once it is published"
     },
     {
       "id": "maths-reasoning-private",
@@ -4870,7 +5188,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 7 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 6 models may qualify once it is published"
     },
     {
       "id": "retrieval-balanced",
@@ -4921,7 +5239,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 7 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 6 models may qualify once it is published"
     },
     {
       "id": "retrieval-budget",
@@ -4972,7 +5290,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 7 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 6 models may qualify once it is published"
     },
     {
       "id": "retrieval-fastest",
@@ -5023,7 +5341,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 7 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 6 models may qualify once it is published"
     },
     {
       "id": "retrieval-private",
@@ -5130,7 +5448,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 7 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 6 models may qualify once it is published"
     },
     {
       "id": "assistant-balanced",
@@ -5186,7 +5504,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 7 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 6 models may qualify once it is published"
     },
     {
       "id": "assistant-budget",
@@ -5247,7 +5565,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 3 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 2 models may qualify once it is published"
     },
     {
       "id": "assistant-fastest",
@@ -5303,7 +5621,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 7 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 6 models may qualify once it is published"
     },
     {
       "id": "private-self-host",
@@ -5423,7 +5741,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 7 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 6 models may qualify once it is published"
     },
     {
       "id": "high-volume-balanced",
@@ -5482,7 +5800,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 7 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 6 models may qualify once it is published"
     },
     {
       "id": "high-volume",
@@ -5541,7 +5859,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 7 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 6 models may qualify once it is published"
     },
     {
       "id": "high-volume-fastest",
@@ -5605,7 +5923,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No model has a known Model class yet — 7 models may qualify once it is published"
+      "unavailable_reason": "No model has a known Model class yet — 6 models may qualify once it is published"
     },
     {
       "id": "regulated-best",

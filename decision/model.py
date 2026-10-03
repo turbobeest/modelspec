@@ -29,7 +29,7 @@ from pydantic import (
     model_validator,
 )
 
-from schema.card import BenchmarkEvidence
+from schema.evidence import BenchmarkEvidence
 
 Text = Annotated[str, Field(min_length=1, pattern=r"\S", strict=True)]
 ContentRef = Annotated[str, Field(pattern=r"^sha256:[0-9a-f]{64}$")]

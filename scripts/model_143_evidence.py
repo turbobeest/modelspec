@@ -209,6 +209,9 @@ def _set_field(lines: list[str], key: str, value: object) -> list[str]:
 
 
 def replace_evidence(path: Path, text: str, updates: list[tuple[tuple, dict]]) -> None:
+    from schema.benchmark_values import validate_card_rows
+
+    validate_card_rows(path, [row for _, row in updates])
     wanted = {key: row for key, row in updates}
     fields = (
         "model_id_as_evaluated", "score", "evidence_date", "id", "measured_by",

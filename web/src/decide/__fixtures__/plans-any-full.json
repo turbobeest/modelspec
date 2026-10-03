@@ -283,40 +283,6 @@
     },
     {
       "offering": {
-        "model": "acme/closed",
-        "provider": null,
-        "region": null,
-        "tier": null
-      },
-      "facts": [
-        {
-          "facet": "model.context_window",
-          "value": 70000,
-          "unit": "tokens",
-          "record_id": "acme/closed#model.context_window",
-          "records": [],
-          "formula": null,
-          "source_ids": [
-            "src-lab-docs"
-          ]
-        },
-        {
-          "facet": "model.weights_openness",
-          "value": "closed_weights",
-          "unit": null,
-          "record_id": "acme/closed#model.weights_openness",
-          "records": [],
-          "formula": null,
-          "source_ids": [
-            "src-lab-docs"
-          ]
-        }
-      ],
-      "contributions": [],
-      "evidence": []
-    },
-    {
-      "offering": {
         "model": "acme/unfit",
         "provider": null,
         "region": null,
@@ -384,7 +350,7 @@
       "evidence": []
     }
   ],
-  "chart": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 385\" role=\"img\" aria-label=\"Objective contributions in original units\"><text x=\"8\" y=\"18\">other/huge · model.context_window: 500000 tokens</text><rect x=\"8\" y=\"27\" width=\"300\" height=\"12\" /><text x=\"8\" y=\"73\">anthropic/claude-opus-5-5 · model.context_window: 200000 tokens</text><rect x=\"8\" y=\"82\" width=\"120\" height=\"12\" /><text x=\"8\" y=\"128\">anthropic/claude-sonnet-5 · model.context_window: 200000 tokens</text><rect x=\"8\" y=\"137\" width=\"120\" height=\"12\" /><text x=\"8\" y=\"183\">anthropic/claude-opus-5-5 · model.context_window: 200000 tokens</text><rect x=\"8\" y=\"192\" width=\"120\" height=\"12\" /><text x=\"8\" y=\"238\">acme/closed · model.context_window: 70000 tokens</text><rect x=\"8\" y=\"247\" width=\"42\" height=\"12\" /><text x=\"8\" y=\"293\">acme/unfit · model.context_window: 60000 tokens</text><rect x=\"8\" y=\"302\" width=\"36\" height=\"12\" /><text x=\"8\" y=\"348\">acme/tiny · model.context_window: 50000 tokens</text><rect x=\"8\" y=\"357\" width=\"30\" height=\"12\" /></svg>",
+  "chart": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 330\" role=\"img\" aria-label=\"Objective contributions in original units\"><text x=\"8\" y=\"18\">other/huge · model.context_window: 500000 tokens</text><rect x=\"8\" y=\"27\" width=\"300\" height=\"12\" /><text x=\"8\" y=\"73\">anthropic/claude-opus-5-5 · model.context_window: 200000 tokens</text><rect x=\"8\" y=\"82\" width=\"120\" height=\"12\" /><text x=\"8\" y=\"128\">anthropic/claude-sonnet-5 · model.context_window: 200000 tokens</text><rect x=\"8\" y=\"137\" width=\"120\" height=\"12\" /><text x=\"8\" y=\"183\">anthropic/claude-opus-5-5 · model.context_window: 200000 tokens</text><rect x=\"8\" y=\"192\" width=\"120\" height=\"12\" /><text x=\"8\" y=\"238\">acme/unfit · model.context_window: 60000 tokens</text><rect x=\"8\" y=\"247\" width=\"36\" height=\"12\" /><text x=\"8\" y=\"293\">acme/tiny · model.context_window: 50000 tokens</text><rect x=\"8\" y=\"302\" width=\"30\" height=\"12\" /></svg>",
   "number_origins": [
     {
       "path": "/results/0/model_rank",
@@ -541,7 +507,7 @@
       "path": "/results/4/contributions/0/raw_value",
       "basis": "snapshot measurement",
       "records": [
-        "acme/closed#model.context_window"
+        "acme/unfit#model.context_window"
       ],
       "sources": [],
       "source_ids": [
@@ -552,7 +518,7 @@
       "path": "/results/4/contributions/0/value",
       "basis": "feasible-set min-max normalisation of snapshot measurements",
       "records": [
-        "acme/closed#model.context_window"
+        "acme/unfit#model.context_window"
       ],
       "sources": [],
       "source_ids": [
@@ -570,35 +536,6 @@
       "path": "/results/5/contributions/0/raw_value",
       "basis": "snapshot measurement",
       "records": [
-        "acme/unfit#model.context_window"
-      ],
-      "sources": [],
-      "source_ids": [
-        "src-lab-docs"
-      ]
-    },
-    {
-      "path": "/results/5/contributions/0/value",
-      "basis": "feasible-set min-max normalisation of snapshot measurements",
-      "records": [
-        "acme/unfit#model.context_window"
-      ],
-      "sources": [],
-      "source_ids": [
-        "src-lab-docs"
-      ]
-    },
-    {
-      "path": "/results/6/model_rank",
-      "basis": "count or ordinal from snapshot candidates after filtering and optimisation",
-      "records": [],
-      "sources": [],
-      "source_ids": []
-    },
-    {
-      "path": "/results/6/contributions/0/raw_value",
-      "basis": "snapshot measurement",
-      "records": [
         "acme/tiny#model.context_window"
       ],
       "sources": [],
@@ -607,7 +544,7 @@
       ]
     },
     {
-      "path": "/results/6/contributions/0/value",
+      "path": "/results/5/contributions/0/value",
       "basis": "feasible-set min-max normalisation of snapshot measurements",
       "records": [
         "acme/tiny#model.context_window"
@@ -632,7 +569,7 @@
       "date": "2026-09-20"
     }
   ],
-  "contract_version": "2.11",
+  "contract_version": "2.12",
   "decision_id": "dec_8e5f0965af467b6883ac8dc2",
   "snapshot": "snap_71b689ca16c5a402",
   "signature_verified": false,
@@ -719,24 +656,6 @@
         "estimates": []
       },
       {
-        "model": "acme/closed",
-        "offering": {
-          "model": "acme/closed",
-          "provider": null,
-          "region": null,
-          "tier": null
-        },
-        "score": 0.044444,
-        "score_interval": [
-          0.044444,
-          0.044444
-        ],
-        "p_best": null,
-        "p_beats_leader": 0.0,
-        "cost_per_task": null,
-        "estimates": []
-      },
-      {
         "model": "acme/unfit",
         "offering": {
           "model": "acme/unfit",
@@ -792,7 +711,6 @@
         "other/huge",
         "anthropic/claude-opus-5-5",
         "anthropic/claude-sonnet-5",
-        "acme/closed",
         "acme/unfit",
         "acme/tiny"
       ],
@@ -951,50 +869,13 @@
     {
       "rank": 5,
       "offering": {
-        "model": "acme/closed",
-        "provider": null,
-        "region": null,
-        "tier": null
-      },
-      "model": "acme/closed",
-      "model_rank": 4,
-      "cost_per_task": null,
-      "harness": null,
-      "effort": null,
-      "evidence": [],
-      "estimates": null,
-      "p_best": null,
-      "top3_stability": null,
-      "soft_penalty": 0.0,
-      "contributions": [
-        {
-          "raw_value": 70000.0,
-          "unit": "tokens",
-          "records": [
-            "acme/closed#model.context_window"
-          ],
-          "dimension": "model.context_window",
-          "weight": 1.0,
-          "value": 0.044444444444444446,
-          "normalisation": "feasible min-max; max; minimum=50000.0 tokens; maximum=500000.0 tokens; constant dimensions contribute zero dimensionless",
-          "evidence": [],
-          "formula": null,
-          "preferred_value": null,
-          "preference_status": null
-        }
-      ],
-      "warnings": []
-    },
-    {
-      "rank": 6,
-      "offering": {
         "model": "acme/unfit",
         "provider": null,
         "region": null,
         "tier": null
       },
       "model": "acme/unfit",
-      "model_rank": 5,
+      "model_rank": 4,
       "cost_per_task": null,
       "harness": null,
       "effort": null,
@@ -1023,7 +904,7 @@
       "warnings": []
     },
     {
-      "rank": 7,
+      "rank": 6,
       "offering": {
         "model": "acme/tiny",
         "provider": null,
@@ -1031,7 +912,7 @@
         "tier": null
       },
       "model": "acme/tiny",
-      "model_rank": 6,
+      "model_rank": 5,
       "cost_per_task": null,
       "harness": null,
       "effort": null,
@@ -1138,14 +1019,14 @@
       ]
     },
     {
-      "model": "acme/closed",
+      "model": "acme/unfit",
       "status": "ranked",
       "rank": 4,
       "cost_per_task": null,
       "offerings": [
         {
           "offering": {
-            "model": "acme/closed",
+            "model": "acme/unfit",
             "provider": null,
             "region": null,
             "tier": null
@@ -1159,14 +1040,14 @@
       ]
     },
     {
-      "model": "acme/unfit",
+      "model": "acme/tiny",
       "status": "ranked",
       "rank": 5,
       "cost_per_task": null,
       "offerings": [
         {
           "offering": {
-            "model": "acme/unfit",
+            "model": "acme/tiny",
             "provider": null,
             "region": null,
             "tier": null
@@ -1180,23 +1061,23 @@
       ]
     },
     {
-      "model": "acme/tiny",
-      "status": "ranked",
-      "rank": 6,
+      "model": "acme/closed",
+      "status": "eliminated",
+      "rank": null,
       "cost_per_task": null,
       "offerings": [
         {
           "offering": {
-            "model": "acme/tiny",
+            "model": "acme/closed",
             "provider": null,
             "region": null,
             "tier": null
           },
-          "status": "ranked",
-          "rank": 7,
+          "status": "eliminated",
+          "rank": null,
           "cost_per_task": null,
           "unknown": [],
-          "reason": null
+          "reason": "model.weights_openness = open_weights unknown(fail)"
         }
       ]
     },
@@ -1240,9 +1121,43 @@
         "condition": "model.lifecycle not in {retired}",
         "value": "retired",
         "formula": null
+      },
+      {
+        "values": [],
+        "offering": {
+          "model": "acme/closed",
+          "provider": null,
+          "region": null,
+          "tier": null
+        },
+        "unit": null,
+        "records": [],
+        "model": "acme/closed",
+        "condition": "model.weights_openness = open_weights unknown(fail)",
+        "value": "closed_weights",
+        "formula": null
       }
     ],
     "model_groups": [
+      {
+        "model": "acme/closed",
+        "model_elimination": {
+          "values": [],
+          "offering": {
+            "model": "acme/closed",
+            "provider": null,
+            "region": null,
+            "tier": null
+          },
+          "unit": null,
+          "records": [],
+          "model": "acme/closed",
+          "condition": "model.weights_openness = open_weights unknown(fail)",
+          "value": "closed_weights",
+          "formula": null
+        },
+        "offerings": []
+      },
       {
         "model": "anthropic/claude-opus-3",
         "model_elimination": {

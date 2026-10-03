@@ -10,7 +10,7 @@ from pathlib import Path
 
 import pytest
 
-from pipeline import agent_ready, brand, entity, landing, method, structured_data
+from pipeline import agent_ready, brand, brand_page, entity, landing, method, structured_data
 from pipeline.build import llms_txt
 from pipeline.export import Build
 from pipeline.load import load_benchmarks, load_models
@@ -47,6 +47,7 @@ def surfaces(data: landing.LandingData) -> dict[str, str]:
         "index.md": agent_ready.modelspec_landing_markdown(
             load_models(ROOT), load_benchmarks(ROOT), BUILD),
         "SKILL.md": agent_ready.skill_markdown(),
+        "brand": brand_page.page(brand_page.kit(), 0),
     }
 
 
@@ -64,6 +65,13 @@ def test_the_method_page_opens_with_the_sentence_then_the_disambiguation(surface
     first = re.search(r"<h1>How ModelSpec decides\.</h1><p>(.*?)</p>", surfaces["method"], re.S)
     assert first is not None
     assert _visible(first.group(1)).startswith(f"{entity.ONE_SENTENCE} {entity.DISAMBIGUATION} ")
+
+
+def test_the_brand_page_quotes_the_sentence_and_the_boilerplate(surfaces: dict[str, str]) -> None:
+    text = _visible(surfaces["brand"])
+    assert entity.ONE_SENTENCE in text
+    assert entity.DISAMBIGUATION in text
+    assert brand.POSITIONING in text
 
 
 @pytest.mark.parametrize("name", ["llms.txt", "index.md", "SKILL.md"])

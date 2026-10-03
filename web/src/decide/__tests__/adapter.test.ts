@@ -12,6 +12,7 @@ import {
 } from "../adapter";
 import { baseSpec } from "../state/spec";
 import type { Spec } from "../adapter";
+import tiedFixture from "../__fixtures__/compact-tied-full.json";
 const budget = templates[0].spec;
 const decide = (s: Spec = budget) => fictionalEngine.decide(s);
 const contractSpec = {
@@ -39,6 +40,17 @@ const answer = {
 };
 afterEach(() => vi.unstubAllGlobals());
 describe("the decision schema", () => {
+  it("ignores additive agent reading guidance and preserves the page decision", () => {
+    expect(decisionSchema.parse({
+      ...tiedFixture,
+      reading: {
+        tied: tiedFixture.answer.members,
+        not_applied: ["task"],
+        estimates: ["model.fits_hardware"],
+        do_not_claim: ["Do not name a single winner among tied."],
+      },
+    })).toEqual(decisionSchema.parse(tiedFixture));
+  });
   it("parses a 1.2 decision with its additive fields and defaults them on 1.1", () => {
     const item = {
       benchmark: "terminal_bench_v4_0",

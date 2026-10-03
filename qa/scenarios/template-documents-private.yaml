@@ -1,0 +1,26 @@
+id: template-documents-private
+family: F3
+persona: Engineer applying a published decision template
+request: Find a commercially usable open-weights model with a long context that you can run yourself.
+constraints:
+  must:
+  - model.class = text-generator
+  - model.weights_openness = open_weights
+  - licence.commercial_use in {permitted, permitted_with_conditions}
+  - model.context_window >= 128000
+  prefer:
+    writing:
+      weight: 0.6
+      reason: Prefer clear, high-quality long-form writing among self-hostable models.
+    model.context_window:
+      weight: 0.4
+      reason: Prefer the longer context among self-hostable models.
+sources:
+- registry/templates.yaml#documents-private
+template: documents-private
+expected: null
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.
+gaps: []

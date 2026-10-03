@@ -1,8 +1,16 @@
 import { expect, test, type Page } from "@playwright/test";
+import { z } from "zod";
 
 // MODEL-203: the deployed decide page answers, against the live vocabulary and
-// api.modelspec.dev, with nothing stubbed. Run after each deploy with
+// api.modelspec.dev, or shows the manual gate when the Worker enables it,
+// with nothing stubbed. Run after each deploy with
 // MODELSPEC_DECIDE_URL set to the page (playwright.corpus.config.ts).
+
+const humanStatusSchema = z.discriminatedUnion("enabled", [
+  z.object({ enabled: z.literal(false) }),
+  z.object({ enabled: z.literal(true), remaining: z.number().int().min(0).max(20) }),
+  z.object({ enabled: z.literal(true), mode: z.literal("visit"), day_limit: z.number().int().positive(), burst_limit: z.number().int().positive() }),
+]);
 
 async function answered(page: Page) {
   const answer = page.getByLabel("Facet board answer");
@@ -11,18 +19,46 @@ async function answered(page: Page) {
   await expect(page.locator(".board-routes").first()).toBeVisible();
 }
 
-test("the deployed page draws a decision, and another after a template", async ({ page }) => {
+test("the deployed page follows the Worker's human gate status", async ({ page }) => {
   test.setTimeout(120000);
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("");
-  await expect(page.getByRole("heading", { name: "Set what matters. Watch the field narrow." })).toBeVisible({ timeout: 30000 });
-  await answered(page);
-
-  const templates = page.locator(".board-templates button");
-  if ((await templates.count()) > 0) {
-    await templates.first().click();
+  await expect(page.getByRole("heading", { name: "Set what matters across any/all facets. Try a template as a fast track. Watch the field narrow." })).toBeVisible({ timeout: 30000 });
+  // Fetch in the browser so the deployed origin and visitor match the page's
+  // status request, including the Worker's CORS policy.
+  const response = await page.evaluate(async () => {
+    const status = await fetch("https://api.modelspec.dev/v1/human-status", { mode: "cors" });
+    return { status: status.status, body: await status.json() };
+  });
+  expect(response.status, "human-status endpoint").toBe(200);
+  const status = humanStatusSchema.parse(response.body);
+  const gate = page.getByRole("region", { name: "Manual lookups" });
+  if (status.enabled && "mode" in status && status.mode === "visit") {
+    await expect(gate).toHaveCount(0);
+    await expect(page.locator("#facet-board-answer .visit-gate")).toHaveCount(1);
     await answered(page);
+    const update = page.waitForResponse((reply) => reply.url().endsWith("/v1/decide") && reply.request().method() === "POST");
+    await page.getByRole("radio", { name: /From my own software or agent/ }).check();
+    expect((await update).status()).toBe(200);
+    await answered(page);
+  } else if (status.enabled) {
+    await expect(gate).toBeVisible();
+    await expect(gate.getByRole("button", { name: "Look up this decision" })).toBeVisible();
+    await expect(gate.getByRole("link", { name: "paid API or MCP" })).toBeVisible();
+    await expect(gate.getByRole("status")).toBeVisible();
+    await expect(page.getByLabel("Facet board answer")).toHaveCount(0);
+  } else {
+    await expect(gate).toHaveCount(0);
+    await answered(page);
+
+    // The template card starts collapsed (MODEL-277); it is absent only when no template is available.
+    const bar = page.getByRole("button", { name: /Start from a template/ });
+    if ((await bar.count()) > 0) {
+      await bar.click();
+      await page.locator(".board-templates button").first().click();
+      await answered(page);
+    }
   }
   expect(errors, "uncaught page errors").toEqual([]);
 });

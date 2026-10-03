@@ -1,0 +1,106 @@
+id: recall-q01
+family: F1
+persona: Developer choosing a model for production work
+request: 'Choose the strongest model for a multi-day coding agent that edits a large repository.
+
+  '
+constraints:
+  class: generate
+  task: long-horizon repository editing by an agent
+  open_weights: false
+  price_cap_usd_per_million_input: null
+  hardware: null
+  context_tokens_at_least: null
+expected:
+  id: Q01
+  notes: 'No unique winner. Terminal-Bench 4.0 (board updated 2026-09-21) and Scale SWE-bench Pro
+    V2 hard name different leaders, and the hard tab does not publish the task count or intervals.
+    Official SWE-bench Verified on swebench.com has no September 2026 model; its newest rows are
+    from February 2026 and sit near 79% resolved. A result set whose leaders are only older models
+    is not supported while these rows exist.
+
+    '
+  acceptable:
+  - model_id: openai/gpt-6-astra
+    reason: 'Top Terminal-Bench 4.0 row, 58.18% with Codex at max effort (n=330), and 90.20 on SWE-bench
+      Pro V2 hard with Codex at high effort.
+
+      '
+    sources:
+    - url: https://www.tbench.ai/leaderboard
+      read: '2026-09-24'
+    - url: https://labs.scale.com/leaderboard/swe_bench_pro_public_v2
+      read: '2026-09-24'
+  - model_id: anthropic/claude-fable-5-1
+    reason: 'Terminal-Bench 4.0 57.88% with Claude Code at max effort, inside Astra''s published
+      interval, and 92.20 on SWE-bench Pro V2 hard.
+
+      '
+    sources:
+    - url: https://www.tbench.ai/leaderboard
+      read: '2026-09-24'
+    - url: https://labs.scale.com/leaderboard/swe_bench_pro_public_v2
+      read: '2026-09-24'
+  - model_id: anthropic/claude-opus-5
+    reason: 'Highest rendered SWE-bench Pro V2 hard score, 98.00 with Claude Code at xhigh effort.
+      On Terminal-Bench 4.0 its best row is 53.94 at xhigh, behind Astra and Fable 5.1.
+
+      '
+    sources:
+    - url: https://labs.scale.com/leaderboard/swe_bench_pro_public_v2
+      read: '2026-09-24'
+    - url: https://www.tbench.ai/leaderboard
+      read: '2026-09-24'
+  - model_id: anthropic/claude-sonnet-5
+    reason: 'SWE-bench Pro V2 hard 88.20, 1.8 points behind Astra on a tab that does not publish
+      an interval, so it is not separated from Astra there.
+
+      '
+    sources:
+    - url: https://labs.scale.com/leaderboard/swe_bench_pro_public_v2
+      read: '2026-09-24'
+  - model_id: moonshot/kimi-k3
+    reason: 'SWE-bench Pro V2 hard 88.20 with mini-swe-agent at max effort, tied with Sonnet 5 on
+      the rendered table.
+
+      '
+    sources:
+    - url: https://labs.scale.com/leaderboard/swe_bench_pro_public_v2
+      read: '2026-09-24'
+  must_never:
+  - model_id: openai/text-embedding-3-large
+    reason: An embedding model cannot edit a repository.
+    sources:
+    - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/openai/text-embedding-3-large.md
+      read: '2026-09-24'
+      note: Catalogue model_type is embedding-text at this commit.
+  - model_id: nvidia/nv-embed-v2
+    reason: An embedding model cannot edit a repository.
+    sources:
+    - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/nvidia/nv-embed-v2.md
+      read: '2026-09-24'
+      note: Catalogue model_type is embedding-text at this commit.
+  must_flag:
+  - model_id: anthropic/claude-opus-5-5
+    reason: 'MathArena lists a 2026-09-22 release. It has no row on the Terminal-Bench 4.0 board,
+      the SWE-bench Pro V2 hard table, the Arena snapshot published 2026-09-13, or Epoch''s GPQA
+      table.
+
+      '
+    sources:
+    - url: https://matharena.ai/models
+      read: '2026-09-24'
+    - url: https://www.tbench.ai/leaderboard
+      read: '2026-09-24'
+    - url: https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset
+      read: '2026-09-24'
+  missing_cards: []
+expected_source: tests/recall/expected.yaml#Q01
+sources:
+- tests/recall/questions.yaml#Q01
+- tests/recall/specs/Q01.yaml
+gaps: []
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.

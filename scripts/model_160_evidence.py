@@ -801,6 +801,9 @@ FILED_FIELDS = ("model_id_as_evaluated", "score", "unit", "evidence_date", "id",
 
 def rewrite_rows(path: Path, text: str, updates: list[tuple[tuple, dict]]) -> None:
     """Rewrite the filed fields of the card's evidence rows keyed by ``evidence_key``."""
+    from schema.benchmark_values import validate_card_rows
+
+    validate_card_rows(path, [row for _, row in updates])
     wanted = dict(updates)
 
     def update(match: re.Match[str]) -> str:
@@ -822,6 +825,9 @@ def rewrite_rows(path: Path, text: str, updates: list[tuple[tuple, dict]]) -> No
 
 
 def append_rows(path: Path, blocks: list[str]) -> None:
+    from schema.benchmark_values import validate_card_rows
+
+    validate_card_rows(path, yaml.safe_load("evidence:\n" + "".join(blocks))["evidence"])
     text = path.read_text(encoding="utf-8")
     start = text.index("\n  evidence:\n")
     end = re.compile(r"^(?:  [a-z]|[a-z])", re.M).search(text, start + len("\n  evidence:\n"))

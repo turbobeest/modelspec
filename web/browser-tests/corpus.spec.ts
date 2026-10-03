@@ -1,10 +1,11 @@
-import { expect, test, type Page, type Route } from "@playwright/test";
+import { expect, type Page, type Route } from "@playwright/test";
+import { test } from "./human-gate-fixtures";
 import { existsSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 // MODEL-203: the built decide page renders every answered corpus spec. The
-// vocabulary and /v1/decide are stubbed with what the engine answers for each
+// Worker gate is disabled; vocabulary and /v1/decide use the engine's answers for each
 // case (`python -m tests.corpus decisions --out DIR`), so a decision the page
 // cannot draw fails here rather than on modelspec.dev.
 const dir = resolve(process.env.MODELSPEC_CORPUS_DIR ?? fileURLToPath(new URL("../src/decide/__corpus__", import.meta.url)));
@@ -54,7 +55,7 @@ async function openBoard(page: Page) {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("");
-  await expect(page.getByRole("heading", { name: "Set what matters. Watch the field narrow." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Set what matters across any/all facets. Try a template as a fast track. Watch the field narrow." })).toBeVisible();
   await expect(page.getByText("The live answer will appear here.")).toHaveCount(0, { timeout: 15000 });
   return errors;
 }
@@ -68,6 +69,7 @@ for (const row of drawn) {
 
     await expect(page.getByLabel("Facet board answer")).toBeVisible();
     await expect(page.getByText(/invalid_response|Decision unavailable/)).toHaveCount(0);
+    await expect(page.getByRole("region", { name: "Manual lookups" })).toHaveCount(0);
     expect(errors, "uncaught page errors").toEqual([]);
 
     // No blank tables: every table drawn has rows, and every row says something.
@@ -90,6 +92,8 @@ async function applyTemplateThenReset(page: Page) {
   expect(template, "no template decision in the corpus").toBeTruthy();
   await stub(page, "repo", read(template!.file));
   await openBoard(page);
+  // The template card starts collapsed (MODEL-277).
+  await page.getByRole("button", { name: /Start from a template/ }).click();
   const templates = page.locator(".board-templates");
   await expect(templates.getByRole("button").first()).toBeVisible();
   await templates.getByRole("button").first().click();
@@ -99,7 +103,7 @@ async function applyTemplateThenReset(page: Page) {
 
 test("a template applies and Reset all runs", async ({ page }) => {
   await applyTemplateThenReset(page);
-  await expect(page.getByRole("heading", { name: "Set what matters. Watch the field narrow." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Set what matters across any/all facets. Try a template as a fast track. Watch the field narrow." })).toBeVisible();
 });
 
 test("the templates are offered again after Reset all", async ({ page }) => {

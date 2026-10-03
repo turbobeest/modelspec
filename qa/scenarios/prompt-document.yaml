@@ -1,0 +1,25 @@
+id: prompt-document
+family: F2
+persona: Technical writer
+request: 'Which model is best for this exact prompt?
+
+
+  Summarize faithfully: Service A retries requests three times. Service B has no retry policy. The
+  incident affected B only.'
+prompt: 'Summarize faithfully: Service A retries requests three times. Service B has no retry policy.
+  The incident affected B only.'
+constraints:
+  need: No invented causal links
+  no_training: true
+sources:
+- docs/decide-api.md#request
+gaps:
+- reason: The decide contract rejects free-text task and cannot evaluate or route this exact prompt.
+  suggested_fix: Add an opt-in prompt-to-Spec MCP tool with explicit extracted constraints and user-visible
+    uncertainty; benchmark prompt routing before promising prompt-specific quality.
+  source: decision/contract.py:parse_spec
+expected: null
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.

@@ -1,0 +1,26 @@
+id: template-high-volume
+family: F4
+persona: Engineer applying a published decision template
+request: Find a low-cost text model for many short assistant requests without ignoring response quality.
+constraints:
+  must:
+  - model.class = text-generator
+  prefer:
+    -offering.cost_per_task:
+      weight: 0.7
+      reason: At high volume, small differences in task cost dominate total spend.
+    chat_preference:
+      weight: 0.3
+      reason: Keep a quality signal so cheap but poor responses do not win by cost alone.
+  task_tokens:
+    input: 2000
+    output: 500
+sources:
+- registry/templates.yaml#high-volume
+template: high-volume
+expected: null
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.
+gaps: []

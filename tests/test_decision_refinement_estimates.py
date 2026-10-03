@@ -36,7 +36,7 @@ def _text_generator(mid: str) -> dict:
     return model(mid, facts=[
         fact("model", mid, "model.class", "text-generator"),
         fact("model", mid, "model.context_window", 128_000),
-        fact("model", mid, "model.weights_openness", "closed_weights"),
+        fact("model", mid, "model.weights_openness", "open_weights"),
         fact("model", mid, "model.input_modalities", ["text"]),
         fact("model", mid, "licence.user_cap", "unbounded"),
     ])

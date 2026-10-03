@@ -79,6 +79,26 @@ the Decision. See [Snapshot refresh](#snapshot-refresh).
 
 The body limit is 64 KiB.
 
+`400 invalid_spec` also carries an optional `error.recovery` array (MODEL-285).
+Each entry names a JSON path in `path`, describes the accepted shape in
+`accepted_shape`, and supplies a standalone minimal Spec in `example`, built
+from the facet registry. `guidance` explains how to retry. Unknown facet IDs
+include up to three `nearest_facet_ids`; an empty list means no close match.
+Recovery considers only the first five issues. `error.recovery_omitted` counts
+issues without a hint, including examples that failed validation. IDs longer
+than 64 characters skip the nearest-ID search. Echoed weight keys are limited
+to 80 characters. Paths use the same format as `issues[].path`, without a `$.`
+prefix, with weight keys and preference fields appended where applicable.
+Examples illustrate syntax and are not a translation of the caller's intent.
+For free-text `task`, translate the request into structured facets via MCP
+`vocab section=starter`, remove `task`, and retry. Decide takes structured
+facets only and does not evaluate exact prompts.
+
+The existing envelope, error code, message and `issues` fields are unchanged.
+Recovery is a new optional field, so MODEL-59 requires no major version bump.
+MCP advertises the same Spec schema and delegates input validation to the
+Worker so structural failures receive the same recovery body as API failures.
+
 ### Comparing snapshots
 
 `POST /v1/compare` runs one Spec against the current signed Snapshot and a
@@ -272,6 +292,7 @@ The Worker echoes the exact requesting origin from that list and handles its
 | 413 | `payload_too_large` | The JSON body exceeds 64 KiB. | Reduce the Spec below the documented body limit. |
 | 502 | `snapshot_unavailable` | The static Snapshot could not be fetched. | Retry after the static origin is healthy. |
 | 503 | `no_snapshot` | Pages has not published a complete signed Snapshot. | Retry after the `Retry-After` interval. `/v1/rank` remains available. |
+| 503 | `explanation_unavailable` | `evidence_for` was sent, and the loaded Snapshot predates retained verification records, so the drill-down cannot cite them. Only a bounded drill-down request can receive this code; the body carries `representation: bounded` and no `contract_version`. | Retry without `evidence_for`, or retry later against a rebuilt Snapshot. |
 | 503 | `snapshot_refused` | The Snapshot is unsigned, altered, or wrongly signed. | Fix the site build or Worker secret. Never retry as if this were a valid empty answer. |
 
 ## Access errors
@@ -285,10 +306,12 @@ closed decision-contract error enum and do not change its version. The
 |---|---|---|---|
 | 404 | `origin_not_allowed` | A browser preflight came from another origin. | Call from a permitted site origin or make a server-side request. |
 | 401 | `human_origin_required` | Keyless manual access requires a permitted site origin. | Use the paid API or MCP for machine access. |
+| 401 | `visit_token_expired` | The visit credential's sliding window expired. | Run managed Turnstile and retry once with the same intent. |
+| 401 | `visit_token_invalid` | The credential is invalid or belongs to another visitor or origin, with enforcement on. | Obtain a credential for this visit or use an API key. |
 | 403 | `human_challenge_required` | The Turnstile token is absent, invalid, expired or replayed. | Complete fresh verification before each lookup. |
 | 429 | `human_burst_limit` | Three distinct admitted intents in a rolling minute. | Wait for `Retry-After`, then verify again. |
 | 429 | `human_day_limit` | The daily allowance of 20 is spent. | Return after midnight UTC or use the paid API or MCP. |
-| 429 | `human_intent_limit` | This intent reached 32 requests or its 60-second window expired. | Start a new action with a fresh intent and human verification. |
+| 429 | `human_intent_limit` | This intent reached eight requests, its pace cap or its 60-second window expired. | Start a new action with a fresh intent. |
 | 429 | `human_sweep_limit` | Five distinct intents have four nearly equal intervals. | Wait for `Retry-After`, then verify again or use the paid API or MCP. |
 | 503 | `human_gate_unavailable` | Verification, identity configuration or storage is unavailable. | Retry verification after the service recovers. |
 

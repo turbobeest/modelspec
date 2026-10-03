@@ -1,0 +1,28 @@
+id: template-maths-reasoning-balanced
+family: F1
+persona: Engineer applying a published decision template
+request: Find an active text model strong on maths and multi-step reasoning without ignoring task
+  cost.
+constraints:
+  must:
+  - model.class = text-generator
+  - model.lifecycle = active
+  prefer:
+    maths:
+      weight: 0.4
+      reason: Prefer stronger evidence on objectively checked maths.
+    reasoning:
+      weight: 0.3
+      reason: Prefer stronger multi-step reasoning.
+    -offering.cost_per_task:
+      weight: 0.3
+      reason: Among strong reasoners, prefer the cheaper task.
+sources:
+- registry/templates.yaml#maths-reasoning-balanced
+template: maths-reasoning-balanced
+expected: null
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.
+gaps: []

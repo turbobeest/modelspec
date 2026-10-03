@@ -23,6 +23,7 @@ Three things are worth a test here, and they are not the prose.
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 
 import pytest
@@ -799,7 +800,7 @@ def test_the_decide_contract_refuses_its_free_text_task() -> None:
 IN_FORCE = {
     "terms": "Version `1.2`, effective 2026-09-30.",
     "neutrality": "Version `1.3`, effective 2026-09-30.",
-    "privacy": "Version `1.5`, effective 2026-09-30.",
+    "privacy": "Version `1.9`, effective 2026-10-03.",
 }
 
 
@@ -948,13 +949,119 @@ def test_the_access_model_wording_is_in_the_terms_neutrality_and_licence() -> No
     assert "delayed public image" in licence
 
 
-def test_the_privacy_statement_describes_the_keyed_visitor_id_and_the_gate_as_not_enabled() -> None:
-    """MODEL-249b: the visitor id is keyed and daily, and Turnstile is disclosed as off."""
+def test_the_privacy_statement_describes_the_keyed_visitor_id_and_the_gate_flag() -> None:
+    """The production gate flag and its current privacy disclosure must agree."""
+    import re
+
+    from pipeline.worker_flags import OFF_VALUES, production_vars
+
     assert "HMAC-SHA256(VISITOR_HMAC_KEY, IP | UTC day)" in FLAT_PRIVACY
     body = FLAT_PRIVACY.split("## Changes")[0]  # the Changes list keeps 1.3 as history
     assert "unsalted hash of an IP address" not in body
     assert "is replaced before x402" not in body
     assert "Cloudflare Turnstile" in FLAT_PRIVACY
-    assert "not yet enabled" in FLAT_PRIVACY
+    current = PRIVACY.split("## Changes", 1)[0]
+    live, not_live = current.split("## Not yet live", 1)
+    on = str(production_vars(REPO_ROOT).get("HUMAN_GATE_ENABLED", "false")).strip().lower() not in OFF_VALUES
+    if on:
+        assert "### The human gate on the decide page" in live, (
+            "the production human gate is on but its disclosure is not live")
+        assert "The human gate on the decide page" not in not_live
+        assert "not yet enabled" not in flat(current), (
+            "the production human gate is on but the statement still says it is off")
+    else:
+        gate = current.split("The human gate on the decide page", 1)[1]
+        gate = re.split(r"\n(?:#{2,3} |\- \*\*)", gate, maxsplit=1)[0]
+        assert "not yet enabled" in flat(gate), (
+            "the production human gate is off but the statement does not say so")
+    # Deploy-time vars must not bypass the production configuration check.
+    for workflow in (REPO_ROOT / ".github" / "workflows").glob("*.y*ml"):
+        assert not re.search(r"--var(?:=|\s+)HUMAN_GATE_ENABLED\b",
+                             workflow.read_text(encoding="utf-8")), workflow.name
     assert "`HUMAN_GATE_ENABLED`" in FLAT_PRIVACY
     assert "omit the optional `remoteip` parameter" in FLAT_PRIVACY
+
+
+def test_visit_gate_requires_adopted_v19_privacy_before_enabling() -> None:
+    """MODEL-292 ships off until Jamie adopts the visit credential disclosure."""
+    from pipeline.worker_flags import OFF_VALUES, production_vars
+
+    config = production_vars(REPO_ROOT)
+    for workflow in (REPO_ROOT / ".github" / "workflows").glob("*.y*ml"):
+        assert not re.search(r"--var(?:=|\s+)VISIT_GATE_ENABLED\b", workflow.read_text(encoding="utf-8")), workflow.name
+    if str(config.get("VISIT_GATE_ENABLED", "false")).strip().lower() in OFF_VALUES:
+        return
+    version = re.search(r"Version `(\d+)\.(\d+)`", PRIVACY)
+    assert version and tuple(map(int, version.groups())) >= (1, 9), "Visit gate requires adopted privacy v1.9"
+    live, not_live = PRIVACY.split("## Changes", 1)[0].split("## Not yet live", 1)
+    assert "### The visit gate on the decide page" in live, "Visit gate is on but disclosure is not live"
+    assert "The visit gate on the decide page" not in not_live
+    for wording in ("`VISIT_GATE_ENABLED`", "HMAC-SHA256", "`VISIT_TOKEN_HMAC_KEY`", "daily visitor id",
+                    "origin", "issued-at", "expiry", "30-minute sliding window", "memory", "no cookie",
+                    f"{config['VISIT_DECIDE_DAY_LIMIT']} questions per UTC day",
+                    f"{config['VISIT_DECIDE_BURST_LIMIT']} in a rolling minute",
+                    f"{config['VISIT_VOCABULARY_DAY_LIMIT']} vocabulary lookups per UTC day",
+                    f"{config['VISIT_VOCABULARY_BURST_LIMIT']} in a rolling minute"):
+        assert wording in flat(live), wording
+
+
+def test_the_privacy_statement_discloses_the_human_gate_question_storage() -> None:
+    """MODEL-270: question fingerprints and vocabulary share daily retention."""
+    # The disclosure is a section while the gate is on and a "Not yet live" item while it is off.
+    rest = PRIVACY.split("The human gate on the decide page", 1)[1]
+    gate = flat(re.split(r"\n## |\n- \*\*", rest, maxsplit=1)[0])
+    for claim in (
+        "random 128-bit intent id per action", "`x-modelspec-intent`",
+        "do not link them across days", "first-request time, request count",
+        "SHA-256 digests", "fixed fields, individual conditions, objective, capabilities and estate",
+        "flags", "first accepted plot and estate variants", "not encryption",
+        "No raw spec, caller-supplied fingerprint, token or raw IP is stored",
+        "vocabulary meter's day, count and recent request times",
+        "60 a day and 10 in a rolling minute", "eight requests including the first",
+        "60 seconds of admission", "does not delete the action's stored record",
+        "following UTC midnight", "delayed or retried alarm", "up to 30 days",
+    ):
+        assert claim in gate, claim
+    assert "holds no value derived from the spec" not in gate
+    assert "1.6, 2026-10-02" in FLAT_PRIVACY
+
+
+def test_disclosed_gate_records_persist_until_the_daily_alarm(monkeypatch) -> None:
+    """Inspect actual SQLite state, including after the continuation window closes."""
+    import asyncio
+    from types import SimpleNamespace
+
+    from tests.test_human_gate import Storage, human_gate_do
+
+    now = [10000]
+    monkeypatch.setattr(human_gate_do.time, "time", lambda: now[0])
+    storage = Storage()
+    obj = human_gate_do.HumanGateObject(SimpleNamespace(storage=storage), None)
+    intent = "A" * 22
+    spec = json.dumps({"spec_version": 1, "optimize": {"max": "swe_bench_pro"}})
+    assert asyncio.run(obj.take(intent, spec))["reason"] == ""
+    assert asyncio.run(obj.take_vocabulary())["reason"] == ""
+    now[0] += 60
+    assert asyncio.run(obj.continue_intent(intent, spec))["reason"] == "intent"
+    rows = {row["k"]: json.loads(row["v"]) for row in
+            storage.sql.exec("SELECT k, v FROM human_state").toArray()}
+    assert set(rows) == {"state", "vocabulary"}
+    assert rows["vocabulary"] == {"day": 0, "count": 1, "events": [10000]}
+    state = rows["state"]
+    assert set(state) == {"day", "count", "events", "intents"}
+    assert (state["day"], state["count"], state["events"]) == (0, 1, [10000])
+    action = state["intents"][intent]
+    assert set(action) == {"first", "requests", "question", "events"}
+    assert (action["first"], action["requests"], action["events"]) == (10000, 1, [10000])
+    question = action["question"]
+    assert set(question) == {"fixed", "where", "optimize", "capabilities", "estate",
+                             "no_estate", "estate_allowed", "plot"}
+    assert question["where"] == []
+    assert (question["no_estate"], question["estate_allowed"], question["plot"]) == (True, False, False)
+    for name in ("fixed", "optimize", "capabilities", "estate"):
+        assert len(question[name]) == 64
+        assert set(question[name]) <= set("0123456789abcdef")
+    assert "swe_bench_pro" not in json.dumps(rows)
+    assert storage.alarm_at == 86400000
+    asyncio.run(obj.alarm())
+    assert storage.sql.exec("SELECT name FROM sqlite_master WHERE name = 'human_state'").toArray() == []

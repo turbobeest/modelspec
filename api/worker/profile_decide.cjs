@@ -44,9 +44,9 @@ sys.path.insert(0, '/')
 from profile_decide import profile, profile_templates
 selected = json.loads(spec_json) if spec_json else None
 if selected and 'templates' in selected:
-    result = await profile_templates('/bundle', selected, runs=runs, snapshot_path=snapshot_path)
+    result = await profile_templates('/bundle', selected, runs=runs, snapshot_path=snapshot_path or None)
 else:
-    result = await profile('/bundle', runs=runs, snapshot_path=snapshot_path, spec=selected)
+    result = await profile('/bundle', runs=runs, snapshot_path=snapshot_path or None, spec=selected)
 result['runtime'] = 'Pyodide 0.28.3 / Python ' + sys.version.split()[0]
 json.dumps(result, indent=2)
 `);

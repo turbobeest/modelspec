@@ -227,6 +227,7 @@ def test_rule_based_must_flag_ignores_models_that_fail_another_condition() -> No
                 generator("lab/closed-unknown-context", "closed_weights"),
                 generator("lab/open-unknown-context", "open_weights"),
             ],
+            offerings=[offering("lab/closed-unknown-context")],
             sources=SOURCES,
         ),
         as_of=date(2026, 9, 26),

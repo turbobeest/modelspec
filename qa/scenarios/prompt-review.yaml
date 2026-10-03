@@ -1,0 +1,23 @@
+id: prompt-review
+family: F2
+persona: Security reviewer
+request: 'Which model is best for this exact prompt?
+
+
+  Review this endpoint for security defects: app.get("/file", (req,res) => res.sendFile(req.query.path));'
+prompt: 'Review this endpoint for security defects: app.get("/file", (req,res) => res.sendFile(req.query.path));'
+constraints:
+  need: Identify exploitable defects, not generate a patch
+  max_input_usd_per_million: 3
+sources:
+- docs/decide-api.md#request
+gaps:
+- reason: The decide contract rejects free-text task and cannot evaluate or route this exact prompt.
+  suggested_fix: Add an opt-in prompt-to-Spec MCP tool with explicit extracted constraints and user-visible
+    uncertainty; benchmark prompt routing before promising prompt-specific quality.
+  source: decision/contract.py:parse_spec
+expected: null
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.

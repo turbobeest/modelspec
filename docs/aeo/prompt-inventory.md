@@ -5,7 +5,14 @@
 * the schema is [`schemas/aeo-prompt-inventory-v1.schema.json`](../../schemas/aeo-prompt-inventory-v1.schema.json);
 * the loader and validator are `scripts/aeo/inventory.py`, run as `python -m scripts.aeo.inventory PATH [--coverage]`.
 
-The run half is a design, built by MODEL-256.
+The run half is built (MODEL-256): `scripts/aeo/engines.py` (one adapter per engine) and `scripts/aeo/visibility.py`, run as:
+
+```
+python -m scripts.aeo.visibility run --inventory PROMPTS --config ENGINES --out RUNS_DIR [--baseline DIR] [--dry-run]
+python -m scripts.aeo.visibility report RUN_DIR [--baseline DIR]
+```
+
+The config (models, `op://` key references, prices, the monthly cap), the prompts and every output live in the private business repository.
 
 AEO is measured per prompt, not per keyword. A prompt is the exact phrasing a buyer or an agent sends to an answer engine. A run is one execution of one prompt against one engine at one time.
 
@@ -43,25 +50,34 @@ Validation (`scripts/aeo/inventory.py`):
 
 ## Run
 
+One line of `RUNS_DIR/<date>/runs.jsonl`; the engine's full reply is kept beside it at `raw/<engine>/<prompt_id>.json`.
+
 ```yaml
 prompt_id: choose-coding-24gb
-engine: openai                  # openai | anthropic | perplexity | gemini | ...
-surface: api                    # api | ui_scrape — never mixed in one score
+cluster: constrained
+success_goal: cited             # the prompt's `success`
+engine: openai                  # openai | anthropic | perplexity | gemini
+surface: api                    # always api here; UI collection (MODEL-259) is labelled ui_scrape
 model_version: "<as reported by the engine>"
-collected_at: 2026-10-08T06:00:00Z
+collected_at: 2026-10-08T06:00:00+00:00
 answer_text: "<verbatim>"
-mentions:                       # alias matches for ModelSpec
-  - span: [120, 129]
-    accurate: true              # is the description consistent with the entity registry?
-    disambiguated: true         # false if the answer means OpenAI's Model Spec or the PyPI package
-    recommended: false          # true if the answer tells the reader to use ModelSpec
-citations:
-  - url: https://modelspec.dev/method/
-    domain: modelspec.dev
-    position: 1
-fanout_queries: []              # where the engine exposes them
-cost_usd: 0.004
+citations: [{url: https://modelspec.dev/method/, domain: modelspec.dev, title: "…"}]   # in cited order
+fanout_queries: ["…"]           # the searches the engine ran, where it exposes them
+searched: true                  # false when the engine answered from memory
+usage: {input_tokens: 15000, output_tokens: 700, searches: 2}
+cost_usd: 0.05                  # reported by the engine where it reports cost, else priced from the config
+detection:                      # heuristic, and labelled so in every report
+  mentioned: true               # modelspec.dev named or cited; OpenAI's Model Spec, CNCF ModelPack
+  cited: true                   #   and the PyPI package never count
+  cited_top3: true
+  recommended: false            # named in a sentence that tells the reader to use it
+  disambiguated: true
+  confused_with: []             # e.g. [openai-model-spec]
+  accurate: null                # judged later by a person or a judge, never guessed
+success: true                   # success_goal met
 ```
+
+A call that failed after retries is a row with `error` instead of `detection`. An engine that refuses outright (401, 403, 429) is recorded in `engines.json` with its reason, and the run continues on the others.
 
 ## Scores
 
@@ -75,4 +91,4 @@ API runs (`surface: api`) are cheaper and repeatable, but they are not what buye
 
 ## Budget guard
 
-The harness estimates a batch's cost before it starts, and refuses to start if the batch would cross the configured monthly cap. The cap value is configuration and lives with the private data, not here.
+Before an engine starts, the harness adds the month's recorded spend (every `cost_usd` in `RUNS_DIR/*/runs.jsonl` for the calendar month) to that engine's estimate (`est_call_usd` × prompts). If the sum would cross the configured monthly cap, the engine doesn't start. After every call, the run stops once the cap is reached. Engines run side by side, so the cap can be overshot by at most one call per engine. The cap is configuration, and lives with the private data, not here.

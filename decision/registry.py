@@ -46,6 +46,8 @@ SUBJECTS = ("model", "offering", "evidence")
 TIERS = ("guaranteed", "best_effort")
 RISKS = ("capability", "governance")
 KINDS = ("number", "enum", "boolean", "date", "set", "range", "string")
+#: Which way is better for a number facet (MODEL-297).
+BETTER = ("higher", "lower", "neither")
 PROVIDER_KINDS = ("lab_api", "cloud", "inference", "aggregator")
 SHOWN_BY = ("address", "incorporation", "governing_law")
 BASES = ("service_terms", "website_terms")
@@ -159,6 +161,10 @@ class Facet:
     value_labels: tuple[tuple[str, str], ...] = ()
     #: Values accepted by an enum preference. ``None`` means the set is open.
     preference_values: tuple[str, ...] | None = None
+    #: Which way is better for a number facet: ``higher``, ``lower``, or
+    #: ``neither`` when the facet has no inherent direction. ``None`` for every
+    #: other kind. Prefer minimises a ``lower`` facet (MODEL-297).
+    better: str | None = None
 
     def value_label(self, value: str) -> str | None:
         return dict(self.value_labels).get(value)
@@ -286,7 +292,12 @@ class Registry:
         self._refinements: Mapping[tuple[str, str], Refinement] = MappingProxyType(
             refinements or {}
         )
-        self._named_lists = named_lists
+        # A Registry describes one loaded checkout. File-backed vocabularies
+        # must not glob that checkout again for every parameterised facet.
+        self._named_lists = {
+            name: cache(producer) if producer is not None else None
+            for name, producer in named_lists.items()
+        }
         self._families: Mapping[str, Family] = MappingProxyType(families or {})
         self._harness_versions = frozenset(v for h in harnesses.values() for v in h.versions)
 
@@ -608,7 +619,7 @@ def _load_facets(err: _Errors, root: Path, units: Mapping, kinds: Mapping, lists
     required = {"id", "subject", "value_type", "definition", "tier", "risk", "permitted_source_kinds"}
     optional = {
         "unit", "parameter", "required_qualifiers", "computed_by", "addressable",
-        "label", "value_labels",
+        "label", "value_labels", "better",
     }
     out: dict[str, Facet] = {}
     for e in entries:
@@ -644,6 +655,14 @@ def _load_facets(err: _Errors, root: Path, units: Mapping, kinds: Mapping, lists
         if not isinstance(rq, list) or not all(isinstance(q, str) for q in rq):
             err.add(where, "required_qualifiers must be a list of names")
             rq = []
+        better = e.get("better")
+        if vt is not None and vt.kind == "number":
+            if better not in BETTER:
+                err.add(where, f"a number facet needs better: one of {', '.join(BETTER)}")
+                better = None
+        elif better is not None:
+            err.add(where, "better applies only to a number facet")
+            better = None
         addressable = e.get("addressable", True)
         if not isinstance(addressable, bool):
             err.add(where, "addressable must be true or false")
@@ -656,7 +675,7 @@ def _load_facets(err: _Errors, root: Path, units: Mapping, kinds: Mapping, lists
             tier=e.get("tier"), risk=e.get("risk"), permitted_source_kinds=tuple(psk),
             unit=e.get("unit"), parameter=parameter, required_qualifiers=tuple(rq),
             computed_by=e.get("computed_by"), addressable=addressable,
-            label=label, value_labels=value_labels,
+            label=label, value_labels=value_labels, better=better,
             preference_values=(
                 tuple(sorted(lists[vt.values_from]()))
                 if (
@@ -701,7 +720,7 @@ def _load_providers(err: _Errors, root: Path) -> dict[str, Provider]:
         field_ = e.get("v1_availability_field")
         if field_ is not None:
             if availability is None:
-                from schema.card import Availability, PlatformEntry
+                from schema.availability import Availability, PlatformEntry
                 availability = {n for n, f in Availability.model_fields.items() if f.annotation is PlatformEntry}
             if field_ not in availability:
                 err.add(where, f"v1_availability_field {field_!r} is not a platform field on Availability")

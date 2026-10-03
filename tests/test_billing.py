@@ -1248,7 +1248,16 @@ def test_checkout_always_asks_stripe_tax_for_a_billing_address():
 #: MODEL-105 added the form variant, captured from the unchanged Worker with
 #: the stub Stripe in `_patch_entry_fetch`. A JSON caller keeps getting this.
 JSON_CHECKOUT_GOLDEN_STATUS = 200
+# MODEL-291 adds discovery metadata to every /v1 response; body bytes stay pinned.
+from api.worker.src.agent_guide import GUIDE_URL, GUIDE_VERSION
+
+GUIDE_HEADERS = {
+    "Link": f'<{GUIDE_URL}>; rel="describedby"',
+    "x-modelspec-guide-version": GUIDE_VERSION,
+    "access-control-expose-headers": "Link, x-modelspec-guide-version",
+}
 JSON_CHECKOUT_GOLDEN_HEADERS = {
+    **GUIDE_HEADERS,
     "content-type": "application/json; charset=utf-8",
     "cache-control": "no-store",
     "x-modelspec-service-commit": "testsha",
@@ -1300,7 +1309,8 @@ def _json_checkout_through_entry(entry, headers: dict[str, str]):
 def test_a_json_checkout_is_byte_identical_to_before_the_form_variant(entry, headers):
     response, capture = _json_checkout_through_entry(entry, headers)
     assert response.status == JSON_CHECKOUT_GOLDEN_STATUS
-    assert response.headers == JSON_CHECKOUT_GOLDEN_HEADERS
+    assert {key: value for key, value in response.headers.items()
+            if key.lower() != "server-timing"} == JSON_CHECKOUT_GOLDEN_HEADERS
     assert response.body == JSON_CHECKOUT_GOLDEN_BODY
     assert capture["url"].startswith("https://api.stripe.com/")
 
@@ -1481,7 +1491,8 @@ def test_a_json_claim_is_byte_identical_to_before_the_html_page(entry, accept):
     first = _paid_then_claim(entry, accept)()
     key = first.json()["key"]
     assert first.status == 200
-    assert first.headers == CLAIM_GOLDEN_HEADERS
+    assert {key: value for key, value in first.headers.items()
+            if key.lower() != "server-timing"} == CLAIM_GOLDEN_HEADERS
     assert _mask(first.body, key) == CLAIM_GOLDEN_BODY
 
 

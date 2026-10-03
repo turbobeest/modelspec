@@ -4,6 +4,7 @@ import { contractCondition, toDecisionSpec } from "../adapter/view-model";
 import type { Axis } from "../state/spec";
 import { isCanvasAxisId } from "../components/canvas-axis";
 import type { CanvasAxisId } from "../components/canvas-axis";
+import { lowerIsBetter } from "../vocabulary";
 import type { VocabFacet, VocabRefinement, Vocabulary } from "../vocabulary";
 import { z } from "zod";
 
@@ -127,9 +128,7 @@ export function defaultFacetValue(facet: VocabFacet): FacetValue | undefined {
 
 export function defaultFacetOp(facet: VocabFacet): FacetSelection["op"] {
   if (facet.value_type === "number" || facet.value_type === "date") {
-    const lowerIsBetter = facet.id.includes("cost") || facet.id.includes("price") ||
-      facet.id.includes("time_to_first_token") || facet.id.includes("retention");
-    return lowerIsBetter && facet.operators.includes("<=") ? "<=" : ">=";
+    return lowerIsBetter(facet) && facet.operators.includes("<=") ? "<=" : ">=";
   }
   return facet.value_type === "set" && facet.operators.includes("in") ? "in" : "=";
 }
@@ -404,17 +403,18 @@ export function allocateBoardWeights(
   const normalized = { ...selections };
   const entries = Object.entries(selections).flatMap<[string, BoardWeight]>(([facetId, choice]) => {
     if (facetId.startsWith("refinement.")) return [];
+    const row = vocabulary.facets?.find((facet) => facet.id === facetId);
     const preference = facetId.startsWith("capability.")
       ? { kind: "continuous" as const }
-      : vocabulary.facets?.find((row) => row.id === facetId)?.preference;
+      : row?.preference;
     if (
       (choice.mode !== "prefer" && choice.mode !== "both") ||
       preference === null || preference === undefined
     ) return [];
+    // A leading `-` is how the engine minimises an objective (MODEL-297).
     const id = choice.weightKey ?? (facetId.startsWith("capability.")
       ? facetId.slice("capability.".length)
-      : facetId === "offering.cost_per_task" ? "-offering.cost_per_task"
-      : facetId === "offering.speed.time_to_first_token" ? "-offering.speed.time_to_first_token"
+      : row && preference.kind === "continuous" && lowerIsBetter(row) ? `-${facetId}`
       : facetId);
     const weight = choice.weight ?? 0.5;
     if (preference.kind === "value") {

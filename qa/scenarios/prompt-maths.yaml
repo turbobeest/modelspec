@@ -1,0 +1,22 @@
+id: prompt-maths
+family: F2
+persona: Mathematics tutor
+request: 'Which model is best for this exact prompt?
+
+
+  Prove that for positive a,b,c with abc=1, a+b+c >= 3, explaining equality.'
+prompt: Prove that for positive a,b,c with abc=1, a+b+c >= 3, explaining equality.
+constraints:
+  need: Correct proof at school level
+sources:
+- docs/decide-api.md#request
+gaps:
+- reason: The decide contract rejects free-text task and cannot evaluate or route this exact prompt.
+  suggested_fix: Add an opt-in prompt-to-Spec MCP tool with explicit extracted constraints and user-visible
+    uncertainty; benchmark prompt routing before promising prompt-specific quality.
+  source: decision/contract.py:parse_spec
+expected: null
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.

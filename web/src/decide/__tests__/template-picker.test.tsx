@@ -6,6 +6,11 @@ import { realBaseSpec, vocabularySchema } from "../vocabulary";
 import type { Vocabulary } from "../vocabulary";
 import refinementVocabularyJson from "../__fixtures__/vocabulary-refinements.json";
 import { realVocabulary } from "./vocab-fixtures";
+import { availableTemplates } from "../facet-board/templates";
+
+// The fixture is the production vocabulary: 28 of 40 templates are available,
+// no Fastest template is, and no EU-only data template is.
+const offered = availableTemplates(realVocabulary);
 
 const emptyEstate = { providers: [], plans: [], hardware: [] };
 const refinements = vocabularySchema.parse(refinementVocabularyJson).refinements;
@@ -26,18 +31,23 @@ function board(vocabulary: Vocabulary = realVocabulary) {
   return { onSpec, onCanvasAxes, bar: () => screen.getByRole("button", { name: /Start from a template/ }) };
 }
 
-it("opens by default and names the action when collapsed or expanded", () => {
+it("starts collapsed and names the action when collapsed or expanded", () => {
   const { bar } = board();
-  expect(bar()).toHaveAttribute("aria-expanded", "true");
-  expect(bar()).toHaveAccessibleName("Start from a template Hide templates");
+  expect(offered).toHaveLength(28);
+  expect(bar()).toHaveAttribute("aria-expanded", "false");
+  expect(bar()).toHaveAccessibleName("Start from a template Show all 28 templates");
   const panel = document.getElementById(bar().getAttribute("aria-controls")!)!;
+  expect(panel).not.toBeVisible();
+  expect(screen.queryByRole("button", { name: /^Coding · Budget:/ })).not.toBeInTheDocument();
+
+  fireEvent.click(bar());
+  expect(bar()).toHaveAttribute("aria-expanded", "true");
   expect(panel).toBeVisible();
+  expect(bar()).toHaveAccessibleName("Start from a template Hide templates");
 
   fireEvent.click(bar());
   expect(bar()).toHaveAttribute("aria-expanded", "false");
   expect(panel).not.toBeVisible();
-  expect(screen.queryByRole("button", { name: /^Coding · Budget:/ })).not.toBeInTheDocument();
-  expect(bar()).toHaveAccessibleName(`Start from a template Show all ${realVocabulary.templates!.length} templates`);
 
   fireEvent.click(bar());
   expect(bar()).toHaveAttribute("aria-expanded", "true");
@@ -47,11 +57,12 @@ it("opens by default and names the action when collapsed or expanded", () => {
 
 it("names the applied template in the bar, and Reset all returns to the bar without it", () => {
   const { bar } = board();
+  fireEvent.click(bar());
   const cell = screen.getByRole("button", { name: /^Coding · Budget:/ });
   cell.focus();
   fireEvent.click(cell);
   expect(bar()).toHaveAttribute("aria-expanded", "false");
-  expect(bar()).toHaveAccessibleName(`Start from a template Applied: Coding · Budget Show all ${realVocabulary.templates!.length} templates`);
+  expect(bar()).toHaveAccessibleName("Start from a template Applied: Coding · Budget Show all 28 templates");
   // The cell unmounted; focus lands on the bar that names the result.
   expect(bar()).toHaveFocus();
 
@@ -69,48 +80,49 @@ it("names the applied template in the bar, and Reset all returns to the bar with
   expect(screen.getByRole("button", { name: /^Coding · Budget:/ })).toBeVisible();
 });
 
-it("reaches every template by its category row and tier column, from the data", () => {
-  board();
+it("reaches every available template by its category row and tier column, from the data", () => {
+  const { bar } = board();
+  fireEvent.click(bar());
   const categories = realVocabulary.template_categories!;
   const tiers = realVocabulary.template_tiers!;
   const [byUse, byConstraint] = screen.getAllByRole("table");
   expect(within(byUse).getByText("By use")).toBeInTheDocument();
   expect(within(byConstraint).getByText("By constraint")).toBeInTheDocument();
-  expect(within(byUse).getAllByRole("columnheader").slice(1).map((cell) => cell.textContent)).toEqual(
-    tiers.map((tier) => tier.name),
-  );
+  const columns = (table: HTMLElement) => within(table).getAllByRole("columnheader").slice(1).map((cell) => cell.textContent);
+  // No Fastest column: no Fastest template is available. No Private column under constraints: none exists.
+  expect(columns(byUse)).toEqual(["Best available", "Balanced", "Budget", "Private / self-hosted"]);
+  expect(columns(byConstraint)).toEqual(["Best available", "Balanced", "Budget"]);
 
-  for (const template of realVocabulary.templates!) {
+  for (const template of offered) {
     const category = categories.find((row) => row.id === template.category)!;
     const tier = tiers.find((row) => row.id === template.tier)!;
     const table = category.kind === "use" ? byUse : byConstraint;
     const row = within(table).getByRole("rowheader", { name: new RegExp(`^${category.name.replace(/[()]/g, "\\$&")}`) }).closest("tr")!;
-    const column = tiers.indexOf(tier) + 1;
-    const cell = row.children[column] as HTMLElement;
-    const subject = `${category.name} · ${tier.name}`;
-    if (template.available) {
-      expect(within(cell).getByRole("button")).toHaveAccessibleName(`${subject}: ${template.tradeoff}`);
-    } else {
-      expect(within(cell).getByRole("group")).toHaveAccessibleName(`${subject}: not available on this snapshot`);
-    }
+    const cell = row.children[columns(table).indexOf(tier.name) + 1] as HTMLElement;
+    expect(within(cell).getByRole("button")).toHaveAccessibleName(`${category.name} · ${tier.name}: ${template.tradeoff}`);
   }
-  // Counts come from the same rows: "4 of 5 ready" for Coding, whose Fastest tier has no speed data.
-  expect(screen.getByRole("rowheader", { name: /^Coding/ })).toHaveTextContent("4 of 5 ready");
-  expect(byUse).toHaveTextContent("6 categories · 30 templates");
-  expect(byConstraint).toHaveTextContent("3 categories · 10 templates");
+  expect(screen.getAllByRole("button", { name: / · .+: / })).toHaveLength(28);
 });
 
-it("keeps an unavailable template on the grid with its reason instead of a button", () => {
-  board();
-  const fastest = screen.getByRole("group", { name: "Coding · Fastest: not available on this snapshot" });
-  expect(fastest).toHaveTextContent("No offering has a known Output throughput yet");
-  expect(within(fastest).queryByRole("button")).not.toBeInTheDocument();
-  expect(screen.getByRole("group", { name: "EU-only data · Best available: not available on this snapshot" }))
-    .toHaveTextContent("No offering passes: Inference region in the EU");
+it("offers only what this snapshot can answer: no unavailable cells, empty columns, empty rows or counts", () => {
+  const { bar } = board();
+  fireEvent.click(bar());
+  const panel = document.getElementById(bar().getAttribute("aria-controls")!)!;
+  expect(within(panel).queryByText(/Not available/)).not.toBeInTheDocument();
+  expect(within(panel).queryByText(/not available on this snapshot/)).not.toBeInTheDocument();
+  expect(within(panel).queryByRole("columnheader", { name: "Fastest" })).not.toBeInTheDocument();
+  expect(within(panel).queryByRole("rowheader", { name: /^EU-only data/ })).not.toBeInTheDocument();
+  expect(panel).not.toHaveTextContent(/\d+ of \d+ ready|categories · \d+ templates/);
+});
+
+it("hides the card when no template is available", () => {
+  board({ ...realVocabulary, templates: realVocabulary.templates!.map((template) => ({ ...template, available: false })) });
+  expect(screen.queryByRole("button", { name: /Start from a template/ })).not.toBeInTheDocument();
 });
 
 it("applies a subcategory as a Prefer on that refinement beside the tier's weights", () => {
   const { onSpec, bar } = board({ ...realVocabulary, refinements });
+  fireEvent.click(bar());
   const select = screen.getByRole("combobox", { name: "Coding subcategory" });
   // Only refinements with measured evidence are offered; Rust is not measured in this fixture.
   expect(within(select).queryByRole("option", { name: /Rust/ })).not.toBeInTheDocument();
@@ -129,7 +141,8 @@ it("applies a subcategory as a Prefer on that refinement beside the tier's weigh
 });
 
 it("sets both canvas axes from the template it applies", () => {
-  const { onCanvasAxes } = board();
+  const { onCanvasAxes, bar } = board();
+  fireEvent.click(bar());
   fireEvent.click(screen.getByRole("button", { name: /^Long documents · Balanced:/ }));
   expect(onCanvasAxes).toHaveBeenLastCalledWith({ x: "facet:model.context_window", y: "capability:writing" });
   for (const template of realVocabulary.templates!) {
@@ -146,7 +159,8 @@ it("lists templates flat when the vocabulary predates categories", () => {
       ...template, category: undefined, tier: undefined, tradeoff: undefined, canvas: undefined,
     })),
   };
-  board(legacy);
+  const { bar } = board(legacy);
+  fireEvent.click(bar());
   expect(screen.queryByRole("table")).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: /Coding agent on a budget/ })).toBeVisible();
 });

@@ -68,7 +68,7 @@ jobs:
             --changed-files "$RUNNER_TEMP/changed-files.txt" \
             --labels-json "$PR_LABELS"
 
-      - name: Load merge-base recall baseline
+      - name: Load merge-base frozen-image engine baseline
         run: |
           MERGE_BASE="$(git merge-base \
             "${{ github.event.pull_request.head.sha }}" \
@@ -108,8 +108,8 @@ jobs:
           PY
           fi
 
-      - name: Run PR accuracy layers
-        # Layers 1, 3, 5 (recall limit), and 6. The harness publishes both formats.
+      - name: Run PR accuracy and frozen-image engine recall
+        # Layers 1, 3, 5 (frozen-image engine recall), and 6. The harness publishes both formats.
         run: |
           python scripts/accuracy.py --profile pr \
             --approved-recall-baseline "$RUNNER_TEMP/approved-recall-baseline.json" \

@@ -412,6 +412,111 @@ Pywrangler owns `python_modules/` and recreates it from `pylock.toml` before
 path. Repository packages belong under `src/`; putting them in
 `python_modules/` loses them on the next sync.
 
+## Measuring latency (MODEL-283)
+
+`qa/latency_probe.py` measures DNS, TCP connect, TLS, TTFB, total duration,
+encoded and decoded response bytes, `Server-Timing`, and the `cf-ray` colo.
+Install `brotli` for its default `br, gzip` negotiation, or select `--encoding
+gzip`. The only credential it reads is `MODELSPEC_API_KEY`, when set. It runs
+keyless where the deployment permits anonymous callers and records HTTP
+refusals as statuses. It saves no request bodies, response bodies or keys.
+
+```sh
+python qa/latency_probe.py --count 30 --output /tmp/latency.json
+```
+
+`--shapes /tmp/shapes.json` accepts a list of `{name, path, method, body}`
+objects for reproducing other request shapes. Use anonymous names and keep
+private manifests outside the repository. Each sample opens a new connection.
+The report retains the first call and separately aggregates later calls. A
+first call is not proof of a cold isolate. The manual-only **API latency
+probe** workflow runs generic public shapes on a GitHub runner and uploads
+only measurement metadata.
+
+Snapshot `Server-Timing` measures I/O, not synchronous compute: the
+[Workers clock freezes between I/O operations](https://developers.cloudflare.com/workers/runtime-apis/performance/).
+Subtracting it from TTFB does not isolate CPU time; that remainder includes
+network transit and isolate startup. Use `scripts/profile_decide.py` and
+`api/worker/profile_decide.cjs` for compute attribution and response-hash
+comparisons under the pinned runtime.
+
+Bundled rank exports and candidate records now join the decision snapshot in
+deployment initialization. A fetched export prepares its candidate records
+once per refresh. Explanation drivers materialise on first use per model and
+dimension. Neither cache changes ranking or decision response fields.
+Every body-bearing route negotiates Brotli or gzip through workerd's
+[automatic response encoding](https://developers.cloudflare.com/workers/runtime-apis/response/),
+including refusals. No Python compression package is deployed.
+
+### Cold isolates and snapshot preparation (MODEL-283, part 2)
+
+Every HTTP response now includes `isolate;desc="cold"` for the first request
+attempt in an isolate, or `isolate;desc="warm"` for subsequent requests.
+The first request claims the marker before awaiting anything, so concurrent
+requests cannot both claim it. Health checks and refusals consume it too.
+Existing snapshot timing, CORS and compression headers survive. Response
+bodies are unchanged. The latency probe groups TTFB by this observed state;
+its older `warm_total_ms` field still means all samples after the first call
+and is not proof that those calls reached warm isolates.
+
+Cold responses also carry
+`startup;desc="runtime restore unobservable from Python"`. This deliberately
+has no `dur`. Python code begins after runtime initialization and restoration;
+it cannot time those phases. A deployment timestamp stored in the memory
+snapshot would measure the age of the deployment, and synchronous timers in
+production would report zero. Neither is a startup measurement.
+
+Cloudflare [executes the entry module and its top-level imports during
+deployment](https://developers.cloudflare.com/workers/languages/python/how-python-workers-work/)
+and captures WebAssembly memory after that execution. Decision parsing,
+indexing, the registry, and rank preparation already used this path in #492.
+Vocabulary decoding and JSON parsing now use it too. Full vocabulary responses
+retain the original UTF-8 text, including spacing and key order; lookups use
+the prepared JSON object. The decision imports only the shared evidence and
+availability schemas instead of constructing every model-card schema.
+Malformed bundled vocabulary UTF-8/JSON or candidate JSON fails deployment
+snapshot creation at import. Hardware remains optional: a missing or malformed
+hardware bundle is prepared as `None`, and requests naming a device are refused
+as `unknown_hardware`. Timing decoration passes a null body for HEAD, 204 and
+304 responses, including OPTIONS preflights.
+
+For compute attribution, build a **public fixture** with a synthetic signing
+key, then run the Node probe and memory gate from the repository root:
+
+```sh
+MODELSPEC_SNAPSHOT_KEY=model247-memory-fixture-key python api/worker/vendor.py --data-dir . --check
+NODE_PATH=/tmp/model283-probe/node_modules node api/worker/profile_decide.cjs api/worker/src /tmp/startup.json
+NODE_PATH=/tmp/model283-probe/node_modules node --expose-gc api/worker/measure_memory.cjs api/worker/src
+```
+
+Install `pyodide@0.28.3` in `/tmp/model283-probe` first. The startup report
+separates runtime and package loading from exclusive JSON parse, snapshot
+index, registry and rank preparation times. Compare revisions against the
+**same generated bundle data**, including build timestamps, and compare
+response hashes. Run performance probes without concurrent builds or tests.
+Standalone Node Pyodide does not restore a Cloudflare deployment snapshot.
+The memory probe transfers file buffers into MEMFS and collects unreachable
+runtime/package setup allocations before measuring application imports and
+requests. It runs decide, vocabulary, rank with `limit: 100`, and policy-check
+without intervening collections, then collects once to measure retained memory.
+Its peak excludes discarded harness setup allocations. Gates remain 120 MiB
+steady and 112 MiB sampled peak; the latter still emits a warning in CI.
+
+`api/worker/instrument_startup.py /tmp/model283-startup` creates a separate
+local-only timing build and configuration. Use `wrangler dev --local` with
+that config. It imports the application inside the first request so workerd's
+local request clock is active and logs only `[model-283-startup]` phase
+durations. This intentionally measures application initialization **without**
+the deployment snapshot; normal `dev` initializes it before readiness. The
+instrumented source never enters the production build. Neither mode measures
+Cloudflare's deployment-specific snapshot transfer and restore.
+
+[Placement](https://developers.cloudflare.com/workers/configuration/placement/)
+reduces round trips to upstream services; bundled rank and decide have no
+export fetch to move closer to. It is not an instance keepalive. The pinned
+Wrangler schema has no minimum-instances setting. Placement and account
+settings are unchanged.
+
 ## Known limits
 
 * One isolate holds the whole 2.2 MB catalogue in memory after parsing it. At

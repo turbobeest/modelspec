@@ -53,13 +53,17 @@ def fact(subject_kind, subject_id, facet, value, *, state="known", source="src-l
 
 
 def model(mid, *, lifecycle="active", facts=None, context=128000):
+    """A synthetic model with a verified self-host route unless facts override it."""
     base = [
         fact("model", mid, "model.context_window", context),
-        fact("model", mid, "model.weights_openness", "closed_weights"),
+        fact("model", mid, "model.weights_openness", "open_weights"),
         fact("model", mid, "model.input_modalities", ["image", "text"]),
         fact("model", mid, "licence.user_cap", "unbounded"),
     ]
-    return {"id": mid, "lifecycle": lifecycle, "facts": base if facts is None else facts}
+    records = base if facts is None else list(facts)
+    if not any(row["facet"] == "model.weights_openness" for row in records):
+        records.append(fact("model", mid, "model.weights_openness", "open_weights"))
+    return {"id": mid, "lifecycle": lifecycle, "facts": records}
 
 
 def offering(mid, provider="lab-api", *, price=3.0, batch="not_offered", facts=None):
@@ -142,14 +146,15 @@ def loaded_index(
     evidence_rows: dict[tuple[str, str], tuple[EvidenceValue, ...]] | None = None,
     extras: dict[str, dict[str, object]] | None = None,
     benchmark_domains: dict[str, list[tuple[str, str]]] | None = None,
+    hosted: bool = False,
 ) -> LoadedSnapshot:
-    """Build the real snapshot index from compact test rows."""
+    """Build compact test rows with open weights unless the row specifies otherwise."""
     lifecycle = lifecycle or {}
     all_rows = {**rows, **(extras or {})}
     models = []
     for mid, values in all_rows.items():
         records = []
-        for facet_id, raw in values.items():
+        for facet_id, raw in {"model.weights_openness": "open_weights", **values}.items():
             value = raw if isinstance(raw, FactValue) else FactValue("known", raw)
             stored = value.value.isoformat() if isinstance(value.value, date) else value.value
             records.append(fact(
@@ -192,6 +197,7 @@ def loaded_index(
 
     inputs = SnapshotInputs(
         models=models,
+        offerings=[offering(mid) for mid in all_rows] if hosted else [],
         evidence=evidence_records,
         sources=SOURCES,
         benchmark_domains=benchmark_domains or {},

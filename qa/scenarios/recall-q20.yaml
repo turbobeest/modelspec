@@ -1,0 +1,60 @@
+id: recall-q20
+family: F1
+persona: Developer choosing a model for production work
+request: Choose a speech recognition model for transcription.
+constraints:
+  class: speech_to_text
+  task: transcription
+  language: unspecified
+  streaming: unspecified
+  audio_length: unspecified
+expected:
+  id: Q20
+  notes: 'Language, streaming and audio length are unspecified. The allowed boards do not publish
+    a general transcription comparison. The Open ASR results dataset on Hugging Face has no licence
+    field, so its word-error figures were not used. The accurate decision is to refuse to name a
+    model. Any speech-to-text model may still qualify once the missing constraints are known.
+
+    '
+  acceptable:
+  - rule: do not name a transcription model
+    reason: 'The question leaves language, streaming and duration open, and no licensed independent
+      transcription board was used.
+
+      '
+    sources:
+    - url: https://huggingface.co/api/datasets/hf-audio/open-asr-leaderboard-results
+      read: '2026-09-24'
+      note: Dataset card has no licence field. Scores from it were not used.
+  must_never:
+  - model_id: openai/gpt-6-astra
+    reason: A text model with a token context window, not a speech recognizer.
+    sources:
+    - url: https://developers.openai.com/api/docs/models/gpt-6-astra
+      read: '2026-09-24'
+  - model_id: openai/text-embedding-3-large
+    reason: An embedding model does not transcribe audio.
+    sources:
+    - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/openai/text-embedding-3-large.md
+      read: '2026-09-24'
+  must_flag:
+  - rule: any model whose class is speech-to-text
+    reason: The question does not say which language, latency or audio length, so none of them can
+      be dropped.
+    sources:
+    - url: https://huggingface.co/api/datasets/hf-audio/open-asr-leaderboard-results
+      read: '2026-09-24'
+  missing_cards: []
+expected_source: tests/recall/expected.yaml#Q20
+sources:
+- tests/recall/questions.yaml#Q20
+- tests/recall/specs/Q20.yaml
+gaps:
+- reason: no transcription domain is registered, and language, streaming, and audio length are unspecified.
+  suggested_fix: Publish a dedicated facet or measured capability, or expose a clarification tool
+    before deciding.
+  source: tests/recall/specs/Q20.yaml
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.

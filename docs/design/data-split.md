@@ -465,6 +465,12 @@ model/plan IDs and display names. Model names come from non-retired current mode
 archived private models are omitted because the page does not need them to draw.
 Plan rows contain only `id`, `provider` and `name`. They contain no price,
 allowance, surface coverage, facet value count or model count.
+Facet rows carry the registry's per-facet metadata: `id`, `label`,
+`definition`, `subject`, `value_type`, `unit`, `unit_definition`, `operators`,
+`objective`, `preference`, `better`, `risk`, `computed_by` and `literals`.
+`better` (MODEL-297) is `higher`, `lower` or `neither` on a number facet and
+absent on every other kind. It says which way is better for the facet as a
+whole, from `registry/facets.yaml`, so it is metadata and not a per-model fact.
 The allowed aggregate fields are template `available` booleans, per-facet
 `has_data` booleans, per-enum-value `has_data` booleans, refinement IDs/names
 and their static definitions and aggregate `thin` boolean, and benchmark
@@ -479,13 +485,41 @@ individual model scores, counts and per-model facts remain excluded.
 The page hides statistics absent from this response and requests current facts
 through the existing decision API. No fresh vocabulary file is published on
 modelspec.dev. With `HUMAN_GATE_ENABLED`, the same keyed visitor Durable Object
-meters vocabulary separately at 60 requests per UTC day and 10 per minute.
-Successful responses use `Cache-Control: private, max-age=3600` for browser
-session reuse. The generated OpenAPI documents this route only with `DATA_SPLIT_ENABLED=true`.
+meters vocabulary separately at 60 requests per UTC day and 10 per minute, and
+successful responses use `Cache-Control: private, max-age=3600` for browser
+session reuse. With `VISIT_GATE_ENABLED` (MODEL-292) the visit gate replaces
+that: an API key takes precedence, otherwise a valid visit token admits a page
+caller against the separate visit vocabulary allowance (`VISIT_VOCABULARY_*`,
+60 per UTC day and 10 per minute by default). Every response then carries
+`Cache-Control: no-store`, because an admitted one returns a renewed credential;
+GET, HEAD and query variants are gated alike. See
+[`docs/human-gate.md`](../human-gate.md). The generated OpenAPI documents this route only with `DATA_SPLIT_ENABLED=true`.
 The committed flag-off OpenAPI remains byte-identical to main. MCP `model_info`
 currently fetches the full trimmed vocabulary on each call and selects one
 model display row. This is acceptable for now; it does not fetch a bulk model
 card or bypass the vocabulary cap.
+
+MODEL-280 keeps the no-query HTTP response byte-identical for the decide page.
+MCP `vocab` explicitly opts into a compact lookup and defaults to `starter`.
+The lookup accepts `section`, `search`, `id`, `ids`, `detail`, `offset` and
+`limit` on HTTP and MCP. Search matches IDs and labels or display names by
+case-insensitive substring. Compact pages hold at most 20 rows; `offset` skips
+matching rows and an empty page ends the list. IDs select exact rows and return
+their full display details; `detail=full` returns every row in the section.
+IDs are combined by union and intersected with search. Full detail and IDs
+bypass pagination. MCP also compacts full responses from an older Worker
+during an independent rollout. Unknown IDs and searches with no match return an empty
+section. Invalid sections, detail flags or pagination bounds return 400.
+
+Starter ranks registered facets by the number of template specs that use each
+facet, counting once per spec and breaking ties by ID. The 40 templates use
+11 facets today, so all 11 appear; the maximum is 15. Compact facets publish
+`id`, `label`, the definition's first sentence, `value_type`, `better` on a
+number facet, and finite `allowed_values`, plus special `literals` where present. Models and providers
+publish IDs and display names only. Other row sections publish IDs and names;
+compact coverage is empty and compact estate contains provider/device IDs.
+Full display details remain inside the MODEL-247 trim. No lookup adds counts,
+numeric facet ranges, sparse benchmark ranges or per-model facts.
 
 Only Worker jobs read private inputs. Public PR checks remain credential-free.
 Missing private credentials, input or signing keys fail before deployment.
@@ -514,12 +548,17 @@ between enabled and disabled builds at the same build identity.
 
 `api/worker/measure_memory.cjs` uses the Worker's pinned Pyodide 0.28.3 runtime.
 The real request loads the full signed corpus including its archive. The probe
-makes one real Worker decide call and one
-vocabulary call, and samples combined V8 heap and external memory and allocated
+makes real Worker decide and vocabulary calls, a rank call with `limit: 100`,
+and a policy-check call that populates the policy catalogue cache. It samples
+combined V8 heap and external memory and allocated
 WebAssembly memory. Snapshot verification hashes canonical JSON in 4 KiB chunks, avoiding two
 full-size temporary copies while preserving the wire format, content hash and
-signature checks. The Worker does not delete native libraries. The probe performs one explicit V8 garbage collection at the end, after one
-decide and one vocabulary call. Steady memory is the full allocated WebAssembly
+signature checks. The Worker does not delete native libraries. The probe
+transfers source buffers into MEMFS without a second copy and collects
+unreachable runtime/package setup allocations before sampling Worker imports.
+It performs no explicit V8 collection between imports and the four requests.
+One final collection measures retained memory with all caches populated.
+Steady memory is the full allocated WebAssembly
 memory plus live non-Wasm V8 heap/external memory after that collection, with
 the Wasm buffer counted once. Enabled private deploys fail above 120 MiB steady
 memory, leaving 8 MiB below 128 MiB; a noisy peak above 112 MiB only warns.
@@ -532,11 +571,23 @@ intact. Deploy probes use private data.
 The schedule runs no job when the split is off. Pip/uv caches retain their
 original flag-off behavior and are disabled for private builds. MCP does not
 pass an empty data-split variable when the repository variable is unset.
-The active premier-sentinel probe measured 103.42 MiB steady
+The original two-route active premier-sentinel probe measured 103.42 MiB steady
 (108,441,889 bytes) and 108.81 MiB noisy peak (114,097,037 bytes), with
 59.875 MiB of allocated WebAssembly memory. These measurements are also
 recorded in the PR report. This is a local runtime
 probe, not Cloudflare isolate telemetry.
+
+MODEL-283's review follow-up exercised all four routes on a fresh signed public
+fixture. Three quiet runs measured 103.413 MiB steady at most and sampled peaks
+of 106.970, 104.121 and 106.948 MiB, with the same 59.875 MiB Wasm allocation.
+The original two-route probe on that identical bundle produced peaks of
+105.277, 115.574 and 117.120 MiB. Its earlier 116.81 MiB reading was 8.00 MiB
+above the documented 108.81 MiB baseline, while steady memory and Wasm remained
+stable. Transferring source buffers and collecting discarded harness setup
+allocations before Worker sampling reduces that transient V8 overhead. This
+revises setup allocation accounting; the lower peak is not evidence of reduced
+Cloudflare isolate memory. All four-route runs remain below the unchanged
+120 MiB steady and 112 MiB peak thresholds, with no intervening collections.
 
 Jamie enables the split in this order:
 

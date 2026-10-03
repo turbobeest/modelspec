@@ -1,62 +1,82 @@
-# Recall baseline gate (MODEL-160)
+# Frozen-image engine recall gate
 
-`scripts/recall_run.py` remains a report generator. The pull request accuracy
-profile compares its verdicts with `baseline.json` and gates changes. The
-baseline created on 2026-09-25 is 4 pass, 6 partial, and 10 fail.
+Jamie decided on 2026-10-01, Q04 option b, that recall's approved answers are
+judged against the private data production serves. Private CI has its own
+baseline at `reports/recall/baseline.json`. The public accuracy profile runs
+recall as an engine regression test against the frozen public image.
+`tests/recall/baseline.json` records that image's verdicts. It does not amend
+`expected.yaml`, whose approved answers remain Jamie's decision.
 
-The allowed transitions only raise the recorded minimum:
+## Comparison and baseline changes
 
-- `pass` may stay `pass`.
-- `partial` may stay `partial` or become `pass` after the baseline is updated.
-- `fail` may stay `fail` or improve after the baseline is updated.
+The current run must match every proposed baseline verdict. A regression fails
+until the contributor fixes it or records a justified frozen-image change.
+An improvement also fails until the contributor records the higher verdict.
+Missing questions fail. The nightly accuracy profile reports the same
+comparison without gating its run.
 
-A regression fails the pull request accuracy profile. Its report identifies the
-question, the verdict transition, and whether the current finding came from
-missing data or engine behavior. An improvement also fails until the contributor
-records the higher verdict. The failure prints the update command.
+CI also compares the proposed baseline with the pull request's Git merge-base
+baseline. Lowering a verdict requires a non-empty `frozen_image_reason` for
+that question, newly added or changed from the merge base. An existing reason
+cannot excuse another decrease. The reason documents why the frozen image
+causes the change, and should cite a private recall run when available. It
+never excuses a current verdict below the proposed baseline. Reviewers must
+check the explanation and reject engine regressions disguised as image gaps.
 
-CI compares the proposed baseline with the baseline at the pull request's Git
-merge base. Lowering `baseline.json` therefore cannot hide a current regression.
-The update command also refuses to record any regression against the checked-out
-baseline. For MODEL-160 itself, whose merge base predates `baseline.json`, CI
-runs recall in a detached merge-base checkout and uses those verdicts as the
-approved baseline.
+Every public baseline verdict below `pass` must have a `frozen_image_reason`,
+including existing partials caused by missing verified objective evidence.
+The reasons are a JSON map alongside `verdicts`, keyed by question id. Old
+merge-base baselines without this field remain readable.
 
-The nightly accuracy profile runs the same comparison as a report-only layer.
-Weekly leaderboard refresh pull requests wait for the `Decision accuracy`
-workflow to pass before they enable auto-merge.
+For example, MODEL-266 correctly eliminates a model with no offering and no
+verified open weights. Q04 then fails on the frozen public image, which has
+no GPT-6 Luna offering. Current private data has its offering and Q04 passes there.
+Record that image limitation; do not weaken the approved answer.
 
-## Update the baseline
+## Update the public baseline
 
-Generate or raise the baseline from a repository snapshot with:
+Generate or raise the baseline with:
 
 ```bash
 PYTHONPATH=$PWD python scripts/accuracy.py --update-recall-baseline --date YYYY-MM-DD
 ```
 
-MODEL-160 created `baseline.json` from commit `f6630a62` with:
+For a frozen-image change, put the new explanations in a JSON file:
 
-```bash
-PYTHONPATH=$PWD python scripts/accuracy.py --update-recall-baseline --date 2026-09-25
+```json
+{
+  "Q04": "no GPT-6 Luna offering in the frozen public image; passes on current private data, see the private recall run"
+}
 ```
 
-Do not edit verdicts by hand. The command runs all 20 specs, records the snapshot
-ID and date, and keeps every existing verdict at the same level or higher.
+Then run:
+
+```bash
+PYTHONPATH=$PWD python scripts/accuracy.py --update-recall-baseline \
+  --date YYYY-MM-DD --frozen-image-reasons /path/to/reasons.json
+```
+
+The command runs all 20 specs and records the snapshot and date. It retains
+existing reasons, removes reasons for questions that now pass, and refuses a
+lower verdict without a new or changed explanation. Do not edit verdicts by
+hand. Keep the generated JSON and Markdown report at
+`docs/recall/<date>-<snapshot>.*` so the baseline remains traceable.
 
 ## Approval guard
 
-A pull request that changes `specs/**`, `expected.yaml`, or the approved
-`README.md` must have the `recall-approved` label. CI reads the pull request's
-labels and changed-file list from GitHub. Label and unlabel events rerun the
-workflow, so adding `recall-approved` after a failed run checks the live label
-state. Only Jamie applies that label.
+A PR changing `specs/**`, `expected.yaml`, or the approved `README.md` must
+have the `recall-approved` label. CI checks the live PR labels and changed
+files. Only Jamie applies that label. Label events rerun the workflow.
 
-Updating `baseline.json` after an engine or data improvement does not change an
-approved spec or expected answer and does not require the label. This file is
-also outside the protected set because it documents the gate rather than the
-approved recall inputs.
+Baseline updates and this gate's documentation do not change approved inputs.
+They need no label. This split changes the README's operational explanation,
+so its PR still needs Jamie's label under the existing guard.
 
-## Files
+## Private baseline
 
-`baseline.json` records the minimum accepted verdict for each question, the
-snapshot ID, the date, and the command that generated it.
+The private gate scores the same approved answers using a pinned engine
+composed with the private data. It fails any verdict below either its checked-in
+baseline or the baseline at the PR merge base. Public `frozen_image_reason`
+exceptions do not apply. Seed it from the first private run and review any
+existing partial or failing answers as data coverage work. Private reports,
+model values and finding messages stay out of public CI and public PRs.
