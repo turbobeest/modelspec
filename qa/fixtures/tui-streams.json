@@ -13,6 +13,7 @@
         "type": "system",
         "subtype": "init",
         "model": "claude-fable-5-1",
+        "apiKeySource": "none",
         "tools": [
           "mcp__modelspec__vocab",
           "mcp__modelspec__decide"

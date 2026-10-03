@@ -1,8 +1,4 @@
-"""CLI commands, transcript decoding and subscription-preserving isolation.
-
-Unsupported adapters can decode fixtures, but cannot launch a process. Adding a
-flag that merely hides instructions is not sufficient to enable an adapter.
-"""
+"""CLI commands and streams. Launch requires measured isolation evidence."""
 
 from __future__ import annotations
 
@@ -16,30 +12,10 @@ from time import perf_counter
 
 from qa.contracts import TOOL_NAMES
 from qa.providers import redact
+from qa.tui_homes import home_environment, resolve_executable
 
 CLIS = ("claude", "codex", "gemini", "grok")
 FAMILY = {"claude": "anthropic", "codex": "openai", "gemini": "google", "grok": "xai"}
-# These are findings about the installed versions, not user-configurable claims.
-ISOLATION_REASONS = {
-    "claude": None,
-    "codex": (
-        "Codex 0.160 --ignore-user-config preserves login but retains an empty User "
-        "configuration layer, from which skill discovery still derives global roots. "
-        "skills.include_instructions=false only suppresses the catalog; per-skill "
-        "toggles require enumerating user skills. "
-        "A fresh CODEX_HOME also relocates the saved login. No auth workaround was built."
-    ),
-    "gemini": (
-        "Gemini 0.60 setGeminiMdFilename adds to the default GEMINI.md list, including "
-        "when context.fileName=[]; it cannot disable global instruction discovery. "
-        "GEMINI_CLI_HOME relocates both memory and OAuth state. No auth workaround was built."
-    ),
-    "grok": (
-        "Grok 1.0.46 has no verified exclusive configuration mode. GROK_CONFIG overrides "
-        "selected settings over user/project configuration, including MCP and plugin "
-        "discovery. GROK_HOME relocates both configuration and login. No auth workaround was built."
-    ),
-}
 CLAUDE_ENV = {
     "CLAUDE_CODE_DISABLE_CLAUDE_MDS": "1",
     "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1",
@@ -59,7 +35,6 @@ CLAUDE_SETTINGS = {
 # provider endpoints, config homes, plugin paths, or shell startup overrides.
 BASE_ENV = (
     "PATH",
-    "HOME",
     "USER",
     "LOGNAME",
     "SHELL",
@@ -73,18 +48,44 @@ BASE_ENV = (
 )
 
 
-def child_environment(cli: str, workspace: Path, token_env: str | None = None) -> dict:
+def child_environment(
+    cli: str,
+    workspace: Path,
+    token_env: str | None = None,
+    *,
+    settings: dict,
+    isolated: bool = True,
+) -> dict:
     env = {key: os.environ[key] for key in BASE_ENV if key in os.environ}
+    env.update(home_environment(cli, settings))
     env.update(TMPDIR=str(workspace), TMP=str(workspace), TEMP=str(workspace))
-    if cli == "claude":
+    if cli == "claude" and isolated:
         env.update(CLAUDE_ENV)
+    if cli == "gemini":
+        # Prevent system layers or automatic .env discovery from restoring API keys.
+        env.update(
+            GEMINI_CLI_SYSTEM_SETTINGS_PATH=str(workspace / "gemini-system.json"),
+            GEMINI_CLI_SYSTEM_DEFAULTS_PATH=str(workspace / "gemini-defaults.json"),
+        )
+    if cli == "grok" and isolated:
+        env["GROK_MEMORY"] = "0"
+        for family in ("CLAUDE", "CURSOR"):
+            for kind in ("SKILLS", "RULES", "AGENTS", "MCPS", "HOOKS"):
+                env[f"GROK_{family}_{kind}_ENABLED"] = "0"
     if token_env and os.environ.get(token_env):
         env[token_env] = os.environ[token_env]
     return env
 
 
 def build_command(
-    cli: str, settings: dict, workspace: Path, prompt: str, mcp_file: Path, turn_cap: int
+    cli: str,
+    settings: dict,
+    workspace: Path,
+    prompt: str,
+    mcp_file: Path,
+    turn_cap: int,
+    *,
+    isolated: bool = True,
 ) -> list[str]:
     """Build native headless arguments; launch() separately enforces support.
 
@@ -93,7 +94,7 @@ def build_command(
     """
     executable, model = settings["executable"], settings["model"]
     if cli == "claude":
-        return [
+        common = [
             executable,
             "--print",
             "--output-format",
@@ -105,32 +106,42 @@ def build_command(
             settings["effort"],
             "--max-turns",
             str(turn_cap),
-            "--setting-sources",
-            "",
-            "--settings",
-            json.dumps(CLAUDE_SETTINGS),
-            "--disable-slash-commands",
             "--no-session-persistence",
             "--no-chrome",
-            "--strict-mcp-config",
-            "--mcp-config",
-            str(mcp_file),
-            "--tools",
-            "",
-            "--permission-mode",
-            "dontAsk",
-            "--allowedTools",
-            "mcp__modelspec__*",
-            "--",
-            prompt,
         ]
+        controls = (
+            [
+                "--setting-sources",
+                "",
+                "--settings",
+                json.dumps(CLAUDE_SETTINGS),
+                "--disable-slash-commands",
+                "--strict-mcp-config",
+            ]
+            if isolated
+            else []
+        )
+        return (
+            common
+            + controls
+            + [
+                "--mcp-config",
+                str(mcp_file),
+                "--tools",
+                "",
+                "--permission-mode",
+                "dontAsk",
+                "--allowedTools",
+                "mcp__modelspec__*" if isolated else "mcp__model301_canary__*",
+                "--",
+                prompt,
+            ]
+        )
     if cli == "codex":
-        return [
+        common = [
             executable,
             "--no-daemon",
             "exec",
-            "--ignore-user-config",
-            "--ignore-rules",
             "--ephemeral",
             "--skip-git-repo-check",
             "--json",
@@ -142,20 +153,40 @@ def build_command(
             f"model_reasoning_effort={settings['effort']}",
             "--cd",
             str(workspace),
-            "--",
-            prompt,
         ]
+        if isolated:
+            common += [
+                "--ignore-user-config",
+                "--ignore-rules",
+                "-c",
+                "project_doc_max_bytes=0",
+                "-c",
+                "skills.include_instructions=false",
+                "-c",
+                "features.hooks=false",
+            ]
+            import tomllib
+
+            servers = tomllib.loads(mcp_file.read_text()).get("mcp_servers", {})
+            for name, server in servers.items():
+                for key, value in server.items():
+                    common += ["-c", f"mcp_servers.{name}.{key}={json.dumps(value)}"]
+        else:
+            common += ["--dangerously-bypass-hook-trust"]
+        return common + ["--", prompt]
     if cli == "gemini":
-        return [
+        common = [
             executable,
             "--model",
             model,
             "--output-format",
             "stream-json",
-            "--extensions",
-            "none",
+        ]
+        if isolated:
+            common += ["--extensions", "none"]
+        return common + [
             "--allowed-mcp-server-names",
-            "modelspec",
+            "modelspec" if isolated else "model301_canary",
             "--prompt",
             prompt,
         ]
@@ -174,6 +205,8 @@ def build_command(
             str(turn_cap),
             "--no-subagents",
             "--disable-web-search",
+            "--tools",
+            "",
             "--single",
             prompt,
         ]
@@ -257,6 +290,7 @@ class Transcript:
     cost_usd: float | None = None
     usage: dict | None = None
     init: dict | None = None
+    hook_events: list[dict] = field(default_factory=list)
     model: str | None = None
     terminal: bool = False
     errors: list[str] = field(default_factory=list)
@@ -304,6 +338,8 @@ def parse_transcript(cli: str, output: str) -> Transcript:
 
     for event in json_events(output):
         kind = event.get("type")
+        if hook_event(event):
+            parsed.hook_events.append(event)
         if kind == "system" and event.get("subtype") == "init" or kind == "init":
             parsed.init = event
             parsed.model = event.get("model")
@@ -436,24 +472,64 @@ def usage_limit(parsed: Transcript, stderr: str, code: int, exit_codes: list[int
     return None
 
 
+def hook_event(event: dict) -> bool:
+    kind = str(event.get("type", "")).lower()
+    if "hook" in kind or "hook" in str(event.get("subtype", "")).lower():
+        return True
+    if kind not in ("init", "system"):
+        return False
+
+    def contains_hook(value):
+        if isinstance(value, dict):
+            return any(
+                (key.lower().startswith("hook") and bool(item)) or contains_hook(item)
+                for key, item in value.items()
+            )
+        if isinstance(value, list):
+            return any(contains_hook(item) for item in value)
+        return False
+
+    return contains_hook(event)
+
+
+def subscription_violation(cli: str, parsed: Transcript) -> str | None:
+    if cli == "claude" and (
+        parsed.init is None
+        or parsed.init.get("apiKeySource") not in ("none", "subscription", "oauth")
+    ):
+        return "Claude did not attest subscription authentication in init.apiKeySource"
+    return None
+
+
 def isolation_violation(parsed: Transcript, *, mcp_enabled: bool) -> str | None:
+    if parsed.hook_events or parsed.init and hook_event(parsed.init):
+        return "CLI emitted a hook event"
     if parsed.init is None:
         return "CLI did not expose its startup inventory"
-    if parsed.init.get("skills"):
+    for key in ("skills", "plugins", "mcp_servers", "tools"):
+        if key not in parsed.init or not isinstance(parsed.init[key], list):
+            return f"CLI startup inventory omitted or malformed {key}"
+    if parsed.init["skills"]:
         return "CLI loaded skills"
-    if any(plugin.get("path") != "builtin" for plugin in parsed.init.get("plugins", [])):
+    if any(
+        not isinstance(plugin, dict) or plugin.get("path") != "builtin"
+        for plugin in parsed.init["plugins"]
+    ):
         return "CLI loaded a non-builtin plugin"
     allowed = {"modelspec"} if mcp_enabled else set()
-    if any(server.get("name") not in allowed for server in parsed.init.get("mcp_servers", [])):
+    if any(
+        not isinstance(server, dict) or server.get("name") not in allowed
+        for server in parsed.init["mcp_servers"]
+    ):
         return "CLI loaded another MCP server"
     if parsed.other_tool_calls or any(call["server"] not in allowed for call in parsed.tool_calls):
         return "CLI used a tool outside the configured ModelSpec MCP"
-    for name in parsed.init.get("tools", []):
-        if _tool_name(name)[0] not in allowed:
+    for name in parsed.init["tools"]:
+        if not isinstance(name, str) or _tool_name(name)[0] not in allowed:
             return "CLI exposed an unapproved tool"
     if mcp_enabled and not any(
         server.get("name") == "modelspec" and server.get("status") == "connected"
-        for server in parsed.init.get("mcp_servers", [])
+        for server in parsed.init["mcp_servers"]
     ):
         return "ModelSpec MCP did not connect"
     return None
@@ -471,15 +547,67 @@ class Execution:
 
 
 def launch(cli: str, config: dict, workspace: Path, prompt: str, *, mcp_enabled: bool) -> Execution:
-    if ISOLATION_REASONS[cli]:
-        raise ValueError(ISOLATION_REASONS[cli])
-    settings = config["clis"][cli]
-    mcp_file = workspace / "modelspec-mcp.json"
-    mcp_file.write_text(
-        json.dumps(mcp_config(config["mcp_url"], config.get("mcp_token_env"), enabled=mcp_enabled))
+    from qa.tui_isolation import isolation_result
+
+    result = isolation_result(cli, config)
+    if not result["verified"]:
+        raise ValueError(result["reason"])
+    execution = _execute(cli, config, workspace, prompt, mcp_enabled=mcp_enabled)
+    violation = subscription_violation(cli, execution.transcript) or isolation_violation(
+        execution.transcript, mcp_enabled=mcp_enabled
     )
-    command = build_command(cli, settings, workspace, prompt, mcp_file, config["turn_cap"])
-    env = child_environment(cli, workspace, config.get("mcp_token_env") if mcp_enabled else None)
+    if execution.status in ("isolation_failed", "transcript_error") or violation:
+        from qa.tui_homes import require_setup
+        from qa.tui_isolation import receipt_file
+
+        receipt_file(require_setup(cli, config)).unlink(missing_ok=True)
+    return execution
+
+
+def _execute(
+    cli: str,
+    config: dict,
+    workspace: Path,
+    prompt: str,
+    *,
+    mcp_enabled: bool,
+    isolated: bool = True,
+    probe_mcp: Path | None = None,
+) -> Execution:
+    from qa.tui_homes import home_config, require_setup
+
+    require_setup(cli, config)
+    settings = config["clis"][cli]
+    mcp_file = probe_mcp or workspace / "modelspec-mcp.json"
+    if probe_mcp is None:
+        mcp_file.write_text(home_config(cli, config, enabled=mcp_enabled))
+    if cli == "gemini" and isolated:
+        data = json.loads(home_config(cli, config, enabled=mcp_enabled))
+        data.update(
+            skills={"enabled": False},
+            hooksConfig={"enabled": False},
+            context={"fileName": []},
+            security={"auth": {"selectedType": "oauth-personal"}},
+        )
+        # The system override leaves the planted project/user probes in place.
+        (workspace / "gemini-system.json").write_text(json.dumps(data))
+    command = build_command(
+        cli,
+        settings,
+        workspace,
+        prompt,
+        mcp_file,
+        config["turn_cap"],
+        isolated=isolated,
+    )
+    command[0] = resolve_executable(cli, settings)
+    env = child_environment(
+        cli,
+        workspace,
+        config.get("mcp_token_env") if mcp_enabled else None,
+        settings=settings,
+        isolated=isolated,
+    )
     started = perf_counter()
     try:
         # Empty piped stdin is essential: a launching shell's heredoc must never
@@ -502,13 +630,17 @@ def launch(cli: str, config: dict, workspace: Path, prompt: str, *, mcp_enabled:
             parsed = parse_transcript(cli, output)
         except (ValueError, KeyError, TypeError, AttributeError):
             parsed = Transcript()
+        parsed.hook_events.extend(event for event in json_events(stderr) if hook_event(event))
+        violation = subscription_violation(cli, parsed)
+        if isolated:
+            violation = violation or isolation_violation(parsed, mcp_enabled=mcp_enabled)
         limit = usage_limit(parsed, stderr, -1, [])
         return Execution(
             parsed,
             None,
             (perf_counter() - started) * 1000,
-            "usage_limit" if limit else "timeout",
-            "CLI timed out",
+            "usage_limit" if limit else "isolation_failed" if violation else "timeout",
+            violation or "CLI timed out",
             limit,
             output + stderr,
         )
@@ -522,7 +654,12 @@ def launch(cli: str, config: dict, workspace: Path, prompt: str, *, mcp_enabled:
         )
     try:
         parsed = parse_transcript(cli, process.stdout)
-        violation = isolation_violation(parsed, mcp_enabled=mcp_enabled)
+        parsed.hook_events.extend(
+            event for event in json_events(process.stderr) if hook_event(event)
+        )
+        violation = subscription_violation(cli, parsed)
+        if isolated:
+            violation = violation or isolation_violation(parsed, mcp_enabled=mcp_enabled)
     except (ValueError, KeyError, TypeError, AttributeError):
         return Execution(
             Transcript(),
@@ -537,10 +674,10 @@ def launch(cli: str, config: dict, workspace: Path, prompt: str, *, mcp_enabled:
     )
     if limit:
         status = "usage_limit"
-    elif process.returncode or parsed.errors:
-        status = "cli_error"
     elif violation:
         status = "isolation_failed"
+    elif process.returncode or parsed.errors:
+        status = "cli_error"
     elif not parsed.terminal:
         status = "transcript_error"
     elif not parsed.final_answer.strip():
@@ -549,7 +686,7 @@ def launch(cli: str, config: dict, workspace: Path, prompt: str, *, mcp_enabled:
         status = "completed"
     error = (
         violation
-        if status == "isolation_failed"
+        if violation
         else (
             redact("; ".join(parsed.errors) or process.stderr)[:500]
             if status == "cli_error"

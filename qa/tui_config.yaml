@@ -1,5 +1,5 @@
 # Subscription logins stay with each CLI. The harness never opens auth files.
-# Isolation support is verified in qa/tui_providers.py, not enabled by this file.
+# Eligibility requires a doctor receipt for this binary and adapter revision.
 mcp_url: https://api.modelspec.dev/mcp
 # Optional ModelSpec connection credential. This is not an agent-vendor API key.
 mcp_token_env: MODELSPEC_API_KEY
@@ -9,21 +9,29 @@ timeout_seconds: 300
 turn_cap: 8
 clis:
   claude:
-    executable: /Users/terbeest/.local/bin/claude
+    executable: claude
+    harness_home: ~/.modelspec-harness/claude/home
+    config_dir: .claude
     model: fable
     effort: high
     usage_limit_exit_codes: []
   codex:
-    executable: /Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex
+    executable: codex
+    harness_home: ~/.modelspec-harness/codex/home
+    config_dir: .codex
     model: gpt-6.1-sol
     effort: max
     usage_limit_exit_codes: []
   gemini:
     executable: gemini
+    harness_home: ~/.modelspec-harness/gemini/home
+    config_dir: .gemini
     model: gemini-3.8-pro
     usage_limit_exit_codes: []
   grok:
     executable: grok
+    harness_home: ~/.modelspec-harness/grok/home
+    config_dir: .grok
     model: grok-4.7
     effort: xhigh
     usage_limit_exit_codes: []
