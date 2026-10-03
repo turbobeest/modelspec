@@ -1,6 +1,6 @@
 {
   "source_hashes": {
-    "mcp/src/server.ts": "c129dc779f42584724311a8014c60252645a6e710696ea994989a172de2f1688",
+    "mcp/src/server.ts": "76ce19c1c82aaff2617e60f1e6af5872c5312af2d3371e88a27357f2c55f78c3",
     "mcp/src/vocabulary.ts": "120c41a9b06e6588edd818ef0be72df87f01d2a46168f1a69cd035884faa01ea",
     "mcp/test/fixtures/decide-budget.json": "4d28b1dc876ed3ad4d17cb5438146696525fa7bd56b917c242dab23a3ad9de98",
     "docs/decision-contract.schema.json": "9b70bf707f23ba1a236fe2f29e502377bc95d2213973df0acd89faee6c6afc32",
