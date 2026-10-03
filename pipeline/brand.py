@@ -6,6 +6,9 @@ byte; `favicon.ico` wraps the 16, 32 and 48 PNGs without resampling. The social
 card `brand/og-card-2a.png` is the light lockup rendered by
 `web/scripts/render-og-card.mjs`, committed because CI has no Segoe UI.
 
+`pipeline.brand_page` publishes the whole package, with the social images, as
+the press kit at /brand/.
+
 `pipeline.agent_ready` writes the set into the real build. The holding tree
 keeps it (`pipeline.holding.KEEP_FILES`), and the live and internal decide
 compositions copy it from the real build (`.github/workflows/deploy-sites.yml`).

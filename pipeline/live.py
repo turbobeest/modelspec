@@ -45,6 +45,8 @@ KEEP_DIRS = (
     "pricing-assets", "fonts",
     # MODEL-221: the feedback page, and the control every page loads.
     "feedback", "feedback-assets",
+    # MODEL-299: the press and brand kit.
+    "brand",
 )
 #: Copied from the v1 build. The discovery files are what MODEL-214 restored.
 KEEP_FILES = (
@@ -54,7 +56,7 @@ KEEP_FILES = (
 )
 #: The public pages, in sitemap order.
 PAGES = (
-    "/", "/method/", "/decide/", "/pricing/", "/feedback/",
+    "/", "/method/", "/decide/", "/pricing/", "/feedback/", "/brand/",
     "/legal/terms/", "/legal/privacy/", "/legal/neutrality/",
 )
 #: Files an agent is pointed at. Every modelspec.dev link in them must resolve.
