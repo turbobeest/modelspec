@@ -97,9 +97,18 @@ for (const width of [1440, 1024, 390, 320]) {
     }
     // Jamie, 2026-10-02: the narrowing (funnel and ranked answer) heads the
     // right column; the canvas sits under it.
-    const narrowing = await page.locator(".board-answer-head").boundingBox();
-    if (!narrowing) throw new Error("the narrowing did not render");
+    const [narrowing, ranked, feedback] = await Promise.all([
+      page.locator(".board-answer-head").boundingBox(),
+      page.locator(".board-ranked-answer").last().boundingBox(),
+      page.locator(".answer-feedback").boundingBox(),
+    ]);
+    if (!narrowing || !ranked) throw new Error("the narrowing did not render");
     expect(chart.y).toBeGreaterThanOrEqual(narrowing.y + narrowing.height);
+    expect(chart.y).toBeGreaterThanOrEqual(ranked.y + ranked.height);
+    expect(chart.x).toBeGreaterThanOrEqual(answers.x);
+    expect(chart.x + chart.width).toBeLessThanOrEqual(answers.x + answers.width + 1);
+    if (feedback) expect(feedback.y).toBeGreaterThanOrEqual(chart.y + chart.height);
+    expect(await page.locator(".board-answer").evaluate((node) => getComputedStyle(node).position)).toBe("static");
     if (width > 1099) {
       expect(chart.x).toBeGreaterThanOrEqual(facets.x + facets.width);
       expect(Math.abs(answers.y - facets.y)).toBeLessThanOrEqual(1);

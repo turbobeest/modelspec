@@ -22,6 +22,11 @@ def test_canvas_and_answers_are_right_of_facets_with_full_width_results_below():
     assert answer and "grid-area: answer" in answer.group(1)
     assert "max-height:" not in answer.group(1)
     assert "overflow: auto" not in answer.group(1)
+    # A sticky column with visible overflow is a scroll trap once the canvas is inside.
+    assert "position: sticky" not in answer.group(1)
+    # Two ranked lists wrap rather than overflow the narrower answer column.
+    lists = re.search(r"\.answer-lists\s*\{([^}]*)\}", CSS)
+    assert lists and "repeat(auto-fit" in lists.group(1)
 
     results = re.search(r"\.results\s*\{([^}]*)\}", CSS)
     assert results and 'grid-template-areas: "table" "detail"' in results.group(1)

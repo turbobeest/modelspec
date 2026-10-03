@@ -859,7 +859,8 @@ body {
 .mobile-answer-bar { display: none; }
 .answer-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .answer-pair > div { border: 1px solid var(--line); padding: 12px; display: flex; flex-direction: column; gap: 5px; }
-.answer-lists { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+/* Two ranked lists sit side by side only when each fits a full row (406px of columns plus margins); otherwise they stack. */
+.answer-lists { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr)); gap: 14px; }
 .answer-lists > section { min-width: 0; }
 .answer-lists > section > strong { display: block; margin: 0 16px 6px; }
 @media (max-width: 1099px) {
