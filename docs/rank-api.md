@@ -474,6 +474,11 @@ Vocabulary decoding and JSON parsing now use it too. Full vocabulary responses
 retain the original UTF-8 text, including spacing and key order; lookups use
 the prepared JSON object. The decision imports only the shared evidence and
 availability schemas instead of constructing every model-card schema.
+Malformed bundled vocabulary UTF-8/JSON or candidate JSON fails deployment
+snapshot creation at import. Hardware remains optional: a missing or malformed
+hardware bundle is prepared as `None`, and requests naming a device are refused
+as `unknown_hardware`. Timing decoration passes a null body for HEAD, 204 and
+304 responses, including OPTIONS preflights.
 
 For compute attribution, build a **public fixture** with a synthetic signing
 key, then run the Node probe and memory gate from the repository root:
@@ -490,6 +495,12 @@ index, registry and rank preparation times. Compare revisions against the
 **same generated bundle data**, including build timestamps, and compare
 response hashes. Run performance probes without concurrent builds or tests.
 Standalone Node Pyodide does not restore a Cloudflare deployment snapshot.
+The memory probe transfers file buffers into MEMFS and collects unreachable
+runtime/package setup allocations before measuring application imports and
+requests. It runs decide, vocabulary, rank with `limit: 100`, and policy-check
+without intervening collections, then collects once to measure retained memory.
+Its peak excludes discarded harness setup allocations. Gates remain 120 MiB
+steady and 112 MiB sampled peak; the latter still emits a warning in CI.
 
 `api/worker/instrument_startup.py /tmp/model283-startup` creates a separate
 local-only timing build and configuration. Use `wrangler dev --local` with

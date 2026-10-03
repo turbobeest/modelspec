@@ -644,6 +644,7 @@ def test_entry_prepares_bundle_before_the_first_request(monkeypatch, snapshot_by
                              if path == "/api/decision/snapshot.json.gz" else None)
     monkeypatch.setitem(sys.modules, "bundled_data", bundle)
     module = entry.__wrapped__(monkeypatch)
+    assert module._isolate_served is False
     prepared = module._bundled_decision_snapshot
     assert prepared is not None
     assert not prepared.signature_verified
@@ -657,6 +658,25 @@ def test_entry_prepares_bundle_before_the_first_request(monkeypatch, snapshot_by
     assert prepared.signature_verified
     assert asyncio.run(holder.current(KEY, force=True)) is prepared
     assert holder.headers()["x-modelspec-snapshot"] == prepared.snapshot_id
+
+
+def test_real_decide_body_is_identical_cold_and_warm(entry, monkeypatch, snapshot_bytes):  # noqa: F811
+    bundle = SimpleNamespace(read=lambda path: snapshot_bytes
+                             if path == "/api/decision/snapshot.json.gz" else None)
+    monkeypatch.setitem(sys.modules, "bundled_data", bundle)
+    spec = importlib.util.spec_from_file_location("cold_decide_entry", entry.__file__)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    assert module._isolate_served is False
+    worker = module.Default()
+    worker.env = _entry_env(MODELSPEC_SNAPSHOT_KEY=KEY.decode(), X402_ENABLED="false")
+    cold = asyncio.run(worker.fetch(_Req("/v1/decide", _payload("full"))))
+    warm = asyncio.run(worker.fetch(_Req("/v1/decide", _payload("full"))))
+    assert cold.status == warm.status == 200
+    assert cold.json()["results"]
+    assert cold.body.encode("utf-8") == warm.body.encode("utf-8")
+    assert 'isolate;desc="cold"' in cold.headers["Server-Timing"]
+    assert 'isolate;desc="warm"' in warm.headers["Server-Timing"]
 
 
 @pytest.mark.parametrize("key", [None, "", b"", "wrong-key"])
