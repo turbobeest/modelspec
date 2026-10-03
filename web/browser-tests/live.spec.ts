@@ -24,7 +24,7 @@ test("the deployed page follows the Worker's human gate status", async ({ page }
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("");
-  await expect(page.getByRole("heading", { name: "Set what matters. Watch the field narrow." })).toBeVisible({ timeout: 30000 });
+  await expect(page.getByRole("heading", { name: "Set what matters across any/all facets. Try a template as a fast track. Watch the field narrow." })).toBeVisible({ timeout: 30000 });
   // Fetch in the browser so the deployed origin and visitor match the page's
   // status request, including the Worker's CORS policy.
   const response = await page.evaluate(async () => {

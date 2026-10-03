@@ -22,7 +22,7 @@ test.beforeEach(async ({ page }) => {
 async function openBoard(page: import("@playwright/test").Page) {
   await page.goto("/decide.html?demo=1");
   await expect(
-    page.getByRole("heading", { name: "Set what matters. Watch the field narrow." }),
+    page.getByRole("heading", { name: "Set what matters across any/all facets. Try a template as a fast track. Watch the field narrow." }),
   ).toBeVisible();
   await expect(page.locator("textarea")).toHaveCount(0);
 }

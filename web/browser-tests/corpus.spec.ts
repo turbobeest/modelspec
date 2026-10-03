@@ -55,7 +55,7 @@ async function openBoard(page: Page) {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("");
-  await expect(page.getByRole("heading", { name: "Set what matters. Watch the field narrow." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Set what matters across any/all facets. Try a template as a fast track. Watch the field narrow." })).toBeVisible();
   await expect(page.getByText("The live answer will appear here.")).toHaveCount(0, { timeout: 15000 });
   return errors;
 }
@@ -103,7 +103,7 @@ async function applyTemplateThenReset(page: Page) {
 
 test("a template applies and Reset all runs", async ({ page }) => {
   await applyTemplateThenReset(page);
-  await expect(page.getByRole("heading", { name: "Set what matters. Watch the field narrow." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Set what matters across any/all facets. Try a template as a fast track. Watch the field narrow." })).toBeVisible();
 });
 
 test("the templates are offered again after Reset all", async ({ page }) => {
