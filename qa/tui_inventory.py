@@ -300,10 +300,12 @@ def inspect_inventory(
                             )
                         servers.append(match[1])
             # Names only: extension rows can carry MCP env, headers and settings.
-            extensions = _names(_list(
-                json.loads(run(["extensions", "list", "--output-format", "json"])),
-                "Gemini extensions",
-            ))
+            extensions = _names(
+                _list(
+                    json.loads(run(["extensions", "list", "--output-format", "json"])),
+                    "Gemini extensions",
+                )
+            )
             skills_output = run(["skills", "list"])
             node, bundle = gemini_runtime(Path(binary))
             module = _gemini_settings_module(bundle)
