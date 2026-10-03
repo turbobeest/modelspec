@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { lookupVocabulary } from "../src/vocabulary";
+import { lookupVocabulary, vocabularyResponse } from "../src/vocabulary";
 import vocabulary from "../../web/src/decide/__fixtures__/vocabulary.json";
 
 const facets = [
@@ -42,7 +42,15 @@ describe("compact vocabulary", () => {
   it("keeps every default section under the chars/4 proxy budget", () => {
     for (const section of ["starter", "facets", "benchmarks", "domains", "providers", "models", "task_types", "coverage", "templates", "refinements", "estate", "vendors", "template_categories", "template_tiers"] as const) {
       const body = lookupVocabulary(vocabulary, { section });
-      expect(JSON.stringify({ origin: "https://modelspec.dev/api/decision/vocabulary.json", status: 200, body }).length / 4).toBeLessThanOrEqual(4000);
+      const response = vocabularyResponse(body, { section });
+      expect(response.next).toMatch(/^next: call decide/);
+      expect(JSON.stringify({ origin: "https://modelspec.dev/api/decision/vocabulary.json", status: 200, body: response }).length / 4).toBeLessThanOrEqual(4000);
     }
+  });
+
+  it("gives an empty starter lookup a ready-to-send Spec and the next call", () => {
+    expect(vocabularyResponse([], {})).toEqual({ starter: [],
+      spec: { spec_version: 1, optimize: { min: "offering.cost_per_task" } },
+      next: "next: call decide with this; refine from reading" });
   });
 });

@@ -479,9 +479,9 @@ def test_live_wire_loop_and_separate_judge_share_the_invocation_budget(
                     "echo": "sensitive-test-value",
                 },
             )
-        assert request.url.path == "/v1/responses"
         payload = json.loads(request.content)
         model_calls += 1
+        assert request.url.path == ("/v1/responses" if model_calls < 3 else "/v1/messages")
         if model_calls == 1:
             assert "approved recall evidence" not in payload["input"][0]["content"]
             output = [
@@ -514,7 +514,7 @@ def test_live_wire_loop_and_separate_judge_share_the_invocation_budget(
                 }
             ]
         else:
-            assert model_calls == 3 and "Judge the submitted answer" in payload["instructions"]
+            assert model_calls == 3 and "Judge the submitted answer" in payload["system"]
             assert not payload["tools"]
             output = [
                 {
@@ -536,6 +536,9 @@ def test_live_wire_loop_and_separate_judge_share_the_invocation_budget(
                     ],
                 }
             ]
+        if model_calls == 3:
+            return httpx.Response(200, json={"content": [{"type": "text", "text": output[0]["content"][0]["text"]}],
+                                            "usage": {"input_tokens": 100, "output_tokens": 50}})
         return httpx.Response(
             200, json={"output": output, "usage": {"input_tokens": 100, "output_tokens": 50}}
         )
@@ -948,4 +951,4 @@ def test_live_vocabulary_compacts_a_legacy_worker_during_rollout(config, definit
         shim = LiveTools(config, definitions, None, client)
         observed = shim.execute("vocab", {})
         envelope = json.loads(observed["result"]["content"][0]["text"])
-        assert envelope["body"] == [{"id": "model.context_window", "label": "Context", "definition": "Token window.", "value_type": "number"}]
+    assert envelope["body"]["starter"] == [{"id": "model.context_window", "label": "Context", "definition": "Token window.", "value_type": "number"}]

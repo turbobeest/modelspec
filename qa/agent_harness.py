@@ -14,6 +14,7 @@ import math
 import os
 import re
 from collections import Counter
+from copy import deepcopy
 from datetime import date
 from pathlib import Path
 from time import perf_counter
@@ -22,6 +23,7 @@ import httpx
 import yaml
 
 from qa.contracts import ROOT, source_hashes
+from qa.first_turn import first_turn_breakdowns
 from qa.providers import KEY_ENV, Budget, HttpAgent, ProviderError, Reply, SpendLimitError, redact
 from qa.tools import USER_AGENT, LiveTools
 
@@ -30,15 +32,27 @@ FAMILIES = ("F1", "F2", "F3", "F4")
 SYSTEM_NOTE = "Use ModelSpec to answer the user.\n"
 
 
-def agent_context(interface: str = "mcp", *, control_full_spec: bool = False) -> str:
-    if control_full_spec:
-        return SYSTEM_NOTE + "The full OpenAPI document follows.\n" + (ROOT / "api/worker/openapi.yaml").read_text()
-    guide = (ROOT / "docs/agents.md").read_text()
+def agent_context_parts(interface: str = "mcp", *, control_full_spec: bool = False) -> dict[str, str]:
+    # The generated runtime guide retains decision rules and omits setup/budget tables.
+    copy = json.loads((ROOT / "mcp/src/agent-copy.json").read_text())
+    guide = copy["context_guide"]
     transport = (
         "Use the supplied MCP tool definitions.\n" if interface == "mcp" else
         "Tools are direct HTTP adapters; their arguments are request bodies or query parameters.\n"
     )
-    return SYSTEM_NOTE + transport + guide + "\nFull spec: https://modelspec.dev/openapi.yaml\n"
+    return {
+        "system_prompt": SYSTEM_NOTE,
+        "harness_scaffolding": transport,
+        "guide": guide if not control_full_spec else "",
+        "full_spec": ("The full OpenAPI document follows.\n" +
+                      (ROOT / "api/worker/openapi.yaml").read_text()) if control_full_spec else "",
+        "mcp_instructions": ("\n" + copy["instructions"])
+                            if interface == "mcp" else "",
+    }
+
+
+def agent_context(interface: str = "mcp", *, control_full_spec: bool = False) -> str:
+    return "".join(agent_context_parts(interface, control_full_spec=control_full_spec).values())
 
 
 def agent_tools(tools: list[dict], interface: str) -> list[dict]:
@@ -160,6 +174,61 @@ def parse_judgement(text: str) -> dict:
     return value
 
 
+def judge_profiles(config: dict, agent_family: str) -> list[dict]:
+    return [{"family": family, **config["agents"][family]}
+            for family in config["judge"]["routes"][agent_family]]
+
+
+def evaluate_answer(scenario: dict, row: dict, judge, config: dict) -> None:
+    """Every panel member gets the same evidence independently; disagreement fails."""
+    row["judges"] = []
+    for settings in judge_profiles(config, row["agent"]):
+        reply = judge(row, settings)
+        model = reply.model or settings["model"]
+        row["model_calls"].append({"role": "judge", "family": settings["family"], "model": model,
+                                   "tokens_in": reply.tokens_in, "tokens_out": reply.tokens_out,
+                                   "cost_usd": reply.cost_usd})
+        row["tokens_in"] += reply.tokens_in
+        row["tokens_out"] += reply.tokens_out
+        row["judges"].append({"family": settings["family"], "model": model,
+                              **parse_judgement(reply.text)})
+    judges = row["judges"]
+    selections = {(j["answer_kind"], tuple(sorted(set(j["top_models"])))) for j in judges}
+    agreed = len(selections) == 1 and len({j["passed"] for j in judges}) == 1
+    row["judge"] = {
+        **judges[0],
+        "strategy": config["judge"]["mode"],
+        "agreed": agreed,
+        "passed": agreed and all(j["passed"] for j in judges),
+        "rationale": "\n".join(f"{j['family']}/{j['model']}: {j['rationale']}" for j in judges),
+        "missing_capabilities": sorted({c for j in judges for c in j["missing_capabilities"]}),
+    }
+    if len(judges) > 1:
+        row["judge"].pop("family")
+        row["judge"].pop("model")
+    if len(selections) != 1:
+        row["judge"].update(top_models=[], answer_kind="abstain")
+    row["expected_match"] = expected_match(scenario["expected"], row["judge"]) if agreed else None
+    row["success"] = row["judge"]["passed"] and row["expected_match"] is not False
+
+
+def live_judge(scenario: dict, budget: Budget, config: dict, client: httpx.Client):
+    def judge(row, settings):
+        # Exclude earlier panel opinions: each judge sees only the transcript evidence.
+        evidence = {"scenario": scenario, "final_answer": row["final_answer"],
+                    "tool_calls": row["tool_calls"]}
+        start = len(budget.calls)
+        try:
+            return HttpAgent(settings["family"], settings["model"], JUDGE_NOTE, json.dumps(evidence),
+                             [], budget, settings["price"], config["max_output_tokens"], client,
+                             ceiling_price=settings["ceiling_price"],
+                             fallback=settings.get("fallback")).step()
+        finally:
+            for call in budget.calls[start:]:
+                call.update(role="judge", family=settings["family"])
+    return judge
+
+
 class ReplayAgent:
     def __init__(self, turns: list[dict]):
         self.turns = iter(turns)
@@ -207,6 +276,7 @@ def run_scenario(scenario: dict, family: str, agent, shim, judge, config: dict) 
         "final_answer": "",
         "status": "turn_cap",
         "judge": None,
+        "judges": [],
         "expected_match": None,
         "success": False,
     }
@@ -253,26 +323,9 @@ def run_scenario(scenario: dict, family: str, agent, shim, judge, config: dict) 
             if row["status"] == "tool_call_cap":
                 break
             agent.add_results(results)
+        row["agent_status"] = row["status"]
         if row["status"] == "completed":
-            reply = judge(row)
-            row["model_calls"].append(
-                {
-                    "role": "judge",
-                    "model": reply.model or config["judge"]["model"],
-                    "tokens_in": reply.tokens_in,
-                    "tokens_out": reply.tokens_out,
-                    "cost_usd": reply.cost_usd,
-                }
-            )
-            row["tokens_in"] += reply.tokens_in
-            row["tokens_out"] += reply.tokens_out
-            row["judge"] = {
-                "model": reply.model or config["judge"]["model"],
-                "family": config["judge"]["family"],
-                **parse_judgement(reply.text),
-            }
-            row["expected_match"] = expected_match(scenario["expected"], row["judge"])
-            row["success"] = row["judge"]["passed"] and row["expected_match"] is not False
+            evaluate_answer(scenario, row, judge, config)
     except SpendLimitError:
         row["status"] = "spend_cap"
     except ProviderError as exc:
@@ -289,6 +342,48 @@ def run_scenario(scenario: dict, family: str, agent, shim, judge, config: dict) 
 
 def percentile(values: list[float], p: float) -> float | None:
     return sorted(values)[max(0, math.ceil(len(values) * p) - 1)] if values else None
+
+
+def restore_transcripts(report: dict) -> list[dict]:
+    """Resolve saved evidence locally. Missing evidence must never trigger a tool fetch."""
+    rows = deepcopy(report["runs"])
+    for row in rows:
+        for call in row["tool_calls"]:
+            if "result" not in call:
+                try:
+                    call["result"] = deepcopy(report["tool_responses"][call["response_ref"]])
+                except KeyError:
+                    raise ValueError("Saved transcript is missing a tool response") from None
+    return rows
+
+
+def rescore_scenario(scenario: dict, source: dict, judge, config: dict) -> dict:
+    row = deepcopy(source)
+    row["previous_evaluation"] = {k: row.get(k) for k in
+                                  ("judge", "judges", "status", "expected_match", "success", "error", "provider_error")}
+    row["source_estimated_cost_usd"] = row.get("estimated_cost_usd")
+    row["model_calls"] = [c for c in row["model_calls"] if c["role"] == "agent"]
+    row["tokens_in"] = sum(c["tokens_in"] for c in row["model_calls"])
+    row["tokens_out"] = sum(c["tokens_out"] for c in row["model_calls"])
+    row.update(judge=None, judges=[], success=False, expected_match=None)
+    row.pop("error", None)
+    row.pop("provider_error", None)
+    row["agent_status"] = row.get("agent_status", "completed" if row["final_answer"].strip() else row["status"])
+    row["status"] = row["agent_status"]
+    started = perf_counter()
+    try:
+        if row["agent_status"] == "completed":
+            evaluate_answer(scenario, row, judge, config)
+    except SpendLimitError:
+        row["status"] = "spend_cap"
+    except ProviderError as exc:
+        row["status"], row["error"] = "provider_error", str(exc)
+        if exc.details is not None:
+            row["provider_error"] = exc.details
+    except ValueError:
+        row["status"], row["error"] = "evaluation_error", "Invalid judge response"
+    row["rescore_time_ms"] = (perf_counter() - started) * 1000
+    return row
 
 
 def metrics(rows: list[dict]) -> dict:
@@ -429,6 +524,20 @@ def markdown(report: dict) -> str:
         "API round-trip latency, retry, validation issue, token count, final answer "
         "and judge result. Tool results are deduplicated by response_ref.",
         "",
+        "## Judges used",
+        "",
+        "| Agent family | Judge family | Judge model | Evaluations |",
+        "| --- | --- | --- | ---: |",
+    ]
+    judges = Counter((r["agent"], j["family"], j["model"]) for r in report["runs"]
+                     for j in r.get("judges", []))
+    for (agent, family, model), count in sorted(judges.items()):
+        lines.append(f"| {agent} | {family} | {model} | {count} |")
+    lines += [
+        "",
+        "Panel success requires unanimous verdict and recommendation extraction. "
+        "Partial evaluations and disagreement fail; JSON preserves every opinion and billing reservation.",
+        "",
         "## Misuse patterns",
         "",
     ]
@@ -497,9 +606,17 @@ def validate_config(config: dict) -> None:
         for k in ("turn_cap", "tool_call_cap", "max_output_tokens")
     ):
         raise ValueError("Call and output caps must be positive integers")
-    if set(config["agents"]) != set(KEY_ENV) or config["judge"]["family"] not in KEY_ENV:
-        raise ValueError("Configure claude, openai, gemini and a supported judge family")
-    settings_to_check = [*config["agents"].values(), config["judge"]]
+    if set(config["agents"]) != set(KEY_ENV):
+        raise ValueError("Configure claude, openai and gemini")
+    judge = config["judge"]
+    if judge.get("mode") not in {"single", "panel"} or set(judge.get("routes", {})) != set(KEY_ENV):
+        raise ValueError("Configure single or panel judge routes for every agent family")
+    size = 1 if judge["mode"] == "single" else 2
+    for family, route in judge["routes"].items():
+        if (not isinstance(route, list) or len(route) != size or len(set(route)) != size
+                or set(route) - (set(KEY_ENV) - {family})):
+            raise ValueError("Judge routes must use distinct other families; self-judging is forbidden")
+    settings_to_check = list(config["agents"].values())
     for settings in settings_to_check.copy():
         fallback = settings.get("fallback")
         if fallback is not None:
@@ -532,6 +649,10 @@ def main(argv=None) -> int:
     modes = parser.add_mutually_exclusive_group()
     modes.add_argument("--dry-run", action="store_true")
     modes.add_argument("--smoke-vocabulary", action="store_true")
+    modes.add_argument("--first-turn-breakdown", action="store_true",
+                       help="Build each family's first request offline; print sizes only")
+    parser.add_argument("--rescore", type=Path,
+                        help="Re-judge saved transcripts without agent or ModelSpec calls; combine with --dry-run for fixture judges")
     parser.add_argument("--config", type=Path, default=HERE / "config.yaml")
     parser.add_argument("--scenarios", type=Path, default=HERE / "scenarios")
     parser.add_argument("--fixtures", type=Path, default=HERE / "fixtures/replay.json.gz")
@@ -580,83 +701,77 @@ def main(argv=None) -> int:
     tools = definitions["tools"]
     prompt = agent_context(args.interface, control_full_spec=args.control_full_spec)
     exposed_tools = agent_tools(tools, args.interface)
+    if args.first_turn_breakdown:
+        if args.rescore:
+            parser.error("First-turn accounting does not re-score transcripts")
+        print(json.dumps(first_turn_breakdowns(config, agent_context_parts(
+            args.interface, control_full_spec=args.control_full_spec),
+            [agent_request(s) for s in scenarios], exposed_tools, families), indent=2))
+        return 0
     live_type = LiveTools if args.interface == "mcp" else HttpTools
     budget = Budget(config["spend_cap_usd"])
     fixtures = json.loads(gzip.decompress(args.fixtures.read_bytes())) if args.dry_run else None
+    source_report = json.loads(args.rescore.read_text()) if args.rescore else None
+    source_rows = restore_transcripts(source_report) if source_report else None
+    by_id = {s["id"]: s for s in scenarios}
+    if source_rows is not None:
+        source_rows = [r for r in source_rows if r["agent"] in families
+                       and (not args.scenario or r["scenario"] in args.scenario)]
+        if not source_rows or any(r["scenario"] not in by_id for r in source_rows):
+            parser.error("Saved transcripts must match selected public scenario definitions")
     rows = []
     with httpx.Client(timeout=60, follow_redirects=False) as client:
         if not args.dry_run:
             # Validate both origins and all needed keys before any paid call.
-            live_type(config, exposed_tools, os.environ.get("MODELSPEC_API_KEY"), client)
-            required = [os.environ.get("MODELSPEC_API_KEY")]
-            required += [os.environ.get(KEY_ENV[f]) for f in families + [config["judge"]["family"]]]
+            if source_rows is None:
+                live_type(config, exposed_tools, os.environ.get("MODELSPEC_API_KEY"), client)
+            used_families = {r["agent"] for r in source_rows} if source_rows is not None else set(families)
+            judge_families = {p["family"] for f in used_families for p in judge_profiles(config, f)}
+            required = [os.environ.get(KEY_ENV[f]) for f in judge_families]
+            if source_rows is None:
+                required += [os.environ.get("MODELSPEC_API_KEY")]
+                required += [os.environ.get(KEY_ENV[f]) for f in families]
             if not all(required):
                 parser.error(
-                    "Live runs require MODELSPEC_API_KEY and every selected vendor/judge key"
+                    "Runs require every selected judge key, plus ModelSpec and agent keys when running agents"
                 )
         stop = False
-        for scenario in scenarios:
-            for family in families:
-                if args.dry_run:
-                    fixture = fixtures["scenarios"][scenario["id"]][family]
+        work = ([(by_id[r["scenario"]], r["agent"], r) for r in source_rows] if source_rows is not None else
+                [(s, f, None) for s in scenarios for f in families])
+        for scenario, family, source in work:
+            if args.dry_run:
+                fixture = fixtures["scenarios"][scenario["id"]][family]
+                if source is None:
                     agent = ReplayAgent(fixture["turns"])
                     shim = ReplayTools(
                         [fixtures["records"][i] for i in fixture["record_indices"]], tools
                     )
 
-                    def judge(row, fixture=fixture):
-                        return Reply(**fixture["judge"])
-                else:
-                    settings = config["agents"][family]
+                def judge(row, settings, fixture=fixture):
+                    return Reply(**fixture["judge"])
+            else:
+                settings = config["agents"][family]
+                if source is None:
                     agent = HttpAgent(
-                        family,
-                        settings["model"],
-                        prompt,
-                        agent_request(scenario),
-                        exposed_tools,
-                        budget,
-                        settings["price"],
-                        config["max_output_tokens"],
-                        client,
-                        ceiling_price=settings["ceiling_price"],
-                        fallback=settings.get("fallback"),
+                        family, settings["model"], prompt, agent_request(scenario), exposed_tools,
+                        budget, settings["price"], config["max_output_tokens"], client,
+                        ceiling_price=settings["ceiling_price"], fallback=settings.get("fallback"),
                     )
                     shim = live_type(config, exposed_tools, os.environ.get("MODELSPEC_API_KEY"), client)
+                judge = live_judge(scenario, budget, config, client)
 
-                    def judge(row, scenario=scenario):
-                        settings = config["judge"]
-                        payload = {
-                            "scenario": scenario,
-                            "final_answer": row["final_answer"],
-                            "tool_calls": row["tool_calls"],
-                        }
-                        return HttpAgent(
-                            settings["family"],
-                            settings["model"],
-                            JUDGE_NOTE,
-                            json.dumps(payload),
-                            [],
-                            budget,
-                            settings["price"],
-                            config["max_output_tokens"],
-                            client,
-                            ceiling_price=settings["ceiling_price"],
-                            fallback=settings.get("fallback"),
-                        ).step()
-
-                billing_start = len(budget.calls)
-                rows.append(run_scenario(scenario, family, agent, shim, judge, config))
-                rows[-1]["billing_calls"] = budget.calls[billing_start:]
-                if rows[-1]["judge"]:
-                    rows[-1]["judge"]["mode"] = "scripted" if args.dry_run else "live"
-                if not args.dry_run:
-                    rows[-1]["estimated_cost_usd"] = sum(
-                        c["cost_usd"] for c in rows[-1]["billing_calls"]
-                    )
-                if rows[-1]["status"] == "spend_cap":
-                    stop = True
-                    break
-            if stop:
+            billing_start = len(budget.calls)
+            rows.append(rescore_scenario(scenario, source, judge, config) if source is not None else
+                        run_scenario(scenario, family, agent, shim, judge, config))
+            rows[-1]["billing_calls"] = budget.calls[billing_start:]
+            if rows[-1]["judge"]:
+                rows[-1]["judge"]["mode"] = "scripted" if args.dry_run else "live"
+            for opinion in rows[-1]["judges"]:
+                opinion["mode"] = "scripted" if args.dry_run else "live"
+            if not args.dry_run or source is not None:
+                rows[-1]["estimated_cost_usd"] = sum(c["cost_usd"] for c in rows[-1]["billing_calls"])
+            if rows[-1]["status"] == "spend_cap" and (source is None or rows[-1]["agent_status"] == "completed"):
+                stop = True
                 break
     metadata = {
         "interface": args.interface,
@@ -671,6 +786,18 @@ def main(argv=None) -> int:
         "fixtures": fixtures["provenance"] if fixtures else None,
     }
     report = make_report(rows, scenarios, args.dry_run, budget, args.date, metadata)
+    if source_report is not None:
+        report.update(mode="rescore-dry-run" if args.dry_run else "rescore",
+                      scheduled_runs=len(source_rows),
+                      evidence_note="Saved agent answers and tool evidence, re-judged without agent or ModelSpec calls. "
+                                    + ("Judges are scripted fixtures." if args.dry_run else "Only judges incur new spend."))
+        metadata["rescore"] = {"source_report_sha256": hashlib.sha256(args.rescore.read_bytes()).hexdigest(),
+                              "source_report_date": source_report["report_date"],
+                              "source_metadata": source_report["metadata"]}
+    else:
+        metadata["first_turns"] = first_turn_breakdowns(config, agent_context_parts(
+            args.interface, control_full_spec=args.control_full_spec),
+            [agent_request(s) for s in scenarios], exposed_tools, families)
     paths = write_report(report, args.output_dir)
     print(
         f"{len(rows)} runs; mode={report['mode']}; spend=${budget.spent_usd:.4f}; "

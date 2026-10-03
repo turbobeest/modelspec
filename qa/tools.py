@@ -229,6 +229,8 @@ class LiveTools:
         body = envelope["body"]
         if envelope["status"] < 400 and isinstance(body, dict):
             if name == "vocab":
+                from api.worker.src.display_vocabulary import lookup, vocabulary_response
+
                 self.valid_ids = self.valid_ids or set()
                 for section in ("facets", "benchmarks", "domains", "refinements"):
                     rows = body.get(section)
@@ -241,7 +243,6 @@ class LiveTools:
                 if self.vocabulary_path == "/v1/vocabulary" and "vocabulary_version" not in body:
                     selected = body.get(arguments.get("section", "starter"))
                 else:
-                    from api.worker.src.display_vocabulary import lookup
                     selected = lookup(body, section=arguments.get("section", "starter"),
                                       search=arguments.get("search", ""),
                                       ids=[*arguments.get("ids", []), *([arguments["id"]] if "id" in arguments else [])],
@@ -249,7 +250,7 @@ class LiveTools:
                                       offset=arguments.get("offset", 0), limit=arguments.get("limit", 20))[arguments.get("section", "starter")]
                 if arguments.get("section", "starter") in {"starter", "facets", "benchmarks", "domains", "refinements"} and isinstance(selected, list):
                     self.valid_ids.update(row["id"] for row in selected if isinstance(row, dict) and isinstance(row.get("id"), str))
-                envelope = envelope | {"body": selected}
+                envelope = envelope | {"body": vocabulary_response(selected, arguments.get("section", "starter"))}
             elif name == "model_info" and self.split and isinstance(body.get("models"), dict):
                 envelope = envelope | {"body": body.get("models", {}).get(arguments["model_id"])}
         validation = []

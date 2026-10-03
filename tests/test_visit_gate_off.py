@@ -71,4 +71,6 @@ def test_flag_off_response_equals_main(worker, name):
     assert exposed == added or exposed.endswith(", " + added)
     if exposed != added:
         discovery["access-control-expose-headers"] = exposed.removesuffix(", " + added)
+    if name == "vocabulary GET query":
+        assert actual["body"].pop("next") == "next: call decide using these ids; refine from reading"
     assert actual == MAIN[name]

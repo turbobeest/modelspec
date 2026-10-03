@@ -267,7 +267,7 @@ def test_report_records_actual_fallback_model(terminal_status, responses, config
         status = 503 if len(requests) < 3 else terminal_status
         return httpx.Response(status, json=responses["answer" if status == 200 else "unavailable"])
 
-    def judge(row):
+    def judge(row, settings):
         return Reply(
             json.dumps(
                 {
@@ -358,8 +358,7 @@ def test_gemini_judge_reports_its_actual_model(responses, config):
     from qa.agent_harness import ReplayAgent
 
     requests = []
-    config["judge"]["family"] = "gemini"
-    config["judge"]["model"] = "gemini-3.8-flash"
+    config["judge"]["routes"]["openai"] = ["gemini"]
     judgement = copy.deepcopy(responses["answer"])
     judgement["candidates"][0]["content"]["parts"][0]["text"] = json.dumps(
         {
@@ -385,10 +384,10 @@ def test_gemini_judge_reports_its_actual_model(responses, config):
         )
         row = run_scenario(
             load_scenarios()[0] | {"expected": None},
-            "gemini",
+            "openai",
             agent,
             None,
-            lambda row: judge.step(),
+            lambda row, settings: judge.step(),
             config,
         )
     assert row["status"] == "completed"

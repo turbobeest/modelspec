@@ -3337,6 +3337,8 @@ def render() -> str:
                     "200": {"description": "Display vocabulary", "headers": {"Cache-Control": {"schema": {"type": "string"}}},
                             "content": {"application/json": {"schema": {"type": "object", "properties": {
                                 "starter": {"type": "array", "items": {"type": "object"}, "description": "Compact facets used most often in the template specs; only present in a starter lookup."},
+                                "next": {"type": "string", "description": "Next-call hint on query lookups: call decide, then refine from reading."},
+                                "spec": {"type": "object", "description": "Ready-to-send minimal Spec on starter lookups. Its cost objective is a discovery default, not a quality recommendation."},
                                 "facets": {"type": "array", "items": {"type": "object"}},
                                 "benchmarks": {"type": "array", "items": {"type": "object"}},
                                 "domains": {"type": "array", "items": {"type": "object"}},

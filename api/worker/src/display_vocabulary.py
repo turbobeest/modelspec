@@ -4,6 +4,12 @@ from __future__ import annotations
 import json
 import re
 from collections import Counter
+from copy import deepcopy
+
+try:
+    from agent_guide import MINIMAL_SPEC, VOCAB_NEXT
+except ImportError:
+    from .agent_guide import MINIMAL_SPEC, VOCAB_NEXT
 
 SECTIONS = ("starter", "facets", "benchmarks", "domains", "providers", "models",
             "task_types", "coverage", "templates", "refinements", "estate", "vendors",
@@ -53,6 +59,13 @@ def trim(vocabulary, *, model_ids, facet_values):
 MAX_IDS = 100
 
 
+def vocabulary_response(selected, section):
+    result = {section: selected, "next": VOCAB_NEXT["starter" if section == "starter" else "lookup"]}
+    if section == "starter":
+        result["spec"] = deepcopy(MINIMAL_SPEC)
+    return result
+
+
 def starter_ids(vocabulary):
     """Count each registered facet once per template spec; break ties by ID."""
     counts = Counter()
@@ -77,7 +90,7 @@ def lookup(vocabulary, *, section="starter", search="", ids=(), detail="compact"
         raise ValueError(f"at most {MAX_IDS} ids per lookup")
     source = vocabulary.get(section, {} if section in {"models", "providers", "vendors", "coverage", "estate"} else [])
     if section == "coverage" and detail == "compact" and not ids:
-        return {section: {}}
+        return vocabulary_response({}, section)
     if section == "estate" and detail == "compact" and not ids:
         source = {key: vocabulary.get("estate", {}).get(key, []) for key in ("providers", "devices")}
     if section == "starter":
@@ -116,4 +129,4 @@ def lookup(vocabulary, *, section="starter", search="", ids=(), detail="compact"
         return row
 
     selected = [(key, row if full else compact(row)) for key, row in rows]
-    return {section: dict(selected) if mapping else [row for _, row in selected]}
+    return vocabulary_response(dict(selected) if mapping else [row for _, row in selected], section)

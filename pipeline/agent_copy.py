@@ -21,6 +21,7 @@ import argparse
 from copy import deepcopy
 import hashlib
 import json
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -43,11 +44,17 @@ GUIDE_OUT = ROOT / "docs" / "agents.md"
 GUIDE_CONSTANTS = ROOT / "api" / "worker" / "src" / "agent_guide.py"
 SPEC_GUIDANCE = (
     "Call decide early with a template-based Spec; refine from reading and recovery hints. "
+    "Call decide after at most one vocab lookup before the first decision. "
     "Use vocab section=starter only when you need a facet id; use search for a targeted lookup. "
     "Put Musts in where: these gates exclude. Put Prefers in optimize.weights: weights rank "
     "and never exclude. Unknown values go to may_qualify. Pin snapshot for reproducibility. "
 )
 REPORTING_RULES = (
+    "Never add a constraint or weight the user did not state; template gates and weights "
+    "are examples, not user requirements. If the evidence basis or board does not match "
+    "the task, say so: Arena web-dev evidence does not establish chat quality. "
+    "p_best is the probability of ranking best under the Spec and evidence uncertainty, "
+    "not the probability of matching the user's task or satisfying its requirements. "
     "Read reading when present. Present answer.kind=tied as a tie among all answer.members, "
     "never a single winner; tie-breakers are conditional choices. Report a tied "
     "with_estate.answer as a tie too. State requirements in reading.not_applied or "
@@ -57,6 +64,16 @@ REPORTING_RULES = (
     "Follow reading.do_not_claim. Never claim a rank the response does not show. "
 )
 MINIMAL_SPEC = {"spec_version": 1, "optimize": {"min": "offering.cost_per_task"}}
+VOCAB_NEXT = {
+    "starter": "next: call decide with this; refine from reading",
+    "lookup": "next: call decide using these ids; refine from reading",
+}
+RESPONSE_BUDGET_RULES = (
+    "If a response exceeds the client context budget, retain the original outside the "
+    "prompt and select answer, reading, recovery/error.issues and relevant rows for "
+    "reporting. Do not treat a truncated list as complete. These token allowances are "
+    "separate from ModelSpec credits and the agent vendor's token billing."
+)
 #: The one rule for MCP decide's bounded default (MODEL-293). The guide, the
 #: MCP instructions and the decide description all quote it.
 BOUNDED_MCP = (
@@ -65,15 +82,12 @@ BOUNDED_MCP = (
 )
 BOUNDED_MCP_DETAIL = (
     'With explain unset or "none" it sends explain=none, limit=10 and row fields model_rank, '
-    "cost_per_task, estimates and p_best, and the body says representation: bounded. The answer, "
-    "reading, warnings and ties stay complete; explanation.omitted counts the sections left out. "
-    "At explain=none eliminations are not computed, so a missing eliminated count does not mean "
-    "nothing was screened out; ask explain=summary to count them. To see one model's evidence, "
-    "status, rank and elimination reasons, resend the same spec with its returned snapshot and "
-    "evidence_for: <model id>; that stateless call stays within 2k estimated tokens. "
-    "For full rows pass fields: null, or set explain to summary or full, which return full rows "
-    "unless you also pass fields. Full includes every eliminated candidate and can exceed the "
-    "client context budget. decision_id is a citation, not a stored lookup. "
+    "cost_per_task, estimates and p_best. Answer, reading, warnings and ties stay complete. "
+    "explanation.omitted counts omitted sections; eliminations at explain=none are not computed, not zero. "
+    "Resend the same Spec and returned snapshot with evidence_for: <model id> for stateless "
+    "evidence within 2k estimated tokens. For full rows pass fields: null, or explain summary/full; "
+    "explicit fields control projection. Full includes every eliminated candidate and can exceed the client context budget. "
+    "decision_id is a citation, not a stored lookup. "
 )
 
 
@@ -172,8 +186,10 @@ callers get full rows unless they send `fields` or `evidence_for`.
 ## Worked Specs
 
 These are starting points from the registry templates, not recommendations of a
-model. Adapt their gates to the user's actual requirements; do not silently adopt
-or drop a gate. Capabilities and weights express broad evidence, not measured
+model. Keep only the gates and weights the user stated; do not silently adopt
+or drop a gate or invent numeric tradeoffs. If no objective was stated, disclose
+the minimal Spec's cost objective as a discovery default, not a quality recommendation.
+Capabilities and weights express broad evidence, not measured
 quality on the user's exact prompt. The hardware ID below is a registry example;
 replace it with the user's SKU after a targeted lookup.
 """
@@ -200,6 +216,8 @@ Use `vocab` with `{{"section":"starter"}}` for a compact first lookup, then sear
 or id/ids for the missing term. HTTP lookup:
 `GET {API}/v1/vocabulary?section=starter` where available.
 Avoid paging through unrelated vocabulary before the first decide.
+The starter response includes a ready-to-send minimal Spec and a next hint.
+Call decide with it, then refine from reading; keep only requirements the user stated.
 If a requirement is unsupported, disclose that limit instead of inventing a facet.
 
 ## Per-call token budget
@@ -223,10 +241,7 @@ JSON schemas also consume tokens; each tool definition can exceed its descriptio
 | model_info / list_use_cases | Size depends on card/profiles | 0 | One card / legacy profiles |
 | feedback | 500 tokens for reading | 0 | After acting, never include secrets or a prompt |
 
-If a response exceeds the client context budget, retain the original outside the
-prompt and select answer, reading, recovery/error.issues and relevant rows for
-reporting. Do not treat a truncated list as complete. These token allowances are
-separate from ModelSpec credits and the agent vendor's token billing.
+{RESPONSE_BUDGET_RULES}
 
 ## Store once
 
@@ -287,13 +302,22 @@ Keep the guide outside individual tool results. Reuse it for subsequent calls;
 refresh if a new initialize advertises a different version. The MCP server cannot
 write client files or force a client to honor instructions.
 """
-    return text
+    return "\n".join(line.rstrip() for line in text.split("\n"))
 
 
 def guide(tiers: dict[str, Any] | None = None) -> tuple[str, str]:
     body = guide_body(tiers or _tiers())
     version = "1-" + hashlib.sha256(body.encode()).hexdigest()[:16]
     return version, body.replace("{version}", version)
+
+
+def context_guide(tiers: dict[str, Any]) -> str:
+    """Keep the decision/reporting rules; minify examples and omit client setup tables."""
+    text = guide(tiers)[1].partition("\n## Per-call token budget\n")[0]
+    text = re.sub(r"```json\n(.*?)\n```",
+                  lambda match: "```json\n" + json.dumps(json.loads(match[1]), separators=(",", ":")) + "\n```",
+                  text, flags=re.S)
+    return text + "\n\n" + RESPONSE_BUDGET_RULES + "\n"
 
 NOT_A_ROUTER = (
     "Not a router: call it once per job or role, not per request, then route among the "
@@ -368,11 +392,12 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
             "and task types. Compact by default, with 20 rows per page and no counts. "
             "In split mode full details still exclude per-model facts and counts. Free, no key. "
             "Use it for missing ids, not to compare models. "
-            "Call decide early with a template-based Spec. If you need ids, use section=starter. "
+            "Call decide after at most one vocab lookup. section=starter returns a "
+            "ready-to-send minimal Spec with 'next: call decide with this; refine from reading'. "
+            "Every response carries a next hint. If you need ids, use section=starter. "
             "Use search for a case-insensitive substring of id or label, then call decide. "
             "Pass id or ids for full details of specific rows, or detail=full for all display details. "
             "Use offset and limit to page compact sections; an empty page ends the list. "
-            f"{SPEC_GUIDANCE}"
         ),
         "model_info": (
             "What does ModelSpec's published card say about one model? "
@@ -425,9 +450,11 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
                       "python -m pipeline.agent_copy write",
         "guide_version": guide(tiers)[0],
         "guide_url": GUIDE_URL,
+        "context_guide": context_guide(tiers),
+        "vocab": {"minimal_spec": MINIMAL_SPEC, "next": VOCAB_NEXT},
         "instructions": (
             f"{entity.ONE_SENTENCE} {entity.DISAMBIGUATION} ModelSpec guide {guide(tiers)[0]}: {GUIDE_URL}. Store once per version. "
-            "1. Call decide early with a template-based Spec; refine from reading and recovery hints. "
+            "1. Call decide early, after at most one vocab lookup; refine from reading and recovery hints. "
             "2. Put Musts in where and Prefers in optimize; use vocab section=starter only for missing ids. "
             "3. Present ties as ties, including with_estate; never invent a single winner or quality rank. "
             "4. Disclose not_applied and dropped requirements after retries; unknown is not a pass. "
@@ -455,6 +482,7 @@ def main(argv: list[str] | None = None) -> int:
         GUIDE_CONSTANTS: (
             '# Generated by pipeline.agent_copy; do not edit.\n'
             f'GUIDE_URL = {GUIDE_URL!r}\nGUIDE_VERSION = {version!r}\n'
+            f'MINIMAL_SPEC = {MINIMAL_SPEC!r}\nVOCAB_NEXT = {VOCAB_NEXT!r}\n'
         ),
     }
     stale = False

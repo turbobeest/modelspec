@@ -571,7 +571,9 @@ describe("modelspec MCP worker", () => {
     expect(envelope.origin).toBe(
       "https://modelspec.dev/api/decision/vocabulary.json",
     );
-    expect(envelope.body).toEqual(vocabulary.facets);
+    expect(envelope.body).toEqual({ starter: vocabulary.facets,
+      spec: { spec_version: 1, optimize: { min: "offering.cost_per_task" } },
+      next: "next: call decide with this; refine from reading" });
   });
 
   it("vocab returns only the requested section", async () => {
@@ -583,7 +585,8 @@ describe("modelspec MCP worker", () => {
       name: "vocab",
       arguments: { section: "facets" },
     });
-    expect(envelopeFromCall(payload).body).toEqual(facets);
+    expect(envelopeFromCall(payload).body).toEqual({ facets,
+      next: "next: call decide using these ids; refine from reading" });
   });
 });
 
@@ -622,7 +625,8 @@ describe("compact HTTP vocabulary requests", () => {
       arguments: { section: "facets", search: "CONTEXT", id: "model.context_window", ids: ["missing"], offset: 1, limit: 2 },
     }, 1, { "CF-Connecting-IP": "203.0.113.9" }, { ...ENV, DATA_SPLIT_ENABLED: "true", RANK: via });
     const envelope = envelopeFromCall(payload);
-    expect(envelope.body).toEqual(rows);
+    expect(envelope.body).toEqual({ facets: rows,
+      next: "next: call decide using these ids; refine from reading" });
     const url = new URL(envelope.origin);
     expect(Object.fromEntries(url.searchParams)).toEqual({ section: "facets", detail: "compact", search: "CONTEXT", id: "model.context_window", ids: "missing", offset: "1", limit: "2" });
     const [, init] = via.fetch.mock.calls[0];
@@ -633,7 +637,9 @@ describe("compact HTTP vocabulary requests", () => {
     const via = { fetch: vi.fn().mockResolvedValue(jsonResponse(200, { starter: [] })) };
     const { payload } = await rpc("tools/call", { name: "vocab", arguments: {} }, 1, {}, { ...ENV, DATA_SPLIT_ENABLED: "true", RANK: via });
     expect(envelopeFromCall(payload).origin).toBe("https://api.modelspec.dev/v1/vocabulary?section=starter&detail=compact");
-    expect(envelopeFromCall(payload).body).toEqual([]);
+    expect(envelopeFromCall(payload).body).toEqual({ starter: [],
+      spec: { spec_version: 1, optimize: { min: "offering.cost_per_task" } },
+      next: "next: call decide with this; refine from reading" });
   });
 });
 
@@ -645,6 +651,8 @@ describe("vocabulary rollout", () => {
       templates: [{ spec: { where: ["model.context_window >= 32000"] } }],
     })) };
     const { payload } = await rpc("tools/call", { name: "vocab", arguments: {} }, 1, {}, { ...ENV, DATA_SPLIT_ENABLED: "true", RANK: via });
-    expect(envelopeFromCall(payload).body).toEqual([{ id: "model.context_window", label: "Context", definition: "Token window.", value_type: "number" }]);
+    expect(envelopeFromCall(payload).body).toEqual({ starter: [{ id: "model.context_window", label: "Context", definition: "Token window.", value_type: "number" }],
+      spec: { spec_version: 1, optimize: { min: "offering.cost_per_task" } },
+      next: "next: call decide with this; refine from reading" });
   });
 });
