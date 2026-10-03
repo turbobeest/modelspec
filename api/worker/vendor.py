@@ -81,7 +81,10 @@ SOURCES = {
     Path("decision/vocabulary.py"): Path("decision/vocabulary.py"),
     Path("schema/__init__.py"): Path("schema/__init__.py"),
     Path("schema/applicability.py"): Path("schema/applicability.py"),
-    Path("schema/card.py"): Path("schema/card.py"),
+    # The decision path needs these shared definitions, not every card section.
+    # pipeline.ranking imports ModelCard only under TYPE_CHECKING.
+    Path("schema/availability.py"): Path("schema/availability.py"),
+    Path("schema/evidence.py"): Path("schema/evidence.py"),
     Path("schema/benchmark_values.py"): Path("schema/benchmark_values.py"),
     Path("schema/enums.py"): Path("schema/enums.py"),
     Path("release_signals/__init__.py"): Path("release_signals/__init__.py"),

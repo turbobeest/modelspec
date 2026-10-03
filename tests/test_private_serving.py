@@ -156,13 +156,14 @@ def test_worker_reads_bundled_bytes_without_any_public_fetch(monkeypatch):
     from tests.test_feedback import entry as entry_fixture, Request
 
     # Use the same Cloudflare transport stub as the endpoint suites.
-    context = entry_fixture.__wrapped__()
-    entry = next(context)
     raw = b'{"models":{"lab/private":{"display_name":"Private"}}}'
     blobs = {"/api/decision/vocabulary.json": raw,
-             "/api/rank/candidates.json": b'{"candidates":[]}',
-             "/api/decision/snapshot.json.gz": b"snapshot-bytes"}
+             "/api/rank/candidates.json": b'{"candidates":[]}'}
     monkeypatch.setitem(sys.modules, "bundled_data", types.SimpleNamespace(read=blobs.get))
+    context = entry_fixture.__wrapped__()
+    entry = next(context)
+    # This transport test uses opaque bytes, not a parseable decision snapshot.
+    blobs["/api/decision/snapshot.json.gz"] = b"snapshot-bytes"
 
     async def exercise():
         assert await entry._get_json("https://modelspec.dev/api/rank/candidates.json") == {"candidates": []}

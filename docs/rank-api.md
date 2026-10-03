@@ -448,6 +448,64 @@ Every body-bearing route negotiates Brotli or gzip through workerd's
 [automatic response encoding](https://developers.cloudflare.com/workers/runtime-apis/response/),
 including refusals. No Python compression package is deployed.
 
+### Cold isolates and snapshot preparation (MODEL-283, part 2)
+
+Every HTTP response now includes `isolate;desc="cold"` for the first request
+attempt in an isolate, or `isolate;desc="warm"` for subsequent requests.
+The first request claims the marker before awaiting anything, so concurrent
+requests cannot both claim it. Health checks and refusals consume it too.
+Existing snapshot timing, CORS and compression headers survive. Response
+bodies are unchanged. The latency probe groups TTFB by this observed state;
+its older `warm_total_ms` field still means all samples after the first call
+and is not proof that those calls reached warm isolates.
+
+Cold responses also carry
+`startup;desc="runtime restore unobservable from Python"`. This deliberately
+has no `dur`. Python code begins after runtime initialization and restoration;
+it cannot time those phases. A deployment timestamp stored in the memory
+snapshot would measure the age of the deployment, and synchronous timers in
+production would report zero. Neither is a startup measurement.
+
+Cloudflare [executes the entry module and its top-level imports during
+deployment](https://developers.cloudflare.com/workers/languages/python/how-python-workers-work/)
+and captures WebAssembly memory after that execution. Decision parsing,
+indexing, the registry, and rank preparation already used this path in #492.
+Vocabulary decoding and JSON parsing now use it too. Full vocabulary responses
+retain the original UTF-8 text, including spacing and key order; lookups use
+the prepared JSON object. The decision imports only the shared evidence and
+availability schemas instead of constructing every model-card schema.
+
+For compute attribution, build a **public fixture** with a synthetic signing
+key, then run the Node probe and memory gate from the repository root:
+
+```sh
+MODELSPEC_SNAPSHOT_KEY=model247-memory-fixture-key python api/worker/vendor.py --data-dir . --check
+NODE_PATH=/tmp/model283-probe/node_modules node api/worker/profile_decide.cjs api/worker/src /tmp/startup.json
+NODE_PATH=/tmp/model283-probe/node_modules node --expose-gc api/worker/measure_memory.cjs api/worker/src
+```
+
+Install `pyodide@0.28.3` in `/tmp/model283-probe` first. The startup report
+separates runtime and package loading from exclusive JSON parse, snapshot
+index, registry and rank preparation times. Compare revisions against the
+**same generated bundle data**, including build timestamps, and compare
+response hashes. Run performance probes without concurrent builds or tests.
+Standalone Node Pyodide does not restore a Cloudflare deployment snapshot.
+
+`api/worker/instrument_startup.py /tmp/model283-startup` creates a separate
+local-only timing build and configuration. Use `wrangler dev --local` with
+that config. It imports the application inside the first request so workerd's
+local request clock is active and logs only `[model-283-startup]` phase
+durations. This intentionally measures application initialization **without**
+the deployment snapshot; normal `dev` initializes it before readiness. The
+instrumented source never enters the production build. Neither mode measures
+Cloudflare's deployment-specific snapshot transfer and restore.
+
+[Placement](https://developers.cloudflare.com/workers/configuration/placement/)
+reduces round trips to upstream services; bundled rank and decide have no
+export fetch to move closer to. It is not an instance keepalive. The pinned
+Wrangler schema has no minimum-instances setting. Placement and account
+settings are unchanged.
+
 ## Known limits
 
 * One isolate holds the whole 2.2 MB catalogue in memory after parsing it. At

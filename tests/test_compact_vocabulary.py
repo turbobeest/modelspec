@@ -109,11 +109,12 @@ def test_full_and_compact_cannot_escape_trim_allowances(scored):
 
 def test_http_keeps_the_page_bytes_and_handles_optional_queries(monkeypatch, display):
     from tests.test_feedback import entry as entry_fixture, Request
-    context = entry_fixture.__wrapped__()
-    entry = next(context)
     # Whitespace deliberately differs from the lookup serializer.
     raw = (json.dumps(display, indent=3) + "\n").encode()
-    monkeypatch.setitem(sys.modules, "bundled_data", SimpleNamespace(read=lambda _: raw))
+    monkeypatch.setitem(sys.modules, "bundled_data", SimpleNamespace(read=lambda path: raw
+                        if path == "/api/decision/vocabulary.json" else None))
+    context = entry_fixture.__wrapped__()
+    entry = next(context)
     worker = entry.Default()
     worker.env = SimpleNamespace()
 
