@@ -557,7 +557,7 @@ def test_a_refinement_weight_the_snapshot_cannot_rank_is_an_invalid_spec(
     status, body = service.decide(payload, snapshot)
 
     assert status == 400
-    assert body["contract_version"] == "2.11"
+    assert body["contract_version"] == "2.12"
     assert body["error"]["code"] == "invalid_spec"
     [issue] = body["error"]["issues"]
     assert issue["field"] == "software_engineering/python"

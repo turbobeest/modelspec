@@ -493,15 +493,10 @@ def decide(
         decision, capture["models"], capture["rows"], capture["computed"])
     decision.with_estate = estate_module.with_estate(
         spec.estate, snapshot, unrestricted, run, spec.limit, spec.access, catalogue)
+    reading_inputs = capture["reading_inputs"]
     if spec.estate.devices and (spec.access is None or spec.access.kind == "own_hardware"):
-        decision.reading = reading_module.for_decision(
-            decision, hardware_fit=True,
-            quality_objective=all(
-                split_dimension(name.removeprefix("-"))[0]
-                in set(snapshot.domain_ids()) | set(snapshot.benchmark_ids())
-                for name in _objective_names(spec)),
-            not_applied=sorted(set(spec.capabilities or {}) - set(snapshot.domain_ids())),
-        )
+        reading_inputs["hardware_fit"] = True
+    decision.reading = reading_module.for_decision(decision, **reading_inputs)
     return decision
 
 
@@ -749,14 +744,18 @@ def _decide(
     )
     from decision.explain import named_facets
 
-    decision.reading = reading_module.for_decision(
-        decision,
-        hardware_fit=(reading_module.HARDWARE_FIT in named_facets(resolved)
-                      or (spec.access is not None and spec.access.kind == "own_hardware")),
-        quality_objective=all(split_dimension(name.removeprefix("-"))[0]
-                              in domains | set(snapshot.benchmark_ids()) for name in names),
-        not_applied=sorted(requested - domains),
-    )
+    quality_dimensions = domains | set(snapshot.benchmark_ids()) | {"any"}
+    quality_objective = all(split_dimension(name.removeprefix("-"))[0]
+                            in quality_dimensions for name in names)
+    reading_inputs = {
+        "hardware_fit": (reading_module.HARDWARE_FIT in named_facets(resolved)
+                         or (spec.access is not None and spec.access.kind == "own_hardware")),
+        "quality_objective": quality_objective,
+        "not_applied": sorted(requested - domains),
+    }
+    if _capture is not None:
+        _capture["reading_inputs"] = reading_inputs
+    decision.reading = reading_module.for_decision(decision, **reading_inputs)
     cost_of = _offering_costs(snapshot)
     if spec.explain != "full":
         decision.by_model = build_by_model(decision, cost_of)

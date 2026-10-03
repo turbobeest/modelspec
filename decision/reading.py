@@ -43,6 +43,10 @@ def for_decision(decision: Decision, *, hardware_fit: bool, quality_objective: b
     unapplied = list(not_applied)
     if tied:
         claims.append("Do not name a single winner among tied.")
+    if decision.with_estate is not None and decision.with_estate.answer is not None and (
+        decision.with_estate.answer.kind == "tied"
+    ):
+        claims.append("Do not name a single winner among with_estate.answer.members; that answer is tied.")
     if unapplied:
         claims.append("Do not claim not_applied requirements were evaluated.")
     if estimates:

@@ -1021,8 +1021,8 @@
           "type": "array"
         },
         "contract_version": {
-          "const": "2.11",
-          "default": "2.11",
+          "const": "2.12",
+          "default": "2.12",
           "title": "Contract Version",
           "type": "string"
         },
@@ -4657,5 +4657,5 @@
   ],
   "description": "Generated from decision/contract.py by `python -m decision.schema`. Do not edit by hand. The prose is docs/decision-contract.md.",
   "title": "ModelSpec decision contract",
-  "x-contract-version": "2.11"
+  "x-contract-version": "2.12"
 }

@@ -630,14 +630,13 @@ paths:
         out with the reason for each, may_qualify for missing facts, and a decision_id and snapshot so
         the same spec gives the same answer later. How to report: read reading when present. Present answer.kind=tied
         as a tie among all answer.members, never a single winner; tie-breakers are conditional choices.
-        State requirements in reading.not_applied or error.issues that were not applied, including requirements
-        removed after a rejected call. A retry does not verify them. Report estimates as estimates: fits_hardware
-        membership is not measured fit for a specific quantization and context workload. Follow reading.do_not_claim.
-        Never claim a rank the response does not show: a cost rank is not a #1 quality rank, and general
-        capability evidence does not verify an exact prompt or thread safety. Needs an API key (Authorization:
-        Bearer). Costs 1 or 2 credits a call; a credit costs $0.0017–$0.004 depending on the plan or pack
-        (https://modelspec.dev/pricing/). Not a router: call it once per job or role, not per request,
-        then route among the models it recommends.'
+        Report a tied with_estate.answer as a tie too. State requirements in reading.not_applied or error.issues
+        that were not applied, including requirements removed after a rejected call. A retry does not
+        verify them. Report estimates as estimates: fits_hardware membership is not measured fit for a
+        specific quantization and context workload. Follow reading.do_not_claim. Never claim a rank the
+        response does not show. Needs an API key (Authorization: Bearer). Costs 1 or 2 credits a call;
+        a credit costs $0.0017–$0.004 depending on the plan or pack (https://modelspec.dev/pricing/).
+        Not a router: call it once per job or role, not per request, then route among the models it recommends.'
   /v1/compare:
     post:
       operationId: compareDecisions
@@ -3799,8 +3798,8 @@ components:
           - type: 'null'
           default: null
         contract_version:
-          const: '2.11'
-          default: '2.11'
+          const: '2.12'
+          default: '2.12'
           title: Contract Version
           type: string
         decision_id:
@@ -6162,7 +6161,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.11'
+          - '2.12'
         endpoint:
           type: string
           enum:
@@ -6226,7 +6225,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.11'
+          - '2.12'
         endpoint:
           type: string
           enum:
@@ -6280,7 +6279,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.11'
+          - '2.12'
         endpoint:
           type: string
           enum:
@@ -6305,7 +6304,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.11'
+          - '2.12'
         endpoint:
           type: string
           enum:
@@ -6359,7 +6358,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.11'
+          - '2.12'
         endpoint:
           type: string
           enum:
@@ -6699,7 +6698,7 @@ components:
         contract_version:
           type: string
           enum:
-          - '2.11'
+          - '2.12'
         endpoint:
           type: string
           enum:

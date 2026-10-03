@@ -124,10 +124,16 @@ def test_reading_is_additive_and_does_not_change_the_existing_decision():
     assert with_reading == without_reading
 
 
-def test_size_budget_covers_large_ties_and_long_rejected_field_ids():
+@pytest.mark.parametrize("estate", [False, True])
+def test_size_budget_covers_large_ties_and_long_rejected_field_ids(estate):
     snapshot = _snapshot(TIED_INTERVALS)
     spec = parse_spec(_spec("none"), facets=_service()._facets(snapshot))
     decision = decide(spec, snapshot, facets=_service()._facets(snapshot))
+    if estate:
+        decision.with_estate = decide(parse_spec({
+            "spec_version": 1, "optimize": {"max": "quality"},
+            "estate": {"devices": ["apple_m3_max"]}, "explain": "none",
+        }, facets=facet), _reading_snapshot(), facets=facet).with_estate
     members = [f"lab/model-{i:03d}" for i in range(500)]
     decision.answer = TiedAnswer(kind="tied", members=members, basis="test",
                                  tie_breakers=TieBreakers(),
@@ -144,3 +150,84 @@ def test_size_budget_covers_large_ties_and_long_rejected_field_ids():
     refused = for_refusal([Issue(None, "字段" * 2000, "unknown", "where[0]")])
     assert _size(refused.model_dump(mode="json")) <= READING_BUDGET_BYTES
     assert refused.omitted == {"not_applied": 1}
+
+
+def _reading_snapshot():
+    from datetime import date
+    from decision.registry import default
+    from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
+    from tests.snapshot_records import SOURCES, evidence, fact, model, offering
+
+    scores = {"lab/frontier": 95, "lab/held-a": 70, "lab/held-b": 70,
+              "lab/low-a": 40, "lab/low-b": 20}
+    models = [model(mid, facts=[
+        fact("model", mid, "model.class", "text-generator"),
+        fact("model", mid, "model.weights_openness", "open_weights"),
+        fact("model", mid, "model.fits_hardware",
+             ["apple_m3_max"] if mid.startswith("lab/held-") else []),
+    ]) for mid in scores]
+    rows = [evidence(mid, benchmark, score, interval=[score - 0.1, score + 0.1])
+            for mid, score in scores.items() for benchmark in ("quality", "medical_suite")]
+    built = build_snapshot(SnapshotInputs(
+        models=models, evidence=rows, sources=SOURCES,
+        offerings=[offering(mid, "together-ai" if mid.startswith("lab/held-") else "openai")
+                   for mid in scores],
+        benchmark_domains={"quality": [("software_engineering", "direct")],
+                           "medical_suite": [("medical", "direct")]},
+        benchmark_refinements={"quality": [("input_length_long_context", "direct")]},
+        benchmark_metadata={name: {"random_baseline": 0, "sample_size": 500,
+                                   "direction": "higher_is_better"}
+                            for name in ("quality", "medical_suite")},
+    ), registry=default(), gate=False, as_of=date(2026, 9, 25))
+    return load_built_snapshot(built)
+
+
+@pytest.mark.parametrize("estate", [None, {"devices": ["apple_m3_max"]}])
+def test_any_parent_refinement_weights_are_quality_evidence(estate):
+    raw = {"spec_version": 1,
+           "optimize": {"weights": {"any/input_length_long_context": 1}},
+           "explain": "none"}
+    if estate is not None:
+        raw["estate"] = estate
+    decision = decide(parse_spec(raw, facets=facet), _reading_snapshot(), facets=facet)
+    assert decision.results
+    assert all(row.refinement_estimates for row in decision.results)
+    assert "Do not claim a quality rank from this objective." not in decision.reading.do_not_claim
+    if estate is not None:
+        assert "model.fits_hardware" in decision.reading.estimates
+
+
+@pytest.mark.parametrize("estate", [
+    {"devices": ["apple_m3_max"]}, {"providers": ["together-ai"]},
+])
+def test_estate_tie_is_disclosed_when_the_main_answer_is_separated(estate):
+    decision = decide(parse_spec({
+        "spec_version": 1, "optimize": {"max": "quality"}, "explain": "none",
+        "estate": estate,
+    }, facets=facet), _reading_snapshot(), facets=facet)
+    assert decision.answer.kind == "separated"
+    assert decision.with_estate.answer.kind == "tied"
+    assert set(decision.with_estate.answer.members) == {"lab/held-a", "lab/held-b"}
+    assert not decision.reading.tied
+    assert ("Do not name a single winner among with_estate.answer.members; that answer is tied."
+            in decision.reading.do_not_claim)
+    assert _size(decision.reading.model_dump(mode="json")) <= READING_BUDGET_BYTES
+
+
+def test_estate_reading_keeps_requirements_unapplied_after_benchmark_exclusion():
+    snapshot = _reading_snapshot()
+    assert "medical" in snapshot.domain_ids()
+    raw = {
+        "spec_version": 1, "optimize": {"max": "quality"}, "explain": "none",
+        "capabilities": {"medical": "required", "thread_safety": "required"},
+        "exclude_benchmarks": ["medical_suite"],
+    }
+    plain = decide(parse_spec(raw, facets=facet), snapshot, facets=facet)
+    decision = decide(parse_spec(raw | {"estate": {"devices": ["apple_m3_max"]}},
+                                 facets=facet), snapshot, facets=facet)
+    assert decision.results
+    assert not any(row.estimates for row in decision.results)
+    assert decision.reading.not_applied == plain.reading.not_applied == ["thread_safety"]
+    assert ("Do not claim a quality rank from this objective." in decision.reading.do_not_claim) == (
+        "Do not claim a quality rank from this objective." in plain.reading.do_not_claim)
+    assert "Do not claim not_applied requirements were evaluated." in decision.reading.do_not_claim

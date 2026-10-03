@@ -42,7 +42,7 @@ from pydantic import (
 )
 from pydantic.fields import FieldInfo
 
-CONTRACT_VERSION = "2.11"
+CONTRACT_VERSION = "2.12"
 
 # ── identifiers ────────────────────────────────────────────────────────────
 
@@ -1845,7 +1845,7 @@ class Decision(_ExcludeIf):
         default=None,
         exclude_if=lambda value: value is None,
     )
-    contract_version: Literal["2.11"] = CONTRACT_VERSION
+    contract_version: Literal["2.12"] = CONTRACT_VERSION
     decision_id: DecisionId
     snapshot: SnapshotId
     #: Whether this process verified a publisher signature. Added in 1.10.
@@ -1882,7 +1882,7 @@ class Decision(_ExcludeIf):
     with_estate: WithEstate | None = Field(default=None, exclude_if=lambda value: value is None)
     #: Where to report whether this answer held up. Added in 2.10 (MODEL-221).
     feedback: FeedbackPointer = Field(default_factory=FeedbackPointer)
-    #: Optional reporting limits. Additive under MODEL-59; the page ignores it.
+    #: Optional reporting limits. Added in 2.12 (MODEL-284).
     reading: Reading | None = Field(default=None, exclude_if=lambda value: value is None)
 
     @model_validator(mode="after")
