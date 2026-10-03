@@ -47,6 +47,30 @@ def redact(text: str) -> str:
     )
 
 
+MAX_RETRY_DELAY_S = 65.0
+
+
+def _retry_delay(response: httpx.Response) -> float | None:
+    """The wait a 429/503 asks for: Retry-After, or Gemini's RetryInfo.retryDelay ("37s")."""
+    header = response.headers.get("retry-after", "")
+    if header.replace(".", "", 1).isdigit():
+        return min(float(header), MAX_RETRY_DELAY_S)
+    try:
+        data = response.json()
+    except ValueError:
+        return None
+    error = data.get("error") if isinstance(data, dict) else None
+    details = error.get("details") if isinstance(error, dict) else None
+    for detail in details if isinstance(details, list) else ():
+        delay = detail.get("retryDelay") if isinstance(detail, dict) else None
+        if isinstance(delay, str) and delay.endswith("s"):
+            try:
+                return min(float(delay[:-1]), MAX_RETRY_DELAY_S)
+            except ValueError:
+                return None
+    return None
+
+
 def _error_details(response: httpx.Response) -> tuple[dict, bool]:
     """Extract only the error fields, never headers, URLs or the full body."""
     try:
@@ -219,14 +243,15 @@ class HttpAgent:
             payload["tools"] = [{"functionDeclarations": functions}]
         return payload
 
-    def _before_retry(self, attempt: int, attempts: int) -> None:
+    def _before_retry(self, attempt: int, attempts: int, hinted: float | None = None) -> None:
         # The final attempt may use a different model only before any reply:
         # thought signatures belong to their model.
         if attempt + 1 == attempts - 1 and self.fallback and len(self.history) == 1:
             self.model = self.fallback["model"]
             self.price = self.fallback["price"]
             self.ceiling_price = self.fallback["ceiling_price"]
-        sleep(2**attempt + uniform(0, 1))
+        # A per-minute quota needs the wait the provider names, not a 1-3 s backoff.
+        sleep(max(2**attempt + uniform(0, 1), hinted or 0))
 
     def step(self) -> Reply:
         attempts = GEMINI_MAX_ATTEMPTS if self.family == "gemini" else 1
@@ -259,7 +284,7 @@ class HttpAgent:
                     ):
                         self.budget.release(reserved)
                     if response.status_code in (429, 503) and attempt + 1 < attempts:
-                        self._before_retry(attempt, attempts)
+                        self._before_retry(attempt, attempts, _retry_delay(response))
                         continue
                     raise ProviderError(f"{self.family} HTTP {response.status_code}", details)
                 data = response.json()

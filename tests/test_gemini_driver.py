@@ -394,3 +394,32 @@ def test_gemini_judge_reports_its_actual_model(responses, config):
     assert row["status"] == "completed"
     assert row["judge"]["model"] == "gemini-3.7-flash"
     assert row["model_calls"][-1]["model"] == "gemini-3.7-flash"
+
+
+def test_a_rate_limit_waits_for_the_delay_gemini_names(config, monkeypatch):
+    import qa.providers
+
+    waits = []
+    monkeypatch.setattr(qa.providers, "sleep", waits.append)
+    body = {"error": {"code": 429, "status": "RESOURCE_EXHAUSTED", "message": "quota",
+                      "details": [{"@type": "type.googleapis.com/google.rpc.RetryInfo", "retryDelay": "37s"}]}}
+    requests = []
+
+    def handler(request):
+        requests.append(request)
+        return httpx.Response(429, json=body)
+
+    with httpx.Client(transport=httpx.MockTransport(handler)) as client:
+        agent = driver(client, config)
+        with pytest.raises(ProviderError):
+            agent.step()
+    assert len(requests) == 3
+    assert waits and all(wait >= 37 for wait in waits)
+
+
+def test_the_named_delay_is_capped():
+    from qa.providers import MAX_RETRY_DELAY_S, _retry_delay
+
+    assert _retry_delay(httpx.Response(429, headers={"retry-after": "900"})) == MAX_RETRY_DELAY_S
+    assert _retry_delay(httpx.Response(429, json={"error": {"details": [{"retryDelay": "2.5s"}]}})) == 2.5
+    assert _retry_delay(httpx.Response(429, json={"error": {}})) is None
