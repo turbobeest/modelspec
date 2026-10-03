@@ -1,0 +1,333 @@
+{
+ "recorded_from": "origin/main d1c9767c, before MODEL-292, by the same requests as tests/test_visit_gate_off.py",
+ "responses": {
+  "decide OPTIONS": {
+   "body": null,
+   "headers": {
+    "access-control-allow-headers": "authorization, content-type, x-api-key, x-payment, x-modelspec-snapshot, x-modelspec-turnstile, x-modelspec-intent",
+    "access-control-allow-methods": "POST, OPTIONS",
+    "access-control-allow-origin": "https://modelspec.dev",
+    "access-control-expose-headers": "x-modelspec-snapshot, x-modelspec-snapshot-stale, x-modelspec-decisions-remaining, retry-after, Server-Timing",
+    "access-control-max-age": "86400",
+    "vary": "Origin"
+   },
+   "status": 204
+  },
+  "decide POST": {
+   "body": {
+    "contract_version": "1.0",
+    "endpoint": "decide",
+    "results": [
+     {
+      "model_id": "example/ok"
+     }
+    ],
+    "snapshot": "snapshot-test"
+   },
+   "headers": {
+    "access-control-allow-headers": "authorization, content-type, x-api-key, x-payment, x-modelspec-snapshot, x-modelspec-turnstile, x-modelspec-intent",
+    "access-control-allow-methods": "POST, OPTIONS",
+    "access-control-allow-origin": "https://modelspec.dev",
+    "access-control-expose-headers": "x-modelspec-snapshot, x-modelspec-snapshot-stale, x-modelspec-decisions-remaining, retry-after, Server-Timing",
+    "access-control-max-age": "86400",
+    "cache-control": "no-store",
+    "content-type": "application/json; charset=utf-8",
+    "ratelimit-limit": "10",
+    "ratelimit-remaining": "9",
+    "vary": "Origin",
+    "x-modelspec-tier": "free"
+   },
+   "status": 200
+  },
+  "unknown GET": {
+   "body": {
+    "error": {
+     "accepted": [
+      "POST /v1/rank",
+      "POST /v1/decide",
+      "POST /v1/compare",
+      "POST /v1/policy-check",
+      "POST /v1/feedback",
+      "DELETE /v1/feedback",
+      "GET /v1/health",
+      "POST /v1/signals",
+      "POST /v1/signals/discovered",
+      "GET /v1/signals/pending",
+      "POST /v1/signals/ack",
+      "GET /v1/credits",
+      "GET /v1/human-status",
+      "POST /v1/billing/checkout",
+      "POST /v1/billing/stripe-webhook",
+      "GET /v1/billing/claim",
+      "POST /v1/billing/claim",
+      "POST /v1/billing/rotate",
+      "GET /v1/vocabulary"
+     ],
+     "code": "not_found",
+     "message": "no endpoint at /v1/nope"
+    },
+    "result": [],
+    "schema_version": "1.0",
+    "service_commit": "c0ffee"
+   },
+   "headers": {
+    "cache-control": "no-store",
+    "content-type": "application/json; charset=utf-8",
+    "x-modelspec-service-commit": "c0ffee"
+   },
+   "status": 404
+  },
+  "visit-token GET": {
+   "body": {
+    "error": {
+     "accepted": [
+      "POST /v1/rank",
+      "POST /v1/decide",
+      "POST /v1/compare",
+      "POST /v1/policy-check",
+      "POST /v1/feedback",
+      "DELETE /v1/feedback",
+      "GET /v1/health",
+      "POST /v1/signals",
+      "POST /v1/signals/discovered",
+      "GET /v1/signals/pending",
+      "POST /v1/signals/ack",
+      "GET /v1/credits",
+      "GET /v1/human-status",
+      "POST /v1/billing/checkout",
+      "POST /v1/billing/stripe-webhook",
+      "GET /v1/billing/claim",
+      "POST /v1/billing/claim",
+      "POST /v1/billing/rotate",
+      "GET /v1/vocabulary"
+     ],
+     "code": "not_found",
+     "message": "no endpoint at /v1/visit-token"
+    },
+    "result": [],
+    "schema_version": "1.0",
+    "service_commit": "c0ffee"
+   },
+   "headers": {
+    "cache-control": "no-store",
+    "content-type": "application/json; charset=utf-8",
+    "x-modelspec-service-commit": "c0ffee"
+   },
+   "status": 404
+  },
+  "visit-token OPTIONS": {
+   "body": {
+    "error": {
+     "accepted": [
+      "POST /v1/rank",
+      "POST /v1/decide",
+      "POST /v1/compare",
+      "POST /v1/policy-check",
+      "POST /v1/feedback",
+      "DELETE /v1/feedback",
+      "GET /v1/health",
+      "POST /v1/signals",
+      "POST /v1/signals/discovered",
+      "GET /v1/signals/pending",
+      "POST /v1/signals/ack",
+      "GET /v1/credits",
+      "GET /v1/human-status",
+      "POST /v1/billing/checkout",
+      "POST /v1/billing/stripe-webhook",
+      "GET /v1/billing/claim",
+      "POST /v1/billing/claim",
+      "POST /v1/billing/rotate",
+      "GET /v1/vocabulary"
+     ],
+     "code": "not_found",
+     "message": "no endpoint at /v1/visit-token"
+    },
+    "result": [],
+    "schema_version": "1.0",
+    "service_commit": "c0ffee"
+   },
+   "headers": {
+    "cache-control": "no-store",
+    "content-type": "application/json; charset=utf-8",
+    "x-modelspec-service-commit": "c0ffee"
+   },
+   "status": 404
+  },
+  "visit-token OPTIONS no origin": {
+   "body": {
+    "error": {
+     "accepted": [
+      "POST /v1/rank",
+      "POST /v1/decide",
+      "POST /v1/compare",
+      "POST /v1/policy-check",
+      "POST /v1/feedback",
+      "DELETE /v1/feedback",
+      "GET /v1/health",
+      "POST /v1/signals",
+      "POST /v1/signals/discovered",
+      "GET /v1/signals/pending",
+      "POST /v1/signals/ack",
+      "GET /v1/credits",
+      "GET /v1/human-status",
+      "POST /v1/billing/checkout",
+      "POST /v1/billing/stripe-webhook",
+      "GET /v1/billing/claim",
+      "POST /v1/billing/claim",
+      "POST /v1/billing/rotate",
+      "GET /v1/vocabulary"
+     ],
+     "code": "not_found",
+     "message": "no endpoint at /v1/visit-token"
+    },
+    "result": [],
+    "schema_version": "1.0",
+    "service_commit": "c0ffee"
+   },
+   "headers": {
+    "cache-control": "no-store",
+    "content-type": "application/json; charset=utf-8",
+    "x-modelspec-service-commit": "c0ffee"
+   },
+   "status": 404
+  },
+  "visit-token POST": {
+   "body": {
+    "error": {
+     "accepted": [
+      "POST /v1/rank",
+      "POST /v1/decide",
+      "POST /v1/compare",
+      "POST /v1/policy-check",
+      "POST /v1/feedback",
+      "DELETE /v1/feedback",
+      "GET /v1/health",
+      "POST /v1/signals",
+      "POST /v1/signals/discovered",
+      "GET /v1/signals/pending",
+      "POST /v1/signals/ack",
+      "GET /v1/credits",
+      "GET /v1/human-status",
+      "POST /v1/billing/checkout",
+      "POST /v1/billing/stripe-webhook",
+      "GET /v1/billing/claim",
+      "POST /v1/billing/claim",
+      "POST /v1/billing/rotate",
+      "GET /v1/vocabulary"
+     ],
+     "code": "not_found",
+     "message": "no endpoint at /v1/visit-token"
+    },
+    "result": [],
+    "schema_version": "1.0",
+    "service_commit": "c0ffee"
+   },
+   "headers": {
+    "cache-control": "no-store",
+    "content-type": "application/json; charset=utf-8",
+    "x-modelspec-service-commit": "c0ffee"
+   },
+   "status": 404
+  },
+  "visit-token POST no origin": {
+   "body": {
+    "error": {
+     "accepted": [
+      "POST /v1/rank",
+      "POST /v1/decide",
+      "POST /v1/compare",
+      "POST /v1/policy-check",
+      "POST /v1/feedback",
+      "DELETE /v1/feedback",
+      "GET /v1/health",
+      "POST /v1/signals",
+      "POST /v1/signals/discovered",
+      "GET /v1/signals/pending",
+      "POST /v1/signals/ack",
+      "GET /v1/credits",
+      "GET /v1/human-status",
+      "POST /v1/billing/checkout",
+      "POST /v1/billing/stripe-webhook",
+      "GET /v1/billing/claim",
+      "POST /v1/billing/claim",
+      "POST /v1/billing/rotate",
+      "GET /v1/vocabulary"
+     ],
+     "code": "not_found",
+     "message": "no endpoint at /v1/visit-token"
+    },
+    "result": [],
+    "schema_version": "1.0",
+    "service_commit": "c0ffee"
+   },
+   "headers": {
+    "cache-control": "no-store",
+    "content-type": "application/json; charset=utf-8",
+    "x-modelspec-service-commit": "c0ffee"
+   },
+   "status": 404
+  },
+  "vocabulary GET": {
+   "body": {
+    "facets": []
+   },
+   "headers": {
+    "access-control-allow-headers": "authorization, content-type, x-api-key, x-payment, x-modelspec-snapshot, x-modelspec-turnstile, x-modelspec-intent",
+    "access-control-allow-methods": "POST, OPTIONS",
+    "access-control-allow-origin": "https://modelspec.dev",
+    "access-control-expose-headers": "x-modelspec-snapshot, x-modelspec-snapshot-stale, x-modelspec-decisions-remaining, retry-after, Server-Timing",
+    "access-control-max-age": "86400",
+    "cache-control": "private, max-age=3600",
+    "content-type": "application/json; charset=utf-8",
+    "vary": "Origin"
+   },
+   "status": 200
+  },
+  "vocabulary GET query": {
+   "body": {
+    "domains": [],
+    "estate": {},
+    "facets": [],
+    "models": {},
+    "templates": []
+   },
+   "headers": {
+    "access-control-allow-headers": "authorization, content-type, x-api-key, x-payment, x-modelspec-snapshot, x-modelspec-turnstile, x-modelspec-intent",
+    "access-control-allow-methods": "POST, OPTIONS",
+    "access-control-allow-origin": "https://modelspec.dev",
+    "access-control-expose-headers": "x-modelspec-snapshot, x-modelspec-snapshot-stale, x-modelspec-decisions-remaining, retry-after, Server-Timing",
+    "access-control-max-age": "86400",
+    "cache-control": "private, max-age=3600",
+    "content-type": "application/json; charset=utf-8",
+    "vary": "Origin"
+   },
+   "status": 200
+  },
+  "vocabulary HEAD": {
+   "body": null,
+   "headers": {
+    "access-control-allow-headers": "authorization, content-type, x-api-key, x-payment, x-modelspec-snapshot, x-modelspec-turnstile, x-modelspec-intent",
+    "access-control-allow-methods": "POST, OPTIONS",
+    "access-control-allow-origin": "https://modelspec.dev",
+    "access-control-expose-headers": "x-modelspec-snapshot, x-modelspec-snapshot-stale, x-modelspec-decisions-remaining, retry-after, Server-Timing",
+    "access-control-max-age": "86400",
+    "cache-control": "private, max-age=3600",
+    "content-type": "application/json; charset=utf-8",
+    "vary": "Origin"
+   },
+   "status": 200
+  },
+  "vocabulary OPTIONS": {
+   "body": null,
+   "headers": {
+    "access-control-allow-headers": "authorization, content-type, x-api-key, x-payment, x-modelspec-snapshot, x-modelspec-turnstile, x-modelspec-intent",
+    "access-control-allow-methods": "GET, HEAD, OPTIONS",
+    "access-control-allow-origin": "https://modelspec.dev",
+    "access-control-expose-headers": "x-modelspec-snapshot, x-modelspec-snapshot-stale, x-modelspec-decisions-remaining, retry-after, Server-Timing",
+    "access-control-max-age": "86400",
+    "vary": "Origin"
+   },
+   "status": 204
+  }
+ }
+}

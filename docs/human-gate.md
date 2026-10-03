@@ -1,4 +1,124 @@
-# Manual decision gate (MODEL-248)
+# Human admission on the decide page
+
+## Visit gate (MODEL-292)
+
+`VISIT_GATE_ENABLED` is a new Worker flag. `VITE_VISIT_GATE_ENABLED` is the
+new page build flag, supplied by the repository variable `VISIT_GATE_ENABLED`.
+Both default to off. Production and staging retain every existing reserved
+flag value. The legacy manual gate below remains available when the new
+Worker flag is off.
+
+When both new flags are enabled, the page runs a managed Turnstile check on
+its first request of a visit, then updates the answer on every facet change
+with the existing 300 ms debounce. There is no lookup button. The same random
+intent identifies the summary, details, plot, estate and snapshot retries of
+one action. MODEL-270's question derivations, eight-request bound, 60-second
+intent window and pacing remain in force. Verification does not consume a
+question, and an admitted question still spends allowance if its producer fails.
+
+The widget uses `appearance: interaction-only`. Most visits pass in the
+background. When interaction is required, the widget appears in the answer
+panel, including during renewal. Network requests have deadlines; time spent
+completing the widget does not consume those deadlines. See [Cloudflare's
+appearance configuration](https://developers.cloudflare.com/turnstile/get-started/client-side-rendering/widget-configurations/).
+
+`POST /v1/visit-token` accepts `X-ModelSpec-Turnstile`. Siteverify must report
+boolean success, the hostname matching the request origin, and `action: decide`.
+The origin must be one of `entry.CORS_ORIGINS`. The existing ten-second
+Siteverify timeout and omission of `remoteip` apply. Failed verification,
+missing identity, secret or binding never issues a credential.
+
+With `VISIT_GATE_ENABLED` off the route does not exist. `/v1/visit-token`
+answers every method, `OPTIONS` included, with the same 404 as any unknown
+path. The 404 `accepted` list, the CORS allow and expose headers on decide and
+vocabulary, and the generated OpenAPI name the route and its two headers only
+while the flag is on. `tests/test_visit_gate_off.py` replays those requests
+against responses recorded from main before this ticket.
+
+The Worker signs a base64url JSON tuple of daily visitor id, exact origin,
+the chain's original issue time, issued-at and expiry using HMAC-SHA256 under the new Wrangler secret
+`VISIT_TOKEN_HMAC_KEY`, which must contain at least 32 characters. The daily id
+comes from `visitor.py` through the existing human-gate IPv6 /64 normalization.
+The token is held only in page memory, never a cookie. Application code stores
+or logs neither the visit token nor the Turnstile token. It expires after a
+30-minute sliding window: each admitted decide or vocabulary request returns a
+renewed token in `X-ModelSpec-Visit-Token` and its Unix expiry in
+`X-ModelSpec-Visit-Expires`. Responses containing credentials are `no-store`.
+Renewal carries the original issue time forward and never extends a chain past
+four hours from its Turnstile exchange; the page then passes Turnstile again,
+silently in most visits. Daily identity rotation also invalidates yesterday's
+credential.
+
+When admission or exchange fails closed, the Worker logs
+`human_gate_unavailable where=visit_admit` or `where=visit_exchange` with the
+exception type and its first 160 characters, never a token, key or address. A
+signing secret missing at the flip shows there as
+`visit signing secret unavailable`.
+
+A presented API key always takes the key path, even alongside a valid or
+invalid visit token. With no key, a visit token must authenticate and match
+both the visitor id and origin before `/v1/decide` or `/v1/vocabulary` receives
+page admission. Expired tokens receive 401 `visit_token_expired`; tampering or
+binding mismatch receives 401 `visit_token_invalid` under access enforcement.
+With enforcement off, invalid credentials fall back to the existing anonymous
+path. Expiry still requests a new check. These are access errors
+outside the decision contract. The page silently rechecks on local expiry or
+`visit_token_expired` and retries the request once, retaining its action intent.
+Concurrent requests share one verification. A binding mismatch also gets one
+fresh check, allowing a person whose network or UTC-day identity changed to
+continue. A repeated refusal ends the retry.
+
+Without either credential, `ACCESS_ENFORCED` decides whether to allow anonymous
+access. With the new Worker flag on, the legacy manual route and MODEL-241's
+Origin-only free shortcut are disabled. Under `ACCESS_ENFORCED=true`, a spoofed
+allowlisted Origin without a credential gets 401 `missing_api_key`, including
+when x402 is enabled. Visit tokens grant no admission to rank, compare,
+policy-check or MCP; those paths require keys under enforcement. Worker-hosted
+vocabulary checks keys or visit admission before returning its data, including
+HEAD and query variants. Static distribution remains governed by
+`DATA_SPLIT_ENABLED`; enable the data split for the private-data product.
+
+The existing daily HumanGate SQLite object keeps a separate visit question
+meter and vocabulary meter. Synchronous reads, admission and writes precede
+any await. The existing sweep detection and midnight deletion alarm apply.
+The token grants access; it does not reset the visitor-day allowance. Renewals
+and fresh checks cannot reset the counters. Defaults are configuration in
+`api/worker/wrangler.jsonc`, repeated for staging:
+
+| Variable | Default | Window |
+| --- | ---: | --- |
+| `VISIT_DECIDE_DAY_LIMIT` | 300 | UTC day, questions |
+| `VISIT_DECIDE_BURST_LIMIT` | 30 | rolling minute, questions |
+| `VISIT_VOCABULARY_DAY_LIMIT` | 60 | UTC day, lookups |
+| `VISIT_VOCABULARY_BURST_LIMIT` | 10 | rolling minute, lookups |
+
+Jamie may tune these values in configuration. Missing or invalid configuration
+fails closed. Vocabulary uses its own allowance and does not spend a question.
+The continuation fingerprints and daily state retention remain as documented
+below. The visit meter keeps an admitted intent only for its 60-second
+continuation window, so its stored row is bounded by what one window can admit
+rather than by the day's allowance. A reused intent past its window spends a
+new admission; it is never served free.
+People sharing a public IPv4 address or IPv6 /64 share allowances.
+
+Before enabling production, Jamie must adopt privacy v1.9 and mark the visit
+gate disclosure live. The proposed diff is `model-292.privacy-v1.9.md` in the
+session scratchpad; no adopted legal file changes in this ticket.
+`tests/test_legal.py` refuses an ON Worker flag without that wording and its
+configured allowance numbers. Configure the new signing secret separately in
+each environment, retain the existing visitor and Turnstile secrets, and use
+a **managed** Turnstile widget with the allowlisted hostnames and no pre-clearance.
+Publish the new page build first, confirm that Worker-off lookups stay live,
+then enable the new Worker flag with enforcement only after privacy adoption.
+The existing gate and billing flag values are Jamie's separate decisions.
+
+CI builds both new page variants alongside both legacy variants. Browser tests
+exercise one silent verification, facet updates, local expiry, Worker expiry,
+one retry per request, and interaction inside the answer panel. Worker tests
+use real SQLite to verify quotas, concurrency, sweep detection and intent
+metering, with only external Siteverify replaced.
+
+## Legacy manual gate (MODEL-248)
 
 `HUMAN_GATE_ENABLED` ships `false` in production and `true` in isolated staging
 for verifying the gate on Cloudflare before production. Off preserves
@@ -223,9 +343,8 @@ workflow deploys staging only on `workflow_dispatch`, so dispatch it on `main`
 after the merge before verifying the gate. Never reuse or publish secret values in a PR.
 Create a Turnstile widget permitting the production, www and internal preview
 hostnames. Configure its public key in the Pages build variables above.
-Before enabling the gate, Jamie adopts a privacy disclosure covering the
-Spec-derived fingerprints described above. The published human-gate disclosure
-predates that storage. Publish
+Privacy v1.8 already discloses the Spec-derived fingerprints described above.
+Before enabling the legacy gate, Jamie marks its disclosure live. Publish
 the page gate first: set repository variable `HUMAN_GATE_ENABLED=true`,
 rebuild the site and verify that the gated build is live and still performs
 automatic lookups while the Worker reports `enabled: false`. Only then enable

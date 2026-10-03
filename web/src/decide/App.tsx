@@ -1,8 +1,8 @@
-import { HumanGate, HUMAN_GATE_ENABLED } from "./components/HumanGate";
+import { VISIT_GATE_ENABLED, prepareVisit } from "./adapter/visit";
+import { VisitGate, HumanGate, HUMAN_GATE_ENABLED } from "./components/HumanGate";
 import { decisionAction } from "./adapter/hosted";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  newIntent,
   hostedEngine,
   retryOnSnapshotChange,
   sharedReload,
@@ -93,7 +93,7 @@ export function DesignedApp({
 }: {
   simulate?: "loading" | "error" | "none";
 }) {
-  const [gateStatus, setGateStatus] = useState<boolean | null>(HUMAN_GATE_ENABLED ? null : false);
+  const [gateStatus, setGateStatus] = useState<boolean | null>(HUMAN_GATE_ENABLED || VISIT_GATE_ENABLED ? null : false);
   const [gateRefresh, setGateRefresh] = useState(0);
   const humanGateEnabled = gateStatus === true;
   const action = useRef<DecideOptions>({});
@@ -251,6 +251,7 @@ export function DesignedApp({
     const key = `${hostedDecision.snapshot}:${JSON.stringify(plotSpec)}`;
     if (plotKey.current === key) return;
     const controller = new AbortController();
+    let settled = false;
     plotKey.current = key;
     setPlotDecision(null);
     void retryOnSnapshotChange(
@@ -265,14 +266,19 @@ export function DesignedApp({
       (fresh) => setVocabState({ kind: "ready", vocabulary: fresh }),
     )
       .then(({ result: plotDecision }) => {
-        if (!controller.signal.aborted)
+        if (!controller.signal.aborted) {
+          settled = true;
           setPlotDecision(plotDecision);
+        }
       })
       .catch((cause: unknown) => {
         if (!(cause instanceof Error && cause.name === "AbortError"))
           setPlotDecision(null);
       });
-    return () => controller.abort();
+    return () => {
+      controller.abort();
+      if (!settled && plotKey.current === key) plotKey.current = "";
+    };
   }, [
     humanGateEnabled,
     hostedDecision,
@@ -347,7 +353,10 @@ export function DesignedApp({
         status: cause instanceof DecideApiError ? cause.status : null,
         issues: cause instanceof DecideApiError ? cause.issues : [],
       });
-    const watchdog = setTimeout(() => {
+    try { await prepareVisit(); }
+    catch (cause) { if (!controller.signal.aborted) fail(cause); return; }
+    if (controller.signal.aborted) return;
+    const watchdog = VISIT_GATE_ENABLED ? undefined : setTimeout(() => {
       controller.abort();
       fail(
         new DecideApiError(
@@ -403,7 +412,7 @@ export function DesignedApp({
     } catch (cause) {
       // Aborted by a newer request or by the watchdog: whichever did owns the state.
       if (controller.signal.aborted) return;
-      if (HUMAN_GATE_ENABLED && cause instanceof DecideApiError && cause.code === "human_challenge_required") {
+      if ((HUMAN_GATE_ENABLED || VISIT_GATE_ENABLED) && cause instanceof DecideApiError && cause.code === "human_challenge_required") {
         setGateStatus(null);
         setGateRefresh((value) => value + 1);
       }
@@ -548,9 +557,18 @@ export function DesignedApp({
   const estateRequestKey = `${specHash(spec)}:${JSON.stringify(estate)}`;
   useEffect(() => {
     const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 20_000);
+    let timer: ReturnType<typeof setTimeout> | undefined;
     setVocabState({ kind: "loading" });
-    loadVocabulary(controller.signal)
+    prepareVisit().catch(() => {
+      throw new VocabularyError(
+        "Human verification did not complete, so the catalogue vocabulary was not requested.",
+        "network",
+      );
+    }).then(() => {
+      controller.signal.throwIfAborted();
+      timer = VISIT_GATE_ENABLED ? undefined : setTimeout(() => controller.abort(), 20_000);
+      return loadVocabulary(controller.signal);
+    })
       .then((loaded) => setVocabState({ kind: "ready", vocabulary: loaded }))
       .catch((cause: unknown) => {
         if (cause instanceof Error && cause.name === "AbortError" && !controller.signal.aborted)
@@ -663,7 +681,7 @@ export function DesignedApp({
       requestKey,
       generation: estateRequest.generation,
     });
-    const watchdog = setTimeout(() => {
+    const watchdog = VISIT_GATE_ENABLED ? undefined : setTimeout(() => {
       controller.abort();
       if (active) setEstateRequest({
         kind: "error",
@@ -889,7 +907,8 @@ export function DesignedApp({
       </header>
       <main className="work">
           <BoardIntro />
-          {HUMAN_GATE_ENABLED && <HumanGate key={gateRefresh} onEnabled={setGateStatus} disabled={!vocabulary} onLookup={(token, onRemaining) => runDecision(spec, token, onRemaining)} />}
+          {(HUMAN_GATE_ENABLED || VISIT_GATE_ENABLED) && <HumanGate key={gateRefresh} onEnabled={setGateStatus} disabled={!vocabulary} onLookup={(token, onRemaining) => runDecision(spec, token, onRemaining)} />}
+          {VISIT_GATE_ENABLED && !vocabulary && <aside className="board-answer"><VisitGate /></aside>}
           {vocabAlert}
           {vocabState.kind === "loading" && (
             <div role="status" aria-busy="true" className="loading">
@@ -919,6 +938,7 @@ export function DesignedApp({
             refinementFallbackKeys={refinementFallbackKeys}
             onCanvasAxes={setCanvasAxes}
             onTemplate={setActiveTemplateId}
+            verification={VISIT_GATE_ENABLED ? <VisitGate /> : undefined}
             answer={decision ? <AnswerBoundary resetKey={decision} onReset={resetBoard}>
               <Field
                 decision={decision}
@@ -931,7 +951,7 @@ export function DesignedApp({
               />
               <section className="board-answer-head" aria-label="Facet board answer">
                 <span className="eyebrow">The answer</span>
-                {hasEstate(estate) && <div className="answer-pair"><div><strong>With what you have</strong><span>{estateDecision ? `${estateDecision.explanation.feasible.length} models qualify · ${estateDecision.explanation.may.length} may qualify` : estateRequest.kind === "error" || estateRequest.kind === "done" ? <>Couldn't load: <button className="text-button" onClick={() => { if (humanGateEnabled) changeSpec(spec); else { action.current = { intent: newIntent() }; setEstateRequest((current) => ({ kind: "idle", settledSpecHash: current.settledSpecHash, generation: current.generation + 1 })); } }}>retry</button></> : "Checking…"}</span></div><div><strong>If you could use anything</strong><span>{decision.explanation.feasible.length} models qualify · {decision.explanation.may.length} may qualify</span></div></div>}
+                {hasEstate(estate) && <div className="answer-pair"><div><strong>With what you have</strong><span>{estateDecision ? `${estateDecision.explanation.feasible.length} models qualify · ${estateDecision.explanation.may.length} may qualify` : estateRequest.kind === "error" || estateRequest.kind === "done" ? <>Couldn't load: <button className="text-button" onClick={() => { if (humanGateEnabled) changeSpec(spec); else { action.current = decisionAction(); setEstateRequest((current) => ({ kind: "idle", settledSpecHash: current.settledSpecHash, generation: current.generation + 1 })); } }}>retry</button></> : "Checking…"}</span></div><div><strong>If you could use anything</strong><span>{decision.explanation.feasible.length} models qualify · {decision.explanation.may.length} may qualify</span></div></div>}
                 {answeredAccess === "own_software" && estateAnswer?.excludedPlans.map((plan) => <p className="board-own-software-note" role="note" key={plan.id}>{ownSoftwareNote(plan)}</p>)}
               </section>
               {hasEstate(estate) && estateAnswer
@@ -950,7 +970,7 @@ export function DesignedApp({
                     axes={shownCanvasAxes}
                     onAxes={(next) => {
                       if (humanGateEnabled) changeSpec(spec);
-                      else action.current = { intent: newIntent() };
+                      else action.current = decisionAction();
                       setCanvasAxes(next);
                     }}
                     onMust={setCanvasMust}

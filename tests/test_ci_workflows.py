@@ -65,6 +65,8 @@ def test_site_build_requires_both_human_gate_browser_variants() -> None:
     browser = jobs["decide-browser"]
     assert browser["strategy"]["matrix"]["human_gate"] == ["false", "true"]
     assert browser["env"]["VITE_HUMAN_GATE_ENABLED"] == "${{ matrix.human_gate }}"
+    assert browser["strategy"]["matrix"]["visit_gate"] == ["false", "true"]
+    assert browser["env"]["VITE_VISIT_GATE_ENABLED"] == "${{ matrix.visit_gate }}"
     assert browser["env"]["VITE_TURNSTILE_SITE_KEY"]
     assert "playwright test --config=playwright.corpus.config.ts" in yaml.safe_dump(browser)
     test_step = next(step for step in browser["steps"]
@@ -79,6 +81,7 @@ def test_site_build_requires_both_human_gate_browser_variants() -> None:
     assert gate["run"] == 'test "$BROWSER_RESULT" = success'
     production = next(step for step in build["steps"] if step.get("name") == "Build the decide app")
     assert production["env"]["VITE_HUMAN_GATE_ENABLED"] == "${{ vars.HUMAN_GATE_ENABLED || 'false' }}"
+    assert production["env"]["VITE_VISIT_GATE_ENABLED"] == "${{ vars.VISIT_GATE_ENABLED || 'false' }}"
     assert production["env"]["VITE_TURNSTILE_SITE_KEY"] == "${{ vars.TURNSTILE_SITE_KEY }}"
     assert jobs["deploy"]["needs"] == "build"
 

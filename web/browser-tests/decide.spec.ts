@@ -167,7 +167,7 @@ test("the board and its explanation fit a 320px viewport in light and dark mode"
 
 test.describe("the Worker gate is enabled", () => {
   test.use({ humanStatus: { enabled: true, remaining: 20 } });
-  test.skip(process.env.VITE_HUMAN_GATE_ENABLED !== "true", "requires the gated page build");
+  test.skip(process.env.VITE_HUMAN_GATE_ENABLED !== "true" && process.env.VITE_VISIT_GATE_ENABLED !== "true", "requires a gated page build");
 
   test("shows verification and waits for a manual lookup", async ({ page }) => {
     let decisions = 0;

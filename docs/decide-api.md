@@ -305,10 +305,12 @@ closed decision-contract error enum and do not change its version. The
 |---|---|---|---|
 | 404 | `origin_not_allowed` | A browser preflight came from another origin. | Call from a permitted site origin or make a server-side request. |
 | 401 | `human_origin_required` | Keyless manual access requires a permitted site origin. | Use the paid API or MCP for machine access. |
+| 401 | `visit_token_expired` | The visit credential's sliding window expired. | Run managed Turnstile and retry once with the same intent. |
+| 401 | `visit_token_invalid` | The credential is invalid or belongs to another visitor or origin, with enforcement on. | Obtain a credential for this visit or use an API key. |
 | 403 | `human_challenge_required` | The Turnstile token is absent, invalid, expired or replayed. | Complete fresh verification before each lookup. |
 | 429 | `human_burst_limit` | Three distinct admitted intents in a rolling minute. | Wait for `Retry-After`, then verify again. |
 | 429 | `human_day_limit` | The daily allowance of 20 is spent. | Return after midnight UTC or use the paid API or MCP. |
-| 429 | `human_intent_limit` | This intent reached 32 requests or its 60-second window expired. | Start a new action with a fresh intent and human verification. |
+| 429 | `human_intent_limit` | This intent reached eight requests, its pace cap or its 60-second window expired. | Start a new action with a fresh intent. |
 | 429 | `human_sweep_limit` | Five distinct intents have four nearly equal intervals. | Wait for `Retry-After`, then verify again or use the paid API or MCP. |
 | 503 | `human_gate_unavailable` | Verification, identity configuration or storage is unavailable. | Retry verification after the service recovers. |
 

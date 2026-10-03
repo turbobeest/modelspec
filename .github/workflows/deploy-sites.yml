@@ -41,15 +41,17 @@ concurrency:
 
 jobs:
   decide-browser:
-    name: Test decide page (human gate ${{ matrix.human_gate }})
+    name: Test decide page (human gate ${{ matrix.human_gate }}, visit gate ${{ matrix.visit_gate }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         human_gate: ['false', 'true']
+        visit_gate: ['false', 'true']
     env:
       CI: true
       VITE_HUMAN_GATE_ENABLED: ${{ matrix.human_gate }}
+      VITE_VISIT_GATE_ENABLED: ${{ matrix.visit_gate }}
       VITE_TURNSTILE_SITE_KEY: public-browser-test-key
     steps:
       - uses: actions/checkout@v4
@@ -84,7 +86,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
-          name: decide-browser-human-gate-${{ matrix.human_gate }}
+          name: decide-browser-human-gate-${{ matrix.human_gate }}-visit-gate-${{ matrix.visit_gate }}
           path: web/test-results
           retention-days: 7
 
@@ -124,6 +126,7 @@ jobs:
       - name: Build the decide app
         env:
           VITE_HUMAN_GATE_ENABLED: ${{ vars.HUMAN_GATE_ENABLED || 'false' }}
+          VITE_VISIT_GATE_ENABLED: ${{ vars.VISIT_GATE_ENABLED || 'false' }}
           VITE_TURNSTILE_SITE_KEY: ${{ vars.TURNSTILE_SITE_KEY }}
           VITE_VOCABULARY_URL: ${{ vars.DATA_SPLIT_ENABLED == 'true' && 'https://api.modelspec.dev/v1/vocabulary' || '/api/decision/vocabulary.json' }}
         working-directory: web
