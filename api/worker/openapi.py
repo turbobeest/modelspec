@@ -581,8 +581,8 @@ _ENTRY_ONLY = {
     "snapshot_refused", "snapshot_unavailable",
 }
 _DECIDE_ONLY = {
-    "comparison_snapshot_changed", "comparison_snapshot_unavailable", "invalid_spec",
-    "no_snapshot", "snapshot_changed", "snapshot_not_loaded",
+    "comparison_snapshot_changed", "comparison_snapshot_unavailable", "explanation_unavailable",
+    "invalid_spec", "no_snapshot", "snapshot_changed", "snapshot_not_loaded",
 }
 
 
@@ -2113,6 +2113,29 @@ def _comparison_responses() -> list[dict[str, Any]]:
     ]
 
 
+#: MODEL-293's bounded types copy their fields from the complete ones. In the
+#: OpenAPI document each copied property points at its source property instead
+#: of repeating it; only `default` and `title`, which do not validate, may differ.
+_BOUNDED_SOURCES = {
+    "DecisionDecideRequest": "DecisionSpec",
+    "DecisionProjectedResult": "DecisionResult",
+    "DecisionBoundedDecision": "DecisionResponse",
+}
+
+
+def _point_bounded_copies(schemas: dict[str, Any]) -> None:
+    def rules(node: dict[str, Any]) -> dict[str, Any]:
+        return {key: value for key, value in node.items() if key not in ("default", "title")}
+
+    for copy_name, source_name in _BOUNDED_SOURCES.items():
+        source = schemas[source_name]["properties"]
+        properties = schemas[copy_name]["properties"]
+        for name, schema in properties.items():
+            if name in source and rules(schema) == rules(source[name]):
+                properties[name] = {
+                    "$ref": f"#/components/schemas/{source_name}/properties/{name}"}
+
+
 def _decision_schemas() -> dict[str, Any]:
     """Convert the generated decision-contract definitions to component refs."""
     definitions = copy.deepcopy(decide_service.contract.json_schema()["$defs"])
@@ -2146,6 +2169,7 @@ def _decision_schemas() -> dict[str, Any]:
         return value
 
     schemas = {names[name]: rewrite(schema) for name, schema in definitions.items()}
+    _point_bounded_copies(schemas)
     from decision.recovery import MAX_RECOVERY_HINTS, Recovery
     schemas["DecisionRecovery"] = Recovery.model_json_schema()
     def refused(endpoint: str, codes: set[str]) -> dict[str, Any]:
@@ -2228,6 +2252,32 @@ def _decision_schemas() -> dict[str, Any]:
     })
     schemas["DecisionRequestRefused"]["properties"]["reading"] = {
         "$ref": "#/components/schemas/DecisionReading",
+    }
+    # Reachable only with evidence_for, so it belongs to the bounded
+    # representation and leaves the 2.x decision error enum unchanged.
+    schemas["DecisionBoundedRefused"] = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["representation", "bounded_version", "projects_contract",
+                     "endpoint", "snapshot", "error"],
+        "properties": {
+            "representation": {"type": "string", "enum": ["bounded"]},
+            "bounded_version": {"type": "string",
+                                "enum": [decide_service.contract.BOUNDED_VERSION]},
+            "projects_contract": {"type": "string",
+                                  "enum": [decide_service.contract.CONTRACT_VERSION]},
+            "endpoint": {"type": "string", "enum": ["decide"]},
+            "snapshot": {"type": "string", "pattern": "^snap_[A-Za-z0-9:._-]+$"},
+            "error": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["code", "message"],
+                "properties": {
+                    "code": {"type": "string", "enum": ["explanation_unavailable"]},
+                    "message": {"type": "string"},
+                },
+            },
+        },
     }
     schemas["HumanGateRefused"] = refused("decide", set(human_error_codes()))
     schemas["DecisionSnapshotUnavailable"] = snapshot_unavailable("decide")
@@ -2849,15 +2899,22 @@ def build_spec() -> dict[str, Any]:
                     "requestBody": {
                         "required": True,
                         "content": {"application/json": {
-                            "schema": {"$ref": "#/components/schemas/DecisionSpec"},
+                            "schema": {"$ref": "#/components/schemas/DecisionDecideRequest"},
                             "example": EXAMPLE_DECIDE_REQUEST,
                         }},
                     },
                     "responses": {
                         "200": {
                             **_json_body(
-                                "A decision pinned to the snapshot that produced it.",
-                                {"$ref": "#/components/schemas/DecisionResponse"},
+                                "A decision pinned to the snapshot that produced it: a complete "
+                                "Decision (contract_version 2.12), or, when the request sends "
+                                "fields or evidence_for, the separate bounded representation "
+                                "(representation: bounded, bounded_version 1.0, no "
+                                "contract_version).",
+                                {"anyOf": [
+                                    {"$ref": "#/components/schemas/DecisionResponse"},
+                                    {"$ref": "#/components/schemas/DecisionBoundedDecision"},
+                                ]},
                             ),
                             "headers": decide_snapshot_headers,
                         },
@@ -2905,8 +2962,12 @@ def build_spec() -> dict[str, Any]:
                             "content": {"application/json": {"schema": {"oneOf": [
                                 decision_unavailable["content"]["application/json"]["schema"],
                                 {"$ref": "#/components/schemas/HumanGateRefused"},
+                                {"$ref": "#/components/schemas/DecisionBoundedRefused"},
                             ]}}},
-                            "description": "Snapshot, access store or human gate unavailable. Retry later.",
+                            "description": (
+                                "Snapshot, access store or human gate unavailable. Retry later. "
+                                "explanation_unavailable: evidence_for needs retained verification "
+                                "records this snapshot lacks; retry without evidence_for."),
                         },
                     },
                 },

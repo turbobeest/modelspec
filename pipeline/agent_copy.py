@@ -57,6 +57,23 @@ REPORTING_RULES = (
     "Follow reading.do_not_claim. Never claim a rank the response does not show. "
 )
 MINIMAL_SPEC = {"spec_version": 1, "optimize": {"min": "offering.cost_per_task"}}
+#: The one rule for MCP decide's bounded default (MODEL-293). The guide, the
+#: MCP instructions and the decide description all quote it.
+BOUNDED_MCP = (
+    "MCP decide returns a bounded answer by default; drill down with evidence_for, "
+    "or ask for full rows with fields:null/explain."
+)
+BOUNDED_MCP_DETAIL = (
+    'With explain unset or "none" it sends explain=none, limit=10 and row fields model_rank, '
+    "cost_per_task, estimates and p_best, and the body says representation: bounded. The answer, "
+    "reading, warnings and ties stay complete; explanation.omitted counts what was left out, "
+    "including screened-out models, which are counted, not listed. To see one model's evidence, "
+    "status, rank and elimination reasons, resend the same spec with its returned snapshot and "
+    "evidence_for: <model id>; that stateless call stays within 2k estimated tokens. "
+    "For full rows pass fields: null, or set explain to summary or full, which return full rows "
+    "unless you also pass fields. Full includes every eliminated candidate and can exceed the "
+    "client context budget. decision_id is a citation, not a stored lookup. "
+)
 
 
 def guide_examples() -> list[dict[str, Any]]:
@@ -116,13 +133,38 @@ Minimal valid Spec, minimizing cost without claiming a quality ranking:
 
 `spec_version` is 1. `snapshot` defaults to latest; save the returned snapshot
 and decision_id, and set snapshot to that exact ID for a reproducible retry.
-`explain` defaults to summary. Use summary first; full includes every eliminated
-candidate and can be large. A Spec has one optimize objective: min, max, or weights.
+Over HTTP, `explain` defaults to summary and returns full rows; full includes
+every eliminated candidate and can be large. A Spec has one optimize objective: min, max, or weights.
 A negative numeric weight key prefers less, for example `-offering.cost_per_task`.
 For boolean or enum preferences use a prefer value and weight, never a bare number.
 `where` is an array. In text expressions a set is `{{a, b}}`, not `[a, b]`.
 Structured example: `{{"facet":"offering.provider","in":["openai"]}}`.
 `task` free text is rejected. Translate only requirements you can represent.
+
+## Bounded answers and drill-down
+
+{BOUNDED_MCP}
+
+MCP `decide` with `explain` unset or `none` sends `explain: none`, `limit: 10`
+and row `fields` of `model_rank`, `cost_per_task`, `estimates` and `p_best`.
+The body says `representation: bounded`, `bounded_version: 1.0` and the
+complete contract it projects in `projects_contract`; it has no
+`contract_version`. The answer, reading, warnings and ties stay complete.
+`explanation.omitted` counts what was left out, including screened-out models,
+which are counted there, not listed. An omission is not an elimination or an
+absent fact.
+
+To see one model's evidence, status, rank or elimination reasons, resend the
+same Spec with its returned `snapshot` plus `"evidence_for": "<lab/model>"`.
+The call is stateless; `decision_id` is a citation, not a stored lookup. The
+drill-down returns `model_evidence` for that model only, within 2,000 estimated
+tokens, and empty `results` and `may_qualify`: report the answer from
+`answer.members`. A 503 `explanation_unavailable` means the snapshot cannot
+cite evidence; retry without `evidence_for`.
+
+For full rows, pass `"fields": null`, or set `explain` to `summary` or `full`:
+an explicit explain returns full rows unless you also pass `fields`. HTTP
+callers get full rows unless they send `fields` or `evidence_for`.
 
 ## Worked Specs
 
@@ -170,7 +212,9 @@ JSON schemas also consume tokens; each tool definition can exceed its descriptio
 | Each MCP description | <= 1,500 tokens | 0 | Schemas counted separately |
 | Spec arguments | 1,000 tokens | 0 | Start with an example above |
 | vocab starter/search | 2,000 tokens for reading | 0 | Compact, at most 20 rows per page |
-| decide summary | Reserve 16,000 tokens for reading | {w['decide.summary']} | Default; size depends on candidates |
+| MCP decide, bounded default | <= 3,000 tokens | {w['decide.none']} | explain none, limit 10, compact rows |
+| decide drill-down (evidence_for) | <= 2,000 tokens | {w['decide.none']} at explain none | One model's evidence |
+| decide summary | Reserve 16,000 tokens for reading | {w['decide.summary']} | HTTP default; size depends on candidates |
 | decide full | Can exceed 160,000 tokens | {w['decide.full']} | Only when eliminated-candidate detail is needed |
 | rank / policy_check | Size depends on rows | {w['rank']} / {w['policy-check']} | Legacy ranking / policy checks |
 | model_info / list_use_cases | Size depends on card/profiles | 0 | One card / legacy profiles |
@@ -290,8 +334,8 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
             f"{REPORTING_RULES}{decide_price} {NOT_A_ROUTER} "
             f"Proxies POST {API}/v1/decide. {SPEC_GUIDANCE}"
             f"Minimal valid Spec: {json.dumps(MINIMAL_SPEC, separators=(',', ':'))}. "
-            "Use explain=summary first. Full includes every eliminated candidate and can "
-            "exceed the client context budget. task free text is rejected; where is an array. "
+            f"{BOUNDED_MCP} {BOUNDED_MCP_DETAIL}"
+            "task free text is rejected; where is an array. "
             "Report any requirement dropped on retry. "
             f"Call shape, examples, recovery and budgets: {GUIDE_URL}. {NULL_RULE}"
         ),
@@ -384,7 +428,8 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
             "2. Put Musts in where and Prefers in optimize; use vocab section=starter only for missing ids. "
             "3. Present ties as ties, including with_estate; never invent a single winner or quality rank. "
             "4. Disclose not_applied and dropped requirements after retries; unknown is not a pass. "
-            "5. Follow reading.do_not_claim, label estimates, pin snapshot, and use explain=summary first."
+            "5. Follow reading.do_not_claim, label estimates and pin snapshot. "
+            f"{BOUNDED_MCP}"
         ),
         "tools": tools,
         "card": card,

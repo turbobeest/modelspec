@@ -36,6 +36,7 @@ from pydantic import (
     Tag,
     ValidationError,
     WithJsonSchema,
+    create_model,
     field_validator,
     model_serializer,
     model_validator,
@@ -1900,6 +1901,74 @@ class Decision(_ExcludeIf):
         return self
 
 
+# HTTP response controls are separate from the canonical Spec and its hash.
+RowField = Literal[
+    "rank", "model", "model_rank", "offering", "cost_per_task", "harness", "effort",
+    "evidence", "estimates", "refinement_estimates", "p_best", "top3_stability",
+    "soft_penalty", "contributions", "warnings", "plans",
+]
+
+
+class ResponseOptions(_Strict):
+    fields: list[RowField] | None = Field(default=None, min_length=1, max_length=16)
+    evidence_for: ModelId | None = None
+
+
+class DecideRequest(Spec, ResponseOptions):
+    pass
+
+
+# Projected rows have their own type. Result's required fields stay required.
+ProjectedResult = create_model(
+    "ProjectedResult", __base__=_Strict,
+    **{name: (Annotated[info.annotation, *info.metadata] if info.metadata else info.annotation,
+              ... if name in {"rank", "model", "offering", "warnings"} else None)
+       for name, info in Result.model_fields.items()},
+)
+
+
+class ModelEvidence(_Strict):
+    model: ModelId
+    status: ModelRowStatus
+    offering: OfferingRef
+    rank: int | None = None
+    evidence: list[DomainEvidence] = Field(default_factory=list)
+    contributions: list[Contribution] = Field(default_factory=list)
+    unknown: list[str] = Field(default_factory=list)
+    reasons: list[str] = Field(default_factory=list)
+    warnings: list[Code] = Field(default_factory=list)
+
+
+class BoundedExplanation(_Strict):
+    not_applied: list[str] = Field(default_factory=list)
+    omitted: dict[str, int] = Field(default_factory=dict)
+    note: str = "Projected rows are incomplete; omissions are not eliminations or absent evidence."
+
+
+#: The bounded representation is versioned on its own, not as a 2.x minor:
+#: it omits lists a complete Decision always carries (MODEL-59), so it never
+#: claims a `contract_version`. `projects_contract` names the complete contract
+#: its fields are projected from.
+BOUNDED_VERSION = "1.0"
+
+BoundedDecision = create_model(
+    "BoundedDecision", __base__=_Strict,
+    representation=(Literal["bounded"], ...),
+    bounded_version=(Literal["1.0"], ...),
+    projects_contract=(Decision.model_fields["contract_version"].annotation, ...),
+    **{name: (Decision.model_fields[name].annotation, ...) for name in (
+        "decision_id", "snapshot", "signature_verified", "spec_hash", "explain", "status",
+        "answer", "warnings", "truncated", "out_of_lineup", "relax", "relax_to", "feedback",
+    )},
+    results=(list[ProjectedResult], ...),
+    may_qualify=(list[MayQualify], ...),
+    reading=(Reading | None, None),
+    with_estate=(WithEstate | None, None),
+    explanation=(BoundedExplanation, ...),
+    model_evidence=(ModelEvidence | None, None),
+)
+
+
 CONTRACT_TYPES: tuple[type[BaseModel], ...] = (
     Spec, TaskTokens, Objective, Preference, LexStep, Tolerance, EvidenceQualifiers, Soft, ModelRef,
     BestRef, Compare, Window, InSet, Known, AnyOf, AllOf, NotOf,
@@ -1913,6 +1982,7 @@ CONTRACT_TYPES: tuple[type[BaseModel], ...] = (
     NearMiss, ShownFact, CandidateValues, NumberOrigin, CitedSource, Relaxation,
     Estate, EstateHold, EstateMark, EstateResult, EstateGap, GainItem, WithEstate,
     Access, PlanPrice, PlanCoverage, PlanAllowance, PlanRoute, FeedbackPointer, Reading,
+    ResponseOptions, DecideRequest, ProjectedResult, ModelEvidence, BoundedExplanation, BoundedDecision,
 )
 
 
@@ -1930,7 +2000,7 @@ def closed_values() -> list[str]:
     values: list[str] = []
     for alias in (Op, UnknownPolicy, MeasuredByQualifier, MeasuredBy, Explain, Status, DateType,
                   Directness, CapabilityLevel, PreferenceStatus, TaskType, ModelRowStatus,
-                  AccessKind, FeedbackRating):
+                  AccessKind, FeedbackRating, RowField):
         values.extend(str(v) for v in typing.get_args(alias))
     values.extend(QUALIFIER_KEYWORDS)
     return sorted(set(values))
@@ -2263,7 +2333,8 @@ def spec_hash(spec: Spec) -> str:
 def json_schema() -> dict[str, Any]:
     from pydantic.json_schema import models_json_schema
 
-    refs, defs = models_json_schema([(Spec, "validation"), (Decision, "serialization")],
+    refs, defs = models_json_schema([(Spec, "validation"), (Decision, "serialization"),
+                                     (DecideRequest, "validation"), (BoundedDecision, "serialization")],
                                     ref_template="#/$defs/{model}")
     return {
         "$schema": "https://json-schema.org/draft/2020-12/schema",

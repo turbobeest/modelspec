@@ -292,6 +292,7 @@ The Worker echoes the exact requesting origin from that list and handles its
 | 413 | `payload_too_large` | The JSON body exceeds 64 KiB. | Reduce the Spec below the documented body limit. |
 | 502 | `snapshot_unavailable` | The static Snapshot could not be fetched. | Retry after the static origin is healthy. |
 | 503 | `no_snapshot` | Pages has not published a complete signed Snapshot. | Retry after the `Retry-After` interval. `/v1/rank` remains available. |
+| 503 | `explanation_unavailable` | `evidence_for` was sent, and the loaded Snapshot predates retained verification records, so the drill-down cannot cite them. Only a bounded drill-down request can receive this code; the body carries `representation: bounded` and no `contract_version`. | Retry without `evidence_for`, or retry later against a rebuilt Snapshot. |
 | 503 | `snapshot_refused` | The Snapshot is unsigned, altered, or wrongly signed. | Fix the site build or Worker secret. Never retry as if this were a valid empty answer. |
 
 ## Access errors
