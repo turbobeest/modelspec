@@ -66,6 +66,9 @@ test.describe("managed visit gate", () => {
       expect(checks).toBe(expiry === "none" ? 1 : 2);
       expect(new Set(sent.slice(first).map((request) => request.intent)).size).toBe(1);
       expect(sent[first].intent).not.toBe(sent[0].intent);
+      // Summary, full and plot: one action asks each question once, even when
+      // its full explanation lands before its plot.
+      expect(sent.filter((request) => request.intent === sent[0].intent)).toHaveLength(3);
       await expect(page.locator("#facet-board-answer .visit-gate")).toHaveCount(1);
     });
   }
