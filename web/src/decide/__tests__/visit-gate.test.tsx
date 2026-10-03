@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import vocabulary from "../__fixtures__/vocabulary.json";
 import answer from "../__fixtures__/full-decision.json";
 
-const broken = vi.hoisted(() => ({ rankedAnswer: false }));
+const broken = vi.hoisted(() => ({ rankedAnswer: false, canvas: false }));
 vi.mock("../facet-board/RankedAnswer", async (importOriginal) => {
   const real = await importOriginal<typeof import("../facet-board/RankedAnswer")>();
   return {
@@ -15,8 +15,30 @@ vi.mock("../facet-board/RankedAnswer", async (importOriginal) => {
   };
 });
 
+vi.mock("../components/FreeAxisCanvas", async (importOriginal) => {
+  const real = await importOriginal<typeof import("../components/FreeAxisCanvas")>();
+  return {
+    ...real,
+    FreeAxisCanvas: (props: Parameters<typeof real.FreeAxisCanvas>[0]) => {
+      if (broken.canvas) throw new TypeError("canvas failed to render");
+      return <real.FreeAxisCanvas {...props} />;
+    },
+  };
+});
+vi.mock("../components/Canvas", async (importOriginal) => {
+  const real = await importOriginal<typeof import("../components/Canvas")>();
+  return {
+    ...real,
+    Canvas: (props: Parameters<typeof real.Canvas>[0]) => {
+      if (broken.canvas) throw new TypeError("canvas failed to render");
+      return <real.Canvas {...props} />;
+    },
+  };
+});
+
 beforeEach(() => {
   broken.rankedAnswer = false;
+  broken.canvas = false;
   vi.resetModules();
   vi.stubEnv("VITE_VISIT_GATE_ENABLED", "true");
   vi.stubEnv("VITE_TURNSTILE_SITE_KEY", "public-test-key");
@@ -257,4 +279,31 @@ it("keeps the visit gate in the answer column when the answer itself fails to dr
     expect(within(column).getByRole("region", { name: "Visit verification" })).toBeInTheDocument();
   }, { timeout: 5000 });
   expect(screen.getAllByRole("alert", { name: "The answer could not be shown" })).toHaveLength(1);
+}, 10_000);
+
+it("keeps the visit gate in the answer column when the canvas fails to draw (MODEL-298)", async () => {
+  vi.spyOn(console, "error").mockImplementation(() => undefined);
+  const app = await answeredVisitApp();
+  broken.canvas = true;
+  app.preferSoftware();
+  await waitFor(() => {
+    expect(screen.getAllByRole("alert", { name: "The answer could not be shown" })).toHaveLength(1);
+    expect(within(answerColumn()).getByRole("region", { name: "Visit verification" })).toBeInTheDocument();
+  }, { timeout: 5000 });
+  // The canvas sits under the board now: its failure notice is outside the answer column.
+  expect(within(answerColumn()).queryAllByRole("alert", { name: "The answer could not be shown" })).toHaveLength(0);
+  expect(within(answerColumn()).getByLabelText("Facet board answer")).toBeInTheDocument();
+}, 10_000);
+
+it("a failed re-check stays the gate's own alert while the canvas is broken (MODEL-298)", async () => {
+  vi.spyOn(console, "error").mockImplementation(() => undefined);
+  broken.canvas = true;
+  const app = await answeredVisitApp({ refuseAfter: 3 });
+  app.preferSoftware();
+  await waitFor(() => {
+    const gate = within(answerColumn()).getByRole("region", { name: "Visit verification" });
+    expect(within(gate).getByRole("alert")).toHaveTextContent("Verification is temporarily unavailable. Retry your lookup.");
+  }, { timeout: 5000 });
+  // The answer column never shows the boundary alert in place of the gate's.
+  expect(within(answerColumn()).queryAllByRole("alert", { name: "The answer could not be shown" })).toHaveLength(0);
 }, 10_000);

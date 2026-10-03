@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { labelWidth, placeLabels } from "../components/labels";
+import { labelWidth, placeLabels, plotHeight } from "../components/labels";
 import type { LabelInput, LabelPlacement } from "../components/labels";
 
 const W = 892,
@@ -83,5 +83,19 @@ describe("placing direct labels on the canvas", () => {
       expect(b.right).toBeLessThanOrEqual(W);
       expect(b.top).toBeGreaterThanOrEqual(0);
     }
+  });
+});
+
+describe("plotHeight (MODEL-298)", () => {
+  it.each([
+    [216, 460], // a phone: the 460px floor
+    [800, 460], // still under the floor
+    [1150, 460], // 0.4 × width meets the floor exactly
+    [1234, 494], // 0.4 × width = 493.6, rounded
+    [1300, 520], // 0.4 × width
+    [1400, 560], // 0.4 × width meets the cap exactly
+    [2000, 560], // the 560px cap
+  ])("a %ipx-wide plot is %ipx tall", (width, height) => {
+    expect(plotHeight(width)).toBe(height);
   });
 });

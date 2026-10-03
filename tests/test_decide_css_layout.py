@@ -39,10 +39,12 @@ def test_facets_and_narrowing_share_one_row_with_full_width_results_below():
     assert "data-layout" not in CSS
 
 
-def test_a_laptop_keeps_both_cards_side_by_side():
-    laptop = re.search(r"@media \(max-width: 1099px\)\s*\{\s*\.board-workspace\s*\{([^}]*)\}", CSS)
-    assert laptop and "grid-template-columns: minmax(0, 1fr) minmax(0, 1fr)" in laptop.group(1)
-    assert "grid-template-areas" not in laptop.group(1)
+def test_the_narrowing_column_keeps_room_for_a_ranked_row():
+    # The browser test measures the overflow at 1000-1440px; this pins the
+    # floor it depends on: 406px of row columns plus 56px of padding.
+    workspace = re.search(r"\.board-workspace\s*\{([^}]*)\}", CSS)
+    assert workspace and "grid-template-columns: minmax(0, 600px) minmax(470px, 1fr)" in workspace.group(1)
+    assert "@media (max-width: 1099px) {\n  .board-workspace" not in CSS
 
 
 def test_narrow_widths_stack_facets_before_the_narrowing():

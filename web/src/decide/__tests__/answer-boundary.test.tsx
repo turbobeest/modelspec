@@ -144,3 +144,16 @@ it("a canvas failure leaves the narrowing, the table and Why on screen (MODEL-29
   expect(await screen.findByRole("region", { name: "Trade-off canvas" })).toBeInTheDocument();
   expect(failure()).toHaveLength(0);
 });
+
+it("puts the canvas after the board and before the table, outside the narrowing card (MODEL-298)", async () => {
+  vi.stubGlobal("fetch", routeFetch({ decide: () => json(fixtureJson) }));
+  render(<DesignedApp />);
+  const canvas = await screen.findByRole("region", { name: "Trade-off canvas" });
+  const board = document.querySelector(".facet-board");
+  const table = document.querySelector(".decision-table");
+  if (!board || !table) throw new Error("the board or the table did not render");
+  expect(document.querySelector(".board-answer")).not.toContainElement(canvas);
+  expect(board).not.toContainElement(canvas);
+  expect(board.compareDocumentPosition(canvas) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(canvas.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+});
