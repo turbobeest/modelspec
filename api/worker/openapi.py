@@ -2138,7 +2138,7 @@ def _decision_schemas() -> dict[str, Any]:
         return value
 
     schemas = {names[name]: rewrite(schema) for name, schema in definitions.items()}
-    from decision.recovery import Recovery
+    from decision.recovery import MAX_RECOVERY_HINTS, Recovery
     schemas["DecisionRecovery"] = Recovery.model_json_schema()
     def refused(endpoint: str, codes: set[str]) -> dict[str, Any]:
         return {
@@ -2163,11 +2163,6 @@ def _decision_schemas() -> dict[str, Any]:
                         "code": {"type": "string", "enum": sorted(codes)},
                         "message": {"type": "string"},
                         "issues": {"type": "array", "items": {"type": "object"}},
-                        "recovery": {
-                            "type": "array",
-                            "items": {"$ref": "#/components/schemas/DecisionRecovery"},
-                            "description": "Optional registry-backed corrections for invalid decide specs. Existing issues are unchanged.",
-                        },
                         "requested": {
                             "type": "string",
                             "description": (
@@ -2210,6 +2205,19 @@ def _decision_schemas() -> dict[str, Any]:
         "decide",
         shared_refusals | {"invalid_spec", "snapshot_changed", "snapshot_not_loaded"},
     )
+    schemas["DecisionRequestRefused"]["properties"]["error"]["properties"].update({
+        "recovery": {
+            "type": "array",
+            "maxItems": MAX_RECOVERY_HINTS,
+            "items": {"$ref": "#/components/schemas/DecisionRecovery"},
+            "description": "Optional registry-backed corrections for the first five issues in invalid decide specs. Existing issues are unchanged.",
+        },
+        "recovery_omitted": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of issues without a recovery hint, including examples that failed validation.",
+        },
+    })
     schemas["HumanGateRefused"] = refused("decide", set(human_error_codes()))
     schemas["DecisionSnapshotUnavailable"] = snapshot_unavailable("decide")
     schemas["ComparisonRequestRefused"] = refused(

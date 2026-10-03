@@ -4,12 +4,17 @@ from __future__ import annotations
 
 import difflib
 import json
+from copy import deepcopy
 from typing import Any, Callable
 
 from pydantic import BaseModel, Field
 
-from decision.contract import Issue, Spec, parse_spec
+from decision.contract import Issue, Spec, SpecError, parse_spec
 from decision.registry import Facet, default
+
+MAX_RECOVERY_HINTS = 5
+MAX_NEAREST_ID_LENGTH = 64
+MAX_ECHO_LENGTH = 80
 
 
 class Recovery(BaseModel):
@@ -52,21 +57,25 @@ def recovery_hints(issues: list[Issue], *, facets: Callable[[str], Facet],
     known = [f.id for f in registry.facets() if f.addressable and f.parameter is None]
     known.extend(d.id for d in registry.domains())
     known.extend(benchmark_ids)
+    known = sorted(set(known))
+    minimal = minimal_spec()
     hints = []
-    for issue in issues:
-        example = minimal_spec()
-        path = "$" + ("." + issue.path if issue.path else "")
+    for issue in issues[:MAX_RECOVERY_HINTS]:
+        example = deepcopy(minimal)
+        path = issue.path
         shape = "a Spec object with spec_version: 1 and exactly one optimize objective"
         guidance = "Use the minimal example, then add structured requirements from vocab section=starter."
         nearest: list[str] = []
         info = None
-        if issue.field:
+        unknown = issue.reason.startswith("unknown facet ")
+        if issue.field and not unknown and len(issue.field) <= MAX_NEAREST_ID_LENGTH:
             try:
                 info = facets(issue.field.lstrip("-"))
             except KeyError:
                 pass
-        if issue.reason.startswith("unknown facet ") and issue.field:
-            nearest = difflib.get_close_matches(issue.field, sorted(set(known)), n=3, cutoff=0.6)
+        if unknown and issue.field:
+            if len(issue.field) <= MAX_NEAREST_ID_LENGTH:
+                nearest = difflib.get_close_matches(issue.field, known, n=3, cutoff=0.6)
             if nearest:
                 info = facets(nearest[0])
             shape = "a valid facet ID from vocab section=starter"
@@ -97,7 +106,10 @@ def recovery_hints(issues: list[Issue], *, facets: Callable[[str], Facet],
             weights = objective.get("weights") if isinstance(objective, dict) else None
             if isinstance(weights, dict) and key not in weights and "-" + key in weights:
                 key = "-" + key
-            path += "[" + json.dumps(key) + "]"
+            echoed = json.dumps(key)
+            if len(echoed) > MAX_ECHO_LENGTH:
+                echoed = echoed[:MAX_ECHO_LENGTH - 4] + '..."'
+            path += "[" + echoed + "]"
             if issue.reason == "a boolean preference needs true or false" or issue.reason.startswith("preferred value "):
                 path += ".prefer"
         if issue.path == "task":
@@ -122,7 +134,10 @@ def recovery_hints(issues: list[Issue], *, facets: Callable[[str], Facet],
             shape = "one of the Spec fields: " + ", ".join(Spec.model_fields)
             guidance = "Remove this field. Translate requirements into facets via vocab section=starter."
         # Guard the public recovery contract against registry changes as well as mistakes here.
-        parse_spec(example, facets=facets)
+        try:
+            parse_spec(example, facets=facets)
+        except SpecError:
+            continue
         hints.append(Recovery(path=path, accepted_shape=shape, example=example,
                               guidance=guidance, nearest_facet_ids=nearest).model_dump())
     return hints

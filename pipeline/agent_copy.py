@@ -94,7 +94,8 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
             "Minimal valid Spec: "
             '{"spec_version":1,"optimize":{"min":"offering.cost_per_task"}}. '
             "Common mistakes: task is free text and is rejected; translate the request "
-            "into structured facets via vocab section=starter. "
+            "into structured facets via vocab section=starter, then remove task and retry. "
+            "Report to the user any requirement you dropped. "
             "where must be an array, and a text set uses {a, b}, not [a, b]; "
             'the structured form is {"facet":"offering.provider","in":["openai"]}. '
             "Boolean and enum Prefers need a prefer value and a weight, not a bare numeric weight. "
