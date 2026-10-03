@@ -37,13 +37,11 @@ test("the deployed page follows the Worker's human gate status", async ({ page }
   const status = humanStatusSchema.parse(response.body);
   const gate = page.getByRole("region", { name: "Manual lookups" });
   if (status.enabled && "mode" in status && status.mode === "visit") {
+    // A headless runner cannot pass the production managed Turnstile, so the smoke
+    // stops at the gate: it renders, the manual-lookup gate is absent, nothing throws.
+    // The answer path behind the gate is covered by the stubbed visit-gate builds.
     await expect(gate).toHaveCount(0);
     await expect(page.locator("#facet-board-answer .visit-gate")).toHaveCount(1);
-    await answered(page);
-    const update = page.waitForResponse((reply) => reply.url().endsWith("/v1/decide") && reply.request().method() === "POST");
-    await page.getByRole("radio", { name: /From my own software or agent/ }).check();
-    expect((await update).status()).toBe(200);
-    await answered(page);
   } else if (status.enabled) {
     await expect(gate).toBeVisible();
     await expect(gate.getByRole("button", { name: "Look up this decision" })).toBeVisible();
