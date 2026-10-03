@@ -1,0 +1,337 @@
+/* /brand/ (MODEL-299). Loaded after /landing-assets/landing.css, which brings
+   the self-hosted faces, the axis line and the buttons.
+
+   Theme tokens are the decide page's, so the two pages look like one site:
+   light from `.decide-app`, dark from `.decide-app[data-theme="dark"]`, both in
+   web/src/decide/decide.css. Brand colours (--navy, --yellow, --green, --blue)
+   are landing.css's :root tokens, the same hexes as brand/2a/README.md.
+   Dark unless the visitor picks light, as on /decide/ (MODEL-213). */
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0b1426;
+  --surface: #111d33;
+  --surface2: #18284a;
+  --line: #223452;
+  --line2: #34496e;
+  --ink: #f3f2f1;
+  --ink2: #e1dfdd;
+  --muted: #a9b4c8;
+  --accentText: #5aa9ec;
+  /* landing.css's own a:hover colour, kept on navy. */
+  --linkHover: #8cc4f2;
+  --nav: #b9c4d6;
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #faf9f8;
+  --surface: #ffffff;
+  --surface2: #f3f2f1;
+  --line: #edebe9;
+  --line2: #d2d0ce;
+  --ink: #201f1e;
+  --ink2: #323130;
+  --muted: #605e5c;
+  --accentText: #006bbd;
+  /* landing.css's #8cc4f2 hover is about 1.8:1 on this ground. */
+  --linkHover: var(--ink2);
+  --nav: #323130;
+}
+body {
+  background: var(--bg);
+  color: var(--ink);
+}
+a {
+  color: var(--accentText);
+}
+a:hover {
+  color: var(--linkHover);
+}
+/* landing.css draws a --yellow ring, which is for navy: about 1.5:1 on light. */
+:root[data-theme="light"] :is(a, button, select):focus-visible {
+  outline-color: var(--accentText);
+}
+code {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.92em;
+  overflow-wrap: anywhere;
+}
+.site-head {
+  height: 72px;
+  padding: 0 64px 0 72px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+}
+.site-head nav {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 28px;
+}
+.site-head nav > a:not(.button) {
+  font-size: 15px;
+  color: var(--nav);
+  text-decoration: none;
+}
+.site-head .button {
+  color: var(--navy);
+}
+.theme-toggle {
+  font: inherit;
+  font-size: 15px;
+  color: var(--nav);
+  background: none;
+  border: 1px solid var(--line2);
+  border-radius: 4px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+.brand-page {
+  max-width: 1120px;
+  padding: 48px 64px 96px 72px;
+}
+.brand-page h1 {
+  margin: 12px 0 16px;
+  font-size: clamp(40px, 6vw, 72px);
+  line-height: 1;
+  letter-spacing: -0.035em;
+  font-stretch: 78%;
+  font-weight: 650;
+}
+.brand-page h2 {
+  margin: 0 0 12px;
+  font-size: 28px;
+  letter-spacing: -0.02em;
+}
+.brand-page h3 {
+  margin: 28px 0 6px;
+  font-size: 19px;
+}
+.brand-page section {
+  padding: 32px 0;
+  border-top: 1px solid var(--line);
+}
+.brand-page section.intro,
+.brand-page section.group {
+  border-top: 0;
+}
+.brand-page section.group {
+  padding: 8px 0;
+}
+.brand-page p,
+.brand-page li {
+  max-width: 72ch;
+  line-height: 1.55;
+}
+.brand-page .intro > p:not(.eyebrow) {
+  font-size: 19px;
+  color: var(--ink2);
+}
+.brand-page .source {
+  font-size: 15px !important;
+  color: var(--muted) !important;
+}
+.name-rule {
+  font-size: 22px;
+}
+.entity {
+  margin: 0 0 12px;
+  padding: 16px 20px;
+  border-left: 4px solid var(--yellow);
+  background: var(--surface);
+  font-size: 21px;
+  line-height: 1.45;
+}
+.boilerplate {
+  padding: 4px 20px;
+  border: 1px solid var(--line2);
+  border-radius: 4px;
+  background: var(--surface);
+}
+.zip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px 24px;
+  margin: 8px 0 8px;
+}
+.zip p {
+  margin: 0;
+  color: var(--muted);
+}
+.assets {
+  list-style: none;
+  margin: 12px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+}
+.asset {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line2);
+  border-radius: 4px;
+  background: var(--surface);
+  overflow: hidden;
+  max-width: none !important;
+}
+.preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 168px;
+  padding: 16px;
+  background-color: var(--surface2);
+  background-image:
+    linear-gradient(45deg, var(--line) 25%, transparent 25%),
+    linear-gradient(-45deg, var(--line) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--line) 75%),
+    linear-gradient(-45deg, transparent 75%, var(--line) 75%);
+  background-size: 16px 16px;
+  background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+}
+/* brand/2a/README.md: the transparent mark is for dark backgrounds. */
+.preview.on-dark {
+  background: var(--navy);
+}
+.preview img {
+  max-width: 100%;
+  max-height: 100%;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+.preview.natural img {
+  image-rendering: pixelated;
+}
+.meta {
+  padding: 12px 14px 14px;
+  border-top: 1px solid var(--line2);
+}
+.meta .name {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+.meta dl,
+.swatch dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 12px;
+  margin: 0;
+  font-size: 14px;
+}
+.meta dt,
+.swatch dt {
+  color: var(--muted);
+}
+.meta dd,
+.swatch dd {
+  margin: 0;
+}
+.palette {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+}
+.swatch {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  padding: 14px;
+  border: 1px solid var(--line2);
+  border-radius: 4px;
+  background: var(--surface);
+  max-width: none !important;
+}
+.swatch > div {
+  flex: 1;
+  min-width: 0;
+}
+.chip {
+  flex: none;
+  width: 56px;
+  height: 56px;
+  border-radius: 4px;
+  border: 1px solid var(--line2);
+}
+.swatch b {
+  display: block;
+  margin-bottom: 6px;
+  text-transform: capitalize;
+}
+.readme {
+  padding: 4px 20px 8px;
+  border: 1px solid var(--line2);
+  border-radius: 4px;
+  background: var(--surface);
+}
+.readme h3 {
+  margin-top: 16px;
+}
+.site-foot {
+  padding: 36px 64px 36px 72px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px 28px;
+  align-items: center;
+  border-top: 4px solid var(--green);
+  color: var(--muted);
+}
+.site-foot a {
+  color: var(--muted);
+}
+.foot-detail {
+  margin-left: auto;
+}
+@media (max-width: 899px) {
+  body {
+    overflow-x: hidden;
+  }
+  .axis {
+    left: 8px;
+  }
+  .site-head {
+    height: auto;
+    padding: 14px 16px 14px 24px;
+    flex-wrap: wrap;
+  }
+  .site-head nav > a:not(.button) {
+    display: none;
+  }
+  .site-head nav {
+    gap: 8px;
+  }
+  .site-head .button {
+    padding: 10px 14px;
+    font-size: 15px;
+  }
+  .brand-page {
+    padding: 32px 16px 64px 24px;
+  }
+  .brand-page .intro > p:not(.eyebrow) {
+    font-size: 17px;
+  }
+  .entity {
+    font-size: 18px;
+  }
+  .assets {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+  .site-foot {
+    padding: 28px 16px 28px 24px;
+  }
+  .foot-detail {
+    margin-left: 0;
+    width: 100%;
+  }
+}
+/* landing.css sets the eyebrow in the brand yellow, which is for navy. */
+:root[data-theme="light"] .eyebrow {
+  color: var(--muted);
+}
