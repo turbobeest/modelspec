@@ -23,7 +23,7 @@ def test_measure_separates_network_phases_and_decoded_bytes(monkeypatch):
         Path(command[command.index("--dump-header") + 1]).write_text(
             "HTTP/1.1 200 Connection established\n\n"
             "HTTP/2 200\nContent-Encoding: gzip\ncf-ray: example-BOS\n"
-            "Server-Timing: snapshot;dur=12.3\n\n")
+            'Server-Timing: snapshot;dur=12.3, isolate;desc="cold"\n\n')
         Path(command[command.index("--output") + 1]).write_bytes(compressed)
         return SimpleNamespace(returncode=0, stdout=json.dumps({
             "http_code": 200, "time_namelookup": .01, "time_connect": .03,
@@ -44,6 +44,7 @@ def test_measure_separates_network_phases_and_decoded_bytes(monkeypatch):
     assert row["raw_bytes"] == len(raw)
     assert row["colo"] == "BOS"
     assert row["server_durations_ms"] == {"snapshot": 12.3}
+    assert row["isolate_state"] == "cold"
     assert private not in json.dumps(row)
     assert "secret-request" not in json.dumps(row)
 
@@ -73,7 +74,13 @@ def test_percentiles_retain_first_call_and_report_warm_separately():
     keys = ("dns_ms", "connect_ms", "tls_ms", "ttfb_ms", "total_ms", "post_tls_ttfb_ms",
             "download_ms", "compressed_bytes", "raw_bytes")
     rows = [{**base, **dict.fromkeys(keys, n)} for n in (1000, 10, 20, 30)]
+    for row, state in zip(rows, ("cold", "warm", "cold", "warm")):
+        row["isolate_state"] = state
     summary = probe.summarise(rows)
     assert summary["first_total_ms"] == 1000
     assert summary["total_ms"] == {"p50": 25, "p95": 1000}
     assert summary["warm_total_ms"] == {"p50": 20, "p95": 30}
+    assert summary["isolate_states"] == {
+        "cold": {"calls": 2, "ttfb_ms": {"p50": 510, "p95": 1000}},
+        "warm": {"calls": 2, "ttfb_ms": {"p50": 20, "p95": 30}},
+    }

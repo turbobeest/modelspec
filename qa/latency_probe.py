@@ -78,6 +78,11 @@ def server_durations(value):
         r"(?:^|,)\s*([\w-]+)\s*;\s*dur=([\d.]+)", value)}
 
 
+def isolate_state(value):
+    match = re.search(r'(?:^|,)\s*isolate\s*;\s*desc="(cold|warm)"', value)
+    return match[1] if match else "unknown"
+
+
 def measure(origin, shape, *, encoding="br, gzip", timeout=30):
     # Read only this named variable. Put credentials and bodies on stdin, never
     # argv. Do not print curl stderr, which can include remote response content.
@@ -127,6 +132,7 @@ def measure(origin, shape, *, encoding="br, gzip", timeout=30):
             "compressed_bytes": len(wire), "raw_bytes": len(raw) if raw is not None else None,
             "content_encoding": content_encoding,
             "server_timing": headers.get("server-timing", ""),
+            "isolate_state": isolate_state(headers.get("server-timing", "")),
             "server_durations_ms": server_durations(headers.get("server-timing", "")),
             "colo": headers.get("cf-ray", "").rsplit("-", 1)[-1] or None,
             "service_commit": headers.get("x-modelspec-service-commit"),
@@ -147,6 +153,12 @@ def summarise(samples):
                      for status in sorted({row["status"] for row in samples})},
         "colos": sorted({row["colo"] for row in valid if row["colo"]}),
         "encodings": sorted({row["content_encoding"] for row in valid}),
+        "isolate_states": {
+            state: {"calls": len(group),
+                    "ttfb_ms": percentiles([row["ttfb_ms"] for row in group])}
+            for state in ("cold", "warm", "unknown")
+            if (group := [row for row in valid if row.get("isolate_state", "unknown") == state])
+        },
         "first_total_ms": samples[0]["total_ms"],
         "warm_total_ms": percentiles([row["total_ms"] for row in samples[1:] if row["curl_exit"] == 0])
         if any(row["curl_exit"] == 0 for row in samples[1:]) else None,

@@ -666,7 +666,11 @@ def test_server_timing_reports_only_snapshot_work(
         response = asyncio.run(worker.fetch(request))
         assert response.status == 200
         assert response.body.encode("utf-8") == expected_bytes
-        assert response.headers.get("Server-Timing") == expected_timing
+        timing = response.headers["Server-Timing"]
+        assert ('snapshot;dur=12.3' in timing) == (expected_timing is not None)
+        assert ('isolate;desc="cold"' in timing) == (state == "cold")
+        assert ('isolate;desc="warm"' in timing) == (state != "cold")
+        assert 'decision;dur=' not in timing
         exposed = response.headers["access-control-expose-headers"].lower().split(", ")
         assert "server-timing" in exposed
 

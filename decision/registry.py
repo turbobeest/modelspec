@@ -706,7 +706,7 @@ def _load_providers(err: _Errors, root: Path) -> dict[str, Provider]:
         field_ = e.get("v1_availability_field")
         if field_ is not None:
             if availability is None:
-                from schema.card import Availability, PlatformEntry
+                from schema.availability import Availability, PlatformEntry
                 availability = {n for n, f in Availability.model_fields.items() if f.annotation is PlatformEntry}
             if field_ not in availability:
                 err.add(where, f"v1_availability_field {field_!r} is not a platform field on Availability")

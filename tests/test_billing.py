@@ -1300,7 +1300,8 @@ def _json_checkout_through_entry(entry, headers: dict[str, str]):
 def test_a_json_checkout_is_byte_identical_to_before_the_form_variant(entry, headers):
     response, capture = _json_checkout_through_entry(entry, headers)
     assert response.status == JSON_CHECKOUT_GOLDEN_STATUS
-    assert response.headers == JSON_CHECKOUT_GOLDEN_HEADERS
+    assert {key: value for key, value in response.headers.items()
+            if key.lower() != "server-timing"} == JSON_CHECKOUT_GOLDEN_HEADERS
     assert response.body == JSON_CHECKOUT_GOLDEN_BODY
     assert capture["url"].startswith("https://api.stripe.com/")
 
@@ -1481,7 +1482,8 @@ def test_a_json_claim_is_byte_identical_to_before_the_html_page(entry, accept):
     first = _paid_then_claim(entry, accept)()
     key = first.json()["key"]
     assert first.status == 200
-    assert first.headers == CLAIM_GOLDEN_HEADERS
+    assert {key: value for key, value in first.headers.items()
+            if key.lower() != "server-timing"} == CLAIM_GOLDEN_HEADERS
     assert _mask(first.body, key) == CLAIM_GOLDEN_BODY
 
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import sys
+import subprocess
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -85,3 +86,13 @@ def test_ci_checks_the_actual_pywrangler_output() -> None:
     build = workflow.index("pywrangler deploy --dry-run")
     check = workflow.index("bundle_check.py ../../dist/rank-worker")
     assert build < check
+
+
+def test_decision_startup_does_not_load_the_full_card_schema() -> None:
+    result = subprocess.run(
+        [sys.executable, "-c", "import sys; import decision.model; "
+         "from decision.registry import default; default(); "
+         "assert 'schema.card' not in sys.modules"],
+        cwd=REPO_ROOT, capture_output=True, text=True,
+    )
+    assert result.returncode == 0, result.stderr

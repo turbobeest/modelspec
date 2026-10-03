@@ -68,3 +68,47 @@ def test_bundled_rank_is_prepared_before_first_request(entry, monkeypatch):  # n
     response = asyncio.run(worker.fetch(_Req("/v1/rank", {"use_case": "coding", "limit": 1})))
     assert response.status == 200
     assert response.json()["result"][0]["model_id"] == "acme/guided"
+
+
+def test_isolate_state_is_shared_and_preserves_existing_timing(entry):  # noqa: F811
+    async def fetch(_request):
+        return entry.Response('{"unchanged":true}', status=422,
+                              headers={"server-timing": "snapshot;dur=12.3"})
+
+    first, second = entry.Default(), entry.Default()
+    first._fetch = second._fetch = fetch
+    cold = asyncio.run(first.fetch(_Req("/v1/decide")))
+    warm = asyncio.run(second.fetch(_Req("/v1/decide")))
+    assert cold.body == warm.body == '{"unchanged":true}'
+    assert cold.status == warm.status == 422
+    assert cold.headers["Server-Timing"] == (
+        'snapshot;dur=12.3, isolate;desc="cold", '
+        'startup;desc="runtime restore unobservable from Python"')
+    assert warm.headers["Server-Timing"] == 'snapshot;dur=12.3, isolate;desc="warm"'
+
+
+def test_vocabulary_preparation_preserves_bytes_and_lookups(entry, monkeypatch):  # noqa: F811
+    import sys
+
+    raw = '{ "models": {"acme/a": {"display_name": "Café"}}, "facets": [] }'
+    bundle = SimpleNamespace(read=lambda path: raw.encode()
+                             if path == "/api/decision/vocabulary.json" else None)
+    monkeypatch.setitem(sys.modules, "bundled_data", bundle)
+    spec = importlib.util.spec_from_file_location("prepared_vocabulary_entry", entry.__file__)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+
+    def read_again(_):
+        raise AssertionError("request decompressed the vocabulary again")
+
+    monkeypatch.setattr(bundle, "read", read_again)
+    worker = module.Default()
+    worker.env = _entry_env(X402_ENABLED="false")
+    full = asyncio.run(worker.fetch(_Req("/v1/vocabulary", method="GET")))
+    assert full.body.encode() == raw.encode()
+    lookup = asyncio.run(worker.fetch(_Req("/v1/vocabulary?section=models", method="GET")))
+    expected = {"facets": [], "domains": [], "templates": [], "models": {
+        "acme/a": {"display_name": "Café"}}, "estate": {}}
+    assert lookup.body == json.dumps(expected, ensure_ascii=False)
+    head = asyncio.run(worker.fetch(_Req("/v1/vocabulary", method="HEAD")))
+    assert head.body == ""

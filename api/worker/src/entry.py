@@ -74,6 +74,7 @@ import billing
 import billing_page
 import credits
 import decide_service
+import display_vocabulary
 import feedback_service
 import human_gate
 import kv_value
@@ -195,6 +196,8 @@ _store_cache: dict[str, object] = {"at": 0.0, "store": None, "error": None,
 # The first request still authenticates their checked hash with the runtime key.
 _decision_registry()
 _bundled_decision_snapshot = None
+_bundled_vocabulary = None
+_bundled_vocabulary_text = None
 if globals().get("bundled_data") is not None:
     _snapshot_bytes = bundled_data.read(DECISION_SNAPSHOT_PATH)
     if _snapshot_bytes is not None:
@@ -203,6 +206,15 @@ if globals().get("bundled_data") is not None:
             source="bundled decision snapshot",
         )
     del _snapshot_bytes
+    _vocabulary_bytes = bundled_data.read("/api/decision/vocabulary.json")
+    if _vocabulary_bytes is not None:
+        _bundled_vocabulary_text = _vocabulary_bytes.decode("utf-8")
+        _bundled_vocabulary = json.loads(_bundled_vocabulary_text)
+    del _vocabulary_bytes
+
+# Captured as False at deployment, then claimed before the first request awaits.
+# Never retain a request, environment, or timer from deployment in the snapshot.
+_isolate_served = False
 
 
 def _decide_service():
@@ -647,7 +659,22 @@ def _compress_response(request, response):
 
 class Default(WorkerEntrypoint):
     async def fetch(self, request):
+        global _isolate_served
+        cold = not _isolate_served
+        _isolate_served = True
         response = await self._fetch(request)
+        headers = dict(response.headers.items())
+        previous = next((value for key, value in headers.items()
+                         if key.lower() == "server-timing"), "")
+        headers = {key: value for key, value in headers.items()
+                   if key.lower() != "server-timing"}
+        timing = 'isolate;desc="cold"' if cold else 'isolate;desc="warm"'
+        if cold:
+            # Python runs only after workerd has restored its memory. Its clock
+            # also freezes between I/O in production. Do not invent a duration.
+            timing += ', startup;desc="runtime restore unobservable from Python"'
+        headers["Server-Timing"] = f"{previous}, {timing}" if previous else timing
+        response = Response(response.body, status=response.status, headers=headers)
         return _compress_response(request, response)
 
     async def _fetch(self, request):
@@ -674,8 +701,8 @@ class Default(WorkerEntrypoint):
             return Response("", status=204, headers=headers)
 
         if path == "/v1/vocabulary":
-            bundled, raw = _bundled_read(origin + "/api/decision/vocabulary.json")
-            if bundled:
+            if globals().get("bundled_data") is not None:
+                text = _bundled_vocabulary_text
                 cors = _cors_headers(request)
                 if method == "OPTIONS":
                     return Response("", status=204, headers={**cors, "access-control-allow-methods": "GET, HEAD, OPTIONS"})
@@ -692,16 +719,15 @@ class Default(WorkerEntrypoint):
                     if meter["reason"]:
                         return _json_response(429, {"error": {"code": human_gate.LIMIT_CODES[meter["reason"]], "message": "Vocabulary lookup limit reached."}},
                                               {**cors, "retry-after": str(meter["retry_after"])})
-                if raw is None:
+                if text is None:
                     return _json_response(service.HTTP_BAD_GATEWAY, {"error": {
                         "code": "export_unavailable", "message": "bundled vocabulary is missing",
                     }}, cors)
                 query = parse_qs(urlparse(str(request.url)).query, keep_blank_values=True)
                 if any(key in query for key in ("section", "search", "id", "ids", "detail", "offset", "limit")):
-                    import display_vocabulary
                     try:
                         selected = display_vocabulary.lookup(
-                            json.loads(raw), section=query.get("section", ["starter"])[0],
+                            _bundled_vocabulary, section=query.get("section", ["starter"])[0],
                             search=query.get("search", [""])[0],
                             ids=[*query.get("id", []), *(item for value in query.get("ids", []) for item in value.split(","))],
                             detail=query.get("detail", ["compact"])[0],
@@ -710,9 +736,9 @@ class Default(WorkerEntrypoint):
                         )
                     except ValueError as exc:
                         return _json_response(400, {"error": {"code": "invalid_request", "message": str(exc)}}, cors)
-                    raw = json.dumps({"facets": [], "domains": [], "templates": [], "models": {}, "estate": {},
-                                      **selected}, ensure_ascii=False).encode("utf-8")
-                return Response("" if method == "HEAD" else raw.decode("utf-8"), status=200,
+                    text = json.dumps({"facets": [], "domains": [], "templates": [], "models": {}, "estate": {},
+                                       **selected}, ensure_ascii=False)
+                return Response("" if method == "HEAD" else text, status=200,
                                 headers={**cors, "content-type": "application/json; charset=utf-8",
                                          "cache-control": "private, max-age=3600", "vary": "Origin"})
         if path == "/v1/feedback":
