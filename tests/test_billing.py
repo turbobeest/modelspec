@@ -417,13 +417,13 @@ def test_rotation_issues_a_new_key_and_refuses_the_old_one(policy):
 
 # ── the switch ───────────────────────────────────────────────────────────────
 
-def test_billing_is_off_while_the_sites_are_in_holding_mode():
-    """Checkout is closed (Jamie, 2026-09-24): modelspec.dev is dark until he
-    says go, and nobody can buy meanwhile. The Prices stay mapped, so past
-    purchases keep resolving and reopening is one flag."""
-    config = (REPO_ROOT / "api" / "worker" / "wrangler.jsonc").read_text(encoding="utf-8")
-    live = "\n".join(l for l in config.splitlines() if not l.lstrip().startswith("//"))
-    assert '"BILLING_ENABLED": "false"' in live
+def test_billing_launch_draft_opens_checkout_with_live_prices():
+    """MODEL-96 prepares Checkout; Jamie owns the draft's launch decision."""
+    from pipeline.worker_flags import production_vars
+
+    variables = production_vars(REPO_ROOT)
+    assert variables["BILLING_ENABLED"] == "true"
+    assert variables["ACCESS_ENFORCED"] == "false"
     policy = json.loads((REPO_ROOT / "api" / "worker" / "tiers.json").read_text(encoding="utf-8"))
     assert all(p.startswith("price_1UHRw") for p in policy["billing"]["prices"])
     assert not any(row["placeholder"] for row in policy["billing"]["prices"].values())

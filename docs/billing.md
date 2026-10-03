@@ -3,9 +3,12 @@
 A human pays by card on Stripe-hosted Checkout. Plans SET a monthly credit
 allowance; packs ADD pack credits. A Checkout that presents a live API key
 credits **that** key. An anonymous Checkout is claimed once and mints a key.
-There is no console step after payment. **The switch is off** (2026-09-24,
-holding mode: see [`handoff/holding-mode.md`](handoff/holding-mode.md)).
-`BILLING_ENABLED` in `api/worker/wrangler.jsonc` is `"false"`.
+There is no console step after payment. The MODEL-96 draft sets
+`BILLING_ENABLED` in `api/worker/wrangler.jsonc` to `"true"` to reopen Checkout.
+Jamie owns the merge and the live-payment checklist. `ACCESS_ENFORCED` stays
+`"false"`: enforcing it with the human gate and x402 off would reject the
+keyless decide page. Opening Checkout alone leaves keyless machine calls free
+and unmetered; the coupled paid-product launch still needs an access decision.
 
 **What the switch gates: Checkout, and nothing else.** With it off,
 `POST /v1/billing/checkout` (JSON and the `/pricing` form post) answers
@@ -44,7 +47,7 @@ shipped).
 
 Keyless browser requests from the production site and internal preview are a
 separate case. With x402 on, they receive the free-tier answer and use the
-`free` row's daily and burst limits, keyed by a SHA-256 digest of
+`free` row's daily and burst limits, keyed by a daily HMAC-SHA256 digest of
 `CF-Connecting-IP`. Other keyless callers receive the per-call 402. `Origin`
 can be spoofed, but a spoofed value grants only this rate-limited free tier. It
 does not grant credits or paid determinations.

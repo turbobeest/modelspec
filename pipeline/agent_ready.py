@@ -17,7 +17,7 @@ import shutil
 from pathlib import Path
 from typing import Any
 
-from pipeline import brand, entity
+from pipeline import brand, entity, worker_flags
 from pipeline.export import Build
 from pipeline.load import Benchmark, Catalogue, Model, REPO_ROOT
 
@@ -102,7 +102,6 @@ _SKIP_MD_EXT = re.compile(
     r"\.(json|xml|txt|png|jpe?g|gif|svg|webp|ico|css|js|mjs|woff2?|ya?ml|map|html)$",
     re.I,
 )
-_WRANGLER_FLAG = re.compile(r'"([A-Z0-9_]+)"\s*:\s*"([^"]*)"')
 
 
 
@@ -144,17 +143,6 @@ def _insert_head(html: str, snippet: str) -> str:
     if idx == -1 or snippet in html:
         return html
     return html[:idx] + snippet + html[idx:]
-
-
-def _flag_off(value: str | None) -> bool:
-    return (value or "").strip().lower() in {"false", "0", "no", "off", ""}
-
-
-def wrangler_vars(root: Path) -> dict[str, str]:
-    path = root / "api" / "worker" / "wrangler.jsonc"
-    if not path.is_file():
-        return {}
-    return dict(_WRANGLER_FLAG.findall(path.read_text(encoding="utf-8")))
 
 
 def robots_txt(base: str) -> str:
@@ -653,10 +641,10 @@ def skill_description() -> str:
 
 
 def auth_markdown(root: Path) -> str:
-    flags = wrangler_vars(root)
-    access_off = _flag_off(flags.get("ACCESS_ENFORCED"))
-    billing_off = _flag_off(flags.get("BILLING_ENABLED"))
-    x402_off = _flag_off(flags.get("X402_ENABLED"))
+    flags = worker_flags.production_vars(root)
+    access_off = not worker_flags.enabled(flags, "ACCESS_ENFORCED")
+    billing_off = not worker_flags.enabled(flags, "BILLING_ENABLED")
+    x402_off = not worker_flags.enabled(flags, "X402_ENABLED")
     lines = [
         # Cloudflare Agent Readiness expects the document to open with an
         # "Auth.md" heading; it reported the old title as missing it.
@@ -713,7 +701,7 @@ def auth_markdown(root: Path) -> str:
         "`POST /v1/policy-check` with a `test_` key is `400 sandbox_not_available`. "
         "Rows are synthetic, from the real scorer, not live catalogue data.",
         "",
-        "## What is not live",
+        "## Billing and payments",
         "",
     ]
     if billing_off:
@@ -726,7 +714,10 @@ def auth_markdown(root: Path) -> str:
         )
     else:
         lines.append(
-            "Billing is enabled. See `/pricing` and `docs/billing.md`."
+            "Billing is enabled. Buy a monthly plan or a prepaid credit pack at "
+            "https://modelspec.dev/pricing/. Stripe hosts Checkout. After payment, "
+            "claim your API key at the Checkout success link. Claim and rotation "
+            "remain available for earlier purchases. See `docs/billing.md`."
         )
     if x402_off:
         lines.append("")

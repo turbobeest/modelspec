@@ -26,8 +26,8 @@ DESCRIPTION = ("A person looking a model up on the ModelSpec board pays nothing.
                "(rank, policy_check, decide) require an API key.")
 FREE_TIER_DESCRIPTION = ("A person looking a model up on the ModelSpec board pays nothing. "
                          "Machine access is the hosted API and MCP server only. Keyless "
-                         "API calls are still answered while paid access is switched on; "
-                         "these are its prices. MCP decision tools "
+                         "API calls are still answered while access enforcement is off. "
+                         "Prepaid credits fund keyed calls. MCP decision tools "
                          "(rank, policy_check, decide) require an API key.")
 NETWORK_NAMES = {"eip155:8453": "Base mainnet", "eip155:84532": "Base Sepolia"}
 
@@ -173,14 +173,17 @@ def page(tiers: dict[str, Any], *, build: Build | None = None,
                    f"One credit. The low end is the {cheapest_label}'s rate; the range "
                    "covers the plans and packs below. A full explanation costs two credits.")
     hero_heading = f"People decide free. {agent_line}"
+    keyless_copy = ("Keyless API calls are still answered while access enforcement is off. "
+                    "Buy prepaid credits for keyed calls." if billing_live else
+                    "Keyless API calls are still answered while paid access is being switched "
+                    "on; these are the credit prices for it.")
     hero_copy = ("A person using the board on this site pays nothing. Machine "
                  f"access is the hosted API and MCP server only, and it uses "
                  f"{hero_payment}. There is no CLI and no data download. MCP decision "
                  "tools (rank, policy_check, decide) require an API key." if access_enforced else
                  "A person using the board on this site pays nothing. Machine "
-                 "access is the hosted API and MCP server only. Keyless API calls "
-                 "are still answered while paid access is being switched on; these "
-                 "are the credit prices for it. There is no CLI and no data download. "
+                 f"access is the hosted API and MCP server only. {keyless_copy} "
+                 "There is no CLI and no data download. "
                  "MCP decision tools (rank, policy_check, decide) require an API key.")
     buy_heading = "Buy credits for your agents" if billing_live else "Plans and packs"
     buy_copy = ("Pay by card. You get one API key and one balance; every agent that carries "
