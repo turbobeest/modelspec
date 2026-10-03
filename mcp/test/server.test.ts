@@ -435,7 +435,14 @@ describe("modelspec MCP worker", () => {
 
   it("decide returns an upstream invalid_spec error with its code and message", async () => {
     const originBody = {
-      error: { code: "invalid_spec", message: "where[0] names an unknown facet" },
+      error: {
+        code: "invalid_spec", message: "where[0] names an unknown facet",
+        recovery: [{
+          path: "$.where[0]", accepted_shape: "a valid facet ID",
+          example: { spec_version: 1, optimize: { max: "model.context_window" } },
+          guidance: "Read vocab section=starter", nearest_facet_ids: ["model.context_window"],
+        }],
+      },
     };
     originFetch.mockResolvedValueOnce(jsonResponse(400, originBody));
     const { payload } = await rpc("tools/call", {
@@ -446,6 +453,33 @@ describe("modelspec MCP worker", () => {
     expect(envelope.status).toBe(400);
     expect(envelope.body).toEqual(originBody);
     expect((payload.result as { isError?: boolean }).isError).toBe(true);
+  });
+
+  it.each([
+    { where: {} },
+    { capabilities: [] },
+    { optimize: "lowest price" },
+  ])("decide forwards malformed input for Worker recovery: %j", async (invalid) => {
+    const arguments_ = { spec_version: 1, optimize: { max: "model.context_window" }, ...invalid };
+    const originBody = {
+      contract_version: "2.11", endpoint: "decide", snapshot: "snap_test",
+      error: {
+        code: "invalid_spec", message: "the request body is not a valid decision spec",
+        issues: [{ path: Object.keys(invalid)[0], reason: "wrong shape" }],
+        recovery: [{
+          path: `$.${Object.keys(invalid)[0]}`, accepted_shape: "structured Spec field",
+          example: { spec_version: 1, optimize: { max: "model.context_window" } },
+          guidance: "Read vocab section=starter", nearest_facet_ids: [],
+        }],
+      },
+    };
+    originFetch.mockResolvedValueOnce(jsonResponse(400, originBody));
+    const { payload } = await rpc("tools/call", { name: "decide", arguments: arguments_ });
+    expect(envelopeFromCall(payload).body).toEqual(originBody);
+    expect((payload.result as { isError?: boolean }).isError).toBe(true);
+    const [url, init] = originFetch.mock.calls[0];
+    expect(url).toBe("https://api.modelspec.dev/v1/decide");
+    expect(JSON.parse(String(init.body))).toEqual(arguments_);
   });
 
   it("vocab defaults to starter facets from template specs", async () => {

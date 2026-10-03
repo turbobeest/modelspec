@@ -79,6 +79,21 @@ the Decision. See [Snapshot refresh](#snapshot-refresh).
 
 The body limit is 64 KiB.
 
+`400 invalid_spec` also carries an optional `error.recovery` array (MODEL-285).
+Each entry names a JSON path in `path`, describes the accepted shape in
+`accepted_shape`, and supplies a standalone minimal Spec in `example`, built
+from the facet registry. `guidance` explains how to retry. Unknown facet IDs
+include up to three `nearest_facet_ids`; an empty list means no close match.
+Examples illustrate syntax and are not a translation of the caller's intent.
+For free-text `task`, translate the request into structured facets via MCP
+`vocab section=starter`, remove `task`, and retry. Decide takes structured
+facets only and does not evaluate exact prompts.
+
+The existing envelope, error code, message and `issues` fields are unchanged.
+Recovery is a new optional field, so MODEL-59 requires no major version bump.
+MCP advertises the same Spec schema and delegates input validation to the
+Worker so structural failures receive the same recovery body as API failures.
+
 ### Comparing snapshots
 
 `POST /v1/compare` runs one Spec against the current signed Snapshot and a

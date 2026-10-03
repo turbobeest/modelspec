@@ -2138,6 +2138,8 @@ def _decision_schemas() -> dict[str, Any]:
         return value
 
     schemas = {names[name]: rewrite(schema) for name, schema in definitions.items()}
+    from decision.recovery import Recovery
+    schemas["DecisionRecovery"] = Recovery.model_json_schema()
     def refused(endpoint: str, codes: set[str]) -> dict[str, Any]:
         return {
             "type": "object",
@@ -2161,6 +2163,11 @@ def _decision_schemas() -> dict[str, Any]:
                         "code": {"type": "string", "enum": sorted(codes)},
                         "message": {"type": "string"},
                         "issues": {"type": "array", "items": {"type": "object"}},
+                        "recovery": {
+                            "type": "array",
+                            "items": {"$ref": "#/components/schemas/DecisionRecovery"},
+                            "description": "Optional registry-backed corrections for invalid decide specs. Existing issues are unchanged.",
+                        },
                         "requested": {
                             "type": "string",
                             "description": (

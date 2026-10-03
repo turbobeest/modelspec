@@ -14,6 +14,7 @@ from decision import contract
 from decision.compare import compare as compare_decisions
 from decision.engine import decide as run_decision
 from decision.registry import facet
+from decision.recovery import recovery_hints
 from decision.snapshot import SnapshotIntegrityError, load_snapshot_bytes, verify_hmac_signature
 
 HTTP_OK = 200
@@ -297,11 +298,14 @@ def error_response(
     status: int,
     snapshot_id: str | None,
     issues: list[dict[str, Any]] | None = None,
+    recovery: list[dict[str, Any]] | None = None,
     endpoint: str = "decide",
 ) -> tuple[int, dict[str, Any]]:
     error: dict[str, Any] = {"code": code, "message": message}
     if issues is not None:
         error["issues"] = issues
+    if recovery is not None:
+        error["recovery"] = recovery
     return status, {
         "contract_version": contract.CONTRACT_VERSION,
         "endpoint": endpoint,
@@ -355,6 +359,8 @@ def decide(payload: Any, snapshot, *,
             status=HTTP_BAD_REQUEST,
             snapshot_id=snapshot.snapshot_id,
             issues=_issues(exc),
+            recovery=recovery_hints(exc.issues, facets=facets,
+                                    benchmark_ids=tuple(snapshot.benchmark_ids()), payload=payload),
         )
     if spec.snapshot not in ("latest", snapshot.snapshot_id):
         return error_response(
@@ -372,6 +378,8 @@ def decide(payload: Any, snapshot, *,
             status=HTTP_BAD_REQUEST,
             snapshot_id=snapshot.snapshot_id,
             issues=_issues(exc),
+            recovery=recovery_hints(exc.issues, facets=facets,
+                                    benchmark_ids=tuple(snapshot.benchmark_ids()), payload=payload),
         )
     return HTTP_OK, decision.model_dump(mode="json")
 

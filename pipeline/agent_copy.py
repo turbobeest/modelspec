@@ -91,6 +91,13 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
             f"{decide_price} {NOT_A_ROUTER} "
             f"Proxies POST {API}/v1/decide. "
             f"{SPEC_GUIDANCE}"
+            "Minimal valid Spec: "
+            '{"spec_version":1,"optimize":{"min":"offering.cost_per_task"}}. '
+            "Common mistakes: task is free text and is rejected; translate the request "
+            "into structured facets via vocab section=starter. "
+            "where must be an array, and a text set uses {a, b}, not [a, b]; "
+            'the structured form is {"facet":"offering.provider","in":["openai"]}. '
+            "Boolean and enum Prefers need a prefer value and a weight, not a bare numeric weight. "
             'Use explain: "summary" (the default): 1 credit, and it carries the answer, '
             "results, by_model and may_qualify. "
             'explain: "full" (2 credits) also lists every eliminated candidate and returns about '

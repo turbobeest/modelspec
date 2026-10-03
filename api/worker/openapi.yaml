@@ -6037,6 +6037,33 @@ components:
       - gap
       title: WithEstate
       type: object
+    DecisionRecovery:
+      properties:
+        path:
+          title: Path
+          type: string
+        accepted_shape:
+          title: Accepted Shape
+          type: string
+        example:
+          additionalProperties: true
+          title: Example
+          type: object
+        guidance:
+          title: Guidance
+          type: string
+        nearest_facet_ids:
+          items:
+            type: string
+          title: Nearest Facet Ids
+          type: array
+      required:
+      - path
+      - accepted_shape
+      - example
+      - guidance
+      title: Recovery
+      type: object
     DecisionRequestRefused:
       type: object
       additionalProperties: false
@@ -6082,6 +6109,12 @@ components:
               type: array
               items:
                 type: object
+            recovery:
+              type: array
+              items:
+                $ref: '#/components/schemas/DecisionRecovery'
+              description: Optional registry-backed corrections for invalid decide specs. Existing issues
+                are unchanged.
             requested:
               type: string
               description: 'snapshot_changed only: the X-ModelSpec-Snapshot sent.'
@@ -6133,6 +6166,12 @@ components:
               type: array
               items:
                 type: object
+            recovery:
+              type: array
+              items:
+                $ref: '#/components/schemas/DecisionRecovery'
+              description: Optional registry-backed corrections for invalid decide specs. Existing issues
+                are unchanged.
             requested:
               type: string
               description: 'snapshot_changed only: the X-ModelSpec-Snapshot sent.'
@@ -6212,6 +6251,12 @@ components:
               type: array
               items:
                 type: object
+            recovery:
+              type: array
+              items:
+                $ref: '#/components/schemas/DecisionRecovery'
+              description: Optional registry-backed corrections for invalid decide specs. Existing issues
+                are unchanged.
             requested:
               type: string
               description: 'snapshot_changed only: the X-ModelSpec-Snapshot sent.'

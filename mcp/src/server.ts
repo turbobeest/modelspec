@@ -140,14 +140,13 @@ function decisionSpecJsonSchema(): JsonSchemaObject {
 }
 
 const decisionSpecSchema = decisionSpecJsonSchema();
-const decisionSpecValidator = z.fromJSONSchema(decisionSpecSchema);
 const decisionSpecInput = {
   "~standard": {
     version: 1 as const,
     vendor: "modelspec",
     validate(value: unknown) {
-      const result = decisionSpecValidator.safeParse(value);
-      return result.success ? { value } : { issues: result.error.issues };
+      // The Worker validates structure and facets together and returns recovery examples.
+      return { value };
     },
     jsonSchema: {
       input: () => decisionSpecSchema,
