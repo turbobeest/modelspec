@@ -1,6 +1,6 @@
 # Privacy statement
 
-Version `1.8`, effective 2026-10-02. Adopted by Sparks & Sawdust LLC, which
+Version `1.9`, effective 2026-10-03. Adopted by Sparks & Sawdust LLC, which
 operates the service. MODEL-70. Version 1.0 was adopted on 2026-09-19; what
 changed since is listed under [Changes](#changes).
 
@@ -278,6 +278,45 @@ analytics script (see *The websites*) is inserted into the one HTML page the API
 serves, the page that shows a purchased key, but that page's content security
 policy stops a browser from loading it (`api/worker/src/billing_page.py`).
 
+### The visit gate on the decide page
+
+`VISIT_GATE_ENABLED` is on in production. A managed Cloudflare Turnstile check
+runs on the first request of a visit. The browser and network signals,
+Cloudflare roles and Siteverify checks are those described for the human gate
+under *Not yet live*; we omit the optional `remoteip` parameter and do not
+enable pre-clearance. Most people pass in the background. If interaction is
+required, the challenge appears beside the answer.
+
+After successful verification, the Worker issues a visit token signed with
+HMAC-SHA256 under a separate secret, `VISIT_TOKEN_HMAC_KEY`. It binds the
+daily visitor id, exact page origin, the time of the original verification,
+issued-at and expiry. The visitor id comes from the same keyed daily IP
+identity described for the human gate, with IPv6 reduced to its /64 network.
+A token cannot be used from another visitor id or origin. The page keeps it
+only in memory and sets no cookie for it. The token has a 30-minute sliding
+window: each admitted decide or vocabulary request renews it for 30 minutes,
+but never beyond four hours from the original verification. After an idle
+expiry, or at four hours, the page runs another managed check and retries
+once. UTC-day identity rotation invalidates the previous day's token.
+ModelSpec application code neither logs nor persists the Turnstile or visit
+token in server storage.
+
+A separate visit meter in the existing daily HumanGate Durable Object admits
+at most 300 questions per UTC day and 30 in a rolling minute. A separate
+vocabulary meter permits 60 vocabulary lookups per UTC day and 10 in a rolling
+minute. These numbers are operator configuration and may be changed only
+alongside this disclosure. The intent ids, Spec-derived fingerprints,
+admission times, request counts and suspicion expiry have the same purpose,
+storage rules and retention as described for the human gate, except that the
+visit meter keeps an intent only for its 60-second continuation window. One
+facet action is one question, including its permitted presentation requests;
+an admitted question consumes allowance even if its answer fails. Verification
+and token renewal do not reset these allowances. The existing even-interval
+sweep detection still applies. Daily state is scheduled for deletion at the
+following UTC midnight, subject to delayed alarms and Cloudflare's SQLite
+point-in-time recovery retention of up to 30 days. Shared IPs or IPv6 /64
+networks share allowances. API keys take precedence over visit tokens.
+
 ## What Stripe holds
 
 Purchases are made on Checkout pages hosted by Stripe
@@ -511,6 +550,10 @@ to `DELETE /v1/feedback`, or write to us with it.
 A change to what the service records is a change to this statement, and it is
 published here before the change ships. The version above is the one in force.
 
+- **1.9, 2026-10-03.** Enabled the visit gate on the decide page (MODEL-292)
+  and disclosed it under *What we store*: its signed credential, what it
+  binds, its 30-minute sliding window and four-hour maximum, and the
+  configurable human allowances.
 - **1.8, 2026-10-02.** Switched the human gate off again in production and
   moved its disclosure back to *Not yet live*, with its wording as in 1.6.
   Nothing it would store changed; while it is off it stores nothing.

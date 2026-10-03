@@ -800,7 +800,7 @@ def test_the_decide_contract_refuses_its_free_text_task() -> None:
 IN_FORCE = {
     "terms": "Version `1.2`, effective 2026-09-30.",
     "neutrality": "Version `1.3`, effective 2026-09-30.",
-    "privacy": "Version `1.8`, effective 2026-10-02.",
+    "privacy": "Version `1.9`, effective 2026-10-03.",
 }
 
 
