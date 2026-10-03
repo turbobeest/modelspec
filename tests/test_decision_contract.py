@@ -905,6 +905,9 @@ def _samples() -> list:
                     coverage=plan_coverage, allowance=plan_allowance,
                     break_even_tasks_per_month=303.0, basis="200 USD a month ÷ 0.66 USD a task"),
         c.FeedbackPointer(),
+        c.Reading(tied=["lab/a", "lab/b"], not_applied=["task"],
+                  estimates=["model.fits_hardware"],
+                  do_not_claim=["Do not name a single winner among tied."]),
     ]
 
 

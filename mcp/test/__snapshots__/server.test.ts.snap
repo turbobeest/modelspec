@@ -235,7 +235,7 @@ exports[`modelspec MCP worker > tools/list returns all seven tools with object i
     "name": "policy_check",
   },
   {
-    "description": "Which models fit this job? ModelSpec is an analysis of alternatives for AI models: it decides which models fit a job from your requirements, sourced benchmarks and real cost, and shows its work. Returns the answer (one model, or a declared tie that names the cheapest, open-weights and best-measured members), ranked results with cost per task and uncertainty, the models screened out with the reason for each, may_qualify for missing facts, and a decision_id and snapshot so the same spec gives the same answer later. Needs an API key (Authorization: Bearer). Costs 1 or 2 credits a call; a credit costs $0.0017–$0.004 depending on the plan or pack (https://modelspec.dev/pricing/). Not a router: call it once per job or role, not per request, then route among the models it recommends. Proxies POST https://api.modelspec.dev/v1/decide. Read vocab first with section=starter for valid facet ids. Put Musts in where: these gates exclude. Put Prefers in optimize.weights: weights rank and never exclude. Unknown values go to may_qualify instead of being dropped. Pin snapshot for reproducibility. Example for a coding agent on a budget: {"spec_version":1,"snapshot":"latest","capabilities":{"software_engineering":"required"},"where":["model.class = text-generator","model.context_window >= 200000","offering.cost_per_task <= 0.25"],"optimize":{"weights":{"software_engineering":0.6,"-offering.cost_per_task":0.4}}}. Minimal valid Spec: {"spec_version":1,"optimize":{"min":"offering.cost_per_task"}}. Common mistakes: task is free text and is rejected; translate the request into structured facets via vocab section=starter, then remove task and retry. Report to the user any requirement you dropped. where must be an array, and a text set uses {a, b}, not [a, b]; the structured form is {"facet":"offering.provider","in":["openai"]}. Boolean and enum Prefers need a prefer value and a weight, not a bare numeric weight. Use explain: "summary" (the default): 1 credit, and it carries the answer, results, by_model and may_qualify. explain: "full" (2 credits) also lists every eliminated candidate and returns about 670 KB, so ask for it only to see why one model was excluded. The decision response is returned unchanged with a short summary. Authorization from the MCP client is forwarded. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
+    "description": "Which models fit this job? ModelSpec is an analysis of alternatives for AI models: it decides which models fit a job from your requirements, sourced benchmarks and real cost, and shows its work. Returns the answer (one model, or a declared tie that names the cheapest, open-weights and best-measured members), ranked results with cost per task and uncertainty, the models screened out with the reason for each, may_qualify for missing facts, and a decision_id and snapshot so the same spec gives the same answer later. How to report: read reading when present. Present answer.kind=tied as a tie among all answer.members, never a single winner; tie-breakers are conditional choices. State requirements in reading.not_applied or error.issues that were not applied, including requirements removed after a rejected call. A retry does not verify them. Report estimates as estimates: fits_hardware membership is not measured fit for a specific quantization and context workload. Follow reading.do_not_claim. Never claim a rank the response does not show: a cost rank is not a #1 quality rank, and general capability evidence does not verify an exact prompt or thread safety. Needs an API key (Authorization: Bearer). Costs 1 or 2 credits a call; a credit costs $0.0017–$0.004 depending on the plan or pack (https://modelspec.dev/pricing/). Not a router: call it once per job or role, not per request, then route among the models it recommends. Proxies POST https://api.modelspec.dev/v1/decide. Read vocab first with section=starter for valid facet ids. Put Musts in where: these gates exclude. Put Prefers in optimize.weights: weights rank and never exclude. Unknown values go to may_qualify instead of being dropped. Pin snapshot for reproducibility. Example for a coding agent on a budget: {"spec_version":1,"snapshot":"latest","capabilities":{"software_engineering":"required"},"where":["model.class = text-generator","model.context_window >= 200000","offering.cost_per_task <= 0.25"],"optimize":{"weights":{"software_engineering":0.6,"-offering.cost_per_task":0.4}}}. Minimal valid Spec: {"spec_version":1,"optimize":{"min":"offering.cost_per_task"}}. Common mistakes: task is free text and is rejected; translate the request into structured facets via vocab section=starter, then remove task and retry. Report to the user any requirement you dropped. where must be an array, and a text set uses {a, b}, not [a, b]; the structured form is {"facet":"offering.provider","in":["openai"]}. Boolean and enum Prefers need a prefer value and a weight, not a bare numeric weight. Use explain: "summary" (the default): 1 credit, and it carries the answer, results, by_model and may_qualify. explain: "full" (2 credits) also lists every eliminated candidate and returns about 670 KB, so ask for it only to see why one model was excluded. The decision response is returned unchanged with a short summary. Authorization from the MCP client is forwarded. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
     "inputSchema": {
       "$defs": {
         "Access": {
@@ -1332,6 +1332,17 @@ condition.",
               "minimum": 0,
               "title": "Out Of Lineup",
               "type": "integer",
+            },
+            "reading": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Reading",
+                },
+                {
+                  "type": "null",
+                },
+              ],
+              "default": null,
             },
             "relax": {
               "items": {
@@ -3732,6 +3743,53 @@ ModelSpec never turns a plan price into a per-task cost.",
             "provider",
           ],
           "title": "ProfileOffering",
+          "type": "object",
+        },
+        "Reading": {
+          "additionalProperties": false,
+          "description": "Reporting limits derived from a decision or its spec refusal (MODEL-284).
+
+Empty lists are omitted. Identifiers refer to the answer, request fields,
+or estimated response fields; they never repeat a free-text task.",
+          "properties": {
+            "do_not_claim": {
+              "items": {
+                "type": "string",
+              },
+              "title": "Do Not Claim",
+              "type": "array",
+            },
+            "estimates": {
+              "items": {
+                "type": "string",
+              },
+              "title": "Estimates",
+              "type": "array",
+            },
+            "not_applied": {
+              "items": {
+                "type": "string",
+              },
+              "title": "Not Applied",
+              "type": "array",
+            },
+            "omitted": {
+              "additionalProperties": {
+                "type": "integer",
+              },
+              "title": "Omitted",
+              "type": "object",
+            },
+            "tied": {
+              "items": {
+                "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+                "type": "string",
+              },
+              "title": "Tied",
+              "type": "array",
+            },
+          },
+          "title": "Reading",
           "type": "object",
         },
         "RefinementEstimate": {

@@ -10,6 +10,7 @@ from math import inf, isfinite, sqrt
 from decision import bands as bands_module
 from decision import estate as estate_module
 from decision import plans as plans_module
+from decision import reading as reading_module
 from decision.by_model import build_by_model
 from decision.computed import with_computed
 from decision.contract import (
@@ -492,6 +493,15 @@ def decide(
         decision, capture["models"], capture["rows"], capture["computed"])
     decision.with_estate = estate_module.with_estate(
         spec.estate, snapshot, unrestricted, run, spec.limit, spec.access, catalogue)
+    if spec.estate.devices and (spec.access is None or spec.access.kind == "own_hardware"):
+        decision.reading = reading_module.for_decision(
+            decision, hardware_fit=True,
+            quality_objective=all(
+                split_dimension(name.removeprefix("-"))[0]
+                in set(snapshot.domain_ids()) | set(snapshot.benchmark_ids())
+                for name in _objective_names(spec)),
+            not_applied=sorted(set(spec.capabilities or {}) - set(snapshot.domain_ids())),
+        )
     return decision
 
 
@@ -736,6 +746,16 @@ def _decide(
         ],
         truncated=truncated,
         out_of_lineup=getattr(snapshot, "out_of_lineup", 0),
+    )
+    from decision.explain import named_facets
+
+    decision.reading = reading_module.for_decision(
+        decision,
+        hardware_fit=(reading_module.HARDWARE_FIT in named_facets(resolved)
+                      or (spec.access is not None and spec.access.kind == "own_hardware")),
+        quality_objective=all(split_dimension(name.removeprefix("-"))[0]
+                              in domains | set(snapshot.benchmark_ids()) for name in names),
+        not_applied=sorted(requested - domains),
     )
     cost_of = _offering_costs(snapshot)
     if spec.explain != "full":

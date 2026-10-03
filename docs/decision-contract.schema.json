@@ -1073,6 +1073,17 @@
           "title": "Out Of Lineup",
           "type": "integer"
         },
+        "reading": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Reading"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "relax": {
           "items": {
             "type": "string"
@@ -3450,6 +3461,50 @@
         "provider"
       ],
       "title": "ProfileOffering",
+      "type": "object"
+    },
+    "Reading": {
+      "additionalProperties": false,
+      "description": "Reporting limits derived from a decision or its spec refusal (MODEL-284).\n\nEmpty lists are omitted. Identifiers refer to the answer, request fields,\nor estimated response fields; they never repeat a free-text task.",
+      "properties": {
+        "do_not_claim": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Do Not Claim",
+          "type": "array"
+        },
+        "estimates": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Estimates",
+          "type": "array"
+        },
+        "not_applied": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Not Applied",
+          "type": "array"
+        },
+        "omitted": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Omitted",
+          "type": "object"
+        },
+        "tied": {
+          "items": {
+            "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+            "type": "string"
+          },
+          "title": "Tied",
+          "type": "array"
+        }
+      },
+      "title": "Reading",
       "type": "object"
     },
     "RefinementEstimate": {

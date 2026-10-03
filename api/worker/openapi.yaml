@@ -628,9 +628,16 @@ paths:
         shows its work. Returns the answer (one model, or a declared tie that names the cheapest, open-weights
         and best-measured members), ranked results with cost per task and uncertainty, the models screened
         out with the reason for each, may_qualify for missing facts, and a decision_id and snapshot so
-        the same spec gives the same answer later. Needs an API key (Authorization: Bearer). Costs 1 or
-        2 credits a call; a credit costs $0.0017–$0.004 depending on the plan or pack (https://modelspec.dev/pricing/).
-        Not a router: call it once per job or role, not per request, then route among the models it recommends.'
+        the same spec gives the same answer later. How to report: read reading when present. Present answer.kind=tied
+        as a tie among all answer.members, never a single winner; tie-breakers are conditional choices.
+        State requirements in reading.not_applied or error.issues that were not applied, including requirements
+        removed after a rejected call. A retry does not verify them. Report estimates as estimates: fits_hardware
+        membership is not measured fit for a specific quantization and context workload. Follow reading.do_not_claim.
+        Never claim a rank the response does not show: a cost rank is not a #1 quality rank, and general
+        capability evidence does not verify an exact prompt or thread safety. Needs an API key (Authorization:
+        Bearer). Costs 1 or 2 credits a call; a credit costs $0.0017–$0.004 depending on the plan or pack
+        (https://modelspec.dev/pricing/). Not a router: call it once per job or role, not per request,
+        then route among the models it recommends.'
   /v1/compare:
     post:
       operationId: compareDecisions
@@ -3906,6 +3913,11 @@ components:
           default: null
         feedback:
           $ref: '#/components/schemas/DecisionFeedbackPointer'
+        reading:
+          anyOf:
+          - $ref: '#/components/schemas/DecisionReading'
+          - type: 'null'
+          default: null
       required:
       - decision_id
       - snapshot
@@ -5356,6 +5368,43 @@ components:
       - provider
       title: ProfileOffering
       type: object
+    DecisionReading:
+      additionalProperties: false
+      description: 'Reporting limits derived from a decision or its spec refusal (MODEL-284).
+
+
+        Empty lists are omitted. Identifiers refer to the answer, request fields,
+
+        or estimated response fields; they never repeat a free-text task.'
+      properties:
+        tied:
+          items:
+            pattern: ^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$
+            type: string
+          title: Tied
+          type: array
+        not_applied:
+          items:
+            type: string
+          title: Not Applied
+          type: array
+        estimates:
+          items:
+            type: string
+          title: Estimates
+          type: array
+        do_not_claim:
+          items:
+            type: string
+          title: Do Not Claim
+          type: array
+        omitted:
+          additionalProperties:
+            type: integer
+          title: Omitted
+          type: object
+      title: Reading
+      type: object
     DecisionRefinementEstimate:
       additionalProperties: false
       description: 'A refinement estimate nested in its parent domain. Added in 2.4 (MODEL-190).
@@ -6163,6 +6212,8 @@ components:
               type: integer
               minimum: 0
               description: Number of issues without a recovery hint, including examples that failed validation.
+        reading:
+          $ref: '#/components/schemas/DecisionReading'
     HumanGateRefused:
       type: object
       additionalProperties: false

@@ -28,6 +28,16 @@ This contract is separate from the v1 CLI envelope (`schema_version`, see
 
 ## The spec
 
+Responses may include the optional agent reporting block `reading` (MODEL-284).
+Its `tied`, `not_applied`, `estimates` and `do_not_claim` lists are derived from
+the answer, validation issues and applied objective. Empty lists are omitted;
+the block is absent when none applies. `omitted` counts identifiers removed
+to stay within 600 UTF-8 bytes of compact JSON; the complete tie remains in
+`answer.members`, and rejected fields remain in `error.issues`. It is additive
+within contract 2.11.
+See [the reading rules](cli-contract.md) for reporting ties, rejected
+requirements and hardware estimates. It changes no ranking or page behavior.
+
 ```yaml spec
 spec_version: 1
 snapshot: latest

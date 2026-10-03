@@ -116,6 +116,8 @@ def _same_bytes(decision, golden) -> None:
     ours.pop("blend", None)
     # 2.10 (MODEL-221) adds the constant feedback pointer; the golden predates it.
     ours.pop("feedback", None)
+    # MODEL-284 adds reporting guidance; every pre-existing field stays pinned.
+    ours.pop("reading", None)
     text = json.dumps(ours, sort_keys=True).replace(
         json.dumps(BASIS), json.dumps("leader-overlap score intervals; "
                                       "capability estimates use 80% intervals"))
