@@ -713,7 +713,7 @@ body {
 .access-question input { margin: 3px 0 0; flex: none; }
 .access-question label > span { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .access-question small { color: var(--muted); }
-.board-workspace { display: grid; grid-template-columns: minmax(520px, 600px) minmax(0, 1fr); grid-template-areas: "facets answer"; gap: 14px; align-items: start; }
+.board-workspace { display: grid; grid-template-columns: minmax(520px, 600px) minmax(0, 1fr); grid-template-areas: "facets answer"; gap: 14px; align-items: stretch; }
 .facet-list { grid-area: facets; padding: 0; overflow: hidden; }
 .facet-list > header { padding: 10px 16px; display: flex; align-items: baseline; justify-content: space-between; }
 .facet-list > header > span { display: flex; align-items: baseline; gap: 10px; }
@@ -863,7 +863,12 @@ body {
 .answer-lists { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr)); gap: 14px; }
 .answer-lists > section { min-width: 0; }
 .answer-lists > section > strong { display: block; margin: 0 16px 6px; }
+/* MODEL-298: with the canvas out of the narrowing card, a laptop keeps both
+   cards side by side, at half the row each; below 1000px they stack. */
 @media (max-width: 1099px) {
+  .board-workspace { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+}
+@media (max-width: 999px) {
   .board-workspace { grid-template-columns: minmax(0, 1fr); grid-template-areas: "facets" "answer"; }
   .board-answer { scroll-margin-top: 58px; }
   .mobile-answer-bar { position: sticky; top: 0; z-index: 20; display: flex; justify-content: space-between; padding: 9px 12px; color: var(--accentText); background: var(--surface); border: 1px solid var(--accent); font-weight: 650; text-decoration: none; }

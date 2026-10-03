@@ -961,37 +961,6 @@ export function DesignedApp({
                   </div>
                 : <RankedAnswer decision={decision} spec={shownSpec} vocabulary={vocabulary} access={answeredAccess} held={estate} />}
               {!error && !loading && <AnswerBoundary resetKey={decision} onReset={resetBoard}>
-                {vocabulary && hostedDecision && shownCanvasAxes ? (
-                  <FreeAxisCanvas
-                    decision={decision}
-                    rankingDecision={hostedDecision}
-                    plotDecision={plotDecision}
-                    vocabulary={vocabulary}
-                    axes={shownCanvasAxes}
-                    onAxes={(next) => {
-                      if (humanGateEnabled) changeSpec(spec);
-                      else action.current = decisionAction();
-                      setCanvasAxes(next);
-                    }}
-                    onMust={setCanvasMust}
-                    selections={boardSelections}
-                    selected={selectedId}
-                    onSelect={setSelected}
-                  />
-                ) : (
-                  <Canvas
-                    decision={decision}
-                    spec={shownSpec}
-                    axis={shownAxis}
-                    onAxis={setAxis}
-                    onSpec={changeSpec}
-                    onAdd={add}
-                    selected={selectedId}
-                    onSelect={setSelected}
-                    onRelax={relax}
-                    boardRanked={boardRanked}
-                  />
-                )}
                 <Coverage decision={decision} spec={shownSpec} onSpec={changeSpec} />
               </AnswerBoundary>}
               {hostedDecision && <section className="answer-feedback" aria-label="Was this answer reliable?">
@@ -1041,6 +1010,43 @@ export function DesignedApp({
               </div>
             </div>
           ) : decision ? (
+            <>
+            {/* MODEL-298: the trade-off canvas spans the page under the facets and
+                the narrowing, in its own boundary: a canvas failure hides only
+                the canvas. */}
+            {vocabulary && <AnswerBoundary resetKey={decision} onReset={resetBoard}>
+              {hostedDecision && shownCanvasAxes ? (
+                <FreeAxisCanvas
+                  decision={decision}
+                  rankingDecision={hostedDecision}
+                  plotDecision={plotDecision}
+                  vocabulary={vocabulary}
+                  axes={shownCanvasAxes}
+                  onAxes={(next) => {
+                    if (humanGateEnabled) changeSpec(spec);
+                    else action.current = decisionAction();
+                    setCanvasAxes(next);
+                  }}
+                  onMust={setCanvasMust}
+                  selections={boardSelections}
+                  selected={selectedId}
+                  onSelect={setSelected}
+                />
+              ) : (
+                <Canvas
+                  decision={decision}
+                  spec={shownSpec}
+                  axis={shownAxis}
+                  onAxis={setAxis}
+                  onSpec={changeSpec}
+                  onAdd={add}
+                  selected={selectedId}
+                  onSelect={setSelected}
+                  onRelax={relax}
+                  boardRanked={boardRanked}
+                />
+              )}
+            </AnswerBoundary>}
             <AnswerBoundary resetKey={decision} onReset={resetBoard}>
             <div className="results">
               <DecisionTable
@@ -1080,6 +1086,7 @@ export function DesignedApp({
               />
             </div>
             </AnswerBoundary>
+            </>
           ) : null}
       </main>
       <footer className="site-footer" aria-label="About ModelSpec">

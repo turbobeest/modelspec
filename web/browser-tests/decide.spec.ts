@@ -72,7 +72,7 @@ test("the board fits a 390px viewport in light and dark mode", async ({ page }) 
 });
 
 for (const width of [1440, 1024, 390, 320]) {
-  test(`a template puts the canvas beside or below facets and the full-width table underneath at ${width}px`, async ({ page }) => {
+  test(`a template puts facets and narrowing side by side or stacked, then the canvas and table at full width, at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: width >= 1024 ? 900 : 844 });
     // The gated build re-renders the board when /v1/human-status answers; apply
     // the template only after that, or the template can be applied and reset.
@@ -112,36 +112,49 @@ for (const width of [1440, 1024, 390, 320]) {
     if (!facets || !chart || !answers || !table || !workspace || !details) {
       throw new Error("the applied template did not render all layout regions");
     }
-    // Jamie, 2026-10-02: the narrowing (funnel and ranked answer) heads the
-    // right column; the canvas sits under it.
+    // The narrowing card holds the funnel, the answer, the ranked list and the
+    // feedback form; the canvas is no longer inside it (MODEL-298).
     const [narrowing, ranked, feedback] = await Promise.all([
       page.locator(".board-answer-head").boundingBox(),
       page.locator(".board-ranked-answer").last().boundingBox(),
       page.locator(".answer-feedback").boundingBox(),
     ]);
     if (!narrowing || !ranked) throw new Error("the narrowing did not render");
-    expect(chart.y).toBeGreaterThanOrEqual(narrowing.y + narrowing.height);
-    expect(chart.y).toBeGreaterThanOrEqual(ranked.y + ranked.height);
-    expect(chart.x).toBeGreaterThanOrEqual(answers.x);
-    expect(chart.x + chart.width).toBeLessThanOrEqual(answers.x + answers.width + 1);
-    if (feedback) expect(feedback.y).toBeGreaterThanOrEqual(chart.y + chart.height);
-    expect(await page.locator(".board-answer").evaluate((node) => getComputedStyle(node).position)).toBe("static");
-    if (width > 1099) {
-      expect(chart.x).toBeGreaterThanOrEqual(facets.x + facets.width);
-      expect(Math.abs(answers.y - facets.y)).toBeLessThanOrEqual(1);
-    } else {
-      expect(chart.y).toBeGreaterThanOrEqual(facets.y + facets.height);
+    for (const inside of [narrowing, ranked, ...(feedback ? [feedback] : [])]) {
+      expect(inside.y).toBeGreaterThanOrEqual(answers.y);
+      expect(inside.y + inside.height).toBeLessThanOrEqual(answers.y + answers.height + 1);
     }
-    expect(table.y).toBeGreaterThanOrEqual(Math.max(facets.y + facets.height, answers.y + answers.height));
+    await expect(page.locator(".board-answer").getByRole("region", { name: "Trade-off canvas" })).toHaveCount(0);
+    expect(await page.locator(".board-answer").evaluate((node) => getComputedStyle(node).position)).toBe("static");
+
+    // Jamie, 2026-10-03: the facets and narrowing cards share one height,
+    // whichever is longer.
+    if (width >= 1024) {
+      expect(answers.x).toBeGreaterThanOrEqual(facets.x + facets.width);
+      expect(Math.abs(answers.y - facets.y)).toBeLessThanOrEqual(1);
+      expect(Math.abs(answers.height - facets.height)).toBeLessThanOrEqual(1);
+    } else {
+      expect(answers.y).toBeGreaterThanOrEqual(facets.y + facets.height);
+    }
+    // ...and the canvas spans the page below both, as wide as the table.
+    expect(chart.y).toBeGreaterThanOrEqual(Math.max(facets.y + facets.height, answers.y + answers.height));
+    expect(Math.abs(chart.width - table.width)).toBeLessThanOrEqual(2);
+    expect(Math.abs(chart.x - table.x)).toBeLessThanOrEqual(1);
+    expect(table.y).toBeGreaterThanOrEqual(chart.y + chart.height);
     expect(Math.abs(table.width - workspace.width)).toBeLessThanOrEqual(2);
     expect(Math.abs(table.x - workspace.x)).toBeLessThanOrEqual(1);
     expect(details.y).toBeGreaterThanOrEqual(table.y + table.height);
+    // The plot keeps a sensible shape at full width: never a thin strip.
+    const plot = await canvas.locator(".plot-wrap").boundingBox();
+    if (!plot) throw new Error("the canvas drew no plot");
+    expect(plot.height).toBeGreaterThanOrEqual(460);
+    expect(plot.height).toBeLessThanOrEqual(560);
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
     expect(await page.locator(".board-answer").evaluate((node) => getComputedStyle(node).overflowY)).toBe("visible");
 
     if (process.env.MODELSPEC_SCREENSHOT_DIR) {
       await page.evaluate(() => window.scrollTo(0, 0));
-      await page.screenshot({ path: `${process.env.MODELSPEC_SCREENSHOT_DIR}/decide-layout-${width}.png`, fullPage: true });
+      await page.screenshot({ path: `${process.env.MODELSPEC_SCREENSHOT_DIR}/decide-298-${width}.png`, fullPage: true });
     }
   });
 }

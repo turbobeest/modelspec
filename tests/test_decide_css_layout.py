@@ -13,16 +13,18 @@ def test_facet_controls_sit_in_the_state_column_even_without_a_known_cell():
     assert rule and "grid-column: -2 / -1" in rule.group(1)
 
 
-def test_canvas_and_answers_are_right_of_facets_with_full_width_results_below():
+def test_facets_and_narrowing_share_one_row_with_full_width_results_below():
     workspace = re.search(r"\.board-workspace\s*\{([^}]*)\}", CSS)
     assert workspace and 'grid-template-areas: "facets answer"' in workspace.group(1)
+    # Jamie, 2026-10-03 (MODEL-298): the facets and narrowing cards share one
+    # height, whichever is longer. The row stretches both cards.
+    assert "align-items: stretch" in workspace.group(1)
     facets = re.search(r"\.facet-list\s*\{([^}]*)\}", CSS)
     answer = re.search(r"\.board-answer\s*\{([^}]*)\}", CSS)
     assert facets and "grid-area: facets" in facets.group(1)
     assert answer and "grid-area: answer" in answer.group(1)
     assert "max-height:" not in answer.group(1)
     assert "overflow: auto" not in answer.group(1)
-    # A sticky column with visible overflow is a scroll trap once the canvas is inside.
     assert "position: sticky" not in answer.group(1)
     # Two ranked lists wrap rather than overflow the narrower answer column.
     lists = re.search(r"\.answer-lists\s*\{([^}]*)\}", CSS)
@@ -37,6 +39,13 @@ def test_canvas_and_answers_are_right_of_facets_with_full_width_results_below():
     assert "data-layout" not in CSS
 
 
-def test_mobile_stacks_facets_before_canvas_and_answers():
-    mobile = re.search(r"@media \(max-width: 1099px\)\s*\{\s*\.board-workspace\s*\{([^}]*)\}", CSS)
+def test_a_laptop_keeps_both_cards_side_by_side():
+    laptop = re.search(r"@media \(max-width: 1099px\)\s*\{\s*\.board-workspace\s*\{([^}]*)\}", CSS)
+    assert laptop and "grid-template-columns: minmax(0, 1fr) minmax(0, 1fr)" in laptop.group(1)
+    assert "grid-template-areas" not in laptop.group(1)
+
+
+def test_narrow_widths_stack_facets_before_the_narrowing():
+    mobile = re.search(r"@media \(max-width: 999px\)\s*\{\s*\.board-workspace\s*\{([^}]*)\}", CSS)
     assert mobile and 'grid-template-areas: "facets" "answer"' in mobile.group(1)
+    assert "grid-template-columns: minmax(0, 1fr);" in mobile.group(1)
