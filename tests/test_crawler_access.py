@@ -9,7 +9,7 @@ from urllib.robotparser import RobotFileParser
 
 import pytest
 
-from pipeline import agent_ready, entity, live
+from pipeline import agent_ready, brand_page, entity, live
 
 ROOT = Path(__file__).resolve().parents[1]
 NAMED = [agent for _, group in agent_ready.CRAWLERS for agent in group]
@@ -64,7 +64,9 @@ def test_lastmod_is_each_pages_last_source_commit(tmp_path: Path, monkeypatch: p
 def test_every_sitemap_url_has_a_lastmod_and_every_page_has_sources() -> None:
     assert set(live.PAGE_SOURCES) == set(live.PAGES)
     for path, sources in live.PAGE_SOURCES.items():
-        assert any((ROOT / s).exists() for s in sources), path
+        assert sources, path
+        for source in sources:
+            assert (ROOT / source).exists(), (path, source)
     xml = live.sitemap({path: "2026-10-01" for path in live.PAGES})
     assert xml.count("<lastmod>2026-10-01</lastmod>") == xml.count("<loc>") == len(live.PAGES)
 
@@ -93,6 +95,13 @@ def test_thin_pages_fails_an_empty_app_shell_and_passes_a_real_page(tmp_path: Pa
     _page(tmp_path, "/real/", "<h1>Title</h1><p>" + "word " * 90 + "</p>")
     assert live.thin_pages(tmp_path) == ["/shell/: no <h1> without JavaScript",
                                          "/shell/: 0 words without JavaScript; need 80"]
+
+
+def test_the_brand_page_passes_the_crawler_gate(tmp_path: Path,
+                                               monkeypatch: pytest.MonkeyPatch) -> None:
+    brand_page.write(tmp_path)
+    monkeypatch.setattr(live, "PAGES", ("/brand/",))
+    assert live.thin_pages(tmp_path) == []
 
 
 # ── the weekly probe of live ─────────────────────────────────────────────────

@@ -102,6 +102,7 @@ PAGE_SOURCES = {
     "/decide/": ("web/decide.html", "web/src/decide", "pipeline/live.py"),
     "/pricing/": ("pipeline/pricing.py", "api/worker/tiers.json"),
     "/feedback/": ("pipeline/feedback_page.py",),
+    "/brand/": ("pipeline/brand_page.py", "pipeline/brand.py", "pipeline/brand_assets", "brand"),
     "/legal/terms/": ("docs/legal/terms-of-service.md",),
     "/legal/privacy/": ("docs/legal/privacy.md",),
     "/legal/neutrality/": ("docs/legal/neutrality.md",),

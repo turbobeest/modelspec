@@ -272,6 +272,7 @@ html[data-decide-theme="light"] {
 body {
   margin: 0;
 }
+.capsule,
 .decide-app {
   --bg: #faf9f8;
   --surface: #ffffff;
@@ -324,7 +325,8 @@ body {
   font-size: 14px;
   line-height: 1.4;
 }
-.decide-app[data-theme="dark"] {
+.decide-app[data-theme="dark"],
+html:not([data-decide-theme="light"]) .capsule {
   --bg: #0b1426;
   --surface: #111d33;
   --surface2: #18284a;
@@ -356,6 +358,36 @@ body {
   --templateBg: #cfe2f8;
   --hero-bg: linear-gradient(115deg, #1a2f5a 0%, #12224a 55%, #10203f 100%);
   --hero-line: #2f4878;
+}
+.capsule {
+  width: min(68ch, calc(100% - 40px));
+  min-height: 0;
+  margin: 0 auto;
+  padding: 48px 0 80px;
+  font-size: 1rem;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+.capsule h1 {
+  margin: 0 0 24px;
+  font-size: clamp(2rem, 5vw, 3rem);
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+}
+.capsule p {
+  margin: 0 0 20px;
+}
+.capsule a {
+  color: var(--accentText);
+  text-underline-offset: 3px;
+}
+.capsule a:focus-visible {
+  outline: 2px solid var(--accentText);
+  outline-offset: 3px;
+}
+.capsule code {
+  font-family: var(--mono);
+  font-size: 0.9em;
 }
 .decide-app * {
   box-sizing: border-box;
