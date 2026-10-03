@@ -66,6 +66,7 @@ except ModuleNotFoundError as exc:
         raise
 
 import access
+import agent_guide
 import access_config
 import access_keys
 import access_kv
@@ -696,6 +697,12 @@ class Default(WorkerEntrypoint):
             # Python runs only after workerd has restored its memory. Its clock
             # also freezes between I/O in production. Do not invent a duration.
             timing += ', startup;desc="runtime restore unobservable from Python"'
+        if urlparse(str(request.url)).path.startswith("/v1/"):
+            headers["Link"] = f'<{agent_guide.GUIDE_URL}>; rel="describedby"'
+            headers["x-modelspec-guide-version"] = agent_guide.GUIDE_VERSION
+            exposed = headers.get("access-control-expose-headers", "")
+            headers["access-control-expose-headers"] = ", ".join(
+                filter(None, [exposed, "Link", "x-modelspec-guide-version"]))
         headers["Server-Timing"] = f"{previous}, {timing}" if previous else timing
         body = response.body
         if str(request.method).upper() == "HEAD" or response.status in (204, 304):

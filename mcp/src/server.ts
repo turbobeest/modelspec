@@ -132,9 +132,22 @@ function decisionSpecJsonSchema(): JsonSchemaObject {
   ) {
     throw new Error("decision-contract.schema.json has no decision Spec definition");
   }
+  const available = new Map(Object.entries(decisionContract.$defs));
+  const definitions: Record<string, (typeof decisionContract.$defs)[keyof typeof decisionContract.$defs]> = {};
+  const pending = ["Spec"];
+  while (pending.length) {
+    const name = pending.pop();
+    if (name === undefined || name in definitions) continue;
+    const definition = available.get(name);
+    if (definition === undefined) throw new Error(`Missing decision definition ${name}`);
+    definitions[name] = definition;
+    for (const match of JSON.stringify(definition).matchAll(/#\/\$defs\/([^" ]+)/g)) {
+      pending.push(match[1]);
+    }
+  }
   return {
     $schema: decisionContract.$schema,
-    $defs: decisionContract.$defs,
+    $defs: definitions,
     $ref: "#/$defs/Spec",
   } as JsonSchemaObject;
 }

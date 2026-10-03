@@ -3172,6 +3172,93 @@ def vocabulary_parameters():
             for key, (schema, description) in fields.items()]
 
 
+def compact_schemas(spec: dict[str, Any]) -> dict[str, Any]:
+    """Factor identical nested object schemas without changing their validation rules.
+
+    Component roots keep their public names. Fingerprints include descriptions,
+    defaults and all constraints; no merely similar schemas are merged.
+    """
+    import hashlib
+    from collections import Counter
+    counts = Counter()
+
+    def fingerprint(node):
+        return json.dumps(node, sort_keys=True, separators=(",", ":"))
+
+    def collect(node):
+        if isinstance(node, dict):
+            if node.get("type") == "object" and "properties" in node:
+                key = fingerprint(node)
+                if len(key) >= 500:
+                    counts[key] += 1
+            for value in node.values():
+                collect(value)
+        elif isinstance(node, list):
+            for value in node:
+                collect(value)
+
+    # Only visit schemas, never example payloads or other OpenAPI metadata.
+    component_roots = list(spec["components"]["schemas"].values())
+    roots = component_roots.copy()
+    for operations in spec["paths"].values():
+        for operation in operations.values():
+            for response in operation.get("responses", {}).values():
+                for content in response.get("content", {}).values():
+                    if "schema" in content:
+                        roots.append(content["schema"])
+    for root in roots:
+        collect(root)
+    names = {key: "Shared" + hashlib.sha256(key.encode()).hexdigest()[:12]
+             for key, count in sorted(counts.items()) if count > 1}
+
+    def replace(node, *, root=False):
+        if isinstance(node, dict):
+            key = fingerprint(node)
+            if not root and key in names:
+                return {"$ref": "#/components/schemas/" + names[key]}
+            return {key: replace(value) for key, value in node.items()}
+        if isinstance(node, list):
+            return [replace(value) for value in node]
+        return node
+
+    for root in roots:
+        updated = replace(root, root=any(root is c for c in component_roots))
+        root.clear()
+        root.update(updated)
+    # The collected originals may have been mutated as component roots above;
+    # deserialize the fingerprint to retain the exact original definition.
+    for key, name in names.items():
+        spec["components"]["schemas"][name] = replace(json.loads(key), root=True)
+    return spec
+
+
+def apply_guide_headers(spec: dict[str, Any]) -> None:
+    from api.worker.src.agent_guide import GUIDE_URL, GUIDE_VERSION
+    spec["info"]["description"] = (
+        f"Start with the compact agent guide {GUIDE_URL} (version {GUIDE_VERSION}). "
+        "Call decide early with a template-based Spec; refine from reading and recovery hints.\n\n"
+        + spec["info"]["description"]
+    )
+    spec["components"]["headers"] = {
+        "AgentGuide": {"description": "Compact agent guide.",
+                       "schema": {"type": "string", "const": f'<{GUIDE_URL}>; rel="describedby"'}},
+        "AgentGuideVersion": {"description": "Version of the byte-stable guide.",
+                              "schema": {"type": "string", "const": GUIDE_VERSION}},
+    }
+    common = {
+        "Link": {"$ref": "#/components/headers/AgentGuide"},
+        "x-modelspec-guide-version": {"$ref": "#/components/headers/AgentGuideVersion"},
+    }
+    for path, operations in spec["paths"].items():
+        if path.startswith("/v1/"):
+            for operation in operations.values():
+                for response in operation.get("responses", {}).values():
+                    if "headers" in response:
+                        response["headers"].update(common)
+                    else:
+                        response["headers"] = common
+
+
 def render() -> str:
     spec = apply_agent_copy(build_spec())
     from pipeline.public_data import enabled
@@ -3231,7 +3318,9 @@ def render() -> str:
         spec["info"]["description"] = spec["info"]["description"].replace("current public export", "private bundled catalogue").replace("public export (the", "bundled catalogue (the")
         # Hardware names are display vocabulary; public policy URLs stay intact.
         spec["components"]["schemas"] = _split_hardware_description(spec["components"]["schemas"])
-    return HEADER + yaml.safe_dump(spec, sort_keys=False, allow_unicode=True, width=100)
+    apply_guide_headers(spec)
+    compact_schemas(spec)
+    return HEADER + yaml.safe_dump(spec, sort_keys=False, allow_unicode=True, width=100, default_flow_style=None)
 
 
 def _split_hardware_description(value):

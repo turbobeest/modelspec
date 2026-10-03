@@ -75,7 +75,7 @@ def test_mcp_capture_matches_current_public_sources():
     assert recorded == capture_tools()
     assert recorded["source_hashes"] == source_hashes()
     assert tuple(t["name"] for t in recorded["tools"]) == TOOL_NAMES
-    assert "Read vocab first" in recorded["tools"][4]["description"]
+    assert "Call decide early" in recorded["tools"][4]["description"]
     assert "input_schema" in recorded["tools"][4]
 
 

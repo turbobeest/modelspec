@@ -69,6 +69,7 @@ def llms_txt(*, site: str, base: str, build: exporter.Build) -> str:
         f"product (prices at {base}/pricing/). There is no CLI and no data download: "
         f"current data is only available through the service, and the copy in the "
         f"public repository is a delayed image, about nine months old.\n\n"
+        f"- Agent guide: {base}/agents.md\n"
         f"- Decide (for people): {base}/decide/\n"
         f"- How it decides: {base}/method/\n"
         f"- Pricing: {base}/pricing/\n"

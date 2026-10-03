@@ -622,6 +622,7 @@ def skill_markdown() -> str:
         f"- OpenAPI: {OPENAPI_URL}\n"
         f"- API catalog (RFC 9727): {MS_BASE}/.well-known/api-catalog\n"
         f"- MCP card (SEP-2127): {MS_BASE}/.well-known/mcp.json\n"
+        f"- Agent guide: {MS_BASE}/agents.md\n"
         f"- Auth: {MS_BASE}/auth.md\n"
         f"- llms.txt: {MS_BASE}/llms.txt\n"
         f"- Feedback schema: {FEEDBACK_SCHEMA}\n"
@@ -823,6 +824,8 @@ def ship(*, root: Path, ms: Path, models: list[Model],
         skill_description(),
     )
     (well / "agent-skills" / "index.json").write_text(_json(index), encoding="utf-8")
+    from pipeline.agent_copy import guide
+    (ms / "agents.md").write_text(guide()[1], encoding="utf-8")
     (ms / "auth.md").write_text(auth_markdown(root), encoding="utf-8")
 
     md_count = 0
@@ -868,6 +871,7 @@ def ship(*, root: Path, ms: Path, models: list[Model],
                 encoding="utf-8")
 
     extra = (
+        f"- Agent guide: {MS_BASE}/agents.md\n"
         f"- Auth: {MS_BASE}/auth.md\n"
         f"- MCP card: {MS_BASE}/.well-known/mcp.json\n"
     )

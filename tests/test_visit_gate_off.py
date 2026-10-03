@@ -1,8 +1,9 @@
-"""MODEL-292: with VISIT_GATE_ENABLED off, the Worker answers exactly as it did before.
+"""MODEL-292: gate-off bodies and original headers remain equal to before the visit gate.
 
 The expected responses were recorded from origin/main before the visit gate
 existed (tests/fixtures/visit_gate_off_main.json). This file imports nothing
-the gate added, so the same requests can be replayed against that commit.
+the gate added. MODEL-291 adds guide discovery headers to every /v1 response;
+those additions are checked separately before comparing the original response.
 """
 import asyncio
 import json
@@ -60,4 +61,14 @@ def test_the_recording_covers_every_request():
 @pytest.mark.parametrize("name", sorted(REQUESTS))
 def test_flag_off_response_equals_main(worker, name):
     path, body, method, headers = REQUESTS[name]
-    assert _snapshot(asyncio.run(worker.fetch(_Req(path, body, method, headers)))) == MAIN[name]
+    from api.worker.src.agent_guide import GUIDE_VERSION
+    actual = _snapshot(asyncio.run(worker.fetch(_Req(path, body, method, headers))))
+    discovery = actual["headers"]
+    assert discovery.pop("Link") == '<https://modelspec.dev/agents.md>; rel="describedby"'
+    assert discovery.pop("x-modelspec-guide-version") == GUIDE_VERSION
+    exposed = discovery.pop("access-control-expose-headers")
+    added = "Link, x-modelspec-guide-version"
+    assert exposed == added or exposed.endswith(", " + added)
+    if exposed != added:
+        discovery["access-control-expose-headers"] = exposed.removesuffix(", " + added)
+    assert actual == MAIN[name]
