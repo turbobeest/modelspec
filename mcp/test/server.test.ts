@@ -2,7 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { workerFetch } from "../src/index";
 import { USER_AGENT } from "../src/origin";
-import { TOOL_NAMES } from "../src/server";
+import { defaultDecideRequest, TOOL_NAMES } from "../src/server";
+// Real Worker bodies from the public catalogue (python -m qa.decide_budget).
+import budget from "./fixtures/decide-budget.json";
 
 const ENV: Env = {
   EXPORT_ORIGIN: "https://modelspec.dev",
@@ -123,16 +125,24 @@ describe("modelspec MCP worker", () => {
     }
   });
 
-  it("decide tells agents to use the summary explanation and warns about full", async () => {
+  it("decide describes compact defaults and stateless drill-down", async () => {
     const listed = await rpc("tools/list", {});
     const result = listed.payload.result as {
       tools: Array<{ name: string; description?: string }>;
     };
     const description = result.tools.find((tool) => tool.name === "decide")?.description;
-    expect(description).toContain("explain=summary first");
+    expect(description).toContain(
+      "MCP decide returns a bounded answer by default; drill down with evidence_for, " +
+        "or ask for full rows with fields:null/explain.",
+    );
+    expect(description).toContain('With explain unset or "none" it sends explain=none, limit=10');
+    expect(description).toContain("For full rows pass fields: null");
+    expect(description).toContain("evidence_for: <model id>");
+    expect(description).toContain("explanation.omitted");
     expect(description).toContain("Full includes every eliminated candidate");
     expect(description).toContain("client context budget");
     expect(description).toContain("https://modelspec.dev/agents.md");
+    expect(description).not.toContain("explain=summary first");
   });
 
   it("initialize reports BUILD_COMMIT as serverInfo.version", async () => {
@@ -144,6 +154,8 @@ describe("modelspec MCP worker", () => {
     const result = payload.result as { serverInfo: { name: string; version: string }; instructions: string };
     expect(result.instructions).toContain("https://modelspec.dev/agents.md");
     expect(result.instructions).toContain("Call decide early");
+    expect(result.instructions).toContain("MCP decide returns a bounded answer by default");
+    expect(result.instructions).not.toContain("explain=summary first");
     expect(result.instructions.length / 4).toBeLessThanOrEqual(1000);
     expect(result.serverInfo.name).toBe("modelspec");
     expect(result.serverInfo.version).toBe("test-commit-sha");
@@ -431,10 +443,66 @@ describe("modelspec MCP worker", () => {
     const [url, init] = originFetch.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("https://api.modelspec.dev/v1/decide");
     expect(init.method).toBe("POST");
-    expect(JSON.parse(String(init.body))).toEqual(spec);
+    expect(JSON.parse(String(init.body))).toEqual(defaultDecideRequest(spec));
     expect(new Headers(init.headers).get("authorization")).toBe(
       "Bearer decide_key",
     );
+  });
+
+  it("decide keeps explicit controls and forwards stateless drill-down", async () => {
+    const spec = { spec_version: 1, snapshot: "snap_fixed", optimize: { max: "software_engineering" },
+      explain: "summary", limit: 1, fields: ["contributions"], evidence_for: "lab/example" };
+    originFetch.mockResolvedValueOnce(jsonResponse(200, { reading: { do_not_claim: ["Keep the tie"] } }));
+    const { payload } = await rpc("tools/call", { name: "decide", arguments: spec });
+    expect(JSON.parse(String(originFetch.mock.calls[0][1].body))).toEqual(spec);
+    expect(envelopeFromCall(payload).body).toEqual({ reading: { do_not_claim: ["Keep the tie"] } });
+  });
+
+  it("decide summarises a real drill-down from its answer and model_evidence", async () => {
+    // results and may_qualify are empty on a drill-down by design.
+    expect(budget.drill_down.results).toEqual([]);
+    expect(budget.drill_down.may_qualify).toEqual([]);
+    originFetch.mockResolvedValueOnce(jsonResponse(200, budget.drill_down));
+    const { payload } = await rpc("tools/call", {
+      name: "decide",
+      arguments: { ...budget.request, evidence_for: budget.drill_down.model_evidence.model },
+    });
+    const result = payload.result as { content: Array<{ text: string }> };
+    expect(result.content[1].text).toBe(
+      "status: partial; answer: tied among anthropic/claude-opus-5-5, anthropic/claude-sonnet-5-5, " +
+        "openai/gpt-6-astra, anthropic/claude-opus-4-7; " +
+        "evidence for: anthropic/claude-opus-5-5 (ranked, rank 1)",
+    );
+    expect(result.content[1].text).not.toContain("top models: none");
+  });
+
+  it("decide summarises an eliminated model's drill-down as unranked", async () => {
+    const body = {
+      ...budget.drill_down,
+      model_evidence: { ...budget.drill_down.model_evidence, model: "lab/b", status: "eliminated", rank: null },
+    };
+    originFetch.mockResolvedValueOnce(jsonResponse(200, body));
+    const { payload } = await rpc("tools/call", {
+      name: "decide", arguments: { ...budget.request, evidence_for: "lab/b" },
+    });
+    const result = payload.result as { content: Array<{ text: string }> };
+    expect(result.content[1].text).toMatch(/; evidence for: lab\/b \(eliminated, unranked\)$/);
+  });
+
+  it.each([
+    ["unset", {}, ["model_rank", "cost_per_task", "estimates", "p_best"]],
+    ["none", { explain: "none" }, ["model_rank", "cost_per_task", "estimates", "p_best"]],
+    ["summary", { explain: "summary" }, null],
+    ["full", { explain: "full" }, null],
+    ["full with fields", { explain: "full", fields: ["contributions"] }, ["contributions"]],
+  ])("decide projects rows by default only when explain is none or unset (%s)", async (_, controls, fields) => {
+    originFetch.mockResolvedValueOnce(jsonResponse(200, { status: "ok", results: [] }));
+    const spec = { spec_version: 1, optimize: { max: "software_engineering" }, ...controls };
+    await rpc("tools/call", { name: "decide", arguments: spec });
+    const sent = JSON.parse(String(originFetch.mock.calls[0][1].body));
+    expect(sent.fields).toEqual(fields);
+    expect(sent.limit).toBe(10);
+    expect(sent.explain).toBe("explain" in controls ? controls.explain : "none");
   });
 
   it("decide returns an upstream invalid_spec error with its code and message", async () => {
@@ -485,7 +553,7 @@ describe("modelspec MCP worker", () => {
     expect((payload.result as { isError?: boolean }).isError).toBe(true);
     const [url, init] = originFetch.mock.calls[0];
     expect(url).toBe("https://api.modelspec.dev/v1/decide");
-    expect(JSON.parse(String(init.body))).toEqual(arguments_);
+    expect(JSON.parse(String(init.body))).toEqual(defaultDecideRequest(arguments_));
   });
 
   it("vocab defaults to starter facets from template specs", async () => {

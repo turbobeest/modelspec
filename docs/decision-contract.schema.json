@@ -526,6 +526,216 @@
       "title": "BlendTerm",
       "type": "object"
     },
+    "BoundedDecision": {
+      "additionalProperties": false,
+      "properties": {
+        "answer": {
+          "anyOf": [
+            {
+              "discriminator": {
+                "mapping": {
+                  "separated": "#/$defs/SeparatedAnswer",
+                  "tied": "#/$defs/TiedAnswer"
+                },
+                "propertyName": "kind"
+              },
+              "oneOf": [
+                {
+                  "$ref": "#/$defs/SeparatedAnswer"
+                },
+                {
+                  "$ref": "#/$defs/TiedAnswer"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Answer"
+        },
+        "bounded_version": {
+          "const": "1.0",
+          "title": "Bounded Version",
+          "type": "string"
+        },
+        "decision_id": {
+          "title": "Decision Id",
+          "type": "string"
+        },
+        "explain": {
+          "enum": [
+            "none",
+            "summary",
+            "full"
+          ],
+          "title": "Explain",
+          "type": "string"
+        },
+        "explanation": {
+          "$ref": "#/$defs/BoundedExplanation"
+        },
+        "feedback": {
+          "$ref": "#/$defs/FeedbackPointer"
+        },
+        "may_qualify": {
+          "items": {
+            "$ref": "#/$defs/MayQualify"
+          },
+          "title": "May Qualify",
+          "type": "array"
+        },
+        "model_evidence": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ModelEvidence"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "out_of_lineup": {
+          "title": "Out Of Lineup",
+          "type": "integer"
+        },
+        "projects_contract": {
+          "const": "2.12",
+          "title": "Projects Contract",
+          "type": "string"
+        },
+        "reading": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Reading"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "relax": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Relax",
+          "type": "array"
+        },
+        "relax_to": {
+          "items": {
+            "$ref": "#/$defs/Relaxation"
+          },
+          "title": "Relax To",
+          "type": "array"
+        },
+        "representation": {
+          "const": "bounded",
+          "title": "Representation",
+          "type": "string"
+        },
+        "results": {
+          "items": {
+            "$ref": "#/$defs/ProjectedResult"
+          },
+          "title": "Results",
+          "type": "array"
+        },
+        "signature_verified": {
+          "title": "Signature Verified",
+          "type": "boolean"
+        },
+        "snapshot": {
+          "title": "Snapshot",
+          "type": "string"
+        },
+        "spec_hash": {
+          "title": "Spec Hash",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "answered",
+            "partial",
+            "no_feasible"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "truncated": {
+          "$ref": "#/$defs/Truncated"
+        },
+        "warnings": {
+          "items": {
+            "pattern": "^[a-z0-9_]+$",
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        },
+        "with_estate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/WithEstate"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        }
+      },
+      "required": [
+        "representation",
+        "bounded_version",
+        "projects_contract",
+        "decision_id",
+        "snapshot",
+        "signature_verified",
+        "spec_hash",
+        "explain",
+        "status",
+        "answer",
+        "warnings",
+        "truncated",
+        "out_of_lineup",
+        "relax",
+        "relax_to",
+        "feedback",
+        "results",
+        "may_qualify",
+        "explanation"
+      ],
+      "title": "BoundedDecision",
+      "type": "object"
+    },
+    "BoundedExplanation": {
+      "additionalProperties": false,
+      "properties": {
+        "not_applied": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Not Applied",
+          "type": "array"
+        },
+        "note": {
+          "default": "Projected rows are incomplete; omissions are not eliminations or absent evidence.",
+          "title": "Note",
+          "type": "string"
+        },
+        "omitted": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Omitted",
+          "type": "object"
+        }
+      },
+      "title": "BoundedExplanation",
+      "type": "object"
+    },
     "Budget": {
       "additionalProperties": false,
       "properties": {
@@ -933,6 +1143,274 @@
         "dimension"
       ],
       "title": "Contribution",
+      "type": "object"
+    },
+    "DecideRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "access": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Access"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "capabilities": {
+          "anyOf": [
+            {
+              "patternProperties": {
+                "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$": {
+                  "enum": [
+                    "required",
+                    "preferred"
+                  ],
+                  "type": "string"
+                }
+              },
+              "type": "object"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Capabilities"
+        },
+        "estate": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Estate"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "evidence_for": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Evidence For"
+        },
+        "exclude_benchmarks": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
+            "type": "string"
+          },
+          "title": "Exclude Benchmarks",
+          "type": "array"
+        },
+        "explain": {
+          "default": "summary",
+          "enum": [
+            "none",
+            "summary",
+            "full"
+          ],
+          "title": "Explain",
+          "type": "string"
+        },
+        "fields": {
+          "anyOf": [
+            {
+              "items": {
+                "enum": [
+                  "rank",
+                  "model",
+                  "model_rank",
+                  "offering",
+                  "cost_per_task",
+                  "harness",
+                  "effort",
+                  "evidence",
+                  "estimates",
+                  "refinement_estimates",
+                  "p_best",
+                  "top3_stability",
+                  "soft_penalty",
+                  "contributions",
+                  "warnings",
+                  "plans"
+                ],
+                "type": "string"
+              },
+              "maxItems": 16,
+              "minItems": 1,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fields"
+        },
+        "limit": {
+          "default": 20,
+          "maximum": 500,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "optimize": {
+          "$ref": "#/$defs/Objective"
+        },
+        "profile": {
+          "anyOf": [
+            {
+              "oneOf": [
+                {
+                  "pattern": "^profile:[a-z0-9][a-z0-9-]*$",
+                  "type": "string"
+                },
+                {
+                  "$ref": "#/$defs/InventoryProfile"
+                }
+              ]
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Profile"
+        },
+        "save_as": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Save As"
+        },
+        "snapshot": {
+          "anyOf": [
+            {
+              "const": "latest"
+            },
+            {
+              "pattern": "^snap_[A-Za-z0-9:._-]+$",
+              "type": "string"
+            }
+          ],
+          "default": "latest",
+          "title": "Snapshot"
+        },
+        "spec_version": {
+          "const": 1,
+          "title": "Spec Version",
+          "type": "integer"
+        },
+        "task": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Task"
+        },
+        "task_tokens": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TaskTokens"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "task_type": {
+          "anyOf": [
+            {
+              "enum": [
+                "new_feature",
+                "bug_fix",
+                "refactor",
+                "test_writing",
+                "docs",
+                "migration",
+                "performance",
+                "security_fix",
+                "review",
+                "analysis",
+                "data_transform",
+                "config_infra"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Task Type"
+        },
+        "unknowns": {
+          "const": "default",
+          "default": "default",
+          "title": "Unknowns",
+          "type": "string"
+        },
+        "where": {
+          "items": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "$ref": "#/$defs/Compare"
+              },
+              {
+                "$ref": "#/$defs/Window"
+              },
+              {
+                "$ref": "#/$defs/InSet"
+              },
+              {
+                "$ref": "#/$defs/Known"
+              },
+              {
+                "$ref": "#/$defs/AnyOf"
+              },
+              {
+                "$ref": "#/$defs/AllOf"
+              },
+              {
+                "$ref": "#/$defs/NotOf"
+              }
+            ]
+          },
+          "title": "Where",
+          "type": "array"
+        }
+      },
+      "required": [
+        "spec_version",
+        "optimize"
+      ],
+      "title": "DecideRequest",
       "type": "object"
     },
     "Decision": {
@@ -2548,6 +3026,83 @@
       "title": "ModelEliminationGroup",
       "type": "object"
     },
+    "ModelEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "contributions": {
+          "items": {
+            "$ref": "#/$defs/Contribution"
+          },
+          "title": "Contributions",
+          "type": "array"
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/DomainEvidence"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "model": {
+          "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+          "title": "Model",
+          "type": "string"
+        },
+        "offering": {
+          "$ref": "#/$defs/OfferingRef"
+        },
+        "rank": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rank"
+        },
+        "reasons": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Reasons",
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "ranked",
+            "may_qualify",
+            "eliminated"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "unknown": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Unknown",
+          "type": "array"
+        },
+        "warnings": {
+          "items": {
+            "pattern": "^[a-z0-9_]+$",
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "model",
+        "status",
+        "offering"
+      ],
+      "title": "ModelEvidence",
+      "type": "object"
+    },
     "ModelOffering": {
       "additionalProperties": false,
       "description": "One offering of a model in ``by_model``, with why it is or is not ranked. Added in 2.5.",
@@ -3461,6 +4016,186 @@
         "provider"
       ],
       "title": "ProfileOffering",
+      "type": "object"
+    },
+    "ProjectedResult": {
+      "additionalProperties": false,
+      "properties": {
+        "contributions": {
+          "default": null,
+          "items": {
+            "$ref": "#/$defs/Contribution"
+          },
+          "title": "Contributions",
+          "type": "array"
+        },
+        "cost_per_task": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cost Per Task"
+        },
+        "effort": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9_-]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Effort"
+        },
+        "estimates": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/Estimate"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Estimates"
+        },
+        "evidence": {
+          "default": null,
+          "items": {
+            "$ref": "#/$defs/DomainEvidence"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "harness": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9-]*@[0-9]+\\.[0-9]+$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Harness"
+        },
+        "model": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Model"
+        },
+        "model_rank": {
+          "anyOf": [
+            {
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Model Rank"
+        },
+        "offering": {
+          "$ref": "#/$defs/OfferingRef"
+        },
+        "p_best": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "P Best"
+        },
+        "plans": {
+          "default": null,
+          "items": {
+            "$ref": "#/$defs/PlanRoute"
+          },
+          "title": "Plans",
+          "type": "array"
+        },
+        "rank": {
+          "minimum": 1,
+          "title": "Rank",
+          "type": "integer"
+        },
+        "refinement_estimates": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/RefinementEstimate"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Refinement Estimates"
+        },
+        "soft_penalty": {
+          "default": null,
+          "minimum": 0,
+          "title": "Soft Penalty",
+          "type": "number"
+        },
+        "top3_stability": {
+          "anyOf": [
+            {
+              "maximum": 1,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Top3 Stability"
+        },
+        "warnings": {
+          "items": {
+            "pattern": "^[a-z0-9_]+$",
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "rank",
+        "offering",
+        "model",
+        "warnings"
+      ],
+      "title": "ProjectedResult",
       "type": "object"
     },
     "Reading": {

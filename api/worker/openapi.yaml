@@ -8,7 +8,7 @@ info:
   version: '1.0'
   summary: Ranks AI models you can actually run, given your hardware, providers, use case and policy rules,
     and checks them against a compliance policy.
-  description: 'Start with the compact agent guide https://modelspec.dev/agents.md (version 1-16a910dc32258b4f).
+  description: 'Start with the compact agent guide https://modelspec.dev/agents.md (version 1-f1653ef723132017).
     Call decide early with a template-based Spec; refine from reading and recovery hints.
 
 
@@ -42,11 +42,11 @@ info:
     Reference: docs/api.md and docs/api-policy-check.md. Generated from the implementation by api/worker/openapi.py.'
   license: {name: MIT, url: 'https://github.com/turbobeest/modelspec'}
   x-error-codes: [access_not_configured, access_store_not_configured, comparison_snapshot_changed, comparison_snapshot_unavailable,
-    determinations_unavailable, export_unavailable, human_burst_limit, human_challenge_required, human_day_limit,
-    human_gate_unavailable, human_intent_limit, human_origin_required, human_sweep_limit, insufficient_evidence,
-    invalid_api_key, invalid_request, invalid_spec, key_revoked, method_not_allowed, missing_api_key,
-    no_match, no_snapshot, not_found, origin_not_allowed, payload_too_large, payment_required, rate_limited,
-    sandbox_not_available, snapshot_changed, snapshot_not_loaded, snapshot_refused, snapshot_unavailable,
+    determinations_unavailable, explanation_unavailable, export_unavailable, human_burst_limit, human_challenge_required,
+    human_day_limit, human_gate_unavailable, human_intent_limit, human_origin_required, human_sweep_limit,
+    insufficient_evidence, invalid_api_key, invalid_request, invalid_spec, key_revoked, method_not_allowed,
+    missing_api_key, no_match, no_snapshot, not_found, origin_not_allowed, payload_too_large, payment_required,
+    rate_limited, sandbox_not_available, snapshot_changed, snapshot_not_loaded, snapshot_refused, snapshot_unavailable,
     tier_not_configured, undetermined_present, unknown_hardware, unknown_hosting, unknown_model, unknown_platform,
     unknown_runtime, unknown_use_case, visit_token_expired, visit_token_invalid]
   x-transport-error-statuses: {export_unavailable: 502, human_burst_limit: 429, human_challenge_required: 403,
@@ -382,7 +382,7 @@ paths:
         required: true
         content:
           application/json:
-            schema: {$ref: '#/components/schemas/DecisionSpec'}
+            schema: {$ref: '#/components/schemas/DecisionDecideRequest'}
             example: &id005
               spec_version: 1
               capabilities: {software_engineering: required}
@@ -391,10 +391,15 @@ paths:
               limit: 3
       responses:
         '200':
-          description: A decision pinned to the snapshot that produced it.
+          description: 'A decision pinned to the snapshot that produced it: a complete Decision (contract_version
+            2.12), or, when the request sends fields or evidence_for, the separate bounded representation
+            (representation: bounded, bounded_version 1.0, no contract_version).'
           content:
             application/json:
-              schema: {$ref: '#/components/schemas/DecisionResponse'}
+              schema:
+                anyOf:
+                - {$ref: '#/components/schemas/DecisionResponse'}
+                - {$ref: '#/components/schemas/DecisionBoundedDecision'}
           headers: &id006
             X-ModelSpec-Snapshot:
               description: The verified snapshot that answered (MODEL-159).
@@ -484,7 +489,8 @@ paths:
               schema: {$ref: '#/components/schemas/AccessRefused'}
           headers: *id001
         '503':
-          description: Snapshot, access store or human gate unavailable. Retry later.
+          description: 'Snapshot, access store or human gate unavailable. Retry later. explanation_unavailable:
+            evidence_for needs retained verification records this snapshot lacks; retry without evidence_for.'
           content:
             application/json:
               schema:
@@ -495,6 +501,7 @@ paths:
                     - {$ref: '#/components/schemas/DecisionRequestRefused'}
                   - {$ref: '#/components/schemas/AccessRefused'}
                 - {$ref: '#/components/schemas/HumanGateRefused'}
+                - {$ref: '#/components/schemas/DecisionBoundedRefused'}
           headers:
             Retry-After:
               description: Seconds before retrying a no_snapshot response.
@@ -2367,6 +2374,58 @@ components:
       required: [dimension, weight, share, estimated]
       title: BlendTerm
       type: object
+    DecisionBoundedDecision:
+      additionalProperties: false
+      properties:
+        representation: {const: bounded, title: Representation, type: string}
+        bounded_version: {const: '1.0', title: Bounded Version, type: string}
+        projects_contract: {const: '2.12', title: Projects Contract, type: string}
+        decision_id: {title: Decision Id, type: string}
+        snapshot: {title: Snapshot, type: string}
+        signature_verified: {$ref: '#/components/schemas/DecisionResponse/properties/signature_verified'}
+        spec_hash: {title: Spec Hash, type: string}
+        explain: {$ref: '#/components/schemas/DecisionResponse/properties/explain'}
+        status: {$ref: '#/components/schemas/DecisionResponse/properties/status'}
+        answer: {$ref: '#/components/schemas/DecisionResponse/properties/answer'}
+        warnings: {$ref: '#/components/schemas/DecisionResponse/properties/warnings'}
+        truncated: {$ref: '#/components/schemas/DecisionResponse/properties/truncated'}
+        out_of_lineup: {title: Out Of Lineup, type: integer}
+        relax: {$ref: '#/components/schemas/DecisionResponse/properties/relax'}
+        relax_to: {$ref: '#/components/schemas/DecisionResponse/properties/relax_to'}
+        feedback: {$ref: '#/components/schemas/DecisionResponse/properties/feedback'}
+        results:
+          items: {$ref: '#/components/schemas/DecisionProjectedResult'}
+          title: Results
+          type: array
+        may_qualify: {$ref: '#/components/schemas/DecisionResponse/properties/may_qualify'}
+        reading: {$ref: '#/components/schemas/DecisionResponse/properties/reading'}
+        with_estate: {$ref: '#/components/schemas/DecisionResponse/properties/with_estate'}
+        explanation: {$ref: '#/components/schemas/DecisionBoundedExplanation'}
+        model_evidence:
+          anyOf:
+          - {$ref: '#/components/schemas/DecisionModelEvidence'}
+          - {type: 'null'}
+          default: null
+      required: [representation, bounded_version, projects_contract, decision_id, snapshot, signature_verified,
+        spec_hash, explain, status, answer, warnings, truncated, out_of_lineup, relax, relax_to, feedback,
+        results, may_qualify, explanation]
+      title: BoundedDecision
+      type: object
+    DecisionBoundedExplanation:
+      additionalProperties: false
+      properties:
+        not_applied:
+          items: {type: string}
+          title: Not Applied
+          type: array
+        omitted:
+          additionalProperties: {type: integer}
+          title: Omitted
+          type: object
+        note: {default: Projected rows are incomplete; omissions are not eliminations or absent evidence.,
+          title: Note, type: string}
+      title: BoundedExplanation
+      type: object
     DecisionBudget:
       additionalProperties: false
       properties:
@@ -2560,6 +2619,46 @@ components:
           title: Refinement
       required: [dimension]
       title: Contribution
+      type: object
+    DecisionDecideRequest:
+      additionalProperties: false
+      properties:
+        fields:
+          anyOf:
+          - items:
+              enum: [rank, model, model_rank, offering, cost_per_task, harness, effort, evidence, estimates,
+                refinement_estimates, p_best, top3_stability, soft_penalty, contributions, warnings, plans]
+              type: string
+            maxItems: 16
+            minItems: 1
+            type: array
+          - {type: 'null'}
+          default: null
+          title: Fields
+        evidence_for:
+          anyOf:
+          - {pattern: '^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$', type: string}
+          - {type: 'null'}
+          default: null
+          title: Evidence For
+        spec_version: {$ref: '#/components/schemas/DecisionSpec/properties/spec_version'}
+        snapshot: {$ref: '#/components/schemas/DecisionSpec/properties/snapshot'}
+        profile: {$ref: '#/components/schemas/DecisionSpec/properties/profile'}
+        task: {$ref: '#/components/schemas/DecisionSpec/properties/task'}
+        task_type: {$ref: '#/components/schemas/DecisionSpec/properties/task_type'}
+        capabilities: {$ref: '#/components/schemas/DecisionSpec/properties/capabilities'}
+        exclude_benchmarks: {$ref: '#/components/schemas/DecisionSpec/properties/exclude_benchmarks'}
+        task_tokens: {$ref: '#/components/schemas/DecisionSpec/properties/task_tokens'}
+        where: {$ref: '#/components/schemas/DecisionSpec/properties/where'}
+        optimize: {$ref: '#/components/schemas/DecisionSpec/properties/optimize'}
+        unknowns: {$ref: '#/components/schemas/DecisionSpec/properties/unknowns'}
+        explain: {$ref: '#/components/schemas/DecisionSpec/properties/explain'}
+        limit: {$ref: '#/components/schemas/DecisionSpec/properties/limit'}
+        save_as: {$ref: '#/components/schemas/DecisionSpec/properties/save_as'}
+        estate: {$ref: '#/components/schemas/DecisionSpec/properties/estate'}
+        access: {$ref: '#/components/schemas/DecisionSpec/properties/access'}
+      required: [spec_version, optimize]
+      title: DecideRequest
       type: object
     DecisionResponse:
       additionalProperties: false
@@ -3297,6 +3396,44 @@ components:
       required: [model]
       title: ModelEliminationGroup
       type: object
+    DecisionModelEvidence:
+      additionalProperties: false
+      properties:
+        model: {pattern: '^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$', title: Model, type: string}
+        status:
+          enum: [ranked, may_qualify, eliminated]
+          title: Status
+          type: string
+        offering: {$ref: '#/components/schemas/DecisionOfferingRef'}
+        rank:
+          anyOf:
+          - {type: integer}
+          - {type: 'null'}
+          default: null
+          title: Rank
+        evidence:
+          items: {$ref: '#/components/schemas/DecisionDomainEvidence'}
+          title: Evidence
+          type: array
+        contributions:
+          items: {$ref: '#/components/schemas/DecisionContribution'}
+          title: Contributions
+          type: array
+        unknown:
+          items: {type: string}
+          title: Unknown
+          type: array
+        reasons:
+          items: {type: string}
+          title: Reasons
+          type: array
+        warnings:
+          items: {pattern: '^[a-z0-9_]+$', type: string}
+          title: Warnings
+          type: array
+      required: [model, status, offering]
+      title: ModelEvidence
+      type: object
     DecisionModelOffering:
       additionalProperties: false
       description: One offering of a model in ``by_model``, with why it is or is not ranked. Added in
@@ -3748,6 +3885,28 @@ components:
           title: Tier
       required: [model, provider]
       title: ProfileOffering
+      type: object
+    DecisionProjectedResult:
+      additionalProperties: false
+      properties:
+        rank: {$ref: '#/components/schemas/DecisionResult/properties/rank'}
+        offering: {$ref: '#/components/schemas/DecisionResult/properties/offering'}
+        model: {$ref: '#/components/schemas/DecisionResult/properties/model'}
+        model_rank: {$ref: '#/components/schemas/DecisionResult/properties/model_rank'}
+        cost_per_task: {$ref: '#/components/schemas/DecisionResult/properties/cost_per_task'}
+        harness: {$ref: '#/components/schemas/DecisionResult/properties/harness'}
+        effort: {$ref: '#/components/schemas/DecisionResult/properties/effort'}
+        evidence: {$ref: '#/components/schemas/DecisionResult/properties/evidence'}
+        estimates: {$ref: '#/components/schemas/DecisionResult/properties/estimates'}
+        refinement_estimates: {$ref: '#/components/schemas/DecisionResult/properties/refinement_estimates'}
+        p_best: {$ref: '#/components/schemas/DecisionResult/properties/p_best'}
+        top3_stability: {$ref: '#/components/schemas/DecisionResult/properties/top3_stability'}
+        soft_penalty: {$ref: '#/components/schemas/DecisionResult/properties/soft_penalty'}
+        contributions: {$ref: '#/components/schemas/DecisionResult/properties/contributions'}
+        warnings: {$ref: '#/components/schemas/DecisionResult/properties/warnings'}
+        plans: {$ref: '#/components/schemas/DecisionResult/properties/plans'}
+      required: [rank, offering, model, warnings]
+      title: ProjectedResult
       type: object
     DecisionReading:
       additionalProperties: false
@@ -4343,6 +4502,33 @@ components:
             recovery_omitted: {type: integer, minimum: 0, description: 'Number of issues without a recovery
                 hint, including examples that failed validation.'}
         reading: {$ref: '#/components/schemas/DecisionReading'}
+    DecisionBoundedRefused:
+      type: object
+      additionalProperties: false
+      required: [representation, bounded_version, projects_contract, endpoint, snapshot, error]
+      properties:
+        representation:
+          type: string
+          enum: [bounded]
+        bounded_version:
+          type: string
+          enum: ['1.0']
+        projects_contract:
+          type: string
+          enum: ['2.12']
+        endpoint:
+          type: string
+          enum: [decide]
+        snapshot: {type: string, pattern: '^snap_[A-Za-z0-9:._-]+$'}
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum: [explanation_unavailable]
+            message: {type: string}
     HumanGateRefused:
       type: object
       additionalProperties: false
@@ -5821,4 +6007,4 @@ components:
       schema: {type: string, const: '<https://modelspec.dev/agents.md>; rel="describedby"'}
     AgentGuideVersion:
       description: Version of the byte-stable guide.
-      schema: {type: string, const: 1-16a910dc32258b4f}
+      schema: {type: string, const: 1-f1653ef723132017}

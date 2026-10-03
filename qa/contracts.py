@@ -16,6 +16,7 @@ TOOL_NAMES = ("rank", "model_info", "list_use_cases", "policy_check", "decide", 
 SOURCE_PATHS = (
     "mcp/src/server.ts",
     "mcp/src/vocabulary.ts",
+    "mcp/test/fixtures/decide-budget.json",
     "docs/decision-contract.schema.json",
     "api/worker/openapi.yaml",
     "docs/agents.md",
@@ -115,12 +116,16 @@ def capture_tools() -> dict:
     feedback["required"] = ["rating"]
     for prop in feedback["properties"].values():
         prop.pop("nullable", None)
+    decide = _reachable_schema(
+        json.loads((ROOT / "docs/decision-contract.schema.json").read_text()), "DecideRequest")
+    # The fixture verifies the MCP controls; HTTP keeps its own schema defaults.
+    defaults = json.loads((ROOT / "mcp/test/fixtures/decide-budget.json").read_text())["request"]
+    for name in ("explain", "limit", "fields"):
+        decide["$defs"]["DecideRequest"]["properties"][name]["default"] = defaults[name]
     inputs = {
         "rank": rank,
         "policy_check": policy,
-        "decide": _reachable_schema(
-            json.loads((ROOT / "docs/decision-contract.schema.json").read_text()), "Spec"
-        ),
+        "decide": decide,
         "feedback": feedback,
         "model_info": {
             "type": "object",

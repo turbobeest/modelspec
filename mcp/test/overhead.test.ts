@@ -14,7 +14,7 @@ const listing = z.object({
   }),
 });
 
-it("bounds descriptions and emits only Spec-reachable definitions", async () => {
+it("bounds descriptions and emits only DecideRequest-reachable definitions", async () => {
   const env: Env = {
     EXPORT_ORIGIN: "https://modelspec.dev",
     RANK_API_ORIGIN: "https://api.modelspec.dev", BUILD_COMMIT: "size-test",
@@ -40,8 +40,19 @@ it("bounds descriptions and emits only Spec-reachable definitions", async () => 
   expect(Object.keys(definitions).length).toBeLessThan(Object.keys(decisionContract.$defs).length);
   const original = new Map(Object.entries(decisionContract.$defs));
   for (const [name, definition] of Object.entries(definitions)) {
-    expect(definition).toEqual(original.get(name));
+    if (name !== "DecideRequest") expect(definition).toEqual(original.get(name));
   }
+  // DecideRequest differs only by the MCP bounded defaults (MODEL-293).
+  const request = decisionContract.$defs.DecideRequest;
+  expect(definitions.DecideRequest).toEqual({
+    ...request,
+    properties: {
+      ...request.properties,
+      explain: { ...request.properties.explain, default: "none" },
+      limit: { ...request.properties.limit, default: 10 },
+      fields: { ...request.properties.fields, default: ["model_rank", "cost_per_task", "estimates", "p_best"] },
+    },
+  });
   // Record actual SDK tools/list output for pipeline.agent_overhead, when requested.
   const output = process.env.MODELSPEC_TOOL_MEASURE_OUTPUT;
   if (output) writeFileSync(output, JSON.stringify(tools, null, 2) + "\n");

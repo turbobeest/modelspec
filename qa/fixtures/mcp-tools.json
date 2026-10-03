@@ -1,11 +1,12 @@
 {
   "source_hashes": {
-    "mcp/src/server.ts": "65252445d412981bb35138951fb0b184be5be4ae4c9ac82382bdeec360f0cf13",
+    "mcp/src/server.ts": "1a48f780f0cfcd6ea82bc0d1a3b6df48eb4c236d82f25e1fcafc1f1ccb4ea994",
     "mcp/src/vocabulary.ts": "44b35f6885f2c91597dd3f2bf29bb41634be7983dbf14a6d44ea15abb0e85a24",
-    "docs/decision-contract.schema.json": "7eb46eba3bac98879ea084920c15b619b520e176075ca2b5a96028b16d22072e",
-    "api/worker/openapi.yaml": "5244503f3be0aa47aff5e5f0b478e2218f85b546664d2cfec52864af74ba1462",
-    "docs/agents.md": "ced50dd2452464cbda2c5d03114373018f88f7f268ca66daae90c367f6a8fa06",
-    "mcp/src/agent-copy.json": "d3649b81bba8b39e3b908e6da9d5d1b01688f1ac0e2d30ba797c244c2d98bf1a"
+    "mcp/test/fixtures/decide-budget.json": "4d28b1dc876ed3ad4d17cb5438146696525fa7bd56b917c242dab23a3ad9de98",
+    "docs/decision-contract.schema.json": "9b70bf707f23ba1a236fe2f29e502377bc95d2213973df0acd89faee6c6afc32",
+    "api/worker/openapi.yaml": "181aedf7b20d43dd806ae206a23fb44bf5668add89251a5348614102919a17dd",
+    "docs/agents.md": "ed9301ac54e198cb3c6a241a5ce6442ed9c3fd7f7e8d12b9c7f81cbd9397b090",
+    "mcp/src/agent-copy.json": "88e55fd1ced8334d17f9ba98cdfd05592be949f0576e90a02c97cf867c8cc5df"
   },
   "tools": [
     {
@@ -289,13 +290,12 @@
     },
     {
       "name": "decide",
-      "description": "Which models fit this job? Returns answer, ranked results, may_qualify, reading and recovery hints, decision_id and snapshot. Read reading when present. Present answer.kind=tied as a tie among all answer.members, never a single winner; tie-breakers are conditional choices. Report a tied with_estate.answer as a tie too. State requirements in reading.not_applied or error.issues that were not applied, including requirements removed after a rejected call. A retry does not verify them. Report estimates as estimates: fits_hardware membership is not measured fit for a specific quantization and context workload. Follow reading.do_not_claim. Never claim a rank the response does not show. Needs an API key (Authorization: Bearer). Costs 1 or 2 credits a call; a credit costs $0.0017–$0.004 depending on the plan or pack (https://modelspec.dev/pricing/). Not a router: call it once per job or role, not per request, then route among the models it recommends. Proxies POST https://api.modelspec.dev/v1/decide. Call decide early with a template-based Spec; refine from reading and recovery hints. Use vocab section=starter only when you need a facet id; use search for a targeted lookup. Put Musts in where: these gates exclude. Put Prefers in optimize.weights: weights rank and never exclude. Unknown values go to may_qualify. Pin snapshot for reproducibility. Minimal valid Spec: {\"spec_version\":1,\"optimize\":{\"min\":\"offering.cost_per_task\"}}. Use explain=summary first. Full includes every eliminated candidate and can exceed the client context budget. task free text is rejected; where is an array. Report any requirement dropped on retry. Call shape, examples, recovery and budgets: https://modelspec.dev/agents.md. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
+      "description": "Which models fit this job? Returns answer, ranked results, may_qualify, reading and recovery hints, decision_id and snapshot. Read reading when present. Present answer.kind=tied as a tie among all answer.members, never a single winner; tie-breakers are conditional choices. Report a tied with_estate.answer as a tie too. State requirements in reading.not_applied or error.issues that were not applied, including requirements removed after a rejected call. A retry does not verify them. Report estimates as estimates: fits_hardware membership is not measured fit for a specific quantization and context workload. Follow reading.do_not_claim. Never claim a rank the response does not show. Needs an API key (Authorization: Bearer). Costs 1 or 2 credits a call; a credit costs $0.0017–$0.004 depending on the plan or pack (https://modelspec.dev/pricing/). Not a router: call it once per job or role, not per request, then route among the models it recommends. Proxies POST https://api.modelspec.dev/v1/decide. Call decide early with a template-based Spec; refine from reading and recovery hints. Use vocab section=starter only when you need a facet id; use search for a targeted lookup. Put Musts in where: these gates exclude. Put Prefers in optimize.weights: weights rank and never exclude. Unknown values go to may_qualify. Pin snapshot for reproducibility. Minimal valid Spec: {\"spec_version\":1,\"optimize\":{\"min\":\"offering.cost_per_task\"}}. MCP decide returns a bounded answer by default; drill down with evidence_for, or ask for full rows with fields:null/explain. With explain unset or \"none\" it sends explain=none, limit=10 and row fields model_rank, cost_per_task, estimates and p_best, and the body says representation: bounded. The answer, reading, warnings and ties stay complete; explanation.omitted counts the sections left out. At explain=none eliminations are not computed, so a missing eliminated count does not mean nothing was screened out; ask explain=summary to count them. To see one model's evidence, status, rank and elimination reasons, resend the same spec with its returned snapshot and evidence_for: <model id>; that stateless call stays within 2k estimated tokens. For full rows pass fields: null, or set explain to summary or full, which return full rows unless you also pass fields. Full includes every eliminated candidate and can exceed the client context budget. decision_id is a citation, not a stored lookup. task free text is rejected; where is an array. Report any requirement dropped on retry. Call shape, examples, recovery and budgets: https://modelspec.dev/agents.md. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
       "input_schema": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "$defs": {
-          "Spec": {
+          "DecideRequest": {
             "additionalProperties": false,
-            "description": "A request for a decision.",
             "properties": {
               "access": {
                 "anyOf": [
@@ -340,6 +340,19 @@
                 ],
                 "default": null
               },
+              "evidence_for": {
+                "anyOf": [
+                  {
+                    "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Evidence For"
+              },
               "exclude_benchmarks": {
                 "items": {
                   "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
@@ -349,7 +362,7 @@
                 "type": "array"
               },
               "explain": {
-                "default": "summary",
+                "default": "none",
                 "enum": [
                   "none",
                   "summary",
@@ -358,8 +371,48 @@
                 "title": "Explain",
                 "type": "string"
               },
+              "fields": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "enum": [
+                        "rank",
+                        "model",
+                        "model_rank",
+                        "offering",
+                        "cost_per_task",
+                        "harness",
+                        "effort",
+                        "evidence",
+                        "estimates",
+                        "refinement_estimates",
+                        "p_best",
+                        "top3_stability",
+                        "soft_penalty",
+                        "contributions",
+                        "warnings",
+                        "plans"
+                      ],
+                      "type": "string"
+                    },
+                    "maxItems": 16,
+                    "minItems": 1,
+                    "type": "array"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": [
+                  "model_rank",
+                  "cost_per_task",
+                  "estimates",
+                  "p_best"
+                ],
+                "title": "Fields"
+              },
               "limit": {
-                "default": 20,
+                "default": 10,
                 "maximum": 500,
                 "minimum": 1,
                 "title": "Limit",
@@ -511,7 +564,7 @@
               "spec_version",
               "optimize"
             ],
-            "title": "Spec",
+            "title": "DecideRequest",
             "type": "object"
           },
           "NotOf": {
@@ -1722,7 +1775,7 @@
             "type": "object"
           }
         },
-        "$ref": "#/$defs/Spec"
+        "$ref": "#/$defs/DecideRequest"
       }
     },
     {
