@@ -6,10 +6,12 @@ import { z } from "zod";
 // with nothing stubbed. Run after each deploy with
 // MODELSPEC_DECIDE_URL set to the page (playwright.corpus.config.ts).
 
-const humanStatusSchema = z.discriminatedUnion("enabled", [
+// A plain union: two variants share enabled=true, which discriminatedUnion rejects
+// on first parse ("Duplicate discriminator value").
+const humanStatusSchema = z.union([
   z.object({ enabled: z.literal(false) }),
-  z.object({ enabled: z.literal(true), remaining: z.number().int().min(0).max(20) }),
   z.object({ enabled: z.literal(true), mode: z.literal("visit"), day_limit: z.number().int().positive(), burst_limit: z.number().int().positive() }),
+  z.object({ enabled: z.literal(true), remaining: z.number().int().min(0).max(20) }),
 ]);
 
 async function answered(page: Page) {
