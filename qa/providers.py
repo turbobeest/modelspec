@@ -1,16 +1,20 @@
-"""Plain HTTP tool calling for the vendors' public APIs. No implicit retries."""
+"""Plain HTTP tool calling for the vendors' public APIs. Explicit, budgeted Gemini retries."""
 
 from __future__ import annotations
 
 import json
 import os
 import re
+from random import uniform
+from time import sleep
 from dataclasses import dataclass, field
 from typing import Any
 
 import httpx
 
 from qa.schemas import provider_schema
+
+GEMINI_MAX_ATTEMPTS = 3
 
 KEY_ENV = {"claude": "ANTHROPIC_API_KEY", "openai": "OPENAI_API_KEY", "gemini": "GEMINI_API_KEY"}
 
@@ -115,6 +119,7 @@ class Reply:
     tokens_in: int
     tokens_out: int
     cost_usd: float = 0.0
+    model: str | None = None
 
 
 def _arguments(value: Any) -> Any:
@@ -141,6 +146,7 @@ class HttpAgent:
         max_output: int,
         client: httpx.Client,
         ceiling_price: dict | None = None,
+        fallback: dict | None = None,
     ):
         self.family, self.model, self.system = family, model, system
         if any(not re.fullmatch(r"[a-zA-Z0-9_-]{1,64}", t["name"]) for t in tools):
@@ -157,6 +163,7 @@ class HttpAgent:
         self.budget, self.price = budget, price
         self.max_output, self.client = max_output, client
         self.ceiling_price = ceiling_price or price
+        self.fallback = fallback if family == "gemini" else None
         self.key = os.environ.get(KEY_ENV[family])
         if not self.key:
             raise ValueError(f"Missing {KEY_ENV[family]}")
@@ -212,39 +219,75 @@ class HttpAgent:
             payload["tools"] = [{"functionDeclarations": functions}]
         return payload
 
+    def _before_retry(self, attempt: int, attempts: int) -> None:
+        # The final attempt may use a different model only before any reply:
+        # thought signatures belong to their model.
+        if attempt + 1 == attempts - 1 and self.fallback and len(self.history) == 1:
+            self.model = self.fallback["model"]
+            self.price = self.fallback["price"]
+            self.ceiling_price = self.fallback["ceiling_price"]
+        sleep(2**attempt + uniform(0, 1))
+
     def step(self) -> Reply:
-        payload = self.payload()
-        reserved = self.budget.reserve(payload, self.model, self.ceiling_price, self.max_output)
-        if self.family == "claude":
-            url = "https://api.anthropic.com/v1/messages"
-            headers = {"x-api-key": self.key, "anthropic-version": "2023-06-01"}
-        elif self.family == "openai":
-            url = "https://api.openai.com/v1/responses"
-            headers = {"Authorization": f"Bearer {self.key}"}
-        else:
-            url = (
-                "https://generativelanguage.googleapis.com/v1beta/models/"
-                f"{self.model}:generateContent"
-            )
-            headers = {"x-goog-api-key": self.key}
-        try:
-            response = self.client.post(url, json=payload, headers=headers)
-            if response.status_code >= 400:
-                details, zero_usage = _error_details(response)
-                if 400 <= response.status_code < 500 and response.status_code != 408 and zero_usage:
-                    self.budget.release(reserved)
-                raise ProviderError(f"{self.family} HTTP {response.status_code}", details)
-            data = response.json()
-            reply = self.decode(data)
-            reply.cost_usd = self.budget.settle(
-                reserved,
-                reply.tokens_in,
-                reply.tokens_out,
-                self.ceiling_price if reply.tokens_in > 200_000 else self.price,
-            )
-            return reply
-        except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError):
-            raise ProviderError(f"{self.family} response or transport failed") from None
+        attempts = GEMINI_MAX_ATTEMPTS if self.family == "gemini" else 1
+        for attempt in range(attempts):
+            # Reserve separately for every wire request, including the fallback.
+            # Unknown usage on an earlier attempt remains charged to the cap.
+            payload = self.payload()
+            reserved = self.budget.reserve(payload, self.model, self.ceiling_price, self.max_output)
+            if self.family == "claude":
+                url = "https://api.anthropic.com/v1/messages"
+                headers = {"x-api-key": self.key, "anthropic-version": "2023-06-01"}
+            elif self.family == "openai":
+                url = "https://api.openai.com/v1/responses"
+                headers = {"Authorization": f"Bearer {self.key}"}
+            else:
+                url = (
+                    "https://generativelanguage.googleapis.com/v1beta/models/"
+                    f"{self.model}:generateContent"
+                )
+                headers = {"x-goog-api-key": self.key}
+            self.last_model = self.model
+            try:
+                response = self.client.post(url, json=payload, headers=headers)
+                if response.status_code >= 400:
+                    details, zero_usage = _error_details(response)
+                    if (
+                        400 <= response.status_code < 500
+                        and response.status_code != 408
+                        and zero_usage
+                    ):
+                        self.budget.release(reserved)
+                    if response.status_code in (429, 503) and attempt + 1 < attempts:
+                        self._before_retry(attempt, attempts)
+                        continue
+                    raise ProviderError(f"{self.family} HTTP {response.status_code}", details)
+                data = response.json()
+                reply = self.decode(data)
+                reply.model = self.model
+                reply.cost_usd = self.budget.settle(
+                    reserved,
+                    reply.tokens_in,
+                    reply.tokens_out,
+                    self.ceiling_price if reply.tokens_in > 200_000 else self.price,
+                )
+                return reply
+            except httpx.TimeoutException as exc:
+                # A timeout keeps its reservation charged, so retrying stays inside the cap.
+                if attempt + 1 < attempts:
+                    self._before_retry(attempt, attempts)
+                    continue
+                raise ProviderError(
+                    f"{self.family} response or transport failed",
+                    {"type": type(exc).__name__},
+                ) from None
+            except httpx.HTTPError as exc:
+                raise ProviderError(
+                    f"{self.family} response or transport failed",
+                    {"type": type(exc).__name__},
+                ) from None
+            except (ValueError, KeyError, IndexError, TypeError):
+                raise ProviderError(f"{self.family} response or transport failed") from None
 
     def decode(self, data: dict) -> Reply:
         if self.family == "claude":

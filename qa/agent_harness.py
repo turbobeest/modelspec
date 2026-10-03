@@ -184,6 +184,7 @@ def run_scenario(scenario: dict, family: str, agent, shim, judge, config: dict) 
                 {
                     "role": "agent",
                     "turn": turn + 1,
+                    "model": reply.model or getattr(agent, "model", row["model"]),
                     "tokens_in": reply.tokens_in,
                     "tokens_out": reply.tokens_out,
                     "cost_usd": reply.cost_usd,
@@ -223,7 +224,7 @@ def run_scenario(scenario: dict, family: str, agent, shim, judge, config: dict) 
             row["model_calls"].append(
                 {
                     "role": "judge",
-                    "model": config["judge"]["model"],
+                    "model": reply.model or config["judge"]["model"],
                     "tokens_in": reply.tokens_in,
                     "tokens_out": reply.tokens_out,
                     "cost_usd": reply.cost_usd,
@@ -232,7 +233,7 @@ def run_scenario(scenario: dict, family: str, agent, shim, judge, config: dict) 
             row["tokens_in"] += reply.tokens_in
             row["tokens_out"] += reply.tokens_out
             row["judge"] = {
-                "model": config["judge"]["model"],
+                "model": reply.model or config["judge"]["model"],
                 "family": config["judge"]["family"],
                 **parse_judgement(reply.text),
             }
@@ -246,6 +247,7 @@ def run_scenario(scenario: dict, family: str, agent, shim, judge, config: dict) 
             row["provider_error"] = exc.details
     except (ValueError, json.JSONDecodeError):
         row["status"], row["error"] = "evaluation_error", "Invalid fixture or judge response"
+    row["model"] = getattr(agent, "last_model", row["model"])
     row["wall_time_ms"] = (perf_counter() - started) * 1000
     row["estimated_cost_usd"] = sum(c["cost_usd"] for c in row["model_calls"])
     return row
@@ -463,7 +465,19 @@ def validate_config(config: dict) -> None:
         raise ValueError("Call and output caps must be positive integers")
     if set(config["agents"]) != set(KEY_ENV) or config["judge"]["family"] not in KEY_ENV:
         raise ValueError("Configure claude, openai, gemini and a supported judge family")
-    for settings in [*config["agents"].values(), config["judge"]]:
+    settings_to_check = [*config["agents"].values(), config["judge"]]
+    for settings in settings_to_check.copy():
+        fallback = settings.get("fallback")
+        if fallback is not None:
+            if (
+                not isinstance(fallback, dict)
+                or not {"model", "price", "ceiling_price"} <= fallback.keys()
+            ):
+                raise ValueError("Fallback requires a model, price and ceiling_price")
+            if fallback["model"] == settings["model"]:
+                raise ValueError("Fallback must differ from the primary model")
+            settings_to_check.append(fallback)
+    for settings in settings_to_check:
         if not re.fullmatch(r"[A-Za-z0-9._-]+", settings["model"]):
             raise ValueError("Invalid vendor model id")
         for direction in ("input", "output"):
@@ -567,6 +581,7 @@ def main(argv=None) -> int:
                         config["max_output_tokens"],
                         client,
                         ceiling_price=settings["ceiling_price"],
+                        fallback=settings.get("fallback"),
                     )
                     shim = LiveTools(config, tools, os.environ.get("MODELSPEC_API_KEY"), client)
 
@@ -588,6 +603,7 @@ def main(argv=None) -> int:
                             config["max_output_tokens"],
                             client,
                             ceiling_price=settings["ceiling_price"],
+                            fallback=settings.get("fallback"),
                         ).step()
 
                 billing_start = len(budget.calls)

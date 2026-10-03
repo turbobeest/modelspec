@@ -40,7 +40,40 @@ The runner refuses known production ModelSpec hosts and follows no redirects. It
 
 The live judge is a separate stateless model call with the final answer, tool evidence, scenario rubric and any approved expected evidence. It extracts the final top recommendation or tied set, then assesses constraints, ties and uncertainty. A run succeeds only when the rubric passes and its recommendation is acceptable where independent evidence exists. Recall's acceptable sets are unordered; any nonempty top subset can match. The rubric handles confidence, prohibited candidates and unknown candidates. An abstention matches recall only where an explicit rule permits it. Scenarios with `expected: null` are judged by their rubric alone.
 
-The $25 default cap applies to the entire invocation, including judges. The price table stores USD per million tokens. A call reserves a conservative UTF-8-byte input bound plus protocol overhead and the output cap at ceiling rates before HTTP. Successful calls settle using reported tokens, including cached input and reasoning output. Contexts over 200,000 input tokens use ceiling rates. Rejected HTTP 4xx calls release their reservation when usage is absent or explicitly zero. HTTP 408, ambiguous or positive usage, HTTP 5xx, missing usage on a successful response, and transport failures retain the reservation. A provider failure ends that scenario. There are no hidden SDK retries. Update both price and ceiling tables from vendor docs before a paid run. This is an estimated token-spend limit, not a substitute for vendor account limits or a cap on separately priced ModelSpec credits.
+The $25 default cap applies to the entire invocation, including judges. The price table stores USD per million tokens. A call reserves a conservative UTF-8-byte input bound plus protocol overhead and the output cap at ceiling rates before HTTP. Successful calls settle using reported tokens, including cached input and reasoning output. Contexts over 200,000 input tokens use ceiling rates. Rejected HTTP 4xx calls release their reservation when usage is absent or explicitly zero. HTTP 408, ambiguous or positive usage, HTTP 5xx, missing usage on a successful response, and transport failures retain the reservation. A provider failure after the documented attempts ends that scenario. There are no hidden SDK retries. Update both price and ceiling tables from vendor docs before a paid run. This is an estimated token-spend limit, not a substitute for vendor account limits or a cap on separately priced ModelSpec credits.
+
+### Gemini overload retries (MODEL-286)
+
+The 2026-10-02 private run used `gemini-3.8-flash`, a current stable ID in
+[Google's model list](https://ai.google.dev/gemini-api/docs/models). Two runs
+returned HTTP 503 with a high-demand message; two failed near the 60-second
+client timeout. The latter report entries lack exception types, so timeout is
+an inference. The sanitised declarations use Google's documented
+[`parametersJsonSchema`](https://ai.google.dev/api/generate-content#FunctionDeclaration)
+field and pass offline schema validation. No request-shape defect was found.
+
+Gemini now makes at most three HTTP attempts per `step()`, including fallback.
+Only HTTP 429, 503 and client timeouts permit retries (a timed-out attempt
+keeps its reservation charged), with exponential waits of `1 + U(0,1)`
+and `2 + U(0,1)` seconds. The final attempt can use `agents.gemini.fallback`
+before the first successful reply; it stays selected thereafter. A fallback
+requires its own model, price and ceiling_price settings. The default is the
+current `gemini-3.7-flash`, with the same documented text rates as 3.8 Flash.
+Remove the fallback setting to retry only the primary. Once a model has replied,
+its thought signatures prevent a model switch, so subsequent retries keep it.
+Other transport errors and HTTP statuses do not retry. Safe transport exception
+types now enter private diagnostics to distinguish future timeouts.
+
+Every attempt reserves against the shared invocation budget before HTTP.
+Reservations for unknown usage remain charged. A rejected 429 releases its
+reservation only when usage is absent or explicitly zero. A cap refusal prevents
+the next HTTP request and retains the partial report. `runs[].model` records the
+last model actually sent, including failed attempts; successful agent and judge
+`model_calls` and all billing reservations also name their actual model.
+Configured primary and fallback profiles remain in metadata. The fixture in
+`qa/fixtures/gemini-responses.json` and `tests/test_gemini_driver.py` verify retries,
+reservation ordering, fallback, cap stops, wire schemas and report identity
+without network access.
 
 ### Tool schemas and the first-call HTTP 400
 
