@@ -41,7 +41,9 @@ test("the deployed page follows the Worker's human gate status", async ({ page }
     // stops at the gate: it renders, the manual-lookup gate is absent, nothing throws.
     // The answer path behind the gate is covered by the stubbed visit-gate builds.
     await expect(gate).toHaveCount(0);
-    await expect(page.locator("#facet-board-answer .visit-gate")).toHaveCount(1);
+    // Before verification there is no vocabulary, so the gate sits in a bare
+    // .board-answer aside (App.tsx), not inside #facet-board-answer.
+    await expect(page.locator(".visit-gate")).toHaveCount(1);
   } else if (status.enabled) {
     await expect(gate).toBeVisible();
     await expect(gate.getByRole("button", { name: "Look up this decision" })).toBeVisible();
