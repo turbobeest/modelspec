@@ -1324,8 +1324,9 @@ def test_login_execs_with_setup_environment_cwd_and_inherited_stdio(
         }[cli],
     ]
     assert env == providers.child_environment(
-        cli, home, config.get("mcp_token_env"), settings=config["clis"][cli]
+        cli, home, None, settings=config["clis"][cli]
     ) | {"TERM": "test-terminal"}
+    assert not any(key.startswith("MODELSPEC") for key in env)
     assert "OPENAI_API_KEY" not in env
     assert capsys.readouterr().out == "" and capsys.readouterr().err == ""
     assert homes.login_command(cli) == f"python -m qa.tui_harness login --cli {cli}"

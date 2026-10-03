@@ -179,7 +179,8 @@ def login(cli: str, config: dict) -> None:
         raise ValueError(f"Repeat setup --cli {cli} to record the CLI version before login")
     if binary_identity(cli, config, home, versions=recorded) != recorded:
         raise ValueError(f"CLI changed after setup; repeat setup --cli {cli} before login")
-    env = child_environment(cli, home, config.get("mcp_token_env"), settings=settings)
+    # The vendor login never needs the ModelSpec token.
+    env = child_environment(cli, home, None, settings=settings)
     env["TERM"] = os.environ.get("TERM", "xterm-256color")
     executable = resolve_executable(cli, settings)
     command = [
