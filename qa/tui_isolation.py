@@ -11,11 +11,25 @@ from contextlib import contextmanager
 from pathlib import Path
 
 from qa.providers import redact_structure
-from qa.tui_homes import home_config, home_paths, isolation_identity, require_setup
-from qa.tui_providers import Execution, _execute, isolation_violation, subscription_violation
+from qa.tui_homes import binary_identity, home_config, home_paths, isolation_identity, require_setup
+from qa.tui_inventory import MECHANISMS, inspect_inventory, inventory_violation
+from qa.tui_providers import (
+    Execution,
+    _execute,
+    child_environment,
+    isolation_violation,
+    prepare_workspace,
+    subscription_violation,
+)
 
 PROBES = ("instructions", "skills", "hooks", "mcp")
 LOCATIONS = ("cwd", "config_home")
+
+
+def required_positive(cli: str, location: str) -> tuple[str, ...]:
+    if cli != "claude":
+        return ("instructions",)
+    return PROBES if location == "cwd" else PROBES[:-1]
 
 
 def receipt_file(home: Path) -> Path:
@@ -44,11 +58,19 @@ def isolation_result(cli: str, config: dict) -> dict:
         controls = result["positive_control"]
         isolated = result["isolated_control"]
         passed = all(
-            controls[location][probe] is True for location in LOCATIONS for probe in PROBES
+            controls[location][probe] is True
+            for location in LOCATIONS
+            for probe in required_positive(cli, location)
         ) and all(isolated[location] is True for location in LOCATIONS)
+        inventory = result["inventory"]
+        if cli != "claude" and inventory_violation(inventory, mcp_enabled=True):
+            passed = False
         if (
-            result["identity"] != isolation_identity(cli, config)
-            or result["schema"] != 1
+            result["identity"] != isolation_identity(cli, config, result["binary"])
+            or result["schema"] != 2
+            or inventory["mechanism"] != MECHANISMS[cli]
+            or inventory["verified"] is not True
+            or not inventory["checks"]
             or not passed
             or result["verified"] is not True
             or result["supported"] is not True
@@ -175,7 +197,10 @@ def canary_passed(execution: Execution, cli: str, marker: str, hook: Path, mcp: 
         and not hook.exists()
         and not mcp.exists()
         and subscription_violation(cli, execution.transcript) is None
-        and isolation_violation(execution.transcript, mcp_enabled=False) is None
+        and isolation_violation(
+            execution.transcript, mcp_enabled=False, cli=cli, inventory=execution.inventory
+        )
+        is None
     )
 
 
@@ -202,6 +227,7 @@ def probe_record(execution: Execution, location: str, mode: str) -> dict:
         "tokens_in": execution.transcript.tokens_in,
         "tokens_out": execution.transcript.tokens_out,
         "reported_cost_usd": execution.transcript.cost_usd,
+        "inventory": execution.inventory,
     }
 
 
@@ -209,17 +235,43 @@ def verify_isolation(cli: str, config: dict, output: Path, *, before_start=lambd
     controls, isolated, runs, side_effects = {}, {}, [], []
     try:
         home = require_setup(cli, config)
-        identity = isolation_identity(cli, config)
         # A failed or interrupted repeat doctor must revoke the previous receipt.
         receipt = receipt_file(home)
         if receipt.is_symlink():
             raise ValueError("Isolation receipt must not be a symlink")
         lock = home.parent / "tui-doctor.lock"
-        lock.mkdir(mode=0o700)
+        try:
+            lock.mkdir(mode=0o700)
+        except FileExistsError as exc:
+            raise ValueError(
+                f"Doctor lock exists: {lock}. If no doctor is running, clear it with "
+                f"rmdir {shlex.quote(str(lock))}, then rerun doctor --cli {cli}"
+            ) from exc
     except (ValueError, OSError) as exc:
         return unproven(str(exc))
     try:
         receipt.unlink(missing_ok=True)
+        binary = binary_identity(cli, config, home)
+        identity = isolation_identity(cli, config, binary)
+        inventory = {"mechanism": MECHANISMS[cli], "checks": [], "verified": False}
+        if cli != "claude":
+            with tempfile.TemporaryDirectory(
+                prefix=f"tui-inventory-{cli}-", dir=output
+            ) as directory:
+                workspace = Path(directory)
+                mcp_file = workspace / "modelspec-mcp.json"
+                mcp_file.write_text(home_config(cli, config))
+                prepare_workspace(cli, config, workspace, mcp_enabled=True)
+                env = child_environment(
+                    cli, workspace, config.get("mcp_token_env"), settings=config["clis"][cli]
+                )
+                before_start()
+                inventory = inspect_inventory(
+                    cli, config, workspace, env, mcp_file, mcp_enabled=True
+                )
+                inventory["verified"] = inventory_violation(inventory, mcp_enabled=True) is None
+                if not inventory["verified"]:
+                    return unproven(inventory["error"], binary=binary, inventory=inventory)
         _, config_home = home_paths(cli, config["clis"][cli])
         for location in LOCATIONS:
             with tempfile.TemporaryDirectory(prefix=f"tui-canary-{cli}-", dir=output) as directory:
@@ -261,6 +313,10 @@ def verify_isolation(cli: str, config: dict, output: Path, *, before_start=lambd
                         )
                         runs.append(probe_record(negative, location, "isolated"))
                         isolated[location] = canary_passed(negative, cli, marker, hook, mcp)
+                        if cli == "claude":
+                            inventory["checks"].append(
+                                {"location": location, "passed": isolated[location]}
+                            )
                         hook.unlink(missing_ok=True)
                         mcp.unlink(missing_ok=True)
                         if negative.status == "usage_limit":
@@ -270,15 +326,28 @@ def verify_isolation(cli: str, config: dict, output: Path, *, before_start=lambd
                                 canary_runs=len(runs),
                                 runs=runs,
                             )
-        passed = all(controls[loc][probe] for loc in LOCATIONS for probe in PROBES) and all(
-            isolated.values()
+        if cli == "claude":
+            inventory["verified"] = all(isolated.values())
+        passed = (
+            inventory["verified"]
+            and all(
+                controls[loc][probe] for loc in LOCATIONS for probe in required_positive(cli, loc)
+            )
+            and all(isolated.values())
         )
         result = {
-            "schema": 1,
+            "schema": 2,
             "identity": identity,
+            "binary": binary,
+            "inventory": inventory,
             "supported": passed,
             "verified": passed,
             "positive_control": controls,
+            "required_positive_control": {loc: required_positive(cli, loc) for loc in LOCATIONS},
+            "control_note": "Claude's cwd MCP control uses native .mcp.json discovery with "
+            "enableAllProjectMcpServers; the config-home control does not require "
+            "MCP because .mcp.json is a project discovery file. Other CLIs require "
+            "a native instruction positive control and separate native inventories.",
             "isolated_control": isolated,
             "canary_runs": len(runs),
             "canary_location": "native discovery paths inside cwd and dedicated config home",

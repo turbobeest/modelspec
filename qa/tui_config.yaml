@@ -17,6 +17,7 @@ clis:
     usage_limit_exit_codes: []
   codex:
     executable: codex
+    min_version: "0.160"
     harness_home: ~/.modelspec-harness/codex/home
     config_dir: .codex
     model: gpt-6.1-sol

@@ -10,6 +10,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 from datetime import datetime
 from pathlib import Path
 
@@ -18,13 +19,17 @@ import yaml
 
 from qa import tui_harness as harness
 from qa import tui_homes as homes
+from qa import tui_inventory as inventory
 from qa import tui_isolation as isolation
 from qa import tui_providers as providers
 from qa.agent_harness import load_scenarios
 
+READ_VERSION = homes.read_version
+
 
 @pytest.fixture(autouse=True)
 def deny_credential_access(monkeypatch):
+    original_open = builtins.open
     denied = re.compile(
         r"\.codex[/\\]auth|auth\.json|\.credentials|keychain|\.claude\.json|"
         r"oauth|google_accounts|mcp_credentials|\.netrc|\.aws[/\\]credentials|"
@@ -44,7 +49,7 @@ def deny_credential_access(monkeypatch):
         def guarded(*args, **kwargs):
             for value in args[:2] if copying else args[:1]:
                 check(value)
-            for key in ("file", "path", "src", "dst", "fsrc", "fdst"):
+            for key in ("file", "path", "src", "dst", "fsrc", "fdst", "target"):
                 if key in kwargs:
                     check(kwargs[key])
             return original(*args, **kwargs)
@@ -60,16 +65,35 @@ def deny_credential_access(monkeypatch):
         for name in names:
             monkeypatch.setattr(owner, name, wrap(getattr(owner, name)))
     for name in dir(shutil):
-        if name.startswith("copy") and callable(getattr(shutil, name)):
+        if (name.startswith("copy") or name == "move") and callable(getattr(shutil, name)):
             monkeypatch.setattr(shutil, name, wrap(getattr(shutil, name), copying=True))
+    for owner in (os, Path):
+        monkeypatch.setattr(owner, "rename", wrap(getattr(owner, "rename"), copying=True))
+    return original_open
+
+
+def native_inventory(cli, *, mcp_enabled=True):
+    return {
+        "mechanism": inventory.MECHANISMS[cli],
+        "checks": [{"command": "fixture", "exit_code": 0}],
+        "mcp_servers": ["modelspec"] if mcp_enabled else [],
+        "skills": [],
+        "extensions": [],
+        "hooks": [],
+        "verified": True,
+        "error": None,
+        **({"skill_config": "skills.config=[]"} if cli == "codex" else {}),
+    }
 
 
 def allow_launch(config, clis=providers.CLIS):
     for cli in clis:
         home = homes.require_setup(cli, config)
         receipt = {
-            "schema": 1,
+            "schema": 2,
             "identity": homes.isolation_identity(cli, config),
+            "binary": json.loads(homes.setup_file(home).read_text())["binary"],
+            "inventory": native_inventory(cli),
             "supported": True,
             "verified": True,
             "status": "verified",
@@ -84,11 +108,13 @@ def allow_launch(config, clis=providers.CLIS):
 
 
 @pytest.fixture
-def config(tmp_path):
+def config(tmp_path, monkeypatch):
     value = yaml.safe_load((harness.HERE / "tui_config.yaml").read_text())
-    binary = tmp_path / "fake-cli"
+    binary = tmp_path / "fake-cli.js"
     binary.write_text("#!/bin/sh\nexit 99\n")
     binary.chmod(0o700)
+    monkeypatch.setattr(homes, "read_version", lambda *a: "fake-cli 0.160.0")
+    monkeypatch.setattr(isolation, "inspect_inventory", lambda cli, *a, **k: native_inventory(cli))
     for cli, profile in value["clis"].items():
         profile["harness_home"] = str(tmp_path / cli / "home")
         profile["executable"] = str(binary)
@@ -115,7 +141,15 @@ def execution(cli="claude", answer="Fixture answer", *, status="completed", limi
         cost_usd=0.02,
         init={"skills": [], "plugins": [], "mcp_servers": [], "tools": [], "apiKeySource": "none"},
     )
-    return providers.Execution(parsed, 0, 25.0, status, limit_reason=limit, observed_output=answer)
+    return providers.Execution(
+        parsed,
+        0,
+        25.0,
+        status,
+        limit_reason=limit,
+        observed_output=answer,
+        inventory=native_inventory(cli, mcp_enabled=False) if cli != "claude" else None,
+    )
 
 
 def isolated():
@@ -412,7 +446,7 @@ def test_canary_uses_native_cwd_and_config_home_paths(cli, location, config, tmp
             assert (native / "skills/model301_canary/SKILL.md").exists()
             assert (native / "settings.json").exists()
             assert (root / ".mcp.json").exists()
-        good = execution(answer="OK")
+        good = execution(cli, answer="OK")
         assert isolation.canary_passed(good, cli, "TEST_CANARY_MARKER", hook, mcp)
         good.observed_output += "\nstderr contains TEST_CANARY_MARKER"
         assert not isolation.canary_passed(good, cli, "TEST_CANARY_MARKER", hook, mcp)
@@ -592,7 +626,7 @@ def test_doctor_requires_positive_controls_and_isolated_inventory(
         assert name == cli and not mcp_enabled and prompt == "Reply with exactly OK."
         seen.append((workspace, isolated))
         if isolated:
-            return execution(answer="OK")
+            return execution(cli, answer="OK")
         root = probe_mcp.parent
         if cli != "claude":
             root = root if root == homes.home_paths(cli, cfg["clis"][cli])[1] else root.parent
@@ -746,8 +780,9 @@ def test_setup_creates_only_native_modelspectool_config_and_prints_login(
     monkeypatch.setattr(harness, "private_output", lambda p: p)
     assert harness.main(["setup", "--cli", cli, "--config", str(config_path)]) == 0
     output = capsys.readouterr().out
-    assert homes.login_command(cli, config) in output
-    assert "env -i" in output
+    assert homes.login_command(cli, config_path) in output
+    assert f"python -m qa.tui_harness login --cli {cli}" in output
+    assert "0.160.0" in output and "env -i" not in output
     home, config_home = homes.home_paths(cli, config["clis"][cli])
     files = [p for p in home.rglob("*") if p.is_file()]
     assert files == [homes.config_file(cli, config_home)]
@@ -1063,6 +1098,9 @@ def test_tui_sources_contain_no_credential_path_literals():
         lambda p: shutil.copyfile(p, str(p) + "-copy"),
         lambda p: shutil.copytree(p, str(p) + "-copy"),
         lambda p: shutil.copyfileobj(type("FakeFile", (), {"name": str(p)})(), io.BytesIO()),
+        lambda p: os.rename(p, str(p) + "-renamed"),
+        lambda p: p.rename(str(p) + "-renamed"),
+        lambda p: shutil.move(p, str(p) + "-moved"),
     ],
 )
 def test_no_auth_guard_covers_every_read_and_copy_entry_point(reader, path, tmp_path):
@@ -1187,3 +1225,400 @@ def test_report_cannot_follow_a_preexisting_file_symlink(config, tmp_path):
     with pytest.raises(ValueError, match="must not be symlinks"):
         harness.write_report(report, tmp_path)
     assert destination.read_text() == "untouched"
+
+
+def doctor_reply(cli, config, workspace, prompt, *, mcp_enabled, isolated=True, probe_mcp=None):
+    if isolated:
+        result = execution(cli, "OK")
+    else:
+        _, config_home = homes.home_paths(cli, config["clis"][cli])
+        root = probe_mcp.parent
+        if cli != "claude" and root != config_home:
+            root = root.parent
+        instruction = next(path for path in root.iterdir() if path.name.endswith(".md"))
+        marker = re.search(r"MODEL301_CANARY_\w+", instruction.read_text())[0]
+        (root / "model301-hook-fired").touch()
+        (root / "model301-mcp-fired").touch()
+        result = execution(cli, marker)
+        result.transcript.init["skills"] = ["model301_canary"]
+    if cli != "claude":
+        result.transcript.init = None
+    return result
+
+
+@pytest.mark.parametrize("cli", providers.CLIS)
+def test_dummy_credentials_survive_setup_doctor_and_launch_without_access(
+    cli, config, tmp_path, monkeypatch, streams, deny_credential_access
+):
+    home, config_home = homes.home_paths(cli, config["clis"][cli])
+    dummy_files = [config_home / name for name in ("auth.json", ".credentials.json")]
+    for path in dummy_files:
+        # The only bypass of the guard plants new dummy files inside this test's fake home.
+        assert path.is_relative_to(tmp_path) and not path.exists()
+        with deny_credential_access(path, "x") as stream:
+            stream.write('{"dummy": "not a credential"}')
+    before = [(p.stat().st_ino, p.stat().st_size, p.stat().st_mtime_ns) for p in dummy_files]
+    config_path = tmp_path / "dummy-home.yaml"
+    config_path.write_text(yaml.safe_dump(config))
+    monkeypatch.setattr(harness, "private_output", lambda path: path)
+    monkeypatch.setattr(isolation, "_execute", doctor_reply)
+    monkeypatch.setattr(
+        inventory,
+        "inspect_inventory",
+        lambda name, *a, **k: native_inventory(name, mcp_enabled=k["mcp_enabled"]),
+    )
+    monkeypatch.setattr(
+        providers.subprocess,
+        "run",
+        lambda command, **kwargs: subprocess.CompletedProcess(command, 0, text(streams[cli]), ""),
+    )
+    assert harness.main(["setup", "--cli", cli, "--config", str(config_path)]) == 0
+    assert (
+        harness.main(
+            [
+                "doctor",
+                "--cli",
+                cli,
+                "--config",
+                str(config_path),
+                "--out",
+                str(tmp_path),
+            ]
+        )
+        == 0
+    )
+    assert (
+        providers.launch(cli, config, tmp_path, "Fixture request", mcp_enabled=True).status
+        == "completed"
+    )
+    assert before == [
+        (p.stat().st_ino, p.stat().st_size, p.stat().st_mtime_ns) for p in dummy_files
+    ]
+    assert home.is_dir()
+
+
+@pytest.mark.parametrize("cli", providers.CLIS)
+def test_login_execs_with_setup_environment_cwd_and_inherited_stdio(
+    cli, config, tmp_path, monkeypatch, capsys
+):
+    home = homes.require_setup(cli, config)
+    calls = []
+    monkeypatch.setenv("TERM", "test-terminal")
+    monkeypatch.setenv("OPENAI_API_KEY", "must-not-inherit")
+    monkeypatch.setattr(homes.os, "chdir", lambda path: calls.append(("cwd", path)))
+    monkeypatch.setattr(homes.os, "execve", lambda *args: calls.append(("exec", args)))
+    monkeypatch.setattr(providers.subprocess, "run", lambda *a, **k: pytest.fail("login captured"))
+    monkeypatch.setattr(harness, "private_output", lambda path: path)
+    config_path = tmp_path / "login.yaml"
+    config_path.write_text(yaml.safe_dump(config))
+    assert harness.main(["login", "--cli", cli, "--config", str(config_path)]) == 0
+    assert calls[0] == ("cwd", home)
+    binary, command, env = calls[1][1]
+    assert command == [
+        binary,
+        *{
+            "claude": ["auth", "login", "--claudeai"],
+            "codex": ["login"],
+            "gemini": [],
+            "grok": ["login"],
+        }[cli],
+    ]
+    assert env == providers.child_environment(
+        cli, home, config.get("mcp_token_env"), settings=config["clis"][cli]
+    ) | {"TERM": "test-terminal"}
+    assert "OPENAI_API_KEY" not in env
+    assert capsys.readouterr().out == "" and capsys.readouterr().err == ""
+    assert homes.login_command(cli) == f"python -m qa.tui_harness login --cli {cli}"
+
+
+@pytest.mark.parametrize("cli", providers.CLIS)
+def test_setup_and_doctor_measure_version_under_the_same_harness_environment(
+    cli, config, tmp_path, monkeypatch
+):
+    seen = []
+    home = homes.require_setup(cli, config)
+
+    def fake(command, **kwargs):
+        assert command[-1] == "--version"
+        seen.append((command, kwargs))
+        return subprocess.CompletedProcess(command, 0, "native-cli 0.160.0\n", "")
+
+    monkeypatch.setattr(homes, "read_version", READ_VERSION)
+    monkeypatch.setattr(providers.subprocess, "run", fake)
+    monkeypatch.setattr(isolation, "_execute", doctor_reply)
+    homes.setup_home(cli, config)
+    result = harness.verify_isolation(cli, config, tmp_path)
+    assert result["verified"]
+    assert len(seen) == (4 if cli == "gemini" else 2)
+    for _, kwargs in seen:
+        assert kwargs["cwd"] == home
+        assert kwargs["env"] == providers.child_environment(
+            cli, home, config.get("mcp_token_env"), settings=config["clis"][cli]
+        )
+        assert kwargs["input"] == "" and kwargs["capture_output"]
+    assert result["binary"]["version"] == "native-cli 0.160.0"
+    assert {"path", "version", "size", "mtime"} <= result["binary"].keys()
+    if cli == "gemini":
+        assert {"path", "version", "size", "mtime"} <= result["binary"]["node"].keys()
+        assert {"path", "size", "mtime"} <= result["binary"]["bundle"].keys()
+
+
+@pytest.mark.parametrize("version", ["codex-cli 0.153.4", "0.159.9", "0.160.0-rc1"])
+def test_codex_minimum_version_refuses_setup_and_doctor(version, config, tmp_path, monkeypatch):
+    monkeypatch.setattr(homes, "read_version", lambda *args: version)
+    with pytest.raises(ValueError, match="below min_version 0.160"):
+        homes.setup_home("codex", config)
+    allow_launch(config, ("codex",))
+    result = harness.verify_isolation("codex", config, tmp_path)
+    assert not result["verified"] and "below min_version" in result["reason"]
+    assert not isolation.isolation_result("codex", config)["verified"]
+
+
+@pytest.mark.parametrize("field", ["path", "version", "size", "mtime"])
+def test_binary_receipt_binds_every_readable_field(field, config):
+    allow_launch(config, ("claude",))
+    home = homes.require_setup("claude", config)
+    path = isolation.receipt_file(home)
+    receipt = json.loads(path.read_text())
+    receipt["binary"][field] = (
+        "0.161.0"
+        if field == "version"
+        else ("/different/bin/claude" if field == "path" else receipt["binary"][field] + 1)
+    )
+    path.write_text(json.dumps(receipt))
+    assert not isolation.isolation_result("claude", config)["verified"]
+
+
+@pytest.mark.parametrize("component", ["node", "bundle"])
+def test_gemini_receipt_binds_runtime_and_bundle_paths(component, config):
+    allow_launch(config, ("gemini",))
+    home = homes.require_setup("gemini", config)
+    path = isolation.receipt_file(home)
+    receipt = json.loads(path.read_text())
+    receipt["binary"][component]["path"] = "/different/installed/file"
+    path.write_text(json.dumps(receipt))
+    assert not isolation.isolation_result("gemini", config)["verified"]
+
+
+def test_codex_defaults_to_app_binary_and_environment_override_wins(config, tmp_path, monkeypatch):
+    app = tmp_path / "app-codex"
+    app.write_text("dummy native binary")
+    app.chmod(0o700)
+    monkeypatch.setattr(homes, "APP_CODEX", app)
+    monkeypatch.delenv("TUI_CODEX_BIN", raising=False)
+    profile = config["clis"]["codex"] | {"executable": "codex"}
+    assert homes.resolve_executable("codex", profile) == str(app)
+    monkeypatch.setenv("TUI_CODEX_BIN", config["clis"]["codex"]["executable"])
+    assert homes.resolve_executable("codex", profile) == config["clis"]["codex"]["executable"]
+
+
+def test_claude_relaxed_mcp_probe_uses_discovery_and_config_home_does_not_require_mcp(
+    config, tmp_path
+):
+    command = providers.build_command(
+        "claude",
+        config["clis"]["claude"],
+        tmp_path,
+        "OK",
+        tmp_path / ".mcp.json",
+        1,
+        isolated=False,
+    )
+    assert "--mcp-config" not in command
+    files, _, _, _ = isolation.canary_files("claude", config, tmp_path, "MARKER")
+    assert (
+        json.loads(files[tmp_path / ".claude/settings.json"])["enableAllProjectMcpServers"] is True
+    )
+    assert "mcp" in isolation.required_positive("claude", "cwd")
+    assert "mcp" not in isolation.required_positive("claude", "config_home")
+
+
+def test_existing_doctor_lock_reports_the_exact_clear_command(config, tmp_path, monkeypatch):
+    home = homes.require_setup("codex", config)
+    lock = home.parent / "tui-doctor.lock"
+    lock.mkdir()
+    monkeypatch.setattr(
+        isolation, "_execute", lambda *a, **k: pytest.fail("locked doctor launched")
+    )
+    result = harness.verify_isolation("codex", config, tmp_path)
+    assert result["status"] == "unproven" and f"rmdir {lock}" in result["reason"]
+    assert "If no doctor is running" in result["reason"]
+    assert "doctor --cli codex" in result["reason"]
+
+
+@pytest.mark.parametrize("cli", ["codex", "gemini", "grok"])
+def test_native_inventory_and_canary_allow_a_stream_without_init_inventory(
+    cli, config, tmp_path, monkeypatch
+):
+    monkeypatch.setattr(isolation, "_execute", doctor_reply)
+    result = harness.verify_isolation(cli, config, tmp_path)
+    assert result["verified"] and result["inventory"]["mcp_servers"] == ["modelspec"]
+    assert result["inventory"]["mechanism"] == inventory.MECHANISMS[cli]
+    assert isolation.isolation_result(cli, config)["verified"]
+    assert (
+        providers.isolation_violation(
+            providers.Transcript(init=None),
+            cli=cli,
+            mcp_enabled=True,
+            inventory=native_inventory(cli),
+        )
+        is None
+    )
+    monkeypatch.setattr(
+        isolation, "inspect_inventory", lambda *a, **k: {"error": "missing inventory"}
+    )
+    result = harness.verify_isolation(cli, config, tmp_path)
+    assert not result["verified"] and result["canary_runs"] == 0
+    assert not isolation.isolation_result(cli, config)["verified"]
+
+
+@pytest.mark.parametrize("cli", ["codex", "gemini", "grok"])
+def test_native_inventory_reads_cli_reports_under_exact_launch_environment(
+    cli, config, tmp_path, monkeypatch
+):
+    outputs = {
+        "mcp list --json": [
+            {
+                "name": "modelspec",
+                "enabled": True,
+                "transport": {"type": "streamable_http", "url": config["mcp_url"]},
+            }
+        ],
+        "plugin list --json": {"installed": [], "available": []},
+        "features list": "hooks\tunder development\tfalse\n",
+        "debug prompt-input": [
+            {
+                "type": "message",
+                "role": "user",
+                "content": [{"type": "input_text", "text": "native context"}],
+            }
+        ],
+        "mcp list": "Configured MCP servers:\n\n"
+        f"✓ modelspec: {config['mcp_url']} (http) - Connected\n",
+        "extensions list --output-format json": [],
+        "skills list": "No skills discovered.\n",
+        "effective settings": {"skillsEnabled": False, "hooksEnabled": False, "hookEvents": []},
+        "inspect --json": {
+            "cwd": str(tmp_path),
+            "skills": [
+                {"name": "builtin-skill", "source": {"type": "builtin"}},
+                {"name": "bundled-skill", "source": {"type": "bundled", "path": "/bundle"}},
+            ],
+            "hooks": [],
+            "plugins": [],
+            "projectInstructions": [],
+            "mcpServers": [{"name": "modelspec", "transport": "http", "target": config["mcp_url"]}],
+        },
+    }
+    env = providers.child_environment(cli, tmp_path, settings=config["clis"][cli])
+    calls = []
+
+    def fake(command, **kwargs):
+        assert kwargs["env"] == env and kwargs["cwd"] == tmp_path and kwargs["input"] == ""
+        calls.append(command)
+        key = next(
+            (key for key in outputs if command[-len(key.split()) :] == key.split()),
+            "effective settings",
+        )
+        value = outputs[key]
+        return subprocess.CompletedProcess(
+            command, 0, value if isinstance(value, str) else json.dumps(value), ""
+        )
+
+    monkeypatch.setattr(providers.subprocess, "run", fake)
+    monkeypatch.setattr(inventory, "_codex_skills", lambda *a: [])
+    monkeypatch.setattr(inventory, "_gemini_settings_module", lambda *a: tmp_path / "settings.js")
+    mcp_file = tmp_path / "modelspec-mcp.json"
+    mcp_file.write_text(homes.home_config(cli, config))
+    result = inventory.inspect_inventory(cli, config, tmp_path, env, mcp_file, mcp_enabled=True)
+    assert inventory.inventory_violation(result, mcp_enabled=True) is None
+    assert result["mechanism"] == inventory.MECHANISMS[cli] and len(calls) >= 1
+    # A ModelSpec label alone cannot attest a different service or a local executable.
+    outputs["mcp list --json"][0]["transport"]["url"] = "https://foreign.test/mcp"
+    outputs["mcp list"] = (
+        "Configured MCP servers:\n\n✓ modelspec: https://foreign.test/mcp (http) - Connected\n"
+    )
+    outputs["inspect --json"]["mcpServers"][0]["target"] = "https://foreign.test/mcp"
+    result = inventory.inspect_inventory(cli, config, tmp_path, env, mcp_file, mcp_enabled=True)
+    assert inventory.inventory_violation(result, mcp_enabled=True)
+    monkeypatch.setattr(
+        providers.subprocess,
+        "run",
+        lambda command, **kw: subprocess.CompletedProcess(command, 0, "", ""),
+    )
+    result = inventory.inspect_inventory(cli, config, tmp_path, env, mcp_file, mcp_enabled=True)
+    assert inventory.inventory_violation(result, mcp_enabled=True)
+
+
+@pytest.mark.parametrize("cli", ["codex", "gemini", "grok"])
+@pytest.mark.parametrize("field", ["mcp_servers", "skills", "extensions", "hooks"])
+def test_native_inventory_fails_closed_on_missing_or_extra_customizations(cli, field):
+    result = native_inventory(cli)
+    result[field] = ["foreign customization"]
+    assert inventory.inventory_violation(result, mcp_enabled=True)
+    del result[field]
+    assert inventory.inventory_violation(result, mcp_enabled=True)
+
+
+def test_codex_skill_disabling_uses_cli_discovery_and_verifies_effective_state(
+    config, tmp_path, monkeypatch
+):
+    discovered = {
+        "name": "user-skill",
+        "scope": "user",
+        "enabled": True,
+        "path": str(tmp_path / "skills/user-skill/SKILL.md"),
+    }
+    assert inventory._codex_skill_config([discovered]) == (
+        "skills.config=[{path=" + json.dumps(discovered["path"]) + ",enabled=false}]"
+    )
+    with pytest.raises(ValueError, match="unknown entry"):
+        inventory._codex_skill_config([discovered | {"scope": "unknown"}])
+
+
+@pytest.mark.parametrize("move", ["os.rename", "Path.rename", "shutil.move"])
+def test_runtime_guard_also_denies_a_credential_destination(move, tmp_path):
+    source = tmp_path / "innocent-config"
+    source.write_text("config")
+    with pytest.raises(AssertionError, match="Credential access attempted"):
+        # Resolve the guarded function after the autouse fixture has patched it.
+        owner, name = move.split(".")
+        guarded = getattr({"os": os, "Path": Path, "shutil": shutil}[owner], name)
+        guarded(source, tmp_path / "auth.json")
+
+
+@pytest.mark.parametrize("malformed", [False, True])
+def test_codex_skill_rpc_uses_the_exact_home_and_cwd_without_a_model_turn(
+    malformed, config, tmp_path, monkeypatch
+):
+    home = homes.require_setup("codex", config)
+    monkeypatch.setenv("OPENAI_API_KEY", "excluded")
+    fake = tmp_path / "inventory-cli.py"
+    fake.write_text(
+        f"#!{sys.executable}\n"
+        "import json, os, sys\n"
+        f"assert os.environ['HOME'] == {str(home)!r}\n"
+        f"assert os.environ['CODEX_HOME'] == {str(home / '.codex')!r}\n"
+        f"assert os.getcwd() == {str(tmp_path)!r}\n"
+        "assert 'OPENAI_API_KEY' not in os.environ\n"
+        "for line in sys.stdin:\n"
+        "    request = json.loads(line)\n"
+        "    method = request['method']\n"
+        "    if method == 'initialized': continue\n"
+        "    if method == 'initialize': result = {'userAgent': 'fake-cli'}\n"
+        "    elif method == 'skills/list':\n"
+        f"        assert request['params']['cwds'] == [{str(tmp_path)!r}]\n"
+        "        assert request['params']['forceReload'] is True\n"
+        f"        result = {{'data': [{{'cwd': {str(tmp_path)!r}, 'skills': []"
+        + ("" if malformed else ", 'errors': []")
+        + "}]}\n"
+        "    else: raise AssertionError('Unexpected RPC or model turn')\n"
+        "    print(json.dumps({'id': request['id'], 'result': result}), flush=True)\n"
+    )
+    fake.chmod(0o700)
+    env = providers.child_environment("codex", tmp_path, settings=config["clis"]["codex"])
+    if malformed:
+        with pytest.raises(ValueError, match="skill discovery errors"):
+            inventory._codex_skills(str(fake), ["--no-daemon"], tmp_path, env, 5)
+    else:
+        assert inventory._codex_skills(str(fake), ["--no-daemon"], tmp_path, env, 5) == []

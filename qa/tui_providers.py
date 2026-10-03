@@ -87,11 +87,7 @@ def build_command(
     *,
     isolated: bool = True,
 ) -> list[str]:
-    """Build native headless arguments; launch() separately enforces support.
-
-    The unsupported families' arguments are useful for format tests only. They
-    are never printed as runnable isolated commands or executed by the harness.
-    """
+    """Build native headless arguments; launch() separately enforces doctor evidence."""
     executable, model = settings["executable"], settings["model"]
     if cli == "claude":
         common = [
@@ -124,9 +120,8 @@ def build_command(
         return (
             common
             + controls
+            + (["--mcp-config", str(mcp_file)] if isolated else [])
             + [
-                "--mcp-config",
-                str(mcp_file),
                 "--tools",
                 "",
                 "--permission-mode",
@@ -149,8 +144,6 @@ def build_command(
             "read-only",
             "-m",
             model,
-            "-c",
-            f"model_reasoning_effort={settings['effort']}",
             "--cd",
             str(workspace),
         ]
@@ -158,21 +151,14 @@ def build_command(
             common += [
                 "--ignore-user-config",
                 "--ignore-rules",
-                "-c",
-                "project_doc_max_bytes=0",
-                "-c",
-                "skills.include_instructions=false",
-                "-c",
-                "features.hooks=false",
             ]
-            import tomllib
-
-            servers = tomllib.loads(mcp_file.read_text()).get("mcp_servers", {})
-            for name, server in servers.items():
-                for key, value in server.items():
-                    common += ["-c", f"mcp_servers.{name}.{key}={json.dumps(value)}"]
+            common += codex_config_args(settings, mcp_file)
         else:
-            common += ["--dangerously-bypass-hook-trust"]
+            common += [
+                "--dangerously-bypass-hook-trust",
+                "-c",
+                f"model_reasoning_effort={settings['effort']}",
+            ]
         return common + ["--", prompt]
     if cli == "gemini":
         common = [
@@ -211,6 +197,27 @@ def build_command(
             prompt,
         ]
     raise ValueError(f"Unknown CLI: {cli}")
+
+
+def codex_config_args(settings: dict, mcp_file: Path) -> list[str]:
+    import tomllib
+
+    args = []
+    for value in (
+        f"model_reasoning_effort={settings['effort']}",
+        "project_doc_max_bytes=0",
+        "skills.include_instructions=false",
+        "skills.config=[]",
+        "features.hooks=false",
+        "plugins={}",
+        "mcp_servers={}",
+    ):
+        args += ["-c", value]
+    servers = tomllib.loads(mcp_file.read_text()).get("mcp_servers", {})
+    for name, server in servers.items():
+        for key, value in server.items():
+            args += ["-c", f"mcp_servers.{name}.{key}={json.dumps(value)}"]
+    return args
 
 
 def mcp_config(url: str, token_env: str | None, *, enabled: bool) -> dict:
@@ -501,9 +508,18 @@ def subscription_violation(cli: str, parsed: Transcript) -> str | None:
     return None
 
 
-def isolation_violation(parsed: Transcript, *, mcp_enabled: bool) -> str | None:
+def isolation_violation(
+    parsed: Transcript, *, mcp_enabled: bool, cli="claude", inventory: dict | None = None
+) -> str | None:
     if parsed.hook_events or parsed.init and hook_event(parsed.init):
         return "CLI emitted a hook event"
+    allowed = {"modelspec"} if mcp_enabled else set()
+    if parsed.other_tool_calls or any(call["server"] not in allowed for call in parsed.tool_calls):
+        return "CLI used a tool outside the configured ModelSpec MCP"
+    if cli != "claude":
+        from qa.tui_inventory import inventory_violation
+
+        return inventory_violation(inventory, mcp_enabled=mcp_enabled)
     if parsed.init is None:
         return "CLI did not expose its startup inventory"
     for key in ("skills", "plugins", "mcp_servers", "tools"):
@@ -516,14 +532,11 @@ def isolation_violation(parsed: Transcript, *, mcp_enabled: bool) -> str | None:
         for plugin in parsed.init["plugins"]
     ):
         return "CLI loaded a non-builtin plugin"
-    allowed = {"modelspec"} if mcp_enabled else set()
     if any(
         not isinstance(server, dict) or server.get("name") not in allowed
         for server in parsed.init["mcp_servers"]
     ):
         return "CLI loaded another MCP server"
-    if parsed.other_tool_calls or any(call["server"] not in allowed for call in parsed.tool_calls):
-        return "CLI used a tool outside the configured ModelSpec MCP"
     for name in parsed.init["tools"]:
         if not isinstance(name, str) or _tool_name(name)[0] not in allowed:
             return "CLI exposed an unapproved tool"
@@ -544,6 +557,7 @@ class Execution:
     error: str | None = None
     limit_reason: str | None = None
     observed_output: str = field(default="", repr=False)
+    inventory: dict | None = None
 
 
 def launch(cli: str, config: dict, workspace: Path, prompt: str, *, mcp_enabled: bool) -> Execution:
@@ -554,7 +568,7 @@ def launch(cli: str, config: dict, workspace: Path, prompt: str, *, mcp_enabled:
         raise ValueError(result["reason"])
     execution = _execute(cli, config, workspace, prompt, mcp_enabled=mcp_enabled)
     violation = subscription_violation(cli, execution.transcript) or isolation_violation(
-        execution.transcript, mcp_enabled=mcp_enabled
+        execution.transcript, mcp_enabled=mcp_enabled, cli=cli, inventory=execution.inventory
     )
     if execution.status in ("isolation_failed", "transcript_error") or violation:
         from qa.tui_homes import require_setup
@@ -581,16 +595,7 @@ def _execute(
     mcp_file = probe_mcp or workspace / "modelspec-mcp.json"
     if probe_mcp is None:
         mcp_file.write_text(home_config(cli, config, enabled=mcp_enabled))
-    if cli == "gemini" and isolated:
-        data = json.loads(home_config(cli, config, enabled=mcp_enabled))
-        data.update(
-            skills={"enabled": False},
-            hooksConfig={"enabled": False},
-            context={"fileName": []},
-            security={"auth": {"selectedType": "oauth-personal"}},
-        )
-        # The system override leaves the planted project/user probes in place.
-        (workspace / "gemini-system.json").write_text(json.dumps(data))
+    prepare_workspace(cli, config, workspace, mcp_enabled=mcp_enabled, isolated=isolated)
     command = build_command(
         cli,
         settings,
@@ -609,6 +614,24 @@ def _execute(
         isolated=isolated,
     )
     started = perf_counter()
+    inventory = None
+    if isolated and cli != "claude":
+        from qa.tui_inventory import inspect_inventory, inventory_violation
+
+        inventory = inspect_inventory(
+            cli, config, workspace, env, mcp_file, mcp_enabled=mcp_enabled
+        )
+        if violation := inventory_violation(inventory, mcp_enabled=mcp_enabled):
+            return Execution(
+                Transcript(),
+                None,
+                (perf_counter() - started) * 1000,
+                "isolation_failed",
+                violation,
+                inventory=inventory,
+            )
+        if cli == "codex":
+            command[command.index("--") : command.index("--")] = ["-c", inventory["skill_config"]]
     try:
         # Empty piped stdin is essential: a launching shell's heredoc must never
         # become extra user context in a CLI that appends stdin to its prompt.
@@ -633,7 +656,9 @@ def _execute(
         parsed.hook_events.extend(event for event in json_events(stderr) if hook_event(event))
         violation = subscription_violation(cli, parsed)
         if isolated:
-            violation = violation or isolation_violation(parsed, mcp_enabled=mcp_enabled)
+            violation = violation or isolation_violation(
+                parsed, mcp_enabled=mcp_enabled, cli=cli, inventory=inventory
+            )
         limit = usage_limit(parsed, stderr, -1, [])
         return Execution(
             parsed,
@@ -643,6 +668,7 @@ def _execute(
             violation or "CLI timed out",
             limit,
             output + stderr,
+            inventory,
         )
     except OSError as exc:
         return Execution(
@@ -651,6 +677,7 @@ def _execute(
             (perf_counter() - started) * 1000,
             "cli_error",
             f"Cannot start CLI ({type(exc).__name__})",
+            inventory=inventory,
         )
     try:
         parsed = parse_transcript(cli, process.stdout)
@@ -659,7 +686,9 @@ def _execute(
         )
         violation = subscription_violation(cli, parsed)
         if isolated:
-            violation = violation or isolation_violation(parsed, mcp_enabled=mcp_enabled)
+            violation = violation or isolation_violation(
+                parsed, mcp_enabled=mcp_enabled, cli=cli, inventory=inventory
+            )
     except (ValueError, KeyError, TypeError, AttributeError):
         return Execution(
             Transcript(),
@@ -668,6 +697,7 @@ def _execute(
             "transcript_error",
             "CLI emitted an invalid structured transcript",
             observed_output=process.stdout + process.stderr,
+            inventory=inventory,
         )
     limit = usage_limit(
         parsed, process.stderr, process.returncode, settings["usage_limit_exit_codes"]
@@ -701,4 +731,29 @@ def _execute(
         error,
         limit,
         process.stdout + process.stderr,
+        inventory,
     )
+
+
+def prepare_workspace(
+    cli: str, config: dict, workspace: Path, *, mcp_enabled: bool, isolated: bool = True
+) -> None:
+    from qa.tui_homes import home_config
+
+    if cli == "gemini":
+        data = json.loads(home_config(cli, config, enabled=mcp_enabled)) if isolated else {}
+        if isolated:
+            data.update(
+                skills={"enabled": False},
+                hooksConfig={"enabled": False},
+                context={"fileName": []},
+                mcp={"allowed": ["modelspec"] if mcp_enabled else ["model301_none"]},
+            )
+        # Only these private temporary workspaces are trusted, including the
+        # relaxed control so project discovery really runs there.
+        data["security"] = {
+            "auth": {"selectedType": "oauth-personal"},
+            "folderTrust": {"enabled": False},
+        }
+        # The system override leaves the planted project/user probes in place.
+        (workspace / "gemini-system.json").write_text(json.dumps(data))

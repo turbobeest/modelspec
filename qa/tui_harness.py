@@ -36,9 +36,12 @@ from qa.tui_homes import (
     home_config,
     home_environment,
     home_paths,
+    login,
     login_command,
     resolve_executable,
+    setup_file,
     setup_home,
+    version_numbers,
 )
 from qa.tui_isolation import isolation_result
 from qa.tui_isolation import verify_isolation as doctor_isolation
@@ -127,6 +130,11 @@ def validate_config(config: dict) -> None:
         ):
             raise ValueError(f"{cli} needs an executable and a model")
         home_paths(cli, profile)
+        minimum = profile.get("min_version")
+        if minimum is not None:
+            if not isinstance(minimum, str) or not re.fullmatch(r"\d+\.\d+(?:\.\d+)?", minimum):
+                raise ValueError(f"{cli} min_version must be a numeric major.minor[.patch] string")
+            version_numbers(minimum)
         codes = profile["usage_limit_exit_codes"]
         if not isinstance(codes, list) or any(
             type(code) is not int or not 1 <= code <= 255 for code in codes
@@ -543,9 +551,11 @@ def dry_commands(scenarios: list[dict], selected: list[str], config: dict, outpu
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, default=HERE / "tui_config.yaml")
-    parser.add_argument("action", nargs="?", choices=("run", "setup", "doctor"), default="run")
     parser.add_argument(
-        "--out", type=Path, help="Private report directory, required except for setup"
+        "action", nargs="?", choices=("run", "setup", "login", "doctor"), default="run"
+    )
+    parser.add_argument(
+        "--out", type=Path, help="Private report directory, required except for setup and login"
     )
     parser.add_argument("--cli", choices=CLIS, action="append")
     parser.add_argument("--scenario", action="append")
@@ -575,18 +585,26 @@ def main(argv=None) -> int:
             config["judges"][cli] = judge
         validate_config(config)
         config["_quiet_hours"], config["_force"] = args.quiet_hours, args.force
-        if args.action in ("setup", "doctor") and len(args.cli or []) != 1:
-            raise ValueError("setup and doctor require exactly one --cli")
+        if args.action in ("setup", "login", "doctor") and len(args.cli or []) != 1:
+            raise ValueError("setup, login and doctor require exactly one --cli")
+        if args.action == "login":
+            if args.dry_run or args.smoke or args.verify_isolation:
+                raise ValueError("login cannot be combined with run modes")
+            cli = args.cli[0]
+            home, _ = home_paths(cli, config["clis"][cli])
+            private_output(home)
+            login(cli, config)
+            return 0
         if args.action == "setup":
             if args.dry_run or args.smoke or args.verify_isolation:
                 raise ValueError("setup cannot be combined with run modes")
             cli = args.cli[0]
             home, _ = home_paths(cli, config["clis"][cli])
             private_output(home)
-            command = login_command(cli, config)
             home = setup_home(cli, config)
-            print(f"Prepared {cli} home: {home}. Run this login command yourself:")
-            print(redact(command))
+            version = json.loads(setup_file(home).read_text())["binary"]["version"]
+            print(f"Prepared {cli} {version} home: {home}. Run this login command yourself:")
+            print(login_command(cli, args.config))
             return 0
         if args.out is None:
             raise ValueError("--out is required for private doctor and run reports")

@@ -5,8 +5,10 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import re
 import shlex
 import shutil
+import subprocess
 from pathlib import Path
 
 HOME_VARIABLES = {
@@ -15,10 +17,14 @@ HOME_VARIABLES = {
     "gemini": "GEMINI_CLI_HOME",
     "grok": "GROK_HOME",
 }
+APP_CODEX = Path("/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex")
 
 
 def resolve_executable(cli: str, settings: dict) -> str:
-    name = os.environ.get(f"TUI_{cli.upper()}_BIN", settings["executable"])
+    default = settings["executable"]
+    if cli == "codex" and default == "codex" and APP_CODEX.is_file():
+        default = str(APP_CODEX)
+    name = os.environ.get(f"TUI_{cli.upper()}_BIN", default)
     executable = shutil.which(os.path.expanduser(name))
     if not executable:
         raise ValueError(f"{cli} binary unavailable; set TUI_{cli.upper()}_BIN")
@@ -118,7 +124,15 @@ def require_setup(cli: str, config: dict) -> Path:
         data = json.loads(marker.read_text())
     except (OSError, ValueError) as exc:
         raise ValueError(f"{cli} home is unprepared; run setup --cli {cli}") from exc
-    if data != {"schema": 1, "cli": cli, "home": str(home)} or not config_home.is_dir():
+    if (
+        not isinstance(data, dict)
+        or data.get("schema") not in (1, 2)
+        or data.get("cli") != cli
+        or data.get("home") != str(home)
+        or data.get("schema") == 2
+        and not isinstance(data.get("binary"), dict)
+        or not config_home.is_dir()
+    ):
         raise ValueError(f"{cli} setup receipt does not match its dedicated home")
     return home
 
@@ -126,50 +140,174 @@ def require_setup(cli: str, config: dict) -> Path:
 def setup_home(cli: str, config: dict) -> Path:
     home, config_home = home_paths(cli, config["clis"][cli])
     if setup_file(home).exists():
-        return require_setup(cli, config)
-    if home.exists() and any(home.iterdir()):
-        raise ValueError("Setup requires an empty dedicated home; it never imports existing state")
-    home.mkdir(parents=True, mode=0o700, exist_ok=True)
-    config_home.mkdir(mode=0o700)
-    config_file(cli, config_home).write_text(home_config(cli, config))
-    with setup_file(home).open("x") as stream:
-        json.dump({"schema": 1, "cli": cli, "home": str(home)}, stream)
+        require_setup(cli, config)
+    else:
+        if home.exists() and any(home.iterdir()):
+            raise ValueError(
+                "Setup requires an empty dedicated home; it never imports existing state"
+            )
+        home.mkdir(parents=True, mode=0o700, exist_ok=True)
+        config_home.mkdir(mode=0o700)
+        config_file(cli, config_home).write_text(home_config(cli, config))
+        # Record ownership before launching --version so a failed version check
+        # can be retried without importing or deleting any CLI-created state.
+        with setup_file(home).open("x") as stream:
+            json.dump({"schema": 2, "cli": cli, "home": str(home), "binary": {}}, stream)
+    binary = binary_identity(cli, config, home)
+    with setup_file(home).open("w") as stream:
+        json.dump({"schema": 2, "cli": cli, "home": str(home), "binary": binary}, stream, indent=2)
+        stream.write("\n")
     return home
 
 
-def login_command(cli: str, config: dict) -> str:
-    from qa.tui_providers import BASE_ENV
+def login_command(cli: str, config_path: Path | None = None) -> str:
+    command = ["python", "-m", "qa.tui_harness", "login", "--cli", cli]
+    if config_path is not None and config_path.resolve() != Path(__file__).with_name(
+        "tui_config.yaml"
+    ):
+        command += ["--config", str(config_path.resolve())]
+    return shlex.join(command)
+
+
+def login(cli: str, config: dict) -> None:
+    from qa.tui_providers import child_environment
+
+    home = require_setup(cli, config)
+    settings = config["clis"][cli]
+    recorded = json.loads(setup_file(home).read_text()).get("binary", {})
+    if "version" not in recorded:
+        raise ValueError(f"Repeat setup --cli {cli} to record the CLI version before login")
+    if binary_identity(cli, config, home, versions=recorded) != recorded:
+        raise ValueError(f"CLI changed after setup; repeat setup --cli {cli} before login")
+    env = child_environment(cli, home, config.get("mcp_token_env"), settings=settings)
+    env["TERM"] = os.environ.get("TERM", "xterm-256color")
+    executable = resolve_executable(cli, settings)
+    command = [
+        executable,
+        *{
+            "claude": ["auth", "login", "--claudeai"],
+            "codex": ["login"],
+            "gemini": [],
+            "grok": ["login"],
+        }[cli],
+    ]
+    os.chdir(home)
+    os.execve(executable, command, env)
+
+
+def version_numbers(value: str) -> tuple[int, int, int]:
+    match = re.search(r"(?<![\d.])(\d+)\.(\d+)(?:\.(\d+))?(?![\d.])", value)
+    if not match:
+        raise ValueError("CLI version must contain a numeric major.minor[.patch] version")
+    return tuple(int(part or 0) for part in match.groups())
+
+
+def read_version(path: str, workspace: Path, env: dict, timeout: float) -> str:
+    try:
+        result = subprocess.run(
+            [path, "--version"],
+            cwd=workspace,
+            env=env,
+            input="",
+            text=True,
+            capture_output=True,
+            timeout=timeout,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise ValueError("CLI --version failed; check the native binary override") from exc
+    value = result.stdout.strip()
+    if result.returncode or not value or len(value) > 500:
+        raise ValueError("CLI --version failed; check the native binary override")
+    version_numbers(value)
+    return value
+
+
+def gemini_runtime(executable: Path) -> tuple[Path, Path]:
+    node = shutil.which("node")
+    if executable.suffix != ".js" or not node:
+        raise ValueError(
+            "Gemini requires its native bundle/gemini.js and Node on PATH; "
+            "set TUI_GEMINI_BIN to the native npm entry, not a shell wrapper"
+        )
+    return Path(node).resolve(), executable
+
+
+def binary_identity(
+    cli: str, config: dict, workspace: Path, *, versions: dict | None = None
+) -> dict:
+    """Measure versions only at setup/doctor; receipt reuse checks the same paths and stats."""
+    from qa.tui_providers import child_environment
 
     settings = config["clis"][cli]
-    home, _ = home_paths(cli, settings)
-    # Changing cwd also excludes this repository's instructions during login.
-    env = {key: os.environ[key] for key in BASE_ENV if key in os.environ}
-    env.update(home_environment(cli, settings))
-    command = ["env", "-i", *(f"{key}={value}" for key, value in env.items())]
-    command.append(resolve_executable(cli, settings))
-    command += {
-        "claude": ["auth", "login", "--claudeai"],
-        "codex": ["login"],
-        "gemini": [],
-        "grok": ["login"],
-    }[cli]
-    return f"cd {shlex.quote(str(home))} && {shlex.join(command)}"
+    env = child_environment(cli, workspace, config.get("mcp_token_env"), settings=settings)
 
+    def record(path, cached=None):
+        stat = path.stat()
+        version = (
+            cached
+            if cached is not None
+            else read_version(str(path), workspace, env, config["timeout_seconds"])
+        )
+        return {
+            "path": str(path),
+            "version": version,
+            "size": stat.st_size,
+            "mtime": stat.st_mtime_ns,
+        }
 
-def isolation_identity(cli: str, config: dict) -> str:
-    settings = config["clis"][cli]
     executable = Path(resolve_executable(cli, settings))
-    stat = executable.stat()
+    identity = record(executable, versions["version"] if versions else None)
+    minimum = settings.get("min_version")
+    if minimum is not None and (
+        version_numbers(identity["version"]) < version_numbers(minimum)
+        or re.search(r"\d\.\d+(?:\.\d+)?-(?:alpha|beta|rc|dev)", identity["version"])
+        and version_numbers(identity["version"]) == version_numbers(minimum)
+    ):
+        raise ValueError(f"{cli} {identity['version']} is below min_version {minimum}")
+    if cli == "gemini":
+        node, bundle = gemini_runtime(executable)
+        identity["node"] = record(node, versions["node"]["version"] if versions else None)
+        identity["bundle"] = {
+            "path": str(bundle),
+            "size": bundle.stat().st_size,
+            "mtime": bundle.stat().st_mtime_ns,
+            "sources": hashlib.sha256(
+                json.dumps(
+                    [
+                        [
+                            str(path.relative_to(bundle.parent)),
+                            path.stat().st_size,
+                            path.stat().st_mtime_ns,
+                        ]
+                        for path in sorted(bundle.parent.rglob("*.js"))
+                    ]
+                ).encode()
+            ).hexdigest(),
+        }
+    return identity
+
+
+def isolation_identity(cli: str, config: dict, binary: dict | None = None) -> str:
+    settings = config["clis"][cli]
     home, _ = home_paths(cli, settings)
+    if binary is None:
+        binary = json.loads(setup_file(home).read_text())["binary"]
+    if binary_identity(cli, config, home, versions=binary) != binary:
+        raise ValueError("CLI binary, Node or Gemini bundle changed; rerun doctor")
     identity = {
-        "executable": str(executable),
-        "build": [stat.st_size, stat.st_mtime_ns, stat.st_ino],
+        "binary": binary,
         "home": str(home),
         "profile": settings,
         "mcp_url": config["mcp_url"],
         "mcp_token_env": config.get("mcp_token_env"),
     }
     digest = hashlib.sha256(json.dumps(identity, sort_keys=True).encode())
-    for name in ("tui_homes.py", "tui_providers.py", "tui_isolation.py", "tui_harness.py"):
+    for name in (
+        "tui_homes.py",
+        "tui_providers.py",
+        "tui_isolation.py",
+        "tui_harness.py",
+        "tui_inventory.py",
+    ):
         digest.update(Path(__file__).with_name(name).read_bytes())
     return digest.hexdigest()
