@@ -76,7 +76,7 @@ it("opens a composer-era permalink as a populated board with migration notes", a
   vi.stubGlobal("fetch", routeFetch({ decide: (init) => json(decisionFor(init)) }));
   history.replaceState(null, "", `/decide/?theme=dark&layout=table${LEGACY_PERMALINKS.budgetCoding}`);
   render(<App />);
-  await screen.findByRole("heading", { name: "Set what matters. Watch the field narrow." });
+  await screen.findByRole("heading", { name: "Set what matters across any/all facets. Try a template as a fast track. Watch the field narrow." });
   expect(screen.queryByLabelText("Describe your task")).not.toBeInTheDocument();
   expect(screen.queryByRole("group", { name: "Layout" })).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Light mode" })).toBeInTheDocument();
@@ -111,7 +111,7 @@ it("migrates a composer-era permalink navigated to after vocabulary loads", asyn
   const fetch = routeFetch({ decide: (init) => json(decisionFor(init)) });
   vi.stubGlobal("fetch", fetch);
   render(<App />);
-  await screen.findByRole("heading", { name: "Set what matters. Watch the field narrow." });
+  await screen.findByRole("heading", { name: "Set what matters across any/all facets. Try a template as a fast track. Watch the field narrow." });
   const requestsBeforeNavigation = sentSpecs(fetch).length;
 
   history.pushState(null, "", `/decide/${LEGACY_PERMALINKS.unsupportedParts}`);
@@ -972,10 +972,10 @@ it("treats the legacy demo flag as the public board", async () => {
   vi.stubGlobal("fetch", fetch);
   history.replaceState(null, "", "/decide/?demo=1");
   render(<App />);
-  expect(await screen.findByRole("heading", { name: "Set what matters. Watch the field narrow." })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: "Set what matters across any/all facets. Try a template as a fast track. Watch the field narrow." })).toBeInTheDocument();
   // MODEL-264: the measured agent-speed headline leads, the board line follows.
   expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("…in about 0.1 s. It might take you a little longer.");
-  expect(screen.getByRole("heading", { level: 2, name: "Set what matters. Watch the field narrow." })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { level: 2, name: "Set what matters across any/all facets. Try a template as a fast track. Watch the field narrow." })).toBeInTheDocument();
   expect(screen.getByText(/measured from Boston on 2026-10-01/)).toBeInTheDocument();
   expect(screen.queryByLabelText("Describe your task")).not.toBeInTheDocument();
   expect(fetch).toHaveBeenCalled();
