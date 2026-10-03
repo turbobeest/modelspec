@@ -213,6 +213,11 @@ def test_the_spec_describes_exactly_the_endpoints_the_worker_routes(spec: dict[s
         {elt.value for elt in node.value.elts}
         for node in ast.walk(tree)
         if isinstance(node, ast.Assign) and getattr(node.targets[0], "id", "") == "ACCEPTED_ENDPOINTS")
+    # MODEL-292: /v1/visit-token is routed (and documented) only while the
+    # production VISIT_GATE_ENABLED flag is on.
+    from pipeline.worker_flags import OFF_VALUES, production_vars
+    if str(production_vars(ENTRY.parents[3]).get("VISIT_GATE_ENABLED", "false")).strip().lower() not in OFF_VALUES:
+        routed = routed | {"POST /v1/visit-token"}
     described = {f"{method.upper()} {path}"
                  for path, operations in spec["paths"].items() for method in operations}
     assert described == routed, (

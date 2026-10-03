@@ -133,6 +133,9 @@ export function DesignedApp({
   const requestTimer = useRef<ReturnType<typeof setTimeout> | null>(null),
     requestAbort = useRef<AbortController | null>(null),
     plotKey = useRef(""),
+    // The plot request in flight, if any. It outlives effect re-runs that
+    // leave its key unchanged (the full explanation replacing the summary).
+    plotRequest = useRef<AbortController | null>(null),
     provTrigger = useRef<HTMLElement | null>(null),
     hashNavigation = useRef<() => void>(() => undefined),
     initialAnswered = useRef(false);
@@ -232,6 +235,8 @@ export function DesignedApp({
       !lastSentSpec ||
       !shownCanvasAxes
     ) {
+      plotRequest.current?.abort();
+      plotRequest.current = null;
       plotKey.current = "";
       setPlotDecision(null);
       return;
@@ -249,9 +254,13 @@ export function DesignedApp({
     );
     const plotSpec = canvasPlotSpec(rankingSpec, x, y, numericFallback);
     const key = `${hostedDecision.snapshot}:${JSON.stringify(plotSpec)}`;
+    // Asked already, answered or still in flight: the same question is never
+    // sent twice. Aborting it on every re-run and asking again sent one action's
+    // plot twice whenever the full explanation landed first.
     if (plotKey.current === key) return;
+    plotRequest.current?.abort();
     const controller = new AbortController();
-    let settled = false;
+    plotRequest.current = controller;
     plotKey.current = key;
     setPlotDecision(null);
     void retryOnSnapshotChange(
@@ -266,19 +275,15 @@ export function DesignedApp({
       (fresh) => setVocabState({ kind: "ready", vocabulary: fresh }),
     )
       .then(({ result: plotDecision }) => {
-        if (!controller.signal.aborted) {
-          settled = true;
-          setPlotDecision(plotDecision);
-        }
+        if (!controller.signal.aborted) setPlotDecision(plotDecision);
       })
       .catch((cause: unknown) => {
         if (!(cause instanceof Error && cause.name === "AbortError"))
           setPlotDecision(null);
+      })
+      .finally(() => {
+        if (plotRequest.current === controller) plotRequest.current = null;
       });
-    return () => {
-      controller.abort();
-      if (!settled && plotKey.current === key) plotKey.current = "";
-    };
   }, [
     humanGateEnabled,
     hostedDecision,
@@ -287,6 +292,7 @@ export function DesignedApp({
     vocabulary,
     reloadVocabulary,
   ]);
+  useEffect(() => () => plotRequest.current?.abort(), []);
   const access = accessAnswer(boardBaseSpec.access);
   // Routes are drawn for the access the shown decision answered, not the one
   // just chosen: until the new answer arrives, the old one keeps its routes.

@@ -244,9 +244,9 @@ def test_worker_vocabulary_uses_token_and_never_caches_credentials(bundled_entry
     assert asyncio.run(obj.remaining(True)) == 300
 
 
-def test_flags_ship_off_and_exchange_is_disabled(entry):
-    values = production_vars(Path(__file__).resolve().parents[1])
-    assert values["VISIT_GATE_ENABLED"] == "false"
+def test_flag_off_disables_the_exchange(entry):
+    # Production turned the visit gate on 2026-10-03 (MODEL-292, privacy v1.9);
+    # the flag-off path must still remove the route entirely.
     worker = _decision_worker(entry, environment(VISIT_GATE_ENABLED="false"))
     assert asyncio.run(worker.fetch(request("/v1/visit-token"))).status == 404
 
@@ -283,9 +283,14 @@ def test_unconfigured_exchange_fails_closed(overrides):
 def test_privacy_guard_rejects_switching_on_before_adoption(monkeypatch):
     from tests.test_legal import test_visit_gate_requires_adopted_v19_privacy_before_enabling
     import pipeline.worker_flags
+    import tests.test_legal
     config = production_vars(Path(__file__).resolve().parents[1])
     config["VISIT_GATE_ENABLED"] = "true"
     monkeypatch.setattr(pipeline.worker_flags, "production_vars", lambda root: config)
+    # The adopted statement passes; the same flag against a pre-1.9 statement must not.
+    test_visit_gate_requires_adopted_v19_privacy_before_enabling()
+    monkeypatch.setattr(tests.test_legal, "PRIVACY",
+                        tests.test_legal.PRIVACY.replace("Version `1.9`", "Version `1.8`", 1))
     with pytest.raises(AssertionError, match="requires adopted privacy v1.9"):
         test_visit_gate_requires_adopted_v19_privacy_before_enabling()
 

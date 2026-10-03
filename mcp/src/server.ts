@@ -125,16 +125,22 @@ type JsonSchemaObject = Exclude<
   boolean
 >;
 
+const DECIDE_DEFAULTS = {
+  explain: "none",
+  limit: 10,
+  fields: ["model_rank", "cost_per_task", "estimates", "p_best"],
+};
+
 function decisionSpecJsonSchema(): JsonSchemaObject {
   if (
     decisionContract.$schema !== "https://json-schema.org/draft/2020-12/schema" ||
-    !("Spec" in decisionContract.$defs)
+    !("DecideRequest" in decisionContract.$defs)
   ) {
     throw new Error("decision-contract.schema.json has no decision Spec definition");
   }
   const available = new Map(Object.entries(decisionContract.$defs));
   const definitions: Record<string, (typeof decisionContract.$defs)[keyof typeof decisionContract.$defs]> = {};
-  const pending = ["Spec"];
+  const pending = ["DecideRequest"];
   while (pending.length) {
     const name = pending.pop();
     if (name === undefined || name in definitions) continue;
@@ -147,8 +153,19 @@ function decisionSpecJsonSchema(): JsonSchemaObject {
   }
   return {
     $schema: decisionContract.$schema,
-    $defs: definitions,
-    $ref: "#/$defs/Spec",
+    $defs: {
+      ...definitions,
+      DecideRequest: {
+        ...decisionContract.$defs.DecideRequest,
+        properties: {
+          ...decisionContract.$defs.DecideRequest.properties,
+          explain: { ...decisionContract.$defs.DecideRequest.properties.explain, default: DECIDE_DEFAULTS.explain },
+          limit: { ...decisionContract.$defs.DecideRequest.properties.limit, default: DECIDE_DEFAULTS.limit },
+          fields: { ...decisionContract.$defs.DecideRequest.properties.fields, default: DECIDE_DEFAULTS.fields },
+        },
+      },
+    },
+    $ref: "#/$defs/DecideRequest",
   } as JsonSchemaObject;
 }
 
@@ -172,17 +189,41 @@ const decisionSpecInput = {
 
 type DecisionBody = {
   status?: unknown;
+  answer?: unknown;
   results?: unknown;
   may_qualify?: unknown;
+  model_evidence?: unknown;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-function decisionSummary(body: unknown): string {
+function answerSummary(answer: unknown): string {
+  if (!isRecord(answer) || !Array.isArray(answer.members)) return "answer: none";
+  const members = answer.members.filter((m): m is string => typeof m === "string");
+  // Bounded like the top-models list; the body's answer.members stays complete.
+  const shown = members.slice(0, 5).join(", ");
+  const more = members.length > 5 ? ` and ${members.length - 5} more in answer.members` : "";
+  if (answer.kind === "tied") return `answer: tied among ${shown}${more}`;
+  return `answer: ${shown || "none"}`;
+}
+
+export function decisionSummary(body: unknown): string {
   const decision: DecisionBody = isRecord(body) ? body : {};
   const status = typeof decision.status === "string" ? decision.status : "unknown";
+  // A drill-down carries no result or may_qualify rows by design: summarise the
+  // answer and the one model it explains, never "top models: none".
+  if (isRecord(decision.model_evidence)) {
+    const detail = decision.model_evidence;
+    const model = typeof detail.model === "string" ? detail.model : "unknown";
+    const modelStatus = typeof detail.status === "string" ? detail.status : "unknown";
+    const rank = typeof detail.rank === "number" ? `rank ${detail.rank}` : "unranked";
+    return (
+      `status: ${status}; ${answerSummary(decision.answer)}; ` +
+      `evidence for: ${model} (${modelStatus}, ${rank})`
+    );
+  }
   const results = Array.isArray(decision.results) ? decision.results : [];
   const models = results
     .flatMap((result) => {
@@ -199,6 +240,21 @@ function decisionSummary(body: unknown): string {
     `status: ${status}; top models: ${models.length ? models.join(", ") : "none"}; ` +
     `may qualify: ${mayQualify}`
   );
+}
+
+/**
+ * The MCP default projection applies only when explain is unset or "none".
+ * A caller who pays for explain "summary" or "full" gets complete rows unless
+ * they pass fields themselves.
+ */
+export function defaultDecideRequest(spec: unknown): unknown {
+  if (!isRecord(spec)) return spec;
+  const explained = spec.explain !== undefined && spec.explain !== "none";
+  return {
+    ...DECIDE_DEFAULTS,
+    ...(explained ? { fields: null } : {}),
+    ...spec,
+  };
 }
 
 export type McpFactoryContext = {
@@ -328,7 +384,7 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
     },
     async (spec) => {
       const origin = `${env.RANK_API_ORIGIN.replace(/\/$/, "")}/v1/decide`;
-      const envelope = await fetchDecision(origin, spec);
+      const envelope = await fetchDecision(origin, defaultDecideRequest(spec));
       const result = asToolResult(envelope);
       if (result.isError) return result;
       return {

@@ -10,13 +10,21 @@ from collections.abc import Awaitable, Callable
 from dataclasses import replace
 from typing import Any, NamedTuple, Protocol
 
+from pydantic import ValidationError
+
 from decision import contract
+from decision.bounded import project as project_decision
 from decision.compare import compare as compare_decisions
 from decision.engine import decide as run_decision
 from decision.registry import facet
 from decision.reading import for_refusal
 from decision.recovery import recovery_hints
-from decision.snapshot import SnapshotIntegrityError, load_snapshot_bytes, verify_hmac_signature
+from decision.snapshot import (
+    SnapshotError,
+    SnapshotIntegrityError,
+    load_snapshot_bytes,
+    verify_hmac_signature,
+)
 
 HTTP_OK = 200
 HTTP_BAD_REQUEST = 400
@@ -320,6 +328,23 @@ def error_response(
     return status, body
 
 
+def bounded_unavailable(message: str, *, snapshot_id: str) -> tuple[int, dict[str, Any]]:
+    """A refusal only a bounded drill-down can receive.
+
+    It belongs to the bounded representation, not to the 2.x error enum: a
+    caller that never sends ``evidence_for`` never sees it, so it carries the
+    bounded identity instead of a 2.x ``contract_version``.
+    """
+    return HTTP_SERVICE_UNAVAILABLE, {
+        "representation": "bounded",
+        "bounded_version": contract.BOUNDED_VERSION,
+        "projects_contract": contract.CONTRACT_VERSION,
+        "endpoint": "decide",
+        "snapshot": snapshot_id,
+        "error": {"code": "explanation_unavailable", "message": message},
+    }
+
+
 def no_snapshot(message: str, *, endpoint: str = "decide") -> tuple[int, dict[str, Any]]:
     """Return the temporary state used until Pages publishes a signed snapshot."""
     return HTTP_SERVICE_UNAVAILABLE, {
@@ -357,7 +382,17 @@ def decide(payload: Any, snapshot, *,
         return snapshot_changed(expected_snapshot, snapshot)
     facets = _facets(snapshot)
     try:
-        spec = contract.parse_spec(payload, facets=facets)
+        if isinstance(payload, dict):
+            controls = {key: payload[key] for key in ("fields", "evidence_for") if key in payload}
+            try:
+                options = contract.ResponseOptions.model_validate(controls)
+            except ValidationError as exc:
+                raise contract.SpecError(contract._issues(exc)) from None
+            raw_spec = {key: value for key, value in payload.items() if key not in controls}
+        else:
+            options = contract.ResponseOptions()
+            raw_spec = payload
+        spec = contract.parse_spec(raw_spec, facets=facets)
     except contract.SpecError as exc:
         return error_response(
             "invalid_spec",
@@ -377,7 +412,33 @@ def decide(payload: Any, snapshot, *,
             snapshot_id=snapshot.snapshot_id,
         )
     try:
-        decision = run_decision(spec, snapshot, facets=facets)
+        details = []
+        if options.evidence_for is not None and not any(
+            snapshot.model_of(cid) == options.evidence_for for cid in snapshot.candidates()
+        ):
+            raise contract.SpecError([contract.Issue(
+                None, "evidence_for", "model is not in this snapshot's active lineup", "evidence_for")])
+        if options.evidence_for is not None:
+            # Drill-down cites records even at explain=none. A snapshot built
+            # before provenance retention cannot; that is the server's state,
+            # not a fault in the request.
+            try:
+                snapshot.require_explanation_records()
+            except SnapshotError as exc:
+                return bounded_unavailable(
+                    f"evidence_for needs the snapshot's retained verification records: {exc}. "
+                    "Retry without evidence_for, or later against a rebuilt snapshot",
+                    snapshot_id=snapshot.snapshot_id,
+                )
+        decision = run_decision(
+            spec, snapshot, facets=facets,
+            _capture_evidence=None if options.evidence_for is None else (options.evidence_for, details.append),
+        )
+        if options.fields is not None or options.evidence_for is not None:
+            return HTTP_OK, project_decision(
+                decision, options, detail=details[0] if details else None,
+                not_applied=sorted(set(spec.capabilities or {}) - set(snapshot.domain_ids())),
+            )
     except contract.SpecError as exc:
         return error_response(
             "invalid_spec",

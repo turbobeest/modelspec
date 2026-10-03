@@ -235,7 +235,7 @@ exports[`modelspec MCP worker > tools/list returns all seven tools with object i
     "name": "policy_check",
   },
   {
-    "description": "Which models fit this job? Returns answer, ranked results, may_qualify, reading and recovery hints, decision_id and snapshot. Read reading when present. Present answer.kind=tied as a tie among all answer.members, never a single winner; tie-breakers are conditional choices. Report a tied with_estate.answer as a tie too. State requirements in reading.not_applied or error.issues that were not applied, including requirements removed after a rejected call. A retry does not verify them. Report estimates as estimates: fits_hardware membership is not measured fit for a specific quantization and context workload. Follow reading.do_not_claim. Never claim a rank the response does not show. Needs an API key (Authorization: Bearer). Costs 1 or 2 credits a call; a credit costs $0.0017–$0.004 depending on the plan or pack (https://modelspec.dev/pricing/). Not a router: call it once per job or role, not per request, then route among the models it recommends. Proxies POST https://api.modelspec.dev/v1/decide. Call decide early with a template-based Spec; refine from reading and recovery hints. Use vocab section=starter only when you need a facet id; use search for a targeted lookup. Put Musts in where: these gates exclude. Put Prefers in optimize.weights: weights rank and never exclude. Unknown values go to may_qualify. Pin snapshot for reproducibility. Minimal valid Spec: {"spec_version":1,"optimize":{"min":"offering.cost_per_task"}}. Use explain=summary first. Full includes every eliminated candidate and can exceed the client context budget. task free text is rejected; where is an array. Report any requirement dropped on retry. Call shape, examples, recovery and budgets: https://modelspec.dev/agents.md. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
+    "description": "Which models fit this job? Returns answer, ranked results, may_qualify, reading and recovery hints, decision_id and snapshot. Read reading when present. Present answer.kind=tied as a tie among all answer.members, never a single winner; tie-breakers are conditional choices. Report a tied with_estate.answer as a tie too. State requirements in reading.not_applied or error.issues that were not applied, including requirements removed after a rejected call. A retry does not verify them. Report estimates as estimates: fits_hardware membership is not measured fit for a specific quantization and context workload. Follow reading.do_not_claim. Never claim a rank the response does not show. Needs an API key (Authorization: Bearer). Costs 1 or 2 credits a call; a credit costs $0.0017–$0.004 depending on the plan or pack (https://modelspec.dev/pricing/). Not a router: call it once per job or role, not per request, then route among the models it recommends. Proxies POST https://api.modelspec.dev/v1/decide. Call decide early with a template-based Spec; refine from reading and recovery hints. Use vocab section=starter only when you need a facet id; use search for a targeted lookup. Put Musts in where: these gates exclude. Put Prefers in optimize.weights: weights rank and never exclude. Unknown values go to may_qualify. Pin snapshot for reproducibility. Minimal valid Spec: {"spec_version":1,"optimize":{"min":"offering.cost_per_task"}}. MCP decide returns a bounded answer by default; drill down with evidence_for, or ask for full rows with fields:null/explain. With explain unset or "none" it sends explain=none, limit=10 and row fields model_rank, cost_per_task, estimates and p_best, and the body says representation: bounded. The answer, reading, warnings and ties stay complete; explanation.omitted counts the sections left out. At explain=none eliminations are not computed, so a missing eliminated count does not mean nothing was screened out; ask explain=summary to count them. To see one model's evidence, status, rank and elimination reasons, resend the same spec with its returned snapshot and evidence_for: <model id>; that stateless call stays within 2k estimated tokens. For full rows pass fields: null, or set explain to summary or full, which return full rows unless you also pass fields. Full includes every eliminated candidate and can exceed the client context budget. decision_id is a citation, not a stored lookup. task free text is rejected; where is an array. Report any requirement dropped on retry. Call shape, examples, recovery and budgets: https://modelspec.dev/agents.md. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
     "inputSchema": {
       "$defs": {
         "Access": {
@@ -551,6 +551,279 @@ condition.",
             "value",
           ],
           "title": "Compare",
+          "type": "object",
+        },
+        "DecideRequest": {
+          "additionalProperties": false,
+          "properties": {
+            "access": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Access",
+                },
+                {
+                  "type": "null",
+                },
+              ],
+              "default": null,
+            },
+            "capabilities": {
+              "anyOf": [
+                {
+                  "patternProperties": {
+                    "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$": {
+                      "enum": [
+                        "required",
+                        "preferred",
+                      ],
+                      "type": "string",
+                    },
+                  },
+                  "type": "object",
+                },
+                {
+                  "type": "null",
+                },
+              ],
+              "default": null,
+              "title": "Capabilities",
+            },
+            "estate": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/Estate",
+                },
+                {
+                  "type": "null",
+                },
+              ],
+              "default": null,
+            },
+            "evidence_for": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+                  "type": "string",
+                },
+                {
+                  "type": "null",
+                },
+              ],
+              "default": null,
+              "title": "Evidence For",
+            },
+            "exclude_benchmarks": {
+              "items": {
+                "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
+                "type": "string",
+              },
+              "title": "Exclude Benchmarks",
+              "type": "array",
+            },
+            "explain": {
+              "default": "none",
+              "enum": [
+                "none",
+                "summary",
+                "full",
+              ],
+              "title": "Explain",
+              "type": "string",
+            },
+            "fields": {
+              "anyOf": [
+                {
+                  "items": {
+                    "enum": [
+                      "rank",
+                      "model",
+                      "model_rank",
+                      "offering",
+                      "cost_per_task",
+                      "harness",
+                      "effort",
+                      "evidence",
+                      "estimates",
+                      "refinement_estimates",
+                      "p_best",
+                      "top3_stability",
+                      "soft_penalty",
+                      "contributions",
+                      "warnings",
+                      "plans",
+                    ],
+                    "type": "string",
+                  },
+                  "maxItems": 16,
+                  "minItems": 1,
+                  "type": "array",
+                },
+                {
+                  "type": "null",
+                },
+              ],
+              "default": [
+                "model_rank",
+                "cost_per_task",
+                "estimates",
+                "p_best",
+              ],
+              "title": "Fields",
+            },
+            "limit": {
+              "default": 10,
+              "maximum": 500,
+              "minimum": 1,
+              "title": "Limit",
+              "type": "integer",
+            },
+            "optimize": {
+              "$ref": "#/$defs/Objective",
+            },
+            "profile": {
+              "anyOf": [
+                {
+                  "oneOf": [
+                    {
+                      "pattern": "^profile:[a-z0-9][a-z0-9-]*$",
+                      "type": "string",
+                    },
+                    {
+                      "$ref": "#/$defs/InventoryProfile",
+                    },
+                  ],
+                },
+                {
+                  "type": "null",
+                },
+              ],
+              "default": null,
+              "title": "Profile",
+            },
+            "save_as": {
+              "anyOf": [
+                {
+                  "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+                  "type": "string",
+                },
+                {
+                  "type": "null",
+                },
+              ],
+              "default": null,
+              "title": "Save As",
+            },
+            "snapshot": {
+              "anyOf": [
+                {
+                  "const": "latest",
+                },
+                {
+                  "pattern": "^snap_[A-Za-z0-9:._-]+$",
+                  "type": "string",
+                },
+              ],
+              "default": "latest",
+              "title": "Snapshot",
+            },
+            "spec_version": {
+              "const": 1,
+              "title": "Spec Version",
+              "type": "integer",
+            },
+            "task": {
+              "anyOf": [
+                {
+                  "type": "string",
+                },
+                {
+                  "type": "null",
+                },
+              ],
+              "default": null,
+              "title": "Task",
+            },
+            "task_tokens": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/TaskTokens",
+                },
+                {
+                  "type": "null",
+                },
+              ],
+              "default": null,
+            },
+            "task_type": {
+              "anyOf": [
+                {
+                  "enum": [
+                    "new_feature",
+                    "bug_fix",
+                    "refactor",
+                    "test_writing",
+                    "docs",
+                    "migration",
+                    "performance",
+                    "security_fix",
+                    "review",
+                    "analysis",
+                    "data_transform",
+                    "config_infra",
+                  ],
+                  "type": "string",
+                },
+                {
+                  "type": "null",
+                },
+              ],
+              "default": null,
+              "title": "Task Type",
+            },
+            "unknowns": {
+              "const": "default",
+              "default": "default",
+              "title": "Unknowns",
+              "type": "string",
+            },
+            "where": {
+              "items": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                  },
+                  {
+                    "$ref": "#/$defs/Compare",
+                  },
+                  {
+                    "$ref": "#/$defs/Window",
+                  },
+                  {
+                    "$ref": "#/$defs/InSet",
+                  },
+                  {
+                    "$ref": "#/$defs/Known",
+                  },
+                  {
+                    "$ref": "#/$defs/AnyOf",
+                  },
+                  {
+                    "$ref": "#/$defs/AllOf",
+                  },
+                  {
+                    "$ref": "#/$defs/NotOf",
+                  },
+                ],
+              },
+              "title": "Where",
+              "type": "array",
+            },
+          },
+          "required": [
+            "spec_version",
+            "optimize",
+          ],
+          "title": "DecideRequest",
           "type": "object",
         },
         "Estate": {
@@ -1298,227 +1571,6 @@ takes its key and its plans with it.",
           "title": "Soft",
           "type": "object",
         },
-        "Spec": {
-          "additionalProperties": false,
-          "description": "A request for a decision.",
-          "properties": {
-            "access": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/Access",
-                },
-                {
-                  "type": "null",
-                },
-              ],
-              "default": null,
-            },
-            "capabilities": {
-              "anyOf": [
-                {
-                  "patternProperties": {
-                    "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$": {
-                      "enum": [
-                        "required",
-                        "preferred",
-                      ],
-                      "type": "string",
-                    },
-                  },
-                  "type": "object",
-                },
-                {
-                  "type": "null",
-                },
-              ],
-              "default": null,
-              "title": "Capabilities",
-            },
-            "estate": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/Estate",
-                },
-                {
-                  "type": "null",
-                },
-              ],
-              "default": null,
-            },
-            "exclude_benchmarks": {
-              "items": {
-                "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
-                "type": "string",
-              },
-              "title": "Exclude Benchmarks",
-              "type": "array",
-            },
-            "explain": {
-              "default": "summary",
-              "enum": [
-                "none",
-                "summary",
-                "full",
-              ],
-              "title": "Explain",
-              "type": "string",
-            },
-            "limit": {
-              "default": 20,
-              "maximum": 500,
-              "minimum": 1,
-              "title": "Limit",
-              "type": "integer",
-            },
-            "optimize": {
-              "$ref": "#/$defs/Objective",
-            },
-            "profile": {
-              "anyOf": [
-                {
-                  "oneOf": [
-                    {
-                      "pattern": "^profile:[a-z0-9][a-z0-9-]*$",
-                      "type": "string",
-                    },
-                    {
-                      "$ref": "#/$defs/InventoryProfile",
-                    },
-                  ],
-                },
-                {
-                  "type": "null",
-                },
-              ],
-              "default": null,
-              "title": "Profile",
-            },
-            "save_as": {
-              "anyOf": [
-                {
-                  "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
-                  "type": "string",
-                },
-                {
-                  "type": "null",
-                },
-              ],
-              "default": null,
-              "title": "Save As",
-            },
-            "snapshot": {
-              "anyOf": [
-                {
-                  "const": "latest",
-                },
-                {
-                  "pattern": "^snap_[A-Za-z0-9:._-]+$",
-                  "type": "string",
-                },
-              ],
-              "default": "latest",
-              "title": "Snapshot",
-            },
-            "spec_version": {
-              "const": 1,
-              "title": "Spec Version",
-              "type": "integer",
-            },
-            "task": {
-              "anyOf": [
-                {
-                  "type": "string",
-                },
-                {
-                  "type": "null",
-                },
-              ],
-              "default": null,
-              "title": "Task",
-            },
-            "task_tokens": {
-              "anyOf": [
-                {
-                  "$ref": "#/$defs/TaskTokens",
-                },
-                {
-                  "type": "null",
-                },
-              ],
-              "default": null,
-            },
-            "task_type": {
-              "anyOf": [
-                {
-                  "enum": [
-                    "new_feature",
-                    "bug_fix",
-                    "refactor",
-                    "test_writing",
-                    "docs",
-                    "migration",
-                    "performance",
-                    "security_fix",
-                    "review",
-                    "analysis",
-                    "data_transform",
-                    "config_infra",
-                  ],
-                  "type": "string",
-                },
-                {
-                  "type": "null",
-                },
-              ],
-              "default": null,
-              "title": "Task Type",
-            },
-            "unknowns": {
-              "const": "default",
-              "default": "default",
-              "title": "Unknowns",
-              "type": "string",
-            },
-            "where": {
-              "items": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                  },
-                  {
-                    "$ref": "#/$defs/Compare",
-                  },
-                  {
-                    "$ref": "#/$defs/Window",
-                  },
-                  {
-                    "$ref": "#/$defs/InSet",
-                  },
-                  {
-                    "$ref": "#/$defs/Known",
-                  },
-                  {
-                    "$ref": "#/$defs/AnyOf",
-                  },
-                  {
-                    "$ref": "#/$defs/AllOf",
-                  },
-                  {
-                    "$ref": "#/$defs/NotOf",
-                  },
-                ],
-              },
-              "title": "Where",
-              "type": "array",
-            },
-          },
-          "required": [
-            "spec_version",
-            "optimize",
-          ],
-          "title": "Spec",
-          "type": "object",
-        },
         "TaskTokens": {
           "additionalProperties": false,
           "description": "How many tokens one task takes. \`\`offering.cost_per_task\`\` is priced from it.",
@@ -1681,7 +1733,7 @@ takes its key and its plans with it.",
           "type": "object",
         },
       },
-      "$ref": "#/$defs/Spec",
+      "$ref": "#/$defs/DecideRequest",
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "type": "object",
     },

@@ -79,8 +79,11 @@ def test_schema_compaction_preserves_every_original_rule():
 def test_openapi_size_and_all_response_header_descriptions():
     text = (ROOT / 'api/worker/openapi.yaml').read_text()
     # MODEL-291 baseline 249,369 bytes; resulting file 217,392 bytes.
-    assert len(text.encode()) <= 220_000
-    assert tokens(text) <= 55_000
+    # MODEL-293 adds the bounded representation (DecideRequest, ProjectedResult,
+    # BoundedDecision, ModelEvidence, BoundedExplanation, BoundedRefused): about
+    # 9 KB, already with copied properties pointing at their sources. 226,428 bytes.
+    assert len(text.encode()) <= 229_000
+    assert tokens(text) <= 57_500
     spec = yaml.safe_load(text)
     assert agent_copy.GUIDE_URL in spec['info']['description']
     for path, operations in spec['paths'].items():

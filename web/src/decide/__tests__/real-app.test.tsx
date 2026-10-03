@@ -974,7 +974,7 @@ it("treats the legacy demo flag as the public board", async () => {
   render(<App />);
   expect(await screen.findByRole("heading", { name: "Set what matters. Watch the field narrow." })).toBeInTheDocument();
   // MODEL-264: the measured agent-speed headline leads, the board line follows.
-  expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("about a tenth of a second. It might take you a little longer.");
+  expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("…in about 0.1 s. It might take you a little longer.");
   expect(screen.getByRole("heading", { level: 2, name: "Set what matters. Watch the field narrow." })).toBeInTheDocument();
   expect(screen.getByText(/measured from Boston on 2026-10-01/)).toBeInTheDocument();
   expect(screen.queryByLabelText("Describe your task")).not.toBeInTheDocument();

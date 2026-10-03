@@ -60,6 +60,7 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
         'dist/modelspec/fonts/instrument-sans-latin-wdth-normal.woff2': b'instrument font',
         'dist/modelspec/feedback/index.html': b'feedback page',
         'dist/modelspec/feedback-assets/feedback.js': b'feedback control',
+        'dist/modelspec/brand/index.html': b'brand kit page',
         'dist/benchgraph/_redirects': b'redirects',
         'dist-holding/modelspec/index.html': b'holding page',
         'dist-holding/modelspec/api/index.json': b'{"live":true,"count":1}',

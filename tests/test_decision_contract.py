@@ -803,7 +803,18 @@ def _samples() -> list:
                                marginal_cost_per_task_usd=0)
     estate_result = c.EstateResult(rank=1, offering=result.offering, estate=estate_mark)
     estate_gap = c.EstateGap(same_answer=True, summary="What you hold reaches the answer.")
+    from decision.bounded import project
+    options = c.ResponseOptions(fields=["cost_per_task"])
+    bounded = c.BoundedDecision.model_validate(project(decision, options, not_applied=[]))
+    bounded.answer = separated_answer
     return [
+        options,
+        c.DecideRequest.model_validate({**spec.model_dump(mode="json", by_alias=True), "fields": ["cost_per_task"]}),
+        bounded,
+        bounded.results[0],
+        bounded.explanation,
+        c.ModelEvidence(model=result.model, status="ranked", offering=result.offering,
+                        rank=1, evidence=result.evidence, contributions=result.contributions),
         spec,
         spec.optimize,
         c.Objective(max="software_engineering"),

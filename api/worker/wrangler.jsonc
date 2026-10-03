@@ -96,7 +96,7 @@
     // "false", "0", "no", "off" or "" reads as ON. See docs/api-access.md.
     "ACCESS_ENFORCED": "false",
     // MODEL-292. Ships OFF; VISIT_TOKEN_HMAC_KEY is a new Wrangler secret.
-    "VISIT_GATE_ENABLED": "false",
+    "VISIT_GATE_ENABLED": "true",
     "VISIT_DECIDE_DAY_LIMIT": "300",
     "VISIT_DECIDE_BURST_LIMIT": "30",
     "VISIT_VOCABULARY_DAY_LIMIT": "60",
