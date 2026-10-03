@@ -425,6 +425,20 @@ def test_recovery_skips_nearest_search_for_long_ids_and_bounds_echoes(length, se
         assert hint["nearest_facet_ids"] == []
 
 
+def test_recovery_clips_every_echoed_path_not_only_weight_keys():
+    """A 60 KB capabilities or optimize key must not ride back in each hint's path."""
+    from decision import recovery
+    from decision.contract import Issue
+
+    issues = [Issue(None, None, "unexpected field", "capabilities." + "k" * 60_000),
+              Issue(None, "é" * 500, "unexpected field", "optimize.weights")]
+    hints = recovery.recovery_hints(issues, facets=default_registry().facet)
+    for hint in hints:
+        assert len(hint["path"]) <= 2 * recovery.MAX_ECHO_LENGTH
+        json.loads(json.dumps(hint))  # no escape cut in half
+    assert len(json.dumps(hints)) < 8 * 1024
+
+
 @pytest.mark.parametrize("engine_error", [False, True], ids=["parse", "engine"])
 def test_invalid_recovery_example_keeps_the_original_400(monkeypatch, service, snapshot, engine_error):
     from decision import recovery
