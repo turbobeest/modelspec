@@ -460,6 +460,35 @@ def test_every_condition_and_objective_the_page_can_build_is_a_valid_spec(snapsh
     assert built > 100
 
 
+def test_number_facets_publish_which_way_is_better(vocabulary) -> None:
+    """MODEL-297: the page and agents read the direction; they never guess it."""
+    for row in vocabulary["facets"]:
+        if row["value_type"] == "number":
+            assert row["better"] == registry().facet(row["id"]).better, row["id"]
+        else:
+            assert "better" not in row, row["id"]
+    by_id = {row["id"]: row for row in vocabulary["facets"]}
+    assert by_id["offering.price.input"]["better"] == "lower"
+    assert by_id["offering.speed.throughput"]["better"] == "higher"
+
+
+def test_every_template_weight_points_the_better_way() -> None:
+    """MODEL-297: a template never maximises a price or minimises throughput."""
+    from decision.templates import load_templates
+
+    checked = 0
+    for template in load_templates():
+        for key in template["weights"]:
+            try:
+                facet = registry().facet(key.removeprefix("-"))
+            except KeyError:
+                continue  # a domain, not a facet
+            if facet.better in ("higher", "lower"):
+                checked += 1
+                assert key.startswith("-") == (facet.better == "lower"), (template["id"], key)
+    assert checked > 0
+
+
 def test_every_facet_reports_whether_and_how_it_can_be_preferred(vocabulary) -> None:
     by_id = {row["id"]: row for row in vocabulary["facets"]}
 

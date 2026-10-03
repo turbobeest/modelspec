@@ -2,7 +2,7 @@ import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { FacetBoard } from "../facet-board/FacetBoard";
 import {
-  allocateBoardWeights, boardToSpec, decodeBoardState, encodeBoardSpec, estatePayload, foldRefinementWeights, groupFacets,
+  allocateBoardWeights, boardToSpec, decodeBoardState, defaultFacetOp, encodeBoardSpec, estatePayload, foldRefinementWeights, groupFacets,
   formatBoardCondition, legacyBoardBaseSpec, legacySpecToBoard, nextMustOrder, parseBoardCondition, supportsPreference,
   sanitizeBoardState, templateToBoard, toBoardDecisionSpec,
 } from "../facet-board/model";
@@ -223,6 +223,31 @@ describe("facet state mapping", () => {
       .toEqual({ providers: ["anthropic"], plans: ["anthropic/subscription/max-20x"], devices: ["apple_m3_max"] });
     expect(estatePayload({ providers: [], plans: ["anthropic/subscription/pro"], hardware: [] }))
       .toEqual({ plans: ["anthropic/subscription/pro"] });
+  });
+  // MODEL-297: Prefer on Input price sent `offering.price.input: 0.5`, and the
+  // engine maximised price. A leading `-` is how the engine minimises.
+  it("minimises every lower-is-better number facet and maximises the rest", () => {
+    const numeric = realVocabulary.facets.filter(
+      (facet) => facet.value_type === "number" && supportsPreference(facet),
+    );
+    const lower = numeric.filter((facet) => facet.better === "lower").map((facet) => facet.id);
+    expect(lower).toEqual(expect.arrayContaining([
+      "offering.price.input", "offering.price.output", "offering.price.cached_input",
+      "offering.price.batch_input", "offering.price.batch_output",
+      "offering.cost_per_task", "offering.speed.time_to_first_token",
+    ]));
+    expect(numeric.filter((facet) => facet.better === "higher").map((facet) => facet.id))
+      .toEqual(expect.arrayContaining(["model.context_window", "offering.speed.throughput"]));
+    for (const facet of numeric) {
+      const allocated = allocateBoardWeights(realVocabulary, {
+        [facet.id]: { mode: "prefer", weight: 0.5 },
+      }).weights;
+      const key = facet.better === "lower" ? `-${facet.id}` : facet.id;
+      expect(allocated, facet.id).toEqual({ [key]: 0.5 });
+      expect(defaultFacetOp(facet), facet.id).toBe(facet.better === "lower" ? "<=" : ">=");
+    }
+    expect(weights({ "offering.price.input": { mode: "prefer", weight: 0.5 } }))
+      .toEqual({ "-offering.price.input": 0.5 });
   });
   it("only enables weights the engine supports", () => {
     expect(supportsPreference(smallVocabulary.facets.find((facet) => facet.id === "offering.cost_per_task")!)).toBe(true);

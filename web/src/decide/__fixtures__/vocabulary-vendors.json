@@ -158,7 +158,8 @@
       "range": {
         "min": 50000,
         "max": 500000
-      }
+      },
+      "better": "higher"
     },
     {
       "id": "model.max_output_tokens",
@@ -191,7 +192,8 @@
       "computed_by": null,
       "known": 0,
       "of": 6,
-      "range": null
+      "range": null,
+      "better": "higher"
     },
     {
       "id": "model.weights_openness",
@@ -268,7 +270,8 @@
       "computed_by": null,
       "known": 0,
       "of": 6,
-      "range": null
+      "range": null,
+      "better": "neither"
     },
     {
       "id": "model.parameters_active",
@@ -301,7 +304,8 @@
       "computed_by": null,
       "known": 0,
       "of": 6,
-      "range": null
+      "range": null,
+      "better": "neither"
     },
     {
       "id": "model.architecture",
@@ -410,7 +414,8 @@
       "computed_by": null,
       "known": 0,
       "of": 6,
-      "range": null
+      "range": null,
+      "better": "higher"
     },
     {
       "id": "licence.output_training",
@@ -1203,7 +1208,8 @@
       "range": {
         "min": 3.0,
         "max": 30.0
-      }
+      },
+      "better": "lower"
     },
     {
       "id": "offering.price.output",
@@ -1239,7 +1245,8 @@
       "range": {
         "min": 3.0,
         "max": 30.0
-      }
+      },
+      "better": "lower"
     },
     {
       "id": "offering.price.cached_input",
@@ -1272,7 +1279,8 @@
       "computed_by": null,
       "known": 0,
       "of": 4,
-      "range": null
+      "range": null,
+      "better": "lower"
     },
     {
       "id": "offering.price.batch_input",
@@ -1308,7 +1316,8 @@
       "range": null,
       "literals": [
         "not_offered"
-      ]
+      ],
+      "better": "lower"
     },
     {
       "id": "offering.price.batch_output",
@@ -1341,7 +1350,8 @@
       "computed_by": null,
       "known": 0,
       "of": 4,
-      "range": null
+      "range": null,
+      "better": "lower"
     },
     {
       "id": "offering.cost_per_task",
@@ -1377,7 +1387,8 @@
       "range": {
         "min": 0.132,
         "max": 1.32
-      }
+      },
+      "better": "lower"
     },
     {
       "id": "offering.speed.time_to_first_token",
@@ -1410,7 +1421,8 @@
       "computed_by": null,
       "known": 0,
       "of": 4,
-      "range": null
+      "range": null,
+      "better": "lower"
     },
     {
       "id": "offering.speed.throughput",
@@ -1443,7 +1455,8 @@
       "computed_by": null,
       "known": 0,
       "of": 4,
-      "range": null
+      "range": null,
+      "better": "higher"
     },
     {
       "id": "offering.rate_limit.requests",
@@ -1476,7 +1489,8 @@
       "computed_by": null,
       "known": 0,
       "of": 4,
-      "range": null
+      "range": null,
+      "better": "higher"
     },
     {
       "id": "offering.rate_limit.tokens",
@@ -1509,7 +1523,8 @@
       "computed_by": null,
       "known": 0,
       "of": 4,
-      "range": null
+      "range": null,
+      "better": "higher"
     },
     {
       "id": "offering.sla_uptime",
@@ -1542,7 +1557,8 @@
       "computed_by": null,
       "known": 0,
       "of": 4,
-      "range": null
+      "range": null,
+      "better": "higher"
     },
     {
       "id": "offering.data.retention",
@@ -1575,7 +1591,8 @@
       "computed_by": null,
       "known": 0,
       "of": 4,
-      "range": null
+      "range": null,
+      "better": "lower"
     },
     {
       "id": "offering.data.trains_on_customer_data",

@@ -181,6 +181,33 @@ def test_price_speed_and_context_units_are_precise(registry):
     assert "1,000,000" in registry.unit("usd_per_1m_tokens").definition
 
 
+# MODEL-297: which way is better is registry data, so Prefer never has to guess
+# from a facet ID. A price preferred with a positive weight is maximised.
+LOWER_IS_BETTER = {
+    "offering.price.input", "offering.price.output", "offering.price.cached_input",
+    "offering.price.batch_input", "offering.price.batch_output", "offering.cost_per_task",
+    "offering.speed.time_to_first_token", "offering.data.retention",
+    "offering.subscription.price", "offering.subscription.price_cny",
+    "offering.plan.price_monthly",
+}
+HIGHER_IS_BETTER = {
+    "model.context_window", "model.max_output_tokens", "licence.user_cap",
+    "offering.speed.throughput", "offering.rate_limit.requests", "offering.rate_limit.tokens",
+    "offering.sla_uptime", "offering.subscription.allowance.multiplier",
+    "offering.subscription.allowance.tokens", "evidence.outcome",
+}
+
+
+def test_every_number_facet_declares_which_way_is_better(registry):
+    for f in registry.facets():
+        if f.value_type.kind == "number":
+            assert f.better in ("higher", "lower", "neither"), f.id
+        else:
+            assert f.better is None, f.id
+    assert {f.id for f in registry.facets() if f.better == "lower"} == LOWER_IS_BETTER
+    assert HIGHER_IS_BETTER <= {f.id for f in registry.facets() if f.better == "higher"}
+
+
 def test_origin_is_three_separately_defined_facets(registry):
     origin = [f for f in registry.facets() if f.id.startswith("origin.")]
     assert {f.id for f in origin} >= {
@@ -422,6 +449,9 @@ def test_registry_loader_rejects_an_incompatible_file_version(
     (_facet(value_type={"kind": "enum", "values": ["a_b"]}, value_labels={"a_b": " "}),
      "value_labels"),
     (_facet(value_labels={"x": "X"}), "value_labels"),
+    (_facet(value_type={"kind": "number"}, unit="milliseconds"), "better"),
+    (_facet(value_type={"kind": "number"}, unit="milliseconds", better="up"), "better"),
+    (_facet(better="higher"), "better"),
 ])
 def test_invalid_facets_are_rejected(tmp_path, entry, needle):
     root = _copy(tmp_path)
@@ -464,7 +494,7 @@ def test_adding_a_facet_provider_harness_and_domain_needs_only_registry_entries(
     root = _copy(tmp_path)
     _edit(root, "facets", lambda d: d["facets"].append(_facet(
         id="offering.example_latency", subject="offering",
-        value_type={"kind": "number"}, unit="milliseconds")))
+        value_type={"kind": "number"}, unit="milliseconds", better="lower")))
     _edit(root, "providers", lambda d: d["providers"].append({
         "id": "example-cloud", "name": "Example Cloud", "url": "https://example.com/",
         "kind": "cloud",
