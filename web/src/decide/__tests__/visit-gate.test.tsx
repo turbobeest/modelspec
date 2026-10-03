@@ -197,6 +197,12 @@ it("names a failed visit check as the reason the vocabulary was not requested", 
   expect(requested.filter((url) => !url.endsWith("human-status"))).toEqual([]);
 });
 
+function answerColumn(): HTMLElement {
+  const column = document.getElementById("facet-board-answer");
+  if (!column) throw new Error("The answer column is not rendered");
+  return column;
+}
+
 async function answeredVisitApp({ refuseAfter = Infinity } = {}) {
   let renders = 0;
   let decisions = 0;
@@ -231,8 +237,12 @@ it("shows a failed re-check as the gate's own alert in the answer column, never 
   vi.spyOn(console, "error").mockImplementation(() => undefined);
   const app = await answeredVisitApp({ refuseAfter: 3 });
   app.preferSoftware();
-  const gateAlert = await screen.findByText("Verification is temporarily unavailable. Retry your lookup.", {}, { timeout: 5000 });
-  expect(gateAlert.closest("#facet-board-answer .visit-gate")).not.toBeNull();
+  // Query afresh each time: the board re-renders the answer while a request
+  // settles, so a node found earlier may already have been replaced.
+  await waitFor(() => {
+    const gate = within(answerColumn()).getByRole("region", { name: "Visit verification" });
+    expect(within(gate).getByRole("alert")).toHaveTextContent("Verification is temporarily unavailable. Retry your lookup.");
+  }, { timeout: 5000 });
   expect(screen.queryAllByRole("alert", { name: "The answer could not be shown" })).toHaveLength(0);
 }, 10_000);
 
@@ -241,8 +251,10 @@ it("keeps the visit gate in the answer column when the answer itself fails to dr
   const app = await answeredVisitApp();
   broken.rankedAnswer = true;
   app.preferSoftware();
-  const failure = await screen.findByRole("alert", { name: "The answer could not be shown" }, { timeout: 5000 });
-  const column = document.getElementById("facet-board-answer");
-  expect(column).toContainElement(failure);
-  expect(within(column as HTMLElement).getByRole("region", { name: "Visit verification" })).toBeInTheDocument();
+  await waitFor(() => {
+    const column = answerColumn();
+    expect(within(column).getAllByRole("alert", { name: "The answer could not be shown" })).toHaveLength(1);
+    expect(within(column).getByRole("region", { name: "Visit verification" })).toBeInTheDocument();
+  }, { timeout: 5000 });
+  expect(screen.getAllByRole("alert", { name: "The answer could not be shown" })).toHaveLength(1);
 }, 10_000);
