@@ -438,10 +438,11 @@ describe("modelspec MCP worker", () => {
       error: {
         code: "invalid_spec", message: "where[0] names an unknown facet",
         recovery: [{
-          path: "$.where[0]", accepted_shape: "a valid facet ID",
+          path: "where[0]", accepted_shape: "a valid facet ID",
           example: { spec_version: 1, optimize: { max: "model.context_window" } },
           guidance: "Read vocab section=starter", nearest_facet_ids: ["model.context_window"],
         }],
+        recovery_omitted: 0,
       },
     };
     originFetch.mockResolvedValueOnce(jsonResponse(400, originBody));
@@ -467,10 +468,11 @@ describe("modelspec MCP worker", () => {
         code: "invalid_spec", message: "the request body is not a valid decision spec",
         issues: [{ path: Object.keys(invalid)[0], reason: "wrong shape" }],
         recovery: [{
-          path: `$.${Object.keys(invalid)[0]}`, accepted_shape: "structured Spec field",
+          path: Object.keys(invalid)[0], accepted_shape: "structured Spec field",
           example: { spec_version: 1, optimize: { max: "model.context_window" } },
           guidance: "Read vocab section=starter", nearest_facet_ids: [],
         }],
+        recovery_omitted: 0,
       },
     };
     originFetch.mockResolvedValueOnce(jsonResponse(400, originBody));

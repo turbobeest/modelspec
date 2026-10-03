@@ -84,6 +84,11 @@ Each entry names a JSON path in `path`, describes the accepted shape in
 `accepted_shape`, and supplies a standalone minimal Spec in `example`, built
 from the facet registry. `guidance` explains how to retry. Unknown facet IDs
 include up to three `nearest_facet_ids`; an empty list means no close match.
+Recovery considers only the first five issues. `error.recovery_omitted` counts
+issues without a hint, including examples that failed validation. IDs longer
+than 64 characters skip the nearest-ID search. Echoed weight keys are limited
+to 80 characters. Paths use the same format as `issues[].path`, without a `$.`
+prefix, with weight keys and preference fields appended where applicable.
 Examples illustrate syntax and are not a translation of the caller's intent.
 For free-text `task`, translate the request into structured facets via MCP
 `vocab section=starter`, remove `task`, and retry. Decide takes structured

@@ -306,6 +306,7 @@ def error_response(
         error["issues"] = issues
     if recovery is not None:
         error["recovery"] = recovery
+        error["recovery_omitted"] = len(issues or []) - len(recovery)
     return status, {
         "contract_version": contract.CONTRACT_VERSION,
         "endpoint": endpoint,

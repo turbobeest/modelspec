@@ -6109,18 +6109,23 @@ components:
               type: array
               items:
                 type: object
-            recovery:
-              type: array
-              items:
-                $ref: '#/components/schemas/DecisionRecovery'
-              description: Optional registry-backed corrections for invalid decide specs. Existing issues
-                are unchanged.
             requested:
               type: string
               description: 'snapshot_changed only: the X-ModelSpec-Snapshot sent.'
             current:
               type: string
               description: 'snapshot_changed only: the snapshot that answers now.'
+            recovery:
+              type: array
+              maxItems: 5
+              items:
+                $ref: '#/components/schemas/DecisionRecovery'
+              description: Optional registry-backed corrections for the first five issues in invalid decide
+                specs. Existing issues are unchanged.
+            recovery_omitted:
+              type: integer
+              minimum: 0
+              description: Number of issues without a recovery hint, including examples that failed validation.
     HumanGateRefused:
       type: object
       additionalProperties: false
@@ -6166,12 +6171,6 @@ components:
               type: array
               items:
                 type: object
-            recovery:
-              type: array
-              items:
-                $ref: '#/components/schemas/DecisionRecovery'
-              description: Optional registry-backed corrections for invalid decide specs. Existing issues
-                are unchanged.
             requested:
               type: string
               description: 'snapshot_changed only: the X-ModelSpec-Snapshot sent.'
@@ -6251,12 +6250,6 @@ components:
               type: array
               items:
                 type: object
-            recovery:
-              type: array
-              items:
-                $ref: '#/components/schemas/DecisionRecovery'
-              description: Optional registry-backed corrections for invalid decide specs. Existing issues
-                are unchanged.
             requested:
               type: string
               description: 'snapshot_changed only: the X-ModelSpec-Snapshot sent.'

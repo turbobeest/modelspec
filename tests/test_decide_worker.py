@@ -295,23 +295,23 @@ def test_invalid_specs_name_every_contract_issue(service, snapshot) -> None:
 
 
 REJECTION_CLASSES = [
-    pytest.param({"task": "Choose a model for a support bot"}, "$.task",
+    pytest.param({"task": "Choose a model for a support bot"}, "task",
                  "structured facets", id="free-text-task"),
-    pytest.param({"where": ["model.fits_hardware in [device]"]}, "$.where[0]",
+    pytest.param({"where": ["model.fits_hardware in [device]"]}, "where[0]",
                  "array of registered string values", id="text-set-syntax"),
-    pytest.param({"where": {}}, "$.where", "an array", id="wrong-field-shape"),
+    pytest.param({"where": {}}, "where", "an array", id="wrong-field-shape"),
     pytest.param({"optimize": {"weights": {
         "offering.data.trains_on_customer_data": {"prefer": "false", "weight": 1}}}},
-        '$.optimize.weights["offering.data.trains_on_customer_data"].prefer',
+        'optimize.weights["offering.data.trains_on_customer_data"].prefer',
         "JSON boolean", id="wrong-value-kind"),
-    pytest.param({"where": ["model.context_windo >= 1"]}, "$.where[0]",
+    pytest.param({"where": ["model.context_windo >= 1"]}, "where[0]",
                  "valid facet ID", id="unknown-facet-id"),
     pytest.param({"optimize": {"weights": {"model.weights_openness": 1}}},
-                 '$.optimize.weights["model.weights_openness"]',
+                 'optimize.weights["model.weights_openness"]',
                  "preference object", id="missing-preferred-value"),
-    pytest.param({"optimize": {"max": "model.weights_openness"}}, "$.optimize.max",
+    pytest.param({"optimize": {"max": "model.weights_openness"}}, "optimize.max",
                  "preference object", id="unordered-objective"),
-    pytest.param({"unrecognized": True}, "$.unrecognized",
+    pytest.param({"unrecognized": True}, "unrecognized",
                  "Spec fields", id="unknown-field"),
 ]
 
@@ -329,7 +329,7 @@ def test_rejections_include_registry_backed_recovery(service, snapshot, invalid,
     assert hint["path"] == path
     assert shape in hint["accepted_shape"]
     assert hint["example"]["spec_version"] == 1
-    if path == "$.task":
+    if path == "task":
         assert "decide takes structured facets only" in hint["guidance"]
         assert "vocab section=starter" in hint["guidance"]
         assert "task" not in hint["example"]
@@ -372,7 +372,134 @@ def test_recovery_uses_registry_values_and_preserves_all_issues(service, snapsho
 def test_recovery_path_preserves_a_signed_weight_key(service, snapshot):
     _, body = service.decide(_payload() | {"optimize": {
         "weights": {"-model.weights_openness": 1}}}, snapshot)
-    assert body["error"]["recovery"][0]["path"] == '$.optimize.weights["-model.weights_openness"]'
+    assert body["error"]["recovery"][0]["path"] == 'optimize.weights["-model.weights_openness"]'
+
+
+def test_recovery_work_and_size_are_bounded_for_2000_unknown_facets(
+    monkeypatch, service, snapshot,
+):
+    from unittest.mock import patch
+    from decision import recovery
+
+    payload = _payload() | {"where": [{"known": f"bad_{i}"} for i in range(2000)]}
+    assert len(json.dumps(payload).encode()) < 64 * 1024
+
+    def measured_hints(*args, **kwargs):
+        with (
+            patch.object(recovery.difflib, "get_close_matches", wraps=recovery.difflib.get_close_matches) as nearest,
+            patch.object(recovery, "minimal_spec", wraps=recovery.minimal_spec) as minimal,
+            patch.object(recovery, "parse_spec", wraps=recovery.parse_spec) as parse,
+        ):
+            hints = recovery.recovery_hints(*args, **kwargs)
+            assert nearest.call_count == 5
+            assert minimal.call_count == 1
+            assert parse.call_count == 5
+            return hints
+
+    monkeypatch.setattr(service, "recovery_hints", measured_hints)
+    status, body = service.decide(payload, snapshot)
+    assert status == 400
+    error = body["error"]
+    assert len(error["issues"]) == 2000
+    assert len(error["recovery"]) == 5
+    assert error["recovery_omitted"] == 1995
+    assert [hint["path"] for hint in error["recovery"]] == [f"where[{i}]" for i in range(5)]
+    assert len(json.dumps(error["recovery"]).encode()) < 8 * 1024
+
+
+@pytest.mark.parametrize("length,searches", [(64, 1), (65, 0), (2000, 0)])
+@pytest.mark.parametrize("unknown", [True, False], ids=["unknown-facet", "invalid-field"])
+def test_recovery_skips_nearest_search_for_long_ids_and_bounds_echoes(length, searches, unknown):
+    from unittest.mock import patch
+    from decision import recovery
+    from decision.contract import Issue
+
+    field = "model." + "x" * (length - 6)
+    reason = f"unknown facet {field!r}" if unknown else "unexpected field"
+    issue = Issue(None, field, reason, "optimize.weights")
+    with patch.object(recovery.difflib, "get_close_matches", wraps=recovery.difflib.get_close_matches) as nearest:
+        [hint] = recovery.recovery_hints([issue], facets=default_registry().facet)
+    assert nearest.call_count == searches
+    assert len(hint["path"].removeprefix("optimize.weights[").removesuffix("]")) <= 80
+    if length > 64:
+        assert hint["nearest_facet_ids"] == []
+
+
+def test_recovery_clips_every_echoed_path_not_only_weight_keys():
+    """A 60 KB capabilities or optimize key must not ride back in each hint's path."""
+    from decision import recovery
+    from decision.contract import Issue
+
+    issues = [Issue(None, None, "unexpected field", "capabilities." + "k" * 60_000),
+              Issue(None, "é" * 500, "unexpected field", "optimize.weights")]
+    hints = recovery.recovery_hints(issues, facets=default_registry().facet)
+    for hint in hints:
+        assert len(hint["path"]) <= 2 * recovery.MAX_ECHO_LENGTH
+        json.loads(json.dumps(hint))  # no escape cut in half
+    assert len(json.dumps(hints)) < 8 * 1024
+
+
+@pytest.mark.parametrize("engine_error", [False, True], ids=["parse", "engine"])
+def test_invalid_recovery_example_keeps_the_original_400(monkeypatch, service, snapshot, engine_error):
+    from decision import recovery
+    from decision.contract import Issue, SpecError
+
+    issue = Issue(None, "task", "not a spec field", "task")
+
+    def failed_example(*args, **kwargs):
+        raise SpecError([issue])
+
+    monkeypatch.setattr(recovery, "parse_spec", failed_example)
+    payload = _payload()
+    if engine_error:
+        monkeypatch.setattr(service, "run_decision", failed_example)
+    else:
+        payload["task"] = "some task"
+    status, body = service.decide(payload, snapshot)
+    assert status == 400
+    assert body["error"]["code"] == "invalid_spec"
+    assert body["error"]["issues"][0]["path"] == "task"
+    assert body["error"]["recovery"] == []
+    assert body["error"]["recovery_omitted"] == 1
+
+
+@pytest.mark.parametrize("worker_bundle", [False, True], ids=["repository", "worker-bundle"])
+@pytest.mark.parametrize("values_available", [True, False], ids=["registered-values", "unavailable-values"])
+def test_recovery_examples_parse_for_every_addressable_facet(
+    tmp_path, monkeypatch, worker_bundle, values_available,
+):
+    from decision import recovery, registry
+    from decision.contract import Issue, parse_spec
+
+    if worker_bundle:
+        spec = importlib.util.spec_from_file_location("recovery_vendor", WORKER_ROOT / "vendor.py")
+        vendor = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(vendor)
+        bundle = vendor.build(tmp_path / "bundle")
+        assert not (bundle / "benchmarks").exists()
+        reg = registry.load(bundle / "registry", repo_root=bundle)
+        monkeypatch.setattr(registry, "default", lambda: reg)
+        monkeypatch.setattr(recovery, "default", lambda: reg)
+    else:
+        reg = registry.default()
+    if not values_available:
+        monkeypatch.setattr(reg, "allowed_values", lambda info: None)
+
+    fallback_ids = []
+    for info in reg.facets():
+        if not info.addressable:
+            continue
+        issue = Issue(None, info.id, "invalid condition", "where[0]")
+        hints = recovery.recovery_hints([issue], facets=reg.facet)
+        assert len(hints) == 1, info.id
+        example = hints[0]["example"]
+        parse_spec(example, facets=reg.facet)
+        if info.value_type.kind in {"enum", "set"} and not reg.allowed_values(info):
+            assert example["where"] == [{"known": info.id}], info.id
+            fallback_ids.append(info.id)
+    assert "origin.lab_jurisdiction" in fallback_ids
+    if not values_available:
+        assert "model.fits_hardware" in fallback_ids
 
 
 def test_unknown_preference_facet_is_a_clean_bad_request(service, snapshot) -> None:

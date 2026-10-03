@@ -417,6 +417,13 @@ def test_decision_and_comparison_refusals_keep_endpoint_contracts_separate(
         "snapshot_refused",
         "snapshot_unavailable",
     ]
+    decision_error = schemas["DecisionRequestRefused"]["properties"]["error"]["properties"]
+    assert decision_error["recovery"]["maxItems"] == 5
+    assert decision_error["recovery_omitted"]["minimum"] == 0
+    for name in ("ComparisonRequestRefused", "HumanGateRefused"):
+        error_properties = schemas[name]["properties"]["error"]["properties"]
+        assert "recovery" not in error_properties
+        assert "recovery_omitted" not in error_properties
 
     responses = spec["paths"]["/v1/compare"]["post"]["responses"]
     assert responses["400"]["content"]["application/json"]["schema"] == {
