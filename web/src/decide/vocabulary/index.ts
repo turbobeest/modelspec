@@ -1,3 +1,4 @@
+import { VISIT_GATE_ENABLED, visitFetch } from "../adapter/visit";
 // The published decision vocabulary (MODEL-153): which facets and benchmarks
 // the current snapshot can answer. Real mode draws every template, parsed
 // condition, question, facet option, axis and weight from it, and offers
@@ -265,7 +266,7 @@ export class VocabularyError extends Error {
 export async function loadVocabulary(signal?: AbortSignal, refresh = false): Promise<Vocabulary> {
   let response: Response;
   try {
-    response = await fetch(VOCABULARY_URL, {
+    response = await (VISIT_GATE_ENABLED || VOCABULARY_URL.includes("/v1/vocabulary") ? visitFetch : fetch)(VOCABULARY_URL, {
       headers: { Accept: "application/json" },
       // Session loads reuse the trimmed response. A snapshot_changed reload
       // bypasses that cache so a newly deployed snapshot can answer at once.

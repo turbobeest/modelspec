@@ -1,6 +1,7 @@
 import { expect, test as base } from "@playwright/test";
 
-type HumanStatus = { enabled: false } | { enabled: true; remaining: number };
+type HumanStatus = { enabled: false } | { enabled: true; remaining: number }
+  | { enabled: true; mode: "visit"; day_limit: number; burst_limit: number };
 
 export const test = base.extend<{ humanStatus: HumanStatus }>({
   humanStatus: [{ enabled: false }, { option: true }],

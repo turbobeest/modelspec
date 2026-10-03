@@ -82,6 +82,7 @@ import policy_service
 import rank_service as service
 import signals_service
 import visitor
+import visit_token
 import x402
 from credits_do import CreditsObject  # noqa: F401 — Wrangler class_name
 from human_gate_do import HumanGateObject  # noqa: F401 — Wrangler class_name
@@ -148,7 +149,7 @@ ACCEPTED_ENDPOINTS = (
     "POST /v1/policy-check", "POST /v1/feedback", "DELETE /v1/feedback", "GET /v1/health",
     "POST /v1/signals", "POST /v1/signals/discovered",
     "GET /v1/signals/pending", "POST /v1/signals/ack",
-    "GET /v1/credits", "GET /v1/human-status",
+    "GET /v1/credits", "GET /v1/human-status", "POST /v1/visit-token",
     "POST /v1/billing/checkout", "POST /v1/billing/stripe-webhook",
     "GET /v1/billing/claim", "POST /v1/billing/claim", "POST /v1/billing/rotate",
 )
@@ -584,10 +585,10 @@ def _cors_headers(request) -> dict[str, str]:
         "access-control-allow-origin": origin,
         "access-control-allow-methods": "POST, OPTIONS",
         "access-control-allow-headers":
-            "authorization, content-type, x-api-key, x-payment, x-modelspec-snapshot, x-modelspec-turnstile, x-modelspec-intent",
+            "authorization, content-type, x-api-key, x-payment, x-modelspec-snapshot, x-modelspec-turnstile, x-modelspec-intent, x-modelspec-visit-token",
         "access-control-expose-headers": (
             "x-modelspec-snapshot, x-modelspec-snapshot-stale, "
-            "x-modelspec-decisions-remaining, retry-after, Server-Timing"
+            "x-modelspec-decisions-remaining, x-modelspec-visit-token, x-modelspec-visit-expires, retry-after, Server-Timing"
         ),
         "access-control-max-age": "86400",
         "vary": "Origin",
@@ -599,7 +600,7 @@ def _site_free_visitor(request, api_key: str | None, enabled: bool, env=None) ->
 
     None when the keyed visitor id is unavailable (no VISITOR_HMAC_KEY): the
     request then takes the paid path rather than a bare-hash meter."""
-    if api_key is not None or not enabled:
+    if api_key is not None or not enabled or visit_token.enabled(env):
         return None
     origin = str(request.headers.get("origin") or request.headers.get("Origin") or "")
     if origin not in CORS_ORIGINS:
@@ -711,6 +712,17 @@ class Default(WorkerEntrypoint):
                 })
             return Response("", status=204, headers=headers)
 
+        if path == "/v1/visit-token":
+            cors = _cors_headers(request)
+            if method == "OPTIONS":
+                return Response("", status=204, headers=cors)
+            if method != "POST":
+                return self._method_not_allowed(service_commit, path, "POST", method)
+            if not visit_token.enabled(self.env):
+                return _json_response(404, {"error": {"code": "not_found", "message": "Visit verification is disabled."}}, cors)
+            status, body = await visit_token.exchange(request, self.env, CORS_ORIGINS, _verify_turnstile)
+            return _json_response(status, body, cors)
+
         if path == "/v1/vocabulary":
             if globals().get("bundled_data") is not None:
                 text = _bundled_vocabulary_text
@@ -719,7 +731,30 @@ class Default(WorkerEntrypoint):
                     return Response("", status=204, headers={**cors, "access-control-allow-methods": "GET, HEAD, OPTIONS"})
                 if method not in ("GET", "HEAD"):
                     return self._method_not_allowed(service_commit, path, "GET", method)
-                if human_gate.enabled(self.env):
+                if visit_token.enabled(self.env):
+                    api_key = access_keys.extract(lambda name: request.headers.get(name))
+                    admitted = False
+                    if api_key is None and request.headers.get(visit_token.HEADER):
+                        status, code, message, headers = await visit_token.admit(request, self.env, CORS_ORIGINS, "vocabulary")
+                        admitted = status == 200
+                        if not admitted and not (code == "visit_token_invalid" and not access.enforcement(getattr(self.env, ACCESS_ENFORCED_VAR, None))):
+                            return _json_response(status, {"error": {"code": code, "message": message}}, {**cors, **headers})
+                        if admitted:
+                            cors.update(headers)
+                    if not admitted:
+                        async def allowed(*args):
+                            return 200, {}
+                        outcome = await access.gate(
+                            api_key=api_key,
+                            enforced=access.enforcement(getattr(self.env, ACCESS_ENFORCED_VAR, None)),
+                            kv=_access_store(self.env), load_policy=lambda: access_config.load_policy(self.env),
+                            anonymous=allowed, live=allowed,
+                            sandbox=lambda: access.refusal(access.SANDBOX_NOT_AVAILABLE, "Use a live key for vocabulary.", envelope={}),
+                        )
+                        if not outcome.served:
+                            return _json_response(outcome.status, outcome.body, {**cors, **outcome.headers})
+                        cors.update(outcome.headers)
+                elif human_gate.enabled(self.env):
                     try:
                         stub = human_gate.stub_for(request, self.env)
                         if stub is None:
@@ -751,7 +786,7 @@ class Default(WorkerEntrypoint):
                                        **selected}, ensure_ascii=False)
                 return Response("" if method == "HEAD" else text, status=200,
                                 headers={**cors, "content-type": "application/json; charset=utf-8",
-                                         "cache-control": "private, max-age=3600", "vary": "Origin"})
+                                         "cache-control": "no-store" if visit_token.enabled(self.env) else "private, max-age=3600", "vary": "Origin"})
         if path == "/v1/feedback":
             return await self._feedback(request, method, service_commit)
         if path == "/v1/human-status":
@@ -919,7 +954,19 @@ class Default(WorkerEntrypoint):
                     return service.error_response(exc, None, service_commit, origin)
                 return access_sandbox.rank_response(parsed, envelope=envelope)
 
-        if path == "/v1/decide" and api_key is None and human_gate.enabled(self.env):
+        if path == "/v1/decide" and api_key is None and visit_token.enabled(self.env) and request.headers.get(visit_token.HEADER):
+            status, code, message, gate_headers = await visit_token.admit(
+                request, self.env, CORS_ORIGINS, "decide", payload)
+            if status == 200:
+                status, body = await _anonymous()
+                return _decision_response(status, body, {
+                    **gate_headers, **_decision_holder(origin).headers(), **_cors_headers(request),
+                }, decision_transport)
+            if not (code == "visit_token_invalid" and not access.enforcement(getattr(self.env, ACCESS_ENFORCED_VAR, None))):
+                return _json_response(status, {**envelope, "error": {"code": code, "message": message}},
+                                      {**gate_headers, **_cors_headers(request)})
+
+        if path == "/v1/decide" and api_key is None and human_gate.enabled(self.env) and not visit_token.enabled(self.env):
             site_origin = str(request.headers.get("origin") or "") in CORS_ORIGINS
             # Other callers can still pay per call through x402 when it is on.
             if site_origin or not x402.load_config(self.env).enabled:
@@ -1096,6 +1143,12 @@ class Default(WorkerEntrypoint):
             return Response("", status=204, headers={**cors, "access-control-allow-methods": "GET, OPTIONS"})
         if method != "GET":
             return _json_response(405, {"error": "method_not_allowed"}, cors)
+        if visit_token.enabled(self.env):
+            try:
+                day, burst = visit_token.limits(self.env, "decide")
+                return _json_response(200, {"enabled": True, "mode": "visit", "day_limit": day, "burst_limit": burst}, cors)
+            except Exception:
+                return _json_response(503, {"enabled": True, "message": "Human verification is temporarily unavailable."}, cors)
         if not human_gate.enabled(self.env):
             return _json_response(200, {"enabled": False}, cors)
         try:

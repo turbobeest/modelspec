@@ -588,7 +588,8 @@ _DECIDE_ONLY = {
 
 def human_error_codes() -> dict[str, int]:
     import human_gate
-    return human_gate.REFUSALS
+    import visit_token
+    return {**human_gate.REFUSALS, **visit_token.REFUSALS}
 
 
 def source_error_codes() -> set[str]:
@@ -2703,15 +2704,20 @@ def build_spec() -> dict[str, Any]:
             "/v1/human-status": {
                 "get": {
                     "operationId": "humanStatus",
-                    "summary": "Read today's manual lookup allowance without spending or creating durable state.",
+                    "summary": "Read the human admission mode without spending or creating durable state.",
                     "responses": {
-                        "200": _json_body("Gate disabled, or the remaining daily allowance.", {
+                        "200": _json_body("Gate disabled, legacy remaining allowance, or configured visit allowances.", {
                             "oneOf": [
                                 {"type": "object", "required": ["enabled"], "additionalProperties": False,
                                  "properties": {"enabled": {"type": "boolean", "enum": [False]}}},
                                 {"type": "object", "required": ["enabled", "remaining"], "additionalProperties": False,
                                  "properties": {"enabled": {"type": "boolean", "enum": [True]},
                                                 "remaining": {"type": "integer", "minimum": 0, "maximum": 20}}},
+                                {"type": "object", "required": ["enabled", "mode", "day_limit", "burst_limit"], "additionalProperties": False,
+                                 "properties": {"enabled": {"type": "boolean", "enum": [True]},
+                                                "mode": {"type": "string", "enum": ["visit"]},
+                                                "day_limit": {"type": "integer", "minimum": 1},
+                                                "burst_limit": {"type": "integer", "minimum": 1}}},
                             ]}),
                         "403": _json_body("The request origin is not a permitted site origin.", {
                             "type": "object", "required": ["enabled"],
@@ -2722,6 +2728,28 @@ def build_spec() -> dict[str, Any]:
                         "503": _json_body("The gate secrets or storage are unavailable. Retry later.", {
                             "type": "object", "required": ["enabled", "message"],
                             "properties": {"enabled": {"type": "boolean", "enum": [True]}, "message": {"type": "string"}}}),
+                    },
+                },
+            },
+            "/v1/visit-token": {
+                "post": {
+                    "operationId": "verifyVisit",
+                    "summary": "Exchange managed Turnstile verification for a visitor-and-origin-bound page credential.",
+                    "description": "Ships off behind VISIT_GATE_ENABLED. Siteverify must confirm success, the origin hostname and action decide. Uses the daily visitor HMAC id and a new VISIT_TOKEN_HMAC_KEY to sign a 30-minute sliding credential. No cookie. Keyless decide and bundled vocabulary use the visit meter; presenting an API key takes precedence.",
+                    "security": [],
+                    "x-modelspec-probe": "skip",
+                    "parameters": [{"name": "X-ModelSpec-Turnstile", "in": "header", "required": True,
+                                    "schema": {"type": "string", "minLength": 1, "maxLength": 2048}}],
+                    "responses": {
+                        "200": _json_body("Visit credential. Cache-Control: no-store.", {
+                            "type": "object", "required": ["token", "expires_at"], "additionalProperties": False,
+                            "properties": {"token": {"type": "string"}, "expires_at": {"type": "integer", "minimum": 1}},
+                        }),
+                        "401": {"description": "Origin is not a permitted page origin."},
+                        "403": {"description": "Turnstile verification failed, expired or was replayed."},
+                        "404": {"description": "Visit gate is disabled."},
+                        "405": {"description": "This endpoint takes POST."},
+                        "503": {"description": "Identity, signing secret, verifier, configuration or meter unavailable."},
                     },
                 },
             },
@@ -2822,9 +2850,13 @@ def build_spec() -> dict[str, Any]:
                         "description": (
                             "Random 128-bit action ID encoded as unpadded base64url. "
                             "The human gate meters distinct intents per visitor. Admitted intents "
-                            "allow at most 32 requests strictly within 60 seconds of their first request. "
+                            "allow at most eight requests strictly within 60 seconds of their first request. "
                             "Missing or malformed IDs meter each request separately."
                         ),
+                    }, {
+                        "name": "X-ModelSpec-Visit-Token", "in": "header", "required": False,
+                        "schema": {"type": "string", "maxLength": 2048},
+                        "description": "With VISIT_GATE_ENABLED, admits a keyless page request only for the bound visitor and origin. Admitted replies return a renewed token and Unix expiry in X-ModelSpec-Visit-Token and X-ModelSpec-Visit-Expires. API keys take precedence. Expiry returns 401 visit_token_expired; verify and retry once with the same intent.",
                     }],
                     "requestBody": {
                         "required": True,
@@ -2874,7 +2906,7 @@ def build_spec() -> dict[str, Any]:
                         **{
                             code: refused_by_access(description, {"$ref": "#/components/schemas/HumanGateRefused"})
                             for code, description in {
-                                "401": "Missing or invalid API key, or human_origin_required: use the paid API or MCP.",
+                                "401": "Missing or invalid API key, human_origin_required, visit_token_invalid or visit_token_expired. Refresh an expired visit once, or use a key.",
                                 "403": "Key revoked, or human_challenge_required: complete fresh verification.",
                                 "429": "Key quota, or human day, burst or even-interval limit. Wait for Retry-After.",
                             }.items()
@@ -3160,9 +3192,9 @@ def render() -> str:
             "get": {
                 "operationId": "displayVocabulary",
                 "summary": "Display definitions and names for /decide",
-                "description": "Available with DATA_SPLIT_ENABLED. Facet definitions, benchmark and domain names, templates, and model/plan IDs and display names only. Aggregate answerability, facet/enum data availability, refinement definitions and a thin boolean are included. Benchmark min/max is included only when at least 3 models have a score on that benchmark; ranges for 1 or 2 scored models are omitted. No prices, allowances, counts, individual scores or archived model names. HUMAN_GATE_ENABLED meters the same keyed visitor Durable Object with an independent 60 per UTC day and 10 per minute budget. Successful responses use Cache-Control: private, max-age=3600. With lookup parameters, only the selected section is populated; the existing required envelope fields remain present. Compact facets carry id, label, a one-line definition, value_type and finite allowed_values. Providers and models carry IDs and display names. Compact pages contain at most 20 rows. The no-query response stays byte-identical for /decide.",
+                "description": "Available with DATA_SPLIT_ENABLED. Facet definitions, benchmark and domain names, templates, and model/plan IDs and display names only. Aggregate answerability, facet/enum data availability, refinement definitions and a thin boolean are included. Benchmark min/max is included only when at least 3 models have a score on that benchmark; ranges for 1 or 2 scored models are omitted. No prices, allowances, counts, individual scores or archived model names. HUMAN_GATE_ENABLED meters the same keyed visitor Durable Object with an independent 60 per UTC day and 10 per minute budget. With VISIT_GATE_ENABLED, a key takes precedence, otherwise a valid visit token admits and meters a page caller; without either credential ACCESS_ENFORCED decides. Visit allowances are configured separately from decides. Visit replies are no-store and renew the credential in X-ModelSpec-Visit-Token and X-ModelSpec-Visit-Expires. Without the visit flag successful responses use Cache-Control: private, max-age=3600. With lookup parameters, only the selected section is populated; the existing required envelope fields remain present. Compact facets carry id, label, a one-line definition, value_type and finite allowed_values. Providers and models carry IDs and display names. Compact pages contain at most 20 rows. The no-query response stays byte-identical for /decide.",
                 "security": [],
-                "parameters": vocabulary_parameters(),
+                "parameters": [*vocabulary_parameters(), {"name": "X-ModelSpec-Visit-Token", "in": "header", "required": False, "schema": {"type": "string", "maxLength": 2048}}],
                 "x-modelspec-probe": "skip",
                 "responses": {
                     "400": {"description": "Invalid vocabulary query"},
@@ -3175,6 +3207,8 @@ def render() -> str:
                                 "templates": {"type": "array", "items": {"type": "object"}},
                                 "models": {"type": "object", "additionalProperties": {"type": "object", "properties": {"display_name": {"type": "string", "nullable": True}}, "additionalProperties": False}},
                                 "estate": {"type": "object"}}, "required": ["facets", "domains", "templates", "models", "estate"]}}}},
+                    "401": {"description": "Missing or invalid API key, invalid visit credential or visit_token_expired"},
+                    "403": {"description": "Key revoked"},
                     "404": {"description": "Data splitting is disabled"},
                     "429": {"description": "Vocabulary visitor cap exceeded; Retry-After names the wait"},
                     "503": {"description": "Visitor identity or counter unavailable"},

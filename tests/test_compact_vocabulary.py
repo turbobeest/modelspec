@@ -144,7 +144,8 @@ def test_openapi_documents_query_lookup_without_changing_legacy_schema(monkeypat
     from api.worker import openapi
     monkeypatch.setenv("DATA_SPLIT_ENABLED", "true")
     operation = yaml.safe_load(openapi.render())["paths"]["/v1/vocabulary"]["get"]
-    assert {p["name"] for p in operation["parameters"]} == {"section", "search", "id", "ids", "detail", "offset", "limit"}
+    assert {p["name"] for p in operation["parameters"] if p["in"] == "query"} == {"section", "search", "id", "ids", "detail", "offset", "limit"}
+    assert {p["name"] for p in operation["parameters"] if p["in"] == "header"} == {"X-ModelSpec-Visit-Token"}
     schema = operation["responses"]["200"]["content"]["application/json"]["schema"]
     assert schema["required"] == ["facets", "domains", "templates", "models", "estate"]
 

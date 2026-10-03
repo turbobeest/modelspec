@@ -9,6 +9,7 @@ import { z } from "zod";
 const humanStatusSchema = z.discriminatedUnion("enabled", [
   z.object({ enabled: z.literal(false) }),
   z.object({ enabled: z.literal(true), remaining: z.number().int().min(0).max(20) }),
+  z.object({ enabled: z.literal(true), mode: z.literal("visit"), day_limit: z.number().int().positive(), burst_limit: z.number().int().positive() }),
 ]);
 
 async function answered(page: Page) {
@@ -33,7 +34,15 @@ test("the deployed page follows the Worker's human gate status", async ({ page }
   expect(response.status, "human-status endpoint").toBe(200);
   const status = humanStatusSchema.parse(response.body);
   const gate = page.getByRole("region", { name: "Manual lookups" });
-  if (status.enabled) {
+  if (status.enabled && "mode" in status && status.mode === "visit") {
+    await expect(gate).toHaveCount(0);
+    await expect(page.locator("#facet-board-answer .visit-gate")).toHaveCount(1);
+    await answered(page);
+    const update = page.waitForResponse((reply) => reply.url().endsWith("/v1/decide") && reply.request().method() === "POST");
+    await page.getByRole("radio", { name: /From my own software or agent/ }).check();
+    expect((await update).status()).toBe(200);
+    await answered(page);
+  } else if (status.enabled) {
     await expect(gate).toBeVisible();
     await expect(gate.getByRole("button", { name: "Look up this decision" })).toBeVisible();
     await expect(gate.getByRole("link", { name: "paid API or MCP" })).toBeVisible();

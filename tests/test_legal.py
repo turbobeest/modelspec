@@ -982,6 +982,29 @@ def test_the_privacy_statement_describes_the_keyed_visitor_id_and_the_gate_flag(
     assert "omit the optional `remoteip` parameter" in FLAT_PRIVACY
 
 
+def test_visit_gate_requires_adopted_v19_privacy_before_enabling() -> None:
+    """MODEL-292 ships off until Jamie adopts the visit credential disclosure."""
+    from pipeline.worker_flags import OFF_VALUES, production_vars
+
+    config = production_vars(REPO_ROOT)
+    for workflow in (REPO_ROOT / ".github" / "workflows").glob("*.y*ml"):
+        assert not re.search(r"--var(?:=|\s+)VISIT_GATE_ENABLED\b", workflow.read_text(encoding="utf-8")), workflow.name
+    if str(config.get("VISIT_GATE_ENABLED", "false")).strip().lower() in OFF_VALUES:
+        return
+    version = re.search(r"Version `(\d+)\.(\d+)`", PRIVACY)
+    assert version and tuple(map(int, version.groups())) >= (1, 9), "Visit gate requires adopted privacy v1.9"
+    live, not_live = PRIVACY.split("## Changes", 1)[0].split("## Not yet live", 1)
+    assert "### The visit gate on the decide page" in live, "Visit gate is on but disclosure is not live"
+    assert "The visit gate on the decide page" not in not_live
+    for wording in ("`VISIT_GATE_ENABLED`", "HMAC-SHA256", "`VISIT_TOKEN_HMAC_KEY`", "daily visitor id",
+                    "origin", "issued-at", "expiry", "30-minute sliding window", "memory", "no cookie",
+                    f"{config['VISIT_DECIDE_DAY_LIMIT']} questions per UTC day",
+                    f"{config['VISIT_DECIDE_BURST_LIMIT']} in a rolling minute",
+                    f"{config['VISIT_VOCABULARY_DAY_LIMIT']} vocabulary lookups per UTC day",
+                    f"{config['VISIT_VOCABULARY_BURST_LIMIT']} in a rolling minute"):
+        assert wording in flat(live), wording
+
+
 def test_the_privacy_statement_discloses_the_human_gate_question_storage() -> None:
     """MODEL-270: question fingerprints and vocabulary share daily retention."""
     # The disclosure is a section while the gate is on and a "Not yet live" item while it is off.

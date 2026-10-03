@@ -1,3 +1,4 @@
+import { VISIT_GATE_ENABLED, prepareVisit, visitGateActive, visitFetch } from "./visit";
 import { decisionSchema } from "./contract";
 import type { Decision, DecisionSpec } from "./contract";
 
@@ -97,7 +98,7 @@ export function decisionAction(humanToken?: string, onRemaining?: DecideOptions[
   let nextAt = 0;
   return {
     intent: newIntent(), humanToken, onRemaining,
-    ...(humanToken ? { pace: async () => {
+    ...((humanToken || visitGateActive()) ? { pace: async () => {
       const now = Date.now();
       const at = Math.max(now, nextAt);
       nextAt = at + 150;
@@ -122,8 +123,12 @@ function unlessAborted<T>(work: Promise<T>, signal: AbortSignal, onAbort: () => 
 
 export const hostedEngine: HostedDecisionEngine = {
   async decide(spec, options = {}) {
+    if (VISIT_GATE_ENABLED) {
+      await prepareVisit();
+      options.signal?.throwIfAborted();
+    }
     const timeout = new AbortController();
-    const timer = setTimeout(() => timeout.abort(), DECIDE_TIMEOUT_MS);
+    const timer = VISIT_GATE_ENABLED ? undefined : setTimeout(() => timeout.abort(), DECIDE_TIMEOUT_MS);
     const abort = () => timeout.abort();
     options.signal?.addEventListener("abort", abort, { once: true });
     if (options.signal?.aborted) timeout.abort();
@@ -142,7 +147,7 @@ export const hostedEngine: HostedDecisionEngine = {
       if (timeout.signal.aborted) throw stopped();
       let response: Response;
       try {
-        response = await fetch(DECIDE_ENDPOINT, {
+        response = await visitFetch(DECIDE_ENDPOINT, {
           method: "POST",
           mode: "cors",
           headers: {
@@ -165,7 +170,7 @@ export const hostedEngine: HostedDecisionEngine = {
       const remainingHeader = response.headers.get("x-modelspec-decisions-remaining");
       if (remainingHeader !== null && /^\d+$/.test(remainingHeader)) {
         const remaining = Number(remainingHeader);
-        if (remaining >= 0 && remaining <= 20) options.onRemaining?.(remaining);
+        if (remaining >= 0 && Number.isSafeInteger(remaining)) options.onRemaining?.(remaining);
       }
       let payload: unknown;
       try {

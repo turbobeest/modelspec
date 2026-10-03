@@ -80,6 +80,8 @@ info:
   - unknown_platform
   - unknown_runtime
   - unknown_use_case
+  - visit_token_expired
+  - visit_token_invalid
   x-transport-error-statuses:
     export_unavailable: 502
     human_burst_limit: 429
@@ -92,6 +94,8 @@ info:
     method_not_allowed: 405
     not_found: 404
     origin_not_allowed: 404
+    visit_token_expired: 401
+    visit_token_invalid: 401
   x-max-request-bytes:
     /v1/rank: 16384
     /v1/decide: 65536
@@ -208,10 +212,10 @@ paths:
   /v1/human-status:
     get:
       operationId: humanStatus
-      summary: Read today's manual lookup allowance without spending or creating durable state.
+      summary: Read the human admission mode without spending or creating durable state.
       responses:
         '200':
-          description: Gate disabled, or the remaining daily allowance.
+          description: Gate disabled, legacy remaining allowance, or configured visit allowances.
           content:
             application/json:
               schema:
@@ -239,6 +243,28 @@ paths:
                       type: integer
                       minimum: 0
                       maximum: 20
+                - type: object
+                  required:
+                  - enabled
+                  - mode
+                  - day_limit
+                  - burst_limit
+                  additionalProperties: false
+                  properties:
+                    enabled:
+                      type: boolean
+                      enum:
+                      - true
+                    mode:
+                      type: string
+                      enum:
+                      - visit
+                    day_limit:
+                      type: integer
+                      minimum: 1
+                    burst_limit:
+                      type: integer
+                      minimum: 1
         '403':
           description: The request origin is not a permitted site origin.
           content:
@@ -279,6 +305,51 @@ paths:
                     - true
                   message:
                     type: string
+  /v1/visit-token:
+    post:
+      operationId: verifyVisit
+      summary: Exchange managed Turnstile verification for a visitor-and-origin-bound page credential.
+      description: Ships off behind VISIT_GATE_ENABLED. Siteverify must confirm success, the origin hostname
+        and action decide. Uses the daily visitor HMAC id and a new VISIT_TOKEN_HMAC_KEY to sign a 30-minute
+        sliding credential. No cookie. Keyless decide and bundled vocabulary use the visit meter; presenting
+        an API key takes precedence.
+      security: []
+      x-modelspec-probe: skip
+      parameters:
+      - name: X-ModelSpec-Turnstile
+        in: header
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 2048
+      responses:
+        '200':
+          description: 'Visit credential. Cache-Control: no-store.'
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                - token
+                - expires_at
+                additionalProperties: false
+                properties:
+                  token:
+                    type: string
+                  expires_at:
+                    type: integer
+                    minimum: 1
+        '401':
+          description: Origin is not a permitted page origin.
+        '403':
+          description: Turnstile verification failed, expired or was replayed.
+        '404':
+          description: Visit gate is disabled.
+        '405':
+          description: This endpoint takes POST.
+        '503':
+          description: Identity, signing secret, verifier, configuration or meter unavailable.
   /v1/credits:
     get:
       operationId: credits
@@ -461,8 +532,18 @@ paths:
           type: string
           pattern: ^[A-Za-z0-9_-]{21}[AQgw]$
         description: Random 128-bit action ID encoded as unpadded base64url. The human gate meters distinct
-          intents per visitor. Admitted intents allow at most 32 requests strictly within 60 seconds of
-          their first request. Missing or malformed IDs meter each request separately.
+          intents per visitor. Admitted intents allow at most eight requests strictly within 60 seconds
+          of their first request. Missing or malformed IDs meter each request separately.
+      - name: X-ModelSpec-Visit-Token
+        in: header
+        required: false
+        schema:
+          type: string
+          maxLength: 2048
+        description: With VISIT_GATE_ENABLED, admits a keyless page request only for the bound visitor
+          and origin. Admitted replies return a renewed token and Unix expiry in X-ModelSpec-Visit-Token
+          and X-ModelSpec-Visit-Expires. API keys take precedence. Expiry returns 401 visit_token_expired;
+          verify and retry once with the same intent.
       requestBody:
         required: true
         content:
@@ -538,7 +619,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaymentRequired'
         '401':
-          description: 'Missing or invalid API key, or human_origin_required: use the paid API or MCP.'
+          description: Missing or invalid API key, human_origin_required, visit_token_invalid or visit_token_expired.
+            Refresh an expired visit once, or use a key.
           content:
             application/json:
               schema:
@@ -6165,6 +6247,8 @@ components:
               - human_intent_limit
               - human_origin_required
               - human_sweep_limit
+              - visit_token_expired
+              - visit_token_invalid
             message:
               type: string
             issues:
@@ -8221,6 +8305,8 @@ components:
               - method_not_allowed
               - not_found
               - origin_not_allowed
+              - visit_token_expired
+              - visit_token_invalid
             message:
               type: string
             accepted:
