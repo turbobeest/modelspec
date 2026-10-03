@@ -633,6 +633,8 @@ body {
   background: var(--hero-bg); color: var(--hero-ink); border: 1px solid var(--hero-line);
   border-left: 3px solid var(--hero-rule); padding: 28px 32px 22px; }
 .board-intro .eyebrow { color: var(--hero-title); font-size: 13px; letter-spacing: .02em; }
+/* The heading is one sentence in two beats; each beat starts its own line. */
+.board-intro .board-intro-line { display: block; }
 .board-intro > div { flex: 1; }
 .decide-app .board-intro h1 { margin: 12px 0 20px; color: var(--hero-title);
   font-family: var(--sans); font-size: clamp(30px, 3.1vw, 44px); font-weight: 650;
