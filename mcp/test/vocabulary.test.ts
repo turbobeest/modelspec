@@ -34,6 +34,11 @@ describe("compact vocabulary", () => {
     expect(lookupVocabulary({ facets: [{ id: "e", value_type: "enum", values: [], allowed_values: ["a", "b"] }] }, { section: "facets" })).toEqual([{ id: "e", value_type: "enum", allowed_values: ["a", "b"] }]);
   });
 
+  it("keeps which way is better on a compact number facet (MODEL-297)", () => {
+    expect(lookupVocabulary({ facets: [{ id: "offering.price.input", label: "Input price", value_type: "number", better: "lower", known: 3 }] }, { section: "facets" }))
+      .toEqual([{ id: "offering.price.input", label: "Input price", value_type: "number", better: "lower" }]);
+  });
+
   it("keeps every default section under the chars/4 proxy budget", () => {
     for (const section of ["starter", "facets", "benchmarks", "domains", "providers", "models", "task_types", "coverage", "templates", "refinements", "estate", "vendors", "template_categories", "template_tiers"] as const) {
       const body = lookupVocabulary(vocabulary, { section });

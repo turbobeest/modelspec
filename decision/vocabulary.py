@@ -523,6 +523,9 @@ def build_vocabulary(snapshot: Any, *, pages: Mapping[str, Mapping[str, Any]] | 
             continue
         unit = registry.unit(facet.unit).definition if facet.unit else None
         row = _facet_row(facet, view, by_kind[facet.subject], unit)
+        if facet.better is not None:
+            # MODEL-297: which way is better, so Prefer minimises a price.
+            row["better"] = facet.better
         allowed = registry.allowed_values(facet)
         if allowed is not None or facet.value_type.kind == "boolean":
             row["allowed_values"] = [True, False] if facet.value_type.kind == "boolean" else sorted(allowed)

@@ -11,7 +11,7 @@ SECTIONS = ("starter", "facets", "benchmarks", "domains", "providers", "models",
 PAGE_SIZE = 20
 
 FACET_FIELDS = ("id", "label", "definition", "subject", "value_type", "unit", "unit_definition",
-                "operators", "objective", "preference", "risk", "computed_by", "literals")
+                "operators", "objective", "preference", "better", "risk", "computed_by", "literals")
 BENCHMARK_FIELDS = ("id", "name", "unit", "higher_is_better", "domains")
 DOMAIN_FIELDS = ("id", "name", "proxy_only", "default_basis", "default_benchmark", "benchmarks")
 TEMPLATE_FIELDS = ("id", "category", "tier", "tradeoff", "canvas", "name", "purpose", "where",
@@ -101,7 +101,7 @@ def lookup(vocabulary, *, section="starter", search="", ids=(), detail="compact"
 
     def compact(row):
         if section in {"facets", "starter"}:
-            result = pick(row, ("id", "label", "definition", "value_type", "literals"))
+            result = pick(row, ("id", "label", "definition", "value_type", "better", "literals"))
             if isinstance(result.get("definition"), str):
                 result["definition"] = re.split(r"\.\s", " ".join(result["definition"].split()))[0].rstrip(".") + "."
             if "allowed_values" in row:

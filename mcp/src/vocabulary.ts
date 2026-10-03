@@ -57,7 +57,7 @@ export function lookupVocabulary(vocabulary: Record<string, unknown>, args: Voca
   function compact(row: unknown): unknown {
     if (!isRecord(row)) return row;
     if (section === "facets" || section === "starter") {
-      const result = pick(row, ["id", "label", "definition", "value_type", "literals"]);
+      const result = pick(row, ["id", "label", "definition", "value_type", "better", "literals"]);
       if (typeof result.definition === "string") {
         result.definition = result.definition.trim().replace(/\s+/g, " ").split(/\.\s/)[0].replace(/\.$/, "") + ".";
       }

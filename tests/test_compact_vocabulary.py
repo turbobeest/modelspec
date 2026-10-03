@@ -71,6 +71,22 @@ def test_compact_facets_have_finite_allowed_values_even_without_observations(voc
     assert "\n" not in row["definition"]
 
 
+def test_trim_keeps_which_way_is_better_on_number_facets_only(vocabulary, display):
+    """MODEL-297: the page reads the trimmed bundle, so `better` must survive it."""
+    assert len(display["facets"]) == len(vocabulary["facets"])
+    for row, source in zip(display["facets"], vocabulary["facets"]):
+        if source["value_type"] == "number":
+            assert row["better"] == source["better"] == default().facet(row["id"]).better, row["id"]
+        else:
+            assert "better" not in row, row["id"]
+    by_id = {row["id"]: row for row in display["facets"]}
+    assert by_id["offering.price.input"]["better"] == "lower"
+    compact = lookup(display, section="facets", ids=["offering.price.input", "model.class"])["facets"]
+    assert {row["id"]: row.get("better") for row in compact} == {
+        "offering.price.input": "lower", "model.class": None}
+    assert lookup(display, section="facets", search="input price")["facets"][0]["better"] == "lower"
+
+
 def test_search_ids_intersection_full_detail_and_pages(display):
     source = {"facets": [
         {"id": "x", "label": "Long Context", "definition": "First sentence. More details.", "value_type": "number", "operators": [">="]},
