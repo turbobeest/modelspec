@@ -8,7 +8,7 @@ import { DesignedApp } from "../App";
 import { capabilityRow } from "./board-helpers";
 import { json, routeFetch, sentSpecs } from "./vocab-fixtures";
 
-const broken = vi.hoisted(() => ({ why: false, rankedAnswer: false }));
+const broken = vi.hoisted(() => ({ why: false, rankedAnswer: false, canvas: false }));
 
 vi.mock("../components/Why", async (importOriginal) => {
   const real = await importOriginal<typeof import("../components/Why")>();
@@ -30,6 +30,27 @@ vi.mock("../facet-board/RankedAnswer", async (importOriginal) => {
   };
 });
 
+vi.mock("../components/FreeAxisCanvas", async (importOriginal) => {
+  const real = await importOriginal<typeof import("../components/FreeAxisCanvas")>();
+  return {
+    ...real,
+    FreeAxisCanvas: (props: Parameters<typeof real.FreeAxisCanvas>[0]) => {
+      if (broken.canvas) throw new TypeError("canvas failed to render");
+      return <real.FreeAxisCanvas {...props} />;
+    },
+  };
+});
+vi.mock("../components/Canvas", async (importOriginal) => {
+  const real = await importOriginal<typeof import("../components/Canvas")>();
+  return {
+    ...real,
+    Canvas: (props: Parameters<typeof real.Canvas>[0]) => {
+      if (broken.canvas) throw new TypeError("canvas failed to render");
+      return <real.Canvas {...props} />;
+    },
+  };
+});
+
 const failure = () => screen.queryAllByRole("alert", { name: "The answer could not be shown" });
 
 beforeEach(() => {
@@ -40,6 +61,7 @@ beforeEach(() => {
 afterEach(() => {
   broken.why = false;
   broken.rankedAnswer = false;
+  broken.canvas = false;
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
@@ -94,4 +116,20 @@ it("keeps the facets usable when the narrowing answer throws", async () => {
   fireEvent.click(within(failure()[0]).getByRole("button", { name: "Reset" }));
   expect(screen.getByRole("region", { name: "Facets" })).toHaveTextContent("0 set");
   await waitFor(() => expect(failure()).toHaveLength(0));
+});
+
+it("a canvas failure leaves the narrowing, the table and Why on screen (#549 moved the canvas beside the facets)", async () => {
+  const fetch = routeFetch({ decide: () => json(fixtureJson) });
+  vi.stubGlobal("fetch", fetch);
+  render(<DesignedApp />);
+  await screen.findByLabelText("Facet board answer");
+  await screen.findByRole("region", { name: "Why this model" });
+
+  broken.canvas = true;
+  fireEvent.click(within(capabilityRow("Software engineering")).getByLabelText("Prefer"));
+
+  expect(failure()).toHaveLength(1);
+  expect(screen.getByLabelText("Facet board answer")).toBeInTheDocument();
+  expect(screen.getByRole("region", { name: "Why this model" })).toBeInTheDocument();
+  expect(screen.queryByRole("region", { name: "Trade-off canvas" })).not.toBeInTheDocument();
 });
