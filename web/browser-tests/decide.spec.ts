@@ -83,6 +83,14 @@ for (const width of [1440, 1024, 390, 320]) {
     await expect(canvas).toBeVisible();
     await expect(page.locator(".decision-table")).toBeVisible();
     await expect(page.locator(".loading")).toHaveCount(0);
+    // Every measured region must exist before its box is read; the gated build
+    // settles its status fetch a beat later than the ungated one.
+    for (const region of [
+      page.getByRole("region", { name: "Facets", exact: true }),
+      page.locator(".board-answer"),
+      page.locator(".board-workspace"),
+      page.locator(".why-panel"),
+    ]) await expect(region).toBeVisible();
 
     const [facets, chart, answers, table, workspace, details] = await Promise.all([
       page.getByRole("region", { name: "Facets", exact: true }).boundingBox(),
