@@ -21,6 +21,7 @@ WORKER_SRC = WORKER_ROOT / "src"
 sys.path.insert(0, str(REPO_ROOT))
 
 from cli.modelspec import cli as cli_mod  # noqa: E402
+from decision.contract import CONTRACT_VERSION  # noqa: E402
 from decision.excluded import excluded_sources  # noqa: E402
 from decision.registry import default as default_registry  # noqa: E402
 from decision.snapshot import (  # noqa: E402
@@ -320,7 +321,7 @@ REJECTION_CLASSES = [
 def test_rejections_include_registry_backed_recovery(service, snapshot, invalid, path, shape):
     status, body = service.decide(_payload() | invalid, snapshot)
     assert status == 400
-    assert body["contract_version"] == "2.11"
+    assert body["contract_version"] == CONTRACT_VERSION
     assert body["endpoint"] == "decide"
     assert body["snapshot"] == snapshot.snapshot_id
     assert body["error"]["code"] == "invalid_spec"
