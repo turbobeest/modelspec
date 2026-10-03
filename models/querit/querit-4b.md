@@ -690,6 +690,50 @@ benchmarks:
       cited_regions:
       - rows
     observed_at: '2026-09-30'
+  - benchmark_id: mteb_multilingual_v2_reranking
+    model_id_as_evaluated: Querit/Querit-4B
+    score: 69.4529638888889
+    unit: percent
+    source_url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(Multilingual,%20v2)/scores
+    source_kind: benchmark_author
+    evidence_date: '2026-09-29'
+    date_type: evaluated
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
+    benchmark_version: 'MTEB(Multilingual, v2), Reranking task type'
+    configuration: 'MTEB leaderboard backend JSON, benchmarkName MTEB(Multilingual, v2), read 2026-09-29. Field scoresByTaskType.Reranking times 100: the board''s mean over the six Reranking tasks, published only when all six are scored. The JSON has no per-row run date, so this date is the day the board was read.'
+    limitations: 'Reranking tasks only; not the benchmark''s mean over all task types.'
+    measured_by: benchmark_author
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-143-evidence-mteb-multilingual-v2-json
+      snapshot_ref: sha256:777a386241c32131f7fa6275f3d92fae55175e12dfa1bce64022bafd3efd9d44
+      cited_regions:
+      - rows
+    id: querit/querit-4b#mteb_multilingual_v2_reranking#9bc242d8b681
+  - benchmark_id: mteb_cmn_v1_reranking
+    model_id_as_evaluated: Querit/Querit-4B
+    score: 66.73450000000001
+    unit: percent
+    source_url: https://mteb-leaderboard-backend.hf.space/v1/benchmarks/MTEB(cmn,%20v1)/scores
+    source_kind: benchmark_author
+    evidence_date: '2026-09-29'
+    date_type: evaluated
+    observed_at: '2026-09-29'
+    verified_at: '2026-09-29'
+    benchmark_version: 'MTEB(cmn, v1), Reranking task type'
+    configuration: 'MTEB leaderboard backend JSON, benchmarkName MTEB(cmn, v1), read 2026-09-29. Field scoresByTaskType.Reranking times 100: the board''s mean over the four Chinese Reranking tasks, published only when all four are scored. The JSON has no per-row run date, so this date is the day the board was read.'
+    limitations: 'Mandarin Chinese only; two of the four tasks are medical question answering.'
+    measured_by: benchmark_author
+    effort: null
+    harness: null
+    sources:
+    - source_id: model-242-mteb-cmn-v1-json
+      snapshot_ref: sha256:ad3a2c16dffc91802a239fe87252f84d074691a1707597fceecaf64e27f0a51d
+      cited_regions:
+      - rows
+    id: querit/querit-4b#mteb_cmn_v1_reranking#c095251a9c1f
   benchmark_source: ''
   benchmark_as_of: ''
   benchmark_notes: ''

@@ -841,6 +841,72 @@ def test_finance_projection_refuses_a_page_without_run_records(payload: str) -> 
                                       page_ref="sha256:" + "c" * 64, observed_at="2026-09-29")
 
 
+def test_board_seeds_a_benchmark_no_card_carries_yet(monkeypatch, tmp_path: Path) -> None:
+    root = tmp_path / "repo"
+    cache = tmp_path / "copies"
+    (root / "models" / "lab").mkdir(parents=True)
+    (root / "registry").mkdir(parents=True)
+    (root / "verification").mkdir(parents=True)
+    url = "https://example.test/mteb/scores"
+    (root / "registry" / "sources.yaml").write_text(
+        f"""schema_version: 1
+sources:
+- id: fixture-mteb
+  url: {url}
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator: {{kind: page, value: ''}}
+""",
+        encoding="utf-8",
+    )
+    for model_id, display in (("lab/reranker-x", "Reranker X"), ("lab/embedder", "Embedder")):
+        (root / "models" / f"{model_id}.md").write_text(
+            f"---\nmodel_id: {model_id}\ndisplay_name: {display}\n"
+            "benchmarks:\n  scores: {}\n  evidence: []\n---\n",
+            encoding="utf-8",
+        )
+    raw = json.dumps({"rows": [
+        {"model": {"name": "Lab/Reranker-X"}, "scoresByTaskType": {"Reranking": 0.6583}},
+        {"model": {"name": "Lab/Embedder"}, "meanTask": 0.7, "scoresByTaskType": {}},
+    ]}).encode()
+    store = refresh.CopyStore(cache)
+    board = refresh._reading_from_projection(
+        key="mteb:fixture_reranking", source_id="fixture-mteb",
+        benchmarks=("fixture_reranking",), source_url=url,
+        projected=refresh.readers.project_mteb(raw, url=url, page_ref="sha256:" + "c" * 64,
+                                               read_date="2026-09-29"),
+        observed_at="2026-09-29", value_field="reranking", fraction=True, store=store,
+        card_urls=(url,), row_template=refresh.MTEB_ROW,
+    )
+    monkeypatch.setattr(refresh, "collect_readings", lambda *_: ([board], []))
+
+    report = refresh.run(
+        observed_at="2026-09-29", dry_run=False, root=root, source_cache=cache,
+        model_ids=("lab/reranker-x", "lab/embedder"), add_missing=True,
+    )
+
+    added = refresh._front(root / "models" / "lab" / "reranker-x.md")["benchmarks"]["evidence"]
+    assert [(r["benchmark_id"], r["model_id_as_evaluated"], r["score"], r["unit"],
+             r["source_kind"], r["source_url"]) for r in added] == [
+        ("fixture_reranking", "Lab/Reranker-X", 65.83, "percent", "benchmark_author", url)
+    ]
+    assert refresh._front(root / "models" / "lab" / "embedder.md")["benchmarks"]["evidence"] == []
+    assert (report.added, report.failures, report.quarantined) == (1, [], [])
+    log = json.loads((root / "verification" / "log.jsonl").read_text(encoding="utf-8"))
+    assert (log["outcome"], log["verifier"]["model_family"]) == ("verified", "deterministic")
+
+
+def test_every_mteb_board_reads_a_registered_source_with_a_benchmark_page() -> None:
+    root = Path(__file__).resolve().parents[1]
+    registered = refresh.load_sources(root / "registry" / "sources.yaml")
+    for _, url, source_id, columns in refresh.MTEB_BOARDS:
+        assert str(registered[source_id].url) == url
+        for benchmark in columns:
+            assert (root / "benchmarks" / f"{benchmark}.md").is_file(), benchmark
+
+
 MATHARENA_CARDS = (
     "anthropic/claude-fable-5-1", "anthropic/claude-opus-5-5", "deepseek/deepseek-flash",
     "google/gemini-3-8-flash", "meta/muse-spark-1-3", "openai/gpt-6-astra",
