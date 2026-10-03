@@ -110,3 +110,13 @@ Add one YAML file per scenario under `qa/scenarios`, with `id`, `family`, `perso
 Copy established expected rows verbatim from `tests/recall/expected.yaml` and set `expected_source: tests/recall/expected.yaml#Qxx`. Keep `expected: null` for every other scenario. A shortlist returned by the API or a judge is not independent ground truth.
 
 Add at least 26 variants across real personas and constraints to reach 100. Useful axes include ambiguous and complete hardware descriptions, exhausted subscription plans, approved-provider intersections, contradictory policy requirements, prompt languages, output formats, workloads and no-feasible budgets. Preserve meaningful differences between requests. For a new variant without an existing recall or template recipe, add `fixture_spec` containing a valid structured Spec for the recorder. This field never enters agent context and is not an expected answer. Add successful, failing and abstaining replay cases, regenerate fixtures, and run the offline tests. Avoid real private prompts in this public catalogue.
+
+MODEL-291 defaults to the generated compact agent guide and captured MCP definitions.
+The full OpenAPI stays at https://modelspec.dev/openapi.yaml. Use
+`--control-full-spec` to inject the current full document for comparison. Use
+`--interface http` for thin HTTP operation adapters with unconstrained object
+arguments; the API validates those bodies, and the adapter does not apply MCP
+Zod field stripping. The MCP arm uses the captured input schemas and stripping
+rules. Both arms use the existing HTTP execution shim, not a live MCP transport.
+Reports record interface, control_full_spec and guide_version. Dry runs replay
+scripted turns and do not measure a live agent's reaction to either prompt arm.

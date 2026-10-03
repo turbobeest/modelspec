@@ -18,6 +18,7 @@ SOURCE_PATHS = (
     "mcp/src/vocabulary.ts",
     "docs/decision-contract.schema.json",
     "api/worker/openapi.yaml",
+    "docs/agents.md",
 )
 
 

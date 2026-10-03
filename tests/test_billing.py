@@ -1248,7 +1248,16 @@ def test_checkout_always_asks_stripe_tax_for_a_billing_address():
 #: MODEL-105 added the form variant, captured from the unchanged Worker with
 #: the stub Stripe in `_patch_entry_fetch`. A JSON caller keeps getting this.
 JSON_CHECKOUT_GOLDEN_STATUS = 200
+# MODEL-291 adds discovery metadata to every /v1 response; body bytes stay pinned.
+from api.worker.src.agent_guide import GUIDE_URL, GUIDE_VERSION
+
+GUIDE_HEADERS = {
+    "Link": f'<{GUIDE_URL}>; rel="describedby"',
+    "x-modelspec-guide-version": GUIDE_VERSION,
+    "access-control-expose-headers": "Link, x-modelspec-guide-version",
+}
 JSON_CHECKOUT_GOLDEN_HEADERS = {
+    **GUIDE_HEADERS,
     "content-type": "application/json; charset=utf-8",
     "cache-control": "no-store",
     "x-modelspec-service-commit": "testsha",

@@ -49,7 +49,7 @@ KEEP_DIRS = (
 #: Copied from the v1 build. The discovery files are what MODEL-214 restored.
 KEEP_FILES = (
     "index.html", "openapi.yaml",
-    "llms.txt", "index.md", "auth.md",
+    "llms.txt", "index.md", "auth.md", "agents.md",
     *brand.FILES,
 )
 #: The public pages, in sitemap order.
@@ -59,7 +59,7 @@ PAGES = (
 )
 #: Files an agent is pointed at. Every modelspec.dev link in them must resolve.
 DISCOVERY = (
-    "llms.txt", "index.md", "auth.md", "robots.txt", "sitemap.xml",
+    "llms.txt", "index.md", "auth.md", "agents.md", "robots.txt", "sitemap.xml",
     ".well-known/api-catalog", ".well-known/mcp.json",
     ".well-known/agent-skills/index.json", ".well-known/agent-skills/modelspec/SKILL.md",
 )

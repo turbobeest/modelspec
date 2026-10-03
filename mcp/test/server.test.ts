@@ -129,9 +129,10 @@ describe("modelspec MCP worker", () => {
       tools: Array<{ name: string; description?: string }>;
     };
     const description = result.tools.find((tool) => tool.name === "decide")?.description;
-    expect(description).toContain('explain: "summary" (the default)');
-    expect(description).toContain('explain: "full"');
-    expect(description).toContain("670 KB");
+    expect(description).toContain("explain=summary first");
+    expect(description).toContain("Full includes every eliminated candidate");
+    expect(description).toContain("client context budget");
+    expect(description).toContain("https://modelspec.dev/agents.md");
   });
 
   it("initialize reports BUILD_COMMIT as serverInfo.version", async () => {
@@ -140,7 +141,10 @@ describe("modelspec MCP worker", () => {
       capabilities: {},
       clientInfo: { name: "vitest", version: "0" },
     });
-    const result = payload.result as { serverInfo: { name: string; version: string } };
+    const result = payload.result as { serverInfo: { name: string; version: string }; instructions: string };
+    expect(result.instructions).toContain("https://modelspec.dev/agents.md");
+    expect(result.instructions).toContain("Call decide early");
+    expect(result.instructions.length / 4).toBeLessThanOrEqual(1000);
     expect(result.serverInfo.name).toBe("modelspec");
     expect(result.serverInfo.version).toBe("test-commit-sha");
   });

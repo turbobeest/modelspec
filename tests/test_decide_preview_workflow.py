@@ -39,6 +39,7 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
         'dist/modelspec/llms-full.txt': b'v1 digest',
         'dist/modelspec/index.md': b'# ModelSpec',
         'dist/modelspec/auth.md': b'# Auth.md',
+        'dist/modelspec/agents.md': b'# ModelSpec agent guide',
         'dist/modelspec/_headers': b'/*\n  Link: </llms.txt>; rel="describedby"\n',
         'dist/modelspec/legal/terms/index.html': b'terms',
         'dist/modelspec/legal/privacy/index.html': b'privacy',
