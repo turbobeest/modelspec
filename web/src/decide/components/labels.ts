@@ -95,3 +95,12 @@ export function placeLabels(
     return { id: label.id, side: preferred, dy: 0 };
   });
 }
+
+/**
+ * The plot's height for its measured width (MODEL-298). A narrow plot keeps
+ * 460px; across the full page it grows with the width, up to 560px, so a wide
+ * plot is not a thin strip. Points are placed in percent, so no mark distorts.
+ */
+export function plotHeight(width: number): number {
+  return Math.round(Math.min(560, Math.max(460, width * 0.4)));
+}

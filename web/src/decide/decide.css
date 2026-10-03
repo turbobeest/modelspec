@@ -715,7 +715,10 @@ body {
 .access-question input { margin: 3px 0 0; flex: none; }
 .access-question label > span { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .access-question small { color: var(--muted); }
-.board-workspace { display: grid; grid-template-columns: minmax(520px, 600px) minmax(0, 1fr); grid-template-areas: "facets answer"; gap: 14px; align-items: start; }
+/* The narrowing card never drops under 470px, so a ranked row (406px of
+   columns plus 56px of padding) always fits; the facets take the rest, up to
+   600px. Below 1000px the two cards stack (MODEL-298). */
+.board-workspace { display: grid; grid-template-columns: minmax(0, 600px) minmax(470px, 1fr); grid-template-areas: "facets answer"; gap: 14px; align-items: stretch; }
 .facet-list { grid-area: facets; padding: 0; overflow: hidden; }
 .facet-list > header { padding: 10px 16px; display: flex; align-items: baseline; justify-content: space-between; }
 .facet-list > header > span { display: flex; align-items: baseline; gap: 10px; }
@@ -865,7 +868,7 @@ body {
 .answer-lists { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr)); gap: 14px; }
 .answer-lists > section { min-width: 0; }
 .answer-lists > section > strong { display: block; margin: 0 16px 6px; }
-@media (max-width: 1099px) {
+@media (max-width: 999px) {
   .board-workspace { grid-template-columns: minmax(0, 1fr); grid-template-areas: "facets" "answer"; }
   .board-answer { scroll-margin-top: 58px; }
   .mobile-answer-bar { position: sticky; top: 0; z-index: 20; display: flex; justify-content: space-between; padding: 9px 12px; color: var(--accentText); background: var(--surface); border: 1px solid var(--accent); font-weight: 650; text-decoration: none; }

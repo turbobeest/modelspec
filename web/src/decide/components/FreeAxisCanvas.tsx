@@ -9,7 +9,7 @@ import {
   type CanvasAxisId,
   type CanvasAxisOption,
 } from "./canvas-axis";
-import { placeLabels } from "./labels";
+import { placeLabels, plotHeight } from "./labels";
 
 export interface CanvasAxes {
   x: CanvasAxisId;
@@ -230,7 +230,7 @@ export function FreeAxisCanvas({
   );
   const xMust = mustValue(xAxis, selections);
   const yMust = mustValue(yAxis, selections);
-  const height = 460;
+  const height = plotHeight(plotWidth);
   const frontier = frontierIds(points, xAxis, yAxis);
   const winner = decision.explanation.shortlist.top?.m.id;
   const nearMisses = new Set(

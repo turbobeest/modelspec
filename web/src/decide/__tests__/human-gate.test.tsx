@@ -6,7 +6,30 @@ import fixture from "../__fixtures__/full-decision.json";
 import { json, routeFetch, realVocabulary, sentSpecs } from "./vocab-fixtures";
 import { capabilityRow, templateCell } from "./board-helpers";
 
+const broken = vi.hoisted(() => ({ canvas: false }));
+vi.mock("../components/FreeAxisCanvas", async (importOriginal) => {
+  const real = await importOriginal<typeof import("../components/FreeAxisCanvas")>();
+  return {
+    ...real,
+    FreeAxisCanvas: (props: Parameters<typeof real.FreeAxisCanvas>[0]) => {
+      if (broken.canvas) throw new TypeError("canvas failed to render");
+      return <real.FreeAxisCanvas {...props} />;
+    },
+  };
+});
+vi.mock("../components/Canvas", async (importOriginal) => {
+  const real = await importOriginal<typeof import("../components/Canvas")>();
+  return {
+    ...real,
+    Canvas: (props: Parameters<typeof real.Canvas>[0]) => {
+      if (broken.canvas) throw new TypeError("canvas failed to render");
+      return <real.Canvas {...props} />;
+    },
+  };
+});
+
 beforeEach(() => {
+  broken.canvas = false;
   vi.resetModules();
   vi.stubEnv("VITE_HUMAN_GATE_ENABLED", "true");
   vi.stubEnv("VITE_TURNSTILE_SITE_KEY", "public-test-key");
@@ -16,6 +39,7 @@ beforeEach(() => {
   };
 });
 afterEach(() => {
+  broken.canvas = false;
   vi.useRealTimers();
   delete window.turnstile;
   vi.unstubAllGlobals();
@@ -273,3 +297,57 @@ it("an open ungated tab refreshes status after the Worker enables the gate", asy
   expect(window.turnstile?.render).toHaveBeenCalledTimes(1);
   expect(sentSpecs(vi.mocked(fetch))).toHaveLength(1);
 });
+
+const boundaryAlerts = () => screen.queryAllByRole("alert", { name: "The answer could not be shown" });
+
+it("a canvas failure leaves the manual-lookup gate and the narrowing on screen (MODEL-298)", async () => {
+  vi.spyOn(console, "error").mockImplementation(() => undefined);
+  broken.canvas = true;
+  const routed = routeFetch({ vocabulary: () => json(realVocabulary), decide: () => json(fixture) });
+  vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) =>
+    String(input).endsWith("/v1/human-status")
+      ? Promise.resolve(json({ enabled: true, remaining: 17 }))
+      : routed(input, init)));
+  const { DesignedApp } = await import("../App");
+  render(<DesignedApp />);
+  const button = await screen.findByRole("button", { name: "Look up this decision" });
+  await waitFor(() => expect(button).toBeEnabled());
+  fireEvent.click(button);
+  expect(await screen.findByLabelText("Facet board answer")).toBeInTheDocument();
+  await waitFor(() => expect(boundaryAlerts()).toHaveLength(1));
+  // The gate sits above the board, not in the answer column; the canvas's
+  // failure notice is in neither.
+  const gate = screen.getByRole("region", { name: "Manual lookups" });
+  expect(within(gate).getByRole("status")).toHaveTextContent(/decisions remaining today/);
+  expect(gate).not.toContainElement(boundaryAlerts()[0]);
+  expect(document.getElementById("facet-board-answer")).not.toContainElement(boundaryAlerts()[0]);
+  expect(screen.queryByRole("region", { name: "Trade-off canvas" })).not.toBeInTheDocument();
+  expect(document.querySelector(".decision-table")).toBeInTheDocument();
+}, 15_000);
+
+it("a refused manual lookup shows its own alert, not the canvas's boundary alert (MODEL-298)", async () => {
+  vi.spyOn(console, "error").mockImplementation(() => undefined);
+  broken.canvas = true;
+  let refuse = false;
+  const routed = routeFetch({ vocabulary: () => json(realVocabulary), decide: () => !refuse ? json(fixture) : json({
+    error: { code: "human_burst_limit", message: "Three decisions per minute is the manual lookup limit. Wait a minute, then verify again." },
+  }, 429) });
+  vi.stubGlobal("fetch", vi.fn((input: RequestInfo | URL, init?: RequestInit) =>
+    String(input).endsWith("/v1/human-status")
+      ? Promise.resolve(json({ enabled: true, remaining: 17 }))
+      : routed(input, init)));
+  const { DesignedApp } = await import("../App");
+  render(<DesignedApp />);
+  const button = await screen.findByRole("button", { name: "Look up this decision" });
+  await waitFor(() => expect(button).toBeEnabled());
+  fireEvent.click(button);
+  await waitFor(() => expect(boundaryAlerts()).toHaveLength(1), { timeout: 10_000 });
+  await waitFor(() => expect(button).toBeEnabled());
+  fireEvent.click(templateCell(/^Coding · Budget:/));
+  refuse = true;
+  fireEvent.click(button);
+  expect(await screen.findByText(/Three decisions per minute is the manual lookup limit/, {}, { timeout: 10_000 })).toBeVisible();
+  expect(screen.getByText("Verify again above before your next lookup.")).toBeVisible();
+  expect(boundaryAlerts()).toHaveLength(0);
+  expect(screen.getByRole("region", { name: "Manual lookups" })).toBeInTheDocument();
+}, 30_000);

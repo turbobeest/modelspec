@@ -109,7 +109,9 @@ it("keeps the facets usable when the narrowing answer throws", async () => {
 
   expect(failure()).toHaveLength(1);
   expect(screen.getByRole("region", { name: "Facets" })).toHaveTextContent("1 set");
-  // The table and Why below the board still render (the canvas sits inside the narrowing since #549).
+  // The canvas, the table and Why below the board still render: each has its own boundary.
+  expect(screen.getByRole("region", { name: "Trade-off canvas" })).toBeInTheDocument();
+  expect(document.querySelector(".decision-table")).toBeInTheDocument();
   expect(screen.getByRole("region", { name: "Why this model" })).toBeInTheDocument();
 
   broken.rankedAnswer = false;
@@ -118,7 +120,7 @@ it("keeps the facets usable when the narrowing answer throws", async () => {
   await waitFor(() => expect(failure()).toHaveLength(0));
 });
 
-it("a canvas failure leaves the narrowing, the table and Why on screen (#549 moved the canvas beside the facets)", async () => {
+it("a canvas failure leaves the narrowing, the table and Why on screen (MODEL-298 put the canvas under both cards)", async () => {
   const fetch = routeFetch({ decide: () => json(fixtureJson) });
   vi.stubGlobal("fetch", fetch);
   render(<DesignedApp />);
@@ -129,7 +131,29 @@ it("a canvas failure leaves the narrowing, the table and Why on screen (#549 mov
   fireEvent.click(within(capabilityRow("Software engineering")).getByLabelText("Prefer"));
 
   expect(failure()).toHaveLength(1);
+  // The failure notice stands where the canvas stood: outside the narrowing card.
+  expect(document.querySelector(".board-answer")).not.toContainElement(failure()[0]);
   expect(screen.getByLabelText("Facet board answer")).toBeInTheDocument();
+  expect(document.querySelector(".board-answer .board-ranked-answer")).toBeInTheDocument();
+  expect(document.querySelector(".decision-table")).toBeInTheDocument();
   expect(screen.getByRole("region", { name: "Why this model" })).toBeInTheDocument();
   expect(screen.queryByRole("region", { name: "Trade-off canvas" })).not.toBeInTheDocument();
+
+  broken.canvas = false;
+  fireEvent.click(within(failure()[0]).getByRole("button", { name: "Reset" }));
+  expect(await screen.findByRole("region", { name: "Trade-off canvas" })).toBeInTheDocument();
+  expect(failure()).toHaveLength(0);
+});
+
+it("puts the canvas after the board and before the table, outside the narrowing card (MODEL-298)", async () => {
+  vi.stubGlobal("fetch", routeFetch({ decide: () => json(fixtureJson) }));
+  render(<DesignedApp />);
+  const canvas = await screen.findByRole("region", { name: "Trade-off canvas" });
+  const board = document.querySelector(".facet-board");
+  const table = document.querySelector(".decision-table");
+  if (!board || !table) throw new Error("the board or the table did not render");
+  expect(document.querySelector(".board-answer")).not.toContainElement(canvas);
+  expect(board).not.toContainElement(canvas);
+  expect(board.compareDocumentPosition(canvas) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(canvas.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });

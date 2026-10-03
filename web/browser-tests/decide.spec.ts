@@ -71,32 +71,76 @@ test("the board fits a 390px viewport in light and dark mode", async ({ page }) 
   }
 });
 
+/** Open the board at `width` and apply a template, so every region has content. */
+async function applyTemplate(page: import("@playwright/test").Page, width: number) {
+  await page.setViewportSize({ width, height: width >= 1000 ? 900 : 844 });
+  // The gated build re-renders the board when /v1/human-status answers; apply
+  // the template only after that, or the template can be applied and reset.
+  const status = process.env.VITE_HUMAN_GATE_ENABLED === "true"
+    ? page.waitForResponse((response) => response.url().includes("/v1/human-status"))
+    : null;
+  // Old table-first links load the same fixed composition.
+  await page.goto("/decide.html?layout=table");
+  if (status) await status;
+  await expect(page.getByRole("group", { name: "Layout" })).toHaveCount(0);
+  await page.getByRole("button", { name: /Start from a template/ }).click();
+  await page.locator(".board-templates button").nth(1).click();
+  await expect(page.getByRole("region", { name: "Trade-off canvas" })).toBeVisible();
+  await expect(page.locator(".decision-table")).toBeVisible();
+  await expect(page.locator(".loading")).toHaveCount(0);
+  // Every measured region must exist before its box is read; the gated build
+  // settles its status fetch a beat later than the ungated one.
+  for (const region of [
+    page.getByRole("region", { name: "Facets", exact: true }),
+    page.locator(".board-answer"),
+    page.locator(".board-ranked-answer").last(),
+    page.locator(".board-workspace"),
+    page.locator(".why-panel"),
+  ]) await expect(region).toBeVisible();
+}
+
+for (const [width, scrollbar] of [[1440, 0], [1124, 0], [1100, 0], [1000, 0], [1000, 15]] as const) {
+  test(`the ranked answer fits inside the narrowing card, and both cards share one height, at ${width}px${scrollbar ? ` with a ${scrollbar}px scrollbar` : ""}`, async ({ page }) => {
+    await applyTemplate(page, width);
+    if (scrollbar) {
+      // A classic scrollbar takes its width from the page but not from the
+      // media query, which still reads 1000px. Headless Chromium hides
+      // scrollbars, so the page gives up the same width as padding instead.
+      await page.addStyleTag({ content: `html { padding-right: ${scrollbar}px; }` });
+      await expect.poll(() => page.evaluate(() => document.body.clientWidth)).toBe(width - scrollbar);
+    }
+    // MODEL-298: at 1100px the facets track once took 600px and left the
+    // ranked rows 26px wider than the card. Measure the overflow, not the CSS.
+    const overflow = () => page.evaluate(() => {
+      const nodes = [
+        ...document.querySelectorAll<HTMLElement>(".board-answer"),
+        ...document.querySelectorAll<HTMLElement>(".board-ranked-answer"),
+        ...document.querySelectorAll<HTMLElement>(".board-ranked-answer > ol > li"),
+      ];
+      return nodes.length === 0
+        ? ["no narrowing card"]
+        : nodes.filter((node) => node.scrollWidth > node.clientWidth)
+          .map((node) => `${node.tagName.toLowerCase()}.${node.className}: ${node.scrollWidth} > ${node.clientWidth}`);
+    });
+    await expect.poll(overflow).toEqual([]);
+    const boxes = () => Promise.all([
+      page.getByRole("region", { name: "Facets", exact: true }).boundingBox(),
+      page.locator(".board-answer").boundingBox(),
+    ]);
+    await expect.poll(async () => (await boxes()).every(Boolean)).toBe(true);
+    const [facets, answers] = await boxes();
+    if (!facets || !answers) throw new Error("the board did not render both cards");
+    expect(answers.x).toBeGreaterThanOrEqual(facets.x + facets.width);
+    expect(Math.abs(answers.y - facets.y)).toBeLessThanOrEqual(1);
+    expect(Math.abs(answers.height - facets.height)).toBeLessThanOrEqual(1);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+  });
+}
+
 for (const width of [1440, 1024, 390, 320]) {
-  test(`a template puts the canvas beside or below facets and the full-width table underneath at ${width}px`, async ({ page }) => {
-    await page.setViewportSize({ width, height: width >= 1024 ? 900 : 844 });
-    // The gated build re-renders the board when /v1/human-status answers; apply
-    // the template only after that, or the template can be applied and reset.
-    const status = process.env.VITE_HUMAN_GATE_ENABLED === "true"
-      ? page.waitForResponse((response) => response.url().includes("/v1/human-status"))
-      : null;
-    // Old table-first links load the same fixed composition.
-    await page.goto("/decide.html?layout=table");
-    if (status) await status;
-    await expect(page.getByRole("group", { name: "Layout" })).toHaveCount(0);
-    await page.getByRole("button", { name: /Start from a template/ }).click();
-    await page.locator(".board-templates button").nth(1).click();
+  test(`a template puts facets and narrowing side by side or stacked, then the canvas and table at full width, at ${width}px`, async ({ page }) => {
+    await applyTemplate(page, width);
     const canvas = page.getByRole("region", { name: "Trade-off canvas" });
-    await expect(canvas).toBeVisible();
-    await expect(page.locator(".decision-table")).toBeVisible();
-    await expect(page.locator(".loading")).toHaveCount(0);
-    // Every measured region must exist before its box is read; the gated build
-    // settles its status fetch a beat later than the ungated one.
-    for (const region of [
-      page.getByRole("region", { name: "Facets", exact: true }),
-      page.locator(".board-answer"),
-      page.locator(".board-workspace"),
-      page.locator(".why-panel"),
-    ]) await expect(region).toBeVisible();
 
     const measure = () => Promise.all([
       page.getByRole("region", { name: "Facets", exact: true }).boundingBox(),
@@ -112,36 +156,49 @@ for (const width of [1440, 1024, 390, 320]) {
     if (!facets || !chart || !answers || !table || !workspace || !details) {
       throw new Error("the applied template did not render all layout regions");
     }
-    // Jamie, 2026-10-02: the narrowing (funnel and ranked answer) heads the
-    // right column; the canvas sits under it.
+    // The narrowing card holds the funnel, the answer, the ranked list and the
+    // feedback form; the canvas is no longer inside it (MODEL-298).
     const [narrowing, ranked, feedback] = await Promise.all([
       page.locator(".board-answer-head").boundingBox(),
       page.locator(".board-ranked-answer").last().boundingBox(),
       page.locator(".answer-feedback").boundingBox(),
     ]);
     if (!narrowing || !ranked) throw new Error("the narrowing did not render");
-    expect(chart.y).toBeGreaterThanOrEqual(narrowing.y + narrowing.height);
-    expect(chart.y).toBeGreaterThanOrEqual(ranked.y + ranked.height);
-    expect(chart.x).toBeGreaterThanOrEqual(answers.x);
-    expect(chart.x + chart.width).toBeLessThanOrEqual(answers.x + answers.width + 1);
-    if (feedback) expect(feedback.y).toBeGreaterThanOrEqual(chart.y + chart.height);
-    expect(await page.locator(".board-answer").evaluate((node) => getComputedStyle(node).position)).toBe("static");
-    if (width > 1099) {
-      expect(chart.x).toBeGreaterThanOrEqual(facets.x + facets.width);
-      expect(Math.abs(answers.y - facets.y)).toBeLessThanOrEqual(1);
-    } else {
-      expect(chart.y).toBeGreaterThanOrEqual(facets.y + facets.height);
+    for (const inside of [narrowing, ranked, ...(feedback ? [feedback] : [])]) {
+      expect(inside.y).toBeGreaterThanOrEqual(answers.y);
+      expect(inside.y + inside.height).toBeLessThanOrEqual(answers.y + answers.height + 1);
     }
-    expect(table.y).toBeGreaterThanOrEqual(Math.max(facets.y + facets.height, answers.y + answers.height));
+    await expect(page.locator(".board-answer").getByRole("region", { name: "Trade-off canvas" })).toHaveCount(0);
+    expect(await page.locator(".board-answer").evaluate((node) => getComputedStyle(node).position)).toBe("static");
+
+    // Jamie, 2026-10-03: the facets and narrowing cards share one height,
+    // whichever is longer.
+    if (width >= 1024) {
+      expect(answers.x).toBeGreaterThanOrEqual(facets.x + facets.width);
+      expect(Math.abs(answers.y - facets.y)).toBeLessThanOrEqual(1);
+      expect(Math.abs(answers.height - facets.height)).toBeLessThanOrEqual(1);
+    } else {
+      expect(answers.y).toBeGreaterThanOrEqual(facets.y + facets.height);
+    }
+    // ...and the canvas spans the page below both, as wide as the table.
+    expect(chart.y).toBeGreaterThanOrEqual(Math.max(facets.y + facets.height, answers.y + answers.height));
+    expect(Math.abs(chart.width - table.width)).toBeLessThanOrEqual(2);
+    expect(Math.abs(chart.x - table.x)).toBeLessThanOrEqual(1);
+    expect(table.y).toBeGreaterThanOrEqual(chart.y + chart.height);
     expect(Math.abs(table.width - workspace.width)).toBeLessThanOrEqual(2);
     expect(Math.abs(table.x - workspace.x)).toBeLessThanOrEqual(1);
     expect(details.y).toBeGreaterThanOrEqual(table.y + table.height);
+    // The plot keeps a sensible shape at full width: never a thin strip.
+    const plot = await canvas.locator(".plot-wrap").boundingBox();
+    if (!plot) throw new Error("the canvas drew no plot");
+    expect(plot.height).toBeGreaterThanOrEqual(460);
+    expect(plot.height).toBeLessThanOrEqual(560);
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
     expect(await page.locator(".board-answer").evaluate((node) => getComputedStyle(node).overflowY)).toBe("visible");
 
     if (process.env.MODELSPEC_SCREENSHOT_DIR) {
       await page.evaluate(() => window.scrollTo(0, 0));
-      await page.screenshot({ path: `${process.env.MODELSPEC_SCREENSHOT_DIR}/decide-layout-${width}.png`, fullPage: true });
+      await page.screenshot({ path: `${process.env.MODELSPEC_SCREENSHOT_DIR}/decide-298-${width}.png`, fullPage: true });
     }
   });
 }
