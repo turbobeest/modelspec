@@ -496,6 +496,7 @@ export const decisionSchema = z
       "2.10",
       "2.11",
       "2.12",
+      "2.13",
     ]),
     decision_id: z.string().regex(/^dec_[0-9A-Za-z]{8,}$/),
     snapshot: z.string().regex(/^snap_[A-Za-z0-9:._-]+$/),

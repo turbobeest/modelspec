@@ -17,6 +17,9 @@ const view = (decision = full) =>
 afterEach(() => vi.unstubAllGlobals());
 
 describe("the compact full decision", () => {
+  it("accepts 2.13 before the Worker can emit it", () => {
+    expect(decisionSchema.parse({ ...fullJson, contract_version: "2.13" }).contract_version).toBe("2.13");
+  });
   it("parses, with sources listed once and origins naming them by ID", () => {
     expect(full.contract_version).toBe("2.12");
     expect(full.answer?.kind).toBe("separated");
