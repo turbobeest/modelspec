@@ -114,11 +114,6 @@ export function DesignedApp({
     [initialRestored, setInitialRestored] = useState(!initial);
   const [theme, setTheme] = useState<Theme>(() =>
       initialTheme(location.search, storedTheme()),
-    ),
-    [layout, setLayout] = useState(() =>
-      new URLSearchParams(location.search).get("layout") === "table"
-        ? "table"
-        : "canvas",
     );
   const [selected, setSelected] = useState<string | null>(null),
     [dismissed, setDismissed] = useState<string[]>([]),
@@ -865,7 +860,7 @@ export function DesignedApp({
   };
   return (
     <VocabContext.Provider value={vocab}>
-    <div className="decide-app" data-theme={theme} data-layout={layout}>
+    <div className="decide-app" data-theme={theme}>
       <header className="global-header">
         <button
           className="brand lockup"
@@ -879,20 +874,6 @@ export function DesignedApp({
         </button>
         <div className="spacer" />
         {decision && <span className="snapshot">{decision.snapshot}</span>}
-        <div className="segments" role="group" aria-label="Layout">
-          <button
-            aria-pressed={layout === "canvas"}
-            onClick={() => setLayout("canvas")}
-          >
-            Canvas first
-          </button>
-          <button
-            aria-pressed={layout === "table"}
-            onClick={() => setLayout("table")}
-          >
-            Table first
-          </button>
-        </div>
         <button
           onClick={() => {
             const next = theme === "dark" ? "light" : "dark";
@@ -959,6 +940,40 @@ export function DesignedApp({
                     <section><strong>If you could use anything</strong><RankedAnswer decision={decision} spec={shownSpec} vocabulary={vocabulary} access={answeredAccess} held={estate} excludedPlans={answeredAccess === "own_software" ? estateAnswer.excludedPlans : []} /></section>
                   </div>
                 : <RankedAnswer decision={decision} spec={shownSpec} vocabulary={vocabulary} access={answeredAccess} held={estate} />}
+              {!error && !loading && <AnswerBoundary resetKey={decision} onReset={resetBoard}>
+                {vocabulary && hostedDecision && shownCanvasAxes ? (
+                  <FreeAxisCanvas
+                    decision={decision}
+                    rankingDecision={hostedDecision}
+                    plotDecision={plotDecision}
+                    vocabulary={vocabulary}
+                    axes={shownCanvasAxes}
+                    onAxes={(next) => {
+                      if (humanGateEnabled) changeSpec(spec);
+                      else action.current = { intent: newIntent() };
+                      setCanvasAxes(next);
+                    }}
+                    onMust={setCanvasMust}
+                    selections={boardSelections}
+                    selected={selectedId}
+                    onSelect={setSelected}
+                  />
+                ) : (
+                  <Canvas
+                    decision={decision}
+                    spec={shownSpec}
+                    axis={shownAxis}
+                    onAxis={setAxis}
+                    onSpec={changeSpec}
+                    onAdd={add}
+                    selected={selectedId}
+                    onSelect={setSelected}
+                    onRelax={relax}
+                    boardRanked={boardRanked}
+                  />
+                )}
+                <Coverage decision={decision} spec={shownSpec} onSpec={changeSpec} />
+              </AnswerBoundary>}
               {hostedDecision && <section className="answer-feedback" aria-label="Was this answer reliable?">
                 <FeedbackForm key={hostedDecision.decision_id} compact question="Was this answer reliable?" decisionId={hostedDecision.decision_id} template={activeTemplateId} page="/decide/" />
               </section>}
@@ -1007,41 +1022,7 @@ export function DesignedApp({
             </div>
           ) : decision ? (
             <AnswerBoundary resetKey={decision} onReset={resetBoard}>
-            <Coverage decision={decision} spec={shownSpec} onSpec={changeSpec} />
             <div className="results">
-              {vocabulary && hostedDecision && shownCanvasAxes ? (
-                <FreeAxisCanvas
-                  decision={decision}
-                  rankingDecision={hostedDecision}
-                  plotDecision={plotDecision}
-                  vocabulary={vocabulary}
-                  axes={shownCanvasAxes}
-                  onAxes={(next) => {
-                    if (humanGateEnabled) changeSpec(spec);
-                    else action.current = { intent: newIntent() };
-                    setCanvasAxes(next);
-                  }}
-                  onMust={setCanvasMust}
-                  selections={boardSelections}
-                  selected={selectedId}
-                  onSelect={setSelected}
-                  compact={layout === "table"}
-                />
-              ) : (
-                <Canvas
-                  decision={decision}
-                  spec={shownSpec}
-                  axis={shownAxis}
-                  onAxis={setAxis}
-                  onSpec={changeSpec}
-                  onAdd={add}
-                  selected={selectedId}
-                  onSelect={setSelected}
-                  onRelax={relax}
-                  compact={layout === "table"}
-                  boardRanked={boardRanked}
-                />
-              )}
               <DecisionTable
                 decision={decision}
                 spec={shownSpec}

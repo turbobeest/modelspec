@@ -78,7 +78,7 @@ it("opens a composer-era permalink as a populated board with migration notes", a
   render(<App />);
   await screen.findByRole("heading", { name: "Set what matters. Watch the field narrow." });
   expect(screen.queryByLabelText("Describe your task")).not.toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Table first" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.queryByRole("group", { name: "Layout" })).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Light mode" })).toBeInTheDocument();
   expect(await screen.findByRole("note", { name: "Notes from your old decision link" })).toHaveTextContent(
     "The board does not interpret free text.",
@@ -726,7 +726,7 @@ it("lists only qualifying providers as alternatives on the board", async () => {
   const answer = screen.getByLabelText("Facet board answer")
     .closest<HTMLElement>(".board-answer")!;
   fireEvent.click(within(answer).getByRole("button", { name: "Show all 15" }));
-  const modelRow = within(answer).getByText("Claude Opus 5.5").closest("li")!;
+  const modelRow = within(answer).getByText("Claude Opus 5.5", { selector: ".board-ranked-copy strong" }).closest("li")!;
   expect(within(modelRow).getByText(/also via/)).toHaveTextContent(
     "Vertex AI (Google Cloud)",
   );

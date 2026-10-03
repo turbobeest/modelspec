@@ -71,6 +71,72 @@ test("the board fits a 390px viewport in light and dark mode", async ({ page }) 
   }
 });
 
+for (const width of [1440, 1024, 390, 320]) {
+  test(`a template puts the canvas beside or below facets and the full-width table underneath at ${width}px`, async ({ page }) => {
+    await page.setViewportSize({ width, height: width >= 1024 ? 900 : 844 });
+    // Old table-first links load the same fixed composition.
+    await page.goto("/decide.html?layout=table");
+    await expect(page.getByRole("group", { name: "Layout" })).toHaveCount(0);
+    await page.getByRole("button", { name: /Start from a template/ }).click();
+    await page.locator(".board-templates button").nth(1).click();
+    const canvas = page.getByRole("region", { name: "Trade-off canvas" });
+    await expect(canvas).toBeVisible();
+    await expect(page.locator(".decision-table")).toBeVisible();
+    await expect(page.locator(".loading")).toHaveCount(0);
+    // Every measured region must exist before its box is read; the gated build
+    // settles its status fetch a beat later than the ungated one.
+    for (const region of [
+      page.getByRole("region", { name: "Facets", exact: true }),
+      page.locator(".board-answer"),
+      page.locator(".board-workspace"),
+      page.locator(".why-panel"),
+    ]) await expect(region).toBeVisible();
+
+    const [facets, chart, answers, table, workspace, details] = await Promise.all([
+      page.getByRole("region", { name: "Facets", exact: true }).boundingBox(),
+      canvas.boundingBox(),
+      page.locator(".board-answer").boundingBox(),
+      page.locator(".decision-table").boundingBox(),
+      page.locator(".board-workspace").boundingBox(),
+      page.locator(".why-panel").boundingBox(),
+    ]);
+    if (!facets || !chart || !answers || !table || !workspace || !details) {
+      throw new Error("the applied template did not render all layout regions");
+    }
+    // Jamie, 2026-10-02: the narrowing (funnel and ranked answer) heads the
+    // right column; the canvas sits under it.
+    const [narrowing, ranked, feedback] = await Promise.all([
+      page.locator(".board-answer-head").boundingBox(),
+      page.locator(".board-ranked-answer").last().boundingBox(),
+      page.locator(".answer-feedback").boundingBox(),
+    ]);
+    if (!narrowing || !ranked) throw new Error("the narrowing did not render");
+    expect(chart.y).toBeGreaterThanOrEqual(narrowing.y + narrowing.height);
+    expect(chart.y).toBeGreaterThanOrEqual(ranked.y + ranked.height);
+    expect(chart.x).toBeGreaterThanOrEqual(answers.x);
+    expect(chart.x + chart.width).toBeLessThanOrEqual(answers.x + answers.width + 1);
+    if (feedback) expect(feedback.y).toBeGreaterThanOrEqual(chart.y + chart.height);
+    expect(await page.locator(".board-answer").evaluate((node) => getComputedStyle(node).position)).toBe("static");
+    if (width > 1099) {
+      expect(chart.x).toBeGreaterThanOrEqual(facets.x + facets.width);
+      expect(Math.abs(answers.y - facets.y)).toBeLessThanOrEqual(1);
+    } else {
+      expect(chart.y).toBeGreaterThanOrEqual(facets.y + facets.height);
+    }
+    expect(table.y).toBeGreaterThanOrEqual(Math.max(facets.y + facets.height, answers.y + answers.height));
+    expect(Math.abs(table.width - workspace.width)).toBeLessThanOrEqual(2);
+    expect(Math.abs(table.x - workspace.x)).toBeLessThanOrEqual(1);
+    expect(details.y).toBeGreaterThanOrEqual(table.y + table.height);
+    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
+    expect(await page.locator(".board-answer").evaluate((node) => getComputedStyle(node).overflowY)).toBe("visible");
+
+    if (process.env.MODELSPEC_SCREENSHOT_DIR) {
+      await page.evaluate(() => window.scrollTo(0, 0));
+      await page.screenshot({ path: `${process.env.MODELSPEC_SCREENSHOT_DIR}/decide-layout-${width}.png`, fullPage: true });
+    }
+  });
+}
+
 test("the loading skeleton fits a 390px viewport", async ({ page }) => {
   // Hold the decision so the skeleton stays up: a fixed 400px cards column once
   // made a phone scroll sideways while a decision loaded.

@@ -22,7 +22,6 @@ export function Canvas({
   selected,
   onSelect,
   onRelax,
-  compact,
   boardRanked,
 }: {
   decision: AdapterDecision;
@@ -34,7 +33,6 @@ export function Canvas({
   selected: string | null;
   onSelect: (id: string) => void;
   onRelax: (index: number) => void;
-  compact: boolean;
   boardRanked: boolean;
 }) {
   const vocab = useVocab();
@@ -116,7 +114,7 @@ export function Canvas({
         `${i ? "L" : "M"}${100 * pd.fx(ax.get(r) ?? 0)} ${100 * pd.fy(r.cap ?? 0)}`,
     )
     .join(" ");
-  const height = compact ? 300 : 460;
+  const height = 460;
   // Labelled: selected, shortlist, frontier and may-qualify points, most
   // important first; any other point while it is hovered or focused.
   const shortlisted = new Set(
