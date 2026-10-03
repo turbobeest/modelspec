@@ -12,3 +12,10 @@ def test_bearer_redaction_keeps_a_serialized_report_valid_json():
 
 def test_bearer_redaction_still_covers_a_plain_header():
     assert redact("Authorization: Bearer abc.def-ghi_123") == "Authorization: [REDACTED]"
+
+
+def test_a_quoted_bearer_token_is_redacted_and_the_report_stays_valid():
+    report = json.dumps({"final_answer": 'header: Bearer "abc.def-ghi_123"'})
+    out = redact(report)
+    assert "abc.def-ghi_123" not in out
+    json.loads(out)
