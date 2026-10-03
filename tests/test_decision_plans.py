@@ -116,6 +116,8 @@ def _same_bytes(decision, golden) -> None:
     ours.pop("blend", None)
     # 2.10 (MODEL-221) adds the constant feedback pointer; the golden predates it.
     ours.pop("feedback", None)
+    # MODEL-284 adds reporting guidance; every pre-existing field stays pinned.
+    ours.pop("reading", None)
     text = json.dumps(ours, sort_keys=True).replace(
         json.dumps(BASIS), json.dumps("leader-overlap score intervals; "
                                       "capability estimates use 80% intervals"))
@@ -123,7 +125,7 @@ def _same_bytes(decision, golden) -> None:
 
 
 @pytest.mark.parametrize("index", range(len(NO_ACCESS_SPECS)))
-def test_an_omitted_access_reproduces_the_decision_from_before_model_200(
+def test_an_omitted_access_reproduces_the_current_policy_golden(
     undisclosed, index,
 ) -> None:
     golden = json.loads(GOLDEN.read_text())["undisclosed"][index]
@@ -386,7 +388,7 @@ def test_the_vocabulary_publishes_each_plan_record(sourced) -> None:
 
 
 def test_the_contract_took_the_next_minor_and_publishes_the_plan_types() -> None:
-    assert c.CONTRACT_VERSION == "2.11"
+    assert c.CONTRACT_VERSION == "2.12"
     defs = c.json_schema()["$defs"]
     for name in ("Access", "PlanRoute", "PlanCoverage", "PlanPrice", "PlanAllowance"):
         assert name in defs, name

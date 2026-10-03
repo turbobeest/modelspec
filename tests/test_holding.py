@@ -145,10 +145,20 @@ def test_the_holding_tree_is_exactly_its_expected_file_set(trees):
     top = sorted(p.name + ("/" if p.is_dir() else "") for p in ms.iterdir())
     card = [social_cards.LANDING_IMAGE] if social_cards.render_enabled() else []
     assert top == sorted(["api/", "legal/", "fonts/", "landing-assets/",
-                          "feedback-assets/", "openapi.yaml",
+                          "feedback-assets/", "brand/", "openapi.yaml",
                           *brand.FILES, *card, *holding.WRITTEN])
     for name in (*brand.FILES, *card):
         assert (ms / name).read_bytes() == (trees["real"] / "modelspec" / name).read_bytes(), name
+
+
+def test_the_brand_kit_is_the_same_bytes_in_every_tree_and_in_both_sitemaps(trees):
+    real = trees["real"] / "modelspec" / "brand"
+    assert (real / "index.html").is_file()
+    assert _files(trees["holding"] / "modelspec" / "brand") == _files(real)
+    assert _files(trees["live"] / "modelspec" / "brand") == _files(real)
+    for tree in (trees["real"], trees["live"]):
+        sitemap = (tree / "modelspec" / "sitemap.xml").read_text(encoding="utf-8")
+        assert "<loc>https://modelspec.dev/brand/</loc>" in sitemap
 
 
 def test_the_holding_page_links_the_2a_icons_and_social_card(trees):
@@ -257,7 +267,7 @@ def test_full_build_still_contains_every_source_page_before_composition(trees):
 def test_a_redirect_only_benchgraph_is_copied_and_modelspec_still_goes_dark(tmp_path):
     src = tmp_path / "src"
     ms = src / "modelspec"
-    for rel in ("api", "legal", "fonts", "landing-assets", "feedback-assets"):
+    for rel in ("api", "legal", "fonts", "landing-assets", "feedback-assets", "brand"):
         (ms / rel).mkdir(parents=True)
     decision = ms / "api" / "decision" / "snapshot.json.gz"
     decision.parent.mkdir()

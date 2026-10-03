@@ -42,6 +42,7 @@ CRUMBS = {
     "/legal/privacy/": "Privacy",
     "/legal/neutrality/": "Neutrality commitment",
     "/feedback/": "Feedback",
+    "/brand/": "Brand and press kit",
 }
 
 _BLOCK = re.compile(r'<script type="application/ld\+json" data-structured-data>.*?</script>\n?',

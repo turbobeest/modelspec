@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { z } from "zod";
+import { VISIT_GATE_ENABLED, registerChallenge, type Challenge } from "../adapter/visit";
 import { DECIDE_ENDPOINT } from "../adapter/hosted";
 
 export const HUMAN_GATE_ENABLED = import.meta.env.VITE_HUMAN_GATE_ENABLED === "true";
@@ -7,12 +8,15 @@ const SITE_KEY: string = import.meta.env.VITE_TURNSTILE_SITE_KEY ?? "";
 const statusSchema = z.union([
   z.object({ enabled: z.literal(false) }),
   z.object({ enabled: z.literal(true), remaining: z.number().int().min(0).max(20) }),
+  z.object({ enabled: z.literal(true), mode: z.literal("visit"), day_limit: z.number().int().positive(), burst_limit: z.number().int().positive() }),
 ]);
 
 interface Turnstile {
   render(container: HTMLElement, options: {
     sitekey: string;
     action: string;
+    appearance?: "interaction-only";
+    size?: "compact";
     callback: (token: string) => void;
     "expired-callback": () => void;
     "error-callback": () => void;
@@ -25,7 +29,7 @@ declare global {
 }
 
 let scriptReady: Promise<void> | null = null;
-function loadWidget(): Promise<void> {
+export function loadWidget(): Promise<void> {
   if (window.turnstile) return Promise.resolve();
   if (!scriptReady) scriptReady = new Promise((resolve, reject) => {
     const script = document.createElement("script");
@@ -58,6 +62,13 @@ export function HumanGate({ onLookup, onEnabled, disabled = false }: {
       if (!response.ok) throw new Error("Unavailable");
       const status = statusSchema.parse(await response.json());
       if (controller.signal.aborted) return;
+      if (status.enabled && "mode" in status) {
+        if (!VISIT_GATE_ENABLED) throw new Error("Visit verification requires a new page build");
+        setEnabled(false);
+        setUnavailable(false);
+        onEnabled?.(false);
+        return;
+      }
       setEnabled(status.enabled);
       onEnabled?.(status.enabled);
       if (status.enabled) {
@@ -108,5 +119,38 @@ export function HumanGate({ onLookup, onEnabled, disabled = false }: {
         try { await onLookup(token, setRemaining); }
         finally { setBusy(false); setUnavailable(!SITE_KEY); setChallenge((value) => value + 1); }
       }}>Look up this decision</button>}
+  </section>;
+}
+
+
+export function VisitGate() {
+  const container = useRef<HTMLDivElement>(null);
+  const [pending, setPending] = useState<Challenge | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  useEffect(() => registerChallenge(setPending), []);
+  useEffect(() => {
+    if (!pending) return;
+    let active = true;
+    let widget: string | null = null;
+    const fail = () => {
+      if (!active) return;
+      setError("Verification is temporarily unavailable. Retry your lookup.");
+      pending.reject(new Error("Human verification unavailable"));
+    };
+    setError(null);
+    if (!SITE_KEY) { fail(); return; }
+    void loadWidget().then(() => {
+      if (!active || !container.current || !window.turnstile) return;
+      widget = window.turnstile.render(container.current, {
+        sitekey: SITE_KEY, action: "decide", appearance: "interaction-only", size: "compact",
+        callback: (token) => { if (active) pending.resolve(token); },
+        "expired-callback": fail, "error-callback": fail,
+      });
+    }).catch(fail);
+    return () => { active = false; if (widget !== null) window.turnstile?.remove(widget); };
+  }, [pending]);
+  return <section className="visit-gate" aria-label="Visit verification">
+    {error && <p role="alert">{error}</p>}
+    <div ref={container} />
   </section>;
 }

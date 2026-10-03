@@ -93,6 +93,7 @@ def install_worker(bundle, snapshot_path=None, startup=None):
         from decision import snapshot as snapshot_module
 
         originals = []
+        startup_stack = []
 
         def measure_startup(module, name, phase):
             original = getattr(module, name)
@@ -100,22 +101,31 @@ def install_worker(bundle, snapshot_path=None, startup=None):
 
             @functools.wraps(original)
             def timed(*args, **kwargs):
-                started = time.perf_counter()
+                frame = [time.perf_counter(), 0.0]
+                startup_stack.append(frame)
                 try:
                     return original(*args, **kwargs)
                 finally:
-                    startup[phase] += (time.perf_counter() - started) * 1000
+                    elapsed = (time.perf_counter() - frame[0]) * 1000
+                    startup_stack.pop()
+                    startup[phase] += elapsed - frame[1]
+                    if startup_stack:
+                        startup_stack[-1][1] += elapsed
 
             setattr(module, name, timed)
 
         startup.update(
             dict.fromkeys(
-                ("bundled_read", "snapshot_parse_verify", "snapshot_index", "registry"), 0.0
+                ("bundled_read", "snapshot_parse_verify", "snapshot_index", "registry",
+                 "json_parse", "rank_prepare"), 0.0
             )
         )
         measure_startup(decide_service, "load_snapshot_bytes", "snapshot_parse_verify")
         measure_startup(snapshot_module.LoadedSnapshot, "__init__", "snapshot_index")
         measure_startup(registry, "default", "registry")
+        measure_startup(json.JSONDecoder, "raw_decode", "json_parse")
+        import rank_service
+        measure_startup(rank_service, "candidates_from_export", "rank_prepare")
         try:
             import bundled_data
         except ModuleNotFoundError as exc:
@@ -128,7 +138,6 @@ def install_worker(bundle, snapshot_path=None, startup=None):
     if startup is not None:
         for module, name, original in originals:
             setattr(module, name, original)
-        startup["snapshot_parse_verify"] -= startup["snapshot_index"]
 
     from decision import engine, explain
 
@@ -239,6 +248,7 @@ async def profile(bundle, runs=50, snapshot_path=None, spec=None, *, installed=N
         "runs": runs,
         "imports_ms": imports_ms,
         "initialization_ms": startup,
+        "card_schema_loaded": "schema.card" in sys.modules,
         "spec": spec,
         "cold_full_ms": cold,
         "levels": {},

@@ -581,14 +581,15 @@ _ENTRY_ONLY = {
     "snapshot_refused", "snapshot_unavailable",
 }
 _DECIDE_ONLY = {
-    "comparison_snapshot_changed", "comparison_snapshot_unavailable", "invalid_spec",
-    "no_snapshot", "snapshot_changed", "snapshot_not_loaded",
+    "comparison_snapshot_changed", "comparison_snapshot_unavailable", "explanation_unavailable",
+    "invalid_spec", "no_snapshot", "snapshot_changed", "snapshot_not_loaded",
 }
 
 
 def human_error_codes() -> dict[str, int]:
     import human_gate
-    return human_gate.REFUSALS
+    import visit_token
+    return {**human_gate.REFUSALS, **visit_token.REFUSALS}
 
 
 def source_error_codes() -> set[str]:
@@ -1045,6 +1046,13 @@ def access_enforced() -> bool:
     """The shipped value of `ACCESS_ENFORCED`, read the way the Worker reads it."""
     import re
     found = re.search(r'"ACCESS_ENFORCED"\s*:\s*"([^"]*)"', _wrangler_live_lines())
+    return access.enforcement(found.group(1) if found else None)
+
+
+def visit_gate_enabled() -> bool:
+    """The shipped value of `VISIT_GATE_ENABLED` (MODEL-292). Off: no visit route."""
+    import re
+    found = re.search(r'"VISIT_GATE_ENABLED"\s*:\s*"([^"]*)"', _wrangler_live_lines())
     return access.enforcement(found.group(1) if found else None)
 
 
@@ -2105,6 +2113,29 @@ def _comparison_responses() -> list[dict[str, Any]]:
     ]
 
 
+#: MODEL-293's bounded types copy their fields from the complete ones. In the
+#: OpenAPI document each copied property points at its source property instead
+#: of repeating it; only `default` and `title`, which do not validate, may differ.
+_BOUNDED_SOURCES = {
+    "DecisionDecideRequest": "DecisionSpec",
+    "DecisionProjectedResult": "DecisionResult",
+    "DecisionBoundedDecision": "DecisionResponse",
+}
+
+
+def _point_bounded_copies(schemas: dict[str, Any]) -> None:
+    def rules(node: dict[str, Any]) -> dict[str, Any]:
+        return {key: value for key, value in node.items() if key not in ("default", "title")}
+
+    for copy_name, source_name in _BOUNDED_SOURCES.items():
+        source = schemas[source_name]["properties"]
+        properties = schemas[copy_name]["properties"]
+        for name, schema in properties.items():
+            if name in source and rules(schema) == rules(source[name]):
+                properties[name] = {
+                    "$ref": f"#/components/schemas/{source_name}/properties/{name}"}
+
+
 def _decision_schemas() -> dict[str, Any]:
     """Convert the generated decision-contract definitions to component refs."""
     definitions = copy.deepcopy(decide_service.contract.json_schema()["$defs"])
@@ -2138,6 +2169,9 @@ def _decision_schemas() -> dict[str, Any]:
         return value
 
     schemas = {names[name]: rewrite(schema) for name, schema in definitions.items()}
+    _point_bounded_copies(schemas)
+    from decision.recovery import MAX_RECOVERY_HINTS, Recovery
+    schemas["DecisionRecovery"] = Recovery.model_json_schema()
     def refused(endpoint: str, codes: set[str]) -> dict[str, Any]:
         return {
             "type": "object",
@@ -2203,6 +2237,48 @@ def _decision_schemas() -> dict[str, Any]:
         "decide",
         shared_refusals | {"invalid_spec", "snapshot_changed", "snapshot_not_loaded"},
     )
+    schemas["DecisionRequestRefused"]["properties"]["error"]["properties"].update({
+        "recovery": {
+            "type": "array",
+            "maxItems": MAX_RECOVERY_HINTS,
+            "items": {"$ref": "#/components/schemas/DecisionRecovery"},
+            "description": "Optional registry-backed corrections for the first five issues in invalid decide specs. Existing issues are unchanged.",
+        },
+        "recovery_omitted": {
+            "type": "integer",
+            "minimum": 0,
+            "description": "Number of issues without a recovery hint, including examples that failed validation.",
+        },
+    })
+    schemas["DecisionRequestRefused"]["properties"]["reading"] = {
+        "$ref": "#/components/schemas/DecisionReading",
+    }
+    # Reachable only with evidence_for, so it belongs to the bounded
+    # representation and leaves the 2.x decision error enum unchanged.
+    schemas["DecisionBoundedRefused"] = {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["representation", "bounded_version", "projects_contract",
+                     "endpoint", "snapshot", "error"],
+        "properties": {
+            "representation": {"type": "string", "enum": ["bounded"]},
+            "bounded_version": {"type": "string",
+                                "enum": [decide_service.contract.BOUNDED_VERSION]},
+            "projects_contract": {"type": "string",
+                                  "enum": [decide_service.contract.CONTRACT_VERSION]},
+            "endpoint": {"type": "string", "enum": ["decide"]},
+            "snapshot": {"type": "string", "pattern": "^snap_[A-Za-z0-9:._-]+$"},
+            "error": {
+                "type": "object",
+                "additionalProperties": False,
+                "required": ["code", "message"],
+                "properties": {
+                    "code": {"type": "string", "enum": ["explanation_unavailable"]},
+                    "message": {"type": "string"},
+                },
+            },
+        },
+    }
     schemas["HumanGateRefused"] = refused("decide", set(human_error_codes()))
     schemas["DecisionSnapshotUnavailable"] = snapshot_unavailable("decide")
     schemas["ComparisonRequestRefused"] = refused(
@@ -2688,15 +2764,20 @@ def build_spec() -> dict[str, Any]:
             "/v1/human-status": {
                 "get": {
                     "operationId": "humanStatus",
-                    "summary": "Read today's manual lookup allowance without spending or creating durable state.",
+                    "summary": "Read the human admission mode without spending or creating durable state.",
                     "responses": {
-                        "200": _json_body("Gate disabled, or the remaining daily allowance.", {
+                        "200": _json_body("Gate disabled, legacy remaining allowance, or configured visit allowances.", {
                             "oneOf": [
                                 {"type": "object", "required": ["enabled"], "additionalProperties": False,
                                  "properties": {"enabled": {"type": "boolean", "enum": [False]}}},
                                 {"type": "object", "required": ["enabled", "remaining"], "additionalProperties": False,
                                  "properties": {"enabled": {"type": "boolean", "enum": [True]},
                                                 "remaining": {"type": "integer", "minimum": 0, "maximum": 20}}},
+                                {"type": "object", "required": ["enabled", "mode", "day_limit", "burst_limit"], "additionalProperties": False,
+                                 "properties": {"enabled": {"type": "boolean", "enum": [True]},
+                                                "mode": {"type": "string", "enum": ["visit"]},
+                                                "day_limit": {"type": "integer", "minimum": 1},
+                                                "burst_limit": {"type": "integer", "minimum": 1}}},
                             ]}),
                         "403": _json_body("The request origin is not a permitted site origin.", {
                             "type": "object", "required": ["enabled"],
@@ -2807,22 +2888,33 @@ def build_spec() -> dict[str, Any]:
                         "description": (
                             "Random 128-bit action ID encoded as unpadded base64url. "
                             "The human gate meters distinct intents per visitor. Admitted intents "
-                            "allow at most 32 requests strictly within 60 seconds of their first request. "
+                            "allow at most eight requests strictly within 60 seconds of their first request. "
                             "Missing or malformed IDs meter each request separately."
                         ),
+                    }, {
+                        "name": "X-ModelSpec-Visit-Token", "in": "header", "required": False,
+                        "schema": {"type": "string", "maxLength": 2048},
+                        "description": "With VISIT_GATE_ENABLED, admits a keyless page request only for the bound visitor and origin. Admitted replies return a renewed token and Unix expiry in X-ModelSpec-Visit-Token and X-ModelSpec-Visit-Expires. API keys take precedence. Expiry returns 401 visit_token_expired; verify and retry once with the same intent.",
                     }],
                     "requestBody": {
                         "required": True,
                         "content": {"application/json": {
-                            "schema": {"$ref": "#/components/schemas/DecisionSpec"},
+                            "schema": {"$ref": "#/components/schemas/DecisionDecideRequest"},
                             "example": EXAMPLE_DECIDE_REQUEST,
                         }},
                     },
                     "responses": {
                         "200": {
                             **_json_body(
-                                "A decision pinned to the snapshot that produced it.",
-                                {"$ref": "#/components/schemas/DecisionResponse"},
+                                "A decision pinned to the snapshot that produced it: a complete "
+                                "Decision (contract_version 2.12), or, when the request sends "
+                                "fields or evidence_for, the separate bounded representation "
+                                "(representation: bounded, bounded_version 1.0, no "
+                                "contract_version).",
+                                {"anyOf": [
+                                    {"$ref": "#/components/schemas/DecisionResponse"},
+                                    {"$ref": "#/components/schemas/DecisionBoundedDecision"},
+                                ]},
                             ),
                             "headers": decide_snapshot_headers,
                         },
@@ -2859,7 +2951,7 @@ def build_spec() -> dict[str, Any]:
                         **{
                             code: refused_by_access(description, {"$ref": "#/components/schemas/HumanGateRefused"})
                             for code, description in {
-                                "401": "Missing or invalid API key, or human_origin_required: use the paid API or MCP.",
+                                "401": "Missing or invalid API key, human_origin_required, visit_token_invalid or visit_token_expired. Refresh an expired visit once, or use a key.",
                                 "403": "Key revoked, or human_challenge_required: complete fresh verification.",
                                 "429": "Key quota, or human day, burst or even-interval limit. Wait for Retry-After.",
                             }.items()
@@ -2870,8 +2962,12 @@ def build_spec() -> dict[str, Any]:
                             "content": {"application/json": {"schema": {"oneOf": [
                                 decision_unavailable["content"]["application/json"]["schema"],
                                 {"$ref": "#/components/schemas/HumanGateRefused"},
+                                {"$ref": "#/components/schemas/DecisionBoundedRefused"},
                             ]}}},
-                            "description": "Snapshot, access store or human gate unavailable. Retry later.",
+                            "description": (
+                                "Snapshot, access store or human gate unavailable. Retry later. "
+                                "explanation_unavailable: evidence_for needs retained verification "
+                                "records this snapshot lacks; retry without evidence_for."),
                         },
                     },
                 },
@@ -3102,26 +3198,153 @@ def _health_samples() -> list[dict[str, Any]]:
     return samples
 
 
+#: MODEL-257: the operations an agent pays for or acts on take their summary and a
+#: lead paragraph from pipeline/agent_copy.py (via the generated agent-copy.json,
+#: the same text the MCP server serves). The operation's own technical description
+#: follows the lead.
+AGENT_COPY = REPO_ROOT / "mcp" / "src" / "agent-copy.json"
+AGENT_OPERATIONS = {"/v1/decide": "decide", "/v1/rank": "rank",
+                    "/v1/policy-check": "policyCheck", "/v1/feedback": "feedback"}
+
+
+def apply_agent_copy(spec: dict[str, Any]) -> dict[str, Any]:
+    copy = json.loads(AGENT_COPY.read_text(encoding="utf-8"))["openapi"]
+    for path, key in AGENT_OPERATIONS.items():
+        operation = spec["paths"][path]["post"]
+        operation["summary"] = copy[key]["summary"]
+        own = operation.get("description")
+        operation["description"] = copy[key]["lead"] + (f"\n\n{own}" if own else "")
+    return spec
+
+
+def vocabulary_parameters():
+    from api.worker.src.display_vocabulary import SECTIONS, PAGE_SIZE
+    fields = {
+        "section": ({"type": "string", "enum": list(SECTIONS), "default": "starter"}, "Select a compact section. No query parameters returns the unchanged full display vocabulary for /decide."),
+        "search": ({"type": "string"}, "Case-insensitive substring over id and label or display name."),
+        "id": ({"type": "string"}, "Full display details for one exact id."),
+        "ids": ({"type": "array", "items": {"type": "string"}}, "Full display details for exact ids; comma-separated or repeated query parameters. Combined with id by union, then intersected with search."),
+        "detail": ({"type": "string", "enum": ["compact", "full"], "default": "compact"}, "Full selects all rows and existing display details in the section. It never adds private facts."),
+        "offset": ({"type": "integer", "minimum": 0, "default": 0}, "Skip matching rows in compact mode. An empty page ends the list."),
+        "limit": ({"type": "integer", "minimum": 1, "maximum": PAGE_SIZE, "default": PAGE_SIZE}, "Compact page size. Full detail or ids bypass pagination."),
+    }
+    return [{"name": key, "in": "query", "required": False, "schema": schema,
+             "description": description, **({"style": "form", "explode": False} if key == "ids" else {})}
+            for key, (schema, description) in fields.items()]
+
+
+def compact_schemas(spec: dict[str, Any]) -> dict[str, Any]:
+    """Factor identical nested object schemas without changing their validation rules.
+
+    Component roots keep their public names. Fingerprints include descriptions,
+    defaults and all constraints; no merely similar schemas are merged.
+    """
+    import hashlib
+    from collections import Counter
+    counts = Counter()
+
+    def fingerprint(node):
+        return json.dumps(node, sort_keys=True, separators=(",", ":"))
+
+    def collect(node):
+        if isinstance(node, dict):
+            if node.get("type") == "object" and "properties" in node:
+                key = fingerprint(node)
+                if len(key) >= 500:
+                    counts[key] += 1
+            for value in node.values():
+                collect(value)
+        elif isinstance(node, list):
+            for value in node:
+                collect(value)
+
+    # Only visit schemas, never example payloads or other OpenAPI metadata.
+    component_roots = list(spec["components"]["schemas"].values())
+    roots = component_roots.copy()
+    for operations in spec["paths"].values():
+        for operation in operations.values():
+            for response in operation.get("responses", {}).values():
+                for content in response.get("content", {}).values():
+                    if "schema" in content:
+                        roots.append(content["schema"])
+    for root in roots:
+        collect(root)
+    names = {key: "Shared" + hashlib.sha256(key.encode()).hexdigest()[:12]
+             for key, count in sorted(counts.items()) if count > 1}
+
+    def replace(node, *, root=False):
+        if isinstance(node, dict):
+            key = fingerprint(node)
+            if not root and key in names:
+                return {"$ref": "#/components/schemas/" + names[key]}
+            return {key: replace(value) for key, value in node.items()}
+        if isinstance(node, list):
+            return [replace(value) for value in node]
+        return node
+
+    for root in roots:
+        updated = replace(root, root=any(root is c for c in component_roots))
+        root.clear()
+        root.update(updated)
+    # The collected originals may have been mutated as component roots above;
+    # deserialize the fingerprint to retain the exact original definition.
+    for key, name in names.items():
+        spec["components"]["schemas"][name] = replace(json.loads(key), root=True)
+    return spec
+
+
+def apply_guide_headers(spec: dict[str, Any]) -> None:
+    from api.worker.src.agent_guide import GUIDE_URL, GUIDE_VERSION
+    spec["info"]["description"] = (
+        f"Start with the compact agent guide {GUIDE_URL} (version {GUIDE_VERSION}). "
+        "Call decide early with a template-based Spec; refine from reading and recovery hints.\n\n"
+        + spec["info"]["description"]
+    )
+    spec["components"]["headers"] = {
+        "AgentGuide": {"description": "Compact agent guide.",
+                       "schema": {"type": "string", "const": f'<{GUIDE_URL}>; rel="describedby"'}},
+        "AgentGuideVersion": {"description": "Version of the byte-stable guide.",
+                              "schema": {"type": "string", "const": GUIDE_VERSION}},
+    }
+    common = {
+        "Link": {"$ref": "#/components/headers/AgentGuide"},
+        "x-modelspec-guide-version": {"$ref": "#/components/headers/AgentGuideVersion"},
+    }
+    for path, operations in spec["paths"].items():
+        if path.startswith("/v1/"):
+            for operation in operations.values():
+                for response in operation.get("responses", {}).values():
+                    if "headers" in response:
+                        response["headers"].update(common)
+                    else:
+                        response["headers"] = common
+
+
 def render() -> str:
-    spec = build_spec()
+    spec = apply_agent_copy(build_spec())
     from pipeline.public_data import enabled
     if enabled():
         spec["paths"]["/v1/vocabulary"] = {
             "get": {
                 "operationId": "displayVocabulary",
                 "summary": "Display definitions and names for /decide",
-                "description": "Available with DATA_SPLIT_ENABLED. Facet definitions, benchmark and domain names, templates, and model/plan IDs and display names only. Aggregate answerability, facet/enum data availability, refinement definitions and a thin boolean are included. Benchmark min/max is included only when at least 3 models have a score on that benchmark; ranges for 1 or 2 scored models are omitted. No prices, allowances, counts, individual scores or archived model names. HUMAN_GATE_ENABLED meters the same keyed visitor Durable Object with an independent 60 per UTC day and 10 per minute budget. Successful responses use Cache-Control: private, max-age=3600.",
+                "description": "Available with DATA_SPLIT_ENABLED. Facet definitions, benchmark and domain names, templates, and model/plan IDs and display names only. Aggregate answerability, facet/enum data availability, refinement definitions and a thin boolean are included. Benchmark min/max is included only when at least 3 models have a score on that benchmark; ranges for 1 or 2 scored models are omitted. No prices, allowances, counts, individual scores or archived model names. HUMAN_GATE_ENABLED meters the same keyed visitor Durable Object with an independent 60 per UTC day and 10 per minute budget. With VISIT_GATE_ENABLED, a key takes precedence, otherwise a valid visit token admits and meters a page caller; without either credential ACCESS_ENFORCED decides. Visit allowances are configured separately from decides. Visit replies are no-store and renew the credential in X-ModelSpec-Visit-Token and X-ModelSpec-Visit-Expires. Without the visit flag successful responses use Cache-Control: private, max-age=3600. With lookup parameters, only the selected section is populated; the existing required envelope fields remain present. Compact facets carry id, label, a one-line definition, value_type and finite allowed_values. Providers and models carry IDs and display names. Compact pages contain at most 20 rows. The no-query response stays byte-identical for /decide.",
                 "security": [],
+                "parameters": [*vocabulary_parameters(), {"name": "X-ModelSpec-Visit-Token", "in": "header", "required": False, "schema": {"type": "string", "maxLength": 2048}}],
                 "x-modelspec-probe": "skip",
                 "responses": {
+                    "400": {"description": "Invalid vocabulary query"},
                     "200": {"description": "Display vocabulary", "headers": {"Cache-Control": {"schema": {"type": "string"}}},
                             "content": {"application/json": {"schema": {"type": "object", "properties": {
+                                "starter": {"type": "array", "items": {"type": "object"}, "description": "Compact facets used most often in the template specs; only present in a starter lookup."},
                                 "facets": {"type": "array", "items": {"type": "object"}},
                                 "benchmarks": {"type": "array", "items": {"type": "object"}},
                                 "domains": {"type": "array", "items": {"type": "object"}},
                                 "templates": {"type": "array", "items": {"type": "object"}},
                                 "models": {"type": "object", "additionalProperties": {"type": "object", "properties": {"display_name": {"type": "string", "nullable": True}}, "additionalProperties": False}},
                                 "estate": {"type": "object"}}, "required": ["facets", "domains", "templates", "models", "estate"]}}}},
+                    "401": {"description": "Missing or invalid API key, invalid visit credential or visit_token_expired"},
+                    "403": {"description": "Key revoked"},
                     "404": {"description": "Data splitting is disabled"},
                     "429": {"description": "Vocabulary visitor cap exceeded; Retry-After names the wait"},
                     "503": {"description": "Visitor identity or counter unavailable"},
@@ -3129,11 +3352,36 @@ def render() -> str:
                 },
             },
         }
+    if visit_gate_enabled():
+        # Like /v1/vocabulary: described only where it is routed.
+        spec["paths"]["/v1/visit-token"] = {
+            "post": {
+                "operationId": "verifyVisit",
+                "summary": "Exchange managed Turnstile verification for a visitor-and-origin-bound page credential.",
+                "description": "Exists only with VISIT_GATE_ENABLED, which ships off; otherwise this path answers 404 like any unknown route. Siteverify must confirm success, the origin hostname and action decide. Uses the daily visitor HMAC id and a new VISIT_TOKEN_HMAC_KEY to sign a 30-minute sliding credential, renewed at most four hours from this exchange. No cookie. Keyless decide and bundled vocabulary use the visit meter; presenting an API key takes precedence.",
+                "security": [],
+                "x-modelspec-probe": "skip",
+                "parameters": [{"name": "X-ModelSpec-Turnstile", "in": "header", "required": True,
+                                "schema": {"type": "string", "minLength": 1, "maxLength": 2048}}],
+                "responses": {
+                    "200": _json_body("Visit credential. Cache-Control: no-store.", {
+                        "type": "object", "required": ["token", "expires_at"], "additionalProperties": False,
+                        "properties": {"token": {"type": "string"}, "expires_at": {"type": "integer", "minimum": 1}},
+                    }),
+                    "401": {"description": "Origin is not a permitted page origin."},
+                    "403": {"description": "Turnstile verification failed, expired or was replayed."},
+                    "405": {"description": "This endpoint takes POST."},
+                    "503": {"description": "Identity, signing secret, verifier, configuration or meter unavailable."},
+                },
+            },
+        }
     if enabled():
         spec["info"]["description"] = spec["info"]["description"].replace("current public export", "private bundled catalogue").replace("public export (the", "bundled catalogue (the")
         # Hardware names are display vocabulary; public policy URLs stay intact.
         spec["components"]["schemas"] = _split_hardware_description(spec["components"]["schemas"])
-    return HEADER + yaml.safe_dump(spec, sort_keys=False, allow_unicode=True, width=100)
+    apply_guide_headers(spec)
+    compact_schemas(spec)
+    return HEADER + yaml.safe_dump(spec, sort_keys=False, allow_unicode=True, width=100, default_flow_style=None)
 
 
 def _split_hardware_description(value):

@@ -5,6 +5,21 @@ from dataclasses import replace
 from decision.capability import CapabilityEstimate, deterministic_probabilities
 
 
+def test_estate_sized_working_set_does_not_redraw_on_the_next_call():
+    from decision.capability import _probability_draws
+
+    _probability_draws.cache_clear()
+    estimates = {"a": CapabilityEstimate(1, 0, 2, .5),
+                 "b": CapabilityEstimate(0, -1, 1, .5)}
+    first = [deterministic_probabilities(estimates, seed_material=f"trial-{i}")
+             for i in range(32)]
+    misses = _probability_draws.cache_info().misses
+    again = [deterministic_probabilities(estimates, seed_material=f"trial-{i}")
+             for i in range(32)]
+    assert again == first
+    assert _probability_draws.cache_info().misses == misses
+
+
 def test_probability_cache_preserves_draws_and_separates_all_inputs():
     estimates = {
         "a": CapabilityEstimate(1, 0, 2, 0.5),

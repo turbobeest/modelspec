@@ -1,0 +1,22 @@
+id: template-retrieval-private
+family: F3
+persona: Engineer applying a published decision template
+request: Find a commercially usable open-weights embedding model that you can run yourself.
+constraints:
+  must:
+  - model.class = vectoriser
+  - model.weights_openness = open_weights
+  - licence.commercial_use in {permitted, permitted_with_conditions}
+  prefer:
+    retrieval:
+      weight: 1.0
+      reason: Rank only by retrieval quality among self-hostable embedders.
+sources:
+- registry/templates.yaml#retrieval-private
+template: retrieval-private
+expected: null
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.
+gaps: []

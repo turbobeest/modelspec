@@ -1,0 +1,60 @@
+id: recall-q02
+family: F1
+persona: Developer choosing a model for production work
+request: 'Choose a reliable autonomous agent for shell tools and multi-step engineering work.
+
+  '
+constraints:
+  class: generate
+  task: terminal tool use across multiple steps
+  open_weights: false
+  price_cap_usd_per_million_input: null
+  hardware: null
+expected:
+  id: Q02
+  notes: 'The direct board is Terminal-Bench 4.0. Astra at 58.18% (interval half-width 2.79) and
+    Fable 5.1 at 57.88% are not separated. Opus 5''s best row is 53.94 at xhigh effort. Gemini 3.8
+    Flash is 19.09 on this version. SWE-bench Pro V2 measures repository patches, not shell reliability,
+    so it does not reorder this question.
+
+    '
+  acceptable:
+  - model_id: openai/gpt-6-astra
+    reason: Leading Terminal-Bench 4.0 accuracy, 58.18% at max effort.
+    sources:
+    - url: https://www.tbench.ai/leaderboard
+      read: '2026-09-24'
+  - model_id: anthropic/claude-fable-5-1
+    reason: Terminal-Bench 4.0 57.88% at max effort, not separated from Astra.
+    sources:
+    - url: https://www.tbench.ai/leaderboard
+      read: '2026-09-24'
+  - model_id: anthropic/claude-opus-5
+    reason: Next current Terminal-Bench 4.0 row, 53.94% at xhigh effort.
+    sources:
+    - url: https://www.tbench.ai/leaderboard
+      read: '2026-09-24'
+  must_never:
+  - model_id: openai/text-embedding-3-large
+    reason: An embedding model is not a shell agent.
+    sources:
+    - url: https://github.com/turbobeest/modelspec/blob/76eabc11/models/openai/text-embedding-3-large.md
+      read: '2026-09-24'
+  must_flag:
+  - model_id: anthropic/claude-opus-5-5
+    reason: No Terminal-Bench 4.0 row. The board's updated_at is 2026-09-21.
+    sources:
+    - url: https://www.tbench.ai/leaderboard
+      read: '2026-09-24'
+    - url: https://matharena.ai/models
+      read: '2026-09-24'
+  missing_cards: []
+expected_source: tests/recall/expected.yaml#Q02
+sources:
+- tests/recall/questions.yaml#Q02
+- tests/recall/specs/Q02.yaml
+gaps: []
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.

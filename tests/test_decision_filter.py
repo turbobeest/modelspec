@@ -1031,6 +1031,9 @@ def test_nested_filter_matches_a_brute_force_scan_on_randomized_evidence() -> No
 
         expected = {"pass": set(), "fail": set(), "unknown": set()}
         for cid, (context, openness, measurements) in source.items():
+            if openness.state != "known" or openness.value != "open_weights":
+                expected["fail"].add(cid)
+                continue
             window = _scan_leg(context, lambda value: low <= value <= high)
             open_weights = _scan_leg(openness, lambda value: value == "open_weights")
             first = tri_or(window, open_weights)

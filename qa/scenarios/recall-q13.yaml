@@ -1,0 +1,95 @@
+id: recall-q13
+family: F3
+persona: Developer choosing a model for production work
+request: 'Choose an open-weights reasoning model to self-host, assuming the hardware is adequate.
+
+  '
+constraints:
+  class: generate
+  task: reasoning
+  open_weights: true
+  hosting: self_hosted
+  hardware: adequate, no device named
+expected:
+  id: Q13
+  notes: 'Epoch GPQA Diamond''s leading rows are closed models, and their intervals overlap. Open-weight
+    reasoning models are not on that same top cluster in this download, and the September open releases
+    are not in the file. Adequate hardware does not make different labs'' harnesses one comparison.
+    No order is established. The MODEL-161 triage at docs/recall/2026-09-25-model-161-triage.md records
+    the approved current GPQA Diamond evidence (read 2026-09-25).
+
+    '
+  acceptable:
+  - rule: no separated open-weights reasoning winner
+    reason: GPQA does not place the current open-weight releases in one ordered table.
+    sources:
+    - url: https://epoch.ai/data/benchmark_data.zip
+      read: '2026-09-24'
+  - model_id: moonshot/kimi-k3
+    reason: Current verified GPQA Diamond evidence is 93.12%.
+    sources:
+    - url: https://epoch.ai/benchmarks/gpqa-diamond
+      read: '2026-09-25'
+  - model_id: zhipu/glm-5-2
+    reason: Current verified GPQA Diamond evidence is 91.86%.
+    sources:
+    - url: https://epoch.ai/benchmarks/gpqa-diamond
+      read: '2026-09-25'
+  - model_id: zhipu/glm-5-3
+    reason: Current verified GPQA Diamond evidence is 90.91%.
+    sources:
+    - url: https://epoch.ai/benchmarks/gpqa-diamond
+      read: '2026-09-25'
+  must_never:
+  - model_id: openai/gpt-6-astra
+    reason: Closed weights. GPQA leader, but not self-hostable from a public download.
+    sources:
+    - url: https://epoch.ai/data/benchmark_data.zip
+      read: '2026-09-24'
+    - url: https://developers.openai.com/api/docs/models/gpt-6-astra
+      read: '2026-09-24'
+  must_flag:
+  - model_id: deepseek/deepseek-flash
+    reason: Open MIT weights. Absent from Epoch GPQA Diamond.
+    sources:
+    - url: https://huggingface.co/api/models/deepseek-ai/DeepSeek-V4.1-Flash
+      read: '2026-09-24'
+    - url: https://epoch.ai/data/benchmark_data.zip
+      read: '2026-09-24'
+  - model_id: qwen/qwen3-8-flash-next
+    reason: Weights are public. Licence field is "other". Absent from Epoch GPQA Diamond.
+    sources:
+    - url: https://huggingface.co/api/models/Qwen/Qwen3.8-Flash-Next
+      read: '2026-09-24'
+    - url: https://epoch.ai/data/benchmark_data.zip
+      read: '2026-09-24'
+  - name: Qwen3.8-27B
+    reason: Open weights on Hugging Face. No canonical catalogue card. Absent from Epoch GPQA Diamond.
+    sources:
+    - url: https://huggingface.co/api/models/Qwen/Qwen3.8-27B
+      read: '2026-09-24'
+    - url: https://epoch.ai/data/benchmark_data.zip
+      read: '2026-09-24'
+  missing_cards:
+  - name: Qwen3.8-27B
+    reason: See Q12. The hosted card cerebras/qwen-3-8-27b is not the weights.
+    sources:
+    - url: https://huggingface.co/api/models/Qwen/Qwen3.8-27B
+      read: '2026-09-24'
+expected_source: tests/recall/expected.yaml#Q13
+sources:
+- tests/recall/questions.yaml#Q13
+- tests/recall/specs/Q13.yaml
+gaps:
+- reason: the registry has no model-level self-hosting facet; open weights does not prove deployability.
+  suggested_fix: Publish a dedicated facet or measured capability, or expose a clarification tool
+    before deciding.
+  source: tests/recall/specs/Q13.yaml
+- reason: '"adequate hardware" names no registered hardware SKU to constrain.'
+  suggested_fix: Publish a dedicated facet or measured capability, or expose a clarification tool
+    before deciding.
+  source: tests/recall/specs/Q13.yaml
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.

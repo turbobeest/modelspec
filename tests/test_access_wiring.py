@@ -107,7 +107,7 @@ def data(entry, monkeypatch) -> DataPath:
         seen.reads += 1
         return CATALOGUE
 
-    def rank(payload, candidates, hardware, service_commit, origin):
+    def rank(payload, candidates, hardware, service_commit, origin, *, prepared_candidates=None):
         # The scorer is proven elsewhere; here a live answer only has to be
         # recognisable as one, and an empty catalogue would make it a 422.
         return 200, {**entry.service._envelope(candidates, service_commit, origin),

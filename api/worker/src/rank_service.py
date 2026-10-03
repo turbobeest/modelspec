@@ -476,11 +476,13 @@ def error_response(error: RequestError, export: dict[str, Any] | None,
 
 
 def rank(payload: Any, export: dict[str, Any], hardware_export: dict[str, Any] | None,
-         service_commit: str, origin: str) -> tuple[int, dict[str, Any]]:
+         service_commit: str, origin: str, *,
+         prepared_candidates: list[Candidate] | None = None) -> tuple[int, dict[str, Any]]:
     """Answer one `POST /v1/rank`. Returns the status code and the body."""
     envelope = _envelope(export, service_commit, origin)
     request = parse_request(payload, hardware_ids(hardware_export))
-    pool = candidates_from_export(export)
+    pool = (candidates_from_export(export) if prepared_candidates is None
+            else prepared_candidates)
     total = len(pool)
 
     narrowed = pool

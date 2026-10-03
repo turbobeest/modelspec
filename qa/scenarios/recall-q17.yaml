@@ -1,0 +1,91 @@
+id: recall-q17
+family: F3
+persona: Developer choosing a model for production work
+request: 'Choose a local coding model that runs on one RTX 4090 with 24 GB of VRAM.
+
+  '
+constraints:
+  class: generate
+  task: coding
+  hosting: local
+  device: one NVIDIA RTX 4090
+  vram_gb: 24
+  quantization: unspecified
+  open_weights: true
+expected:
+  id: Q17
+  notes: 'Quantization and context length were not specified, and no local coding run on one 24 GB
+    GPU was found. A 180 billion parameter model does not fit. Models near 26 to 31 billion parameters
+    fit only at an aggressive quant, which was not measured. Small Gemma models fit the memory and
+    have no coding score on the boards read today. No local top three is established.
+
+    '
+  acceptable:
+  - model_id: google/gemma-4-e2b-it
+    reason: 'About 5.12 billion BF16 parameters, so the weights are near 10 GB and fit in 24 GB.
+      Coding quality on the boards above was not found.
+
+      '
+    sources:
+    - url: https://huggingface.co/api/models/google/gemma-4-E2B-it
+      read: '2026-09-24'
+  - model_id: google/gemma-4-e4b-it
+    reason: 'About 8.00 billion BF16 parameters, so the weights are near 16 GB before KV cache. They
+      can fit. Coding quality was not found.
+
+      '
+    sources:
+    - url: https://huggingface.co/api/models/google/gemma-4-E4B-it
+      read: '2026-09-24'
+  must_never:
+  - model_id: qwen/qwen3-8-flash-next
+    reason: 'About 180.0 billion BF16 parameters. Four-bit weights are about 90 GB, which does not
+      fit in 24 GB.
+
+      '
+    sources:
+    - url: https://huggingface.co/api/models/Qwen/Qwen3.8-Flash-Next
+      read: '2026-09-24'
+  - model_id: openai/gpt-6-astra
+    reason: No local weights. Not a 24 GB model.
+    sources:
+    - url: https://developers.openai.com/api/docs/models/gpt-6-astra
+      read: '2026-09-24'
+  must_flag:
+  - name: Qwen3.8-27B
+    reason: 'About 27.8 billion parameters. BF16 does not fit in 24 GB. A 4-bit download might, and
+      that file was not measured. No canonical card.
+
+      '
+    sources:
+    - url: https://huggingface.co/api/models/Qwen/Qwen3.8-27B
+      read: '2026-09-24'
+  - model_id: google/gemma-4-31b-it
+    reason: About 31.3 billion BF16 parameters. Fit depends on the quant, which was not specified.
+    sources:
+    - url: https://huggingface.co/api/models/google/gemma-4-31B-it
+      read: '2026-09-24'
+  - model_id: google/gemma-4-26b-a4b-it
+    reason: About 25.8 billion parameters. Fit depends on the quant, which was not specified.
+    sources:
+    - url: https://huggingface.co/api/models/google/gemma-4-26B-A4B-it
+      read: '2026-09-24'
+  missing_cards:
+  - name: Qwen3.8-27B
+    reason: Weights are public. Catalogue identity is only cerebras/qwen-3-8-27b.
+    sources:
+    - url: https://huggingface.co/api/models/Qwen/Qwen3.8-27B
+      read: '2026-09-24'
+expected_source: tests/recall/expected.yaml#Q17
+sources:
+- tests/recall/questions.yaml#Q17
+- tests/recall/specs/Q17.yaml
+gaps:
+- reason: one-device count and unspecified quantization cannot be expressed by model.fits_hardware.
+  suggested_fix: Publish a dedicated facet or measured capability, or expose a clarification tool
+    before deciding.
+  source: tests/recall/specs/Q17.yaml
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.

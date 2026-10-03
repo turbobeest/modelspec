@@ -577,6 +577,25 @@ def _guided_export(status: str = "current") -> dict[str, Any]:
     }
 
 
+def test_prepared_candidates_preserve_answers_across_different_requests(monkeypatch):
+    export = _guided_export()
+    prepared = service.candidates_from_export(export)
+    requests = [{"use_case": "coding", "limit": 1},
+                {"use_case": "coding", "constraints": {"max_cost_per_million_input_tokens": 0}},
+                {"use_case": "coding", "limit": 0}]
+    expected = [service.rank(payload, export, None, SERVICE_COMMIT, ORIGIN)
+                for payload in requests]
+
+    def rebuilt(_):
+        raise AssertionError("warm ranking rebuilt snapshot candidates")
+
+    monkeypatch.setattr(service, "candidates_from_export", rebuilt)
+    assert [service.rank(payload, export, None, SERVICE_COMMIT, ORIGIN,
+                         prepared_candidates=prepared) for payload in requests] == expected
+    assert service.rank(requests[0], export, None, SERVICE_COMMIT, ORIGIN,
+                        prepared_candidates=prepared) == expected[0]
+
+
 def test_the_recommended_models_current_guide_is_served_with_its_sources() -> None:
     export = _guided_export("current")
     status, answer = service.rank({"use_case": "coding", "limit": 1}, export, None,

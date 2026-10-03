@@ -1,0 +1,11 @@
+{
+  "url": "https://api.modelspec.dev/v1/vocabulary",
+  "method": "GET",
+  "status": 200,
+  "latency_ms": 901.7515829764307,
+  "keyless": true,
+  "snapshot": "snap_6c09f868de9460bf",
+  "facets": 53,
+  "templates": 40,
+  "date": "2026-10-01"
+}

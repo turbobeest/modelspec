@@ -2,7 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { workerFetch } from "../src/index";
 import { USER_AGENT } from "../src/origin";
-import { TOOL_NAMES } from "../src/server";
+import { defaultDecideRequest, TOOL_NAMES } from "../src/server";
+// Real Worker bodies from the public catalogue (python -m qa.decide_budget).
+import budget from "./fixtures/decide-budget.json";
 
 const ENV: Env = {
   EXPORT_ORIGIN: "https://modelspec.dev",
@@ -116,21 +118,31 @@ describe("modelspec MCP worker", () => {
       [...TOOL_NAMES].sort(),
     );
     expect(result.tools).toHaveLength(7);
+    expect(result.tools).toMatchSnapshot();
     for (const tool of result.tools) {
       expect(tool.inputSchema).toBeTruthy();
       expect(tool.inputSchema.type ?? "object").toBe("object");
     }
   });
 
-  it("decide tells agents to use the summary explanation and warns about full", async () => {
+  it("decide describes compact defaults and stateless drill-down", async () => {
     const listed = await rpc("tools/list", {});
     const result = listed.payload.result as {
       tools: Array<{ name: string; description?: string }>;
     };
     const description = result.tools.find((tool) => tool.name === "decide")?.description;
-    expect(description).toContain('explain: "summary" (the default)');
-    expect(description).toContain('explain: "full"');
-    expect(description).toContain("670 KB");
+    expect(description).toContain(
+      "MCP decide returns a bounded answer by default; drill down with evidence_for, " +
+        "or ask for full rows with fields:null/explain.",
+    );
+    expect(description).toContain('With explain unset or "none" it sends explain=none, limit=10');
+    expect(description).toContain("For full rows pass fields: null");
+    expect(description).toContain("evidence_for: <model id>");
+    expect(description).toContain("explanation.omitted");
+    expect(description).toContain("Full includes every eliminated candidate");
+    expect(description).toContain("client context budget");
+    expect(description).toContain("https://modelspec.dev/agents.md");
+    expect(description).not.toContain("explain=summary first");
   });
 
   it("initialize reports BUILD_COMMIT as serverInfo.version", async () => {
@@ -139,7 +151,12 @@ describe("modelspec MCP worker", () => {
       capabilities: {},
       clientInfo: { name: "vitest", version: "0" },
     });
-    const result = payload.result as { serverInfo: { name: string; version: string } };
+    const result = payload.result as { serverInfo: { name: string; version: string }; instructions: string };
+    expect(result.instructions).toContain("https://modelspec.dev/agents.md");
+    expect(result.instructions).toContain("Call decide early");
+    expect(result.instructions).toContain("MCP decide returns a bounded answer by default");
+    expect(result.instructions).not.toContain("explain=summary first");
+    expect(result.instructions.length / 4).toBeLessThanOrEqual(1000);
     expect(result.serverInfo.name).toBe("modelspec");
     expect(result.serverInfo.version).toBe("test-commit-sha");
   });
@@ -426,15 +443,79 @@ describe("modelspec MCP worker", () => {
     const [url, init] = originFetch.mock.calls[0] as [string, RequestInit];
     expect(url).toBe("https://api.modelspec.dev/v1/decide");
     expect(init.method).toBe("POST");
-    expect(JSON.parse(String(init.body))).toEqual(spec);
+    expect(JSON.parse(String(init.body))).toEqual(defaultDecideRequest(spec));
     expect(new Headers(init.headers).get("authorization")).toBe(
       "Bearer decide_key",
     );
   });
 
+  it("decide keeps explicit controls and forwards stateless drill-down", async () => {
+    const spec = { spec_version: 1, snapshot: "snap_fixed", optimize: { max: "software_engineering" },
+      explain: "summary", limit: 1, fields: ["contributions"], evidence_for: "lab/example" };
+    originFetch.mockResolvedValueOnce(jsonResponse(200, { reading: { do_not_claim: ["Keep the tie"] } }));
+    const { payload } = await rpc("tools/call", { name: "decide", arguments: spec });
+    expect(JSON.parse(String(originFetch.mock.calls[0][1].body))).toEqual(spec);
+    expect(envelopeFromCall(payload).body).toEqual({ reading: { do_not_claim: ["Keep the tie"] } });
+  });
+
+  it("decide summarises a real drill-down from its answer and model_evidence", async () => {
+    // results and may_qualify are empty on a drill-down by design.
+    expect(budget.drill_down.results).toEqual([]);
+    expect(budget.drill_down.may_qualify).toEqual([]);
+    originFetch.mockResolvedValueOnce(jsonResponse(200, budget.drill_down));
+    const { payload } = await rpc("tools/call", {
+      name: "decide",
+      arguments: { ...budget.request, evidence_for: budget.drill_down.model_evidence.model },
+    });
+    const result = payload.result as { content: Array<{ text: string }> };
+    expect(result.content[1].text).toBe(
+      "status: partial; answer: tied among anthropic/claude-opus-5-5, anthropic/claude-sonnet-5-5, " +
+        "openai/gpt-6-astra, anthropic/claude-opus-4-7; " +
+        "evidence for: anthropic/claude-opus-5-5 (ranked, rank 1)",
+    );
+    expect(result.content[1].text).not.toContain("top models: none");
+  });
+
+  it("decide summarises an eliminated model's drill-down as unranked", async () => {
+    const body = {
+      ...budget.drill_down,
+      model_evidence: { ...budget.drill_down.model_evidence, model: "lab/b", status: "eliminated", rank: null },
+    };
+    originFetch.mockResolvedValueOnce(jsonResponse(200, body));
+    const { payload } = await rpc("tools/call", {
+      name: "decide", arguments: { ...budget.request, evidence_for: "lab/b" },
+    });
+    const result = payload.result as { content: Array<{ text: string }> };
+    expect(result.content[1].text).toMatch(/; evidence for: lab\/b \(eliminated, unranked\)$/);
+  });
+
+  it.each([
+    ["unset", {}, ["model_rank", "cost_per_task", "estimates", "p_best"]],
+    ["none", { explain: "none" }, ["model_rank", "cost_per_task", "estimates", "p_best"]],
+    ["summary", { explain: "summary" }, null],
+    ["full", { explain: "full" }, null],
+    ["full with fields", { explain: "full", fields: ["contributions"] }, ["contributions"]],
+  ])("decide projects rows by default only when explain is none or unset (%s)", async (_, controls, fields) => {
+    originFetch.mockResolvedValueOnce(jsonResponse(200, { status: "ok", results: [] }));
+    const spec = { spec_version: 1, optimize: { max: "software_engineering" }, ...controls };
+    await rpc("tools/call", { name: "decide", arguments: spec });
+    const sent = JSON.parse(String(originFetch.mock.calls[0][1].body));
+    expect(sent.fields).toEqual(fields);
+    expect(sent.limit).toBe(10);
+    expect(sent.explain).toBe("explain" in controls ? controls.explain : "none");
+  });
+
   it("decide returns an upstream invalid_spec error with its code and message", async () => {
     const originBody = {
-      error: { code: "invalid_spec", message: "where[0] names an unknown facet" },
+      error: {
+        code: "invalid_spec", message: "where[0] names an unknown facet",
+        recovery: [{
+          path: "where[0]", accepted_shape: "a valid facet ID",
+          example: { spec_version: 1, optimize: { max: "model.context_window" } },
+          guidance: "Read vocab section=starter", nearest_facet_ids: ["model.context_window"],
+        }],
+        recovery_omitted: 0,
+      },
     };
     originFetch.mockResolvedValueOnce(jsonResponse(400, originBody));
     const { payload } = await rpc("tools/call", {
@@ -447,10 +528,39 @@ describe("modelspec MCP worker", () => {
     expect((payload.result as { isError?: boolean }).isError).toBe(true);
   });
 
-  it("vocab returns the complete static decision vocabulary", async () => {
+  it.each([
+    { where: {} },
+    { capabilities: [] },
+    { optimize: "lowest price" },
+  ])("decide forwards malformed input for Worker recovery: %j", async (invalid) => {
+    const arguments_ = { spec_version: 1, optimize: { max: "model.context_window" }, ...invalid };
+    const originBody = {
+      contract_version: "2.12", endpoint: "decide", snapshot: "snap_test",
+      error: {
+        code: "invalid_spec", message: "the request body is not a valid decision spec",
+        issues: [{ path: Object.keys(invalid)[0], reason: "wrong shape" }],
+        recovery: [{
+          path: Object.keys(invalid)[0], accepted_shape: "structured Spec field",
+          example: { spec_version: 1, optimize: { max: "model.context_window" } },
+          guidance: "Read vocab section=starter", nearest_facet_ids: [],
+        }],
+        recovery_omitted: 0,
+      },
+    };
+    originFetch.mockResolvedValueOnce(jsonResponse(400, originBody));
+    const { payload } = await rpc("tools/call", { name: "decide", arguments: arguments_ });
+    expect(envelopeFromCall(payload).body).toEqual(originBody);
+    expect((payload.result as { isError?: boolean }).isError).toBe(true);
+    const [url, init] = originFetch.mock.calls[0];
+    expect(url).toBe("https://api.modelspec.dev/v1/decide");
+    expect(JSON.parse(String(init.body))).toEqual(defaultDecideRequest(arguments_));
+  });
+
+  it("vocab defaults to starter facets from template specs", async () => {
     const vocabulary = {
       facets: [{ id: "model.context_window" }],
       task_types: ["new_feature"],
+      templates: [{ spec: { where: ["model.context_window >= 32000"] } }],
     };
     originFetch.mockResolvedValueOnce(jsonResponse(200, vocabulary));
     const { payload } = await rpc("tools/call", {
@@ -461,7 +571,7 @@ describe("modelspec MCP worker", () => {
     expect(envelope.origin).toBe(
       "https://modelspec.dev/api/decision/vocabulary.json",
     );
-    expect(envelope.body).toEqual(vocabulary);
+    expect(envelope.body).toEqual(vocabulary.facets);
   });
 
   it("vocab returns only the requested section", async () => {
@@ -489,16 +599,52 @@ describe("private display vocabulary", () => {
     for (const value of forbidden) expect(JSON.stringify(untrimmed)).toContain(value);
     const via = { fetch: vi.fn().mockImplementation(async () => jsonResponse(200, vocabulary)) };
     const env = { ...ENV, DATA_SPLIT_ENABLED: "true", RANK: via };
-    for (const [name, args] of [["vocab", {}], ["model_info", { model_id: "lab/model247-private-sentinel-8675309" }]] as const) {
+    for (const [name, args] of [["vocab", { section: "models", detail: "full" }], ["model_info", { model_id: "lab/model247-private-sentinel-8675309" }]] as const) {
       via.fetch.mockImplementationOnce(async () => jsonResponse(200, untrimmed));
       const control = await rpc("tools/call", { name, arguments: args }, 1, { authorization: "Bearer test_key", "CF-Connecting-IP": "203.0.113.9" }, env);
       for (const value of forbidden) expect(JSON.stringify(envelopeFromCall(control.payload).body)).toContain(value);
       const { payload } = await rpc("tools/call", { name, arguments: args }, 1, { authorization: "Bearer test_key", "CF-Connecting-IP": "203.0.113.9" }, env);
       const envelope = envelopeFromCall(payload);
-      expect(envelope.origin).toBe("https://api.modelspec.dev/v1/vocabulary");
+      expect(envelope.origin).toBe(name === "vocab" ? "https://api.modelspec.dev/v1/vocabulary?section=models&detail=full" : "https://api.modelspec.dev/v1/vocabulary");
       expect(JSON.stringify(envelope.body)).toContain("model247-private-sentinel-8675309");
       for (const value of forbidden) expect(JSON.stringify(envelope.body)).not.toContain(value);
     }
     expect(via.fetch).toHaveBeenCalledTimes(4);
+  });
+});
+
+describe("compact HTTP vocabulary requests", () => {
+  it("forwards the lookup options through the service binding and selects its section", async () => {
+    const rows = [{ id: "model.context_window", operators: [">="] }];
+    const via = { fetch: vi.fn().mockResolvedValue(jsonResponse(200, { facets: rows })) };
+    const { payload } = await rpc("tools/call", {
+      name: "vocab",
+      arguments: { section: "facets", search: "CONTEXT", id: "model.context_window", ids: ["missing"], offset: 1, limit: 2 },
+    }, 1, { "CF-Connecting-IP": "203.0.113.9" }, { ...ENV, DATA_SPLIT_ENABLED: "true", RANK: via });
+    const envelope = envelopeFromCall(payload);
+    expect(envelope.body).toEqual(rows);
+    const url = new URL(envelope.origin);
+    expect(Object.fromEntries(url.searchParams)).toEqual({ section: "facets", detail: "compact", search: "CONTEXT", id: "model.context_window", ids: "missing", offset: "1", limit: "2" });
+    const [, init] = via.fetch.mock.calls[0];
+    expect(new Headers(init.headers).get("CF-Connecting-IP")).toBe("203.0.113.9");
+  });
+
+  it("defaults the HTTP lookup to starter and compact", async () => {
+    const via = { fetch: vi.fn().mockResolvedValue(jsonResponse(200, { starter: [] })) };
+    const { payload } = await rpc("tools/call", { name: "vocab", arguments: {} }, 1, {}, { ...ENV, DATA_SPLIT_ENABLED: "true", RANK: via });
+    expect(envelopeFromCall(payload).origin).toBe("https://api.modelspec.dev/v1/vocabulary?section=starter&detail=compact");
+    expect(envelopeFromCall(payload).body).toEqual([]);
+  });
+});
+
+describe("vocabulary rollout", () => {
+  it("compacts a legacy Worker response that ignores the query parameters", async () => {
+    const via = { fetch: vi.fn().mockResolvedValue(jsonResponse(200, {
+      vocabulary_version: 1,
+      facets: [{ id: "model.context_window", label: "Context", definition: "Token window. More details.", value_type: "number", operators: [">="], has_data: true }],
+      templates: [{ spec: { where: ["model.context_window >= 32000"] } }],
+    })) };
+    const { payload } = await rpc("tools/call", { name: "vocab", arguments: {} }, 1, {}, { ...ENV, DATA_SPLIT_ENABLED: "true", RANK: via });
+    expect(envelopeFromCall(payload).body).toEqual([{ id: "model.context_window", label: "Context", definition: "Token window.", value_type: "number" }]);
   });
 });

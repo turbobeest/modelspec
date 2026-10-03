@@ -25,7 +25,8 @@ What the modelspec holding tree is, and why:
   real site would publish. The legal pages stay reachable because Stripe's
   account review and past purchasers rely on them.
 * **An allowlist.** Nothing else of the real build is kept but the landing
-  assets, the fonts the legal pages load, and the icon set (`pipeline.brand`).
+  assets, the fonts the legal pages load, the icon set (`pipeline.brand`),
+  and the press and brand kit at /brand/ (`pipeline.brand_page`).
   A page added to the real site later is dark in holding mode unless this
   module names it.
 * **A 404, not a redirect.** Every other path (model and benchmark pages, the
@@ -57,7 +58,8 @@ import shutil
 import sys
 from pathlib import Path
 
-from pipeline import brand, landing, landing_chrome, public_data, security_headers, social_cards
+from pipeline import (brand, brand_page, landing, landing_chrome, public_data, security_headers,
+                      social_cards)
 
 MODE_ENV = "SITE_MODE"
 LIVE = "live"
@@ -69,7 +71,10 @@ SITES = {"modelspec": "ModelSpec"}
 #: modelspec only. benchgraph.dev is one redirect file, copied unchanged.
 #: `feedback-assets` because the legal pages, copied byte for byte, carry the
 #: Feedback control (MODEL-221); the /feedback/ page itself stays dark.
-KEEP_DIRS = {"modelspec": ("api", "legal", "fonts", landing.ASSET_DIR, "feedback-assets")}
+#: `brand` is the press and brand kit (MODEL-299): logo files and words about
+#: the company, no product data, so it stays up while the product is dark.
+KEEP_DIRS = {"modelspec": ("api", "legal", "fonts", landing.ASSET_DIR, "feedback-assets",
+                           brand_page.PAGE_DIR)}
 KEEP_FILES = ("openapi.yaml", *brand.FILES, social_cards.LANDING_IMAGE)
 #: What this module writes itself.
 WRITTEN = ("index.html", "404.html", "_headers", "robots.txt")
@@ -190,6 +195,7 @@ def build(src: Path, out: Path) -> dict[str, list[str]]:
 def violations(tree: Path, name: str) -> list[str]:
     """What a holding tree must not contain. Empty means it is dark."""
     bad: list[str] = []
+    brand_files = brand_page.published()
     for path in sorted(tree.rglob("*")):
         if not path.is_file():
             continue
@@ -205,6 +211,8 @@ def violations(tree: Path, name: str) -> list[str]:
                 bad.append(f"{rel}: /legal/ holds its pages only")
             elif top == "fonts" and path.suffix not in {".woff2", ".txt"}:
                 bad.append(f"{rel}: /fonts/ holds faces and their licences only")
+            elif top == brand_page.PAGE_DIR and rel not in brand_files:
+                bad.append(f"{rel}: /brand/ holds its page, stylesheet, kit and zip only")
         elif (rel not in KEEP_FILES and rel not in WRITTEN
               and not (public_data.enabled() and rel == "_redirects")):
             bad.append(f"{rel}: not a holding file")

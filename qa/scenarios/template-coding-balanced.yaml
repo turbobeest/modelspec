@@ -1,0 +1,26 @@
+id: template-coding-balanced
+family: F1
+persona: Engineer applying a published decision template
+request: Find an active coding model with room for a repository that balances coding strength against
+  task cost.
+constraints:
+  must:
+  - model.class = text-generator
+  - model.lifecycle = active
+  - model.context_window >= 200000
+  prefer:
+    software_engineering:
+      weight: 0.7
+      reason: Prefer stronger evidence on real software-engineering tasks.
+    -offering.cost_per_task:
+      weight: 0.3
+      reason: Among strong coders, prefer the cheaper task.
+sources:
+- registry/templates.yaml#coding-balanced
+template: coding-balanced
+expected: null
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.
+gaps: []

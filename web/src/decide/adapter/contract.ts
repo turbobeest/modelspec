@@ -495,6 +495,7 @@ export const decisionSchema = z
       "2.9",
       "2.10",
       "2.11",
+      "2.12",
     ]),
     decision_id: z.string().regex(/^dec_[0-9A-Za-z]{8,}$/),
     snapshot: z.string().regex(/^snap_[A-Za-z0-9:._-]+$/),
@@ -637,8 +638,13 @@ export const decisionSchema = z
     // 2.10 (MODEL-221): where to say whether the answer held up. Absent from
     // decisions saved before 2.10.
     feedback: feedbackPointerSchema.optional(),
+    reading: z.unknown().optional(),
   })
-  .strict();
+  .strict()
+  .transform(({ reading, ...decision }) => {
+    void reading;
+    return decision;
+  });
 
 const objectiveSchema = z.union([
   z.object({ max: facetId }).strict(),

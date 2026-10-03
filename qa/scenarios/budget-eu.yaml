@@ -1,0 +1,30 @@
+id: budget-eu
+family: F4
+persona: Corporate platform owner
+request: Find the most cost-effective support assistant for a $100/month budget using only my available
+  APIs, complying with every policy constraint. We run 10000 requests per month, each with 2000 input
+  and 500 output tokens.
+constraints:
+  monthly_budget_usd: 100
+  requests_per_month: 10000
+  task_tokens:
+    input: 2000
+    output: 500
+  available_apis:
+  - azure-ai-foundry
+  - google-vertex-ai
+  policy:
+    eu_residency: true
+    no_training: true
+    commercial_use: true
+sources:
+- registry/templates.yaml#regional-budget
+- registry/templates.yaml#regulated-budget
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.
+- Convert the monthly budget to a per-task cap. Restrict offerings to available and approved providers;
+  compare with_estate if using estate. Never infer policy compliance from the model vendor alone.
+expected: null
+gaps: []

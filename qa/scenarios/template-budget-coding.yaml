@@ -1,0 +1,26 @@
+id: template-budget-coding
+family: F4
+persona: Engineer applying a published decision template
+request: Find an active coding model with enough context while keeping one task at or under $0.05.
+constraints:
+  must:
+  - model.class = text-generator
+  - model.lifecycle = active
+  - model.context_window >= 200000
+  - offering.cost_per_task <= 0.05
+  prefer:
+    software_engineering:
+      weight: 0.6
+      reason: Prefer stronger evidence on real software-engineering tasks.
+    -offering.cost_per_task:
+      weight: 0.4
+      reason: Among qualifying offerings, prefer the cheaper task.
+sources:
+- registry/templates.yaml#budget-coding
+template: budget-coding
+expected: null
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.
+gaps: []

@@ -54,6 +54,9 @@ def frontmatter(path: Path) -> tuple[dict, str]:
 
 
 def replace_evidence(path: Path, text: str, original: tuple, row: dict) -> None:
+    from schema.benchmark_values import validate_card_rows
+
+    validate_card_rows(path, [row])
     fields = (
         "model_id_as_evaluated", "score", "unit", "source_url", "evidence_date", "id",
         "measured_by", "effort", "harness", "sources",

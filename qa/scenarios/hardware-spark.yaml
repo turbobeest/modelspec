@@ -1,0 +1,26 @@
+id: hardware-spark
+family: F3
+persona: Local inference operator
+request: Which models should I host on my NVIDIA DGX Spark for reasoning? Use 4-bit weights and an
+  8192-token context, and leave room for the runtime.
+constraints:
+  machine: NVIDIA DGX Spark
+  memory_gb: 128
+  task: reasoning
+  quantization_bits: 4
+  context_tokens: 8192
+  hosting: local
+  commercial_use: true
+sources:
+- registry/templates.yaml#coding-private
+gaps:
+- reason: A fits_hardware membership alone cannot prove fit for a machine topology, runtime, quantization
+    and KV-cache workload.
+  suggested_fix: Expose a hardware-fit MCP tool accepting SKU, device count, memory, runtime, quantization,
+    batch and context, and return measured fit or undetermined.
+  source: tests/recall/specs/Q17.yaml
+expected: null
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.

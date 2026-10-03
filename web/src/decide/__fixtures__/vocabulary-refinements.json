@@ -194,7 +194,8 @@
           "min"
         ],
         "threshold": "where"
-      }
+      },
+      "better": "higher"
     },
     {
       "id": "model.max_output_tokens",
@@ -230,7 +231,8 @@
           "min"
         ],
         "threshold": "where"
-      }
+      },
+      "better": "higher"
     },
     {
       "id": "model.weights_openness",
@@ -303,7 +305,8 @@
           "min"
         ],
         "threshold": "where"
-      }
+      },
+      "better": "neither"
     },
     {
       "id": "model.parameters_active",
@@ -336,7 +339,8 @@
           "min"
         ],
         "threshold": "where"
-      }
+      },
+      "better": "neither"
     },
     {
       "id": "model.architecture",
@@ -441,7 +445,8 @@
           "min"
         ],
         "threshold": "where"
-      }
+      },
+      "better": "higher"
     },
     {
       "id": "licence.output_training",
@@ -1132,7 +1137,8 @@
           "min"
         ],
         "threshold": "where"
-      }
+      },
+      "better": "lower"
     },
     {
       "id": "offering.price.output",
@@ -1168,7 +1174,8 @@
           "min"
         ],
         "threshold": "where"
-      }
+      },
+      "better": "lower"
     },
     {
       "id": "offering.price.cached_input",
@@ -1204,7 +1211,8 @@
           "min"
         ],
         "threshold": "where"
-      }
+      },
+      "better": "lower"
     },
     {
       "id": "offering.price.batch_input",
@@ -1243,7 +1251,8 @@
           "min"
         ],
         "threshold": "where"
-      }
+      },
+      "better": "lower"
     },
     {
       "id": "offering.price.batch_output",
@@ -1282,7 +1291,8 @@
           "min"
         ],
         "threshold": "where"
-      }
+      },
+      "better": "lower"
     },
     {
       "id": "offering.cost_per_task",
@@ -1318,7 +1328,8 @@
           "min"
         ],
         "threshold": "where"
-      }
+      },
+      "better": "lower"
     },
     {
       "id": "offering.speed.time_to_first_token",
@@ -1351,7 +1362,8 @@
           "min"
         ],
         "threshold": "where"
-      }
+      },
+      "better": "lower"
     },
     {
       "id": "offering.speed.throughput",
@@ -1384,7 +1396,8 @@
           "min"
         ],
         "threshold": "where"
-      }
+      },
+      "better": "higher"
     },
     {
       "id": "offering.rate_limit.requests",
@@ -1417,7 +1430,8 @@
           "min"
         ],
         "threshold": "where"
-      }
+      },
+      "better": "higher"
     },
     {
       "id": "offering.rate_limit.tokens",
@@ -1450,7 +1464,8 @@
           "min"
         ],
         "threshold": "where"
-      }
+      },
+      "better": "higher"
     },
     {
       "id": "offering.sla_uptime",
@@ -1483,7 +1498,8 @@
           "min"
         ],
         "threshold": "where"
-      }
+      },
+      "better": "higher"
     },
     {
       "id": "offering.data.retention",
@@ -1519,7 +1535,8 @@
           "min"
         ],
         "threshold": "where"
-      }
+      },
+      "better": "lower"
     },
     {
       "id": "offering.data.trains_on_customer_data",

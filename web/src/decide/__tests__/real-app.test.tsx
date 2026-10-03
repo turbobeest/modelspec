@@ -20,6 +20,7 @@ import {
 import { VOCABULARY_URL, realBaseSpec, vocabularySchema } from "../vocabulary";
 import { decodeBoardState, encodeBoardSpec } from "../facet-board/model";
 import { LEGACY_PERMALINKS } from "../__fixtures__/legacy-permalinks";
+import { capabilityRow, findTemplateCell, openGroup, templateCell } from "./board-helpers";
 
 const fixture = decisionSchema.parse(fixtureJson);
 const liveBudgetCoding = decisionSchema.parse(liveBudgetCodingJson);
@@ -75,9 +76,9 @@ it("opens a composer-era permalink as a populated board with migration notes", a
   vi.stubGlobal("fetch", routeFetch({ decide: (init) => json(decisionFor(init)) }));
   history.replaceState(null, "", `/decide/?theme=dark&layout=table${LEGACY_PERMALINKS.budgetCoding}`);
   render(<App />);
-  await screen.findByRole("heading", { name: "Set what matters. Watch the field narrow." });
+  await screen.findByRole("heading", { name: "Set what matters across any/all facets. Try a template as a fast track. Watch the field narrow." });
   expect(screen.queryByLabelText("Describe your task")).not.toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Table first" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.queryByRole("group", { name: "Layout" })).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Light mode" })).toBeInTheDocument();
   expect(await screen.findByRole("note", { name: "Notes from your old decision link" })).toHaveTextContent(
     "The board does not interpret free text.",
@@ -110,7 +111,7 @@ it("migrates a composer-era permalink navigated to after vocabulary loads", asyn
   const fetch = routeFetch({ decide: (init) => json(decisionFor(init)) });
   vi.stubGlobal("fetch", fetch);
   render(<App />);
-  await screen.findByRole("heading", { name: "Set what matters. Watch the field narrow." });
+  await screen.findByRole("heading", { name: "Set what matters across any/all facets. Try a template as a fast track. Watch the field narrow." });
   const requestsBeforeNavigation = sentSpecs(fetch).length;
 
   history.pushState(null, "", `/decide/${LEGACY_PERMALINKS.unsupportedParts}`);
@@ -233,7 +234,7 @@ it("folds invalid refinement weights into the parent without losing board state"
   vi.stubGlobal("fetch", fetch);
   const app = render(<DesignedApp />);
   await screen.findByLabelText("Facet board answer");
-  const software = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
+  const software = capabilityRow("Software engineering");
   fireEvent.click(within(software).getByLabelText("Prefer"));
   fireEvent.click(within(software).getByRole("button", { name: "Refine" }));
   const python = within(software).getByText("Python").closest<HTMLElement>(".refinement-row")!;
@@ -275,7 +276,7 @@ it("folds invalid refinement weights into the parent without losing board state"
   history.replaceState(null, "", shared.pathname + shared.search + shared.hash);
   render(<DesignedApp />);
   await screen.findByLabelText("Facet board answer");
-  const restoredSoftware = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
+  const restoredSoftware = capabilityRow("Software engineering");
   fireEvent.click(within(restoredSoftware).getByRole("button", { name: "Refine" }));
   const restoredPython = within(restoredSoftware).getByText("Python").closest<HTMLElement>(".refinement-row")!;
   expect(within(restoredPython).getByLabelText("Prefer")).toBeChecked();
@@ -328,7 +329,7 @@ it("tries the refinement fold-back only once", async () => {
   vi.stubGlobal("fetch", fetch);
   render(<DesignedApp />);
   await screen.findByLabelText("Facet board answer");
-  const software = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
+  const software = capabilityRow("Software engineering");
   fireEvent.click(within(software).getByLabelText("Prefer"));
   fireEvent.click(within(software).getByRole("button", { name: "Refine" }));
   const callsBeforeRefinement = sentSpecs(fetch).length;
@@ -367,7 +368,7 @@ it("lets a newer board request win when an in-flight folded retry is aborted", a
   vi.stubGlobal("fetch", fetch);
   render(<DesignedApp />);
   await screen.findByLabelText("Facet board answer");
-  const software = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
+  const software = capabilityRow("Software engineering");
   fireEvent.click(within(software).getByLabelText("Prefer"));
   fireEvent.click(within(software).getByRole("button", { name: "Refine" }));
   const python = within(software).getByText("Python").closest<HTMLElement>(".refinement-row")!;
@@ -400,8 +401,7 @@ it("runs the designed App on a full hosted decision without fictional labels", a
   vi.stubGlobal("fetch", fetch);
   render(<App />);
 
-  await screen.findByRole("button", { name: BUDGET_CODING });
-  fireEvent.click(screen.getByRole("button", { name: BUDGET_CODING }));
+  fireEvent.click(await findTemplateCell(BUDGET_CODING));
   expect(
     await screen.findByRole("region", { name: "Trade-off canvas" }),
   ).toBeInTheDocument();
@@ -458,7 +458,7 @@ it("keeps ticket IDs and future promises out of every applied template surface",
   });
   vi.stubGlobal("fetch", fetch);
   render(<App />);
-  await screen.findByRole("button", { name: BUDGET_CODING });
+  await findTemplateCell(BUDGET_CODING);
 
   const category = (id?: string) => allTemplatesVocabulary.template_categories?.find((row) => row.id === id)?.name;
   const tier = (id?: string) => allTemplatesVocabulary.template_tiers?.find((row) => row.id === id)?.name;
@@ -607,7 +607,7 @@ it("renders the qualifying models from the live empty-board decision alphabetica
   expect(providers.slice(firstUnavailable).every((provider) => provider === "Provider not available"))
     .toBe(true);
 
-  const capability = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
+  const capability = capabilityRow("Software engineering");
   fireEvent.click(within(capability).getByLabelText("Prefer"));
   expect(await within(screen.getByLabelText("Decision table")).findByRole("columnheader", { name: /#/ }))
     .toBeInTheDocument();
@@ -655,7 +655,7 @@ it("keeps capability-unknown models outside the ranked board answer", async () =
   render(<DesignedApp />);
   await screen.findByLabelText("Facet board answer");
 
-  const capability = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
+  const capability = capabilityRow("Software engineering");
   fireEvent.click(within(capability).getByLabelText("Prefer"));
 
   const mayHeading = await screen.findByRole("heading", {
@@ -721,12 +721,12 @@ it("lists only qualifying providers as alternatives on the board", async () => {
   vi.stubGlobal("fetch", fetch);
   render(<DesignedApp />);
   await screen.findByLabelText("Facet board answer");
-  fireEvent.click(screen.getByRole("button", { name: BUDGET_CODING }));
+  fireEvent.click(templateCell(BUDGET_CODING));
 
   const answer = screen.getByLabelText("Facet board answer")
     .closest<HTMLElement>(".board-answer")!;
   fireEvent.click(within(answer).getByRole("button", { name: "Show all 15" }));
-  const modelRow = within(answer).getByText("Claude Opus 5.5").closest("li")!;
+  const modelRow = within(answer).getByText("Claude Opus 5.5", { selector: ".board-ranked-copy strong" }).closest("li")!;
   expect(within(modelRow).getByText(/also via/)).toHaveTextContent(
     "Vertex AI (Google Cloud)",
   );
@@ -741,7 +741,7 @@ it("shows model-grained funnel and board counts from the live budget decision", 
   vi.stubGlobal("fetch", fetch);
   render(<DesignedApp />);
   await screen.findByLabelText("Facet board answer");
-  fireEvent.click(screen.getByRole("button", { name: BUDGET_CODING }));
+  fireEvent.click(templateCell(BUDGET_CODING));
 
   const narrowing = screen.getByText("Narrowing, in the order you set conditions")
     .closest<HTMLElement>(".narrowing")!;
@@ -900,7 +900,7 @@ it("reissues an estate request aborted by a newer main decision", async () => {
     target: { value: Object.keys(smallVocabulary.providers)[0] },
   });
   await waitFor(() => expect(estateRequests).toBe(1));
-  fireEvent.click(screen.getByRole("button", { name: BUDGET_CODING }));
+  fireEvent.click(templateCell(BUDGET_CODING));
 
   expect(await screen.findByText("0 models qualify · 3 may qualify")).toBeInTheDocument();
   expect(estateRequests).toBe(2);
@@ -933,7 +933,7 @@ it("labels capability intervals with their ranking basis and units", async () =>
   render(<DesignedApp />);
   await screen.findByRole("region", { name: "Trade-off canvas" });
 
-  const capability = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
+  const capability = capabilityRow("Software engineering");
   fireEvent.click(within(capability).getByLabelText("Prefer"));
 
   expect(await screen.findByText("Software engineering, estimated · 80% interval")).toBeInTheDocument();
@@ -955,11 +955,11 @@ it("shows no stale designed result after a hosted error", async () => {
   });
   vi.stubGlobal("fetch", fetch);
   render(<App />);
-  await screen.findByRole("button", { name: BUDGET_CODING });
+  await findTemplateCell(BUDGET_CODING);
   expect(
     await screen.findByRole("region", { name: "Trade-off canvas" }),
   ).toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: BUDGET_CODING }));
+  fireEvent.click(templateCell(BUDGET_CODING));
 
   await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Try again"));
   expect(
@@ -972,10 +972,10 @@ it("treats the legacy demo flag as the public board", async () => {
   vi.stubGlobal("fetch", fetch);
   history.replaceState(null, "", "/decide/?demo=1");
   render(<App />);
-  expect(await screen.findByRole("heading", { name: "Set what matters. Watch the field narrow." })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: "Set what matters across any/all facets. Try a template as a fast track. Watch the field narrow." })).toBeInTheDocument();
   // MODEL-264: the measured agent-speed headline leads, the board line follows.
-  expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("about a tenth of a second. It might take you a little longer.");
-  expect(screen.getByRole("heading", { level: 2, name: "Set what matters. Watch the field narrow." })).toBeInTheDocument();
+  expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("…in about 0.1 s. It might take you a little longer.");
+  expect(screen.getByRole("heading", { level: 2, name: "Set what matters across any/all facets. Try a template as a fast track. Watch the field narrow." })).toBeInTheDocument();
   expect(screen.getByText(/measured from Boston on 2026-10-01/)).toBeInTheDocument();
   expect(screen.queryByLabelText("Describe your task")).not.toBeInTheDocument();
   expect(fetch).toHaveBeenCalled();
@@ -984,7 +984,7 @@ it("treats the legacy demo flag as the public board", async () => {
 it("renders unavailable snapshot facets instead of hiding them", async () => {
   vi.stubGlobal("fetch", routeFetch({ decide: (init) => json(decisionFor(init)) }));
   render(<App />);
-  await screen.findByRole("button", { name: BUDGET_CODING });
+  await findTemplateCell(BUDGET_CODING);
   const table = await screen.findByRole("region", { name: "Decision table" });
   fireEvent.click(within(table).getAllByRole("button", { name: "Delta 4.7" })[0]);
   const detail = await screen.findByRole("region", { name: "Why this model" });
@@ -1037,7 +1037,7 @@ it("renders capability intervals, probability of best and top-three stability", 
   };
   vi.stubGlobal("fetch", routeFetch({ decide: () => json(estimated) }));
   render(<App />);
-  await screen.findByRole("button", { name: BUDGET_CODING });
+  await findTemplateCell(BUDGET_CODING);
 
   const table = await screen.findByRole("region", { name: "Decision table" });
   fireEvent.click(within(table).getAllByRole("button", { name: "Delta 4.7" })[0]);
@@ -1051,7 +1051,7 @@ it("renders capability intervals, probability of best and top-three stability", 
 it("renders the full decision as four models without machine condition syntax", async () => {
   vi.stubGlobal("fetch", routeFetch({ decide: (init) => json(decisionFor(init)) }));
   render(<App />);
-  await screen.findByRole("button", { name: BUDGET_CODING });
+  await findTemplateCell(BUDGET_CODING);
 
   const table = await screen.findByRole("region", { name: "Decision table" });
   expect(within(table).getAllByRole("row")).toHaveLength(5);
@@ -1091,7 +1091,7 @@ it("on a 409 to the summary, reloads once, retries the summary, then asks for fu
   });
   vi.stubGlobal("fetch", fetch);
   render(<App />);
-  await screen.findByRole("button", { name: BUDGET_CODING });
+  await findTemplateCell(BUDGET_CODING);
 
   expect(
     await screen.findByRole("region", { name: "Trade-off canvas" }),
@@ -1140,7 +1140,7 @@ it("after the summary reloaded, a 409 to the full request keeps the summary and 
   });
   vi.stubGlobal("fetch", fetch);
   render(<App />);
-  await screen.findByRole("button", { name: BUDGET_CODING });
+  await findTemplateCell(BUDGET_CODING);
 
   expect(
     await screen.findByRole("region", { name: "Trade-off canvas" }),
@@ -1173,9 +1173,10 @@ it("keeps the reloaded board vocabulary visible when a retried summary fails", a
   });
   vi.stubGlobal("fetch", fetch);
   render(<App />);
-  await screen.findByRole("button", { name: BUDGET_CODING });
+  await findTemplateCell(BUDGET_CODING);
 
   expect(await screen.findByRole("alert")).toHaveTextContent("retry failed");
+  openGroup("What it's good at");
   expect(screen.getByText("Fresh vocabulary marker")).toBeInTheDocument();
   expect(vocabularyLoads).toBe(2);
   expect(decisionRequests).toBe(2);
@@ -1205,7 +1206,7 @@ it("folds a rejected refinement with the vocabulary installed after a snapshot c
   vi.stubGlobal("fetch", fetch);
   render(<DesignedApp />);
   await screen.findByLabelText("Facet board answer");
-  const software = screen.getByText("Software engineering").closest<HTMLElement>(".facet-row")!;
+  const software = capabilityRow("Software engineering");
   fireEvent.click(within(software).getByLabelText("Prefer"));
   await waitFor(() => expect(sentSpecs(fetch).some((spec) =>
     spec.explain === "summary" && spec.optimize.weights.software_engineering === 0.5,

@@ -18,11 +18,17 @@ const { loadPyodide } = require('pyodide');
       if (name === '__pycache__') continue;
       const source = path.join(dir, name), dest = target + '/' + name;
       if (fs.statSync(source).isDirectory()) copy(source, dest);
-      else py.FS.writeFile(dest, fs.readFileSync(source));
+      // Transfer the buffer into MEMFS instead of retaining a second file copy.
+      else py.FS.writeFile(dest, fs.readFileSync(source), { canOwn: true });
     }
   }
   copy(bundle, '/bundle');
   py.globals.set("verification_key", process.env.MODELSPEC_SNAPSHOT_KEY || "model247-memory-fixture-key");
+  if (!global.gc) throw new Error('probe requires --expose-gc');
+  // Package/runtime setup precedes the Worker measurement. Release its
+  // unreachable V8 temporaries before sampling imports and real requests.
+  // Do not collect between those requests: all Worker caches remain resident.
+  global.gc();
   const before = py._module.HEAPU8.buffer.byteLength;
   let peak = 0, wasmPeak = before;
   const recordPeak = () => {
@@ -64,14 +70,21 @@ record_peak()
 response = await worker.fetch(Request('GET', '/v1/vocabulary'))
 assert response.status == 200
 record_peak()
+response = await worker.fetch(Request('POST', '/v1/rank', {'use_case': 'coding', 'limit': 100}))
+assert response.status == 200
+assert json.loads(response.body)['result']
+record_peak()
+response = await worker.fetch(Request('POST', '/v1/policy-check', {'policy': {'commercial_use': {'required': True}}}))
+assert response.status == 200
+assert entry._policy_cache['catalogue'] is not None
+record_peak()
 `);
   } finally {
     clearInterval(sampling);
   }
   recordPeak();
-  // One collection after both requests gives the retained V8 memory. Wasm
+  // One collection after all requests gives the retained V8 memory. Wasm
   // allocation is counted in full; Node reports that buffer in external.
-  if (!global.gc) throw new Error('probe requires --expose-gc');
   global.gc();
   const live = process.memoryUsage();
   const wasm = py._module.HEAPU8.buffer.byteLength;
@@ -82,7 +95,7 @@ record_peak()
     wasm_peak_bytes: wasmPeak, wasm_peak_mib: wasmPeak / 1048576,
     steady_bytes: steady, steady_mib: steady / 1048576,
     live_non_wasm_bytes: liveNonWasm, wasm_bytes: wasm,
-    requests: ['POST /v1/decide', 'GET /v1/vocabulary'], limit_bytes: 120 * 1048576, peak_warning_bytes: 112 * 1048576 };
+    requests: ['POST /v1/decide', 'GET /v1/vocabulary', 'POST /v1/rank', 'POST /v1/policy-check'], limit_bytes: 120 * 1048576, peak_warning_bytes: 112 * 1048576 };
   console.log(JSON.stringify(result));
   if (peak > result.peak_warning_bytes) console.warn('::warning::Memory probe noisy peak exceeds 112 MiB');
   if (steady > result.limit_bytes) process.exitCode = 1;

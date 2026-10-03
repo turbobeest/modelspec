@@ -1030,14 +1030,17 @@ export function mapDecisionToViewModel(
     frontier: frontier.map((row) => row.m.id),
     shortlist: shortlist(feasible, spec),
     insep: (row) => {
-      if (!row?.capR || row.capR.ci === null) return [];
-      const interval = row.capR.ci;
+      if (row?.cap == null || row.capR?.ci == null) return [];
+      const { cap } = row,
+        interval = row.capR.ci;
+      // A row with no capability interval has nothing to overlap with: under a
+      // price-only Prefer some ranked rows carry no capability evidence at all.
       return feasible.filter(
         (other) =>
           other !== row &&
-          other.capR?.ci !== null &&
-          Math.abs((other.cap ?? 0) - (row.cap ?? 0)) <=
-            (other.capR?.ci ?? 0) + interval,
+          other.cap != null &&
+          other.capR?.ci != null &&
+          Math.abs(other.cap - cap) <= other.capR.ci + interval,
       );
     },
     nearMisses,

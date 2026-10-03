@@ -1,0 +1,25 @@
+id: template-maths-reasoning-private
+family: F3
+persona: Engineer applying a published decision template
+request: Find a commercially usable open-weights model for maths and reasoning that you can run yourself.
+constraints:
+  must:
+  - model.class = text-generator
+  - model.weights_openness = open_weights
+  - licence.commercial_use in {permitted, permitted_with_conditions}
+  prefer:
+    maths:
+      weight: 0.6
+      reason: Prefer stronger maths among self-hostable models.
+    reasoning:
+      weight: 0.4
+      reason: Prefer stronger multi-step reasoning among self-hostable models.
+sources:
+- registry/templates.yaml#maths-reasoning-private
+template: maths-reasoning-private
+expected: null
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.
+gaps: []

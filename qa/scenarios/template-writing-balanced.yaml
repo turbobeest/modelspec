@@ -1,0 +1,24 @@
+id: template-writing-balanced
+family: F1
+persona: Engineer applying a published decision template
+request: Find an active text model that balances writing quality against task cost.
+constraints:
+  must:
+  - model.class = text-generator
+  - model.lifecycle = active
+  prefer:
+    writing:
+      weight: 0.7
+      reason: Prefer clear, high-quality writing.
+    -offering.cost_per_task:
+      weight: 0.3
+      reason: Among strong writers, prefer the cheaper task.
+sources:
+- registry/templates.yaml#writing-balanced
+template: writing-balanced
+expected: null
+rubric:
+- Preserve every hard constraint and explain any constraint the API cannot express.
+- Base recommendations on returned evidence; unknown is not a pass and a proxy is not direct evidence.
+- Report ties or abstain when evidence cannot establish a winner; cite model and offering identities.
+gaps: []

@@ -1,3 +1,4 @@
+import { lowerIsBetter } from "../vocabulary";
 import type { Vocabulary, VocabFacet } from "../vocabulary";
 import type { DecisionSpec } from "../adapter";
 
@@ -30,11 +31,6 @@ export type CanvasAxisOption =
       mustOp: ">=";
       lowerIsBetter: false;
     };
-
-const lowerIsBetter = (facet: VocabFacet): boolean =>
-  ["cost", "price", "time_to_first_token", "retention"].some((part) =>
-    facet.id.includes(part),
-  );
 
 function facetMustOp(facet: VocabFacet): "<=" | ">=" | null {
   if (lowerIsBetter(facet) && facet.operators.includes("<=")) return "<=";

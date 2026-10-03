@@ -162,7 +162,7 @@ def test_objective_terms_accept_evidence_qualifiers() -> None:
         measured_by="independent", effort="default"
     )
     assert '"qualifiers"' in c.canonical_json(spec)
-    assert c.CONTRACT_VERSION == "2.11"
+    assert c.CONTRACT_VERSION == "2.12"
 
 
 def test_relative_condition_names_the_model() -> None:
@@ -803,7 +803,18 @@ def _samples() -> list:
                                marginal_cost_per_task_usd=0)
     estate_result = c.EstateResult(rank=1, offering=result.offering, estate=estate_mark)
     estate_gap = c.EstateGap(same_answer=True, summary="What you hold reaches the answer.")
+    from decision.bounded import project
+    options = c.ResponseOptions(fields=["cost_per_task"])
+    bounded = c.BoundedDecision.model_validate(project(decision, options, not_applied=[]))
+    bounded.answer = separated_answer
     return [
+        options,
+        c.DecideRequest.model_validate({**spec.model_dump(mode="json", by_alias=True), "fields": ["cost_per_task"]}),
+        bounded,
+        bounded.results[0],
+        bounded.explanation,
+        c.ModelEvidence(model=result.model, status="ranked", offering=result.offering,
+                        rank=1, evidence=result.evidence, contributions=result.contributions),
         spec,
         spec.optimize,
         c.Objective(max="software_engineering"),
@@ -905,6 +916,9 @@ def _samples() -> list:
                     coverage=plan_coverage, allowance=plan_allowance,
                     break_even_tasks_per_month=303.0, basis="200 USD a month ÷ 0.66 USD a task"),
         c.FeedbackPointer(),
+        c.Reading(tied=["lab/a", "lab/b"], not_applied=["task"],
+                  estimates=["model.fits_hardware"],
+                  do_not_claim=["Do not name a single winner among tied."]),
     ]
 
 

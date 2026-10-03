@@ -25,8 +25,8 @@ such a condition runs after them, and the funnel lists it after them.
 
 A model with offerings is represented by them (MODEL-159). Its bare model row
 would tie with them on the evidence they inherit, so it never enters the
-lineup and is not reported as eliminated. A model with no offering (open
-weights run on one's own hardware) is its own row.
+lineup and is not reported as eliminated. A model with no offering is its own
+row only when its verified weights openness is ``open_weights``.
 
 The shared snapshot protocol lives in ``decision/snapshot.py`` (MODEL-138).
 """
@@ -65,6 +65,7 @@ _INDEPENDENT = frozenset({
 _PROVIDER = frozenset({"provider_self_report"})
 
 _RETIRED_CONDITION = "model.lifecycle not in {retired}"
+_SELF_HOST_CONDITION = "model.weights_openness = open_weights unknown(fail)"
 
 
 class _Missing:
@@ -811,25 +812,40 @@ class _Run:
             )])
         sold = {self.index.model_of(cid) for cid in self.ids
                 if self.index.kind(cid) == "offering"}
-        represented = retired = outside = 0
+        represented = retired = outside = no_route = 0
         reach = self.reach
         for i, cid in enumerate(self.ids):
+            bit = 1 << i
             if reach is not None and not reach.holds(cid):
-                outside |= 1 << i
+                outside |= bit
             elif cid in sold and (reach is None or not reach.holds_bare(cid)):
-                represented |= 1 << i
+                represented |= bit
             elif self._life(cid) == "retired":
-                retired |= 1 << i
+                retired |= bit
+            if (self.index.kind(cid) == "model" and cid not in sold
+                    and not outside & bit):
+                weights = self.index.fact(cid, "model.weights_openness")
+                if weights.state != "known" or weights.value != "open_weights":
+                    no_route |= bit
         eliminations: list[Elimination] = []
         if self.resolved.include_retired:
-            self.lineup = self.universe & ~represented & ~outside
+            self.lineup = self.universe & ~represented & ~outside & ~no_route
         else:
-            self.lineup = self.universe & ~retired & ~represented & ~outside
+            self.lineup = self.universe & ~retired & ~represented & ~outside & ~no_route
             for cid in self._ids_of(retired):
                 eliminations.append(Elimination(
                     candidate=cid, _condition=_RETIRED_CONDITION, value="retired",
                     threshold=("active", "deprecated"), facet="model.lifecycle",
                 ))
+        route_eliminations = no_route if self.resolved.include_retired else no_route & ~retired
+        for cid in self._ids_of(route_eliminations):
+            weights = self.index.fact(cid, "model.weights_openness")
+            eliminations.append(Elimination(
+                candidate=cid, _condition=_SELF_HOST_CONDITION,
+                value=weights.value if weights.state == "known" else None,
+                threshold="open_weights", facet="model.weights_openness",
+                unverified=weights.state != "known",
+            ))
         feasible = self.lineup
         maybe = 0
         unknown_facets: dict[str, list[str]] = {}

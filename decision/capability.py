@@ -1265,10 +1265,12 @@ def deterministic_probabilities(
     return dict(_probability_draws(distributions, seed_material, samples))
 
 
-@lru_cache(maxsize=16)
+@lru_cache(maxsize=128)
 def _probability_draws(
     distributions: tuple[tuple[str, float, float], ...], seed_material: str, samples: int,
 ) -> tuple[tuple[str, tuple[float, float]], ...]:
+    # Estate gain trials use more than 16 distinct distributions in one call.
+    # Keep that working set so the next call does not repeat every draw.
     # Cache only the sufficient inputs and immutable output, never a snapshot
     # or caller's spec. New estimates, seed or sample count cannot reuse a draw.
     if not distributions:

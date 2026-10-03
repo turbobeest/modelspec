@@ -361,6 +361,9 @@ def _same_value(block: dict, row: Row) -> bool:
 def write_rows(model_id: str, records: list[tuple[Row, dict]]) -> None:
     """Replace a card's unfiled row with the same benchmark and value; append the rest."""
     path = card_path(model_id)
+    from schema.benchmark_values import validate_card_rows
+
+    validate_card_rows(path, [record for _, record in records])
     text = path.read_text(encoding="utf-8")
     pending = list(records)
 
