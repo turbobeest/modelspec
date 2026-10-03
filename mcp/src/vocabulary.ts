@@ -1,4 +1,5 @@
 import { z } from "zod";
+import agentCopy from "./agent-copy.json";
 
 export const vocabInput = z.object({
   section: z.enum([
@@ -14,6 +15,15 @@ export const vocabInput = z.object({
   limit: z.number().int().min(1).max(20).optional().describe("Compact page size; defaults to 20"),
 });
 export type VocabInput = z.infer<typeof vocabInput>;
+
+export function vocabularyResponse(selected: unknown, args: VocabInput) {
+  const section = args.section ?? "starter";
+  return {
+    [section]: selected,
+    next: section === "starter" ? agentCopy.vocab.next.starter : agentCopy.vocab.next.lookup,
+    ...(section === "starter" ? { spec: agentCopy.vocab.minimal_spec } : {}),
+  };
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);

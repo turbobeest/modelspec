@@ -8,7 +8,7 @@ info:
   version: '1.0'
   summary: Ranks AI models you can actually run, given your hardware, providers, use case and policy rules,
     and checks them against a compliance policy.
-  description: 'Start with the compact agent guide https://modelspec.dev/agents.md (version 1-f1653ef723132017).
+  description: 'Start with the compact agent guide https://modelspec.dev/agents.md (version 1-8e2ea6b35b623427).
     Call decide early with a template-based Spec; refine from reading and recovery hints.
 
 
@@ -509,14 +509,18 @@ paths:
             Link: *id003
             x-modelspec-guide-version: *id004
       description: 'Which models fit this job? Returns answer, ranked results, may_qualify, reading and
-        recovery hints, decision_id and snapshot. Read reading when present. Present answer.kind=tied
-        as a tie among all answer.members, never a single winner; tie-breakers are conditional choices.
-        Report a tied with_estate.answer as a tie too. State requirements in reading.not_applied or error.issues
-        that were not applied, including requirements removed after a rejected call. A retry does not
-        verify them. Report estimates as estimates: fits_hardware membership is not measured fit for a
-        specific quantization and context workload. Follow reading.do_not_claim. Never claim a rank the
-        response does not show. Needs an API key (Authorization: Bearer). Costs 1 or 2 credits a call;
-        a credit costs $0.0017–$0.004 depending on the plan or pack (https://modelspec.dev/pricing/).
+        recovery hints, decision_id and snapshot. Never add a constraint or weight the user did not state;
+        template gates and weights are examples, not user requirements. If the evidence basis or board
+        does not match the task, say so: Arena web-dev evidence does not establish chat quality. p_best
+        is the probability of ranking best under the Spec and evidence uncertainty, not the probability
+        of matching the user''s task or satisfying its requirements. Read reading when present. Present
+        answer.kind=tied as a tie among all answer.members, never a single winner; tie-breakers are conditional
+        choices. Report a tied with_estate.answer as a tie too. State requirements in reading.not_applied
+        or error.issues that were not applied, including requirements removed after a rejected call. A
+        retry does not verify them. Report estimates as estimates: fits_hardware membership is not measured
+        fit for a specific quantization and context workload. Follow reading.do_not_claim. Never claim
+        a rank the response does not show. Needs an API key (Authorization: Bearer). Costs 1 or 2 credits
+        a call; a credit costs $0.0017–$0.004 depending on the plan or pack (https://modelspec.dev/pricing/).
         Not a router: call it once per job or role, not per request, then route among the models it recommends.'
   /v1/compare:
     post:
@@ -6007,4 +6011,4 @@ components:
       schema: {type: string, const: '<https://modelspec.dev/agents.md>; rel="describedby"'}
     AgentGuideVersion:
       description: Version of the byte-stable guide.
-      schema: {type: string, const: 1-f1653ef723132017}
+      schema: {type: string, const: 1-8e2ea6b35b623427}

@@ -5,7 +5,7 @@ import agentCopy from "./agent-copy.json";
 import { createMcpHandler } from "agents/mcp/server";
 import { z } from "zod";
 
-import { lookupVocabulary, vocabInput } from "./vocabulary";
+import { lookupVocabulary, vocabInput, vocabularyResponse } from "./vocabulary";
 
 import decisionContract from "../../docs/decision-contract.schema.json";
 import {
@@ -417,11 +417,19 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
       if (envelope.status < 400 && isRecord(envelope.body)) {
         // Older Workers ignore lookup parameters and return the full vocabulary.
         // Keep agent responses compact while the two Workers roll out independently.
-        envelope.body = split && !("vocabulary_version" in envelope.body)
+        const selected = split && !("vocabulary_version" in envelope.body)
           ? envelope.body[section]
           : lookupVocabulary(envelope.body, args);
+        envelope.body = vocabularyResponse(selected, args);
       }
-      return asToolResult(envelope);
+      const result = asToolResult(envelope);
+      // A failed lookup gets no "call decide next" hint: the agent should fix the lookup first.
+      if (result.isError) return result;
+      return {
+        ...result,
+        content: [...result.content, { type: "text" as const, text:
+          section === "starter" ? agentCopy.vocab.next.starter : agentCopy.vocab.next.lookup }],
+      };
     },
   );
 

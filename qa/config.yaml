@@ -30,7 +30,10 @@ agents:
     ceiling_price: {input: 1.5, output: 7.5}
     source: https://ai.google.dev/gemini-api/docs/pricing
 judge:
-  family: openai
-  model: gpt-6.1-sol
-  price: {input: 2, output: 10}
-  ceiling_price: {input: 4, output: 15}
+  # Routes select the model/price profiles in agents. Self-judging is refused.
+  # For a unanimous panel, set mode: panel and route each agent to both other families.
+  mode: single
+  routes:
+    claude: [openai]
+    openai: [claude]
+    gemini: [openai]

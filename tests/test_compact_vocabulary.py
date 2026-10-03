@@ -100,9 +100,9 @@ def test_search_ids_intersection_full_detail_and_pages(display):
     assert lookup(source, section="facets", limit=1, offset=1)["facets"] == [source["facets"][1]]
     assert lookup(source, section="facets", offset=3)["facets"] == []
     assert lookup(source, section="facets")["facets"][0]["definition"] == "First sentence."
-    assert lookup({"models": {"lab/id": {"display_name": "Friendly Model", "lab": "lab"}}}, section="models", search="FRIENDLY") == {"models": {"lab/id": {"display_name": "Friendly Model"}}}
-    assert lookup({"models": {"lab/id": {"display_name": None}}}, section="models", search="NONE") == {"models": {}}
-    assert lookup({"providers": {"id": "Provider Name"}}, section="providers", search="NAME") == {"providers": {"id": "Provider Name"}}
+    assert lookup({"models": {"lab/id": {"display_name": "Friendly Model", "lab": "lab"}}}, section="models", search="FRIENDLY")["models"] == {"lab/id": {"display_name": "Friendly Model"}}
+    assert lookup({"models": {"lab/id": {"display_name": None}}}, section="models", search="NONE")["models"] == {}
+    assert lookup({"providers": {"id": "Provider Name"}}, section="providers", search="NAME")["providers"] == {"id": "Provider Name"}
 
 
 @pytest.mark.parametrize("scored", [1, 2, 3])
@@ -146,7 +146,7 @@ def test_http_keeps_the_page_bytes_and_handles_optional_queries(monkeypatch, dis
         selected = fetch("?section=facets&id=model.context_window&ids=model.class,missing&ids=model.class").json()["facets"]
         assert {row["id"] for row in selected} == {"model.context_window", "model.class"}
         assert fetch("?section=starter", "HEAD").body is None
-        assert set(fetch("?section=starter").json()) == {"starter", "facets", "domains", "templates", "models", "estate"}
+        assert set(fetch("?section=starter").json()) == {"starter", "facets", "domains", "templates", "models", "estate", "next", "spec"}
         for query in ("?section=bad", "?detail=bad", "?limit=0", "?limit=21", "?offset=-1", "?offset=1.5"):
             response = fetch(query)
             assert response.status == 400

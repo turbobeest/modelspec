@@ -113,7 +113,8 @@ def test_compact_and_control_prompts_and_http_tools():
     full = (ROOT / 'api/worker/openapi.yaml').read_text()
     for interface in ('mcp', 'http'):
         compact = agent_context(interface)
-        assert agent_copy.guide()[1] in compact
+        assert agent_copy.copy()['context_guide'] in compact
+        assert agent_copy.guide()[1].partition('\n## Worked Specs\n')[0] in compact
         assert full not in compact
         assert 'https://modelspec.dev/openapi.yaml' in compact
         assert tokens(compact) <= 4100

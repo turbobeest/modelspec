@@ -253,7 +253,8 @@ def test_vocabulary_preparation_preserves_bytes_and_lookups(entry, monkeypatch):
     assert full.body.encode() == raw.encode()
     lookup = asyncio.run(worker.fetch(_Req("/v1/vocabulary?section=models", method="GET")))
     expected = {"facets": [], "domains": [], "templates": [], "models": {
-        "acme/a": {"display_name": "Café"}}, "estate": {}}
+        "acme/a": {"display_name": "Café"}}, "estate": {},
+        "next": "next: call decide using these ids; refine from reading"}
     assert lookup.body == json.dumps(expected, ensure_ascii=False)
     for query in ("section=models&search=Caf", "section=models&id=acme/a&detail=full",
                   "section=models&offset=1", "section=facets", "section=estate"):

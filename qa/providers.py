@@ -155,6 +155,45 @@ def _arguments(value: Any) -> Any:
     return value
 
 
+def prepare_tools(tools: list[dict], family: str) -> list[dict]:
+    return [t | {"input_schema": provider_schema(t["input_schema"], family)} for t in tools]
+
+
+def initial_history(family: str, request: str) -> list[dict]:
+    if family == "gemini":
+        return [{"role": "user", "parts": [{"text": request}]}]
+    return [{"role": "user", "content": request}]
+
+
+def request_payload(family: str, model: str, system: str, history: list[dict],
+                    tools: list[dict], max_output: int) -> dict:
+    """The exact wire body, shared by live calls and credential-free offline accounting."""
+    if family == "claude":
+        return {"model": model, "system": system, "messages": history,
+                "tools": tools, "max_tokens": max_output}
+    if family == "openai":
+        functions = [{"type": "function", "name": t["name"], "description": t["description"],
+                      "parameters": t["input_schema"], "strict": False} for t in tools]
+        return {"model": model, "instructions": system, "input": history, "tools": functions,
+                "max_output_tokens": max_output, "store": False, "reasoning": {"effort": "low"},
+                "include": ["reasoning.encrypted_content"]}
+    if family != "gemini":
+        raise ValueError("Unsupported provider family")
+    functions = [{"name": t["name"], "description": t["description"],
+                  "parametersJsonSchema": t["input_schema"]} for t in tools]
+    payload = {"systemInstruction": {"parts": [{"text": system}]}, "contents": history,
+               "generationConfig": {"maxOutputTokens": max_output}}
+    if functions:
+        payload["tools"] = [{"functionDeclarations": functions}]
+    return payload
+
+
+def first_request(family: str, model: str, system: str, request: str,
+                  tools: list[dict], max_output: int) -> dict:
+    return request_payload(family, model, system, initial_history(family, request),
+                           prepare_tools(tools, family), max_output)
+
+
 class HttpAgent:
     """Retain native assistant blocks, including reasoning and thought signatures."""
 
@@ -181,9 +220,7 @@ class HttpAgent:
             raise ValueError("Output token limit is below the provider minimum")
         if not model.strip() or not request.strip():
             raise ValueError("Model and initial user message must be nonempty")
-        self.tools = [
-            t | {"input_schema": provider_schema(t["input_schema"], family)} for t in tools
-        ]
+        self.tools = prepare_tools(tools, family)
         self.budget, self.price = budget, price
         self.max_output, self.client = max_output, client
         self.ceiling_price = ceiling_price or price
@@ -191,57 +228,11 @@ class HttpAgent:
         self.key = os.environ.get(KEY_ENV[family])
         if not self.key:
             raise ValueError(f"Missing {KEY_ENV[family]}")
-        if family == "gemini":
-            self.history = [{"role": "user", "parts": [{"text": request}]}]
-        else:
-            self.history = [{"role": "user", "content": request}]
+        self.history = initial_history(family, request)
 
     def payload(self) -> dict:
-        if self.family == "claude":
-            return {
-                "model": self.model,
-                "system": self.system,
-                "messages": self.history,
-                "tools": self.tools,
-                "max_tokens": self.max_output,
-            }
-        if self.family == "openai":
-            functions = [
-                {
-                    "type": "function",
-                    "name": t["name"],
-                    "description": t["description"],
-                    "parameters": t["input_schema"],
-                    "strict": False,
-                }
-                for t in self.tools
-            ]
-            return {
-                "model": self.model,
-                "instructions": self.system,
-                "input": self.history,
-                "tools": functions,
-                "max_output_tokens": self.max_output,
-                "store": False,
-                "reasoning": {"effort": "low"},
-                "include": ["reasoning.encrypted_content"],
-            }
-        functions = [
-            {
-                "name": t["name"],
-                "description": t["description"],
-                "parametersJsonSchema": t["input_schema"],
-            }
-            for t in self.tools
-        ]
-        payload = {
-            "systemInstruction": {"parts": [{"text": self.system}]},
-            "contents": self.history,
-            "generationConfig": {"maxOutputTokens": self.max_output},
-        }
-        if functions:
-            payload["tools"] = [{"functionDeclarations": functions}]
-        return payload
+        return request_payload(self.family, self.model, self.system, self.history,
+                               self.tools, self.max_output)
 
     def _before_retry(self, attempt: int, attempts: int, hinted: float | None = None) -> None:
         # The final attempt may use a different model only before any reply:

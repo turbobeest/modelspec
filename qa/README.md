@@ -27,7 +27,7 @@ The generator uses the same public premier snapshot builder as recall, records a
 
 ## Run against a nonproduction deployment
 
-Set `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, and `MODELSPEC_API_KEY` in your environment. Configure the API and static export origins and model ids in a copy of `qa/config.yaml`. Only the selected agents' keys and the separate judge's key are required. The default judge uses OpenAI, so a Claude-only run also needs `OPENAI_API_KEY`.
+Set `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, and `MODELSPEC_API_KEY` in your environment. Configure the API and static export origins and model ids in a copy of `qa/config.yaml`. Only the selected agents' and routed judges' keys are required. By default, Claude and Gemini answers go to the OpenAI judge, and OpenAI answers go to the Claude judge. Judge routes use the model, price and fallback profiles in `agents`. Self-judging is refused before any paid call.
 
 ```sh
 python -m qa.agent_harness --config /tmp/model-268-staging.yaml \
@@ -36,9 +36,46 @@ python -m qa.agent_harness --config /tmp/model-268-staging.yaml \
   --output-dir /tmp/model-268-private-reports
 ```
 
-The runner refuses known production ModelSpec hosts and follows no redirects. It uses plain HTTP with Anthropic Messages, OpenAI Responses, and Gemini `generateContent`. The agent receives only the user request and constraints, a short ModelSpec system note, the committed OpenAPI document, and the seven MCP tools. Expectations, rubrics, source specs and gap annotations are withheld. Tools forward to configured origins and preserve origin envelopes, validation errors and unknowns. The shim mirrors the MCP's split-data setting and nested Zod field stripping. `data_split: false` and `vocabulary_path: /api/decision/vocabulary.json` select the static export path.
+The runner refuses known production ModelSpec hosts and follows no redirects. It uses plain HTTP with Anthropic Messages, OpenAI Responses, and Gemini `generateContent`. The agent receives the user request and constraints, a short ModelSpec system note, the generated runtime guide and seven MCP tools. Every MCP arm, including Gemini, also receives the server's generated initialize instructions. Expectations, rubrics, source specs and gap annotations are withheld. Tools forward to configured origins and preserve origin envelopes, validation errors and unknowns. The shim mirrors the MCP's split-data setting and nested Zod field stripping. `data_split: false` and `vocabulary_path: /api/decision/vocabulary.json` select the static export path.
 
 The live judge is a separate stateless model call with the final answer, tool evidence, scenario rubric and any approved expected evidence. It extracts the final top recommendation or tied set, then assesses constraints, ties and uncertainty. A run succeeds only when the rubric passes and its recommendation is acceptable where independent evidence exists. Recall's acceptable sets are unordered; any nonempty top subset can match. The rubric handles confidence, prohibited candidates and unknown candidates. An abstention matches recall only where an explicit rule permits it. Scenarios with `expected: null` are judged by their rubric alone.
+
+For an independent two-judge panel, configure both other families for every route:
+
+```yaml
+judge:
+  mode: panel
+  routes:
+    claude: [openai, gemini]
+    openai: [claude, gemini]
+    gemini: [claude, openai]
+```
+
+Panel members receive identical evidence and no earlier judge opinion. Success requires both to pass and agree on the extracted answer kind and top model set. A missing, invalid or disagreeing judgement fails. Each run's `judges` records the actual model, family and individual verdict, including fallback identity. `judge` contains the aggregate result. Billing reservations name failed judge attempts too, with `role: judge` and their family. Dry runs replay the scripted opinion for each configured judge and do not measure panel quality.
+
+## Re-score saved transcripts
+
+```sh
+python -m qa.agent_harness --rescore /path/to/private/report.json \
+  --config /path/to/judge-config.yaml --spend-cap 25 \
+  --output-dir /path/to/private/rescored
+```
+
+This evaluates saved final answers with the configured cross-family judges. It restores tool results from the input report's `tool_responses` locally and never runs an agent or calls ModelSpec. Only judge keys are required. Missing saved evidence is an error, not a reason to fetch it. Select runs with `--agent` and `--scenario`; capped or failed agents remain in the denominator without judge calls. An old agent spend-cap status does not stop re-scoring later transcripts.
+
+The source report stays untouched. `previous_evaluation` preserves its verdict, and metadata pins its hash and original metadata. New spending and billing reservations cover only the new judges; historical agent calls remain in the transcript. Use `--dry-run --rescore ...` to test the complete path with fixture judges, no keys and no network. That verifies plumbing and does not produce a new quality measurement. Keep all reports with private transcripts outside this public checkout.
+
+## Measure the first request offline
+
+```sh
+python -m qa.agent_harness --first-turn-breakdown
+```
+
+This builds the exact first HTTP request for every selected provider and reports the largest request over the selected public scenarios. It needs no keys and makes no HTTP calls. Components separate the system note, runtime guide, MCP initialize instructions, tool descriptions, provider schemas, user request and protocol framing. The live sender and offline builder share the same payload construction and HTTPX JSON encoding.
+
+The test budget is 10,000 estimated tokens for each MCP arm. The count uses `cl100k_base` when installed, otherwise `ceil(characters / 4)`, and records the method. Components count standalone JSON values; protocol framing includes token-boundary differences so the table sums to the total. This is a reproducible offline estimate, not a vendor-native billable token count. The runtime guide retains decision and reporting rules, minifies worked Specs, and omits client installation instructions and planning tables. The full guide remains published at https://modelspec.dev/agents.md.
+
+## Spend reservations
 
 The $25 default cap applies to the entire invocation, including judges. The price table stores USD per million tokens. A call reserves a conservative UTF-8-byte input bound plus protocol overhead and the output cap at ceiling rates before HTTP. Successful calls settle using reported tokens, including cached input and reasoning output. Contexts over 200,000 input tokens use ceiling rates. Rejected HTTP 4xx calls release their reservation when usage is absent or explicitly zero. HTTP 408, ambiguous or positive usage, HTTP 5xx, missing usage on a successful response, and transport failures retain the reservation. A provider failure after the documented attempts ends that scenario. There are no hidden SDK retries. Update both price and ceiling tables from vendor docs before a paid run. This is an estimated token-spend limit, not a substitute for vendor account limits or a cap on separately priced ModelSpec credits.
 
@@ -79,9 +116,9 @@ without network access.
 
 The captured `decide` input has `$schema`, `$defs` and `$ref` at its root, without a literal `type: "object"`. The old Claude builder forwarded that root unchanged. Anthropic's [tool input schema](https://platform.claude.com/docs/en/api/messages/create) uses an object root. This is an offline request defect consistent with the first-call 400; the original run did not retain the error body, so the live cause cannot be confirmed. The first fixture request has nonempty user content, a string system prompt and valid tool names. Its configured `claude-sonnet-5` model and 4,096 output tokens match the [model's documented ID and 128K output limit](https://platform.claude.com/docs/en/models/sonnet-5/overview). The request is below 1 MB. Neither that size nor those fields explains the failure.
 
-`qa/schemas.py` now inlines local references and requires an object root for every provider. Claude and OpenAI retain JSON Schema constraints; [OpenAI tools explicitly disable strict mode](https://developers.openai.com/api/docs/guides/function-calling#strict-mode), so optional fields and map parameters stay optional. Gemini uses [`parametersJsonSchema`](https://ai.google.dev/api/generate-content#FunctionDeclaration) with a conservative subset of the documented Schema vocabulary. It omits references, map keywords and tuple or exclusive-bound constraints, and retains their meaning in descriptions. Google's JSON Schema field documents `additionalProperties`, so its removal is a compatibility choice, not a claim that every Gemini endpoint rejects it. The OpenAPI-style `parameters` field has a different vocabulary.
+`qa/schemas.py` requires an object root for every provider and shows each local definition once. Repeated and recursive references use a typed value with a short instruction to follow the named definition. This avoids expanding the same condition grammar repeatedly in `where` and inventory profile rules. [OpenAI tools explicitly disable strict mode](https://developers.openai.com/api/docs/guides/function-calling#strict-mode), so optional fields and map parameters stay optional. Gemini uses [`parametersJsonSchema`](https://ai.google.dev/api/generate-content#FunctionDeclaration) with a conservative subset of the documented Schema vocabulary. It omits references, map keywords and tuple or exclusive-bound constraints, and retains their meaning in descriptions. Google's JSON Schema field documents `additionalProperties`, so its removal is a compatibility choice, not a claim that every Gemini endpoint rejects it. The OpenAPI-style `parameters` field has a different vocabulary.
 
-Recursive inputs are expanded once before recursive children become descriptions. These provider schemas guide argument generation. The tool shim still validates arguments against the complete original MCP schema, including recursion and constraints described in prose. Tests build all three providers' real first-scenario payloads, validate their schemas, preserve representative valid MCP arguments and check bounded request size. They do not prove live provider acceptance.
+These provider schemas guide argument generation. The tool shim still validates arguments against the complete original MCP schema, including recursion and constraints described in prose. Tests build all three providers' exact first payloads, validate their schemas, preserve representative valid MCP arguments and check every public scenario against the first-turn budget. They do not prove live provider acceptance.
 
 Provider HTTP errors keep a generic family/status summary. Only the private JSON run's `provider_error` field receives the HTTP status, error type and message. Type and message are redacted for configured secrets and recognizable key forms, then limited to 300 characters each. Response headers, URLs and unrelated body fields are excluded. The CLI summary and Markdown report omit these diagnostics.
 

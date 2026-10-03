@@ -58,12 +58,11 @@ GEMINI_KEYWORDS = {
 
 
 def provider_schema(schema: dict, family: str) -> dict:
-    """Inline local refs, retaining unsupported constraints as model instructions.
+    """Show each local definition once, retaining other uses as named instructions.
 
-    Recursive schemas cannot be represented exactly without refs. Unroll one
-    layer of recursive types, then advertise a typed value with the recursive
-    definition in its description. LiveTools still validates against the original
-    schema, including recursion, maps, exclusive bounds and tuple positions.
+    Repeated and recursive references become typed values pointing to the first
+    named definition in this tool. This presentation schema guides the agent;
+    LiveTools validates the complete original schema, including nested rules.
     """
     allowed = GEMINI_KEYWORDS if family == "gemini" else JSON_KEYWORDS
 
@@ -78,77 +77,35 @@ def provider_schema(schema: dict, family: str) -> dict:
             target = target[token.replace("~1", "/").replace("~0", "~")]
         return target
 
-    def references(node):
-        if isinstance(node, dict):
-            if "$ref" in node:
-                yield node["$ref"]
-            for key, child in node.items():
-                if key in ("properties", "patternProperties"):
-                    for value in child.values():
-                        yield from references(value)
-                elif key in (
-                    "items",
-                    "additionalProperties",
-                    "not",
-                    "anyOf",
-                    "oneOf",
-                    "allOf",
-                    "prefixItems",
-                ):
-                    yield from references(child)
-        elif isinstance(node, list):
-            for child in node:
-                yield from references(child)
+    seen_refs = set()
 
-    edges = {}
-    pending = list(references(schema))
-    while pending:
-        ref = pending.pop()
-        if ref not in edges:
-            edges[ref] = set(references(resolve(ref)))
-            pending.extend(edges[ref])
-
-    def recursive(start):
-        pending, seen = list(edges[start]), set()
-        while pending:
-            ref = pending.pop()
-            if ref == start:
-                return True
-            if ref not in seen:
-                seen.add(ref)
-                pending.extend(edges[ref])
-        return False
-
-    recursive_refs = {ref for ref in edges if recursive(ref)}
-
-    def convert(node, stack=()):
+    def convert(node):
         if not isinstance(node, dict):
             return node  # Boolean schemas and scalar keyword values.
         while "$ref" in node:
             ref = node["$ref"]
             target = resolve(ref)
-            if ref in recursive_refs and any(parent in recursive_refs for parent in stack):
+            name = ref.rsplit("/", 1)[-1]
+            if ref in seen_refs:
                 result = {"type": target["type"]} if "type" in target else {}
-                describe(
-                    result, "Recursive value following " + json.dumps(target, separators=(",", ":"))
-                )
-                # A reference's siblings still apply at a recursive boundary.
-                siblings = convert({k: v for k, v in node.items() if k != "$ref"}, stack)
+                describe(result, f"Use the {name} definition.")
+                siblings = convert({k: v for k, v in node.items() if k != "$ref"})
                 describe(result, siblings.pop("description", ""))
                 result.update(siblings)
                 return result
+            seen_refs.add(ref)
             node = target | {k: v for k, v in node.items() if k != "$ref"}
-            stack = (*stack, ref)
+            node = node | {"description": f"{name} definition. " + node.get("description", "")}
         result, notes = {}, []
         for key, value in node.items():
             if key in ("$schema", "$defs", "definitions", "title", "$id"):
                 continue
             if key in ("properties", "patternProperties"):
-                value = {name: convert(child, stack) for name, child in value.items()}
+                value = {name: convert(child) for name, child in value.items()}
             elif key in ("items", "additionalProperties", "not"):
-                value = convert(value, stack)
+                value = convert(value)
             elif key in ("anyOf", "oneOf", "allOf", "prefixItems"):
-                value = [convert(child, stack) for child in value]
+                value = [convert(child) for child in value]
             if key == "const":
                 result["enum"] = [value]
                 if "type" not in node:
