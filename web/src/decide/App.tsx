@@ -559,7 +559,12 @@ export function DesignedApp({
     const controller = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;
     setVocabState({ kind: "loading" });
-    prepareVisit().then(() => {
+    prepareVisit().catch(() => {
+      throw new VocabularyError(
+        "Human verification did not complete, so the catalogue vocabulary was not requested.",
+        "network",
+      );
+    }).then(() => {
       controller.signal.throwIfAborted();
       timer = VISIT_GATE_ENABLED ? undefined : setTimeout(() => controller.abort(), 20_000);
       return loadVocabulary(controller.signal);

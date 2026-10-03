@@ -167,3 +167,19 @@ it("answers initial load and facet changes automatically with one verification a
   expect(screen.queryByRole("button", { name: "Look up this decision" })).toBeNull();
   expect(document.querySelector("#facet-board-answer .visit-gate")).not.toBeNull();
 }, 10_000);
+
+it("names a failed visit check as the reason the vocabulary was not requested", async () => {
+  vi.stubEnv("VITE_TURNSTILE_SITE_KEY", "");
+  const requested: string[] = [];
+  vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+    requested.push(url);
+    if (url.endsWith("human-status")) return json({ enabled: true, mode: "visit", day_limit: 300, burst_limit: 30 });
+    throw new Error(`Unexpected request ${url}`);
+  }));
+  const { default: App } = await import("../App");
+  render(<App />);
+  const alert = await screen.findByText(/Couldn't load what the snapshot can answer/);
+  expect(alert.closest("[role=alert]")).toHaveTextContent("Human verification did not complete, so the catalogue vocabulary was not requested.");
+  expect(screen.queryByText(/did not load in time/)).toBeNull();
+  expect(requested.filter((url) => !url.endsWith("human-status"))).toEqual([]);
+});
