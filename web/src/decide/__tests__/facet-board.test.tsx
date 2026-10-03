@@ -249,6 +249,30 @@ describe("facet state mapping", () => {
     expect(weights({ "offering.price.input": { mode: "prefer", weight: 0.5 } }))
       .toEqual({ "-offering.price.input": 0.5 });
   });
+  // A cached or trimmed vocabulary from before MODEL-297 has no `better`.
+  it("still minimises prices, cost and TTFT when the vocabulary omits better", () => {
+    const legacy: Vocabulary = {
+      ...realVocabulary,
+      facets: realVocabulary.facets.map(({ better: _better, ...facet }) => facet),
+    };
+    const lower = [
+      "offering.price.input", "offering.price.output", "offering.price.cached_input",
+      "offering.price.batch_input", "offering.price.batch_output",
+      "offering.cost_per_task", "offering.speed.time_to_first_token",
+    ];
+    for (const id of lower) {
+      const facet = legacy.facets.find((row) => row.id === id);
+      if (!facet) throw new Error(`${id} missing from the vocabulary fixture`);
+      expect(facet.better).toBeUndefined();
+      expect(allocateBoardWeights(legacy, { [id]: { mode: "prefer", weight: 0.5 } }).weights, id)
+        .toEqual({ [`-${id}`]: 0.5 });
+      expect(defaultFacetOp(facet), id).toBe("<=");
+    }
+    const context = legacy.facets.find((row) => row.id === "model.context_window")!;
+    expect(allocateBoardWeights(legacy, { [context.id]: { mode: "prefer", weight: 0.5 } }).weights)
+      .toEqual({ [context.id]: 0.5 });
+    expect(defaultFacetOp(context)).toBe(">=");
+  });
   it("only enables weights the engine supports", () => {
     expect(supportsPreference(smallVocabulary.facets.find((facet) => facet.id === "offering.cost_per_task")!)).toBe(true);
     expect(supportsPreference(smallVocabulary.facets.find((facet) => facet.id === "model.input_modalities")!)).toBe(false);

@@ -250,12 +250,23 @@ export type Vocabulary = z.infer<typeof vocabularySchema>;
 export type VocabFacet = Vocabulary["facets"][number];
 
 /**
+ * Legacy fallback for a vocabulary without `better`: one cached, or trimmed by
+ * a Worker, from before MODEL-297. This is the guess the page made before the
+ * registry declared a direction. Never consulted when `better` is present.
+ */
+const LEGACY_LOWER_IS_BETTER = ["cost", "price", "time_to_first_token", "retention"];
+
+/**
  * True when less of this facet is better (prices, cost, time to first token,
  * retention), read from the registry's `better` (MODEL-297). Prefer minimises
- * such a facet and a Must defaults to `<=`; the page never guesses from the ID.
+ * such a facet and a Must defaults to `<=`.
  */
-export const lowerIsBetter = (facet: Pick<VocabFacet, "better">): boolean =>
-  facet.better === "lower";
+export const lowerIsBetter = (
+  facet: Pick<VocabFacet, "id" | "value_type" | "better">,
+): boolean =>
+  facet.value_type === "number" && (facet.better !== undefined
+    ? facet.better === "lower"
+    : LEGACY_LOWER_IS_BETTER.some((part) => facet.id.includes(part)));
 export type VocabBenchmark = Vocabulary["benchmarks"][number];
 export type VocabRefinement = NonNullable<Vocabulary["refinements"]>[number];
 export type Coverage = NonNullable<Vocabulary["coverage"]>;

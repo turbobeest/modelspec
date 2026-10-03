@@ -71,10 +71,13 @@ versions do not change.
 
 Number facet rows also carry `better`: `higher`, `lower`, or `neither` (no
 inherent direction, such as a parameter count), read from the facet registry
-(MODEL-297). To prefer less of a `lower` facet, weight its ID with a leading
+(MODEL-297). The same field is kept in the Worker's `GET /v1/vocabulary`
+display bundle and in the compact facet rows that the Worker lookup and MCP
+`vocab` return. To prefer less of a `lower` facet, weight its ID with a leading
 `-`, as in `-offering.price.input`. This is a new optional field on number rows
-only; older cached vocabularies omit it, and no existing field's range widens,
-so the vocabulary and CLI envelope versions do not change.
+only. Older cached vocabularies, and a Worker deployed before this change, omit
+it; no existing field's range widens, so the vocabulary and CLI envelope
+versions do not change.
 
 `modelspec decide SPEC.yaml --check` loads the cached decision snapshot, parses
 the spec with decide's registry, and runs decide's resolve stage. It stops before

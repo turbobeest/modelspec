@@ -465,6 +465,12 @@ model/plan IDs and display names. Model names come from non-retired current mode
 archived private models are omitted because the page does not need them to draw.
 Plan rows contain only `id`, `provider` and `name`. They contain no price,
 allowance, surface coverage, facet value count or model count.
+Facet rows carry the registry's per-facet metadata: `id`, `label`,
+`definition`, `subject`, `value_type`, `unit`, `unit_definition`, `operators`,
+`objective`, `preference`, `better`, `risk`, `computed_by` and `literals`.
+`better` (MODEL-297) is `higher`, `lower` or `neither` on a number facet and
+absent on every other kind. It says which way is better for the facet as a
+whole, from `registry/facets.yaml`, so it is metadata and not a per-model fact.
 The allowed aggregate fields are template `available` booleans, per-facet
 `has_data` booleans, per-enum-value `has_data` booleans, refinement IDs/names
 and their static definitions and aggregate `thin` boolean, and benchmark
@@ -502,8 +508,8 @@ section. Invalid sections, detail flags or pagination bounds return 400.
 Starter ranks registered facets by the number of template specs that use each
 facet, counting once per spec and breaking ties by ID. The 40 templates use
 11 facets today, so all 11 appear; the maximum is 15. Compact facets publish
-`id`, `label`, the definition's first sentence, `value_type` and finite
-`allowed_values`, plus special `literals` where present. Models and providers
+`id`, `label`, the definition's first sentence, `value_type`, `better` on a
+number facet, and finite `allowed_values`, plus special `literals` where present. Models and providers
 publish IDs and display names only. Other row sections publish IDs and names;
 compact coverage is empty and compact estate contains provider/device IDs.
 Full display details remain inside the MODEL-247 trim. No lookup adds counts,

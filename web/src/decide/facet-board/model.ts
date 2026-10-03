@@ -414,7 +414,7 @@ export function allocateBoardWeights(
     // A leading `-` is how the engine minimises an objective (MODEL-297).
     const id = choice.weightKey ?? (facetId.startsWith("capability.")
       ? facetId.slice("capability.".length)
-      : row && lowerIsBetter(row) ? `-${facetId}`
+      : row && preference.kind === "continuous" && lowerIsBetter(row) ? `-${facetId}`
       : facetId);
     const weight = choice.weight ?? 0.5;
     if (preference.kind === "value") {
