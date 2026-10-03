@@ -40,7 +40,9 @@ def redact(text: str) -> str:
     return re.sub(
         r"\b(?:(?:sk|rk|ghp|gho|ghs|ghu|github_pat|xox[abpr]|hf|glpat|msk)[-_]"
         r"[A-Za-z0-9_-]{8,}|AIza[A-Za-z0-9_-]{8,}|ya29\.[A-Za-z0-9_.-]{10,}"
-        r"|(?:live|test)_[A-Za-z0-9]{16,}|(?:AKIA|ASIA)[0-9A-Z]{12,}|Bearer\s+\S+)",
+        # The Bearer token stops at JSON and quote delimiters so redact() over a
+        # serialized report never swallows the closing quote or comma.
+        r"|(?:live|test)_[A-Za-z0-9]{16,}|(?:AKIA|ASIA)[0-9A-Z]{12,}|Bearer\s+[^\s'\\,;\"]+)",
         "[REDACTED]",
         text,
         flags=re.I,
