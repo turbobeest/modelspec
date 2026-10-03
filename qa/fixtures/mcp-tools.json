@@ -3,7 +3,7 @@
     "mcp/src/server.ts": "65252445d412981bb35138951fb0b184be5be4ae4c9ac82382bdeec360f0cf13",
     "mcp/src/vocabulary.ts": "44b35f6885f2c91597dd3f2bf29bb41634be7983dbf14a6d44ea15abb0e85a24",
     "docs/decision-contract.schema.json": "7eb46eba3bac98879ea084920c15b619b520e176075ca2b5a96028b16d22072e",
-    "api/worker/openapi.yaml": "d115beda380fd2da1d0816109f49115c2fc9c763fd3ceceeaedf4d05b4b9d447",
+    "api/worker/openapi.yaml": "5244503f3be0aa47aff5e5f0b478e2218f85b546664d2cfec52864af74ba1462",
     "docs/agents.md": "ced50dd2452464cbda2c5d03114373018f88f7f268ca66daae90c367f6a8fa06",
     "mcp/src/agent-copy.json": "d3649b81bba8b39e3b908e6da9d5d1b01688f1ac0e2d30ba797c244c2d98bf1a"
   },
