@@ -294,6 +294,87 @@ def test_invalid_specs_name_every_contract_issue(service, snapshot) -> None:
     assert body["error"]["issues"][0]["path"] == "unknown"
 
 
+REJECTION_CLASSES = [
+    pytest.param({"task": "Choose a model for a support bot"}, "$.task",
+                 "structured facets", id="free-text-task"),
+    pytest.param({"where": ["model.fits_hardware in [device]"]}, "$.where[0]",
+                 "array of registered string values", id="text-set-syntax"),
+    pytest.param({"where": {}}, "$.where", "an array", id="wrong-field-shape"),
+    pytest.param({"optimize": {"weights": {
+        "offering.data.trains_on_customer_data": {"prefer": "false", "weight": 1}}}},
+        '$.optimize.weights["offering.data.trains_on_customer_data"].prefer',
+        "JSON boolean", id="wrong-value-kind"),
+    pytest.param({"where": ["model.context_windo >= 1"]}, "$.where[0]",
+                 "valid facet ID", id="unknown-facet-id"),
+    pytest.param({"optimize": {"weights": {"model.weights_openness": 1}}},
+                 '$.optimize.weights["model.weights_openness"]',
+                 "preference object", id="missing-preferred-value"),
+    pytest.param({"optimize": {"max": "model.weights_openness"}}, "$.optimize.max",
+                 "preference object", id="unordered-objective"),
+    pytest.param({"unrecognized": True}, "$.unrecognized",
+                 "Spec fields", id="unknown-field"),
+]
+
+
+@pytest.mark.parametrize("invalid,path,shape", REJECTION_CLASSES)
+def test_rejections_include_registry_backed_recovery(service, snapshot, invalid, path, shape):
+    status, body = service.decide(_payload() | invalid, snapshot)
+    assert status == 400
+    assert body["contract_version"] == "2.11"
+    assert body["endpoint"] == "decide"
+    assert body["snapshot"] == snapshot.snapshot_id
+    assert body["error"]["code"] == "invalid_spec"
+    assert body["error"]["message"] == "the request body is not a valid decision spec"
+    [hint] = body["error"]["recovery"]
+    assert hint["path"] == path
+    assert shape in hint["accepted_shape"]
+    assert hint["example"]["spec_version"] == 1
+    if path == "$.task":
+        assert "decide takes structured facets only" in hint["guidance"]
+        assert "vocab section=starter" in hint["guidance"]
+        assert "task" not in hint["example"]
+    if "context_windo" in str(invalid):
+        assert hint["nearest_facet_ids"][0] == "model.context_window"
+        assert 1 <= len(hint["nearest_facet_ids"]) <= 3
+        for facet_id in hint["nearest_facet_ids"]:
+            default_registry().facet(facet_id)
+
+
+@pytest.mark.parametrize("invalid,path,shape", REJECTION_CLASSES)
+def test_every_recovery_example_parses(service, snapshot, invalid, path, shape):
+    from decision.contract import parse_spec
+
+    _, body = service.decide(_payload() | invalid, snapshot)
+    for hint in body["error"]["recovery"]:
+        parse_spec(hint["example"], facets=service._facets(snapshot))
+
+
+def test_recovery_uses_registry_values_and_preserves_all_issues(service, snapshot):
+    from decision.contract import SpecError, parse_spec
+    from dataclasses import asdict
+
+    payload = _payload() | {"task": "Some task", "where": ["no_such_facet = true"]}
+    with pytest.raises(SpecError) as caught:
+        parse_spec(payload, facets=service._facets(snapshot))
+    _, body = service.decide(payload, snapshot)
+    assert body["error"]["issues"] == [asdict(i) for i in caught.value.issues]
+    assert len(body["error"]["recovery"]) == len(caught.value.issues)
+    assert body["error"]["recovery"][0]["nearest_facet_ids"] == []
+
+    _, body = service.decide(_payload() | {"optimize": {
+        "weights": {"model.weights_openness": 1}}}, snapshot)
+    example = body["error"]["recovery"][0]["example"]
+    info = default_registry().facet("model.weights_openness")
+    assert example["optimize"]["weights"][info.id]["prefer"] in info.preference_values
+    assert "where" not in example  # A preference must not become an exclusion.
+
+
+def test_recovery_path_preserves_a_signed_weight_key(service, snapshot):
+    _, body = service.decide(_payload() | {"optimize": {
+        "weights": {"-model.weights_openness": 1}}}, snapshot)
+    assert body["error"]["recovery"][0]["path"] == '$.optimize.weights["-model.weights_openness"]'
+
+
 def test_unknown_preference_facet_is_a_clean_bad_request(service, snapshot) -> None:
     payload = _payload() | {
         "optimize": {
