@@ -2226,6 +2226,9 @@ def _decision_schemas() -> dict[str, Any]:
             "description": "Number of issues without a recovery hint, including examples that failed validation.",
         },
     })
+    schemas["DecisionRequestRefused"]["properties"]["reading"] = {
+        "$ref": "#/components/schemas/DecisionReading",
+    }
     schemas["HumanGateRefused"] = refused("decide", set(human_error_codes()))
     schemas["DecisionSnapshotUnavailable"] = snapshot_unavailable("decide")
     schemas["ComparisonRequestRefused"] = refused(

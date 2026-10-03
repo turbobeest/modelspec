@@ -1021,8 +1021,8 @@
           "type": "array"
         },
         "contract_version": {
-          "const": "2.11",
-          "default": "2.11",
+          "const": "2.12",
+          "default": "2.12",
           "title": "Contract Version",
           "type": "string"
         },
@@ -1072,6 +1072,17 @@
           "minimum": 0,
           "title": "Out Of Lineup",
           "type": "integer"
+        },
+        "reading": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Reading"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "relax": {
           "items": {
@@ -3452,6 +3463,50 @@
       "title": "ProfileOffering",
       "type": "object"
     },
+    "Reading": {
+      "additionalProperties": false,
+      "description": "Reporting limits derived from a decision or its spec refusal (MODEL-284).\n\nEmpty lists are omitted. Identifiers refer to the answer, request fields,\nor estimated response fields; they never repeat a free-text task.",
+      "properties": {
+        "do_not_claim": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Do Not Claim",
+          "type": "array"
+        },
+        "estimates": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Estimates",
+          "type": "array"
+        },
+        "not_applied": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Not Applied",
+          "type": "array"
+        },
+        "omitted": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "title": "Omitted",
+          "type": "object"
+        },
+        "tied": {
+          "items": {
+            "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+            "type": "string"
+          },
+          "title": "Tied",
+          "type": "array"
+        }
+      },
+      "title": "Reading",
+      "type": "object"
+    },
     "RefinementEstimate": {
       "additionalProperties": false,
       "description": "A refinement estimate nested in its parent domain. Added in 2.4 (MODEL-190).\n\n``evidence_count`` 0 means no refinement evidence: the value is the\nparent's estimate and the interval is wider by the refinement's spread.",
@@ -4602,5 +4657,5 @@
   ],
   "description": "Generated from decision/contract.py by `python -m decision.schema`. Do not edit by hand. The prose is docs/decision-contract.md.",
   "title": "ModelSpec decision contract",
-  "x-contract-version": "2.11"
+  "x-contract-version": "2.12"
 }

@@ -121,6 +121,40 @@ leading contributions behind the top row, and how many models may qualify.
 A `no_feasible` decision prints the `relax` suggestions. `--json` is unchanged
 and stays byte-identical to the Worker's `POST /v1/decide` body.
 
+Decision contract 2.12 adds an optional `reading` block (MODEL-284). It is
+derived from the engine's answer and the requirements it used, with empty
+lists omitted. `tied` names the engine's best-band tie (`answer.members`), including
+members beyond the result limit. Present that group as a tie; a tie-breaker
+is a conditional choice. A `do_not_claim` line also names a tied
+`with_estate.answer`; report that answer as a tie among its own members.
+`estimates` names estimated fields, such as
+`model.fits_hardware` and `results.estimates`. Hardware membership is a memory
+estimate for some supported quantization, not a measured fit for a concrete
+quantization, context length, KV cache and runtime workload. `do_not_claim`
+contains short reporting prohibitions derived from these facts and the
+objective. A cost or mixed-objective rank does not establish a quality rank.
+
+An `invalid_spec` refusal may also carry `reading.not_applied`, the field IDs
+or paths rejected by validation. No decision ran for that request. The
+existing `error.issues` supplies the reasons. If an agent removes a requirement
+and retries, it must still tell the user that requirement was not applied.
+The engine cannot recover requirements absent from the retried spec, and the
+block never repeats free-text task content.
+
+On a successful response, `not_applied` also names requested capabilities for
+which the snapshot has no domain evidence. These labels do not become gates
+or proof that the requested capability was evaluated.
+
+The block is absent when there is nothing to report and is limited to 600
+UTF-8 bytes of compact JSON. If identifiers exceed that budget, `omitted`
+counts the unlisted `tied` or `not_applied` identifiers. The complete tie stays
+in `answer.members`, rejected fields in `error.issues`, and requested
+capabilities in the spec. Agents must read those complete lists before
+reporting. The updated decide page decoder ignores the block. This is an
+additive change in decision contract `2.12`; no existing field's range widens.
+Published contract `2.11` has no `reading` field. The CLI envelope and export
+versions remain unchanged.
+
 `modelspec decide SPEC.yaml --why-not MODEL_ID` answers "why not this model?"
 from the finished decision. It runs at `explain: full` internally so an
 eliminated model is known. It cannot be combined with `--check` or

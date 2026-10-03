@@ -1,6 +1,6 @@
 # The ModelSpec decision contract
 
-Contract version: **2.11**
+Contract version: **2.12**
 
 A **spec** asks for a decision. A **decision** is the engine's answer to one
 spec against one snapshot. This document is the public contract for both. The
@@ -619,9 +619,21 @@ same canonical representation it had in 1.0.
 
 ## The decision
 
+Responses may include the optional agent reporting block `reading` (MODEL-284).
+Its `tied`, `not_applied`, `estimates` and `do_not_claim` lists are derived from
+the answer, validation issues and applied objective. Empty lists are omitted;
+the block is absent when none applies. `omitted` counts identifiers removed
+to stay within 600 UTF-8 bytes of compact JSON; the complete tie remains in
+`answer.members`, and rejected fields remain in `error.issues`. This is additive
+in contract 2.12. Published contract 2.11 has no `reading` field.
+See [the reading rules](cli-contract.md) for reporting ties, rejected
+requirements and hardware estimates. The `tied` list names the engine's
+best-band tie (`answer.members`). A `do_not_claim` line also names a tied
+`with_estate.answer`. It changes no ranking; the updated page decoder ignores it.
+
 ```json decision
 {
-  "contract_version": "2.11",
+  "contract_version": "2.12",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
   "signature_verified": true,
@@ -764,7 +776,7 @@ same canonical representation it had in 1.0.
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"2.11"`. |
+| `contract_version` | `"2.12"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
 | `signature_verified` | `true` when this process verified either the pinned Ed25519 signature or the private Worker HMAC. |
@@ -787,6 +799,7 @@ same canonical representation it had in 1.0.
 | `warnings` | Codes about the decision as a whole. |
 | `out_of_lineup` | How many active catalogue models the snapshot leaves outside its lineup, and so outside this decision. `0` when the snapshot was built without a premier list. |
 | `feedback` | Where to say whether this answer held up: send the `method` (`POST`) to the `endpoint`, with a body that follows `request_schema` and a rating from `ratings` (`reliable`, `unreliable`, `trustworthy`, `untrustworthy`, `confusing`) and this `decision_id`, or run the `cli` line. No key. The same on every decision. See [`feedback-api.md`](feedback-api.md). Added in 2.10. |
+| `reading` | Optional reporting limits: `tied` names the engine's best-band tie (`answer.members`), `not_applied` names requirements not applied, `estimates` names estimated fields, and `do_not_claim` lists claims to avoid, including a tied `with_estate.answer`. `omitted` counts identifiers removed to meet the 600-byte compact UTF-8 limit. Added in 2.12. |
 
 **`status`:**
 
@@ -1301,6 +1314,15 @@ that used to be accepted is a major change; accepting more is not.
 
 ## Change log
 
+- **2.12 — MODEL-284:** A decision adds optional `reading` guidance derived
+  from the engine's answers, unapplied requirements, estimates and objective.
+  Refusals may also carry guidance for rejected fields. Empty lists are
+  omitted and the block is capped at 600 UTF-8 bytes with explicit omission
+  counts. Additive: no existing field changes. An `invalid_spec` refusal
+  carries both `error.recovery` (at most five registry-backed hints, with
+  `error.recovery_omitted` counting the issues left without one) and the
+  top-level `reading`. `error.recovery` (MODEL-285, #547/#551) first shipped
+  under 2.11 without a version bump; 2.12 records it here.
 - **2.11 — MODEL-228:** A comparison takes `facet >= best(m)`, compact `best(1.0)` or YAML
   `value: { best: 1.0 }`: within `m` of the highest value among the models that
   pass every other hard condition. Such a condition runs after the others and

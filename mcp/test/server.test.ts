@@ -463,7 +463,7 @@ describe("modelspec MCP worker", () => {
   ])("decide forwards malformed input for Worker recovery: %j", async (invalid) => {
     const arguments_ = { spec_version: 1, optimize: { max: "model.context_window" }, ...invalid };
     const originBody = {
-      contract_version: "2.11", endpoint: "decide", snapshot: "snap_test",
+      contract_version: "2.12", endpoint: "decide", snapshot: "snap_test",
       error: {
         code: "invalid_spec", message: "the request body is not a valid decision spec",
         issues: [{ path: Object.keys(invalid)[0], reason: "wrong shape" }],

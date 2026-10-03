@@ -14,6 +14,7 @@ from decision import contract
 from decision.compare import compare as compare_decisions
 from decision.engine import decide as run_decision
 from decision.registry import facet
+from decision.reading import for_refusal
 from decision.recovery import recovery_hints
 from decision.snapshot import SnapshotIntegrityError, load_snapshot_bytes, verify_hmac_signature
 
@@ -300,6 +301,7 @@ def error_response(
     issues: list[dict[str, Any]] | None = None,
     recovery: list[dict[str, Any]] | None = None,
     endpoint: str = "decide",
+    reading: contract.Reading | None = None,
 ) -> tuple[int, dict[str, Any]]:
     error: dict[str, Any] = {"code": code, "message": message}
     if issues is not None:
@@ -307,12 +309,15 @@ def error_response(
     if recovery is not None:
         error["recovery"] = recovery
         error["recovery_omitted"] = len(issues or []) - len(recovery)
-    return status, {
+    body = {
         "contract_version": contract.CONTRACT_VERSION,
         "endpoint": endpoint,
         "snapshot": snapshot_id,
         "error": error,
     }
+    if reading is not None:
+        body["reading"] = reading.model_dump(mode="json")
+    return status, body
 
 
 def no_snapshot(message: str, *, endpoint: str = "decide") -> tuple[int, dict[str, Any]]:
@@ -362,6 +367,7 @@ def decide(payload: Any, snapshot, *,
             issues=_issues(exc),
             recovery=recovery_hints(exc.issues, facets=facets,
                                     benchmark_ids=tuple(snapshot.benchmark_ids()), payload=payload),
+            reading=for_refusal(exc.issues),
         )
     if spec.snapshot not in ("latest", snapshot.snapshot_id):
         return error_response(
@@ -381,6 +387,7 @@ def decide(payload: Any, snapshot, *,
             issues=_issues(exc),
             recovery=recovery_hints(exc.issues, facets=facets,
                                     benchmark_ids=tuple(snapshot.benchmark_ids()), payload=payload),
+            reading=for_refusal(exc.issues),
         )
     return HTTP_OK, decision.model_dump(mode="json")
 

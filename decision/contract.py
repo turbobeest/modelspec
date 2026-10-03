@@ -42,7 +42,7 @@ from pydantic import (
 )
 from pydantic.fields import FieldInfo
 
-CONTRACT_VERSION = "2.11"
+CONTRACT_VERSION = "2.12"
 
 # ── identifiers ────────────────────────────────────────────────────────────
 
@@ -1818,6 +1818,20 @@ class FeedbackPointer(_Strict):
     cli: Literal["modelspec feedback <decision_id> --rating <rating>"] = FEEDBACK_CLI
 
 
+class Reading(_ExcludeIf):
+    """Reporting limits derived from a decision or its spec refusal (MODEL-284).
+
+    Empty lists are omitted. Identifiers refer to the answer, request fields,
+    or estimated response fields; they never repeat a free-text task.
+    """
+
+    tied: list[ModelId] = Field(default_factory=list, exclude_if=lambda value: not value)
+    not_applied: list[str] = Field(default_factory=list, exclude_if=lambda value: not value)
+    estimates: list[str] = Field(default_factory=list, exclude_if=lambda value: not value)
+    do_not_claim: list[str] = Field(default_factory=list, exclude_if=lambda value: not value)
+    omitted: dict[str, int] = Field(default_factory=dict, exclude_if=lambda value: not value)
+
+
 class Decision(_ExcludeIf):
     """The engine's answer to one spec against one snapshot."""
 
@@ -1831,7 +1845,7 @@ class Decision(_ExcludeIf):
         default=None,
         exclude_if=lambda value: value is None,
     )
-    contract_version: Literal["2.11"] = CONTRACT_VERSION
+    contract_version: Literal["2.12"] = CONTRACT_VERSION
     decision_id: DecisionId
     snapshot: SnapshotId
     #: Whether this process verified a publisher signature. Added in 1.10.
@@ -1868,6 +1882,8 @@ class Decision(_ExcludeIf):
     with_estate: WithEstate | None = Field(default=None, exclude_if=lambda value: value is None)
     #: Where to report whether this answer held up. Added in 2.10 (MODEL-221).
     feedback: FeedbackPointer = Field(default_factory=FeedbackPointer)
+    #: Optional reporting limits. Added in 2.12 (MODEL-284).
+    reading: Reading | None = Field(default=None, exclude_if=lambda value: value is None)
 
     @model_validator(mode="after")
     def _status_agrees(self) -> Decision:
@@ -1896,7 +1912,7 @@ CONTRACT_TYPES: tuple[type[BaseModel], ...] = (
     ModelEliminationGroup, ConstraintCost, TippingPoint, ModelRow, ModelOffering,
     NearMiss, ShownFact, CandidateValues, NumberOrigin, CitedSource, Relaxation,
     Estate, EstateHold, EstateMark, EstateResult, EstateGap, GainItem, WithEstate,
-    Access, PlanPrice, PlanCoverage, PlanAllowance, PlanRoute, FeedbackPointer,
+    Access, PlanPrice, PlanCoverage, PlanAllowance, PlanRoute, FeedbackPointer, Reading,
 )
 
 

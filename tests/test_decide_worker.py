@@ -21,6 +21,7 @@ WORKER_SRC = WORKER_ROOT / "src"
 sys.path.insert(0, str(REPO_ROOT))
 
 from cli.modelspec import cli as cli_mod  # noqa: E402
+from decision.contract import CONTRACT_VERSION  # noqa: E402
 from decision.excluded import excluded_sources  # noqa: E402
 from decision.registry import default as default_registry  # noqa: E402
 from decision.snapshot import (  # noqa: E402
@@ -320,7 +321,7 @@ REJECTION_CLASSES = [
 def test_rejections_include_registry_backed_recovery(service, snapshot, invalid, path, shape):
     status, body = service.decide(_payload() | invalid, snapshot)
     assert status == 400
-    assert body["contract_version"] == "2.11"
+    assert body["contract_version"] == CONTRACT_VERSION
     assert body["endpoint"] == "decide"
     assert body["snapshot"] == snapshot.snapshot_id
     assert body["error"]["code"] == "invalid_spec"
@@ -405,6 +406,24 @@ def test_recovery_work_and_size_are_bounded_for_2000_unknown_facets(
     assert error["recovery_omitted"] == 1995
     assert [hint["path"] for hint in error["recovery"]] == [f"where[{i}]" for i in range(5)]
     assert len(json.dumps(error["recovery"]).encode()) < 8 * 1024
+
+
+def test_one_invalid_spec_refusal_carries_bounded_recovery_and_reading(service, snapshot):
+    payload = _payload() | {"where": [{"known": f"bad_{i}"} for i in range(7)]}
+    status, body = service.decide(payload, snapshot)
+    assert status == 400
+    assert body["contract_version"] == CONTRACT_VERSION
+    error = body["error"]
+    assert error["code"] == "invalid_spec"
+    assert len(error["issues"]) == 7
+    assert [hint["path"] for hint in error["recovery"]] == [f"where[{i}]" for i in range(5)]
+    assert error["recovery_omitted"] == 2
+    assert "reading" not in error
+    reading = body["reading"]
+    assert reading["not_applied"] == [f"bad_{i}" for i in range(7)]
+    assert reading["do_not_claim"] == [
+        "Do not claim rejected requirements were checked, including after retry."]
+    assert len(json.dumps(reading, separators=(",", ":")).encode()) <= 600
 
 
 @pytest.mark.parametrize("length,searches", [(64, 1), (65, 0), (2000, 0)])
@@ -557,7 +576,7 @@ def test_a_refinement_weight_the_snapshot_cannot_rank_is_an_invalid_spec(
     status, body = service.decide(payload, snapshot)
 
     assert status == 400
-    assert body["contract_version"] == "2.11"
+    assert body["contract_version"] == CONTRACT_VERSION
     assert body["error"]["code"] == "invalid_spec"
     [issue] = body["error"]["issues"]
     assert issue["field"] == "software_engineering/python"
