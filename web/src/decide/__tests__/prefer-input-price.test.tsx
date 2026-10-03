@@ -58,7 +58,8 @@ it("keeps the page and the Why panel up after Prefer on Input price", async () =
   fireEvent.click(within(inputPrice).getByLabelText("Prefer"));
 
   await waitFor(() =>
-    expect(sentSpecs(fetch).some((body) => "offering.price.input" in body.optimize.weights)).toBe(true),
+    // MODEL-297: lower is better, so Prefer minimises input price.
+    expect(sentSpecs(fetch).some((body) => "-offering.price.input" in body.optimize.weights)).toBe(true),
   );
   const why = await screen.findByRole("region", { name: "Why this model" });
   expect(within(why).getByRole("heading", { level: 2 })).toHaveTextContent("Claude Fable 5.1");
