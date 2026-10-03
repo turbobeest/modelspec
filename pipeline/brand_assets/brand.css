@@ -18,6 +18,8 @@
   --ink2: #e1dfdd;
   --muted: #a9b4c8;
   --accentText: #5aa9ec;
+  /* landing.css's own a:hover colour, kept on navy. */
+  --linkHover: #8cc4f2;
   --nav: #b9c4d6;
 }
 :root[data-theme="light"] {
@@ -31,6 +33,8 @@
   --ink2: #323130;
   --muted: #605e5c;
   --accentText: #006bbd;
+  /* landing.css's #8cc4f2 hover is about 1.8:1 on this ground. */
+  --linkHover: var(--ink2);
   --nav: #323130;
 }
 body {
@@ -39,6 +43,13 @@ body {
 }
 a {
   color: var(--accentText);
+}
+a:hover {
+  color: var(--linkHover);
+}
+/* landing.css draws a --yellow ring, which is for navy: about 1.5:1 on light. */
+:root[data-theme="light"] :is(a, button, select):focus-visible {
+  outline-color: var(--accentText);
 }
 code {
   font-family: "JetBrains Mono", ui-monospace, monospace;

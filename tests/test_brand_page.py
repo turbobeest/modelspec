@@ -72,7 +72,8 @@ def test_the_name_and_the_operator_with_its_ampersand(page: str) -> None:
     assert "operated by Sparks & Sawdust LLC" in text
     assert "Sparks &amp; Sawdust LLC" in page
     assert "Sparks and Sawdust" not in text
-    assert "<b>ModelSpec</b>: one word, with a capital M and a capital S." in page
+    assert '<p class="name-rule">The name is written <b>ModelSpec</b>.</p>' in page
+    assert "capital" not in text
 
 
 def test_every_package_file_is_published_byte_for_byte(tree: Path) -> None:
@@ -239,3 +240,61 @@ def test_an_unplaced_file_in_the_package_stops_the_build(monkeypatch, tmp_path: 
     monkeypatch.setattr(brand, "PACKAGE", package)
     with pytest.raises(ValueError, match="does not place"):
         brand_page.kit()
+
+
+def test_the_copy_claims_no_more_than_its_sources(page: str) -> None:
+    text = _visible(page)
+    # The usage section quotes the README, which may say "delivered" of itself.
+    ours = _visible(re.sub(r'<section id="usage">.*?</section>', "", page, flags=re.S))
+    for overclaim in ("delivered", "every page", "one word"):
+        assert overclaim not in ours, overclaim
+    assert "served byte for byte from brand/ in this repository" in text
+    assert ('The landing page, <a href="/method/">/method/</a>, <a href="/llms.txt">llms.txt</a> '
+            "and the structured data use this sentence.") in page
+    shown = len(re.findall(r'<li class="asset">', page))
+    assert f"· {shown + 1} files ·" in text
+    assert f"The {shown} files below and the package README" in text
+
+
+def test_previews_are_skipped_by_the_keyboard_and_described(page: str) -> None:
+    previews = re.findall(r'<a class="preview[^"]*" href="[^"]+" tabindex="-1"><img [^>]*alt="([^"]+)"', page)
+    assert len(previews) == len(re.findall(r'<li class="asset">', page))
+    assert not [alt for alt in previews if alt.endswith((".svg", ".png"))]
+    assert "ModelSpec X banner, PNG" in previews
+
+
+# ── contrast (WCAG 2) ────────────────────────────────────────────────────────
+
+def _luminance(hex_value: str) -> float:
+    channels = [int(hex_value.lstrip("#")[i:i + 2], 16) / 255 for i in (0, 2, 4)]
+    lin = [c / 12.92 if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4 for c in channels]
+    return 0.2126 * lin[0] + 0.7152 * lin[1] + 0.0722 * lin[2]
+
+
+def _contrast(a: str, b: str) -> float:
+    high, low = sorted((_luminance(a), _luminance(b)), reverse=True)
+    return (high + 0.05) / (low + 0.05)
+
+
+def _theme_tokens(css: str, selector: str) -> dict[str, str]:
+    block = re.search(re.escape(selector) + r"\s*\{(.*?)\}", css, re.S).group(1)
+    raw = dict(re.findall(r"(--[\w-]+):\s*([^;]+);", block))
+    resolve = lambda v: resolve(raw[v[4:-1]]) if v.startswith("var(") else v  # noqa: E731
+    return {name: resolve(value.strip()) for name, value in raw.items()}
+
+
+@pytest.mark.parametrize("theme", ["light", "dark"])
+def test_links_hover_and_focus_keep_their_contrast(theme: str) -> None:
+    css = brand_page.STYLESHEET.read_text(encoding="utf-8")
+    tokens = _theme_tokens(css, f':root[data-theme="{theme}"]')
+    assert re.search(r"a:hover\s*\{\s*color: var\(--linkHover\);", css)
+    for ground in (tokens["--bg"], tokens["--surface"]):
+        assert _contrast(tokens["--accentText"], ground) >= 4.5, theme
+        assert _contrast(tokens["--linkHover"], ground) >= 4.5, theme
+    if theme == "light":
+        assert re.search(r':root\[data-theme="light"\] :is\(a, button, select\):focus-visible'
+                         r"\s*\{\s*outline-color: var\(--accentText\);", css)
+        assert _contrast(tokens["--accentText"], tokens["--bg"]) >= 3
+    else:
+        # landing.css's yellow ring, on navy.
+        assert _contrast("#f2c94c", tokens["--bg"]) >= 3

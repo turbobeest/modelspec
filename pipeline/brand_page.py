@@ -263,6 +263,25 @@ GROUPS = (
 )
 
 
+PLATFORMS = {"x": "X", "instagram": "Instagram", "tiktok": "TikTok", "linkedin": "LinkedIn"}
+
+
+def alt_text(asset: Asset) -> str:
+    """A short description of the image, from its group and file name."""
+    stem, kind = Path(asset.rel).stem, asset.kind
+    if asset.group == "mark":
+        return ("ModelSpec mark, transparent" if stem.endswith("transparent")
+                else "ModelSpec mark on its navy tile")
+    if asset.group == "lockup":
+        return f"ModelSpec lockup, {stem.rsplit('-', 1)[-1]}"
+    if asset.group == "png":
+        return f"ModelSpec mark, {asset.size.removesuffix(' px')} px"
+    if asset.group == "card":
+        return "ModelSpec social card"
+    platform, _, part = stem.partition("-")
+    return f"ModelSpec {PLATFORMS.get(platform, platform)} {part}, {kind}"
+
+
 def _asset_card(asset: Asset) -> str:
     name = Path(asset.rel).name
     if asset.source.suffix == ".png":
@@ -272,17 +291,19 @@ def _asset_card(asset: Asset) -> str:
         dims = ""
     dark = " on-dark" if name == "modelspec-mark-transparent.svg" else ""
     small = " natural" if asset.source.suffix == ".png" and png_size(asset.source.read_bytes())[0] <= 64 else ""
-    return (f'<li class="asset"><a class="preview{dark}{small}" href="{asset.href}">'
-            f'<img src="{asset.href}" alt="{html.escape(name)}"{dims}></a>'
+    return (f'<li class="asset"><a class="preview{dark}{small}" href="{asset.href}" tabindex="-1">'
+            f'<img src="{asset.href}" alt="{html.escape(alt_text(asset))}"{dims}></a>'
             f'<div class="meta"><a class="name" href="{asset.href}" download><code>{html.escape(name)}</code></a>'
             f'<dl><dt>Format</dt><dd>{asset.kind}</dd><dt>Size</dt><dd>{asset.size}</dd>'
             f'<dt>File</dt><dd>{human_bytes(asset.byte_count)}</dd></dl></div></li>')
 
 
 def _downloads(assets: tuple[Asset, ...], zipped: int) -> str:
+    shown = sum(1 for a in assets if a.group != "readme")
     out = (f'<div class="zip"><a class="button primary" href="/{ZIP_PATH.as_posix()}" download>'
            f'Download the whole kit</a><p><code>{ZIP_NAME}</code> · {len(assets)} files · '
-           f'{human_bytes(zipped)}. The same files as below, unchanged.</p></div>')
+           f'{human_bytes(zipped)}. The {shown} files below and the package README, '
+           'unchanged.</p></div>')
     for key, title, lede in GROUPS:
         cards = "".join(_asset_card(a) for a in assets if a.group == key)
         out += (f'<section class="group" id="{key}"><h3>{title}</h3><p>{lede}</p>'
@@ -345,15 +366,16 @@ def page(assets: tuple[Asset, ...], zipped: int) -> str:
         '<main class="brand-page">'
         f'<section class="intro"><p class="eyebrow">For press and partners</p><h1>Brand and press kit</h1>'
         f'<p>The name, the mark, the colours and the words to describe {name}. Every file here is '
-        'the delivered brand package, served unchanged. Take one file, or the whole kit as one zip.</p>'
+        'served byte for byte from <code>brand/</code> in this repository. Take one file, or the '
+        'whole kit as one zip.</p>'
         f'<p class="source">Source: <a href="{SOURCE_URL}"><code>brand/</code> in the repository</a>.</p></section>'
         '<section id="name"><h2>The name</h2>'
-        f'<p class="name-rule"><b>{name}</b>: one word, with a capital M and a capital S.</p>'
+        f'<p class="name-rule">The name is written <b>{name}</b>.</p>'
         f'<p>{name} is operated by <b>{legal}</b>. Write the legal name with the ampersand.</p>'
         f'<p>{disambiguation}</p></section>'
         f'<section id="sentence"><h2>In one sentence</h2><blockquote class="entity">{sentence}</blockquote>'
-        '<p>Quote it as written. It is the sentence every page, the agent files and the '
-        'structured data use.</p></section>'
+        '<p>Quote it as written. The landing page, <a href="/method/">/method/</a>, '
+        '<a href="/llms.txt">llms.txt</a> and the structured data use this sentence.</p></section>'
         f'<section id="boilerplate"><h2>Boilerplate</h2><div class="boilerplate"><p>{boilerplate}</p></div>'
         '<p>The paragraph the site gives agents in <a href="/llms.txt">llms.txt</a>.</p></section>'
         f'<section id="downloads"><h2>Downloads</h2>{_downloads(assets, zipped)}</section>'
@@ -361,13 +383,13 @@ def page(assets: tuple[Asset, ...], zipped: int) -> str:
         'Where the site uses the same colour, its stylesheet token is named.</p>'
         f'{_palette_html(palette())}</section>'
         f'<section id="typeface"><h2>Typeface</h2>{typeface}</section>'
-        '<section id="usage"><h2>Usage</h2><p>The package README, as delivered with the files:</p>'
+        '<section id="usage"><h2>Usage</h2><p>The package README, <code>brand/2a/README.md</code>:</p>'
         f'<div class="readme">{readme_html()}</div>'
         f'<p>For the social images: {_inline(avatar_rule())}</p></section>'
         '</main>'
     )
     return (head + '<body><div class="axis" aria-hidden="true"></div>' + header + main
-            + landing_chrome.footer(detail="Every file is served byte for byte from the brand package.")
+            + landing_chrome.footer(detail="Every file is served byte for byte from brand/ in this repository.")
             + "</body></html>\n")
 
 
