@@ -149,10 +149,19 @@ ACCEPTED_ENDPOINTS = (
     "POST /v1/policy-check", "POST /v1/feedback", "DELETE /v1/feedback", "GET /v1/health",
     "POST /v1/signals", "POST /v1/signals/discovered",
     "GET /v1/signals/pending", "POST /v1/signals/ack",
-    "GET /v1/credits", "GET /v1/human-status", "POST /v1/visit-token",
+    "GET /v1/credits", "GET /v1/human-status",
     "POST /v1/billing/checkout", "POST /v1/billing/stripe-webhook",
     "GET /v1/billing/claim", "POST /v1/billing/claim", "POST /v1/billing/rotate",
 )
+
+
+
+def _accepted_endpoints(env) -> list[str]:
+    """ACCEPTED_ENDPOINTS plus the routes this deployment switches on."""
+    return [*ACCEPTED_ENDPOINTS,
+            *(["POST /v1/visit-token"] if visit_token.enabled(env) else []),
+            *(["GET /v1/vocabulary"] if globals().get("bundled_data") is not None else [])]
+
 
 #: The subset that takes a body. All refuse a wrong verb through the one
 #: `_method_not_allowed` below, and a path outside this tuple is a 404 before
@@ -577,18 +586,23 @@ def _decision_response(status: int, body: dict,
     )
 
 
-def _cors_headers(request) -> dict[str, str]:
+def _cors_headers(request, env=None) -> dict[str, str]:
     origin = str(request.headers.get("origin") or request.headers.get("Origin") or "")
     if origin not in CORS_ORIGINS:
         return {}
+    # MODEL-292: the visit credential headers exist only while its gate is on.
+    visit = visit_token.enabled(env)
     return {
         "access-control-allow-origin": origin,
         "access-control-allow-methods": "POST, OPTIONS",
         "access-control-allow-headers":
-            "authorization, content-type, x-api-key, x-payment, x-modelspec-snapshot, x-modelspec-turnstile, x-modelspec-intent, x-modelspec-visit-token",
+            "authorization, content-type, x-api-key, x-payment, x-modelspec-snapshot, x-modelspec-turnstile, x-modelspec-intent"
+            + (f", {visit_token.HEADER}" if visit else ""),
         "access-control-expose-headers": (
             "x-modelspec-snapshot, x-modelspec-snapshot-stale, "
-            "x-modelspec-decisions-remaining, x-modelspec-visit-token, x-modelspec-visit-expires, retry-after, Server-Timing"
+            "x-modelspec-decisions-remaining, "
+            + (f"{visit_token.HEADER}, {visit_token.EXPIRY_HEADER}, " if visit else "")
+            + "retry-after, Server-Timing"
         ),
         "access-control-max-age": "86400",
         "vary": "Origin",
@@ -701,7 +715,7 @@ class Default(WorkerEntrypoint):
             decider = _decide_service()
 
         if decider is not None and method == "OPTIONS":
-            headers = _cors_headers(request)
+            headers = _cors_headers(request, self.env)
             if not headers:
                 return _json_response(service.HTTP_NOT_FOUND, {
                     "contract_version": decider.contract.CONTRACT_VERSION,
@@ -712,21 +726,20 @@ class Default(WorkerEntrypoint):
                 })
             return Response("", status=204, headers=headers)
 
-        if path == "/v1/visit-token":
-            cors = _cors_headers(request)
+        # With its gate off, the route does not exist: the generic 404 below answers it.
+        if path == "/v1/visit-token" and visit_token.enabled(self.env):
+            cors = _cors_headers(request, self.env)
             if method == "OPTIONS":
                 return Response("", status=204, headers=cors)
             if method != "POST":
                 return self._method_not_allowed(service_commit, path, "POST", method)
-            if not visit_token.enabled(self.env):
-                return _json_response(404, {"error": {"code": "not_found", "message": "Visit verification is disabled."}}, cors)
             status, body = await visit_token.exchange(request, self.env, CORS_ORIGINS, _verify_turnstile)
             return _json_response(status, body, cors)
 
         if path == "/v1/vocabulary":
             if globals().get("bundled_data") is not None:
                 text = _bundled_vocabulary_text
-                cors = _cors_headers(request)
+                cors = _cors_headers(request, self.env)
                 if method == "OPTIONS":
                     return Response("", status=204, headers={**cors, "access-control-allow-methods": "GET, HEAD, OPTIONS"})
                 if method not in ("GET", "HEAD"):
@@ -812,7 +825,7 @@ class Default(WorkerEntrypoint):
                 "schema_version": service.SCHEMA_VERSION,
                 "service_commit": service_commit,
                 "error": {"code": "not_found", "message": f"no endpoint at {path}",
-                          "accepted": [*ACCEPTED_ENDPOINTS, *(["GET /v1/vocabulary"] if globals().get("bundled_data") is not None else [])]},
+                          "accepted": _accepted_endpoints(self.env)},
                 "result": [],
             })
         if method != "POST":
@@ -843,7 +856,7 @@ class Default(WorkerEntrypoint):
                     endpoint=path.rsplit("/", 1)[-1],
                 )[1]
                 return _decision_response(
-                    service.HTTP_PAYLOAD_TOO_LARGE, response, _cors_headers(request)
+                    service.HTTP_PAYLOAD_TOO_LARGE, response, _cors_headers(request, self.env)
                 )
             return _json_response(service.HTTP_PAYLOAD_TOO_LARGE, response)
 
@@ -863,7 +876,7 @@ class Default(WorkerEntrypoint):
                     snapshot_id=None,
                     endpoint=path.rsplit("/", 1)[-1],
                 )
-                return _decision_response(status, body, _cors_headers(request))
+                return _decision_response(status, body, _cors_headers(request, self.env))
             else:
                 status, body = service.error_response(
                     service.RequestError(
@@ -960,11 +973,11 @@ class Default(WorkerEntrypoint):
             if status == 200:
                 status, body = await _anonymous()
                 return _decision_response(status, body, {
-                    **gate_headers, **_decision_holder(origin).headers(), **_cors_headers(request),
+                    **gate_headers, **_decision_holder(origin).headers(), **_cors_headers(request, self.env),
                 }, decision_transport)
             if not (code == "visit_token_invalid" and not access.enforcement(getattr(self.env, ACCESS_ENFORCED_VAR, None))):
                 return _json_response(status, {**envelope, "error": {"code": code, "message": message}},
-                                      {**gate_headers, **_cors_headers(request)})
+                                      {**gate_headers, **_cors_headers(request, self.env)})
 
         if path == "/v1/decide" and api_key is None and human_gate.enabled(self.env) and not visit_token.enabled(self.env):
             site_origin = str(request.headers.get("origin") or "") in CORS_ORIGINS
@@ -980,10 +993,10 @@ class Default(WorkerEntrypoint):
                         "endpoint": "decide",
                         "snapshot": None,
                         "error": {"code": code, "message": message},
-                    }, {**gate_headers, **_cors_headers(request)})
+                    }, {**gate_headers, **_cors_headers(request, self.env)})
                 return _decision_response(status, body, {
                     **gate_headers, **_decision_holder(origin).headers(),
-                    **_cors_headers(request),
+                    **_cors_headers(request, self.env),
                 }, decision_transport)
 
         # MODEL-75. One wrap around the live/anonymous producers: x402 verify
@@ -1024,7 +1037,7 @@ class Default(WorkerEntrypoint):
                 headers["retry-after"] = str(decider.RETRY_AFTER_SECONDS)
             return _decision_response(
                 outcome.status, outcome.body,
-                {**headers, **_decision_holder(origin).headers(), **_cors_headers(request)},
+                {**headers, **_decision_holder(origin).headers(), **_cors_headers(request, self.env)},
                 decision_transport,
             )
         return _json_response(outcome.status, outcome.body, headers)
@@ -1136,7 +1149,7 @@ class Default(WorkerEntrypoint):
         return _json_response(outcome.status, outcome.body)
 
     async def _human_status(self, request, method):
-        cors = _cors_headers(request)
+        cors = _cors_headers(request, self.env)
         if not cors:
             return _json_response(403, {"enabled": human_gate.enabled(self.env)})
         if method == "OPTIONS":
@@ -1264,7 +1277,7 @@ class Default(WorkerEntrypoint):
                 "schema_version": service.SCHEMA_VERSION,
                 "service_commit": service_commit,
                 "error": {"code": "not_found", "message": f"no endpoint at {path}",
-                          "accepted": [*ACCEPTED_ENDPOINTS, *(["GET /v1/vocabulary"] if globals().get("bundled_data") is not None else [])]},
+                          "accepted": _accepted_endpoints(self.env)},
                 "result": [],
             })
 

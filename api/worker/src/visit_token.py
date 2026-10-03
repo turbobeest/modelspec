@@ -15,6 +15,9 @@ HEADER = "x-modelspec-visit-token"
 EXPIRY_HEADER = "x-modelspec-visit-expires"
 SECRET_VAR = "VISIT_TOKEN_HMAC_KEY"
 LIFETIME_SECONDS = 30 * 60
+#: Sliding renewal never carries a chain past this, counted from the Turnstile
+#: exchange that started it. The visitor then passes Turnstile again.
+MAX_CHAIN_SECONDS = 4 * 60 * 60
 REFUSALS = {"visit_token_invalid": 401, "visit_token_expired": 401}
 
 
@@ -38,10 +41,12 @@ def secret_for(env):
     return secret.encode("utf-8")
 
 
-def issue(identity, origin, secret, now=None):
+def issue(identity, origin, secret, now=None, original=None):
+    """Sign a credential. `original` is the chain's first issue; a renewal passes it on."""
     issued = int(time.time() if now is None else now)
-    expires = issued + LIFETIME_SECONDS
-    payload = json.dumps([identity, origin, issued, expires], separators=(",", ":")).encode("utf-8")
+    original = issued if original is None else int(original)
+    expires = min(issued + LIFETIME_SECONDS, original + MAX_CHAIN_SECONDS)
+    payload = json.dumps([identity, origin, original, issued, expires], separators=(",", ":")).encode("utf-8")
     encoded = base64.urlsafe_b64encode(payload).decode("ascii").rstrip("=")
     signature = hmac.new(secret, encoded.encode("ascii"), hashlib.sha256).hexdigest()
     return encoded + "." + signature, expires
@@ -49,21 +54,28 @@ def issue(identity, origin, secret, now=None):
 
 def verify(token, identity, origin, secret, now=None):
     """Return an access error or None. Authenticate before examining expiry."""
+    return check(token, identity, origin, secret, now)[0]
+
+
+def check(token, identity, origin, secret, now=None):
+    """Return (access error or None, the chain's original issue time or None)."""
     try:
         if not token or len(token) > 2048:
-            return "visit_token_invalid"
+            return "visit_token_invalid", None
         encoded, signature = token.split(".")
         expected = hmac.new(secret, encoded.encode("ascii"), hashlib.sha256).hexdigest()
         if not hmac.compare_digest(signature, expected):
-            return "visit_token_invalid"
-        bound_id, bound_origin, issued, expires = json.loads(base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4)))
+            return "visit_token_invalid", None
+        bound_id, bound_origin, original, issued, expires = json.loads(base64.urlsafe_b64decode(encoded + "=" * (-len(encoded) % 4)))
         moment = time.time() if now is None else now
-        if bound_id != identity or bound_origin != origin or type(issued) is not int or type(expires) is not int \
-                or expires - issued != LIFETIME_SECONDS or issued > moment:
-            return "visit_token_invalid"
-        return "visit_token_expired" if moment >= expires else None
+        if bound_id != identity or bound_origin != origin \
+                or any(type(value) is not int for value in (original, issued, expires)) \
+                or not original <= issued < expires <= issued + LIFETIME_SECONDS \
+                or expires > original + MAX_CHAIN_SECONDS or issued > moment:
+            return "visit_token_invalid", None
+        return ("visit_token_expired" if moment >= expires else None), original
     except (ValueError, TypeError, UnicodeError):
-        return "visit_token_invalid"
+        return "visit_token_invalid", None
 
 
 def credential(request, env, origins):
@@ -95,14 +107,15 @@ async def exchange(request, env, origins, siteverify):
         bound = credential(request, env, origins)
         value, expires = issue(*bound)
         return 200, {"token": value, "expires_at": expires}
-    except Exception:
+    except Exception as exc:
+        human_gate.log_unavailable("visit_exchange", exc)
         return 503, {"error": {"code": "human_gate_unavailable", "message": "Human verification is temporarily unavailable."}}
 
 
 async def admit(request, env, origins, scope, payload=None):
     try:
         bound = credential(request, env, origins)
-        code = verify(str(request.headers.get(HEADER) or ""), *bound) if bound else "visit_token_invalid"
+        code, original = check(str(request.headers.get(HEADER) or ""), *bound) if bound else ("visit_token_invalid", None)
         if code:
             return 401, code, "Refresh human verification for this visit.", {}
         limits(env, scope)
@@ -116,7 +129,8 @@ async def admit(request, env, origins, scope, payload=None):
         if meter["reason"]:
             headers["retry-after"] = str(meter["retry_after"])
             return 429, human_gate.LIMIT_CODES[meter["reason"]], "Human lookup allowance reached. Wait or use the paid API or MCP.", headers
-        value, expires = issue(*bound)
+        value, expires = issue(*bound, original=original)
         return 200, "", "", {**headers, HEADER: value, EXPIRY_HEADER: str(expires)}
-    except Exception:
+    except Exception as exc:
+        human_gate.log_unavailable("visit_admit", exc)
         return 503, "human_gate_unavailable", "Human verification is temporarily unavailable.", {}

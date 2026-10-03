@@ -86,6 +86,19 @@ def take_primary(state, now, intent, question, day_limit=DAY_LIMIT, burst_limit=
     return {"remaining": remaining, "reason": reason, "retry_after": retry}
 
 
+def prune_intents(state, now):
+    """Drop admissions past their continuation window, so the visit meter's row
+    stays bounded by what one window can admit, not by the day's allowance.
+
+    A pruned ID can no longer continue for free. Reused, it spends a new
+    admission rather than being refused until tomorrow; it is never served free.
+    """
+    intents = state.get("intents")
+    if intents:
+        state["intents"] = {intent: admission for intent, admission in intents.items()
+                            if now - admission.get("first", 0) < INTENT_WINDOW_SECONDS}
+
+
 class HumanGateObject(DurableObject):
     def __init__(self, ctx, env):
         super().__init__(ctx, env)
@@ -108,6 +121,8 @@ class HumanGateObject(DurableObject):
         self.ctx.storage.sql.exec("CREATE TABLE IF NOT EXISTS human_state (k TEXT PRIMARY KEY, v TEXT)")
         row = _one_row(self.ctx.storage.sql.exec("SELECT v FROM human_state WHERE k = ?", key))
         state = json.loads(str(_cell(row, "v"))) if row is not None else {}
+        if visit:
+            prune_intents(state, now)
         question = fingerprint(spec) if intent else None
         result = continue_intent(state, now, intent, question, day_limit, burst_limit) if admitted_only else take(state, now, intent, question, day_limit, burst_limit)
         if result is None:

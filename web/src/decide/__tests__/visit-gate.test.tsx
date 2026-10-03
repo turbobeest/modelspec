@@ -3,7 +3,20 @@ import { fireEvent, render, screen, waitFor, within } from "@testing-library/rea
 import vocabulary from "../__fixtures__/vocabulary.json";
 import answer from "../__fixtures__/full-decision.json";
 
+const broken = vi.hoisted(() => ({ rankedAnswer: false }));
+vi.mock("../facet-board/RankedAnswer", async (importOriginal) => {
+  const real = await importOriginal<typeof import("../facet-board/RankedAnswer")>();
+  return {
+    ...real,
+    RankedAnswer: (props: Parameters<typeof real.RankedAnswer>[0]) => {
+      if (broken.rankedAnswer) throw new TypeError("RankedAnswer failed to render");
+      return <real.RankedAnswer {...props} />;
+    },
+  };
+});
+
 beforeEach(() => {
+  broken.rankedAnswer = false;
   vi.resetModules();
   vi.stubEnv("VITE_VISIT_GATE_ENABLED", "true");
   vi.stubEnv("VITE_TURNSTILE_SITE_KEY", "public-test-key");
@@ -183,3 +196,53 @@ it("names a failed visit check as the reason the vocabulary was not requested", 
   expect(screen.queryByText(/did not load in time/)).toBeNull();
   expect(requested.filter((url) => !url.endsWith("human-status"))).toEqual([]);
 });
+
+async function answeredVisitApp({ refuseAfter = Infinity } = {}) {
+  let renders = 0;
+  let decisions = 0;
+  window.turnstile = {
+    render: vi.fn((_container, options) => {
+      if (++renders === 1) options.callback("single-use");
+      else options["error-callback"]();
+      return "widget";
+    }),
+    remove: vi.fn(),
+  };
+  vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+    if (url.endsWith("human-status")) return json({ enabled: true, mode: "visit", day_limit: 300, burst_limit: 30 });
+    if (url.endsWith("visit-token")) return json({ token: "visit", expires_at: Math.floor(Date.now() / 1000) + 1800 });
+    if (url.endsWith("vocabulary.json")) return json(vocabulary);
+    if (url.endsWith("decide")) return ++decisions > refuseAfter ? json({ error: { code: "visit_token_expired" } }, 401) : json(answer);
+    throw new Error(`Unexpected request ${url}`);
+  }));
+  const { default: App } = await import("../App");
+  render(<App />);
+  await screen.findByLabelText("Facet board answer", {}, { timeout: 5000 });
+  const preferSoftware = () => {
+    fireEvent.click(screen.getByRole("button", { name: /What it.s good at/ }));
+    const row = document.querySelector('[data-facet="capability.software_engineering"]');
+    if (!(row instanceof HTMLElement)) throw new Error("Missing capability row");
+    fireEvent.click(within(row).getByLabelText("Prefer", { exact: true }));
+  };
+  return { preferSoftware };
+}
+
+it("shows a failed re-check as the gate's own alert in the answer column, never as a broken answer", async () => {
+  vi.spyOn(console, "error").mockImplementation(() => undefined);
+  const app = await answeredVisitApp({ refuseAfter: 3 });
+  app.preferSoftware();
+  const gateAlert = await screen.findByText("Verification is temporarily unavailable. Retry your lookup.", {}, { timeout: 5000 });
+  expect(gateAlert.closest("#facet-board-answer .visit-gate")).not.toBeNull();
+  expect(screen.queryAllByRole("alert", { name: "The answer could not be shown" })).toHaveLength(0);
+}, 10_000);
+
+it("keeps the visit gate in the answer column when the answer itself fails to draw", async () => {
+  vi.spyOn(console, "error").mockImplementation(() => undefined);
+  const app = await answeredVisitApp();
+  broken.rankedAnswer = true;
+  app.preferSoftware();
+  const failure = await screen.findByRole("alert", { name: "The answer could not be shown" }, { timeout: 5000 });
+  const column = document.getElementById("facet-board-answer");
+  expect(column).toContainElement(failure);
+  expect(within(column as HTMLElement).getByRole("region", { name: "Visit verification" })).toBeInTheDocument();
+}, 10_000);

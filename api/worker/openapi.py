@@ -1049,6 +1049,13 @@ def access_enforced() -> bool:
     return access.enforcement(found.group(1) if found else None)
 
 
+def visit_gate_enabled() -> bool:
+    """The shipped value of `VISIT_GATE_ENABLED` (MODEL-292). Off: no visit route."""
+    import re
+    found = re.search(r'"VISIT_GATE_ENABLED"\s*:\s*"([^"]*)"', _wrangler_live_lines())
+    return access.enforcement(found.group(1) if found else None)
+
+
 def billing_enabled() -> bool:
     """The shipped value of `BILLING_ENABLED`."""
     import re
@@ -2731,28 +2738,6 @@ def build_spec() -> dict[str, Any]:
                     },
                 },
             },
-            "/v1/visit-token": {
-                "post": {
-                    "operationId": "verifyVisit",
-                    "summary": "Exchange managed Turnstile verification for a visitor-and-origin-bound page credential.",
-                    "description": "Ships off behind VISIT_GATE_ENABLED. Siteverify must confirm success, the origin hostname and action decide. Uses the daily visitor HMAC id and a new VISIT_TOKEN_HMAC_KEY to sign a 30-minute sliding credential. No cookie. Keyless decide and bundled vocabulary use the visit meter; presenting an API key takes precedence.",
-                    "security": [],
-                    "x-modelspec-probe": "skip",
-                    "parameters": [{"name": "X-ModelSpec-Turnstile", "in": "header", "required": True,
-                                    "schema": {"type": "string", "minLength": 1, "maxLength": 2048}}],
-                    "responses": {
-                        "200": _json_body("Visit credential. Cache-Control: no-store.", {
-                            "type": "object", "required": ["token", "expires_at"], "additionalProperties": False,
-                            "properties": {"token": {"type": "string"}, "expires_at": {"type": "integer", "minimum": 1}},
-                        }),
-                        "401": {"description": "Origin is not a permitted page origin."},
-                        "403": {"description": "Turnstile verification failed, expired or was replayed."},
-                        "404": {"description": "Visit gate is disabled."},
-                        "405": {"description": "This endpoint takes POST."},
-                        "503": {"description": "Identity, signing secret, verifier, configuration or meter unavailable."},
-                    },
-                },
-            },
             "/v1/credits": {
                 "get": {
                     "operationId": "credits",
@@ -3213,6 +3198,29 @@ def render() -> str:
                     "429": {"description": "Vocabulary visitor cap exceeded; Retry-After names the wait"},
                     "503": {"description": "Visitor identity or counter unavailable"},
                     "502": {"description": "Bundled vocabulary unavailable"},
+                },
+            },
+        }
+    if visit_gate_enabled():
+        # Like /v1/vocabulary: described only where it is routed.
+        spec["paths"]["/v1/visit-token"] = {
+            "post": {
+                "operationId": "verifyVisit",
+                "summary": "Exchange managed Turnstile verification for a visitor-and-origin-bound page credential.",
+                "description": "Exists only with VISIT_GATE_ENABLED, which ships off; otherwise this path answers 404 like any unknown route. Siteverify must confirm success, the origin hostname and action decide. Uses the daily visitor HMAC id and a new VISIT_TOKEN_HMAC_KEY to sign a 30-minute sliding credential, renewed at most four hours from this exchange. No cookie. Keyless decide and bundled vocabulary use the visit meter; presenting an API key takes precedence.",
+                "security": [],
+                "x-modelspec-probe": "skip",
+                "parameters": [{"name": "X-ModelSpec-Turnstile", "in": "header", "required": True,
+                                "schema": {"type": "string", "minLength": 1, "maxLength": 2048}}],
+                "responses": {
+                    "200": _json_body("Visit credential. Cache-Control: no-store.", {
+                        "type": "object", "required": ["token", "expires_at"], "additionalProperties": False,
+                        "properties": {"token": {"type": "string"}, "expires_at": {"type": "integer", "minimum": 1}},
+                    }),
+                    "401": {"description": "Origin is not a permitted page origin."},
+                    "403": {"description": "Turnstile verification failed, expired or was replayed."},
+                    "405": {"description": "This endpoint takes POST."},
+                    "503": {"description": "Identity, signing secret, verifier, configuration or meter unavailable."},
                 },
             },
         }

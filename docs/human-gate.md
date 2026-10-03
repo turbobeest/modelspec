@@ -28,8 +28,15 @@ The origin must be one of `entry.CORS_ORIGINS`. The existing ten-second
 Siteverify timeout and omission of `remoteip` apply. Failed verification,
 missing identity, secret or binding never issues a credential.
 
+With `VISIT_GATE_ENABLED` off the route does not exist. `/v1/visit-token`
+answers every method, `OPTIONS` included, with the same 404 as any unknown
+path. The 404 `accepted` list, the CORS allow and expose headers on decide and
+vocabulary, and the generated OpenAPI name the route and its two headers only
+while the flag is on. `tests/test_visit_gate_off.py` replays those requests
+against responses recorded from main before this ticket.
+
 The Worker signs a base64url JSON tuple of daily visitor id, exact origin,
-issued-at and expiry using HMAC-SHA256 under the new Wrangler secret
+the chain's original issue time, issued-at and expiry using HMAC-SHA256 under the new Wrangler secret
 `VISIT_TOKEN_HMAC_KEY`, which must contain at least 32 characters. The daily id
 comes from `visitor.py` through the existing human-gate IPv6 /64 normalization.
 The token is held only in page memory, never a cookie. Application code stores
@@ -37,7 +44,16 @@ or logs neither the visit token nor the Turnstile token. It expires after a
 30-minute sliding window: each admitted decide or vocabulary request returns a
 renewed token in `X-ModelSpec-Visit-Token` and its Unix expiry in
 `X-ModelSpec-Visit-Expires`. Responses containing credentials are `no-store`.
-Daily identity rotation also invalidates yesterday's credential.
+Renewal carries the original issue time forward and never extends a chain past
+four hours from its Turnstile exchange; the page then passes Turnstile again,
+silently in most visits. Daily identity rotation also invalidates yesterday's
+credential.
+
+When admission or exchange fails closed, the Worker logs
+`human_gate_unavailable where=visit_admit` or `where=visit_exchange` with the
+exception type and its first 160 characters, never a token, key or address. A
+signing secret missing at the flip shows there as
+`visit signing secret unavailable`.
 
 A presented API key always takes the key path, even alongside a valid or
 invalid visit token. With no key, a visit token must authenticate and match
@@ -79,7 +95,10 @@ and fresh checks cannot reset the counters. Defaults are configuration in
 Jamie may tune these values in configuration. Missing or invalid configuration
 fails closed. Vocabulary uses its own allowance and does not spend a question.
 The continuation fingerprints and daily state retention remain as documented
-below, with up to the configured number of question intents per visitor-day.
+below. The visit meter keeps an admitted intent only for its 60-second
+continuation window, so its stored row is bounded by what one window can admit
+rather than by the day's allowance. A reused intent past its window spends a
+new admission; it is never served free.
 People sharing a public IPv4 address or IPv6 /64 share allowances.
 
 Before enabling production, Jamie must adopt privacy v1.9 and mark the visit

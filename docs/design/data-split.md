@@ -479,9 +479,15 @@ individual model scores, counts and per-model facts remain excluded.
 The page hides statistics absent from this response and requests current facts
 through the existing decision API. No fresh vocabulary file is published on
 modelspec.dev. With `HUMAN_GATE_ENABLED`, the same keyed visitor Durable Object
-meters vocabulary separately at 60 requests per UTC day and 10 per minute.
-Successful responses use `Cache-Control: private, max-age=3600` for browser
-session reuse. The generated OpenAPI documents this route only with `DATA_SPLIT_ENABLED=true`.
+meters vocabulary separately at 60 requests per UTC day and 10 per minute, and
+successful responses use `Cache-Control: private, max-age=3600` for browser
+session reuse. With `VISIT_GATE_ENABLED` (MODEL-292) the visit gate replaces
+that: an API key takes precedence, otherwise a valid visit token admits a page
+caller against the separate visit vocabulary allowance (`VISIT_VOCABULARY_*`,
+60 per UTC day and 10 per minute by default). Every response then carries
+`Cache-Control: no-store`, because an admitted one returns a renewed credential;
+GET, HEAD and query variants are gated alike. See
+[`docs/human-gate.md`](../human-gate.md). The generated OpenAPI documents this route only with `DATA_SPLIT_ENABLED=true`.
 The committed flag-off OpenAPI remains byte-identical to main. MCP `model_info`
 currently fetches the full trimmed vocabulary on each call and selects one
 model display row. This is acceptable for now; it does not fetch a bulk model
