@@ -1,0 +1,427 @@
+{
+  "mode": "synthetic",
+  "note": "Handwritten protocol examples. No real scenario, transcript, answer, auth, or account data is committed. Claude event keys were checked against a private non-MCP print probe; other shapes follow the vendors' published headless formats.",
+  "sources": {
+    "claude": "https://code.claude.com/docs/en/headless",
+    "codex": "https://developers.openai.com/codex/noninteractive",
+    "gemini": "https://geminicli.com/docs/cli/headless",
+    "grok": "https://docs.x.ai/build/cli/headless-scripting"
+  },
+  "samples": {
+    "claude": [
+      {
+        "type": "system",
+        "subtype": "init",
+        "model": "claude-fable-5-1",
+        "apiKeySource": "none",
+        "tools": [
+          "mcp__modelspec__vocab",
+          "mcp__modelspec__decide"
+        ],
+        "mcp_servers": [
+          {
+            "name": "modelspec",
+            "status": "connected",
+            "source": "dynamic"
+          }
+        ],
+        "skills": [],
+        "plugins": [
+          {
+            "name": "agents-md",
+            "path": "builtin",
+            "source": "agents-md@builtin"
+          }
+        ]
+      },
+      {
+        "type": "assistant",
+        "message": {
+          "id": "m1",
+          "content": [
+            {
+              "type": "tool_use",
+              "id": "v",
+              "name": "mcp__modelspec__vocab",
+              "input": {
+                "section": "starter"
+              }
+            }
+          ]
+        }
+      },
+      {
+        "type": "user",
+        "message": {
+          "content": [
+            {
+              "type": "tool_result",
+              "tool_use_id": "v",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "{\"origin\":\"https://api.modelspec.dev/v1/decide\",\"status\":200,\"body\":{\"status\":\"no_match\",\"answer\":{\"kind\":\"abstain\",\"members\":[]}}}"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "type": "assistant",
+        "message": {
+          "id": "m2",
+          "content": [
+            {
+              "type": "tool_use",
+              "id": "d",
+              "name": "mcp__modelspec__decide",
+              "input": {
+                "spec_version": 1,
+                "optimize": {
+                  "min": "offering.cost_per_task"
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "type": "user",
+        "message": {
+          "content": [
+            {
+              "type": "tool_result",
+              "tool_use_id": "d",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "{\"origin\":\"https://api.modelspec.dev/v1/decide\",\"status\":200,\"body\":{\"status\":\"no_match\",\"answer\":{\"kind\":\"abstain\",\"members\":[]}}}"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "type": "assistant",
+        "message": {
+          "id": "m3",
+          "content": [
+            {
+              "type": "text",
+              "text": "Fixture answer"
+            }
+          ]
+        }
+      },
+      {
+        "type": "result",
+        "subtype": "success",
+        "is_error": false,
+        "result": "Fixture answer",
+        "num_turns": 3,
+        "usage": {
+          "input_tokens": 10,
+          "cache_creation_input_tokens": 20,
+          "cache_read_input_tokens": 30,
+          "output_tokens": 7
+        },
+        "total_cost_usd": 0.1
+      }
+    ],
+    "codex": [
+      {
+        "type": "thread.started",
+        "thread_id": "fixture"
+      },
+      {
+        "type": "turn.started"
+      },
+      {
+        "type": "item.started",
+        "item": {
+          "type": "mcp_tool_call",
+          "id": "v",
+          "server": "modelspec",
+          "tool": "vocab",
+          "arguments": {
+            "section": "starter"
+          }
+        }
+      },
+      {
+        "type": "item.completed",
+        "item": {
+          "type": "mcp_tool_call",
+          "id": "v",
+          "server": "modelspec",
+          "tool": "vocab",
+          "arguments": {
+            "section": "starter"
+          },
+          "result": {
+            "content": [
+              {
+                "type": "text",
+                "text": "{\"origin\":\"https://api.modelspec.dev/v1/decide\",\"status\":200,\"body\":{\"status\":\"no_match\",\"answer\":{\"kind\":\"abstain\",\"members\":[]}}}"
+              }
+            ],
+            "isError": false
+          },
+          "duration_ms": 12
+        }
+      },
+      {
+        "type": "item.started",
+        "item": {
+          "type": "mcp_tool_call",
+          "id": "d",
+          "server": "modelspec",
+          "tool": "decide",
+          "arguments": {
+            "spec_version": 1,
+            "optimize": {
+              "min": "offering.cost_per_task"
+            }
+          }
+        }
+      },
+      {
+        "type": "item.completed",
+        "item": {
+          "type": "mcp_tool_call",
+          "id": "d",
+          "server": "modelspec",
+          "tool": "decide",
+          "arguments": {
+            "spec_version": 1,
+            "optimize": {
+              "min": "offering.cost_per_task"
+            }
+          },
+          "result": {
+            "content": [
+              {
+                "type": "text",
+                "text": "{\"origin\":\"https://api.modelspec.dev/v1/decide\",\"status\":200,\"body\":{\"status\":\"no_match\",\"answer\":{\"kind\":\"abstain\",\"members\":[]}}}"
+              }
+            ],
+            "isError": false
+          },
+          "duration_ms": 12
+        }
+      },
+      {
+        "type": "item.completed",
+        "item": {
+          "type": "agent_message",
+          "id": "a",
+          "text": "Fixture answer"
+        }
+      },
+      {
+        "type": "turn.completed",
+        "usage": {
+          "input_tokens": 20,
+          "cached_input_tokens": 8,
+          "output_tokens": 5
+        }
+      }
+    ],
+    "gemini": [
+      {
+        "type": "init",
+        "model": "gemini-3.8-pro"
+      },
+      {
+        "type": "message",
+        "role": "user",
+        "content": "Fixture prompt"
+      },
+      {
+        "type": "tool_use",
+        "tool_id": "v",
+        "tool_name": "vocab",
+        "parameters": {
+          "section": "starter"
+        }
+      },
+      {
+        "type": "tool_result",
+        "tool_id": "v",
+        "status": "success",
+        "output": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\"origin\":\"https://api.modelspec.dev/v1/decide\",\"status\":200,\"body\":{\"status\":\"no_match\",\"answer\":{\"kind\":\"abstain\",\"members\":[]}}}"
+            }
+          ],
+          "isError": false
+        }
+      },
+      {
+        "type": "tool_use",
+        "tool_id": "d",
+        "tool_name": "decide",
+        "parameters": {
+          "spec_version": 1,
+          "optimize": {
+            "min": "offering.cost_per_task"
+          }
+        }
+      },
+      {
+        "type": "tool_result",
+        "tool_id": "d",
+        "status": "success",
+        "output": {
+          "content": [
+            {
+              "type": "text",
+              "text": "{\"origin\":\"https://api.modelspec.dev/v1/decide\",\"status\":200,\"body\":{\"status\":\"no_match\",\"answer\":{\"kind\":\"abstain\",\"members\":[]}}}"
+            }
+          ],
+          "isError": false
+        }
+      },
+      {
+        "type": "message",
+        "role": "assistant",
+        "content": "Fixture ",
+        "delta": true
+      },
+      {
+        "type": "message",
+        "role": "assistant",
+        "content": "answer",
+        "delta": true
+      },
+      {
+        "type": "result",
+        "status": "success",
+        "stats": {
+          "models": {
+            "gemini-3.8-pro": {
+              "api": {
+                "totalRequests": 3
+              },
+              "tokens": {
+                "prompt": 30,
+                "candidates": 5,
+                "thoughts": 4,
+                "cached": 10,
+                "total": 39
+              }
+            }
+          }
+        }
+      }
+    ],
+    "grok": [
+      {
+        "type": "system",
+        "subtype": "init",
+        "model": "grok-4.7",
+        "tools": [
+          "mcp__modelspec__vocab",
+          "mcp__modelspec__decide"
+        ],
+        "mcp_servers": [
+          {
+            "name": "modelspec",
+            "status": "connected"
+          }
+        ],
+        "skills": []
+      },
+      {
+        "type": "assistant",
+        "message": {
+          "id": "m1",
+          "content": [
+            {
+              "type": "tool_use",
+              "id": "v",
+              "name": "mcp__modelspec__vocab",
+              "input": {
+                "section": "starter"
+              }
+            },
+            {
+              "type": "tool_use",
+              "id": "d",
+              "name": "mcp__modelspec__decide",
+              "input": {
+                "spec_version": 1,
+                "optimize": {
+                  "min": "offering.cost_per_task"
+                }
+              }
+            }
+          ]
+        }
+      },
+      {
+        "type": "user",
+        "message": {
+          "content": [
+            {
+              "type": "tool_result",
+              "tool_use_id": "v",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "{\"origin\":\"https://api.modelspec.dev/v1/decide\",\"status\":200,\"body\":{\"status\":\"no_match\",\"answer\":{\"kind\":\"abstain\",\"members\":[]}}}"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "type": "user",
+        "message": {
+          "content": [
+            {
+              "type": "tool_result",
+              "tool_use_id": "d",
+              "content": [
+                {
+                  "type": "text",
+                  "text": "{\"origin\":\"https://api.modelspec.dev/v1/decide\",\"status\":200,\"body\":{\"status\":\"no_match\",\"answer\":{\"kind\":\"abstain\",\"members\":[]}}}"
+                }
+              ]
+            }
+          ]
+        }
+      },
+      {
+        "type": "assistant",
+        "message": {
+          "id": "m2",
+          "content": [
+            {
+              "type": "text",
+              "text": "Fixture answer"
+            }
+          ]
+        }
+      },
+      {
+        "type": "result",
+        "subtype": "success",
+        "is_error": false,
+        "result": "Fixture answer",
+        "num_turns": 2,
+        "usage": {
+          "input_tokens": 20,
+          "cache_read_input_tokens": 2,
+          "output_tokens": 8
+        },
+        "total_cost_usd": 0.04
+      }
+    ]
+  }
+}
