@@ -27,15 +27,19 @@ origin after every deploy.
 from __future__ import annotations
 
 import argparse
+import html
 import os
+import subprocess
 import re
 import shutil
 import sys
 import urllib.error
 import urllib.request
+from datetime import date
 from pathlib import Path
 
-from pipeline import brand, landing, landing_chrome, public_data, security_headers, social_cards, structured_data
+from pipeline import (agent_ready, brand, entity, landing, landing_chrome, public_data, security_headers,
+                      social_cards, structured_data)
 
 BASE = "https://modelspec.dev"
 
@@ -85,7 +89,27 @@ REDIRECTS = "/landing/  /  301\n" + "".join(
     for rule in LEGACY
     for suffix in (("",) if rule.endswith("*") else ("", "/"))
 ) + "".join(RETIRED)
-ROBOTS = f"User-agent: *\nAllow: /\n\nSitemap: {BASE}/sitemap.xml\n"
+#: The one robots.txt (MODEL-253): agent_ready's, with the Content-Signal line.
+#: Until then this module wrote a plain copy last, and production served it.
+ROBOTS = agent_ready.robots_txt(BASE)
+REPO_ROOT = Path(__file__).resolve().parents[1]
+#: What each public page is made from, for its sitemap <lastmod>: the date of the
+#: last commit that touched any of these, not the build time. A build that
+#: changes nothing must not make every page look fresh.
+PAGE_SOURCES = {
+    "/": ("pipeline/landing.py", "pipeline/landing_chrome.py", "pipeline/entity.py", "models"),
+    "/method/": ("pipeline/method.py", "pipeline/entity.py"),
+    "/decide/": ("web/decide.html", "web/src/decide", "pipeline/live.py"),
+    "/pricing/": ("pipeline/pricing.py", "api/worker/tiers.json"),
+    "/feedback/": ("pipeline/feedback_page.py",),
+    "/brand/": ("pipeline/brand_page.py", "pipeline/brand.py", "pipeline/brand_assets", "brand"),
+    "/legal/terms/": ("docs/legal/terms-of-service.md",),
+    "/legal/privacy/": ("docs/legal/privacy.md",),
+    "/legal/neutrality/": ("docs/legal/neutrality.md",),
+}
+#: A page an answer engine can quote has a heading and real text without
+#: running any JavaScript (MODEL-253).
+MIN_WORDS = 80
 #: Appended to the v1 build's `_headers` (site/holding/_headers), which carries
 #: the discovery `Link` header and the content types of llms.txt, the Markdown
 #: twins, the api-catalog and openapi.yaml.
@@ -107,13 +131,75 @@ _HREF = re.compile(r'(?:href|src|content)="(?:' + re.escape(BASE) + r')?(/(?!/)[
 MAIN_ONLY = (*(f"/{name}" for name in social_cards.card_filenames()), "/api/decision/")
 
 
-def sitemap() -> str:
+def lastmod(path: str, root: Path = REPO_ROOT, today: date | None = None) -> str:
+    """The last commit date of the page's sources; the build date if git can't say."""
+    sources = [s for s in PAGE_SOURCES[path] if (root / s).exists()]
+    out = subprocess.run(["git", "log", "-1", "--format=%cs", "--", *sources], cwd=root,
+                         capture_output=True, text=True, check=False)
+    stamp = out.stdout.strip()
+    return stamp if out.returncode == 0 and stamp else (today or date.today()).isoformat()
+
+
+def sitemap(dates: dict[str, str] | None = None) -> str:
+    dates = dates if dates is not None else {path: lastmod(path) for path in PAGES}
     return (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-        + "".join(f"  <url><loc>{BASE}{path}</loc></url>\n" for path in PAGES)
+        + "".join(f"  <url><loc>{BASE}{path}</loc><lastmod>{dates[path]}</lastmod></url>\n"
+                  for path in PAGES)
         + "</urlset>\n"
     )
+
+
+def decide_capsule() -> str:
+    """What /decide/ says before its JavaScript runs (MODEL-253).
+
+    The board is a JavaScript app behind a human gate, so a crawler used to get
+    an empty `<div id="root">`. This is the page's own description, in the
+    page, for readers and retrievers alike; the app replaces it when it
+    mounts. It holds no model data: answers stay on the board and the API.
+    """
+    e = lambda text: html.escape(text, quote=False)  # noqa: E731
+    return (
+        '<main class="capsule"><h1>Decide which AI model fits your job</h1>'
+        f"<p>{e(entity.ONE_SENTENCE)}</p>"
+        "<p>The decision board puts every requirement in front of you. Mark each one "
+        "<b>Must</b> (a hard gate: a model that fails it is excluded, with the reason), "
+        "<b>Prefer</b> (a weight that orders the models that pass) or "
+        "<b>Doesn't matter</b>. The board then shows which models qualify, which were "
+        "screened out and why, what each costs per task, and how sure the evidence is. "
+        "When the evidence can't separate two models, it says so instead of inventing a "
+        "winner.</p>"
+        "<p>The board is free for people and rate-limited by a human check; it runs in "
+        "your browser and needs JavaScript. Agents and software use the hosted API "
+        "(<code>POST https://api.modelspec.dev/v1/decide</code>) or the MCP server with "
+        'an API key: see <a href="/pricing/">pricing</a> and <a href="/auth.md">API access</a>.</p>'
+        f"<p>{e(entity.DISAMBIGUATION)} "
+        '<a href="/method/">How ModelSpec decides</a>.</p></main>'
+    )
+
+
+_TAGS = re.compile(r"<[^>]+>")
+_INVISIBLE = re.compile(r"<(script|style|noscript|svg|template)\b.*?</\1>", re.S | re.I)
+
+
+def visible_words(page: str) -> int:
+    """Words a reader sees in the page body with JavaScript off."""
+    body = re.split(r"<body\b[^>]*>", page, maxsplit=1)[-1]
+    return len(html.unescape(_TAGS.sub(" ", _INVISIBLE.sub(" ", body))).split())
+
+
+def thin_pages(tree: Path) -> list[str]:
+    """Each sitemap page that answers a crawler with no heading or too few words."""
+    failed = []
+    for path in PAGES:
+        page = (tree / path.lstrip("/") / "index.html").read_text(encoding="utf-8")
+        words = visible_words(page)
+        if not re.search(r"<h1[\s>]", page):
+            failed.append(f"{path}: no <h1> without JavaScript")
+        if words < MIN_WORDS:
+            failed.append(f"{path}: {words} words without JavaScript; need {MIN_WORDS}")
+    return failed
 
 
 def not_found() -> str:
@@ -149,7 +235,11 @@ def build(src: Path, web: Path, out: Path) -> None:
         if (real / rel).is_file():
             shutil.copy2(real / rel, tree / rel)
     (tree / "decide").mkdir()
-    shutil.copy2(web / "decide.html", tree / "decide" / "index.html")
+    decide = (web / "decide.html").read_text(encoding="utf-8")
+    if decide.count('<div id="root"></div>') != 1:
+        raise ValueError("web/dist/decide.html must hold exactly one empty <div id=\"root\">")
+    (tree / "decide" / "index.html").write_text(
+        decide.replace('<div id="root"></div>', f'<div id="root">{decide_capsule()}</div>'), encoding="utf-8")
     (tree / "404.html").write_text(not_found(), encoding="utf-8")
     shutil.copytree(web / "assets", tree / "assets",
                     ignore=shutil.ignore_patterns("main-*"))
@@ -242,6 +332,30 @@ def smoke(origin: str, fetch=None) -> list[str]:
     return failed
 
 
+def crawler_probe(origin: str, fetch=None) -> list[str]:
+    """Each (crawler, path) the deployed `origin` refuses (MODEL-253).
+
+    A WAF rule that blocks "AI bots" as one group removes the search and fetch
+    crawlers along with training ones, and answer engines then stop citing the
+    site. This asks for every sitemap page and robots.txt as each named crawler.
+    """
+    def get(url: str, agent: str) -> int:
+        request = urllib.request.Request(url, headers={"User-Agent": f"Mozilla/5.0 (compatible; {agent}; +https://modelspec.dev)"})
+        try:
+            with urllib.request.urlopen(request, timeout=30) as response:
+                return response.status
+        except urllib.error.HTTPError as error:
+            return error.code
+        except urllib.error.URLError:
+            return 0
+
+    fetch = fetch or get
+    agents = [agent for _, group in agent_ready.CRAWLERS for agent in group]
+    return [f"{agent} {path}: {status}"
+            for agent in agents for path in ("/robots.txt", *PAGES)
+            if (status := fetch(origin.rstrip("/") + path, agent)) != 200]
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n", 1)[0])
     sub = parser.add_subparsers(dest="command", required=True)
@@ -251,7 +365,17 @@ def main(argv: list[str] | None = None) -> int:
     make.add_argument("--out", default="dist", help="output (default: dist)")
     check = sub.add_parser("smoke", help="fetch every discovery file from a deployed origin")
     check.add_argument("--origin", required=True, help="for example https://modelspec.dev")
+    probe = sub.add_parser("crawler-probe", help="fetch every page as each named AI crawler")
+    probe.add_argument("--origin", required=True, help="for example https://modelspec.dev")
     args = parser.parse_args(argv)
+
+    if args.command == "crawler-probe":
+        refused = crawler_probe(args.origin)
+        for line in refused:
+            print(f"::error::{args.origin}: {line}", file=sys.stderr)
+        if not refused:
+            print(f"{args.origin}: every named crawler gets 200 on robots.txt and every sitemap page")
+        return 1 if refused else 0
 
     if args.command == "smoke":
         failed = smoke(args.origin)
@@ -270,6 +394,12 @@ def main(argv: list[str] | None = None) -> int:
         for line in dead[:20]:
             print(f"  {line}", file=sys.stderr)
         return 2
+    thin = thin_pages(out / "modelspec")
+    if thin:
+        print("error: pages an answer engine can't read without JavaScript:", file=sys.stderr)
+        for line in thin:
+            print(f"  {line}", file=sys.stderr)
+        return 3
     count = sum(1 for p in (out / "modelspec").rglob("*") if p.is_file())
     print(f"modelspec: {count} files; discovery links resolve")
     return 0

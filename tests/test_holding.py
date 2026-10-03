@@ -47,7 +47,8 @@ def trees(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Path]:
     # The decide app is a Vite build CI makes in web/; a stand-in is enough here.
     web = out / "web"
     (web / "assets").mkdir(parents=True)
-    (web / "decide.html").write_text("<!doctype html><title>Decide</title>", encoding="utf-8")
+    (web / "decide.html").write_text(
+        '<!doctype html><title>Decide</title><body><div id="root"></div></body>', encoding="utf-8")
     (web / "assets" / "decide-x.js").write_text("", encoding="utf-8")
     (web / "assets" / "main-x.js").write_text("", encoding="utf-8")
     assert live.main(["build", "--src", str(out / "dist"), "--web", str(web),
@@ -329,6 +330,11 @@ def test_the_live_tree_publishes_agent_discovery_and_every_link_in_it_resolves(t
     assert not (ms / "graph").exists()
     assert not (ms / "llms-full.txt").exists()
     assert "/graph/*  /  301" in (ms / "_redirects").read_text(encoding="utf-8")
+    # MODEL-253: what a crawler gets from the tree production serves.
+    assert live.thin_pages(ms) == []
+    assert "Content-Signal: search=yes, ai-input=yes, ai-train=yes" in (ms / "robots.txt").read_text()
+    sitemap = (ms / "sitemap.xml").read_text(encoding="utf-8")
+    assert sitemap.count("<lastmod>") == sitemap.count("<loc>") == len(live.PAGES)
     assert 'type="text/markdown" href="/index.md"' in (ms / "index.html").read_text(encoding="utf-8")
     for page in live.PAGES:
         assert live.resolves(ms, page), page

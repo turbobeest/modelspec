@@ -105,6 +105,12 @@ jobs:
         run: test "$BROWSER_RESULT" = success
 
       - uses: actions/checkout@v4
+        with:
+          # MODEL-253: each sitemap <lastmod> is its page's last source commit
+          # (pipeline/live.py lastmod), so the build needs history. Treeless:
+          # commits and trees, no old file contents.
+          fetch-depth: 0
+          filter: blob:none
 
       - uses: actions/setup-python@v5
         with:

@@ -1,0 +1,37 @@
+name: Crawler access
+
+# MODEL-253. Weekly, every AI crawler robots.txt names (pipeline/agent_ready.py
+# CRAWLERS) must get 200 on robots.txt and on every sitemap page of
+# modelspec.dev. A WAF or bot rule that blocks "AI bots" as one group drops the
+# search and fetch crawlers too, and answer engines quietly stop citing the
+# site; a failed run here is the alert. Policy: docs/aeo/crawler-policy.md.
+
+on:
+  schedule:
+    - cron: '17 9 * * 1'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: crawler-access
+  cancel-in-progress: true
+
+jobs:
+  probe:
+    name: Probe modelspec.dev as each AI crawler
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install
+        run: pip install pydantic pyyaml "httpx==0.28.1" "cryptography>=43,<46"
+
+      - name: Fetch robots.txt and every sitemap page as each crawler
+        run: python -m pipeline.live crawler-probe --origin https://modelspec.dev

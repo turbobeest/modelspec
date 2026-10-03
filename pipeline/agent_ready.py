@@ -157,8 +157,21 @@ def wrangler_vars(root: Path) -> dict[str, str]:
     return dict(_WRANGLER_FLAG.findall(path.read_text(encoding="utf-8")))
 
 
+#: Every AI crawler class is allowed (MODEL-253, docs/aeo/crawler-policy.md).
+#: Naming them states the policy rather than leaving it implied by `*`; the
+#: rules are the same for all, so they share one group (RFC 9309 §2.2.1).
+CRAWLERS = (
+    ("Search index: whether an engine can retrieve and cite a page",
+     ("Googlebot", "Bingbot", "OAI-SearchBot", "Claude-SearchBot", "PerplexityBot")),
+    ("User-triggered fetch: grounding one live answer",
+     ("ChatGPT-User", "Claude-User", "Perplexity-User")),
+    ("Training: what future models know without searching",
+     ("GPTBot", "ClaudeBot", "CCBot", "Google-Extended", "Applebot-Extended", "Bytespider")),
+)
+
+
 def robots_txt(base: str) -> str:
-    """robots.txt with Content Signals.
+    """robots.txt with Content Signals, and the only writer of it (MODEL-253).
 
     Syntax: https://contentsignals.org/ (Cloudflare's publisher AI-use
     preferences; also https://blog.cloudflare.com/content-signals-policy/).
@@ -170,13 +183,22 @@ def robots_txt(base: str) -> str:
     permitted, not merely tolerated. It cannot be withdrawn for anything
     already crawled, which is why it is recorded here rather than left as a
     default. Changing it is his decision.
+
+    Until MODEL-253 the live tree wrote its own plain copy last, so this file
+    never reached production. `pipeline.live` now publishes exactly this.
     """
+    groups = "".join(
+        f"# {purpose}: allowed.\n" + "".join(f"User-agent: {agent}\n" for agent in agents)
+        for purpose, agents in CRAWLERS)
     return (
         f"# Content-Signal syntax: {CONTENT_SIGNALS}\n"
         f"# (Cloudflare's implementation of publisher AI-use preferences;\n"
         f"#  also {CONTENT_SIGNALS_BLOG}).\n"
         f"# search / ai-input / ai-train are independent yes|no signals for\n"
         f"# how fetched content may be used; they do not replace Allow/Disallow.\n"
+        f"# Policy and reasoning: {entity.REPOSITORY}/blob/main/docs/aeo/crawler-policy.md\n"
+        f"{groups}"
+        f"# Everyone else.\n"
         f"User-agent: *\n"
         f"Content-Signal: search=yes, ai-input=yes, ai-train=yes\n"
         f"Allow: /\n"

@@ -27,7 +27,6 @@ from pipeline import card_ids
 from pipeline import render as r
 from pipeline.load import REPO_ROOT, load_benchmarks, load_catalogue, load_models
 
-ROBOTS = "User-agent: *\nAllow: /\n\nSitemap: {base}/sitemap.xml\n"
 
 #: Cloudflare Pages redirects. `/` is the modelspec.dev homepage; every other
 #: path keeps its path on modelspec.dev. Order matters: the first match wins.
@@ -668,8 +667,7 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
 
     (ms / "sitemap.xml").write_text(
         r.sitemap("https://modelspec.dev", ms_paths, today), encoding="utf-8")
-    (ms / "robots.txt").write_text(
-        ROBOTS.format(base="https://modelspec.dev"), encoding="utf-8")
+    # robots.txt is written once, by agent_ready.ship below (MODEL-253).
     (ms / "404.html").write_text(
         r.not_found("ModelSpec", build, r.MS_NAV, "https://modelspec.dev/"), encoding="utf-8")
     (ms / "llms.txt").write_text(

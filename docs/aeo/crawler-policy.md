@@ -1,6 +1,6 @@
 # Crawler policy
 
-**Status:** design, implemented by MODEL-253. **Decision owner:** Jamie. The policy below restates his 2026-09-23 choice, `ai-train=yes`.
+**Status:** built (MODEL-253). **Decision owner:** Jamie. The policy below restates his 2026-09-23 choice, `ai-train=yes`.
 
 ## The policy
 
@@ -30,24 +30,25 @@ Allow: /
 Sitemap: https://modelspec.dev/sitemap.xml
 ```
 
-Named `User-agent` groups may be added for documentation. They must not narrow the policy above.
+The published file also names every crawler in the table above (`pipeline/agent_ready.py` `CRAWLERS`), grouped by class, in the same group as `*` with the same rules (RFC 9309). The names document the policy; they don't narrow it.
 
-**Exactly one module writes `robots.txt`.** On 2026-10-01 three modules wrote it:
-* `pipeline/agent_ready.py` `robots_txt()`, with the Content-Signal line;
-* `pipeline/build.py`, a plain `Allow: /`;
-* `pipeline/live.py:147`, a plain `Allow: /`. It runs last, so live served the plain version and the Content-Signal line was missing.
+**Exactly one module writes the site's `robots.txt`: `pipeline/agent_ready.py` `robots_txt()`.** `pipeline/live.py` publishes that same string as `ROBOTS`. The holding tree's dark `robots.txt` (`pipeline/holding.py`) is deliberately separate.
 
-MODEL-253 deletes the duplicates and adds a test that the built live tree carries the Content-Signal line.
+Until 2026-10-01 three modules wrote it: `agent_ready.py`, with the Content-Signal line; `build.py`, a plain `Allow: /`; and `live.py`, another plain copy. `live.py` ran last, so production served a file without the Content-Signal line. `tests/test_crawler_access.py` now holds this to one writer.
 
 ## sitemap.xml
 
 * It lists every crawlable HTML page and no machine files.
-* Each `<url>` has a `<lastmod>` taken from the page source's last commit date, not the build time. A build that changes nothing must not make every page look fresh.
+* Each `<url>` has a `<lastmod>`: the date of the last commit that touched that page's sources (`pipeline/live.py` `PAGE_SOURCES`), not the build time. A build that changes nothing doesn't make every page look fresh. The site build checks out full history, treeless, so `git log` can answer.
+
+## /decide/
+
+The board is a JavaScript app behind a human gate, so a crawler used to get an empty `<div id="root">`. The live build now puts a short server-rendered description in that div (`pipeline/live.py` `decide_capsule()`). It covers what the board does, how Must and Prefer work, that it is free for people and rate-limited, where machines go, and a link to `/method/`. The app replaces it when it mounts. It holds no model data, so answers stay on the board and the API.
 
 ## Checks
 
 | Check | Where | Fails when |
 |---|---|---|
-| Raw-HTML content | CI, over the built tree | A sitemap URL has no `<h1>`, or under 80 words of main text, without JavaScript |
-| One `robots.txt` writer | CI | More than one module writes it, or the Content-Signal line is missing |
-| Crawler reachability | Weekly, against live | Any sitemap URL returns something other than 200 to any crawler user agent in the table |
+| Raw-HTML content | Every live build (`python -m pipeline.live build` exits 3) and `tests/test_holding.py` | A sitemap URL has no `<h1>`, or fewer than 80 words of body text, without JavaScript |
+| One `robots.txt` writer | `tests/test_crawler_access.py` | A second module writes the site's file, or the Content-Signal line is missing |
+| Crawler reachability | `.github/workflows/crawler-access.yml`, weekly (Mondays 09:17 UTC) and on demand | `robots.txt` or any sitemap URL answers anything other than 200 to any named crawler (`python -m pipeline.live crawler-probe`) |
