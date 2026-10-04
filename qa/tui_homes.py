@@ -24,7 +24,7 @@ from qa.tui_docker import (
 
 def state_directory(cli: str, config: dict) -> Path:
     try:
-        root = Path(config["_state_dir"])
+        root = Path(config.get("_state_dirs", {}).get(cli, config["_state_dir"]))
     except KeyError:
         raise ValueError("A private --out is required for doctor receipts") from None
     path = root / cli
@@ -59,7 +59,11 @@ def block_gemini_dotenv(workspace: Path) -> Path | None:
 def home_config(cli: str, config: dict, *, enabled=True, server=None, with_token=False) -> str:
     """Render native MCP configuration, retaining only an environment reference."""
     servers = {}
-    if server is not None:
+    if enabled and "_mcp_servers" in config:
+        servers = config["_mcp_servers"]
+        if cli == "gemini":
+            servers = {name: item | {"trust": True} for name, item in servers.items()}
+    elif server is not None:
         servers = {"model301_canary": server}
     elif enabled:
         item = {"url": config["mcp_url"]}
@@ -166,6 +170,7 @@ def isolation_identity(cli: str, config: dict, binary: dict) -> str:
         "gemini-settings.mjs",
         "gemini-isolated.json",
         "gemini-positive.json",
+        "ux-mcp.mjs",
     ):
         digest.update(Path(__file__).with_name("docker").joinpath(name).read_bytes())
     return digest.hexdigest()

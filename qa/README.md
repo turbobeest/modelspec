@@ -325,3 +325,146 @@ The `setup` action and `~/.modelspec-harness` homes are retired. Build the image
 and complete fresh subscription login inside each volume. No login is copied
 from the Mac. Jamie can delete `~/.modelspec-harness` himself when he no longer
 needs it. This change does not delete or alter that folder.
+
+## Local scheduled jobs (MODEL-309)
+
+Agent scenarios, cold-browser UX tasks and AEO visibility now run locally through
+the Docker subscription CLIs. Perplexity keeps its existing AEO API adapter,
+1Password reference, prices, retries and monthly spend cap. The manual speed
+probe is unchanged. Subscription logins never enter GitHub Actions.
+
+The local entry points are:
+
+```sh
+python -m qa.subscription_jobs scenarios --data-repo ~/dev/modelspec-data
+python -m qa.subscription_jobs ux --data-repo ~/dev/modelspec-data
+python -m qa.subscription_jobs aeo --business-repo ~/dev/modelspec-business
+```
+
+Add `--dry-run` to any command. Previews make no model, browser, search,
+credential or PR call and write only beneath `<state-dir>/dry-run`. `--state-dir`
+defaults to `~/Library/Application Support/ModelSpec/subscription-jobs`; use that
+same directory for the CLI doctor's `--out`. For validation in this worktree,
+choose a temporary private state directory instead of the default. Dry runs can
+read the old business config before the private patch is applied; live AEO
+requires the migrated subscription config.
+
+Scheduled runs always enforce quiet hours. They refuse starts between 08:00 and
+22:00 local. Every required CLI and judge must have a passing receipt less than
+30 days old, bound to its immutable image, UID, model profile and current
+adapter/build sources. All receipts and native subscription statuses are checked
+before the first task, and every launch rechecks status and inventory. Missing
+or changed evidence refuses the job. Vendor API-key/token environment variables,
+including empty variables, refuse all jobs and dry runs. There is no API fallback
+for the four subscription vendors. No job starts login or refreshes doctor for you.
+
+Execution is serial and uses the existing quota and usage-limit checks. Job
+quotas default to 400 CLI starts per family for all 74 scenarios, 40 for the UX
+jobs and 64 for AEO. Scenario quotas include cross-family judges. These caps cover
+the full catalogue; `--max-runs-per-cli` can lower them for manual trials. A
+vendor limit stops that CLI without a retry. Skipped and unjudged scenario rows
+remain in the denominator. A shared process lock prevents local jobs from
+running together. launchd does not load overlapping copies of a job.
+
+Scenarios keep `reports/agent-scenarios/<UTC-day>.json` and `.md` in a fresh
+modelspec-data worktree. They use the same catalogue, independent recall scoring,
+rubric, response deduplication and aggregate fields as the API harness. Codex
+results keep the `openai` label; actual CLI and model identities are recorded.
+Unknown tool latency stays unknown. API spend is zero; native token-equivalent
+costs are separate. Reports identify the change in transport.
+
+UX keeps the private twenty-task catalogue, DOM collector, judge rubric and
+aggregation functions. Default visitors remain OpenAI and Grok, now Codex and
+Grok CLIs, with a separate Claude CLI judge. Only UX images carry pinned official
+`@playwright/mcp@0.0.83` and that package's Chromium build. Each task gets a new
+headless context, no saved cookies or previous browser state. A wrapper exposes
+ordinary browser actions and collects screenshots, DOM checks and geometry
+independently. It excludes JavaScript, file and extraction tools, restricts
+keyboard tasks to keyboard navigation, blocks human verification and other
+writes, and refuses unavailable human-status evidence. Visitor claims cannot
+satisfy DOM checks. Judges receive the unchanged private rubric, page states and
+attached screenshots. Reports keep schema version 1 at
+`reports/ux/<UTC-day>.json` and `.md`, with private evidence beneath
+`<day>/<run-id>/`. Findings remain for human triage.
+
+AEO uses Claude WebSearch/WebFetch, Codex live web search, Gemini's
+`google_web_search` grounding and Grok web/X search. A search counts only when
+the CLI transcript records a successful native search tool, not when the answer
+claims it searched. Four vendor API references are removed from the business
+config. Subscription models match the shared doctor-certified profiles; the
+old low-cost API profiles are not silently used as fallbacks. Perplexity alone
+calls its unchanged API adapter. Dated `runs.jsonl`, `engines.json`,
+`summary.json`, `report.md`, `raw/` and `BASELINE` retain their format. The surface
+field records subscription versus API; comparing the old baseline also compares
+transport and model profiles.
+
+Every live job fetches the private repository's main branch, creates a new
+worktree and branch, stages only the existing report paths, pushes that branch
+and opens a private PR. It never changes the main checkout's branch. A failed
+publication retains its worktree and prints its path for recovery. The shell
+wrapper used by schedules also runs the merged public engine from a fresh
+detached worktree. No reports or private task definitions enter this public tree.
+
+### First manual run and schedules
+
+Build the ordinary images, then the two browser images. Login remains Jamie's
+manual step, using the commands earlier in this README. Authentication volumes
+are shared between each CLI's ordinary and UX variants; receipts are separate.
+
+```sh
+python -m qa.tui_harness build-images
+python -m qa.tui_harness build-images --ux-image --cli codex --cli grok
+# After Jamie logs in, certify all four ordinary images:
+python -m qa.tui_harness doctor --cli claude --out "$STATE"
+python -m qa.tui_harness doctor --cli codex --out "$STATE"
+python -m qa.tui_harness doctor --cli gemini --out "$STATE"
+python -m qa.tui_harness doctor --cli grok --out "$STATE"
+# Then certify the visitor images:
+python -m qa.tui_harness doctor --ux-image --cli codex --out "$STATE"
+python -m qa.tui_harness doctor --ux-image --cli grok --out "$STATE"
+```
+
+Set `STATE` to the private state directory chosen above. Doctor makes model
+canary calls; only Jamie or an authorized later session runs these commands.
+Perform the first manual run of each job before loading its schedule. The
+private business and data patches must be applied first for live jobs.
+
+`qa/launchd/` provides these calendar schedules in the Mac's local timezone:
+
+| Job | Calendar |
+| --- | --- |
+| Agent scenarios | Tuesday 03:23 |
+| UX visitors | Wednesday 04:37 |
+| AEO | 1st of each month, 06:00 |
+
+Tuesday and Wednesday preserve the old 07:23 and 08:37 UTC overnight slots in
+America/New_York daylight time. launchd keeps those local hours across daylight
+saving changes. `StartCalendarInterval` fires a missed run on wake; the job's
+quiet-hours guard still applies. No template uses `RunAtLoad` or `KeepAlive`.
+The AEO label replaces the previous `dev.modelspec.aeo-visibility` template;
+replacing its file does not reload an already-loaded job.
+
+After merging, render/install against the stable public main checkout:
+
+```sh
+python -m qa.install_subscription_jobs --repo ~/dev/modelspec --dry-run
+python -m qa.install_subscription_jobs --repo ~/dev/modelspec
+```
+
+The installer only writes the three plist files and log directories. It never
+calls `launchctl`, loads jobs, or runs a task. Jamie or the orchestrator loads
+them after each first successful manual run. Keep the stable public checkout's
+venv installed with the existing harness dependencies.
+
+Offline coverage:
+
+```sh
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest \
+  tests/test_subscription_jobs.py tests/test_tui_harness.py tests/test_aeo_visibility.py -q
+```
+
+The UX contract integration checks use the private helper files read-only on
+Jamie's Mac and synthetic tasks. Other checks run without a private checkout.
+The official MCP package's exported `createConnection` and context getter are
+used by the wrapper; installation and transport documentation are in the
+[official Playwright MCP repository](https://github.com/microsoft/playwright-mcp).

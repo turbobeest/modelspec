@@ -9,6 +9,7 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import re
 import shlex
 import subprocess
@@ -31,6 +32,7 @@ from qa.agent_harness import (
     percentile,
 )
 from qa.contracts import source_hashes
+from qa.docker.entrypoint import refuse_vendor_auth
 from qa.providers import Budget, redact, redact_structure
 from qa.tui_docker import build_images, container_command, image_name, passed_environment
 from qa.tui_homes import (
@@ -273,17 +275,26 @@ class Runner:
             return "max_runs", "CLI invocation quota reached (includes judges)"
         return None
 
-    def invoke(self, cli: str, prompt: str, role: str) -> Execution:
+    def invoke(self, cli: str, prompt: str, role: str, *, workspace=None, purpose=None, images=()) -> Execution:
+        refuse_vendor_auth(os.environ)
         if refusal := self.refusal(cli):
             raise StartRefusedError(*refusal)
         self.counts[cli][role] += 1
-        with tempfile.TemporaryDirectory(prefix=f"tui-{cli}-{role}-", dir=self.output) as directory:
+        def execute(directory):
+            run_config = self.config | ({"_judge_images": images} if images else {})
             try:
                 execution = launch(
-                    cli, self.config, Path(directory), prompt, mcp_enabled=role == "agent"
+                    cli, run_config, Path(directory), prompt, mcp_enabled=role == "agent",
+                    **({"purpose": purpose} if purpose else {}),
                 )
             except ValueError as exc:
                 raise StartRefusedError("unsupported", str(exc)) from exc
+            return execution
+        if workspace is not None:
+            execution = execute(workspace)
+        else:
+            with tempfile.TemporaryDirectory(prefix=f"tui-{cli}-{role}-", dir=self.output) as directory:
+                execution = execute(directory)
         if execution.status == "usage_limit":
             self.stopped[cli] = execution.limit_reason or "CLI usage limit"
         elif execution.status in ("isolation_failed", "transcript_error"):
@@ -570,6 +581,7 @@ def main(argv=None) -> int:
         "--out", type=Path, help="Private report directory, required except for build-images/login"
     )
     parser.add_argument("--cli", choices=CLIS, action="append")
+    parser.add_argument("--ux-image", action="store_true", help="Build/certify the Playwright image variant")
     parser.add_argument("--scenario", action="append")
     parser.add_argument(
         "--judge", action="append", metavar="CLI=JUDGE", help="Override a judge route"
@@ -587,7 +599,11 @@ def main(argv=None) -> int:
     )
     args = parser.parse_args(argv)
     try:
+        refuse_vendor_auth(os.environ)
         config = yaml.safe_load(args.config.read_text())
+        if args.ux_image:
+            for cli in args.cli or CLIS:
+                config["clis"][cli]["image_variant"] = "ux"
         if args.max_runs_per_cli is not None:
             config["max_runs_per_cli"] = args.max_runs_per_cli
         for override in args.judge or []:
@@ -623,7 +639,7 @@ def main(argv=None) -> int:
                 raise ValueError("doctor cannot be combined with run modes")
             args.verify_isolation = True
         output = private_output(args.out)
-        config["_state_dir"] = str(output / ".tui-state")
+        config["_state_dir"] = str(output / (".tui-state-ux" if args.ux_image else ".tui-state"))
         if args.action == "inventory":
             if args.dry_run or args.smoke or args.verify_isolation:
                 raise ValueError("inventory cannot be combined with run modes")

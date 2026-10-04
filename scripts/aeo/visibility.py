@@ -279,7 +279,8 @@ def summarise(rows: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
         counter = Counter(c["domain"] for r in answered if r["cluster"] == cluster for c in r["citations"])
         domains[cluster] = counter.most_common(20)
     confused = Counter(name for r in answered for name in r["detection"]["confused_with"])
-    return {"surface": SURFACE, "answers": len(answered),
+    surfaces = {r.get("surface", SURFACE) for r in rows}
+    return {"surface": next(iter(surfaces)) if len(surfaces) == 1 else "mixed" if surfaces else SURFACE, "answers": len(answered),
             "errors": sum(1 for r in rows if "error" in r),
             "cost_usd": round(sum(r.get("cost_usd", 0.0) for r in answered), 4),
             "cells": cells, "top_cited_domains": domains, "confused_with": dict(confused)}
@@ -297,6 +298,10 @@ def render(summary: Mapping[str, Any], *, run_date: str, engines_log: Mapping[st
              "description accuracy is not judged yet.", "",
              f"Answers: {summary['answers']}. Cost: ${summary['cost_usd']:.2f} "
              f"(month to date ${engines_log.get('month_spend_usd', 0):.2f} of ${engines_log.get('cap_usd', 0):.2f}).", ""]
+    if engines_log.get("surface") == "mixed":
+        lines[2] = ("Surface: subscription CLIs with native web search for OpenAI, Anthropic, Gemini and xAI; "
+                    "Perplexity's existing API. This is a transport change from the API baseline. "
+                    "Detection is heuristic. Subscription token-equivalent costs are not API spend.")
     for e in engines_log.get("engines", []):
         if e["status"] != "complete":
             lines.append(f"- **{e['engine']}: {e['status']}**: {e.get('reason', '')}")
@@ -361,9 +366,7 @@ def main(argv: list[str] | None = None) -> int:
           f"month to date ${spent:.2f} of ${config.monthly_cap_usd:.2f}")
     if args.dry_run:
         return 0
-    out = run(prompts, config, runs_root=args.out, today=today)
-    print(write_report(out, args.baseline))
-    return 0
+    parser.error("Live visibility runs moved to python -m qa.subscription_jobs aeo (MODEL-309)")
 
 
 if __name__ == "__main__":

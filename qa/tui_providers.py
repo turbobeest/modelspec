@@ -11,6 +11,7 @@ from pathlib import Path
 from time import perf_counter
 
 from qa.contracts import TOOL_NAMES
+from qa.docker.entrypoint import refuse_vendor_auth
 from qa.providers import redact
 from qa.tui_auth import authentication_status
 from qa.tui_docker import container_path, passed_environment, run_cli
@@ -30,6 +31,12 @@ CLAUDE_SETTINGS = {
 # Do not inherit API keys, prompt injection variables, remote-daemon addresses,
 # provider endpoints, config homes, plugin paths, or shell startup overrides.
 BASE_ENV = ("TERM", "LANG", "MODELSPEC_MCP_URL")
+SEARCH_TOOLS = {
+    "claude": {"WebSearch", "WebFetch", "web_search", "web_fetch"},
+    "codex": {"web_search"},
+    "gemini": {"google_web_search"},
+    "grok": {"web_search", "web_fetch", "x_search", "WebSearch", "WebFetch", "XSearch"},
+}
 
 
 def child_environment(
@@ -53,9 +60,14 @@ def build_command(
     turn_cap: int,
     *,
     isolated: bool = True,
+    purpose: str = "scenario",
 ) -> list[str]:
     """Build native headless arguments; launch() separately enforces doctor evidence."""
     executable, model = settings["executable"], settings["model"]
+    if purpose not in ("scenario", "judge", "browser", "search"):
+        raise ValueError("Unknown subscription tool purpose")
+    search = purpose == "search"
+    server = "playwright" if purpose == "browser" else "modelspec"
     if cli == "claude":
         common = [
             executable,
@@ -90,11 +102,11 @@ def build_command(
             + (["--mcp-config", container_path(workspace, mcp_file)] if isolated else [])
             + [
                 "--tools",
-                "",
+                "WebSearch,WebFetch" if search else "",
                 "--permission-mode",
                 "dontAsk",
                 "--allowedTools",
-                "mcp__modelspec__*" if isolated else "mcp__model301_canary__*",
+                "WebSearch,WebFetch" if search else f"mcp__{server}__*" if isolated else "mcp__model301_canary__*",
                 "--",
                 prompt,
             ]
@@ -120,6 +132,7 @@ def build_command(
                 "--ignore-rules",
             ]
             common += codex_config_args(settings, mcp_file)
+            common += ["-c", 'web_search="live"' if search else 'web_search="disabled"']
         else:
             common += [
                 "--dangerously-bypass-hook-trust",
@@ -139,12 +152,12 @@ def build_command(
             common += ["--extensions", "none"]
         return common + [
             "--allowed-mcp-server-names",
-            "modelspec" if isolated else "model301_canary",
+            ("model309_none" if search else server) if isolated else "model301_canary",
             "--prompt",
             prompt,
         ]
     if cli == "grok":
-        return [
+        command = [
             executable,
             "-m",
             model,
@@ -157,12 +170,18 @@ def build_command(
             "--max-turns",
             str(turn_cap),
             "--no-subagents",
-            "--disable-web-search",
             "--tools",
-            "",
+            "web_search,web_fetch,x_search" if search else "",
+            "--permission-mode", "dontAsk",
+            "--allow", f"mcp__{server}__*" if not search else "web_search",
             "--single",
             prompt,
         ]
+        if not search:
+            command.insert(command.index("--tools"), "--disable-web-search")
+        else:
+            command[command.index("--single"):command.index("--single")] = ["--allow", "web_fetch", "--allow", "x_search"]
+        return command
     raise ValueError(f"Unknown CLI: {cli}")
 
 
@@ -338,6 +357,8 @@ def parse_transcript(cli: str, output: str) -> Transcript:
                 for block in message.get("content", []):
                     if block.get("type") in ("tool_use", "server_tool_use"):
                         call(block["id"], block["name"], block.get("input", {}))
+                    elif block.get("type") in ("web_search_tool_result", "web_fetch_tool_result"):
+                        finish(block["tool_use_id"], block.get("content"), isinstance(block.get("content"), dict) and "error_code" in block["content"])
             else:
                 for block in message.get("content", []):
                     if block.get("type") == "tool_result":
@@ -364,7 +385,9 @@ def parse_transcript(cli: str, output: str) -> Transcript:
                 elif item.get("type") == "agent_message" and kind == "item.completed":
                     parsed.final_answer = item.get("text", "")
                 elif item.get("type") in ("command_execution", "web_search", "file_change"):
-                    call(item["id"], item["type"], item.get("command", {}))
+                    call(item["id"], item["type"], item.get("action", item.get("command", {})))
+                    if kind == "item.completed":
+                        finish(item["id"], item, bool(item.get("error")))
             if kind == "turn.completed":
                 parsed.terminal = True
                 parsed.usage = event.get("usage")
@@ -421,6 +444,36 @@ def parse_transcript(cli: str, output: str) -> Transcript:
                     or parsed.turns
                 )
                 parsed.turns_basis = "Gemini stats.models API requests"
+    retries = {}
+    for record in parsed.tool_calls:
+        record["retry_of"] = retries.get(record["name"])
+        record["turn"] = None  # The native CLI's tool index is not an API model turn.
+        for block in record["result"].get("content", []):
+            if not isinstance(block, dict) or block.get("type") != "text":
+                continue
+            try:
+                envelope = json.loads(block["text"])
+            except (ValueError, KeyError, TypeError):
+                continue
+            if not isinstance(envelope, dict) or envelope.get("status") not in (400, 422):
+                continue
+            body = envelope.get("body", {})
+            error = body.get("error", {}) if isinstance(body, dict) else {}
+            if not isinstance(error, dict):
+                continue
+            issues = error.get("issues", []) or [error.get("message", error.get("code", body))]
+            record["validation_errors"] = issues
+            record["api_call"] = envelope.get("origin") is not None
+            record["unknown_facets"] = sorted({
+                issue.get("field", issue.get("facet")) for issue in issues
+                if isinstance(issue, dict) and isinstance(issue.get("field", issue.get("facet")), str)
+                and any(word in str(issue.get("reason", issue.get("message", ""))).lower()
+                        for word in ("unknown", "not registered", "unregistered"))
+            })
+        if record["result"].get("isError"):
+            retries[record["name"]] = record["id"]
+        else:
+            retries.pop(record["name"], None)
     return parsed
 
 
@@ -478,17 +531,19 @@ def subscription_violation(cli: str, parsed: Transcript) -> str | None:
 
 
 def isolation_violation(
-    parsed: Transcript, *, mcp_enabled: bool, cli="claude", inventory: dict | None = None
+    parsed: Transcript, *, mcp_enabled: bool, cli="claude", inventory: dict | None = None,
+    allowed_servers=None, purpose="scenario",
 ) -> str | None:
     if parsed.hook_events or parsed.init and hook_event(parsed.init):
         return "CLI emitted a hook event"
-    allowed = {"modelspec"} if mcp_enabled else set()
-    if parsed.other_tool_calls or any(call["server"] not in allowed for call in parsed.tool_calls):
+    allowed = set(allowed_servers if allowed_servers is not None else ["modelspec"]) if mcp_enabled else set()
+    native = SEARCH_TOOLS[cli] if purpose == "search" else set()
+    if any(call["name"] not in native for call in parsed.other_tool_calls) or any(call["server"] not in allowed for call in parsed.tool_calls):
         return "CLI used a tool outside the configured ModelSpec MCP"
     if cli != "claude":
         from qa.tui_inventory import inventory_violation
 
-        return inventory_violation(inventory, mcp_enabled=mcp_enabled)
+        return inventory_violation(inventory, mcp_enabled=mcp_enabled, allowed_servers=allowed)
     if parsed.init is None:
         return "CLI did not expose its startup inventory"
     for key in ("skills", "plugins", "mcp_servers", "tools"):
@@ -507,12 +562,12 @@ def isolation_violation(
     ):
         return "CLI loaded another MCP server"
     for name in parsed.init["tools"]:
-        if not isinstance(name, str) or _tool_name(name)[0] not in allowed:
+        if not isinstance(name, str) or name not in native and _tool_name(name)[0] not in allowed:
             return "CLI exposed an unapproved tool"
-    if mcp_enabled and not any(
-        server.get("name") == "modelspec" and server.get("status") == "connected"
+    if mcp_enabled and not all(any(
+        server.get("name") == name and server.get("status") == "connected"
         for server in parsed.init["mcp_servers"]
-    ):
+    ) for name in allowed):
         return "ModelSpec MCP did not connect"
     return None
 
@@ -529,15 +584,17 @@ class Execution:
     inventory: dict | None = None
 
 
-def launch(cli: str, config: dict, workspace: Path, prompt: str, *, mcp_enabled: bool) -> Execution:
+def launch(cli: str, config: dict, workspace: Path, prompt: str, *, mcp_enabled: bool, purpose="scenario") -> Execution:
     from qa.tui_isolation import isolation_result
 
+    refuse_vendor_auth(os.environ)
     result = isolation_result(cli, config)
     if not result["verified"]:
         raise ValueError(result["reason"])
-    execution = _execute(cli, config, workspace, prompt, mcp_enabled=mcp_enabled)
+    execution = _execute(cli, config, workspace, prompt, mcp_enabled=mcp_enabled, purpose=purpose)
     violation = subscription_violation(cli, execution.transcript) or isolation_violation(
-        execution.transcript, mcp_enabled=mcp_enabled, cli=cli, inventory=execution.inventory
+        execution.transcript, mcp_enabled=mcp_enabled, cli=cli, inventory=execution.inventory,
+        allowed_servers=config.get("_mcp_servers"), purpose=purpose,
     )
     if execution.status in ("isolation_failed", "transcript_error") or violation:
         from qa.tui_homes import state_directory
@@ -556,16 +613,19 @@ def _execute(
     mcp_enabled: bool,
     isolated: bool = True,
     probe_mcp: Path | None = None,
+    purpose="scenario",
 ) -> Execution:
     from qa.tui_homes import home_config
 
     settings = config["clis"][cli]
-    with_token = mcp_enabled and bool(os.environ.get(config.get("mcp_token_env") or ""))
+    mcp_enabled = mcp_enabled and purpose != "search"
+    with_token = mcp_enabled and purpose != "browser" and bool(os.environ.get(config.get("mcp_token_env") or ""))
     mcp_file = probe_mcp or workspace / "modelspec-mcp.json"
     if probe_mcp is None:
         mcp_file.write_text(home_config(cli, config, enabled=mcp_enabled, with_token=with_token))
     prepare_workspace(
-        cli, config, workspace, mcp_enabled=mcp_enabled, isolated=isolated, with_token=with_token
+        cli, config, workspace, mcp_enabled=mcp_enabled, isolated=isolated, with_token=with_token,
+        purpose=purpose,
     )
     command = build_command(
         cli,
@@ -575,11 +635,30 @@ def _execute(
         mcp_file,
         config["turn_cap"],
         isolated=isolated,
+        purpose=purpose,
     )
+    prompt_stdin = ""
+    images = config.get("_judge_images", ())
+    if images:
+        if mcp_enabled or cli not in ("claude", "codex"):
+            raise ValueError("UX image judges require Claude or Codex without MCP")
+        if cli == "codex":
+            command[command.index("--"):command.index("--")] = [
+                "--image", ",".join(container_path(workspace, p) for p in images)
+            ]
+        else:
+            import base64
+            command = command[:-2] + ["--input-format", "stream-json"]
+            content = [{"type": "text", "text": prompt}] + [
+                {"type": "image", "source": {"type": "base64", "media_type": "image/png",
+                 "data": base64.b64encode(p.read_bytes()).decode()}} for p in images
+            ]
+            prompt_stdin = json.dumps({"type": "user", "message": {
+                "role": "user", "content": content}}) + "\n"
     env = child_environment(
         cli,
         workspace,
-        config.get("mcp_token_env") if mcp_enabled else None,
+        config.get("mcp_token_env") if with_token else None,
         settings=settings,
         isolated=isolated,
         mcp_url=config["mcp_url"],
@@ -601,7 +680,7 @@ def _execute(
         inventory = inspect_inventory(
             cli, config, workspace, env, mcp_file, mcp_enabled=mcp_enabled
         )
-        if violation := inventory_violation(inventory, mcp_enabled=mcp_enabled):
+        if violation := inventory_violation(inventory, mcp_enabled=mcp_enabled, allowed_servers=config.get("_mcp_servers")):
             return Execution(
                 Transcript(),
                 None,
@@ -615,7 +694,8 @@ def _execute(
     try:
         # Empty piped stdin is essential: a launching shell's heredoc must never
         # become extra user context in a CLI that appends stdin to its prompt.
-        process = run_cli(cli, config, workspace, command, env, isolated=isolated)
+        process = run_cli(cli, config, workspace, command, env, isolated=isolated,
+                          **({"input_text": prompt_stdin} if prompt_stdin else {}))
     except subprocess.TimeoutExpired as exc:
         output = exc.stdout or b""
         output = output.decode(errors="replace") if isinstance(output, bytes) else output
@@ -629,7 +709,8 @@ def _execute(
         violation = subscription_violation(cli, parsed)
         if isolated:
             violation = violation or isolation_violation(
-                parsed, mcp_enabled=mcp_enabled, cli=cli, inventory=inventory
+                parsed, mcp_enabled=mcp_enabled, cli=cli, inventory=inventory,
+                allowed_servers=config.get("_mcp_servers"), purpose=purpose,
             )
         limit = usage_limit(parsed, stderr, -1, [])
         return Execution(
@@ -659,7 +740,8 @@ def _execute(
         violation = subscription_violation(cli, parsed)
         if isolated:
             violation = violation or isolation_violation(
-                parsed, mcp_enabled=mcp_enabled, cli=cli, inventory=inventory
+                parsed, mcp_enabled=mcp_enabled, cli=cli, inventory=inventory,
+                allowed_servers=config.get("_mcp_servers"), purpose=purpose,
             )
     except (ValueError, KeyError, TypeError, AttributeError):
         return Execution(
@@ -715,6 +797,7 @@ def prepare_workspace(
     mcp_enabled: bool,
     isolated: bool = True,
     with_token: bool = False,
+    purpose="scenario",
 ) -> None:
     from qa.tui_homes import home_config
 
@@ -729,7 +812,8 @@ def prepare_workspace(
                 skills={"enabled": False},
                 hooksConfig={"enabled": False},
                 context={"fileName": []},
-                mcp={"allowed": ["modelspec"] if mcp_enabled else ["model301_none"]},
+                mcp={"allowed": list(config.get("_mcp_servers", {"modelspec": {}})) if mcp_enabled else ["model301_none"]},
+                tools={"core": ["google_web_search"] if purpose == "search" else []},
             )
         # Only these private temporary workspaces are trusted, including the
         # relaxed control so project discovery really runs there.

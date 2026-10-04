@@ -32,6 +32,9 @@ IMAGE_IDENTITY = docker.image_identity
 
 @pytest.fixture(autouse=True)
 def deny_credential_access(monkeypatch):
+    for name in tuple(os.environ):
+        if entrypoint.VENDOR_ENV.search(name) and not name.startswith("MODELSPEC_"):
+            monkeypatch.delenv(name)
     original_open = builtins.open
     denied = re.compile(
         r"\.codex[/\\]auth|auth\.json|\.credentials|keychain|\.claude\.json|"
