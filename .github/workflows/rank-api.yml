@@ -368,15 +368,28 @@ jobs:
           fi
 
       - name: Smoke-test api.modelspec.dev
+        env:
+          MODELSPEC_SMOKE_API_KEY: ${{ secrets.MODELSPEC_SMOKE_API_KEY }}
         run: |
           set -uo pipefail
           if [ "$DATA_SPLIT_ENABLED" = "true" ]; then
-            python3 .github/scripts/check_private_rank.py --host "$RANK_HOST" --commit "$GITHUB_SHA"
+            if ! python3 .github/scripts/check_private_rank.py --host "$RANK_HOST" --commit "$GITHUB_SHA"; then
+              echo "::warning::private Worker smoke failed; rolling back the Worker"
+              if ! (cd api/worker && npx --no-install wrangler rollback --message \
+                "Automatic rollback after private Worker smoke failure on ${GITHUB_SHA}"); then
+                echo "::error::the automatic Worker rollback failed"
+              fi
+              exit 1
+            fi
+            python3 api/worker/openapi.py --probe "https://${RANK_HOST}" \
+              || { echo "::error::private Worker OpenAPI probe failed"; exit 1; }
             exit 0
           fi
           host="${RANK_HOST}"
           checker=".github/scripts/check_rank_response.py"
           probe_path=""; status=""
+          enforced=$(python3 -m pipeline.worker_flags ACCESS_ENFORCED)
+          auth=()
 
           # Every request goes through `probe`, so the failure messages below can
           # always name the path that was asked and the status that came back.
@@ -391,7 +404,7 @@ jobs:
             probe_path="$1"; shift
             : > body.json
             status=$(curl -sS -o body.json -w '%{http_code}' --max-time 60 \
-              "https://${host}${probe_path}" "$@") || status=000
+              "https://${host}${probe_path}" "${auth[@]}" "$@") || status=000
           }
 
           # What the last response actually was, on one line: status, the
@@ -459,6 +472,16 @@ jobs:
           probe /
           if [ "$status" != 404 ]; then fail "GET / returned HTTP ${status}, not the documented 404"; fi
           python3 "$checker" not-found body.json / "$status" || exit 1
+
+          if [ "$enforced" = "true" ]; then
+            python3 .github/scripts/check_private_rank.py --host "$host" --commit "$GITHUB_SHA" \
+              --boundary-only --without-vocabulary \
+              || fail_rank "a keyed endpoint did not refuse keyless access with the pricing pointer"
+          fi
+          if [ "$enforced" != "true" ] || [ -n "${MODELSPEC_SMOKE_API_KEY:-}" ]; then
+            if [ "$enforced" = "true" ]; then
+              auth=(-H "Authorization: Bearer ${MODELSPEC_SMOKE_API_KEY}")
+            fi
 
           # 3. A ranking, carrying everything the contract promises per row.
           probe /v1/rank -X POST \
@@ -528,6 +551,9 @@ jobs:
             echo "::warning::decision snapshot is not published yet"
           else
             fail "POST /v1/decide returned neither a decision nor no_snapshot"
+          fi
+          else
+            echo "::notice::MODELSPEC_SMOKE_API_KEY is empty; keyed Worker checks skipped"
           fi
 
           # 11. MODEL-72: the published spec has to be usable on its own. This

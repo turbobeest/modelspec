@@ -279,7 +279,9 @@ def test_tool_shim_routes_all_seven_tools_and_keeps_keys_out_of_feedback(config,
             "/v1/policy-check",
             "/v1/feedback",
         ]
-        assert requests[3].headers["authorization"] == "Bearer secret-key"
+        for index in (0, 1, 3, 4, 5):
+            assert requests[index].headers["authorization"] == "Bearer secret-key"
+        assert "authorization" not in requests[2].headers
         assert "authorization" not in requests[-1].headers
         assert json.loads(requests[-1].content)["client"] == "mcp"
         assert "secret-key" not in json.dumps(observed)
@@ -948,7 +950,58 @@ def test_live_vocabulary_compacts_a_legacy_worker_during_rollout(config, definit
         "templates": [{"spec": {"where": ["model.context_window >= 32000"]}}],
     }
     with httpx.Client(transport=httpx.MockTransport(lambda _: httpx.Response(200, json=source))) as client:
-        shim = LiveTools(config, definitions, None, client)
+        shim = LiveTools(config, definitions, "fixture-key", client)
         observed = shim.execute("vocab", {})
         envelope = json.loads(observed["result"]["content"][0]["text"])
     assert envelope["body"]["starter"] == [{"id": "model.context_window", "label": "Context", "definition": "Token window.", "value_type": "number"}]
+
+
+@pytest.mark.parametrize("name,args", [
+    ("vocab", {}),
+    ("model_info", {"model_id": "lab/a"}),
+    ("list_use_cases", {}),
+    ("rank", {"use_case": "coding"}),
+    ("policy_check", {"policy": {}}),
+    ("decide", {"spec_version": 1, "optimize": {"min": "offering.cost_per_task"}}),
+])
+def test_data_shim_without_a_key_names_the_env_var_before_http(config, definitions, name, args):
+    with httpx.Client(transport=httpx.MockTransport(
+            lambda request: pytest.fail("a keyless machine tool reached HTTP"))) as client:
+        shim = LiveTools(config, definitions, None, client)
+        result = shim.execute(name, args)
+    assert result["api_call"] is False
+    error = json.loads(result["result"]["content"][0]["text"])["body"]["error"]
+    assert error["code"] == "missing_api_key"
+    assert "MODELSPEC_API_KEY" in error["message"]
+    assert error["how_to_get_a_key"] == "https://modelspec.dev/pricing"
+
+
+def test_production_vocabulary_smoke_without_a_key_stops_before_http(monkeypatch, tmp_path, capsys):
+    monkeypatch.delenv("MODELSPEC_API_KEY", raising=False)
+    monkeypatch.setattr(httpx.Client, "get", lambda *a, **kw: pytest.fail("keyless production HTTP"))
+    with pytest.raises(SystemExit) as stopped:
+        main(["--smoke-vocabulary", "--output-dir", str(tmp_path)])
+    assert stopped.value.code == 2
+    assert "MODELSPEC_API_KEY" in capsys.readouterr().err
+
+
+def test_production_vocabulary_smoke_sends_the_key_without_saving_it(monkeypatch, tmp_path):
+    from qa.agent_harness import smoke_vocabulary
+
+    key = "offline-vocabulary-key"
+    monkeypatch.setenv("MODELSPEC_API_KEY", key)
+    requests = []
+
+    def get(self, url, *, headers):
+        assert headers["authorization"] == f"Bearer {key}"
+        requests.append(url)
+        return httpx.Response(200, request=httpx.Request("GET", url), json={
+            "facets": [{"id": "model.context_window"}], "templates": [], "snapshot": "offline",
+        })
+
+    monkeypatch.setattr(httpx.Client, "get", get)
+    output = tmp_path / "vocabulary-smoke.json"
+    report = smoke_vocabulary(output)
+    assert requests == ["https://api.modelspec.dev/v1/vocabulary"]
+    assert report["keyless"] is False and report["facets"] == 1
+    assert key not in output.read_text()

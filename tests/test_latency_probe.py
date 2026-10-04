@@ -84,3 +84,16 @@ def test_percentiles_retain_first_call_and_report_warm_separately():
         "cold": {"calls": 2, "ttfb_ms": {"p50": 510, "p95": 1000}},
         "warm": {"calls": 2, "ttfb_ms": {"p50": 20, "p95": 30}},
     }
+
+
+def test_command_without_a_key_skips_before_curl_and_writes_a_skip_report(
+        monkeypatch, tmp_path, capsys):
+    monkeypatch.delenv("MODELSPEC_API_KEY", raising=False)
+    output = tmp_path / "latency.json"
+    monkeypatch.setattr(probe.subprocess, "run", lambda *a, **kw: pytest.fail("keyless latency HTTP"))
+    monkeypatch.setattr("sys.argv", ["latency_probe.py", "--count", "1", "--output", str(output)])
+    assert probe.main() == 0
+    assert "skipped: no key" in capsys.readouterr().out
+    assert json.loads(output.read_text()) == {
+        "origin": "https://api.modelspec.dev", "status": "skipped", "reason": "no key", "shapes": [],
+    }

@@ -69,7 +69,10 @@ fresh check, allowing a person whose network or UTC-day identity changed to
 continue. A repeated refusal ends the retry.
 
 Without either credential, `ACCESS_ENFORCED` decides whether to allow anonymous
-access. With the new Worker flag on, the legacy manual route and MODEL-241's
+access. Production enforcement is on (MODEL-96), together with Checkout;
+without a key or valid visit token, decide and vocabulary return 401
+`missing_api_key` with the pricing and API documentation URLs. Keep the visit
+gate on to preserve the free decide page. With the visit flag on, the legacy manual route and MODEL-241's
 Origin-only free shortcut are disabled. Under `ACCESS_ENFORCED=true`, a spoofed
 allowlisted Origin without a credential gets 401 `missing_api_key`, including
 when x402 is enabled. Visit tokens grant no admission to rank, compare,

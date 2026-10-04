@@ -270,6 +270,53 @@ def test_live_key_wins_even_with_a_tampered_visit_token(entry):
     assert not env.HUMAN_GATE.objects
 
 
+@pytest.mark.parametrize("visit_enabled", ["false", "true"])
+@pytest.mark.parametrize("path", ["/v1/decide", "/v1/vocabulary"])
+def test_funded_key_works_under_enforcement_with_or_without_the_visit_gate(bundled_entry, path, visit_enabled):
+    from datetime import UTC, datetime
+    import access_config
+    import access_keys
+    import x402
+
+    env = environment(VISIT_GATE_ENABLED=visit_enabled, HUMAN_GATE_ENABLED="false", X402_ENABLED="false")
+    key = "live_launch_fixture"
+    asyncio.run(access_keys.issue(env.ACCESS, tier="paid", owner="fixture", now=datetime.now(UTC),
+                                 policy=access_config.load_policy(env), secret=key))
+    asyncio.run(env.CREDITS.set_monthly(x402.holder_from_key(key), 5, "fixture-invoice", "fixture"))
+    worker = _decision_worker(bundled_entry, env)
+    response = asyncio.run(worker.fetch(request(path, key=key, token="tampered")))
+    assert response.status == 200
+    assert response.headers["x-modelspec-tier"] == "paid"
+    assert visit_token.HEADER not in response.headers
+    assert not env.HUMAN_GATE.objects
+
+
+@pytest.mark.parametrize("visit_enabled", ["false", "true"])
+def test_vocabulary_checks_a_presented_key_even_when_a_visit_token_is_valid(bundled_entry, visit_enabled):
+    env = environment(VISIT_GATE_ENABLED=visit_enabled, HUMAN_GATE_ENABLED="false", X402_ENABLED="false")
+    worker = _decision_worker(bundled_entry, env)
+    response = asyncio.run(worker.fetch(request("/v1/vocabulary", key="unknown-key", token=mint(env))))
+    assert response.status == 401
+    assert response.json()["error"]["code"] == "invalid_api_key"
+    assert not env.HUMAN_GATE.objects
+
+
+def test_unlimited_paid_key_with_no_balance_is_admitted_under_the_launch_flags(entry):
+    from datetime import UTC, datetime
+    import access_config
+    import access_keys
+
+    flags = production_vars(Path(__file__).resolve().parents[1])
+    env = environment(**flags)
+    key = "live_unlimited_launch_fixture"
+    asyncio.run(access_keys.issue(env.ACCESS, tier="dpf", owner="fixture", now=datetime.now(UTC),
+                                 policy=access_config.load_policy(env), secret=key))
+    response = asyncio.run(_decision_worker(entry, env).fetch(request(key=key)))
+    assert response.status == 200
+    assert response.headers["x-modelspec-tier"] == "dpf"
+    assert not env.HUMAN_GATE.objects
+
+
 @pytest.mark.parametrize("overrides", [
     {"VISIT_TOKEN_HMAC_KEY": None}, {"VISITOR_HMAC_KEY": None},
     {"TURNSTILE_SECRET": None}, {"VISIT_DECIDE_DAY_LIMIT": "0"},

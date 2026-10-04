@@ -132,13 +132,13 @@ Completed, failed and capped runs all enter the success denominator. Expected-ma
 
 The committed report is a public fixture run. Live reports can contain prompts, corporate policies, available providers and API replies. Keep future live reports in the private checkout or a private output directory. This PR adds no workflow or schedule.
 
-The sole production exception is a single keyless vocabulary smoke:
+The production vocabulary smoke is a single keyed request:
 
 ```sh
 python -m qa.agent_harness --smoke-vocabulary
 ```
 
-It sends exactly one GET to `https://api.modelspec.dev/v1/vocabulary`, attaches no key, follows no redirects, and stores only counts, snapshot, status and latency. It does not run any scenarios.
+It sends exactly one GET to `https://api.modelspec.dev/v1/vocabulary` with `Authorization: Bearer $MODELSPEC_API_KEY`, follows no redirects, and stores only counts, snapshot, status and latency. Set `MODELSPEC_API_KEY` first; with production enforcement on, a missing key stops the smoke before HTTP. It does not run scenarios or call any agent or judge. The scenario tools also forward this key for API vocabulary and model-info lookups, as they do for decisions.
 
 ## Grow the catalogue past 100
 

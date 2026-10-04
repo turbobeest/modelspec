@@ -164,7 +164,7 @@ describe("modelspec MCP worker", () => {
   it("rank, policy_check, and decide go through the RANK binding", async () => {
     // Deployed, a same-zone fetch of api.modelspec.dev answered 522; the
     // binding is the path. The envelope still names the public URL.
-    const bound = vi.fn(async () => jsonResponse(200, { result: [] }));
+    const bound = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => jsonResponse(200, { result: [] }));
     const env: Env = { ...ENV, RANK: { fetch: bound } as unknown as Fetcher };
     for (const name of ["rank", "policy_check", "decide"]) {
       const args =
@@ -177,6 +177,9 @@ describe("modelspec MCP worker", () => {
       expect(envelopeFromCall(payload).status).toBe(200);
     }
     expect(bound).toHaveBeenCalledTimes(3);
+    for (const [, init] of bound.mock.calls) {
+      expect(new Headers(init?.headers).get("authorization")).toBe("Bearer test_key");
+    }
     expect(bound.mock.calls.map((c) => c[0])).toEqual([
       "https://api.modelspec.dev/v1/rank",
       "https://api.modelspec.dev/v1/policy-check",
@@ -189,6 +192,8 @@ describe("modelspec MCP worker", () => {
     { name: "rank", arguments: { use_case: "coding" }, path: "/v1/rank" },
     { name: "policy_check", arguments: { policy: {} }, path: "/v1/policy-check" },
     { name: "decide", arguments: { spec_version: 1, optimize: { min: "offering.cost_per_task" } }, path: "/v1/decide" },
+    { name: "vocab", arguments: {}, path: "/v1/vocabulary?section=starter&detail=compact" },
+    { name: "model_info", arguments: { model_id: "lab/a" }, path: "/v1/vocabulary" },
   ];
 
   for (const tool of decisionTools) {
@@ -196,7 +201,7 @@ describe("modelspec MCP worker", () => {
       `${tool.name} refuses absent or malformed credentials (%s) even if the API would answer free`,
       async (authorization) => {
         const bound = vi.fn(async () => jsonResponse(200, { results: [{ model: "free-answer" }] }));
-        const env: Env = { ...ENV, RANK: { fetch: bound } as unknown as Fetcher };
+        const env: Env = { ...ENV, DATA_SPLIT_ENABLED: "true", RANK: { fetch: bound } as unknown as Fetcher };
         const headers = authorization === undefined ? {} : { authorization };
         const { payload } = await rpc("tools/call", { name: tool.name, arguments: tool.arguments }, 1, headers, env);
         expect(envelopeFromCall(payload)).toEqual({
@@ -205,7 +210,9 @@ describe("modelspec MCP worker", () => {
           body: {
             error: {
               code: "missing_api_key",
-              message: "MCP decisions require an API key. Send Authorization: Bearer <key>. Get one at https://modelspec.dev/pricing/.",
+              message: "MCP data tools require an API key. Send Authorization: Bearer <key>. Get one at https://modelspec.dev/pricing/.",
+              how_to_get_a_key: "https://modelspec.dev/pricing",
+              docs: "https://modelspec.dev/docs/api",
             },
             result: [],
           },
@@ -221,7 +228,7 @@ describe("modelspec MCP worker", () => {
     it.each([401, 402, 403])(`${tool.name} passes through the API's %s auth/payment refusal`, async (status) => {
       const body = { error: { code: "upstream_refusal", message: "No decision available" }, result: [] };
       const bound = vi.fn(async (_input: RequestInfo | URL, _init?: RequestInit) => jsonResponse(status, body));
-      const env: Env = { ...ENV, RANK: { fetch: bound } as unknown as Fetcher };
+      const env: Env = { ...ENV, DATA_SPLIT_ENABLED: "true", RANK: { fetch: bound } as unknown as Fetcher };
       const { payload } = await rpc("tools/call", { name: tool.name, arguments: tool.arguments }, 1, { authorization: "Bearer presented_key" }, env);
       expect(envelopeFromCall(payload)).toEqual({ origin: `https://api.modelspec.dev${tool.path}`, status, body });
       expect((payload.result as { isError?: boolean }).isError).toBe(true);
@@ -229,6 +236,29 @@ describe("modelspec MCP worker", () => {
       expect(new Headers(init.headers).get("authorization")).toBe("Bearer presented_key");
     });
   }
+
+  it.each(["true", "false"])("all static data tools require a key with split=%s", async (split) => {
+    const bound = vi.fn();
+    for (const tool of [
+      { name: "vocab", arguments: {} },
+      { name: "model_info", arguments: { model_id: "lab/a" } },
+      { name: "list_use_cases", arguments: {} },
+    ]) {
+      const { payload } = await rpc("tools/call", tool, 1, {}, {
+        ...ENV, DATA_SPLIT_ENABLED: split, RANK: { fetch: bound },
+      });
+      expect(envelopeFromCall(payload)).toMatchObject({
+        status: 401,
+        body: { error: {
+          code: "missing_api_key",
+          how_to_get_a_key: "https://modelspec.dev/pricing",
+          message: expect.stringContaining("https://modelspec.dev/pricing"),
+        }},
+      });
+    }
+    expect(bound).not.toHaveBeenCalled();
+    expect(originFetch).not.toHaveBeenCalled();
+  });
 
   it.each([undefined, "true", "typo", "", "0"])("requires a key unless the MCP setting explicitly says false (%s)", async (setting) => {
     const { payload } = await rpc("tools/call", { name: "rank", arguments: { use_case: "coding" } }, 1, {}, { ...ENV, MCP_REQUIRE_API_KEY: setting });
@@ -651,11 +681,15 @@ describe("private display vocabulary", () => {
       for (const value of forbidden) expect(JSON.stringify(envelopeFromCall(control.payload).body)).toContain(value);
       const { payload } = await rpc("tools/call", { name, arguments: args }, 1, { authorization: "Bearer test_key", "CF-Connecting-IP": "203.0.113.9" }, env);
       const envelope = envelopeFromCall(payload);
+      expect(envelope.status).toBe(200);
       expect(envelope.origin).toBe(name === "vocab" ? "https://api.modelspec.dev/v1/vocabulary?section=models&detail=full" : "https://api.modelspec.dev/v1/vocabulary");
       expect(JSON.stringify(envelope.body)).toContain("model247-private-sentinel-8675309");
       for (const value of forbidden) expect(JSON.stringify(envelope.body)).not.toContain(value);
     }
     expect(via.fetch).toHaveBeenCalledTimes(4);
+    for (const [, init] of via.fetch.mock.calls) {
+      expect(new Headers(init?.headers).get("authorization")).toBe("Bearer test_key");
+    }
   });
 });
 
@@ -715,19 +749,20 @@ describe("compact HTTP vocabulary requests", () => {
     const { payload } = await rpc("tools/call", {
       name: "vocab",
       arguments: { section: "facets", search: "CONTEXT", id: "model.context_window", ids: ["missing"], offset: 1, limit: 2 },
-    }, 1, { "CF-Connecting-IP": "203.0.113.9" }, { ...ENV, DATA_SPLIT_ENABLED: "true", RANK: via });
+    }, 1, { authorization: "Bearer test_key", "CF-Connecting-IP": "203.0.113.9" }, { ...ENV, DATA_SPLIT_ENABLED: "true", RANK: via });
     const envelope = envelopeFromCall(payload);
     expect(envelope.body).toEqual({ facets: rows,
       next: "next: call decide using these ids; refine from reading" });
     const url = new URL(envelope.origin);
     expect(Object.fromEntries(url.searchParams)).toEqual({ section: "facets", detail: "compact", search: "CONTEXT", id: "model.context_window", ids: "missing", offset: "1", limit: "2" });
     const [, init] = via.fetch.mock.calls[0];
+    expect(new Headers(init.headers).get("authorization")).toBe("Bearer test_key");
     expect(new Headers(init.headers).get("CF-Connecting-IP")).toBe("203.0.113.9");
   });
 
   it("defaults the HTTP lookup to starter and compact", async () => {
     const via = { fetch: vi.fn().mockResolvedValue(jsonResponse(200, { starter: [] })) };
-    const { payload } = await rpc("tools/call", { name: "vocab", arguments: {} }, 1, {}, { ...ENV, DATA_SPLIT_ENABLED: "true", RANK: via });
+    const { payload } = await rpc("tools/call", { name: "vocab", arguments: {} }, 1, { authorization: "Bearer test_key" }, { ...ENV, DATA_SPLIT_ENABLED: "true", RANK: via });
     expect(envelopeFromCall(payload).origin).toBe("https://api.modelspec.dev/v1/vocabulary?section=starter&detail=compact");
     expect(envelopeFromCall(payload).body).toEqual({ starter: [],
       spec: { spec_version: 1, optimize: { min: "offering.cost_per_task" } },
@@ -742,7 +777,7 @@ describe("vocabulary rollout", () => {
       facets: [{ id: "model.context_window", label: "Context", definition: "Token window. More details.", value_type: "number", operators: [">="], has_data: true }],
       templates: [{ spec: { where: ["model.context_window >= 32000"] } }],
     })) };
-    const { payload } = await rpc("tools/call", { name: "vocab", arguments: {} }, 1, {}, { ...ENV, DATA_SPLIT_ENABLED: "true", RANK: via });
+    const { payload } = await rpc("tools/call", { name: "vocab", arguments: {} }, 1, { authorization: "Bearer test_key" }, { ...ENV, DATA_SPLIT_ENABLED: "true", RANK: via });
     expect(envelopeFromCall(payload).body).toEqual({ starter: [{ id: "model.context_window", label: "Context", definition: "Token window.", value_type: "number" }],
       spec: { spec_version: 1, optimize: { min: "offering.cost_per_task" } },
       next: "next: call decide with this; refine from reading" });

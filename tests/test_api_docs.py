@@ -19,8 +19,8 @@ Every assertion is between a document and the implementation:
   reading `undetermined` as a pass;
 * the quotas in the reference must be the numbers in `tiers.json`, and what the
   references say about keys must match the deployed switch: the access gate is
-  wired with `ACCESS_ENFORCED` off, so a key is optional and a presented one is
-  checked. The tests fail the day the switch or the key store binding changes,
+  wired with `ACCESS_ENFORCED` on, so machine data requests need a key. The free
+  decide page uses its verified visit token. The tests fail if the switch or the key store binding changes,
   which is the day the references have to change;
 * the neutrality commitment (MODEL-70) is live as data and linked; the terms,
   privacy statement and commitment were adopted on 2026-09-19 and are linked as
@@ -609,14 +609,12 @@ def test_the_quotas_in_the_reference_are_the_numbers_in_tiers_json(reference: st
         "the reference must name the sandbox key prefix tiers.json actually uses")
 
 
-def test_the_access_gate_is_wired_and_the_reference_says_it_is_not_enforced(
+def test_the_access_gate_is_wired_and_the_reference_says_it_is_enforced(
         reference: str) -> None:
-    """The day someone flips ACCESS_ENFORCED, this fails and the docs must change."""
+    """MODEL-96: the reference and generated spec describe the live gate."""
     entry = ENTRY.read_text(encoding="utf-8")
     assert "access.gate(" in entry, "entry.py no longer calls the access gate"
-    assert not generator.access_enforced(), (
-        "ACCESS_ENFORCED is on in wrangler.jsonc. Update the documented flag state "
-        "and regenerate openapi.yaml.")
+    assert generator.access_enforced() is True
     prose = _prose(reference)
     assert "not live yet" not in prose.lower()
     assert "takes no key and meters nothing" not in prose
@@ -624,6 +622,9 @@ def test_the_access_gate_is_wired_and_the_reference_says_it_is_not_enforced(
     assert "free tier, unmetered" not in prose
     assert "Keyless API calls are still answered" not in prose
     assert "`ACCESS_ENFORCED`" in prose
+    assert "`ACCESS_ENFORCED` is on" in prose
+    assert "401 `missing_api_key`" in prose
+    assert "Turnstile-verified visit token" in prose
     assert generator.access_store_bound(), (
         "the ACCESS key store is no longer bound. docs/api.md still describes it as bound.")
     assert "the key store is unbound" not in prose
@@ -720,19 +721,24 @@ def test_the_linked_neutrality_commitment_resolves() -> None:
     assert published["ranking_policy"]["neutrality"] == neutrality_commitment()
 
 
-def test_the_spec_records_the_access_layer_as_wired_and_not_enforced(
+def test_the_spec_records_the_access_layer_as_wired_and_enforced(
         spec: dict[str, Any]) -> None:
     import json
 
     block = spec["x-modelspec-access"]
-    assert block["status"] == "wired; enforcement off"
-    assert block["enforced"] is False and block["key_store_bound"] is True
+    assert block["status"] == "wired; enforced"
+    assert block["enforced"] is True and block["key_store_bound"] is True
+    assert "Every machine data endpoint needs an API key" in block["effect_today"]
+    assert "Turnstile-verified visit token" in block["effect_today"]
     tiers = json.loads(TIERS_PATH.read_text(encoding="utf-8"))
     assert block["sandbox_prefix"] == tiers["sandbox_prefix"]
     assert block["tiers"]["sandbox"]["daily_limit"] is None
     assert block["refusals"] == dict(sorted(generator.access.REFUSALS.items()))
-    # A key is optional: the anonymous requirement `{}` is listed beside the schemes.
-    assert spec["security"][0] == {}
+    assert spec["security"] == [{"bearer": []}, {"apiKey": []}]
+    assert spec["paths"]["/v1/health"]["get"]["security"] == []
+    assert spec["paths"]["/v1/feedback"]["post"]["security"] == [{}]
+    assert spec["paths"]["/v1/decide"]["post"]["security"] == [
+        {"bearer": []}, {"apiKey": []}, {"visitToken": []}]
     assert {"bearer", "apiKey"} <= set(spec["components"]["securitySchemes"])
     for path in ("/v1/rank", "/v1/policy-check"):
         responses = spec["paths"][path]["post"]["responses"]
@@ -764,11 +770,14 @@ def test_ci_checks_the_spec_and_probes_it_after_a_deploy() -> None:
     # #97: nothing in the smoke step may be able to abort it before the retry
     # loop has run. The probe comes after the loop and cannot exit on its own.
     loop = deploy.index('while [ "$SECONDS" -lt "$deadline" ]')
-    probe_line = next(line for line in deploy.splitlines()
-                      if "python3 api/worker/openapi.py --probe" in line)
-    assert deploy.index(probe_line) > loop, "the spec probe must run after the retry loop"
-    after = deploy[deploy.index(probe_line):].split("\n", 2)[1]
+    probe_start = deploy.rindex("python3 api/worker/openapi.py --probe")
+    probe_line = deploy[probe_start:].splitlines()[0]
+    assert probe_start > loop, "the spec probe must run after the retry loop"
+    after = deploy[probe_start:].split("\n", 2)[1]
     assert "|| fail" in probe_line + after, "the spec probe must report through fail()"
+    split_branch = deploy[deploy.index('if [ "$DATA_SPLIT_ENABLED" = "true" ]; then'):loop]
+    assert split_branch.index("check_private_rank.py") < split_branch.index("openapi.py --probe")
+    assert "::error::private Worker OpenAPI probe failed" in split_branch
 
 
 # ── the live proof, opt-in ───────────────────────────────────────────────────

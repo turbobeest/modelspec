@@ -83,7 +83,8 @@ def test_procurement_copy_reads_production_billing_flag(tmp_path, monkeypatch, b
         "vars": {"BILLING_ENABLED": str(billing).lower()},
         "env": {"staging": {"vars": {"BILLING_ENABLED": str(not billing).lower()}}},
     }))
-    expected = ("Buy a plan or credit pack at https://modelspec.dev/pricing/ to get a key."
+    expected = ("Buy a plan or pack at https://modelspec.dev/pricing/. "
+                "Stripe hosts Checkout; claim your key at the success link."
                 if billing else
                 "Use an existing key, or see https://modelspec.dev/pricing/ for availability.")
     assert agent_copy.key_procurement(tmp_path) == expected

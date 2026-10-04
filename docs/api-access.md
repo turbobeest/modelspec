@@ -3,12 +3,14 @@
 MODEL-69. How a call to the ranking origin is identified, what it is allowed to
 do, and what it is told when it is refused.
 
-**Status: wired, enforcement off, key store bound, no keys issued.** Both POST
-endpoints (`/v1/rank`, `/v1/policy-check`) pass through the gate. A request
-without a key is served exactly as before; a request that presents a key is
-checked. See [The switch](#the-switch-access_enforced) and
-[Morning steps](#turning-it-on). No key has been issued yet (issuance is
-MODEL-73).
+**Status: enforcement on, Checkout open, key store bound (MODEL-96).** Machine
+data requests to `/v1/decide`, `/v1/compare`, `/v1/rank`, `/v1/policy-check` and
+`/v1/vocabulary` require a key. Without one they receive 401 `missing_api_key`
+with the pricing and API documentation URLs. Buy a plan or pack at
+[pricing](https://modelspec.dev/pricing/), then claim the key at the Checkout
+success link (MODEL-73). The free decide page uses MODEL-292's human browser
+visit gate for decide and vocabulary. Health and feedback remain keyless.
+See [The switch](#the-switch-access_enforced).
 
 The modules are in `api/worker/src/`:
 
@@ -225,12 +227,13 @@ in that mode, even when x402 is enabled. All other callers follow
 
 ## The switch: `ACCESS_ENFORCED`
 
-A `vars` entry in `api/worker/wrangler.jsonc`, shipped as `"false"`.
+A production `vars` entry in `api/worker/wrangler.jsonc`, shipped as `"true"`.
+Staging remains `"false"`.
 
 | | no key | `test_…` key | known live key | unknown or revoked key |
 | --- | --- | --- | --- | --- |
-| **off** (shipped) | served as before: free tier, unmetered, nothing written | sandbox | metered, served per tier | 401 / 403 |
-| **on** | 401 `missing_api_key` | sandbox | metered, served per tier | 401 / 403 |
+| **off** | served as before: free tier, unmetered, nothing written | sandbox | metered, served per tier | 401 / 403 |
+| **on** (shipped) | 401 `missing_api_key` | sandbox | metered, served per tier | 401 / 403 |
 
 Presenting a bad key is an error in both modes. Silently treating it as
 anonymous would let a caller who believes they hold a paid key run for weeks on
@@ -239,9 +242,11 @@ the free answer without being told.
 `"false"`, `"0"`, `"no"`, `"off"` and `""` (and unset) read as off; **anything
 else reads as on**, so a typo made while switching it on cannot leave it off.
 
-It ships off because self-serve issuance (Stripe Checkout, MODEL-73) ships
-behind its own flag, `BILLING_ENABLED`, also off. Enforcing now would refuse
-every anonymous caller. **Flip `ACCESS_ENFORCED` once keys can be obtained.**
+`BILLING_ENABLED` is also `"true"` in production, so self-serve issuance is open.
+`VISIT_GATE_ENABLED` must stay on to keep the decide page free: a valid,
+Turnstile-verified visit token admits only decide and vocabulary. An allowlisted
+Origin alone does not admit a keyless request. Invalid or expired visit tokens
+receive 401; they do not fall through to anonymous data access.
 
 ## The key store: the `ACCESS` binding
 
@@ -285,16 +290,17 @@ wrangler deploy --var "BUILD_COMMIT:$GITHUB_SHA" --var "TIER_POLICY:$(jq -c . ti
 The disk fallback in `load_policy` is for this repository's tests; the isolate
 has no copy of `tiers.json`. A Worker without the variable refuses a presented
 key with `access_not_configured` rather than metering it against numbers
-invented in code. Anonymous requests never load the table.
+invented in code. With enforcement off, anonymous requests never load the table.
 
 ## Turning it on
 
 1. **Done 2026-09-18.** The `ACCESS` namespace
    (`ef86b7ce138d4891b3eb630cdd2ba4e5`) is bound in
-   `api/worker/wrangler.jsonc`. Enforcement stays off.
+   `api/worker/wrangler.jsonc`.
 2. Issue keys: Stripe Checkout (`docs/billing.md`, MODEL-73) records the
    entitlement from the webhook. `GET`/`POST /v1/billing/claim` calls
    `access_keys.issue` once. Rotation is `POST /v1/billing/rotate`.
-3. Then, and only then, set `"ACCESS_ENFORCED": "true"`, regenerate the spec
-   (`python api/worker/openapi.py`) and update `docs/api.md`; the doc tests
-   fail until both say a key is required.
+3. **Prepared by MODEL-96.** Production `ACCESS_ENFORCED` and `BILLING_ENABLED`
+   are `"true"`, and the generated spec and references describe enforcement.
+   The existing visit gate remains on for free browser lookups. Deployment
+   still happens only on push to main; this change does not deploy by hand.

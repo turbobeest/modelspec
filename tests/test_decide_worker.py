@@ -922,10 +922,15 @@ def test_server_timing_reports_only_snapshot_work(
         assert "server-timing" in exposed
 
 
-def test_access_and_billing_switches_stay_off() -> None:
-    config = (WORKER_ROOT / "wrangler.jsonc").read_text(encoding="utf-8")
-    for name in ("ACCESS_ENFORCED", "BILLING_ENABLED", "X402_ENABLED"):
-        assert f'"{name}": "false"' in config
+def test_billing_launch_enforces_keys_and_keeps_the_free_browser_visit_gate() -> None:
+    from pipeline.worker_flags import production_vars
+
+    variables = production_vars(REPO_ROOT)
+    assert variables["ACCESS_ENFORCED"] == "true"
+    assert variables["BILLING_ENABLED"] == "true"
+    assert variables["VISIT_GATE_ENABLED"] == "true"
+    assert variables["HUMAN_GATE_ENABLED"] == "false"
+    assert variables["X402_ENABLED"] == "false"
 
 
 def test_an_evidence_row_without_measured_by_is_kept_out_and_no_decision_breaks():

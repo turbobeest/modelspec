@@ -44,7 +44,7 @@ def test_pricing_page_is_built_with_assets_and_indexing_metadata(tmp_path: Path)
     html = page.read_text()
     assert '<link rel="canonical" href="https://modelspec.dev/pricing/">' in html
     assert '<meta name="description"' in html
-    assert pricing.FREE_TIER_TITLE in html
+    assert pricing.TITLE in html
     assert '<a href="/method/">Method</a>' in html
     assert 'property="og:image" content="https://modelspec.dev/og-card-pricing.png"' in html
     assert 'name="twitter:image" content="https://modelspec.dev/og-card-pricing.png"' in html
@@ -211,25 +211,35 @@ def test_endpoints_contact_and_no_third_party_assets() -> None:
 
 def test_production_switches_generate_what_ships_today(tmp_path: Path) -> None:
     variables = worker_flags.production_vars(REPO_ROOT)
-    assert worker_flags.enabled(variables, "BILLING_ENABLED") is False
+    assert worker_flags.enabled(variables, "BILLING_ENABLED") is True
     assert worker_flags.enabled(variables, "X402_ENABLED") is False
     assert worker_flags.enabled(variables, "X402_MAINNET") is False
-    assert worker_flags.enabled(variables, "ACCESS_ENFORCED") is False
+    assert worker_flags.enabled(variables, "ACCESS_ENFORCED") is True
     pricing.write(tmp_path, REPO_ROOT, _build())
     html = (tmp_path / "pricing" / "index.html").read_text()
-    assert "<form" not in html
+    prices = json.loads(TIERS_PATH.read_text())["billing"]["prices"]
+    for price_id, row in prices.items():
+        assert f'name="price_id" value="{price_id}"' in html
+        assert f"{row['credits']:,}" in html
+        assert f"${row['usd']}" in html
+    assert html.count('<form method="post"') == len(prices)
     assert "x402" not in html.lower()
     assert "Or let your agents pay as they go" not in html
-    assert "Plans and packs" in html
-    assert "Purchase" not in html
-    assert "Keyless API calls are still answered" in html
-    assert re.search(r"\b(buy|checkout|card|cancel(?:ling)?)\b", _rendered_text(html), re.I) is None
+    assert "Buy credits for your agents" in html
+    assert "Purchase" in html
+    assert "Every machine data endpoint needs an API key" in html
+    assert "Turnstile-verified visit token" in html
+    assert "Keyless API calls are still answered" not in html
+    assert "Checkout is hosted by Stripe" in html
+    assert "claim your API key at the Checkout success link" in html
+    assert "access enforcement is off" not in html
+    assert "paid access is being switched on" not in html
     assert _payload(html)["payPerCall"] is False
     assert "perCall" not in _payload(html)
     assert "coming soon" not in html.lower()
     assert "opening soon" not in html.lower()
-    assert "People decide free. Machine access needs a key." in html
-    assert "People decide free. Agents pay per answer." not in html
+    assert "People decide free. Agents pay per answer." in html
+    assert "People decide free. Machine access needs a key." not in html
 
 
 def test_billing_and_x402_render_independently() -> None:
@@ -306,7 +316,7 @@ def test_pricing_descriptions_and_hero_require_keys_for_all_data_tools() -> None
         assert "offline CLI" not in page
         if not enforced:
             assert "API and MCP server answer on a free tier" not in page
-            approved = "Keyless API calls are still answered while paid access is being switched on"
+            approved = "Keyless API calls are still answered while access enforcement is off"
             assert page.count(approved) == 1
             assert "Keyless API" not in description
             assert "Agents start free" not in page

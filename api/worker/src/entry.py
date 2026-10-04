@@ -30,10 +30,11 @@ agent. `feedback_service.py` owns the rules; `docs/design/feedback-privacy.md`
 says why.
 
 All decision POST endpoints pass through that gate (`access.gate`, `docs/api-access.md`)
-after the body is read and before any export is fetched. It ships with
-enforcement OFF (`ACCESS_ENFORCED`): an unkeyed request is answered exactly as
-before, a presented key is checked, metered and served per its tier, and a bad
-key is refused rather than downgraded to anonymous.
+after the body is read and before any export is fetched. Access enforcement
+is on (`ACCESS_ENFORCED`): machine data requests need a key. The free decide
+page authenticates with a verified visit token for decide and vocabulary.
+Presented keys are checked, metered and served per their tier; a bad key is
+refused rather than downgraded to anonymous.
 
 The export is the same static JSON the sites and the CLI read
 (`https://modelspec.dev/api/rank/...`). There is no database and no private
@@ -755,9 +756,9 @@ class Default(WorkerEntrypoint):
                     return Response("", status=204, headers={**cors, "access-control-allow-methods": "GET, HEAD, OPTIONS"})
                 if method not in ("GET", "HEAD"):
                     return self._method_not_allowed(service_commit, path, "GET", method)
+                api_key = access_keys.extract(lambda name: request.headers.get(name))
+                admitted = False
                 if visit_token.enabled(self.env):
-                    api_key = access_keys.extract(lambda name: request.headers.get(name))
-                    admitted = False
                     if api_key is None and request.headers.get(visit_token.HEADER):
                         status, code, message, headers = await visit_token.admit(request, self.env, CORS_ORIGINS, "vocabulary")
                         admitted = status == 200
@@ -765,20 +766,20 @@ class Default(WorkerEntrypoint):
                             return _json_response(status, {"error": {"code": code, "message": message}}, {**cors, **headers})
                         if admitted:
                             cors.update(headers)
-                    if not admitted:
-                        async def allowed(*args):
-                            return 200, {}
-                        outcome = await access.gate(
-                            api_key=api_key,
-                            enforced=access.enforcement(getattr(self.env, ACCESS_ENFORCED_VAR, None)),
-                            kv=_access_store(self.env), load_policy=lambda: access_config.load_policy(self.env),
-                            anonymous=allowed, live=allowed,
-                            sandbox=lambda: access.refusal(access.SANDBOX_NOT_AVAILABLE, "Use a live key for vocabulary.", envelope={}),
-                        )
-                        if not outcome.served:
-                            return _json_response(outcome.status, outcome.body, {**cors, **outcome.headers})
-                        cors.update(outcome.headers)
-                elif human_gate.enabled(self.env):
+                if not admitted:
+                    async def allowed(*args):
+                        return 200, {}
+                    outcome = await access.gate(
+                        api_key=api_key,
+                        enforced=access.enforcement(getattr(self.env, ACCESS_ENFORCED_VAR, None)),
+                        kv=_access_store(self.env), load_policy=lambda: access_config.load_policy(self.env),
+                        anonymous=allowed, live=allowed,
+                        sandbox=lambda: access.refusal(access.SANDBOX_NOT_AVAILABLE, "Use a live key for vocabulary.", envelope={}),
+                    )
+                    if not outcome.served:
+                        return _json_response(outcome.status, outcome.body, {**cors, **outcome.headers})
+                    cors.update(outcome.headers)
+                if not visit_token.enabled(self.env) and human_gate.enabled(self.env):
                     try:
                         stub = human_gate.stub_for(request, self.env)
                         if stub is None:
