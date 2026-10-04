@@ -56,3 +56,6 @@ api/worker/src/hardware/
 web/src/decide/__corpus__/
 
 api/worker/src/bundled_data.py
+
+# A local op:// reference for qa.run_with_modelspec_key (never a key value)
+qa/subscription.env.op

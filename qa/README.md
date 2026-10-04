@@ -428,6 +428,48 @@ publication retains its worktree and prints its path for recovery. The shell
 wrapper used by schedules also runs the merged public engine from a fresh
 detached worktree. No reports or private task definitions enter this public tree.
 
+### ModelSpec key for agent runs
+
+Scenario agents call the keyed ModelSpec MCP, so a run without a key only
+measures how agents handle `missing_api_key`. Agent testing is a manual,
+semiannual proof run. Its key path is `qa.run_with_modelspec_key`, which Jamie
+starts under 1Password. The harness never reads or fetches the key.
+
+1. Copy `qa/subscription.env.op.example` to `qa/subscription.env.op` (ignored by
+   git). It points at vault AI-LAN, item "ModelSpec API - QA harness", field
+   `credential`; Jamie confirms the field name (`credential` or `password`). The
+   key must be live and funded. A `test_` key is refused, because sandbox
+   results are synthetic.
+2. From the stable checkout, after the three doctors pass:
+
+```sh
+cd ~/dev/modelspec
+op run --env-file=qa/subscription.env.op -- \
+  .venv/bin/python -m qa.run_with_modelspec_key \
+  scenarios --cli claude --cli codex --cli grok
+```
+
+The launcher keeps only `HOME`, `PATH`, `TERM` and `LANG`, adds `PYTHONPATH`
+and the key, and starts `qa.subscription_jobs` with `execve`. The key value is
+never in argv. The vendor-key guard then runs as usual. Agents receive the key
+only by environment name: Claude and Grok expand `${MODELSPEC_API_KEY}` in their
+MCP headers, and Codex uses `bearer_token_env_var`. Judges get no key.
+`redact()` removes every `MODELSPEC_*` value from reports. Add `--scenario`
+globs and `--max-runs-per-cli` to narrow a run.
+
+A keyed scenario run checks every decide answer before it publishes. Any
+`credits.exhausted` or 401/402/403 answer refuses publication: the report stays
+in the kept worktree and the job exits 2, because those runs measure the key,
+not the agents. A `status: partial` answer is legitimate (wide intervals or
+missing coverage), so it is only counted. Run one scenario per CLI first:
+
+```sh
+op run --env-file=qa/subscription.env.op -- \
+  .venv/bin/python -m qa.run_with_modelspec_key \
+  scenarios --cli claude --cli codex --cli grok \
+  --scenario budget-approved --max-runs-per-cli 3
+```
+
 ### First manual run and schedules
 
 Build the ordinary images, then the two browser images. Login remains Jamie's

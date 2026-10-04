@@ -661,3 +661,43 @@ def test_native_api_errors_preserve_validation_misuse_and_retry_fields():
     assert parsed.tool_calls[0]['validation_errors'] == envelope['body']['error']['issues']
     assert parsed.tool_calls[1]['retry_of'] == 'a'
     assert parsed.tool_calls[0]['turn'] is None
+
+
+@pytest.mark.parametrize('key,error', [
+    ('', 'not set'), ('op://vault/item/field', 'not set'), ('test_abcdefghijklmnop', 'sandbox'),
+])
+def test_key_launcher_refuses_missing_reference_or_sandbox_keys(key, error):
+    from qa import run_with_modelspec_key as launcher
+    with pytest.raises(ValueError, match=error):
+        launcher.job_environment({'MODELSPEC_API_KEY': key, 'HOME': '/h'})
+
+
+def test_key_launcher_passes_only_the_key_and_a_clean_environment():
+    from qa import run_with_modelspec_key as launcher
+    env = launcher.job_environment({
+        'MODELSPEC_API_KEY': 'live_value', 'HOME': '/h', 'PATH': '/bin', 'TERM': 'xterm',
+        'OPENAI_API_KEY': 'vendor', 'OP_SESSION_x': 'session', 'GITHUB_TOKEN': 'gh',
+    })
+    assert set(env) == {'MODELSPEC_API_KEY', 'HOME', 'PATH', 'TERM', 'LANG', 'PYTHONPATH'}
+    assert env['MODELSPEC_API_KEY'] == 'live_value' and env['LANG'] == 'en_US.UTF-8'
+    jobs.refuse_vendor_auth(env)  # The job's own guard accepts the result.
+
+
+def _decide_report(*bodies, status=200):
+    responses = {f'r{i}': {'content': [{'type': 'text', 'text': json.dumps(
+        {'origin': 'https://api.modelspec.dev/v1/decide', 'status': status, 'body': body})}]}
+        for i, body in enumerate(bodies)}
+    calls = [{'name': 'decide', 'response_ref': ref} for ref in responses]
+    return {'runs': [{'tool_calls': calls + [{'name': 'vocab', 'response_ref': 'missing'}]}],
+            'tool_responses': responses}
+
+
+def test_funded_key_check_counts_partial_but_refuses_exhausted_or_unauthorised():
+    report = _decide_report({'status': 'decided'}, {'status': 'partial'})
+    assert jobs.require_funded_key(report) == {
+        'decide_answers': 2, 'credits_exhausted': 0, 'partial': 1, 'unauthorised': 0}
+    with pytest.raises(ValueError, match='1 credits.exhausted'):
+        jobs.require_funded_key(_decide_report(
+            {'status': 'partial', 'credits': {'exhausted': True, 'available': 0}}))
+    with pytest.raises(ValueError, match='1 unauthorised'):
+        jobs.require_funded_key(_decide_report({'error': {'code': 'missing_api_key'}}, status=401))
