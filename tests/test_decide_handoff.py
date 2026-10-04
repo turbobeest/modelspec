@@ -39,13 +39,13 @@ def test_changed_prices_and_credit_weights_change_the_built_copy(tmp_path: Path)
     assert data["full_credits"] == 7
 
 
-@pytest.mark.parametrize("flag,href,note", [
-    ("false", "/pricing/", "API keys open soon: see pricing"),
-    ("true", "/pricing/#pricing", "Choose a plan or pack."),
-    ("off", "/pricing/", "API keys open soon: see pricing"),
+@pytest.mark.parametrize("flag,href,label,note", [
+    ("false", "/pricing/", "See pricing", "API keys open soon."),
+    ("true", "/pricing/#pricing", "Get an API key", "Choose a plan or pack."),
+    ("off", "/pricing/", "See pricing", "API keys open soon."),
 ])
 def test_key_link_uses_the_same_production_flag_as_pricing(
-    tmp_path: Path, flag: str, href: str, note: str,
+    tmp_path: Path, flag: str, href: str, label: str, note: str,
 ) -> None:
     tiers = pricing.load_tiers(ROOT)
     (tmp_path / pricing.TIERS_REL).parent.mkdir(parents=True)
@@ -54,7 +54,7 @@ def test_key_link_uses_the_same_production_flag_as_pricing(
         "vars": {"BILLING_ENABLED": flag},
         "env": {"preview": {"vars": {"BILLING_ENABLED": "true"}}},
     }))
-    assert decide_handoff.data(tmp_path)["key_link"] == {"href": href, "note": note}
+    assert decide_handoff.data(tmp_path)["key_link"] == {"href": href, "label": label, "note": note}
     page = pricing.page(tiers, billing_live=worker_flags.enabled(
         worker_flags.production_vars(tmp_path), "BILLING_ENABLED"))
     assert 'id="pricing"' in page

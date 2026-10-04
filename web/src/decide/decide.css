@@ -274,6 +274,12 @@ body {
 }
 .capsule,
 .decide-app {
+  /* MODEL-325: one grid, one gutter, one gap, one inner padding, one radius. */
+  --gutter: 16px;
+  --gap: 16px;
+  --header-h: 65px;
+  --pad: 20px;
+  --radius: 0;
   --bg: #faf9f8;
   --surface: #ffffff;
   --surface2: #f3f2f1;
@@ -401,7 +407,7 @@ html:not([data-decide-theme="light"]) .capsule {
 .decide-app button {
   cursor: pointer;
   border: 1px solid var(--line2);
-  border-radius: 2px;
+  border-radius: var(--radius);
   background: var(--surface);
   padding: 6px 12px;
   font-size: 12.5px;
@@ -417,7 +423,7 @@ html:not([data-decide-theme="light"]) .capsule {
 .decide-app select {
   background: var(--surface);
   border: 1px solid var(--line2);
-  border-radius: 2px;
+  border-radius: var(--radius);
   padding: 5px 7px;
 }
 .decide-app input[type="range"] {
@@ -512,6 +518,11 @@ html:not([data-decide-theme="light"]) .capsule {
   gap: 14px;
   align-items: center;
 }
+/* 65px is the desktop header, the 48px mark plus 16px padding and a 1px border.
+   Below 900px the mark is 38px and min-height 56px is the real height. */
+@media (min-width: 900px) {
+  .global-header { height: var(--header-h); }
+}
 .global-header button {
   white-space: nowrap;
 }
@@ -527,7 +538,7 @@ html:not([data-decide-theme="light"]) .capsule {
   color: var(--warn);
   background: var(--warnSoft);
   padding: 3px 8px;
-  border-radius: 2px;
+  border-radius: var(--radius);
   white-space: nowrap;
 }
 .snapshot {
@@ -564,7 +575,7 @@ html:not([data-decide-theme="light"]) .capsule {
 .task-box {
   background: var(--surface);
   border: 1px solid var(--line2);
-  border-radius: 2px;
+  border-radius: var(--radius);
   padding: 18px 18px 14px;
   display: flex;
   flex-direction: column;
@@ -627,7 +638,7 @@ html:not([data-decide-theme="light"]) .capsule {
 .mini-chips span {
   font-size: 11.5px;
   padding: 2px 6px;
-  border-radius: 2px;
+  border-radius: var(--radius);
   background: var(--surface2);
   color: var(--ink2);
 }
@@ -648,45 +659,59 @@ html:not([data-decide-theme="light"]) .capsule {
 }
 
 /* MODEL-168 preview board. It inherits the decision page's light/dark tokens. */
-.facet-board { display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; min-width: 0; }
-.facet-board > *, .board-intro > *, .estate-strip > *, .access-question > *, .board-workspace > * { min-width: 0; }
-.estate-strip, .access-question, .facet-list, .board-answer-head {
-  background: var(--surface); border: 1px solid var(--line); border-top: 2px solid var(--ink);
-  padding: 14px 16px;
-}
-.estate-strip { background: transparent; border: 0; }
+.facet-board { display: flex; flex-direction: column; gap: var(--gap); min-width: 0; }
+.facet-board > *, .answer-block > *, .board-intro > *, .estate-strip > *, .access-question > *, .answer-region > *, .refine > * { min-width: 0; }
+/* The answer and its chart share the page's 12 columns, six each, so the split
+   lands on the gutter between the third and fourth template tiles. */
+.answer-block { display: flex; flex-direction: column; gap: var(--gap); }
+.answer-block:empty { display: none; }
+.answer-region { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gutter); align-items: start; }
+.answer-column { grid-column: 1 / span 6; display: flex; flex-direction: column; gap: var(--gap); }
+.answer-region:not(:has(> .chart-column)) > .answer-column { grid-column: 1 / -1; }
+.chart-column { grid-column: 7 / -1; position: sticky; top: calc(var(--header-h) + var(--gap)); }
+.refine { display: flex; flex-direction: column; gap: var(--gap); }
+.refine-head h2 { margin: 0; font-size: 20px; }
+.refine-head p { margin: 4px 0 0; color: var(--ink2); font-size: 13px; }
 .legacy-notes { margin: 0 0 12px; padding: 12px 16px; border: 1px solid var(--warning, #b7791f); border-radius: 8px; background: color-mix(in srgb, var(--warning, #b7791f) 8%, transparent); }
 .legacy-notes ul { margin: 6px 0 0; padding-left: 20px; }
 .legacy-notes li + li { margin-top: 4px; }
-/* The intro is a page header, not a panel: the landing page's navy and type in
-   both themes, so it reads as outside the tool. Headline as on the landing:
-   one size, yellow, condensed Instrument Sans. */
+/* The intro keeps the landing page's navy and type in both themes, so it reads
+   as outside the tool; its accent bar is drawn inside the shared panel box.
+   Headline as on the landing: one size, yellow, condensed Instrument Sans. */
 .board-intro { display: flex; align-items: end; justify-content: space-between; gap: 24px;
   background: var(--hero-bg); color: var(--hero-ink); border: 1px solid var(--hero-line);
-  border-left: 3px solid var(--hero-rule); padding: 28px 32px 22px; }
+  box-shadow: inset 3px 0 0 var(--hero-rule); padding: var(--pad); }
 .board-intro .eyebrow { color: var(--hero-title); font-size: 13px; letter-spacing: .02em; }
 .board-intro > div { flex: 1; }
-.decide-app .board-intro h1 { margin: 12px 0 20px; color: var(--hero-title);
+.decide-app .board-intro h1 { margin: 6px 0 8px; color: var(--hero-title);
   font-family: var(--sans); font-size: clamp(30px, 3.1vw, 44px); font-weight: 650;
   font-stretch: 78%; letter-spacing: .01em; line-height: 1.15; overflow-wrap: break-word; }
-.board-intro p { margin: 0; max-width: 80ch; color: var(--hero-muted); font-size: 16px;
-  letter-spacing: normal; line-height: 1.5; }
-.board-intro p + p { margin-top: 10px; }
-.board-intro .board-intro-rules { font-size: 13px; }
-.board-intro .board-intro-note { margin-top: 16px; padding-top: 10px; border-top: 1px solid var(--hero-line);
-  color: var(--hero-faint); font: 11.5px/1.5 var(--mono); }
+.board-intro p { margin: 0; color: var(--hero-muted); font-size: 15px;
+  letter-spacing: normal; line-height: 1.4; }
+.board-intro p + p { margin-top: 4px; }
+.intro-tip { position: relative; }
+.intro-tip-term { border-bottom: 1px dotted currentColor; cursor: help; }
+.intro-tip-term:focus-visible { outline: 2px solid var(--hero-title); outline-offset: 2px; }
+.intro-tip-text { display: none; position: absolute; left: 0; top: calc(100% + 6px); z-index: 5; width: max-content; max-width: min(340px, 80vw);
+  padding: 6px 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: 12px/1.4 var(--mono); }
+.intro-tip-term:hover + .intro-tip-text, .intro-tip-term:focus + .intro-tip-text { display: block; }
 /* The action colour leads to an answered job. Must keeps its violet gate cue
    from MODEL-264; result eligibility uses green, amber and grey everywhere. */
 .template-heading, .template-active { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .template-heading { margin-bottom: 10px; }
-.template-shortcuts { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
-.decide-app .template-shortcut { display: flex; flex-direction: column; gap: 8px; min-height: 120px; padding: 16px; text-align: left; line-height: 1.4; }
-.template-shortcut strong { font-size: 16px; font-weight: 650; }
-.template-shortcut span { font-size: 12px; font-weight: 400; }
-.decide-app .template-shortcut[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--accentInk); }
-.template-active { margin-top: 12px; }
+.template-heading > .eyebrow { margin-right: auto; }
+.decide-app .template-heading button { min-height: 0; padding: 4px 10px; }
+.template-active { flex-wrap: nowrap; align-items: baseline; }
+@media (max-width: 620px) { .template-heading > .template-active { order: 3; flex-basis: 100%; justify-content: flex-start; } }
+.template-shortcuts { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--gutter); }
+.decide-app .template-shortcut { display: flex; flex-direction: column; gap: 4px; padding: 8px 12px; text-align: left; line-height: 1.3; }
+.template-shortcut strong { font-size: 15px; font-weight: 650; }
+.template-shortcut span { font-size: 11.5px; font-weight: 400; }
+.decide-app .template-shortcut[aria-pressed="true"] { background: var(--ink); color: var(--surface); border-color: var(--ink); box-shadow: inset 0 0 0 2px var(--accent); }
+
 .template-active strong { font-weight: 600; }
-.template-picker .board-templates { border: 0; padding: 4px 0 14px; background: transparent; }
+.template-picker .board-templates { border: 0; padding: 0; background: transparent; }
+.template-picker .board-templates:not([hidden]) { margin-top: 12px; }
 @media (max-width: 1200px) { .template-shortcuts { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 600px) { .template-shortcuts { grid-template-columns: repeat(2, minmax(0, 1fr)); } .decide-app .template-shortcut { min-height: 110px; padding: 12px; } }
 .board-templates[hidden] { display: none; }
@@ -700,7 +725,7 @@ html:not([data-decide-theme="light"]) .capsule {
 .template-grid tbody th small { display: block; color: var(--muted); margin-top: 2px; }
 .template-grid td { vertical-align: top; padding: 5px 4px; }
 .template-grid tbody tr + tr > * { border-top: 1px solid var(--line); }
-.template-grid td button, .template-grid td > div { width: 100%; min-height: 58px; padding: 6px 8px; text-align: left; display: flex; flex-direction: column; gap: 3px; border: 1px solid var(--line); border-radius: 3px; font-size: 12px; line-height: 1.35; }
+.template-grid td button, .template-grid td > div { width: 100%; min-height: 58px; padding: 6px 8px; text-align: left; display: flex; flex-direction: column; gap: 3px; border: 1px solid var(--line); border-radius: var(--radius); font-size: 12px; line-height: 1.35; }
 .template-grid td button { background: var(--surface); cursor: pointer; }
 .template-grid td button:hover { border-color: var(--accent); }
 .template-grid td button:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
@@ -709,7 +734,7 @@ html:not([data-decide-theme="light"]) .capsule {
 .template-subcategory { display: flex; flex-direction: column; gap: 2px; margin-top: 6px; color: var(--muted); font-size: 11px; }
 .template-subcategory select { max-width: 100%; font-size: 12px; }
 .template-flat { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-top: 10px; }
-.template-flat button, .template-flat > div { min-height: 82px; text-align: left; display: flex; flex-direction: column; gap: 5px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 3px; }
+.template-flat button, .template-flat > div { min-height: 82px; text-align: left; display: flex; flex-direction: column; gap: 5px; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius); }
 .template-flat span { color: var(--muted); }
 @media (max-width: 760px) {
   /* Each category is one row of tier cards that scrolls sideways; the page never does. */
@@ -726,39 +751,39 @@ html:not([data-decide-theme="light"]) .capsule {
   .template-grid td.template-empty { display: none; }
   .template-tier-label { display: block; font-weight: 500; color: var(--ink); }
 }
-.estate-strip { display: grid; grid-template-columns: auto 1fr; gap: 10px 16px; align-items: center; }
+.estate-strip { display: grid; grid-template-columns: auto 1fr; gap: 10px var(--gutter); align-items: center; }
 .estate-strip > div { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
 .estate-strip label { display: inline-flex; gap: 5px; align-items: center; color: var(--muted); font-size: 12px; }
 .estate-strip select { max-width: 13em; }
 .estate-privacy { grid-column: 2; color: var(--muted); font-size: 11.5px; }
 /* MODEL-202: "How will you use it?" sets the spec's access. */
-.decide-app .access-question h2.eyebrow { margin: 0; font-size: 11.5px; font-weight: 400; letter-spacing: normal; }
+.decide-app .access-question h3.eyebrow { margin: 0; font-size: 11.5px; font-weight: 400; letter-spacing: normal; }
 .access-question > div { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-top: 10px; }
-.access-question label { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border: 1px solid var(--line); border-radius: 3px; background: var(--surface2); cursor: pointer; min-width: 0; }
+.access-question label { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface2); cursor: pointer; min-width: 0; }
 .access-question label.access-on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
 .access-question input { margin: 3px 0 0; flex: none; }
 .access-question label > span { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .access-question small { color: var(--muted); }
 /* The answer keeps at least 470px; its row columns can shrink and wrap.
    The facets take the rest, up to 600px. Below 1000px they stack (MODEL-298). */
-.board-workspace { display: grid; grid-template-columns: minmax(0, 600px) minmax(470px, 1fr); grid-template-areas: "facets answer"; gap: 14px; align-items: stretch; }
-.facet-list { grid-area: facets; padding: 0; overflow: hidden; background: transparent; border: 0; }
-.facet-list > header { padding: 10px 16px; display: flex; align-items: baseline; justify-content: space-between; }
+/* The facet bands run edge to edge of the Refine panel; their text keeps the panel's inset. */
+.facet-list { margin: 0 calc(-1 * var(--pad)) calc(-1 * var(--pad)); overflow: hidden; border-top: 1px solid var(--line); }
+.facet-list > header { padding: 10px var(--pad); display: flex; align-items: baseline; justify-content: space-between; }
 .facet-list > header > span { display: flex; align-items: baseline; gap: 10px; }
 .facet-columns, .facet-row { display: grid; grid-template-columns: minmax(0, 1fr) 54px 224px; gap: 8px; }
-.facet-columns { padding: 5px 16px; color: var(--faint); font: 10.5px var(--mono); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.facet-columns { padding: 5px var(--pad); color: var(--faint); font: 10.5px var(--mono); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
 .facet-columns span:nth-child(2) { text-align: right; }
 .facet-group { border-bottom: 1px solid var(--line2); }
 /* Each group opens on a tinted band. Its left edge says which states it holds:
    violet for a Must, green for a Prefer, both when it has both. */
-.decide-app .facet-group-summary { width: 100%; min-height: 44px; padding: 11px 16px; border: 0; border-radius: 0; display: grid; grid-template-columns: auto 1fr auto; align-items: baseline; gap: 10px; text-align: left; background: var(--groupBg); }
+.decide-app .facet-group-summary { width: 100%; min-height: 44px; padding: 11px var(--pad); border: 0; border-radius: 0; display: grid; grid-template-columns: auto 1fr auto; align-items: baseline; gap: 10px; text-align: left; background: var(--groupBg); }
 .facet-group-summary span { font-size: 14px; font-weight: 650; letter-spacing: -0.005em; }
 .facet-group:has(.facet-row:is([data-mode="must"], [data-mode="both"])) > .facet-group-summary { box-shadow: inset 4px 0 0 var(--must); }
 .facet-group:has(.facet-row[data-mode="prefer"], .refinement-row[data-mode="prefer"]) > .facet-group-summary { box-shadow: inset 4px 0 0 var(--prefer); }
 .facet-group:has(.facet-row:is([data-mode="must"], [data-mode="both"])):has(.facet-row:is([data-mode="prefer"], [data-mode="both"])) > .facet-group-summary { box-shadow: inset 4px 0 0 var(--must), inset 8px 0 0 var(--prefer); }
 .facet-group-summary small { color: var(--muted); }
 .facet-group-summary b { font-size: 16px; font-weight: 400; color: var(--muted); }
-.facet-row { min-height: 52px; align-items: start; padding: 11px 16px; border-top: 1px solid var(--line-soft); }
+.facet-row { min-height: 52px; align-items: start; padding: 11px var(--pad); border-top: 1px solid var(--line-soft); }
 .facet-group-summary + div > .facet-row:first-child { border-top: 0; }
 .facet-row[data-mode="must"] { background: var(--mustSoft); box-shadow: inset 4px 0 0 var(--must); }
 .facet-row[data-mode="prefer"] { background: var(--preferSoft); box-shadow: inset 4px 0 0 var(--prefer); }
@@ -775,7 +800,7 @@ html:not([data-decide-theme="light"]) .capsule {
 /* The Known cell renders only when the vocabulary carries counts, and the
    private-data vocabulary carries none (MODEL-247): without the pin the
    controls fell into the 54px Known column and were clipped. */
-.facet-state { display: flex; border: 1px solid var(--line2); border-radius: 3px; overflow: hidden; width: 100%; min-height: 30px; background: var(--surface); }
+.facet-state { display: flex; border: 1px solid var(--line2); border-radius: var(--radius); overflow: hidden; width: 100%; min-height: 30px; background: var(--surface); }
 .facet-state label { flex: 1; display: flex; align-items: center; justify-content: center; padding: 5px 4px; border-left: 1px solid var(--line); cursor: pointer; white-space: nowrap; font-size: 11.5px; text-align: center; }
 .facet-state label:first-child { border-left: 0; }
 .facet-state input { width: 10px; height: 10px; margin: 0 4px 0 0; }
@@ -789,7 +814,7 @@ html:not([data-decide-theme="light"]) .capsule {
 .facet-state .state-prefer:has(input:checked) { background: var(--prefer); color: var(--preferInk); font-weight: 650; }
 .facet-state label:has(input:checked) input { accent-color: currentColor; }
 .facet-state label:has(input:disabled) { color: var(--faint); font-weight: 400; cursor: not-allowed; }
-.facet-settings { grid-column: 1 / -1; display: flex; gap: 8px 12px; flex-wrap: wrap; align-items: center; margin-top: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 3px; background: var(--surface); font-size: 11.5px; }
+.facet-settings { grid-column: 1 / -1; display: flex; gap: 8px 12px; flex-wrap: wrap; align-items: center; margin-top: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); font-size: 11.5px; }
 .facet-row:is([data-mode="must"], [data-mode="both"]) .facet-settings { border-color: color-mix(in srgb, var(--must) 35%, var(--line)); }
 .facet-row[data-mode="prefer"] .facet-settings { border-color: color-mix(in srgb, var(--prefer) 35%, var(--line)); }
 .decide-app .facet-row:is([data-mode="must"], [data-mode="both"]) .facet-settings input { accent-color: var(--must); }
@@ -819,24 +844,29 @@ html:not([data-decide-theme="light"]) .capsule {
 .refinement-weight, .refinement-carve label { display: flex; gap: 6px; align-items: center; font-size: 11px; }
 .refinement-fallback { color: var(--accent); }
 .refinement-carve { display: flex; gap: 8px; flex-wrap: wrap; margin: 6px 0; font-size: 11px; }
-.group-coming { margin: 0; padding: 6px 16px 8px; color: var(--muted); font-size: 11.5px; background: var(--surface-subtle); }
+.group-coming { margin: 0; padding: 6px var(--pad) 8px; color: var(--muted); font-size: 11.5px; background: var(--surface-subtle); }
 .untracked { background: var(--surface-subtle); }
-.untracked > div > p { margin: 0; padding: 8px 16px; color: var(--muted); font-size: 12px; }
-.board-answer { grid-area: answer; display: flex; flex-direction: column; gap: 12px; min-width: 0;
-  padding: 20px; background: var(--answerBg); border-top: 1px solid var(--line2); }
-.board-answer .panel, .board-answer .board-answer-head { background: transparent; border: 0; }
+.untracked > div > p { margin: 0; padding: 8px var(--pad); color: var(--muted); font-size: 12px; }
+.board-answer { display: flex; flex-direction: column; gap: 8px; scroll-margin-top: var(--gap); }
+.board-answer > .narrowing + * { padding-top: 8px; border-top: 1px solid var(--line); }
+/* A panel inside a panel is content: the outer box owns the edge and the inset. */
+.decide-app .panel .panel { background: transparent; border: 0; padding: 0; }
 .board-answer .board-answer-head .eyebrow { color: var(--ink2); }
-.board-answer-head { display: flex; flex-direction: column; gap: 7px; }
+/* "The answer" and the neutrality link share a line; the price and its copy button follow. */
+.board-answer-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: baseline; gap: 8px 16px; }
+.board-answer-head > *, .answer-assurances > .answer-price { grid-column: 1 / -1; }
+.board-answer-head > .eyebrow { grid-column: 1; }
+.answer-assurances { display: contents; }
+.decide-app .board-answer-head .answer-trust { grid-column: 2; grid-row: 1; }
 .board-answer-head h2, .board-answer-head p { margin: 0; }
-.answer-assurances { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: 8px 16px; }
-.answer-price { font-weight: 600; }
-.answer-price small { margin-top: 4px; font-weight: 400; }
+.answer-price { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; font-weight: 600; }
+.answer-price small { font-weight: 400; }
 .answer-price-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
 .decide-app .answer-copy { min-height: 32px; padding: 4px 12px; background: var(--hero-title); color: var(--handoffInk); border: 1px solid var(--hero-title); font-weight: 600; }
 .answer-copy-status { margin: 2px 0 0; font-size: 12px; font-weight: 400; }
-.answer-copy-status:empty { display: none; }
 .answer-trust { color: var(--ink2); font-size: 12px; text-decoration: underline; text-underline-offset: 3px; }
-.agent-handoff { padding: 20px; background: var(--hero-title); color: var(--handoffInk); display: grid; gap: 12px; min-width: 0; }
+.decide-app .panel.agent-handoff { background: var(--hero-title); border-color: var(--hero-title); color: var(--handoffInk); display: grid; gap: 12px; }
+.decide-app .agent-handoff .agent-copy-snippet { min-height: 0; padding: 0; border: 0; background: transparent; color: var(--handoffInk); text-decoration: underline; text-underline-offset: 3px; font-weight: 400; }
 .decide-app .agent-handoff h2 { font-size: 20px; }
 .agent-handoff p { line-height: 1.5; }
 .agent-handoff code { font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere; }
@@ -847,11 +877,10 @@ html:not([data-decide-theme="light"]) .capsule {
 .agent-handoff a, .decide-app .agent-handoff small { color: var(--handoffInk); }
 .agent-handoff a { text-underline-offset: 3px; }
 .decide-app .agent-handoff :focus-visible { outline: 2px solid var(--handoffInk); outline-offset: 3px; }
-.agent-copy-status { min-height: 1.5em; font-size: 12px; }
+.agent-copy-status { margin: 0; font-size: 12px; }
 .agent-client { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font-size: 13px; }
 .decide-app .agent-client select { min-height: 32px; background: transparent; color: var(--handoffInk); border: 1px solid var(--handoffInk); font: inherit; }
 .decide-app .agent-client option { color: initial; }
-.board-answer .board-ranked-answer { padding: 16px 12px 20px; }
 .board-ranked-answer > ol { list-style: none; margin: 0; padding: 0; }
 .board-class-heading { margin: 20px 0 6px; font: 600 14px var(--sans); color: var(--muted); }
 .board-ranked-answer > ol > li { display: grid; grid-template-columns: minmax(0, 1fr) 112px minmax(0, .8fr); gap: 12px; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--line-soft); }
@@ -888,13 +917,13 @@ html:not([data-decide-theme="light"]) .capsule {
 .funnel .engine-added { color: var(--muted); }
 .funnel .engine-added .funnel-track { opacity: .55; }
 .board-inseparable { margin: 6px 0; font-size: 12px; }
-.board-tie-answer { padding: 10px 0 14px; border-bottom: 1px solid var(--line); min-width: 0; }
-.board-tie-answer h2 { margin: 0 0 4px; font-size: 15px; overflow-wrap: anywhere; }
+.board-tie-answer { padding: 0 0 14px; border-bottom: 1px solid var(--line); min-width: 0; }
+.board-tie-answer h2 { margin: 0 0 2px; font-size: 15px; overflow-wrap: anywhere; }
 .board-tie-answer h3 { margin: 12px 0 4px; font-size: 12px; color: var(--muted); }
-.board-tie-answer p { margin: 4px 0; font-size: 12.5px; overflow-wrap: anywhere; }
+.board-tie-answer p { margin: 2px 0; font-size: 12.5px; overflow-wrap: anywhere; }
 .board-tie-note, .board-tie-caption { color: var(--muted); }
 .board-tie-answer ul { list-style: none; margin: 0; padding: 0; }
-.board-blend { margin: 0 0 4px; color: var(--muted); }
+.board-blend { margin: 0 0 2px; color: var(--muted); }
 .board-tie-group, .board-band-rest, .board-band-thin, .board-blend-terms { padding-left: 0; list-style: none; margin: 0; }
 .board-band-rest li, .board-band-thin li, .board-blend-terms li { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; padding: 6px 0; border-bottom: 1px solid var(--line-soft); min-width: 0; }
 .board-band-rest small, .board-band-thin small { color: var(--muted); overflow-wrap: anywhere; }
@@ -906,29 +935,30 @@ html:not([data-decide-theme="light"]) .capsule {
 .board-tie-pick { font-size: 11.5px; border: 1px solid var(--line); padding: 1px 6px; border-radius: 999px; }
 .board-tie-breakers li > span { min-width: 9.5em; color: var(--muted); font-size: 12px; }
 .board-show-all { margin-top: 10px; }
-.board-may-qualify { margin-top: 14px; border-top: 1px solid var(--line); }
-.board-may-qualify h2 { margin: 0; padding: 12px 0 4px; font-size: 13px; }
+.board-may-qualify h2 { margin: 0 0 4px; font-size: 13px; }
 .board-may-qualify ul { list-style: none; margin: 0; padding: 0; }
-.board-may-qualify li { display: grid; grid-template-columns: minmax(150px, 1fr) 112px; gap: 12px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line-soft); }
-.mobile-answer-bar { display: none; }
+.board-may-qualify li { display: grid; grid-template-columns: minmax(150px, 1fr) 112px; gap: 12px; align-items: center; padding: 9px 0 9px 10px; border-bottom: 1px solid var(--line-soft); color: var(--ink); }
 .answer-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .answer-pair > div { border: 1px solid var(--line); padding: 12px; display: flex; flex-direction: column; gap: 5px; }
 /* Two ranked lists sit side by side only when each fits a full row (406px of columns plus margins); otherwise they stack. */
-.answer-lists { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr)); gap: 14px; }
+.answer-lists { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr)); gap: var(--gutter); }
 .answer-lists > section { min-width: 0; }
-.answer-lists > section > strong { display: block; margin: 0 16px 6px; }
-@media (max-width: 999px) {
-  .board-workspace { grid-template-columns: minmax(0, 1fr); grid-template-areas: "facets" "answer"; }
-  .board-answer { scroll-margin-top: 58px; }
-  .mobile-answer-bar { position: sticky; top: 0; z-index: 20; display: flex; justify-content: space-between; padding: 9px 12px; color: var(--accentText); background: var(--surface); border: 1px solid var(--accent); font-weight: 650; text-decoration: none; }
+.answer-lists > section > strong { display: block; margin: 0 0 6px; }
+/* Below 1100px a half-width answer would squeeze its ranked rows: stack instead. */
+@media (max-width: 1099px) {
+  .answer-region { display: flex; flex-direction: column; gap: var(--gap); }
+  .chart-column { position: static; }
 }
 @media (max-width: 620px) {
   .global-header { position: static; padding: 8px 12px; flex-wrap: wrap; gap: 6px 8px; }
   .global-header .brand { margin-right: auto; }
   .global-header .spacer { display: none; }
   .global-header > button:not(.brand) { flex: 1; }
-  .work { padding: 12px 10px 48px; }
-  .board-intro { display: grid; align-items: start; gap: 10px; padding: 20px 18px 16px; }
+  .decide-app { --pad: 16px; }
+  .narrowing-counts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .narrowing-total > span { white-space: normal; }
+  .work { padding: 12px var(--gutter) 48px; }
+  .board-intro { display: grid; align-items: start; gap: 10px; }
   .decide-app .board-intro h1 { font-size: 30px; margin: 10px 0 16px; }
   .board-intro p { font-size: 14px; }
   .template-flat { grid-template-columns: minmax(0, 1fr); }
@@ -959,17 +989,16 @@ html:not([data-decide-theme="light"]) .capsule {
      (CLS 0.18 on mobile, MODEL-218). */
   min-height: 100vh;
   margin: 0 auto;
-  padding: 18px 24px 72px;
+  padding: var(--gap) 24px 72px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--gap);
 }
-.panel {
+.decide-app .panel {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-top: 2px solid var(--ink);
-  border-radius: 0;
-  padding: 14px 16px;
+  border-radius: var(--radius);
+  padding: var(--pad);
   min-width: 0;
 }
 .panel-heading {
@@ -1054,7 +1083,7 @@ html:not([data-decide-theme="light"]) .capsule {
   color: var(--ink);
   background: transparent;
   border: 1px solid var(--line2);
-  border-radius: 2px;
+  border-radius: var(--radius);
   padding: 2px 8px;
   cursor: pointer;
 }
@@ -1075,7 +1104,7 @@ html:not([data-decide-theme="light"]) .capsule {
   display: inline-flex;
   align-items: stretch;
   border: 1px solid var(--line2);
-  border-radius: 2px;
+  border-radius: var(--radius);
   overflow: hidden;
 }
 .chip.parsed {
@@ -1197,13 +1226,15 @@ html:not([data-decide-theme="light"]) .capsule {
 .narrowing {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));
-  gap: 14px;
+  gap: var(--gap);
 }
-.narrowing-counts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.narrowing-total { display: flex; flex-direction: column; gap: 8px; }
-.narrowing-number { display: block; font: 650 clamp(36px, 5vw, 64px)/1 var(--sans); letter-spacing: -.03em; animation: narrowing-count .4s ease-out; }
-.narrowing-total > span { font-size: 14px; font-weight: 550; }
-.narrowing-details { margin-top: 16px; color: var(--muted); }
+.narrowing-counts { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px 16px; }
+.narrowing-total.status-best { color: var(--accentText); }
+.narrowing-best { margin: 8px 0 0; font-size: 15px; font-weight: 650; overflow-wrap: anywhere; }
+.narrowing-total { display: flex; flex-direction: column; gap: 6px; }
+.narrowing-number { display: block; font: 650 clamp(32px, 3vw, 40px)/1 var(--sans); letter-spacing: -.03em; animation: narrowing-count .4s ease-out; }
+.narrowing-total > span { font-size: 14px; font-weight: 550; white-space: nowrap; }
+.narrowing-details { margin-top: 6px; color: var(--muted); font-size: 12.5px; }
 .narrowing-details summary { cursor: pointer; }
 .narrowing-truncated { margin-top: 10px; }
 @keyframes narrowing-count { from { transform: translateY(6px) scale(.96); } to { transform: translateY(0) scale(1); } }
@@ -1244,7 +1275,7 @@ html:not([data-decide-theme="light"]) .capsule {
   background: var(--surface2);
   position: relative;
   overflow: hidden;
-  border-radius: 2px;
+  border-radius: var(--radius);
 }
 .funnel-track > span,
 .funnel-track > i {
@@ -1300,7 +1331,7 @@ html:not([data-decide-theme="light"]) .capsule {
   display: grid;
   grid-template-columns: minmax(0, 1fr);
   grid-template-areas: "table" "detail";
-  gap: 14px;
+  gap: var(--gap);
   align-items: start;
   min-width: 0;
   width: 100%;
@@ -1490,7 +1521,7 @@ html:not([data-decide-theme="light"]) .capsule {
   font: 11.5px var(--mono);
   background: var(--surface);
   padding: 2px 4px;
-  border-radius: 2px;
+  border-radius: var(--radius);
 }
 .x-handle {
   top: 0;
@@ -1656,7 +1687,7 @@ html:not([data-decide-theme="light"]) .capsule {
   color: var(--warn);
   padding: 7px 9px;
   font-size: 11.5px;
-  border-radius: 2px;
+  border-radius: var(--radius);
 }
 .result-card .note {
   margin-top: 5px;
@@ -1689,7 +1720,7 @@ html:not([data-decide-theme="light"]) .capsule {
   border: 1px solid currentColor;
   padding: 2px 6px;
   font-size: 11px;
-  border-radius: 2px;
+  border-radius: var(--radius);
   color: var(--muted);
 }
 .badge.warn {
@@ -1999,7 +2030,7 @@ html:not([data-decide-theme="light"]) .capsule {
   color: var(--ink);
   background: var(--surface);
   border: 1px solid var(--line2);
-  border-radius: 3px;
+  border-radius: var(--radius);
   padding: 22px 24px;
   width: min(860px, calc(100vw - 48px));
   max-height: 85vh;
@@ -2061,7 +2092,7 @@ html:not([data-decide-theme="light"]) .capsule {
 }
 .skeleton {
   background: var(--surface2);
-  border-radius: 2px;
+  border-radius: var(--radius);
 }
 .skeleton.chip {
   width: 140px;
@@ -2088,7 +2119,7 @@ html:not([data-decide-theme="light"]) .capsule {
   gap: 16px;
   background: var(--badSoft);
   border: 1px solid var(--bad);
-  border-radius: 2px;
+  border-radius: var(--radius);
 }
 .error > div {
   flex: 1;
@@ -2099,7 +2130,7 @@ html:not([data-decide-theme="light"]) .capsule {
   color: var(--ink2);
   background: var(--warnSoft);
   border: 1px solid var(--warn);
-  border-radius: 2px;
+  border-radius: var(--radius);
 }
 .limit-notice strong {
   color: var(--ink);
@@ -2109,7 +2140,7 @@ html:not([data-decide-theme="light"]) .capsule {
   font-size: 13px;
   color: var(--ink2);
   border: 1px dashed var(--line);
-  border-radius: 2px;
+  border-radius: var(--radius);
 }
 .error strong {
   color: var(--bad);
@@ -2144,7 +2175,6 @@ html:not([data-decide-theme="light"]) .capsule {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: 10px;
-  padding: 14px 16px;
 }
 .canvas-panel > .panel-heading {
   grid-column: 1;
@@ -2212,13 +2242,18 @@ html:not([data-decide-theme="light"]) .capsule {
   grid-row: 7;
   margin: 0 0 0 52px;
   border: 0;
-  border-radius: 2px;
+  border-radius: var(--radius);
   background: var(--surface2);
 }
 .winning-strip > span {
   font-size: 11.5px;
   border-right: 1px solid var(--surface);
 }
+.not-plotted summary { cursor: pointer; list-style: none; color: var(--ink2); font-size: 12px; }
+.not-plotted summary::-webkit-details-marker { display: none; }
+.not-plotted summary::after { content: " ▸"; }
+.not-plotted[open] summary::after { content: " ▾"; }
+.not-plotted > small { display: block; margin-top: 4px; }
 .canvas-panel > .not-plotted {
   grid-column: 1/-1;
   grid-row: 8;
@@ -2243,7 +2278,7 @@ html:not([data-decide-theme="light"]) .capsule {
   /* A frontier or grid line never runs through a label. */
   padding: 0 3px;
   background: var(--surface);
-  border-radius: 2px;
+  border-radius: var(--radius);
 }
 .label-leader {
   stroke: var(--ink2);
@@ -2702,8 +2737,7 @@ html:not([data-decide-theme="light"]) .capsule {
   display: none;
 }
 .coverage-panel {
-  border-top-color: var(--warn);
-  margin-bottom: 14px;
+  box-shadow: inset 0 2px 0 var(--warn);
 }
 .coverage-columns {
   display: grid;
@@ -2767,12 +2801,6 @@ html:not([data-decide-theme="light"]) .capsule {
 }
 
 /* MODEL-221: the per-answer prompt and the page-wide Feedback control. */
-.decide-app .answer-feedback {
-  margin-top: 16px;
-  padding: 12px 14px;
-  border: 1px solid var(--line);
-  background: var(--surface);
-}
 .decide-app .feedback-form {
   display: grid;
   gap: 10px;
@@ -2797,7 +2825,7 @@ html:not([data-decide-theme="light"]) .capsule {
   min-height: 32px;
   padding: 4px 10px;
   border: 1px solid var(--line2);
-  border-radius: 2px;
+  border-radius: var(--radius);
   cursor: pointer;
 }
 .decide-app .feedback-ratings label.chosen {

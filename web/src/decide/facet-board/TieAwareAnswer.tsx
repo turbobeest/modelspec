@@ -4,6 +4,7 @@ import type { AdapterDecision } from "../adapter";
 import type { BandEntry, BlendTerm } from "../adapter/contract";
 import type { Row } from "../engine/reference";
 import { payee } from "./routes";
+import { leadingModels } from "./leading";
 
 type Answer = NonNullable<AdapterDecision["answer"]>;
 type TieBreakerKey = keyof Answer["tie_breakers"];
@@ -105,9 +106,9 @@ export function TieAwareAnswer({
       return model === null ? [] : [{ key, label, model }];
     })
     : [];
-  const leading = bands
-    ? bands.best
-    : (answer?.deterministic_order ?? []).map((model) => ({ model, p_best: null, p_beats_leader: null, cost_per_task: null } as Pick<BandEntry, "model" | "p_best" | "p_beats_leader" | "cost_per_task">));
+  const banded = new Map(bands?.best.map((entry) => [entry.model, entry]) ?? []);
+  const leading = (leadingModels(decision) ?? []).map((model): Pick<BandEntry, "model" | "p_best" | "p_beats_leader" | "cost_per_task"> =>
+    banded.get(model) ?? { model, p_best: null, p_beats_leader: null, cost_per_task: null });
   const heading = leading.length === 0
     ? "No model has enough evidence to lead yet"
     : leading.length === 1

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { labelWidth, placeLabels, plotHeight } from "../components/labels";
+import { handleTagBox, labelWidth, placeLabels, plotHeight } from "../components/labels";
 import type { LabelInput, LabelPlacement } from "../components/labels";
 
 const W = 892,
@@ -97,5 +97,22 @@ describe("plotHeight (MODEL-298)", () => {
     [2000, 560], // the 560px cap
   ])("a %ipx-wide plot is %ipx tall", (width, height) => {
     expect(plotHeight(width)).toBe(height);
+  });
+});
+
+describe("Must handle tags (MODEL-325)", () => {
+  it("moves a label off the y handle's tag instead of under it", () => {
+    // The tag sits on its line at the plot's left; a label right of a point
+    // just below that line would land on it.
+    const tag = handleTagBox("Drag to set a Must floor", { y: 0.5 }, 800, 460);
+    expect(tag).toEqual({ left: 6, right: 188, top: 210, bottom: 230 });
+    const label = { id: "a", text: "Gemini 3.7 Flash", x: 0.05, y: 0.48 };
+    expect(placeLabels([label], [label], 800, 460)).toEqual([{ id: "a", side: "right", dy: 0 }]);
+    const [moved] = placeLabels([label], [label], 800, 460, [tag]);
+    expect(moved.dy).not.toBe(0);
+  });
+
+  it("covers the x handle's tag from the top of its line", () => {
+    expect(handleTagBox("Drag to set a Must cap", { x: 0.5 }, 800, 460)).toEqual({ left: 400, right: 568, top: 0, bottom: 20 });
   });
 });

@@ -49,15 +49,7 @@ function Route({ route, showFigure }: { route: RouteView; showFigure: boolean })
 
 const NO_HOLDINGS: HeldEstate = { providers: [], plans: [], hardware: [] };
 
-export function RankedAnswer({
-  decision,
-  spec,
-  vocabulary,
-  access = "any",
-  held = NO_HOLDINGS,
-  marks,
-  excludedPlans = [],
-}: {
+type AnswerProps = {
   decision: AdapterDecision;
   spec: Spec;
   vocabulary: Vocabulary;
@@ -67,36 +59,26 @@ export function RankedAnswer({
   held?: HeldEstate;
   /** For the estate answer: how the estate reaches each offering. */
   marks?: ReadonlyMap<string, EstateMark>;
-  /** Held plans the engine says cannot serve your own software. */
-  excludedPlans?: readonly VocabPlan[];
-}) {
+};
+
+/** What the ranked list and the may-qualify list both read from the board. */
+function answerColumns({ spec, vocabulary, access = "any", marks }: AnswerProps) {
+  return {
+    ranked: boardHasPreference(spec),
+    capability: vocabulary.domains.find((domain) =>
+      Object.keys(spec.boardWeights ?? {}).includes(domain.id),
+    ),
+    costHeading: marks ? "Costs you" : COST_HEADING[access],
+    // Without a route, only a per-task heading may show the row's per-task cost.
+    perTaskColumn: !marks && (access === "any" || access === "coding_tool" || access === "own_software"),
+  };
+}
+
+/** Models that may qualify, as their own panel below the ranked answer (MODEL-325). */
+export function MayQualify(props: AnswerProps & { title?: string }) {
+  const { decision, vocabulary, held = NO_HOLDINGS, title } = props;
+  const { ranked, capability, costHeading, perTaskColumn } = answerColumns(props);
   const routeContext = { vocabulary };
-  const resultsFor = (model: string) =>
-    decision.results.filter((result) => result.offering.model === model);
-  const routesFor = (model: string): RouteView[] => marks
-    ? resultsFor(model).flatMap((result) => {
-        const mark = marks.get(offeringKey(result.offering));
-        return mark ? [estateRouteView(routeContext, mark, result, result.offering)] : [];
-      })
-    : modelRoutes(routeContext, resultsFor(model), access);
-  const costHeading = marks ? "Costs you" : COST_HEADING[access];
-  // Without a route, only a per-task heading may show the row's per-task cost.
-  const perTaskColumn = !marks && (access === "any" || access === "coding_tool" || access === "own_software");
-  const [expanded, setExpanded] = useState(false);
-  const ranked = boardHasPreference(spec);
-  const capability = vocabulary.domains.find((domain) =>
-    Object.keys(spec.boardWeights ?? {}).includes(domain.id),
-  );
-  const activeRefinements = (vocabulary.refinements ?? []).filter((refinement) =>
-    Object.keys(spec.boardWeights ?? {}).includes(refinement.weight_key),
-  );
-  const rows = ranked
-    ? decision.explanation.feasible
-    : groupRowsByClass(decision.explanation.feasible, vocabulary).flatMap((group) => group.rows);
-  const visible = expanded ? rows : rows.slice(0, COLLAPSED_COUNT);
-  const visibleGroups = ranked
-    ? [{ id: "ranked", label: null, rows: visible }]
-    : groupRowsByClass(visible, vocabulary);
   const mayNote = (model: string): string | null => {
     for (const row of decision.may_qualify.filter((item) => item.model === model)) {
       const note = mayQualifyNote(routeContext, row, held);
@@ -107,10 +89,60 @@ export function RankedAnswer({
   const may = decision.explanation.may.filter((row) =>
     (ranked && capability) || mayNote(`${row.m.lab}/${row.m.id}`) !== null,
   );
+  if (may.length === 0) return null;
   const mayGroups = ranked
     ? [{ id: "ranked", label: null, rows: may }]
     : groupRowsByClass(may, vocabulary);
   const mayReasoned = may.some((row) => mayNote(`${row.m.lab}/${row.m.id}`) !== null);
+  return <section className="panel board-may-qualify">
+    <h2>{title && <>{title}: </>}{mayReasoned || !capability ? `May qualify — not verified yet (${may.length})` : `May qualify — no ${capability.name} evidence (${may.length})`}</h2>
+    {mayGroups.map((group) => <Fragment key={group.id}>
+    {group.label && <h3 className="board-class-heading">{group.label}</h3>}
+    <ul>
+      {group.rows.map((row) => {
+        const note = mayNote(`${row.m.lab}/${row.m.id}`);
+        const via = row.best.o.provider === "Provider not available" ? null : payee(row.best.o.provider);
+        return <li className="status-may" key={row.best.o.id}>
+          <div className="board-ranked-copy">
+            <strong>{row.m.name}</strong>
+            <span className="eligibility status-may"><span aria-hidden="true">?</span> May qualify</span>
+            <small>{row.m.labName}{via && via !== row.m.labName ? ` · via ${via}` : ""}</small>
+          </div>
+          <div className="board-ranked-cost"><small>{perTaskColumn ? "Cost per task" : costHeading}</small><span>{perTaskColumn ? money(row.cost) : "—"}</span></div>
+          {note && <p className="board-may-note">{note}</p>}
+        </li>;
+      })}
+    </ul>
+    </Fragment>)}
+  </section>;
+}
+
+export function RankedAnswer(props: Omit<AnswerProps, "held"> & {
+  /** Held plans the engine says cannot serve your own software. */
+  excludedPlans?: readonly VocabPlan[];
+}) {
+  const { decision, spec, vocabulary, access = "any", marks, excludedPlans = [] } = props;
+  const { ranked, capability, costHeading, perTaskColumn } = answerColumns(props);
+  const routeContext = { vocabulary };
+  const resultsFor = (model: string) =>
+    decision.results.filter((result) => result.offering.model === model);
+  const routesFor = (model: string): RouteView[] => marks
+    ? resultsFor(model).flatMap((result) => {
+        const mark = marks.get(offeringKey(result.offering));
+        return mark ? [estateRouteView(routeContext, mark, result, result.offering)] : [];
+      })
+    : modelRoutes(routeContext, resultsFor(model), access);
+  const [expanded, setExpanded] = useState(false);
+  const activeRefinements = (vocabulary.refinements ?? []).filter((refinement) =>
+    Object.keys(spec.boardWeights ?? {}).includes(refinement.weight_key),
+  );
+  const rows = ranked
+    ? decision.explanation.feasible
+    : groupRowsByClass(decision.explanation.feasible, vocabulary).flatMap((group) => group.rows);
+  const visible = expanded ? rows : rows.slice(0, COLLAPSED_COUNT);
+  const visibleGroups = ranked
+    ? [{ id: "ranked", label: null, rows: visible }]
+    : groupRowsByClass(visible, vocabulary);
   const lineupMedian = useMemo(
     () => median(rows.flatMap((row) => row.cap === null ? [] : [row.cap])),
     [rows],
@@ -208,27 +240,6 @@ export function RankedAnswer({
     {rows.length > COLLAPSED_COUNT && <button className="text-button board-show-all" onClick={() => setExpanded((current) => !current)}>
       {expanded ? "Show fewer" : `Show all ${rows.length}`}
     </button>}
-    {may.length > 0 && <section className="board-may-qualify">
-      <h2>{mayReasoned || !capability ? `May qualify — not verified yet (${may.length})` : `May qualify — no ${capability.name} evidence (${may.length})`}</h2>
-      {mayGroups.map((group) => <Fragment key={group.id}>
-      {group.label && <h3 className="board-class-heading">{group.label}</h3>}
-      <ul>
-        {group.rows.map((row) => {
-          const note = mayNote(`${row.m.lab}/${row.m.id}`);
-          const via = row.best.o.provider === "Provider not available" ? null : payee(row.best.o.provider);
-          return <li className="status-may" key={row.best.o.id}>
-            <div className="board-ranked-copy">
-              <strong>{row.m.name}</strong>
-              <span className="eligibility status-may"><span aria-hidden="true">?</span> May qualify</span>
-              <small>{row.m.labName}{via && via !== row.m.labName ? ` · via ${via}` : ""}</small>
-            </div>
-            <div className="board-ranked-cost"><small>{perTaskColumn ? "Cost per task" : costHeading}</small><span>{perTaskColumn ? money(row.cost) : "—"}</span></div>
-            {note && <p className="board-may-note">{note}</p>}
-          </li>;
-        })}
-      </ul>
-      </Fragment>)}
-    </section>}
     {rows.length === 0 && <small>No model qualifies yet.</small>}
   </section>;
 }

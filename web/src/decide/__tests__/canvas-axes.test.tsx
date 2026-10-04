@@ -362,7 +362,11 @@ it("draws capability intervals on either axis and leaves no-data models at the m
   expect(within(canvas).getByText("Gamma Max 0902 · near miss")).toHaveClass(
     "point-label",
   );
-  expect(within(canvas).getByText(/Not plotted: no data/)).toHaveTextContent("lab/alpha");
+  // MODEL-325: the unplotted names collapse behind one count.
+  const notPlotted = canvas.querySelector<HTMLDetailsElement>("details.not-plotted")!;
+  expect(notPlotted.open).toBe(false);
+  expect(notPlotted.querySelector("summary")).toHaveTextContent(/^1 model not plotted \(no data\)$/);
+  expect(notPlotted).toHaveTextContent("lab/alpha");
   fireEvent.keyDown(within(canvas).getByRole("slider", { name: "Software engineering capability Must threshold" }), {
     key: "ArrowRight",
   });

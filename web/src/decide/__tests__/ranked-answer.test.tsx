@@ -4,7 +4,7 @@ import fixtureJson from "../__fixtures__/full-decision.json";
 import refinementVocabularyJson from "../__fixtures__/vocabulary-refinements.json";
 import { decisionSchema } from "../adapter";
 import { mapDecisionToViewModel } from "../adapter/view-model";
-import { RankedAnswer } from "../facet-board/RankedAnswer";
+import { MayQualify, RankedAnswer } from "../facet-board/RankedAnswer";
 import type { Row } from "../adapter";
 import { realBaseSpec } from "../vocabulary";
 import { vocabularySchema } from "../vocabulary";
@@ -50,7 +50,7 @@ describe("unranked board answer", () => {
       may_qualify: rows.map((row) => ({ model: `${row.m.lab}/${row.m.id}`, offering: null, unknown: ["model.fits_hardware"] })),
       explanation: { ...view.explanation, feasible: [], may: rows },
     };
-    render(<RankedAnswer decision={decision} spec={spec} vocabulary={vocabulary} />);
+    render(<MayQualify decision={decision} spec={spec} vocabulary={vocabulary} />);
     expect(screen.getAllByRole("heading", { level: 3 }).map((heading) => heading.textContent))
       .toEqual(["Decision model", "Embedding model"]);
     expect([...document.querySelectorAll(".board-may-qualify > ul")].map((list) => [...list.querySelectorAll("strong")].map((name) => name.textContent)))

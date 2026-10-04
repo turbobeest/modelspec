@@ -19,7 +19,8 @@ def data(root: Path) -> dict[str, Any]:
         "full_credits": rates["answer_credits"]["decide.full"],
         "key_link": {
             "href": "/pricing/#pricing" if billing_live else "/pricing/",
-            "note": "Choose a plan or pack." if billing_live else "API keys open soon: see pricing",
+            "label": "Get an API key" if billing_live else "See pricing",
+            "note": "Choose a plan or pack." if billing_live else "API keys open soon.",
         },
         "mcp_clients": list(agent_copy.cli_clients()),
         "neutrality": {

@@ -2,6 +2,7 @@ import { expect } from "@playwright/test";
 import { test } from "./human-gate-fixtures";
 import { readFileSync } from "node:fs";
 import { decisionFixtureFor } from "../scripts/decision-fixtures.mjs";
+import { check, counterView, measure, openDecide, routeFixtures, routeNarrowedDecision, stickyChartView } from "../scripts/decide-layout-measure.mjs";
 
 const vocabulary = readFileSync(new URL("../src/decide/__fixtures__/live-vocabulary.json", import.meta.url), "utf8");
 const narrowedDecision = readFileSync(new URL("../src/decide/__fixtures__/live-budget-coding-full.json", import.meta.url), "utf8");
@@ -170,8 +171,8 @@ test("the counter announces exact values and does not animate with reduced motio
   const status = narrowing.getByRole("status");
   await expect(status).toHaveAttribute("aria-live", "polite");
   await expect(status).toHaveAttribute("aria-atomic", "true");
-  await expect(status).toHaveText("24 qualify · 10 may qualify · 10 out");
-  await expect(narrowing.locator(".narrowing-number")).toHaveText(["24", "10", "10"]);
+  await expect(status).toHaveText("24 qualify · 10 may qualify · 10 out · 6 best for your weights");
+  await expect(narrowing.locator(".narrowing-number")).toHaveText(["24", "10", "10", "6"]);
   await expect(narrowing.locator(".narrowing-counts")).toHaveAttribute("aria-hidden", "true");
   expect(await narrowing.locator(".narrowing-number").first().evaluate((node) => getComputedStyle(node).animationName)).toBe("none");
   const shortcuts = await page.locator(".template-shortcuts").boundingBox();
@@ -188,23 +189,23 @@ test("the counter announces exact values and does not animate with reduced motio
   await page.getByRole("button", { name: /^Size of work/ }).click();
   await page.locator('[data-facet="model.context_window"]').getByLabel("Must", { exact: true }).check();
   await expect(page.locator(".loading-cards")).toBeVisible();
-  await expect(status).toHaveText("24 qualify · 10 may qualify · 10 out");
+  await expect(status).toHaveText("24 qualify · 10 may qualify · 10 out · 6 best for your weights");
   expect(await status.evaluate((node, original) => node === original, liveRegion)).toBe(true);
   release();
   await expect(status).toHaveText("15 qualify · 3 may qualify · 14 out");
   expect(await status.evaluate((node, original) => node === original, liveRegion)).toBe(true);
-  await expect(narrowing.locator(".narrowing-number")).toHaveText(["15", "3", "14"]);
+  await expect(narrowing.locator(".narrowing-number")).toHaveText(["15", "3", "14", "—"]);
   expect(await narrowing.locator(".narrowing-number").first().evaluate((node) => getComputedStyle(node).animationName)).toBe("none");
 });
 
 test("the counter animates exact digits when motion is enabled", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await openBoard(page);
-  await expect(page.locator(".narrowing-number")).toHaveText(["24", "10", "10"]);
+  await expect(page.locator(".narrowing-number")).toHaveText(["24", "10", "10", "6"]);
   expect(await page.locator(".narrowing-number").first().evaluate((node) => getComputedStyle(node).animationName)).toBe("narrowing-count");
   await page.route("**/v1/decide", (route) => route.fulfill({ contentType: "application/json", body: narrowedDecision }));
   await page.locator(".template-shortcuts button").nth(1).click();
-  await expect(page.locator(".narrowing-number")).toHaveText(["15", "3", "14"]);
+  await expect(page.locator(".narrowing-number")).toHaveText(["15", "3", "14", "—"]);
   await expect(page.getByRole("region", { name: "Narrowing", exact: true }).getByRole("status")).toHaveText("15 qualify · 3 may qualify · 14 out");
   expect(await page.locator(".narrowing-number").first().evaluate((node) => getComputedStyle(node).animationName)).toBe("narrowing-count");
 });
@@ -269,23 +270,22 @@ async function applyTemplate(page: import("@playwright/test").Page, width: numbe
     page.getByRole("region", { name: "Facets", exact: true }),
     page.locator(".board-answer"),
     page.locator(".board-ranked-answer").last(),
-    page.locator(".board-workspace"),
+    page.getByRole("region", { name: "Give this to my agent" }),
     page.locator(".why-panel"),
   ]) await expect(region).toBeVisible();
 }
 
-for (const [width, scrollbar] of [[1440, 0], [1124, 0], [1100, 0], [1000, 0], [1000, 15]] as const) {
-  test(`the ranked answer fits inside the narrowing card, and both cards share one height, at ${width}px${scrollbar ? ` with a ${scrollbar}px scrollbar` : ""}`, async ({ page }) => {
+for (const [width, scrollbar] of [[1440, 0], [1236, 0], [1124, 0], [1100, 0], [1000, 0], [1000, 15]] as const) {
+  test(`the answer card holds its ranked rows and the page reads answer, refine, hand-off, table at ${width}px${scrollbar ? ` with a ${scrollbar}px scrollbar` : ""}`, async ({ page }) => {
     await applyTemplate(page, width);
     if (scrollbar) {
       // A classic scrollbar takes its width from the page but not from the
-      // media query, which still reads 1000px. Headless Chromium hides
-      // scrollbars, so the page gives up the same width as padding instead.
+      // media query. Headless Chromium hides scrollbars, so the page gives up
+      // the same width as padding instead.
       await page.addStyleTag({ content: `html { padding-right: ${scrollbar}px; }` });
       await expect.poll(() => page.evaluate(() => document.body.clientWidth)).toBe(width - scrollbar);
     }
-    // MODEL-298: at 1100px the facets track once took 600px and left the
-    // ranked rows 26px wider than the card. Measure the overflow, not the CSS.
+    // MODEL-298: ranked rows once ran wider than their card. Measure the overflow, not the CSS.
     const overflow = () => page.evaluate(() => {
       const nodes = [
         ...document.querySelectorAll<HTMLElement>(".board-answer"),
@@ -293,7 +293,7 @@ for (const [width, scrollbar] of [[1440, 0], [1124, 0], [1100, 0], [1000, 0], [1
         ...document.querySelectorAll<HTMLElement>(".board-ranked-answer > ol > li"),
       ];
       return nodes.length === 0
-        ? ["no narrowing card"]
+        ? ["no answer card"]
         : nodes.filter((node) => node.scrollWidth > node.clientWidth)
           .map((node) => `${node.tagName.toLowerCase()}.${node.className}: ${node.scrollWidth} > ${node.clientWidth}`);
     });
@@ -304,85 +304,97 @@ for (const [width, scrollbar] of [[1440, 0], [1124, 0], [1100, 0], [1000, 0], [1
       lineHeight: parseFloat(getComputedStyle(node).lineHeight),
     }));
     expect(headline.height).toBeLessThanOrEqual(headline.lineHeight + 1);
-    const boxes = () => Promise.all([
-      page.getByRole("region", { name: "Facets", exact: true }).boundingBox(),
-      page.locator(".board-answer").boundingBox(),
-    ]);
-    await expect.poll(async () => (await boxes()).every(Boolean)).toBe(true);
-    const [facets, answers] = await boxes();
-    if (!facets || !answers) throw new Error("the board did not render both cards");
-    expect(answers.x).toBeGreaterThanOrEqual(facets.x + facets.width);
-    expect(Math.abs(answers.y - facets.y)).toBeLessThanOrEqual(1);
-    expect(Math.abs(answers.height - facets.height)).toBeLessThanOrEqual(1);
-    await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
-  });
-}
-
-for (const width of [1440, 1024, 390, 320]) {
-  test(`a template puts facets and narrowing side by side or stacked, then the canvas and table at full width, at ${width}px`, async ({ page }) => {
-    await applyTemplate(page, width);
-    const canvas = page.getByRole("region", { name: "Trade-off canvas" });
 
     const measure = () => Promise.all([
-      page.getByRole("region", { name: "Facets", exact: true }).boundingBox(),
-      canvas.boundingBox(),
       page.locator(".board-answer").boundingBox(),
+      page.getByRole("region", { name: "Trade-off canvas" }).boundingBox(),
+      page.getByRole("region", { name: "Refine the answer" }).boundingBox(),
+      page.getByRole("region", { name: "Give this to my agent" }).boundingBox(),
       page.locator(".decision-table").boundingBox(),
-      page.locator(".board-workspace").boundingBox(),
-      page.locator(".why-panel").boundingBox(),
     ]);
-    // A live update can briefly remount a region; read the boxes once all exist.
-    await expect.poll(async () => (await measure()).every(Boolean)).toBe(true);
-    const [facets, chart, answers, table, workspace, details] = await measure();
-    if (!facets || !chart || !answers || !table || !workspace || !details) {
-      throw new Error("the applied template did not render all layout regions");
-    }
-    // The narrowing card holds the funnel, the answer, the ranked list and the
-    // feedback form; the canvas is no longer inside it (MODEL-298).
-    const [narrowing, ranked, feedback] = await Promise.all([
-      page.locator(".board-answer-head").boundingBox(),
-      page.locator(".board-ranked-answer").last().boundingBox(),
-      page.locator(".answer-feedback").boundingBox(),
-    ]);
-    if (!narrowing || !ranked) throw new Error("the narrowing did not render");
-    for (const inside of [narrowing, ranked, ...(feedback ? [feedback] : [])]) {
-      expect(inside.y).toBeGreaterThanOrEqual(answers.y);
-      expect(inside.y + inside.height).toBeLessThanOrEqual(answers.y + answers.height + 1);
-    }
-    await expect(page.locator(".board-answer").getByRole("region", { name: "Trade-off canvas" })).toHaveCount(0);
-    expect(await page.locator(".board-answer").evaluate((node) => getComputedStyle(node).position)).toBe("static");
-
-    // Jamie, 2026-10-03: the facets and narrowing cards share one height,
-    // whichever is longer.
-    if (width >= 1024) {
-      expect(answers.x).toBeGreaterThanOrEqual(facets.x + facets.width);
-      expect(Math.abs(answers.y - facets.y)).toBeLessThanOrEqual(1);
-      expect(Math.abs(answers.height - facets.height)).toBeLessThanOrEqual(1);
+    // A gated build remounts the board when /v1/human-status answers: keep the
+    // boxes from the one reading that saw every region.
+    let boxes = await measure();
+    await expect.poll(async () => (boxes = await measure()).every(Boolean)).toBe(true);
+    const [answer, chart, refine, handoff, table] = boxes;
+    if (!answer || !chart || !refine || !handoff || !table) throw new Error("the page did not render every region");
+    // MODEL-325: from 1100px the chart sits beside the answer, six columns each; below, it follows the answer.
+    if (width - scrollbar >= 1100) {
+      expect(chart.x).toBeGreaterThanOrEqual(answer.x + answer.width);
+      expect(Math.abs(chart.y - answer.y)).toBeLessThanOrEqual(1);
+      expect(Math.abs(chart.width - answer.width)).toBeLessThanOrEqual(1);
     } else {
-      expect(answers.y).toBeGreaterThanOrEqual(facets.y + facets.height);
+      expect(chart.y).toBeGreaterThanOrEqual(answer.y + answer.height);
     }
-    // ...and the canvas spans the page below both, as wide as the table.
-    expect(chart.y).toBeGreaterThanOrEqual(Math.max(facets.y + facets.height, answers.y + answers.height));
-    expect(Math.abs(chart.width - table.width)).toBeLessThanOrEqual(2);
-    expect(Math.abs(chart.x - table.x)).toBeLessThanOrEqual(1);
-    expect(table.y).toBeGreaterThanOrEqual(chart.y + chart.height);
-    expect(Math.abs(table.width - workspace.width)).toBeLessThanOrEqual(2);
-    expect(Math.abs(table.x - workspace.x)).toBeLessThanOrEqual(1);
-    expect(details.y).toBeGreaterThanOrEqual(table.y + table.height);
-    // The plot keeps a sensible shape at full width: never a thin strip.
-    const plot = await canvas.locator(".plot-wrap").boundingBox();
-    if (!plot) throw new Error("the canvas drew no plot");
-    expect(plot.height).toBeGreaterThanOrEqual(460);
-    expect(plot.height).toBeLessThanOrEqual(560);
+    expect(refine.y).toBeGreaterThanOrEqual(answer.y + answer.height);
+    expect(handoff.y).toBeGreaterThanOrEqual(refine.y + refine.height);
+    expect(table.y).toBeGreaterThanOrEqual(handoff.y + handoff.height);
+    expect(Math.abs(table.x - refine.x)).toBeLessThanOrEqual(1);
+    expect(Math.abs(table.width - refine.width)).toBeLessThanOrEqual(1);
+    // The plot keeps a sensible shape at half width: never a thin strip.
+    const plotHeight = () => page.locator(".canvas-panel .plot-wrap").boundingBox().then((plot) => plot?.height ?? 0);
+    await expect.poll(plotHeight).toBeGreaterThanOrEqual(460);
+    expect(await plotHeight()).toBeLessThanOrEqual(560);
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width);
-    expect(await page.locator(".board-answer").evaluate((node) => getComputedStyle(node).overflowY)).toBe("visible");
-
-    if (process.env.MODELSPEC_SCREENSHOT_DIR) {
-      await page.evaluate(() => window.scrollTo(0, 0));
-      await page.screenshot({ path: `${process.env.MODELSPEC_SCREENSHOT_DIR}/decide-298-${width}.png`, fullPage: true });
-    }
   });
 }
+
+// MODEL-325: one gutter, one gap, one panel inset, the split on a tile
+// boundary, and the answer above the fold, as scripts/decide-layout.mjs prints them.
+const gated = process.env.VITE_HUMAN_GATE_ENABLED === "true" || process.env.VITE_VISIT_GATE_ENABLED === "true";
+for (const viewport of [{ width: 1236, height: 800 }, { width: 1440, height: 800 }, { width: 390, height: 844 }]) {
+  test(`a clean first visit meets the layout contract at ${viewport.width}×${viewport.height}`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await routeFixtures(page);
+    await openDecide(page);
+    const rows = check(await measure(page))
+      // A gated page adds its verification panel above the answer.
+      .filter((row) => !gated || !/fold|two screens/.test(row.check));
+    expect(rows.filter((row) => !row.pass)).toEqual([]);
+  });
+}
+
+test("a facet click in Refine holds its place while the next answer loads", async ({ page }) => {
+  await page.setViewportSize({ width: 1236, height: 800 });
+  await openBoard(page);
+  // Safari has no scroll anchoring; without the held height the row jumped 1,640px.
+  await page.addStyleTag({ content: "* { overflow-anchor: none !important; }" });
+  let release = () => {};
+  const held = new Promise<void>((resolve) => { release = resolve; });
+  await page.route("**/v1/decide", async (route) => { await held; await route.fallback(); });
+  const row = page.locator('[data-facet="capability.software_engineering"]');
+  if (!(await row.isVisible())) await page.getByRole("button", { name: /^What it's good at/ }).click();
+  await row.scrollIntoViewIfNeeded();
+  const top = () => row.evaluate((node) => node.getBoundingClientRect().top);
+  const before = await top();
+  await row.getByLabel("Prefer").check();
+  await expect(page.locator(".loading-cards")).toBeVisible();
+  expect(Math.abs((await top()) - before)).toBeLessThanOrEqual(1);
+  release();
+});
+
+test("the chart clears the sticky header at 1236×800", async ({ page }) => {
+  await page.setViewportSize({ width: 1236, height: 800 });
+  await routeFixtures(page);
+  await openDecide(page);
+  const { headerBottom, chartTop } = await stickyChartView(page);
+  expect(chartTop).toBeGreaterThanOrEqual(headerBottom + 16 - 0.5);
+});
+
+test("a template click changes the first screen without scrolling", async ({ page }) => {
+  await page.setViewportSize({ width: 1236, height: 800 });
+  await routeFixtures(page);
+  await openDecide(page);
+  await routeNarrowedDecision(page);
+  const shortcut = page.locator(".template-shortcut").nth(1);
+  await shortcut.click();
+  await expect(shortcut).toHaveAttribute("aria-pressed", "true");
+  await expect(shortcut.locator(".template-check")).toHaveText("✓");
+  await expect(page.locator(".narrowing-number")).toHaveText(["15", "3", "14", "—"]);
+  const after = await counterView(page);
+  expect(after?.bottom).toBeLessThanOrEqual(800);
+  expect(await page.evaluate(() => scrollY)).toBe(0);
+});
 
 test("the loading skeleton fits a 390px viewport", async ({ page }) => {
   // Hold the decision so the skeleton stays up: a fixed 400px cards column once

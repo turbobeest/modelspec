@@ -1,5 +1,5 @@
 import { createRequire } from "node:module";
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, expect, it, vi } from "vitest";
 import App from "../App";
@@ -149,11 +149,15 @@ it("leads with the CLI, then MCP, Spec and keyed curl, all reachable by keyboard
   await user.keyboard("{Enter}");
   expect(clipboard).toHaveBeenLastCalledWith(handoffMessage(sampleSpec));
   expect(screen.getByRole("status")).toHaveTextContent("Hand-off copied for your agent.");
+  // The button itself confirms; the status line is for screen readers only.
+  expect(screen.getByRole("button", { name: "Copied ✓" })).toHaveFocus();
+  expect(screen.getByRole("status")).toHaveClass("template-sr");
   await user.tab();
+  expect(screen.getByRole("button", { name: "Copy curl" })).toHaveClass("text-button");
   await user.tab();
-  expect(screen.getByRole("link", { name: "Get an API key" })).toHaveFocus();
-  expect(screen.getByText(/Get a key with/)).toHaveTextContent(
-    "Get a key with modelspec key, then store it for the CLI with modelspec auth set. MCP and curl read MODELSPEC_API_KEY.");
+  expect(screen.getByRole("link", { name: handoffData.key_link.label })).toHaveFocus();
+  expect(screen.getByText(/covers keys, MCP and curl/)).toHaveTextContent(
+    "Paste it into your agent; modelspec help agent covers keys, MCP and curl.");
 });
 
 it("announces clipboard failure and clears it when another snippet is selected", async () => {
@@ -171,8 +175,20 @@ it("renders the built price, explanation credits, neutrality excerpt and flag-aw
   expect(screen.getByText(`Your agent gets this answer from ${handoffData.summary_price_cents}¢`)).toBeInTheDocument();
   expect(screen.getByText(`A full explanation costs ${handoffData.full_credits} credits.`)).toBeInTheDocument();
   expect(screen.getByRole("link", { name: `${handoffData.neutrality.text} · sourced` })).toHaveAttribute("href", handoffData.neutrality.href);
-  const key = screen.getByRole("link", { name: "Get an API key" });
+  const key = screen.getByRole("link", { name: handoffData.key_link.label });
   expect(key).toHaveAttribute("href", handoffData.key_link.href);
   expect(key).toHaveAccessibleDescription(handoffData.key_link.note);
   expect(screen.getAllByRole("button", { name: "Copy for my agent" })).toHaveLength(2);
+});
+
+it("confirms a copy on the price-line button for two seconds", async () => {
+  vi.useFakeTimers();
+  vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue();
+  render(<AnswerAssurances spec={sampleSpec} />);
+  await act(async () => { fireEvent.click(screen.getByRole("button", { name: "Copy for my agent" })); });
+  expect(screen.getByRole("button", { name: "Copied ✓" })).toBeInTheDocument();
+  expect(screen.getByRole("status")).toHaveClass("template-sr");
+  act(() => { vi.advanceTimersByTime(2000); });
+  expect(screen.getByRole("button", { name: "Copy for my agent" })).toBeInTheDocument();
+  vi.useRealTimers();
 });
