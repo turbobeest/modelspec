@@ -1561,7 +1561,6 @@ class Default(WorkerEntrypoint):
                 "endpoint": "policy-check",
                 "service_commit": service_commit,
                 "export_origin": origin,
-                "deprecation": service.DEPRECATION,
                 "error": {"code": "export_unavailable",
                           "message": f"could not read the policy export: {exc}"},
                 "result": [],

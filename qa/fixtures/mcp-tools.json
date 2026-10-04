@@ -4,14 +4,14 @@
     "mcp/src/vocabulary.ts": "120c41a9b06e6588edd818ef0be72df87f01d2a46168f1a69cd035884faa01ea",
     "mcp/test/fixtures/decide-budget.json": "73f497f2ddae8ef1f4f6cd30277dc521d0631684cdc8187124e85620fefa843e",
     "docs/decision-contract.schema.json": "b7b137d53de7f21e4f58ae4be199b199dba6ab907ed29d786183fc1f5342ce3e",
-    "api/worker/openapi.yaml": "ec4de7ff6e091199519258d283252dc8292acb7cf71ed9905f8725080e501196",
+    "api/worker/openapi.yaml": "a2fbff4dfa12033d65e361791da4d6cd7d1633bd57203def04b058732a1ea6af",
     "docs/agents.md": "7ffe00341baecf701085842e6d237886489b47212819e44ce45486cfa5d9c094",
-    "mcp/src/agent-copy.json": "d5b41ebd9cf5fbdb73bbf732f8e6101d80598d7348471968a64ef549c5381582"
+    "mcp/src/agent-copy.json": "1856b33eeed250e6434307cc1eada15e1bf5944f441286776946e9b339ad2669"
   },
   "tools": [
     {
       "name": "rank",
-      "description": "Deprecated legacy v1: the retired fixed-benchmark ranking. Its scores lag the catalogue and newer models are often unranked. Never a fallback when decide names no single leader: report decide's tie. Returns a shortlist for one fixed use-case profile with evidence_basis, input provenance, not a quality verdict. Needs an API key (Authorization: Bearer). Costs 1 credit a call; a credit costs $0.0017–$0.004 depending on the plan or pack (https://modelspec.dev/pricing/). Proxies POST https://api.modelspec.dev/v1/rank with this tool's arguments as the JSON body. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
+      "description": "Legacy v1; use decide. Deprecated: the retired fixed-benchmark ranking, whose scores lag the catalogue; newer models are often unranked. Which models rank highest for one fixed use-case profile? Returns a shortlist with evidence_basis, input provenance, not a quality verdict. Needs an API key (Authorization: Bearer). Costs 1 credit a call; a credit costs $0.0017–$0.004 depending on the plan or pack (https://modelspec.dev/pricing/). Don't call it as a fallback when decide names no single leader: report decide's tie. Proxies POST https://api.modelspec.dev/v1/rank with this tool's arguments as the JSON body. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
       "input_schema": {
         "type": "object",
         "additionalProperties": true,

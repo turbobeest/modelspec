@@ -641,11 +641,13 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
             f"Call shape, examples, recovery and budgets: {GUIDE_URL}. {NULL_RULE}"
         ),
         "rank": (
-            "Deprecated legacy v1: the retired fixed-benchmark ranking. Its scores lag the "
-            "catalogue and newer models are often unranked. Never a fallback when decide "
-            "names no single leader: report decide's tie. "
-            "Returns a shortlist for one fixed use-case profile with evidence_basis, input "
-            f"provenance, not a quality verdict. {price([w['rank']], tiers)} "
+            "Legacy v1; use decide. Deprecated: the retired fixed-benchmark "
+            "ranking, whose scores lag the catalogue; newer models are often unranked. "
+            "Which models rank highest for one fixed use-case profile? "
+            "Returns a shortlist with evidence_basis, input provenance, not a quality "
+            f"verdict. {price([w['rank']], tiers)} "
+            "Don't call it as a fallback when decide names no single leader: report "
+            "decide's tie. "
             f"Proxies POST {API}/v1/rank with this tool's arguments as the JSON body. "
             f"{NULL_RULE}"
         ),

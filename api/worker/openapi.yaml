@@ -346,11 +346,12 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/AccessRefused'}
           headers: *id001
-      description: 'Deprecated legacy v1: the retired fixed-benchmark ranking. Its scores lag the catalogue
-        and newer models are often unranked. Never a fallback when decide names no single leader: report
-        decide''s tie. Returns a shortlist for one fixed use-case profile with evidence_basis, input provenance,
-        not a quality verdict. Needs an API key (Authorization: Bearer). Costs 1 credit a call; a credit
-        costs $0.0017–$0.004 depending on the plan or pack (https://modelspec.dev/pricing/).'
+      description: 'Legacy v1; use decide. Deprecated: the retired fixed-benchmark ranking, whose scores
+        lag the catalogue; newer models are often unranked. Which models rank highest for one fixed use-case
+        profile? Returns a shortlist with evidence_basis, input provenance, not a quality verdict. Needs
+        an API key (Authorization: Bearer). Costs 1 credit a call; a credit costs $0.0017–$0.004 depending
+        on the plan or pack (https://modelspec.dev/pricing/). Don''t call it as a fallback when decide
+        names no single leader: report decide''s tie.'
   /v1/decide:
     post:
       operationId: decide
@@ -1815,9 +1816,7 @@ components:
           required: [built_at, commit, eligibility_as_of, export_schema_version]
         candidates_considered: {type: integer}
         deprecation:
-          description: 'Always present (MODEL-316). /v1/rank is the retired fixed-benchmark ranking: its
-            scores lag the catalogue and newer models are often unranked. Do not fall back to it when
-            decide names no single leader.'
+          description: 'Always present (MODEL-316): the retired ranking; never a fallback for decide.'
           type: object
           properties:
             deprecated: {type: boolean}

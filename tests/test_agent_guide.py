@@ -95,8 +95,10 @@ def test_openapi_size_and_all_response_header_descriptions():
     # BoundedDecision, ModelEvidence, BoundedExplanation, BoundedRefused): about
     # 9 KB, already with copied properties pointing at their sources. 226,428 bytes.
     # MODEL-308 adds the typed aggregate coverage block, about 1.8 KB.
-    assert len(text.encode()) <= 231_000
-    assert tokens(text) <= 58_000
+    # MODEL-316 adds rank's deprecation block and decide's relax_task_tokens,
+    # about 1.3 KB and 300 tokens.
+    assert len(text.encode()) <= 233_000
+    assert tokens(text) <= 58_300
     spec = yaml.safe_load(text)
     assert agent_copy.GUIDE_URL in spec['info']['description']
     for path, operations in spec['paths'].items():

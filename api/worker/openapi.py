@@ -204,9 +204,7 @@ DESCRIPTIONS: dict[str, str] = {
     ),
     "RankResponse.result": "The shortlist, best first. Never empty on a 200.",
     "RankResponse.deprecation": (
-        "Always present (MODEL-316). /v1/rank is the retired fixed-benchmark ranking: its "
-        "scores lag the catalogue and newer models are often unranked. Do not fall back to "
-        "it when decide names no single leader."
+        "Always present (MODEL-316): the retired ranking; never a fallback for decide."
     ),
     "RankResponse.deprecation.next": "The endpoint to call instead: POST /v1/decide.",
     "RankResponse.authoring_guide": (

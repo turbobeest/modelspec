@@ -20,6 +20,7 @@ from __future__ import annotations
 
 from dataclasses import replace
 from itertools import combinations
+from fractions import Fraction
 from math import ceil, floor
 from typing import Any
 
@@ -165,7 +166,9 @@ def task_tokens_hint(resolved, relax: list[str], relax_to: list[Relaxation],
     nearest = next((r.value for r in relax_to if r.condition == relax[0]), None)
     if cap is None or not nearest:
         return None
-    scale = cap.value / nearest
+    # Exact: in floats 0.07 / 0.1 × 40,000 is 28,000.000000000004, and a strict
+    # cap would then be offered a task that costs exactly the cap.
+    scale = Fraction(str(cap.value)) / Fraction(str(nearest))
     fit = floor if cap.op == "<=" else (lambda tokens: ceil(tokens) - 1)
     default = DEFAULT_TASK_TOKENS
     admits = TaskTokens(input=max(fit(default.input * scale), 0),

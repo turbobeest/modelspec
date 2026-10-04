@@ -10,119 +10,121 @@
     "benchmarks": 1153,
     "summary": "Decision snapshot 2026-09-23: the board covers 44 models (decider: 1, orderer: 2, text-generator: 35, vectoriser: 6). The catalogue has 1,372 cards; 1,328 are not yet decidable.",
     "decision": {
-      "coverage_version": "1.0",
-      "url": "https://modelspec.dev/api/coverage.json",
-      "snapshot": "snap_aa3d424873d6b77f",
+      "aggregators": {
+        "offerings": 0,
+        "providers": []
+      },
       "as_of": "2026-09-23",
-      "definition": "Decidable models are active snapshot models with an admitted model class. Counts describe the board's scope, not evidence for every task. Classes are listed alphabetically, never ranked.",
       "board": {
         "models": 44,
         "offerings": 43
       },
       "catalogue": {
-        "models": 1372,
-        "catalogued_not_decidable": 1328
+        "catalogued_not_decidable": 1328,
+        "models": 1372
       },
       "classes": [
         {
+          "catalogued": 0,
+          "catalogued_not_decidable": 0,
+          "decidable": 0,
           "id": "actor",
-          "is_class": true,
-          "decidable": 0,
-          "catalogued": 0,
-          "catalogued_not_decidable": 0
+          "is_class": true
         },
         {
-          "id": "analyser",
-          "is_class": true,
-          "decidable": 0,
           "catalogued": 48,
-          "catalogued_not_decidable": 48
+          "catalogued_not_decidable": 48,
+          "decidable": 0,
+          "id": "analyser",
+          "is_class": true
         },
         {
-          "id": "decider",
-          "is_class": true,
+          "catalogued": 1,
+          "catalogued_not_decidable": 0,
           "decidable": 1,
-          "catalogued": 1,
-          "catalogued_not_decidable": 0
+          "id": "decider",
+          "is_class": true
         },
         {
+          "catalogued": 1,
+          "catalogued_not_decidable": 1,
+          "decidable": 0,
           "id": "derived",
-          "is_class": false,
-          "decidable": 0,
-          "catalogued": 1,
-          "catalogued_not_decidable": 1
+          "is_class": false
         },
         {
-          "id": "forecaster",
-          "is_class": true,
-          "decidable": 0,
           "catalogued": 12,
-          "catalogued_not_decidable": 12
+          "catalogued_not_decidable": 12,
+          "decidable": 0,
+          "id": "forecaster",
+          "is_class": true
         },
         {
-          "id": "labeller",
-          "is_class": true,
-          "decidable": 0,
           "catalogued": 19,
-          "catalogued_not_decidable": 19
+          "catalogued_not_decidable": 19,
+          "decidable": 0,
+          "id": "labeller",
+          "is_class": true
         },
         {
-          "id": "media-generator",
-          "is_class": true,
-          "decidable": 0,
           "catalogued": 75,
-          "catalogued_not_decidable": 75
+          "catalogued_not_decidable": 75,
+          "decidable": 0,
+          "id": "media-generator",
+          "is_class": true
         },
         {
-          "id": "orderer",
-          "is_class": true,
-          "decidable": 2,
           "catalogued": 13,
-          "catalogued_not_decidable": 11
+          "catalogued_not_decidable": 11,
+          "decidable": 2,
+          "id": "orderer",
+          "is_class": true
         },
         {
-          "id": "scorer",
-          "is_class": true,
-          "decidable": 0,
           "catalogued": 8,
-          "catalogued_not_decidable": 8
+          "catalogued_not_decidable": 8,
+          "decidable": 0,
+          "id": "scorer",
+          "is_class": true
         },
         {
-          "id": "simulator",
-          "is_class": true,
-          "decidable": 0,
           "catalogued": 0,
-          "catalogued_not_decidable": 0
+          "catalogued_not_decidable": 0,
+          "decidable": 0,
+          "id": "simulator",
+          "is_class": true
         },
         {
-          "id": "text-generator",
-          "is_class": true,
-          "decidable": 35,
           "catalogued": 1014,
-          "catalogued_not_decidable": 979
+          "catalogued_not_decidable": 979,
+          "decidable": 35,
+          "id": "text-generator",
+          "is_class": true
         },
         {
-          "id": "transcriber",
-          "is_class": true,
-          "decidable": 0,
           "catalogued": 21,
-          "catalogued_not_decidable": 21
-        },
-        {
-          "id": "unclassified",
-          "is_class": false,
+          "catalogued_not_decidable": 21,
           "decidable": 0,
-          "catalogued": 5,
-          "catalogued_not_decidable": 5
+          "id": "transcriber",
+          "is_class": true
         },
         {
-          "id": "vectoriser",
-          "is_class": true,
-          "decidable": 6,
+          "catalogued": 5,
+          "catalogued_not_decidable": 5,
+          "decidable": 0,
+          "id": "unclassified",
+          "is_class": false
+        },
+        {
           "catalogued": 155,
-          "catalogued_not_decidable": 149
+          "catalogued_not_decidable": 149,
+          "decidable": 6,
+          "id": "vectoriser",
+          "is_class": true
         }
       ],
+      "coverage_version": "1.0",
+      "definition": "Decidable models are active snapshot models with an admitted model class. Counts describe the board's scope, not evidence for every task. Classes are listed alphabetically, never ranked.",
       "domains": [
         {
           "id": "agentic_tool_use",
@@ -179,305 +181,303 @@
       ],
       "model_types": [
         {
-          "id": "audio-asr",
+          "catalogued": 17,
+          "catalogued_not_decidable": 17,
           "class": "transcriber",
           "decidable": 0,
-          "catalogued": 17,
-          "catalogued_not_decidable": 17
+          "id": "audio-asr"
         },
         {
-          "id": "audio-tts",
+          "catalogued": 12,
+          "catalogued_not_decidable": 12,
           "class": "media-generator",
           "decidable": 0,
-          "catalogued": 12,
-          "catalogued_not_decidable": 12
+          "id": "audio-tts"
         },
         {
-          "id": "decision-model",
+          "catalogued": 1,
+          "catalogued_not_decidable": 0,
           "class": "decider",
           "decidable": 1,
-          "catalogued": 1,
-          "catalogued_not_decidable": 0
+          "id": "decision-model"
         },
         {
-          "id": "document-ocr",
+          "catalogued": 4,
+          "catalogued_not_decidable": 4,
           "class": "transcriber",
           "decidable": 0,
-          "catalogued": 4,
-          "catalogued_not_decidable": 4
+          "id": "document-ocr"
         },
         {
-          "id": "embedding-multimodal",
+          "catalogued": 23,
+          "catalogued_not_decidable": 23,
           "class": "vectoriser",
           "decidable": 0,
-          "catalogued": 23,
-          "catalogued_not_decidable": 23
+          "id": "embedding-multimodal"
         },
         {
-          "id": "embedding-text",
+          "catalogued": 132,
+          "catalogued_not_decidable": 126,
           "class": "vectoriser",
           "decidable": 6,
-          "catalogued": 132,
-          "catalogued_not_decidable": 126
+          "id": "embedding-text"
         },
         {
-          "id": "image-generation",
+          "catalogued": 55,
+          "catalogued_not_decidable": 55,
           "class": "media-generator",
           "decidable": 0,
-          "catalogued": 55,
-          "catalogued_not_decidable": 55
+          "id": "image-generation"
         },
         {
-          "id": "llm-base",
+          "catalogued": 22,
+          "catalogued_not_decidable": 22,
           "class": "text-generator",
           "decidable": 0,
-          "catalogued": 22,
-          "catalogued_not_decidable": 22
+          "id": "llm-base"
         },
         {
-          "id": "llm-chat",
-          "class": "text-generator",
-          "decidable": 2,
           "catalogued": 468,
-          "catalogued_not_decidable": 466
-        },
-        {
-          "id": "llm-code",
+          "catalogued_not_decidable": 466,
           "class": "text-generator",
           "decidable": 2,
-          "catalogued": 128,
-          "catalogued_not_decidable": 126
+          "id": "llm-chat"
         },
         {
-          "id": "llm-reasoning",
+          "catalogued": 128,
+          "catalogued_not_decidable": 126,
+          "class": "text-generator",
+          "decidable": 2,
+          "id": "llm-code"
+        },
+        {
+          "catalogued": 220,
+          "catalogued_not_decidable": 192,
           "class": "text-generator",
           "decidable": 28,
-          "catalogued": 220,
-          "catalogued_not_decidable": 192
+          "id": "llm-reasoning"
         },
         {
-          "id": "miscellaneous",
+          "catalogued": 5,
+          "catalogued_not_decidable": 5,
           "class": "unclassified",
           "decidable": 0,
-          "catalogued": 5,
-          "catalogued_not_decidable": 5
+          "id": "miscellaneous"
         },
         {
-          "id": "quantized-variant",
+          "catalogued": 1,
+          "catalogued_not_decidable": 1,
           "class": "derived",
           "decidable": 0,
-          "catalogued": 1,
-          "catalogued_not_decidable": 1
+          "id": "quantized-variant"
         },
         {
-          "id": "reranker",
+          "catalogued": 13,
+          "catalogued_not_decidable": 11,
           "class": "orderer",
           "decidable": 2,
-          "catalogued": 13,
-          "catalogued_not_decidable": 11
+          "id": "reranker"
         },
         {
-          "id": "reward-model",
+          "catalogued": 8,
+          "catalogued_not_decidable": 8,
           "class": "scorer",
           "decidable": 0,
-          "catalogued": 8,
-          "catalogued_not_decidable": 8
+          "id": "reward-model"
         },
         {
-          "id": "safety-classifier",
+          "catalogued": 19,
+          "catalogued_not_decidable": 19,
           "class": "labeller",
           "decidable": 0,
-          "catalogued": 19,
-          "catalogued_not_decidable": 19
+          "id": "safety-classifier"
         },
         {
-          "id": "text-encoder",
+          "catalogued": 26,
+          "catalogued_not_decidable": 26,
           "class": "analyser",
           "decidable": 0,
-          "catalogued": 26,
-          "catalogued_not_decidable": 26
+          "id": "text-encoder"
         },
         {
-          "id": "time-series",
+          "catalogued": 12,
+          "catalogued_not_decidable": 12,
           "class": "forecaster",
           "decidable": 0,
-          "catalogued": 12,
-          "catalogued_not_decidable": 12
+          "id": "time-series"
         },
         {
-          "id": "video-generation",
+          "catalogued": 8,
+          "catalogued_not_decidable": 8,
           "class": "media-generator",
           "decidable": 0,
-          "catalogued": 8,
-          "catalogued_not_decidable": 8
+          "id": "video-generation"
         },
         {
-          "id": "vision-encoder",
+          "catalogued": 22,
+          "catalogued_not_decidable": 22,
           "class": "analyser",
           "decidable": 0,
-          "catalogued": 22,
-          "catalogued_not_decidable": 22
+          "id": "vision-encoder"
         },
         {
-          "id": "vlm",
+          "catalogued": 176,
+          "catalogued_not_decidable": 173,
           "class": "text-generator",
           "decidable": 3,
-          "catalogued": 176,
-          "catalogued_not_decidable": 173
+          "id": "vlm"
+        }
+      ],
+      "offerings": [
+        {
+          "count": 1,
+          "provider": "alibaba-model-studio",
+          "region": "singapore",
+          "tier": "standard"
+        },
+        {
+          "count": 7,
+          "provider": "anthropic",
+          "region": "global",
+          "tier": "standard"
+        },
+        {
+          "count": 3,
+          "provider": "aws-bedrock",
+          "region": "global-cross-region",
+          "tier": "standard"
+        },
+        {
+          "count": 4,
+          "provider": "azure-ai-foundry",
+          "region": "global-short-context",
+          "tier": "standard"
+        },
+        {
+          "count": 2,
+          "provider": "deepseek",
+          "region": "global",
+          "tier": "standard"
+        },
+        {
+          "count": 5,
+          "provider": "google-gemini-api",
+          "region": "global",
+          "tier": "standard"
+        },
+        {
+          "count": 11,
+          "provider": "google-vertex-ai",
+          "region": "global",
+          "tier": "standard"
+        },
+        {
+          "count": 2,
+          "provider": "meta-model-api",
+          "region": "global",
+          "tier": "standard"
+        },
+        {
+          "count": 4,
+          "provider": "openai",
+          "region": "global",
+          "tier": "standard"
+        },
+        {
+          "count": 1,
+          "provider": "typesafe",
+          "region": "global",
+          "tier": "standard"
+        },
+        {
+          "count": 1,
+          "provider": "xai",
+          "region": "global",
+          "tier": "standard"
+        },
+        {
+          "count": 2,
+          "provider": "zai",
+          "region": "global",
+          "tier": "standard"
         }
       ],
       "providers": [
         {
           "id": "alibaba-model-studio",
-          "name": "Alibaba Cloud Model Studio",
           "kind": "lab_api",
+          "name": "Alibaba Cloud Model Studio",
           "offerings": 1
         },
         {
           "id": "anthropic",
-          "name": "Anthropic API",
           "kind": "lab_api",
+          "name": "Anthropic API",
           "offerings": 7
         },
         {
           "id": "aws-bedrock",
-          "name": "Amazon Bedrock",
           "kind": "cloud",
+          "name": "Amazon Bedrock",
           "offerings": 3
         },
         {
           "id": "azure-ai-foundry",
-          "name": "Azure AI Foundry",
           "kind": "cloud",
+          "name": "Azure AI Foundry",
           "offerings": 4
         },
         {
           "id": "deepseek",
-          "name": "DeepSeek Open Platform",
           "kind": "lab_api",
+          "name": "DeepSeek Open Platform",
           "offerings": 2
         },
         {
           "id": "google-gemini-api",
-          "name": "Gemini API (Google AI Studio)",
           "kind": "lab_api",
+          "name": "Gemini API (Google AI Studio)",
           "offerings": 5
         },
         {
           "id": "google-vertex-ai",
-          "name": "Vertex AI (Google Cloud)",
           "kind": "cloud",
+          "name": "Vertex AI (Google Cloud)",
           "offerings": 11
         },
         {
           "id": "meta-model-api",
-          "name": "Meta Model API",
           "kind": "lab_api",
+          "name": "Meta Model API",
           "offerings": 2
         },
         {
           "id": "openai",
-          "name": "OpenAI API",
           "kind": "lab_api",
+          "name": "OpenAI API",
           "offerings": 4
         },
         {
           "id": "typesafe",
-          "name": "TypeSafe API",
           "kind": "lab_api",
+          "name": "TypeSafe API",
           "offerings": 1
         },
         {
           "id": "xai",
-          "name": "xAI API",
           "kind": "lab_api",
+          "name": "xAI API",
           "offerings": 1
         },
         {
           "id": "zai",
-          "name": "Z.ai API",
           "kind": "lab_api",
+          "name": "Z.ai API",
           "offerings": 2
         }
       ],
-      "offerings": [
-        {
-          "provider": "alibaba-model-studio",
-          "region": "singapore",
-          "tier": "standard",
-          "count": 1
-        },
-        {
-          "provider": "anthropic",
-          "region": "global",
-          "tier": "standard",
-          "count": 7
-        },
-        {
-          "provider": "aws-bedrock",
-          "region": "global-cross-region",
-          "tier": "standard",
-          "count": 3
-        },
-        {
-          "provider": "azure-ai-foundry",
-          "region": "global-short-context",
-          "tier": "standard",
-          "count": 4
-        },
-        {
-          "provider": "deepseek",
-          "region": "global",
-          "tier": "standard",
-          "count": 2
-        },
-        {
-          "provider": "google-gemini-api",
-          "region": "global",
-          "tier": "standard",
-          "count": 5
-        },
-        {
-          "provider": "google-vertex-ai",
-          "region": "global",
-          "tier": "standard",
-          "count": 11
-        },
-        {
-          "provider": "meta-model-api",
-          "region": "global",
-          "tier": "standard",
-          "count": 2
-        },
-        {
-          "provider": "openai",
-          "region": "global",
-          "tier": "standard",
-          "count": 4
-        },
-        {
-          "provider": "typesafe",
-          "region": "global",
-          "tier": "standard",
-          "count": 1
-        },
-        {
-          "provider": "xai",
-          "region": "global",
-          "tier": "standard",
-          "count": 1
-        },
-        {
-          "provider": "zai",
-          "region": "global",
-          "tier": "standard",
-          "count": 2
-        }
-      ],
-      "aggregators": {
-        "providers": [],
-        "offerings": 0
-      }
+      "snapshot": "snap_aa3d424873d6b77f",
+      "url": "https://modelspec.dev/api/coverage.json"
     }
   },
   "urls": {
@@ -774,7 +774,7 @@
     }
   },
   "source_hashes": {
-    "pipeline/agent_copy.py": "93d4d093049e961068210b693755f0ce4ff64f3602a143aa06ab1c75956f67fd",
+    "pipeline/agent_copy.py": "946b83a51a792620d68bb6e392c99b3b9821eb716c0bfba4e13331f28ef4d0f3",
     "pipeline/entity.py": "1649e5f95b620561511c2619045d036231b44c8ab7ff297bf4c6a21ab2b69ff3",
     "pipeline/pricing.py": "1e7b0b1c1bfc2fba4bd2de1d551b2fd9490dccdf13669a24bad5a7c02a8fb2c8",
     "pipeline/worker_flags.py": "24f13653d35fa40bee8531fe0644aa1adbf4d80c232da5dcc3cd74cf035fceed",

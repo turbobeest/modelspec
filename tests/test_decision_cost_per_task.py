@@ -234,6 +234,20 @@ def test_a_strict_cap_gets_a_task_strictly_under_it():
     assert (hint.admits_at.input, hint.admits_at.output) == (19999, 1999)
 
 
+def test_a_strict_cap_survives_float_error_in_the_scale():
+    # $1.5 / $10 per 1M costs exactly 0.1 at the default. In floats
+    # 0.07 / 0.1 × 40,000 is 28,000.000000000004, and 28,000 / 2,800 tokens
+    # would cost exactly 0.07, which `< 0.07` refuses.
+    snapshot = index(offerings=[sold("lab/cheap", "p1", 1.5, 10.0)])
+    where = ["offering.cost_per_task < 0.07"]
+    hint = decide(spec(where=where, objective={"max": BENCH}), snapshot,
+                  facets=facets).relax_task_tokens
+    assert (hint.admits_at.input, hint.admits_at.output) == (27999, 2799)
+    sized = decide(spec(where=where, objective={"max": BENCH},
+                        tokens={"input": 27999, "output": 2799}), snapshot, facets=facets)
+    assert [r.offering.model for r in offerings_only(sized.results)] == ["lab/cheap"]
+
+
 def test_no_hint_when_the_spec_sized_the_task_or_the_cap_is_not_the_only_cause():
     sized = capped(["offering.cost_per_task <= 0.01"], tokens={"input": 40000, "output": 4000})
     assert sized.status == "no_feasible" and sized.relax_task_tokens is None
