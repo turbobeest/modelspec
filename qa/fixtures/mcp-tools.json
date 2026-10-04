@@ -1,12 +1,12 @@
 {
   "source_hashes": {
-    "mcp/src/server.ts": "76ce19c1c82aaff2617e60f1e6af5872c5312af2d3371e88a27357f2c55f78c3",
-    "mcp/src/vocabulary.ts": "120c41a9b06e6588edd818ef0be72df87f01d2a46168f1a69cd035884faa01ea",
+    "mcp/src/server.ts": "153fd907dea8725a574a5f96178e6f5237c7282dda7203cd00b25720c2681905",
+    "mcp/src/vocabulary.ts": "c3e05c2c807dacab6b1db024bd3bfb7d2cee9ccccd9d6d13680005e403a08866",
     "mcp/test/fixtures/decide-budget.json": "73f497f2ddae8ef1f4f6cd30277dc521d0631684cdc8187124e85620fefa843e",
     "docs/decision-contract.schema.json": "b7b137d53de7f21e4f58ae4be199b199dba6ab907ed29d786183fc1f5342ce3e",
     "api/worker/openapi.yaml": "a2fbff4dfa12033d65e361791da4d6cd7d1633bd57203def04b058732a1ea6af",
     "docs/agents.md": "7ffe00341baecf701085842e6d237886489b47212819e44ce45486cfa5d9c094",
-    "mcp/src/agent-copy.json": "1856b33eeed250e6434307cc1eada15e1bf5944f441286776946e9b339ad2669"
+    "mcp/src/agent-copy.json": "057d3d2ca4aacd9dfc3ef1d2c88ba1a8a8925c834a6e7b01a412bd51b231005b"
   },
   "tools": [
     {
@@ -1780,7 +1780,7 @@
     },
     {
       "name": "vocab",
-      "description": "What can a decide spec say? Returns the decision vocabulary: valid facet ids, benchmarks, domains, providers and task types. Compact by default, with 20 rows per page and no counts. Split-mode full details exclude per-model facts and counts. Needs an API key. Use it for missing ids, not to compare models. Call decide after at most one vocab lookup. section=starter returns a ready-to-send minimal Spec with 'next: call decide with this; refine from reading'. Responses include a next hint. If you need ids, use section=starter. Use search for a case-insensitive substring of id or label, then call decide. Use id or ids for row details, or detail=full for all display details. Use offset and limit to page compact sections; an empty page ends the list. ",
+      "description": "What can a decide spec say? Returns the decision vocabulary: valid facet ids, benchmarks, domains, providers and task types. Compact by default, with 20 rows per page and no counts. Split-mode full details exclude per-model facts and counts. Needs an API key. Use it for missing ids, not to compare models. Call decide after at most one vocab lookup. section=starter returns a ready-to-send minimal Spec with 'next: call decide with this; refine from reading'. Responses include a next hint. If you need ids, use section=starter. Search covers every section's ids, labels, definitions and values with case- and separator-insensitive matching; a miss returns suggestions. An explicit non-starter section scopes the search. Use id or ids for row details, or detail=full for all display details. Use offset and limit to page matches across sections, including full details; an empty page ends the list. ",
       "input_schema": {
         "type": "object",
         "properties": {
