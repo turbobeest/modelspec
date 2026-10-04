@@ -136,15 +136,18 @@ def test_the_client_probe_passes_when_every_client_matches_curl() -> None:
     ] * 2
 
 
-def test_the_client_probe_reports_the_urllib_edge_refusals() -> None:
+# A keyless decide is 400 with access off and 401 with ACCESS_ENFORCED (MODEL-96);
+# the probe compares with curl and never expects a particular status.
+@pytest.mark.parametrize("decide", [400, 401, 402])
+def test_the_client_probe_reports_the_urllib_edge_refusals(decide: int) -> None:
     def fetch(method: str, url: str, agent: str, body: bytes | None) -> tuple[int, str]:
         if agent.startswith("Python-urllib/"):
             return 403, "text/plain; charset=utf-8"
-        return (200 if method == "GET" else 400), "application/json"
+        return (200 if method == "GET" else decide), "application/json"
 
     assert live.client_probe("https://api.modelspec.dev", fetch) == [
         "Python-urllib/3.12 GET /v1/health: 403 text/plain, curl got 200 application/json",
-        "Python-urllib/3.12 POST /v1/decide: 403 text/plain, curl got 400 application/json",
+        f"Python-urllib/3.12 POST /v1/decide: 403 text/plain, curl got {decide} application/json",
     ]
 
 
