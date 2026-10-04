@@ -173,7 +173,8 @@ def build_command(
             "--tools",
             "web_search,web_fetch,x_search" if search else "",
             "--permission-mode", "dontAsk",
-            "--allow", f"mcp__{server}__*" if not search else "web_search",
+            "--allow",
+            "web_search" if search else f"mcp__{server}__*" if isolated else "mcp__model301_canary__*",
             "--single",
             prompt,
         ]
@@ -196,6 +197,14 @@ def codex_config_args(settings: dict, mcp_file: Path) -> list[str]:
         "skills.config=[]",
         "features.hooks=false",
         "plugins={}",
+        # ChatGPT account apps reappear as enabled plugins after login; plugins={}
+        # alone does not turn them off.
+        "features.apps=false",
+        "features.plugins=false",
+        "features.remote_plugin=false",
+        # Running with full access persists a trust grant for /work in the login
+        # volume, which would load the cwd's .codex config. Pin it untrusted.
+        'projects={"/work"={trust_level="untrusted"}}',
         'cli_auth_credentials_store="file"',
         'forced_login_method="chatgpt"',
         "mcp_servers={}",

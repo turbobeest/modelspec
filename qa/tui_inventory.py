@@ -85,6 +85,48 @@ GEMINI_MCP_NOTICES = frozenset(
 )
 
 
+# The controls pin /work untrusted, so Codex refuses its .codex config, hooks and exec
+# policies and says so, as a configWarning event and on stderr. Doctor plants that
+# folder, so this exact warning confirms the refusal.
+CODEX_UNTRUSTED_PROJECT_WARNING = (
+    "Project-local config, hooks, and exec policies are disabled in the following folders "
+    "until the project is trusted, but skills still load.\n"
+    "    1. /work/.codex\n"
+    "       /work is marked as untrusted in the effective configuration. To load "
+    "project-local config, hooks, and exec policies, update its trust setting. If that "
+    "setting is managed by your organization, contact your administrator.\n"
+)
+_CODEX_WARNING_LINES = CODEX_UNTRUSTED_PROJECT_WARNING.splitlines()
+CODEX_UNTRUSTED_PROJECT_NOTICE = (
+    re.compile(
+        r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d(\.\d+)?Z ERROR codex_app_server: "
+        + re.escape(_CODEX_WARNING_LINES[0])
+    ),
+    *(re.compile(re.escape(line)) for line in _CODEX_WARNING_LINES[1:]),
+)
+
+
+def codex_untrusted_project_warning(message: dict) -> bool:
+    return (
+        message.get("method") == "configWarning"
+        and message.get("params")
+        == {"summary": CODEX_UNTRUSTED_PROJECT_WARNING, "details": None}
+    )
+
+
+def codex_unknown_diagnostics(stderr: bytes, *, final: bool) -> bool:
+    """Every line except the untrusted-project notice is an unknown diagnostic."""
+    text = re.sub(r"\x1b\[[0-9;]*m", "", stderr.decode(errors="replace"))
+    lines = text.split("\n")
+    if not final:
+        lines = lines[:-1]  # Judge a partial line once it is complete.
+    return any(
+        line.strip()
+        and not any(pattern.fullmatch(line) for pattern in CODEX_UNTRUSTED_PROJECT_NOTICE)
+        for line in lines
+    )
+
+
 def gemini_skill_listing(output: str, allowed_servers=("modelspec",)) -> str:
     # Keep unknown diagnostics in the listing so its strict grammar rejects them.
     notices = {notice.replace("'modelspec'", f"'{server}'")
@@ -130,7 +172,7 @@ def _codex_skills(
                         if message.get("method") not in (
                             "skills/changed",
                             "remoteControl/status/changed",
-                        ):
+                        ) and not codex_untrusted_project_warning(message):
                             raise ValueError("Unexpected Codex inventory RPC event")
                     remaining = deadline - monotonic()
                     if remaining <= 0:
@@ -144,7 +186,10 @@ def _codex_skills(
                             diagnostics += chunk
                         else:
                             pending += chunk
-                    if diagnostics.strip() or len(pending) > 1_000_000:
+                    if (
+                        codex_unknown_diagnostics(diagnostics, final=False)
+                        or len(pending) > 1_000_000
+                    ):
                         raise ValueError(
                             "Codex skills inventory emitted diagnostics or excess output"
                         )
@@ -164,7 +209,7 @@ def _codex_skills(
             return _list(data[0].get("skills"), "Codex skills")
     finally:
         _, stderr = stop_process(process)
-        if stderr.strip():
+        if codex_unknown_diagnostics(diagnostics + (stderr or b""), final=True):
             raise ValueError("Codex skills inventory emitted diagnostics")
 
 

@@ -257,6 +257,31 @@ def test_claude_excludes_instruction_sources_and_builtin_tools(config, tmp_path)
     assert "--bare" not in command  # It excludes subscription authentication.
 
 
+@pytest.mark.parametrize("isolated,allowed", [(True, "mcp__modelspec__*"), (False, "mcp__model301_canary__*")])
+def test_grok_allows_only_the_controls_own_mcp_server(isolated, allowed, config, tmp_path):
+    # A denied MCP call cancels the whole Grok turn, so the positive control must
+    # allow the canary server it planted, and nothing else.
+    command = providers.build_command(
+        "grok", config["clis"]["grok"], tmp_path, "OK", tmp_path / "mcp.json", 8,
+        isolated=isolated,
+    )
+    assert [command[i + 1] for i, value in enumerate(command) if value == "--allow"] == [allowed]
+
+
+def test_codex_controls_disable_account_apps_and_pin_the_workspace_untrusted(config, tmp_path):
+    (tmp_path / "mcp.toml").write_text(homes.home_config("codex", config))
+    args = providers.codex_config_args(config["clis"]["codex"], tmp_path / "mcp.toml")
+    values = [args[i + 1] for i, value in enumerate(args) if value == "-c"]
+    for value in (
+        "plugins={}",
+        "features.apps=false",
+        "features.plugins=false",
+        "features.remote_plugin=false",
+        'projects={"/work"={trust_level="untrusted"}}',
+    ):
+        assert value in values
+
+
 def test_environment_cannot_inherit_vendor_keys_or_agent_customizations(
     config, monkeypatch, tmp_path
 ):
@@ -1527,6 +1552,79 @@ def test_codex_skill_rpc_uses_the_exact_home_and_cwd_without_a_model_turn(
             inventory._codex_skills("codex", ["--no-daemon"], tmp_path, env, 5, config)
     else:
         assert inventory._codex_skills("codex", ["--no-daemon"], tmp_path, env, 5, config) == []
+
+
+CODEX_WARNING_EVENT = {
+    "method": "configWarning",
+    "params": {"summary": inventory.CODEX_UNTRUSTED_PROJECT_WARNING, "details": None},
+    "emittedAtMs": 1,
+}
+CODEX_WARNING_STDERR = (
+    "\x1b[2m2026-10-04T12:13:34.529959Z\x1b[0m \x1b[31mERROR\x1b[0m "
+    "\x1b[2mcodex_app_server\x1b[0m\x1b[2m:\x1b[0m "
+    + inventory.CODEX_UNTRUSTED_PROJECT_WARNING
+    + "\n"
+)
+
+
+@pytest.mark.parametrize(
+    "event,stderr,error",
+    [
+        (CODEX_WARNING_EVENT, CODEX_WARNING_STDERR, None),
+        (
+            CODEX_WARNING_EVENT | {"params": {"summary": "Other warning", "details": None}},
+            "",
+            "Unexpected Codex inventory RPC event",
+        ),
+        (None, CODEX_WARNING_STDERR + "WARN codex: unknown\n", "emitted diagnostics"),
+        (None, CODEX_WARNING_STDERR.replace("/work/.codex", "/home/agent/.codex"), "emitted diagnostics"),
+    ],
+)
+def test_codex_untrusted_project_warning_is_the_only_tolerated_diagnostic(
+    event, stderr, error, config, tmp_path, monkeypatch
+):
+    fake = tmp_path / "inventory-cli.py"
+    fake.write_text(
+        f"#!{sys.executable}\n"
+        "import json,sys\n"
+        f"sys.stderr.write({stderr!r}); sys.stderr.flush()\n"
+        f"event = {json.dumps(event)!r}\n"
+        "for line in sys.stdin:\n"
+        "    request = json.loads(line)\n"
+        "    if request['method'] == 'initialized': continue\n"
+        "    if request['method'] == 'skills/list' and event != 'null':\n"
+        "        print(event, flush=True)\n"
+        "    result = {'data': [{'cwd': '/work', 'skills': [], 'errors': []}]}\n"
+        "    print(json.dumps({'id': request['id'], 'result': result}), flush=True)\n"
+    )
+
+    def popen(cli, cfg, workspace, command, env):
+        return subprocess.Popen(
+            [sys.executable, str(fake)],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+
+    def stop(process):
+        process.terminate()
+        return process.communicate(timeout=5)
+
+    monkeypatch.setattr(inventory, "popen_cli", popen)
+    monkeypatch.setattr(inventory, "stop_process", stop)
+    env = providers.child_environment("codex", tmp_path, settings=config["clis"]["codex"])
+    if error is None:
+        assert inventory._codex_skills("codex", ["--no-daemon"], tmp_path, env, 5, config) == []
+    else:
+        with pytest.raises(ValueError, match=error):
+            inventory._codex_skills("codex", ["--no-daemon"], tmp_path, env, 5, config)
+
+
+def test_codex_partial_diagnostic_lines_wait_until_complete():
+    line = CODEX_WARNING_STDERR.encode()
+    assert not inventory.codex_unknown_diagnostics(line[:40], final=False)
+    assert not inventory.codex_unknown_diagnostics(line, final=True)
+    assert inventory.codex_unknown_diagnostics(line[:40], final=True)
 
 
 @pytest.mark.parametrize("cli", providers.CLIS)
