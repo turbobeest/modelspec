@@ -699,7 +699,7 @@ def _decide_report(*bodies, status=200):
 def test_funded_key_check_counts_partial_but_refuses_exhausted_or_unauthorised():
     report = _decide_report({'status': 'decided'}, {'status': 'partial'})
     assert jobs.require_funded_key(report) == {
-        'decide_answers': 2, 'credits_exhausted': 0, 'partial': 1, 'unauthorised': 0}
+        'decide_answers': 2, 'credits_exhausted': 0, 'partial': 1, 'unauthorised': 0, 'unreadable': 0}
     with pytest.raises(ValueError, match='1 credits.exhausted'):
         jobs.require_funded_key(_decide_report(
             {'status': 'partial', 'credits': {'exhausted': True, 'available': 0}}))
@@ -708,6 +708,22 @@ def test_funded_key_check_counts_partial_but_refuses_exhausted_or_unauthorised()
     with pytest.raises(ValueError, match='1 unauthorised'):
         jobs.require_funded_key(_decide_report('Unauthorized', status=401))
     assert jobs.decide_health(_decide_report({'credits': 'odd'}))['credits_exhausted'] == 0
+    with pytest.raises(ValueError, match='1 unreadable'):
+        jobs.require_funded_key({
+            'runs': [{'tool_calls': [{'name': 'decide', 'response_ref': 'r0'}]}],
+            'tool_responses': {'r0': {'content': [{'type': 'text', 'text': 'status: no_feasible'}]}},
+        })
+    # A plain-text tool error never reached the API, so it is not a key problem.
+    assert jobs.require_funded_key({
+        'runs': [{'tool_calls': [{'name': 'decide', 'response_ref': 'r0'}]}],
+        'tool_responses': {'r0': {'content': [{'type': 'text', 'text': 'Invalid arguments'}],
+                                  'isError': True}},
+    })['unreadable'] == 0
+    # A decide cut off before its result keeps a placeholder; it never answered.
+    assert jobs.require_funded_key({
+        'runs': [{'tool_calls': [{'name': 'decide', 'response_ref': 'r0', 'result_observed': False}]}],
+        'tool_responses': {'r0': {'content': [{'type': 'text', 'text': 'null'}], 'isError': False}},
+    })['unreadable'] == 0
 
 
 DAY = '2026-10-04'

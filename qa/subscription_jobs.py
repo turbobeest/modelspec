@@ -413,13 +413,18 @@ def scenario_summary(report: dict) -> str:
 
 
 def decide_health(report: dict) -> dict:
-    """Count decide answers the key could not fund or did not authorise."""
-    counts = {"decide_answers": 0, "credits_exhausted": 0, "partial": 0, "unauthorised": 0}
+    """Count decide answers the key could not fund, did not authorise, or left unreadable."""
+    counts = {
+        "decide_answers": 0, "credits_exhausted": 0, "partial": 0, "unauthorised": 0, "unreadable": 0,
+    }
     for run in report["runs"]:
         for call in run.get("tool_calls") or []:
-            response = report["tool_responses"].get(call.get("response_ref"))
-            if call.get("name") != "decide" or not response:
+            ref = call.get("response_ref")
+            response = report["tool_responses"].get(ref) if ref else None
+            # A call cut off by a timeout or turn cap keeps a null placeholder result.
+            if call.get("name") != "decide" or response is None or call.get("result_observed") is False:
                 continue
+            readable = False
             for block in response.get("content") or []:
                 try:
                     envelope = json.loads(block.get("text", ""))
@@ -427,22 +432,27 @@ def decide_health(report: dict) -> dict:
                     continue
                 if not isinstance(envelope, dict) or "status" not in envelope:
                     continue
+                readable = True
                 body = envelope.get("body") if isinstance(envelope.get("body"), dict) else {}
                 credits = body.get("credits") if isinstance(body.get("credits"), dict) else {}
                 counts["decide_answers"] += 1
                 counts["unauthorised"] += envelope.get("status") in (401, 402, 403)
                 counts["credits_exhausted"] += credits.get("exhausted") is True
                 counts["partial"] += body.get("status") == "partial"
+            # A tool-level error in plain text never reached the API; a successful
+            # result without an envelope means the transcript format changed.
+            counts["unreadable"] += not readable and not response.get("isError")
     return counts
 
 
 def require_funded_key(report: dict, checkpoint: Path | None = None) -> dict:
-    """A keyed run whose decides were refused or unfunded measures the key, not the agents."""
+    """A keyed run whose decides were refused, unfunded, or unreadable measures the key."""
     health = decide_health(report)
-    if health["credits_exhausted"] or health["unauthorised"]:
+    if health["credits_exhausted"] or health["unauthorised"] or health["unreadable"]:
         message = (
             f"ModelSpec key unusable: {health['credits_exhausted']} credits.exhausted and "
-            f"{health['unauthorised']} unauthorised of {health['decide_answers']} decide answers. "
+            f"{health['unauthorised']} unauthorised of {health['decide_answers']} decide answers, "
+            f"{health['unreadable']} unreadable. "
             "Report kept locally, not published; fix the key and rerun."
         )
         if checkpoint is not None:

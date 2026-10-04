@@ -278,7 +278,9 @@ def _grok_mcp_content(value, is_error=False):
     """Unwrap Grok's use_tool envelopes into MCP content blocks.
 
     MCP results arrive as JSON text {"type": "MCP", "output": {"OkayOutput"|"Error": text}};
-    refusals as [{"type": "content", "content": block}].
+    refusals as [{"type": "content", "content": block}]. Grok joins the server's text
+    blocks into that string. A leading JSON object is its own block, and any remainder
+    is a second text block.
     """
     try:
         decoded = json.loads(value) if isinstance(value, str) else value
@@ -291,7 +293,19 @@ def _grok_mcp_content(value, is_error=False):
             if kind in ("OkayOutput", "Error"):
                 if not isinstance(text, str):
                     text = json.dumps(text)
-                return [{"type": "text", "text": text}], is_error or kind == "Error"
+                blocks = [{"type": "text", "text": text}]
+                if text.lstrip().startswith("{"):
+                    try:
+                        start = len(text) - len(text.lstrip())
+                        leading, end = json.JSONDecoder().raw_decode(text, start)
+                    except ValueError:
+                        leading = None
+                    if isinstance(leading, dict):
+                        blocks = [{"type": "text", "text": text[:end].strip()}]
+                        remainder = text[end:].strip()
+                        if remainder:
+                            blocks.append({"type": "text", "text": remainder})
+                return blocks, is_error or kind == "Error"
         return value, True
     if isinstance(decoded, list) and decoded and all(
         isinstance(block, dict) and block.get("type") == "content" for block in decoded
