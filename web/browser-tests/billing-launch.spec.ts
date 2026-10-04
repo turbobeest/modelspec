@@ -108,8 +108,8 @@ test("billing launch keeps browser lookup free through the real visit gate", asy
   }
   expect(responses.every((response) => response.status === 200 || response.status === 204)).toBe(true);
   expect(responses.at(-1)?.headers["x-modelspec-decisions-remaining"]).toBe("299");
-  await expect(page.getByText("Buy a plan or pack, then claim your key.")).toBeVisible();
-  await expect(page.getByText("API keys open soon: see pricing")).toHaveCount(0);
+  await expect(page.getByText("Choose a plan or pack.")).toBeVisible();
+  await expect(page.getByText("API keys open soon.")).toHaveCount(0);
 
   // The page uses static vocabulary. A hosted vocabulary request is also
   // admitted by the real token and its separate SQLite allowance.
