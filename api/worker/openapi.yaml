@@ -8,7 +8,7 @@ info:
   version: '1.0'
   summary: Decides which AI models fit a job from your requirements, sourced evidence and real cost, and
     checks them against a compliance policy.
-  description: 'Start with the compact agent guide https://modelspec.dev/agents.md (version 1-2ec1bd1d53035977).
+  description: 'Start with the compact agent guide https://modelspec.dev/agents.md (version 1-fe29865ece0d4c15).
     Call decide early with a template-based Spec; refine from reading and recovery hints.
 
 
@@ -528,9 +528,9 @@ paths:
       description: 'Which models fit this job? Returns answer, ranked results, may_qualify, reading and
         recovery hints, decision_id and snapshot. Never add a gate or constraint the user didn''t state.
         Relax only constraints the user stated, one at a time, and say what was relaxed and why. Prefer
-        the answer''s own `relax` suggestions. A tie stays a tie: don''t promote a member with outside
-        knowledge. Cite only evidence in the response. Never add benchmark figures from memory. A null
-        or partial answer is not a recommendation. Don''t present any model as the top pick, and say what''s
+        the answer''s own `relax` suggestions. A tie stays a tie. Don''t promote a member by knowledge
+        from outside the response. Cite only evidence in the response. Never add benchmark figures from
+        memory. A null or partial answer is not a recommendation, so name no top pick and say what''s
         missing. A null cost is unknown. Never show it as $0.00 or "free". One vocabulary lookup per unknown
         facet, then decide. Read `next` before another call. Size `task_tokens` from the user''s own task,
         and say what you assumed. Don''t copy the guide''s example sizes. Template weights are examples,
@@ -5942,4 +5942,4 @@ components:
       schema: {type: string, const: '<https://modelspec.dev/agents.md>; rel="describedby"'}
     AgentGuideVersion:
       description: Version of the byte-stable guide.
-      schema: {type: string, const: 1-2ec1bd1d53035977}
+      schema: {type: string, const: 1-fe29865ece0d4c15}
