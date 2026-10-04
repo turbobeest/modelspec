@@ -121,19 +121,19 @@ export function TemplatePicker({ vocabulary, active, open, onOpen, onApply, onCl
   const grid = templateGrid(vocabulary);
   const label = activeTemplateLabel(vocabulary, active);
   return (
-    <section className="template-picker" aria-label="Templates">
+    <section className="panel template-picker" aria-label="Templates">
       <div className="template-heading"><span className="eyebrow">Start from a template</span>
+        {label && <div className="template-active"><span>Starting from: <strong>{label}</strong></span>
+          <button type="button" className="text-button" onClick={() => { onClear(); bar.current?.focus(); }}>Clear</button>
+        </div>}
         <button ref={bar} type="button" className="template-all" aria-expanded={open} aria-controls={panel} onClick={() => onOpen(!open)}>
           {open ? "Hide templates" : `All ${templates.length} templates`}
         </button>
       </div>
       <div className="template-shortcuts">{fastTrackTemplates(vocabulary).map((template) =>
         <button type="button" className="primary template-shortcut" key={template.id} aria-pressed={active?.id === template.id && active.refinement === null} onClick={() => onApply(template, null)}>
-          <strong>{template.name}</strong><span>{template.tradeoff ?? template.purpose}</span>
+          <strong>{active?.id === template.id && active.refinement === null && <span className="template-check" aria-hidden="true">✓ </span>}{template.name}</strong><span>{template.tradeoff ?? template.purpose}</span>
         </button>)}</div>
-      {label && <div className="template-active"><span>Starting from: <strong>{label}</strong></span>
-        <button type="button" onClick={() => { onClear(); bar.current?.focus(); }}>Clear</button>
-      </div>}
       <div className="board-templates" id={panel} hidden={!open}>
         {open && (grid ? <Grid grid={grid} onApply={apply} /> : <FlatList templates={templates} onApply={apply} />)}
       </div>

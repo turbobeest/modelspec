@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import type { ReactNode } from "react";
 import type { Spec } from "../engine/types";
 import type { Vocabulary, VocabFacet, VocabRefinement, VocabTemplate } from "../vocabulary";
@@ -172,7 +172,12 @@ function EstateStrip({ vocabulary, estate, onChange }: { vocabulary: Vocabulary;
   </section>;
 }
 
-export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections, mustOrder, onMustOrder, estate, onEstate, access = "any", onAccess, answer, narrowing, verification, fit = 0, may = 0, notes = [], onNotes, refinementFallbackKeys = new Set(), onCanvasAxes, activeTemplate: controlledTemplate, onTemplate }: { vocabulary: Vocabulary; spec: Spec; onSpec: (spec: Spec) => void; selections?: BoardSelections; onSelections?: (selections: BoardSelections) => void; mustOrder?: string[]; onMustOrder?: (mustOrder: string[]) => void; estate: Estate; onEstate: (estate: Estate) => void; access?: AccessAnswer; onAccess?: (access: AccessAnswer) => void; answer?: ReactNode; narrowing?: ReactNode; verification?: ReactNode; fit?: number; may?: number; notes?: string[]; onNotes?: (notes: string[]) => void; refinementFallbackKeys?: ReadonlySet<string>; onCanvasAxes?: (axes: CanvasAxes) => void; activeTemplate?: ActiveTemplate | null; onTemplate?: (template: ActiveTemplate | null) => void }) {
+/**
+ * The board in reading order (MODEL-325): templates, the answer beside its
+ * chart, then everything that refines it, then whatever follows the refine.
+ */
+export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections, mustOrder, onMustOrder, estate, onEstate, access = "any", onAccess, answer, narrowing, chart, afterAnswer, afterRefine, verification, notes = [], onNotes, refinementFallbackKeys = new Set(), onCanvasAxes, activeTemplate: controlledTemplate, onTemplate }: { vocabulary: Vocabulary; spec: Spec; onSpec: (spec: Spec) => void; selections?: BoardSelections; onSelections?: (selections: BoardSelections) => void; mustOrder?: string[]; onMustOrder?: (mustOrder: string[]) => void; estate: Estate; onEstate: (estate: Estate) => void; access?: AccessAnswer; onAccess?: (access: AccessAnswer) => void; answer?: ReactNode; narrowing?: ReactNode; chart?: ReactNode; afterAnswer?: ReactNode; afterRefine?: ReactNode; verification?: ReactNode; notes?: string[]; onNotes?: (notes: string[]) => void; refinementFallbackKeys?: ReadonlySet<string>; onCanvasAxes?: (axes: CanvasAxes) => void; activeTemplate?: ActiveTemplate | null; onTemplate?: (template: ActiveTemplate | null) => void }) {
+  const refineHeading = useId();
   const [localSelections, setLocalSelections] = useState<BoardSelections>({});
   const [localMustOrder, setLocalMustOrder] = useState<string[]>([]);
   const selected = selections ?? localSelections;
@@ -243,12 +248,18 @@ export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections,
   };
   return <div className="facet-board">
     <TemplatePicker vocabulary={vocabulary} active={activeTemplate} open={templatesOpen} onOpen={setTemplatesOpen} onApply={applyTemplate} onClear={resetAll} />
-    {narrowing}
-    {notes.length > 0 && <section className="legacy-notes" role="note" aria-label="Notes from your old decision link"><strong>Some settings from this older link are not editable on the board.</strong><ul>{notes.map((note) => <li key={note}>{note}</li>)}</ul></section>}
-    {onAccess && <AccessQuestion access={access} onAccess={onAccess} />}
-    <EstateStrip vocabulary={vocabulary} estate={estate} onChange={onEstate} />
-    <a className="mobile-answer-bar" href="#facet-board-answer">{fit} fit · {may} may <span>View answer ↓</span></a>
-    <div className="board-workspace">
+    {(narrowing || answer || chart) && <div className="answer-region">
+      <div className="answer-column">
+        {answer ? <aside className="panel board-answer" id="facet-board-answer">{verification}{narrowing}{answer}</aside> : narrowing}
+      </div>
+      {chart && <div className="chart-column">{chart}</div>}
+    </div>}
+    {afterAnswer}
+    <section className="panel refine" aria-labelledby={refineHeading}>
+      <header className="refine-head"><h2 id={refineHeading}>Refine the answer</h2><p>{BOARD_RULES}</p></header>
+      {notes.length > 0 && <section className="legacy-notes" role="note" aria-label="Notes from your old decision link"><strong>Some settings from this older link are not editable on the board.</strong><ul>{notes.map((note) => <li key={note}>{note}</li>)}</ul></section>}
+      {onAccess && <AccessQuestion access={access} onAccess={onAccess} />}
+      <EstateStrip vocabulary={vocabulary} estate={estate} onChange={onEstate} />
       <section className="facet-list" aria-label="Facets"><header><span><span className="eyebrow">Facets</span><small>{activeSelectionCount} set</small></span><button onClick={resetAll}>Reset all</button></header>
         <div className="facet-columns" aria-hidden="true"><span>Facet</span><span>Known</span><span>State</span></div>
         {grouped.groups.map((group) => {
@@ -260,8 +271,8 @@ export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections,
         })}
         {!!grouped.untracked.length && <section className="facet-group untracked"><button className="facet-group-summary" aria-expanded={expandedGroups.untracked === true} onClick={() => setExpandedGroups((current) => ({ ...current, untracked: !current.untracked }))}><span>Not yet tracked</span><small>{grouped.untracked.length} facets · no values</small><b aria-hidden="true">{expandedGroups.untracked ? "−" : "+"}</b></button>{expandedGroups.untracked && <div><p>No model in this snapshot has a value. Must and Prefer are disabled; a null beats a guess.</p>{grouped.untracked.map((facet) => <FacetRow key={facet.id} facet={facet} choice={{ mode: "off" }} onChange={() => undefined} />)}</div>}</section>}
       </section>
-      {answer && <aside className="board-answer" id="facet-board-answer">{verification}{answer}</aside>}
-    </div>
+    </section>
+    {afterRefine}
   </div>;
 }
 
@@ -270,14 +281,15 @@ export { readEstate, writeEstate };
 /** The board's heading. App renders it before the vocabulary loads, so the
  * page's largest paint does not wait on a fetch (MODEL-218). */
 const noPaidPlacement = handoffData.neutrality.text.replace(/^./, (first) => first.toUpperCase());
+const BOARD_RULES = "'Must' is a gate; 'Prefer' changes the ranking and never excludes.";
+const LATENCY_NOTE = "About 0.1 s: the median time to first byte for an agent's API decision, measured from Boston on 2026-10-01.";
 
 export function BoardIntro() {
+  const latency = useId();
   return <div className="board-intro"><div>
     <span className="eyebrow">Free for people · {noPaidPlacement}</span>
     <h1>Which AI model fits your job?</h1>
-    <p>Set what must be true and what you'd prefer. Every model that misses a must is shown out, with the reason, and you see what each one costs. Free for people.</p>
-    <p>Then hand it to your agents: the same question, answered the same way, in about a tenth of a second.</p>
-    <p className="board-intro-rules">'Must' is a gate; 'Prefer' changes the ranking and never excludes.</p>
-    <p className="board-intro-note">About 0.1 s: the median time to first byte for an agent's API decision, measured from Boston on 2026-10-01.</p>
+    <p>Set what must be true and what you'd prefer. Every model that misses a must is shown out, with the reason, and you see what each one costs.</p>
+    <p>Then hand it to your agents: the same question, answered the same way, in about <span className="intro-tip"><span className="intro-tip-term" tabIndex={0} aria-describedby={latency}>a tenth of a second</span><span className="intro-tip-text" role="tooltip" id={latency}>{LATENCY_NOTE}</span></span>.</p>
   </div></div>;
 }

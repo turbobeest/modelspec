@@ -9,7 +9,7 @@ import {
   type CanvasAxisId,
   type CanvasAxisOption,
 } from "./canvas-axis";
-import { placeLabels, plotHeight } from "./labels";
+import { handleTagBox, placeLabels, plotHeight } from "./labels";
 
 export interface CanvasAxes {
   x: CanvasAxisId;
@@ -166,6 +166,8 @@ function mustValue(
   return null;
 }
 
+const mustTag = (axis: CanvasAxisOption) => `Drag to set a Must ${axis.mustOp === "<=" ? "cap" : "floor"}`;
+
 export function FreeAxisCanvas({
   decision,
   rankingDecision,
@@ -271,6 +273,10 @@ export function FreeAxisCanvas({
     })),
     plotWidth,
     height,
+    [
+      ...(xAxis.mustOp ? [handleTagBox(mustTag(xAxis), { x: xScale.at(xMust ?? xScale.from(0.5)) }, plotWidth, height)] : []),
+      ...(yAxis.mustOp ? [handleTagBox(mustTag(yAxis), { y: 1 - yScale.at(yMust ?? yScale.from(0.5)) }, plotWidth, height)] : []),
+    ],
   );
   const labels = labelled.map((point, index) => ({
     ...point,
@@ -453,7 +459,7 @@ export function FreeAxisCanvas({
                   );
               }}
             >
-              <span>Drag to set a Must {xAxis.mustOp === "<=" ? "cap" : "floor"}</span>
+              <span>{mustTag(xAxis)}</span>
             </div>
           )}
           {yAxis.mustOp && (
@@ -485,7 +491,7 @@ export function FreeAxisCanvas({
                   );
               }}
             >
-              <span>Drag to set a Must {yAxis.mustOp === "<=" ? "cap" : "floor"}</span>
+              <span>{mustTag(yAxis)}</span>
             </div>
           )}
           {hover && (
@@ -506,9 +512,10 @@ export function FreeAxisCanvas({
         <span><i className="legend-interval" />80% capability interval</span>
       </div>
       {missing.length > 0 && (
-        <small className="not-plotted">
-          Not plotted: no data — {missing.map(({ row }) => row.m.name).join(", ")}
-        </small>
+        <details className="not-plotted">
+          <summary>{missing.length} {missing.length === 1 ? "model" : "models"} not plotted (no data)</summary>
+          <small>{missing.map(({ row }) => row.m.name).join(", ")}</small>
+        </details>
       )}
     </section>
   );

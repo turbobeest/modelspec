@@ -57,7 +57,10 @@ it("applies and labels the default before the normal three requests, then clears
   expect(screen.getByLabelText("Y axis")).toHaveValue("capability:chat_preference");
   expect(screen.getByText("Up and left is better")).toBeInTheDocument();
   const templates = document.querySelector(".template-picker");
-  expect(templates?.nextElementSibling).toHaveAttribute("aria-label", "Narrowing");
+  // MODEL-325: the answer, led by its counter, follows the templates directly.
+  expect(templates?.nextElementSibling).toHaveClass("answer-region");
+  expect(templates?.nextElementSibling?.querySelector(".board-answer > :first-child")).toHaveAttribute("aria-label", "Narrowing");
+  expect(screen.getByRole("button", { name: /^General assistant, balanced/ }).querySelector(".template-check")).toHaveTextContent("✓");
   expect(screen.queryByRole("region", { name: "Was this answer reliable?" })).not.toBeInTheDocument();
 
   fireEvent.click(screen.getByRole("button", { name: "Clear" }));

@@ -719,7 +719,11 @@ it("keeps capability-unknown models outside the ranked board answer", async () =
   const mayHeading = await screen.findByRole("heading", {
     name: "May qualify — no Software engineering evidence (7)",
   });
-  const rankedAnswer = mayHeading.closest<HTMLElement>(".board-ranked-answer")!;
+  // MODEL-325: may-qualify is its own full-width panel, outside the ranked answer.
+  const rankedAnswer = document.querySelector<HTMLElement>(".board-ranked-answer")!;
+  expect(rankedAnswer).not.toContainElement(mayHeading);
+  expect(document.querySelector(".board-answer")).not.toContainElement(mayHeading);
+  expect(mayHeading.closest(".panel.board-may-qualify")).not.toBeNull();
   fireEvent.click(within(rankedAnswer).getByRole("button", { name: "Show all 25" }));
 
   const rankedNames = [...rankedAnswer.querySelectorAll(":scope > ol > li strong")]
@@ -833,7 +837,7 @@ it("shows model-grained funnel and board counts from the live budget decision", 
     .closest("li")!;
   expect(ranking.querySelector(".count")).toHaveTextContent(String(qualifyingModels));
   expect(ranking).toHaveTextContent(`+ ${may} may qualify`);
-  expect(screen.getByText(`${qualifyingModels} fit · ${may} may`)).toBeInTheDocument();
+  expect(document.querySelector(".mobile-answer-bar")).toBeNull();
 });
 
 it("never requests the estate twice for the same settled key", async () => {
@@ -1025,9 +1029,14 @@ it("treats the legacy demo flag as the public board", async () => {
   render(<App />);
   expect(await screen.findByRole("heading", { name: "Which AI model fits your job?" })).toBeInTheDocument();
   expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
-  expect(screen.getByText("Set what must be true and what you'd prefer. Every model that misses a must is shown out, with the reason, and you see what each one costs. Free for people.")).toBeInTheDocument();
-  expect(screen.getByText("Then hand it to your agents: the same question, answered the same way, in about a tenth of a second.")).toBeInTheDocument();
-  expect(screen.getByText(/measured from Boston on 2026-10-01/)).toBeInTheDocument();
+  expect(screen.getByText("Set what must be true and what you'd prefer. Every model that misses a must is shown out, with the reason, and you see what each one costs.")).toBeInTheDocument();
+  expect(screen.getAllByText(/Free for people/)).toHaveLength(1);
+  const latency = screen.getByText("a tenth of a second");
+  expect(latency.closest("p")?.firstChild?.textContent).toBe("Then hand it to your agents: the same question, answered the same way, in about ");
+  expect(latency).toHaveAttribute("tabindex", "0");
+  expect(latency).toHaveAccessibleDescription("About 0.1 s: the median time to first byte for an agent's API decision, measured from Boston on 2026-10-01.");
+  expect((await screen.findByRole("heading", { name: "Refine the answer" })).nextElementSibling)
+    .toHaveTextContent("'Must' is a gate; 'Prefer' changes the ranking and never excludes.");
   expect(screen.queryByLabelText("Describe your task")).not.toBeInTheDocument();
   expect(fetch).toHaveBeenCalled();
 });

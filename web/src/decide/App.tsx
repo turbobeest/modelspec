@@ -43,7 +43,7 @@ import {
   canvasAxisOptions,
   canvasPlotSpec,
 } from "./components/canvas-axis";
-import { RankedAnswer } from "./facet-board/RankedAnswer";
+import { MayQualify, RankedAnswer } from "./facet-board/RankedAnswer";
 import { DecisionTable } from "./components/DecisionTable";
 import { FeedbackForm, FeedbackLauncher } from "./feedback/FeedbackForm";
 import { Why } from "./components/Why";
@@ -911,6 +911,34 @@ export function DesignedApp({
       return `The decision engine has no published snapshot to answer from yet. ${requestState.message}`;
     return requestState.message;
   };
+  const boardShown = !!vocabulary && (initialRestored || gateStatus === null);
+  const errorAlert = error ? (
+            <div role="alert" className="error">
+              <div>
+                <strong>{errorTitle()}</strong>
+                <p>
+                  {errorText()} Results below are hidden rather than shown stale.
+                </p>
+                {!!specIssues.length && (
+                  <ul className="issue-list">
+                    {specIssues.map((issue) => (
+                      <li key={issue.text}>{issue.text}</li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+              {!humanGateEnabled && <button
+                className="ink-button"
+                onClick={() => {
+                  setRetried(true);
+                  void runDecision(spec);
+                }}
+              >
+                Retry
+              </button>}
+              {humanGateEnabled && <p>Verify again above before your next lookup.</p>}
+            </div>
+  ) : null;
   // The hand-off copies exactly the Spec the page POSTs for its summary answer.
   const handoffSpec = vocabulary && prepareDecisionRequest(vocabulary,
     refinementFallbackKeys.size > 0 ? foldRefinementWeights(spec, vocabulary) : spec,
@@ -947,14 +975,15 @@ export function DesignedApp({
       <main className="work">
           <BoardIntro />
           {(HUMAN_GATE_ENABLED || VISIT_GATE_ENABLED) && <HumanGate key={gateRefresh} onEnabled={setGateStatus} disabled={!vocabulary} onLookup={(token, onRemaining) => runDecision(spec, token, onRemaining)} />}
-          {VISIT_GATE_ENABLED && !vocabulary && <aside className="board-answer"><VisitGate /></aside>}
+          {VISIT_GATE_ENABLED && !vocabulary && <aside className="panel board-answer"><VisitGate /></aside>}
           {vocabAlert}
           {vocabState.kind === "loading" && (
             <div role="status" aria-busy="true" className="loading">
               <span>Loading what the current snapshot can answer…</span>
             </div>
           )}
-          {vocabulary && (initialRestored || gateStatus === null) && <FacetBoard
+          {!boardShown && errorAlert}
+          {boardShown && <FacetBoard
             key={boardGeneration}
             vocabulary={vocabulary}
             spec={boardBaseSpec}
@@ -970,8 +999,6 @@ export function DesignedApp({
             }}
             access={access}
             onAccess={changeAccess}
-            fit={decision?.explanation.feasible.length}
-            may={decision?.explanation.may.length}
             notes={legacyNotes}
             onNotes={setLegacyNotes}
             refinementFallbackKeys={refinementFallbackKeys}
@@ -994,7 +1021,9 @@ export function DesignedApp({
                 vocabulary={vocabulary}
               />
             </AnswerBoundary>}
-            answer={decision ? <AnswerBoundary resetKey={decision} onReset={resetBoard}>
+            answer={<>
+              {errorAlert}
+              {decision ? <AnswerBoundary resetKey={decision} onReset={resetBoard}>
               <section className="board-answer-head" aria-label="Facet board answer">
                 <span className="eyebrow">The answer</span>
                 {handoffSpec && <AnswerAssurances spec={handoffSpec} />}
@@ -1003,46 +1032,13 @@ export function DesignedApp({
               </section>
               {hasEstate(estate) && estateAnswer
                 ? <div className="answer-lists">
-                    <section><strong>With what you have</strong><RankedAnswer decision={estateAnswer.decision} spec={shownSpec} vocabulary={vocabulary} access={answeredAccess} held={estate} marks={estateAnswer.marks} /></section>
-                    <section><strong>If you could use anything</strong><RankedAnswer decision={decision} spec={shownSpec} vocabulary={vocabulary} access={answeredAccess} held={estate} excludedPlans={answeredAccess === "own_software" ? estateAnswer.excludedPlans : []} /></section>
+                    <section><strong>With what you have</strong><RankedAnswer decision={estateAnswer.decision} spec={shownSpec} vocabulary={vocabulary} access={answeredAccess} marks={estateAnswer.marks} /></section>
+                    <section><strong>If you could use anything</strong><RankedAnswer decision={decision} spec={shownSpec} vocabulary={vocabulary} access={answeredAccess} excludedPlans={answeredAccess === "own_software" ? estateAnswer.excludedPlans : []} /></section>
                   </div>
-                : <RankedAnswer decision={decision} spec={shownSpec} vocabulary={vocabulary} access={answeredAccess} held={estate} />}
-              {handoffSpec && <AgentHandoff spec={handoffSpec} />}
-              {!error && !loading && <AnswerBoundary resetKey={decision} onReset={resetBoard}>
-                <Coverage decision={decision} spec={shownSpec} onSpec={changeSpec} />
-              </AnswerBoundary>}
-              {hostedDecision && hasAdjustedBoard && <section className="answer-feedback" aria-label="Was this answer reliable?">
-                <FeedbackForm key={hostedDecision.decision_id} compact question="Was this answer reliable?" decisionId={hostedDecision.decision_id} template={activeTemplate?.id ?? null} page="/decide/" />
-              </section>}
-            </AnswerBoundary> : <section className="panel board-answer-loading" aria-live="polite">{humanGateEnabled ? "Choose your facets, then verify and look up this decision." : "The live answer will appear here."}</section>}
-          />}
-          {error ? (
-            <div role="alert" className="error">
-              <div>
-                <strong>{errorTitle()}</strong>
-                <p>
-                  {errorText()} Results below are hidden rather than shown stale.
-                </p>
-                {!!specIssues.length && (
-                  <ul className="issue-list">
-                    {specIssues.map((issue) => (
-                      <li key={issue.text}>{issue.text}</li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-              {!humanGateEnabled && <button
-                className="ink-button"
-                onClick={() => {
-                  setRetried(true);
-                  void runDecision(spec);
-                }}
-              >
-                Retry
-              </button>}
-              {humanGateEnabled && <p>Verify again above before your next lookup.</p>}
-            </div>
-          ) : loading ? (
+                : <RankedAnswer decision={decision} spec={shownSpec} vocabulary={vocabulary} access={answeredAccess} />}
+            </AnswerBoundary> : !error && <p className="board-answer-loading" aria-live="polite">{humanGateEnabled ? "Choose your facets, then verify and look up this decision." : "The live answer will appear here."}</p>}
+            </>}
+            chart={error ? null : loading ? (
             <div role="status" aria-busy="true" className="loading">
               <div className="loading-canvas">
                 <span className="skeleton" />
@@ -1057,12 +1053,8 @@ export function DesignedApp({
                 <span />
               </div>
             </div>
-          ) : decision ? (
-            <>
-            {/* MODEL-298: the trade-off canvas spans the page under the facets and
-                the narrowing, in its own boundary: a canvas failure hides only
-                the canvas. */}
-            {vocabulary && <AnswerBoundary resetKey={decision} onReset={resetBoard}>
+            ) : decision && vocabulary ? (
+            <AnswerBoundary resetKey={decision} onReset={resetBoard}>
               {hostedDecision && shownCanvasAxes ? (
                 <FreeAxisCanvas
                   decision={decision}
@@ -1094,7 +1086,27 @@ export function DesignedApp({
                   boardRanked={boardRanked}
                 />
               )}
+            </AnswerBoundary>
+            ) : null}
+            afterAnswer={decision && <AnswerBoundary resetKey={decision} onReset={resetBoard}>
+              {hasEstate(estate) && estateAnswer
+                ? <>
+                    <MayQualify title="With what you have" decision={estateAnswer.decision} spec={shownSpec} vocabulary={vocabulary} access={answeredAccess} held={estate} marks={estateAnswer.marks} />
+                    <MayQualify title="If you could use anything" decision={decision} spec={shownSpec} vocabulary={vocabulary} access={answeredAccess} held={estate} />
+                  </>
+                : <MayQualify decision={decision} spec={shownSpec} vocabulary={vocabulary} access={answeredAccess} held={estate} />}
             </AnswerBoundary>}
+            afterRefine={decision && <>
+              {handoffSpec && <AnswerBoundary resetKey={decision} onReset={resetBoard}><AgentHandoff spec={handoffSpec} /></AnswerBoundary>}
+              {!error && !loading && <AnswerBoundary resetKey={decision} onReset={resetBoard}>
+                <Coverage decision={decision} spec={shownSpec} onSpec={changeSpec} />
+              </AnswerBoundary>}
+              {hostedDecision && hasAdjustedBoard && <section className="panel answer-feedback" aria-label="Was this answer reliable?">
+                <FeedbackForm key={hostedDecision.decision_id} compact question="Was this answer reliable?" decisionId={hostedDecision.decision_id} template={activeTemplate?.id ?? null} page="/decide/" />
+              </section>}
+            </>}
+          />}
+          {!error && !loading && decision && (
             <AnswerBoundary resetKey={decision} onReset={resetBoard}>
             <div className="results">
               <DecisionTable
@@ -1134,8 +1146,7 @@ export function DesignedApp({
               />
             </div>
             </AnswerBoundary>
-            </>
-          ) : null}
+          )}
       </main>
       <footer className="site-footer" aria-label="About ModelSpec">
         <span>ModelSpec is neutral: no referral fees, no paid placement.</span>

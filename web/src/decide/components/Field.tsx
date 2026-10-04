@@ -3,6 +3,7 @@ import type { AdapterDecision, Cond, Spec } from "../adapter";
 import { contractCondition } from "../adapter/view-model";
 import type { Vocabulary } from "../vocabulary";
 import { boardHasPreference } from "../facet-board/model";
+import { bestNowLine, leadingModels } from "../facet-board/leading";
 
 function objectiveLabel(id: string, vocabulary?: Vocabulary): string {
   const facetId = id.startsWith("-") ? id.slice(1) : id;
@@ -23,14 +24,20 @@ type FieldProps = {
   settled?: boolean;
 };
 
+/** The board ranks only once some Prefer carries weight. */
+function boardRanked({ boardOnly, spec }: Pick<FieldProps, "boardOnly" | "spec">): boolean {
+  return boardOnly === true && spec !== undefined && boardHasPreference(spec);
+}
+
 export function Field({ settled = true, ...props }: FieldProps) {
   const e = props.decision?.explanation;
   const qualify = e?.feasible.length, may = e?.may.length, out = e?.excluded.length;
+  const best = props.decision && boardRanked(props) ? leadingModels(props.decision)?.length : undefined;
   const [announcement, setAnnouncement] = useState("");
   useEffect(() => {
     if (settled && qualify !== undefined && may !== undefined && out !== undefined)
-      setAnnouncement(`${qualify} qualify · ${may} may qualify · ${out} out`);
-  }, [settled, qualify, may, out]);
+      setAnnouncement(`${qualify} qualify · ${may} may qualify · ${out} out${best === undefined ? "" : ` · ${best} best for your weights`}`);
+  }, [settled, qualify, may, out, best]);
   return <section className="narrowing" aria-label="Narrowing">
     <p className="template-sr" role="status" aria-live="polite" aria-atomic="true">{announcement}</p>
     {props.decision && <NarrowingDetails {...props} decision={props.decision} />}
@@ -66,7 +73,10 @@ function NarrowingDetails({
         engineAdded: false,
       },
     ],
-    total = Math.max(1, steps[0]?.n ?? 1);
+    total = Math.max(1, steps[0]?.n ?? 1),
+    ranked = boardRanked({ boardOnly, spec }),
+    best = ranked ? leadingModels(decision)?.length : undefined,
+    bestNow = bestNowLine(decision, ranked);
   return (
     <>
       <div className="panel">
@@ -75,10 +85,12 @@ function NarrowingDetails({
             { state: "qualifies", n: e.feasible.length, label: "qualify", icon: "✓" },
             { state: "may", n: e.may.length, label: "may qualify", icon: "?" },
             { state: "out", n: e.excluded.length, label: "out", icon: "×" },
+            ...(boardOnly ? [{ state: "best", n: best ?? "—", label: "best for your weights", icon: "★" }] : []),
           ].map(({ state, n, label, icon }) => <div className={`narrowing-total status-${state}`} key={state}>
             <strong className="narrowing-number" key={n}>{n}</strong><span>{icon} {label}</span>
           </div>)}
         </div>
+        {bestNow && <p className="narrowing-best">{bestNow}</p>}
         {(decision.truncated.models > 0 || decision.truncated.offerings > 0) && <small className="narrowing-truncated">
             {decision.truncated.models > 0
               ? `${decision.truncated.models} more ${decision.truncated.models === 1 ? "model" : "models"} not shown`

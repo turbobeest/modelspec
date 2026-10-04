@@ -145,15 +145,18 @@ it("a canvas failure leaves the narrowing, the table and Why on screen (MODEL-29
   expect(failure()).toHaveLength(0);
 });
 
-it("puts the canvas after the board and before the table, outside the narrowing card (MODEL-298)", async () => {
+it("puts the canvas beside the answer card, never inside it, and before the table (MODEL-325)", async () => {
   vi.stubGlobal("fetch", routeFetch({ decide: () => json(fixtureJson) }));
   render(<DesignedApp />);
   const canvas = await screen.findByRole("region", { name: "Trade-off canvas" });
-  const board = document.querySelector(".facet-board");
-  const table = document.querySelector(".decision-table");
-  if (!board || !table) throw new Error("the board or the table did not render");
-  expect(document.querySelector(".board-answer")).not.toContainElement(canvas);
-  expect(board).not.toContainElement(canvas);
-  expect(board.compareDocumentPosition(canvas) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  const board = document.querySelector<HTMLElement>(".facet-board");
+  const table = document.querySelector<HTMLElement>(".decision-table");
+  const answer = document.querySelector<HTMLElement>(".board-answer");
+  if (!board || !table || !answer) throw new Error("the board, its answer or the table did not render");
+  expect(answer).not.toContainElement(canvas);
+  expect(document.querySelector(".answer-region > .chart-column")).toContainElement(canvas);
+  expect(answer.compareDocumentPosition(canvas) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(canvas.compareDocumentPosition(screen.getByRole("region", { name: "Refine the answer" })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  expect(board).not.toContainElement(table);
   expect(canvas.compareDocumentPosition(table) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 });

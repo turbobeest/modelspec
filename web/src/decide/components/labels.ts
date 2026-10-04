@@ -31,7 +31,7 @@ const MARKER_PX = 8;
 const FLIP_AT = 0.72;
 const STEPS = [0, -1, 1, -2, 2, -3, 3, -4, 4];
 
-interface Box {
+export interface Box {
   left: number;
   right: number;
   top: number;
@@ -54,8 +54,10 @@ export function placeLabels(
   markers: readonly { x: number; y: number }[],
   width: number,
   height: number,
+  /** Boxes, in px, that no label may cover, such as a Must handle's tag. */
+  obstacles: readonly Box[] = [],
 ): LabelPlacement[] {
-  const taken: Box[] = [];
+  const taken: Box[] = [...obstacles];
   const dots: Box[] = markers.map(({ x, y }) => ({
     left: x * width - MARKER_PX,
     right: x * width + MARKER_PX,
@@ -94,6 +96,24 @@ export function placeLabels(
     taken.push(box(preferred, 0));
     return { id: label.id, side: preferred, dy: 0 };
   });
+}
+
+const TAG_PAD_PX = 14;
+const TAG_HEIGHT_PX = 20;
+const TAG_OFFSET_PX = 6;
+
+/**
+ * The box a Must handle's "Drag to set…" tag covers, in px from the plot's top
+ * left. The x tag hangs from the top of its line; the y tag sits on its line.
+ */
+export function handleTagBox(text: string, handle: { x: number } | { y: number }, width: number, height: number): Box {
+  const w = labelWidth(text) + TAG_PAD_PX;
+  if ("x" in handle) {
+    const left = handle.x * width;
+    return { left, right: left + w, top: 0, bottom: TAG_HEIGHT_PX };
+  }
+  const line = handle.y * height;
+  return { left: TAG_OFFSET_PX, right: TAG_OFFSET_PX + w, top: line - TAG_HEIGHT_PX, bottom: line };
 }
 
 /**

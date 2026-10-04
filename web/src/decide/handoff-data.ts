@@ -6,7 +6,7 @@ declare const __DECIDE_HANDOFF__: unknown;
 export const handoffData = z.object({
   summary_price_cents: z.string(),
   full_credits: z.number().int().positive(),
-  key_link: z.object({ href: z.string(), note: z.string() }),
+  key_link: z.object({ href: z.string(), label: z.string(), note: z.string() }),
   mcp_clients: z.array(z.string()).nonempty(),
   neutrality: z.object({ text: z.string(), href: z.url() }),
 }).parse(__DECIDE_HANDOFF__);
