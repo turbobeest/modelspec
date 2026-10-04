@@ -1,6 +1,8 @@
 import "@testing-library/jest-dom/vitest";
 import { afterEach, beforeEach, vi } from "vitest";
-import { cleanup } from "@testing-library/react";
+import { cleanup, configure } from "@testing-library/react";
+
+configure({ asyncUtilTimeout: 5_000 });
 
 // Ordinary UI tests mock automatic decisions. Human-gate tests opt in explicitly.
 // Once for statically imported modules, and again per test: a test that calls

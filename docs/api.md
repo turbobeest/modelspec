@@ -1,11 +1,10 @@
 # ModelSpec API — reference
 
 **Use when** choosing, switching, or checking a model before a task or deploy.
-Ranks AI models you can actually run, given your hardware, providers, use case
-and policy rules. Returns ranked models with scores, cost and reasons; on
-failure, returns which constraint eliminated every option.
+Ranks models for your hardware, providers, profile and policy. Returns scores,
+cost, reasons and constraint eliminations.
 
-Computed per request from the current public export. No state, no signup.
+Computed from the public export.
 
 * `POST /v1/decide` — what fits your requirements:
   [`decide-api.md`](decide-api.md).
@@ -54,6 +53,7 @@ means "not stated". At most 16384 bytes.
 
 ```bash
 curl -sS -X POST https://api.modelspec.dev/v1/rank \
+  -H 'Authorization: Bearer <key>' \
   -H 'content-type: application/json' \
   -d '{"use_case":"coding",
        "environment":{"hosting":"local","runtime":"ollama"},
@@ -252,7 +252,7 @@ Every refusal carries `error.code` and `error.message`, and `result` is `[]`.
 | 500 | `tier_not_configured` | ours | retry later; report it |
 | 500 | `access_not_configured` | ours | retry later; report it |
 | 502 | `export_unavailable` | the published export could not be read | retry; not your request |
-| 503 | `access_store_not_configured` | a live key, and this deploy has no ACCESS store | use a `test_` key, or none |
+| 503 | `access_store_not_configured` | a live key, and this deploy has no ACCESS store | retry later; report it |
 | 403 | *(not JSON)* | Cloudflare refused the client at the edge: `error code: 1010` | common clients, `Python-urllib` included, should get through; report it. The weekly [crawler-access job](../.github/workflows/crawler-access.yml) probes them |
 
 A no-match is an answer, not an empty list:
@@ -274,10 +274,13 @@ A no-match is an answer, not an empty list:
 
 ## Keys, limits and the sandbox
 
-**Machine data access needs an API key.** `ACCESS_ENFORCED` remains off.
-Presented keys are checked, and invalid or revoked keys are refused.
-The ACCESS store is bound. Use an existing key, or see
-[/pricing/](https://modelspec.dev/pricing/) for availability.
+**Machine data access needs an API key.** `ACCESS_ENFORCED` is on.
+Keyless machine requests get 401 `missing_api_key`.
+The ACCESS store is bound; invalid or revoked keys are refused.
+Buy a plan or pack at [/pricing/](https://modelspec.dev/pricing/) and claim
+your key at Checkout's success link. `BILLING_ENABLED` is on.
+The free decide page uses a Turnstile-verified visit token for decide and
+vocabulary. Health and feedback stay keyless.
 [`api-access.md`](api-access.md) describes the access implementation.
 
 | Tier | Daily | Burst | Live data |

@@ -101,7 +101,8 @@ def install_html() -> str:
 def key_procurement(root: Path = ROOT) -> str:
     variables = worker_flags.production_vars(root)
     if worker_flags.enabled(variables, "BILLING_ENABLED"):
-        return f"Buy a plan or credit pack at {PRICING} to get a key."
+        return (f"Buy a plan or pack at {PRICING}. "
+                "Stripe hosts Checkout; claim your key at the success link.")
     return f"Use an existing key, or see {PRICING} for availability."
 
 

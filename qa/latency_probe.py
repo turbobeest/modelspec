@@ -182,6 +182,12 @@ def main():
         parser.error("origin must be a bare HTTP(S) origin without credentials")
     if not 1 <= args.count <= 1000:
         parser.error("count must be between 1 and 1000")
+    if not os.environ.get("MODELSPEC_API_KEY"):
+        args.output.write_text(json.dumps({
+            "origin": args.origin, "status": "skipped", "reason": "no key", "shapes": [],
+        }, indent=2) + "\n")
+        print("skipped: no key (set MODELSPEC_API_KEY to measure API decisions)")
+        return 0
     if "br" in args.encoding:
         try:
             import brotli  # noqa: F401

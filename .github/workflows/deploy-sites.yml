@@ -570,6 +570,8 @@ jobs:
         run: python -m tests.corpus wait-worker --origin "$API" --commit "$GITHUB_SHA"
 
       - name: POST the live corpus specs to api.modelspec.dev
+        env:
+          MODELSPEC_SMOKE_API_KEY: ${{ secrets.MODELSPEC_SMOKE_API_KEY }}
         run: python -m tests.corpus live --origin "$API" --out live-corpus
 
       - name: Parse the live answers with the page's schema

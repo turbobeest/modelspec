@@ -12,6 +12,7 @@ import math
 import os
 import statistics
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 
@@ -139,6 +140,16 @@ def report(rows, reason, warmups, count, explain):
     return "\n".join(lines), warnings
 
 
+def access_enforced() -> bool:
+    """Production ACCESS_ENFORCED. A keyless sample cannot succeed when it is on."""
+    root = Path(__file__).resolve().parents[2]
+    if str(root) not in sys.path:
+        sys.path.insert(0, str(root))
+    from pipeline.worker_flags import enabled, production_vars
+
+    return enabled(production_vars(root), "ACCESS_ENFORCED")
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--host", required=True)
@@ -149,6 +160,13 @@ def main():
     args = parser.parse_args()
     if args.count < 1 or args.warmups < 1:
         parser.error("count and warmups must be positive")
+    if access_enforced():
+        notice = "skipped: keyless under enforcement"
+        print(f"::notice::{notice}")
+        if summary := os.environ.get("GITHUB_STEP_SUMMARY"):
+            with open(summary, "a", encoding="utf-8") as output:
+                output.write(notice + "\n")
+        return
     rows, reason = measure(
         args.host,
         args.count,

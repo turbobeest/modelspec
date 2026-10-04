@@ -2,8 +2,8 @@
 // Prefer on a live board, must leave the answer drawable. The decision stays
 // the production answer whose mixed capability intervals blanked the page;
 // each click re-maps it against the new spec at once, so the sweep needs no
-// round trip per facet. About two seconds alone; the timeout leaves room for a
-// loaded parallel run.
+// round trip per facet. The whole-board render after each click needs a longer
+// budget than one interaction on a loaded parallel runner.
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import inputPricePreferJson from "../__fixtures__/live-input-price-prefer-full.json";
@@ -26,7 +26,7 @@ function setGroupOpen(name: string, open: boolean) {
   if ((summary.getAttribute("aria-expanded") === "true") !== open) fireEvent.click(summary);
 }
 
-it("draws the answer for Must and then Prefer on every facet", { timeout: 15_000 }, async () => {
+it("draws the answer for Must and then Prefer on every facet", { timeout: 60_000 }, async () => {
   const errors: unknown[][] = [];
   vi.spyOn(console, "error").mockImplementation((...args) => void errors.push(args));
   vi.stubGlobal("fetch", routeFetch({

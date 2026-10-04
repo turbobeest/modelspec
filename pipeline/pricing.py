@@ -187,15 +187,20 @@ def page(tiers: dict[str, Any], *, build: Build | None = None,
                    f"One credit. The low end is the {cheapest_label}'s rate; the range "
                    "covers the plans and packs below. A full explanation costs two credits.")
     hero_heading = f"People decide free. {agent_line}"
+    keyless_copy = ("Keyless API calls are still answered while access enforcement is off. "
+                    "Buy prepaid credits for keyed calls." if billing_live else
+                    "Keyless API calls are still answered while paid access is being switched "
+                    "on. These are the credit prices for it.")
     hero_copy = ("A person using the board on this site pays nothing. Machine "
                  f"access uses the keyed CLI, hosted API and MCP server, and it uses "
-                 f"{hero_payment}. No data download. MCP data "
+                 f"{hero_payment}. Every machine data endpoint needs an API key. "
+                 "The board's free browser lookups use a Turnstile-verified visit token. "
+                 "No data download. MCP data "
                  "tools (vocab, model_info, list_use_cases, decide, rank, policy_check) "
                  "require an API key." if access_enforced else
                  "A person using the board on this site pays nothing. Machine "
-                 "access uses the keyed CLI, hosted API and MCP server. Keyless API calls "
-                 "are still answered while paid access is being switched on. These "
-                 "are the credit prices for it. The CLI requires a key. No data download. "
+                 f"access uses the keyed CLI, hosted API and MCP server. {keyless_copy} "
+                 "The CLI requires a key. No data download. "
                  "MCP data tools (vocab, model_info, list_use_cases, decide, rank, policy_check) "
                  "require an API key.")
     buy_heading = "Buy credits for your agents" if billing_live else "Plans and packs"
@@ -203,7 +208,8 @@ def page(tiers: dict[str, Any], *, build: Build | None = None,
                 "the key draws from it." if billing_live else
                 "What credits cost for paid access. Plans provide a monthly allowance; "
                 f"packs are one-off and last {expiry} days.")
-    buy_note = ("Checkout is hosted by Stripe; card details never reach ModelSpec. The plan "
+    buy_note = ("Checkout is hosted by Stripe; card details never reach ModelSpec. "
+                "After payment, claim your API key at the Checkout success link. The plan "
                 "allowance is spent first, then packs, oldest first. Cancel any time. For "
                 "volume or invoicing, write to "
                 '<a href="mailto:sales@modelspec.dev">sales@modelspec.dev</a>.' if billing_live else

@@ -703,6 +703,7 @@ def auth_markdown(root: Path) -> str:
         "### Hosted API data tools (key required)",
         "",
         "- `POST /v1/decide` — downselect from a decision spec.",
+        "- `POST /v1/compare` — compare named models under a decision spec.",
         "- `POST /v1/rank` (legacy v1) — retired fixed-benchmark ranking, "
         "for existing callers.",
         "- `POST /v1/policy-check` — licence, origin, data handling per model and platform. "
@@ -711,6 +712,10 @@ def auth_markdown(root: Path) -> str:
         "- `GET /v1/vocabulary` — valid facet ids and display definitions.",
         "",
         "`GET /v1/health` reports the deploy pin; it carries no model data.",
+        *(["The free decide page uses the human browser visit gate: a "
+           "Turnstile-verified visit token admits decide and vocabulary for its "
+           "bound visitor and site origin. Machine callers use an API key."]
+          if worker_flags.enabled(flags, "VISIT_GATE_ENABLED") else []),
         "",
         "### MCP",
         "",
@@ -725,7 +730,7 @@ def auth_markdown(root: Path) -> str:
         "`POST /v1/policy-check` with a `test_` key is `400 sandbox_not_available`. "
         "Rows are synthetic, from the real scorer, not live catalogue data.",
         "",
-        "## What is not live",
+        "## Billing and payments",
         "",
     ]
     if billing_off:
@@ -738,7 +743,10 @@ def auth_markdown(root: Path) -> str:
         )
     else:
         lines.append(
-            "Billing is enabled. See `/pricing` and `docs/billing.md`."
+            "Billing is enabled. Buy a monthly plan or a prepaid credit pack at "
+            "https://modelspec.dev/pricing/. Stripe hosts Checkout. After payment, "
+            "claim your API key at the Checkout success link. Claim and rotation "
+            "remain available for earlier purchases. See `docs/billing.md`."
         )
     if x402_off:
         lines.append("")

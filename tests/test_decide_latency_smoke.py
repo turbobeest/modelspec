@@ -2,6 +2,7 @@
 
 import importlib.util
 import json
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -11,6 +12,29 @@ spec = importlib.util.spec_from_file_location(
 )
 smoke = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(smoke)
+
+
+def test_access_enforced_follows_production_vars():
+    from pipeline.worker_flags import enabled, production_vars
+
+    assert smoke.access_enforced() is enabled(production_vars(ROOT), "ACCESS_ENFORCED")
+
+
+def test_enforced_deploy_records_a_skip_notice_without_sampling(monkeypatch, capsys, tmp_path):
+    summary = tmp_path / "summary.txt"
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
+    monkeypatch.setattr(smoke, "access_enforced", lambda: True)
+    monkeypatch.setattr(sys, "argv", ["check_decide_latency.py", "--host", "api.example.test"])
+
+    def measure(*_args, **_kwargs):
+        raise AssertionError("sampled under enforcement")
+
+    monkeypatch.setattr(smoke, "measure", measure)
+    smoke.main()
+    captured = capsys.readouterr()
+    assert captured.out == "::notice::skipped: keyless under enforcement\n"
+    assert "::warning::" not in captured.out
+    assert summary.read_text(encoding="utf-8") == "skipped: keyless under enforcement\n"
 
 
 def test_every_template_excludes_initial_and_all_warmups(monkeypatch):

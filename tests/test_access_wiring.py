@@ -5,12 +5,12 @@ proves the wiring — that the switch, the key store binding and the tier table
 reach `access.gate` the way `wrangler.jsonc` and the deploy set them, and that
 what a caller sees is what `docs/api-access.md` says:
 
-* **Enforcement off** (as shipped): no key is served exactly as before; a
+* **Enforcement off** (rollback): no key is served exactly as before; a
   presented key is checked — sandbox, metered live, or refused. A bad key is
   never downgraded to anonymous.
-* **Enforcement on**: no key is a 401 naming where to get one.
+* **Enforcement on** (as shipped): no key is a 401 naming where to get one.
 * **ACCESS bound** (as shipped): a presented live key is checked against the
-  store. No key is issued yet (MODEL-73).
+  store. Checkout purchases issue keys at claim (MODEL-73).
 * **No ACCESS binding** (fallback): a presented live key is refused
   `access_store_not_configured`; anonymous and `test_` requests are unaffected.
 * The ACCESS store is a stub that behaves as Workers KV does under Pyodide: a
@@ -243,12 +243,15 @@ def test_off_an_unkeyed_request_is_answered_exactly_as_before(entry, data, endpo
         assert answer["determinations"]["entitlement"] == "public_export"
 
 
-def test_the_shipped_configuration_is_off_and_bound():
+def test_the_shipped_configuration_is_enforced_and_bound():
     """What this file tests as 'the default' is what `wrangler.jsonc` ships."""
     config = (REPO_ROOT / "api" / "worker" / "wrangler.jsonc").read_text(encoding="utf-8")
-    live = "\n".join(l for l in config.splitlines() if not l.lstrip().startswith("//"))
-    assert '"ACCESS_ENFORCED": "false"' in live
-    assert '"binding": "ACCESS"' in live, "the ACCESS binding is no longer live; update the docs"
+    from pipeline.worker_flags import parse_jsonc
+
+    live = parse_jsonc(config)
+    assert live["vars"]["ACCESS_ENFORCED"] == "true"
+    assert {"binding": "ACCESS", "id": "ef86b7ce138d4891b3eb630cdd2ba4e5"} in live["kv_namespaces"]
+    assert live["env"]["staging"]["vars"]["ACCESS_ENFORCED"] == "false"
 
 
 def test_the_deploy_hands_the_isolate_the_tier_table():

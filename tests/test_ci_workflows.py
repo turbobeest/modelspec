@@ -425,7 +425,7 @@ def test_deploy_syncs_the_snapshot_verification_secret() -> None:
 def test_deploy_accepts_a_decision_or_the_documented_no_snapshot_response() -> None:
     workflow = RANK_API.read_text(encoding="utf-8")
     decide = workflow.index("probe /v1/decide")
-    openapi = workflow.index("python3 api/worker/openapi.py --probe")
+    openapi = workflow.rindex("python3 api/worker/openapi.py --probe")
     assert decide < openapi
     between = workflow[decide:openapi]
     assert 'snapshot=$(field snapshot)' in between

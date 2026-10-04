@@ -811,8 +811,8 @@ def _wrangler_config() -> dict[str, Any]:
 def test_production_x402_config_stays_off_and_has_no_receiver():
     config = _wrangler_config()
     assert config["vars"]["HUMAN_GATE_ENABLED"] == "false"
-    assert config["vars"]["ACCESS_ENFORCED"] == "false"
-    assert config["vars"]["BILLING_ENABLED"] == "false"
+    assert config["vars"]["ACCESS_ENFORCED"] == "true"
+    assert config["vars"]["BILLING_ENABLED"] == "true"
     assert config["vars"]["X402_ENABLED"] == "false"
     assert config["vars"]["X402_MAINNET"] == "false"
     assert config["vars"]["X402_PAY_TO"] == ""
@@ -1007,6 +1007,27 @@ def test_entry_site_origins_receive_the_free_tier_when_x402_is_on(entry, origin)
     assert response.json()["results"] == [{"model_id": "example/ok"}]
     assert x402.PAYMENT_REQUIRED_HEADER not in response.headers
     assert response.headers["x-modelspec-tier"] == "free"
+
+
+def test_enforcement_refuses_a_spoofed_site_origin_when_x402_is_on(entry):
+    env = _entry_env(
+        ACCESS_ENFORCED="true",
+        VISIT_GATE_ENABLED="false",
+        HUMAN_GATE_ENABLED="false",
+    )
+    produced = []
+
+    async def decide(*_args, **_kwargs):
+        produced.append("decide")
+        return 200, {"results": [{"model_id": "example/ok"}]}
+
+    worker = _decision_worker(entry, env)
+    worker._decide = decide
+    response = asyncio.run(worker.fetch(_decision_request("https://modelspec.dev")))
+
+    assert produced == []
+    assert response.status == 401
+    assert response.json()["error"]["code"] == "missing_api_key"
 
 
 def test_entry_site_origin_is_limited_per_visitor_when_x402_is_on(entry):

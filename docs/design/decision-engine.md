@@ -3,7 +3,7 @@
 *Design, written before the code. Discovery session with Jamie, 2026-09-24; §12 questions decided the same day. Status: proposed.*
 *Vocabulary: [`CONTEXT.md`](../../CONTEXT.md). Decisions: [`docs/adr/`](../adr/).*
 
-ModelSpec is off the market (the public domains serve a holding page, and billing is off) until this design is built, tested and proven. This document says what we are building, why, and in what order. It replaces the v1 ranking design for everything except the parts listed in §10 as reused.
+When this design was written, ModelSpec was off the market and billing was off while the replacement was built and tested. Billing and machine access enforcement are now live (MODEL-96). This document records the design, its rationale and build order. It replaces the v1 ranking design for everything except the parts listed in §10 as reused.
 
 ---
 

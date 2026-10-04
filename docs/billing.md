@@ -3,9 +3,12 @@
 A human pays by card on Stripe-hosted Checkout. Plans SET a monthly credit
 allowance; packs ADD pack credits. A Checkout that presents a live API key
 credits **that** key. An anonymous Checkout is claimed once and mints a key.
-There is no console step after payment. **The switch is off** (2026-09-24,
-holding mode: see [`handoff/holding-mode.md`](handoff/holding-mode.md)).
-`BILLING_ENABLED` in `api/worker/wrangler.jsonc` is `"false"`.
+There is no console step after payment. **Checkout is open** (MODEL-96).
+Production `BILLING_ENABLED` and `ACCESS_ENFORCED` in
+`api/worker/wrangler.jsonc` are both `"true"`; staging remains unchanged.
+The built [pricing page](https://modelspec.dev/pricing/) posts each plan or
+pack's Price id to Checkout. After payment, the Checkout success link claims
+the purchase and shows the API key once.
 
 **What the switch gates: Checkout, and nothing else.** With it off,
 `POST /v1/billing/checkout` (JSON and the `/pricing` form post) answers
@@ -46,12 +49,13 @@ The exempt row (paid, live data, null limits; `dpf` as shipped) draws no
 credits and never receives `credits.exhausted` or a 402 (MODEL-322). See
 [`api-access.md`](api-access.md).
 
-Keyless browser requests from the production site and internal preview are a
-separate case. With x402 on, they receive the free-tier answer and use the
-`free` row's daily and burst limits, keyed by a SHA-256 digest of
-`CF-Connecting-IP`. Other keyless callers receive the per-call 402. `Origin`
-can be spoofed, but a spoofed value grants only this rate-limited free tier. It
-does not grant credits or paid determinations.
+The decide page's keyless browser requests use the MODEL-292 visit gate,
+which remains on in production. A Turnstile-verified visit token admits decide
+and Worker vocabulary for its bound visitor and allowed site origin; separate
+SQLite allowances meter them. It grants no paid credits or determinations.
+An Origin alone grants no admission. Other keyless machine data requests
+receive 401 `missing_api_key` naming where to buy a key. Health and feedback
+stay keyless. Production x402 remains off.
 
 Cancellation, failed payment, or expiry **zeros the monthly allowance at
 once**. Pack credits are unaffected. That is MODEL-73's immediate-downgrade
@@ -302,11 +306,12 @@ Stripe's live API.
    `modelspec-rank` Worker (test values only). Do not put either in git or in
    `wrangler.jsonc`.
 7. ACCESS KV must exist (MODEL-69). The CREDITS Durable Object is bound
-   (MODEL-75). Enforcement can stay off; a presented key is still checked.
-8. Set `"BILLING_ENABLED": "true"` in `wrangler.jsonc` vars, regenerate
-   `openapi.yaml`, merge. The deploy is push-to-main only. At relaunch this is
-   the step that reopens Checkout; do it together with `SITE_MODE=live`, since
-   the buy buttons live on `/pricing`, which holding mode does not publish.
+   (MODEL-75).
+8. MODEL-96 sets production `"BILLING_ENABLED": "true"` and
+   `"ACCESS_ENFORCED": "true"`, with `VISIT_GATE_ENABLED` still `"true"` for the
+   free browser path. Regenerate `openapi.yaml`. The deploy is push-to-main
+   only. Jamie owns the deployment and `SITE_MODE=live`; the buy buttons live
+   on `/pricing`, which holding mode does not publish.
 
 **Tax.** Sparks & Sawdust LLC applies one rule to every product, set first
 for dev-mux: Stripe Tax on every Checkout (`automatic_tax[enabled]=true`,
@@ -323,7 +328,7 @@ accountant's answer: `dev-mux/docs/ri-sales-tax-decision.md`.
 | --- | --- | --- |
 | `STRIPE_SECRET_KEY` | Wrangler secret | creating a Checkout Session |
 | `STRIPE_WEBHOOK_SECRET` | Wrangler secret | verifying `Stripe-Signature` |
-| `BILLING_ENABLED` | `wrangler.jsonc` vars | whether Checkout is open; `"false"` while the sites are in holding mode |
+| `BILLING_ENABLED` | production `wrangler.jsonc` vars | Checkout is open with `"true"` (MODEL-96); `"false"` closes new purchases only |
 
 No secret belongs in this repository. Tests sign fixtures with a throwaway
 `whsec_test_…` string.

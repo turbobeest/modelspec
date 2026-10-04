@@ -94,4 +94,5 @@ currently offered), outcome logging (not built), or any uptime or support
 commitment. §6 of the terms states the rules that govern a purchase without
 asserting that purchase is or is not open today — `BILLING_ENABLED` decides
 that, and `https://modelspec.dev/pricing` says which. Access enforcement
-(`ACCESS_ENFORCED`) is off, and the terms say so as of the effective date.
+(`ACCESS_ENFORCED`) is on since terms 1.4, and the terms say a call without a key
+is refused.

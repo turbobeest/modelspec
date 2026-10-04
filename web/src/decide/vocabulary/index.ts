@@ -303,11 +303,15 @@ export async function loadVocabulary(signal?: AbortSignal, refresh = false): Pro
       "No decision snapshot has been published yet, so there is nothing to decide from.",
       "missing",
     );
-  if (!response.ok)
+  if (!response.ok) {
+    const refusal = z.object({ error: z.object({ message: z.string() }) }).safeParse(
+      await response.json().catch(() => null),
+    );
     throw new VocabularyError(
-      `The catalogue vocabulary returned HTTP ${response.status}.`,
+      refusal.success ? refusal.data.error.message : `The catalogue vocabulary returned HTTP ${response.status}.`,
       "network",
     );
+  }
   let payload: unknown;
   try {
     payload = await response.json();

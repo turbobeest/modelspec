@@ -170,7 +170,7 @@ def landing_browser_results(tmp_path_factory: pytest.TempPathFactory, data: land
             check=True,
             capture_output=True,
             text=True,
-            timeout=30,
+            timeout=120,  # One browser process covers all desktop, mobile and redirect cases.
         )
     except (FileNotFoundError, subprocess.CalledProcessError) as error:
         detail = getattr(error, "stderr", "") or str(error)

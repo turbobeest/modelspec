@@ -32,6 +32,8 @@ import urllib.request
 from pathlib import Path
 
 from tests.corpus.corpus import load_cases, payload, problems, write_decisions
+from pipeline.worker_flags import enabled, production_vars
+from qa.access_smoke import missing_key_problem
 
 #: Transient answers from a Worker mid-deploy: retried, never judged.
 RETRY_STATUSES = {0, 500, 502, 503, 522, 524}
@@ -84,9 +86,11 @@ def _compare(args) -> int:
     return 1 if failed else 0
 
 
-def _post(url: str, body: bytes) -> tuple[int, bytes]:
-    request = urllib.request.Request(url, data=body, method="POST", headers={
-        "content-type": "application/json", "user-agent": USER_AGENT})
+def _post(url: str, body: bytes, *, api_key: str | None = None) -> tuple[int, bytes]:
+    headers = {"content-type": "application/json", "user-agent": USER_AGENT}
+    if api_key:
+        headers["authorization"] = f"Bearer {api_key}"
+    request = urllib.request.Request(url, data=body, method="POST", headers=headers)
     try:
         with urllib.request.urlopen(request, timeout=60) as response:
             return response.status, response.read()
@@ -123,27 +127,39 @@ def _live(args) -> int:
     out.mkdir(parents=True, exist_ok=True)
     url = args.origin.rstrip("/") + "/v1/decide"
     cases = [case for case in load_cases() if case.live]
+    enforced = enabled(production_vars(Path(__file__).resolve().parents[2]), "ACCESS_ENFORCED")
+    key = os.environ.get("MODELSPEC_SMOKE_API_KEY") or None
+    if enforced and not key:
+        print("::notice::MODELSPEC_SMOKE_API_KEY is empty; keyed live corpus checks skipped")
     index, failed = {"cases": [], "vocabularies": {}}, 0
     for case in cases:
         body = json.dumps(payload(case)).encode()
-        for attempt in range(args.attempts):
-            status, raw = _post(url, body)
-            if status not in RETRY_STATUSES:
-                break
-            time.sleep(10 * (attempt + 1))
-        try:
-            answer = json.loads(raw)
-        except ValueError:
-            answer = {"error": f"not JSON: {raw[:200]!r}"}
-        found = problems(case, status, answer)
-        if found:
-            failed += 1
-            _error(f"POST {url} {case.id} ({case.intent}): {'; '.join(found)}")
-        else:
-            print(f"ok   {case.id}: HTTP {status} {answer.get('status') or ''}".rstrip())
-        (out / f"{case.id}.json").write_bytes(raw)
-        index["cases"].append({"id": case.id, "intent": case.intent, "snapshot": "live",
-                               "http": status, "file": f"{case.id}.json"})
+        variants = [(case.id + "-keyless", None)] if enforced else [(case.id, None)]
+        if enforced and key:
+            variants.append((case.id, key))
+        for case_id, api_key in variants:
+            for attempt in range(args.attempts):
+                status, raw = _post(url, body, api_key=api_key)
+                if status not in RETRY_STATUSES:
+                    break
+                time.sleep(10 * (attempt + 1))
+            try:
+                answer = json.loads(raw)
+            except ValueError:
+                answer = {"error": f"not JSON: {raw[:200]!r}"}
+            if enforced and api_key is None:
+                problem = missing_key_problem(status, answer)
+                found = [problem] if problem else []
+            else:
+                found = problems(case, status, answer)
+            if found:
+                failed += 1
+                _error(f"POST {url} {case_id} ({case.intent}): {'; '.join(found)}")
+            else:
+                print(f"ok   {case_id}: HTTP {status} {answer.get('status') or ''}".rstrip())
+            (out / f"{case_id}.json").write_bytes(raw)
+            index["cases"].append({"id": case_id, "intent": case.intent, "snapshot": "live",
+                                   "http": status, "file": f"{case_id}.json"})
     # The refusals /v1/decide makes before a spec is read: entry.py, not the
     # decide service, so only a deployed Worker answers them.
     for label, body, want_status, want_code in (

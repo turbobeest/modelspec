@@ -2,21 +2,23 @@
 
 This checklist is for Jamie. Complete the Base Sepolia smoke test on the
 `modelspec-rank-staging` Worker. Do not enable x402 on the production Worker.
-The repository keeps production `X402_ENABLED`, `X402_MAINNET`,
-`ACCESS_ENFORCED`, and `BILLING_ENABLED` off, with an empty production
-`X402_PAY_TO`.
+The repository keeps production `X402_ENABLED` and `X402_MAINNET` off, with
+an empty production `X402_PAY_TO`. `ACCESS_ENFORCED` and `BILLING_ENABLED`
+are on (MODEL-96): machines need a key and Stripe Checkout is open.
 
 ## Mainnet blocker resolved by MODEL-185
 
-MODEL-185 separates the live page from anonymous agent traffic. With x402 on,
-keyless requests from the production site origins and the internal Pages
-preview receive the IP-keyed, rate-limited free tier. Other keyless requests
-receive the per-call 402. Keyed callers without credits still receive the pack
-offer. A spoofed allowed `Origin` gains only the rate-limited free tier.
+MODEL-185 added an IP-metered path for anonymous page traffic while access
+enforcement was off. MODEL-292 now admits free browser lookups with a
+Turnstile-verified visit token bound to the visitor and allowed site origin.
+Under production enforcement, a request without a key or a valid visit token
+gets `401 missing_api_key`; an allowed `Origin` alone grants no answer. The
+visit token admits decide and vocabulary only. With x402 enabled, keyed
+callers without credits still receive the pack offer.
 
 This resolves the page-traffic blocker. It does not turn on production x402 or
 approve the mainnet receiver and payment check. The checked-in production flags
-remain off, and Jamie must approve the separate production change.
+for x402 remain off, and Jamie must approve the separate production change.
 
 Sources checked 2026-09-26:
 

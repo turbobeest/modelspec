@@ -12,8 +12,8 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "api/worker/src"))
+sys.path.insert(0, str(ROOT))
 import human_gate
 import human_gate_do
 
@@ -33,15 +33,16 @@ class Storage:
 
 
 class Namespace:
-    def __init__(self):
+    def __init__(self, env=None):
         self.objects = {}
+        self.env = env
 
     def idFromName(self, name):
         return name
 
     def get(self, name):
         if name not in self.objects:
-            self.objects[name] = human_gate_do.HumanGateObject(SimpleNamespace(storage=Storage()), None)
+            self.objects[name] = human_gate_do.HumanGateObject(SimpleNamespace(storage=Storage()), self.env)
         return self.objects[name]
 
 

@@ -66,9 +66,11 @@ the holding page links to it.
 
 ## Billing while dark
 
-`BILLING_ENABLED` is `"false"` in `api/worker/wrangler.jsonc`. It gates
-Checkout alone. `POST /v1/billing/checkout` and the `/pricing` form post
-answer `503 billing_not_enabled` before any call to Stripe. The Stripe
+MODEL-96 sets production `BILLING_ENABLED` and `ACCESS_ENFORCED` to `"true"`
+in `api/worker/wrangler.jsonc`, independently of `SITE_MODE`. Staging is unchanged.
+To close new purchases during a future holding period, set `BILLING_ENABLED`
+to `"false"`. It gates Checkout alone: `POST /v1/billing/checkout` and the
+`/pricing` form post then answer `503 billing_not_enabled` before any call to Stripe. The Stripe
 webhook, claim and rotation keep working, so a refund or chargeback of a past
 purchase still acts on its credits, and a renewal is still credited. Existing
 keys keep their credits on `/v1/rank` and `/v1/policy-check`. Details:
@@ -107,10 +109,12 @@ gh workflow run "Build and deploy the sites" --ref main
 Start a new run as shown. Do not re-run an old one: a re-run repeats that run's
 commit. The build summary must say `Site mode: live`.
 
-To reopen Checkout as well, set `"BILLING_ENABLED": "true"` in
-`api/worker/wrangler.jsonc`, run `python api/worker/openapi.py`, and merge; the
-rank Worker deploys on push to `main`. Do both together: the buy buttons are on
-`/pricing`, which only the live site publishes.
+MODEL-96 already prepares Checkout with `BILLING_ENABLED=true` and machine
+access with `ACCESS_ENFORCED=true`. Keep `VISIT_GATE_ENABLED=true` so the free
+decide page can use its human browser token. If Checkout was closed again,
+restore its production flag, run `python api/worker/openapi.py`, and merge;
+the rank Worker deploys on push to `main`. Coordinate this with `SITE_MODE`:
+the buy buttons are on `/pricing`, which only the live site publishes.
 
 ## Go dark again
 

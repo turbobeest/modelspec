@@ -269,9 +269,21 @@ and does not reload again.
 ## Access and browser calls
 
 The endpoint runs through the same `access.gate` and x402 wrapper as
-`POST /v1/rank`. `ACCESS_ENFORCED`, `BILLING_ENABLED`, and `X402_ENABLED` remain
-off in `wrangler.jsonc`. A sandbox key is refused because there is no synthetic
-signed Snapshot.
+`POST /v1/rank`. Production `ACCESS_ENFORCED` and `BILLING_ENABLED` are
+`"true"` (MODEL-96); `X402_ENABLED` remains `"false"`. A direct keyless request
+gets 401 `missing_api_key`, with `how_to_get_a_key: https://modelspec.dev/pricing`
+and the API documentation URL. A sandbox key is refused because there is no
+synthetic signed Snapshot.
+
+The free decide page uses the MODEL-292 visit gate, which remains on. It
+exchanges a managed Turnstile verification for a visitor-and-origin-bound
+visit token, then sends it on decide and Worker vocabulary requests. Admitted
+responses renew the token. Invalid or expired tokens receive 401 and do not
+fall through to anonymous access; the page verifies again and retries once.
+With the visit gate off and the human gate off, keyless page lookups receive
+401 and show the pricing pointer. Origin alone never grants this free path.
+Access enforcement supplies no anonymous visitor id for a site Origin, including
+when x402 is on and the visit gate is off.
 
 Browser access is allowed only from `https://modelspec.dev`,
 `https://www.modelspec.dev` and the preview `https://internal.modelspec-7np.pages.dev`.
@@ -567,8 +579,10 @@ per template. `--warmups`, `--count`, `--explain`, and `--vocabulary-url` config
 the measurement. The step summary reports initial latency and warm p50/p95 for
 each template. Initial calls are cold candidates; the client cannot force or
 identify a fresh isolate, and even later samples can encounter one. Only warm
-p95 warns against the 500 ms target. Access refusals record a skip and stop
-sampling. The smoke remains warning-only and uses no new credential.
+p95 warns against the 500 ms target. When production access enforcement is
+on, the step records `skipped: keyless under enforcement` and does not sample.
+A keyless 401 while enforcement is off still records a skip and stops sampling.
+The smoke remains warning-only and uses no new credential.
 
 
 ### MODEL-269 phase 3, 2026-10-01

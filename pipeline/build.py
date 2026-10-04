@@ -68,6 +68,7 @@ def llms_txt(*, site: str, base: str, build: exporter.Build,
         f"- Coverage, keyless: {base}/api/coverage.json\n\n"
         f"Access: a person looking a model up by hand on the site pays nothing. "
         f"{agent_copy.install_markdown()}\n"
+        f"{agent_copy.key_procurement()}\n"
         f"Current data is only available through the service, and the copy in the "
         f"public repository is a delayed image, about nine months old.\n\n"
         f"- Agent guide: {base}/agents.md\n"

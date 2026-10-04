@@ -276,34 +276,36 @@ function postInit(
 
 export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) {
   const authorization = incomingAuthorization(mcpCtx.requestInfo);
+  function missingKey(origin: string) {
+    if (env.MCP_REQUIRE_API_KEY === "false" || /^Bearer +\S+$/i.test(authorization ?? "")) return null;
+    return {
+      origin,
+      status: 401,
+      body: {
+        error: {
+          code: "missing_api_key",
+          message: "MCP data tools require an API key. Send Authorization: Bearer <key>. " +
+            "Get one at https://modelspec.dev/pricing/.",
+          how_to_get_a_key: "https://modelspec.dev/pricing",
+          docs: "https://modelspec.dev/docs/api",
+        },
+        result: [],
+      },
+    };
+  }
   async function fetchDisplayVocabulary(query = "") {
+    const origin = `${env.RANK_API_ORIGIN.replace(/\/$/, "")}/v1/vocabulary${query}`;
+    const refusal = missingKey(origin);
+    if (refusal) return refusal;
     const headers = new Headers();
+    if (authorization) headers.set("authorization", authorization);
     const address = incomingClientAddress(mcpCtx.requestInfo);
     if (address) headers.set("CF-Connecting-IP", address);
-    const origin = `${env.RANK_API_ORIGIN.replace(/\/$/, "")}/v1/vocabulary${query}`;
     return fetchOrigin(origin, { headers }, env.RANK);
   }
   async function fetchDecision(origin: string, body: unknown) {
-    // The API permits anonymous answers while ACCESS_ENFORCED is off.
-    // Require credentials here before that request can reach its anonymous path.
-    if (
-      env.MCP_REQUIRE_API_KEY !== "false" &&
-      !/^Bearer +\S+$/i.test(authorization ?? "")
-    ) {
-      return {
-        origin,
-        status: 401,
-        body: {
-          error: {
-            code: "missing_api_key",
-            message:
-              "MCP decisions require an API key. Send Authorization: Bearer <key>. " +
-              "Get one at https://modelspec.dev/pricing/.",
-          },
-          result: [],
-        },
-      };
-    }
+    const refusal = missingKey(origin);
+    if (refusal) return refusal;
     return fetchOrigin(origin, postInit(body, authorization), env.RANK);
   }
 
@@ -348,6 +350,8 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
         }
         return asToolResult(envelope);
       }
+      const refusal = missingKey(located.origin);
+      if (refusal) return asToolResult(refusal);
       return asToolResult(await fetchOrigin(located.origin));
     },
   );
@@ -360,6 +364,8 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
     },
     async () => {
       const origin = `${env.EXPORT_ORIGIN.replace(/\/$/, "")}/api/rank/profiles.json`;
+      const refusal = missingKey(origin);
+      if (refusal) return asToolResult(refusal);
       return asToolResult(await fetchOrigin(origin));
     },
   );
@@ -413,6 +419,10 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
       if (args.offset !== undefined) query.set("offset", String(args.offset));
       if (args.limit !== undefined) query.set("limit", String(args.limit));
       const origin = `${env.EXPORT_ORIGIN.replace(/\/$/, "")}/api/decision/vocabulary.json`;
+      if (!split) {
+        const refusal = missingKey(origin);
+        if (refusal) return asToolResult(refusal);
+      }
       const envelope = split ? await fetchDisplayVocabulary(`?${query}`) : await fetchOrigin(origin);
       if (envelope.status < 400 && isRecord(envelope.body)) {
         // Older Workers ignore lookup parameters and return the full vocabulary.

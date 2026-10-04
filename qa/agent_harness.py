@@ -574,21 +574,33 @@ def write_report(report: dict, directory: Path) -> tuple[Path, Path]:
 
 
 def smoke_vocabulary(output: Path) -> dict:
-    """The sole production exception: one public, keyless GET, no credentials."""
+    """One production vocabulary GET with a key, without agent or judge calls."""
+    from pipeline.worker_flags import enabled, production_vars
+
     url = "https://api.modelspec.dev/v1/vocabulary"
+    key = os.environ.get("MODELSPEC_API_KEY") or None
+    if enabled(production_vars(ROOT), "ACCESS_ENFORCED") and not key:
+        raise ValueError("Set MODELSPEC_API_KEY for the enforced vocabulary endpoint. "
+                         "Get a key at https://modelspec.dev/pricing/.")
+    headers = {"user-agent": USER_AGENT, "accept": "application/json"}
+    if key:
+        headers["authorization"] = f"Bearer {key}"
     started = perf_counter()
     with httpx.Client(timeout=30, follow_redirects=False) as client:
-        response = client.get(url, headers={"user-agent": USER_AGENT, "accept": "application/json"})
+        response = client.get(url, headers=headers)
+    if response.status_code == 401 and not key:
+        raise ValueError("The vocabulary endpoint enforces keys; set MODELSPEC_API_KEY. "
+                         "Get a key at https://modelspec.dev/pricing/.")
     response.raise_for_status()
     body = response.json()
     if not isinstance(body, dict) or not isinstance(body.get("facets"), list):
-        raise ValueError("Keyless vocabulary smoke returned an unexpected shape")
+        raise ValueError("Vocabulary smoke returned an unexpected shape")
     result = {
         "url": url,
         "method": "GET",
         "status": response.status_code,
         "latency_ms": (perf_counter() - started) * 1000,
-        "keyless": True,
+        "keyless": key is None,
         "snapshot": body.get("snapshot"),
         "facets": len(body["facets"]),
         "templates": len(body.get("templates", [])),
@@ -670,7 +682,10 @@ def main(argv=None) -> int:
     parser.add_argument("--scenario", action="append")
     args = parser.parse_args(argv)
     if args.smoke_vocabulary:
-        result = smoke_vocabulary(args.output_dir / f"{args.date}-vocabulary-smoke.json")
+        try:
+            result = smoke_vocabulary(args.output_dir / f"{args.date}-vocabulary-smoke.json")
+        except ValueError as error:
+            parser.error(str(error))
         print(json.dumps(result))
         return 0
     config = yaml.safe_load(args.config.read_text())

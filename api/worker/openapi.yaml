@@ -8,7 +8,7 @@ info:
   version: '1.0'
   summary: Decides which AI models fit a job from your requirements, sourced evidence and real cost, and
     checks them against a compliance policy.
-  description: 'Start with the compact agent guide https://modelspec.dev/agents.md (version 1-5f657ebd18b3f0d6).
+  description: 'Start with the compact agent guide https://modelspec.dev/agents.md (version 1-865d5af95180d0f1).
     Call decide early with a template-based Spec; refine from reading and recovery hints.
 
 
@@ -26,7 +26,9 @@ info:
     or a policy — never a prompt.
 
 
-    Machine data access needs an API key (see x-modelspec-access). Any key starting `test_` is the sandbox:
+    Machine data access needs an API key (see x-modelspec-access). GET /v1/health and POST /v1/feedback
+    stay keyless. The free decide page uses the human browser visit gate, with a Turnstile-verified visit
+    token for decide and vocabulary when VISIT_GATE_ENABLED is on. Any key starting `test_` is the sandbox:
     unlimited, synthetic rows from the real scorer, /v1/rank only.
 
 
@@ -57,16 +59,16 @@ info:
   x-max-request-bytes: {/v1/rank: 16384, /v1/decide: 65536, /v1/compare: 65536, /v1/policy-check: 262144,
     /v1/signals: 4096, /v1/signals/discovered: 4096, /v1/feedback: 4096}
 x-modelspec-access:
-  status: wired; enforcement off
+  status: wired; enforced
   ticket: MODEL-69
-  enforced: false
+  enforced: true
   switch: ACCESS_ENFORCED in api/worker/wrangler.jsonc
   key_store_bound: true
-  effect_today: 'Machine data access needs an API key. ACCESS_ENFORCED is off; see https://modelspec.dev/pricing/
-    for access availability. Presented keys are checked: a test_ key gets the sandbox, a known key is
-    metered and served per its tier, and an unknown or revoked key is refused (401 or 403), never served
-    as anonymous. The ACCESS key store is bound. Existing live keys are checked against it; test_ keys
-    use the sandbox.'
+  effect_today: 'Every machine data endpoint needs an API key: a request without one is refused 401 missing_api_key,
+    naming https://modelspec.dev/pricing. GET /v1/health and POST /v1/feedback stay keyless. The free
+    decide page uses the human browser visit gate: with VISIT_GATE_ENABLED, a Turnstile-verified visit
+    token admits only decide and vocabulary for its bound visitor and origin. The ACCESS key store is
+    bound. Existing live keys are checked against it; test_ keys use the sandbox.'
   policy_check_paid_entitlement: {status: 'granted to a presented key with remaining credits, or an unlimited
       paid tier', granted_by: 'entry.py::_entitlement', effect_today: 'Public-export evidence has determinations.entitlement
       public_export; checks they cannot settle come back undetermined with why: tier and available_in_tier:
@@ -91,7 +93,7 @@ x-modelspec-access:
   refusals: {access_not_configured: 500, access_store_not_configured: 503, invalid_api_key: 401, key_revoked: 403,
     missing_api_key: 401, rate_limited: 429, sandbox_not_available: 400, tier_not_configured: 500}
   documented_in: docs/api-access.md
-x-modelspec-billing: {status: wired; flag off, ticket: MODEL-93, enabled: false, switch: BILLING_ENABLED
+x-modelspec-billing: {status: wired; enabled, ticket: MODEL-93, enabled: true, switch: BILLING_ENABLED
     in api/worker/wrangler.jsonc, unit: credit, what_is_sold: 'credits on this API key: a monthly allowance
     that resets each paid invoice (no rollover), and/or pack credits that expire 12 months after purchase.
     A funded key receives the paid answer, including cited commercial-use and data-residency determinations.
@@ -111,9 +113,10 @@ x-modelspec-x402:
   facilitator: https://api.cdp.coinbase.com/platform
   docs: docs/x402.md
 security:
-- {}
-- bearer: []
-- apiKey: []
+- &id003
+  bearer: []
+- &id004
+  apiKey: []
 servers:
 - {url: 'https://api.modelspec.dev', description: production}
 paths:
@@ -121,6 +124,13 @@ paths:
     get:
       operationId: humanStatus
       summary: Read the human admission mode without spending or creating durable state.
+      security: []
+      parameters:
+      - name: Origin
+        in: header
+        required: false
+        schema: {type: string}
+        example: https://modelspec.dev
       responses:
         '200':
           description: Gate disabled, legacy remaining allowance, or configured visit allowances.
@@ -156,8 +166,8 @@ paths:
                     day_limit: {type: integer, minimum: 1}
                     burst_limit: {type: integer, minimum: 1}
           headers: &id001
-            Link: &id003 {$ref: '#/components/headers/AgentGuide'}
-            x-modelspec-guide-version: &id004 {$ref: '#/components/headers/AgentGuideVersion'}
+            Link: &id005 {$ref: '#/components/headers/AgentGuide'}
+            x-modelspec-guide-version: &id006 {$ref: '#/components/headers/AgentGuideVersion'}
         '403':
           description: The request origin is not a permitted site origin.
           content:
@@ -197,6 +207,7 @@ paths:
     get:
       operationId: credits
       summary: The credit balance for the presented API key.
+      x-modelspec-probe: skip
       responses:
         '200':
           description: The holder's available and reserved units.
@@ -232,6 +243,7 @@ paths:
     get:
       operationId: health
       summary: The deployed version, and whether it can read both exports.
+      security: []
       responses:
         '200':
           description: Serving.
@@ -357,6 +369,10 @@ paths:
     post:
       operationId: decide
       summary: Decide which models fit a job, and show the work.
+      security:
+      - *id003
+      - *id004
+      - visitToken: []
       parameters:
       - name: X-ModelSpec-Snapshot
         in: header
@@ -384,7 +400,7 @@ paths:
         content:
           application/json:
             schema: {$ref: '#/components/schemas/DecisionDecideRequest'}
-            example: &id005
+            example: &id007
               spec_version: 1
               capabilities: {software_engineering: required}
               optimize: {max: software_engineering}
@@ -401,7 +417,7 @@ paths:
                 anyOf:
                 - {$ref: '#/components/schemas/DecisionResponse'}
                 - {$ref: '#/components/schemas/DecisionBoundedDecision'}
-          headers: &id006
+          headers: &id008
             X-ModelSpec-Snapshot:
               description: The verified snapshot that answered (MODEL-159).
               schema: {type: string}
@@ -410,8 +426,8 @@ paths:
                 or a snapshot that failed verification) and an older verified snapshot answered. The value
                 says why.
               schema: {type: string}
-            Link: *id003
-            x-modelspec-guide-version: *id004
+            Link: *id005
+            x-modelspec-guide-version: *id006
         '400':
           description: The body is not a valid decision spec. This includes a refinement weight whose
             evidence_state is not live or thin.
@@ -462,7 +478,7 @@ paths:
               schema:
                 oneOf:
                 - {$ref: '#/components/schemas/HumanGateRefused'}
-                - {$ref: '#/components/schemas/AccessRefused'}
+                - {$ref: '#/components/schemas/DecisionAccessRefused'}
           headers: *id001
         '403':
           description: 'Key revoked, or human_challenge_required: complete fresh verification.'
@@ -471,7 +487,7 @@ paths:
               schema:
                 oneOf:
                 - {$ref: '#/components/schemas/HumanGateRefused'}
-                - {$ref: '#/components/schemas/AccessRefused'}
+                - {$ref: '#/components/schemas/DecisionAccessRefused'}
           headers: *id001
         '429':
           description: Key quota, or human day, burst or even-interval limit. Wait for Retry-After.
@@ -480,14 +496,14 @@ paths:
               schema:
                 oneOf:
                 - {$ref: '#/components/schemas/HumanGateRefused'}
-                - {$ref: '#/components/schemas/AccessRefused'}
+                - {$ref: '#/components/schemas/DecisionAccessRefused'}
           headers: *id001
         '500':
           description: 'Ours, not the caller''s: the key names a tier the service does not carry (tier_not_configured),
             or the deployment has no tier table (access_not_configured).'
           content:
             application/json:
-              schema: {$ref: '#/components/schemas/AccessRefused'}
+              schema: {$ref: '#/components/schemas/DecisionAccessRefused'}
           headers: *id001
         '503':
           description: 'Snapshot, access store or human gate unavailable. Retry later. explanation_unavailable:
@@ -500,15 +516,15 @@ paths:
                   - oneOf:
                     - {$ref: '#/components/schemas/DecisionSnapshotUnavailable'}
                     - {$ref: '#/components/schemas/DecisionRequestRefused'}
-                  - {$ref: '#/components/schemas/AccessRefused'}
+                  - {$ref: '#/components/schemas/DecisionAccessRefused'}
                 - {$ref: '#/components/schemas/HumanGateRefused'}
                 - {$ref: '#/components/schemas/DecisionBoundedRefused'}
           headers:
             Retry-After:
               description: Seconds before retrying a no_snapshot response.
               schema: {type: integer, minimum: 1}
-            Link: *id003
-            x-modelspec-guide-version: *id004
+            Link: *id005
+            x-modelspec-guide-version: *id006
       description: 'Which models fit this job? Returns answer, ranked results, may_qualify, reading and
         recovery hints, decision_id and snapshot. Never add a constraint or weight the user did not state;
         template gates and weights are examples, not user requirements. If the evidence basis or board
@@ -540,14 +556,14 @@ paths:
             schema: {$ref: '#/components/schemas/ComparisonRequest'}
             example:
               compare_to: snap_0123456789abcdef
-              spec: *id005
+              spec: *id007
       responses:
         '200':
           description: The model-grained difference between two decisions.
           content:
             application/json:
               schema: {$ref: '#/components/schemas/ComparisonResponse'}
-          headers: *id006
+          headers: *id008
         '400':
           description: The body lacks a valid spec or compare_to snapshot ID.
           content:
@@ -590,27 +606,27 @@ paths:
             `error.how_to_get_a_key` says where to get one.
           content:
             application/json:
-              schema: {$ref: '#/components/schemas/AccessRefused'}
+              schema: {$ref: '#/components/schemas/ComparisonAccessRefused'}
           headers: *id001
         '403':
           description: 'key_revoked: a key we know and will not serve. Retrying will not help.'
           content:
             application/json:
-              schema: {$ref: '#/components/schemas/AccessRefused'}
+              schema: {$ref: '#/components/schemas/ComparisonAccessRefused'}
           headers: *id001
         '429':
           description: 'rate_limited: the key''s daily or per-minute window is spent. States the limit,
             the window and `resets_at`; `Retry-After` is set.'
           content:
             application/json:
-              schema: {$ref: '#/components/schemas/AccessRefused'}
+              schema: {$ref: '#/components/schemas/ComparisonAccessRefused'}
           headers: *id001
         '500':
           description: 'Ours, not the caller''s: the key names a tier the service does not carry (tier_not_configured),
             or the deployment has no tier table (access_not_configured).'
           content:
             application/json:
-              schema: {$ref: '#/components/schemas/AccessRefused'}
+              schema: {$ref: '#/components/schemas/ComparisonAccessRefused'}
           headers: *id001
         '503':
           description: The snapshot is not published, a retained snapshot cannot be read, or a live key
@@ -622,13 +638,13 @@ paths:
                 - oneOf:
                   - {$ref: '#/components/schemas/ComparisonSnapshotUnavailable'}
                   - {$ref: '#/components/schemas/ComparisonRequestRefused'}
-                - {$ref: '#/components/schemas/AccessRefused'}
+                - {$ref: '#/components/schemas/ComparisonAccessRefused'}
           headers:
             Retry-After:
               description: Seconds before retrying a no_snapshot response.
               schema: {type: integer, minimum: 1}
-            Link: *id003
-            x-modelspec-guide-version: *id004
+            Link: *id005
+            x-modelspec-guide-version: *id006
   /v1/policy-check:
     post:
       operationId: policyCheck
@@ -773,26 +789,26 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/FeedbackResult'}
           headers: *id001
-        '400': &id007
+        '400': &id009
           description: '`invalid_request`: Fix the body against the published schema and send it again.'
           content:
             application/json:
               schema: {$ref: '#/components/schemas/FeedbackError'}
           headers: *id001
-        '403': &id008
+        '403': &id010
           description: '`origin_not_allowed`: Send it from modelspec.dev, or from a client with no Origin
             header.'
           content:
             application/json:
               schema: {$ref: '#/components/schemas/FeedbackError'}
           headers: *id001
-        '413': &id009
+        '413': &id011
           description: '`payload_too_large`: Keep the body under 4096 bytes; shorten the note.'
           content:
             application/json:
               schema: {$ref: '#/components/schemas/FeedbackError'}
           headers: *id001
-        '429': &id010
+        '429': &id012
           description: '`rate_limited`: Wait retry_after seconds, then send it once.'
           content:
             application/json:
@@ -804,7 +820,7 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/FeedbackError'}
           headers: *id001
-        '405': &id011
+        '405': &id013
           description: Use POST to send and DELETE to withdraw.
           content:
             application/json:
@@ -828,8 +844,8 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/FeedbackResult'}
           headers: *id001
-        '400': *id007
-        '403': *id008
+        '400': *id009
+        '403': *id010
         '404':
           description: '`receipt_not_found`: Nothing is stored under that receipt; it was deleted or never
             kept.'
@@ -837,9 +853,9 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/FeedbackError'}
           headers: *id001
-        '413': *id009
-        '429': *id010
-        '405': *id011
+        '413': *id011
+        '429': *id012
+        '405': *id013
   /v1/signals:
     post:
       operationId: releaseSignalIntake
@@ -865,19 +881,19 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/SignalMutation'}
           headers: *id001
-        '400': &id012
+        '400': &id014
           description: The feature is off, authentication failed, the request is invalid, or storage is
             unavailable.
           content:
             application/json:
               schema: {$ref: '#/components/schemas/SignalError'}
           headers: *id001
-        '401': *id012
-        '404': *id012
-        '409': *id012
-        '413': *id012
-        '503': *id012
-        '405': &id013
+        '401': *id014
+        '404': *id014
+        '409': *id014
+        '413': *id014
+        '503': *id014
+        '405': &id015
           description: Wrong method for this path.
           content:
             application/json:
@@ -908,12 +924,12 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/SignalMutation'}
           headers: *id001
-        '400': *id012
-        '401': *id012
-        '404': *id012
-        '413': *id012
-        '503': *id012
-        '405': *id013
+        '400': *id014
+        '401': *id014
+        '404': *id014
+        '413': *id014
+        '503': *id014
+        '405': *id015
   /v1/signals/pending:
     get:
       operationId: releaseSignalsPending
@@ -928,10 +944,10 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/SignalsPending'}
           headers: *id001
-        '401': *id012
-        '404': *id012
-        '503': *id012
-        '405': *id013
+        '401': *id014
+        '404': *id014
+        '503': *id014
+        '405': *id015
   /v1/signals/ack:
     post:
       operationId: releaseSignalAcknowledge
@@ -951,11 +967,11 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/SignalMutation'}
           headers: *id001
-        '400': *id012
-        '401': *id012
-        '404': *id012
-        '503': *id012
-        '405': *id013
+        '400': *id014
+        '401': *id014
+        '404': *id014
+        '503': *id014
+        '405': *id015
   /v1/billing/checkout:
     post:
       operationId: billingCheckout
@@ -974,6 +990,10 @@ paths:
         key presented. An unknown or placeholder `price_id` is refused, never redirected, and every refusal
         is the JSON call''s own. A body that parses as JSON is the JSON call whatever its content type,
         so `curl -d ''{...}''` is unchanged.'
+      security:
+      - {}
+      - bearer: []
+      - apiKey: []
       x-modelspec-probe: skip
       requestBody:
         required: false
@@ -1010,8 +1030,8 @@ paths:
             Location:
               description: The Stripe Checkout URL (the body's `url`).
               schema: {type: string, format: uri}
-            Link: *id003
-            x-modelspec-guide-version: *id004
+            Link: *id005
+            x-modelspec-guide-version: *id006
         '400':
           description: Unknown field, or price_id omitted. The 400 names the valid Price ids.
           content:
@@ -1040,22 +1060,7 @@ paths:
           description: A presented API key that is unknown or revoked. Never treated as anonymous.
           content:
             application/json:
-              schema:
-                type: object
-                required: [endpoint, error, result, schema_version, service_commit]
-                properties:
-                  endpoint: {type: string}
-                  error:
-                    type: object
-                    required: [code, message]
-                    properties:
-                      code: {type: string}
-                      message: {type: string}
-                  result:
-                    type: array
-                    items: {}
-                  schema_version: {type: string}
-                  service_commit: {type: string}
+              schema: {$ref: '#/components/schemas/Sharede25eeefc86ea'}
           headers: *id001
         '500':
           description: 'price_not_mapped: the price_id is not in the tier table, or (form post) is a placeholder.
@@ -1084,22 +1089,7 @@ paths:
           description: 'BILLING_ENABLED is off: no new purchase can start.'
           content:
             application/json:
-              schema:
-                type: object
-                required: [endpoint, error, result, schema_version, service_commit]
-                properties:
-                  endpoint: {type: string}
-                  error:
-                    type: object
-                    required: [code, message]
-                    properties:
-                      code: {type: string}
-                      message: {type: string}
-                  result:
-                    type: array
-                    items: {}
-                  schema_version: {type: string}
-                  service_commit: {type: string}
+              schema: {$ref: '#/components/schemas/Sharede25eeefc86ea'}
           headers: *id001
         '404':
           description: No endpoint at that path.
@@ -1117,6 +1107,7 @@ paths:
     post:
       operationId: billingStripeWebhook
       summary: Stripe webhook. HMAC-SHA256 over t.payload; no SDK.
+      security: []
       x-modelspec-probe: skip
       parameters:
       - name: Stripe-Signature
@@ -1151,22 +1142,7 @@ paths:
           description: Missing, wrong, or stale Stripe-Signature.
           content:
             application/json:
-              schema:
-                type: object
-                required: [endpoint, error, result, schema_version, service_commit]
-                properties:
-                  endpoint: {type: string}
-                  error:
-                    type: object
-                    required: [code, message]
-                    properties:
-                      code: {type: string}
-                      message: {type: string}
-                  result:
-                    type: array
-                    items: {}
-                  schema_version: {type: string}
-                  service_commit: {type: string}
+              schema: {$ref: '#/components/schemas/Sharede25eeefc86ea'}
           headers: *id001
         '503':
           description: 'STRIPE_WEBHOOK_SECRET or the ACCESS store is not configured on this deployment.
@@ -1174,22 +1150,7 @@ paths:
             apply with it off.'
           content:
             application/json:
-              schema:
-                type: object
-                required: [endpoint, error, result, schema_version, service_commit]
-                properties:
-                  endpoint: {type: string}
-                  error:
-                    type: object
-                    required: [code, message]
-                    properties:
-                      code: {type: string}
-                      message: {type: string}
-                  result:
-                    type: array
-                    items: {}
-                  schema_version: {type: string}
-                  service_commit: {type: string}
+              schema: {$ref: '#/components/schemas/Sharede25eeefc86ea'}
           headers: *id001
         '404':
           description: No endpoint at that path.
@@ -1208,6 +1169,7 @@ paths:
       operationId: billingClaimGet
       summary: Claim the purchase. Mints a key once if Checkout was anonymous; credits an existing key
         otherwise.
+      security: []
       description: 'Stripe''s success redirect. HTML variant (MODEL-105): when `Accept` prefers `text/html`
         over JSON (a browser), the same outcome, status and facts come back as a static page (no script,
         nothing loaded, CSP `default-src ''none''`) that shows the key once and says to copy it now. `Accept`
@@ -1230,22 +1192,7 @@ paths:
           description: session_id missing.
           content:
             application/json:
-              schema:
-                type: object
-                required: [endpoint, error, result, schema_version, service_commit]
-                properties:
-                  endpoint: {type: string}
-                  error:
-                    type: object
-                    required: [code, message]
-                    properties:
-                      code: {type: string}
-                      message: {type: string}
-                  result:
-                    type: array
-                    items: {}
-                  schema_version: {type: string}
-                  service_commit: {type: string}
+              schema: {$ref: '#/components/schemas/Sharede25eeefc86ea'}
             text/html:
               schema: {type: string}
           headers: *id001
@@ -1253,22 +1200,7 @@ paths:
           description: Payment received, key not ready. Retry in a few seconds.
           content:
             application/json:
-              schema:
-                type: object
-                required: [endpoint, error, result, schema_version, service_commit]
-                properties:
-                  endpoint: {type: string}
-                  error:
-                    type: object
-                    required: [code, message]
-                    properties:
-                      code: {type: string}
-                      message: {type: string}
-                  result:
-                    type: array
-                    items: {}
-                  schema_version: {type: string}
-                  service_commit: {type: string}
+              schema: {$ref: '#/components/schemas/Sharede25eeefc86ea'}
             text/html:
               schema: {type: string}
           headers: *id001
@@ -1276,24 +1208,7 @@ paths:
           description: Already shown. Rotate if you still hold the key.
           content:
             application/json:
-              schema:
-                type: object
-                required: [endpoint, error, result, schema_version, service_commit]
-                properties:
-                  endpoint: {type: string}
-                  error:
-                    type: object
-                    required: [code, key_id, message, tier]
-                    properties:
-                      code: {type: string}
-                      key_id: {type: string}
-                      message: {type: string}
-                      tier: {type: string}
-                  result:
-                    type: array
-                    items: {}
-                  schema_version: {type: string}
-                  service_commit: {type: string}
+              schema: {$ref: '#/components/schemas/Shared5bce56702b35'}
             text/html:
               schema: {type: string}
           headers: *id001
@@ -1302,22 +1217,7 @@ paths:
             this path.
           content:
             application/json:
-              schema:
-                type: object
-                required: [endpoint, error, result, schema_version, service_commit]
-                properties:
-                  endpoint: {type: string}
-                  error:
-                    type: object
-                    required: [code, message]
-                    properties:
-                      code: {type: string}
-                      message: {type: string}
-                  result:
-                    type: array
-                    items: {}
-                  schema_version: {type: string}
-                  service_commit: {type: string}
+              schema: {$ref: '#/components/schemas/Sharede25eeefc86ea'}
             text/html:
               schema: {type: string}
           headers: *id001
@@ -1336,6 +1236,7 @@ paths:
     post:
       operationId: billingClaimPost
       summary: Claim the purchase (session_id in the JSON body). Same as GET.
+      security: []
       x-modelspec-probe: skip
       requestBody:
         required: true
@@ -1357,88 +1258,26 @@ paths:
           description: session_id missing.
           content:
             application/json:
-              schema:
-                type: object
-                required: [endpoint, error, result, schema_version, service_commit]
-                properties:
-                  endpoint: {type: string}
-                  error:
-                    type: object
-                    required: [code, message]
-                    properties:
-                      code: {type: string}
-                      message: {type: string}
-                  result:
-                    type: array
-                    items: {}
-                  schema_version: {type: string}
-                  service_commit: {type: string}
+              schema: {$ref: '#/components/schemas/Sharede25eeefc86ea'}
           headers: *id001
         '409':
           description: Payment received, key not ready. Retry in a few seconds.
           content:
             application/json:
-              schema:
-                type: object
-                required: [endpoint, error, result, schema_version, service_commit]
-                properties:
-                  endpoint: {type: string}
-                  error:
-                    type: object
-                    required: [code, message]
-                    properties:
-                      code: {type: string}
-                      message: {type: string}
-                  result:
-                    type: array
-                    items: {}
-                  schema_version: {type: string}
-                  service_commit: {type: string}
+              schema: {$ref: '#/components/schemas/Sharede25eeefc86ea'}
           headers: *id001
         '410':
           description: Already shown.
           content:
             application/json:
-              schema:
-                type: object
-                required: [endpoint, error, result, schema_version, service_commit]
-                properties:
-                  endpoint: {type: string}
-                  error:
-                    type: object
-                    required: [code, key_id, message, tier]
-                    properties:
-                      code: {type: string}
-                      key_id: {type: string}
-                      message: {type: string}
-                      tier: {type: string}
-                  result:
-                    type: array
-                    items: {}
-                  schema_version: {type: string}
-                  service_commit: {type: string}
+              schema: {$ref: '#/components/schemas/Shared5bce56702b35'}
           headers: *id001
         '503':
           description: The ACCESS store is not bound on this deployment. BILLING_ENABLED does not gate
             this path.
           content:
             application/json:
-              schema:
-                type: object
-                required: [endpoint, error, result, schema_version, service_commit]
-                properties:
-                  endpoint: {type: string}
-                  error:
-                    type: object
-                    required: [code, message]
-                    properties:
-                      code: {type: string}
-                      message: {type: string}
-                  result:
-                    type: array
-                    items: {}
-                  schema_version: {type: string}
-                  service_commit: {type: string}
+              schema: {$ref: '#/components/schemas/Sharede25eeefc86ea'}
           headers: *id001
         '404':
           description: No endpoint at that path.
@@ -1462,44 +1301,14 @@ paths:
           description: No current key presented.
           content:
             application/json:
-              schema:
-                type: object
-                required: [endpoint, error, result, schema_version, service_commit]
-                properties:
-                  endpoint: {type: string}
-                  error:
-                    type: object
-                    required: [code, message]
-                    properties:
-                      code: {type: string}
-                      message: {type: string}
-                  result:
-                    type: array
-                    items: {}
-                  schema_version: {type: string}
-                  service_commit: {type: string}
+              schema: {$ref: '#/components/schemas/Sharede25eeefc86ea'}
           headers: *id001
         '503':
           description: The ACCESS store is not bound on this deployment. BILLING_ENABLED does not gate
             this path.
           content:
             application/json:
-              schema:
-                type: object
-                required: [endpoint, error, result, schema_version, service_commit]
-                properties:
-                  endpoint: {type: string}
-                  error:
-                    type: object
-                    required: [code, message]
-                    properties:
-                      code: {type: string}
-                      message: {type: string}
-                  result:
-                    type: array
-                    items: {}
-                  schema_version: {type: string}
-                  service_commit: {type: string}
+              schema: {$ref: '#/components/schemas/Sharede25eeefc86ea'}
           headers: *id001
         '404':
           description: No endpoint at that path.
@@ -1517,11 +1326,12 @@ paths:
     post:
       operationId: verifyVisit
       summary: Exchange managed Turnstile verification for a visitor-and-origin-bound page credential.
-      description: Exists only with VISIT_GATE_ENABLED, which ships off; otherwise this path answers 404
-        like any unknown route. Siteverify must confirm success, the origin hostname and action decide.
-        Uses the daily visitor HMAC id and a new VISIT_TOKEN_HMAC_KEY to sign a 30-minute sliding credential,
-        renewed at most four hours from this exchange. No cookie. Keyless decide and bundled vocabulary
-        use the visit meter; presenting an API key takes precedence.
+      description: Exists only with VISIT_GATE_ENABLED, which is on in production; otherwise this path
+        answers 404 like any unknown route. Siteverify must confirm success, the origin hostname and action
+        decide. Uses the daily visitor HMAC id and VISIT_TOKEN_HMAC_KEY to sign a 30-minute sliding credential,
+        renewed at most four hours from this exchange. No cookie. The free decide page uses this human
+        browser credential for decide and bundled vocabulary under access enforcement; presenting an API
+        key takes precedence. Machine callers need an API key.
       security: []
       x-modelspec-probe: skip
       parameters:
@@ -1563,6 +1373,9 @@ components:
         of the exact request bytes>.}
     signalReadKey: {type: http, scheme: bearer, description: Repository-only key for pending and acknowledgement
         automation.}
+    visitToken: {type: apiKey, in: header, name: X-ModelSpec-Visit-Token, description: Human browser credential
+        from the Turnstile-verified visit gate. Bound to the visitor and allowed site origin; admits only
+        decide and vocabulary. Machine callers use an API key.}
   schemas:
     AccessRefused:
       type: object
@@ -1593,18 +1406,7 @@ components:
             window_seconds: {type: integer}
             windows:
               type: array
-              items:
-                type: object
-                properties:
-                  limit: {type: integer}
-                  remaining: {type: integer}
-                  resets_at: {type: string}
-                  retry_after_seconds: {type: integer}
-                  scope: {type: string}
-                  used: {type: integer}
-                  window: {type: string}
-                  window_seconds: {type: integer}
-                required: [limit, remaining, resets_at, retry_after_seconds, scope, used, window, window_seconds]
+              items: {$ref: '#/components/schemas/Sharedddf01cbae5c7'}
           required: [code, message]
         result:
           type: array
@@ -1638,18 +1440,7 @@ components:
             window_seconds: {type: integer}
             windows:
               type: array
-              items:
-                type: object
-                properties:
-                  limit: {type: integer}
-                  remaining: {type: integer}
-                  resets_at: {type: string}
-                  retry_after_seconds: {type: integer}
-                  scope: {type: string}
-                  used: {type: integer}
-                  window: {type: string}
-                  window_seconds: {type: integer}
-                required: [limit, remaining, resets_at, retry_after_seconds, scope, used, window, window_seconds]
+              items: {$ref: '#/components/schemas/Sharedddf01cbae5c7'}
           required: [code, message]
         result:
           type: array
@@ -4971,6 +4762,38 @@ components:
         snapshot: {type: string, pattern: '^snap_[A-Za-z0-9:._-]+$'}
         compare_to: {type: string, pattern: '^snap_[A-Za-z0-9:._-]+$'}
         result: {$ref: '#/components/schemas/ComparisonResult'}
+    DecisionAccessRefused:
+      type: object
+      additionalProperties: false
+      required: [contract_version, endpoint, snapshot, error]
+      properties:
+        contract_version: {$ref: '#/components/schemas/DecisionRequestRefused/properties/contract_version'}
+        endpoint: {$ref: '#/components/schemas/DecisionRequestRefused/properties/endpoint'}
+        snapshot: {$ref: '#/components/schemas/DecisionRequestRefused/properties/snapshot'}
+        error: {$ref: '#/components/schemas/AccessRefused/properties/error'}
+        reading: {$ref: '#/components/schemas/DecisionRequestRefused/properties/reading'}
+        coverage: {$ref: '#/components/schemas/DecisionRequestRefused/properties/coverage'}
+        service_commit: {type: string}
+        export_origin: {type: string}
+        result:
+          type: array
+          items: {}
+          maxItems: 0
+    ComparisonAccessRefused:
+      type: object
+      additionalProperties: false
+      required: [contract_version, endpoint, snapshot, error]
+      properties:
+        contract_version: {$ref: '#/components/schemas/ComparisonRequestRefused/properties/contract_version'}
+        endpoint: {$ref: '#/components/schemas/ComparisonRequestRefused/properties/endpoint'}
+        snapshot: {$ref: '#/components/schemas/ComparisonRequestRefused/properties/snapshot'}
+        error: {$ref: '#/components/schemas/AccessRefused/properties/error'}
+        service_commit: {type: string}
+        export_origin: {type: string}
+        result:
+          type: array
+          items: {}
+          maxItems: 0
     PolicyCheckRequest:
       type: object
       additionalProperties: false
@@ -5365,27 +5188,7 @@ components:
         constraint:
           type: string
           enum: [licence, origin, commercial_use, residency]
-        requirement:
-          type: object
-          properties:
-            accept_restricted: {type: boolean}
-            allowed:
-              type: array
-              items: {type: string}
-            match: {type: string}
-            permitted_countries:
-              type: array
-              items: {type: string}
-            prohibited:
-              type: array
-              items: {type: string}
-            prohibited_countries:
-              type: array
-              items: {type: string}
-            required: {type: boolean}
-            required_regions:
-              type: array
-              items: {type: string}
+        requirement: {$ref: '#/components/schemas/Shared4ff9f6a29ddb'}
         satisfied:
           type: object
           properties:
@@ -5429,27 +5232,7 @@ components:
         constraint:
           type: string
           enum: [licence, origin, commercial_use, residency]
-        requirement:
-          type: object
-          properties:
-            accept_restricted: {type: boolean}
-            allowed:
-              type: array
-              items: {type: string}
-            match: {type: string}
-            permitted_countries:
-              type: array
-              items: {type: string}
-            prohibited:
-              type: array
-              items: {type: string}
-            prohibited_countries:
-              type: array
-              items: {type: string}
-            required: {type: boolean}
-            required_regions:
-              type: array
-              items: {type: string}
+        requirement: {$ref: '#/components/schemas/Shared4ff9f6a29ddb'}
         state:
           type: string
           enum: [violated]
@@ -5510,27 +5293,7 @@ components:
         constraint:
           type: string
           enum: [licence, origin, commercial_use, residency]
-        requirement:
-          type: object
-          properties:
-            accept_restricted: {type: boolean}
-            allowed:
-              type: array
-              items: {type: string}
-            match: {type: string}
-            permitted_countries:
-              type: array
-              items: {type: string}
-            prohibited:
-              type: array
-              items: {type: string}
-            prohibited_countries:
-              type: array
-              items: {type: string}
-            required: {type: boolean}
-            required_regions:
-              type: array
-              items: {type: string}
+        requirement: {$ref: '#/components/schemas/Shared4ff9f6a29ddb'}
         state:
           type: string
           enum: [undetermined]
@@ -6056,6 +5819,27 @@ components:
                 rate_limited, receipt_not_found]
             message: {type: string}
             retry_after: {type: integer}
+    Shared4ff9f6a29ddb:
+      properties:
+        accept_restricted: {type: boolean}
+        allowed:
+          items: {type: string}
+          type: array
+        match: {type: string}
+        permitted_countries:
+          items: {type: string}
+          type: array
+        prohibited:
+          items: {type: string}
+          type: array
+        prohibited_countries:
+          items: {type: string}
+          type: array
+        required: {type: boolean}
+        required_regions:
+          items: {type: string}
+          type: array
+      type: object
     Shared330abdaccb40:
       properties:
         applied_to: {type: string}
@@ -6100,10 +5884,56 @@ components:
       required: [applied_to, credits, endpoint, kind, name, placeholder, price_id, result, schema_version,
         service_commit, session_id, terms_url, tier, url, what_you_buy]
       type: object
+    Shared5bce56702b35:
+      properties:
+        endpoint: {type: string}
+        error:
+          properties:
+            code: {type: string}
+            key_id: {type: string}
+            message: {type: string}
+            tier: {type: string}
+          required: [code, key_id, message, tier]
+          type: object
+        result:
+          items: {}
+          type: array
+        schema_version: {type: string}
+        service_commit: {type: string}
+      required: [endpoint, error, result, schema_version, service_commit]
+      type: object
+    Sharede25eeefc86ea:
+      properties:
+        endpoint: {type: string}
+        error:
+          properties:
+            code: {type: string}
+            message: {type: string}
+          required: [code, message]
+          type: object
+        result:
+          items: {}
+          type: array
+        schema_version: {type: string}
+        service_commit: {type: string}
+      required: [endpoint, error, result, schema_version, service_commit]
+      type: object
+    Sharedddf01cbae5c7:
+      properties:
+        limit: {type: integer}
+        remaining: {type: integer}
+        resets_at: {type: string}
+        retry_after_seconds: {type: integer}
+        scope: {type: string}
+        used: {type: integer}
+        window: {type: string}
+        window_seconds: {type: integer}
+      required: [limit, remaining, resets_at, retry_after_seconds, scope, used, window, window_seconds]
+      type: object
   headers:
     AgentGuide:
       description: Compact agent guide.
       schema: {type: string, const: '<https://modelspec.dev/agents.md>; rel="describedby"'}
     AgentGuideVersion:
       description: Version of the byte-stable guide.
-      schema: {type: string, const: 1-5f657ebd18b3f0d6}
+      schema: {type: string, const: 1-865d5af95180d0f1}

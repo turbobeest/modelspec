@@ -240,6 +240,7 @@ try {
 
   const vocabularyFixture = fs.readFileSync(new URL("../src/decide/__fixtures__/live-vocabulary.json", import.meta.url), "utf8");
   async function serveAssembled(context, { scripts = true } = {}) {
+    await context.route("https://api.modelspec.dev/**", (route) => route.abort());
     await context.route("https://modelspec.dev/**", (route) => {
       const pathname = new URL(route.request().url()).pathname;
       const relative = pathname === "/decide/" ? "decide/index.html" : pathname.replace(/^\//, "");
@@ -252,6 +253,11 @@ try {
     });
     await context.route(/\/(?:api\/decision\/vocabulary\.json|v1\/vocabulary)(?:\?.*)?$/, (route) => route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: vocabularyFixture }));
     await context.route("**/v1/decide", (route) => route.fulfill({ status: 200, contentType: "application/json", body: decisionFixtureFor(route.request().postDataJSON()) }));
+    // These layout checks use captured answers. billing-launch.spec.ts exercises
+    // the enabled visit gate through the real Worker and SQLite admission.
+    await context.route("**/v1/human-status", (route) => route.fulfill({
+      status: 200, contentType: "application/json", body: JSON.stringify({ enabled: false }),
+    }));
   }
 
   // Before the app's script runs, the page is already dark: no light flash, whatever the OS prefers.

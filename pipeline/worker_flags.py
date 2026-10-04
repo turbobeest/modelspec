@@ -93,3 +93,12 @@ def enabled(variables: dict[str, Any], name: str) -> bool:
     """Apply the Worker's flag rule. Missing and documented false values are off."""
     value = variables.get(name)
     return value is not None and str(value).strip().lower() not in OFF_VALUES
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Print whether a production Worker flag is enabled.")
+    parser.add_argument("name")
+    args = parser.parse_args()
+    print(str(enabled(production_vars(Path(__file__).resolve().parents[1]), args.name)).lower())
