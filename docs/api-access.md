@@ -72,7 +72,10 @@ MODEL-93 meters paid access in credits, not a daily quota. `billing.prices`
 maps each Stripe Price id to `{kind: plan|pack, credits, name}`. A funded key
 (balance > 0) gets the paid answer, including determinations. A key with zero
 credits gets the free-tier answer plus `credits.exhausted`. See
-[`billing.md`](billing.md).
+[`billing.md`](billing.md). The exempt row (paid, live data, null limits) is
+never metered in credits (MODEL-322): `_exempt(tier)` in `entry.py` skips the
+credit charge, so the answer carries no `credits` block and is never a 402.
+Its calls still count in the key's daily and burst counters.
 
 ## Windows and the reset boundary
 
