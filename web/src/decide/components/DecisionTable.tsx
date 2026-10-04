@@ -11,6 +11,7 @@ import {
 import { useVocab } from "../vocabulary/context";
 import type { AdapterDecision, Row, Spec } from "../adapter";
 import { boardHasPreference } from "../facet-board/model";
+import { groupRowsByClass } from "../facet-board/class-groups";
 const unavailable = <span role="img" aria-label="not yet researched or not published">–</span>;
 const columns: [string, string, (r: Row) => number | string][] = [
   ["rank", "#", (r) => r.rank ?? (r.status === 0 ? 500 : 1000 + r.dropAt)],
@@ -37,7 +38,7 @@ export function DecisionTable({
   selected: string | null;
   onSelect: (id: string) => void;
 }) {
-  const { label, basisName } = useVocab();
+  const { label, basisName, vocabulary } = useVocab();
   const ranked = spec.boardWeights === undefined || boardHasPreference(spec);
   const visibleColumns = ranked ? columns : columns.filter(([key]) => key !== "rank");
   const [sort, setSort] = useState(ranked ? "rank" : "name"),
@@ -51,20 +52,21 @@ export function DecisionTable({
   }, [ranked]);
   const filteredRows = e.rows.filter((r) => show || r.status !== -1);
   const withoutProvider = filteredRows.filter((r) => r.best.o.provider === "Provider not available").length;
-  const val = columns.find((c) => c[0] === sort)?.[2] || columns[0][2],
+  const sortedBy = ranked ? sort : "name";
+  const direction = ranked ? dir : 1;
+  const val = columns.find((c) => c[0] === sortedBy)?.[2] || columns[0][2],
     rows = filteredRows
       .filter((r) => showWithoutProvider || r.best.o.provider !== "Provider not available")
       .slice()
       .sort((a, b) => {
-        if (!ranked && sort === "name") {
-          const providerOrder = Number(a.best.o.provider === "Provider not available") -
-            Number(b.best.o.provider === "Provider not available");
-          if (providerOrder !== 0) return providerOrder;
-        }
+        if (!ranked) return 0;
         const x = val(a),
           y = val(b);
-        return (x > y ? 1 : x < y ? -1 : 0) * dir;
+        return (x > y ? 1 : x < y ? -1 : 0) * direction;
       });
+  const groups = ranked
+    ? [{ id: "ranked", label: null, rows }]
+    : groupRowsByClass(rows, vocabulary);
   return (
     <section className="panel decision-table" aria-label="Decision table">
       <div className="panel-heading">
@@ -86,6 +88,7 @@ export function DecisionTable({
           {showWithoutProvider ? "Hide" : "Show"} {withoutProvider} without a provider
         </button>}
       </div>
+      {!ranked && <p className="table-key">Not ranked yet: listed alphabetically</p>}
       <div className="table-scroll">
         <table>
           <thead>
@@ -94,31 +97,34 @@ export function DecisionTable({
                 <th
                   key={key}
                   aria-sort={
-                    sort === key
-                      ? dir === 1
+                    sortedBy === key
+                      ? direction === 1
                         ? "ascending"
                         : "descending"
                       : "none"
                   }
                 >
                   <button
+                    disabled={!ranked}
+                    title={!ranked ? "Set a Prefer to rank or sort these models" : undefined}
                     onClick={() => {
                       setSort(key);
                       setDir(sort === key ? -dir : 1);
                     }}
                   >
                     {title || basisName(spec)}
-                    {sort === key ? (dir === 1 ? " ↑" : " ↓") : ""}
+                    {sortedBy === key ? (direction === 1 ? " ↑" : " ↓") : ""}
                   </button>
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody>
-            {rows.map((r, index) => (
+          {groups.map((group) => <tbody key={group.id}>
+            {group.label && <tr className="table-class-heading"><th scope="rowgroup" colSpan={visibleColumns.length}>{group.label}</th></tr>}
+            {group.rows.map((r, index) => (
               <tr
                 key={`${r.m.lab}/${r.m.id}:${r.best.o.id}:${r.status}:${index}`}
-                className={`${r.m.id === selected ? "selected" : ""} ${r.status === -1 ? "excluded-row" : ""}`}
+                className={`${r.m.id === selected ? "selected" : ""} ${r.status === -1 ? "excluded-row status-out" : r.status === 0 ? "status-may" : "status-qualifies"}`}
                 onClick={() => onSelect(r.m.id)}
               >
                 {ranked && <td>{r.rank ?? ""}</td>}
@@ -150,21 +156,15 @@ export function DecisionTable({
                 <td>{r.m.open === null ? unavailable : r.m.open ? "Open" : "Closed"}</td>
                 <td>
                   <span
-                    className={
-                      status(r) === "May qualify"
-                        ? "warn"
-                        : r.status === 1
-                          ? "good"
-                          : ""
-                    }
+                    className={`eligibility status-${r.status === -1 ? "out" : r.status === 0 ? "may" : "qualifies"}`}
                   >
-                    {status(r)}
+                    <span aria-hidden="true">{r.status === -1 ? "×" : r.status === 0 ? "?" : "✓"}</span>{" "}{status(r)}
                   </span>
                   <small>{reason(r)}</small>
                 </td>
               </tr>
             ))}
-          </tbody>
+          </tbody>)}
         </table>
       </div>
       <p className="table-key">– not yet researched or not published (never zero)</p>

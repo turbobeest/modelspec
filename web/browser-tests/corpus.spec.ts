@@ -96,13 +96,15 @@ async function applyTemplateThenReset(page: Page) {
   expect(template, "no template decision in the corpus").toBeTruthy();
   await stub(page, "repo", read(template!.file));
   await openBoard(page);
-  // The template card starts collapsed (MODEL-277).
-  await page.getByRole("button", { name: /Start from a template/ }).click();
+  await expect(page.locator(".template-shortcuts button").first()).toBeVisible();
+  await page.getByRole("button", { name: /^(All \d+ templates|Hide templates)$/ }).click();
   const templates = page.locator(".board-templates");
   await expect(templates.getByRole("button").first()).toBeVisible();
   await templates.getByRole("button").first().click();
   await expect(page.getByLabel("Facet board answer")).toBeVisible();
   await page.getByRole("button", { name: "Reset all" }).click();
+  await expect(page.locator(".template-active")).toHaveCount(0);
+  await expect(page.locator(".board-unranked")).toHaveText("Not ranked yet: listed alphabetically");
 }
 
 test("a template applies and Reset all runs", async ({ page }) => {
@@ -112,7 +114,7 @@ test("a template applies and Reset all runs", async ({ page }) => {
 
 test("the templates are offered again after Reset all", async ({ page }) => {
   await applyTemplateThenReset(page);
-  const bar = page.getByRole("button", { name: /Start from a template/ });
+  const bar = page.getByRole("button", { name: /^(All \d+ templates|Hide templates)$/ });
   await expect(bar).toBeVisible({ timeout: 5000 });
   await expect(bar).toHaveAttribute("aria-expanded", "false");
   await bar.click();

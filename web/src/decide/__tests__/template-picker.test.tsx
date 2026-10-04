@@ -28,14 +28,15 @@ function board(vocabulary: Vocabulary = realVocabulary) {
       onCanvasAxes={onCanvasAxes}
     />,
   );
-  return { onSpec, onCanvasAxes, bar: () => screen.getByRole("button", { name: /Start from a template/ }) };
+  return { onSpec, onCanvasAxes, bar: () => screen.getByRole("button", { name: /^(All \d+ templates|Hide templates)$/ }) };
 }
 
-it("starts collapsed and names the action when collapsed or expanded", () => {
+it("shows six shortcuts and keeps the full list collapsed until requested", () => {
   const { bar } = board();
   expect(offered).toHaveLength(28);
   expect(bar()).toHaveAttribute("aria-expanded", "false");
-  expect(bar()).toHaveAccessibleName("Start from a template Show all 28 templates");
+  expect(bar()).toHaveAccessibleName("All 28 templates");
+  expect(document.querySelectorAll(".template-shortcuts button")).toHaveLength(6);
   const panel = document.getElementById(bar().getAttribute("aria-controls")!)!;
   expect(panel).not.toBeVisible();
   expect(screen.queryByRole("button", { name: /^Coding · Budget:/ })).not.toBeInTheDocument();
@@ -43,7 +44,7 @@ it("starts collapsed and names the action when collapsed or expanded", () => {
   fireEvent.click(bar());
   expect(bar()).toHaveAttribute("aria-expanded", "true");
   expect(panel).toBeVisible();
-  expect(bar()).toHaveAccessibleName("Start from a template Hide templates");
+  expect(bar()).toHaveAccessibleName("Hide templates");
 
   fireEvent.click(bar());
   expect(bar()).toHaveAttribute("aria-expanded", "false");
@@ -52,28 +53,30 @@ it("starts collapsed and names the action when collapsed or expanded", () => {
   fireEvent.click(bar());
   expect(bar()).toHaveAttribute("aria-expanded", "true");
   expect(screen.getByRole("button", { name: /^Coding · Budget:/ })).toBeVisible();
-  expect(bar()).toHaveAccessibleName("Start from a template Hide templates");
+  expect(bar()).toHaveAccessibleName("Hide templates");
 });
 
-it("names the applied template in the bar, and Reset all returns to the bar without it", () => {
+it("labels the applied template and Clear returns to an empty board", () => {
   const { bar } = board();
   fireEvent.click(bar());
   const cell = screen.getByRole("button", { name: /^Coding · Budget:/ });
   cell.focus();
   fireEvent.click(cell);
   expect(bar()).toHaveAttribute("aria-expanded", "false");
-  expect(bar()).toHaveAccessibleName("Start from a template Applied: Coding · Budget Show all 28 templates");
+  expect(bar()).toHaveAccessibleName("All 28 templates");
+  expect(document.querySelector(".template-active")).toHaveTextContent("Starting from: Coding agent on a budget");
   // The cell unmounted; focus lands on the bar that names the result.
   expect(bar()).toHaveFocus();
 
   fireEvent.click(bar());
-  expect(bar()).toHaveAccessibleName("Start from a template Applied: Coding · Budget Hide templates");
+  expect(bar()).toHaveAccessibleName("Hide templates");
   fireEvent.click(bar());
 
-  fireEvent.click(screen.getByRole("button", { name: "Reset all" }));
+  fireEvent.click(screen.getByRole("button", { name: "Clear" }));
   expect(bar()).toBeVisible();
   expect(bar()).toHaveAttribute("aria-expanded", "false");
   expect(bar()).not.toHaveTextContent("Applied");
+  expect(document.querySelector(".template-active")).not.toBeInTheDocument();
   expect(screen.getByText("Start from a template")).toBeVisible();
 
   fireEvent.click(bar());
@@ -117,7 +120,7 @@ it("offers only what this snapshot can answer: no unavailable cells, empty colum
 
 it("hides the card when no template is available", () => {
   board({ ...realVocabulary, templates: realVocabulary.templates!.map((template) => ({ ...template, available: false })) });
-  expect(screen.queryByRole("button", { name: /Start from a template/ })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /^(All \d+ templates|Hide templates)$/ })).not.toBeInTheDocument();
 });
 
 it("applies a subcategory as a Prefer on that refinement beside the tier's weights", () => {
@@ -137,14 +140,14 @@ it("applies a subcategory as a Prefer on that refinement beside the tier's weigh
       "-offering.cost_per_task": 0.4,
     },
   });
-  expect(bar()).toHaveTextContent("Applied: Coding › Python · Budget");
+  expect(document.querySelector(".template-active")).toHaveTextContent("Starting from: Coding › Python · Budget");
 });
 
 it("sets both canvas axes from the template it applies", () => {
   const { onCanvasAxes, bar } = board();
   fireEvent.click(bar());
   fireEvent.click(screen.getByRole("button", { name: /^Long documents · Balanced:/ }));
-  expect(onCanvasAxes).toHaveBeenLastCalledWith({ x: "facet:model.context_window", y: "capability:writing" });
+  expect(onCanvasAxes).toHaveBeenLastCalledWith({ x: "facet:offering.cost_per_task", y: "capability:writing" });
   for (const template of realVocabulary.templates!) {
     expect(template.canvas, template.id).toEqual({ x: expect.any(String), y: expect.any(String) });
   }

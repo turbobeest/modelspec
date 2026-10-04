@@ -2,6 +2,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import vocabulary from "../__fixtures__/vocabulary.json";
 import answer from "../__fixtures__/full-decision.json";
+import { openGroup } from "./board-helpers";
 
 const broken = vi.hoisted(() => ({ rankedAnswer: false, canvas: false }));
 vi.mock("../facet-board/RankedAnswer", async (importOriginal) => {
@@ -224,7 +225,7 @@ it("answers initial load and facet changes automatically with one verification a
   await waitFor(() => expect(intents).toHaveLength(3), { timeout: 5000 });
   expect(new Set(intents).size).toBe(1);
   expect(screen.getByLabelText("Facet board answer")).toBeVisible();
-  fireEvent.click(screen.getByRole("button", { name: /What it.s good at/ }));
+  openGroup("What it's good at");
   const row = document.querySelector('[data-facet="capability.software_engineering"]');
   expect(row).not.toBeNull();
   if (!(row instanceof HTMLElement)) throw new Error("Missing capability row");
@@ -281,7 +282,7 @@ async function answeredVisitApp({ refuseAfter = Infinity } = {}) {
   render(<App />);
   await screen.findByLabelText("Facet board answer", {}, { timeout: 5000 });
   const preferSoftware = () => {
-    fireEvent.click(screen.getByRole("button", { name: /What it.s good at/ }));
+    openGroup("What it's good at");
     const row = document.querySelector('[data-facet="capability.software_engineering"]');
     if (!(row instanceof HTMLElement)) throw new Error("Missing capability row");
     fireEvent.click(within(row).getByLabelText("Prefer", { exact: true }));
