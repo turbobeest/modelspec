@@ -3231,13 +3231,13 @@ def apply_agent_copy(spec: dict[str, Any]) -> dict[str, Any]:
 def vocabulary_parameters():
     from api.worker.src.display_vocabulary import PAGE_SIZE, SECTIONS
     fields = {
-        "section": ({"type": "string", "enum": list(SECTIONS), "default": "starter"}, "Select a compact section. No query parameters returns the unchanged full display vocabulary for /decide."),
-        "search": ({"type": "string"}, "Case-insensitive substring over id and label or display name."),
-        "id": ({"type": "string"}, "Full display details for one exact id."),
-        "ids": ({"type": "array", "items": {"type": "string"}}, "Full display details for exact ids; comma-separated or repeated query parameters. Combined with id by union, then intersected with search."),
-        "detail": ({"type": "string", "enum": ["compact", "full"], "default": "compact"}, "Full selects all rows and existing display details in the section. It never adds private facts."),
-        "offset": ({"type": "integer", "minimum": 0, "default": 0}, "Skip matching rows in compact mode. An empty page ends the list."),
-        "limit": ({"type": "integer", "minimum": 1, "maximum": PAGE_SIZE, "default": PAGE_SIZE}, "Compact page size. Full detail or ids bypass pagination."),
+        "section": ({"type": "string", "enum": list(SECTIONS), "default": "starter"}, "Select a compact section. Starter with search or id/ids searches every section except coverage; an explicit non-starter section scopes the lookup. No query parameters returns the unchanged full display vocabulary for /decide."),
+        "search": ({"type": "string", "maxLength": 128}, "Search every section's ids, labels, definitions and values when section is starter or omitted. Matching ignores case and runs of underscores, hyphens, dots, slashes or whitespace. A substring or all query tokens can match; a search of only separators matches nothing; a miss returns suggestions. An explicit non-starter section scopes the search."),
+        "id": ({"type": "string", "maxLength": 128}, "Full display details for one exact, case-sensitive id. Starter or omitted section resolves across sections. Intersects with search."),
+        "ids": ({"type": "array", "items": {"type": "string", "maxLength": 128}}, "Full display details for exact, case-sensitive ids across sections when section is starter or omitted; comma-separated or repeated query parameters. Combined with id by union, then intersected with search."),
+        "detail": ({"type": "string", "enum": ["compact", "full"], "default": "compact"}, "Full returns existing display details. Cross-section lookups still page matches; section-scoped full detail selects all matching rows. It never adds private facts."),
+        "offset": ({"type": "integer", "minimum": 0, "default": 0}, "Skip ranked matches in a cross-section lookup, or section rows in compact mode. An empty page ends the list."),
+        "limit": ({"type": "integer", "minimum": 1, "maximum": PAGE_SIZE, "default": PAGE_SIZE}, "Page size, at most 20 matches. Section-scoped full detail or ids bypass row pagination; cross-section lookups always page."),
     }
     return [{"name": key, "in": "query", "required": False, "schema": schema,
              "description": description, **({"style": "form", "explode": False} if key == "ids" else {})}
@@ -3339,7 +3339,7 @@ def render() -> str:
             "get": {
                 "operationId": "displayVocabulary",
                 "summary": "Display definitions and names for /decide",
-                "description": "Available with DATA_SPLIT_ENABLED. Facet definitions, benchmark and domain names, templates, and model/plan IDs and display names only. Aggregate answerability, facet/enum data availability, refinement definitions and a thin boolean are included. Benchmark min/max is included only when at least 3 models have a score on that benchmark; ranges for 1 or 2 scored models are omitted. No prices, allowances, counts, individual scores or archived model names. HUMAN_GATE_ENABLED meters the same keyed visitor Durable Object with an independent 60 per UTC day and 10 per minute budget. With VISIT_GATE_ENABLED, a key takes precedence, otherwise a valid visit token admits and meters a page caller; without either credential ACCESS_ENFORCED decides. Visit allowances are configured separately from decides. Visit replies are no-store and renew the credential in X-ModelSpec-Visit-Token and X-ModelSpec-Visit-Expires. Without the visit flag successful responses use Cache-Control: private, max-age=3600. With lookup parameters, only the selected section is populated; the existing required envelope fields remain present. Compact facets carry id, label, a one-line definition, value_type and finite allowed_values. Providers and models carry IDs and display names. Compact pages contain at most 20 rows. The no-query response stays byte-identical for /decide.",
+                "description": "Available with DATA_SPLIT_ENABLED. Facet definitions, benchmark and domain names, templates, and model/plan IDs and display names only. Aggregate answerability, facet/enum data availability, refinement definitions and a thin boolean are included. Benchmark min/max is included only when at least 3 models have a score on that benchmark; ranges for 1 or 2 scored models are omitted. No prices, allowances, counts, individual scores or archived model names. HUMAN_GATE_ENABLED meters the same keyed visitor Durable Object with an independent 60 per UTC day and 10 per minute budget. With VISIT_GATE_ENABLED, a key takes precedence, otherwise a valid visit token admits and meters a page caller; without either credential ACCESS_ENFORCED decides. Visit allowances are configured separately from decides. Visit replies are no-store and renew the credential in X-ModelSpec-Visit-Token and X-ModelSpec-Visit-Expires. Without the visit flag successful responses use Cache-Control: private, max-age=3600. Starter search or id/ids searches across sections except coverage. Ranked matches and matching section rows share a page of at most 20 hits; starter retains any starter facets on that page. Explicit non-starter lookups stay scoped. Search reads ids, labels, definitions and values, excluding nested benchmark domains. Empty lookups explain the search and suggest closest ids across sections. The existing required envelope fields remain present. Compact facets carry id, label, a one-line definition, value_type and the complete allowed_values list. Providers and models carry IDs and display names. The no-query response stays byte-identical for /decide.",
                 "security": [],
                 "parameters": [*vocabulary_parameters(), {"name": "X-ModelSpec-Visit-Token", "in": "header", "required": False, "schema": {"type": "string", "maxLength": 2048}}],
                 "x-modelspec-probe": "skip",
@@ -3348,8 +3348,18 @@ def render() -> str:
                     "200": {"description": "Display vocabulary", "headers": {"Cache-Control": {"schema": {"type": "string"}}},
                             "content": {"application/json": {"schema": {"type": "object", "properties": {
                                 "starter": {"type": "array", "items": {"type": "object"}, "description": "Compact facets used most often in the template specs; only present in a starter lookup."},
-                                "next": {"type": "string", "description": "Next-call hint on query lookups: call decide, then refine from reading."},
+                                "next": {"type": "string", "description": "Next-call hint on query lookups: call decide after a hit, or retry vocab with suggestions after a miss."},
                                 "spec": {"type": "object", "description": "Ready-to-send minimal Spec on starter lookups. Its cost objective is a discovery default, not a quality recommendation."},
+                                "matches": {"type": "array", "maxItems": 20, "description": "Ranked hits after offset and limit: exact ids, id text, labels/names, definitions/purpose, then values; ties use section and source order.", "items": {"type": "object", "properties": {
+                                    "section": {"type": "string"}, "id": {"type": "string"},
+                                    "label": {"type": "string"}, "matched": {"type": "string", "enum": ["id", "label", "definition", "value"]},
+                                    "value": {"description": "The matching facet value, present only for a value hit."}}, "required": ["section", "id", "matched"]}},
+                                "total": {"type": "integer", "minimum": 0, "description": "Number of matching entries before paging."},
+                                "searched": {"type": "array", "items": {"type": "string"}, "description": "Sections searched; present on search and exact-id lookups."},
+                                "suggestions": {"type": "array", "maxItems": 5, "description": "Closest ids across sections; present only when total is zero. A facet-value suggestion carries the facet id in id and the value in value, so id= on it resolves.", "items": {"type": "object", "properties": {
+                                    "section": {"type": "string"}, "id": {"type": "string"},
+                                    "value": {"description": "The closest facet value, present only on a facet-value suggestion."}}, "required": ["section", "id"]}},
+                                "message": {"type": "string", "description": "Explains the searched sections, matched fields and closest ids; present only when total is zero."},
                                 "facets": {"type": "array", "items": {"type": "object"}},
                                 "benchmarks": {"type": "array", "items": {"type": "object"}},
                                 "domains": {"type": "array", "items": {"type": "object"}},

@@ -129,6 +129,34 @@ The default section is `starter`. `--ids` may repeat and also accepts commas.
 There are at most 100 IDs; offset is nonnegative and compact limit is 1 to 20.
 There is no public-export fallback and no local vocabulary cache.
 
+With `--search`, `--id` or `--ids`, the default or explicit `starter` section
+searches every vocabulary section except the coverage summary. An explicit
+non-starter section keeps the lookup scoped to that section. Search covers ids,
+labels and names, definitions and purposes, template categories and tiers, and
+facet values. It ignores case and treats runs of underscores, hyphens, dots,
+slashes and whitespace as one space. A substring or all query tokens can match;
+benchmark domain links are excluded. IDs remain exact and case-sensitive.
+Combining search with IDs intersects the two filters.
+
+Lookup responses add `matches`, `total` and `searched`. Matches rank exact ids
+first, then id text, labels and names, definitions and purposes, and values.
+Ties use section order, then source order. Cross-section `--offset` and `--limit`
+page those matches, including with full detail or IDs; each section contains
+only its rows on that page. `starter` retains starter facets on that page and
+its minimal Spec. Compact facets retain every allowed value. Section-scoped
+rows keep their source order and existing full-detail pagination behavior.
+An empty lookup adds up to five `suggestions` from all sections and a `message`
+that explains the search, with a next hint to retry. A suggestion drawn from a
+facet value names the facet in `id` and the value in `value`, so retrying with
+that `id` resolves. Search text and each ID are at most 128 characters; a search
+of only separators matches nothing. Suggestions compare
+normalized ids, id segments and labels using Levenshtein similarity, keeping
+scores of at least 0.4 and breaking ties by section order, then id. The
+pass is bounded: it compares at most two needles, each cut to 32 characters,
+and stops after 300,000 edit-distance cells, so a long miss may draw its
+suggestions only from the earlier sections. Plain
+vocabulary requests and a plain starter request keep their existing bodies.
+
 `feedback` accepts the MCP fields, with `client: "cli"`. The published feedback
 schema supplies rating, identifier and text limits. It requires a key locally;
 like the MCP feedback tool, it forwards no Authorization to the feedback

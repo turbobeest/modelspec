@@ -632,6 +632,55 @@ describe("private display vocabulary", () => {
 });
 
 describe("compact HTTP vocabulary requests", () => {
+  it("returns identical scoped lookup envelopes from the Worker and the export", async () => {
+    const vocabulary = { domains: [{ id: "chat_preference", name: "Chat and preference" }] };
+    for (const [search, selected] of [
+      ["chat", { domains: vocabulary.domains,
+        matches: [{ section: "domains", id: "chat_preference", label: "Chat and preference", matched: "id" }],
+        total: 1, searched: ["domains"], next: "next: call decide using these ids; refine from reading" }],
+      ["zzzqqq", { domains: [], matches: [], total: 0, searched: ["domains"], suggestions: [],
+        message: 'No vocabulary entry matches "zzzqqq" in the id, label, definition or values of domains; closest ids: none.',
+        next: "next: retry vocab with one of the suggestions" }],
+    ] satisfies [string, object][]) {
+      const body = { facets: [], templates: [], models: {}, estate: {}, ...selected };
+      const via = { fetch: vi.fn().mockResolvedValue(jsonResponse(200, body)) };
+      const split = await rpc("tools/call", { name: "vocab", arguments: { section: "domains", search } }, 1,
+        { authorization: "Bearer test_key" }, { ...ENV, DATA_SPLIT_ENABLED: "true", RANK: via });
+      vi.stubGlobal("fetch", vi.fn().mockResolvedValue(jsonResponse(200, vocabulary)));
+      try {
+        const exported = await rpc("tools/call", { name: "vocab", arguments: { section: "domains", search } });
+        expect(envelopeFromCall(split.payload).body).toEqual(body);
+        expect(envelopeFromCall(exported.payload).body).toEqual(body);
+      } finally {
+        vi.unstubAllGlobals();
+      }
+    }
+  });
+
+  it("passes cross-section rows and lookup metadata through from the Worker", async () => {
+    const hits = {
+      starter: [], facets: [{ id: "offering.price.input", label: "Input price" }],
+      domains: [{ id: "price_domain", name: "Price" }], templates: [], models: {}, estate: {},
+      providers: { price_provider: "Price provider" },
+      matches: [{ section: "facets", id: "offering.price.input", label: "Input price", matched: "id" }],
+      total: 3, searched: ["facets", "domains", "providers"],
+      next: "next: call decide using these ids; refine from reading",
+      spec: { spec_version: 1, optimize: { min: "offering.cost_per_task" } },
+    };
+    const miss = { starter: [], facets: [], domains: [], templates: [], models: {}, estate: {},
+      matches: [], total: 0, searched: ["facets", "domains", "providers"],
+      suggestions: [{ section: "facets", id: "offering.price.input" }], message: "No entry matches pirce.",
+      next: "next: retry vocab with one of the suggestions", spec: hits.spec,
+    };
+    for (const [search, body] of [["price", hits], ["pirce", miss]] satisfies [string, object][]) {
+      const via = { fetch: vi.fn().mockResolvedValue(jsonResponse(200, body)) };
+      const { payload } = await rpc("tools/call", { name: "vocab", arguments: { search } }, 1,
+        { authorization: "Bearer test_key" }, { ...ENV, DATA_SPLIT_ENABLED: "true", RANK: via });
+      expect(envelopeFromCall(payload).body).toMatchObject(body);
+      expect(payload.result).toMatchObject({ content: expect.arrayContaining([{ type: "text", text: body.next }]) });
+    }
+  });
+
   it("forwards the lookup options through the service binding and selects its section", async () => {
     const rows = [{ id: "model.context_window", operators: [">="] }];
     const via = { fetch: vi.fn().mockResolvedValue(jsonResponse(200, { facets: rows })) };

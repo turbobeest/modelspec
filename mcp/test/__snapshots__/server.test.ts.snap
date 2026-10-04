@@ -1740,12 +1740,12 @@ takes its key and its plans with it.",
     "name": "decide",
   },
   {
-    "description": "What can a decide spec say? Returns the decision vocabulary: valid facet ids, benchmarks, domains, providers and task types. Compact by default, with 20 rows per page and no counts. Split-mode full details exclude per-model facts and counts. Needs an API key. Use it for missing ids, not to compare models. Call decide after at most one vocab lookup. section=starter returns a ready-to-send minimal Spec with 'next: call decide with this; refine from reading'. Responses include a next hint. If you need ids, use section=starter. Use search for a case-insensitive substring of id or label, then call decide. Use id or ids for row details, or detail=full for all display details. Use offset and limit to page compact sections; an empty page ends the list. ",
+    "description": "What can a decide spec say? Returns the decision vocabulary: valid facet ids, benchmarks, domains, providers and task types. Compact by default, with 20 rows per page and no counts. Split-mode full details exclude per-model facts and counts. Needs an API key. Use it for missing ids, not to compare models. Call decide after at most one vocab lookup. section=starter returns a ready-to-send minimal Spec with 'next: call decide with this; refine from reading'. Responses include a next hint. If you need ids, use section=starter. Search covers every section's ids, labels, definitions and values with case- and separator-insensitive matching; a miss returns suggestions. An explicit non-starter section scopes the search. Use id or ids for row details, or detail=full for all display details. Use offset and limit to page matches across sections, including full details; an empty page ends the list. ",
     "inputSchema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "properties": {
         "detail": {
-          "description": "Full returns all display details; defaults to compact",
+          "description": "Full returns all display details; defaults to compact. Cross-section matches remain paged",
           "enum": [
             "compact",
             "full",
@@ -1753,35 +1753,38 @@ takes its key and its plans with it.",
           "type": "string",
         },
         "id": {
-          "description": "Return full details for this exact id",
+          "description": "Full details for this exact, case-sensitive id; starter resolves across sections and intersects with search",
+          "maxLength": 128,
           "type": "string",
         },
         "ids": {
-          "description": "Return full details for these exact ids",
+          "description": "Full details for these exact, case-sensitive ids; starter resolves across sections and intersects with search",
           "items": {
+            "maxLength": 128,
             "type": "string",
           },
           "maxItems": 100,
           "type": "array",
         },
         "limit": {
-          "description": "Compact page size; defaults to 20",
+          "description": "Page size; defaults to 20. Cross-section lookups page even full details and ids",
           "maximum": 20,
           "minimum": 1,
           "type": "integer",
         },
         "offset": {
-          "description": "Skip this many matching rows; defaults to 0",
+          "description": "Skip this many ranked cross-section matches or compact section rows; defaults to 0",
           "maximum": 9007199254740991,
           "minimum": 0,
           "type": "integer",
         },
         "search": {
-          "description": "Case-insensitive substring over id and label or display name",
+          "description": "Search every section's ids, labels, definitions and values by case- and separator-insensitive substring or all query tokens. A miss returns suggestions; an explicit non-starter section scopes the search",
+          "maxLength": 128,
           "type": "string",
         },
         "section": {
-          "description": "Return only this vocabulary section; defaults to starter",
+          "description": "Defaults to starter; with search or id/ids searches every section except coverage. An explicit non-starter section scopes the lookup",
           "enum": [
             "starter",
             "facets",

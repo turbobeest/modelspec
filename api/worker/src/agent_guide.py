@@ -2,4 +2,4 @@
 GUIDE_URL = 'https://modelspec.dev/agents.md'
 GUIDE_VERSION = '1-5f657ebd18b3f0d6'
 MINIMAL_SPEC = {'spec_version': 1, 'optimize': {'min': 'offering.cost_per_task'}}
-VOCAB_NEXT = {'starter': 'next: call decide with this; refine from reading', 'lookup': 'next: call decide using these ids; refine from reading'}
+VOCAB_NEXT = {'starter': 'next: call decide with this; refine from reading', 'lookup': 'next: call decide using these ids; refine from reading', 'empty': 'next: retry vocab with one of the suggestions'}
