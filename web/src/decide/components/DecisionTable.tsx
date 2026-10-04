@@ -11,7 +11,7 @@ import {
 import { useVocab } from "../vocabulary/context";
 import type { AdapterDecision, Row, Spec } from "../adapter";
 import { boardHasPreference } from "../facet-board/model";
-const unavailable = "not available in this response";
+const unavailable = <span role="img" aria-label="not yet researched or not published">–</span>;
 const columns: [string, string, (r: Row) => number | string][] = [
   ["rank", "#", (r) => r.rank ?? (r.status === 0 ? 500 : 1000 + r.dropAt)],
   ["name", "Model", (r) => r.m.name],
@@ -43,14 +43,17 @@ export function DecisionTable({
   const [sort, setSort] = useState(ranked ? "rank" : "name"),
     [dir, setDir] = useState(1),
     [show, setShow] = useState(true),
+    [showWithoutProvider, setShowWithoutProvider] = useState(false),
     e = decision.explanation;
   useEffect(() => {
     setSort(ranked ? "rank" : "name");
     setDir(1);
   }, [ranked]);
+  const filteredRows = e.rows.filter((r) => show || r.status !== -1);
+  const withoutProvider = filteredRows.filter((r) => r.best.o.provider === "Provider not available").length;
   const val = columns.find((c) => c[0] === sort)?.[2] || columns[0][2],
-    rows = e.rows
-      .filter((r) => show || r.status !== -1)
+    rows = filteredRows
+      .filter((r) => showWithoutProvider || r.best.o.provider !== "Provider not available")
       .slice()
       .sort((a, b) => {
         if (!ranked && sort === "name") {
@@ -76,6 +79,12 @@ export function DecisionTable({
           />{" "}
           Show {e.excluded.length} excluded
         </label>
+        {withoutProvider > 0 && <button
+          aria-expanded={showWithoutProvider}
+          onClick={() => setShowWithoutProvider((current) => !current)}
+        >
+          {showWithoutProvider ? "Hide" : "Show"} {withoutProvider} without a provider
+        </button>}
       </div>
       <div className="table-scroll">
         <table>
@@ -122,7 +131,7 @@ export function DecisionTable({
                   </button>
                   <small>{r.m.labName}</small>
                 </td>
-                <td>{r.best.o.provider}</td>
+                <td>{r.best.o.provider === "Provider not available" ? unavailable : r.best.o.provider}</td>
                 <td>
                   {r.cap === null ? unavailable : fmtB(spec.bench, r.cap)}{" "}
                   <small>{r.capR && fmtCI(spec.bench, r.capR)}</small>
@@ -158,6 +167,7 @@ export function DecisionTable({
           </tbody>
         </table>
       </div>
+      <p className="table-key">– not yet researched or not published (never zero)</p>
       <div className="eliminations">
         <div className="eyebrow">Eliminations by condition</div>
         {spec.conds.map((c, i) => {

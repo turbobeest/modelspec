@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { fmtB } from "../adapter";
 import { useVocab } from "../vocabulary/context";
+import { SnapshotId } from "./SnapshotId";
 import type { Row, Spec } from "../adapter";
 import { encodeSpec } from "../state/spec";
 import type { Axis } from "../state/spec";
@@ -185,10 +186,10 @@ export function Share({
     >
       <div className="panel-heading">
         <div>
-          <h2 id="share-title">Share or act on this decision</h2>
-          <span className="snapshot">{snapshot}</span>
+          <h2 id="share-title">Share or give to my agent</h2>
+          <SnapshotId snapshot={snapshot} />
         </div>
-        <button aria-label="Close Share or act" onClick={onClose}>
+        <button aria-label="Close Share or give to my agent" onClick={onClose}>
           ×
         </button>
       </div>

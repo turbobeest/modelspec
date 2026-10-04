@@ -161,7 +161,7 @@ def decide_capsule() -> str:
     """
     e = lambda text: html.escape(text, quote=False)  # noqa: E731
     return (
-        '<main class="capsule"><h1>Decide which AI model fits your job</h1>'
+        '<main class="capsule"><h1>Which AI model fits your job?</h1>'
         f"<p>{e(entity.ONE_SENTENCE)}</p>"
         "<p>The decision board puts every requirement in front of you. Mark each one "
         "<b>Must</b> (a hard gate: a model that fails it is excluded, with the reason), "

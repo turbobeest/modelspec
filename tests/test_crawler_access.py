@@ -75,7 +75,7 @@ def test_every_sitemap_url_has_a_lastmod_and_every_page_has_sources() -> None:
 
 def test_the_decide_capsule_is_readable_without_javascript_and_holds_no_model_data() -> None:
     capsule = live.decide_capsule()
-    assert "<h1>" in capsule
+    assert "<h1>Which AI model fits your job?</h1>" in capsule
     assert live.visible_words(f"<body>{capsule}</body>") >= live.MIN_WORDS
     assert entity.ONE_SENTENCE in capsule
     assert 'href="/method/"' in capsule

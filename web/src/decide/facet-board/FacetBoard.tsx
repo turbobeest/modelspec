@@ -267,5 +267,12 @@ export { readEstate, writeEstate };
 /** The board's heading. App renders it before the vocabulary loads, so the
  * page's largest paint does not wait on a fetch (MODEL-218). */
 export function BoardIntro() {
-  return <div className="board-intro"><div><span className="eyebrow">Model decision engine</span><h1><span className="board-intro-line">Here's how our API helps an agent deterministically narrow every model down to the ones that fit…</span> <span className="board-intro-line">…in about 0.1 s. It might take you a little longer.</span></h1><h2>Set what matters across any/all facets. Try a template as a fast track. Watch the field narrow.</h2><p>'Must' is a gate; 'Prefer' changes the ranking and never excludes.</p><p className="board-intro-note">About 0.1 s: the median time to first byte for an agent's API decision, measured from Boston on 2026-10-01.</p></div></div>;
+  return <div className="board-intro"><div>
+    <span className="eyebrow">Model decision engine</span>
+    <h1>Which AI model fits your job?</h1>
+    <p>Set what must be true and what you'd prefer. Every model that misses a must is shown out, with the reason, and you see what each one costs. Free for people.</p>
+    <p>Then hand it to your agents: the same question, answered the same way, in about a tenth of a second.</p>
+    <p className="board-intro-rules">'Must' is a gate; 'Prefer' changes the ranking and never excludes.</p>
+    <p className="board-intro-note">About 0.1 s: the median time to first byte for an agent's API decision, measured from Boston on 2026-10-01.</p>
+  </div></div>;
 }

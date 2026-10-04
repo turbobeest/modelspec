@@ -85,7 +85,10 @@ it("in a coding tool, shows pay per use, the Max 20x plan and the engine's break
   expect(items.map((item) => item.querySelector(".route-name")?.textContent)).toEqual([
     "Anthropic · pay per use", "Amazon Bedrock · pay per use", "Claude Max 20x · monthly plan",
   ]);
-  expect(items[0]).toHaveTextContent("$0.660 per task");
+  const opusRow = routes.closest("li")!;
+  expect(within(opusRow).getAllByText("$0.660 per task")).toHaveLength(1);
+  expect(opusRow.querySelector(".board-ranked-cost")).toHaveTextContent("Pay per use$0.660 per task");
+  expect(items[1]).toHaveTextContent("$0.792 per task");
   expect(items[2]).toHaveTextContent("$200 a month");
   expect(items[2]).toHaveTextContent(
     "Claude Max 20x costs less than pay per use above ~303 tasks a month, if its allowance covers your volume (not published).",
@@ -159,10 +162,11 @@ it("when it doesn't matter, names the cheapest route per model", async () => {
   await screen.findByLabelText("Facet board answer");
 
   const opus = await screen.findByRole("list", { name: "Routes to Claude Opus 5.5" });
-  expect(within(opus).getAllByRole("listitem").map((item) => item.textContent)).toEqual([
-    expect.stringMatching(/^Anthropic · pay per use.*\$0\.660 per task$/),
-  ]);
+  expect(within(opus).getAllByRole("listitem")).toHaveLength(1);
+  expect(within(opus).getByText("Anthropic · pay per use")).toBeInTheDocument();
   const opusRow = opus.closest("li")!;
+  expect(within(opusRow).getAllByText("$0.660 per task")).toHaveLength(1);
+  expect(opusRow.querySelector(".board-ranked-cost")).toHaveTextContent("Cheapest route$0.660 per task");
   expect(opusRow).toHaveTextContent("also via Amazon Bedrock");
   const tiny = screen.getByRole("list", { name: "Routes to acme/tiny" });
   expect(tiny).toHaveTextContent("Run it yourself");

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 import fixtureJson from "../__fixtures__/full-decision.json";
 import { decisionSchema } from "../adapter/contract";
@@ -33,7 +33,12 @@ it.each(["summary", "full"] as const)(
         onProvenance={vi.fn()} boardRanked />
     </>);
 
-    expect(screen.getAllByText("not available in this response").length).toBeGreaterThan(0);
+    const table = screen.getByRole("region", { name: "Decision table" });
+    const missing = within(table).getAllByRole("img", { name: "not yet researched or not published" });
+    expect(missing.length).toBeGreaterThan(0);
+    expect(missing.every((cell) => cell.textContent === "–")).toBe(true);
+    expect(within(table).getAllByText("– not yet researched or not published (never zero)")).toHaveLength(1);
+    expect(table).not.toHaveTextContent("not available in this response");
     expect(document.body).not.toHaveTextContent("not available in this snapshot");
     expect(document.body).toHaveTextContent("release date not available in this response");
   },

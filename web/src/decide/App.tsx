@@ -50,6 +50,7 @@ import { Why } from "./components/Why";
 import { Coverage } from "./components/Coverage";
 import { AnswerBoundary } from "./components/AnswerBoundary";
 import { Share } from "./components/Share";
+import { SnapshotId } from "./components/SnapshotId";
 import { BrandMark } from "./components/BrandMark";
 import { initialTheme, storeTheme, storedTheme, type Theme } from "./theme";
 import "./decide.css";
@@ -143,6 +144,7 @@ export function DesignedApp({
   // Worker says so with a 409; every request that hears it shares one reload.
   const [reloadVocabulary] = useState(() => sharedReload(() => loadVocabulary(undefined, true)));
   const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
+  const [hasAdjustedBoard, setHasAdjustedBoard] = useState(false);
   // Bumped by the answer's Reset: remounting the board drops its open groups and template too.
   const [boardGeneration, setBoardGeneration] = useState(0);
   const [hostedDecision, setHostedDecision] = useState<Decision | null>(null),
@@ -507,6 +509,11 @@ export function DesignedApp({
     changeSpec(withAccess(spec, next));
   }
 
+  function changeBoardSelections(next: BoardSelections) {
+    if (JSON.stringify(next) !== JSON.stringify(boardSelections)) setHasAdjustedBoard(true);
+    setBoardSelections(next);
+  }
+
   function setCanvasMust(axisOption: CanvasAxisOption, value: number | string) {
     if (!vocabulary || !axisOption.mustOp) return;
     const selectionId =
@@ -538,7 +545,7 @@ export function DesignedApp({
       vocabulary,
       legacyNotes,
     );
-    setBoardSelections(sanitized.selections);
+    changeBoardSelections(sanitized.selections);
     setBoardMustOrder(sanitized.mustOrder);
     setLegacyNotes(sanitized.notes);
     changeSpec(
@@ -550,7 +557,7 @@ export function DesignedApp({
   function resetBoard() {
     if (!vocabulary) return;
     const empty = sanitizeBoardState({ selections: {}, mustOrder: [], estate }, vocabulary);
-    setBoardSelections(empty.selections);
+    changeBoardSelections(empty.selections);
     setBoardMustOrder([]);
     setLegacyNotes([]);
     setActiveTemplateId(null);
@@ -897,7 +904,7 @@ export function DesignedApp({
           </span>
         </button>
         <div className="spacer" />
-        {decision && <span className="snapshot">{decision.snapshot}</span>}
+        {decision && <SnapshotId snapshot={decision.snapshot} />}
         <button
           onClick={() => {
             const next = theme === "dark" ? "light" : "dark";
@@ -908,7 +915,7 @@ export function DesignedApp({
           {theme === "dark" ? "Light mode" : "Dark mode"}
         </button>
         <button className="primary" onClick={() => setShare(true)}>
-          Share or act
+          Share or give to my agent
         </button>
       </header>
       <main className="work">
@@ -927,7 +934,7 @@ export function DesignedApp({
             spec={boardBaseSpec}
             onSpec={changeSpec}
             selections={boardSelections}
-            onSelections={setBoardSelections}
+            onSelections={changeBoardSelections}
             mustOrder={boardMustOrder}
             onMustOrder={setBoardMustOrder}
             estate={estate}
@@ -943,7 +950,10 @@ export function DesignedApp({
             onNotes={setLegacyNotes}
             refinementFallbackKeys={refinementFallbackKeys}
             onCanvasAxes={setCanvasAxes}
-            onTemplate={setActiveTemplateId}
+            onTemplate={(id) => {
+              setActiveTemplateId(id);
+              if (id !== null) setHasAdjustedBoard(true);
+            }}
             verification={VISIT_GATE_ENABLED ? <VisitGate /> : undefined}
             answer={decision ? <AnswerBoundary resetKey={decision} onReset={resetBoard}>
               <Field
@@ -969,7 +979,7 @@ export function DesignedApp({
               {!error && !loading && <AnswerBoundary resetKey={decision} onReset={resetBoard}>
                 <Coverage decision={decision} spec={shownSpec} onSpec={changeSpec} />
               </AnswerBoundary>}
-              {hostedDecision && <section className="answer-feedback" aria-label="Was this answer reliable?">
+              {hostedDecision && hasAdjustedBoard && <section className="answer-feedback" aria-label="Was this answer reliable?">
                 <FeedbackForm key={hostedDecision.decision_id} compact question="Was this answer reliable?" decisionId={hostedDecision.decision_id} template={activeTemplateId} page="/decide/" />
               </section>}
             </AnswerBoundary> : <section className="panel board-answer-loading" aria-live="polite">{humanGateEnabled ? "Choose your facets, then verify and look up this decision." : "The live answer will appear here."}</section>}

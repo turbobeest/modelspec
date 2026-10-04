@@ -22,16 +22,17 @@ test.beforeEach(async ({ page }) => {
 async function openBoard(page: import("@playwright/test").Page) {
   await page.goto("/decide.html?demo=1");
   await expect(
-    page.getByRole("heading", { name: "Set what matters across any/all facets. Try a template as a fast track. Watch the field narrow." }),
+    page.getByRole("heading", { name: "Which AI model fits your job?" }),
   ).toBeVisible();
   await expect(page.locator("textarea")).toHaveCount(0);
 }
 
 test("the public decision page opens on the facet board", async ({ page }) => {
   await openBoard(page);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
   await expect(page.getByRole("region", { name: "Trade-off canvas" })).toBeVisible();
   await expect(page.getByLabel("Facet board answer")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Share or act" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Share or give to my agent" })).toBeVisible();
 });
 
 test("a board facet updates the decision and survives reload", async ({ page }) => {
@@ -48,7 +49,7 @@ test("share dialog copies the board permalink and restores focus", async ({ page
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await openBoard(page);
   await expect(page.getByLabel("Facet board answer")).toBeVisible();
-  const trigger = page.getByRole("button", { name: "Share or act" });
+  const trigger = page.getByRole("button", { name: "Share or give to my agent" });
   await trigger.click();
   const dialog = page.getByRole("dialog");
   await dialog.getByRole("tab", { name: "Procurement review" }).click();
@@ -123,6 +124,12 @@ for (const [width, scrollbar] of [[1440, 0], [1124, 0], [1100, 0], [1000, 0], [1
           .map((node) => `${node.tagName.toLowerCase()}.${node.className}: ${node.scrollWidth} > ${node.clientWidth}`);
     });
     await expect.poll(overflow).toEqual([]);
+    await page.evaluate(() => document.fonts.ready);
+    const headline = await page.getByRole("heading", { level: 1 }).evaluate((node) => ({
+      height: node.getBoundingClientRect().height,
+      lineHeight: parseFloat(getComputedStyle(node).lineHeight),
+    }));
+    expect(headline.height).toBeLessThanOrEqual(headline.lineHeight + 1);
     const boxes = () => Promise.all([
       page.getByRole("region", { name: "Facets", exact: true }).boundingBox(),
       page.locator(".board-answer").boundingBox(),
@@ -264,7 +271,7 @@ test.describe("the Worker gate is enabled", () => {
     expect((await request).headers()["x-modelspec-turnstile"]).toBe("browser-test-token");
     await expect(page.getByLabel("Facet board answer")).toBeVisible();
     expect(decisions).toBeGreaterThan(0);
-    await page.getByRole("button", { name: "Share or act" }).click();
+    await page.getByRole("button", { name: "Share or give to my agent" }).click();
     await page.getByRole("dialog").getByRole("tab", { name: "Procurement review" }).click();
     await expect(page.getByRole("dialog").getByRole("button", { name: /CSV/ })).toHaveCount(0);
   });

@@ -170,6 +170,40 @@ it("renders managed interaction-only verification and no lookup button", async (
   expect(visit.checks()).toBe(1);
 });
 
+it("shows a static preview while verification holds back the vocabulary and live answer", async () => {
+  const requests: string[] = [];
+  window.turnstile = {
+    render: vi.fn((container, options) => {
+      const verify = document.createElement("button");
+      verify.textContent = "Verify fixture";
+      verify.onclick = () => options.callback("single-use");
+      container.append(verify);
+      return "widget";
+    }),
+    remove: vi.fn(),
+  };
+  vi.stubGlobal("fetch", vi.fn(async (url: string) => {
+    requests.push(url);
+    if (url.endsWith("human-status")) return json({ enabled: true, mode: "visit", day_limit: 300, burst_limit: 30 });
+    if (url.endsWith("visit-token")) return json({ token: "visit", expires_at: Math.floor(Date.now() / 1000) + 1800 });
+    if (url.endsWith("vocabulary.json")) return json(vocabulary);
+    if (url.endsWith("decide")) return json(answer);
+    throw new Error(`Unexpected request ${url}`);
+  }));
+  const { default: App } = await import("../App");
+  render(<App />);
+  expect(await screen.findByText("One quick check keeps this free")).toBeVisible();
+  expect(screen.getByText("For example: require open weights, prefer lower cost, and see which models fit.")).toBeVisible();
+  expect(screen.queryByLabelText("Facet board answer")).not.toBeInTheDocument();
+  expect(requests.filter((url) => !url.endsWith("human-status"))).toEqual([]);
+
+  fireEvent.click(await screen.findByRole("button", { name: "Verify fixture" }));
+  await screen.findByLabelText("Facet board answer");
+  expect(requests.some((url) => url.endsWith("vocabulary.json"))).toBe(true);
+  expect(requests.some((url) => url.endsWith("decide"))).toBe(true);
+  expect(screen.queryByText("One quick check keeps this free")).not.toBeInTheDocument();
+});
+
 it("answers initial load and facet changes automatically with one verification and one intent per action", async () => {
   let checks = 0;
   const intents: (string | null)[] = [];
