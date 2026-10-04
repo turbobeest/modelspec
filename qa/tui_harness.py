@@ -543,6 +543,9 @@ def dry_commands(scenarios: list[dict], selected: list[str], config: dict, outpu
                 mcp_file = workspace / "modelspec-mcp.json"
                 payload = mcp_config(config["mcp_url"], config.get("mcp_token_env"), enabled=True)
                 mcp_file.write_text(home_config(cli, config))
+                from qa.tui_providers import prepare_workspace
+
+                prepare_workspace(cli, config, workspace, mcp_enabled=True)
                 command = build_command(
                     cli,
                     config["clis"][cli],

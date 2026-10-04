@@ -14,7 +14,7 @@ from qa.contracts import TOOL_NAMES
 from qa.docker.entrypoint import refuse_vendor_auth
 from qa.providers import redact
 from qa.tui_auth import authentication_status
-from qa.tui_docker import container_path, passed_environment, run_cli
+from qa.tui_docker import GROK_USER_CONFIG, container_path, passed_environment, run_cli
 from qa.tui_homes import (
     block_gemini_dotenv,
 )
@@ -273,6 +273,32 @@ def _tool_name(name: str, server: str | None = None) -> tuple[str | None, str]:
     return None, name
 
 
+def _grok_mcp_content(value, is_error=False):
+    """Unwrap Grok's use_tool envelopes into MCP content blocks.
+
+    MCP results arrive as JSON text {"type": "MCP", "output": {"OkayOutput"|"Error": text}};
+    refusals as [{"type": "content", "content": block}].
+    """
+    try:
+        decoded = json.loads(value) if isinstance(value, str) else value
+    except ValueError:
+        return value, is_error
+    if isinstance(decoded, dict) and decoded.get("type") == "MCP":
+        output = decoded.get("output")
+        if isinstance(output, dict) and len(output) == 1:
+            (kind, text), = output.items()
+            if kind in ("OkayOutput", "Error"):
+                if not isinstance(text, str):
+                    text = json.dumps(text)
+                return [{"type": "text", "text": text}], is_error or kind == "Error"
+        return value, True
+    if isinstance(decoded, list) and decoded and all(
+        isinstance(block, dict) and block.get("type") == "content" for block in decoded
+    ):
+        return [block.get("content") for block in decoded], is_error
+    return value, is_error
+
+
 def _result(value, is_error=False) -> dict:
     if isinstance(value, dict) and "content" in value:
         return value | {"isError": value.get("isError", is_error)}
@@ -367,15 +393,21 @@ def parse_transcript(cli: str, output: str) -> Transcript:
                     parsed.final_answer = text
                 for block in message.get("content", []):
                     if block.get("type") in ("tool_use", "server_tool_use"):
-                        call(block["id"], block["name"], block.get("input", {}))
+                        name, arguments = block["name"], block.get("input", {})
+                        if cli == "grok" and name == "use_tool" and isinstance(arguments, dict):
+                            # Grok defers MCP tools behind use_tool("<server>__<tool>", input).
+                            name = "mcp__" + str(arguments.get("tool_name"))
+                            arguments = arguments.get("tool_input", {})
+                        call(block["id"], name, arguments)
                     elif block.get("type") in ("web_search_tool_result", "web_fetch_tool_result"):
                         finish(block["tool_use_id"], block.get("content"), isinstance(block.get("content"), dict) and "error_code" in block["content"])
             else:
                 for block in message.get("content", []):
                     if block.get("type") == "tool_result":
-                        finish(
-                            block["tool_use_id"], block.get("content"), block.get("is_error", False)
-                        )
+                        content, is_error = block.get("content"), block.get("is_error", False)
+                        if cli == "grok":
+                            content, is_error = _grok_mcp_content(content, is_error)
+                        finish(block["tool_use_id"], content, is_error)
         if cli == "codex":
             if kind == "turn.started":
                 codex_turns += 1
@@ -549,8 +581,17 @@ def isolation_violation(
         return "CLI emitted a hook event"
     allowed = set(allowed_servers if allowed_servers is not None else ["modelspec"]) if mcp_enabled else set()
     native = SEARCH_TOOLS[cli] if purpose == "search" else set()
+    if cli == "grok" and mcp_enabled and purpose != "search":
+        # Grok's deferred-tool lookup. It runs no tool; use_tool calls are checked by server.
+        native = native | {"search_tool"}
     if any(call["name"] not in native for call in parsed.other_tool_calls) or any(call["server"] not in allowed for call in parsed.tool_calls):
         return "CLI used a tool outside the configured ModelSpec MCP"
+    if cli == "grok" and mcp_enabled and parsed.init is not None:
+        status = {s.get("name"): s.get("status") for s in parsed.init.get("mcp_servers") or []
+                  if isinstance(s, dict)}
+        # Grok connects lazily: init reports "pending" for a server it will use.
+        if any(status.get(name) not in ("connected", "pending") for name in allowed):
+            return "ModelSpec MCP did not connect"
     if cli != "claude":
         from qa.tui_inventory import inventory_violation
 
@@ -838,12 +879,18 @@ def prepare_workspace(
             path.write_text(json.dumps(data))
         # Stop native .env discovery here, before it can walk into the real HOME.
         block_gemini_dotenv(workspace)
+    if cli == "grok":
+        # The trust gate disables project MCP servers at run time, although inspect
+        # still lists them. The project layer stays empty; the servers go in a user
+        # layer that container_command mounts read-only over the volume's config for
+        # every isolated-mode command, including status checks in a positive control.
+        (workspace / GROK_USER_CONFIG).write_text(
+            home_config(cli, config, enabled=mcp_enabled and isolated, with_token=with_token)
+        )
     if cli == "grok" and isolated:
         native = workspace / ".grok"
         native.mkdir(mode=0o700, exist_ok=True)
-        (native / "config.toml").write_text(
-            home_config(cli, config, enabled=mcp_enabled, with_token=with_token)
-        )
+        (native / "config.toml").write_text(home_config(cli, config, enabled=False))
         (workspace / ".gitignore").write_text(
             "AGENTS.md\nAgents.md\nAGENT.md\nClaude.md\nCLAUDE.md\nCLAUDE.local.md\n"
             ".agents/\n.claude/\n.cursor/\n.grok/skills/\n.grok/hooks/\n.grok/rules/\n"

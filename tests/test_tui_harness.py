@@ -281,6 +281,71 @@ def test_grok_search_allows_web_fetch_by_its_permission_rule_name(config, tmp_pa
     assert "WebFetch" in allowed and "web_fetch" not in allowed
 
 
+def test_grok_isolated_mcp_lives_in_a_user_layer_and_project_layer_stays_empty(config, tmp_path):
+    providers.prepare_workspace("grok", config, tmp_path, mcp_enabled=True)
+    assert "mcp_servers" not in (tmp_path / ".grok/config.toml").read_text()
+    user = (tmp_path / docker.GROK_USER_CONFIG).read_text()
+    assert "[mcp_servers.modelspec]" in user and config["mcp_url"] in user
+
+
+@pytest.mark.parametrize("status,error", [
+    ("connected", None), ("pending", None), ("disabled", "ModelSpec MCP did not connect"),
+    ("failed", "ModelSpec MCP did not connect"), (None, "ModelSpec MCP did not connect"),
+])
+def test_grok_scenarios_fail_closed_unless_modelspec_connected(status, error):
+    parsed = providers.Transcript(init={"mcp_servers": [{"name": "modelspec", "status": status}] if status else []})
+    inventory_ok = native_inventory("grok")
+    assert providers.isolation_violation(
+        parsed, mcp_enabled=True, cli="grok", inventory=inventory_ok
+    ) == error
+
+
+def test_grok_use_tool_unwraps_to_a_modelspec_call_and_search_tool_is_lookup_only():
+    output = "\n".join(json.dumps(e) for e in [
+        {"type": "system", "subtype": "init", "mcp_servers": [{"name": "modelspec", "status": "connected"}]},
+        {"type": "assistant", "message": {"id": "m0", "content": [
+            {"type": "tool_use", "id": "s1", "name": "search_tool", "input": {"query": "decide"}},
+            {"type": "tool_use", "id": "u1", "name": "use_tool",
+             "input": {"tool_name": "modelspec__decide", "tool_input": {"spec": {"spec_version": 1}}}},
+        ]}},
+        {"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": "u1",
+            "content": json.dumps({"type": "MCP", "tool_name": "decide", "server_name": "modelspec",
+                                   "output": {"OkayOutput": "{\"status\": 200}"}})}]}},
+        {"type": "result", "result": "Done", "num_turns": 2},
+    ])
+    parsed = providers.parse_transcript("grok", output)
+    assert [(c["server"], c["name"], c["arguments"]) for c in parsed.tool_calls] == [
+        ("modelspec", "decide", {"spec": {"spec_version": 1}})
+    ]
+    assert parsed.tool_calls[0]["result"] == {
+        "content": [{"type": "text", "text": '{"status": 200}'}], "isError": False}
+    failed = providers.parse_transcript("grok", output.replace("OkayOutput", "Error"))
+    assert failed.tool_calls[0]["result"]["isError"] is True
+    refused = providers.parse_transcript("grok", output.replace(
+        json.dumps(json.dumps({"type": "MCP", "tool_name": "decide", "server_name": "modelspec",
+                               "output": {"OkayOutput": '{"status": 200}'}})),
+        json.dumps(json.dumps([{"type": "content", "content": {"type": "text", "text": "cancelled"}}]))))
+    assert refused.tool_calls[0]["result"]["content"] == [{"type": "text", "text": "cancelled"}]
+    assert [c["name"] for c in parsed.other_tool_calls] == ["search_tool"]
+    assert providers.isolation_violation(
+        parsed, mcp_enabled=True, cli="grok", inventory=native_inventory("grok")
+    ) is None
+    parsed.other_tool_calls.append({"name": "run_terminal_command"})
+    assert providers.isolation_violation(
+        parsed, mcp_enabled=True, cli="grok", inventory=native_inventory("grok")
+    ) == "CLI used a tool outside the configured ModelSpec MCP"
+    foreign = providers.parse_transcript("grok", output.replace("modelspec__decide", "other__tool"))
+    assert providers.isolation_violation(
+        foreign, mcp_enabled=True, cli="grok", inventory=native_inventory("grok")
+    ) == "CLI used a tool outside the configured ModelSpec MCP"
+
+
+def test_codex_modelspec_server_approves_its_own_tools_only(config):
+    text = homes.home_config("codex", config)
+    assert 'default_tools_approval_mode = "approve"' in text
+    assert "approval" not in homes.home_config("codex", config, server={"command": "x"})
+
+
 def test_codex_controls_disable_account_apps_and_pin_the_workspace_untrusted(config, tmp_path):
     (tmp_path / "mcp.toml").write_text(homes.home_config("codex", config))
     args = providers.codex_config_args(config["clis"]["codex"], tmp_path / "mcp.toml")
@@ -1512,6 +1577,8 @@ def test_native_inventory_reads_cli_reports_under_exact_launch_environment(
 
     monkeypatch.setattr(providers.subprocess, "run", fake)
     monkeypatch.setattr(inventory, "_codex_skills", lambda *a: [])
+    if cli == "grok":
+        providers.prepare_workspace(cli, config, tmp_path, mcp_enabled=True)
     mcp_file = tmp_path / "modelspec-mcp.json"
     mcp_file.write_text(homes.home_config(cli, config))
     result = inventory.inspect_inventory(cli, config, tmp_path, env, mcp_file, mcp_enabled=True)
@@ -1859,12 +1926,20 @@ def test_gemini_existing_dotenv_refuses_startup_without_read_or_overwrite(
 @pytest.mark.parametrize("cli", providers.CLIS)
 def test_docker_boundary_mounts_only_login_volume_and_private_workspace(cli, config, tmp_path):
     env = docker.passed_environment(config)
+    if cli == "grok":
+        with pytest.raises(ValueError, match="generated user configuration"):
+            docker.container_command(cli, config, tmp_path, [cli, "--version"], env)
+        providers.prepare_workspace(cli, config, tmp_path, mcp_enabled=True)
     argv = docker.container_command(cli, config, tmp_path, [cli, "--version"], env)
     mounts = [argv[i + 1] for i, value in enumerate(argv) if value == "--mount"]
     assert mounts == [
         f"type=volume,source=modelspec-harness-{cli}-home,target=/home/agent",
-        f"type=bind,source={tmp_path},target=/work",
-    ]
+        f"type=bind,source={tmp_path.resolve()},target=/work",
+    ] + (
+        [f"type=bind,source={tmp_path.resolve() / docker.GROK_USER_CONFIG},"
+         "target=/home/agent/.grok/config.toml,readonly"]
+        if cli == "grok" else []
+    )
     passed = [argv[i + 1] for i, value in enumerate(argv) if value == "--env"]
     assert set(passed) == {"TERM", "LANG", "MODELSPEC_MCP_URL"}
     assert "--rm" in argv and "--pull=never" in argv
