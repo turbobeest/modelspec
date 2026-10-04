@@ -557,7 +557,7 @@ def test_inline_profile() -> None:
                            "hardware": {"class": "nvidia-dgx-spark", "count": 2,
                                         "memory_gb": 256}}],
                 "harnesses": ["claude-code@2.1", "dpf-native@1.0"],
-                "rules": ["origin.lab_jurisdiction in {US}", "licence.commercial_use = true"],
+                "rules": ["origin.lab_jurisdiction in {US}", "licence.commercial_use != prohibited"],
                 "budget": {"max_cost_per_task_usd": 2.0},
             },
         },

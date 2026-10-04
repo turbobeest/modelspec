@@ -543,6 +543,34 @@ describe("modelspec MCP worker", () => {
     expect((payload.result as { isError?: boolean }).isError).toBe(true);
   });
 
+  it("decide returns an out-of-vocabulary value issue with its allowed values (MODEL-318)", async () => {
+    const originBody = {
+      error: {
+        code: "invalid_spec", message: "the request body is not a valid decision spec",
+        issues: [{
+          path: "where[0]", condition: "model.weights_openness = proprietary",
+          field: "model.weights_openness",
+          reason: "'proprietary' is not a registered value of model.weights_openness",
+          value: "proprietary", value_type: "enum",
+          allowed_values: ["closed_weights", "open_weights"],
+          next: "https://api.modelspec.dev/v1/vocabulary?section=facets&id=model.weights_openness",
+        }],
+      },
+    };
+    originFetch.mockResolvedValueOnce(jsonResponse(400, originBody));
+    const { payload } = await rpc("tools/call", {
+      name: "decide",
+      arguments: {
+        spec_version: 1, where: ["model.weights_openness = proprietary"],
+        optimize: { max: "model.context_window" },
+      },
+    });
+    const envelope = envelopeFromCall(payload);
+    expect(envelope.status).toBe(400);
+    expect(envelope.body).toEqual(originBody);
+    expect((payload.result as { isError?: boolean }).isError).toBe(true);
+  });
+
   it.each([
     { where: {} },
     { capabilities: [] },

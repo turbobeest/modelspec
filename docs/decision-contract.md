@@ -118,6 +118,18 @@ model ID is `lab/model`. A harness ID is `name@major.minor`
 (`claude-code@2.1`). Every facet a spec names must be in the facet registry
 (`decision.registry`, MODEL-133), or the spec is refused.
 
+**Values.** Every value a condition or preference names must fit its facet
+(MODEL-318). An enum or set value must be one of the facet's registered values,
+unless the list is open, such as ISO 3166 codes; `offering.provider` also
+takes a registered vendor, the owner of a subscription plan. A boolean takes `true` or
+`false`, a number facet takes a number (or `unbounded` or `not_offered` where
+the facet admits it), and a date facet takes an ISO date. Anything else is
+refused with `invalid_spec`. The issue names the `field`, the `value` sent, the
+facet's `value_type`, its `allowed_values` when the list is finite, and `next`,
+the vocabulary lookup for that facet in the section that lists it: `facets`,
+`benchmarks` or `domains`
+(`https://api.modelspec.dev/v1/vocabulary?section=facets&id=<facet>`).
+
 ### Cost per task
 
 The design's unit of cost is one task. `task_tokens` says how many input and
@@ -162,7 +174,7 @@ profile:
   harnesses: [ claude-code@2.1, dpf-native@1.0 ]
   rules:
     - origin.lab_jurisdiction in {US}
-    - licence.commercial_use = true
+    - licence.commercial_use != prohibited
   budget: { max_cost_per_task_usd: 2.00 }
 ```
 
@@ -1464,6 +1476,16 @@ that used to be accepted is a major change; accepting more is not.
   size. A clean agent asking for summarisation under $0.01 per task got
   `no_feasible` from the default alone. Additive: `relax`, `relax_to`,
   `status` and every other field keep their ranges. Bounded answers carry it.
+
+- **MODEL-318, under 2.14 without a version change:** A condition or
+  preference value outside its facet's vocabulary is refused with
+  `invalid_spec` instead of gating every model out, or none. Such an issue adds
+  the optional keys `value`, `value_type`, `allowed_values` and `next`. The
+  error-code enum and successful responses are unchanged. This is an exception
+  to the input rule above, accepted by Jamie on 2026-10-04 when the contract was
+  at 2.13;
+  [cli-contract.md](cli-contract.md#contract-versioning-model-59) records why.
+
 - **2.13 — MODEL-308:** Optional `coverage` explains requests outside the board's classes or domains. It includes covered classes and counts and links to the keyless, generated `/api/coverage.json` summary. Complete and bounded decisions retain their existing statuses; `invalid_spec` retains its code, issues and recovery. No class ordering or ranking changes.
 
 - **2.12 — MODEL-284:** A decision adds optional `reading` guidance derived

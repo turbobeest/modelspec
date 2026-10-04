@@ -416,7 +416,7 @@ def conditions_for(row):
         return [f"{row['id']} >= 1", f"{row['id']} >= 1 @independent", f"{row['id']} in [1, 2]"]
     kind, values = row["value_type"], [v["value"] for v in row.get("values", [])]
     sample = {"number": (row.get("range") or {}).get("min", 1), "date": "2026-01-01",
-              "boolean": "true"}.get(kind, values[0] if values else "x")
+              "boolean": "true"}.get(kind, (row.get("allowed_values") or values or ["x"])[0])
     if isinstance(sample, bool):
         sample = "true" if sample else "false"
     out = []

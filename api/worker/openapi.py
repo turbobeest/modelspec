@@ -2245,6 +2245,15 @@ def _decision_schemas() -> dict[str, Any]:
         shared_refusals | {"invalid_spec", "snapshot_changed", "snapshot_not_loaded"},
     )
     schemas["DecisionRequestRefused"]["properties"]["error"]["properties"].update({
+        "issues": {
+            "type": "array",
+            "items": {"type": "object"},
+            "description": (
+                "Each issue has path, condition, field and reason. An issue about a value "
+                "outside the facet's vocabulary also has value, value_type, allowed_values "
+                "(when the list is finite) and next, the vocabulary lookup for that facet."
+            ),
+        },
         "recovery": {
             "type": "array",
             "maxItems": MAX_RECOVERY_HINTS,

@@ -26,7 +26,7 @@ def test_ranked_rows_have_an_offering_or_open_weights(has_offering, weights, ver
                  state="known" if weights else "unknown",
                  outcome="verified" if verified else None),
         ])],
-        offerings=[offering(mid)] if has_offering else [],
+        offerings=[offering(mid, "openai")] if has_offering else [],
         evidence=[evidence(mid, benchmark, 60)],
         sources=SOURCES,
         benchmark_domains={benchmark: [("software_engineering", "direct")]},
@@ -37,7 +37,7 @@ def test_ranked_rows_have_an_offering_or_open_weights(has_offering, weights, ver
     question = parse_spec({
         "spec_version": 1,
         "where": ["model.class = text-generator"] + ([
-            "any(offering.provider = lab-api; "
+            "any(offering.provider = openai; "
             "model.weights_openness = open_weights unknown(pass))",
         ] if allow_unknown else []),
         "optimize": {"max": benchmark},

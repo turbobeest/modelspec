@@ -8,7 +8,6 @@ from __future__ import annotations
 
 import gzip
 import json
-from dataclasses import asdict
 from datetime import date
 from time import perf_counter
 
@@ -44,7 +43,7 @@ def main() -> None:
             except SpecError as exc:
                 status = 400
                 body = {
-                    "error": {"code": "invalid_spec", "issues": [asdict(i) for i in exc.issues]}
+                    "error": {"code": "invalid_spec", "issues": [i.as_dict() for i in exc.issues]}
                 }
         row = {
             "name": name,

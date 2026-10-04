@@ -407,6 +407,28 @@ def test_server_validates_semantics_and_requirements_are_never_removed(monkeypat
 
 
 @pytest.mark.parametrize("json_mode", [False, True])
+def test_an_unregistered_value_reaches_the_agent_with_its_allowed_values(monkeypatch, json_mode):
+    """MODEL-318: the Worker's value issue arrives whole, in JSON and on stderr."""
+    issue = {
+        "path": "where[0]", "condition": "model.weights_openness = proprietary",
+        "field": "model.weights_openness",
+        "reason": "'proprietary' is not a registered value of model.weights_openness",
+        "value": "proprietary", "value_type": "enum",
+        "allowed_values": ["closed_weights", "open_weights"],
+        "next": "https://api.modelspec.dev/v1/vocabulary?section=facets&id=model.weights_openness",
+    }
+    monkeypatch.setattr(client, "_transport", httpx.MockTransport(lambda request: httpx.Response(
+        400, json={"error": {"code": "invalid_spec", "issues": [issue]}})))
+    result = run(["decide", "--spec", "-", *(["--json"] if json_mode else [])],
+                 keyed=True, input=json.dumps(SPEC))
+    if json_mode:
+        assert assert_error(result, "invalid_spec")["error"]["issues"] == [issue]
+    else:
+        assert result.exit_code != 0
+        assert json.dumps(issue, ensure_ascii=False) in result.stderr
+
+
+@pytest.mark.parametrize("json_mode", [False, True])
 def test_new_guide_version_suggests_upgrade_without_changing_the_api_body(monkeypatch, json_mode):
     monkeypatch.setattr(
         client,
