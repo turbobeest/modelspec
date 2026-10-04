@@ -6,7 +6,6 @@ ModelSpec is an analysis of alternatives for AI models: it decides which models 
 
 - Site: [modelspec.dev](https://modelspec.dev) · [decide](https://modelspec.dev/decide/)
 - CLI contract: [`docs/cli-contract.md`](docs/cli-contract.md)
-- Current state: [`docs/handoff/current.md`](docs/handoff/current.md)
 - Agent entry: [`AGENTS.md`](AGENTS.md)
 
 ## Use ModelSpec

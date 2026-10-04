@@ -1,5 +1,7 @@
 # MVP remainder
 
+> **Historical (moved here by MODEL-311).** Not current policy. Current entry: [`AGENTS.md`](../../AGENTS.md).
+
 MODEL-7, MODEL-30 and MODEL-34 are **Done** (Linear, verified 2026-09-14).
 They stay in this file as history so nobody reopens the settled questions.
 The live remainder is **MODEL-5**, blocked in a new way that an agent cannot

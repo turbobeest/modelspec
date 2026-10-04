@@ -1,5 +1,7 @@
 # Current ModelSpec state — 2026-09-20
 
+> **Historical (moved here by MODEL-311).** Not current policy. Current entry: [`AGENTS.md`](../../AGENTS.md).
+
 This is the current-state entry for a fresh Claude, Codex, or Grok session,
 including a DPF integration session. Historical freeze, census-run, and Phase 1
 instructions are not current policy.
@@ -12,7 +14,7 @@ deployed: the Worker and the live export both report
 > **2026-09-28: `SITE_MODE=live`; Checkout remains closed.**
 > Production and the `internal` Pages preview publish the same tree. The
 > MODEL-186 landing is `/`, and the decision board is `/decide/`. See
-> [`holding-mode.md`](holding-mode.md) for the fail-closed switch and dark tree.
+> [`holding-mode.md`](../handoff/holding-mode.md) for the fail-closed switch and dark tree.
 
 > **2026-09-29: coverage targets (MODEL-215).** What "every model is up to
 > date and covered" means, measured daily:
@@ -195,13 +197,13 @@ sourced.
 
 `models/**` and `benchmarks/**` are catalogue data. Presence in git or in a
 graph is not fact-checking. Coverage policy:
-[`architecture-map.md`](architecture-map.md).
+[`architecture-map.md`](../handoff/architecture-map.md).
 
 ## Worktrees and CodeGraph
 
 Use an isolated worktree. Initialise CodeGraph **in that worktree**. The index
 under `/Users/terbeest/dev/modelspec/.codegraph` is that checkout only.
-Procedure: [`worktrees.md`](worktrees.md).
+Procedure: [`worktrees.md`](../handoff/worktrees.md).
 
 ## Historical — do not promote as current
 
