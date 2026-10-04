@@ -9,6 +9,7 @@ from collections.abc import Mapping
 UNITS: Mapping[str, tuple[str, float]] = {
     "percent": ("ratio", 0.01),
     "fraction": ("ratio", 1.0),
+    "p-mrr (x100)": ("ratio", 0.01),
     "tokens": ("tokens", 1.0),
     "k_tokens": ("tokens", 1e3),
     "m_tokens": ("tokens", 1e6),

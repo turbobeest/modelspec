@@ -841,6 +841,114 @@ def test_finance_projection_refuses_a_page_without_run_records(payload: str) -> 
                                       page_ref="sha256:" + "c" * 64, observed_at="2026-09-29")
 
 
+@pytest.mark.parametrize("benchmark,column,value,unit,expected", [
+    ("fixture_reranking", "reranking", 0.6583, "percent", 65.83),
+    ("followir", "mean_task", -0.029, "p-MRR (x100)", -2.9),
+])
+def test_board_seeds_a_benchmark_no_card_carries_yet(
+    monkeypatch, tmp_path: Path, benchmark, column, value, unit, expected,
+) -> None:
+    root = tmp_path / "repo"
+    cache = tmp_path / "copies"
+    (root / "models" / "lab").mkdir(parents=True)
+    (root / "registry").mkdir(parents=True)
+    (root / "verification").mkdir(parents=True)
+    (root / "benchmarks").mkdir()
+    (root / "benchmarks" / f"{benchmark}.md").write_text(
+        '---\n' + yaml.safe_dump({"metric": {"unit": unit, "max_score": 100,
+                                           "min_score": -100 if benchmark == "followir" else 0}})
+        + '---\n', encoding="utf-8",
+    )
+    url = "https://example.test/mteb/scores"
+    (root / "registry" / "sources.yaml").write_text(
+        f"""schema_version: 1
+sources:
+- id: fixture-mteb
+  url: {url}
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator: {{kind: page, value: ''}}
+""",
+        encoding="utf-8",
+    )
+    for model_id, display in (("lab/reranker-x", "Reranker X"), ("lab/embedder", "Embedder")):
+        (root / "models" / f"{model_id}.md").write_text(
+            f"---\nmodel_id: {model_id}\ndisplay_name: {display}\n"
+            "benchmarks:\n  scores: {}\n  evidence: []\n---\n",
+            encoding="utf-8",
+        )
+    raw = json.dumps({"rows": [
+        {"model": {"name": "Lab/Reranker-X"}, "meanTask": value if column == "mean_task" else None,
+         "scoresByTaskType": {"Reranking": value} if column == "reranking" else {}},
+        {"model": {"name": "Lab/Embedder"}, "scoresByTaskType": {}},
+    ]}).encode()
+    store = refresh.CopyStore(cache)
+    board = refresh._reading_from_projection(
+        key=f"mteb:{benchmark}", source_id="fixture-mteb",
+        benchmarks=(benchmark,), source_url=url,
+        projected=refresh.readers.project_mteb(raw, url=url, page_ref="sha256:" + "c" * 64,
+                                               read_date="2026-09-29"),
+        observed_at="2026-09-29", value_field=column, fraction=True, store=store,
+        card_urls=(url,), row_template={**refresh.MTEB_ROW, "unit": unit},
+    )
+    monkeypatch.setattr(refresh, "collect_readings", lambda *_: ([board], []))
+
+    report = refresh.run(
+        observed_at="2026-09-29", dry_run=False, root=root, source_cache=cache,
+        model_ids=("lab/reranker-x", "lab/embedder"), add_missing=True,
+    )
+
+    added = refresh._front(root / "models" / "lab" / "reranker-x.md")["benchmarks"]["evidence"]
+    assert [(r["benchmark_id"], r["model_id_as_evaluated"], r["unit"],
+             r["source_kind"], r["source_url"]) for r in added] == [
+        (benchmark, "Lab/Reranker-X", unit, "benchmark_author", url)
+    ]
+    assert added[0]["score"] == pytest.approx(expected)
+    assert refresh._front(root / "models" / "lab" / "embedder.md")["benchmarks"]["evidence"] == []
+    assert (report.added, report.failures, report.quarantined) == (1, [], [])
+    log = json.loads((root / "verification" / "log.jsonl").read_text(encoding="utf-8"))
+    assert (log["outcome"], log["verifier"]["model_family"]) == ("verified", "deterministic")
+
+
+def test_weekly_refresh_collects_mteb_subboards(monkeypatch, tmp_path: Path) -> None:
+    urls = {url for _, url, _, _, _ in refresh.MTEB_BOARDS}
+    fetched = []
+
+    def fetch(url):
+        if url not in urls:
+            raise ValueError("board outside this fixture")
+        fetched.append(url)
+        value = -0.029 if url.endswith("FollowIR/scores") else 0.6583
+        return json.dumps({"rows": [{
+            "model": {"name": "Lab/Reranker-X"}, "meanTask": value,
+            "scoresByTaskType": {"Reranking": value, "Retrieval": value},
+        }]}).encode()
+
+    monkeypatch.setattr(refresh, "_fetch", fetch)
+    boards, failures = refresh.collect_readings("2026-09-29", refresh.CopyStore(tmp_path), ())
+
+    assert set(fetched) == urls
+    assert len(fetched) == len(urls)
+    assert not [f for f in failures if f.benchmark.startswith("mteb:")]
+    readings = {next(iter(board.benchmark_ids)): board for board in boards}
+    assert set(readings) == {
+        "mteb_eng_v2", "mteb_v2_reranking", "mteb_v2_retrieval", "mteb_multilingual_v2",
+        "mteb_multilingual_v2_reranking", "mteb_cmn_v1_reranking", "followir",
+    }
+    for benchmark, source, unit, expected in [
+        ("mteb_multilingual_v2_reranking", "model-143-evidence-mteb-multilingual-v2-json",
+         "percent", 65.83),
+        ("mteb_cmn_v1_reranking", "model-242-mteb-cmn-v1-json", "percent", 65.83),
+        ("followir", "model-242-mteb-followir-json", "p-MRR (x100)", -2.9),
+    ]:
+        board = readings[benchmark]
+        assert board.source_id == source
+        assert board.row_template == {"unit": unit, "source_kind": "benchmark_author"}
+        assert refresh._value(board, board.rows[0], unit) == pytest.approx(expected)
+
+
 MATHARENA_CARDS = (
     "anthropic/claude-fable-5-1", "anthropic/claude-opus-5-5", "deepseek/deepseek-flash",
     "google/gemini-3-8-flash", "meta/muse-spark-1-3", "openai/gpt-6-astra",
@@ -923,4 +1031,3 @@ def test_the_matharena_index_marks_only_retired_competitions() -> None:
     assert refresh.readers.matharena_deprecated(index, "overall--arxivmath") is False
     with pytest.raises(ValueError, match="no competition"):
         refresh.readers.matharena_deprecated(index, "aime--aime_2099")
-
