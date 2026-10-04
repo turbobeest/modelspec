@@ -9,6 +9,7 @@ import os
 import shlex
 import subprocess
 import tempfile
+import time
 import uuid
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
@@ -136,6 +137,10 @@ def scenario_report(config, selected, scenarios, output, *, day, dry_run=False):
                 "engine_sha": git_command(tui_harness.ROOT, "rev-parse", "HEAD"),
                 "max_runs_per_cli": config["max_runs_per_cli"], "isolation": isolation}
     report = agent_harness.make_report(rows, scenarios, dry_run, Budget(0), day, metadata)
+    report["partial"] = any(
+        row["status"] == "quiet_hours" or row.get("judge_execution", {}).get("status") == "quiet_hours"
+        for row in rows
+    )
     report["evidence_note"] = (
         "Subscription CLI agents and separate cross-family CLI judges over ModelSpec MCP. "
         "API-shaped aggregates and unordered recall scoring are unchanged. Vendor API spend is zero; "
@@ -152,9 +157,10 @@ def git_command(repository: Path, *args: str) -> str:
 
 
 def scenario_summary(report: dict) -> str:
-    lines = ["# Agent scenarios", "", "Vendor API spend: $0.00. Subscription CLI run.", "",
+    header = "# Agent scenarios" + (" (partial: quiet_hours)" if report.get("partial") else "")
+    lines = [header, "", "Vendor API spend: $0.00. Subscription CLI run.", "",
              "| Group | Success | Mean calls | API p50 ms | API p95 ms |",
-             "| --- | ---: | ---: | ---: | ---: | ---: |"]
+             "| --- | ---: | ---: | ---: | ---: |"]
     for name, metrics in {"Overall": report["overall"], **report["per_family"], **report["per_agent"]}.items():
         numbers = [metrics["success_rate"], metrics["mean_tool_calls"], metrics["api_latency_p50_ms"], metrics["api_latency_p95_ms"]]
         formatted = ["n/a" if n is None else f"{n * 100:.1f}%" if i == 0 else f"{n:.2f}" for i, n in enumerate(numbers)]
@@ -198,16 +204,30 @@ def publish(worktree: Path, job: str, branch: str, day: str, body: str) -> str:
 
 
 @contextmanager
-def job_lock(state: Path):
+def job_lock(state: Path, *, timeout=6 * 60 * 60, poll_interval=5 * 60):
     state.mkdir(parents=True, exist_ok=True, mode=0o700)
     path = state / "subscription-jobs.lock"
     if path.is_symlink():
         raise ValueError("Job lock must not be a symlink")
     with path.open("a") as lock:
-        try:
-            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except BlockingIOError as exc:
-            raise ValueError("Another subscription job is running") from exc
+        started = time.monotonic()
+        waiting = False
+        while True:
+            try:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                break
+            except BlockingIOError as exc:
+                elapsed = time.monotonic() - started
+                remaining = timeout - elapsed
+                if remaining <= 0:
+                    raise ValueError(f"Timed out after {timeout}s waiting for the subscription job lock") from exc
+                delay = min(poll_interval, remaining)
+                print(f"Another subscription job is running; waiting {delay:.0f}s for the lock "
+                      f"({elapsed:.0f}s elapsed, {remaining:.0f}s remaining)", flush=True)
+                waiting = True
+                time.sleep(delay)
+        if waiting:
+            print(f"Subscription job lock acquired after {time.monotonic() - started:.0f}s", flush=True)
         yield
 
 
@@ -271,7 +291,7 @@ def main(argv=None) -> int:
                     body = execute(tree)
                     print(publish(tree, args.job, branch, args.date, body))
         return 0
-    except (ValueError, OSError, subprocess.CalledProcessError) as exc:
+    except (ValueError, OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
         print(f"Subscription job refused/failed: {redact(str(exc))}")
         return 2
 

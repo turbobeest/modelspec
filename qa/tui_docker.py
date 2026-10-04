@@ -96,6 +96,17 @@ def image_identity(cli: str, config: dict) -> dict:
         text=True,
         timeout=30,
     )
+    if result.returncode:
+        info = subprocess.run(
+            [docker_executable(), "info"],
+            env=docker_environment(),
+            input="",
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        if info.returncode:
+            raise ValueError("Docker Desktop is not running or its engine is unavailable; start Docker Desktop")
     try:
         if result.returncode:
             raise ValueError()

@@ -486,7 +486,8 @@ def make_report(
 
 def markdown(report: dict) -> str:
     lines = [
-        f"# Agent scenarios, {report['report_date']}",
+        f"# Agent scenarios, {report['report_date']}"
+        + (" (partial: quiet_hours)" if report.get("partial") else ""),
         "",
         report["evidence_note"],
         "",

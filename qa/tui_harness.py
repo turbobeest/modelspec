@@ -315,7 +315,7 @@ class Runner:
                 scenario,
                 cli,
                 self.config,
-                "judge_unavailable",
+                "quiet_hours" if refusal[0] == "quiet_hours" else "judge_unavailable",
                 f"{judge}: {refusal[0]}. {refusal[1]}",
             )
         try:

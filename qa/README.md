@@ -364,14 +364,18 @@ jobs and 64 for AEO. Scenario quotas include cross-family judges. These caps cov
 the full catalogue; `--max-runs-per-cli` can lower them for manual trials. A
 vendor limit stops that CLI without a retry. Skipped and unjudged scenario rows
 remain in the denominator. A shared process lock prevents local jobs from
-running together. launchd does not load overlapping copies of a job.
+running together. A waiting job polls every five minutes for up to six hours
+and logs its wait. launchd does not load overlapping copies of a job.
 
 Scenarios keep `reports/agent-scenarios/<UTC-day>.json` and `.md` in a fresh
 modelspec-data worktree. They use the same catalogue, independent recall scoring,
 rubric, response deduplication and aggregate fields as the API harness. Codex
 results keep the `openai` label; actual CLI and model identities are recorded.
 Unknown tool latency stays unknown. API spend is zero; native token-equivalent
-costs are separate. Reports identify the change in transport.
+costs are separate. Reports identify the change in transport. If a run reaches
+08:00, unrun rows keep `quiet_hours` status. The JSON has `partial: true`, and
+both the Markdown report and PR summary identify the partial run in their
+headers so trend comparisons can exclude it.
 
 UX keeps the private twenty-task catalogue, DOM collector, judge rubric and
 aggregation functions. Default visitors remain OpenAI and Grok, now Codex and
@@ -396,7 +400,10 @@ old low-cost API profiles are not silently used as fallbacks. Perplexity alone
 calls its unchanged API adapter. Dated `runs.jsonl`, `engines.json`,
 `summary.json`, `report.md`, `raw/` and `BASELINE` retain their format. The surface
 field records subscription versus API; comparing the old baseline also compares
-transport and model profiles.
+transport and model profiles. Perplexity has no CLI quiet-hours restriction.
+Late failures keep completed answers and costs, fill every unrun cell with
+`skipped (<reason>)`, and publish the partial reports. Partial runs identify
+themselves in the JSON and Markdown and do not establish a new `BASELINE`.
 
 Every live job fetches the private repository's main branch, creates a new
 worktree and branch, stages only the existing report paths, pushes that branch
@@ -435,12 +442,14 @@ private business and data patches must be applied first for live jobs.
 | --- | --- |
 | Agent scenarios | Tuesday 03:23 |
 | UX visitors | Wednesday 04:37 |
-| AEO | 1st of each month, 06:00 |
+| AEO | 1st of each month, 22:15 |
 
 Tuesday and Wednesday preserve the old 07:23 and 08:37 UTC overnight slots in
 America/New_York daylight time. launchd keeps those local hours across daylight
 saving changes. `StartCalendarInterval` fires a missed run on wake; the job's
 quiet-hours guard still applies. No template uses `RunAtLoad` or `KeepAlive`.
+Monthly AEO starts after that day's morning jobs, giving it the overnight
+window before 08:00. The shared lock handles delays and wake catch-up overlaps.
 The AEO label replaces the previous `dev.modelspec.aeo-visibility` template;
 replacing its file does not reload an already-loaded job.
 

@@ -2,16 +2,20 @@
 from __future__ import annotations
 
 import copy
+import fcntl
 import json
 import os
 import plistlib
 import shutil
 import subprocess
+import time
+from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
 import yaml
+from markdown_it import MarkdownIt
 
 from qa import agent_harness, subscription_aeo as aeo, subscription_jobs as jobs, subscription_ux as ux
 from qa import tui_harness as harness, tui_homes as homes, tui_isolation as isolation, tui_providers as providers
@@ -41,6 +45,15 @@ def ready(clis=providers.CLIS):
 def execution(answer='Visitor answer', status='completed'):
     return providers.Execution(providers.Transcript(final_answer=answer, terminal=True, tokens_in=12,
                                                    tokens_out=3, cost_usd=0.2), 0, 25, status)
+
+
+def search_execution(cli):
+    result = execution('Use [ModelSpec](https://modelspec.dev/method/).')
+    result.transcript.other_tool_calls = [{
+        'name': next(n for n in providers.SEARCH_TOOLS[cli] if n not in {'WebFetch', 'web_fetch'}),
+        'arguments': {'query': 'choose'}, 'result_observed': True, 'result': {'isError': False},
+    }]
+    return result
 
 
 @pytest.mark.parametrize('cli', providers.CLIS)
@@ -124,8 +137,71 @@ def test_weekly_scenario_report_retains_api_contract_and_labels(config, tmp_path
     assert report['runs'][0]['judges'][0]['cli'] == 'claude'
     assert report['budget']['estimated_spend_usd'] == 0
     assert report['metadata']['cli_invocations']['claude']['judge'] == 2
+    assert report['partial'] is False
     jobs.write_pair(tmp_path / 'reports/agent-scenarios', '2026-10-04', report, agent_harness.markdown(report))
     assert (tmp_path / 'reports/agent-scenarios/2026-10-04.json').is_file()
+
+
+def test_scenario_pr_summary_parses_as_a_five_column_table(config, tmp_path):
+    report = jobs.scenario_report(config, ['codex'], [], tmp_path, day='2026-10-04', dry_run=True)
+    tokens = MarkdownIt('commonmark').enable('table').parse(jobs.scenario_summary(report))
+    assert sum(t.type == 'table_open' for t in tokens) == 1
+    assert [tokens[i + 1].content for i, t in enumerate(tokens) if t.type == 'th_open'] == [
+        'Group', 'Success', 'Mean calls', 'API p50 ms', 'API p95 ms',
+    ]
+    row_widths = []
+    for token in tokens:
+        if token.type == 'tr_open':
+            row_widths.append(0)
+        elif token.type in ('th_open', 'td_open'):
+            row_widths[-1] += 1
+    assert row_widths and all(width == 5 for width in row_widths)
+
+
+@pytest.mark.parametrize('crossing_role', ['agent', 'judge'])
+def test_scenarios_crossing_quiet_hours_keep_rows_and_mark_partial(
+    config, tmp_path, monkeypatch, crossing_role,
+):
+    config['_quiet_hours'] = True
+    hour = [7]
+    guard = harness.quiet_hours_guard
+    monkeypatch.setattr(harness, 'quiet_hours_guard', lambda enabled, force: guard(
+        enabled, force, datetime(2026, 10, 4, hour[0]),
+    ))
+    monkeypatch.setattr(jobs, 'require_ready', lambda *a: ready())
+    calls = []
+    verdict = {'passed': True, 'rationale': 'Evidence', 'answer_kind': 'abstain',
+               'top_models': [], 'missing_capabilities': []}
+    def launch(cli, cfg, workspace, prompt, *, mcp_enabled, **kwargs):
+        role = 'agent' if mcp_enabled else 'judge'
+        calls.append(role)
+        if role == crossing_role:
+            hour[0] = 8
+        return execution('Visitor answer' if mcp_enabled else json.dumps(verdict))
+    monkeypatch.setattr(harness, 'launch', launch)
+    report = jobs.scenario_report(config, ['codex', 'grok'], [agent_harness.load_scenarios()[0]],
+                                  tmp_path, day='2026-10-04')
+    assert calls == (['agent'] if crossing_role == 'agent' else ['agent', 'judge'])
+    assert report['runs'][1]['status'] == 'quiet_hours'
+    assert report['partial'] is True
+    assert 'partial' in agent_harness.markdown(report).splitlines()[0].lower()
+    assert 'quiet_hours' in agent_harness.markdown(report).splitlines()[0]
+    assert 'partial' in jobs.scenario_summary(report).splitlines()[0].lower()
+
+
+def test_scenario_cutoff_during_judge_preflight_records_quiet_hours(config, tmp_path, monkeypatch):
+    config['_quiet_hours'] = True
+    checks = []
+    guard = harness.quiet_hours_guard
+    def quiet_hours(enabled, force):
+        checks.append(True)
+        guard(enabled, force, datetime(2026, 10, 4, 7 if len(checks) == 1 else 8))
+    monkeypatch.setattr(harness, 'quiet_hours_guard', quiet_hours)
+    monkeypatch.setattr(jobs, 'require_ready', lambda *a: ready())
+    monkeypatch.setattr(harness, 'launch', lambda *a, **kw: pytest.fail('CLI started after cutoff'))
+    report = jobs.scenario_report(config, ['codex'], [agent_harness.load_scenarios()[0]],
+                                  tmp_path, day='2026-10-04')
+    assert report['runs'][0]['status'] == 'quiet_hours' and report['partial'] is True
 
 
 @pytest.mark.parametrize('job', ['scenarios', 'ux', 'aeo'])
@@ -157,6 +233,51 @@ def test_worktree_created_from_origin_main_and_kept_on_failure(tmp_path, monkeyp
     assert ('fetch', 'origin', 'main') in calls
     assert any(a[:2] == ('worktree', 'add') and a[-1] == 'origin/main' for a in calls)
     assert not any(a[:2] == ('worktree', 'remove') for a in calls)
+
+
+def test_job_lock_waits_for_an_overlapping_job_and_logs_progress(tmp_path, monkeypatch, capsys):
+    elapsed, waits = [0.0], []
+    monkeypatch.setattr(time, 'monotonic', lambda: elapsed[0])
+    with (tmp_path / 'subscription-jobs.lock').open('a') as holder:
+        fcntl.flock(holder, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        def sleep(seconds):
+            waits.append(seconds)
+            elapsed[0] += seconds
+            if len(waits) == 2:
+                fcntl.flock(holder, fcntl.LOCK_UN)
+        monkeypatch.setattr(time, 'sleep', sleep)
+        with jobs.job_lock(tmp_path):
+            assert waits == [300, 300]
+        # The context releases the lock so the next job can start.
+        fcntl.flock(holder, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    log = capsys.readouterr().out.lower()
+    assert 'waiting' in log and '600' in log and 'acquired' in log
+
+
+def test_job_lock_refuses_after_six_hours_without_running(tmp_path, monkeypatch, capsys):
+    elapsed, waits = [0.0], []
+    monkeypatch.setattr(time, 'monotonic', lambda: elapsed[0])
+    def sleep(seconds):
+        waits.append(seconds)
+        elapsed[0] += seconds
+    monkeypatch.setattr(time, 'sleep', sleep)
+    with (tmp_path / 'subscription-jobs.lock').open('a') as holder:
+        fcntl.flock(holder, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        with pytest.raises(ValueError, match='21600.*lock'):
+            with jobs.job_lock(tmp_path):
+                pytest.fail('Job ran while another held the lock')
+    assert elapsed[0] == 21600 and waits == [300] * 72
+    assert 'waiting' in capsys.readouterr().out.lower()
+
+
+def test_subprocess_timeout_refuses_cleanly(tmp_path, monkeypatch, capsys):
+    def timeout(*args, **kwargs):
+        raise subprocess.TimeoutExpired(['docker', 'info'], 30)
+    monkeypatch.setattr(jobs, 'require_ready', timeout)
+    monkeypatch.setattr(jobs, 'report_worktree', lambda *a: pytest.fail('Publication started'))
+    assert jobs.main(['scenarios', '--state-dir', str(tmp_path)]) == 2
+    output = capsys.readouterr().out
+    assert 'Subscription job refused/failed' in output and 'timed out' in output
 
 
 def aeo_files(tmp_path, config):
@@ -193,6 +314,170 @@ def test_aeo_never_reads_four_vendor_keys_and_keeps_perplexity_adapter(config, t
     assert rows[0]['surface'] == 'subscription-cli' and rows[-1]['surface'] == 'api'
     assert 'subscription CLIs' in (tmp_path / 'runs/2026-10-04/report.md').read_text()
     assert (tmp_path / 'runs/BASELINE').read_text() == '2026-10-04\n'
+
+
+def test_aeo_perplexity_runs_after_cli_jobs_cross_0800(config, tmp_path, monkeypatch):
+    config['_quiet_hours'] = True
+    settings = aeo_files(tmp_path, config)
+    prompts = [{'id': 'test', 'text': 'Choose a model', 'cluster': 'category', 'success': 'mentioned'}]
+    monkeypatch.setattr(aeo.inventory, 'load', lambda p: prompts)
+    monkeypatch.setattr(aeo, 'require_ready', lambda *a: ready())
+    hour, launched = [7], []
+    guard = harness.quiet_hours_guard
+    monkeypatch.setattr(harness, 'quiet_hours_guard', lambda enabled, force: guard(
+        enabled, force, datetime(2026, 10, 4, hour[0]),
+    ))
+    def launch(cli, *args, **kwargs):
+        launched.append(cli)
+        if len(launched) == 4:
+            hour[0] = 8
+        return search_execution(cli)
+    monkeypatch.setattr(harness, 'launch', launch)
+    monkeypatch.setattr(aeo.engines, 'op_read', lambda ref: 'dummy')
+    api_calls = []
+    def perplexity(*args):
+        assert hour[0] == 8
+        api_calls.append(args)
+        return Answer('ModelSpec', 'sonar', reported_cost_usd=.007)
+    monkeypatch.setattr(aeo.engines, 'perplexity_call', perplexity)
+    output = tmp_path / 'runs'
+    aeo.run(tmp_path / 'prompts.yaml', settings, output, tmp_path, config, '2026-10-04')
+    rows = [json.loads(line) for line in (output / '2026-10-04/runs.jsonl').read_text().splitlines()]
+    assert launched == list(aeo.ENGINE_CLIS.values()) and len(api_calls) == 1
+    assert len(rows) == 5 and rows[-1]['cost_usd'] == .007
+    assert (output / '2026-10-04/report.md').is_file()
+
+
+@pytest.mark.parametrize('failure_engine', ['anthropic', 'perplexity'])
+@pytest.mark.parametrize('failure', [RuntimeError('late failure'), OSError('late failure'),
+                                   subprocess.TimeoutExpired(['adapter'], 30)])
+def test_aeo_late_failures_publish_completed_and_skipped_cells(
+    config, tmp_path, monkeypatch, failure_engine, failure,
+):
+    tree = tmp_path / 'private'
+    (tree / 'aeo').mkdir(parents=True)
+    settings = aeo_files(tmp_path, config)
+    shutil.copyfile(settings, tree / 'aeo/engines.yaml')
+    prompts = [{'id': f'p{i}', 'text': 'Choose a model', 'cluster': 'category',
+                'success': 'mentioned'} for i in range(2)]
+    monkeypatch.setattr(aeo.inventory, 'load', lambda p: prompts)
+    monkeypatch.setattr(aeo, 'require_ready', lambda *a: ready())
+    monkeypatch.setattr(jobs, 'require_ready', lambda *a: ready())
+    @contextmanager
+    def worktree(*args):
+        yield tree, 'aeo/test'
+    monkeypatch.setattr(jobs, 'report_worktree', worktree)
+    def launch(cli, *args, **kwargs):
+        if failure_engine == 'anthropic' and cli == 'claude':
+            raise failure
+        return search_execution(cli)
+    monkeypatch.setattr(harness, 'launch', launch)
+    monkeypatch.setattr(aeo.engines, 'op_read', lambda ref: 'dummy')
+    api_calls = []
+    def perplexity(*args):
+        api_calls.append(args)
+        if failure_engine == 'perplexity' and len(api_calls) == 2:
+            raise failure
+        return Answer('ModelSpec', 'sonar', reported_cost_usd=.007)
+    monkeypatch.setattr(aeo.engines, 'perplexity_call', perplexity)
+    publications = []
+    def publish(worktree, job, branch, day, body):
+        publications.append((worktree, job, branch, day, body))
+        return 'https://github.com/private/report/1'
+    monkeypatch.setattr(jobs, 'publish', publish)
+    assert jobs.main(['aeo', '--state-dir', str(tmp_path / 'state'), '--date', '2026-10-04']) == 0
+    out = tree / 'aeo/runs/2026-10-04'
+    rows = [json.loads(line) for line in (out / 'runs.jsonl').read_text().splitlines()]
+    assert len(rows) == 10
+    answered = [r for r in rows if 'detection' in r]
+    assert len(answered) == (2 if failure_engine == 'anthropic' else 9)
+    skipped = [r for r in rows if 'error' in r]
+    assert all(r['error'].startswith('skipped (') for r in skipped)
+    assert all(('late failure' if not isinstance(failure, subprocess.TimeoutExpired) else 'timed out')
+               in r['error'] for r in skipped)
+    log = json.loads((out / 'engines.json').read_text())
+    assert len(log['engines']) == 5 and log['partial'] is True
+    assert log['month_spend_usd'] == (0 if failure_engine == 'anthropic' else .007)
+    assert json.loads((out / 'summary.json').read_text())['partial'] is True
+    assert publications[0][:4] == (tree, 'aeo', 'aeo/test', '2026-10-04')
+    assert publications[0][4] == (out / 'report.md').read_text()
+    assert 'partial' in publications[0][4].splitlines()[0].lower()
+    assert not (tree / 'aeo/runs/BASELINE').exists()
+
+
+@pytest.mark.parametrize('stop', ['quiet_hours', 'max_runs', 'budget', 'missing_key'])
+def test_aeo_refusals_fill_every_unrun_cell(config, tmp_path, monkeypatch, stop):
+    settings = aeo_files(tmp_path, config)
+    prompts = [{'id': f'p{i}', 'text': 'Choose a model', 'cluster': 'category',
+                'success': 'mentioned'} for i in range(2)]
+    monkeypatch.setattr(aeo.inventory, 'load', lambda p: prompts)
+    monkeypatch.setattr(aeo, 'require_ready', lambda *a: ready())
+    monkeypatch.setattr(harness, 'launch', lambda cli, *a, **kw: search_execution(cli))
+    if stop == 'quiet_hours':
+        config['_quiet_hours'] = True
+        guard = harness.quiet_hours_guard
+        monkeypatch.setattr(harness, 'quiet_hours_guard', lambda enabled, force: guard(
+            enabled, force, datetime(2026, 10, 4, 8),
+        ))
+    elif stop == 'max_runs':
+        config['max_runs_per_cli'] = 1
+    elif stop == 'budget':
+        raw = yaml.safe_load(settings.read_text())
+        raw['monthly_cap_usd'] = .001
+        settings.write_text(yaml.safe_dump(raw))
+    def key(ref):
+        if stop == 'missing_key':
+            raise aeo.engines.EngineUnavailable('Missing Perplexity key')
+        return 'dummy'
+    monkeypatch.setattr(aeo.engines, 'op_read', key)
+    monkeypatch.setattr(aeo.engines, 'perplexity_call', lambda *a: Answer('ModelSpec', 'sonar'))
+    output = tmp_path / 'runs'
+    aeo.run(tmp_path / 'prompts.yaml', settings, output, tmp_path, config, '2026-10-04')
+    rows = [json.loads(line) for line in (output / '2026-10-04/runs.jsonl').read_text().splitlines()]
+    assert len(rows) == 10
+    skipped = [row for row in rows if 'error' in row]
+    assert len(skipped) == {'quiet_hours': 8, 'max_runs': 4, 'budget': 2, 'missing_key': 2}[stop]
+    assert all(row['error'].startswith('skipped (') for row in skipped)
+    assert all(row['surface'] == ('api' if row['engine'] == 'perplexity' else 'subscription-cli')
+               for row in rows)
+    assert json.loads((output / '2026-10-04/engines.json').read_text())['partial'] is True
+    assert not (output / 'BASELINE').exists()
+
+
+@pytest.mark.parametrize('problem', ['missing_baseline', 'corrupt_baseline', 'baseline_write',
+                                   'cli_raw_write', 'api_raw_write'])
+def test_aeo_late_file_failures_keep_reports(config, tmp_path, monkeypatch, problem):
+    settings = aeo_files(tmp_path, config)
+    prompts = [{'id': 'test', 'text': 'Choose a model', 'cluster': 'category', 'success': 'mentioned'}]
+    monkeypatch.setattr(aeo.inventory, 'load', lambda p: prompts)
+    monkeypatch.setattr(aeo, 'require_ready', lambda *a: ready())
+    monkeypatch.setattr(harness, 'launch', lambda cli, *a, **kw: search_execution(cli))
+    monkeypatch.setattr(aeo.engines, 'op_read', lambda ref: 'dummy')
+    monkeypatch.setattr(aeo.engines, 'perplexity_call', lambda *a: Answer('ModelSpec', 'sonar', reported_cost_usd=.007))
+    output = tmp_path / 'runs'
+    output.mkdir()
+    if problem in ('missing_baseline', 'corrupt_baseline'):
+        (output / 'BASELINE').write_text('2026-10-01\n')
+        if problem == 'corrupt_baseline':
+            (output / '2026-10-01').mkdir()
+            (output / '2026-10-01/summary.json').write_text('{')
+    write = Path.write_text
+    def write_text(path, *args, **kwargs):
+        if ((problem == 'baseline_write' and path == output / 'BASELINE')
+            or (problem == 'cli_raw_write' and path == output / '2026-10-04/raw/openai/test.json')
+            or (problem == 'api_raw_write' and path == output / '2026-10-04/raw/perplexity/test.json')):
+            raise OSError('disk write failed')
+        return write(path, *args, **kwargs)
+    monkeypatch.setattr(Path, 'write_text', write_text)
+    body = aeo.run(tmp_path / 'prompts.yaml', settings, output, tmp_path, config, '2026-10-04')
+    out = output / '2026-10-04'
+    rows = [json.loads(line) for line in (out / 'runs.jsonl').read_text().splitlines()]
+    assert len(rows) == 5 and rows[0]['answer_text'].startswith('Use [ModelSpec]')
+    assert sum('detection' in row for row in rows) == (1 if problem == 'cli_raw_write' else 5)
+    assert json.loads((out / 'engines.json').read_text())['partial'] is True
+    assert json.loads((out / 'summary.json').read_text())['partial'] is True
+    assert body == (out / 'report.md').read_text() and 'partial' in body.splitlines()[0]
+    assert sum(row['cost_usd'] for row in rows) == (0 if problem == 'cli_raw_write' else .007)
 
 
 def test_search_claim_without_native_evidence_fails():
@@ -313,7 +598,7 @@ def test_templates_keep_calendar_cadence_and_installer_never_loads(tmp_path, mon
         assert 'KeepAlive' not in value and 'RunAtLoad' not in value
     assert {'Weekday':2,'Hour':3,'Minute':23} in calendars
     assert {'Weekday':3,'Hour':4,'Minute':37} in calendars
-    assert {'Day':1,'Hour':6,'Minute':0} in calendars
+    assert {'Day':1,'Hour':22,'Minute':15} in calendars
     assert install(['--destination',str(tmp_path/'agents'),'--logs',str(tmp_path/'logs'),'--repo','/tmp/engine']) == 0
     assert len(list((tmp_path/'agents').glob('*.plist'))) == 3
     assert install(['--destination',str(tmp_path/'dry'),'--dry-run']) == 0
