@@ -206,3 +206,18 @@ def test_exempt_is_decided_from_loaded_tier_data(entry):
     assert entry._exempt(None) is False
     assert entry._exempt(replace(policy.tier("dpf"), name="another_paid_tier")) is True
     assert entry._exempt(replace(policy.tier("paid"), name="dpf")) is False
+
+
+@pytest.mark.parametrize("change", [
+    {"paid": False}, {"live_data": False}, {"daily_limit": 1000}, {"burst_limit": 60},
+])
+def test_exempt_needs_every_flag_of_the_row(entry, change):
+    assert entry._exempt(replace(access_config.load_policy().tier("dpf"), **change)) is False
+
+
+def test_no_sold_price_or_downgrade_lands_on_an_exempt_row(entry):
+    policy = access_config.load_policy()
+
+    assert entry._exempt(policy.tier(policy.billing.downgrade_tier)) is False
+    assert [price_id for price_id, row in policy.billing.prices.items()
+            if entry._exempt(policy.tier(row.tier))] == []
