@@ -1,10 +1,11 @@
-import { useId, useMemo, useState } from "react";
+import { Fragment, useId, useMemo, useState } from "react";
 import { money } from "../adapter";
 import type { AdapterDecision, Spec } from "../adapter";
 import { facetName } from "../adapter/condition-label";
 import type { EstateMark } from "../adapter/contract";
 import type { VocabPlan, Vocabulary } from "../vocabulary";
 import { boardHasPreference } from "./model";
+import { groupRowsByClass } from "./class-groups";
 import { TieAwareAnswer } from "./TieAwareAnswer";
 import {
   cheapestMetered, COST_HEADING, estateRouteView, mayQualifyNote, modelRoutes, offeringKey, payee, planName, providerName,
@@ -91,10 +92,11 @@ export function RankedAnswer({
   );
   const rows = ranked
     ? decision.explanation.feasible
-    : decision.explanation.feasible.slice().sort((left, right) =>
-        left.m.name.localeCompare(right.m.name),
-      );
+    : groupRowsByClass(decision.explanation.feasible, vocabulary).flatMap((group) => group.rows);
   const visible = expanded ? rows : rows.slice(0, COLLAPSED_COUNT);
+  const visibleGroups = ranked
+    ? [{ id: "ranked", label: null, rows: visible }]
+    : groupRowsByClass(visible, vocabulary);
   const mayNote = (model: string): string | null => {
     for (const row of decision.may_qualify.filter((item) => item.model === model)) {
       const note = mayQualifyNote(routeContext, row, held);
@@ -105,6 +107,9 @@ export function RankedAnswer({
   const may = decision.explanation.may.filter((row) =>
     (ranked && capability) || mayNote(`${row.m.lab}/${row.m.id}`) !== null,
   );
+  const mayGroups = ranked
+    ? [{ id: "ranked", label: null, rows: may }]
+    : groupRowsByClass(may, vocabulary);
   const mayReasoned = may.some((row) => mayNote(`${row.m.lab}/${row.m.id}`) !== null);
   const lineupMedian = useMemo(
     () => median(rows.flatMap((row) => row.cap === null ? [] : [row.cap])),
@@ -139,7 +144,7 @@ export function RankedAnswer({
 
   return <section className="panel board-ranked-answer">
     {ranked && (decision.answer || decision.bands) && <TieAwareAnswer answer={decision.answer} decision={decision} dimensionName={dimensionName} />}
-    {!ranked && <p className="board-unranked">{rows.length} qualify — set a Prefer to rank them</p>}
+    {!ranked && <p className="board-unranked">Not ranked yet: listed alphabetically</p>}
     {ranked && !decision.answer && !decision.bands && inseparable.length > 0 && <p className="board-inseparable">
       The evidence can't separate {inseparable.map((row) => row.m.name).join(", ")}.
     </p>}
@@ -149,8 +154,10 @@ export function RankedAnswer({
       <small>{capability.name}, estimated · 80% interval</small>
     </div>}
     {showsTied && <p className="board-tie-caption">Order within the tied group is not evidence that one is better.</p>}
+    {visibleGroups.map((group) => <Fragment key={group.id}>
+    {group.label && <h2 className="board-class-heading">{group.label}</h2>}
     <ol>
-      {visible.map((row) => {
+      {group.rows.map((row) => {
         const value = row.cap ?? extent.min;
         const radius = row.capR?.ci ?? 0;
         const left = 100 * (value - radius - extent.min) / extent.span;
@@ -165,9 +172,10 @@ export function RankedAnswer({
           .map((result) => providerName(routeContext, result.offering.provider ?? "")))] : [];
         const excluded = excludedPlans.filter((plan) =>
           resultsFor(model).some((result) => result.offering.provider === plan.provider));
-        return <li className={capability ? "" : "without-capability"} key={model}>
+        return <li className={`status-qualifies ${capability ? "" : "without-capability"}`} key={model}>
           <div className="board-ranked-copy">
             <strong>{row.m.name}{tied.has(model) && <span className="board-tie-tag">tied</span>}{thin.has(model) && <span className="board-thin-tag">not enough evidence</span>}</strong>
+            <span className="eligibility status-qualifies"><span aria-hidden="true">✓</span> Qualifies</span>
             <small>{row.m.labName}</small>
             {otherProviders.length > 0 && <small>also via {otherProviders.join(", ")}</small>}
             {activeRefinements.map((refinement) => {
@@ -196,18 +204,22 @@ export function RankedAnswer({
         </li>;
       })}
     </ol>
+    </Fragment>)}
     {rows.length > COLLAPSED_COUNT && <button className="text-button board-show-all" onClick={() => setExpanded((current) => !current)}>
       {expanded ? "Show fewer" : `Show all ${rows.length}`}
     </button>}
     {may.length > 0 && <section className="board-may-qualify">
       <h2>{mayReasoned || !capability ? `May qualify — not verified yet (${may.length})` : `May qualify — no ${capability.name} evidence (${may.length})`}</h2>
+      {mayGroups.map((group) => <Fragment key={group.id}>
+      {group.label && <h3 className="board-class-heading">{group.label}</h3>}
       <ul>
-        {may.map((row) => {
+        {group.rows.map((row) => {
           const note = mayNote(`${row.m.lab}/${row.m.id}`);
           const via = row.best.o.provider === "Provider not available" ? null : payee(row.best.o.provider);
-          return <li key={row.best.o.id}>
+          return <li className="status-may" key={row.best.o.id}>
             <div className="board-ranked-copy">
               <strong>{row.m.name}</strong>
+              <span className="eligibility status-may"><span aria-hidden="true">?</span> May qualify</span>
               <small>{row.m.labName}{via && via !== row.m.labName ? ` · via ${via}` : ""}</small>
             </div>
             <div className="board-ranked-cost"><small>{perTaskColumn ? "Cost per task" : costHeading}</small><span>{perTaskColumn ? money(row.cost) : "—"}</span></div>
@@ -215,6 +227,7 @@ export function RankedAnswer({
           </li>;
         })}
       </ul>
+      </Fragment>)}
     </section>}
     {rows.length === 0 && <small>No model qualifies yet.</small>}
   </section>;

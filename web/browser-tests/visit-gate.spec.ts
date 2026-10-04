@@ -1,10 +1,10 @@
 import { expect } from "@playwright/test";
 import { test } from "./human-gate-fixtures";
 import { readFileSync } from "node:fs";
+import { decisionFixtureFor } from "../scripts/decision-fixtures.mjs";
 
-const vocabulary = readFileSync(new URL("../src/decide/__fixtures__/vocabulary.json", import.meta.url), "utf8");
+const vocabulary = readFileSync(new URL("../src/decide/__fixtures__/live-vocabulary.json", import.meta.url), "utf8");
 const cors = { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "GET, POST, OPTIONS" };
-const answer = readFileSync(new URL("../src/decide/__fixtures__/live-empty-board-full.json", import.meta.url), "utf8");
 
 test.describe("managed visit gate", () => {
   test.use({ humanStatus: { enabled: true, mode: "visit", day_limit: 300, burst_limit: 30 } });
@@ -46,12 +46,13 @@ test.describe("managed visit gate", () => {
           refuseOnce = false;
           return route.fulfill({ status: 401, headers: cors, contentType: "application/json", body: JSON.stringify({ error: { code: "visit_token_expired" } }) });
         }
-        return route.fulfill({ headers: cors, contentType: "application/json", body: answer });
+        return route.fulfill({ headers: cors, contentType: "application/json", body: decisionFixtureFor(route.request().postDataJSON()) });
       });
       await page.clock.install();
       await page.goto("/decide.html?demo=1");
       await expect(page.getByLabel("Facet board answer")).toBeVisible();
       await expect.poll(() => sent.length).toBe(3);
+      await expect(page.locator(".template-active")).toHaveText("Starting from: General assistant, balancedClear");
       expect(checks).toBe(1);
       expect(new Set(sent.map((request) => request.intent)).size).toBe(1);
       expect(sent.every((request) => request.token === "visit-1")).toBe(true);
@@ -59,7 +60,8 @@ test.describe("managed visit gate", () => {
       if (expiry === "local") await page.clock.fastForward(1801 * 1000);
       if (expiry === "worker") refuseOnce = true;
       const first = sent.length;
-      await page.getByRole("button", { name: /What it.s good at/ }).click();
+      const capabilities = page.getByRole("button", { name: /What it.s good at/ });
+      if (await capabilities.getAttribute("aria-expanded") !== "true") await capabilities.click();
       await page.locator('[data-facet="capability.software_engineering"]').getByLabel("Prefer", { exact: true }).check();
       await expect.poll(() => sent.length).toBeGreaterThanOrEqual(first + (expiry === "worker" ? 3 : 2));
       await expect(page.getByLabel("Facet board answer")).toBeVisible();
@@ -77,6 +79,7 @@ test.describe("managed visit gate", () => {
     let check = 0;
     let initialRequests = 0;
     let vocabularyRequests = 0;
+    const specs: { explain?: string; optimize?: unknown }[] = [];
     await page.route("https://challenges.cloudflare.com/turnstile/**", (route) => route.fulfill({
       contentType: "application/javascript",
       body: `window.turnstile = { render(container, options) {
@@ -94,7 +97,7 @@ test.describe("managed visit gate", () => {
       vocabularyRequests++;
       return route.fulfill({ headers: cors, contentType: "application/json", body: vocabulary });
     });
-    await page.route("**/v1/decide", (route) => { if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors }); initialRequests++; return route.fulfill({ headers: cors, contentType: "application/json", body: answer }); });
+    await page.route("**/v1/decide", (route) => { if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors }); initialRequests++; specs.push(route.request().postDataJSON()); return route.fulfill({ headers: cors, contentType: "application/json", body: decisionFixtureFor(route.request().postDataJSON()) }); });
     await page.goto("/decide.html?demo=1");
     await expect(page.locator(".board-answer").getByRole("button", { name: "Verify fixture" })).toBeVisible();
     await expect(page.getByText("One quick check keeps this free")).toBeVisible();
@@ -107,12 +110,16 @@ test.describe("managed visit gate", () => {
     await expect(page.getByLabel("Facet board answer")).toBeVisible();
     await expect(page.getByText("One quick check keeps this free")).toHaveCount(0);
     await expect.poll(() => initialRequests).toBe(3);
+    expect(specs.filter((spec) => spec.explain === "summary")).toHaveLength(1);
+    expect(specs[0].optimize).toEqual({ weights: { chat_preference: 0.6, "-offering.cost_per_task": 0.4 } });
+    await expect(page.locator(".template-active")).toHaveText("Starting from: General assistant, balancedClear");
     await page.route("**/v1/decide", async (route) => {
       if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors });
       if (check === 1) return route.fulfill({ status: 401, headers: cors, contentType: "application/json", body: JSON.stringify({ error: { code: "visit_token_expired" } }) });
-      return route.fulfill({ headers: cors, contentType: "application/json", body: answer });
+      return route.fulfill({ headers: cors, contentType: "application/json", body: decisionFixtureFor(route.request().postDataJSON()) });
     });
-    await page.getByRole("button", { name: /What it.s good at/ }).click();
+    const capabilities = page.getByRole("button", { name: /What it.s good at/ });
+    if (await capabilities.getAttribute("aria-expanded") !== "true") await capabilities.click();
     await page.locator('[data-facet="capability.software_engineering"]').getByLabel("Prefer", { exact: true }).check();
     const widget = page.locator("#facet-board-answer").getByRole("button", { name: "Verify fixture" });
     await expect(widget).toBeVisible();

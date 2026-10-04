@@ -199,6 +199,7 @@ export function Canvas({
           </small>
         )}
       </div>
+      {boardRanked && axis === "task$" && bd.hi && <p className="canvas-hint">Up and left is better</p>}
       <div className="axis-selects">
         <label>
           x{" "}
@@ -596,7 +597,7 @@ export function Canvas({
         </span>
         <span>
           <i className="legend-dot excluded" />
-          Excluded
+          Out · fails a Must
         </span>
         <span>
           <i className="legend-interval" />

@@ -3,6 +3,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import fixtureJson from "../__fixtures__/full-decision.json";
 import liveBudgetCodingJson from "../__fixtures__/live-budget-coding-full.json";
 import liveEmptyBoardJson from "../__fixtures__/live-empty-board-full.json";
+import liveVocabularyJson from "../__fixtures__/live-vocabulary.json";
 import liveSwePreferJson from "../__fixtures__/live-swe-prefer-full.json";
 import refinementVocabularyJson from "../__fixtures__/vocabulary-refinements.json";
 import App, { DesignedApp } from "../App";
@@ -25,6 +26,7 @@ import { capabilityRow, findTemplateCell, openGroup, templateCell } from "./boar
 const fixture = decisionSchema.parse(fixtureJson);
 const liveBudgetCoding = decisionSchema.parse(liveBudgetCodingJson);
 const liveEmptyBoard = decisionSchema.parse(liveEmptyBoardJson);
+const liveVocabulary = vocabularySchema.parse(liveVocabularyJson);
 const liveSwePrefer = decisionSchema.parse(liveSwePreferJson);
 const refinementVocabulary = vocabularySchema.parse(refinementVocabularyJson);
 const providerEstate = {
@@ -34,6 +36,12 @@ const providerEstate = {
 };
 /** The Coding row's Budget cell (MODEL-204): `budget-coding`. */
 const BUDGET_CODING = /^Coding · Budget:/;
+
+function savedEmptyBoard() {
+  history.replaceState(null, "", `/decide/${encodeBoardSpec({ ...realBaseSpec(realVocabulary), conds: [] }, "task$", {
+    selections: {}, mustOrder: [], estate: { providers: [], plans: [], hardware: [] },
+  })}`);
+}
 
 it("sanitizes every unavailable selection in an old namespaced board permalink", async () => {
   const unavailableFacet = refinementVocabulary.facets.find((facet) => facet.id === "model.context_window")!;
@@ -88,7 +96,7 @@ it("opens a composer-era permalink as a populated board with migration notes", a
   expect(await screen.findByRole("note", { name: "Notes from your old decision link" })).toHaveTextContent(
     "The board does not interpret free text.",
   );
-  fireEvent.click(screen.getByRole("button", { name: /^Size of work/ }));
+  openGroup("Size of work");
   const context = document.querySelector<HTMLElement>('[data-facet="model.context_window"]');
   if (!context) throw new Error("legacy context facet did not render");
   expect(within(context).getByLabelText("Must")).toBeChecked();
@@ -516,7 +524,7 @@ it("keeps ticket IDs and future promises out of every applied template surface",
     expect(screen.getByRole("region", { name: "Why this model" })).not.toHaveTextContent(/MODEL-\d+|\bcoming\b/i);
     expect(screen.getByLabelText("Facet board answer").closest(".board-answer")).not.toHaveTextContent(/MODEL-\d+|\bcoming\b/i);
     expect(document.querySelector(".facet-board")).not.toHaveTextContent(/MODEL-\d+|\bcoming\b/i);
-    fireEvent.click(screen.getByRole("button", { name: /Start from a template/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^(All \d+ templates|Hide templates)$/ }));
   }
 }, 60_000); // walks every template; 8 took 5.2 s on a CI runner (deploy run for 8c815d00)
 
@@ -567,7 +575,7 @@ it("does not render the Next-questions panel in the facet-board preview", async 
   expect(within(answer).getAllByText("cloud · pay per use").length).toBeGreaterThan(0);
   expect(within(answer).queryByText("cloud/lab/delta/global/standard · cloud")).not.toBeInTheDocument();
   expect(within(answer).queryByLabelText("Delta 4.7 capability interval")).not.toBeInTheDocument();
-  expect(within(answer).getByText(/qualify — set a Prefer to rank them/)).toBeInTheDocument();
+  expect(within(answer).getByText(/Not ranked yet: listed alphabetically/)).toBeInTheDocument();
   expect(screen.getByLabelText("Why this model")).toHaveTextContent("Select a model to inspect");
   const canvas = screen.getByRole("region", { name: "Trade-off canvas" });
   plotCostAgainstCapability(canvas);
@@ -614,13 +622,14 @@ it("does not render the Next-questions panel in the facet-board preview", async 
   await waitFor(() => expect(sentSpecs(fetch).some((body) =>
     body.where.includes("model.context_window >= 529096"),
   )).toBe(true));
-  expect(within(answer).getByText(/qualify — set a Prefer to rank them/)).toBeInTheDocument();
+  expect(within(answer).getByText(/Not ranked yet: listed alphabetically/)).toBeInTheDocument();
   expect(sentSpecs(fetch).every((body) => Object.keys(body.optimize.weights).length > 0)).toBe(true);
 });
 
-it("renders the qualifying models from the live empty-board decision alphabetically", async () => {
+it("renders the live empty-board decision under alphabetical class headings", async () => {
+  savedEmptyBoard();
   const fetch = routeFetch({
-    vocabulary: () => json(realVocabulary),
+    vocabulary: () => json(liveVocabulary),
     decide: () => json(liveEmptyBoard),
   });
   vi.stubGlobal("fetch", fetch);
@@ -628,28 +637,31 @@ it("renders the qualifying models from the live empty-board decision alphabetica
 
   const answer = (await screen.findByLabelText("Facet board answer"))
     .closest<HTMLElement>(".board-answer")!;
-  fireEvent.click(within(answer).getByRole("button", { name: "Show all 22" }));
+  fireEvent.click(within(answer).getByRole("button", { name: "Show all 28" }));
   const rankedAnswer = answer.querySelector<HTMLElement>(".board-ranked-answer")!;
   const modelNames = [...rankedAnswer.querySelectorAll(":scope > ol > li")].map((item) =>
     item.querySelector("strong")?.textContent ?? "",
   );
 
-  expect(modelNames).toHaveLength(22);
-  expect(modelNames).toEqual([...modelNames].sort((left, right) => left.localeCompare(right)));
+  expect(modelNames).toHaveLength(28);
+  expect([...rankedAnswer.querySelectorAll(":scope > .board-class-heading")].map((heading) => heading.textContent))
+    .toEqual(["Class not recorded", "Decision model", "Text generator"]);
+  const groups = [...rankedAnswer.querySelectorAll(":scope > ol")].map((list) => [...list.querySelectorAll(":scope > li strong")].map((name) => name.textContent ?? ""));
+  for (const names of groups) expect(names).toEqual([...names].sort((left, right) => left.localeCompare(right, "en")));
   expect(within(answer).queryByText(/no capability data|no evidence for/i)).not.toBeInTheDocument();
   const table = screen.getByLabelText("Decision table");
-  const tableRows = table.querySelectorAll("tbody tr");
+  const tableRows = table.querySelectorAll("tbody tr:not(.table-class-heading)");
   expect(within(table).queryByRole("columnheader", { name: /#/ }))
     .not.toBeInTheDocument();
   expect(tableRows[0]?.querySelector("td")).toHaveTextContent("Claude Fable 5");
   const providers = [...tableRows].map((row) => row.children[1]?.textContent ?? "");
   expect(providers).not.toContain("Provider not available");
-  const withoutProvider = within(table).getByRole("button", { name: "Show 10 without a provider" });
+  const withoutProvider = within(table).getByRole("button", { name: "Show 16 without a provider" });
   expect(withoutProvider).toHaveAttribute("aria-expanded", "false");
   fireEvent.click(withoutProvider);
-  expect(within(table).getByRole("button", { name: "Hide 10 without a provider" }))
+  expect(within(table).getByRole("button", { name: "Hide 16 without a provider" }))
     .toHaveAttribute("aria-expanded", "true");
-  expect(table.querySelectorAll("tbody tr")).toHaveLength(tableRows.length + 10);
+  expect(table.querySelectorAll("tbody tr:not(.table-class-heading)")).toHaveLength(tableRows.length + 16);
 
   const capability = capabilityRow("Software engineering");
   fireEvent.click(within(capability).getByLabelText("Prefer"));
@@ -666,6 +678,7 @@ it("renders the qualifying models from the live empty-board decision alphabetica
 });
 
 it("plots and tabulates domain estimates while the board is unranked", async () => {
+  savedEmptyBoard();
   const fetch = routeFetch({
     vocabulary: () => json(realVocabulary),
     decide: () => json(liveSwePrefer),
@@ -688,6 +701,7 @@ it("plots and tabulates domain estimates while the board is unranked", async () 
 });
 
 it("keeps capability-unknown models outside the ranked board answer", async () => {
+  savedEmptyBoard();
   const fetch = routeFetch({
     vocabulary: () => json(realVocabulary),
     decide: (init) => "software_engineering" in JSON.parse(String(init?.body ?? "{}"))
@@ -813,7 +827,7 @@ it("shows model-grained funnel and board counts from the live budget decision", 
   );
   expect(lastMustRow).toHaveTextContent(`${lastMust.models_may_qualify} may`);
   expect(within(narrowing).getByText(
-    `${qualifyingModels} qualify · ${may} may qualify · 14 excluded`,
+    `${qualifyingModels} qualify · ${may} may qualify · 14 out`,
   )).toBeInTheDocument();
   const ranking = within(narrowing).getByText(/Ranking on .*Software engineering 0.60/)
     .closest("li")!;
@@ -1091,7 +1105,7 @@ it("renders the full decision as four models without machine condition syntax", 
   await findTemplateCell(BUDGET_CODING);
 
   const table = await screen.findByRole("region", { name: "Decision table" });
-  expect(within(table).getAllByRole("row")).toHaveLength(5);
+  expect(table.querySelectorAll("tr:not(.table-class-heading)")).toHaveLength(5);
   expect(screen.getByText("4 models · 8 offerings")).toBeInTheDocument();
   fireEvent.click(within(table).getAllByRole("button", { name: "Delta 4.7" })[0]);
   expect(screen.getAllByText("Type: Text generator").length).toBeGreaterThan(0);

@@ -19,13 +19,14 @@ def validate_value(score: Any, unit: str | None, metric: Mapping[str, Any]) -> N
         raise ValueError("benchmark score must be a finite number")
     high = metric.get("max_score")
     low = metric.get("min_score")
-    # No board declares a floor yet. Bounded scales cannot go below zero;
-    # open ones can (Vending-Bench 2's money balance is negative), so they get none.
-    if low is None and (unit_id(metric.get("unit")) in _BOUNDED_UNITS or high in (1, 100)):
+    expected, actual = unit_id(metric.get("unit")), unit_id(unit)
+    if expected == "p-mrr (x100)":
+        low = max(-100, low) if low is not None else -100
+        high = min(100, high) if high is not None else 100
+    elif low is None and (expected in _BOUNDED_UNITS or high in (1, 100)):
         low = 0
     if low is not None and score < low or high is not None and score > high:
         raise ValueError("benchmark score is outside the board's declared range")
-    expected, actual = unit_id(metric.get("unit")), unit_id(unit)
     # Older fraction boards left their dimensionless unit blank.
     if expected is None and high == 1:
         expected, actual = "fraction", actual or "fraction"

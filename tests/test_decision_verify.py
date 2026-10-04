@@ -1554,6 +1554,9 @@ def test_quantities_parse_with_their_units(text, hint, number, unit) -> None:
         (71, "percent", "71.2%", True),      # the claim is the source rounded
         (71.3, "percent", "71.2%", False),
         (0.712, "fraction", "71.2%", True),
+        (5.388066666666667, "p-MRR (x100)", "0.05388066666666667 fraction", True),
+        (-2.9, "p-MRR (x100)", "-0.029 fraction", True),
+        (5.388066666666667, "p-MRR (x100)", "0.5388066666666667 fraction", False),
         (400000, "tokens", "400K tokens", True),
         (401000, "tokens", "400,000 tokens", False),
     ],

@@ -303,6 +303,7 @@ export function FreeAxisCanvas({
         <span className="eyebrow">Trade-off canvas</span>
         <small>Every measured model stays visible, including models that fail a Must</small>
       </div>
+      {xAxis.id === "facet:offering.cost_per_task" && !yAxis.lowerIsBetter && <p className="canvas-hint">Up and left is better</p>}
       <div className="axis-selects">
         {dimensions.map((dimension) => (
           <label key={dimension}>
@@ -380,7 +381,7 @@ export function FreeAxisCanvas({
               <div key={modelId(row)}>
                 {x.interval && (
                   <span
-                    className="axis-interval x"
+                    className={`axis-interval x ${row.status === 0 ? "may" : row.status === -1 ? "out" : ""}`}
                     style={{
                       left: percent(xScale.at(x.interval[0])),
                       width: percent(xScale.at(x.interval[1]) - xScale.at(x.interval[0])),
@@ -390,7 +391,7 @@ export function FreeAxisCanvas({
                 )}
                 {y.interval && (
                   <span
-                    className="axis-interval y"
+                    className={`axis-interval y ${row.status === 0 ? "may" : row.status === -1 ? "out" : ""}`}
                     style={{
                       left: percent(left),
                       top: percent(1 - yScale.at(y.interval[1])),
@@ -499,9 +500,9 @@ export function FreeAxisCanvas({
         {xAxis.label}{xAxis.unit ? ` (${xAxis.unit.replaceAll("_", " ")})` : ""}
       </div>
       <div className="legend">
-        <span><i className="legend-dot" />Qualifies</span>
-        <span><i className="legend-dot excluded" />Fails a Must · remains visible</span>
-        <span><i className="legend-dot may" />May qualify · missing Must data</span>
+        <span><i className="legend-dot" /><b aria-hidden="true">✓</b> Qualifies</span>
+        <span><i className="legend-dot excluded" /><b aria-hidden="true">×</b> Out · fails a Must · remains visible</span>
+        <span><i className="legend-dot may" /><b aria-hidden="true">?</b> May qualify · missing Must data</span>
         <span><i className="legend-interval" />80% capability interval</span>
       </div>
       {missing.length > 0 && (

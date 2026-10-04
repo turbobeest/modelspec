@@ -1,0 +1,6 @@
+*
+!Dockerfile
+!entrypoint.py
+!gemini-settings.mjs
+!gemini-isolated.json
+!gemini-positive.json

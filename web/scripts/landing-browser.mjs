@@ -3,6 +3,7 @@ import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
 import { chromium } from "playwright";
+import { decisionFixtureFor } from "./decision-fixtures.mjs";
 
 const [livePath, holdingPath, methodPath, assembledPath] = process.argv.slice(2);
 const root = new URL("../../", import.meta.url);
@@ -216,8 +217,7 @@ try {
   results.forwarding = true;
   await forwarding.close();
 
-  const vocabularyFixture = fs.readFileSync(new URL("../src/decide/__fixtures__/vocabulary.json", import.meta.url), "utf8");
-  const decisionFixture = fs.readFileSync(new URL("../src/decide/__fixtures__/live-empty-board-full.json", import.meta.url), "utf8");
+  const vocabularyFixture = fs.readFileSync(new URL("../src/decide/__fixtures__/live-vocabulary.json", import.meta.url), "utf8");
   async function serveAssembled(context, { scripts = true } = {}) {
     await context.route("https://modelspec.dev/**", (route) => {
       const pathname = new URL(route.request().url()).pathname;
@@ -230,7 +230,7 @@ try {
       return route.fulfill({ status: 200, contentType: types[path.extname(staticFile)] ?? "application/octet-stream", body: fs.readFileSync(staticFile) });
     });
     await context.route(/\/(?:api\/decision\/vocabulary\.json|v1\/vocabulary)(?:\?.*)?$/, (route) => route.fulfill({ status: 200, contentType: "application/json", headers: { "access-control-allow-origin": "*" }, body: vocabularyFixture }));
-    await context.route("**/v1/decide", (route) => route.fulfill({ status: 200, contentType: "application/json", body: decisionFixture }));
+    await context.route("**/v1/decide", (route) => route.fulfill({ status: 200, contentType: "application/json", body: decisionFixtureFor(route.request().postDataJSON()) }));
   }
 
   // Before the app's script runs, the page is already dark: no light flash, whatever the OS prefers.
@@ -251,6 +251,9 @@ try {
   const decideFailures = recordBrowserFailures(decidePage);
   await decidePage.goto("https://modelspec.dev/decide/?demo=1");
   await assertRankedBoard(decidePage);
+  assert.match(await decidePage.locator(".template-active").textContent(), /Starting from: General assistant, balanced/);
+  assert.equal(await decidePage.locator(".template-shortcuts button").count(), 6);
+  assert.equal(await decidePage.getByLabel("X axis").inputValue(), "facet:offering.cost_per_task");
   assert.deepEqual(decideFailures, []);
   assert.equal(await decidePage.locator(".decide-app").getAttribute("data-theme"), "dark");
   await decidePage.getByRole("button", { name: "Light mode" }).waitFor();

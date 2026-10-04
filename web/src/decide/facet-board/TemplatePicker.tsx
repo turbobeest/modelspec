@@ -1,7 +1,7 @@
 import { useId, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import type { VocabRefinement, VocabTemplate, Vocabulary } from "../vocabulary";
-import { activeTemplateLabel, availableTemplates, refinementFor, templateGrid } from "./templates";
+import { activeTemplateLabel, availableTemplates, fastTrackTemplates, refinementFor, templateGrid } from "./templates";
 import type { ActiveTemplate, TemplateCategory, TemplateGrid, TemplateRow, TemplateTier } from "./templates";
 
 const KIND_ORDER: VocabRefinement["kind"][] = ["language", "task", "mode", "material"];
@@ -98,22 +98,21 @@ function FlatList({ templates, onApply }: { templates: VocabTemplate[]; onApply:
 }
 
 /**
- * The template card: a one-line bar when collapsed, the category-by-tier grid
- * when expanded (MODEL-204). It offers only templates this snapshot can answer
- * (MODEL-277), and is absent when there are none.
+ * Common jobs are one click away; the full category-by-tier list stays available.
+ * Only templates this snapshot can answer are offered (MODEL-277).
  */
-export function TemplatePicker({ vocabulary, active, open, onOpen, onApply }: {
+export function TemplatePicker({ vocabulary, active, open, onOpen, onApply, onClear }: {
   vocabulary: Vocabulary;
   active: ActiveTemplate | null;
   open: boolean;
   onOpen: (open: boolean) => void;
   onApply: (template: VocabTemplate, refinement: VocabRefinement | null) => void;
+  onClear: () => void;
 }) {
   const panel = useId();
   const bar = useRef<HTMLButtonElement>(null);
   const templates = availableTemplates(vocabulary);
-  // Applying collapses the grid and unmounts the focused cell; land on the bar,
-  // which now names what was applied.
+  // A full-list cell unmounts on apply. Keep keyboard focus on the list control.
   const apply = (template: VocabTemplate, refinement: VocabRefinement | null) => {
     onApply(template, refinement);
     bar.current?.focus();
@@ -123,12 +122,18 @@ export function TemplatePicker({ vocabulary, active, open, onOpen, onApply }: {
   const label = activeTemplateLabel(vocabulary, active);
   return (
     <section className="template-picker" aria-label="Templates">
-      <button ref={bar} type="button" className="template-bar" aria-expanded={open} aria-controls={panel} onClick={() => onOpen(!open)}>
-        <span className="eyebrow">Start from a template</span>{" "}
-        {label && <><span className="template-active">Applied: <strong>{label}</strong></span>{" "}</>}
-        <span className={label ? "template-action" : "template-count"}>{open ? "Hide templates" : `Show all ${templates.length} templates`}</span>
-        <b aria-hidden="true">{open ? "▴" : "▾"}</b>
-      </button>
+      <div className="template-heading"><span className="eyebrow">Start from a template</span>
+        <button ref={bar} type="button" className="template-all" aria-expanded={open} aria-controls={panel} onClick={() => onOpen(!open)}>
+          {open ? "Hide templates" : `All ${templates.length} templates`}
+        </button>
+      </div>
+      <div className="template-shortcuts">{fastTrackTemplates(vocabulary).map((template) =>
+        <button type="button" className="primary template-shortcut" key={template.id} aria-pressed={active?.id === template.id && active.refinement === null} onClick={() => onApply(template, null)}>
+          <strong>{template.name}</strong><span>{template.tradeoff ?? template.purpose}</span>
+        </button>)}</div>
+      {label && <div className="template-active"><span>Starting from: <strong>{label}</strong></span>
+        <button type="button" onClick={() => { onClear(); bar.current?.focus(); }}>Clear</button>
+      </div>}
       <div className="board-templates" id={panel} hidden={!open}>
         {open && (grid ? <Grid grid={grid} onApply={apply} /> : <FlatList templates={templates} onApply={apply} />)}
       </div>

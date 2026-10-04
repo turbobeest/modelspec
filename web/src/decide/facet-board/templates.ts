@@ -1,4 +1,6 @@
 import type { VocabRefinement, VocabTemplate, Vocabulary } from "../vocabulary";
+import { canvasAxisOptions, isCanvasAxisId } from "../components/canvas-axis";
+import type { CanvasAxes } from "../components/FreeAxisCanvas";
 
 /** The applied template, and the subcategory (a refinement ID) it was applied with. */
 export interface ActiveTemplate {
@@ -30,6 +32,41 @@ const KIND_LABELS: Record<TemplateCategory["kind"], string> = {
 /** The templates a visitor can apply on this snapshot. The board offers no others (MODEL-277). */
 export const availableTemplates = (vocabulary: Vocabulary): VocabTemplate[] =>
   (vocabulary.templates ?? []).filter((template) => template.available);
+
+export const DEFAULT_TEMPLATE_ID = "assistant-balanced";
+
+/** Balanced starting points for four common jobs, plus budget and self-hosting.
+ * IDs come from decision/templates.py's catalogue. Never offer an unavailable
+ * shortcut or replace it with a different trade-off when the snapshot changes. */
+const FAST_TRACK_IDS = [
+  DEFAULT_TEMPLATE_ID, "coding-balanced", "writing-balanced", "long-documents",
+  "high-volume", "private-self-host",
+];
+
+export function fastTrackTemplates(vocabulary: Vocabulary): VocabTemplate[] {
+  const available = availableTemplates(vocabulary);
+  return FAST_TRACK_IDS.flatMap((id) => available.filter((template) => template.id === id));
+}
+
+/** Only a fresh visit gets a default. Restored boards, including empty ones, win. */
+export function openingTemplate(vocabulary: Vocabulary, hasSavedDecision: boolean): VocabTemplate | null {
+  return hasSavedDecision ? null
+    : availableTemplates(vocabulary).find((template) => template.id === DEFAULT_TEMPLATE_ID) ?? null;
+}
+
+/** A ranked template opens on capability versus task cost, using existing axes.
+ * Without those measurements, retain the template's original axes. */
+export function templateCanvasAxes(template: VocabTemplate, vocabulary: Vocabulary): CanvasAxes | null {
+  const enabled = canvasAxisOptions(vocabulary).filter((axis) => !axis.disabled);
+  const cost = enabled.find((axis) => axis.id === "facet:offering.cost_per_task");
+  const capability = enabled.find((axis) => axis.kind === "capability" && axis.id === template.canvas?.y)
+    ?? enabled.find((axis) => axis.kind === "capability" && template.needs.domains.includes(axis.key));
+  if (Object.keys(template.weights).length > 0 && cost && capability)
+    return { x: cost.id, y: capability.id };
+  const canvas = template.canvas;
+  return canvas && isCanvasAxisId(canvas.x) && isCanvasAxisId(canvas.y)
+    ? { x: canvas.x, y: canvas.y } : null;
+}
 
 /**
  * The category-by-tier grid, entirely from the vocabulary, holding only
@@ -72,7 +109,7 @@ export function activeTemplateLabel(vocabulary: Vocabulary, active: ActiveTempla
   if (!template) return null;
   const category = vocabulary.template_categories?.find((row) => row.id === template.category);
   const tier = vocabulary.template_tiers?.find((row) => row.id === template.tier);
-  if (!category || !tier) return template.name;
+  if (!category || !tier || !active.refinement) return template.name;
   const refinement = active.refinement
     ? vocabulary.refinements?.find((row) => row.id === active.refinement && template.needs.domains.includes(row.parent_domain))
     : undefined;

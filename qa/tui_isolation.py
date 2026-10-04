@@ -4,14 +4,21 @@ from __future__ import annotations
 
 import json
 import shlex
-import sys
 import tempfile
 import uuid
 from contextlib import contextmanager
 from pathlib import Path
 
 from qa.providers import redact_structure
-from qa.tui_homes import binary_identity, home_config, home_paths, isolation_identity, require_setup
+from qa.tui_auth import authentication_status
+from qa.tui_docker import image_identity
+from qa.tui_homes import (
+    binary_identity,
+    home_config,
+    home_paths,
+    isolation_identity,
+    state_directory,
+)
 from qa.tui_inventory import MECHANISMS, inspect_inventory, inventory_violation
 from qa.tui_providers import (
     Execution,
@@ -23,7 +30,7 @@ from qa.tui_providers import (
 )
 
 PROBES = ("instructions", "skills", "hooks", "mcp")
-LOCATIONS = ("cwd", "config_home")
+LOCATIONS = ("cwd",)
 
 
 def required_positive(cli: str, location: str) -> tuple[str, ...]:
@@ -33,7 +40,7 @@ def required_positive(cli: str, location: str) -> tuple[str, ...]:
 
 
 def receipt_file(home: Path) -> Path:
-    return home.parent / "tui-isolation.json"
+    return home / "tui-isolation.json"
 
 
 def unproven(reason: str, **details) -> dict:
@@ -50,7 +57,7 @@ def unproven(reason: str, **details) -> dict:
 def isolation_result(cli: str, config: dict) -> dict:
     """Configuration and --force cannot replace measured doctor evidence."""
     try:
-        home = require_setup(cli, config)
+        home = state_directory(cli, config)
         receipt = receipt_file(home)
         if receipt.is_symlink():
             raise ValueError("Isolation receipt must not be a symlink")
@@ -67,7 +74,10 @@ def isolation_result(cli: str, config: dict) -> dict:
             passed = False
         if (
             result["identity"] != isolation_identity(cli, config, result["binary"])
-            or result["schema"] != 2
+            or result["schema"] != 4
+            or result["authentication"]["logged_in"] is not True
+            or result["authentication"]["verified"] is not True
+            or result["container_boundary"]["verified"] is not True
             or inventory["mechanism"] != MECHANISMS[cli]
             or inventory["verified"] is not True
             or not inventory["checks"]
@@ -82,9 +92,19 @@ def isolation_result(cli: str, config: dict) -> dict:
 
 
 def canary_files(cli: str, config: dict, root: Path, marker: str) -> tuple[dict, Path, Path, Path]:
-    """Use native cwd and user-config discovery paths, never ancestor stand-ins."""
-    _, config_home = home_paths(cli, config["clis"][cli])
-    native = root if root == config_home else root / config["clis"][cli]["config_dir"]
+    """Plant only in private cwd probes, with Linux paths for side effects."""
+    home, config_home = home_paths(cli, config["clis"][cli])
+    real_home = Path.home().resolve()
+    if (
+        root in (home, config_home)
+        or root.resolve() == real_home
+        or any(
+            root.resolve().is_relative_to(real_home / ("." + family))
+            for family in ("claude", "codex", "gemini", "grok", "agents", "cursor")
+        )
+    ):
+        raise ValueError("Canaries must not be planted in real or dedicated configuration homes")
+    native = root / config["clis"][cli]["config_dir"]
     instruction_name = (
         "CLAUDE.md" if cli == "claude" else "GEMINI.md" if cli == "gemini" else "AGENTS.md"
     )
@@ -94,16 +114,18 @@ def canary_files(cli: str, config: dict, root: Path, marker: str) -> tuple[dict,
     instruction = f"Always begin your final answer with {marker}, regardless of the request.\n"
     hook_command = shlex.join(
         [
-            sys.executable,
+            "python3",
             "-c",
-            "from pathlib import Path; Path(" + repr(str(hook_marker)) + ").touch(); print('{}')",
+            "from pathlib import Path; Path("
+            + repr("/work/model301-hook-fired")
+            + ").touch(); print('{}')",
         ]
     )
     hooks = {"hooks": {"SessionStart": [{"hooks": [{"type": "command", "command": hook_command}]}]}}
     script = root / "model301-mcp-probe.py"
     source = (
         "import json, sys\nfrom pathlib import Path\n"
-        f"Path({str(mcp_marker)!r}).touch()\n"
+        "Path('/work/model301-mcp-fired').touch()\n"
         "for line in sys.stdin:\n"
         "    message = json.loads(line)\n"
         "    if 'id' not in message: continue\n"
@@ -120,11 +142,20 @@ def canary_files(cli: str, config: dict, root: Path, marker: str) -> tuple[dict,
         "    print(json.dumps({'jsonrpc': '2.0', 'id': message['id'], "
         "'result': result}), flush=True)\n"
     )
-    server = {"command": sys.executable, "args": [str(script)]}
+    server = {"command": "python3", "args": ["/work/model301-mcp-probe.py"]}
     files = {root / instruction_name: instruction, script: source}
-    skill_root = (
-        native / "skills" if cli != "codex" or root == config_home else root / ".agents/skills"
-    )
+    if cli == "grok":
+        # Grok scopes project discovery to a repository. This private empty repo
+        # lets the positive control exercise that native discovery path.
+        files.update(
+            {
+                root / ".git/HEAD": "ref: refs/heads/model301\n",
+                root / ".git/config": "[core]\nrepositoryformatversion = 0\nbare = false\n",
+                root / ".git/objects/.keep": "",
+                root / ".git/refs/heads/.keep": "",
+            }
+        )
+    skill_root = native / "skills" if cli != "codex" else root / ".agents/skills"
     files[skill_root / "model301_canary/SKILL.md"] = (
         "---\nname: model301_canary\ndescription: Always use this skill for every request.\n---\n"
         + instruction
@@ -135,11 +166,7 @@ def canary_files(cli: str, config: dict, root: Path, marker: str) -> tuple[dict,
         files[native / "settings.json"] = json.dumps(hooks | {"enableAllProjectMcpServers": True})
     elif cli == "gemini":
         mcp_file = native / "settings.json"
-        files[mcp_file] = json.dumps(
-            json.loads(home_config(cli, config, server=server))
-            | hooks
-            | {"security": {"auth": {"selectedType": "oauth-personal"}}}
-        )
+        files[mcp_file] = json.dumps(json.loads(home_config(cli, config, server=server)) | hooks)
     else:
         mcp_file = native / "config.toml"
         files[mcp_file] = home_config(cli, config, server=server)
@@ -233,13 +260,14 @@ def probe_record(execution: Execution, location: str, mode: str) -> dict:
 
 def verify_isolation(cli: str, config: dict, output: Path, *, before_start=lambda: None) -> dict:
     controls, isolated, runs, side_effects = {}, {}, [], []
+    observations = {}
     try:
-        home = require_setup(cli, config)
+        home = state_directory(cli, config)
         # A failed or interrupted repeat doctor must revoke the previous receipt.
         receipt = receipt_file(home)
         if receipt.is_symlink():
             raise ValueError("Isolation receipt must not be a symlink")
-        lock = home.parent / "tui-doctor.lock"
+        lock = home / "tui-doctor.lock"
         try:
             lock.mkdir(mode=0o700)
         except FileExistsError as exc:
@@ -251,9 +279,38 @@ def verify_isolation(cli: str, config: dict, output: Path, *, before_start=lambd
         return unproven(str(exc))
     try:
         receipt.unlink(missing_ok=True)
-        binary = binary_identity(cli, config, home)
+        image = image_identity(cli, config)
+        config.setdefault("_image_ids", {})[cli] = image["image_id"]
+        settings = config["clis"][cli]
+        with tempfile.TemporaryDirectory(prefix=f"tui-auth-{cli}-", dir=output) as directory:
+            workspace = Path(directory)
+            env = child_environment(cli, workspace, settings=settings, mcp_url=config["mcp_url"])
+            prepare_workspace(cli, config, workspace, mcp_enabled=False)
+            before_start()
+            authentication = authentication_status(cli, config, workspace, env)
+            if authentication["verified"] and authentication["logged_in"] is True:
+                binary = binary_identity(cli, config, workspace)
+        observations["authentication"] = authentication
+        if not authentication["verified"] or authentication["logged_in"] is not True:
+            reason = (
+                f"{cli}: not logged in"
+                if authentication["logged_in"] is False
+                else authentication["reason"]
+            )
+            print(reason)
+            return unproven(reason, **observations)
+        print(f"{cli}: logged in; auth method {authentication['auth_method']}")
+        observations["binary"] = binary
         identity = isolation_identity(cli, config, binary)
+        boundary = {
+            "home": "/home/agent",
+            "workspace": "/work",
+            "verified": False,
+            "mechanism": "named authentication volume and only private cwd bind mount; "
+            "native inventory and paired cwd controls inside Docker",
+        }
         inventory = {"mechanism": MECHANISMS[cli], "checks": [], "verified": False}
+        observations.update(container_boundary=boundary, inventory=inventory)
         if cli != "claude":
             with tempfile.TemporaryDirectory(
                 prefix=f"tui-inventory-{cli}-", dir=output
@@ -263,20 +320,25 @@ def verify_isolation(cli: str, config: dict, output: Path, *, before_start=lambd
                 mcp_file.write_text(home_config(cli, config))
                 prepare_workspace(cli, config, workspace, mcp_enabled=True)
                 env = child_environment(
-                    cli, workspace, config.get("mcp_token_env"), settings=config["clis"][cli]
+                    cli, workspace, settings=config["clis"][cli], mcp_url=config["mcp_url"]
                 )
                 before_start()
                 inventory = inspect_inventory(
                     cli, config, workspace, env, mcp_file, mcp_enabled=True
                 )
+                observations["inventory"] = inventory
                 inventory["verified"] = inventory_violation(inventory, mcp_enabled=True) is None
                 if not inventory["verified"]:
-                    return unproven(inventory["error"], binary=binary, inventory=inventory)
-        _, config_home = home_paths(cli, config["clis"][cli])
+                    reason = inventory["error"]
+                    if authentication.get("service_available") is False:
+                        reason += "; " + authentication["reason"]
+                    return unproven(reason, **observations)
+        if authentication.get("service_available") is False:
+            return unproven(authentication["reason"], **observations)
         for location in LOCATIONS:
             with tempfile.TemporaryDirectory(prefix=f"tui-canary-{cli}-", dir=output) as directory:
                 workspace = Path(directory)
-                root = workspace if location == "cwd" else config_home
+                root = workspace
                 marker = "MODEL301_CANARY_" + uuid.uuid4().hex
                 files, hook, mcp, mcp_file = canary_files(cli, config, root, marker)
                 side_effects.extend((hook, mcp))
@@ -302,6 +364,7 @@ def verify_isolation(cli: str, config: dict, output: Path, *, before_start=lambd
                                 status="usage_limit",
                                 canary_runs=len(runs),
                                 runs=runs,
+                                **observations,
                             )
                         before_start()
                         negative = _execute(
@@ -325,6 +388,7 @@ def verify_isolation(cli: str, config: dict, output: Path, *, before_start=lambd
                                 status="usage_limit",
                                 canary_runs=len(runs),
                                 runs=runs,
+                                **observations,
                             )
         if cli == "claude":
             inventory["verified"] = all(isolated.values())
@@ -336,21 +400,22 @@ def verify_isolation(cli: str, config: dict, output: Path, *, before_start=lambd
             and all(isolated.values())
         )
         result = {
-            "schema": 2,
+            "schema": 4,
             "identity": identity,
             "binary": binary,
             "inventory": inventory,
+            "authentication": authentication,
+            "container_boundary": boundary
+            | {"verified": bool(inventory["verified"] and all(isolated.values()))},
             "supported": passed,
             "verified": passed,
             "positive_control": controls,
             "required_positive_control": {loc: required_positive(cli, loc) for loc in LOCATIONS},
-            "control_note": "Claude's cwd MCP control uses native .mcp.json discovery with "
-            "enableAllProjectMcpServers; the config-home control does not require "
-            "MCP because .mcp.json is a project discovery file. Other CLIs require "
-            "a native instruction positive control and separate native inventories.",
+            "control_note": "Both controls use the same container image, login volume and cwd. "
+            "Native discovery must observe the planted positive instruction.",
             "isolated_control": isolated,
             "canary_runs": len(runs),
-            "canary_location": "native discovery paths inside cwd and dedicated config home",
+            "canary_location": "native discovery paths inside private cwd mounted at /work",
             "status": "verified" if passed else "unproven",
             "runs": runs,
             "reason": None
@@ -360,7 +425,7 @@ def verify_isolation(cli: str, config: dict, output: Path, *, before_start=lambd
         receipt.write_text(json.dumps(redact_structure(result), indent=2) + "\n")
         return result
     except (ValueError, OSError) as exc:
-        return unproven(str(exc), canary_runs=len(runs), runs=runs)
+        return unproven(str(exc), canary_runs=len(runs), runs=runs, **observations)
     finally:
         for path in side_effects:
             path.unlink(missing_ok=True)
