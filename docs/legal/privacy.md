@@ -1,6 +1,6 @@
 # Privacy statement
 
-Version `1.9`, effective 2026-10-03. Adopted by Sparks & Sawdust LLC, which
+Version `1.10`, effective 2026-10-04. Adopted by Sparks & Sawdust LLC, which
 operates the service. MODEL-70. Version 1.0 was adopted on 2026-09-19; what
 changed since is listed under [Changes](#changes).
 
@@ -455,20 +455,18 @@ your prompts, your completions, your token counts or your model traffic, and we
 do not meter, resell or bill any of it. This is an architectural boundary rather
 than a retention promise: there is no path by which that data could reach us.
 
-The ModelSpec CLI, which runs on your machine, reads none of your provider API
-keys. They stay with you.
+The ModelSpec CLI (`modelspec`, Python package `modelspec-dev`, version 0.3.0
+and later) runs on your machine and reads none of your provider API keys. They
+stay with you. It connects only to `api.modelspec.dev`, only when you run a
+command that needs the service, and it sends no telemetry.
 
-From the first CLI release after 0.2.0, and in the repository's source since
-2026-09-29, the CLI can also keep a log of outcomes
-on your machine: whether you adopted a decision and whether the task succeeded.
-It records **nothing until you turn it on** with `modelspec outcome enable`,
-which shows you every field it records and asks you to agree
-(`cli/modelspec/outcome.py`, `docs/outcome-privacy.md`). The log lives under
-`~/.modelspec/`, or `$MODELSPEC_HOME` if you set it. It holds identifiers, catalogue names, fixed-choice results, rounded numbers,
-the minute each record was made and the CLI's version, and no free text.
-**It never leaves your machine:** no `outcome` command opens a network
-connection, and we never receive the log. `modelspec outcome disable --delete`
-stops recording and deletes it.
+It keeps files on your machine only when you ask. If you save your ModelSpec
+API key with `modelspec auth set`, it is kept in a file under your user
+configuration directory that only your user can read. If you let
+`modelspec setup mcp --write` change an AI client's configuration, it first
+saves a backup of that file beside it. We never receive either file. Versions up
+to 0.2.0, now withdrawn, could also keep an opt-in local log of outcomes; the
+current CLI has none.
 
 ## Not yet live
 
@@ -561,13 +559,9 @@ nothing below is read as describing the service today:
   pre-clearance; we do not say that Cloudflare sets none of its own.
 - **Outcome logging by the service.** Not built. The service does not receive or
   record what you chose, whether a recommendation worked, or anything about the
-  result of acting on one. The CLI's local log (see *Inference, and why there is nothing to say
-  about it*) is not sent to us, and uploading it is designed but not built
-  (`docs/design/outcome-upload.md`). The feedback described under
-  *The feedback store* is separate: a rating you choose to
-  send, with optional text. When upload is built it will send only records you
-  choose to upload, under a consent of its own, and never prompt text, and this
-  statement will be updated before it ships, not after.
+  result of acting on one. The CLI keeps no log of outcomes. The feedback
+  described under *The feedback store* is separate: a rating you choose to
+  send, with optional text.
 
 ## Your requests about your data
 
@@ -588,6 +582,10 @@ to `DELETE /v1/feedback`, or write to us with it.
 A change to what the service records is a change to this statement, and it is
 published here before the change ships. The version above is the one in force.
 
+- **1.10, 2026-10-04.** Described the keyed command-line client (MODEL-307): no
+  telemetry, connects only to the API, keeps a key file and configuration
+  backups only when asked. Removed the outcome-log description: the current CLI
+  has no outcome log.
 - **1.9, 2026-10-03.** Enabled the visit gate on the decide page (MODEL-292)
   and disclosed it under *What we store*: the Turnstile check it loads, its
   signed visit token (what it binds, its 30-minute sliding window and four-hour

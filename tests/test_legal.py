@@ -303,17 +303,24 @@ def test_the_privacy_statement_does_not_describe_outcome_logging_as_built() -> N
     assert "Outcome logging" not in before
     assert "Outcome logging by the service" in after
     assert "Not built" in after
-    assert "docs/design/outcome-upload.md" in after
+    assert "The CLI keeps no log of outcomes" in after
 
 
-def test_the_privacy_statement_describes_the_local_outcome_log() -> None:
-    """MODEL-211 ships an opt-in log that stays on the machine. v1.2 called outcome
-    logging "Not built", which stopped being the whole truth when it merged."""
-    assert (REPO_ROOT / "cli" / "modelspec" / "outcome.py").is_file()
+def test_the_privacy_statement_describes_the_keyed_cli_as_distributed() -> None:
+    """MODEL-307: privacy 1.10 describes the keyed CLI as shipped. The distributed
+    package must carry no outcome log, which the statement says it does not have."""
+    import tomllib
+
     before = flat(PRIVACY.split("## Not yet live", 1)[0])
-    for claim in ("`modelspec outcome enable`", "nothing until you turn it on",
-                  "It never leaves your machine", "`cli/modelspec/outcome.py`"):
+    for claim in ("reads none of your provider API keys", "connects only to `api.modelspec.dev`",
+                  "it sends no telemetry", "`modelspec auth set`", "only your user can read",
+                  "`modelspec setup mcp --write`", "saves a backup of that file",
+                  "the current CLI has none"):
         assert claim in before, claim
+    assert "`modelspec outcome enable`" not in before
+    build = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    shipped = build["tool"]["hatch"]["build"]["targets"]["wheel"]["only-include"]
+    assert not [path for path in shipped if "outcome" in path or "offline" in path or "snapshot" in path]
 
 
 def test_the_outcome_modules_open_no_connection() -> None:
@@ -798,9 +805,9 @@ def test_the_decide_contract_refuses_its_free_text_task() -> None:
 #: commitment is a change to that; each gets a new version and date rather than
 #: a silent edit of the adopted one.
 IN_FORCE = {
-    "terms": "Version `1.2`, effective 2026-09-30.",
+    "terms": "Version `1.3`, effective 2026-10-04.",
     "neutrality": "Version `1.3`, effective 2026-09-30.",
-    "privacy": "Version `1.9`, effective 2026-10-03.",
+    "privacy": "Version `1.10`, effective 2026-10-04.",
 }
 
 
@@ -936,9 +943,12 @@ def test_the_privacy_statement_describes_what_refunds_record() -> None:
 
 
 def test_the_access_model_wording_is_in_the_terms_neutrality_and_licence() -> None:
-    """MODEL-249: people free, machines paid and hosted, a delayed public image, no CLI."""
+    """MODEL-249: people free, machines paid and hosted, a delayed public image.
+    MODEL-307 (terms 1.3): the CLI is a keyed client of the service; still no download."""
     assert "delayed image" in FLAT_TERMS
-    assert "no data download and no command-line client" in FLAT_TERMS
+    assert "no data download and no command-line client" not in FLAT_TERMS
+    assert "We offer no data download." in FLAT_TERMS
+    assert "it gets answers only from the API, with a key, and stores none of them" in FLAT_TERMS
     assert "Machine access is a paid product" in FLAT_TERMS
     assert "No account, no key, no charge" not in FLAT_TERMS
     flat_neutrality = flat(NEUTRALITY)
