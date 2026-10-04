@@ -15,7 +15,7 @@ import shutil
 from pathlib import Path
 from typing import Any
 
-from pipeline import agent_copy, brand, entity
+from pipeline import agent_copy, brand, entity, worker_flags
 from pipeline.export import Build
 from pipeline.load import REPO_ROOT, Benchmark, Catalogue, Model
 from pipeline.public_data import enabled as private_serving
@@ -55,14 +55,9 @@ MCP_TOOLS = (
     "decide", "rank", "model_info", "list_use_cases", "policy_check", "vocab", "feedback"
 )
 MCP_AUTH_DESCRIPTION = (
-    "MCP decision tools rank, policy_check and decide require "
+    "MCP data tools rank, policy_check, decide, vocab, model_info and list_use_cases require "
     "`Authorization: Bearer <key>`. "
-    "MCP model_info, list_use_cases, vocab and feedback stay keyless."
-)
-HOSTED_API_AUTH_DESCRIPTION = (
-    "The hosted API is a paid service; get a key at https://modelspec.dev/pricing/. "
-    "Key enforcement is being switched on. Today, hosted API requests without "
-    "a key are served while ACCESS_ENFORCED is off."
+    "Feedback stays keyless; it carries no model data."
 )
 PAGES_FILE_LIMIT = 20_000
 PAGES_ROUTES = {
@@ -101,7 +96,6 @@ _SKIP_MD_EXT = re.compile(
     r"\.(json|xml|txt|png|jpe?g|gif|svg|webp|ico|css|js|mjs|woff2?|ya?ml|map|html)$",
     re.I,
 )
-_WRANGLER_FLAG = re.compile(r'"([A-Z0-9_]+)"\s*:\s*"([^"]*)"')
 
 
 
@@ -146,14 +140,18 @@ def _insert_head(html: str, snippet: str) -> str:
 
 
 def _flag_off(value: str | None) -> bool:
-    return (value or "").strip().lower() in {"false", "0", "no", "off", ""}
+    return not worker_flags.enabled({"flag": value}, "flag")
 
 
-def wrangler_vars(root: Path) -> dict[str, str]:
+def wrangler_vars(root: Path) -> dict[str, Any]:
     path = root / "api" / "worker" / "wrangler.jsonc"
     if not path.is_file():
         return {}
-    return dict(_WRANGLER_FLAG.findall(path.read_text(encoding="utf-8")))
+    return worker_flags.production_vars(root)
+
+
+def hosted_api_auth_description(root: Path = REPO_ROOT) -> str:
+    return "Hosted API data tools need an API key. " + agent_copy.key_procurement(root)
 
 
 #: Every AI crawler class is allowed (MODEL-253, docs/aeo/crawler-policy.md).
@@ -423,7 +421,7 @@ def benchmark_markdown(bench: Benchmark, catalogue: Catalogue) -> str:
 
 
 def modelspec_landing_markdown(models: list[Model], benchmarks: list[Benchmark],
-                               build: Build) -> str:
+                               build: Build, *, root: Path = REPO_ROOT) -> str:
     providers = {m.provider for m in models}
     return (
         f"# ModelSpec\n\n"
@@ -451,7 +449,7 @@ def modelspec_landing_markdown(models: list[Model], benchmarks: list[Benchmark],
         f"\n"
         f"{agent_copy.install_markdown()}\n"
         f"Use the hosted API at `POST https://api.modelspec.dev/v1/decide` "
-        f"or the remote MCP Worker. {HOSTED_API_AUTH_DESCRIPTION} "
+        f"or the remote MCP Worker. {hosted_api_auth_description(root)} "
         f"{MCP_AUTH_DESCRIPTION} Use class-fit if "
         f"you have not decided what class the problem needs; it names candidate "
         f"classes and refuses to order them. Legacy v1 rank uses retired "
@@ -560,7 +558,7 @@ def mcp_card() -> dict[str, Any]:
     }
 
 
-def skill_markdown() -> str:
+def skill_markdown(root: Path = REPO_ROOT) -> str:
     from api.ranking.engine import (
         HONEST_BROKER_RULE,
         NEUTRALITY_PLEDGE,
@@ -611,7 +609,7 @@ def skill_markdown() -> str:
         "- **MCP** (`https://api.modelspec.dev/mcp`) — Streamable HTTP. Tools: "
         + ", ".join(MCP_TOOLS)
         + f". {MCP_AUTH_DESCRIPTION}\n"
-        f"- {HOSTED_API_AUTH_DESCRIPTION}\n"
+        f"- {hosted_api_auth_description(root)}\n"
         "- **feedback** (`POST https://api.modelspec.dev/v1/feedback`, no key) — "
         "after you act on an answer, send one rating: `reliable`, `unreliable`, "
         "`trustworthy`, `untrustworthy` or `confusing`, with `client: \"agent\"` "
@@ -677,7 +675,6 @@ def skill_description() -> str:
 
 def auth_markdown(root: Path) -> str:
     flags = wrangler_vars(root)
-    access_off = _flag_off(flags.get("ACCESS_ENFORCED"))
     billing_off = _flag_off(flags.get("BILLING_ENABLED"))
     x402_off = _flag_off(flags.get("X402_ENABLED"))
     lines = [
@@ -688,7 +685,7 @@ def auth_markdown(root: Path) -> str:
         "How an agent gets access to ModelSpec.",
         "",
         agent_copy.install_markdown(),
-        agent_copy.cli_text()["procurement"],
+        agent_copy.cli_text(root)["procurement"],
         "",
         "The decide, legacy v1 rank, and policy-check APIs live at "
         "`https://api.modelspec.dev`. "
@@ -698,33 +695,20 @@ def auth_markdown(root: Path) -> str:
         "## What is live",
         "",
     ]
-    if access_off:
-        lines.append(
-            "**No key is required for the hosted API.** "
-            "`ACCESS_ENFORCED` in the Worker is off. "
-            "A request without a key is served as the free tier, unmetered. "
-            "A request that presents a key is checked: unknown and revoked "
-            "keys are refused rather than ignored."
-        )
-    else:
-        lines.append(
-            "**A key is required.** `ACCESS_ENFORCED` is on. A request "
-            "without a key is `401 missing_api_key`."
-        )
     lines += [
+        hosted_api_auth_description(root),
         "",
-        (HOSTED_API_AUTH_DESCRIPTION if access_off else
-         "The hosted API is a paid service; get a key at https://modelspec.dev/pricing/."),
+        "### Hosted API data tools (key required)",
         "",
-        "### Hosted API free tier (no key)",
-        "",
-        "- `POST /v1/decide` — downselect from a decision spec, no signup.",
+        "- `POST /v1/decide` — downselect from a decision spec.",
         "- `POST /v1/rank` (legacy v1) — retired fixed-benchmark ranking, "
-        "no signup.",
-        "- `POST /v1/policy-check` — live catalogue public fields. "
+        "for existing callers.",
+        "- `POST /v1/policy-check` — licence, origin, data handling per model and platform. "
         "Checks that need the private determination store stay "
         "`undetermined` with `why: tier`. That is not a pass.",
-        "- `GET /v1/health` — deploy pin.",
+        "- `GET /v1/vocabulary` — valid facet ids and display definitions.",
+        "",
+        "`GET /v1/health` reports the deploy pin; it carries no model data.",
         "",
         "### MCP",
         "",
@@ -838,7 +822,7 @@ def ship(*, root: Path, ms: Path, models: list[Model],
         well / "modelspec-snapshot-keys.json",
     )
 
-    skill_text = skill_markdown()
+    skill_text = skill_markdown(root)
     skill_bytes = skill_text.encode("utf-8")
     skill_dir = well / "agent-skills" / "modelspec"
     skill_dir.mkdir(parents=True, exist_ok=True)
@@ -854,7 +838,9 @@ def ship(*, root: Path, ms: Path, models: list[Model],
     (ms / "auth.md").write_text(auth_markdown(root), encoding="utf-8")
 
     md_count = 0
-    md_count += 1 if _write_md(ms / "index.md", modelspec_landing_markdown(models, benchmarks, build)) else 0
+    md_count += 1 if _write_md(
+        ms / "index.md", modelspec_landing_markdown(models, benchmarks, build, root=root)
+    ) else 0
     for model in models:
         _write_md(ms / "m" / model.model_id / "index.md", model_markdown(model))
         md_count += 1

@@ -9,6 +9,7 @@ import re
 import sys
 import tempfile
 import tomllib
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -178,6 +179,30 @@ def prepare(name: str, override: str | None) -> tuple[dict[str, Any], str]:
     )
 
 
+def _backup(path: Path, contents: bytes) -> Path:
+    base = path.with_name(path.name + ".modelspec-bak")
+    backup = base
+    timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S.%fZ")
+    collision = 0
+    while True:
+        try:
+            descriptor = os.open(backup, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+            break
+        except FileExistsError:
+            suffix = f".{timestamp}" + (f".{collision}" if collision else "")
+            backup = base.with_name(base.name + suffix)
+            collision += 1
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(contents)
+            stream.flush()
+            os.fsync(stream.fileno())
+    except OSError:
+        backup.unlink(missing_ok=True)
+        raise
+    return backup
+
+
 def write(name: str, override: str | None, *, yes: bool, as_json: bool) -> dict[str, Any]:
     client = BUNDLE["clients"][name]
     path = config_path(client, override)
@@ -186,7 +211,8 @@ def write(name: str, override: str | None, *, yes: bool, as_json: bool) -> dict[
     try:
         if path.is_symlink():
             raise ValueError("symlink")
-        original = path.read_text(encoding="utf-8") if path.exists() else ""
+        original_bytes = path.read_bytes() if path.exists() else None
+        original = original_bytes.decode("utf-8") if original_bytes is not None else ""
         proposed = merge(original, client)
     except (OSError, ValueError, TypeError, IndexError):
         raise ClientError("config_unreadable", recovery="setup") from None
@@ -217,15 +243,18 @@ def write(name: str, override: str | None, *, yes: bool, as_json: bool) -> dict[
                 "next": [TEXT["setup_note"]],
             }
     temporary = None
+    backup = None
     try:
-        current = path.read_text(encoding="utf-8") if path.exists() else ""
-        if current != original or path.is_symlink():
+        current = path.read_bytes() if path.exists() else None
+        if current != original_bytes or path.is_symlink():
             raise ClientError("config_changed", recovery="setup")
         path.parent.mkdir(parents=True, exist_ok=True)
         descriptor, name_ = tempfile.mkstemp(prefix=".modelspec-mcp-", dir=path.parent)
         temporary = Path(name_)
         with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
             stream.write(proposed)
+        if original_bytes is not None:
+            backup = _backup(path, original_bytes)
         temporary.replace(path)
     except OSError:
         raise ClientError("config_unwritable", recovery="setup") from None
@@ -235,6 +264,8 @@ def write(name: str, override: str | None, *, yes: bool, as_json: bool) -> dict[
     return {
         "written": True,
         "path": str(path),
-        "message": TEXT["setup_written"].format(path=path),
+        "backup": str(backup) if backup is not None else None,
+        "message": TEXT["setup_written"].format(path=path)
+        + (" " + TEXT["setup_backup"].format(path=backup) if backup is not None else ""),
         "next": [TEXT["setup_note"], *([TEXT[client["note"]]] if "note" in client else [])],
     }

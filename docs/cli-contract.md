@@ -57,7 +57,10 @@ and `generic`. It prints that client's native snippet or command, its source,
 and the guide link. Keys remain placeholders or environment references.
 Claude Desktop uses the `mcp-remote` stdio bridge, not an unsupported native
 HTTP entry. It needs Node.js/npx and `MODELSPEC_AUTH_HEADER` in Desktop's
-process environment, with `Bearer ` followed by the ModelSpec key.
+server `env` block, with the placeholder `Bearer <MODELSPEC_API_KEY>`.
+macOS GUI apps do not inherit the shell environment. Explicitly replace the
+placeholder with the key to configure Desktop; doing so stores the key in
+that config. Setup never copies a saved or environment key into the config.
 
 Without `--write`, no file is read or changed. With `--write`, the CLI reads
 the target JSON or TOML config, prepares a change to only `modelspec`, and
@@ -67,6 +70,14 @@ single JSON document. Other servers and settings retain their values and bytes.
 An unusual inline TOML definition is refused with manual setup as the next step.
 A config that changes after the diff is prepared is refused. Generic clients
 need `--config FILE` to write. The CLI never invokes a client management command.
+
+Before replacing an existing config, `--write` saves its exact original bytes
+in a sibling `<name>.modelspec-bak` with mode 0600. If that backup exists,
+the new backup gets a UTC timestamp suffix; existing backups are never
+overwritten. The text output reports the backup path. Successful JSON writes
+include `backup`, the path or `null` when creating a new config. Cancelled and
+unchanged configurations create no backup. If creating a backup fails, the
+original config stays unchanged.
 
 MCP clients must receive the referenced environment variables themselves.
 `auth set` configures this CLI and does not change another client's environment.
@@ -79,8 +90,10 @@ use an explicit credential placeholder; complete it in the client's secret setti
 Otherwise the CLI reads `api-key` under the user's config directory: XDG when
 set, `~/Library/Application Support/modelspec` on macOS, `%APPDATA%/modelspec`
 on Windows, and `~/.config/modelspec` on other platforms. A stored key must be a
-regular 0600 file. `auth set` accepts a hidden prompt or `--stdin`, writes
-atomically with 0600 permissions, and never echoes the key. There is no key
+regular file. POSIX requires mode 0600; Windows relies on the user-profile
+directory ACL because it cannot report POSIX modes. `auth set` accepts a
+hidden prompt or `--stdin`, writes atomically with 0600 permissions where
+supported, and never echoes the key. There is no key
 argument to put in command history. API keys travel only in an Authorization
 header, never a URL. The client follows no redirects.
 

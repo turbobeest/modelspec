@@ -1,6 +1,6 @@
 # ModelSpec remote MCP server
 
-Read-only MCP tools over the ModelSpec catalogue. Decision tools require an
+Read-only MCP tools over the ModelSpec catalogue. Data tools require an
 API key. The site stays on Cloudflare Pages; this Worker only answers
 `https://api.modelspec.dev/mcp`.
 
@@ -54,10 +54,10 @@ The API validates presented keys and returns its auth/payment errors unchanged.
 explicit `"false"` permits anonymous decision calls. With the default, `rank`,
 `policy_check` and `decide` return a 401 `missing_api_key` tool error before
 contacting the API when a Bearer credential is absent or malformed. This guard
-is necessary because the API can serve keyless requests while its
-`ACCESS_ENFORCED` flag is off. That API flag, `BILLING_ENABLED` and
-`X402_ENABLED` are unchanged. Catalogue and vocabulary reads and feedback
-remain keyless; they do not produce decisions.
+checks credentials before proxying decision calls. Machine data access,
+including `vocab`, `model_info` and `list_use_cases`, needs a ModelSpec key.
+Feedback stays keyless and carries no model data. Use an existing key, or see
+[pricing](https://modelspec.dev/pricing/) for availability.
 
 `decide` accepts the decision spec defined by
 [`docs/decision-contract.md`](../docs/decision-contract.md). Its MCP input
@@ -69,7 +69,9 @@ Pin `snapshot` to reproduce a decision.
 
 ## Client config
 
-Claude Code / Claude Desktop:
+Run `modelspec setup mcp --client claude-code` or
+`modelspec setup mcp --client claude-desktop` for the client's native snippet.
+Claude Code:
 
 ```json
 {
@@ -82,6 +84,27 @@ Claude Code / Claude Desktop:
   }
 }
 ```
+
+Claude Desktop uses the `mcp-remote` stdio bridge and requires Node.js/npx:
+
+```json
+{
+  "mcpServers": {
+    "modelspec": {
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "https://api.modelspec.dev/mcp",
+               "--header", "Authorization:${MODELSPEC_AUTH_HEADER}"],
+      "env": {"MODELSPEC_AUTH_HEADER": "Bearer <MODELSPEC_API_KEY>"}
+    }
+  }
+}
+```
+
+macOS GUI apps do not inherit your shell environment. Explicitly replace the
+placeholder in the `env` block with your key, retaining `Bearer `; that stores
+the key in this config. The CLI's setup command writes the placeholder and
+never copies a saved or environment key into the config. The `env` block and
+header form follow the [mcp-remote documentation](https://github.com/punkpeye/mcp-remote#custom-headers).
 
 ## Local
 

@@ -17,11 +17,10 @@ sys.path.insert(0, str(ROOT))
 
 from decision.snapshot import load_public_keys  # noqa: E402
 from pipeline import agent_ready as ar  # noqa: E402
-from pipeline import brand  # noqa: E402
-from pipeline import entity  # noqa: E402
+from pipeline import brand, entity  # noqa: E402
 from pipeline import build as builder  # noqa: E402
 from pipeline.export import Build  # noqa: E402
-from pipeline.load import Benchmark, Catalogue, Model  # noqa: E402
+from pipeline.load import Benchmark, Model  # noqa: E402
 
 BUILD = Build(commit="abc123def456", built_at="2026-09-18T00:00:00Z", as_of=date(2026, 9, 18))
 CANONICAL = re.compile(r"""rel=["']canonical["']""", re.I)
@@ -193,7 +192,7 @@ def test_auth_md_billing_copy_follows_the_flag() -> None:
         assert "Billing is enabled" in text
         assert "Billing is not live" not in text
     assert "test_" in text
-    assert "No key is required for the hosted API" in text
+    assert "Hosted API data tools need an API key" in text
     assert ar.RANK_API.split("/v1")[0] in text or "api.modelspec.dev" in text
     assert text.index("`POST /v1/decide`") < text.index("`POST /v1/rank`")
     assert "`POST /v1/rank` (legacy v1)" in text
@@ -396,27 +395,31 @@ def test_built_pages_make_no_new_third_party_requests(dist: Path) -> None:
 def test_auth_md_opens_with_the_auth_md_heading(tmp_path):
     """Agent Readiness looks for an `Auth.md` heading; without it the check
     reports the file as present but malformed."""
-    from pipeline.agent_ready import auth_markdown
     from pathlib import Path
+
+    from pipeline.agent_ready import auth_markdown
     root = Path(__file__).resolve().parents[1]
     assert auth_markdown(root).splitlines()[0] == "# Auth.md"
 
 
 @pytest.mark.parametrize("document", ["auth", "llms", "skill"])
-def test_published_auth_copy_separates_mcp_from_hosted_api(document: str) -> None:
+def test_published_auth_copy_requires_keys_for_machine_data(document: str) -> None:
     text = {
         "auth": ar.auth_markdown(ROOT),
         "llms": ar.modelspec_landing_markdown([], [], BUILD),
         "skill": ar.skill_markdown(),
     }[document]
-    assert "MCP decision tools rank, policy_check and decide require `Authorization: Bearer <key>`." in text
-    assert "MCP model_info, list_use_cases, vocab and feedback stay keyless." in text
-    assert "Today, hosted API requests without a key are served while ACCESS_ENFORCED is off." in text
+    assert ("MCP data tools rank, policy_check, decide, vocab, model_info and "
+            "list_use_cases require `Authorization: Bearer <key>`.") in text
+    assert "Feedback stays keyless; it carries no model data." in text
+    assert "Hosted API data tools need an API key" in text
+    assert "free tier" not in text
+    assert "Keyless API calls are still answered" not in text
     assert "with a paid API key" not in text
     assert "Requires a paid API key" not in text
     if document == "auth":
-        free_tier = text.split("### Hosted API free tier (no key)")[1].split("### MCP")[0]
-        assert "MCP" not in free_tier
+        data_tools = text.split("### Hosted API data tools (key required)")[1].split("### MCP")[0]
+        assert "MCP" not in data_tools
         assert "has 7 tools" in text
 
 

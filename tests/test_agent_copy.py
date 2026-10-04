@@ -5,18 +5,21 @@ from __future__ import annotations
 import hashlib
 import json
 import re
+from datetime import date
 from pathlib import Path
 
+import pytest
 import yaml
 
-from pipeline import agent_copy, agent_ready, entity
+from pipeline import agent_copy, agent_ready, entity, worker_flags
+from pipeline.export import Build
 
 ROOT = Path(__file__).resolve().parents[1]
 SERVER = (ROOT / "mcp" / "src" / "server.ts").read_text(encoding="utf-8")
 COMMITTED = json.loads(agent_copy.OUT.read_text(encoding="utf-8"))
 TIERS = json.loads(agent_copy.TIERS.read_text(encoding="utf-8"))
 PAID = {"decide": "decide", "rank": "rank", "policy_check": "policy-check"}
-FREE = ("vocab", "model_info", "list_use_cases", "feedback")
+DATA_TOOLS = (*PAID, "vocab", "model_info", "list_use_cases")
 
 
 def test_the_committed_copy_is_what_the_registry_and_tiers_generate() -> None:
@@ -60,11 +63,39 @@ def test_each_paid_tool_says_the_question_the_return_the_key_and_price_and_when_
         assert re.search(r"Not a router|Don't call it|doesn't choose a model", text), name
 
 
-def test_each_free_tool_says_it_is_free_and_when_not_to_use_it() -> None:
-    for name in FREE:
+def test_each_data_tool_requires_a_key_and_only_feedback_is_keyless() -> None:
+    for name in DATA_TOOLS:
         text = COMMITTED["tools"][name]
-        assert "Free, no key" in text, name
-        assert re.search(r"\bNot\b|not to compare", text), name
+        assert "Needs an API key" in text, name
+        assert "key" in COMMITTED["card"][name].lower(), name
+        assert "free" not in COMMITTED["card"][name].lower(), name
+        assert "Free, no key" not in text, name
+    assert "Free, no key" in COMMITTED["tools"]["feedback"]
+    assert "no Authorization header is forwarded" in COMMITTED["tools"]["feedback"]
+    assert "Machine data access needs a ModelSpec API key" in COMMITTED["instructions"]
+
+
+@pytest.mark.parametrize("billing", [False, True])
+def test_procurement_copy_reads_production_billing_flag(tmp_path, monkeypatch, billing) -> None:
+    config = tmp_path / worker_flags.WRANGLER_REL
+    config.parent.mkdir(parents=True)
+    config.write_text(json.dumps({
+        "vars": {"BILLING_ENABLED": str(billing).lower()},
+        "env": {"staging": {"vars": {"BILLING_ENABLED": str(not billing).lower()}}},
+    }))
+    expected = ("Buy a plan or credit pack at https://modelspec.dev/pricing/ to get a key."
+                if billing else
+                "Use an existing key, or see https://modelspec.dev/pricing/ for availability.")
+    assert agent_copy.key_procurement(tmp_path) == expected
+    assert expected in agent_copy.cli_text(tmp_path)["procurement"]
+    assert expected in agent_ready.auth_markdown(tmp_path)
+    build = Build(commit="test", built_at="2026-10-03T00:00:00Z", as_of=date(2026, 10, 3))
+    assert expected in agent_ready.modelspec_landing_markdown([], [], build, root=tmp_path)
+    assert expected in agent_ready.skill_markdown(tmp_path)
+    monkeypatch.setattr(agent_copy, "key_procurement", lambda: expected)
+    assert expected in agent_copy.guide_body(TIERS)
+    if not billing:
+        assert "Get a key at" not in agent_copy.guide_body(TIERS)
 
 
 def test_prices_in_the_descriptions_are_the_ones_in_tiers_json() -> None:

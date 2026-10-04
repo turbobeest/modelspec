@@ -4,6 +4,7 @@ version = "0.3.0"
 description = "A thin keyed client for the hosted ModelSpec decision API"
 readme = "README.md"
 license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.11"
 classifiers = [
     "Development Status :: 3 - Alpha",
@@ -31,6 +32,7 @@ Documentation = "https://github.com/turbobeest/modelspec/tree/main/docs"
 
 [project.optional-dependencies]
 dev = [
+    "build>=1.2",
     "pydantic>=2.0",
     "falkordb>=1.0",
     "rich>=13.0",
@@ -91,6 +93,8 @@ only-include = [
     "pipeline/agent_copy.py",
     "pipeline/entity.py",
     "pipeline/pricing.py",
+    "pipeline/worker_flags.py",
+    "api/worker/wrangler.jsonc",
     "api/worker/tiers.json",
     "docs/decision-contract.schema.json",
     "schemas/feedback-v1.schema.json",

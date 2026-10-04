@@ -264,10 +264,11 @@ A no-match is an answer, not an empty list:
 
 ## Keys, limits and the sandbox
 
-**A key is optional today.** `ACCESS_ENFORCED` is off: without a key you get
-the free tier, unmetered, never a 401, 403 or 429. A key you present is
-checked, and a bad one is refused, not ignored. The ACCESS store is bound; no
-key is issued yet. [`api-access.md`](api-access.md) has the rest.
+**Machine data access needs an API key.** `ACCESS_ENFORCED` remains off.
+Presented keys are checked, and invalid or revoked keys are refused.
+The ACCESS store is bound. Use an existing key, or see
+[/pricing/](https://modelspec.dev/pricing/) for availability.
+[`api-access.md`](api-access.md) describes the access implementation.
 
 | Tier | Daily | Burst | Live data |
 |---|---|---|---|
@@ -279,7 +280,7 @@ key is issued yet. [`api-access.md`](api-access.md) has the rest.
 Send `Authorization: Bearer <key>` or `X-API-Key`, never the query string.
 A 429 states `limit`, `resets_at` and `retry_after_seconds`. Remaining credits
 unlock policy-check [determinations](api-policy-check.md#free-and-paid); zero
-balance is the free answer plus `credits.exhausted`. Prices:
+balance is the public-export answer plus `credits.exhausted`. Prices:
 [/pricing/](https://modelspec.dev/pricing/).
 
 ## Neutrality, terms and privacy

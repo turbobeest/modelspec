@@ -113,7 +113,7 @@ def test_billing_off_presents_a_price_list_without_purchase_language() -> None:
     assert "What would your agents spend at these prices?" in html
     assert "Cheapest published option" in html
     assert ("Keyless API calls are still answered while paid access is being switched "
-            "on; these are the credit prices for it.") in html
+            "on. These are the credit prices for it.") in html
     assert "Hosted API and MCP answers use prepaid credits" not in html
     assert re.search(r"\b(buy|checkout|card|cancel(?:ling)?)\b", _rendered_text(html), re.I) is None
 
@@ -228,7 +228,7 @@ def test_production_switches_generate_what_ships_today(tmp_path: Path) -> None:
     assert "perCall" not in _payload(html)
     assert "coming soon" not in html.lower()
     assert "opening soon" not in html.lower()
-    assert "People decide free. Agents start free." in html
+    assert "People decide free. Machine access needs a key." in html
     assert "People decide free. Agents pay per answer." not in html
 
 
@@ -295,8 +295,9 @@ def test_landing_and_decide_link_pricing() -> None:
     assert '<a href="/pricing/">Pricing</a>' in decide
 
 
-def test_pricing_descriptions_and_hero_state_mcp_decision_key_requirement() -> None:
-    requirement = "MCP decision tools (rank, policy_check, decide) require an API key."
+def test_pricing_descriptions_and_hero_require_keys_for_all_data_tools() -> None:
+    requirement = ("MCP data tools (vocab, model_info, list_use_cases, decide, rank, "
+                   "policy_check) require an API key.")
     for enforced in (False, True):
         page = _page(access_enforced=enforced)
         description = pricing.DESCRIPTION if enforced else pricing.FREE_TIER_DESCRIPTION
@@ -305,3 +306,7 @@ def test_pricing_descriptions_and_hero_state_mcp_decision_key_requirement() -> N
         assert "offline CLI" not in page
         if not enforced:
             assert "API and MCP server answer on a free tier" not in page
+            approved = "Keyless API calls are still answered while paid access is being switched on"
+            assert page.count(approved) == 1
+            assert "Keyless API" not in description
+            assert "Agents start free" not in page

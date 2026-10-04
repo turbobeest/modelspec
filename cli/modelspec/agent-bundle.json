@@ -1,7 +1,7 @@
 {
   "_generated": "by pipeline.agent_copy; run python -m pipeline.agent_copy write",
   "cli_version": "0.3.0",
-  "guide_version": "1-fdf1f9a417cbfe12",
+  "guide_version": "1-bd35b09fbde8cdaf",
   "entity": "ModelSpec is an analysis of alternatives for AI models: it decides which models fit a job from your requirements, sourced benchmarks and real cost, and shows its work.",
   "coverage": {
     "as_of": "2026-09-23",
@@ -107,7 +107,10 @@
           "https://api.modelspec.dev/mcp",
           "--header",
           "Authorization:${MODELSPEC_AUTH_HEADER}"
-        ]
+        ],
+        "env": {
+          "MODELSPEC_AUTH_HEADER": "Bearer <MODELSPEC_API_KEY>"
+        }
       },
       "source": "https://github.com/punkpeye/mcp-remote#custom-headers",
       "note": "desktop_note"
@@ -176,13 +179,13 @@
     }
   },
   "text": {
-    "access": "Three ways in: keyed CLI, MCP and HTTP API. Decisions need a ModelSpec API key; only human lookup is free. No data download or local decision cache.",
+    "access": "Three ways in: keyed CLI, MCP and HTTP API. Machine data access needs a ModelSpec API key; only human lookup is free. No data download or local decision cache.",
     "privacy": "No telemetry. The CLI never reads provider API keys.",
     "package_warning": "pip install modelspec is an unrelated project. Use modelspec-dev.",
     "coverage": "Bundled public coverage summary, {as_of}: {models} models, {providers} providers, {benchmarks} benchmarks. Current coverage may differ.",
     "answers": "Ask about model requirements, sourced capability evidence, cost, context, hosting and policy constraints. Answers report ties, missing facts and reasons.",
     "price": "From {low_cents}¢ per answer. Published range ${low_usd}–${high_usd} per answer, depending on plan, pack and explanation.",
-    "procurement": "Review plans and packs at https://modelspec.dev/pricing/. Use an existing key, or follow the key and credit options shown there. Checkout availability is shown on the page. For access, volume or invoicing, contact sales@modelspec.dev. Store a key with modelspec auth set, or set MODELSPEC_API_KEY; the environment wins.",
+    "procurement": "Use an existing key, or see https://modelspec.dev/pricing/ for availability. Checkout availability is shown on the page. For access, volume or invoicing, contact sales@modelspec.dev. Store a key with modelspec auth set, or set MODELSPEC_API_KEY; the environment wins.",
     "human_message": "ModelSpec can check this model choice against your requirements and its published evidence. The agent needs a ModelSpec API key. Answers start at {low_cents}¢ at the cheapest published rate. You can provide an existing key, review https://modelspec.dev/pricing/, or look it up yourself on the free board at https://modelspec.dev/decide/.",
     "orientation_next": [
       "Run modelspec key for access and prices.",
@@ -196,13 +199,14 @@
     "command_help": "Run {command} --help for this command's options.",
     "links": "Guide: {guide}\nOpenAPI: {openapi}\nPricing and keys: {pricing}",
     "guide_version": "Guide version: {version}",
-    "key_saved": "Stored the ModelSpec key in {path} with mode 0600. MODELSPEC_API_KEY takes precedence.",
+    "key_saved": "Stored the ModelSpec key in {path}. POSIX uses mode 0600; Windows uses the user-profile directory ACL. MODELSPEC_API_KEY takes precedence.",
     "key_prompt": "ModelSpec API key",
     "write_prompt": "Apply this diff to the ModelSpec server entry?",
-    "setup_note": "Set the referenced environment variable in the MCP client's process before launching it. A key stored by modelspec auth set is for this CLI; other clients need their own environment. Read the agent guide into the client's context.",
-    "desktop_note": "Claude Desktop uses the mcp-remote stdio bridge and needs Node.js/npx. Set MODELSPEC_AUTH_HEADER to Bearer followed by a space and your ModelSpec key in Desktop's process environment; no key is written into this snippet.",
+    "setup_note": "Configure the MCP client's referenced environment variable or explicit credential placeholder before launching it. A key stored by modelspec auth set is for this CLI. Setup never copies a saved or environment key into the config; a key value must be supplied explicitly. Read the agent guide into the client's context.",
+    "desktop_note": "Claude Desktop uses the mcp-remote stdio bridge and needs Node.js/npx. macOS GUI apps do not inherit your shell environment. Explicitly replace <MODELSPEC_API_KEY> in the env block's MODELSPEC_AUTH_HEADER with your key, keeping the Bearer prefix and space. This stores the key in that config. Setup writes only the placeholder and never reads your saved or environment key.",
     "manual_note": "Replace <MODELSPEC_API_KEY> in your client's secret settings. This is a placeholder, not a credential.",
     "setup_written": "Updated only the ModelSpec server entry in {path}.",
+    "setup_backup": "Backed up the original config to {path}.",
     "setup_unchanged": "The ModelSpec server entry is already configured in {path}.",
     "setup_cancelled": "The proposed change was not applied.",
     "upgrade": "Upgrade the client: uvx --refresh --from modelspec-dev modelspec; or pipx upgrade modelspec-dev; or pip install --upgrade modelspec-dev.",
@@ -211,7 +215,7 @@
       "usage_error": "The command or options could not be read.",
       "missing_api_key": "This command needs a ModelSpec API key.",
       "invalid_api_key": "The ModelSpec key is invalid or was refused.",
-      "auth_unreadable": "The stored ModelSpec key cannot be read securely. Use a regular 0600 file.",
+      "auth_unreadable": "The stored ModelSpec key cannot be read securely. Use a regular file with mode 0600 on POSIX, or in your user-profile directory on Windows.",
       "auth_unwritable": "The ModelSpec key could not be stored.",
       "invalid_spec": "The Spec failed structural validation against the bundled published schema. The server validates its meaning.",
       "spec_unreadable": "The Spec file or standard input could not be read as JSON or YAML.",
@@ -299,12 +303,14 @@
     }
   },
   "source_hashes": {
-    "pipeline/agent_copy.py": "66ed4422af3283f2a1173bbf9c39e96590cc9c7879d9318dc471ececf3eab760",
+    "pipeline/agent_copy.py": "37fb1ef5256aef1c51376c30d2fd405f0af380e75f33de7a78e738583c567c39",
     "pipeline/entity.py": "1649e5f95b620561511c2619045d036231b44c8ab7ff297bf4c6a21ab2b69ff3",
-    "pipeline/pricing.py": "82c465f20d9c0b608dda76e2bebefaa67b9ed97db549fc64b69e79b0bff7e4d8",
+    "pipeline/pricing.py": "1e7b0b1c1bfc2fba4bd2de1d551b2fd9490dccdf13669a24bad5a7c02a8fb2c8",
+    "pipeline/worker_flags.py": "24f13653d35fa40bee8531fe0644aa1adbf4d80c232da5dcc3cd74cf035fceed",
+    "api/worker/wrangler.jsonc": "b8c0831916b3ecf7bd01930099a3951ffb7249cff9f477abfdbb64f76fb69c81",
     "api/worker/tiers.json": "315a2ad62c5b366246675d2984e61243ed20d85d89bad6bd648e8960926b8773",
     "docs/decision-contract.schema.json": "9b70bf707f23ba1a236fe2f29e502377bc95d2213973df0acd89faee6c6afc32",
-    "pyproject.toml": "ef0e7e6e23476a43c888a6344f5ad0e294a9ff1e42933315a3cf1e4dfaad71e9",
+    "pyproject.toml": "985f27499841d558f35fbeb131bce5ddadff489e3a1ed78be7af717fecefb021",
     "schemas/feedback-v1.schema.json": "551a54ba5a954b73c38d5c35d0a48c62cf1b89d0cd9543d96103e2320450638b"
   }
 }

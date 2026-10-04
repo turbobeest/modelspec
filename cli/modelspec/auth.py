@@ -51,7 +51,9 @@ def require_key() -> Credential:
             descriptor = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
             with os.fdopen(descriptor, "r", encoding="utf-8") as stream:
                 metadata = os.fstat(stream.fileno())
-                if not stat.S_ISREG(metadata.st_mode) or stat.S_IMODE(metadata.st_mode) != 0o600:
+                if not stat.S_ISREG(metadata.st_mode) or (
+                    os.name != "nt" and stat.S_IMODE(metadata.st_mode) != 0o600
+                ):
                     raise ClientError("auth_unreadable", recovery="key", exit_code=5)
                 value = stream.read(4098).strip()
         except FileNotFoundError:
@@ -78,7 +80,12 @@ def store_key(value: str) -> Path:
         descriptor, name = tempfile.mkstemp(prefix=".api-key-", dir=path.parent)
         temporary = Path(name)
         with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
-            os.fchmod(stream.fileno(), 0o600)
+            if hasattr(os, "fchmod"):
+                try:
+                    os.fchmod(stream.fileno(), 0o600)
+                except (OSError, NotImplementedError):
+                    if os.name != "nt":
+                        raise
             stream.write(value + "\n")
             stream.flush()
             os.fsync(stream.fileno())

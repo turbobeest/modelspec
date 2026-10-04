@@ -87,7 +87,7 @@ exports[`modelspec MCP worker > tools/list returns all seven tools with object i
     "name": "rank",
   },
   {
-    "description": "What does ModelSpec's published card say about one model? Reads https://modelspec.dev/api/models/<model_id>.json (model_id is provider/slug). With data splitting enabled, returns only the model's display name from the Worker vocabulary. Free, no key. Not current evidence and not a ranking: use decide for that. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
+    "description": "What does ModelSpec's card say about one model? Reads https://modelspec.dev/api/models/<model_id>.json (model_id is provider/slug). With data splitting, returns only the model's display name from the Worker vocabulary. Needs an API key. Not current evidence and not a ranking: use decide for that. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
     "inputSchema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "properties": {
@@ -104,7 +104,7 @@ exports[`modelspec MCP worker > tools/list returns all seven tools with object i
     "name": "model_info",
   },
   {
-    "description": "Which ranking profiles exist, and what is the ranking policy? Returns https://modelspec.dev/api/rank/profiles.json: the profiles, the evidence floors and the neutrality commitment, as data. Free, no key. Not a decision: use decide for that. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
+    "description": "Which ranking profiles exist, and what is the ranking policy? Returns https://modelspec.dev/api/rank/profiles.json: the profiles, the evidence floors and the neutrality commitment. Needs an API key. Not a decision: use decide for that. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
     "inputSchema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "properties": {},
@@ -1740,7 +1740,7 @@ takes its key and its plans with it.",
     "name": "decide",
   },
   {
-    "description": "What can a decide spec say? Returns the decision vocabulary: valid facet ids, benchmarks, domains, providers and task types. Compact by default, with 20 rows per page and no counts. In split mode full details still exclude per-model facts and counts. Free, no key. Use it for missing ids, not to compare models. Call decide after at most one vocab lookup. section=starter returns a ready-to-send minimal Spec with 'next: call decide with this; refine from reading'. Every response carries a next hint. If you need ids, use section=starter. Use search for a case-insensitive substring of id or label, then call decide. Pass id or ids for full details of specific rows, or detail=full for all display details. Use offset and limit to page compact sections; an empty page ends the list. ",
+    "description": "What can a decide spec say? Returns the decision vocabulary: valid facet ids, benchmarks, domains, providers and task types. Compact by default, with 20 rows per page and no counts. Split-mode full details exclude per-model facts and counts. Needs an API key. Use it for missing ids, not to compare models. Call decide after at most one vocab lookup. section=starter returns a ready-to-send minimal Spec with 'next: call decide with this; refine from reading'. Responses include a next hint. If you need ids, use section=starter. Use search for a case-insensitive substring of id or label, then call decide. Use id or ids for row details, or detail=full for all display details. Use offset and limit to page compact sections; an empty page ends the list. ",
     "inputSchema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "properties": {

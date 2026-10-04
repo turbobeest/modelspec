@@ -478,6 +478,26 @@ def test_insecure_auth_file_and_symlink_are_refused(tmp_path):
     assert target.read_text() == "unchanged"
 
 
+@pytest.mark.parametrize("fchmod", ["missing", "unsupported"])
+def test_windows_saved_key_uses_profile_acl_instead_of_posix_mode(monkeypatch, fchmod):
+    def unsupported(*args):
+        raise OSError("fchmod is unavailable on Windows")
+
+    windows_os = SimpleNamespace(**{**vars(auth.os), "name": "nt"})
+    if fchmod == "missing":
+        del windows_os.fchmod
+    else:
+        windows_os.fchmod = unsupported
+    monkeypatch.setattr(auth, "os", windows_os)
+    result = run(["auth", "set", "--stdin", "--json"], input=KEY)
+    assert result.exit_code == 0, result.output
+    path = auth.key_path()
+    path.chmod(0o666)
+    assert auth.require_key().secret == KEY
+    assert "Windows uses the user-profile directory ACL" in result.stdout
+    assert KEY not in result.stdout + result.stderr
+
+
 @pytest.mark.parametrize("name", list(BUNDLE["clients"]))
 def test_each_mcp_client_prints_native_config_without_keys_or_writes(name, tmp_path):
     result = run(["setup", "mcp", "--client", name, "--json"], keyed=True)
@@ -493,6 +513,18 @@ def test_each_mcp_client_prints_native_config_without_keys_or_writes(name, tmp_p
     )
     assert KEY not in result.stdout + result.stderr
     assert not list(tmp_path.rglob("*"))
+
+
+def test_desktop_snippet_has_an_explicit_env_placeholder():
+    result = run(["setup", "mcp", "--client", "claude-desktop", "--json"], keyed=True)
+    assert result.exit_code == 0, result.output
+    data = json.loads(result.stdout)
+    server = json.loads(data["snippet"])["mcpServers"]["modelspec"]
+    assert server["env"] == {"MODELSPEC_AUTH_HEADER": "Bearer <MODELSPEC_API_KEY>"}
+    assert server["args"][-2:] == ["--header", "Authorization:${MODELSPEC_AUTH_HEADER}"]
+    assert "macOS GUI apps do not inherit your shell environment" in data["next"][0]
+    assert "This stores the key in that config" in data["next"][0]
+    assert KEY not in result.stdout + result.stderr
 
 
 @pytest.mark.parametrize(
@@ -515,7 +547,13 @@ def test_write_shows_diff_and_preserves_other_servers_and_settings(name, tmp_pat
     result = run([*args, "--yes"])
     assert result.exit_code == 0, result.output
     assert "@@" in result.stderr
-    assert json.loads(result.stdout)["written"] is True
+    data = json.loads(result.stdout)
+    assert data["written"] is True
+    backup = path.with_name(path.name + ".modelspec-bak")
+    assert data["backup"] == str(backup)
+    assert str(backup) in data["message"]
+    assert backup.read_bytes() == original.encode()
+    assert stat.S_IMODE(backup.stat().st_mode) == 0o600
     updated = path.read_text()
     if is_toml:
         assert '# My configuration\nmodel = "mine"' in updated
@@ -531,6 +569,47 @@ def test_write_shows_diff_and_preserves_other_servers_and_settings(name, tmp_pat
     assert second.exit_code == 0
     assert json.loads(second.stdout)["written"] is False
     assert path.read_text() == updated
+    assert list(tmp_path.glob("*.modelspec-bak*")) == [backup]
+
+
+@pytest.mark.parametrize("json_mode", [False, True])
+def test_config_backup_preserves_exact_bytes_and_existing_backups(tmp_path, json_mode):
+    path = tmp_path / "mcp.json"
+    original = '{\r\n "name": "café", "mcpServers": {}\r\n}\r\n'.encode()
+    path.write_bytes(original)
+    first_backup = path.with_name(path.name + ".modelspec-bak")
+    first_backup.write_bytes(b"earlier config")
+    result = run([
+        "setup", "mcp", "--client", "claude-desktop", "--config", str(path),
+        "--write", "--yes", *(["--json"] if json_mode else []),
+    ], keyed=True)
+    assert result.exit_code == 0, result.output
+    backups = sorted(tmp_path.glob("mcp.json.modelspec-bak.*"))
+    assert len(backups) == 1
+    backup = backups[0]
+    assert first_backup.read_bytes() == b"earlier config"
+    assert backup.read_bytes() == original
+    assert stat.S_IMODE(backup.stat().st_mode) == 0o600
+    assert str(backup) in result.stdout
+    if json_mode:
+        assert json.loads(result.stdout)["backup"] == str(backup)
+    assert KEY not in path.read_text() + result.stdout + result.stderr
+
+
+def test_backup_failure_leaves_config_unchanged(monkeypatch, tmp_path):
+    path = tmp_path / "mcp.json"
+    path.write_bytes(b"{}\r\n")
+
+    def denied(*args):
+        raise PermissionError("Cannot create backup")
+
+    monkeypatch.setattr(setup, "_backup", denied)
+    assert_error(run([
+        "setup", "mcp", "--client", "cursor", "--config", str(path),
+        "--write", "--yes", "--json",
+    ]), "config_unwritable")
+    assert path.read_bytes() == b"{}\r\n"
+    assert list(tmp_path.iterdir()) == [path]
 
 
 def test_toml_merge_preserves_a_distinct_server_with_a_dotted_name(tmp_path):
@@ -589,7 +668,10 @@ def test_setup_interactive_accept_decline_and_concurrent_edit(monkeypatch, tmp_p
     assert result.exit_code == 0, result.output
     assert not path.exists()
     monkeypatch.setattr(setup.typer, "confirm", lambda *a, **k: True)
-    assert run(args).exit_code == 0
+    created = run([*args, "--json", "--yes"])
+    assert created.exit_code == 0, created.output
+    assert json.loads(created.stdout)["backup"] is None
+    assert not list(tmp_path.glob("*.modelspec-bak*"))
     path.write_text("{}")
 
     def changed(*a, **k):

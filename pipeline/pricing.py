@@ -21,13 +21,14 @@ TITLE = "ModelSpec pricing — people decide free, agents pay per answer"
 FREE_TIER_TITLE = "ModelSpec pricing — people decide free, machine access priced"
 DESCRIPTION = ("A person looking a model up on the ModelSpec board pays nothing. "
                "Machine access uses the keyed CLI, hosted API and MCP server, paid in credits, "
-               "with plans and packs. MCP decision tools "
-               "(rank, policy_check, decide) require an API key.")
+               "with plans and packs. MCP data tools "
+               "(vocab, model_info, list_use_cases, decide, rank, policy_check) "
+               "require an API key.")
 FREE_TIER_DESCRIPTION = ("A person looking a model up on the ModelSpec board pays nothing. "
-                         "Machine access uses the keyed CLI, hosted API and MCP server. Keyless "
-                         "API calls are still answered while paid access is switched on; "
-                         "these are its prices. MCP decision tools "
-                         "(rank, policy_check, decide) require an API key.")
+                         "Machine access uses the keyed CLI, hosted API and MCP server. "
+                         "These are its published credit prices. MCP data tools "
+                         "(vocab, model_info, list_use_cases, decide, rank, policy_check) "
+                         "require an API key.")
 NETWORK_NAMES = {"eip155:8453": "Base mainnet", "eip155:84532": "Base Sepolia"}
 
 
@@ -73,11 +74,7 @@ def hero_summary(tiers: dict[str, Any], *, access_enforced: bool,
         high_rate = smallest_pack["usd"] / smallest_pack["credits"]
     else:
         high_rate = max(rates)
-    agent_line = (
-        "Agents pay per answer."
-        if access_enforced
-        else "Agents start free."
-    )
+    agent_line = "Agents pay per answer." if access_enforced else "Machine access needs a key."
     return agent_line, f"{_rate(min(rates))}–{_rate(high_rate)} per credit"
 
 
@@ -192,13 +189,15 @@ def page(tiers: dict[str, Any], *, build: Build | None = None,
     hero_heading = f"People decide free. {agent_line}"
     hero_copy = ("A person using the board on this site pays nothing. Machine "
                  f"access uses the keyed CLI, hosted API and MCP server, and it uses "
-                 f"{hero_payment}. No data download. MCP decision "
-                 "tools (rank, policy_check, decide) require an API key." if access_enforced else
+                 f"{hero_payment}. No data download. MCP data "
+                 "tools (vocab, model_info, list_use_cases, decide, rank, policy_check) "
+                 "require an API key." if access_enforced else
                  "A person using the board on this site pays nothing. Machine "
                  "access uses the keyed CLI, hosted API and MCP server. Keyless API calls "
-                 "are still answered while paid access is being switched on; these "
+                 "are still answered while paid access is being switched on. These "
                  "are the credit prices for it. The CLI requires a key. No data download. "
-                 "MCP decision tools (rank, policy_check, decide) require an API key.")
+                 "MCP data tools (vocab, model_info, list_use_cases, decide, rank, policy_check) "
+                 "require an API key.")
     buy_heading = "Buy credits for your agents" if billing_live else "Plans and packs"
     buy_copy = ("Pay by card. You get one API key and one balance; every agent that carries "
                 "the key draws from it." if billing_live else
