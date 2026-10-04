@@ -307,6 +307,12 @@ EXPECTED_TYPES = {"/.well-known/api-catalog": "application/linkset+json"}
 EXPECTED_LINKS = ('rel="describedby"', 'rel="api-catalog"', 'rel="sitemap"')
 #: Written only on main (MAIN_ONLY), so the build cannot check it; production can.
 DEPLOYED_ONLY = ("/api/decision/vocabulary.json",)
+CLIENT_AGENTS = (
+    "Python-urllib/3.12", "python-requests/2.32.3", "node",
+    "node-fetch/1.0 (+https://github.com/bitinn/node-fetch)",
+    "Go-http-client/1.1", "Go-http-client/2.0",
+)
+SITE_CLIENT_PATHS = ("/agents.md", "/llms.txt", "/openapi.yaml", "/api/build.json")
 
 
 def smoke(origin: str, fetch=None) -> list[str]:
@@ -362,6 +368,49 @@ def crawler_probe(origin: str, fetch=None) -> list[str]:
             if (status := fetch(origin.rstrip("/") + path, agent)) != 200]
 
 
+def client_probe(api_origin: str, fetch=None, site_origin: str | None = None) -> list[str]:
+    """Each HTTP client response that differs from curl (MODEL-317, MODEL-323)."""
+    def send(method: str, url: str, agent: str, body: bytes | None) -> tuple[int, str]:
+        headers = {"User-Agent": agent}
+        if body is not None:
+            headers["Content-Type"] = "application/json"
+        request = urllib.request.Request(url, data=body, headers=headers, method=method)
+        try:
+            with urllib.request.urlopen(request, timeout=30) as response:
+                return response.status, response.headers.get("Content-Type", "")
+        except urllib.error.HTTPError as error:
+            return error.code, error.headers.get("Content-Type", "")
+        except urllib.error.URLError:
+            return 0, ""
+
+    fetch = fetch or send
+    failed: list[str] = []
+
+    def probe(origin: str, method: str, path: str, body: bytes | None = None, *, site: bool = False) -> None:
+        url = origin.rstrip("/") + path
+        baseline_status, baseline_type = fetch(method, url, "curl/8.7.1", body)
+        baseline_type = baseline_type.split(";", 1)[0].strip().lower()
+        if site and baseline_status != 200:
+            failed.append(f"curl/8.7.1 {method} {path}: {baseline_status} {baseline_type or '(no Content-Type)'}, "
+                          "not a 200 response from the site")
+        elif not site and (baseline_status == 0 or baseline_type != "application/json"):
+            failed.append(f"curl/8.7.1 {method} {path}: {baseline_status} {baseline_type or '(no Content-Type)'}, "
+                          "not a JSON answer from the Worker")
+        for agent in CLIENT_AGENTS:
+            status, content_type = fetch(method, url, agent, body)
+            content_type = content_type.split(";", 1)[0].strip().lower()
+            if (status, content_type) != (baseline_status, baseline_type):
+                failed.append(f"{agent} {method} {path}: {status} {content_type}, "
+                              f"curl got {baseline_status} {baseline_type}")
+
+    probe(api_origin, "GET", "/v1/health")
+    probe(api_origin, "POST", "/v1/decide", b"{}")
+    if site_origin is not None:
+        for path in SITE_CLIENT_PATHS:
+            probe(site_origin, "GET", path, site=True)
+    return failed
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n", 1)[0])
     sub = parser.add_subparsers(dest="command", required=True)
@@ -373,7 +422,20 @@ def main(argv: list[str] | None = None) -> int:
     check.add_argument("--origin", required=True, help="for example https://modelspec.dev")
     probe = sub.add_parser("crawler-probe", help="fetch every page as each named AI crawler")
     probe.add_argument("--origin", required=True, help="for example https://modelspec.dev")
+    clients = sub.add_parser("client-probe", help="compare common HTTP clients with curl on the API and optional site")
+    clients.add_argument("--origin", required=True, help="for example https://api.modelspec.dev")
+    clients.add_argument("--site", help="also probe the site's agent files, for example https://modelspec.dev")
     args = parser.parse_args(argv)
+
+    if args.command == "client-probe":
+        failed = client_probe(args.origin, site_origin=args.site)
+        origins = f"{args.origin} and {args.site}" if args.site else args.origin
+        for line in failed:
+            print(f"::error::{origins}: {line}", file=sys.stderr)
+        if not failed:
+            checks = "health, decide and the site agent files" if args.site else "health and decide"
+            print(f"{origins}: every common HTTP client matches curl on {checks}")
+        return 1 if failed else 0
 
     if args.command == "crawler-probe":
         refused = crawler_probe(args.origin)

@@ -17,8 +17,6 @@ Computed per request from the current public export. No state, no signup.
 * `GET /v1/health` — the deployed version, and whether it can read the exports.
 * Spec: [`api/worker/openapi.yaml`](../api/worker/openapi.yaml), generated from
   the implementation. Build your client from it.
-* Send a real `User-Agent`: Cloudflare refuses the standard-library default
-  (`Python-urllib/*`) before the request arrives.
 
 ## Request
 
@@ -255,7 +253,7 @@ Every refusal carries `error.code` and `error.message`, and `result` is `[]`.
 | 500 | `access_not_configured` | ours | retry later; report it |
 | 502 | `export_unavailable` | the published export could not be read | retry; not your request |
 | 503 | `access_store_not_configured` | a live key, and this deploy has no ACCESS store | use a `test_` key, or none |
-| 403 | *(not JSON)* | Cloudflare refused the client at the edge: `error code: 1010` | send a real `User-Agent` |
+| 403 | *(not JSON)* | Cloudflare refused the client at the edge: `error code: 1010` | any common client user agent, including Python's default `Python-urllib`, is meant to work; report a `1010` refusal; the weekly [crawler-access job](../.github/workflows/crawler-access.yml) probes these clients |
 
 A no-match is an answer, not an empty list:
 
