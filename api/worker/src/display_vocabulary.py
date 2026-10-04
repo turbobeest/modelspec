@@ -243,7 +243,8 @@ def search_vocabulary(vocabulary, *, section, search, ids, full, offset, limit):
     if not hits:
         closest = suggestions(vocabulary, [search] if search else sorted(ids))
         quoted = json.dumps(search if search else ", ".join(sorted(ids)), ensure_ascii=False)
-        names = ", ".join(item["id"] + (f" (value {item['value']})" if "value" in item else "")
+        names = ", ".join(item["id"] + (f" (value {json.dumps(item['value']) if isinstance(item['value'], bool) else item['value']})"
+                                        if "value" in item else "")
                           for item in closest) or "none"
         result.update(suggestions=closest, message=f"No vocabulary entry matches {quoted} in the id, label, definition or values of {', '.join(searched)}; closest ids: {names}.")
     return result

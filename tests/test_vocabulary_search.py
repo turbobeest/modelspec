@@ -300,3 +300,9 @@ def test_a_hundred_unknown_ids_stay_bounded(display):
     result = lookup(display, ids=[f"unknown.facet.{i:03d}.{'q' * 100}" for i in range(100)])
     assert result["total"] == 0 and len(result["suggestions"]) <= 5
     assert time.perf_counter() - start < 5
+
+
+def test_boolean_value_suggestions_render_like_json():
+    miss = lookup({"facets": [{"id": "flag", "allowed_values": [True, False]}]}, search="ture")
+    assert miss["suggestions"][0] == {"section": "facets", "id": "flag", "value": True}
+    assert "flag (value true)" in miss["message"]

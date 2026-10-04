@@ -82,6 +82,9 @@ describe("vocabulary discovery", () => {
     expect((miss.suggestions as unknown[])[0]).toEqual({ section: "facets", id: "facet", value: "violet" });
     expect(miss.message).toContain("facet (value violet)");
     expect(lookupVocabulary(source, { search: "." })).toMatchObject({ matches: [], total: 0 });
+    const flag = lookupVocabulary({ facets: [{ id: "flag", allowed_values: [true, false] }] }, { search: "ture" });
+    expect((flag.suggestions as unknown[])[0]).toEqual({ section: "facets", id: "flag", value: true });
+    expect(flag.message).toContain("flag (value true)");
     expect(vocabInput.safeParse({ search: "x".repeat(129) }).success).toBe(false);
     expect(vocabInput.safeParse({ ids: ["x".repeat(129)] }).success).toBe(false);
   });
@@ -136,7 +139,7 @@ describe("vocabulary discovery", () => {
       { search: "a", offset: 20, limit: 7 }, { search: "a", detail: "full", offset: 20, limit: 2 },
       { ids: display.facets.map(({ id }) => id), offset: 20, limit: 3 },
       { ids: ["not_a_facet", "offering.price.inptu"] },
-      { search: "nvidia rtx 4091" }, { search: "flase" }, { search: "." }, { search: "_./", section: "facets" },
+      { search: "nvidia rtx 4091" }, { search: "flase" }, { search: "ture" }, { section: "domains", search: "ture" }, { search: "." }, { search: "_./", section: "facets" },
     ] satisfies VocabInput[];
     const root = new URL("../../", import.meta.url).pathname;
     const output = execFileSync("python3", ["-c", `

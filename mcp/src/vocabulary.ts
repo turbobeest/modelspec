@@ -249,7 +249,7 @@ function searchVocabulary(vocabulary: Record<string, unknown>, args: VocabInput,
     const closest = suggestions(vocabulary, search ? [search] : [...ids].sort(compareText));
     result.suggestions = closest;
     const quoted = JSON.stringify(search || [...ids].sort(compareText).join(", "));
-    const names = closest.map((item) => "value" in item ? `${item.id} (value ${String(item.value)})` : item.id).join(", ") || "none";
+    const names = closest.map((item) => "value" in item ? `${item.id} (value ${typeof item.value === "boolean" ? JSON.stringify(item.value) : String(item.value)})` : item.id).join(", ") || "none";
     result.message = `No vocabulary entry matches ${quoted} in the id, label, definition or values of ${searched.join(", ")}; closest ids: ${names}.`;
   }
   return result;
