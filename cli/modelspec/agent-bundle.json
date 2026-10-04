@@ -655,9 +655,9 @@
     "package_warning": "pip install modelspec is an unrelated project. Use modelspec-dev.",
     "coverage": "Bundled public coverage summary, {as_of}: {models} catalogue cards, {providers} catalogue providers, {benchmarks} benchmarks. {summary} Current coverage may differ. See https://modelspec.dev/api/coverage.json.",
     "answers": "Ask about model requirements, sourced capability evidence, cost, context, hosting and policy constraints. Answers report ties, missing facts and reasons.",
-    "price": "From {low_cents}¢ per answer. Published range ${low_usd}–${high_usd} per answer, depending on plan, pack and explanation.",
+    "price": "From {low_dollars} per answer. Published range ${low_usd}–${high_usd} per answer, depending on plan, pack and explanation.",
     "procurement": "Buy a plan or pack at https://modelspec.dev/pricing/. Stripe hosts Checkout; claim your key at the success link. Checkout availability is shown on the page. For access, volume or invoicing, contact sales@modelspec.dev. Store a key with modelspec auth set, or set MODELSPEC_API_KEY; the environment wins.",
-    "human_message": "ModelSpec can check this model choice against your requirements and its published evidence. The agent needs a ModelSpec API key. Answers start at {low_cents}¢ at the cheapest published rate. You can provide an existing key, review https://modelspec.dev/pricing/, or look it up yourself on the free board at https://modelspec.dev/decide/.",
+    "human_message": "ModelSpec can check this model choice against your requirements and its published evidence. The agent needs a ModelSpec API key. Answers start at {low_dollars} at the cheapest published rate. You can provide an existing key, review https://modelspec.dev/pricing/, or look it up yourself on the free board at https://modelspec.dev/decide/.",
     "orientation_next": [
       "Run modelspec key for access and prices.",
       "Run modelspec setup mcp --client generic to connect an MCP client.",
@@ -774,9 +774,9 @@
     }
   },
   "source_hashes": {
-    "pipeline/agent_copy.py": "0340d1f79caea4f0cf8cf9fa14a261aee668c18a966fd09909631b54435fcb8e",
+    "pipeline/agent_copy.py": "b80c90d9cdef3ade0bd024d947d63f044c7040d2754b07e55a532219e2cf0bdc",
     "pipeline/entity.py": "1649e5f95b620561511c2619045d036231b44c8ab7ff297bf4c6a21ab2b69ff3",
-    "pipeline/pricing.py": "0d544bf20e0cf1f3960ef301b6cc7cb0050031f4a4dc536cccfc8af3d36474d9",
+    "pipeline/pricing.py": "71bc6fa888ca079c186a39c2ccd15f2ed957f2ebf59599f6413f16b8f519a174",
     "pipeline/worker_flags.py": "0f3c1ff0de81710417659b86e1ec92913bbcf54af6312720fdad659e6af03429",
     "api/worker/wrangler.jsonc": "ecf7875754f3317d0b95cc7a41615847c4ea888608e899a90c9d202ec6528f84",
     "api/worker/tiers.json": "315a2ad62c5b366246675d2984e61243ed20d85d89bad6bd648e8960926b8773",

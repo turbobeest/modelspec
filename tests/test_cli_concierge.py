@@ -139,7 +139,14 @@ def test_key_prices_come_from_the_same_site_source():
     data = json.loads(run(["key", "--json"]).stdout)
     tiers = pricing.load_tiers(agent_copy.ROOT)
     assert data["pricing"] == pricing.procurement_data(tiers)
-    assert "From 0.17¢ per answer" in data["price"]
+    low = pricing.format_usd(data["pricing"]["usd_per_answer"]["min"])
+    assert f"From {low} per answer" in data["price"]
+    assert f"Answers start at {low}" in data["tell_the_human"]
+    assert "¢" not in data["price"]
+    assert "¢" not in data["tell_the_human"]
+    contract = (agent_copy.ROOT / "docs/cli-contract.md").read_text(encoding="utf-8")
+    assert low in contract
+    assert "¢" not in contract
     rates = [row["usd"] / row["credits"] for row in tiers["billing"]["prices"].values()]
     assert data["pricing"]["usd_per_answer"] == {"min": min(rates), "max": max(rates) * 2}
     changed = copy.deepcopy(tiers)

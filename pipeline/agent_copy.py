@@ -117,13 +117,13 @@ def cli_text(root: Path = ROOT) -> dict[str, Any]:
                      "Current coverage may differ. See https://modelspec.dev/api/coverage.json."),
         "answers": ("Ask about model requirements, sourced capability evidence, cost, context, "
                     "hosting and policy constraints. Answers report ties, missing facts and reasons."),
-        "price": "From {low_cents}¢ per answer. Published range ${low_usd}–${high_usd} per answer, depending on plan, pack and explanation.",
+        "price": "From {low_dollars} per answer. Published range ${low_usd}–${high_usd} per answer, depending on plan, pack and explanation.",
         "procurement": (key_procurement(root) + " Checkout availability is shown on the page. "
                         "For access, volume or invoicing, contact sales@modelspec.dev. "
                         "Store a key with modelspec auth set, or set MODELSPEC_API_KEY; the environment wins."),
         "human_message": ("ModelSpec can check this model choice against your requirements and its "
                           "published evidence. The agent needs a ModelSpec API key. Answers start at "
-                          "{low_cents}¢ at the cheapest published rate. You can provide an existing key, "
+                          "{low_dollars} at the cheapest published rate. You can provide an existing key, "
                           f"review {PRICING}, or look it up yourself on the free board at "
                           f"{entity.SITE}/decide/."),
         "orientation_next": ["Run modelspec key for access and prices.",
@@ -613,7 +613,8 @@ def credit_usd_range(tiers: dict[str, Any]) -> tuple[float, float]:
 
 
 def _usd(value: float) -> str:
-    return f"${value:.4f}".rstrip("0")
+    from pipeline.pricing import format_usd
+    return format_usd(value)
 
 
 def price(weights: list[int], tiers: dict[str, Any]) -> str:

@@ -59,10 +59,12 @@ async function assertRankedBoard(page) {
   await page.getByRole("region", { name: "Give this to my agent" }).waitFor();
   assert.equal(await page.locator(".agent-handoff").count(), 1);
   const tiers = JSON.parse(fs.readFileSync(new URL("api/worker/tiers.json", root), "utf8"));
-  const rate = Math.min(...Object.values(tiers.billing.prices)
-    .filter((price) => !price.placeholder && price.credits).map((price) => price.usd / price.credits));
-  const cents = (rate * tiers.credits.weights["decide.summary"] * 100).toFixed(2);
-  await page.getByText(`Your agent gets this answer from ${cents}¢`, { exact: true }).waitFor();
+  const team = Object.values(tiers.billing.prices).filter((price) => price.kind === "plan" && price.name === "Team");
+  assert.equal(team.length, 1);
+  const summary = team[0].usd / team[0].credits * tiers.credits.weights["decide.summary"];
+  // Same four-decimal form as pipeline.pricing.format_usd.
+  const dollars = `$${summary.toFixed(4)}`.replace(/0+$/, "");
+  await page.getByText(`Your agent gets this answer from ${dollars}`, { exact: true }).waitFor();
   await page.getByText(`A full explanation costs ${tiers.credits.weights["decide.full"]} credits.`, { exact: true }).waitFor();
   assert.equal(await page.getByRole("link", { name: "no paid placement · sourced" }).getAttribute("href"), "https://modelspec.dev/legal/neutrality/");
   const card = page.getByRole("region", { name: "Give this to my agent" });

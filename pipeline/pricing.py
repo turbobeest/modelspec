@@ -54,6 +54,23 @@ def procurement_data(tiers: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+def team_usd_per_credit(tiers: dict[str, Any]) -> float:
+    """Dollars per credit on the Team plan. The decide anchor uses this rate."""
+    matches = [row for row in tiers["billing"]["prices"].values()
+               if row.get("kind") == "plan" and row.get("name") == "Team"]
+    if len(matches) != 1:
+        raise ValueError(f"expected one Team plan in tiers.json, found {len(matches)}")
+    credits = matches[0].get("credits")
+    if not credits:
+        raise ValueError("Team plan has no credits")
+    return matches[0]["usd"] / credits
+
+
+def format_usd(value: float) -> str:
+    """Four decimal dollars with trailing zeros removed, so the Team rate is $0.0017."""
+    return f"${value:.4f}".rstrip("0")
+
+
 def _money(value: int | float, suffix: str = "") -> str:
     return f"${value:,.0f}{suffix}"
 

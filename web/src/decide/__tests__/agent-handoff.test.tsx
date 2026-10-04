@@ -69,6 +69,7 @@ it.each(boards)("shows the exact API Spec and copies one hand-off message for th
   await user.click(within(card).getByRole("button", { name: "Copy for my agent" }));
   const message = clipboard.mock.lastCall?.[0] ?? "";
   expect(message).toBe(`${PREFIX}${shown}`);
+  expect(message).not.toContain("¢");
   expect(specFromMessage(message)).toEqual(spec);
   expect(within(card).getByRole("status")).toHaveTextContent("Hand-off copied for your agent.");
   expect(within(card).getByRole("status")).toHaveAttribute("aria-live", "polite");
@@ -172,7 +173,8 @@ it("announces clipboard failure and clears it when another snippet is selected",
 
 it("renders the built price, explanation credits, neutrality excerpt and flag-aware key link", () => {
   render(<><AnswerAssurances spec={sampleSpec} /><AgentHandoff spec={sampleSpec} /></>);
-  expect(screen.getByText(`Your agent gets this answer from ${handoffData.summary_price_cents}¢`)).toBeInTheDocument();
+  expect(screen.getByText(handoffData.price_line)).toHaveTextContent(/^Your agent gets this answer from \$/);
+  expect(handoffData.price_line).not.toContain("¢");
   expect(screen.getByText(`A full explanation costs ${handoffData.full_credits} credits.`)).toBeInTheDocument();
   expect(screen.getByRole("link", { name: `${handoffData.neutrality.text} · sourced` })).toHaveAttribute("href", handoffData.neutrality.href);
   const key = screen.getByRole("link", { name: handoffData.key_link.label });
