@@ -253,7 +253,7 @@ def main(argv=None) -> int:
         datetime.strptime(args.date, "%Y-%m-%d")
         # Gemini CLI no longer serves Google AI Pro; see GEMINI_RETIRED.
         scenario_clis = tuple(cli for cli in CLIS if cli != "gemini")
-        selected = list(dict.fromkeys(args.cli or (scenario_clis if args.job == "scenarios" else ("codex", "grok") if args.job == "ux" else CLIS)))
+        selected = list(dict.fromkeys(args.cli or (("codex", "grok") if args.job == "ux" else scenario_clis)))
         config = configuration(args.state_dir, browser_clis=selected if args.job == "ux" else (),
                                quiet_hours=args.scheduled or args.quiet_hours,
                                max_runs=args.max_runs_per_cli if args.max_runs_per_cli is not None else {"scenarios": 400, "ux": 40, "aeo": 64}[args.job])

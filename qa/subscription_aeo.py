@@ -75,11 +75,13 @@ def run(inventory_path, engine_path, output, state, config, day, *, dry_run=Fals
     rows, logs, api_rows = [], [], []
     now = lambda: datetime.now(timezone.utc)
     failure_reason = None
+    # Unselected engines keep every cell, each marked skipped, so the run is partial.
+    logs = [{"engine": name, "status": "skipped",
+             "reason": "retired" if cli == "gemini" else "not selected"}
+            for name, cli in ENGINE_CLIS.items() if cli not in clis]
     try:
         for name, cli in ENGINE_CLIS.items():
             if cli not in clis:
-                # Unselected engines keep every cell, each marked skipped, so the run is partial.
-                logs.append({"engine": name, "status": "skipped", "reason": "not selected"})
                 continue
             profile = profiles[name]
             status, reason = "complete", None

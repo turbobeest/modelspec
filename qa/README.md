@@ -413,9 +413,10 @@ calls its unchanged API adapter. Dated `runs.jsonl`, `engines.json`,
 `summary.json`, `report.md`, `raw/` and `BASELINE` retain their format. The surface
 field records subscription versus API; comparing the old baseline also compares
 transport and model profiles. Perplexity has no CLI quiet-hours restriction.
-`--cli` selects the subscription engines; the default is all four. Only the
-selected CLIs need receipts, and each still fails closed without one. Every
-unselected engine's cells read `skipped (not selected)`, so the run is partial.
+`--cli` selects the subscription engines; the default is Claude, Codex and Grok.
+Only the selected CLIs need receipts, and each still fails closed without one.
+Unselected engines' cells read `skipped (not selected)`, and Gemini's read
+`skipped (retired)`, so such a run is partial.
 Late failures keep completed answers and costs, fill every unrun cell with
 `skipped (<reason>)`, and publish the partial reports. Partial runs identify
 themselves in the JSON and Markdown and do not establish a new `BASELINE`.

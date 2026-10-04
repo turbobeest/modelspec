@@ -352,7 +352,7 @@ def test_aeo_cli_selection_marks_unselected_engines_skipped_and_partial(config, 
     assert checked == [['claude', 'codex', 'grok']]
     assert calls == ['codex', 'claude', 'grok']
     rows = {r['engine']: r for r in map(json.loads, (tmp_path / 'runs/2026-10-04/runs.jsonl').read_text().splitlines())}
-    assert len(rows) == 5 and rows['gemini']['error'] == 'skipped (not selected)'
+    assert len(rows) == 5 and rows['gemini']['error'] == 'skipped (retired)'
     log = json.loads((tmp_path / 'runs/2026-10-04/engines.json').read_text())
     assert log['partial'] is True
     assert {e['engine']: e['status'] for e in log['engines']}['gemini'] == 'skipped'
@@ -433,8 +433,10 @@ def test_aeo_late_failures_publish_completed_and_skipped_cells(
     rows = [json.loads(line) for line in (out / 'runs.jsonl').read_text().splitlines()]
     assert len(rows) == 10
     answered = [r for r in rows if 'detection' in r]
-    assert len(answered) == (2 if failure_engine == 'anthropic' else 9)
-    skipped = [r for r in rows if 'error' in r]
+    # The default selection leaves out the retired Gemini CLI.
+    assert len(answered) == (2 if failure_engine == 'anthropic' else 7)
+    assert [r['error'] for r in rows if r['engine'] == 'gemini'] == ['skipped (retired)'] * 2
+    skipped = [r for r in rows if 'error' in r and r['engine'] != 'gemini']
     assert all(r['error'].startswith('skipped (') for r in skipped)
     assert all(('late failure' if not isinstance(failure, subprocess.TimeoutExpired) else 'timed out')
                in r['error'] for r in skipped)
