@@ -244,13 +244,12 @@ it("explains the snapshot in the page header and share dialog", async () => {
   render(<DesignedApp />);
   await screen.findByLabelText("Facet board answer");
   const snapshot = screen.getByText(fixture.snapshot);
-  expect(snapshot).toHaveAttribute("title", "The data version this answer used");
+  expect(snapshot).toHaveAttribute("tabindex", "0");
   expect(snapshot).toHaveAccessibleDescription("The data version this answer used");
 
   fireEvent.click(screen.getByRole("button", { name: "Share or give to my agent" }));
   const dialog = screen.getByRole("dialog", { name: "Share or give to my agent" });
   const sharedSnapshot = within(dialog).getByText(fixture.snapshot);
-  expect(sharedSnapshot).toHaveAttribute("title", "The data version this answer used");
   expect(sharedSnapshot).toHaveAccessibleDescription("The data version this answer used");
 });
 
