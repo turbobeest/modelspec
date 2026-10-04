@@ -1,6 +1,6 @@
 # Terms of service
 
-Version `1.3`, effective 2026-10-04. Adopted by Sparks & Sawdust LLC.
+Version `1.4`, effective 2026-10-04. Adopted by Sparks & Sawdust LLC.
 MODEL-70.
 
 ## 1. Who you are contracting with
@@ -30,10 +30,10 @@ service is:
   beginning `test_` is a sandbox key: it is answered with synthetic results, not
   live data, and is never stored. Whether a call must carry a key, and the
   limits of each tier, are published at `https://modelspec.dev/auth.md` and
-  `https://modelspec.dev/pricing`. Machine access is a paid product. On the
-  effective date above the switch that enforces keys is still off, so a call
-  without a key is still answered, at no charge; that is a transitional state,
-  not an offer, and it ends when enforcement is switched on.
+  `https://modelspec.dev/pricing`. Machine access is a paid product: a request
+  for an answer from the API or the MCP server without a key is refused, with a
+  message saying where to get one. The decide page on modelspec.dev stays free for a person
+  looking things up by hand.
 - **Paid access**, metered in credits and bought through Stripe (§6). A key with
   credits remaining receives the paid answer, which includes our commercial-use
   and data-residency determinations on policy-check. A key with none left
@@ -266,8 +266,10 @@ You may stop using the service at any time. We may suspend or end access for a
 breach of §5. §4 does not expire, is not suspended, and does not change with a
 new version of these terms.
 
-Version 1.3 (2026-10-04) described the command-line client, a keyed client for the
-service; there is still no data download. Version 1.2 (2026-09-30) corrected our legal name to Sparks & Sawdust LLC, the
+Version 1.4 (2026-10-04) records that keys are enforced: a request for an
+answer without a key is refused, and only a person using the decide page by hand
+is served without one. No other term changed. Version 1.3 (2026-10-04) described
+the command-line client, a keyed client for the service; there is still no data download. Version 1.2 (2026-09-30) corrected our legal name to Sparks & Sawdust LLC, the
 name registered with Rhode Island and the IRS, and corrected the card-statement
 name in §6 to SPARKS AND SAWDUST LLC, which is what Stripe sends; no term
 changed. Version 1.1 (2026-09-30) changed §2 and §8: it states that only a

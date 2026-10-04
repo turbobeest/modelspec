@@ -439,8 +439,8 @@ def test_the_privacy_statement_says_keys_are_wired_and_not_enforced() -> None:
     entry = (REPO_ROOT / "api" / "worker" / "src" / "entry.py").read_text(encoding="utf-8")
     assert "access.gate(" in entry, "the access gate is no longer wired; the statement says it is"
     assert "not wired into the deployed" not in FLAT_PRIVACY
-    config = _wrangler_config()
-    enforced = '"ACCESS_ENFORCED": "false"' not in config
+    from pipeline import worker_flags
+    enforced = worker_flags.enabled(worker_flags.production_vars(REPO_ROOT), "ACCESS_ENFORCED")
     claims_off = "enforcement off" in FLAT_PRIVACY and "no key is required" in FLAT_PRIVACY
     assert enforced != claims_off, (
         "wrangler.jsonc and the privacy statement disagree about whether a key is "
@@ -806,9 +806,9 @@ def test_the_decide_contract_refuses_its_free_text_task() -> None:
 #: commitment is a change to that; each gets a new version and date rather than
 #: a silent edit of the adopted one.
 IN_FORCE = {
-    "terms": "Version `1.3`, effective 2026-10-04.",
+    "terms": "Version `1.4`, effective 2026-10-04.",
     "neutrality": "Version `1.3`, effective 2026-09-30.",
-    "privacy": "Version `1.10`, effective 2026-10-04.",
+    "privacy": "Version `1.11`, effective 2026-10-04.",
 }
 
 

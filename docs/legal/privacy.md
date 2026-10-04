@@ -1,6 +1,6 @@
 # Privacy statement
 
-Version `1.10`, effective 2026-10-04. Adopted by Sparks & Sawdust LLC, which
+Version `1.11`, effective 2026-10-04. Adopted by Sparks & Sawdust LLC, which
 operates the service. MODEL-70. Version 1.0 was adopted on 2026-09-19; what
 changed since is listed under [Changes](#changes).
 
@@ -110,9 +110,11 @@ writes to it. No D1 database, R2 bucket, queue or analytics dataset is bound.
 ### The API-key store
 
 A second KV namespace, `ACCESS`, is bound for API keys (MODEL-69) and purchases
-(MODEL-73). It is wired with enforcement off (`ACCESS_ENFORCED` is `"false"`):
-no key is required, and a request without one is answered as it always was, unmetered
-and with nothing written. A request that presents a key is checked against the
+(MODEL-73). Keys are enforced (`ACCESS_ENFORCED` is `"true"`): a rank, decide,
+compare, policy-check or vocabulary request that carries no key is refused with
+HTTP 401, and nothing is written for it, unless it comes from the decide page
+with a valid visit token (see *The visit gate on the decide page*). The health
+check and the feedback endpoint need no key. A request that presents a key is checked against the
 store. A key is issued when a purchase is claimed. It holds these kinds of
 record (`api/worker/src/access_keys.py`, `access_limits.py`,
 `access_billing.py`):
@@ -344,9 +346,9 @@ and in any case with the day's state. All of it is scheduled for deletion at the
 following UTC midnight; a delayed or retried alarm can delay the physical
 deletion, and Cloudflare's point-in-time recovery for SQLite-backed storage can
 retain earlier states for up to 30 days. Shared IPs or IPv6 /64 networks share
-allowances. API keys take precedence over visit tokens. While access enforcement
-(`ACCESS_ENFORCED`) is off, a request with no visit token is answered without
-these meters, so the gate meters the decide page rather than every caller.
+allowances. API keys take precedence over visit tokens. Because keys are enforced
+(`ACCESS_ENFORCED`), a request with neither a key nor a valid visit token is
+refused and writes nothing to these meters.
 
 ## What Stripe holds
 
@@ -584,6 +586,9 @@ to `DELETE /v1/feedback`, or write to us with it.
 A change to what the service records is a change to this statement, and it is
 published here before the change ships. The version above is the one in force.
 
+- **1.11, 2026-10-04.** Keys are enforced (MODEL-96): a request without a key or
+  a valid visit token is refused and writes nothing. Updated *The API-key store*
+  and the visit gate's description to match. Nothing stored changed.
 - **1.10, 2026-10-04.** Described the keyed command-line client (MODEL-307): no
   telemetry, connects only to the API, keeps a key file and configuration
   backups only when asked. Removed the outcome-log description: the current CLI
