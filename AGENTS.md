@@ -28,8 +28,11 @@ its work. (Source: `pipeline/entity.py`.)
 - Agent, UX and judge testing runs on subscription CLIs (`qa/`). Any vendor API spend, including the manual speed probe, needs Jamie's yes for that run.
 - Production switches are Jamie's, as Worker vars (`api/worker/wrangler.jsonc`) or repo variables: `ACCESS_ENFORCED`, `BILLING_ENABLED`, `X402_ENABLED`, `X402_MAINNET`, `FEEDBACK_ENABLED`, `HUMAN_GATE_ENABLED`, `VISIT_GATE_ENABLED`, `SIGNALS_ENABLED`, `SITE_MODE`, `DATA_SPLIT_ENABLED`, and live Stripe keys. No `FEEDBACK` KV namespace is bound until he adopts `docs/design/feedback-privacy.md`.
 - The sites stay on Cloudflare Pages (MODEL-3, Jamie).
+- Daily-research PRs (`modelspec-data` `research/*`) are never auto-merged; a human reviews each one (Jamie).
 - Open PRs as draft until reviewed: `automerge.yml` queues every green non-draft PR from this repository, except PRs that touch workflows and the `data-lag/image` branch, which a human merges.
 - The feedback digest runs on the operator's machine, never in CI (repo and logs are public).
+- One worktree and one session per ticket (Jamie). Give each worker its own scratch subdirectory; session scratchpads are shared.
+- Automate the human steps. Bring Jamie only a government ID value, a credential, a legal attestation, or an action a permission classifier refused, saying what was blocked.
 - Put limits in code, not prompts. Verify by running, not by reading a ticket. Check exit codes directly, not through a pipe.
 
 ## Commands
