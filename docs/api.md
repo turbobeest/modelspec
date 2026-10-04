@@ -275,7 +275,7 @@ A no-match is an answer, not an empty list:
 ## Keys, limits and the sandbox
 
 **Machine data access needs an API key.** `ACCESS_ENFORCED` is on.
-Keyless machine requests get 401 `missing_api_key` with the pricing pointer.
+Keyless machine requests get 401 `missing_api_key`.
 The ACCESS store is bound; invalid or revoked keys are refused.
 Buy a plan or pack at [/pricing/](https://modelspec.dev/pricing/) and claim
 your key at Checkout's success link. `BILLING_ENABLED` is on.
