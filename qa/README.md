@@ -217,7 +217,7 @@ Run these commands yourself from this worktree:
 | --- | --- | --- |
 | Claude Pro/Max | `python -m qa.tui_harness login --cli claude` | URL: `claude auth login --claudeai`; open the displayed URL on the Mac and complete the CLI's code flow |
 | ChatGPT | `python -m qa.tui_harness login --cli codex` | Device code: `codex -c 'cli_auth_credentials_store="file"' login --device-auth` |
-| Google AI account | `python -m qa.tui_harness login --cli gemini` | URL: `gemini` with `NO_BROWSER=true`; choose Google sign-in, open its displayed URL on the Mac, return the requested code, then exit |
+| Google AI account | `python -m qa.tui_harness login --cli gemini` | Refused: see below |
 | SuperGrok/X | `python -m qa.tui_harness login --cli grok` | Device code: `grok login --device-auth` |
 
 Login replaces the harness process with `docker run -it --rm`, inherits terminal
@@ -225,9 +225,18 @@ stdio, and mounts only that CLI's HOME volume. It captures no output and needs n
 ModelSpec key. Codex device login may need enabling in ChatGPT security settings.
 [OpenAI's authentication docs](https://developers.openai.com/codex/auth/) and
 [xAI's CLI reference](https://docs.x.ai/build/cli/reference) describe the device
-flows. [Claude's CLI reference](https://code.claude.com/docs/en/cli-reference) and
-[Gemini's authentication guide](https://geminicli.com/docs/get-started/authentication/)
-cover the subscription URL flows. Doctor never starts login or logout.
+flows. [Claude's CLI reference](https://code.claude.com/docs/en/cli-reference)
+covers the subscription URL flow. Doctor never starts login or logout.
+
+Gemini login is refused before Docker starts. On 2026-06-18 Google stopped
+serving Gemini CLI for Google AI Pro, AI Ultra and free accounts
+([announcement](https://github.com/google-gemini/gemini-cli/discussions/27274)).
+Google sign-in still completes. Code Assist then answers "This client is no
+longer supported for Gemini Code Assist for individuals", and the CLI falls back
+to its API-key prompt. Only paid API keys and Code Assist Standard/Enterprise
+remain. The harness refuses API keys and passes no Google Cloud project, so
+neither is available here. Doctor still reports a Gemini volume's state. When
+the volume holds a Google login, it records the retirement as the reason.
 
 ### Container boundary and doctor
 
@@ -357,6 +366,9 @@ before the first task, and every launch rechecks status and inventory. Missing
 or changed evidence refuses the job. Vendor API-key/token environment variables,
 including empty variables, refuse all jobs and dry runs. There is no API fallback
 for the four subscription vendors. No job starts login or refreshes doctor for you.
+The scenarios job defaults to Claude, Codex and Grok; Gemini readiness refuses
+with the retirement reason above. AEO still lists Gemini as an engine, so it
+refuses until its engine set changes.
 
 Execution is serial and uses the existing quota and usage-limit checks. Job
 quotas default to 400 CLI starts per family for all 74 scenarios, 40 for the UX
@@ -421,10 +433,9 @@ are shared between each CLI's ordinary and UX variants; receipts are separate.
 ```sh
 python -m qa.tui_harness build-images
 python -m qa.tui_harness build-images --ux-image --cli codex --cli grok
-# After Jamie logs in, certify all four ordinary images:
+# After Jamie logs in, certify the three ordinary images (Gemini is retired):
 python -m qa.tui_harness doctor --cli claude --out "$STATE"
 python -m qa.tui_harness doctor --cli codex --out "$STATE"
-python -m qa.tui_harness doctor --cli gemini --out "$STATE"
 python -m qa.tui_harness doctor --cli grok --out "$STATE"
 # Then certify the visitor images:
 python -m qa.tui_harness doctor --ux-image --cli codex --out "$STATE"

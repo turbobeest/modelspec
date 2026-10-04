@@ -22,6 +22,11 @@ LOGIN_ARGS = {
     "gemini": ["gemini"],
     "grok": ["grok", "login", "--device-auth"],
 }
+# Google's notice: github.com/google-gemini/gemini-cli/discussions/27274
+GEMINI_RETIRED = (
+    "Google stopped serving Gemini CLI for Google AI Pro, AI Ultra and free accounts on "
+    "2026-06-18; only paid API keys and Code Assist Standard/Enterprise remain"
+)
 _CLIENT_ENV: dict | None = None
 
 

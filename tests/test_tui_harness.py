@@ -1625,7 +1625,7 @@ def test_gemini_authenticated_service_rejection_is_not_missing_login(config, tmp
     result = auth.authentication_status("gemini", config, tmp_path, env)
     assert result["verified"] and result["logged_in"] is True
     assert result["auth_method"] == "oauth-personal" and result["service_available"] is False
-    assert "UNSUPPORTED_CLIENT" in result["reason"]
+    assert result["reason"] == docker.GEMINI_RETIRED
 
 
 @pytest.mark.parametrize("cli", providers.CLIS)
@@ -1825,7 +1825,24 @@ def test_doctor_rejects_state_directory_aliases_before_any_docker_call(
     assert not list(target.iterdir())
 
 
-@pytest.mark.parametrize("cli", providers.CLIS)
+def test_gemini_login_refuses_before_docker_because_google_retired_it(config, monkeypatch):
+    monkeypatch.setattr(homes.os, "execve", lambda *a: pytest.fail("Docker must not be started"))
+    monkeypatch.setattr(
+        homes, "image_identity", lambda *a: pytest.fail("Docker must not be queried")
+    )
+    with pytest.raises(ValueError, match="2026-06-18"):
+        homes.login("gemini", config)
+
+
+def test_build_images_prints_gemini_retirement_not_a_login_command(monkeypatch, capsys):
+    monkeypatch.setattr(harness, "build_images", lambda *a: None)
+    monkeypatch.setattr(harness, "binary_identity", lambda *a: {"reported_version": "0.62.0"})
+    assert harness.main(["build-images", "--cli", "gemini"]) == 0
+    out = capsys.readouterr().out
+    assert out == f"gemini: 0.62.0. {docker.GEMINI_RETIRED}.\n"
+
+
+@pytest.mark.parametrize("cli", [cli for cli in providers.CLIS if cli != "gemini"])
 def test_login_execs_docker_with_subscription_flow_and_uncaptured_terminal(
     cli, config, monkeypatch, capsys
 ):
