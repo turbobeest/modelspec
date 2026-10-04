@@ -829,6 +829,7 @@ html:not([data-decide-theme="light"]) .capsule {
 .board-answer-head h2, .board-answer-head p { margin: 0; }
 .board-answer .board-ranked-answer { padding: 16px 12px 20px; }
 .board-ranked-answer > ol { list-style: none; margin: 0; padding: 0; }
+.board-class-heading { margin: 20px 0 6px; font: 600 14px var(--sans); color: var(--muted); }
 .board-ranked-answer > ol > li { display: grid; grid-template-columns: minmax(0, 1fr) 112px minmax(0, .8fr); gap: 12px; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--line-soft); }
 .board-ranked-answer > ol > li.without-capability { grid-template-columns: minmax(150px, 1fr) 112px; }
 .board-ranked-columns { display: grid; grid-template-columns: minmax(0, 1fr) 112px minmax(0, .8fr); gap: 12px; padding: 4px 0 2px; color: var(--muted); }
@@ -1732,6 +1733,7 @@ html:not([data-decide-theme="light"]) .capsule {
 .decision-table .excluded-row {
   color: var(--muted);
 }
+.decision-table .table-class-heading th { padding-top: 18px; text-align: left; color: var(--muted); }
 .decision-table tbody tr > td:first-child { border-left: 3px solid var(--good); }
 .decision-table tbody tr.status-may > td:first-child { border-left-color: var(--warn); }
 .decision-table tbody tr.status-out > td:first-child { border-left-color: var(--muted); }

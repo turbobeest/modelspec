@@ -1,9 +1,9 @@
 import { expect } from "@playwright/test";
 import { test } from "./human-gate-fixtures";
 import { readFileSync } from "node:fs";
+import { decisionFixtureFor } from "../scripts/decision-fixtures.mjs";
 
-const vocabulary = readFileSync(new URL("../src/decide/__fixtures__/vocabulary.json", import.meta.url), "utf8");
-const decision = readFileSync(new URL("../src/decide/__fixtures__/live-empty-board-full.json", import.meta.url), "utf8");
+const vocabulary = readFileSync(new URL("../src/decide/__fixtures__/live-vocabulary.json", import.meta.url), "utf8");
 const narrowedDecision = readFileSync(new URL("../src/decide/__fixtures__/live-budget-coding-full.json", import.meta.url), "utf8");
 
 test.beforeEach(async ({ page }) => {
@@ -16,7 +16,7 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/v1/decide", (route) => route.fulfill({
     status: 200,
     contentType: "application/json",
-    body: decision,
+    body: decisionFixtureFor(route.request().postDataJSON()),
   }));
 });
 
@@ -53,6 +53,11 @@ test("Clear opens an alphabetic empty board and that saved board wins on reload"
   await openBoard(page);
   await page.getByRole("button", { name: "Clear", exact: true }).click();
   await expect(page.locator(".board-unranked")).toHaveText("Not ranked yet: listed alphabetically");
+  await page.getByRole("button", { name: "Show all 28", exact: true }).click();
+  await expect(page.locator(".board-ranked-answer > .board-class-heading"))
+    .toHaveText(["Class not recorded", "Decision model", "Text generator"]);
+  await expect(page.getByRole("region", { name: "Narrowing", exact: true }).getByRole("status"))
+    .toHaveText("28 qualify · 13 may qualify · 3 out");
   await expect(page.locator(".template-active")).toHaveCount(0);
   await page.reload();
   await expect(page.locator(".board-unranked")).toHaveText("Not ranked yet: listed alphabetically");
@@ -77,8 +82,8 @@ test("the counter announces exact values and does not animate with reduced motio
   const status = narrowing.getByRole("status");
   await expect(status).toHaveAttribute("aria-live", "polite");
   await expect(status).toHaveAttribute("aria-atomic", "true");
-  await expect(status).toHaveText("22 qualify · 10 may qualify · 0 out");
-  await expect(narrowing.locator(".narrowing-number")).toHaveText(["22", "10", "0"]);
+  await expect(status).toHaveText("24 qualify · 10 may qualify · 10 out");
+  await expect(narrowing.locator(".narrowing-number")).toHaveText(["24", "10", "10"]);
   await expect(narrowing.locator(".narrowing-counts")).toHaveAttribute("aria-hidden", "true");
   expect(await narrowing.locator(".narrowing-number").first().evaluate((node) => getComputedStyle(node).animationName)).toBe("none");
   const shortcuts = await page.locator(".template-shortcuts").boundingBox();
@@ -88,10 +93,18 @@ test("the counter announces exact values and does not animate with reduced motio
   expect(counter.y).toBeGreaterThanOrEqual(shortcuts.y + shortcuts.height);
   expect(access.y).toBeGreaterThanOrEqual(counter.y + counter.height);
 
-  await page.route("**/v1/decide", (route) => route.fulfill({ contentType: "application/json", body: narrowedDecision }));
+  const liveRegion = await status.elementHandle();
+  let release: () => void = () => {};
+  const held = new Promise<void>((resolve) => { release = resolve; });
+  await page.route("**/v1/decide", async (route) => { await held; await route.fulfill({ contentType: "application/json", body: narrowedDecision }); });
   await page.getByRole("button", { name: /^Size of work/ }).click();
   await page.locator('[data-facet="model.context_window"]').getByLabel("Must", { exact: true }).check();
+  await expect(page.locator(".loading-cards")).toBeVisible();
+  await expect(status).toHaveText("24 qualify · 10 may qualify · 10 out");
+  expect(await status.evaluate((node, original) => node === original, liveRegion)).toBe(true);
+  release();
   await expect(status).toHaveText("15 qualify · 3 may qualify · 14 out");
+  expect(await status.evaluate((node, original) => node === original, liveRegion)).toBe(true);
   await expect(narrowing.locator(".narrowing-number")).toHaveText(["15", "3", "14"]);
   expect(await narrowing.locator(".narrowing-number").first().evaluate((node) => getComputedStyle(node).animationName)).toBe("none");
 });
@@ -99,7 +112,7 @@ test("the counter announces exact values and does not animate with reduced motio
 test("the counter animates exact digits when motion is enabled", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "no-preference" });
   await openBoard(page);
-  await expect(page.locator(".narrowing-number")).toHaveText(["22", "10", "0"]);
+  await expect(page.locator(".narrowing-number")).toHaveText(["24", "10", "10"]);
   expect(await page.locator(".narrowing-number").first().evaluate((node) => getComputedStyle(node).animationName)).toBe("narrowing-count");
   await page.route("**/v1/decide", (route) => route.fulfill({ contentType: "application/json", body: narrowedDecision }));
   await page.locator(".template-shortcuts button").nth(1).click();
@@ -158,7 +171,7 @@ async function applyTemplate(page: import("@playwright/test").Page, width: numbe
   if (status) await status;
   await expect(page.getByRole("group", { name: "Layout" })).toHaveCount(0);
   await page.getByRole("button", { name: /^(All \d+ templates|Hide templates)$/ }).click();
-  await page.locator(".board-templates button").nth(1).click();
+  await page.locator(".board-templates").getByRole("button", { name: /^Assistant · Balanced:/ }).click();
   await expect(page.getByRole("region", { name: "Trade-off canvas" })).toBeVisible();
   await expect(page.locator(".decision-table")).toBeVisible();
   await expect(page.locator(".loading")).toHaveCount(0);
@@ -303,7 +316,7 @@ test("the board and its explanation fit a 320px viewport in light and dark mode"
   const scrollWidth = () => page.evaluate(() => document.documentElement.scrollWidth);
   await expect.poll(scrollWidth).toBeLessThanOrEqual(320);
   await page.getByRole("button", { name: /^(All \d+ templates|Hide templates)$/ }).click();
-  await page.locator(".board-templates button").nth(1).click();
+  await page.locator(".board-templates").getByRole("button", { name: /^Assistant · Balanced:/ }).click();
   await expect(page.locator(".why-panel .contribution").first()).toBeVisible();
   for (const buttonName of ["Light mode", "Dark mode"]) {
     await page.getByRole("button", { name: buttonName }).click();

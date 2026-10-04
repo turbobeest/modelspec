@@ -977,9 +977,10 @@ export function DesignedApp({
               if (template !== null) setHasAdjustedBoard(true);
             }}
             verification={VISIT_GATE_ENABLED ? <VisitGate /> : undefined}
-            narrowing={decision ? <AnswerBoundary resetKey={decision} onReset={resetBoard}>
+            narrowing={<AnswerBoundary resetKey={decision} onReset={resetBoard}>
               <Field
                 decision={decision}
+                settled={requestState.kind === "success" && requestState.details !== "loading"}
                 spec={shownSpec}
                 onAdd={add}
                 onDismiss={(id) => setDismissed([...dismissed, id])}
@@ -987,7 +988,7 @@ export function DesignedApp({
                 boardOnly
                 vocabulary={vocabulary}
               />
-            </AnswerBoundary> : undefined}
+            </AnswerBoundary>}
             answer={decision ? <AnswerBoundary resetKey={decision} onReset={resetBoard}>
               <section className="board-answer-head" aria-label="Facet board answer">
                 <span className="eyebrow">The answer</span>

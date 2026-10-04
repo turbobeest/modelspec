@@ -11,6 +11,7 @@ import {
 import { useVocab } from "../vocabulary/context";
 import type { AdapterDecision, Row, Spec } from "../adapter";
 import { boardHasPreference } from "../facet-board/model";
+import { groupRowsByClass } from "../facet-board/class-groups";
 const unavailable = <span role="img" aria-label="not yet researched or not published">–</span>;
 const columns: [string, string, (r: Row) => number | string][] = [
   ["rank", "#", (r) => r.rank ?? (r.status === 0 ? 500 : 1000 + r.dropAt)],
@@ -37,7 +38,7 @@ export function DecisionTable({
   selected: string | null;
   onSelect: (id: string) => void;
 }) {
-  const { label, basisName } = useVocab();
+  const { label, basisName, vocabulary } = useVocab();
   const ranked = spec.boardWeights === undefined || boardHasPreference(spec);
   const visibleColumns = ranked ? columns : columns.filter(([key]) => key !== "rank");
   const [sort, setSort] = useState(ranked ? "rank" : "name"),
@@ -58,11 +59,14 @@ export function DecisionTable({
       .filter((r) => showWithoutProvider || r.best.o.provider !== "Provider not available")
       .slice()
       .sort((a, b) => {
-        if (!ranked) return a.m.name.localeCompare(b.m.name);
+        if (!ranked) return 0;
         const x = val(a),
           y = val(b);
         return (x > y ? 1 : x < y ? -1 : 0) * direction;
       });
+  const groups = ranked
+    ? [{ id: "ranked", label: null, rows }]
+    : groupRowsByClass(rows, vocabulary);
   return (
     <section className="panel decision-table" aria-label="Decision table">
       <div className="panel-heading">
@@ -115,8 +119,9 @@ export function DecisionTable({
               ))}
             </tr>
           </thead>
-          <tbody>
-            {rows.map((r, index) => (
+          {groups.map((group) => <tbody key={group.id}>
+            {group.label && <tr className="table-class-heading"><th scope="rowgroup" colSpan={visibleColumns.length}>{group.label}</th></tr>}
+            {group.rows.map((r, index) => (
               <tr
                 key={`${r.m.lab}/${r.m.id}:${r.best.o.id}:${r.status}:${index}`}
                 className={`${r.m.id === selected ? "selected" : ""} ${r.status === -1 ? "excluded-row status-out" : r.status === 0 ? "status-may" : "status-qualifies"}`}
@@ -159,7 +164,7 @@ export function DecisionTable({
                 </td>
               </tr>
             ))}
-          </tbody>
+          </tbody>)}
         </table>
       </div>
       <p className="table-key">– not yet researched or not published (never zero)</p>

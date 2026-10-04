@@ -45,9 +45,30 @@ it("announces exact final counts once and keeps animated digits out of the live 
   expect([...document.querySelectorAll(".narrowing-number")].map((number) => number.textContent)).toEqual(["4", "0", "0"]);
 
   const updated = { ...view, explanation: { ...view.explanation, feasible: view.explanation.feasible.slice(0, 2), may: view.explanation.feasible.slice(2, 3), excluded: view.explanation.feasible.slice(3) } };
+  rerender(<Field decision={null} onAdd={vi.fn()} onDismiss={vi.fn()} showQuestions={false} />);
+  expect(screen.getByRole("status")).toBe(announcement);
+  expect(announcement).toHaveTextContent("4 qualify · 0 may qualify · 0 out");
+  rerender(<Field decision={updated} settled={false} onAdd={vi.fn()} onDismiss={vi.fn()} showQuestions={false} />);
+  expect(screen.getByRole("status")).toBe(announcement);
+  expect(announcement).toHaveTextContent("4 qualify · 0 may qualify · 0 out");
   rerender(<Field decision={updated} onAdd={vi.fn()} onDismiss={vi.fn()} showQuestions={false} />);
+  expect(screen.getByRole("status")).toBe(announcement);
   expect(announcement).toHaveTextContent("2 qualify · 1 may qualify · 1 out");
   expect([...document.querySelectorAll(".narrowing-number")].map((number) => number.textContent)).toEqual(["2", "1", "1"]);
+});
+
+it("mounts the live region empty before the first answer and announces only when it settles", () => {
+  const view = mapDecisionToViewModel(decisionSchema.parse(fixtureJson), { ...baseSpec, bench: "quality" }, { axis: "task$", dismissed: [] });
+  const props = { onAdd: vi.fn(), onDismiss: vi.fn(), showQuestions: false };
+  const { rerender } = render(<Field {...props} decision={null} />);
+  const announcement = screen.getByRole("status");
+  expect(announcement).toBeEmptyDOMElement();
+  rerender(<Field {...props} decision={view} settled={false} />);
+  expect(screen.getByRole("status")).toBe(announcement);
+  expect(announcement).toBeEmptyDOMElement();
+  rerender(<Field {...props} decision={view} />);
+  expect(screen.getByRole("status")).toBe(announcement);
+  expect(announcement).toHaveTextContent("4 qualify · 0 may qualify · 0 out");
 });
 
 it("disables count animation for reduced motion", () => {

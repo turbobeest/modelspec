@@ -3,6 +3,7 @@ import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import fixtureJson from "../__fixtures__/full-decision.json";
 import liveBudgetCodingJson from "../__fixtures__/live-budget-coding-full.json";
 import liveEmptyBoardJson from "../__fixtures__/live-empty-board-full.json";
+import liveVocabularyJson from "../__fixtures__/live-vocabulary.json";
 import liveSwePreferJson from "../__fixtures__/live-swe-prefer-full.json";
 import refinementVocabularyJson from "../__fixtures__/vocabulary-refinements.json";
 import App, { DesignedApp } from "../App";
@@ -25,6 +26,7 @@ import { capabilityRow, findTemplateCell, openGroup, templateCell } from "./boar
 const fixture = decisionSchema.parse(fixtureJson);
 const liveBudgetCoding = decisionSchema.parse(liveBudgetCodingJson);
 const liveEmptyBoard = decisionSchema.parse(liveEmptyBoardJson);
+const liveVocabulary = vocabularySchema.parse(liveVocabularyJson);
 const liveSwePrefer = decisionSchema.parse(liveSwePreferJson);
 const refinementVocabulary = vocabularySchema.parse(refinementVocabularyJson);
 const providerEstate = {
@@ -624,10 +626,10 @@ it("does not render the Next-questions panel in the facet-board preview", async 
   expect(sentSpecs(fetch).every((body) => Object.keys(body.optimize.weights).length > 0)).toBe(true);
 });
 
-it("renders the qualifying models from the live empty-board decision alphabetically", async () => {
+it("renders the live empty-board decision under alphabetical class headings", async () => {
   savedEmptyBoard();
   const fetch = routeFetch({
-    vocabulary: () => json(realVocabulary),
+    vocabulary: () => json(liveVocabulary),
     decide: () => json(liveEmptyBoard),
   });
   vi.stubGlobal("fetch", fetch);
@@ -635,28 +637,31 @@ it("renders the qualifying models from the live empty-board decision alphabetica
 
   const answer = (await screen.findByLabelText("Facet board answer"))
     .closest<HTMLElement>(".board-answer")!;
-  fireEvent.click(within(answer).getByRole("button", { name: "Show all 22" }));
+  fireEvent.click(within(answer).getByRole("button", { name: "Show all 28" }));
   const rankedAnswer = answer.querySelector<HTMLElement>(".board-ranked-answer")!;
   const modelNames = [...rankedAnswer.querySelectorAll(":scope > ol > li")].map((item) =>
     item.querySelector("strong")?.textContent ?? "",
   );
 
-  expect(modelNames).toHaveLength(22);
-  expect(modelNames).toEqual([...modelNames].sort((left, right) => left.localeCompare(right)));
+  expect(modelNames).toHaveLength(28);
+  expect([...rankedAnswer.querySelectorAll(":scope > .board-class-heading")].map((heading) => heading.textContent))
+    .toEqual(["Class not recorded", "Decision model", "Text generator"]);
+  const groups = [...rankedAnswer.querySelectorAll(":scope > ol")].map((list) => [...list.querySelectorAll(":scope > li strong")].map((name) => name.textContent ?? ""));
+  for (const names of groups) expect(names).toEqual([...names].sort((left, right) => left.localeCompare(right, "en")));
   expect(within(answer).queryByText(/no capability data|no evidence for/i)).not.toBeInTheDocument();
   const table = screen.getByLabelText("Decision table");
-  const tableRows = table.querySelectorAll("tbody tr");
+  const tableRows = table.querySelectorAll("tbody tr:not(.table-class-heading)");
   expect(within(table).queryByRole("columnheader", { name: /#/ }))
     .not.toBeInTheDocument();
   expect(tableRows[0]?.querySelector("td")).toHaveTextContent("Claude Fable 5");
   const providers = [...tableRows].map((row) => row.children[1]?.textContent ?? "");
   expect(providers).not.toContain("Provider not available");
-  const withoutProvider = within(table).getByRole("button", { name: "Show 10 without a provider" });
+  const withoutProvider = within(table).getByRole("button", { name: "Show 16 without a provider" });
   expect(withoutProvider).toHaveAttribute("aria-expanded", "false");
   fireEvent.click(withoutProvider);
-  expect(within(table).getByRole("button", { name: "Hide 10 without a provider" }))
+  expect(within(table).getByRole("button", { name: "Hide 16 without a provider" }))
     .toHaveAttribute("aria-expanded", "true");
-  expect(table.querySelectorAll("tbody tr")).toHaveLength(tableRows.length + 10);
+  expect(table.querySelectorAll("tbody tr:not(.table-class-heading)")).toHaveLength(tableRows.length + 16);
 
   const capability = capabilityRow("Software engineering");
   fireEvent.click(within(capability).getByLabelText("Prefer"));
@@ -1100,7 +1105,7 @@ it("renders the full decision as four models without machine condition syntax", 
   await findTemplateCell(BUDGET_CODING);
 
   const table = await screen.findByRole("region", { name: "Decision table" });
-  expect(within(table).getAllByRole("row")).toHaveLength(5);
+  expect(table.querySelectorAll("tr:not(.table-class-heading)")).toHaveLength(5);
   expect(screen.getByText("4 models · 8 offerings")).toBeInTheDocument();
   fireEvent.click(within(table).getAllByRole("button", { name: "Delta 4.7" })[0]);
   expect(screen.getAllByText("Type: Text generator").length).toBeGreaterThan(0);

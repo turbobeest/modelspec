@@ -1,0 +1,131 @@
+[
+  {
+    "file": "live-assistant-balanced-summary.json",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "chat_preference": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active"
+      ],
+      "optimize": {
+        "weights": {
+          "chat_preference": 0.6,
+          "-offering.cost_per_task": 0.4
+        }
+      },
+      "unknowns": "default",
+      "explain": "summary",
+      "limit": 500
+    }
+  },
+  {
+    "file": "live-assistant-balanced-full.json",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "chat_preference": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [
+        "model.class = text-generator",
+        "model.lifecycle = active"
+      ],
+      "optimize": {
+        "weights": {
+          "chat_preference": 0.6,
+          "-offering.cost_per_task": 0.4
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "file": "live-assistant-balanced-plot.json",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "chat_preference": "preferred"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [],
+      "optimize": {
+        "weights": {
+          "-offering.cost_per_task": 0.5,
+          "chat_preference": 0.5
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  },
+  {
+    "file": "live-empty-board-summary.json",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [],
+      "optimize": {
+        "weights": {
+          "-offering.cost_per_task": 1
+        }
+      },
+      "unknowns": "default",
+      "explain": "summary",
+      "limit": 500
+    }
+  },
+  {
+    "file": "live-empty-board-full.json",
+    "spec": {
+      "spec_version": 1,
+      "snapshot": "latest",
+      "task_type": "new_feature",
+      "capabilities": {
+        "software_engineering": "required"
+      },
+      "task_tokens": {
+        "input": 40000,
+        "output": 4000
+      },
+      "where": [],
+      "optimize": {
+        "weights": {
+          "-offering.cost_per_task": 1
+        }
+      },
+      "unknowns": "default",
+      "explain": "full",
+      "limit": 500
+    }
+  }
+]

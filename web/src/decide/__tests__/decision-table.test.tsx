@@ -3,9 +3,38 @@ import { expect, it, vi } from "vitest";
 import fixtureJson from "../__fixtures__/full-decision.json";
 import { decisionSchema } from "../adapter";
 import { mapDecisionToViewModel } from "../adapter/view-model";
-import type { Row } from "../adapter";
+import type { Row, Spec } from "../adapter";
 import { DecisionTable } from "../components/DecisionTable";
 import { baseSpec } from "../state/spec";
+import { VocabContext, realVocab } from "../vocabulary/context";
+import { realVocabulary } from "./vocab-fixtures";
+
+it("keeps classes in label order and names alphabetical within each class after Clear", () => {
+  const rankedSpec = { ...baseSpec, bench: "quality", boardWeights: { quality: 1 } };
+  const view = mapDecisionToViewModel(decisionSchema.parse(fixtureJson), rankedSpec, { axis: "task$", dismissed: [] });
+  const base = view.explanation.feasible[0];
+  const rows = [
+    { ...base, m: { ...base.m, id: "z-text", name: "Z text", type: "llm" }, cap: 100, cost: 0 },
+    { ...base, m: { ...base.m, id: "vector", name: "A vector", type: "embed" } },
+    { ...base, m: { ...base.m, id: "z-decision", name: "Z decision", type: "decision" }, cap: 0, cost: 100 },
+    { ...base, m: { ...base.m, id: "a-text", name: "A text", type: "llm" } },
+    { ...base, m: { ...base.m, id: "b-decision", name: "B decision", type: "decision" }, status: 0,
+      best: { ...base.best, o: { ...base.best.o, provider: "Provider not available" } } },
+  ] satisfies Row[];
+  const decision = { ...view, explanation: { ...view.explanation, rows } };
+  const props = { decision, selected: null, onSelect: vi.fn() };
+  const table = (spec: Spec) =>
+    <VocabContext.Provider value={realVocab(realVocabulary)}><DecisionTable {...props} spec={spec} /></VocabContext.Provider>;
+  const { rerender } = render(table(rankedSpec));
+  fireEvent.click(screen.getByRole("button", { name: "$ per task" }));
+  rerender(table({ ...rankedSpec, boardWeights: {} }));
+  fireEvent.click(screen.getByRole("button", { name: "Show 1 without a provider" }));
+  expect([...document.querySelectorAll(".table-class-heading")].map((row) => row.textContent))
+    .toEqual(["Decision model", "Embedding model", "Text generator"]);
+  expect([...document.querySelectorAll("tbody")].map((group) => [...group.querySelectorAll(".table-model")].map((button) => button.textContent)))
+    .toEqual([["B decision", "Z decision"], ["A vector"], ["A text", "Z text"]]);
+  expect(screen.getByRole("button", { name: "$ per task" })).toBeDisabled();
+});
 
 it("keeps an unranked table alphabetical, including rows without a provider", () => {
   const spec = { ...baseSpec, bench: "quality", boardWeights: {} };

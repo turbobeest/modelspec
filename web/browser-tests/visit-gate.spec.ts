@@ -1,10 +1,10 @@
 import { expect } from "@playwright/test";
 import { test } from "./human-gate-fixtures";
 import { readFileSync } from "node:fs";
+import { decisionFixtureFor } from "../scripts/decision-fixtures.mjs";
 
-const vocabulary = readFileSync(new URL("../src/decide/__fixtures__/vocabulary.json", import.meta.url), "utf8");
+const vocabulary = readFileSync(new URL("../src/decide/__fixtures__/live-vocabulary.json", import.meta.url), "utf8");
 const cors = { "access-control-allow-origin": "*", "access-control-allow-headers": "*", "access-control-allow-methods": "GET, POST, OPTIONS" };
-const answer = readFileSync(new URL("../src/decide/__fixtures__/live-empty-board-full.json", import.meta.url), "utf8");
 
 test.describe("managed visit gate", () => {
   test.use({ humanStatus: { enabled: true, mode: "visit", day_limit: 300, burst_limit: 30 } });
@@ -46,7 +46,7 @@ test.describe("managed visit gate", () => {
           refuseOnce = false;
           return route.fulfill({ status: 401, headers: cors, contentType: "application/json", body: JSON.stringify({ error: { code: "visit_token_expired" } }) });
         }
-        return route.fulfill({ headers: cors, contentType: "application/json", body: answer });
+        return route.fulfill({ headers: cors, contentType: "application/json", body: decisionFixtureFor(route.request().postDataJSON()) });
       });
       await page.clock.install();
       await page.goto("/decide.html?demo=1");
@@ -97,7 +97,7 @@ test.describe("managed visit gate", () => {
       vocabularyRequests++;
       return route.fulfill({ headers: cors, contentType: "application/json", body: vocabulary });
     });
-    await page.route("**/v1/decide", (route) => { if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors }); initialRequests++; specs.push(route.request().postDataJSON()); return route.fulfill({ headers: cors, contentType: "application/json", body: answer }); });
+    await page.route("**/v1/decide", (route) => { if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors }); initialRequests++; specs.push(route.request().postDataJSON()); return route.fulfill({ headers: cors, contentType: "application/json", body: decisionFixtureFor(route.request().postDataJSON()) }); });
     await page.goto("/decide.html?demo=1");
     await expect(page.locator(".board-answer").getByRole("button", { name: "Verify fixture" })).toBeVisible();
     await expect(page.getByText("One quick check keeps this free")).toBeVisible();
@@ -116,7 +116,7 @@ test.describe("managed visit gate", () => {
     await page.route("**/v1/decide", async (route) => {
       if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors });
       if (check === 1) return route.fulfill({ status: 401, headers: cors, contentType: "application/json", body: JSON.stringify({ error: { code: "visit_token_expired" } }) });
-      return route.fulfill({ headers: cors, contentType: "application/json", body: answer });
+      return route.fulfill({ headers: cors, contentType: "application/json", body: decisionFixtureFor(route.request().postDataJSON()) });
     });
     const capabilities = page.getByRole("button", { name: /What it.s good at/ });
     if (await capabilities.getAttribute("aria-expanded") !== "true") await capabilities.click();

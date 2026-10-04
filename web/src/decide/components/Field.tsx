@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import type { AdapterDecision, Cond, Spec } from "../adapter";
 import { contractCondition } from "../adapter/view-model";
 import type { Vocabulary } from "../vocabulary";
@@ -11,7 +12,32 @@ function objectiveLabel(id: string, vocabulary?: Vocabulary): string {
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
-export function Field({
+type FieldProps = {
+  decision: AdapterDecision | null;
+  spec?: Spec;
+  onAdd: (c: Cond) => void;
+  onDismiss: (id: string) => void;
+  showQuestions?: boolean;
+  vocabulary?: Vocabulary;
+  boardOnly?: boolean;
+  settled?: boolean;
+};
+
+export function Field({ settled = true, ...props }: FieldProps) {
+  const e = props.decision?.explanation;
+  const qualify = e?.feasible.length, may = e?.may.length, out = e?.excluded.length;
+  const [announcement, setAnnouncement] = useState("");
+  useEffect(() => {
+    if (settled && qualify !== undefined && may !== undefined && out !== undefined)
+      setAnnouncement(`${qualify} qualify · ${may} may qualify · ${out} out`);
+  }, [settled, qualify, may, out]);
+  return <section className="narrowing" aria-label="Narrowing">
+    <p className="template-sr" role="status" aria-live="polite" aria-atomic="true">{announcement}</p>
+    {props.decision && <NarrowingDetails {...props} decision={props.decision} />}
+  </section>;
+}
+
+function NarrowingDetails({
   decision,
   spec,
   onAdd,
@@ -19,15 +45,7 @@ export function Field({
   showQuestions = true,
   vocabulary,
   boardOnly = false,
-}: {
-  decision: AdapterDecision;
-  spec?: Spec;
-  onAdd: (c: Cond) => void;
-  onDismiss: (id: string) => void;
-  showQuestions?: boolean;
-  vocabulary?: Vocabulary;
-  boardOnly?: boolean;
-}) {
+}: Omit<FieldProps, "decision"> & { decision: AdapterDecision }) {
   const e = decision.explanation,
     requested = new Set(spec?.conds.map(contractCondition) ?? []),
     steps = [
@@ -50,7 +68,7 @@ export function Field({
     ],
     total = Math.max(1, steps[0]?.n ?? 1);
   return (
-    <section className="narrowing" aria-label="Narrowing">
+    <>
       <div className="panel">
         <div className="narrowing-counts" aria-hidden="true">
           {[
@@ -61,9 +79,6 @@ export function Field({
             <strong className="narrowing-number" key={n}>{n}</strong><span>{icon} {label}</span>
           </div>)}
         </div>
-        <p className="template-sr" role="status" aria-live="polite" aria-atomic="true">
-          {e.feasible.length} qualify · {e.may.length} may qualify · {e.excluded.length} out
-        </p>
         {(decision.truncated.models > 0 || decision.truncated.offerings > 0) && <small className="narrowing-truncated">
             {decision.truncated.models > 0
               ? `${decision.truncated.models} more ${decision.truncated.models === 1 ? "model" : "models"} not shown`
@@ -148,6 +163,6 @@ export function Field({
           <p>No further question would narrow the field.</p>
         )}
       </div>}
-    </section>
+    </>
   );
 }
