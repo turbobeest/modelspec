@@ -64,12 +64,6 @@ export function DecisionTable({
           y = val(b);
         return (x > y ? 1 : x < y ? -1 : 0) * direction;
       });
-  // The engine ranks offerings; one row per model skips numbers, so number the
-  // shown models in rank order instead (ties share a number).
-  const ordered = rows.filter((r) => r.rank != null).sort((a, b) => (a.rank ?? 0) - (b.rank ?? 0));
-  const position = new Map<Row, number>();
-  ordered.forEach((r, i) => position.set(r, i > 0 && r.rank === ordered[i - 1].rank
-    ? position.get(ordered[i - 1]) ?? i + 1 : i + 1));
   const groups = ranked
     ? [{ id: "ranked", label: null, rows }]
     : groupRowsByClass(rows, vocabulary);
@@ -102,7 +96,7 @@ export function DecisionTable({
               {visibleColumns.map(([key, title]) => (
                 <th
                   key={key}
-                  title={key === "rank" ? "Position among the models shown, best first" : undefined}
+                  title={key === "rank" ? "Model rank on your weights" : undefined}
                   aria-sort={
                     sortedBy === key
                       ? direction === 1
@@ -134,7 +128,7 @@ export function DecisionTable({
                 className={`${r.m.id === selected ? "selected" : ""} ${r.status === -1 ? "excluded-row status-out" : r.status === 0 ? "status-may" : "status-qualifies"}`}
                 onClick={() => onSelect(r.m.id)}
               >
-                {ranked && <td>{position.get(r) ?? ""}</td>}
+                {ranked && <td>{r.rank ?? ""}</td>}
                 <td>
                   <button
                     className="table-model"

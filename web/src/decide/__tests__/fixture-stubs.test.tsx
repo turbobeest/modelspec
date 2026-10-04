@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { expect, it, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
@@ -53,4 +53,20 @@ it("draws the real assistant on opening and the current unranked answer after Cl
   expect(document.querySelector(".board-unranked")).toHaveTextContent("Not ranked yet: listed alphabetically");
   expect(document.querySelector(".template-active")).toBeNull();
   expect(status).toHaveTextContent("28 qualify · 13 may qualify · 3 out");
+});
+
+it("numbers the decision table by the engine's model rank, with no gaps (MODEL-313)", async () => {
+  vi.useFakeTimers();
+  vi.stubGlobal("fetch", routeFetch({
+    vocabulary: () => json(vocabulary),
+    decide: (init) => json(JSON.parse(decisionFixtureFor(JSON.parse(String(init?.body))))),
+  }));
+  render(<DesignedApp />);
+  for (let i = 0; i < 4; i++) await act(async () => { await vi.advanceTimersByTimeAsync(500); });
+  const table = screen.getByRole("region", { name: "Decision table" });
+  const shown = [...table.querySelectorAll("tbody tr.status-qualifies td:first-child")].map((cell) => cell.textContent);
+  expect(shown.length).toBeGreaterThan(5);
+  expect(shown).toEqual(shown.map((_, index) => String(index + 1)));
+  expect(within(table).getByRole("columnheader", { name: /#/ })).toHaveAttribute("title", "Model rank on your weights");
+  vi.useRealTimers();
 });

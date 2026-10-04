@@ -132,7 +132,8 @@ it("leads with the CLI, then MCP, Spec and keyed curl, all reachable by keyboard
   expect(screen.getByRole("button", { name: "MCP" })).toHaveFocus();
   await user.keyboard("{Enter}");
   expect(screen.getByLabelText("MCP snippet").textContent).toBe("uvx --from modelspec-dev modelspec setup mcp --client claude-code");
-  const client = screen.getByRole("combobox", { name: /MCP client/ });
+  const client = screen.getByRole("combobox", { name: "MCP client" });
+  expect(client).toHaveAccessibleDescription("Prints the config for that client.");
   expect(within(client).getAllByRole("option").map((option) => option.textContent)).toEqual(handoffData.mcp_clients);
   await user.selectOptions(client, "codex");
   expect(screen.getByLabelText("MCP snippet").textContent).toBe("uvx --from modelspec-dev modelspec setup mcp --client codex");
@@ -152,7 +153,7 @@ it("leads with the CLI, then MCP, Spec and keyed curl, all reachable by keyboard
   await user.tab();
   expect(screen.getByRole("link", { name: "Get an API key" })).toHaveFocus();
   expect(screen.getByText(/Get a key with/)).toHaveTextContent(
-    "Get a key with modelspec key, then store it with modelspec auth set. For curl, set MODELSPEC_API_KEY.");
+    "Get a key with modelspec key, then store it for the CLI with modelspec auth set. MCP and curl read MODELSPEC_API_KEY.");
 });
 
 it("announces clipboard failure and clears it when another snippet is selected", async () => {
@@ -160,7 +161,7 @@ it("announces clipboard failure and clears it when another snippet is selected",
   vi.spyOn(navigator.clipboard, "writeText").mockRejectedValue(new Error("denied"));
   render(<AgentHandoff spec={sampleSpec} />);
   await user.click(screen.getByRole("button", { name: "Copy for my agent" }));
-  expect(screen.getByRole("status")).toHaveTextContent("Could not copy. Select the text and copy it.");
+  expect(screen.getByRole("status")).toHaveTextContent("Could not copy. Select the CLI and Spec snippets and copy them.");
   await user.click(screen.getByRole("button", { name: "curl" }));
   expect(screen.getByRole("status")).toBeEmptyDOMElement();
 });

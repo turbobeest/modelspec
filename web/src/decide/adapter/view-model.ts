@@ -589,7 +589,9 @@ function rankedRow(
     cost: costPerTask(offering, spec),
     tps: offering.tps,
     labOnly: capability?.by === "lab",
-    rank: result.rank,
+    // One row per model: show the engine's per-model rank, which has no gaps
+    // (offering ranks skip a model's other offerings). Older saved answers lack it.
+    rank: result.model_rank ?? result.rank,
     score: parts.cap + parts.cost + parts.speed,
     parts,
     norm,
