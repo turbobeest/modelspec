@@ -253,14 +253,14 @@ def main(argv=None) -> int:
         datetime.strptime(args.date, "%Y-%m-%d")
         # Gemini CLI no longer serves Google AI Pro; see GEMINI_RETIRED.
         scenario_clis = tuple(cli for cli in CLIS if cli != "gemini")
-        selected = list(dict.fromkeys(args.cli or (scenario_clis if args.job == "scenarios" else ("codex", "grok") if args.job == "ux" else CLIS)))
+        selected = list(dict.fromkeys(args.cli or (("codex", "grok") if args.job == "ux" else scenario_clis)))
         config = configuration(args.state_dir, browser_clis=selected if args.job == "ux" else (),
                                quiet_hours=args.scheduled or args.quiet_hours,
                                max_runs=args.max_runs_per_cli if args.max_runs_per_cli is not None else {"scenarios": 400, "ux": 40, "aeo": 64}[args.job])
         state = tui_harness.private_output(args.state_dir)
         with job_lock(state):
             if not args.dry_run:
-                needed = list(dict.fromkeys(selected + [config["judges"][c] for c in selected])) if args.job != "aeo" else list(CLIS)
+                needed = list(dict.fromkeys(selected + [config["judges"][c] for c in selected])) if args.job != "aeo" else selected
                 require_ready(config, needed, state)
             repository = args.business_repo if args.job == "aeo" else args.data_repo
 
@@ -278,7 +278,7 @@ def main(argv=None) -> int:
                     from qa.subscription_ux import run
                     return run(tree if not args.dry_run else repository, output, state, config, selected, args.base_url, args.date, dry_run=args.dry_run)
                 from qa.subscription_aeo import run
-                return run(tree / "aeo/prompts.yaml", tree / "aeo/engines.yaml", output, state, config, args.date, dry_run=args.dry_run)
+                return run(tree / "aeo/prompts.yaml", tree / "aeo/engines.yaml", output, state, config, args.date, dry_run=args.dry_run, clis=selected)
 
             if args.dry_run:
                 tree = state / "dry-run" / args.job
@@ -286,7 +286,7 @@ def main(argv=None) -> int:
                 if args.job == "aeo":
                     # Only inventory/config are read from the private checkout; nothing is mutated there.
                     from qa.subscription_aeo import run
-                    run(repository / "aeo/prompts.yaml", repository / "aeo/engines.yaml", tree / "aeo/runs", state, config, args.date, dry_run=True)
+                    run(repository / "aeo/prompts.yaml", repository / "aeo/engines.yaml", tree / "aeo/runs", state, config, args.date, dry_run=True, clis=selected)
                 else:
                     execute(tree)
                 print(f"Dry-run reports: {tree}. No CLI, git mutation, or PR call.")

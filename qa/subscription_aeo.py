@@ -58,10 +58,11 @@ def answer_from_execution(cli, execution):
     )
 
 
-def run(inventory_path, engine_path, output, state, config, day, *, dry_run=False):
+def run(inventory_path, engine_path, output, state, config, day, *, dry_run=False, clis=CLIS):
     raw, perplexity = engine_config(engine_path, config, dry_run=dry_run)
     prompts = inventory.load(inventory_path)
-    ready = {} if dry_run else require_ready(config, list(CLIS), state)
+    clis = [cli for cli in CLIS if cli in clis]
+    ready = {} if dry_run else require_ready(config, clis, state)
     runner = tui_harness.Runner(config, state, ready)
     out = output / day
     out.mkdir(parents=True, exist_ok=True)
@@ -74,8 +75,14 @@ def run(inventory_path, engine_path, output, state, config, day, *, dry_run=Fals
     rows, logs, api_rows = [], [], []
     now = lambda: datetime.now(timezone.utc)
     failure_reason = None
+    # Unselected engines keep every cell, each marked skipped, so the run is partial.
+    logs = [{"engine": name, "status": "skipped",
+             "reason": "retired" if cli == "gemini" else "not selected"}
+            for name, cli in ENGINE_CLIS.items() if cli not in clis]
     try:
         for name, cli in ENGINE_CLIS.items():
+            if cli not in clis:
+                continue
             profile = profiles[name]
             status, reason = "complete", None
             for prompt in prompts:
