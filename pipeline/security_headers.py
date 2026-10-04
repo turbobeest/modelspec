@@ -32,6 +32,9 @@ _TYPE = re.compile(r"""\btype\s*=\s*["']?([^"'\s>]+)""", re.IGNORECASE)
 _EXECUTABLE = {"", "module", "text/javascript", "application/javascript"}
 
 
+STRIPE_CHECKOUT = "https://checkout.stripe.com"
+
+
 def inline_script_hashes(tree: Path) -> list[str]:
     """`'sha256-...'` sources for each executable inline script in `tree`, sorted."""
     hashes: set[str] = set()
@@ -57,7 +60,9 @@ def csp(tree: Path) -> str:
         f"frame-src {TURNSTILE}",
         "object-src 'none'",
         "base-uri 'self'",
-        "form-action 'self'",
+        # The pricing page posts to the API, which redirects to Stripe Checkout;
+        # Chrome applies form-action to that redirect too.
+        f"form-action 'self' {API} {STRIPE_CHECKOUT}",
         "frame-ancestors 'none'",
     ])
 
