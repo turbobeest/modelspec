@@ -141,8 +141,27 @@ describe("vocabulary discovery", () => {
       { ids: ["not_a_facet", "offering.price.inptu"] },
       { search: "nvidia rtx 4091" }, { search: "flase" }, { search: "ture" }, { section: "domains", search: "ture" }, { search: "." }, { search: "_./", section: "facets" },
     ] satisfies VocabInput[];
-    const root = new URL("../../", import.meta.url).pathname;
-    const output = execFileSync("python3", ["-c", `
+    expect(cases.map((args) => lookupVocabulary(display, args))).toEqual(python(display, cases));
+  }, 20_000);
+
+  it("stops suggestion scoring at the same cell budget as Python on a catalogue-sized vocabulary", () => {
+    const pad = (i: number) => String(i).padStart(4, "0");
+    const source = {
+      facets: Array.from({ length: 60 }, (_, i) => ({ id: `offering.synthetic.metric_${pad(i)}`,
+        label: `Synthetic metric number ${pad(i)}`, allowed_values: [0, 1, 2].map((j) => `value_${pad(i)}_${j}`) })),
+      models: Object.fromEntries(Array.from({ length: 1500 }, (_, i) => [`lab${String(i % 40).padStart(2, "0")}/model-family-${pad(i)}-instruct`,
+        { display_name: `Model Family ${pad(i)} Instruct` }])),
+      estate: { providers: [], devices: Array.from({ length: 200 }, (_, i) => `vendor_accelerator_${pad(i)}_96gb`), plans: [] },
+    };
+    const needles = Array.from({ length: 100 }, (_, i) => `zz${i}-model-family-instruct-xyzw`);
+    const cases = [{ search: needles[0] }, { ids: needles }, { search: "q".repeat(128) }, { search: "instrct" }] satisfies VocabInput[];
+    expect(cases.map((args) => lookupVocabulary(source, args))).toEqual(python(source, cases));
+  }, 20_000);
+});
+
+function python(vocabulary: unknown, cases: VocabInput[]) {
+  const root = new URL("../../", import.meta.url).pathname;
+  const output = execFileSync("python3", ["-c", `
 import json, sys
 from api.worker.src.display_vocabulary import lookup
 request = json.load(sys.stdin)
@@ -152,10 +171,9 @@ for args in request["cases"]:
         args["ids"] = [*args.get("ids", []), args.pop("id")]
     results.append(lookup(request["vocabulary"], **args))
 json.dump(results, sys.stdout, ensure_ascii=False)
-`], { cwd: root, env: { ...process.env, PYTHONPATH: root }, input: JSON.stringify({ vocabulary: display, cases }), encoding: "utf8" });
-    expect(cases.map((args) => lookupVocabulary(display, args))).toEqual(JSON.parse(output));
-  }, 20_000);
-});
+`], { cwd: root, env: { ...process.env, PYTHONPATH: root }, input: JSON.stringify({ vocabulary, cases }), encoding: "utf8" });
+  return JSON.parse(output);
+}
 
 const facets = [
   { id: "x", label: "Long Context", definition: "First sentence. More details.", value_type: "number", operators: [">="] },

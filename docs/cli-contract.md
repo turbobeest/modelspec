@@ -151,7 +151,10 @@ facet value names the facet in `id` and the value in `value`, so retrying with
 that `id` resolves. Search text and each ID are at most 128 characters; a search
 of only separators matches nothing. Suggestions compare
 normalized ids, id segments and labels using Levenshtein similarity, keeping
-scores of at least 0.4 and breaking ties by section order, then id. Plain
+scores of at least 0.4 and breaking ties by section order, then id. The
+pass is bounded: it compares at most two needles, each cut to 32 characters,
+and stops after 300,000 edit-distance cells, so a long miss may draw its
+suggestions only from the earlier sections. Plain
 vocabulary requests and a plain starter request keep their existing bodies.
 
 `feedback` accepts the MCP fields, with `client: "cli"`. The published feedback

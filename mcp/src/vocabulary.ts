@@ -158,6 +158,8 @@ function compareText(left: string, right: string) {
 // A value suggestion names its facet id, so retrying with id= cannot dead-end.
 type Candidate = { section: Section; id: string; name: string | null; text: string; labels: unknown[]; value: unknown };
 
+export const SUGGESTION_CELLS = 300_000;
+
 function suggestions(vocabulary: Record<string, unknown>, needles: string[]) {
   const candidates = new Map<string, Candidate>();
   for (const section of searchSections) {
@@ -175,22 +177,30 @@ function suggestions(vocabulary: Record<string, unknown>, needles: string[]) {
       }
     }
   }
-  const normalized = needles.slice(0, 5).map(normalize);
+  // The suggestion pass is reachable without a key, so its work has a hard ceiling:
+  // two needles of at most 32 characters, and at most SUGGESTION_CELLS Levenshtein cells.
+  const normalized = needles.slice(0, 2).map((needle) => Array.from(normalize(needle)).slice(0, 32).join(""));
   const scored: (Candidate & { score: number })[] = [];
+  let cells = 0;
   for (const candidate of candidates.values()) {
     const { text, labels } = candidate;
+    // Token scores let a typo like "pirce" suggest offering.price.input.
+    // An ordered dedupe keeps the budget's stopping point the same on every run.
     const haystacks = new Set([normalize(text), normalize(text.split(/[._]/).at(-1) ?? ""),
       ...normalize(text).split(/\s+/), ...labels.map(normalize)]);
     let score = 0;
-    for (const needle of normalized) {
+    scoring: for (const needle of normalized) {
       for (const hay of haystacks) {
         // Levenshtein similarity is at most min/max length, so skip pairs that cannot reach 0.4.
         const [n, h] = [Array.from(needle).length, Array.from(hay).length];
         if (!n || !h || Math.min(n, h) < 0.4 * Math.max(n, h)) continue;
+        cells += n * h;
+        if (cells > SUGGESTION_CELLS) break scoring;
         score = Math.max(score, similarity(needle, hay));
       }
     }
     if (score >= 0.4) scored.push({ ...candidate, score });
+    if (cells > SUGGESTION_CELLS) break;
   }
   return scored.sort((a, b) => b.score - a.score || searchSections.indexOf(a.section) - searchSections.indexOf(b.section)
     || compareText(a.id, b.id) || compareText(a.name ?? "", b.name ?? "")).slice(0, 5)

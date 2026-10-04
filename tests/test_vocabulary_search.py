@@ -294,12 +294,38 @@ def test_oversized_terms_are_refused_and_separator_only_search_matches_nothing(d
         assert "message" in result
 
 
-def test_a_hundred_unknown_ids_stay_bounded(display):
-    import time
-    start = time.perf_counter()
-    result = lookup(display, ids=[f"unknown.facet.{i:03d}.{'q' * 100}" for i in range(100)])
-    assert result["total"] == 0 and len(result["suggestions"]) <= 5
-    assert time.perf_counter() - start < 5
+def catalogue(size=1500):
+    """A catalogue-sized vocabulary whose ids and names pass the suggestion length filter."""
+    return {
+        "facets": [{"id": f"offering.synthetic.metric_{i:04d}", "label": f"Synthetic metric number {i:04d}",
+                    "allowed_values": [f"value_{i:04d}_{j}" for j in range(3)]} for i in range(60)],
+        "models": {f"lab{i % 40:02d}/model-family-{i:04d}-instruct": {"display_name": f"Model Family {i:04d} Instruct"}
+                   for i in range(size)},
+        "estate": {"providers": [], "devices": [f"vendor_accelerator_{i:04d}_96gb" for i in range(200)], "plans": []},
+    }
+
+
+def test_suggestion_work_is_bounded_by_a_cell_budget(monkeypatch):
+    from api.worker.src import display_vocabulary
+    cells, similarity = [0], display_vocabulary.similarity
+
+    def counted(left, right):
+        cells[0] += len(left) * len(right)
+        return similarity(left, right)
+
+    monkeypatch.setattr(display_vocabulary, "similarity", counted)
+    source = catalogue()
+    needles = [f"zz{i}-model-family-instruct-xyzw" for i in range(100)]  # ~30 characters each
+    for args in ({"search": needles[0]}, {"ids": needles}, {"search": "q" * 128}):
+        cells[0] = 0
+        first = lookup(source, **args)
+        assert first["total"] == 0 and len(first["suggestions"]) <= 5
+        assert 0 < cells[0] <= display_vocabulary.SUGGESTION_CELLS, (args, cells[0])
+        assert lookup(source, **args)["suggestions"] == first["suggestions"]
+    # Short typos still reach every section within the budget.
+    cells[0] = 0
+    assert lookup(source, search="instrct")["suggestions"]
+    assert cells[0] <= display_vocabulary.SUGGESTION_CELLS
 
 
 def test_boolean_value_suggestions_render_like_json():

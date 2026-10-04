@@ -60,7 +60,11 @@ def trim(vocabulary, *, model_ids, facet_values):
 
 MAX_IDS = 100
 MAX_TERM = 128
-SUGGESTION_NEEDLES = 5
+# The suggestion pass is reachable without a key, so its work has a hard ceiling:
+# two needles of at most 32 characters, and at most this many Levenshtein cells.
+SUGGESTION_NEEDLES = 2
+SUGGESTION_NEEDLE_CHARS = 32
+SUGGESTION_CELLS = 300_000
 
 
 def vocabulary_response(selected, section):
@@ -177,17 +181,27 @@ def suggestions(vocabulary, needles):
                 if kind == "value":
                     name = json.dumps(value, ensure_ascii=False) if isinstance(value, bool) else str(value)
                     candidates.setdefault((section, str(key), name), (name, [], value))[1].append(text)
-    needles = [normalize(needle) for needle in needles[:SUGGESTION_NEEDLES]]
-    scored = []
+    needles = [normalize(needle)[:SUGGESTION_NEEDLE_CHARS] for needle in needles[:SUGGESTION_NEEDLES]]
+    scored, cells = [], 0
     for (section, key, name), (text, labels, value) in candidates.items():
         # Token scores let a typo like "pirce" suggest offering.price.input.
-        haystacks = {normalize(text), normalize(re.split(r"[._]", text)[-1]),
-                     *normalize(text).split(), *(normalize(label) for label in labels)}
-        # Levenshtein similarity is at most min/max length, so skip pairs that cannot reach 0.4.
-        score = max((similarity(needle, hay) for needle in needles for hay in haystacks
-                     if needle and hay and min(len(needle), len(hay)) >= 0.4 * max(len(needle), len(hay))), default=0)
+        # An ordered dedupe keeps the budget's stopping point the same on every run.
+        haystacks = dict.fromkeys([normalize(text), normalize(re.split(r"[._]", text)[-1]),
+                                   *normalize(text).split(), *(normalize(label) for label in labels)])
+        score = 0
+        for needle in needles:
+            for hay in haystacks:
+                # Levenshtein similarity is at most min/max length, so skip pairs that cannot reach 0.4.
+                if not needle or not hay or min(len(needle), len(hay)) < 0.4 * max(len(needle), len(hay)):
+                    continue
+                cells += len(needle) * len(hay)
+                if cells > SUGGESTION_CELLS:
+                    break
+                score = max(score, similarity(needle, hay))
         if score >= 0.4:
             scored.append((score, section, key, name, value))
+        if cells > SUGGESTION_CELLS:
+            break
     scored.sort(key=lambda item: (-item[0], SEARCH_SECTIONS.index(item[1]), item[2], item[3] or ""))
     return [{"section": section, "id": key, **({"value": value} if name is not None else {})}
             for _, section, key, name, value in scored[:5]]
