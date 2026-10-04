@@ -6,18 +6,19 @@ openapi: 3.0.3
 info:
   title: ModelSpec API
   version: '1.0'
-  summary: Ranks AI models you can actually run, given your hardware, providers, use case and policy rules,
-    and checks them against a compliance policy.
-  description: 'Start with the compact agent guide https://modelspec.dev/agents.md (version 1-4bf62fc15451d7bc).
+  summary: Decides which AI models fit a job from your requirements, sourced evidence and real cost, and
+    checks them against a compliance policy.
+  description: 'Start with the compact agent guide https://modelspec.dev/agents.md (version 1-5f657ebd18b3f0d6).
     Call decide early with a template-based Spec; refine from reading and recovery hints.
 
 
-    Use when choosing, switching, or checking a model before a task or deploy. POST /v1/rank returns ranked
-    models with scores, cost and reasons; on failure, it returns which constraint eliminated every option.
-    POST /v1/policy-check returns, per model and per platform, pass, fail or undetermined against a licence,
-    origin, residency and commercial-use policy, citing the document behind each verdict. After you act
-    on an answer, POST /v1/feedback with a rating (reliable, unreliable, trustworthy, untrustworthy, confusing)
-    and its decision_id; no key.
+    Use when choosing, switching, or checking a model before a task or deploy. POST /v1/decide takes your
+    requirements and returns the models that fit, with reasons, cost per task and ties; when nothing fits,
+    it says what to relax. POST /v1/rank is deprecated: the retired fixed-benchmark ranking, kept for
+    existing callers and never a fallback for decide. POST /v1/policy-check returns, per model and per
+    platform, pass, fail or undetermined against a licence, origin, residency and commercial-use policy,
+    citing the document behind each verdict. After you act on an answer, POST /v1/feedback with a rating
+    (reliable, unreliable, trustworthy, untrustworthy, confusing) and its decision_id; no key.
 
 
     One call, and no state on your side. Each answer is computed per request from the current public export;
@@ -253,7 +254,8 @@ paths:
   /v1/rank:
     post:
       operationId: rank
-      summary: 'Legacy v1: rank the catalogue for one profile. Use decide.'
+      deprecated: true
+      summary: 'Deprecated legacy v1: rank the catalogue for one profile. Use decide.'
       requestBody:
         required: true
         content:
@@ -344,12 +346,12 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/AccessRefused'}
           headers: *id001
-      description: 'Legacy v1; use decide for new work. Which models rank highest for one fixed use-case
-        profile? Returns a shortlist for that profile with evidence_basis, which is input provenance (none,
-        unverified-legacy, mixed, partial-verified, verified), not a quality verdict. Needs an API key
-        (Authorization: Bearer). Costs 1 credit a call; a credit costs $0.0017–$0.004 depending on the
-        plan or pack (https://modelspec.dev/pricing/). Don''t call it when you can state requirements:
-        decide takes them, rank doesn''t.'
+      description: 'Legacy v1; use decide. Deprecated: the retired fixed-benchmark ranking, whose scores
+        lag the catalogue; newer models are often unranked. Which models rank highest for one fixed use-case
+        profile? Returns a shortlist with evidence_basis, input provenance, not a quality verdict. Needs
+        an API key (Authorization: Bearer). Costs 1 credit a call; a credit costs $0.0017–$0.004 depending
+        on the plan or pack (https://modelspec.dev/pricing/). Don''t call it as a fallback when decide
+        names no single leader: report decide''s tie.'
   /v1/decide:
     post:
       operationId: decide
@@ -390,7 +392,7 @@ paths:
       responses:
         '200':
           description: 'A decision pinned to the snapshot that produced it: a complete Decision (contract_version
-            2.13), or, when the request sends fields or evidence_for, the separate bounded representation
+            2.14), or, when the request sends fields or evidence_for, the separate bounded representation
             (representation: bounded, bounded_version 1.0, no contract_version).'
           content:
             application/json:
@@ -1813,6 +1815,21 @@ components:
             export_schema_version: {type: string}
           required: [built_at, commit, eligibility_as_of, export_schema_version]
         candidates_considered: {type: integer}
+        deprecation:
+          description: 'Always present (MODEL-316): the retired ranking; never a fallback for decide.'
+          type: object
+          properties:
+            deprecated: {type: boolean}
+            message: {type: string}
+            next:
+              description: 'The endpoint to call instead: POST /v1/decide.'
+              type: object
+              properties:
+                guide: {type: string}
+                method: {type: string}
+                url: {type: string}
+              required: [guide, method, url]
+          required: [deprecated, message, next]
         endpoint: {type: string}
         export_origin: {type: string}
         policy:
@@ -1992,9 +2009,9 @@ components:
                 required: [display_name, missing_benchmarks, model_id, reason, release_date]
           required: [cap, count, models]
         unranked_count: {type: integer}
-      required: [applied, authoring_guide, build, candidates_considered, endpoint, export_origin, policy,
-        profile, ranked_count, ranking_status, request, result, schema_version, service_commit, unranked_candidates,
-        unranked_count]
+      required: [applied, authoring_guide, build, candidates_considered, deprecation, endpoint, export_origin,
+        policy, profile, ranked_count, ranking_status, request, result, schema_version, service_commit,
+        unranked_candidates, unranked_count]
     Health:
       type: object
       properties:
@@ -2381,7 +2398,7 @@ components:
       properties:
         representation: {const: bounded, title: Representation, type: string}
         bounded_version: {const: '1.0', title: Bounded Version, type: string}
-        projects_contract: {const: '2.13', title: Projects Contract, type: string}
+        projects_contract: {const: '2.14', title: Projects Contract, type: string}
         decision_id: {title: Decision Id, type: string}
         snapshot: {title: Snapshot, type: string}
         signature_verified: {$ref: '#/components/schemas/DecisionResponse/properties/signature_verified'}
@@ -2402,6 +2419,7 @@ components:
         may_qualify: {$ref: '#/components/schemas/DecisionResponse/properties/may_qualify'}
         reading: {$ref: '#/components/schemas/DecisionResponse/properties/reading'}
         coverage: {$ref: '#/components/schemas/DecisionResponse/properties/coverage'}
+        relax_task_tokens: {$ref: '#/components/schemas/DecisionResponse/properties/relax_task_tokens'}
         with_estate: {$ref: '#/components/schemas/DecisionResponse/properties/with_estate'}
         explanation: {$ref: '#/components/schemas/DecisionBoundedExplanation'}
         model_evidence:
@@ -2735,7 +2753,7 @@ components:
           - {$ref: '#/components/schemas/DecisionBenchmarkExclusions'}
           - {type: 'null'}
           default: null
-        contract_version: {const: '2.13', default: '2.13', title: Contract Version, type: string}
+        contract_version: {const: '2.14', default: '2.14', title: Contract Version, type: string}
         decision_id: {pattern: '^dec_[0-9A-Za-z]{8,}$', title: Decision Id, type: string}
         snapshot: {pattern: '^snap_[A-Za-z0-9:._-]+$', title: Snapshot, type: string}
         signature_verified: {default: false, title: Signature Verified, type: boolean}
@@ -2798,6 +2816,11 @@ components:
           items: {$ref: '#/components/schemas/DecisionRelaxation'}
           title: Relax To
           type: array
+        relax_task_tokens:
+          anyOf:
+          - {$ref: '#/components/schemas/DecisionTaskTokensHint'}
+          - {type: 'null'}
+          default: null
         warnings:
           items: {pattern: '^[a-z0-9_]+$', type: string}
           title: Warnings
@@ -4311,6 +4334,28 @@ components:
       required: [input, output]
       title: TaskTokens
       type: object
+    DecisionTaskTokensHint:
+      additionalProperties: false
+      description: 'A per-task cost cap that fails only at the default task size. Added in 2.14.
+
+
+        The spec gave no ``task_tokens``, so ``offering.cost_per_task`` was priced
+
+        at ``default``, and removing ``condition`` alone gives a feasible answer.
+
+        ``admits_at`` is the largest task, at ``default``''s input-to-output ratio,
+
+        at which a model meets the cap. Set ``task_tokens`` to the real task''s
+
+        size rather than copying ``admits_at`` (MODEL-316).'
+      properties:
+        condition: {title: Condition, type: string}
+        default: {$ref: '#/components/schemas/DecisionTaskTokens'}
+        admits_at: {$ref: '#/components/schemas/DecisionTaskTokens'}
+        message: {title: Message, type: string}
+      required: [condition, default, admits_at, message]
+      title: TaskTokensHint
+      type: object
     DecisionTieBreakers:
       additionalProperties: false
       properties:
@@ -4519,7 +4564,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.13']
+          enum: ['2.14']
         endpoint:
           type: string
           enum: [decide]
@@ -4565,7 +4610,7 @@ components:
           enum: ['1.0']
         projects_contract:
           type: string
-          enum: ['2.13']
+          enum: ['2.14']
         endpoint:
           type: string
           enum: [decide]
@@ -4586,7 +4631,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.13']
+          enum: ['2.14']
         endpoint:
           type: string
           enum: [decide]
@@ -4616,7 +4661,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.13']
+          enum: ['2.14']
         endpoint:
           type: string
           enum: [decide]
@@ -4632,7 +4677,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.13']
+          enum: ['2.14']
         endpoint:
           type: string
           enum: [compare]
@@ -4662,7 +4707,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.13']
+          enum: ['2.14']
         endpoint:
           type: string
           enum: [compare]
@@ -4915,7 +4960,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.13']
+          enum: ['2.14']
         endpoint:
           type: string
           enum: [compare]
@@ -6057,4 +6102,4 @@ components:
       schema: {type: string, const: '<https://modelspec.dev/agents.md>; rel="describedby"'}
     AgentGuideVersion:
       description: Version of the byte-stable guide.
-      schema: {type: string, const: 1-4bf62fc15451d7bc}
+      schema: {type: string, const: 1-5f657ebd18b3f0d6}

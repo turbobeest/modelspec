@@ -1,6 +1,6 @@
 # The ModelSpec decision contract
 
-Contract version: **2.13**
+Contract version: **2.14**
 
 The opt-in bounded HTTP response is a separate representation with its own
 version, **bounded 1.0**. It does not carry a 2.x `contract_version`. See
@@ -637,7 +637,7 @@ best-band tie (`answer.members`). A `do_not_claim` line also names a tied
 
 ```json decision
 {
-  "contract_version": "2.13",
+  "contract_version": "2.14",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
   "signature_verified": true,
@@ -780,7 +780,7 @@ best-band tie (`answer.members`). A `do_not_claim` line also names a tied
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"2.13"`. |
+| `contract_version` | `"2.14"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
 | `signature_verified` | `true` when this process verified either the pinned Ed25519 signature or the private Worker HMAC. |
@@ -800,6 +800,7 @@ best-band tie (`answer.members`). A `do_not_claim` line also names a tied
 | `tipping_points` | The objective changes that would change the top result: a `description`, and where they apply, the `dimension`, the `threshold` and the `new_top` model. A refinement weight's point also names its `refinement` (2.4). |
 | `relax` | For `no_feasible` only: the fewest conditions whose removal gives a feasible answer. Never the model class or a condition on a requested capability domain, which would change the question; among equally few, numeric caps and floors first. |
 | `relax_to` | For `no_feasible` only (1.5): for each numeric cap or floor, the smallest change that admits a model. Each names the spec's `condition`, the `relaxed` condition (same facet and direction, at the nearest value an excluded candidate has), the `facet`, that `value`, its `unit`, and how many models it `admits`. |
+| `relax_task_tokens` | For `no_feasible` only, and absent otherwise (2.14): the spec gave no `task_tokens`, `relax` is a single `offering.cost_per_task` cap, and that cap fails only at the default task size. Names the cap as `condition`, the `default` task size cost was priced at (40,000 input, 4,000 output tokens), `admits_at` (the largest task at the default's input-to-output ratio that a model meets the cap at, strictly under a strict cap) and a `message`. Set `task_tokens` to the real task's size rather than copying `admits_at`. Kept in bounded answers. |
 | `warnings` | Codes about the decision as a whole. |
 | `out_of_lineup` | How many active catalogue models the snapshot leaves outside its lineup, and so outside this decision. `0` when the snapshot was built without a premier list. |
 | `feedback` | Where to say whether this answer held up: send the `method` (`POST`) to the `endpoint`, with a body that follows `request_schema` and a rating from `ratings` (`reliable`, `unreliable`, `trustworthy`, `untrustworthy`, `confusing`) and this `decision_id`, or run the `cli` line. No key. The same on every decision. See [`feedback-api.md`](feedback-api.md). Added in 2.10. |
@@ -1078,20 +1079,20 @@ contract would need a major bump. It is a different representation instead:
   follows the same MODEL-59 rule on its own: widening any bounded field bumps
   its major.
 - `projects_contract` names the complete contract the body is projected from,
-  currently `"2.13"`. Every field the bounded body does carry has that
+  currently `"2.14"`. Every field the bounded body does carry has that
   contract's type and meaning.
 - A bounded body has **no** `contract_version`. A 2.x decoder that requires
   `contract_version` refuses it rather than misreading it as a complete
   Decision.
 
-Requests with only `limit`, or `fields: null`, receive complete contract 2.13
+Requests with only `limit`, or `fields: null`, receive complete contract 2.14
 responses. The decide page never sends `fields` or `evidence_for`, so its
 decoder never sees a bounded body and
 needs no change.
 
 A bounded response retains the complete `answer`, `warnings`, `reading` when
 applicable, `with_estate` when applicable, status, identity, feedback pointer,
-`truncated`, `out_of_lineup`, `relax` and `relax_to`. It projects ranked
+`truncated`, `out_of_lineup`, `relax`, `relax_to` and `relax_task_tokens` when present. It projects ranked
 `results` and shows at most 10 `may_qualify` rows. It adds required
 `explanation` with `not_applied`, explicit per-section `omitted` counts and a
 `note` that omitted data is incomplete. Ties and reporting limits cannot be
@@ -1455,6 +1456,14 @@ that used to be accepted is a major change; accepting more is not.
 
 ## Change log
 
+- **2.14 — MODEL-316:** A `no_feasible` decision adds optional
+  `relax_task_tokens` when a per-task cost cap fails only because the spec gave
+  no `task_tokens`, so cost was priced at the default 40,000 input and 4,000
+  output tokens. It names the cap, the default, the largest task at the
+  default's ratio that a model meets the cap at, and asks for the real task
+  size. A clean agent asking for summarisation under $0.01 per task got
+  `no_feasible` from the default alone. Additive: `relax`, `relax_to`,
+  `status` and every other field keep their ranges. Bounded answers carry it.
 - **2.13 — MODEL-308:** Optional `coverage` explains requests outside the board's classes or domains. It includes covered classes and counts and links to the keyless, generated `/api/coverage.json` summary. Complete and bounded decisions retain their existing statuses; `invalid_spec` retains its code, issues and recovery. No class ordering or ranking changes.
 
 - **2.12 — MODEL-284:** A decision adds optional `reading` guidance derived

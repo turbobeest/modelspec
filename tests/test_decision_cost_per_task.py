@@ -199,6 +199,72 @@ def test_a_near_miss_on_cost_carries_the_formula_and_both_price_records():
     assert "= 0.12 USD per task" in miss.formula
 
 
+# ── the default task size (MODEL-316) ─────────────────────────────────────
+
+
+def capped(where, tokens=None):
+    return decide(spec(where=where, objective={"max": BENCH}, tokens=tokens),
+                  index(), facets=facets)
+
+
+def test_a_cost_cap_failing_only_at_the_default_size_says_so_and_sizes_the_task():
+    # At 40k in / 4k out the cheapest offering costs 0.06; the cap is 0.01.
+    decision = capped(["offering.cost_per_task <= 0.01"])
+    assert decision.status == "no_feasible"
+    assert decision.relax == ["offering.cost_per_task <= 0.01"]
+    hint = decision.relax_task_tokens
+    assert hint.condition == "offering.cost_per_task <= 0.01"
+    assert (hint.default.input, hint.default.output) == (40000, 4000)
+    assert (hint.admits_at.input, hint.admits_at.output) == (6666, 666)
+    assert "set task_tokens" in hint.message.lower()
+    assert "6,666 input and 666 output tokens" in hint.message
+    dumped = decision.model_dump(mode="json")
+    assert dumped["relax_task_tokens"]["admits_at"] == {"input": 6666, "output": 666}
+    Decision.model_validate(dumped)
+    # The suggested size does admit a model under the same cap.
+    sized = capped(["offering.cost_per_task <= 0.01"], tokens={"input": 6666, "output": 666})
+    assert [r.offering.model for r in offerings_only(sized.results)] == ["lab/cheap"]
+    assert "relax_task_tokens" not in sized.model_dump(mode="json")
+
+
+def test_a_strict_cap_gets_a_task_strictly_under_it():
+    # 0.03 is exactly half of 0.06, so the default halves to 20k / 2k, which a
+    # strict cap does not admit.
+    hint = capped(["offering.cost_per_task < 0.03"]).relax_task_tokens
+    assert (hint.admits_at.input, hint.admits_at.output) == (19999, 1999)
+
+
+def test_a_strict_cap_survives_float_error_in_the_scale():
+    # $1.5 / $10 per 1M costs exactly 0.1 at the default. In floats
+    # 0.07 / 0.1 × 40,000 is 28,000.000000000004, and 28,000 / 2,800 tokens
+    # would cost exactly 0.07, which `< 0.07` refuses.
+    snapshot = index(offerings=[sold("lab/cheap", "p1", 1.5, 10.0)])
+    where = ["offering.cost_per_task < 0.07"]
+    hint = decide(spec(where=where, objective={"max": BENCH}), snapshot,
+                  facets=facets).relax_task_tokens
+    assert (hint.admits_at.input, hint.admits_at.output) == (27999, 2799)
+    sized = decide(spec(where=where, objective={"max": BENCH},
+                        tokens={"input": 27999, "output": 2799}), snapshot, facets=facets)
+    assert [r.offering.model for r in offerings_only(sized.results)] == ["lab/cheap"]
+
+
+def test_no_hint_when_the_spec_sized_the_task_or_the_cap_is_not_the_only_cause():
+    sized = capped(["offering.cost_per_task <= 0.01"], tokens={"input": 40000, "output": 4000})
+    assert sized.status == "no_feasible" and sized.relax_task_tokens is None
+    assert "relax_task_tokens" not in sized.model_dump(mode="json")
+    both = capped(["offering.cost_per_task <= 0.01", "offering.price.input <= 0.5"])
+    assert both.status == "no_feasible" and len(both.relax) == 2
+    assert both.relax_task_tokens is None
+
+
+def test_a_feasible_decision_never_carries_the_hint():
+    hint = capped(["offering.cost_per_task <= 0.01"]).relax_task_tokens
+    body = capped(["offering.cost_per_task <= 0.10"]).model_dump(mode="json")
+    body["relax_task_tokens"] = hint.model_dump(mode="json")
+    with pytest.raises(ValueError, match="relax is only for no_feasible"):
+        Decision.model_validate(body)
+
+
 def test_the_worker_answers_a_spec_with_task_tokens():
     import importlib.util
     from pathlib import Path
@@ -216,7 +282,7 @@ def test_the_worker_answers_a_spec_with_task_tokens():
         "explain": "none",
     }, index())
     assert status == 200, body
-    assert body["contract_version"] == "2.13"
+    assert body["contract_version"] == "2.14"
 
 
 def test_computed_view_only_needs_the_index_methods_it_uses():
@@ -230,3 +296,25 @@ def test_computed_view_only_needs_the_index_methods_it_uses():
 
     view = with_computed(Prices(), DEFAULT_TASK_TOKENS)
     assert view.fact("lab/model", "offering.cost_per_task").value == 0.06
+
+
+def test_the_worker_and_its_bounded_answer_carry_the_task_size_hint():
+    import importlib.util
+    from pathlib import Path
+
+    source = Path(__file__).resolve().parents[1] / "api" / "worker" / "src" / "decide_service.py"
+    loader = importlib.util.spec_from_file_location("modelspec_decide_service_hint", source)
+    decide_service = importlib.util.module_from_spec(loader)
+    loader.loader.exec_module(decide_service)
+
+    request = {
+        "spec_version": 1,
+        "where": ["model.class = text-generator", "offering.cost_per_task <= 0.01"],
+        "optimize": {"max": BENCH},
+        "explain": "none",
+    }
+    for extra in ({}, {"limit": 10, "fields": ["model_rank"]}):
+        status, body = decide_service.decide({**request, **extra}, index())
+        assert status == 200, body
+        assert body["status"] == "no_feasible"
+        assert body["relax_task_tokens"]["admits_at"] == {"input": 6666, "output": 666}

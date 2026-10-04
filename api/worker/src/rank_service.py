@@ -53,7 +53,29 @@ from pipeline.ranking import Candidate, rank_report
 #:
 #: MODEL-110 added `unranked_candidates` the same way: a new always-present
 #: field, not a widened one, so still 1.0.
+#:
+#: MODEL-316 added `deprecation` the same way, on every response.
 SCHEMA_VERSION = "1.0"
+
+#: `/v1/rank` is the retired fixed-benchmark ranking (MODEL-316). A clean agent
+#: fell back to it when decide named no leader, and its stale scores led it to
+#: older models while newer ones sat unranked. Every response says so, and
+#: `next` names the endpoint to call instead. The endpoint stays up for callers
+#: that already use it.
+DEPRECATION = {
+    "deprecated": True,
+    "message": (
+        "Legacy v1: the retired fixed-benchmark ranking. Its scores lag the catalogue "
+        "and newer models are often unranked for lack of them, so do not use it as a "
+        "fallback when decide names no single leader. Call POST /v1/decide with your "
+        "requirements and report its answer, ties included."
+    ),
+    "next": {
+        "method": "POST",
+        "url": "https://api.modelspec.dev/v1/decide",
+        "guide": "https://modelspec.dev/agents.md",
+    },
+}
 
 #: Serving states for `authoring_guide.state`. `absent` is a state, never an
 #: omitted field, an empty string, or generated text. `stale` is served as
@@ -421,6 +443,7 @@ def _envelope(export: dict[str, Any], service_commit: str, origin: str) -> dict[
         "build": _build_block(export),
         "service_commit": service_commit,
         "export_origin": origin,
+        "deprecation": DEPRECATION,
     }
 
 

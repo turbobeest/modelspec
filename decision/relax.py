@@ -10,15 +10,31 @@ the cap was a decider. Those conditions are never suggested.
 answer, preferring numeric caps and floors among equally few. `relax_to` states,
 for each numeric cap or floor, the smallest change that admits a model: the
 threshold moved to the nearest value an excluded candidate has.
+
+`task_tokens_hint` names the one case where the question itself is not the
+problem: a per-task cost cap fails only because the spec gave no `task_tokens`,
+so every model was priced as a 40,000-token task (MODEL-316).
 """
 
 from __future__ import annotations
 
 from dataclasses import replace
 from itertools import combinations
+from fractions import Fraction
+from math import ceil, floor
 from typing import Any
 
-from decision.contract import AllOf, AnyOf, Compare, NotOf, Relaxation, render_condition
+from decision.contract import (
+    DEFAULT_TASK_TOKENS,
+    AllOf,
+    AnyOf,
+    Compare,
+    NotOf,
+    Relaxation,
+    TaskTokens,
+    TaskTokensHint,
+    render_condition,
+)
 from decision.explain import facet_unit
 from decision.filter import apply
 
@@ -130,3 +146,43 @@ def smallest_changes(resolved, snapshot, domains: frozenset[str]) -> list[Relaxa
             admits=len({snapshot.model_of(cid) for cid in admitted}),
         ))
     return out
+
+
+def task_tokens_hint(resolved, relax: list[str], relax_to: list[Relaxation],
+                     task_tokens: TaskTokens | None) -> TaskTokensHint | None:
+    """The per-task cost cap failed only at the default task size, and the task that passes.
+
+    Only when the spec gave no ``task_tokens`` and ``relax`` is that cap alone.
+    Cost per task is linear in tokens, so scaling the default by cap / nearest
+    excluded cost gives the largest task at the default's ratio that a model
+    meets; a strict cap stays strict.
+    """
+    if task_tokens is not None or len(relax) != 1:
+        return None
+    cap = next((cond for cond in resolved.conditions
+                if isinstance(cond, Compare) and cond.facet == "offering.cost_per_task"
+                and cond.op in ("<", "<=") and _numeric(cond.value)
+                and render_condition(cond) == relax[0]), None)
+    nearest = next((r.value for r in relax_to if r.condition == relax[0]), None)
+    if cap is None or not nearest:
+        return None
+    # Exact: in floats 0.07 / 0.1 × 40,000 is 28,000.000000000004, and a strict
+    # cap would then be offered a task that costs exactly the cap.
+    scale = Fraction(str(cap.value)) / Fraction(str(nearest))
+    fit = floor if cap.op == "<=" else (lambda tokens: ceil(tokens) - 1)
+    default = DEFAULT_TASK_TOKENS
+    admits = TaskTokens(input=max(fit(default.input * scale), 0),
+                        output=max(fit(default.output * scale), 0))
+    if admits.input == 0:
+        return None
+    return TaskTokensHint(
+        condition=relax[0],
+        default=default,
+        admits_at=admits,
+        message=(
+            f"No model meets {relax[0]} at the default task size of {default.input:,} input "
+            f"and {default.output:,} output tokens, used because the spec gives no task_tokens. "
+            f"A task of at most {admits.input:,} input and {admits.output:,} output tokens "
+            "admits a model. Set task_tokens to your task's size and decide again."
+        ),
+    )

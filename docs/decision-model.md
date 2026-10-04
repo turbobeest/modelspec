@@ -158,4 +158,5 @@ and loads every card and evidence row under `models/`.
 `tests/test_decision_compatibility.py` compares both `pipeline.ranking` and the
 Worker's `/v1/rank` service to `tests/fixtures/decision/v1-rank.json`. The golden
 output was captured from the unchanged v1 code at `76eabc11`, with synthetic
-cards covering legacy scores, reviewed evidence, and missing evidence.
+cards covering legacy scores, reviewed evidence, and missing evidence. MODEL-316
+added the response's `deprecation` block to it; nothing else in it changed.

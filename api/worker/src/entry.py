@@ -1263,6 +1263,7 @@ class Default(WorkerEntrypoint):
         """`GET /v1/credits` — the holder's prepaid balance."""
         envelope = service._envelope({}, service_commit, origin)
         envelope["endpoint"] = "credits"
+        del envelope["deprecation"]  # rank's notice, not the balance's
         status, body = await x402.balance_query(
             config=x402.load_config(self.env),
             ledger=credits.ledger_from_env(self.env),
@@ -1392,6 +1393,7 @@ class Default(WorkerEntrypoint):
                 "schema_version": service.SCHEMA_VERSION,
                 "service_commit": service_commit,
                 "export_origin": origin,
+                "deprecation": service.DEPRECATION,
                 "error": {"code": "export_unavailable",
                           "message": f"could not read the published export: {exc}"},
                 "result": [],

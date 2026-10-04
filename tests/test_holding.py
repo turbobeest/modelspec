@@ -419,6 +419,27 @@ def test_smoke_reports_each_discovery_path_that_is_not_served_as_built():
     ]
 
 
+def test_guessed_agent_guide_paths_redirect_permanently_to_the_guide():
+    # MODEL-316: a clean agent tried /agents, /docs and /agent-guide; each was a 404.
+    rules = {tuple(line.split()) for line in live.REDIRECTS.splitlines()}
+    for path in ("/agents", "/agents/", "/docs", "/docs/", "/agent-guide", "/agent-guide/"):
+        assert (path, "/agents.md", "301") in rules, path
+    assert "agents.md" in live.KEEP_FILES
+    assert not [rule for rule in rules if rule[0].startswith("/api")]
+
+
+def test_smoke_follows_each_guide_alias_to_a_served_guide():
+    def fetch(url):
+        if url.endswith("/docs"):
+            return 404, {}, b""
+        link = '</llms.txt>; rel="describedby", </.well-known/api-catalog>; rel="api-catalog", </sitemap.xml>; rel="sitemap"'
+        return 200, {"content-type": "application/linkset+json", "link": link}, b"ok"
+
+    failed = live.smoke("https://modelspec.dev", fetch)
+    assert "/docs: 404" in failed
+    assert not [line for line in failed if line.startswith(("/agents:", "/agent-guide:"))]
+
+
 def test_the_workflow_assembles_live_with_the_module_and_smokes_discovery():
     text = WORKFLOW.read_text(encoding="utf-8")
     assert "python -m pipeline.live build --src dist-v1 --web web/dist --out dist" in text

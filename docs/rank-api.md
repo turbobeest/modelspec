@@ -4,6 +4,10 @@
 supplied environment, use case and constraints, computed per request from the
 current published export.
 
+**Deprecated (MODEL-316).** This is the retired fixed-benchmark ranking, kept
+for existing callers. New work calls `POST /v1/decide`; every response carries
+a `deprecation` block that says so.
+
 This file is the design record: why the endpoint exists, how it is bundled and
 deployed, and what it deliberately does not do. **Callers want
 [`api.md`](api.md)** — the agent-facing reference — and
@@ -147,6 +151,24 @@ Every response — success or failure — carries `build.commit` and
   "result": [ { "model_id": …, "score": …, "cost_input": …, "evidence_basis": "mixed", … } ]
 }
 ```
+
+`deprecation` (MODEL-316) is on every response the rank service writes: 200,
+400, 422, 502 and access refusals. `/v1/rank` is the retired fixed-benchmark
+ranking. A clean agent fell back to it when decide named no single leader, and
+its stale scores sent the agent to older models while newer ones sat unranked.
+The block says so and names what to call instead:
+
+```jsonc
+"deprecation": {
+  "deprecated": true,
+  "message": "Legacy v1: the retired fixed-benchmark ranking. …",
+  "next": { "method": "POST", "url": "https://api.modelspec.dev/v1/decide",
+            "guide": "https://modelspec.dev/agents.md" }
+}
+```
+
+It is a new always-present field, so `schema_version` stays `1.0` (MODEL-59).
+The endpoint is not removed; existing callers keep working.
 
 `result` rows are `pipeline.ranking.score` rows, unchanged. `evidence_basis` is
 `pipeline/ranking.py::_basis` — `none`, `unverified-legacy`, `mixed`,

@@ -131,7 +131,7 @@ def _get_graph():
     except Exception as exc:
         console.print(f"[bold red]Error:[/] Could not connect to FalkorDB at {_FALKORDB_HOST}:{_FALKORDB_PORT}")
         console.print("[dim]The graph commands need a local FalkorDB. For an answer without one, "
-                      "use `modelspec snapshot fetch` then `modelspec offline rank`.[/]")
+                      "state your requirements to `modelspec decide`.[/]")
         console.print(f"  {exc}")
         raise typer.Exit(1)
 

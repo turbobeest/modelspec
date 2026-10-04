@@ -612,7 +612,7 @@
           "type": "integer"
         },
         "projects_contract": {
-          "const": "2.13",
+          "const": "2.14",
           "title": "Projects Contract",
           "type": "string"
         },
@@ -633,6 +633,17 @@
           },
           "title": "Relax",
           "type": "array"
+        },
+        "relax_task_tokens": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TaskTokensHint"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "relax_to": {
           "items": {
@@ -1605,8 +1616,8 @@
           "type": "array"
         },
         "contract_version": {
-          "const": "2.13",
-          "default": "2.13",
+          "const": "2.14",
+          "default": "2.14",
           "title": "Contract Version",
           "type": "string"
         },
@@ -1685,6 +1696,17 @@
           },
           "title": "Relax",
           "type": "array"
+        },
+        "relax_task_tokens": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/TaskTokensHint"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "relax_to": {
           "items": {
@@ -5088,6 +5110,34 @@
       "title": "TaskTokens",
       "type": "object"
     },
+    "TaskTokensHint": {
+      "additionalProperties": false,
+      "description": "A per-task cost cap that fails only at the default task size. Added in 2.14.\n\nThe spec gave no ``task_tokens``, so ``offering.cost_per_task`` was priced\nat ``default``, and removing ``condition`` alone gives a feasible answer.\n``admits_at`` is the largest task, at ``default``'s input-to-output ratio,\nat which a model meets the cap. Set ``task_tokens`` to the real task's\nsize rather than copying ``admits_at`` (MODEL-316).",
+      "properties": {
+        "admits_at": {
+          "$ref": "#/$defs/TaskTokens"
+        },
+        "condition": {
+          "title": "Condition",
+          "type": "string"
+        },
+        "default": {
+          "$ref": "#/$defs/TaskTokens"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": [
+        "condition",
+        "default",
+        "admits_at",
+        "message"
+      ],
+      "title": "TaskTokensHint",
+      "type": "object"
+    },
     "TieBreakers": {
       "additionalProperties": false,
       "properties": {
@@ -5509,5 +5559,5 @@
   ],
   "description": "Generated from decision/contract.py by `python -m decision.schema`. Do not edit by hand. The prose is docs/decision-contract.md.",
   "title": "ModelSpec decision contract",
-  "x-contract-version": "2.13"
+  "x-contract-version": "2.14"
 }

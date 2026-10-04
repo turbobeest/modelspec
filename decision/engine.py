@@ -39,7 +39,7 @@ from decision.optimise import EvidenceSelector, OptimisedResult, optimise
 from decision.refinements import RANKABLE, is_refinement_key, split_dimension
 from decision.refinements import evidence_state as refinement_evidence_state
 from decision.refinements import lineup as refinement_lineup
-from decision.relax import fewest, smallest_changes
+from decision.relax import fewest, smallest_changes, task_tokens_hint
 from decision.resolve import Resolved, resolve
 from decision.snapshot import ExplanationIndex
 
@@ -710,12 +710,13 @@ def _decide(
             warnings=warnings,
             plans=plan_routes,
         ))
-    relax, relax_to = [], []
+    relax, relax_to, relax_task_tokens = [], [], None
     if ordered.status == "no_feasible":
         # Never the class or a requested domain: that would change the question.
         if not filtered.feasible and _reach is None:
             relax = fewest(resolved, snapshot, requested)
             relax_to = smallest_changes(resolved, snapshot, requested)
+            relax_task_tokens = task_tokens_hint(resolved, relax, relax_to, spec.task_tokens)
         if not relax:
             relax = [ordered.reason or "no candidates in the snapshot"]
     decision = Decision(
@@ -738,6 +739,7 @@ def _decide(
         results=results,
         relax=relax,
         relax_to=relax_to,
+        relax_task_tokens=relax_task_tokens,
         may_qualify=[
             MayQualify(
                 model=snapshot.model_of(cid),

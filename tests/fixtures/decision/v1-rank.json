@@ -22,6 +22,15 @@
       "export_schema_version": "3.0"
     },
     "candidates_considered": 3,
+    "deprecation": {
+      "deprecated": true,
+      "message": "Legacy v1: the retired fixed-benchmark ranking. Its scores lag the catalogue and newer models are often unranked for lack of them, so do not use it as a fallback when decide names no single leader. Call POST /v1/decide with your requirements and report its answer, ties included.",
+      "next": {
+        "guide": "https://modelspec.dev/agents.md",
+        "method": "POST",
+        "url": "https://api.modelspec.dev/v1/decide"
+      }
+    },
     "endpoint": "rank",
     "export_origin": "https://example.invalid",
     "policy": {

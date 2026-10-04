@@ -84,11 +84,15 @@ RETIRED = (
     "/graph/*  /  301\n",
     "/llms-full.txt  /llms.txt  301\n",
 )
+#: Paths a clean agent guessed for the agent guide, each a 404 until MODEL-316.
+GUIDE_ALIASES = ("/agents", "/docs", "/agent-guide")
 REDIRECTS = "/landing/  /  301\n" + "".join(
     f"{rule}{suffix}  /decide/  301\n"
     for rule in LEGACY
     for suffix in (("",) if rule.endswith("*") else ("", "/"))
-) + "".join(RETIRED)
+) + "".join(RETIRED) + "".join(
+    f"{alias}{suffix}  /agents.md  301\n" for alias in GUIDE_ALIASES for suffix in ("", "/")
+)
 #: The one robots.txt (MODEL-253): agent_ready's, with the Content-Signal line.
 #: Until then this module wrote a plain copy last, and production served it.
 ROBOTS = agent_ready.robots_txt(BASE)
@@ -318,7 +322,9 @@ def smoke(origin: str, fetch=None) -> list[str]:
     fetch = fetch or get
     failed: list[str] = []
     deployed = () if os.environ.get("DATA_SPLIT_ENABLED") == "true" else DEPLOYED_ONLY
-    for path in (*(f"/{rel}" for rel in DISCOVERY), "/openapi.yaml", *PAGES, *deployed):
+    # A guide alias passes only by following its 301 to the guide.
+    for path in (*(f"/{rel}" for rel in DISCOVERY), "/openapi.yaml", *PAGES, *deployed,
+                 *GUIDE_ALIASES):
         status, headers, body = fetch(origin.rstrip("/") + path)
         if status != 200 or not body:
             failed.append(f"{path}: {status}")

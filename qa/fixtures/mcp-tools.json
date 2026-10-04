@@ -2,16 +2,16 @@
   "source_hashes": {
     "mcp/src/server.ts": "76ce19c1c82aaff2617e60f1e6af5872c5312af2d3371e88a27357f2c55f78c3",
     "mcp/src/vocabulary.ts": "120c41a9b06e6588edd818ef0be72df87f01d2a46168f1a69cd035884faa01ea",
-    "mcp/test/fixtures/decide-budget.json": "7901ff0d34b2d65f130f583cbef4348c0b7791f340c34d43238d0b043938df17",
-    "docs/decision-contract.schema.json": "75c3b14311142470424fbc094a5f85a7e37381e353de2bed6a3aa4ebf81cc6bb",
-    "api/worker/openapi.yaml": "a25c4834e3c2b0973540ad8cc872121391e3ef6ac7256896f100ea6fb8440169",
-    "docs/agents.md": "dd0d6053e3c298665c181108ae62a39545a26297f8b89d52e2888f28090441f3",
-    "mcp/src/agent-copy.json": "f0842e717188f1cf13b9535aa166aa70e7ef52a51bbff0dc8e78b02116650a5a"
+    "mcp/test/fixtures/decide-budget.json": "73f497f2ddae8ef1f4f6cd30277dc521d0631684cdc8187124e85620fefa843e",
+    "docs/decision-contract.schema.json": "b7b137d53de7f21e4f58ae4be199b199dba6ab907ed29d786183fc1f5342ce3e",
+    "api/worker/openapi.yaml": "a2fbff4dfa12033d65e361791da4d6cd7d1633bd57203def04b058732a1ea6af",
+    "docs/agents.md": "7ffe00341baecf701085842e6d237886489b47212819e44ce45486cfa5d9c094",
+    "mcp/src/agent-copy.json": "1856b33eeed250e6434307cc1eada15e1bf5944f441286776946e9b339ad2669"
   },
   "tools": [
     {
       "name": "rank",
-      "description": "Legacy v1; use decide for new work. Which models rank highest for one fixed use-case profile? Returns a shortlist for that profile with evidence_basis, which is input provenance (none, unverified-legacy, mixed, partial-verified, verified), not a quality verdict. Needs an API key (Authorization: Bearer). Costs 1 credit a call; a credit costs $0.0017–$0.004 depending on the plan or pack (https://modelspec.dev/pricing/). Don't call it when you can state requirements: decide takes them, rank doesn't. Proxies POST https://api.modelspec.dev/v1/rank with this tool's arguments as the JSON body. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
+      "description": "Legacy v1; use decide. Deprecated: the retired fixed-benchmark ranking, whose scores lag the catalogue; newer models are often unranked. Which models rank highest for one fixed use-case profile? Returns a shortlist with evidence_basis, input provenance, not a quality verdict. Needs an API key (Authorization: Bearer). Costs 1 credit a call; a credit costs $0.0017–$0.004 depending on the plan or pack (https://modelspec.dev/pricing/). Don't call it as a fallback when decide names no single leader: report decide's tie. Proxies POST https://api.modelspec.dev/v1/rank with this tool's arguments as the JSON body. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
       "input_schema": {
         "type": "object",
         "additionalProperties": true,

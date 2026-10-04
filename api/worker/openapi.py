@@ -203,6 +203,10 @@ DESCRIPTIONS: dict[str, str] = {
         "catalogue, not a degraded answer."
     ),
     "RankResponse.result": "The shortlist, best first. Never empty on a 200.",
+    "RankResponse.deprecation": (
+        "Always present (MODEL-316): the retired ranking; never a fallback for decide."
+    ),
+    "RankResponse.deprecation.next": "The endpoint to call instead: POST /v1/decide.",
     "RankResponse.authoring_guide": (
         "The recommended model's authoring guide, copied from the public card. Always "
         "present. Free: it is public catalogue data, not a paid enrichment."
@@ -2704,13 +2708,15 @@ def build_spec() -> dict[str, Any]:
             "title": "ModelSpec API",
             "version": service.SCHEMA_VERSION,
             "summary": (
-                "Ranks AI models you can actually run, given your hardware, providers, use "
-                "case and policy rules, and checks them against a compliance policy."
+                "Decides which AI models fit a job from your requirements, sourced "
+                "evidence and real cost, and checks them against a compliance policy."
             ),
             "description": (
                 "Use when choosing, switching, or checking a model before a task or deploy. "
-                "POST /v1/rank returns ranked models with scores, cost and reasons; on "
-                "failure, it returns which constraint eliminated every option. "
+                "POST /v1/decide takes your requirements and returns the models that fit, "
+                "with reasons, cost per task and ties; when nothing fits, it says what to "
+                "relax. POST /v1/rank is deprecated: the retired fixed-benchmark ranking, "
+                "kept for existing callers and never a fallback for decide. "
                 "POST /v1/policy-check returns, per model and per platform, pass, fail or "
                 "undetermined against a licence, origin, residency and commercial-use "
                 "policy, citing the document behind each verdict. After you act on an "
@@ -2831,6 +2837,7 @@ def build_spec() -> dict[str, Any]:
             "/v1/rank": {
                 "post": {
                     "operationId": "rank",
+                    "deprecated": True,
                     "summary": "Rank the catalogue for one profile.",
                     "requestBody": {
                         "required": True,
@@ -2907,7 +2914,7 @@ def build_spec() -> dict[str, Any]:
                         "200": {
                             **_json_body(
                                 "A decision pinned to the snapshot that produced it: a complete "
-                                "Decision (contract_version 2.13), or, when the request sends "
+                                "Decision (contract_version 2.14), or, when the request sends "
                                 "fields or evidence_for, the separate bounded representation "
                                 "(representation: bounded, bounded_version 1.0, no "
                                 "contract_version).",

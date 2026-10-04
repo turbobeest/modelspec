@@ -149,7 +149,7 @@ def test_a_decision_with_no_feasible_model_says_what_to_relax(tmp_path, snapshot
 
 def test_json_is_unchanged_by_the_summary(tmp_path, snapshot_bytes):
     body = json.loads(run(tmp_path, snapshot_bytes, "--json").stdout)
-    assert body["contract_version"] == "2.13"
+    assert body["contract_version"] == "2.14"
     assert body["results"][0]["model"] == "lab/alpha"
     assert [row["model"] for row in body["by_model"]][:2] == ["lab/alpha", "lab/beta"]
 
