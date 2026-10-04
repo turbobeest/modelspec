@@ -58,8 +58,8 @@ it("applies and labels the default before the normal three requests, then clears
   expect(screen.getByText("Up and left is better")).toBeInTheDocument();
   const templates = document.querySelector(".template-picker");
   // MODEL-325: the answer, led by its counter, follows the templates directly.
-  expect(templates?.nextElementSibling).toHaveClass("answer-region");
-  expect(templates?.nextElementSibling?.querySelector(".board-answer > :first-child")).toHaveAttribute("aria-label", "Narrowing");
+  expect(templates?.nextElementSibling).toHaveClass("answer-block");
+  expect(templates?.nextElementSibling?.querySelector(".answer-region .board-answer > :first-child")).toHaveAttribute("aria-label", "Narrowing");
   expect(screen.getByRole("button", { name: /^General assistant, balanced/ }).querySelector(".template-check")).toHaveTextContent("✓");
   expect(screen.queryByRole("region", { name: "Was this answer reliable?" })).not.toBeInTheDocument();
 

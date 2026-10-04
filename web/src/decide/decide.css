@@ -654,9 +654,11 @@ html:not([data-decide-theme="light"]) .capsule {
 
 /* MODEL-168 preview board. It inherits the decision page's light/dark tokens. */
 .facet-board { display: flex; flex-direction: column; gap: var(--gap); min-width: 0; }
-.facet-board > *, .board-intro > *, .estate-strip > *, .access-question > *, .answer-region > *, .refine > * { min-width: 0; }
+.facet-board > *, .answer-block > *, .board-intro > *, .estate-strip > *, .access-question > *, .answer-region > *, .refine > * { min-width: 0; }
 /* The answer and its chart share the page's 12 columns, six each, so the split
    lands on the gutter between the third and fourth template tiles. */
+.answer-block { display: flex; flex-direction: column; gap: var(--gap); }
+.answer-block:empty { display: none; }
 .answer-region { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gutter); align-items: start; }
 .answer-column { grid-column: 1 / span 6; display: flex; flex-direction: column; gap: var(--gap); }
 .answer-region:not(:has(> .chart-column)) > .answer-column { grid-column: 1 / -1; }
@@ -749,7 +751,7 @@ html:not([data-decide-theme="light"]) .capsule {
 .estate-strip select { max-width: 13em; }
 .estate-privacy { grid-column: 2; color: var(--muted); font-size: 11.5px; }
 /* MODEL-202: "How will you use it?" sets the spec's access. */
-.decide-app .access-question h2.eyebrow { margin: 0; font-size: 11.5px; font-weight: 400; letter-spacing: normal; }
+.decide-app .access-question h3.eyebrow { margin: 0; font-size: 11.5px; font-weight: 400; letter-spacing: normal; }
 .access-question > div { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-top: 10px; }
 .access-question label { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface2); cursor: pointer; min-width: 0; }
 .access-question label.access-on { border-color: var(--accent); box-shadow: inset 0 0 0 1px var(--accent); }
@@ -948,6 +950,7 @@ html:not([data-decide-theme="light"]) .capsule {
   .global-header > button:not(.brand) { flex: 1; }
   .decide-app { --pad: 16px; }
   .narrowing-counts { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .narrowing-total > span { white-space: normal; }
   .work { padding: 12px var(--gutter) 48px; }
   .board-intro { display: grid; align-items: start; gap: 10px; }
   .decide-app .board-intro h1 { font-size: 30px; margin: 10px 0 16px; }

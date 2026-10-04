@@ -354,6 +354,25 @@ for (const viewport of [{ width: 1236, height: 800 }, { width: 1440, height: 800
   });
 }
 
+test("a facet click in Refine holds its place while the next answer loads", async ({ page }) => {
+  await page.setViewportSize({ width: 1236, height: 800 });
+  await openBoard(page);
+  // Safari has no scroll anchoring; without the held height the row jumped 1,640px.
+  await page.addStyleTag({ content: "* { overflow-anchor: none !important; }" });
+  let release = () => {};
+  const held = new Promise<void>((resolve) => { release = resolve; });
+  await page.route("**/v1/decide", async (route) => { await held; await route.fallback(); });
+  const row = page.locator('[data-facet="capability.software_engineering"]');
+  if (!(await row.isVisible())) await page.getByRole("button", { name: /^What it's good at/ }).click();
+  await row.scrollIntoViewIfNeeded();
+  const top = () => row.evaluate((node) => node.getBoundingClientRect().top);
+  const before = await top();
+  await row.getByLabel("Prefer").check();
+  await expect(page.locator(".loading-cards")).toBeVisible();
+  expect(Math.abs((await top()) - before)).toBeLessThanOrEqual(1);
+  release();
+});
+
 test("a template click changes the first screen without scrolling", async ({ page }) => {
   await page.setViewportSize({ width: 1236, height: 800 });
   await routeFixtures(page);

@@ -1,4 +1,4 @@
-import { useId, useMemo, useState } from "react";
+import { useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { Spec } from "../engine/types";
 import type { Vocabulary, VocabFacet, VocabRefinement, VocabTemplate } from "../vocabulary";
@@ -139,7 +139,7 @@ function FacetRow({ facet, choice, refinements = [], selections = {}, fallbackKe
 
 function AccessQuestion({ access, onAccess }: { access: AccessAnswer; onAccess: (access: AccessAnswer) => void }) {
   return <section className="access-question" aria-labelledby="access-question-heading">
-    <h2 id="access-question-heading" className="eyebrow">How will you use it?</h2>
+    <h3 id="access-question-heading" className="eyebrow">How will you use it?</h3>
     <div role="radiogroup" aria-labelledby="access-question-heading">
       {ACCESS_ANSWERS.map((answer) => <label key={answer.id} className={answer.id === access ? "access-on" : ""}>
         <input type="radio" name="access" value={answer.id} checked={answer.id === access} onChange={() => onAccess(answer.id)} />
@@ -176,8 +176,22 @@ function EstateStrip({ vocabulary, estate, onChange }: { vocabulary: Vocabulary;
  * The board in reading order (MODEL-325): templates, the answer beside its
  * chart, then everything that refines it, then whatever follows the refine.
  */
-export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections, mustOrder, onMustOrder, estate, onEstate, access = "any", onAccess, answer, narrowing, chart, afterAnswer, afterRefine, verification, notes = [], onNotes, refinementFallbackKeys = new Set(), onCanvasAxes, activeTemplate: controlledTemplate, onTemplate }: { vocabulary: Vocabulary; spec: Spec; onSpec: (spec: Spec) => void; selections?: BoardSelections; onSelections?: (selections: BoardSelections) => void; mustOrder?: string[]; onMustOrder?: (mustOrder: string[]) => void; estate: Estate; onEstate: (estate: Estate) => void; access?: AccessAnswer; onAccess?: (access: AccessAnswer) => void; answer?: ReactNode; narrowing?: ReactNode; chart?: ReactNode; afterAnswer?: ReactNode; afterRefine?: ReactNode; verification?: ReactNode; notes?: string[]; onNotes?: (notes: string[]) => void; refinementFallbackKeys?: ReadonlySet<string>; onCanvasAxes?: (axes: CanvasAxes) => void; activeTemplate?: ActiveTemplate | null; onTemplate?: (template: ActiveTemplate | null) => void }) {
+export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections, mustOrder, onMustOrder, estate, onEstate, access = "any", onAccess, answer, narrowing, chart, afterAnswer, afterRefine, pending = false, verification, notes = [], onNotes, refinementFallbackKeys = new Set(), onCanvasAxes, activeTemplate: controlledTemplate, onTemplate }: { vocabulary: Vocabulary; spec: Spec; onSpec: (spec: Spec) => void; selections?: BoardSelections; onSelections?: (selections: BoardSelections) => void; mustOrder?: string[]; onMustOrder?: (mustOrder: string[]) => void; estate: Estate; onEstate: (estate: Estate) => void; access?: AccessAnswer; onAccess?: (access: AccessAnswer) => void; answer?: ReactNode; narrowing?: ReactNode; chart?: ReactNode; afterAnswer?: ReactNode; afterRefine?: ReactNode; pending?: boolean; verification?: ReactNode; notes?: string[]; onNotes?: (notes: string[]) => void; refinementFallbackKeys?: ReadonlySet<string>; onCanvasAxes?: (axes: CanvasAxes) => void; activeTemplate?: ActiveTemplate | null; onTemplate?: (template: ActiveTemplate | null) => void }) {
   const refineHeading = useId();
+  // Refine sits below the answer, so a facet click must not pull the page up
+  // while the next answer loads: hold the answer's last height until it lands.
+  // Browsers without scroll anchoring (Safari) would otherwise jump.
+  const answerBlock = useRef<HTMLDivElement>(null);
+  const answerHeight = useRef(0);
+  useLayoutEffect(() => {
+    const node = answerBlock.current;
+    if (!node) return;
+    if (pending) node.style.minHeight = `${answerHeight.current}px`;
+    else {
+      node.style.minHeight = "";
+      answerHeight.current = node.offsetHeight;
+    }
+  });
   const [localSelections, setLocalSelections] = useState<BoardSelections>({});
   const [localMustOrder, setLocalMustOrder] = useState<string[]>([]);
   const selected = selections ?? localSelections;
@@ -248,13 +262,15 @@ export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections,
   };
   return <div className="facet-board">
     <TemplatePicker vocabulary={vocabulary} active={activeTemplate} open={templatesOpen} onOpen={setTemplatesOpen} onApply={applyTemplate} onClear={resetAll} />
-    {(narrowing || answer || chart) && <div className="answer-region">
-      <div className="answer-column">
-        {answer ? <aside className="panel board-answer" id="facet-board-answer">{verification}{narrowing}{answer}</aside> : narrowing}
-      </div>
-      {chart && <div className="chart-column">{chart}</div>}
-    </div>}
-    {afterAnswer}
+    <div className="answer-block" ref={answerBlock}>
+      {(narrowing || answer || chart) && <div className="answer-region">
+        <div className="answer-column">
+          {answer ? <aside className="panel board-answer" id="facet-board-answer">{verification}{narrowing}{answer}</aside> : narrowing}
+        </div>
+        {chart && <div className="chart-column">{chart}</div>}
+      </div>}
+      {afterAnswer}
+    </div>
     <section className="panel refine" aria-labelledby={refineHeading}>
       <header className="refine-head"><h2 id={refineHeading}>Refine the answer</h2><p>{BOARD_RULES}</p></header>
       {notes.length > 0 && <section className="legacy-notes" role="note" aria-label="Notes from your old decision link"><strong>Some settings from this older link are not editable on the board.</strong><ul>{notes.map((note) => <li key={note}>{note}</li>)}</ul></section>}

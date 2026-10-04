@@ -1009,6 +1009,7 @@ export function DesignedApp({
               if (template !== null) setHasAdjustedBoard(true);
             }}
             verification={VISIT_GATE_ENABLED ? <VisitGate /> : undefined}
+            pending={loading}
             narrowing={<AnswerBoundary resetKey={decision} onReset={resetBoard}>
               <Field
                 decision={decision}

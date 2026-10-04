@@ -19,11 +19,12 @@ function useCopy() {
   useEffect(() => () => clearTimeout(timer.current), []);
   async function copy(text: string, message: string, failed: string) {
     setCopied(null);
+    setConfirmed(null);
+    clearTimeout(timer.current);
     try {
       await navigator.clipboard.writeText(text);
       setCopied({ text, message, ok: true });
       setConfirmed(text);
-      clearTimeout(timer.current);
       timer.current = setTimeout(() => setConfirmed(null), CONFIRM_MS);
     } catch {
       setCopied({ text, message: failed, ok: false });
