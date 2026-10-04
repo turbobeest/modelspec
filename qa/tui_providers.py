@@ -6,13 +6,22 @@ import json
 import os
 import re
 import subprocess
+from contextlib import nullcontext
 from dataclasses import dataclass, field
 from pathlib import Path
 from time import perf_counter
 
 from qa.contracts import TOOL_NAMES
 from qa.providers import redact
-from qa.tui_homes import home_environment, resolve_executable
+from qa.tui_homes import (
+    block_gemini_dotenv,
+    gemini_configuration,
+    guard_system_home,
+    home_environment,
+    home_paths,
+    resolve_executable,
+    resolve_node,
+)
 
 CLIS = ("claude", "codex", "gemini", "grok")
 FAMILY = {"claude": "anthropic", "codex": "openai", "gemini": "google", "grok": "xai"}
@@ -34,6 +43,7 @@ CLAUDE_SETTINGS = {
 # Do not inherit API keys, prompt injection variables, remote-daemon addresses,
 # provider endpoints, config homes, plugin paths, or shell startup overrides.
 BASE_ENV = (
+    "HOME",
     "PATH",
     "USER",
     "LOGNAME",
@@ -58,15 +68,26 @@ def child_environment(
 ) -> dict:
     env = {key: os.environ[key] for key in BASE_ENV if key in os.environ}
     env.update(home_environment(cli, settings))
-    env.update(TMPDIR=str(workspace), TMP=str(workspace), TEMP=str(workspace))
+    # Codex refuses helper binaries when CODEX_HOME is beneath its temp root.
+    home, _ = home_paths(cli, settings)
+    temporary = home.parent / "tmp"
+    if temporary.is_symlink():
+        raise ValueError("Harness temporary directory must not be a symlink")
+    temporary.mkdir(mode=0o700, exist_ok=True)
+    env.update(TMPDIR=str(temporary), TMP=str(temporary), TEMP=str(temporary))
+    guard_system_home(cli, env)
     if cli == "claude" and isolated:
         env.update(CLAUDE_ENV)
     if cli == "gemini":
+        node = resolve_node(settings)
+        env["PATH"] = str(node.parent) + os.pathsep + env.get("PATH", "")
         # Prevent system layers or automatic .env discovery from restoring API keys.
         env.update(
-            GEMINI_CLI_SYSTEM_SETTINGS_PATH=str(workspace / "gemini-system.json"),
+            GEMINI_CLI_SYSTEM_SETTINGS_PATH=str(workspace / "gemini-system-unset.json"),
             GEMINI_CLI_SYSTEM_DEFAULTS_PATH=str(workspace / "gemini-defaults.json"),
         )
+        # Native noninteractive auth must never open a browser or start login.
+        env["NO_BROWSER"] = "true"
     if cli == "grok" and isolated:
         env["GROK_MEMORY"] = "0"
         for family in ("CLAUDE", "CURSOR"):
@@ -583,6 +604,21 @@ def _execute(
     config: dict,
     workspace: Path,
     prompt: str,
+    **kwargs,
+) -> Execution:
+    with (
+        gemini_configuration(config, isolated=kwargs.get("isolated", True))
+        if cli == "gemini"
+        else nullcontext()
+    ):
+        return _execute_configured(cli, config, workspace, prompt, **kwargs)
+
+
+def _execute_configured(
+    cli: str,
+    config: dict,
+    workspace: Path,
+    prompt: str,
     *,
     mcp_enabled: bool,
     isolated: bool = True,
@@ -755,5 +791,12 @@ def prepare_workspace(
             "auth": {"selectedType": "oauth-personal"},
             "folderTrust": {"enabled": False},
         }
-        # The system override leaves the planted project/user probes in place.
-        (workspace / "gemini-system.json").write_text(json.dumps(data))
+        # Project MCP controls coexist with planted cwd hooks and skills. The
+        # user layer disables hooks/skills without replacing a cwd canary file.
+        native = workspace / ".gemini"
+        native.mkdir(mode=0o700, exist_ok=True)
+        path = native / "settings.json"
+        if not path.exists():
+            path.write_text(json.dumps(data))
+        # Stop native .env discovery here, before it can walk into the real HOME.
+        block_gemini_dotenv(workspace)

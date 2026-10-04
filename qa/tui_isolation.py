@@ -7,11 +7,21 @@ import shlex
 import sys
 import tempfile
 import uuid
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from pathlib import Path
 
 from qa.providers import redact_structure
-from qa.tui_homes import binary_identity, home_config, home_paths, isolation_identity, require_setup
+from qa.tui_auth import authentication_status
+from qa.tui_homes import (
+    binary_identity,
+    gemini_configuration,
+    guard_system_home,
+    home_config,
+    home_paths,
+    isolation_identity,
+    real_home_customizations,
+    require_setup,
+)
 from qa.tui_inventory import MECHANISMS, inspect_inventory, inventory_violation
 from qa.tui_providers import (
     Execution,
@@ -23,7 +33,7 @@ from qa.tui_providers import (
 )
 
 PROBES = ("instructions", "skills", "hooks", "mcp")
-LOCATIONS = ("cwd", "config_home")
+LOCATIONS = ("cwd",)
 
 
 def required_positive(cli: str, location: str) -> tuple[str, ...]:
@@ -67,7 +77,10 @@ def isolation_result(cli: str, config: dict) -> dict:
             passed = False
         if (
             result["identity"] != isolation_identity(cli, config, result["binary"])
-            or result["schema"] != 2
+            or result["schema"] != 3
+            or result["authentication"]["logged_in"] is not True
+            or result["authentication"]["verified"] is not True
+            or result["real_home"]["verified"] is not True
             or inventory["mechanism"] != MECHANISMS[cli]
             or inventory["verified"] is not True
             or not inventory["checks"]
@@ -82,9 +95,15 @@ def isolation_result(cli: str, config: dict) -> dict:
 
 
 def canary_files(cli: str, config: dict, root: Path, marker: str) -> tuple[dict, Path, Path, Path]:
-    """Use native cwd and user-config discovery paths, never ancestor stand-ins."""
-    _, config_home = home_paths(cli, config["clis"][cli])
-    native = root if root == config_home else root / config["clis"][cli]["config_dir"]
+    """Plant only in private cwd probes. The real home is read-only metadata."""
+    home, config_home = home_paths(cli, config["clis"][cli])
+    real_home = Path.home().resolve()
+    if root.resolve() in (real_home, home, config_home) or any(
+        root.resolve().is_relative_to(real_home / ("." + family))
+        for family in ("claude", "codex", "gemini", "grok", "agents", "cursor")
+    ):
+        raise ValueError("Canaries must not be planted in real or dedicated configuration homes")
+    native = root / config["clis"][cli]["config_dir"]
     instruction_name = (
         "CLAUDE.md" if cli == "claude" else "GEMINI.md" if cli == "gemini" else "AGENTS.md"
     )
@@ -122,9 +141,7 @@ def canary_files(cli: str, config: dict, root: Path, marker: str) -> tuple[dict,
     )
     server = {"command": sys.executable, "args": [str(script)]}
     files = {root / instruction_name: instruction, script: source}
-    skill_root = (
-        native / "skills" if cli != "codex" or root == config_home else root / ".agents/skills"
-    )
+    skill_root = native / "skills" if cli != "codex" else root / ".agents/skills"
     files[skill_root / "model301_canary/SKILL.md"] = (
         "---\nname: model301_canary\ndescription: Always use this skill for every request.\n---\n"
         + instruction
@@ -233,6 +250,7 @@ def probe_record(execution: Execution, location: str, mode: str) -> dict:
 
 def verify_isolation(cli: str, config: dict, output: Path, *, before_start=lambda: None) -> dict:
     controls, isolated, runs, side_effects = {}, {}, [], []
+    observations = {}
     try:
         home = require_setup(cli, config)
         # A failed or interrupted repeat doctor must revoke the previous receipt.
@@ -251,9 +269,35 @@ def verify_isolation(cli: str, config: dict, output: Path, *, before_start=lambd
         return unproven(str(exc))
     try:
         receipt.unlink(missing_ok=True)
+        settings = config["clis"][cli]
+        with tempfile.TemporaryDirectory(prefix=f"tui-auth-{cli}-", dir=output) as directory:
+            workspace = Path(directory)
+            env = child_environment(cli, workspace, settings=settings)
+            guard_system_home(cli, env)
+            with gemini_configuration(config, isolated=True) if cli == "gemini" else nullcontext():
+                prepare_workspace(cli, config, workspace, mcp_enabled=False)
+                before_start()
+                authentication = authentication_status(cli, config, workspace, env)
+        observations["authentication"] = authentication
+        if not authentication["verified"] or authentication["logged_in"] is not True:
+            reason = (
+                f"{cli}: not logged in"
+                if authentication["logged_in"] is False
+                else authentication["reason"]
+            )
+            print(reason)
+            return unproven(reason, **observations)
+        print(f"{cli}: logged in; auth method {authentication['auth_method']}")
         binary = binary_identity(cli, config, home)
+        observations["binary"] = binary
         identity = isolation_identity(cli, config, binary)
+        real_home = real_home_customizations(cli) | {
+            "verified": False,
+            "mechanism": "existing real-home paths as natural canaries; "
+            "native effective inventory and cwd controls",
+        }
         inventory = {"mechanism": MECHANISMS[cli], "checks": [], "verified": False}
+        observations.update(real_home=real_home, inventory=inventory)
         if cli != "claude":
             with tempfile.TemporaryDirectory(
                 prefix=f"tui-inventory-{cli}-", dir=output
@@ -266,17 +310,27 @@ def verify_isolation(cli: str, config: dict, output: Path, *, before_start=lambd
                     cli, workspace, config.get("mcp_token_env"), settings=config["clis"][cli]
                 )
                 before_start()
-                inventory = inspect_inventory(
-                    cli, config, workspace, env, mcp_file, mcp_enabled=True
-                )
+                with (
+                    gemini_configuration(config, isolated=True)
+                    if cli == "gemini"
+                    else nullcontext()
+                ):
+                    inventory = inspect_inventory(
+                        cli, config, workspace, env, mcp_file, mcp_enabled=True
+                    )
+                observations["inventory"] = inventory
                 inventory["verified"] = inventory_violation(inventory, mcp_enabled=True) is None
                 if not inventory["verified"]:
-                    return unproven(inventory["error"], binary=binary, inventory=inventory)
-        _, config_home = home_paths(cli, config["clis"][cli])
+                    reason = inventory["error"]
+                    if authentication.get("service_available") is False:
+                        reason += "; " + authentication["reason"]
+                    return unproven(reason, **observations)
+        if authentication.get("service_available") is False:
+            return unproven(authentication["reason"], **observations)
         for location in LOCATIONS:
             with tempfile.TemporaryDirectory(prefix=f"tui-canary-{cli}-", dir=output) as directory:
                 workspace = Path(directory)
-                root = workspace if location == "cwd" else config_home
+                root = workspace
                 marker = "MODEL301_CANARY_" + uuid.uuid4().hex
                 files, hook, mcp, mcp_file = canary_files(cli, config, root, marker)
                 side_effects.extend((hook, mcp))
@@ -302,6 +356,7 @@ def verify_isolation(cli: str, config: dict, output: Path, *, before_start=lambd
                                 status="usage_limit",
                                 canary_runs=len(runs),
                                 runs=runs,
+                                **observations,
                             )
                         before_start()
                         negative = _execute(
@@ -325,6 +380,7 @@ def verify_isolation(cli: str, config: dict, output: Path, *, before_start=lambd
                                 status="usage_limit",
                                 canary_runs=len(runs),
                                 runs=runs,
+                                **observations,
                             )
         if cli == "claude":
             inventory["verified"] = all(isolated.values())
@@ -336,21 +392,24 @@ def verify_isolation(cli: str, config: dict, output: Path, *, before_start=lambd
             and all(isolated.values())
         )
         result = {
-            "schema": 2,
+            "schema": 3,
             "identity": identity,
             "binary": binary,
             "inventory": inventory,
+            "authentication": authentication,
+            "real_home": real_home
+            | {"verified": bool(inventory["verified"] and all(isolated.values()))},
             "supported": passed,
             "verified": passed,
             "positive_control": controls,
             "required_positive_control": {loc: required_positive(cli, loc) for loc in LOCATIONS},
-            "control_note": "Claude's cwd MCP control uses native .mcp.json discovery with "
-            "enableAllProjectMcpServers; the config-home control does not require "
-            "MCP because .mcp.json is a project discovery file. Other CLIs require "
-            "a native instruction positive control and separate native inventories.",
+            "control_note": "Cwd positive control uses native discovery. Real-home customization "
+            "is checked using existing paths and effective inventories; "
+            "no config-home skill is planted.",
             "isolated_control": isolated,
             "canary_runs": len(runs),
-            "canary_location": "native discovery paths inside cwd and dedicated config home",
+            "canary_location": "native discovery paths inside private cwd; "
+            "existing real-home natural canaries",
             "status": "verified" if passed else "unproven",
             "runs": runs,
             "reason": None
@@ -360,7 +419,7 @@ def verify_isolation(cli: str, config: dict, output: Path, *, before_start=lambd
         receipt.write_text(json.dumps(redact_structure(result), indent=2) + "\n")
         return result
     except (ValueError, OSError) as exc:
-        return unproven(str(exc), canary_runs=len(runs), runs=runs)
+        return unproven(str(exc), canary_runs=len(runs), runs=runs, **observations)
     finally:
         for path in side_effects:
             path.unlink(missing_ok=True)

@@ -74,13 +74,25 @@ def _names(rows: list, *, enabled_key: str | None = None) -> list[str]:
 
 def _gemini_settings_module(bundle: Path) -> Path:
     # Inspect only installed package code, never a user's config or state files.
-    matches = []
-    for path in bundle.parent.glob("chunk-*.js"):
+    matches, pending, visited = [], [bundle], set()
+    while pending:
+        path = pending.pop()
         module = path.resolve()
+        if module in visited:
+            continue
+        visited.add(module)
         if not module.is_relative_to(bundle.parent):
             raise ValueError("Gemini settings module leaves its installed bundle")
-        if re.search(r"export\s*\{[^}]*\bloadSettings\b", module.read_text(), re.S):
+        source = module.read_text()
+        if re.search(r"export\s*\{[^}]*\bloadSettings\b", source, re.S):
             matches.append(module)
+        pending.extend(
+            module.parent / name
+            for name in re.findall(
+                r'(?:\bfrom\s+|\bimport\s*\(?\s*)["\'](\./[\w.-]+\.js)["\']', source
+            )
+            if (module.parent / name).is_file()
+        )
     if len(matches) != 1:
         raise ValueError("Gemini package does not expose an unambiguous loadSettings export")
     module = matches[0].resolve()
@@ -124,7 +136,10 @@ def _codex_skills(
                             if "error" in message or "result" not in message:
                                 raise ValueError("Codex skills inventory RPC failed")
                             return message["result"]
-                        if message.get("method") != "skills/changed":
+                        if message.get("method") not in (
+                            "skills/changed",
+                            "remoteControl/status/changed",
+                        ):
                             raise ValueError("Unexpected Codex inventory RPC event")
                     remaining = deadline - monotonic()
                     if remaining <= 0:
@@ -198,7 +213,7 @@ def inspect_inventory(
     checks = []
     evidence = {"mechanism": MECHANISMS[cli], "checks": checks}
 
-    def run(args: list[str], *, executable=binary, label=None) -> str:
+    def run(args: list[str], *, executable=binary, label=None, listing=False) -> str:
         result = subprocess.run(
             [executable, *args],
             cwd=workspace,
@@ -212,30 +227,45 @@ def inspect_inventory(
         if result.returncode:
             raise ValueError("Native inventory command failed: " + (label or " ".join(args)))
         # Listing stderr can carry discovery failures. Never treat them as an empty inventory.
-        if result.stderr.strip():
+        if result.stderr.strip() and not listing:
             raise ValueError("Native inventory command emitted diagnostics")
-        return re.sub(r"\x1b\[[0-9;]*m", "", result.stdout).strip()
+        output = result.stdout + ("\n" + result.stderr if listing else "")
+        return re.sub(r"\x1b\[[0-9;]*m", "", output).strip()
 
     try:
         if cli == "codex":
             controls = ["--no-daemon", *codex_config_args(config["clis"][cli], mcp_file)]
+            discovery = {
+                "command": "codex app-server skills/list",
+                "phase": "discovery",
+                "exit_code": None,
+            }
+            checks.append(discovery)
             rows = _codex_skills(binary, controls, workspace, env, config["timeout_seconds"])
+            discovery["exit_code"] = 0
             skill_config = _codex_skill_config(rows)
             controls += ["-c", skill_config]
+            effective_check = {
+                "command": "codex app-server skills/list",
+                "phase": "effective",
+                "exit_code": None,
+            }
+            checks.append(effective_check)
             effective_skills = _codex_skills(
                 binary, controls, workspace, env, config["timeout_seconds"]
             )
+            effective_check["exit_code"] = 0
             _codex_skill_config(effective_skills)
             skills = [
                 row["name"]
                 for row in effective_skills
                 if row["enabled"] and row["scope"] != "system"
             ]
-            checks.extend(
-                {"command": "codex app-server skills/list", "phase": phase, "exit_code": 0}
-                for phase in ("discovery", "effective")
-            )
             evidence["skill_config"] = skill_config
+            evidence["discovered_skills"] = [
+                {"name": row["name"], "scope": row["scope"], "enabled": row["enabled"]}
+                for row in rows
+            ]
 
             def codex(command):
                 return run(controls + command, label="codex " + " ".join(command))
@@ -277,20 +307,32 @@ def inspect_inventory(
                 raise ValueError("Codex still exposed skill instructions in its effective prompt")
             evidence.update(mcp_servers=servers, skills=skills, extensions=extensions, hooks=[])
         elif cli == "gemini":
-            listing = run(["mcp", "list"])
+            listing = run(["mcp", "list"], listing=True)
             servers = []
             if listing != "No MCP servers configured.":
                 lines = listing.splitlines()
                 if not lines or lines[0] != "Configured MCP servers:":
                     raise ValueError("Unknown Gemini MCP inventory format")
-                for line in filter(None, lines[1:]):
+                entries = list(filter(None, lines[1:]))
+                if not entries:
+                    raise ValueError("Gemini MCP inventory header has no entries")
+                seen = set()
+                indicators = {
+                    "Connected": "✓",
+                    "Disconnected": "✗",
+                    "Disabled": "○",
+                    "Blocked": "⛔",
+                    "Connecting": "…",
+                }
+                for line in entries:
                     match = re.fullmatch(
                         r"[✓✗○⛔…] ([\w-]+): .+ - "
                         r"(Connected|Disconnected|Disabled|Blocked|Connecting)",
                         line,
                     )
-                    if not match:
+                    if not match or line[0] != indicators[match[2]] or match[1] in seen:
                         raise ValueError("Unknown Gemini MCP inventory entry")
+                    seen.add(match[1])
                     if match[2] in ("Connected", "Disconnected", "Connecting"):
                         if match[1] == "modelspec" and not line.startswith(
                             line[0] + " modelspec: " + config["mcp_url"] + " (http) - "
@@ -302,20 +344,27 @@ def inspect_inventory(
             # Names only: extension rows can carry MCP env, headers and settings.
             extensions = _names(
                 _list(
-                    json.loads(run(["extensions", "list", "--output-format", "json"])),
+                    json.loads(
+                        run(["extensions", "list", "--output-format", "json"], listing=True)
+                    ),
                     "Gemini extensions",
                 )
             )
-            skills_output = run(["skills", "list"])
-            node, bundle = gemini_runtime(Path(binary))
+            skills_output = run(["skills", "list"], listing=True)
+            node, bundle = gemini_runtime(Path(binary), config["clis"][cli])
             module = _gemini_settings_module(bundle)
             script = (
-                "const {loadSettings} = await import(process.argv[1]);"
+                "const {loadSettings,USER_SETTINGS_PATH} = await import(process.argv[1]);"
+                "const fs = await import('node:fs');"
+                "const os = await import('node:os');"
+                "const path = await import('node:path');"
                 "const s = loadSettings(process.cwd());"
                 "if (!Array.isArray(s.errors) || s.errors.length) process.exit(2);"
                 "console.log(JSON.stringify({skillsEnabled:s.merged.skills?.enabled,"
                 "hooksEnabled:s.merged.hooksConfig?.enabled,"
-                "hookEvents:Object.keys(s.merged.hooks || {})}));"
+                "hookEvents:Object.keys(s.merged.hooks || {}),userSettingsPath:USER_SETTINGS_PATH,"
+                "realHomeSandboxPolicyExists:fs.existsSync(path.join(os.homedir(),"
+                "'.gemini','policies','sandbox.toml'))}));"
             )
             effective = json.loads(
                 run(
@@ -330,17 +379,31 @@ def inspect_inventory(
             ):
                 raise ValueError("Gemini effective settings did not disable skills and hooks")
             _list(effective.get("hookEvents"), "Gemini hook events")
+            from qa.tui_homes import home_paths
+
+            _, config_home = home_paths(cli, config["clis"][cli])
+            if effective.get("userSettingsPath") != str(config_home / "settings.json"):
+                raise ValueError("Gemini settings probe did not attest the dedicated config path")
+            if effective.get("realHomeSandboxPolicyExists") is not False:
+                raise ValueError(
+                    "Gemini may load a real HOME sandbox policy; isolation is unsupported"
+                )
+            evidence["home_fallbacks"] = [
+                {"path": ".gemini/policies/sandbox.toml", "exists": False}
+            ]
             if skills_output != "No skills discovered." and not skills_output.startswith(
                 "Discovered Agent Skills:\n"
             ):
-                raise ValueError("Unknown Gemini skills inventory format")
+                raise ValueError("Gemini skills inventory contains unknown or non-listing output")
             discovered = []
             if skills_output != "No skills discovered.":
                 for entry in (
                     skills_output.removeprefix("Discovered Agent Skills:\n").strip().split("\n\n")
                 ):
                     lines = entry.splitlines()
-                    match = re.fullmatch(r"([\w.:-]+) \[(Enabled|Disabled)\]", lines[0])
+                    match = re.fullmatch(
+                        r"([\w.:-]+) \[(Enabled|Disabled)\](?: \[Built-in\])?", lines[0]
+                    )
                     if (
                         not match
                         or len(lines) != 3
@@ -413,11 +476,23 @@ def inspect_inventory(
                         raise ValueError("Grok inventory entry omitted its name")
                     active.append(name)
                 names[key] = sorted(active)
-            _list(report.get("projectInstructions"), "Grok instructions")
+            instructions = []
+            for row in _list(report.get("projectInstructions"), "Grok instructions"):
+                if not isinstance(row, dict) or not isinstance(row.get("path"), str):
+                    raise ValueError("Malformed Grok instruction inventory entry")
+                if "disabled" in row and type(row["disabled"]) is not bool:
+                    raise ValueError("Malformed Grok instruction disabled state")
+                if row.get("disabled") is not True:
+                    instructions.append(row["path"])
+            evidence["instructions"] = instructions
             evidence.update(names)
+            if instructions:
+                raise ValueError("Grok native inventory reports active instruction files")
         else:
             raise ValueError("This CLI uses stream inventory")
         evidence["error"] = inventory_violation(evidence, mcp_enabled=mcp_enabled)
-    except (ValueError, KeyError, TypeError, AttributeError, OSError, subprocess.TimeoutExpired):
+    except ValueError as exc:
+        evidence["error"] = str(exc)
+    except (KeyError, TypeError, AttributeError, OSError, subprocess.TimeoutExpired):
         evidence["error"] = "Native inventory failed, is incomplete, or has an unknown format"
     return evidence

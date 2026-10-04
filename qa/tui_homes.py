@@ -9,6 +9,9 @@ import re
 import shlex
 import shutil
 import subprocess
+import sys
+import uuid
+from contextlib import contextmanager
 from pathlib import Path
 
 HOME_VARIABLES = {
@@ -18,6 +21,7 @@ HOME_VARIABLES = {
     "grok": "GROK_HOME",
 }
 APP_CODEX = Path("/Applications/ChatGPT.app/Contents/Resources/codex-cli/bin/codex")
+SYSTEM_CREDENTIAL_CLIS = frozenset(("claude", "codex", "gemini"))
 
 
 def resolve_executable(cli: str, settings: dict) -> str:
@@ -55,12 +59,116 @@ def home_paths(cli: str, settings: dict) -> tuple[Path, Path]:
 def home_environment(cli: str, settings: dict) -> dict[str, str]:
     home, config_home = home_paths(cli, settings)
     return {
-        "HOME": str(home),
         HOME_VARIABLES[cli]: str(home if cli == "gemini" else config_home),
         "XDG_CONFIG_HOME": str(home / ".config"),
         "XDG_DATA_HOME": str(home / ".local/share"),
         "XDG_CACHE_HOME": str(home / ".cache"),
     }
+
+
+def guard_system_home(cli: str, env: dict) -> None:
+    if (
+        sys.platform == "darwin"
+        and cli in SYSTEM_CREDENTIAL_CLIS
+        and (not os.environ.get("HOME") or env.get("HOME") != os.environ["HOME"])
+    ):
+        raise ValueError(f"{cli}: macOS credential storage requires unchanged HOME; refusing start")
+
+
+def block_gemini_dotenv(workspace: Path) -> Path | None:
+    """Stop native ancestor discovery without opening an existing dotenv file."""
+    path = workspace / ".env"
+    if path.is_symlink() or path.exists() and (not path.is_file() or path.stat().st_size):
+        raise ValueError("Gemini requires an empty private cwd .env to stop ancestor discovery")
+    if not path.exists():
+        path.open("x").close()
+        return path
+    return None
+
+
+@contextmanager
+def gemini_configuration(config: dict, *, isolated: bool):
+    """Use Gemini's user settings layer; system settings require root ownership.
+
+    Only the dedicated settings file is replaced, by rename without reading.
+    Login state remains entirely with the native CLI.
+    """
+    home, config_home = home_paths("gemini", config["clis"]["gemini"])
+    path = config_file("gemini", config_home)
+    backup = home.parent / ("tui-settings-" + uuid.uuid4().hex)
+    lock = home.parent / "tui-settings.lock"
+    try:
+        lock.mkdir(mode=0o700)
+    except FileExistsError as exc:
+        raise ValueError(f"Gemini settings are in use: {lock}") from exc
+    restored = created = False
+    try:
+        if path.is_symlink():
+            raise ValueError("Harness settings must not be a symlink")
+        if path.exists():
+            path.rename(backup)
+            restored = True
+        data = json.loads(home_config("gemini", config))
+        data["security"] = {
+            "auth": {"selectedType": "oauth-personal"},
+            "folderTrust": {"enabled": False},
+        }
+        if isolated:
+            data.update(
+                skills={"enabled": False}, hooksConfig={"enabled": False}, context={"fileName": []}
+            )
+        with path.open("x") as stream:
+            created = True
+            json.dump(data, stream)
+        yield
+    finally:
+        if created:
+            path.unlink(missing_ok=True)
+        if restored:
+            backup.rename(path)
+        lock.rmdir()
+
+
+def real_home_customizations(cli: str) -> dict:
+    """Inventory only path metadata, never the contents of real-home files."""
+    root = Path.home()
+    families = (cli, "agents", "claude", "cursor") if cli == "grok" else (cli, "agents")
+    skills, files = set(), set()
+    for family in families:
+        native = root / ("." + family)
+        for path in (native / "skills").glob("*/SKILL.md"):
+            skills.add(path)
+        for name in (
+            "CLAUDE.md",
+            "GEMINI.md",
+            "AGENTS.md",
+            "settings.json",
+            "config.toml",
+            "hooks.json",
+        ):
+            path = native / name
+            if path.is_file():
+                files.add(path)
+        for directory in ("rules", "hooks", "commands", "plugins"):
+            path = native / directory
+            if path.is_dir():
+                files.add(path)
+    # The global CLI state file may mix MCP metadata with authentication.
+    # Its existence and stat are enough; the harness must never open it.
+    state = root / f".{cli}.json"
+    if state.is_file():
+        files.add(state)
+    if cli == "gemini":
+        path = root / ".gemini/policies/sandbox.toml"
+        if path.is_file():
+            files.add(path)
+    rows = []
+    for path in sorted(skills | files):
+        stat = path.stat()
+        rows.append(
+            {"path": str(path.relative_to(root)), "size": stat.st_size, "mtime": stat.st_mtime_ns}
+        )
+    return {"home": str(root), "skill_count": len(skills), "items": rows}
 
 
 def config_file(cli: str, config_home: Path) -> Path:
@@ -181,6 +289,10 @@ def login(cli: str, config: dict) -> None:
         raise ValueError(f"CLI changed after setup; repeat setup --cli {cli} before login")
     # The vendor login never needs the ModelSpec token.
     env = child_environment(cli, home, None, settings=settings)
+    guard_system_home(cli, env)
+    if cli == "gemini":
+        env.pop("NO_BROWSER", None)
+        block_gemini_dotenv(home)
     env["TERM"] = os.environ.get("TERM", "xterm-256color")
     executable = resolve_executable(cli, settings)
     command = [
@@ -204,7 +316,10 @@ def version_numbers(value: str) -> tuple[int, int, int]:
 
 
 def read_version(path: str, workspace: Path, env: dict, timeout: float) -> str:
+    barrier = None
     try:
+        if "GEMINI_CLI_HOME" in env:
+            barrier = block_gemini_dotenv(workspace)
         result = subprocess.run(
             [path, "--version"],
             cwd=workspace,
@@ -216,6 +331,9 @@ def read_version(path: str, workspace: Path, env: dict, timeout: float) -> str:
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
         raise ValueError("CLI --version failed; check the native binary override") from exc
+    finally:
+        if barrier is not None:
+            barrier.unlink(missing_ok=True)
     value = result.stdout.strip()
     if result.returncode or not value or len(value) > 500:
         raise ValueError("CLI --version failed; check the native binary override")
@@ -223,14 +341,22 @@ def read_version(path: str, workspace: Path, env: dict, timeout: float) -> str:
     return value
 
 
-def gemini_runtime(executable: Path) -> tuple[Path, Path]:
-    node = shutil.which("node")
+def resolve_node(settings: dict) -> Path:
+    name = os.environ.get("TUI_GEMINI_NODE", settings.get("node_executable", "node"))
+    node = shutil.which(os.path.expanduser(name))
+    if not node:
+        raise ValueError("Gemini Node unavailable; set TUI_GEMINI_NODE")
+    return Path(node).resolve()
+
+
+def gemini_runtime(executable: Path, settings: dict) -> tuple[Path, Path]:
+    node = resolve_node(settings)
     if executable.suffix != ".js" or not node:
         raise ValueError(
             "Gemini requires its native bundle/gemini.js and Node on PATH; "
             "set TUI_GEMINI_BIN to the native npm entry, not a shell wrapper"
         )
-    return Path(node).resolve(), executable
+    return node, executable
 
 
 def binary_identity(
@@ -266,7 +392,7 @@ def binary_identity(
     ):
         raise ValueError(f"{cli} {identity['version']} is below min_version {minimum}")
     if cli == "gemini":
-        node, bundle = gemini_runtime(executable)
+        node, bundle = gemini_runtime(executable, settings)
         identity["node"] = record(node, versions["node"]["version"] if versions else None)
         identity["bundle"] = {
             "path": str(bundle),
@@ -301,6 +427,7 @@ def isolation_identity(cli: str, config: dict, binary: dict | None = None) -> st
         "profile": settings,
         "mcp_url": config["mcp_url"],
         "mcp_token_env": config.get("mcp_token_env"),
+        "real_home": real_home_customizations(cli),
     }
     digest = hashlib.sha256(json.dumps(identity, sort_keys=True).encode())
     for name in (
@@ -309,6 +436,7 @@ def isolation_identity(cli: str, config: dict, binary: dict | None = None) -> st
         "tui_isolation.py",
         "tui_harness.py",
         "tui_inventory.py",
+        "tui_auth.py",
     ):
         digest.update(Path(__file__).with_name(name).read_bytes())
     return digest.hexdigest()

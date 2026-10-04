@@ -471,6 +471,16 @@ def markdown(report: dict) -> str:
             f"{number(values['wall_time_p95_ms'])} |"
         )
     for cli, info in report["isolation"].items():
+        authentication = info.get("authentication", {})
+        if authentication:
+            state = {True: "logged in", False: "not logged in", None: "unknown"}[
+                authentication.get("logged_in")
+            ]
+            lines += [
+                "",
+                f"{cli} authentication: {state}; method "
+                f"{authentication.get('auth_method') or 'unknown'}.",
+            ]
         if info.get("reason"):
             lines += ["", f"{cli}: {info['reason']}"]
     lines += [

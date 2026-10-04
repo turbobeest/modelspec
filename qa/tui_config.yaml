@@ -24,7 +24,8 @@ clis:
     effort: max
     usage_limit_exit_codes: []
   gemini:
-    executable: gemini
+    executable: /Users/terbeest/.nvm/versions/node/v20.19.3/lib/node_modules/@google/gemini-cli/bundle/gemini.js
+    node_executable: /Users/terbeest/.nvm/versions/node/v20.19.3/bin/node
     harness_home: ~/.modelspec-harness/gemini/home
     config_dir: .gemini
     model: gemini-3.8-pro
