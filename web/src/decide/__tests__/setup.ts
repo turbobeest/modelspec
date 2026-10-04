@@ -16,7 +16,7 @@ beforeEach(gatesOff);
 afterEach(() => {
   cleanup();
   history.replaceState(null, "", "/decide/");
-  localStorage.removeItem("modelspec-theme");
+  localStorage.clear();
 });
 
 // jsdom has no native top layer. Browser tests exercise the real dialog.

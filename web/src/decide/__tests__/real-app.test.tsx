@@ -18,7 +18,7 @@ import {
   smallVocabulary,
 } from "./vocab-fixtures";
 import { VOCABULARY_URL, realBaseSpec, vocabularySchema } from "../vocabulary";
-import { decodeBoardState, encodeBoardSpec } from "../facet-board/model";
+import { decodeBoardState, encodeBoardSpec, writeEstate } from "../facet-board/model";
 import { LEGACY_PERMALINKS } from "../__fixtures__/legacy-permalinks";
 import { capabilityRow, findTemplateCell, openGroup, templateCell } from "./board-helpers";
 
@@ -27,6 +27,11 @@ const liveBudgetCoding = decisionSchema.parse(liveBudgetCodingJson);
 const liveEmptyBoard = decisionSchema.parse(liveEmptyBoardJson);
 const liveSwePrefer = decisionSchema.parse(liveSwePreferJson);
 const refinementVocabulary = vocabularySchema.parse(refinementVocabularyJson);
+const providerEstate = {
+  providers: [Object.keys(smallVocabulary.providers)[0]],
+  plans: [],
+  hardware: [],
+};
 /** The Coding row's Budget cell (MODEL-204): `budget-coding`. */
 const BUDGET_CODING = /^Coding · Budget:/;
 
@@ -780,12 +785,10 @@ it("shows model-grained funnel and board counts from the live budget decision", 
 it("never requests the estate twice for the same settled key", async () => {
   const fetch = routeFetch({ decide: (init) => json(decisionFor(init)) });
   vi.stubGlobal("fetch", fetch);
+  writeEstate(providerEstate);
   render(<DesignedApp />);
   await screen.findByRole("region", { name: "Trade-off canvas" });
 
-  fireEvent.change(screen.getByLabelText("Add provider"), {
-    target: { value: Object.keys(smallVocabulary.providers)[0] },
-  });
   await waitFor(() => expect(document.querySelector(
     ".answer-lists > section:first-child .board-ranked-answer",
   )).toBeInTheDocument());
@@ -849,12 +852,10 @@ it("reissues an estate request aborted by a vocabulary replacement", async () =>
     },
   });
   vi.stubGlobal("fetch", fetch);
+  writeEstate(providerEstate);
   render(<DesignedApp />);
   await screen.findByRole("region", { name: "Trade-off canvas" });
 
-  fireEvent.change(screen.getByLabelText("Add provider"), {
-    target: { value: Object.keys(smallVocabulary.providers)[0] },
-  });
   await waitFor(() => expect(estateRequests).toBe(1));
   if (!replaceVocabulary) throw new Error("full request did not wait for vocabulary replacement");
   replaceVocabulary();
@@ -893,12 +894,10 @@ it("reissues an estate request aborted by a newer main decision", async () => {
     },
   });
   vi.stubGlobal("fetch", fetch);
+  writeEstate(providerEstate);
   render(<DesignedApp />);
   await screen.findByRole("region", { name: "Trade-off canvas" });
 
-  fireEvent.change(screen.getByLabelText("Add provider"), {
-    target: { value: Object.keys(smallVocabulary.providers)[0] },
-  });
   await waitFor(() => expect(estateRequests).toBe(1));
   fireEvent.click(templateCell(BUDGET_CODING));
 
@@ -917,11 +916,9 @@ it("shows a retry when the estate request fails", async () => {
     },
   });
   vi.stubGlobal("fetch", fetch);
+  writeEstate(providerEstate);
   render(<DesignedApp />);
   await screen.findByRole("region", { name: "Trade-off canvas" });
-  fireEvent.change(screen.getByLabelText("Add provider"), {
-    target: { value: Object.keys(smallVocabulary.providers)[0] },
-  });
   expect(await screen.findByText("Couldn't load:")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "retry" })).toBeInTheDocument();
   expect(screen.queryByText("Checking…")).not.toBeInTheDocument();
