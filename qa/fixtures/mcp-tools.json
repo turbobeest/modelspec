@@ -4,9 +4,9 @@
     "mcp/src/vocabulary.ts": "120c41a9b06e6588edd818ef0be72df87f01d2a46168f1a69cd035884faa01ea",
     "mcp/test/fixtures/decide-budget.json": "4d28b1dc876ed3ad4d17cb5438146696525fa7bd56b917c242dab23a3ad9de98",
     "docs/decision-contract.schema.json": "9b70bf707f23ba1a236fe2f29e502377bc95d2213973df0acd89faee6c6afc32",
-    "api/worker/openapi.yaml": "eb6a1da4bdd6a6fdb2231cc4719da619ddc376bd68d5166054f5e3d0e16358d6",
-    "docs/agents.md": "9f6c73ace11d27d065fcff777a1f03ee8d4778019065cc91b9045783010dca34",
-    "mcp/src/agent-copy.json": "17bd9dd012e3003290b07fff5100daf5b2ab24c66a5f08f62e140dd4ad7525b7"
+    "api/worker/openapi.yaml": "fe7f03ef506b64aa616c81eaed5d0c44702650c41cec11f8eb108cd8e7604096",
+    "docs/agents.md": "1ed6f7b6cf195bd7988731ecba5982bb779b9582a1563f943c2049dd491eca2c",
+    "mcp/src/agent-copy.json": "dc25065af06e2514160c0513444e20e8c1b7f8799ef8d69d82cbb8c5db415116"
   },
   "tools": [
     {
@@ -93,7 +93,7 @@
     },
     {
       "name": "model_info",
-      "description": "What does ModelSpec's published card say about one model? Reads https://modelspec.dev/api/models/<model_id>.json (model_id is provider/slug). With data splitting enabled, returns only the model's display name from the Worker vocabulary. Free, no key. Not current evidence and not a ranking: use decide for that. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
+      "description": "What does ModelSpec's card say about one model? Reads https://modelspec.dev/api/models/<model_id>.json (model_id is provider/slug). With data splitting, returns only the model's display name from the Worker vocabulary. Needs an API key. Not current evidence and not a ranking: use decide for that. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -109,7 +109,7 @@
     },
     {
       "name": "list_use_cases",
-      "description": "Which ranking profiles exist, and what is the ranking policy? Returns https://modelspec.dev/api/rank/profiles.json: the profiles, the evidence floors and the neutrality commitment, as data. Free, no key. Not a decision: use decide for that. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
+      "description": "Which ranking profiles exist, and what is the ranking policy? Returns https://modelspec.dev/api/rank/profiles.json: the profiles, the evidence floors and the neutrality commitment. Needs an API key. Not a decision: use decide for that. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
       "input_schema": {
         "type": "object",
         "properties": {}
@@ -1780,7 +1780,7 @@
     },
     {
       "name": "vocab",
-      "description": "What can a decide spec say? Returns the decision vocabulary: valid facet ids, benchmarks, domains, providers and task types. Compact by default, with 20 rows per page and no counts. In split mode full details still exclude per-model facts and counts. Free, no key. Use it for missing ids, not to compare models. Call decide after at most one vocab lookup. section=starter returns a ready-to-send minimal Spec with 'next: call decide with this; refine from reading'. Every response carries a next hint. If you need ids, use section=starter. Use search for a case-insensitive substring of id or label, then call decide. Pass id or ids for full details of specific rows, or detail=full for all display details. Use offset and limit to page compact sections; an empty page ends the list. ",
+      "description": "What can a decide spec say? Returns the decision vocabulary: valid facet ids, benchmarks, domains, providers and task types. Compact by default, with 20 rows per page and no counts. Split-mode full details exclude per-model facts and counts. Needs an API key. Use it for missing ids, not to compare models. Call decide after at most one vocab lookup. section=starter returns a ready-to-send minimal Spec with 'next: call decide with this; refine from reading'. Responses include a next hint. If you need ids, use section=starter. Use search for a case-insensitive substring of id or label, then call decide. Use id or ids for row details, or detail=full for all display details. Use offset and limit to page compact sections; an empty page ends the list. ",
       "input_schema": {
         "type": "object",
         "properties": {

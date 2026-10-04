@@ -26,7 +26,11 @@ def test_llms_txt_names_the_mcp_endpoint_and_api_docs() -> None:
     assert API_DOCS in text
     assert RANK_API in text
     assert "https://modelspec.dev/api/index.json" not in text
-    assert "no CLI and no data download" in text
+    assert "No data download or local decision cache" in text
+    assert "Three ways in:" in text
+    assert "uvx --from modelspec-dev modelspec" in text
+    assert "pipx install modelspec-dev" in text
+    assert "pip install modelspec-dev" in text
     assert "delayed image" in text
     assert "https://modelspec.dev/api/rank/profiles.json" in text
     assert "Null means not researched." in text

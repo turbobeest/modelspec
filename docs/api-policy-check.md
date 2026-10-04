@@ -56,22 +56,21 @@ later.
 
 ## Free and paid
 
-**The endpoint is free, and without a paid-tier key every answer is the free
-tier.** `determinations.entitlement` is `public_export`: licence and origin are settled
+**Machine data access needs an API key.** Without a paid entitlement,
+`determinations.entitlement` is `public_export`: licence and origin are settled
 from public cards. Commercial-use and residency determinations are the paid
 product; without them those checks are `undetermined` with `why: tier` and
 `available_in_tier: paid`, and `determinations.undetermined_for_lack_of_entitlement`
-counts them. A free answer is never a `pass` a paid one would turn into a
+counts them. A public-export answer is never a `pass` a paid one would turn into a
 `fail`.
 
 **The paid answer is granted to a key with remaining credits** (MODEL-93; the
 exempt DPF tier is still on the same path, via a paid unlimited row).
 `determinations.entitlement` is then `determinations`. A key whose credits are
-exhausted gets the free answer plus `credits.exhausted`, not an error. No paid
-key has been issued yet, so every answer today is the free tier. Keys, limits
+exhausted gets the public-export answer plus `credits.exhausted`, not an error. Keys, limits
 and their refusals (401, 403, 429, 500, 503 `access_store_not_configured`) are
-in [`api.md`](api.md#keys-limits-and-the-sandbox); a request without a key is
-not refused while enforcement is off.
+in [`api.md`](api.md#keys-limits-and-the-sandbox). Use an existing key, or see
+[/pricing/](https://modelspec.dev/pricing/) for availability.
 
 ## Worked example
 

@@ -1124,18 +1124,18 @@ def _access() -> dict[str, Any]:
     effect = (
         "A key is required: a request without one is refused 401 missing_api_key."
         if enforced else
-        "A key is optional. A request without one is answered as the free tier, unmetered, "
-        "and never gets 401, 403 or 429. A request that presents one is checked: a test_ "
+        "Machine data access needs an API key. ACCESS_ENFORCED is off; see "
+        "https://modelspec.dev/pricing/ for access availability. "
+        "Presented keys are checked: a test_ "
         "key gets the sandbox, a known key is metered and served per its tier, and an "
         "unknown or revoked key is refused (401 or 403), never served as anonymous."
     )
     if not bound:
-        effect += (" No key store is bound yet and no key has been issued, so a live key "
+        effect += (" No key store is bound, so a live key "
                    "is refused 503 access_store_not_configured; test_ keys work.")
     else:
-        effect += (" The ACCESS key store is bound. No key has been issued yet "
-                   "(issuance is MODEL-73), so a presented live key is unknown; "
-                   "test_ keys work.")
+        effect += (" The ACCESS key store is bound. Existing live keys are checked "
+                   "against it; test_ keys use the sandbox.")
     return {
         "status": ("wired; enforced" if enforced else "wired; enforcement off"),
         "ticket": "MODEL-69",
@@ -1147,13 +1147,13 @@ def _access() -> dict[str, Any]:
             "status": "granted to a presented key with remaining credits, or an unlimited paid tier",
             "granted_by": "entry.py::_entitlement",
             "effect_today": (
-                f"anonymous and free-tier answers have determinations.entitlement "
+                f"Public-export evidence has determinations.entitlement "
                 f"{policy.ENTITLEMENT_PUBLIC}; checks they cannot settle come back "
                 "undetermined with why: tier and available_in_tier: paid. A funded key "
                 f"reads the determinations, or gets HTTP "
                 f"{policy.HTTP_DETERMINATIONS_UNAVAILABLE} determinations_unavailable when "
-                "the store cannot be read. A key with zero credits gets the free answer "
-                "plus credits.exhausted. No paid key has been issued yet."
+                "the store cannot be read. A key with zero credits gets the public-export "
+                "answer plus credits.exhausted."
             ),
         },
         "present_key_as": ["Authorization: Bearer <key>", "X-API-Key: <key>"],
@@ -2717,16 +2717,13 @@ def build_spec() -> dict[str, Any]:
                 "from the current public export; `build.commit` on every response names the "
                 "catalogue it was computed from. A request carries a profile or a policy — "
                 "never a prompt.\n\n"
-                + ("A key is required (see x-modelspec-access). " if access_enforced() else
-                   "A key is optional today (see x-modelspec-access): without one you get "
-                   "the free tier, unmetered; a key you present is checked, and a bad one "
-                   "is refused rather than ignored. ")
+                + "Machine data access needs an API key (see x-modelspec-access). "
                 + "Any key starting `"
                 + json.loads(TIERS_PATH.read_text(encoding="utf-8"))["sandbox_prefix"]
                 + "` is the sandbox: unlimited, synthetic rows from the real scorer, "
                 "/v1/rank only.\n\n"
-                "Without a paid-tier key, policy-check answers from the public export (the "
-                "free tier). Every check it cannot settle is `undetermined` with `why: "
+                "Without a paid entitlement, policy-check uses public-export evidence. "
+                "Every check it cannot settle is `undetermined` with `why: "
                 "tier`, and `determinations.undetermined_for_lack_of_entitlement` counts "
                 "them. It is never a pass.\n\n"
                 "Send a real `User-Agent`. The host is behind Cloudflare, and the "
@@ -3067,7 +3064,8 @@ def build_spec() -> dict[str, Any]:
                         str(policy.HTTP_DETERMINATIONS_UNAVAILABLE): refused_by_access(
                             "determinations_unavailable: entitled to the determinations by a "
                             "paid-tier key, and the store could not be read. Never downgraded "
-                            "to the free answer. Or access_store_not_configured: a live key "
+                            "to the public-export answer. Or access_store_not_configured: "
+                            "a live key "
                             "was presented and there is no key store to check it against.",
                             {"$ref": "#/components/schemas/DeterminationsUnavailable"}),
                     },
@@ -3218,7 +3216,7 @@ def apply_agent_copy(spec: dict[str, Any]) -> dict[str, Any]:
 
 
 def vocabulary_parameters():
-    from api.worker.src.display_vocabulary import SECTIONS, PAGE_SIZE
+    from api.worker.src.display_vocabulary import PAGE_SIZE, SECTIONS
     fields = {
         "section": ({"type": "string", "enum": list(SECTIONS), "default": "starter"}, "Select a compact section. No query parameters returns the unchanged full display vocabulary for /decide."),
         "search": ({"type": "string"}, "Case-insensitive substring over id and label or display name."),

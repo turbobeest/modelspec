@@ -7,7 +7,7 @@ import re
 import pytest
 from typer.testing import CliRunner
 
-from cli.modelspec import cli
+from cli.modelspec import legacy as cli
 from decision.registry import default
 from decision.templates import load_templates
 

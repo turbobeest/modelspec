@@ -18,7 +18,7 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from cli.modelspec import cli as cli_mod
+from cli.modelspec import legacy as cli_mod
 from decision.contract import parse_spec
 from decision.registry import facet as registry_facet
 

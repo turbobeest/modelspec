@@ -1,0 +1,81 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://modelspec.dev/api/feedback/v1.schema.json",
+  "title": "ModelSpec feedback",
+  "description": "POST this to https://api.modelspec.dev/v1/feedback. No key. One rating from a fixed set, optionally tied to the decision_id of a ModelSpec answer. Never include a prompt, a key, or anything that identifies a person. Reference: https://github.com/turbobeest/modelspec/blob/main/docs/feedback-api.md",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "rating",
+    "client"
+  ],
+  "properties": {
+    "rating": {
+      "enum": [
+        "reliable",
+        "unreliable",
+        "trustworthy",
+        "untrustworthy",
+        "confusing"
+      ],
+      "description": "What you thought of the answer or the page."
+    },
+    "client": {
+      "enum": [
+        "agent",
+        "cli",
+        "mcp",
+        "page"
+      ],
+      "description": "What is sending it: an agent, the CLI, the MCP server, or the website."
+    },
+    "decision_id": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^dec_[0-9A-Za-z]{8,64}$",
+      "description": "The decision_id of the answer this is about."
+    },
+    "note": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 1000,
+      "description": "Optional. What was wrong or right, in your words."
+    },
+    "trying_to_decide": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "maxLength": 300,
+      "description": "Optional. What you were trying to decide."
+    },
+    "page": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^/[A-Za-z0-9._~/-]{0,199}$",
+      "description": "Optional. The site path, such as /decide/."
+    },
+    "template": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "pattern": "^[a-z0-9][a-z0-9-]{0,63}$",
+      "description": "Optional. The decision template in use."
+    }
+  },
+  "examples": [
+    {
+      "rating": "unreliable",
+      "client": "agent",
+      "decision_id": "dec_3f9a1c2b7d4e",
+      "note": "The top pick has no pricing for my region."
+    }
+  ]
+}

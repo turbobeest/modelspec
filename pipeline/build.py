@@ -21,12 +21,10 @@ from datetime import date
 from pathlib import Path
 
 from decision import registry as decision_registry
-from pipeline import brand, data_source
+from pipeline import agent_copy, brand, card_ids, data_source
 from pipeline import export as exporter
-from pipeline import card_ids
 from pipeline import render as r
 from pipeline.load import REPO_ROOT, load_benchmarks, load_catalogue, load_models
-
 
 #: Cloudflare Pages redirects. `/` is the modelspec.dev homepage; every other
 #: path keeps its path on modelspec.dev. Order matters: the first match wins.
@@ -64,9 +62,8 @@ def llms_txt(*, site: str, base: str, build: exporter.Build) -> str:
         f"Built {build.built_at} from commit {build.commit[:12]}. "
         f"Null means not researched.\n\n"
         f"Access: a person looking a model up by hand on the site pays nothing. "
-        f"Machine access is the hosted API and the MCP server only, and it is a paid "
-        f"product (prices at {base}/pricing/). There is no CLI and no data download: "
-        f"current data is only available through the service, and the copy in the "
+        f"{agent_copy.install_markdown()}\n"
+        f"Current data is only available through the service, and the copy in the "
         f"public repository is a delayed image, about nine months old.\n\n"
         f"- Agent guide: {base}/agents.md\n"
         f"- Decide (for people): {base}/decide/\n"
@@ -492,9 +489,9 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
 
     # The graph is derived through the same code path as the FalkorDB ingest, so
     # relations, competition, hardware fit and ranking read what the cards say.
+    from pipeline import competition, hardware
     from schema.card import ModelCard
     from schema.graph import derive_graph
-    from pipeline import competition, hardware
     cards = [ModelCard.from_yaml_file(str(m.path)) for m in models]
     devices = hardware.load_devices(root)
     # The device records are the only source of a device class, so they are

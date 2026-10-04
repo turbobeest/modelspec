@@ -1699,7 +1699,7 @@ def _repo(tmp_path, store) -> Path:
 
 
 def test_cli_verifies_what_is_queued_and_prints_a_summary(tmp_path, store, monkeypatch) -> None:
-    from cli.modelspec import cli as cli_mod
+    from cli.modelspec import legacy as cli_mod
 
     monkeypatch.setenv("MODELSPEC_SOURCE_CACHE", str(store.root))
     root = _repo(tmp_path, store)
@@ -1721,7 +1721,7 @@ def test_cli_verifies_what_is_queued_and_prints_a_summary(tmp_path, store, monke
 
 
 def test_cli_claude_reader_uses_an_injected_extractor(tmp_path, store, monkeypatch) -> None:
-    from cli.modelspec import cli as cli_mod
+    from cli.modelspec import legacy as cli_mod
 
     monkeypatch.setenv("MODELSPEC_SOURCE_CACHE", str(store.root))
     root = _repo(tmp_path, store)

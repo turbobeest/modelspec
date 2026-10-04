@@ -11,7 +11,7 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from cli.modelspec import cli as cli_mod
+from cli.modelspec import legacy as cli_mod
 from decision.model import SourceRef, TargetRef, VerificationActor
 from decision.sources import Source
 from decision.verify import Claim, KeyValueExtractor, Queue, VerificationLog

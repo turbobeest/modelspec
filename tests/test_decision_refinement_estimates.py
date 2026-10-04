@@ -206,7 +206,7 @@ def _decide_service():
 
 @pytest.mark.parametrize("explain", ["none", "summary"])
 def test_cli_and_worker_answers_are_byte_identical(snapshot_bytes, index, tmp_path, explain):
-    from cli.modelspec import cli as cli_mod
+    from cli.modelspec import legacy as cli_mod
 
     payload = {"spec_version": 1, "explain": explain, "limit": 10,
                "optimize": {"weights": {"software_engineering": 0.4, RUST: 0.6}}}

@@ -113,7 +113,7 @@ def test_billing_off_presents_a_price_list_without_purchase_language() -> None:
     assert "What would your agents spend at these prices?" in html
     assert "Cheapest published option" in html
     assert ("Keyless API calls are still answered while paid access is being switched "
-            "on; these are the credit prices for it.") in html
+            "on. These are the credit prices for it.") in html
     assert "Hosted API and MCP answers use prepaid credits" not in html
     assert re.search(r"\b(buy|checkout|card|cancel(?:ling)?)\b", _rendered_text(html), re.I) is None
 
@@ -150,8 +150,11 @@ def test_hero_names_the_cheapest_product_kind_and_matches_the_shown_rates() -> N
 def test_honesty_contracts_match_cli_billing_and_legal_docs() -> None:
     html = _page()
     assert "A person using the board on this site pays nothing." in html
-    assert "Machine access is the hosted API and MCP server only" in html
-    assert "There is no CLI and no data download." in html
+    assert "Machine access uses the keyed CLI, hosted API and MCP server" in html
+    assert "No data download" in html
+    assert "Three ways in:" in html
+    assert "pipx install modelspec-dev" in html
+    assert "There is no CLI" not in html
     assert "delayed image" in html
     assert "The static export under /api is public" not in html
     assert "offline CLI" not in html
@@ -225,7 +228,7 @@ def test_production_switches_generate_what_ships_today(tmp_path: Path) -> None:
     assert "perCall" not in _payload(html)
     assert "coming soon" not in html.lower()
     assert "opening soon" not in html.lower()
-    assert "People decide free. Agents start free." in html
+    assert "People decide free. Machine access needs a key." in html
     assert "People decide free. Agents pay per answer." not in html
 
 
@@ -292,8 +295,9 @@ def test_landing_and_decide_link_pricing() -> None:
     assert '<a href="/pricing/">Pricing</a>' in decide
 
 
-def test_pricing_descriptions_and_hero_state_mcp_decision_key_requirement() -> None:
-    requirement = "MCP decision tools (rank, policy_check, decide) require an API key."
+def test_pricing_descriptions_and_hero_require_keys_for_all_data_tools() -> None:
+    requirement = ("MCP data tools (vocab, model_info, list_use_cases, decide, rank, "
+                   "policy_check) require an API key.")
     for enforced in (False, True):
         page = _page(access_enforced=enforced)
         description = pricing.DESCRIPTION if enforced else pricing.FREE_TIER_DESCRIPTION
@@ -302,3 +306,7 @@ def test_pricing_descriptions_and_hero_state_mcp_decision_key_requirement() -> N
         assert "offline CLI" not in page
         if not enforced:
             assert "API and MCP server answer on a free tier" not in page
+            approved = "Keyless API calls are still answered while paid access is being switched on"
+            assert page.count(approved) == 1
+            assert "Keyless API" not in description
+            assert "Agents start free" not in page

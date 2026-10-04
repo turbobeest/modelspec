@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-import os
-import struct
 import html
+import os
 import re
+import struct
 from dataclasses import replace
 from pathlib import Path
 
@@ -244,8 +244,8 @@ def _pricing_flags(monkeypatch: pytest.MonkeyPatch, **variables: str) -> None:
 @pytest.mark.parametrize(
     ("variables", "agent_line", "other_line"),
     [
-        ({}, "Agents start free.", "Agents pay per answer."),
-        ({"ACCESS_ENFORCED": "true"}, "Agents pay per answer.", "Agents start free."),
+        ({}, "Machine access needs a key.", "Agents pay per answer."),
+        ({"ACCESS_ENFORCED": "true"}, "Agents pay per answer.", "Machine access needs a key."),
     ],
 )
 def test_pricing_card_follows_the_access_flag(

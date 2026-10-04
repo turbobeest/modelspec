@@ -1,3 +1,4 @@
+import re
 """MODEL-292: real SQLite metering and Worker routing, external verifier stubbed."""
 import asyncio
 import json
@@ -290,7 +291,7 @@ def test_privacy_guard_rejects_switching_on_before_adoption(monkeypatch):
     # The adopted statement passes; the same flag against a pre-1.9 statement must not.
     test_visit_gate_requires_adopted_v19_privacy_before_enabling()
     monkeypatch.setattr(tests.test_legal, "PRIVACY",
-                        tests.test_legal.PRIVACY.replace("Version `1.9`", "Version `1.8`", 1))
+                        re.sub(r"Version `\d+\.\d+`", "Version `1.8`", tests.test_legal.PRIVACY, count=1))
     with pytest.raises(AssertionError, match="requires adopted privacy v1.9"):
         test_visit_gate_requires_adopted_v19_privacy_before_enabling()
 

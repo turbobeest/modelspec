@@ -1,4 +1,4 @@
-"""CLI source stays buildable locally, but public distribution is retired."""
+"""Only the thin keyed CLI and generated guidance enter the distribution."""
 
 from __future__ import annotations
 
@@ -14,7 +14,8 @@ def test_distribution_metadata_and_console_command() -> None:
     project = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text())["project"]
 
     assert project["name"] == "modelspec-dev"
-    assert project["version"] == "0.2.0"
+    assert project["version"] == "0.3.0"
+    assert "keyed client" in project["description"]
     assert project["readme"] == "README.md"
     assert project["license"] == "MIT"
     assert project["scripts"] == {"modelspec": "cli.modelspec.cli:app"}
@@ -29,30 +30,51 @@ def test_wheel_has_an_explicit_runtime_file_set() -> None:
     config = tomllib.loads((REPO_ROOT / "pyproject.toml").read_text())
     wheel = config["tool"]["hatch"]["build"]["targets"]["wheel"]
 
-    assert set(wheel["only-include"]) == {
-        "cli",
-        "decision",
-        "schema",
-        "api/__init__.py",
-        "api/class_fit.py",
-        "api/classes.py",
-        "api/ranking",
-        "pipeline/__init__.py",
-        "pipeline/class_export.py",
-        "pipeline/hardware.py",
-        "pipeline/hosts.py",
-        "pipeline/load.py",
-        "pipeline/ranking.py",
-    }
-    assert wheel["force-include"] == {"registry": "registry"}
+    paths = set(wheel["only-include"])
+    assert {
+        "cli/modelspec/cli.py",
+        "cli/modelspec/agent-bundle.json",
+        "cli/modelspec/spec.schema.json",
+        "cli/modelspec/feedback.schema.json",
+    } <= paths
+    assert all(path.startswith("cli/") for path in paths)
+    assert not any(
+        name in paths
+        for name in (
+            "cli",
+            "cli/modelspec/legacy.py",
+            "cli/modelspec/offline.py",
+            "cli/modelspec/snapshot.py",
+        )
+    )
+    assert not wheel.get("force-include")
+    assert {"pydantic", "falkordb", "cryptography"}.isdisjoint(
+        dependency.split(">=")[0] for dependency in config["project"]["dependencies"]
+    )
+    sdist = config["tool"]["hatch"]["build"]["targets"]["sdist"]["only-include"]
+    assert not any(
+        path.startswith(("models/", "benchmarks/", "registry/", "decision/")) for path in sdist
+    )
 
 
-def test_no_workflow_publishes_to_pypi() -> None:
-    for path in (REPO_ROOT / ".github" / "workflows").glob("*.yml"):
+def test_only_release_pypi_publishes_and_only_by_trusted_publishing() -> None:
+    """MODEL-307: one workflow publishes, from a v* tag on main whose name matches the
+    package version, through OIDC trusted publishing. No token, no twine."""
+    publishers = []
+    for path in (REPO_ROOT / ".github" / "workflows").glob("*.y*ml"):
         text = path.read_text()
-        assert "pypa/gh-action-pypi-publish" not in text
-        assert "twine upload" not in text
-    assert not (REPO_ROOT / "docs" / "releasing.md").exists()
+        assert "twine upload" not in text, path.name
+        assert "PYPI_API_TOKEN" not in text and "password:" not in text, path.name
+        if "pypa/gh-action-pypi-publish" in text:
+            publishers.append(path.name)
+    assert publishers == ["release-pypi.yml"]
+    workflow = yaml.safe_load((REPO_ROOT / ".github" / "workflows" / "release-pypi.yml").read_text())
+    job = workflow["jobs"]["publish"]
+    assert job["environment"] == "pypi"
+    assert job["permissions"] == {"contents": "read", "id-token": "write"}
+    assert workflow[True]["push"]["tags"] == ["v*"]
+    steps = "\n".join(str(step.get("run", "")) for step in job["steps"])
+    assert 'tag != f"v{version}"' in steps and "merge-base --is-ancestor" in steps
 
 
 def test_ci_builds_and_installs_the_wheel_in_a_fresh_environment() -> None:
@@ -66,25 +88,25 @@ def test_ci_builds_and_installs_the_wheel_in_a_fresh_environment() -> None:
     assert "modelspec --help > modelspec-help.txt" in commands
     assert "modelspec --help |" not in commands
     assert "cat modelspec-help.txt" in commands
-    assert 'decide" -lt "$rank"' in commands
     assert "modelspec decide --help" in commands
     assert 'cd "$(mktemp -d)"' in commands
-    assert "modelspec vocab" in commands
-    assert "modelspec snapshot fetch" in commands
-    assert "scripts/package_smoke_fixture.py" in commands
-    assert "--key-id test-package-smoke" in commands
-    assert "modelspec decide --template budget-coding" in commands
-    assert "modelspec verify --help" in commands
-    assert "modelspec verify accuracy --profile pr --config /nonexistent" in commands
-    assert "No such command 'accuracy'" in commands
+    assert "modelspec help agent --json" in commands
+    assert "modelspec key --json" in commands
+    assert "scripts/package_smoke.py" in commands
+    assert "modelspec snapshot fetch" not in commands
+    assert "decision.registry" not in commands
 
 
-def test_public_install_instructions_are_retired() -> None:
-    for name in ("README.md", "pipeline/landing.py", "pipeline/build.py",
-                 "pipeline/agent_ready.py", "web/src/decide/components/Share.tsx"):
+def test_public_install_instructions_name_the_owned_package_and_three_paths() -> None:
+    for name in ("README.md", "docs/cli-contract.md", "site/holding/index.html"):
         text = (REPO_ROOT / name).read_text()
-        assert "pipx install modelspec-dev" not in text
-        assert "pip install modelspec-dev" not in text
+        for command in (
+            "uvx --from modelspec-dev modelspec",
+            "pipx install modelspec-dev",
+            "pip install modelspec-dev",
+        ):
+            assert command in text
+        assert "pip install modelspec" in text and "unrelated project" in text
     notice = (REPO_ROOT / "docs" / "cli-contract.md").read_text()
-    assert notice.startswith("> **Retired 2026-09-30.")
+    assert "thin keyed client" in notice
     assert "https://api.modelspec.dev/v1/decide" in notice

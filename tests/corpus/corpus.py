@@ -355,7 +355,7 @@ def run_cli(case: Case, snapshot_path: Path, workdir: Path) -> tuple[int, bytes,
     """``modelspec decide SPEC --snapshot-file SNAPSHOT --json``: exit code, stdout, stderr."""
     from typer.testing import CliRunner
 
-    from cli.modelspec import cli as cli_mod
+    from cli.modelspec import legacy as cli_mod
 
     spec_path = workdir / f"{case.id}.yaml"
     text = case.spec if isinstance(case.spec, str) else json.dumps(case.spec)

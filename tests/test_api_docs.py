@@ -615,12 +615,14 @@ def test_the_access_gate_is_wired_and_the_reference_says_it_is_not_enforced(
     entry = ENTRY.read_text(encoding="utf-8")
     assert "access.gate(" in entry, "entry.py no longer calls the access gate"
     assert not generator.access_enforced(), (
-        "ACCESS_ENFORCED is on in wrangler.jsonc. docs/api.md still says a key is "
-        "optional — update it, and regenerate openapi.yaml.")
+        "ACCESS_ENFORCED is on in wrangler.jsonc. Update the documented flag state "
+        "and regenerate openapi.yaml.")
     prose = _prose(reference)
     assert "not live yet" not in prose.lower()
     assert "takes no key and meters nothing" not in prose
-    assert "**A key is optional today.**" in prose
+    assert "**Machine data access needs an API key.**" in prose
+    assert "free tier, unmetered" not in prose
+    assert "Keyless API calls are still answered" not in prose
     assert "`ACCESS_ENFORCED`" in prose
     assert generator.access_store_bound(), (
         "the ACCESS key store is no longer bound. docs/api.md still describes it as bound.")

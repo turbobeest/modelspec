@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 from typer.testing import CliRunner
 
-from cli.modelspec import cli as cli_mod
+from cli.modelspec import legacy as cli_mod
 from decision.snapshot import SnapshotInputs, build_snapshot
 from tests.snapshot_records import SOURCES, evidence, fact, model, offering
 from tests.test_decision_by_model import built_snapshot

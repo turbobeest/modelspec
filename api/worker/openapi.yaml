@@ -8,7 +8,7 @@ info:
   version: '1.0'
   summary: Ranks AI models you can actually run, given your hardware, providers, use case and policy rules,
     and checks them against a compliance policy.
-  description: 'Start with the compact agent guide https://modelspec.dev/agents.md (version 1-8e2ea6b35b623427).
+  description: 'Start with the compact agent guide https://modelspec.dev/agents.md (version 1-ba4c092afcb11838).
     Call decide early with a template-based Spec; refine from reading and recovery hints.
 
 
@@ -25,14 +25,13 @@ info:
     or a policy — never a prompt.
 
 
-    A key is optional today (see x-modelspec-access): without one you get the free tier, unmetered; a
-    key you present is checked, and a bad one is refused rather than ignored. Any key starting `test_`
-    is the sandbox: unlimited, synthetic rows from the real scorer, /v1/rank only.
+    Machine data access needs an API key (see x-modelspec-access). Any key starting `test_` is the sandbox:
+    unlimited, synthetic rows from the real scorer, /v1/rank only.
 
 
-    Without a paid-tier key, policy-check answers from the public export (the free tier). Every check
-    it cannot settle is `undetermined` with `why: tier`, and `determinations.undetermined_for_lack_of_entitlement`
-    counts them. It is never a pass.
+    Without a paid entitlement, policy-check uses public-export evidence. Every check it cannot settle
+    is `undetermined` with `why: tier`, and `determinations.undetermined_for_lack_of_entitlement` counts
+    them. It is never a pass.
 
 
     Send a real `User-Agent`. The host is behind Cloudflare, and the standard-library default (`Python-urllib/*`)
@@ -61,17 +60,16 @@ x-modelspec-access:
   enforced: false
   switch: ACCESS_ENFORCED in api/worker/wrangler.jsonc
   key_store_bound: true
-  effect_today: 'A key is optional. A request without one is answered as the free tier, unmetered, and
-    never gets 401, 403 or 429. A request that presents one is checked: a test_ key gets the sandbox,
-    a known key is metered and served per its tier, and an unknown or revoked key is refused (401 or 403),
-    never served as anonymous. The ACCESS key store is bound. No key has been issued yet (issuance is
-    MODEL-73), so a presented live key is unknown; test_ keys work.'
+  effect_today: 'Machine data access needs an API key. ACCESS_ENFORCED is off; see https://modelspec.dev/pricing/
+    for access availability. Presented keys are checked: a test_ key gets the sandbox, a known key is
+    metered and served per its tier, and an unknown or revoked key is refused (401 or 403), never served
+    as anonymous. The ACCESS key store is bound. Existing live keys are checked against it; test_ keys
+    use the sandbox.'
   policy_check_paid_entitlement: {status: 'granted to a presented key with remaining credits, or an unlimited
-      paid tier', granted_by: 'entry.py::_entitlement', effect_today: 'anonymous and free-tier answers
-      have determinations.entitlement public_export; checks they cannot settle come back undetermined
-      with why: tier and available_in_tier: paid. A funded key reads the determinations, or gets HTTP
-      503 determinations_unavailable when the store cannot be read. A key with zero credits gets the free
-      answer plus credits.exhausted. No paid key has been issued yet.'}
+      paid tier', granted_by: 'entry.py::_entitlement', effect_today: 'Public-export evidence has determinations.entitlement
+      public_export; checks they cannot settle come back undetermined with why: tier and available_in_tier:
+      paid. A funded key reads the determinations, or gets HTTP 503 determinations_unavailable when the
+      store cannot be read. A key with zero credits gets the public-export answer plus credits.exhausted.'}
   present_key_as: ['Authorization: Bearer <key>', 'X-API-Key: <key>']
   never: a key in the query string
   policy_version: access-v1
@@ -722,7 +720,7 @@ paths:
           headers: *id001
         '503':
           description: 'determinations_unavailable: entitled to the determinations by a paid-tier key,
-            and the store could not be read. Never downgraded to the free answer. Or access_store_not_configured:
+            and the store could not be read. Never downgraded to the public-export answer. Or access_store_not_configured:
             a live key was presented and there is no key store to check it against.'
           content:
             application/json:
@@ -6011,4 +6009,4 @@ components:
       schema: {type: string, const: '<https://modelspec.dev/agents.md>; rel="describedby"'}
     AgentGuideVersion:
       description: Version of the byte-stable guide.
-      schema: {type: string, const: 1-8e2ea6b35b623427}
+      schema: {type: string, const: 1-ba4c092afcb11838}

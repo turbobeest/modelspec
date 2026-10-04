@@ -18,15 +18,15 @@ mentions a payment rail that is switched off.
 from __future__ import annotations
 
 import argparse
-from copy import deepcopy
 import hashlib
 import json
 import re
 import sys
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
-from pipeline import entity
+from pipeline import entity, worker_flags
 
 ROOT = Path(__file__).resolve().parents[1]
 TIERS = ROOT / "api" / "worker" / "tiers.json"
@@ -42,6 +42,21 @@ NULL_RULE = (
 GUIDE_URL = f"{entity.SITE}/agents.md"
 GUIDE_OUT = ROOT / "docs" / "agents.md"
 GUIDE_CONSTANTS = ROOT / "api" / "worker" / "src" / "agent_guide.py"
+CLI_OUT = ROOT / "cli" / "modelspec" / "agent-bundle.json"
+CLI_SCHEMA = ROOT / "cli" / "modelspec" / "spec.schema.json"
+CLI_FEEDBACK_SCHEMA = ROOT / "cli" / "modelspec" / "feedback.schema.json"
+INSTALL_PATHS = (
+    "uvx --from modelspec-dev modelspec",
+    "pipx install modelspec-dev",
+    "pip install modelspec-dev",
+)
+PACKAGE_WARNING = "pip install modelspec is an unrelated project. Use modelspec-dev."
+ACCESS = (
+    "Three ways in: keyed CLI, MCP and HTTP API. "
+    "Machine data access needs a ModelSpec API key; only human lookup is free. "
+    "No data download or local decision cache."
+)
+CLI_PRIVACY = "No telemetry. The CLI never uses, sends or logs your provider API keys."
 SPEC_GUIDANCE = (
     "Call decide early with a template-based Spec; refine from reading and recovery hints. "
     "Call decide after at most one vocab lookup before the first decision. "
@@ -68,6 +83,255 @@ VOCAB_NEXT = {
     "starter": "next: call decide with this; refine from reading",
     "lookup": "next: call decide using these ids; refine from reading",
 }
+
+
+def install_markdown() -> str:
+    return (ACCESS + "\n\n```sh\n" + "\n".join(INSTALL_PATHS) + "\n```\n\n" +
+            PACKAGE_WARNING + f"\nGuide: {GUIDE_URL}. Pricing and keys: {PRICING}.\n")
+
+
+def install_html() -> str:
+    import html
+    return (f"<p>{html.escape(ACCESS)}</p><pre>" +
+            "\n".join(html.escape(command) for command in INSTALL_PATHS) +
+            f"</pre><p>{html.escape(PACKAGE_WARNING)}</p>")
+
+
+def key_procurement(root: Path = ROOT) -> str:
+    variables = worker_flags.production_vars(root)
+    if worker_flags.enabled(variables, "BILLING_ENABLED"):
+        return f"Buy a plan or credit pack at {PRICING} to get a key."
+    return f"Use an existing key, or see {PRICING} for availability."
+
+
+def cli_text(root: Path = ROOT) -> dict[str, Any]:
+    """All CLI prose, including recovery and help, travels in the generated bundle."""
+    return {
+        "access": ACCESS,
+        "privacy": CLI_PRIVACY,
+        "package_warning": PACKAGE_WARNING,
+        "coverage": ("Bundled public coverage summary, {as_of}: {models} models, "
+                     "{providers} providers, {benchmarks} benchmarks. Current coverage may differ."),
+        "answers": ("Ask about model requirements, sourced capability evidence, cost, context, "
+                    "hosting and policy constraints. Answers report ties, missing facts and reasons."),
+        "price": "From {low_cents}¢ per answer. Published range ${low_usd}–${high_usd} per answer, depending on plan, pack and explanation.",
+        "procurement": (key_procurement(root) + " Checkout availability is shown on the page. "
+                        "For access, volume or invoicing, contact sales@modelspec.dev. "
+                        "Store a key with modelspec auth set, or set MODELSPEC_API_KEY; the environment wins."),
+        "human_message": ("ModelSpec can check this model choice against your requirements and its "
+                          "published evidence. The agent needs a ModelSpec API key. Answers start at "
+                          "{low_cents}¢ at the cheapest published rate. You can provide an existing key, "
+                          f"review {PRICING}, or look it up yourself on the free board at "
+                          f"{entity.SITE}/decide/."),
+        "orientation_next": ["Run modelspec key for access and prices.",
+                             "Run modelspec setup mcp --client generic to connect an MCP client.",
+                             f"Read {GUIDE_URL}; then use modelspec decide --spec FILE with a key."],
+        "next_label": "Next steps:",
+        "human_label": "Tell the human: {message}",
+        "mcp_url": "MCP: {url}",
+        "http_url": "HTTP: {url}",
+        "command_help": "Run {command} --help for this command's options.",
+        "links": "Guide: {guide}\nOpenAPI: {openapi}\nPricing and keys: {pricing}",
+        "guide_version": "Guide version: {version}",
+        "key_saved": ("Stored the ModelSpec key in {path}. POSIX uses mode 0600; "
+                      "Windows uses the user-profile directory ACL. "
+                      "MODELSPEC_API_KEY takes precedence."),
+        "key_prompt": "ModelSpec API key",
+        "write_prompt": "Apply this diff to the ModelSpec server entry?",
+        "setup_note": ("Configure the MCP client's referenced environment variable or explicit "
+                       "credential placeholder before launching it. A key stored by modelspec "
+                       "auth set is for this CLI. Setup never copies a saved or environment key "
+                       "into the config; a key value must be supplied explicitly. "
+                       "Read the agent guide into the client's context."),
+        "desktop_note": ("Claude Desktop uses the mcp-remote stdio bridge and needs Node.js/npx. "
+                         "macOS GUI apps do not inherit your shell environment. Explicitly replace "
+                         "<MODELSPEC_API_KEY> in the env block's MODELSPEC_AUTH_HEADER "
+                         "with your key, "
+                         "keeping the Bearer prefix and space. This stores the key in that config. "
+                         "Setup writes only the placeholder and never reads your saved "
+                         "or environment key."),
+        "manual_note": "Replace <MODELSPEC_API_KEY> in your client's secret settings. This is a placeholder, not a credential.",
+        "setup_written": "Updated only the ModelSpec server entry in {path}.",
+        "setup_backup": "Backed up the original config to {path}.",
+        "setup_unchanged": "The ModelSpec server entry is already configured in {path}.",
+        "setup_cancelled": "The proposed change was not applied.",
+        "upgrade": "Upgrade the client: uvx --refresh --from modelspec-dev modelspec; or pipx upgrade modelspec-dev; or pip install --upgrade modelspec-dev.",
+        "guide_changed": "The server's guide version differs from this CLI's bundled guide. Refresh the guide and upgrade the client.",
+        "errors": {
+            "usage_error": "The command or options could not be read.",
+            "missing_api_key": "This command needs a ModelSpec API key.",
+            "invalid_api_key": "The ModelSpec key is invalid or was refused.",
+            "auth_unreadable": ("The stored ModelSpec key cannot be read securely. Use a regular "
+                                "file with mode 0600 on POSIX, or in your user-profile "
+                                "directory on Windows."),
+            "auth_unwritable": "The ModelSpec key could not be stored.",
+            "invalid_spec": "The Spec failed structural validation against the bundled published schema. The server validates its meaning.",
+            "spec_unreadable": "The Spec file or standard input could not be read as JSON or YAML.",
+            "spec_source": "Choose exactly one of --spec FILE|- and --template ID.",
+            "spec_too_large": "The Spec exceeds the API's 64 KB request limit.",
+            "unknown_template": "The hosted vocabulary did not return that template's Spec.",
+            "invalid_feedback": "The feedback failed the published request schema. Never include prompts, keys or personal details.",
+            "invalid_vocabulary": "The vocabulary lookup options are invalid.",
+            "network_error": "The hosted API could not be reached.",
+            "unexpected_response": "The hosted API did not return the expected JSON object.",
+            "http_error": "The hosted API refused the request.",
+            "invalid_client": "Choose a supported MCP client.",
+            "config_unreadable": "The MCP configuration is not a readable JSON or TOML object. No file was changed.",
+            "config_unwritable": "The MCP configuration could not be written.",
+            "config_changed": "The MCP configuration changed after the diff was prepared. No file was changed.",
+            "config_path_required": "This client needs an explicit --config FILE for --write.",
+            "confirmation_required": "Writing requires confirmation, or --yes after reviewing the diff.",
+            "interrupted": "The command was interrupted.",
+        },
+        "recovery": {
+            "key": ["Run modelspec key, then modelspec auth set or set MODELSPEC_API_KEY.", "{human_message}"],
+            "credits": [f"Check your credits and available plans or packs at {PRICING}.",
+                        "Honor Retry-After when present; retry once credits or the rate window allow it."],
+            "coverage": ["{answers}", "{coverage}",
+                         f"Read {GUIDE_URL}; tell the human which requirement could not be answered. "
+                         "Do not silently drop it."],
+            "network": [f"Check API health at {API}/v1/health, then retry.",
+                        f"Read {GUIDE_URL} for the CLI, MCP and HTTP alternatives."],
+            "upgrade": ["{upgrade}", f"Refresh {GUIDE_URL}."],
+            "spec": ["Check the reported field paths against the published schema and OpenAPI.",
+                     f"Read {GUIDE_URL}; use modelspec vocab with a key for a targeted lookup. "
+                     "Tell the human about any requirement removed on retry."],
+            "setup": ["Review the printed snippet and apply only the modelspec entry manually, "
+                      "or retry modelspec setup mcp with --config FILE --write.",
+                      f"Use the CLI or HTTP API with a key in the meantime: {GUIDE_URL}."],
+            "usage": ["Run modelspec help agent or modelspec --help for the supported commands.",
+                      f"Read {GUIDE_URL} for the next call."],
+        },
+        "help": {
+            "root": "A keyed hosted API client. Run modelspec help agent for orientation.",
+            "agent": "Orient an AI agent: coverage summary, access, setup and what to tell the human.",
+            "key": "Show key procurement, published prices and a neutral message for the human.",
+            "setup": "Print an MCP client configuration; --write shows a diff before confirmation.",
+            "auth": "Store only a ModelSpec API key, locally. The environment takes precedence.",
+            "decide": "Send exactly your Spec to POST /v1/decide with a key. No local decision cache.",
+            "vocab": "Look up hosted vocabulary with a key; defaults to the compact starter section.",
+            "feedback": "Rate an answer with a key present. Matches MCP fields; the feedback endpoint receives no Authorization header.",
+            "json": "Emit JSON. Successful API bodies pass through unchanged; every failure has next steps.",
+            "spec": "A JSON or YAML Spec file; - reads standard input.",
+            "template": "A template ID retrieved with a key from the hosted vocabulary.",
+            "client": "claude-code, claude-desktop, codex, gemini, grok, cursor or generic.",
+            "config": "MCP config file. Generic clients require an explicit path to write.",
+            "write": "Show the diff, then ask for confirmation before writing.",
+            "yes": "Apply the displayed diff without an interactive confirmation.",
+            "stdin": "Read the key from standard input instead of the hidden prompt.",
+            "version": "Show the CLI and bundled guide versions.",
+            "section": "A hosted vocabulary section; defaults to starter.",
+            "search": "Search IDs and labels in the hosted vocabulary.",
+            "id": "Return full details for this exact ID.",
+            "ids": "Return full details for these IDs; repeat the option, at most 100.",
+            "detail": "compact or full.",
+            "offset": "Skip this many matching vocabulary rows.",
+            "limit": "Compact page size, 1 to 20.",
+            "rating": "reliable, unreliable, trustworthy, untrustworthy or confusing.",
+            "decision_id": "The answer's decision_id, when available.",
+            "note": "Optional feedback, up to 1,000 characters. No prompts, keys or personal details.",
+            "trying": "Optional description, up to 300 characters, of what you were deciding.",
+            "feedback_template": "Optional template ID used for that answer.",
+        },
+    }
+
+
+def cli_clients() -> dict[str, Any]:
+    """Client-native configurations, with environment references instead of secrets."""
+    endpoint = entity.MCP_ENDPOINT
+    return {
+        "claude-code": {
+            "format": "json", "path": ".mcp.json", "table": "mcpServers",
+            "server": {"type": "http", "url": endpoint,
+                       "headers": {"Authorization": "Bearer ${MODELSPEC_API_KEY}"}},
+            "source": "https://code.claude.com/docs/en/mcp",
+        },
+        "claude-desktop": {
+            "format": "json", "path": "desktop", "table": "mcpServers",
+            "server": {"command": "npx", "args": ["-y", "mcp-remote", endpoint,
+                       "--header", "Authorization:${MODELSPEC_AUTH_HEADER}"],
+                       "env": {"MODELSPEC_AUTH_HEADER": "Bearer <MODELSPEC_API_KEY>"}},
+            "source": "https://github.com/punkpeye/mcp-remote#custom-headers",
+            "note": "desktop_note",
+        },
+        "codex": {
+            "format": "toml", "path": "~/.codex/config.toml", "table": "mcp_servers",
+            "server": {"url": endpoint, "bearer_token_env_var": "MODELSPEC_API_KEY"},
+            "command": f"codex mcp add modelspec --url {endpoint} --bearer-token-env-var MODELSPEC_API_KEY",
+            "source": "https://developers.openai.com/codex/mcp/",
+        },
+        "gemini": {
+            "format": "json", "path": "~/.gemini/settings.json", "table": "mcpServers",
+            "server": {"httpUrl": endpoint, "headers": {"Authorization": "Bearer ${MODELSPEC_API_KEY}"}},
+            "source": "https://geminicli.com/docs/tools/mcp-server/",
+        },
+        "grok": {
+            "format": "toml", "path": "~/.grok/config.toml", "table": "mcp_servers",
+            "server": {"url": endpoint,
+                       "headers": {"Authorization": "Bearer ${MODELSPEC_API_KEY}"}},
+            "command": (f"grok mcp add --transport http modelspec {endpoint} "
+                        "--header 'Authorization: Bearer ${MODELSPEC_API_KEY}'"),
+            "source": "https://docs.x.ai/build/features/mcp-servers",
+        },
+        "cursor": {
+            "format": "json", "path": "~/.cursor/mcp.json", "table": "mcpServers",
+            "server": {"url": endpoint, "headers": {"Authorization": "Bearer ${env:MODELSPEC_API_KEY}"}},
+            "source": "https://cursor.com/docs/mcp#config-interpolation",
+        },
+        "generic": {
+            "format": "json", "path": None, "table": "mcpServers",
+            "server": {"type": "http", "url": endpoint,
+                       "headers": {"Authorization": "Bearer <MODELSPEC_API_KEY>"}},
+            "source": GUIDE_URL, "note": "manual_note",
+        },
+    }
+
+
+def cli_bundle(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
+    import tomllib
+
+    from pipeline.load import load_benchmarks, load_catalogue, load_models
+    from pipeline.pricing import procurement_data
+    models = load_models(ROOT)
+    return {
+        "_generated": "by pipeline.agent_copy; run python -m pipeline.agent_copy write",
+        "cli_version": tomllib.loads((ROOT / "pyproject.toml").read_text())["project"]["version"],
+        "guide_version": guide(tiers)[0],
+        "entity": entity.ONE_SENTENCE,
+        "coverage": {"as_of": load_catalogue(ROOT).as_of.isoformat(), "models": len(models),
+                     "providers": len({model.provider for model in models}),
+                     "benchmarks": len(load_benchmarks(ROOT))},
+        "urls": {"guide": GUIDE_URL, "openapi": f"{entity.SITE}/openapi.yaml",
+                 "pricing": PRICING, "api": API, "mcp": entity.MCP_ENDPOINT},
+        "install": list(INSTALL_PATHS),
+        "pricing": procurement_data(tiers or _tiers()),
+        "clients": cli_clients(),
+        "text": cli_text(),
+        "source_hashes": {str(path.relative_to(ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
+                          for path in (Path(__file__), ROOT / "pipeline/entity.py",
+                                       ROOT / "pipeline/pricing.py",
+                                       ROOT / "pipeline/worker_flags.py",
+                                       ROOT / worker_flags.WRANGLER_REL, TIERS,
+                                       ROOT / "docs/decision-contract.schema.json", ROOT / "pyproject.toml",
+                                       ROOT / "schemas/feedback-v1.schema.json")},
+    }
+
+
+def cli_spec_schema() -> dict[str, Any]:
+    """The published request and reachable definitions only, with no engine or catalogue."""
+    contract = json.loads((ROOT / "docs/decision-contract.schema.json").read_text(encoding="utf-8"))
+    definitions = {}
+    pending = ["DecideRequest"]
+    while pending:
+        name = pending.pop()
+        if name in definitions:
+            continue
+        definition = contract["$defs"][name]
+        definitions[name] = definition
+        pending.extend(re.findall(r'#/\$defs/([^" ]+)', json.dumps(definition)))
+    return {"$schema": contract["$schema"], "$defs": definitions, "$ref": "#/$defs/DecideRequest"}
+
+
 RESPONSE_BUDGET_RULES = (
     "If a response exceeds the client context budget, retain the original outside the "
     "prompt and select answer, reading, recovery/error.issues and relevant rows for "
@@ -130,6 +394,10 @@ Full API reference: {entity.SITE}/openapi.yaml
 
 {entity.ONE_SENTENCE}
 
+## CLI, MCP or HTTP
+
+{ACCESS} CLI: `{INSTALL_PATHS[0]}` (or `{INSTALL_PATHS[1]}`); `pip install modelspec` is an unrelated project. `modelspec help agent --json` orients; `modelspec key` explains access. {CLI_PRIVACY}
+
 ## First call
 
 {SPEC_GUIDANCE}
@@ -138,7 +406,7 @@ Full API reference: {entity.SITE}/openapi.yaml
 HTTP: POST `{API}/v1/decide` with `Content-Type: application/json`, a real
 `User-Agent`, and `Authorization: Bearer <key>`. The JSON body is the Spec itself.
 MCP: call `decide` with the Spec itself as arguments, with Authorization on the
-MCP connection. Do not wrap it in `spec` or `task`. Get a key at {PRICING}.
+MCP connection. Do not wrap it in `spec` or `task`. {key_procurement()}
 
 Minimal valid Spec, minimizing cost without claiming a quality ranking:
 
@@ -390,27 +658,28 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
             "What can a decide spec say? "
             "Returns the decision vocabulary: valid facet ids, benchmarks, domains, providers "
             "and task types. Compact by default, with 20 rows per page and no counts. "
-            "In split mode full details still exclude per-model facts and counts. Free, no key. "
+            "Split-mode full details exclude per-model facts and counts. "
+            "Needs an API key. "
             "Use it for missing ids, not to compare models. "
             "Call decide after at most one vocab lookup. section=starter returns a "
             "ready-to-send minimal Spec with 'next: call decide with this; refine from reading'. "
-            "Every response carries a next hint. If you need ids, use section=starter. "
+            "Responses include a next hint. If you need ids, use section=starter. "
             "Use search for a case-insensitive substring of id or label, then call decide. "
-            "Pass id or ids for full details of specific rows, or detail=full for all display details. "
+            "Use id or ids for row details, or detail=full for all display details. "
             "Use offset and limit to page compact sections; an empty page ends the list. "
         ),
         "model_info": (
-            "What does ModelSpec's published card say about one model? "
+            "What does ModelSpec's card say about one model? "
             f"Reads {entity.SITE}/api/models/<model_id>.json (model_id is provider/slug). "
-            "With data splitting enabled, returns only the model's display name from the "
-            "Worker vocabulary. Free, no key. "
+            "With data splitting, returns only the model's display name from the "
+            "Worker vocabulary. Needs an API key. "
             "Not current evidence and not a ranking: use decide for that. "
             f"{NULL_RULE}"
         ),
         "list_use_cases": (
             "Which ranking profiles exist, and what is the ranking policy? "
             f"Returns {entity.SITE}/api/rank/profiles.json: the profiles, the evidence floors "
-            "and the neutrality commitment, as data. Free, no key. "
+            "and the neutrality commitment. Needs an API key. "
             "Not a decision: use decide for that. "
             f"{NULL_RULE}"
         ),
@@ -427,10 +696,10 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
     card = {
         "decide": "Decide which models fit a job, with reasons and cost. Key; 1–2 credits.",
         "rank": "Fixed-profile shortlist (legacy v1); use decide. Key; 1 credit.",
-        "model_info": "One model's published card. Free, no key.",
-        "list_use_cases": "Ranking profiles and the published ranking policy. Free.",
+        "model_info": "One model's published card. Needs an API key.",
+        "list_use_cases": "Ranking profiles and the published ranking policy. Needs an API key.",
         "policy_check": "Policy pass/fail/undetermined per model and platform. Key; 5 credits.",
-        "vocab": "The valid facet ids and names for a decide spec. Free.",
+        "vocab": "The valid facet ids and names for a decide spec. Needs an API key.",
         "feedback": "Say whether an answer was reliable. Free, no key.",
     }
     # The OpenAPI lead for each paid or agent-facing operation: the question, what it
@@ -454,6 +723,7 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
         "vocab": {"minimal_spec": MINIMAL_SPEC, "next": VOCAB_NEXT},
         "instructions": (
             f"{entity.ONE_SENTENCE} {entity.DISAMBIGUATION} ModelSpec guide {guide(tiers)[0]}: {GUIDE_URL}. Store once per version. "
+            f"{ACCESS} CLI: {INSTALL_PATHS[0]}. {PACKAGE_WARNING} "
             "1. Call decide early, after at most one vocab lookup; refine from reading and recovery hints. "
             "2. Put Musts in where and Prefers in optimize; use vocab section=starter only for missing ids. "
             "3. Present ties as ties, including with_estate; never invent a single winner or quality rank. "
@@ -476,9 +746,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("command", choices=("write", "check"))
     args = parser.parse_args(argv)
     version, markdown = guide()
+    holding = ROOT / "site/holding/index.html"
     artifacts = {
         OUT: render(copy()),
         GUIDE_OUT: markdown,
+        CLI_OUT: render(cli_bundle()),
+        CLI_SCHEMA: render(cli_spec_schema()),
+        CLI_FEEDBACK_SCHEMA: (ROOT / "schemas/feedback-v1.schema.json").read_text(encoding="utf-8"),
+        holding: re.sub(r'(?<=<!-- modelspec-cli:start -->)\s*.*?\s*(?=<!-- modelspec-cli:end -->)',
+                        "\n      " + install_html() + "\n      ", holding.read_text(encoding="utf-8"), flags=re.S),
         GUIDE_CONSTANTS: (
             '# Generated by pipeline.agent_copy; do not edit.\n'
             f'GUIDE_URL = {GUIDE_URL!r}\nGUIDE_VERSION = {version!r}\n'

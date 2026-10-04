@@ -224,9 +224,13 @@ def test_live_and_holding_variants_differ_only_where_the_contract_requires(
     assert '<link rel="canonical" href="https://modelspec.dev/">' in holding
     assert 'content="noindex"' not in holding
     for page in (live, holding):
-        assert "pipx install" not in page
-        assert "The CLI was retired on 2026-09-30" in page
-        assert "Use the hosted API or remote MCP Worker with an API key" in page
+        assert "pipx install modelspec-dev" in page
+        assert "uvx --from modelspec-dev modelspec" in page
+        assert "pip install modelspec-dev" in page
+        assert "unrelated project" in page
+        assert "Three ways in:" in page
+        assert "The CLI was retired" not in page
+        assert "No data download" in page
     assert "Every number is one click from its source." in live
     assert "Every number has a source." not in live
     assert "Every number has a source." in holding

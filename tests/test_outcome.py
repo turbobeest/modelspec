@@ -13,7 +13,7 @@ from typer.testing import CliRunner
 REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from cli.modelspec import cli as cli_mod  # noqa: E402
+from cli.modelspec import legacy as cli_mod  # noqa: E402
 from cli.modelspec import outcome  # noqa: E402
 from decision import snapshot as decision_snapshot  # noqa: E402
 from decision.snapshot import SnapshotInputs, build_snapshot, load_snapshot_bytes  # noqa: E402
