@@ -77,7 +77,7 @@ def test_a_premier_list_scopes_the_lineup_and_counts_the_rest():
     )
     lineup = [c["id"] for c in built.content["lineup"]["candidates"]]
     archive = [c["id"] for c in built.content["archive"]["candidates"]]
-    assert lineup == ["lab-api/lab/premier/global/standard", "lab/premier"]
+    assert lineup == ["lab/premier", "sambanova/lab/premier/global/standard"]
     assert archive == ["lab/old"]
     assert built.content["out_of_lineup"] == 2
     assert index.out_of_lineup == 2

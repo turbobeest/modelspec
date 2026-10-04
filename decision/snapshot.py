@@ -820,19 +820,34 @@ class _Compiler:
                               "lifecycle": self.subjects[mid]["lifecycle"]}
         self._add_facts(oid, "offering", o.get("facts"))
         # An offering's identity is its provider, region and tier: structural,
-        # not a sourced claim, so they carry no source.
+        # not a sourced claim, so they carry no source. They still name
+        # registered values (MODEL-324).
         row = self.facts[oid]
         for part in ("provider", "region", "tier"):
-            facet_id = f"offering.{part}"
-            if facet_id not in row:
-                self._check_facet(facet_id, "offering")
-                row[facet_id] = ["known", str(o[part]), []]
+            facet_id, value = f"offering.{part}", str(o[part])
+            self._check_facet(facet_id, "offering")
+            self._check_identity(oid, facet_id, value)
+            row.setdefault(facet_id, ["known", value, []])
+
+    def _check_identity(self, oid: str, facet_id: str, value: str) -> None:
+        if self.registry is None:
+            return
+        allowed = self.registry.allowed_values(self.registry.facet(facet_id))
+        if allowed is not None and value not in allowed:
+            raise SnapshotBuildError(
+                f"offering {oid}: {facet_id} {value!r} is not registered; "
+                f"use one of {sorted(allowed)}")
 
     def add_subscription(self, raw: Any) -> None:
         subscription = _as_dict(raw)
         sid = f"{subscription['provider']}/subscription/{subscription['plan']}"
         if sid in self.subjects:
             raise SnapshotBuildError(f"subscription offering {sid} appears twice")
+        if self.registry is not None:
+            try:
+                self.registry.plan_owner(str(subscription["provider"]))
+            except KeyError as exc:
+                raise SnapshotBuildError(f"subscription offering {sid}: {exc}") from exc
         self.subjects[sid] = {
             "kind": "subscription",
             "provider": str(subscription["provider"]),

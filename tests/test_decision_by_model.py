@@ -19,10 +19,10 @@ from tests.snapshot_records import SOURCES, evidence, fact, model, offering
 
 # model, context window (None: not published), quality, [(provider, price in, price out)]
 LINEUP = [
-    ("lab/alpha", 200_000, 92.0, [("cloud-a", 3.0, 12.0), ("cloud-b", 2.0, 8.0)]),
-    ("lab/beta", 128_000, 72.0, [("cloud-a", 1.0, 4.0)]),
-    ("lab/gamma", 64_000, 88.0, [("cloud-a", 2.0, 8.0)]),
-    ("lab/delta", None, 80.0, [("cloud-a", 2.5, 10.0)]),
+    ("lab/alpha", 200_000, 92.0, [("fireworks-ai", 3.0, 12.0), ("nvidia-nim", 2.0, 8.0)]),
+    ("lab/beta", 128_000, 72.0, [("fireworks-ai", 1.0, 4.0)]),
+    ("lab/gamma", 64_000, 88.0, [("fireworks-ai", 2.0, 8.0)]),
+    ("lab/delta", None, 80.0, [("fireworks-ai", 2.5, 10.0)]),
 ]
 
 
@@ -86,16 +86,16 @@ def test_each_offering_result_names_its_model_rank_and_cost(index):
         (r.offering.model, r.offering.provider, r.rank, r.model_rank) for r in decision.results
     ]
     assert flat == [
-        ("lab/alpha", "cloud-b", 1, 1),
-        ("lab/alpha", "cloud-a", 2, 1),
-        ("lab/beta", "cloud-a", 3, 2),
+        ("lab/alpha", "nvidia-nim", 1, 1),
+        ("lab/alpha", "fireworks-ai", 2, 1),
+        ("lab/beta", "fireworks-ai", 3, 2),
     ]
     assert all(r.model == r.offering.model for r in decision.results)
 
 
 def test_cost_per_task_is_the_priced_task_and_matches_its_contribution(index):
     decision = run(index)
-    # 40k tokens in and 4k out: alpha@cloud-b at $2 / $8 per million tokens.
+    # 40k tokens in and 4k out: alpha@nvidia-nim at $2 / $8 per million tokens.
     assert decision.results[0].cost_per_task == pytest.approx(0.08 + 0.032)
     for result in decision.results:
         part = next(c for c in result.contributions if c.dimension == "-offering.cost_per_task")
@@ -134,8 +134,8 @@ def test_by_model_has_one_row_per_model_ranked_then_may_qualify_then_eliminated(
 def test_a_ranked_models_offerings_are_listed_best_first_with_flat_cost(index):
     alpha = run(index).by_model[0]
     assert [(o.offering.provider, o.status, o.rank) for o in alpha.offerings] == [
-        ("cloud-b", "ranked", 1),
-        ("cloud-a", "ranked", 2),
+        ("nvidia-nim", "ranked", 1),
+        ("fireworks-ai", "ranked", 2),
     ]
     assert alpha.offerings[0].cost_per_task == pytest.approx(0.112)
     assert alpha.offerings[1].cost_per_task == pytest.approx(0.168)
@@ -192,7 +192,7 @@ def test_why_not_a_ranked_model_says_where_it_ranked_and_what_moves_it_up(index)
     answer = why_not(decision, "lab/beta")
     assert answer.verdict == "ranked"
     assert answer.model_rank == 2
-    assert [(o.offering.provider, o.rank) for o in answer.offerings] == [("cloud-a", 3)]
+    assert [(o.offering.provider, o.rank) for o in answer.offerings] == [("fireworks-ai", 3)]
     assert answer.tipping_points, "beta only takes the top at some weight"
     assert {p.new_top for p in answer.tipping_points} == {"lab/beta"}
     assert "#2" in answer.summary

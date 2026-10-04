@@ -61,7 +61,7 @@ def _model(mid: str) -> dict:
 
 def _offering(mid: str, price: float) -> dict:
     row = offering(mid)
-    oid = f"lab-api/{mid}/global/standard"
+    oid = f"sambanova/{mid}/global/standard"
     row["facts"] = [
         fact("offering", oid, "offering.price.input", price, source="src-pricing"),
         fact("offering", oid, "offering.price.output", price * 4, source="src-pricing"),
@@ -86,11 +86,11 @@ def _row(mid, bench, score, *, unit="percent", **kw) -> dict:
 
 def _plans() -> list[dict]:
     def plan(name: str, facts: list[dict]) -> dict:
-        return {"kind": "subscription", "provider": "lab-api", "plan": name,
+        return {"kind": "subscription", "provider": "sambanova", "plan": name,
                 "name": name.title(), "facts": facts}
 
     def f(plan_id: str, facet: str, value) -> dict:
-        return fact("offering", f"lab-api/subscription/{plan_id}", facet, value,
+        return fact("offering", f"sambanova/subscription/{plan_id}", facet, value,
                     source="src-pricing")
 
     return [
@@ -332,10 +332,10 @@ def test_cost_per_task_is_computed_from_cited_prices(breakdown) -> None:
 
 def test_plan_coverage_distinguishes_unknown_from_not_covered(breakdown) -> None:
     plans = {p.plan["id"]: p for p in breakdown.cost.plans}
-    assert plans["lab-api/subscription/pro"].covers is True
-    assert plans["lab-api/subscription/lite"].covers is False
-    assert plans["lab-api/subscription/team"].covers == "unknown"
-    team = plans["lab-api/subscription/team"].monthly
+    assert plans["sambanova/subscription/pro"].covers is True
+    assert plans["sambanova/subscription/lite"].covers is False
+    assert plans["sambanova/subscription/team"].covers == "unknown"
+    team = plans["sambanova/subscription/team"].monthly
     assert (team.value, team.computed) == (25.0, "plan.monthly")
 
 

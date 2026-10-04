@@ -66,7 +66,7 @@ def model(mid, *, lifecycle="active", facts=None, context=128000):
     return {"id": mid, "lifecycle": lifecycle, "facts": records}
 
 
-def offering(mid, provider="lab-api", *, price=3.0, batch="not_offered", facts=None):
+def offering(mid, provider="sambanova", *, price=3.0, batch="not_offered", facts=None):
     oid = f"{provider}/{mid}/global/standard"
     base = [
         fact("offering", oid, "offering.price.input", price, source="src-pricing"),
@@ -76,7 +76,7 @@ def offering(mid, provider="lab-api", *, price=3.0, batch="not_offered", facts=N
             "facts": base if facts is None else facts}
 
 
-def subscription(provider="lab-api", plan="pro", *, facts=None):
+def subscription(provider="sambanova", plan="pro", *, facts=None):
     sid = f"{provider}/subscription/{plan}"
     base = [
         fact("offering", sid, "offering.subscription.price", 20, source="src-pricing"),
@@ -222,7 +222,7 @@ def thirty_models(*, include_offerings=True) -> SnapshotInputs:
                  fact("model", mid, "model.input_modalities", ["text", "image"][: 1 + i % 2]),
                  fact("model", mid, "licence.user_cap", "unbounded")]
         models.append(model(mid, facts=facts))
-        for p in (("lab-api", "cloud-a", "cloud-b") if include_offerings else ()):
+        for p in (("sambanova", "fireworks-ai", "nvidia-nim") if include_offerings else ()):
             offerings.append(offering(mid, p, price=0.1 * (i + 1)))
         for b in benchmarks:
             for effort, by in (("low", "independent"), ("high", "provider_self_report")):

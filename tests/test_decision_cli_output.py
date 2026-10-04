@@ -51,7 +51,7 @@ def test_without_json_the_command_prints_a_short_summary_not_the_decision(tmp_pa
     assert len(lines) <= 25, result.stdout
     assert not result.stdout.lstrip().startswith("{")
     assert "status: partial" in result.stdout, "delta may qualify, so the answer is partial"
-    assert "lab/alpha" in result.stdout and "cloud-b" in result.stdout
+    assert "lab/alpha" in result.stdout and "nvidia-nim" in result.stdout
     assert "$0.112" in result.stdout
     assert "1 may qualify" in result.stdout
 
@@ -71,10 +71,10 @@ def _tied_snapshot() -> bytes:
         for mid in ("lab/alpha", "lab/beta")
     ]
     sold = [
-        offering(mid, "cloud-a", facts=[
-            fact("offering", f"cloud-a/{mid}/global/standard", "offering.price.input", price,
+        offering(mid, "fireworks-ai", facts=[
+            fact("offering", f"fireworks-ai/{mid}/global/standard", "offering.price.input", price,
                  source="src-pricing"),
-            fact("offering", f"cloud-a/{mid}/global/standard", "offering.price.output", price,
+            fact("offering", f"fireworks-ai/{mid}/global/standard", "offering.price.output", price,
                  source="src-pricing"),
         ])
         for mid, price in (("lab/alpha", 3.0), ("lab/beta", 1.0))
