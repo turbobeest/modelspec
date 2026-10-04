@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import os
 import subprocess
+from contextlib import nullcontext
+from functools import partial
 from pathlib import Path
+from types import SimpleNamespace
+from urllib.error import HTTPError
 from urllib.robotparser import RobotFileParser
 
 import pytest
@@ -114,3 +118,180 @@ def test_the_crawler_probe_reports_each_refused_crawler_and_path() -> None:
     asked: list[tuple[str, str]] = []
     live.crawler_probe("https://x", lambda url, agent: asked.append((url, agent)) or 200)
     assert len(asked) == len(NAMED) * (len(live.PAGES) + 1)
+
+
+def test_the_client_probe_passes_when_every_client_matches_curl() -> None:
+    asked: list[str] = []
+
+    def fetch(method: str, url: str, agent: str, body: bytes | None) -> tuple[int, str]:
+        asked.append(agent)
+        content_type = "Application/JSON; charset=utf-8" if agent == "curl/8.7.1" else "application/json"
+        return (200 if method == "GET" else 400), content_type
+
+    assert live.client_probe("https://api.modelspec.dev/", fetch) == []
+    assert asked == [
+        "curl/8.7.1", "Python-urllib/3.12", "python-requests/2.32.3", "node",
+        "node-fetch/1.0 (+https://github.com/bitinn/node-fetch)",
+        "Go-http-client/1.1", "Go-http-client/2.0",
+    ] * 2
+
+
+# A keyless decide is 400 with access off and 401 with ACCESS_ENFORCED (MODEL-96);
+# the probe compares with curl and never expects a particular status.
+@pytest.mark.parametrize("decide", [400, 401, 402])
+def test_the_client_probe_reports_the_urllib_edge_refusals(decide: int) -> None:
+    def fetch(method: str, url: str, agent: str, body: bytes | None) -> tuple[int, str]:
+        if agent.startswith("Python-urllib/"):
+            return 403, "text/plain; charset=utf-8"
+        return (200 if method == "GET" else decide), "application/json"
+
+    assert live.client_probe("https://api.modelspec.dev", fetch) == [
+        "Python-urllib/3.12 GET /v1/health: 403 text/plain, curl got 200 application/json",
+        f"Python-urllib/3.12 POST /v1/decide: 403 text/plain, curl got {decide} application/json",
+    ]
+
+
+@pytest.mark.parametrize(("status", "content_type", "expected"), [
+    (403, "Text/Plain; charset=utf-8", [
+        "curl/8.7.1 GET /v1/health: 403 text/plain, not a JSON answer from the Worker",
+        "curl/8.7.1 POST /v1/decide: 403 text/plain, not a JSON answer from the Worker",
+    ]),
+    (0, "application/json", [
+        "curl/8.7.1 GET /v1/health: 0 application/json, not a JSON answer from the Worker",
+        "curl/8.7.1 POST /v1/decide: 0 application/json, not a JSON answer from the Worker",
+    ]),
+])
+def test_the_client_probe_requires_a_usable_curl_baseline(status: int, content_type: str,
+                                                        expected: list[str]) -> None:
+    assert live.client_probe("https://api.modelspec.dev", lambda *args: (status, content_type)) == expected
+
+
+def test_the_client_probe_reports_timeouts_as_status_zero(monkeypatch: pytest.MonkeyPatch) -> None:
+    def urlopen(request, timeout):
+        raise TimeoutError("read timed out")
+
+    monkeypatch.setattr(live.urllib.request, "urlopen", urlopen)
+    assert live.client_probe("https://api.modelspec.dev") == [
+        "curl/8.7.1 GET /v1/health: 0 (no Content-Type), not a JSON answer from the Worker",
+        "curl/8.7.1 POST /v1/decide: 0 (no Content-Type), not a JSON answer from the Worker",
+    ]
+
+
+def test_the_client_probe_sends_explicit_user_agents_and_the_decide_body(monkeypatch: pytest.MonkeyPatch) -> None:
+    asked: dict[str, list[str]] = {"GET": [], "POST": []}
+
+    def urlopen(request, timeout):
+        method = request.get_method()
+        asked[method].append(request.get_header("User-agent"))
+        assert timeout == 30
+        assert request.get_header("Authorization") is None
+        if method == "POST":
+            assert request.full_url == "https://api.modelspec.dev/v1/decide"
+            assert request.data == b"{}"
+            assert request.get_header("Content-type") == "application/json"
+            raise HTTPError(request.full_url, 400, "invalid_spec", {"Content-Type": "application/json"}, None)
+        assert request.full_url == "https://api.modelspec.dev/v1/health"
+        assert request.data is None
+        return nullcontext(SimpleNamespace(status=200, headers={"Content-Type": "application/json"}))
+
+    monkeypatch.setattr(live.urllib.request, "urlopen", urlopen)
+    assert live.client_probe("https://api.modelspec.dev/") == []
+    assert asked["GET"] == asked["POST"] == [
+        "curl/8.7.1", "Python-urllib/3.12", "python-requests/2.32.3", "node",
+        "node-fetch/1.0 (+https://github.com/bitinn/node-fetch)",
+        "Go-http-client/1.1", "Go-http-client/2.0",
+    ]
+
+
+def test_the_client_probe_passes_when_the_site_clients_match_curl() -> None:
+    asked: list[str] = []
+
+    def fetch(method: str, url: str, agent: str, body: bytes | None) -> tuple[int, str]:
+        if url.startswith("https://api.modelspec.dev/"):
+            return (200 if method == "GET" else 400), "application/json"
+        assert method == "GET"
+        assert body is None
+        content_type = {
+            "https://modelspec.dev/agents.md": "text/markdown",
+            "https://modelspec.dev/llms.txt": "text/plain",
+            "https://modelspec.dev/openapi.yaml": "application/yaml",
+            "https://modelspec.dev/api/build.json": "application/json",
+        }[url]
+        if agent == "curl/8.7.1":
+            asked.append(url)
+            return 200, content_type.upper() + "; charset=utf-8"
+        return 200, content_type
+
+    assert live.client_probe("https://api.modelspec.dev", fetch, "https://modelspec.dev/") == []
+    assert asked == [
+        "https://modelspec.dev/agents.md", "https://modelspec.dev/llms.txt",
+        "https://modelspec.dev/openapi.yaml", "https://modelspec.dev/api/build.json",
+    ]
+
+
+def _site_urllib_refusal(method: str, url: str, agent: str, body: bytes | None) -> tuple[int, str]:
+    if url.startswith("https://modelspec.dev/"):
+        return (403 if agent.startswith("Python-urllib/") else 200), "text/plain; charset=utf-8"
+    return (200 if method == "GET" else 400), "application/json"
+
+
+def test_the_client_probe_reports_the_four_site_urllib_refusals() -> None:
+    assert live.client_probe("https://api.modelspec.dev", _site_urllib_refusal, "https://modelspec.dev") == [
+        "Python-urllib/3.12 GET /agents.md: 403 text/plain, curl got 200 text/plain",
+        "Python-urllib/3.12 GET /llms.txt: 403 text/plain, curl got 200 text/plain",
+        "Python-urllib/3.12 GET /openapi.yaml: 403 text/plain, curl got 200 text/plain",
+        "Python-urllib/3.12 GET /api/build.json: 403 text/plain, curl got 200 text/plain",
+    ]
+
+
+def test_the_client_probe_requires_a_200_site_curl_baseline() -> None:
+    def fetch(method: str, url: str, agent: str, body: bytes | None) -> tuple[int, str]:
+        if url.startswith("https://modelspec.dev/"):
+            return 403, "Text/Plain; charset=utf-8"
+        return (200 if method == "GET" else 400), "application/json"
+
+    assert live.client_probe("https://api.modelspec.dev", fetch, "https://modelspec.dev") == [
+        "curl/8.7.1 GET /agents.md: 403 text/plain, not a 200 response from the site",
+        "curl/8.7.1 GET /llms.txt: 403 text/plain, not a 200 response from the site",
+        "curl/8.7.1 GET /openapi.yaml: 403 text/plain, not a 200 response from the site",
+        "curl/8.7.1 GET /api/build.json: 403 text/plain, not a 200 response from the site",
+    ]
+
+
+def test_the_client_probe_cli_fails_when_only_the_site_fails(monkeypatch: pytest.MonkeyPatch,
+                                                           capsys: pytest.CaptureFixture[str]) -> None:
+    monkeypatch.setattr(live, "client_probe", partial(live.client_probe, fetch=_site_urllib_refusal))
+
+    assert live.main(["client-probe", "--origin", "https://api.modelspec.dev", "--site", "https://modelspec.dev"]) == 1
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert captured.err == (
+        "::error::https://api.modelspec.dev and https://modelspec.dev: "
+        "Python-urllib/3.12 GET /agents.md: 403 text/plain, curl got 200 text/plain\n"
+        "::error::https://api.modelspec.dev and https://modelspec.dev: "
+        "Python-urllib/3.12 GET /llms.txt: 403 text/plain, curl got 200 text/plain\n"
+        "::error::https://api.modelspec.dev and https://modelspec.dev: "
+        "Python-urllib/3.12 GET /openapi.yaml: 403 text/plain, curl got 200 text/plain\n"
+        "::error::https://api.modelspec.dev and https://modelspec.dev: "
+        "Python-urllib/3.12 GET /api/build.json: 403 text/plain, curl got 200 text/plain\n"
+    )
+
+
+@pytest.mark.parametrize(("site", "expected"), [
+    ([], "https://api.modelspec.dev: every common HTTP client matches curl on health and decide\n"),
+    (["--site", "https://modelspec.dev"],
+     "https://api.modelspec.dev and https://modelspec.dev: "
+     "every common HTTP client matches curl on health, decide and the site agent files\n"),
+])
+def test_the_client_probe_cli_names_every_probed_origin_on_success(site: list[str], expected: str,
+                                                                monkeypatch: pytest.MonkeyPatch,
+                                                                capsys: pytest.CaptureFixture[str]) -> None:
+    def fetch(method: str, url: str, agent: str, body: bytes | None) -> tuple[int, str]:
+        return (200 if method == "GET" else 400), "application/json"
+
+    monkeypatch.setattr(live, "client_probe", partial(live.client_probe, fetch=fetch))
+
+    assert live.main(["client-probe", "--origin", "https://api.modelspec.dev", *site]) == 0
+    captured = capsys.readouterr()
+    assert captured.out == expected
+    assert captured.err == ""

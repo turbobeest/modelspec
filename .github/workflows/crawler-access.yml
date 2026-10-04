@@ -5,6 +5,7 @@ name: Crawler access
 # modelspec.dev. A WAF or bot rule that blocks "AI bots" as one group drops the
 # search and fetch crawlers too, and answer engines quietly stop citing the
 # site; a failed run here is the alert. Policy: docs/aeo/crawler-policy.md.
+# Also probes the API and site as common HTTP client libraries.
 
 on:
   schedule:
@@ -35,3 +36,9 @@ jobs:
 
       - name: Fetch robots.txt and every sitemap page as each crawler
         run: python -m pipeline.live crawler-probe --origin https://modelspec.dev
+
+      # MODEL-317, MODEL-323: catch edge rules that refuse a common client's default User-Agent.
+      # modelspec.pages.dev is outside the zone and stays blocked by design; do not probe it.
+      - name: Probe the API and site as common HTTP clients
+        if: ${{ !cancelled() }}
+        run: python -m pipeline.live client-probe --origin https://api.modelspec.dev --site https://modelspec.dev
