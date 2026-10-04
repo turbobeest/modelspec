@@ -40,7 +40,7 @@ test("the public decision page opens on the facet board", async ({ page }) => {
   await expect(page.getByLabel("Facet board answer")).toBeVisible();
   await expect(page.getByRole("button", { name: "Share" })).toBeVisible();
   await expect(page.getByRole("region", { name: "Give this to my agent" })).toBeVisible();
-  await expect(page.getByText(/^Your agent gets this answer from \d+\.\d+¢$/)).toBeVisible();
+  await expect(page.getByText(/^Your agent gets this answer from \$0\.\d+$/)).toBeVisible();
   await expect(page.getByRole("link", { name: "no paid placement · sourced" })).toHaveAttribute("href", "https://modelspec.dev/legal/neutrality/");
   await expect(page.locator(".template-active")).toHaveText("Starting from: General assistant, balancedClear");
   await expect(page.locator(".template-shortcuts button")).toHaveCount(6);

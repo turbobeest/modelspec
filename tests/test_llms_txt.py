@@ -37,6 +37,7 @@ def test_llms_txt_names_the_mcp_endpoint_and_api_docs() -> None:
     assert "Decision CLI" not in text
     assert "https://modelspec.dev/api/coverage.json" in text
     assert "modelspec decide --template <id>" not in text
+    assert "¢" not in text
 
 
 def test_llms_txt_carries_the_flag_derived_checkout_line() -> None:

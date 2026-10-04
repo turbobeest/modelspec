@@ -13,30 +13,43 @@ from pipeline import decide_handoff, pricing, worker_flags
 ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_price_anchor_uses_the_published_price_and_credit_sources() -> None:
+def _write_tiers(tmp_path: Path, tiers: dict) -> None:
+    (tmp_path / pricing.TIERS_REL).parent.mkdir(parents=True)
+    (tmp_path / pricing.TIERS_REL).write_text(json.dumps(tiers))
+    (tmp_path / worker_flags.WRANGLER_REL).write_text('{"vars": {"BILLING_ENABLED": "false"}}')
+
+
+def test_price_anchor_uses_the_team_rate() -> None:
     tiers = pricing.load_tiers(ROOT)
-    published = pricing.procurement_data(tiers)
-    cheapest = min(row["usd"] / row["credits"] for row in tiers["billing"]["prices"].values()
-                   if not row.get("placeholder") and row.get("credits"))
+    team = pricing.team_usd_per_credit(tiers)
     data = decide_handoff.data(ROOT)
-    assert published["usd_per_credit"]["min"] == cheapest
-    assert data["summary_price_cents"] == f"{cheapest * tiers['credits']['weights']['decide.summary'] * 100:.2f}"
+    price = pricing.format_usd(team * tiers["credits"]["weights"]["decide.summary"])
+    assert data["price_line"] == f"Your agent gets this answer from {price}"
+    assert data["price_line"] == "Your agent gets this answer from $0.0017"
+    assert "¢" not in data["price_line"]
     assert data["full_credits"] == tiers["credits"]["weights"]["decide.full"]
 
 
-def test_changed_prices_and_credit_weights_change_the_built_copy(tmp_path: Path) -> None:
+def test_changed_credit_weight_scales_the_team_rate(tmp_path: Path) -> None:
     tiers = pricing.load_tiers(ROOT)
+    # A cheaper pack must not replace the Team plan on the decide anchor.
     tiers["billing"]["prices"]["price_changed"] = {
         "kind": "pack", "name": "Changed pack", "usd": 1, "credits": 2000,
         "interval": "once", "placeholder": False,
     }
     tiers["credits"]["weights"].update({"decide.summary": 3, "decide.full": 7})
-    (tmp_path / pricing.TIERS_REL).parent.mkdir(parents=True)
-    (tmp_path / pricing.TIERS_REL).write_text(json.dumps(tiers))
-    (tmp_path / worker_flags.WRANGLER_REL).write_text('{"vars": {"BILLING_ENABLED": "false"}}')
+    _write_tiers(tmp_path, tiers)
     data = decide_handoff.data(tmp_path)
-    assert data["summary_price_cents"] == "0.15"
+    assert data["price_line"] == "Your agent gets this answer from $0.005"
     assert data["full_credits"] == 7
+
+
+def test_rendered_price_follows_a_changed_team_rate(tmp_path: Path) -> None:
+    tiers = pricing.load_tiers(ROOT)
+    team = next(row for row in tiers["billing"]["prices"].values() if row["name"] == "Team")
+    team["usd"] = 96
+    _write_tiers(tmp_path, tiers)
+    assert decide_handoff.data(tmp_path)["price_line"] == "Your agent gets this answer from $0.0032"
 
 
 @pytest.mark.parametrize("flag,href,label,note", [

@@ -94,7 +94,7 @@ export function AnswerAssurances({ spec }: { spec: DecisionSpec }) {
   return <div className="answer-assurances">
     <div className="answer-price">
       <div className="answer-price-line">
-        <p>Your agent gets this answer from {handoffData.summary_price_cents}¢</p>
+        <p>{handoffData.price_line}</p>
         <button type="button" className="answer-copy" onClick={() => void copy(message, COPIED, "Could not copy. Use the hand-off panel below the answer.")}>{copyLabel(confirmed(message))}</button>
       </div>
       <small>A full explanation costs {handoffData.full_credits} credits.</small>

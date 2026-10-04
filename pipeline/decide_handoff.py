@@ -11,11 +11,13 @@ from pipeline import agent_copy, pricing, worker_flags
 
 
 def data(root: Path) -> dict[str, Any]:
-    rates = pricing.procurement_data(pricing.load_tiers(root))
+    tiers = pricing.load_tiers(root)
+    rates = pricing.procurement_data(tiers)
     billing_live = worker_flags.enabled(worker_flags.production_vars(root), "BILLING_ENABLED")
     commitment = neutrality_commitment()
+    summary = pricing.team_usd_per_credit(tiers) * rates["answer_credits"]["decide.summary"]
     return {
-        "summary_price_cents": f"{rates['usd_per_credit']['min'] * rates['answer_credits']['decide.summary'] * 100:.2f}",
+        "price_line": f"Your agent gets this answer from {pricing.format_usd(summary)}",
         "full_credits": rates["answer_credits"]["decide.full"],
         "key_link": {
             "href": "/pricing/#pricing" if billing_live else "/pricing/",

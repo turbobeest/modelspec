@@ -112,6 +112,7 @@ def test_prices_in_the_descriptions_are_the_ones_in_tiers_json() -> None:
         stated = re.search(r"Costs ([\d ora]+) credits? a call", text).group(1)
         assert [int(n) for n in stated.split(" or ")] == credits, name
         assert f"{agent_copy._usd(low)}–{agent_copy._usd(high)}" in text, name
+        assert "¢" not in text, name
     assert (low, high) == (min(p["usd"] / p["credits"] for p in TIERS["billing"]["prices"].values()
                                if not p.get("placeholder")),
                            max(p["usd"] / p["credits"] for p in TIERS["billing"]["prices"].values()
@@ -142,3 +143,4 @@ def test_the_published_openapi_operations_lead_with_the_copy() -> None:
         operation = spec["paths"][path]["post"]
         assert operation["summary"] == COMMITTED["openapi"][key]["summary"], path
         assert operation["description"].startswith(COMMITTED["openapi"][key]["lead"]), path
+        assert "¢" not in operation["description"], path

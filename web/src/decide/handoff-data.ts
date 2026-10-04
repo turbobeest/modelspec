@@ -4,7 +4,7 @@ import type { DecisionSpec } from "./adapter/contract";
 declare const __DECIDE_HANDOFF__: unknown;
 
 export const handoffData = z.object({
-  summary_price_cents: z.string(),
+  price_line: z.string(),
   full_credits: z.number().int().positive(),
   key_link: z.object({ href: z.string(), label: z.string(), note: z.string() }),
   mcp_clients: z.array(z.string()).nonempty(),

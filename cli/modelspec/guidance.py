@@ -11,16 +11,22 @@ TEXT = BUNDLE["text"]
 HELP = TEXT["help"]
 
 
+def _dollars(value: float) -> str:
+    # Same four-decimal form as pipeline.pricing.format_usd. This wheel does not import the repo.
+    return f"${value:.4f}".rstrip("0")
+
+
 def fields() -> dict[str, str]:
     prices = BUNDLE["pricing"]["usd_per_answer"]
+    low_dollars = _dollars(prices["min"])
     return {
-        "low_cents": f"{prices['min'] * 100:.2f}",
+        "low_dollars": low_dollars,
         "low_usd": f"{prices['min']:.5f}".rstrip("0"),
         "high_usd": f"{prices['max']:.5f}".rstrip("0"),
         "coverage": TEXT["coverage"].format(**BUNDLE["coverage"]),
         "answers": TEXT["answers"],
         "upgrade": TEXT["upgrade"],
-        "human_message": TEXT["human_message"].format(low_cents=f"{prices['min'] * 100:.2f}"),
+        "human_message": TEXT["human_message"].format(low_dollars=low_dollars),
     }
 
 

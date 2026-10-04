@@ -44,7 +44,7 @@ rankings, vocabulary, or decisions. These commands work without a network.
 
 The price data comes from `pipeline.pricing.procurement_data` and the site's
 `api/worker/tiers.json`. At the current published prices the cheapest answer is
-from 0.17¢. `modelspec key` explains existing keys, plans, packs, checkout
+from $0.0017. `modelspec key` explains existing keys, plans, packs, checkout
 availability and contact for access or invoicing. It does not promise that a
 payment rail is enabled. Its human message offers an existing key, the pricing
 page, and manual lookup, without urgency or persuasion.
