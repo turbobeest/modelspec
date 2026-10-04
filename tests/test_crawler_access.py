@@ -163,6 +163,17 @@ def test_the_client_probe_requires_a_usable_curl_baseline(status: int, content_t
     assert live.client_probe("https://api.modelspec.dev", lambda *args: (status, content_type)) == expected
 
 
+def test_the_client_probe_reports_timeouts_as_status_zero(monkeypatch: pytest.MonkeyPatch) -> None:
+    def urlopen(request, timeout):
+        raise TimeoutError("read timed out")
+
+    monkeypatch.setattr(live.urllib.request, "urlopen", urlopen)
+    assert live.client_probe("https://api.modelspec.dev") == [
+        "curl/8.7.1 GET /v1/health: 0 (no Content-Type), not a JSON answer from the Worker",
+        "curl/8.7.1 POST /v1/decide: 0 (no Content-Type), not a JSON answer from the Worker",
+    ]
+
+
 def test_the_client_probe_sends_explicit_user_agents_and_the_decide_body(monkeypatch: pytest.MonkeyPatch) -> None:
     asked: dict[str, list[str]] = {"GET": [], "POST": []}
 

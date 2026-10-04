@@ -35,7 +35,7 @@ from tests.corpus.corpus import load_cases, payload, problems, write_decisions
 
 #: Transient answers from a Worker mid-deploy: retried, never judged.
 RETRY_STATUSES = {0, 500, 502, 503, 522, 524}
-#: Cloudflare refuses urllib's default user agent.
+#: A named user agent identifies the smoke in edge logs.
 USER_AGENT = "modelspec-corpus-smoke"
 
 

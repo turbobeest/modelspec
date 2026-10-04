@@ -88,9 +88,8 @@ HEADER = (
 
 SERVER_URL = "https://api.modelspec.dev"
 
-#: Sent by `--probe`, and documented, because the host sits behind Cloudflare
-#: and the standard-library default user agent (`Python-urllib/*`) is refused at
-#: the edge with a non-JSON `error code: 1010` body that no client expects.
+#: A named user agent identifies the probe in edge logs; MODEL-317 once found
+#: the edge refusing `Python-urllib/*` with `error code: 1010`.
 USER_AGENT = "modelspec-openapi-probe (+https://github.com/turbobeest/modelspec)"
 
 #: The one request used as the spec's example. It is also what `--probe` sends,
@@ -2739,9 +2738,9 @@ def build_spec() -> dict[str, Any]:
                 "Every check it cannot settle is `undetermined` with `why: "
                 "tier`, and `determinations.undetermined_for_lack_of_entitlement` counts "
                 "them. It is never a pass.\n\n"
-                "Send a real `User-Agent`. The host is behind Cloudflare, and the "
-                "standard-library default (`Python-urllib/*`) is refused at the edge with a "
-                "403 and a non-JSON body that never reaches this service.\n\n"
+                "Any common HTTP client `User-Agent` works, including Python's default "
+                "(`Python-urllib/*`). A `403` with the non-JSON body `error code: 1010` is "
+                "a refusal at the Cloudflare edge, not from this service. Report it.\n\n"
                 "Reference: docs/api.md and docs/api-policy-check.md. Generated from the "
                 "implementation by api/worker/openapi.py."
             ),

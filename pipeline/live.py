@@ -358,7 +358,7 @@ def crawler_probe(origin: str, fetch=None) -> list[str]:
                 return response.status
         except urllib.error.HTTPError as error:
             return error.code
-        except urllib.error.URLError:
+        except (urllib.error.URLError, TimeoutError):
             return 0
 
     fetch = fetch or get
@@ -380,7 +380,7 @@ def client_probe(api_origin: str, fetch=None, site_origin: str | None = None) ->
                 return response.status, response.headers.get("Content-Type", "")
         except urllib.error.HTTPError as error:
             return error.code, error.headers.get("Content-Type", "")
-        except urllib.error.URLError:
+        except (urllib.error.URLError, TimeoutError):
             return 0, ""
 
     fetch = fetch or send

@@ -35,8 +35,9 @@ info:
     them. It is never a pass.
 
 
-    Send a real `User-Agent`. The host is behind Cloudflare, and the standard-library default (`Python-urllib/*`)
-    is refused at the edge with a 403 and a non-JSON body that never reaches this service.
+    Any common HTTP client `User-Agent` works, including Python''s default (`Python-urllib/*`). A `403`
+    with the non-JSON body `error code: 1010` is a refusal at the Cloudflare edge, not from this service.
+    Report it.
 
 
     Reference: docs/api.md and docs/api-policy-check.md. Generated from the implementation by api/worker/openapi.py.'
