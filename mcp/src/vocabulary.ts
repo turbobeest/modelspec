@@ -7,9 +7,9 @@ export const vocabInput = z.object({
     "task_types", "coverage", "templates", "refinements", "estate", "vendors",
     "template_categories", "template_tiers",
   ]).optional().describe("Defaults to starter; with search or id/ids searches every section except coverage. An explicit non-starter section scopes the lookup"),
-  search: z.string().optional().describe("Search every section's ids, labels, definitions and values by case- and separator-insensitive substring or all query tokens. A miss returns suggestions; an explicit non-starter section scopes the search"),
-  id: z.string().optional().describe("Full details for this exact, case-sensitive id; starter resolves across sections and intersects with search"),
-  ids: z.array(z.string()).max(100).optional().describe("Full details for these exact, case-sensitive ids; starter resolves across sections and intersects with search"),
+  search: z.string().max(128).optional().describe("Search every section's ids, labels, definitions and values by case- and separator-insensitive substring or all query tokens. A miss returns suggestions; an explicit non-starter section scopes the search"),
+  id: z.string().max(128).optional().describe("Full details for this exact, case-sensitive id; starter resolves across sections and intersects with search"),
+  ids: z.array(z.string().max(128)).max(100).optional().describe("Full details for these exact, case-sensitive ids; starter resolves across sections and intersects with search"),
   detail: z.enum(["compact", "full"]).optional().describe("Full returns all display details; defaults to compact. Cross-section matches remain paged"),
   offset: z.number().int().min(0).optional().describe("Skip this many ranked cross-section matches or compact section rows; defaults to 0"),
   limit: z.number().int().min(1).max(20).optional().describe("Page size; defaults to 20. Cross-section lookups page even full details and ids"),
@@ -155,34 +155,46 @@ function compareText(left: string, right: string) {
   return left < right ? -1 : left > right ? 1 : 0;
 }
 
+// A value suggestion names its facet id, so retrying with id= cannot dead-end.
+type Candidate = { section: Section; id: string; name: string | null; text: string; labels: unknown[]; value: unknown };
+
 function suggestions(vocabulary: Record<string, unknown>, needles: string[]) {
-  const candidates = new Map<Section, Map<string, unknown[]>>();
+  const candidates = new Map<string, Candidate>();
   for (const section of searchSections) {
-    const rows = new Map<string, unknown[]>();
-    candidates.set(section, rows);
     for (const entry of sectionRows(vocabulary, section)) {
       const fields = searchableFields(section, entry);
-      rows.set(entry.id, fields.filter(({ kind }) => kind === "label").map(({ text }) => text));
+      candidates.set(JSON.stringify([section, entry.id, null]), { section, id: entry.id, name: null, text: entry.id,
+        labels: fields.filter(({ kind }) => kind === "label").map(({ text }) => text), value: null });
       for (const { kind, text, value } of fields) {
         if (kind !== "value") continue;
-        const id = String(value);
-        const labels = rows.get(id) ?? [];
-        labels.push(text);
-        rows.set(id, labels);
+        const name = typeof value === "boolean" ? JSON.stringify(value) : String(value);
+        const key = JSON.stringify([section, entry.id, name]);
+        const candidate = candidates.get(key) ?? { section, id: entry.id, name, text: name, labels: [], value };
+        candidate.labels.push(text);
+        candidates.set(key, candidate);
       }
     }
   }
-  const scored: { section: Section; id: string; score: number }[] = [];
-  for (const [section, rows] of candidates) {
-    for (const [id, labels] of rows) {
-      const haystacks = [normalize(id), normalize(id.split(/[._]/).at(-1) ?? ""),
-        ...normalize(id).split(/\s+/), ...labels.map(normalize)];
-      const score = Math.max(...needles.flatMap((needle) => haystacks.map((text) => similarity(normalize(needle), text))));
-      if (score >= 0.4) scored.push({ section, id, score });
+  const normalized = needles.slice(0, 5).map(normalize);
+  const scored: (Candidate & { score: number })[] = [];
+  for (const candidate of candidates.values()) {
+    const { text, labels } = candidate;
+    const haystacks = new Set([normalize(text), normalize(text.split(/[._]/).at(-1) ?? ""),
+      ...normalize(text).split(/\s+/), ...labels.map(normalize)]);
+    let score = 0;
+    for (const needle of normalized) {
+      for (const hay of haystacks) {
+        // Levenshtein similarity is at most min/max length, so skip pairs that cannot reach 0.4.
+        const [n, h] = [Array.from(needle).length, Array.from(hay).length];
+        if (!n || !h || Math.min(n, h) < 0.4 * Math.max(n, h)) continue;
+        score = Math.max(score, similarity(needle, hay));
+      }
     }
+    if (score >= 0.4) scored.push({ ...candidate, score });
   }
   return scored.sort((a, b) => b.score - a.score || searchSections.indexOf(a.section) - searchSections.indexOf(b.section)
-    || compareText(a.id, b.id)).slice(0, 5).map(({ section, id }) => ({ section, id }));
+    || compareText(a.id, b.id) || compareText(a.name ?? "", b.name ?? "")).slice(0, 5)
+    .map(({ section, id, name, value }) => ({ section, id, ...(name === null ? {} : { value }) }));
 }
 
 function selectRows(entries: Entry[], section: Section, full: boolean): unknown {
@@ -205,7 +217,9 @@ function searchVocabulary(vocabulary: Record<string, unknown>, args: VocabInput,
   for (const name of searched) {
     for (const entry of sectionRows(vocabulary, name)) {
       if (ids.length > 0 && !ids.includes(entry.id)) continue;
-      const field = needle ? matchFields(searchableFields(name, entry), needle) : { matched: "id", value: null } satisfies { matched: "id"; value: null };
+      // A search of only separators normalises to nothing: it matches nothing, not everything.
+      const field = needle ? matchFields(searchableFields(name, entry), needle)
+        : search ? undefined : { matched: "id", value: null } satisfies { matched: "id"; value: null };
       if (!field) continue;
       const rank = ids.includes(entry.id) || entry.id === search ? 0 : ["id", "label", "definition", "value"].indexOf(field.matched) + 1;
       const label = isRecord(entry.row) ? entry.row.label ?? entry.row.name ?? entry.row.display_name
@@ -235,7 +249,7 @@ function searchVocabulary(vocabulary: Record<string, unknown>, args: VocabInput,
     const closest = suggestions(vocabulary, search ? [search] : [...ids].sort(compareText));
     result.suggestions = closest;
     const quoted = JSON.stringify(search || [...ids].sort(compareText).join(", "));
-    const names = closest.map(({ id }) => id).join(", ") || "none";
+    const names = closest.map((item) => "value" in item ? `${item.id} (value ${String(item.value)})` : item.id).join(", ") || "none";
     result.message = `No vocabulary entry matches ${quoted} in the id, label, definition or values of ${searched.join(", ")}; closest ids: ${names}.`;
   }
   return result;

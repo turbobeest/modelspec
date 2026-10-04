@@ -59,6 +59,8 @@ def trim(vocabulary, *, model_ids, facet_values):
 
 
 MAX_IDS = 100
+MAX_TERM = 128
+SUGGESTION_NEEDLES = 5
 
 
 def vocabulary_response(selected, section):
@@ -165,24 +167,30 @@ def similarity(left, right):
 
 
 def suggestions(vocabulary, needles):
+    """A value suggestion names its facet id, so retrying with id= cannot dead-end."""
     candidates = {}
     for section in SEARCH_SECTIONS:
         for key, row, _ in section_rows(vocabulary, section):
             fields = searchable_fields(section, key, row)
-            candidates[(section, str(key))] = [text for kind, text, _ in fields if kind == "label"]
+            candidates[(section, str(key), None)] = (str(key), [text for kind, text, _ in fields if kind == "label"], None)
             for kind, text, value in fields:
                 if kind == "value":
-                    candidates.setdefault((section, str(value).lower() if isinstance(value, bool) else str(value)), []).append(text)
+                    name = json.dumps(value, ensure_ascii=False) if isinstance(value, bool) else str(value)
+                    candidates.setdefault((section, str(key), name), (name, [], value))[1].append(text)
+    needles = [normalize(needle) for needle in needles[:SUGGESTION_NEEDLES]]
     scored = []
-    for (section, key), labels in candidates.items():
+    for (section, key, name), (text, labels, value) in candidates.items():
         # Token scores let a typo like "pirce" suggest offering.price.input.
-        haystacks = [normalize(key), normalize(re.split(r"[._]", key)[-1]),
-                     *normalize(key).split(), *(normalize(label) for label in labels)]
-        score = max(similarity(normalize(needle), text) for needle in needles for text in haystacks)
+        haystacks = {normalize(text), normalize(re.split(r"[._]", text)[-1]),
+                     *normalize(text).split(), *(normalize(label) for label in labels)}
+        # Levenshtein similarity is at most min/max length, so skip pairs that cannot reach 0.4.
+        score = max((similarity(needle, hay) for needle in needles for hay in haystacks
+                     if needle and hay and min(len(needle), len(hay)) >= 0.4 * max(len(needle), len(hay))), default=0)
         if score >= 0.4:
-            scored.append((score, section, key))
-    scored.sort(key=lambda item: (-item[0], SEARCH_SECTIONS.index(item[1]), item[2]))
-    return [{"section": section, "id": key} for _, section, key in scored[:5]]
+            scored.append((score, section, key, name, value))
+    scored.sort(key=lambda item: (-item[0], SEARCH_SECTIONS.index(item[1]), item[2], item[3] or ""))
+    return [{"section": section, "id": key, **({"value": value} if name is not None else {})}
+            for _, section, key, name, value in scored[:5]]
 
 
 def select_rows(rows, section, full):
@@ -204,7 +212,9 @@ def search_vocabulary(vocabulary, *, section, search, ids, full, offset, limit):
         for key, row, group in section_rows(vocabulary, name):
             if ids and key not in ids:
                 continue
-            match = match_fields(searchable_fields(name, key, row), needle) if needle else ("id", None)
+            # A search of only separators normalises to nothing: it matches nothing, not everything.
+            match = (match_fields(searchable_fields(name, key, row), needle) if needle
+                     else None if search else ("id", None))
             if match is None:
                 continue
             kind, value = match
@@ -233,7 +243,8 @@ def search_vocabulary(vocabulary, *, section, search, ids, full, offset, limit):
     if not hits:
         closest = suggestions(vocabulary, [search] if search else sorted(ids))
         quoted = json.dumps(search if search else ", ".join(sorted(ids)), ensure_ascii=False)
-        names = ", ".join(item["id"] for item in closest) or "none"
+        names = ", ".join(item["id"] + (f" (value {item['value']})" if "value" in item else "")
+                          for item in closest) or "none"
         result.update(suggestions=closest, message=f"No vocabulary entry matches {quoted} in the id, label, definition or values of {', '.join(searched)}; closest ids: {names}.")
     return result
 
@@ -250,6 +261,8 @@ def lookup(vocabulary, *, section="starter", search="", ids=(), detail="compact"
     ids = set(ids)
     if len(ids) > MAX_IDS:
         raise ValueError(f"at most {MAX_IDS} ids per lookup")
+    if len(search) > MAX_TERM or any(len(item) > MAX_TERM for item in ids):
+        raise ValueError(f"search and each id are at most {MAX_TERM} characters")
     if search or ids:
         return search_vocabulary(vocabulary, section=section, search=search, ids=ids,
                                  full=detail == "full" or bool(ids), offset=offset, limit=limit)

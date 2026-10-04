@@ -420,10 +420,10 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
         const selected = split && !("vocabulary_version" in envelope.body)
           ? envelope.body
           : lookupVocabulary(envelope.body, args);
-        const body = "matches" in selected
-          ? { facets: [], domains: [], templates: [], models: {}, estate: {}, ...selected }
-          : selected;
-        envelope.body = vocabularyResponse(body[section], args, body);
+        // Only a search or id lookup carries the cross-section keys; a plain lookup keeps its old body.
+        envelope.body = "matches" in selected
+          ? vocabularyResponse(selected[section], args, { facets: [], domains: [], templates: [], models: {}, estate: {}, ...selected })
+          : vocabularyResponse(selected[section], args);
       }
       const result = asToolResult(envelope);
       // A failed lookup gets no "call decide next" hint: the agent should fix the lookup first.

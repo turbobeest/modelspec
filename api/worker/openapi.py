@@ -3233,9 +3233,9 @@ def vocabulary_parameters():
     from api.worker.src.display_vocabulary import PAGE_SIZE, SECTIONS
     fields = {
         "section": ({"type": "string", "enum": list(SECTIONS), "default": "starter"}, "Select a compact section. Starter with search or id/ids searches every section except coverage; an explicit non-starter section scopes the lookup. No query parameters returns the unchanged full display vocabulary for /decide."),
-        "search": ({"type": "string"}, "Search every section's ids, labels, definitions and values when section is starter or omitted. Matching ignores case and runs of underscores, hyphens, dots, slashes or whitespace. A substring or all query tokens can match; a miss returns suggestions. An explicit non-starter section scopes the search."),
-        "id": ({"type": "string"}, "Full display details for one exact, case-sensitive id. Starter or omitted section resolves across sections. Intersects with search."),
-        "ids": ({"type": "array", "items": {"type": "string"}}, "Full display details for exact, case-sensitive ids across sections when section is starter or omitted; comma-separated or repeated query parameters. Combined with id by union, then intersected with search."),
+        "search": ({"type": "string", "maxLength": 128}, "Search every section's ids, labels, definitions and values when section is starter or omitted. Matching ignores case and runs of underscores, hyphens, dots, slashes or whitespace. A substring or all query tokens can match; a search of only separators matches nothing; a miss returns suggestions. An explicit non-starter section scopes the search."),
+        "id": ({"type": "string", "maxLength": 128}, "Full display details for one exact, case-sensitive id. Starter or omitted section resolves across sections. Intersects with search."),
+        "ids": ({"type": "array", "items": {"type": "string", "maxLength": 128}}, "Full display details for exact, case-sensitive ids across sections when section is starter or omitted; comma-separated or repeated query parameters. Combined with id by union, then intersected with search."),
         "detail": ({"type": "string", "enum": ["compact", "full"], "default": "compact"}, "Full returns existing display details. Cross-section lookups still page matches; section-scoped full detail selects all matching rows. It never adds private facts."),
         "offset": ({"type": "integer", "minimum": 0, "default": 0}, "Skip ranked matches in a cross-section lookup, or section rows in compact mode. An empty page ends the list."),
         "limit": ({"type": "integer", "minimum": 1, "maximum": PAGE_SIZE, "default": PAGE_SIZE}, "Page size, at most 20 matches. Section-scoped full detail or ids bypass row pagination; cross-section lookups always page."),
@@ -3357,8 +3357,9 @@ def render() -> str:
                                     "value": {"description": "The matching facet value, present only for a value hit."}}, "required": ["section", "id", "matched"]}},
                                 "total": {"type": "integer", "minimum": 0, "description": "Number of matching entries before paging."},
                                 "searched": {"type": "array", "items": {"type": "string"}, "description": "Sections searched; present on search and exact-id lookups."},
-                                "suggestions": {"type": "array", "maxItems": 5, "description": "Closest ids across sections, including facet values; present only when total is zero.", "items": {"type": "object", "properties": {
-                                    "section": {"type": "string"}, "id": {"type": "string"}}, "required": ["section", "id"]}},
+                                "suggestions": {"type": "array", "maxItems": 5, "description": "Closest ids across sections; present only when total is zero. A facet-value suggestion carries the facet id in id and the value in value, so id= on it resolves.", "items": {"type": "object", "properties": {
+                                    "section": {"type": "string"}, "id": {"type": "string"},
+                                    "value": {"description": "The closest facet value, present only on a facet-value suggestion."}}, "required": ["section", "id"]}},
                                 "message": {"type": "string", "description": "Explains the searched sections, matched fields and closest ids; present only when total is zero."},
                                 "facets": {"type": "array", "items": {"type": "object"}},
                                 "benchmarks": {"type": "array", "items": {"type": "object"}},

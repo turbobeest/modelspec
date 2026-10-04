@@ -1754,11 +1754,13 @@ takes its key and its plans with it.",
         },
         "id": {
           "description": "Full details for this exact, case-sensitive id; starter resolves across sections and intersects with search",
+          "maxLength": 128,
           "type": "string",
         },
         "ids": {
           "description": "Full details for these exact, case-sensitive ids; starter resolves across sections and intersects with search",
           "items": {
+            "maxLength": 128,
             "type": "string",
           },
           "maxItems": 100,
@@ -1778,6 +1780,7 @@ takes its key and its plans with it.",
         },
         "search": {
           "description": "Search every section's ids, labels, definitions and values by case- and separator-insensitive substring or all query tokens. A miss returns suggestions; an explicit non-starter section scopes the search",
+          "maxLength": 128,
           "type": "string",
         },
         "section": {

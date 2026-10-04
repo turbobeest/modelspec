@@ -235,6 +235,7 @@ def test_search_fields_ranking_intersection_and_exact_ids():
     assert lookup(source, search="plus openai")["estate"]["plans"] == [{"id": "plus", "name": "ChatGPT Plus"}]
     assert lookup(source, section="estate", search="chat")["estate"]["plans"] == [{"id": "plus", "name": "ChatGPT Plus"}]
     assert {"section": "facets", "id": "rtx"} in lookup(source, search="rtxx")["suggestions"]
+    assert {"section": "facets", "id": "value_hit", "value": "rtx"} in lookup(source, search="rtxx")["suggestions"]
 
 
 def test_field_coverage_and_suggestions_are_deterministic():
@@ -258,8 +259,11 @@ def test_field_coverage_and_suggestions_are_deterministic():
     assert "coverage" not in result
     assert lookup(source, search="violet")["matches"] == [
         {"section": "facets", "id": "facet", "matched": "value", "value": "violet"}]
-    assert lookup(source, section="domains", search="violett")["suggestions"][0] == {
-        "section": "facets", "id": "violet"}
+    miss = lookup(source, section="domains", search="violett")
+    # A value suggestion names its facet, so retrying with that id resolves.
+    assert miss["suggestions"][0] == {"section": "facets", "id": "facet", "value": "violet"}
+    assert "facet (value violet)" in miss["message"]
+    assert [row["id"] for row in lookup(source, ids=[miss["suggestions"][0]["id"]])["facets"]] == ["facet"]
     ids = ["lilac_task", "lilac_device", "lilac_provider", "p", "v", "lab/m", "category", "tier"]
     assert lookup(source, ids=ids)["total"] == len(ids)
     assert lookup(source, ids=ids, limit=2)["matches"] == lookup(source, ids=ids)["matches"][:2]
@@ -276,3 +280,23 @@ def test_openapi_adds_optional_lookup_metadata(monkeypatch):
     assert {"matches", "total", "searched", "suggestions", "message"} <= schema["properties"].keys()
     assert schema["required"] == ["facets", "domains", "templates", "models", "estate"]
     assert "every section" in next(p["description"] for p in operation["parameters"] if p["name"] == "search")
+
+
+def test_oversized_terms_are_refused_and_separator_only_search_matches_nothing(display):
+    with pytest.raises(ValueError):
+        lookup(display, search="x" * 129)
+    with pytest.raises(ValueError):
+        lookup(display, ids=["x" * 129])
+    assert lookup(display, search="x" * 128)["total"] == 0
+    for blank in (".", "-", " ", "_./"):
+        result = lookup(display, search=blank)
+        assert result["total"] == 0 and result["matches"] == [], blank
+        assert "message" in result
+
+
+def test_a_hundred_unknown_ids_stay_bounded(display):
+    import time
+    start = time.perf_counter()
+    result = lookup(display, ids=[f"unknown.facet.{i:03d}.{'q' * 100}" for i in range(100)])
+    assert result["total"] == 0 and len(result["suggestions"]) <= 5
+    assert time.perf_counter() - start < 5

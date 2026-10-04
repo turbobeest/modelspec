@@ -146,7 +146,10 @@ only its rows on that page. `starter` retains starter facets on that page and
 its minimal Spec. Compact facets retain every allowed value. Section-scoped
 rows keep their source order and existing full-detail pagination behavior.
 An empty lookup adds up to five `suggestions` from all sections and a `message`
-that explains the search, with a next hint to retry. Suggestions compare
+that explains the search, with a next hint to retry. A suggestion drawn from a
+facet value names the facet in `id` and the value in `value`, so retrying with
+that `id` resolves. Search text and each ID are at most 128 characters; a search
+of only separators matches nothing. Suggestions compare
 normalized ids, id segments and labels using Levenshtein similarity, keeping
 scores of at least 0.4 and breaking ties by section order, then id. Plain
 vocabulary requests and a plain starter request keep their existing bodies.

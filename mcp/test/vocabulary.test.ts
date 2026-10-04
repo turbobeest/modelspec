@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { execFileSync } from "node:child_process";
-import { lookupVocabulary, vocabularyResponse } from "../src/vocabulary";
+import { lookupVocabulary, vocabInput, vocabularyResponse } from "../src/vocabulary";
 import type { VocabInput } from "../src/vocabulary";
 import vocabulary from "../../web/src/decide/__fixtures__/vocabulary.json";
 
@@ -76,6 +76,16 @@ describe("vocabulary discovery", () => {
     });
   });
 
+  it("names the facet on a value suggestion, and a separator-only search matches nothing", () => {
+    const source = { facets: [{ id: "facet", allowed_values: ["violet"] }], domains: [{ id: "domain", name: "Lilac" }] };
+    const miss = lookupVocabulary(source, { section: "domains", search: "violett" });
+    expect((miss.suggestions as unknown[])[0]).toEqual({ section: "facets", id: "facet", value: "violet" });
+    expect(miss.message).toContain("facet (value violet)");
+    expect(lookupVocabulary(source, { search: "." })).toMatchObject({ matches: [], total: 0 });
+    expect(vocabInput.safeParse({ search: "x".repeat(129) }).success).toBe(false);
+    expect(vocabInput.safeParse({ ids: ["x".repeat(129)] }).success).toBe(false);
+  });
+
   it("ranks fields, pages full cross-section results and intersects exact ids", () => {
     const source = {
       facets: [
@@ -126,6 +136,7 @@ describe("vocabulary discovery", () => {
       { search: "a", offset: 20, limit: 7 }, { search: "a", detail: "full", offset: 20, limit: 2 },
       { ids: display.facets.map(({ id }) => id), offset: 20, limit: 3 },
       { ids: ["not_a_facet", "offering.price.inptu"] },
+      { search: "nvidia rtx 4091" }, { search: "flase" }, { search: "." }, { search: "_./", section: "facets" },
     ] satisfies VocabInput[];
     const root = new URL("../../", import.meta.url).pathname;
     const output = execFileSync("python3", ["-c", `
