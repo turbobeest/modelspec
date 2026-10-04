@@ -7,7 +7,10 @@ failure, returns which constraint eliminated every option.
 
 Computed per request from the current public export. No state, no signup.
 
-* `POST https://api.modelspec.dev/v1/rank` — a shortlist for one profile.
+* `POST /v1/decide` — what fits your requirements:
+  [`decide-api.md`](decide-api.md).
+* `POST https://api.modelspec.dev/v1/rank` — **deprecated**; never a decide
+  fallback.
 * `POST /v1/policy-check` — pass, fail or undetermined per model and platform
   against a compliance policy:
   [`api-policy-check.md`](api-policy-check.md).
@@ -72,6 +75,15 @@ curl -sS -X POST https://api.modelspec.dev/v1/rank \
   },
   "service_commit": "ccd2d6794108a42c2566dc81f8b618eb8289c6a6",
   "export_origin": "https://modelspec.dev",
+  "deprecation": {
+    "deprecated": true,
+    "message": "Legacy v1: the retired fixed-benchmark ranking. Its scores lag the catalogue and newer models are often unranked for lack of them, so do not use it as a fallback when decide names no single leader. Call POST /v1/decide with your requirements and report its answer, ties included.",
+    "next": {
+      "method": "POST",
+      "url": "https://api.modelspec.dev/v1/decide",
+      "guide": "https://modelspec.dev/agents.md"
+    }
+  },
   "request": {
     "use_case": "coding",
     "environment": {"hardware": null, "hosting": "local", "runtime": "ollama"},

@@ -388,7 +388,7 @@ def test_the_vocabulary_publishes_each_plan_record(sourced) -> None:
 
 
 def test_the_contract_took_the_next_minor_and_publishes_the_plan_types() -> None:
-    assert c.CONTRACT_VERSION == "2.13"
+    assert c.CONTRACT_VERSION == "2.14"
     defs = c.json_schema()["$defs"]
     for name in ("Access", "PlanRoute", "PlanCoverage", "PlanPrice", "PlanAllowance"):
         assert name in defs, name

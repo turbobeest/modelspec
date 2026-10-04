@@ -693,3 +693,25 @@ def test_every_ranking_response_carries_authoring_guide() -> None:
                     for src in claim.get("sources") or []:
                         assert str(src.get("url", "")).startswith(("http://", "https://")), name
                         assert src.get("accessed"), name
+
+
+def test_every_rank_response_says_it_is_deprecated_and_points_at_decide() -> None:
+    """MODEL-316: a clean agent fell back to /v1/rank and recommended stale models."""
+    good = _guided_export("current")
+    empty = {"build": {"commit": "abc", "export_schema_version": "2.0"}, "candidates": []}
+    ok = service.rank({"use_case": "coding", "limit": 1}, good, None, SERVICE_COMMIT, ORIGIN)
+    no_match = service.rank({"use_case": "coding"}, empty, None, SERVICE_COMMIT, ORIGIN)
+    with pytest.raises(service.RequestError) as caught:
+        service.rank({"use_case": "nope"}, good, None, SERVICE_COMMIT, ORIGIN)
+    refused = service.error_response(caught.value, good, SERVICE_COMMIT, ORIGIN)
+    assert [status for status, _ in (ok, no_match, refused)] == [
+        service.HTTP_OK, service.HTTP_NO_MATCH, service.HTTP_BAD_REQUEST]
+    for _status, body in (ok, no_match, refused):
+        notice = body["deprecation"]
+        assert notice["deprecated"] is True
+        assert "fallback" in notice["message"]
+        assert notice["next"] == {"method": "POST", "url": "https://api.modelspec.dev/v1/decide",
+                                  "guide": "https://modelspec.dev/agents.md"}
+    # Additive: the envelope version is unchanged.
+    assert ok[1]["schema_version"] == "1.0"
+

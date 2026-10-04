@@ -390,6 +390,7 @@ def guide_examples() -> list[dict[str, Any]]:
 
 def guide_body(tiers: dict[str, Any]) -> str:
     """All agent prose lives here; the published Markdown is generated, never edited."""
+    from decision.contract import DEFAULT_TASK_TOKENS as default
     w = tiers["credits"]["weights"]
     text = f"""# ModelSpec agent guide
 
@@ -425,6 +426,9 @@ and decision_id, and set snapshot to that exact ID for a reproducible retry.
 Over HTTP, `explain` defaults to summary and returns full rows; full includes
 every eliminated candidate and can be large. A Spec has one optimize objective: min, max, or weights.
 A negative numeric weight key prefers less, for example `-offering.cost_per_task`.
+Set `task_tokens` to one task's size, e.g. `{{"input":2000,"output":300}}`. Unset,
+cost_per_task assumes {default.input:,} input and {default.output:,} output tokens,
+so a small task's cost cap can exclude every model.
 For boolean or enum preferences use a prefer value and weight, never a bare number.
 `where` is an array. In text expressions a set is `{{a, b}}`, not `[a, b]`.
 Structured example: `{{"facet":"offering.provider","in":["openai"]}}`.
@@ -434,11 +438,8 @@ Structured example: `{{"facet":"offering.provider","in":["openai"]}}`.
 
 {BOUNDED_MCP}
 
-MCP `decide` with `explain` unset or `none` sends `explain: none`, `limit: 10`
-and row `fields` of `model_rank`, `cost_per_task`, `estimates` and `p_best`.
-The body says `representation: bounded`, `bounded_version: 1.0` and the
-complete contract it projects in `projects_contract`; it has no
-`contract_version`. The answer, reading, warnings and ties stay complete.
+The decide tool description gives the bounded defaults. The answer, reading,
+warnings and ties stay complete.
 `explanation.omitted` counts the sections left out. At `explain: none`
 eliminations are not computed, so a missing eliminated count does not mean
 nothing was screened out; request `explain: summary` to count them, or
@@ -481,6 +482,7 @@ names unchecked requirements. `reading.estimates` names computed estimates.
 reading is absent: inspect answer, issues, and result evidence directly.
 `may_qualify` means a required fact is unknown, not that the model passes.
 `status=partial` is incomplete evidence; `no_match` is not a winner.
+No single leader is an answer: report the tie. Never fall back to the deprecated `rank`.
 Unknown policy determinations are undetermined, never permission.
 
 On refusal read error.issues and recovery hints, including their paths and valid
@@ -489,7 +491,6 @@ you removed; a successful retry does not prove that removed requirement.
 Use `vocab` with `{{"section":"starter"}}` for a compact first lookup, then search
 or id/ids for the missing term. HTTP lookup:
 `GET {API}/v1/vocabulary?section=starter` where available.
-Avoid paging through unrelated vocabulary before the first decide.
 The starter response includes a ready-to-send minimal Spec and a next hint.
 If a requirement is unsupported, disclose that limit instead of inventing a facet.
 
@@ -510,7 +511,7 @@ JSON schemas also consume tokens; each tool definition can exceed its descriptio
 | decide drill-down (evidence_for) | <= 2,000 tokens | {w['decide.none']} at explain none | One model's evidence |
 | decide summary | Reserve 16,000 tokens for reading | {w['decide.summary']} | HTTP default; size depends on candidates |
 | decide full | Can exceed 160,000 tokens | {w['decide.full']} | Only when eliminated-candidate detail is needed |
-| rank / policy_check | Size depends on rows | {w['rank']} / {w['policy-check']} | Legacy ranking / policy checks |
+| rank / policy_check | Size depends on rows | {w['rank']} / {w['policy-check']} | Deprecated ranking, not a decide fallback / policy checks |
 | model_info / list_use_cases | Size depends on card/profiles | 0 | One card / legacy profiles |
 | feedback | 500 tokens for reading | 0 | After acting, never include secrets or a prompt |
 
@@ -640,12 +641,11 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
             f"Call shape, examples, recovery and budgets: {GUIDE_URL}. {NULL_RULE}"
         ),
         "rank": (
-            "Legacy v1; use decide for new work. "
-            "Which models rank highest for one fixed use-case profile? "
-            "Returns a shortlist for that profile with evidence_basis, which is input "
-            "provenance (none, unverified-legacy, mixed, partial-verified, verified), not a "
-            f"quality verdict. {price([w['rank']], tiers)} "
-            "Don't call it when you can state requirements: decide takes them, rank doesn't. "
+            "Deprecated legacy v1: the retired fixed-benchmark ranking. Its scores lag the "
+            "catalogue and newer models are often unranked. Never a fallback when decide "
+            "names no single leader: report decide's tie. "
+            "Returns a shortlist for one fixed use-case profile with evidence_basis, input "
+            f"provenance, not a quality verdict. {price([w['rank']], tiers)} "
             f"Proxies POST {API}/v1/rank with this tool's arguments as the JSON body. "
             f"{NULL_RULE}"
         ),
@@ -700,7 +700,7 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
     }
     card = {
         "decide": "Decide which models fit a job, with reasons and cost. Key; 1–2 credits.",
-        "rank": "Fixed-profile shortlist (legacy v1); use decide. Key; 1 credit.",
+        "rank": "Deprecated fixed-profile shortlist (legacy v1); use decide. Key; 1 credit.",
         "model_info": "One model's published card. Needs an API key.",
         "list_use_cases": "Ranking profiles and the published ranking policy. Needs an API key.",
         "policy_check": "Policy pass/fail/undetermined per model and platform. Key; 5 credits.",
@@ -713,7 +713,8 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
     lead = {name: text.split(" Proxies POST")[0] for name, text in tools.items()}
     openapi = {
         "decide": {"summary": "Decide which models fit a job, and show the work.", "lead": lead["decide"]},
-        "rank": {"summary": "Legacy v1: rank the catalogue for one profile. Use decide.", "lead": lead["rank"]},
+        "rank": {"summary": "Deprecated legacy v1: rank the catalogue for one profile. Use decide.",
+                 "lead": lead["rank"]},
         "policyCheck": {"summary": "Check a policy per model and per platform.", "lead": lead["policy_check"]},
         "feedback": {"summary": "Say whether a ModelSpec answer was reliable.",
                      "lead": "Was a ModelSpec answer reliable? Rate it after you act on it, with the "

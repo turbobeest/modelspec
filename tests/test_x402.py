@@ -1149,6 +1149,9 @@ def test_entry_credits_query(entry):
         "/v1/credits", method="GET", headers={"authorization": f"Bearer {key}"}, body="")))
     assert response.status == 200
     assert response.json()["available"] == 7
+    # MODEL-316: the balance reuses rank's envelope but not its deprecation notice.
+    assert response.json()["endpoint"] == "credits"
+    assert "deprecation" not in response.json()
 
 
 def test_entry_billing_paths_are_not_x402_paid_resources(entry):

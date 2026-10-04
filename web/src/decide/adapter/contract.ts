@@ -497,6 +497,7 @@ export const decisionSchema = z
       "2.11",
       "2.12",
       "2.13",
+      "2.14",
     ]),
     decision_id: z.string().regex(/^dec_[0-9A-Za-z]{8,}$/),
     snapshot: z.string().regex(/^snap_[A-Za-z0-9:._-]+$/),
@@ -641,11 +642,14 @@ export const decisionSchema = z
     feedback: feedbackPointerSchema.optional(),
     reading: z.unknown().optional(),
     coverage: z.unknown().optional(),
+    // 2.14 (MODEL-316): agent guidance on task size for a no_feasible cost cap.
+    relax_task_tokens: z.unknown().optional(),
   })
   .strict()
-  .transform(({ reading, coverage, ...decision }) => {
+  .transform(({ reading, coverage, relax_task_tokens, ...decision }) => {
     void reading;
     void coverage;
+    void relax_task_tokens;
     return decision;
   });
 

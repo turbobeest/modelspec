@@ -43,7 +43,7 @@ from pydantic import (
 )
 from pydantic.fields import FieldInfo
 
-CONTRACT_VERSION = "2.13"
+CONTRACT_VERSION = "2.14"
 
 # ── identifiers ────────────────────────────────────────────────────────────
 
@@ -1712,6 +1712,22 @@ class Relaxation(_Strict):
     admits: int = Field(ge=1)
 
 
+class TaskTokensHint(_Strict):
+    """A per-task cost cap that fails only at the default task size. Added in 2.14.
+
+    The spec gave no ``task_tokens``, so ``offering.cost_per_task`` was priced
+    at ``default``, and removing ``condition`` alone gives a feasible answer.
+    ``admits_at`` is the largest task, at ``default``'s input-to-output ratio,
+    at which a model meets the cap. Set ``task_tokens`` to the real task's
+    size rather than copying ``admits_at`` (MODEL-316).
+    """
+
+    condition: str
+    default: TaskTokens
+    admits_at: TaskTokens
+    message: str
+
+
 EstateKind = Literal["provider", "plan", "device"]
 CostBasis = Literal["list_price", "plan_included", "owned_hardware"]
 
@@ -1865,7 +1881,7 @@ class Decision(_ExcludeIf):
         default=None,
         exclude_if=lambda value: value is None,
     )
-    contract_version: Literal["2.13"] = CONTRACT_VERSION
+    contract_version: Literal["2.14"] = CONTRACT_VERSION
     decision_id: DecisionId
     snapshot: SnapshotId
     #: Whether this process verified a publisher signature. Added in 1.10.
@@ -1895,6 +1911,10 @@ class Decision(_ExcludeIf):
     #: For ``no_feasible`` only: the smallest change to each numeric cap or
     #: floor that admits a model. Added in 1.5.
     relax_to: list[Relaxation] = Field(default_factory=list)
+    #: For ``no_feasible`` only: the cost cap failed only because the spec gave
+    #: no ``task_tokens``. Absent otherwise. Added in 2.14 (MODEL-316).
+    relax_task_tokens: TaskTokensHint | None = Field(
+        default=None, exclude_if=lambda value: value is None)
     warnings: list[Code] = Field(default_factory=list)
     #: Active models the snapshot leaves out of the lineup. Added in 1.2.
     out_of_lineup: int = Field(default=0, ge=0)
@@ -1913,7 +1933,7 @@ class Decision(_ExcludeIf):
                 raise ValueError("a no_feasible decision has no results")
             if not self.relax:
                 raise ValueError("a no_feasible decision names the fewest conditions to relax")
-        elif self.relax or self.relax_to:
+        elif self.relax or self.relax_to or self.relax_task_tokens:
             raise ValueError(f"relax is only for no_feasible, not {self.status}")
         ranks = [r.rank for r in self.results]
         if ranks != list(range(1, len(ranks) + 1)):
@@ -1984,6 +2004,7 @@ BoundedDecision = create_model(
     may_qualify=(list[MayQualify], ...),
     reading=(Reading | None, None),
     coverage=(CoverageRefusal | None, None),
+    relax_task_tokens=(TaskTokensHint | None, None),
     with_estate=(WithEstate | None, None),
     explanation=(BoundedExplanation, ...),
     model_evidence=(ModelEvidence | None, None),

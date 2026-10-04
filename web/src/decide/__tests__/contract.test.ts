@@ -55,7 +55,7 @@ it.each([
   void population;
   const currentContract = {
     ...contract,
-    contract_version: "2.13",
+    contract_version: "2.14",
     answer: null,
     constraint_costs: contract.constraint_costs.map((cost) => ({
       condition: cost.condition,
