@@ -8,8 +8,6 @@ JSON-LD, and the Pages Function that serves Markdown for
 
 from __future__ import annotations
 
-from pipeline.public_data import enabled as private_serving
-
 import hashlib
 import json
 import re
@@ -17,9 +15,10 @@ import shutil
 from pathlib import Path
 from typing import Any
 
-from pipeline import brand, entity
+from pipeline import agent_copy, brand, entity
 from pipeline.export import Build
-from pipeline.load import Benchmark, Catalogue, Model, REPO_ROOT
+from pipeline.load import REPO_ROOT, Benchmark, Catalogue, Model
+from pipeline.public_data import enabled as private_serving
 
 MS_BASE = "https://modelspec.dev"
 RANK_API = "https://api.modelspec.dev/v1/rank"
@@ -450,9 +449,10 @@ def modelspec_landing_markdown(models: list[Model], benchmarks: list[Benchmark],
         f"- auth: {MS_BASE}/auth.md\n"
         f"- llms: {MS_BASE}/llms.txt\n"
         f"\n"
+        f"{agent_copy.install_markdown()}\n"
         f"Use the hosted API at `POST https://api.modelspec.dev/v1/decide` "
         f"or the remote MCP Worker. {HOSTED_API_AUTH_DESCRIPTION} "
-        f"{MCP_AUTH_DESCRIPTION} The CLI is retired. Use class-fit if "
+        f"{MCP_AUTH_DESCRIPTION} Use class-fit if "
         f"you have not decided what class the problem needs; it names candidate "
         f"classes and refuses to order them. Legacy v1 rank uses retired "
         f"fixed-benchmark profiles. Use policy-check to "
@@ -599,7 +599,7 @@ def skill_markdown() -> str:
         "or use the remote MCP `decide` tool. Read its `vocab` "
         "tool for valid values. "
         + display_guidance
-        + "The CLI was retired on 2026-09-30.\n"
+        + agent_copy.install_markdown() + "\n"
         "- **rank (legacy v1)** (`POST https://api.modelspec.dev/v1/rank`) — "
         "uses the retired fixed-benchmark profiles. It remains available for "
         "existing callers during the decision-contract cutover.\n"
@@ -686,6 +686,9 @@ def auth_markdown(root: Path) -> str:
         "# Auth.md",
         "",
         "How an agent gets access to ModelSpec.",
+        "",
+        agent_copy.install_markdown(),
+        agent_copy.cli_text()["procurement"],
         "",
         "The decide, legacy v1 rank, and policy-check APIs live at "
         "`https://api.modelspec.dev`. "

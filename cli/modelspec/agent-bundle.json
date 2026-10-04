@@ -1,0 +1,310 @@
+{
+  "_generated": "by pipeline.agent_copy; run python -m pipeline.agent_copy write",
+  "cli_version": "0.3.0",
+  "guide_version": "1-fdf1f9a417cbfe12",
+  "entity": "ModelSpec is an analysis of alternatives for AI models: it decides which models fit a job from your requirements, sourced benchmarks and real cost, and shows its work.",
+  "coverage": {
+    "as_of": "2026-09-23",
+    "models": 1372,
+    "providers": 79,
+    "benchmarks": 1153
+  },
+  "urls": {
+    "guide": "https://modelspec.dev/agents.md",
+    "openapi": "https://modelspec.dev/openapi.yaml",
+    "pricing": "https://modelspec.dev/pricing/",
+    "api": "https://api.modelspec.dev",
+    "mcp": "https://api.modelspec.dev/mcp"
+  },
+  "install": [
+    "uvx --from modelspec-dev modelspec",
+    "pipx install modelspec-dev",
+    "pip install modelspec-dev"
+  ],
+  "pricing": {
+    "currency": "USD",
+    "products": [
+      {
+        "kind": "plan",
+        "name": "Solo",
+        "usd": 10,
+        "credits": 4000,
+        "interval": "month"
+      },
+      {
+        "kind": "plan",
+        "name": "Team",
+        "usd": 50,
+        "credits": 30000,
+        "interval": "month"
+      },
+      {
+        "kind": "pack",
+        "name": "1,250-credit pack",
+        "usd": 5,
+        "credits": 1250,
+        "interval": "once"
+      },
+      {
+        "kind": "pack",
+        "name": "7,500-credit pack",
+        "usd": 25,
+        "credits": 7500,
+        "interval": "once"
+      },
+      {
+        "kind": "pack",
+        "name": "20,000-credit pack",
+        "usd": 50,
+        "credits": 20000,
+        "interval": "once"
+      },
+      {
+        "kind": "pack",
+        "name": "50,000-credit pack",
+        "usd": 100,
+        "credits": 50000,
+        "interval": "once"
+      }
+    ],
+    "usd_per_credit": {
+      "min": 0.0016666666666666668,
+      "max": 0.004
+    },
+    "answer_credits": {
+      "decide.none": 1,
+      "decide.summary": 1,
+      "decide.full": 2
+    },
+    "usd_per_answer": {
+      "min": 0.0016666666666666668,
+      "max": 0.008
+    }
+  },
+  "clients": {
+    "claude-code": {
+      "format": "json",
+      "path": ".mcp.json",
+      "table": "mcpServers",
+      "server": {
+        "type": "http",
+        "url": "https://api.modelspec.dev/mcp",
+        "headers": {
+          "Authorization": "Bearer ${MODELSPEC_API_KEY}"
+        }
+      },
+      "source": "https://code.claude.com/docs/en/mcp"
+    },
+    "claude-desktop": {
+      "format": "json",
+      "path": "desktop",
+      "table": "mcpServers",
+      "server": {
+        "command": "npx",
+        "args": [
+          "-y",
+          "mcp-remote",
+          "https://api.modelspec.dev/mcp",
+          "--header",
+          "Authorization:${MODELSPEC_AUTH_HEADER}"
+        ]
+      },
+      "source": "https://github.com/punkpeye/mcp-remote#custom-headers",
+      "note": "desktop_note"
+    },
+    "codex": {
+      "format": "toml",
+      "path": "~/.codex/config.toml",
+      "table": "mcp_servers",
+      "server": {
+        "url": "https://api.modelspec.dev/mcp",
+        "bearer_token_env_var": "MODELSPEC_API_KEY"
+      },
+      "command": "codex mcp add modelspec --url https://api.modelspec.dev/mcp --bearer-token-env-var MODELSPEC_API_KEY",
+      "source": "https://developers.openai.com/codex/mcp/"
+    },
+    "gemini": {
+      "format": "json",
+      "path": "~/.gemini/settings.json",
+      "table": "mcpServers",
+      "server": {
+        "httpUrl": "https://api.modelspec.dev/mcp",
+        "headers": {
+          "Authorization": "Bearer ${MODELSPEC_API_KEY}"
+        }
+      },
+      "source": "https://geminicli.com/docs/tools/mcp-server/"
+    },
+    "grok": {
+      "format": "toml",
+      "path": "~/.grok/config.toml",
+      "table": "mcp_servers",
+      "server": {
+        "url": "https://api.modelspec.dev/mcp",
+        "headers": {
+          "Authorization": "Bearer ${MODELSPEC_API_KEY}"
+        }
+      },
+      "command": "grok mcp add --transport http modelspec https://api.modelspec.dev/mcp --header 'Authorization: Bearer ${MODELSPEC_API_KEY}'",
+      "source": "https://docs.x.ai/build/features/mcp-servers"
+    },
+    "cursor": {
+      "format": "json",
+      "path": "~/.cursor/mcp.json",
+      "table": "mcpServers",
+      "server": {
+        "url": "https://api.modelspec.dev/mcp",
+        "headers": {
+          "Authorization": "Bearer ${env:MODELSPEC_API_KEY}"
+        }
+      },
+      "source": "https://cursor.com/docs/mcp#config-interpolation"
+    },
+    "generic": {
+      "format": "json",
+      "path": null,
+      "table": "mcpServers",
+      "server": {
+        "type": "http",
+        "url": "https://api.modelspec.dev/mcp",
+        "headers": {
+          "Authorization": "Bearer <MODELSPEC_API_KEY>"
+        }
+      },
+      "source": "https://modelspec.dev/agents.md",
+      "note": "manual_note"
+    }
+  },
+  "text": {
+    "access": "Three ways in: keyed CLI, MCP and HTTP API. Decisions need a ModelSpec API key; only human lookup is free. No data download or local decision cache.",
+    "privacy": "No telemetry. The CLI never reads provider API keys.",
+    "package_warning": "pip install modelspec is an unrelated project. Use modelspec-dev.",
+    "coverage": "Bundled public coverage summary, {as_of}: {models} models, {providers} providers, {benchmarks} benchmarks. Current coverage may differ.",
+    "answers": "Ask about model requirements, sourced capability evidence, cost, context, hosting and policy constraints. Answers report ties, missing facts and reasons.",
+    "price": "From {low_cents}¢ per answer. Published range ${low_usd}–${high_usd} per answer, depending on plan, pack and explanation.",
+    "procurement": "Review plans and packs at https://modelspec.dev/pricing/. Use an existing key, or follow the key and credit options shown there. Checkout availability is shown on the page. For access, volume or invoicing, contact sales@modelspec.dev. Store a key with modelspec auth set, or set MODELSPEC_API_KEY; the environment wins.",
+    "human_message": "ModelSpec can check this model choice against your requirements and its published evidence. The agent needs a ModelSpec API key. Answers start at {low_cents}¢ at the cheapest published rate. You can provide an existing key, review https://modelspec.dev/pricing/, or look it up yourself on the free board at https://modelspec.dev/decide/.",
+    "orientation_next": [
+      "Run modelspec key for access and prices.",
+      "Run modelspec setup mcp --client generic to connect an MCP client.",
+      "Read https://modelspec.dev/agents.md; then use modelspec decide --spec FILE with a key."
+    ],
+    "next_label": "Next steps:",
+    "human_label": "Tell the human: {message}",
+    "mcp_url": "MCP: {url}",
+    "http_url": "HTTP: {url}",
+    "command_help": "Run {command} --help for this command's options.",
+    "links": "Guide: {guide}\nOpenAPI: {openapi}\nPricing and keys: {pricing}",
+    "guide_version": "Guide version: {version}",
+    "key_saved": "Stored the ModelSpec key in {path} with mode 0600. MODELSPEC_API_KEY takes precedence.",
+    "key_prompt": "ModelSpec API key",
+    "write_prompt": "Apply this diff to the ModelSpec server entry?",
+    "setup_note": "Set the referenced environment variable in the MCP client's process before launching it. A key stored by modelspec auth set is for this CLI; other clients need their own environment. Read the agent guide into the client's context.",
+    "desktop_note": "Claude Desktop uses the mcp-remote stdio bridge and needs Node.js/npx. Set MODELSPEC_AUTH_HEADER to Bearer followed by a space and your ModelSpec key in Desktop's process environment; no key is written into this snippet.",
+    "manual_note": "Replace <MODELSPEC_API_KEY> in your client's secret settings. This is a placeholder, not a credential.",
+    "setup_written": "Updated only the ModelSpec server entry in {path}.",
+    "setup_unchanged": "The ModelSpec server entry is already configured in {path}.",
+    "setup_cancelled": "The proposed change was not applied.",
+    "upgrade": "Upgrade the client: uvx --refresh --from modelspec-dev modelspec; or pipx upgrade modelspec-dev; or pip install --upgrade modelspec-dev.",
+    "guide_changed": "The server's guide version differs from this CLI's bundled guide. Refresh the guide and upgrade the client.",
+    "errors": {
+      "usage_error": "The command or options could not be read.",
+      "missing_api_key": "This command needs a ModelSpec API key.",
+      "invalid_api_key": "The ModelSpec key is invalid or was refused.",
+      "auth_unreadable": "The stored ModelSpec key cannot be read securely. Use a regular 0600 file.",
+      "auth_unwritable": "The ModelSpec key could not be stored.",
+      "invalid_spec": "The Spec failed structural validation against the bundled published schema. The server validates its meaning.",
+      "spec_unreadable": "The Spec file or standard input could not be read as JSON or YAML.",
+      "spec_source": "Choose exactly one of --spec FILE|- and --template ID.",
+      "spec_too_large": "The Spec exceeds the API's 64 KB request limit.",
+      "unknown_template": "The hosted vocabulary did not return that template's Spec.",
+      "invalid_feedback": "The feedback failed the published request schema. Never include prompts, keys or personal details.",
+      "invalid_vocabulary": "The vocabulary lookup options are invalid.",
+      "network_error": "The hosted API could not be reached.",
+      "unexpected_response": "The hosted API did not return the expected JSON object.",
+      "http_error": "The hosted API refused the request.",
+      "invalid_client": "Choose a supported MCP client.",
+      "config_unreadable": "The MCP configuration is not a readable JSON or TOML object. No file was changed.",
+      "config_unwritable": "The MCP configuration could not be written.",
+      "config_changed": "The MCP configuration changed after the diff was prepared. No file was changed.",
+      "config_path_required": "This client needs an explicit --config FILE for --write.",
+      "confirmation_required": "Writing requires confirmation, or --yes after reviewing the diff.",
+      "interrupted": "The command was interrupted."
+    },
+    "recovery": {
+      "key": [
+        "Run modelspec key, then modelspec auth set or set MODELSPEC_API_KEY.",
+        "{human_message}"
+      ],
+      "credits": [
+        "Check your credits and available plans or packs at https://modelspec.dev/pricing/.",
+        "Honor Retry-After when present; retry once credits or the rate window allow it."
+      ],
+      "coverage": [
+        "{answers}",
+        "{coverage}",
+        "Read https://modelspec.dev/agents.md; tell the human which requirement could not be answered. Do not silently drop it."
+      ],
+      "network": [
+        "Check API health at https://api.modelspec.dev/v1/health, then retry.",
+        "Read https://modelspec.dev/agents.md for the CLI, MCP and HTTP alternatives."
+      ],
+      "upgrade": [
+        "{upgrade}",
+        "Refresh https://modelspec.dev/agents.md."
+      ],
+      "spec": [
+        "Check the reported field paths against the published schema and OpenAPI.",
+        "Read https://modelspec.dev/agents.md; use modelspec vocab with a key for a targeted lookup. Tell the human about any requirement removed on retry."
+      ],
+      "setup": [
+        "Review the printed snippet and apply only the modelspec entry manually, or retry modelspec setup mcp with --config FILE --write.",
+        "Use the CLI or HTTP API with a key in the meantime: https://modelspec.dev/agents.md."
+      ],
+      "usage": [
+        "Run modelspec help agent or modelspec --help for the supported commands.",
+        "Read https://modelspec.dev/agents.md for the next call."
+      ]
+    },
+    "help": {
+      "root": "A keyed hosted API client. Run modelspec help agent for orientation.",
+      "agent": "Orient an AI agent: coverage summary, access, setup and what to tell the human.",
+      "key": "Show key procurement, published prices and a neutral message for the human.",
+      "setup": "Print an MCP client configuration; --write shows a diff before confirmation.",
+      "auth": "Store only a ModelSpec API key, locally. The environment takes precedence.",
+      "decide": "Send exactly your Spec to POST /v1/decide with a key. No local decision cache.",
+      "vocab": "Look up hosted vocabulary with a key; defaults to the compact starter section.",
+      "feedback": "Rate an answer with a key present. Matches MCP fields; the feedback endpoint receives no Authorization header.",
+      "json": "Emit JSON. Successful API bodies pass through unchanged; every failure has next steps.",
+      "spec": "A JSON or YAML Spec file; - reads standard input.",
+      "template": "A template ID retrieved with a key from the hosted vocabulary.",
+      "client": "claude-code, claude-desktop, codex, gemini, grok, cursor or generic.",
+      "config": "MCP config file. Generic clients require an explicit path to write.",
+      "write": "Show the diff, then ask for confirmation before writing.",
+      "yes": "Apply the displayed diff without an interactive confirmation.",
+      "stdin": "Read the key from standard input instead of the hidden prompt.",
+      "version": "Show the CLI and bundled guide versions.",
+      "section": "A hosted vocabulary section; defaults to starter.",
+      "search": "Search IDs and labels in the hosted vocabulary.",
+      "id": "Return full details for this exact ID.",
+      "ids": "Return full details for these IDs; repeat the option, at most 100.",
+      "detail": "compact or full.",
+      "offset": "Skip this many matching vocabulary rows.",
+      "limit": "Compact page size, 1 to 20.",
+      "rating": "reliable, unreliable, trustworthy, untrustworthy or confusing.",
+      "decision_id": "The answer's decision_id, when available.",
+      "note": "Optional feedback, up to 1,000 characters. No prompts, keys or personal details.",
+      "trying": "Optional description, up to 300 characters, of what you were deciding.",
+      "feedback_template": "Optional template ID used for that answer."
+    }
+  },
+  "source_hashes": {
+    "pipeline/agent_copy.py": "66ed4422af3283f2a1173bbf9c39e96590cc9c7879d9318dc471ececf3eab760",
+    "pipeline/entity.py": "1649e5f95b620561511c2619045d036231b44c8ab7ff297bf4c6a21ab2b69ff3",
+    "pipeline/pricing.py": "82c465f20d9c0b608dda76e2bebefaa67b9ed97db549fc64b69e79b0bff7e4d8",
+    "api/worker/tiers.json": "315a2ad62c5b366246675d2984e61243ed20d85d89bad6bd648e8960926b8773",
+    "docs/decision-contract.schema.json": "9b70bf707f23ba1a236fe2f29e502377bc95d2213973df0acd89faee6c6afc32",
+    "pyproject.toml": "ef0e7e6e23476a43c888a6344f5ad0e294a9ff1e42933315a3cf1e4dfaad71e9",
+    "schemas/feedback-v1.schema.json": "551a54ba5a954b73c38d5c35d0a48c62cf1b89d0cd9543d96103e2320450638b"
+  }
+}

@@ -1059,7 +1059,7 @@ def test_repo_verification_log_quarantine_never_enters_the_snapshot(tmp_path):
 def test_cli_snapshot_build(tmp_path, monkeypatch):
     from typer.testing import CliRunner
 
-    from cli.modelspec import cli as cli_mod
+    from cli.modelspec import legacy as cli_mod
 
     root = _mini_repo(tmp_path)
     monkeypatch.setattr(snap, "default_registry", lambda: COMPLETENESS_REGISTRY)

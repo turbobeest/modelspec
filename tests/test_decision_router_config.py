@@ -18,7 +18,7 @@ import pytest
 import yaml
 from typer.testing import CliRunner
 
-from cli.modelspec import cli as cli_mod
+from cli.modelspec import legacy as cli_mod
 from decision import contract, router_config
 from decision import snapshot as decision_snapshot
 from decision.registry import default as default_registry

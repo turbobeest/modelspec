@@ -150,8 +150,11 @@ def test_hero_names_the_cheapest_product_kind_and_matches_the_shown_rates() -> N
 def test_honesty_contracts_match_cli_billing_and_legal_docs() -> None:
     html = _page()
     assert "A person using the board on this site pays nothing." in html
-    assert "Machine access is the hosted API and MCP server only" in html
-    assert "There is no CLI and no data download." in html
+    assert "Machine access uses the keyed CLI, hosted API and MCP server" in html
+    assert "No data download" in html
+    assert "Three ways in:" in html
+    assert "pipx install modelspec-dev" in html
+    assert "There is no CLI" not in html
     assert "delayed image" in html
     assert "The static export under /api is public" not in html
     assert "offline CLI" not in html

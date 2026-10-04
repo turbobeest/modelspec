@@ -32,7 +32,6 @@ import re
 import shutil
 import subprocess
 import sys
-import sysconfig
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -142,18 +141,15 @@ def cache(tmp_path_factory) -> Path:
 
 
 @functools.lru_cache(maxsize=1)
-def _modelspec_cli() -> str:
-    """The `modelspec` entry point, or skip loudly if the package is not installed."""
-    found = shutil.which("modelspec") or str(Path(sysconfig.get_path("scripts")) / "modelspec")
-    if not Path(found).exists():
-        pytest.fail("the `modelspec` console script is not installed; run `pip install -e .`")
-    return found
+def _modelspec_cli() -> list[str]:
+    """Run the repository's retained offline implementation with this interpreter."""
+    return [sys.executable, "-m", "cli.modelspec.legacy"]
 
 
 def _cli_rank(args: list[str], cache_dir: Path) -> dict[str, Any]:
     """Run `modelspec offline rank --json` and return the parsed envelope."""
     result = subprocess.run(
-        [_modelspec_cli(), "offline", "rank", *args, "--json"],
+        [*_modelspec_cli(), "offline", "rank", *args, "--json"],
         capture_output=True, text=True, timeout=300,
         env={"PATH": "/usr/bin:/bin", "MODELSPEC_CACHE": str(cache_dir),
              "HOME": str(cache_dir.parent), "PYTHONPATH": str(REPO_ROOT)},

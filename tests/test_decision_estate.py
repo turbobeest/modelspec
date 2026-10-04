@@ -432,7 +432,7 @@ ESTATES = [
 def test_cli_and_worker_return_the_same_bytes_with_an_estate(
     tmp_path, snapshot_bytes, snapshot, estate,
 ) -> None:
-    from cli.modelspec import cli as cli_mod
+    from cli.modelspec import legacy as cli_mod
 
     service = _service()
     payload = _raw(estate)

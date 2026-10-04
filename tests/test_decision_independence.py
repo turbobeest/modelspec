@@ -285,7 +285,7 @@ def test_readers_do_not_share_cached_replies(tmp_path, store, regions):  # noqa:
 
 
 def test_cli_mistral_reader_uses_an_injected_extractor(tmp_path, store, monkeypatch):  # noqa: F811
-    from cli.modelspec import cli as cli_mod
+    from cli.modelspec import legacy as cli_mod
 
     monkeypatch.setenv("MODELSPEC_SOURCE_CACHE", str(store.root))
     root = _repo(tmp_path, store)
@@ -301,7 +301,7 @@ def test_cli_mistral_reader_uses_an_injected_extractor(tmp_path, store, monkeypa
 
 
 def test_cli_refuses_an_unknown_reader(tmp_path, store):  # noqa: F811
-    from cli.modelspec import cli as cli_mod
+    from cli.modelspec import legacy as cli_mod
 
     result = CliRunner().invoke(
         cli_mod.app, ["verify", "--root", str(_repo(tmp_path, store)), "--llm-reader", "gpt"])

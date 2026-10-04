@@ -20,7 +20,7 @@ WORKER_ROOT = REPO_ROOT / "api" / "worker"
 WORKER_SRC = WORKER_ROOT / "src"
 sys.path.insert(0, str(REPO_ROOT))
 
-from cli.modelspec import cli as cli_mod  # noqa: E402
+from cli.modelspec import legacy as cli_mod  # noqa: E402
 from decision.contract import CONTRACT_VERSION  # noqa: E402
 from decision.excluded import excluded_sources  # noqa: E402
 from decision.registry import default as default_registry  # noqa: E402

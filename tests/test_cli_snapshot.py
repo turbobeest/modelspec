@@ -29,7 +29,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
 from api.ranking.engine import USE_CASE_PROFILES  # noqa: E402
-from cli.modelspec import cli as root_cli  # noqa: E402
+from cli.modelspec import legacy as root_cli  # noqa: E402
 from cli.modelspec import decide_cmd, offline, snapshot, vocab_cmd  # noqa: E402
 from decision import snapshot as decision_snapshot  # noqa: E402
 from decision.snapshot import Snapshot as DecisionSnapshot  # noqa: E402
@@ -880,7 +880,7 @@ def test_the_original_exit_codes_keep_their_values() -> None:
 @functools.cache
 def _modelspec_cli() -> list[str]:
     """Run the CLI module with the interpreter that is running pytest."""
-    return [sys.executable, "-m", "cli.modelspec.cli"]
+    return [sys.executable, "-m", "cli.modelspec.legacy"]
 
 
 @functools.cache
@@ -892,13 +892,13 @@ def _modelspec_test_cli() -> list[str]:
         "from decision import snapshot as decision_snapshot; "
         "decision_snapshot.load_public_keys = lambda: "
         f"{{'test-fixture': base64.b64decode('{public_key}')}}; "
-        "from cli.modelspec.cli import app; app()"
+        "from cli.modelspec.legacy import app; app()"
     )
     return [sys.executable, "-c", bootstrap]
 
 
 def test_cli_lookup_uses_the_current_interpreters_module() -> None:
-    assert _modelspec_cli() == [sys.executable, "-m", "cli.modelspec.cli"]
+    assert _modelspec_cli() == [sys.executable, "-m", "cli.modelspec.legacy"]
 
 
 def _run(args: list[str], cache: Path) -> subprocess.CompletedProcess:

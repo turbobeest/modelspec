@@ -7,8 +7,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-from pipeline import brand, landing_chrome
-from pipeline import worker_flags
+from pipeline import agent_copy, brand, landing_chrome, worker_flags
 from pipeline.export import Build
 
 TIERS_REL = Path("api/worker/tiers.json")
@@ -21,11 +20,11 @@ MCP_ENDPOINT = "https://api.modelspec.dev/mcp"
 TITLE = "ModelSpec pricing — people decide free, agents pay per answer"
 FREE_TIER_TITLE = "ModelSpec pricing — people decide free, machine access priced"
 DESCRIPTION = ("A person looking a model up on the ModelSpec board pays nothing. "
-               "Machine access is the hosted API and MCP server only, paid in credits, "
+               "Machine access uses the keyed CLI, hosted API and MCP server, paid in credits, "
                "with plans and packs. MCP decision tools "
                "(rank, policy_check, decide) require an API key.")
 FREE_TIER_DESCRIPTION = ("A person looking a model up on the ModelSpec board pays nothing. "
-                         "Machine access is the hosted API and MCP server only. Keyless "
+                         "Machine access uses the keyed CLI, hosted API and MCP server. Keyless "
                          "API calls are still answered while paid access is switched on; "
                          "these are its prices. MCP decision tools "
                          "(rank, policy_check, decide) require an API key.")
@@ -34,6 +33,24 @@ NETWORK_NAMES = {"eip155:8453": "Base mainnet", "eip155:84532": "Base Sepolia"}
 
 def load_tiers(root: Path) -> dict[str, Any]:
     return json.loads((Path(root) / TIERS_REL).read_text(encoding="utf-8"))
+
+
+def procurement_data(tiers: dict[str, Any]) -> dict[str, Any]:
+    """Published plans, packs and answer rates, shared with the keyed CLI."""
+    products = [row for row in tiers["billing"]["prices"].values()
+                if not row.get("placeholder") and row.get("credits")]
+    rates = [row["usd"] / row["credits"] for row in products]
+    weights = tiers["credits"]["weights"]
+    return {
+        "currency": "USD",
+        "products": [{key: row[key] for key in ("kind", "name", "usd", "credits", "interval")}
+                     for row in products],
+        "usd_per_credit": {"min": min(rates), "max": max(rates)},
+        "answer_credits": {key: weights[key] for key in
+                           ("decide.none", "decide.summary", "decide.full")},
+        "usd_per_answer": {"min": min(rates) * weights["decide.none"],
+                           "max": max(rates) * weights["decide.full"]},
+    }
 
 
 def _money(value: int | float, suffix: str = "") -> str:
@@ -174,13 +191,13 @@ def page(tiers: dict[str, Any], *, build: Build | None = None,
                    "covers the plans and packs below. A full explanation costs two credits.")
     hero_heading = f"People decide free. {agent_line}"
     hero_copy = ("A person using the board on this site pays nothing. Machine "
-                 f"access is the hosted API and MCP server only, and it uses "
-                 f"{hero_payment}. There is no CLI and no data download. MCP decision "
+                 f"access uses the keyed CLI, hosted API and MCP server, and it uses "
+                 f"{hero_payment}. No data download. MCP decision "
                  "tools (rank, policy_check, decide) require an API key." if access_enforced else
                  "A person using the board on this site pays nothing. Machine "
-                 "access is the hosted API and MCP server only. Keyless API calls "
+                 "access uses the keyed CLI, hosted API and MCP server. Keyless API calls "
                  "are still answered while paid access is being switched on; these "
-                 "are the credit prices for it. There is no CLI and no data download. "
+                 "are the credit prices for it. The CLI requires a key. No data download. "
                  "MCP decision tools (rank, policy_check, decide) require an API key.")
     buy_heading = "Buy credits for your agents" if billing_live else "Plans and packs"
     buy_copy = ("Pay by card. You get one API key and one balance; every agent that carries "
@@ -206,7 +223,7 @@ def page(tiers: dict[str, Any], *, build: Build | None = None,
 <link rel="canonical" href="{base.rstrip('/')}/pricing/">{brand.head_links()}{_social_meta()}
 <link rel="stylesheet" href="/{ASSET_DIR}/pricing.css">{landing_chrome.lockup_style()}</head><body><div class="axis" aria-hidden="true"></div>
 <header>{landing_chrome.lockup()}<nav><a href="/#agents">For agents</a><a class="current" href="/pricing/" aria-current="page">Pricing</a><a class="button" href="/decide/">Open the board</a></nav><a class="button mobile-board" href="/decide/">Open the board</a></header>
-<main><section class="hero" id="pricing"><div><h1>{hero_heading}</h1><p>{hero_copy}</p></div><div class="rate-card"><span>One decision for an agent</span>{hero_rate}<p>{hero_detail}</p></div></section>
+<main><section class="hero" id="pricing"><div><h1>{hero_heading}</h1><p>{hero_copy}</p>{agent_copy.install_html()}</div><div class="rate-card"><span>One decision for an agent</span>{hero_rate}<p>{hero_detail}</p></div></section>
 <section class="buy-grid"><div class="card buy-card"><h2>{buy_heading}</h2><p>{buy_copy}</p><table class="price-table" role="table"><caption>Monthly plans · allowance resets each invoice</caption><thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Plan</th><th scope="col" role="columnheader">Allowance</th><th scope="col" role="columnheader">Price</th>{purchase_header}</tr></thead><tbody role="rowgroup">{plan_rows}</tbody></table><table class="price-table" role="table"><caption>Packs · one-off, last {expiry} days</caption><thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Pack</th><th scope="col" role="columnheader">Rate</th><th scope="col" role="columnheader">Price</th>{purchase_header}</tr></thead><tbody role="rowgroup">{pack_rows}</tbody></table><p class="small">{buy_note}</p></div>
 {agents_panel}</section>
 <section class="calculator"><div class="controls"><h2>{calculator_heading}</h2><fieldset data-control="decisions"><legend>Decisions a day</legend><div>{decision_buttons}</div></fieldset><fieldset data-control="full"><legend>Explanation with each decision</legend><div><button type="button" data-value="false" aria-pressed="true">Summary · {weights['decide.summary']} credit</button><button type="button" data-value="true" aria-pressed="false">Full · {weights['decide.full']} credits</button></div></fieldset><fieldset data-control="checks"><legend>Licence and data-residency checks a day</legend><div>{check_buttons}</div></fieldset></div><div class="estimate" aria-live="polite"><span data-credits></span><div><b>{calculator_best}</b><strong><span data-best-name></span> · <span data-best-cost></span><small> a month</small></strong></div><div data-options></div><p>A month is 30 days. Prices from the published plan and pack list; the arithmetic runs in your browser. On an exact tie, the calculator prefers an option without a subscription.</p></div></section>

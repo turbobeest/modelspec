@@ -182,8 +182,8 @@ def test_owned_consumers_do_not_use_the_old_name() -> None:
     this_file = Path(__file__).resolve()
     allowed = {
         ROOT / "schema" / "card.py",  # deprecated alias for scripts/**
-        ROOT / "cli" / "modelspec" / "cli.py",  # strips a stale FalkorDB key
-        ROOT / "docs" / "cli-contract.md",  # names the key that left the export
+        ROOT / "cli" / "modelspec" / "legacy.py",  # strips a stale FalkorDB key
+        ROOT / "docs" / "history" / "offline-cli-contract.md",  # historical export key
         ROOT / "tests" / "test_graph_derivation.py",  # asserts the key is absent
     }
     roots = [
@@ -192,6 +192,7 @@ def test_owned_consumers_do_not_use_the_old_name() -> None:
         ROOT / "cli" / "modelspec",
         ROOT / "api" / "ranking" / "engine.py",
         ROOT / "docs" / "cli-contract.md",
+        ROOT / "docs" / "history" / "offline-cli-contract.md",
         ROOT / "docs" / "graph-ontology.md",
         ROOT / "tests",
     ]
@@ -261,7 +262,7 @@ class _StatsGraph:
 def test_info_does_not_print_a_coverage_percentage(monkeypatch) -> None:
     from typer.testing import CliRunner
 
-    from cli.modelspec import cli as cli_mod
+    from cli.modelspec import legacy as cli_mod
 
     monkeypatch.setattr(cli_mod, "_get_graph", lambda: _InfoGraph())
     result = CliRunner().invoke(cli_mod.app, ["info", "t/m"])
@@ -275,7 +276,7 @@ def test_info_does_not_print_a_coverage_percentage(monkeypatch) -> None:
 def test_info_json_omits_coverage_even_if_the_node_still_has_it(monkeypatch) -> None:
     from typer.testing import CliRunner
 
-    from cli.modelspec import cli as cli_mod
+    from cli.modelspec import legacy as cli_mod
 
     monkeypatch.setattr(cli_mod, "_get_graph", lambda: _InfoGraph())
     result = CliRunner().invoke(cli_mod.app, ["info", "t/m", "-f", "json"])
@@ -288,7 +289,7 @@ def test_info_json_omits_coverage_even_if_the_node_still_has_it(monkeypatch) -> 
 def test_stats_does_not_query_or_rank_by_coverage(monkeypatch) -> None:
     from typer.testing import CliRunner
 
-    from cli.modelspec import cli as cli_mod
+    from cli.modelspec import legacy as cli_mod
 
     monkeypatch.setattr(cli_mod, "_get_graph", lambda: _StatsGraph())
     result = CliRunner().invoke(cli_mod.app, ["stats"])

@@ -157,11 +157,11 @@ jobs:
           python -c "import glob, zipfile;
           names=zipfile.ZipFile(glob.glob('dist/*.whl')[0]).namelist();
           roots={name.split('/', 1)[0] for name in names};
-          assert {'api', 'cli', 'decision', 'pipeline', 'registry', 'schema'} <= roots;
-          assert not ({'docs', 'models', 'tests', 'web'} & roots)"
+          assert 'cli' in roots;
+          assert not ({'api', 'decision', 'pipeline', 'registry', 'schema', 'models', 'tests', 'web'} & roots);
+          assert 'cli/modelspec/agent-bundle.json' in names;
+          assert not any(name.endswith(('/offline.py', '/snapshot.py', '/legacy.py')) for name in names)"
       - name: Install and run the wheel outside the checkout
-        env:
-          DATA_SPLIT_ENABLED: ${{ vars.DATA_SPLIT_ENABLED }}
         run: |
           repo_root="$PWD"
           wheel="$(realpath dist/*.whl)"
@@ -170,33 +170,12 @@ jobs:
           "$venv/bin/python" -m pip install "$wheel"
           export PATH="$venv/bin:$PATH"
           cd "$(mktemp -d)"
-          export MODELSPEC_CACHE="$PWD/cache"
           modelspec --help > modelspec-help.txt
           cat modelspec-help.txt
-          decide="$(grep -n -m1 'decide' modelspec-help.txt | cut -d: -f1)"
-          rank="$(grep -n -m1 'rank' modelspec-help.txt | cut -d: -f1)"
-          test "$decide" -lt "$rank"
           modelspec decide --help
-          modelspec verify --help >/dev/null
-          if modelspec verify accuracy --profile pr --config /nonexistent \
-            > verify-accuracy.txt 2>&1; then
-            echo "::error::the repository-only accuracy command ran from the wheel"
-            exit 1
-          fi
-          grep -Fq "No such command 'accuracy'" verify-accuracy.txt
-          # The data split (MODEL-247) removes the public snapshot this part
-          # downloads; the CLI is retired (MODEL-250), so the wheel's install
-          # and help checks above are what still apply.
-          if [ "$DATA_SPLIT_ENABLED" != "true" ]; then
-            modelspec snapshot fetch
-            "$venv/bin/python" "$repo_root/scripts/package_smoke_fixture.py" \
-              --cache "$MODELSPEC_CACHE" --key-id test-package-smoke
-            modelspec vocab >/dev/null
-            modelspec decide --template budget-coding >/dev/null
-          else
-            echo "Data split on: snapshot fetch and offline decide skipped." >> "$GITHUB_STEP_SUMMARY"
-          fi
-          python -c "from decision.registry import default; assert default().facets()"
+          modelspec help agent --json > modelspec-agent.json
+          modelspec key --json > modelspec-key.json
+          "$venv/bin/python" "$repo_root/scripts/package_smoke.py"
 
   required-pytest:
     name: Run pytest

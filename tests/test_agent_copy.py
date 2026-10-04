@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 import re
 from pathlib import Path
@@ -21,6 +22,19 @@ FREE = ("vocab", "model_info", "list_use_cases", "feedback")
 def test_the_committed_copy_is_what_the_registry_and_tiers_generate() -> None:
     assert agent_copy.OUT.read_text(encoding="utf-8") == agent_copy.render(agent_copy.copy()), (
         "mcp/src/agent-copy.json is stale or hand-edited: run python -m pipeline.agent_copy write")
+
+
+def test_the_cli_bundle_and_schemas_are_generated_from_the_published_sources() -> None:
+    bundle = json.loads(agent_copy.CLI_OUT.read_text(encoding="utf-8"))
+    assert bundle["text"] == agent_copy.cli_text()
+    assert bundle["clients"] == agent_copy.cli_clients()
+    assert bundle["entity"] == entity.ONE_SENTENCE
+    assert bundle["guide_version"] == COMMITTED["guide_version"]
+    for relative, expected in bundle["source_hashes"].items():
+        assert hashlib.sha256((ROOT / relative).read_bytes()).hexdigest() == expected, relative
+    assert json.loads(agent_copy.CLI_SCHEMA.read_text()) == agent_copy.cli_spec_schema()
+    assert agent_copy.CLI_FEEDBACK_SCHEMA.read_bytes() == (
+        ROOT / "schemas/feedback-v1.schema.json").read_bytes()
 
 
 def test_every_mcp_tool_description_and_the_instructions_come_from_the_copy() -> None:

@@ -22,8 +22,7 @@ from decision.engine import decide
 from decision.registry import default
 from decision.snapshot import build_from_repo, load_built_snapshot
 from decision.templates import load_catalogue
-from pipeline import brand, entity, landing_chrome
-from pipeline import social_cards
+from pipeline import agent_copy, brand, entity, landing_chrome, social_cards
 from pipeline.load import load_models
 
 SOFTWARE_ENGINEERING = "software_engineering"
@@ -368,9 +367,8 @@ def render(data: LandingData, *, variant: Literal["live", "holding"]) -> str:
                  if variant == "live" else '<span class="board-status">Board opening soon</span>')
     board_alt_compact = (f'<a class="button board-alt" href="{DECIDE_PATH}">Board</a>'
                          if variant == "live" else '<span class="board-status">Board opening soon</span>')
-    install = ('<p class="release-note">Use the hosted API or remote MCP Worker with an API key. '
-               '<a href="/auth.md">API access</a>. The CLI was retired on 2026-09-30.</p>')
-    guide_href = "/auth.md"
+    install = agent_copy.install_html()
+    guide_href = "/agents.md"
     canonical = '<link rel="canonical" href="https://modelspec.dev/">\n'
     robots = ''
     forward = ""
@@ -461,7 +459,7 @@ def render(data: LandingData, *, variant: Literal["live", "holding"]) -> str:
 <section class="teams" id="teams"><div><p class="kicker">For teams and buyers</p><h2>An analysis of alternatives, for every model choice.</h2><p>When someone asks why you're on that model, the answer is a record, not a hunch: requirements, criteria, the alternatives and why each fell away, the evidence, its uncertainty and the cost. Each part links to how it works.</p></div>
 <ol class="analysis">{analysis}</ol></section>
 <section class="agents" id="agents"><div><h2>The right model for every role in your agent stack.</h2>
-<p><span class="desktop-only">Most stacks hard-code the same expensive model into every role, because someone picked it last quarter. Give your agents the hosted API or remote MCP Worker. One call per role picks the model that fits it, explains why, and gives <a href="/method/#reproducible">the same answer every time for the same facts</a>.</span><span class="mobile-only">Give your agents the hosted API or remote MCP Worker. One call per role, explained, and the same answer every time for the same facts.</span></p>
+<p>One call per role picks the model that fits it, explains why, and gives <a href="/method/#reproducible">the same answer every time for the same facts</a>.</p>
 <div class="install-row">{install}<a href="{guide_href}">Read the agent guide</a></div><p class="note">Machine access requires an API key.</p></div>
 <div class="terminal"><div class="terminal-title">orchestrator — routing today's tickets</div><div class="routes">{routes}<div class="route-total"><span>same answer for the same spec and snapshot, every time</span><span>{len(data.routes)} of {data.template_count} templates · the others' top result has no published price</span></div></div></div></section>
 <section class="challenge" id="pick-a-model"><h2>Think you know the best coding model?</h2><form id="pick-form"><label for="model-pick"><span class="desktop-only">Put your pick on the board. See exactly where it lands, and why.</span><span class="mobile-only">Put your pick on the board and see where it lands.</span></label><div><select id="model-pick">{options}</select><button type="submit">Check my pick</button></div><output id="pick-result" aria-live="polite">Choose a model to compare with the top estimate.</output></form></section>

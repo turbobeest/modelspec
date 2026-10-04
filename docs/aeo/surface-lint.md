@@ -34,7 +34,7 @@ Owned surfaces must not contain these. Each rule names the decision behind it so
 | "knowledge graph" as a self-description | Positioning: an analysis of alternatives | A positioning change |
 | "router" as a self-description ("ModelSpec routes", "a model router that") | ModelSpec does not route requests | Never |
 | `x402`, "pay per call without a key", "Bazaar" | `X402_ENABLED` is false | The PR that turns x402 on (MODEL-261) |
-| The CLI described as current ("pip install modelspec", "the CLI lets you") | The CLI was retired on 2026-09-30 | Never |
+| `pip install modelspec`, an offline decision CLI, or a CLI data download | MODEL-307 ships the thin keyed `modelspec-dev` client; the `modelspec` package is unrelated | Never |
 | "sponsored", "featured partner", "promoted", "affiliate" | Neutrality commitment | Never |
 | A removed source, matched by `REMOVED_TEXT` in `decision/excluded.py` (reuse it; never restate the names) | MODEL-117 excluded sources | Never |
 | A named competitor product in a comparison | Comparisons are by category | A decision by Jamie |
@@ -51,6 +51,11 @@ Words such as "router" are allowed when they describe *other* tools, for example
 
 * The MCP card description and every MCP tool description come from the registry (MODEL-257).
 * Prices in tool descriptions equal `api/worker/tiers.json`.
+* Agent orientation, procurement and CLI recovery come from `pipeline/agent_copy.py`,
+  bundled with the guide version. The CLI, MCP and HTTP API are the three ways in.
+* Install paths are `uvx --from modelspec-dev modelspec`, `pipx install modelspec-dev`
+  and `pip install modelspec-dev`. Preserve the warning about the unrelated
+  `pip install modelspec` package and the no-data-download rule.
 
 ### 5. Freshness
 

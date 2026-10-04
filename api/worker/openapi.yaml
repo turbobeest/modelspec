@@ -8,7 +8,7 @@ info:
   version: '1.0'
   summary: Ranks AI models you can actually run, given your hardware, providers, use case and policy rules,
     and checks them against a compliance policy.
-  description: 'Start with the compact agent guide https://modelspec.dev/agents.md (version 1-8e2ea6b35b623427).
+  description: 'Start with the compact agent guide https://modelspec.dev/agents.md (version 1-fdf1f9a417cbfe12).
     Call decide early with a template-based Spec; refine from reading and recovery hints.
 
 
@@ -6011,4 +6011,4 @@ components:
       schema: {type: string, const: '<https://modelspec.dev/agents.md>; rel="describedby"'}
     AgentGuideVersion:
       description: Version of the byte-stable guide.
-      schema: {type: string, const: 1-8e2ea6b35b623427}
+      schema: {type: string, const: 1-fdf1f9a417cbfe12}

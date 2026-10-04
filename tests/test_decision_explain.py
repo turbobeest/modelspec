@@ -366,13 +366,10 @@ def test_none_latency_is_within_noise_of_bypassed_explanation(index, monkeypatch
 
 
 def test_cli_writes_full_html_from_local_snapshot(index, tmp_path, monkeypatch):
-    import sys
-
     from typer.testing import CliRunner
 
-    sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[1] / "cli"))
-    from modelspec import decide_cmd
-    from modelspec.cli import app
+    from cli.modelspec import decide_cmd
+    from cli.modelspec.legacy import app
 
     monkeypatch.setattr(decide_cmd, "_facet_lookup", lambda: facets)
     spec_path = tmp_path / "spec.yaml"

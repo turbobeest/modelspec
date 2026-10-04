@@ -120,8 +120,13 @@
     </div>
     <div class="feat">
       <span class="lab">03</span>
-      <h2>The hosted API</h2>
-      <p>The same graph over HTTP and MCP, for scripts and for the tools that build with you. Machine access is paid and online only. There is no CLI and no data download.</p>
+      <h2>CLI, MCP and HTTP</h2>
+      <!-- modelspec-cli:start -->
+      <p>Three ways in: keyed CLI, MCP and HTTP API. Decisions need a ModelSpec API key; only human lookup is free. No data download or local decision cache.</p><pre>uvx --from modelspec-dev modelspec
+pipx install modelspec-dev
+pip install modelspec-dev</pre><p>pip install modelspec is an unrelated project. Use modelspec-dev.</p>
+      <!-- modelspec-cli:end -->
+      <p><a href="/agents.md">Agent guide</a> · <a href="/openapi.yaml">OpenAPI</a> · <a href="/pricing/">Pricing and keys</a></p>
     </div>
   </section>
 
