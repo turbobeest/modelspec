@@ -296,7 +296,8 @@ def inspect_inventory(
             ]
             evidence["skill_config"] = skill_config
             # Codex states the effective trust only when the cwd has a .codex folder.
-            evidence["workspace_trust"] = "untrusted" if notices else "unreported"
+            # Both the discovery and the effective skills/list must state it.
+            evidence["workspace_trust"] = "untrusted" if len(notices) == 2 else "unreported"
             evidence["discovered_skills"] = [
                 {"name": row["name"], "scope": row["scope"], "enabled": row["enabled"]}
                 for row in rows

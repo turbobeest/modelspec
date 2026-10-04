@@ -272,6 +272,15 @@ def test_grok_allows_only_the_controls_own_mcp_server(isolated, allowed, config,
     assert [command[i + 1] for i, value in enumerate(command) if value == "--allow"] == [allowed]
 
 
+def test_grok_search_allows_web_fetch_by_its_permission_rule_name(config, tmp_path):
+    command = providers.build_command(
+        "grok", config["clis"]["grok"], tmp_path, "OK", tmp_path / "mcp.json", 8,
+        purpose="search",
+    )
+    allowed = [command[i + 1] for i, value in enumerate(command) if value == "--allow"]
+    assert "WebFetch" in allowed and "web_fetch" not in allowed
+
+
 def test_codex_controls_disable_account_apps_and_pin_the_workspace_untrusted(config, tmp_path):
     (tmp_path / "mcp.toml").write_text(homes.home_config("codex", config))
     args = providers.codex_config_args(config["clis"]["codex"], tmp_path / "mcp.toml")
@@ -753,7 +762,8 @@ def test_codex_doctor_fails_unless_codex_reports_the_workspace_untrusted(
 
 def test_codex_inventory_reports_untrusted_only_when_codex_says_so(config, tmp_path, monkeypatch):
     def skills(binary, controls, workspace, env, timeout, cfg, notices):
-        if planted:
+        calls.append(None)
+        if planted == "both" or planted == "discovery" and len(calls) == 1:
             notices.append("untrusted_project")
         return []
 
@@ -773,7 +783,8 @@ def test_codex_inventory_reports_untrusted_only_when_codex_says_so(config, tmp_p
     monkeypatch.setattr(docker.subprocess, "run", run)
     mcp = tmp_path / "mcp.toml"
     mcp.write_text(homes.home_config("codex", config, enabled=False))
-    for planted, expected in ((True, "untrusted"), (False, "unreported")):
+    for planted, expected in (("both", "untrusted"), ("discovery", "unreported"), (None, "unreported")):
+        calls = []
         result = inventory.inspect_inventory(
             "codex", config, tmp_path, docker.passed_environment(config), mcp, mcp_enabled=False
         )
@@ -1631,6 +1642,8 @@ CODEX_WARNING_STDERR = (
             "Unexpected Codex inventory RPC event",
         ),
         (None, CODEX_WARNING_STDERR + "WARN codex: unknown\n", "emitted diagnostics"),
+        # Unterminated, so only the check after the process stops can see it.
+        (None, "WARN codex: unterminated", "emitted diagnostics"),
         (None, CODEX_WARNING_STDERR.replace("/work/.codex", "/home/agent/.codex"), "emitted diagnostics"),
     ],
 )

@@ -280,7 +280,7 @@ activate customizations cause refusal. A vacuous positive control fails.
 | CLI | Effective inventory required for certification |
 | --- | --- |
 | Claude | Stream init lists skills, plugins, MCP servers and exposed tools; hook events are rejected. A standalone plugin listing is preliminary only. |
-| Codex | Native app-server `skills/list` discovery and effective disabling, `mcp list --json`, `plugin list --json`, `features list`, and `debug prompt-input`. Enabled plugins block certification even if `plugins={}` was requested. Names, enabled state and account scope are recorded when the CLI reports that scope. ChatGPT account apps reappear after login as enabled plugins; the controls also turn off the `apps`, `plugins` and `remote_plugin` features. `--sandbox danger-full-access` makes Codex persist a trust grant for `/work` in the login volume, so the controls pin `/work` untrusted; the only tolerated app-server diagnostic is Codex's exact notice that the planted `/work/.codex` was refused. The isolated canary fails unless that notice states `/work` is untrusted in the effective configuration. |
+| Codex | Native app-server `skills/list` discovery and effective disabling, `mcp list --json`, `plugin list --json`, `features list`, and `debug prompt-input`. Enabled plugins block certification even if `plugins={}` was requested. Names, enabled state and account scope are recorded when the CLI reports that scope. ChatGPT account apps reappear after login as enabled plugins; the controls also turn off the `apps`, `plugins` and `remote_plugin` features. Any manual Codex run in `/work` with `--sandbox danger-full-access` persists a trust grant for `/work` in the login volume (the harness never uses that mode), so the controls pin `/work` untrusted; the only tolerated app-server diagnostic is Codex's exact notice that the planted `/work/.codex` was refused. The isolated canary fails unless that notice states `/work` is untrusted in the effective configuration. |
 | Gemini | Native MCP, extension and skill listings plus its installed settings loader's effective enablement. Root-owned settings disable skills, hooks and context files without overriding the stored auth type. Five exact ModelSpec MCP lifecycle messages are recognized; unknown diagnostics still fail. |
 | Grok | `inspect --json` must show no active instruction files, user skills, plugins or hooks, and exactly the configured ModelSpec MCP servers. |
 
@@ -415,7 +415,7 @@ field records subscription versus API; comparing the old baseline also compares
 transport and model profiles. Perplexity has no CLI quiet-hours restriction.
 `--cli` selects the subscription engines; the default is all four. Only the
 selected CLIs need receipts, and each still fails closed without one. Every
-unselected engine's cells read `skipped (not certified)`, so the run is partial.
+unselected engine's cells read `skipped (not selected)`, so the run is partial.
 Late failures keep completed answers and costs, fill every unrun cell with
 `skipped (<reason>)`, and publish the partial reports. Partial runs identify
 themselves in the JSON and Markdown and do not establish a new `BASELINE`.

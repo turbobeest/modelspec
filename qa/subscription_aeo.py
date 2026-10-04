@@ -79,7 +79,7 @@ def run(inventory_path, engine_path, output, state, config, day, *, dry_run=Fals
         for name, cli in ENGINE_CLIS.items():
             if cli not in clis:
                 # Unselected engines keep every cell, each marked skipped, so the run is partial.
-                logs.append({"engine": name, "status": "skipped", "reason": "not certified"})
+                logs.append({"engine": name, "status": "skipped", "reason": "not selected"})
                 continue
             profile = profiles[name]
             status, reason = "complete", None

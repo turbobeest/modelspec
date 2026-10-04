@@ -181,7 +181,9 @@ def build_command(
         if not search:
             command.insert(command.index("--tools"), "--disable-web-search")
         else:
-            command[command.index("--single"):command.index("--single")] = ["--allow", "web_fetch", "--allow", "x_search"]
+            # Grok permission rules use Claude-style names; "web_fetch" matches nothing,
+            # and a denied fetch cancels the turn. Search tools run server-side.
+            command[command.index("--single"):command.index("--single")] = ["--allow", "WebFetch", "--allow", "x_search"]
         return command
     raise ValueError(f"Unknown CLI: {cli}")
 
@@ -202,7 +204,7 @@ def codex_config_args(settings: dict, mcp_file: Path) -> list[str]:
         "features.apps=false",
         "features.plugins=false",
         "features.remote_plugin=false",
-        # Running with full access persists a trust grant for /work in the login
+        # A manual full-access run persists a trust grant for /work in the login
         # volume, which would load the cwd's .codex config. Pin it untrusted.
         'projects={"/work"={trust_level="untrusted"}}',
         'cli_auth_credentials_store="file"',

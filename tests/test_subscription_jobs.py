@@ -352,7 +352,7 @@ def test_aeo_cli_selection_marks_unselected_engines_skipped_and_partial(config, 
     assert checked == [['claude', 'codex', 'grok']]
     assert calls == ['codex', 'claude', 'grok']
     rows = {r['engine']: r for r in map(json.loads, (tmp_path / 'runs/2026-10-04/runs.jsonl').read_text().splitlines())}
-    assert len(rows) == 5 and rows['gemini']['error'] == 'skipped (not certified)'
+    assert len(rows) == 5 and rows['gemini']['error'] == 'skipped (not selected)'
     log = json.loads((tmp_path / 'runs/2026-10-04/engines.json').read_text())
     assert log['partial'] is True
     assert {e['engine']: e['status'] for e in log['engines']}['gemini'] == 'skipped'
