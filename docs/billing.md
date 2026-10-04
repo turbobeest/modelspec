@@ -42,6 +42,10 @@ no determinations) plus a `credits.exhausted` field naming where to buy. When
 cap; the burst limit is configuration (`credits.burst_limit`, 60/min as
 shipped).
 
+The exempt row (paid, live data, null limits; `dpf` as shipped) draws no
+credits and never receives `credits.exhausted` or a 402 (MODEL-322). See
+[`api-access.md`](api-access.md).
+
 Keyless browser requests from the production site and internal preview are a
 separate case. With x402 on, they receive the free-tier answer and use the
 `free` row's daily and burst limits, keyed by a SHA-256 digest of

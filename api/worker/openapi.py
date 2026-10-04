@@ -1105,9 +1105,13 @@ def _x402() -> dict[str, Any]:
 def entitlement_follows_tier() -> bool:
     """True while `_entitlement` grants the store to a funded key or an unlimited paid row."""
     tree = ast.parse((SRC / "entry.py").read_text(encoding="utf-8"))
+    exempt = next((node for node in tree.body
+                   if isinstance(node, ast.FunctionDef) and node.name == "_exempt"), None)
     for node in ast.walk(tree):
         if isinstance(node, ast.FunctionDef) and node.name == "_entitlement":
             source = ast.unparse(node)
+            if exempt is not None and "_exempt(tier)" in source:
+                source += ast.unparse(exempt)
             grants = [r.value for r in ast.walk(node) if isinstance(r, ast.Return)
                       and isinstance(r.value, ast.Attribute)
                       and r.value.attr == "ENTITLEMENT_DETERMINATIONS"]

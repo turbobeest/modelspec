@@ -470,6 +470,10 @@ async def _load_determinations(env):
     return store
 
 
+def _exempt(tier) -> bool:
+    return tier is not None and tier.paid and tier.live_data and tier.unlimited
+
+
 def _entitlement(tier, *, funded: bool = False) -> str:
     """Which store this request may read. The one place the private store is granted.
 
@@ -481,7 +485,7 @@ def _entitlement(tier, *, funded: bool = False) -> str:
     """
     if funded:
         return policy_service.ENTITLEMENT_DETERMINATIONS
-    if tier is not None and tier.paid and tier.live_data and tier.unlimited:
+    if _exempt(tier):
         return policy_service.ENTITLEMENT_DETERMINATIONS
     return policy_service.ENTITLEMENT_PUBLIC
 
@@ -1235,6 +1239,9 @@ class Default(WorkerEntrypoint):
         units, expiry_days, buy = self._credit_params(path, payload)
 
         async def wrapped(*args, **kwargs):
+            if keyed and _exempt(args[1]):
+                trace.note("exempt")
+                return await produce(*args, **kwargs)
             cfg = x402.load_config(self.env)
             holder = x402.holder_from_key(api_key) if keyed else None
             unfunded = None
