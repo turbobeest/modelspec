@@ -317,6 +317,7 @@ body {
   --hero-ink: #eef2f7;
   --hero-muted: #c7d1e0;
   --hero-faint: #9fb0c8;
+  --handoffInk: #0b1426;
   background: var(--bg);
   font-family: var(--sans);
   color: var(--ink);
@@ -827,6 +828,22 @@ html:not([data-decide-theme="light"]) .capsule {
 .board-answer .board-answer-head .eyebrow { color: var(--ink2); }
 .board-answer-head { display: flex; flex-direction: column; gap: 7px; }
 .board-answer-head h2, .board-answer-head p { margin: 0; }
+.answer-assurances { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: 8px 16px; }
+.answer-price { font-weight: 600; }
+.answer-price small { margin-top: 4px; font-weight: 400; }
+.answer-trust { color: var(--ink2); font-size: 12px; text-decoration: underline; text-underline-offset: 3px; }
+.agent-handoff { padding: 20px; background: var(--hero-title); color: var(--handoffInk); display: grid; gap: 12px; min-width: 0; }
+.decide-app .agent-handoff h2 { font-size: 20px; }
+.agent-handoff p { line-height: 1.5; }
+.agent-handoff code { font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere; }
+.agent-formats, .agent-handoff-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
+.decide-app .agent-handoff button { background: transparent; color: var(--handoffInk); border: 1px solid var(--handoffInk); min-height: 36px; }
+.decide-app .agent-handoff button[aria-pressed="true"], .decide-app .agent-handoff .agent-copy { background: var(--handoffInk); color: var(--hero-title); font-weight: 600; }
+.agent-handoff pre { margin: 0; padding: 12px; border: 1px solid var(--handoffInk); max-height: 280px; min-width: 0; max-width: 100%; overflow: auto; white-space: pre; }
+.agent-handoff a, .decide-app .agent-handoff small { color: var(--handoffInk); }
+.agent-handoff a { text-underline-offset: 3px; }
+.decide-app .agent-handoff :focus-visible { outline: 2px solid var(--handoffInk); outline-offset: 3px; }
+.agent-copy-status { min-height: 1.5em; font-size: 12px; }
 .board-answer .board-ranked-answer { padding: 16px 12px 20px; }
 .board-ranked-answer > ol { list-style: none; margin: 0; padding: 0; }
 .board-class-heading { margin: 20px 0 6px; font: 600 14px var(--sans); color: var(--muted); }

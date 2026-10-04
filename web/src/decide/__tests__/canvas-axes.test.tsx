@@ -286,8 +286,8 @@ it("sends a separate preferred-capability request without changing the board ran
   expect(decodeBoardState(location.hash)?.canvas?.y).toBe(
     "capability:software_engineering",
   );
-  fireEvent.click(screen.getByRole("button", { name: "Share or give to my agent" }));
-  const share = screen.getByRole("dialog", { name: "Share or give to my agent" });
+  fireEvent.click(screen.getByRole("button", { name: "Share" }));
+  const share = screen.getByRole("dialog", { name: "Share" });
   fireEvent.click(within(share).getByRole("tab", { name: "Spec YAML" }));
   expect(within(share).getByRole("tabpanel", { name: "Spec YAML" })).toHaveTextContent(
     "# canvas y: capability:software_engineering",

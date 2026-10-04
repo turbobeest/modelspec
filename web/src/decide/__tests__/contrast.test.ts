@@ -23,7 +23,7 @@ it.each(["light", "dark"])(
     const tokens = Object.fromEntries(
       [
         ...(first + (theme === "dark" ? dark : "")).matchAll(
-          /--([\w]+):\s*(#[a-f0-9]{6})/gi,
+          /--([\w-]+):\s*(#[a-f0-9]{6})/gi,
         ),
       ].map((m) => [m[1], m[2]]),
     );
@@ -43,6 +43,7 @@ it.each(["light", "dark"])(
       ),
       ["must", "mustSoft"], ["mustInk", "must"],
       ["prefer", "preferSoft"], ["preferInk", "prefer"],
+      ["handoffInk", "hero-title"], ["hero-title", "handoffInk"],
     ];
     for (const [foreground, background] of pairs) {
       expect(tokens[foreground], foreground).toBeDefined();

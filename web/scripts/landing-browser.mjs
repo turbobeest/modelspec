@@ -55,6 +55,24 @@ async function assertRankedBoard(page) {
   await page.getByRole("heading", { name: "Which AI model fits your job?" }).waitFor();
   assert.equal(await page.locator("textarea").count(), 0);
   await page.locator(".board-ranked-answer li").first().waitFor();
+  await page.getByRole("button", { name: "Share", exact: true }).waitFor();
+  await page.getByRole("region", { name: "Give this to my agent" }).waitFor();
+  assert.equal(await page.locator(".agent-handoff").count(), 1);
+  const tiers = JSON.parse(fs.readFileSync(new URL("api/worker/tiers.json", root), "utf8"));
+  const rate = Math.min(...Object.values(tiers.billing.prices)
+    .filter((price) => !price.placeholder && price.credits).map((price) => price.usd / price.credits));
+  const cents = (rate * tiers.credits.weights["decide.summary"] * 100).toFixed(2);
+  await page.getByText(`Your agent gets this answer from ${cents}¢`, { exact: true }).waitFor();
+  await page.getByText(`A full explanation costs ${tiers.credits.weights["decide.full"]} credits.`, { exact: true }).waitFor();
+  assert.equal(await page.getByRole("link", { name: "no paid placement · sourced" }).getAttribute("href"), "https://modelspec.dev/legal/neutrality/");
+  const card = page.getByRole("region", { name: "Give this to my agent" });
+  const spec = JSON.parse(await card.getByLabel("Spec snippet").innerText());
+  assert.equal(spec.explain, "summary");
+  await card.getByRole("button", { name: "curl", exact: true }).click();
+  assert.match(await card.getByLabel("curl snippet").innerText(), /Authorization: Bearer \$MODELSPEC_API_KEY/);
+  await card.getByRole("button", { name: "CLI", exact: true }).click();
+  assert.equal(await card.getByLabel("CLI snippet").innerText(), "uvx --from modelspec-dev modelspec decide --spec spec.json");
+  await card.getByRole("button", { name: "Spec", exact: true }).click();
 }
 
 // MODEL-213: one lockup scale, 48px mark on desktop and 38px below 900px, never past the edge.

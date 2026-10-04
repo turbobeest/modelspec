@@ -260,8 +260,8 @@ it("explains the snapshot in the page header and share dialog", async () => {
   expect(snapshot).toHaveAttribute("tabindex", "0");
   expect(snapshot).toHaveAccessibleDescription("The data version this answer used");
 
-  fireEvent.click(screen.getByRole("button", { name: "Share or give to my agent" }));
-  const dialog = screen.getByRole("dialog", { name: "Share or give to my agent" });
+  fireEvent.click(screen.getByRole("button", { name: "Share" }));
+  const dialog = screen.getByRole("dialog", { name: "Share" });
   const sharedSnapshot = within(dialog).getByText(fixture.snapshot);
   expect(sharedSnapshot).toHaveAccessibleDescription("The data version this answer used");
 });
@@ -291,13 +291,13 @@ it("folds invalid refinement weights into the parent without losing board state"
   fireEvent.change(screen.getByLabelText("Add provider"), {
     target: { value: Object.keys(refinementVocabulary.providers)[0] },
   });
-  fireEvent.click(screen.getByRole("button", { name: "Share or give to my agent" }));
+  fireEvent.click(screen.getByRole("button", { name: "Share" }));
   const beforeFallbackShare = screen.getByRole("dialog");
   const beforeFallbackPermalink = within(beforeFallbackShare)
     .getByRole("tabpanel", { name: "Permalink" }).querySelector("pre")?.textContent;
   expect(decodeBoardState(new URL(beforeFallbackPermalink!).hash)?.selections["refinement.python"])
     .toEqual({ mode: "prefer", weight: 0.25 });
-  fireEvent.click(within(beforeFallbackShare).getByRole("button", { name: "Close Share or give to my agent" }));
+  fireEvent.click(within(beforeFallbackShare).getByRole("button", { name: "Close Share" }));
 
   expect(await within(python).findByText("Ranked by general software engineering: Python isn't ranked separately today.")).toBeInTheDocument();
   await waitFor(() => expect(screen.queryByText("Checking…")).not.toBeInTheDocument());
@@ -309,7 +309,7 @@ it("folds invalid refinement weights into the parent without losing board state"
     optimize: { weights: { software_engineering: 0.5 } },
   })]);
   expect(within(python).getByLabelText("Prefer")).toBeChecked();
-  fireEvent.click(screen.getByRole("button", { name: "Share or give to my agent" }));
+  fireEvent.click(screen.getByRole("button", { name: "Share" }));
   const share = screen.getByRole("dialog");
   const permalink = within(share).getByRole("tabpanel", { name: "Permalink" }).querySelector("pre")?.textContent;
   expect(permalink).toContain("#s=");
@@ -481,7 +481,7 @@ it("runs the designed App on a full hosted decision without fictional labels", a
   ]);
   expect(sent.explain).toBe("full");
 
-  fireEvent.click(screen.getByRole("button", { name: "Share or give to my agent" }));
+  fireEvent.click(screen.getByRole("button", { name: "Share" }));
   const dialog = screen.getByRole("dialog");
   fireEvent.click(within(dialog).getByRole("tab", { name: "API call" }));
   expect(dialog).toHaveTextContent("https://api.modelspec.dev/v1/decide");
@@ -605,7 +605,7 @@ it("does not render the Next-questions panel in the facet-board preview", async 
   expect(boardSpecs(fetch).every((body) => body.where.length === 0)).toBe(true);
   expect(sentSpecs(fetch).every((body) => Object.keys(body.optimize.weights).length > 0)).toBe(true);
 
-  fireEvent.click(screen.getByRole("button", { name: "Share or give to my agent" }));
+  fireEvent.click(screen.getByRole("button", { name: "Share" }));
   const share = screen.getByRole("dialog");
   fireEvent.click(within(share).getByRole("tab", { name: "Spec YAML" }));
   expect(share).toHaveTextContent("# unranked: no Prefer set");
@@ -614,7 +614,7 @@ it("does not render the Next-questions panel in the facet-board preview", async 
   // An empty board's YAML must parse to a valid spec: where is [], not null.
   expect(share).toHaveTextContent("where: []");
   expect(share).toHaveTextContent("optimize:");
-  fireEvent.click(within(share).getByRole("button", { name: "Close Share or give to my agent" }));
+  fireEvent.click(within(share).getByRole("button", { name: "Close Share" }));
 
   fireEvent.click(screen.getByRole("button", { name: /Size of workall Doesn't matter/ }));
   const context = screen.getByText("Context window").closest<HTMLElement>(".facet-row")!;
