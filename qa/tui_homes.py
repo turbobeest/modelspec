@@ -74,6 +74,10 @@ def home_config(cli: str, config: dict, *, enabled=True, server=None, with_token
                 item["bearer_token_env_var"] = token
             else:
                 item["headers"] = {"Authorization": "Bearer ${" + token + "}"}
+        if cli == "codex":
+            # Codex otherwise asks to approve each ModelSpec tool call, and exec's
+            # approval policy "never" turns every ask into a refusal.
+            item["default_tools_approval_mode"] = "approve"
         if cli == "claude":
             item["type"] = "http"
         if cli == "gemini":

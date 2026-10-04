@@ -170,6 +170,42 @@ def scenario_summary(report: dict) -> str:
     return "\n".join(lines) + "\n"
 
 
+def decide_health(report: dict) -> dict:
+    """Count decide answers the key could not fund or did not authorise."""
+    counts = {"decide_answers": 0, "credits_exhausted": 0, "partial": 0, "unauthorised": 0}
+    for run in report["runs"]:
+        for call in run.get("tool_calls") or []:
+            response = report["tool_responses"].get(call.get("response_ref"))
+            if call.get("name") != "decide" or not response:
+                continue
+            for block in response.get("content") or []:
+                try:
+                    envelope = json.loads(block.get("text", ""))
+                except (ValueError, TypeError, AttributeError):
+                    continue
+                if not isinstance(envelope, dict) or "status" not in envelope:
+                    continue
+                body = envelope.get("body") if isinstance(envelope.get("body"), dict) else {}
+                credits = body.get("credits") if isinstance(body.get("credits"), dict) else {}
+                counts["decide_answers"] += 1
+                counts["unauthorised"] += envelope.get("status") in (401, 402, 403)
+                counts["credits_exhausted"] += credits.get("exhausted") is True
+                counts["partial"] += body.get("status") == "partial"
+    return counts
+
+
+def require_funded_key(report: dict) -> dict:
+    """A keyed run whose decides were refused or unfunded measures the key, not the agents."""
+    health = decide_health(report)
+    if health["credits_exhausted"] or health["unauthorised"]:
+        raise ValueError(
+            f"ModelSpec key unusable: {health['credits_exhausted']} credits.exhausted and "
+            f"{health['unauthorised']} unauthorised of {health['decide_answers']} decide answers. "
+            "Report kept locally, not published; fix the key and rerun."
+        )
+    return health
+
+
 @contextmanager
 def report_worktree(repository: Path, job: str, day: str, root: Path):
     """Keep a failed publication for recovery; never switch the caller's branch."""
@@ -273,6 +309,10 @@ def main(argv=None) -> int:
                         raise ValueError("Scenario filter matched nothing")
                     report = scenario_report(config, selected, scenarios, state, day=args.date, dry_run=args.dry_run)
                     write_pair(output, args.date, report, agent_harness.markdown(report))
+                    if not args.dry_run and os.environ.get(config.get("mcp_token_env") or ""):
+                        health = require_funded_key(report)
+                        print("Decide answers: {decide_answers}; partial (wide intervals or "
+                              "coverage): {partial}; credits exhausted: 0.".format(**health))
                     return scenario_summary(report)
                 if args.job == "ux":
                     from qa.subscription_ux import run

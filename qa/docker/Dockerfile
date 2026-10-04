@@ -48,6 +48,9 @@ RUN case "$TARGETARCH" in arm64) arch=aarch64 ;; amd64) arch=x86_64 ;; *) exit 1
     && gzip -dc /tmp/grok.gz > /usr/local/bin/grok && chmod 755 /usr/local/bin/grok && rm /tmp/grok.gz
 LABEL modelspec.cli="grok" modelspec.cli_version="${CLI_VERSION}"
 USER agent
+# Isolated runs mount a generated config.toml here. An empty login volume is
+# seeded from the image, so the directory must already belong to agent.
+RUN mkdir -m 700 /home/agent/.grok
 
 FROM base AS claude
 USER root
@@ -85,3 +88,6 @@ RUN case "$TARGETARCH" in arm64) arch=aarch64 ;; amd64) arch=x86_64 ;; *) exit 1
     && chmod 755 /usr/local/bin/grok && rm /tmp/grok.gz
 LABEL modelspec.cli="grok" modelspec.cli_version="${CLI_VERSION}"
 USER agent
+# Isolated runs mount a generated config.toml here. An empty login volume is
+# seeded from the image, so the directory must already belong to agent.
+RUN mkdir -m 700 /home/agent/.grok

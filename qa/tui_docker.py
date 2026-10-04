@@ -15,6 +15,8 @@ from qa.docker.entrypoint import PASSED_ENV, refuse_vendor_auth
 
 DOCKER_CONTEXT = Path(__file__).with_name("docker")
 CONTAINER_HOME = Path("/home/agent")
+# Written per isolated Grok run; mounted read-only as its user configuration.
+GROK_USER_CONFIG = ".grok-user-config.toml"
 CONTAINER_WORK = Path("/work")
 LOGIN_ARGS = {
     "claude": ["claude", "auth", "login", "--claudeai"],
@@ -203,6 +205,13 @@ def container_command(
         ):
             raise ValueError("Only a private per-run workspace may be mounted at /work")
         argv += ["--mount", f"type=bind,source={resolved},target=/work"]
+        user_config = resolved / GROK_USER_CONFIG
+        if cli == "grok" and isolated and home and not interactive:
+            if not preview and (user_config.is_symlink() or not user_config.is_file()):
+                raise ValueError("Isolated Grok runs need their generated user configuration")
+            # Read-only at both paths: /work is a writable bind of the same file.
+            for target in ("/home/agent/.grok/config.toml", f"/work/{GROK_USER_CONFIG}"):
+                argv += ["--mount", f"type=bind,source={user_config},target={target},readonly"]
     for key in sorted(env):
         argv += ["--env", key]  # Values, especially the ModelSpec key, never enter argv.
     argv += [

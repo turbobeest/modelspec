@@ -241,7 +241,11 @@ the volume holds a Google login, it records the retirement as the reason.
 ### Container boundary and doctor
 
 Every native command gets a fresh `docker run --rm`. It sees its HOME volume and
-one private temporary workspace beneath `--out`, mounted at `/work`. It sees no
+one private temporary workspace beneath `--out`, mounted at `/work`. Isolated Grok
+commands also get a generated user configuration, mounted read-only over the
+volume's `~/.grok/config.toml` and at its `/work` path. It holds only the run's
+MCP servers. The trust gate disables project-layer MCP servers at run time, even
+though `inspect` lists them, so the project layer stays empty. It sees no
 host HOME, repository, configuration, Docker socket or shell environment. The
 container runs without added capabilities or host networking; ordinary outbound
 network access is allowed. Only `TERM`, `LANG` and `MODELSPEC_MCP_URL` are passed.
@@ -280,9 +284,9 @@ activate customizations cause refusal. A vacuous positive control fails.
 | CLI | Effective inventory required for certification |
 | --- | --- |
 | Claude | Stream init lists skills, plugins, MCP servers and exposed tools; hook events are rejected. A standalone plugin listing is preliminary only. |
-| Codex | Native app-server `skills/list` discovery and effective disabling, `mcp list --json`, `plugin list --json`, `features list`, and `debug prompt-input`. Enabled plugins block certification even if `plugins={}` was requested. Names, enabled state and account scope are recorded when the CLI reports that scope. ChatGPT account apps reappear after login as enabled plugins; the controls also turn off the `apps`, `plugins` and `remote_plugin` features. Any manual Codex run in `/work` with `--sandbox danger-full-access` persists a trust grant for `/work` in the login volume (the harness never uses that mode), so the controls pin `/work` untrusted; the only tolerated app-server diagnostic is Codex's exact notice that the planted `/work/.codex` was refused. The isolated canary fails unless that notice states `/work` is untrusted in the effective configuration. |
+| Codex | Native app-server `skills/list` discovery and effective disabling, `mcp list --json`, `plugin list --json`, `features list`, and `debug prompt-input`. Enabled plugins block certification even if `plugins={}` was requested. Names, enabled state and account scope are recorded when the CLI reports that scope. ChatGPT account apps reappear after login as enabled plugins; the controls also turn off the `apps`, `plugins` and `remote_plugin` features. Any manual Codex run in `/work` with `--sandbox danger-full-access` persists a trust grant for `/work` in the login volume (the harness never uses that mode), so the controls pin `/work` untrusted; the only tolerated app-server diagnostic is Codex's exact notice that the planted `/work/.codex` was refused. The isolated canary fails unless that notice states `/work` is untrusted in the effective configuration. The ModelSpec server alone sets `default_tools_approval_mode = "approve"`, because `exec` refuses every tool call that asks for approval. |
 | Gemini | Native MCP, extension and skill listings plus its installed settings loader's effective enablement. Root-owned settings disable skills, hooks and context files without overriding the stored auth type. Five exact ModelSpec MCP lifecycle messages are recognized; unknown diagnostics still fail. |
-| Grok | `inspect --json` must show no active instruction files, user skills, plugins or hooks, and exactly the configured ModelSpec MCP servers. |
+| Grok | `inspect --json` must show no active instruction files, user skills, plugins or hooks, and exactly the configured ModelSpec MCP servers. At run time, init must report each configured server `connected` or `pending` (Grok connects lazily), and any other server `disabled`. MCP tools are reached through `search_tool` (lookup only, allowed with MCP) and `use_tool("<server>__<tool>")`, which is recorded and checked as a call on that server. |
 
 Receipts use schema 4 under `<out>/.tui-state/<cli>/tui-isolation.json`. Earlier
 native-home receipts cannot authorize Docker runs. A failed or interrupted repeat
@@ -427,6 +431,52 @@ and opens a private PR. It never changes the main checkout's branch. A failed
 publication retains its worktree and prints its path for recovery. The shell
 wrapper used by schedules also runs the merged public engine from a fresh
 detached worktree. No reports or private task definitions enter this public tree.
+
+### ModelSpec key for agent runs
+
+Scenario agents call the keyed ModelSpec MCP, so a run without a key only
+measures how agents handle `missing_api_key`. Agent testing is a manual,
+semiannual proof run. Its key path is `qa.run_with_modelspec_key`, which Jamie
+starts under 1Password. The harness never reads or fetches the key.
+
+1. Copy `qa/subscription.env.op.example` to `qa/subscription.env.op` (ignored by
+   git). It points at vault AI-LAN, item "ModelSpec API - QA harness", field
+   `credential`; Jamie confirms the field name (`credential` or `password`). The
+   key must be live and funded. A `test_` key is refused, because sandbox
+   results are synthetic.
+2. From the stable checkout, after the three doctors pass:
+
+```sh
+cd ~/dev/modelspec
+op run --env-file=qa/subscription.env.op -- \
+  .venv/bin/python -m qa.run_with_modelspec_key \
+  scenarios --cli claude --cli codex --cli grok
+```
+
+The launcher keeps only `HOME`, `PATH`, `TERM` and `LANG`, adds `PYTHONPATH`
+and the key, and starts `qa.subscription_jobs` with `execve`. The key value is
+never in argv. The vendor-key guard then runs as usual. Agents receive the key
+only by environment name: Claude and Grok expand `${MODELSPEC_API_KEY}` in their
+MCP headers, and Codex uses `bearer_token_env_var`. Judges get no key.
+`redact()` removes every `MODELSPEC_*` value from reports. Add `--scenario`
+globs and `--max-runs-per-cli` to narrow a run.
+
+A keyed scenario run checks every decide answer before it publishes. Any
+`credits.exhausted` or 401/402/403 answer refuses publication: the report stays
+in the kept worktree and the job exits 2. While x402 and the human gate are off,
+an unfunded key still receives the full decision. The answer then carries the
+exhausted notice, and agents read it and may make extra calls or change course,
+so the run measures the key rather than the agents. The proof key is
+dpf tier (unmetered), so a clean run never shows the notice; if it appears, the
+wrong key is in use. A `status: partial` answer is legitimate (wide intervals or
+missing coverage), so it is only counted. Run one scenario per CLI first:
+
+```sh
+op run --env-file=qa/subscription.env.op -- \
+  .venv/bin/python -m qa.run_with_modelspec_key \
+  scenarios --cli claude --cli codex --cli grok \
+  --scenario budget-approved --max-runs-per-cli 3
+```
 
 ### First manual run and schedules
 
