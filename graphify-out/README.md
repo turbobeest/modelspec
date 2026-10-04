@@ -1,6 +1,6 @@
 # Bounded ModelSpec architecture graph
 
-This map covers the **24 files** listed in `scope.json`: the current handoff,
+This map covers the **20 files** listed in `scope.json`: the agent entry,
 the DPF CLI/export contract, ranking implementation, and their tests. It is
 not a repository-wide graph and it does **not** index `models/` or
 `benchmarks/`. Those trees are catalogue DATA. A card in git is not a

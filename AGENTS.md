@@ -12,7 +12,7 @@ its work. (Source: `pipeline/entity.py`.)
 ## Architecture
 
 - Sites: `pipeline/build.py` renders `modelspec.dev` on Cloudflare Pages from the frozen public data image in this repository, never from private data. With `DATA_SPLIT_ENABLED` on, `/api` keeps only `build.json`, `rank/profiles.json`, `rank/class-fit.json` and the feedback schema. No database on that path.
-- Fresh curated data lives in the private `turbobeest/modelspec-data`. Main deploys of the Worker embed exports built from it (`api/worker/vendor.py --data-dir`).
+- Fresh curated data lives in the private `turbobeest/modelspec-data`. While `DATA_SPLIT_ENABLED` is on, main deploys of the Worker embed exports built from it (`api/worker/vendor.py --data-dir`).
 - The Python Worker on `api.modelspec.dev` (`api/worker/`) serves `/v1/decide`, `/v1/compare`, `/v1/rank`, `/v1/policy-check`, `/v1/feedback`, `/v1/vocabulary`, `/v1/health`, billing and credits, and the visit gate that admits site visitors. Its state: Workers KV (private policy determinations, API-key records) and Durable Objects (credit ledger, human gate).
 - Machines come in through the keyed CLI (`cli/modelspec`, `modelspec-dev` on PyPI; a thin client with no data download) and the remote MCP, a separate TypeScript Worker at `api.modelspec.dev/mcp` (`mcp/`).
 - Cards and benchmark pages are DATA, not checked facts.
@@ -26,7 +26,7 @@ its work. (Source: `pipeline/entity.py`.)
 - Data freeze: fresh data goes to `modelspec-data`; the required "Data freeze" check fails a PR that changes frozen data here.
 - Only human lookup on the site is free. Machine access is keyed; treat any keyless machine path as a defect.
 - Agent, UX and judge testing runs on subscription CLIs (`qa/`). Any vendor API spend, including the manual speed probe, needs Jamie's yes for that run.
-- Production switches are Jamie's: the Worker vars `ACCESS_ENFORCED`, `BILLING_ENABLED`, `X402_ENABLED`, `X402_MAINNET`, `FEEDBACK_ENABLED`, `HUMAN_GATE_ENABLED`, `SIGNALS_ENABLED` (`api/worker/wrangler.jsonc`), the repo variables `SITE_MODE`, `DATA_SPLIT_ENABLED`, `VISIT_GATE_ENABLED`, and live Stripe keys. No `FEEDBACK` KV namespace is bound until he adopts `docs/design/feedback-privacy.md`.
+- Production switches are Jamie's, as Worker vars (`api/worker/wrangler.jsonc`) or repo variables: `ACCESS_ENFORCED`, `BILLING_ENABLED`, `X402_ENABLED`, `X402_MAINNET`, `FEEDBACK_ENABLED`, `HUMAN_GATE_ENABLED`, `VISIT_GATE_ENABLED`, `SIGNALS_ENABLED`, `SITE_MODE`, `DATA_SPLIT_ENABLED`, and live Stripe keys. No `FEEDBACK` KV namespace is bound until he adopts `docs/design/feedback-privacy.md`.
 - The sites stay on Cloudflare Pages (MODEL-3, Jamie).
 - Open PRs as draft until reviewed: `automerge.yml` queues every green non-draft PR from this repository, except PRs that touch workflows and the `data-lag/image` branch, which a human merges.
 - The feedback digest runs on the operator's machine, never in CI (repo and logs are public).

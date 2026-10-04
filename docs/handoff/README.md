@@ -16,10 +16,11 @@ Learned expensively during 2026-09-09/10.
    filenames produced **1,589 published "it fits" answers for hardware that
    cannot hold the weights**. A null is skipped by the fit layer; a wrong number
    is served. Hub `safetensors.total` only; never filenames.
-3–5. Moved to the binding rules in [`AGENTS.md`](../../AGENTS.md): limits in
-   code (a Firecrawl budget given in two prompts was burned 920 of 1,000; the
-   guard now lives in `scripts/benchmarks/fetch.py`), verify by running, and
-   check exit codes directly.
+3. *Moved to [`AGENTS.md`](../../AGENTS.md):* put limits in code. A Firecrawl
+   budget given in two prompts was burned 920 of 1,000; the guard now lives in
+   `scripts/benchmarks/fetch.py`.
+4. *Moved to `AGENTS.md`:* verify by running, not by reading a ticket.
+5. *Moved to `AGENTS.md`:* check exit codes directly, not through a pipe.
 6. **Record the exact variant.** Terminal-Bench 2.1 is not `terminal_bench`.
    SWE-bench Pro is not `swe_bench_verified`. MMLU-Pro is not MMLU.
 7. **A provider's table of a competitor's score is not primary evidence** for
