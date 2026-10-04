@@ -156,7 +156,8 @@ test("billing launch shows the key pointer when the Worker visit gate is off", a
   await expect(error).toContainText("requires an API key", { timeout: 20_000 });
   await expect(error).toContainText("https://modelspec.dev/pricing");
   await expect(page.getByLabel("Facet board answer")).toHaveCount(0);
-  const refused = calls.flatMap((call, index) => call.path === "/v1/decide" ? [responses[index]] : []);
+  // A data-split build reads /v1/vocabulary first and stops at its 401.
+  const refused = calls.flatMap((call, index) => ["/v1/decide", "/v1/vocabulary"].includes(call.path) ? [responses[index]] : []);
   expect(refused.length).toBeGreaterThan(0);
   expect(refused.every((response) => response.status === 401 && response.produced === 0)).toBe(true);
   expect(calls.some((call) => call.path === "/v1/visit-token")).toBe(false);
