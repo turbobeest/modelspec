@@ -90,7 +90,11 @@ def native_inventory(cli, *, mcp_enabled=True):
         "hooks": [],
         "verified": True,
         "error": None,
-        **({"skill_config": "skills.config=[]"} if cli == "codex" else {}),
+        **(
+            {"skill_config": "skills.config=[]", "workspace_trust": "untrusted"}
+            if cli == "codex"
+            else {}
+        ),
     }
 
 
@@ -724,6 +728,56 @@ def test_doctor_requires_positive_controls_and_isolated_inventory(
     result = harness.verify_isolation(cli, config, tmp_path)
     assert not result["supported"] and result["status"] == "unproven"
     assert not isolation.isolation_result(cli, config)["verified"]
+
+
+@pytest.mark.parametrize("trust", ["unreported", "trusted", None])
+def test_codex_doctor_fails_unless_codex_reports_the_workspace_untrusted(
+    trust, config, tmp_path, monkeypatch
+):
+    def fake(name, cfg, workspace, prompt, *, mcp_enabled, isolated=True, probe_mcp=None):
+        if not isolated:
+            marker = re.search(
+                r"MODEL301_CANARY_\w+", (probe_mcp.parent.parent / "AGENTS.md").read_text()
+            )[0]
+            return execution("codex", answer=marker)
+        result = execution("codex", answer="OK")
+        result.inventory["workspace_trust"] = trust
+        return result
+
+    monkeypatch.setattr(isolation, "_execute", fake)
+    result = harness.verify_isolation("codex", config, tmp_path)
+    assert result["positive_control"]["cwd"]["instructions"]
+    assert result["isolated_control"] == {"cwd": False}
+    assert not result["verified"]
+
+
+def test_codex_inventory_reports_untrusted_only_when_codex_says_so(config, tmp_path, monkeypatch):
+    def skills(binary, controls, workspace, env, timeout, cfg, notices):
+        if planted:
+            notices.append("untrusted_project")
+        return []
+
+    monkeypatch.setattr(inventory, "_codex_skills", skills)
+
+    def run(argv, **kwargs):
+        if argv[-3:] == ["mcp", "list", "--json"]:
+            value = []
+        elif argv[-3:] == ["plugin", "list", "--json"]:
+            value = {"installed": [], "available": []}
+        elif argv[-2:] == ["features", "list"]:
+            return subprocess.CompletedProcess(argv, 0, "hooks stable false\n", "")
+        else:
+            value = [{"type": "message", "content": [{"type": "input_text", "text": "context"}]}]
+        return subprocess.CompletedProcess(argv, 0, json.dumps(value), "")
+
+    monkeypatch.setattr(docker.subprocess, "run", run)
+    mcp = tmp_path / "mcp.toml"
+    mcp.write_text(homes.home_config("codex", config, enabled=False))
+    for planted, expected in ((True, "untrusted"), (False, "unreported")):
+        result = inventory.inspect_inventory(
+            "codex", config, tmp_path, docker.passed_environment(config), mcp, mcp_enabled=False
+        )
+        assert result["workspace_trust"] == expected
 
 
 @pytest.mark.parametrize("key", ["skills", "plugins", "mcp_servers", "tools"])

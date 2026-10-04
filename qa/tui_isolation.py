@@ -384,7 +384,12 @@ def verify_isolation(cli: str, config: dict, output: Path, *, before_start=lambd
                             mcp_enabled=False,
                         )
                         runs.append(probe_record(negative, location, "isolated"))
-                        isolated[location] = canary_passed(negative, cli, marker, hook, mcp)
+                        isolated[location] = canary_passed(negative, cli, marker, hook, mcp) and (
+                            # The planted .codex folder makes Codex state the effective
+                            # trust for /work; anything but untrusted fails the pin.
+                            cli != "codex"
+                            or (negative.inventory or {}).get("workspace_trust") == "untrusted"
+                        )
                         if cli == "claude":
                             inventory["checks"].append(
                                 {"location": location, "passed": isolated[location]}

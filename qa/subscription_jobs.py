@@ -260,7 +260,7 @@ def main(argv=None) -> int:
         state = tui_harness.private_output(args.state_dir)
         with job_lock(state):
             if not args.dry_run:
-                needed = list(dict.fromkeys(selected + [config["judges"][c] for c in selected])) if args.job != "aeo" else list(CLIS)
+                needed = list(dict.fromkeys(selected + [config["judges"][c] for c in selected])) if args.job != "aeo" else selected
                 require_ready(config, needed, state)
             repository = args.business_repo if args.job == "aeo" else args.data_repo
 
@@ -278,7 +278,7 @@ def main(argv=None) -> int:
                     from qa.subscription_ux import run
                     return run(tree if not args.dry_run else repository, output, state, config, selected, args.base_url, args.date, dry_run=args.dry_run)
                 from qa.subscription_aeo import run
-                return run(tree / "aeo/prompts.yaml", tree / "aeo/engines.yaml", output, state, config, args.date, dry_run=args.dry_run)
+                return run(tree / "aeo/prompts.yaml", tree / "aeo/engines.yaml", output, state, config, args.date, dry_run=args.dry_run, clis=selected)
 
             if args.dry_run:
                 tree = state / "dry-run" / args.job
@@ -286,7 +286,7 @@ def main(argv=None) -> int:
                 if args.job == "aeo":
                     # Only inventory/config are read from the private checkout; nothing is mutated there.
                     from qa.subscription_aeo import run
-                    run(repository / "aeo/prompts.yaml", repository / "aeo/engines.yaml", tree / "aeo/runs", state, config, args.date, dry_run=True)
+                    run(repository / "aeo/prompts.yaml", repository / "aeo/engines.yaml", tree / "aeo/runs", state, config, args.date, dry_run=True, clis=selected)
                 else:
                     execute(tree)
                 print(f"Dry-run reports: {tree}. No CLI, git mutation, or PR call.")

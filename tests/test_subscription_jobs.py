@@ -332,6 +332,33 @@ def test_aeo_never_reads_four_vendor_keys_and_keeps_perplexity_adapter(config, t
     assert (tmp_path / 'runs/BASELINE').read_text() == '2026-10-04\n'
 
 
+def test_aeo_cli_selection_marks_unselected_engines_skipped_and_partial(config, tmp_path, monkeypatch):
+    settings = aeo_files(tmp_path, config)
+    prompts = [{'id': 'test', 'text': 'Choose a model', 'cluster': 'category', 'success': 'mentioned'}]
+    monkeypatch.setattr(aeo.inventory, 'load', lambda p: prompts)
+    checked = []
+    monkeypatch.setattr(aeo, 'require_ready', lambda cfg, clis, state: checked.append(clis) or ready())
+    calls = []
+    def launch(cli, cfg, workspace, prompt, **kw):
+        calls.append(cli)
+        result = execution('Use [ModelSpec](https://modelspec.dev/method/).')
+        result.transcript.other_tool_calls = [{'name': next(n for n in providers.SEARCH_TOOLS[cli] if n not in {'WebFetch', 'web_fetch'}), 'arguments': {'query': 'choose'}, 'result_observed': True, 'result': {'isError': False}}]
+        return result
+    monkeypatch.setattr(harness, 'launch', launch)
+    monkeypatch.setattr(aeo.engines, 'op_read', lambda ref: 'dummy')
+    monkeypatch.setattr(aeo.engines, 'perplexity_call', lambda model, secret, prompt, cap: Answer('ModelSpec', 'sonar', reported_cost_usd=.007))
+    aeo.run(tmp_path / 'prompts.yaml', settings, tmp_path / 'runs', tmp_path, config, '2026-10-04',
+            clis=['grok', 'claude', 'codex'])
+    assert checked == [['claude', 'codex', 'grok']]
+    assert calls == ['codex', 'claude', 'grok']
+    rows = {r['engine']: r for r in map(json.loads, (tmp_path / 'runs/2026-10-04/runs.jsonl').read_text().splitlines())}
+    assert len(rows) == 5 and rows['gemini']['error'] == 'skipped (not certified)'
+    log = json.loads((tmp_path / 'runs/2026-10-04/engines.json').read_text())
+    assert log['partial'] is True
+    assert {e['engine']: e['status'] for e in log['engines']}['gemini'] == 'skipped'
+    assert not (tmp_path / 'runs/BASELINE').exists()
+
+
 def test_aeo_perplexity_runs_after_cli_jobs_cross_0800(config, tmp_path, monkeypatch):
     config['_quiet_hours'] = True
     settings = aeo_files(tmp_path, config)

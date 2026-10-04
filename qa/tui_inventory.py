@@ -141,8 +141,12 @@ def _codex_skills(
     env: dict,
     timeout: float,
     config: dict,
+    notices: list | None = None,
 ) -> list[dict]:
-    """Query the CLI's local inventory RPC without starting a model turn."""
+    """Query the CLI's local inventory RPC without starting a model turn.
+
+    Codex's untrusted-project warning is appended to notices when it arrives.
+    """
     process = popen_cli(
         "codex", config, workspace, [binary, *controls, "app-server", "--listen", "stdio://"], env
     )
@@ -169,10 +173,13 @@ def _codex_skills(
                             if "error" in message or "result" not in message:
                                 raise ValueError("Codex skills inventory RPC failed")
                             return message["result"]
-                        if message.get("method") not in (
+                        if codex_untrusted_project_warning(message):
+                            if notices is not None:
+                                notices.append("untrusted_project")
+                        elif message.get("method") not in (
                             "skills/changed",
                             "remoteControl/status/changed",
-                        ) and not codex_untrusted_project_warning(message):
+                        ):
                             raise ValueError("Unexpected Codex inventory RPC event")
                     remaining = deadline - monotonic()
                     if remaining <= 0:
@@ -264,8 +271,9 @@ def inspect_inventory(
                 "exit_code": None,
             }
             checks.append(discovery)
+            notices = []
             rows = _codex_skills(
-                binary, controls, workspace, env, config["timeout_seconds"], config
+                binary, controls, workspace, env, config["timeout_seconds"], config, notices
             )
             discovery["exit_code"] = 0
             skill_config = _codex_skill_config(rows)
@@ -277,7 +285,7 @@ def inspect_inventory(
             }
             checks.append(effective_check)
             effective_skills = _codex_skills(
-                binary, controls, workspace, env, config["timeout_seconds"], config
+                binary, controls, workspace, env, config["timeout_seconds"], config, notices
             )
             effective_check["exit_code"] = 0
             _codex_skill_config(effective_skills)
@@ -287,6 +295,8 @@ def inspect_inventory(
                 if row["enabled"] and row["scope"] != "system"
             ]
             evidence["skill_config"] = skill_config
+            # Codex states the effective trust only when the cwd has a .codex folder.
+            evidence["workspace_trust"] = "untrusted" if notices else "unreported"
             evidence["discovered_skills"] = [
                 {"name": row["name"], "scope": row["scope"], "enabled": row["enabled"]}
                 for row in rows

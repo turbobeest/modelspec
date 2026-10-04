@@ -58,10 +58,11 @@ def answer_from_execution(cli, execution):
     )
 
 
-def run(inventory_path, engine_path, output, state, config, day, *, dry_run=False):
+def run(inventory_path, engine_path, output, state, config, day, *, dry_run=False, clis=CLIS):
     raw, perplexity = engine_config(engine_path, config, dry_run=dry_run)
     prompts = inventory.load(inventory_path)
-    ready = {} if dry_run else require_ready(config, list(CLIS), state)
+    clis = [cli for cli in CLIS if cli in clis]
+    ready = {} if dry_run else require_ready(config, clis, state)
     runner = tui_harness.Runner(config, state, ready)
     out = output / day
     out.mkdir(parents=True, exist_ok=True)
@@ -76,6 +77,10 @@ def run(inventory_path, engine_path, output, state, config, day, *, dry_run=Fals
     failure_reason = None
     try:
         for name, cli in ENGINE_CLIS.items():
+            if cli not in clis:
+                # Unselected engines keep every cell, each marked skipped, so the run is partial.
+                logs.append({"engine": name, "status": "skipped", "reason": "not certified"})
+                continue
             profile = profiles[name]
             status, reason = "complete", None
             for prompt in prompts:
