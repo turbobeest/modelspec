@@ -312,8 +312,9 @@ def test_the_privacy_statement_describes_the_keyed_cli_as_distributed() -> None:
     import tomllib
 
     before = flat(PRIVACY.split("## Not yet live", 1)[0])
-    for claim in ("reads none of your provider API keys", "connects only to `api.modelspec.dev`",
-                  "it sends no telemetry", "`modelspec auth set`", "only your user can read",
+    for claim in ("never uses, sends or logs your provider API keys", "connects only to `api.modelspec.dev`",
+                  "it sends no telemetry", "`modelspec auth set`", "on macOS and Linux only your user can read it",
+                  "on Windows it has your profile folder's permissions", "copies unchanged and never sends anywhere",
                   "`modelspec setup mcp --write`", "saves a backup of that file",
                   "the current CLI has none"):
         assert claim in before, claim

@@ -456,15 +456,17 @@ do not meter, resell or bill any of it. This is an architectural boundary rather
 than a retention promise: there is no path by which that data could reach us.
 
 The ModelSpec CLI (`modelspec`, Python package `modelspec-dev`, version 0.3.0
-and later) runs on your machine and reads none of your provider API keys. They
-stay with you. It connects only to `api.modelspec.dev`, only when you run a
+and later) runs on your machine and never uses, sends or logs your provider API
+keys. They stay with you. It connects only to `api.modelspec.dev`, only when you run a
 command that needs the service, and it sends no telemetry.
 
 It keeps files on your machine only when you ask. If you save your ModelSpec
 API key with `modelspec auth set`, it is kept in a file under your user
-configuration directory that only your user can read. If you let
+configuration directory: on macOS and Linux only your user can read it, and on
+Windows it has your profile folder's permissions. If you let
 `modelspec setup mcp --write` change an AI client's configuration, it first
-saves a backup of that file beside it. We never receive either file. Versions up
+saves a backup of that file beside it; that file may hold other keys, which the
+CLI copies unchanged and never sends anywhere. We never receive either file. Versions up
 to 0.2.0, now withdrawn, could also keep an opt-in local log of outcomes; the
 current CLI has none.
 

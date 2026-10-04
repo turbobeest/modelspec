@@ -97,7 +97,7 @@ supported, and never echoes the key. There is no key
 argument to put in command history. API keys travel only in an Authorization
 header, never a URL. The client follows no redirects.
 
-No telemetry. The CLI never reads provider API keys. It writes no decision,
+No telemetry. The CLI never uses, sends or logs your provider API keys. It writes no decision,
 vocabulary, outcome log, or snapshot, and sends no installation or machine
 identifier. Legal files remain subject to Jamie's approval; the MODEL-307 report
 lists sentences that describe the former CLI and need review before release.

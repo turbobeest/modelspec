@@ -56,7 +56,7 @@ ACCESS = (
     "Machine data access needs a ModelSpec API key; only human lookup is free. "
     "No data download or local decision cache."
 )
-CLI_PRIVACY = "No telemetry. The CLI never reads provider API keys."
+CLI_PRIVACY = "No telemetry. The CLI never uses, sends or logs your provider API keys."
 SPEC_GUIDANCE = (
     "Call decide early with a template-based Spec; refine from reading and recovery hints. "
     "Call decide after at most one vocab lookup before the first decision. "
