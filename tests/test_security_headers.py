@@ -38,6 +38,8 @@ def test_the_policy_allows_exactly_the_named_origins(tmp_path: Path) -> None:
     assert policy["connect-src"] == "'self' https://api.modelspec.dev https://cloudflareinsights.com https://challenges.cloudflare.com"
     assert policy["frame-src"] == "https://challenges.cloudflare.com"
     assert "https://challenges.cloudflare.com" in policy["script-src"].split()
+    # The pricing page posts to the API, which redirects to Stripe Checkout (go-live, 2026-10-04).
+    assert policy["form-action"] == "'self' https://api.modelspec.dev https://checkout.stripe.com"
     assert policy["frame-ancestors"] == "'none'"
     assert policy["object-src"] == "'none'"
     assert policy["script-src"].endswith("https://static.cloudflareinsights.com")
