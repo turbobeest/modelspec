@@ -150,6 +150,10 @@ export function VisitGate() {
     return () => { active = false; if (widget !== null) window.turnstile?.remove(widget); };
   }, [pending]);
   return <section className="visit-gate" aria-label="Visit verification">
+    {pending && <>
+      <p className="visit-gate-prompt">One quick check keeps this free</p>
+      <p className="visit-gate-preview">For example: require open weights, prefer lower cost, and see which models fit.</p>
+    </>}
     {error && <p role="alert">{error}</p>}
     <div ref={container} />
   </section>;

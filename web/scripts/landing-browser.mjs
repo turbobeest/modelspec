@@ -51,7 +51,7 @@ function recordBrowserFailures(page) {
 }
 
 async function assertRankedBoard(page) {
-  await page.getByRole("heading", { name: "Set what matters across any/all facets. Try a template as a fast track. Watch the field narrow." }).waitFor();
+  await page.getByRole("heading", { name: "Which AI model fits your job?" }).waitFor();
   assert.equal(await page.locator("textarea").count(), 0);
   await page.locator(".board-ranked-answer li").first().waitFor();
 }

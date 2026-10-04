@@ -81,7 +81,7 @@ it("opens a composer-era permalink as a populated board with migration notes", a
   vi.stubGlobal("fetch", routeFetch({ decide: (init) => json(decisionFor(init)) }));
   history.replaceState(null, "", `/decide/?theme=dark&layout=table${LEGACY_PERMALINKS.budgetCoding}`);
   render(<App />);
-  await screen.findByRole("heading", { name: "Set what matters across any/all facets. Try a template as a fast track. Watch the field narrow." });
+  await screen.findByRole("heading", { name: "Which AI model fits your job?" });
   expect(screen.queryByLabelText("Describe your task")).not.toBeInTheDocument();
   expect(screen.queryByRole("group", { name: "Layout" })).not.toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Light mode" })).toBeInTheDocument();
@@ -116,7 +116,7 @@ it("migrates a composer-era permalink navigated to after vocabulary loads", asyn
   const fetch = routeFetch({ decide: (init) => json(decisionFor(init)) });
   vi.stubGlobal("fetch", fetch);
   render(<App />);
-  await screen.findByRole("heading", { name: "Set what matters across any/all facets. Try a template as a fast track. Watch the field narrow." });
+  await screen.findByRole("heading", { name: "Which AI model fits your job?" });
   const requestsBeforeNavigation = sentSpecs(fetch).length;
 
   history.pushState(null, "", `/decide/${LEGACY_PERMALINKS.unsupportedParts}`);
@@ -223,6 +223,41 @@ function rankedFor(sent: { optimize?: { weights?: Record<string, number> } }, de
 beforeEach(() => history.replaceState(null, "", "/decide/"));
 afterEach(() => vi.unstubAllGlobals());
 
+it.each(["facet", "template"] as const)("offers answer feedback only after a %s interaction in this visit", async (interaction) => {
+  vi.stubGlobal("fetch", routeFetch({ decide: (init) => json(decisionFor(init)) }));
+  const app = render(<DesignedApp />);
+  await screen.findByLabelText("Facet board answer");
+  expect(screen.queryByRole("region", { name: "Was this answer reliable?" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Reset all" }));
+  expect(screen.queryByRole("region", { name: "Was this answer reliable?" })).not.toBeInTheDocument();
+
+  if (interaction === "facet") {
+    fireEvent.click(within(capabilityRow("Software engineering")).getByLabelText("Prefer"));
+  } else {
+    fireEvent.click(await findTemplateCell(BUDGET_CODING));
+  }
+  expect(await screen.findByRole("region", { name: "Was this answer reliable?" })).toBeInTheDocument();
+  app.unmount();
+
+  render(<DesignedApp />);
+  await screen.findByLabelText("Facet board answer");
+  expect(screen.queryByRole("region", { name: "Was this answer reliable?" })).not.toBeInTheDocument();
+});
+
+it("explains the snapshot in the page header and share dialog", async () => {
+  vi.stubGlobal("fetch", routeFetch({ decide: (init) => json(decisionFor(init)) }));
+  render(<DesignedApp />);
+  await screen.findByLabelText("Facet board answer");
+  const snapshot = screen.getByText(fixture.snapshot);
+  expect(snapshot).toHaveAttribute("tabindex", "0");
+  expect(snapshot).toHaveAccessibleDescription("The data version this answer used");
+
+  fireEvent.click(screen.getByRole("button", { name: "Share or give to my agent" }));
+  const dialog = screen.getByRole("dialog", { name: "Share or give to my agent" });
+  const sharedSnapshot = within(dialog).getByText(fixture.snapshot);
+  expect(sharedSnapshot).toHaveAccessibleDescription("The data version this answer used");
+});
+
 it("folds invalid refinement weights into the parent without losing board state", async () => {
   let unsupportedRequests = 0;
   const fetch = routeFetch({
@@ -248,13 +283,13 @@ it("folds invalid refinement weights into the parent without losing board state"
   fireEvent.change(screen.getByLabelText("Add provider"), {
     target: { value: Object.keys(refinementVocabulary.providers)[0] },
   });
-  fireEvent.click(screen.getByRole("button", { name: "Share or act" }));
+  fireEvent.click(screen.getByRole("button", { name: "Share or give to my agent" }));
   const beforeFallbackShare = screen.getByRole("dialog");
   const beforeFallbackPermalink = within(beforeFallbackShare)
     .getByRole("tabpanel", { name: "Permalink" }).querySelector("pre")?.textContent;
   expect(decodeBoardState(new URL(beforeFallbackPermalink!).hash)?.selections["refinement.python"])
     .toEqual({ mode: "prefer", weight: 0.25 });
-  fireEvent.click(within(beforeFallbackShare).getByRole("button", { name: "Close Share or act" }));
+  fireEvent.click(within(beforeFallbackShare).getByRole("button", { name: "Close Share or give to my agent" }));
 
   expect(await within(python).findByText("Ranked by general software engineering: Python isn't ranked separately today.")).toBeInTheDocument();
   await waitFor(() => expect(screen.queryByText("Checking…")).not.toBeInTheDocument());
@@ -266,7 +301,7 @@ it("folds invalid refinement weights into the parent without losing board state"
     optimize: { weights: { software_engineering: 0.5 } },
   })]);
   expect(within(python).getByLabelText("Prefer")).toBeChecked();
-  fireEvent.click(screen.getByRole("button", { name: "Share or act" }));
+  fireEvent.click(screen.getByRole("button", { name: "Share or give to my agent" }));
   const share = screen.getByRole("dialog");
   const permalink = within(share).getByRole("tabpanel", { name: "Permalink" }).querySelector("pre")?.textContent;
   expect(permalink).toContain("#s=");
@@ -438,7 +473,7 @@ it("runs the designed App on a full hosted decision without fictional labels", a
   ]);
   expect(sent.explain).toBe("full");
 
-  fireEvent.click(screen.getByRole("button", { name: "Share or act" }));
+  fireEvent.click(screen.getByRole("button", { name: "Share or give to my agent" }));
   const dialog = screen.getByRole("dialog");
   fireEvent.click(within(dialog).getByRole("tab", { name: "API call" }));
   expect(dialog).toHaveTextContent("https://api.modelspec.dev/v1/decide");
@@ -562,7 +597,7 @@ it("does not render the Next-questions panel in the facet-board preview", async 
   expect(boardSpecs(fetch).every((body) => body.where.length === 0)).toBe(true);
   expect(sentSpecs(fetch).every((body) => Object.keys(body.optimize.weights).length > 0)).toBe(true);
 
-  fireEvent.click(screen.getByRole("button", { name: "Share or act" }));
+  fireEvent.click(screen.getByRole("button", { name: "Share or give to my agent" }));
   const share = screen.getByRole("dialog");
   fireEvent.click(within(share).getByRole("tab", { name: "Spec YAML" }));
   expect(share).toHaveTextContent("# unranked: no Prefer set");
@@ -571,7 +606,7 @@ it("does not render the Next-questions panel in the facet-board preview", async 
   // An empty board's YAML must parse to a valid spec: where is [], not null.
   expect(share).toHaveTextContent("where: []");
   expect(share).toHaveTextContent("optimize:");
-  fireEvent.click(within(share).getByRole("button", { name: "Close Share or act" }));
+  fireEvent.click(within(share).getByRole("button", { name: "Close Share or give to my agent" }));
 
   fireEvent.click(screen.getByRole("button", { name: /Size of workall Doesn't matter/ }));
   const context = screen.getByText("Context window").closest<HTMLElement>(".facet-row")!;
@@ -602,15 +637,19 @@ it("renders the qualifying models from the live empty-board decision alphabetica
   expect(modelNames).toHaveLength(22);
   expect(modelNames).toEqual([...modelNames].sort((left, right) => left.localeCompare(right)));
   expect(within(answer).queryByText(/no capability data|no evidence for/i)).not.toBeInTheDocument();
-  const tableRows = screen.getByLabelText("Decision table").querySelectorAll("tbody tr");
-  expect(within(screen.getByLabelText("Decision table")).queryByRole("columnheader", { name: /#/ }))
+  const table = screen.getByLabelText("Decision table");
+  const tableRows = table.querySelectorAll("tbody tr");
+  expect(within(table).queryByRole("columnheader", { name: /#/ }))
     .not.toBeInTheDocument();
   expect(tableRows[0]?.querySelector("td")).toHaveTextContent("Claude Fable 5");
   const providers = [...tableRows].map((row) => row.children[1]?.textContent ?? "");
-  const firstUnavailable = providers.indexOf("Provider not available");
-  expect(firstUnavailable).toBeGreaterThan(0);
-  expect(providers.slice(firstUnavailable).every((provider) => provider === "Provider not available"))
-    .toBe(true);
+  expect(providers).not.toContain("Provider not available");
+  const withoutProvider = within(table).getByRole("button", { name: "Show 10 without a provider" });
+  expect(withoutProvider).toHaveAttribute("aria-expanded", "false");
+  fireEvent.click(withoutProvider);
+  expect(within(table).getByRole("button", { name: "Hide 10 without a provider" }))
+    .toHaveAttribute("aria-expanded", "true");
+  expect(table.querySelectorAll("tbody tr")).toHaveLength(tableRows.length + 10);
 
   const capability = capabilityRow("Software engineering");
   fireEvent.click(within(capability).getByLabelText("Prefer"));
@@ -683,6 +722,7 @@ it("keeps capability-unknown models outside the ranked board answer", async () =
   expect(mayGroup.querySelector(".board-capability")).toBeNull();
 
   const table = screen.getByRole("region", { name: "Decision table" });
+  fireEvent.click(within(table).getByRole("button", { name: "Show 10 without a provider" }));
   for (const candidate of liveSwePrefer.may_qualify) {
     const name = realVocabulary.models[candidate.model]?.display_name ?? candidate.model.split("/").at(-1)!;
     const row = within(table).getByRole("button", { name }).closest("tr")!;
@@ -969,10 +1009,10 @@ it("treats the legacy demo flag as the public board", async () => {
   vi.stubGlobal("fetch", fetch);
   history.replaceState(null, "", "/decide/?demo=1");
   render(<App />);
-  expect(await screen.findByRole("heading", { name: "Set what matters across any/all facets. Try a template as a fast track. Watch the field narrow." })).toBeInTheDocument();
-  // MODEL-264: the measured agent-speed headline leads, the board line follows.
-  expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("…in about 0.1 s. It might take you a little longer.");
-  expect(screen.getByRole("heading", { level: 2, name: "Set what matters across any/all facets. Try a template as a fast track. Watch the field narrow." })).toBeInTheDocument();
+  expect(await screen.findByRole("heading", { name: "Which AI model fits your job?" })).toBeInTheDocument();
+  expect(screen.getAllByRole("heading", { level: 1 })).toHaveLength(1);
+  expect(screen.getByText("Set what must be true and what you'd prefer. Every model that misses a must is shown out, with the reason, and you see what each one costs. Free for people.")).toBeInTheDocument();
+  expect(screen.getByText("Then hand it to your agents: the same question, answered the same way, in about a tenth of a second.")).toBeInTheDocument();
   expect(screen.getByText(/measured from Boston on 2026-10-01/)).toBeInTheDocument();
   expect(screen.queryByLabelText("Describe your task")).not.toBeInTheDocument();
   expect(fetch).toHaveBeenCalled();

@@ -76,6 +76,7 @@ test.describe("managed visit gate", () => {
   test("an interactive challenge stays in the answer panel and resumes without a lookup click", async ({ page }) => {
     let check = 0;
     let initialRequests = 0;
+    let vocabularyRequests = 0;
     await page.route("https://challenges.cloudflare.com/turnstile/**", (route) => route.fulfill({
       contentType: "application/javascript",
       body: `window.turnstile = { render(container, options) {
@@ -89,12 +90,22 @@ test.describe("managed visit gate", () => {
       check++;
       return route.fulfill({ headers: cors, contentType: "application/json", body: JSON.stringify({ token: "visit", expires_at: Math.floor(await page.evaluate(() => Date.now()) / 1000) + 1800 }) });
     });
-    await page.route(/\/(?:api\/decision\/vocabulary\.json|v1\/vocabulary)(?:\?.*)?$/, (route) => route.fulfill({ headers: cors, contentType: "application/json", body: vocabulary }));
+    await page.route(/\/(?:api\/decision\/vocabulary\.json|v1\/vocabulary)(?:\?.*)?$/, (route) => {
+      vocabularyRequests++;
+      return route.fulfill({ headers: cors, contentType: "application/json", body: vocabulary });
+    });
     await page.route("**/v1/decide", (route) => { if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors }); initialRequests++; return route.fulfill({ headers: cors, contentType: "application/json", body: answer }); });
     await page.goto("/decide.html?demo=1");
     await expect(page.locator(".board-answer").getByRole("button", { name: "Verify fixture" })).toBeVisible();
+    await expect(page.getByText("One quick check keeps this free")).toBeVisible();
+    await expect(page.getByText("For example: require open weights, prefer lower cost, and see which models fit.")).toBeVisible();
+    await expect(page.getByLabel("Facet board answer")).toHaveCount(0);
+    expect(initialRequests).toBe(0);
+    expect(vocabularyRequests).toBe(0);
+    expect(check).toBe(0);
     await page.getByRole("button", { name: "Verify fixture" }).click();
     await expect(page.getByLabel("Facet board answer")).toBeVisible();
+    await expect(page.getByText("One quick check keeps this free")).toHaveCount(0);
     await expect.poll(() => initialRequests).toBe(3);
     await page.route("**/v1/decide", async (route) => {
       if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors });

@@ -55,7 +55,7 @@ async function openBoard(page: Page) {
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("");
-  await expect(page.getByRole("heading", { name: "Set what matters across any/all facets. Try a template as a fast track. Watch the field narrow." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Which AI model fits your job?" })).toBeVisible();
   await expect(page.getByText("The live answer will appear here.")).toHaveCount(0, { timeout: 15000 });
   return errors;
 }
@@ -72,11 +72,15 @@ for (const row of drawn) {
     await expect(page.getByRole("region", { name: "Manual lookups" })).toHaveCount(0);
     expect(errors, "uncaught page errors").toEqual([]);
 
-    // No blank tables: every table drawn has rows, and every row says something.
+    // A table with all providers unknown offers the collapsed rows explicitly.
     for (const table of await page.locator("table").all()) {
       if (!(await table.isVisible())) continue;
       const rows = table.locator("tbody tr");
-      expect(await rows.count(), "a drawn table has no rows").toBeGreaterThan(0);
+      if (await rows.count() === 0) {
+        const section = table.locator("xpath=ancestor::section[1]");
+        await expect(section).toHaveAttribute("aria-label", "Decision table");
+        await expect(section.getByRole("button", { name: /^Show [1-9]\d* without a provider$/ })).toBeVisible();
+      }
       for (const text of await rows.allInnerTexts()) expect(text.trim()).not.toBe("");
     }
 
@@ -103,7 +107,7 @@ async function applyTemplateThenReset(page: Page) {
 
 test("a template applies and Reset all runs", async ({ page }) => {
   await applyTemplateThenReset(page);
-  await expect(page.getByRole("heading", { name: "Set what matters across any/all facets. Try a template as a fast track. Watch the field narrow." })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Which AI model fits your job?" })).toBeVisible();
 });
 
 test("the templates are offered again after Reset all", async ({ page }) => {

@@ -36,12 +36,12 @@ function domainName(vocabulary: Vocabulary, id: string): string | undefined {
     ?? vocabulary.coverage?.domains.find((domain) => domain.id === id)?.name;
 }
 
-function Route({ route }: { route: RouteView }) {
+function Route({ route, showFigure }: { route: RouteView; showFigure: boolean }) {
   const id = useId();
   return <li className={`board-route route-${route.kind}`}>
     <span className="route-name" tabIndex={0} aria-describedby={id}>{route.name}</span>
     <span className="route-explain" role="tooltip" id={id}>{route.explain}</span>
-    <span className="route-figure">{route.figure}</span>
+    {showFigure && <span className="route-figure">{route.figure}</span>}
     {route.note && <small className="route-note">{route.note}</small>}
   </li>;
 }
@@ -190,7 +190,7 @@ export function RankedAnswer({
               </>}
           </div>}
           {(routes.length > 0 || excluded.length > 0) && <ul className="board-routes" aria-label={`Routes to ${row.m.name}`}>
-            {routes.map((route) => <Route key={route.key} route={route} />)}
+            {routes.map((route, index) => <Route key={route.key} route={route} showFigure={index !== 0 || !route.figure.endsWith(" per task")} />)}
             {excluded.map((plan) => <li className="board-route route-excluded" key={plan.id}><small>Your {planName(plan.name)} doesn't cover this</small></li>)}
           </ul>}
         </li>;
