@@ -1,5 +1,5 @@
 import { defineConfig } from "vite";
-import type { Plugin } from "vite";
+import type { Plugin, PreviewServer, ViteDevServer } from "vite";
 import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
 import react from "@vitejs/plugin-react";
@@ -14,18 +14,22 @@ const exportOrigin = process.env.EXPORT_ORIGIN ?? "http://localhost:8000";
 const decideOrigin = process.env.DECIDE_API_ORIGIN ?? "https://api.modelspec.dev";
 
 // The deployed page shares /fonts/ with the landing page (pipeline/build.py
-// copies site/fonts there). In development, serve the same files from the repo.
+// copies site/fonts there). In development and in `vite preview`, which the
+// browser suite measures (MODEL-325's fold checks), serve the same files from
+// the repo so the page sets in its real type, not a fallback.
+const serveFonts = (server: ViteDevServer | PreviewServer) => {
+  server.middlewares.use("/fonts", (req, res, next) => {
+    const name = basename((req.url ?? "").split("?")[0]);
+    if (!name.endsWith(".woff2")) return next();
+    readFile(new URL(`../site/fonts/${name}`, import.meta.url))
+      .then((body) => { res.setHeader("content-type", "font/woff2"); res.end(body); })
+      .catch(() => next());
+  });
+};
 const siteFonts = (): Plugin => ({
   name: "modelspec-site-fonts",
-  configureServer(server) {
-    server.middlewares.use("/fonts", (req, res, next) => {
-      const name = basename((req.url ?? "").split("?")[0]);
-      if (!name.endsWith(".woff2")) return next();
-      readFile(new URL(`../site/fonts/${name}`, import.meta.url))
-        .then((body) => { res.setHeader("content-type", "font/woff2"); res.end(body); })
-        .catch(() => next());
-    });
-  },
+  configureServer: serveFonts,
+  configurePreviewServer: serveFonts,
 });
 
 // https://vite.dev/config/
