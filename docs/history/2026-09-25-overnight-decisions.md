@@ -1,5 +1,7 @@
 # Overnight decision log, 2026-09-24 → 2026-09-25
 
+> **Historical (moved here by MODEL-311).** Not current policy. Current entry: [`AGENTS.md`](../../AGENTS.md).
+
 The orchestrator ran with Jamie's delegation (21:20 ET): merges and judgement calls; x402 and the public flip stay with Jamie. Every call below is reversible unless marked. Readiness report: https://claude.ai/artifact/RHuvM1uafCBW4vm1jp4rWq
 
 | Time (ET) | Decision | Why | Reversible? |

@@ -1,9 +1,8 @@
 # Model Intelligence Platform — System Architecture V3
 
 > **Historical (2026-04).** This document describes a FalkorDB-served FastAPI
-> path that is **not** how ModelSpec ships. Current serving path: static JSON
-> on Cloudflare Pages; CLI snapshot; no database on the serving path. See
-> [`handoff/current.md`](handoff/current.md). Do not treat Cypher examples or
+> path that is **not** how ModelSpec ships. Current architecture:
+> [`../AGENTS.md`](../AGENTS.md). Do not treat Cypher examples or
 > Phase-1 seeding counts below as current operations.
 
 ## Project Name: **ModelSpec** (working title)

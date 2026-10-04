@@ -1,5 +1,7 @@
 # Post-MVP loop
 
+> **Historical (moved here by MODEL-311).** Not current policy. Current entry: [`AGENTS.md`](../../AGENTS.md).
+
 An autonomous loop for Grok Build, to run when nobody is watching. Everything
 here is **off the dpf critical path** — that is the definition of post-MVP. If
 something in this file starts blocking dpf, it stops being a loop item and gets
@@ -30,7 +32,7 @@ item you picked and why.
   and require them green, commit, push, open a PR with
   `gh pr create --repo turbobeest/modelspec --base main`. Required checks on
   `main` are **Run pytest** and **Build both sites**. A red branch cannot merge.
-  Read [`worktrees.md`](worktrees.md) before touching `/Users/terbeest/dev/modelspec`.
+  Read [`worktrees.md`](../handoff/worktrees.md) before touching `/Users/terbeest/dev/modelspec`.
 * **One branch per iteration.** Never run two agents in this working tree at
   once — they fight over `HEAD`. If a worktree is dirty or on someone else's
   branch, stop and report rather than checking out over it.

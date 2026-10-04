@@ -1,8 +1,10 @@
 # Session freeze — 2026-09-12 (superseded)
 
+> **Historical (moved here by MODEL-311).** Not current policy. Current entry: [`AGENTS.md`](../../AGENTS.md).
+
 **Superseded 2026-09-14.** Jamie lifted the freeze. This file is the hold
 record from 2026-09-12. Current orientation is
-[`current.md`](current.md). Do not treat the hold, the cancelled scheduler, or
+[`2026-09-20-current-state.md`](2026-09-20-current-state.md). Do not treat the hold, the cancelled scheduler, or
 "do not open PRs" as current policy.
 
 GitHub PR #34 (`docs/session-freeze-2026-09-12`) first added this notice.

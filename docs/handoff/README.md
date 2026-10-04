@@ -1,27 +1,12 @@
-# Handoff: who owns what
+# Standing rules for evidence and card work
 
-**Current orientation:** [`current.md`](current.md). The 2026-09-12 hold is
-lifted; the record is [`session-freeze-2026-09-12.md`](session-freeze-2026-09-12.md).
+Read this before writing a card, a benchmark page, or evidence. Entry:
+[`AGENTS.md`](../../AGENTS.md). Worktrees: [`worktrees.md`](worktrees.md).
+Architecture map: [`architecture-map.md`](architecture-map.md).
 
-ModelSpec's MVP is functionally complete on a **static Pages export**. What
-remains splits into three piles, and the split is the point of this document:
-**most of it is not agent work**, and treating it as agent work wastes effort
-and produces confident nonsense.
+## The rules
 
-| Pile | Owner | Where |
-|---|---|---|
-| Remaining MVP (MODEL-5) | Grok Build as *preparer*; the Actions token is Jamie's | [`mvp-remainder.md`](mvp-remainder.md) |
-| Post-MVP backlog | Grok Build, autonomous loop | [`post-mvp-loop.md`](post-mvp-loop.md) |
-| Taste and judgement | Claude Code, with Jamie | this file, below |
-
-DPF consumers start at [`../cli-contract.md`](../cli-contract.md) and
-[`current.md`](current.md). Architecture map:
-[`architecture-map.md`](architecture-map.md). Worktrees:
-[`worktrees.md`](worktrees.md).
-
-## The standing rules, which apply to every worker
-
-These were learned expensively during 2026-09-09/10. Do not rediscover them.
+Learned expensively during 2026-09-09/10.
 
 1. **Absence is data.** A null is honest; a plausible value is a lie that
    survives review. Cards left `active_parameters`, `commercial_use` and
@@ -31,14 +16,11 @@ These were learned expensively during 2026-09-09/10. Do not rediscover them.
    filenames produced **1,589 published "it fits" answers for hardware that
    cannot hold the weights**. A null is skipped by the fit layer; a wrong number
    is served. Hub `safetensors.total` only; never filenames.
-3. **Put limits in code, not prose.** Two agents were each given a Firecrawl
-   budget in their prompt, acknowledged it, and together burned 920 of 1,000
-   credits. The guard now lives in `scripts/benchmarks/fetch.py`.
-4. **Verify by running, never by reading a ticket comment.** Six of eight
-   "In Review" tickets were optimistically marked. A CI audit twice concluded a
-   `|| true` was safe; the second look found it was not.
-5. **Check exit codes directly** — `cmd >/dev/null; echo $?`. A pipe reports the
-   *last* command's status and has already produced one wrong conclusion here.
+3. *Moved to [`AGENTS.md`](../../AGENTS.md):* put limits in code. A Firecrawl
+   budget given in two prompts was burned 920 of 1,000; the guard now lives in
+   `scripts/benchmarks/fetch.py`.
+4. *Moved to `AGENTS.md`:* verify by running, not by reading a ticket.
+5. *Moved to `AGENTS.md`:* check exit codes directly, not through a pipe.
 6. **Record the exact variant.** Terminal-Bench 2.1 is not `terminal_bench`.
    SWE-bench Pro is not `swe_bench_verified`. MMLU-Pro is not MMLU.
 7. **A provider's table of a competitor's score is not primary evidence** for
@@ -48,8 +30,12 @@ These were learned expensively during 2026-09-09/10. Do not rediscover them.
    not a publication date. A *live leaderboard* row is dated by the observation
    (`date_type: evaluated`) — see `BENCHMARK_WRITE_RULE` in
    `scripts/build_manifest.py`.
-9. **Widening a contract range bumps its major** (MODEL-59): nullable, a new enum
-   value, or may-be-absent. See the versioning rule in [`../cli-contract.md`](../cli-contract.md).
+9. **Inapplicable is not unknown** (MODEL-97). Which fields a class cannot
+   answer is derived from `model_type` in `schema/applicability.py` and
+   published as an `applicability` block; it is never written on a card.
+   Architecture fields are never inapplicable: undisclosed is unknown.
+10. **Excluded sources stay excluded.** `decision/excluded.py` lists them and
+    the data-trust checks refuse them; never cite one, even second-hand.
 
 ## Pytest CI shards
 
@@ -78,7 +64,7 @@ gh run download <run-id> -p 'pytest-shard-*-junit' -D /tmp/modelspec-pytest-juni
 python scripts/refresh_shard_durations.py /tmp/modelspec-pytest-junit
 ```
 
-## Three floors — stop treating these as backlog
+## Three floors — not backlog (counts as of 2026-09-10)
 
 Of ~604 unrankable cards:
 
@@ -90,19 +76,3 @@ Of ~604 unrankable cards:
 
 And the trap: **carding a missing model raises the unrankable count** until its
 evidence lands. Never optimise that metric — it rewards not carding models.
-
-## What stays with Claude Code and Jamie
-
-Anything where the answer depends on taste, product judgement, or what a reader
-will feel rather than what a source says:
-
-* **MODEL-24**, the design pass across both sites, once data and pages settle.
-* **The 3D graph explorer's look.** Jamie's standing note: "very professional and
-  science fiction at the same time", explicitly not cartoonish.
-* **Naming, copy, and how a refusal is explained to a reader.** The catalogue's
-  value is that it declines to answer; that has to *read* as rigour, not as a
-  gap.
-* Any decision where two defensible options exist and the difference is
-  editorial. Prepare the options, then bring them to Jamie.
-* **MODEL-5's Actions token.** Daily-research PRs opened with `GITHUB_TOKEN`
-  never get required checks. A PAT or GitHub App token is a console step.

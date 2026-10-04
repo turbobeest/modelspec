@@ -44,7 +44,9 @@ context; the hashes are the bytes that were read.
 No watcher and no post-commit hook. Follow `graphify-out/README.md`. After a
 controlled edit to a scoped file, `prepare_scope.py --check` must go stale,
 re-extraction must change nodes for that file, and the probe string in
-`docs/handoff/current.md` (`MODEL-40-PROBE-2026-09-14`) must be retrievable.
+`docs/history/2026-09-20-current-state.md` (`MODEL-40-PROBE-2026-09-14`) must
+be retrievable. MODEL-311 moved that file and retired three other handoff files
+from `scope.json`; `--check` reports STALE until the next scoped refresh.
 Receipt: `graphify-out/refresh-verification.json`.
 
 Do **not** run bare `graphify extract .` or `graphify update` on this repo:
