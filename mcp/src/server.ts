@@ -418,9 +418,12 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
         // Older Workers ignore lookup parameters and return the full vocabulary.
         // Keep agent responses compact while the two Workers roll out independently.
         const selected = split && !("vocabulary_version" in envelope.body)
-          ? envelope.body[section]
+          ? envelope.body
           : lookupVocabulary(envelope.body, args);
-        envelope.body = vocabularyResponse(selected, args);
+        const body = "matches" in selected
+          ? { facets: [], domains: [], templates: [], models: {}, estate: {}, ...selected }
+          : selected;
+        envelope.body = vocabularyResponse(body[section], args, body);
       }
       const result = asToolResult(envelope);
       // A failed lookup gets no "call decide next" hint: the agent should fix the lookup first.
@@ -428,7 +431,8 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
       return {
         ...result,
         content: [...result.content, { type: "text" as const, text:
-          section === "starter" ? agentCopy.vocab.next.starter : agentCopy.vocab.next.lookup }],
+          isRecord(envelope.body) && typeof envelope.body.next === "string" ? envelope.body.next
+            : section === "starter" ? agentCopy.vocab.next.starter : agentCopy.vocab.next.lookup }],
       };
     },
   );

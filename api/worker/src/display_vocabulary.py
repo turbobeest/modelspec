@@ -15,6 +15,8 @@ SECTIONS = ("starter", "facets", "benchmarks", "domains", "providers", "models",
             "task_types", "coverage", "templates", "refinements", "estate", "vendors",
             "template_categories", "template_tiers")
 PAGE_SIZE = 20
+SEARCH_SECTIONS = ("facets", "domains", "refinements", "benchmarks", "templates", "task_types",
+                   "estate", "providers", "vendors", "models", "template_categories", "template_tiers")
 
 FACET_FIELDS = ("id", "label", "definition", "subject", "value_type", "unit", "unit_definition",
                 "operators", "objective", "preference", "better", "risk", "computed_by", "literals")
@@ -76,6 +78,166 @@ def starter_ids(vocabulary):
     return sorted(counts, key=lambda fid: (-counts[fid], fid))[:15]
 
 
+def compact(row, section):
+    if section in {"facets", "starter"}:
+        result = pick(row, ("id", "label", "definition", "value_type", "better", "literals"))
+        if isinstance(result.get("definition"), str):
+            result["definition"] = re.split(r"\.\s", " ".join(result["definition"].split()))[0].rstrip(".") + "."
+        if "allowed_values" in row:
+            result["allowed_values"] = row["allowed_values"]
+        elif "values" in row:
+            result["allowed_values"] = [value["value"] for value in row["values"]]
+        return result
+    if section == "models":
+        return pick(row, ("display_name",))
+    if isinstance(row, dict):
+        return pick(row, ("id", "name", "label"))
+    return row
+
+
+def normalize(value):
+    return re.sub(r"[_\-./\s]+", " ", str(value).lower()).strip()
+
+
+def section_rows(vocabulary, section):
+    source = vocabulary.get(section, {})
+    if section == "estate":
+        for group in ("providers", "devices", "plans"):
+            for row in source.get(group, []):
+                yield row["id"] if isinstance(row, dict) else row, row, group
+    elif isinstance(source, dict):
+        for key, row in source.items():
+            yield key, row, None
+    else:
+        for row in source:
+            yield row.get("id", "") if isinstance(row, dict) else row, row, None
+
+
+def searchable_fields(section, key, row):
+    """Ordered match categories; nested benchmark domains are deliberately excluded."""
+    fields = [("id", key, None)]
+    if section in {"providers", "vendors"}:
+        fields.append(("label", row, None))
+    if not isinstance(row, dict):
+        return fields
+    labels = ("label",) if section == "facets" else (("display_name",) if section == "models" else ("name",))
+    fields.extend(("label", row[label], None) for label in labels if row.get(label) is not None)
+    if section == "estate" and row.get("provider") is not None:
+        fields.append(("label", row["provider"], None))
+    definitions = ("purpose", "category", "tier") if section == "templates" else (
+        ("definition",) if section in {"facets", "refinements"} else ())
+    fields.extend(("definition", row[field], None) for field in definitions if row.get(field) is not None)
+    if section == "facets":
+        for value in row.get("values", []):
+            fields.append(("value", value["value"], value["value"]))
+            if value.get("label") is not None:
+                fields.append(("value", value["label"], value["value"]))
+        fields.extend(("value", value, value) for value in row.get("allowed_values", []))
+    return fields
+
+
+def match_fields(fields, needle):
+    tokens = needle.split()
+    prior = []
+    for kind in ("id", "label", "definition", "value"):
+        current = [(normalize(text), value) for category, text, value in fields if category == kind]
+        for text, value in current:
+            if needle in text:
+                return kind, value
+        combined = prior + [text for text, _ in current]
+        if current and all(any(token in text for text in combined) for token in tokens):
+            value = next((value for text, value in current if any(token in text for token in tokens)), None)
+            return kind, value
+        prior = combined
+    return None
+
+
+def similarity(left, right):
+    if not left or not right:
+        return 0
+    previous = list(range(len(right) + 1))
+    for i, a in enumerate(left, 1):
+        current = [i]
+        for j, b in enumerate(right, 1):
+            current.append(min(current[-1] + 1, previous[j] + 1, previous[j - 1] + (a != b)))
+        previous = current
+    return 1 - previous[-1] / max(len(left), len(right))
+
+
+def suggestions(vocabulary, needles):
+    candidates = {}
+    for section in SEARCH_SECTIONS:
+        for key, row, _ in section_rows(vocabulary, section):
+            fields = searchable_fields(section, key, row)
+            candidates[(section, str(key))] = [text for kind, text, _ in fields if kind == "label"]
+            for kind, text, value in fields:
+                if kind == "value":
+                    candidates.setdefault((section, str(value).lower() if isinstance(value, bool) else str(value)), []).append(text)
+    scored = []
+    for (section, key), labels in candidates.items():
+        # Token scores let a typo like "pirce" suggest offering.price.input.
+        haystacks = [normalize(key), normalize(re.split(r"[._]", key)[-1]),
+                     *normalize(key).split(), *(normalize(label) for label in labels)]
+        score = max(similarity(normalize(needle), text) for needle in needles for text in haystacks)
+        if score >= 0.4:
+            scored.append((score, section, key))
+    scored.sort(key=lambda item: (-item[0], SEARCH_SECTIONS.index(item[1]), item[2]))
+    return [{"section": section, "id": key} for _, section, key in scored[:5]]
+
+
+def select_rows(rows, section, full):
+    if section == "estate":
+        return {group: [row if full else compact(row, section) for _, row, own_group in rows if own_group == group]
+                for group in ("providers", "devices", "plans")}
+    selected = [(key, row if full else compact(row, section)) for key, row, _ in rows]
+    if section in {"providers", "vendors", "models", "coverage"}:
+        return dict(selected)
+    return [row for _, row in selected]
+
+
+def search_vocabulary(vocabulary, *, section, search, ids, full, offset, limit):
+    cross_section = section == "starter"
+    searched = list(SEARCH_SECTIONS) if cross_section else [section]
+    needle = normalize(search)
+    hits = []
+    for name in searched:
+        for key, row, group in section_rows(vocabulary, name):
+            if ids and key not in ids:
+                continue
+            match = match_fields(searchable_fields(name, key, row), needle) if needle else ("id", None)
+            if match is None:
+                continue
+            kind, value = match
+            rank = 0 if key in ids or key == search else ("id", "label", "definition", "value").index(kind) + 1
+            label = (row.get("label", row.get("name", row.get("display_name"))) if isinstance(row, dict)
+                     else row if name in {"providers", "vendors"} else None)
+            entry = {"section": name, "id": key, "matched": kind}
+            if label is not None:
+                entry["label"] = label
+            if kind == "value":
+                entry["value"] = value
+            hits.append((rank, entry, (key, row, group)))
+    # Stable sort preserves source order within each section and match category.
+    ranked = sorted(hits, key=lambda hit: (hit[0], searched.index(hit[1]["section"])))
+    page = ranked[offset:offset + limit]
+    if cross_section:
+        result = {name: select_rows([row for _, entry, row in page if entry["section"] == name], name, full)
+                  for name in searched}
+        starters = set(starter_ids(vocabulary))
+        result.update(vocabulary_response([row for row in result["facets"] if row["id"] in starters], "starter"))
+    else:
+        rows = [row for _, _, row in hits]
+        result = vocabulary_response(select_rows(rows if full else rows[offset:offset + limit], section, full), section)
+    result.update(matches=[entry for _, entry, _ in page], total=len(hits), searched=searched)
+    result["next"] = VOCAB_NEXT["lookup" if hits else "empty"]
+    if not hits:
+        closest = suggestions(vocabulary, [search] if search else sorted(ids))
+        quoted = json.dumps(search if search else ", ".join(sorted(ids)), ensure_ascii=False)
+        names = ", ".join(item["id"] for item in closest) or "none"
+        result.update(suggestions=closest, message=f"No vocabulary entry matches {quoted} in the id, label, definition or values of {', '.join(searched)}; closest ids: {names}.")
+    return result
+
+
 def lookup(vocabulary, *, section="starter", search="", ids=(), detail="compact",
            offset=0, limit=PAGE_SIZE):
     """An opt-in lookup. Full detail stays inside the existing display boundary."""
@@ -88,6 +250,9 @@ def lookup(vocabulary, *, section="starter", search="", ids=(), detail="compact"
     ids = set(ids)
     if len(ids) > MAX_IDS:
         raise ValueError(f"at most {MAX_IDS} ids per lookup")
+    if search or ids:
+        return search_vocabulary(vocabulary, section=section, search=search, ids=ids,
+                                 full=detail == "full" or bool(ids), offset=offset, limit=limit)
     source = vocabulary.get(section, {} if section in {"models", "providers", "vendors", "coverage", "estate"} else [])
     if section == "coverage" and detail == "compact" and not ids:
         return vocabulary_response({}, section)
@@ -102,31 +267,9 @@ def lookup(vocabulary, *, section="starter", search="", ids=(), detail="compact"
     else:
         rows = [(row.get("id", "") if isinstance(row, dict) else row, row) for row in source]
 
-    def matches(key, row):
-        label = row.get("label", row.get("name", row.get("display_name", ""))) if isinstance(row, dict) else row
-        return (not ids or key in ids) and (not search or search.lower() in str(key).lower()
-                                           or search.lower() in str(label if label is not None else "").lower())
-
-    rows = [(key, row) for key, row in rows if matches(key, row)]
     full = detail == "full" or bool(ids)
     if not full:
         rows = rows[offset:offset + limit]
 
-    def compact(row):
-        if section in {"facets", "starter"}:
-            result = pick(row, ("id", "label", "definition", "value_type", "better", "literals"))
-            if isinstance(result.get("definition"), str):
-                result["definition"] = re.split(r"\.\s", " ".join(result["definition"].split()))[0].rstrip(".") + "."
-            if "allowed_values" in row:
-                result["allowed_values"] = row["allowed_values"]
-            elif "values" in row:
-                result["allowed_values"] = [value["value"] for value in row["values"]]
-            return result
-        if section == "models":
-            return pick(row, ("display_name",))
-        if isinstance(row, dict):
-            return pick(row, ("id", "name", "label"))
-        return row
-
-    selected = [(key, row if full else compact(row)) for key, row in rows]
+    selected = [(key, row if full else compact(row, section)) for key, row in rows]
     return vocabulary_response(dict(selected) if mapping else [row for _, row in selected], section)

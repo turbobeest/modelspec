@@ -82,6 +82,7 @@ MINIMAL_SPEC = {"spec_version": 1, "optimize": {"min": "offering.cost_per_task"}
 VOCAB_NEXT = {
     "starter": "next: call decide with this; refine from reading",
     "lookup": "next: call decide using these ids; refine from reading",
+    "empty": "next: retry vocab with one of the suggestions",
 }
 
 
@@ -671,9 +672,12 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
             "Call decide after at most one vocab lookup. section=starter returns a "
             "ready-to-send minimal Spec with 'next: call decide with this; refine from reading'. "
             "Responses include a next hint. If you need ids, use section=starter. "
-            "Use search for a case-insensitive substring of id or label, then call decide. "
+            "Search covers every section's ids, labels, definitions and values with "
+            "case- and separator-insensitive matching; a miss returns suggestions. "
+            "An explicit non-starter section scopes the search. "
             "Use id or ids for row details, or detail=full for all display details. "
-            "Use offset and limit to page compact sections; an empty page ends the list. "
+            "Use offset and limit to page matches across sections, including full details; "
+            "an empty page ends the list. "
         ),
         "model_info": (
             "What does ModelSpec's card say about one model? "
