@@ -340,6 +340,11 @@ export function estateAsDecision(decision: Decision): { decision: Decision; mark
   if (!estate) return null;
   const unrestricted = new Map(decision.results.map((result) => [offeringKey(result.offering), result]));
   const marks = new Map<string, EstateMark>();
+  // The estate answer ranks models afresh; number them as the engine does
+  // (first appearance in rank order), not with the unrestricted model_rank.
+  const modelRanks = new Map<string, number>();
+  for (const row of [...estate.results].sort((a, b) => a.rank - b.rank))
+    if (!modelRanks.has(row.offering.model)) modelRanks.set(row.offering.model, modelRanks.size + 1);
   const results: Result[] = estate.results.map((row) => {
     marks.set(offeringKey(row.offering), row.estate);
     const base = unrestricted.get(offeringKey(row.offering));
@@ -356,6 +361,7 @@ export function estateAsDecision(decision: Decision): { decision: Decision; mark
         contributions: [],
       }),
       rank: row.rank,
+      model_rank: modelRanks.get(row.offering.model),
       soft_penalty: row.soft_penalty,
       warnings: row.warnings,
     } as Result;

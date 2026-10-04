@@ -101,6 +101,8 @@ describe("the Max 20x example", () => {
     expect(estate.decision.results.map((result) => [result.rank, result.offering.model])).toEqual([
       [1, OPUS], [2, SONNET],
     ]);
+    // Model ranks follow the estate answer, not the unrestricted one.
+    expect(estate.decision.results.map((result) => result.model_rank)).toEqual([1, 2]);
     const opus = estate.decision.results[0];
     const view = estateRouteView(ctx, estate.marks.get(offeringKey(opus.offering))!, opus, opus.offering);
     expect([view.name, view.figure]).toEqual(["Claude Max 20x · monthly plan", "included in your plan"]);
