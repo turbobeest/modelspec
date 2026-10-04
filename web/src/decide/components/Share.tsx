@@ -186,10 +186,10 @@ export function Share({
     >
       <div className="panel-heading">
         <div>
-          <h2 id="share-title">Share or give to my agent</h2>
+          <h2 id="share-title">Share</h2>
           <SnapshotId snapshot={snapshot} />
         </div>
-        <button aria-label="Close Share or give to my agent" onClick={onClose}>
+        <button aria-label="Close Share" onClick={onClose}>
           ×
         </button>
       </div>

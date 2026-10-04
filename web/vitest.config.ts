@@ -1,6 +1,7 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
+import { handoffDefines } from "./decide-handoff-build";
 
 // The handoff's reference engine, kept verbatim in docs/, is imported by the
 // parity test so the TypeScript port can be checked against it.
@@ -12,6 +13,7 @@ const handoff = fileURLToPath(
 );
 
 export default defineConfig({
+  define: handoffDefines(),
   plugins: [react()],
   resolve: { alias: { "@handoff/modelspec-data": handoff } },
   server: { fs: { allow: [".."] } },

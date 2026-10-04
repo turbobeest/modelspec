@@ -50,6 +50,8 @@ import { Why } from "./components/Why";
 import { Coverage } from "./components/Coverage";
 import { AnswerBoundary } from "./components/AnswerBoundary";
 import { Share } from "./components/Share";
+import { AgentHandoff, AnswerAssurances } from "./components/AgentHandoff";
+import { prepareDecisionRequest } from "./adapter/request-spec";
 import { SnapshotId } from "./components/SnapshotId";
 import { BrandMark } from "./components/BrandMark";
 import { initialTheme, storeTheme, storedTheme, type Theme } from "./theme";
@@ -383,15 +385,14 @@ export function DesignedApp({
       );
     }, DECISION_WATCHDOG_MS);
     const ask = (current: Vocabulary | null, explain: "summary" | "full", override?: Spec) => {
-      const source = override ?? requested;
-      const nextSpec = current ? sendableSpec(current, source) : source;
+      const request = prepareDecisionRequest(current, override ?? requested, explain);
       return hostedEngine
-        .decide({ ...toBoardDecisionSpec(nextSpec, explain) }, {
+        .decide(request.decisionSpec, {
           ...intentOptions,
           signal: controller.signal,
           snapshot: current?.snapshot,
         })
-        .then((decision) => ({ decision, nextSpec }));
+        .then((decision) => ({ decision, nextSpec: request.boardSpec }));
     };
     let used = vocabulary,
       reloaded = false,
@@ -936,7 +937,7 @@ export function DesignedApp({
           {theme === "dark" ? "Light mode" : "Dark mode"}
         </button>
         <button onClick={() => setShare(true)}>
-          Share or give to my agent
+          Share
         </button>
       </header>
       <main className="work">
@@ -992,6 +993,7 @@ export function DesignedApp({
             answer={decision ? <AnswerBoundary resetKey={decision} onReset={resetBoard}>
               <section className="board-answer-head" aria-label="Facet board answer">
                 <span className="eyebrow">The answer</span>
+                <AnswerAssurances />
                 {hasEstate(estate) && <div className="answer-pair"><div><strong>With what you have</strong><span>{estateDecision ? `${estateDecision.explanation.feasible.length} models qualify · ${estateDecision.explanation.may.length} may qualify` : estateRequest.kind === "error" || estateRequest.kind === "done" ? <>Couldn't load: <button className="text-button" onClick={() => { if (humanGateEnabled) changeSpec(spec); else { action.current = decisionAction(); setEstateRequest((current) => ({ kind: "idle", settledSpecHash: current.settledSpecHash, generation: current.generation + 1 })); } }}>retry</button></> : "Checking…"}</span></div><div><strong>If you could use anything</strong><span>{decision.explanation.feasible.length} models qualify · {decision.explanation.may.length} may qualify</span></div></div>}
                 {answeredAccess === "own_software" && estateAnswer?.excludedPlans.map((plan) => <p className="board-own-software-note" role="note" key={plan.id}>{ownSoftwareNote(plan)}</p>)}
               </section>
@@ -1001,6 +1003,9 @@ export function DesignedApp({
                     <section><strong>If you could use anything</strong><RankedAnswer decision={decision} spec={shownSpec} vocabulary={vocabulary} access={answeredAccess} held={estate} excludedPlans={answeredAccess === "own_software" ? estateAnswer.excludedPlans : []} /></section>
                   </div>
                 : <RankedAnswer decision={decision} spec={shownSpec} vocabulary={vocabulary} access={answeredAccess} held={estate} />}
+              <AgentHandoff spec={prepareDecisionRequest(vocabulary,
+                refinementFallbackKeys.size > 0 ? foldRefinementWeights(spec, vocabulary) : spec,
+                "summary").decisionSpec} />
               {!error && !loading && <AnswerBoundary resetKey={decision} onReset={resetBoard}>
                 <Coverage decision={decision} spec={shownSpec} onSpec={changeSpec} />
               </AnswerBoundary>}

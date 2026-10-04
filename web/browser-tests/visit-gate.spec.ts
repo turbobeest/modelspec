@@ -14,7 +14,7 @@ test.describe("managed visit gate", () => {
     test(`live facet updates after a silent check, expiry=${expiry}`, async ({ page }) => {
       let checks = 0;
       let refuseOnce = false;
-      const sent: { token: string | undefined; intent: string | undefined }[] = [];
+      const sent: { token: string | undefined; intent: string | undefined; spec: unknown }[] = [];
       await page.route("https://challenges.cloudflare.com/turnstile/**", (route) => route.fulfill({
         contentType: "application/javascript",
         body: `window.turnstile = {
@@ -41,7 +41,7 @@ test.describe("managed visit gate", () => {
       await page.route("**/v1/decide", (route) => {
         if (route.request().method() === "OPTIONS") return route.fulfill({ status: 204, headers: cors });
         const headers = route.request().headers();
-        sent.push({ token: headers["x-modelspec-visit-token"], intent: headers["x-modelspec-intent"] });
+        sent.push({ token: headers["x-modelspec-visit-token"], intent: headers["x-modelspec-intent"], spec: route.request().postDataJSON() });
         if (refuseOnce) {
           refuseOnce = false;
           return route.fulfill({ status: 401, headers: cors, contentType: "application/json", body: JSON.stringify({ error: { code: "visit_token_expired" } }) });
@@ -52,6 +52,9 @@ test.describe("managed visit gate", () => {
       await page.goto("/decide.html?demo=1");
       await expect(page.getByLabel("Facet board answer")).toBeVisible();
       await expect.poll(() => sent.length).toBe(3);
+      await expect(page.getByRole("region", { name: "Give this to my agent" })).toBeVisible();
+      expect(JSON.parse(await page.getByLabel("Spec snippet").innerText())).toEqual(sent[0].spec);
+      await expect(page.getByLabel("Spec snippet")).not.toContainText("visit-1");
       await expect(page.locator(".template-active")).toHaveText("Starting from: General assistant, balancedClear");
       expect(checks).toBe(1);
       expect(new Set(sent.map((request) => request.intent)).size).toBe(1);
@@ -103,6 +106,7 @@ test.describe("managed visit gate", () => {
     await expect(page.getByText("One quick check keeps this free")).toBeVisible();
     await expect(page.getByText("For example: require open weights, prefer lower cost, and see which models fit.")).toBeVisible();
     await expect(page.getByLabel("Facet board answer")).toHaveCount(0);
+    await expect(page.getByRole("region", { name: "Give this to my agent" })).toHaveCount(0);
     expect(initialRequests).toBe(0);
     expect(vocabularyRequests).toBe(0);
     expect(check).toBe(0);
@@ -110,6 +114,8 @@ test.describe("managed visit gate", () => {
     await expect(page.getByLabel("Facet board answer")).toBeVisible();
     await expect(page.getByText("One quick check keeps this free")).toHaveCount(0);
     await expect.poll(() => initialRequests).toBe(3);
+    await expect(page.getByRole("button", { name: "Share", exact: true })).toBeVisible();
+    expect(JSON.parse(await page.getByLabel("Spec snippet").innerText())).toEqual(specs[0]);
     expect(specs.filter((spec) => spec.explain === "summary")).toHaveLength(1);
     expect(specs[0].optimize).toEqual({ weights: { chat_preference: 0.6, "-offering.cost_per_task": 0.4 } });
     await expect(page.locator(".template-active")).toHaveText("Starting from: General assistant, balancedClear");

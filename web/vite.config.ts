@@ -4,6 +4,7 @@ import { readFile } from "node:fs/promises";
 import { basename } from "node:path";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
+import { handoffDefines } from "./decide-handoff-build";
 
 // Local development proxies. `/api` is the static export (the decide page reads
 // /api/decision/vocabulary.json from it); `/v1` is the decision API. Set
@@ -29,6 +30,7 @@ const siteFonts = (): Plugin => ({
 
 // https://vite.dev/config/
 export default defineConfig({
+  define: handoffDefines(),
   plugins: [react(), tailwindcss(), siteFonts()],
   build: {
     rolldownOptions: { input: { main: "index.html", decide: "decide.html" } },

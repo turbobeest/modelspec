@@ -37,7 +37,10 @@ test("the public decision page opens on the facet board", async ({ page }) => {
   await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
   await expect(page.getByRole("region", { name: "Trade-off canvas" })).toBeVisible();
   await expect(page.getByLabel("Facet board answer")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Share or give to my agent" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Share" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Give this to my agent" })).toBeVisible();
+  await expect(page.getByText(/^Your agent gets this answer from \d+\.\d+¢$/)).toBeVisible();
+  await expect(page.getByRole("link", { name: "no paid placement · sourced" })).toHaveAttribute("href", "https://modelspec.dev/legal/neutrality/");
   await expect(page.locator(".template-active")).toHaveText("Starting from: General assistant, balancedClear");
   await expect(page.locator(".template-shortcuts button")).toHaveCount(6);
   await expect(page.getByLabel("X axis")).toHaveValue("facet:offering.cost_per_task");
@@ -47,6 +50,74 @@ test("the public decision page opens on the facet board", async ({ page }) => {
   expect(requests.filter((request) => request.explain === "summary")).toHaveLength(1);
   expect(requests[0].where).toEqual(["model.class = text-generator", "model.lifecycle = active"]);
   expect(requests[0].optimize).toEqual({ weights: { chat_preference: 0.6, "-offering.cost_per_task": 0.4 } });
+  expect(JSON.parse(await page.getByLabel("Spec snippet").innerText())).toEqual(requests[0]);
+});
+
+test("agent hand-off copies the current Spec and keyed commands with keyboard confirmation", async ({ page, context }) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await openBoard(page);
+  const card = page.getByRole("region", { name: "Give this to my agent" });
+  await expect(card).toBeVisible();
+  await expect(page.locator(".agent-handoff")).toHaveCount(1);
+  const [answer, handoff] = await Promise.all([
+    page.locator(".board-ranked-answer").last().boundingBox(), card.boundingBox(),
+  ]);
+  if (!answer || !handoff) throw new Error("Answer or hand-off did not render");
+  expect(handoff.y).toBeGreaterThanOrEqual(answer.y + answer.height);
+  const snippet = await card.getByLabel("Spec snippet").innerText();
+  await card.getByRole("button", { name: "Spec", exact: true }).focus();
+  await page.keyboard.press("Tab");
+  const curl = card.getByRole("button", { name: "curl", exact: true });
+  await expect(curl).toBeFocused();
+  expect(await curl.evaluate((node) => getComputedStyle(node).outlineStyle)).toBe("solid");
+  await page.keyboard.press("Enter");
+  await expect(card.getByLabel("curl snippet")).toContainText('Authorization: Bearer $MODELSPEC_API_KEY');
+  await card.getByRole("button", { name: "Copy for my agent" }).click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(await card.getByLabel("curl snippet").innerText());
+  await expect(card.getByRole("status")).toHaveText("curl copied for your agent.");
+  await card.getByRole("button", { name: "CLI", exact: true }).click();
+  await expect(card.getByLabel("CLI snippet")).toHaveText("uvx --from modelspec-dev modelspec decide --spec spec.json");
+  await card.getByRole("button", { name: "Spec", exact: true }).click();
+  await card.getByRole("button", { name: "Copy for my agent" }).click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(snippet);
+  await expect(card.getByRole("status")).toHaveText("Spec copied for your agent.");
+
+  const updatedRequest = page.waitForRequest((request) => request.url().endsWith("/v1/decide") && request.method() === "POST" && request.postDataJSON().explain === "summary");
+  await page.getByRole("button", { name: "Clear", exact: true }).click();
+  const updated = (await updatedRequest).postDataJSON();
+  await expect(card.getByLabel("Spec snippet")).toBeVisible();
+  expect(JSON.parse(await card.getByLabel("Spec snippet").innerText())).toEqual(updated);
+  await expect(card.getByRole("status")).toBeEmpty();
+});
+
+test("the accent card meets AA in both themes and every format", async ({ page }) => {
+  await openBoard(page);
+  const card = page.getByRole("region", { name: "Give this to my agent" });
+  await expect(card).toBeVisible();
+  for (const theme of ["dark", "light"]) {
+    if (theme === "light") await page.getByRole("button", { name: "Light mode" }).click();
+    for (const format of ["Spec", "curl", "CLI"]) {
+      await card.getByRole("button", { name: format, exact: true }).click();
+      const ratios = await card.evaluate((root) => {
+        const luminance = (color: string) => {
+          const rgb = color.match(/[\d.]+/g)?.slice(0, 3).map(Number);
+          if (!rgb || rgb.length !== 3) throw new Error(`Unknown color ${color}`);
+          return rgb.map((value) => value / 255)
+            .map((value) => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4)
+            .reduce((sum, value, index) => sum + value * [0.2126, 0.7152, 0.0722][index], 0);
+        };
+        return [...root.querySelectorAll("h2, p, small, a, pre, button, code")].map((node) => {
+          let background: Element | null = node;
+          while (background && ["rgba(0, 0, 0, 0)", "transparent"].includes(getComputedStyle(background).backgroundColor)) background = background.parentElement;
+          if (!background) throw new Error("Text has no background");
+          const foreground = luminance(getComputedStyle(node).color);
+          const behind = luminance(getComputedStyle(background).backgroundColor);
+          return (Math.max(foreground, behind) + 0.05) / (Math.min(foreground, behind) + 0.05);
+        });
+      });
+      for (const ratio of ratios) expect(ratio, `${theme} ${format}`).toBeGreaterThanOrEqual(4.5);
+    }
+  }
 });
 
 test("Clear opens an alphabetic empty board and that saved board wins on reload", async ({ page }) => {
@@ -135,7 +206,7 @@ test("share dialog copies the board permalink and restores focus", async ({ page
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await openBoard(page);
   await expect(page.getByLabel("Facet board answer")).toBeVisible();
-  const trigger = page.getByRole("button", { name: "Share or give to my agent" });
+  const trigger = page.getByRole("button", { name: "Share" });
   await trigger.click();
   const dialog = page.getByRole("dialog");
   await dialog.getByRole("tab", { name: "Procurement review" }).click();
@@ -357,7 +428,7 @@ test.describe("the Worker gate is enabled", () => {
     expect((await request).headers()["x-modelspec-turnstile"]).toBe("browser-test-token");
     await expect(page.getByLabel("Facet board answer")).toBeVisible();
     expect(decisions).toBeGreaterThan(0);
-    await page.getByRole("button", { name: "Share or give to my agent" }).click();
+    await page.getByRole("button", { name: "Share" }).click();
     await page.getByRole("dialog").getByRole("tab", { name: "Procurement review" }).click();
     await expect(page.getByRole("dialog").getByRole("button", { name: /CSV/ })).toHaveCount(0);
   });
