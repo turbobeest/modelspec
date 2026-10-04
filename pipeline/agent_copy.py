@@ -396,9 +396,7 @@ Full API reference: {entity.SITE}/openapi.yaml
 
 ## CLI, MCP or HTTP
 
-{install_markdown()}
-Run `modelspec help agent --json` for CLI orientation and `modelspec key` for access.
-{CLI_PRIVACY}
+{ACCESS} CLI: `{INSTALL_PATHS[0]}` (or `{INSTALL_PATHS[1]}`); `pip install modelspec` is an unrelated project. `modelspec help agent --json` orients; `modelspec key` explains access. {CLI_PRIVACY}
 
 ## First call
 

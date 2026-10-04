@@ -16,7 +16,6 @@ from pathlib import Path
 from typing import Any, Optional
 
 import typer
-from falkordb import FalkorDB
 from rich.console import Console
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
@@ -124,6 +123,8 @@ _GRAPH_NAME = "modelspec"
 
 def _get_graph():
     """Connect to FalkorDB and return the modelspec graph handle."""
+    from falkordb import FalkorDB  # only the local graph commands need it
+
     try:
         db = FalkorDB(host=_FALKORDB_HOST, port=_FALKORDB_PORT)
         return db.select_graph(_GRAPH_NAME)

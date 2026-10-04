@@ -1,7 +1,7 @@
 {
   "_generated": "by pipeline.agent_copy; run python -m pipeline.agent_copy write",
   "cli_version": "0.3.0",
-  "guide_version": "1-829eaf055b29b55f",
+  "guide_version": "1-ba4c092afcb11838",
   "entity": "ModelSpec is an analysis of alternatives for AI models: it decides which models fit a job from your requirements, sourced benchmarks and real cost, and shows its work.",
   "coverage": {
     "as_of": "2026-09-23",
@@ -303,7 +303,7 @@
     }
   },
   "source_hashes": {
-    "pipeline/agent_copy.py": "52ccab54e9793b8fab338f1f9d5778d86c658b112863d6d3544e211fd0644c8d",
+    "pipeline/agent_copy.py": "2fa16b06d274dd859f75d757f69cfac8d857bfb1450aeef7d92f898d18beddd0",
     "pipeline/entity.py": "1649e5f95b620561511c2619045d036231b44c8ab7ff297bf4c6a21ab2b69ff3",
     "pipeline/pricing.py": "1e7b0b1c1bfc2fba4bd2de1d551b2fd9490dccdf13669a24bad5a7c02a8fb2c8",
     "pipeline/worker_flags.py": "24f13653d35fa40bee8531fe0644aa1adbf4d80c232da5dcc3cd74cf035fceed",
