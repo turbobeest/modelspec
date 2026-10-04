@@ -57,12 +57,24 @@ def test_wheel_has_an_explicit_runtime_file_set() -> None:
     )
 
 
-def test_no_workflow_publishes_to_pypi() -> None:
-    for path in (REPO_ROOT / ".github" / "workflows").glob("*.yml"):
+def test_only_release_pypi_publishes_and_only_by_trusted_publishing() -> None:
+    """MODEL-307: one workflow publishes, from a v* tag on main whose name matches the
+    package version, through OIDC trusted publishing. No token, no twine."""
+    publishers = []
+    for path in (REPO_ROOT / ".github" / "workflows").glob("*.y*ml"):
         text = path.read_text()
-        assert "pypa/gh-action-pypi-publish" not in text
-        assert "twine upload" not in text
-    assert not (REPO_ROOT / "docs" / "releasing.md").exists()
+        assert "twine upload" not in text, path.name
+        assert "PYPI_API_TOKEN" not in text and "password:" not in text, path.name
+        if "pypa/gh-action-pypi-publish" in text:
+            publishers.append(path.name)
+    assert publishers == ["release-pypi.yml"]
+    workflow = yaml.safe_load((REPO_ROOT / ".github" / "workflows" / "release-pypi.yml").read_text())
+    job = workflow["jobs"]["publish"]
+    assert job["environment"] == "pypi"
+    assert job["permissions"] == {"contents": "read", "id-token": "write"}
+    assert workflow[True]["push"]["tags"] == ["v*"]
+    steps = "\n".join(str(step.get("run", "")) for step in job["steps"])
+    assert 'tag != f"v{version}"' in steps and "merge-base --is-ancestor" in steps
 
 
 def test_ci_builds_and_installs_the_wheel_in_a_fresh_environment() -> None:
