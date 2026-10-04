@@ -23,7 +23,7 @@ MECHANISMS = {
 }
 
 
-def inventory_violation(inventory: dict | None, *, mcp_enabled: bool) -> str | None:
+def inventory_violation(inventory: dict | None, *, mcp_enabled: bool, allowed_servers=None) -> str | None:
     if not isinstance(inventory, dict):
         return "CLI did not expose its native inventory"
     if inventory.get("error"):
@@ -47,7 +47,7 @@ def inventory_violation(inventory: dict | None, *, mcp_enabled: bool) -> str | N
     for key in ("skills", "extensions", "hooks"):
         if inventory[key]:
             return f"CLI loaded user {key}"
-    allowed = ["modelspec"] if mcp_enabled else []
+    allowed = sorted(allowed_servers if allowed_servers is not None else ["modelspec"]) if mcp_enabled else []
     if inventory["mcp_servers"] != allowed:
         return "Native inventory did not show exactly the configured ModelSpec MCP servers"
     return None
@@ -85,9 +85,11 @@ GEMINI_MCP_NOTICES = frozenset(
 )
 
 
-def gemini_skill_listing(output: str) -> str:
+def gemini_skill_listing(output: str, allowed_servers=("modelspec",)) -> str:
     # Keep unknown diagnostics in the listing so its strict grammar rejects them.
-    return "\n".join(line for line in output.splitlines() if line not in GEMINI_MCP_NOTICES).strip()
+    notices = {notice.replace("'modelspec'", f"'{server}'")
+               for server in allowed_servers for notice in GEMINI_MCP_NOTICES}
+    return "\n".join(line for line in output.splitlines() if line not in notices).strip()
 
 
 def _codex_skills(
@@ -338,7 +340,10 @@ def inspect_inventory(
                     "Gemini extensions",
                 )
             )
-            skills_output = gemini_skill_listing(run(["skills", "list"], listing=True))
+            skills_output = gemini_skill_listing(
+                run(["skills", "list"], listing=True),
+                config.get("_mcp_servers", {"modelspec": {}}) if mcp_enabled else (),
+            )
             effective = json.loads(
                 run(
                     ["/opt/modelspec-harness/gemini-settings.mjs", "inventory"],
@@ -462,7 +467,9 @@ def inspect_inventory(
             )
         else:
             raise ValueError("Unknown CLI")
-        evidence["error"] = inventory_violation(evidence, mcp_enabled=mcp_enabled)
+        evidence["error"] = inventory_violation(
+            evidence, mcp_enabled=mcp_enabled, allowed_servers=config.get("_mcp_servers")
+        )
     except ValueError as exc:
         evidence["error"] = str(exc)
     except (KeyError, TypeError, AttributeError, OSError, subprocess.TimeoutExpired):

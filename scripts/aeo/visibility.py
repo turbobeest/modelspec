@@ -171,8 +171,9 @@ class Budget:
 
 def run_engine(engine: EngineConfig, prompts: list[Mapping[str, Any]], *, out: Path, budget: Budget,
                max_output_tokens: int, call: Caller, key: Callable[[str], str],
-               now: Callable[[], datetime]) -> dict[str, Any]:
-    """Every prompt on one engine. Returns what happened, for the run log."""
+               now: Callable[[], datetime],
+               recorded_rows: list[dict[str, Any]] | None = None) -> dict[str, Any]:
+    """Every prompt on one engine. Keep caller-owned rows even if a later call raises."""
     estimate = engine.est_call_usd * len(prompts)
     if not budget.allows(estimate):
         return {"engine": engine.name, "status": "skipped",
@@ -181,7 +182,8 @@ def run_engine(engine: EngineConfig, prompts: list[Mapping[str, Any]], *, out: P
         secret = key(engine.key)
     except EngineUnavailable as exc:
         return {"engine": engine.name, "status": "skipped", "reason": str(exc)}
-    done, rows = 0, []
+    done = 0
+    rows = [] if recorded_rows is None else recorded_rows
     raw_dir = out / "raw" / engine.name
     raw_dir.mkdir(parents=True, exist_ok=True)
     for prompt in prompts:
@@ -197,8 +199,8 @@ def run_engine(engine: EngineConfig, prompts: list[Mapping[str, Any]], *, out: P
             continue
         cost = call_cost(engine, answer)
         budget.spent += cost
-        (raw_dir / f"{prompt['id']}.json").write_text(json.dumps(answer.raw, indent=1), encoding="utf-8")
         rows.append(_row(engine, prompt, answer, cost, now()))
+        (raw_dir / f"{prompt['id']}.json").write_text(json.dumps(answer.raw, indent=1), encoding="utf-8")
         done += 1
     return {"engine": engine.name, "status": "complete", "runs": done, "rows": rows}
 
@@ -279,7 +281,8 @@ def summarise(rows: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
         counter = Counter(c["domain"] for r in answered if r["cluster"] == cluster for c in r["citations"])
         domains[cluster] = counter.most_common(20)
     confused = Counter(name for r in answered for name in r["detection"]["confused_with"])
-    return {"surface": SURFACE, "answers": len(answered),
+    surfaces = {r.get("surface", SURFACE) for r in rows}
+    return {"surface": next(iter(surfaces)) if len(surfaces) == 1 else "mixed" if surfaces else SURFACE, "answers": len(answered),
             "errors": sum(1 for r in rows if "error" in r),
             "cost_usd": round(sum(r.get("cost_usd", 0.0) for r in answered), 4),
             "cells": cells, "top_cited_domains": domains, "confused_with": dict(confused)}
@@ -297,6 +300,15 @@ def render(summary: Mapping[str, Any], *, run_date: str, engines_log: Mapping[st
              "description accuracy is not judged yet.", "",
              f"Answers: {summary['answers']}. Cost: ${summary['cost_usd']:.2f} "
              f"(month to date ${engines_log.get('month_spend_usd', 0):.2f} of ${engines_log.get('cap_usd', 0):.2f}).", ""]
+    if engines_log.get("partial"):
+        lines[0] += " (partial)"
+        lines += ["Partial run; exclude from trend comparisons.", ""]
+    if engines_log.get("report_error"):
+        lines += [f"Report comparison unavailable: {engines_log['report_error']}", ""]
+    if engines_log.get("surface") == "mixed":
+        lines[2] = ("Surface: subscription CLIs with native web search for OpenAI, Anthropic, Gemini and xAI; "
+                    "Perplexity's existing API. This is a transport change from the API baseline. "
+                    "Detection is heuristic. Subscription token-equivalent costs are not API spend.")
     for e in engines_log.get("engines", []):
         if e["status"] != "complete":
             lines.append(f"- **{e['engine']}: {e['status']}**: {e.get('reason', '')}")
@@ -329,6 +341,8 @@ def write_report(run_dir: Path, baseline_dir: Path | None = None) -> str:
     summary = summarise(rows)
     baseline = json.loads((baseline_dir / "summary.json").read_text(encoding="utf-8")) if baseline_dir else None
     engines_log = json.loads((run_dir / "engines.json").read_text(encoding="utf-8"))
+    if "partial" in engines_log:
+        summary["partial"] = engines_log["partial"]
     text = render(summary, run_date=run_dir.name, engines_log=engines_log, baseline=baseline)
     (run_dir / "summary.json").write_text(json.dumps(summary, indent=1), encoding="utf-8")
     (run_dir / "report.md").write_text(text, encoding="utf-8")
@@ -361,9 +375,7 @@ def main(argv: list[str] | None = None) -> int:
           f"month to date ${spent:.2f} of ${config.monthly_cap_usd:.2f}")
     if args.dry_run:
         return 0
-    out = run(prompts, config, runs_root=args.out, today=today)
-    print(write_report(out, args.baseline))
-    return 0
+    parser.error("Live visibility runs moved to python -m qa.subscription_jobs aeo (MODEL-309)")
 
 
 if __name__ == "__main__":

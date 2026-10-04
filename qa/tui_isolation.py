@@ -6,6 +6,7 @@ import json
 import shlex
 import tempfile
 import uuid
+from datetime import datetime, timedelta, timezone
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -62,6 +63,10 @@ def isolation_result(cli: str, config: dict) -> dict:
         if receipt.is_symlink():
             raise ValueError("Isolation receipt must not be a symlink")
         result = json.loads(receipt.read_text())
+        if config.get("_receipt_max_age_days") is not None:
+            certified = datetime.fromisoformat(result["certified_at"])
+            if certified.tzinfo is None or not timedelta(0) <= datetime.now(timezone.utc) - certified <= timedelta(days=config["_receipt_max_age_days"]):
+                raise ValueError("Doctor receipt has expired")
         controls = result["positive_control"]
         isolated = result["isolated_control"]
         passed = all(
@@ -401,6 +406,7 @@ def verify_isolation(cli: str, config: dict, output: Path, *, before_start=lambd
         )
         result = {
             "schema": 4,
+            "certified_at": datetime.now(timezone.utc).isoformat(),
             "identity": identity,
             "binary": binary,
             "inventory": inventory,

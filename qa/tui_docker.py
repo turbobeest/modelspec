@@ -73,7 +73,10 @@ def image_name(cli: str, settings: dict) -> str:
         raise ValueError("Docker CLI profiles require an exact stable version")
     if settings.get("executable") != cli:
         raise ValueError("CLI executable must be its image-installed native command")
-    return f"modelspec-harness-{cli}:{version}"
+    variant = settings.get("image_variant", "")
+    if variant not in ("", "ux"):
+        raise ValueError("Unknown Docker image variant")
+    return f"modelspec-harness-{cli}{'-ux' if variant else ''}:{version}"
 
 
 def home_volume(cli: str) -> str:
@@ -93,6 +96,17 @@ def image_identity(cli: str, config: dict) -> dict:
         text=True,
         timeout=30,
     )
+    if result.returncode:
+        info = subprocess.run(
+            [docker_executable(), "info"],
+            env=docker_environment(),
+            input="",
+            capture_output=True,
+            text=True,
+            timeout=30,
+        )
+        if info.returncode:
+            raise ValueError("Docker Desktop is not running or its engine is unavailable; start Docker Desktop")
     try:
         if result.returncode:
             raise ValueError()
@@ -153,12 +167,13 @@ def container_command(
     name: str | None = None,
     image: str | None = None,
     home: bool = True,
+    preview: bool = False,
 ) -> list[str]:
     refuse_vendor_auth(env)
     allowed = PASSED_ENV | ({config["mcp_token_env"]} if config.get("mcp_token_env") else set())
     if set(env) - allowed:
         raise ValueError("Container environment must use the explicit harness allowlist")
-    argv = [docker_executable(), "run", "--rm", "--init", "--pull=never"]
+    argv = ["docker" if preview else docker_executable(), "run", "--rm", "--init", "--pull=never"]
     if name:
         argv += ["--name", name]
     argv += ["--cap-drop=ALL", "--security-opt=no-new-privileges", "--workdir", "/work"]
@@ -214,6 +229,7 @@ def run_cli(
     *,
     isolated: bool = True,
     home: bool = True,
+    input_text: str = "",
 ) -> subprocess.CompletedProcess:
     name = "modelspec-tui-" + uuid.uuid4().hex
     argv = container_command(
@@ -231,7 +247,7 @@ def run_cli(
             argv,
             cwd=workspace,
             env=docker_environment(env),
-            input="",
+            input=input_text,
             text=True,
             capture_output=True,
             timeout=config["timeout_seconds"],
@@ -283,7 +299,7 @@ def build_images(config: dict, selected: list[str]) -> None:
                 docker_executable(),
                 "build",
                 "--target",
-                cli,
+                cli + ("-ux" if settings.get("image_variant") == "ux" else ""),
                 "--build-arg",
                 f"CLI_VERSION={settings['version']}",
                 "--build-arg",

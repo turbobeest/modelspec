@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>dev.modelspec.ux-agents</string>
+	<key>ProcessType</key>
+	<string>Background</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/bin/zsh</string>
+		<string>@@REPO@@/qa/run-subscription-job.sh</string>
+		<string>ux</string>
+		<string>--scheduled</string>
+		<string>--state-dir</string>
+		<string>@@STATE@@</string>
+		<string>--max-runs-per-cli</string>
+		<string>40</string>
+	</array>
+	<key>StandardErrorPath</key>
+	<string>@@LOGS@@/modelspec-ux-subscriptions.log</string>
+	<key>StandardOutPath</key>
+	<string>@@LOGS@@/modelspec-ux-subscriptions.log</string>
+	<key>StartCalendarInterval</key>
+	<dict>
+		<key>Hour</key>
+		<integer>4</integer>
+		<key>Minute</key>
+		<integer>37</integer>
+		<key>Weekday</key>
+		<integer>3</integer>
+	</dict>
+</dict>
+</plist>

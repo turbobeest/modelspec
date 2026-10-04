@@ -32,6 +32,9 @@ IMAGE_IDENTITY = docker.image_identity
 
 @pytest.fixture(autouse=True)
 def deny_credential_access(monkeypatch):
+    for name in tuple(os.environ):
+        if entrypoint.VENDOR_ENV.search(name) and not name.startswith("MODELSPEC_"):
+            monkeypatch.delenv(name)
     original_open = builtins.open
     denied = re.compile(
         r"\.codex[/\\]auth|auth\.json|\.credentials|keychain|\.claude\.json|"
@@ -2090,6 +2093,8 @@ def test_build_identity_rejects_missing_changed_or_key_bearing_images(
         row["Config"]["Entrypoint"] = ["sh", "-c"]
 
     def inspect(argv, **kwargs):
+        if argv[1:] == ["info"]:
+            return subprocess.CompletedProcess(argv, 0, "", "")
         assert argv[1:3] == ["image", "inspect"]
         return subprocess.CompletedProcess(
             argv, 1 if bad == "missing" else 0, json.dumps([row]), ""
@@ -2099,6 +2104,20 @@ def test_build_identity_rejects_missing_changed_or_key_bearing_images(
     with pytest.raises(ValueError, match="image is missing or invalid"):
         IMAGE_IDENTITY("codex", config)
     assert "never-print-this" not in repr(capsys.readouterr())
+
+
+@pytest.mark.parametrize("running", [False, True])
+def test_missing_image_is_distinguished_from_stopped_docker(config, monkeypatch, running):
+    calls = []
+    def run(argv, **kwargs):
+        calls.append(argv[1:])
+        return subprocess.CompletedProcess(argv, int(not running) if argv[1:] == ["info"] else 1,
+                                           "", "Cannot connect to the Docker daemon")
+    monkeypatch.setattr(docker.subprocess, "run", run)
+    message = "image is missing or invalid" if running else "Docker Desktop is not running"
+    with pytest.raises(ValueError, match=message):
+        IMAGE_IDENTITY("codex", config)
+    assert calls == [["image", "inspect", "modelspec-harness-codex:0.160.0"], ["info"]]
 
 
 def test_codex_account_plugin_listing_is_reported_and_never_assumed_disabled(
