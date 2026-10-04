@@ -115,8 +115,8 @@ def budget_snapshot():
             fact("model", mid, "model.weights_openness", "closed_weights"),
             fact("model", mid, "licence.user_cap", "unbounded"),
         ]))
-        oid = f"cloud/{mid}/global/standard"
-        offerings.append(offering(mid, "cloud", facts=[
+        oid = f"sambanova/{mid}/global/standard"
+        offerings.append(offering(mid, "sambanova", facts=[
             fact("offering", oid, "offering.price.input", price, source="src-pricing"),
             fact("offering", oid, "offering.price.output", 4 * price, source="src-pricing"),
         ]))

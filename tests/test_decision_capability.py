@@ -825,10 +825,10 @@ def test_the_band_compares_each_model_to_the_leader_by_probability_not_overlap()
                 catalogued("lab/gamma", "closed_weights"),
             ],
             offerings=[
-                sold("lab/alpha", "provider-a", 3, 100),
-                sold("lab/alpha", "provider-b", 5, 120),
-                sold("lab/beta", "provider-a", 1, 50),
-                sold("lab/gamma", "provider-a", 0.5, 200),
+                sold("lab/alpha", "fireworks-ai", 3, 100),
+                sold("lab/alpha", "nvidia-nim", 5, 120),
+                sold("lab/beta", "fireworks-ai", 1, 50),
+                sold("lab/gamma", "fireworks-ai", 0.5, 200),
             ],
             evidence=rows,
             sources=SOURCES,
@@ -885,9 +885,9 @@ def test_one_models_offerings_never_tie_with_each_other_in_the_answer() -> None:
         SnapshotInputs(
             models=[model("lab/alpha"), model("lab/beta")],
             offerings=[
-                offering("lab/alpha", "provider-a"),
-                offering("lab/alpha", "provider-b"),
-                offering("lab/beta", "provider-a"),
+                offering("lab/alpha", "fireworks-ai"),
+                offering("lab/alpha", "nvidia-nim"),
+                offering("lab/beta", "fireworks-ai"),
             ],
             evidence=rows,
             sources=SOURCES,
@@ -956,9 +956,9 @@ def test_one_models_offerings_do_not_make_its_evidence_not_separable() -> None:
         SnapshotInputs(
             models=[model("lab/alpha"), model("lab/beta")],
             offerings=[
-                offering("lab/alpha", "provider-a"),
-                offering("lab/alpha", "provider-b"),
-                offering("lab/beta", "provider-a"),
+                offering("lab/alpha", "fireworks-ai"),
+                offering("lab/alpha", "nvidia-nim"),
+                offering("lab/beta", "fireworks-ai"),
             ],
             evidence=rows,
             sources=SOURCES,
