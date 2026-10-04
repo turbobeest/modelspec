@@ -179,7 +179,7 @@ describe("the banded answer on the board", () => {
   it("has no answer block while the board is unranked", () => {
     show(tiedJson, unranked);
     expect(screen.queryByRole("heading", { name: /Best for your weights/ })).not.toBeInTheDocument();
-    expect(screen.getByText(/qualify — set a Prefer to rank them/)).toBeInTheDocument();
+    expect(screen.getByText(/Not ranked yet: listed alphabetically/)).toBeInTheDocument();
   });
 
   it("still renders the ranked list when the response has no answer and no bands", () => {

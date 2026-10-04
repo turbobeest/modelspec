@@ -50,22 +50,28 @@ export function Field({
     ],
     total = Math.max(1, steps[0]?.n ?? 1);
   return (
-    <section className="narrowing">
+    <section className="narrowing" aria-label="Narrowing">
       <div className="panel">
-        <div className="panel-heading">
-          <span className="eyebrow">
-            Narrowing, in the order you set conditions
-          </span>
-          <small>
-            {e.feasible.length} qualify · {e.may.length} may qualify ·{" "}
-            {e.excluded.length} excluded
+        <div className="narrowing-counts" aria-hidden="true">
+          {[
+            { state: "qualifies", n: e.feasible.length, label: "qualify", icon: "✓" },
+            { state: "may", n: e.may.length, label: "may qualify", icon: "?" },
+            { state: "out", n: e.excluded.length, label: "out", icon: "×" },
+          ].map(({ state, n, label, icon }) => <div className={`narrowing-total status-${state}`} key={state}>
+            <strong className="narrowing-number" key={n}>{n}</strong><span>{icon} {label}</span>
+          </div>)}
+        </div>
+        <p className="template-sr" role="status" aria-live="polite" aria-atomic="true">
+          {e.feasible.length} qualify · {e.may.length} may qualify · {e.excluded.length} out
+        </p>
+        {(decision.truncated.models > 0 || decision.truncated.offerings > 0) && <small className="narrowing-truncated">
             {decision.truncated.models > 0
-              ? ` · ${decision.truncated.models} more ${decision.truncated.models === 1 ? "model" : "models"} not shown`
+              ? `${decision.truncated.models} more ${decision.truncated.models === 1 ? "model" : "models"} not shown`
               : decision.truncated.offerings > 0
                 ? ` · ${decision.truncated.offerings} more ${decision.truncated.offerings === 1 ? "offering" : "offerings"} not shown`
                 : null}
-          </small>
-        </div>
+          </small>}
+        <details className="narrowing-details"><summary>Narrowing, in the order you set conditions</summary>
         <ol className="funnel">
           {steps.map((f, i) => (
             <li key={i} className={`${i === steps.length - 1 ? "ranked" : ""}${f.engineAdded ? " engine-added" : ""}`}>
@@ -105,6 +111,7 @@ export function Field({
             </li>
           ))}
         </ol>
+        </details>
       </div>
       {showQuestions && <div className="panel questions">
         <div className="eyebrow">Next questions, most narrowing first</div>

@@ -7,6 +7,25 @@ import type { Row } from "../adapter";
 import { DecisionTable } from "../components/DecisionTable";
 import { baseSpec } from "../state/spec";
 
+it("keeps an unranked table alphabetical, including rows without a provider", () => {
+  const spec = { ...baseSpec, bench: "quality", boardWeights: {} };
+  const view = mapDecisionToViewModel(decisionSchema.parse(fixtureJson), spec, { axis: "task$", dismissed: [] });
+  const base = view.explanation.feasible[0];
+  const zulu = { ...base, m: { ...base.m, id: "zulu", name: "Zulu" } } satisfies Row;
+  const alpha = {
+    ...base, m: { ...base.m, id: "alpha", name: "Alpha" }, status: 0,
+    best: { ...base.best, o: { ...base.best.o, provider: "Provider not available" } },
+  } satisfies Row;
+  const decision = {
+    ...view, explanation: { ...view.explanation, rows: [zulu, alpha], feasible: [zulu], may: [alpha], excluded: [] },
+  };
+  render(<DecisionTable decision={decision} spec={spec} selected={null} onSelect={vi.fn()} />);
+  fireEvent.click(screen.getByRole("button", { name: "Show 1 without a provider" }));
+  expect(screen.getByText("Not ranked yet: listed alphabetically")).toBeInTheDocument();
+  expect(Array.from(document.querySelectorAll(".table-model"), (button) => button.textContent)).toEqual(["Alpha", "Zulu"]);
+  expect(screen.getByRole("button", { name: "$ per task" })).toBeDisabled();
+});
+
 it("counts collapsed providerless rows as excluded rows and answers change, and keeps zero distinct from missing", () => {
   const spec = { ...baseSpec, bench: "quality" };
   const view = mapDecisionToViewModel(decisionSchema.parse(fixtureJson), spec, { axis: "task$", dismissed: [] });

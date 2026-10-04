@@ -35,6 +35,12 @@ const providerEstate = {
 /** The Coding row's Budget cell (MODEL-204): `budget-coding`. */
 const BUDGET_CODING = /^Coding · Budget:/;
 
+function savedEmptyBoard() {
+  history.replaceState(null, "", `/decide/${encodeBoardSpec({ ...realBaseSpec(realVocabulary), conds: [] }, "task$", {
+    selections: {}, mustOrder: [], estate: { providers: [], plans: [], hardware: [] },
+  })}`);
+}
+
 it("sanitizes every unavailable selection in an old namespaced board permalink", async () => {
   const unavailableFacet = refinementVocabulary.facets.find((facet) => facet.id === "model.context_window")!;
   const vocabulary = {
@@ -88,7 +94,7 @@ it("opens a composer-era permalink as a populated board with migration notes", a
   expect(await screen.findByRole("note", { name: "Notes from your old decision link" })).toHaveTextContent(
     "The board does not interpret free text.",
   );
-  fireEvent.click(screen.getByRole("button", { name: /^Size of work/ }));
+  openGroup("Size of work");
   const context = document.querySelector<HTMLElement>('[data-facet="model.context_window"]');
   if (!context) throw new Error("legacy context facet did not render");
   expect(within(context).getByLabelText("Must")).toBeChecked();
@@ -516,7 +522,7 @@ it("keeps ticket IDs and future promises out of every applied template surface",
     expect(screen.getByRole("region", { name: "Why this model" })).not.toHaveTextContent(/MODEL-\d+|\bcoming\b/i);
     expect(screen.getByLabelText("Facet board answer").closest(".board-answer")).not.toHaveTextContent(/MODEL-\d+|\bcoming\b/i);
     expect(document.querySelector(".facet-board")).not.toHaveTextContent(/MODEL-\d+|\bcoming\b/i);
-    fireEvent.click(screen.getByRole("button", { name: /Start from a template/ }));
+    fireEvent.click(screen.getByRole("button", { name: /^(All \d+ templates|Hide templates)$/ }));
   }
 }, 60_000); // walks every template; 8 took 5.2 s on a CI runner (deploy run for 8c815d00)
 
@@ -567,7 +573,7 @@ it("does not render the Next-questions panel in the facet-board preview", async 
   expect(within(answer).getAllByText("cloud · pay per use").length).toBeGreaterThan(0);
   expect(within(answer).queryByText("cloud/lab/delta/global/standard · cloud")).not.toBeInTheDocument();
   expect(within(answer).queryByLabelText("Delta 4.7 capability interval")).not.toBeInTheDocument();
-  expect(within(answer).getByText(/qualify — set a Prefer to rank them/)).toBeInTheDocument();
+  expect(within(answer).getByText(/Not ranked yet: listed alphabetically/)).toBeInTheDocument();
   expect(screen.getByLabelText("Why this model")).toHaveTextContent("Select a model to inspect");
   const canvas = screen.getByRole("region", { name: "Trade-off canvas" });
   plotCostAgainstCapability(canvas);
@@ -614,11 +620,12 @@ it("does not render the Next-questions panel in the facet-board preview", async 
   await waitFor(() => expect(sentSpecs(fetch).some((body) =>
     body.where.includes("model.context_window >= 529096"),
   )).toBe(true));
-  expect(within(answer).getByText(/qualify — set a Prefer to rank them/)).toBeInTheDocument();
+  expect(within(answer).getByText(/Not ranked yet: listed alphabetically/)).toBeInTheDocument();
   expect(sentSpecs(fetch).every((body) => Object.keys(body.optimize.weights).length > 0)).toBe(true);
 });
 
 it("renders the qualifying models from the live empty-board decision alphabetically", async () => {
+  savedEmptyBoard();
   const fetch = routeFetch({
     vocabulary: () => json(realVocabulary),
     decide: () => json(liveEmptyBoard),
@@ -666,6 +673,7 @@ it("renders the qualifying models from the live empty-board decision alphabetica
 });
 
 it("plots and tabulates domain estimates while the board is unranked", async () => {
+  savedEmptyBoard();
   const fetch = routeFetch({
     vocabulary: () => json(realVocabulary),
     decide: () => json(liveSwePrefer),
@@ -688,6 +696,7 @@ it("plots and tabulates domain estimates while the board is unranked", async () 
 });
 
 it("keeps capability-unknown models outside the ranked board answer", async () => {
+  savedEmptyBoard();
   const fetch = routeFetch({
     vocabulary: () => json(realVocabulary),
     decide: (init) => "software_engineering" in JSON.parse(String(init?.body ?? "{}"))
@@ -813,7 +822,7 @@ it("shows model-grained funnel and board counts from the live budget decision", 
   );
   expect(lastMustRow).toHaveTextContent(`${lastMust.models_may_qualify} may`);
   expect(within(narrowing).getByText(
-    `${qualifyingModels} qualify · ${may} may qualify · 14 excluded`,
+    `${qualifyingModels} qualify · ${may} may qualify · 14 out`,
   )).toBeInTheDocument();
   const ranking = within(narrowing).getByText(/Ranking on .*Software engineering 0.60/)
     .closest("li")!;

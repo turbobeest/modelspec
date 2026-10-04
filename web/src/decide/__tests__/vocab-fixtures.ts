@@ -38,6 +38,11 @@ export const smallVocabulary: Vocabulary = {
       benchmarks: ["quality"],
     },
   ],
+  // This synthetic snapshot can only answer software-engineering templates.
+  templates: realVocabulary.templates?.map((template) => ({
+    ...template,
+    available: template.available && template.needs.domains.every((id) => id === "software_engineering"),
+  })),
   // lab/alpha has no card name: the page shows its ID.
   models: {
     "lab/delta": { display_name: "Delta 4.7", lab: "lab", lab_name: "Lab Inc." },

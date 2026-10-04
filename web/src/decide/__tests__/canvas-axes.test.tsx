@@ -357,7 +357,7 @@ it("draws capability intervals on either axis and leaves no-data models at the m
   expect(canvas.querySelectorAll(".axis-interval.y")).toHaveLength(3);
   expect(canvas.querySelector(".point.excluded")).not.toBeNull();
   expect(canvas.querySelector(".point.may")).not.toBeNull();
-  expect(within(canvas).getByText("Fails a Must · remains visible")).toBeInTheDocument();
+  expect(within(canvas).getByText("Out · fails a Must · remains visible")).toBeInTheDocument();
   expect(within(canvas).getByText("May qualify · missing Must data")).toBeInTheDocument();
   expect(within(canvas).getByText("Gamma Max 0902 · near miss")).toHaveClass(
     "point-label",

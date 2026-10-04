@@ -132,6 +132,15 @@ def test_other_pages_keep_the_fallback_card() -> None:
     assert 'content="https://modelspec.dev/another/"' in meta
 
 
+def test_decide_card_uses_the_first_view_question() -> None:
+    card = social_cards.decide_card()
+    assert card.alt == "ModelSpec Decide: Which AI model fits your job?"
+    assert card.headline.replace("<br>", " ") == "Which AI model fits your job?"
+    page = (ROOT / "web" / "decide.html").read_text(encoding="utf-8")
+    assert f'content="{card.alt}"' in page
+    assert "Watch the field narrow" not in card.headline
+
+
 def test_renderer_writes_every_card_at_the_contract_size(
     tmp_path: Path, card_data: landing.LandingData,
 ) -> None:

@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 
 const vocabulary = readFileSync(new URL("../src/decide/__fixtures__/vocabulary.json", import.meta.url), "utf8");
 const decision = readFileSync(new URL("../src/decide/__fixtures__/live-empty-board-full.json", import.meta.url), "utf8");
+const narrowedDecision = readFileSync(new URL("../src/decide/__fixtures__/live-budget-coding-full.json", import.meta.url), "utf8");
 
 test.beforeEach(async ({ page }) => {
   await page.route(/\/(?:api\/decision\/vocabulary\.json|v1\/vocabulary)(?:\?.*)?$/, (route) => route.fulfill({
@@ -28,11 +29,83 @@ async function openBoard(page: import("@playwright/test").Page) {
 }
 
 test("the public decision page opens on the facet board", async ({ page }) => {
+  const requests: { explain?: string; where?: string[]; optimize?: unknown }[] = [];
+  page.on("request", (request) => {
+    if (request.url().endsWith("/v1/decide") && request.method() === "POST") requests.push(request.postDataJSON());
+  });
   await openBoard(page);
   await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
   await expect(page.getByRole("region", { name: "Trade-off canvas" })).toBeVisible();
   await expect(page.getByLabel("Facet board answer")).toBeVisible();
   await expect(page.getByRole("button", { name: "Share or give to my agent" })).toBeVisible();
+  await expect(page.locator(".template-active")).toHaveText("Starting from: General assistant, balancedClear");
+  await expect(page.locator(".template-shortcuts button")).toHaveCount(6);
+  await expect(page.getByLabel("X axis")).toHaveValue("facet:offering.cost_per_task");
+  await expect(page.getByLabel("Y axis")).toHaveValue("capability:chat_preference");
+  await expect(page.getByText("Up and left is better")).toBeVisible();
+  await expect.poll(() => requests.length).toBe(3);
+  expect(requests.filter((request) => request.explain === "summary")).toHaveLength(1);
+  expect(requests[0].where).toEqual(["model.class = text-generator", "model.lifecycle = active"]);
+  expect(requests[0].optimize).toEqual({ weights: { chat_preference: 0.6, "-offering.cost_per_task": 0.4 } });
+});
+
+test("Clear opens an alphabetic empty board and that saved board wins on reload", async ({ page }) => {
+  await openBoard(page);
+  await page.getByRole("button", { name: "Clear", exact: true }).click();
+  await expect(page.locator(".board-unranked")).toHaveText("Not ranked yet: listed alphabetically");
+  await expect(page.locator(".template-active")).toHaveCount(0);
+  await page.reload();
+  await expect(page.locator(".board-unranked")).toHaveText("Not ranked yet: listed alphabetically");
+  await expect(page.locator(".template-active")).toHaveCount(0);
+});
+
+test("a shared board wins over the default and keeps its chosen chart axes", async ({ page }) => {
+  const state = {
+    tokIn: 40000, tokOut: 4000, bench: "swe_bench_pro", w: { cap: 0.6, cost: 0.3, speed: 0.1 }, conds: [], x: "task$",
+    board: { selections: { "model.context_window": { mode: "must", op: ">=", value: 200000 } }, mustOrder: ["model.context_window"], estate: { providers: [], plans: [], hardware: [] }, canvas: { x: "facet:model.context_window", y: "capability:software_engineering" } },
+  };
+  await page.goto(`/decide.html#s=${btoa(encodeURIComponent(JSON.stringify(state)))}`);
+  await expect(page.getByLabel("Facet board answer")).toBeVisible();
+  await expect(page.locator(".template-active")).toHaveCount(0);
+  await expect(page.getByLabel("X axis")).toHaveValue("facet:model.context_window");
+  await expect(page.locator('[data-facet="model.context_window"]').getByLabel("Must")).toBeChecked();
+});
+
+test("the counter announces exact values and does not animate with reduced motion", async ({ page }) => {
+  await openBoard(page);
+  const narrowing = page.getByRole("region", { name: "Narrowing", exact: true });
+  const status = narrowing.getByRole("status");
+  await expect(status).toHaveAttribute("aria-live", "polite");
+  await expect(status).toHaveAttribute("aria-atomic", "true");
+  await expect(status).toHaveText("22 qualify · 10 may qualify · 0 out");
+  await expect(narrowing.locator(".narrowing-number")).toHaveText(["22", "10", "0"]);
+  await expect(narrowing.locator(".narrowing-counts")).toHaveAttribute("aria-hidden", "true");
+  expect(await narrowing.locator(".narrowing-number").first().evaluate((node) => getComputedStyle(node).animationName)).toBe("none");
+  const shortcuts = await page.locator(".template-shortcuts").boundingBox();
+  const counter = await narrowing.boundingBox();
+  const access = await page.getByRole("region", { name: "How will you use it?" }).boundingBox();
+  if (!shortcuts || !counter || !access) throw new Error("The opening view is missing a region");
+  expect(counter.y).toBeGreaterThanOrEqual(shortcuts.y + shortcuts.height);
+  expect(access.y).toBeGreaterThanOrEqual(counter.y + counter.height);
+
+  await page.route("**/v1/decide", (route) => route.fulfill({ contentType: "application/json", body: narrowedDecision }));
+  await page.getByRole("button", { name: /^Size of work/ }).click();
+  await page.locator('[data-facet="model.context_window"]').getByLabel("Must", { exact: true }).check();
+  await expect(status).toHaveText("15 qualify · 3 may qualify · 14 out");
+  await expect(narrowing.locator(".narrowing-number")).toHaveText(["15", "3", "14"]);
+  expect(await narrowing.locator(".narrowing-number").first().evaluate((node) => getComputedStyle(node).animationName)).toBe("none");
+});
+
+test("the counter animates exact digits when motion is enabled", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await openBoard(page);
+  await expect(page.locator(".narrowing-number")).toHaveText(["22", "10", "0"]);
+  expect(await page.locator(".narrowing-number").first().evaluate((node) => getComputedStyle(node).animationName)).toBe("narrowing-count");
+  await page.route("**/v1/decide", (route) => route.fulfill({ contentType: "application/json", body: narrowedDecision }));
+  await page.locator(".template-shortcuts button").nth(1).click();
+  await expect(page.locator(".narrowing-number")).toHaveText(["15", "3", "14"]);
+  await expect(page.getByRole("region", { name: "Narrowing", exact: true }).getByRole("status")).toHaveText("15 qualify · 3 may qualify · 14 out");
+  expect(await page.locator(".narrowing-number").first().evaluate((node) => getComputedStyle(node).animationName)).toBe("narrowing-count");
 });
 
 test("a board facet updates the decision and survives reload", async ({ page }) => {
@@ -84,7 +157,7 @@ async function applyTemplate(page: import("@playwright/test").Page, width: numbe
   await page.goto("/decide.html?layout=table");
   if (status) await status;
   await expect(page.getByRole("group", { name: "Layout" })).toHaveCount(0);
-  await page.getByRole("button", { name: /Start from a template/ }).click();
+  await page.getByRole("button", { name: /^(All \d+ templates|Hide templates)$/ }).click();
   await page.locator(".board-templates button").nth(1).click();
   await expect(page.getByRole("region", { name: "Trade-off canvas" })).toBeVisible();
   await expect(page.locator(".decision-table")).toBeVisible();
@@ -229,7 +302,7 @@ test("the board and its explanation fit a 320px viewport in light and dark mode"
   await openBoard(page);
   const scrollWidth = () => page.evaluate(() => document.documentElement.scrollWidth);
   await expect.poll(scrollWidth).toBeLessThanOrEqual(320);
-  await page.getByRole("button", { name: /Start from a template/ }).click();
+  await page.getByRole("button", { name: /^(All \d+ templates|Hide templates)$/ }).click();
   await page.locator(".board-templates button").nth(1).click();
   await expect(page.locator(".why-panel .contribution").first()).toBeVisible();
   for (const buttonName of ["Light mode", "Dark mode"]) {

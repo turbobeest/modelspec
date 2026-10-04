@@ -43,7 +43,7 @@ describe("unranked board answer", () => {
 
     render(<RankedAnswer decision={decision} spec={spec} vocabulary={vocabulary} />);
 
-    expect(screen.getByText(`${decision.explanation.feasible.length} qualify — set a Prefer to rank them`)).toBeInTheDocument();
+    expect(screen.getByText("Not ranked yet: listed alphabetically")).toBeInTheDocument();
     const names = screen.getAllByRole("listitem").map((item) => item.querySelector("strong")?.textContent).filter(Boolean);
     expect(names).toEqual(names.slice().sort((left, right) => left!.localeCompare(right!)));
     expect(document.body).not.toHaveTextContent("#1");

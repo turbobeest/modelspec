@@ -251,6 +251,9 @@ try {
   const decideFailures = recordBrowserFailures(decidePage);
   await decidePage.goto("https://modelspec.dev/decide/?demo=1");
   await assertRankedBoard(decidePage);
+  assert.match(await decidePage.locator(".template-active").textContent(), /Starting from: General assistant, balanced/);
+  assert.equal(await decidePage.locator(".template-shortcuts button").count(), 6);
+  assert.equal(await decidePage.getByLabel("X axis").inputValue(), "facet:offering.cost_per_task");
   assert.deepEqual(decideFailures, []);
   assert.equal(await decidePage.locator(".decide-app").getAttribute("data-theme"), "dark");
   await decidePage.getByRole("button", { name: "Light mode" }).waitFor();

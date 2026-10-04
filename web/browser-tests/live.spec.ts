@@ -53,9 +53,12 @@ test("the deployed page follows the Worker's human gate status", async ({ page }
   } else {
     await expect(gate).toHaveCount(0);
     await answered(page);
+    await expect(page.locator(".template-active")).toContainText("Starting from: General assistant, balanced");
+    await expect(page.getByLabel("X axis")).toHaveValue("facet:offering.cost_per_task");
+    await expect(page.getByText("Up and left is better")).toBeVisible();
 
-    // The template card starts collapsed (MODEL-277); it is absent only when no template is available.
-    const bar = page.getByRole("button", { name: /Start from a template/ });
+    // The full list complements the visible shortcuts.
+    const bar = page.getByRole("button", { name: /^(All \d+ templates|Hide templates)$/ });
     if ((await bar.count()) > 0) {
       await bar.click();
       await page.locator(".board-templates button").first().click();

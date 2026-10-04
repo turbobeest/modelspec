@@ -60,8 +60,11 @@ import {
   boardHasPreference, boardToSpec, decodeBoardState, encodeBoardSpec, estatePayload, foldRefinementWeights, hasEstate,
   allocateBoardWeights, nextMustOrder, legacyBoardBaseSpec, legacySpecToBoard, refinementWeightKeys,
   sanitizeBoardState,
+  templateToBoard,
   toBoardDecisionSpec,
 } from "./facet-board/model";
+import { openingTemplate, templateCanvasAxes } from "./facet-board/templates";
+import type { ActiveTemplate } from "./facet-board/templates";
 import type { BoardSelections, Estate, FacetSelection } from "./facet-board/model";
 import type { CanvasAxisOption } from "./components/canvas-axis";
 import {
@@ -112,7 +115,7 @@ export function DesignedApp({
       initialBoard?.canvas ?? null,
     ),
     [legacyNotes, setLegacyNotes] = useState<string[]>([]),
-    [initialRestored, setInitialRestored] = useState(!initial);
+    [initialRestored, setInitialRestored] = useState(false);
   const [theme, setTheme] = useState<Theme>(() =>
       initialTheme(location.search, storedTheme()),
     );
@@ -143,7 +146,7 @@ export function DesignedApp({
   // A site deploy can change the snapshot under an open page (MODEL-159). The
   // Worker says so with a 409; every request that hears it shares one reload.
   const [reloadVocabulary] = useState(() => sharedReload(() => loadVocabulary(undefined, true)));
-  const [activeTemplateId, setActiveTemplateId] = useState<string | null>(null);
+  const [activeTemplate, setActiveTemplate] = useState<ActiveTemplate | null>(null);
   const [hasAdjustedBoard, setHasAdjustedBoard] = useState(false);
   // Bumped by the answer's Reset: remounting the board drops its open groups and template too.
   const [boardGeneration, setBoardGeneration] = useState(0);
@@ -173,14 +176,19 @@ export function DesignedApp({
     if (!vocabulary) return null;
     const enabled = canvasAxisOptions(vocabulary).filter((option) => !option.disabled);
     if (enabled.length === 0) return null;
-    const fallback = { x: enabled[0].id, y: (enabled[1] ?? enabled[0]).id };
+    const cost = enabled.find((option) => option.id === "facet:offering.cost_per_task");
+    const capability = enabled.find((option) => option.kind === "capability" &&
+      Object.keys(spec.boardWeights ?? {}).some((key) => key.split("/")[0] === option.key));
+    const fallback = boardHasPreference(spec) && cost && capability
+      ? { x: cost.id, y: capability.id }
+      : { x: enabled[0].id, y: (enabled[1] ?? enabled[0]).id };
     if (!canvasAxes) return fallback;
     const ids = new Set(enabled.map((option) => option.id));
     return {
       x: ids.has(canvasAxes.x) ? canvasAxes.x : fallback.x,
       y: ids.has(canvasAxes.y) ? canvasAxes.y : fallback.y,
     };
-  }, [canvasAxes, vocabulary]);
+  }, [canvasAxes, vocabulary, spec]);
   const vocab = useMemo(() => {
     if (!vocabulary) return fictionalVocab;
     registerBenchmarks(vocabulary.benchmarks);
@@ -492,7 +500,10 @@ export function DesignedApp({
   }
 
   function changeSpec(nextSpec: Spec) {
-    if (gateStatus === null) pendingSpec.current = nextSpec;
+    if (gateStatus === null) {
+      pendingSpec.current = nextSpec;
+      setInitialRestored(true);
+    }
     if (humanGateEnabled) {
       requestAbort.current?.abort();
       setHostedDecision(null);
@@ -553,14 +564,14 @@ export function DesignedApp({
     );
   }
 
-  /** The answer area's Reset (MODEL-294): back to the default board, as "Reset all" does. */
+  /** The answer area's Reset returns to an empty board, as Clear does. */
   function resetBoard() {
     if (!vocabulary) return;
     const empty = sanitizeBoardState({ selections: {}, mustOrder: [], estate }, vocabulary);
     changeBoardSelections(empty.selections);
     setBoardMustOrder([]);
     setLegacyNotes([]);
-    setActiveTemplateId(null);
+    setActiveTemplate(null);
     setSelected(null);
     setBoardGeneration((generation) => generation + 1);
     changeSpec(boardToSpec(boardBaseSpec, vocabulary, empty.selections, []));
@@ -613,10 +624,10 @@ export function DesignedApp({
       void runDecision(edited);
       return;
     }
+    if (initialAnswered.current) return;
     if (initial) {
       // A shared link: answer it as written. What the engine refuses is shown on its chip.
       // Once: a vocabulary reloaded after a deploy must not answer it again.
-      if (initialAnswered.current) return;
       initialAnswered.current = true;
       const legacyBoard = initialBoard ? null : legacySpecToBoard(initial.spec, vocabulary, estate);
       const restoredBoard = initialBoard
@@ -645,23 +656,32 @@ export function DesignedApp({
       return;
     }
     const base = realBaseSpec(vocabulary);
-    const emptyBoard = sanitizeBoardState(
-      { selections: {}, mustOrder: [], estate },
+    const template = openingTemplate(vocabulary, initial !== null);
+    const converted = template ? templateToBoard(template, vocabulary) : null;
+    const openingBoard = sanitizeBoardState(
+      { selections: converted?.selections ?? {}, mustOrder: converted?.mustOrder ?? [], estate },
       vocabulary,
     );
-    if (emptyBoard.notes.length) {
+    if (openingBoard.notes.length) {
       // A saved estate that names ids this snapshot no longer lists.
-      setEstate(emptyBoard.estate);
-      writeEstate(emptyBoard.estate);
-      setLegacyNotes(emptyBoard.notes);
+      setEstate(openingBoard.estate);
+      writeEstate(openingBoard.estate);
+      setLegacyNotes(openingBoard.notes);
     }
-    const initialBase = boardToSpec({ ...base, conds: [] }, vocabulary, emptyBoard.selections);
-    setBoardBaseSpec({ ...base, conds: [] });
-    setSpec((current) => (current === baseSpec ? initialBase : current));
-    if (!initialAnswered.current) {
-      initialAnswered.current = true;
-      void runDecision(initialBase);
+    const tokens = converted?.taskTokens ?? vocabulary.default_task_tokens;
+    const initialBase = { ...base, conds: [], tokIn: tokens.input, tokOut: tokens.output };
+    const openingSpec = boardToSpec(initialBase, vocabulary, openingBoard.selections, openingBoard.mustOrder);
+    setBoardBaseSpec(initialBase);
+    setBoardSelections(openingBoard.selections);
+    setBoardMustOrder(openingBoard.mustOrder);
+    setSpec(openingSpec);
+    setInitialRestored(true);
+    if (template) {
+      setActiveTemplate({ id: template.id, refinement: null });
+      setCanvasAxes(templateCanvasAxes(template, vocabulary));
     }
+    initialAnswered.current = true;
+    void runDecision(openingSpec);
     // Once per loaded vocabulary; runDecision reads the latest state itself.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vocabulary, gateStatus]);
@@ -805,6 +825,7 @@ export function DesignedApp({
     setCanvasAxes(restoredBoard?.canvas ?? null);
     if (restoredBoard) setEstate(restoredBoard.estate);
     setLegacyNotes(restoredBoard?.notes ?? []);
+    setActiveTemplate(null);
     changeSpec(nextSpec);
     setAxis(restored.x);
     setSelected(null);
@@ -914,7 +935,7 @@ export function DesignedApp({
         >
           {theme === "dark" ? "Light mode" : "Dark mode"}
         </button>
-        <button className="primary" onClick={() => setShare(true)}>
+        <button onClick={() => setShare(true)}>
           Share or give to my agent
         </button>
       </header>
@@ -928,7 +949,7 @@ export function DesignedApp({
               <span>Loading what the current snapshot can answer…</span>
             </div>
           )}
-          {vocabulary && <FacetBoard
+          {vocabulary && (initialRestored || gateStatus === null) && <FacetBoard
             key={boardGeneration}
             vocabulary={vocabulary}
             spec={boardBaseSpec}
@@ -950,12 +971,13 @@ export function DesignedApp({
             onNotes={setLegacyNotes}
             refinementFallbackKeys={refinementFallbackKeys}
             onCanvasAxes={setCanvasAxes}
-            onTemplate={(id) => {
-              setActiveTemplateId(id);
-              if (id !== null) setHasAdjustedBoard(true);
+            activeTemplate={activeTemplate}
+            onTemplate={(template) => {
+              setActiveTemplate(template);
+              if (template !== null) setHasAdjustedBoard(true);
             }}
             verification={VISIT_GATE_ENABLED ? <VisitGate /> : undefined}
-            answer={decision ? <AnswerBoundary resetKey={decision} onReset={resetBoard}>
+            narrowing={decision ? <AnswerBoundary resetKey={decision} onReset={resetBoard}>
               <Field
                 decision={decision}
                 spec={shownSpec}
@@ -965,6 +987,8 @@ export function DesignedApp({
                 boardOnly
                 vocabulary={vocabulary}
               />
+            </AnswerBoundary> : undefined}
+            answer={decision ? <AnswerBoundary resetKey={decision} onReset={resetBoard}>
               <section className="board-answer-head" aria-label="Facet board answer">
                 <span className="eyebrow">The answer</span>
                 {hasEstate(estate) && <div className="answer-pair"><div><strong>With what you have</strong><span>{estateDecision ? `${estateDecision.explanation.feasible.length} models qualify · ${estateDecision.explanation.may.length} may qualify` : estateRequest.kind === "error" || estateRequest.kind === "done" ? <>Couldn't load: <button className="text-button" onClick={() => { if (humanGateEnabled) changeSpec(spec); else { action.current = decisionAction(); setEstateRequest((current) => ({ kind: "idle", settledSpecHash: current.settledSpecHash, generation: current.generation + 1 })); } }}>retry</button></> : "Checking…"}</span></div><div><strong>If you could use anything</strong><span>{decision.explanation.feasible.length} models qualify · {decision.explanation.may.length} may qualify</span></div></div>}
@@ -980,7 +1004,7 @@ export function DesignedApp({
                 <Coverage decision={decision} spec={shownSpec} onSpec={changeSpec} />
               </AnswerBoundary>}
               {hostedDecision && hasAdjustedBoard && <section className="answer-feedback" aria-label="Was this answer reliable?">
-                <FeedbackForm key={hostedDecision.decision_id} compact question="Was this answer reliable?" decisionId={hostedDecision.decision_id} template={activeTemplateId} page="/decide/" />
+                <FeedbackForm key={hostedDecision.decision_id} compact question="Was this answer reliable?" decisionId={hostedDecision.decision_id} template={activeTemplate?.id ?? null} page="/decide/" />
               </section>}
             </AnswerBoundary> : <section className="panel board-answer-loading" aria-live="polite">{humanGateEnabled ? "Choose your facets, then verify and look up this decision." : "The live answer will appear here."}</section>}
           />}

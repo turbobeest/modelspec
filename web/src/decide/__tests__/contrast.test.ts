@@ -30,7 +30,7 @@ it.each(["light", "dark"])(
     // Text on any ordinary panel, selected row, control, chip, or soft surface.
     const pairs = [
       ...["ink", "ink2", "muted"].flatMap((f) =>
-        ["bg", "surface", "surface2", "accentSoft", "warnSoft", "badSoft"].map(
+        ["bg", "surface", "surface2", "answerBg", "groupBg", "accentSoft", "warnSoft", "badSoft"].map(
           (b) => [f, b],
         ),
       ),
@@ -39,8 +39,10 @@ it.each(["light", "dark"])(
       ["warn", "warnSoft"],
       ["bad", "badSoft"],
       ...["accentText", "good", "bad", "warn"].flatMap((f) =>
-        ["surface", "accentSoft", "bg"].map((b) => [f, b]),
+        ["surface", "surface2", "answerBg", "accentSoft", "bg"].map((b) => [f, b]),
       ),
+      ["must", "mustSoft"], ["mustInk", "must"],
+      ["prefer", "preferSoft"], ["preferInk", "prefer"],
     ];
     for (const [foreground, background] of pairs) {
       expect(tokens[foreground], foreground).toBeDefined();

@@ -3,7 +3,7 @@ import { fireEvent, screen } from "@testing-library/react";
 // MODEL-277: the template card and every facet group start collapsed. These
 // open them the way a visitor does, by clicking their buttons.
 
-const templateBar = () => screen.getByRole("button", { name: /Start from a template/ });
+const templateBar = () => screen.getByRole("button", { name: /^(All \d+ templates|Hide templates)$/ });
 
 /** Opens the template card if it is collapsed, and returns the named template cell. */
 export function templateCell(name: RegExp): HTMLElement {
@@ -13,7 +13,7 @@ export function templateCell(name: RegExp): HTMLElement {
 
 /** Waits for the board to load, then returns the named template cell. */
 export async function findTemplateCell(name: RegExp): Promise<HTMLElement> {
-  await screen.findByRole("button", { name: /Start from a template/ });
+  await screen.findByRole("button", { name: /^(All \d+ templates|Hide templates)$/ });
   return templateCell(name);
 }
 

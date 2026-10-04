@@ -105,6 +105,7 @@ export function RankedAnswer({
   const may = decision.explanation.may.filter((row) =>
     (ranked && capability) || mayNote(`${row.m.lab}/${row.m.id}`) !== null,
   );
+  if (!ranked) may.sort((left, right) => left.m.name.localeCompare(right.m.name));
   const mayReasoned = may.some((row) => mayNote(`${row.m.lab}/${row.m.id}`) !== null);
   const lineupMedian = useMemo(
     () => median(rows.flatMap((row) => row.cap === null ? [] : [row.cap])),
@@ -139,7 +140,7 @@ export function RankedAnswer({
 
   return <section className="panel board-ranked-answer">
     {ranked && (decision.answer || decision.bands) && <TieAwareAnswer answer={decision.answer} decision={decision} dimensionName={dimensionName} />}
-    {!ranked && <p className="board-unranked">{rows.length} qualify — set a Prefer to rank them</p>}
+    {!ranked && <p className="board-unranked">Not ranked yet: listed alphabetically</p>}
     {ranked && !decision.answer && !decision.bands && inseparable.length > 0 && <p className="board-inseparable">
       The evidence can't separate {inseparable.map((row) => row.m.name).join(", ")}.
     </p>}
@@ -165,9 +166,10 @@ export function RankedAnswer({
           .map((result) => providerName(routeContext, result.offering.provider ?? "")))] : [];
         const excluded = excludedPlans.filter((plan) =>
           resultsFor(model).some((result) => result.offering.provider === plan.provider));
-        return <li className={capability ? "" : "without-capability"} key={model}>
+        return <li className={`status-qualifies ${capability ? "" : "without-capability"}`} key={model}>
           <div className="board-ranked-copy">
             <strong>{row.m.name}{tied.has(model) && <span className="board-tie-tag">tied</span>}{thin.has(model) && <span className="board-thin-tag">not enough evidence</span>}</strong>
+            <span className="eligibility status-qualifies"><span aria-hidden="true">✓</span> Qualifies</span>
             <small>{row.m.labName}</small>
             {otherProviders.length > 0 && <small>also via {otherProviders.join(", ")}</small>}
             {activeRefinements.map((refinement) => {
@@ -205,9 +207,10 @@ export function RankedAnswer({
         {may.map((row) => {
           const note = mayNote(`${row.m.lab}/${row.m.id}`);
           const via = row.best.o.provider === "Provider not available" ? null : payee(row.best.o.provider);
-          return <li key={row.best.o.id}>
+          return <li className="status-may" key={row.best.o.id}>
             <div className="board-ranked-copy">
               <strong>{row.m.name}</strong>
+              <span className="eligibility status-may"><span aria-hidden="true">?</span> May qualify</span>
               <small>{row.m.labName}{via && via !== row.m.labName ? ` · via ${via}` : ""}</small>
             </div>
             <div className="board-ranked-cost"><small>{perTaskColumn ? "Cost per task" : costHeading}</small><span>{perTaskColumn ? money(row.cost) : "—"}</span></div>

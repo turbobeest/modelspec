@@ -182,8 +182,8 @@ def decide_card() -> SocialCard:
     )
     return SocialCard(
         filename=DECIDE_IMAGE,
-        alt="ModelSpec Decide: Set what matters. Watch the field narrow.",
-        headline="Set what matters.<br>Watch the field narrow.",
+        alt="ModelSpec Decide: Which AI model fits your job?",
+        headline="Which AI model<br>fits your job?",
         content=f'<ul class="facets">{facets}</ul>',
     )
 

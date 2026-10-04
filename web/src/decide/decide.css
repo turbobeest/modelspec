@@ -309,8 +309,7 @@ body {
   --preferSoft: #e5f4ed;
   --preferInk: #ffffff;
   --groupBg: #f5f4f2;
-  --answerBg: #e8f1fb;
-  --templateBg: #dcebfb;
+  --answerBg: #ffffff;
   --hero-bg: #0b1426;
   --hero-line: #24375c;
   --hero-rule: #f2c94c;
@@ -354,8 +353,7 @@ html:not([data-decide-theme="light"]) .capsule {
   --preferSoft: #0e2e33;
   --preferInk: #0b1426;
   --groupBg: #152548;
-  --answerBg: #0c2445;
-  --templateBg: #cfe2f8;
+  --answerBg: #1b2c47;
   --hero-bg: linear-gradient(115deg, #1a2f5a 0%, #12224a 55%, #10203f 100%);
   --hero-line: #2f4878;
 }
@@ -655,6 +653,7 @@ html:not([data-decide-theme="light"]) .capsule {
   background: var(--surface); border: 1px solid var(--line); border-top: 2px solid var(--ink);
   padding: 14px 16px;
 }
+.estate-strip { background: transparent; border: 0; }
 .legacy-notes { margin: 0 0 12px; padding: 12px 16px; border: 1px solid var(--warning, #b7791f); border-radius: 8px; background: color-mix(in srgb, var(--warning, #b7791f) 8%, transparent); }
 .legacy-notes ul { margin: 6px 0 0; padding-left: 20px; }
 .legacy-notes li + li { margin-top: 4px; }
@@ -675,27 +674,20 @@ html:not([data-decide-theme="light"]) .capsule {
 .board-intro .board-intro-rules { font-size: 13px; }
 .board-intro .board-intro-note { margin-top: 16px; padding-top: 10px; border-top: 1px solid var(--hero-line);
   color: var(--hero-faint); font: 11.5px/1.5 var(--mono); }
-/* MODEL-204: the template card is always on the board, as a bar or a category-by-tier grid. */
-/* MODEL-277: the template card is a light-blue island in both themes, so it
-   stands out from the tool. It redefines the theme's tokens for everything
-   inside it: the bar, the grid, the subcategory select and focus rings. */
-.decide-app .template-picker {
-  --surface: #f5f9ff; --surface2: #e8f1fc; --line: #b7cfea; --line2: #8eb0d8;
-  --ink: #0b1426; --ink2: #1b2a45; --muted: #34496a; --faint: #5d7090;
-  --accent: #0a58a8; --accentText: #0a58a8;
-  background: var(--templateBg); color: var(--ink); color-scheme: light;
-  border: 1px solid var(--line2); border-left: 4px solid var(--accent);
-}
-.decide-app .template-bar { width: 100%; display: flex; align-items: baseline; gap: 12px; padding: 13px 16px; border: 0; border-radius: 0; background: transparent; text-align: left; cursor: pointer; font-size: 13.5px; }
-.decide-app .template-bar:hover { background: var(--surface2); }
-.template-bar .eyebrow { color: var(--accent); font-weight: 600; }
-.template-bar .eyebrow { flex: none; }
-.template-bar .template-active, .template-bar .template-count { flex: 1; min-width: 0; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.template-bar .template-active strong { color: var(--ink); font-weight: 500; }
-.template-bar .template-action { flex: none; color: var(--muted); }
-.template-bar b { flex: none; font-weight: 400; color: var(--muted); }
-.template-bar:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
-.template-picker .board-templates { border: 0; border-top: 1px solid var(--line); padding: 4px 16px 14px; background: transparent; }
+/* The action colour leads to an answered job. Must keeps its violet gate cue
+   from MODEL-264; result eligibility uses green, amber and grey everywhere. */
+.template-heading, .template-active { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.template-heading { margin-bottom: 10px; }
+.template-shortcuts { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; }
+.decide-app .template-shortcut { display: flex; flex-direction: column; gap: 8px; min-height: 120px; padding: 16px; text-align: left; line-height: 1.4; }
+.template-shortcut strong { font-size: 16px; font-weight: 650; }
+.template-shortcut span { font-size: 12px; font-weight: 400; }
+.decide-app .template-shortcut[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--accentInk); }
+.template-active { margin-top: 12px; }
+.template-active strong { font-weight: 600; }
+.template-picker .board-templates { border: 0; padding: 4px 0 14px; background: transparent; }
+@media (max-width: 1200px) { .template-shortcuts { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .template-shortcuts { grid-template-columns: repeat(2, minmax(0, 1fr)); } .decide-app .template-shortcut { min-height: 110px; padding: 12px; } }
 .board-templates[hidden] { display: none; }
 .template-sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .template-grid { width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 10px; font-size: 12px; }
@@ -746,11 +738,10 @@ html:not([data-decide-theme="light"]) .capsule {
 .access-question input { margin: 3px 0 0; flex: none; }
 .access-question label > span { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
 .access-question small { color: var(--muted); }
-/* The narrowing card never drops under 470px, so a ranked row (406px of
-   columns plus 56px of padding) always fits; the facets take the rest, up to
-   600px. Below 1000px the two cards stack (MODEL-298). */
+/* The answer keeps at least 470px; its row columns can shrink and wrap.
+   The facets take the rest, up to 600px. Below 1000px they stack (MODEL-298). */
 .board-workspace { display: grid; grid-template-columns: minmax(0, 600px) minmax(470px, 1fr); grid-template-areas: "facets answer"; gap: 14px; align-items: stretch; }
-.facet-list { grid-area: facets; padding: 0; overflow: hidden; }
+.facet-list { grid-area: facets; padding: 0; overflow: hidden; background: transparent; border: 0; }
 .facet-list > header { padding: 10px 16px; display: flex; align-items: baseline; justify-content: space-between; }
 .facet-list > header > span { display: flex; align-items: baseline; gap: 10px; }
 .facet-columns, .facet-row { display: grid; grid-template-columns: minmax(0, 1fr) 54px 224px; gap: 8px; }
@@ -831,24 +822,26 @@ html:not([data-decide-theme="light"]) .capsule {
 .untracked { background: var(--surface-subtle); }
 .untracked > div > p { margin: 0; padding: 8px 16px; color: var(--muted); font-size: 12px; }
 .board-answer { grid-area: answer; display: flex; flex-direction: column; gap: 12px; min-width: 0;
-  padding: 12px; background: var(--answerBg); border-top: 3px solid var(--accent); }
-.board-answer .panel, .board-answer .board-answer-head { border-top: 1px solid var(--line); }
-.board-answer .board-answer-head .eyebrow { color: var(--accentText); }
-/* The narrowing reads in the board's colours: each gate is a Must, the last step ranks. */
-.board-answer .funnel li:not(:first-child):not(.ranked) .count { color: var(--must); }
-.board-answer .funnel li:not(:first-child):not(.ranked) .funnel-track > span { background: var(--must); }
-.board-answer .funnel .ranked .count { color: var(--prefer); }
-.board-answer .funnel .ranked .funnel-track > span { background: var(--prefer); }
-.board-answer .narrowing { display: block; }
+  padding: 20px; background: var(--answerBg); border-top: 1px solid var(--line2); }
+.board-answer .panel, .board-answer .board-answer-head { background: transparent; border: 0; }
+.board-answer .board-answer-head .eyebrow { color: var(--ink2); }
 .board-answer-head { display: flex; flex-direction: column; gap: 7px; }
 .board-answer-head h2, .board-answer-head p { margin: 0; }
-.board-ranked-answer { padding: 6px 16px 12px; }
+.board-answer .board-ranked-answer { padding: 16px 12px 20px; }
 .board-ranked-answer > ol { list-style: none; margin: 0; padding: 0; }
-.board-ranked-answer > ol > li { display: grid; grid-template-columns: minmax(150px, 1fr) 112px minmax(120px, .8fr); gap: 12px; align-items: center; padding: 9px 0; border-bottom: 1px solid var(--line-soft); }
+.board-ranked-answer > ol > li { display: grid; grid-template-columns: minmax(0, 1fr) 112px minmax(0, .8fr); gap: 12px; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--line-soft); }
 .board-ranked-answer > ol > li.without-capability { grid-template-columns: minmax(150px, 1fr) 112px; }
-.board-ranked-columns { display: grid; grid-template-columns: minmax(150px, 1fr) 112px minmax(120px, .8fr); gap: 12px; padding: 4px 0 2px; color: var(--muted); }
+.board-ranked-columns { display: grid; grid-template-columns: minmax(0, 1fr) 112px minmax(0, .8fr); gap: 12px; padding: 4px 0 2px; color: var(--muted); }
 .board-ranked-columns small { font-size: 10.5px; }
 .board-ranked-copy, .board-ranked-cost, .board-capability { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.board-ranked-copy strong { overflow-wrap: anywhere; }
+.status-qualifies, .eligibility.status-qualifies { color: var(--good); }
+.status-may, .eligibility.status-may { color: var(--warn); }
+.status-out, .eligibility.status-out { color: var(--muted); }
+.board-ranked-answer li { color: var(--ink); }
+.eligibility { font: 12px var(--mono); }
+.board-ranked-answer > ol > li, .board-may-qualify li { border-left: 3px solid var(--good); padding-left: 10px; }
+.board-may-qualify li { border-left-color: var(--warn); }
 .board-ranked-copy small, .board-ranked-cost small, .board-capability small, .board-inseparable { color: var(--muted); }
 .board-ranked-copy small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .board-ranked-cost span { font-family: var(--mono); font-size: 12px; overflow-wrap: anywhere; }
@@ -914,8 +907,6 @@ html:not([data-decide-theme="light"]) .capsule {
   .decide-app .board-intro h1 { font-size: 30px; margin: 10px 0 16px; }
   .board-intro p { font-size: 14px; }
   .template-flat { grid-template-columns: minmax(0, 1fr); }
-  .template-bar { flex-wrap: wrap; gap: 4px 10px; }
-  .template-bar .template-active, .template-bar .template-count { white-space: normal; }
   .estate-strip { grid-template-columns: 1fr; }
   .estate-privacy { grid-column: 1; }
   .access-question > div { grid-template-columns: minmax(0, 1fr); }
@@ -1183,6 +1174,14 @@ html:not([data-decide-theme="light"]) .capsule {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 400px), 1fr));
   gap: 14px;
 }
+.narrowing-counts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.narrowing-total { display: flex; flex-direction: column; gap: 8px; }
+.narrowing-number { display: block; font: 650 clamp(36px, 5vw, 64px)/1 var(--sans); letter-spacing: -.03em; animation: narrowing-count .4s ease-out; }
+.narrowing-total > span { font-size: 14px; font-weight: 550; }
+.narrowing-details { margin-top: 16px; color: var(--muted); }
+.narrowing-details summary { cursor: pointer; }
+.narrowing-truncated { margin-top: 10px; }
+@keyframes narrowing-count { from { transform: translateY(6px) scale(.96); } to { transform: translateY(0) scale(1); } }
 .funnel {
   list-style: none;
   margin: 10px 0 0;
@@ -1237,10 +1236,10 @@ html:not([data-decide-theme="light"]) .capsule {
   opacity: 0.55;
 }
 .funnel .ranked .count {
-  color: var(--accentText);
+  color: var(--good);
 }
 .funnel .ranked .funnel-track > span {
-  background: var(--accent);
+  background: var(--good);
 }
 .questions {
   display: flex;
@@ -1369,8 +1368,8 @@ html:not([data-decide-theme="light"]) .capsule {
   width: 13px;
   height: 13px;
   border-radius: 50%;
-  border: 2px solid var(--accent);
-  background: var(--accent);
+  border: 2px solid var(--good);
+  background: var(--good);
   padding: 0;
   z-index: 3;
   transition:
@@ -1382,16 +1381,18 @@ html:not([data-decide-theme="light"]) .capsule {
 .decide-app .point.lab {
   background: var(--surface);
 }
+.decide-app .point:hover { border-color: var(--good); }
+.decide-app .point.may:hover { border-color: var(--warn); }
 .decide-app .point.may {
   background: var(--surface);
   border: 2px dashed var(--warn);
 }
 .decide-app .point.excluded {
-  background: var(--faint);
+  background: var(--muted);
   border: 0;
   width: 8px;
   height: 8px;
-  opacity: 0.45;
+  opacity: 1;
   z-index: 1;
 }
 .decide-app .point.selected {
@@ -1405,7 +1406,7 @@ html:not([data-decide-theme="light"]) .capsule {
 .interval {
   position: absolute;
   width: 2px;
-  background: var(--accent);
+  background: var(--good);
   opacity: 0.45;
   transition:
     left 0.55s,
@@ -1420,7 +1421,7 @@ html:not([data-decide-theme="light"]) .capsule {
   position: absolute;
   z-index: 2;
   pointer-events: none;
-  background: color-mix(in srgb, var(--ink) 55%, transparent);
+  background: var(--good);
 }
 .axis-interval.x {
   height: 2px;
@@ -1430,6 +1431,8 @@ html:not([data-decide-theme="light"]) .capsule {
   width: 2px;
   transform: translateX(-1px);
 }
+.axis-interval.may { background: var(--warn); }
+.axis-interval.out { background: var(--muted); }
 .free-axis-canvas .chart-tooltip {
   left: 1rem;
   top: 1rem;
@@ -1449,7 +1452,7 @@ html:not([data-decide-theme="light"]) .capsule {
   position: absolute;
   z-index: 8;
   touch-action: none;
-  color: var(--accentText);
+  color: var(--must);
 }
 .handle:before {
   content: "";
@@ -1468,7 +1471,7 @@ html:not([data-decide-theme="light"]) .capsule {
   top: 0;
   bottom: 0;
   width: 2px;
-  background: var(--accent);
+  background: var(--must);
   cursor: ew-resize;
   transition: left 0.55s;
 }
@@ -1476,7 +1479,7 @@ html:not([data-decide-theme="light"]) .capsule {
   left: 0;
   right: 0;
   height: 2px;
-  background: var(--accent);
+  background: var(--must);
   cursor: ns-resize;
   transition: top 0.55s;
 }
@@ -1485,7 +1488,7 @@ html:not([data-decide-theme="light"]) .capsule {
   bottom: 3px;
 }
 .handle.ghost {
-  background: color-mix(in srgb, var(--accent) 50%, transparent);
+  background: color-mix(in srgb, var(--must) 50%, transparent);
 }
 .handle.ghost span {
   color: var(--muted);
@@ -1706,7 +1709,7 @@ html:not([data-decide-theme="light"]) .capsule {
   max-width: 240px;
 }
 .decide-app tr.selected {
-  background: var(--accentSoft);
+  background: var(--surface2);
 }
 .decide-app .table-model {
   padding: 0;
@@ -1729,6 +1732,9 @@ html:not([data-decide-theme="light"]) .capsule {
 .decision-table .excluded-row {
   color: var(--muted);
 }
+.decision-table tbody tr > td:first-child { border-left: 3px solid var(--good); }
+.decision-table tbody tr.status-may > td:first-child { border-left-color: var(--warn); }
+.decision-table tbody tr.status-out > td:first-child { border-left-color: var(--muted); }
 .eliminations {
   border-top: 1px solid var(--line);
   padding-top: 12px;
@@ -2146,6 +2152,12 @@ html:not([data-decide-theme="light"]) .capsule {
 .canvas-panel > .chart-title {
   display: none;
 }
+.canvas-panel > .canvas-hint { grid-column: 1 / -1; grid-row: 2; justify-self: end; color: var(--muted); font-size: 12px; }
+.canvas-panel:has(.canvas-hint) > .legend { padding-right: 180px; }
+@media (max-width: 680px) {
+  .canvas-panel > .canvas-hint { justify-self: start; }
+  .canvas-panel:has(.canvas-hint) > .legend { padding-right: 0; padding-top: 26px; }
+}
 .canvas-panel > .plot-wrap {
   grid-column: 1/-1;
   grid-row: 3;
@@ -2192,8 +2204,8 @@ html:not([data-decide-theme="light"]) .capsule {
     600 11.5px "Segoe UI",
     system-ui,
     sans-serif;
-  background: var(--accent);
-  color: var(--accentInk);
+  background: var(--must);
+  color: var(--mustInk);
   padding: 2px 7px;
 }
 .y-handle span {
@@ -2640,11 +2652,11 @@ html:not([data-decide-theme="light"]) .capsule {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: var(--accent);
+  background: var(--good);
 }
 .legend-dot.lab {
   background: var(--surface);
-  border: 2px solid var(--accent);
+  border: 2px solid var(--good);
 }
 .legend-dot.may {
   background: var(--surface);
@@ -2653,7 +2665,7 @@ html:not([data-decide-theme="light"]) .capsule {
 .legend-dot.excluded {
   width: 7px;
   height: 7px;
-  background: var(--faint);
+  background: var(--muted);
 }
 .legend-interval {
   width: 2px;
@@ -2799,12 +2811,13 @@ html:not([data-decide-theme="light"]) .capsule {
   right: 16px;
   bottom: 16px;
   z-index: 40;
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--accentInk);
+  border-color: var(--line2);
+  background: var(--surface);
+  color: var(--ink2);
   font-weight: 600;
   box-shadow: var(--shadow);
 }
+.decide-app .feedback-form .primary { background: var(--surface2); color: var(--ink2); border: 1px solid var(--line2); }
 .decide-app .feedback-dialog {
   width: min(480px, calc(100vw - 32px));
   max-height: calc(100vh - 32px);
