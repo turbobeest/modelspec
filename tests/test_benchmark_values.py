@@ -74,3 +74,37 @@ def test_open_scale_boards_keep_negative_scores():
 def test_bounded_scales_still_refuse_negative_scores(unit, high):
     with pytest.raises(ValueError):
         validate_value(-1, unit, {"unit": unit, "max_score": high})
+
+
+@pytest.mark.parametrize("score", [-100, -2.9, 0, 5.388066666666667, 100])
+@pytest.mark.parametrize("declared", [{}, {"max_score": 100},
+                                     {"min_score": -100, "max_score": 100}])
+def test_pmrr_accepts_its_signed_scale(score, declared):
+    validate_value(score, "p-MRR (x100)", {"unit": "p-MRR (x100)", **declared})
+
+
+@pytest.mark.parametrize("score", [-100.1, 100.1])
+@pytest.mark.parametrize("declared", [{}, {"min_score": -200, "max_score": 200}])
+def test_pmrr_refuses_values_outside_its_signed_scale(score, declared):
+    with pytest.raises(ValueError, match="range"):
+        validate_value(score, "p-MRR (x100)", {"unit": "p-MRR (x100)", **declared})
+
+
+def test_pmrr_is_not_labelled_as_percent():
+    with pytest.raises(ValueError, match="unit"):
+        validate_value(5.388066666666667, "percent",
+                       {"unit": "p-MRR (x100)", "min_score": -100, "max_score": 100})
+
+
+def test_pmrr_writer_preserves_a_negative_value(tmp_path: Path):
+    (tmp_path / "benchmarks").mkdir()
+    (tmp_path / "benchmarks" / "followir.md").write_text(
+        '---\nmetric: {unit: "p-MRR (x100)", min_score: -100, max_score: 100}\n---\n')
+    card = tmp_path / "models" / "lab" / "model.md"
+    card.parent.mkdir(parents=True)
+    card.write_text('---\nmodel_id: lab/model\nbenchmarks:\n  evidence: []\n---\n')
+    refresh._append_evidence(card, [{"benchmark_id": "followir", "score": -2.9,
+                                   "unit": "p-MRR (x100)"}])
+    assert refresh._front(card)["benchmarks"]["evidence"] == [
+        {"benchmark_id": "followir", "score": -2.9, "unit": "p-MRR (x100)"}
+    ]
