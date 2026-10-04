@@ -34,6 +34,18 @@ def test_generated_guide_and_constants_are_stable_and_within_budget():
         assert snippet in markdown
 
 
+def test_coverage_pointer_keeps_all_three_mcp_first_turns_under_10k(capsys):
+    from qa.agent_harness import main
+    assert main(["--first-turn-breakdown"]) == 0
+    report = json.loads(capsys.readouterr().out)
+    assert set(report) == {"claude", "openai", "gemini"}
+    assert all(row["total"] <= 10_000 for row in report.values()), report
+    guide = agent_copy.copy()["context_guide"]
+    assert guide.count("https://modelspec.dev/api/coverage.json") == 1
+    assert "catalogued_not_decidable" not in guide
+    assert len(guide) <= 8648  # The MODEL-308 entry guide was 8,648 characters.
+
+
 def test_all_guide_specs_parse_against_the_registry():
     registry = default()
     parse_spec(agent_copy.MINIMAL_SPEC, facets=registry.facet)
@@ -82,8 +94,9 @@ def test_openapi_size_and_all_response_header_descriptions():
     # MODEL-293 adds the bounded representation (DecideRequest, ProjectedResult,
     # BoundedDecision, ModelEvidence, BoundedExplanation, BoundedRefused): about
     # 9 KB, already with copied properties pointing at their sources. 226,428 bytes.
-    assert len(text.encode()) <= 229_000
-    assert tokens(text) <= 57_500
+    # MODEL-308 adds the typed aggregate coverage block, about 1.8 KB.
+    assert len(text.encode()) <= 231_000
+    assert tokens(text) <= 58_000
     spec = yaml.safe_load(text)
     assert agent_copy.GUIDE_URL in spec['info']['description']
     for path, operations in spec['paths'].items():

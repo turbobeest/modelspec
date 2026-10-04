@@ -156,7 +156,9 @@ ends with an actionable next step.
 
 Network failures link to `https://api.modelspec.dev/v1/health`. Coverage
 refusals include what ModelSpec can answer, aggregate bundled counts and
-`https://modelspec.dev/agents.md`. Key errors include procurement and the neutral
+`https://modelspec.dev/api/coverage.json` and `https://modelspec.dev/agents.md`.
+The API's additive `coverage` explanation is retained on refusals and uses exit 2,
+including when the existing status is `partial` or error code is `invalid_spec`. Key errors include procurement and the neutral
 human message. Old-version refusals include upgrade commands.
 
 All new agent-facing CLI text comes from `pipeline/agent_copy.py`. Run

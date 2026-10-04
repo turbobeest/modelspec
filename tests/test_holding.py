@@ -14,6 +14,7 @@ import json
 import re
 import shutil
 import sys
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -277,6 +278,7 @@ def test_a_redirect_only_benchgraph_is_copied_and_modelspec_still_goes_dark(tmp_
         "2026-09-27", 1, 40_000, 4_000, 10_000, (model,), "model", "model", 1,
         1000, 1000, 0, (), 0,
         landing._plot_axes([model]),
+        coverage=landing.coverage.from_repo(ROOT, date.today()),
     )
     (ms / "index.html").write_text(
         landing.render(data, variant="live"),

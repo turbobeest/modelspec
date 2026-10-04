@@ -35,6 +35,7 @@ def test_llms_txt_names_the_mcp_endpoint_and_api_docs() -> None:
     assert "https://modelspec.dev/api/rank/profiles.json" in text
     assert "Null means not researched." in text
     assert "Decision CLI" not in text
+    assert "https://modelspec.dev/api/coverage.json" in text
     assert "modelspec decide --template <id>" not in text
 
 
@@ -48,4 +49,14 @@ def test_llms_txt_offers_no_catalogue_download() -> None:
 
 def test_the_site_build_writes_llms_txt_through_the_helper() -> None:
     source = (REPO_ROOT / "pipeline" / "build.py").read_text(encoding="utf-8")
-    assert 'llms_txt(site="ModelSpec", base="https://modelspec.dev", build=build)' in source
+    assert 'llms_txt(site="ModelSpec", base="https://modelspec.dev", build=build,' in source
+
+
+def test_llms_txt_includes_the_generated_coverage_summary():
+    from pipeline import coverage, landing
+    data = landing.build_data(str(REPO_ROOT), date.today())
+    text = llms_txt(site="ModelSpec", base="https://modelspec.dev",
+                    build=Build(commit="test", built_at="2026-10-04", as_of=date.today()),
+                    coverage=data.coverage)
+    assert coverage.summary(data.coverage) in text
+    assert coverage.provider_summary(data.coverage) in text

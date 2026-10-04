@@ -11,6 +11,7 @@ from decision import bands as bands_module
 from decision import estate as estate_module
 from decision import plans as plans_module
 from decision import reading as reading_module
+from decision.coverage import for_spec as coverage_for_spec
 from decision.by_model import build_by_model
 from decision.computed import with_computed
 from decision.contract import (
@@ -750,6 +751,7 @@ def _decide(
         ],
         truncated=truncated,
         out_of_lineup=getattr(snapshot, "out_of_lineup", 0),
+        coverage=coverage_for_spec(spec, snapshot, conditions=resolved.conditions),
     )
     from decision.explain import named_facets
 

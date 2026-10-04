@@ -88,7 +88,10 @@ class Client:
             "no_feasible",
             "unsupported_task",
             "capability_unavailable",
-        } or status in {"no_feasible", "no_match", "out_of_coverage"}:
+        } or status in {"no_feasible", "no_match", "out_of_coverage"} or (
+            isinstance(payload, dict) and isinstance(payload.get("coverage"), dict)
+            and payload["coverage"].get("kind") == "out_of_coverage"
+        ):
             recovery, exit_code = "coverage", 2
         elif response.status_code >= 500:
             recovery = "network"
@@ -96,6 +99,7 @@ class Client:
             response.status_code >= 300
             or error
             or status in {"refused", "no_feasible", "no_match", "out_of_coverage"}
+            or recovery == "coverage"
         ):
             if not isinstance(payload, dict):
                 fallback = {"key": "invalid_api_key", "upgrade": "http_error"}.get(
@@ -104,12 +108,15 @@ class Client:
                 payload = {"error": {"code": fallback, "message": TEXT["errors"][fallback]}}
             if response.headers.get("retry-after"):
                 payload = {**payload, "retry_after": response.headers["retry-after"]}
+            scope = payload.get("coverage") or {}
+            scope_next = [scope[key] for key in ("message", "url")
+                          if isinstance(scope, dict) and isinstance(scope.get(key), str)]
             raise ClientError(
                 code,
                 recovery=recovery,
                 exit_code=exit_code,
                 body=payload,
-                extra_next=next_steps("upgrade") if self.guide_changed else None,
+                extra_next=scope_next + (next_steps("upgrade") if self.guide_changed else []),
             )
         if not isinstance(payload, dict):
             raise ClientError(

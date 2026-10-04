@@ -892,6 +892,7 @@ def test_the_landing_page_and_every_generated_page_link_all_three() -> None:
     """MODEL-70's last criterion: reachable from the landing page and the API docs."""
     from pipeline import render as r
 
+    from datetime import date
     from pipeline import landing as landing_page
 
     model = landing_page.PlotModel("model", "Model", .1, 1, 0, 2, True)
@@ -899,6 +900,7 @@ def test_the_landing_page_and_every_generated_page_link_all_three() -> None:
         "2026-09-27", 1, 40_000, 4_000, 10_000, (model,), "model", "model", 1,
         1000, 1000, 0, (), 0,
         landing_page._plot_axes([model]),
+        coverage=landing_page.coverage.from_repo(REPO_ROOT, date.today()),
     )
     footer = landing_page.render(data, variant="live").split("<footer>", 1)[1]
     shell = r.shell(title="t", description="d", canonical=None, body="", build=_build(),

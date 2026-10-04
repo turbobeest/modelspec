@@ -8,7 +8,7 @@ import urllib.request
 from pathlib import Path
 
 # Deny new exports by default. Class-fit examples use only the frozen image.
-KEEP_API = {"build.json", "rank/profiles.json", "rank/class-fit.json", "feedback/v1.schema.json"}
+KEEP_API = {"build.json", "coverage.json", "rank/profiles.json", "rank/class-fit.json", "feedback/v1.schema.json"}
 
 REMOVED = (
     "/api/index.json", "/api/catalogue.json", "/api/hosts.json",

@@ -53,6 +53,7 @@ def _fold(by_model_type: Mapping[str, Any], reduce_lists: bool = False) -> dict[
 def class_fit_export(build_json: dict[str, Any], *,
                      model_type_counts: Mapping[str, int],
                      examples_by_model_type: Mapping[str, Sequence[str]] | None = None,
+                     coverage: Mapping[str, Any] | None = None,
                      ) -> dict[str, Any]:
     """The published rule, with the catalogue's own counts folded onto it.
 
@@ -103,6 +104,13 @@ def class_fit_export(build_json: dict[str, Any], *,
         })
 
     rows.sort(key=lambda row: row["id"])
+    if coverage is not None:
+        counts_by_class = {row["id"]: row["decidable"] for row in coverage["classes"]}
+        for row in rows:
+            row["decision_coverage"] = {
+                "models": counts_by_class[row["id"]], "url": coverage["url"],
+                "snapshot": coverage["snapshot"], "as_of": coverage["as_of"],
+            }
     return {
         "build": build_json,
         "policy": cls.class_fit_policy(),
@@ -156,13 +164,14 @@ def counts_from_snapshot_candidates(
 
 
 def write_export(out_dir: Any, cards: Sequence[Any],
-                 build_json: dict[str, Any]) -> dict[str, Any]:
+                 build_json: dict[str, Any], *, coverage: Mapping[str, Any] | None = None,
+                 ) -> dict[str, Any]:
     """Write `class-fit.json` beside `profiles.json`. Returns a small summary."""
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     counts, examples = counts_from_cards(cards)
     payload = class_fit_export(build_json, model_type_counts=counts,
-                               examples_by_model_type=examples)
+                               examples_by_model_type=examples, coverage=coverage)
     (out / "class-fit.json").write_text(
         json.dumps(payload, sort_keys=True, default=str), encoding="utf-8")
     return {

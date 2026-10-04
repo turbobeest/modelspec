@@ -1,6 +1,6 @@
 # The ModelSpec decision contract
 
-Contract version: **2.12**
+Contract version: **2.13**
 
 The opt-in bounded HTTP response is a separate representation with its own
 version, **bounded 1.0**. It does not carry a 2.x `contract_version`. See
@@ -637,7 +637,7 @@ best-band tie (`answer.members`). A `do_not_claim` line also names a tied
 
 ```json decision
 {
-  "contract_version": "2.12",
+  "contract_version": "2.13",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
   "signature_verified": true,
@@ -780,7 +780,7 @@ best-band tie (`answer.members`). A `do_not_claim` line also names a tied
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"2.12"`. |
+| `contract_version` | `"2.13"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
 | `signature_verified` | `true` when this process verified either the pinned Ed25519 signature or the private Worker HMAC. |
@@ -804,6 +804,7 @@ best-band tie (`answer.members`). A `do_not_claim` line also names a tied
 | `out_of_lineup` | How many active catalogue models the snapshot leaves outside its lineup, and so outside this decision. `0` when the snapshot was built without a premier list. |
 | `feedback` | Where to say whether this answer held up: send the `method` (`POST`) to the `endpoint`, with a body that follows `request_schema` and a rating from `ratings` (`reliable`, `unreliable`, `trustworthy`, `untrustworthy`, `confusing`) and this `decision_id`, or run the `cli` line. No key. The same on every decision. See [`feedback-api.md`](feedback-api.md). Added in 2.10. |
 | `reading` | Optional reporting limits: `tied` names the engine's best-band tie (`answer.members`), `not_applied` names requirements not applied, `estimates` names estimated fields, and `do_not_claim` lists claims to avoid, including a tied `with_estate.answer`. `omitted` counts identifiers removed to meet the 600-byte compact UTF-8 limit. Added in 2.12. |
+| `coverage` | Optional typed scope explanation with `kind: "out_of_coverage"`, a message, the snapshot date, covered classes and model counts, covered domains, and the requested classes or domains that the board cannot decide. Links to `https://modelspec.dev/api/coverage.json`. Also retained in bounded answers and added to applicable `invalid_spec` refusals. Existing statuses and error codes remain unchanged. Added in 2.13. |
 
 **`status`:**
 
@@ -814,6 +815,16 @@ best-band tie (`answer.members`). A `do_not_claim` line also names a tied
 - `no_feasible`: no candidate satisfies the hard conditions, or none that does
   has a value for the objective. `results` is empty and `relax` names the
   fewest conditions to relax, or the reason no result could be ranked.
+
+**`coverage` (`CoverageRefusal`):** `kind` is `out_of_coverage`. `message`
+explains the scope limit; `url` links to the keyless generated summary.
+`snapshot` and `as_of` identify the snapshot, with a null date only when the
+index has no date. `classes` contains `CoveredClass` rows (`id`, `models`),
+listed alphabetically. `domains` lists domains with stored estimates for
+active models. `requested_classes` and `requested_domains` name the requested
+scope that the board cannot decide. Catalogue presence alone does not establish
+decision coverage. The field adds an explanation to the existing result;
+it never orders classes or changes ranking, status or error code.
 
 **The lineup.** A decision ranges over the snapshot's lineup. A snapshot built
 from a premier list (slice 1: `premier/slice-1.yaml`) holds only the premier
@@ -1067,16 +1078,15 @@ contract would need a major bump. It is a different representation instead:
   follows the same MODEL-59 rule on its own: widening any bounded field bumps
   its major.
 - `projects_contract` names the complete contract the body is projected from,
-  currently `"2.12"`. Every field the bounded body does carry has that
+  currently `"2.13"`. Every field the bounded body does carry has that
   contract's type and meaning.
 - A bounded body has **no** `contract_version`. A 2.x decoder that requires
   `contract_version` refuses it rather than misreading it as a complete
   Decision.
 
-Complete responses stay exactly contract 2.12, including requests with only
-`limit`, or `fields: null`. Requests without these controls, including the
-decide page, keep their current response bytes and hashes. The page never
-sends `fields` or `evidence_for`, so its decoder never sees a bounded body and
+Requests with only `limit`, or `fields: null`, receive complete contract 2.13
+responses. The decide page never sends `fields` or `evidence_for`, so its
+decoder never sees a bounded body and
 needs no change.
 
 A bounded response retains the complete `answer`, `warnings`, `reading` when
@@ -1444,6 +1454,8 @@ Changes to a spec's inputs follow the same rule in reverse: refusing a spec
 that used to be accepted is a major change; accepting more is not.
 
 ## Change log
+
+- **2.13 — MODEL-308:** Optional `coverage` explains requests outside the board's classes or domains. It includes covered classes and counts and links to the keyless, generated `/api/coverage.json` summary. Complete and bounded decisions retain their existing statuses; `invalid_spec` retains its code, issues and recovery. No class ordering or ranking changes.
 
 - **2.12 — MODEL-284:** A decision adds optional `reading` guidance derived
   from the engine's answers, unapplied requirements, estimates and objective.

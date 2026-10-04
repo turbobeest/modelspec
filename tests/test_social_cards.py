@@ -7,6 +7,7 @@ import os
 import re
 import struct
 from dataclasses import replace
+from datetime import date
 from pathlib import Path
 
 import pytest
@@ -40,6 +41,7 @@ def card_data() -> landing.LandingData:
         routes=(),
         template_count=0,
         axes=landing._plot_axes(list(models)),
+        coverage=landing.coverage.from_repo(ROOT, date.today()),
     )
 
 

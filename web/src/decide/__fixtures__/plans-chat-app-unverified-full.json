@@ -4,7 +4,7 @@
   "chart": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 60\" role=\"img\" aria-label=\"Objective contributions in original units\"></svg>",
   "number_origins": [],
   "sources": [],
-  "contract_version": "2.12",
+  "contract_version": "2.13",
   "decision_id": "dec_448fe4b91f52b275446345cf",
   "snapshot": "snap_141109ae8938652c",
   "signature_verified": false,

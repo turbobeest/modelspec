@@ -15,6 +15,7 @@ from pydantic import ValidationError
 from decision import contract
 from decision.bounded import project as project_decision
 from decision.compare import compare as compare_decisions
+from decision.coverage import for_spec as coverage_for_spec
 from decision.engine import decide as run_decision
 from decision.registry import facet
 from decision.reading import for_refusal
@@ -310,6 +311,7 @@ def error_response(
     recovery: list[dict[str, Any]] | None = None,
     endpoint: str = "decide",
     reading: contract.Reading | None = None,
+    coverage: contract.CoverageRefusal | None = None,
 ) -> tuple[int, dict[str, Any]]:
     error: dict[str, Any] = {"code": code, "message": message}
     if issues is not None:
@@ -325,6 +327,8 @@ def error_response(
     }
     if reading is not None:
         body["reading"] = reading.model_dump(mode="json")
+    if coverage is not None:
+        body["coverage"] = coverage.model_dump(mode="json")
     return status, body
 
 
@@ -381,6 +385,7 @@ def decide(payload: Any, snapshot, *,
     if expected_snapshot and expected_snapshot != snapshot.snapshot_id:
         return snapshot_changed(expected_snapshot, snapshot)
     facets = _facets(snapshot)
+    raw_spec = payload
     try:
         if isinstance(payload, dict):
             controls = {key: payload[key] for key in ("fields", "evidence_for") if key in payload}
@@ -394,6 +399,12 @@ def decide(payload: Any, snapshot, *,
             raw_spec = payload
         spec = contract.parse_spec(raw_spec, facets=facets)
     except contract.SpecError as exc:
+        # Structural validation can still identify a requested domain when its
+        # ID is outside the registry. Keep the original invalid_spec refusal.
+        try:
+            coverage = coverage_for_spec(contract.parse_spec(raw_spec, facets=None), snapshot)
+        except contract.SpecError:
+            coverage = None
         return error_response(
             "invalid_spec",
             "the request body is not a valid decision spec",
@@ -403,6 +414,7 @@ def decide(payload: Any, snapshot, *,
             recovery=recovery_hints(exc.issues, facets=facets,
                                     benchmark_ids=tuple(snapshot.benchmark_ids()), payload=payload),
             reading=for_refusal(exc.issues),
+            coverage=coverage,
         )
     if spec.snapshot not in ("latest", snapshot.snapshot_id):
         return error_response(
@@ -449,6 +461,7 @@ def decide(payload: Any, snapshot, *,
             recovery=recovery_hints(exc.issues, facets=facets,
                                     benchmark_ids=tuple(snapshot.benchmark_ids()), payload=payload),
             reading=for_refusal(exc.issues),
+            coverage=coverage_for_spec(spec, snapshot),
         )
     return HTTP_OK, decision.model_dump(mode="json")
 

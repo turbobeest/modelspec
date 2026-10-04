@@ -43,7 +43,7 @@ from pydantic import (
 )
 from pydantic.fields import FieldInfo
 
-CONTRACT_VERSION = "2.12"
+CONTRACT_VERSION = "2.13"
 
 # ── identifiers ────────────────────────────────────────────────────────────
 
@@ -1833,6 +1833,25 @@ class Reading(_ExcludeIf):
     omitted: dict[str, int] = Field(default_factory=dict, exclude_if=lambda value: not value)
 
 
+class CoveredClass(_Strict):
+    id: str
+    models: int = Field(ge=0)
+
+
+class CoverageRefusal(_Strict):
+    """An unsupported requirement, with the current board's aggregate scope."""
+
+    kind: Literal["out_of_coverage"] = "out_of_coverage"
+    message: str
+    url: Literal["https://modelspec.dev/api/coverage.json"] = "https://modelspec.dev/api/coverage.json"
+    snapshot: SnapshotId
+    as_of: str | None
+    classes: list[CoveredClass]
+    domains: list[str]
+    requested_classes: list[str] = Field(default_factory=list)
+    requested_domains: list[str] = Field(default_factory=list)
+
+
 class Decision(_ExcludeIf):
     """The engine's answer to one spec against one snapshot."""
 
@@ -1846,7 +1865,7 @@ class Decision(_ExcludeIf):
         default=None,
         exclude_if=lambda value: value is None,
     )
-    contract_version: Literal["2.12"] = CONTRACT_VERSION
+    contract_version: Literal["2.13"] = CONTRACT_VERSION
     decision_id: DecisionId
     snapshot: SnapshotId
     #: Whether this process verified a publisher signature. Added in 1.10.
@@ -1885,6 +1904,7 @@ class Decision(_ExcludeIf):
     feedback: FeedbackPointer = Field(default_factory=FeedbackPointer)
     #: Optional reporting limits. Added in 2.12 (MODEL-284).
     reading: Reading | None = Field(default=None, exclude_if=lambda value: value is None)
+    coverage: CoverageRefusal | None = Field(default=None, exclude_if=lambda value: value is None)
 
     @model_validator(mode="after")
     def _status_agrees(self) -> Decision:
@@ -1963,6 +1983,7 @@ BoundedDecision = create_model(
     results=(list[ProjectedResult], ...),
     may_qualify=(list[MayQualify], ...),
     reading=(Reading | None, None),
+    coverage=(CoverageRefusal | None, None),
     with_estate=(WithEstate | None, None),
     explanation=(BoundedExplanation, ...),
     model_evidence=(ModelEvidence | None, None),
@@ -1982,6 +2003,7 @@ CONTRACT_TYPES: tuple[type[BaseModel], ...] = (
     NearMiss, ShownFact, CandidateValues, NumberOrigin, CitedSource, Relaxation,
     Estate, EstateHold, EstateMark, EstateResult, EstateGap, GainItem, WithEstate,
     Access, PlanPrice, PlanCoverage, PlanAllowance, PlanRoute, FeedbackPointer, Reading,
+    CoveredClass, CoverageRefusal,
     ResponseOptions, DecideRequest, ProjectedResult, ModelEvidence, BoundedExplanation, BoundedDecision,
 )
 

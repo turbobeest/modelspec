@@ -233,6 +233,7 @@ def test_no_evidence_renders_nothing() -> None:
 # ── the front door ───────────────────────────────────────────────────────────
 
 def test_the_landing_page_links_to_the_site() -> None:
+    from datetime import date
     from pipeline import landing
 
     model = landing.PlotModel("model", "Model", .1, 1, 0, 2, True)
@@ -240,6 +241,7 @@ def test_the_landing_page_links_to_the_site() -> None:
         "2026-09-27", 1, 40_000, 4_000, 10_000, (model,), "model", "model", 1,
         1000, 1000, 0, (), 0,
         landing._plot_axes([model]),
+        coverage=landing.coverage.from_repo(REPO_ROOT, date.today()),
     )
     html = landing.render(data, variant="live")
     for route in ("/decide/", "#agents", "/legal/terms/", "/legal/privacy/",

@@ -442,6 +442,7 @@ def modelspec_landing_markdown(models: list[Model], benchmarks: list[Benchmark],
         # MODEL-100. The whole class-fit rule as static data, no key: which
         # *class* of model a problem needs, before ranking within one.
         f"- class-fit: {MS_BASE}/api/rank/class-fit.json\n"
+        f"- coverage, keyless: {MS_BASE}/api/coverage.json\n"
         f"- mcp: {MCP_ENDPOINT}\n"
         f"- openapi: {OPENAPI_URL}\n"
         f"- auth: {MS_BASE}/auth.md\n"

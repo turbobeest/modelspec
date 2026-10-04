@@ -1,13 +1,484 @@
 {
   "_generated": "by pipeline.agent_copy; run python -m pipeline.agent_copy write",
   "cli_version": "0.3.0",
-  "guide_version": "1-ba4c092afcb11838",
+  "guide_version": "1-4bf62fc15451d7bc",
   "entity": "ModelSpec is an analysis of alternatives for AI models: it decides which models fit a job from your requirements, sourced benchmarks and real cost, and shows its work.",
   "coverage": {
     "as_of": "2026-09-23",
     "models": 1372,
     "providers": 79,
-    "benchmarks": 1153
+    "benchmarks": 1153,
+    "summary": "Decision snapshot 2026-09-23: the board covers 44 models (decider: 1, orderer: 2, text-generator: 35, vectoriser: 6). The catalogue has 1,372 cards; 1,328 are not yet decidable.",
+    "decision": {
+      "coverage_version": "1.0",
+      "url": "https://modelspec.dev/api/coverage.json",
+      "snapshot": "snap_aa3d424873d6b77f",
+      "as_of": "2026-09-23",
+      "definition": "Decidable models are active snapshot models with an admitted model class. Counts describe the board's scope, not evidence for every task. Classes are listed alphabetically, never ranked.",
+      "board": {
+        "models": 44,
+        "offerings": 43
+      },
+      "catalogue": {
+        "models": 1372,
+        "catalogued_not_decidable": 1328
+      },
+      "classes": [
+        {
+          "id": "actor",
+          "is_class": true,
+          "decidable": 0,
+          "catalogued": 0,
+          "catalogued_not_decidable": 0
+        },
+        {
+          "id": "analyser",
+          "is_class": true,
+          "decidable": 0,
+          "catalogued": 48,
+          "catalogued_not_decidable": 48
+        },
+        {
+          "id": "decider",
+          "is_class": true,
+          "decidable": 1,
+          "catalogued": 1,
+          "catalogued_not_decidable": 0
+        },
+        {
+          "id": "derived",
+          "is_class": false,
+          "decidable": 0,
+          "catalogued": 1,
+          "catalogued_not_decidable": 1
+        },
+        {
+          "id": "forecaster",
+          "is_class": true,
+          "decidable": 0,
+          "catalogued": 12,
+          "catalogued_not_decidable": 12
+        },
+        {
+          "id": "labeller",
+          "is_class": true,
+          "decidable": 0,
+          "catalogued": 19,
+          "catalogued_not_decidable": 19
+        },
+        {
+          "id": "media-generator",
+          "is_class": true,
+          "decidable": 0,
+          "catalogued": 75,
+          "catalogued_not_decidable": 75
+        },
+        {
+          "id": "orderer",
+          "is_class": true,
+          "decidable": 2,
+          "catalogued": 13,
+          "catalogued_not_decidable": 11
+        },
+        {
+          "id": "scorer",
+          "is_class": true,
+          "decidable": 0,
+          "catalogued": 8,
+          "catalogued_not_decidable": 8
+        },
+        {
+          "id": "simulator",
+          "is_class": true,
+          "decidable": 0,
+          "catalogued": 0,
+          "catalogued_not_decidable": 0
+        },
+        {
+          "id": "text-generator",
+          "is_class": true,
+          "decidable": 35,
+          "catalogued": 1014,
+          "catalogued_not_decidable": 979
+        },
+        {
+          "id": "transcriber",
+          "is_class": true,
+          "decidable": 0,
+          "catalogued": 21,
+          "catalogued_not_decidable": 21
+        },
+        {
+          "id": "unclassified",
+          "is_class": false,
+          "decidable": 0,
+          "catalogued": 5,
+          "catalogued_not_decidable": 5
+        },
+        {
+          "id": "vectoriser",
+          "is_class": true,
+          "decidable": 6,
+          "catalogued": 155,
+          "catalogued_not_decidable": 149
+        }
+      ],
+      "domains": [
+        {
+          "id": "agentic_tool_use",
+          "models": 22
+        },
+        {
+          "id": "chat_preference",
+          "models": 28
+        },
+        {
+          "id": "engineering_stem",
+          "models": 26
+        },
+        {
+          "id": "finance",
+          "models": 23
+        },
+        {
+          "id": "legal",
+          "models": 21
+        },
+        {
+          "id": "maths",
+          "models": 31
+        },
+        {
+          "id": "medical",
+          "models": 21
+        },
+        {
+          "id": "multilingual",
+          "models": 30
+        },
+        {
+          "id": "reasoning",
+          "models": 27
+        },
+        {
+          "id": "retrieval",
+          "models": 8
+        },
+        {
+          "id": "software_engineering",
+          "models": 29
+        },
+        {
+          "id": "vision_documents",
+          "models": 15
+        },
+        {
+          "id": "writing",
+          "models": 23
+        }
+      ],
+      "model_types": [
+        {
+          "id": "audio-asr",
+          "class": "transcriber",
+          "decidable": 0,
+          "catalogued": 17,
+          "catalogued_not_decidable": 17
+        },
+        {
+          "id": "audio-tts",
+          "class": "media-generator",
+          "decidable": 0,
+          "catalogued": 12,
+          "catalogued_not_decidable": 12
+        },
+        {
+          "id": "decision-model",
+          "class": "decider",
+          "decidable": 1,
+          "catalogued": 1,
+          "catalogued_not_decidable": 0
+        },
+        {
+          "id": "document-ocr",
+          "class": "transcriber",
+          "decidable": 0,
+          "catalogued": 4,
+          "catalogued_not_decidable": 4
+        },
+        {
+          "id": "embedding-multimodal",
+          "class": "vectoriser",
+          "decidable": 0,
+          "catalogued": 23,
+          "catalogued_not_decidable": 23
+        },
+        {
+          "id": "embedding-text",
+          "class": "vectoriser",
+          "decidable": 6,
+          "catalogued": 132,
+          "catalogued_not_decidable": 126
+        },
+        {
+          "id": "image-generation",
+          "class": "media-generator",
+          "decidable": 0,
+          "catalogued": 55,
+          "catalogued_not_decidable": 55
+        },
+        {
+          "id": "llm-base",
+          "class": "text-generator",
+          "decidable": 0,
+          "catalogued": 22,
+          "catalogued_not_decidable": 22
+        },
+        {
+          "id": "llm-chat",
+          "class": "text-generator",
+          "decidable": 2,
+          "catalogued": 468,
+          "catalogued_not_decidable": 466
+        },
+        {
+          "id": "llm-code",
+          "class": "text-generator",
+          "decidable": 2,
+          "catalogued": 128,
+          "catalogued_not_decidable": 126
+        },
+        {
+          "id": "llm-reasoning",
+          "class": "text-generator",
+          "decidable": 28,
+          "catalogued": 220,
+          "catalogued_not_decidable": 192
+        },
+        {
+          "id": "miscellaneous",
+          "class": "unclassified",
+          "decidable": 0,
+          "catalogued": 5,
+          "catalogued_not_decidable": 5
+        },
+        {
+          "id": "quantized-variant",
+          "class": "derived",
+          "decidable": 0,
+          "catalogued": 1,
+          "catalogued_not_decidable": 1
+        },
+        {
+          "id": "reranker",
+          "class": "orderer",
+          "decidable": 2,
+          "catalogued": 13,
+          "catalogued_not_decidable": 11
+        },
+        {
+          "id": "reward-model",
+          "class": "scorer",
+          "decidable": 0,
+          "catalogued": 8,
+          "catalogued_not_decidable": 8
+        },
+        {
+          "id": "safety-classifier",
+          "class": "labeller",
+          "decidable": 0,
+          "catalogued": 19,
+          "catalogued_not_decidable": 19
+        },
+        {
+          "id": "text-encoder",
+          "class": "analyser",
+          "decidable": 0,
+          "catalogued": 26,
+          "catalogued_not_decidable": 26
+        },
+        {
+          "id": "time-series",
+          "class": "forecaster",
+          "decidable": 0,
+          "catalogued": 12,
+          "catalogued_not_decidable": 12
+        },
+        {
+          "id": "video-generation",
+          "class": "media-generator",
+          "decidable": 0,
+          "catalogued": 8,
+          "catalogued_not_decidable": 8
+        },
+        {
+          "id": "vision-encoder",
+          "class": "analyser",
+          "decidable": 0,
+          "catalogued": 22,
+          "catalogued_not_decidable": 22
+        },
+        {
+          "id": "vlm",
+          "class": "text-generator",
+          "decidable": 3,
+          "catalogued": 176,
+          "catalogued_not_decidable": 173
+        }
+      ],
+      "providers": [
+        {
+          "id": "alibaba-model-studio",
+          "name": "Alibaba Cloud Model Studio",
+          "kind": "lab_api",
+          "offerings": 1
+        },
+        {
+          "id": "anthropic",
+          "name": "Anthropic API",
+          "kind": "lab_api",
+          "offerings": 7
+        },
+        {
+          "id": "aws-bedrock",
+          "name": "Amazon Bedrock",
+          "kind": "cloud",
+          "offerings": 3
+        },
+        {
+          "id": "azure-ai-foundry",
+          "name": "Azure AI Foundry",
+          "kind": "cloud",
+          "offerings": 4
+        },
+        {
+          "id": "deepseek",
+          "name": "DeepSeek Open Platform",
+          "kind": "lab_api",
+          "offerings": 2
+        },
+        {
+          "id": "google-gemini-api",
+          "name": "Gemini API (Google AI Studio)",
+          "kind": "lab_api",
+          "offerings": 5
+        },
+        {
+          "id": "google-vertex-ai",
+          "name": "Vertex AI (Google Cloud)",
+          "kind": "cloud",
+          "offerings": 11
+        },
+        {
+          "id": "meta-model-api",
+          "name": "Meta Model API",
+          "kind": "lab_api",
+          "offerings": 2
+        },
+        {
+          "id": "openai",
+          "name": "OpenAI API",
+          "kind": "lab_api",
+          "offerings": 4
+        },
+        {
+          "id": "typesafe",
+          "name": "TypeSafe API",
+          "kind": "lab_api",
+          "offerings": 1
+        },
+        {
+          "id": "xai",
+          "name": "xAI API",
+          "kind": "lab_api",
+          "offerings": 1
+        },
+        {
+          "id": "zai",
+          "name": "Z.ai API",
+          "kind": "lab_api",
+          "offerings": 2
+        }
+      ],
+      "offerings": [
+        {
+          "provider": "alibaba-model-studio",
+          "region": "singapore",
+          "tier": "standard",
+          "count": 1
+        },
+        {
+          "provider": "anthropic",
+          "region": "global",
+          "tier": "standard",
+          "count": 7
+        },
+        {
+          "provider": "aws-bedrock",
+          "region": "global-cross-region",
+          "tier": "standard",
+          "count": 3
+        },
+        {
+          "provider": "azure-ai-foundry",
+          "region": "global-short-context",
+          "tier": "standard",
+          "count": 4
+        },
+        {
+          "provider": "deepseek",
+          "region": "global",
+          "tier": "standard",
+          "count": 2
+        },
+        {
+          "provider": "google-gemini-api",
+          "region": "global",
+          "tier": "standard",
+          "count": 5
+        },
+        {
+          "provider": "google-vertex-ai",
+          "region": "global",
+          "tier": "standard",
+          "count": 11
+        },
+        {
+          "provider": "meta-model-api",
+          "region": "global",
+          "tier": "standard",
+          "count": 2
+        },
+        {
+          "provider": "openai",
+          "region": "global",
+          "tier": "standard",
+          "count": 4
+        },
+        {
+          "provider": "typesafe",
+          "region": "global",
+          "tier": "standard",
+          "count": 1
+        },
+        {
+          "provider": "xai",
+          "region": "global",
+          "tier": "standard",
+          "count": 1
+        },
+        {
+          "provider": "zai",
+          "region": "global",
+          "tier": "standard",
+          "count": 2
+        }
+      ],
+      "aggregators": {
+        "providers": [],
+        "offerings": 0
+      }
+    }
   },
   "urls": {
     "guide": "https://modelspec.dev/agents.md",
@@ -182,7 +653,7 @@
     "access": "Three ways in: keyed CLI, MCP and HTTP API. Machine data access needs a ModelSpec API key; only human lookup is free. No data download or local decision cache.",
     "privacy": "No telemetry. The CLI never uses, sends or logs your provider API keys.",
     "package_warning": "pip install modelspec is an unrelated project. Use modelspec-dev.",
-    "coverage": "Bundled public coverage summary, {as_of}: {models} models, {providers} providers, {benchmarks} benchmarks. Current coverage may differ.",
+    "coverage": "Bundled public coverage summary, {as_of}: {models} catalogue cards, {providers} catalogue providers, {benchmarks} benchmarks. {summary} Current coverage may differ. See https://modelspec.dev/api/coverage.json.",
     "answers": "Ask about model requirements, sourced capability evidence, cost, context, hosting and policy constraints. Answers report ties, missing facts and reasons.",
     "price": "From {low_cents}¢ per answer. Published range ${low_usd}–${high_usd} per answer, depending on plan, pack and explanation.",
     "procurement": "Use an existing key, or see https://modelspec.dev/pricing/ for availability. Checkout availability is shown on the page. For access, volume or invoicing, contact sales@modelspec.dev. Store a key with modelspec auth set, or set MODELSPEC_API_KEY; the environment wins.",
@@ -303,13 +774,13 @@
     }
   },
   "source_hashes": {
-    "pipeline/agent_copy.py": "2fa16b06d274dd859f75d757f69cfac8d857bfb1450aeef7d92f898d18beddd0",
+    "pipeline/agent_copy.py": "5f146429647bc624d23912a0ae0358855a8ea47d328b920e47f94f9ddebd8f6b",
     "pipeline/entity.py": "1649e5f95b620561511c2619045d036231b44c8ab7ff297bf4c6a21ab2b69ff3",
     "pipeline/pricing.py": "1e7b0b1c1bfc2fba4bd2de1d551b2fd9490dccdf13669a24bad5a7c02a8fb2c8",
     "pipeline/worker_flags.py": "24f13653d35fa40bee8531fe0644aa1adbf4d80c232da5dcc3cd74cf035fceed",
     "api/worker/wrangler.jsonc": "b8c0831916b3ecf7bd01930099a3951ffb7249cff9f477abfdbb64f76fb69c81",
     "api/worker/tiers.json": "315a2ad62c5b366246675d2984e61243ed20d85d89bad6bd648e8960926b8773",
-    "docs/decision-contract.schema.json": "9b70bf707f23ba1a236fe2f29e502377bc95d2213973df0acd89faee6c6afc32",
+    "docs/decision-contract.schema.json": "75c3b14311142470424fbc094a5f85a7e37381e353de2bed6a3aa4ebf81cc6bb",
     "pyproject.toml": "985f27499841d558f35fbeb131bce5ddadff489e3a1ed78be7af717fecefb021",
     "schemas/feedback-v1.schema.json": "551a54ba5a954b73c38d5c35d0a48c62cf1b89d0cd9543d96103e2320450638b"
   }

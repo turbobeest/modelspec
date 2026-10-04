@@ -40,7 +40,13 @@ def responses(service, snapshot):
     target = body["results"][0]["model"]
     status, detail = service.decide({**spec, "evidence_for": target}, snapshot)
     assert status == 200
-    return {"request": spec, "default": body, "drill_down": detail}
+    speech_spec = {"spec_version": 1, "where": ["model.class = transcriber"],
+                   "optimize": {"min": "offering.cost_per_task"},
+                   "explain": "none", "fields": list(DEFAULT_FIELDS), "limit": 10}
+    status, speech = service.decide(speech_spec, snapshot)
+    assert status == 200 and speech["coverage"]["kind"] == "out_of_coverage"
+    return {"request": spec, "default": body, "drill_down": detail,
+            "speech_request": speech_spec, "speech": speech}
 
 
 def main():

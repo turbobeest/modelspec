@@ -216,7 +216,7 @@ def test_the_worker_answers_a_spec_with_task_tokens():
         "explain": "none",
     }, index())
     assert status == 200, body
-    assert body["contract_version"] == "2.12"
+    assert body["contract_version"] == "2.13"
 
 
 def test_computed_view_only_needs_the_index_methods_it_uses():

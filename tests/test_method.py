@@ -160,7 +160,7 @@ def test_every_github_path_exists_and_internal_data_link_is_built(
     data: landing.LandingData, tmp_path: Path,
 ) -> None:
     tree = tmp_path / "modelspec"
-    for rel in ("api/decision/snapshot.json.gz", "api/decision/vocabulary.json",
+    for rel in ("api/coverage.json", "api/decision/snapshot.json.gz", "api/decision/vocabulary.json",
                 "api/rank/profiles.json", ".well-known/modelspec-snapshot-keys.json"):
         target = tree / rel
         target.parent.mkdir(parents=True, exist_ok=True)
