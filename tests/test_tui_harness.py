@@ -367,6 +367,8 @@ def test_grok_positive_controls_get_an_empty_user_layer(config, tmp_path):
                       {"name": "other", "status": "connected"}]}, "CLI loaded another MCP server"),
     ({"mcp_servers": [{"name": "modelspec", "status": "pending"},
                       {"name": "other", "status": "disabled"}]}, None),
+    ({"mcp_servers": [{"name": "modelspec", "status": "pending"}, "other"]},
+     "CLI startup inventory omitted or malformed mcp_servers"),
 ])
 def test_grok_init_must_exist_and_list_no_live_foreign_server(init, error):
     parsed = providers.Transcript(init=init)

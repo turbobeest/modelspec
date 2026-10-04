@@ -183,12 +183,13 @@ def decide_health(report: dict) -> dict:
                     envelope = json.loads(block.get("text", ""))
                 except (ValueError, TypeError, AttributeError):
                     continue
-                if not isinstance(envelope, dict) or not isinstance(envelope.get("body"), dict):
+                if not isinstance(envelope, dict) or "status" not in envelope:
                     continue
-                body = envelope["body"]
+                body = envelope.get("body") if isinstance(envelope.get("body"), dict) else {}
+                credits = body.get("credits") if isinstance(body.get("credits"), dict) else {}
                 counts["decide_answers"] += 1
                 counts["unauthorised"] += envelope.get("status") in (401, 402, 403)
-                counts["credits_exhausted"] += (body.get("credits") or {}).get("exhausted") is True
+                counts["credits_exhausted"] += credits.get("exhausted") is True
                 counts["partial"] += body.get("status") == "partial"
     return counts
 

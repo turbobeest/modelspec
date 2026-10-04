@@ -701,3 +701,6 @@ def test_funded_key_check_counts_partial_but_refuses_exhausted_or_unauthorised()
             {'status': 'partial', 'credits': {'exhausted': True, 'available': 0}}))
     with pytest.raises(ValueError, match='1 unauthorised'):
         jobs.require_funded_key(_decide_report({'error': {'code': 'missing_api_key'}}, status=401))
+    with pytest.raises(ValueError, match='1 unauthorised'):
+        jobs.require_funded_key(_decide_report('Unauthorized', status=401))
+    assert jobs.decide_health(_decide_report({'credits': 'odd'}))['credits_exhausted'] == 0

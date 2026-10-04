@@ -590,8 +590,10 @@ def isolation_violation(
     if cli == "grok" and mcp_enabled:
         if parsed.init is None:
             return "CLI did not expose its startup inventory"
-        status = {s.get("name"): s.get("status") for s in parsed.init.get("mcp_servers") or []
-                  if isinstance(s, dict)}
+        servers = parsed.init.get("mcp_servers") or []
+        if not isinstance(servers, list) or not all(isinstance(s, dict) for s in servers):
+            return "CLI startup inventory omitted or malformed mcp_servers"
+        status = {s.get("name"): s.get("status") for s in servers}
         # Grok connects lazily: init reports "pending" for a server it will use.
         if any(status.get(name) not in ("connected", "pending") for name in allowed):
             return "ModelSpec MCP did not connect"
