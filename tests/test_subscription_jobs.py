@@ -270,6 +270,22 @@ def test_job_lock_refuses_after_six_hours_without_running(tmp_path, monkeypatch,
     assert 'waiting' in capsys.readouterr().out.lower()
 
 
+def test_default_scenarios_job_never_requires_retired_gemini(tmp_path, monkeypatch, capsys):
+    needed = []
+    def stop(config, clis, *a):
+        needed.extend(clis)
+        raise ValueError('stop')
+    monkeypatch.setattr(jobs, 'require_ready', stop)
+    assert jobs.main(['scenarios', '--state-dir', str(tmp_path)]) == 2
+    assert needed == ['claude', 'codex', 'grok']
+
+
+def test_gemini_readiness_names_google_retirement_before_receipts(config, tmp_path, monkeypatch):
+    monkeypatch.setattr(jobs, 'receipt_file', lambda *a: pytest.fail('receipt read'))
+    with pytest.raises(ValueError, match='^gemini: Google stopped serving Gemini CLI'):
+        jobs.require_ready(config, ['gemini'], tmp_path)
+
+
 def test_subprocess_timeout_refuses_cleanly(tmp_path, monkeypatch, capsys):
     def timeout(*args, **kwargs):
         raise subprocess.TimeoutExpired(['docker', 'info'], 30)

@@ -235,8 +235,8 @@ Google sign-in still completes. Code Assist then answers "This client is no
 longer supported for Gemini Code Assist for individuals", and the CLI falls back
 to its API-key prompt. Only paid API keys and Code Assist Standard/Enterprise
 remain. The harness refuses API keys and passes no Google Cloud project, so
-neither is available here. Doctor still reports a Gemini volume's state and
-records the retirement as the reason.
+neither is available here. Doctor still reports a Gemini volume's state. When
+the volume holds a Google login, it records the retirement as the reason.
 
 ### Container boundary and doctor
 
@@ -366,6 +366,9 @@ before the first task, and every launch rechecks status and inventory. Missing
 or changed evidence refuses the job. Vendor API-key/token environment variables,
 including empty variables, refuse all jobs and dry runs. There is no API fallback
 for the four subscription vendors. No job starts login or refreshes doctor for you.
+The scenarios job defaults to Claude, Codex and Grok; Gemini readiness refuses
+with the retirement reason above. AEO still lists Gemini as an engine, so it
+refuses until its engine set changes.
 
 Execution is serial and uses the existing quota and usage-limit checks. Job
 quotas default to 400 CLI starts per family for all 74 scenarios, 40 for the UX
@@ -430,10 +433,9 @@ are shared between each CLI's ordinary and UX variants; receipts are separate.
 ```sh
 python -m qa.tui_harness build-images
 python -m qa.tui_harness build-images --ux-image --cli codex --cli grok
-# After Jamie logs in, certify all four ordinary images:
+# After Jamie logs in, certify the three ordinary images (Gemini is retired):
 python -m qa.tui_harness doctor --cli claude --out "$STATE"
 python -m qa.tui_harness doctor --cli codex --out "$STATE"
-python -m qa.tui_harness doctor --cli gemini --out "$STATE"
 python -m qa.tui_harness doctor --cli grok --out "$STATE"
 # Then certify the visitor images:
 python -m qa.tui_harness doctor --ux-image --cli codex --out "$STATE"

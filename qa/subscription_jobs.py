@@ -22,7 +22,7 @@ from qa import agent_harness, tui_harness
 from qa.docker.entrypoint import refuse_vendor_auth
 from qa.providers import Budget, redact, redact_structure
 from qa.tui_auth import authentication_status
-from qa.tui_docker import container_command, passed_environment
+from qa.tui_docker import GEMINI_RETIRED, container_command, passed_environment
 from qa.tui_isolation import isolation_result, receipt_file
 from qa.tui_homes import home_config, state_directory
 from qa.tui_providers import CLIS, build_command, prepare_workspace
@@ -60,6 +60,8 @@ def require_ready(config: dict, clis: list[str], output: Path, *, max_age_days=3
     now = now or datetime.now(timezone.utc)
     evidence = {}
     for cli in clis:
+        if cli == "gemini":
+            raise ValueError(f"gemini: {GEMINI_RETIRED}")
         path = receipt_file(state_directory(cli, config))
         if path.is_symlink():
             raise ValueError(f"{cli}: doctor receipt must not be a symlink")
@@ -249,7 +251,9 @@ def main(argv=None) -> int:
     args = parser.parse_args(argv)
     try:
         datetime.strptime(args.date, "%Y-%m-%d")
-        selected = list(dict.fromkeys(args.cli or (CLIS if args.job == "scenarios" else ("codex", "grok") if args.job == "ux" else CLIS)))
+        # Gemini CLI no longer serves Google AI Pro; see GEMINI_RETIRED.
+        scenario_clis = tuple(cli for cli in CLIS if cli != "gemini")
+        selected = list(dict.fromkeys(args.cli or (scenario_clis if args.job == "scenarios" else ("codex", "grok") if args.job == "ux" else CLIS)))
         config = configuration(args.state_dir, browser_clis=selected if args.job == "ux" else (),
                                quiet_hours=args.scheduled or args.quiet_hours,
                                max_runs=args.max_runs_per_cli if args.max_runs_per_cli is not None else {"scenarios": 400, "ux": 40, "aeo": 64}[args.job])
