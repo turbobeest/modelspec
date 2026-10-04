@@ -34,7 +34,13 @@ from qa.agent_harness import (
 from qa.contracts import source_hashes
 from qa.docker.entrypoint import refuse_vendor_auth
 from qa.providers import Budget, redact, redact_structure
-from qa.tui_docker import build_images, container_command, image_name, passed_environment
+from qa.tui_docker import (
+    GEMINI_RETIRED,
+    build_images,
+    container_command,
+    image_name,
+    passed_environment,
+)
 from qa.tui_homes import (
     binary_identity,
     home_config,
@@ -623,6 +629,9 @@ def main(argv=None) -> int:
             for cli in selected:
                 with tempfile.TemporaryDirectory(prefix="tui-version-") as directory:
                     identity = binary_identity(cli, config, Path(directory))
+                if cli == "gemini":
+                    print(f"{cli}: {identity['reported_version']}. {GEMINI_RETIRED}.")
+                    continue
                 print(f"{cli}: {identity['reported_version']}. Login yourself with:")
                 print(login_command(cli, args.config))
             return 0

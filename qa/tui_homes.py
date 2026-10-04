@@ -11,6 +11,7 @@ from pathlib import Path
 
 from qa.tui_docker import (
     CONTAINER_HOME,
+    GEMINI_RETIRED,
     LOGIN_ARGS,
     container_command,
     docker_environment,
@@ -113,6 +114,9 @@ def version_numbers(value: str) -> tuple[int, int, int]:
 
 
 def login(cli: str, config: dict) -> None:
+    if cli == "gemini":
+        # Its Google sign-in now ends at the API-key prompt this harness refuses.
+        raise ValueError(GEMINI_RETIRED)
     # Inspect image metadata only. Login inherits terminal stdio through exec.
     identity = image_identity(cli, config)
     env = passed_environment(config)

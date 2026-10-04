@@ -10,7 +10,7 @@ import subprocess
 from pathlib import Path
 from time import monotonic
 
-from qa.tui_docker import popen_cli, run_cli, stop_process
+from qa.tui_docker import GEMINI_RETIRED, popen_cli, run_cli, stop_process
 from qa.tui_homes import resolve_executable
 
 
@@ -204,7 +204,7 @@ def authentication_status(cli: str, config: dict, workspace: Path, env: dict) ->
                     logged_in=True,
                     auth_method="oauth-personal",
                     service_available=False,
-                    reason="Gemini Code Assist rejected this client: UNSUPPORTED_CLIENT",
+                    reason=GEMINI_RETIRED,
                 )
             elif (
                 response.get("error", {}).get("code") == -32000
