@@ -619,8 +619,11 @@ def _site_free_visitor(request, api_key: str | None, enabled: bool, env=None) ->
     """Return the anonymous meter key for an admitted browser request.
 
     None when the keyed visitor id is unavailable (no VISITOR_HMAC_KEY): the
-    request then takes the paid path rather than a bare-hash meter."""
-    if api_key is not None or not enabled or visit_token.enabled(env):
+    request then takes the paid path rather than a bare-hash meter. Access
+    enforcement also returns None. A site Origin is not a keyless credential.
+    """
+    if (api_key is not None or not enabled or visit_token.enabled(env)
+            or access.enforcement(getattr(env, ACCESS_ENFORCED_VAR, None))):
         return None
     origin = str(request.headers.get("origin") or request.headers.get("Origin") or "")
     if origin not in CORS_ORIGINS:

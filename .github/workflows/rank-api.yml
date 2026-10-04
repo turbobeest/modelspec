@@ -567,6 +567,6 @@ jobs:
           echo "Worker is live on ${GITHUB_SHA}"
 
       - name: Decision latency smoke (warning only)
-        # Existing smokes carry no API key. The probe records a skip when
-        # anonymous decide calls are keyed; BUILD_COMMIT is identity only.
+        # No API key is available. When ACCESS_ENFORCED is on, the script
+        # records "skipped: keyless under enforcement" and exits 0.
         run: python3 .github/scripts/check_decide_latency.py --host "$RANK_HOST"

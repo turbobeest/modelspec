@@ -39,6 +39,12 @@ def test_llms_txt_names_the_mcp_endpoint_and_api_docs() -> None:
     assert "modelspec decide --template <id>" not in text
 
 
+def test_llms_txt_carries_the_flag_derived_checkout_line() -> None:
+    from pipeline import agent_copy
+
+    assert agent_copy.key_procurement() in _text()
+
+
 def test_llms_txt_offers_no_catalogue_download() -> None:
     text = _text()
     assert "https://modelspec.dev/api/catalogue.json" not in text

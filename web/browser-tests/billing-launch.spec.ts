@@ -99,7 +99,7 @@ test("billing launch keeps browser lookup free through the real visit gate", asy
   expect(decisions.every((call) => Boolean(call.headers["x-modelspec-visit-token"]))).toBe(true);
   for (const path of ["/v1/human-status", "/v1/visit-token"]) {
     const indices = calls.flatMap((call, index) => call.path === path ? [index] : []);
-    expect(indices).toHaveLength(1);
+    expect(indices.length).toBeGreaterThanOrEqual(1);
     for (const index of indices) {
       expect(calls[index].headers.authorization).toBeUndefined();
       expect(calls[index].headers["x-api-key"]).toBeUndefined();

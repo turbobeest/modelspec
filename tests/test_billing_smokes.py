@@ -161,6 +161,16 @@ def test_openapi_probe_rejects_keyless_data_or_an_unhelpful_refusal(
     assert openapi.probe("https://offline.example", probe_spec()) == 1
 
 
+def test_probe_reads_the_committed_spec_when_split_is_off(monkeypatch):
+    monkeypatch.delenv("DATA_SPLIT_ENABLED", raising=False)
+
+    def offline(_request, timeout=60):
+        raise OSError("offline")
+
+    monkeypatch.setattr(openapi.urllib.request, "urlopen", offline)
+    assert openapi.probe("https://offline.example") == 1
+
+
 def test_generated_split_openapi_probe_matches_real_worker_keyless_responses(monkeypatch):
     monkeypatch.delenv("MODELSPEC_SMOKE_API_KEY", raising=False)
     monkeypatch.setenv("DATA_SPLIT_ENABLED", "true")

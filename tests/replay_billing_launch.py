@@ -78,6 +78,21 @@ async def replay(data):
         produced += 1
         return 200, decisions.get(request_key(payload), fallback["summary" if payload.get("explain") == "summary" else "full"])
 
+    async def rank(self, payload, service_commit, origin):
+        nonlocal produced
+        produced += 1
+        return 200, {"result": []}
+
+    async def compare(self, payload, origin, expected=None):
+        nonlocal produced
+        produced += 1
+        return 200, {"results": []}
+
+    async def policy_answer(self, payload, service_commit, origin, entitlement):
+        nonlocal produced
+        produced += 1
+        return 200, {"result": []}
+
     async def export(origin, **kwargs):
         return {"build": {"commit": "offline-fixture", "built_at": "2026-10-04T12:00:00Z",
                           "export_schema_version": "2.0"}, "candidates": []}, None
@@ -109,6 +124,9 @@ async def replay(data):
     worker.env = environment
     outcomes = []
     with patch.object(entry.Default, "_decide", answer), \
+         patch.object(entry.Default, "_rank", rank), \
+         patch.object(entry.Default, "_compare", compare), \
+         patch.object(entry.Default, "_policy_answer", policy_answer), \
          patch.object(entry, "_verify_turnstile", verify), \
          patch.object(entry, "_load_export", export), \
          patch.object(entry, "_load_policy_catalogue", catalogue):

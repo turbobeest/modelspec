@@ -1421,6 +1421,9 @@ def _billing_paths() -> dict[str, Any]:
                     "the JSON call whatever its content type, so `curl -d '{...}'` "
                     "is unchanged."
                 ),
+                # A key binds a pack or plan to an existing caller. No key still
+                # starts anonymous Checkout, so the key stays optional here.
+                "security": [{}, {"bearer": []}, {"apiKey": []}],
                 **skip,
                 "requestBody": {
                     "required": False,
@@ -1478,6 +1481,7 @@ def _billing_paths() -> dict[str, Any]:
             "post": {
                 "operationId": "billingStripeWebhook",
                 "summary": "Stripe webhook. HMAC-SHA256 over t.payload; no SDK.",
+                "security": [],
                 **skip,
                 "parameters": [{
                     "name": "Stripe-Signature", "in": "header", "required": True,
@@ -1538,6 +1542,7 @@ def _billing_paths() -> dict[str, Any]:
             "post": {
                 "operationId": "billingClaimPost",
                 "summary": "Claim the purchase (session_id in the JSON body). Same as GET.",
+                "security": [],
                 **skip,
                 "requestBody": {
                     "required": True,
@@ -3580,6 +3585,7 @@ def probe(base_url: str, spec: dict[str, Any] | None = None) -> int:
     operations are read out of the document, not listed here, so an endpoint
     added to the spec is probed without anyone remembering to add it.
     """
+    from pipeline.public_data import enabled
     spec = spec or yaml.safe_load(render() if enabled() else SPEC_PATH.read_text(encoding="utf-8"))
     enforced = access_enforced()
     key = os.environ.get("MODELSPEC_SMOKE_API_KEY") or None

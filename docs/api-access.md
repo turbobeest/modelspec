@@ -245,7 +245,8 @@ else reads as on**, so a typo made while switching it on cannot leave it off.
 `BILLING_ENABLED` is also `"true"` in production, so self-serve issuance is open.
 `VISIT_GATE_ENABLED` must stay on to keep the decide page free: a valid,
 Turnstile-verified visit token admits only decide and vocabulary. An allowlisted
-Origin alone does not admit a keyless request. Invalid or expired visit tokens
+Origin alone does not admit a keyless request, including when x402 is on and
+the visit gate is off. Invalid or expired visit tokens
 receive 401; they do not fall through to anonymous data access.
 
 ## The key store: the `ACCESS` binding

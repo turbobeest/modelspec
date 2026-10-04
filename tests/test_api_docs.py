@@ -739,6 +739,14 @@ def test_the_spec_records_the_access_layer_as_wired_and_enforced(
     assert spec["paths"]["/v1/feedback"]["post"]["security"] == [{}]
     assert spec["paths"]["/v1/decide"]["post"]["security"] == [
         {"bearer": []}, {"apiKey": []}, {"visitToken": []}]
+    # Global security requires a key. These three stay open: Checkout accepts
+    # an optional key, and the webhook and POST claim authenticate another way.
+    assert spec["paths"]["/v1/billing/checkout"]["post"]["security"] == [
+        {}, {"bearer": []}, {"apiKey": []}
+    ]
+    assert spec["paths"]["/v1/billing/stripe-webhook"]["post"]["security"] == []
+    assert spec["paths"]["/v1/billing/claim"]["post"]["security"] == []
+    assert spec["paths"]["/v1/billing/claim"]["get"]["security"] == []
     assert {"bearer", "apiKey"} <= set(spec["components"]["securitySchemes"])
     for path in ("/v1/rank", "/v1/policy-check"):
         responses = spec["paths"][path]["post"]["responses"]

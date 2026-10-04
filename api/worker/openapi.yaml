@@ -990,6 +990,10 @@ paths:
         key presented. An unknown or placeholder `price_id` is refused, never redirected, and every refusal
         is the JSON call''s own. A body that parses as JSON is the JSON call whatever its content type,
         so `curl -d ''{...}''` is unchanged.'
+      security:
+      - {}
+      - bearer: []
+      - apiKey: []
       x-modelspec-probe: skip
       requestBody:
         required: false
@@ -1103,6 +1107,7 @@ paths:
     post:
       operationId: billingStripeWebhook
       summary: Stripe webhook. HMAC-SHA256 over t.payload; no SDK.
+      security: []
       x-modelspec-probe: skip
       parameters:
       - name: Stripe-Signature
@@ -1231,6 +1236,7 @@ paths:
     post:
       operationId: billingClaimPost
       summary: Claim the purchase (session_id in the JSON body). Same as GET.
+      security: []
       x-modelspec-probe: skip
       requestBody:
         required: true
