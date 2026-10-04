@@ -5,6 +5,7 @@ import { readFileSync } from "node:fs";
 import { decisionFixtureFor } from "./decision-fixtures.mjs";
 
 const vocabulary = readFileSync(new URL("../src/decide/__fixtures__/live-vocabulary.json", import.meta.url), "utf8");
+const narrowedDecision = readFileSync(new URL("../src/decide/__fixtures__/live-budget-coding-full.json", import.meta.url), "utf8");
 
 export const GUTTER = 16;
 export const GAP = 16;
@@ -28,6 +29,14 @@ export async function routeFixtures(page) {
     contentType: "application/json",
     headers: { "access-control-allow-origin": "*" },
     body: JSON.stringify({ enabled: false }),
+  }));
+}
+
+/** Pin /v1/decide to the recorded Coding answer. Call after routeFixtures: the latest route wins. */
+export async function routeNarrowedDecision(page) {
+  await page.route("**/v1/decide", (route) => route.fulfill({
+    contentType: "application/json",
+    body: narrowedDecision,
   }));
 }
 
@@ -180,6 +189,20 @@ export function check(layout) {
   add(`"Copy for my agent" ${where}`, layout.copy !== null && layout.copy.bottom <= fold,
     layout.copy ? `bottom ${px(layout.copy.bottom)} ≤ ${fold}` : "no copy button");
   return rows;
+}
+
+/** Scroll the answer partway down, then read the sticky header and chart in viewport coordinates. */
+export async function stickyChartView(page) {
+  return page.evaluate(() => new Promise((resolve) => {
+    const answer = document.querySelector(".board-answer");
+    scrollTo(0, answer.getBoundingClientRect().top + scrollY + 1200);
+    requestAnimationFrame(() => {
+      resolve({
+        headerBottom: document.querySelector(".global-header").getBoundingClientRect().bottom,
+        chartTop: document.querySelector(".canvas-panel").getBoundingClientRect().top,
+      });
+    });
+  }));
 }
 
 /** The counter card's visible text, and whether all of it sits in the first screen. */

@@ -8,7 +8,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { parseArgs } from "node:util";
 import { chromium, devices } from "@playwright/test";
-import { check, counterView, measure, openDecide, routeFixtures } from "./decide-layout-measure.mjs";
+import { check, counterView, measure, openDecide, routeFixtures, routeNarrowedDecision, stickyChartView } from "./decide-layout-measure.mjs";
 
 const { values } = parseArgs({ options: {
   base: { type: "string", default: "http://127.0.0.1:5173" },
@@ -37,18 +37,35 @@ for (const { name, ...options } of VIEWPORTS) {
   const layout = await measure(page);
   const rows = check(layout);
 
+  if (name.startsWith("desktop")) {
+    const sticky = await stickyChartView(page);
+    rows.push({
+      check: "chart clears the sticky header",
+      pass: sticky.chartTop >= sticky.headerBottom + 16 - 0.5,
+      detail: `chart top ${Math.round(sticky.chartTop * 10) / 10} ≥ header bottom ${Math.round(sticky.headerBottom * 10) / 10} + 16`,
+    });
+    await page.evaluate(() => scrollTo(0, 0));
+  }
+
   if (name === "desktop-1236") {
     const before = await counterView(page);
+    await routeNarrowedDecision(page);
     const answered = page.waitForResponse((response) => response.url().endsWith("/v1/decide"));
+    const want = ["15", "3", "14", "—"];
     await page.locator(".template-shortcut").nth(1).click();
     await answered;
-    await page.waitForFunction((text) => document.querySelector(".narrowing .panel")?.innerText !== text, before.text);
+    await page.waitForFunction((expected) => {
+      const got = [...document.querySelectorAll(".narrowing-number")].map((node) => node.textContent);
+      return got.length === expected.length && got.every((value, index) => value === expected[index]);
+    }, want);
     const after = await counterView(page);
+    const scrollY = await page.evaluate(() => scrollY);
     await page.screenshot({ path: `${values.out}/${name}-after-template-click.png` });
+    const numbers = (await page.locator(".narrowing-number").allTextContents()).join("/");
     rows.push({
       check: "template click changes the first screen",
-      pass: after.text !== before.text && after.bottom <= after.viewport && (await page.evaluate(() => scrollY)) === 0,
-      detail: `${before.summary} → ${after.summary}; counter bottom ${Math.round(after.bottom)} ≤ ${after.viewport}`,
+      pass: numbers === want.join("/") && after !== null && after.bottom <= 800 && scrollY === 0,
+      detail: `${before.summary} → ${numbers}; counter bottom ${after === null ? "missing" : Math.round(after.bottom)} ≤ 800; scrollY ${scrollY}`,
     });
   }
   report[name] = { rows, layout };

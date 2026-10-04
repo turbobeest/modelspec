@@ -2,7 +2,7 @@ import { expect } from "@playwright/test";
 import { test } from "./human-gate-fixtures";
 import { readFileSync } from "node:fs";
 import { decisionFixtureFor } from "../scripts/decision-fixtures.mjs";
-import { check, counterView, measure, openDecide, routeFixtures } from "../scripts/decide-layout-measure.mjs";
+import { check, counterView, measure, openDecide, routeFixtures, routeNarrowedDecision, stickyChartView } from "../scripts/decide-layout-measure.mjs";
 
 const vocabulary = readFileSync(new URL("../src/decide/__fixtures__/live-vocabulary.json", import.meta.url), "utf8");
 const narrowedDecision = readFileSync(new URL("../src/decide/__fixtures__/live-budget-coding-full.json", import.meta.url), "utf8");
@@ -373,16 +373,24 @@ test("a facet click in Refine holds its place while the next answer loads", asyn
   release();
 });
 
+test("the chart clears the sticky header at 1236×800", async ({ page }) => {
+  await page.setViewportSize({ width: 1236, height: 800 });
+  await routeFixtures(page);
+  await openDecide(page);
+  const { headerBottom, chartTop } = await stickyChartView(page);
+  expect(chartTop).toBeGreaterThanOrEqual(headerBottom + 16 - 0.5);
+});
+
 test("a template click changes the first screen without scrolling", async ({ page }) => {
   await page.setViewportSize({ width: 1236, height: 800 });
   await routeFixtures(page);
   await openDecide(page);
-  const before = await counterView(page);
+  await routeNarrowedDecision(page);
   const shortcut = page.locator(".template-shortcut").nth(1);
   await shortcut.click();
   await expect(shortcut).toHaveAttribute("aria-pressed", "true");
   await expect(shortcut.locator(".template-check")).toHaveText("✓");
-  await expect.poll(async () => (await counterView(page))?.summary).not.toBe(before?.summary);
+  await expect(page.locator(".narrowing-number")).toHaveText(["15", "3", "14", "—"]);
   const after = await counterView(page);
   expect(after?.bottom).toBeLessThanOrEqual(800);
   expect(await page.evaluate(() => scrollY)).toBe(0);

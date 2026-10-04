@@ -277,6 +277,7 @@ body {
   /* MODEL-325: one grid, one gutter, one gap, one inner padding, one radius. */
   --gutter: 16px;
   --gap: 16px;
+  --header-h: 65px;
   --pad: 20px;
   --radius: 0;
   --bg: #faf9f8;
@@ -517,6 +518,11 @@ html:not([data-decide-theme="light"]) .capsule {
   gap: 14px;
   align-items: center;
 }
+/* 65px is the desktop header, the 48px mark plus 16px padding and a 1px border.
+   Below 900px the mark is 38px and min-height 56px is the real height. */
+@media (min-width: 900px) {
+  .global-header { height: var(--header-h); }
+}
 .global-header button {
   white-space: nowrap;
 }
@@ -662,7 +668,7 @@ html:not([data-decide-theme="light"]) .capsule {
 .answer-region { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); column-gap: var(--gutter); align-items: start; }
 .answer-column { grid-column: 1 / span 6; display: flex; flex-direction: column; gap: var(--gap); }
 .answer-region:not(:has(> .chart-column)) > .answer-column { grid-column: 1 / -1; }
-.chart-column { grid-column: 7 / -1; position: sticky; top: var(--gap); }
+.chart-column { grid-column: 7 / -1; position: sticky; top: calc(var(--header-h) + var(--gap)); }
 .refine { display: flex; flex-direction: column; gap: var(--gap); }
 .refine-head h2 { margin: 0; font-size: 20px; }
 .refine-head p { margin: 4px 0 0; color: var(--ink2); font-size: 13px; }
