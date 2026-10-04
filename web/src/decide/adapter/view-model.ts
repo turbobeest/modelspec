@@ -176,7 +176,9 @@ function taskType(task: string | undefined): DecisionSpec["task_type"] {
   if (/\bdata|transform|convert/.test(text)) return "data_transform";
   if (/\bconfig|infra|deploy/.test(text)) return "config_infra";
   if (/\brefactor/.test(text)) return "refactor";
-  return "new_feature";
+  if (/\bfeature|build|implement/.test(text)) return "new_feature";
+  // No task text, or none that names a task type: omit it rather than guess.
+  return undefined;
 }
 
 function capabilities(spec: Spec): DecisionSpec["capabilities"] {
@@ -200,10 +202,11 @@ export function toDecisionSpec(
     weights[usesDomainEstimate(spec) ? spec.domain : slug(spec.bench)] = spec.w.cap;
   if (spec.w.cost > 0) weights["-offering.cost_per_task"] = spec.w.cost;
   if (spec.w.speed > 0) weights["offering.speed.throughput"] = spec.w.speed;
+  const task_type = taskType(spec.task);
   return {
     spec_version: 1,
     snapshot: "latest",
-    task_type: taskType(spec.task),
+    ...(task_type ? { task_type } : {}),
     capabilities: capabilities(spec),
     task_tokens: { input: Math.round(spec.tokIn), output: Math.round(spec.tokOut) },
     where: spec.conds.map(contractCondition),

@@ -911,6 +911,10 @@ export function DesignedApp({
       return `The decision engine has no published snapshot to answer from yet. ${requestState.message}`;
     return requestState.message;
   };
+  // The hand-off copies exactly the Spec the page POSTs for its summary answer.
+  const handoffSpec = vocabulary && prepareDecisionRequest(vocabulary,
+    refinementFallbackKeys.size > 0 ? foldRefinementWeights(spec, vocabulary) : spec,
+    "summary").decisionSpec;
   return (
     <VocabContext.Provider value={vocab}>
     <div className="decide-app" data-theme={theme}>
@@ -993,7 +997,7 @@ export function DesignedApp({
             answer={decision ? <AnswerBoundary resetKey={decision} onReset={resetBoard}>
               <section className="board-answer-head" aria-label="Facet board answer">
                 <span className="eyebrow">The answer</span>
-                <AnswerAssurances />
+                {handoffSpec && <AnswerAssurances spec={handoffSpec} />}
                 {hasEstate(estate) && <div className="answer-pair"><div><strong>With what you have</strong><span>{estateDecision ? `${estateDecision.explanation.feasible.length} models qualify · ${estateDecision.explanation.may.length} may qualify` : estateRequest.kind === "error" || estateRequest.kind === "done" ? <>Couldn't load: <button className="text-button" onClick={() => { if (humanGateEnabled) changeSpec(spec); else { action.current = decisionAction(); setEstateRequest((current) => ({ kind: "idle", settledSpecHash: current.settledSpecHash, generation: current.generation + 1 })); } }}>retry</button></> : "Checking…"}</span></div><div><strong>If you could use anything</strong><span>{decision.explanation.feasible.length} models qualify · {decision.explanation.may.length} may qualify</span></div></div>}
                 {answeredAccess === "own_software" && estateAnswer?.excludedPlans.map((plan) => <p className="board-own-software-note" role="note" key={plan.id}>{ownSoftwareNote(plan)}</p>)}
               </section>
@@ -1003,9 +1007,7 @@ export function DesignedApp({
                     <section><strong>If you could use anything</strong><RankedAnswer decision={decision} spec={shownSpec} vocabulary={vocabulary} access={answeredAccess} held={estate} excludedPlans={answeredAccess === "own_software" ? estateAnswer.excludedPlans : []} /></section>
                   </div>
                 : <RankedAnswer decision={decision} spec={shownSpec} vocabulary={vocabulary} access={answeredAccess} held={estate} />}
-              <AgentHandoff spec={prepareDecisionRequest(vocabulary,
-                refinementFallbackKeys.size > 0 ? foldRefinementWeights(spec, vocabulary) : spec,
-                "summary").decisionSpec} />
+              {handoffSpec && <AgentHandoff spec={handoffSpec} />}
               {!error && !loading && <AnswerBoundary resetKey={decision} onReset={resetBoard}>
                 <Coverage decision={decision} spec={shownSpec} onSpec={changeSpec} />
               </AnswerBoundary>}

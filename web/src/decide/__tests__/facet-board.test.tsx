@@ -153,7 +153,7 @@ describe("facet state mapping", () => {
       "capability.software_engineering": { mode: "prefer", weight: 0.6 },
       "offering.cost_per_task": { mode: "both", op: "<=", value: 0.25, weight: 0.4 },
     })).toEqual({
-      spec_version: 1, snapshot: "latest", task_type: "new_feature",
+      spec_version: 1, snapshot: "latest",
       capabilities: { software_engineering: "required" },
       task_tokens: { input: 40000, output: 4000 },
       where: [

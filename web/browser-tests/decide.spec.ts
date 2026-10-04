@@ -50,10 +50,13 @@ test("the public decision page opens on the facet board", async ({ page }) => {
   expect(requests.filter((request) => request.explain === "summary")).toHaveLength(1);
   expect(requests[0].where).toEqual(["model.class = text-generator", "model.lifecycle = active"]);
   expect(requests[0].optimize).toEqual({ weights: { chat_preference: 0.6, "-offering.cost_per_task": 0.4 } });
+  expect(requests[0]).not.toHaveProperty("task_type");
+  await expect(page.locator(".board-intro .eyebrow")).toHaveText("Free for people · No paid placement");
+  await page.getByRole("region", { name: "Give this to my agent" }).getByRole("button", { name: "Spec", exact: true }).click();
   expect(JSON.parse(await page.getByLabel("Spec snippet").innerText())).toEqual(requests[0]);
 });
 
-test("agent hand-off copies the current Spec and keyed commands with keyboard confirmation", async ({ page, context }) => {
+test("agent hand-off leads with the CLI and copies one message with the current Spec", async ({ page, context }) => {
   await context.grantPermissions(["clipboard-read", "clipboard-write"]);
   await openBoard(page);
   const card = page.getByRole("region", { name: "Give this to my agent" });
@@ -64,30 +67,44 @@ test("agent hand-off copies the current Spec and keyed commands with keyboard co
   ]);
   if (!answer || !handoff) throw new Error("Answer or hand-off did not render");
   expect(handoff.y).toBeGreaterThanOrEqual(answer.y + answer.height);
-  const snippet = await card.getByLabel("Spec snippet").innerText();
-  await card.getByRole("button", { name: "Spec", exact: true }).focus();
+  await expect(card.getByRole("group", { name: "Agent snippet format" }).getByRole("button"))
+    .toHaveText(["CLI", "MCP", "Spec", "curl"]);
+  await expect(card.getByRole("button", { name: "CLI", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(card.getByLabel("CLI snippet")).toHaveText(
+    "uvx --from modelspec-dev modelspec help agent\nuvx --from modelspec-dev modelspec decide --spec spec.json");
+  await card.getByRole("button", { name: "CLI", exact: true }).focus();
   await page.keyboard.press("Tab");
-  const curl = card.getByRole("button", { name: "curl", exact: true });
-  await expect(curl).toBeFocused();
-  expect(await curl.evaluate((node) => getComputedStyle(node).outlineStyle)).toBe("solid");
+  const mcp = card.getByRole("button", { name: "MCP", exact: true });
+  await expect(mcp).toBeFocused();
+  expect(await mcp.evaluate((node) => getComputedStyle(node).outlineStyle)).toBe("solid");
   await page.keyboard.press("Enter");
+  await expect(card.getByLabel("MCP snippet")).toHaveText("uvx --from modelspec-dev modelspec setup mcp --client claude-code");
+  await card.getByLabel("MCP client").selectOption("cursor");
+  await expect(card.getByLabel("MCP snippet")).toHaveText("uvx --from modelspec-dev modelspec setup mcp --client cursor");
+  await card.getByRole("button", { name: "curl", exact: true }).click();
   await expect(card.getByLabel("curl snippet")).toContainText('Authorization: Bearer $MODELSPEC_API_KEY');
-  await card.getByRole("button", { name: "Copy for my agent" }).click();
+  await card.getByRole("button", { name: "Copy curl" }).click();
   expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(await card.getByLabel("curl snippet").innerText());
-  await expect(card.getByRole("status")).toHaveText("curl copied for your agent.");
-  await card.getByRole("button", { name: "CLI", exact: true }).click();
-  await expect(card.getByLabel("CLI snippet")).toHaveText("uvx --from modelspec-dev modelspec decide --spec spec.json");
+  await expect(card.getByRole("status")).toHaveText("curl copied.");
   await card.getByRole("button", { name: "Spec", exact: true }).click();
+  const snippet = await card.getByLabel("Spec snippet").innerText();
+  const message = `Run \`uvx --from modelspec-dev modelspec help agent\`, then decide with this spec:\n\n${snippet}`;
   await card.getByRole("button", { name: "Copy for my agent" }).click();
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(snippet);
-  await expect(card.getByRole("status")).toHaveText("Spec copied for your agent.");
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(message);
+  await expect(card.getByRole("status")).toHaveText("Hand-off copied for your agent.");
+
+  const price = page.locator(".answer-assurances");
+  await page.evaluate(() => navigator.clipboard.writeText(""));
+  await price.getByRole("button", { name: "Copy for my agent" }).click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe(message);
+  await expect(price.getByRole("status")).toHaveText("Hand-off copied for your agent.");
 
   const updatedRequest = page.waitForRequest((request) => request.url().endsWith("/v1/decide") && request.method() === "POST" && request.postDataJSON().explain === "summary");
   await page.getByRole("button", { name: "Clear", exact: true }).click();
   const updated = (await updatedRequest).postDataJSON();
-  await expect(card.getByLabel("Spec snippet")).toBeVisible();
-  expect(JSON.parse(await card.getByLabel("Spec snippet").innerText())).toEqual(updated);
   await expect(card.getByRole("status")).toBeEmpty();
+  await card.getByRole("button", { name: "Spec", exact: true }).click();
+  expect(JSON.parse(await card.getByLabel("Spec snippet").innerText())).toEqual(updated);
 });
 
 test("the accent card meets AA in both themes and every format", async ({ page }) => {
@@ -96,7 +113,7 @@ test("the accent card meets AA in both themes and every format", async ({ page }
   await expect(card).toBeVisible();
   for (const theme of ["dark", "light"]) {
     if (theme === "light") await page.getByRole("button", { name: "Light mode" }).click();
-    for (const format of ["Spec", "curl", "CLI"]) {
+    for (const format of ["CLI", "MCP", "Spec", "curl"]) {
       await card.getByRole("button", { name: format, exact: true }).click();
       const ratios = await card.evaluate((root) => {
         const luminance = (color: string) => {
@@ -106,7 +123,7 @@ test("the accent card meets AA in both themes and every format", async ({ page }
             .map((value) => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4)
             .reduce((sum, value, index) => sum + value * [0.2126, 0.7152, 0.0722][index], 0);
         };
-        return [...root.querySelectorAll("h2, p, small, a, pre, button, code")].map((node) => {
+        return [...root.querySelectorAll("h2, p, small, a, pre, button, code, label, select")].map((node) => {
           let background: Element | null = node;
           while (background && ["rgba(0, 0, 0, 0)", "transparent"].includes(getComputedStyle(background).backgroundColor)) background = background.parentElement;
           if (!background) throw new Error("Text has no background");

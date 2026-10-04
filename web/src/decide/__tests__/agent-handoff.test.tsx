@@ -8,7 +8,7 @@ import { AgentHandoff, AnswerAssurances } from "../components/AgentHandoff";
 import { encodeBoardSpec, type BoardSelections } from "../facet-board/model";
 import { realBaseSpec, vocabularySchema } from "../vocabulary";
 import vocabularyJson from "../__fixtures__/live-vocabulary.json";
-import { handoffData } from "../handoff-data";
+import { handoffData, handoffMessage } from "../handoff-data";
 import { json, routeFetch, sentSpecs } from "./vocab-fixtures";
 import { openGroup } from "./board-helpers";
 
@@ -41,7 +41,15 @@ function liveFetch() {
 
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
-it.each(boards)("shows and copies the exact API Spec for the $name", async ({ selections }) => {
+const ORIENT = "uvx --from modelspec-dev modelspec help agent";
+const PREFIX = `Run \`${ORIENT}\`, then decide with this spec:\n\n`;
+
+function specFromMessage(message: string): unknown {
+  expect(message.startsWith(PREFIX)).toBe(true);
+  return JSON.parse(message.slice(PREFIX.length));
+}
+
+it.each(boards)("shows the exact API Spec and copies one hand-off message for the $name", async ({ selections }) => {
   const user = userEvent.setup();
   const clipboard = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue();
   const fetch = liveFetch();
@@ -52,17 +60,32 @@ it.each(boards)("shows and copies the exact API Spec for the $name", async ({ se
   )}`);
   render(<App />);
   const card = await screen.findByRole("region", { name: "Give this to my agent" });
+  await user.click(within(card).getByRole("button", { name: "Spec" }));
   const shown = within(card).getByLabelText("Spec snippet").textContent ?? "";
   const spec: unknown = JSON.parse(shown);
   expect(decisionSpecSchema.safeParse(spec).success).toBe(true);
   expect(spec).toEqual(sentSpecs(fetch).find((sent) => sent.explain === "summary"));
   expect(shown).toBe(JSON.stringify(spec, null, 2));
   await user.click(within(card).getByRole("button", { name: "Copy for my agent" }));
-  expect(clipboard).toHaveBeenLastCalledWith(shown);
-  expect(JSON.parse(clipboard.mock.calls[0][0])).toEqual(spec);
-  expect(within(card).getByRole("status")).toHaveTextContent("Spec copied for your agent.");
+  const message = clipboard.mock.lastCall?.[0] ?? "";
+  expect(message).toBe(`${PREFIX}${shown}`);
+  expect(specFromMessage(message)).toEqual(spec);
+  expect(within(card).getByRole("status")).toHaveTextContent("Hand-off copied for your agent.");
   expect(within(card).getByRole("status")).toHaveAttribute("aria-live", "polite");
   expect(within(card).getByRole("status")).toHaveAttribute("aria-atomic", "true");
+  const price = screen.getByText(/^Your agent gets this answer from/).closest(".answer-assurances") as HTMLElement;
+  await user.click(within(price).getByRole("button", { name: "Copy for my agent" }));
+  expect(clipboard).toHaveBeenLastCalledWith(message);
+  expect(within(price).getByRole("status")).toHaveTextContent("Hand-off copied for your agent.");
+});
+
+it("never sends task_type the board did not ask for", async () => {
+  const fetch = liveFetch();
+  render(<App />);
+  await screen.findByRole("region", { name: "Give this to my agent" });
+  const sent = sentSpecs(fetch).find((spec) => spec.explain === "summary");
+  expect(sent).toBeDefined();
+  expect(sent).not.toHaveProperty("task_type");
 });
 
 it("follows current edits and removes the previous board's copy confirmation", async () => {
@@ -71,6 +94,7 @@ it("follows current edits and removes the previous board's copy confirmation", a
   const fetch = liveFetch();
   render(<App />);
   const card = await screen.findByRole("region", { name: "Give this to my agent" });
+  await user.click(within(card).getByRole("button", { name: "Spec" }));
   const oldSnippet = within(card).getByLabelText("Spec snippet").textContent;
   await user.click(within(card).getByRole("button", { name: "Copy for my agent" }));
   openGroup("Size of work");
@@ -86,38 +110,49 @@ it("follows current edits and removes the previous board's copy confirmation", a
   expect(JSON.parse(within(updated).getByLabelText("Spec snippet").textContent ?? ""))
     .toEqual(sentSpecs(fetch).filter((spec) => spec.explain === "summary").at(-1));
   await user.click(within(updated).getByRole("button", { name: "Copy for my agent" }));
-  expect(clipboard).toHaveBeenLastCalledWith(current);
+  expect(clipboard).toHaveBeenLastCalledWith(`${PREFIX}${current}`);
 });
 
 const sampleSpec = decisionSpecSchema.parse({
   spec_version: 1, snapshot: "latest", where: [], optimize: { weights: { "-offering.cost_per_task": 1 } }, explain: "summary",
 });
 
-it("lets a keyboard user toggle and copy the keyed curl and CLI snippets", async () => {
+it("leads with the CLI, then MCP, Spec and keyed curl, all reachable by keyboard", async () => {
   const user = userEvent.setup();
   const clipboard = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue();
   render(<AgentHandoff spec={sampleSpec} />);
+  const formats = within(screen.getByRole("group", { name: "Agent snippet format" })).getAllByRole("button");
+  expect(formats.map((button) => button.textContent)).toEqual(["CLI", "MCP", "Spec", "curl"]);
+  expect(screen.getByRole("button", { name: "CLI" })).toHaveAttribute("aria-pressed", "true");
+  expect(screen.getByLabelText("CLI snippet").textContent).toBe(
+    `${ORIENT}\nuvx --from modelspec-dev modelspec decide --spec spec.json`);
   await user.tab();
-  expect(screen.getByRole("button", { name: "Spec" })).toHaveFocus();
+  expect(screen.getByRole("button", { name: "CLI" })).toHaveFocus();
   await user.tab();
-  expect(screen.getByRole("button", { name: "curl" })).toHaveFocus();
+  expect(screen.getByRole("button", { name: "MCP" })).toHaveFocus();
   await user.keyboard("{Enter}");
-  expect(screen.getByRole("button", { name: "curl" })).toHaveAttribute("aria-pressed", "true");
-  const curl = screen.getByLabelText("curl snippet").textContent;
-  expect(curl).toBe('curl -X POST https://api.modelspec.dev/v1/decide -H "Authorization: Bearer $MODELSPEC_API_KEY" -H "content-type: application/json" -d @spec.json');
-  await user.tab();
-  await user.keyboard(" ");
-  expect(screen.getByLabelText("CLI snippet")).toHaveTextContent("uvx --from modelspec-dev modelspec decide --spec spec.json");
-  await user.tab();
-  expect(screen.getByLabelText("CLI snippet")).toHaveFocus();
+  expect(screen.getByLabelText("MCP snippet").textContent).toBe("uvx --from modelspec-dev modelspec setup mcp --client claude-code");
+  const client = screen.getByRole("combobox", { name: /MCP client/ });
+  expect(within(client).getAllByRole("option").map((option) => option.textContent)).toEqual(handoffData.mcp_clients);
+  await user.selectOptions(client, "codex");
+  expect(screen.getByLabelText("MCP snippet").textContent).toBe("uvx --from modelspec-dev modelspec setup mcp --client codex");
+  expect(screen.getByRole("region")).not.toHaveTextContent("mcpServers");
+  await user.click(screen.getByRole("button", { name: "curl" }));
+  expect(screen.getByLabelText("curl snippet").textContent).toBe('curl -X POST https://api.modelspec.dev/v1/decide -H "Authorization: Bearer $MODELSPEC_API_KEY" -H "content-type: application/json" -d @spec.json');
+  await user.click(screen.getByRole("button", { name: "Copy curl" }));
+  expect(clipboard).toHaveBeenLastCalledWith(screen.getByLabelText("curl snippet").textContent);
+  expect(screen.getByRole("status")).toHaveTextContent("curl copied.");
+  screen.getByLabelText("curl snippet").focus();
   await user.tab();
   expect(screen.getByRole("button", { name: "Copy for my agent" })).toHaveFocus();
   await user.keyboard("{Enter}");
-  expect(clipboard).toHaveBeenLastCalledWith("uvx --from modelspec-dev modelspec decide --spec spec.json");
-  expect(screen.getByRole("status")).toHaveTextContent("CLI copied for your agent.");
+  expect(clipboard).toHaveBeenLastCalledWith(handoffMessage(sampleSpec));
+  expect(screen.getByRole("status")).toHaveTextContent("Hand-off copied for your agent.");
+  await user.tab();
   await user.tab();
   expect(screen.getByRole("link", { name: "Get an API key" })).toHaveFocus();
-  expect(screen.getByText(/Set/)).toHaveTextContent("MODELSPEC_API_KEY");
+  expect(screen.getByText(/Get a key with/)).toHaveTextContent(
+    "Get a key with modelspec key, then store it with modelspec auth set. For curl, set MODELSPEC_API_KEY.");
 });
 
 it("announces clipboard failure and clears it when another snippet is selected", async () => {
@@ -125,17 +160,18 @@ it("announces clipboard failure and clears it when another snippet is selected",
   vi.spyOn(navigator.clipboard, "writeText").mockRejectedValue(new Error("denied"));
   render(<AgentHandoff spec={sampleSpec} />);
   await user.click(screen.getByRole("button", { name: "Copy for my agent" }));
-  expect(screen.getByRole("status")).toHaveTextContent("Could not copy. Select the snippet and copy it.");
+  expect(screen.getByRole("status")).toHaveTextContent("Could not copy. Select the text and copy it.");
   await user.click(screen.getByRole("button", { name: "curl" }));
   expect(screen.getByRole("status")).toBeEmptyDOMElement();
 });
 
 it("renders the built price, explanation credits, neutrality excerpt and flag-aware key link", () => {
-  render(<><AnswerAssurances /><AgentHandoff spec={sampleSpec} /></>);
+  render(<><AnswerAssurances spec={sampleSpec} /><AgentHandoff spec={sampleSpec} /></>);
   expect(screen.getByText(`Your agent gets this answer from ${handoffData.summary_price_cents}¢`)).toBeInTheDocument();
   expect(screen.getByText(`A full explanation costs ${handoffData.full_credits} credits.`)).toBeInTheDocument();
   expect(screen.getByRole("link", { name: `${handoffData.neutrality.text} · sourced` })).toHaveAttribute("href", handoffData.neutrality.href);
   const key = screen.getByRole("link", { name: "Get an API key" });
   expect(key).toHaveAttribute("href", handoffData.key_link.href);
   expect(key).toHaveAccessibleDescription(handoffData.key_link.note);
+  expect(screen.getAllByRole("button", { name: "Copy for my agent" })).toHaveLength(2);
 });

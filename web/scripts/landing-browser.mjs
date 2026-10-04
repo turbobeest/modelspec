@@ -66,13 +66,16 @@ async function assertRankedBoard(page) {
   await page.getByText(`A full explanation costs ${tiers.credits.weights["decide.full"]} credits.`, { exact: true }).waitFor();
   assert.equal(await page.getByRole("link", { name: "no paid placement · sourced" }).getAttribute("href"), "https://modelspec.dev/legal/neutrality/");
   const card = page.getByRole("region", { name: "Give this to my agent" });
-  const spec = JSON.parse(await card.getByLabel("Spec snippet").innerText());
-  assert.equal(spec.explain, "summary");
+  assert.equal(await card.getByLabel("CLI snippet").innerText(),
+    "uvx --from modelspec-dev modelspec help agent\nuvx --from modelspec-dev modelspec decide --spec spec.json");
+  await card.getByRole("button", { name: "MCP", exact: true }).click();
+  assert.equal(await card.getByLabel("MCP snippet").innerText(), "uvx --from modelspec-dev modelspec setup mcp --client claude-code");
   await card.getByRole("button", { name: "curl", exact: true }).click();
   assert.match(await card.getByLabel("curl snippet").innerText(), /Authorization: Bearer \$MODELSPEC_API_KEY/);
-  await card.getByRole("button", { name: "CLI", exact: true }).click();
-  assert.equal(await card.getByLabel("CLI snippet").innerText(), "uvx --from modelspec-dev modelspec decide --spec spec.json");
   await card.getByRole("button", { name: "Spec", exact: true }).click();
+  const spec = JSON.parse(await card.getByLabel("Spec snippet").innerText());
+  assert.equal(spec.explain, "summary");
+  assert.equal("task_type" in spec, false);
 }
 
 // MODEL-213: one lockup scale, 48px mark on desktop and 38px below 900px, never past the edge.

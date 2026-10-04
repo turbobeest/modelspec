@@ -831,6 +831,10 @@ html:not([data-decide-theme="light"]) .capsule {
 .answer-assurances { display: flex; flex-wrap: wrap; align-items: start; justify-content: space-between; gap: 8px 16px; }
 .answer-price { font-weight: 600; }
 .answer-price small { margin-top: 4px; font-weight: 400; }
+.answer-price-line { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; }
+.decide-app .answer-copy { min-height: 32px; padding: 4px 12px; background: var(--hero-title); color: var(--handoffInk); border: 1px solid var(--hero-title); font-weight: 600; }
+.answer-copy-status { margin: 2px 0 0; font-size: 12px; font-weight: 400; }
+.answer-copy-status:empty { display: none; }
 .answer-trust { color: var(--ink2); font-size: 12px; text-decoration: underline; text-underline-offset: 3px; }
 .agent-handoff { padding: 20px; background: var(--hero-title); color: var(--handoffInk); display: grid; gap: 12px; min-width: 0; }
 .decide-app .agent-handoff h2 { font-size: 20px; }
@@ -844,6 +848,9 @@ html:not([data-decide-theme="light"]) .capsule {
 .agent-handoff a { text-underline-offset: 3px; }
 .decide-app .agent-handoff :focus-visible { outline: 2px solid var(--handoffInk); outline-offset: 3px; }
 .agent-copy-status { min-height: 1.5em; font-size: 12px; }
+.agent-client { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; font-size: 13px; }
+.decide-app .agent-client select { min-height: 32px; background: transparent; color: var(--handoffInk); border: 1px solid var(--handoffInk); font: inherit; }
+.decide-app .agent-client option { color: initial; }
 .board-answer .board-ranked-answer { padding: 16px 12px 20px; }
 .board-ranked-answer > ol { list-style: none; margin: 0; padding: 0; }
 .board-class-heading { margin: 20px 0 6px; font: 600 14px var(--sans); color: var(--muted); }
