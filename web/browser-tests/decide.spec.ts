@@ -171,7 +171,7 @@ async function applyTemplate(page: import("@playwright/test").Page, width: numbe
   if (status) await status;
   await expect(page.getByRole("group", { name: "Layout" })).toHaveCount(0);
   await page.getByRole("button", { name: /^(All \d+ templates|Hide templates)$/ }).click();
-  await page.locator(".board-templates").getByRole("button", { name: /^Assistant · Balanced:/ }).click();
+  await page.locator(".board-templates").getByRole("button", { name: /^General assistant · Balanced:/ }).click();
   await expect(page.getByRole("region", { name: "Trade-off canvas" })).toBeVisible();
   await expect(page.locator(".decision-table")).toBeVisible();
   await expect(page.locator(".loading")).toHaveCount(0);
@@ -316,7 +316,7 @@ test("the board and its explanation fit a 320px viewport in light and dark mode"
   const scrollWidth = () => page.evaluate(() => document.documentElement.scrollWidth);
   await expect.poll(scrollWidth).toBeLessThanOrEqual(320);
   await page.getByRole("button", { name: /^(All \d+ templates|Hide templates)$/ }).click();
-  await page.locator(".board-templates").getByRole("button", { name: /^Assistant · Balanced:/ }).click();
+  await page.locator(".board-templates").getByRole("button", { name: /^General assistant · Balanced:/ }).click();
   await expect(page.locator(".why-panel .contribution").first()).toBeVisible();
   for (const buttonName of ["Light mode", "Dark mode"]) {
     await page.getByRole("button", { name: buttonName }).click();
