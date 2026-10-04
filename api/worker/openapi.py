@@ -2253,6 +2253,9 @@ def _decision_schemas() -> dict[str, Any]:
     schemas["DecisionRequestRefused"]["properties"]["reading"] = {
         "$ref": "#/components/schemas/DecisionReading",
     }
+    schemas["DecisionRequestRefused"]["properties"]["coverage"] = {
+        "$ref": "#/components/schemas/DecisionCoverageRefusal",
+    }
     # Reachable only with evidence_for, so it belongs to the bounded
     # representation and leaves the 2.x decision error enum unchanged.
     schemas["DecisionBoundedRefused"] = {
@@ -2904,7 +2907,7 @@ def build_spec() -> dict[str, Any]:
                         "200": {
                             **_json_body(
                                 "A decision pinned to the snapshot that produced it: a complete "
-                                "Decision (contract_version 2.12), or, when the request sends "
+                                "Decision (contract_version 2.13), or, when the request sends "
                                 "fields or evidence_for, the separate bounded representation "
                                 "(representation: bounded, bounded_version 1.0, no "
                                 "contract_version).",

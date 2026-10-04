@@ -31,7 +31,7 @@ def project(decision: contract.Decision, options: contract.ResponseOptions, *,
     body["results"] = [] if detail else [
         {key: value for key, value in row.items() if key in fields} for row in data["results"]]
     body["may_qualify"] = [] if detail else data["may_qualify"][:10]
-    for key in ("reading", "with_estate"):
+    for key in ("reading", "coverage", "with_estate"):
         if key in data:
             body[key] = data[key]
     omitted = {key: len(data[key]) for key in (

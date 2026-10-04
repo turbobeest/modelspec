@@ -22,7 +22,7 @@ from decision.engine import decide
 from decision.registry import default
 from decision.snapshot import build_from_repo, load_built_snapshot
 from decision.templates import load_catalogue
-from pipeline import agent_copy, brand, entity, landing_chrome, social_cards
+from pipeline import agent_copy, brand, coverage, entity, landing_chrome, social_cards
 from pipeline.load import load_models
 
 SOFTWARE_ENGINEERING = "software_engineering"
@@ -129,6 +129,7 @@ class LandingData:
     routes: tuple[TemplateRoute, ...]
     template_count: int
     axes: PlotAxes
+    coverage: dict[str, Any]
     #: /decide's ``bands.band_probability``: the P(score >= the leader's) that
     #: puts a model in the leader's band.
     band_probability: float = BAND_PROBABILITY
@@ -221,6 +222,9 @@ def _input_digest(root: Path, as_of: date) -> str:
             digest.update(path.relative_to(base).as_posix().encode())
             digest.update(path.read_bytes())
     digest.update(Path(__file__).read_bytes())
+    for path in ("pipeline/coverage.py", "pipeline/class_export.py", "api/classes.py",
+                 "premier/slice-1.yaml"):
+        digest.update((root / path).read_bytes())
     return digest.hexdigest()
 
 
@@ -317,6 +321,7 @@ def _build_data(root_value: str, as_of: date, _digest: str) -> LandingData:
         axes=_plot_axes(rows),
         band_probability=bands.band_probability,
         cheapest_p=cheapest_p,
+        coverage=coverage.from_repo(root, as_of),
     )
 
 
@@ -427,6 +432,8 @@ def render(data: LandingData, *, variant: Literal["live", "holding"]) -> str:
         "real cost": f"{GH}docs/decision-contract.md#cost-per-task",
         "shows its work": "/method/",
     })
+    coverage_copy = html.escape(coverage.summary(data.coverage))
+    providers_copy = html.escape(coverage.provider_summary(data.coverage))
     return f'''<!doctype html>
 <html lang="en"><head><meta charset="utf-8">{forward}<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{TITLE}</title>
@@ -458,13 +465,14 @@ def render(data: LandingData, *, variant: Literal["live", "holding"]) -> str:
 <p class="routers-close">Decide what's worth routing to. Then let your router choose among those, request by request.</p></section>
 <section class="teams" id="teams"><div><p class="kicker">For teams and buyers</p><h2>An analysis of alternatives, for every model choice.</h2><p>When someone asks why you're on that model, the answer is a record, not a hunch: requirements, criteria, the alternatives and why each fell away, the evidence, its uncertainty and the cost. Each part links to how it works.</p></div>
 <ol class="analysis">{analysis}</ol></section>
+<section class="coverage" id="coverage"><h2>What the board covers.</h2><p>{coverage_copy}</p><details><summary>Classes and offerings</summary>{coverage.table(data.coverage)}<p>{providers_copy}</p></details><p><a href="/api/coverage.json">Generated coverage, keyless</a>. Catalogue presence does not establish decision coverage.</p></section>
 <section class="agents" id="agents"><div><h2>The right model for every role in your agent stack.</h2>
 <p>One call per role picks the model that fits it, explains why, and gives <a href="/method/#reproducible">the same answer every time for the same facts</a>.</p>
 <div class="install-row">{install}<a href="{guide_href}">Read the agent guide</a></div><p class="note">Machine access requires an API key.</p></div>
 <div class="terminal"><div class="terminal-title">orchestrator — routing today's tickets</div><div class="routes">{routes}<div class="route-total"><span>same answer for the same spec and snapshot, every time</span><span>{len(data.routes)} of {data.template_count} templates · the others' top result has no published price</span></div></div></div></section>
 <section class="challenge" id="pick-a-model"><h2>Think you know the best coding model?</h2><form id="pick-form"><label for="model-pick"><span class="desktop-only">Put your pick on the board. See exactly where it lands, and why.</span><span class="mobile-only">Put your pick on the board and see where it lands.</span></label><div><select id="model-pick">{options}</select><button type="submit">Check my pick</button></div><output id="pick-result" aria-live="polite">Choose a model to compare with the top estimate.</output></form></section>
 <section class="trust"><div>{trust_source}<a href="/method/">How we decide</a></div><div><h3>Unknown means unknown.</h3><p>A model with no published answer to your question stays on the board as "may qualify". It never becomes a zero, and it never quietly disappears.</p><a href="/method/#unknown">How unknowns work</a></div><div><h3>Nobody pays to rank higher.</h3><p>No referral fees, no paid placement, no sponsored slots. It's a published commitment you can check.</p><a href="/legal/neutrality/">Read the commitment</a></div></section></main>
-<footer><span>© Sparks &amp; Sawdust LLC</span><a href="/method/">How we decide</a><a href="/pricing/">Pricing</a><a href="/legal/terms/">Terms</a><a href="/legal/privacy/">Privacy</a><a href="/legal/neutrality/">Neutrality commitment</a><a href="/brand/">Brand</a><span class="snapshot">Snapshot of {date_label} · {len(data.models)} models · {data.benchmark_count} benchmarks</span></footer>
+<footer><span>© Sparks &amp; Sawdust LLC</span><a href="/method/">How we decide</a><a href="/pricing/">Pricing</a><a href="/legal/terms/">Terms</a><a href="/legal/privacy/">Privacy</a><a href="/legal/neutrality/">Neutrality commitment</a><a href="/brand/">Brand</a><span class="snapshot">Decision snapshot {data.coverage['as_of']} · {data.coverage['board']['models']} decidable models · coding plot: {len(data.models)} models, {data.benchmark_count} benchmarks</span></footer>
 <div class="sticky"><a class="button cta-agents" href="#agents">Agents</a>{board_alt_compact}</div>
 <script id="{DATA_ID}" type="application/json">{payload}</script><script src="/{ASSET_DIR}/landing.js" defer></script></body></html>\n'''
 

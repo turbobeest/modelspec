@@ -62,6 +62,7 @@ from decision.contract import (
     TaskType,
     parse_spec,
 )
+from decision.coverage import class_counts, estimate_models as _estimate_models, lineup as _lineup
 from decision.engine import decide
 from decision.filter import _INDEPENDENT as INDEPENDENT_MEASURERS
 from decision.refinements import evidence_state as refinement_evidence_state
@@ -84,10 +85,6 @@ _LITERALS = ("unbounded", "not_offered")
 
 class FrontierCoverageError(ValueError):
     """A domain's default basis would leave most directly measured models unranked."""
-
-
-def _lineup(snapshot: Any) -> list[str]:
-    return [cid for cid in snapshot.candidates() if snapshot.lifecycle(cid) != "retired"]
 
 
 def frontier_coverage(
@@ -141,15 +138,6 @@ def frontier_coverage(
         }
     ratio = len(ranked) / len(direct) if direct else 1.0
     return {"ranked": len(ranked), "direct": len(direct), "ratio": ratio}
-
-
-def _estimate_models(snapshot: Any, domain_id: str) -> int:
-    """How many distinct lineup models have a stored estimate for ``domain_id``."""
-    models: set[str] = set()
-    for candidate in _lineup(snapshot):
-        if snapshot.capability_estimate(candidate, domain_id) is not None:
-            models.add(snapshot.model_of(candidate))
-    return len(models)
 
 
 def _estimate_benchmarks(snapshot: Any, domain_id: str) -> list[str]:
@@ -360,6 +348,7 @@ def _model_rows(snapshot: Any, cards: Mapping[str, Mapping[str, Any]],
 
 
 def _coverage(snapshot: Any, lineup: list[str], registry: Any) -> dict[str, Any]:
+    counts = class_counts(snapshot)
     tags = snapshot.benchmark_domain_tags()
     class_of: dict[str, Any] = {}
     for cid in lineup:
@@ -383,7 +372,7 @@ def _coverage(snapshot: Any, lineup: list[str], registry: Any) -> dict[str, Any]
                       if (n := sum(in_domain(mid, d.id) for mid in members))]
         classes.append({
             "id": class_id,
-            "models": len(members),
+            "models": counts[class_id],
             "verified": sum(mid in verified for mid in members),
             "domains": sorted(per_domain, key=lambda row: (-row["verified"], row["id"])),
         })

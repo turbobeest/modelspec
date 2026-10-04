@@ -6,6 +6,14 @@
   --light: #eef2f7;
   --muted: #c7d1e0;
 }
+.coverage {
+  padding: 3rem 5vw;
+  max-width: 90rem;
+  margin: auto;
+}
+.coverage summary { cursor: pointer; }
+.coverage table { width: 100%; border-collapse: collapse; margin-block: 1rem; }
+.coverage th, .coverage td { padding: .5rem; text-align: left; border-bottom: 1px solid var(--muted); }
 @font-face {
   font-family: "Instrument Sans";
   font-style: normal;

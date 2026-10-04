@@ -559,6 +559,17 @@
           "title": "Bounded Version",
           "type": "string"
         },
+        "coverage": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CoverageRefusal"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
         "decision_id": {
           "title": "Decision Id",
           "type": "string"
@@ -601,7 +612,7 @@
           "type": "integer"
         },
         "projects_contract": {
-          "const": "2.12",
+          "const": "2.13",
           "title": "Projects Contract",
           "type": "string"
         },
@@ -1145,6 +1156,101 @@
       "title": "Contribution",
       "type": "object"
     },
+    "CoverageRefusal": {
+      "additionalProperties": false,
+      "description": "An unsupported requirement, with the current board's aggregate scope.",
+      "properties": {
+        "as_of": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "As Of"
+        },
+        "classes": {
+          "items": {
+            "$ref": "#/$defs/CoveredClass"
+          },
+          "title": "Classes",
+          "type": "array"
+        },
+        "domains": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Domains",
+          "type": "array"
+        },
+        "kind": {
+          "const": "out_of_coverage",
+          "default": "out_of_coverage",
+          "title": "Kind",
+          "type": "string"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "requested_classes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Requested Classes",
+          "type": "array"
+        },
+        "requested_domains": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Requested Domains",
+          "type": "array"
+        },
+        "snapshot": {
+          "pattern": "^snap_[A-Za-z0-9:._-]+$",
+          "title": "Snapshot",
+          "type": "string"
+        },
+        "url": {
+          "const": "https://modelspec.dev/api/coverage.json",
+          "default": "https://modelspec.dev/api/coverage.json",
+          "title": "Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "message",
+        "snapshot",
+        "as_of",
+        "classes",
+        "domains"
+      ],
+      "title": "CoverageRefusal",
+      "type": "object"
+    },
+    "CoveredClass": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "models": {
+          "minimum": 0,
+          "title": "Models",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "id",
+        "models"
+      ],
+      "title": "CoveredClass",
+      "type": "object"
+    },
     "DecideRequest": {
       "additionalProperties": false,
       "properties": {
@@ -1499,10 +1605,21 @@
           "type": "array"
         },
         "contract_version": {
-          "const": "2.12",
-          "default": "2.12",
+          "const": "2.13",
+          "default": "2.13",
           "title": "Contract Version",
           "type": "string"
+        },
+        "coverage": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/CoverageRefusal"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "decision_id": {
           "pattern": "^dec_[0-9A-Za-z]{8,}$",
@@ -5392,5 +5509,5 @@
   ],
   "description": "Generated from decision/contract.py by `python -m decision.schema`. Do not edit by hand. The prose is docs/decision-contract.md.",
   "title": "ModelSpec decision contract",
-  "x-contract-version": "2.12"
+  "x-contract-version": "2.13"
 }

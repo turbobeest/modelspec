@@ -52,8 +52,11 @@ def write_model_page(destination: Path, page: str) -> None:
     destination.write_text(page, encoding="utf-8")
 
 
-def llms_txt(*, site: str, base: str, build: exporter.Build) -> str:
+def llms_txt(*, site: str, base: str, build: exporter.Build,
+             coverage: dict | None = None) -> str:
     """llms.txt for one published tree. Null on a card still means not researched."""
+    from pipeline.coverage import provider_summary, summary
+    scope = f"{summary(coverage)}\n{provider_summary(coverage)}\n\n" if coverage else ""
     return (
         f"# {site}\n\n"
         f"> {base}\n\n"
@@ -61,6 +64,8 @@ def llms_txt(*, site: str, base: str, build: exporter.Build) -> str:
         f"Decision data on AI models and benchmarks, served online. "
         f"Built {build.built_at} from commit {build.commit[:12]}. "
         f"Null means not researched.\n\n"
+        f"{scope}"
+        f"- Coverage, keyless: {base}/api/coverage.json\n\n"
         f"Access: a person looking a model up by hand on the site pays nothing. "
         f"{agent_copy.install_markdown()}\n"
         f"Current data is only available through the service, and the copy in the "
@@ -487,6 +492,9 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
             as_of=today,
         )
 
+    from pipeline import coverage as coverage_export
+    coverage_payload = coverage_export.write_export(ms / "api", root=root, models=models, as_of=today)
+
     # The graph is derived through the same code path as the FalkorDB ingest, so
     # relations, competition, hardware fit and ranking read what the cards say.
     from pipeline import competition, hardware
@@ -531,7 +539,7 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
     # direction, and `tests/test_class_fit.py` walks its imports to prove it.
     from pipeline import class_export
     graph_counts["class_fit"] = class_export.write_export(
-        ms / "api" / "rank", cards, build.to_json())
+        ms / "api" / "rank", cards, build.to_json(), coverage=coverage_payload)
 
     # The public half of the compliance answer (MODEL-80): licence, origin,
     # commercial-use grant and per-platform availability, reshaped so
@@ -637,7 +645,8 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
     # MODEL-186 replaces the old catalogue home. The deploy workflow adds the
     # separately built decide app at /decide/ after holding derives from here.
     from pipeline import landing as landing_page
-    landing_data = landing_page.build_data(str(root), today)
+    from dataclasses import replace
+    landing_data = replace(landing_page.build_data(str(root), today), coverage=coverage_payload)
     landing_page.write(ms, landing_data, variant="live")
     from pipeline import method
     method_counts = method.write(ms, root, landing_data)
@@ -668,7 +677,8 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
     (ms / "404.html").write_text(
         r.not_found("ModelSpec", build, r.MS_NAV, "https://modelspec.dev/"), encoding="utf-8")
     (ms / "llms.txt").write_text(
-        llms_txt(site="ModelSpec", base="https://modelspec.dev", build=build), encoding="utf-8")
+        llms_txt(site="ModelSpec", base="https://modelspec.dev", build=build,
+                 coverage=coverage_payload), encoding="utf-8")
 
     from pipeline import agent_ready
     agent_counts = agent_ready.ship(

@@ -69,6 +69,8 @@ class CatalogueEvidence:
     #: class id -> ranking profile keys. Omitted falls back to the derivation
     #: in `api.classes.rank_profiles_for`.
     rank_profiles: Mapping[str, Sequence[str]] = field(default_factory=dict)
+    #: Complete board counts; None means decision coverage was not supplied.
+    decision_counts: Mapping[str, int] | None = None
 
 
 def _tokens(text: str) -> tuple[set[str], str]:
@@ -273,6 +275,16 @@ def class_fit(*, task: str | None = None,
             "catalogue": catalogue,
             "next": _next_step(catalogue, profiles),
         })
+        if evidence is not None and evidence.decision_counts is not None:
+            count = evidence.decision_counts.get(model_class.id, 0)
+            candidates[-1]["decision_coverage"] = {
+                "models": count, "url": "https://modelspec.dev/api/coverage.json",
+            }
+            if not count:
+                candidates[-1]["next"] = (
+                    "The decision board has no decidable model of this class in this snapshot. "
+                    "Catalogue presence is not decision coverage. See /api/coverage.json."
+                )
 
     # `derived` and `unclassified` are never candidates, and they say why and
     # where to look instead rather than being silently absent.

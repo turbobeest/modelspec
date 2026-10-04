@@ -953,7 +953,7 @@
       "date": "2026-09-20"
     }
   ],
-  "contract_version": "2.12",
+  "contract_version": "2.13",
   "decision_id": "dec_19d420d3d1fec5f89f895ee4",
   "snapshot": "snap_1c41789e130ea033",
   "signature_verified": false,
@@ -1655,5 +1655,23 @@
       "confusing"
     ],
     "cli": "modelspec feedback <decision_id> --rating <rating>"
+  },
+  "coverage": {
+    "kind": "out_of_coverage",
+    "message": "The decision board cannot decide software_engineering from this snapshot. Covered classes: text-generator (4 models). Catalogue presence is not decision coverage.",
+    "url": "https://modelspec.dev/api/coverage.json",
+    "snapshot": "snap_1c41789e130ea033",
+    "as_of": "2026-09-25",
+    "classes": [
+      {
+        "id": "text-generator",
+        "models": 4
+      }
+    ],
+    "domains": [],
+    "requested_classes": [],
+    "requested_domains": [
+      "software_engineering"
+    ]
   }
 }

@@ -12,7 +12,7 @@ from typing import Any
 
 from api.ranking.engine import neutrality_commitment
 from decision.snapshot import SnapshotIntegrityError, load_public_keys, load_snapshot_bytes
-from pipeline import brand, entity, landing_chrome
+from pipeline import brand, coverage, entity, landing_chrome
 from pipeline.landing import LandingData
 
 PAGE_PATH = Path("method/index.html")
@@ -248,7 +248,12 @@ def page(data: LandingData, signing: SigningState) -> str:
             (5, "Your spec", "Must gates remove. Prefer weights order. Unknowns stay listed.", "#must-prefer"),
             (6, "Answer", "Ranked where the evidence separates models, and flagged where it can't.", "#ties"))
     sections = (
-        _section("evidence", "1 · Where evidence comes from", "Every number starts as a sourced, checked record.", "A value with no source never reaches a decision. Neither does one that only its collector has checked.", evidence, theme="dark")
+        _section("coverage", "Coverage", "What the board covers.", coverage.summary(data.coverage),
+                 coverage.table(data.coverage) + f'<p>{html.escape(coverage.provider_summary(data.coverage))}</p>'
+                 '<p>Counts describe participation in this snapshot. Catalogue presence does not establish '
+                 'decision coverage. <a href="/api/coverage.json">Read the generated coverage summary, '
+                 'keyless</a>.</p>', theme="light")
+        + _section("evidence", "1 · Where evidence comes from", "Every number starts as a sourced, checked record.", "A value with no source never reaches a decision. Neither does one that only its collector has checked.", evidence, theme="dark")
         + _section("estimate", "2 · The capability estimate", "Ability is estimated per domain, from every benchmark we hold.", "There is no fixed benchmark list and no hand-set weight. Every admitted benchmark with at least two model observations counts, and nobody picks favourites. One leaderboard is one reading, and readings disagree. The estimate uses all of them, and says how sure it is.", estimate, theme="light")
         + _section("ties", "3 · Ties", "Why the #1 is often a tie.", "Every estimate is a range. When another model is at least 25% likely to score as well as the top one, the evidence can't say which is better, so the page doesn't pretend to. A model whose range is too wide to tell is never counted in the tie.", '<pre>range         = estimate ± 1.2816 × sd\ntied          = P(B ≥ leader) ≥ 0.25, where\nP(B ≥ leader) = Φ((B − leader) / √(sd_B² + sd_leader²))\nthin          = range wider than 2.8: never tied\nnot_separable = max(A.low, B.low) ≤ min(A.high, B.high)\n                for any other model B</pre>' + ties, theme="dark")
         + _section("must-prefer", "4 · Must and Prefer", "Must is a gate. Prefer is a weight.", "Every facet on the board has three settings, and each does a different job. Conditions filter. They never add points.", must_prefer, theme="light")

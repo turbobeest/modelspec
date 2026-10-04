@@ -8,7 +8,7 @@ info:
   version: '1.0'
   summary: Ranks AI models you can actually run, given your hardware, providers, use case and policy rules,
     and checks them against a compliance policy.
-  description: 'Start with the compact agent guide https://modelspec.dev/agents.md (version 1-ba4c092afcb11838).
+  description: 'Start with the compact agent guide https://modelspec.dev/agents.md (version 1-4bf62fc15451d7bc).
     Call decide early with a template-based Spec; refine from reading and recovery hints.
 
 
@@ -390,7 +390,7 @@ paths:
       responses:
         '200':
           description: 'A decision pinned to the snapshot that produced it: a complete Decision (contract_version
-            2.12), or, when the request sends fields or evidence_for, the separate bounded representation
+            2.13), or, when the request sends fields or evidence_for, the separate bounded representation
             (representation: bounded, bounded_version 1.0, no contract_version).'
           content:
             application/json:
@@ -2381,7 +2381,7 @@ components:
       properties:
         representation: {const: bounded, title: Representation, type: string}
         bounded_version: {const: '1.0', title: Bounded Version, type: string}
-        projects_contract: {const: '2.12', title: Projects Contract, type: string}
+        projects_contract: {const: '2.13', title: Projects Contract, type: string}
         decision_id: {title: Decision Id, type: string}
         snapshot: {title: Snapshot, type: string}
         signature_verified: {$ref: '#/components/schemas/DecisionResponse/properties/signature_verified'}
@@ -2401,6 +2401,7 @@ components:
           type: array
         may_qualify: {$ref: '#/components/schemas/DecisionResponse/properties/may_qualify'}
         reading: {$ref: '#/components/schemas/DecisionResponse/properties/reading'}
+        coverage: {$ref: '#/components/schemas/DecisionResponse/properties/coverage'}
         with_estate: {$ref: '#/components/schemas/DecisionResponse/properties/with_estate'}
         explanation: {$ref: '#/components/schemas/DecisionBoundedExplanation'}
         model_evidence:
@@ -2622,6 +2623,47 @@ components:
       required: [dimension]
       title: Contribution
       type: object
+    DecisionCoverageRefusal:
+      additionalProperties: false
+      description: An unsupported requirement, with the current board's aggregate scope.
+      properties:
+        kind: {const: out_of_coverage, default: out_of_coverage, title: Kind, type: string}
+        message: {title: Message, type: string}
+        url: {const: 'https://modelspec.dev/api/coverage.json', default: 'https://modelspec.dev/api/coverage.json',
+          title: Url, type: string}
+        snapshot: {pattern: '^snap_[A-Za-z0-9:._-]+$', title: Snapshot, type: string}
+        as_of:
+          anyOf:
+          - {type: string}
+          - {type: 'null'}
+          title: As Of
+        classes:
+          items: {$ref: '#/components/schemas/DecisionCoveredClass'}
+          title: Classes
+          type: array
+        domains:
+          items: {type: string}
+          title: Domains
+          type: array
+        requested_classes:
+          items: {type: string}
+          title: Requested Classes
+          type: array
+        requested_domains:
+          items: {type: string}
+          title: Requested Domains
+          type: array
+      required: [message, snapshot, as_of, classes, domains]
+      title: CoverageRefusal
+      type: object
+    DecisionCoveredClass:
+      additionalProperties: false
+      properties:
+        id: {title: Id, type: string}
+        models: {minimum: 0, title: Models, type: integer}
+      required: [id, models]
+      title: CoveredClass
+      type: object
     DecisionDecideRequest:
       additionalProperties: false
       properties:
@@ -2693,7 +2735,7 @@ components:
           - {$ref: '#/components/schemas/DecisionBenchmarkExclusions'}
           - {type: 'null'}
           default: null
-        contract_version: {const: '2.12', default: '2.12', title: Contract Version, type: string}
+        contract_version: {const: '2.13', default: '2.13', title: Contract Version, type: string}
         decision_id: {pattern: '^dec_[0-9A-Za-z]{8,}$', title: Decision Id, type: string}
         snapshot: {pattern: '^snap_[A-Za-z0-9:._-]+$', title: Snapshot, type: string}
         signature_verified: {default: false, title: Signature Verified, type: boolean}
@@ -2770,6 +2812,11 @@ components:
         reading:
           anyOf:
           - {$ref: '#/components/schemas/DecisionReading'}
+          - {type: 'null'}
+          default: null
+        coverage:
+          anyOf:
+          - {$ref: '#/components/schemas/DecisionCoverageRefusal'}
           - {type: 'null'}
           default: null
       required: [decision_id, snapshot, spec_hash, explain, status]
@@ -4472,7 +4519,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.12']
+          enum: ['2.13']
         endpoint:
           type: string
           enum: [decide]
@@ -4504,6 +4551,7 @@ components:
             recovery_omitted: {type: integer, minimum: 0, description: 'Number of issues without a recovery
                 hint, including examples that failed validation.'}
         reading: {$ref: '#/components/schemas/DecisionReading'}
+        coverage: {$ref: '#/components/schemas/DecisionCoverageRefusal'}
     DecisionBoundedRefused:
       type: object
       additionalProperties: false
@@ -4517,7 +4565,7 @@ components:
           enum: ['1.0']
         projects_contract:
           type: string
-          enum: ['2.12']
+          enum: ['2.13']
         endpoint:
           type: string
           enum: [decide]
@@ -4538,7 +4586,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.12']
+          enum: ['2.13']
         endpoint:
           type: string
           enum: [decide]
@@ -4568,7 +4616,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.12']
+          enum: ['2.13']
         endpoint:
           type: string
           enum: [decide]
@@ -4584,7 +4632,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.12']
+          enum: ['2.13']
         endpoint:
           type: string
           enum: [compare]
@@ -4614,7 +4662,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.12']
+          enum: ['2.13']
         endpoint:
           type: string
           enum: [compare]
@@ -4867,7 +4915,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.12']
+          enum: ['2.13']
         endpoint:
           type: string
           enum: [compare]
@@ -6009,4 +6057,4 @@ components:
       schema: {type: string, const: '<https://modelspec.dev/agents.md>; rel="describedby"'}
     AgentGuideVersion:
       description: Version of the byte-stable guide.
-      schema: {type: string, const: 1-ba4c092afcb11838}
+      schema: {type: string, const: 1-4bf62fc15451d7bc}

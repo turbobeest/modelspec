@@ -559,6 +559,9 @@ aside {
     border: 0;
     padding: 4px 0;
   }
+  #coverage td::before {
+    content: attr(data-label) ": ";
+  }
   .dont {
     padding: 40px 16px 40px 24px;
   }

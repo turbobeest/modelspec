@@ -19,7 +19,7 @@
   "default": {
     "representation": "bounded",
     "bounded_version": "1.0",
-    "projects_contract": "2.12",
+    "projects_contract": "2.13",
     "decision_id": "dec_1932b1664c177b74446ef335",
     "snapshot": "snap_be143b431be06c02",
     "signature_verified": true,
@@ -502,7 +502,7 @@
   "drill_down": {
     "representation": "bounded",
     "bounded_version": "1.0",
-    "projects_contract": "2.12",
+    "projects_contract": "2.13",
     "decision_id": "dec_1932b1664c177b74446ef335",
     "snapshot": "snap_be143b431be06c02",
     "signature_verified": true,
@@ -748,6 +748,109 @@
       "warnings": [
         "not_separable"
       ]
+    }
+  },
+  "speech_request": {
+    "spec_version": 1,
+    "where": [
+      "model.class = transcriber"
+    ],
+    "optimize": {
+      "min": "offering.cost_per_task"
+    },
+    "explain": "none",
+    "fields": [
+      "model_rank",
+      "cost_per_task",
+      "estimates",
+      "p_best"
+    ],
+    "limit": 10
+  },
+  "speech": {
+    "representation": "bounded",
+    "bounded_version": "1.0",
+    "projects_contract": "2.13",
+    "decision_id": "dec_36e794d2a5f775c67ca722d3",
+    "snapshot": "snap_be143b431be06c02",
+    "signature_verified": true,
+    "spec_hash": "sha256:c8366abe7134cc3b9b60ca4e08abb0b7e3a22dbedc06a1867f14548e86f5c38b",
+    "explain": "none",
+    "status": "no_feasible",
+    "answer": null,
+    "warnings": [],
+    "truncated": {
+      "offerings": 0,
+      "models": 0
+    },
+    "out_of_lineup": 1328,
+    "relax": [
+      "no complete objective values"
+    ],
+    "relax_to": [],
+    "feedback": {
+      "endpoint": "https://api.modelspec.dev/v1/feedback",
+      "method": "POST",
+      "request_schema": "https://modelspec.dev/api/feedback/v1.schema.json",
+      "ratings": [
+        "reliable",
+        "unreliable",
+        "trustworthy",
+        "untrustworthy",
+        "confusing"
+      ],
+      "cli": "modelspec feedback <decision_id> --rating <rating>"
+    },
+    "results": [],
+    "may_qualify": [],
+    "coverage": {
+      "kind": "out_of_coverage",
+      "message": "The decision board cannot decide transcriber from this snapshot. Covered classes: decider (1 models), orderer (2 models), text-generator (35 models), vectoriser (6 models). Catalogue presence is not decision coverage.",
+      "url": "https://modelspec.dev/api/coverage.json",
+      "snapshot": "snap_be143b431be06c02",
+      "as_of": "2026-10-02",
+      "classes": [
+        {
+          "id": "decider",
+          "models": 1
+        },
+        {
+          "id": "orderer",
+          "models": 2
+        },
+        {
+          "id": "text-generator",
+          "models": 35
+        },
+        {
+          "id": "vectoriser",
+          "models": 6
+        }
+      ],
+      "domains": [
+        "agentic_tool_use",
+        "chat_preference",
+        "engineering_stem",
+        "finance",
+        "legal",
+        "maths",
+        "medical",
+        "multilingual",
+        "reasoning",
+        "retrieval",
+        "software_engineering",
+        "vision_documents",
+        "writing"
+      ],
+      "requested_classes": [
+        "transcriber"
+      ],
+      "requested_domains": []
+    },
+    "explanation": {
+      "not_applied": [],
+      "omitted": {},
+      "note": "Projected rows are incomplete; omissions are not eliminations or absent evidence."
     }
   }
 }

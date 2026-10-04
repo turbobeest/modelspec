@@ -77,11 +77,31 @@ def test_orientation_is_keyless_offline_and_identical(args):
         data = json.loads(result.stdout)
         assert data == json.loads(run(["--json"]).stdout)
         assert data["coverage"] == BUNDLE["coverage"]
+        assert "https://modelspec.dev/api/coverage.json" in data["coverage_note"]
+        assert data["coverage"]["decision"]["catalogue"]["models"] == data["coverage"]["models"]
         assert data["ways_in"] == {
             "cli": agent_copy.INSTALL_PATHS[0],
             "mcp": entity.MCP_ENDPOINT,
             "http": "https://api.modelspec.dev/v1/decide",
         }
+
+
+@pytest.mark.parametrize("http_status, status", [(200, "no_feasible"), (200, "partial"), (400, None)])
+def test_typed_coverage_is_passed_through_and_uses_coverage_recovery(monkeypatch, http_status, status):
+    body = {"coverage": {"kind": "out_of_coverage", "message": "Speech is outside this snapshot.",
+                         "classes": [{"id": "text-generator", "models": 2}],
+                         "url": "https://modelspec.dev/api/coverage.json"}}
+    if status:
+        body["status"] = status
+    else:
+        body["error"] = {"code": "invalid_spec", "message": "Unknown speech domain."}
+    monkeypatch.setattr(client, "_transport", httpx.MockTransport(
+        lambda request: httpx.Response(http_status, json=body)))
+    result = run(["decide", "--spec", "-", "--json"], keyed=True, input=json.dumps(SPEC))
+    assert result.exit_code == 2, result.output
+    payload = json.loads(result.stdout)
+    assert payload["coverage"] == body["coverage"]
+    assert "https://modelspec.dev/api/coverage.json" in " ".join(payload["next"])
 
 
 @pytest.mark.parametrize(
@@ -111,7 +131,7 @@ def test_no_keyless_command_returns_model_data_or_vocabulary(args, tmp_path):
         '"spec_version"',
     ):
         assert forbidden not in result.stdout
-    assert payload.get("coverage", {}).keys() <= {"models", "providers", "benchmarks", "as_of"}
+    assert payload.get("coverage", {}).keys() <= {"models", "providers", "benchmarks", "as_of", "summary", "decision"}
     assert set(cache.iterdir()) == {cache / "snapshot.json"}
 
 

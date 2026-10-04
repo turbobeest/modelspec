@@ -17,7 +17,7 @@ from decision.engine import decide
 from decision.registry import default
 from decision.snapshot import build_from_repo, load_built_snapshot
 from decision.templates import load_catalogue
-from pipeline import landing
+from pipeline import coverage, landing
 from pipeline.load import load_models
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -56,6 +56,10 @@ def test_landing_copy_uses_the_computed_figures(data: landing.LandingData) -> No
     assert data.cheapest.name in page
     assert f"${data.leader_monthly:,.0f}" in page
     assert f"${data.cheapest_monthly:,.0f}" in page
+    assert coverage.summary(data.coverage) in page
+    assert "Generated coverage, keyless" in page
+    assert f"{data.coverage['board']['models']} decidable models" in page
+    assert f"coding plot: {len(data.models)} models, {data.benchmark_count} benchmarks" in page
 
 
 def test_every_published_template_route_is_an_engine_result(data: landing.LandingData) -> None:
@@ -105,7 +109,7 @@ def test_every_published_template_route_is_an_engine_result(data: landing.Landin
 
 
 @pytest.fixture(scope="module")
-def landing_browser_results(tmp_path_factory: pytest.TempPathFactory) -> dict[str, bool]:
+def landing_browser_results(tmp_path_factory: pytest.TempPathFactory, data: landing.LandingData) -> dict[str, bool]:
     """Execute both landing variants once in Chromium and return named checks."""
     browser_script = ROOT / "web" / "scripts" / "landing-browser.mjs"
     playwright = ROOT / "web" / "node_modules" / "playwright"
@@ -137,6 +141,7 @@ def landing_browser_results(tmp_path_factory: pytest.TempPathFactory) -> dict[st
         routes=(),
         template_count=0,
         axes=landing._plot_axes(list(models)),
+        coverage=data.coverage,
     )
     directory = tmp_path_factory.mktemp("landing-browser")
     live = directory / "live.html"
@@ -331,7 +336,7 @@ def test_the_positioning_copy_types_no_numbers(data: landing.LandingData) -> Non
 
     page = landing.render(data, variant="live")
     routers = page[page.index('<section class="routers"'):page.index('<section class="teams"')]
-    teams = page[page.index('<section class="teams"'):page.index('<section class="agents"')]
+    teams = page[page.index('<section class="teams"'):page.index('<section class="coverage"')]
     text = html.unescape(re.sub(r"<[^>]+>", " ", routers + teams))
     assert re.search(r"\d", text) is None, text
     assert re.search(r"\d", landing.HEADLINE) is None

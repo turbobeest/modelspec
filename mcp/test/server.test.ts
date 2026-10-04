@@ -263,6 +263,21 @@ describe("modelspec MCP worker", () => {
     expect(headers.get("user-agent")).toBe(USER_AGENT);
   });
 
+  it("preserves the real speech coverage refusal, including covered classes and the keyless link", async () => {
+    originFetch.mockResolvedValueOnce(jsonResponse(200, budget.speech));
+    const { payload } = await rpc("tools/call", {
+      name: "decide",
+      arguments: budget.speech_request,
+    });
+    const envelope = envelopeFromCall(payload);
+    expect(envelope.status).toBe(200);
+    expect(envelope.body).toEqual(budget.speech);
+    expect(budget.speech.coverage.kind).toBe("out_of_coverage");
+    expect(budget.speech.coverage.requested_classes).toEqual(["transcriber"]);
+    expect(budget.speech.coverage.classes.length).toBeGreaterThan(0);
+    expect(budget.speech.coverage.url).toBe("https://modelspec.dev/api/coverage.json");
+  });
+
   it("rank error path returns the origin 400", async () => {
     const originBody = { error: { code: "unknown_use_case" } };
     originFetch.mockResolvedValueOnce(jsonResponse(400, originBody));
