@@ -4,7 +4,6 @@
     "spec": {
       "spec_version": 1,
       "snapshot": "latest",
-      "task_type": "new_feature",
       "capabilities": {
         "chat_preference": "required"
       },
@@ -32,7 +31,6 @@
     "spec": {
       "spec_version": 1,
       "snapshot": "latest",
-      "task_type": "new_feature",
       "capabilities": {
         "chat_preference": "required"
       },
@@ -60,7 +58,6 @@
     "spec": {
       "spec_version": 1,
       "snapshot": "latest",
-      "task_type": "new_feature",
       "capabilities": {
         "chat_preference": "preferred"
       },
@@ -85,7 +82,6 @@
     "spec": {
       "spec_version": 1,
       "snapshot": "latest",
-      "task_type": "new_feature",
       "capabilities": {
         "software_engineering": "required"
       },
@@ -109,7 +105,6 @@
     "spec": {
       "spec_version": 1,
       "snapshot": "latest",
-      "task_type": "new_feature",
       "capabilities": {
         "software_engineering": "required"
       },

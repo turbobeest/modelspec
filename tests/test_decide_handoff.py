@@ -40,9 +40,9 @@ def test_changed_prices_and_credit_weights_change_the_built_copy(tmp_path: Path)
 
 
 @pytest.mark.parametrize("flag,href,note", [
-    ("false", "/pricing/", "see pricing for availability"),
+    ("false", "/pricing/", "API keys open soon: see pricing"),
     ("true", "/pricing/#pricing", "Choose a plan or pack."),
-    ("off", "/pricing/", "see pricing for availability"),
+    ("off", "/pricing/", "API keys open soon: see pricing"),
 ])
 def test_key_link_uses_the_same_production_flag_as_pricing(
     tmp_path: Path, flag: str, href: str, note: str,
@@ -66,3 +66,8 @@ def test_badge_quotes_the_neutrality_commitment_exactly() -> None:
     commitment = neutrality_commitment()
     assert badge["text"] in commitment["pledge"]
     assert badge["href"] == commitment["neutrality_url"]
+
+
+def test_mcp_clients_are_the_ones_the_cli_setup_accepts() -> None:
+    bundle = json.loads((ROOT / "cli/modelspec/agent-bundle.json").read_text())
+    assert decide_handoff.data(ROOT)["mcp_clients"] == list(bundle["clients"])

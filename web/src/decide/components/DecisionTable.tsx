@@ -96,6 +96,7 @@ export function DecisionTable({
               {visibleColumns.map(([key, title]) => (
                 <th
                   key={key}
+                  title={key === "rank" ? "Model rank on your weights" : undefined}
                   aria-sort={
                     sortedBy === key
                       ? direction === 1

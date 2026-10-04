@@ -53,6 +53,7 @@ test.describe("managed visit gate", () => {
       await expect(page.getByLabel("Facet board answer")).toBeVisible();
       await expect.poll(() => sent.length).toBe(3);
       await expect(page.getByRole("region", { name: "Give this to my agent" })).toBeVisible();
+      await page.getByRole("region", { name: "Give this to my agent" }).getByRole("button", { name: "Spec", exact: true }).click();
       expect(JSON.parse(await page.getByLabel("Spec snippet").innerText())).toEqual(sent[0].spec);
       await expect(page.getByLabel("Spec snippet")).not.toContainText("visit-1");
       await expect(page.locator(".template-active")).toHaveText("Starting from: General assistant, balancedClear");
@@ -115,6 +116,7 @@ test.describe("managed visit gate", () => {
     await expect(page.getByText("One quick check keeps this free")).toHaveCount(0);
     await expect.poll(() => initialRequests).toBe(3);
     await expect(page.getByRole("button", { name: "Share", exact: true })).toBeVisible();
+    await page.getByRole("region", { name: "Give this to my agent" }).getByRole("button", { name: "Spec", exact: true }).click();
     expect(JSON.parse(await page.getByLabel("Spec snippet").innerText())).toEqual(specs[0]);
     expect(specs.filter((spec) => spec.explain === "summary")).toHaveLength(1);
     expect(specs[0].optimize).toEqual({ weights: { chat_preference: 0.6, "-offering.cost_per_task": 0.4 } });

@@ -7,7 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from api.ranking.engine import neutrality_commitment
-from pipeline import pricing, worker_flags
+from pipeline import agent_copy, pricing, worker_flags
 
 
 def data(root: Path) -> dict[str, Any]:
@@ -19,8 +19,9 @@ def data(root: Path) -> dict[str, Any]:
         "full_credits": rates["answer_credits"]["decide.full"],
         "key_link": {
             "href": "/pricing/#pricing" if billing_live else "/pricing/",
-            "note": "Choose a plan or pack." if billing_live else "see pricing for availability",
+            "note": "Choose a plan or pack." if billing_live else "API keys open soon: see pricing",
         },
+        "mcp_clients": list(agent_copy.cli_clients()),
         "neutrality": {
             "text": "no paid placement",
             "href": commitment["neutrality_url"],

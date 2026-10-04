@@ -14,6 +14,7 @@ import {
 import type { BoardSelections, Estate, FacetMode, FacetSelection } from "./model";
 import { ACCESS_ANSWERS, deviceName, payee, planName } from "./routes";
 import { bestMargin, isBestValue } from "../adapter/view-model";
+import { handoffData } from "../handoff-data";
 import type { AccessAnswer } from "./routes";
 
 const numberText = (value: unknown) => typeof value === "number" ? String(value) : "";
@@ -268,9 +269,11 @@ export { readEstate, writeEstate };
 
 /** The board's heading. App renders it before the vocabulary loads, so the
  * page's largest paint does not wait on a fetch (MODEL-218). */
+const noPaidPlacement = handoffData.neutrality.text.replace(/^./, (first) => first.toUpperCase());
+
 export function BoardIntro() {
   return <div className="board-intro"><div>
-    <span className="eyebrow">Model decision engine</span>
+    <span className="eyebrow">Free for people · {noPaidPlacement}</span>
     <h1>Which AI model fits your job?</h1>
     <p>Set what must be true and what you'd prefer. Every model that misses a must is shown out, with the reason, and you see what each one costs. Free for people.</p>
     <p>Then hand it to your agents: the same question, answered the same way, in about a tenth of a second.</p>
