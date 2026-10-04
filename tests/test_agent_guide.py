@@ -16,6 +16,38 @@ from qa.contracts import capture_tools
 from tests.test_x402 import entry, _entry_env, _Req  # noqa: F401
 
 
+def test_conduct_rules_are_on_every_agent_surface():
+    """MODEL-320: the eight conduct rules, verbatim, on each surface an agent reads."""
+    from datetime import date
+
+    from pipeline.build import llms_txt
+    from pipeline.export import Build
+
+    rules = agent_copy.CONDUCT_RULES
+    assert len(rules) == 8
+    copy = agent_copy.copy()
+    spec = yaml.safe_load((ROOT / 'api/worker/openapi.yaml').read_text())
+    openapi_descriptions = []
+    for operations in spec['paths'].values():
+        for operation in operations.values():
+            if isinstance(operation, dict) and isinstance(operation.get('description'), str):
+                openapi_descriptions.append(operation['description'])
+    cli = agent_copy.cli_text()
+    surfaces = {
+        'agents.md': agent_copy.guide()[1],
+        'llms.txt': llms_txt(
+            site='ModelSpec', base='https://modelspec.dev',
+            build=Build(commit='a' * 12, built_at='2026-10-04T00:00:00+00:00',
+                        as_of=date(2026, 10, 4))),
+        'MCP tool descriptions': '\n'.join(copy['tools'].values()),
+        'OpenAPI descriptions': '\n'.join(openapi_descriptions),
+        'CLI help': '\n'.join(cli['help'].values()) + '\n' + cli['answers'],
+    }
+    for name, text in surfaces.items():
+        for rule in rules:
+            assert rule in text, (name, rule)
+
+
 def test_generated_guide_and_constants_are_stable_and_within_budget():
     from api.worker.src.agent_guide import GUIDE_URL, GUIDE_VERSION
     version, markdown = agent_copy.guide()

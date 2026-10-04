@@ -57,22 +57,31 @@ ACCESS = (
     "No data download or local decision cache."
 )
 CLI_PRIVACY = "No telemetry. The CLI never uses, sends or logs your provider API keys."
+# MODEL-320. One sentence per rule. The guide, tool descriptions, OpenAPI lead,
+# llms.txt and CLI help all quote this tuple.
+CONDUCT_RULES = (
+    "Never add a gate or constraint the user didn't state.",
+    "Relax only constraints the user stated, one at a time, and say what was relaxed and why. Prefer the answer's own `relax` suggestions.",
+    "A tie stays a tie: don't promote a member with outside knowledge.",
+    "Cite only evidence in the response. Never add benchmark figures from memory.",
+    "A null or partial answer is not a recommendation. Don't present any model as the top pick, and say what's missing.",
+    'A null cost is unknown. Never show it as $0.00 or "free".',
+    "One vocabulary lookup per unknown facet, then decide. Read `next` before another call.",
+    "Size `task_tokens` from the user's own task, and say what you assumed. Don't copy the guide's example sizes.",
+)
 SPEC_GUIDANCE = (
     "Call decide early with a template-based Spec; refine from reading and recovery hints. "
-    "Call decide after at most one vocab lookup before the first decision. "
-    "Use vocab section=starter only when you need a facet id; use search for a targeted lookup. "
     "Put Musts in where: these gates exclude. Put Prefers in optimize.weights: weights rank "
     "and never exclude. Unknown values go to may_qualify. Pin snapshot for reproducibility. "
 )
 REPORTING_RULES = (
-    "Never add a constraint or weight the user did not state; template gates and weights "
-    "are examples, not user requirements. If the evidence basis or board does not match "
+    " ".join(CONDUCT_RULES) + " "
+    "Template weights are examples, not requirements. If the evidence basis or board does not match "
     "the task, say so: Arena web-dev evidence does not establish chat quality. "
     "p_best is the probability of ranking best under the Spec and evidence uncertainty, "
     "not the probability of matching the user's task or satisfying its requirements. "
-    "Read reading when present. Present answer.kind=tied as a tie among all answer.members, "
-    "never a single winner; tie-breakers are conditional choices. Report a tied "
-    "with_estate.answer as a tie too. State requirements in reading.not_applied or "
+    "Read reading when present. Present answer.kind=tied among all answer.members, including "
+    "with_estate; tie-breakers are conditional. State requirements in reading.not_applied or "
     "error.issues that were not applied, including requirements removed after a rejected "
     "call. A retry does not verify them. Report estimates as estimates: fits_hardware "
     "membership is not measured fit for a specific quantization and context workload. "
@@ -116,7 +125,8 @@ def cli_text(root: Path = ROOT) -> dict[str, Any]:
                      "{providers} catalogue providers, {benchmarks} benchmarks. {summary} "
                      "Current coverage may differ. See https://modelspec.dev/api/coverage.json."),
         "answers": ("Ask about model requirements, sourced capability evidence, cost, context, "
-                    "hosting and policy constraints. Answers report ties, missing facts and reasons."),
+                    "hosting and policy constraints. Answers report ties, missing facts and reasons. "
+                    + " ".join(CONDUCT_RULES)),
         "price": "From {low_dollars} per answer. Published range ${low_usd}–${high_usd} per answer, depending on plan, pack and explanation.",
         "procurement": (key_procurement(root) + " Checkout availability is shown on the page. "
                         "For access, volume or invoicing, contact sales@modelspec.dev. "
@@ -211,7 +221,8 @@ def cli_text(root: Path = ROOT) -> dict[str, Any]:
             "key": "Show key procurement, published prices and a neutral message for the human.",
             "setup": "Print an MCP client configuration; --write shows a diff before confirmation.",
             "auth": "Store only a ModelSpec API key, locally. The environment takes precedence.",
-            "decide": "Send exactly your Spec to POST /v1/decide with a key. No local decision cache.",
+            "decide": ("Send exactly your Spec to POST /v1/decide with a key. No local decision cache. "
+                       + " ".join(CONDUCT_RULES)),
             "vocab": "Look up hosted vocabulary with a key; defaults to the compact starter section.",
             "feedback": "Rate an answer with a key present. Matches MCP fields; the feedback endpoint receives no Authorization header.",
             "json": "Emit JSON. Successful API bodies pass through unchanged; every failure has next steps.",
@@ -428,9 +439,7 @@ and decision_id, and set snapshot to that exact ID for a reproducible retry.
 Over HTTP, `explain` defaults to summary and returns full rows; full includes
 every eliminated candidate and can be large. A Spec has one optimize objective: min, max, or weights.
 A negative numeric weight key prefers less, for example `-offering.cost_per_task`.
-Set `task_tokens` to one task's size, e.g. `{{"input":2000,"output":300}}`. Unset,
-cost_per_task assumes {default.input:,} input and {default.output:,} output tokens,
-so a small task's cost cap can exclude every model.
+Unset, cost_per_task assumes {default.input:,} input and {default.output:,} output tokens, so a small task's cost cap can exclude every model.
 For boolean or enum preferences use a prefer value and weight, never a bare number.
 `where` is an array. In text expressions a set is `{{a, b}}`, not `[a, b]`.
 Structured example: `{{"facet":"offering.provider","in":["openai"]}}`.
@@ -440,25 +449,12 @@ Structured example: `{{"facet":"offering.provider","in":["openai"]}}`.
 
 {BOUNDED_MCP}
 
-The decide tool description gives the bounded defaults. The answer, reading,
-warnings and ties stay complete.
-`explanation.omitted` counts the sections left out. At `explain: none`
-eliminations are not computed, so a missing eliminated count does not mean
-nothing was screened out; request `explain: summary` to count them, or
-`evidence_for` for one model's elimination reasons. An omission is not an
-elimination or an absent fact.
-
-To see one model's evidence, status, rank or elimination reasons, resend the
-same Spec with its returned `snapshot` plus `"evidence_for": "<lab/model>"`.
-The call is stateless; `decision_id` is a citation, not a stored lookup. The
-drill-down returns `model_evidence` for that model only, within 2,000 estimated
-tokens, and empty `results` and `may_qualify`: report the answer from
-`answer.members`. A 503 `explanation_unavailable` means the snapshot cannot
-cite evidence; retry without `evidence_for`.
-
-For full rows, pass `"fields": null`, or set `explain` to `summary` or `full`:
-an explicit explain returns full rows unless you also pass `fields`. HTTP
-callers get full rows unless they send `fields` or `evidence_for`.
+The decide tool description gives the bounded defaults. Answer, reading,
+warnings and ties stay complete. An omission is not an elimination or an
+absent fact. At `explain: none`, a missing eliminated count means eliminations
+were not computed. Resend the same Spec with its returned snapshot and
+`evidence_for`, and report the answer from `answer.members`. HTTP callers get
+full rows unless they send `fields` or `evidence_for`.
 
 ## Worked Specs
 
@@ -671,9 +667,8 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
             "Split-mode full details exclude per-model facts and counts. "
             "Needs an API key. "
             "Use it for missing ids, not to compare models. "
-            "Call decide after at most one vocab lookup. section=starter returns a "
-            "ready-to-send minimal Spec with 'next: call decide with this; refine from reading'. "
-            "Responses include a next hint. If you need ids, use section=starter. "
+            "One vocabulary lookup per unknown facet, then decide. Read `next` before another call. "
+            "section=starter returns a ready-to-send minimal Spec and a next hint. "
             "Search covers every section's ids, labels, definitions and values with "
             "case- and separator-insensitive matching; a miss returns suggestions. "
             "An explicit non-starter section scopes the search. "
@@ -738,7 +733,7 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
         "instructions": (
             f"{entity.ONE_SENTENCE} {entity.DISAMBIGUATION} ModelSpec guide {guide(tiers)[0]}: {GUIDE_URL}. Store once per version. "
             f"{ACCESS} CLI: {INSTALL_PATHS[0]}. {PACKAGE_WARNING} "
-            "1. Call decide early, after at most one vocab lookup; refine from reading and recovery hints. "
+            "1. Call decide early and refine from reading. One vocabulary lookup per unknown facet, then decide. Read `next` before another call. "
             "2. Put Musts in where and Prefers in optimize; use vocab section=starter only for missing ids. "
             "3. Present ties as ties, including with_estate; never invent a single winner or quality rank. "
             "4. Disclose not_applied and dropped requirements after retries; unknown is not a pass. "
