@@ -18,14 +18,16 @@ import pytest
 import yaml
 
 from qa import tui_auth as auth
+from qa import tui_docker as docker
 from qa import tui_harness as harness
 from qa import tui_homes as homes
 from qa import tui_inventory as inventory
 from qa import tui_isolation as isolation
 from qa import tui_providers as providers
 from qa.agent_harness import load_scenarios
+from qa.docker import entrypoint
 
-READ_VERSION = homes.read_version
+IMAGE_IDENTITY = docker.image_identity
 
 
 @pytest.fixture(autouse=True)
@@ -34,7 +36,9 @@ def deny_credential_access(monkeypatch):
     denied = re.compile(
         r"\.codex[/\\]auth|auth\.json|\.credentials|keychain|\.claude\.json|"
         r"oauth|google_accounts|mcp_credentials|\.netrc|\.aws[/\\]credentials|"
-        r"id_rsa|id_ed25519|[/\\]tokens?\.(?:json|db)",
+        r"id_rsa|id_ed25519|[/\\]tokens?\.(?:json|db)|"
+        r"[/\\]modelspec-harness-(?:claude|codex|gemini|grok)-home(?:[/\\:]|$)|"
+        r"[/\\]home[/\\]agent(?:[/\\]|$)|[/\\]var[/\\]lib[/\\]docker[/\\]volumes",
         re.I,
     )
 
@@ -89,13 +93,16 @@ def native_inventory(cli, *, mcp_enabled=True):
 
 def allow_launch(config, clis=providers.CLIS):
     for cli in clis:
-        home = homes.require_setup(cli, config)
+        home = homes.state_directory(cli, config)
+        binary = homes.image_identity(cli, config) | {
+            "reported_version": config["clis"][cli]["version"]
+        }
         receipt = {
-            "schema": 3,
+            "schema": 4,
             "authentication": {"logged_in": True, "auth_method": "subscription", "verified": True},
-            "real_home": {"verified": True},
-            "identity": homes.isolation_identity(cli, config),
-            "binary": json.loads(homes.setup_file(home).read_text())["binary"],
+            "container_boundary": {"verified": True},
+            "identity": homes.isolation_identity(cli, config, binary),
+            "binary": binary,
             "inventory": native_inventory(cli),
             "supported": True,
             "verified": True,
@@ -113,28 +120,39 @@ def allow_launch(config, clis=providers.CLIS):
 @pytest.fixture
 def config(tmp_path, monkeypatch):
     value = yaml.safe_load((harness.HERE / "tui_config.yaml").read_text())
-    binary = tmp_path / "fake-cli.js"
-    binary.write_text("#!/bin/sh\nexit 99\n")
-    binary.chmod(0o700)
-    monkeypatch.setattr(homes, "read_version", lambda *a: "fake-cli 0.160.0")
-    monkeypatch.setattr(isolation, "inspect_inventory", lambda cli, *a, **k: native_inventory(cli))
+    value["_state_dir"] = str(tmp_path / ".tui-state")
+    monkeypatch.setattr(docker, "docker_executable", lambda: "/fake/docker")
+    monkeypatch.setattr(docker, "_CLIENT_ENV", {"PATH": "/fake", "HOME": str(tmp_path)})
+
+    def identity(cli, cfg):
+        return {
+            "image": docker.image_name(cli, cfg["clis"][cli]),
+            "image_id": "sha256:" + "a" * 64,
+            "os": "linux",
+            "architecture": "arm64",
+            "version": cfg["clis"][cli]["version"],
+        }
+
+    monkeypatch.setattr(homes, "image_identity", identity)
+    monkeypatch.setattr(docker, "image_identity", identity)
+    monkeypatch.setattr(isolation, "image_identity", identity)
+    monkeypatch.setattr(homes, "docker_executable", lambda: "/fake/docker")
     monkeypatch.setattr(
-        isolation,
-        "authentication_status",
-        lambda *a: {"logged_in": True, "auth_method": "subscription", "verified": True},
+        homes,
+        "run_cli",
+        lambda cli, cfg, *a, **k: subprocess.CompletedProcess(
+            [], 0, cfg["clis"][cli]["version"], ""
+        ),
     )
-    real_home = tmp_path / "real-user"
-    (real_home / ".agents/skills/natural-canary").mkdir(parents=True)
-    (real_home / ".agents/skills/natural-canary/SKILL.md").write_text(
-        "Do not read this natural canary."
-    )
-    monkeypatch.setenv("HOME", str(real_home))
-    for cli, profile in value["clis"].items():
-        profile["harness_home"] = str(tmp_path / cli / "home")
-        profile["executable"] = str(binary)
-        if cli == "gemini":
-            profile["node_executable"] = "node"
-        homes.setup_home(cli, value)
+    monkeypatch.setattr(isolation, "inspect_inventory", lambda cli, *a, **k: native_inventory(cli))
+
+    def subscription(*a):
+        return {"logged_in": True, "auth_method": "subscription", "verified": True}
+
+    monkeypatch.setattr(isolation, "authentication_status", subscription)
+    monkeypatch.setattr(providers, "authentication_status", subscription)
+    monkeypatch.setenv("HOME", str(tmp_path.parent / "real-user"))
+    monkeypatch.setattr(docker, "remove_container", lambda *a: None)
     return value
 
 
@@ -259,11 +277,20 @@ def test_environment_cannot_inherit_vendor_keys_or_agent_customizations(
         "claude", tmp_path, "MODELSPEC_API_KEY", settings=config["clis"]["claude"]
     )
     assert not any(value == "do-not-inherit" for value in env.values())
-    assert env["CLAUDE_CODE_DISABLE_CLAUDE_MDS"] == "1"
-    assert env["CLAUDE_CODE_DISABLE_AUTO_MEMORY"] == "1"
-    assert env["ENABLE_CLAUDEAI_MCP_SERVERS"] == "false"
+    assert (
+        entrypoint.runtime_environment("claude", "isolated", env)["CLAUDE_CODE_DISABLE_CLAUDE_MDS"]
+        == "1"
+    )
+    assert (
+        entrypoint.runtime_environment("claude", "isolated", env)["CLAUDE_CODE_DISABLE_AUTO_MEMORY"]
+        == "1"
+    )
+    assert (
+        entrypoint.runtime_environment("claude", "isolated", env)["ENABLE_CLAUDEAI_MCP_SERVERS"]
+        == "false"
+    )
     assert env["MODELSPEC_API_KEY"] == "not-a-real-secret"
-    assert env["TMPDIR"] == str(homes.require_setup("claude", config).parent / "tmp")
+    assert entrypoint.runtime_environment("claude", "isolated", env)["TMPDIR"] == "/tmp"
     assert "MODELSPEC_API_KEY" not in providers.child_environment(
         "claude", tmp_path, settings=config["clis"]["claude"]
     )
@@ -613,10 +640,10 @@ def test_launch_uses_empty_stdin_and_never_reads_auth(config, tmp_path, monkeypa
     observed = {}
 
     def fake(command, **kwargs):
-        observed.update(kwargs)
+        observed.update(kwargs, command=command)
         assert kwargs["input"] == ""
         assert kwargs["cwd"] == tmp_path
-        assert command[0] == config["clis"]["claude"]["executable"]
+        assert command[0] == "/fake/docker"
         return subprocess.CompletedProcess(command, 0, text(streams["claude"]), "")
 
     monkeypatch.setattr(providers.subprocess, "run", fake)
@@ -628,8 +655,10 @@ def test_launch_uses_empty_stdin_and_never_reads_auth(config, tmp_path, monkeypa
     }
     assert observed["capture_output"] and observed["timeout"] == 300
     home, config_home = homes.home_paths("claude", config["clis"]["claude"])
-    assert observed["env"]["HOME"] == os.environ["HOME"]
-    assert observed["env"]["CLAUDE_CONFIG_DIR"] == str(config_home)
+    assert "CLAUDE_CONFIG_DIR" not in observed["env"]
+    assert (
+        "type=volume,source=modelspec-harness-claude-home,target=/home/agent" in observed["command"]
+    )
 
 
 @pytest.mark.parametrize("cli", providers.CLIS)
@@ -731,25 +760,6 @@ def test_bad_startup_evidence_revokes_a_pass_and_stops_further_family_starts(
     assert len(calls) == 1
 
 
-def test_doctor_restores_existing_config_without_reading_it(config, tmp_path, monkeypatch):
-    _, config_home = homes.home_paths("gemini", config["clis"]["gemini"])
-    settings = config_home / "settings.json"
-    settings.write_text('"existing config must never be opened"')
-    original = Path.open
-
-    def guarded(path, *args, **kwargs):
-        mode = args[0] if args else kwargs.get("mode", "r")
-        assert path != settings or mode == "x"
-        return original(path, *args, **kwargs)
-
-    with monkeypatch.context() as patch:
-        patch.setattr(Path, "open", guarded)
-        patch.setattr(isolation, "_execute", lambda *a, **k: execution(answer="OK"))
-        assert harness.verify_isolation("gemini", config, tmp_path)["status"] == "unproven"
-    assert settings.read_text() == '"existing config must never be opened"'
-    assert not (config_home / "skills/model301_canary").exists()
-
-
 @pytest.mark.parametrize("change", ["binary", "profile", "receipt", "adapter"])
 def test_doctor_receipt_is_bound_to_binary_profile_and_adapter(
     change, config, tmp_path, monkeypatch
@@ -757,13 +767,16 @@ def test_doctor_receipt_is_bound_to_binary_profile_and_adapter(
     allow_launch(config)
     assert isolation.isolation_result("claude", config)["verified"]
     if change == "binary":
-        Path(config["clis"]["claude"]["executable"]).write_text("new binary build")
+        original = homes.image_identity
+        monkeypatch.setattr(
+            homes, "image_identity", lambda *a: original(*a) | {"image_id": "sha256:" + "b" * 64}
+        )
     elif change == "profile":
         config["clis"]["claude"]["model"] = "a different model"
     elif change == "adapter":
         monkeypatch.setattr(isolation, "isolation_identity", lambda *a: "new adapter")
     else:
-        home = homes.require_setup("claude", config)
+        home = homes.state_directory("claude", config)
         data = json.loads(isolation.receipt_file(home).read_text())
         del data["positive_control"]["cwd"]["hooks"]
         isolation.receipt_file(home).write_text(json.dumps(data))
@@ -771,87 +784,6 @@ def test_doctor_receipt_is_bound_to_binary_profile_and_adapter(
     monkeypatch.setattr(providers.subprocess, "run", lambda *a, **k: pytest.fail("gate bypassed"))
     with pytest.raises(ValueError, match="doctor --cli"):
         providers.launch("claude", config, tmp_path, "fixture", mcp_enabled=False)
-
-
-@pytest.mark.parametrize("cli", providers.CLIS)
-def test_native_home_overrides_exclude_real_home(cli, config, tmp_path, monkeypatch):
-    real_home = tmp_path / "real-home"
-    real_home.mkdir()
-    monkeypatch.setenv("HOME", str(real_home))
-    env = providers.child_environment(cli, tmp_path, settings=config["clis"][cli])
-    home, config_home = homes.home_paths(cli, config["clis"][cli])
-    assert env["HOME"] == str(real_home)
-    assert env[homes.HOME_VARIABLES[cli]] == str(home if cli == "gemini" else config_home)
-    assert str(real_home) not in (env[homes.HOME_VARIABLES[cli]], env["XDG_CONFIG_HOME"])
-    assert env["XDG_CONFIG_HOME"].startswith(str(home))
-
-
-@pytest.mark.parametrize("cli", providers.CLIS)
-def test_darwin_preserves_home_for_system_credential_storage(cli, config, tmp_path, monkeypatch):
-    real_home = tmp_path / "real-user-home"
-    monkeypatch.setenv("HOME", str(real_home))
-    monkeypatch.setattr(sys, "platform", "darwin")
-    env = providers.child_environment(
-        cli, homes.require_setup(cli, config), settings=config["clis"][cli]
-    )
-    assert env["HOME"] == str(real_home)
-    assert env[homes.HOME_VARIABLES[cli]] != str(real_home)
-
-
-def test_codex_config_home_is_outside_its_temporary_directory(config):
-    home = homes.require_setup("codex", config)
-    env = providers.child_environment("codex", home, settings=config["clis"]["codex"])
-    assert not Path(env["CODEX_HOME"]).is_relative_to(Path(env["TMPDIR"]))
-
-
-@pytest.mark.parametrize("cli", providers.CLIS)
-def test_setup_creates_only_native_modelspectool_config_and_prints_login(
-    cli, config, tmp_path, monkeypatch, capsys
-):
-    config["clis"][cli]["harness_home"] = str(tmp_path / f"new-{cli}" / "home")
-    config_path = tmp_path / "setup.yaml"
-    config_path.write_text(yaml.safe_dump(config))
-    monkeypatch.setattr(providers.subprocess, "run", lambda *a, **k: pytest.fail("login executed"))
-    monkeypatch.setattr(harness, "private_output", lambda p: p)
-    assert harness.main(["setup", "--cli", cli, "--config", str(config_path)]) == 0
-    output = capsys.readouterr().out
-    assert homes.login_command(cli, config_path) in output
-    assert f"python -m qa.tui_harness login --cli {cli}" in output
-    assert "0.160.0" in output and "env -i" not in output
-    home, config_home = homes.home_paths(cli, config["clis"][cli])
-    files = [p for p in home.rglob("*") if p.is_file()]
-    assert files == [homes.config_file(cli, config_home)]
-    assert "modelspec" in files[0].read_text()
-    assert not isolation.isolation_result(cli, config)["supported"]
-    # A second setup leaves state created by the CLI untouched.
-    unknown = home / "opaque-cli-state"
-    unknown.write_bytes(b"do not open or overwrite")
-    homes.setup_home(cli, config)
-    assert unknown.read_bytes() == b"do not open or overwrite"
-
-
-def test_setup_refuses_populated_or_real_or_public_homes(config, tmp_path):
-    profile = config["clis"]["codex"]
-    profile["harness_home"] = str(Path.home())
-    with pytest.raises(ValueError, match="dedicated"):
-        homes.setup_home("codex", config)
-    profile["harness_home"] = str(harness.ROOT / "test-home")
-    with pytest.raises(ValueError, match="public"):
-        homes.setup_home("codex", config)
-    populated = tmp_path / "existing-home"
-    populated.mkdir()
-    (populated / "untouched").write_text("existing")
-    profile["harness_home"] = str(populated)
-    with pytest.raises(ValueError, match="empty dedicated"):
-        homes.setup_home("codex", config)
-
-
-def test_binary_path_is_resolved_with_environment_override(config, tmp_path, monkeypatch):
-    binary = tmp_path / "override-cli"
-    binary.write_text("#!/bin/sh\nexit 1\n")
-    binary.chmod(0o700)
-    monkeypatch.setenv("TUI_CLAUDE_BIN", str(binary))
-    assert homes.resolve_executable("claude", config["clis"]["claude"]) == str(binary)
 
 
 def test_limit_stops_only_the_affected_cli_and_counts_judges(config, tmp_path, monkeypatch):
@@ -1036,7 +968,7 @@ def test_dry_run_makes_no_cli_or_network_calls(config, tmp_path, monkeypatch, ca
     planned = json.loads(line)
     assert planned["cli"] == "claude" and "--strict-mcp-config" in planned["command"]
     assert planned["stdin"] == ""
-    assert all(f"{cli}: unsupported" in output for cli in ("codex", "gemini", "grok"))
+    assert all(f'"cli": "{cli}"' in output for cli in providers.CLIS)
     report = json.loads(next(tmp_path.glob("*-tui-agent-scenarios.json")).read_text())
     assert report["executed_runs"] == 0
 
@@ -1117,7 +1049,18 @@ def test_tui_sources_contain_no_credential_path_literals():
 
 
 @pytest.mark.parametrize(
-    "path", ["auth.json", ".codex/auth/session", ".credentials/session", "Keychain/session"]
+    "path",
+    [
+        "auth.json",
+        ".codex/auth/session",
+        ".credentials/session",
+        "Keychain/session",
+        "docker-volumes/modelspec-harness-codex-home/_data/opaque-state",
+        "docker-volumes/modelspec-harness-gemini-home/_data/opaque-state",
+        "docker-volumes/modelspec-harness-grok-home/_data/opaque-state",
+        "docker-volumes/modelspec-harness-claude-home/_data/opaque-state",
+        "home/agent/native-state",
+    ],
 )
 @pytest.mark.parametrize(
     "reader",
@@ -1285,7 +1228,9 @@ def doctor_reply(cli, config, workspace, prompt, *, mcp_enabled, isolated=True, 
 def test_dummy_credentials_survive_setup_doctor_and_launch_without_access(
     cli, config, tmp_path, monkeypatch, streams, deny_credential_access
 ):
-    home, config_home = homes.home_paths(cli, config["clis"][cli])
+    home = tmp_path / "docker-volumes" / docker.home_volume(cli) / "_data"
+    config_home = home / ("." + cli)
+    config_home.mkdir(parents=True)
     dummy_files = [config_home / name for name in ("auth.json", ".credentials.json")]
     for path in dummy_files:
         # The only bypass of the guard plants new dummy files inside this test's fake home.
@@ -1307,7 +1252,6 @@ def test_dummy_credentials_survive_setup_doctor_and_launch_without_access(
         "run",
         lambda command, **kwargs: subprocess.CompletedProcess(command, 0, text(streams[cli]), ""),
     )
-    assert harness.main(["setup", "--cli", cli, "--config", str(config_path)]) == 0
     assert (
         harness.main(
             [
@@ -1332,121 +1276,19 @@ def test_dummy_credentials_survive_setup_doctor_and_launch_without_access(
     assert home.is_dir()
 
 
-@pytest.mark.parametrize("cli", providers.CLIS)
-def test_login_execs_with_setup_environment_cwd_and_inherited_stdio(
-    cli, config, tmp_path, monkeypatch, capsys
-):
-    home = homes.require_setup(cli, config)
-    calls = []
-    monkeypatch.setenv("TERM", "test-terminal")
-    monkeypatch.setenv("OPENAI_API_KEY", "must-not-inherit")
-    monkeypatch.setattr(homes.os, "chdir", lambda path: calls.append(("cwd", path)))
-    monkeypatch.setattr(homes.os, "execve", lambda *args: calls.append(("exec", args)))
-    monkeypatch.setattr(providers.subprocess, "run", lambda *a, **k: pytest.fail("login captured"))
-    monkeypatch.setattr(harness, "private_output", lambda path: path)
-    config_path = tmp_path / "login.yaml"
-    config_path.write_text(yaml.safe_dump(config))
-    assert harness.main(["login", "--cli", cli, "--config", str(config_path)]) == 0
-    assert calls[0] == ("cwd", home)
-    binary, command, env = calls[1][1]
-    assert command == [
-        binary,
-        *{
-            "claude": ["auth", "login", "--claudeai"],
-            "codex": ["login"],
-            "gemini": [],
-            "grok": ["login"],
-        }[cli],
-    ]
-    expected = providers.child_environment(cli, home, None, settings=config["clis"][cli])
-    if cli == "gemini":
-        expected.pop("NO_BROWSER")
-    assert env == expected | {"TERM": "test-terminal"}
-    assert not any(key.startswith("MODELSPEC") for key in env)
-    assert "OPENAI_API_KEY" not in env
-    assert capsys.readouterr().out == "" and capsys.readouterr().err == ""
-    assert homes.login_command(cli) == f"python -m qa.tui_harness login --cli {cli}"
-
-
-@pytest.mark.parametrize("cli", providers.CLIS)
-def test_setup_and_doctor_measure_version_under_the_same_harness_environment(
-    cli, config, tmp_path, monkeypatch
-):
-    seen = []
-    home = homes.require_setup(cli, config)
-
-    def fake(command, **kwargs):
-        assert command[-1] == "--version"
-        seen.append((command, kwargs))
-        return subprocess.CompletedProcess(command, 0, "native-cli 0.160.0\n", "")
-
-    monkeypatch.setattr(homes, "read_version", READ_VERSION)
-    monkeypatch.setattr(providers.subprocess, "run", fake)
-    monkeypatch.setattr(isolation, "_execute", doctor_reply)
-    homes.setup_home(cli, config)
-    result = harness.verify_isolation(cli, config, tmp_path)
-    assert result["verified"]
-    assert len(seen) == (4 if cli == "gemini" else 2)
-    for _, kwargs in seen:
-        assert kwargs["cwd"] == home
-        assert kwargs["env"] == providers.child_environment(
-            cli, home, config.get("mcp_token_env"), settings=config["clis"][cli]
-        )
-        assert kwargs["input"] == "" and kwargs["capture_output"]
-    assert result["binary"]["version"] == "native-cli 0.160.0"
-    assert {"path", "version", "size", "mtime"} <= result["binary"].keys()
-    if cli == "gemini":
-        assert {"path", "version", "size", "mtime"} <= result["binary"]["node"].keys()
-        assert {"path", "size", "mtime"} <= result["binary"]["bundle"].keys()
-
-
-@pytest.mark.parametrize("version", ["codex-cli 0.153.4", "0.159.9", "0.160.0-rc1"])
-def test_codex_minimum_version_refuses_setup_and_doctor(version, config, tmp_path, monkeypatch):
-    monkeypatch.setattr(homes, "read_version", lambda *args: version)
-    with pytest.raises(ValueError, match="below min_version 0.160"):
-        homes.setup_home("codex", config)
-    allow_launch(config, ("codex",))
-    result = harness.verify_isolation("codex", config, tmp_path)
-    assert not result["verified"] and "below min_version" in result["reason"]
-    assert not isolation.isolation_result("codex", config)["verified"]
-
-
-@pytest.mark.parametrize("field", ["path", "version", "size", "mtime"])
+@pytest.mark.parametrize(
+    "field", ["image", "image_id", "version", "reported_version", "os", "architecture"]
+)
 def test_binary_receipt_binds_every_readable_field(field, config):
     allow_launch(config, ("claude",))
-    home = homes.require_setup("claude", config)
+    home = homes.state_directory("claude", config)
     path = isolation.receipt_file(home)
     receipt = json.loads(path.read_text())
     receipt["binary"][field] = (
-        "0.161.0"
-        if field == "version"
-        else ("/different/bin/claude" if field == "path" else receipt["binary"][field] + 1)
+        "0.161.0" if field == "version" else receipt["binary"][field] + "-changed"
     )
     path.write_text(json.dumps(receipt))
     assert not isolation.isolation_result("claude", config)["verified"]
-
-
-@pytest.mark.parametrize("component", ["node", "bundle"])
-def test_gemini_receipt_binds_runtime_and_bundle_paths(component, config):
-    allow_launch(config, ("gemini",))
-    home = homes.require_setup("gemini", config)
-    path = isolation.receipt_file(home)
-    receipt = json.loads(path.read_text())
-    receipt["binary"][component]["path"] = "/different/installed/file"
-    path.write_text(json.dumps(receipt))
-    assert not isolation.isolation_result("gemini", config)["verified"]
-
-
-def test_codex_defaults_to_app_binary_and_environment_override_wins(config, tmp_path, monkeypatch):
-    app = tmp_path / "app-codex"
-    app.write_text("dummy native binary")
-    app.chmod(0o700)
-    monkeypatch.setattr(homes, "APP_CODEX", app)
-    monkeypatch.delenv("TUI_CODEX_BIN", raising=False)
-    profile = config["clis"]["codex"] | {"executable": "codex"}
-    assert homes.resolve_executable("codex", profile) == str(app)
-    monkeypatch.setenv("TUI_CODEX_BIN", config["clis"]["codex"]["executable"])
-    assert homes.resolve_executable("codex", profile) == config["clis"]["codex"]["executable"]
 
 
 def test_claude_relaxed_mcp_probe_uses_discovery_and_config_home_does_not_require_mcp(
@@ -1471,8 +1313,8 @@ def test_claude_relaxed_mcp_probe_uses_discovery_and_config_home_does_not_requir
 
 
 def test_existing_doctor_lock_reports_the_exact_clear_command(config, tmp_path, monkeypatch):
-    home = homes.require_setup("codex", config)
-    lock = home.parent / "tui-doctor.lock"
+    home = homes.state_directory("codex", config)
+    lock = home / "tui-doctor.lock"
     lock.mkdir()
     monkeypatch.setattr(
         isolation, "_execute", lambda *a, **k: pytest.fail("locked doctor launched")
@@ -1547,7 +1389,7 @@ def test_native_inventory_reads_cli_reports_under_exact_launch_environment(
             "realHomeSandboxPolicyExists": False,
         },
         "inspect --json": {
-            "cwd": str(tmp_path),
+            "cwd": "/work",
             "skills": [
                 {"name": "builtin-skill", "source": {"type": "builtin"}},
                 {"name": "bundled-skill", "source": {"type": "bundled", "path": "/bundle"}},
@@ -1562,7 +1404,8 @@ def test_native_inventory_reads_cli_reports_under_exact_launch_environment(
     calls = []
 
     def fake(command, **kwargs):
-        assert kwargs["env"] == env and kwargs["cwd"] == tmp_path and kwargs["input"] == ""
+        assert kwargs["env"] == docker.docker_environment(env) and kwargs["cwd"] == tmp_path
+        assert kwargs["input"] == ""
         calls.append(command)
         key = next(
             (key for key in outputs if command[-len(key.split()) :] == key.split()),
@@ -1576,7 +1419,6 @@ def test_native_inventory_reads_cli_reports_under_exact_launch_environment(
 
     monkeypatch.setattr(providers.subprocess, "run", fake)
     monkeypatch.setattr(inventory, "_codex_skills", lambda *a: [])
-    monkeypatch.setattr(inventory, "_gemini_settings_module", lambda *a: tmp_path / "settings.js")
     mcp_file = tmp_path / "modelspec-mcp.json"
     mcp_file.write_text(homes.home_config(cli, config))
     result = inventory.inspect_inventory(cli, config, tmp_path, env, mcp_file, mcp_enabled=True)
@@ -1640,60 +1482,48 @@ def test_runtime_guard_also_denies_a_credential_destination(move, tmp_path):
 def test_codex_skill_rpc_uses_the_exact_home_and_cwd_without_a_model_turn(
     malformed, config, tmp_path, monkeypatch
 ):
-    home = homes.require_setup("codex", config)
-    monkeypatch.setenv("OPENAI_API_KEY", "excluded")
     fake = tmp_path / "inventory-cli.py"
     fake.write_text(
         f"#!{sys.executable}\n"
-        "import json, os, sys\n"
-        f"assert os.environ['HOME'] == {os.environ['HOME']!r}\n"
-        f"assert os.environ['CODEX_HOME'] == {str(home / '.codex')!r}\n"
-        f"assert os.getcwd() == {str(tmp_path)!r}\n"
-        "assert 'OPENAI_API_KEY' not in os.environ\n"
+        "import json,sys\n"
         "for line in sys.stdin:\n"
         "    request = json.loads(line)\n"
         "    method = request['method']\n"
         "    if method == 'initialized': continue\n"
         "    if method == 'initialize': result = {'userAgent': 'fake-cli'}\n"
         "    elif method == 'skills/list':\n"
-        f"        assert request['params']['cwds'] == [{str(tmp_path)!r}]\n"
+        "        assert request['params']['cwds'] == ['/work']\n"
         "        assert request['params']['forceReload'] is True\n"
-        f"        result = {{'data': [{{'cwd': {str(tmp_path)!r}, 'skills': []"
+        "        result = {'data': [{'cwd': '/work', 'skills': []"
         + ("" if malformed else ", 'errors': []")
         + "}]}\n"
         "    else: raise AssertionError('Unexpected RPC or model turn')\n"
         "    print(json.dumps({'id': request['id'], 'result': result}), flush=True)\n"
     )
-    fake.chmod(0o700)
+
+    def popen(cli, cfg, workspace, command, env):
+        assert cli == "codex" and workspace == tmp_path
+        assert command == ["codex", "--no-daemon", "app-server", "--listen", "stdio://"]
+        # A local fake stands in for the Docker client's stdio transport.
+        return subprocess.Popen(
+            [sys.executable, str(fake)],
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+
+    def stop(process):
+        process.terminate()
+        return process.communicate(timeout=5)
+
+    monkeypatch.setattr(inventory, "popen_cli", popen)
+    monkeypatch.setattr(inventory, "stop_process", stop)
     env = providers.child_environment("codex", tmp_path, settings=config["clis"]["codex"])
     if malformed:
         with pytest.raises(ValueError, match="skill discovery errors"):
-            inventory._codex_skills(str(fake), ["--no-daemon"], tmp_path, env, 5)
+            inventory._codex_skills("codex", ["--no-daemon"], tmp_path, env, 5, config)
     else:
-        assert inventory._codex_skills(str(fake), ["--no-daemon"], tmp_path, env, 5) == []
-
-
-@pytest.mark.parametrize("cli", sorted(homes.SYSTEM_CREDENTIAL_CLIS))
-def test_login_and_doctor_refuse_redirected_home_on_darwin(cli, config, tmp_path, monkeypatch):
-    monkeypatch.setattr(sys, "platform", "darwin")
-    home = homes.require_setup(cli, config)
-    unsafe = providers.child_environment(cli, home, settings=config["clis"][cli]) | {
-        "HOME": str(home)
-    }
-    monkeypatch.setattr(providers, "child_environment", lambda *a, **k: unsafe)
-    monkeypatch.setattr(isolation, "child_environment", lambda *a, **k: unsafe)
-    monkeypatch.setattr(homes.os, "execve", lambda *a: pytest.fail("unsafe login started"))
-    monkeypatch.setattr(
-        isolation, "authentication_status", lambda *a: pytest.fail("unsafe status started")
-    )
-    monkeypatch.setattr(
-        providers.subprocess, "run", lambda *a, **k: pytest.fail("unsafe CLI started")
-    )
-    with pytest.raises(ValueError, match="unchanged HOME"):
-        homes.login(cli, config)
-    result = harness.verify_isolation(cli, config, tmp_path)
-    assert not result["verified"] and result["canary_runs"] == 0
-    assert "unchanged HOME" in result["reason"]
+        assert inventory._codex_skills("codex", ["--no-daemon"], tmp_path, env, 5, config) == []
 
 
 @pytest.mark.parametrize("cli", providers.CLIS)
@@ -1734,7 +1564,7 @@ def test_claude_auth_status_discards_account_identifiers(
 
     def run(command, **kwargs):
         assert command[-2:] == ["auth", "status"]
-        assert kwargs["env"]["HOME"] == os.environ["HOME"]
+        assert "--env" in command and "HOME" not in command
         return subprocess.CompletedProcess(command, code, json.dumps(value), "")
 
     monkeypatch.setattr(auth.subprocess, "run", run)
@@ -1770,6 +1600,11 @@ def test_codex_auth_status_accepts_only_native_status_grammar(
 def test_gemini_authenticated_service_rejection_is_not_missing_login(config, tmp_path, monkeypatch):
     monkeypatch.setattr(
         auth,
+        "run_cli",
+        lambda *a, **k: subprocess.CompletedProcess([], 0, '{"selectedType":"oauth-personal"}', ""),
+    )
+    monkeypatch.setattr(
+        auth,
         "_rpc",
         lambda *a: [
             {},
@@ -1788,29 +1623,6 @@ def test_gemini_authenticated_service_rejection_is_not_missing_login(config, tmp
     assert result["verified"] and result["logged_in"] is True
     assert result["auth_method"] == "oauth-personal" and result["service_available"] is False
     assert "UNSUPPORTED_CLIENT" in result["reason"]
-
-
-def test_real_home_natural_canaries_use_metadata_only_and_invalidate_receipts(
-    config, tmp_path, monkeypatch
-):
-    real_home = Path.home()
-    original = Path.open
-
-    def guarded(path, *args, **kwargs):
-        assert not path.is_relative_to(real_home), "real home contents were opened"
-        return original(path, *args, **kwargs)
-
-    with monkeypatch.context() as patch:
-        patch.setattr(Path, "open", guarded)
-        patch.setattr(isolation, "_execute", doctor_reply)
-        result = harness.verify_isolation("codex", config, tmp_path)
-        assert result["verified"] and result["real_home"]["verified"]
-        assert result["real_home"]["skill_count"] == 1
-        assert isolation.isolation_result("codex", config)["verified"]
-    canary = real_home / ".agents/skills/new-natural-canary/SKILL.md"
-    canary.parent.mkdir()
-    canary.write_text("New existing customization changes the proof.")
-    assert not isolation.isolation_result("codex", config)["verified"]
 
 
 @pytest.mark.parametrize("cli", providers.CLIS)
@@ -1849,43 +1661,6 @@ def test_gemini_stderr_listing_rejects_unknown_lines_and_malformed_grammar(
     assert result["error"] and result["checks"][0]["exit_code"] == 0
 
 
-def test_gemini_node_and_binary_defaults_allow_environment_overrides(config, tmp_path, monkeypatch):
-    node = tmp_path / "test-node"
-    node.write_text("#!/bin/sh\nexit 0\n")
-    node.chmod(0o700)
-    monkeypatch.setenv("TUI_GEMINI_NODE", str(node))
-    monkeypatch.setenv("TUI_GEMINI_BIN", config["clis"]["gemini"]["executable"])
-    env = providers.child_environment("gemini", tmp_path, settings=config["clis"]["gemini"])
-    assert env["PATH"].split(os.pathsep)[0] == str(node.parent)
-    assert (
-        homes.gemini_runtime(
-            Path(config["clis"]["gemini"]["executable"]), config["clis"]["gemini"]
-        )[0]
-        == node
-    )
-
-
-@pytest.mark.parametrize("exit_code", [0, 1])
-def test_gemini_version_cannot_discover_an_ancestor_dotenv(
-    exit_code, config, tmp_path, monkeypatch
-):
-    env = providers.child_environment("gemini", tmp_path, settings=config["clis"]["gemini"])
-
-    def run(command, **kwargs):
-        cwd = kwargs["cwd"]
-        # The native search stops at the first cwd dotenv, before visiting HOME.
-        assert (cwd / ".env").stat().st_size == 0
-        return subprocess.CompletedProcess(command, exit_code, "0.62.0\n", "")
-
-    monkeypatch.setattr(homes.subprocess, "run", run)
-    if exit_code:
-        with pytest.raises(ValueError, match="--version failed"):
-            READ_VERSION("fake-gemini", tmp_path, env, 1)
-    else:
-        assert READ_VERSION("fake-gemini", tmp_path, env, 1) == "0.62.0"
-    assert not (tmp_path / ".env").exists()
-
-
 @pytest.mark.parametrize("symlink", [False, True])
 def test_gemini_existing_dotenv_refuses_startup_without_read_or_overwrite(
     symlink, config, tmp_path, monkeypatch
@@ -1907,15 +1682,467 @@ def test_gemini_existing_dotenv_refuses_startup_without_read_or_overwrite(
         return original_open(path, *args, **kwargs)
 
     monkeypatch.setattr(Path, "open", guarded)
-    monkeypatch.setattr(homes.subprocess, "run", lambda *a, **k: pytest.fail("CLI started"))
-    env = providers.child_environment("gemini", tmp_path, settings=config["clis"]["gemini"])
+    monkeypatch.setattr(docker.subprocess, "run", lambda *a, **k: pytest.fail("CLI started"))
     with pytest.raises(ValueError, match="empty private cwd .env"):
-        READ_VERSION("fake-gemini", tmp_path, env, 1)
+        providers.prepare_workspace("gemini", config, tmp_path, mcp_enabled=False)
     assert target.stat() == original_stat
 
 
-def test_gemini_positive_control_also_suppresses_browser_auth(config, tmp_path):
-    env = providers.child_environment(
-        "gemini", tmp_path, settings=config["clis"]["gemini"], isolated=False
+@pytest.mark.parametrize("cli", providers.CLIS)
+def test_docker_boundary_mounts_only_login_volume_and_private_workspace(cli, config, tmp_path):
+    env = docker.passed_environment(config)
+    argv = docker.container_command(cli, config, tmp_path, [cli, "--version"], env)
+    mounts = [argv[i + 1] for i, value in enumerate(argv) if value == "--mount"]
+    assert mounts == [
+        f"type=volume,source=modelspec-harness-{cli}-home,target=/home/agent",
+        f"type=bind,source={tmp_path},target=/work",
+    ]
+    passed = [argv[i + 1] for i, value in enumerate(argv) if value == "--env"]
+    assert set(passed) == {"TERM", "LANG", "MODELSPEC_MCP_URL"}
+    assert "--rm" in argv and "--pull=never" in argv
+    assert "--privileged" not in argv and "--network=host" not in argv
+    assert argv[-3:] == ["isolated", cli, "--version"]
+    assert "HOME" not in passed and "PATH" not in passed
+    assert argv[argv.index("--workdir") + 1] == "/work"
+    assert str(Path.home()) not in " ".join(argv)
+
+
+@pytest.mark.parametrize("cli", providers.CLIS)
+def test_native_headless_paths_are_linux_paths_without_rewriting_the_prompt(cli, config, tmp_path):
+    path = tmp_path / "mcp.json"
+    path.write_text(homes.home_config(cli, config))
+    prompt = f"literal {tmp_path} $HOME `echo hi`"
+    argv = providers.build_command(cli, config["clis"][cli], tmp_path, prompt, path, 8)
+    assert argv[-1] == prompt
+    assert not any(str(tmp_path) in value for value in argv[:-1])
+    if cli == "claude":
+        assert argv[argv.index("--mcp-config") + 1] == "/work/mcp.json"
+    if cli in ("codex", "grok"):
+        assert "/work" in argv
+
+
+@pytest.mark.parametrize(
+    "variable",
+    [
+        "ANTHROPIC_API_KEY",
+        "OPENAI_API_KEY",
+        "GEMINI_API_KEY",
+        "GOOGLE_API_KEY",
+        "XAI_API_KEY",
+        "AZURE_OPENAI_API_KEY",
+        "ANTHROPIC_AUTH_TOKEN",
+        "CLAUDE_CODE_OAUTH_TOKEN",
+        "CODEX_ACCESS_TOKEN",
+        "GROK_DEPLOYMENT_KEY",
+        "GOOGLE_APPLICATION_CREDENTIALS",
+        "AWS_ACCESS_KEY_ID",
+        "OPENAI_IDENTITY_TOKEN_FILE",
+    ],
+)
+@pytest.mark.parametrize("value", ["", "must-never-be-printed"])
+def test_container_refuses_vendor_credential_environment_even_when_empty(
+    variable, value, config, tmp_path, monkeypatch, capsys
+):
+    env = docker.passed_environment(config) | {variable: value}
+    monkeypatch.setattr(docker.subprocess, "run", lambda *a, **k: pytest.fail("Docker started"))
+    with pytest.raises(ValueError, match="Subscription-only"):
+        docker.run_cli("claude", config, tmp_path, ["claude", "--version"], env)
+    with pytest.raises(ValueError, match="Subscription-only"):
+        entrypoint.runtime_environment("claude", "isolated", env)
+    assert "must-never-be-printed" not in repr(capsys.readouterr())
+
+
+@pytest.mark.parametrize("variable", ["HOME", "PATH", "NODE_OPTIONS", "BASH_ENV", "CODEX_HOME"])
+def test_container_rejects_nonallowlisted_environment(variable, config, tmp_path):
+    with pytest.raises(ValueError, match="explicit harness allowlist"):
+        docker.container_command(
+            "codex",
+            config,
+            tmp_path,
+            ["codex", "--help"],
+            docker.passed_environment(config) | {variable: "host-value"},
+        )
+
+
+@pytest.mark.parametrize("cli", providers.CLIS)
+def test_runtime_uses_fixed_linux_home_and_suppresses_host_customizations(cli):
+    env = entrypoint.runtime_environment(
+        cli,
+        "isolated",
+        {
+            "TERM": "xterm",
+            "LANG": "C.UTF-8",
+            "PATH": "/host/bin",
+            "HOME": "/host/home",
+            "BASH_ENV": "/host/shell",
+            "NODE_OPTIONS": "--require=host.js",
+            "MODELSPEC_MCP_URL": "https://example.test/mcp",
+        },
     )
-    assert env["NO_BROWSER"] == "true"
+    assert env["HOME"] == "/home/agent"
+    assert env["PATH"] == "/usr/local/bin:/usr/bin:/bin" and env["TMPDIR"] == "/tmp"
+    assert "BASH_ENV" not in env and "NODE_OPTIONS" not in env
+    if cli == "gemini":
+        assert env["NO_BROWSER"] == "true"
+        assert env["GEMINI_CLI_SYSTEM_SETTINGS_PATH"].startswith("/opt/modelspec-harness/")
+        assert "selectedType" not in Path("qa/docker/gemini-isolated.json").read_text()
+    if cli == "grok":
+        assert env["GROK_FOLDER_TRUST"] == "1"
+
+
+def test_grok_positive_control_does_not_persist_trust_into_login_volume(config, tmp_path):
+    env = entrypoint.runtime_environment("grok", "positive", {})
+    assert env["GROK_FOLDER_TRUST"] == "0"
+    assert "GROK_FOLDER_TRUST" not in entrypoint.runtime_environment("grok", "login", {})
+    command = providers.build_command(
+        "grok",
+        config["clis"]["grok"],
+        tmp_path,
+        "OK",
+        tmp_path / "mcp.json",
+        8,
+        isolated=False,
+    )
+    assert "--trust" not in command and "--trust-folder" not in command
+
+
+def test_doctor_rejects_state_directory_aliases_before_any_docker_call(
+    config, tmp_path, monkeypatch
+):
+    root = Path(config["_state_dir"])
+    root.mkdir()
+    target = tmp_path / "docker-volumes" / docker.home_volume("codex") / "_data"
+    target.mkdir(parents=True)
+    (root / "codex").symlink_to(target, target_is_directory=True)
+    monkeypatch.setattr(
+        isolation, "image_identity", lambda *a: pytest.fail("Docker must not be started")
+    )
+    result = harness.verify_isolation("codex", config, tmp_path)
+    assert not result["verified"] and "must not be symlinks" in result["reason"]
+    assert not list(target.iterdir())
+
+
+@pytest.mark.parametrize("cli", providers.CLIS)
+def test_login_execs_docker_with_subscription_flow_and_uncaptured_terminal(
+    cli, config, monkeypatch, capsys
+):
+    observed = []
+    monkeypatch.setenv("MODELSPEC_API_KEY", "model-secret")
+    monkeypatch.setenv("OPENAI_API_KEY", "vendor-secret")
+    monkeypatch.setattr(homes.os, "execve", lambda *args: observed.append(args))
+    monkeypatch.setattr(docker.subprocess, "run", lambda *a, **k: pytest.fail("login captured"))
+    homes.login(cli, config)
+    executable, argv, env = observed[0]
+    assert executable == "/fake/docker" and argv[:3] == ["/fake/docker", "run", "--rm"]
+    assert (
+        "-it" in argv
+        and "type=volume,source=" + docker.home_volume(cli) + ",target=/home/agent" in argv
+    )
+    assert not any("type=bind" in value for value in argv)
+    assert not any(key.startswith("MODELSPEC") for key in env)
+    assert "OPENAI_API_KEY" not in env
+    native = argv[argv.index("login", argv.index("sha256:" + "a" * 64)) + 1 :]
+    assert native == docker.LOGIN_ARGS[cli]
+    assert "--with-api-key" not in native
+    if cli in ("codex", "grok"):
+        assert "--device-auth" in native
+    if cli == "claude":
+        assert native == ["claude", "auth", "login", "--claudeai"]
+    assert capsys.readouterr().out == ""
+    assert homes.login_command(cli) == f"python -m qa.tui_harness login --cli {cli}"
+
+
+@pytest.mark.parametrize(
+    "cli,method",
+    [
+        ("claude", "api_key"),
+        ("codex", "api_key"),
+        ("gemini", "gemini-api-key"),
+        ("grok", "api_key"),
+    ],
+)
+def test_api_auth_refuses_model_start_and_revokes_doctor(
+    cli, method, config, tmp_path, monkeypatch
+):
+    allow_launch(config, (cli,))
+    monkeypatch.setattr(
+        providers,
+        "authentication_status",
+        lambda *a: {
+            "logged_in": True,
+            "auth_method": method,
+            "verified": False,
+            "reason": "CLI reports API-key authentication",
+        },
+    )
+    monkeypatch.setattr(providers, "run_cli", lambda *a, **k: pytest.fail("model started"))
+    result = providers.launch(cli, config, tmp_path, "Never run this prompt", mcp_enabled=False)
+    assert result.status == "isolation_failed" and "API-key" in result.error
+    assert not isolation.isolation_result(cli, config)["verified"]
+
+
+@pytest.mark.parametrize("method", ["gemini-api-key", "vertex-ai", "unknown", "none"])
+def test_gemini_checks_native_auth_selection_before_acp(method, config, tmp_path, monkeypatch):
+    calls = []
+
+    def status(cli, cfg, workspace, command, env):
+        calls.append(command)
+        return subprocess.CompletedProcess(command, 0, json.dumps({"selectedType": method}), "")
+
+    monkeypatch.setattr(auth, "run_cli", status)
+    monkeypatch.setattr(auth, "_rpc", lambda *a: pytest.fail("non-Google ACP started"))
+    result = auth.authentication_status(
+        "gemini", config, tmp_path, docker.passed_environment(config)
+    )
+    assert result["verified"] is (method == "none")
+    assert calls == [["node", "/opt/modelspec-harness/gemini-settings.mjs", "auth"]]
+
+
+def test_claude_status_api_key_source_overrides_subscription_method(config, tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        auth,
+        "run_cli",
+        lambda *a: subprocess.CompletedProcess(
+            [], 0, '{"loggedIn":true,"authMethod":"claude.ai","apiKeySource":"apiKeyHelper"}', ""
+        ),
+    )
+    result = auth.authentication_status(
+        "claude", config, tmp_path, docker.passed_environment(config)
+    )
+    assert not result["verified"] and result["auth_method"] == "api_key"
+
+
+def test_modelspec_token_is_forwarded_only_for_agents_and_never_in_docker_argv(
+    config, tmp_path, monkeypatch
+):
+    monkeypatch.setenv("MODELSPEC_API_KEY", "must-stay-out-of-argv")
+    for enabled in (False, True):
+        env = docker.passed_environment(config, token=enabled)
+        argv = docker.container_command("claude", config, tmp_path, ["claude", "--help"], env)
+        assert ("MODELSPEC_API_KEY" in env) is enabled
+        assert ("MODELSPEC_API_KEY" in argv) is enabled
+        assert "must-stay-out-of-argv" not in " ".join(argv)
+
+
+def test_docker_timeout_removes_the_container_without_retry(config, tmp_path, monkeypatch):
+    removed, starts = [], []
+    monkeypatch.setattr(docker, "remove_container", removed.append)
+
+    def run(argv, **kwargs):
+        starts.append(argv)
+        raise subprocess.TimeoutExpired(argv, 1, b"partial transcript", b"diagnostic")
+
+    monkeypatch.setattr(docker.subprocess, "run", run)
+    with pytest.raises(subprocess.TimeoutExpired) as caught:
+        docker.run_cli(
+            "codex", config, tmp_path, ["codex", "--version"], docker.passed_environment(config)
+        )
+    assert caught.value.stdout == b"partial transcript"
+    assert len(starts) == 1 and removed == [starts[0][starts[0].index("--name") + 1]]
+
+
+def test_build_images_uses_pinned_local_targets_and_only_the_docker_context(
+    config, monkeypatch, capsys
+):
+    commands = []
+    monkeypatch.setattr(
+        docker.subprocess,
+        "run",
+        lambda argv, **kw: commands.append(argv) or subprocess.CompletedProcess(argv, 0),
+    )
+    docker.build_images(config, list(providers.CLIS))
+    assert len(commands) == 4
+    for cli, argv in zip(providers.CLIS, commands, strict=True):
+        assert argv[:2] == ["/fake/docker", "build"]
+        assert argv[argv.index("--target") + 1] == cli
+        assert f"CLI_VERSION={config['clis'][cli]['version']}" in argv
+        assert argv[-1] == str(harness.HERE / "docker")
+        assert "push" not in argv and "--push" not in argv
+    assert "Built modelspec-harness-codex:0.160.0" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize("version", ["latest", "0.160", "0.160.0-rc1", "0.159.9"])
+def test_invalid_or_old_codex_image_version_is_rejected(version, config):
+    config["clis"]["codex"]["version"] = version
+    with pytest.raises(ValueError):
+        harness.validate_config(config)
+
+
+def test_version_measurement_has_no_login_volume_and_mismatch_refuses_doctor(
+    config, tmp_path, monkeypatch
+):
+    seen = []
+
+    def run(cli, cfg, workspace, argv, env, **kwargs):
+        seen.append((cli, argv, kwargs))
+        return subprocess.CompletedProcess(argv, 0, "codex-cli 0.159.9", "")
+
+    monkeypatch.setattr(homes, "run_cli", run)
+    with pytest.raises(ValueError, match="pinned image version"):
+        homes.binary_identity("codex", config, tmp_path)
+    assert seen == [("codex", ["codex", "--version"], {"home": False})]
+
+
+def test_inventory_action_has_an_ephemeral_home_and_never_certifies_or_authenticates(
+    config, tmp_path, monkeypatch, capsys
+):
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(yaml.safe_dump(config))
+    calls = []
+
+    def inspect(cli, cfg, workspace, env, mcp_file, **kwargs):
+        assert cfg["_anonymous_home"] is True
+        assert workspace.is_relative_to(tmp_path) and "MODELSPEC_API_KEY" not in env
+        calls.append(cli)
+        return native_inventory(cli)
+
+    monkeypatch.setattr(inventory, "inspect_inventory", inspect)
+    monkeypatch.setattr(auth, "authentication_status", lambda *a: pytest.fail("auth was queried"))
+    monkeypatch.setattr(providers, "_execute", lambda *a, **k: pytest.fail("model started"))
+    assert (
+        harness.main(
+            ["inventory", "--cli", "codex", "--config", str(config_path), "--out", str(tmp_path)]
+        )
+        == 0
+    )
+    assert calls == ["codex"] and '"certified": false' in capsys.readouterr().out
+    assert not list(tmp_path.glob(".tui-state/*/tui-isolation.json"))
+
+
+def test_doctor_runs_the_auth_version_and_paired_controls_through_fake_docker(
+    config, tmp_path, monkeypatch
+):
+    calls = []
+    monkeypatch.setattr(homes, "run_cli", docker.run_cli)
+    monkeypatch.setattr(isolation, "authentication_status", auth.authentication_status)
+    monkeypatch.setattr(providers, "authentication_status", auth.authentication_status)
+
+    def run(argv, **kwargs):
+        assert argv[:3] == ["/fake/docker", "run", "--rm"]
+        native_at = argv.index("sha256:" + "a" * 64) + 3
+        native = argv[native_at:]
+        mode = argv[native_at - 1]
+        calls.append((native, mode, argv))
+        if native == ["claude", "auth", "status"]:
+            stdout = '{"loggedIn":true,"authMethod":"claude.ai"}'
+        elif native == ["claude", "--version"]:
+            stdout = "2.1.289 (Claude Code)"
+            assert not any("type=volume" in value for value in argv)
+        else:
+            assert native[0:2] == ["claude", "--print"]
+            marker = "OK"
+            if mode == "positive":
+                root = kwargs["cwd"]
+                marker = re.search(r"MODEL301_CANARY_\w+", (root / "CLAUDE.md").read_text())[0]
+                (root / "model301-hook-fired").touch()
+                (root / "model301-mcp-fired").touch()
+            stdout = text(
+                [
+                    {
+                        "type": "system",
+                        "subtype": "init",
+                        "apiKeySource": "none",
+                        "skills": ["model301_canary"] if mode == "positive" else [],
+                        "plugins": [],
+                        "mcp_servers": [],
+                        "tools": [],
+                    },
+                    {"type": "result", "result": marker, "num_turns": 1},
+                ]
+            )
+        return subprocess.CompletedProcess(argv, 0, stdout, "")
+
+    monkeypatch.setattr(docker.subprocess, "run", run)
+    result = harness.verify_isolation("claude", config, tmp_path)
+    assert result["verified"] and result["canary_runs"] == 2
+    assert result["schema"] == 4 and isolation.isolation_result("claude", config)["verified"]
+    prompts = [(native, mode) for native, mode, _ in calls if "--print" in native]
+    assert [mode for _, mode in prompts] == ["positive", "isolated"]
+    assert all("MODELSPEC_API_KEY" not in argv for _, _, argv in calls)
+
+
+@pytest.mark.parametrize("bad", ["missing", "version", "uid", "vendor_env", "entrypoint"])
+def test_build_identity_rejects_missing_changed_or_key_bearing_images(
+    bad, config, monkeypatch, capsys
+):
+    row = {
+        "Id": "sha256:" + "a" * 64,
+        "Os": "linux",
+        "Architecture": "arm64",
+        "Config": {
+            "Labels": {
+                "modelspec.cli": "codex",
+                "modelspec.cli_version": "0.160.0",
+                "modelspec.agent_uid": str(os.getuid()),
+            },
+            "User": "agent",
+            "Entrypoint": ["python3", "/opt/modelspec-harness/entrypoint.py"],
+            "Env": ["HOME=/home/agent", "PATH=/usr/local/bin:/usr/bin:/bin"],
+        },
+    }
+    if bad == "version":
+        row["Config"]["Labels"]["modelspec.cli_version"] = "0.159.9"
+    elif bad == "uid":
+        row["Config"]["Labels"]["modelspec.agent_uid"] = "9999"
+    elif bad == "vendor_env":
+        row["Config"]["Env"].append("OPENAI_API_KEY=never-print-this")
+    elif bad == "entrypoint":
+        row["Config"]["Entrypoint"] = ["sh", "-c"]
+
+    def inspect(argv, **kwargs):
+        assert argv[1:3] == ["image", "inspect"]
+        return subprocess.CompletedProcess(
+            argv, 1 if bad == "missing" else 0, json.dumps([row]), ""
+        )
+
+    monkeypatch.setattr(docker.subprocess, "run", inspect)
+    with pytest.raises(ValueError, match="image is missing or invalid"):
+        IMAGE_IDENTITY("codex", config)
+    assert "never-print-this" not in repr(capsys.readouterr())
+
+
+def test_codex_account_plugin_listing_is_reported_and_never_assumed_disabled(
+    config, tmp_path, monkeypatch
+):
+    monkeypatch.setattr(inventory, "_codex_skills", lambda *a: [])
+
+    def run(argv, **kwargs):
+        if argv[-3:] == ["mcp", "list", "--json"]:
+            value = [
+                {
+                    "name": "modelspec",
+                    "enabled": True,
+                    "transport": {"type": "streamable_http", "url": config["mcp_url"]},
+                }
+            ]
+        elif argv[-3:] == ["plugin", "list", "--json"]:
+            value = {
+                "installed": [{"name": "account-app", "enabled": True, "scope": "account"}],
+                "available": [],
+            }
+        elif argv[-2:] == ["features", "list"]:
+            return subprocess.CompletedProcess(argv, 0, "hooks stable false\n", "")
+        else:
+            value = [{"type": "message", "content": [{"type": "input_text", "text": "context"}]}]
+        return subprocess.CompletedProcess(argv, 0, json.dumps(value), "")
+
+    monkeypatch.setattr(docker.subprocess, "run", run)
+    mcp = tmp_path / "mcp.toml"
+    mcp.write_text(homes.home_config("codex", config))
+    result = inventory.inspect_inventory(
+        "codex", config, tmp_path, docker.passed_environment(config), mcp, mcp_enabled=True
+    )
+    assert result["plugins"] == [{"name": "account-app", "enabled": True, "scope": "account"}]
+    assert result["extensions"] == ["account-app"]
+    assert inventory.inventory_violation(result, mcp_enabled=True) == "CLI loaded user extensions"
+
+
+def test_gemini_lifecycle_notices_are_recognized_but_unknown_diagnostics_remain_failures():
+    output = "No skills discovered.\n" + "\n".join(sorted(inventory.GEMINI_MCP_NOTICES))
+    assert inventory.gemini_skill_listing(output) == "No skills discovered."
+    assert "warning" in inventory.gemini_skill_listing(
+        output + "\nwarning: unknown discovery failure"
+    )
+    assert "foreign" in inventory.gemini_skill_listing(
+        "Server 'foreign' supports tool updates. Listening for changes...\nNo skills discovered."
+    )

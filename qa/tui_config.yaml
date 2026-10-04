@@ -1,5 +1,5 @@
 # Subscription logins stay with each CLI. The harness never opens auth files.
-# Eligibility requires a doctor receipt for this binary and adapter revision.
+# Eligibility requires a doctor receipt for this image ID and adapter revision.
 mcp_url: https://api.modelspec.dev/mcp
 # Optional ModelSpec connection credential. This is not an agent-vendor API key.
 mcp_token_env: MODELSPEC_API_KEY
@@ -9,30 +9,29 @@ timeout_seconds: 300
 turn_cap: 8
 clis:
   claude:
+    version: "2.1.289"
     executable: claude
-    harness_home: ~/.modelspec-harness/claude/home
     config_dir: .claude
     model: fable
     effort: high
     usage_limit_exit_codes: []
   codex:
+    version: "0.160.0"
     executable: codex
     min_version: "0.160"
-    harness_home: ~/.modelspec-harness/codex/home
     config_dir: .codex
     model: gpt-6.1-sol
     effort: max
     usage_limit_exit_codes: []
   gemini:
-    executable: /Users/terbeest/.nvm/versions/node/v20.19.3/lib/node_modules/@google/gemini-cli/bundle/gemini.js
-    node_executable: /Users/terbeest/.nvm/versions/node/v20.19.3/bin/node
-    harness_home: ~/.modelspec-harness/gemini/home
+    version: "0.62.0"
+    executable: gemini
     config_dir: .gemini
     model: gemini-3.8-pro
     usage_limit_exit_codes: []
   grok:
+    version: "1.0.46"
     executable: grok
-    harness_home: ~/.modelspec-harness/grok/home
     config_dir: .grok
     model: grok-4.7
     effort: xhigh

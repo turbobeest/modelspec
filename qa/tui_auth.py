@@ -10,18 +10,20 @@ import subprocess
 from pathlib import Path
 from time import monotonic
 
-from qa.tui_homes import guard_system_home, resolve_executable
+from qa.tui_docker import popen_cli, run_cli, stop_process
+from qa.tui_homes import resolve_executable
 
 
-def _rpc(command: list[str], workspace: Path, env: dict, requests: list, timeout: float) -> list:
-    process = subprocess.Popen(
-        command,
-        cwd=workspace,
-        env=env,
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
+def _rpc(
+    cli: str,
+    config: dict,
+    command: list[str],
+    workspace: Path,
+    env: dict,
+    requests: list,
+    timeout: float,
+) -> list:
+    process = popen_cli(cli, config, workspace, command, env)
     pending, diagnostics, responses = b"", b"", []
     deadline = monotonic() + timeout
     try:
@@ -72,12 +74,7 @@ def _rpc(command: list[str], workspace: Path, env: dict, requests: list, timeout
                     if len(pending) > 1_000_000 or len(diagnostics) > 100_000:
                         raise ValueError("Authentication status RPC emitted excess output")
     finally:
-        process.terminate()
-        try:
-            _, stderr = process.communicate(timeout=5)
-        except subprocess.TimeoutExpired:
-            process.kill()
-            _, stderr = process.communicate()
+        _, stderr = stop_process(process)
         diagnostics += stderr
     # Gemini's native authentication success message is written to stderr.
     error = responses[-1].get("error", {}) if responses else {}
@@ -97,21 +94,13 @@ def _rpc(command: list[str], workspace: Path, env: dict, requests: list, timeout
 
 
 def authentication_status(cli: str, config: dict, workspace: Path, env: dict) -> dict:
-    guard_system_home(cli, env)
+    env = {k: v for k, v in env.items() if k != config.get("mcp_token_env")}
     binary = resolve_executable(cli, config["clis"][cli])
     result = {"logged_in": None, "auth_method": None, "verified": False, "checks": []}
     timeout = config["timeout_seconds"]
 
     def run(args):
-        completed = subprocess.run(
-            [binary, *args],
-            cwd=workspace,
-            env=env,
-            input="",
-            text=True,
-            capture_output=True,
-            timeout=timeout,
-        )
+        completed = run_cli(cli, config, workspace, [binary, *args], env)
         result["checks"].append({"command": " ".join(args), "exit_code": completed.returncode})
         return completed
 
@@ -127,7 +116,15 @@ def authentication_status(cli: str, config: dict, workspace: Path, env: dict) ->
         if cli == "claude":
             completed = run(["auth", "status"])
             value = json.loads(completed.stdout)
-            methods = {"none", "claude.ai", "oauth", "subscription", "api_key", "apiKey"}
+            methods = {
+                "none",
+                "claude.ai",
+                "oauth_token",
+                "api_key",
+                "apiKey",
+                "api_key_helper",
+                "third_party",
+            }
             if (
                 type(value.get("loggedIn")) is not bool
                 or value.get("authMethod") not in methods
@@ -135,7 +132,10 @@ def authentication_status(cli: str, config: dict, workspace: Path, env: dict) ->
                 or completed.returncode not in (0, 1)
             ):
                 raise ValueError("Unknown Claude authentication status format")
-            result.update(logged_in=value["loggedIn"], auth_method=value["authMethod"])
+            method = value["authMethod"]
+            if value.get("apiKeySource") not in (None, "none", "subscription", "oauth"):
+                method = "api_key"
+            result.update(logged_in=value["loggedIn"], auth_method=method)
         elif cli == "codex":
             completed = run(["login", "status"])
             listing = (completed.stdout + completed.stderr).strip()
@@ -148,6 +148,28 @@ def authentication_status(cli: str, config: dict, workspace: Path, env: dict) ->
             else:
                 raise ValueError("Unknown Codex authentication status format")
         elif cli == "gemini":
+            completed = run_cli(
+                cli,
+                config,
+                workspace,
+                ["node", "/opt/modelspec-harness/gemini-settings.mjs", "auth"],
+                env,
+            )
+            result["checks"].append(
+                {"command": "Gemini native selectedType", "exit_code": completed.returncode}
+            )
+            method = json.loads(completed.stdout).get("selectedType")
+            if completed.returncode or completed.stderr.strip():
+                raise ValueError("Gemini native auth selection failed")
+            if method == "none":
+                result.update(logged_in=False, auth_method="none", verified=True, reason=None)
+                return result
+            if method != "oauth-personal":
+                result.update(
+                    auth_method=method if method in ("gemini-api-key", "vertex-ai") else "unknown",
+                    reason="Gemini selectedType is not Google login",
+                )
+                return result
             command = [
                 binary,
                 "--acp",
@@ -157,10 +179,12 @@ def authentication_status(cli: str, config: dict, workspace: Path, env: dict) ->
                 "model301_none",
             ]
             responses = _rpc(
+                cli,
+                config,
                 command,
                 workspace,
                 env,
-                [initialize, ("session/new", {"cwd": str(workspace), "mcpServers": []})],
+                [initialize, ("session/new", {"cwd": "/work", "mcpServers": []})],
                 timeout,
             )
             result["checks"].append(
@@ -192,9 +216,18 @@ def authentication_status(cli: str, config: dict, workspace: Path, env: dict) ->
                 raise ValueError("Unknown Gemini authentication status format")
         elif cli == "grok":
             responses = _rpc(
-                [binary, "agent", "--no-leader", "stdio"], workspace, env, [initialize], timeout
+                cli,
+                config,
+                [binary, "agent", "--no-leader", "stdio"],
+                workspace,
+                env,
+                [initialize],
+                timeout,
             )
             method = responses[0].get("result", {}).get("_meta", {}).get("defaultAuthMethodId")
+            if method in ("api_key", "api-key", "xai-api-key", "deployment_key"):
+                result.update(auth_method="api_key", reason="Grok reports API-key authentication")
+                return result
             completed = run(["models"])
             if (
                 completed.returncode == 0
@@ -211,9 +244,18 @@ def authentication_status(cli: str, config: dict, workspace: Path, env: dict) ->
             result["checks"].insert(
                 0, {"command": "Grok ACP initialize (auth method)", "exit_code": 0}
             )
-        result["verified"] = result["auth_method"] not in ("api_key", "apiKey")
+        result["verified"] = (
+            result["auth_method"]
+            in {
+                "claude": {"claude.ai", "none"},
+                "codex": {"chatgpt", "none"},
+                "gemini": {"oauth-personal", "none"},
+                "grok": {"cached_token", "grok.com", "none"},
+            }[cli]
+        )
         result.setdefault(
-            "reason", None if result["verified"] else "CLI reports API-key authentication"
+            "reason",
+            None if result["verified"] else "CLI does not report subscription authentication",
         )
     except (ValueError, KeyError, TypeError, AttributeError, OSError, subprocess.TimeoutExpired):
         # Status output can contain identities. Never retain raw output or error text.

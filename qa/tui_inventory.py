@@ -10,7 +10,8 @@ import subprocess
 from pathlib import Path
 from time import monotonic
 
-from qa.tui_homes import gemini_runtime, resolve_executable
+from qa.tui_docker import popen_cli, run_cli, stop_process
+from qa.tui_homes import resolve_executable
 
 MECHANISMS = {
     "claude": "stream init: skills, plugins, mcp_servers, tools; hook events",
@@ -72,46 +73,34 @@ def _names(rows: list, *, enabled_key: str | None = None) -> list[str]:
     return sorted(names)
 
 
-def _gemini_settings_module(bundle: Path) -> Path:
-    # Inspect only installed package code, never a user's config or state files.
-    matches, pending, visited = [], [bundle], set()
-    while pending:
-        path = pending.pop()
-        module = path.resolve()
-        if module in visited:
-            continue
-        visited.add(module)
-        if not module.is_relative_to(bundle.parent):
-            raise ValueError("Gemini settings module leaves its installed bundle")
-        source = module.read_text()
-        if re.search(r"export\s*\{[^}]*\bloadSettings\b", source, re.S):
-            matches.append(module)
-        pending.extend(
-            module.parent / name
-            for name in re.findall(
-                r'(?:\bfrom\s+|\bimport\s*\(?\s*)["\'](\./[\w.-]+\.js)["\']', source
-            )
-            if (module.parent / name).is_file()
-        )
-    if len(matches) != 1:
-        raise ValueError("Gemini package does not expose an unambiguous loadSettings export")
-    module = matches[0].resolve()
-    if not module.is_relative_to(bundle.parent):
-        raise ValueError("Gemini settings module leaves its installed bundle")
-    return module
+GEMINI_MCP_NOTICES = frozenset(
+    (
+        "Registering notification handlers for server 'modelspec'. "
+        "Capabilities: { tools: { listChanged: true } }",
+        "Server 'modelspec' supports tool updates. Listening for changes...",
+        "Scheduling MCP context refresh...",
+        "Executing MCP context refresh...",
+        "MCP context refresh complete.",
+    )
+)
+
+
+def gemini_skill_listing(output: str) -> str:
+    # Keep unknown diagnostics in the listing so its strict grammar rejects them.
+    return "\n".join(line for line in output.splitlines() if line not in GEMINI_MCP_NOTICES).strip()
 
 
 def _codex_skills(
-    binary: str, controls: list[str], workspace: Path, env: dict, timeout: float
+    binary: str,
+    controls: list[str],
+    workspace: Path,
+    env: dict,
+    timeout: float,
+    config: dict,
 ) -> list[dict]:
     """Query the CLI's local inventory RPC without starting a model turn."""
-    process = subprocess.Popen(
-        [binary, *controls, "app-server", "--listen", "stdio://"],
-        cwd=workspace,
-        env=env,
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
+    process = popen_cli(
+        "codex", config, workspace, [binary, *controls, "app-server", "--listen", "stdio://"], env
     )
     pending, diagnostics = b"", b""
     deadline = monotonic() + timeout
@@ -163,21 +152,16 @@ def _codex_skills(
             )
             process.stdin.write(b'{"method":"initialized"}\n')
             process.stdin.flush()
-            result = request(2, "skills/list", {"cwds": [str(workspace)], "forceReload": True})
+            result = request(2, "skills/list", {"cwds": ["/work"], "forceReload": True})
             data = _list(result.get("data"), "Codex skills/list data")
-            if len(data) != 1 or data[0].get("cwd") != str(workspace):
+            if len(data) != 1 or data[0].get("cwd") != "/work":
                 raise ValueError("Codex skills inventory omitted or mismatched its cwd")
             errors = _list(data[0].get("errors"), "Codex skill discovery errors")
             if errors:
                 raise ValueError("Codex reported skill discovery errors")
             return _list(data[0].get("skills"), "Codex skills")
     finally:
-        process.terminate()
-        try:
-            _, stderr = process.communicate(timeout=5)
-        except subprocess.TimeoutExpired:
-            process.kill()
-            _, stderr = process.communicate()
+        _, stderr = stop_process(process)
         if stderr.strip():
             raise ValueError("Codex skills inventory emitted diagnostics")
 
@@ -214,15 +198,7 @@ def inspect_inventory(
     evidence = {"mechanism": MECHANISMS[cli], "checks": checks}
 
     def run(args: list[str], *, executable=binary, label=None, listing=False) -> str:
-        result = subprocess.run(
-            [executable, *args],
-            cwd=workspace,
-            env=env,
-            input="",
-            text=True,
-            capture_output=True,
-            timeout=config["timeout_seconds"],
-        )
+        result = run_cli(cli, config, workspace, [executable, *args], env)
         checks.append({"command": label or " ".join(args), "exit_code": result.returncode})
         if result.returncode:
             raise ValueError("Native inventory command failed: " + (label or " ".join(args)))
@@ -241,7 +217,9 @@ def inspect_inventory(
                 "exit_code": None,
             }
             checks.append(discovery)
-            rows = _codex_skills(binary, controls, workspace, env, config["timeout_seconds"])
+            rows = _codex_skills(
+                binary, controls, workspace, env, config["timeout_seconds"], config
+            )
             discovery["exit_code"] = 0
             skill_config = _codex_skill_config(rows)
             controls += ["-c", skill_config]
@@ -252,7 +230,7 @@ def inspect_inventory(
             }
             checks.append(effective_check)
             effective_skills = _codex_skills(
-                binary, controls, workspace, env, config["timeout_seconds"]
+                binary, controls, workspace, env, config["timeout_seconds"], config
             )
             effective_check["exit_code"] = 0
             _codex_skill_config(effective_skills)
@@ -281,6 +259,16 @@ def inspect_inventory(
                     ):
                         raise ValueError("Codex ModelSpec inventory reports a different endpoint")
             plugins = json.loads(codex(["plugin", "list", "--json"]))
+            evidence["plugins"] = [
+                {
+                    "name": row["name"],
+                    "enabled": row["enabled"],
+                    "scope": row.get("scope")
+                    if row.get("scope") in ("account", "user", "workspace", "system")
+                    else "unreported",
+                }
+                for row in _list(plugins["installed"], "installed plugins")
+            ]
             extensions = _names(
                 _list(plugins["installed"], "installed plugins"), enabled_key="enabled"
             )
@@ -350,26 +338,11 @@ def inspect_inventory(
                     "Gemini extensions",
                 )
             )
-            skills_output = run(["skills", "list"], listing=True)
-            node, bundle = gemini_runtime(Path(binary), config["clis"][cli])
-            module = _gemini_settings_module(bundle)
-            script = (
-                "const {loadSettings,USER_SETTINGS_PATH} = await import(process.argv[1]);"
-                "const fs = await import('node:fs');"
-                "const os = await import('node:os');"
-                "const path = await import('node:path');"
-                "const s = loadSettings(process.cwd());"
-                "if (!Array.isArray(s.errors) || s.errors.length) process.exit(2);"
-                "console.log(JSON.stringify({skillsEnabled:s.merged.skills?.enabled,"
-                "hooksEnabled:s.merged.hooksConfig?.enabled,"
-                "hookEvents:Object.keys(s.merged.hooks || {}),userSettingsPath:USER_SETTINGS_PATH,"
-                "realHomeSandboxPolicyExists:fs.existsSync(path.join(os.homedir(),"
-                "'.gemini','policies','sandbox.toml'))}));"
-            )
+            skills_output = gemini_skill_listing(run(["skills", "list"], listing=True))
             effective = json.loads(
                 run(
-                    ["--input-type=module", "-e", script, module.as_uri()],
-                    executable=str(node),
+                    ["/opt/modelspec-harness/gemini-settings.mjs", "inventory"],
+                    executable="node",
                     label="Gemini loadSettings().merged",
                 )
             )
@@ -384,13 +357,6 @@ def inspect_inventory(
             _, config_home = home_paths(cli, config["clis"][cli])
             if effective.get("userSettingsPath") != str(config_home / "settings.json"):
                 raise ValueError("Gemini settings probe did not attest the dedicated config path")
-            if effective.get("realHomeSandboxPolicyExists") is not False:
-                raise ValueError(
-                    "Gemini may load a real HOME sandbox policy; isolation is unsupported"
-                )
-            evidence["home_fallbacks"] = [
-                {"path": ".gemini/policies/sandbox.toml", "exists": False}
-            ]
             if skills_output != "No skills discovered." and not skills_output.startswith(
                 "Discovered Agent Skills:\n"
             ):
@@ -423,7 +389,7 @@ def inspect_inventory(
             )
         elif cli == "grok":
             report = json.loads(run(["inspect", "--json"]))
-            if report.get("cwd") != str(workspace):
+            if report.get("cwd") != "/work":
                 raise ValueError("Grok inventory reports a different cwd")
             if report.get("configWarnings") or report.get("mcpConfigProblems"):
                 raise ValueError("Grok reported ambiguous configuration")
@@ -488,8 +454,14 @@ def inspect_inventory(
             evidence.update(names)
             if instructions:
                 raise ValueError("Grok native inventory reports active instruction files")
+        elif cli == "claude":
+            plugins = _list(json.loads(run(["plugin", "list", "--json"])), "Claude plugins")
+            evidence["extensions"] = _names(plugins, enabled_key="enabled")
+            raise ValueError(
+                "Claude native plugin list is preliminary; doctor also needs stream init"
+            )
         else:
-            raise ValueError("This CLI uses stream inventory")
+            raise ValueError("Unknown CLI")
         evidence["error"] = inventory_violation(evidence, mcp_enabled=mcp_enabled)
     except ValueError as exc:
         evidence["error"] = str(exc)

@@ -6,33 +6,20 @@ import json
 import os
 import re
 import subprocess
-from contextlib import nullcontext
 from dataclasses import dataclass, field
 from pathlib import Path
 from time import perf_counter
 
 from qa.contracts import TOOL_NAMES
 from qa.providers import redact
+from qa.tui_auth import authentication_status
+from qa.tui_docker import container_path, passed_environment, run_cli
 from qa.tui_homes import (
     block_gemini_dotenv,
-    gemini_configuration,
-    guard_system_home,
-    home_environment,
-    home_paths,
-    resolve_executable,
-    resolve_node,
 )
 
 CLIS = ("claude", "codex", "gemini", "grok")
 FAMILY = {"claude": "anthropic", "codex": "openai", "gemini": "google", "grok": "xai"}
-CLAUDE_ENV = {
-    "CLAUDE_CODE_DISABLE_CLAUDE_MDS": "1",
-    "CLAUDE_CODE_DISABLE_AUTO_MEMORY": "1",
-    "CLAUDE_CODE_SKIP_PROMPT_HISTORY": "1",
-    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
-    "ENABLE_CLAUDEAI_MCP_SERVERS": "false",
-    "ENABLE_TOOL_SEARCH": "false",
-}
 CLAUDE_SETTINGS = {
     "disableAllHooks": True,
     "autoMemoryEnabled": False,
@@ -42,20 +29,7 @@ CLAUDE_SETTINGS = {
 }
 # Do not inherit API keys, prompt injection variables, remote-daemon addresses,
 # provider endpoints, config homes, plugin paths, or shell startup overrides.
-BASE_ENV = (
-    "HOME",
-    "PATH",
-    "USER",
-    "LOGNAME",
-    "SHELL",
-    "LANG",
-    "LC_ALL",
-    "TZ",
-    "SSL_CERT_FILE",
-    "SSL_CERT_DIR",
-    "SYSTEMROOT",
-    "WINDIR",
-)
+BASE_ENV = ("TERM", "LANG", "MODELSPEC_MCP_URL")
 
 
 def child_environment(
@@ -65,37 +39,9 @@ def child_environment(
     *,
     settings: dict,
     isolated: bool = True,
+    mcp_url: str = "https://api.modelspec.dev/mcp",
 ) -> dict:
-    env = {key: os.environ[key] for key in BASE_ENV if key in os.environ}
-    env.update(home_environment(cli, settings))
-    # Codex refuses helper binaries when CODEX_HOME is beneath its temp root.
-    home, _ = home_paths(cli, settings)
-    temporary = home.parent / "tmp"
-    if temporary.is_symlink():
-        raise ValueError("Harness temporary directory must not be a symlink")
-    temporary.mkdir(mode=0o700, exist_ok=True)
-    env.update(TMPDIR=str(temporary), TMP=str(temporary), TEMP=str(temporary))
-    guard_system_home(cli, env)
-    if cli == "claude" and isolated:
-        env.update(CLAUDE_ENV)
-    if cli == "gemini":
-        node = resolve_node(settings)
-        env["PATH"] = str(node.parent) + os.pathsep + env.get("PATH", "")
-        # Prevent system layers or automatic .env discovery from restoring API keys.
-        env.update(
-            GEMINI_CLI_SYSTEM_SETTINGS_PATH=str(workspace / "gemini-system-unset.json"),
-            GEMINI_CLI_SYSTEM_DEFAULTS_PATH=str(workspace / "gemini-defaults.json"),
-        )
-        # Native noninteractive auth must never open a browser or start login.
-        env["NO_BROWSER"] = "true"
-    if cli == "grok" and isolated:
-        env["GROK_MEMORY"] = "0"
-        for family in ("CLAUDE", "CURSOR"):
-            for kind in ("SKILLS", "RULES", "AGENTS", "MCPS", "HOOKS"):
-                env[f"GROK_{family}_{kind}_ENABLED"] = "0"
-    if token_env and os.environ.get(token_env):
-        env[token_env] = os.environ[token_env]
-    return env
+    return passed_environment({"mcp_url": mcp_url, "mcp_token_env": token_env}, token=True)
 
 
 def build_command(
@@ -141,7 +87,7 @@ def build_command(
         return (
             common
             + controls
-            + (["--mcp-config", str(mcp_file)] if isolated else [])
+            + (["--mcp-config", container_path(workspace, mcp_file)] if isolated else [])
             + [
                 "--tools",
                 "",
@@ -166,7 +112,7 @@ def build_command(
             "-m",
             model,
             "--cd",
-            str(workspace),
+            "/work",
         ]
         if isolated:
             common += [
@@ -205,7 +151,7 @@ def build_command(
             "--reasoning-effort",
             settings["effort"],
             "--cwd",
-            str(workspace),
+            "/work",
             "--output-format",
             "streaming-messages-json",
             "--max-turns",
@@ -231,6 +177,8 @@ def codex_config_args(settings: dict, mcp_file: Path) -> list[str]:
         "skills.config=[]",
         "features.hooks=false",
         "plugins={}",
+        'cli_auth_credentials_store="file"',
+        'forced_login_method="chatgpt"',
         "mcp_servers={}",
     ):
         args += ["-c", value]
@@ -592,29 +540,14 @@ def launch(cli: str, config: dict, workspace: Path, prompt: str, *, mcp_enabled:
         execution.transcript, mcp_enabled=mcp_enabled, cli=cli, inventory=execution.inventory
     )
     if execution.status in ("isolation_failed", "transcript_error") or violation:
-        from qa.tui_homes import require_setup
+        from qa.tui_homes import state_directory
         from qa.tui_isolation import receipt_file
 
-        receipt_file(require_setup(cli, config)).unlink(missing_ok=True)
+        receipt_file(state_directory(cli, config)).unlink(missing_ok=True)
     return execution
 
 
 def _execute(
-    cli: str,
-    config: dict,
-    workspace: Path,
-    prompt: str,
-    **kwargs,
-) -> Execution:
-    with (
-        gemini_configuration(config, isolated=kwargs.get("isolated", True))
-        if cli == "gemini"
-        else nullcontext()
-    ):
-        return _execute_configured(cli, config, workspace, prompt, **kwargs)
-
-
-def _execute_configured(
     cli: str,
     config: dict,
     workspace: Path,
@@ -624,14 +557,16 @@ def _execute_configured(
     isolated: bool = True,
     probe_mcp: Path | None = None,
 ) -> Execution:
-    from qa.tui_homes import home_config, require_setup
+    from qa.tui_homes import home_config
 
-    require_setup(cli, config)
     settings = config["clis"][cli]
+    with_token = mcp_enabled and bool(os.environ.get(config.get("mcp_token_env") or ""))
     mcp_file = probe_mcp or workspace / "modelspec-mcp.json"
     if probe_mcp is None:
-        mcp_file.write_text(home_config(cli, config, enabled=mcp_enabled))
-    prepare_workspace(cli, config, workspace, mcp_enabled=mcp_enabled, isolated=isolated)
+        mcp_file.write_text(home_config(cli, config, enabled=mcp_enabled, with_token=with_token))
+    prepare_workspace(
+        cli, config, workspace, mcp_enabled=mcp_enabled, isolated=isolated, with_token=with_token
+    )
     command = build_command(
         cli,
         settings,
@@ -641,15 +576,24 @@ def _execute_configured(
         config["turn_cap"],
         isolated=isolated,
     )
-    command[0] = resolve_executable(cli, settings)
     env = child_environment(
         cli,
         workspace,
         config.get("mcp_token_env") if mcp_enabled else None,
         settings=settings,
         isolated=isolated,
+        mcp_url=config["mcp_url"],
     )
     started = perf_counter()
+    authentication = authentication_status(cli, config, workspace, env)
+    if not authentication["verified"] or authentication["logged_in"] is not True:
+        return Execution(
+            Transcript(),
+            None,
+            (perf_counter() - started) * 1000,
+            "isolation_failed",
+            authentication.get("reason") or "Native CLI does not report subscription login",
+        )
     inventory = None
     if isolated and cli != "claude":
         from qa.tui_inventory import inspect_inventory, inventory_violation
@@ -671,15 +615,7 @@ def _execute_configured(
     try:
         # Empty piped stdin is essential: a launching shell's heredoc must never
         # become extra user context in a CLI that appends stdin to its prompt.
-        process = subprocess.run(
-            command,
-            cwd=workspace,
-            env=env,
-            input="",
-            text=True,
-            capture_output=True,
-            timeout=config["timeout_seconds"],
-        )
+        process = run_cli(cli, config, workspace, command, env, isolated=isolated)
     except subprocess.TimeoutExpired as exc:
         output = exc.stdout or b""
         output = output.decode(errors="replace") if isinstance(output, bytes) else output
@@ -772,12 +708,22 @@ def _execute_configured(
 
 
 def prepare_workspace(
-    cli: str, config: dict, workspace: Path, *, mcp_enabled: bool, isolated: bool = True
+    cli: str,
+    config: dict,
+    workspace: Path,
+    *,
+    mcp_enabled: bool,
+    isolated: bool = True,
+    with_token: bool = False,
 ) -> None:
     from qa.tui_homes import home_config
 
     if cli == "gemini":
-        data = json.loads(home_config(cli, config, enabled=mcp_enabled)) if isolated else {}
+        data = (
+            json.loads(home_config(cli, config, enabled=mcp_enabled, with_token=with_token))
+            if isolated
+            else {}
+        )
         if isolated:
             data.update(
                 skills={"enabled": False},
@@ -787,10 +733,7 @@ def prepare_workspace(
             )
         # Only these private temporary workspaces are trusted, including the
         # relaxed control so project discovery really runs there.
-        data["security"] = {
-            "auth": {"selectedType": "oauth-personal"},
-            "folderTrust": {"enabled": False},
-        }
+        data["security"] = {"folderTrust": {"enabled": False}}
         # Project MCP controls coexist with planted cwd hooks and skills. The
         # user layer disables hooks/skills without replacing a cwd canary file.
         native = workspace / ".gemini"
@@ -800,3 +743,14 @@ def prepare_workspace(
             path.write_text(json.dumps(data))
         # Stop native .env discovery here, before it can walk into the real HOME.
         block_gemini_dotenv(workspace)
+    if cli == "grok" and isolated:
+        native = workspace / ".grok"
+        native.mkdir(mode=0o700, exist_ok=True)
+        (native / "config.toml").write_text(
+            home_config(cli, config, enabled=mcp_enabled, with_token=with_token)
+        )
+        (workspace / ".gitignore").write_text(
+            "AGENTS.md\nAgents.md\nAGENT.md\nClaude.md\nCLAUDE.md\nCLAUDE.local.md\n"
+            ".agents/\n.claude/\n.cursor/\n.grok/skills/\n.grok/hooks/\n.grok/rules/\n"
+            ".grok/agents/\n.grok/plugins/\n"
+        )
