@@ -209,8 +209,9 @@ def container_command(
         if cli == "grok" and isolated and home and not interactive:
             if not preview and (user_config.is_symlink() or not user_config.is_file()):
                 raise ValueError("Isolated Grok runs need their generated user configuration")
-            argv += ["--mount", f"type=bind,source={user_config},"
-                     "target=/home/agent/.grok/config.toml,readonly"]
+            # Read-only at both paths: /work is a writable bind of the same file.
+            for target in ("/home/agent/.grok/config.toml", f"/work/{GROK_USER_CONFIG}"):
+                argv += ["--mount", f"type=bind,source={user_config},target={target},readonly"]
     for key in sorted(env):
         argv += ["--env", key]  # Values, especially the ModelSpec key, never enter argv.
     argv += [

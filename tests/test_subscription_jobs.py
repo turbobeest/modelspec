@@ -73,7 +73,7 @@ def test_commands_select_only_the_requested_tools(cli, purpose, config, tmp_path
         assert 'forced_login_method="chatgpt"' in command
     if cli == 'grok':
         assert ('--disable-web-search' in command) == (purpose != 'search')
-        assert command[command.index('--tools') + 1] == ('web_search,web_fetch,x_search' if purpose == 'search' else '')
+        assert command[command.index('--tools') + 1] == ('web_search,web_fetch,x_search' if purpose == 'search' else 'search_tool,use_tool')
     if purpose == 'browser':
         assert 'ux-mcp.mjs' in mcp.read_text()
         assert 'MODELSPEC_API_KEY' not in mcp.read_text()

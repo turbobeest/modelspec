@@ -171,7 +171,8 @@ def build_command(
             str(turn_cap),
             "--no-subagents",
             "--tools",
-            "web_search,web_fetch,x_search" if search else "",
+            # An empty list keeps every built-in; these two reach MCP tools and nothing else.
+            "web_search,web_fetch,x_search" if search else "search_tool,use_tool",
             "--permission-mode", "dontAsk",
             "--allow",
             "web_search" if search else f"mcp__{server}__*" if isolated else "mcp__model301_canary__*",
@@ -586,12 +587,16 @@ def isolation_violation(
         native = native | {"search_tool"}
     if any(call["name"] not in native for call in parsed.other_tool_calls) or any(call["server"] not in allowed for call in parsed.tool_calls):
         return "CLI used a tool outside the configured ModelSpec MCP"
-    if cli == "grok" and mcp_enabled and parsed.init is not None:
+    if cli == "grok" and mcp_enabled:
+        if parsed.init is None:
+            return "CLI did not expose its startup inventory"
         status = {s.get("name"): s.get("status") for s in parsed.init.get("mcp_servers") or []
                   if isinstance(s, dict)}
         # Grok connects lazily: init reports "pending" for a server it will use.
         if any(status.get(name) not in ("connected", "pending") for name in allowed):
             return "ModelSpec MCP did not connect"
+        if any(state != "disabled" for name, state in status.items() if name not in allowed):
+            return "CLI loaded another MCP server"
     if cli != "claude":
         from qa.tui_inventory import inventory_violation
 
