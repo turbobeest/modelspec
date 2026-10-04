@@ -213,6 +213,32 @@ field becoming optional, bumps that contract's major version. New fields may be
 added. Renaming or removing a field, changing its type or units, changing an
 exit code's meaning, or changing the result shape also requires a major bump.
 
+MODEL-318 refuses a condition or preference value outside its facet's
+vocabulary with HTTP 400 `invalid_spec`. Before, `= proprietary` on
+`model.weights_openness` answered 200 `no_feasible`. This change needs no
+version bump of its own; the decision contract stays at 2.14. Jamie accepted
+the exception below on 2026-10-04 at 11:21 ET, when the contract was at 2.13:
+
+- The response side is additive. `error.code` stays `invalid_spec` and the
+  status stays 400. Such an issue gains the optional keys `value`,
+  `value_type`, `allowed_values` and `next`, and MODEL-59 allows new fields.
+  Successful responses do not change.
+- The input side is an exception to the rule that refusing a spec that used
+  to be accepted is a major change. Every sourced snapshot fact is checked
+  against the registry when the snapshot is built, so an unregistered value
+  matches no model. Offering identity facets (provider, region, tier) are the
+  one gap, and a follow-up closes it. `=` and `in` with such a value matched nothing, `!=`
+  and `not in` matched every model and so constrained nothing, and a
+  non-number on a number facet raised a server error. A client that sent one
+  got an answer that ignored or misread its requirement. The vocabulary always
+  listed the allowed values, and an unregistered enum preference was already
+  refused. `offering.provider` accepts registered providers and vendors,
+  because a subscription's provider is its plan owner.
+- A major bump would make every 2.x decoder, the decide page's included,
+  refuse every answer, to cover input no correct client sends. A minor bump
+  signals an addition, which this is not. `error.recovery` (MODEL-285) set the
+  precedent of adding optional error keys without a bump.
+
 The new client error contract is 2.0 because it replaces the retired offline
 CLI. It does not change the decision API contract, the legacy CLI envelope
 1.0, or `build.export_schema_version` 3.0. Those remain separately versioned.

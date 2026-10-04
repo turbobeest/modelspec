@@ -352,13 +352,12 @@ def test_every_recovery_example_parses(service, snapshot, invalid, path, shape):
 
 def test_recovery_uses_registry_values_and_preserves_all_issues(service, snapshot):
     from decision.contract import SpecError, parse_spec
-    from dataclasses import asdict
 
     payload = _payload() | {"task": "Some task", "where": ["no_such_facet = true"]}
     with pytest.raises(SpecError) as caught:
         parse_spec(payload, facets=service._facets(snapshot))
     _, body = service.decide(payload, snapshot)
-    assert body["error"]["issues"] == [asdict(i) for i in caught.value.issues]
+    assert body["error"]["issues"] == [i.as_dict() for i in caught.value.issues]
     assert len(body["error"]["recovery"]) == len(caught.value.issues)
     assert body["error"]["recovery"][0]["nearest_facet_ids"] == []
 

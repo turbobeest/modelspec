@@ -2060,6 +2060,22 @@ class Issue:
     field: str | None
     reason: str
     path: str
+    #: Set on a value outside the facet's vocabulary (MODEL-318): the value as
+    #: sent, the facet's kind, and its registered values when the list is finite.
+    value: Any = None
+    value_type: str | None = None
+    allowed_values: tuple[Any, ...] | None = None
+
+    def as_dict(self) -> dict[str, Any]:
+        """The issue as a refusal body carries it; value keys only when set."""
+        row: dict[str, Any] = {"path": self.path, "condition": self.condition,
+                               "field": self.field, "reason": self.reason}
+        if self.value_type is not None:
+            row["value"] = self.value.isoformat() if isinstance(self.value, date) else self.value
+            row["value_type"] = self.value_type
+            if self.allowed_values is not None:
+                row["allowed_values"] = list(self.allowed_values)
+        return row
 
     def __str__(self) -> str:
         parts = [self.path]
@@ -2146,6 +2162,78 @@ def _refinement_key_issues(key: str, term: Any, facets: FacetLookup) -> list[Iss
     return issues
 
 
+MAX_ECHO_LENGTH = 80
+
+
+def _clip(value: Any) -> Any:
+    """Cap a request string before an issue echoes it."""
+    if isinstance(value, str) and len(value) > MAX_ECHO_LENGTH:
+        return value[:MAX_ECHO_LENGTH - 3] + "..."
+    return value
+
+
+def _echo(value: Any) -> str:
+    return repr(_clip(value)) if isinstance(value, str) else _render_value(value)
+
+
+def _registered_values(info: Any) -> frozenset[Any] | None:
+    """A registry facet's finite vocabulary; ``None`` for an open list or another lookup."""
+    from decision.registry import Facet, default
+
+    if not isinstance(info, Facet):
+        return None
+    registry = default()
+    try:
+        values = registry.allowed_values(info)
+    except KeyError:
+        return None
+    if values is not None and info.id == "offering.provider":
+        # A subscription's provider is its plan owner, which may be a vendor.
+        values = values | {vendor.id for vendor in registry.vendors()}
+    return values
+
+
+def _value_issue(info: Any, kind: str, value: Any, registered: frozenset[Any] | None,
+                 condition: str | None, path: str) -> Issue | None:
+    """A condition value the facet's kind or vocabulary cannot hold (MODEL-318).
+
+    Every sourced snapshot fact is validated against the registry when the
+    snapshot is built, so such a value can never match: ``=`` would gate everything out,
+    ``!=`` would gate nothing, and an ordered comparison cannot be made.
+    """
+    facet_id = info.id
+    allowed: tuple[Any, ...] | None = None
+    if kind in {"enum", "set"}:
+        if isinstance(value, str) and (registered is None or value in registered):
+            return None
+        allowed = None if registered is None else tuple(sorted(registered))
+        expected = "a registered value" if allowed is not None else "a string value"
+        reason = f"{_echo(value)} is not {expected} of {facet_id}"
+    elif kind in {"bool", "boolean"}:
+        if isinstance(value, bool):
+            return None
+        allowed = (False, True)
+        reason = f"{facet_id} takes true or false, not {_echo(value)}"
+    elif kind in NUMERIC_VALUE_TYPES:
+        value_type = info.value_type
+        literals = tuple(literal for literal, flag in (
+            ("unbounded", getattr(value_type, "unbounded", False)),
+            ("not_offered", getattr(value_type, "not_offered", False)),
+        ) if flag)
+        if _kind(value) == "number" or value in literals:
+            return None
+        expected = " or ".join(("a number", *literals))
+        reason = f"{facet_id} takes {expected}, not {_echo(value)}"
+    elif kind == "date":
+        if _kind(value) == "date":
+            return None
+        reason = f"{facet_id} takes an ISO date, not {_echo(value)}"
+    else:
+        return None
+    return Issue(condition, facet_id, reason, path,
+                 value=_clip(value), value_type=kind, allowed_values=allowed)
+
+
 def check_facets(spec: Spec, facets: FacetLookup) -> list[Issue]:
     """Every facet a spec names must be registered, and ordered where it is ordered."""
     issues: list[Issue] = []
@@ -2157,6 +2245,7 @@ def check_facets(spec: Spec, facets: FacetLookup) -> list[Issue]:
         condition: str | None,
         qualifiers: EvidenceQualifiers | None = None,
         best: bool = False,
+        values: tuple[Any, ...] = (),
     ) -> None:
         try:
             info = facets(facet_id)
@@ -2192,6 +2281,11 @@ def check_facets(spec: Spec, facets: FacetLookup) -> list[Issue]:
             issues.append(Issue(condition, facet_id,
                                 f"{facet_id} is a {kind} facet; best(m) needs a numeric facet",
                                 path))
+        registered = _registered_values(info) if values and kind in {"enum", "set"} else None
+        for value in values:
+            issue = _value_issue(info, kind, value, registered, condition, path)
+            if issue is not None:
+                issues.append(issue)
 
     def walk(cond: Any, path: str) -> None:
         if isinstance(cond, AnyOf | AllOf):
@@ -2205,6 +2299,12 @@ def check_facets(spec: Spec, facets: FacetLookup) -> list[Issue]:
         else:
             ordered = isinstance(cond, Window) or (isinstance(cond, Compare)
                                                    and cond.op in ORDERED_OPS)
+            if isinstance(cond, Window):
+                values = tuple(cond.between)
+            elif isinstance(cond, InSet):
+                values = tuple(cond.in_ if cond.in_ is not None else cond.not_in)
+            else:
+                values = () if isinstance(cond.value, ModelRef | BestRef) else (cond.value,)
             use(
                 cond.facet,
                 ordered,
@@ -2212,6 +2312,7 @@ def check_facets(spec: Spec, facets: FacetLookup) -> list[Issue]:
                 render_condition(cond),
                 getattr(cond, "qualifiers", None),
                 best=isinstance(cond, Compare) and isinstance(cond.value, BestRef),
+                values=values,
             )
 
     for i, cond in enumerate(spec.where):
@@ -2274,8 +2375,10 @@ def check_facets(spec: Spec, facets: FacetLookup) -> list[Issue]:
                     ):
                         issues.append(Issue(
                             None, facet_id,
-                            f"preferred value {term.prefer!r} is not a registered value",
+                            f"preferred value {_echo(term.prefer)} is not a registered value",
                             "optimize.weights",
+                            value=_clip(term.prefer), value_type="enum",
+                            allowed_values=None if allowed is None else tuple(sorted(allowed)),
                         ))
             elif kind in UNORDERED_VALUE_TYPES:
                 issues.append(Issue(

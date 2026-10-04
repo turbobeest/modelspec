@@ -9,6 +9,7 @@ import time
 from collections.abc import Awaitable, Callable
 from dataclasses import replace
 from typing import Any, NamedTuple, Protocol
+from urllib.parse import urlencode
 
 from pydantic import ValidationError
 
@@ -44,6 +45,8 @@ FORCED_REVALIDATE_SECONDS = 5
 #: The request header carrying the snapshot the caller's vocabulary describes,
 #: and the response header naming the snapshot that answered.
 SNAPSHOT_HEADER = "x-modelspec-snapshot"
+#: Where an issue about a facet's value points the caller (MODEL-318).
+VOCABULARY_LOOKUP = "https://api.modelspec.dev/v1/vocabulary"
 #: Present only when the latest refresh failed and an older verified snapshot answered.
 STALE_HEADER = "x-modelspec-snapshot-stale"
 _STALE_HEADER_MAX = 200
@@ -276,16 +279,29 @@ class SnapshotHolder:
         return snapshot
 
 
+#: The vocabulary section that lists a member of a facet family.
+_FAMILY_SECTIONS = {"benchmark": "benchmarks", "domain": "domains"}
+
+
+def _vocabulary_section(facet_id: str) -> str:
+    try:
+        parameter = facet(facet_id).parameter
+    except KeyError:  # a benchmark only the loaded snapshot names
+        return "benchmarks"
+    return "facets" if parameter is None else _FAMILY_SECTIONS.get(parameter.name, "facets")
+
+
+def _issue(issue: contract.Issue) -> dict[str, Any]:
+    row = issue.as_dict()
+    if issue.value_type is not None:
+        # A value outside the facet's vocabulary (MODEL-318) names the lookup that lists it.
+        row["next"] = VOCABULARY_LOOKUP + "?" + urlencode(
+            {"section": _vocabulary_section(issue.field), "id": issue.field})
+    return row
+
+
 def _issues(exc: contract.SpecError) -> list[dict[str, Any]]:
-    return [
-        {
-            "path": issue.path,
-            "condition": issue.condition,
-            "field": issue.field,
-            "reason": issue.reason,
-        }
-        for issue in exc.issues
-    ]
+    return [_issue(issue) for issue in exc.issues]
 
 
 def _facets(*snapshots):

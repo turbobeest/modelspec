@@ -100,7 +100,7 @@ def test_when_only_the_class_would_admit_a_model_relax_says_why_instead():
     snapshot = q10_snapshot()
     spec = parse_spec({
         "spec_version": 1,
-        "where": ["model.class = embedder"],
+        "where": ["model.class = vectoriser"],
         "optimize": {"max": ARENA},
     }, facets=facets)
     decision = decide(spec, snapshot, facets=facets)
