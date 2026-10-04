@@ -13,7 +13,7 @@ it reaches against what that job's ``pip install`` lines install. The rule:
 * a local import is followed wherever it is written, inside a function or not;
 * a third-party import counts only at module level. One written inside a
   function is that function's own optional dependency (``decision.snapshot``
-  imports cryptography only to sign);
+  imports cryptography only to sign and verify);
 * imports under ``try/except ImportError`` or ``if TYPE_CHECKING`` never count.
 """
 
@@ -35,8 +35,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 WORKFLOWS = REPO_ROOT / ".github" / "workflows"
 
 # A distribution whose import name is not its normalised project name.
-IMPORT_NAME = {"pyyaml": "yaml", "beautifulsoup4": "bs4", "pytest-xdist": "xdist",
-               "pytest-asyncio": "pytest_asyncio"}
+IMPORT_NAME = {"pyyaml": "yaml", "beautifulsoup4": "bs4", "pytest-xdist": "xdist"}
 
 # (importer, imported): a function-level local import no workflow ever executes.
 # Each needs the reason; the last test fails when one stops existing.
@@ -76,7 +75,8 @@ def _guarded_and_lazy(node: ast.AST, parents: Mapping[ast.AST, ast.AST]) -> tupl
                          {getattr(e, "id", "") for e in getattr(caught, "elts", [caught])})
                 if names & GUARD_EXCEPTIONS:
                     return True, lazy
-        if isinstance(parent, ast.If) and "TYPE_CHECKING" in ast.unparse(parent.test):
+        if (isinstance(parent, ast.If) and child in parent.body
+                and ast.unparse(parent.test) in ("TYPE_CHECKING", "typing.TYPE_CHECKING")):
             return True, lazy
         child, parent = parent, parents.get(parent)
     return False, lazy
