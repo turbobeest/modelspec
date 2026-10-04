@@ -32,22 +32,19 @@ from qa.agent_harness import (
 )
 from qa.contracts import source_hashes
 from qa.providers import Budget, redact, redact_structure
+from qa.tui_docker import build_images, container_command, image_name, passed_environment
 from qa.tui_homes import (
+    binary_identity,
     home_config,
-    home_environment,
     home_paths,
     login,
     login_command,
-    resolve_executable,
-    setup_file,
-    setup_home,
     version_numbers,
 )
 from qa.tui_isolation import isolation_result
 from qa.tui_isolation import verify_isolation as doctor_isolation
 from qa.tui_providers import (
     BASE_ENV,
-    CLAUDE_ENV,
     CLIS,
     FAMILY,
     Execution,
@@ -124,12 +121,17 @@ def validate_config(config: dict) -> None:
     if token_env is not None and not re.fullmatch(r"MODELSPEC_[A-Z0-9_]+", token_env):
         raise ValueError("mcp_token_env must be null or a MODELSPEC_ environment variable")
     for cli, profile in config["clis"].items():
+        image_name(cli, profile)
+        if any(name in profile for name in ("harness_home", "node_executable", "environment")):
+            raise ValueError("Native host homes and environment overrides have been retired")
         if any(
             not isinstance(profile[key], str) or not profile[key].strip()
             for key in ("executable", "model")
         ):
             raise ValueError(f"{cli} needs an executable and a model")
         home_paths(cli, profile)
+        if cli == "codex" and version_numbers(profile["version"]) < (0, 160, 0):
+            raise ValueError("Codex images require version >=0.160.0")
         minimum = profile.get("min_version")
         if minimum is not None:
             if not isinstance(minimum, str) or not re.fullmatch(r"\d+\.\d+(?:\.\d+)?", minimum):
@@ -471,6 +473,16 @@ def markdown(report: dict) -> str:
             f"{number(values['wall_time_p95_ms'])} |"
         )
     for cli, info in report["isolation"].items():
+        authentication = info.get("authentication", {})
+        if authentication:
+            state = {True: "logged in", False: "not logged in", None: "unknown"}[
+                authentication.get("logged_in")
+            ]
+            lines += [
+                "",
+                f"{cli} authentication: {state}; method "
+                f"{authentication.get('auth_method') or 'unknown'}.",
+            ]
         if info.get("reason"):
             lines += ["", f"{cli}: {info['reason']}"]
     lines += [
@@ -508,10 +520,6 @@ def write_report(report: dict, output: Path) -> tuple[Path, Path]:
 
 def dry_commands(scenarios: list[dict], selected: list[str], config: dict, output: Path) -> None:
     for cli in selected:
-        result = isolation_result(cli, config)
-        if not result["verified"]:
-            print(redact(f"{cli}: unsupported; no command will run. {result['reason']}"))
-            continue
         for scenario in scenarios[: config["max_runs_per_cli"]]:
             with tempfile.TemporaryDirectory(prefix=f"tui-dry-{cli}-", dir=output) as directory:
                 workspace = Path(directory)
@@ -526,7 +534,9 @@ def dry_commands(scenarios: list[dict], selected: list[str], config: dict, outpu
                     mcp_file,
                     config["turn_cap"],
                 )
-                command[0] = resolve_executable(cli, config["clis"][cli])
+                command = container_command(
+                    cli, config, workspace, command, passed_environment(config, token=True)
+                )
                 print(
                     json.dumps(
                         redact_structure(
@@ -537,8 +547,7 @@ def dry_commands(scenarios: list[dict], selected: list[str], config: dict, outpu
                                 "command": shlex.join(command),
                                 "stdin": "",
                                 "environment_inherit_only": list(BASE_ENV),
-                                "environment_set": home_environment(cli, config["clis"][cli])
-                                | (CLAUDE_ENV if cli == "claude" else {}),
+                                "eligibility": "Doctor receipt required before execution",
                                 "mcp_config": payload,
                                 "judge_cli": judge_for(cli, config["judges"]),
                             }
@@ -552,10 +561,13 @@ def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, default=HERE / "tui_config.yaml")
     parser.add_argument(
-        "action", nargs="?", choices=("run", "setup", "login", "doctor"), default="run"
+        "action",
+        nargs="?",
+        choices=("run", "build-images", "login", "doctor", "inventory"),
+        default="run",
     )
     parser.add_argument(
-        "--out", type=Path, help="Private report directory, required except for setup and login"
+        "--out", type=Path, help="Private report directory, required except for build-images/login"
     )
     parser.add_argument("--cli", choices=CLIS, action="append")
     parser.add_argument("--scenario", action="append")
@@ -585,26 +597,24 @@ def main(argv=None) -> int:
             config["judges"][cli] = judge
         validate_config(config)
         config["_quiet_hours"], config["_force"] = args.quiet_hours, args.force
-        if args.action in ("setup", "login", "doctor") and len(args.cli or []) != 1:
-            raise ValueError("setup, login and doctor require exactly one --cli")
+        if args.action in ("login", "doctor") and len(args.cli or []) != 1:
+            raise ValueError("login and doctor require exactly one --cli")
+        if args.action == "build-images":
+            if args.dry_run or args.smoke or args.verify_isolation:
+                raise ValueError("build-images cannot be combined with run modes")
+            selected = list(dict.fromkeys(args.cli or CLIS))
+            build_images(config, selected)
+            for cli in selected:
+                with tempfile.TemporaryDirectory(prefix="tui-version-") as directory:
+                    identity = binary_identity(cli, config, Path(directory))
+                print(f"{cli}: {identity['reported_version']}. Login yourself with:")
+                print(login_command(cli, args.config))
+            return 0
         if args.action == "login":
             if args.dry_run or args.smoke or args.verify_isolation:
                 raise ValueError("login cannot be combined with run modes")
             cli = args.cli[0]
-            home, _ = home_paths(cli, config["clis"][cli])
-            private_output(home)
             login(cli, config)
-            return 0
-        if args.action == "setup":
-            if args.dry_run or args.smoke or args.verify_isolation:
-                raise ValueError("setup cannot be combined with run modes")
-            cli = args.cli[0]
-            home, _ = home_paths(cli, config["clis"][cli])
-            private_output(home)
-            home = setup_home(cli, config)
-            version = json.loads(setup_file(home).read_text())["binary"]["version"]
-            print(f"Prepared {cli} {version} home: {home}. Run this login command yourself:")
-            print(login_command(cli, args.config))
             return 0
         if args.out is None:
             raise ValueError("--out is required for private doctor and run reports")
@@ -613,6 +623,36 @@ def main(argv=None) -> int:
                 raise ValueError("doctor cannot be combined with run modes")
             args.verify_isolation = True
         output = private_output(args.out)
+        config["_state_dir"] = str(output / ".tui-state")
+        if args.action == "inventory":
+            if args.dry_run or args.smoke or args.verify_isolation:
+                raise ValueError("inventory cannot be combined with run modes")
+            from qa.tui_inventory import inspect_inventory
+            from qa.tui_providers import prepare_workspace
+
+            output.mkdir(parents=True, exist_ok=True)
+            config["_anonymous_home"] = True
+            for cli in dict.fromkeys(args.cli or CLIS):
+                with tempfile.TemporaryDirectory(prefix=f"tui-inventory-{cli}-", dir=output) as d:
+                    workspace = Path(d)
+                    binary_identity(cli, config, workspace)
+                    mcp_file = workspace / "modelspec-mcp.json"
+                    mcp_file.write_text(home_config(cli, config))
+                    prepare_workspace(cli, config, workspace, mcp_enabled=True)
+                    info = inspect_inventory(
+                        cli,
+                        config,
+                        workspace,
+                        passed_environment(config),
+                        mcp_file,
+                        mcp_enabled=True,
+                    )
+                    print(
+                        json.dumps(
+                            redact_structure({"cli": cli, "inventory": info, "certified": False})
+                        )
+                    )
+            return 0
         if not args.dry_run:
             quiet_hours_guard(args.quiet_hours, args.force)
         scenarios = load_scenarios()
@@ -637,7 +677,18 @@ def main(argv=None) -> int:
         if args.verify_isolation
         else list(dict.fromkeys(selected + [judge_for(cli, config["judges"]) for cli in selected]))
     )
-    isolation = {cli: isolation_result(cli, config) for cli in needed}
+    isolation = {
+        cli: {
+            "supported": False,
+            "verified": False,
+            "status": "unproven",
+            "reason": "Dry-run does not certify isolation",
+            "canary_runs": 0,
+        }
+        if args.dry_run
+        else isolation_result(cli, config)
+        for cli in needed
+    }
     counts = {cli: {"agent": 0, "judge": 0} for cli in CLIS}
     blocked, rows, stopped = None, [], {}
     if args.dry_run:
