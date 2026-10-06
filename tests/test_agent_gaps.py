@@ -258,11 +258,11 @@ def test_every_vocabulary_lookup_including_empty_pages_has_a_next_hint(section):
 def test_required_reporting_rules_are_in_the_generated_guide_and_decide_copy():
     copy = agent_copy.copy()
     for text in (agent_copy.GUIDE_OUT.read_text(), copy["context_guide"], copy["tools"]["decide"]):
-        assert "Never add a constraint or weight the user did not state" in text
+        assert "Never add a gate or constraint the user didn't state" in text
         assert "Arena web-dev evidence does not establish chat quality" in text
         assert "p_best is the probability of ranking best under the Spec" in text
         assert "not the probability of matching" in text
-    assert "Call decide after at most one vocab lookup" in copy["tools"]["vocab"]
+    assert "One vocabulary lookup per unknown facet, then decide" in copy["tools"]["vocab"]
 
 
 def test_compact_schema_keeps_complete_validation_at_execution(config):
