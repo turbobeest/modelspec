@@ -108,6 +108,31 @@ test("agent hand-off leads with the CLI and copies one message with the current 
   expect(JSON.parse(await card.getByLabel("Spec snippet").innerText())).toEqual(updated);
 });
 
+test("evidence source links meet AA in both themes", async ({ page }) => {
+  await openBoard(page);
+  const source = page.getByRole("link", { name: /Source/ }).first();
+  await expect(source).toBeVisible();
+  for (const theme of ["dark", "light"]) {
+    if (theme === "light") await page.getByRole("button", { name: "Light mode" }).click();
+    const ratio = await source.evaluate((node) => {
+      const luminance = (color: string) => {
+        const rgb = color.match(/[\d.]+/g)?.slice(0, 3).map(Number);
+        if (!rgb || rgb.length !== 3) throw new Error(`Unknown color ${color}`);
+        return rgb.map((value) => value / 255)
+          .map((value) => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4)
+          .reduce((sum, value, index) => sum + value * [0.2126, 0.7152, 0.0722][index], 0);
+      };
+      let background: Element | null = node;
+      while (background && ["rgba(0, 0, 0, 0)", "transparent"].includes(getComputedStyle(background).backgroundColor)) background = background.parentElement;
+      if (!background) throw new Error("Text has no background");
+      const foreground = luminance(getComputedStyle(node).color);
+      const behind = luminance(getComputedStyle(background).backgroundColor);
+      return (Math.max(foreground, behind) + 0.05) / (Math.min(foreground, behind) + 0.05);
+    });
+    expect(ratio, theme).toBeGreaterThanOrEqual(4.5);
+  }
+});
+
 test("the accent card meets AA in both themes and every format", async ({ page }) => {
   await openBoard(page);
   const card = page.getByRole("region", { name: "Give this to my agent" });
