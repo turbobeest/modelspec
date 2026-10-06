@@ -435,7 +435,7 @@ def test_grok_use_tool_splits_a_leading_json_object_from_the_summary():
     }
     assert decide_health(report) == {
         "decide_answers": 1, "credits_exhausted": 0, "partial": 0,
-        "unauthorised": 0, "unreadable": 0,
+        "unauthorised": 0, "unreadable": 0, "parse_defects": 0,
     }
 
     def gated(okay: str) -> dict:
@@ -449,11 +449,13 @@ def test_grok_use_tool_splits_a_leading_json_object_from_the_summary():
         '{"origin":"https://api.modelspec.dev/v1/decide","status":200,'
         '"body":{"credits":{"exhausted":true}}}'
     )
-    with pytest.raises(ValueError, match="credits.exhausted"):
+    with pytest.raises(ValueError, match="credits.exhausted") as exhausted_refusal:
         require_funded_key(gated(exhausted))
+    assert "unreadable" not in str(exhausted_refusal.value)
     unauthorised = '{"origin":"https://api.modelspec.dev/v1/decide","status":401,"body":{}}'
-    with pytest.raises(ValueError, match="unauthorised"):
+    with pytest.raises(ValueError, match="unauthorised") as unauthorised_refusal:
         require_funded_key(gated(unauthorised))
+    assert "unreadable" not in str(unauthorised_refusal.value)
 
 
 def test_grok_judge_may_look_up_tools_but_not_call_use_tool():

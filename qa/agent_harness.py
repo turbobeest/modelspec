@@ -22,7 +22,7 @@ from time import perf_counter
 import httpx
 import yaml
 
-from qa.contracts import ROOT, source_hashes
+from qa.contracts import ROOT, TOOL_NAMES, source_hashes
 from qa.first_turn import first_turn_breakdowns
 from qa.providers import KEY_ENV, Budget, HttpAgent, ProviderError, Reply, SpendLimitError, redact
 from qa.tools import USER_AGENT, LiveTools
@@ -408,6 +408,104 @@ def metrics(rows: list[dict]) -> dict:
     }
 
 
+PARSE_DEFECT_NOTE = (
+    "CLI truncated or unreadable tool results; the agent did not see these answers."
+)
+_MODELSPEC_PREFIXES = ("mcp__modelspec__", "modelspec__", "modelspec/", "modelspec.")
+
+
+def _modelspec_tool(call: dict) -> bool:
+    name = call.get("name")
+    if call.get("server") == "modelspec" or name in TOOL_NAMES:
+        return True
+    return isinstance(name, str) and name.startswith(_MODELSPEC_PREFIXES)
+
+
+def _tool_label(call: dict) -> str:
+    name = call.get("name")
+    if isinstance(name, str):
+        for prefix in _MODELSPEC_PREFIXES:
+            if name.startswith(prefix):
+                return name[len(prefix):]
+    return name
+
+
+def _result_text(response: dict) -> str:
+    parts = []
+    for block in response.get("content") or []:
+        if isinstance(block, str):
+            parts.append(block)
+        elif isinstance(block, dict) and isinstance(block.get("text"), str):
+            parts.append(block["text"])
+    return "\n".join(parts)
+
+
+def status_envelope(block) -> dict | None:
+    """A ModelSpec tool block is readable only as a JSON object with status."""
+    if not isinstance(block, dict):
+        return None
+    try:
+        envelope = json.loads(block.get("text", ""))
+    except (ValueError, TypeError, AttributeError):
+        return None
+    if isinstance(envelope, dict) and "status" in envelope:
+        return envelope
+    return None
+
+
+def parse_defect_kind(text: str) -> str:
+    """Claude replaces an oversized MCP result with one of two notices.
+
+    The isolated agent has no file tools, so that notice is the whole answer it saw.
+    """
+    if (
+        "exceeds maximum allowed tokens" in text
+        or "<persisted-output>" in text
+        or ("Output too large (" in text and "saved to" in text)
+    ):
+        return "cli_truncated_result"
+    return "unreadable"
+
+
+def call_parse_defect(call: dict, response) -> dict | None:
+    """A modelspec result the agent observed, with no error flag and no JSON envelope."""
+    if not _modelspec_tool(call) or response is None or call.get("result_observed") is False:
+        return None
+    if not isinstance(response, dict):
+        return {"call": _tool_label(call), "kind": "unreadable"}
+    if response.get("isError"):
+        return None
+    content = response.get("content") or []
+    if any(status_envelope(block) is not None for block in content):
+        return None
+    return {"call": _tool_label(call), "kind": parse_defect_kind(_result_text(response))}
+
+
+def parse_defect_pairs(report: dict) -> list[tuple[str, str]]:
+    seen: set[tuple[str, str]] = set()
+    pairs = []
+    for item in report.get("parse_defects") or []:
+        pair = (item[0], item[1])
+        if pair not in seen:
+            seen.add(pair)
+            pairs.append(pair)
+    return pairs
+
+
+def _aggregate_parse_defects(rows: list[dict]) -> list[list]:
+    totals: dict[tuple, int] = {}
+    order: list[tuple] = []
+    for row in rows:
+        cli = row.get("cli", row.get("agent"))
+        for defect in row.get("parse_defects") or []:
+            key = (row["scenario"], cli, defect["kind"])
+            if key not in totals:
+                order.append(key)
+                totals[key] = 0
+            totals[key] += 1
+    return [[scenario, cli, kind, totals[(scenario, cli, kind)]] for scenario, cli, kind in order]
+
+
 def isolation_misuse_rows(rows: list[dict]) -> list[list]:
     """[scenario, cli, role, tools] for runs that called a disallowed tool.
 
@@ -452,6 +550,7 @@ def make_report(
     report_rows = []
     for row in rows:
         calls = []
+        defects = []
         for call in row["tool_calls"]:
             result = call["result"]
             response_id = (
@@ -463,7 +562,10 @@ def make_report(
                 {k: v for k, v in call.items() if k != "result"}
                 | {"response_ref": response_id, "is_error": result["isError"]}
             )
-        report_rows.append(row | {"tool_calls": calls})
+            defect = call_parse_defect(call, result)
+            if defect:
+                defects.append(defect)
+        report_rows.append(row | {"tool_calls": calls, "parse_defects": defects})
     gaps = [
         {"scenario": s["id"], "family": s["family"], **gap}
         for s in scenarios
@@ -503,6 +605,7 @@ def make_report(
             "missing_capabilities": missing.most_common(),
         },
         "isolation_misuse": isolation_misuse_rows(rows),
+        "parse_defects": _aggregate_parse_defects(report_rows),
         "gap_list": gaps,
         "tool_responses": responses,
         "runs": report_rows,
@@ -577,6 +680,13 @@ def markdown(report: dict) -> str:
         lines += ["", "Isolation misuse keeps the doctor receipt and counts as a failure.", ""]
         for scenario_id, cli, role, tools in misuse:
             lines.append(f"- {scenario_id} / {cli} / {role}: {', '.join(tools)}")
+    pairs = [f"[{scenario}, {cli}]" for scenario, cli in parse_defect_pairs(report)]
+    if pairs:
+        lines += ["", PARSE_DEFECT_NOTE, ""]
+        lines.extend(f"- {pair}" for pair in pairs[:10])
+        extra = len(pairs) - 10
+        if extra:
+            lines.append(f"- (+{extra} more)")
     lines += [
         "",
         "## Gap list",

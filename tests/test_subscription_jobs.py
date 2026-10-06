@@ -151,6 +151,8 @@ def test_scenario_pr_summary_parses_as_a_five_column_table(config, tmp_path):
     report = jobs.scenario_report(config, ['codex'], [], tmp_path, day='2026-10-04', dry_run=True)
     summary = jobs.scenario_summary(report)
     assert 'Isolation misuse: 0 rows.' in summary
+    assert 'Parse defects: 0 rows.' in summary
+    assert 'CLI truncated' not in summary
     tokens = MarkdownIt('commonmark').enable('table').parse(summary)
     assert sum(t.type == 'table_open' for t in tokens) == 1
     assert [tokens[i + 1].content for i, t in enumerate(tokens) if t.type == 'th_open'] == [
@@ -740,31 +742,161 @@ def _decide_report(*bodies, status=200):
 def test_funded_key_check_counts_partial_but_refuses_exhausted_or_unauthorised():
     report = _decide_report({'status': 'decided'}, {'status': 'partial'})
     assert jobs.require_funded_key(report) == {
-        'decide_answers': 2, 'credits_exhausted': 0, 'partial': 1, 'unauthorised': 0, 'unreadable': 0}
-    with pytest.raises(ValueError, match='1 credits.exhausted'):
+        'decide_answers': 2, 'credits_exhausted': 0, 'partial': 1,
+        'unauthorised': 0, 'unreadable': 0, 'parse_defects': 0}
+    with pytest.raises(ValueError, match='1 credits.exhausted') as exhausted:
         jobs.require_funded_key(_decide_report(
             {'status': 'partial', 'credits': {'exhausted': True, 'available': 0}}))
-    with pytest.raises(ValueError, match='1 unauthorised'):
+    assert '0 unauthorised' in str(exhausted.value)
+    assert 'unreadable' not in str(exhausted.value)
+    with pytest.raises(ValueError, match='1 unauthorised') as unauthorised:
         jobs.require_funded_key(_decide_report({'error': {'code': 'missing_api_key'}}, status=401))
-    with pytest.raises(ValueError, match='1 unauthorised'):
+    assert '0 credits.exhausted' in str(unauthorised.value)
+    assert 'unreadable' not in str(unauthorised.value)
+    with pytest.raises(ValueError, match='1 unauthorised') as plain_status:
         jobs.require_funded_key(_decide_report('Unauthorized', status=401))
+    assert 'unreadable' not in str(plain_status.value)
     assert jobs.decide_health(_decide_report({'credits': 'odd'}))['credits_exhausted'] == 0
-    with pytest.raises(ValueError, match='1 unreadable'):
-        jobs.require_funded_key({
-            'runs': [{'tool_calls': [{'name': 'decide', 'response_ref': 'r0'}]}],
-            'tool_responses': {'r0': {'content': [{'type': 'text', 'text': 'status: no_feasible'}]}},
-        })
-    # A plain-text tool error never reached the API, so it is not a key problem.
-    assert jobs.require_funded_key({
+    # Plain text never reached a readable envelope. It is a row defect, not a key failure.
+    plain = jobs.require_funded_key({
+        'runs': [{'tool_calls': [{'name': 'decide', 'response_ref': 'r0'}]}],
+        'tool_responses': {'r0': {'content': [{'type': 'text', 'text': 'status: no_feasible'}]}},
+    })
+    assert plain['unreadable'] == 1 and plain['parse_defects'] == 1
+    assert plain['credits_exhausted'] == 0 and plain['unauthorised'] == 0
+    # A plain-text tool error never reached the API, so it is not a key problem or a parse defect.
+    errored = jobs.require_funded_key({
         'runs': [{'tool_calls': [{'name': 'decide', 'response_ref': 'r0'}]}],
         'tool_responses': {'r0': {'content': [{'type': 'text', 'text': 'Invalid arguments'}],
                                   'isError': True}},
-    })['unreadable'] == 0
+    })
+    assert errored['unreadable'] == 0 and errored['parse_defects'] == 0
     # A decide cut off before its result keeps a placeholder; it never answered.
-    assert jobs.require_funded_key({
+    cutoff = jobs.require_funded_key({
         'runs': [{'tool_calls': [{'name': 'decide', 'response_ref': 'r0', 'result_observed': False}]}],
         'tool_responses': {'r0': {'content': [{'type': 'text', 'text': 'null'}], 'isError': False}},
-    })['unreadable'] == 0
+    })
+    assert cutoff['unreadable'] == 0 and cutoff['parse_defects'] == 0
+
+
+def _measured_call(name, text, *, is_error=False, observed=True, server='modelspec'):
+    return {
+        'name': name,
+        'server': server,
+        'arguments': {},
+        'unknown_facets': [],
+        'validation_errors': [],
+        'api_call': False,
+        'result_observed': observed,
+        'result': {'content': [{'type': 'text', 'text': text}], 'isError': is_error},
+    }
+
+
+def _report_row(scenario, cli, calls):
+    return {
+        'scenario': scenario,
+        'family': 'F1',
+        'agent': cli,
+        'cli': cli,
+        'status': 'completed',
+        'success': False,
+        'expected_match': None,
+        'judge': None,
+        'tool_calls': calls,
+    }
+
+
+TOKEN_NOTICE = (
+    'Error: result (96,804 characters) exceeds maximum allowed tokens. '
+    'Output has been saved to /tmp/claude-1.txt'
+)
+PERSISTED_NOTICE = (
+    '<persisted-output>\nOutput too large (134.2KB). Full output saved to: /tmp/claude-2.txt\n'
+    'Preview (first 2KB):\n{}'
+)
+
+
+def test_parse_defects_tag_claude_truncation_and_plain_text():
+    row = _report_row('budget-approved', 'claude', [
+        _measured_call('decide', TOKEN_NOTICE),
+        _measured_call('rank', PERSISTED_NOTICE),
+        _measured_call(
+            'model_info',
+            'Output too large (134.2KB). Full output saved to: /tmp/claude-3.txt',
+        ),
+        _measured_call('vocab', 'status: no_feasible'),
+        _measured_call('decide', TOKEN_NOTICE, is_error=True),
+        _measured_call('decide', TOKEN_NOTICE, observed=False),
+        _measured_call('browser_navigate', TOKEN_NOTICE, server='playwright'),
+    ])
+    report = agent_harness.make_report(
+        [row], [{'id': 'budget-approved', 'family': 'F1'}], False,
+        agent_harness.Budget(0), '2026-10-06', {'agents': ['claude']},
+    )
+    assert report['runs'][0]['parse_defects'] == [
+        {'call': 'decide', 'kind': 'cli_truncated_result'},
+        {'call': 'rank', 'kind': 'cli_truncated_result'},
+        {'call': 'model_info', 'kind': 'cli_truncated_result'},
+        {'call': 'vocab', 'kind': 'unreadable'},
+    ]
+    assert report['parse_defects'] == [
+        ['budget-approved', 'claude', 'cli_truncated_result', 3],
+        ['budget-approved', 'claude', 'unreadable', 1],
+    ]
+    health = jobs.require_funded_key(report)
+    assert health['parse_defects'] == 4
+    assert health['credits_exhausted'] == 0 and health['unauthorised'] == 0
+    summary = jobs.scenario_summary(report)
+    markdown = agent_harness.markdown(report)
+    assert '[budget-approved, claude]' in summary and '[budget-approved, claude]' in markdown
+    note = 'CLI truncated or unreadable tool results; the agent did not see these answers.'
+    assert note in summary and note in markdown
+
+
+def test_summary_and_markdown_list_at_most_ten_parse_defect_rows():
+    rows = [
+        _report_row(
+            f's{i}', 'codex' if i % 2 == 0 else 'grok',
+            [_measured_call('decide', TOKEN_NOTICE)],
+        )
+        for i in range(12)
+    ]
+    report = agent_harness.make_report(
+        rows, [], False, agent_harness.Budget(0), '2026-10-06', {'agents': ['codex', 'grok']},
+    )
+    summary = jobs.scenario_summary(report)
+    markdown = agent_harness.markdown(report)
+    assert 'Parse defects: 12 rows: ' in summary
+    for text in (summary, markdown):
+        assert '[s0, codex]' in text and '[s9, grok]' in text
+        assert '[s10, codex]' not in text and '(+2 more)' in text
+        assert 'CLI truncated or unreadable tool results; the agent did not see these answers.' in text
+
+
+def test_resumed_rows_produce_the_same_parse_defects(config, tmp_path, monkeypatch):
+    offline_scenario_job(monkeypatch)
+
+    class Runner:
+        def __init__(self, cfg, output, isolation):
+            self.counts = {cli: {'agent': 0, 'judge': 0} for cli in providers.CLIS}
+
+        def scenario(self, scenario, cli):
+            self.counts[cli]['agent'] += 1
+            row = harness.empty_row(scenario, cli, config, 'completed')
+            row['tool_calls'] = [_measured_call('decide', PERSISTED_NOTICE)]
+            return row
+
+    monkeypatch.setattr(harness, 'Runner', Runner)
+    fresh = jobs.scenario_report(config, ['codex'], [ALPHA], tmp_path, day=DAY)
+    resumed = jobs.scenario_report(config, ['codex'], [ALPHA], tmp_path, day=DAY, resume=True)
+    assert fresh['runs'][0]['parse_defects'] == [
+        {'call': 'decide', 'kind': 'cli_truncated_result'},
+    ]
+    assert resumed['resumed'] == 1
+    assert resumed['runs'][0]['parse_defects'] == fresh['runs'][0]['parse_defects']
+    assert resumed['parse_defects'] == fresh['parse_defects'] == [
+        ['alpha', 'codex', 'cli_truncated_result', 1],
+    ]
 
 
 DAY = '2026-10-04'

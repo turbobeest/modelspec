@@ -489,9 +489,11 @@ MCP headers, and Codex uses `bearer_token_env_var`. Judges get no key.
 `redact()` removes every `MODELSPEC_*` value from reports. Add `--scenario`
 globs and `--max-runs-per-cli` to narrow a run.
 
-A keyed scenario run checks every decide answer before it publishes. Any
-`credits.exhausted` or 401/402/403 answer refuses publication: the report stays
-in the kept worktree and the job exits 2. While x402 and the human gate are off,
+A keyed scenario run refuses publication only when a decide answer has
+`credits.exhausted` or is unauthorised (status 401, 402, or 403); the report
+stays in the kept worktree and the job exits 2. A CLI-truncated or unreadable
+ModelSpec tool result is a measurement defect of that row and does not refuse
+publication. While x402 and the human gate are off,
 an unfunded key still receives the full decision. The answer then carries the
 exhausted notice, and agents read it and may make extra calls or change course,
 so the run measures the key rather than the agents. The proof key is

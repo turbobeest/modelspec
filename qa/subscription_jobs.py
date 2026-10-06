@@ -423,28 +423,40 @@ def scenario_summary(report: dict) -> str:
     lines.append(
         f"Isolation misuse: {len(misuse)} rows" + (f": {shown}{more}" if misuse else ".")
     )
+    defects = [f"[{scenario}, {cli}]" for scenario, cli in agent_harness.parse_defect_pairs(report)]
+    shown = ", ".join(defects[:10])
+    more = f" (+{len(defects) - 10} more)" if len(defects) > 10 else ""
+    lines.append(
+        f"Parse defects: {len(defects)} rows" + (f": {shown}{more}" if defects else ".")
+    )
+    if defects:
+        lines.append(agent_harness.PARSE_DEFECT_NOTE)
     return "\n".join(lines) + "\n"
 
 
 def decide_health(report: dict) -> dict:
-    """Count decide answers the key could not fund, did not authorise, or left unreadable."""
+    """Count decide answers the key could not fund or did not authorise.
+
+    parse_defects counts observed ModelSpec results with no JSON envelope.
+    Those rows are measurement defects and do not refuse publication.
+    """
     counts = {
-        "decide_answers": 0, "credits_exhausted": 0, "partial": 0, "unauthorised": 0, "unreadable": 0,
+        "decide_answers": 0, "credits_exhausted": 0, "partial": 0, "unauthorised": 0,
+        "unreadable": 0, "parse_defects": 0,
     }
     for run in report["runs"]:
         for call in run.get("tool_calls") or []:
             ref = call.get("response_ref")
             response = report["tool_responses"].get(ref) if ref else None
+            if agent_harness.call_parse_defect(call, response):
+                counts["parse_defects"] += 1
             # A call cut off by a timeout or turn cap keeps a null placeholder result.
             if call.get("name") != "decide" or response is None or call.get("result_observed") is False:
                 continue
             readable = False
             for block in response.get("content") or []:
-                try:
-                    envelope = json.loads(block.get("text", ""))
-                except (ValueError, TypeError, AttributeError):
-                    continue
-                if not isinstance(envelope, dict) or "status" not in envelope:
+                envelope = agent_harness.status_envelope(block)
+                if envelope is None:
                     continue
                 readable = True
                 body = envelope.get("body") if isinstance(envelope.get("body"), dict) else {}
@@ -453,20 +465,18 @@ def decide_health(report: dict) -> dict:
                 counts["unauthorised"] += envelope.get("status") in (401, 402, 403)
                 counts["credits_exhausted"] += credits.get("exhausted") is True
                 counts["partial"] += body.get("status") == "partial"
-            # A tool-level error in plain text never reached the API; a successful
-            # result without an envelope means the transcript format changed.
+            # A tool-level error in plain text never reached the API.
             counts["unreadable"] += not readable and not response.get("isError")
     return counts
 
 
 def require_funded_key(report: dict, checkpoint: Path | None = None) -> dict:
-    """A keyed run whose decides were refused, unfunded, or unreadable measures the key."""
+    """Refuse publication only when a decide was unauthorised or unfunded."""
     health = decide_health(report)
-    if health["credits_exhausted"] or health["unauthorised"] or health["unreadable"]:
+    if health["credits_exhausted"] or health["unauthorised"]:
         message = (
             f"ModelSpec key unusable: {health['credits_exhausted']} credits.exhausted and "
-            f"{health['unauthorised']} unauthorised of {health['decide_answers']} decide answers, "
-            f"{health['unreadable']} unreadable. "
+            f"{health['unauthorised']} unauthorised of {health['decide_answers']} decide answers. "
             "Report kept locally, not published; fix the key and rerun."
         )
         if checkpoint is not None:
