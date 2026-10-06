@@ -26,6 +26,7 @@ from qa import tui_isolation as isolation
 from qa import tui_providers as providers
 from qa.agent_harness import load_scenarios
 from qa.docker import entrypoint
+from qa.subscription_jobs import decide_health, require_funded_key
 
 IMAGE_IDENTITY = docker.image_identity
 
@@ -338,6 +339,94 @@ def test_grok_use_tool_unwraps_to_a_modelspec_call_and_search_tool_is_lookup_onl
     assert providers.isolation_violation(
         foreign, mcp_enabled=True, cli="grok", inventory=native_inventory("grok")
     ) == "CLI used a tool outside the configured ModelSpec MCP"
+
+
+def test_grok_use_tool_splits_a_leading_json_object_from_the_summary():
+    envelope = (
+        '{"origin":"https://api.modelspec.dev/v1/decide","status":200,'
+        '"body":{"status":"no_feasible"}}'
+    )
+    summary = "status: no_feasible; top models: none"
+    broken = "{not json"
+
+    def transcript(okay: str) -> str:
+        return "\n".join(json.dumps(event) for event in [
+            {"type": "assistant", "message": {"id": "m0", "content": [
+                {"type": "tool_use", "id": "u1", "name": "use_tool",
+                 "input": {"tool_name": "modelspec__decide", "tool_input": {}}},
+            ]}},
+            {"type": "user", "message": {"content": [{
+                "type": "tool_result", "tool_use_id": "u1",
+                "content": json.dumps({
+                    "type": "MCP", "tool_name": "decide", "server_name": "modelspec",
+                    "output": {"OkayOutput": okay},
+                }),
+            }]}},
+        ])
+
+    parsed = providers.parse_transcript("grok", transcript(envelope + "\n" + summary))
+    blocks = parsed.tool_calls[0]["result"]["content"]
+    assert blocks == [
+        {"type": "text", "text": envelope},
+        {"type": "text", "text": summary},
+    ]
+    assert json.loads(blocks[0]["text"])["status"] == 200
+    assert parsed.tool_calls[0]["result"]["isError"] is False
+    assert providers.parse_transcript("grok", transcript(envelope)).tool_calls[0]["result"][
+        "content"
+    ] == [{"type": "text", "text": envelope}]
+    assert providers.parse_transcript("grok", transcript(summary)).tool_calls[0]["result"][
+        "content"
+    ] == [{"type": "text", "text": summary}]
+    assert providers.parse_transcript("grok", transcript(broken)).tool_calls[0]["result"][
+        "content"
+    ] == [{"type": "text", "text": broken}]
+    padded = providers.parse_transcript("grok", transcript("  " + envelope + "\n" + summary))
+    padded_blocks = padded.tool_calls[0]["result"]["content"]
+    assert padded_blocks == [
+        {"type": "text", "text": envelope},
+        {"type": "text", "text": summary},
+    ]
+    assert json.loads(padded_blocks[0]["text"]) == {
+        "origin": "https://api.modelspec.dev/v1/decide",
+        "status": 200,
+        "body": {"status": "no_feasible"},
+    }
+    errored = providers.parse_transcript(
+        "grok", transcript(envelope + "\n" + summary).replace("OkayOutput", "Error")
+    )
+    assert errored.tool_calls[0]["result"] == {
+        "content": [
+            {"type": "text", "text": envelope},
+            {"type": "text", "text": summary},
+        ],
+        "isError": True,
+    }
+    report = {
+        "runs": [{"tool_calls": [{"name": "decide", "response_ref": "r0"}]}],
+        "tool_responses": {"r0": parsed.tool_calls[0]["result"]},
+    }
+    assert decide_health(report) == {
+        "decide_answers": 1, "credits_exhausted": 0, "partial": 0,
+        "unauthorised": 0, "unreadable": 0,
+    }
+
+    def gated(okay: str) -> dict:
+        seen = providers.parse_transcript("grok", transcript(okay + "\n" + summary))
+        return {
+            "runs": [{"tool_calls": [{"name": "decide", "response_ref": "r0"}]}],
+            "tool_responses": {"r0": seen.tool_calls[0]["result"]},
+        }
+
+    exhausted = (
+        '{"origin":"https://api.modelspec.dev/v1/decide","status":200,'
+        '"body":{"credits":{"exhausted":true}}}'
+    )
+    with pytest.raises(ValueError, match="credits.exhausted"):
+        require_funded_key(gated(exhausted))
+    unauthorised = '{"origin":"https://api.modelspec.dev/v1/decide","status":401,"body":{}}'
+    with pytest.raises(ValueError, match="unauthorised"):
+        require_funded_key(gated(unauthorised))
 
 
 def test_grok_user_layer_mount_refuses_symlinks_and_skips_other_modes(config, tmp_path):
