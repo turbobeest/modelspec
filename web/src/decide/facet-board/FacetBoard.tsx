@@ -281,12 +281,10 @@ export function FacetBoard({ vocabulary, spec, onSpec, selections, onSelections,
         {grouped.groups.map((group) => {
           const active = group.facets.filter((facet) => selected[facet.id]?.mode && selected[facet.id]?.mode !== "off");
           const activeCount = active.length + activeRefinementCount(new Set(group.facets.map((facet) => facet.id)));
-          const survival = active.flatMap((facet) => facet.values?.filter((value) => value.has_data !== false).map((value) => value.count) ?? []).filter((count): count is number => typeof count === "number");
-          const mustActive = active.some((facet) => {
-            const mode = selected[facet.id]?.mode;
-            return mode === "must" || mode === "both";
-          });
-          const change = survival.length ? ` · → ${Math.min(...survival)} survive` : mustActive ? "" : " · no change";
+          // Prefer never narrows; only a Must (or both) can change who survives.
+          const musts = active.filter((facet) => selected[facet.id]?.mode === "must" || selected[facet.id]?.mode === "both");
+          const survival = musts.flatMap((facet) => facet.values?.filter((value) => value.has_data !== false).map((value) => value.count) ?? []).filter((count): count is number => typeof count === "number");
+          const change = survival.length ? ` · → ${Math.min(...survival)} survive` : musts.length ? "" : " · no change";
           const open = expandedGroups[group.name] === true;
           return <section className="facet-group" key={group.name}><button className="facet-group-summary" aria-expanded={open} onClick={() => setExpandedGroups((current) => ({ ...current, [group.name]: !open }))}><span>{group.name}</span><small>{activeCount ? `${activeCount} set` : "all Doesn't matter"}{change}</small><b aria-hidden="true">{open ? "−" : "+"}</b></button>{open && <div>{group.facets.map((facet) => <FacetRow key={facet.id} facet={facet} choice={selected[facet.id] ?? { mode: "off" }} refinements={(vocabulary.refinements ?? []).filter((row) => facet.id === `capability.${row.parent_domain}`)} selections={selected} fallbackKeys={refinementFallbackKeys} onChange={(choice) => update(facet.id, choice)} onRefinementChange={update} />)}</div>}</section>;
         })}

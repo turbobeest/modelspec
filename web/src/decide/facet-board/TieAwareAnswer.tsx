@@ -33,7 +33,7 @@ function percent(value: number): string {
   return `${Math.round(value * 100)}%`;
 }
 
-/** A price score is exactly 0 or 1, which only repeats the order. */
+/** A certain probability (0 or 1, as on a price objective) only restates the order. */
 function uncertainBeat(p: number | null): p is number {
   return p !== null && p > 0 && p < 1;
 }

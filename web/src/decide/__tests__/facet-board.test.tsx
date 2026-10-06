@@ -492,6 +492,20 @@ it("says a group changed nothing only when no Must in it is cutting", () => {
   expect(summary(/What it does/)).not.toHaveTextContent("no change");
 });
 
+it("never claims a Prefer on a counted value narrows the field", () => {
+  render(<FacetBoard
+    vocabulary={realVocabulary}
+    spec={realBaseSpec(realVocabulary)}
+    selections={{ "model.weights_openness": { mode: "prefer", weight: 0.5, value: "open_weights" } }}
+    onSpec={vi.fn()}
+    estate={emptyEstate}
+    onEstate={vi.fn()}
+  />);
+  const licence = screen.getByRole("button", { name: /^Licence/ });
+  expect(licence).toHaveTextContent("no change");
+  expect(licence).not.toHaveTextContent("survive");
+});
+
 it("starts enum Must controls unselected and shows vocabulary counts", () => {
   const onSpec = vi.fn();
   render(<FacetBoard vocabulary={realVocabulary} spec={{ ...realBaseSpec(realVocabulary), conds: [] }} onSpec={onSpec} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
