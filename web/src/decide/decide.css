@@ -2494,6 +2494,10 @@ html:not([data-decide-theme="light"]) .capsule {
 .estimate-drivers li + li {
   margin-top: 5px;
 }
+.estimate-drivers a,
+.decide-app .human-gate a {
+  color: var(--accentText);
+}
 .evidence-row {
   position: relative;
   padding: 10px 115px 10px 0;
@@ -2667,6 +2671,14 @@ html:not([data-decide-theme="light"]) .capsule {
 .loading {
   /* The cards column shrinks: a fixed 400px made the page scroll sideways on phones. */
   grid-template-columns: minmax(0, 1fr) minmax(0, 400px);
+}
+@media (max-width: 620px) {
+  .loading {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .chart-column:has(> .loading) {
+    align-self: stretch;
+  }
 }
 .loading-canvas {
   height: 560px;

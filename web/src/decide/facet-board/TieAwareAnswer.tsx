@@ -33,6 +33,11 @@ function percent(value: number): string {
   return `${Math.round(value * 100)}%`;
 }
 
+/** A certain probability (0 or 1, as on a price objective) only restates the order. */
+function uncertainBeat(p: number | null): p is number {
+  return p !== null && p > 0 && p < 1;
+}
+
 function listed(names: string[]): string {
   if (names.length < 2) return names.join("");
   return `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
@@ -133,7 +138,7 @@ export function TieAwareAnswer({
           <strong>{nameOf(entry.model)}</strong>
           {row && <small>{row.m.labName} · via {payee(row.best.o.provider)}</small>}
           {entry.p_best !== null && <small>{percent(entry.p_best)} chance of being best</small>}
-          {entry.p_beats_leader !== null && <small>{percent(entry.p_beats_leader)} likely to score at least as well as {nameOf(bands?.leader ?? entry.model)}</small>}
+          {uncertainBeat(entry.p_beats_leader) && <small>{percent(entry.p_beats_leader)} likely to score at least as well as {nameOf(bands?.leader ?? entry.model)}</small>}
           {pickedBy.length > 0 && <span className="board-tie-pick">picked by {pickedBy.join(", ")}</span>}
         </li>;
       })}
@@ -166,7 +171,7 @@ export function TieAwareAnswer({
           <strong>{nameOf(entry.model)}</strong>
           {estimateText(entry) && <small>{estimateText(entry)}</small>}
           {entry.cost_per_task !== null && <small>{money(entry.cost_per_task)} per task</small>}
-          {entry.p_beats_leader !== null && bands.leader && <small>{percent(entry.p_beats_leader)} likely to score at least as well as {nameOf(bands.leader)}</small>}
+          {uncertainBeat(entry.p_beats_leader) && bands.leader && <small>{percent(entry.p_beats_leader)} likely to score at least as well as {nameOf(bands.leader)}</small>}
         </li>)}
       </ol>
     </>}

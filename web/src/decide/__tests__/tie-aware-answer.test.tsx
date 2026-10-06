@@ -68,6 +68,33 @@ describe("the banded answer on the board", () => {
     expect(beta).toHaveTextContent("1% likely to score at least as well as Alpha");
   });
 
+  it("omits a certain chance of matching the leader", () => {
+    const certain = structuredClone(tiedJson);
+    const gamma = certain.bands.best.find((entry) => entry.model === "lab/gamma");
+    const beta = certain.bands.rest.find((entry) => entry.model === "lab/beta");
+    if (!gamma || !beta) throw new Error("fixture bands");
+    gamma.p_beats_leader = 0;
+    beta.p_beats_leader = 1;
+    certain.bands.rest.push({
+      ...beta,
+      model: "lab/delta",
+      offering: { ...beta.offering, model: "lab/delta" },
+      p_beats_leader: 0.36,
+    });
+    show(certain);
+    const block = screen.getByRole("heading", { name: /Best for your weights/ }).closest("section")!;
+    const group = block.querySelector(".board-tie-group") as HTMLElement;
+    const gammaRow = within(group).getAllByRole("listitem").find((item) => item.textContent?.includes("Gamma"));
+    expect(gammaRow).toBeTruthy();
+    expect(gammaRow).not.toHaveTextContent(/likely to score/);
+    const rest = block.querySelector(".board-band-rest") as HTMLElement;
+    const rows = within(rest).getAllByRole("listitem");
+    const betaRow = rows.find((item) => item.querySelector("strong")?.textContent === "Beta");
+    const deltaRow = rows.find((item) => item.querySelector("strong")?.textContent === "lab/delta");
+    expect(betaRow).not.toHaveTextContent(/likely to score/);
+    expect(deltaRow).toHaveTextContent("36% likely to score at least as well as Alpha");
+  });
+
   it("labels each pick by the tie-breaker that made it, never as a rank", () => {
     show(tiedJson);
     const block = screen.getByRole("heading", { name: /can't separate/ }).closest("section")!;
