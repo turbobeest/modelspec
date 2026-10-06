@@ -989,7 +989,8 @@ only), its `cost_per_task` (its best ranked offering's) and its `offerings`.
 strongest `status` the decision gives it, its `rank` in `results` (ranked only),
 its `cost_per_task`, the facets it is `unknown` on (may-qualify only) and
 `reason`. `reason` is the Must an eliminated offering failed, and also the
-sentence for a may-qualify offering whose region name guarantees no country.
+sentence for a may-qualify offering that is unknown on `offering.region`
+because its region name guarantees no country. Otherwise it is null.
 
 Eliminated models are listed only when the explanation carries them, at `full`.
 At `none` and `summary`, `by_model` holds ranked and may-qualify models only.
