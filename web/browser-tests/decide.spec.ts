@@ -430,6 +430,9 @@ test("the loading skeleton fits a 390px viewport", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openBoard(page);
   await expect(page.locator(".loading-cards")).toBeVisible();
+  const status = page.locator(".loading p");
+  await expect(status).toHaveText("Running decision against the current snapshot");
+  expect(await status.evaluate((node) => node.getBoundingClientRect().width)).toBeGreaterThanOrEqual(300);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
   release();
   await expect(page.getByLabel("Facet board answer")).toBeVisible();

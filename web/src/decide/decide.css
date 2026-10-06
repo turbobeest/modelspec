@@ -2672,6 +2672,14 @@ html:not([data-decide-theme="light"]) .capsule {
   /* The cards column shrinks: a fixed 400px made the page scroll sideways on phones. */
   grid-template-columns: minmax(0, 1fr) minmax(0, 400px);
 }
+@media (max-width: 620px) {
+  .loading {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .chart-column:has(> .loading) {
+    align-self: stretch;
+  }
+}
 .loading-canvas {
   height: 560px;
   padding: 16px;
