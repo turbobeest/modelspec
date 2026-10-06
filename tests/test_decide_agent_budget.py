@@ -64,22 +64,6 @@ def collect_sizes(service, snapshot):
     return rows
 
 
-def test_cli_row_fields_match_the_bounded_projection():
-    from cli.modelspec.spec import DEFAULT_ROW_FIELDS
-    from cli.modelspec.spec import EXPLAIN_ROW_FIELDS as cli_explain
-    from cli.modelspec.spec import bound_decide_request
-    from decision.bounded import row_fields_for
-
-    assert DEFAULT_ROW_FIELDS == DEFAULT_FIELDS
-    assert cli_explain == EXPLAIN_ROW_FIELDS
-    naked = {"spec_version": 1, "optimize": {"max": "software_engineering"}}
-    assert bound_decide_request(naked)["fields"] == row_fields_for("summary")
-    assert bound_decide_request({**naked, "explain": "none"})["fields"] == list(DEFAULT_FIELDS)
-    assert bound_decide_request({**naked, "explain": "full"})["fields"] == row_fields_for("full")
-    explicit = bound_decide_request({**naked, "fields": None})
-    assert explicit["fields"] is None
-
-
 def test_agent_budget_drops_whole_records(monkeypatch):
     from decision import bounded
 
@@ -218,18 +202,13 @@ def test_fit_drops_other_records_before_the_top_explanation(monkeypatch):
 
 
 def test_default_decide_request_matches_the_shared_fixture():
-    """Pins mcp_default_request, agent_summary and the CLI tuples to the MCP fixture."""
-    from cli.modelspec.spec import DEFAULT_ROW_FIELDS
-    from cli.modelspec.spec import EXPLAIN_ROW_FIELDS as cli_explain
-
+    """Pins mcp_default_request and agent_summary to the MCP fixture."""
     fixture = json.loads(
         (Path(__file__).resolve().parents[1] / "mcp/test/fixtures/default-decide-request.json")
         .read_text(encoding="utf-8")
     )
     assert list(DEFAULT_FIELDS) == fixture["default_fields"]
     assert list(EXPLAIN_ROW_FIELDS) == fixture["explain_row_fields"]
-    assert list(DEFAULT_ROW_FIELDS) == fixture["default_fields"]
-    assert list(cli_explain) == fixture["explain_row_fields"]
     for case in fixture["requests"]:
         assert mcp_default_request(case["spec"]) == case["request"], case["name"]
     for case in fixture["summaries"]:

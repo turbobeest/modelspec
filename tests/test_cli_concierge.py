@@ -211,30 +211,6 @@ def test_decide_sends_exactly_the_supplied_spec_and_passes_the_body_through(
     assert set(tmp_path.rglob("*")) == before
 
 
-def test_decide_adds_bounded_fields_only_when_the_spec_omits_them(monkeypatch):
-    seen = {}
-
-    def handler(request):
-        seen["body"] = json.loads(request.content)
-        return httpx.Response(
-            200, text=API_TEXT, headers={"x-modelspec-guide-version": BUNDLE["guide_version"]}
-        )
-
-    monkeypatch.setattr(client, "_transport", httpx.MockTransport(handler))
-    none_explain = {key: value for key, value in SPEC.items() if key != "fields"}
-    result = run(["decide", "--spec", "-", "--json"], keyed=True, input=json.dumps(none_explain))
-    assert result.exit_code == 0, result.output
-    assert seen["body"]["explain"] == "none"
-    assert seen["body"]["fields"] == ["model_rank", "cost_per_task", "estimates", "p_best"]
-    omitted_explain = {key: value for key, value in none_explain.items() if key != "explain"}
-    result = run(["decide", "--spec", "-", "--json"], keyed=True, input=json.dumps(omitted_explain))
-    assert result.exit_code == 0, result.output
-    assert "explain" not in seen["body"]
-    assert seen["body"]["fields"] == [
-        "model_rank", "cost_per_task", "estimates", "p_best", "contributions", "evidence",
-    ]
-
-
 def test_template_is_looked_up_with_a_key_then_sent_unchanged(monkeypatch):
     calls = []
 
@@ -418,15 +394,7 @@ def test_server_validates_semantics_and_requirements_are_never_removed(monkeypat
     spec = {"spec_version": 1, "optimize": {"max": "unsupported.facet"}, "task": "not supported"}
 
     def handler(request):
-        # The invalid task and optimize are sent intact. fields is added because
-        # the Spec omitted it; explain stays omitted, so the summary row list is used.
-        assert json.loads(request.content) == {
-            **spec,
-            "fields": [
-                "model_rank", "cost_per_task", "estimates", "p_best",
-                "contributions", "evidence",
-            ],
-        }
+        assert json.loads(request.content) == spec
         return httpx.Response(
             400,
             json={

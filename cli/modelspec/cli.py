@@ -16,7 +16,7 @@ from . import auth, setup
 from .client import Client
 from .errors import ClientError, fail
 from .guidance import BUNDLE, HELP, TEXT, next_steps, orientation, orientation_lines, procurement
-from .spec import bound_decide_request, load_spec, validate_spec
+from .spec import load_spec, validate_spec
 
 
 def _json_mode(ctx: click.Context, option: bool = False) -> bool:
@@ -253,7 +253,7 @@ def decide(
             if client.guide_changed:
                 error.next.extend(next_steps("upgrade"))
             raise
-    _response(ctx, client, client.request("POST", "/v1/decide", body=bound_decide_request(body)), as_json)
+    _response(ctx, client, client.request("POST", "/v1/decide", body=body), as_json)
 
 
 @app.command("vocab", cls=RecoveryCommand, help=HELP["vocab"])

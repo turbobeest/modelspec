@@ -16,10 +16,6 @@ from .errors import ClientError
 SCHEMA = json.loads(files(__package__).joinpath("spec.schema.json").read_text(encoding="utf-8"))
 VALIDATOR = Draft202012Validator(SCHEMA)
 MAX_BYTES = 64 * 1024
-# Duplicated from decision.bounded so this wheel stays engine-free.
-# tests/test_decide_agent_budget.py asserts the tuples match.
-DEFAULT_ROW_FIELDS = ("model_rank", "cost_per_task", "estimates", "p_best")
-EXPLAIN_ROW_FIELDS = ("contributions", "evidence")
 
 
 def load_spec(source: str) -> dict[str, Any]:
@@ -57,19 +53,3 @@ def validate_spec(value: Any) -> None:
         raise ClientError("invalid_spec", recovery="spec") from None
     if issues:
         raise ClientError("invalid_spec", recovery="spec", issues=issues)
-
-
-def bound_decide_request(spec: dict[str, Any]) -> dict[str, Any]:
-    """Add the bounded row list when the caller did not set ``fields``.
-
-    An explicit ``fields`` value, including null, is sent unchanged. Explain
-    and limit are left to the spec: an omitted explain is the server default,
-    summary, so the list includes the explanation row fields.
-    """
-    if "fields" in spec:
-        return spec
-    explain = spec.get("explain", "summary")
-    fields = list(DEFAULT_ROW_FIELDS)
-    if explain in ("summary", "full"):
-        fields.extend(EXPLAIN_ROW_FIELDS)
-    return {**spec, "fields": fields}
