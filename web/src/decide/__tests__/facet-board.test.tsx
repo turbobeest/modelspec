@@ -495,7 +495,7 @@ it("says a group changed nothing only when no Must in it is cutting", () => {
 it("starts enum Must controls unselected and shows vocabulary counts", () => {
   const onSpec = vi.fn();
   render(<FacetBoard vocabulary={realVocabulary} spec={{ ...realBaseSpec(realVocabulary), conds: [] }} onSpec={onSpec} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
-  fireEvent.click(screen.getByRole("button", { name: /Where it runsall Doesn't matter/ }));
+  fireEvent.click(screen.getByRole("button", { name: /Licenceall Doesn't matter/ }));
   const weights = screen.getByText("Open weights").closest<HTMLElement>(".facet-row")!;
   fireEvent.click(within(weights).getByLabelText("Must"));
   expect(within(weights).getByText("Choose value(s)")).toBeInTheDocument();
