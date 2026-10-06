@@ -50,6 +50,22 @@ def inventory_violation(inventory: dict | None, *, mcp_enabled: bool, allowed_se
     allowed = sorted(allowed_servers if allowed_servers is not None else ["modelspec"]) if mcp_enabled else []
     if inventory["mcp_servers"] != allowed:
         return "Native inventory did not show exactly the configured ModelSpec MCP servers"
+    if inventory.get("mechanism") == MECHANISMS["codex"]:
+        from qa.tui_providers import CODEX_ISOLATED_FEATURES
+
+        features = inventory.get("features")
+        if not isinstance(features, dict):
+            return "Codex features list omitted the isolated feature set"
+        # `features list` does not reflect the features.unified_exec=false override
+        # in codex 0.160. shell_tool=false removes exec_command; the doctor misuse
+        # probe is the behavioural check.
+        for name in CODEX_ISOLATED_FEATURES:
+            if name == "unified_exec":
+                continue
+            value = features.get(name)
+            if value is not False:
+                shown = "missing" if name not in features or value is None else str(value).lower()
+                return f"Codex features list reports {name}={shown}"
     return None
 
 
@@ -220,6 +236,18 @@ def _codex_skills(
             raise ValueError("Codex skills inventory emitted diagnostics")
 
 
+def _codex_feature_value(listing: str, name: str) -> bool | None:
+    """True when `features list` shows the feature enabled, False when disabled."""
+    rows = [line for line in listing.splitlines() if re.match(rf"^{re.escape(name)}\s", line)]
+    if len(rows) != 1:
+        return None
+    if re.fullmatch(rf"{re.escape(name)}\s+.+\s+false", rows[0]):
+        return False
+    if re.fullmatch(rf"{re.escape(name)}\s+.+\s+true", rows[0]):
+        return True
+    return None
+
+
 def _codex_skill_config(rows: list[dict]) -> str:
     disabled = []
     for row in rows:
@@ -245,7 +273,7 @@ def inspect_inventory(
     Raw command output stays in memory. Receipts retain only names, disabled
     states and command labels, never the CLI's config values or prompt preview.
     """
-    from qa.tui_providers import codex_config_args
+    from qa.tui_providers import CODEX_ISOLATED_FEATURES, codex_config_args
 
     binary = resolve_executable(cli, config["clis"][cli])
     checks = []
@@ -332,6 +360,9 @@ def inspect_inventory(
             )
             _list(plugins["available"], "available plugins")
             features = codex(["features", "list"])
+            evidence["features"] = {
+                name: _codex_feature_value(features, name) for name in CODEX_ISOLATED_FEATURES
+            }
             hooks = [line for line in features.splitlines() if re.match(r"^hooks\s", line)]
             if len(hooks) != 1 or not re.fullmatch(r"hooks\s+.+\s+false", hooks[0]):
                 raise ValueError("Codex effective hooks feature is missing or enabled")

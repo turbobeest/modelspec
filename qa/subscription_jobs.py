@@ -116,13 +116,20 @@ def require_ready(config: dict, clis: list[str], output: Path, *, max_age_days=3
 
 
 def preview(cli: str, config: dict, workspace: Path, prompt: str, *, purpose="scenario") -> list[str]:
+    from qa.tui_providers import PROMPT_MARKER
+
     mcp = workspace / "modelspec-mcp.json"
     mcp.write_text(home_config(cli, config, enabled=purpose in ("scenario", "browser")))
     command = build_command(cli, config["clis"][cli], workspace, prompt, mcp,
                             config["turn_cap"], purpose=purpose)
     # The preview uses the command builder but never consults Docker.
     argv = container_command(cli, config, workspace, command, passed_environment(config), preview=True)
-    print(shlex.join(argv[:-1]) + " '<private prompt>'")
+    # Gemini is the only preview whose argv still contains the prompt text.
+    shown = [PROMPT_MARKER if part == prompt else part for part in argv] if cli == "gemini" else argv
+    line = shlex.join(shown)
+    if cli in ("claude", "codex"):
+        line += " < " + shlex.quote(PROMPT_MARKER)
+    print(line)
     return argv
 
 
@@ -409,28 +416,47 @@ def scenario_summary(report: dict) -> str:
         numbers = [metrics["success_rate"], metrics["mean_tool_calls"], metrics["api_latency_p50_ms"], metrics["api_latency_p95_ms"]]
         formatted = ["n/a" if n is None else f"{n * 100:.1f}%" if i == 0 else f"{n:.2f}" for i, n in enumerate(numbers)]
         lines.append("| " + name + " | " + " | ".join(formatted) + " |")
+    misuse = report.get("isolation_misuse") or []
+    pairs = [f"[{scenario}, {cli}]" for scenario, cli, *_rest in misuse]
+    shown = ", ".join(pairs[:10])
+    more = f" (+{len(pairs) - 10} more)" if len(pairs) > 10 else ""
+    lines.append(
+        f"Isolation misuse: {len(misuse)} rows" + (f": {shown}{more}" if misuse else ".")
+    )
+    defects = [f"[{scenario}, {cli}]" for scenario, cli in agent_harness.parse_defect_pairs(report)]
+    shown = ", ".join(defects[:10])
+    more = f" (+{len(defects) - 10} more)" if len(defects) > 10 else ""
+    lines.append(
+        f"Parse defects: {len(defects)} rows" + (f": {shown}{more}" if defects else ".")
+    )
+    if defects:
+        lines.append(agent_harness.PARSE_DEFECT_NOTE)
     return "\n".join(lines) + "\n"
 
 
 def decide_health(report: dict) -> dict:
-    """Count decide answers the key could not fund, did not authorise, or left unreadable."""
+    """Count decide answers the key could not fund or did not authorise.
+
+    parse_defects counts observed ModelSpec results with no JSON envelope.
+    Those rows are measurement defects and do not refuse publication.
+    """
     counts = {
-        "decide_answers": 0, "credits_exhausted": 0, "partial": 0, "unauthorised": 0, "unreadable": 0,
+        "decide_answers": 0, "credits_exhausted": 0, "partial": 0, "unauthorised": 0,
+        "unreadable": 0, "parse_defects": 0,
     }
     for run in report["runs"]:
         for call in run.get("tool_calls") or []:
             ref = call.get("response_ref")
             response = report["tool_responses"].get(ref) if ref else None
+            if agent_harness.call_parse_defect(call, response):
+                counts["parse_defects"] += 1
             # A call cut off by a timeout or turn cap keeps a null placeholder result.
             if call.get("name") != "decide" or response is None or call.get("result_observed") is False:
                 continue
             readable = False
             for block in response.get("content") or []:
-                try:
-                    envelope = json.loads(block.get("text", ""))
-                except (ValueError, TypeError, AttributeError):
-                    continue
-                if not isinstance(envelope, dict) or "status" not in envelope:
+                envelope = agent_harness.status_envelope(block)
+                if envelope is None:
                     continue
                 readable = True
                 body = envelope.get("body") if isinstance(envelope.get("body"), dict) else {}
@@ -439,20 +465,18 @@ def decide_health(report: dict) -> dict:
                 counts["unauthorised"] += envelope.get("status") in (401, 402, 403)
                 counts["credits_exhausted"] += credits.get("exhausted") is True
                 counts["partial"] += body.get("status") == "partial"
-            # A tool-level error in plain text never reached the API; a successful
-            # result without an envelope means the transcript format changed.
+            # A tool-level error in plain text never reached the API.
             counts["unreadable"] += not readable and not response.get("isError")
     return counts
 
 
 def require_funded_key(report: dict, checkpoint: Path | None = None) -> dict:
-    """A keyed run whose decides were refused, unfunded, or unreadable measures the key."""
+    """Refuse publication when a decide was unauthorised, unfunded, or unreadable."""
     health = decide_health(report)
-    if health["credits_exhausted"] or health["unauthorised"] or health["unreadable"]:
+    if health["credits_exhausted"] or health["unauthorised"]:
         message = (
             f"ModelSpec key unusable: {health['credits_exhausted']} credits.exhausted and "
-            f"{health['unauthorised']} unauthorised of {health['decide_answers']} decide answers, "
-            f"{health['unreadable']} unreadable. "
+            f"{health['unauthorised']} unauthorised of {health['decide_answers']} decide answers. "
             "Report kept locally, not published; fix the key and rerun."
         )
         if checkpoint is not None:
@@ -461,6 +485,11 @@ def require_funded_key(report: dict, checkpoint: Path | None = None) -> dict:
                 " After fixing the key, delete the checkpoint and start over."
             )
         raise ValueError(message)
+    if health["decide_answers"] == 0 and health["unreadable"] > 0:
+        raise ValueError(
+            "No decide answer was readable "
+            f"({health['unreadable']} unreadable); key health unknown."
+        )
     return health
 
 

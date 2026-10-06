@@ -37,6 +37,37 @@ SEARCH_TOOLS = {
     "gemini": {"google_web_search"},
     "grok": {"web_search", "web_fetch", "x_search", "WebSearch", "WebFetch", "XSearch"},
 }
+# Codex has no switch for these built-ins. Transcripts report server "codex".
+CODEX_RESOURCE_TOOLS = frozenset({
+    "list_mcp_resources",
+    "list_mcp_resource_templates",
+    "read_mcp_resource",
+})
+# Narration, not a tool call. mcp_tool_call is an MCP call. Every other item
+# type is recorded as a server-less built-in, the same way as command_execution.
+CODEX_HARMLESS_ITEM_TYPES = frozenset({
+    "agent_message",
+    "reasoning",
+    "todo_list",
+    "error",
+})
+CODEX_ISOLATED_FEATURES = (
+    "shell_tool",
+    "unified_exec",
+    "view_image",
+    "image_generation",
+    "browser_use",
+    "browser_use_external",
+    "computer_use",
+    "multi_agent",
+    "goals",
+    "tool_suggest",
+    "skill_search",
+    "in_app_browser",
+    "in_app_local_automation",
+)
+PROMPT_MARKER = "<private prompt>"
+PROMPT_FILE = "/work/.prompt.txt"
 
 
 def child_environment(
@@ -107,8 +138,6 @@ def build_command(
                 "dontAsk",
                 "--allowedTools",
                 "WebSearch,WebFetch" if search else f"mcp__{server}__*" if isolated else "mcp__model301_canary__*",
-                "--",
-                prompt,
             ]
         )
     if cli == "codex":
@@ -139,7 +168,7 @@ def build_command(
                 "-c",
                 f"model_reasoning_effort={settings['effort']}",
             ]
-        return common + ["--", prompt]
+        return common + ["--", "-"]
     if cli == "gemini":
         common = [
             executable,
@@ -176,15 +205,17 @@ def build_command(
             "--permission-mode", "dontAsk",
             "--allow",
             "web_search" if search else f"mcp__{server}__*" if isolated else "mcp__model301_canary__*",
-            "--single",
-            prompt,
+            "--prompt-file",
+            PROMPT_FILE,
         ]
         if not search:
             command.insert(command.index("--tools"), "--disable-web-search")
         else:
             # Grok permission rules use Claude-style names; "web_fetch" matches nothing,
             # and a denied fetch cancels the turn. Search tools run server-side.
-            command[command.index("--single"):command.index("--single")] = ["--allow", "WebFetch", "--allow", "x_search"]
+            command[command.index("--prompt-file"):command.index("--prompt-file")] = [
+                "--allow", "WebFetch", "--allow", "x_search",
+            ]
         return command
     raise ValueError(f"Unknown CLI: {cli}")
 
@@ -205,6 +236,7 @@ def codex_config_args(settings: dict, mcp_file: Path) -> list[str]:
         "features.apps=false",
         "features.plugins=false",
         "features.remote_plugin=false",
+        *[f"features.{name}=false" for name in CODEX_ISOLATED_FEATURES],
         # A manual full-access run persists a trust grant for /work in the login
         # volume, which would load the cwd's .codex config. Pin it untrusted.
         'projects={"/work"={trust_level="untrusted"}}',
@@ -442,8 +474,15 @@ def parse_transcript(cli: str, output: str) -> Transcript:
                         record["latency_ms"] = item["duration_ms"]
                 elif item.get("type") == "agent_message" and kind == "item.completed":
                     parsed.final_answer = item.get("text", "")
-                elif item.get("type") in ("command_execution", "web_search", "file_change"):
-                    call(item["id"], item["type"], item.get("action", item.get("command", {})))
+                elif (
+                    isinstance(item.get("type"), str)
+                    and item.get("type") not in CODEX_HARMLESS_ITEM_TYPES
+                ):
+                    record = call(
+                        item["id"], item["type"], item.get("action", item.get("command", {}))
+                    )
+                    if isinstance(item.get("status"), str):
+                        record["status"] = item["status"]
                     if kind == "item.completed":
                         finish(item["id"], item, bool(item.get("error")))
             if kind == "turn.completed":
@@ -588,19 +627,204 @@ def subscription_violation(cli: str, parsed: Transcript) -> str | None:
     return None
 
 
+def _allowed_servers(mcp_enabled: bool, allowed_servers) -> set:
+    if not mcp_enabled:
+        return set()
+    if allowed_servers is None:
+        return {"modelspec"}
+    return set(allowed_servers)
+
+
+def _native_tools(cli: str, purpose: str) -> set:
+    native = set(SEARCH_TOOLS[cli]) if purpose == "search" else set()
+    if cli == "grok" and purpose != "search":
+        # Grok's deferred-tool lookup. It runs no tool; use_tool calls are checked by server.
+        native.add("search_tool")
+    return native
+
+
+def _builtin_control_failure(call: dict, *, cli: str, purpose: str) -> str | None:
+    """Tool name when this call proves the startup tool switch was ignored.
+
+    Codex command_execution, file_change, and web_search (unless this run's
+    purpose is search), plus any other server-less built-in, mean the feature
+    switches did not hold. Resource lookups are not that evidence. Grok direct
+    tool_use of anything except search_tool, use_tool, or a search tool during
+    a search run means --tools was ignored. use_tool rewritten to mcp__<name>
+    is the agent asking; the permission layer still owns that call.
+    """
+    name = call.get("name")
+    if not isinstance(name, str) or not name:
+        return None
+    if cli == "codex":
+        if name in CODEX_RESOURCE_TOOLS:
+            return None
+        if purpose == "search" and name in SEARCH_TOOLS["codex"]:
+            return None
+        if name in {"command_execution", "file_change", "web_search"}:
+            return name
+        if call.get("server") is None:
+            return name
+        return None
+    if cli == "grok":
+        if name in {"search_tool", "use_tool"}:
+            return None
+        if purpose == "search" and name in SEARCH_TOOLS["grok"]:
+            return None
+        if call.get("server") is not None or name.startswith("mcp__"):
+            return None
+        return name
+    return None
+
+
+def _offending_call(call: dict, *, cli: str, native: set, allowed: set, purpose: str) -> str | None:
+    name = call.get("name")
+    if not isinstance(name, str) or not name:
+        return "unnamed"
+    if _builtin_control_failure(call, cli=cli, purpose=purpose):
+        return None
+    if cli == "codex" and name in CODEX_RESOURCE_TOOLS:
+        # Allow only a codex-server lookup whose argument server is absent or a
+        # string naming an allowed MCP server. A list or dict must not be hashed.
+        if call.get("server") != "codex":
+            return name
+        arguments = call.get("arguments")
+        if not isinstance(arguments, dict):
+            return name
+        if "server" not in arguments or arguments.get("server") is None:
+            return None
+        server = arguments.get("server")
+        if isinstance(server, str) and server in allowed:
+            return None
+        return name
+    if call.get("server") is None:
+        return None if name in native else name
+    if call.get("server") not in allowed:
+        return name
+    return None
+
+
+def misuse_calls(
+    parsed: Transcript, *, mcp_enabled: bool, cli="claude", allowed_servers=None, purpose="scenario",
+) -> list[tuple[str, dict]]:
+    """Disallowed calls in transcript order, classified the same way as tool_misuse."""
+    allowed = _allowed_servers(mcp_enabled, allowed_servers)
+    native = _native_tools(cli, purpose)
+    found = []
+    for call in [*parsed.other_tool_calls, *parsed.tool_calls]:
+        name = _offending_call(call, cli=cli, native=native, allowed=allowed, purpose=purpose)
+        if name:
+            found.append((name, call))
+    return found
+
+
+def tool_misuse(
+    parsed: Transcript, *, mcp_enabled: bool, cli="claude", allowed_servers=None, purpose="scenario",
+) -> list[str]:
+    """Tool names this transcript called outside the run's allowlist.
+
+    Codex resource tools are lookups. They are allowed only when the call's
+    server is codex, the arguments are a dict, and the argument server is
+    absent or a string naming an allowed MCP server. Anything else is misuse.
+    A built-in that proves the startup switches failed is an isolation
+    violation, not a name in this list.
+    """
+    found, seen = [], set()
+    for name, _call in misuse_calls(
+        parsed, mcp_enabled=mcp_enabled, cli=cli, allowed_servers=allowed_servers, purpose=purpose,
+    ):
+        if name not in seen:
+            seen.add(name)
+            found.append(name)
+    return found
+
+
+def _result_text(result: dict) -> str:
+    content = result.get("content")
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for block in content:
+            if isinstance(block, str):
+                parts.append(block)
+            elif isinstance(block, dict) and isinstance(block.get("text"), str):
+                parts.append(block["text"])
+        return "\n".join(parts)
+    return ""
+
+
+def _codex_item_status(call: dict, result: dict, blob: str) -> str | None:
+    for source in (call.get("status"), result.get("status")):
+        if isinstance(source, str):
+            return source.lower()
+    try:
+        payload = json.loads(blob)
+    except ValueError:
+        return None
+    if isinstance(payload, dict) and isinstance(payload.get("status"), str):
+        return payload["status"].lower()
+    return None
+
+
+def disallowed_call_refused(cli: str, call: dict) -> bool:
+    """Whether this disallowed call was refused.
+
+    Grok counts only a positive refusal: an observed result whose isError is
+    true, or whose text contains "User cancelled". A Grok call with no observed
+    result is not a refusal. Other CLIs still treat a missing result as a
+    refusal. Codex also treats item status failed or declined as a refusal,
+    including when the item has no error field.
+    """
+    result = call.get("result") if isinstance(call.get("result"), dict) else {}
+    if cli == "grok":
+        if call.get("result_observed") is False:
+            return False
+        if result.get("isError") is True:
+            return True
+        return "User cancelled" in _result_text(result)
+    if call.get("result_observed") is False:
+        return True
+    if result.get("isError") is True:
+        return True
+    if cli == "codex" and _codex_item_status(call, result, _result_text(result)) in (
+        "failed",
+        "declined",
+    ):
+        return True
+    return False
+
+
+def misuse_error(names: list[str]) -> str:
+    return "CLI used a tool outside the configured ModelSpec MCP: " + ", ".join(names)
+
+
+def guard_result(
+    cli: str, parsed: Transcript, *, mcp_enabled: bool, inventory: dict | None,
+    allowed_servers, purpose: str, isolated: bool,
+) -> tuple[str | None, list[str]]:
+    """Revocation reason, then tool-misuse names. A revocation hides misuse."""
+    violation = subscription_violation(cli, parsed)
+    if isolated:
+        violation = violation or isolation_violation(
+            parsed, mcp_enabled=mcp_enabled, cli=cli, inventory=inventory,
+            allowed_servers=allowed_servers, purpose=purpose,
+        )
+    if violation or not isolated:
+        return violation, []
+    return None, tool_misuse(
+        parsed, mcp_enabled=mcp_enabled, cli=cli, allowed_servers=allowed_servers, purpose=purpose,
+    )
+
+
 def isolation_violation(
     parsed: Transcript, *, mcp_enabled: bool, cli="claude", inventory: dict | None = None,
     allowed_servers=None, purpose="scenario",
 ) -> str | None:
     if parsed.hook_events or parsed.init and hook_event(parsed.init):
         return "CLI emitted a hook event"
-    allowed = set(allowed_servers if allowed_servers is not None else ["modelspec"]) if mcp_enabled else set()
-    native = SEARCH_TOOLS[cli] if purpose == "search" else set()
-    if cli == "grok" and purpose != "search":
-        # Grok's deferred-tool lookup. It runs no tool; use_tool calls are checked by server.
-        native = native | {"search_tool"}
-    if any(call["name"] not in native for call in parsed.other_tool_calls) or any(call["server"] not in allowed for call in parsed.tool_calls):
-        return "CLI used a tool outside the configured ModelSpec MCP"
+    allowed = _allowed_servers(mcp_enabled, allowed_servers)
+    native = _native_tools(cli, purpose)
     if cli == "grok" and mcp_enabled:
         if parsed.init is None:
             return "CLI did not expose its startup inventory"
@@ -616,7 +840,14 @@ def isolation_violation(
     if cli != "claude":
         from qa.tui_inventory import inventory_violation
 
-        return inventory_violation(inventory, mcp_enabled=mcp_enabled, allowed_servers=allowed)
+        if failed := inventory_violation(
+            inventory, mcp_enabled=mcp_enabled, allowed_servers=allowed
+        ):
+            return failed
+        for call in [*parsed.other_tool_calls, *parsed.tool_calls]:
+            if name := _builtin_control_failure(call, cli=cli, purpose=purpose):
+                return f"CLI startup tool controls failed: {name}"
+        return None
     if parsed.init is None:
         return "CLI did not expose its startup inventory"
     for key in ("skills", "plugins", "mcp_servers", "tools"):
@@ -657,6 +888,7 @@ class Execution:
     inventory: dict | None = None
     activity: bool = False
     attempts: int = 1
+    misuse: list[str] = field(default_factory=list)
 
 
 # A transient OAuth refresh can exit before the CLI prints anything. Wait, then try once.
@@ -726,9 +958,9 @@ def launch(cli: str, config: dict, workspace: Path, prompt: str, *, mcp_enabled:
             detail = execution.error or ""
             execution.error = twice + detail[len(single) :] if detail.startswith(single) else twice
             return execution
-    violation = subscription_violation(cli, execution.transcript) or isolation_violation(
-        execution.transcript, mcp_enabled=mcp_enabled, cli=cli, inventory=execution.inventory,
-        allowed_servers=config.get("_mcp_servers"), purpose=purpose,
+    violation, _misuse = guard_result(
+        cli, execution.transcript, mcp_enabled=mcp_enabled, inventory=execution.inventory,
+        allowed_servers=config.get("_mcp_servers"), purpose=purpose, isolated=True,
     )
     if execution.status in ("isolation_failed", "transcript_error") or violation:
         from qa.tui_homes import state_directory
@@ -736,6 +968,31 @@ def launch(cli: str, config: dict, workspace: Path, prompt: str, *, mcp_enabled:
 
         receipt_file(state_directory(cli, config)).unlink(missing_ok=True)
     return execution
+
+
+def _write_prompt_file(path: Path, prompt: str) -> None:
+    """Create the prompt file at mode 0600 with no write-then-chmod window.
+
+    A retry reuses the workspace, so a regular file left by the previous
+    attempt is removed first. A symlink is left in place and the exclusive
+    open fails instead of following it.
+    """
+    if path.is_symlink():
+        raise OSError("Prompt file must not be a symlink")
+    if path.exists():
+        if not path.is_file():
+            raise OSError("Prompt file must be a regular file")
+        path.unlink()
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    try:
+        payload = memoryview(prompt.encode())
+        while payload:
+            written = os.write(fd, payload)
+            if written == 0:
+                raise OSError("Prompt file write stalled")
+            payload = payload[written:]
+    finally:
+        os.close(fd)
 
 
 def _execute(
@@ -780,15 +1037,29 @@ def _execute(
             command[command.index("--"):command.index("--")] = [
                 "--image", ",".join(container_path(workspace, p) for p in images)
             ]
+            prompt_stdin = prompt
         else:
             import base64
-            command = command[:-2] + ["--input-format", "stream-json"]
+            command += ["--input-format", "stream-json"]
             content = [{"type": "text", "text": prompt}] + [
                 {"type": "image", "source": {"type": "base64", "media_type": "image/png",
                  "data": base64.b64encode(p.read_bytes()).decode()}} for p in images
             ]
             prompt_stdin = json.dumps({"type": "user", "message": {
                 "role": "user", "content": content}}) + "\n"
+    elif cli in ("claude", "codex"):
+        prompt_stdin = prompt
+    elif cli == "grok":
+        try:
+            _write_prompt_file(workspace / ".prompt.txt", prompt)
+        except OSError as exc:
+            return Execution(
+                Transcript(),
+                None,
+                0.0,
+                "cli_error",
+                f"Cannot write prompt file ({type(exc).__name__})",
+            )
     env = child_environment(
         cli,
         workspace,
@@ -826,8 +1097,8 @@ def _execute(
         if cli == "codex":
             command[command.index("--") : command.index("--")] = ["-c", inventory["skill_config"]]
     try:
-        # Empty piped stdin is essential: a launching shell's heredoc must never
-        # become extra user context in a CLI that appends stdin to its prompt.
+        # Claude and Codex read the prompt from stdin. Grok reads the private file.
+        # Pass an empty stdin for the others so a shell heredoc cannot become context.
         process = run_cli(cli, config, workspace, command, env, isolated=isolated,
                           **({"input_text": prompt_stdin} if prompt_stdin else {}))
     except subprocess.TimeoutExpired as exc:
@@ -840,22 +1111,33 @@ def _execute(
         except (ValueError, KeyError, TypeError, AttributeError):
             parsed = Transcript()
         parsed.hook_events.extend(event for event in json_events(stderr) if hook_event(event))
-        violation = subscription_violation(cli, parsed)
-        if isolated:
-            violation = violation or isolation_violation(
-                parsed, mcp_enabled=mcp_enabled, cli=cli, inventory=inventory,
-                allowed_servers=config.get("_mcp_servers"), purpose=purpose,
-            )
+        violation, misuse = guard_result(
+            cli, parsed, mcp_enabled=mcp_enabled, inventory=inventory,
+            allowed_servers=config.get("_mcp_servers"), purpose=purpose, isolated=isolated,
+        )
         limit = usage_limit(parsed, stderr, -1, [])
+        if limit:
+            status = "usage_limit"
+        elif violation:
+            status = "isolation_failed"
+        elif misuse:
+            status = "isolation_misuse"
+        else:
+            status = "timeout"
         return Execution(
             parsed,
             None,
             (perf_counter() - started) * 1000,
-            "usage_limit" if limit else "isolation_failed" if violation else "timeout",
-            violation or "CLI timed out",
+            status,
+            violation
+            if violation
+            else misuse_error(misuse)
+            if status == "isolation_misuse"
+            else "CLI timed out",
             limit,
             output + stderr,
             inventory,
+            misuse=misuse if status == "isolation_misuse" else [],
         )
     except OSError as exc:
         return Execution(
@@ -871,12 +1153,10 @@ def _execute(
         parsed.hook_events.extend(
             event for event in json_events(process.stderr) if hook_event(event)
         )
-        violation = subscription_violation(cli, parsed)
-        if isolated:
-            violation = violation or isolation_violation(
-                parsed, mcp_enabled=mcp_enabled, cli=cli, inventory=inventory,
-                allowed_servers=config.get("_mcp_servers"), purpose=purpose,
-            )
+        violation, misuse = guard_result(
+            cli, parsed, mcp_enabled=mcp_enabled, inventory=inventory,
+            allowed_servers=config.get("_mcp_servers"), purpose=purpose, isolated=isolated,
+        )
     except (ValueError, KeyError, TypeError, AttributeError):
         return Execution(
             Transcript(),
@@ -910,10 +1190,14 @@ def _execute(
         status = "usage_limit"
     elif violation:
         status = "isolation_failed"
+    elif not process.returncode and not parsed.errors and not parsed.terminal:
+        # An exit-0 stream that never closed is an attestation failure even
+        # when the same stream also contains a disallowed call.
+        status = "transcript_error"
+    elif misuse:
+        status = "isolation_misuse"
     elif process.returncode or parsed.errors:
         status = "cli_error"
-    elif not parsed.terminal:
-        status = "transcript_error"
     elif not parsed.final_answer.strip():
         status = "empty_answer"
     else:
@@ -921,6 +1205,8 @@ def _execute(
     error = (
         violation
         if violation
+        else misuse_error(misuse)
+        if status == "isolation_misuse"
         else (
             redact("; ".join(parsed.errors) or process.stderr)[:500]
             if status == "cli_error"
@@ -937,6 +1223,7 @@ def _execute(
         process.stdout + process.stderr,
         inventory,
         activity=activity,
+        misuse=misuse if status == "isolation_misuse" else [],
     )
 
 
