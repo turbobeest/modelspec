@@ -757,13 +757,37 @@ def test_funded_key_check_counts_partial_but_refuses_exhausted_or_unauthorised()
         jobs.require_funded_key(_decide_report('Unauthorized', status=401))
     assert 'unreadable' not in str(plain_status.value)
     assert jobs.decide_health(_decide_report({'credits': 'odd'}))['credits_exhausted'] == 0
-    # Plain text never reached a readable envelope. It is a row defect, not a key failure.
-    plain = jobs.require_funded_key({
+    # One readable decide plus one plain-text decide still publishes. The plain
+    # row is a defect; the readable answer is what the key's health is judged on.
+    readable = json.dumps({
+        'origin': 'https://api.modelspec.dev/v1/decide', 'status': 200,
+        'body': {'status': 'decided'},
+    })
+    published = jobs.require_funded_key({
+        'runs': [{'tool_calls': [
+            {'name': 'decide', 'response_ref': 'r0'},
+            {'name': 'decide', 'response_ref': 'r1'},
+        ]}],
+        'tool_responses': {
+            'r0': {'content': [{'type': 'text', 'text': readable}]},
+            'r1': {'content': [{'type': 'text', 'text': 'status: no_feasible'}]},
+        },
+    })
+    assert published == {
+        'decide_answers': 1, 'credits_exhausted': 0, 'partial': 0,
+        'unauthorised': 0, 'unreadable': 1, 'parse_defects': 1}
+    # No readable decide at all leaves the key's health unknown.
+    plain_only = {
         'runs': [{'tool_calls': [{'name': 'decide', 'response_ref': 'r0'}]}],
         'tool_responses': {'r0': {'content': [{'type': 'text', 'text': 'status: no_feasible'}]}},
-    })
-    assert plain['unreadable'] == 1 and plain['parse_defects'] == 1
-    assert plain['credits_exhausted'] == 0 and plain['unauthorised'] == 0
+    }
+    assert jobs.decide_health(plain_only)['unreadable'] == 1
+    assert jobs.decide_health(plain_only)['parse_defects'] == 1
+    with pytest.raises(ValueError, match='key health unknown') as unknown:
+        jobs.require_funded_key(plain_only)
+    assert str(unknown.value) == (
+        'No decide answer was readable (1 unreadable); key health unknown.'
+    )
     # A plain-text tool error never reached the API, so it is not a key problem or a parse defect.
     errored = jobs.require_funded_key({
         'runs': [{'tool_calls': [{'name': 'decide', 'response_ref': 'r0'}]}],
@@ -828,6 +852,10 @@ def test_parse_defects_tag_claude_truncation_and_plain_text():
         _measured_call('decide', TOKEN_NOTICE, is_error=True),
         _measured_call('decide', TOKEN_NOTICE, observed=False),
         _measured_call('browser_navigate', TOKEN_NOTICE, server='playwright'),
+        _measured_call('decide', json.dumps({
+            'origin': 'https://api.modelspec.dev/v1/decide', 'status': 200,
+            'body': {'status': 'decided'},
+        })),
     ])
     report = agent_harness.make_report(
         [row], [{'id': 'budget-approved', 'family': 'F1'}], False,
@@ -845,6 +873,7 @@ def test_parse_defects_tag_claude_truncation_and_plain_text():
     ]
     health = jobs.require_funded_key(report)
     assert health['parse_defects'] == 4
+    assert health['decide_answers'] == 1 and health['unreadable'] == 1
     assert health['credits_exhausted'] == 0 and health['unauthorised'] == 0
     summary = jobs.scenario_summary(report)
     markdown = agent_harness.markdown(report)

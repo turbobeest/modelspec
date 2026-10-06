@@ -1760,6 +1760,73 @@ def test_grok_misuse_probe_retries_until_a_disallowed_call_is_refused(
     assert isolation.isolation_result("grok", config)["verified"]
 
 
+def _unobserved_grok_events():
+    return [
+        {"type": "system", "subtype": "init", "tools": ["search_tool", "use_tool"]},
+        {
+            "type": "assistant",
+            "message": {
+                "id": "m",
+                "content": [
+                    {
+                        "type": "tool_use",
+                        "id": "t0",
+                        "name": "use_tool",
+                        "input": {"tool_name": "bash", "tool_input": {"command": "true"}},
+                    }
+                ],
+            },
+        },
+        {"type": "result", "result": "no result", "num_turns": 1},
+    ]
+
+
+def test_grok_unobserved_call_is_not_a_refusal_and_user_cancelled_is():
+    parsed = providers.parse_transcript("grok", text(_unobserved_grok_events()))
+    call = parsed.other_tool_calls[0]
+    assert call["result_observed"] is False
+    assert providers.disallowed_call_refused("grok", call) is False
+    assert providers.disallowed_call_refused("claude", call) is True
+    assert providers.disallowed_call_refused("codex", call) is True
+    cancelled = providers.parse_transcript("grok", text(_refused_events("grok")))
+    assert "User cancelled" in json.dumps(cancelled.other_tool_calls[0]["result"])
+    assert providers.disallowed_call_refused("grok", cancelled.other_tool_calls[0]) is True
+    assert providers.disallowed_call_refused(
+        "grok",
+        {
+            "result_observed": True,
+            "result": {"isError": True, "content": [{"type": "text", "text": "denied"}]},
+        },
+    ) is True
+
+
+def test_grok_misuse_probe_is_unproven_when_attempts_have_no_observed_result(
+    config, tmp_path, monkeypatch
+):
+    events = _unobserved_grok_events()
+    parsed = providers.parse_transcript("grok", text(events))
+    expected = providers.tool_misuse(
+        parsed, mcp_enabled=False, cli="grok", purpose="scenario"
+    )
+    assert expected
+    assert parsed.other_tool_calls[0]["result_observed"] is False
+    seen = []
+
+    def probe(workspace):
+        seen.append((workspace, (workspace / "model301-misuse-probe.txt").read_text()))
+        return _with_transcript("grok", events, "isolation_misuse")
+
+    result = _run_doctor_probe("grok", config, tmp_path, monkeypatch, probe)
+    assert not result["verified"] and result["status"] == "unproven"
+    assert result["canary_runs"] == 5
+    assert result["misuse_probe"]["attempts"] == 3
+    assert result["misuse_probe"]["attempted"] == expected
+    assert result["misuse_probe"]["refused"] == []
+    assert result["reason"] == isolation.GROK_REFUSAL_UNOBSERVED
+    assert len({path for path, _ in seen}) == 3
+    assert not isolation.isolation_result("grok", config)["verified"]
+
+
 def test_grok_misuse_probe_is_unproven_when_three_attempts_call_nothing(
     config, tmp_path, monkeypatch
 ):
@@ -3877,6 +3944,28 @@ def test_a_codex_resource_tool_on_another_server_is_misuse():
     assert providers.isolation_violation(
         parsed, mcp_enabled=True, cli="codex", inventory=native_inventory("codex")
     ) is None
+
+
+def test_an_unknown_codex_item_type_is_a_builtin_call():
+    parsed = providers.parse_transcript("codex", text([
+        {"type": "item.started", "item": {"type": "reasoning", "id": "r", "text": "think"}},
+        {"type": "item.completed", "item": {"type": "todo_list", "id": "t", "items": []}},
+        {"type": "item.completed", "item": {"type": "error", "id": "e", "message": "nope"}},
+        {"type": "item.completed", "item": {"type": "agent_message", "id": "a", "text": "hi"}},
+        {
+            "type": "item.completed",
+            "item": {"type": "exec_v2", "id": "c1", "command": "ls", "status": "completed"},
+        },
+        {"type": "turn.completed"},
+    ]))
+    assert [call["name"] for call in parsed.other_tool_calls] == ["exec_v2"]
+    assert parsed.other_tool_calls[0]["server"] is None
+    assert parsed.tool_calls == []
+    assert parsed.final_answer == "hi"
+    assert providers.tool_misuse(parsed, mcp_enabled=True, cli="codex") == []
+    assert providers.isolation_violation(
+        parsed, mcp_enabled=True, cli="codex", inventory=native_inventory("codex")
+    ) == "CLI startup tool controls failed: exec_v2"
 
 
 @pytest.mark.parametrize("kind", ["command_execution", "file_change", "web_search"])

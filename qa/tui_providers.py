@@ -43,6 +43,14 @@ CODEX_RESOURCE_TOOLS = frozenset({
     "list_mcp_resource_templates",
     "read_mcp_resource",
 })
+# Narration, not a tool call. mcp_tool_call is an MCP call. Every other item
+# type is recorded as a server-less built-in, the same way as command_execution.
+CODEX_HARMLESS_ITEM_TYPES = frozenset({
+    "agent_message",
+    "reasoning",
+    "todo_list",
+    "error",
+})
 CODEX_ISOLATED_FEATURES = (
     "shell_tool",
     "unified_exec",
@@ -466,7 +474,10 @@ def parse_transcript(cli: str, output: str) -> Transcript:
                         record["latency_ms"] = item["duration_ms"]
                 elif item.get("type") == "agent_message" and kind == "item.completed":
                     parsed.final_answer = item.get("text", "")
-                elif item.get("type") in ("command_execution", "web_search", "file_change"):
+                elif (
+                    isinstance(item.get("type"), str)
+                    and item.get("type") not in CODEX_HARMLESS_ITEM_TYPES
+                ):
                     record = call(
                         item["id"], item["type"], item.get("action", item.get("command", {}))
                     )
@@ -757,21 +768,29 @@ def _codex_item_status(call: dict, result: dict, blob: str) -> str | None:
 
 
 def disallowed_call_refused(cli: str, call: dict) -> bool:
-    """A disallowed call that was not observed, errored, cancelled, or declined.
+    """Whether this disallowed call was refused.
 
-    Grok reports a permission refusal as use_tool text beginning with "User cancelled".
-    Codex reports a refused item with status failed or declined, including when
-    the item has no error field.
+    Grok counts only a positive refusal: an observed result whose isError is
+    true, or whose text contains "User cancelled". A Grok call with no observed
+    result is not a refusal. Other CLIs still treat a missing result as a
+    refusal. Codex also treats item status failed or declined as a refusal,
+    including when the item has no error field.
     """
+    result = call.get("result") if isinstance(call.get("result"), dict) else {}
+    if cli == "grok":
+        if call.get("result_observed") is False:
+            return False
+        if result.get("isError") is True:
+            return True
+        return "User cancelled" in _result_text(result)
     if call.get("result_observed") is False:
         return True
-    result = call.get("result") if isinstance(call.get("result"), dict) else {}
     if result.get("isError") is True:
         return True
-    blob = _result_text(result)
-    if cli == "grok" and "User cancelled" in blob:
-        return True
-    if cli == "codex" and _codex_item_status(call, result, blob) in ("failed", "declined"):
+    if cli == "codex" and _codex_item_status(call, result, _result_text(result)) in (
+        "failed",
+        "declined",
+    ):
         return True
     return False
 

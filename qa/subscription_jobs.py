@@ -471,7 +471,7 @@ def decide_health(report: dict) -> dict:
 
 
 def require_funded_key(report: dict, checkpoint: Path | None = None) -> dict:
-    """Refuse publication only when a decide was unauthorised or unfunded."""
+    """Refuse publication when a decide was unauthorised, unfunded, or unreadable."""
     health = decide_health(report)
     if health["credits_exhausted"] or health["unauthorised"]:
         message = (
@@ -485,6 +485,11 @@ def require_funded_key(report: dict, checkpoint: Path | None = None) -> dict:
                 " After fixing the key, delete the checkpoint and start over."
             )
         raise ValueError(message)
+    if health["decide_answers"] == 0 and health["unreadable"] > 0:
+        raise ValueError(
+            "No decide answer was readable "
+            f"({health['unreadable']} unreadable); key health unknown."
+        )
     return health
 
 
