@@ -56,7 +56,12 @@ def inventory_violation(inventory: dict | None, *, mcp_enabled: bool, allowed_se
         features = inventory.get("features")
         if not isinstance(features, dict):
             return "Codex features list omitted the isolated feature set"
+        # `features list` does not reflect the features.unified_exec=false override
+        # in codex 0.160. shell_tool=false removes exec_command; the doctor misuse
+        # probe is the behavioural check.
         for name in CODEX_ISOLATED_FEATURES:
+            if name == "unified_exec":
+                continue
             value = features.get(name)
             if value is not False:
                 shown = "missing" if name not in features or value is None else str(value).lower()

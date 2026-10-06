@@ -1328,10 +1328,9 @@ def test_doctor_requires_positive_controls_and_isolated_inventory(
         seen.append((workspace, isolated))
         if prompt == isolation.MISUSE_PROMPT:
             assert purpose == "scenario" and isolated
-            result = execution(cli, answer="OK")
             if cli == "grok":
-                result.transcript.init["tools"] = ["search_tool", "use_tool"]
-            return result
+                return _with_transcript("grok", _refused_events("grok"), "isolation_misuse")
+            return execution(cli, answer="OK")
         assert prompt == "Reply with exactly OK."
         if isolated:
             return execution(cli, answer="OK")
@@ -1356,20 +1355,24 @@ def test_doctor_requires_positive_controls_and_isolated_inventory(
     assert [mode for _, mode in seen] == [False, True, True]
     assert seen[0][0] == seen[1][0] and seen[2][0] != seen[0][0]
     assert all(not path.exists() for path, _ in seen)
-    assert result["misuse_probe"]["attempted"] == []
-    assert result["misuse_probe"]["refused"] == []
+    assert result["misuse_probe"]["attempts"] == 1
     assert result["misuse_probe"]["side_effects"] is False
     static = result["misuse_probe"]["static"]
-    if cli == "claude":
-        assert static == {"init_tools": []}
-    elif cli == "grok":
+    if cli == "grok":
+        assert result["misuse_probe"]["attempted"]
+        assert result["misuse_probe"]["refused"] == result["misuse_probe"]["attempted"]
         assert static["permission_mode"] == "dontAsk"
         assert static["allow"] == ["mcp__modelspec__*"]
         assert set(static["init_tools"]) == {"search_tool", "use_tool"}
+    else:
+        assert result["misuse_probe"]["attempted"] == []
+        assert result["misuse_probe"]["refused"] == []
+    if cli == "claude":
+        assert static == {"init_tools": []}
     elif cli == "codex":
         assert static["controls"] == {"shell_tool": False, "unified_exec": False}
         assert static["features"] == {"shell_tool": False, "unified_exec": False}
-    else:
+    elif cli != "grok":
         assert static == {}
     assert isolation.isolation_result(cli, config)["verified"]
     assert isolation.isolation_result(cli, config)["canary_runs"] == 0
@@ -1637,6 +1640,7 @@ def test_misuse_probe_passes_when_disallowed_tools_are_refused(
         cli, config, tmp_path, monkeypatch, lambda workspace: _with_transcript(cli, events, "isolation_misuse")
     )
     assert result["verified"] and result["canary_runs"] == 3
+    assert result["misuse_probe"]["attempts"] == 1
     assert result["misuse_probe"]["attempted"] == expected
     assert result["misuse_probe"]["refused"] == expected
     assert result["misuse_probe"]["side_effects"] is False
@@ -1708,6 +1712,73 @@ def test_misuse_probe_fails_when_codex_reports_shell_tool_enabled(config, tmp_pa
     assert not isolation.isolation_result("codex", config)["verified"]
 
 
+def test_misuse_probe_records_unified_exec_without_requiring_it_false(
+    config, tmp_path, monkeypatch
+):
+    def probe(workspace):
+        result = _clean_probe("codex")
+        result.inventory["features"]["unified_exec"] = True
+        return result
+
+    result = _run_doctor_probe("codex", config, tmp_path, monkeypatch, probe)
+    assert result["verified"] and result["canary_runs"] == 3
+    static = result["misuse_probe"]["static"]
+    assert static["controls"] == {"shell_tool": False, "unified_exec": False}
+    assert static["features"] == {"shell_tool": False, "unified_exec": True}
+    assert isolation.isolation_result("codex", config)["verified"]
+
+
+def test_grok_misuse_probe_retries_until_a_disallowed_call_is_refused(
+    config, tmp_path, monkeypatch
+):
+    events = _refused_events("grok")
+    expected = providers.tool_misuse(
+        providers.parse_transcript("grok", text(events)),
+        mcp_enabled=False,
+        cli="grok",
+        purpose="scenario",
+    )
+    seen = []
+
+    def probe(workspace):
+        marker = (workspace / "model301-misuse-probe.txt").read_text()
+        seen.append((workspace, marker))
+        if len(seen) == 1:
+            return _clean_probe("grok")
+        return _with_transcript("grok", events, "isolation_misuse")
+
+    result = _run_doctor_probe("grok", config, tmp_path, monkeypatch, probe)
+    assert result["verified"] and result["canary_runs"] == 4
+    assert result["misuse_probe"]["attempts"] == 2
+    assert result["misuse_probe"]["attempted"] == expected
+    assert result["misuse_probe"]["refused"] == expected
+    assert result["misuse_probe"]["side_effects"] is False
+    assert len({path for path, _ in seen}) == 2
+    assert len({marker for _, marker in seen}) == 2
+    assert isolation.isolation_result("grok", config)["verified"]
+
+
+def test_grok_misuse_probe_is_unproven_when_three_attempts_call_nothing(
+    config, tmp_path, monkeypatch
+):
+    seen = []
+
+    def probe(workspace):
+        seen.append((workspace, (workspace / "model301-misuse-probe.txt").read_text()))
+        return _clean_probe("grok")
+
+    result = _run_doctor_probe("grok", config, tmp_path, monkeypatch, probe)
+    assert not result["verified"] and result["status"] == "unproven"
+    assert result["canary_runs"] == 5
+    assert result["misuse_probe"]["attempts"] == 3
+    assert result["misuse_probe"]["attempted"] == []
+    assert result["misuse_probe"]["refused"] == []
+    assert result["reason"] == isolation.GROK_REFUSAL_UNOBSERVED
+    assert len({path for path, _ in seen}) == 3
+    assert len({marker for _, marker in seen}) == 3
+    assert not isolation.isolation_result("grok", config)["verified"]
+
+
 def test_misuse_probe_treats_a_declined_codex_builtin_as_an_environment_failure(
     config, tmp_path, monkeypatch
 ):
@@ -1761,16 +1832,8 @@ def test_misuse_probe_hook_still_fails_doctor(config, tmp_path, monkeypatch):
     assert not isolation.isolation_result("claude", config)["verified"]
 
 
-@pytest.mark.parametrize("problem", ["missing", "true"])
-def test_codex_inventory_requires_every_isolated_feature_off(
-    problem, config, tmp_path, monkeypatch
-):
+def _codex_features_inventory(config, tmp_path, monkeypatch, listing):
     monkeypatch.setattr(inventory, "_codex_skills", lambda *a: [])
-    listing = (
-        codex_features_listing(omit=("view_image",))
-        if problem == "missing"
-        else codex_features_listing(true=("shell_tool",))
-    )
 
     def run(argv, **kwargs):
         if argv[-3:] == ["mcp", "list", "--json"]:
@@ -1786,21 +1849,46 @@ def test_codex_inventory_requires_every_isolated_feature_off(
     monkeypatch.setattr(docker.subprocess, "run", run)
     mcp = tmp_path / "mcp.toml"
     mcp.write_text(homes.home_config("codex", config, enabled=False))
-    result = inventory.inspect_inventory(
+    return inventory.inspect_inventory(
         "codex", config, tmp_path, docker.passed_environment(config), mcp, mcp_enabled=False
     )
-    if problem == "missing":
-        assert result["features"]["view_image"] is None
-        assert result["features"]["shell_tool"] is False
-        assert inventory.inventory_violation(result, mcp_enabled=False) == (
-            "Codex features list reports view_image=missing"
-        )
-    else:
-        assert result["features"]["shell_tool"] is True
-        assert result["features"]["unified_exec"] is False
-        assert inventory.inventory_violation(result, mcp_enabled=False) == (
-            "Codex features list reports shell_tool=true"
-        )
+
+
+@pytest.mark.parametrize("reported", ["true", "missing"])
+def test_codex_inventory_passes_when_only_unified_exec_is_not_false(
+    reported, config, tmp_path, monkeypatch
+):
+    listing = (
+        codex_features_listing(omit=("unified_exec",))
+        if reported == "missing"
+        else codex_features_listing(true=("unified_exec",))
+    )
+    result = _codex_features_inventory(config, tmp_path, monkeypatch, listing)
+    assert result["features"]["shell_tool"] is False
+    assert result["features"]["unified_exec"] is (True if reported == "true" else None)
+    assert inventory.inventory_violation(result, mcp_enabled=False) is None
+
+
+_OTHER_ISOLATED_FEATURES = tuple(
+    name for name in providers.CODEX_ISOLATED_FEATURES if name != "unified_exec"
+)
+
+
+@pytest.mark.parametrize("name", _OTHER_ISOLATED_FEATURES)
+@pytest.mark.parametrize("problem", ["true", "missing"])
+def test_codex_inventory_rejects_any_other_isolated_feature_on_or_missing(
+    name, problem, config, tmp_path, monkeypatch
+):
+    listing = (
+        codex_features_listing(omit=(name,))
+        if problem == "missing"
+        else codex_features_listing(true=(name,))
+    )
+    result = _codex_features_inventory(config, tmp_path, monkeypatch, listing)
+    shown = "missing" if problem == "missing" else "true"
+    assert inventory.inventory_violation(result, mcp_enabled=False) == (
+        f"Codex features list reports {name}={shown}"
+    )
 
 
 def test_codex_inventory_without_a_feature_map_fails_closed():
@@ -2379,10 +2467,10 @@ def test_report_cannot_follow_a_preexisting_file_symlink(config, tmp_path):
 def doctor_reply(cli, config, workspace, prompt, *, mcp_enabled, isolated=True, probe_mcp=None, purpose="scenario"):
     if prompt == isolation.MISUSE_PROMPT:
         assert mcp_enabled is False and purpose == "scenario" and isolated
-        result = execution(cli, "OK")
         if cli == "grok":
-            result.transcript.init["tools"] = ["search_tool", "use_tool"]
-        elif cli != "claude":
+            return _with_transcript("grok", _refused_events("grok"), "isolation_misuse")
+        result = execution(cli, "OK")
+        if cli != "claude":
             result.transcript.init = None
         return result
     if isolated:
