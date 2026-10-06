@@ -77,6 +77,7 @@ SOURCES = {
     Path("decision/bounded.py"): Path("decision/bounded.py"),
     Path("decision/refinements.py"): Path("decision/refinements.py"),
     Path("decision/registry.py"): Path("decision/registry.py"),
+    Path("decision/regions.py"): Path("decision/regions.py"),
     Path("decision/recovery.py"): Path("decision/recovery.py"),
     Path("decision/resolve.py"): Path("decision/resolve.py"),
     Path("decision/snapshot.py"): Path("decision/snapshot.py"),

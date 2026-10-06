@@ -11,6 +11,7 @@ from decision.contract import (
     EvidenceItem,
 )
 from decision.refinements import is_refinement_key, split_dimension
+from decision.regions import guarantees_countries, no_guarantee_reason
 from decision.registry import UNREGISTERED
 from decision.registry import facet as registry_facet
 
@@ -1069,9 +1070,12 @@ def render_html(decision, snapshot):
     for reason in decision.eliminated.models:
         out.append(f"<p>{esc(reason.model)}: {esc(reason.condition)}. {links(reason.records)}</p>")
     for maybe in decision.may_qualify:
-        out.append(
-            f"<p>{esc(maybe.model)} may qualify; unknown: {esc(', '.join(maybe.unknown))}</p>"
-        )
+        detail = f"{esc(maybe.model)} may qualify; unknown: {esc(', '.join(maybe.unknown))}"
+        region = getattr(maybe.offering, "region", None)
+        if (region and "offering.region" in maybe.unknown
+                and not guarantees_countries(region)):
+            detail += ". " + esc(no_guarantee_reason(region))
+        out.append(f"<p>{detail}</p>")
     for reason in decision.relax:
         out.append(f"<p>{esc(reason)}</p>")
     out.append("</section><section><h2>Tipping points</h2>")

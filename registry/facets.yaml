@@ -595,9 +595,10 @@ facets:
       "global-short-context": Global, short context
     definition: >-
       The countries in which the provider documents that inference for this
-      offering runs, as ISO 3166-1 alpha-2 codes. A global or routed offering
-      lists every country it may run in. The provider's own region name is a
-      qualifier on the fact.
+      offering runs, as ISO 3166-1 alpha-2 codes. A provider region name maps
+      to those countries through `decision/regions.py`, and global names
+      guarantee none. The provider's own region name is a qualifier on the
+      fact.
     tier: guaranteed
     risk: governance
     permitted_source_kinds: [provider_documentation, provider_terms]

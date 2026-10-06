@@ -7,8 +7,11 @@ a fail wins over an unknown. ``any`` is Kleene OR: a pass wins over an unknown.
 The unknown policy comes from the condition, otherwise from the facets that
 are unknown for that candidate. Capability moves the candidate to
 ``may_qualify``. A governance unknown does not pass; the elimination is
-surfaced as ``unverified: may qualify``. A governance facet the candidate
-already passes does not change this. A per-condition ``unknown`` override wins.
+surfaced as ``unverified: may qualify``. A known ``offering.region`` that
+guarantees no country is the exception: that residency constraint is
+``may_qualify``, because the name is known and where inference runs is not.
+A governance facet the candidate already passes does not change this. A
+per-condition ``unknown`` override wins.
 ``soft`` does not change who remains. No condition adds a score.
 
 ``ids_where`` is called with ``= != < <= > >=`` and ``known``. A window is
@@ -53,6 +56,7 @@ from decision.contract import (
     Window,
     render_condition,
 )
+from decision.regions import guarantees_countries
 from decision.resolve import Resolved
 
 Leg = Literal["pass", "fail", "unknown"]
@@ -478,20 +482,55 @@ class _Run:
             return 0, unk_bits, 0
         # A leaf has one unknown facet and therefore one policy for every
         # unknown row. Compound conditions still select facets per candidate.
+        # offering.region is governance, but a known name with no country
+        # guarantee is not a missing fact. Drop it, then judge what remains.
+        # Nothing left may qualify. A governance facet that remains, or a
+        # region fact that is actually absent, is an unverified fail.
         if _is_leaf(cond):
             facets = self._unknown_facets(cond, 0)
+            if facets == ("offering.region",):
+                return self._region_unknowns(unk_bits)
             if not facets or any(self._facet(facet_id).risk == "governance" for facet_id in facets):
                 return 0, 0, unk_bits
             return 0, unk_bits, 0
         listed = failed = 0
         for cid in self._ids_of(unk_bits):
             bit = 1 << self.pos[cid]
-            facets = self._unknown_facets(cond, bit)
+            facets = tuple(self._unknown_facets(cond, bit))
+            gap = self._region_gap(cid)
+            if gap:
+                facets = tuple(
+                    facet_id for facet_id in facets if facet_id != "offering.region"
+                )
             risks = [self._facet(facet_id).risk for facet_id in facets]
-            if not risks or any(risk == "governance" for risk in risks):
+            if not risks:
+                if gap:
+                    listed |= bit
+                else:
+                    failed |= bit
+            elif any(risk == "governance" for risk in risks):
                 failed |= bit
             else:
                 listed |= bit
+        return 0, listed, failed
+
+    def _region_gap(self, cid: str) -> bool:
+        """True when ``cid``'s region name is known and guarantees no country."""
+        fact = self.index.fact(cid, "offering.region")
+        return (
+            fact.state == "known"
+            and fact.value is not None
+            and not guarantees_countries(fact.value)
+        )
+
+    def _region_unknowns(self, unk_bits: int) -> tuple[int, int, int]:
+        listed = failed = 0
+        for cid in self._ids_of(unk_bits):
+            bit = 1 << self.pos[cid]
+            if self._region_gap(cid):
+                listed |= bit
+            else:
+                failed |= bit
         return 0, listed, failed
 
     def _admitted(self, cid: str, cond: Any) -> list[Any]:

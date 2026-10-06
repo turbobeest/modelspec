@@ -346,6 +346,45 @@ def _offering_id(o: Mapping[str, Any]) -> str:
     return f"{o['provider']}/{o['model']}/{o['region']}/{o['tier']}"
 
 
+def check_identity_region(region: str) -> None:
+    """Refuse an offering region that is neither registered nor an ISO alpha-2 code."""
+    from decision.regions import require_identity_region
+
+    try:
+        require_identity_region(region)
+    except ValueError as exc:
+        raise SnapshotError(str(exc)) from exc
+
+
+def check_snapshot_offering_regions(content: Mapping[str, Any]) -> None:
+    """Refuse a snapshot whose offering identity region is not registered.
+
+    Lineup and archive are both checked, so a load that skips the archive
+    still refuses a bad region stored there. A known string fact is checked
+    too: the identity name and a sourced region name must each be registered.
+    A list of alpha-2 codes is a country set, not an identity name.
+    """
+    from decision.regions import identity_region
+
+    for section_name in ("lineup", "archive"):
+        section = content.get(section_name) or {}
+        candidates = section.get("candidates") or ()
+        column = (section.get("facets") or {}).get("offering.region") or {}
+        by_local = {
+            row: (state, value)
+            for row, state, value in zip(
+                column.get("row") or (), column.get("state") or (), column.get("value") or (),
+            )
+        }
+        for local, cand in enumerate(candidates):
+            if cand.get("kind") != "offering":
+                continue
+            check_identity_region(identity_region(str(cand.get("id") or "")))
+            stored = by_local.get(local)
+            if stored is not None and stored[0] == "known" and isinstance(stored[1], str):
+                check_identity_region(stored[1])
+
+
 # ── canonical form, hash and signature ─────────────────────────────────────
 
 
@@ -811,6 +850,7 @@ class _Compiler:
 
     def add_offering(self, raw: Any) -> None:
         o = _as_dict(raw)
+        check_identity_region(str(o["region"]))
         oid, mid = _offering_id(o), str(o["model"])
         if mid not in self.subjects:
             raise SnapshotBuildError(f"offering {oid} names model {mid}, which is not in the catalogue")
@@ -821,13 +861,18 @@ class _Compiler:
         self._add_facts(oid, "offering", o.get("facts"))
         # An offering's identity is its provider, region and tier: structural,
         # not a sourced claim, so they carry no source. They still name
-        # registered values (MODEL-324).
+        # registered values (MODEL-324). The stored region stays the
+        # provider's region name; residency reads the country map from it
+        # (MODEL-326).
         row = self.facts[oid]
         for part in ("provider", "region", "tier"):
             facet_id, value = f"offering.{part}", str(o[part])
             self._check_facet(facet_id, "offering")
             self._check_identity(oid, facet_id, value)
             row.setdefault(facet_id, ["known", value, []])
+        stored = row.get("offering.region")
+        if stored is not None and stored[0] == "known" and isinstance(stored[1], str):
+            check_identity_region(stored[1])
 
     def _check_identity(self, oid: str, facet_id: str, value: str) -> None:
         if self.registry is None:
@@ -1607,6 +1652,7 @@ class LoadedSnapshot:
                  signature_verified: bool, signature_status: str | None = None,
                  signature_key_id: str | None = None):
         content = envelope["content"]
+        check_snapshot_offering_regions(content)
         self.snapshot_id: str = envelope["snapshot_id"]
         self.content_hash: str = envelope["content_hash"]
         self.signature_verified = signature_verified
@@ -1765,7 +1811,16 @@ class LoadedSnapshot:
         ``known``. Any state but ``known`` is unknown; ``known`` itself is
         never unknown. ``unbounded`` exceeds every number; ``not_offered``
         fails every ordered comparison.
+
+        Membership on ``offering.region`` uses the countries the stored name
+        guarantees. A name that guarantees none is unknown, not a fail.
+        ``known``, ``=`` and ``!=`` still compare the identity name.
         """
+        if facet_id == "offering.region":
+            from decision.regions import is_membership_op
+
+            if is_membership_op(op):
+                return self._region_membership(op, arg)
         column = self._facet_bits.get(facet_id)
         known = 0 if column is None else column.known
         if op == "known":
@@ -1785,6 +1840,32 @@ class LoadedSnapshot:
             indeterminate = self._hardware_indeterminate(column, op, arg) & ~passing
             unknown |= indeterminate
             failing &= ~indeterminate
+        return Bitset3(passing, failing, unknown)
+
+    def _region_membership(self, op: str, arg: Any) -> Bitset3:
+        """Pass, fail, or unknown for a residency test on ``offering.region``.
+
+        A missing fact stays unknown. A known name with no country guarantee
+        is unknown too, so a global offering is not eliminated. A known country
+        set that misses the request fails.
+        """
+        from decision.regions import countries_of, region_matches
+
+        column = self._facet_bits.get("offering.region")
+        known = 0 if column is None else column.known
+        by_row = self._facts.get("offering.region", {})
+        passing = failing = unguaranteed = 0
+        for row in self._rows(known):
+            bit = 1 << row
+            countries = countries_of(by_row[row].value)
+            if countries is None:
+                unguaranteed |= bit
+                continue
+            if region_matches(countries, op, arg):
+                passing |= bit
+            else:
+                failing |= bit
+        unknown = (self._all & ~known) | unguaranteed
         return Bitset3(passing, failing, unknown)
 
     def _hardware_indeterminate(self, fits: _FacetBitsets | None, op: str, arg: Any) -> int:

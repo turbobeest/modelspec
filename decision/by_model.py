@@ -9,6 +9,7 @@ from __future__ import annotations
 from collections.abc import Callable
 
 from decision.contract import Decision, ModelOffering, ModelRow, OfferingRef
+from decision.regions import guarantees_countries, no_guarantee_reason
 
 _ORDER = {"ranked": 0, "may_qualify": 1, "eliminated": 2}
 
@@ -40,11 +41,16 @@ def build_by_model(
         ))
     for candidate in decision.may_qualify:
         ref = candidate.offering or OfferingRef(model=candidate.model)
+        reason = None
+        if ("offering.region" in candidate.unknown and ref.region
+                and not guarantees_countries(ref.region)):
+            reason = no_guarantee_reason(ref.region)
         add(ModelOffering(
             offering=ref,
             status="may_qualify",
             cost_per_task=cost_of(ref),
             unknown=list(candidate.unknown),
+            reason=reason,
         ))
     for group in decision.eliminated.model_groups:
         rows = group.offerings or (

@@ -110,13 +110,20 @@ def why_not(decision: Decision, model: str) -> WhyNot:
 
     if row.status == "may_qualify":
         unknown = sorted({f for o in row.offerings if o.status == "may_qualify" for f in o.unknown})
-        return WhyNot(
-            model=model, verdict="may_qualify", ranked_models=ranked, offerings=row.offerings,
-            unknown=unknown,
-            summary=(
+        gaps = [o.reason for o in row.offerings if o.status == "may_qualify" and o.reason]
+        if gaps:
+            summary = (
+                f"{model} may qualify but is not ranked: {gaps[0]}. "
+                "Unknown is never ranked last and never dropped."
+            )
+        else:
+            summary = (
                 f"{model} may qualify but is not ranked: {', '.join(unknown)} is not known"
                 " for it. Unknown is never ranked last and never dropped."
-            ),
+            )
+        return WhyNot(
+            model=model, verdict="may_qualify", ranked_models=ranked, offerings=row.offerings,
+            unknown=unknown, summary=summary,
         )
 
     points = [p for p in decision.tipping_points if p.new_top == model]
