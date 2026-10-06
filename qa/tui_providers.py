@@ -632,16 +632,58 @@ def _native_tools(cli: str, purpose: str) -> set:
     return native
 
 
-def _offending_call(call: dict, *, cli: str, native: set, allowed: set) -> str | None:
+def _builtin_control_failure(call: dict, *, cli: str, purpose: str) -> str | None:
+    """Tool name when this call proves the startup tool switch was ignored.
+
+    Codex command_execution, file_change, and web_search (unless this run's
+    purpose is search), plus any other server-less built-in, mean the feature
+    switches did not hold. Resource lookups are not that evidence. Grok direct
+    tool_use of anything except search_tool, use_tool, or a search tool during
+    a search run means --tools was ignored. use_tool rewritten to mcp__<name>
+    is the agent asking; the permission layer still owns that call.
+    """
+    name = call.get("name")
+    if not isinstance(name, str) or not name:
+        return None
+    if cli == "codex":
+        if name in CODEX_RESOURCE_TOOLS:
+            return None
+        if purpose == "search" and name in SEARCH_TOOLS["codex"]:
+            return None
+        if name in {"command_execution", "file_change", "web_search"}:
+            return name
+        if call.get("server") is None:
+            return name
+        return None
+    if cli == "grok":
+        if name in {"search_tool", "use_tool"}:
+            return None
+        if purpose == "search" and name in SEARCH_TOOLS["grok"]:
+            return None
+        if call.get("server") is not None or name.startswith("mcp__"):
+            return None
+        return name
+    return None
+
+
+def _offending_call(call: dict, *, cli: str, native: set, allowed: set, purpose: str) -> str | None:
     name = call.get("name")
     if not isinstance(name, str) or not name:
         return "unnamed"
+    if _builtin_control_failure(call, cli=cli, purpose=purpose):
+        return None
     if cli == "codex" and name in CODEX_RESOURCE_TOOLS:
+        # Allow only a codex-server lookup whose argument server is absent or a
+        # string naming an allowed MCP server. A list or dict must not be hashed.
+        if call.get("server") != "codex":
+            return name
         arguments = call.get("arguments")
         if not isinstance(arguments, dict):
             return name
+        if "server" not in arguments or arguments.get("server") is None:
+            return None
         server = arguments.get("server")
-        if "server" not in arguments or server is None or server in allowed:
+        if isinstance(server, str) and server in allowed:
             return None
         return name
     if call.get("server") is None:
@@ -659,7 +701,7 @@ def misuse_calls(
     native = _native_tools(cli, purpose)
     found = []
     for call in [*parsed.other_tool_calls, *parsed.tool_calls]:
-        name = _offending_call(call, cli=cli, native=native, allowed=allowed)
+        name = _offending_call(call, cli=cli, native=native, allowed=allowed, purpose=purpose)
         if name:
             found.append((name, call))
     return found
@@ -670,8 +712,11 @@ def tool_misuse(
 ) -> list[str]:
     """Tool names this transcript called outside the run's allowlist.
 
-    Codex resource tools are lookups. They are allowed when their server argument
-    is absent or names an allowed MCP server. Any other server is misuse.
+    Codex resource tools are lookups. They are allowed only when the call's
+    server is codex, the arguments are a dict, and the argument server is
+    absent or a string naming an allowed MCP server. Anything else is misuse.
+    A built-in that proves the startup switches failed is an isolation
+    violation, not a name in this list.
     """
     found, seen = [], set()
     for name, _call in misuse_calls(
@@ -715,8 +760,8 @@ def disallowed_call_refused(cli: str, call: dict) -> bool:
     """A disallowed call that was not observed, errored, cancelled, or declined.
 
     Grok reports a permission refusal as use_tool text beginning with "User cancelled".
-    Codex reports command_execution and the other built-in items with status failed
-    or declined, including when the item has no error field.
+    Codex reports a refused item with status failed or declined, including when
+    the item has no error field.
     """
     if call.get("result_observed") is False:
         return True
@@ -776,7 +821,14 @@ def isolation_violation(
     if cli != "claude":
         from qa.tui_inventory import inventory_violation
 
-        return inventory_violation(inventory, mcp_enabled=mcp_enabled, allowed_servers=allowed)
+        if failed := inventory_violation(
+            inventory, mcp_enabled=mcp_enabled, allowed_servers=allowed
+        ):
+            return failed
+        for call in [*parsed.other_tool_calls, *parsed.tool_calls]:
+            if name := _builtin_control_failure(call, cli=cli, purpose=purpose):
+                return f"CLI startup tool controls failed: {name}"
+        return None
     if parsed.init is None:
         return "CLI did not expose its startup inventory"
     for key in ("skills", "plugins", "mcp_servers", "tools"):
@@ -899,6 +951,31 @@ def launch(cli: str, config: dict, workspace: Path, prompt: str, *, mcp_enabled:
     return execution
 
 
+def _write_prompt_file(path: Path, prompt: str) -> None:
+    """Create the prompt file at mode 0600 with no write-then-chmod window.
+
+    A retry reuses the workspace, so a regular file left by the previous
+    attempt is removed first. A symlink is left in place and the exclusive
+    open fails instead of following it.
+    """
+    if path.is_symlink():
+        raise OSError("Prompt file must not be a symlink")
+    if path.exists():
+        if not path.is_file():
+            raise OSError("Prompt file must be a regular file")
+        path.unlink()
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+    try:
+        payload = memoryview(prompt.encode())
+        while payload:
+            written = os.write(fd, payload)
+            if written == 0:
+                raise OSError("Prompt file write stalled")
+            payload = payload[written:]
+    finally:
+        os.close(fd)
+
+
 def _execute(
     cli: str,
     config: dict,
@@ -954,9 +1031,16 @@ def _execute(
     elif cli in ("claude", "codex"):
         prompt_stdin = prompt
     elif cli == "grok":
-        prompt_path = workspace / ".prompt.txt"
-        prompt_path.write_text(prompt)
-        prompt_path.chmod(0o600)
+        try:
+            _write_prompt_file(workspace / ".prompt.txt", prompt)
+        except OSError as exc:
+            return Execution(
+                Transcript(),
+                None,
+                0.0,
+                "cli_error",
+                f"Cannot write prompt file ({type(exc).__name__})",
+            )
     env = child_environment(
         cli,
         workspace,
@@ -1087,12 +1171,14 @@ def _execute(
         status = "usage_limit"
     elif violation:
         status = "isolation_failed"
+    elif not process.returncode and not parsed.errors and not parsed.terminal:
+        # An exit-0 stream that never closed is an attestation failure even
+        # when the same stream also contains a disallowed call.
+        status = "transcript_error"
     elif misuse:
         status = "isolation_misuse"
     elif process.returncode or parsed.errors:
         status = "cli_error"
-    elif not parsed.terminal:
-        status = "transcript_error"
     elif not parsed.final_answer.strip():
         status = "empty_answer"
     else:

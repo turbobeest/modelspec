@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import plistlib
+import shlex
 import shutil
 import subprocess
 import time
@@ -148,7 +149,9 @@ def test_weekly_scenario_report_retains_api_contract_and_labels(config, tmp_path
 
 def test_scenario_pr_summary_parses_as_a_five_column_table(config, tmp_path):
     report = jobs.scenario_report(config, ['codex'], [], tmp_path, day='2026-10-04', dry_run=True)
-    tokens = MarkdownIt('commonmark').enable('table').parse(jobs.scenario_summary(report))
+    summary = jobs.scenario_summary(report)
+    assert 'Isolation misuse: 0 rows.' in summary
+    tokens = MarkdownIt('commonmark').enable('table').parse(summary)
     assert sum(t.type == 'table_open' for t in tokens) == 1
     assert [tokens[i + 1].content for i, t in enumerate(tokens) if t.type == 'th_open'] == [
         'Group', 'Success', 'Mean calls', 'API p50 ms', 'API p95 ms',
@@ -160,6 +163,44 @@ def test_scenario_pr_summary_parses_as_a_five_column_table(config, tmp_path):
         elif token.type in ('th_open', 'td_open'):
             row_widths[-1] += 1
     assert row_widths and all(width == 5 for width in row_widths)
+
+
+def test_scenario_summary_lists_isolation_misuse_pairs():
+    metrics = {
+        'success_rate': None, 'mean_tool_calls': None,
+        'api_latency_p50_ms': None, 'api_latency_p95_ms': None,
+    }
+
+    def report(rows):
+        return {'overall': metrics, 'per_family': {}, 'per_agent': {}, 'isolation_misuse': rows}
+
+    pairs = [[f's{i}', 'codex' if i % 2 == 0 else 'grok', 'agent', ['mcp__bash']] for i in range(12)]
+    text = jobs.scenario_summary(report(pairs))
+    assert 'Isolation misuse: 12 rows: ' in text
+    assert '[s0, codex]' in text and '[s9, grok]' in text
+    assert '[s10, codex]' not in text and '(+2 more)' in text
+    assert '|' not in text.split('Isolation misuse', 1)[1]
+
+
+@pytest.mark.parametrize('cli', providers.CLIS)
+def test_preview_hides_the_prompt_and_grok_shows_only_the_prompt_file(cli, config, tmp_path, capsys):
+    work = tmp_path / 'preview-work'
+    work.mkdir()
+    prompt = 'secret prompt text that must stay off the log'
+    argv = jobs.preview(cli, config, work, prompt)
+    printed = capsys.readouterr().out
+    assert prompt not in printed
+    if cli == 'gemini':
+        assert prompt in argv
+        assert '<private prompt>' in printed
+    elif cli == 'grok':
+        assert prompt not in argv
+        assert '--prompt-file' in printed
+        assert '/work/.prompt.txt' in printed
+        assert '<private prompt>' not in printed
+    else:
+        assert prompt not in argv
+        assert printed.rstrip('\n').endswith(' < ' + shlex.quote('<private prompt>'))
 
 
 @pytest.mark.parametrize('crossing_role', ['agent', 'judge'])

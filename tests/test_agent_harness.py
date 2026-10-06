@@ -18,6 +18,8 @@ from qa.agent_harness import (
     expected_match,
     load_scenarios,
     main,
+    make_report,
+    markdown,
     metrics,
     parse_judgement,
     percentile,
@@ -1005,3 +1007,28 @@ def test_production_vocabulary_smoke_sends_the_key_without_saving_it(monkeypatch
     assert requests == ["https://api.modelspec.dev/v1/vocabulary"]
     assert report["keyless"] is False and report["facets"] == 1
     assert key not in output.read_text()
+
+
+def test_markdown_names_isolation_misuse_rows():
+    row = {
+        "scenario": "budget-approved",
+        "family": "F1",
+        "agent": "codex",
+        "status": "isolation_misuse",
+        "success": False,
+        "expected_match": None,
+        "tool_calls": [],
+        "judge": None,
+        "isolation_misuse": ["mcp__bash"],
+    }
+    report = make_report(
+        [row],
+        [{"id": "budget-approved", "family": "F1"}],
+        False,
+        Budget(1),
+        "2026-10-04",
+        {"agents": ["codex"]},
+    )
+    text = markdown(report)
+    assert "Isolation misuse keeps the doctor receipt and counts as a failure." in text
+    assert "- budget-approved / codex / agent: mcp__bash" in text

@@ -50,6 +50,17 @@ def inventory_violation(inventory: dict | None, *, mcp_enabled: bool, allowed_se
     allowed = sorted(allowed_servers if allowed_servers is not None else ["modelspec"]) if mcp_enabled else []
     if inventory["mcp_servers"] != allowed:
         return "Native inventory did not show exactly the configured ModelSpec MCP servers"
+    if inventory.get("mechanism") == MECHANISMS["codex"]:
+        from qa.tui_providers import CODEX_ISOLATED_FEATURES
+
+        features = inventory.get("features")
+        if not isinstance(features, dict):
+            return "Codex features list omitted the isolated feature set"
+        for name in CODEX_ISOLATED_FEATURES:
+            value = features.get(name)
+            if value is not False:
+                shown = "missing" if name not in features or value is None else str(value).lower()
+                return f"Codex features list reports {name}={shown}"
     return None
 
 
@@ -257,7 +268,7 @@ def inspect_inventory(
     Raw command output stays in memory. Receipts retain only names, disabled
     states and command labels, never the CLI's config values or prompt preview.
     """
-    from qa.tui_providers import codex_config_args
+    from qa.tui_providers import CODEX_ISOLATED_FEATURES, codex_config_args
 
     binary = resolve_executable(cli, config["clis"][cli])
     checks = []
@@ -345,8 +356,7 @@ def inspect_inventory(
             _list(plugins["available"], "available plugins")
             features = codex(["features", "list"])
             evidence["features"] = {
-                name: _codex_feature_value(features, name)
-                for name in ("shell_tool", "unified_exec")
+                name: _codex_feature_value(features, name) for name in CODEX_ISOLATED_FEATURES
             }
             hooks = [line for line in features.splitlines() if re.match(r"^hooks\s", line)]
             if len(hooks) != 1 or not re.fullmatch(r"hooks\s+.+\s+false", hooks[0]):

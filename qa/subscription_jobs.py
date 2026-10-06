@@ -124,12 +124,11 @@ def preview(cli: str, config: dict, workspace: Path, prompt: str, *, purpose="sc
                             config["turn_cap"], purpose=purpose)
     # The preview uses the command builder but never consults Docker.
     argv = container_command(cli, config, workspace, command, passed_environment(config), preview=True)
-    shown = [PROMPT_MARKER if part == prompt else part for part in argv]
+    # Gemini is the only preview whose argv still contains the prompt text.
+    shown = [PROMPT_MARKER if part == prompt else part for part in argv] if cli == "gemini" else argv
     line = shlex.join(shown)
     if cli in ("claude", "codex"):
         line += " < " + shlex.quote(PROMPT_MARKER)
-    elif cli == "grok":
-        line += " " + shlex.quote(PROMPT_MARKER)
     print(line)
     return argv
 
@@ -417,6 +416,13 @@ def scenario_summary(report: dict) -> str:
         numbers = [metrics["success_rate"], metrics["mean_tool_calls"], metrics["api_latency_p50_ms"], metrics["api_latency_p95_ms"]]
         formatted = ["n/a" if n is None else f"{n * 100:.1f}%" if i == 0 else f"{n:.2f}" for i, n in enumerate(numbers)]
         lines.append("| " + name + " | " + " | ".join(formatted) + " |")
+    misuse = report.get("isolation_misuse") or []
+    pairs = [f"[{scenario}, {cli}]" for scenario, cli, *_rest in misuse]
+    shown = ", ".join(pairs[:10])
+    more = f" (+{len(pairs) - 10} more)" if len(pairs) > 10 else ""
+    lines.append(
+        f"Isolation misuse: {len(misuse)} rows" + (f": {shown}{more}" if misuse else ".")
+    )
     return "\n".join(lines) + "\n"
 
 
