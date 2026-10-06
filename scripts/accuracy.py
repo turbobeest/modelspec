@@ -795,10 +795,14 @@ def _verified_claims(root: Path) -> list[tuple[Any, str]]:
 #:   proof, an LLM read, a derived recompute);
 #: - ``source_changed``: the source has changed since. The value is re-queued for
 #:   re-collection, not logged as a mismatch that would quarantine it.
+#: - ``render_required``: every source of the claim refused plain HTTP, and each is
+#:   declared rendered. A 403 from a page that needs a renderer says nothing about
+#:   the value, so the draw is replaced. A failed ``fetch: http`` source stays
+#:   ``unreachable``.
 FIDELITY_OUTCOMES = ("verified", "mismatch", "unreachable", "undetermined")
 _FIDELITY_FAILURES = ("mismatch", "unreachable")
 _ASSESSED = ("verified", "mismatch", "unreachable")
-Unread = Literal["source_unchanged", "source_changed", "mismatch"]
+Unread = Literal["source_unchanged", "source_changed", "mismatch", "render_required"]
 
 
 def _oll_projection(url: str, raw: bytes) -> bytes:
@@ -853,6 +857,8 @@ def verify_fidelity_sample(
 
     ``unread`` says what a claim is when no reader finds its value: ``undetermined``
     because its source is unchanged or changed (the default), or a ``mismatch``.
+    ``render_required`` turns ``unreachable`` into ``undetermined``: the draw is
+    replaced, and it is not logged, checked, or re-queued.
     """
     from decision.verify import ref_str, verify
 
@@ -863,14 +869,17 @@ def verify_fidelity_sample(
     for claim in claims:
         result = verify(claim, regions, extractors, today=today)
         outcome, undetermined = result.outcome, None
+        key = (claim.target.kind, claim.target.id)
         if _read_nothing(result):
-            undetermined = unread.get((claim.target.kind, claim.target.id), "source_changed")
+            undetermined = unread.get(key, "source_changed")
             if undetermined == "mismatch":
                 # The queue records what the nightly concluded, not verify's "skipped".
                 outcome, undetermined = "mismatch", None
                 result = replace(result, outcome="mismatch")
             else:
                 outcome = "undetermined"
+        elif outcome == "unreachable" and unread.get(key) == "render_required":
+            outcome, undetermined = "undetermined", "render_required"
         counts[outcome] += 1
         if outcome in ("verified", *_FIDELITY_FAILURES) and result.verification is not None:
             log.append(result.verification)
@@ -924,9 +933,11 @@ def _current_copies(
     A projected copy is rebuilt from the fetch. When no reader finds a claim's value
     in the very bytes it was verified against, that is a ``mismatch`` if a nightly
     reader performed the verification (the reader regressed), and otherwise
-    undetermined with ``source_unchanged``.
+    undetermined with ``source_unchanged``. When every source of the claim failed
+    this fetch and each is declared ``FetchMode.RENDERED``, the unread reason is
+    ``render_required``.
     """
-    from decision.sources import recheck
+    from decision.sources import FetchMode, recheck
 
     selected = {source.source_id for claim, _ in batch for source in claim.sources}
     report = recheck(
@@ -967,12 +978,19 @@ def _current_copies(
                 ),
             )
         )
-        same_bytes = all(refs.get(s.source_id) == s.snapshot_ref for s in claim.sources)
-        unread[(claim.target.kind, claim.target.id)] = (
-            ("mismatch" if method in nightly_methods else "source_unchanged")
-            if same_bytes
-            else "source_changed"
-        )
+        failed = [s.source_id for s in claim.sources if s.source_id not in fetched]
+        key = (claim.target.kind, claim.target.id)
+        if failed and len(failed) == len(claim.sources) and all(
+            sources[source_id].fetch == FetchMode.RENDERED for source_id in failed
+        ):
+            unread[key] = "render_required"
+        else:
+            same_bytes = all(refs.get(s.source_id) == s.snapshot_ref for s in claim.sources)
+            unread[key] = (
+                ("mismatch" if method in nightly_methods else "source_unchanged")
+                if same_bytes
+                else "source_changed"
+            )
     return current, unread
 
 
@@ -1012,11 +1030,14 @@ def data_fidelity(
 
     Every selected source gets a plain HTTP attempt, including sources normally
     marked rendered. Firecrawl use is therefore zero and cannot exceed the
-    configured ten-credit ceiling. An undetermined value (no nightly reader found
-    it) is replaced by a further draw, up to ``max_values_drawn``. The layer fails
-    rather than silently reducing N when fewer than N values can be assessed, and
-    fails when more than ``max_undetermined_share`` of the draws were undetermined:
-    a harness that can read nothing must not pass.
+    configured ten-credit ceiling. When every source of a claim stores no copy and
+    each is declared rendered, the claim is undetermined (``render_required``):
+    the refusal says nothing about the value. A failed ``fetch: http`` source stays
+    unreachable. An undetermined value (no nightly reader found it) is replaced by
+    a further draw, up to ``max_values_drawn``. The layer fails rather than
+    silently reducing N when fewer than N values can be assessed, and fails when
+    more than ``max_undetermined_share`` of the draws were undetermined: a harness
+    that can read nothing must not pass.
     """
     from decision.excluded import excluded_sources
     from decision.sources import CopyStore, Fetcher
@@ -1095,6 +1116,9 @@ def data_fidelity(
                 counts[name] += count
             sample.extend(result.details)
     status, summary, share = fidelity_verdict(counts, drawn=drawn, wanted=wanted, config=config)
+    # Rendered sources the nightly cannot read stay visible each night (MODEL-336).
+    render_required = sum(row["reason"] == "render_required" for row in sample)
+    summary += f" {render_required} draw(s) needed a renderer (render_required)."
     assessed = sum(counts[name] for name in _ASSESSED)
     return LayerResult(
         "data_fidelity",
@@ -1113,7 +1137,7 @@ def data_fidelity(
             "max_undetermined_share": config.max_undetermined_share,
             "undetermined_reasons": {
                 reason: sum(row["reason"] == reason for row in sample)
-                for reason in ("source_unchanged", "source_changed")
+                for reason in ("source_unchanged", "source_changed", "render_required")
             },
             "plain_http_sources": len(fetched_sources),
             "firecrawl_credits_used": 0,

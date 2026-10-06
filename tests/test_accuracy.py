@@ -13,8 +13,8 @@ from typer.testing import CliRunner
 
 from cli.modelspec import legacy as cli_mod
 from decision.model import SourceRef, TargetRef, VerificationActor
-from decision.sources import Source
-from decision.verify import Claim, KeyValueExtractor, Queue, VerificationLog
+from decision.sources import CopyStore, FetchResult, Source
+from decision.verify import Claim, KeyValueExtractor, Queue, StoredRegions, VerificationLog
 from scripts import accuracy
 from scripts.recall_run import Finding, QuestionResult
 
@@ -515,9 +515,67 @@ class _Fetches:
         self.bodies = bodies
 
     def fetch(self, url, *, etag=None, last_modified=None):
-        from decision.sources import FetchResult
-
         return FetchResult("ok", 200, body=self.bodies[url], content_type="text/plain")
+
+
+class _FetchResults:
+    def __init__(self, results):
+        self.results = results
+
+    def fetch(self, url, *, etag=None, last_modified=None):
+        return self.results[url]
+
+
+def _text_source(source_id: str, fetch: str) -> Source:
+    return Source(
+        id=source_id,
+        url=f"https://example.test/{source_id}",
+        fetch=fetch,
+        normaliser="text-default",
+        cited_regions=[{"id": "table", "locator": {"kind": "page", "value": ""}}],
+    )
+
+
+def _sourced(target: str, source_id: str, snapshot: str = "b") -> Claim:
+    return replace(
+        _claim(target, "context", 10),
+        sources=(
+            SourceRef(
+                source_id=source_id,
+                snapshot_ref="sha256:" + snapshot * 64,
+                cited_regions=["table"],
+            ),
+        ),
+    )
+
+
+def _run_fidelity_fetch(tmp_path: Path, sources, claims, responses):
+    store = CopyStore(tmp_path / "copies")
+    current, unread = accuracy._current_copies(
+        [(claim, "key-value-match@1") for claim in claims],
+        sources=sources,
+        store=store,
+        fetcher=_FetchResults(responses),
+        as_of=date(2026, 10, 6),
+        nightly_methods=frozenset({"key-value-match@1"}),
+    )
+    queue = Queue(tmp_path / "verification")
+    log = VerificationLog(tmp_path / "verification")
+    result = accuracy.verify_fidelity_sample(
+        current,
+        regions=StoredRegions(store, sources),
+        extractors=[KeyValueExtractor()],
+        queue=queue,
+        log=log,
+        today=date(2026, 10, 6),
+        source_urls={source_id: str(source.url) for source_id, source in sources.items()},
+        unread=unread,
+    )
+    return result, unread, queue, log
+
+
+_PAGE = b"Model: Model\ncontext: 10\n"
+_FORBIDDEN = FetchResult("unreachable", 403, error="HTTP 403")
 
 
 def test_current_copies_pin_new_copies_and_say_what_an_unread_value_is(tmp_path: Path) -> None:
@@ -568,6 +626,101 @@ def test_current_copies_pin_new_copies_and_say_what_an_unread_value_is(tmp_path:
     assert store.get(current[2].sources[0].snapshot_ref) == moved
 
 
+def test_a_rendered_source_403_is_undetermined_and_the_layer_passes(tmp_path: Path) -> None:
+    rendered = _text_source("rendered", "rendered")
+    plain = _text_source("plain", "http")
+    blocked = _sourced("lab/blocked#context", "rendered")
+    others = [_sourced(f"lab/ok-{i}#context", "plain", snapshot="c") for i in range(12)]
+
+    result, unread, queue, log = _run_fidelity_fetch(
+        tmp_path,
+        {"rendered": rendered, "plain": plain},
+        [blocked, *others],
+        {
+            "https://example.test/rendered": _FORBIDDEN,
+            "https://example.test/plain": FetchResult(
+                "ok", 200, body=_PAGE, content_type="text/plain"
+            ),
+        },
+    )
+
+    assert unread[("fact", "lab/blocked#context")] == "render_required"
+    assert result.details[0]["outcome"] == "undetermined"
+    assert result.details[0]["reason"] == "render_required"
+    assert result.counts == {"verified": 12, "mismatch": 0, "unreachable": 0, "undetermined": 1}
+    assert result.status == "pass"
+    assert set(log.latest()) == {("fact", claim.target.id) for claim in others}
+    assert queue.recrawl_requests() == []
+    assert queue.pending() == ([], [])
+    config = accuracy.load_config(Path("accuracy.yaml")).data_fidelity
+    status, summary, share = accuracy.fidelity_verdict(
+        result.counts, drawn=13, wanted=12, config=config
+    )
+    assert (status, round(share, 3)) == ("pass", 0.077)
+    assert "1 of 13 draws (8%) were undetermined" in summary
+
+
+def test_a_plain_http_source_403_is_still_unreachable(tmp_path: Path) -> None:
+    plain = _text_source("plain", "http")
+    claim = _sourced("lab/blocked#context", "plain")
+
+    result, unread, queue, log = _run_fidelity_fetch(
+        tmp_path,
+        {"plain": plain},
+        [claim],
+        {"https://example.test/plain": _FORBIDDEN},
+    )
+
+    assert unread[("fact", "lab/blocked#context")] == "source_changed"
+    assert result.status == "fail"
+    assert result.details[0]["outcome"] == "unreachable"
+    assert result.details[0]["reason"] == "unreachable:plain#table"
+    assert result.counts == {"verified": 0, "mismatch": 0, "unreachable": 1, "undetermined": 0}
+    assert queue.recrawl_requests() == [(claim.target, "unreachable")]
+    assert log.latest()[("fact", "lab/blocked#context")].outcome == "unreachable"
+    assert queue.pending() == ([], [])
+
+
+def test_a_403_on_a_rendered_source_beside_a_failed_http_source_stays_unreachable(
+    tmp_path: Path,
+) -> None:
+    rendered = _text_source("rendered", "rendered")
+    plain = _text_source("plain", "http")
+    claim = replace(
+        _claim("lab/mixed#context", "context", 10),
+        sources=(
+            SourceRef(
+                source_id="rendered",
+                snapshot_ref="sha256:" + "b" * 64,
+                cited_regions=["table"],
+            ),
+            SourceRef(
+                source_id="plain",
+                snapshot_ref="sha256:" + "c" * 64,
+                cited_regions=["table"],
+            ),
+        ),
+    )
+
+    result, unread, queue, log = _run_fidelity_fetch(
+        tmp_path,
+        {"rendered": rendered, "plain": plain},
+        [claim],
+        {
+            "https://example.test/rendered": _FORBIDDEN,
+            "https://example.test/plain": _FORBIDDEN,
+        },
+    )
+
+    assert unread[("fact", "lab/mixed#context")] == "source_changed"
+    assert result.status == "fail"
+    assert result.details[0]["outcome"] == "unreachable"
+    assert result.details[0]["reason"] == "unreachable:rendered#table; unreachable:plain#table"
+    assert result.counts["unreachable"] == 1
+    assert queue.recrawl_requests() == [(claim.target, "unreachable")]
+    assert log.latest()[("fact", "lab/mixed#context")].outcome == "unreachable"
+
+
 def test_a_promoted_mismatch_is_queued_as_a_mismatch(tmp_path: Path) -> None:
     claim, result, queue, log = _fidelity(
         tmp_path,
@@ -594,6 +747,35 @@ def test_fidelity_fails_when_too_many_draws_are_undetermined() -> None:
     assert (status, round(share, 3)) == ("fail", 0.625)
     assert "20 of 32 draws (62%) were undetermined" in summary
     assert accuracy.fidelity_verdict(short, drawn=6, wanted=12, config=config)[0] == "fail"
+
+
+def test_fidelity_fails_when_render_required_draws_exceed_the_undetermined_share(
+    tmp_path: Path,
+) -> None:
+    config = accuracy.load_config(Path("accuracy.yaml")).data_fidelity
+    rendered = _text_source("rendered", "rendered")
+    claims = [_sourced(f"lab/blocked-{i}#context", "rendered") for i in range(20)]
+
+    result, unread, queue, log = _run_fidelity_fetch(
+        tmp_path,
+        {"rendered": rendered},
+        claims,
+        {"https://example.test/rendered": _FORBIDDEN},
+    )
+
+    assert unread == {("fact", claim.target.id): "render_required" for claim in claims}
+    assert result.counts == {"verified": 0, "mismatch": 0, "unreachable": 0, "undetermined": 20}
+    assert [row["reason"] for row in result.details] == ["render_required"] * 20
+    assert log.latest() == {}
+    assert queue.recrawl_requests() == []
+    assert queue.pending() == ([], [])
+    counts = {**result.counts, "verified": 12}
+    status, summary, share = accuracy.fidelity_verdict(
+        counts, drawn=32, wanted=12, config=config
+    )
+    assert (status, round(share, 3)) == ("fail", 0.625)
+    assert "20 of 32 draws (62%) were undetermined" in summary
+    assert "That is above the 60% limit." in summary
 
 
 def test_a_nightly_reader_that_cannot_reread_its_own_verified_bytes_fails(
@@ -891,3 +1073,24 @@ def test_baseline_update_refuses_unexplained_drop_and_preserves_reasons(
     assert accuracy.load_recall_baseline(baseline_path).frozen_image_reason == {
         "Q04": "No frozen offering; private passes."
     }
+
+
+def test_the_sources_behind_the_october_false_alarms_are_declared_rendered() -> None:
+    """MODEL-335: runs 36975426430 (10-02) and 37426044223 (10-06) failed on 403s
+    from these pages. Declared rendered, a 403 is render_required, not a failure."""
+    from decision.sources import FetchMode
+    from decision.verify import load_sources
+
+    sources = load_sources(Path("registry/sources.yaml"))
+
+    assert {
+        source_id: sources[source_id].fetch
+        for source_id in (
+            "model-205-perplexity-pro",
+            "model-173-openai-pro",
+            "model-173-xai-consumer-pricing",
+        )
+    } == dict.fromkeys(
+        ("model-205-perplexity-pro", "model-173-openai-pro", "model-173-xai-consumer-pricing"),
+        FetchMode.RENDERED,
+    )
