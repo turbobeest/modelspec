@@ -6144,7 +6144,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No offering passes: Inference region in the EU — 0 of 4 offerings"
+      "unavailable_reason": "No offering passes: Trains on customer data — 0 of 0 offerings"
     },
     {
       "id": "eu-data",
@@ -6198,7 +6198,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No offering passes: Inference region in the EU — 0 of 4 offerings"
+      "unavailable_reason": "No offering passes: Trains on customer data — 0 of 0 offerings"
     },
     {
       "id": "regional-budget",
@@ -6252,7 +6252,7 @@
         }
       },
       "available": false,
-      "unavailable_reason": "No offering passes: Inference region in the EU — 0 of 4 offerings"
+      "unavailable_reason": "No offering passes: Trains on customer data — 0 of 0 offerings"
     }
   ]
 }

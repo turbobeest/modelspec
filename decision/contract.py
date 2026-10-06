@@ -1799,8 +1799,10 @@ class ModelOffering(_Strict):
     cost_per_task: float | None = None
     #: The facets a may-qualify offering is unknown on.
     unknown: list[FacetId] = Field(default_factory=list)
-    #: The Must condition an eliminated offering failed. Only when the
-    #: explanation carries eliminations (``explain: full``).
+    #: Why this offering is not ranked. For an eliminated offering, the Must
+    #: it failed, and only when the explanation carries eliminations
+    #: (``explain: full``). For a may-qualify offering whose region name
+    #: guarantees no country, that sentence.
     reason: str | None = None
 
 

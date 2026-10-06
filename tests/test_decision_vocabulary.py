@@ -85,6 +85,12 @@ def sold(mid, provider, price_in, price_out=None):
     facts = [fact("offering", oid, "offering.price.input", price_in, source="src-pricing")]
     if price_out is not None:
         facts.append(fact("offering", oid, "offering.price.output", price_out, source="src-pricing"))
+    # The lineup's regions are all ``global``. The training Must is known so
+    # the regional template's unavailable reason is the region, not a second
+    # governance unknown that drops the may-qualify set.
+    facts.append(fact(
+        "offering", oid, "offering.data.trains_on_customer_data", False, source="src-pricing",
+    ))
     return offering(mid, provider, facts=facts)
 
 
@@ -187,11 +193,12 @@ def test_a_template_whose_candidates_only_may_qualify_names_the_missing_facet(vo
     )
 
 
-def test_unavailable_reason_comes_from_the_zeroing_funnel(snapshot, vocabulary):
+def test_a_regional_template_names_the_unknown_region(snapshot, vocabulary):
     eu_data = by_id(vocabulary["templates"])["eu-data"]
     assert eu_data["available"] is False
     assert eu_data["unavailable_reason"] == (
-        "No offering passes: Inference region in the EU — 0 of 4 offerings"
+        "No offering has a known Inference region yet — 4 offerings may qualify "
+        "once it is published"
     )
 
 
