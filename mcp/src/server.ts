@@ -14,6 +14,7 @@ import {
   incomingAuthorization,
   incomingClientAddress,
   modelCardUrl,
+  type OriginEnvelope,
 } from "./origin";
 
 export const TOOL_NAMES = [
@@ -131,6 +132,12 @@ const DECIDE_DEFAULTS = {
   fields: ["model_rank", "cost_per_task", "estimates", "p_best"],
 };
 
+/** Row fields the engine fills when explain is summary or full. Mirrors decision/bounded.py. */
+const EXPLAIN_ROW_FIELDS = ["contributions", "evidence"] as const;
+
+/** Compact UTF-8 budget for the MCP text: origin envelope plus decisionSummary. */
+export const AGENT_BYTES = 16_384;
+
 function decisionSpecJsonSchema(): JsonSchemaObject {
   if (
     decisionContract.$schema !== "https://json-schema.org/draft/2020-12/schema" ||
@@ -243,18 +250,279 @@ export function decisionSummary(body: unknown): string {
 }
 
 /**
- * The MCP default projection applies only when explain is unset or "none".
- * A caller who pays for explain "summary" or "full" gets complete rows unless
- * they pass fields themselves.
+ * The MCP default path always requests the bounded representation.
+ * explain "summary" or "full" keeps explanation-bearing row fields.
+ * A caller who passes `fields`, including null, overrides that list.
  */
 export function defaultDecideRequest(spec: unknown): unknown {
   if (!isRecord(spec)) return spec;
-  const explained = spec.explain !== undefined && spec.explain !== "none";
+  const explained = spec.explain === "summary" || spec.explain === "full";
+  const fields =
+    "fields" in spec
+      ? spec.fields
+      : explained
+        ? [...DECIDE_DEFAULTS.fields, ...EXPLAIN_ROW_FIELDS]
+        : [...DECIDE_DEFAULTS.fields];
   return {
     ...DECIDE_DEFAULTS,
-    ...(explained ? { fields: null } : {}),
     ...spec,
+    fields,
   };
+}
+
+function utf8Bytes(text: string): number {
+  return new TextEncoder().encode(text).length;
+}
+
+function envelopeBytes(envelope: OriginEnvelope): number {
+  const packed = utf8Bytes(JSON.stringify(envelope));
+  const summarised = envelope.status !== 0 && envelope.status < 400;
+  return packed + (summarised ? utf8Bytes(decisionSummary(envelope.body)) : 0);
+}
+
+function offeringModel(row: Record<string, unknown>): string | undefined {
+  if (isRecord(row.offering) && typeof row.offering.model === "string") return row.offering.model;
+  return typeof row.model === "string" ? row.model : undefined;
+}
+
+function slimOffering(row: Record<string, unknown>): Record<string, unknown> | undefined {
+  if (!isRecord(row.offering) || typeof row.offering.model !== "string") return undefined;
+  const offering: Record<string, unknown> = { model: row.offering.model };
+  for (const key of ["provider", "region", "tier"]) {
+    const value = row.offering[key];
+    if (typeof value === "string") offering[key] = value;
+  }
+  return offering;
+}
+
+function fetchPointer(model: string | undefined): string {
+  const drill = model ? `evidence_for: ${model}` : "evidence_for: <model>";
+  return (
+    "explanation.omitted counts records removed from this bounded answer. " +
+    `Resend this spec with ${drill} for one model's evidence; ` +
+    "narrow fields or lower limit; " +
+    "or POST /v1/decide without fields for the complete Decision."
+  );
+}
+
+function listCount(value: unknown): number {
+  return Array.isArray(value) ? value.length : 0;
+}
+
+function addCount(omitted: Record<string, unknown>, key: string, count: number) {
+  if (count <= 0) return;
+  const prior = omitted[key];
+  omitted[key] = (typeof prior === "number" && Number.isFinite(prior) ? prior : 0) + count;
+}
+
+/**
+ * Last-resort notice when a caller asked for a body the Worker did not bound
+ * (for example fields: null). Keeps the answer, status, warnings, coverage
+ * and one slim top result. Does not call the Worker again.
+ */
+function slimDecision(body: Record<string, unknown>): Record<string, unknown> {
+  const results = Array.isArray(body.results) ? body.results.filter(isRecord) : [];
+  const first = results[0];
+  const members =
+    isRecord(body.answer) && Array.isArray(body.answer.members)
+      ? body.answer.members.filter((model): model is string => typeof model === "string")
+      : [];
+  const detail = isRecord(body.model_evidence) ? body.model_evidence : undefined;
+  const model =
+    (detail && typeof detail.model === "string" ? detail.model : undefined) ??
+    (first ? offeringModel(first) : undefined) ??
+    members[0];
+  const omitted: Record<string, unknown> = {};
+  if (isRecord(body.explanation) && isRecord(body.explanation.omitted)) {
+    for (const [key, value] of Object.entries(body.explanation.omitted)) {
+      if (typeof value === "number" && Number.isFinite(value)) addCount(omitted, key, value);
+    }
+  }
+  addCount(omitted, "results", results.length - (first ? 1 : 0));
+  addCount(omitted, "may_qualify", listCount(body.may_qualify));
+  for (const key of ["by_model", "blend", "top", "near_misses", "number_origins", "sources", "constraint_costs", "tipping_points"]) {
+    addCount(omitted, key, listCount(body[key]));
+  }
+  if (isRecord(body.bands)) {
+    addCount(
+      omitted,
+      "bands",
+      ["best", "rest", "thin"].reduce(
+        (sum, key) => sum + listCount(isRecord(body.bands) ? body.bands[key] : undefined),
+        0,
+      ),
+    );
+  }
+  if (isRecord(body.eliminated)) {
+    for (const key of ["models", "model_groups", "funnel"]) {
+      addCount(omitted, `eliminated.${key}`, listCount(body.eliminated[key]));
+    }
+  }
+  if (first) {
+    for (const key of ["evidence", "contributions", "estimates", "refinement_estimates", "plans"]) {
+      addCount(omitted, `results.${key}`, listCount(first[key]));
+    }
+  }
+  const notice: Record<string, unknown> = {};
+  if (body.representation === "bounded" || typeof body.contract_version === "string" || typeof body.projects_contract === "string") {
+    notice.representation = "bounded";
+    notice.bounded_version = "1.0";
+    notice.projects_contract =
+      typeof body.projects_contract === "string"
+        ? body.projects_contract
+        : typeof body.contract_version === "string"
+          ? body.contract_version
+          : "2.14";
+  }
+  for (const key of [
+    "decision_id", "snapshot", "signature_verified", "spec_hash", "explain", "status",
+    "answer", "warnings", "truncated", "out_of_lineup", "relax", "relax_to", "feedback",
+    "reading", "coverage",
+  ]) {
+    if (key in body) notice[key] = body[key];
+  }
+  if (first) {
+    const row: Record<string, unknown> = {};
+    if (typeof first.rank === "number") row.rank = first.rank;
+    if (typeof first.model === "string") row.model = first.model;
+    const offering = slimOffering(first);
+    if (offering) row.offering = offering;
+    row.warnings = Array.isArray(first.warnings) ? first.warnings : [];
+    notice.results = [row];
+  } else {
+    notice.results = [];
+  }
+  notice.may_qualify = [];
+  if (detail) {
+    const evidenceGroups = listCount(detail.evidence);
+    const contributions = listCount(detail.contributions);
+    if (evidenceGroups) omitted["model_evidence.evidence"] = evidenceGroups;
+    if (contributions) omitted["model_evidence.contributions"] = contributions;
+    notice.model_evidence = {
+      model: detail.model,
+      status: detail.status,
+      offering: isRecord(detail.offering) ? slimOffering({ offering: detail.offering }) ?? detail.offering : detail.offering,
+      rank: typeof detail.rank === "number" ? detail.rank : null,
+      evidence: [],
+      contributions: [],
+      unknown: [],
+      reasons: [],
+      warnings: Array.isArray(detail.warnings) ? detail.warnings : [],
+    };
+  }
+  if (Object.keys(omitted).length === 0) omitted.trimmed = 1;
+  const priorNotApplied =
+    isRecord(body.explanation) && Array.isArray(body.explanation.not_applied)
+      ? body.explanation.not_applied
+      : [];
+  notice.explanation = {
+    not_applied: priorNotApplied,
+    omitted,
+    note: "Projected rows are incomplete; omissions are not eliminations or absent evidence.",
+    fetch: fetchPointer(model),
+  };
+  return notice;
+}
+
+function slimError(body: unknown): Record<string, unknown> {
+  const error = isRecord(body) && isRecord(body.error) ? body.error : undefined;
+  const code = error && typeof error.code === "string" ? error.code : "trimmed";
+  const message = error && typeof error.message === "string"
+    ? error.message
+    : "The response exceeded 16 KB.";
+  return {
+    error: {
+      code,
+      message,
+      fetch: "Retry with a narrower spec, or POST /v1/decide without fields for the complete Decision.",
+    },
+  };
+}
+
+function withinBudget(envelope: OriginEnvelope): boolean {
+  return envelopeBytes(envelope) <= AGENT_BYTES;
+}
+
+function trimmedError(): Record<string, unknown> {
+  return {
+    error: {
+      code: "trimmed",
+      message: "The response exceeded 16 KB. Retry with a narrower spec.",
+      fetch: "Retry with a narrower spec, or POST /v1/decide without fields for the complete Decision.",
+    },
+  };
+}
+
+function noticeOmitted(body: Record<string, unknown>): Record<string, unknown> {
+  if (isRecord(body.explanation) && isRecord(body.explanation.omitted)) return body.explanation.omitted;
+  return {};
+}
+
+function shortText(value: unknown, fallback: string, max = 80): string {
+  return typeof value === "string" && value.length > 0 && value.length <= max ? value : fallback;
+}
+
+/**
+ * Replace an over-budget decide body. Under-budget bodies pass through.
+ * The returned text stays within AGENT_BYTES and keeps status, answer and fetch.
+ */
+export function fitDecideEnvelope(envelope: OriginEnvelope): OriginEnvelope {
+  if (withinBudget(envelope)) return envelope;
+  if (!isRecord(envelope.body) || "error" in envelope.body) {
+    const next = { ...envelope, body: slimError(envelope.body) };
+    if (withinBudget(next)) return next;
+    return { ...envelope, body: trimmedError() };
+  }
+  const bare = slimDecision(envelope.body);
+  const fitted = { ...envelope, body: bare };
+  if (withinBudget(fitted)) return fitted;
+  const omitted = noticeOmitted(bare);
+  for (const key of ["reading", "feedback", "relax", "relax_to", "relax_task_tokens", "with_estate"]) {
+    if (withinBudget({ ...envelope, body: bare })) break;
+    if (!(key in bare)) continue;
+    addCount(omitted, key, 1);
+    delete bare[key];
+  }
+  if (!withinBudget({ ...envelope, body: bare }) && Array.isArray(bare.warnings) && bare.warnings.length > 0) {
+    addCount(omitted, "warnings", bare.warnings.length);
+    bare.warnings = [];
+  }
+  if (!withinBudget({ ...envelope, body: bare }) && "coverage" in bare) {
+    addCount(omitted, "coverage", 1);
+    delete bare.coverage;
+  }
+  if (!withinBudget({ ...envelope, body: bare }) && "model_evidence" in bare) {
+    addCount(omitted, "model_evidence", 1);
+    delete bare.model_evidence;
+  }
+  if (isRecord(bare.answer) && Array.isArray(bare.answer.members)) {
+    const members = bare.answer.members.filter((model): model is string => typeof model === "string");
+    bare.answer = { ...bare.answer, members };
+    while (members.length > 0 && !withinBudget({ ...envelope, body: bare })) {
+      members.pop();
+      addCount(omitted, "answer.members", 1);
+    }
+  }
+  if (withinBudget({ ...envelope, body: bare })) return { ...envelope, body: bare };
+  const priorTrimmed = omitted.trimmed;
+  const minimal = {
+    representation: "bounded",
+    bounded_version: "1.0",
+    projects_contract: shortText(bare.projects_contract, shortText(bare.contract_version, "2.14"), 16),
+    status: shortText(bare.status, "trimmed"),
+    answer: { kind: "tied", members: [] },
+    warnings: [],
+    results: [],
+    may_qualify: [],
+    explanation: {
+      not_applied: [],
+      omitted: { ...omitted, trimmed: (typeof priorTrimmed === "number" ? priorTrimmed : 0) + 1 },
+      note: "Projected rows are incomplete; omissions are not eliminations or absent evidence.",
+      fetch: fetchPointer(undefined),
+    },
+  };
+  const last = { ...envelope, body: minimal };
+  return withinBudget(last) ? last : { ...envelope, body: trimmedError() };
 }
 
 export type McpFactoryContext = {
@@ -390,7 +658,7 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
     },
     async (spec) => {
       const origin = `${env.RANK_API_ORIGIN.replace(/\/$/, "")}/v1/decide`;
-      const envelope = await fetchDecision(origin, defaultDecideRequest(spec));
+      const envelope = fitDecideEnvelope(await fetchDecision(origin, defaultDecideRequest(spec)));
       const result = asToolResult(envelope);
       if (result.isError) return result;
       return {

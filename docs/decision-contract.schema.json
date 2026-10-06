@@ -735,6 +735,18 @@
     "BoundedExplanation": {
       "additionalProperties": false,
       "properties": {
+        "fetch": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Fetch"
+        },
         "not_applied": {
           "items": {
             "type": "string"

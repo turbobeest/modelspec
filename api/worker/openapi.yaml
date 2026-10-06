@@ -8,7 +8,7 @@ info:
   version: '1.0'
   summary: Decides which AI models fit a job from your requirements, sourced evidence and real cost, and
     checks them against a compliance policy.
-  description: 'Start with the compact agent guide https://modelspec.dev/agents.md (version 1-fe29865ece0d4c15).
+  description: 'Start with the compact agent guide https://modelspec.dev/agents.md (version 1-29ea94414b7b7402).
     Call decide early with a template-based Spec; refine from reading and recovery hints.
 
 
@@ -2243,6 +2243,12 @@ components:
           type: object
         note: {default: Projected rows are incomplete; omissions are not eliminations or absent evidence.,
           title: Note, type: string}
+        fetch:
+          anyOf:
+          - {type: string}
+          - {type: 'null'}
+          default: null
+          title: Fetch
       title: BoundedExplanation
       type: object
     DecisionBudget:
@@ -5942,4 +5948,4 @@ components:
       schema: {type: string, const: '<https://modelspec.dev/agents.md>; rel="describedby"'}
     AgentGuideVersion:
       description: Version of the byte-stable guide.
-      schema: {type: string, const: 1-fe29865ece0d4c15}
+      schema: {type: string, const: 1-29ea94414b7b7402}

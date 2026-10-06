@@ -359,16 +359,16 @@ RESPONSE_BUDGET_RULES = (
 #: The one rule for MCP decide's bounded default (MODEL-293). The guide, the
 #: MCP instructions and the decide description all quote it.
 BOUNDED_MCP = (
-    "MCP decide returns a bounded answer by default; drill down with evidence_for, "
-    "or ask for full rows with fields:null/explain."
+    "MCP decide returns a bounded answer of at most 16 KB, summary included. "
+    "Drill down with evidence_for. Complete rows need fields:null; "
+    "explanation.fetch names what was removed and how to fetch it."
 )
 BOUNDED_MCP_DETAIL = (
-    'With explain unset or "none" it sends explain=none, limit=10 and row fields model_rank, '
-    "cost_per_task, estimates and p_best. Answer, reading, warnings and ties stay complete. "
-    "explanation.omitted counts omitted sections; eliminations at explain=none are not computed, not zero. "
-    "Resend the same Spec and returned snapshot with evidence_for: <model id> for stateless "
-    "evidence within 2k estimated tokens. For full rows pass fields: null, or explain summary/full; "
-    "explicit fields control projection. Full includes every eliminated candidate and can exceed the client context budget. "
+    'With explain unset or "none": explain=none, limit=10, fields model_rank, cost_per_task, '
+    "estimates, p_best. summary or full also sends contributions and evidence. "
+    "omitted counts removed records; explain=none does not compute eliminations. "
+    "explicit fields, including null, is sent as given. "
+    "Over 16 KB the body is a trimmed notice and explanation.fetch says how to resend. "
     "decision_id is a citation, not a stored lookup. "
 )
 
@@ -449,12 +449,7 @@ Structured example: `{{"facet":"offering.provider","in":["openai"]}}`.
 
 {BOUNDED_MCP}
 
-The decide tool description gives the bounded defaults. Answer, reading,
-warnings and ties stay complete. An omission is not an elimination or an
-absent fact. At `explain: none`, a missing eliminated count means eliminations
-were not computed. Resend the same Spec with its returned snapshot and
-`evidence_for`, and report the answer from `answer.members`. HTTP callers get
-full rows unless they send `fields` or `evidence_for`.
+Answer, status, warnings, coverage and the top result stay. An omission is not an elimination. At `explain: none`, a missing eliminated count means eliminations were not computed. When `explanation.omitted` is set, `explanation.fetch` tells you to resend with `evidence_for` for one model, narrow `fields`, lower `limit`, or POST /v1/decide without `fields` for the complete Decision. HTTP without those controls still returns the complete Decision.
 
 ## Worked Specs
 

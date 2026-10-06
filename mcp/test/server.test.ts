@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { workerFetch } from "../src/index";
 import { USER_AGENT } from "../src/origin";
-import { defaultDecideRequest, TOOL_NAMES } from "../src/server";
+import { AGENT_BYTES, defaultDecideRequest, fitDecideEnvelope, TOOL_NAMES } from "../src/server";
 // Real Worker bodies from the public catalogue (python -m qa.decide_budget).
 import budget from "./fixtures/decide-budget.json";
 
@@ -132,15 +132,13 @@ describe("modelspec MCP worker", () => {
     };
     const description = result.tools.find((tool) => tool.name === "decide")?.description;
     expect(description).toContain(
-      "MCP decide returns a bounded answer by default; drill down with evidence_for, " +
-        "or ask for full rows with fields:null/explain.",
+      "MCP decide returns a bounded answer of at most 16 KB, summary included.",
     );
-    expect(description).toContain('With explain unset or "none" it sends explain=none, limit=10');
-    expect(description).toContain("For full rows pass fields: null");
-    expect(description).toContain("evidence_for: <model id>");
-    expect(description).toContain("explanation.omitted");
-    expect(description).toContain("Full includes every eliminated candidate");
-    expect(description).toContain("client context budget");
+    expect(description).toContain("explanation.fetch");
+    expect(description).toContain('With explain unset or "none": explain=none, limit=10');
+    expect(description).toContain("contributions and evidence");
+    expect(description).toContain("omitted counts removed records");
+    expect(description).toContain("including null");
     expect(description).toContain("https://modelspec.dev/agents.md");
     expect(description).not.toContain("explain=summary first");
   });
@@ -154,7 +152,9 @@ describe("modelspec MCP worker", () => {
     const result = payload.result as { serverInfo: { name: string; version: string }; instructions: string };
     expect(result.instructions).toContain("https://modelspec.dev/agents.md");
     expect(result.instructions).toContain("Call decide early");
-    expect(result.instructions).toContain("MCP decide returns a bounded answer by default");
+    expect(result.instructions).toContain(
+      "MCP decide returns a bounded answer of at most 16 KB, summary included.",
+    );
     expect(result.instructions).not.toContain("explain=summary first");
     expect(result.instructions.length / 4).toBeLessThanOrEqual(1000);
     expect(result.serverInfo.name).toBe("modelspec");
@@ -537,10 +537,11 @@ describe("modelspec MCP worker", () => {
   it.each([
     ["unset", {}, ["model_rank", "cost_per_task", "estimates", "p_best"]],
     ["none", { explain: "none" }, ["model_rank", "cost_per_task", "estimates", "p_best"]],
-    ["summary", { explain: "summary" }, null],
-    ["full", { explain: "full" }, null],
+    ["summary", { explain: "summary" }, ["model_rank", "cost_per_task", "estimates", "p_best", "contributions", "evidence"]],
+    ["full", { explain: "full" }, ["model_rank", "cost_per_task", "estimates", "p_best", "contributions", "evidence"]],
     ["full with fields", { explain: "full", fields: ["contributions"] }, ["contributions"]],
-  ])("decide projects rows by default only when explain is none or unset (%s)", async (_, controls, fields) => {
+    ["full with null fields", { explain: "full", fields: null }, null],
+  ])("decide keeps a bounded projection unless fields is explicit (%s)", async (_, controls, fields) => {
     originFetch.mockResolvedValueOnce(jsonResponse(200, { status: "ok", results: [] }));
     const spec = { spec_version: 1, optimize: { max: "software_engineering" }, ...controls };
     await rpc("tools/call", { name: "decide", arguments: spec });
@@ -548,6 +549,132 @@ describe("modelspec MCP worker", () => {
     expect(sent.fields).toEqual(fields);
     expect(sent.limit).toBe(10);
     expect(sent.explain).toBe("explain" in controls ? controls.explain : "none");
+  });
+
+  it("decide replaces an over-budget body with a trimmed notice", async () => {
+    const pad = "x".repeat(20_000);
+    const huge = {
+      contract_version: "2.14",
+      status: "partial",
+      answer: { kind: "tied", members: ["anthropic/claude-opus-5-5", "openai/gpt-6-astra"] },
+      warnings: ["thin_evidence"],
+      coverage: { kind: "covered" },
+      results: [
+        { rank: 1, offering: { model: "anthropic/claude-opus-5-5" }, evidence: [pad], warnings: [] },
+        { rank: 2, offering: { model: "openai/gpt-6-astra" }, evidence: [pad], warnings: [] },
+      ],
+      may_qualify: [{ model: "lab/z" }, { model: "lab/y" }],
+    };
+    originFetch.mockResolvedValueOnce(jsonResponse(200, huge));
+    const { payload } = await rpc("tools/call", {
+      name: "decide",
+      arguments: {
+        spec_version: 1,
+        optimize: { max: "software_engineering" },
+        explain: "full",
+        fields: null,
+      },
+    });
+    const result = payload.result as { content: Array<{ text: string }> };
+    const textBytes = result.content.reduce((sum, block) => sum + Buffer.byteLength(block.text, "utf8"), 0);
+    expect(textBytes).toBeLessThanOrEqual(16_384);
+    const envelope = JSON.parse(result.content[0].text) as {
+      body: {
+        answer: { members: string[] };
+        status: string;
+        warnings: string[];
+        coverage: { kind: string };
+        explanation: { omitted: Record<string, number>; fetch: string };
+        results: Array<{ offering: { model: string } }>;
+      };
+    };
+    expect(envelope.body.status).toBe("partial");
+    expect(envelope.body.answer.members).toEqual(huge.answer.members);
+    expect(envelope.body.warnings).toEqual(huge.warnings);
+    expect(envelope.body.coverage).toEqual(huge.coverage);
+    expect(envelope.body.results).toHaveLength(1);
+    expect(envelope.body.results[0].offering.model).toBe("anthropic/claude-opus-5-5");
+    expect(envelope.body.explanation.omitted.results).toBeGreaterThan(0);
+    expect(envelope.body.explanation.fetch).toContain("evidence_for: anthropic/claude-opus-5-5");
+    expect(envelope.body.explanation.fetch).toContain("POST /v1/decide without fields");
+    expect(result.content[1].text).toContain("anthropic/claude-opus-5-5");
+    expect(result.content[1].text).not.toContain("top models: none");
+  });
+
+  it("decide keeps a drill-down summary when the evidence body is over budget", async () => {
+    const pad = "x".repeat(20_000);
+    const huge = {
+      status: "partial",
+      answer: { kind: "separated", members: ["lab/a"], leader: "lab/a" },
+      results: [],
+      may_qualify: [],
+      model_evidence: {
+        model: "lab/a",
+        status: "ranked",
+        rank: 1,
+        offering: { model: "lab/a" },
+        evidence: [{ items: [{ source: pad }] }],
+        contributions: [{ dimension: "software_engineering" }],
+      },
+    };
+    originFetch.mockResolvedValueOnce(jsonResponse(200, huge));
+    const { payload } = await rpc("tools/call", {
+      name: "decide",
+      arguments: { spec_version: 1, optimize: { max: "software_engineering" }, evidence_for: "lab/a" },
+    });
+    const result = payload.result as { content: Array<{ text: string }> };
+    const textBytes = result.content.reduce((sum, block) => sum + Buffer.byteLength(block.text, "utf8"), 0);
+    expect(textBytes).toBeLessThanOrEqual(16_384);
+    expect(result.content[1].text).toContain("evidence for: lab/a (ranked, rank 1)");
+    expect(result.content[1].text).not.toContain("top models: none");
+    const envelope = JSON.parse(result.content[0].text) as {
+      body: { explanation: { omitted: Record<string, number>; fetch: string } };
+    };
+    expect(Object.keys(envelope.body.explanation.omitted).length).toBeGreaterThan(0);
+    expect(envelope.body.explanation.fetch).toContain("evidence_for: lab/a");
+  });
+
+  it("decide strips a copied reading instead of returning the raw body", async () => {
+    const pad = "y".repeat(30_000);
+    const huge = {
+      status: "partial",
+      answer: { kind: "separated", members: ["lab/a"], leader: "lab/a" },
+      warnings: ["thin_evidence"],
+      coverage: { kind: "covered" },
+      reading: { do_not_claim: [pad] },
+      results: [{ rank: 1, offering: { model: "lab/a", provider: "lab" }, warnings: [], evidence: [pad] }],
+      may_qualify: [{ model: "lab/z" }],
+    };
+    originFetch.mockResolvedValueOnce(jsonResponse(200, huge));
+    const { payload } = await rpc("tools/call", {
+      name: "decide",
+      arguments: { spec_version: 1, optimize: { max: "software_engineering" }, fields: null },
+    });
+    const result = payload.result as { content: Array<{ text: string }> };
+    const text = result.content.map((block) => block.text).join("\n");
+    const textBytes = result.content.reduce((sum, block) => sum + Buffer.byteLength(block.text, "utf8"), 0);
+    expect(textBytes).toBeLessThanOrEqual(16_384);
+    expect(text).not.toContain(pad);
+    const envelope = JSON.parse(result.content[0].text) as {
+      body: { status: string; answer: { members: string[] }; explanation: { fetch: string; omitted: Record<string, number> } };
+    };
+    expect(envelope.body.status).toBe("partial");
+    expect(envelope.body.answer.members).toEqual(["lab/a"]);
+    expect(envelope.body.explanation.fetch).toContain("POST /v1/decide without fields");
+    expect(envelope.body.explanation.omitted.reading).toBeGreaterThan(0);
+  });
+
+  it("decide replaces an over-budget error without its raw text", () => {
+    const pad = "SECRET".repeat(8_000);
+    const fitted = fitDecideEnvelope({
+      origin: "https://api.modelspec.dev/v1/decide",
+      status: 400,
+      body: { error: { code: pad, message: pad } },
+    });
+    const packed = JSON.stringify(fitted);
+    expect(Buffer.byteLength(packed, "utf8")).toBeLessThanOrEqual(AGENT_BYTES);
+    expect(packed).not.toContain(pad);
+    expect(JSON.stringify(fitted.body)).toContain("POST /v1/decide without fields");
   });
 
   it("decide returns an upstream invalid_spec error with its code and message", async () => {

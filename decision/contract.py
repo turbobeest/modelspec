@@ -1985,6 +1985,9 @@ class BoundedExplanation(_Strict):
     not_applied: list[str] = Field(default_factory=list)
     omitted: dict[str, int] = Field(default_factory=dict)
     note: str = "Projected rows are incomplete; omissions are not eliminations or absent evidence."
+    #: Present when ``omitted`` is non-empty. Says what was removed and how to fetch it.
+    #: Added in bounded 1.0 by MODEL-334; no existing field changes range.
+    fetch: str | None = None
 
 
 #: The bounded representation is versioned on its own, not as a 2.x minor:
