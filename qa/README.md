@@ -478,6 +478,27 @@ op run --env-file=qa/subscription.env.op -- \
   --scenario budget-approved --max-runs-per-cli 3
 ```
 
+The scenarios job appends each finished row to a checkpoint file under the
+private state directory. A run interrupted before its first row finishes has
+no checkpoint and restarts without `--resume`. Rerun the same command with
+`--resume` to continue a run that wrote one. Keep the same checkout and do not
+pull in between. The checkpoint key includes the engine commit and whether
+`MODELSPEC_API_KEY` is set. A resumed run skips every recorded row, including
+failures. Without `--resume`, an existing checkpoint refuses the run before a
+data-repo worktree is opened. If the key check refuses publication, delete
+that checkpoint after fixing the key, because `--resume` replays its recorded
+rows.
+
+Failed rows get a connectivity probe and an error-signature check when the
+row is saved. The signature matches specific transport errors, including
+`ECONNRESET`, `connection reset by peer`, and `504 Gateway Timeout`. Text such
+as `CLI timed out` or `network access disabled` does not match. A row is
+`network_suspect` when the signature matches or the general internet probe at
+`cloudflare.com/cdn-cgi/trace` is unreachable. The ModelSpec health result is
+recorded as `api_reachable`. An API outage alone does not make the row
+excludable. Rows tagged `network_suspect` are listed in the report for
+explicit exclusion, and are never silently dropped or retried.
+
 ### First manual run and schedules
 
 Build the ordinary images, then the two browser images. Login remains Jamie's

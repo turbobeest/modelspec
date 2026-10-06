@@ -4,12 +4,16 @@ from __future__ import annotations
 
 import argparse
 import fcntl
+import hashlib
 import json
 import os
+import re
 import shlex
 import subprocess
 import tempfile
 import time
+import urllib.error
+import urllib.request
 import uuid
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
@@ -28,6 +32,31 @@ from qa.tui_homes import home_config, state_directory
 from qa.tui_providers import CLIS, build_command, prepare_workspace
 
 AGENT_NAMES = {"claude": "claude", "codex": "openai", "gemini": "gemini", "grok": "grok"}
+API_HEALTH_URL = "https://api.modelspec.dev/v1/health"
+INTERNET_PROBE_URL = "https://www.cloudflare.com/cdn-cgi/trace"
+_TRANSPORT_SIGNATURES = (
+    "ECONNRESET",
+    "ECONNREFUSED",
+    "ETIMEDOUT",
+    "ENOTFOUND",
+    "EAI_AGAIN",
+    "ENETUNREACH",
+    "EHOSTUNREACH",
+    "getaddrinfo",
+    "connection reset by peer",
+    "connection refused",
+    "network is unreachable",
+    "socket hang up",
+    "stream disconnected",
+    "TLS handshake",
+    "502 Bad Gateway",
+    "503 Service Unavailable",
+    "504 Gateway Timeout",
+)
+NETWORK_ERROR = re.compile(
+    "|".join(rf"\b{re.escape(signature)}\b" for signature in _TRANSPORT_SIGNATURES),
+    re.IGNORECASE,
+)
 TRAILER = "Co-Authored-By: GPT-6.1 Sol <noreply@openai.com>"
 DEFAULT_STATE = Path.home() / "Library/Application Support/ModelSpec/subscription-jobs"
 REPORT_PATHS = {"scenarios": "reports/agent-scenarios", "ux": "reports/ux", "aeo": "aeo/runs"}
@@ -108,13 +137,205 @@ def write_pair(directory: Path, day: str, report: dict, markdown: str) -> None:
         path.write_text(content, encoding="utf-8")
 
 
-def scenario_report(config, selected, scenarios, output, *, day, dry_run=False):
+def modelspec_key_present(config: dict) -> bool:
+    return bool(os.environ.get(config.get("mcp_token_env") or ""))
+
+
+def _scenario_checkpoint(output: Path, selected, scenarios, day: str, engine_sha: str, *, config: dict) -> Path:
+    digest = hashlib.sha256(json.dumps({
+        "clis": selected,
+        "scenarios": [scenario["id"] for scenario in scenarios],
+        "engine_sha": engine_sha,
+        "day": day,
+        "modelspec_key": modelspec_key_present(config),
+    }, sort_keys=True).encode()).hexdigest()[:16]
+    directory = output / "checkpoints"
+    if directory.is_symlink():
+        raise ValueError(f"Checkpoint directory must not be a symlink: {directory}")
+    directory.mkdir(parents=True, exist_ok=True, mode=0o700)
+    directory.chmod(0o700)
+    path = directory / f"scenarios-{day}-{digest}.jsonl"
+    if path.is_symlink():
+        raise ValueError(f"Checkpoint file must not be a symlink: {path}")
+    return path
+
+
+def _read_checkpoint(path: Path) -> list[dict]:
+    """Load finished rows. A torn final line is dropped; any earlier bad line refuses the run."""
+    if path.is_symlink():
+        raise ValueError(f"Checkpoint file must not be a symlink: {path}")
+    raw = path.read_bytes()
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise ValueError(f"Malformed checkpoint line in {path}") from exc
+    rows, kept = [], []
+    lines = text.splitlines(keepends=True)
+    for index, line in enumerate(lines):
+        body = line.rstrip("\r\n")
+        try:
+            parsed = json.loads(body)
+        except json.JSONDecodeError:
+            if index == len(lines) - 1:
+                break
+            raise ValueError(f"Malformed checkpoint line {index + 1} in {path}") from None
+        if not isinstance(parsed, dict) or "scenario" not in parsed or "cli" not in parsed:
+            raise ValueError(f"Malformed checkpoint line {index + 1} in {path}")
+        rows.append(parsed)
+        kept.append(body)
+    repaired = "".join(body + "\n" for body in kept).encode()
+    if repaired != raw:
+        with path.open("r+b") as handle:
+            handle.write(repaired)
+            handle.truncate()
+            handle.flush()
+            os.fsync(handle.fileno())
+    return rows
+
+
+def _append_checkpoint(path: Path, row: dict) -> None:
+    if path.is_symlink():
+        raise ValueError(f"Checkpoint file must not be a symlink: {path}")
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(redact_structure(row)) + "\n")
+        handle.flush()
+        os.fsync(handle.fileno())
+
+
+def _require_checkpoint_resume_state(path: Path, *, resume: bool) -> None:
+    if resume and not path.exists():
+        raise ValueError(
+            f"No checkpoint at {path}. The CLIs, scenarios, --date, engine commit and "
+            "ModelSpec key presence must match the interrupted run."
+        )
+    if path.exists() and not resume:
+        raise ValueError(
+            f"Checkpoint already exists at {path}. "
+            "Pass --resume to continue it or delete it to start over."
+        )
+
+
+def _selected_scenarios(patterns) -> list[dict]:
+    scenarios = [
+        scenario for scenario in agent_harness.load_scenarios()
+        if not patterns or any(fnmatchcase(scenario["id"], pattern) for pattern in patterns)
+    ]
+    if not scenarios:
+        raise ValueError("Scenario filter matched nothing")
+    return scenarios
+
+
+def network_probe(timeout: float = 5.0) -> dict:
+    """Ask two public endpoints whether this machine can open a connection. Never raises."""
+    checks = []
+    for url in (API_HEALTH_URL, INTERNET_PROBE_URL):
+        started = time.perf_counter()
+        status, error, reachable = None, None, False
+        try:
+            request = urllib.request.Request(
+                url, headers={"User-Agent": "modelspec-qa-network-probe"},
+            )
+            with urllib.request.urlopen(request, timeout=timeout) as response:
+                status, reachable = response.status, True
+        except urllib.error.HTTPError as exc:
+            # HTTPError subclasses URLError; a status line means the host answered.
+            status, reachable = exc.code, True
+        except (urllib.error.URLError, TimeoutError, OSError) as exc:
+            error = type(exc).__name__
+        except Exception as exc:
+            error = type(exc).__name__
+        checks.append({
+            "url": url,
+            "reachable": reachable,
+            "status": status,
+            "error": error,
+            "ms": (time.perf_counter() - started) * 1000,
+        })
+    return {
+        "reachable": all(check["reachable"] for check in checks),
+        "checks": checks,
+        "checked_at": datetime.now(timezone.utc).isoformat(),
+    }
+
+
+def _probe_target_reachable(probe: dict, url: str) -> bool:
+    for check in probe.get("checks") or []:
+        if check.get("url") == url:
+            return bool(check.get("reachable"))
+    return False
+
+
+def network_tag(row: dict, probe=None) -> dict:
+    """Tag a failed row. ``probe`` defaults to the module-level ``network_probe``."""
+    failed = {"cli_error", "timeout", "transcript_error", "empty_answer"}
+    judge = row.get("judge_execution") or {}
+    agent_failed = row["status"] in failed
+    judge_failed = judge.get("status") in failed
+    if not agent_failed and not judge_failed:
+        return {"class": "not_checked"}
+    signature = bool(NETWORK_ERROR.search(" ".join(
+        str(item) for item in (row.get("error"), judge.get("error")) if item
+    )))
+    result = network_probe() if probe is None else probe()
+    internet_down = not _probe_target_reachable(result, INTERNET_PROBE_URL)
+    return {
+        "class": "network_suspect" if signature or internet_down else "no_network_signal",
+        "failed_stage": "agent" if agent_failed else "judge",
+        "error_signature": signature,
+        "api_reachable": _probe_target_reachable(result, API_HEALTH_URL),
+        "probe": result,
+    }
+
+
+def _cli_invocation_totals(counts: dict, resumed_rows: list[dict]) -> dict:
+    """Copy this process's counts and add one start per checkpointed row."""
+    total = {cli: dict(roles) for cli, roles in counts.items()}
+    for row in resumed_rows:
+        agent = row["cli"]
+        total.setdefault(agent, {"agent": 0, "judge": 0})
+        total[agent]["agent"] += 1
+        judge = row.get("judge_execution")
+        if isinstance(judge, dict) and judge.get("cli"):
+            judge_cli = judge["cli"]
+            total.setdefault(judge_cli, {"agent": 0, "judge": 0})
+            total[judge_cli]["judge"] += 1
+    return total
+
+
+def scenario_report(config, selected, scenarios, output, *, day, dry_run=False, resume=False):
+    if resume and dry_run:
+        raise ValueError("--resume cannot be combined with --dry-run")
+    engine_sha = git_command(tui_harness.ROOT, "rev-parse", "HEAD")
+    rows, resumed, recorded, checkpoint = [], 0, {}, None
+    if not dry_run:
+        checkpoint = _scenario_checkpoint(
+            output, selected, scenarios, day, engine_sha, config=config,
+        )
+        _require_checkpoint_resume_state(checkpoint, resume=resume)
+        if checkpoint.exists():
+            loaded = _read_checkpoint(checkpoint)
+            expected = {(scenario["id"], cli) for scenario in scenarios for cli in selected}
+            for row in loaded:
+                pair = (row["scenario"], row["cli"])
+                if pair not in expected or pair in recorded:
+                    raise ValueError(f"Malformed checkpoint line in {checkpoint}")
+                recorded[pair] = row
+            resumed = len(loaded)
+        if resume:
+            total = len(scenarios) * len(selected)
+            print(
+                f"Resuming: {resumed} of {total} rows already recorded in {checkpoint}",
+                flush=True,
+            )
     needed = list(dict.fromkeys(selected + [tui_harness.judge_for(c, config["judges"]) for c in selected]))
     isolation = {} if dry_run else require_ready(config, needed, output)
     runner = tui_harness.Runner(config, output, isolation)
-    rows = []
     for scenario in scenarios:
         for cli in selected:
+            saved = recorded.get((scenario["id"], cli))
+            if saved is not None:
+                rows.append(saved)
+                continue
             if dry_run:
                 with tempfile.TemporaryDirectory(dir=output) as d:
                     preview(cli, config, Path(d), tui_harness.scenario_prompt(scenario))
@@ -132,23 +353,44 @@ def scenario_report(config, selected, scenarios, output, *, day, dry_run=False):
                 call["reported_cost_usd"] = call["cost_usd"]
                 call["cost_usd"] = 0.0
             rows.append(row)
+            if checkpoint is not None:
+                row["network"] = network_tag(row)
+                _append_checkpoint(checkpoint, row)
     metadata = {"agents": {AGENT_NAMES[c]: config["clis"][c] for c in selected},
                 "judge": {"mode": "single", "routes": config["judges"]},
                 "transport": "subscription-cli", "auth": "CLI subscription",
-                "source_hashes": agent_harness.source_hashes(), "cli_invocations": runner.counts,
-                "engine_sha": git_command(tui_harness.ROOT, "rev-parse", "HEAD"),
+                "source_hashes": agent_harness.source_hashes(),
+                "cli_invocations": runner.counts,
+                "cli_invocations_total": _cli_invocation_totals(runner.counts, list(recorded.values())),
+                "cli_invocations_scope": "final invocation only" if resumed else "whole run",
+                "engine_sha": engine_sha,
                 "max_runs_per_cli": config["max_runs_per_cli"], "isolation": isolation}
     report = agent_harness.make_report(rows, scenarios, dry_run, Budget(0), day, metadata)
     report["partial"] = any(
         row["status"] == "quiet_hours" or row.get("judge_execution", {}).get("status") == "quiet_hours"
         for row in rows
     )
-    report["evidence_note"] = (
+    note = (
         "Subscription CLI agents and separate cross-family CLI judges over ModelSpec MCP. "
         "API-shaped aggregates and unordered recall scoring are unchanged. Vendor API spend is zero; "
         "reported token-equivalent costs are separate. Unknown latency stays unknown. "
         + ("Dry-run command previews contain no measured results." if dry_run else "Measured subscription run.")
     )
+    suspects = sorted(
+        [row["scenario"], row["cli"]]
+        for row in rows
+        if (row.get("network") or {}).get("class") == "network_suspect"
+    )
+    if resumed:
+        note += f" Resumed after an interruption: {resumed} rows came from the checkpoint."
+    if suspects:
+        note += (
+            f" {len(suspects)} failed rows are tagged network_suspect"
+            " and can be excluded; see network_suspect."
+        )
+    report["evidence_note"] = note
+    report["resumed"] = resumed
+    report["network_suspect"] = suspects
     return report
 
 
@@ -194,15 +436,21 @@ def decide_health(report: dict) -> dict:
     return counts
 
 
-def require_funded_key(report: dict) -> dict:
+def require_funded_key(report: dict, checkpoint: Path | None = None) -> dict:
     """A keyed run whose decides were refused or unfunded measures the key, not the agents."""
     health = decide_health(report)
     if health["credits_exhausted"] or health["unauthorised"]:
-        raise ValueError(
+        message = (
             f"ModelSpec key unusable: {health['credits_exhausted']} credits.exhausted and "
             f"{health['unauthorised']} unauthorised of {health['decide_answers']} decide answers. "
             "Report kept locally, not published; fix the key and rerun."
         )
+        if checkpoint is not None:
+            message += (
+                f" Recorded rows in {checkpoint} will be replayed on --resume."
+                " After fixing the key, delete the checkpoint and start over."
+            )
+        raise ValueError(message)
     return health
 
 
@@ -277,6 +525,11 @@ def main(argv=None) -> int:
     parser.add_argument("--state-dir", type=Path, default=DEFAULT_STATE,
                         help="The same private --out used for doctor")
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument(
+        "--resume", action="store_true",
+        help="Skip scenario rows already recorded by an interrupted run "
+             "with the same CLIs, scenarios, day, engine and ModelSpec key presence",
+    )
     parser.add_argument("--scheduled", action="store_true", help="Always enforces quiet hours")
     parser.add_argument("--quiet-hours", action="store_true")
     parser.add_argument("--cli", choices=CLIS, action="append")
@@ -286,6 +539,10 @@ def main(argv=None) -> int:
     parser.add_argument("--base-url", default="https://modelspec.dev/decide/")
     args = parser.parse_args(argv)
     try:
+        if args.resume and args.dry_run:
+            raise ValueError("--resume cannot be combined with --dry-run")
+        if args.resume and args.job != "scenarios":
+            raise ValueError("--resume applies only to the scenarios job")
         datetime.strptime(args.date, "%Y-%m-%d")
         # Gemini CLI no longer serves Google AI Pro; see GEMINI_RETIRED.
         scenario_clis = tuple(cli for cli in CLIS if cli != "gemini")
@@ -299,18 +556,24 @@ def main(argv=None) -> int:
                 needed = list(dict.fromkeys(selected + [config["judges"][c] for c in selected])) if args.job != "aeo" else selected
                 require_ready(config, needed, state)
             repository = args.business_repo if args.job == "aeo" else args.data_repo
+            scenarios = _selected_scenarios(args.scenario) if args.job == "scenarios" else None
+            checkpoint = None
+            if scenarios is not None and not args.dry_run:
+                engine_sha = git_command(tui_harness.ROOT, "rev-parse", "HEAD")
+                checkpoint = _scenario_checkpoint(
+                    state, selected, scenarios, args.date, engine_sha, config=config,
+                )
+                _require_checkpoint_resume_state(checkpoint, resume=args.resume)
 
             def execute(tree):
                 output = tree / REPORT_PATHS[args.job]
                 output.mkdir(parents=True, exist_ok=True)
                 if args.job == "scenarios":
-                    scenarios = [s for s in agent_harness.load_scenarios() if not args.scenario or any(fnmatchcase(s["id"], p) for p in args.scenario)]
-                    if not scenarios:
-                        raise ValueError("Scenario filter matched nothing")
-                    report = scenario_report(config, selected, scenarios, state, day=args.date, dry_run=args.dry_run)
+                    report = scenario_report(config, selected, scenarios, state, day=args.date,
+                                             dry_run=args.dry_run, resume=args.resume)
                     write_pair(output, args.date, report, agent_harness.markdown(report))
-                    if not args.dry_run and os.environ.get(config.get("mcp_token_env") or ""):
-                        health = require_funded_key(report)
+                    if checkpoint is not None and modelspec_key_present(config):
+                        health = require_funded_key(report, checkpoint)
                         print("Decide answers: {decide_answers}; partial (wide intervals or "
                               "coverage): {partial}; credits exhausted: 0.".format(**health))
                     return scenario_summary(report)

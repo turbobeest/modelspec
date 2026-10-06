@@ -3,12 +3,15 @@ from __future__ import annotations
 
 import copy
 import fcntl
+import hashlib
 import json
 import os
 import plistlib
 import shutil
 import subprocess
 import time
+import urllib.error
+import urllib.request
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -31,6 +34,7 @@ def subscription_environment(monkeypatch):
         if VENDOR_ENV.search(name) and not name.startswith('MODELSPEC_'):
             monkeypatch.delenv(name)
     monkeypatch.delenv('GITHUB_ACTIONS', raising=False)
+    monkeypatch.setattr(urllib.request, 'urlopen', lambda *a, **k: pytest.fail('urlopen'))
 
 
 @pytest.fixture
@@ -704,3 +708,738 @@ def test_funded_key_check_counts_partial_but_refuses_exhausted_or_unauthorised()
     with pytest.raises(ValueError, match='1 unauthorised'):
         jobs.require_funded_key(_decide_report('Unauthorized', status=401))
     assert jobs.decide_health(_decide_report({'credits': 'odd'}))['credits_exhausted'] == 0
+
+
+DAY = '2026-10-04'
+ENGINE = 'engine-sha'
+SECRET = 'sk-testsecretvalue123456'
+ALPHA = {'id': 'alpha', 'family': 'F1', 'persona': 'p', 'request': 'r', 'constraints': {}}
+BETA = {'id': 'beta', 'family': 'F2', 'persona': 'p', 'request': 'r', 'constraints': {}}
+PAIR_ORDER = [('alpha', 'codex'), ('alpha', 'grok'), ('beta', 'codex'), ('beta', 'grok')]
+
+
+def checkpoint_digest(selected, scenarios, day=DAY, engine=ENGINE, modelspec_key=None):
+    if modelspec_key is None:
+        modelspec_key = bool(os.environ.get('MODELSPEC_API_KEY'))
+    payload = {'clis': selected, 'scenarios': [scenario['id'] for scenario in scenarios],
+               'engine_sha': engine, 'day': day, 'modelspec_key': modelspec_key}
+    return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()[:16]
+
+
+def checkpoint_file(output, selected, scenarios, modelspec_key=None):
+    digest = checkpoint_digest(selected, scenarios, modelspec_key=modelspec_key)
+    return output / 'checkpoints' / f'scenarios-{DAY}-{digest}.jsonl'
+
+
+def recording_runner(monkeypatch, config, on_call=None):
+    calls = []
+
+    class Runner:
+        def __init__(self, cfg, output, isolation):
+            self.counts = {cli: {'agent': 0, 'judge': 0} for cli in providers.CLIS}
+
+        def scenario(self, scenario, cli):
+            pair = (scenario['id'], cli)
+            calls.append(pair)
+            status, error = 'completed', SECRET
+            if on_call is not None:
+                outcome = on_call(pair, len(calls))
+                if isinstance(outcome, tuple):
+                    status, error = outcome
+                elif outcome:
+                    status = outcome
+            row = harness.empty_row(scenario, cli, config, status, error)
+            return row
+
+    monkeypatch.setattr(harness, 'Runner', Runner)
+    return calls
+
+
+def offline_scenario_job(monkeypatch):
+    monkeypatch.setattr(jobs, 'require_ready', lambda *a: ready())
+    monkeypatch.setattr(jobs, 'git_command', lambda *a: ENGINE)
+    monkeypatch.setattr(jobs, 'network_probe', lambda *a, **k: pytest.fail('probe'))
+
+
+def test_fresh_scenario_run_checkpoints_each_row(config, tmp_path, monkeypatch, capsys):
+    offline_scenario_job(monkeypatch)
+    calls = recording_runner(monkeypatch, config)
+    scenarios = [ALPHA, BETA]
+    selected = ['codex', 'grok']
+    synced = []
+    monkeypatch.setattr(jobs.os, 'fsync', lambda fd: synced.append(fd))
+    report = jobs.scenario_report(config, selected, scenarios, tmp_path, day=DAY)
+    path = checkpoint_file(tmp_path, selected, scenarios)
+    lines = path.read_text().splitlines()
+    assert calls == PAIR_ORDER
+    assert len(lines) == 4 and len(synced) == 4
+    assert report['resumed'] == 0
+    assert report['network_suspect'] == []
+    assert report['metadata']['cli_invocations_scope'] == 'whole run'
+    assert report['metadata']['cli_invocations_total'] == report['metadata']['cli_invocations']
+    assert report['metadata']['cli_invocations_total'] is not report['metadata']['cli_invocations']
+    assert report['runs'][0]['network'] == {'class': 'not_checked'}
+    assert report['evidence_note'].endswith('Measured subscription run.')
+    assert 'checkpoint' not in report['evidence_note']
+    assert 'Resuming:' not in capsys.readouterr().out
+    assert (tmp_path / 'checkpoints').stat().st_mode & 0o777 == 0o700
+    first = json.loads(lines[0])
+    assert first['scenario'] == 'alpha' and first['cli'] == 'codex' and first['agent'] == 'openai'
+    assert first['estimated_cost_usd'] == 0.0 and first['judges'] == [] and first['billing_calls'] == []
+    assert SECRET not in path.read_text() and '[REDACTED]' in path.read_text()
+    assert report['runs'][0]['error'] == SECRET
+    assert [(row['scenario'], row['cli']) for row in report['runs']] == PAIR_ORDER
+    dry = tmp_path / 'dry'
+    dry.mkdir()
+    dry_report = jobs.scenario_report(config, ['codex'], [ALPHA], dry, day=DAY, dry_run=True)
+    assert dry_report['resumed'] == 0 and dry_report['network_suspect'] == []
+    assert 'network' not in dry_report['runs'][0]
+    assert not (dry / 'checkpoints').exists()
+
+
+def test_resume_continues_after_interrupt_and_keeps_fresh_order(config, tmp_path, monkeypatch, capsys):
+    offline_scenario_job(monkeypatch)
+    phase = {'arm': True}
+
+    def on_call(pair, n):
+        if phase['arm'] and n == 3:
+            raise KeyboardInterrupt
+        if phase['arm'] and pair == ('alpha', 'grok'):
+            return 'failed'
+        return 'completed'
+
+    calls = recording_runner(monkeypatch, config, on_call)
+    scenarios = [ALPHA, BETA]
+    selected = ['codex', 'grok']
+    with pytest.raises(KeyboardInterrupt):
+        jobs.scenario_report(config, selected, scenarios, tmp_path, day=DAY)
+    assert calls == [('alpha', 'codex'), ('alpha', 'grok'), ('beta', 'codex')]
+    phase['arm'] = False
+    calls.clear()
+    report = jobs.scenario_report(config, selected, scenarios, tmp_path, day=DAY, resume=True)
+    path = checkpoint_file(tmp_path, selected, scenarios)
+    assert calls == [('beta', 'codex'), ('beta', 'grok')]
+    assert [(row['scenario'], row['cli'], row['status']) for row in report['runs']] == [
+        ('alpha', 'codex', 'completed'),
+        ('alpha', 'grok', 'failed'),
+        ('beta', 'codex', 'completed'),
+        ('beta', 'grok', 'completed'),
+    ]
+    assert report['resumed'] == 2
+    assert report['evidence_note'].endswith(
+        'Measured subscription run. Resumed after an interruption: 2 rows came from the checkpoint.'
+    )
+    assert capsys.readouterr().out == f'Resuming: 2 of 4 rows already recorded in {path}\n'
+    assert [json.loads(line)['status'] for line in path.read_text().splitlines()] == [
+        'completed', 'failed', 'completed', 'completed',
+    ]
+
+
+def test_resume_ignores_a_truncated_final_line(config, tmp_path, monkeypatch):
+    offline_scenario_job(monkeypatch)
+    calls = recording_runner(monkeypatch, config)
+    scenarios = [ALPHA, BETA]
+    selected = ['codex', 'grok']
+    jobs.scenario_report(config, selected, scenarios, tmp_path, day=DAY)
+    path = checkpoint_file(tmp_path, selected, scenarios)
+    lines = path.read_text().splitlines()
+    path.write_text(lines[0] + '\n' + lines[1] + '\n' + lines[2][:12])
+    calls.clear()
+    report = jobs.scenario_report(config, selected, scenarios, tmp_path, day=DAY, resume=True)
+    assert calls == [('beta', 'codex'), ('beta', 'grok')]
+    assert report['resumed'] == 2
+    assert [(row['scenario'], row['cli']) for row in report['runs']] == PAIR_ORDER
+    reloaded = [json.loads(line) for line in path.read_text().splitlines()]
+    assert [(row['scenario'], row['cli']) for row in reloaded] == PAIR_ORDER
+
+
+def test_malformed_checkpoint_line_raises(config, tmp_path, monkeypatch):
+    offline_scenario_job(monkeypatch)
+    calls = recording_runner(monkeypatch, config)
+    scenarios = [ALPHA, BETA]
+    selected = ['codex', 'grok']
+    jobs.scenario_report(config, selected, scenarios, tmp_path, day=DAY)
+    path = checkpoint_file(tmp_path, selected, scenarios)
+    lines = path.read_text().splitlines()
+    path.write_text(lines[0] + '\n{broken\n' + lines[1] + '\n')
+    calls.clear()
+    with pytest.raises(ValueError, match='Malformed checkpoint line 2'):
+        jobs.scenario_report(config, selected, scenarios, tmp_path, day=DAY, resume=True)
+    assert calls == []
+    assert '{broken' in path.read_text()
+
+
+def test_existing_checkpoint_without_resume_is_refused(config, tmp_path, monkeypatch):
+    ready_calls = []
+    monkeypatch.setattr(jobs, 'require_ready', lambda *a: ready_calls.append(True) or ready())
+    monkeypatch.setattr(jobs, 'git_command', lambda *a: ENGINE)
+    calls = recording_runner(monkeypatch, config)
+    scenarios = [ALPHA, BETA]
+    selected = ['codex', 'grok']
+    jobs.scenario_report(config, selected, scenarios, tmp_path, day=DAY)
+    path = checkpoint_file(tmp_path, selected, scenarios)
+    before = path.read_text()
+    with pytest.raises(ValueError, match='--resume') as caught:
+        jobs.scenario_report(config, selected, scenarios, tmp_path, day=DAY)
+    assert str(path) in str(caught.value)
+    assert 'delete it to start over' in str(caught.value)
+    assert path.read_text() == before
+    assert calls == PAIR_ORDER and ready_calls == [True]
+
+
+def test_checkpoint_key_changes_with_clis_and_scenarios(config, tmp_path, monkeypatch):
+    offline_scenario_job(monkeypatch)
+    recording_runner(monkeypatch, config)
+    jobs.scenario_report(config, ['codex'], [ALPHA], tmp_path, day=DAY)
+    jobs.scenario_report(config, ['grok'], [ALPHA], tmp_path, day=DAY)
+    jobs.scenario_report(config, ['codex'], [BETA], tmp_path, day=DAY)
+    codex_alpha = checkpoint_file(tmp_path, ['codex'], [ALPHA])
+    grok_alpha = checkpoint_file(tmp_path, ['grok'], [ALPHA])
+    codex_beta = checkpoint_file(tmp_path, ['codex'], [BETA])
+    assert codex_alpha.is_file() and grok_alpha.is_file() and codex_beta.is_file()
+    assert len({codex_alpha.name, grok_alpha.name, codex_beta.name}) == 3
+    assert checkpoint_digest(['codex'], [ALPHA]) != checkpoint_digest(['grok'], [ALPHA])
+    assert checkpoint_digest(['codex'], [ALPHA]) != checkpoint_digest(['codex'], [BETA])
+    assert len(checkpoint_digest(['codex'], [ALPHA])) == 16
+
+
+def test_checkpoint_symlinks_are_refused(config, tmp_path, monkeypatch):
+    monkeypatch.setattr(jobs, 'git_command', lambda *a: ENGINE)
+    monkeypatch.setattr(jobs, 'require_ready', lambda *a: pytest.fail('ready'))
+    link = tmp_path / 'checkpoints'
+    link.symlink_to(tmp_path)
+    with pytest.raises(ValueError, match='symlink'):
+        jobs.scenario_report(config, ['codex'], [ALPHA], tmp_path, day=DAY)
+    link.unlink()
+    (tmp_path / 'checkpoints').mkdir()
+    target = tmp_path / 'other.jsonl'
+    target.write_text('')
+    checkpoint_file(tmp_path, ['codex'], [ALPHA]).symlink_to(target)
+    with pytest.raises(ValueError, match='symlink'):
+        jobs.scenario_report(config, ['codex'], [ALPHA], tmp_path, day=DAY)
+
+
+@pytest.mark.parametrize('argv', [
+    ['scenarios', '--dry-run', '--resume', '--cli', 'codex'],
+    ['ux', '--resume', '--cli', 'codex'],
+    ['aeo', '--resume', '--cli', 'codex'],
+])
+def test_main_rejects_resume_outside_a_live_scenarios_job(argv, tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(jobs, 'git_command', lambda *a: pytest.fail('git'))
+    monkeypatch.setattr(jobs, 'require_ready', lambda *a: pytest.fail('ready'))
+    monkeypatch.setattr(harness, 'launch', lambda *a, **k: pytest.fail('launch'))
+    assert jobs.main([*argv, '--state-dir', str(tmp_path), '--date', DAY]) == 2
+    assert '--resume' in capsys.readouterr().out
+    assert not (tmp_path / 'checkpoints').exists()
+
+
+REACHABLE = {
+    'reachable': True,
+    'checks': [
+        {'url': 'https://api.modelspec.dev/v1/health', 'reachable': True,
+         'status': 200, 'error': None, 'ms': 1.0},
+        {'url': 'https://www.cloudflare.com/cdn-cgi/trace', 'reachable': True,
+         'status': 200, 'error': None, 'ms': 1.0},
+    ],
+    'checked_at': '2026-10-04T00:00:00+00:00',
+}
+UNREACHABLE = {
+    'reachable': False,
+    'checks': [
+        {'url': 'https://api.modelspec.dev/v1/health', 'reachable': False,
+         'status': None, 'error': 'URLError', 'ms': 1.0},
+        {'url': 'https://www.cloudflare.com/cdn-cgi/trace', 'reachable': False,
+         'status': None, 'error': 'URLError', 'ms': 1.0},
+    ],
+    'checked_at': '2026-10-04T00:00:00+00:00',
+}
+
+
+def scripted_probe(monkeypatch, results):
+    pending = list(results)
+    calls = []
+
+    def probe():
+        calls.append('called')
+        return pending.pop(0)
+
+    monkeypatch.setattr(jobs, 'network_probe', probe)
+    return calls
+
+
+def test_network_tag_marks_transport_text_even_when_the_probe_is_reachable(monkeypatch):
+    calls = scripted_probe(monkeypatch, [REACHABLE])
+    assert jobs.network_tag({'status': 'cli_error', 'error': 'read ECONNRESET'}) == {
+        'class': 'network_suspect',
+        'failed_stage': 'agent',
+        'error_signature': True,
+        'api_reachable': True,
+        'probe': REACHABLE,
+    }
+    assert calls == ['called']
+
+
+def test_network_tag_marks_a_clean_error_when_the_probe_is_unreachable(monkeypatch):
+    scripted_probe(monkeypatch, [UNREACHABLE])
+    assert jobs.network_tag({
+        'status': 'timeout', 'error': 'rubric parser rejected the answer',
+    }) == {
+        'class': 'network_suspect',
+        'failed_stage': 'agent',
+        'error_signature': False,
+        'api_reachable': False,
+        'probe': UNREACHABLE,
+    }
+
+
+def test_network_tag_keeps_a_clean_error_when_the_probe_is_reachable(monkeypatch):
+    scripted_probe(monkeypatch, [REACHABLE])
+    assert jobs.network_tag({
+        'status': 'transcript_error', 'error': 'rubric parser rejected the answer',
+    }) == {
+        'class': 'no_network_signal',
+        'failed_stage': 'agent',
+        'error_signature': False,
+        'api_reachable': True,
+        'probe': REACHABLE,
+    }
+
+
+def test_network_tag_names_the_judge_when_only_the_judge_failed(monkeypatch):
+    scripted_probe(monkeypatch, [REACHABLE])
+    assert jobs.network_tag({
+        'status': 'completed',
+        'error': 'rubric parser rejected the answer',
+        'judge_execution': {'status': 'empty_answer', 'error': 'read ECONNRESET'},
+    }) == {
+        'class': 'network_suspect',
+        'failed_stage': 'judge',
+        'error_signature': True,
+        'api_reachable': True,
+        'probe': REACHABLE,
+    }
+
+
+def test_network_tag_skips_the_probe_unless_the_row_failed(monkeypatch):
+    calls = scripted_probe(monkeypatch, [REACHABLE])
+    row = {
+        'status': 'completed',
+        'error': 'read ECONNRESET',
+        'judge_execution': {'status': 'completed', 'error': '502 Bad Gateway'},
+    }
+    assert jobs.network_tag(row) == {'class': 'not_checked'}
+    assert calls == []
+
+
+def test_report_lists_exactly_the_network_suspect_pairs(config, tmp_path, monkeypatch):
+    offline_scenario_job(monkeypatch)
+    scripted_probe(monkeypatch, [REACHABLE, UNREACHABLE, REACHABLE])
+
+    def on_call(pair, n):
+        if pair == ('alpha', 'codex'):
+            return 'cli_error', 'read ECONNRESET'
+        if pair == ('beta', 'codex'):
+            return 'timeout', 'rubric parser rejected the answer'
+        if pair == ('beta', 'grok'):
+            return 'transcript_error', 'rubric parser rejected the answer'
+        return 'completed'
+
+    recording_runner(monkeypatch, config, on_call)
+    report = jobs.scenario_report(config, ['codex', 'grok'], [ALPHA, BETA], tmp_path, day=DAY)
+    assert [row['network'] for row in report['runs']] == [
+        {'class': 'network_suspect', 'failed_stage': 'agent', 'error_signature': True,
+         'api_reachable': True, 'probe': REACHABLE},
+        {'class': 'not_checked'},
+        {'class': 'network_suspect', 'failed_stage': 'agent', 'error_signature': False,
+         'api_reachable': False, 'probe': UNREACHABLE},
+        {'class': 'no_network_signal', 'failed_stage': 'agent', 'error_signature': False,
+         'api_reachable': True, 'probe': REACHABLE},
+    ]
+    assert report['network_suspect'] == [['alpha', 'codex'], ['beta', 'codex']]
+    assert report['evidence_note'].endswith(
+        'Measured subscription run.'
+        ' 2 failed rows are tagged network_suspect and can be excluded; see network_suspect.'
+    )
+    path = checkpoint_file(tmp_path, ['codex', 'grok'], [ALPHA, BETA])
+    saved = [json.loads(line)['network']['class'] for line in path.read_text().splitlines()]
+    assert saved == ['network_suspect', 'not_checked', 'network_suspect', 'no_network_signal']
+
+
+def test_network_tag_survives_checkpoint_resume(config, tmp_path, monkeypatch):
+    offline_scenario_job(monkeypatch)
+    scripted_probe(monkeypatch, [REACHABLE])
+    phase = {'stop': True}
+
+    def on_call(pair, n):
+        if phase['stop'] and n == 2:
+            raise KeyboardInterrupt
+        if pair == ('alpha', 'codex'):
+            return 'cli_error', 'read ECONNRESET'
+        return 'completed'
+
+    calls = recording_runner(monkeypatch, config, on_call)
+    with pytest.raises(KeyboardInterrupt):
+        jobs.scenario_report(config, ['codex', 'grok'], [ALPHA], tmp_path, day=DAY)
+    phase['stop'] = False
+    calls.clear()
+    monkeypatch.setattr(jobs, 'network_probe', lambda *a, **k: pytest.fail('probe'))
+    report = jobs.scenario_report(
+        config, ['codex', 'grok'], [ALPHA], tmp_path, day=DAY, resume=True)
+    assert calls == [('alpha', 'grok')]
+    assert report['runs'][0]['network'] == {
+        'class': 'network_suspect',
+        'failed_stage': 'agent',
+        'error_signature': True,
+        'api_reachable': True,
+        'probe': REACHABLE,
+    }
+    assert report['runs'][1]['network'] == {'class': 'not_checked'}
+    assert report['network_suspect'] == [['alpha', 'codex']]
+    assert report['resumed'] == 1
+    assert report['evidence_note'].endswith(
+        'Measured subscription run. Resumed after an interruption: 1 rows came from the checkpoint.'
+        ' 1 failed rows are tagged network_suspect and can be excluded; see network_suspect.'
+    )
+
+
+def test_network_probe_classifies_urlerror_and_httperror(monkeypatch):
+    seen = []
+
+    def raise_urlerror(request, timeout):
+        seen.append((request.full_url, timeout, request.header_items()))
+        raise urllib.error.URLError('offline')
+
+    monkeypatch.setattr(urllib.request, 'urlopen', raise_urlerror)
+    down = jobs.network_probe()
+    assert seen == [
+        ('https://api.modelspec.dev/v1/health', 5.0,
+         [('User-agent', 'modelspec-qa-network-probe')]),
+        ('https://www.cloudflare.com/cdn-cgi/trace', 5.0,
+         [('User-agent', 'modelspec-qa-network-probe')]),
+    ]
+    assert down['reachable'] is False
+    observed = [
+        (item['url'], item['reachable'], item['status'], item['error']) for item in down['checks']
+    ]
+    assert observed == [
+        ('https://api.modelspec.dev/v1/health', False, None, 'URLError'),
+        ('https://www.cloudflare.com/cdn-cgi/trace', False, None, 'URLError'),
+    ]
+    assert all(type(item['ms']) is float and item['ms'] >= 0 for item in down['checks'])
+    assert datetime.fromisoformat(down['checked_at']).utcoffset() == timedelta(0)
+
+    def raise_httperror(request, timeout):
+        raise urllib.error.HTTPError(request.full_url, 401, 'Unauthorized', None, None)
+
+    monkeypatch.setattr(urllib.request, 'urlopen', raise_httperror)
+    up = jobs.network_probe()
+    assert up['reachable'] is True
+    assert [(item['reachable'], item['status'], item['error']) for item in up['checks']] == [
+        (True, 401, None),
+        (True, 401, None),
+    ]
+
+
+def test_resume_without_a_checkpoint_names_the_expected_path(config, tmp_path, monkeypatch):
+    monkeypatch.setattr(jobs, 'git_command', lambda *a: ENGINE)
+    monkeypatch.setattr(jobs, 'require_ready', lambda *a: pytest.fail('ready'))
+    monkeypatch.setattr(harness, 'Runner', lambda *a: pytest.fail('runner'))
+    path = checkpoint_file(tmp_path, ['codex'], [ALPHA])
+    with pytest.raises(ValueError) as caught:
+        jobs.scenario_report(config, ['codex'], [ALPHA], tmp_path, day=DAY, resume=True)
+    message = str(caught.value)
+    assert str(path) in message
+    assert 'CLIs' in message and 'scenarios' in message and '--date' in message
+    assert 'engine commit' in message and 'ModelSpec key' in message
+    assert not path.exists()
+
+
+TRANSPORT_SIGNATURES = (
+    'ECONNRESET',
+    'ECONNREFUSED',
+    'ETIMEDOUT',
+    'ENOTFOUND',
+    'EAI_AGAIN',
+    'ENETUNREACH',
+    'EHOSTUNREACH',
+    'getaddrinfo',
+    'connection reset by peer',
+    'connection refused',
+    'network is unreachable',
+    'socket hang up',
+    'stream disconnected',
+    'TLS handshake',
+    '502 Bad Gateway',
+    '503 Service Unavailable',
+    '504 Gateway Timeout',
+    'econnreset',
+)
+
+
+def _split_probe(*, api, internet):
+    def check(url, up):
+        return {
+            'url': url, 'reachable': up, 'status': 200 if up else None,
+            'error': None if up else 'URLError', 'ms': 1.0,
+        }
+    return {
+        'reachable': api and internet,
+        'checks': [
+            check(jobs.API_HEALTH_URL, api),
+            check(jobs.INTERNET_PROBE_URL, internet),
+        ],
+        'checked_at': '2026-10-04T00:00:00+00:00',
+    }
+
+
+@pytest.mark.parametrize('text', TRANSPORT_SIGNATURES)
+def test_transport_signatures_are_word_bounded_and_case_insensitive(text, monkeypatch):
+    scripted_probe(monkeypatch, [REACHABLE])
+    tag = jobs.network_tag({'status': 'cli_error', 'error': f'before {text} after'})
+    assert tag['class'] == 'network_suspect'
+    assert tag['error_signature'] is True
+    assert tag['api_reachable'] is True
+
+
+@pytest.mark.parametrize('text', [
+    'CLI timed out',
+    'network access disabled',
+    'TLS',
+    'connection reset',
+    'temporarily unavailable',
+    'the network',
+    '504 Gateway Time-out',
+    'xECONNRESET',
+    'ETIMEDOUTX',
+])
+def test_ordinary_failure_text_is_not_a_transport_signature(text, monkeypatch):
+    scripted_probe(monkeypatch, [REACHABLE])
+    tag = jobs.network_tag({'status': 'timeout', 'error': text})
+    assert tag['error_signature'] is False
+    assert tag['class'] == 'no_network_signal'
+    assert tag['api_reachable'] is True
+
+
+def test_network_tag_splits_the_internet_probe_from_the_api_probe(monkeypatch):
+    internet_down = _split_probe(api=True, internet=False)
+    api_down = _split_probe(api=False, internet=True)
+    scripted_probe(monkeypatch, [REACHABLE, REACHABLE, internet_down, api_down])
+    timed_out = jobs.network_tag({'status': 'timeout', 'error': 'CLI timed out'})
+    assert timed_out['class'] == 'no_network_signal'
+    assert timed_out['error_signature'] is False
+    assert timed_out['api_reachable'] is True
+    disabled = jobs.network_tag({'status': 'cli_error', 'error': 'network access disabled'})
+    assert disabled['class'] == 'no_network_signal'
+    assert disabled['error_signature'] is False
+    local = jobs.network_tag({'status': 'timeout', 'error': 'rubric parser rejected the answer'})
+    assert local == {
+        'class': 'network_suspect',
+        'failed_stage': 'agent',
+        'error_signature': False,
+        'api_reachable': True,
+        'probe': internet_down,
+    }
+    api = jobs.network_tag({'status': 'timeout', 'error': 'CLI timed out'})
+    assert api['class'] == 'no_network_signal'
+    assert api['error_signature'] is False
+    assert api['api_reachable'] is False
+    assert api['probe'] is api_down
+
+
+def test_resumed_run_keeps_final_invocation_counts_and_totals_checkpoint_starts(
+    config, tmp_path, monkeypatch,
+):
+    offline_scenario_job(monkeypatch)
+    phase = {'stop': False}
+    gamma = {'id': 'gamma', 'family': 'F3', 'persona': 'p', 'request': 'r', 'constraints': {}}
+
+    class Runner:
+        def __init__(self, cfg, output, isolation):
+            self.counts = {cli: {'agent': 0, 'judge': 0} for cli in providers.CLIS}
+
+        def scenario(self, scenario, cli):
+            if phase['stop'] and scenario['id'] == 'gamma':
+                raise KeyboardInterrupt
+            self.counts[cli]['agent'] += 1
+            row = harness.empty_row(scenario, cli, config, 'completed')
+            if scenario['id'] == 'beta':
+                row['judge_execution'] = {'status': 'completed'}
+            else:
+                judge = harness.judge_for(cli, config['judges'])
+                self.counts[judge]['judge'] += 1
+                row['judge_execution'] = {'cli': judge, 'status': 'completed'}
+            return row
+
+    monkeypatch.setattr(harness, 'Runner', Runner)
+    fresh = jobs.scenario_report(config, ['codex'], [ALPHA], tmp_path / 'fresh', day=DAY)
+    assert fresh['metadata']['cli_invocations_scope'] == 'whole run'
+    assert fresh['metadata']['cli_invocations'] == {
+        'claude': {'agent': 0, 'judge': 1},
+        'codex': {'agent': 1, 'judge': 0},
+        'gemini': {'agent': 0, 'judge': 0},
+        'grok': {'agent': 0, 'judge': 0},
+    }
+    assert fresh['metadata']['cli_invocations_total'] == fresh['metadata']['cli_invocations']
+    assert fresh['metadata']['cli_invocations_total'] is not fresh['metadata']['cli_invocations']
+    phase['stop'] = True
+    with pytest.raises(KeyboardInterrupt):
+        jobs.scenario_report(config, ['codex'], [ALPHA, BETA, gamma], tmp_path, day=DAY)
+    phase['stop'] = False
+    report = jobs.scenario_report(
+        config, ['codex'], [ALPHA, BETA, gamma], tmp_path, day=DAY, resume=True)
+    assert report['resumed'] == 2
+    assert [(row['scenario'], row['cli']) for row in report['runs']] == [
+        ('alpha', 'codex'), ('beta', 'codex'), ('gamma', 'codex'),
+    ]
+    assert report['metadata']['cli_invocations_scope'] == 'final invocation only'
+    assert report['metadata']['cli_invocations'] == {
+        'claude': {'agent': 0, 'judge': 1},
+        'codex': {'agent': 1, 'judge': 0},
+        'gemini': {'agent': 0, 'judge': 0},
+        'grok': {'agent': 0, 'judge': 0},
+    }
+    assert report['metadata']['cli_invocations_total'] == {
+        'claude': {'agent': 0, 'judge': 2},
+        'codex': {'agent': 3, 'judge': 0},
+        'gemini': {'agent': 0, 'judge': 0},
+        'grok': {'agent': 0, 'judge': 0},
+    }
+
+
+def _explicit_checkpoint_digest(key):
+    payload = {
+        'clis': ['codex'], 'scenarios': ['alpha'], 'engine_sha': ENGINE, 'day': DAY,
+        'modelspec_key': key,
+    }
+    return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()[:16]
+
+
+def test_checkpoint_key_includes_whether_the_modelspec_key_is_set(config, tmp_path, monkeypatch):
+    offline_scenario_job(monkeypatch)
+    recording_runner(monkeypatch, config)
+    monkeypatch.delenv('MODELSPEC_API_KEY', raising=False)
+    jobs.scenario_report(config, ['codex'], [ALPHA], tmp_path, day=DAY)
+    absent = tmp_path / 'checkpoints' / f'scenarios-{DAY}-{_explicit_checkpoint_digest(False)}.jsonl'
+    assert absent.is_file()
+    monkeypatch.setenv('MODELSPEC_API_KEY', 'present-for-test')
+    jobs.scenario_report(config, ['codex'], [ALPHA], tmp_path, day=DAY)
+    present = tmp_path / 'checkpoints' / f'scenarios-{DAY}-{_explicit_checkpoint_digest(True)}.jsonl'
+    assert present.is_file()
+    assert absent.name != present.name
+
+
+def test_require_funded_key_names_the_checkpoint_resume_would_replay(tmp_path):
+    report = _decide_report({'status': 'partial', 'credits': {'exhausted': True, 'available': 0}})
+    path = tmp_path / 'checkpoints' / 'scenarios-day.jsonl'
+    with pytest.raises(ValueError, match='1 credits.exhausted') as caught:
+        jobs.require_funded_key(report, path)
+    message = str(caught.value)
+    assert str(path) in message
+    assert 'replayed on --resume' in message
+    assert 'delete the checkpoint' in message
+    assert 'start over' in message
+    with pytest.raises(ValueError, match='1 credits.exhausted') as old:
+        jobs.require_funded_key(report)
+    assert 'checkpoint' not in str(old.value)
+    assert 'replayed' not in str(old.value)
+
+
+def _main_scenario_guards(monkeypatch):
+    calls = []
+
+    def git(repo, *args):
+        calls.append(args)
+        assert args == ('rev-parse', 'HEAD'), args
+        return ENGINE
+
+    monkeypatch.setattr(jobs, 'git_command', git)
+    monkeypatch.setattr(jobs, 'require_ready', lambda *a: ready())
+    monkeypatch.setattr(jobs, 'report_worktree', lambda *a: pytest.fail('worktree'))
+    monkeypatch.setattr(agent_harness, 'load_scenarios', lambda directory=None: [ALPHA])
+    return calls
+
+
+def test_main_refuses_an_existing_checkpoint_before_opening_a_worktree(tmp_path, monkeypatch, capsys):
+    monkeypatch.delenv('MODELSPEC_API_KEY', raising=False)
+    calls = _main_scenario_guards(monkeypatch)
+    state = tmp_path / 'state'
+    config = jobs.configuration(state, max_runs=400)
+    resolved = harness.private_output(state)
+    path = jobs._scenario_checkpoint(resolved, ['codex'], [ALPHA], DAY, ENGINE, config=config)
+    path.write_text('{}\n')
+    code = jobs.main([
+        'scenarios', '--cli', 'codex', '--scenario', 'alpha',
+        '--state-dir', str(state), '--date', DAY,
+        '--data-repo', str(tmp_path / 'data'),
+    ])
+    out = capsys.readouterr().out
+    assert code == 2
+    assert str(path) in out
+    assert '--resume' in out and 'delete it to start over' in out
+    assert calls == [('rev-parse', 'HEAD')]
+
+
+def test_main_refuses_a_missing_checkpoint_before_opening_a_worktree(tmp_path, monkeypatch, capsys):
+    monkeypatch.delenv('MODELSPEC_API_KEY', raising=False)
+    calls = _main_scenario_guards(monkeypatch)
+    state = tmp_path / 'state'
+    config = jobs.configuration(state, max_runs=400)
+    resolved = harness.private_output(state)
+    path = jobs._scenario_checkpoint(resolved, ['codex'], [ALPHA], DAY, ENGINE, config=config)
+    assert not path.exists()
+    code = jobs.main([
+        'scenarios', '--resume', '--cli', 'codex', '--scenario', 'alpha',
+        '--state-dir', str(state), '--date', DAY,
+        '--data-repo', str(tmp_path / 'data'),
+    ])
+    out = capsys.readouterr().out
+    assert code == 2
+    assert str(path) in out and 'No checkpoint' in out
+    assert calls == [('rev-parse', 'HEAD')]
+    assert not path.exists()
+
+
+def test_main_passes_the_checkpoint_path_into_the_funded_key_check(tmp_path, monkeypatch):
+    monkeypatch.setenv('MODELSPEC_API_KEY', 'present-for-test')
+    monkeypatch.setattr(jobs, 'require_ready', lambda *a: ready())
+
+    def git(repo, *args):
+        assert args == ('rev-parse', 'HEAD'), args
+        return ENGINE
+
+    monkeypatch.setattr(jobs, 'git_command', git)
+    seen = {}
+
+    def funded(report, checkpoint=None):
+        seen['path'] = checkpoint
+        raise ValueError('stop after key check')
+
+    monkeypatch.setattr(jobs, 'require_funded_key', funded)
+
+    @contextmanager
+    def worktree(*args):
+        yield tmp_path / 'tree', 'branch'
+
+    monkeypatch.setattr(jobs, 'report_worktree', worktree)
+    monkeypatch.setattr(jobs, 'publish', lambda *a: pytest.fail('publish'))
+    monkeypatch.setattr(agent_harness, 'load_scenarios', lambda directory=None: [ALPHA])
+
+    class Runner:
+        def __init__(self, cfg, output, isolation):
+            self.counts = {cli: {'agent': 0, 'judge': 0} for cli in providers.CLIS}
+
+        def scenario(self, scenario, cli):
+            self.counts[cli]['agent'] += 1
+            return harness.empty_row(scenario, cli, config, 'completed')
+
+    monkeypatch.setattr(harness, 'Runner', Runner)
+    state = tmp_path / 'state'
+    config = jobs.configuration(state, max_runs=400)
+    resolved = harness.private_output(state)
+    path = jobs._scenario_checkpoint(resolved, ['codex'], [ALPHA], DAY, ENGINE, config=config)
+    assert jobs.main([
+        'scenarios', '--cli', 'codex', '--scenario', 'alpha',
+        '--state-dir', str(state), '--date', DAY,
+        '--data-repo', str(tmp_path / 'data'),
+    ]) == 2
+    assert seen['path'] == path
