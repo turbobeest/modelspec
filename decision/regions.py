@@ -30,13 +30,8 @@ def is_alpha2(value: str) -> bool:
     return _ALPHA2.fullmatch(value) is not None
 
 
-def is_global_variant(name: str) -> bool:
-    """``global`` and ``global-*``. ``globalfoo`` is not a variant."""
-    return name == "global" or name.startswith("global-")
-
-
 def accepted_identity_region(region: str) -> bool:
-    return region in PROVIDER_REGIONS or is_global_variant(region) or is_alpha2(region)
+    return region in PROVIDER_REGIONS or is_alpha2(region)
 
 
 def require_identity_region(region: str) -> None:
@@ -68,8 +63,6 @@ def countries_of(value: object) -> frozenset[str] | None:
     An empty country list is a known empty set, not an unknown.
     """
     if isinstance(value, str):
-        if is_global_variant(value):
-            return None
         if value in PROVIDER_REGIONS:
             return PROVIDER_REGIONS[value]
         if is_alpha2(value):

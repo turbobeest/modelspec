@@ -13,6 +13,7 @@ from decision.filter import apply as filter_apply
 from decision.registry import facet as facets
 from decision.resolve import resolve
 from decision.snapshot import (
+    FactValue,
     LoadedSnapshot,
     SnapshotError,
     SnapshotInputs,
@@ -23,6 +24,10 @@ from decision.why_not import why_not
 from tests.snapshot_records import SOURCES, fact, model
 
 GLOBAL_REASON = "provider region 'global' does not guarantee where inference runs"
+EU_MEMBERS = (
+    "offering.region in {AT, BE, BG, CY, CZ, DE, DK, EE, ES, FI, FR, GR, HR, "
+    "HU, IE, IT, LT, LU, LV, MT, NL, PL, PT, RO, SE, SI, SK}"
+)
 
 
 def _offering(mid: str, region: str) -> dict:
@@ -146,8 +151,87 @@ def test_not_in_on_a_global_offering_stays_unknown() -> None:
     assert oid not in [row.candidate for row in result.eliminated]
 
 
+def test_the_eu_member_set_matches_de_and_fails_singapore() -> None:
+    index = index_of([("de", "DE"), ("sg-name", "singapore")])
+    result = _filter(index, EU_MEMBERS)
+    assert result.feasible == ("lab-api/lab/de/DE/standard",)
+    assert result.may_qualify == ()
+    (singapore,) = result.eliminated
+    assert singapore.candidate == "lab-api/lab/sg-name/singapore/standard"
+    assert singapore.value == "singapore"
+    assert singapore.unverified is False
+    assert singapore.condition == EU_MEMBERS
+
+
+def test_contains_all_of_de_and_fr_fails_a_single_country_de_offering() -> None:
+    index = index_of([("de", "DE")])
+    bits = index.ids_where("offering.region", "contains_all", ["DE", "FR"])
+    assert index.ids(bits.passing) == ()
+    assert index.ids(bits.failing) == ("lab-api/lab/de/DE/standard",)
+    assert index.ids(bits.unknown) == ("lab/de",)
+
+
+def test_a_missing_region_fact_is_an_unverified_governance_fail() -> None:
+    built = build_snapshot(
+        SnapshotInputs(
+            models=[model("lab/row")],
+            offerings=[_offering("lab/row", "DE")],
+            sources=SOURCES,
+        ),
+        gate=False,
+    )
+    envelope = copy.deepcopy(built.envelope(None))
+    for section_name in ("lineup", "archive"):
+        column = envelope["content"][section_name]["facets"].get("offering.region")
+        if column is None:
+            continue
+        column["state"] = ["unknown"] * len(column["state"])
+        column["value"] = [None] * len(column["value"])
+    index = LoadedSnapshot(envelope, include_archive=True, signature_verified=False)
+    oid = "lab-api/lab/row/DE/standard"
+    assert index.fact(oid, "offering.region") == FactValue("unknown")
+
+    result = _filter(index, "offering.region in {SG}")
+    assert result.feasible == ()
+    assert result.may_qualify == ()
+    (row,) = result.eliminated
+    assert row.candidate == oid
+    assert row.unverified is True
+    assert row.value is None
+    assert row.surface == "unverified: may qualify"
+    assert row.condition == "offering.region in {SG}"
+
+
+def test_a_region_gap_inside_all_stays_may_qualify_beside_another_unknown() -> None:
+    index = index_of([("global", "global")])
+    oid = "lab-api/lab/global/global/standard"
+    result = _filter(
+        index, "all(offering.region in {SG}; offering.price.output >= 0)",
+    )
+    assert result.feasible == ()
+    assert result.eliminated == ()
+    assert [(row.candidate, row.unknown) for row in result.may_qualify] == [
+        (oid, ("offering.region", "offering.price.output")),
+    ]
+
+
+def test_a_region_gap_inside_all_still_fails_on_another_governance_unknown() -> None:
+    index = index_of([("global", "global")])
+    oid = "lab-api/lab/global/global/standard"
+    where = "all(offering.region in {SG}; offering.data.trains_on_customer_data = false)"
+    result = _filter(index, where)
+    assert result.feasible == ()
+    assert result.may_qualify == ()
+    (row,) = result.eliminated
+    assert row.candidate == oid
+    assert row.unverified is True
+    assert row.value is None
+    assert row.surface == "unverified: may qualify"
+    assert row.condition == where
+
+
 @pytest.mark.parametrize("region", [
-    "global", "global-short-context", "global-cross-region", "global-eu",
+    "global", "global-short-context", "global-cross-region",
 ])
 def test_a_global_variant_does_not_pass_or_fail_a_region_filter(region: str) -> None:
     index = index_of([("row", region)])
@@ -186,6 +270,16 @@ def test_the_snapshot_refuses_an_unknown_region_name() -> None:
             SnapshotInputs(
                 models=[model("lab/world")],
                 offerings=[_offering("lab/world", "globalfoo")],
+                sources=SOURCES,
+            ),
+            gate=False,
+        )
+
+    with pytest.raises(SnapshotError, match="global-eu"):
+        build_snapshot(
+            SnapshotInputs(
+                models=[model("lab/world")],
+                offerings=[_offering("lab/world", "global-eu")],
                 sources=SOURCES,
             ),
             gate=False,

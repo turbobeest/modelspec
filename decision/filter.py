@@ -483,8 +483,9 @@ class _Run:
         # A leaf has one unknown facet and therefore one policy for every
         # unknown row. Compound conditions still select facets per candidate.
         # offering.region is governance, but a known name with no country
-        # guarantee is not a missing fact: it may qualify. A fact that is
-        # actually absent stays an unverified governance fail.
+        # guarantee is not a missing fact. Drop it, then judge what remains.
+        # Nothing left may qualify. A governance facet that remains, or a
+        # region fact that is actually absent, is an unverified fail.
         if _is_leaf(cond):
             facets = self._unknown_facets(cond, 0)
             if facets == ("offering.region",):
@@ -495,12 +496,19 @@ class _Run:
         listed = failed = 0
         for cid in self._ids_of(unk_bits):
             bit = 1 << self.pos[cid]
-            facets = self._unknown_facets(cond, bit)
-            if set(facets) == {"offering.region"} and self._region_gap(cid):
-                listed |= bit
-                continue
+            facets = tuple(self._unknown_facets(cond, bit))
+            gap = self._region_gap(cid)
+            if gap:
+                facets = tuple(
+                    facet_id for facet_id in facets if facet_id != "offering.region"
+                )
             risks = [self._facet(facet_id).risk for facet_id in facets]
-            if not risks or any(risk == "governance" for risk in risks):
+            if not risks:
+                if gap:
+                    listed |= bit
+                else:
+                    failed |= bit
+            elif any(risk == "governance" for risk in risks):
                 failed |= bit
             else:
                 listed |= bit
