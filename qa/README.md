@@ -286,7 +286,7 @@ activate customizations cause refusal. A vacuous positive control fails.
 | Claude | Stream init lists skills, plugins, MCP servers and exposed tools; hook events are rejected. A standalone plugin listing is preliminary only. |
 | Codex | Native app-server `skills/list` discovery and effective disabling, `mcp list --json`, `plugin list --json`, `features list`, and `debug prompt-input`. Enabled plugins block certification even if `plugins={}` was requested. Names, enabled state and account scope are recorded when the CLI reports that scope. ChatGPT account apps reappear after login as enabled plugins; the controls also turn off the `apps`, `plugins` and `remote_plugin` features. Any manual Codex run in `/work` with `--sandbox danger-full-access` persists a trust grant for `/work` in the login volume (the harness never uses that mode), so the controls pin `/work` untrusted; the only tolerated app-server diagnostic is Codex's exact notice that the planted `/work/.codex` was refused. The isolated canary fails unless that notice states `/work` is untrusted in the effective configuration. The ModelSpec server alone sets `default_tools_approval_mode = "approve"`, because `exec` refuses every tool call that asks for approval. |
 | Gemini | Native MCP, extension and skill listings plus its installed settings loader's effective enablement. Root-owned settings disable skills, hooks and context files without overriding the stored auth type. Five exact ModelSpec MCP lifecycle messages are recognized; unknown diagnostics still fail. |
-| Grok | `inspect --json` must show no active instruction files, user skills, plugins or hooks, and exactly the configured ModelSpec MCP servers. At run time, init must report each configured server `connected` or `pending` (Grok connects lazily), and any other server `disabled`. MCP tools are reached through `search_tool` (lookup only, allowed with MCP) and `use_tool("<server>__<tool>")`, which is recorded and checked as a call on that server. |
+| Grok | `inspect --json` must show no active instruction files, user skills, plugins or hooks, and exactly the configured ModelSpec MCP servers. At run time, init must report each configured server `connected` or `pending` (Grok connects lazily), and any other server `disabled`. MCP tools are reached through `search_tool` (lookup only; allowed on every run except search, including judges) and `use_tool("<server>__<tool>")`, which is recorded and checked as a call on that server. Isolated runs set `GROK_MAX_MCP_OUTPUT_BYTES` to 4000000 so large MCP results stay inline, and doctor records `printenv` of that variable as `mcp_output_bytes` only when it is an integer of at least 1000000. |
 
 Receipts use schema 4 under `<out>/.tui-state/<cli>/tui-isolation.json`. Earlier
 native-home receipts cannot authorize Docker runs. A failed or interrupted repeat
@@ -487,7 +487,8 @@ pull in between. The checkpoint key includes the engine commit and whether
 failures. Without `--resume`, an existing checkpoint refuses the run before a
 data-repo worktree is opened. If the key check refuses publication, delete
 that checkpoint after fixing the key, because `--resume` replays its recorded
-rows.
+rows. A CLI that exits non-zero before its startup event is retried once; a second
+pre-init crash is `cli_error` and does not revoke the doctor receipt.
 
 Failed rows get a connectivity probe and an error-signature check when the
 row is saved. The signature matches specific transport errors, including

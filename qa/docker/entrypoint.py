@@ -66,6 +66,8 @@ def runtime_environment(cli: str, mode: str, incoming: dict) -> dict:
         env["GROK_FOLDER_TRUST"] = "1" if mode == "isolated" else "0"
         if mode == "isolated":
             env["GROK_MEMORY"] = "0"
+            # Keep large MCP results inline; spilled session files are read with bash.
+            env["GROK_MAX_MCP_OUTPUT_BYTES"] = "4000000"
             for family in ("CLAUDE", "CURSOR"):
                 for kind in ("SKILLS", "RULES", "AGENTS", "MCPS", "HOOKS"):
                     env[f"GROK_{family}_{kind}_ENABLED"] = "0"

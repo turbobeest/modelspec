@@ -12,7 +12,7 @@ from pathlib import Path
 
 from qa.providers import redact_structure
 from qa.tui_auth import authentication_status
-from qa.tui_docker import image_identity
+from qa.tui_docker import image_identity, passed_environment
 from qa.tui_homes import (
     binary_identity,
     home_config,
@@ -344,6 +344,37 @@ def verify_isolation(cli: str, config: dict, output: Path, *, before_start=lambd
                     return unproven(reason, **observations)
         if authentication.get("service_available") is False:
             return unproven(authentication["reason"], **observations)
+        mcp_output_bytes = None
+        if cli == "grok":
+            # Same isolated container path as binary_identity: home=False, isolated by default.
+            from qa.tui_homes import run_cli
+
+            with tempfile.TemporaryDirectory(
+                prefix=f"tui-mcp-bytes-{cli}-", dir=output
+            ) as directory:
+                before_start()
+                measured = run_cli(
+                    cli,
+                    config,
+                    Path(directory),
+                    ["printenv", "GROK_MAX_MCP_OUTPUT_BYTES"],
+                    passed_environment(config),
+                    home=False,
+                )
+            try:
+                mcp_output_bytes = int(str(measured.stdout).strip())
+            except (TypeError, ValueError):
+                mcp_output_bytes = None
+            if (
+                measured.returncode != 0
+                or mcp_output_bytes is None
+                or mcp_output_bytes < 1000000
+            ):
+                return unproven(
+                    "Grok would spill large MCP results to files; "
+                    "GROK_MAX_MCP_OUTPUT_BYTES is missing or too low",
+                    **observations,
+                )
         for location in LOCATIONS:
             with tempfile.TemporaryDirectory(prefix=f"tui-canary-{cli}-", dir=output) as directory:
                 workspace = Path(directory)
@@ -418,6 +449,7 @@ def verify_isolation(cli: str, config: dict, output: Path, *, before_start=lambd
             "certified_at": datetime.now(timezone.utc).isoformat(),
             "identity": identity,
             "binary": binary,
+            **({"mcp_output_bytes": mcp_output_bytes} if mcp_output_bytes is not None else {}),
             "inventory": inventory,
             "authentication": authentication,
             "container_boundary": boundary

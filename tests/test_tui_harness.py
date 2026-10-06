@@ -145,13 +145,12 @@ def config(tmp_path, monkeypatch):
     monkeypatch.setattr(docker, "image_identity", identity)
     monkeypatch.setattr(isolation, "image_identity", identity)
     monkeypatch.setattr(homes, "docker_executable", lambda: "/fake/docker")
-    monkeypatch.setattr(
-        homes,
-        "run_cli",
-        lambda cli, cfg, *a, **k: subprocess.CompletedProcess(
-            [], 0, cfg["clis"][cli]["version"], ""
-        ),
-    )
+    def run_native(cli, cfg, workspace, command, env, **kwargs):
+        if command == ["printenv", "GROK_MAX_MCP_OUTPUT_BYTES"]:
+            return subprocess.CompletedProcess(command, 0, "4000000\n", "")
+        return subprocess.CompletedProcess([], 0, cfg["clis"][cli]["version"], "")
+
+    monkeypatch.setattr(homes, "run_cli", run_native)
     monkeypatch.setattr(isolation, "inspect_inventory", lambda cli, *a, **k: native_inventory(cli))
 
     def subscription(*a):
@@ -427,6 +426,31 @@ def test_grok_use_tool_splits_a_leading_json_object_from_the_summary():
     unauthorised = '{"origin":"https://api.modelspec.dev/v1/decide","status":401,"body":{}}'
     with pytest.raises(ValueError, match="unauthorised"):
         require_funded_key(gated(unauthorised))
+
+
+def test_grok_judge_may_look_up_tools_but_not_call_use_tool():
+    def transcript(block):
+        return providers.parse_transcript("grok", text([
+            {"type": "assistant", "message": {"id": "m0", "content": [block]}},
+            {"type": "result", "result": "Done", "num_turns": 1},
+        ]))
+
+    inventory = native_inventory("grok", mcp_enabled=False)
+    looked_up = transcript(
+        {"type": "tool_use", "id": "s1", "name": "search_tool", "input": {"query": "decide"}}
+    )
+    assert providers.isolation_violation(
+        looked_up, mcp_enabled=False, cli="grok", inventory=inventory, purpose="judge"
+    ) is None
+    bash = transcript({
+        "type": "tool_use",
+        "id": "u1",
+        "name": "use_tool",
+        "input": {"tool_name": "bash", "tool_input": {"command": "ls"}},
+    })
+    assert providers.isolation_violation(
+        bash, mcp_enabled=False, cli="grok", inventory=inventory, purpose="judge"
+    ) == "CLI used a tool outside the configured ModelSpec MCP"
 
 
 def test_grok_user_layer_mount_refuses_symlinks_and_skips_other_modes(config, tmp_path):
@@ -874,6 +898,91 @@ def test_unsafe_startup_revokes_eligibility_even_when_cli_fails(
         providers.launch("claude", config, tmp_path, "fixture", mcp_enabled=True)
 
 
+def test_pre_init_crash_retries_once_then_keeps_a_successful_receipt(
+    config, tmp_path, monkeypatch, streams
+):
+    allow_launch(config, ("claude",))
+    calls = []
+
+    def fake(command, **kwargs):
+        calls.append(kwargs["cwd"])
+        if len(calls) == 1:
+            return subprocess.CompletedProcess(command, 255, "", "")
+        return subprocess.CompletedProcess(command, 0, text(streams["claude"]), "")
+
+    monkeypatch.setattr(providers.subprocess, "run", fake)
+    result = providers.launch("claude", config, tmp_path, "fixture", mcp_enabled=True)
+    assert result.status == "completed" and result.exit_code == 0
+    assert calls == [tmp_path, tmp_path]
+    assert isolation.isolation_result("claude", config)["verified"]
+
+
+def test_two_pre_init_crashes_are_cli_error_and_keep_the_receipt(config, tmp_path, monkeypatch):
+    allow_launch(config, ("claude",))
+    seen = []
+    original = providers._execute
+
+    def wrapped(*args, **kwargs):
+        result = original(*args, **kwargs)
+        seen.append((result.status, result.error, result.exit_code))
+        return result
+
+    def fake(command, **kwargs):
+        return subprocess.CompletedProcess(command, 255, "", "")
+
+    monkeypatch.setattr(providers, "_execute", wrapped)
+    monkeypatch.setattr(providers.subprocess, "run", fake)
+    result = providers.launch("claude", config, tmp_path, "fixture", mcp_enabled=True)
+    assert seen == [
+        ("cli_error", "CLI exited before startup (exit 255)", 255),
+        ("cli_error", "CLI exited before startup (exit 255)", 255),
+    ]
+    assert result.status == "cli_error"
+    assert result.error == "CLI exited before startup twice (exit 255); not retried further"
+    assert isolation.isolation_result("claude", config)["verified"]
+
+
+def test_exit_zero_without_init_still_revokes_and_is_not_retried(config, tmp_path, monkeypatch):
+    allow_launch(config, ("claude",))
+    calls = []
+
+    def fake(command, **kwargs):
+        calls.append(kwargs["cwd"])
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    monkeypatch.setattr(providers.subprocess, "run", fake)
+    result = providers.launch("claude", config, tmp_path, "fixture", mcp_enabled=True)
+    assert result.status == "isolation_failed" and "subscription" in result.error
+    assert not providers.pre_init_crash(result)
+    assert calls == [tmp_path]
+    assert not isolation.isolation_result("claude", config)["verified"]
+
+
+def test_a_tool_call_before_a_crash_is_not_a_pre_init_crash(config, tmp_path, monkeypatch):
+    allow_launch(config, ("claude",))
+    calls = []
+    events = [{
+        "type": "assistant",
+        "message": {
+            "id": "m",
+            "content": [
+                {"type": "tool_use", "id": "t1", "name": "Bash", "input": {"command": "ls"}}
+            ],
+        },
+    }]
+
+    def fake(command, **kwargs):
+        calls.append(kwargs["cwd"])
+        return subprocess.CompletedProcess(command, 1, text(events), "")
+
+    monkeypatch.setattr(providers.subprocess, "run", fake)
+    result = providers.launch("claude", config, tmp_path, "fixture", mcp_enabled=True)
+    assert result.status == "isolation_failed"
+    assert not providers.pre_init_crash(result)
+    assert calls == [tmp_path]
+    assert not isolation.isolation_result("claude", config)["verified"]
+
+
 def test_scenario_requires_a_connected_modelspectool_server(streams):
     parsed = providers.parse_transcript("claude", text(streams["claude"]))
     assert providers.isolation_violation(parsed, mcp_enabled=True) is None
@@ -933,6 +1042,10 @@ def test_doctor_requires_positive_controls_and_isolated_inventory(
     monkeypatch.setattr(isolation, "_execute", fake)
     result = harness.verify_isolation(cli, config, tmp_path)
     assert result["verified"] and result["supported"] and result["canary_runs"] == 2
+    if cli == "grok":
+        assert result["mcp_output_bytes"] == 4000000
+    else:
+        assert "mcp_output_bytes" not in result
     assert [mode for _, mode in seen] == [False, True]
     assert seen[0][0] == seen[1][0]
     assert all(not path.exists() for path, _ in seen)
@@ -1521,6 +1634,50 @@ def doctor_reply(cli, config, workspace, prompt, *, mcp_enabled, isolated=True, 
     if cli != "claude":
         result.transcript.init = None
     return result
+
+
+@pytest.mark.parametrize(
+    "stdout,code,accepted",
+    [
+        ("4000000\n", 0, True),
+        ("1000000", 0, True),
+        ("999999\n", 0, False),
+        ("", 1, False),
+        ("nope\n", 0, False),
+    ],
+)
+def test_grok_doctor_requires_a_million_byte_inline_mcp_limit(
+    stdout, code, accepted, config, tmp_path, monkeypatch
+):
+    seen = []
+
+    def run(cli, cfg, workspace, command, env, **kwargs):
+        if command == ["printenv", "GROK_MAX_MCP_OUTPUT_BYTES"]:
+            seen.append(kwargs)
+            return subprocess.CompletedProcess(command, code, stdout, "")
+        return subprocess.CompletedProcess([], 0, cfg["clis"][cli]["version"], "")
+
+    monkeypatch.setattr(homes, "run_cli", run)
+    if accepted:
+        monkeypatch.setattr(isolation, "_execute", doctor_reply)
+    else:
+        monkeypatch.setattr(isolation, "_execute", lambda *a, **k: pytest.fail("canaries ran"))
+    result = harness.verify_isolation("grok", config, tmp_path)
+    assert seen == [{"home": False}]
+    if accepted:
+        measured = int(stdout.strip())
+        assert result["verified"] and result["mcp_output_bytes"] == measured
+        receipt_path = isolation.receipt_file(homes.state_directory("grok", config))
+        receipt = json.loads(receipt_path.read_text())
+        assert receipt["mcp_output_bytes"] == measured
+    else:
+        assert result["status"] == "unproven" and result["canary_runs"] == 0
+        assert result["reason"] == (
+            "Grok would spill large MCP results to files; "
+            "GROK_MAX_MCP_OUTPUT_BYTES is missing or too low"
+        )
+        assert "mcp_output_bytes" not in result
+        assert not isolation.isolation_result("grok", config)["verified"]
 
 
 @pytest.mark.parametrize("cli", providers.CLIS)
@@ -2171,12 +2328,17 @@ def test_runtime_uses_fixed_linux_home_and_suppresses_host_customizations(cli):
         assert "selectedType" not in Path("qa/docker/gemini-isolated.json").read_text()
     if cli == "grok":
         assert env["GROK_FOLDER_TRUST"] == "1"
+        assert env["GROK_MAX_MCP_OUTPUT_BYTES"] == "4000000"
+    else:
+        assert "GROK_MAX_MCP_OUTPUT_BYTES" not in env
 
 
 def test_grok_positive_control_does_not_persist_trust_into_login_volume(config, tmp_path):
     env = entrypoint.runtime_environment("grok", "positive", {})
     assert env["GROK_FOLDER_TRUST"] == "0"
-    assert "GROK_FOLDER_TRUST" not in entrypoint.runtime_environment("grok", "login", {})
+    assert "GROK_MAX_MCP_OUTPUT_BYTES" not in env
+    login = entrypoint.runtime_environment("grok", "login", {})
+    assert "GROK_FOLDER_TRUST" not in login and "GROK_MAX_MCP_OUTPUT_BYTES" not in login
     command = providers.build_command(
         "grok",
         config["clis"]["grok"],

@@ -596,7 +596,7 @@ def isolation_violation(
         return "CLI emitted a hook event"
     allowed = set(allowed_servers if allowed_servers is not None else ["modelspec"]) if mcp_enabled else set()
     native = SEARCH_TOOLS[cli] if purpose == "search" else set()
-    if cli == "grok" and mcp_enabled and purpose != "search":
+    if cli == "grok" and purpose != "search":
         # Grok's deferred-tool lookup. It runs no tool; use_tool calls are checked by server.
         native = native | {"search_tool"}
     if any(call["name"] not in native for call in parsed.other_tool_calls) or any(call["server"] not in allowed for call in parsed.tool_calls):
@@ -657,6 +657,22 @@ class Execution:
     inventory: dict | None = None
 
 
+def pre_init_crash(execution: Execution) -> bool:
+    """Non-zero exit before startup, with no tools, hooks, usage limit, or timeout."""
+    parsed, code = execution.transcript, execution.exit_code
+    return (
+        execution.status == "cli_error"
+        and not execution.limit_reason
+        and type(code) is int
+        and code != 0
+        and parsed.init is None
+        and not parsed.tool_calls
+        and not parsed.other_tool_calls
+        and not parsed.hook_events
+        and not parsed.terminal
+    )
+
+
 def launch(cli: str, config: dict, workspace: Path, prompt: str, *, mcp_enabled: bool, purpose="scenario") -> Execution:
     from qa.tui_isolation import isolation_result
 
@@ -665,6 +681,15 @@ def launch(cli: str, config: dict, workspace: Path, prompt: str, *, mcp_enabled:
     if not result["verified"]:
         raise ValueError(result["reason"])
     execution = _execute(cli, config, workspace, prompt, mcp_enabled=mcp_enabled, purpose=purpose)
+    if pre_init_crash(execution):
+        execution = _execute(
+            cli, config, workspace, prompt, mcp_enabled=mcp_enabled, purpose=purpose
+        )
+        if pre_init_crash(execution):
+            execution.error = (
+                f"CLI exited before startup twice (exit {execution.exit_code}); not retried further"
+            )
+            return execution
     violation = subscription_violation(cli, execution.transcript) or isolation_violation(
         execution.transcript, mcp_enabled=mcp_enabled, cli=cli, inventory=execution.inventory,
         allowed_servers=config.get("_mcp_servers"), purpose=purpose,
@@ -829,6 +854,16 @@ def _execute(
     limit = usage_limit(
         parsed, process.stderr, process.returncode, settings["usage_limit_exit_codes"]
     )
+    if pre_init_crash(Execution(parsed, process.returncode, 0.0, "cli_error", limit_reason=limit)):
+        return Execution(
+            parsed,
+            process.returncode,
+            (perf_counter() - started) * 1000,
+            "cli_error",
+            f"CLI exited before startup (exit {process.returncode})",
+            observed_output=process.stdout + process.stderr,
+            inventory=inventory,
+        )
     if limit:
         status = "usage_limit"
     elif violation:
