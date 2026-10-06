@@ -67,6 +67,12 @@ def isolation_result(cli: str, config: dict) -> dict:
             certified = datetime.fromisoformat(result["certified_at"])
             if certified.tzinfo is None or not timedelta(0) <= datetime.now(timezone.utc) - certified <= timedelta(days=config["_receipt_max_age_days"]):
                 raise ValueError("Doctor receipt has expired")
+        if isinstance(result, dict) and cli == "grok":
+            measured = result.get("mcp_output_bytes")
+            if type(measured) is not int or measured < 1000000:
+                return unproven(
+                    "Grok receipt predates the inline MCP output check; rerun doctor --cli grok"
+                )
         controls = result["positive_control"]
         isolated = result["isolated_control"]
         passed = all(

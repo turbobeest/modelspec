@@ -301,6 +301,7 @@ class Runner:
         else:
             with tempfile.TemporaryDirectory(prefix=f"tui-{cli}-{role}-", dir=self.output) as directory:
                 execution = execute(directory)
+        self.counts[cli][role] += execution.attempts - 1
         if execution.status == "usage_limit":
             self.stopped[cli] = execution.limit_reason or "CLI usage limit"
         elif execution.status in ("isolation_failed", "transcript_error"):
