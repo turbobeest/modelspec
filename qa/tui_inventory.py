@@ -220,6 +220,18 @@ def _codex_skills(
             raise ValueError("Codex skills inventory emitted diagnostics")
 
 
+def _codex_feature_value(listing: str, name: str) -> bool | None:
+    """True when `features list` shows the feature enabled, False when disabled."""
+    rows = [line for line in listing.splitlines() if re.match(rf"^{re.escape(name)}\s", line)]
+    if len(rows) != 1:
+        return None
+    if re.fullmatch(rf"{re.escape(name)}\s+.+\s+false", rows[0]):
+        return False
+    if re.fullmatch(rf"{re.escape(name)}\s+.+\s+true", rows[0]):
+        return True
+    return None
+
+
 def _codex_skill_config(rows: list[dict]) -> str:
     disabled = []
     for row in rows:
@@ -332,6 +344,10 @@ def inspect_inventory(
             )
             _list(plugins["available"], "available plugins")
             features = codex(["features", "list"])
+            evidence["features"] = {
+                name: _codex_feature_value(features, name)
+                for name in ("shell_tool", "unified_exec")
+            }
             hooks = [line for line in features.splitlines() if re.match(r"^hooks\s", line)]
             if len(hooks) != 1 or not re.fullmatch(r"hooks\s+.+\s+false", hooks[0]):
                 raise ValueError("Codex effective hooks feature is missing or enabled")

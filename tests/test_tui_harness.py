@@ -92,7 +92,11 @@ def native_inventory(cli, *, mcp_enabled=True):
         "verified": True,
         "error": None,
         **(
-            {"skill_config": "skills.config=[]", "workspace_trust": "untrusted"}
+            {
+                "skill_config": "skills.config=[]",
+                "workspace_trust": "untrusted",
+                "features": {"shell_tool": False, "unified_exec": False},
+            }
             if cli == "codex"
             else {}
         ),
@@ -1310,9 +1314,16 @@ def test_doctor_requires_positive_controls_and_isolated_inventory(
 ):
     seen = []
 
-    def fake(name, cfg, workspace, prompt, *, mcp_enabled, isolated=True, probe_mcp=None):
-        assert name == cli and not mcp_enabled and prompt == "Reply with exactly OK."
+    def fake(name, cfg, workspace, prompt, *, mcp_enabled, isolated=True, probe_mcp=None, purpose="scenario"):
+        assert name == cli and not mcp_enabled
         seen.append((workspace, isolated))
+        if prompt == isolation.MISUSE_PROMPT:
+            assert purpose == "scenario" and isolated
+            result = execution(cli, answer="OK")
+            if cli == "grok":
+                result.transcript.init["tools"] = ["search_tool", "use_tool"]
+            return result
+        assert prompt == "Reply with exactly OK."
         if isolated:
             return execution(cli, answer="OK")
         root = probe_mcp.parent
@@ -1328,14 +1339,29 @@ def test_doctor_requires_positive_controls_and_isolated_inventory(
 
     monkeypatch.setattr(isolation, "_execute", fake)
     result = harness.verify_isolation(cli, config, tmp_path)
-    assert result["verified"] and result["supported"] and result["canary_runs"] == 2
+    assert result["verified"] and result["supported"] and result["canary_runs"] == 3
     if cli == "grok":
         assert result["mcp_output_bytes"] == 4000000
     else:
         assert "mcp_output_bytes" not in result
-    assert [mode for _, mode in seen] == [False, True]
-    assert seen[0][0] == seen[1][0]
+    assert [mode for _, mode in seen] == [False, True, True]
+    assert seen[0][0] == seen[1][0] and seen[2][0] != seen[0][0]
     assert all(not path.exists() for path, _ in seen)
+    assert result["misuse_probe"]["attempted"] == []
+    assert result["misuse_probe"]["refused"] == []
+    assert result["misuse_probe"]["side_effects"] is False
+    static = result["misuse_probe"]["static"]
+    if cli == "claude":
+        assert static == {"init_tools": []}
+    elif cli == "grok":
+        assert static["permission_mode"] == "dontAsk"
+        assert static["allow"] == ["mcp__modelspec__*"]
+        assert set(static["init_tools"]) == {"search_tool", "use_tool"}
+    elif cli == "codex":
+        assert static["controls"] == {"shell_tool": False, "unified_exec": False}
+        assert static["features"] == {"shell_tool": False, "unified_exec": False}
+    else:
+        assert static == {}
     assert isolation.isolation_result(cli, config)["verified"]
     assert isolation.isolation_result(cli, config)["canary_runs"] == 0
 
@@ -1343,6 +1369,387 @@ def test_doctor_requires_positive_controls_and_isolated_inventory(
     result = harness.verify_isolation(cli, config, tmp_path)
     assert not result["supported"] and result["status"] == "unproven"
     assert not isolation.isolation_result(cli, config)["verified"]
+
+
+def _positive_canary(cli, cfg, probe_mcp):
+    root = probe_mcp.parent
+    if cli != "claude":
+        config_home = homes.home_paths(cli, cfg["clis"][cli])[1]
+        if root != config_home:
+            root = root.parent
+    instruction = next(path for path in root.iterdir() if path.name.endswith(".md"))
+    marker = re.search(r"MODEL301_CANARY_\w+", instruction.read_text())[0]
+    (root / "model301-hook-fired").touch()
+    (root / "model301-mcp-fired").touch()
+    result = execution(answer=marker)
+    result.transcript.init["skills"] = ["model301_canary"]
+    return result
+
+
+def _clean_probe(cli):
+    result = execution(cli, "OK")
+    if cli == "grok":
+        result.transcript.init["tools"] = ["search_tool", "use_tool"]
+    return result
+
+
+def _with_transcript(cli, events, status):
+    parsed = providers.parse_transcript(cli, text(events))
+    result = _clean_probe(cli)
+    result.transcript = parsed
+    result.status = status
+    result.observed_output = "probe output"
+    result.misuse = providers.tool_misuse(
+        parsed, mcp_enabled=False, cli=cli, purpose="scenario"
+    )
+    return result
+
+
+def _refused_events(cli):
+    if cli == "claude":
+        names = ("Bash", "WebFetch", "Read")
+        return [
+            {
+                "type": "system",
+                "subtype": "init",
+                "apiKeySource": "none",
+                "skills": [],
+                "plugins": [],
+                "mcp_servers": [],
+                "tools": [],
+            },
+            {
+                "type": "assistant",
+                "message": {
+                    "id": "m",
+                    "content": [
+                        {"type": "tool_use", "id": f"t{i}", "name": name, "input": {}}
+                        for i, name in enumerate(names)
+                    ],
+                },
+            },
+            {
+                "type": "user",
+                "message": {
+                    "content": [
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": f"t{i}",
+                            "content": "denied",
+                            "is_error": True,
+                        }
+                        for i in range(len(names))
+                    ]
+                },
+            },
+            {"type": "result", "result": "denied", "num_turns": 1},
+        ]
+    if cli == "grok":
+        names = ("bash", "web_fetch", "read_file")
+        cancelled = json.dumps(
+            [{"type": "content", "content": {"type": "text", "text": "User cancelled this tool"}}]
+        )
+        return [
+            {"type": "system", "subtype": "init", "tools": ["search_tool", "use_tool"]},
+            {
+                "type": "assistant",
+                "message": {
+                    "id": "m",
+                    "content": [
+                        {
+                            "type": "tool_use",
+                            "id": f"t{i}",
+                            "name": "use_tool",
+                            "input": {"tool_name": name, "tool_input": {}},
+                        }
+                        for i, name in enumerate(names)
+                    ],
+                },
+            },
+            {
+                "type": "user",
+                "message": {
+                    "content": [
+                        {"type": "tool_result", "tool_use_id": f"t{i}", "content": cancelled}
+                        for i in range(len(names))
+                    ]
+                },
+            },
+            {"type": "result", "result": "cancelled", "num_turns": 1},
+        ]
+    if cli == "codex":
+        items = (
+            ("command_execution", "declined"),
+            ("web_search", "failed"),
+            ("file_change", "declined"),
+        )
+        events = [
+            {
+                "type": "item.completed",
+                "item": {
+                    "type": kind,
+                    "id": f"c{i}",
+                    "status": item_status,
+                    "command": "touch /work/model301-shell-fired",
+                },
+            }
+            for i, (kind, item_status) in enumerate(items)
+        ]
+        events += [
+            {"type": "item.completed", "item": {"type": "agent_message", "text": "declined"}},
+            {"type": "turn.completed"},
+        ]
+        return events
+    return [
+        {"type": "tool_use", "tool_id": "t1", "tool_name": "run_shell", "parameters": {}},
+        {"type": "tool_result", "tool_id": "t1", "output": "no", "status": "error"},
+        {"type": "result", "response": "denied"},
+    ]
+
+
+def _successful_events(cli):
+    if cli == "claude":
+        return [
+            {
+                "type": "system",
+                "subtype": "init",
+                "apiKeySource": "none",
+                "skills": [],
+                "plugins": [],
+                "mcp_servers": [],
+                "tools": [],
+            },
+            {
+                "type": "assistant",
+                "message": {
+                    "id": "m",
+                    "content": [
+                        {"type": "tool_use", "id": "t0", "name": "Bash", "input": {"command": "true"}}
+                    ],
+                },
+            },
+            {
+                "type": "user",
+                "message": {
+                    "content": [
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": "t0",
+                            "content": "ok",
+                            "is_error": False,
+                        }
+                    ]
+                },
+            },
+            {"type": "result", "result": "ran", "num_turns": 1},
+        ]
+    if cli == "grok":
+        return [
+            {"type": "system", "subtype": "init", "tools": ["search_tool", "use_tool"]},
+            {
+                "type": "assistant",
+                "message": {
+                    "id": "m",
+                    "content": [
+                        {
+                            "type": "tool_use",
+                            "id": "t0",
+                            "name": "use_tool",
+                            "input": {"tool_name": "bash", "tool_input": {"command": "true"}},
+                        }
+                    ],
+                },
+            },
+            {
+                "type": "user",
+                "message": {
+                    "content": [
+                        {
+                            "type": "tool_result",
+                            "tool_use_id": "t0",
+                            "content": json.dumps(
+                                {"type": "MCP", "output": {"OkayOutput": "ok"}}
+                            ),
+                        }
+                    ]
+                },
+            },
+            {"type": "result", "result": "ran", "num_turns": 1},
+        ]
+    if cli == "codex":
+        return [
+            {
+                "type": "item.completed",
+                "item": {
+                    "type": "command_execution",
+                    "id": "c0",
+                    "status": "completed",
+                    "command": "true",
+                },
+            },
+            {"type": "item.completed", "item": {"type": "agent_message", "text": "ran"}},
+            {"type": "turn.completed"},
+        ]
+    return [
+        {"type": "tool_use", "tool_id": "t1", "tool_name": "run_shell", "parameters": {}},
+        {"type": "tool_result", "tool_id": "t1", "output": "ok", "status": "ok"},
+        {"type": "result", "response": "ran"},
+    ]
+
+
+def _run_doctor_probe(cli, config, tmp_path, monkeypatch, probe):
+    def fake(name, cfg, workspace, prompt, *, mcp_enabled, isolated=True, probe_mcp=None, purpose="scenario"):
+        assert not mcp_enabled
+        if prompt == isolation.MISUSE_PROMPT:
+            assert purpose == "scenario" and isolated
+            return probe(workspace)
+        if isolated:
+            return execution(name, answer="OK")
+        return _positive_canary(cli, cfg, probe_mcp)
+
+    monkeypatch.setattr(isolation, "_execute", fake)
+    return harness.verify_isolation(cli, config, tmp_path)
+
+
+@pytest.mark.parametrize("cli", providers.CLIS)
+def test_misuse_probe_passes_when_disallowed_tools_are_refused(
+    cli, config, tmp_path, monkeypatch
+):
+    events = _refused_events(cli)
+    expected = providers.tool_misuse(
+        providers.parse_transcript(cli, text(events)),
+        mcp_enabled=False,
+        cli=cli,
+        purpose="scenario",
+    )
+    assert expected
+    result = _run_doctor_probe(
+        cli, config, tmp_path, monkeypatch, lambda workspace: _with_transcript(cli, events, "isolation_misuse")
+    )
+    assert result["verified"] and result["canary_runs"] == 3
+    assert result["misuse_probe"]["attempted"] == expected
+    assert result["misuse_probe"]["refused"] == expected
+    assert result["misuse_probe"]["side_effects"] is False
+    assert isolation.isolation_result(cli, config)["verified"]
+
+
+@pytest.mark.parametrize("cli", providers.CLIS)
+def test_misuse_probe_fails_when_the_marker_appears_in_output(cli, config, tmp_path, monkeypatch):
+    def probe(workspace):
+        result = _clean_probe(cli)
+        result.observed_output = (workspace / "model301-misuse-probe.txt").read_text()
+        return result
+
+    result = _run_doctor_probe(cli, config, tmp_path, monkeypatch, probe)
+    assert not result["verified"] and result["canary_runs"] == 3
+    assert result["reason"] == "Disallowed tool file read succeeded in the misuse probe"
+    assert result["misuse_probe"]["side_effects"] is True
+    assert not isolation.isolation_result(cli, config)["verified"]
+
+
+@pytest.mark.parametrize("cli", providers.CLIS)
+def test_misuse_probe_fails_when_the_shell_side_effect_file_exists(
+    cli, config, tmp_path, monkeypatch
+):
+    def probe(workspace):
+        (workspace / "model301-shell-fired").touch()
+        return _clean_probe(cli)
+
+    result = _run_doctor_probe(cli, config, tmp_path, monkeypatch, probe)
+    assert not result["verified"] and result["canary_runs"] == 3
+    assert result["reason"] == isolation.SHELL_SIDE_EFFECT
+    assert result["misuse_probe"]["side_effects"] is True
+    assert not isolation.isolation_result(cli, config)["verified"]
+
+
+@pytest.mark.parametrize("cli", providers.CLIS)
+def test_misuse_probe_fails_when_a_disallowed_call_succeeds(cli, config, tmp_path, monkeypatch):
+    events = _successful_events(cli)
+    expected = providers.tool_misuse(
+        providers.parse_transcript(cli, text(events)),
+        mcp_enabled=False,
+        cli=cli,
+        purpose="scenario",
+    )
+    assert len(expected) == 1
+    result = _run_doctor_probe(
+        cli,
+        config,
+        tmp_path,
+        monkeypatch,
+        lambda workspace: _with_transcript(cli, events, "isolation_misuse"),
+    )
+    assert not result["verified"] and result["canary_runs"] == 3
+    assert result["reason"] == f"Disallowed tool {expected[0]} succeeded in the misuse probe"
+    assert result["misuse_probe"]["attempted"] == expected
+    assert result["misuse_probe"]["refused"] == []
+    assert not isolation.isolation_result(cli, config)["verified"]
+
+
+def test_misuse_probe_fails_when_codex_reports_shell_tool_enabled(config, tmp_path, monkeypatch):
+    def probe(workspace):
+        result = _clean_probe("codex")
+        result.inventory["features"]["shell_tool"] = True
+        return result
+
+    result = _run_doctor_probe("codex", config, tmp_path, monkeypatch, probe)
+    assert not result["verified"] and result["canary_runs"] == 3
+    assert result["reason"] == "Codex features list reports shell_tool=true"
+    assert not isolation.isolation_result("codex", config)["verified"]
+
+
+def test_misuse_probe_fails_when_claude_init_tools_include_bash(config, tmp_path, monkeypatch):
+    def probe(workspace):
+        result = _clean_probe("claude")
+        result.transcript.init["tools"] = ["Bash"]
+        return result
+
+    result = _run_doctor_probe("claude", config, tmp_path, monkeypatch, probe)
+    assert not result["verified"] and result["canary_runs"] == 3
+    assert result["reason"] == "Claude init.tools includes Bash"
+    assert result["misuse_probe"]["static"]["init_tools"] == ["Bash"]
+    assert not isolation.isolation_result("claude", config)["verified"]
+
+
+def test_misuse_probe_hook_still_fails_doctor(config, tmp_path, monkeypatch):
+    def probe(workspace):
+        result = _clean_probe("claude")
+        result.transcript.hook_events.append({"type": "hook"})
+        return result
+
+    result = _run_doctor_probe("claude", config, tmp_path, monkeypatch, probe)
+    assert not result["verified"]
+    assert result["reason"] == "CLI emitted a hook event"
+    assert not isolation.isolation_result("claude", config)["verified"]
+
+
+def test_codex_inventory_records_shell_tool_and_unified_exec(config, tmp_path, monkeypatch):
+    monkeypatch.setattr(inventory, "_codex_skills", lambda *a: [])
+
+    def run(argv, **kwargs):
+        if argv[-3:] == ["mcp", "list", "--json"]:
+            value = []
+        elif argv[-3:] == ["plugin", "list", "--json"]:
+            value = {"installed": [], "available": []}
+        elif argv[-2:] == ["features", "list"]:
+            return subprocess.CompletedProcess(
+                argv,
+                0,
+                "hooks\tstable\tfalse\nshell_tool\tstable\tfalse\nunified_exec\tstable\ttrue\n",
+                "",
+            )
+        else:
+            value = [{"type": "message", "content": [{"type": "input_text", "text": "context"}]}]
+        return subprocess.CompletedProcess(argv, 0, json.dumps(value), "")
+
+    monkeypatch.setattr(docker.subprocess, "run", run)
+    mcp = tmp_path / "mcp.toml"
+    mcp.write_text(homes.home_config("codex", config, enabled=False))
+    result = inventory.inspect_inventory(
+        "codex", config, tmp_path, docker.passed_environment(config), mcp, mcp_enabled=False
+    )
+    assert result["features"] == {"shell_tool": False, "unified_exec": True}
+    assert inventory.inventory_violation(result, mcp_enabled=False) is None
 
 
 @pytest.mark.parametrize("trust", ["unreported", "trusted", None])
@@ -1906,7 +2313,15 @@ def test_report_cannot_follow_a_preexisting_file_symlink(config, tmp_path):
     assert destination.read_text() == "untouched"
 
 
-def doctor_reply(cli, config, workspace, prompt, *, mcp_enabled, isolated=True, probe_mcp=None):
+def doctor_reply(cli, config, workspace, prompt, *, mcp_enabled, isolated=True, probe_mcp=None, purpose="scenario"):
+    if prompt == isolation.MISUSE_PROMPT:
+        assert mcp_enabled is False and purpose == "scenario" and isolated
+        result = execution(cli, "OK")
+        if cli == "grok":
+            result.transcript.init["tools"] = ["search_tool", "use_tool"]
+        elif cli != "claude":
+            result.transcript.init = None
+        return result
     if isolated:
         result = execution(cli, "OK")
     else:
@@ -2910,10 +3325,11 @@ def test_doctor_runs_the_auth_version_and_paired_controls_through_fake_docker(
 
     monkeypatch.setattr(docker.subprocess, "run", run)
     result = harness.verify_isolation("claude", config, tmp_path)
-    assert result["verified"] and result["canary_runs"] == 2
+    assert result["verified"] and result["canary_runs"] == 3
     assert result["schema"] == 4 and isolation.isolation_result("claude", config)["verified"]
+    assert result["misuse_probe"]["side_effects"] is False
     prompts = [(native, mode) for native, mode, _ in calls if "--print" in native]
-    assert [mode for _, mode in prompts] == ["positive", "isolated"]
+    assert [mode for _, mode in prompts] == ["positive", "isolated", "isolated"]
     assert all("MODELSPEC_API_KEY" not in argv for _, _, argv in calls)
 
 

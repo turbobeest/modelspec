@@ -467,7 +467,11 @@ def parse_transcript(cli: str, output: str) -> Transcript:
                 elif item.get("type") == "agent_message" and kind == "item.completed":
                     parsed.final_answer = item.get("text", "")
                 elif item.get("type") in ("command_execution", "web_search", "file_change"):
-                    call(item["id"], item["type"], item.get("action", item.get("command", {})))
+                    record = call(
+                        item["id"], item["type"], item.get("action", item.get("command", {}))
+                    )
+                    if isinstance(item.get("status"), str):
+                        record["status"] = item["status"]
                     if kind == "item.completed":
                         finish(item["id"], item, bool(item.get("error")))
             if kind == "turn.completed":
@@ -647,6 +651,20 @@ def _offending_call(call: dict, *, cli: str, native: set, allowed: set) -> str |
     return None
 
 
+def misuse_calls(
+    parsed: Transcript, *, mcp_enabled: bool, cli="claude", allowed_servers=None, purpose="scenario",
+) -> list[tuple[str, dict]]:
+    """Disallowed calls in transcript order, classified the same way as tool_misuse."""
+    allowed = _allowed_servers(mcp_enabled, allowed_servers)
+    native = _native_tools(cli, purpose)
+    found = []
+    for call in [*parsed.other_tool_calls, *parsed.tool_calls]:
+        name = _offending_call(call, cli=cli, native=native, allowed=allowed)
+        if name:
+            found.append((name, call))
+    return found
+
+
 def tool_misuse(
     parsed: Transcript, *, mcp_enabled: bool, cli="claude", allowed_servers=None, purpose="scenario",
 ) -> list[str]:
@@ -655,15 +673,62 @@ def tool_misuse(
     Codex resource tools are lookups. They are allowed when their server argument
     is absent or names an allowed MCP server. Any other server is misuse.
     """
-    allowed = _allowed_servers(mcp_enabled, allowed_servers)
-    native = _native_tools(cli, purpose)
     found, seen = [], set()
-    for call in [*parsed.other_tool_calls, *parsed.tool_calls]:
-        name = _offending_call(call, cli=cli, native=native, allowed=allowed)
-        if name and name not in seen:
+    for name, _call in misuse_calls(
+        parsed, mcp_enabled=mcp_enabled, cli=cli, allowed_servers=allowed_servers, purpose=purpose,
+    ):
+        if name not in seen:
             seen.add(name)
             found.append(name)
     return found
+
+
+def _result_text(result: dict) -> str:
+    content = result.get("content")
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts = []
+        for block in content:
+            if isinstance(block, str):
+                parts.append(block)
+            elif isinstance(block, dict) and isinstance(block.get("text"), str):
+                parts.append(block["text"])
+        return "\n".join(parts)
+    return ""
+
+
+def _codex_item_status(call: dict, result: dict, blob: str) -> str | None:
+    for source in (call.get("status"), result.get("status")):
+        if isinstance(source, str):
+            return source.lower()
+    try:
+        payload = json.loads(blob)
+    except ValueError:
+        return None
+    if isinstance(payload, dict) and isinstance(payload.get("status"), str):
+        return payload["status"].lower()
+    return None
+
+
+def disallowed_call_refused(cli: str, call: dict) -> bool:
+    """A disallowed call that was not observed, errored, cancelled, or declined.
+
+    Grok reports a permission refusal as use_tool text beginning with "User cancelled".
+    Codex reports command_execution and the other built-in items with status failed
+    or declined, including when the item has no error field.
+    """
+    if call.get("result_observed") is False:
+        return True
+    result = call.get("result") if isinstance(call.get("result"), dict) else {}
+    if result.get("isError") is True:
+        return True
+    blob = _result_text(result)
+    if cli == "grok" and "User cancelled" in blob:
+        return True
+    if cli == "codex" and _codex_item_status(call, result, blob) in ("failed", "declined"):
+        return True
+    return False
 
 
 def misuse_error(names: list[str]) -> str:
