@@ -471,6 +471,27 @@ it("separates not-yet-tracked facets", () => {
   expect(groupFacets(vocabulary).untracked.map((facet) => facet.id)).toContain(vocabulary.facets[0].id);
 });
 
+it("says a group changed nothing only when no Must in it is cutting", () => {
+  render(<FacetBoard
+    vocabulary={realVocabulary}
+    spec={realBaseSpec(realVocabulary)}
+    selections={{
+      "model.context_window": { mode: "must", op: ">=", value: 128000 },
+      "offering.price.input": { mode: "prefer", weight: 0.5 },
+      "model.class": { mode: "must", op: "=", value: "text-generator" },
+    }}
+    onSpec={vi.fn()}
+    estate={emptyEstate}
+    onEstate={vi.fn()}
+  />);
+  const summary = (name: RegExp) => screen.getByRole("button", { name });
+  expect(summary(/Size of work/)).not.toHaveTextContent("no change");
+  expect(summary(/Size of work/)).toHaveTextContent("1 set");
+  expect(summary(/^Budget/)).toHaveTextContent("no change");
+  expect(summary(/What it does/)).toHaveTextContent(/→ \d+ survive/);
+  expect(summary(/What it does/)).not.toHaveTextContent("no change");
+});
+
 it("starts enum Must controls unselected and shows vocabulary counts", () => {
   const onSpec = vi.fn();
   render(<FacetBoard vocabulary={realVocabulary} spec={{ ...realBaseSpec(realVocabulary), conds: [] }} onSpec={onSpec} estate={{ providers: [], plans: [], hardware: [] }} onEstate={vi.fn()} />);
