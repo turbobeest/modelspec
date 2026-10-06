@@ -1,8 +1,8 @@
 name: Decision accuracy nightly
 
-# A failing night is reported by the coverage report (MODEL-215): its
-# `workflow-health` target watches this workflow and keeps one issue open while
-# the latest run on main is red or overdue. This job files no issue of its own.
+# A failing night opens one issue labelled `alert`, which the orchestrator's
+# heartbeat reads, and the next green night closes it (MODEL-335). The coverage
+# report's `workflow-health` target (MODEL-215) also watches this workflow.
 
 on:
   schedule:
@@ -27,6 +27,9 @@ jobs:
     runs-on: ubuntu-latest
     # Runs take 5-8 minutes; the default limit is six hours.
     timeout-minutes: 20
+    permissions:
+      contents: read
+      issues: write
     env:
       STAGE_FAILURE: ${{ inputs.stage_failure }}
     steps:
@@ -63,3 +66,33 @@ jobs:
         with:
           name: decision-accuracy-nightly
           path: accuracy-report/
+
+      - name: Alert the orchestrator
+        if: failure() && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          python scripts/accuracy_alert.py --report accuracy-report/accuracy.json \
+            --run-url "$RUN_URL" --output alert.md
+          gh label create alert --color B60205 \
+            --description "Read by the orchestrator heartbeat" --force
+          number=$(gh issue list --label alert --state open \
+            --search 'in:title "Accuracy nightly failed"' --json number --jq '.[0].number // empty')
+          if [ -n "$number" ]; then
+            gh issue comment "$number" --body-file alert.md
+          else
+            gh issue create --title "Accuracy nightly failed" --label alert --body-file alert.md
+          fi
+
+      - name: Close the alert after a green night
+        if: success() && github.ref == 'refs/heads/main'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          gh issue list --label alert --state open \
+            --search 'in:title "Accuracy nightly failed"' --json number --jq '.[].number' |
+          while read -r number; do
+            gh issue close "$number" --comment "Green again: $RUN_URL"
+          done
