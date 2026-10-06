@@ -94,6 +94,8 @@ COMPLETENESS_REGISTRY = Registry(
     named_lists={
         "benchmarks": lambda: frozenset(),
         "registry:domains": lambda: frozenset(),
+        "registry:providers": lambda: frozenset(p.id for p in _ALL_REGISTRY.providers()),
+        "iso_3166_1_alpha_2": None,
     },
 )
 REGISTRY = _ALL_REGISTRY
@@ -151,8 +153,8 @@ def test_subscription_offerings_round_trip_without_becoming_candidates(tmp_path)
     index = load(path)
 
     assert index.subscription_offerings() == ({
-        "id": "lab-api/subscription/pro",
-        "provider": "lab-api",
+        "id": "sambanova/subscription/pro",
+        "provider": "sambanova",
         "plan": "pro",
         "name": "Pro",
         "facts": {
@@ -171,7 +173,7 @@ def test_subscription_offerings_round_trip_without_becoming_candidates(tmp_path)
             ),
         },
     },)
-    assert "lab-api/subscription/pro" not in index.candidates()
+    assert "sambanova/subscription/pro" not in index.candidates()
 
 
 def test_subscription_data_does_not_change_an_existing_decision(tmp_path):
@@ -636,11 +638,11 @@ def test_retired_models_go_to_the_archive(tmp_path):
     path = build(tmp_path)
     index = load(path)
     assert "lab/old" not in index.candidates()
-    assert "lab-api/lab/old/global/standard" not in index.candidates()
+    assert "sambanova/lab/old/global/standard" not in index.candidates()
     with_archive = load(path, include_archive=True)
     assert "lab/old" in with_archive.candidates()
     assert with_archive.lifecycle("lab/old") == "retired"
-    assert with_archive.lifecycle("lab-api/lab/old/global/standard") == "retired"
+    assert with_archive.lifecycle("sambanova/lab/old/global/standard") == "retired"
     assert with_archive.fact("lab/old", "model.context_window").value == 128000
 
 
@@ -656,14 +658,40 @@ def test_an_offering_of_an_unknown_model_fails_loudly():
         build_snapshot(inputs(offerings=[offering("lab/ghost")]), registry=REGISTRY, as_of=AS_OF)
 
 
+@pytest.mark.parametrize(("part", "value"), [
+    ("provider", "lab-api"),
+    ("provider", "cursor"),  # a subscription-only vendor sells plans, not API offerings
+    ("tier", "Tier0"),
+])
+def test_an_offering_identity_outside_the_registry_fails_loudly(part, value):
+    row = {**offering("lab/alpha"), part: value}
+    with pytest.raises(SnapshotBuildError, match=f"offering.{part} '{value}' is not registered"):
+        build_snapshot(inputs(offerings=[row]), registry=REGISTRY, as_of=AS_OF)
+
+
+def test_an_offering_region_is_the_providers_own_name(tmp_path):
+    row = {**offering("lab/alpha"), "region": "singapore"}
+    index = load(build(tmp_path, offerings=[row]))
+    assert index.fact("sambanova/lab/alpha/singapore/standard", "offering.region") == FactValue(
+        "known", "singapore", ())
+
+
+def test_a_subscription_must_be_sold_by_a_registered_plan_owner(tmp_path):
+    index = load(build(tmp_path, subscriptions=[subscription("cursor")]))
+    assert [s["id"] for s in index.subscription_offerings()] == ["cursor/subscription/pro"]
+    with pytest.raises(SnapshotBuildError, match="lab-api/subscription/pro.*lab-api"):
+        build_snapshot(inputs(subscriptions=[subscription("lab-api")]),
+                       registry=REGISTRY, as_of=AS_OF)
+
+
 # ── the completeness gate ──────────────────────────────────────────────────
 
 
 def test_the_gate_passes_a_complete_premier_set(tmp_path):
     offerings = [offering("lab/alpha", facts=[
-        fact("offering", "lab-api/lab/alpha/global/standard", "offering.price.input", 3.0,
+        fact("offering", "sambanova/lab/alpha/global/standard", "offering.price.input", 3.0,
              source="src-pricing"),
-        fact("offering", "lab-api/lab/alpha/global/standard", "offering.price.batch_input",
+        fact("offering", "sambanova/lab/alpha/global/standard", "offering.price.batch_input",
              "not_offered", source="src-pricing"),
     ])]
     build(tmp_path, premier=["lab/alpha"], offerings=offerings)
@@ -696,7 +724,7 @@ def test_the_gate_names_the_source_of_an_unverified_fact():
 
 
 def test_the_gate_checks_guaranteed_offering_facets_and_ignores_best_effort():
-    oid = "lab-api/lab/alpha/global/standard"
+    oid = "sambanova/lab/alpha/global/standard"
     no_price = offering("lab/alpha", facts=[])
     with pytest.raises(CompletenessError) as exc:
         build_snapshot(inputs(models=[model("lab/alpha")], offerings=[no_price], evidence=[]),
@@ -834,7 +862,7 @@ def test_the_index_satisfies_the_protocol(tmp_path):
     assert list(index.candidates()) == sorted(index.candidates())
     assert set(index.candidates()) == {
         "lab/alpha", "lab/beta",
-        "lab-api/lab/alpha/global/standard", "lab-api/lab/beta/global/standard"}
+        "sambanova/lab/alpha/global/standard", "sambanova/lab/beta/global/standard"}
 
 
 def test_facts_carry_state_value_and_sources(tmp_path):
@@ -849,9 +877,9 @@ def test_facts_carry_state_value_and_sources(tmp_path):
 
 def test_offerings_inherit_their_models_facts(tmp_path):
     index = load(build(tmp_path))
-    oid = "lab-api/lab/beta/global/standard"
+    oid = "sambanova/lab/beta/global/standard"
     assert index.fact(oid, "model.context_window").value == 32000
-    assert index.fact(oid, "offering.provider") == FactValue("known", "lab-api", ())
+    assert index.fact(oid, "offering.provider") == FactValue("known", "sambanova", ())
     assert index.fact(oid, "offering.price.input").value == 0.5
     assert index.fact("lab/beta", "offering.price.input") == UNKNOWN
     assert index.model_of(oid) == "lab/beta"
@@ -866,8 +894,8 @@ def test_ids_where_is_three_valued(tmp_path):
     index = load(build(tmp_path))
     r = index.ids_where("offering.price.input", "<", 1)
     assert isinstance(r, Bitset3)
-    assert _ids(index, r.passing) == {"lab-api/lab/beta/global/standard"}
-    assert _ids(index, r.failing) == {"lab-api/lab/alpha/global/standard"}
+    assert _ids(index, r.passing) == {"sambanova/lab/beta/global/standard"}
+    assert _ids(index, r.failing) == {"sambanova/lab/alpha/global/standard"}
     assert _ids(index, r.unknown) == {"lab/alpha", "lab/beta"}
     assert r.passing | r.failing | r.unknown == (1 << len(index.candidates())) - 1
 
@@ -875,9 +903,9 @@ def test_ids_where_is_three_valued(tmp_path):
 def test_ids_where_on_numbers_windows_enums_and_sets(tmp_path):
     index = load(build(tmp_path))
     ge = index.ids_where("model.context_window", ">=", 100000)
-    assert _ids(index, ge.passing) == {"lab/alpha", "lab-api/lab/alpha/global/standard"}
+    assert _ids(index, ge.passing) == {"lab/alpha", "sambanova/lab/alpha/global/standard"}
     window = index.ids_where("model.context_window", "between", (30000, 40000))
-    assert _ids(index, window.passing) == {"lab/beta", "lab-api/lab/beta/global/standard"}
+    assert _ids(index, window.passing) == {"lab/beta", "sambanova/lab/beta/global/standard"}
     eq = index.ids_where("model.weights_openness", "=", "open_weights")
     assert len(_ids(index, eq.passing)) == 4 and eq.failing == 0
     ne = index.ids_where("model.weights_openness", "in", ["closed_weights"])
@@ -893,8 +921,8 @@ def test_unbounded_and_not_offered_literals_compare_sensibly(tmp_path):
     cap = index.ids_where("licence.user_cap", ">=", 1_000_000)
     assert _ids(index, cap.passing) >= {"lab/alpha", "lab/beta"}
     batch = index.ids_where("offering.price.batch_input", "<", 1)
-    assert _ids(index, batch.passing) == {"lab-api/lab/beta/global/standard"}
-    assert _ids(index, batch.failing) == {"lab-api/lab/alpha/global/standard"}  # not offered
+    assert _ids(index, batch.passing) == {"sambanova/lab/beta/global/standard"}
+    assert _ids(index, batch.failing) == {"sambanova/lab/alpha/global/standard"}  # not offered
 
 
 def test_not_disclosed_is_unknown_to_a_filter(tmp_path):
@@ -1006,7 +1034,7 @@ def _mini_repo(tmp_path: Path) -> Path:
     (root / "registry").mkdir()
     (root / "registry" / "sources.yaml").write_text(yaml.safe_dump(
         {"schema_version": 1, "sources": [{"id": k, "url": v} for k, v in SOURCES.items()]}))
-    offer_dir = root / "offerings" / "lab-api" / "lab"
+    offer_dir = root / "offerings" / "sambanova" / "lab"
     offer_dir.mkdir(parents=True)
     (offer_dir / "alpha.yaml").write_text(yaml.safe_dump([offering("lab/alpha")]))
     (root / "premier").mkdir()
@@ -1022,7 +1050,7 @@ def test_collect_repo_reads_cards_offerings_sources_and_domains(tmp_path):
     collected = snap.collect_repo(root)
     assert collected.sources == SOURCES
     assert collected.benchmark_domains == {"swe_bench_pro": (("software_engineering", "direct"),)}
-    assert [o["provider"] for o in collected.offerings] == ["lab-api"]
+    assert [o["provider"] for o in collected.offerings] == ["sambanova"]
     index_path = tmp_path / "s"
     build_snapshot(
         collected,
