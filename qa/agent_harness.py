@@ -408,6 +408,30 @@ def metrics(rows: list[dict]) -> dict:
     }
 
 
+def isolation_misuse_rows(rows: list[dict]) -> list[list]:
+    """[scenario, cli, role, tools] for runs that called a disallowed tool.
+
+    These rows stay in the success rate as failures. They are not dropped and
+    they are not treated as an unknown status.
+    """
+    found = []
+    for row in rows:
+        tools = row.get("isolation_misuse") or []
+        if not tools:
+            continue
+        if row.get("status") == "isolation_misuse":
+            found.append([row["scenario"], row.get("cli", row["agent"]), "agent", list(tools)])
+        else:
+            judge = row.get("judge_execution") or {}
+            found.append([
+                row["scenario"],
+                judge.get("cli", row.get("cli", row["agent"])),
+                "judge",
+                list(tools),
+            ])
+    return found
+
+
 def make_report(
     rows: list[dict],
     scenarios: list[dict],
@@ -478,6 +502,7 @@ def make_report(
             "schema_confusion_by_tool": schemas.most_common(),
             "missing_capabilities": missing.most_common(),
         },
+        "isolation_misuse": isolation_misuse_rows(rows),
         "gap_list": gaps,
         "tool_responses": responses,
         "runs": report_rows,
@@ -501,7 +526,8 @@ def markdown(report: dict) -> str:
         "The judge assesses evidence separation and required uncertainty flags.",
         "",
         "Missing judgements and capped or failed runs count as failures. Expected-match rates "
-        "exclude cases without approved expectations or a parsed judgement.",
+        "exclude cases without approved expectations or a parsed judgement. "
+        "A row with status isolation_misuse is a failure in these rates.",
         "",
         "## Success and tool use",
         "",
@@ -546,6 +572,11 @@ def markdown(report: dict) -> str:
         lines.append(
             f"- {category}: " + (", ".join(f"{name} ({n})" for name, n in counts) or "none")
         )
+    misuse = report.get("isolation_misuse") or []
+    if misuse:
+        lines += ["", "Isolation misuse keeps the doctor receipt and counts as a failure.", ""]
+        for scenario_id, cli, role, tools in misuse:
+            lines.append(f"- {scenario_id} / {cli} / {role}: {', '.join(tools)}")
     lines += [
         "",
         "## Gap list",

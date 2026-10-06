@@ -251,7 +251,11 @@ container runs without added capabilities or host networking; ordinary outbound
 network access is allowed. Only `TERM`, `LANG` and `MODELSPEC_MCP_URL` are passed.
 The configured ModelSpec key is passed by environment name only when an agent
 needs it, never in Docker argv, image layers, login, doctor controls or judge
-containers. Other CLI controls are fixed inside the image. Docker client activity
+containers. Prompts are not Docker arguments either. Claude `--print` and Codex
+`exec -` read the prompt on stdin. Grok reads `/work/.prompt.txt`, written mode
+0600 in the private workspace. Gemini, which is retired, still takes `--prompt`
+on its command line. Dry-run and job previews print `<private prompt>` instead
+of the text. Other CLI controls are fixed inside the image. Docker client activity
 files use a temporary client configuration connected to the existing local Unix
 socket, without copying the host's Docker configuration.
 
@@ -284,14 +288,21 @@ activate customizations cause refusal. A vacuous positive control fails.
 | CLI | Effective inventory required for certification |
 | --- | --- |
 | Claude | Stream init lists skills, plugins, MCP servers and exposed tools; hook events are rejected. A standalone plugin listing is preliminary only. |
-| Codex | Native app-server `skills/list` discovery and effective disabling, `mcp list --json`, `plugin list --json`, `features list`, and `debug prompt-input`. Enabled plugins block certification even if `plugins={}` was requested. Names, enabled state and account scope are recorded when the CLI reports that scope. ChatGPT account apps reappear after login as enabled plugins; the controls also turn off the `apps`, `plugins` and `remote_plugin` features. Any manual Codex run in `/work` with `--sandbox danger-full-access` persists a trust grant for `/work` in the login volume (the harness never uses that mode), so the controls pin `/work` untrusted; the only tolerated app-server diagnostic is Codex's exact notice that the planted `/work/.codex` was refused. The isolated canary fails unless that notice states `/work` is untrusted in the effective configuration. The ModelSpec server alone sets `default_tools_approval_mode = "approve"`, because `exec` refuses every tool call that asks for approval. |
+| Codex | Native app-server `skills/list` discovery and effective disabling, `mcp list --json`, `plugin list --json`, `features list`, and `debug prompt-input`. Enabled plugins block certification even if `plugins={}` was requested. Names, enabled state and account scope are recorded when the CLI reports that scope. ChatGPT account apps reappear after login as enabled plugins; the controls also turn off the `apps`, `plugins` and `remote_plugin` features, plus `shell_tool`, `unified_exec`, `view_image`, `image_generation`, `browser_use`, `browser_use_external`, `computer_use`, `multi_agent`, `goals`, `tool_suggest`, `skill_search`, `in_app_browser` and `in_app_local_automation`. Codex has no switch for `list_mcp_resources`, `list_mcp_resource_templates` or `read_mcp_resource`. Transcripts report those with server `codex`. They are lookups, allowed when the `server` argument is absent or names an allowed MCP server for the run. Any other server is misuse. Any manual Codex run in `/work` with `--sandbox danger-full-access` persists a trust grant for `/work` in the login volume (the harness never uses that mode), so the controls pin `/work` untrusted; the only tolerated app-server diagnostic is Codex's exact notice that the planted `/work/.codex` was refused. The isolated canary fails unless that notice states `/work` is untrusted in the effective configuration. The ModelSpec server alone sets `default_tools_approval_mode = "approve"`, because `exec` refuses every tool call that asks for approval. |
 | Gemini | Native MCP, extension and skill listings plus its installed settings loader's effective enablement. Root-owned settings disable skills, hooks and context files without overriding the stored auth type. Five exact ModelSpec MCP lifecycle messages are recognized; unknown diagnostics still fail. |
 | Grok | `inspect --json` must show no active instruction files, user skills, plugins or hooks, and exactly the configured ModelSpec MCP servers. At run time, init must report each configured server `connected` or `pending` (Grok connects lazily), and any other server `disabled`. MCP tools are reached through `search_tool` (lookup only; allowed on every run except search, including judges) and `use_tool("<server>__<tool>")`, which is recorded and checked as a call on that server. Isolated runs set `GROK_MAX_MCP_OUTPUT_BYTES` to 4000000 so large MCP results stay inline, and doctor records `printenv` of that variable as `mcp_output_bytes` only when it is an integer of at least 1000000. A Grok receipt without that integer is not verified. |
 
 Receipts use schema 4 under `<out>/.tui-state/<cli>/tui-isolation.json`. Earlier
 native-home receipts cannot authorize Docker runs. A failed or interrupted repeat
 doctor revokes the previous receipt. Each ordinary launch rechecks authentication
-and native inventory; invalid evidence revokes eligibility. `--force` overrides
+and native inventory. Invalid evidence revokes eligibility. A call to a tool
+outside the run's allowlist does not. That execution is `isolation_misuse`, the
+error names the tools, and the row is a failure. The judge is not started. The
+next scenario for that CLI still runs. A judge that calls a disallowed tool
+fails only that row, again without revoking the receipt. Revocation stays for a
+subscription attestation failure, a hook event, loaded skills or plugins, an
+extra MCP server, an unapproved tool listed at startup, or a vendor credential.
+A doctor canary that calls a disallowed tool does not pass. `--force` overrides
 quiet hours only, never evidence or authentication.
 
 Unauthenticated inventories can be inspected without touching login volumes:

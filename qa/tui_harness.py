@@ -55,6 +55,7 @@ from qa.tui_providers import (
     BASE_ENV,
     CLIS,
     FAMILY,
+    PROMPT_MARKER,
     Execution,
     build_command,
     launch,
@@ -232,6 +233,8 @@ def execution_row(scenario: dict, cli: str, config: dict, execution: Execution) 
         usage_limit=execution.limit_reason,
         total_tool_calls=len(parsed.tool_calls) + len(parsed.other_tool_calls),
     )
+    if execution.misuse:
+        row["isolation_misuse"] = list(execution.misuse)
     row["model_calls"] = [
         {
             "role": "agent",
@@ -330,6 +333,10 @@ class Runner:
         except StartRefusedError as exc:
             return empty_row(scenario, cli, self.config, exc.status, str(exc))
         row = execution_row(scenario, cli, self.config, execution)
+        if execution.status == "isolation_misuse":
+            row["evaluation_status"] = "failed"
+            row["success"] = False
+            return row
         if execution.status != "completed":
             return row
         try:
@@ -354,6 +361,9 @@ class Runner:
             "usage_limit": judged.limit_reason,
             "error": judged.error,
         }
+        if judged.misuse:
+            row["isolation_misuse"] = list(judged.misuse)
+            row["judge_execution"]["isolation_misuse"] = list(judged.misuse)
         row["model_calls"].append(
             {
                 "role": "judge",
@@ -521,6 +531,11 @@ def markdown(report: dict) -> str:
             f"| {row['scenario']} | {row['agent']} | {row['status']} | "
             f"{row.get('evaluation_status', 'not judged')} | {row['exit_code']} |"
         )
+    misuse = report.get("isolation_misuse") or []
+    if misuse:
+        lines += ["", "Isolation misuse keeps the doctor receipt and counts as a failure.", ""]
+        for scenario_id, cli, role, tools in misuse:
+            lines.append(f"- {scenario_id} / {cli} / {role}: {', '.join(tools)}")
     return "\n".join(lines) + "\n"
 
 
@@ -558,6 +573,8 @@ def dry_commands(scenarios: list[dict], selected: list[str], config: dict, outpu
                 command = container_command(
                     cli, config, workspace, command, passed_environment(config, token=True)
                 )
+                prompt = scenario_prompt(scenario)
+                shown = [PROMPT_MARKER if part == prompt else part for part in command]
                 print(
                     json.dumps(
                         redact_structure(
@@ -565,8 +582,9 @@ def dry_commands(scenarios: list[dict], selected: list[str], config: dict, outpu
                                 "cli": cli,
                                 "scenario": scenario["id"],
                                 "cwd": str(workspace),
-                                "command": shlex.join(command),
-                                "stdin": "",
+                                "command": shlex.join(shown),
+                                "stdin": PROMPT_MARKER if cli in ("claude", "codex") else "",
+                                "prompt": PROMPT_MARKER,
                                 "environment_inherit_only": list(BASE_ENV),
                                 "eligibility": "Doctor receipt required before execution",
                                 "mcp_config": payload,

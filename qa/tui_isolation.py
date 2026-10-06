@@ -28,6 +28,7 @@ from qa.tui_providers import (
     isolation_violation,
     prepare_workspace,
     subscription_violation,
+    tool_misuse,
 )
 
 PROBES = ("instructions", "skills", "hooks", "mcp")
@@ -243,6 +244,9 @@ def canary_passed(execution: Execution, cli: str, marker: str, hook: Path, mcp: 
             execution.transcript, mcp_enabled=False, cli=cli, inventory=execution.inventory
         )
         is None
+        and not tool_misuse(
+            execution.transcript, mcp_enabled=False, cli=cli, purpose="scenario"
+        )
     )
 
 

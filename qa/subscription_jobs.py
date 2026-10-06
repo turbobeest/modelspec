@@ -116,13 +116,21 @@ def require_ready(config: dict, clis: list[str], output: Path, *, max_age_days=3
 
 
 def preview(cli: str, config: dict, workspace: Path, prompt: str, *, purpose="scenario") -> list[str]:
+    from qa.tui_providers import PROMPT_MARKER
+
     mcp = workspace / "modelspec-mcp.json"
     mcp.write_text(home_config(cli, config, enabled=purpose in ("scenario", "browser")))
     command = build_command(cli, config["clis"][cli], workspace, prompt, mcp,
                             config["turn_cap"], purpose=purpose)
     # The preview uses the command builder but never consults Docker.
     argv = container_command(cli, config, workspace, command, passed_environment(config), preview=True)
-    print(shlex.join(argv[:-1]) + " '<private prompt>'")
+    shown = [PROMPT_MARKER if part == prompt else part for part in argv]
+    line = shlex.join(shown)
+    if cli in ("claude", "codex"):
+        line += " < " + shlex.quote(PROMPT_MARKER)
+    elif cli == "grok":
+        line += " " + shlex.quote(PROMPT_MARKER)
+    print(line)
     return argv
 
 
