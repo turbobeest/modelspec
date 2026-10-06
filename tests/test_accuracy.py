@@ -660,6 +660,30 @@ def test_a_rendered_source_403_is_undetermined_and_the_layer_passes(tmp_path: Pa
     assert "1 of 13 draws (8%) were undetermined" in summary
 
 
+def test_a_rendered_source_that_answers_and_contradicts_the_value_is_a_mismatch(
+    tmp_path: Path,
+) -> None:
+    """render_required covers only a refused fetch, never a page that was read."""
+    claim = _sourced("lab/answered#context", "rendered")
+
+    result, unread, queue, log = _run_fidelity_fetch(
+        tmp_path,
+        {"rendered": _text_source("rendered", "rendered")},
+        [claim],
+        {
+            "https://example.test/rendered": FetchResult(
+                "ok", 200, body=b"Model: Model\ncontext: 99\n", content_type="text/plain"
+            ),
+        },
+    )
+
+    assert unread[("fact", "lab/answered#context")] == "source_changed"
+    assert result.status == "fail"
+    assert result.details[0]["outcome"] == "mismatch"
+    assert result.counts == {"verified": 0, "mismatch": 1, "unreachable": 0, "undetermined": 0}
+    assert queue.recrawl_requests() == [(claim.target, "mismatch")]
+
+
 def test_a_plain_http_source_403_is_still_unreachable(tmp_path: Path) -> None:
     plain = _text_source("plain", "http")
     claim = _sourced("lab/blocked#context", "plain")
