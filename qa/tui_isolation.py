@@ -12,7 +12,7 @@ from pathlib import Path
 
 from qa.providers import redact_structure
 from qa.tui_auth import authentication_status
-from qa.tui_docker import image_identity
+from qa.tui_docker import image_identity, passed_environment
 from qa.tui_homes import (
     binary_identity,
     home_config,
@@ -67,6 +67,12 @@ def isolation_result(cli: str, config: dict) -> dict:
             certified = datetime.fromisoformat(result["certified_at"])
             if certified.tzinfo is None or not timedelta(0) <= datetime.now(timezone.utc) - certified <= timedelta(days=config["_receipt_max_age_days"]):
                 raise ValueError("Doctor receipt has expired")
+        if isinstance(result, dict) and cli == "grok":
+            measured = result.get("mcp_output_bytes")
+            if type(measured) is not int or measured < 1000000:
+                return unproven(
+                    "Grok receipt predates the inline MCP output check; rerun doctor --cli grok"
+                )
         controls = result["positive_control"]
         isolated = result["isolated_control"]
         passed = all(
@@ -344,6 +350,37 @@ def verify_isolation(cli: str, config: dict, output: Path, *, before_start=lambd
                     return unproven(reason, **observations)
         if authentication.get("service_available") is False:
             return unproven(authentication["reason"], **observations)
+        mcp_output_bytes = None
+        if cli == "grok":
+            # Same isolated container path as binary_identity: home=False, isolated by default.
+            from qa.tui_homes import run_cli
+
+            with tempfile.TemporaryDirectory(
+                prefix=f"tui-mcp-bytes-{cli}-", dir=output
+            ) as directory:
+                before_start()
+                measured = run_cli(
+                    cli,
+                    config,
+                    Path(directory),
+                    ["printenv", "GROK_MAX_MCP_OUTPUT_BYTES"],
+                    passed_environment(config),
+                    home=False,
+                )
+            try:
+                mcp_output_bytes = int(str(measured.stdout).strip())
+            except (TypeError, ValueError):
+                mcp_output_bytes = None
+            if (
+                measured.returncode != 0
+                or mcp_output_bytes is None
+                or mcp_output_bytes < 1000000
+            ):
+                return unproven(
+                    "Grok would spill large MCP results to files; "
+                    "GROK_MAX_MCP_OUTPUT_BYTES is missing or too low",
+                    **observations,
+                )
         for location in LOCATIONS:
             with tempfile.TemporaryDirectory(prefix=f"tui-canary-{cli}-", dir=output) as directory:
                 workspace = Path(directory)
@@ -418,6 +455,7 @@ def verify_isolation(cli: str, config: dict, output: Path, *, before_start=lambd
             "certified_at": datetime.now(timezone.utc).isoformat(),
             "identity": identity,
             "binary": binary,
+            **({"mcp_output_bytes": mcp_output_bytes} if mcp_output_bytes is not None else {}),
             "inventory": inventory,
             "authentication": authentication,
             "container_boundary": boundary

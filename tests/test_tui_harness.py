@@ -122,6 +122,8 @@ def allow_launch(config, clis=providers.CLIS):
             "isolated_control": dict.fromkeys(isolation.LOCATIONS, True),
             "canary_runs": 2,
         }
+        if cli == "grok":
+            receipt["mcp_output_bytes"] = 4000000
         isolation.receipt_file(home).write_text(json.dumps(receipt))
 
 
@@ -145,13 +147,12 @@ def config(tmp_path, monkeypatch):
     monkeypatch.setattr(docker, "image_identity", identity)
     monkeypatch.setattr(isolation, "image_identity", identity)
     monkeypatch.setattr(homes, "docker_executable", lambda: "/fake/docker")
-    monkeypatch.setattr(
-        homes,
-        "run_cli",
-        lambda cli, cfg, *a, **k: subprocess.CompletedProcess(
-            [], 0, cfg["clis"][cli]["version"], ""
-        ),
-    )
+    def run_native(cli, cfg, workspace, command, env, **kwargs):
+        if command == ["printenv", "GROK_MAX_MCP_OUTPUT_BYTES"]:
+            return subprocess.CompletedProcess(command, 0, "4000000\n", "")
+        return subprocess.CompletedProcess([], 0, cfg["clis"][cli]["version"], "")
+
+    monkeypatch.setattr(homes, "run_cli", run_native)
     monkeypatch.setattr(isolation, "inspect_inventory", lambda cli, *a, **k: native_inventory(cli))
 
     def subscription(*a):
@@ -427,6 +428,31 @@ def test_grok_use_tool_splits_a_leading_json_object_from_the_summary():
     unauthorised = '{"origin":"https://api.modelspec.dev/v1/decide","status":401,"body":{}}'
     with pytest.raises(ValueError, match="unauthorised"):
         require_funded_key(gated(unauthorised))
+
+
+def test_grok_judge_may_look_up_tools_but_not_call_use_tool():
+    def transcript(block):
+        return providers.parse_transcript("grok", text([
+            {"type": "assistant", "message": {"id": "m0", "content": [block]}},
+            {"type": "result", "result": "Done", "num_turns": 1},
+        ]))
+
+    inventory = native_inventory("grok", mcp_enabled=False)
+    looked_up = transcript(
+        {"type": "tool_use", "id": "s1", "name": "search_tool", "input": {"query": "decide"}}
+    )
+    assert providers.isolation_violation(
+        looked_up, mcp_enabled=False, cli="grok", inventory=inventory, purpose="judge"
+    ) is None
+    bash = transcript({
+        "type": "tool_use",
+        "id": "u1",
+        "name": "use_tool",
+        "input": {"tool_name": "bash", "tool_input": {"command": "ls"}},
+    })
+    assert providers.isolation_violation(
+        bash, mcp_enabled=False, cli="grok", inventory=inventory, purpose="judge"
+    ) == "CLI used a tool outside the configured ModelSpec MCP"
 
 
 def test_grok_user_layer_mount_refuses_symlinks_and_skips_other_modes(config, tmp_path):
@@ -874,6 +900,350 @@ def test_unsafe_startup_revokes_eligibility_even_when_cli_fails(
         providers.launch("claude", config, tmp_path, "fixture", mcp_enabled=True)
 
 
+def test_pre_init_crash_retries_once_then_keeps_a_successful_receipt(
+    config, tmp_path, monkeypatch, streams
+):
+    allow_launch(config, ("claude",))
+    monkeypatch.setattr(providers, "PRE_INIT_RETRY_DELAY_S", 0)
+    calls = []
+
+    def fake(command, **kwargs):
+        calls.append(kwargs["cwd"])
+        if len(calls) == 1:
+            return subprocess.CompletedProcess(command, 255, "", "")
+        return subprocess.CompletedProcess(command, 0, text(streams["claude"]), "")
+
+    monkeypatch.setattr(providers.subprocess, "run", fake)
+    result = providers.launch("claude", config, tmp_path, "fixture", mcp_enabled=True)
+    assert result.status == "completed" and result.exit_code == 0
+    assert calls == [tmp_path, tmp_path]
+    assert isolation.isolation_result("claude", config)["verified"]
+
+
+def test_two_pre_init_crashes_are_cli_error_and_keep_the_receipt(config, tmp_path, monkeypatch):
+    allow_launch(config, ("claude",))
+    monkeypatch.setattr(providers, "PRE_INIT_RETRY_DELAY_S", 0)
+    seen = []
+    stderr = "Z" * 180 + " Bearer session-token-abcdefghijklmnopqrstuvwxyz oauth refresh"
+    tail = "Z" * 175 + " [REDACTED] oauth refresh"
+    single = f"CLI exited before startup (exit 255): {tail}"
+    twice = f"CLI exited before startup twice (exit 255); not retried further: {tail}"
+    original = providers._execute
+
+    def wrapped(*args, **kwargs):
+        result = original(*args, **kwargs)
+        seen.append((result.status, result.error, result.exit_code))
+        return result
+
+    def fake(command, **kwargs):
+        return subprocess.CompletedProcess(command, 255, "", stderr)
+
+    monkeypatch.setattr(providers, "_execute", wrapped)
+    monkeypatch.setattr(providers.subprocess, "run", fake)
+    result = providers.launch("claude", config, tmp_path, "fixture", mcp_enabled=True)
+    assert seen == [
+        ("cli_error", single, 255),
+        ("cli_error", single, 255),
+    ]
+    assert result.status == "cli_error"
+    assert result.error == twice
+    assert result.attempts == 2
+    assert isolation.isolation_result("claude", config)["verified"]
+
+
+def test_exit_zero_without_init_still_revokes_and_is_not_retried(config, tmp_path, monkeypatch):
+    allow_launch(config, ("claude",))
+    calls = []
+
+    def fake(command, **kwargs):
+        calls.append(kwargs["cwd"])
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    monkeypatch.setattr(providers.subprocess, "run", fake)
+    result = providers.launch("claude", config, tmp_path, "fixture", mcp_enabled=True)
+    assert result.status == "isolation_failed" and "subscription" in result.error
+    assert not providers.pre_init_crash(result)
+    assert calls == [tmp_path]
+    assert not isolation.isolation_result("claude", config)["verified"]
+
+
+def test_a_tool_call_before_a_crash_is_not_a_pre_init_crash(config, tmp_path, monkeypatch):
+    allow_launch(config, ("claude",))
+    calls = []
+    events = [{
+        "type": "assistant",
+        "message": {
+            "id": "m",
+            "content": [
+                {"type": "tool_use", "id": "t1", "name": "Bash", "input": {"command": "ls"}}
+            ],
+        },
+    }]
+
+    def fake(command, **kwargs):
+        calls.append(kwargs["cwd"])
+        return subprocess.CompletedProcess(command, 1, text(events), "")
+
+    monkeypatch.setattr(providers.subprocess, "run", fake)
+    result = providers.launch("claude", config, tmp_path, "fixture", mcp_enabled=True)
+    assert result.status == "isolation_failed"
+    assert not providers.pre_init_crash(result)
+    assert calls == [tmp_path]
+    assert not isolation.isolation_result("claude", config)["verified"]
+
+
+def test_pre_init_crash_is_only_a_cli_with_no_model_activity():
+    parsed = providers.Transcript()
+    execution = providers.Execution(parsed, 1, 0.0, "cli_error")
+    assert providers.pre_init_crash(execution) is True
+    execution.activity = True
+    assert providers.pre_init_crash(execution) is False
+    execution.activity = False
+    parsed.final_answer = "Fixture answer"
+    assert providers.pre_init_crash(execution) is False
+    parsed.final_answer = ""
+    parsed.model = "gpt-6.1-sol"
+    assert providers.pre_init_crash(execution) is False
+    parsed.model = None
+    parsed.usage = {"input_tokens": 1, "output_tokens": 1}
+    assert providers.pre_init_crash(execution) is False
+    parsed.usage = None
+    parsed.tokens_in = 1
+    assert providers.pre_init_crash(execution) is False
+
+
+def test_assistant_text_without_init_is_not_a_pre_init_crash(config, tmp_path, monkeypatch):
+    allow_launch(config, ("claude",))
+    calls = []
+    events = [{
+        "type": "assistant",
+        "message": {
+            "id": "m",
+            "content": [{"type": "text", "text": "Fixture answer"}],
+        },
+    }]
+
+    def fake(command, **kwargs):
+        calls.append(kwargs["cwd"])
+        return subprocess.CompletedProcess(command, 1, text(events), "")
+
+    monkeypatch.setattr(providers.subprocess, "run", fake)
+    result = providers.launch("claude", config, tmp_path, "fixture", mcp_enabled=True)
+    assert result.status == "isolation_failed"
+    assert result.error == (
+        "Claude did not attest subscription authentication in init.apiKeySource"
+    )
+    assert result.transcript.final_answer == "Fixture answer"
+    assert result.activity is True
+    assert result.attempts == 1
+    assert not providers.pre_init_crash(result)
+    assert calls == [tmp_path]
+    assert not isolation.isolation_result("claude", config)["verified"]
+
+
+def test_hook_event_on_stderr_without_init_revokes_and_does_not_retry(
+    config, tmp_path, monkeypatch
+):
+    allow_launch(config, ("claude",))
+    calls = []
+
+    def fake(command, **kwargs):
+        calls.append(kwargs["cwd"])
+        return subprocess.CompletedProcess(
+            command, 1, "", '{"type":"system","subtype":"hook_response"}'
+        )
+
+    monkeypatch.setattr(providers.subprocess, "run", fake)
+    result = providers.launch("claude", config, tmp_path, "fixture", mcp_enabled=True)
+    assert result.status == "isolation_failed"
+    assert result.error == (
+        "Claude did not attest subscription authentication in init.apiKeySource"
+    )
+    assert result.transcript.hook_events == [
+        {"type": "system", "subtype": "hook_response"}
+    ]
+    assert not providers.pre_init_crash(result)
+    assert result.attempts == 1
+    assert calls == [tmp_path]
+    assert not isolation.isolation_result("claude", config)["verified"]
+
+
+@pytest.mark.parametrize(
+    "events,answer",
+    [
+        (
+            [
+                {"type": "thread.started", "thread_id": "fixture"},
+                {
+                    "type": "item.started",
+                    "item": {"id": "a", "type": "agent_message", "text": "Fixture answer"},
+                },
+                {"type": "turn.failed", "error": {"message": "closed"}},
+            ],
+            "",
+        ),
+        (
+            [
+                {
+                    "type": "item.completed",
+                    "item": {"id": "a", "type": "agent_message", "text": "Fixture answer"},
+                },
+                {"type": "turn.failed", "error": {"message": "closed"}},
+            ],
+            "Fixture answer",
+        ),
+    ],
+)
+def test_codex_agent_message_then_turn_failed_is_not_a_pre_init_crash(
+    events, answer, config, tmp_path, monkeypatch
+):
+    allow_launch(config, ("codex",))
+    monkeypatch.setattr(
+        inventory, "inspect_inventory", lambda *args, **kwargs: native_inventory("codex")
+    )
+    calls = []
+
+    def fake(command, **kwargs):
+        calls.append(kwargs["cwd"])
+        return subprocess.CompletedProcess(command, 1, text(events), "")
+
+    monkeypatch.setattr(providers.subprocess, "run", fake)
+    result = providers.launch("codex", config, tmp_path, "fixture", mcp_enabled=True)
+    assert result.status == "cli_error"
+    assert result.error == '{"message": "closed"}'
+    assert result.transcript.final_answer == answer
+    assert result.transcript.init is None
+    assert result.transcript.model is None
+    assert result.transcript.usage is None
+    assert result.transcript.tokens_in is None
+    assert result.activity is True
+    assert result.attempts == 1
+    assert not providers.pre_init_crash(result)
+    assert calls == [tmp_path]
+    assert isolation.isolation_result("codex", config)["verified"]
+
+
+@pytest.mark.parametrize(
+    "event",
+    [
+        {"type": "turn.failed", "error": {"message": "closed"}},
+        {"type": "error", "message": "closed"},
+        {"error": "closed"},
+    ],
+)
+def test_an_error_event_alone_is_still_a_pre_init_crash(
+    event, config, tmp_path, monkeypatch, streams
+):
+    allow_launch(config, ("claude",))
+    monkeypatch.setattr(providers, "PRE_INIT_RETRY_DELAY_S", 0)
+    calls = []
+
+    def fake(command, **kwargs):
+        calls.append(kwargs["cwd"])
+        if len(calls) == 1:
+            return subprocess.CompletedProcess(command, 1, text([event]), "")
+        return subprocess.CompletedProcess(command, 0, text(streams["claude"]), "")
+
+    monkeypatch.setattr(providers.subprocess, "run", fake)
+    result = providers.launch("claude", config, tmp_path, "fixture", mcp_enabled=True)
+    assert calls == [tmp_path, tmp_path]
+    assert result.status == "completed" and result.attempts == 2
+    assert isolation.isolation_result("claude", config)["verified"]
+
+
+def test_pre_init_retry_that_hits_a_usage_limit_counts_both_processes(
+    config, tmp_path, monkeypatch, streams
+):
+    allow_launch(config, ("claude",))
+    monkeypatch.setattr(providers, "PRE_INIT_RETRY_DELAY_S", 0)
+    calls = []
+
+    def fake(command, **kwargs):
+        calls.append(kwargs["cwd"])
+        if len(calls) == 1:
+            return subprocess.CompletedProcess(command, 255, "", "Refreshing OAuth token")
+        return subprocess.CompletedProcess(
+            command, 1, text(streams["claude"]), "weekly usage limit reached"
+        )
+
+    monkeypatch.setattr(providers.subprocess, "run", fake)
+    runner = harness.Runner(config, tmp_path, isolated())
+    result = runner.invoke("claude", "fixture", "agent")
+    assert len(calls) == 2 and calls[0] == calls[1]
+    assert result.status == "usage_limit"
+    assert result.limit_reason == "weekly usage limit reached"
+    assert result.error is None
+    assert result.attempts == 2
+    assert runner.counts["claude"] == {"agent": 2, "judge": 0}
+    assert runner.stopped["claude"] == "weekly usage limit reached"
+    assert runner.refusal("claude") == (
+        "usage_limit_skipped",
+        "weekly usage limit reached",
+    )
+    assert isolation.isolation_result("claude", config)["verified"]
+
+
+def test_runner_counts_a_pre_init_retry_toward_max_runs(config, tmp_path, monkeypatch):
+    allow_launch(config, ("claude",))
+    monkeypatch.setattr(providers, "PRE_INIT_RETRY_DELAY_S", 0)
+    config["max_runs_per_cli"] = 2
+
+    def fake(command, **kwargs):
+        return subprocess.CompletedProcess(command, 255, "", "")
+
+    monkeypatch.setattr(providers.subprocess, "run", fake)
+    runner = harness.Runner(config, tmp_path, isolated())
+    result = runner.invoke("claude", "fixture", "agent")
+    assert result.status == "cli_error"
+    assert result.attempts == 2
+    assert runner.counts["claude"] == {"agent": 2, "judge": 0}
+    assert runner.refusal("claude") == (
+        "max_runs",
+        "CLI invocation quota reached (includes judges)",
+    )
+
+
+def test_pre_init_retry_waits_before_the_second_process(
+    config, tmp_path, monkeypatch, streams
+):
+    allow_launch(config, ("claude",))
+    slept = []
+    monkeypatch.setattr(providers, "sleep", lambda seconds: slept.append(seconds))
+    calls = []
+
+    def fake(command, **kwargs):
+        calls.append(kwargs["cwd"])
+        if len(calls) == 1:
+            return subprocess.CompletedProcess(command, 255, "", "")
+        return subprocess.CompletedProcess(command, 0, text(streams["claude"]), "")
+
+    monkeypatch.setattr(providers.subprocess, "run", fake)
+    result = providers.launch("claude", config, tmp_path, "fixture", mcp_enabled=True)
+    assert slept == [5.0]
+    assert providers.PRE_INIT_RETRY_DELAY_S == 5.0
+    assert result.status == "completed" and result.attempts == 2
+    assert calls == [tmp_path, tmp_path]
+
+
+@pytest.mark.parametrize("measured", [None, "4000000", 999999])
+def test_grok_receipt_without_a_million_inline_bytes_is_not_verified(measured, config):
+    allow_launch(config, ("grok",))
+    assert isolation.isolation_result("grok", config)["verified"] is True
+    path = isolation.receipt_file(homes.state_directory("grok", config))
+    data = json.loads(path.read_text())
+    if measured is None:
+        del data["mcp_output_bytes"]
+    else:
+        data["mcp_output_bytes"] = measured
+    path.write_text(json.dumps(data))
+    result = isolation.isolation_result("grok", config)
+    assert result["verified"] is False
+    assert result["supported"] is False
+    assert result["reason"] == (
+        "Grok receipt predates the inline MCP output check; rerun doctor --cli grok"
+    )
+
+
 def test_scenario_requires_a_connected_modelspectool_server(streams):
     parsed = providers.parse_transcript("claude", text(streams["claude"]))
     assert providers.isolation_violation(parsed, mcp_enabled=True) is None
@@ -933,6 +1303,10 @@ def test_doctor_requires_positive_controls_and_isolated_inventory(
     monkeypatch.setattr(isolation, "_execute", fake)
     result = harness.verify_isolation(cli, config, tmp_path)
     assert result["verified"] and result["supported"] and result["canary_runs"] == 2
+    if cli == "grok":
+        assert result["mcp_output_bytes"] == 4000000
+    else:
+        assert "mcp_output_bytes" not in result
     assert [mode for _, mode in seen] == [False, True]
     assert seen[0][0] == seen[1][0]
     assert all(not path.exists() for path, _ in seen)
@@ -1521,6 +1895,50 @@ def doctor_reply(cli, config, workspace, prompt, *, mcp_enabled, isolated=True, 
     if cli != "claude":
         result.transcript.init = None
     return result
+
+
+@pytest.mark.parametrize(
+    "stdout,code,accepted",
+    [
+        ("4000000\n", 0, True),
+        ("1000000", 0, True),
+        ("999999\n", 0, False),
+        ("", 1, False),
+        ("nope\n", 0, False),
+    ],
+)
+def test_grok_doctor_requires_a_million_byte_inline_mcp_limit(
+    stdout, code, accepted, config, tmp_path, monkeypatch
+):
+    seen = []
+
+    def run(cli, cfg, workspace, command, env, **kwargs):
+        if command == ["printenv", "GROK_MAX_MCP_OUTPUT_BYTES"]:
+            seen.append(kwargs)
+            return subprocess.CompletedProcess(command, code, stdout, "")
+        return subprocess.CompletedProcess([], 0, cfg["clis"][cli]["version"], "")
+
+    monkeypatch.setattr(homes, "run_cli", run)
+    if accepted:
+        monkeypatch.setattr(isolation, "_execute", doctor_reply)
+    else:
+        monkeypatch.setattr(isolation, "_execute", lambda *a, **k: pytest.fail("canaries ran"))
+    result = harness.verify_isolation("grok", config, tmp_path)
+    assert seen == [{"home": False}]
+    if accepted:
+        measured = int(stdout.strip())
+        assert result["verified"] and result["mcp_output_bytes"] == measured
+        receipt_path = isolation.receipt_file(homes.state_directory("grok", config))
+        receipt = json.loads(receipt_path.read_text())
+        assert receipt["mcp_output_bytes"] == measured
+    else:
+        assert result["status"] == "unproven" and result["canary_runs"] == 0
+        assert result["reason"] == (
+            "Grok would spill large MCP results to files; "
+            "GROK_MAX_MCP_OUTPUT_BYTES is missing or too low"
+        )
+        assert "mcp_output_bytes" not in result
+        assert not isolation.isolation_result("grok", config)["verified"]
 
 
 @pytest.mark.parametrize("cli", providers.CLIS)
@@ -2171,12 +2589,17 @@ def test_runtime_uses_fixed_linux_home_and_suppresses_host_customizations(cli):
         assert "selectedType" not in Path("qa/docker/gemini-isolated.json").read_text()
     if cli == "grok":
         assert env["GROK_FOLDER_TRUST"] == "1"
+        assert env["GROK_MAX_MCP_OUTPUT_BYTES"] == "4000000"
+    else:
+        assert "GROK_MAX_MCP_OUTPUT_BYTES" not in env
 
 
 def test_grok_positive_control_does_not_persist_trust_into_login_volume(config, tmp_path):
     env = entrypoint.runtime_environment("grok", "positive", {})
     assert env["GROK_FOLDER_TRUST"] == "0"
-    assert "GROK_FOLDER_TRUST" not in entrypoint.runtime_environment("grok", "login", {})
+    assert "GROK_MAX_MCP_OUTPUT_BYTES" not in env
+    login = entrypoint.runtime_environment("grok", "login", {})
+    assert "GROK_FOLDER_TRUST" not in login and "GROK_MAX_MCP_OUTPUT_BYTES" not in login
     command = providers.build_command(
         "grok",
         config["clis"]["grok"],

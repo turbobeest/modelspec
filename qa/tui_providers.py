@@ -8,7 +8,7 @@ import re
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
-from time import perf_counter
+from time import perf_counter, sleep
 
 from qa.contracts import TOOL_NAMES
 from qa.docker.entrypoint import refuse_vendor_auth
@@ -596,7 +596,7 @@ def isolation_violation(
         return "CLI emitted a hook event"
     allowed = set(allowed_servers if allowed_servers is not None else ["modelspec"]) if mcp_enabled else set()
     native = SEARCH_TOOLS[cli] if purpose == "search" else set()
-    if cli == "grok" and mcp_enabled and purpose != "search":
+    if cli == "grok" and purpose != "search":
         # Grok's deferred-tool lookup. It runs no tool; use_tool calls are checked by server.
         native = native | {"search_tool"}
     if any(call["name"] not in native for call in parsed.other_tool_calls) or any(call["server"] not in allowed for call in parsed.tool_calls):
@@ -655,6 +655,52 @@ class Execution:
     limit_reason: str | None = None
     observed_output: str = field(default="", repr=False)
     inventory: dict | None = None
+    activity: bool = False
+    attempts: int = 1
+
+
+# A transient OAuth refresh can exit before the CLI prints anything. Wait, then try once.
+PRE_INIT_RETRY_DELAY_S = 5.0
+
+
+def _error_only_event(event: dict) -> bool:
+    kind = event.get("type")
+    if kind in ("error", "turn.failed"):
+        return True
+    return kind is None and set(event) <= {"type", "error"} and "error" in event
+
+
+def _stdout_activity(stdout: str) -> bool:
+    return any(not _error_only_event(event) for event in json_events(stdout))
+
+
+def _pre_init_error(code: int, stderr: str) -> str:
+    message = f"CLI exited before startup (exit {code})"
+    tail = redact(stderr or "").strip()[-200:]
+    if not tail:
+        return message
+    return f"{message}: {tail}"
+
+
+def pre_init_crash(execution: Execution) -> bool:
+    """Non-zero exit before any model activity, usage limit, or timeout."""
+    parsed, code = execution.transcript, execution.exit_code
+    return (
+        execution.status == "cli_error"
+        and not execution.limit_reason
+        and type(code) is int
+        and code != 0
+        and parsed.init is None
+        and not parsed.final_answer
+        and parsed.model is None
+        and parsed.usage is None
+        and parsed.tokens_in is None
+        and not execution.activity
+        and not parsed.tool_calls
+        and not parsed.other_tool_calls
+        and not parsed.hook_events
+        and not parsed.terminal
+    )
 
 
 def launch(cli: str, config: dict, workspace: Path, prompt: str, *, mcp_enabled: bool, purpose="scenario") -> Execution:
@@ -665,6 +711,21 @@ def launch(cli: str, config: dict, workspace: Path, prompt: str, *, mcp_enabled:
     if not result["verified"]:
         raise ValueError(result["reason"])
     execution = _execute(cli, config, workspace, prompt, mcp_enabled=mcp_enabled, purpose=purpose)
+    if pre_init_crash(execution):
+        sleep(PRE_INIT_RETRY_DELAY_S)
+        execution = _execute(
+            cli, config, workspace, prompt, mcp_enabled=mcp_enabled, purpose=purpose
+        )
+        execution.attempts = 2
+        if pre_init_crash(execution):
+            single = f"CLI exited before startup (exit {execution.exit_code})"
+            twice = (
+                f"CLI exited before startup twice (exit {execution.exit_code}); "
+                "not retried further"
+            )
+            detail = execution.error or ""
+            execution.error = twice + detail[len(single) :] if detail.startswith(single) else twice
+            return execution
     violation = subscription_violation(cli, execution.transcript) or isolation_violation(
         execution.transcript, mcp_enabled=mcp_enabled, cli=cli, inventory=execution.inventory,
         allowed_servers=config.get("_mcp_servers"), purpose=purpose,
@@ -829,6 +890,22 @@ def _execute(
     limit = usage_limit(
         parsed, process.stderr, process.returncode, settings["usage_limit_exit_codes"]
     )
+    activity = _stdout_activity(process.stdout)
+    if pre_init_crash(
+        Execution(
+            parsed, process.returncode, 0.0, "cli_error", limit_reason=limit, activity=activity
+        )
+    ):
+        return Execution(
+            parsed,
+            process.returncode,
+            (perf_counter() - started) * 1000,
+            "cli_error",
+            _pre_init_error(process.returncode, process.stderr),
+            observed_output=process.stdout + process.stderr,
+            inventory=inventory,
+            activity=activity,
+        )
     if limit:
         status = "usage_limit"
     elif violation:
@@ -859,6 +936,7 @@ def _execute(
         limit,
         process.stdout + process.stderr,
         inventory,
+        activity=activity,
     )
 
 
