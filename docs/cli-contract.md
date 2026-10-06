@@ -117,12 +117,17 @@ modelspec feedback [DECISION_ID] --rating RATING [--note TEXT]
 All three require a key before reading the Spec or contacting the API.
 `decide` requires exactly one of `--spec` and `--template`. It parses JSON or
 YAML, validates structure against the bundled published
-[`DecideRequest` schema](decision-contract.schema.json), and sends exactly that
-Spec as the body of `POST /v1/decide`. It injects no defaults, constraints,
-weights, task text, or wrapper. The server validates semantics and is the
+[`DecideRequest` schema](decision-contract.schema.json), and sends that
+Spec as the body of `POST /v1/decide`. It injects no constraints,
+weights, task text, or wrapper. When the Spec omits `fields`, the CLI adds
+the bounded row list (`model_rank`, `cost_per_task`, `estimates`, `p_best`,
+plus `contributions` and `evidence` when `explain` is omitted, `summary` or
+`full`) so the default agent answer stays within 16 KB. An explicit `fields`
+value, including null, is sent unchanged. The server validates semantics and is the
 authority. The request is at most 64 KB. A template comes from a keyed
 `GET /v1/vocabulary?section=templates&id=ID&detail=full`, never a bundled or
-cached registry; its Spec is validated and sent unchanged.
+cached registry; its Spec is validated the same way, and `fields` is added
+only when that Spec omits it.
 
 `vocab` calls keyed `GET /v1/vocabulary`, using the MCP lookup parameters.
 The default section is `starter`. `--ids` may repeat and also accepts commas.
@@ -166,7 +171,10 @@ unchanged. The API's `recorded` or `not_recorded` response is passed through.
 ## Output and recovery
 
 `--json` works before the command or on the command. Successful keyed output
-is the API response body itself, without an envelope or extra fields. CLI-owned
+is the API response body itself, without an envelope or extra fields. A Spec
+that omitted `fields` is answered in the bounded representation;
+`explanation.fetch`, when present, says how to request the complete Decision.
+CLI-owned
 orientation and procurement are guidance objects with `guide_version` and
 `next`. CLI-owned errors use `schema_version: "2.0"`, `command`, `error`, and
 `next: [...]` on stdout. Hosted refusals keep the API body and add `next`.

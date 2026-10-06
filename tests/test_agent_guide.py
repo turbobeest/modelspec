@@ -60,6 +60,9 @@ def test_generated_guide_and_constants_are_stable_and_within_budget():
     assert data['guide_version'] == version
     assert tokens(data['instructions']) <= 1000
     assert all(tokens(d) <= 1500 for d in data['tools'].values())
+    assert "at most 16 KB" in markdown
+    assert "POST /v1/decide without `fields`" in markdown
+    assert "explanation.fetch" in data["tools"]["decide"]
     # Client snippets are part of the versioned source, with explicit loading rules.
     for snippet in ('CLAUDE.md', 'AGENTS.md', '.cursor/rules/modelspec.mdc',
                     'initialize.result.instructions', 'tools/list'):

@@ -96,7 +96,10 @@ def from_repo(root: Path, as_of: date) -> dict[str, Any]:
             return json.loads(cache.read_text(encoding="utf-8"))
         built = build_from_repo(root, premier=root / "premier/slice-1.yaml", as_of=as_of, gate=False)
         payload = from_snapshot(load_built_snapshot(built, source="coverage build"), load_models(root))
-        cache.write_text(json.dumps(payload, sort_keys=True), encoding="utf-8")
+        # The cache is sorted. Returning the in-memory dict on a miss and the
+        # parsed cache on a hit reordered agent-bundle.json between runs.
+        payload = json.loads(json.dumps(payload, sort_keys=True))
+        cache.write_text(json.dumps(payload), encoding="utf-8")
         return payload
     finally:
         os.close(descriptor)

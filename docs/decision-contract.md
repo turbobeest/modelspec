@@ -1108,12 +1108,37 @@ A bounded response retains the complete `answer`, `warnings`, `reading` when
 applicable, `with_estate` when applicable, status, identity, feedback pointer,
 `truncated`, `out_of_lineup`, `relax`, `relax_to` and `relax_task_tokens` when present. It projects ranked
 `results` and shows at most 10 `may_qualify` rows. It adds required
-`explanation` with `not_applied`, explicit per-section `omitted` counts and a
-`note` that omitted data is incomplete. Ties and reporting limits cannot be
+`explanation` with `not_applied`, explicit per-section `omitted` counts, an
+optional `fetch` string and a `note` that omitted data is incomplete. `fetch`
+is present when `omitted` is non-empty and absent otherwise. It names the
+follow-up: resend the spec with `evidence_for` set to the top model, narrow
+`fields`, lower `limit`, or POST `/v1/decide` without `fields` for the complete
+Decision. Ties and reporting limits cannot be
 projected away. Counts for omitted ancillary explanations do not imply an
 elimination or a missing fact. Use a complete response to inspect those
 sections. `explain` still controls which details the engine computes; selecting
 `contributions` with `explain: none` returns an empty list.
+
+The bounded body stays within the agent byte budget. That budget is 16,384
+compact UTF-8 bytes for the MCP text as a whole (the origin envelope
+`{"origin":"https://api.modelspec.dev/v1/decide","status":200,"body":…}` plus
+the one-line `decisionSummary`). `RESPONSE_BYTES` is 16,384 minus that
+envelope and minus the longest summary line for a 61-byte model id, the
+longest id in the catalogue. When a projection is larger, whole records are removed until the compact body
+fits, and `explanation.fetch` is included in that count. The order is: result
+rows that are neither the top result nor an answer member, then `may_qualify`
+rows, then any remaining result row except the top, then `with_estate`, then
+`reading` and `relax_task_tokens`, then one heavy field of the top result at a
+time (`evidence`, `contributions`, `estimates`, `refinement_estimates`,
+`plans`), then any other field on that row besides rank, model, offering and
+warnings. A heavy field is removed whole. The top result's explanation is
+removed only after the earlier records are gone. Provenance inside a kept
+record stays intact, and no value is replaced with null. Each removal
+increments `explanation.omitted`. `answer`, `status`, `warnings`, `coverage`
+and the top result's rank, model, offering and warnings remain. If those
+essentials still exceed the budget, the call returns HTTP 400 `invalid_spec`
+and the issue says how to request the complete Decision. The
+one-model drill-down keeps its own 7,400-byte cap, and that cap includes `fetch`.
 
 Drill-down returns no ranked result rows or may-qualify rows; their omission
 counts are explicit, and `model_evidence` is the one-model detail. A
@@ -1146,10 +1171,15 @@ hash; adding `fields` or `evidence_for` does not. For example:
 The MCP decide tool returns a bounded answer by default. When `explain` is
 unset or `none`, it sends `explain: none`, `limit: 10` and `fields` of
 `model_rank`, `cost_per_task`, `estimates` and `p_best`. When the caller sets
-`explain` to `summary` or `full`, which cost the same or more, the tool sends
-`fields: null` and returns complete rows, unless the caller also passes
-`fields`. Caller controls always override these defaults. HTTP defaults remain
-unchanged.
+`explain` to `summary` or `full`, it sends those fields plus `contributions`
+and `evidence`, still inside the same byte budget. A caller-supplied `fields`
+value, including null, replaces that list. Null `fields` asks the Worker for
+the complete Decision. If that body, with the MCP envelope and summary, exceeds
+16,384 bytes, the tool returns a short bounded notice instead of the raw body.
+The notice keeps `status`, `answer`, `warnings`, `coverage` and the top result,
+and `explanation.fetch` tells the caller how to request the rest. The tool does
+not call the Worker a second time. HTTP defaults remain unchanged: a request
+with no `fields` and no `evidence_for` is still the complete Decision.
 
 Size tests use the repository's public premier snapshot built as of
 2026-10-02, a software-engineering objective and `limit: 10`. The unit is
@@ -1163,6 +1193,10 @@ regression ceilings are:
 | Complete `full` | 69,991 | 80,000 |
 | MCP default projection | about 1,900 with envelope and summary | 3,000 |
 | One-model drill-down | about 1,600 with envelope and summary | 2,000 |
+
+The agent path (the MCP text, and the bounded body it requests) stays within
+16,384 UTF-8 bytes. The complete-decision ceilings above apply to responses
+with no `fields` and no `evidence_for`.
 
 There is no `evidence` explain level in this contract; drill-down uses
 `evidence_for`. These fixture measurements differ from the ticket's measured
@@ -1180,6 +1214,13 @@ three current explanation levels. Regenerate the MCP public fixture with
   unchanged; `limit` was already supported and is unchanged. Adds the
   bounded `explanation_unavailable` refusal, reachable only with
   `evidence_for`; the 2.x error enum is unchanged.
+- **bounded 1.0 — MODEL-334:** Adds optional `explanation.fetch`. No existing
+  field changes range, and `bounded_version` stays `1.0`. A bounded body over
+  the agent budget drops whole tail records, leaving the top result's
+  explanation until nothing else will fit, and records each removal in
+  `explanation.omitted`. `fetch` says how to request the removed records.
+  Essentials that still exceed the budget are HTTP 400 `invalid_spec`.
+  MCP `explain` of `summary` or `full` keeps the bounded projection.
 
 ## The library and the CLI
 

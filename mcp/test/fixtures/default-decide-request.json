@@ -1,0 +1,130 @@
+{
+  "default_fields": ["model_rank", "cost_per_task", "estimates", "p_best"],
+  "explain_row_fields": ["contributions", "evidence"],
+  "requests": [
+    {
+      "name": "unset",
+      "spec": {"spec_version": 1, "optimize": {"max": "software_engineering"}},
+      "request": {
+        "explain": "none",
+        "limit": 10,
+        "fields": ["model_rank", "cost_per_task", "estimates", "p_best"],
+        "spec_version": 1,
+        "optimize": {"max": "software_engineering"}
+      }
+    },
+    {
+      "name": "none",
+      "spec": {"spec_version": 1, "optimize": {"max": "software_engineering"}, "explain": "none"},
+      "request": {
+        "explain": "none",
+        "limit": 10,
+        "fields": ["model_rank", "cost_per_task", "estimates", "p_best"],
+        "spec_version": 1,
+        "optimize": {"max": "software_engineering"}
+      }
+    },
+    {
+      "name": "summary",
+      "spec": {"spec_version": 1, "optimize": {"max": "software_engineering"}, "explain": "summary"},
+      "request": {
+        "explain": "summary",
+        "limit": 10,
+        "fields": ["model_rank", "cost_per_task", "estimates", "p_best", "contributions", "evidence"],
+        "spec_version": 1,
+        "optimize": {"max": "software_engineering"}
+      }
+    },
+    {
+      "name": "full",
+      "spec": {"spec_version": 1, "optimize": {"max": "software_engineering"}, "explain": "full"},
+      "request": {
+        "explain": "full",
+        "limit": 10,
+        "fields": ["model_rank", "cost_per_task", "estimates", "p_best", "contributions", "evidence"],
+        "spec_version": 1,
+        "optimize": {"max": "software_engineering"}
+      }
+    },
+    {
+      "name": "full with fields",
+      "spec": {
+        "spec_version": 1,
+        "optimize": {"max": "software_engineering"},
+        "explain": "full",
+        "fields": ["contributions"]
+      },
+      "request": {
+        "explain": "full",
+        "limit": 10,
+        "fields": ["contributions"],
+        "spec_version": 1,
+        "optimize": {"max": "software_engineering"}
+      }
+    },
+    {
+      "name": "full with null fields",
+      "spec": {
+        "spec_version": 1,
+        "optimize": {"max": "software_engineering"},
+        "explain": "full",
+        "fields": null
+      },
+      "request": {
+        "explain": "full",
+        "limit": 10,
+        "fields": null,
+        "spec_version": 1,
+        "optimize": {"max": "software_engineering"}
+      }
+    },
+    {
+      "name": "summary keeps an explicit limit",
+      "spec": {"explain": "summary", "limit": 3, "spec_version": 1},
+      "request": {
+        "explain": "summary",
+        "limit": 3,
+        "fields": ["model_rank", "cost_per_task", "estimates", "p_best", "contributions", "evidence"],
+        "spec_version": 1
+      }
+    }
+  ],
+  "summaries": [
+    {
+      "name": "rows",
+      "body": {
+        "status": "partial",
+        "results": [
+          {"offering": {"model": "lab/a"}},
+          {"offering": {"model": "lab/a"}},
+          {"offering": {"model": "lab/b"}}
+        ],
+        "may_qualify": [{}, {}]
+      },
+      "text": "status: partial; top models: lab/a, lab/b; may qualify: 2"
+    },
+    {
+      "name": "empty",
+      "body": {"status": "no_feasible", "results": [], "may_qualify": []},
+      "text": "status: no_feasible; top models: none; may qualify: 0"
+    },
+    {
+      "name": "drill-ranked",
+      "body": {
+        "status": "partial",
+        "answer": {"kind": "separated", "members": ["lab/a"], "leader": "lab/a"},
+        "model_evidence": {"model": "lab/a", "status": "ranked", "rank": 1}
+      },
+      "text": "status: partial; answer: lab/a; evidence for: lab/a (ranked, rank 1)"
+    },
+    {
+      "name": "drill-unranked-tie",
+      "body": {
+        "status": "no_feasible",
+        "answer": {"kind": "tied", "members": ["m1", "m2", "m3", "m4", "m5", "m6"]},
+        "model_evidence": {"model": "m1", "status": "eliminated", "rank": null}
+      },
+      "text": "status: no_feasible; answer: tied among m1, m2, m3, m4, m5 and 1 more in answer.members; evidence for: m1 (eliminated, unranked)"
+    }
+  ]
+}

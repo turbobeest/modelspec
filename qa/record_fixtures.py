@@ -21,6 +21,59 @@ from decision.vocabulary import build_vocabulary
 from qa.agent_harness import HERE, ROOT, load_scenarios
 from scripts.recall_run import _snapshot
 
+_HARDWARE = {
+    "hardware-5090": "nvidia_rtx_5090",
+    "hardware-spark": "nvidia_dgx_spark",
+    "hardware-m4": "apple_m4",
+    "hardware-dual-4090": "nvidia_rtx_4090",
+    "hardware-h100": "nvidia_h100_sxm5_80gb",
+}
+
+
+def scenario_spec(scenario: dict, templates: dict) -> dict:
+    """The Spec a scenario asks for, before the fixture's explain/limit overlay."""
+    sid = scenario["id"]
+    if scenario.get("fixture_spec"):
+        return scenario["fixture_spec"]
+    if sid.startswith("recall-"):
+        return yaml.safe_load(
+            (ROOT / f"tests/recall/specs/{scenario['expected']['id']}.yaml").read_text()
+        )
+    if scenario.get("template"):
+        return templates[scenario["template"]]
+    if scenario["family"] == "F3":
+        device = _HARDWARE.get(sid)
+        if device is None:
+            raise ValueError(f"{sid}: add fixture_spec for this hardware variant")
+        return {
+            "spec_version": 1,
+            "where": [
+                "model.weights_openness = open_weights",
+                f"model.fits_hardware in {{{device}}}",
+            ],
+            "optimize": {"max": "software_engineering"},
+        }
+    if scenario["family"] == "F4":
+        constraint = scenario["constraints"]
+        spec = templates[
+            "regional-budget"
+            if sid == "budget-eu"
+            else "regulated-budget"
+            if sid == "budget-hipaa"
+            else "assistant-budget"
+        ]
+        spec = json.loads(json.dumps(spec))
+        spec["where"].append(
+            "offering.cost_per_task <= "
+            + str(constraint["monthly_budget_usd"] / constraint["requests_per_month"])
+        )
+        spec["where"].append(
+            "offering.provider in {" + ", ".join(constraint["available_apis"]) + "}"
+        )
+        spec["task_tokens"] = constraint["task_tokens"]
+        return spec
+    return {"spec_version": 1, "task": scenario["prompt"], "optimize": {"max": "reasoning"}}
+
 
 def main() -> None:
     registry = default()
@@ -62,53 +115,7 @@ def main() -> None:
     vocab_record = record("vocab", {})
     fixtures = {}
     for s in load_scenarios():
-        sid = s["id"]
-        if s.get("fixture_spec"):
-            spec = s["fixture_spec"]
-        elif sid.startswith("recall-"):
-            spec = yaml.safe_load(
-                (ROOT / f"tests/recall/specs/{s['expected']['id']}.yaml").read_text()
-            )
-        elif s.get("template"):
-            spec = templates[s["template"]]
-        elif s["family"] == "F3":
-            device = {
-                "hardware-5090": "nvidia_rtx_5090",
-                "hardware-spark": "nvidia_dgx_spark",
-                "hardware-m4": "apple_m4",
-                "hardware-dual-4090": "nvidia_rtx_4090",
-                "hardware-h100": "nvidia_h100_sxm5_80gb",
-            }.get(sid)
-            if device is None:
-                raise ValueError(f"{sid}: add fixture_spec for this hardware variant")
-            spec = {
-                "spec_version": 1,
-                "where": [
-                    "model.weights_openness = open_weights",
-                    f"model.fits_hardware in {{{device}}}",
-                ],
-                "optimize": {"max": "software_engineering"},
-            }
-        elif s["family"] == "F4":
-            constraint = s["constraints"]
-            spec = templates[
-                "regional-budget"
-                if sid == "budget-eu"
-                else "regulated-budget"
-                if sid == "budget-hipaa"
-                else "assistant-budget"
-            ]
-            spec = json.loads(json.dumps(spec))
-            spec["where"].append(
-                "offering.cost_per_task <= "
-                + str(constraint["monthly_budget_usd"] / constraint["requests_per_month"])
-            )
-            spec["where"].append(
-                "offering.provider in {" + ", ".join(constraint["available_apis"]) + "}"
-            )
-            spec["task_tokens"] = constraint["task_tokens"]
-        else:
-            spec = {"spec_version": 1, "task": s["prompt"], "optimize": {"max": "reasoning"}}
+        spec = scenario_spec(s, templates)
         spec = spec | {"explain": "summary", "limit": 5}
         try:
             spec = parse_spec(spec, facets=registry.facet).model_dump(

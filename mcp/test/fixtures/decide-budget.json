@@ -496,7 +496,8 @@
         "may_qualify": 2,
         "bands": 28
       },
-      "note": "Projected rows are incomplete; omissions are not eliminations or absent evidence."
+      "note": "Projected rows are incomplete; omissions are not eliminations or absent evidence.",
+      "fetch": "explanation.omitted counts records removed from this bounded answer. Resend this spec with evidence_for: anthropic/claude-opus-5-5 for one model's evidence; narrow fields or lower limit; or POST /v1/decide without fields for the complete Decision."
     }
   },
   "drill_down": {
@@ -579,7 +580,8 @@
         "bands": 28,
         "model_evidence.contributions": 1
       },
-      "note": "Projected rows are incomplete; omissions are not eliminations or absent evidence."
+      "note": "Projected rows are incomplete; omissions are not eliminations or absent evidence.",
+      "fetch": "explanation.omitted counts records removed from this bounded answer. Resend this spec with evidence_for: anthropic/claude-opus-5-5 for one model's evidence; narrow fields or lower limit; or POST /v1/decide without fields for the complete Decision."
     },
     "model_evidence": {
       "model": "anthropic/claude-opus-5-5",
