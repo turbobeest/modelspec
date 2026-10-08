@@ -371,6 +371,9 @@ class Source(Record):
     volatility: Literal["static", "live"] = "static"
     fetch: Literal["http", "conditional_http", "rendered"] = "conditional_http"
     normaliser: Text = "html-default"
+    #: A ``source_kinds`` id from ``registry/facets.yaml``. Absent means the kind
+    #: is unknown; existing registries still load.
+    kind: str | None = None
     cited_regions: list[CitedRegion] = Field(default_factory=list)
 
     @model_validator(mode="after")
@@ -393,6 +396,13 @@ class Source(Record):
             Locator(kind, locator.value)
             if NORMALISERS[self.normaliser].content == "text" and kind != "page":
                 raise ValueError("text sources support only page locators")
+        if self.kind is not None:
+            from decision.registry import default as default_registry
+
+            try:
+                default_registry().source_kind(self.kind)
+            except KeyError as exc:
+                raise ValueError(f"unknown source kind {self.kind!r}") from exc
         return self
 
 

@@ -16,10 +16,15 @@ Extractors are pluggable. The deterministic ones (``TableExtractor``,
 prose through an injected completion function, so nothing here calls a model
 or the network on its own: ``claude_extractor`` (Claude Sonnet, via the Claude
 CLI) and ``mistral_extractor`` (Mistral Large, via ollama) are the two wired
-readers. Each extractor's actor (agent, model family, method) is the verifier
-the log records. Two keys means another model family (MODEL-159): a reader
-from the collector's family is never asked, and a same-family ``verified``
-already in the log does not count (``Verification.counts``).
+readers. ``LicenceExtractor`` reads ``licence.*`` claims cited to a
+``licence_text`` or ``provider_terms`` source through that same completion
+function. Deterministic extractors do not read those regions. An absence
+verifies only from a source kind the facet permits; a ``licence.*`` absence
+needs that kind explicitly. Each extractor's actor (agent, model family,
+method) is the verifier the log records. Two keys means another model family
+(MODEL-159): a reader from the collector's family is never asked, and a
+same-family ``verified`` already in the log does not count
+(``Verification.counts``).
 
 Outcomes are ``verified``, ``mismatch`` (with a structured diff) and
 ``unreachable`` (the copy, source or region is missing). A claim no
@@ -2139,13 +2144,7 @@ class LLMExtractor:
                 cache_key: tuple[str, ...] | None = None) -> list[Reading]:
         prompt = LLM_PROMPT.format(label=claim.label or claim.field.replace("_", " "),
                                    names=", ".join(claim.names), text=text)
-        if cache_key:
-            # A reply answers the prompt it was given: a changed prompt must ask again.
-            digest = hashlib.sha256(LLM_PROMPT.encode("utf-8")).hexdigest()[:16]
-            cache_key = (f"prompt:{digest}", *cache_key)
-        reply = self.cache.get(cache_key) if self.cache is not None and cache_key else None
-        if reply is None:
-            reply = self.complete(prompt)
+        reply, store_key = _load_reply(self.complete, self.cache, LLM_PROMPT, prompt, cache_key)
         try:
             cleaned = reply.strip()
             if cleaned.startswith("```json") and cleaned.endswith("```"):
@@ -2169,11 +2168,177 @@ class LLMExtractor:
             ]
             if not readings and claim.value is None:
                 readings = [Reading(subject=claim.names[0], value=None)]
-            if self.cache is not None and cache_key:
-                self.cache.put(cache_key, reply)
+            if self.cache is not None and store_key:
+                self.cache.put(store_key, reply)
             return readings
         except ValueError as exc:
             raise ExtractorError(f"unparseable reply from {self.actor.method}: {exc}") from exc
+
+
+def _load_reply(complete: Callable[[str], str], cache: LLMCache | None, template: str,
+                prompt: str, cache_key: tuple[str, ...] | None) -> tuple[str, tuple[str, ...] | None]:
+    """A cached reply, or a fresh ``complete(prompt)``.
+
+    The stored key includes a hash of ``template``, so a changed prompt asks again.
+    The caller stores the reply only after it parses.
+    """
+    store_key = None
+    if cache_key:
+        digest = hashlib.sha256(template.encode("utf-8")).hexdigest()[:16]
+        store_key = (f"prompt:{digest}", *cache_key)
+    reply = cache.get(store_key) if cache is not None and store_key else None
+    if reply is None:
+        reply = complete(prompt)
+    return reply, store_key
+
+
+#: Source kinds whose text is a licence or terms document.
+LICENCE_SOURCE_KINDS = frozenset({"licence_text", "provider_terms"})
+
+LICENCE_PROMPT = """\
+You are reading a licence or terms of use. The document does not name a model.
+Answer one question from the source region only.
+
+Facet: {facet_id}
+Definition: {definition}
+Allowed values: {allowed}
+
+Return only a JSON object with:
+- "value": one allowed value, or "not_disclosed" when the licence does not address this
+- "clauses": one or more verbatim quotations from the source region that support the value
+
+Do not infer from the licence's name or from knowledge outside the region.
+Every quotation must appear verbatim in the source region.
+When the licence does not address this facet, set "value" to "not_disclosed" and still quote one verbatim clause from the region.
+
+Source region:
+<<<
+{text}
+>>>
+"""
+
+_LICENSE_FIELD = re.compile(r"(?im)^[ \t]*license:\s*\S+")
+
+
+def _licence_allowed(facet) -> list[str]:
+    """The values the registry admits for a licence facet, including ``unbounded``."""
+    value_type = facet.value_type
+    allowed: list[str] = list(value_type.values or ())
+    if value_type.kind == "number":
+        unit = f" in {facet.unit}" if facet.unit else ""
+        allowed.append(f"a number{unit}")
+        if value_type.unbounded:
+            allowed.append("unbounded")
+    return allowed
+
+
+def _licence_prompt(claim: Claim, text: str) -> str:
+    facet = default_registry().facet(claim.field)
+    return LICENCE_PROMPT.format(
+        facet_id=facet.id,
+        definition=facet.definition,
+        allowed=", ".join(_licence_allowed(facet)),
+        text=text,
+    )
+
+
+def _strip_fence(reply: str) -> str:
+    cleaned = reply.strip()
+    if cleaned.startswith("```"):
+        cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
+        cleaned = re.sub(r"\s*```$", "", cleaned)
+    return cleaned.strip()
+
+
+def _as_licence_value(raw: Any) -> JsonValue:
+    if raw is None or (isinstance(raw, str) and normalise_name(raw) == "not disclosed"):
+        return None
+    if isinstance(raw, bool) or not isinstance(raw, (str, int, float)):
+        raise ValueError("value is not a licence value")
+    return raw
+
+
+def _page_names_subject(page: str, names: Sequence[str]) -> bool:
+    """The same name check a key-value region uses: a published name occurs in the page."""
+    normal = normalise_name(page)
+    return any(token and token in normal for token in (normalise_name(name) for name in names))
+
+
+def _page_names_licence(page: str, licence_url: str | None) -> bool:
+    if _LICENSE_FIELD.search(page):
+        return True
+    if not licence_url:
+        return False
+    if licence_url in page:
+        return True
+    bare = re.sub(r"^https?://", "", licence_url).rstrip("/")
+    return bool(bare) and bare in page
+
+
+def licence_is_bound(names: Sequence[str], pages: Sequence[str], licence_url: str | None) -> bool:
+    """A licence is about the subject when another cited page names the subject and the licence."""
+    return any(
+        _page_names_subject(page, names) and _page_names_licence(page, licence_url)
+        for page in pages
+    )
+
+
+class LicenceExtractor:
+    """Reads one ``licence.*`` value from a licence or terms document.
+
+    It uses the same injected ``complete(prompt)``, cache and call budget as
+    ``LLMExtractor``. The prompt gives the facet's definition and allowed
+    values. It never shows the collector's value. A missing or non-verbatim
+    clause is unparseable, so it is not evidence. A licence does not name the
+    model: the reading's subject is the claim's name only when a binding page
+    passes :func:`licence_is_bound`.
+    """
+
+    def __init__(self, complete: Callable[[str], str], *, agent: str, model: str,
+                 model_family: str, cache: LLMCache | None = None) -> None:
+        self.complete = complete
+        self.cache = cache
+        self.actor = VerificationActor(
+            agent=agent, model_family=model_family, method=f"licence-extract:{model}",
+        )
+
+    def accepts(self, text: str) -> bool:
+        # Selected only for a licence claim cited to a licence or terms source.
+        return False
+
+    def extract(self, claim: Claim, text: str, *,
+                cache_key: tuple[str, ...] | None = None,
+                bindings: Sequence[str] = (),
+                licence_url: str | None = None) -> list[Reading]:
+        prompt = _licence_prompt(claim, text)
+        reply, store_key = _load_reply(
+            self.complete, self.cache, LICENCE_PROMPT, prompt, cache_key,
+        )
+        try:
+            data = json.loads(_strip_fence(reply))
+            if isinstance(data, list) and len(data) == 1 and isinstance(data[0], dict):
+                data = data[0]
+            if not isinstance(data, dict):
+                raise ValueError("not an object")
+            clauses = data.get("clauses")
+            if not isinstance(clauses, list) or not clauses:
+                raise ValueError("clauses are missing")
+            normal_text = normalise_name(text)
+            for clause in clauses:
+                if not isinstance(clause, str) or not clause.strip() \
+                        or normalise_name(clause) not in normal_text:
+                    raise ValueError("quoted clause is missing or is not verbatim source text")
+            value = _as_licence_value(data.get("value"))
+        except (ValueError, TypeError) as exc:
+            raise ExtractorError(f"unparseable reply from {self.actor.method}: {exc}") from exc
+        if self.cache is not None and store_key:
+            self.cache.put(store_key, reply)
+        subject = claim.names[0] if licence_is_bound(claim.names, bindings, licence_url) else None
+        shown: JsonValue = None if value is None else str(value)
+        unit = None
+        if shown is not None and parse_quantity(shown) is not None:
+            unit = default_registry().facet(claim.field).unit
+        return [Reading(subject=subject, value=shown, unit=unit)]
 
 
 def claude_extractor(*, cache: LLMCache | None = None,
@@ -2282,6 +2447,33 @@ def mistral_extractor(*, cache: LLMCache | None = None,
     )
 
 
+def claude_licence_extractor(*, cache: LLMCache | None = None,
+                             complete: Callable[[str], str] | None = None,
+                             max_calls: int = 400) -> LicenceExtractor:
+    """Licence reader on the same Claude CLI completion as ``claude_extractor``."""
+    return LicenceExtractor(
+        complete or ClaudeCLICompletion(max_calls=max_calls),
+        agent="claude-cli",
+        model="claude-sonnet-5",
+        model_family="anthropic",
+        cache=cache if cache is not None else LLMCache(namespace="licence"),
+    )
+
+
+def mistral_licence_extractor(*, cache: LLMCache | None = None,
+                              complete: Callable[[str], str] | None = None,
+                              max_calls: int = 400) -> LicenceExtractor:
+    """Licence reader on the same local Mistral completion as ``mistral_extractor``."""
+    return LicenceExtractor(
+        complete or OllamaChatCompletion(max_calls=max_calls),
+        agent="ollama",
+        model=MISTRAL_MODEL,
+        model_family="mistral",
+        cache=cache if cache is not None else LLMCache(
+            namespace=f"ollama:{MISTRAL_MODEL}:licence"),
+    )
+
+
 def _text(value: Any) -> str | None:
     return None if value is None else str(value)
 
@@ -2324,6 +2516,14 @@ class StoredRegions:
             return select_region(doc, Locator(kind, region.locator.value))
         except (UnsupportedContentError, ValueError):
             return None
+
+    def source_kind(self, source_id: str) -> str | None:
+        source = self.sources.get(source_id)
+        return None if source is None else source.kind
+
+    def source_url(self, source_id: str) -> str | None:
+        source = self.sources.get(source_id)
+        return None if source is None else str(source.url)
 
 
 # --- comparison ----------------------------------------------------------------------------------
@@ -2691,13 +2891,87 @@ def _verify_evidence_reading(
     return Result(claim.target, "skipped", reason="; ".join(reasons))
 
 
+def _source_kind(regions: Regions, source_id: str) -> tuple[bool, str | None]:
+    """``(tracked, kind)``. Untracked regions predate source kinds."""
+    method = getattr(regions, "source_kind", None)
+    if not callable(method):
+        return False, None
+    return True, method(source_id)
+
+
+def _facet_or_none(field: str):
+    try:
+        return default_registry().facet(field)
+    except KeyError:
+        return None
+
+
+def _absence_block(claim: Claim, regions: Regions, source_id: str) -> list[Diff] | None:
+    """Mismatch when an absence is cited to a source kind the facet does not permit.
+
+    A source whose kind is unknown still supports a non-licence absence, so
+    registries written before ``kind`` keep verifying. A ``licence.*`` absence
+    needs an explicit permitted kind: a README that never states the term is
+    not evidence that the licence is silent.
+    """
+    if claim.value is not None:
+        return None
+    facet = _facet_or_none(claim.field)
+    if facet is None:
+        return None
+    permitted = list(facet.permitted_source_kinds)
+    tracked, kind = _source_kind(regions, source_id)
+    if kind in permitted:
+        return None
+    if not claim.field.startswith("licence.") and (not tracked or kind is None):
+        return None
+    return [Diff("source_kind", permitted, kind if kind is not None else "unknown")]
+
+
+def _readers_for(extractors: Sequence[Extractor], claim: Claim, text: str,
+                 kind: str | None) -> list[Extractor]:
+    """Who may read this region.
+
+    A licence claim on a licence or terms document goes only to
+    ``LicenceExtractor``. Deterministic extractors do not claim those regions:
+    a ``Key: value`` line in a licence is not the licence's grant.
+    """
+    licence_doc = kind in LICENCE_SOURCE_KINDS
+    if licence_doc and claim.field.startswith("licence."):
+        return [extractor for extractor in extractors if isinstance(extractor, LicenceExtractor)]
+    chosen = []
+    for extractor in extractors:
+        if isinstance(extractor, LicenceExtractor):
+            continue
+        if licence_doc and extractor.actor.model_family == DETERMINISTIC:
+            continue
+        if extractor.accepts(text):
+            chosen.append(extractor)
+    return chosen
+
+
+def _binding_pages(claim: Claim, regions: Regions, source_id: str, region_id: str) -> list[str]:
+    """Text of the claim's other cited regions: the pages that can bind a licence."""
+    pages = []
+    for source in claim.sources:
+        for cited in source.cited_regions:
+            if source.source_id == source_id and cited == region_id:
+                continue
+            text = regions.text(source.source_id, source.snapshot_ref, cited)
+            if text:
+                pages.append(text)
+    return pages
+
+
 def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
            today: date) -> Result:
     """Re-read ``claim`` from each cited region of its sources and compare.
 
     Deterministic extractors are tried before the rest, whatever the order given;
     the first that accepts a region and is independent of the collector reads it.
-    Verified if any region confirms the value; otherwise the first mismatch.
+    A licence claim on a licence or terms source is the exception: only
+    ``LicenceExtractor`` reads it. Verified if any region confirms the value;
+    otherwise the first mismatch.
     """
     if isinstance(claim.value, dict) and "score" in claim.value:
         return _verify_evidence_reading(claim, regions, extractors, today=today)
@@ -2707,6 +2981,7 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
     mismatch: tuple[VerificationActor, list[Diff]] | None = None
     reasons: list[str] = []
     for source in claim.sources:
+        _, kind = _source_kind(regions, source.source_id)
         for region_id in source.cited_regions:
             where = f"{source.source_id}#{region_id}"
             text = regions.text(source.source_id, source.snapshot_ref, region_id)
@@ -2714,14 +2989,23 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
                 reasons.append(f"unreachable:{where}")
                 continue
             reachable = True
-            accepting = [e for e in ordered if e.accepts(text)]
+            accepting = _readers_for(ordered, claim, text, kind)
             independent = [e for e in accepting if _independent(claim, e.actor, today)]
             if not independent:
                 reasons.append("no_independent_extractor" if accepting else f"no_extractor:{where}")
                 continue
             for extractor in independent:
                 try:
-                    if isinstance(extractor, LLMExtractor):
+                    if isinstance(extractor, LicenceExtractor):
+                        url_of = getattr(regions, "source_url", None)
+                        readings = extractor.extract(
+                            claim,
+                            text,
+                            cache_key=(source.snapshot_ref, region_id, claim.field),
+                            bindings=_binding_pages(claim, regions, source.source_id, region_id),
+                            licence_url=url_of(source.source_id) if callable(url_of) else None,
+                        )
+                    elif isinstance(extractor, LLMExtractor):
                         readings = extractor.extract(
                             claim,
                             text,
@@ -2735,6 +3019,14 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
                     continue
                 diffs = compare(claim, readings)
                 if not diffs:
+                    blocked = _absence_block(claim, regions, source.source_id)
+                    if blocked:
+                        found = blocked[0].found
+                        reasons.append(
+                            f"absence_source_kind:{where}: {found} is not a permitted source kind"
+                        )
+                        mismatch = mismatch or (extractor.actor, blocked)
+                        continue
                     return Result(claim.target, "verified",
                                   _verification(claim, extractor.actor, "verified", today))
                 mismatch = mismatch or (extractor.actor, diffs)

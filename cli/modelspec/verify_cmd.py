@@ -5,7 +5,9 @@ its retained source copy with the deterministic extractors, appends every
 outcome to ``verification/log.jsonl`` and prints a summary. Pass
 ``--llm-reader claude`` (Claude Sonnet) or ``--llm-reader mistral`` (Mistral
 Large on the local ollama host) to add a prose reader after the deterministic
-readers. A reader is only asked about values collected by another model family.
+readers, and a licence reader for ``licence.*`` claims cited to a licence or
+terms source. A reader is only asked about values collected by another model
+family. The two readers share one completion function and one call budget.
 """
 
 from __future__ import annotations
@@ -19,8 +21,12 @@ import typer
 from decision import verify as v
 from decision.sources import CopyStore
 
-#: ``--llm-reader`` name -> the ``decision.verify`` factory that builds it.
+#: ``--llm-reader`` name -> the prose and licence factories in ``decision.verify``.
 READERS = {"claude": "claude_extractor", "mistral": "mistral_extractor"}
+LICENCE_READERS = {
+    "claude": "claude_licence_extractor",
+    "mistral": "mistral_licence_extractor",
+}
 
 app = typer.Typer(
     help="Verify queued values or run decision-engine accuracy checks.",
@@ -51,7 +57,11 @@ def verify(
             raise typer.BadParameter(
                 f"supported readers: {', '.join(READERS)}", param_hint="--llm-reader"
             )
-        extractors.append(getattr(v, READERS[llm_reader])())
+        prose = getattr(v, READERS[llm_reader])()
+        extractors.append(prose)
+        extractors.append(getattr(v, LICENCE_READERS[llm_reader])(
+            complete=prose.complete, cache=prose.cache,
+        ))
     report = v.run(
         v.Queue(directory),
         v.VerificationLog(directory),

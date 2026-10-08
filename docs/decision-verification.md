@@ -70,7 +70,28 @@ plan or model must not answer for a sibling on the same page (MODEL-201).
 Mistral's replies are also keyed by its model and request shape, so neither
 reader answers for the other. Set `MODELSPEC_LLM_CACHE` to use another
 directory. A run stops before its 401st uncached call. Deterministic
-extractors still run first.
+extractors still run first. They do not read a `licence_text` or
+`provider_terms` region.
+
+A `licence.*` claim cited to one of those kinds is read by `LicenceExtractor`
+(`licence-extract:<model>`), using the same completion function, cache and
+call budget as the prose reader. The prompt gives the facet's definition and
+its allowed values, including `unbounded` for `licence.user_cap`, and asks
+for the value plus one or more verbatim clauses. It does not show the
+collector's value. `not_disclosed` is the answer when the licence does not
+address the facet. A missing or non-verbatim clause is unparseable, so the
+region is not evidence. A licence does not name the model. The region is
+about the subject only when the claim also cites a page the identity check
+accepts and that page names the licence: Hugging Face front matter
+`license:`, or a link to the licence URL. A licence cited alone does not
+verify.
+
+An absence (a null value, `not_disclosed`) verifies only from a source kind
+in the facet's `permitted_source_kinds`. A `licence.*` absence needs that
+kind on the source. A README with no kind, or a kind outside the list, is a
+mismatch on `source_kind`. Other facets still verify an absence from a source
+whose kind is unknown. A known kind outside the facet's list is a mismatch
+for every facet.
 
 The first extractor that accepts a region and is independent of the collector
 reads it. Two keys means another model family (MODEL-140, enforced by

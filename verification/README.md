@@ -16,9 +16,11 @@ Never edit or delete a line. A correction is a new line.
 `registry/sources.yaml` is the one source-registry format. It has
 `schema_version: 1` and a `sources` list. Each source has `id`, an HTTP(S)
 `url`, and may set `fetch` (`http`, `conditional_http`, or `rendered`),
-`normaliser`, and `cited_regions`. The defaults are `conditional_http`,
-`html-default`, and an empty list. Each cited region has an `id` and a
-`locator` with `kind` and `value`. Supported locator kinds are `css`,
-`heading_anchor`, `heading`, `table`, and `page`. Registration rejects `xpath`
-because the normaliser cannot resolve it. Verification and snapshot collection
-both call `decision.sources.load_sources`.
+`normaliser`, `kind`, and `cited_regions`. The defaults are `conditional_http`,
+`html-default`, an unknown kind, and an empty list. `kind` is a `source_kinds`
+id from `registry/facets.yaml` (`licence_text`, `provider_terms`, and the
+others). Leaving it out does not make the source invalid. Each cited region
+has an `id` and a `locator` with `kind` and `value`. Supported locator kinds
+are `css`, `heading_anchor`, `heading`, `table`, and `page`. Registration
+rejects `xpath` because the normaliser cannot resolve it. Verification and
+snapshot collection both call `decision.sources.load_sources`.
