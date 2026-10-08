@@ -427,7 +427,7 @@ def test_record_only_subscription_facets_are_rejected(raw, path) -> None:
     assert issue.field == "offering.subscription.price"
     assert issue.path == path
     assert "record-only" in issue.reason
-    assert "MODEL-179" in issue.reason
+    assert "MODEL-" not in issue.reason
 
 
 # ── the spec ──────────────────────────────────────────────────────────────

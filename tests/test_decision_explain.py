@@ -491,7 +491,10 @@ def test_empty_feasible_set_and_domain_objectives_remain_honest(index):
     assert empty.constraint_costs[0].gain == {}
     domain = decide(spec(optimize={"max": "software_engineering"}), index, facets=facets)
     assert domain.status == "no_feasible"
-    assert "MODEL-129" in domain.relax[0]
+    assert domain.relax == [
+        "no model that meets the requirements has a value for software_engineering",
+    ]
+    assert [row.model for row in domain.may_qualify] == ["lab/a"]
 
 
 def test_tipping_point_is_the_optimiser_weight_crossing(index):

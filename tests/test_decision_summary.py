@@ -290,7 +290,7 @@ def test_a_diagnostic_is_an_objective_failure_only_when_gates_left_candidates() 
         status="no_feasible",
         results=[],
         answer=None,
-        relax=["specify a benchmark or wait for the capability model (MODEL-129)"],
+        relax=["no model that meets the requirements has a value for chat_preference"],
         eliminated={"funnel": [{
             "condition": "model.class = text-generator",
             "before": 3,
@@ -377,7 +377,7 @@ def test_a_diagnostic_without_an_objective_name_keeps_the_gate_sentence() -> Non
         status="no_feasible",
         results=[],
         answer=None,
-        relax=["specify a benchmark or wait for the capability model (MODEL-129)"],
+        relax=["no complete objective values"],
         eliminated={"funnel": [{
             "condition": "model.class = decider",
             "before": 4,

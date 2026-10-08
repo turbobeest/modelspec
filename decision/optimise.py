@@ -16,12 +16,13 @@ from decision.contract import EvidenceQualifiers, Objective, Preference, Toleran
 from decision.refinements import is_refinement_key
 
 NO_COMPLETE_OBJECTIVE_VALUES = "no complete objective values"
-CAPABILITY_MODEL_UNAVAILABLE = "specify a benchmark or wait for the capability model (MODEL-129)"
 # Every reason string ``optimise`` returns with status ``no_feasible``.
 OPTIMISER_DIAGNOSTICS = frozenset({
     NO_COMPLETE_OBJECTIVE_VALUES,
-    CAPABILITY_MODEL_UNAVAILABLE,
 })
+#: User-facing ``relax`` text when the gates left candidates and none has an
+#: objective value. The engine appends the objective's name.
+OBJECTIVE_GAP_PREFIX = "no model that meets the requirements has a value for "
 
 if TYPE_CHECKING:
     from decision.snapshot import CapabilityEstimateValue, EvidenceValue, SnapshotIndex
@@ -71,11 +72,28 @@ class EvidenceSelector:
         )
 
 
+#: Same cutoff as ``n()`` in ``web/src/decide/engine/reference.ts``.
+SPAN_EPSILON = 1e-9
+
+
 @dataclass(frozen=True)
 class Normalisation:
     minimum: float | None
     maximum: float | None
     direction: Literal["max", "min"]
+
+    def zero_span(self) -> bool:
+        """One known value, or known values equal within the reference cutoff."""
+        low, high = self.minimum, self.maximum
+        return low is not None and high is not None and high - low < SPAN_EPSILON
+
+    def constant(self) -> float:
+        """The reference ranker's zero-span value, after direction.
+
+        ``n()`` returns 1 when the span is zero. A maximum uses that value.
+        A minimum, including cost, uses ``1 - n``.
+        """
+        return 1.0 if self.direction == "max" else 0.0
 
 
 @dataclass(frozen=True)
@@ -147,10 +165,30 @@ def _number(value: object) -> float | None:
 def _normalise(value: float, normalisation: Normalisation) -> float:
     low, high = normalisation.minimum, normalisation.maximum
     assert low is not None and high is not None
-    if high == low:
-        return 0.0
+    if normalisation.zero_span():
+        return normalisation.constant()
     scaled = (value - low) / (high - low)
     return 1 - scaled if normalisation.direction == "min" else scaled
+
+
+def _transform_interval(
+    point: float, raw_low: float, raw_high: float, normalisation: Normalisation,
+) -> tuple[float, float]:
+    """The dimensionless interval. A zero point-span uses this candidate's raw width."""
+    if normalisation.zero_span():
+        constant = normalisation.constant()
+        width = raw_high - raw_low
+        if width < SPAN_EPSILON:
+            return constant, constant
+        sign = 1.0 if normalisation.direction == "max" else -1.0
+        low = constant + sign * (raw_low - point) / width
+        high = constant + sign * (raw_high - point) / width
+        return (low, high) if low <= high else (high, low)
+    transformed = sorted((
+        _normalise(raw_low, normalisation),
+        _normalise(raw_high, normalisation),
+    ))
+    return transformed[0], transformed[1]
 
 
 def _raw_interval(
@@ -288,8 +326,11 @@ def optimise(snapshot: SnapshotIndex, candidates: Sequence[str], objective: Obje
              domains: set[str] | frozenset[str] = frozenset()) -> Optimisation:
     """Order complete candidates first; ID breaks exact ties without adding a bonus.
 
-    All dimensions use feasible-set min-max values. Constant dimensions contribute
-    zero. Weights are used as supplied, not rescaled to sum to one. Penalties are
+    All dimensions use feasible-set min-max values, which are dimensionless.
+    A zero span maps to 1 when the dimension is maximised and to 0 when it is
+    minimised, matching the reference ranker. The interval then uses that
+    candidate's own raw width, so uncertainty does not collapse to a point.
+    Weights are used as supplied, not rescaled to sum to one. Penalties are
     subtracted once from a scalar total, or from each lexicographic/Pareto dimension.
     Tolerances are in raw units, converted to normalised units before grouping.
     The resolver must supply all domain objective IDs in ``domains`` and bind
@@ -299,19 +340,26 @@ def optimise(snapshot: SnapshotIndex, candidates: Sequence[str], objective: Obje
     dimensions = _dimensions(objective)
     selectors = evidence_selectors or {}
     estimate_lookup = getattr(snapshot, "capability_estimate", None)
+    gaps = []
     for signed, _, _, preference in dimensions:
         facet = signed.removeprefix("-")
-        if preference is not None:
-            continue
-        if facet not in domains or facet in selectors:
+        if preference is not None or facet not in domains or facet in selectors:
             continue
         if estimate_lookup is None or not any(
             estimate_lookup(cid, facet) is not None for cid in candidates
         ):
-            return Optimisation(
-                "no_feasible", (),
-                CAPABILITY_MODEL_UNAVAILABLE,
-            )
+            gaps.append(facet)
+    if gaps:
+        # No candidate has an estimate. They passed the gates, so they stay
+        # visible as missing the objective rather than disappearing.
+        if not candidates:
+            return Optimisation("no_feasible", (), NO_COMPLETE_OBJECTIVE_VALUES)
+        missing = tuple(sorted(set(candidates)))
+        return Optimisation(
+            "no_feasible", (), NO_COMPLETE_OBJECTIVE_VALUES,
+            missing=missing,
+            unknown={cid: tuple(gaps) for cid in missing},
+        )
     cids = sorted(set(candidates))
     contributions: dict[str, list[DimensionContribution]] = {cid: [] for cid in cids}
     for signed, weight, _, preference in dimensions:
@@ -354,7 +402,9 @@ def optimise(snapshot: SnapshotIndex, candidates: Sequence[str], objective: Obje
         raw = {cid: reading[0] for cid, reading in readings.items()}
         known = [v for v in raw.values() if v is not None]
         low, high = (min(known), max(known)) if known else (None, None)
-        norm = Normalisation(low, high, "min" if signed.startswith("-") else "max")
+        norm = Normalisation(
+            low, high, "min" if signed.startswith("-") else "max",
+        )
         for cid, value in raw.items():
             normalised = None
             interval = None
@@ -366,13 +416,10 @@ def optimise(snapshot: SnapshotIndex, candidates: Sequence[str], objective: Obje
                     readings[cid][3],
                     readings[cid][4],
                 )
-                transformed = sorted((
-                    _normalise(raw_low, norm),
-                    _normalise(raw_high, norm),
-                ))
                 # Do not clamp. Values beyond the feasible point-estimate range
-                # carry uncertainty the answer bands need.
-                interval = transformed[0], transformed[1]
+                # carry uncertainty the answer bands need. A zero point-span
+                # stays dimensionless and uses this candidate's raw width.
+                interval = _transform_interval(value, raw_low, raw_high, norm)
             contributions[cid].append(DimensionContribution(
                 signed, value, normalised, weight, norm, readings[cid][1], readings[cid][2],
                 readings[cid][3], interval=interval))

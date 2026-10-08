@@ -29,7 +29,10 @@ such a condition runs after them, and the funnel lists it after them.
 A model with offerings is represented by them (MODEL-159). Its bare model row
 would tie with them on the evidence they inherit, so it never enters the
 lineup and is not reported as eliminated. A model with no offering is its own
-row only when its verified weights openness is ``open_weights``.
+row only when its verified weights openness is ``open_weights``. A self-host
+reach (a device, or ``own_hardware``) that holds a sold model's bare row is
+the same test. A plan that reaches that row is the plan's route, and the
+weights check does not remove it.
 
 The shared snapshot protocol lives in ``decision/snapshot.py`` (MODEL-138).
 """
@@ -70,6 +73,17 @@ _PROVIDER = frozenset({"provider_self_report"})
 
 _RETIRED_CONDITION = "model.lifecycle not in {retired}"
 _SELF_HOST_CONDITION = "model.weights_openness = open_weights unknown(fail)"
+_FIT = "model.fits_hardware"
+
+
+def _self_host_bare(reach, cid: str) -> bool:
+    """The bare row is held so the caller can run it, not because a plan names it."""
+    if reach is None or not reach.holds_bare(cid):
+        return False
+    route = reach.via.get(cid)
+    if route is not None:
+        return route[0] == "device"
+    return _FIT in reach.unknown.get(cid, ())
 
 
 class _Missing:
@@ -861,8 +875,12 @@ class _Run:
                 represented |= bit
             elif self._life(cid) == "retired":
                 retired |= bit
-            if (self.index.kind(cid) == "model" and cid not in sold
-                    and not outside & bit):
+            # A sold model is represented by its offerings, unless a self-host
+            # reach holds the bare row. A plan that names the row is not one.
+            # Unknown or closed weights are still not a self-host route.
+            self_host = _self_host_bare(reach, cid)
+            if (self.index.kind(cid) == "model" and not outside & bit
+                    and (cid not in sold or self_host)):
                 weights = self.index.fact(cid, "model.weights_openness")
                 if weights.state != "known" or weights.value != "open_weights":
                     no_route |= bit

@@ -1586,7 +1586,7 @@
           "dimension": "-offering.cost_per_task",
           "weight": 0.4,
           "value": 1.0,
-          "normalisation": "feasible min-max; min; minimum=0.0168 usd_per_task; maximum=0.336 usd_per_task; constant dimensions contribute zero dimensionless",
+          "normalisation": "feasible min-max; min; minimum=0.0168 usd_per_task; maximum=0.336 usd_per_task; a zero span maps to 1 (max) or 0 (min) dimensionless",
           "evidence": [],
           "formula": "(0.3 USD per 1M input tokens × 40,000 input tokens + 1.2 USD per 1M output tokens × 4,000 output tokens) ÷ 1,000,000 = 0.0168 USD per task",
           "preferred_value": null,
@@ -1601,7 +1601,7 @@
           "dimension": "software_engineering",
           "weight": 0.6,
           "value": 0.7005545842894849,
-          "normalisation": "feasible min-max; max; minimum=-1.156730491 latent capability; maximum=0.880537101 latent capability; constant dimensions contribute zero dimensionless",
+          "normalisation": "feasible min-max; max; minimum=-1.156730491 latent capability; maximum=0.880537101 latent capability; a zero span maps to 1 (max) or 0 (min) dimensionless",
           "evidence": [
             {
               "requested_domain": "software_engineering",
@@ -1677,7 +1677,7 @@
           "dimension": "-offering.cost_per_task",
           "weight": 0.4,
           "value": 0.7017543859649122,
-          "normalisation": "feasible min-max; min; minimum=0.0168 usd_per_task; maximum=0.336 usd_per_task; constant dimensions contribute zero dimensionless",
+          "normalisation": "feasible min-max; min; minimum=0.0168 usd_per_task; maximum=0.336 usd_per_task; a zero span maps to 1 (max) or 0 (min) dimensionless",
           "evidence": [],
           "formula": "(2 USD per 1M input tokens × 40,000 input tokens + 8 USD per 1M output tokens × 4,000 output tokens) ÷ 1,000,000 = 0.112 USD per task",
           "preferred_value": null,
@@ -1693,7 +1693,7 @@
           "dimension": "software_engineering",
           "weight": 0.6,
           "value": 0.8201073111656311,
-          "normalisation": "feasible min-max; max; minimum=-1.156730491 latent capability; maximum=0.880537101 latent capability; constant dimensions contribute zero dimensionless",
+          "normalisation": "feasible min-max; max; minimum=-1.156730491 latent capability; maximum=0.880537101 latent capability; a zero span maps to 1 (max) or 0 (min) dimensionless",
           "evidence": [
             {
               "requested_domain": "software_engineering",
@@ -1793,7 +1793,7 @@
           "dimension": "-offering.cost_per_task",
           "weight": 0.4,
           "value": 0.9824561403508771,
-          "normalisation": "feasible min-max; min; minimum=0.0168 usd_per_task; maximum=0.336 usd_per_task; constant dimensions contribute zero dimensionless",
+          "normalisation": "feasible min-max; min; minimum=0.0168 usd_per_task; maximum=0.336 usd_per_task; a zero span maps to 1 (max) or 0 (min) dimensionless",
           "evidence": [],
           "formula": "(0.4 USD per 1M input tokens × 40,000 input tokens + 1.6 USD per 1M output tokens × 4,000 output tokens) ÷ 1,000,000 = 0.0224 USD per task",
           "preferred_value": null,
@@ -1809,7 +1809,7 @@
           "dimension": "software_engineering",
           "weight": 0.6,
           "value": 0.46333527451508194,
-          "normalisation": "feasible min-max; max; minimum=-1.156730491 latent capability; maximum=0.880537101 latent capability; constant dimensions contribute zero dimensionless",
+          "normalisation": "feasible min-max; max; minimum=-1.156730491 latent capability; maximum=0.880537101 latent capability; a zero span maps to 1 (max) or 0 (min) dimensionless",
           "evidence": [
             {
               "requested_domain": "software_engineering",
@@ -1909,7 +1909,7 @@
           "dimension": "-offering.cost_per_task",
           "weight": 0.4,
           "value": 0.0,
-          "normalisation": "feasible min-max; min; minimum=0.0168 usd_per_task; maximum=0.336 usd_per_task; constant dimensions contribute zero dimensionless",
+          "normalisation": "feasible min-max; min; minimum=0.0168 usd_per_task; maximum=0.336 usd_per_task; a zero span maps to 1 (max) or 0 (min) dimensionless",
           "evidence": [],
           "formula": "(6 USD per 1M input tokens × 40,000 input tokens + 24 USD per 1M output tokens × 4,000 output tokens) ÷ 1,000,000 = 0.336 USD per task",
           "preferred_value": null,
@@ -1925,7 +1925,7 @@
           "dimension": "software_engineering",
           "weight": 0.6,
           "value": 1.0,
-          "normalisation": "feasible min-max; max; minimum=-1.156730491 latent capability; maximum=0.880537101 latent capability; constant dimensions contribute zero dimensionless",
+          "normalisation": "feasible min-max; max; minimum=-1.156730491 latent capability; maximum=0.880537101 latent capability; a zero span maps to 1 (max) or 0 (min) dimensionless",
           "evidence": [
             {
               "requested_domain": "software_engineering",
@@ -2025,7 +2025,7 @@
           "dimension": "-offering.cost_per_task",
           "weight": 0.4,
           "value": 0.8771929824561404,
-          "normalisation": "feasible min-max; min; minimum=0.0168 usd_per_task; maximum=0.336 usd_per_task; constant dimensions contribute zero dimensionless",
+          "normalisation": "feasible min-max; min; minimum=0.0168 usd_per_task; maximum=0.336 usd_per_task; a zero span maps to 1 (max) or 0 (min) dimensionless",
           "evidence": [],
           "formula": "(1 USD per 1M input tokens × 40,000 input tokens + 4 USD per 1M output tokens × 4,000 output tokens) ÷ 1,000,000 = 0.056 USD per task",
           "preferred_value": null,
@@ -2042,7 +2042,7 @@
           "dimension": "software_engineering",
           "weight": 0.6,
           "value": 0.0,
-          "normalisation": "feasible min-max; max; minimum=-1.156730491 latent capability; maximum=0.880537101 latent capability; constant dimensions contribute zero dimensionless",
+          "normalisation": "feasible min-max; max; minimum=-1.156730491 latent capability; maximum=0.880537101 latent capability; a zero span maps to 1 (max) or 0 (min) dimensionless",
           "evidence": [
             {
               "requested_domain": "software_engineering",
