@@ -7,6 +7,8 @@ from pathlib import Path
 
 import yaml
 
+from scripts.recall_run import apply_weights_gate, weights_gate
+
 HERE = Path(__file__).resolve().parent
 DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 IDS = [f"Q{n:02d}" for n in range(1, 21)]
@@ -25,6 +27,37 @@ def _sources_ok(entry: dict, where: str) -> None:
         url = source.get("url")
         assert isinstance(url, str) and url.startswith("https://"), where
         assert DATE.match(str(source.get("read") or "")), where
+
+
+def test_open_weights_false_never_yields_a_weights_gate() -> None:
+    assert weights_gate(False) is None
+    assert weights_gate(None) is None
+    assert weights_gate(True) == "model.weights_openness = open_weights"
+    closed = [
+        "model.class = text-generator",
+        "model.weights_openness = closed_weights",
+        "feature.tool_calling = true",
+    ]
+    assert apply_weights_gate(closed, False) == [
+        "model.class = text-generator",
+        "feature.tool_calling = true",
+    ]
+    assert apply_weights_gate(["model.weights_openness != open_weights"], False) == []
+    assert apply_weights_gate(closed, True) == [
+        "model.class = text-generator",
+        "model.weights_openness = open_weights",
+        "feature.tool_calling = true",
+    ]
+
+    questions = {row["id"]: row for row in _load("questions.yaml")["questions"]}
+    for question_id in IDS:
+        constraints = questions[question_id]["constraints"]
+        asked = constraints["open_weights"] if "open_weights" in constraints else None
+        spec = _load(f"specs/{question_id}.yaml")
+        where = spec["where"]
+        assert where == apply_weights_gate(where, asked)
+        if asked is not True:
+            assert all("model.weights_openness" not in str(line) for line in where)
 
 
 def test_recall_questions_and_expected_load() -> None:
