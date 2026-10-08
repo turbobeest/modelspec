@@ -36,17 +36,18 @@ MUST_MENTION_ITEM_BYTES = 200
 OPENNESS_FACET = "model.weights_openness"
 OPENNESS_EITHER = frozenset({"open_weights", "closed_weights"})
 
-_NO_ANSWER = "ModelSpec's answer is that there is no answer."
-_TIE_TAIL = "and the evidence does not separate them."
-_ESTIMATES = "Estimates are estimates, not measurements."
+_NO_FEASIBLE = "ModelSpec found no model that meets every requirement, so it names no pick."
+_PARTIAL = "ModelSpec's answer is incomplete, so it names no pick."
+_NULL_ANSWER = "ModelSpec has no answer for this request, so it names no pick."
+_TIE_TAIL = "the evidence does not separate them."
+_ESTIMATES = "Some values are estimates, not measurements."
 _HARDWARE = (
     "fits_hardware is an estimate, not a measured fit for a quantization or context workload."
 )
 _OUTSIDE = "The request is outside coverage."
 _CLASS_FACET = "model.class"
 _TEXT_GENERATOR = "text-generator"
-_NO_CLASS = "No model class was required, so the ranking spans every class"
-_NO_CLASS_MENTION = "No model.class gate was set; results span all model classes."
+_NO_CLASS = "No model class was required, so results span every class"
 _COST_ONLY = "This answer is ordered by cost only; it is not a quality ranking."
 _TIE_COST = "Tie-breakers are conditional; cost order is not quality order."
 _QUALITY_CLAIM = "Do not claim a quality rank from this objective."
@@ -71,6 +72,10 @@ def summarize(
     return summary, [text for _kind, text in mentions]
 
 
+def _count(value: int) -> str:
+    return f"{value:,}"
+
+
 def _summary(
     decision: Decision,
     spec: Spec | None,
@@ -83,7 +88,7 @@ def _summary(
         "prefer": 12,
         "relax": 12,
         "missing": 12,
-        "caveat": len(mentions),
+        "caveat": 0,
     }
     floors = {
         "tie": 1,
@@ -91,16 +96,19 @@ def _summary(
         "prefer": 1,
         "relax": 1,
         "missing": 1,
-        "caveat": len({kind for kind, _text in mentions}) or 0,
+        "caveat": 0,
     }
-    text = _compose(decision, spec, unapplied, mentions, limits)
+    visible = _paragraph_mentions(decision, mentions)
+    limits["caveat"] = len(visible)
+    floors["caveat"] = len({kind for kind, _text in visible}) or 0
+    text = _compose(decision, spec, unapplied, visible, limits)
     order = ("hard", "prefer", "relax", "missing", "tie", "caveat")
     while len(text.encode("utf-8")) > SUMMARY_BYTES:
         key = next((name for name in order if limits[name] > floors[name]), None)
         if key is None:
             break
         limits[key] -= 1
-        text = _compose(decision, spec, unapplied, mentions, limits)
+        text = _compose(decision, spec, unapplied, visible, limits)
     if len(text.encode("utf-8")) > SUMMARY_BYTES:
         text = _clip_paragraph(text)
     return text
@@ -113,20 +121,45 @@ def _compose(
     mentions: list[tuple[str, str]],
     limits: dict[str, int],
 ) -> str:
-    parts = [_answer_sentence(decision, limits["tie"]), _class_sentence(decision, spec)]
+    parts = [_answer_sentence(decision, limits["tie"])]
     parts.extend(_why(decision, spec, unapplied, limits))
     parts.extend(_constraints(spec, unapplied, limits))
     parts.extend(_caveats(mentions, limits["caveat"]))
-    return " ".join(part for part in parts if part)
+    return _dedupe(parts)
+
+
+def _paragraph_mentions(
+    decision: Decision, mentions: list[tuple[str, str]],
+) -> list[tuple[str, str]]:
+    """Caveats whose fact is not already in the answer, why, or constraints."""
+    skip = {"not_applied"}
+    if decision.status == "partial":
+        skip.add("may_qualify")
+    return [(kind, text) for kind, text in mentions if kind not in skip]
+
+
+def _dedupe(parts: list[str]) -> str:
+    seen: set[str] = set()
+    kept: list[str] = []
+    for part in parts:
+        if not part or part in seen:
+            continue
+        seen.add(part)
+        kept.append(part)
+    return " ".join(kept)
 
 
 def _answer_sentence(decision: Decision, tie_limit: int) -> str:
+    if decision.status == "no_feasible":
+        return _NO_FEASIBLE
+    if decision.status == "partial":
+        return _PARTIAL
     answer = decision.answer
-    if decision.status in ("partial", "no_feasible") or answer is None:
-        return _NO_ANSWER
+    if answer is None:
+        return _NULL_ANSWER
     if answer.kind == "tied":
         names = _name_list(list(answer.deterministic_order), tie_limit, more=" in answer.members")
-        return f"ModelSpec's answer is a tie among {names}, {_TIE_TAIL}"
+        return f"ModelSpec's answer is a tie among {names}; {_TIE_TAIL}"
     member = answer.deterministic_order[0]
     return f"ModelSpec's answer is {member}."
 
@@ -142,10 +175,18 @@ def _why(
         else:
             exclude = "These requirements together exclude every model."
         sentences = [exclude]
-        relax = _bounded(list(decision.relax), limits["relax"])
+        relax_values = list(decision.relax)
+        relax = _bounded(relax_values, limits["relax"])
         if relax:
-            sentences.append(f"Relax suggestions: {relax}. These are options, not an answer.")
-        nearest = _bounded([item.relaxed for item in decision.relax_to], limits["relax"])
+            sentences.append(
+                f"Relaxing one of these would admit a model: {relax}. "
+                "These are options, not an answer."
+            )
+        stated = set(relax_values)
+        nearest = _bounded(
+            [item.relaxed for item in decision.relax_to if item.relaxed not in stated],
+            limits["relax"],
+        )
         if nearest:
             sentences.append(f"Nearest relaxations, not an answer: {nearest}.")
         hint = decision.relax_task_tokens
@@ -166,9 +207,13 @@ def _why(
     sentences = [missing]
     count = len(decision.may_qualify)
     if count:
-        noun = "model" if count == 1 else "models"
-        sentences.append(f"{count} {noun} may qualify; unknown values.")
+        sentences.append(_qualify_sentence(count))
     return sentences
+
+
+def _qualify_sentence(count: int) -> str:
+    noun = "model" if count == 1 else "models"
+    return f"{_count(count)} {noun} may qualify; unknown values."
 
 
 def _constraints(spec: Spec | None, unapplied: list[str], limits: dict[str, int]) -> list[str]:
@@ -176,7 +221,7 @@ def _constraints(spec: Spec | None, unapplied: list[str], limits: dict[str, int]
     prefers = _prefers(spec, set(unapplied))
     sentences: list[str] = []
     if gates:
-        sentences.append(f"Hard requirements: {_bounded(gates, limits['hard'])}.")
+        sentences.append(f"Requirements applied: {_bounded(gates, limits['hard'])}.")
     sentences.extend(dont_care)
     if prefers:
         sentences.append(
@@ -184,7 +229,10 @@ def _constraints(spec: Spec | None, unapplied: list[str], limits: dict[str, int]
             f"{_bounded(prefers, limits['prefer'])}."
         )
     if unapplied:
-        sentences.append(f"Not applied and not enforced: {_bounded(unapplied, limits['hard'])}.")
+        sentences.append(
+            "Requirements not applied (ModelSpec did not check them): "
+            f"{_bounded(unapplied, limits['hard'])}."
+        )
     return sentences
 
 
@@ -263,9 +311,10 @@ def _mentions(
     items: list[tuple[str, str]] = []
     if _presents_tie(decision) and decision.answer is not None:
         count = len(decision.answer.members)
-        items.append(("tie", f"No single winner: {count} models are tied."))
-    if spec is not None and not _has_class_gate(spec):
-        items.append(("class", _NO_CLASS_MENTION))
+        items.append(("tie", f"No single winner: {_count(count)} models are tied."))
+    scope = _class_sentence(decision, spec)
+    if scope:
+        items.append(("class", scope))
     if _cost_only(decision, spec):
         items.append(("cost", _COST_ONLY))
     if _cost_tie_break(decision):
@@ -292,12 +341,9 @@ def _mentions(
         items.append(("coverage", message))
     qualify = len(decision.may_qualify)
     if qualify:
-        noun = "model" if qualify == 1 else "models"
-        items.append(("may_qualify", f"{qualify} {noun} may qualify; unknown values."))
+        items.append(("may_qualify", _qualify_sentence(qualify)))
     if decision.out_of_lineup > 0:
-        count = decision.out_of_lineup
-        noun = "model is" if count == 1 else "models are"
-        items.append(("out_of_lineup", f"{count} active {noun} out of the lineup."))
+        items.append(("out_of_lineup", _lineup_sentence(decision.out_of_lineup)))
     if _hardware(decision, spec):
         items.append(("hardware", _HARDWARE))
     if _estimates(decision):
@@ -354,7 +400,7 @@ def _proxy_sentence(domain: str, benchmarks: list[str]) -> str:
     for benchmark in benchmarks:
         trial = shown + [benchmark]
         rest = len(benchmarks) - len(trial)
-        extra = f", and {rest} more" if rest else ""
+        extra = f", and {_count(rest)} more" if rest else ""
         text = prefix + ", ".join(trial) + extra + suffix
         if len(text.encode("utf-8")) <= MUST_MENTION_ITEM_BYTES:
             shown.append(benchmark)
@@ -363,7 +409,7 @@ def _proxy_sentence(domain: str, benchmarks: list[str]) -> str:
     if not shown:
         return _clip_item(prefix + benchmarks[0] + suffix)
     rest = len(benchmarks) - len(shown)
-    extra = f", and {rest} more" if rest else ""
+    extra = f", and {_count(rest)} more" if rest else ""
     return prefix + ", ".join(shown) + extra + suffix
 
 
@@ -509,6 +555,14 @@ def _class_sentence(decision: Decision, spec: Spec | None) -> str:
     return f"{_NO_CLASS}, including {_name_list(classes, 8, more=' classes')}."
 
 
+def _lineup_sentence(count: int) -> str:
+    if count == 1:
+        rest = "1 active catalogue model is outside it."
+    else:
+        rest = f"{_count(count)} active catalogue models are outside it."
+    return f"ModelSpec compared only the models in its lineup; {rest}"
+
+
 def _visible_classes(decision: Decision) -> list[str]:
     order: list[str] = []
     for model in _subjects(decision):
@@ -537,6 +591,8 @@ def _visible_classes(decision: Decision) -> list[str]:
 
 
 def _cost_only(decision: Decision, spec: Spec | None) -> bool:
+    if decision.status == "no_feasible":
+        return False  # nothing was ordered
     reading = decision.reading
     claimed = reading is not None and _QUALITY_CLAIM in reading.do_not_claim
     if spec is None:
@@ -601,7 +657,7 @@ def _trim(items: list[tuple[str, str]]) -> list[tuple[str, str]]:
         return clipped
     kept = _keep_classes(clipped, MUST_MENTION_MAX - 1)
     dropped = len(clipped) - len(kept)
-    return [*kept, ("more", f"and {dropped} more.")]
+    return [*kept, ("more", f"and {_count(dropped)} more.")]
 
 
 def _caveats(mentions: list[tuple[str, str]], limit: int) -> list[str]:
@@ -613,7 +669,7 @@ def _caveats(mentions: list[tuple[str, str]], limit: int) -> list[str]:
     dropped = len(mentions) - len(kept)
     sentences = [text for _kind, text in kept]
     if dropped:
-        sentences.append(f"and {dropped} more.")
+        sentences.append(f"and {_count(dropped)} more.")
     return sentences
 
 
@@ -648,7 +704,7 @@ def _name_list(names: list[str], limit: int, *, more: str) -> str:
     else:
         listed = ", ".join(shown[:-1]) + ", and " + shown[-1]
     if rest:
-        listed += f", and {rest} more{more}"
+        listed += f", and {_count(rest)} more{more}"
     return listed
 
 
@@ -659,7 +715,7 @@ def _bounded(items: list[str], limit: int) -> str:
     rest = len(items) - len(shown)
     text = "; ".join(shown)
     if rest:
-        text += f"; and {rest} more"
+        text += f"; and {_count(rest)} more"
     return text
 
 

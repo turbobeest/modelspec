@@ -26,11 +26,23 @@ FIELDS = [
     "model", "model_rank", "cost_per_task", "estimates", "p_best", "warnings", "evidence",
 ]
 
-NO_ANSWER = "ModelSpec's answer is that there is no answer."
-NO_CLASS = "No model class was required, so the ranking spans every class"
-NO_CLASS_MENTION = "No model.class gate was set; results span all model classes."
+NO_FEASIBLE = "ModelSpec found no model that meets every requirement, so it names no pick."
+PARTIAL = "ModelSpec's answer is incomplete, so it names no pick."
+NULL_ANSWER = "ModelSpec has no answer for this request, so it names no pick."
+NO_CLASS = "No model class was required, so results span every class"
 COST_ONLY = "This answer is ordered by cost only; it is not a quality ranking."
 TIE_COST = "Tie-breakers are conditional; cost order is not quality order."
+
+
+def _sentences(paragraph: str) -> list[str]:
+    parts = paragraph.split(". ")
+    found: list[str] = []
+    for index, part in enumerate(parts):
+        if index < len(parts) - 1:
+            found.append(part + ".")
+        else:
+            found.append(part if part.endswith(".") else part)
+    return found
 
 
 def _service():
@@ -126,7 +138,7 @@ def _check(rows: list[dict]) -> None:
     partial = by_name["partial"]
     if partial["decision_status"] != "partial":
         raise SystemExit("Q01 was not partial: " + json.dumps(partial)[:2000])
-    if not str(partial["summary_for_user"]).startswith(NO_ANSWER):
+    if not str(partial["summary_for_user"]).startswith(PARTIAL):
         raise SystemExit("partial summary names an answer")
     if "tied" in (partial["summary_for_user"] or ""):
         raise SystemExit("partial summary says tied")
@@ -135,24 +147,34 @@ def _check(rows: list[dict]) -> None:
     if empty["decision_status"] != "no_feasible" or empty["answer_members"] is not None:
         raise SystemExit("null example was not no_feasible: " + json.dumps(empty)[:2000])
     summary = empty["summary_for_user"] or ""
-    if "tied" in summary or not summary.startswith(NO_ANSWER):
+    if "tied" in summary or not summary.startswith(NO_FEASIBLE):
         raise SystemExit("no_feasible summary presents an answer")
     if "These are options, not an answer." not in summary:
         raise SystemExit("no_feasible summary does not list relaxations as options")
 
     constrained = by_name["constrained"]
     text = constrained["summary_for_user"] or ""
+    if not text.startswith(NULL_ANSWER):
+        raise SystemExit("null answer names a pick")
     if "not applied" not in text or "proxy" not in text:
         raise SystemExit("constrained example is missing a not-applied or proxy caveat")
+    if "was not applied; ModelSpec did not check it." in text:
+        raise SystemExit("constrained summary repeats a not-applied requirement")
 
     cost = by_name["cost_only"]
     shown = cost["summary_for_user"] or ""
     if COST_ONLY not in shown or COST_ONLY not in cost["must_mention"]:
         raise SystemExit("cost-only example did not say it is not a quality ranking")
-    if NO_CLASS not in shown or NO_CLASS_MENTION not in cost["must_mention"]:
+    if NO_CLASS not in shown or not any(item.startswith(NO_CLASS) for item in cost["must_mention"]):
         raise SystemExit("cost-only example did not state the class scope")
+    if shown.count(NO_CLASS) != 1:
+        raise SystemExit("cost-only example repeats the class scope")
     if "where" in cost["spec"]:
         raise SystemExit("cost-only example has a gate")
+    for row in rows:
+        sentences = _sentences(row["summary_for_user"] or "")
+        if len(sentences) != len(set(sentences)):
+            raise SystemExit(row["name"] + " repeats a sentence: " + row["summary_for_user"])
 
 
 def main() -> None:

@@ -167,7 +167,9 @@ def test_public_snapshot_names_an_estimated_position_and_a_natural_tie(service, 
         raw["explain"] = "summary"
         body = bounded(raw)
         assert body["status"] == "partial"
-        assert body["summary_for_user"].startswith("ModelSpec's answer is that there is no answer.")
+        assert body["summary_for_user"].startswith(
+            "ModelSpec's answer is incomplete, so it names no pick."
+        )
         assert "tied" not in body["summary_for_user"]
         members = [] if body.get("answer") is None else body["answer"]["members"]
         top = body["results"][0]["model"] if body["results"] else None
@@ -197,8 +199,10 @@ def test_public_snapshot_names_an_estimated_position_and_a_natural_tie(service, 
     summary = body["summary_for_user"]
     mentions = body["must_mention"]
     assert summary.startswith("ModelSpec's answer is a tie among ")
-    assert "No model class was required, so the ranking spans every class." in summary
-    assert "No model.class gate was set; results span all model classes." in mentions
+    assert "; the evidence does not separate them." in summary
+    scope = "No model class was required, so results span every class."
+    assert summary.count(scope) == 1
+    assert scope in mentions
     for member in body["answer"]["members"]:
         sentence = (
             f"{member} has no leaderboard data for chat_preference; "
@@ -212,6 +216,41 @@ def test_public_snapshot_names_an_estimated_position_and_a_natural_tie(service, 
     assert "model.class =" not in summary
 
 
+def _sentences(paragraph: str) -> list[str]:
+    parts = paragraph.split(". ")
+    found = []
+    for index, part in enumerate(parts):
+        if index < len(parts) - 1:
+            found.append(part + ".")
+        else:
+            found.append(part if part.endswith(".") else part)
+    return found
+
+
+def test_rendered_example_summaries_do_not_repeat_a_sentence(service, public_snapshot):
+    import importlib.util
+
+    path = Path(__file__).resolve().parents[1] / "scripts" / "render_summary_examples.py"
+    loader = importlib.util.spec_from_file_location("render_summary_examples", path)
+    module = importlib.util.module_from_spec(loader)
+    loader.loader.exec_module(module)
+    specs = module.examples()
+    assert set(specs) == {"tie", "partial", "no_feasible", "constrained", "cost_only"}
+    for name, spec in specs.items():
+        status, body = service.decide(spec, public_snapshot)
+        assert status == 200, body
+        sentences = _sentences(body["summary_for_user"])
+        assert len(sentences) == len(set(sentences)), (name, sentences)
+        answer = body.get("answer") or {}
+        if body["status"] in ("partial", "no_feasible") or body.get("answer") is None:
+            for member in answer.get("members") or []:
+                for sentence in sentences:
+                    if member not in sentence:
+                        continue
+                    assert "has no leaderboard data for " in sentence, (name, sentence)
+                    assert "its position is estimated, not measured." in sentence
+
+
 def test_projection_retains_unapplied_requirements(service, snapshot):
     payload = {**_payload(), "capabilities": {"thread_safety": "required"}, "fields": ["model"]}
     status, body = service.decide(payload, snapshot)
@@ -219,8 +258,13 @@ def test_projection_retains_unapplied_requirements(service, snapshot):
     assert body["reading"]["not_applied"] == ["thread_safety"]
     assert body["explanation"]["not_applied"] == ["thread_safety"]
     assert "Do not claim not_applied requirements were evaluated." in body["reading"]["do_not_claim"]
-    assert "thread_safety was not applied; ModelSpec did not check it." in body["must_mention"]
-    assert "Not applied and not enforced: thread_safety." in body["summary_for_user"]
+    assert (
+        "Requirements not applied (ModelSpec did not check them): thread_safety."
+        in body["summary_for_user"]
+    )
+    repeated = "thread_safety was not applied; ModelSpec did not check it."
+    assert repeated in body["must_mention"]
+    assert repeated not in body["summary_for_user"]
     assert "thread_safety is required" not in body["summary_for_user"]
 
 
