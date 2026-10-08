@@ -37,11 +37,11 @@ def test_wheel_contains_only_the_thin_client_and_its_guidance(tmp_path):
         "cli/modelspec/agent-bundle.json",
         "cli/modelspec/spec.schema.json",
         "cli/modelspec/feedback.schema.json",
-        "modelspec_dev-0.3.0.dist-info/METADATA",
-        "modelspec_dev-0.3.0.dist-info/WHEEL",
-        "modelspec_dev-0.3.0.dist-info/entry_points.txt",
-        "modelspec_dev-0.3.0.dist-info/licenses/LICENSE",
-        "modelspec_dev-0.3.0.dist-info/RECORD",
+        "modelspec_dev-0.3.1.dist-info/METADATA",
+        "modelspec_dev-0.3.1.dist-info/WHEEL",
+        "modelspec_dev-0.3.1.dist-info/entry_points.txt",
+        "modelspec_dev-0.3.1.dist-info/licenses/LICENSE",
+        "modelspec_dev-0.3.1.dist-info/RECORD",
     }
     assert not any(name.endswith(("/offline.py", "/snapshot.py", "/legacy.py")) for name in names)
     assert not {"models", "benchmarks", "registry", "pipeline", "decision", "api"} & {

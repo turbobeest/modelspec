@@ -23,7 +23,7 @@ pip install modelspec-dev
 ```
 
 `pip install modelspec` is an unrelated project. Use `modelspec-dev`.
-Version 0.2.0 was yanked; 0.3.0 is the thin keyed client.
+Version 0.2.0 was yanked; 0.3.1 is the thin keyed client and fixes gzip responses.
 
 Run `modelspec` or `modelspec help agent --json` for orientation,
 `modelspec key` for prices and access, and `modelspec auth set` to store a key
