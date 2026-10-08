@@ -40,8 +40,9 @@ Learned expensively during 2026-09-09/10.
 11. **Provider-wide SOC 2 statements** (MODEL-341, Jamie 2026-10-08). A
     provider-wide SOC 2 Type 2 statement, such as Microsoft's for Azure, counts
     for an offering only when the cited page names the provider's platform
-    that serves the offering (for Azure AI Foundry models: Azure, including
-    Azure OpenAI / AI Foundry) and states Type 2 (or Type II). Record
+    that serves the offering (for Azure AI Foundry models: "Azure") and states
+    Type 2 (or Type II). The page need not name the specific service; the YAML
+    scope comment carries that. Record
     `offering.attestation.soc2` as `value: type_2`, `state: known` for each
     such offering of that provider, for example azure-ai-foundry `gpt-6-astra`
     and `gpt-5-4`. There is no `provider_wide` enum value and no contract bump.
