@@ -461,14 +461,18 @@ def _text(store: CopyStore, snapshot_ref: str, normaliser: str) -> str:
 
 
 def readme_binds_licence(readme: Source, store: CopyStore, copy_ref: str,
-                         names: tuple[str, ...], licence_url: str, subject: str) -> bool:
-    """Whether the README region the fact cites binds this licence to this model.
+                         names: tuple[str, ...], licence_url: str, subject: str) -> str | None:
+    """The rule by which the cited README region binds this licence, or ``None``.
 
     The text is the cited region ``StoredRegions`` gives the verifier. The
     judgement is :func:`decision.verify.licence_is_bound`.
     """
     text = StoredRegions(store, {readme.id: readme}).text(readme.id, copy_ref, BINDING_REGION)
-    return bool(text) and licence_is_bound(names, [text], licence_url, subject=subject)
+    if not text:
+        return None
+    return licence_is_bound(
+        names, [text], licence_url, subject=subject, page_urls=(str(readme.url),),
+    )
 
 
 def collect(root: Path, *, dry_run: bool, report_path: Path | None) -> dict:
@@ -530,10 +534,13 @@ def collect(root: Path, *, dry_run: bool, report_path: Path | None) -> dict:
         assert licence_snap is not None and readme_snap is not None
         licence_text = _text(store, licence_snap.copy_ref, licence["normaliser"])
         names = _published_names(data)
-        if not readme_binds_licence(
+        rule = readme_binds_licence(
             readme, store, readme_snap.copy_ref, names, licence["url"], model_id,
-        ):
+        )
+        if not rule:
             problems.append(f"{model_id}: model page does not bind the licence")
+        else:
+            print(f"{model_id}: {rule}")
         normal = normalise_name(licence_text)
         facet_rows = []
         for facet in FACETS:
@@ -594,6 +601,7 @@ def collect(root: Path, *, dry_run: bool, report_path: Path | None) -> dict:
                 "rule": reading["rule"],
                 "licence_source": licence["id"],
                 "readme_source": readme.id,
+                "binding": rule,
             })
         prepared.append((path, text, facts, names, disagreements))
 

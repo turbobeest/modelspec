@@ -2943,6 +2943,129 @@ def test_a_license_link_equal_to_the_source_url_binds() -> None:
     assert result.outcome == "verified", result
 
 
+def _bound_readme(readme: str, licence_url: str, *, page_url: str,
+                  names: tuple[str, ...] = ("Nimbus 3",),
+                  subject: str = "lab/nimbus-3"):
+    """The binding rule, and what ``verify`` decides when the readme URL is known."""
+    rule = verify.licence_is_bound(
+        names, [readme], licence_url, subject=subject, page_urls=(page_url,),
+    )
+    regions = _KindRegions(
+        {("nimbus-licence", "page"): MIT_TEXT, ("nimbus-readme", "page"): readme},
+        {"nimbus-licence": "licence_text", "nimbus-readme": "weights_repository"},
+        {"nimbus-licence": licence_url, "nimbus-readme": page_url},
+    )
+    reader = _licence_reader(lambda prompt: _reply("permitted", [MIT_QUOTE]))
+    claim = verify.Claim(
+        target=TargetRef(kind="fact", id=f"{subject}#licence.commercial_use"),
+        subject=subject,
+        names=names,
+        field="licence.commercial_use",
+        value="permitted",
+        collector=COLLECTOR,
+        sources=(_LICENCE, _README),
+    )
+    return rule, verify.verify(claim, regions, [reader], today=TODAY)
+
+
+def test_phi4_raw_and_resolve_urls_name_the_same_file() -> None:
+    readme = (
+        "license: mit\n"
+        "license_link: https://huggingface.co/microsoft/phi-4/resolve/main/LICENSE\n"
+        "phi 4\n"
+    )
+    rule, result = _bound_readme(
+        readme,
+        "https://huggingface.co/microsoft/phi-4/raw/main/LICENSE",
+        page_url="https://huggingface.co/microsoft/phi-4/raw/main/README.md",
+        names=("phi 4", "phi", "phi-4"),
+        subject="microsoft/phi-4",
+    )
+    assert rule == "license_link"
+    assert result.outcome == "verified", result
+
+
+def test_a_repo_local_licence_binds_when_the_page_has_a_license_field() -> None:
+    rule, result = _bound_readme(
+        "license: mit\nNimbus 3\n",
+        "https://huggingface.co/lab/nimbus-3/raw/main/LICENSE",
+        page_url="https://huggingface.co/lab/nimbus-3/resolve/main/README.md",
+    )
+    assert rule == "repo-location"
+    assert result.outcome == "verified", result
+
+
+def test_license_other_binds_the_repos_own_licence_file() -> None:
+    rule, result = _bound_readme(
+        'license: other\nlicense_name: "kimi-k3"\nKimi K3\n',
+        "https://huggingface.co/moonshotai/Kimi-K3/raw/main/LICENSE",
+        page_url="https://huggingface.co/moonshotai/Kimi-K3/blob/main/README.md",
+        names=("Kimi K3", "kimi-k3", "kimi-k3"),
+        subject="moonshot/kimi-k3",
+    )
+    assert rule == "repo-location"
+    assert result.outcome == "verified", result
+
+
+def test_a_relative_license_link_resolves_against_the_readme_repo() -> None:
+    rule, result = _bound_readme(
+        "license: other\nlicense_link: LICENSE\nNimbus 3\n",
+        "https://huggingface.co/Qwen/Qwen3.8-Flash-Next/raw/main/LICENSE",
+        page_url="https://huggingface.co/Qwen/Qwen3.8-Flash-Next/resolve/main/README.md",
+    )
+    assert rule == "license_link"
+    assert result.outcome == "verified", result
+
+
+def test_a_licence_in_another_repo_does_not_bind_without_a_link() -> None:
+    rule, result = _bound_readme(
+        "license: mit\nNimbus 3\n",
+        "https://huggingface.co/meta/base-model/raw/main/LICENSE",
+        page_url="https://huggingface.co/lab/nimbus-3/raw/main/README.md",
+    )
+    assert rule is None
+    assert result.outcome == "mismatch", result
+    assert result.diffs[0].field == "model"
+
+
+def test_license_other_and_the_apache_text_still_do_not_bind() -> None:
+    rule, result = _bound_readme(
+        "license: other\nNimbus 3\n",
+        _APACHE_URL,
+        page_url="https://huggingface.co/lab/nimbus-3/raw/main/README.md",
+    )
+    assert rule is None
+    assert result.outcome == "mismatch", result
+    assert result.diffs[0].field == "model"
+
+
+def test_a_sibling_repo_readme_still_does_not_bind() -> None:
+    rule, result = _bound_readme(
+        "license: apache-2.0\nGemma 4 31B IT\nGemma\n",
+        _APACHE_URL,
+        page_url="https://huggingface.co/google/gemma-4-31b-it/raw/main/README.md",
+        names=("gemma 4 E2B it", "Gemma", "gemma-4-e2b-it"),
+        subject="google/gemma-4-e2b-it",
+    )
+    assert rule is None
+    assert result.outcome == "mismatch", result
+    assert result.diffs[0].field == "model"
+
+
+def test_the_readme_repo_name_names_querit_4b() -> None:
+    readme = "license: apache-2.0\nWeights are in this repository.\n"
+    assert "querit" not in readme.casefold()
+    rule, result = _bound_readme(
+        readme,
+        _APACHE_URL + ".txt",
+        page_url="https://huggingface.co/Querit/Querit-4B/resolve/main/README.md",
+        names=("Querit-4B", "querit", "querit-4b"),
+        subject="querit/querit-4b",
+    )
+    assert rule == "SPDX"
+    assert result.outcome == "verified", result
+
+
 class _ReadmeStub:
     """A generic reader that would verify a licence from a README if asked."""
 

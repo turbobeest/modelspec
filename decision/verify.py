@@ -66,6 +66,7 @@ from decimal import Decimal
 from functools import cache
 from pathlib import Path
 from typing import Any, Literal, Protocol
+from urllib.parse import urljoin
 
 from pydantic import JsonValue, ValidationError
 
@@ -2229,10 +2230,14 @@ _LICENSE_SPDX = re.compile(
     r"(?im)^[ \t]*license:\s*[\"']?([A-Za-z0-9][A-Za-z0-9_.+-]*)"
 )
 _LICENSE_LINK = re.compile(
-    r"(?im)^[ \t]*license_link:\s*[\"']?(https?://\S+?)[\"']?\s*$"
+    r"(?im)^[ \t]*license_link:\s*[\"']?(\S+?)[\"']?\s*$"
 )
-#: SPDX ids for the shared generic texts. ``license: other`` is not here, so
-#: it binds only when the page carries the licence URL or a ``license_link``.
+_PAGE_URL = re.compile(r"https?://[^\s\"'<>)\]]+", re.IGNORECASE)
+_HF_FILE_VERBS = frozenset({"raw", "resolve", "blob"})
+_LOOSE_NAME = re.compile(r"[-_.\s]+")
+#: SPDX ids for the shared generic texts. ``license: other`` is not one of them.
+#: A shared text binds only through this table. A file in the page's own
+#: Hugging Face repository binds by location when the page has a ``license:`` field.
 SPDX_LICENCE_URLS: dict[str, tuple[str, ...]] = {
     "apache-2.0": (
         "https://www.apache.org/licenses/LICENSE-2.0",
@@ -2291,15 +2296,73 @@ def _as_licence_value(raw: Any) -> JsonValue:
     return raw
 
 
+def _url_parts(url: str) -> list[str] | None:
+    """Host and path segments, without a scheme, ``www.``, query or fragment."""
+    text = url.strip().strip("\"'")
+    if not text:
+        return None
+    text = re.sub(r"^https?://", "", text, flags=re.I)
+    text = re.sub(r"^www\.", "", text, flags=re.I)
+    text = text.split("#", 1)[0].split("?", 1)[0].rstrip("/")
+    parts = [part for part in text.split("/") if part]
+    return parts or None
+
+
 def _licence_url_key(url: str) -> str:
-    """Scheme, host case, a leading ``www.`` and a trailing ``.txt`` do not differ."""
+    """Scheme, host case, a leading ``www.`` and a trailing ``.txt`` do not differ.
+
+    On huggingface.co, ``/raw/<rev>/<path>``, ``/resolve/<rev>/<path>`` and
+    ``/blob/<rev>/<path>`` name the same file.
+    """
     text = url.strip().strip("\"'")
     text = re.sub(r"^https?://", "", text, flags=re.I)
     text = re.sub(r"^www\.", "", text, flags=re.I)
     text = text.split("#", 1)[0].split("?", 1)[0].rstrip("/")
     if text.casefold().endswith(".txt"):
         text = text[:-4]
-    return text.casefold()
+    parts = [part for part in text.split("/") if part]
+    if (len(parts) >= 4 and parts[0].casefold() == "huggingface.co"
+            and parts[3].casefold() in _HF_FILE_VERBS):
+        del parts[3]
+    return "/".join(parts).casefold()
+
+
+def _hf_repo(url: str) -> tuple[str, str, str] | None:
+    """``(host, org, repo)`` casefolded, when ``url`` is on huggingface.co."""
+    parts = _url_parts(url)
+    if parts is None or len(parts) < 3 or parts[0].casefold() != "huggingface.co":
+        return None
+    return parts[0].casefold(), parts[1].casefold(), parts[2].casefold()
+
+
+def _hf_repo_name(url: str) -> str | None:
+    """The repository segment of a huggingface.co URL, as published."""
+    parts = _url_parts(url)
+    if parts is None or len(parts) < 3 or parts[0].casefold() != "huggingface.co":
+        return None
+    return parts[2]
+
+
+def _hf_file(url: str) -> bool:
+    """A file URL: ``huggingface.co/<org>/<repo>/(raw|resolve|blob)/<rev>/<path>``."""
+    parts = _url_parts(url)
+    if parts is None or len(parts) < 6 or parts[0].casefold() != "huggingface.co":
+        return False
+    return parts[3].casefold() in _HF_FILE_VERBS and bool("/".join(parts[5:]))
+
+
+def _loose_name(name: str) -> str:
+    """Case-folded, with ``-``, ``_``, ``.`` and spaces removed."""
+    return _LOOSE_NAME.sub("", name.casefold())
+
+
+def _resolve_license_link(link: str, page_url: str | None) -> str:
+    """An absolute link unchanged. A relative link resolved in the page's repository."""
+    link = link.strip().strip("\"'")
+    if re.match(r"(?i)^[a-z][a-z0-9+.-]*://", link) or not page_url:
+        return link
+    base = page_url if page_url.endswith("/") else page_url.rsplit("/", 1)[0] + "/"
+    return urljoin(base, link)
 
 
 @cache
@@ -2328,27 +2391,59 @@ def _binding_name_tokens(names: Sequence[str], subject: str | None) -> list[str]
     return [token for name in names if (token := normalise_name(name))]
 
 
-def _page_names_subject(page: str, names: Sequence[str], subject: str | None = None) -> bool:
-    """The page contains the display name or the repository id as a whole phrase."""
+def _subject_name_keys(names: Sequence[str], subject: str | None) -> set[str]:
+    """Loose forms of the names that may identify the subject. Family is excluded."""
+    keys = {_loose_name(token) for token in _binding_name_tokens(names, subject)}
+    if subject:
+        keys.add(_loose_name(subject.rsplit("/", 1)[-1]))
+    keys.discard("")
+    return keys
+
+
+def _page_names_subject(page: str, names: Sequence[str], subject: str | None = None,
+                        page_url: str | None = None) -> bool:
+    """The page names the subject by phrase, or its repository name equals one.
+
+    The repository comparison ignores ``-``, ``_``, ``.`` and spaces. A family
+    name still does not count: the tokens are the display name and the model
+    id's last segment.
+    """
     haystack = f" {normalise_name(page)} "
-    return any(
-        f" {token} " in haystack for token in _binding_name_tokens(names, subject)
-    )
+    if any(f" {token} " in haystack for token in _binding_name_tokens(names, subject)):
+        return True
+    repo = _hf_repo_name(page_url) if page_url else None
+    return bool(repo) and _loose_name(repo) in _subject_name_keys(names, subject)
 
 
-def _page_names_licence(page: str, licence_url: str | None) -> bool:
-    """The page names this licence source, not merely some ``license:`` field."""
-    if not licence_url:
-        return False
+def _license_link_matches(page: str, licence_url: str, page_url: str | None) -> bool:
+    source_key = _licence_url_key(licence_url)
+    for match in _LICENSE_LINK.finditer(page):
+        resolved = _resolve_license_link(match.group(1), page_url)
+        if _licence_url_key(resolved) == source_key:
+            return True
+    return False
+
+
+def _page_contains_licence_url(page: str, licence_url: str) -> bool:
     if licence_url in page:
         return True
     bare = re.sub(r"^https?://", "", licence_url).rstrip("/")
     if bare and bare in page:
         return True
     source_key = _licence_url_key(licence_url)
-    for match in _LICENSE_LINK.finditer(page):
-        if _licence_url_key(match.group(1)) == source_key:
-            return True
+    return any(_licence_url_key(match.group(0)) == source_key for match in _PAGE_URL.finditer(page))
+
+
+def _repo_location_binds(page: str, page_url: str | None, licence_url: str) -> bool:
+    """The licence file sits in the page's own repository, and the page names a licence."""
+    if not page_url or _LICENSE_SPDX.search(page) is None or not _hf_file(licence_url):
+        return False
+    page_repo = _hf_repo(page_url)
+    return page_repo is not None and page_repo == _hf_repo(licence_url)
+
+
+def _spdx_binds(page: str, licence_url: str) -> bool:
+    source_key = _licence_url_key(licence_url)
     for match in _LICENSE_SPDX.finditer(page):
         canonical = SPDX_LICENCE_URLS.get(match.group(1).casefold(), ())
         if any(_licence_url_key(url) == source_key for url in canonical):
@@ -2356,19 +2451,47 @@ def _page_names_licence(page: str, licence_url: str | None) -> bool:
     return False
 
 
-def licence_is_bound(names: Sequence[str], pages: Sequence[str], licence_url: str | None, *,
-                     subject: str | None = None) -> bool:
-    """A licence is about the subject when another cited page names both.
+def _licence_rule(page: str, page_url: str | None, licence_url: str | None) -> str | None:
+    """Which rule names this licence on this page: link, url, repo, or SPDX."""
+    if not licence_url:
+        return None
+    if _license_link_matches(page, licence_url, page_url):
+        return "license_link"
+    if _page_contains_licence_url(page, licence_url):
+        return "url"
+    if _repo_location_binds(page, page_url, licence_url):
+        return "repo-location"
+    if _spdx_binds(page, licence_url):
+        return "SPDX"
+    return None
 
-    The page names the subject by its display name or repository id, as a
-    whole phrase. It names this licence when it contains the licence URL, a
-    ``license_link`` to that URL, or a ``license:`` SPDX id in
-    :data:`SPDX_LICENCE_URLS` that maps to that URL.
+
+def licence_is_bound(names: Sequence[str], pages: Sequence[str], licence_url: str | None, *,
+                     subject: str | None = None,
+                     page_urls: Sequence[str | None] | None = None) -> str | None:
+    """The rule that binds this licence to the subject, or ``None``.
+
+    A page names the subject by its display name or repository id, as a whole
+    phrase, or when the page URL's repository name equals one of those with
+    ``-``, ``_``, ``.`` and spaces ignored. A family name does not count.
+
+    The licence rule is the first that holds: ``license_link`` (resolved
+    against the page's repository when relative; on huggingface.co, ``raw``,
+    ``resolve`` and ``blob`` name the same file), ``url`` (that file's URL is
+    in the page), ``repo-location`` (the licence is a file in the page's own
+    repository and the page has a ``license:`` field, whatever its value), or
+    ``SPDX`` (the field names a shared text in :data:`SPDX_LICENCE_URLS`).
+    ``license: other`` does not bind a shared text. A file in a different
+    repository binds only by ``license_link`` or ``url``.
     """
-    return any(
-        _page_names_subject(page, names, subject) and _page_names_licence(page, licence_url)
-        for page in pages
-    )
+    urls = tuple(page_urls or ())
+    for index, page in enumerate(pages):
+        page_url = urls[index] if index < len(urls) else None
+        if _page_names_subject(page, names, subject, page_url):
+            rule = _licence_rule(page, page_url, licence_url)
+            if rule:
+                return rule
+    return None
 
 
 class LicenceExtractor:
@@ -2380,8 +2503,7 @@ class LicenceExtractor:
     value. A missing or non-verbatim
     clause is unparseable, so it is not evidence. A licence does not name the
     model: the reading's subject is the claim's name only when a binding page
-    passes :func:`licence_is_bound`: the page names this model's display name
-    or repository id, and names this licence source.
+    passes :func:`licence_is_bound`.
     """
 
     def __init__(self, complete: Callable[[str], str], *, agent: str, model: str,
@@ -2399,6 +2521,7 @@ class LicenceExtractor:
     def extract(self, claim: Claim, text: str, *,
                 cache_key: tuple[str, ...] | None = None,
                 bindings: Sequence[str] = (),
+                binding_urls: Sequence[str | None] | None = None,
                 licence_url: str | None = None) -> list[Reading]:
         prompt, bound = _licence_prompt(claim, text)
         reply, store_key = _load_reply(
@@ -2424,7 +2547,7 @@ class LicenceExtractor:
         if self.cache is not None and store_key:
             self.cache.put(store_key, reply)
         subject = claim.names[0] if licence_is_bound(
-            claim.names, bindings, licence_url, subject=claim.subject,
+            claim.names, bindings, licence_url, subject=claim.subject, page_urls=binding_urls,
         ) else None
         shown: JsonValue = None if value is None else str(value)
         unit = None
@@ -3045,9 +3168,12 @@ def _readers_for(extractors: Sequence[Extractor], claim: Claim, text: str,
     return chosen
 
 
-def _binding_pages(claim: Claim, regions: Regions, source_id: str, region_id: str) -> list[str]:
-    """Text of the claim's other cited regions: the pages that can bind a licence."""
-    pages = []
+def _binding_pages(claim: Claim, regions: Regions, source_id: str,
+                   region_id: str) -> tuple[list[str], list[str | None]]:
+    """Text and source URL of the claim's other cited regions."""
+    pages: list[str] = []
+    urls: list[str | None] = []
+    url_of = getattr(regions, "source_url", None)
     for source in claim.sources:
         for cited in source.cited_regions:
             if source.source_id == source_id and cited == region_id:
@@ -3055,7 +3181,8 @@ def _binding_pages(claim: Claim, regions: Regions, source_id: str, region_id: st
             text = regions.text(source.source_id, source.snapshot_ref, cited)
             if text:
                 pages.append(text)
-    return pages
+                urls.append(url_of(source.source_id) if callable(url_of) else None)
+    return pages, urls
 
 
 def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
@@ -3103,11 +3230,15 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
                 try:
                     if isinstance(extractor, LicenceExtractor):
                         url_of = getattr(regions, "source_url", None)
+                        pages, page_urls = _binding_pages(
+                            claim, regions, source.source_id, region_id,
+                        )
                         readings = extractor.extract(
                             claim,
                             text,
                             cache_key=(source.snapshot_ref, region_id, claim.field),
-                            bindings=_binding_pages(claim, regions, source.source_id, region_id),
+                            bindings=pages,
+                            binding_urls=page_urls,
                             licence_url=url_of(source.source_id) if callable(url_of) else None,
                         )
                     elif isinstance(extractor, LLMExtractor):
