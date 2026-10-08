@@ -640,6 +640,53 @@ describe("modelspec MCP worker", () => {
     expect(result.content[1].text).toBe("status: answered; top models: lab/a; may qualify: 0");
   });
 
+  it("decide drops member_evidence before it shortens answer.members", () => {
+    const members = Array.from({ length: 12 }, (_, index) => `lab/model-${index}`);
+    const pad = "e".repeat(1_500);
+    const memberEvidence = members.map((model) => ({
+      model,
+      evidence: [{
+        domain: "software_engineering",
+        items: [{ record_id: `${model}#swe`, benchmark: "swe_bench_pro", value: 70, note: pad }],
+      }],
+      omitted_items: 0,
+    }));
+    const fitted = fitDecideEnvelope({
+      origin: "https://api.modelspec.dev/v1/decide",
+      status: 200,
+      body: {
+        representation: "bounded",
+        bounded_version: "1.1",
+        projects_contract: "2.14",
+        status: "answered",
+        answer: { kind: "tied", members },
+        warnings: [],
+        results: [{ rank: 1, model: members[0], offering: { model: members[0] }, warnings: [] }],
+        may_qualify: [],
+        member_evidence: memberEvidence,
+        explanation: {
+          not_applied: [],
+          omitted: {},
+          note: "Projected rows are incomplete; omissions are not eliminations or absent evidence.",
+        },
+      },
+    });
+    const packed = JSON.stringify(fitted);
+    expect(Buffer.byteLength(packed, "utf8")).toBeLessThanOrEqual(AGENT_BYTES);
+    expect(packed).not.toContain(pad);
+    const parsed: unknown = JSON.parse(packed);
+    if (typeof parsed !== "object" || parsed === null || !("body" in parsed)) {
+      throw new Error("fitted envelope has no body");
+    }
+    const body: unknown = parsed.body;
+    if (typeof body !== "object" || body === null) throw new Error("fitted body is empty");
+    expect("member_evidence" in body).toBe(false);
+    expect("answer" in body && body.answer).toMatchObject({ kind: "tied", members });
+    expect("explanation" in body && body.explanation).toMatchObject({
+      omitted: { member_evidence: members.length },
+    });
+  });
+
   it("decide keeps a drill-down summary when the evidence body is over budget", async () => {
     const pad = "x".repeat(20_000);
     const huge = {

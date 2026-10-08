@@ -20,8 +20,9 @@ EXPLAIN_ROW_FIELDS = ("contributions", "evidence")
 # Whole row fields the agent budget may remove. Items inside one of these stay
 # intact: provenance is never cut off, and a value is never replaced with null.
 HEAVY_ROW_FIELDS = ("evidence", "contributions", "estimates", "refinement_estimates", "plans")
-# Evidence and contributions on a row whose model already has member_evidence.
-# Estimates and plans stay until the later heavy-field step.
+# Evidence and contributions on a later row of a model that already has an
+# earlier row. The first row of each model keeps both until the later step.
+# Estimates and plans stay until that later heavy-field step.
 _MEMBER_ROW_HEAVY = ("evidence", "contributions")
 # Items kept per answer member before the byte budget trims further (MODEL-354).
 MEMBER_EVIDENCE_ITEMS = 3
@@ -294,8 +295,9 @@ def _bounded_member_evidence(body: dict, captured: list) -> list[dict]:
 
     Items are already the contribution records for that member's best row.
     Sort again so the cap keeps the highest weight, direct before proxy.
-    An item with no ``requested_domain`` cannot sit in a domain group; it
-    counts in ``omitted_items`` rather than disappearing.
+    An item with no ``requested_domain`` has no domain group to sit in. It is
+    always counted in ``omitted_items`` and is never shown, even when the
+    member is under the item cap.
     """
     entries = []
     omitted_total = 0
@@ -341,12 +343,30 @@ def _member_evidence_models(body: dict) -> set[str]:
     }
 
 
+def _repeat_offering(results: list[dict], index: int) -> bool:
+    """True when this row's model already appears in an earlier row.
+
+    Row 0 is never a repeat. A row with no model id is never a repeat.
+    """
+    if index <= 0:
+        return False
+    model = _model_of(results[index])
+    if model is None:
+        return False
+    return any(_model_of(earlier) == model for earlier in results[:index])
+
+
 def _drop_member_row_evidence(body: dict, results: list[dict], models: set[str]) -> bool:
-    """Drop one evidence or contributions list from the last member row that has one."""
+    """Drop evidence or contributions from the last repeat offering of a member.
+
+    A repeat offering is a row whose model already appears in an earlier row.
+    The first row of each model, and row 0, keep those fields for the later step.
+    """
     if not models:
         return False
-    for row in reversed(results):
-        if _model_of(row) not in models:
+    for index in range(len(results) - 1, 0, -1):
+        row = results[index]
+        if _model_of(row) not in models or not _repeat_offering(results, index):
             continue
         if _drop_heavy(body, row, "results", _MEMBER_ROW_HEAVY):
             return True
@@ -405,22 +425,45 @@ def _trim_member_item(body: dict, *, floor: int) -> bool:
     return True
 
 
+def _drop_member_entry(body: dict) -> bool:
+    """Remove the last ``member_evidence`` entry and count it.
+
+    Items still on that entry are counted under ``member_evidence.items``.
+    ``answer.members`` is left unchanged. An empty list stays, so the field
+    remains present when every entry was removed to fit.
+    """
+    entries = body.get("member_evidence")
+    if not isinstance(entries, list) or not entries:
+        return False
+    entry = entries.pop()
+    omitted = body["explanation"]["omitted"]
+    omitted["member_evidence"] = omitted.get("member_evidence", 0) + 1
+    if isinstance(entry, dict):
+        items = _member_item_count(entry)
+        if items:
+            omitted["member_evidence.items"] = omitted.get("member_evidence.items", 0) + items
+    return True
+
+
 def _fit_agent_budget(body: dict) -> None:
     """Drop whole records until the compact body, including ``fetch``, fits.
 
     Order: result rows that are neither the top result nor an answer member,
-    then ``evidence`` and ``contributions`` on result rows whose model has a
-    ``member_evidence`` entry, then ``may_qualify``, then ``member_evidence``
-    items from the member with the most items down to one item per member,
-    then any remaining result row except the top, then ``with_estate``, then
-    ``reading`` and ``relax_task_tokens``, then one heavy field of the top
-    result, then its other non-essential fields, then any remaining
-    ``member_evidence`` items. A ``member_evidence`` entry is never removed,
-    and fields inside one evidence item are never trimmed. ``answer``,
-    ``status``, ``warnings``, ``coverage``, ``summary_for_user``,
-    ``must_mention`` and the top result's rank, model, offering and warnings
-    stay. A heavy field is removed whole. Does not return a body that is still
-    over budget: the essentials then raise ``SpecError``.
+    then ``evidence`` and ``contributions`` on a repeat offering (a row whose
+    model already appears in an earlier row), then ``may_qualify``, then
+    ``member_evidence`` items from the member with the most items down to one
+    item per member, then any remaining result row except the top, then
+    ``with_estate``, then ``reading`` and ``relax_task_tokens``, then one
+    heavy field of the top result, then its other non-essential fields, then
+    any remaining ``member_evidence`` items, then ``member_evidence`` entries
+    from the end of the list. The first row of each model, and row 0, keep
+    their explanation until that later heavy-field step. The top result's
+    explanation is removed only after the earlier records are gone. Fields
+    inside one evidence item are never trimmed. ``answer``, ``status``,
+    ``warnings``, ``coverage``, ``summary_for_user``, ``must_mention`` and
+    the top result's rank, model, offering and warnings stay. A heavy field
+    is removed whole. Does not return a body that is still over budget: the
+    essentials then raise ``SpecError``.
     """
     if not _over(body):
         return
@@ -493,6 +536,9 @@ def _fit_agent_budget(body: dict) -> None:
             omitted[key] = omitted.get(key, 0) + removed
 
     while _over(body) and _trim_member_item(body, floor=0):
+        pass
+
+    while _over(body) and _drop_member_entry(body):
         pass
 
     if _over(body):

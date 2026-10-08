@@ -7,7 +7,15 @@ import yaml
 from datetime import date
 
 from decision import contract
-from decision.bounded import DEFAULT_FIELDS, DRILL_DOWN_BYTES, mcp_default_request
+from decision.bounded import (
+    DEFAULT_FIELDS,
+    DRILL_DOWN_BYTES,
+    MEMBER_EVIDENCE_ITEMS,
+    RESPONSE_BYTES,
+    compact_bytes,
+    mcp_default_request,
+    mcp_text_bytes,
+)
 from decision.summary import SUMMARY_BYTES
 from decision.engine import decide as run_decision
 from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot, load_snapshot_bytes
@@ -815,3 +823,205 @@ def test_domain_objective_without_capabilities_carries_member_evidence(service, 
     _, wide = service.decide({**payload, "limit": 20}, public_snapshot)
     assert wide["summary_for_user"] == body["summary_for_user"]
     assert wide["must_mention"] == body["must_mention"]
+
+
+def test_high_volume_balanced_keeps_the_top_contributions(service, public_snapshot):
+    """A balanced weighted template keeps the top row's dimension and weight."""
+    spec = template_by_id("high-volume-balanced")["spec"]
+    status, body = service.decide(
+        mcp_default_request({**spec, "explain": "summary"}),
+        public_snapshot,
+    )
+    assert status == 200, body
+    assert compact_bytes(body) <= RESPONSE_BYTES
+    parts = body["results"][0]["contributions"]
+    assert {(part["dimension"], part["weight"]) for part in parts} == {
+        ("chat_preference", 0.5),
+        ("-offering.cost_per_task", 0.5),
+    }
+
+
+def test_a_tie_keeps_each_members_first_row_contributions(service):
+    """The first offering of each tied model keeps dimension and weight."""
+    snap = _tied_offerings_snapshot()
+    status, body = service.decide({
+        "spec_version": 1,
+        "optimize": {"max": "swe_bench_pro"},
+        "explain": "summary",
+        "limit": 10,
+        "fields": ["contributions", "evidence"],
+    }, snap)
+    assert status == 200, body
+    assert body["answer"]["kind"] == "tied"
+    assert body["answer"]["members"] == ["lab/a", "lab/b"]
+    first: dict[str, dict] = {}
+    for row in body["results"]:
+        first.setdefault(row["model"], row)
+    assert set(body["answer"]["members"]) <= set(first)
+    for model_id in body["answer"]["members"]:
+        assert {(part["dimension"], part["weight"]) for part in first[model_id]["contributions"]} == {
+            ("swe_bench_pro", 1.0),
+        }
+    repeat = [row for row in body["results"] if row["model"] == "lab/a"]
+    assert len(repeat) >= 2
+
+
+def _ordered_contribution_records(row: dict) -> tuple[list[str], int]:
+    """Record ids behind one row, in the member_evidence order, and the no-domain count.
+
+    Highest estimate_weight, then a direct record before a proxy, then record id.
+    The same record id keeps the first copy. An item with no requested_domain
+    is counted and not listed.
+    """
+    items = [
+        item
+        for part in row.get("contributions") or []
+        for item in part.get("evidence") or []
+    ]
+
+    def priority(item: dict) -> tuple:
+        weight = item.get("estimate_weight")
+        if isinstance(weight, bool) or not isinstance(weight, (int, float)):
+            weight = float("-inf")
+        direct = 0 if item.get("directness") == "direct" else 1
+        return (-float(weight), direct, item.get("record_id") or "")
+
+    items.sort(key=priority)
+    seen: set[str] = set()
+    usable: list[str] = []
+    missing = 0
+    for item in items:
+        record_id = item.get("record_id")
+        if isinstance(record_id, str):
+            if record_id in seen:
+                continue
+            seen.add(record_id)
+        domain = item.get("requested_domain")
+        if not isinstance(domain, str) or not domain:
+            missing += 1
+            continue
+        assert isinstance(record_id, str)
+        usable.append(record_id)
+    return usable, missing
+
+
+def _flat_member_ids(entry: dict) -> list[str]:
+    return [
+        item["record_id"]
+        for group in entry["evidence"]
+        for item in group["items"]
+    ]
+
+
+def _assert_member_evidence_matches_best_rows(service, snapshot, spec: dict) -> None:
+    """Bounded member_evidence is the best row's contribution records, same order."""
+    complete_spec = {key: value for key, value in spec.items() if key != "fields"}
+    complete_spec = {**complete_spec, "explain": "summary", "limit": 500}
+    status, complete = service.decide(complete_spec, snapshot)
+    assert status == 200, complete
+    assert "member_evidence" not in complete
+    bounded_spec = {
+        **spec,
+        "explain": "summary",
+        "limit": 500,
+        "fields": ["contributions", "evidence"],
+    }
+    status, body = service.decide(bounded_spec, snapshot)
+    assert status == 200, body
+    assert compact_bytes(body) <= RESPONSE_BYTES
+    members = (body.get("answer") or {}).get("members") or []
+    assert [entry["model"] for entry in body["member_evidence"]] == list(members)
+    best = {}
+    for row in complete["results"]:
+        best.setdefault(row["model"], row)
+    for entry in body["member_evidence"]:
+        row = best[entry["model"]]
+        usable, missing = _ordered_contribution_records(row)
+        kept = _flat_member_ids(entry)
+        capped = usable[:MEMBER_EVIDENCE_ITEMS]
+        cap_omitted = missing + max(0, len(usable) - MEMBER_EVIDENCE_ITEMS)
+        assert len(kept) <= MEMBER_EVIDENCE_ITEMS
+        assert entry["omitted_items"] == missing + (len(usable) - len(kept))
+        if entry["omitted_items"] == cap_omitted:
+            assert kept == capped
+        else:
+            assert kept == usable[:len(kept)]
+        if usable:
+            assert kept, entry["model"]
+
+
+def test_member_evidence_matches_the_best_rows_contribution_records(service, public_snapshot):
+    estate = {
+        "spec_version": 1,
+        "optimize": {"max": "software_engineering"},
+        "estate": {"providers": ["anthropic", "openai"]},
+    }
+    _assert_member_evidence_matches_best_rows(service, public_snapshot, estate)
+    refinement = {
+        "spec_version": 1,
+        "optimize": {"weights": {
+            "software_engineering": 0.5,
+            "software_engineering/python": 0.5,
+        }},
+    }
+    _assert_member_evidence_matches_best_rows(service, public_snapshot, refinement)
+    status, blocked = service.decide({
+        "spec_version": 1,
+        "where": ["model.class = text-generator", "model.context_window <= 1"],
+        "optimize": {"max": "software_engineering"},
+        "explain": "summary",
+        "limit": 500,
+        "fields": ["contributions", "evidence"],
+    }, public_snapshot)
+    assert status == 200, blocked
+    assert blocked["status"] == "no_feasible"
+    assert blocked.get("answer") is None
+    assert "member_evidence" not in blocked
+
+
+def test_a_forty_member_tie_stays_within_the_agent_budget(service):
+    """A large tie fits in RESPONSE_BYTES, or the call refuses. It does not return an over-budget body."""
+    count = 40
+    models = [f"lab/m{index:02d}" for index in range(count)]
+    built = build_snapshot(
+        SnapshotInputs(
+            models=[model(model_id) for model_id in models],
+            offerings=[offering(model_id, "anthropic", price=3.0) for model_id in models],
+            evidence=[
+                evidence(model_id, "swe_bench_pro", 70, measured_by="independent")
+                for model_id in models
+            ],
+            sources=SOURCES,
+            benchmark_domains={"swe_bench_pro": [("software_engineering", "direct")]},
+        ),
+        as_of=date(2026, 9, 25),
+    )
+    snap = load_snapshot_bytes(built.to_bytes(key=KEY), key=KEY, source="forty member tie")
+    status, body = service.decide({
+        "spec_version": 1,
+        "optimize": {"max": "swe_bench_pro"},
+        "explain": "summary",
+        "limit": count,
+        "fields": ["contributions", "evidence"],
+    }, snap)
+    if status == 400:
+        text = str(body)
+        assert "16 KB agent budget" in text
+        return
+    assert status == 200, body
+    assert body["answer"]["kind"] == "tied"
+    assert len(body["answer"]["members"]) == count
+    assert compact_bytes(body) <= RESPONSE_BYTES
+    assert mcp_text_bytes(body) <= 16_384
+    entries = body["member_evidence"]
+    assert [entry["model"] for entry in entries] == body["answer"]["members"][:len(entries)]
+    dropped = count - len(entries)
+    if dropped:
+        assert body["explanation"]["omitted"].get("member_evidence") == dropped
+    else:
+        assert "member_evidence" not in body["explanation"]["omitted"]
+    for entry in entries:
+        items = _flat_member_ids(entry)
+        if entry["omitted_items"] == 0:
+            assert items
+        assert len(items) <= MEMBER_EVIDENCE_ITEMS

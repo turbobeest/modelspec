@@ -497,6 +497,15 @@ export function fitDecideEnvelope(envelope: OriginEnvelope): OriginEnvelope {
     addCount(omitted, "model_evidence", 1);
     delete bare.model_evidence;
   }
+  // Drop member evidence before shortening the answer. A popped member must
+  // not leave its records behind, and the evidence list is what usually
+  // makes this notice too large.
+  if (!withinBudget({ ...envelope, body: bare }) && "member_evidence" in bare) {
+    const evidence = bare.member_evidence;
+    const count = Array.isArray(evidence) ? evidence.length : 1;
+    addCount(omitted, "member_evidence", count);
+    delete bare.member_evidence;
+  }
   if (isRecord(bare.answer) && Array.isArray(bare.answer.members)) {
     const members = bare.answer.members.filter((model): model is string => typeof model === "string");
     bare.answer = { ...bare.answer, members };

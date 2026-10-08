@@ -252,21 +252,29 @@ def _member(model: str, weights: list[float]) -> dict:
 
 
 def _budget_body() -> dict:
+    """lab/a appears twice. The second row is a repeat offering. lab/c is not a member."""
     return {
         "results": [
             {
-                "rank": 1, "model": "lab/a", "offering": {"model": "lab/a"}, "warnings": [],
-                "evidence": [{"items": ["A" * 500]}],
-                "contributions": [{"dimension": "software_engineering", "pad": "C" * 500}],
+                "rank": 1, "model": "lab/a", "offering": {"model": "lab/a", "provider": "anthropic"},
+                "warnings": [],
+                "evidence": [{"items": ["A" * 200]}],
+                "contributions": [{"dimension": "software_engineering", "weight": 1.0, "pad": "C" * 80}],
                 "estimates": ["E" * 80],
             },
             {
-                "rank": 2, "model": "lab/b", "offering": {"model": "lab/b"}, "warnings": [],
-                "evidence": [{"items": ["B" * 500]}],
-                "contributions": [{"dimension": "software_engineering", "pad": "D" * 200}],
+                "rank": 2, "model": "lab/a", "offering": {"model": "lab/a", "provider": "google"},
+                "warnings": [],
+                "evidence": [{"items": ["R" * 500]}],
+                "contributions": [{"dimension": "software_engineering", "weight": 1.0, "pad": "S" * 500}],
             },
             {
-                "rank": 3, "model": "lab/c", "offering": {"model": "lab/c"}, "warnings": [],
+                "rank": 3, "model": "lab/b", "offering": {"model": "lab/b"}, "warnings": [],
+                "evidence": [{"items": ["B" * 200]}],
+                "contributions": [{"dimension": "software_engineering", "weight": 1.0, "pad": "D" * 80}],
+            },
+            {
+                "rank": 4, "model": "lab/c", "offering": {"model": "lab/c"}, "warnings": [],
                 "evidence": [{"items": ["Z" * 500]}],
             },
         ],
@@ -284,10 +292,18 @@ def _ids(entry: dict) -> list[str]:
     return [item["record_id"] for group in entry["evidence"] for item in group["items"]]
 
 
-def test_member_evidence_budget_drops_rows_before_items(monkeypatch):
-    """Non-member rows go first. Member rows then lose evidence and contributions.
+def _drop_repeat_explanations(body: dict) -> None:
+    from decision import bounded
 
-    may_qualify and the member items stay while that is enough.
+    models = bounded._member_evidence_models(body)
+    while bounded._drop_member_row_evidence(body, body["results"], models):
+        pass
+
+
+def test_member_evidence_budget_drops_repeat_offerings_before_items(monkeypatch):
+    """Non-member rows go first. Only a repeat offering then loses evidence and contributions.
+
+    The first row of each member keeps both. may_qualify and the member items stay.
     """
     from decision import bounded
 
@@ -295,42 +311,45 @@ def test_member_evidence_budget_drops_rows_before_items(monkeypatch):
     target = json.loads(json.dumps(original))
     target["results"].pop()
     bounded._omit(target, "results")
-    models = {"lab/a", "lab/b"}
-    while any(name in row for row in target["results"] for name in ("evidence", "contributions")):
-        assert bounded._drop_member_row_evidence(target, target["results"], models)
+    _drop_repeat_explanations(target)
     bounded._note_fetch(target)
     monkeypatch.setattr(bounded, "RESPONSE_BYTES", compact_bytes(target))
     body = json.loads(json.dumps(original))
     bounded._fit_agent_budget(body)
     assert compact_bytes(body) <= bounded.RESPONSE_BYTES
-    assert [row["model"] for row in body["results"]] == ["lab/a", "lab/b"]
-    assert "evidence" not in body["results"][0]
-    assert "contributions" not in body["results"][0]
+    assert [row["model"] for row in body["results"]] == ["lab/a", "lab/a", "lab/b"]
+    assert body["results"][0]["evidence"] == original["results"][0]["evidence"]
+    assert body["results"][0]["contributions"][0]["dimension"] == "software_engineering"
+    assert body["results"][0]["contributions"][0]["weight"] == 1.0
     assert body["results"][0]["estimates"] == ["E" * 80]
-    assert body["results"][0]["warnings"] == []
+    assert body["results"][2]["contributions"][0]["dimension"] == "software_engineering"
+    assert body["results"][2]["contributions"][0]["weight"] == 1.0
+    assert body["results"][2]["evidence"] == original["results"][2]["evidence"]
     assert "evidence" not in body["results"][1]
     assert "contributions" not in body["results"][1]
+    assert body["results"][1]["warnings"] == []
     assert body["may_qualify"] == original["may_qualify"]
     assert "reading" in body
     assert _ids(body["member_evidence"][0]) == ["lab/a#10", "lab/a#5", "lab/a#1"]
     assert _ids(body["member_evidence"][1]) == ["lab/b#9", "lab/b#4", "lab/b#2"]
     assert body["explanation"]["omitted"]["results"] == 1
-    assert body["explanation"]["omitted"]["results.evidence"] == 2
-    assert body["explanation"]["omitted"]["results.contributions"] == 2
+    assert body["explanation"]["omitted"]["results.evidence"] == 1
+    assert body["explanation"]["omitted"]["results.contributions"] == 1
     assert "member_evidence.items" not in body["explanation"]["omitted"]
 
 
 def test_member_evidence_trims_the_fullest_member_down_to_one_item(monkeypatch):
-    """The later member loses an item first on a tie. Reading stays until items are at one."""
+    """The later member loses an item first on a tie. Reading stays until items are at one.
+
+    First rows keep their contributions. The repeat offering does not.
+    """
     from decision import bounded
 
     original = _budget_body()
     target = json.loads(json.dumps(original))
     target["results"].pop()
     bounded._omit(target, "results")
-    models = {"lab/a", "lab/b"}
-    while any(name in row for row in target["results"] for name in ("evidence", "contributions")):
-        assert bounded._drop_member_row_evidence(target, target["results"], models)
+    _drop_repeat_explanations(target)
     while target["may_qualify"]:
         target["may_qualify"].pop()
         bounded._omit(target, "may_qualify")
@@ -343,7 +362,10 @@ def test_member_evidence_trims_the_fullest_member_down_to_one_item(monkeypatch):
     assert compact_bytes(body) <= bounded.RESPONSE_BYTES
     assert body["may_qualify"] == []
     assert "reading" in body
-    assert [row["model"] for row in body["results"]] == ["lab/a", "lab/b"]
+    assert [row["model"] for row in body["results"]] == ["lab/a", "lab/a", "lab/b"]
+    assert body["results"][0]["contributions"][0]["weight"] == 1.0
+    assert body["results"][2]["contributions"][0]["weight"] == 1.0
+    assert "contributions" not in body["results"][1]
     assert _ids(body["member_evidence"][0]) == ["lab/a#10"]
     assert _ids(body["member_evidence"][1]) == ["lab/b#9"]
     assert body["member_evidence"][0]["evidence"][0]["items"][0]["note"] == "N" * 400
@@ -397,6 +419,69 @@ def test_member_evidence_reaches_zero_items_only_after_every_other_cut(monkeypat
     assert again["member_evidence"][1]["omitted_items"] == 2
     assert "reading" not in again
     assert [row["model"] for row in again["results"]] == ["lab/a"]
+
+
+def test_an_item_with_no_domain_is_counted_and_never_shown():
+    """A missing requested_domain cannot join a domain group, even under the cap."""
+    from decision import bounded
+
+    def item(record_id: str, weight: float, domain: str | None) -> dict:
+        row = {
+            "record_id": record_id,
+            "benchmark": "swe_bench_pro",
+            "value": 70.0,
+            "measured_by": "independent",
+            "date": "2026-08-01",
+            "date_type": "observed",
+            "source": "https://board.example.org/results",
+            "directness": "direct",
+            "estimate_weight": weight,
+        }
+        if domain is not None:
+            row["requested_domain"] = domain
+        return row
+
+    body = {"explanation": {"omitted": {}}}
+    entries = bounded._bounded_member_evidence(body, [(
+        "lab/a",
+        [item("r-high", 9, None), item("r-low", 1, "software_engineering")],
+    )])
+    assert _ids(entries[0]) == ["r-low"]
+    assert entries[0]["omitted_items"] == 1
+    assert body["explanation"]["omitted"]["member_evidence.items"] == 1
+
+
+def test_a_tie_that_cannot_fit_drops_member_entries_with_a_count(monkeypatch):
+    """Entry shells past the budget are removed from the end and counted."""
+    from decision import bounded
+
+    entries = [
+        {"model": f"lab/m{index:02d}", "evidence": [], "omitted_items": 0}
+        for index in range(40)
+    ]
+    original = {
+        "results": [{
+            "rank": 1, "model": "lab/m00", "offering": {"model": "lab/m00"}, "warnings": [],
+        }],
+        "may_qualify": [],
+        "answer": {"kind": "tied", "members": [entry["model"] for entry in entries]},
+        "member_evidence": entries,
+        "status": "answered",
+        "warnings": [],
+        "explanation": {"omitted": {}, "note": "n", "not_applied": []},
+    }
+    kept = json.loads(json.dumps(original))
+    while len(kept["member_evidence"]) > 3:
+        assert bounded._drop_member_entry(kept)
+    bounded._note_fetch(kept)
+    monkeypatch.setattr(bounded, "RESPONSE_BYTES", compact_bytes(kept))
+    body = json.loads(json.dumps(original))
+    bounded._fit_agent_budget(body)
+    assert compact_bytes(body) <= bounded.RESPONSE_BYTES
+    assert [entry["model"] for entry in body["member_evidence"]] == ["lab/m00", "lab/m01", "lab/m02"]
+    assert body["answer"]["members"] == original["answer"]["members"]
+    assert body["explanation"]["omitted"]["member_evidence"] == 37
+    assert body["results"][0]["model"] == "lab/m00"
 
 
 def test_default_decide_request_matches_the_shared_fixture():

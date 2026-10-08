@@ -1145,8 +1145,10 @@ best-ranked row, one per `record_id`, highest `estimate_weight` first and a
 direct record before a proxy. A member whose row `limit` cut still has an
 entry, computed from the snapshot the same way. A member whose objective
 position has no records has `evidence` `[]`, and that empty list means there
-are no records. Each member carries at most 3 items. `omitted_items` counts
-the rest, including an item with no domain. When that count is not zero,
+are no records. Each member carries at most 3 items. An item with no `requested_domain` has
+no domain group to sit in, so it is always counted in `omitted_items` and is
+never shown, including when the member is under the 3-item cap. `omitted_items`
+also counts items past that cap. When that count is not zero,
 `explanation.omitted` also counts them under `member_evidence.items`.
 `explanation.fetch` still names `evidence_for` for the records that did not
 fit. `results[].evidence` covers `capabilities` only. The objective's records
@@ -1160,22 +1162,28 @@ envelope and minus the longest summary line for a 61-byte model id, the
 longest id in the catalogue. When a projection is larger, whole records are removed until the compact body
 fits, and `explanation.fetch` is included in that count. The order is: result
 rows that are neither the top result nor an answer member, then `evidence` and
-`contributions` on result rows whose model already has a `member_evidence`
-entry (the row keeps rank, model, offering and warnings), then `may_qualify`
-rows, then `member_evidence` items from the member with the most items, never
-below one item per member while any other cut remains, then any remaining
-result row except the top, then `with_estate`, then `reading` and
-`relax_task_tokens`, then one heavy field of the top result at a time
+`contributions` on a repeat offering (a later result row whose model already
+appears in an earlier row; that row keeps rank, model, offering and warnings),
+then `may_qualify` rows, then `member_evidence` items from the member with the
+most items, never below one item per member while any other cut remains, then
+any remaining result row except the top, then `with_estate`, then `reading`
+and `relax_task_tokens`, then one heavy field of the top result at a time
 (`evidence`, `contributions`, `estimates`, `refinement_estimates`, `plans`),
 then any other field on that row besides rank, model, offering and warnings,
-then any remaining `member_evidence` items. A `member_evidence` entry is never
-removed. A heavy field is removed whole, and fields inside one evidence item
-are never trimmed. Provenance inside a kept record stays intact, and no value
-is replaced with null. Each removal increments `explanation.omitted`.
-`answer`, `status`, `warnings`, `coverage`, `summary_for_user`,
-`must_mention`, and the top result's rank, model, offering and warnings remain. If those essentials still exceed the budget, the call
-returns HTTP 400 `invalid_spec` and the issue says how to request the complete
-Decision. The
+then any remaining `member_evidence` items, then `member_evidence` entries
+from the end of the list. The first row of each model, and the top result,
+keep `evidence` and `contributions` until that later step. The top result's
+explanation is removed only after the earlier records are gone. A heavy field
+is removed whole, and fields inside one evidence item are never trimmed.
+Provenance inside a kept record stays intact, and no value is replaced with
+null. Each removal increments `explanation.omitted`. A tie whose
+`member_evidence` entries still do not fit loses entries from the end, and
+each lost entry increments `explanation.omitted` under `member_evidence`.
+`answer.members` stays the complete tie. `answer`, `status`, `warnings`,
+`coverage`, `summary_for_user`, `must_mention`, and the top result's rank,
+model, offering and warnings remain. If those essentials still exceed the
+budget, the call returns HTTP 400 `invalid_spec` and the issue says how to
+request the complete Decision. The
 one-model drill-down keeps its own 7,400-byte cap, and that cap includes `fetch`.
 
 Drill-down returns no ranked result rows or may-qualify rows; their omission
@@ -1216,7 +1224,9 @@ the complete Decision. If that body, with the MCP envelope and summary, exceeds
 16,384 bytes, the tool returns a short bounded notice instead of the raw body.
 The notice keeps `status`, `answer`, `warnings`, `coverage`,
 `summary_for_user`, `must_mention` and the top result, and
-`explanation.fetch` tells the caller how to request the rest. The tool does
+`explanation.fetch` tells the caller how to request the rest. Before the
+notice shortens `answer.members`, it drops `member_evidence` and counts those
+entries in `explanation.omitted`. The tool does
 not call the Worker a second time. HTTP defaults remain unchanged: a request
 with no `fields` and no `evidence_for` is still the complete Decision.
 
@@ -1269,10 +1279,18 @@ three current explanation levels. Regenerate the MCP public fixture with
 - **bounded 1.1 — MODEL-354:** Adds optional `member_evidence`. No existing
   field changes range. `bounded_version` moves from `1.0` to `1.1`. One entry
   per answer member carries that member's objective evidence, capped at 3
-  items, with `omitted_items` counting the rest. Present only on an explained
-  bounded answer that is not a drill-down and has `answer.members`. The byte
-  budget drops duplicate row `evidence` and `contributions` before it trims
-  `member_evidence` items, and it never removes a member entry.
+  items, with `omitted_items` counting the rest. An item with no
+  `requested_domain` is always counted there and is never shown. Present only
+  on an explained bounded answer that is not a drill-down and has
+  `answer.members`. While fitting the byte budget, a selected `evidence` or
+  `contributions` field can be absent on a non-top repeat-offering row (a
+  later row of a model that already has an earlier row). Bounded 1.0 already
+  allowed the budget to remove selected heavy fields, and it counted each
+  removal in `explanation.omitted`. The first row of each model keeps those
+  fields until the later step that already applied to the top result. When a
+  tie's `member_evidence` entries still do not fit, entries are removed from
+  the end and counted in `explanation.omitted` under `member_evidence`.
+  `answer.members` stays complete.
 
 ## The library and the CLI
 
