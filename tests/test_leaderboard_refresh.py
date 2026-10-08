@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 from datetime import date
 from pathlib import Path
 
@@ -619,12 +620,12 @@ def test_mteb_row_without_its_own_date_uses_the_board_observation_date(
     (root / "premier" / "slice-1.yaml").write_text(
         "models:\n- model_id: lab/embedding-model\n", encoding="utf-8"
     )
-    source_url = "https://example.test/mteb/scores"
+    source_url = refresh.readers.MTEB_URL
     (root / "registry" / "sources.yaml").write_text(
         f"""schema_version: 1
 sources:
 - id: fixture-mteb
-  url: {source_url}
+  url: "{source_url}"
   volatility: live
   fetch: http
   normaliser: text-default
@@ -646,12 +647,13 @@ benchmarks:
     model_id_as_evaluated: Fixture/Embedding-Model
     score: 75.98
     unit: percent
-    source_url: {source_url}
+    source_url: "{source_url}"
     source_kind: benchmark_author
     evidence_date: '2026-09-24'
     date_type: published
     observed_at: '2026-09-24'
     verified_at: '2026-09-24'
+    configuration: MTEB leaderboard backend JSON read 2026-09-24; tasks updated 2026-09-10.
     id: lab/embedding-model#mteb_eng_v2#fixture
     sources:
     - source_id: fixture-mteb
@@ -694,6 +696,560 @@ benchmarks:
     assert verification["outcome"] == "verified"
     assert str(row["evidence_date"]) == "2026-09-28"
     assert str(row["observed_at"]) == "2026-09-28"
+    assert row["date_type"] == "evaluated"
+    assert row["configuration"] == (
+        "MTEB leaderboard backend JSON read 2026-09-28; tasks updated 2026-09-10."
+    )
+
+
+def test_source_dated_row_keeps_its_read_date_and_date_type(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    root = tmp_path / "repo"
+    cache = tmp_path / "copies"
+    (root / "premier").mkdir(parents=True)
+    (root / "models" / "lab").mkdir(parents=True)
+    (root / "registry").mkdir(parents=True)
+    (root / "verification").mkdir(parents=True)
+    (root / "premier" / "slice-1.yaml").write_text(
+        "models:\n- model_id: lab/model\n", encoding="utf-8"
+    )
+    (root / "registry" / "sources.yaml").write_text(
+        """schema_version: 1
+sources:
+- id: fixture-source
+  url: https://example.test/leaderboard.json
+  volatility: live
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator: {kind: page, value: ''}
+""",
+        encoding="utf-8",
+    )
+    card = root / "models" / "lab" / "model.md"
+    card.write_text(
+        """---
+model_id: lab/model
+display_name: Stable Model
+version: Stable Model
+benchmarks:
+  evidence:
+  - benchmark_id: fixture_benchmark
+    model_id_as_evaluated: Stable Model
+    score: 72.0
+    unit: percent
+    source_url: https://example.test/leaderboard.json
+    source_kind: benchmark_author
+    evidence_date: '2026-09-01'
+    date_type: published
+    observed_at: '2026-09-24'
+    verified_at: '2026-09-24'
+    configuration: Board row read 2026-09-24; published 2026-09-01.
+    id: lab/model#stable
+    sources:
+    - source_id: fixture-source
+      snapshot_ref: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      cited_regions: [rows]
+---
+""",
+        encoding="utf-8",
+    )
+    store = refresh.CopyStore(cache)
+    projection = refresh.readers.document(
+        [{"model": "Stable Model", "score": "72.0%", "date": "2026-09-01"}],
+        url="https://example.test/leaderboard.json",
+        page_ref="sha256:" + "b" * 64,
+        read_date="2026-09-28",
+        note="fixture",
+    )
+    board = refresh._reading_from_projection(
+        key="fixture", source_id="fixture-source", benchmarks=("fixture_benchmark",),
+        source_url="https://example.test/leaderboard.json", projected=projection,
+        observed_at="2026-09-28", value_field="score", store=store,
+    )
+    monkeypatch.setattr(refresh, "collect_readings", lambda *_: ([board], []))
+
+    report = refresh.run(
+        observed_at="2026-09-28", dry_run=False, root=root, source_cache=cache
+    )
+
+    row = refresh._front(card)["benchmarks"]["evidence"][0]
+    assert report.quarantined == []
+    assert str(row["evidence_date"]) == "2026-09-01"
+    assert str(row["observed_at"]) == "2026-09-28"
+    assert row["date_type"] == "published"
+    assert row["configuration"] == "Board row read 2026-09-24; published 2026-09-01."
+
+
+def _run_one_row_refresh(
+    monkeypatch, tmp_path: Path, *,
+    board_row: dict, configuration: str, evidence_date: str, card_observed_at: str,
+    refresh_observed_at: str,
+    source_url: str = "https://example.test/leaderboard.json",
+) -> dict:
+    root = tmp_path / "repo"
+    cache = tmp_path / "copies"
+    (root / "premier").mkdir(parents=True)
+    (root / "models" / "lab").mkdir(parents=True)
+    (root / "registry").mkdir(parents=True)
+    (root / "verification").mkdir(parents=True)
+    (root / "premier" / "slice-1.yaml").write_text(
+        "models:\n- model_id: lab/model\n", encoding="utf-8"
+    )
+    (root / "registry" / "sources.yaml").write_text(
+        f"""schema_version: 1
+sources:
+- id: fixture-source
+  url: "{source_url}"
+  volatility: live
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator: {{kind: page, value: ''}}
+""",
+        encoding="utf-8",
+    )
+    card = root / "models" / "lab" / "model.md"
+    card.write_text(
+        f"""---
+model_id: lab/model
+display_name: Stable Model
+version: Stable Model
+benchmarks:
+  evidence:
+  - benchmark_id: fixture_benchmark
+    model_id_as_evaluated: Stable Model
+    score: 72.0
+    unit: percent
+    source_url: "{source_url}"
+    source_kind: benchmark_author
+    evidence_date: '{evidence_date}'
+    date_type: published
+    observed_at: '{card_observed_at}'
+    verified_at: '{card_observed_at}'
+    configuration: {configuration}
+    id: lab/model#stable
+    sources:
+    - source_id: fixture-source
+      snapshot_ref: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      cited_regions: [rows]
+---
+""",
+        encoding="utf-8",
+    )
+    store = refresh.CopyStore(cache)
+    projection = refresh.readers.document(
+        [board_row],
+        url=source_url,
+        page_ref="sha256:" + "b" * 64,
+        read_date=refresh_observed_at,
+        note="fixture",
+    )
+    board = refresh._reading_from_projection(
+        key="fixture", source_id="fixture-source", benchmarks=("fixture_benchmark",),
+        source_url=source_url, projected=projection,
+        observed_at=refresh_observed_at, value_field="score", store=store,
+    )
+    monkeypatch.setattr(refresh, "collect_readings", lambda *_: ([board], []))
+    report = refresh.run(
+        observed_at=refresh_observed_at, dry_run=False, root=root, source_cache=cache
+    )
+    assert report.quarantined == []
+    return refresh._front(card)["benchmarks"]["evidence"][0]
+
+
+@pytest.mark.parametrize("date_key", refresh._SOURCE_DATE_KEYS)
+def test_same_day_source_date_stays_published_and_unchanged(
+    monkeypatch, tmp_path: Path, date_key: str,
+) -> None:
+    configuration = "dataset re-read 2026-09-24. Board row read 2026-09-24."
+    row = _run_one_row_refresh(
+        monkeypatch, tmp_path,
+        board_row={"model": "Stable Model", "score": "72.0%", date_key: "2026-09-28"},
+        configuration=configuration,
+        evidence_date="2026-09-01",
+        card_observed_at="2026-09-24",
+        refresh_observed_at="2026-09-28",
+    )
+
+    assert str(row["evidence_date"]) == "2026-09-28"
+    assert str(row["observed_at"]) == "2026-09-28"
+    assert row["date_type"] == "published"
+    assert row["configuration"] == configuration
+
+
+def test_dataset_reread_text_is_not_rewritten(monkeypatch, tmp_path: Path) -> None:
+    row = _run_one_row_refresh(
+        monkeypatch, tmp_path,
+        board_row={"model": "Stable Model", "score": "72.0%"},
+        configuration="dataset re-read 2026-09-24. Board row read 2026-09-24.",
+        evidence_date="2026-09-24",
+        card_observed_at="2026-09-24",
+        refresh_observed_at="2026-09-28",
+        source_url=refresh.readers.METR_URL,
+    )
+
+    assert str(row["evidence_date"]) == "2026-09-28"
+    assert row["date_type"] == "evaluated"
+    assert row["configuration"] == (
+        "dataset re-read 2026-09-24. Board row read 2026-09-28."
+    )
+
+
+def test_blank_date_on_a_dated_projector_stays_published() -> None:
+    configuration = "Board row read 2026-09-24."
+    epoch = "https://epoch.ai/benchmarks/gpqa-diamond"
+    for extra in ({"date": None}, {"date": ""}, {}):
+        aligned = refresh.align_observation_dating({
+            "source_url": epoch,
+            "evidence_date": "2026-09-28",
+            "observed_at": "2026-09-28",
+            "date_type": "published",
+            "configuration": configuration,
+            **extra,
+        })
+        assert aligned["date_type"] == "published"
+        assert aligned["configuration"] == configuration
+
+
+def test_epoch_blank_started_at_passes_score_only(monkeypatch, tmp_path: Path) -> None:
+    root = tmp_path / "repo"
+    cache = tmp_path / "copies"
+    source_url = "https://epoch.ai/benchmarks/gpqa-diamond"
+    configuration = "Board row read 2026-09-24."
+    (root / "premier").mkdir(parents=True)
+    (root / "models" / "lab").mkdir(parents=True)
+    (root / "registry").mkdir(parents=True)
+    (root / "verification").mkdir(parents=True)
+    (root / "premier" / "slice-1.yaml").write_text(
+        "models:\n- model_id: lab/model\n", encoding="utf-8"
+    )
+    (root / "registry" / "sources.yaml").write_text(
+        f"""schema_version: 1
+sources:
+- id: fixture-epoch
+  url: "{source_url}"
+  volatility: live
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator: {{kind: page, value: ''}}
+""",
+        encoding="utf-8",
+    )
+    card = root / "models" / "lab" / "model.md"
+    card.write_text(
+        f"""---
+model_id: lab/model
+display_name: Grok 4
+version: grok-4-0709
+benchmarks:
+  evidence:
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: grok-4-0709
+    score: 50.0
+    unit: percent
+    source_url: "{source_url}"
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-24'
+    date_type: published
+    observed_at: '2026-09-24'
+    verified_at: '2026-09-24'
+    configuration: {configuration}
+    id: lab/model#gpqa
+    sources:
+    - source_id: fixture-epoch
+      snapshot_ref: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      cited_regions: [rows]
+---
+""",
+        encoding="utf-8",
+    )
+    projection = refresh.readers.project_epoch(
+        "Model version,mean_score,stderr,Started at\ngrok-4-0709,0.5,,\n",
+        url=source_url,
+        page_ref="sha256:" + "b" * 64,
+        read_date="2026-09-28",
+    )
+    assert "date" not in json.loads(projection)["rows"][0]
+    store = refresh.CopyStore(cache)
+    board = refresh._reading_from_projection(
+        key="epoch:gpqa_diamond",
+        source_id="fixture-epoch",
+        benchmarks=("gpqa_diamond",),
+        source_url=source_url,
+        projected=projection,
+        observed_at="2026-09-28",
+        value_field="mean_score",
+        fraction=True,
+        store=store,
+        card_urls=(source_url,),
+    )
+    monkeypatch.setattr(refresh, "collect_readings", lambda *_: ([board], []))
+    before = tmp_path / "before"
+    shutil.copytree(root, before)
+
+    report = refresh.run(
+        observed_at="2026-09-28", dry_run=False, root=root, source_cache=cache
+    )
+
+    row = refresh._front(card)["benchmarks"]["evidence"][0]
+    result = refresh.check_score_only(before, root)
+    assert report.quarantined == []
+    assert row["date_type"] == "published"
+    assert row["configuration"] == configuration
+    assert str(row["observed_at"]) == "2026-09-28"
+    assert str(row["evidence_date"]) == "2026-09-28"
+    assert result.ok, result.errors
+
+
+def test_folded_reread_is_not_a_read_date() -> None:
+    reread = "configuration: dataset re-read\n      2026-09-24."
+    assert refresh._replace_folded_read_date(reread, "2026-09-28") == reread
+    folded = "configuration: Board read\n      2026-09-24."
+    replaced = refresh._replace_folded_read_date(folded, "2026-09-28")
+    assert "2026-09-28" in replaced
+    assert "2026-09-24" not in replaced
+
+
+def test_score_only_check_accepts_an_aligned_observation_date(tmp_path: Path) -> None:
+    configuration = "Board row read {day}; tasks updated 2026-09-10."
+    before_text = _card("2026-09-24").replace(
+        "https://example.test/leaderboard.json", refresh.readers.METR_URL,
+    ).replace(
+        "    date_type: published\n",
+        "    date_type: published\n"
+        f"    configuration: {configuration.format(day='2026-09-24')}\n",
+    )
+    after_text = _card("2026-10-05").replace(
+        "https://example.test/leaderboard.json", refresh.readers.METR_URL,
+    ).replace(
+        "evidence_date: '2026-09-01'\n",
+        "evidence_date: '2026-10-05'\n",
+    ).replace(
+        "    date_type: published\n",
+        "    date_type: evaluated\n"
+        f"    configuration: {configuration.format(day='2026-10-05')}\n",
+    )
+    before, after = _write_guard_cards(tmp_path, before_text, after_text)
+
+    assert refresh.check_score_only(before, after).ok
+
+
+def test_score_only_check_refuses_an_unrelated_configuration_edit(tmp_path: Path) -> None:
+    before_text = _card("2026-10-05").replace(
+        "evidence_date: '2026-09-01'\n", "evidence_date: '2026-10-05'\n",
+    )
+    after_text = before_text.replace(
+        "    date_type: published\n",
+        "    date_type: published\n    configuration: a different sentence\n",
+    )
+    before, after = _write_guard_cards(tmp_path, before_text, after_text)
+
+    result = refresh.check_score_only(before, after)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
+
+
+def test_score_only_check_refuses_reread_and_carried_source_date_edits(tmp_path: Path) -> None:
+    before_reread = _card("2026-09-24").replace(
+        "evidence_date: '2026-09-01'\n",
+        "evidence_date: '2026-09-13'\n",
+    ).replace(
+        "    date_type: published\n",
+        "    date_type: published\n    configuration: dataset re-read 2026-09-24.\n",
+    )
+    after_reread = _card("2026-09-28").replace(
+        "evidence_date: '2026-09-01'\n",
+        "evidence_date: '2026-09-28'\n",
+    ).replace(
+        "    date_type: published\n",
+        "    date_type: evaluated\n    configuration: dataset re-read 2026-09-28.\n",
+    )
+    before, after = _write_guard_cards(tmp_path / "reread", before_reread, after_reread)
+    reread = refresh.check_score_only(before, after)
+    assert not reread.ok
+    assert reread.errors == ("non-score card data changed: models/lab/model.md",)
+
+    before_carried = _card("2026-09-24").replace(
+        "evidence_date: '2026-09-01'\n",
+        "evidence_date: '2026-09-28'\n",
+    ).replace(
+        "    date_type: published\n",
+        "    date_type: published\n    configuration: Board row read 2026-09-24.\n",
+    )
+    after_carried = _card("2026-09-28").replace(
+        "evidence_date: '2026-09-01'\n",
+        "evidence_date: '2026-09-28'\n",
+    ).replace(
+        "    date_type: published\n",
+        "    date_type: evaluated\n    configuration: Board row read 2026-09-28.\n",
+    )
+    before, after = _write_guard_cards(tmp_path / "carried", before_carried, after_carried)
+    carried = refresh.check_score_only(before, after)
+    assert not carried.ok
+    assert carried.errors == ("non-score card data changed: models/lab/model.md",)
+
+
+def test_score_only_check_accepts_a_standalone_read_beside_reread(tmp_path: Path) -> None:
+    before_text = _card("2026-09-24").replace(
+        "https://example.test/leaderboard.json", refresh.readers.MTEB_URL,
+    ).replace(
+        "evidence_date: '2026-09-01'\n",
+        "evidence_date: '2026-09-24'\n",
+    ).replace(
+        "    date_type: published\n",
+        "    date_type: published\n"
+        "    configuration: dataset re-read 2026-09-24. Board row read 2026-09-24.\n",
+    )
+    after_text = _card("2026-09-28").replace(
+        "https://example.test/leaderboard.json", refresh.readers.MTEB_URL,
+    ).replace(
+        "evidence_date: '2026-09-01'\n",
+        "evidence_date: '2026-09-28'\n",
+    ).replace(
+        "    date_type: published\n",
+        "    date_type: evaluated\n"
+        "    configuration: dataset re-read 2026-09-24. Board row read 2026-09-28.\n",
+    )
+    before, after = _write_guard_cards(tmp_path, before_text, after_text)
+
+    assert refresh.check_score_only(before, after).ok
+
+
+ARENA_CARD_URL = "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset"
+
+
+def test_observation_sources_are_projectors_without_a_row_date() -> None:
+    urls = refresh._OBSERVATION_SOURCE_URLS
+    assert {
+        refresh.readers.METR_URL,
+        refresh.readers.MTEB_URL,
+        refresh.MTEB_API.format("MTEB(Multilingual,%20v2)"),
+        refresh.MTEB_API.format("MTEB(cmn,%20v1)"),
+        refresh.MTEB_API.format("FollowIR"),
+        refresh.readers.MATHARENA_URL,
+        refresh.MATHARENA_AIME_2025_URL,
+        "https://matharena.ai/competition_tables/overall--brokenarxiv",
+        "https://matharena.ai/competition_tables/overall--arxivmath",
+        refresh.readers.CURSOR_URL,
+        refresh.readers.DEEPSWE_URL,
+        refresh.DEEPSWE_CARD_URL,
+        refresh.readers.VENDING_URL,
+        refresh.readers.FRONTIERCODE_URL,
+        refresh.readers.OSWORLD_URL,
+        refresh.HLE_URL,
+    } <= urls
+    dated = {
+        ARENA_CARD_URL,
+        "https://epoch.ai/benchmarks/gpqa-diamond",
+        "https://epoch.ai/frontiermath",
+        "https://epoch.ai/benchmarks/swe-bench-verified",
+        "https://epoch.ai/benchmarks/simpleqa-verified",
+        "https://www.tbench.ai/leaderboard/terminal-bench/4.0",
+        refresh.readers.SCALE_URL,
+        "https://labs.scale.com/leaderboard/swe_bench_pro",
+        refresh.FINBENCH_URL,
+        refresh.readers.SWEBENCH_URL,
+        "https://example.test/leaderboard.json",
+    }
+    assert dated.isdisjoint(urls)
+
+
+def test_align_observation_cards_rewrites_stored_rows_only(tmp_path: Path) -> None:
+    root = tmp_path / "repo"
+    card = root / "models" / "lab" / "model.md"
+    card.parent.mkdir(parents=True)
+    card.write_text(
+        f"""---
+model_id: lab/model
+benchmarks:
+  evidence:
+  - benchmark_id: fixture_benchmark
+    model_id_as_evaluated: Dated By Observation
+    score: 1.0
+    unit: percent
+    source_url: {refresh.readers.METR_URL}
+    source_kind: benchmark_author
+    evidence_date: '2026-10-05'
+    date_type: published
+    observed_at: '2026-10-05'
+    configuration: Board read
+      2026-09-24; tasks updated 2026-09-10.
+  - benchmark_id: fixture_benchmark
+    model_id_as_evaluated: Same Day Source
+    score: 2.0
+    unit: percent
+    source_url: {ARENA_CARD_URL}
+    source_kind: benchmark_author
+    evidence_date: '2026-10-05'
+    date_type: published
+    observed_at: '2026-10-05'
+    configuration: dataset re-read 2026-09-24. Board row read 2026-09-24.
+  - benchmark_id: fixture_benchmark
+    model_id_as_evaluated: Older Day
+    score: 3.0
+    unit: percent
+    source_url: {refresh.readers.METR_URL}
+    source_kind: benchmark_author
+    evidence_date: '2026-09-01'
+    date_type: published
+    observed_at: '2026-10-05'
+    configuration: Board read 2026-09-24; published 2026-09-01.
+---
+""",
+        encoding="utf-8",
+    )
+
+    changed = refresh.align_observation_cards(root)
+
+    text = card.read_text(encoding="utf-8")
+    rows = refresh._front(card)["benchmarks"]["evidence"]
+    assert changed == ["models/lab/model.md"]
+    assert rows[0]["date_type"] == "evaluated"
+    assert rows[0]["configuration"] == "Board read 2026-10-05; tasks updated 2026-09-10."
+    assert "    configuration: Board read\n      2026-10-05; tasks updated 2026-09-10.\n" in text
+    assert rows[1]["date_type"] == "published"
+    assert rows[1]["configuration"] == (
+        "dataset re-read 2026-09-24. Board row read 2026-09-24."
+    )
+    assert rows[2]["date_type"] == "published"
+    assert rows[2]["configuration"] == "Board read 2026-09-24; published 2026-09-01."
+    assert refresh.align_observation_cards(root) == []
+
+
+def test_score_only_check_refuses_a_same_day_source_measurement(tmp_path: Path) -> None:
+    before_text = _card("2026-09-28").replace(
+        "https://example.test/leaderboard.json", ARENA_CARD_URL,
+    ).replace(
+        "evidence_date: '2026-09-01'\n",
+        "evidence_date: '2026-09-28'\n",
+    ).replace(
+        "    date_type: published\n",
+        "    date_type: published\n"
+        "    configuration: dataset re-read 2026-09-24. Board row read 2026-09-24.\n",
+    )
+    after_text = _card("2026-09-28").replace(
+        "https://example.test/leaderboard.json", ARENA_CARD_URL,
+    ).replace(
+        "evidence_date: '2026-09-01'\n",
+        "evidence_date: '2026-09-28'\n",
+    ).replace(
+        "    date_type: published\n",
+        "    date_type: evaluated\n"
+        "    configuration: dataset re-read 2026-09-24. Board row read 2026-09-28.\n",
+    )
+    before, after = _write_guard_cards(tmp_path, before_text, after_text)
+
+    result = refresh.check_score_only(before, after)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
 
 
 def test_unread_board_keeps_the_old_observation_date(monkeypatch, tmp_path: Path) -> None:
