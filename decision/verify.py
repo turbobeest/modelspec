@@ -2298,7 +2298,7 @@ _SEC_STATE = re.compile(r'"stateOfIncorporation"\s*:\s*"([A-Z]{2})"')
 _SEC_DESC = re.compile(r'"stateOfIncorporationDescription"\s*:\s*"([^"]+)"')
 _JURISDICTION_CUE = re.compile(
     r"incorporat|organi[sz]ed under|laws of the state of|"
-    r"jurisdiction of incorporation|company limited by shares|handelsregister|\bgmbh\b|\bpte\.?\s*ltd",
+    r"jurisdiction of incorporation|company limited by shares|\bamtsgericht\b",
     re.IGNORECASE,
 )
 _US_STATE_NAME = (
@@ -2324,11 +2324,9 @@ _INCORPORATION_PHRASES: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"(?i)\b" + _FORMED + r" in (?:the )?united kingdom\b"), "GB"),
     (re.compile(r"(?i)\b" + _FORMED + r" in (?:the federal republic of )?germany\b"), "DE"),
     (re.compile(r"(?i)\bgesellschaft mit beschr[aä]nkter haftung\b"), "DE"),
-    (re.compile(r"(?i)\bgmbh\b"), "DE"),
-    (re.compile(r"(?i)\bhandelsregister\b"), "DE"),
+    (re.compile(r"(?i)\bamtsgericht\b(?:\s+\S+){0,6}\s+hrb\b"), "DE"),
     (re.compile(r"(?i)\b" + _FORMED + r" (?:in|under the laws of) (?:the republic of )?singapore\b"), "SG"),
-    (re.compile(r"(?i)\bsingapore (?:private limited|pte\.? ltd)"), "SG"),
-    (re.compile(r"(?i)\bpte\.?\s*ltd\.?\b"), "SG"),
+    (re.compile(r"(?i)\|\s*(?:" + _US_STATE_NAME + r")\b"), "US"),
     (re.compile(r"(?i)\b" + _FORMED + r" in japan\b"), "JP"),
     (re.compile(r"(?i)\b" + _FORMED + r" in (?:the republic of korea|south korea)\b"), "KR"),
     (re.compile(r"(?i)\b" + _FORMED + r" in ireland\b"), "IE"),
@@ -2384,7 +2382,9 @@ _BARE_JURISDICTION = {
     "united kingdom": "GB",
     "england and wales": "GB",
     "united states": "US",
-    **{name: "US" for name in _US_STATE_NAME.split("|")},
+    # "Georgia" alone is the country as often as the US state. A state name
+    # still counts when the phrase says "Georgia corporation".
+    **{name: "US" for name in _US_STATE_NAME.split("|") if name != "georgia"},
 }
 
 
@@ -2843,6 +2843,79 @@ def _verify_evidence_reading(
     return Result(claim.target, "skipped", reason="; ".join(reasons))
 
 
+def _verify_jurisdiction_set(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
+                            today: date) -> Result:
+    """A lab-jurisdiction set is the union of its cited regions, not any one of them.
+
+    Every cited region has to be reachable and contribute a non-empty set of
+    codes. ``lab-jurisdiction@1`` reads the region when it returns a reading.
+    An earlier extractor that accepts the page for another facet and returns
+    nothing does not decide the claim. Each region's codes are a subset of the
+    claim. The union equals the claim. One region that states only part of the
+    set does not verify it, and a region that adds a code the claim does not
+    name is a mismatch.
+    """
+    claimed = {str(code).strip().upper() for code in claim.value}
+    union: set[str] = set()
+    actor: VerificationActor | None = None
+    reasons: list[str] = []
+    diffs: list[Diff] = []
+    unreachable = False
+    for source in claim.sources:
+        for region_id in source.cited_regions:
+            where = f"{source.source_id}#{region_id}"
+            text = regions.text(source.source_id, source.snapshot_ref, region_id)
+            if text is None:
+                unreachable = True
+                reasons.append(f"unreachable:{where}")
+                continue
+            ordered = sorted(extractors, key=lambda e: e.actor.model_family != DETERMINISTIC)
+            accepting = [item for item in ordered if item.accepts(text)]
+            independent = [item for item in accepting if _independent(claim, item.actor, today)]
+            prefer = [item for item in independent if item.actor.method == "lab-jurisdiction@1"]
+            readers = prefer + [item for item in independent if item not in prefer]
+            extractor = None
+            for item in readers:
+                try:
+                    got = item.extract(claim, text)
+                except ExtractorError as exc:
+                    reasons.append(f"extractor_error:{where}: {exc}")
+                    continue
+                if got:
+                    extractor = item
+                    break
+            if extractor is None:
+                reasons.append("no_independent_extractor" if accepting else f"no_extractor:{where}")
+                diffs.append(Diff("value", sorted(claimed), None))
+                continue
+            actor = extractor.actor
+            codes = jurisdiction_codes(text)
+            if not codes:
+                reasons.append(f"no_codes:{where}")
+                diffs.append(Diff("value", sorted(claimed), None))
+                continue
+            if not codes <= claimed:
+                diffs.append(Diff("value", sorted(claimed), ", ".join(sorted(codes))))
+                continue
+            union |= set(codes)
+    if unreachable:
+        if not _independent(claim, REGION_LOOKUP, today):
+            return Result(claim.target, "skipped", reason="no_independent_extractor")
+        return Result(claim.target, "unreachable",
+                      _verification(claim, REGION_LOOKUP, "unreachable", today),
+                      reason="; ".join(reasons))
+    if union == claimed and not diffs and actor is not None:
+        return Result(claim.target, "verified",
+                      _verification(claim, actor, "verified", today))
+    if actor is not None or diffs:
+        if union != claimed and not any(d.field == "value" and d.found is not None for d in diffs):
+            diffs.append(Diff("value", sorted(claimed), ", ".join(sorted(union)) or None))
+        who = actor or REGION_LOOKUP
+        return Result(claim.target, "mismatch",
+                      _verification(claim, who, "mismatch", today, diffs), tuple(diffs))
+    return Result(claim.target, "skipped", reason="; ".join(reasons))
+
+
 def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
            today: date) -> Result:
     """Re-read ``claim`` from each cited region of its sources and compare.
@@ -2850,9 +2923,13 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
     Deterministic extractors are tried before the rest, whatever the order given;
     the first that accepts a region and is independent of the collector reads it.
     Verified if any region confirms the value; otherwise the first mismatch.
+    ``origin.lab_jurisdiction`` is the exception: the cited regions are unioned,
+    and every one of them has to contribute.
     """
     if isinstance(claim.value, dict) and "score" in claim.value:
         return _verify_evidence_reading(claim, regions, extractors, today=today)
+    if claim.field == "origin.lab_jurisdiction" and isinstance(claim.value, list):
+        return _verify_jurisdiction_set(claim, regions, extractors, today=today)
 
     ordered = sorted(extractors, key=lambda e: e.actor.model_family != DETERMINISTIC)
     reachable = False
@@ -3117,11 +3194,19 @@ def ref_str(target: TargetRef) -> str:
 
 
 def run(queue: Queue, log: VerificationLog, regions: Regions, extractors: Sequence[Extractor],
-        *, today: date, changed_only: bool = False, at: datetime | None = None) -> RunReport:
+        *, today: date, changed_only: bool = False, at: datetime | None = None,
+        only: str | None = None) -> RunReport:
     """Verify what is queued; log every outcome and mark it checked. Skipped claims stay
-    queued, unlogged and so quarantined."""
+    queued, unlogged and so quarantined.
+
+    ``only`` keeps claims whose target id starts with that prefix. Other pending
+    claims are not checked and not logged.
+    """
     at = at or datetime.now(UTC)
     claims, unknown = queue.pending(changed_only=changed_only)
+    if only:
+        claims = [claim for claim in claims if claim.target.id.startswith(only)]
+        unknown = [target for target in unknown if target.id.startswith(only)]
     report = RunReport(changed_only, unknown=unknown)
     for claim in claims:
         result = verify(claim, regions, extractors, today=today)

@@ -6,10 +6,17 @@ onto each of that lab's models. A model card that already states a different
 known set fails the build. A card that states the same set, or nothing, takes
 the lab record.
 
-An explicit null is a lab whose permitted pages were read and do not state a
-country of incorporation: ``not_disclosed``, a note, a read date, and at least
-one retained source. That lab's models are exempt from the jurisdiction gate.
-A note with no source is not an exemption.
+A known set is the training entity's country of incorporation plus the ultimate
+parent's, when the parent is a different entity. Each code has its own source.
+A missing code is not recorded as the other one: that record is an explicit
+null, not a shorter set.
+
+An explicit null is a lab whose own legal, terms, imprint, or privacy page, or
+an official registry, was read and does not yield a complete set. The cited
+text has to be non-empty. A Hugging Face README, an empty page, or a marketing
+homepage is not that source. That lab's models are exempt from the jurisdiction
+gate. A lab with no such page is a coverage gap, and the gate still requires
+a value for its models.
 """
 
 from __future__ import annotations
@@ -18,6 +25,7 @@ import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
+from urllib.parse import urlsplit
 
 import yaml
 
@@ -41,6 +49,8 @@ class Lab:
     state: str
     value: tuple[str, ...] | None
     sources: tuple[dict[str, Any], ...]
+    entity_code: str | None = None
+    parent_code: str | None = None
 
     @property
     def codes(self) -> frozenset[str] | None:
@@ -70,7 +80,10 @@ class Lab:
             "facet": FACET,
             "state": "known",
             "value": sorted(self.codes),
-            "sources": [dict(source) for source in self.sources],
+            "sources": [
+                {key: value for key, value in source.items() if key != "party"}
+                for source in self.sources
+            ],
         }
 
 
@@ -89,10 +102,11 @@ def stated_codes(fact: Mapping[str, Any]) -> frozenset[str] | None:
     return frozenset(str(item) for item in value)
 
 
-def load_labs(root: Path) -> dict[str, Lab]:
+def load_labs(root: Path, *, copy_store: Any = None) -> dict[str, Lab]:
     """Read ``registry/labs.yaml``. A missing file is an empty registry.
 
     The public checkout has no copy. A build from it does not invent labs.
+    A known code and an explicit null are checked against the retained copy.
     """
     path = Path(root) / "registry" / "labs.yaml"
     if not path.is_file():
@@ -112,6 +126,7 @@ def load_labs(root: Path) -> dict[str, Lab]:
         if lab.id in labs:
             raise LabRegistryError(f"{path}: lab {lab.id} is listed twice")
         labs[lab.id] = lab
+    _require_source_text(Path(root), labs, copy_store)
     return labs
 
 
@@ -125,8 +140,8 @@ def _lab(raw: Any, *, where: str) -> Lab:
     if not isinstance(jurisdiction, Mapping):
         raise LabRegistryError(f"{where}: jurisdiction is required")
     state = jurisdiction.get("state")
-    if state not in ("known", "not_disclosed"):
-        raise LabRegistryError(f"{where}: jurisdiction.state must be known or not_disclosed")
+    if state not in ("known", "not_disclosed", "gap"):
+        raise LabRegistryError(f"{where}: jurisdiction.state must be known, not_disclosed, or gap")
     value = jurisdiction.get("value")
     if state == "known":
         if not isinstance(value, list) or not value or len(value) != len(set(value)):
@@ -136,7 +151,7 @@ def _lab(raw: Any, *, where: str) -> Lab:
         codes: tuple[str, ...] | None = tuple(value)
     else:
         if value is not None:
-            raise LabRegistryError(f"{where}: not_disclosed jurisdiction has no value")
+            raise LabRegistryError(f"{where}: {state} jurisdiction has no value")
         codes = None
     note = raw.get("note")
     read_date = raw.get("read_date")
@@ -144,16 +159,36 @@ def _lab(raw: Any, *, where: str) -> Lab:
         raise LabRegistryError(f"{where}: note is required")
     if not isinstance(read_date, str) or not _DATE.match(read_date):
         raise LabRegistryError(f"{where}: read_date must be YYYY-MM-DD")
-    sources = _sources(jurisdiction.get("sources"), where=where)
     entity = raw.get("entity")
     parent = raw.get("parent_entity")
+    entity_code = raw.get("entity_code")
+    parent_code = raw.get("parent_code")
     if entity is not None and not isinstance(entity, str):
         raise LabRegistryError(f"{where}: entity must be a string")
     if parent is not None and not isinstance(parent, str):
         raise LabRegistryError(f"{where}: parent_entity must be a string")
-    if state == "known" and not entity:
-        raise LabRegistryError(f"{where}: a known jurisdiction names the entity")
-    if state == "not_disclosed" and not sources:
+    if entity_code is not None and (not isinstance(entity_code, str) or not _CODE.match(entity_code)):
+        raise LabRegistryError(f"{where}: entity_code must be ISO 3166-1 alpha-2")
+    if parent_code is not None and (not isinstance(parent_code, str) or not _CODE.match(parent_code)):
+        raise LabRegistryError(f"{where}: parent_code must be ISO 3166-1 alpha-2")
+    raw_sources = jurisdiction.get("sources")
+    if state == "gap":
+        if raw_sources:
+            raise LabRegistryError(f"{where}: a coverage gap has no source; it is not an explicit null")
+        sources: tuple[dict[str, Any], ...] = ()
+    else:
+        sources = _sources(raw_sources, where=where)
+    if state == "known":
+        _known_parties(
+            where,
+            entity=entity,
+            parent=parent,
+            entity_code=entity_code,
+            parent_code=parent_code,
+            codes=set(codes or ()),
+            sources=sources,
+        )
+    elif state == "not_disclosed" and not sources:
         raise LabRegistryError(
             f"{where}: an explicit null needs a source for the page that was read"
         )
@@ -166,7 +201,41 @@ def _lab(raw: Any, *, where: str) -> Lab:
         state=state,
         value=codes,
         sources=sources,
+        entity_code=entity_code,
+        parent_code=parent_code,
     )
+
+
+def _known_parties(where: str, *, entity: str | None, parent: str | None,
+                   entity_code: str | None, parent_code: str | None,
+                   codes: set[str], sources: tuple[dict[str, Any], ...]) -> None:
+    """A known set names each entity's code and a source that carries it."""
+    if not entity:
+        raise LabRegistryError(f"{where}: a known jurisdiction names the entity")
+    if not entity_code:
+        raise LabRegistryError(f"{where}: a known jurisdiction names entity_code")
+    parties = [source.get("party") for source in sources]
+    if any(party not in ("entity", "parent") for party in parties):
+        raise LabRegistryError(f"{where}: each source names party entity or parent")
+    if "entity" not in parties:
+        raise LabRegistryError(f"{where}: the training entity needs its own source")
+    expected = {entity_code}
+    if parent is not None:
+        if parent.strip() == entity.strip():
+            raise LabRegistryError(f"{where}: parent_entity must differ from entity")
+        if not parent_code:
+            raise LabRegistryError(
+                f"{where}: a parent that differs from the entity needs its own sourced code"
+            )
+        if "parent" not in parties:
+            raise LabRegistryError(f"{where}: the parent needs its own source")
+        expected.add(parent_code)
+    elif parent_code is not None or "parent" in parties:
+        raise LabRegistryError(f"{where}: parent_code requires a different parent_entity")
+    if codes != expected:
+        raise LabRegistryError(
+            f"{where}: jurisdiction value must be exactly the sourced entity codes"
+        )
 
 
 def _sources(raw: Any, *, where: str) -> tuple[dict[str, Any], ...]:
@@ -187,9 +256,75 @@ def _sources(raw: Any, *, where: str) -> tuple[dict[str, Any], ...]:
             raise LabRegistryError(f"{where}: sources[{index}].snapshot_ref must be sha256:<64 hex>")
         if not isinstance(regions, list) or not regions or any(not isinstance(r, str) or not r for r in regions):
             raise LabRegistryError(f"{where}: sources[{index}].cited_regions must name regions")
-        out.append({
+        item = {
             "source_id": source_id,
             "snapshot_ref": ref,
             "cited_regions": list(regions),
-        })
+        }
+        if "party" in source:
+            item["party"] = source.get("party")
+        out.append(item)
     return tuple(out)
+
+
+_NULL_PAGE = re.compile(r"legal|terms|privacy|imprint|policies|agreement", re.IGNORECASE)
+
+
+def _null_url_problem(url: str) -> str | None:
+    """Why this URL cannot support an explicit null, or None when it can."""
+    parts = urlsplit(url)
+    host = (parts.hostname or "").casefold()
+    path = parts.path or "/"
+    if host == "huggingface.co" or host.endswith(".huggingface.co") or "readme.md" in url.casefold():
+        return "a Hugging Face README is not a lab legal page or a registry"
+    if host == "sec.gov" or host.endswith(".sec.gov"):
+        return None
+    if path in ("", "/"):
+        return "a marketing homepage does not state incorporation"
+    if _NULL_PAGE.search(path) is None:
+        return "an explicit null cites the lab's legal, terms, imprint, or privacy page, or a registry"
+    return None
+
+
+def _require_source_text(root: Path, labs: Mapping[str, Lab], copy_store: Any) -> None:
+    """Known codes and explicit nulls have to be present in the retained copy."""
+    if not labs:
+        return
+    from decision.sources import CopyStore, load_sources
+    from decision.verify import StoredRegions, jurisdiction_codes
+
+    registered = load_sources(root / "registry" / "sources.yaml")
+    store = copy_store if copy_store is not None else CopyStore()
+    regions = StoredRegions(store, registered)
+    for lab in labs.values():
+        if lab.state == "gap":
+            continue
+        for source in lab.sources:
+            record = registered.get(source["source_id"])
+            if record is None:
+                raise LabRegistryError(f"{lab.id}: source {source['source_id']} is not registered")
+            if lab.explicit_null:
+                problem = _null_url_problem(str(record.url))
+                if problem:
+                    raise LabRegistryError(f"{lab.id}: {problem}")
+            for region_id in source["cited_regions"]:
+                text = regions.text(source["source_id"], source["snapshot_ref"], region_id)
+                if text is None or not text.strip():
+                    raise LabRegistryError(
+                        f"{lab.id}: {source['source_id']}#{region_id} has no retained text"
+                    )
+                if lab.state != "known":
+                    continue
+                found = jurisdiction_codes(text)
+                wanted = lab.entity_code if source.get("party") == "entity" else lab.parent_code
+                if wanted not in found:
+                    raise LabRegistryError(
+                        f"{lab.id}: {source['source_id']} does not state {wanted} "
+                        f"(read {sorted(found) or 'nothing'})"
+                    )
+                extra = found - set(lab.value or ())
+                if extra:
+                    raise LabRegistryError(
+                        f"{lab.id}: {source['source_id']} states {sorted(extra)}, "
+                        "which is outside the recorded set"
+                    )

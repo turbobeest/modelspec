@@ -212,7 +212,7 @@ def page(data: LandingData, signing: SigningState) -> str:
              ("docs/decision-contract.md", "soft conditions", "soft-conditions")))
     states = (("Known", "A value with a source, and a check that passed.", "Used."),
               ("Unknown, on ability or a spec such as context", "Nobody has published it, or it hasn't been collected yet.", "May qualify: listed beside the answer, not ranked, never scored as zero."),
-              ("Unknown, on your data or the licence", "We can't confirm the provider's terms.", "Not treated as met. Shown as unverified, may qualify, so you can check it yourself."),
+              ("Unknown, on your data or the licence", "We can't confirm the provider's terms.", "Eliminated: the facet is not verified; use unknown(list) to keep it."),
               ("Inapplicable", "The model's class can't have it. A model that writes no text has no output-token limit.", "Derived from the class, never typed on a card."))
     unknown = ('<table><thead><tr><th>The value is</th><th>Which means</th><th>What the answer '
                'does</th></tr></thead><tbody>' + "".join(

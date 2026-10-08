@@ -89,8 +89,12 @@ def test_governing_law_and_entity_form_are_not_the_same_thing() -> None:
     assert jurisdiction_codes(
         "Anthropic is a Delaware public benefit corporation."
     ) == frozenset({"US"})
-    assert jurisdiction_codes("Jina AI GmbH") == frozenset({"DE"})
-    assert jurisdiction_codes("Moonshot AI PTE. LTD.") == frozenset({"SG"})
+    assert jurisdiction_codes("Jina AI GmbH") == frozenset()
+    assert jurisdiction_codes("Moonshot AI PTE. LTD.") == frozenset()
+    assert jurisdiction_codes(
+        "Register: Amtsgericht Berlin Register Number: HRB 218021"
+    ) == frozenset({"DE"})
+    assert jurisdiction_codes("Google LLC | Delaware") == frozenset({"US"})
     assert jurisdiction_codes(
         '"stateOfIncorporationDescription": "Cayman Islands"'
     ) == frozenset({"KY"})
@@ -113,7 +117,7 @@ def test_a_parent_label_is_read_without_its_subsidiaries() -> None:
     assert region == "Bytedance Ltd. (Cayman)"
     assert jurisdiction_codes(region or "") == frozenset({"KY"})
     whole = select_region(doc, Locator("css", "ul.structure-list"))
-    assert jurisdiction_codes(whole or "") == frozenset({"KY", "SG"})
+    assert jurisdiction_codes(whole or "") == frozenset({"KY"})
 
 
 def test_a_missing_registry_loads_as_empty(tmp_path) -> None:
@@ -210,6 +214,11 @@ def test_a_registered_lab_without_a_known_value_is_a_gap() -> None:
             registry=__import__("decision.registry", fromlist=["default"]).default(),
         )
     assert any(gap.facet == FACET and gap.model == "qwen/qwen" for gap in exc.value.gaps)
+    assert exc.value.coverage is not None
+    assert exc.value.coverage.known == 0
+    assert exc.value.coverage.explicit_null == 0
+    assert exc.value.coverage.gap == 1
+    assert "explicit null 0" in str(exc.value)
 
 
 def test_an_eliminated_governance_row_names_the_facet_and_unknown_list() -> None:
@@ -315,3 +324,406 @@ def test_display_has_data_follows_lineup_counts() -> None:
     empty = trim(vocabulary, model_ids=set(), facet_values={})["facets"][0]
     assert empty["has_data"] is False
     assert "values" not in empty
+
+
+@pytest.mark.parametrize("text", [
+    "Example GmbH (Switzerland)",
+    "Handelsregister Basel",
+    "Wien GmbH",
+    "Our reseller Foo Pte Ltd",
+    "Georgia",
+])
+def test_a_suffix_or_a_bare_state_name_is_not_incorporation(text: str) -> None:
+    assert jurisdiction_codes(text) == frozenset()
+
+
+def test_an_excerpt_cites_one_sentence_and_drops_the_other_country() -> None:
+    from decision.normalise import NORMALISERS, Locator, normalise_document, select_region
+
+    html = (
+        "<p>OpenAI OpCo, LLC, a Delaware company, and OpenAI Ireland Ltd, "
+        "a company incorporated in the Republic of Ireland.</p>"
+    )
+    doc = normalise_document(html.encode(), NORMALISERS["html-default"])
+    region = select_region(
+        doc, Locator("css", "p::excerpt=OpenAI OpCo, LLC, a Delaware company")
+    )
+    assert region == "OpenAI OpCo, LLC, a Delaware company"
+    assert jurisdiction_codes(region or "") == frozenset({"US"})
+    assert select_region(doc, Locator("css", "p::excerpt=not on the page")) is None
+
+
+def test_a_parent_without_its_own_code_is_refused(tmp_path) -> None:
+    (tmp_path / "registry").mkdir()
+    (tmp_path / "registry" / "labs.yaml").write_text(
+        "schema_version: 1\n"
+        "labs:\n"
+        "  - id: qwen\n"
+        "    entity: Alibaba Cloud\n"
+        "    entity_code: KY\n"
+        "    parent_entity: Alibaba Group Holding Limited\n"
+        "    note: The parent country is not on the page.\n"
+        "    read_date: '2026-10-08'\n"
+        "    jurisdiction:\n"
+        "      state: known\n"
+        "      value: [KY]\n"
+        "      sources:\n"
+        "        - source_id: lab-jurisdiction-qwen\n"
+        f"          snapshot_ref: '{SOURCE['snapshot_ref']}'\n"
+        "          cited_regions: [incorporation]\n"
+        "          party: entity\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(LabRegistryError, match="parent"):
+        load_labs(tmp_path)
+
+
+def test_a_parent_named_as_the_same_entity_is_refused(tmp_path) -> None:
+    (tmp_path / "registry").mkdir()
+    (tmp_path / "registry" / "labs.yaml").write_text(
+        "schema_version: 1\n"
+        "labs:\n"
+        "  - id: google\n"
+        "    entity: Alphabet Inc.\n"
+        "    entity_code: US\n"
+        "    parent_entity: Alphabet Inc.\n"
+        "    parent_code: US\n"
+        "    note: The filing names one company.\n"
+        "    read_date: '2026-10-08'\n"
+        "    jurisdiction:\n"
+        "      state: known\n"
+        "      value: [US]\n"
+        "      sources:\n"
+        "        - source_id: lab-jurisdiction-google\n"
+        f"          snapshot_ref: '{SOURCE['snapshot_ref']}'\n"
+        "          cited_regions: [incorporation]\n"
+        "          party: entity\n"
+        "        - source_id: lab-jurisdiction-google-parent\n"
+        f"          snapshot_ref: '{SOURCE['snapshot_ref']}'\n"
+        "          cited_regions: [incorporation]\n"
+        "          party: parent\n",
+        encoding="utf-8",
+    )
+    with pytest.raises(LabRegistryError, match="differ"):
+        load_labs(tmp_path)
+
+
+def _registry(tmp_path, labs_yaml: str, sources_yaml: str) -> None:
+    (tmp_path / "registry").mkdir(exist_ok=True)
+    (tmp_path / "registry" / "labs.yaml").write_text(labs_yaml, encoding="utf-8")
+    (tmp_path / "registry" / "sources.yaml").write_text(sources_yaml, encoding="utf-8")
+
+
+def _source_row(source_id: str, url: str, region: str = "incorporation") -> str:
+    return (
+        f"- id: {source_id}\n"
+        f"  url: {url}\n"
+        "  volatility: static\n"
+        "  fetch: http\n"
+        "  normaliser: html-default\n"
+        "  cited_regions:\n"
+        f"  - id: {region}\n"
+        "    locator: {kind: page, value: ''}\n"
+    )
+
+
+def test_an_explicit_null_rejects_a_readme_a_homepage_and_an_empty_page(tmp_path) -> None:
+    from decision.sources import CopyStore
+
+    store = CopyStore(tmp_path / "copies")
+    empty = store.put(b"<html><body></body></html>")
+    _registry(
+        tmp_path,
+        "schema_version: 1\n"
+        "labs:\n"
+        "  - id: infgrad\n"
+        "    note: The model card is not a legal page.\n"
+        "    read_date: '2026-10-08'\n"
+        "    jurisdiction:\n"
+        "      state: not_disclosed\n"
+        "      value: null\n"
+        "      sources:\n"
+        "        - {source_id: lab-jurisdiction-infgrad, "
+        f"snapshot_ref: '{empty}', cited_regions: [incorporation]}}\n",
+        "schema_version: 1\nsources:\n"
+        + _source_row(
+            "lab-jurisdiction-infgrad",
+            "https://huggingface.co/infgrad/Jasper/raw/main/README.md",
+        ),
+    )
+    with pytest.raises(LabRegistryError, match="Hugging Face"):
+        load_labs(tmp_path, copy_store=store)
+
+    _registry(
+        tmp_path,
+        "schema_version: 1\n"
+        "labs:\n"
+        "  - id: annamodels\n"
+        "    note: The homepage is marketing.\n"
+        "    read_date: '2026-10-08'\n"
+        "    jurisdiction:\n"
+        "      state: not_disclosed\n"
+        "      value: null\n"
+        "      sources:\n"
+        "        - {source_id: lab-jurisdiction-annamodels, "
+        f"snapshot_ref: '{empty}', cited_regions: [incorporation]}}\n",
+        "schema_version: 1\nsources:\n"
+        + _source_row("lab-jurisdiction-annamodels", "https://www.lgresearch.ai/"),
+    )
+    with pytest.raises(LabRegistryError, match="homepage"):
+        load_labs(tmp_path, copy_store=store)
+
+    kept = store.put(b"<html><body><p>Terms of service. No country is stated.</p></body></html>")
+    # The empty copy is the one cited above; cite it from a legal URL.
+    _registry(
+        tmp_path,
+        "schema_version: 1\n"
+        "labs:\n"
+        "  - id: codefuse\n"
+        "    note: The page normalises to nothing.\n"
+        "    read_date: '2026-10-08'\n"
+        "    jurisdiction:\n"
+        "      state: not_disclosed\n"
+        "      value: null\n"
+        "      sources:\n"
+        "        - {source_id: lab-jurisdiction-codefuse, "
+        f"snapshot_ref: '{empty}', cited_regions: [incorporation]}}\n",
+        "schema_version: 1\nsources:\n"
+        + _source_row("lab-jurisdiction-codefuse", "https://codefuse.ai/legal/terms"),
+    )
+    with pytest.raises(LabRegistryError, match="no retained text"):
+        load_labs(tmp_path, copy_store=store)
+    assert kept.startswith("sha256:")
+
+
+def test_an_explicit_null_accepts_a_legal_page_with_text(tmp_path) -> None:
+    from decision.sources import CopyStore
+
+    store = CopyStore(tmp_path / "copies")
+    ref = store.put(b"<html><body><p>Terms of service. The operator is named and no country of incorporation is stated.</p></body></html>")
+    _registry(
+        tmp_path,
+        "schema_version: 1\n"
+        "labs:\n"
+        "  - id: deepseek\n"
+        "    note: The terms do not state incorporation.\n"
+        "    read_date: '2026-10-08'\n"
+        "    jurisdiction:\n"
+        "      state: not_disclosed\n"
+        "      value: null\n"
+        "      sources:\n"
+        "        - {source_id: lab-jurisdiction-deepseek, "
+        f"snapshot_ref: '{ref}', cited_regions: [incorporation]}}\n",
+        "schema_version: 1\nsources:\n"
+        + _source_row(
+            "lab-jurisdiction-deepseek",
+            "https://cdn.deepseek.com/policies/en-US/deepseek-open-platform-terms-of-service.html",
+        ),
+    )
+    labs = load_labs(tmp_path, copy_store=store)
+    assert labs["deepseek"].explicit_null
+
+
+def test_jurisdiction_codes_from_two_regions_verify_only_as_a_union() -> None:
+    from decision.verify import deterministic_extractors, verify
+
+    imprint = SourceRef.model_validate({
+        "source_id": "imprint", "snapshot_ref": SOURCE["snapshot_ref"], "cited_regions": ["incorporation"],
+    })
+    cover = SourceRef.model_validate({
+        "source_id": "cover", "snapshot_ref": SOURCE["snapshot_ref"], "cited_regions": ["incorporation"],
+    })
+    claim = Claim(
+        target=TargetRef(kind="fact", id="lab:jina#origin.lab_jurisdiction"),
+        subject="lab:jina",
+        names=("Jina AI GmbH",),
+        field=FACET,
+        value=["DE", "NL"],
+        collector=VerificationActor(agent="grok", model_family="grok", method="lab-registry@1"),
+        sources=(imprint, cover),
+    )
+
+    class Regions:
+        def __init__(self, mapping: dict[tuple[str, str], str | None]) -> None:
+            self.mapping = mapping
+
+        def text(self, source_id: str, copy_ref: str, region_id: str) -> str | None:
+            return self.mapping.get((source_id, region_id))
+
+    both = Regions({
+        ("imprint", "incorporation"): "Amtsgericht Berlin HRB 218021",
+        ("cover", "incorporation"): "Netherlands",
+    })
+    assert verify(claim, both, deterministic_extractors(), today=date(2026, 10, 8)).outcome == "verified"
+    partial = Regions({
+        ("imprint", "incorporation"): "Amtsgericht Berlin HRB 218021",
+        ("cover", "incorporation"): "Amtsgericht Munich HRB 1",
+    })
+    assert verify(claim, partial, deterministic_extractors(), today=date(2026, 10, 8)).outcome == "mismatch"
+    extra = Regions({
+        ("imprint", "incorporation"): "Amtsgericht Berlin HRB 218021",
+        ("cover", "incorporation"): "Cayman Islands",
+    })
+    assert verify(claim, extra, deterministic_extractors(), today=date(2026, 10, 8)).outcome == "mismatch"
+    missing = Regions({
+        ("imprint", "incorporation"): "Amtsgericht Berlin HRB 218021",
+        ("cover", "incorporation"): None,
+    })
+    assert verify(claim, missing, deterministic_extractors(), today=date(2026, 10, 8)).outcome == "unreachable"
+
+
+def test_a_training_mention_does_not_block_the_jurisdiction_extractor() -> None:
+    """Governance prose accepts pages that say "train" and returns nothing for this facet."""
+    from decision.verify import deterministic_extractors, verify
+
+    text = (
+        "Anthropic does not train on customer content. "
+        "Anthropic is a Delaware public benefit corporation."
+    )
+    claim = _claim(["US"], "Anthropic")
+
+    class Regions:
+        def text(self, source_id: str, copy_ref: str, region_id: str) -> str:
+            return text
+
+    result = verify(claim, Regions(), deterministic_extractors(), today=date(2026, 10, 8))
+    assert result.outcome == "verified"
+    assert result.verification is not None
+    assert result.verification.verifier.method == "lab-jurisdiction@1"
+
+
+def test_only_prefix_leaves_other_claims_pending(tmp_path) -> None:
+    from datetime import UTC, datetime
+
+    from decision.sources import CopyStore
+    from decision.verify import Queue, VerificationLog, deterministic_extractors, run
+
+    store = CopyStore(tmp_path / "copies")
+    body = b"<p>Google LLC is a Delaware limited liability company.</p>"
+    ref = store.put(body)
+    _registry(
+        tmp_path,
+        "schema_version: 1\nlabs: []\n",
+        "schema_version: 1\nsources:\n"
+        + _source_row("src-lab-docs", "https://www.sec.gov/Archives/example.htm", region="r1"),
+    )
+    # The claim's snapshot ref has to be the retained copy the region reader opens.
+    source = dict(SOURCE)
+    source["snapshot_ref"] = ref
+    lab_claim = Claim(
+        target=TargetRef(kind="fact", id="lab:google#origin.lab_jurisdiction"),
+        subject="lab:google",
+        names=("Google LLC",),
+        field=FACET,
+        value=["US"],
+        collector=VerificationActor(agent="grok", model_family="grok", method="lab-registry@1"),
+        sources=(SourceRef.model_validate(source),),
+    )
+    other = Claim(
+        target=TargetRef(kind="fact", id="azure-ai-foundry/gpt-5-4#offering.attestation.soc2"),
+        subject="azure-ai-foundry/gpt-5-4",
+        names=("GPT-5.4",),
+        field="offering.attestation.soc2",
+        value=True,
+        collector=VerificationActor(agent="grok", model_family="grok", method="primary-source@1"),
+        sources=(SourceRef.model_validate(source),),
+    )
+    queue = Queue(tmp_path / "verification")
+    queue.file(lab_claim, at=datetime(2026, 10, 8, tzinfo=UTC))
+    queue.file(other, at=datetime(2026, 10, 8, tzinfo=UTC))
+    from decision.sources import load_sources
+    from decision.verify import StoredRegions
+
+    report = run(
+        queue,
+        VerificationLog(tmp_path / "verification"),
+        StoredRegions(store, load_sources(tmp_path / "registry" / "sources.yaml")),
+        deterministic_extractors(),
+        today=date(2026, 10, 8),
+        only="lab:",
+    )
+    assert [result.target.id for result in report.results] == ["lab:google#origin.lab_jurisdiction"]
+    assert report.results[0].outcome == "verified"
+    log = (tmp_path / "verification" / "log.jsonl").read_text(encoding="utf-8")
+    assert "lab:google#origin.lab_jurisdiction" in log
+    assert "offering.attestation.soc2" not in log
+    pending, _unknown = queue.pending()
+    assert [claim.target.id for claim in pending] == [
+        "azure-ai-foundry/gpt-5-4#offering.attestation.soc2"
+    ]
+
+
+def test_cli_only_checks_lab_claims(tmp_path, monkeypatch) -> None:
+    from datetime import UTC, datetime
+
+    from typer.testing import CliRunner
+
+    from cli.modelspec import legacy as cli_mod
+    from decision.sources import CopyStore
+    from decision.verify import Queue
+
+    store = CopyStore(tmp_path / "copies")
+    ref = store.put(b"<p>Anthropic is a Delaware public benefit corporation.</p>")
+    monkeypatch.setenv("MODELSPEC_SOURCE_CACHE", str(store.root))
+    _registry(
+        tmp_path,
+        "schema_version: 1\nlabs: []\n",
+        "schema_version: 1\nsources:\n"
+        + _source_row(
+            "src-lab-docs",
+            "https://www.anthropic.com/news/the-long-term-benefit-trust",
+            region="r1",
+        ),
+    )
+    source = dict(SOURCE)
+    source["snapshot_ref"] = ref
+    queue = Queue(tmp_path / "verification")
+    queue.file(Claim(
+        target=TargetRef(kind="fact", id="lab:anthropic#origin.lab_jurisdiction"),
+        subject="lab:anthropic",
+        names=("Anthropic",),
+        field=FACET,
+        value=["US"],
+        collector=VerificationActor(agent="grok", model_family="grok", method="lab-registry@1"),
+        sources=(SourceRef.model_validate(source),),
+    ), at=datetime(2026, 10, 8, tzinfo=UTC))
+    queue.file(Claim(
+        target=TargetRef(kind="fact", id="google/gemma-4#deepmind_mrcr_v2"),
+        subject="google/gemma-4",
+        names=("Gemma 4",),
+        field="deepmind_mrcr_v2",
+        value=1,
+        collector=VerificationActor(agent="grok", model_family="grok", method="primary-source@1"),
+        sources=(SourceRef.model_validate(source),),
+    ), at=datetime(2026, 10, 8, tzinfo=UTC))
+    result = CliRunner().invoke(
+        cli_mod.app, ["verify", "--root", str(tmp_path), "--only", "lab:", "--json"]
+    )
+    assert result.exit_code == 0, result.output
+    payload = __import__("json").loads(result.output)
+    assert payload["counts"]["verified"] == 1
+    assert payload["results"][0]["target"] == "fact:lab:anthropic#origin.lab_jurisdiction"
+    log = (tmp_path / "verification" / "log.jsonl").read_text(encoding="utf-8")
+    assert "deepmind_mrcr_v2" not in log
+
+
+def test_coverage_counts_known_null_and_gap_apart() -> None:
+    present = _lab("google", ["US"])
+    absent = _lab("deepseek", None, state="not_disclosed", note="The terms state no country.")
+    missing = _lab("infgrad", None, state="gap", note="No legal page was found.")
+    with pytest.raises(CompletenessError) as exc:
+        build_snapshot(
+            SnapshotInputs(
+                models=[model("google/gemma"), model("deepseek/v4"), model("infgrad/stella")],
+                sources=SOURCES,
+                verifications=[verification("fact", present.fact()["id"], value=["US"])],
+                labs={"google": present, "deepseek": absent, "infgrad": missing},
+            ),
+            premier=["google/gemma", "deepseek/v4", "infgrad/stella"],
+            registry=__import__("decision.registry", fromlist=["default"]).default(),
+        )
+    coverage = exc.value.coverage
+    assert coverage is not None
+    assert (coverage.known, coverage.explicit_null, coverage.gap) == (1, 1, 1)
+    assert coverage.gap_models == ("infgrad/stella",)
+    assert "infgrad" in coverage.gap_labs

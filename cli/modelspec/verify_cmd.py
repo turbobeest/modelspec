@@ -40,6 +40,10 @@ def verify(
         None, "--llm-reader", help="Independent prose reader: claude or mistral."
     ),
     as_json: bool = typer.Option(False, "--json", help="Machine-readable output."),
+    only: str | None = typer.Option(
+        None, "--only",
+        help="Only claims whose target id starts with this prefix. Other pending claims stay pending.",
+    ),
 ) -> None:
     """Verify queued facts and evidence against their sources (two keys)."""
     if ctx.invoked_subcommand is not None:
@@ -59,6 +63,7 @@ def verify(
         extractors,
         today=date.today(),
         changed_only=changed_only,
+        only=only,
     )
     if as_json:
         typer.echo(json.dumps({"command": "verify", **report.to_dict()}, indent=2))

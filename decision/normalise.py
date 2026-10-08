@@ -230,22 +230,47 @@ class Locator:
         return cls("table", str(index))
 
 
-def _split_own(selector: str) -> tuple[str, bool]:
-    """``::own`` keeps an element's own text and drops descendant elements.
+def _split_citation(selector: str) -> tuple[str, bool, str | None]:
+    """``::own`` drops descendants. ``::excerpt=`` keeps one exact substring.
 
     A corporate-structure list puts the parent in the outer item and the
     subsidiaries inside it. Citing the item would otherwise include every
-    subsidiary. The suffix is not a published locator kind.
+    subsidiary. An excerpt cites one sentence or one table row when the rest
+    of the region names other countries. Neither suffix is a published locator
+    kind. The excerpt is the text after ``::excerpt=`` and must occur in the
+    normalised region.
     """
     text = selector.strip()
-    if text.endswith("::own"):
-        return text[: -len("::own")].strip(), True
-    return text, False
+    excerpt = None
+    marker = "::excerpt="
+    if marker in text:
+        base, _, rest = text.partition(marker)
+        text = base.strip()
+        if not rest:
+            raise ValueError("excerpt locator needs the cited text")
+        excerpt = rest
+    own = text.endswith("::own")
+    if own:
+        text = text[: -len("::own")].strip()
+    return text, own, excerpt
+
+
+def _split_own(selector: str) -> tuple[str, bool]:
+    text, own, _excerpt = _split_citation(selector)
+    return text, own
+
+
+def _cited_text(text: str | None, excerpt: str | None) -> str | None:
+    if not text:
+        return None
+    if excerpt is None:
+        return text
+    return excerpt if excerpt in text else None
 
 
 def _parse_selector(selector: str) -> tuple[tuple[str, _Compound], ...]:
     """Parse into ``((combinator, compound), ...)``; combinator is ``" "`` or ``">"``."""
-    selector, _own = _split_own(selector)
+    selector, _own, _excerpt = _split_citation(selector)
     tokens = re.sub(r"\s*>\s*", " > ", selector).split()
     steps: list[tuple[str, _Compound]] = []
     combinator = " "
@@ -566,21 +591,24 @@ def normalise_document(body: bytes, rules: RuleSet, *, charset: str | None = Non
 def select_region(doc: Document, locator: Locator) -> str | None:
     """The normalised text of a cited region, or ``None`` when the locator matches nothing."""
     if locator.kind == "page":
-        return doc.text or None
+        _body, _own, excerpt = _split_citation(locator.value) if locator.value else ("", False, None)
+        return _cited_text(doc.text or None, excerpt)
     if doc.root is None:
         raise ValueError(f"{locator.kind} locators need an HTML document")
     if locator.kind == "table":
         tables = [n for n in doc.root.elements() if n.tag == "table"]
         index = int(locator.value)
         nodes = [tables[index]] if index < len(tables) else []
-    elif locator.kind == "css":
-        _body, own = _split_own(locator.value)
+        return (_nodes_text(nodes, doc.rules) or None) if nodes else None
+    if locator.kind == "css":
+        _body, own, excerpt = _split_citation(locator.value)
         steps = _parse_selector(locator.value)
         nodes = [n for n in doc.root.elements() if _matches(n, steps)]
-        if own:
-            return (_own_text(nodes, doc.rules) or None) if nodes else None
-    else:
-        nodes = _heading_section(doc.root, locator.value)
+        if not nodes:
+            return None
+        text = _own_text(nodes, doc.rules) if own else _nodes_text(nodes, doc.rules)
+        return _cited_text(text or None, excerpt)
+    nodes = _heading_section(doc.root, locator.value)
     return (_nodes_text(nodes, doc.rules) or None) if nodes else None
 
 

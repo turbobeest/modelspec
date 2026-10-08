@@ -109,14 +109,33 @@ class Gap:
         return f"{self.subject}: {self.facet} is {self.reason}; source: {where}"
 
 
+@dataclass(frozen=True)
+class JurisdictionCoverage:
+    """Premier models with a known lab set, an explicit null, or neither."""
+
+    known: int
+    explicit_null: int
+    gap: int
+    gap_models: tuple[str, ...] = ()
+    gap_labs: tuple[str, ...] = ()
+
+    def __str__(self) -> str:
+        labs = ", ".join(self.gap_labs) if self.gap_labs else "none"
+        return (f"jurisdiction coverage: known {self.known}, "
+                f"explicit null {self.explicit_null}, gap {self.gap} (labs: {labs})")
+
+
 class CompletenessError(SnapshotBuildError):
     """The premier-set completeness gate failed (design §5)."""
 
-    def __init__(self, gaps: Sequence[Gap]):
+    def __init__(self, gaps: Sequence[Gap], *,
+                 coverage: JurisdictionCoverage | None = None):
         self.gaps = tuple(gaps)
+        self.coverage = coverage
         lines = "\n  ".join(str(g) for g in self.gaps)
+        extra = f"\n{coverage}" if coverage is not None else ""
         super().__init__(f"completeness gate: {len(self.gaps)} guaranteed fact(s) missing "
-                         f"for the premier set:\n  {lines}")
+                         f"for the premier set:\n  {lines}{extra}")
 
 
 # ── the values an index returns ────────────────────────────────────────────
@@ -1243,6 +1262,34 @@ class _Compiler:
         stored = self.facts.get(sid, {}).get(facet_id)
         return bool(stored and stored[0] == "known" and stored[1])
 
+    def jurisdiction_coverage(self, premier: Iterable[str]) -> JurisdictionCoverage:
+        """Count premier models whose lab jurisdiction is known, an explicit null, or a gap.
+
+        A gap lab with no premier model is still named. The gate is unchanged:
+        a gap model is still a missing guaranteed fact.
+        """
+        from decision.labs import FACET
+
+        known = explicit = gap = 0
+        gap_models: list[str] = []
+        for mid in sorted(set(premier)):
+            if not self._jurisdiction_required(mid, FACET):
+                continue
+            if mid in self.jurisdiction_null_ok:
+                explicit += 1
+                continue
+            stored = self.facts.get(mid, {}).get(FACET)
+            if stored and stored[0] == "known" and stored[1]:
+                known += 1
+                continue
+            gap += 1
+            gap_models.append(mid)
+        gap_labs = tuple(sorted(
+            lab.id for lab in self.labs.values()
+            if lab.codes is None and not lab.explicit_null
+        ))
+        return JurisdictionCoverage(known, explicit, gap, tuple(gap_models), gap_labs)
+
 
 def default_registry() -> Any:
     try:
@@ -1272,7 +1319,7 @@ def build_snapshot(inputs: SnapshotInputs, *, registry: Any = None,
     if premier is not None and gate:
         gaps = c.gaps(premier)
         if gaps:
-            raise CompletenessError(gaps)
+            raise CompletenessError(gaps, coverage=c.jurisdiction_coverage(premier))
     return _finish(c, as_of, premier, guard)
 
 
