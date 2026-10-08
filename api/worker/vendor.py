@@ -178,9 +178,13 @@ def bundle_data(out: Path, data_dir: Path) -> None:
              "--data-dir", str(data_dir.resolve())],
             cwd=REPO_ROOT, env=env, capture_output=True,
         )
+        stderr = completed.stderr.decode("utf-8", errors="replace").splitlines()
+        for line in stderr:
+            if line.startswith("jurisdiction coverage:"):
+                print(line, file=sys.stderr)
         if completed.returncode:
             # The child emits only path/category diagnostics in private mode.
-            for line in completed.stderr.decode("utf-8", errors="replace").splitlines():
+            for line in stderr:
                 if line.startswith(("Worker bundle build failed: path=", "uncited policy rows:")):
                     print(line, file=sys.stderr)
             raise RuntimeError("private Worker data build failed")

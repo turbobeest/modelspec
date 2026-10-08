@@ -457,7 +457,7 @@ def main() -> None:
     data = args.data.resolve()
     fetch = args.fetch.resolve()
     sys.path.insert(0, str(code))
-    from decision.labs import load_labs
+    from decision.labs import check_lab_copies, load_labs
     from decision.sources import CopyStore, load_sources
 
     if not (code / "decision" / "labs.py").is_file():
@@ -471,7 +471,8 @@ def main() -> None:
     splice_sources(data / "registry" / "sources.yaml", render_sources())
     changed = demote_cards(data)
     load_sources(data / "registry" / "sources.yaml")
-    loaded = load_labs(data, copy_store=store)
+    loaded = load_labs(data)
+    check_lab_copies(data, loaded, store)
     known = sorted(lab_id for lab_id, lab in loaded.items() if lab.state == "known")
     nulls = sorted(lab_id for lab_id, lab in loaded.items() if lab.explicit_null)
     gaps = sorted(lab_id for lab_id, lab in loaded.items() if lab.state == "gap")

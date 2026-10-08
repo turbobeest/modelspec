@@ -12,11 +12,13 @@ A missing code is not recorded as the other one: that record is an explicit
 null, not a shorter set.
 
 An explicit null is a lab whose own legal, terms, imprint, or privacy page, or
-an official registry, was read and does not yield a complete set. The cited
-text has to be non-empty. A Hugging Face README, an empty page, or a marketing
-homepage is not that source. That lab's models are exempt from the jurisdiction
-gate. A lab with no such page is a coverage gap, and the gate still requires
-a value for its models.
+an official registry, was read and does not yield a complete set. ``load_labs``
+checks that URL and nothing about the retained bytes. ``check_lab_copies``
+checks that the cited text is non-empty, and that a known code is what that
+text states. A Hugging Face README, an empty page, or a marketing homepage is
+not that source. That lab's models are exempt from the jurisdiction gate. A
+lab with no such page is a coverage gap, and the gate still requires a value
+for its models.
 """
 
 from __future__ import annotations
@@ -102,11 +104,13 @@ def stated_codes(fact: Mapping[str, Any]) -> frozenset[str] | None:
     return frozenset(str(item) for item in value)
 
 
-def load_labs(root: Path, *, copy_store: Any = None) -> dict[str, Lab]:
+def load_labs(root: Path) -> dict[str, Lab]:
     """Read ``registry/labs.yaml``. A missing file is an empty registry.
 
     The public checkout has no copy. A build from it does not invent labs.
-    A known code and an explicit null are checked against the retained copy.
+    This checks structure only: the full set, each party's code and source,
+    and the URL rule for an explicit null. It does not read the network or
+    the source cache. Retained text is ``check_lab_copies``.
     """
     path = Path(root) / "registry" / "labs.yaml"
     if not path.is_file():
@@ -126,7 +130,7 @@ def load_labs(root: Path, *, copy_store: Any = None) -> dict[str, Lab]:
         if lab.id in labs:
             raise LabRegistryError(f"{path}: lab {lab.id} is listed twice")
         labs[lab.id] = lab
-    _require_source_text(Path(root), labs, copy_store)
+    _check_source_urls(Path(root), labs)
     return labs
 
 
@@ -286,15 +290,40 @@ def _null_url_problem(url: str) -> str | None:
     return None
 
 
-def _require_source_text(root: Path, labs: Mapping[str, Lab], copy_store: Any) -> None:
-    """Known codes and explicit nulls have to be present in the retained copy."""
-    if not labs:
+def _check_source_urls(root: Path, labs: Mapping[str, Lab]) -> None:
+    """Each cited source is registered. An explicit null's URL is a legal page or a registry."""
+    if not any(lab.state != "gap" for lab in labs.values()):
         return
-    from decision.sources import CopyStore, load_sources
-    from decision.verify import StoredRegions, jurisdiction_codes
+    from decision.sources import load_sources
 
     registered = load_sources(root / "registry" / "sources.yaml")
-    store = copy_store if copy_store is not None else CopyStore()
+    for lab in labs.values():
+        if lab.state == "gap":
+            continue
+        for source in lab.sources:
+            record = registered.get(source["source_id"])
+            if record is None:
+                raise LabRegistryError(f"{lab.id}: source {source['source_id']} is not registered")
+            if not lab.explicit_null:
+                continue
+            problem = _null_url_problem(str(record.url))
+            if problem:
+                raise LabRegistryError(f"{lab.id}: {problem}")
+
+
+def check_lab_copies(root: Path, labs: Mapping[str, Lab], store: Any) -> None:
+    """Known codes and explicit nulls have retained text in ``store``.
+
+    ``load_labs`` does not call this. The collection script does. A test calls
+    it when the source cache is present, and skips when that cache is absent.
+    """
+    if not labs:
+        return
+    from decision.sources import load_sources
+    from decision.verify import StoredRegions, jurisdiction_codes
+
+    root = Path(root)
+    registered = load_sources(root / "registry" / "sources.yaml")
     regions = StoredRegions(store, registered)
     for lab in labs.values():
         if lab.state == "gap":
@@ -303,10 +332,6 @@ def _require_source_text(root: Path, labs: Mapping[str, Lab], copy_store: Any) -
             record = registered.get(source["source_id"])
             if record is None:
                 raise LabRegistryError(f"{lab.id}: source {source['source_id']} is not registered")
-            if lab.explicit_null:
-                problem = _null_url_problem(str(record.url))
-                if problem:
-                    raise LabRegistryError(f"{lab.id}: {problem}")
             for region_id in source["cited_regions"]:
                 text = regions.text(source["source_id"], source["snapshot_ref"], region_id)
                 if text is None or not text.strip():

@@ -2,21 +2,26 @@
 
 from __future__ import annotations
 
+import os
 from datetime import date
+from pathlib import Path
 
 import pytest
+import yaml
 
 from decision.compare import _condition_facet
 from decision.contract import parse_spec
 from decision.engine import decide
 from decision.filter import strip_unverified_condition
-from decision.labs import FACET, Lab, LabRegistryError, load_labs
+from decision.labs import FACET, Lab, LabRegistryError, check_lab_copies, load_labs
 from decision.model import SourceRef, TargetRef, VerificationActor
 from decision.registry import facet as facets
+from decision.model import value_hash
 from decision.snapshot import (
     CompletenessError,
     SnapshotBuildError,
     SnapshotInputs,
+    build_from_repo,
     build_snapshot,
     load_built_snapshot,
 )
@@ -332,6 +337,9 @@ def test_display_has_data_follows_lineup_counts() -> None:
     "Wien GmbH",
     "Our reseller Foo Pte Ltd",
     "Georgia",
+    "| Washington | Seattle office |",
+    "| New York | 10 employees",
+    "Office | Texas",
 ])
 def test_a_suffix_or_a_bare_state_name_is_not_incorporation(text: str) -> None:
     assert jurisdiction_codes(text) == frozenset()
@@ -427,11 +435,8 @@ def _source_row(source_id: str, url: str, region: str = "incorporation") -> str:
     )
 
 
-def test_an_explicit_null_rejects_a_readme_a_homepage_and_an_empty_page(tmp_path) -> None:
-    from decision.sources import CopyStore
-
-    store = CopyStore(tmp_path / "copies")
-    empty = store.put(b"<html><body></body></html>")
+def test_an_explicit_null_rejects_a_readme_and_a_homepage(tmp_path) -> None:
+    absent = "sha256:" + "cd" * 32
     _registry(
         tmp_path,
         "schema_version: 1\n"
@@ -444,7 +449,7 @@ def test_an_explicit_null_rejects_a_readme_a_homepage_and_an_empty_page(tmp_path
         "      value: null\n"
         "      sources:\n"
         "        - {source_id: lab-jurisdiction-infgrad, "
-        f"snapshot_ref: '{empty}', cited_regions: [incorporation]}}\n",
+        f"snapshot_ref: '{absent}', cited_regions: [incorporation]}}\n",
         "schema_version: 1\nsources:\n"
         + _source_row(
             "lab-jurisdiction-infgrad",
@@ -452,7 +457,7 @@ def test_an_explicit_null_rejects_a_readme_a_homepage_and_an_empty_page(tmp_path
         ),
     )
     with pytest.raises(LabRegistryError, match="Hugging Face"):
-        load_labs(tmp_path, copy_store=store)
+        load_labs(tmp_path)
 
     _registry(
         tmp_path,
@@ -466,15 +471,19 @@ def test_an_explicit_null_rejects_a_readme_a_homepage_and_an_empty_page(tmp_path
         "      value: null\n"
         "      sources:\n"
         "        - {source_id: lab-jurisdiction-annamodels, "
-        f"snapshot_ref: '{empty}', cited_regions: [incorporation]}}\n",
+        f"snapshot_ref: '{absent}', cited_regions: [incorporation]}}\n",
         "schema_version: 1\nsources:\n"
         + _source_row("lab-jurisdiction-annamodels", "https://www.lgresearch.ai/"),
     )
     with pytest.raises(LabRegistryError, match="homepage"):
-        load_labs(tmp_path, copy_store=store)
+        load_labs(tmp_path)
 
-    kept = store.put(b"<html><body><p>Terms of service. No country is stated.</p></body></html>")
-    # The empty copy is the one cited above; cite it from a legal URL.
+
+def test_an_empty_retained_page_fails_the_copy_check_not_the_loader(tmp_path) -> None:
+    from decision.sources import CopyStore
+
+    store = CopyStore(tmp_path / "copies")
+    empty = store.put(b"<html><body></body></html>")
     _registry(
         tmp_path,
         "schema_version: 1\n"
@@ -491,9 +500,10 @@ def test_an_explicit_null_rejects_a_readme_a_homepage_and_an_empty_page(tmp_path
         "schema_version: 1\nsources:\n"
         + _source_row("lab-jurisdiction-codefuse", "https://codefuse.ai/legal/terms"),
     )
+    labs = load_labs(tmp_path)
+    assert labs["codefuse"].explicit_null
     with pytest.raises(LabRegistryError, match="no retained text"):
-        load_labs(tmp_path, copy_store=store)
-    assert kept.startswith("sha256:")
+        check_lab_copies(tmp_path, labs, store)
 
 
 def test_an_explicit_null_accepts_a_legal_page_with_text(tmp_path) -> None:
@@ -520,7 +530,8 @@ def test_an_explicit_null_accepts_a_legal_page_with_text(tmp_path) -> None:
             "https://cdn.deepseek.com/policies/en-US/deepseek-open-platform-terms-of-service.html",
         ),
     )
-    labs = load_labs(tmp_path, copy_store=store)
+    labs = load_labs(tmp_path)
+    check_lab_copies(tmp_path, labs, store)
     assert labs["deepseek"].explicit_null
 
 
@@ -727,3 +738,211 @@ def test_coverage_counts_known_null_and_gap_apart() -> None:
     assert (coverage.known, coverage.explicit_null, coverage.gap) == (1, 1, 1)
     assert coverage.gap_models == ("infgrad/stella",)
     assert "infgrad" in coverage.gap_labs
+
+
+def _verified_absence(mid: str, facet_id: str) -> dict:
+    fid = f"{mid}#{facet_id}"
+    return {
+        "id": fid,
+        "facet": facet_id,
+        "state": "not_disclosed",
+        "value": None,
+        "sources": [{
+            "source_id": "src-fixture",
+            "snapshot_ref": "sha256:" + "11" * 32,
+            "cited_regions": ["r1"],
+        }],
+        "verification": {
+            "target": {"kind": "fact", "id": fid, "value_hash": value_hash(None)},
+            "collector": {"agent": "collector-a", "model_family": "family-a", "method": "read"},
+            "verifier": {"agent": "verifier-b", "model_family": "family-b", "method": "re-read"},
+            "method": "re-read the cited region",
+            "outcome": "verified",
+            "date": "2026-10-08",
+        },
+    }
+
+
+def test_a_snapshot_builds_from_labs_yaml_when_the_source_cache_is_empty(
+    tmp_path, monkeypatch, capsys,
+) -> None:
+    """``vendor.py`` builds through ``build_from_repo``. That path does not open the cache."""
+    cache = tmp_path / "empty-cache"
+    cache.mkdir()
+    monkeypatch.setenv("MODELSPEC_SOURCE_CACHE", str(cache))
+    root = tmp_path / "repo"
+    (root / "models" / "fixturelab").mkdir(parents=True)
+    (root / "benchmarks").mkdir()
+    (root / "offerings").mkdir()
+    (root / "premier").mkdir()
+    (root / "registry").mkdir()
+    absent = "sha256:" + "ab" * 32
+    _registry(
+        root,
+        "schema_version: 1\n"
+        "labs:\n"
+        "  - id: fixturelab\n"
+        "    note: The terms do not state incorporation.\n"
+        "    read_date: '2026-10-08'\n"
+        "    jurisdiction:\n"
+        "      state: not_disclosed\n"
+        "      value: null\n"
+        "      sources:\n"
+        "        - {source_id: lab-jurisdiction-fixturelab, "
+        f"snapshot_ref: '{absent}', cited_regions: [incorporation]}}\n"
+        "  - id: widget\n"
+        "    entity: Widget LLC\n"
+        "    entity_code: US\n"
+        "    note: The filing names Delaware.\n"
+        "    read_date: '2026-10-08'\n"
+        "    jurisdiction:\n"
+        "      state: known\n"
+        "      value: [US]\n"
+        "      sources:\n"
+        "        - {source_id: lab-jurisdiction-widget, "
+        f"snapshot_ref: '{absent}', cited_regions: [incorporation], party: entity}}\n"
+        "  - id: gaplab\n"
+        "    note: No legal page was found.\n"
+        "    read_date: '2026-10-08'\n"
+        "    jurisdiction: {state: gap, value: null}\n",
+        "schema_version: 1\nsources:\n"
+        + _source_row("src-fixture", "https://fixturelab.example/legal/terms", region="r1")
+        + _source_row(
+            "lab-jurisdiction-fixturelab",
+            "https://fixturelab.example/legal/terms",
+        )
+        + _source_row(
+            "lab-jurisdiction-widget",
+            "https://www.sec.gov/Archives/example.htm",
+        ),
+    )
+    from decision.registry import default
+
+    registry = default()
+    mid = "fixturelab/one"
+    facts = [
+        _verified_absence(mid, facet.id)
+        for facet in registry.facets()
+        if facet.tier == "guaranteed"
+        and not getattr(facet, "computed_by", None)
+        and facet.subject == "model"
+        and facet.id != FACET
+    ]
+    card = {"model_id": mid, "lifecycle": "active", "facts": facts}
+    (root / "models" / "fixturelab" / "one.md").write_text(
+        "---\n" + yaml.safe_dump(card, sort_keys=False) + "---\n\nFixture.\n",
+        encoding="utf-8",
+    )
+    (root / "premier" / "slice.yaml").write_text(
+        "models:\n- fixturelab/one\n",
+        encoding="utf-8",
+    )
+    built = build_from_repo(
+        root,
+        premier=root / "premier" / "slice.yaml",
+        as_of=date(2026, 10, 8),
+        registry=registry,
+    )
+    captured = capsys.readouterr()
+    assert built.snapshot_id.startswith("snap_")
+    assert "jurisdiction coverage: known 0, explicit null 1, gap 0 (labs: gaplab)" in captured.err
+    assert not any(path.is_file() for path in cache.rglob("*"))
+
+
+def test_check_lab_copies_requires_the_recorded_code(tmp_path) -> None:
+    from decision.sources import CopyStore
+
+    store = CopyStore(tmp_path / "copies")
+    wrong = store.put(b"<p>Widget LLC was incorporated in the Cayman Islands.</p>")
+    _registry(
+        tmp_path,
+        "schema_version: 1\n"
+        "labs:\n"
+        "  - id: widget\n"
+        "    entity: Widget LLC\n"
+        "    entity_code: US\n"
+        "    note: The filing names Delaware.\n"
+        "    read_date: '2026-10-08'\n"
+        "    jurisdiction:\n"
+        "      state: known\n"
+        "      value: [US]\n"
+        "      sources:\n"
+        "        - {source_id: lab-jurisdiction-widget, "
+        f"snapshot_ref: '{wrong}', cited_regions: [incorporation], party: entity}}\n",
+        "schema_version: 1\nsources:\n"
+        + _source_row("lab-jurisdiction-widget", "https://www.sec.gov/Archives/example.htm"),
+    )
+    labs = load_labs(tmp_path)
+    with pytest.raises(LabRegistryError, match="does not state US"):
+        check_lab_copies(tmp_path, labs, store)
+
+    both = store.put(
+        b"<p>Widget LLC is a Delaware limited liability company. "
+        b"A subsidiary was incorporated in the Cayman Islands.</p>"
+    )
+    _registry(
+        tmp_path,
+        "schema_version: 1\n"
+        "labs:\n"
+        "  - id: widget\n"
+        "    entity: Widget LLC\n"
+        "    entity_code: US\n"
+        "    note: The filing names Delaware.\n"
+        "    read_date: '2026-10-08'\n"
+        "    jurisdiction:\n"
+        "      state: known\n"
+        "      value: [US]\n"
+        "      sources:\n"
+        "        - {source_id: lab-jurisdiction-widget, "
+        f"snapshot_ref: '{both}', cited_regions: [incorporation], party: entity}}\n",
+        "schema_version: 1\nsources:\n"
+        + _source_row("lab-jurisdiction-widget", "https://www.sec.gov/Archives/example.htm"),
+    )
+    labs = load_labs(tmp_path)
+    with pytest.raises(LabRegistryError, match="outside the recorded set"):
+        check_lab_copies(tmp_path, labs, store)
+
+    stated = store.put(b"<p>Widget LLC is a Delaware limited liability company.</p>")
+    _registry(
+        tmp_path,
+        "schema_version: 1\n"
+        "labs:\n"
+        "  - id: widget\n"
+        "    entity: Widget LLC\n"
+        "    entity_code: US\n"
+        "    note: The filing names Delaware.\n"
+        "    read_date: '2026-10-08'\n"
+        "    jurisdiction:\n"
+        "      state: known\n"
+        "      value: [US]\n"
+        "      sources:\n"
+        "        - {source_id: lab-jurisdiction-widget, "
+        f"snapshot_ref: '{stated}', cited_regions: [incorporation], party: entity}}\n",
+        "schema_version: 1\nsources:\n"
+        + _source_row("lab-jurisdiction-widget", "https://www.sec.gov/Archives/example.htm"),
+    )
+    labs = load_labs(tmp_path)
+    check_lab_copies(tmp_path, labs, store)
+
+
+def test_check_lab_copies_reads_the_cache_when_it_is_present() -> None:
+    from decision.sources import CopyStore
+
+    configured = os.environ.get("MODELSPEC_SOURCE_CACHE")
+    cache = Path(configured) if configured else Path.home() / ".cache" / "modelspec" / "sources"
+    if not cache.is_dir() or not any(cache.iterdir()):
+        pytest.skip("source cache absent")
+    candidates = []
+    raw = os.environ.get("MODELSPEC_DATA_DIR", "").strip()
+    if raw:
+        candidates.append(Path(raw))
+    candidates.append(Path(__file__).resolve().parents[1].parent / "model-344-data")
+    data = next((path for path in candidates if (path / "registry" / "labs.yaml").is_file()), None)
+    if data is None:
+        pytest.skip("source cache absent")
+    labs = load_labs(data)
+    store = CopyStore()
+    cited = [source["snapshot_ref"] for lab in labs.values() for source in lab.sources]
+    if not cited or any(not store.has(ref) for ref in cited):
+        pytest.skip("source cache absent")
+    check_lab_copies(data, labs, store)

@@ -2326,7 +2326,12 @@ _INCORPORATION_PHRASES: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"(?i)\bgesellschaft mit beschr[aä]nkter haftung\b"), "DE"),
     (re.compile(r"(?i)\bamtsgericht\b(?:\s+\S+){0,6}\s+hrb\b"), "DE"),
     (re.compile(r"(?i)\b" + _FORMED + r" (?:in|under the laws of) (?:the republic of )?singapore\b"), "SG"),
-    (re.compile(r"(?i)\|\s*(?:" + _US_STATE_NAME + r")\b"), "US"),
+    # An Exhibit 21 row is a legal suffix, a pipe, then the state. A pipe before
+    # a state name in any other table is not incorporation.
+    (re.compile(
+        r"(?i)(?:llc|l\.l\.c\.|inc\.?|corp\.?|corporation|ltd\.?|limited|l\.p\.)\s*\|\s*(?:"
+        + _US_STATE_NAME + r")\b"
+    ), "US"),
     (re.compile(r"(?i)\b" + _FORMED + r" in japan\b"), "JP"),
     (re.compile(r"(?i)\b" + _FORMED + r" in (?:the republic of korea|south korea)\b"), "KR"),
     (re.compile(r"(?i)\b" + _FORMED + r" in ireland\b"), "IE"),

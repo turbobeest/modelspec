@@ -40,6 +40,7 @@ import io
 import json
 import math
 import os
+import sys
 import warnings
 from bisect import bisect_left, bisect_right
 from collections import Counter
@@ -1317,9 +1318,11 @@ def build_snapshot(inputs: SnapshotInputs, *, registry: Any = None,
     c = _compile(inputs, registry, guard, as_of, allow_fixture_measurements)
     premier = None if premier is None else tuple(premier)
     if premier is not None and gate:
+        coverage = c.jurisdiction_coverage(premier)
         gaps = c.gaps(premier)
         if gaps:
-            raise CompletenessError(gaps, coverage=c.jurisdiction_coverage(premier))
+            raise CompletenessError(gaps, coverage=coverage)
+        print(coverage, file=sys.stderr)
     return _finish(c, as_of, premier, guard)
 
 
