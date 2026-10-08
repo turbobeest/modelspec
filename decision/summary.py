@@ -84,12 +84,20 @@ def summarize(
     *,
     not_applied: Iterable[str] = (),
     profiles: Mapping[str, InventoryProfile] | None = None,
+    feasible: int | None = None,
 ) -> tuple[str, list[str]]:
-    """Return ``(summary_for_user, must_mention)``."""
+    """Return ``(summary_for_user, must_mention)``.
+
+    ``feasible`` is how many candidates the gates left for the optimiser.
+    ``None`` reads that from the funnel. An empty funnel is not evidence
+    that the gates excluded everyone.
+    """
     unapplied = _unapplied(decision, not_applied)
     conditions = _applied_conditions(spec, profiles)
     mentions = _mentions(decision, spec, unapplied, conditions)
-    summary = _summary(decision, spec, unapplied, mentions, conditions)
+    summary = _summary(
+        decision, spec, unapplied, mentions, conditions, feasible=feasible,
+    )
     return summary, [text for _kind, text in mentions]
 
 
@@ -123,6 +131,8 @@ def _summary(
     unapplied: list[str],
     mentions: list[tuple[str, str]],
     conditions: tuple,
+    *,
+    feasible: int | None = None,
 ) -> str:
     limits = {
         "tie": TIE_NAME_CAP,
@@ -146,7 +156,9 @@ def _summary(
     # None lists every condition in the joint relaxation. Shorten that list
     # only after the other lists are at their floors, so the fixed ending stays.
     joint_limit: int | None = None
-    text = _compose(decision, spec, unapplied, visible, limits, conditions, joint_limit)
+    text = _compose(
+        decision, spec, unapplied, visible, limits, conditions, joint_limit, feasible,
+    )
     order = ("hard", "prefer", "relax", "missing", "tie", "caveat")
     while len(text.encode("utf-8")) > SUMMARY_BYTES:
         key = next((name for name in order if limits[name] > floors[name]), None)
@@ -158,7 +170,9 @@ def _summary(
             if count <= 1 or current <= 1:
                 break
             joint_limit = current - 1
-        text = _compose(decision, spec, unapplied, visible, limits, conditions, joint_limit)
+        text = _compose(
+            decision, spec, unapplied, visible, limits, conditions, joint_limit, feasible,
+        )
     if len(text.encode("utf-8")) > SUMMARY_BYTES:
         text = _clip_paragraph(text)
     return text
@@ -172,9 +186,12 @@ def _compose(
     limits: dict[str, int],
     conditions: tuple,
     joint_limit: int | None = None,
+    feasible: int | None = None,
 ) -> str:
     parts = [_answer_sentence(decision, limits["tie"])]
-    parts.extend(_why(decision, spec, unapplied, limits, conditions, joint_limit))
+    parts.extend(_why(
+        decision, spec, unapplied, limits, conditions, joint_limit, feasible,
+    ))
     parts.extend(_constraints(spec, unapplied, limits, conditions))
     parts.extend(_caveats(mentions, limits["caveat"]))
     return _dedupe(parts)
@@ -223,10 +240,16 @@ def _why(
     limits: dict[str, int],
     conditions: tuple,
     joint_limit: int | None = None,
+    feasible: int | None = None,
 ) -> list[str]:
     if decision.status == "no_feasible":
-        if spec is not None and _optimiser_diagnostic(decision):
-            return [_MISSING_OBJECTIVE.format(objective=_objective_phrase(spec))]
+        # A diagnostic from optimise([]) is an objective failure only when the
+        # gates left candidates. Otherwise it is the engine's placeholder for
+        # a lineup the gates already emptied.
+        if _optimiser_diagnostic(decision) and _gates_left_candidates(decision, feasible):
+            objective = _objective_name(decision, spec)
+            if objective:
+                return [_MISSING_OBJECTIVE.format(objective=objective)]
         gates, _dont = _gates(spec, set(unapplied), conditions)
         if gates:
             listed = _bounded(gates, limits["hard"])
@@ -276,6 +299,43 @@ def _optimiser_diagnostic(decision: Decision) -> bool:
     return any(item in OPTIMISER_DIAGNOSTICS for item in decision.relax)
 
 
+def _gates_left_candidates(decision: Decision, feasible: int | None = None) -> bool:
+    """Whether the optimiser received any candidate.
+
+    ``feasible`` is ``len(FilterResult.feasible)``, the tuple ``run_optimise``
+    passes to ``optimise`` after profile rules and ``where``. ``explain``
+    ``none`` does not record the funnel. An empty funnel is not evidence
+    that the gates excluded everyone.
+    """
+    if feasible is not None:
+        return feasible > 0
+    funnel = decision.eliminated.funnel
+    if not funnel:
+        return True
+    return funnel[-1].after > 0
+
+
+def _objective_name(decision: Decision, spec: Spec | None) -> str | None:
+    """The objective to name in the missing-values sentence.
+
+    The sentence has no form without that name. A spec supplies it. Without a
+    spec, the only names the decision carries are the unknown facets on
+    ``may_qualify``.
+    """
+    if spec is not None:
+        return _objective_phrase(spec) or None
+    names: list[str] = []
+    for row in decision.may_qualify:
+        for facet in row.unknown:
+            if facet not in names:
+                names.append(facet)
+    if not names:
+        return None
+    if len(names) == 1:
+        return names[0]
+    return ", ".join(names)
+
+
 def _joint_conditions(decision: Decision, conditions: tuple) -> list[str]:
     """``relax`` entries that are applied gates and have no ``relax_to`` item."""
     requirements = set(_condition_gates(conditions)[0])
@@ -289,22 +349,38 @@ def _joint_conditions(decision: Decision, conditions: tuple) -> list[str]:
 def _relaxation_options(
     decision: Decision, conditions: tuple, limit: int, joint_limit: int | None = None,
 ) -> list[str]:
-    """``relax_to`` items are each enough. Uncovered ``relax`` entries are one set."""
-    options = [
-        _OPTION_TO.format(condition=item.condition, relaxed=item.relaxed)
-        for item in decision.relax_to
-    ]
+    """``relax_to`` items are each enough. Uncovered ``relax`` entries are one set.
+
+    ``limit`` caps how many ``relax_to`` sentences are written out. Further
+    items are counted inside the last of those sentences, so each sentence
+    keeps its ending. The joint option stays while any ``relax_to`` sentence
+    stays.
+    """
+    items = list(decision.relax_to)
     uncovered = _joint_conditions(decision, conditions)
-    if uncovered:
-        options.append(_joint_option(uncovered, joint_limit))
-    if not options:
+    joint = _joint_option(uncovered, joint_limit) if uncovered else None
+    if not items and joint is None:
         return []
-    shown_count = min(len(options), max(limit, 1))
-    shown = options[:shown_count]
-    rest = len(options) - shown_count
-    if rest:
-        shown.append(f"and {_count(rest)} more.")
-    return shown
+    budget = max(limit, 1)
+    if joint is None:
+        return _relax_to_sentences(items, budget)
+    return [*_relax_to_sentences(items, min(len(items), budget)), joint]
+
+
+def _relax_to_sentences(items: list, take: int) -> list[str]:
+    if take <= 0 or not items:
+        return []
+    shown = items[:take]
+    extra = len(items) - len(shown)
+    sentences = [
+        _OPTION_TO.format(condition=item.condition, relaxed=item.relaxed)
+        for item in shown
+    ]
+    if extra:
+        last = shown[-1]
+        relaxed = f"{last.relaxed}, and {_count(extra)} more"
+        sentences[-1] = _OPTION_TO.format(condition=last.condition, relaxed=relaxed)
+    return sentences
 
 
 def _joint_option(conditions: list[str], limit: int | None = None) -> str:

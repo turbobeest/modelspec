@@ -420,30 +420,52 @@ def test_profile_rules_are_requirements_the_summary_reports(service):
     assert "model.weights_openness is not required (either acceptable)." in either_text
     assert "model.weights_openness in {" not in either_text
 
-    status, excluded = service.decide({
-        "spec_version": 1,
-        "profile": {"profile_version": 1, "rules": ["model.class = vectoriser"]},
-        "optimize": {"max": "arena_elo_overall"},
-        "explain": "summary",
-        "fields": ["model"],
-    }, q10_snapshot())
-    assert status == 200, excluded
-    excluded_text = excluded["summary_for_user"]
-    assert excluded["status"] == "no_feasible"
-    assert (
-        "No model that meets the requirements has complete values for the objective "
-        "(arena_elo_overall), so ModelSpec cannot order them."
-        in excluded_text
+    for explain in ("summary", "none"):
+        status, excluded = service.decide({
+            "spec_version": 1,
+            "profile": {"profile_version": 1, "rules": ["model.class = vectoriser"]},
+            "optimize": {"max": "arena_elo_overall"},
+            "explain": explain,
+            "fields": ["model"],
+        }, q10_snapshot())
+        assert status == 200, excluded
+        excluded_text = excluded["summary_for_user"]
+        assert excluded["status"] == "no_feasible"
+        assert (
+            "These requirements together exclude every model: model.class = vectoriser."
+            in excluded_text
+        )
+        assert "No model class was required" not in excluded_text
+        assert "complete values for the objective" not in excluded_text
+
+
+@pytest.mark.parametrize("explain", ["none", "summary"])
+def test_a_class_gate_that_excludes_everyone_stays_a_gate_exclusion(service, explain):
+    """``optimise([])`` still returns a diagnostic. The gate count says nobody passed."""
+    status, body = service.decide(
+        mcp_default_request({
+            "spec_version": 1,
+            "where": ["model.class = vectoriser"],
+            "optimize": {"max": "arena_elo_overall"},
+            "explain": explain,
+        }),
+        q10_snapshot(),
     )
-    assert "exclude every model" not in excluded_text
-    assert "that is an option, not an answer." not in excluded_text
-    assert "no complete objective values" not in excluded_text
-    assert "Requirements applied: model.class = vectoriser." in excluded_text
-    assert "No model class was required" not in excluded_text
+    assert status == 200, body
+    assert body["status"] == "no_feasible"
+    assert body["relax"] == ["no complete objective values"]
+    text = body["summary_for_user"]
+    assert (
+        "These requirements together exclude every model: model.class = vectoriser."
+        in text
+    )
+    assert "complete values for the objective" not in text
+    assert "that is an option, not an answer." not in text
 
 
+@pytest.mark.parametrize("explain", ["none", "summary"])
 def test_a_capability_objective_without_a_benchmark_is_not_a_gate_exclusion(
-    service, public_snapshot,
+    service, public_snapshot, explain,
 ):
     """Deciders are in the snapshot. The optimiser cannot score the objective."""
     status, body = service.decide(
@@ -451,6 +473,7 @@ def test_a_capability_objective_without_a_benchmark_is_not_a_gate_exclusion(
             "spec_version": 1,
             "where": ["model.class = decider"],
             "optimize": {"max": "software_engineering"},
+            "explain": explain,
         }),
         public_snapshot,
     )
@@ -471,12 +494,13 @@ def test_a_capability_objective_without_a_benchmark_is_not_a_gate_exclusion(
     assert "Requirements applied: model.class = decider." in text
 
 
-def test_q10_chat_preference_without_a_benchmark_is_not_a_gate_exclusion(service):
+@pytest.mark.parametrize("explain", ["none", "summary"])
+def test_q10_chat_preference_without_a_benchmark_is_not_a_gate_exclusion(service, explain):
     status, body = service.decide({
         "spec_version": 1,
         "where": ["model.class = text-generator"],
         "optimize": {"max": "chat_preference"},
-        "explain": "summary",
+        "explain": explain,
         "fields": ["model"],
     }, q10_snapshot())
     assert status == 200, body

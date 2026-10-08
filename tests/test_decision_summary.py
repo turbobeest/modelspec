@@ -261,6 +261,135 @@ def test_missing_objective_values_are_not_reported_as_a_gate_failure() -> None:
     assert qualify in mentions
 
 
+def test_a_diagnostic_is_an_objective_failure_only_when_gates_left_candidates() -> None:
+    """``optimise([])`` still returns a diagnostic. The funnel says whether anyone passed."""
+    excluded = _decision(
+        status="no_feasible",
+        results=[],
+        answer=None,
+        relax=["no complete objective values"],
+        eliminated={"funnel": [{
+            "condition": "model.class = vectoriser",
+            "before": 3,
+            "after": 0,
+        }]},
+    )
+    text, _mentions = summarize(
+        excluded,
+        _spec(where=["model.class = vectoriser"], optimize={"max": "arena_elo_overall"}),
+    )
+    assert (
+        "These requirements together exclude every model: model.class = vectoriser."
+        in text
+    )
+    assert "complete values for the objective" not in text
+    assert "no complete objective values" not in text
+    assert "that is an option, not an answer." not in text
+
+    admitted = _decision(
+        status="no_feasible",
+        results=[],
+        answer=None,
+        relax=["specify a benchmark or wait for the capability model (MODEL-129)"],
+        eliminated={"funnel": [{
+            "condition": "model.class = text-generator",
+            "before": 3,
+            "after": 2,
+        }]},
+    )
+    admitted_text, _mentions = summarize(
+        admitted,
+        _spec(where=["model.class = text-generator"], optimize={"max": "chat_preference"}),
+    )
+    assert (
+        "No model that meets the requirements has complete values for the objective "
+        "(chat_preference), so ModelSpec cannot order them."
+        in admitted_text
+    )
+    assert "exclude every model" not in admitted_text
+
+
+def test_a_supplied_feasible_count_is_used_when_the_funnel_is_absent() -> None:
+    """``explain`` ``none`` records no funnel. The count is the optimiser's input."""
+    decision = _decision(
+        status="no_feasible",
+        results=[],
+        answer=None,
+        relax=["no complete objective values"],
+    )
+    spec = _spec(where=["model.class = vectoriser"], optimize={"max": "arena_elo_overall"})
+    excluded, _mentions = summarize(decision, spec, feasible=0)
+    assert (
+        "These requirements together exclude every model: model.class = vectoriser."
+        in excluded
+    )
+    assert "complete values for the objective" not in excluded
+
+    admitted, _mentions = summarize(decision, spec, feasible=2)
+    assert (
+        "No model that meets the requirements has complete values for the objective "
+        "(arena_elo_overall), so ModelSpec cannot order them."
+        in admitted
+    )
+    # No count and no funnel: the diagnostic stays an objective failure.
+    unknown, _mentions = summarize(decision, spec)
+    assert unknown == admitted
+
+    contradicted = _decision(
+        status="no_feasible",
+        results=[],
+        answer=None,
+        relax=["no complete objective values"],
+        eliminated={"funnel": [{
+            "condition": "model.class = vectoriser",
+            "before": 3,
+            "after": 0,
+        }]},
+    )
+    overridden, _mentions = summarize(contradicted, spec, feasible=2)
+    assert overridden == admitted
+
+
+def test_a_diagnostic_without_a_spec_names_the_objective_the_decision_carries() -> None:
+    decision = _decision(
+        status="no_feasible",
+        results=[],
+        answer=None,
+        relax=["no complete objective values"],
+        may_qualify=[{"model": "lab/a", "unknown": ["offering.cost_per_task"]}],
+        eliminated={"funnel": [{
+            "condition": "model.class = text-generator",
+            "before": 2,
+            "after": 1,
+        }]},
+    )
+    text, _mentions = summarize(decision, None)
+    assert (
+        "No model that meets the requirements has complete values for the objective "
+        "(offering.cost_per_task), so ModelSpec cannot order them."
+        in text
+    )
+    assert "exclude every model" not in text
+
+
+def test_a_diagnostic_without_an_objective_name_keeps_the_gate_sentence() -> None:
+    decision = _decision(
+        status="no_feasible",
+        results=[],
+        answer=None,
+        relax=["specify a benchmark or wait for the capability model (MODEL-129)"],
+        eliminated={"funnel": [{
+            "condition": "model.class = decider",
+            "before": 4,
+            "after": 1,
+        }]},
+    )
+    text, _mentions = summarize(decision, None)
+    assert "These requirements together exclude every model." in text
+    assert "complete values for the objective" not in text
+    assert "specify a benchmark" not in text
+
+
 def test_partial_names_no_pick_and_counts_models_that_may_qualify() -> None:
     decision = _decision(
         status="partial",
@@ -925,6 +1054,42 @@ def test_a_long_joint_relaxation_keeps_the_fixed_ending() -> None:
     assert sum(condition in listed for condition in conditions) < len(conditions)
     assert "…" not in listed
     assert text.count("would admit a model") == 1
+
+
+def test_a_tight_relax_budget_keeps_option_endings_and_the_joint() -> None:
+    """Six long gates, three with a nearer threshold. Dropped options stay in a sentence."""
+    stem = "y" * 140
+    conditions = [f"facet_{i}_{stem} >= {i}" for i in range(6)]
+    assert all(140 <= len(condition) <= 170 for condition in conditions)
+    decision = _decision(
+        status="no_feasible",
+        results=[],
+        answer=None,
+        relax=list(conditions),
+        relax_to=[
+            {
+                "condition": conditions[i],
+                "relaxed": f"facet_{i}_{stem} >= {i + 5}",
+                "facet": f"facet_{i}_{stem}",
+                "value": float(i + 5),
+                "admits": 1,
+            }
+            for i in range(3)
+        ],
+    )
+    text, _mentions = summarize(
+        decision,
+        _spec(where=conditions, optimize={"min": "offering.cost_per_task"}),
+    )
+    ending = "that is an option, not an answer."
+    sentences = text.split(". ")
+    option_sentences = [part for part in sentences if "would admit a model" in part]
+    assert len(text.encode("utf-8")) <= SUMMARY_BYTES
+    assert f"together would admit a model; {ending}" in text
+    assert option_sentences
+    assert all(ending.rstrip(".") in part for part in option_sentences)
+    assert any(" to " in part and "together" not in part for part in option_sentences)
+    assert not any(re.fullmatch(r"and [\d,]+ more\.?", part) for part in sentences)
 
 
 def test_the_api_reference_names_the_summary_fields_on_the_bounded_representation() -> None:
