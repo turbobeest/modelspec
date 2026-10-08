@@ -50,6 +50,16 @@ from decision.verify import (
 from scripts import model_160_evidence as readers
 from scripts.model_143_evidence import evidence_id, evidence_key, measured_by
 
+#: A configuration cites the day the board was read as ``read YYYY-MM-DD``.
+_READ_DATE = re.compile(r"\bread \d{4}-\d{2}-\d{2}\b")
+#: The same citation in a folded YAML scalar, where the date can sit on the next line.
+_READ_DATE_FOLDED = re.compile(
+    r"\bread(?:[ \t]+|[ \t]*\n[ \t]+)(\d{4}-\d{2}-\d{2})\b"
+)
+#: Card vocabulary for a row dated by the observation. The decision contract
+#: publishes this value as ``observed``.
+OBSERVATION_DATE_TYPE = "evaluated"
+
 ROOT = Path(__file__).resolve().parents[1]
 USER_AGENT = "ModelSpec-Leaderboard-Refresh/1.0 (+https://modelspec.dev)"
 ARENA_DATASET = "lmarena-ai/leaderboard-dataset"
@@ -244,12 +254,43 @@ def _value(board: BoardReading, row: Mapping[str, Any], unit: str | None) -> flo
     return float(number)
 
 
+def _iso_day(value: object) -> str:
+    if hasattr(value, "isoformat"):
+        return value.isoformat()[:10]
+    return str(value or "").split("T", 1)[0]
+
+
 def _evidence_date(board: BoardReading, row: Mapping[str, Any]) -> str:
     """Use the row's measurement date, or the live board's observation date."""
     for key in ("date", "leaderboard_publish_date", "started_at", "Started at", "release_date"):
         if value := row.get(key):
             return str(value).split("T", 1)[0]
     return board.observed_at
+
+
+def observation_dated(evidence_date: object, observed_at: object) -> bool:
+    """True when the evidence date is the observation, not a source measurement."""
+    evidence, observed = _iso_day(evidence_date), _iso_day(observed_at)
+    return bool(evidence) and evidence == observed
+
+
+def align_observation_dating(row: Mapping[str, Any]) -> dict[str, Any]:
+    """Make configuration text and date_type match an observation-dated row.
+
+    A source measurement date is left alone, including a ``read <date>`` that
+    cites when that measurement was copied. A row dated by the observation
+    gets ``read <that date>`` and date_type ``evaluated``.
+    """
+    updated = dict(row)
+    if not observation_dated(updated.get("evidence_date"), updated.get("observed_at")):
+        return updated
+    day = _iso_day(updated.get("evidence_date"))
+    configuration = updated.get("configuration")
+    if isinstance(configuration, str) and configuration:
+        updated["configuration"] = _READ_DATE.sub(f"read {day}", configuration)
+    if updated.get("date_type") == "published":
+        updated["date_type"] = OBSERVATION_DATE_TYPE
+    return updated
 
 
 def _match(board: BoardReading, evidence: Mapping[str, Any]) -> Mapping[str, Any] | None:
@@ -348,13 +389,35 @@ def plan_rows(
             if observation.changed], failures
 
 
-def _rewrite_card(path: Path, updates: list[tuple[tuple[object, ...], dict[str, Any]]]) -> None:
+def _replace_folded_read_date(text: str, day: str) -> str:
+    """Replace the date in ``read <date>``, including when YAML folded it onto the next line."""
+    return _READ_DATE_FOLDED.sub(lambda match: match.group(0).replace(match.group(1), day, 1), text)
+
+
+def _patch_configuration_read_date(lines: list[str], day: str) -> list[str]:
+    """Replace ``read YYYY-MM-DD`` inside the configuration field, and nowhere else."""
+    start = next((i for i, line in enumerate(lines) if line.startswith("    configuration:")), None)
+    if start is None:
+        return lines
+    end = start + 1
+    while end < len(lines) and not re.match(r"^    [a-z][a-z0-9_]*:", lines[end]):
+        end += 1
+    chunk = _replace_folded_read_date("\n".join(lines[start:end]), day)
+    return [*lines[:start], *chunk.split("\n"), *lines[end:]]
+
+
+def _rewrite_card(
+    path: Path,
+    updates: list[tuple[tuple[object, ...], dict[str, Any]]],
+    *,
+    fields: Sequence[str] | None = None,
+) -> None:
     from schema.benchmark_values import validate_card_rows
 
     validate_card_rows(path, [row for _, row in updates])
     wanted = dict(updates)
     text = path.read_text(encoding="utf-8")
-    fields = ("score", "evidence_date", "observed_at", "verified_at", "id", "sources")
+    always = ("score", "evidence_date", "observed_at", "verified_at", "id", "sources")
 
     def update(match: re.Match[str]) -> str:
         block = match.group(0).rstrip("\n")
@@ -363,8 +426,27 @@ def _rewrite_card(path: Path, updates: list[tuple[tuple[object, ...], dict[str, 
         if replacement is None:
             return match.group(0)
         lines = block.splitlines()
-        for name in fields:
+        if fields is None:
+            names = [
+                name for name in (*always, "date_type", "configuration")
+                if name in always or replacement.get(name) != row.get(name)
+            ]
+        else:
+            names = [name for name in fields if replacement.get(name) != row.get(name)]
+        day = _iso_day(replacement.get("evidence_date"))
+        old_configuration, new_configuration = row.get("configuration"), replacement.get("configuration")
+        patch_read_date = (
+            "configuration" in names
+            and isinstance(old_configuration, str)
+            and isinstance(new_configuration, str)
+            and _READ_DATE.sub(f"read {day}", old_configuration) == new_configuration
+        )
+        if patch_read_date:
+            names = [name for name in names if name != "configuration"]
+        for name in names:
             lines = readers._set_field(lines, name, replacement.get(name))
+        if patch_read_date:
+            lines = _patch_configuration_read_date(lines, day)
         return "\n".join(lines) + "\n"
 
     changed = re.sub(
@@ -376,6 +458,48 @@ def _rewrite_card(path: Path, updates: list[tuple[tuple[object, ...], dict[str, 
     if wanted:
         raise ValueError(f"{path}: could not locate {len(wanted)} changed evidence rows")
     path.write_text(changed, encoding="utf-8")
+
+
+def align_observation_cards(root: Path) -> list[str]:
+    """Rewrite stored rows already dated by their observation.
+
+    Returns the card paths that changed, relative to ``root``. A row whose
+    evidence date is a source measurement is not touched.
+    """
+    changed: list[str] = []
+    for path in sorted((root / "models").glob("*/*.md")):
+        front = _front(path)
+        rows = ((front.get("benchmarks") or {}).get("evidence") or [])
+        updates = []
+        for row in rows:
+            if not isinstance(row, Mapping):
+                continue
+            aligned = align_observation_dating(row)
+            if (
+                aligned.get("configuration") != row.get("configuration")
+                or aligned.get("date_type") != row.get("date_type")
+            ):
+                updates.append((evidence_key(row), aligned))
+        if not updates:
+            continue
+        before = path.read_text(encoding="utf-8")
+        _rewrite_card(path, updates, fields=("date_type", "configuration"))
+        if path.read_text(encoding="utf-8") == before:
+            raise ValueError(f"{path}: observation alignment matched no text")
+        written = {
+            evidence_key(row): row
+            for row in ((_front(path).get("benchmarks") or {}).get("evidence") or [])
+            if isinstance(row, Mapping)
+        }
+        for key, aligned in updates:
+            row = written.get(key)
+            if row is None or (
+                row.get("configuration") != aligned.get("configuration")
+                or row.get("date_type") != aligned.get("date_type")
+            ):
+                raise ValueError(f"{path}: observation alignment did not stick")
+        changed.append(path.relative_to(root).as_posix())
+    return changed
 
 
 def _claim(model_id: str, front: Mapping[str, Any], row: Mapping[str, Any],
@@ -620,6 +744,7 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
                 new["evidence_date"] = observation.evidence_date
                 new["observed_at"] = observed_at
                 new["verified_at"] = observed_at
+                new = align_observation_dating(new)
                 new["sources"] = [SourceRef(
                     source_id=board.source_id,
                     snapshot_ref=board.snapshot_ref,
@@ -723,20 +848,64 @@ def _body(path: Path) -> str:
     return path.read_text(encoding="utf-8").split("---", 2)[2]
 
 
-def _without_refresh_fields(front: Mapping[str, Any]) -> dict[str, Any]:
-    data = copy.deepcopy(dict(front))
-    evidence = ((data.get("benchmarks") or {}).get("evidence") or [])
-    for row in evidence:
-        for key in _ALLOWED_EVIDENCE_FIELDS:
-            row.pop(key, None)
-    return data
+def _row_allows_refresh(before: Mapping[str, Any], after: Mapping[str, Any]) -> bool:
+    """A refresh may change score, dates, id and the source snapshot.
+
+    When the new evidence date is the observation date, it may also replace
+    ``read <date>`` in the configuration with that date and change date_type
+    from ``published`` to ``evaluated``.
+    """
+    old, new = dict(before), dict(after)
+    for key in _ALLOWED_EVIDENCE_FIELDS:
+        old.pop(key, None)
+        new.pop(key, None)
+    if old.get("configuration") != new.get("configuration"):
+        if not observation_dated(after.get("evidence_date"), after.get("observed_at")):
+            return False
+        expected = _READ_DATE.sub(
+            f"read {_iso_day(after.get('evidence_date'))}",
+            str(old.get("configuration") or ""),
+        )
+        if expected != str(new.get("configuration") or ""):
+            return False
+        old.pop("configuration", None)
+        new.pop("configuration", None)
+    if old.get("date_type") != new.get("date_type"):
+        if not (
+            observation_dated(after.get("evidence_date"), after.get("observed_at"))
+            and old.get("date_type") == "published"
+            and new.get("date_type") == OBSERVATION_DATE_TYPE
+        ):
+            return False
+        old.pop("date_type", None)
+        new.pop("date_type", None)
+    return old == new
+
+
+def _fronts_match_after_refresh(
+    before_front: Mapping[str, Any], after_front: Mapping[str, Any],
+) -> bool:
+    before, after = copy.deepcopy(dict(before_front)), copy.deepcopy(dict(after_front))
+    before_rows = list(((before.get("benchmarks") or {}).get("evidence") or []))
+    after_rows = list(((after.get("benchmarks") or {}).get("evidence") or []))
+    if len(before_rows) != len(after_rows):
+        return False
+    if any(not _row_allows_refresh(old, new) for old, new in zip(before_rows, after_rows)):
+        return False
+    for front in (before, after):
+        benchmarks = front.get("benchmarks")
+        if isinstance(benchmarks, dict):
+            benchmarks["evidence"] = []
+    return before == after
 
 
 def check_score_only(before: Path, after: Path) -> ScoreOnlyResult:
     """Mechanically prove a generated refresh did not add cards or alter identities.
 
-    Existing evidence rows may change only their score, observation/verification
-    date, ID and source-snapshot binding. Verification JSONL files may only grow.
+    Existing evidence rows may change their score, observation/verification
+    date, ID and source-snapshot binding. A row dated by the observation may
+    also make its configuration ``read <date>`` and date_type match that date.
+    Verification JSONL files may only grow.
     """
     old, new = _files(before), _files(after)
     errors: list[str] = []
@@ -756,7 +925,7 @@ def check_score_only(before: Path, after: Path) -> ScoreOnlyResult:
             after_rows = ((after_front.get("benchmarks") or {}).get("evidence") or [])
             if len(before_rows) != len(after_rows):
                 errors.append(f"evidence row count changed: {rel}")
-            if _without_refresh_fields(before_front) != _without_refresh_fields(after_front):
+            elif not _fronts_match_after_refresh(before_front, after_front):
                 errors.append(f"non-score card data changed: {rel}")
             if _body(old[rel]) != _body(new[rel]):
                 errors.append(f"card prose changed: {rel}")

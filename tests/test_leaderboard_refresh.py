@@ -652,6 +652,7 @@ benchmarks:
     date_type: published
     observed_at: '2026-09-24'
     verified_at: '2026-09-24'
+    configuration: MTEB leaderboard backend JSON read 2026-09-24; tasks updated 2026-09-10.
     id: lab/embedding-model#mteb_eng_v2#fixture
     sources:
     - source_id: fixture-mteb
@@ -694,6 +695,176 @@ benchmarks:
     assert verification["outcome"] == "verified"
     assert str(row["evidence_date"]) == "2026-09-28"
     assert str(row["observed_at"]) == "2026-09-28"
+    assert row["date_type"] == "evaluated"
+    assert row["configuration"] == (
+        "MTEB leaderboard backend JSON read 2026-09-28; tasks updated 2026-09-10."
+    )
+
+
+def test_source_dated_row_keeps_its_read_date_and_date_type(
+    monkeypatch, tmp_path: Path,
+) -> None:
+    root = tmp_path / "repo"
+    cache = tmp_path / "copies"
+    (root / "premier").mkdir(parents=True)
+    (root / "models" / "lab").mkdir(parents=True)
+    (root / "registry").mkdir(parents=True)
+    (root / "verification").mkdir(parents=True)
+    (root / "premier" / "slice-1.yaml").write_text(
+        "models:\n- model_id: lab/model\n", encoding="utf-8"
+    )
+    (root / "registry" / "sources.yaml").write_text(
+        """schema_version: 1
+sources:
+- id: fixture-source
+  url: https://example.test/leaderboard.json
+  volatility: live
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator: {kind: page, value: ''}
+""",
+        encoding="utf-8",
+    )
+    card = root / "models" / "lab" / "model.md"
+    card.write_text(
+        """---
+model_id: lab/model
+display_name: Stable Model
+version: Stable Model
+benchmarks:
+  evidence:
+  - benchmark_id: fixture_benchmark
+    model_id_as_evaluated: Stable Model
+    score: 72.0
+    unit: percent
+    source_url: https://example.test/leaderboard.json
+    source_kind: benchmark_author
+    evidence_date: '2026-09-01'
+    date_type: published
+    observed_at: '2026-09-24'
+    verified_at: '2026-09-24'
+    configuration: Board row read 2026-09-24; published 2026-09-01.
+    id: lab/model#stable
+    sources:
+    - source_id: fixture-source
+      snapshot_ref: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      cited_regions: [rows]
+---
+""",
+        encoding="utf-8",
+    )
+    store = refresh.CopyStore(cache)
+    projection = refresh.readers.document(
+        [{"model": "Stable Model", "score": "72.0%", "date": "2026-09-01"}],
+        url="https://example.test/leaderboard.json",
+        page_ref="sha256:" + "b" * 64,
+        read_date="2026-09-28",
+        note="fixture",
+    )
+    board = refresh._reading_from_projection(
+        key="fixture", source_id="fixture-source", benchmarks=("fixture_benchmark",),
+        source_url="https://example.test/leaderboard.json", projected=projection,
+        observed_at="2026-09-28", value_field="score", store=store,
+    )
+    monkeypatch.setattr(refresh, "collect_readings", lambda *_: ([board], []))
+
+    report = refresh.run(
+        observed_at="2026-09-28", dry_run=False, root=root, source_cache=cache
+    )
+
+    row = refresh._front(card)["benchmarks"]["evidence"][0]
+    assert report.quarantined == []
+    assert str(row["evidence_date"]) == "2026-09-01"
+    assert str(row["observed_at"]) == "2026-09-28"
+    assert row["date_type"] == "published"
+    assert row["configuration"] == "Board row read 2026-09-24; published 2026-09-01."
+
+
+def test_score_only_check_accepts_an_aligned_observation_date(tmp_path: Path) -> None:
+    configuration = "Board row read {day}; tasks updated 2026-09-10."
+    before_text = _card("2026-09-24").replace(
+        "    date_type: published\n",
+        "    date_type: published\n"
+        f"    configuration: {configuration.format(day='2026-09-24')}\n",
+    )
+    after_text = _card("2026-10-05").replace(
+        "evidence_date: '2026-09-01'\n",
+        "evidence_date: '2026-10-05'\n",
+    ).replace(
+        "    date_type: published\n",
+        "    date_type: evaluated\n"
+        f"    configuration: {configuration.format(day='2026-10-05')}\n",
+    )
+    before, after = _write_guard_cards(tmp_path, before_text, after_text)
+
+    assert refresh.check_score_only(before, after).ok
+
+
+def test_score_only_check_refuses_an_unrelated_configuration_edit(tmp_path: Path) -> None:
+    before_text = _card("2026-10-05").replace(
+        "evidence_date: '2026-09-01'\n", "evidence_date: '2026-10-05'\n",
+    )
+    after_text = before_text.replace(
+        "    date_type: published\n",
+        "    date_type: published\n    configuration: a different sentence\n",
+    )
+    before, after = _write_guard_cards(tmp_path, before_text, after_text)
+
+    result = refresh.check_score_only(before, after)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
+
+
+def test_align_observation_cards_rewrites_stored_rows_only(tmp_path: Path) -> None:
+    root = tmp_path / "repo"
+    card = root / "models" / "lab" / "model.md"
+    card.parent.mkdir(parents=True)
+    card.write_text(
+        """---
+model_id: lab/model
+benchmarks:
+  evidence:
+  - benchmark_id: fixture_benchmark
+    model_id_as_evaluated: Dated By Observation
+    score: 1.0
+    unit: percent
+    source_url: https://example.test/leaderboard.json
+    source_kind: benchmark_author
+    evidence_date: '2026-10-05'
+    date_type: published
+    observed_at: '2026-10-05'
+    configuration: Board read
+      2026-09-24; tasks updated 2026-09-10.
+  - benchmark_id: fixture_benchmark
+    model_id_as_evaluated: Dated By Source
+    score: 2.0
+    unit: percent
+    source_url: https://example.test/leaderboard.json
+    source_kind: benchmark_author
+    evidence_date: '2026-09-01'
+    date_type: published
+    observed_at: '2026-10-05'
+    configuration: Board read 2026-09-24; published 2026-09-01.
+---
+""",
+        encoding="utf-8",
+    )
+
+    changed = refresh.align_observation_cards(root)
+
+    text = card.read_text(encoding="utf-8")
+    rows = refresh._front(card)["benchmarks"]["evidence"]
+    assert changed == ["models/lab/model.md"]
+    assert rows[0]["date_type"] == "evaluated"
+    assert rows[0]["configuration"] == "Board read 2026-10-05; tasks updated 2026-09-10."
+    assert "    configuration: Board read\n      2026-10-05; tasks updated 2026-09-10.\n" in text
+    assert rows[1]["date_type"] == "published"
+    assert rows[1]["configuration"] == "Board read 2026-09-24; published 2026-09-01."
+    assert "    configuration: Board read 2026-09-24; published 2026-09-01.\n" in text
+    assert refresh.align_observation_cards(root) == []
 
 
 def test_unread_board_keeps_the_old_observation_date(monkeypatch, tmp_path: Path) -> None:
