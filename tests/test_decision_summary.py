@@ -908,6 +908,25 @@ def test_must_mention_and_the_paragraph_stay_inside_their_byte_caps() -> None:
     assert "lab/" not in huge_text
 
 
+def test_a_long_joint_relaxation_keeps_the_fixed_ending() -> None:
+    """Twenty long conditions stay one option, and the ending is not clipped."""
+    conditions = [f"facet_{i:02d}_{'x' * 60} >= {i}" for i in range(20)]
+    decision = _decision(status="no_feasible", results=[], answer=None, relax=conditions)
+    text, _mentions = summarize(
+        decision, _spec(where=conditions, optimize={"min": "offering.cost_per_task"}),
+    )
+    ending = "together would admit a model; that is an option, not an answer."
+    assert len(text.encode("utf-8")) <= SUMMARY_BYTES
+    assert text.startswith(NO_FEASIBLE)
+    assert ending in text
+    listed = text.split("Relaxing ", 1)[1].split(ending, 1)[0]
+    assert ", and " in listed
+    assert listed.rstrip().endswith("more")
+    assert sum(condition in listed for condition in conditions) < len(conditions)
+    assert "…" not in listed
+    assert text.count("would admit a model") == 1
+
+
 def test_the_api_reference_names_the_summary_fields_on_the_bounded_representation() -> None:
     reference = Path(__file__).resolve().parents[1].joinpath("docs/api.md").read_text(encoding="utf-8")
     bullet = next(

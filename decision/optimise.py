@@ -16,6 +16,12 @@ from decision.contract import EvidenceQualifiers, Objective, Preference, Toleran
 from decision.refinements import is_refinement_key
 
 NO_COMPLETE_OBJECTIVE_VALUES = "no complete objective values"
+CAPABILITY_MODEL_UNAVAILABLE = "specify a benchmark or wait for the capability model (MODEL-129)"
+# Every reason string ``optimise`` returns with status ``no_feasible``.
+OPTIMISER_DIAGNOSTICS = frozenset({
+    NO_COMPLETE_OBJECTIVE_VALUES,
+    CAPABILITY_MODEL_UNAVAILABLE,
+})
 
 if TYPE_CHECKING:
     from decision.snapshot import CapabilityEstimateValue, EvidenceValue, SnapshotIndex
@@ -304,7 +310,7 @@ def optimise(snapshot: SnapshotIndex, candidates: Sequence[str], objective: Obje
         ):
             return Optimisation(
                 "no_feasible", (),
-                "specify a benchmark or wait for the capability model (MODEL-129)",
+                CAPABILITY_MODEL_UNAVAILABLE,
             )
     cids = sorted(set(candidates))
     contributions: dict[str, list[DimensionContribution]] = {cid: [] for cid in cids}

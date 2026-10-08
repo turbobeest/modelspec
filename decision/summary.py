@@ -28,7 +28,7 @@ from decision.contract import (
     _render_value,
     render_condition,
 )
-from decision.optimise import NO_COMPLETE_OBJECTIVE_VALUES
+from decision.optimise import OPTIMISER_DIAGNOSTICS
 from decision.reading import HARDWARE_FIT
 from decision.refinements import split_dimension
 from decision.resolve import resolve
@@ -143,14 +143,22 @@ def _summary(
     visible = _paragraph_mentions(decision, mentions)
     limits["caveat"] = len(visible)
     floors["caveat"] = len({kind for kind, _text in visible}) or 0
-    text = _compose(decision, spec, unapplied, visible, limits, conditions)
+    # None lists every condition in the joint relaxation. Shorten that list
+    # only after the other lists are at their floors, so the fixed ending stays.
+    joint_limit: int | None = None
+    text = _compose(decision, spec, unapplied, visible, limits, conditions, joint_limit)
     order = ("hard", "prefer", "relax", "missing", "tie", "caveat")
     while len(text.encode("utf-8")) > SUMMARY_BYTES:
         key = next((name for name in order if limits[name] > floors[name]), None)
-        if key is None:
-            break
-        limits[key] -= 1
-        text = _compose(decision, spec, unapplied, visible, limits, conditions)
+        if key is not None:
+            limits[key] -= 1
+        else:
+            count = len(_joint_conditions(decision, conditions))
+            current = count if joint_limit is None else joint_limit
+            if count <= 1 or current <= 1:
+                break
+            joint_limit = current - 1
+        text = _compose(decision, spec, unapplied, visible, limits, conditions, joint_limit)
     if len(text.encode("utf-8")) > SUMMARY_BYTES:
         text = _clip_paragraph(text)
     return text
@@ -163,9 +171,10 @@ def _compose(
     mentions: list[tuple[str, str]],
     limits: dict[str, int],
     conditions: tuple,
+    joint_limit: int | None = None,
 ) -> str:
     parts = [_answer_sentence(decision, limits["tie"])]
-    parts.extend(_why(decision, spec, unapplied, limits, conditions))
+    parts.extend(_why(decision, spec, unapplied, limits, conditions, joint_limit))
     parts.extend(_constraints(spec, unapplied, limits, conditions))
     parts.extend(_caveats(mentions, limits["caveat"]))
     return _dedupe(parts)
@@ -213,9 +222,10 @@ def _why(
     unapplied: list[str],
     limits: dict[str, int],
     conditions: tuple,
+    joint_limit: int | None = None,
 ) -> list[str]:
     if decision.status == "no_feasible":
-        if spec is not None and _objective_values_missing(decision, spec):
+        if spec is not None and _optimiser_diagnostic(decision):
             return [_MISSING_OBJECTIVE.format(objective=_objective_phrase(spec))]
         gates, _dont = _gates(spec, set(unapplied), conditions)
         if gates:
@@ -224,7 +234,9 @@ def _why(
         else:
             exclude = "These requirements together exclude every model."
         sentences = [exclude]
-        sentences.extend(_relaxation_options(decision, conditions, limits["relax"]))
+        sentences.extend(
+            _relaxation_options(decision, conditions, limits["relax"], joint_limit)
+        )
         hint = decision.relax_task_tokens
         if hint is not None:
             sentences.append(f"Task-size relaxation, not an answer: {hint.condition}.")
@@ -259,20 +271,32 @@ def _qualify_sentence(count: int) -> str:
     )
 
 
-def _relaxation_options(decision: Decision, conditions: tuple, limit: int) -> list[str]:
-    """``relax_to`` items are each enough. Uncovered ``relax`` entries are one set."""
+def _optimiser_diagnostic(decision: Decision) -> bool:
+    """True when ``relax`` carries a reason ``optimise`` returns for ``no_feasible``."""
+    return any(item in OPTIMISER_DIAGNOSTICS for item in decision.relax)
+
+
+def _joint_conditions(decision: Decision, conditions: tuple) -> list[str]:
+    """``relax`` entries that are applied gates and have no ``relax_to`` item."""
     requirements = set(_condition_gates(conditions)[0])
     covered = {item.condition for item in decision.relax_to}
+    return [
+        condition for condition in decision.relax
+        if condition not in covered and condition in requirements
+    ]
+
+
+def _relaxation_options(
+    decision: Decision, conditions: tuple, limit: int, joint_limit: int | None = None,
+) -> list[str]:
+    """``relax_to`` items are each enough. Uncovered ``relax`` entries are one set."""
     options = [
         _OPTION_TO.format(condition=item.condition, relaxed=item.relaxed)
         for item in decision.relax_to
     ]
-    uncovered = [
-        condition for condition in decision.relax
-        if condition not in covered and condition in requirements
-    ]
+    uncovered = _joint_conditions(decision, conditions)
     if uncovered:
-        options.append(_joint_option(uncovered))
+        options.append(_joint_option(uncovered, joint_limit))
     if not options:
         return []
     shown_count = min(len(options), max(limit, 1))
@@ -283,10 +307,11 @@ def _relaxation_options(decision: Decision, conditions: tuple, limit: int) -> li
     return shown
 
 
-def _joint_option(conditions: list[str]) -> str:
+def _joint_option(conditions: list[str], limit: int | None = None) -> str:
     if len(conditions) == 1:
         return _OPTION.format(condition=conditions[0])
-    listed = _name_list(conditions, len(conditions), more="")
+    cap = len(conditions) if limit is None else max(limit, 1)
+    listed = _name_list(conditions, cap, more="")
     return _OPTION_TOGETHER.format(conditions=listed)
 
 
@@ -374,20 +399,6 @@ def _plain_openness_either(condition: object) -> bool:
         and condition.soft is None
         and condition.unknown is None
     )
-
-
-def _objective_values_missing(decision: Decision, spec: Spec | None) -> bool:
-    """True when ``no_feasible`` is the engine's missing-objective diagnostic.
-
-    One candidate whose unknown facets are all objective bases is enough.
-    An unknown gate on a different candidate does not cancel that.
-    """
-    if spec is None or decision.relax != [NO_COMPLETE_OBJECTIVE_VALUES] or not decision.may_qualify:
-        return False
-    objectives = set(_objective_bases(spec))
-    if not objectives:
-        return False
-    return any(row.unknown and set(row.unknown) <= objectives for row in decision.may_qualify)
 
 
 def _objective_phrase(spec: Spec) -> str:

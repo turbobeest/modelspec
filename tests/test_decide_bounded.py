@@ -431,11 +431,69 @@ def test_profile_rules_are_requirements_the_summary_reports(service):
     excluded_text = excluded["summary_for_user"]
     assert excluded["status"] == "no_feasible"
     assert (
-        "These requirements together exclude every model: model.class = vectoriser."
+        "No model that meets the requirements has complete values for the objective "
+        "(arena_elo_overall), so ModelSpec cannot order them."
         in excluded_text
     )
+    assert "exclude every model" not in excluded_text
+    assert "that is an option, not an answer." not in excluded_text
+    assert "no complete objective values" not in excluded_text
+    assert "Requirements applied: model.class = vectoriser." in excluded_text
     assert "No model class was required" not in excluded_text
-    assert "complete values for the objective" not in excluded_text
+
+
+def test_a_capability_objective_without_a_benchmark_is_not_a_gate_exclusion(
+    service, public_snapshot,
+):
+    """Deciders are in the snapshot. The optimiser cannot score the objective."""
+    status, body = service.decide(
+        mcp_default_request({
+            "spec_version": 1,
+            "where": ["model.class = decider"],
+            "optimize": {"max": "software_engineering"},
+        }),
+        public_snapshot,
+    )
+    assert status == 200, body
+    assert body["status"] == "no_feasible"
+    assert body["relax"] == [
+        "specify a benchmark or wait for the capability model (MODEL-129)",
+    ]
+    text = body["summary_for_user"]
+    assert (
+        "No model that meets the requirements has complete values for the objective "
+        "(software_engineering), so ModelSpec cannot order them."
+        in text
+    )
+    assert "exclude every model" not in text
+    assert "that is an option, not an answer." not in text
+    assert "specify a benchmark" not in text
+    assert "Requirements applied: model.class = decider." in text
+
+
+def test_q10_chat_preference_without_a_benchmark_is_not_a_gate_exclusion(service):
+    status, body = service.decide({
+        "spec_version": 1,
+        "where": ["model.class = text-generator"],
+        "optimize": {"max": "chat_preference"},
+        "explain": "summary",
+        "fields": ["model"],
+    }, q10_snapshot())
+    assert status == 200, body
+    assert body["status"] == "no_feasible"
+    assert body["relax"] == [
+        "specify a benchmark or wait for the capability model (MODEL-129)",
+    ]
+    text = body["summary_for_user"]
+    assert (
+        "No model that meets the requirements has complete values for the objective "
+        "(chat_preference), so ModelSpec cannot order them."
+        in text
+    )
+    assert "exclude every model" not in text
+    assert "that is an option, not an answer." not in text
+    assert "specify a benchmark" not in text
+    assert "Requirements applied: model.class = text-generator." in text
 
 
 def test_referenced_profile_rules_use_the_engine_resolution(service):
