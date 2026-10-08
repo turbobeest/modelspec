@@ -12,6 +12,7 @@ from decision.contract import (
 )
 from decision.refinements import is_refinement_key, split_dimension
 from decision.regions import guarantees_countries, no_guarantee_reason
+from decision.optimise import Normalisation
 from decision.registry import UNREGISTERED
 from decision.registry import facet as registry_facet
 
@@ -313,6 +314,23 @@ def _items(groups, ids):
     return list(found.values())
 
 
+def normalisation_text(norm: Normalisation, unit: str | None) -> str:
+    """How this dimension was scaled. A zero span stays dimensionless."""
+    unit_text = unit or "unit not recorded"
+    span = (
+        f"zero span maps to {norm.constant():g} dimensionless; "
+        "interval uses the candidate's own raw width"
+        if norm.zero_span()
+        else "a zero span maps to 1 (max) or 0 (min) dimensionless"
+    )
+    return (
+        f"feasible min-max; {norm.direction}; "
+        f"minimum={norm.minimum} {unit_text}; "
+        f"maximum={norm.maximum} {unit_text}; "
+        f"{span}"
+    )
+
+
 def contributions(snapshot, cid, parts, evidence):
     out = []
     for part in parts:
@@ -330,6 +348,7 @@ def contributions(snapshot, cid, parts, evidence):
                 items = _items(domain_evidence(snapshot, cid, domains), set(records))
         norm = part.normalisation
         dimension, refinement = split_dimension(part.dimension)
+        normalisation = normalisation_text(norm, unit)
         out.append(
             Contribution(
                 dimension=dimension,
@@ -339,10 +358,7 @@ def contributions(snapshot, cid, parts, evidence):
                 raw_value=part.raw_value,
                 unit=unit,
                 records=records,
-                normalisation=f"feasible min-max; {norm.direction}; "
-                f"minimum={norm.minimum} {unit or 'unit not recorded'}; "
-                f"maximum={norm.maximum} {unit or 'unit not recorded'}; "
-                "constant dimensions contribute zero dimensionless",
+                normalisation=normalisation,
                 evidence=items,
                 formula=formula,
                 preferred_value=part.preferred_value,

@@ -114,10 +114,10 @@
           "region": null,
           "tier": null
         },
-        "score": 0.0,
+        "score": 1.0,
         "score_interval": [
-          0.0,
-          0.0
+          1.0,
+          1.0
         ],
         "p_best": null,
         "p_beats_leader": null,
@@ -175,8 +175,8 @@
           ],
           "dimension": "model.context_window",
           "weight": 1.0,
-          "value": 0.0,
-          "normalisation": "feasible min-max; max; minimum=50000.0 tokens; maximum=50000.0 tokens; constant dimensions contribute zero dimensionless",
+          "value": 1.0,
+          "normalisation": "feasible min-max; max; minimum=50000.0 tokens; maximum=50000.0 tokens; zero span maps to 1 dimensionless; interval uses the candidate's own raw width",
           "evidence": [],
           "formula": null,
           "preferred_value": null,

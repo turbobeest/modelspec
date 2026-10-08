@@ -2271,7 +2271,7 @@ def check_facets(spec: Spec, facets: FacetLookup) -> list[Issue]:
             issues.append(Issue(
                 condition,
                 facet_id,
-                f"{facet_id} is record-only and cannot be used in a spec until MODEL-179",
+                f"{facet_id} is record-only and cannot be used in a spec",
                 path,
             ))
             return

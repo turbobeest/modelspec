@@ -5,10 +5,21 @@ import ast
 from datetime import date
 from pathlib import Path
 
+import pytest
+
 from decision import optimise as optimise_module
 from decision.contract import EvidenceQualifiers, Objective
-from decision.optimise import OPTIMISER_DIAGNOSTICS, EvidenceSelector, optimise
-from decision.snapshot import EvidenceValue, FactValue
+from decision.engine import _score_distribution
+from decision.explain import normalisation_text
+from decision.optimise import (
+    OPTIMISER_DIAGNOSTICS,
+    DimensionContribution,
+    EvidenceSelector,
+    Normalisation,
+    OptimisedResult,
+    optimise,
+)
+from decision.snapshot import CapabilityEstimateValue, EvidenceValue, FactValue
 from tests.snapshot_records import loaded_index
 
 
@@ -158,6 +169,140 @@ def test_score_intervals_use_the_unclamped_point_estimate_transform():
     assert result.results[1].score_interval == (-0.1, 0.1)
 
 
+@pytest.mark.parametrize("count", [1, 2])
+@pytest.mark.parametrize(
+    ("direction", "constant", "interval"),
+    [("max", 1.0, (0.5, 1.5)), ("min", 0.0, (-0.5, 0.5))],
+)
+def test_a_degenerate_span_stays_dimensionless(count, direction, constant, interval):
+    """One known value, or several equal values, is a zero span.
+
+    The reference ranker maps that span to 1 before direction, so a maximum is
+    1 and a minimum is 0. The interval uses the candidate's own raw width, so
+    an uncertain estimate is not the point [0, 0] and is not in the raw unit.
+    """
+    index = evidence_index({
+        f"c{i}": [evidence_value(value=20, interval=(18, 22))] for i in range(count)
+    })
+    objective = Objective(max="quality") if direction == "max" else Objective(min="quality")
+
+    result = optimise(
+        index,
+        index.candidates(),
+        objective,
+        evidence_selectors={"quality": EvidenceSelector("bench")},
+    )
+
+    assert len(result.results) == count
+    for row in result.results:
+        contribution = row.contributions[0]
+        assert row.score == constant
+        assert row.score_interval == interval
+        assert contribution.value == constant
+        assert contribution.interval == interval
+        assert contribution.raw_value == 20
+        assert contribution.value != contribution.raw_value
+        assert "dimensionless" in normalisation_text(contribution.normalisation, "percent")
+        assert "left in its own unit" not in normalisation_text(
+            contribution.normalisation, "percent")
+
+
+def test_a_real_span_says_a_zero_span_maps_to_one_or_zero():
+    """A real span does not say a constant dimension contributes zero.
+
+    A zero span maps to 1 when the dimension is maximised and to 0 when it
+    is minimised. The real-span line says that.
+    """
+    index = evidence_index({
+        "leader": [evidence_value(value=20)],
+        "other": [evidence_value(value=10)],
+    })
+
+    result = optimise(
+        index,
+        index.candidates(),
+        Objective(max="quality"),
+        evidence_selectors={"quality": EvidenceSelector("bench")},
+    )
+
+    norm = result.results[0].contributions[0].normalisation
+    text = normalisation_text(norm, "percent")
+    assert not norm.zero_span()
+    assert text.endswith("a zero span maps to 1 (max) or 0 (min) dimensionless")
+    assert "constant dimensions contribute zero" not in text
+
+
+@pytest.mark.parametrize("direction, constant", [("max", 1.0), ("min", 0.0)])
+def test_an_exact_degenerate_span_is_the_constant_point(direction, constant):
+    index = evidence_index({"a": [evidence_value(value=20)], "b": [evidence_value(value=20)]})
+    objective = Objective(max="quality") if direction == "max" else Objective(min="quality")
+
+    result = optimise(
+        index,
+        index.candidates(),
+        objective,
+        evidence_selectors={"quality": EvidenceSelector("bench")},
+    )
+
+    assert [row.score for row in result.results] == [constant, constant]
+    assert [row.score_interval for row in result.results] == [(constant, constant), (constant, constant)]
+
+
+def test_a_span_under_the_reference_epsilon_uses_the_direction_constant():
+    """reference.ts n() treats b - a < 1e-9 as a zero span and returns 1."""
+    index = evidence_index({
+        "low": [evidence_value(value=10, interval=(9, 11))],
+        "high": [evidence_value(value=10 + 5e-10, interval=(9, 11))],
+    })
+
+    maximised = optimise(
+        index, index.candidates(), Objective(max="quality"),
+        evidence_selectors={"quality": EvidenceSelector("bench")},
+    )
+    minimised = optimise(
+        index, index.candidates(), Objective(min="quality"),
+        evidence_selectors={"quality": EvidenceSelector("bench")},
+    )
+
+    assert {row.score for row in maximised.results} == {1.0}
+    assert {row.score for row in minimised.results} == {0.0}
+
+
+def test_a_degenerate_capability_keeps_variance_from_its_own_width():
+    estimate = CapabilityEstimateValue(20.0, 18.0, 22.0, 1.0)
+    row = OptimisedResult(
+        "only",
+        (DimensionContribution(
+            "quality", 20.0, 1.0, 1.0, Normalisation(20.0, 20.0, "max"),
+            estimate=estimate, interval=(0.5, 1.5),
+        ),),
+        1.0, 0.0, (), score_interval=(0.5, 1.5),
+    )
+
+    found = _score_distribution(row)
+
+    assert found is not None
+    assert found.value == 1.0
+    assert found.sd == 0.25
+
+
+def test_a_real_span_still_scales_capability_variance_by_the_feasible_set():
+    estimate = CapabilityEstimateValue(20.0, 18.0, 22.0, 2.0)
+    row = OptimisedResult(
+        "leader",
+        (DimensionContribution(
+            "quality", 20.0, 1.0, 1.0, Normalisation(10.0, 20.0, "max"),
+            estimate=estimate, interval=(0.8, 1.2),
+        ),),
+        1.0, 0.0, (), score_interval=(0.8, 1.2),
+    )
+
+    found = _score_distribution(row)
+
+    assert found is not None
+    assert found.sd == 0.2
+
+
 def test_lexicographic_tolerance_is_anchored_not_pairwise_chained():
     rows = {"a": {"speed": 100, "cost": 30}, "b": {"speed": 96, "cost": 20},
             "c": {"speed": 92, "cost": 10}, "missing": {"speed": 1000}}
@@ -293,7 +438,9 @@ def test_deprecated_or_contaminated_evidence_is_not_a_direct_answer():
 def test_domain_objective_refuses_blending():
     result = run({"a": {"coding": 100}}, {"max": "coding"}, domains={"coding"})
     assert result.status == "no_feasible"
-    assert result.reason == "specify a benchmark or wait for the capability model (MODEL-129)"
+    assert result.reason == "no complete objective values"
+    assert result.missing == ("a",)
+    assert result.unknown == {"a": ("coding",)}
 
 
 def _string_constants(expr: ast.expr, constants: dict[str, str]) -> set[str] | None:
@@ -357,11 +504,14 @@ def test_min_negative_values_ties_and_non_numeric_missing():
     assert [r.score for r in result.results] == [1, 1, 0, None, None]
 
 
-def test_constant_facets_do_not_contribute_and_have_no_tipping_point():
-    result = run({"b": {"x": 8}, "a": {"x": 8}}, {"weights": {"x": 5}})
-    assert ids(result) == ["a", "b"]
-    assert [r.score for r in result.results] == [0, 0]
-    assert result.tipping_points == ()
+def test_equal_values_score_the_direction_constant_and_have_no_tipping_point():
+    maximised = run({"b": {"x": 8}, "a": {"x": 8}}, {"weights": {"x": 5}})
+    assert ids(maximised) == ["a", "b"]
+    assert [r.score for r in maximised.results] == [5, 5]
+    assert maximised.tipping_points == ()
+    minimised = run({"b": {"x": 8}, "a": {"x": 8}}, {"weights": {"-x": 5}})
+    assert [r.score for r in minimised.results] == [0, 0]
+    assert minimised.tipping_points == ()
 
 
 def test_lexicographic_absolute_tolerance_and_penalty():
