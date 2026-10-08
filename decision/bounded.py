@@ -291,7 +291,7 @@ def _dump_evidence_item(item) -> dict:
 
 
 def _bounded_member_evidence(body: dict, captured: list) -> list[dict]:
-    """One entry per answer member. Cap items, then group by domain.
+    """One entry per answer member (the budget may later remove entries from the end). Cap items, then group by domain.
 
     Items are already the contribution records for that member's best row.
     Sort again so the cap keeps the highest weight, direct before proxy.

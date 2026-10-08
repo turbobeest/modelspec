@@ -2038,7 +2038,9 @@ BoundedDecision = create_model(
     with_estate=(WithEstate | None, None),
     explanation=(BoundedExplanation, ...),
     model_evidence=(ModelEvidence | None, None),
-    #: One entry per answer member, in ``answer.members`` order. Present only
+    #: One entry per answer member, in ``answer.members`` order, unless the
+    #: byte budget removed entries from the end (counted under
+    #: ``explanation.omitted.member_evidence``). Present only
     #: on a bounded answer with no ``evidence_for``, ``explain`` of ``summary``
     #: or ``full``, and a non-empty ``answer.members``. Added in bounded 1.1
     #: (MODEL-354). Absent otherwise. No existing field changes range.

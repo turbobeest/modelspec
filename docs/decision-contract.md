@@ -1136,7 +1136,9 @@ sections. `explain` still controls which details the engine computes; selecting
 `member_evidence` is present only when the request did not send `evidence_for`,
 `explain` is `summary` or `full`, and `answer.members` is non-empty. It is
 absent when `explain` is `none`, when the decision has no answer, and on a
-drill-down. There is one entry per answer member, in `answer.members` order.
+drill-down. There is one entry per answer member, in `answer.members` order,
+unless the byte budget removed entries from the end; each removal is counted
+under `explanation.omitted.member_evidence`.
 Each entry has `model`, `evidence` and `omitted_items`. `evidence` is domain
 groups of the same evidence item the rest of the contract uses, with full
 provenance. The items are the records behind that member's objective position:
