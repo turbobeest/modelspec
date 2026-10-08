@@ -315,6 +315,50 @@ def test_a_usd_per_million_caching_price_needs_the_whole_name() -> None:
     assert verify.compare(own, verify.OfferingPriceExtractor().extract(own, text)) == []
 
 
+def test_band_tiered_table_reads_the_price_column_of_the_lowest_band() -> None:
+    """MODEL-341: the token-range cell is not the price.
+
+    Shaped like Alibaba Model Studio's Singapore Qwen-Max table. The model's
+    first row is the lowest band, and that row's price column is the base price.
+    """
+
+    def row(*cells: str) -> str:
+        return " | ".join(cells)
+
+    text = "\n".join([
+        row("Model ID", "Deployment scope", "Mode", "Input tokens per request",
+            "Input price (per 1 million tokens)",
+            "Output price (per 1 million tokens) Chain of thought + answer",
+            "Free quota (Note)"),
+        row("qwen3.8-max-0902 context caching discount", "International",
+            "Non-Thinking and Thinking modes", "0<Token≤1M", "$2", "$6",
+            "1 million tokens"),
+        row("qwen3-max context caching discount", "International",
+            "Non-Thinking and Thinking modes", "0<Token≤32K", "$1.2", "$6",
+            "1 million tokens"),
+        row("32K<Token≤128K", "$2.4", "$12"),
+        row("128K<Token≤256K", "$3", "$15"),
+    ])
+    extractor = verify.OfferingPriceExtractor()
+    cases = (
+        ("qwen3.8-max-0902", "input", 2, "$2"),
+        ("qwen3.8-max-0902", "output", 6, "$6"),
+        ("qwen3-max", "input", 1.2, "$1.2"),
+        ("qwen3-max", "output", 6, "$6"),
+    )
+    for name, field, number, published in cases:
+        claim = _price_claim(field, number, name=name)
+        readings = extractor.extract(claim, text)
+        assert [reading.value for reading in readings] == [published]
+        assert verify.compare(claim, readings) == []
+
+    higher = _price_claim("input", 2.4, name="qwen3-max")
+    assert verify.compare(higher, extractor.extract(higher, text)) != []
+    for field in ("cached_input", "batch_input", "batch_output"):
+        claim = _price_claim(field, 2, name="qwen3.8-max-0902")
+        assert extractor.extract(claim, text) == []
+
+
 def test_scoped_provider_price_table_and_free_output_are_read() -> None:
     meta = """Models: muse-spark-1.3, muse-spark-1.1.
 Usage | Price per 1M tokens
