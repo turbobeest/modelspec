@@ -1,9 +1,13 @@
 """MODEL-293: opt-in projections preserve honest answers and bounded agent bytes."""
+from pathlib import Path
+
 import pytest
+import yaml
 
 from decision import contract
 from decision.bounded import DEFAULT_FIELDS, DRILL_DOWN_BYTES
 from decision.engine import decide as run_decision
+from decision.templates import template_by_id
 from tests.test_decide_worker import KEY, _load_service, _payload, snapshot, snapshot_bytes  # noqa: F401
 
 
@@ -141,6 +145,71 @@ def test_committed_public_fixture_follows_the_bounded_contract():
     contract.BoundedDecision.model_validate(fixture["default"])
     contract.BoundedDecision.model_validate(fixture["drill_down"])
     assert fixture["drill_down"]["explanation"]["omitted"]["model_evidence.contributions"] > 0
+
+
+def test_public_snapshot_names_an_estimated_position_and_a_natural_tie(service, public_snapshot):
+    """Q01/Q02 flag Opus 5.5 only when it is an answer member or the top result.
+
+    regulated-best is answered and tied with no added gate, and Opus is in that tie.
+    """
+    root = Path(__file__).resolve().parents[1]
+    opus = "anthropic/claude-opus-5-5"
+
+    def bounded(spec):
+        status, body = service.decide({**spec, "fields": ["model"]}, public_snapshot)
+        assert status == 200, body
+        return body
+
+    for name in ("Q01.yaml", "Q02.yaml"):
+        raw = yaml.safe_load((root / "tests/recall/specs" / name).read_text())
+        raw.pop("task_type", None)
+        raw.pop("snapshot", None)
+        raw["explain"] = "summary"
+        body = bounded(raw)
+        assert body["status"] == "partial"
+        assert body["summary_for_user"].startswith("ModelSpec's answer is that there is no answer.")
+        assert "tied" not in body["summary_for_user"]
+        members = [] if body.get("answer") is None else body["answer"]["members"]
+        top = body["results"][0]["model"] if body["results"] else None
+        subjects = list(members)
+        if top and top not in subjects:
+            subjects.append(top)
+        flagged = [
+            item for item in body["must_mention"]
+            if item.startswith(f"{opus} has no leaderboard data for ")
+            and item.endswith("; its position is estimated, not measured.")
+        ]
+        if opus in subjects:
+            assert flagged
+        else:
+            assert flagged == []
+        if "openai/gpt-6-astra" in members:
+            assert not any(
+                item.startswith("openai/gpt-6-astra has no leaderboard data")
+                for item in body["must_mention"]
+            )
+
+    regulated = template_by_id("regulated-best")["spec"]
+    body = bounded({**regulated, "explain": "summary", "limit": 8})
+    assert body["status"] == "answered"
+    assert body["answer"]["kind"] == "tied"
+    assert opus in body["answer"]["members"]
+    summary = body["summary_for_user"]
+    mentions = body["must_mention"]
+    assert summary.startswith("ModelSpec's answer is a tie among ")
+    assert "No model class was required, so the ranking spans every class." in summary
+    assert "No model.class gate was set; results span all model classes." in mentions
+    for member in body["answer"]["members"]:
+        sentence = (
+            f"{member} has no leaderboard data for chat_preference; "
+            "its position is estimated, not measured."
+        )
+        assert sentence in mentions
+        assert sentence in summary
+    assert "Tie-breakers are conditional; cost order is not quality order." in summary
+    assert "Tie-breakers are conditional; cost order is not quality order." in mentions
+    assert "This answer is ordered by cost only; it is not a quality ranking." not in summary
+    assert "model.class =" not in summary
 
 
 def test_projection_retains_unapplied_requirements(service, snapshot):

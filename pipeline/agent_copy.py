@@ -461,9 +461,11 @@ Answer, status, warnings, coverage and the top result stay. An omission is not a
 ## Worked Specs
 
 These are starting points from the registry templates, not recommendations of a
-model. Keep only the gates and weights the user stated. If no objective was stated,
+model. Keep only the gates and weights the user stated; do not silently adopt
+or drop a gate or invent numeric tradeoffs. If no objective was stated,
 disclose the minimal Spec's cost objective as a discovery default, not a quality
-recommendation. Replace the example hardware ID with the user's SKU.
+recommendation. Capabilities and weights express broad evidence, not measured
+quality on the user's exact prompt. Replace the example hardware ID with the user's SKU.
 """
     for row in guide_examples():
         text += f"\n### {row['family']}\n\nTemplate: `{row['template']}`.\n\n```json\n{json.dumps(row['spec'], indent=2)}\n```\n"
@@ -473,9 +475,11 @@ recommendation. Replace the example hardware ID with the user's SKU.
 {REPORTING_RULES}
 
 If `reading.omitted` reports truncation, use the complete answer.members and issues
-lists. `may_qualify` means a required fact is unknown, not a pass. `status=partial`
-is incomplete evidence; report the tie and do not fall back to `rank`. An
-undetermined policy is not permission.
+lists. These rules also apply when reading is absent: inspect answer, issues, and
+result evidence directly. `may_qualify` means a required fact is unknown, not a pass.
+`status=partial` is incomplete evidence. `no_match` is not a winner. No single leader
+is an answer: report the tie. Do not fall back to `rank`. An undetermined policy is
+not permission.
 
 On refusal read error.issues and recovery hints, including their paths and valid
 examples. Correct the specified fields and retry. Tell the user any requirement
@@ -627,10 +631,8 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
             "decision_id and snapshot. "
             f"{REPORTING_RULES}{decide_price} {NOT_A_ROUTER} "
             f"Proxies POST {API}/v1/decide. {SPEC_GUIDANCE}"
-            f"Minimal valid Spec: {json.dumps(MINIMAL_SPEC, separators=(',', ':'))}. "
             f"{BOUNDED_MCP} {BOUNDED_MCP_DETAIL}"
             "task free text is rejected; where is an array. "
-            "Report any requirement dropped on retry. "
             f"Call shape, examples, recovery and budgets: {GUIDE_URL}. {NULL_RULE}"
         ),
         "rank": (

@@ -15,15 +15,19 @@ from collections.abc import Iterable
 from decision.contract import (
     AllOf,
     AnyOf,
+    Contribution,
     Decision,
     InSet,
+    Known,
     NotOf,
     Preference,
+    Result,
     Spec,
     _render_value,
     render_condition,
 )
 from decision.reading import HARDWARE_FIT
+from decision.refinements import split_dimension
 
 SUMMARY_BYTES = 1_200
 TIE_NAME_CAP = 8
@@ -39,6 +43,19 @@ _HARDWARE = (
     "fits_hardware is an estimate, not a measured fit for a quantization or context workload."
 )
 _OUTSIDE = "The request is outside coverage."
+_CLASS_FACET = "model.class"
+_TEXT_GENERATOR = "text-generator"
+_NO_CLASS = "No model class was required, so the ranking spans every class"
+_NO_CLASS_MENTION = "No model.class gate was set; results span all model classes."
+_COST_ONLY = "This answer is ordered by cost only; it is not a quality ranking."
+_TIE_COST = "Tie-breakers are conditional; cost order is not quality order."
+_QUALITY_CLAIM = "Do not claim a quality rank from this objective."
+_LATENT_UNIT = "latent capability"
+_COST_BASES = frozenset({
+    "offering.cost_per_task",
+    "offering.price.input",
+    "offering.price.output",
+})
 
 
 def summarize(
@@ -96,7 +113,7 @@ def _compose(
     mentions: list[tuple[str, str]],
     limits: dict[str, int],
 ) -> str:
-    parts = [_answer_sentence(decision, limits["tie"])]
+    parts = [_answer_sentence(decision, limits["tie"]), _class_sentence(decision, spec)]
     parts.extend(_why(decision, spec, unapplied, limits))
     parts.extend(_constraints(spec, unapplied, limits))
     parts.extend(_caveats(mentions, limits["caveat"]))
@@ -124,8 +141,17 @@ def _why(
             exclude = f"These requirements together exclude every model: {listed}."
         else:
             exclude = "These requirements together exclude every model."
+        sentences = [exclude]
         relax = _bounded(list(decision.relax), limits["relax"])
-        return [exclude, f"Relax suggestions: {relax}."]
+        if relax:
+            sentences.append(f"Relax suggestions: {relax}. These are options, not an answer.")
+        nearest = _bounded([item.relaxed for item in decision.relax_to], limits["relax"])
+        if nearest:
+            sentences.append(f"Nearest relaxations, not an answer: {nearest}.")
+        hint = decision.relax_task_tokens
+        if hint is not None:
+            sentences.append(f"Task-size relaxation, not an answer: {hint.condition}.")
+        return sentences
     if decision.status != "partial":
         return []
     unknowns: list[str] = []
@@ -235,16 +261,22 @@ def _mentions(
     decision: Decision, spec: Spec | None, unapplied: list[str],
 ) -> list[tuple[str, str]]:
     items: list[tuple[str, str]] = []
-    answer = decision.answer
-    if answer is not None and answer.kind == "tied":
-        count = len(answer.members)
+    if _presents_tie(decision) and decision.answer is not None:
+        count = len(decision.answer.members)
         items.append(("tie", f"No single winner: {count} models are tied."))
+    if spec is not None and not _has_class_gate(spec):
+        items.append(("class", _NO_CLASS_MENTION))
+    if _cost_only(decision, spec):
+        items.append(("cost", _COST_ONLY))
+    if _cost_tie_break(decision):
+        items.append(("tie_cost", _TIE_COST))
     for domain, benchmarks in _proxy(decision).items():
         items.append(("proxy", _proxy_sentence(domain, benchmarks)))
-    for model, dimension in _missing(decision, spec):
+    for model, dimensions in _missing(decision, spec):
         items.append((
             "missing",
-            f"{model} has no {dimension} data on the tracked boards; its position is not measured.",
+            f"{model} has no leaderboard data for {dimensions}; "
+            "its position is estimated, not measured.",
         ))
     for requirement in unapplied:
         items.append((
@@ -341,9 +373,12 @@ def _missing(decision: Decision, spec: Spec | None) -> list[tuple[str, str]]:
         return []
     pairs: list[tuple[str, str]] = []
     for model in _subjects(decision):
-        for dimension in dimensions:
-            if not _measured(decision, model, dimension):
-                pairs.append((model, dimension))
+        missing = [
+            dimension for dimension in dimensions
+            if _unmeasured(decision, model, dimension)
+        ]
+        if missing:
+            pairs.append((model, _name_list(missing, 8, more=" dimensions")))
     return pairs
 
 
@@ -370,51 +405,168 @@ def _board_dimensions(spec: Spec | None) -> list[str]:
     return dimensions
 
 
-def _measured(decision: Decision, model: str, dimension: str) -> bool:
-    base = dimension.split("/")[0]
+def _dimension_base(dimension: str) -> str:
+    return dimension.split("/")[0].split(" @")[0]
+
+
+def _unmeasured(decision: Decision, model: str, dimension: str) -> bool:
+    """True when this model's objective position is an estimate, latent, or null.
+
+    A driver board attached to a latent contribution is not a measured score.
+    Rows that carry neither a contribution nor an estimate for the dimension
+    say nothing, so they are not reported as unmeasured.
+    """
+    base = _dimension_base(dimension)
+    saw = False
+    measured = False
     for row in decision.results:
         if row.model != model:
             continue
-        if row.estimates and any(item.domain in (dimension, base) for item in row.estimates):
-            return True
-        if row.refinement_estimates and any(
-            item.key == dimension or item.refinement == dimension or item.domain == dimension
-            for item in row.refinement_estimates
+        states = [
+            _contribution_measured(contribution)
+            for contribution in row.contributions
+            if _contribution_matches(contribution, dimension, base)
+        ]
+        if states:
+            saw = True
+            measured = measured or any(states)
+            continue
+        if _direct_board(row, dimension, base):
+            saw = True
+            measured = True
+            continue
+        if _estimate_position(row, dimension, base):
+            saw = True
+    return saw and not measured
+
+
+def _contribution_matches(contribution: Contribution, dimension: str, base: str) -> bool:
+    key = contribution.dimension.removeprefix("-")
+    if contribution.refinement:
+        key = f"{key}/{contribution.refinement}"
+    return key == dimension or key == base
+
+
+def _contribution_measured(contribution: Contribution) -> bool:
+    formula = (contribution.formula or "").lower()
+    if contribution.unit == _LATENT_UNIT or "estimate" in formula:
+        return False
+    return contribution.value is not None or contribution.raw_value is not None
+
+
+def _direct_board(row: Result, dimension: str, base: str) -> bool:
+    for group in row.evidence:
+        matched = group.domain in (dimension, base) or any(
+            item.benchmark in (dimension, base) for item in group.items
+        )
+        if matched and any(
+            item.directness == "direct" and item.value is not None for item in group.items
         ):
             return True
-        for group in row.evidence:
-            if group.items and (
-                group.domain in (dimension, base)
-                or any(item.benchmark == dimension for item in group.items)
-            ):
-                return True
-        saw_dimension = False
-        for contribution in row.contributions:
-            key = contribution.dimension.removeprefix("-")
-            if key not in (dimension, base) and not key.startswith(dimension + "/"):
-                continue
-            saw_dimension = True
-            if contribution.value is not None or contribution.raw_value is not None or contribution.evidence:
-                return True
-        if saw_dimension:
-            return False
-        return False
-    if decision.bands is not None:
-        for band in (decision.bands.best, decision.bands.rest, decision.bands.thin):
-            for entry in band:
-                if entry.model == model and any(
-                    str(item.dimension) in (dimension, base) for item in entry.estimates
-                ):
-                    return True
     return False
 
 
+def _estimate_position(row: Result, dimension: str, base: str) -> bool:
+    if row.estimates and any(item.domain in (dimension, base) for item in row.estimates):
+        return True
+    return bool(row.refinement_estimates and any(
+        item.key == dimension or item.refinement == dimension or item.domain == dimension
+        for item in row.refinement_estimates
+    ))
+
+
 def _subjects(decision: Decision) -> list[str]:
+    models: list[str] = []
     if decision.answer is not None:
-        return list(decision.answer.deterministic_order)
-    if decision.results and decision.results[0].model:
-        return [decision.results[0].model]
-    return []
+        models.extend(decision.answer.deterministic_order)
+    if decision.results and decision.results[0].model and decision.results[0].model not in models:
+        models.append(decision.results[0].model)
+    return models
+
+
+def _presents_tie(decision: Decision) -> bool:
+    answer = decision.answer
+    return decision.status == "answered" and answer is not None and answer.kind == "tied"
+
+
+def _has_class_gate(spec: Spec) -> bool:
+    for condition in spec.where:
+        for leaf in _leaves(condition):
+            if isinstance(leaf, Known):
+                if leaf.known == _CLASS_FACET:
+                    return True
+            elif getattr(leaf, "facet", None) == _CLASS_FACET:
+                return True
+    return False
+
+
+def _class_sentence(decision: Decision, spec: Spec | None) -> str:
+    if spec is None or _has_class_gate(spec):
+        return ""
+    classes = _visible_classes(decision)
+    if not classes:
+        return _NO_CLASS + "."
+    return f"{_NO_CLASS}, including {_name_list(classes, 8, more=' classes')}."
+
+
+def _visible_classes(decision: Decision) -> list[str]:
+    order: list[str] = []
+    for model in _subjects(decision):
+        if model not in order:
+            order.append(model)
+    for row in decision.results:
+        if row.model and row.model not in order:
+            order.append(row.model)
+    by_model: dict[str, list[str]] = {}
+    for candidate in decision.top:
+        found = by_model.setdefault(candidate.offering.model, [])
+        for fact in candidate.facts:
+            if fact.facet != _CLASS_FACET or fact.value is None:
+                continue
+            values = fact.value if isinstance(fact.value, list) else [fact.value]
+            for value in values:
+                text = str(value)
+                if text and text != _TEXT_GENERATOR and text not in found:
+                    found.append(text)
+    classes: list[str] = []
+    for model in order:
+        for text in by_model.get(model, []):
+            if text not in classes:
+                classes.append(text)
+    return classes
+
+
+def _cost_only(decision: Decision, spec: Spec | None) -> bool:
+    reading = decision.reading
+    claimed = reading is not None and _QUALITY_CLAIM in reading.do_not_claim
+    if spec is None:
+        return claimed
+    bases = _objective_bases(spec)
+    if not bases:
+        return claimed
+    return all(base in _COST_BASES for base in bases)
+
+
+def _objective_bases(spec: Spec) -> list[str]:
+    objective = spec.optimize
+    if objective.max:
+        names = [objective.max]
+    elif objective.min:
+        names = [objective.min]
+    elif objective.lexicographic:
+        names = [step.facet for step in objective.lexicographic]
+    else:
+        names = list(objective.weights or objective.pareto or [])
+    return [split_dimension(name.removeprefix("-"))[0] for name in names]
+
+
+def _cost_tie_break(decision: Decision) -> bool:
+    answer = decision.answer
+    return (
+        _presents_tie(decision)
+        and answer is not None
+        and answer.tie_breakers.cheapest is not None
+    )
 
 
 def _hardware(decision: Decision, spec: Spec | None) -> bool:

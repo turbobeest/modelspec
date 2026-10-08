@@ -25,9 +25,16 @@ NO_ANSWER = "ModelSpec's answer is that there is no answer."
 PROXY = (
     "The evidence for software_engineering is a general proxy (general_bench), not task-specific."
 )
-MISSING = "lab/a has no coding_quality data on the tracked boards; its position is not measured."
+MISSING = (
+    "lab/a has no leaderboard data for coding_quality; "
+    "its position is estimated, not measured."
+)
 NOT_APPLIED = "eu_residency was not applied; ModelSpec did not check it."
 EITHER = "model.weights_openness is not required (either acceptable)."
+NO_CLASS = "No model class was required, so the ranking spans every class."
+NO_CLASS_MENTION = "No model.class gate was set; results span all model classes."
+COST_ONLY = "This answer is ordered by cost only; it is not a quality ranking."
+TIE_COST = "Tie-breakers are conditional; cost order is not quality order."
 TIE_THREE = (
     "ModelSpec's answer is a tie among lab/a, lab/b, and lab/c, "
     "and the evidence does not separate them."
@@ -134,7 +141,17 @@ def test_a_long_tie_names_eight_and_counts_the_rest() -> None:
         "lab/m6, lab/m7, and lab/m8, and 2 more in answer.members, "
         "and the evidence does not separate them"
     )
-    assert mentions == ["No single winner: 10 models are tied."]
+    assert text == (
+        "ModelSpec's answer is a tie among lab/m1, lab/m2, lab/m3, lab/m4, lab/m5, "
+        "lab/m6, lab/m7, and lab/m8, and 2 more in answer.members, "
+        "and the evidence does not separate them. "
+        f"{NO_CLASS} No single winner: 10 models are tied. {NO_CLASS_MENTION} {COST_ONLY}"
+    )
+    assert mentions == [
+        "No single winner: 10 models are tied.",
+        NO_CLASS_MENTION,
+        COST_ONLY,
+    ]
     for word in ("better", "worse", "best", "recommended"):
         assert word not in _answer_sentence(text)
 
@@ -148,9 +165,12 @@ def test_no_feasible_names_no_pick_and_keeps_the_relax_suggestions() -> None:
         f"{NO_ANSWER} These requirements together exclude every model: "
         "offering.region = eu; model.class = text-generator. "
         "Relax suggestions: offering.region = eu; model.class = text-generator. "
-        "Hard requirements: offering.region = eu; model.class = text-generator."
+        "These are options, not an answer. "
+        "Hard requirements: offering.region = eu; model.class = text-generator. "
+        f"{COST_ONLY}"
     )
-    assert mentions == []
+    assert mentions == [COST_ONLY]
+    assert "tied" not in text
     assert "lab/" not in text
     for word in ("top", "best", "recommended"):
         assert re.search(rf"\b{word}\b", text, re.I) is None
@@ -164,11 +184,13 @@ def test_partial_names_no_pick_and_counts_models_that_may_qualify() -> None:
     )
     text, mentions = summarize(decision, _spec(optimize={"min": "offering.cost_per_task"}))
     assert text == (
-        f"{NO_ANSWER} What is missing: licence.commercial_use. "
+        f"{NO_ANSWER} {NO_CLASS} What is missing: licence.commercial_use. "
         "1 model may qualify; unknown values. "
+        f"{NO_CLASS_MENTION} {COST_ONLY} "
         "1 model may qualify; unknown values."
     )
-    assert mentions == ["1 model may qualify; unknown values."]
+    assert mentions == [NO_CLASS_MENTION, COST_ONLY, "1 model may qualify; unknown values."]
+    assert "tied" not in text
     assert "lab/a" not in text and "lab/maybe" not in text
     for word in ("top", "best", "recommended"):
         assert re.search(rf"\b{word}\b", text, re.I) is None
@@ -184,14 +206,23 @@ def test_an_unapplied_requirement_is_not_described_as_applied() -> None:
     )
     spec = _spec(capabilities={"eu_residency": "required", "software_engineering": "required"})
     text, mentions = summarize(decision, spec, not_applied=["eu_residency"])
+    unmeasured = (
+        "lab/a has no leaderboard data for software_engineering; "
+        "its position is estimated, not measured."
+    )
     assert text == (
-        "ModelSpec's answer is lab/a. "
+        f"ModelSpec's answer is lab/a. {NO_CLASS} "
         "Hard requirements: software_engineering is required. "
         "Not applied and not enforced: eu_residency. "
-        f"{NOT_APPLIED} "
+        f"{NO_CLASS_MENTION} {unmeasured} {NOT_APPLIED} "
         "Estimates are estimates, not measurements."
     )
-    assert mentions == [NOT_APPLIED, "Estimates are estimates, not measurements."]
+    assert mentions == [
+        NO_CLASS_MENTION,
+        unmeasured,
+        NOT_APPLIED,
+        "Estimates are estimates, not measurements.",
+    ]
     assert "eu_residency is required" not in text
     assert "you must" not in text and "do not" not in text
     assert re.search(r"\bpresent\b", text, re.I) is None
@@ -204,8 +235,10 @@ def test_either_weights_openness_is_echoed_as_not_required() -> None:
         optimize={"min": "offering.cost_per_task"},
     )
     text, mentions = summarize(decision, spec)
-    assert text == f"ModelSpec's answer is lab/a. {EITHER}"
-    assert mentions == []
+    assert text == (
+        f"ModelSpec's answer is lab/a. {NO_CLASS} {EITHER} {NO_CLASS_MENTION} {COST_ONLY}"
+    )
+    assert mentions == [NO_CLASS_MENTION, COST_ONLY]
     assert "closed_weights" not in text
     assert "open_weights = false" not in text
     assert "closed weights required" not in text
@@ -219,16 +252,19 @@ def test_a_closed_weights_comparison_stays_a_hard_requirement() -> None:
     )
     text, _mentions = summarize(decision, spec)
     assert text == (
-        "ModelSpec's answer is lab/a. "
-        "Hard requirements: model.weights_openness = closed_weights."
+        f"ModelSpec's answer is lab/a. {NO_CLASS} "
+        "Hard requirements: model.weights_openness = closed_weights. "
+        f"{NO_CLASS_MENTION} {COST_ONLY}"
     )
 
 
 def test_a_preference_for_false_stays_false() -> None:
     decision = _decision(answer=_separated("lab/a"))
     spec = _spec(optimize={"weights": {"licence.commercial_use": {"prefer": False, "weight": 1}}})
-    text, _mentions = summarize(decision, spec)
+    text, mentions = summarize(decision, spec)
     assert "licence.commercial_use prefers false" in text
+    assert NO_CLASS in text and NO_CLASS_MENTION in mentions
+    assert COST_ONLY not in text
     assert "closed_weights" not in text
 
 
@@ -238,8 +274,203 @@ def test_missing_board_data_is_named_for_the_answer_member() -> None:
         results=[_row("lab/a", contributions=[{"dimension": "coding_quality", "value": None}])],
     )
     text, mentions = summarize(decision, _spec(optimize={"max": "coding_quality"}))
-    assert text == f"ModelSpec's answer is lab/a. {MISSING}"
-    assert mentions == [MISSING]
+    assert text == f"ModelSpec's answer is lab/a. {NO_CLASS} {NO_CLASS_MENTION} {MISSING}"
+    assert mentions == [NO_CLASS_MENTION, MISSING]
+
+
+def test_no_class_gate_states_the_scope_and_names_other_classes() -> None:
+    decision = _decision(
+        answer=_separated("typesafe/jev-1-13"),
+        results=[_row("typesafe/jev-1-13"), _row("lab/a", rank=2)],
+        top=[
+            {
+                "offering": {"model": "typesafe/jev-1-13"},
+                "facts": [{"facet": "model.class", "value": "decider"}],
+            },
+            {
+                "offering": {"model": "lab/a"},
+                "facts": [{"facet": "model.class", "value": "text-generator"}],
+            },
+        ],
+    )
+    text, mentions = summarize(decision, _spec(optimize={"min": "offering.cost_per_task"}))
+    scope = "No model class was required, so the ranking spans every class, including decider."
+    assert scope in text
+    assert "text-generator" not in text
+    assert NO_CLASS_MENTION in mentions
+
+
+def test_a_class_gate_is_echoed_exactly() -> None:
+    decision = _decision(answer=_separated("lab/a"))
+    text, mentions = summarize(decision, _spec(where=["model.class = text-generator"]))
+    assert text == (
+        "ModelSpec's answer is lab/a. Hard requirements: model.class = text-generator."
+    )
+    assert mentions == []
+    assert "No model class was required" not in text
+    assert NO_CLASS_MENTION not in mentions
+
+
+def test_a_relaxed_gate_is_an_option_and_partial_is_not_a_tie() -> None:
+    decision = _decision(
+        status="no_feasible",
+        results=[],
+        answer=None,
+        relax=["offering.price.input <= 0.5"],
+        relax_to=[{
+            "condition": "offering.price.input <= 0.5",
+            "relaxed": "offering.price.input <= 0.75",
+            "facet": "offering.price.input",
+            "value": 0.75,
+            "admits": 2,
+        }],
+    )
+    spec = _spec(
+        where=["offering.price.input <= 0.5", "model.class = text-generator"],
+        optimize={"min": "offering.cost_per_task"},
+    )
+    text, mentions = summarize(decision, spec)
+    assert text == (
+        f"{NO_ANSWER} These requirements together exclude every model: "
+        "offering.price.input <= 0.5; model.class = text-generator. "
+        "Relax suggestions: offering.price.input <= 0.5. These are options, not an answer. "
+        "Nearest relaxations, not an answer: offering.price.input <= 0.75. "
+        "Hard requirements: offering.price.input <= 0.5; model.class = text-generator. "
+        f"{COST_ONLY}"
+    )
+    assert mentions == [COST_ONLY]
+    assert "tied" not in text and "tied" not in " ".join(mentions)
+
+    partial = _decision(
+        status="partial",
+        answer=_tied(["lab/a", "lab/b"]),
+        may_qualify=[{"model": "lab/maybe", "unknown": ["licence.commercial_use"]}],
+    )
+    partial_text, partial_mentions = summarize(
+        partial, _spec(where=["model.class = text-generator"]),
+    )
+    assert partial_text.startswith(NO_ANSWER)
+    assert "tied" not in partial_text
+    assert "tie" not in partial_text.lower()
+    assert all("tied" not in item and "tie" not in item.lower() for item in partial_mentions)
+
+
+def test_an_estimated_position_is_not_leaderboard_data() -> None:
+    latent = _decision(
+        answer=_separated("lab/a"),
+        results=[_row("lab/a", contributions=[{
+            "dimension": "chat_preference",
+            "value": 1.0,
+            "raw_value": 1.58,
+            "unit": "latent capability",
+            "formula": "monotone domain evidence estimate",
+            "evidence": [_evidence(directness="direct", benchmark="arena_webdev")],
+        }])],
+    )
+    expected = (
+        "lab/a has no leaderboard data for chat_preference; "
+        "its position is estimated, not measured."
+    )
+    text, mentions = summarize(
+        latent, _spec(where=["model.class = text-generator"], optimize={"max": "chat_preference"}),
+    )
+    assert text == (
+        "ModelSpec's answer is lab/a. "
+        f"Hard requirements: model.class = text-generator. {expected}"
+    )
+    assert mentions == [expected]
+
+    measured = _decision(
+        answer=_separated("openai/gpt-6-astra"),
+        results=[_row(
+            "openai/gpt-6-astra",
+            estimates=[{"domain": "software_engineering", "value": 0.5, "interval": [0.4, 0.6]}],
+            contributions=[{
+                "dimension": "terminal_bench_v4_0",
+                "value": 1.0,
+                "raw_value": 58.18,
+                "unit": "percent",
+                "evidence": [_evidence(directness="direct", benchmark="terminal_bench_v4_0")],
+            }],
+        )],
+    )
+    measured_text, measured_mentions = summarize(
+        measured,
+        _spec(where=["model.class = text-generator"], optimize={"max": "terminal_bench_v4_0"}),
+    )
+    assert "no leaderboard data" not in measured_text
+    assert measured_mentions == ["Estimates are estimates, not measurements."]
+
+    estimated = _decision(
+        answer=_separated("lab/a"),
+        results=[_row(
+            "lab/a",
+            estimates=[{"domain": "coding_quality", "value": 0.4, "interval": [0.2, 0.6]}],
+        )],
+    )
+    _, estimated_mentions = summarize(
+        estimated,
+        _spec(where=["model.class = text-generator"], optimize={"max": "coding_quality"}),
+    )
+    assert estimated_mentions == [
+        MISSING,
+        "Estimates are estimates, not measurements.",
+    ]
+
+    top = _decision(
+        answer=_separated("lab/measured"),
+        results=[
+            _row("lab/estimated", rank=1, contributions=[{
+                "dimension": "coding_quality",
+                "value": 1.0,
+                "unit": "latent capability",
+                "formula": "monotone domain evidence estimate",
+            }]),
+            _row("lab/measured", rank=2, contributions=[{
+                "dimension": "coding_quality",
+                "value": 0.5,
+                "raw_value": 40.0,
+                "unit": "percent",
+            }]),
+        ],
+    )
+    _, top_mentions = summarize(
+        top, _spec(where=["model.class = text-generator"], optimize={"max": "coding_quality"}),
+    )
+    assert top_mentions == [
+        "lab/estimated has no leaderboard data for coding_quality; "
+        "its position is estimated, not measured."
+    ]
+
+
+def test_cost_only_is_not_a_quality_ranking_and_a_cost_tie_break_says_so() -> None:
+    decision = _decision(answer=_separated("lab/a"))
+    text, mentions = summarize(decision, _spec(optimize={"min": "offering.cost_per_task"}))
+    assert text == f"ModelSpec's answer is lab/a. {NO_CLASS} {NO_CLASS_MENTION} {COST_ONLY}"
+    assert mentions == [NO_CLASS_MENTION, COST_ONLY]
+
+    mixed = _decision(
+        answer=_separated("lab/a"),
+        reading={"do_not_claim": ["Do not claim a quality rank from this objective."]},
+    )
+    mixed_text, mixed_mentions = summarize(
+        mixed,
+        _spec(optimize={"weights": {"-offering.cost_per_task": 0.7, "chat_preference": 0.3}}),
+    )
+    assert COST_ONLY not in mixed_text
+    assert COST_ONLY not in mixed_mentions
+    assert NO_CLASS_MENTION in mixed_mentions
+
+    tied = _tied(["lab/a", "lab/b"])
+    tied["tie_breakers"] = {**TIE_BREAKERS, "cheapest": "lab/a"}
+    tie = _decision(
+        results=[_row("lab/a"), _row("lab/b", rank=2)],
+        answer=tied,
+    )
+    tie_text, tie_mentions = summarize(tie, _spec(where=["model.class = text-generator"]))
+    assert TIE_COST in tie_text
+    assert tie_mentions == ["No single winner: 2 models are tied.", TIE_COST]
+    assert COST_ONLY not in tie_text
 
 
 def test_the_same_decision_renders_the_same_bytes() -> None:
@@ -288,8 +519,12 @@ def test_must_mention_and_the_paragraph_stay_inside_their_byte_caps() -> None:
     assert len(mentions) == MUST_MENTION_MAX
     assert mentions[0] == "No single winner: 2 models are tied."
     assert mentions[1] == PROXY
-    assert mentions[2] == clipped
-    assert mentions[-1] == "and 10 more."
+    assert mentions[2] == (
+        "lab/a has no leaderboard data for software_engineering; "
+        "its position is estimated, not measured."
+    )
+    assert mentions[3] == clipped
+    assert mentions[-1] == "and 12 more."
     assert "Outside the board." in mentions
     assert "1 model may qualify; unknown values." in mentions
     assert "3 active models are out of the lineup." in mentions
@@ -313,9 +548,15 @@ def test_must_mention_and_the_paragraph_stay_inside_their_byte_caps() -> None:
     )
     assert len(huge_text.encode("utf-8")) <= SUMMARY_BYTES
     assert huge_text.startswith(NO_ANSWER)
+    assert "No model class was required, so the ranking spans every class." in huge_text
+    assert "These are options, not an answer." in huge_text
+    assert NO_CLASS_MENTION in huge_text
+    assert COST_ONLY in huge_text
     assert "facet_00 >= 0" in huge_text
     assert "Relax suggestions:" in huge_text
-    assert "and 16 more" in huge_text
+    assert "and 20 more" in huge_text
+    assert "and 28 more" in huge_text
+    assert "tied" not in huge_text
     assert "lab/" not in huge_text
 
 
@@ -345,8 +586,10 @@ def test_bounded_responses_keep_the_summary_through_trim_and_drill_down() -> Non
     # worst case the paragraph is allowed to spell out.
     text, mentions = summarize(fat, spec, not_applied=unapplied)
     assert len(mentions) == MUST_MENTION_MAX
-    assert text.startswith("ModelSpec's answer is a tie among lab/m1, lab/m2,")
-    assert "and 2 more in answer.members" in text
+    assert text.startswith(
+        "ModelSpec's answer is a tie among lab/m1, and 9 more in answer.members, "
+        "and the evidence does not separate them."
+    )
     assert len(text.encode("utf-8")) <= SUMMARY_BYTES
 
     body = project(

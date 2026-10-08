@@ -13,7 +13,7 @@ cost, reasons and constraint eliminations.
   [`api-policy-check.md`](api-policy-check.md).
 * `GET /v1/health` — the deployed version, and whether it can read the exports.
 * Spec: [`api/worker/openapi.yaml`](../api/worker/openapi.yaml), generated from
-  the implementation. Build your client from it.
+  the implementation.
 
 ## Request
 

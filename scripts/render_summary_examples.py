@@ -1,17 +1,23 @@
-"""Render the three MODEL-339 copy-gate examples from the public snapshot.
+"""Render the MODEL-339 copy-gate examples from the public snapshot.
 
     PYTHONPATH=$PWD python scripts/render_summary_examples.py
 
 Uses the same snapshot the budget tests build (as_of 2026-10-02). No vendor call.
+Specs come from the recall set and the template registry. The script adds
+``fields`` so the bounded response carries the summary. It does not add gates.
 """
 
 from __future__ import annotations
 
 import importlib.util
 import json
+from copy import deepcopy
 from pathlib import Path
 
+import yaml
+
 from decision.bounded import mcp_text_bytes
+from decision.templates import template_by_id
 from qa.decide_budget import public_snapshot
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -20,43 +26,11 @@ FIELDS = [
     "model", "model_rank", "cost_per_task", "estimates", "p_best", "warnings", "evidence",
 ]
 
-EXAMPLES = {
-    # Five models have no software_engineering value. unknown(fail) excludes
-    # them, so the decision is answered and the tie is the answer. Without
-    # that gate the same four models are tied and status is partial.
-    "tie": {
-        "spec_version": 1,
-        "where": [
-            "model.class = text-generator",
-            "software_engineering >= 0 unknown(fail)",
-        ],
-        "capabilities": {
-            "software_engineering": "required",
-            "agentic_tool_use": "required",
-        },
-        "optimize": {"max": "software_engineering"},
-        "explain": "summary",
-        "limit": 8,
-        "fields": FIELDS,
-    },
-    "no_feasible": {
-        "spec_version": 1,
-        "where": ["model.max_output_tokens >= 1000000000"],
-        "optimize": {"min": "offering.cost_per_task"},
-        "explain": "none",
-        "limit": 5,
-        "fields": ["model"],
-    },
-    "constrained": {
-        "spec_version": 1,
-        "where": ["model.class = text-generator", "reasoning >= 0 unknown(fail)"],
-        "capabilities": {"thread_safety": "required"},
-        "optimize": {"max": "reasoning"},
-        "explain": "summary",
-        "limit": 5,
-        "fields": FIELDS,
-    },
-}
+NO_ANSWER = "ModelSpec's answer is that there is no answer."
+NO_CLASS = "No model class was required, so the ranking spans every class"
+NO_CLASS_MENTION = "No model.class gate was set; results span all model classes."
+COST_ONLY = "This answer is ordered by cost only; it is not a quality ranking."
+TIE_COST = "Tie-breakers are conditional; cost order is not quality order."
 
 
 def _service():
@@ -67,12 +41,57 @@ def _service():
     return module
 
 
+def _recall(name: str) -> dict:
+    raw = yaml.safe_load((ROOT / "tests/recall/specs" / name).read_text())
+    raw.pop("task_type", None)
+    raw.pop("snapshot", None)
+    raw["fields"] = ["model"]
+    return raw
+
+
+def examples() -> dict[str, dict]:
+    regulated = deepcopy(template_by_id("regulated-best")["spec"])
+    regulated["explain"] = "summary"
+    regulated["limit"] = 8
+    regulated["fields"] = list(FIELDS)
+    return {
+        "tie": regulated,
+        "partial": _recall("Q01.yaml"),
+        "no_feasible": {
+            "spec_version": 1,
+            "where": ["model.max_output_tokens >= 1000000000"],
+            "optimize": {"min": "offering.cost_per_task"},
+            "explain": "none",
+            "limit": 5,
+            "fields": ["model"],
+        },
+        "constrained": {
+            "spec_version": 1,
+            "where": ["model.class = text-generator", "reasoning >= 0 unknown(fail)"],
+            "capabilities": {"thread_safety": "required"},
+            "optimize": {"max": "reasoning"},
+            "explain": "summary",
+            "limit": 5,
+            "fields": list(FIELDS),
+        },
+        "cost_only": {
+            "spec_version": 1,
+            "optimize": {"min": "offering.cost_per_task"},
+            "explain": "full",
+            "limit": 5,
+            "fields": list(FIELDS),
+        },
+    }
+
+
 def render(service, snapshot) -> list[dict]:
     rows = []
-    for name, spec in EXAMPLES.items():
+    for name, spec in examples().items():
         status, body = service.decide(spec, snapshot)
         if status != 200:
-            raise SystemExit(f"{name} returned {status}: {json.dumps(body, ensure_ascii=False)[:2000]}")
+            raise SystemExit(
+                f"{name} returned {status}: {json.dumps(body, ensure_ascii=False)[:2000]}"
+            )
         answer = body.get("answer")
         rows.append({
             "name": name,
@@ -80,6 +99,9 @@ def render(service, snapshot) -> list[dict]:
             "decision_status": body.get("status"),
             "answer_kind": None if answer is None else answer.get("kind"),
             "answer_members": None if answer is None else answer.get("members"),
+            "cheapest": (
+                None if answer is None else (answer.get("tie_breakers") or {}).get("cheapest")
+            ),
             "summary_for_user": body.get("summary_for_user"),
             "must_mention": body.get("must_mention"),
             "mcp_text_bytes": mcp_text_bytes(body),
@@ -87,24 +109,56 @@ def render(service, snapshot) -> list[dict]:
     return rows
 
 
+def _check(rows: list[dict]) -> None:
+    by_name = {row["name"]: row for row in rows}
+    tie = by_name["tie"]
+    if tie["decision_status"] != "answered" or tie["answer_kind"] != "tied":
+        raise SystemExit("tie example is not an answered tie: " + json.dumps(tie)[:2000])
+    if "software_engineering >= 0" in json.dumps(tie["spec"]):
+        raise SystemExit("tie example added a gate")
+    if not str(tie["summary_for_user"]).startswith("ModelSpec's answer is a tie among "):
+        raise SystemExit("tie summary does not state the tie")
+    if TIE_COST not in tie["summary_for_user"] or TIE_COST not in tie["must_mention"]:
+        raise SystemExit("tie example did not name the cost tie-break")
+    if COST_ONLY in (tie["summary_for_user"] or ""):
+        raise SystemExit("quality tie was described as cost-only")
+
+    partial = by_name["partial"]
+    if partial["decision_status"] != "partial":
+        raise SystemExit("Q01 was not partial: " + json.dumps(partial)[:2000])
+    if not str(partial["summary_for_user"]).startswith(NO_ANSWER):
+        raise SystemExit("partial summary names an answer")
+    if "tied" in (partial["summary_for_user"] or ""):
+        raise SystemExit("partial summary says tied")
+
+    empty = by_name["no_feasible"]
+    if empty["decision_status"] != "no_feasible" or empty["answer_members"] is not None:
+        raise SystemExit("null example was not no_feasible: " + json.dumps(empty)[:2000])
+    summary = empty["summary_for_user"] or ""
+    if "tied" in summary or not summary.startswith(NO_ANSWER):
+        raise SystemExit("no_feasible summary presents an answer")
+    if "These are options, not an answer." not in summary:
+        raise SystemExit("no_feasible summary does not list relaxations as options")
+
+    constrained = by_name["constrained"]
+    text = constrained["summary_for_user"] or ""
+    if "not applied" not in text or "proxy" not in text:
+        raise SystemExit("constrained example is missing a not-applied or proxy caveat")
+
+    cost = by_name["cost_only"]
+    shown = cost["summary_for_user"] or ""
+    if COST_ONLY not in shown or COST_ONLY not in cost["must_mention"]:
+        raise SystemExit("cost-only example did not say it is not a quality ranking")
+    if NO_CLASS not in shown or NO_CLASS_MENTION not in cost["must_mention"]:
+        raise SystemExit("cost-only example did not state the class scope")
+    if "where" in cost["spec"]:
+        raise SystemExit("cost-only example has a gate")
+
+
 def main() -> None:
     rows = render(_service(), public_snapshot())
-    tie, empty, constrained = rows
-    if tie["answer_kind"] != "tied" or not tie["answer_members"]:
-        raise SystemExit("tie example did not tie: " + json.dumps(tie, ensure_ascii=False)[:2000])
-    if empty["decision_status"] != "no_feasible" or empty["answer_members"] is not None:
-        raise SystemExit("null example was not no_feasible: " + json.dumps(empty, ensure_ascii=False)[:2000])
-    if "not applied" not in (constrained["summary_for_user"] or ""):
-        raise SystemExit("constrained example did not say not applied: " + json.dumps(constrained, ensure_ascii=False)[:2000])
-    text = json.dumps(rows, ensure_ascii=False, indent=2)
-    print(text)
-    if tie["answer_kind"] != "tied" or not tie["answer_members"]:
-        raise SystemExit("tie example did not tie")
-    if empty["decision_status"] != "no_feasible" or empty["answer_members"] is not None:
-        raise SystemExit("null example was not no_feasible")
-    summary = constrained["summary_for_user"] or ""
-    if "not applied" not in summary or "proxy" not in summary:
-        raise SystemExit("constrained example is missing a not-applied or proxy caveat")
+    _check(rows)
+    print(json.dumps(rows, ensure_ascii=False, indent=2))
 
 
 if __name__ == "__main__":
