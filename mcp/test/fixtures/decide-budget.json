@@ -18,7 +18,7 @@
   },
   "default": {
     "representation": "bounded",
-    "bounded_version": "1.0",
+    "bounded_version": "1.1",
     "projects_contract": "2.14",
     "decision_id": "dec_1932b1664c177b74446ef335",
     "snapshot": "snap_be143b431be06c02",
@@ -498,11 +498,19 @@
       },
       "note": "Projected rows are incomplete; omissions are not eliminations or absent evidence.",
       "fetch": "explanation.omitted counts records removed from this bounded answer. Resend this spec with evidence_for: anthropic/claude-opus-5-5 for one model's evidence; narrow fields or lower limit; or POST /v1/decide without fields for the complete Decision."
-    }
+    },
+    "summary_for_user": "ModelSpec's answer is incomplete, so it names no pick. What is missing: software_engineering. 12 more models may qualify, but ModelSpec lacks their values for these requirements. Requirements applied: software_engineering is required. No model class was required, so results span every class. anthropic/claude-opus-5-5, anthropic/claude-sonnet-5-5, and openai/gpt-6-astra, and 1 more have no leaderboard data for software_engineering; their positions are estimated, not measured. ModelSpec compared only the models in its lineup; 1,328 active catalogue models are outside it. Some values are estimates, not measurements.",
+    "must_mention": [
+      "No model class was required, so results span every class.",
+      "anthropic/claude-opus-5-5, anthropic/claude-sonnet-5-5, and openai/gpt-6-astra, and 1 more have no leaderboard data for software_engineering; their positions are estimated, not measured.",
+      "12 more models may qualify, but ModelSpec lacks their values for these requirements.",
+      "ModelSpec compared only the models in its lineup; 1,328 active catalogue models are outside it.",
+      "Some values are estimates, not measurements."
+    ]
   },
   "drill_down": {
     "representation": "bounded",
-    "bounded_version": "1.0",
+    "bounded_version": "1.1",
     "projects_contract": "2.14",
     "decision_id": "dec_1932b1664c177b74446ef335",
     "snapshot": "snap_be143b431be06c02",
@@ -578,7 +586,8 @@
         "may_qualify": 12,
         "results": 10,
         "bands": 28,
-        "model_evidence.contributions": 1
+        "model_evidence.contributions": 1,
+        "model_evidence.evidence.items": 1
       },
       "note": "Projected rows are incomplete; omissions are not eliminations or absent evidence.",
       "fetch": "explanation.omitted counts records removed from this bounded answer. Resend this spec with evidence_for: anthropic/claude-opus-5-5 for one model's evidence; narrow fields or lower limit; or POST /v1/decide without fields for the complete Decision."
@@ -716,30 +725,6 @@
               "loading": null,
               "estimate_weight": null,
               "recency_weight": null
-            },
-            {
-              "requested_domain": "software_engineering",
-              "record_id": "anthropic/claude-opus-5-5#terminal_bench_v4_0#cef666866997",
-              "benchmark": "terminal_bench_v4_0",
-              "version": "Terminal-Bench 4.0",
-              "sub_category": null,
-              "value": 66.4,
-              "unit": "percent",
-              "n": null,
-              "interval": null,
-              "quality_flags": [],
-              "measured_by": "provider_self_report",
-              "effort": "xhigh",
-              "harness": null,
-              "harness_unregistered": false,
-              "date": "2026-09-22",
-              "date_type": "published",
-              "source": "https://www.anthropic.com/claude-opus-5-5-system-card",
-              "source_snapshot": "sha256:e75849cf0ff2004f783564f245ad70f70226ff88bf4caebf25ab091b6e2983d1",
-              "directness": "proxy",
-              "loading": null,
-              "estimate_weight": null,
-              "recency_weight": null
             }
           ]
         }
@@ -750,7 +735,15 @@
       "warnings": [
         "not_separable"
       ]
-    }
+    },
+    "summary_for_user": "ModelSpec's answer is incomplete, so it names no pick. What is missing: software_engineering. 12 more models may qualify, but ModelSpec lacks their values for these requirements. Requirements applied: software_engineering is required. No model class was required, so results span every class. anthropic/claude-opus-5-5, anthropic/claude-sonnet-5-5, and openai/gpt-6-astra, and 1 more have no leaderboard data for software_engineering; their positions are estimated, not measured. ModelSpec compared only the models in its lineup; 1,328 active catalogue models are outside it. Some values are estimates, not measurements.",
+    "must_mention": [
+      "No model class was required, so results span every class.",
+      "anthropic/claude-opus-5-5, anthropic/claude-sonnet-5-5, and openai/gpt-6-astra, and 1 more have no leaderboard data for software_engineering; their positions are estimated, not measured.",
+      "12 more models may qualify, but ModelSpec lacks their values for these requirements.",
+      "ModelSpec compared only the models in its lineup; 1,328 active catalogue models are outside it.",
+      "Some values are estimates, not measurements."
+    ]
   },
   "speech_request": {
     "spec_version": 1,
@@ -771,7 +764,7 @@
   },
   "speech": {
     "representation": "bounded",
-    "bounded_version": "1.0",
+    "bounded_version": "1.1",
     "projects_contract": "2.14",
     "decision_id": "dec_36e794d2a5f775c67ca722d3",
     "snapshot": "snap_be143b431be06c02",
@@ -853,6 +846,11 @@
       "not_applied": [],
       "omitted": {},
       "note": "Projected rows are incomplete; omissions are not eliminations or absent evidence."
-    }
+    },
+    "summary_for_user": "ModelSpec found no model that meets every requirement, so it names no pick. These requirements together exclude every model: model.class = transcriber. Requirements applied: model.class = transcriber. The request is outside coverage. ModelSpec compared only the models in its lineup; 1,328 active catalogue models are outside it.",
+    "must_mention": [
+      "The request is outside coverage.",
+      "ModelSpec compared only the models in its lineup; 1,328 active catalogue models are outside it."
+    ]
   }
 }

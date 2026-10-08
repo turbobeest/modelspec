@@ -601,6 +601,45 @@ describe("modelspec MCP worker", () => {
     expect(result.content[1].text).not.toContain("top models: none");
   });
 
+  it("decide passes member_evidence through when the body is inside the budget", async () => {
+    const body = {
+      representation: "bounded",
+      bounded_version: "1.1",
+      projects_contract: "2.14",
+      status: "answered",
+      answer: { kind: "tied", members: ["lab/a", "lab/b"] },
+      warnings: [],
+      results: [{ rank: 1, model: "lab/a", offering: { model: "lab/a" }, warnings: [], evidence: [] }],
+      may_qualify: [],
+      member_evidence: [
+        {
+          model: "lab/a",
+          evidence: [{
+            domain: "software_engineering",
+            items: [{ record_id: "lab/a#swe_bench_pro#70", benchmark: "swe_bench_pro", value: 70 }],
+          }],
+          omitted_items: 1,
+        },
+        { model: "lab/b", evidence: [], omitted_items: 0 },
+      ],
+      explanation: {
+        not_applied: [],
+        omitted: {},
+        note: "Projected rows are incomplete; omissions are not eliminations or absent evidence.",
+      },
+    };
+    originFetch.mockResolvedValueOnce(jsonResponse(200, body));
+    const { payload } = await rpc("tools/call", {
+      name: "decide",
+      arguments: { spec_version: 1, optimize: { max: "software_engineering" }, explain: "summary" },
+    });
+    const result = payload.result as { content: Array<{ text: string }> };
+    const envelope = JSON.parse(result.content[0].text) as { body: typeof body };
+    expect(envelope.body.member_evidence).toEqual(body.member_evidence);
+    expect(envelope.body.bounded_version).toBe("1.1");
+    expect(result.content[1].text).toBe("status: answered; top models: lab/a; may qualify: 0");
+  });
+
   it("decide keeps a drill-down summary when the evidence body is over budget", async () => {
     const pad = "x".repeat(20_000);
     const huge = {

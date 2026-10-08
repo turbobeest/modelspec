@@ -367,7 +367,7 @@ function slimDecision(body: Record<string, unknown>): Record<string, unknown> {
   const notice: Record<string, unknown> = {};
   if (body.representation === "bounded" || typeof body.contract_version === "string" || typeof body.projects_contract === "string") {
     notice.representation = "bounded";
-    notice.bounded_version = "1.0";
+    notice.bounded_version = "1.1";
     notice.projects_contract =
       typeof body.projects_contract === "string"
         ? body.projects_contract
@@ -378,7 +378,7 @@ function slimDecision(body: Record<string, unknown>): Record<string, unknown> {
   for (const key of [
     "decision_id", "snapshot", "signature_verified", "spec_hash", "explain", "status",
     "answer", "warnings", "truncated", "out_of_lineup", "relax", "relax_to", "feedback",
-    "reading", "coverage", "summary_for_user", "must_mention",
+    "reading", "coverage", "summary_for_user", "must_mention", "member_evidence",
   ]) {
     if (key in body) notice[key] = body[key];
   }
@@ -509,7 +509,7 @@ export function fitDecideEnvelope(envelope: OriginEnvelope): OriginEnvelope {
   const priorTrimmed = omitted.trimmed;
   const minimal: Record<string, unknown> = {
     representation: "bounded",
-    bounded_version: "1.0",
+    bounded_version: "1.1",
     projects_contract: shortText(bare.projects_contract, shortText(bare.contract_version, "2.14"), 16),
     status: shortText(bare.status, "trimmed"),
     answer: { kind: "tied", members: [] },

@@ -10,6 +10,7 @@ from decision.bounded import (
     AGENT_BYTES,
     DEFAULT_FIELDS,
     EXPLAIN_ROW_FIELDS,
+    MEMBER_EVIDENCE_ITEMS,
     RESPONSE_BYTES,
     SUMMARY_RESERVE_BYTES,
     agent_summary,
@@ -146,6 +147,34 @@ def test_every_template_and_scenario_stays_within_the_agent_budget(service, publ
             )
         if "status" not in body or "answer" not in body:
             failures.append(f"{label} dropped status or answer")
+        answer = body.get("answer")
+        members = answer.get("members") if isinstance(answer, dict) else None
+        explained = row["explain"] in ("summary", "full") and bool(members)
+        if explained:
+            entries = body.get("member_evidence")
+            if not isinstance(entries, list):
+                failures.append(f"{label} explained answer has no member_evidence")
+                continue
+            if [entry.get("model") for entry in entries] != list(members):
+                failures.append(f"{label} member_evidence is not answer.members in order")
+            for entry in entries:
+                if not isinstance(entry.get("omitted_items"), int) or entry["omitted_items"] < 0:
+                    failures.append(f"{label} {entry.get('model')} omitted_items is not a count")
+                    continue
+                count = 0
+                for group in entry.get("evidence") or []:
+                    for item in group.get("items") or []:
+                        count += 1
+                        try:
+                            contract.EvidenceItem.model_validate(item)
+                        except Exception as exc:
+                            failures.append(f"{label} {entry.get('model')} item: {exc}")
+                if count > MEMBER_EVIDENCE_ITEMS:
+                    failures.append(f"{label} {entry.get('model')} kept {count} items")
+                if len(entries) != len(members):
+                    failures.append(f"{label} dropped a member entry")
+        elif "member_evidence" in body:
+            failures.append(f"{label} has member_evidence without an explained answer")
     assert rows, "no templates or scenarios"
     assert not failures, "\n".join(failures[:40])
 
@@ -199,6 +228,175 @@ def test_fit_drops_other_records_before_the_top_explanation(monkeypatch):
     assert body["explanation"]["omitted"]["by_model"] == 3
     assert "results.evidence" not in body["explanation"]["omitted"]
     assert "POST /v1/decide without fields" in body["explanation"]["fetch"]
+
+
+def _fat_item(record_id: str, weight: float) -> dict:
+    return {
+        "record_id": record_id,
+        "estimate_weight": weight,
+        "directness": "direct",
+        "requested_domain": "software_engineering",
+        "note": "N" * 400,
+    }
+
+
+def _member(model: str, weights: list[float]) -> dict:
+    return {
+        "model": model,
+        "omitted_items": 0,
+        "evidence": [{
+            "domain": "software_engineering",
+            "items": [_fat_item(f"{model}#{weight:g}", weight) for weight in weights],
+        }],
+    }
+
+
+def _budget_body() -> dict:
+    return {
+        "results": [
+            {
+                "rank": 1, "model": "lab/a", "offering": {"model": "lab/a"}, "warnings": [],
+                "evidence": [{"items": ["A" * 500]}],
+                "contributions": [{"dimension": "software_engineering", "pad": "C" * 500}],
+                "estimates": ["E" * 80],
+            },
+            {
+                "rank": 2, "model": "lab/b", "offering": {"model": "lab/b"}, "warnings": [],
+                "evidence": [{"items": ["B" * 500]}],
+                "contributions": [{"dimension": "software_engineering", "pad": "D" * 200}],
+            },
+            {
+                "rank": 3, "model": "lab/c", "offering": {"model": "lab/c"}, "warnings": [],
+                "evidence": [{"items": ["Z" * 500]}],
+            },
+        ],
+        "may_qualify": [{"model": "lab/d", "pad": "M" * 300}],
+        "answer": {"kind": "tied", "members": ["lab/a", "lab/b"]},
+        "member_evidence": [_member("lab/a", [10, 5, 1]), _member("lab/b", [9, 4, 2])],
+        "status": "answered",
+        "warnings": [],
+        "reading": {"do_not_claim": ["R" * 400]},
+        "explanation": {"omitted": {}, "note": "n", "not_applied": []},
+    }
+
+
+def _ids(entry: dict) -> list[str]:
+    return [item["record_id"] for group in entry["evidence"] for item in group["items"]]
+
+
+def test_member_evidence_budget_drops_rows_before_items(monkeypatch):
+    """Non-member rows go first. Member rows then lose evidence and contributions.
+
+    may_qualify and the member items stay while that is enough.
+    """
+    from decision import bounded
+
+    original = _budget_body()
+    target = json.loads(json.dumps(original))
+    target["results"].pop()
+    bounded._omit(target, "results")
+    models = {"lab/a", "lab/b"}
+    while any(name in row for row in target["results"] for name in ("evidence", "contributions")):
+        assert bounded._drop_member_row_evidence(target, target["results"], models)
+    bounded._note_fetch(target)
+    monkeypatch.setattr(bounded, "RESPONSE_BYTES", compact_bytes(target))
+    body = json.loads(json.dumps(original))
+    bounded._fit_agent_budget(body)
+    assert compact_bytes(body) <= bounded.RESPONSE_BYTES
+    assert [row["model"] for row in body["results"]] == ["lab/a", "lab/b"]
+    assert "evidence" not in body["results"][0]
+    assert "contributions" not in body["results"][0]
+    assert body["results"][0]["estimates"] == ["E" * 80]
+    assert body["results"][0]["warnings"] == []
+    assert "evidence" not in body["results"][1]
+    assert "contributions" not in body["results"][1]
+    assert body["may_qualify"] == original["may_qualify"]
+    assert "reading" in body
+    assert _ids(body["member_evidence"][0]) == ["lab/a#10", "lab/a#5", "lab/a#1"]
+    assert _ids(body["member_evidence"][1]) == ["lab/b#9", "lab/b#4", "lab/b#2"]
+    assert body["explanation"]["omitted"]["results"] == 1
+    assert body["explanation"]["omitted"]["results.evidence"] == 2
+    assert body["explanation"]["omitted"]["results.contributions"] == 2
+    assert "member_evidence.items" not in body["explanation"]["omitted"]
+
+
+def test_member_evidence_trims_the_fullest_member_down_to_one_item(monkeypatch):
+    """The later member loses an item first on a tie. Reading stays until items are at one."""
+    from decision import bounded
+
+    original = _budget_body()
+    target = json.loads(json.dumps(original))
+    target["results"].pop()
+    bounded._omit(target, "results")
+    models = {"lab/a", "lab/b"}
+    while any(name in row for row in target["results"] for name in ("evidence", "contributions")):
+        assert bounded._drop_member_row_evidence(target, target["results"], models)
+    while target["may_qualify"]:
+        target["may_qualify"].pop()
+        bounded._omit(target, "may_qualify")
+    while any(bounded._member_item_count(entry) > 1 for entry in target["member_evidence"]):
+        assert bounded._trim_member_item(target, floor=1)
+    bounded._note_fetch(target)
+    monkeypatch.setattr(bounded, "RESPONSE_BYTES", compact_bytes(target))
+    body = json.loads(json.dumps(original))
+    bounded._fit_agent_budget(body)
+    assert compact_bytes(body) <= bounded.RESPONSE_BYTES
+    assert body["may_qualify"] == []
+    assert "reading" in body
+    assert [row["model"] for row in body["results"]] == ["lab/a", "lab/b"]
+    assert _ids(body["member_evidence"][0]) == ["lab/a#10"]
+    assert _ids(body["member_evidence"][1]) == ["lab/b#9"]
+    assert body["member_evidence"][0]["evidence"][0]["items"][0]["note"] == "N" * 400
+    assert body["member_evidence"][0]["omitted_items"] == 2
+    assert body["member_evidence"][1]["omitted_items"] == 2
+    assert body["explanation"]["omitted"]["member_evidence.items"] == 4
+    assert body["explanation"]["omitted"]["may_qualify"] == 1
+    assert len(body["member_evidence"]) == 2
+
+
+def test_member_evidence_reaches_zero_items_only_after_every_other_cut(monkeypatch):
+    from decision import bounded
+
+    original = {
+        "results": [{
+            "rank": 1, "model": "lab/a", "offering": {"model": "lab/a"}, "warnings": [],
+        }],
+        "may_qualify": [],
+        "answer": {"kind": "tied", "members": ["lab/a", "lab/b"]},
+        "member_evidence": [_member("lab/a", [10, 1]), _member("lab/b", [9, 2])],
+        "status": "answered",
+        "warnings": [],
+        "reading": {"do_not_claim": ["R" * 400]},
+        "explanation": {"omitted": {}, "note": "n", "not_applied": []},
+    }
+    held = json.loads(json.dumps(original))
+    while any(bounded._member_item_count(entry) > 1 for entry in held["member_evidence"]):
+        assert bounded._trim_member_item(held, floor=1)
+    bounded._note_fetch(held)
+    monkeypatch.setattr(bounded, "RESPONSE_BYTES", compact_bytes(held))
+    body = json.loads(json.dumps(original))
+    bounded._fit_agent_budget(body)
+    assert _ids(body["member_evidence"][0]) == ["lab/a#10"]
+    assert _ids(body["member_evidence"][1]) == ["lab/b#9"]
+    assert "reading" in body
+
+    empty = json.loads(json.dumps(held))
+    while any(bounded._member_item_count(entry) > 0 for entry in empty["member_evidence"]):
+        assert bounded._trim_member_item(empty, floor=0)
+    empty.pop("reading")
+    bounded._omit(empty, "reading")
+    bounded._note_fetch(empty)
+    monkeypatch.setattr(bounded, "RESPONSE_BYTES", compact_bytes(empty))
+    again = json.loads(json.dumps(original))
+    bounded._fit_agent_budget(again)
+    assert again["member_evidence"][0]["evidence"] == []
+    assert again["member_evidence"][1]["evidence"] == []
+    assert again["member_evidence"][0]["model"] == "lab/a"
+    assert again["member_evidence"][1]["model"] == "lab/b"
+    assert again["member_evidence"][0]["omitted_items"] == 2
+    assert again["member_evidence"][1]["omitted_items"] == 2
+    assert "reading" not in again
+    assert [row["model"] for row in again["results"]] == ["lab/a"]
 
 
 def test_default_decide_request_matches_the_shared_fixture():

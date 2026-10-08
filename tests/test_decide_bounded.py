@@ -10,9 +10,9 @@ from decision import contract
 from decision.bounded import DEFAULT_FIELDS, DRILL_DOWN_BYTES, mcp_default_request
 from decision.summary import SUMMARY_BYTES
 from decision.engine import decide as run_decision
-from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
+from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot, load_snapshot_bytes
 from decision.templates import template_by_id
-from tests.snapshot_records import SOURCES, fact, model, offering
+from tests.snapshot_records import SOURCES, evidence, fact, model, offering
 from tests.test_decide_worker import KEY, _load_service, _payload, snapshot, snapshot_bytes  # noqa: F401
 from tests.test_decision_relax import q10_snapshot
 
@@ -71,7 +71,7 @@ def test_projection_keeps_essentials_and_identity(service, snapshot):
     # A distinct representation, not a 2.x minor version (MODEL-59).
     assert "contract_version" not in bounded
     assert bounded["representation"] == "bounded"
-    assert bounded["bounded_version"] == "1.0"
+    assert bounded["bounded_version"] == "1.1"
     assert bounded["projects_contract"] == "2.14"
     assert bounded["summary_for_user"].startswith("ModelSpec's answer is")
     assert isinstance(bounded["must_mention"], list)
@@ -631,3 +631,187 @@ def test_drill_down_on_a_pre_provenance_snapshot_is_unavailable_not_a_crash(serv
     status, body = service.decide(_payload("none"), old)
     assert status == 200
     assert body["contract_version"] == "2.14"
+
+
+def _tied_offerings_snapshot():
+    """lab/a and lab/b share a score. lab/c is cheaper and lower."""
+    rows = [
+        evidence("lab/a", "swe_bench_pro", 70, measured_by="independent"),
+        evidence("lab/b", "swe_bench_pro", 70, measured_by="independent"),
+        evidence("lab/c", "swe_bench_pro", 40, measured_by="independent"),
+    ]
+    built = build_snapshot(
+        SnapshotInputs(
+            models=[model("lab/a"), model("lab/b"), model("lab/c")],
+            offerings=[
+                offering("lab/a", "anthropic", price=3.0),
+                offering("lab/a", "aws-bedrock", price=3.0),
+                offering("lab/b", "anthropic", price=3.0),
+                offering("lab/b", "google", price=3.0),
+                offering("lab/c", "anthropic", price=1.0),
+            ],
+            evidence=rows,
+            sources=SOURCES,
+            benchmark_domains={"swe_bench_pro": [("software_engineering", "direct")]},
+        ),
+        as_of=date(2026, 9, 25),
+    )
+    return load_snapshot_bytes(built.to_bytes(key=KEY), key=KEY, source="member evidence tie")
+
+
+_ITEM = {
+    "requested_domain": "software_engineering",
+    "benchmark": "swe_bench_pro",
+    "version": "1.0",
+    "sub_category": None,
+    "unit": "percent",
+    "n": None,
+    "interval": None,
+    "quality_flags": [],
+    "measured_by": "independent",
+    "effort": None,
+    "harness": None,
+    "harness_unregistered": False,
+    "date": "2026-08-01",
+    "date_type": "observed",
+    "source": "https://board.example.org/results",
+    "source_snapshot": "sha256:" + "0" * 64,
+    "directness": "direct",
+    "loading": None,
+    "estimate_weight": None,
+    "recency_weight": None,
+}
+
+
+def _member_item(model_id: str) -> dict:
+    return {**_ITEM, "record_id": f"{model_id}#swe_bench_pro#70", "value": 70.0}
+
+
+def test_a_tie_cut_by_limit_keeps_every_members_evidence(service):
+    """fields selects evidence, and the objective is not a capability.
+
+    The one returned row has an empty evidence list. The tied model that
+    limit cut still has its record.
+    """
+    snap = _tied_offerings_snapshot()
+    payload = {
+        "spec_version": 1,
+        "optimize": {"max": "swe_bench_pro"},
+        "explain": "summary",
+        "limit": 1,
+        "fields": ["evidence", "estimates"],
+    }
+    status, body = service.decide(payload, snap)
+    assert status == 200, body
+    assert body["bounded_version"] == "1.1"
+    assert body["answer"]["kind"] == "tied"
+    assert body["answer"]["members"] == ["lab/a", "lab/b"]
+    assert body["results"] == [{
+        "rank": 1,
+        "model": "lab/a",
+        "offering": {"model": "lab/a", "provider": "anthropic", "region": "global", "tier": "standard"},
+        "warnings": ["not_separable"],
+        "evidence": [],
+        "estimates": None,
+    }]
+    assert "contributions" not in body["results"][0]
+    assert body["member_evidence"] == [
+        {
+            "model": "lab/a",
+            "evidence": [{"domain": "software_engineering", "items": [_member_item("lab/a")]}],
+            "omitted_items": 0,
+        },
+        {
+            "model": "lab/b",
+            "evidence": [{"domain": "software_engineering", "items": [_member_item("lab/b")]}],
+            "omitted_items": 0,
+        },
+    ]
+    for entry in body["member_evidence"]:
+        for group in entry["evidence"]:
+            for item in group["items"]:
+                contract.EvidenceItem.model_validate(item)
+    _, wide = service.decide({**payload, "limit": 10}, snap)
+    assert wide["summary_for_user"] == body["summary_for_user"]
+    assert wide["must_mention"] == body["must_mention"]
+    assert body["summary_for_user"] == (
+        "ModelSpec's answer is a tie among lab/a and lab/b; the evidence does not separate them. "
+        "No single winner: 2 models are tied. No model class was required, so results span every class."
+    )
+    assert [row["model"] for row in wide["results"]] == ["lab/a", "lab/b", "lab/a", "lab/b", "lab/c"]
+
+
+def test_member_evidence_is_absent_without_an_explanation_or_on_drill_down(service):
+    snap = _tied_offerings_snapshot()
+    payload = {
+        "spec_version": 1,
+        "optimize": {"max": "swe_bench_pro"},
+        "explain": "none",
+        "limit": 1,
+        "fields": ["evidence", "estimates"],
+    }
+    status, body = service.decide(payload, snap)
+    assert status == 200, body
+    assert body["answer"]["members"] == ["lab/a", "lab/b"]
+    assert "member_evidence" not in body
+    status, drill = service.decide({**payload, "explain": "summary", "evidence_for": "lab/b"}, snap)
+    assert status == 200, drill
+    assert drill["model_evidence"]["model"] == "lab/b"
+    assert "member_evidence" not in drill
+
+
+def test_a_priced_objective_with_no_records_says_so(service):
+    snap = _tied_offerings_snapshot()
+    status, body = service.decide({
+        "spec_version": 1,
+        "optimize": {"min": "offering.price.input"},
+        "explain": "summary",
+        "limit": 5,
+        "fields": ["evidence", "estimates"],
+    }, snap)
+    assert status == 200, body
+    assert body["answer"]["members"] == ["lab/c"]
+    assert body["member_evidence"] == [{"model": "lab/c", "evidence": [], "omitted_items": 0}]
+
+
+def test_domain_objective_without_capabilities_carries_member_evidence(service, public_snapshot):
+    payload = {
+        "spec_version": 1,
+        "optimize": {"max": "software_engineering"},
+        "explain": "summary",
+        "limit": 1,
+        "fields": ["evidence", "estimates"],
+    }
+    status, body = service.decide(payload, public_snapshot)
+    assert status == 200, body
+    assert body["answer"]["kind"] == "tied"
+    assert body["answer"]["members"] == [
+        "anthropic/claude-opus-5-5",
+        "anthropic/claude-sonnet-5-5",
+        "openai/gpt-6-astra",
+        "anthropic/claude-opus-4-7",
+    ]
+    assert body["results"][0]["model"] == "anthropic/claude-opus-5-5"
+    assert body["results"][0]["evidence"] == []
+    assert "contributions" not in body["results"][0]
+    assert len(body["results"]) == 1
+    seen = []
+    for entry in body["member_evidence"]:
+        items = [item for group in entry["evidence"] for item in group["items"]]
+        seen.append((entry["model"], entry["omitted_items"], len(items), items[0]["record_id"]))
+        for item in items:
+            contract.EvidenceItem.model_validate(item)
+            assert item["source"].startswith("http")
+            assert item["benchmark"]
+            assert item["directness"] in ("direct", "proxy")
+            assert item["date"]
+            assert item["measured_by"]
+    assert seen == [
+        ("anthropic/claude-opus-5-5", 0, 3, "anthropic/claude-opus-5-5#cursorbench_4#4ad6a2ce889e"),
+        ("anthropic/claude-sonnet-5-5", 0, 2, "anthropic/claude-sonnet-5-5#cursorbench_4#4c196d6e8055"),
+        ("openai/gpt-6-astra", 4, 3, "openai/gpt-6-astra#deepswe_v1_1#68d46007fa6d"),
+        ("anthropic/claude-opus-4-7", 2, 3, "anthropic/claude-opus-4-7#frontiercode_v1_1#8c84a250cf1c"),
+    ]
+    _, wide = service.decide({**payload, "limit": 20}, public_snapshot)
+    assert wide["summary_for_user"] == body["summary_for_user"]
+    assert wide["must_mention"] == body["must_mention"]
