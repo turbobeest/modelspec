@@ -158,6 +158,91 @@ def test_revoke_marks_the_stored_record_inactive(
     assert record is not None and record.active is False
 
 
+def test_revoke_put_runs_wrangler_noninteractively(
+    monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    secret = "live_OPERATOR_REVOKE_ENV_SECRET"
+    issued = issue_api_key.build_key(owner="x402-smoke", label="smoke", secret=secret)
+    fingerprint = access_keys.fingerprint(secret)
+    monkeypatch.setenv("CI", "0")
+    monkeypatch.setenv("WRANGLER_SEND_METRICS", "true")
+    monkeypatch.setenv("MODELSPEC_WRANGLER_ENV_SENTINEL", "kept")
+    seen: list[dict[str, object]] = []
+
+    def run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        env = kwargs.get("env")
+        seen.append(
+            {
+                "verb": command[4],
+                "stdin": kwargs.get("stdin"),
+                "ci": env["CI"] if isinstance(env, dict) else None,
+                "metrics": env["WRANGLER_SEND_METRICS"] if isinstance(env, dict) else None,
+                "sentinel": (
+                    env["MODELSPEC_WRANGLER_ENV_SENTINEL"] if isinstance(env, dict) else None
+                ),
+            }
+        )
+        if command[4] == "get":
+            return subprocess.CompletedProcess(command, 0, issued.value + "\n", "")
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    monkeypatch.setattr(revoke_api_key.subprocess, "run", run)
+
+    result = revoke_api_key.main([fingerprint, "--put"])
+
+    output = capsys.readouterr()
+    assert result == 0
+    assert output.err == ""
+    assert [call["verb"] for call in seen] == ["get", "put"]
+    for call in seen:
+        assert call["stdin"] is subprocess.DEVNULL
+        assert call["ci"] == "1"
+        assert call["metrics"] == "false"
+        assert call["sentinel"] == "kept"
+
+
+@pytest.mark.parametrize("failing_verb", ["get", "put"])
+def test_revoke_put_reports_redacted_wrangler_stderr(
+    failing_verb: str, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    secret = "live_OPERATOR_SHOULD_NOT_LEAK"
+    issued = issue_api_key.build_key(owner="x402-smoke", label="smoke", secret=secret)
+    fingerprint = access_keys.fingerprint(secret)
+    leaked = json.dumps({**json.loads(issued.value), "owner": "leaked-owner-marker"})
+    stderr = "\n".join(
+        [
+            "Would you like to send usage metrics to Cloudflare?",
+            '{"error":"Authentication error","code":10000}',
+            f"echoed secret {secret}",
+            f"echoed value {leaked}",
+        ]
+    )
+    calls: list[str] = []
+
+    def run(command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
+        calls.append(command[4])
+        if command[4] == failing_verb:
+            stdout = json.dumps({**json.loads(issued.value), "owner": "stdout-owner-marker"})
+            return subprocess.CompletedProcess(command, 1, stdout, stderr)
+        return subprocess.CompletedProcess(command, 0, issued.value + "\n", "")
+
+    monkeypatch.setattr(revoke_api_key.subprocess, "run", run)
+
+    result = revoke_api_key.main([fingerprint, "--put"])
+
+    output = capsys.readouterr()
+    assert result == 1
+    assert calls == (["get"] if failing_verb == "get" else ["get", "put"])
+    assert "wrangler exited 1:" in output.err
+    assert "Would you like to send usage metrics to Cloudflare?" in output.err
+    assert "Authentication error" in output.err
+    assert secret not in output.err
+    assert "leaked-owner-marker" not in output.err
+    assert "stdout-owner-marker" not in output.err
+    assert fingerprint not in output.err
+    assert "[redacted]" in output.err
+
+
 @pytest.mark.parametrize("fingerprint", ["short", "g" * 64, "A" * 64])
 def test_revoke_refuses_anything_but_a_sha256_fingerprint(
     fingerprint: str, capsys: pytest.CaptureFixture[str]
