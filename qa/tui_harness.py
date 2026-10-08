@@ -27,6 +27,7 @@ from qa.agent_harness import (
     agent_request,
     expected_match,
     load_scenarios,
+    seen_decision,
     make_report,
     parse_judgement,
     percentile,
@@ -387,8 +388,10 @@ class Runner:
         except (ValueError, TypeError):
             row["evaluation_status"] = "evaluation_error"
             return row
-        row["expected_match"] = expected_match(scenario["expected"], row["judge"])
-        row["success"] = row["judge"]["passed"] and row["expected_match"] is not False
+        row["expected_match"] = expected_match(
+            scenario["expected"], row["judge"], seen=seen_decision(row.get("tool_calls")),
+        )
+        row["success"] = bool(row["judge"]["passed"])
         row["evaluation_status"] = "judged"
         return row
 

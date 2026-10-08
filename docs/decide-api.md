@@ -177,6 +177,12 @@ only the detailed explanation is marked unavailable.
 `no_feasible` is a valid Decision with the smallest set of conditions to relax.
 It is a `200`, not a transport failure.
 
+A request with `fields` or `evidence_for` returns the bounded representation
+instead of this complete Decision. That body adds `summary_for_user` (one
+plain-language paragraph) and `must_mention` (short facts the report carries).
+Both are additive on bounded 1.0. See the bounded section of
+[`decision-contract.md`](decision-contract.md).
+
 ## Snapshot trust boundary
 
 The site build signs the Snapshot content hash with HMAC-SHA256. The build and

@@ -14,7 +14,9 @@ from qa.agent_harness import (
     JUDGE_NOTE,
     ROOT,
     ReplayAgent,
+    agent_constraints,
     agent_request,
+    evaluate_answer,
     expected_match,
     load_scenarios,
     main,
@@ -25,8 +27,9 @@ from qa.agent_harness import (
     percentile,
     run_scenario,
 )
+from qa.providers import Budget, HttpAgent, ProviderError, Reply, SpendLimitError
 from qa.contracts import TOOL_NAMES, capture_tools, source_hashes
-from qa.providers import Budget, HttpAgent, ProviderError, SpendLimitError
+
 from qa.tools import LiveTools, require_nonproduction, tool_result
 
 
@@ -155,6 +158,95 @@ def test_top_or_tied_subset_is_compared_without_order_or_missing_card_invention(
         {"top_models": [], "answer_kind": "abstain"},
     )
     assert expected_match(None, {"top_models": [], "answer_kind": "abstain"}) is None
+    seen_null = {"status": "no_feasible", "answer": None}
+    assert expected_match(expected, {"top_models": [], "answer_kind": "abstain"}, seen=seen_null)
+    assert expected_match(
+        expected, {"top_models": [], "answer_kind": "abstain"},
+        seen={"status": "partial", "answer": {"kind": "separated", "members": ["lab/a"]}},
+    )
+    assert expected_match(
+        expected, {"top_models": [], "answer_kind": "abstain"},
+        seen={"status": "answered", "answer": None},
+    )
+    assert not expected_match(
+        expected, {"top_models": [], "answer_kind": "abstain"},
+        seen={"status": "answered", "answer": {"kind": "separated", "members": ["lab/a"]}},
+    )
+
+
+def _judge_reply(passed: bool, kind: str, models: list[str]) -> Reply:
+    return Reply(
+        text=json.dumps({
+            "passed": passed,
+            "rationale": "supported",
+            "top_models": models,
+            "answer_kind": kind,
+            "missing_capabilities": [],
+        }),
+        calls=[],
+        tokens_in=1,
+        tokens_out=1,
+        model="judge-fixture",
+    )
+
+
+def _row(tool_calls: list | None = None) -> dict:
+    return {
+        "agent": "claude",
+        "model_calls": [],
+        "tokens_in": 0,
+        "tokens_out": 0,
+        "tool_calls": tool_calls or [],
+    }
+
+
+def _decide_seen(body: dict) -> dict:
+    return {
+        "name": "decide",
+        "result": {
+            "content": [{
+                "type": "text",
+                "text": json.dumps({
+                    "origin": "https://api.modelspec.dev/v1/decide",
+                    "status": 200,
+                    "body": body,
+                }),
+            }],
+        },
+    }
+
+
+def test_success_follows_a_passing_judge_when_the_curated_set_does_not(config):
+    scenario = {"expected": {"acceptable": [{"model_id": "lab/old"}]}}
+    row = _row()
+    evaluate_answer(scenario, row, lambda *_: _judge_reply(True, "single", ["lab/newer"]), config)
+    assert row["success"] is True
+    assert row["expected_match"] is False
+
+
+def test_a_judged_abstain_matches_when_the_seen_answer_is_null(config):
+    scenario = {"expected": {"acceptable": [{"model_id": "lab/old"}]}}
+    row = _row([_decide_seen({"status": "no_feasible", "answer": None})])
+    evaluate_answer(scenario, row, lambda *_: _judge_reply(True, "abstain", []), config)
+    assert row["judge"]["passed"] is True
+    assert row["expected_match"] is True
+    assert row["success"] is True
+
+
+def test_open_weights_false_is_shown_to_the_agent_as_not_required():
+    false_case = next(s for s in load_scenarios() if s["id"] == "recall-q01")
+    true_case = next(s for s in load_scenarios() if s["id"] == "recall-q12")
+    assert false_case["constraints"]["open_weights"] is False
+    assert true_case["constraints"]["open_weights"] is True
+    assert false_case["expected"]["id"] == "Q01"
+    assert json.loads(agent_request(false_case))["constraints"]["open_weights"] == "not required"
+    assert json.loads(agent_request(true_case))["constraints"]["open_weights"] == "required"
+    assert false_case["constraints"]["open_weights"] is False
+    assert agent_constraints({"open_weights": False, "class": "generate"}) == {
+        "open_weights": "not required",
+        "class": "generate",
+    }
+    assert agent_constraints(["model.class = text-generator"]) == ["model.class = text-generator"]
 
 
 def test_judge_must_extract_the_final_recommendation_consistently():

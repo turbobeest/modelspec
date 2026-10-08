@@ -317,8 +317,9 @@ function addCount(omitted: Record<string, unknown>, key: string, count: number) 
 
 /**
  * Last-resort notice when a caller asked for a body the Worker did not bound
- * (for example fields: null). Keeps the answer, status, warnings, coverage
- * and one slim top result. Does not call the Worker again.
+ * (for example fields: null). Keeps the answer, status, warnings, coverage,
+ * summary_for_user, must_mention and one slim top result. Does not call the
+ * Worker again.
  */
 function slimDecision(body: Record<string, unknown>): Record<string, unknown> {
   const results = Array.isArray(body.results) ? body.results.filter(isRecord) : [];
@@ -377,7 +378,7 @@ function slimDecision(body: Record<string, unknown>): Record<string, unknown> {
   for (const key of [
     "decision_id", "snapshot", "signature_verified", "spec_hash", "explain", "status",
     "answer", "warnings", "truncated", "out_of_lineup", "relax", "relax_to", "feedback",
-    "reading", "coverage",
+    "reading", "coverage", "summary_for_user", "must_mention",
   ]) {
     if (key in body) notice[key] = body[key];
   }
@@ -464,7 +465,8 @@ function shortText(value: unknown, fallback: string, max = 80): string {
 
 /**
  * Replace an over-budget decide body. Under-budget bodies pass through.
- * The returned text stays within AGENT_BYTES and keeps status, answer and fetch.
+ * The returned text stays within AGENT_BYTES and keeps status, answer,
+ * summary_for_user, must_mention and fetch.
  */
 export function fitDecideEnvelope(envelope: OriginEnvelope): OriginEnvelope {
   if (withinBudget(envelope)) return envelope;
@@ -505,7 +507,7 @@ export function fitDecideEnvelope(envelope: OriginEnvelope): OriginEnvelope {
   }
   if (withinBudget({ ...envelope, body: bare })) return { ...envelope, body: bare };
   const priorTrimmed = omitted.trimmed;
-  const minimal = {
+  const minimal: Record<string, unknown> = {
     representation: "bounded",
     bounded_version: "1.0",
     projects_contract: shortText(bare.projects_contract, shortText(bare.contract_version, "2.14"), 16),
@@ -521,6 +523,12 @@ export function fitDecideEnvelope(envelope: OriginEnvelope): OriginEnvelope {
       fetch: fetchPointer(undefined),
     },
   };
+  if (typeof bare.summary_for_user === "string") {
+    minimal.summary_for_user = bare.summary_for_user;
+  }
+  if (Array.isArray(bare.must_mention)) {
+    minimal.must_mention = bare.must_mention.filter((item): item is string => typeof item === "string");
+  }
   const last = { ...envelope, body: minimal };
   return withinBudget(last) ? last : { ...envelope, body: trimmedError() };
 }

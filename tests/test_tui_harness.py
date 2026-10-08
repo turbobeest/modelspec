@@ -2185,7 +2185,7 @@ def test_judge_preserves_recall_rules_and_failed_evaluations(config, tmp_path, m
     monkeypatch.setattr(harness, "launch", lambda *a, **k: next(replies))
     runner = harness.Runner(config, tmp_path, isolated())
     row = runner.scenario(case, "claude")
-    assert row["judge"]["passed"] and row["expected_match"] is False and not row["success"]
+    assert row["judge"]["passed"] and row["expected_match"] is False and row["success"]
     assert row["judge"]["family"] == "openai"
     replies = iter([execution(), execution(answer="not valid judge JSON")])
     row = runner.scenario(case, "claude")

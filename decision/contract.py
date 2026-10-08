@@ -2013,6 +2013,12 @@ BoundedDecision = create_model(
     with_estate=(WithEstate | None, None),
     explanation=(BoundedExplanation, ...),
     model_evidence=(ModelEvidence | None, None),
+    #: One plain-language paragraph for the end user. Added in bounded 1.0 by
+    #: MODEL-339. Optional: absent on a body projected before that change.
+    summary_for_user=(str, ""),
+    #: Facts a report of this answer has to carry. Added in bounded 1.0 by
+    #: MODEL-339. Optional, same rule as ``summary_for_user``.
+    must_mention=(list[str], Field(default_factory=list)),
 )
 
 

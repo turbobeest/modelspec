@@ -1,10 +1,13 @@
 """Optimise through its public boundary with the real snapshot index."""
 from __future__ import annotations
 
+import ast
 from datetime import date
+from pathlib import Path
 
+from decision import optimise as optimise_module
 from decision.contract import EvidenceQualifiers, Objective
-from decision.optimise import EvidenceSelector, optimise
+from decision.optimise import OPTIMISER_DIAGNOSTICS, EvidenceSelector, optimise
 from decision.snapshot import EvidenceValue, FactValue
 from tests.snapshot_records import loaded_index
 
@@ -291,6 +294,60 @@ def test_domain_objective_refuses_blending():
     result = run({"a": {"coding": 100}}, {"max": "coding"}, domains={"coding"})
     assert result.status == "no_feasible"
     assert result.reason == "specify a benchmark or wait for the capability model (MODEL-129)"
+
+
+def _string_constants(expr: ast.expr, constants: dict[str, str]) -> set[str] | None:
+    if isinstance(expr, ast.Constant) and isinstance(expr.value, str):
+        return {expr.value}
+    if isinstance(expr, ast.Name):
+        value = constants.get(expr.id)
+        return None if value is None else {value}
+    if isinstance(expr, ast.IfExp):
+        body = _string_constants(expr.body, constants)
+        other = _string_constants(expr.orelse, constants)
+        if body is None or other is None:
+            return None
+        return body | other
+    return None
+
+
+def test_every_no_feasible_reason_optimise_returns_is_a_diagnostic():
+    """A new no_feasible reason has to join OPTIMISER_DIAGNOSTICS in the same edit."""
+    source = Path(optimise_module.__file__).read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    constants: dict[str, str] = {}
+    for node in tree.body:
+        if isinstance(node, ast.Assign) and isinstance(node.value, ast.Constant):
+            if isinstance(node.value.value, str):
+                for target in node.targets:
+                    if isinstance(target, ast.Name):
+                        constants[target.id] = node.value.value
+    reasons: set[str] = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Call):
+            continue
+        func = node.func
+        name = func.id if isinstance(func, ast.Name) else getattr(func, "attr", None)
+        if name != "Optimisation":
+            continue
+        status_expr = node.args[0] if node.args else None
+        reason_expr = node.args[2] if len(node.args) >= 3 else None
+        for keyword in node.keywords:
+            if keyword.arg == "status":
+                status_expr = keyword.value
+            elif keyword.arg == "reason":
+                reason_expr = keyword.value
+        assert status_expr is not None
+        status = _string_constants(status_expr, constants)
+        assert status is not None, ast.dump(status_expr)
+        if "no_feasible" not in status:
+            continue
+        assert reason_expr is not None
+        reason = _string_constants(reason_expr, constants)
+        assert reason is not None, ast.dump(reason_expr)
+        reasons |= reason
+    assert reasons
+    assert reasons == set(OPTIMISER_DIAGNOSTICS)
 
 
 def test_min_negative_values_ties_and_non_numeric_missing():

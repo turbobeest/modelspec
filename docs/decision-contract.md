@@ -1134,10 +1134,11 @@ time (`evidence`, `contributions`, `estimates`, `refinement_estimates`,
 warnings. A heavy field is removed whole. The top result's explanation is
 removed only after the earlier records are gone. Provenance inside a kept
 record stays intact, and no value is replaced with null. Each removal
-increments `explanation.omitted`. `answer`, `status`, `warnings`, `coverage`
-and the top result's rank, model, offering and warnings remain. If those
-essentials still exceed the budget, the call returns HTTP 400 `invalid_spec`
-and the issue says how to request the complete Decision. The
+increments `explanation.omitted`. `answer`, `status`, `warnings`, `coverage`,
+`summary_for_user`, `must_mention`, and the top result's rank, model, offering
+and warnings remain. If those essentials still exceed the budget, the call
+returns HTTP 400 `invalid_spec` and the issue says how to request the complete
+Decision. The
 one-model drill-down keeps its own 7,400-byte cap, and that cap includes `fetch`.
 
 Drill-down returns no ranked result rows or may-qualify rows; their omission
@@ -1176,8 +1177,9 @@ and `evidence`, still inside the same byte budget. A caller-supplied `fields`
 value, including null, replaces that list. Null `fields` asks the Worker for
 the complete Decision. If that body, with the MCP envelope and summary, exceeds
 16,384 bytes, the tool returns a short bounded notice instead of the raw body.
-The notice keeps `status`, `answer`, `warnings`, `coverage` and the top result,
-and `explanation.fetch` tells the caller how to request the rest. The tool does
+The notice keeps `status`, `answer`, `warnings`, `coverage`,
+`summary_for_user`, `must_mention` and the top result, and
+`explanation.fetch` tells the caller how to request the rest. The tool does
 not call the Worker a second time. HTTP defaults remain unchanged: a request
 with no `fields` and no `evidence_for` is still the complete Decision.
 
@@ -1221,6 +1223,12 @@ three current explanation levels. Regenerate the MCP public fixture with
   `explanation.omitted`. `fetch` says how to request the removed records.
   Essentials that still exceed the budget are HTTP 400 `invalid_spec`.
   MCP `explain` of `summary` or `full` keeps the bounded projection.
+- **bounded 1.0 — MODEL-339:** Adds optional `summary_for_user` and
+  `must_mention`. No existing field changes range, and `bounded_version` stays
+  `1.0`. Both are written from the full Decision before trimming, and neither
+  is removed to fit the 16,384-byte MCP text. `summary_for_user` is one
+  paragraph for the end user. `must_mention` lists the facts a report of that
+  answer carries, at most 10 items.
 
 ## The library and the CLI
 

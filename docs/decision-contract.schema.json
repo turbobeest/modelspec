@@ -607,6 +607,13 @@
           ],
           "default": null
         },
+        "must_mention": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Must Mention",
+          "type": "array"
+        },
         "out_of_lineup": {
           "title": "Out Of Lineup",
           "type": "integer"
@@ -683,6 +690,11 @@
             "no_feasible"
           ],
           "title": "Status",
+          "type": "string"
+        },
+        "summary_for_user": {
+          "default": "",
+          "title": "Summary For User",
           "type": "string"
         },
         "truncated": {

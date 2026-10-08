@@ -15,6 +15,14 @@ from typing import TYPE_CHECKING, Literal
 from decision.contract import EvidenceQualifiers, Objective, Preference, Tolerance
 from decision.refinements import is_refinement_key
 
+NO_COMPLETE_OBJECTIVE_VALUES = "no complete objective values"
+CAPABILITY_MODEL_UNAVAILABLE = "specify a benchmark or wait for the capability model (MODEL-129)"
+# Every reason string ``optimise`` returns with status ``no_feasible``.
+OPTIMISER_DIAGNOSTICS = frozenset({
+    NO_COMPLETE_OBJECTIVE_VALUES,
+    CAPABILITY_MODEL_UNAVAILABLE,
+})
+
 if TYPE_CHECKING:
     from decision.snapshot import CapabilityEstimateValue, EvidenceValue, SnapshotIndex
 
@@ -302,7 +310,7 @@ def optimise(snapshot: SnapshotIndex, candidates: Sequence[str], objective: Obje
         ):
             return Optimisation(
                 "no_feasible", (),
-                "specify a benchmark or wait for the capability model (MODEL-129)",
+                CAPABILITY_MODEL_UNAVAILABLE,
             )
     cids = sorted(set(candidates))
     contributions: dict[str, list[DimensionContribution]] = {cid: [] for cid in cids}
@@ -397,7 +405,7 @@ def optimise(snapshot: SnapshotIndex, candidates: Sequence[str], objective: Obje
                                        for c in row.contributions if c.value is None)
                for row in missing}
     if not complete:
-        return Optimisation("no_feasible", (), "no complete objective values", missing=missing_ids,
+        return Optimisation("no_feasible", (), NO_COMPLETE_OBJECTIVE_VALUES, missing=missing_ids,
                             unknown=unknown)
     dominance = {}
     if objective.pareto is not None:

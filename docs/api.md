@@ -4,10 +4,8 @@
 Ranks models for your hardware, providers, profile and policy. Returns scores,
 cost, reasons and constraint eliminations.
 
-Computed from the public export.
-
 * `POST /v1/decide` — what fits your requirements:
-  [`decide-api.md`](decide-api.md).
+  [`decide-api.md`](decide-api.md). Only the bounded representation adds `summary_for_user` and `must_mention`.
 * `POST https://api.modelspec.dev/v1/rank` — **deprecated**; never a decide
   fallback.
 * `POST /v1/policy-check` — pass, fail or undetermined per model and platform
@@ -15,7 +13,7 @@ Computed from the public export.
   [`api-policy-check.md`](api-policy-check.md).
 * `GET /v1/health` — the deployed version, and whether it can read the exports.
 * Spec: [`api/worker/openapi.yaml`](../api/worker/openapi.yaml), generated from
-  the implementation. Build your client from it.
+  the implementation.
 
 ## Request
 

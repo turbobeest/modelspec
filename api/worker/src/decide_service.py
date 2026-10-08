@@ -6,7 +6,7 @@ import asyncio
 import hashlib
 import json
 import time
-from collections.abc import Awaitable, Callable
+from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import replace
 from typing import Any, NamedTuple, Protocol
 from urllib.parse import urlencode
@@ -391,12 +391,17 @@ def snapshot_changed(requested: str, snapshot) -> tuple[int, dict[str, Any]]:
 
 
 def decide(payload: Any, snapshot, *,
-           expected_snapshot: str | None = None) -> tuple[int, dict[str, Any]]:
+           expected_snapshot: str | None = None,
+           profiles: Mapping[str, contract.InventoryProfile] | None = None,
+           ) -> tuple[int, dict[str, Any]]:
     """Validate one decision spec and return the shared engine's Decision.
 
     ``expected_snapshot`` is the ``X-ModelSpec-Snapshot`` request header. It is
     checked before the spec, because a spec built from an older vocabulary may
     name a benchmark this snapshot does not know.
+
+    ``profiles`` is the engine's map for a referenced profile id. It is not a
+    request field. Without it, an unresolved profile is ``invalid_spec``.
     """
     if expected_snapshot and expected_snapshot != snapshot.snapshot_id:
         return snapshot_changed(expected_snapshot, snapshot)
@@ -458,14 +463,25 @@ def decide(payload: Any, snapshot, *,
                     "Retry without evidence_for, or later against a rebuilt snapshot",
                     snapshot_id=snapshot.snapshot_id,
                 )
+        # ``filtered.feasible`` is the candidate tuple ``run_optimise`` hands to
+        # ``optimise``, after profile rules and ``where``. ``explain`` ``none``
+        # leaves the funnel empty, so the summary cannot read the count there.
+        surviving: list[int] = []
+
+        def _trace(filtered) -> None:
+            surviving.append(len(filtered.feasible))
+
         decision = run_decision(
-            spec, snapshot, facets=facets,
+            spec, snapshot, facets=facets, profiles=profiles,
+            _filter_trace=_trace,
             _capture_evidence=None if options.evidence_for is None else (options.evidence_for, details.append),
         )
         if options.fields is not None or options.evidence_for is not None:
             return HTTP_OK, project_decision(
                 decision, options, detail=details[0] if details else None,
                 not_applied=sorted(set(spec.capabilities or {}) - set(snapshot.domain_ids())),
+                spec=spec, profiles=profiles,
+                feasible=surviving[-1] if surviving else None,
             )
     except contract.SpecError as exc:
         return error_response(
