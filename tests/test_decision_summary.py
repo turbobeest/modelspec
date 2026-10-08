@@ -940,3 +940,18 @@ def test_bounded_responses_keep_the_summary_through_trim_and_drill_down() -> Non
     assert drilled["results"] == []
     assert drilled["explanation"]["omitted"]["model_evidence.evidence.items"] > 0
     assert mcp_text_bytes(drilled) <= AGENT_BYTES
+
+
+def test_a_huge_tie_and_objective_keep_the_leaderboard_item_bounded_and_fast() -> None:
+    import time
+
+    from decision.summary import _board_sentence
+
+    models = [f"lab/model-{i:04d}" for i in range(500)]
+    dimensions = [f"dimension_{i:04d}" for i in range(2_000)]
+    started = time.perf_counter()
+    text = _board_sentence(models, dimensions)
+    assert time.perf_counter() - started < 0.5
+    assert len(text.encode("utf-8")) <= MUST_MENTION_ITEM_BYTES
+    assert text.endswith("; their positions are estimated, not measured.")
+    assert text.startswith("lab/model-0000")

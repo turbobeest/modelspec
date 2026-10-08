@@ -33,6 +33,7 @@ SUMMARY_BYTES = 1_200
 TIE_NAME_CAP = 8
 MUST_MENTION_MAX = 10
 MUST_MENTION_ITEM_BYTES = 200
+_BOARD_DIMENSION_CAP = 8
 OPENNESS_FACET = "model.weights_openness"
 OPENNESS_EITHER = frozenset({"open_weights", "closed_weights"})
 
@@ -490,10 +491,13 @@ def _board_sentence(models: list[str], dimensions: list[str]) -> str:
     """One leaderboard caveat. Names that overflow 200 bytes shorten; the wording does not."""
     many = len(models) > 1
     template = _BOARD_MANY if many else _BOARD_ONE
-    name_counts = range(len(models), 0, -1) if many else (1,)
+    # A 200-byte item never holds more than a handful of ids, so the search
+    # starts from small caps: the cost stays bounded however large the tie or
+    # objective is.
+    name_counts = range(min(len(models), TIE_NAME_CAP), 0, -1) if many else (1,)
     for name_count in name_counts:
         names = _name_list(models, name_count, more="")
-        for dim_count in range(len(dimensions), 0, -1):
+        for dim_count in range(min(len(dimensions), _BOARD_DIMENSION_CAP), 0, -1):
             text = names + template.format(
                 dimensions=_name_list(dimensions, dim_count, more=" dimensions"),
             )
