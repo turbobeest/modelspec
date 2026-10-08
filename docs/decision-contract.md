@@ -485,7 +485,7 @@ are byte-identical to the decision for the same spec without one.
 
 | Field | Meaning |
 |---|---|
-| `status` | `answered`, `partial` or `no_feasible`, as for the decision. `no_feasible` here means the estate reaches nothing that qualifies; it carries no `relax`, because the gap and `gain` say what to add. |
+| `status` | `answered`, `partial` or `no_feasible`, as for the decision, over the estate lineup. It can differ from the unrestricted status when the estate does not reach a model the unrestricted lineup left in `may_qualify`, or reaches one the unrestricted lineup did not. The ranked models can be the same in both answers. `no_feasible` here means the estate reaches nothing that qualifies; it carries no `relax`, because the gap and `gain` say what to add. |
 | `answer` | The model-level answer over the estate, as in [The answer](#the-answer). Null when the estate reaches no scored model. |
 | `results` | Ranked as the decision's results are. Each is `rank`, `offering` (a self-hosted row has no `provider`), `soft_penalty`, `warnings` and `estate`. |
 | `results[].estate` | How the estate reaches the row: `via` is `{kind, id}` with `kind` one of `provider`, `plan` or `device`; `cost_basis` is `list_price`, `plan_included` or `owned_hardware`; `marginal_cost_per_task_usd` is what one more task costs the caller (0 inside a plan or on an owned device, the list `offering.cost_per_task` on a key, null when the price is unknown). The marginal cost drives a cost objective. When several holds reach a row the plan wins, then the key, then the device. |
@@ -515,7 +515,10 @@ estate:
 ```
 
 `access` is `{kind, harness}`, or the bare kind as a string
-(`access: chat_app`). `harness` is a harness name from
+(`access: chat_app`). The published schema accepts both. A value outside
+`chat_app`, `coding_tool`, `own_software` and `own_hardware` is `invalid_spec`,
+and the issue says `access is {kind: chat_app|coding_tool|own_software|own_hardware} or one of those kinds as a string`.
+`harness` is a harness name from
 `registry/harnesses.yaml`, without a version, and only for `coding_tool`; an
 unregistered one is `invalid_spec` at `access.harness`.
 
@@ -808,12 +811,12 @@ best-band tie (`answer.members`). A `do_not_claim` line also names a tied
 | `blend` | What a scalar objective mixes: each weighted dimension, heaviest first, its `share` of the weights and who leads on it alone. Absent with `bands`. See below. Added in 2.7. |
 | `results` | Ranked results, `rank` 1 to n in order. Empty only when `no_feasible`. |
 | `by_model` | The decision grouped by model, best first. See below. |
-| `may_qualify` | Models not ranked because a condition could not be evaluated, or because they pass every condition but have no value for the objective. Each lists the facets it is `unknown` on (for a missing objective value, the objective's facet or benchmark), and an `offering` when the unknown is offering-level. A model is never ranked on an unknown objective value. |
+| `may_qualify` | Models not ranked because a condition could not be evaluated, or because they pass every condition but have no value for the objective. Each lists the facets it is `unknown` on (for a missing objective value, the objective's facet or benchmark), and an `offering` when the unknown is offering-level. A model is never ranked on an unknown objective value. A model that passed every hard condition and has no estimate for a domain objective is listed here on that objective. It is not dropped. |
 | `eliminated` | Candidates that failed a condition or were Pareto-dominated. The `funnel` reports each condition in order, the candidate count `before` and `after` it, and how many it moved to `may_qualify`. Each step also reports `models_before`, `models_after`, `offerings_before` and `offerings_after`. The `models_may_qualify` and `offerings_may_qualify` counts report what that step moved aside because a capability fact was unknown. The candidate-grained `models` list remains for compatibility. The `model_groups` list groups eliminations by model, with a nullable `model_elimination` for a bare model row and the model's `offerings` beneath it. Each offering keeps its `condition`, `value`, `values`, `unit`, `records` and `formula`. A qualifying candidate omitted by `limit` is never an elimination. |
 | `truncated` | Qualifying candidates omitted only because of `limit`. `offerings` counts omitted offering rows. `models` counts models with no row in `results`; a model with one returned offering and another omitted offering is not counted as an omitted model. Both counts are always present and are zero when the complete qualifying result set was returned. |
 | `constraint_costs` | For each condition: the `condition`, how many models relaxing it `admits`, and the `gain` on each objective dimension. Gains on refinement dimensions are in `refinement_gains`, each a `dimension`, `refinement` and `gain`; absent when there are none (2.4). |
 | `tipping_points` | The objective changes that would change the top result: a `description`, and where they apply, the `dimension`, the `threshold` and the `new_top` model. A refinement weight's point also names its `refinement` (2.4). |
-| `relax` | For `no_feasible` only: the fewest conditions whose removal gives a feasible answer. Never the model class or a condition on a requested capability domain, which would change the question; among equally few, numeric caps and floors first. |
+| `relax` | For `no_feasible` only: the fewest conditions whose removal gives a feasible answer. Never the model class or a condition on a requested capability domain, which would change the question; among equally few, numeric caps and floors first. When a reach is already in force (`access`, or an estate), this is the condition that emptied that lineup, not a relaxation computed as if the reach were absent. When models passed every hard condition and none has an objective value, it names that objective. The text does not name an internal ticket. |
 | `relax_to` | For `no_feasible` only (1.5): for each numeric cap or floor, the smallest change that admits a model. Each names the spec's `condition`, the `relaxed` condition (same facet and direction, at the nearest value an excluded candidate has), the `facet`, that `value`, its `unit`, and how many models it `admits`. |
 | `relax_task_tokens` | For `no_feasible` only, and absent otherwise (2.14): the spec gave no `task_tokens`, `relax` is a single `offering.cost_per_task` cap, and that cap fails only at the default task size. Names the cap as `condition`, the `default` task size cost was priced at (40,000 input, 4,000 output tokens), `admits_at` (the largest task at the default's input-to-output ratio that a model meets the cap at, strictly under a strict cap) and a `message`. Set `task_tokens` to the real task's size rather than copying `admits_at`. Kept in bounded answers. |
 | `warnings` | Codes about the decision as a whole. |
@@ -830,7 +833,9 @@ best-band tie (`answer.members`). A `do_not_claim` line also names a tied
   result. `warnings` says which part.
 - `no_feasible`: no candidate satisfies the hard conditions, or none that does
   has a value for the objective. `results` is empty and `relax` names the
-  fewest conditions to relax, or the reason no result could be ranked.
+  fewest conditions to relax, or the reason no result could be ranked. Models
+  that passed every hard condition and have no objective value stay in
+  `may_qualify` and `by_model`.
 
 **`coverage` (`CoverageRefusal`):** `kind` is `out_of_coverage`. `message`
 explains the scope limit; `url` links to the keyless generated summary.
@@ -853,7 +858,10 @@ A model with offerings is represented by those offerings. A model without an
 offering can rank only when its verified `model.weights_openness` is `open_weights`.
 Closed or unknown weights establish no self-host route. The engine eliminates
 those rows using `model.weights_openness = open_weights unknown(fail)` before
-the user's conditions, including when the user permits unknown values.
+the user's conditions, including when the user permits unknown values. The same
+elimination applies to a sold model's bare row when a self-host reach holds it
+(`own_hardware`, or a device). An offering does not make closed or unknown
+weights a self-host route.
 
 ### The answer
 
@@ -862,13 +870,19 @@ represented by its best offering under the spec's objective. A model's own
 offerings never compete with one another in this block.
 
 For a scalar objective, each candidate has a weighted score and a
-`score_interval`. The engine applies the same feasible-set affine transform to
+`score_interval`. Both are in feasible-set normalised units, which are
+dimensionless. The engine applies the same feasible-set affine transform to
 interval bounds that it uses for the point estimate. It does not clamp
-transformed bounds to 0 through 1. Exact facets such as cost contribute a
-point. A capability estimate contributes its 80% interval. A measured
-benchmark term contributes its source-published interval. The weighted
-interval is the sum of each transformed interval times its objective weight,
-less the exact soft penalty.
+transformed bounds to 0 through 1. A zero span, one scored value or several
+equal values, maps to the same constant the reference ranker uses: 1 when the
+objective maximises the dimension and 0 when it minimises it. When the raw
+estimate has a width, that candidate's own raw interval width is the span, so
+the interval stays dimensionless and is not a point. An exact value, such as
+cost with no published interval, contributes that constant as a point. A
+capability estimate contributes its 80% interval. A measured benchmark term
+contributes its source-published interval. The weighted interval is the sum of
+each transformed interval times its objective weight, less the exact soft
+penalty.
 
 The answer's `members` are the `best` band (below): the leader, and every model
 with enough evidence whose score is at least the leader's with probability 0.25

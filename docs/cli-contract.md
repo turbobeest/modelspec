@@ -136,6 +136,10 @@ labels and names, definitions and purposes, template categories and tiers, and
 facet values. It ignores case and treats runs of underscores, hyphens, dots,
 slashes and whitespace as one space. A substring or all query tokens can match;
 benchmark domain links are excluded. IDs remain exact and case-sensitive.
+A requested id that is not an exact id in the searched sections is listed in
+`unknown_ids`. The field is absent when every requested id matched. An id can
+match another section: `coding` is a template category, so a starter lookup
+does not list it as unknown, and the same id in `section=domains` does.
 Combining search with IDs intersects the two filters.
 
 Lookup responses add `matches`, `total` and `searched`. Matches rank exact ids
@@ -176,9 +180,9 @@ ends with an actionable next step.
 
 | Exit | Meaning | Next step |
 | --- | --- | --- |
-| 0 | Guidance or a successful API answer | Act on the response's evidence and limits |
+| 0 | Guidance or a successful API answer. A 200 decision with status `answered` or `partial` and no `coverage` is printed as the body | Act on the response's evidence and limits |
 | 1 | Usage, validation, local file, network, server or upgrade error | Follow `next` |
-| 2 | Out of coverage or no matching answer | State the unsupported requirement; read coverage and guide |
+| 2 | Out of coverage or no matching answer. A 200 `no_feasible` decision, and a 200 decision that carries `coverage`, exit 2 and the decision body is printed | State the unsupported requirement; read coverage and guide |
 | 5 | Missing, unreadable, invalid or refused key | `modelspec key`, then `auth set` or MODELSPEC_API_KEY; relay the human message |
 | 6 | HTTP 402 or 429 | Credits and pricing; honor Retry-After |
 
@@ -186,7 +190,15 @@ Network failures link to `https://api.modelspec.dev/v1/health`. Coverage
 refusals include what ModelSpec can answer, aggregate bundled counts and
 `https://modelspec.dev/api/coverage.json` and `https://modelspec.dev/agents.md`.
 The API's additive `coverage` explanation is retained on refusals and uses exit 2,
-including when the existing status is `partial` or error code is `invalid_spec`. Key errors include procurement and the neutral
+including when the existing status is `partial` or error code is `invalid_spec`.
+A 200 decision (`decision_id` present, no `error` object) with status
+`no_feasible`, or any 200 decision that carries `coverage`, exits 2 and stdout
+is that decision body: no `error.code`, and not the hosted-refusal message.
+`http_error` is only a real HTTP failure that did not name its own code. A body
+that is not a decision stays a refusal: the API body is kept, `next` is added,
+and the exit is 2. Exit 2 keeps its meaning: out of coverage or no matching
+answer. This is not a change to that meaning, and the CLI error contract stays
+at 2.0. Key errors include procurement and the neutral
 human message. Old-version refusals include upgrade commands.
 
 All new agent-facing CLI text comes from `pipeline/agent_copy.py`. Run

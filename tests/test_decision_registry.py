@@ -24,6 +24,18 @@ from schema.benchmark import BenchmarkCard
 ROOT = Path(__file__).resolve().parent.parent
 
 
+def test_offering_region_definition_names_the_provider_region_names():
+    """The stored value is the provider's region name. ISO alpha-2 is the country map."""
+    text = reg.default().facet("offering.region").definition
+    assert text == (
+        "The provider's region name for this offering, such as global, "
+        "global-cross-region, global-short-context or singapore. "
+        "A name maps to the countries it guarantees through `decision/regions.py`, "
+        "and a global name guarantees none. "
+        "An ISO 3166-1 alpha-2 code names a country; it is not the value stored here."
+    )
+
+
 def test_parameterised_vocabularies_are_cached_for_one_loaded_registry():
     values = {"example-benchmark"}
     calls = []

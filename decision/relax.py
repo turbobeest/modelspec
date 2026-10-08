@@ -75,6 +75,18 @@ def _relaxable(resolved, domains: frozenset[str]) -> list[int]:
     ]
 
 
+def binding_constraint(funnel, domains: frozenset[str]) -> str | None:
+    """The condition that first emptied the lineup, when dropping it would not
+    change the question. ``None`` when that condition is the class or a
+    requested capability domain, or when nothing with candidates went to zero."""
+    for step in funnel:
+        if step.before > 0 and step.after == 0 and not _changes_the_question(
+            step._condition, domains,
+        ):
+            return step.condition
+    return None
+
+
 def fewest(resolved, snapshot, domains: frozenset[str]) -> list[str]:
     """The fewest relaxable conditions whose removal gives a feasible answer."""
     conditions = resolved.conditions

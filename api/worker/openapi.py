@@ -3417,6 +3417,7 @@ def render() -> str:
                                     "section": {"type": "string"}, "id": {"type": "string"},
                                     "value": {"description": "The closest facet value, present only on a facet-value suggestion."}}, "required": ["section", "id"]}},
                                 "message": {"type": "string", "description": "Explains the searched sections, matched fields and closest ids; present only when total is zero."},
+                                "unknown_ids": {"type": "array", "items": {"type": "string"}, "description": "Requested ids that are not an exact id in the searched sections. Absent when every requested id matched."},
                                 "facets": {"type": "array", "items": {"type": "object"}},
                                 "benchmarks": {"type": "array", "items": {"type": "object"}},
                                 "domains": {"type": "array", "items": {"type": "object"}},

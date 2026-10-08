@@ -1052,7 +1052,7 @@
           "dimension": "-offering.cost_per_task",
           "weight": 0.22,
           "value": 0.0,
-          "normalisation": "feasible min-max; min; minimum=0.056 usd_per_task; maximum=0.168 usd_per_task; constant dimensions contribute zero dimensionless",
+          "normalisation": "feasible min-max; min; minimum=0.056 usd_per_task; maximum=0.168 usd_per_task; a zero span maps to 1 (max) or 0 (min) dimensionless",
           "evidence": [],
           "formula": "(3 USD per 1M input tokens × 40,000 input tokens + 12 USD per 1M output tokens × 4,000 output tokens) ÷ 1,000,000 = 0.168 USD per task",
           "preferred_value": null,
@@ -1067,7 +1067,7 @@
           "dimension": "quality",
           "weight": 0.78,
           "value": 1.0,
-          "normalisation": "feasible min-max; max; minimum=72.0 percent; maximum=92.0 percent; constant dimensions contribute zero dimensionless",
+          "normalisation": "feasible min-max; max; minimum=72.0 percent; maximum=92.0 percent; a zero span maps to 1 (max) or 0 (min) dimensionless",
           "evidence": [
             {
               "requested_domain": "software_engineering",
@@ -1160,7 +1160,7 @@
           "dimension": "-offering.cost_per_task",
           "weight": 0.22,
           "value": 0.5,
-          "normalisation": "feasible min-max; min; minimum=0.056 usd_per_task; maximum=0.168 usd_per_task; constant dimensions contribute zero dimensionless",
+          "normalisation": "feasible min-max; min; minimum=0.056 usd_per_task; maximum=0.168 usd_per_task; a zero span maps to 1 (max) or 0 (min) dimensionless",
           "evidence": [],
           "formula": "(2 USD per 1M input tokens × 40,000 input tokens + 8 USD per 1M output tokens × 4,000 output tokens) ÷ 1,000,000 = 0.112 USD per task",
           "preferred_value": null,
@@ -1175,7 +1175,7 @@
           "dimension": "quality",
           "weight": 0.78,
           "value": 0.8,
-          "normalisation": "feasible min-max; max; minimum=72.0 percent; maximum=92.0 percent; constant dimensions contribute zero dimensionless",
+          "normalisation": "feasible min-max; max; minimum=72.0 percent; maximum=92.0 percent; a zero span maps to 1 (max) or 0 (min) dimensionless",
           "evidence": [
             {
               "requested_domain": "software_engineering",
@@ -1268,7 +1268,7 @@
           "dimension": "-offering.cost_per_task",
           "weight": 0.22,
           "value": 1.0,
-          "normalisation": "feasible min-max; min; minimum=0.056 usd_per_task; maximum=0.168 usd_per_task; constant dimensions contribute zero dimensionless",
+          "normalisation": "feasible min-max; min; minimum=0.056 usd_per_task; maximum=0.168 usd_per_task; a zero span maps to 1 (max) or 0 (min) dimensionless",
           "evidence": [],
           "formula": "(1 USD per 1M input tokens × 40,000 input tokens + 4 USD per 1M output tokens × 4,000 output tokens) ÷ 1,000,000 = 0.056 USD per task",
           "preferred_value": null,
@@ -1283,7 +1283,7 @@
           "dimension": "quality",
           "weight": 0.78,
           "value": 0.0,
-          "normalisation": "feasible min-max; max; minimum=72.0 percent; maximum=92.0 percent; constant dimensions contribute zero dimensionless",
+          "normalisation": "feasible min-max; max; minimum=72.0 percent; maximum=92.0 percent; a zero span maps to 1 (max) or 0 (min) dimensionless",
           "evidence": [
             {
               "requested_domain": "software_engineering",

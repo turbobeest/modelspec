@@ -77,6 +77,31 @@ class Client:
                 recovery="network",
                 extra_next=next_steps("upgrade") if self.guide_changed else None,
             )
+        # A 200 decision with decision_id and no error object. no_feasible, and
+        # any such decision that carries coverage, exits 2 as the decision body.
+        # answered or partial without coverage is an answer and exits 0.
+        decision = (
+            response.status_code < 300
+            and isinstance(payload, dict)
+            and isinstance(payload.get("decision_id"), str)
+            and bool(payload["decision_id"])
+            and status in {"answered", "partial", "no_feasible"}
+            and not error
+        )
+        has_coverage = (
+            isinstance(payload, dict)
+            and isinstance(payload.get("coverage"), dict)
+            and bool(payload["coverage"])
+        )
+        if decision and (status == "no_feasible" or has_coverage):
+            raise ClientError(
+                "no_feasible" if status == "no_feasible" else "out_of_coverage",
+                recovery="coverage",
+                exit_code=2,
+                body=payload,
+                passthrough=True,
+                guide_changed=self.guide_changed,
+            )
         recovery, exit_code = "spec", 1
         if response.status_code in (401, 403):
             recovery, exit_code = "key", 5
@@ -88,7 +113,7 @@ class Client:
             "guide_outdated",
         }:
             recovery = "upgrade"
-        elif code in {
+        elif not decision and (code in {
             "out_of_coverage",
             "no_match",
             "no_feasible",
@@ -97,11 +122,11 @@ class Client:
         } or status in {"no_feasible", "no_match", "out_of_coverage"} or (
             isinstance(payload, dict) and isinstance(payload.get("coverage"), dict)
             and payload["coverage"].get("kind") == "out_of_coverage"
-        ):
+        )):
             recovery, exit_code = "coverage", 2
         elif response.status_code >= 500:
             recovery = "network"
-        if (
+        if not decision and (
             response.status_code >= 300
             or error
             or status in {"refused", "no_feasible", "no_match", "out_of_coverage"}

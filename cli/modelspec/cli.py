@@ -14,7 +14,7 @@ from typer.core import TyperCommand, TyperGroup
 
 from . import auth, setup
 from .client import Client
-from .errors import ClientError, fail
+from .errors import ClientError, fail, guide_version_notice
 from .guidance import BUNDLE, HELP, TEXT, next_steps, orientation, orientation_lines, procurement
 from .spec import load_spec, validate_spec
 
@@ -203,16 +203,7 @@ def setup_mcp(
 
 def _response(ctx: click.Context, client: Client, response: Any, as_json: bool) -> None:
     if client.guide_changed:
-        notice = {
-            "warning": {"code": "guide_version_changed", "message": TEXT["guide_changed"]},
-            "next": next_steps("upgrade"),
-        }
-        typer.echo(
-            json.dumps(notice)
-            if _json_mode(ctx, as_json)
-            else "\n".join([TEXT["guide_changed"], TEXT["next_label"], *notice["next"]]),
-            err=True,
-        )
+        guide_version_notice(_json_mode(ctx, as_json))
     if _json_mode(ctx, as_json):
         typer.echo(response.text, nl=False)
     else:

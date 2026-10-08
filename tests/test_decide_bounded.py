@@ -480,7 +480,7 @@ def test_a_capability_objective_without_a_benchmark_is_not_a_gate_exclusion(
     assert status == 200, body
     assert body["status"] == "no_feasible"
     assert body["relax"] == [
-        "specify a benchmark or wait for the capability model (MODEL-129)",
+        "no model that meets the requirements has a value for software_engineering",
     ]
     text = body["summary_for_user"]
     assert (
@@ -506,7 +506,7 @@ def test_q10_chat_preference_without_a_benchmark_is_not_a_gate_exclusion(service
     assert status == 200, body
     assert body["status"] == "no_feasible"
     assert body["relax"] == [
-        "specify a benchmark or wait for the capability model (MODEL-129)",
+        "no model that meets the requirements has a value for chat_preference",
     ]
     text = body["summary_for_user"]
     assert (
@@ -584,7 +584,9 @@ def test_missing_objective_ignores_an_unrelated_unknown_gate(service):
     }, _mixed_objective_snapshot())
     assert status == 200, body
     assert body["status"] == "no_feasible"
-    assert body["relax"] == ["no complete objective values"]
+    assert body["relax"] == [
+        "no model that meets the requirements has a value for offering.price.cached_input",
+    ]
     unknowns = {row["model"]: row["unknown"] for row in body["may_qualify"]}
     assert unknowns["lab/a"] == ["offering.price.cached_input"]
     assert "model.context_window" in unknowns["lab/b"]

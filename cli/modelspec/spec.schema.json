@@ -10,6 +10,15 @@
               "$ref": "#/$defs/Access"
             },
             {
+              "enum": [
+                "chat_app",
+                "coding_tool",
+                "own_software",
+                "own_hardware"
+              ],
+              "type": "string"
+            },
+            {
               "type": "null"
             }
           ],

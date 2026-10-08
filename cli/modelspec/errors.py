@@ -20,16 +20,42 @@ class ClientError(Exception):
         body: dict[str, Any] | None = None,
         issues: list[dict[str, str]] | None = None,
         extra_next: list[str] | None = None,
+        passthrough: bool = False,
+        guide_changed: bool = False,
     ) -> None:
         self.code = code
         self.exit_code = exit_code
         self.body = body
         self.issues = issues
+        self.passthrough = passthrough
+        self.guide_changed = guide_changed
         self.next = [*next_steps(recovery), *(extra_next or [])]
         super().__init__(code)
 
 
+def guide_version_notice(as_json: bool) -> None:
+    """The stderr notice `_response` prints when the server guide moved."""
+    notice = {
+        "warning": {"code": "guide_version_changed", "message": TEXT["guide_changed"]},
+        "next": next_steps("upgrade"),
+    }
+    typer.echo(
+        json.dumps(notice)
+        if as_json
+        else "\n".join([TEXT["guide_changed"], TEXT["next_label"], *notice["next"]]),
+        err=True,
+    )
+
+
 def fail(error: ClientError, *, command: str, as_json: bool) -> NoReturn:
+    if error.passthrough and isinstance(error.body, dict):
+        if error.guide_changed:
+            guide_version_notice(as_json)
+        if as_json:
+            typer.echo(json.dumps(error.body, ensure_ascii=False))
+        else:
+            typer.echo(json.dumps(error.body, indent=2, ensure_ascii=False))
+        raise typer.Exit(error.exit_code)
     payload = dict(error.body or {})
     payload.setdefault("schema_version", "2.0")
     payload.setdefault("command", command)

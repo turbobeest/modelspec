@@ -37,6 +37,26 @@ Learned expensively during 2026-09-09/10.
 10. **Excluded sources stay excluded.** `decision/excluded.py` lists them and
     the data-trust checks refuse them; never cite one, even second-hand.
 
+11. **Provider-wide SOC 2 statements** (MODEL-341, Jamie 2026-10-08). A
+    provider-wide SOC 2 Type 2 statement, such as Microsoft's for Azure, counts
+    for an offering only when the cited page names the provider's platform
+    that serves the offering (for Azure AI Foundry models: "Azure") and states
+    Type 2 (or Type II). The page need not name the specific service; the YAML
+    scope comment carries that. Record
+    `offering.attestation.soc2` as `value: type_2`, `state: known` for each
+    such offering of that provider, for example azure-ai-foundry `gpt-6-astra`
+    and `gpt-5-4`. There is no `provider_wide` enum value and no contract bump.
+    Where the provider gates the statement by a per-service scope list, add a
+    YAML comment on the record that names the list and its URL, so a reader
+    can check that the service is in scope. If the page does not cover the
+    platform, leave the fact `not_disclosed`; if the scope list excludes the
+    service, record `none`/`known`. The audit reader (`decision/verify.py`,
+    `GovernanceProseExtractor`) matches the phrase "SOC 2 Type 2" (or "Type
+    II") and does not check service scope, so it agrees with the `type_2`
+    record; `test_governance_prose_reader_handles_provider_wide_statements`
+    covers the reader and `test_soc2_type_2_phrase_matches_registered_enum` the
+    comparison. The scope comment is the human check.
+
 ## Pytest CI shards
 
 The required `Run pytest` check aggregates four file-level jobs. The splitter

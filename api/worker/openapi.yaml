@@ -4131,6 +4131,8 @@ components:
         access:
           anyOf:
           - {$ref: '#/components/schemas/DecisionAccess'}
+          - enum: [chat_app, coding_tool, own_software, own_hardware]
+            type: string
           - {type: 'null'}
           default: null
       required: [spec_version, optimize]
