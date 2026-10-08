@@ -172,10 +172,8 @@ def test_no_feasible_names_no_pick_and_keeps_the_relax_suggestions() -> None:
     assert text == (
         f"{NO_FEASIBLE} These requirements together exclude every model: "
         "offering.region = eu; model.class = text-generator. "
-        "Relaxing offering.region = eu would admit a model; "
-        "that is an option, not an answer. "
-        "Relaxing model.class = text-generator would admit a model; "
-        "that is an option, not an answer. "
+        "Relaxing offering.region = eu and model.class = text-generator together "
+        "would admit a model; that is an option, not an answer. "
         "Requirements applied: offering.region = eu; model.class = text-generator."
     )
     assert mentions == []
@@ -183,6 +181,50 @@ def test_no_feasible_names_no_pick_and_keeps_the_relax_suggestions() -> None:
     assert "lab/" not in text
     for word in ("top", "best", "recommended"):
         assert re.search(rf"\b{word}\b", text, re.I) is None
+
+
+def test_three_relaxations_use_the_tie_list_in_one_option() -> None:
+    relax = [
+        "offering.region = eu",
+        "model.context_window <= 100000",
+        "offering.price.input <= 0.2",
+    ]
+    decision = _decision(status="no_feasible", results=[], answer=None, relax=relax)
+    text, _mentions = summarize(decision, _spec(where=relax, optimize={"min": "offering.cost_per_task"}))
+    assert (
+        "Relaxing offering.region = eu, model.context_window <= 100000, "
+        "and offering.price.input <= 0.2 together would admit a model; "
+        "that is an option, not an answer."
+    ) in text
+    assert text.count("would admit a model") == 1
+
+
+def test_a_covered_relaxation_stays_out_of_the_joint_option() -> None:
+    decision = _decision(
+        status="no_feasible",
+        results=[],
+        answer=None,
+        relax=["offering.price.input <= 0.5", "offering.region = eu"],
+        relax_to=[{
+            "condition": "offering.price.input <= 0.5",
+            "relaxed": "offering.price.input <= 0.75",
+            "facet": "offering.price.input",
+            "value": 0.75,
+            "admits": 1,
+        }],
+    )
+    text, _mentions = summarize(
+        decision,
+        _spec(where=["offering.price.input <= 0.5", "offering.region = eu"]),
+    )
+    assert (
+        "Relaxing offering.price.input <= 0.5 to offering.price.input <= 0.75 "
+        "would admit a model; that is an option, not an answer."
+    ) in text
+    assert (
+        "Relaxing offering.region = eu would admit a model; that is an option, not an answer."
+    ) in text
+    assert "together would admit" not in text
 
 
 def test_missing_objective_values_are_not_reported_as_a_gate_failure() -> None:
@@ -850,17 +892,16 @@ def test_must_mention_and_the_paragraph_stay_inside_their_byte_caps() -> None:
     assert NO_CLASS in huge_text
     assert huge_text.count(NO_CLASS) == 1
     assert COST_ONLY not in huge_text
-    assert huge_text.count("facet_00 >= 0; and 39 more.") == 2
+    assert huge_text.count("facet_00 >= 0; facet_01 >= 1; facet_02 >= 2; facet_03 >= 3; "
+                           "facet_04 >= 4; facet_05 >= 5; facet_06 >= 6; facet_07 >= 7; "
+                           "and 32 more.") == 2
+    listed = ", ".join(where[:-1]) + ", and " + where[-1]
     assert (
-        "Relaxing facet_00 >= 0 would admit a model; that is an option, not an answer."
+        f"Relaxing {listed} together would admit a model; that is an option, not an answer."
         in huge_text
     )
-    assert (
-        "Relaxing facet_10 >= 10 would admit a model; that is an option, not an answer."
-        in huge_text
-    )
-    assert "and 29 more." in huge_text
-    assert "Relaxing facet_11 >= 11" not in huge_text
+    assert huge_text.count("would admit a model") == 1
+    assert "Relaxing facet_00 >= 0 would admit a model;" not in huge_text
     assert "These are options, not an answer." not in huge_text
     assert "Nearest relaxations" not in huge_text
     assert "tied" not in huge_text

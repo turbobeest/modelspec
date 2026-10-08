@@ -15,6 +15,8 @@ from typing import TYPE_CHECKING, Literal
 from decision.contract import EvidenceQualifiers, Objective, Preference, Tolerance
 from decision.refinements import is_refinement_key
 
+NO_COMPLETE_OBJECTIVE_VALUES = "no complete objective values"
+
 if TYPE_CHECKING:
     from decision.snapshot import CapabilityEstimateValue, EvidenceValue, SnapshotIndex
 
@@ -397,7 +399,7 @@ def optimise(snapshot: SnapshotIndex, candidates: Sequence[str], objective: Obje
                                        for c in row.contributions if c.value is None)
                for row in missing}
     if not complete:
-        return Optimisation("no_feasible", (), "no complete objective values", missing=missing_ids,
+        return Optimisation("no_feasible", (), NO_COMPLETE_OBJECTIVE_VALUES, missing=missing_ids,
                             unknown=unknown)
     dominance = {}
     if objective.pareto is not None:

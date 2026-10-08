@@ -8,6 +8,7 @@ complete contract it projects with ``projects_contract``.
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping
 
 from decision import contract
 from decision.summary import summarize
@@ -121,7 +122,8 @@ def _answer_summary(answer: object) -> str:
 def project(decision: contract.Decision, options: contract.ResponseOptions, *,
             detail: contract.ModelEvidence | None = None,
             not_applied: list[str],
-            spec: contract.Spec | None = None) -> dict:
+            spec: contract.Spec | None = None,
+            profiles: Mapping[str, contract.InventoryProfile] | None = None) -> dict:
     data = decision.model_dump(mode="json")
     kept = ("decision_id", "snapshot", "signature_verified", "spec_hash", "explain", "status",
             "answer", "warnings", "truncated", "out_of_lineup", "relax", "relax_to", "feedback")
@@ -157,7 +159,7 @@ def project(decision: contract.Decision, options: contract.ResponseOptions, *,
     if detail:
         body["model_evidence"] = detail.model_dump(mode="json")
     # Computed from the full Decision, before either budget drops records.
-    summary, mentions = summarize(decision, spec, not_applied=not_applied)
+    summary, mentions = summarize(decision, spec, not_applied=not_applied, profiles=profiles)
     body["summary_for_user"] = summary
     body["must_mention"] = mentions
     if detail:

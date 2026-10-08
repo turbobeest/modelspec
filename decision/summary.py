@@ -10,7 +10,7 @@ from the full Decision, before any agent-budget trim.
 
 from __future__ import annotations
 
-from collections.abc import Iterable
+from collections.abc import Iterable, Mapping
 
 from decision.contract import (
     AllOf,
@@ -18,16 +18,20 @@ from decision.contract import (
     Contribution,
     Decision,
     InSet,
+    InventoryProfile,
     Known,
     NotOf,
     Preference,
     Result,
     Spec,
+    SpecError,
     _render_value,
     render_condition,
 )
+from decision.optimise import NO_COMPLETE_OBJECTIVE_VALUES
 from decision.reading import HARDWARE_FIT
 from decision.refinements import split_dimension
+from decision.resolve import resolve
 
 SUMMARY_BYTES = 1_200
 TIE_NAME_CAP = 8
@@ -69,6 +73,9 @@ _OPTION_TO = (
     "that is an option, not an answer."
 )
 _OPTION = "Relaxing {condition} would admit a model; that is an option, not an answer."
+_OPTION_TOGETHER = (
+    "Relaxing {conditions} together would admit a model; that is an option, not an answer."
+)
 
 
 def summarize(
@@ -76,12 +83,34 @@ def summarize(
     spec: Spec | None = None,
     *,
     not_applied: Iterable[str] = (),
+    profiles: Mapping[str, InventoryProfile] | None = None,
 ) -> tuple[str, list[str]]:
     """Return ``(summary_for_user, must_mention)``."""
     unapplied = _unapplied(decision, not_applied)
-    mentions = _mentions(decision, spec, unapplied)
-    summary = _summary(decision, spec, unapplied, mentions)
+    conditions = _applied_conditions(spec, profiles)
+    mentions = _mentions(decision, spec, unapplied, conditions)
+    summary = _summary(decision, spec, unapplied, mentions, conditions)
     return summary, [text for _kind, text in mentions]
+
+
+def _applied_conditions(
+    spec: Spec | None, profiles: Mapping[str, InventoryProfile] | None,
+) -> tuple:
+    """The condition list the engine filters on: profile rules, then ``where``.
+
+    ``resolve`` is that list. A hand-built spec the registry rejects still
+    uses the same order, so a summary of it does not drop the profile rules.
+    """
+    if spec is None:
+        return ()
+    try:
+        return tuple(resolve(spec, profiles=profiles).conditions)
+    except SpecError:
+        profile = spec.profile
+        if isinstance(profile, str):
+            profile = None if profiles is None else profiles.get(profile)
+        rules = tuple(profile.rules) if isinstance(profile, InventoryProfile) else ()
+        return rules + tuple(spec.where)
 
 
 def _count(value: int) -> str:
@@ -93,6 +122,7 @@ def _summary(
     spec: Spec | None,
     unapplied: list[str],
     mentions: list[tuple[str, str]],
+    conditions: tuple,
 ) -> str:
     limits = {
         "tie": TIE_NAME_CAP,
@@ -113,14 +143,14 @@ def _summary(
     visible = _paragraph_mentions(decision, mentions)
     limits["caveat"] = len(visible)
     floors["caveat"] = len({kind for kind, _text in visible}) or 0
-    text = _compose(decision, spec, unapplied, visible, limits)
+    text = _compose(decision, spec, unapplied, visible, limits, conditions)
     order = ("hard", "prefer", "relax", "missing", "tie", "caveat")
     while len(text.encode("utf-8")) > SUMMARY_BYTES:
         key = next((name for name in order if limits[name] > floors[name]), None)
         if key is None:
             break
         limits[key] -= 1
-        text = _compose(decision, spec, unapplied, visible, limits)
+        text = _compose(decision, spec, unapplied, visible, limits, conditions)
     if len(text.encode("utf-8")) > SUMMARY_BYTES:
         text = _clip_paragraph(text)
     return text
@@ -132,10 +162,11 @@ def _compose(
     unapplied: list[str],
     mentions: list[tuple[str, str]],
     limits: dict[str, int],
+    conditions: tuple,
 ) -> str:
     parts = [_answer_sentence(decision, limits["tie"])]
-    parts.extend(_why(decision, spec, unapplied, limits))
-    parts.extend(_constraints(spec, unapplied, limits))
+    parts.extend(_why(decision, spec, unapplied, limits, conditions))
+    parts.extend(_constraints(spec, unapplied, limits, conditions))
     parts.extend(_caveats(mentions, limits["caveat"]))
     return _dedupe(parts)
 
@@ -177,19 +208,23 @@ def _answer_sentence(decision: Decision, tie_limit: int) -> str:
 
 
 def _why(
-    decision: Decision, spec: Spec | None, unapplied: list[str], limits: dict[str, int],
+    decision: Decision,
+    spec: Spec | None,
+    unapplied: list[str],
+    limits: dict[str, int],
+    conditions: tuple,
 ) -> list[str]:
     if decision.status == "no_feasible":
         if spec is not None and _objective_values_missing(decision, spec):
             return [_MISSING_OBJECTIVE.format(objective=_objective_phrase(spec))]
-        gates, _dont = _gates(spec, set(unapplied))
+        gates, _dont = _gates(spec, set(unapplied), conditions)
         if gates:
             listed = _bounded(gates, limits["hard"])
             exclude = f"These requirements together exclude every model: {listed}."
         else:
             exclude = "These requirements together exclude every model."
         sentences = [exclude]
-        sentences.extend(_relaxation_options(decision, spec, limits["relax"]))
+        sentences.extend(_relaxation_options(decision, conditions, limits["relax"]))
         hint = decision.relax_task_tokens
         if hint is not None:
             sentences.append(f"Task-size relaxation, not an answer: {hint.condition}.")
@@ -224,19 +259,20 @@ def _qualify_sentence(count: int) -> str:
     )
 
 
-def _relaxation_options(decision: Decision, spec: Spec | None, limit: int) -> list[str]:
-    """One sentence per gate option. A diagnostic relax entry is not an option."""
-    requirements = set(_gates(spec, set())[0])
+def _relaxation_options(decision: Decision, conditions: tuple, limit: int) -> list[str]:
+    """``relax_to`` items are each enough. Uncovered ``relax`` entries are one set."""
+    requirements = set(_condition_gates(conditions)[0])
     covered = {item.condition for item in decision.relax_to}
     options = [
         _OPTION_TO.format(condition=item.condition, relaxed=item.relaxed)
         for item in decision.relax_to
     ]
-    options.extend(
-        _OPTION.format(condition=condition)
-        for condition in decision.relax
+    uncovered = [
+        condition for condition in decision.relax
         if condition not in covered and condition in requirements
-    )
+    ]
+    if uncovered:
+        options.append(_joint_option(uncovered))
     if not options:
         return []
     shown_count = min(len(options), max(limit, 1))
@@ -247,8 +283,17 @@ def _relaxation_options(decision: Decision, spec: Spec | None, limit: int) -> li
     return shown
 
 
-def _constraints(spec: Spec | None, unapplied: list[str], limits: dict[str, int]) -> list[str]:
-    gates, dont_care = _gates(spec, set(unapplied))
+def _joint_option(conditions: list[str]) -> str:
+    if len(conditions) == 1:
+        return _OPTION.format(condition=conditions[0])
+    listed = _name_list(conditions, len(conditions), more="")
+    return _OPTION_TOGETHER.format(conditions=listed)
+
+
+def _constraints(
+    spec: Spec | None, unapplied: list[str], limits: dict[str, int], conditions: tuple,
+) -> list[str]:
+    gates, dont_care = _gates(spec, set(unapplied), conditions)
     prefers = _prefers(spec, set(unapplied))
     sentences: list[str] = []
     if gates:
@@ -267,21 +312,28 @@ def _constraints(spec: Spec | None, unapplied: list[str], limits: dict[str, int]
     return sentences
 
 
-def _gates(spec: Spec | None, unapplied: set[str]) -> tuple[list[str], list[str]]:
+def _gates(
+    spec: Spec | None, unapplied: set[str], conditions: tuple,
+) -> tuple[list[str], list[str]]:
     if spec is None:
         return [], []
+    gates, dont_care = _condition_gates(conditions)
+    for facet, level in (spec.capabilities or {}).items():
+        if level == "required" and facet not in unapplied:
+            gates.append(f"{facet} is required")
+    return gates, dont_care
+
+
+def _condition_gates(conditions: tuple) -> tuple[list[str], list[str]]:
     gates: list[str] = []
     dont_care: list[str] = []
     phrase = f"{OPENNESS_FACET} is not required (either acceptable)."
-    for condition in spec.where:
+    for condition in conditions:
         if _plain_openness_either(condition):
             if phrase not in dont_care:
                 dont_care.append(phrase)
             continue
         gates.append(render_condition(condition))
-    for facet, level in (spec.capabilities or {}).items():
-        if level == "required" and facet not in unapplied:
-            gates.append(f"{facet} is required")
     return gates, dont_care
 
 
@@ -325,22 +377,17 @@ def _plain_openness_either(condition: object) -> bool:
 
 
 def _objective_values_missing(decision: Decision, spec: Spec | None) -> bool:
-    """True when ``relax`` holds an engine diagnostic, not a requirement to drop.
+    """True when ``no_feasible`` is the engine's missing-objective diagnostic.
 
-    A gate exclusion stores rendered conditions (``decision/relax.py``). When
-    every candidate that passed the gates lacks an objective value, the engine
-    stores the diagnostic instead and lists those candidates on ``may_qualify``.
+    One candidate whose unknown facets are all objective bases is enough.
+    An unknown gate on a different candidate does not cancel that.
     """
-    if spec is None or not decision.relax or not decision.may_qualify:
-        return False
-    rendered = {render_condition(condition) for condition in spec.where}
-    if any(item in rendered for item in decision.relax):
+    if spec is None or decision.relax != [NO_COMPLETE_OBJECTIVE_VALUES] or not decision.may_qualify:
         return False
     objectives = set(_objective_bases(spec))
     if not objectives:
         return False
-    unknowns = {name for row in decision.may_qualify for name in row.unknown}
-    return bool(unknowns) and unknowns <= objectives
+    return any(row.unknown and set(row.unknown) <= objectives for row in decision.may_qualify)
 
 
 def _objective_phrase(spec: Spec) -> str:
@@ -364,13 +411,13 @@ def _unapplied(decision: Decision, extra: Iterable[str]) -> list[str]:
 
 
 def _mentions(
-    decision: Decision, spec: Spec | None, unapplied: list[str],
+    decision: Decision, spec: Spec | None, unapplied: list[str], conditions: tuple,
 ) -> list[tuple[str, str]]:
     items: list[tuple[str, str]] = []
     if _presents_tie(decision) and decision.answer is not None:
         count = len(decision.answer.members)
         items.append(("tie", f"No single winner: {_count(count)} models are tied."))
-    scope = _class_sentence(decision, spec)
+    scope = _class_sentence(decision, spec, conditions)
     if scope:
         items.append(("class", scope))
     if _cost_only(decision, spec):
@@ -543,31 +590,72 @@ def _unmeasured(decision: Decision, model: str, dimension: str) -> bool:
     """True when this model's objective position is an estimate, latent, or null.
 
     A driver board attached to a latent contribution is not a measured score.
-    Rows that carry neither a contribution nor an estimate for the dimension
-    say nothing, so they are not reported as unmeasured.
+    ``limit`` drops members from ``results``. Their contributions stay on
+    ``top`` when explain is full, and a capability estimate stays on ``bands``
+    for every ranked model. A measured contribution is never overridden by a
+    band. A row that carries neither a contribution nor an estimate says
+    nothing, so it is not reported as unmeasured.
     """
     base = _dimension_base(dimension)
-    saw = False
-    measured = False
-    for row in decision.results:
-        if row.model != model:
+    covered = _measurement(decision.results, model, dimension, base, estimates=True)
+    if covered is None:
+        covered = _measurement(decision.top, model, dimension, base, estimates=False)
+    if covered is True:
+        return False
+    if covered is False:
+        return True
+    return _band_unmeasured(decision, model, dimension, base)
+
+
+def _measurement(rows, model: str, dimension: str, base: str, *, estimates: bool) -> bool | None:
+    """True when measured, False when not, None when no row speaks for the dimension."""
+    verdict: bool | None = None
+    for row in rows:
+        if _row_model(row) != model:
             continue
-        states = [
-            _contribution_measured(contribution)
-            for contribution in row.contributions
-            if _contribution_matches(contribution, dimension, base)
-        ]
-        if states:
-            saw = True
-            measured = measured or any(states)
+        state = _position_state(row.contributions, row.evidence, dimension, base)
+        if state is None and estimates and _estimate_position(row, dimension, base):
+            state = False
+        if state is True:
+            return True
+        if state is False:
+            verdict = False
+    return verdict
+
+
+def _row_model(row) -> str | None:
+    model = getattr(row, "model", None)
+    if model:
+        return model
+    offering = getattr(row, "offering", None)
+    return None if offering is None else offering.model
+
+
+def _position_state(contributions, evidence, dimension: str, base: str) -> bool | None:
+    states = [
+        _contribution_measured(contribution)
+        for contribution in contributions
+        if _contribution_matches(contribution, dimension, base)
+    ]
+    if states:
+        return any(states)
+    if _direct_board(evidence, dimension, base):
+        return True
+    return None
+
+
+def _band_unmeasured(decision: Decision, model: str, dimension: str, base: str) -> bool:
+    bands = decision.bands
+    if bands is None:
+        return False
+    for entry in (*bands.best, *bands.rest, *bands.thin):
+        if entry.model != model:
             continue
-        if _direct_board(row, dimension, base):
-            saw = True
-            measured = True
-            continue
-        if _estimate_position(row, dimension, base):
-            saw = True
-    return saw and not measured
+        for estimate in entry.estimates:
+            key = estimate.dimension.removeprefix("-")
+            if key == dimension or key == base:
+                return True
+    return False
 
 
 def _contribution_matches(contribution: Contribution, dimension: str, base: str) -> bool:
@@ -584,8 +672,8 @@ def _contribution_measured(contribution: Contribution) -> bool:
     return contribution.value is not None or contribution.raw_value is not None
 
 
-def _direct_board(row: Result, dimension: str, base: str) -> bool:
-    for group in row.evidence:
+def _direct_board(evidence, dimension: str, base: str) -> bool:
+    for group in evidence:
         matched = group.domain in (dimension, base) or any(
             item.benchmark in (dimension, base) for item in group.items
         )
@@ -619,8 +707,8 @@ def _presents_tie(decision: Decision) -> bool:
     return decision.status == "answered" and answer is not None and answer.kind == "tied"
 
 
-def _has_class_gate(spec: Spec) -> bool:
-    for condition in spec.where:
+def _has_class_gate(conditions: tuple) -> bool:
+    for condition in conditions:
         for leaf in _leaves(condition):
             if isinstance(leaf, Known):
                 if leaf.known == _CLASS_FACET:
@@ -630,8 +718,8 @@ def _has_class_gate(spec: Spec) -> bool:
     return False
 
 
-def _class_sentence(decision: Decision, spec: Spec | None) -> str:
-    if spec is None or _has_class_gate(spec):
+def _class_sentence(decision: Decision, spec: Spec | None, conditions: tuple) -> str:
+    if spec is None or _has_class_gate(conditions):
         return ""
     classes = _visible_classes(decision)
     if not classes:
