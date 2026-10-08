@@ -166,7 +166,7 @@ class RowObservation:
     source: str
     observed_date: str
     evidence_date: str
-    #: The matched projector row supplied one of ``_SOURCE_DATE_KEYS``.
+    #: ``source_publishes_row_date`` on the card row's source URL.
     source_dated: bool = False
 
     @property
@@ -281,10 +281,11 @@ def _evidence_date(board: BoardReading, row: Mapping[str, Any]) -> str:
 def observation_dated(
     evidence_date: object, observed_at: object, *, source_dated: bool = False,
 ) -> bool:
-    """True when the evidence day is the observation and the source gave no date.
+    """True when the evidence day is the observation and the projector publishes no row date.
 
-    A projector date stays a measurement, including when it falls on the
-    observation day.
+    ``source_dated`` is ``source_publishes_row_date`` for the row's source URL.
+    A dated projector stays a measurement, including when this row's date is
+    missing and when the measurement day is the observation day.
     """
     if source_dated:
         return False
@@ -292,30 +293,32 @@ def observation_dated(
     return bool(evidence) and evidence == observed
 
 
-def _stored_row_is_source_dated(row: Mapping[str, Any]) -> bool:
-    """The stored row's projector publishes a per-row date, or the source is unknown.
+def source_publishes_row_date(source_url: str) -> bool:
+    """True when this source URL's projector publishes a per-row date.
 
-    A card does not carry ``date``, ``leaderboard_publish_date``, ``started_at``,
-    ``Started at`` or ``release_date``. The source URL names the projector.
-    ``evidence_date == observed_at`` does not make the row an observation.
+    The live writer, ``align_observation_cards`` and ``check_score_only`` all
+    call this. The URL is the whole rule. A missing date on the projected row
+    does not change it: Epoch sets ``date`` to ``None`` for an empty
+    ``Started at``, and ``document`` drops that key. An unknown URL is dated.
+    Only ``_OBSERVATION_SOURCE_URLS`` publish no per-row date.
     """
-    return str(row.get("source_url") or "") not in _OBSERVATION_SOURCE_URLS
+    return source_url not in _OBSERVATION_SOURCE_URLS
 
 
-def align_observation_dating(
-    row: Mapping[str, Any], *, source_dated: bool = False,
-) -> dict[str, Any]:
+def align_observation_dating(row: Mapping[str, Any]) -> dict[str, Any]:
     """Make configuration text and date_type match an observation-dated row.
 
-    A row whose projector supplied a measurement or publish date is left alone,
-    even when that date is the observation day. Only a row with no per-row
-    source date gets ``read <that date>`` and date_type ``evaluated``. The
-    citation is the standalone word ``read``. ``re-read`` stays as written.
+    ``source_publishes_row_date`` on the row's source URL decides. A dated
+    projector stays as written, including when its date value is missing.
+    An observation source whose evidence day is the observation day gets
+    ``read <that date>`` and date_type ``evaluated``. The citation is the
+    standalone word ``read``. ``re-read`` stays as written.
     """
     updated = dict(row)
-    dated_by_source = source_dated or _source_measurement_date(updated) is not None
     if not observation_dated(
-        updated.get("evidence_date"), updated.get("observed_at"), source_dated=dated_by_source,
+        updated.get("evidence_date"),
+        updated.get("observed_at"),
+        source_dated=source_publishes_row_date(str(updated.get("source_url") or "")),
     ):
         return updated
     day = _iso_day(updated.get("evidence_date"))
@@ -408,7 +411,7 @@ def _plan_observations(
             source=board.source_url,
             observed_date=board.observed_at,
             evidence_date=source_date or board.observed_at,
-            source_dated=source_date is not None,
+            source_dated=source_publishes_row_date(str(evidence.get("source_url") or "")),
         ))
     return observations, failures
 
@@ -497,11 +500,12 @@ def _rewrite_card(
 
 
 def align_observation_cards(root: Path) -> list[str]:
-    """Rewrite stored rows whose projector publishes no per-row date.
+    """Rewrite stored rows whose source URL is an observation projector.
 
-    Returns the card paths that changed, relative to ``root``. A row whose
-    source projector publishes a measurement or publish date is left alone,
-    including when its evidence day is already the observation day.
+    Returns the card paths that changed, relative to ``root``. Classification
+    is ``source_publishes_row_date``. A dated projector is left alone, including
+    when its evidence day is already the observation day and when its date
+    value is missing.
     """
     changed: list[str] = []
     for path in sorted((root / "models").glob("*/*.md")):
@@ -511,9 +515,7 @@ def align_observation_cards(root: Path) -> list[str]:
         for row in rows:
             if not isinstance(row, Mapping):
                 continue
-            aligned = align_observation_dating(
-                row, source_dated=_stored_row_is_source_dated(row),
-            )
+            aligned = align_observation_dating(row)
             if (
                 aligned.get("configuration") != row.get("configuration")
                 or aligned.get("date_type") != row.get("date_type")
@@ -783,7 +785,7 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
                 new["evidence_date"] = observation.evidence_date
                 new["observed_at"] = observed_at
                 new["verified_at"] = observed_at
-                new = align_observation_dating(new, source_dated=observation.source_dated)
+                new = align_observation_dating(new)
                 new["sources"] = [SourceRef(
                     source_id=board.source_id,
                     snapshot_ref=board.snapshot_ref,
@@ -890,18 +892,18 @@ def _body(path: Path) -> str:
 def _row_allows_refresh(before: Mapping[str, Any], after: Mapping[str, Any]) -> bool:
     """A refresh may change score, dates, id and the source snapshot.
 
-    When the row's projector publishes no per-row date and the new evidence
-    day is the observation, it may also replace the standalone word ``read``
-    plus a date in the configuration, and change date_type from ``published``
-    to ``evaluated``. ``re-read`` is not that citation. A projector that
-    publishes a row date, and any source this refresher does not classify,
-    keeps both fields.
+    When ``source_publishes_row_date`` is false for the row's source URL and
+    the new evidence day is the observation, it may also replace the standalone
+    word ``read`` plus a date in the configuration, and change date_type from
+    ``published`` to ``evaluated``. ``re-read`` is not that citation. A dated
+    projector keeps both fields, including when this row's date value is
+    missing. An unknown source URL does too.
     """
     old, new = dict(before), dict(after)
     for key in _ALLOWED_EVIDENCE_FIELDS:
         old.pop(key, None)
         new.pop(key, None)
-    dated_by_source = _stored_row_is_source_dated(before)
+    dated_by_source = source_publishes_row_date(str(before.get("source_url") or ""))
     if old.get("configuration") != new.get("configuration"):
         if not observation_dated(
             after.get("evidence_date"), after.get("observed_at"), source_dated=dated_by_source,
@@ -950,12 +952,12 @@ def check_score_only(before: Path, after: Path) -> ScoreOnlyResult:
     """Mechanically prove a generated refresh did not add cards or alter identities.
 
     Existing evidence rows may change their score, observation/verification
-    date, ID and source-snapshot binding. A row whose projector publishes no
-    per-row date, dated by the observation, may also make its configuration's
-    standalone ``read <date>`` and date_type match that date. A ``re-read``
-    phrase is not that edit. A projector that publishes a row date keeps both
-    fields, including when the stored evidence day already equals ``observed_at``.
-    Verification JSONL files may only grow.
+    date, ID and source-snapshot binding. A row whose source URL is an
+    observation projector, dated by the observation, may also make its
+    configuration's standalone ``read <date>`` and date_type match that date.
+    A ``re-read`` phrase is not that edit. A dated projector keeps both fields,
+    including when its date value is missing and when the stored evidence day
+    already equals ``observed_at``. Verification JSONL files may only grow.
     """
     old, new = _files(before), _files(after)
     errors: list[str] = []
@@ -1143,13 +1145,15 @@ MATHARENA_AIME_2025_URL = "https://matharena.ai/competition_tables/aime--aime_20
 HLE_URL = "https://labs.scale.com/leaderboard/humanitys_last_exam"
 DEEPSWE_CARD_URL = "https://deepswe.datacurve.ai/"
 #: Card source URLs whose refresher projector puts none of ``_SOURCE_DATE_KEYS``
-#: on a row. Read from each projector's row dict: ``project_metr``,
-#: ``project_mteb``, ``project_matharena``, ``project_cursorbench``,
-#: ``project_deepswe``, ``project_vending``, ``project_frontiercode`` and
-#: ``_project_frontiercode``, ``project_osworld`` and ``_project_osworld``,
-#: ``_project_scale_hle``. Arena, Epoch, Terminal-Bench, Scale SWE-bench Pro,
-#: Finance Benchmark, SWE-bench and tau-bench each emit ``date`` or
-#: ``leaderboard_publish_date``.
+#: on a row. ``source_publishes_row_date`` is membership in this set. A blank
+#: date that ``document`` drops does not move the URL into this set: an empty
+#: Epoch ``Started at`` stays a dated projector. Read from each
+#: projector's row dict: ``project_metr``, ``project_mteb``,
+#: ``project_matharena``, ``project_cursorbench``, ``project_deepswe``,
+#: ``project_vending``, ``project_frontiercode`` and ``_project_frontiercode``,
+#: ``project_osworld`` and ``_project_osworld``, ``_project_scale_hle``.
+#: Arena, Epoch, Terminal-Bench, Scale SWE-bench Pro, Finance Benchmark,
+#: SWE-bench and tau-bench each emit ``date`` or ``leaderboard_publish_date``.
 _OBSERVATION_SOURCE_URLS = frozenset({
     readers.METR_URL,
     *(board[1] for board in MTEB_BOARDS),

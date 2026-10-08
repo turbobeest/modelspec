@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import shutil
 from datetime import date
 from pathlib import Path
 
@@ -619,12 +620,12 @@ def test_mteb_row_without_its_own_date_uses_the_board_observation_date(
     (root / "premier" / "slice-1.yaml").write_text(
         "models:\n- model_id: lab/embedding-model\n", encoding="utf-8"
     )
-    source_url = "https://example.test/mteb/scores"
+    source_url = refresh.readers.MTEB_URL
     (root / "registry" / "sources.yaml").write_text(
         f"""schema_version: 1
 sources:
 - id: fixture-mteb
-  url: {source_url}
+  url: "{source_url}"
   volatility: live
   fetch: http
   normaliser: text-default
@@ -646,7 +647,7 @@ benchmarks:
     model_id_as_evaluated: Fixture/Embedding-Model
     score: 75.98
     unit: percent
-    source_url: {source_url}
+    source_url: "{source_url}"
     source_kind: benchmark_author
     evidence_date: '2026-09-24'
     date_type: published
@@ -786,6 +787,7 @@ def _run_one_row_refresh(
     monkeypatch, tmp_path: Path, *,
     board_row: dict, configuration: str, evidence_date: str, card_observed_at: str,
     refresh_observed_at: str,
+    source_url: str = "https://example.test/leaderboard.json",
 ) -> dict:
     root = tmp_path / "repo"
     cache = tmp_path / "copies"
@@ -797,16 +799,16 @@ def _run_one_row_refresh(
         "models:\n- model_id: lab/model\n", encoding="utf-8"
     )
     (root / "registry" / "sources.yaml").write_text(
-        """schema_version: 1
+        f"""schema_version: 1
 sources:
 - id: fixture-source
-  url: https://example.test/leaderboard.json
+  url: "{source_url}"
   volatility: live
   fetch: http
   normaliser: text-default
   cited_regions:
   - id: rows
-    locator: {kind: page, value: ''}
+    locator: {{kind: page, value: ''}}
 """,
         encoding="utf-8",
     )
@@ -822,7 +824,7 @@ benchmarks:
     model_id_as_evaluated: Stable Model
     score: 72.0
     unit: percent
-    source_url: https://example.test/leaderboard.json
+    source_url: "{source_url}"
     source_kind: benchmark_author
     evidence_date: '{evidence_date}'
     date_type: published
@@ -841,14 +843,14 @@ benchmarks:
     store = refresh.CopyStore(cache)
     projection = refresh.readers.document(
         [board_row],
-        url="https://example.test/leaderboard.json",
+        url=source_url,
         page_ref="sha256:" + "b" * 64,
         read_date=refresh_observed_at,
         note="fixture",
     )
     board = refresh._reading_from_projection(
         key="fixture", source_id="fixture-source", benchmarks=("fixture_benchmark",),
-        source_url="https://example.test/leaderboard.json", projected=projection,
+        source_url=source_url, projected=projection,
         observed_at=refresh_observed_at, value_field="score", store=store,
     )
     monkeypatch.setattr(refresh, "collect_readings", lambda *_: ([board], []))
@@ -887,6 +889,7 @@ def test_dataset_reread_text_is_not_rewritten(monkeypatch, tmp_path: Path) -> No
         evidence_date="2026-09-24",
         card_observed_at="2026-09-24",
         refresh_observed_at="2026-09-28",
+        source_url=refresh.readers.METR_URL,
     )
 
     assert str(row["evidence_date"]) == "2026-09-28"
@@ -896,17 +899,112 @@ def test_dataset_reread_text_is_not_rewritten(monkeypatch, tmp_path: Path) -> No
     )
 
 
-def test_blank_source_date_is_still_an_observation() -> None:
-    for blank in (None, ""):
+def test_blank_date_on_a_dated_projector_stays_published() -> None:
+    configuration = "Board row read 2026-09-24."
+    epoch = "https://epoch.ai/benchmarks/gpqa-diamond"
+    for extra in ({"date": None}, {"date": ""}, {}):
         aligned = refresh.align_observation_dating({
+            "source_url": epoch,
             "evidence_date": "2026-09-28",
             "observed_at": "2026-09-28",
             "date_type": "published",
-            "configuration": "Board row read 2026-09-24.",
-            "date": blank,
+            "configuration": configuration,
+            **extra,
         })
-        assert aligned["date_type"] == "evaluated"
-        assert aligned["configuration"] == "Board row read 2026-09-28."
+        assert aligned["date_type"] == "published"
+        assert aligned["configuration"] == configuration
+
+
+def test_epoch_blank_started_at_passes_score_only(monkeypatch, tmp_path: Path) -> None:
+    root = tmp_path / "repo"
+    cache = tmp_path / "copies"
+    source_url = "https://epoch.ai/benchmarks/gpqa-diamond"
+    configuration = "Board row read 2026-09-24."
+    (root / "premier").mkdir(parents=True)
+    (root / "models" / "lab").mkdir(parents=True)
+    (root / "registry").mkdir(parents=True)
+    (root / "verification").mkdir(parents=True)
+    (root / "premier" / "slice-1.yaml").write_text(
+        "models:\n- model_id: lab/model\n", encoding="utf-8"
+    )
+    (root / "registry" / "sources.yaml").write_text(
+        f"""schema_version: 1
+sources:
+- id: fixture-epoch
+  url: "{source_url}"
+  volatility: live
+  fetch: http
+  normaliser: text-default
+  cited_regions:
+  - id: rows
+    locator: {{kind: page, value: ''}}
+""",
+        encoding="utf-8",
+    )
+    card = root / "models" / "lab" / "model.md"
+    card.write_text(
+        f"""---
+model_id: lab/model
+display_name: Grok 4
+version: grok-4-0709
+benchmarks:
+  evidence:
+  - benchmark_id: gpqa_diamond
+    model_id_as_evaluated: grok-4-0709
+    score: 50.0
+    unit: percent
+    source_url: "{source_url}"
+    source_kind: independent_evaluator
+    evidence_date: '2026-09-24'
+    date_type: published
+    observed_at: '2026-09-24'
+    verified_at: '2026-09-24'
+    configuration: {configuration}
+    id: lab/model#gpqa
+    sources:
+    - source_id: fixture-epoch
+      snapshot_ref: sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+      cited_regions: [rows]
+---
+""",
+        encoding="utf-8",
+    )
+    projection = refresh.readers.project_epoch(
+        "Model version,mean_score,stderr,Started at\ngrok-4-0709,0.5,,\n",
+        url=source_url,
+        page_ref="sha256:" + "b" * 64,
+        read_date="2026-09-28",
+    )
+    assert "date" not in json.loads(projection)["rows"][0]
+    store = refresh.CopyStore(cache)
+    board = refresh._reading_from_projection(
+        key="epoch:gpqa_diamond",
+        source_id="fixture-epoch",
+        benchmarks=("gpqa_diamond",),
+        source_url=source_url,
+        projected=projection,
+        observed_at="2026-09-28",
+        value_field="mean_score",
+        fraction=True,
+        store=store,
+        card_urls=(source_url,),
+    )
+    monkeypatch.setattr(refresh, "collect_readings", lambda *_: ([board], []))
+    before = tmp_path / "before"
+    shutil.copytree(root, before)
+
+    report = refresh.run(
+        observed_at="2026-09-28", dry_run=False, root=root, source_cache=cache
+    )
+
+    row = refresh._front(card)["benchmarks"]["evidence"][0]
+    result = refresh.check_score_only(before, root)
+    assert report.quarantined == []
+    assert row["date_type"] == "published"
+    assert row["configuration"] == configuration
+    assert str(row["observed_at"]) == "2026-09-28"
+    assert str(row["evidence_date"]) == "2026-09-28"
+    assert result.ok, result.errors
 
 
 def test_folded_reread_is_not_a_read_date() -> None:
