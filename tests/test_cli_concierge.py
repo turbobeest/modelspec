@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import gzip
 import json
 import stat
 import tomllib
@@ -186,7 +187,7 @@ def test_decide_sends_exactly_the_supplied_spec_and_passes_the_body_through(
         assert request.method == "POST"
         assert json.loads(request.content) == SPEC
         assert request.headers["authorization"] == f"Bearer {KEY}"
-        assert request.headers["user-agent"] == "modelspec-cli/0.3.0"
+        assert request.headers["user-agent"] == "modelspec-cli/0.3.1"
         return httpx.Response(
             200, text=API_TEXT, headers={"x-modelspec-guide-version": BUNDLE["guide_version"]}
         )
@@ -876,3 +877,98 @@ def test_json_escaped_credential_reflection_is_redacted(monkeypatch):
     assert "[redacted]" in payload["error"]["message"]
     assert secret not in result.output
     assert json.dumps(secret)[1:-1] not in result.output
+
+
+def gzip_json(status, body, headers=None):
+    """A MockTransport body the way api.modelspec.dev returns it: gzip bytes, decoded by httpx."""
+    merged = {"content-encoding": "gzip", "content-type": "application/json"}
+    merged.update(headers or {})
+    return httpx.Response(status, content=gzip.compress(body.encode()), headers=merged)
+
+
+def test_gzip_success_returns_the_decoded_json(monkeypatch):
+    body = '{"facets":[{"id":"cost"}]}'
+    monkeypatch.setattr(
+        client,
+        "_transport",
+        httpx.MockTransport(
+            lambda request: gzip_json(
+                200, body, {"x-modelspec-guide-version": BUNDLE["guide_version"]}
+            )
+        ),
+    )
+    result = run(["vocab", "--json"], keyed=True)
+    assert result.exit_code == 0, result.output
+    assert result.stdout == body
+    assert json.loads(result.stdout) == {"facets": [{"id": "cost"}]}
+
+
+@pytest.mark.parametrize(
+    "status,code,exit_code",
+    [(400, "invalid_spec", 1), (502, "export_unavailable", 1)],
+)
+def test_gzip_error_body_is_the_server_error_not_a_decode_failure(
+    monkeypatch, status, code, exit_code
+):
+    body = json.dumps({"error": {"code": code, "message": "Server refused"}})
+    monkeypatch.setattr(
+        client, "_transport", httpx.MockTransport(lambda request: gzip_json(status, body))
+    )
+    result = run(["vocab", "--json"], keyed=True)
+    payload = assert_error(result, code)
+    assert result.exit_code == exit_code
+    assert payload["error"]["code"] != "network_error"
+    assert "DecodingError" not in result.output
+
+
+def test_gzip_unauthorized_recovers_the_key(monkeypatch):
+    body = '{"error":{"code":"invalid_api_key","message":"Rejected"}}'
+    monkeypatch.setattr(
+        client, "_transport", httpx.MockTransport(lambda request: gzip_json(401, body))
+    )
+    result = run(["vocab", "--json"], keyed=True)
+    payload = assert_error(result, "invalid_api_key")
+    assert result.exit_code == 5
+    assert any("modelspec key" in line for line in payload["next"])
+
+
+@pytest.mark.parametrize(
+    "status,body",
+    [
+        (200, json.dumps({"status": "ok", "echo": KEY})),
+        (400, json.dumps({"error": {"code": "invalid_spec", "message": KEY}})),
+    ],
+)
+def test_gzip_redacts_a_secret_echoed_in_the_body(monkeypatch, status, body):
+    monkeypatch.setattr(
+        client, "_transport", httpx.MockTransport(lambda request: gzip_json(status, body))
+    )
+    result = run(["vocab", "--json"], keyed=True)
+    assert KEY not in result.stdout + result.stderr
+    assert "[redacted]" in result.stdout
+    if status == 200:
+        assert result.exit_code == 0, result.output
+        assert json.loads(result.stdout)["echo"] == "[redacted]"
+    else:
+        payload = assert_error(result, "invalid_spec")
+        assert payload["error"]["message"] == "[redacted]"
+
+
+def test_gzip_rate_limit_keeps_retry_after_and_guide_version(monkeypatch):
+    body = '{"error":{"code":"rate_limited","message":"Slow down"}}'
+    monkeypatch.setattr(
+        client,
+        "_transport",
+        httpx.MockTransport(
+            lambda request: gzip_json(
+                429,
+                body,
+                {"retry-after": "60", "x-modelspec-guide-version": "1-not-this-client"},
+            )
+        ),
+    )
+    result = run(["vocab", "--json"], keyed=True)
+    payload = assert_error(result, "rate_limited")
+    assert result.exit_code == 6
+    assert payload["retry_after"] == "60"
+    assert any("pipx upgrade modelspec-dev" in line for line in payload["next"])

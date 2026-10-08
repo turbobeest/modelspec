@@ -1,6 +1,6 @@
 # The ModelSpec CLI contract
 
-MODEL-307. `modelspec-dev` 0.3.0 is a thin keyed client for the hosted API.
+MODEL-307. `modelspec-dev` 0.3.1 is a thin keyed client for the hosted API.
 The command is `modelspec`. Version 0.2.0 was yanked. Release publication is
 an operator step after review; this repository does not publish to PyPI.
 

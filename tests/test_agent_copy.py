@@ -40,6 +40,17 @@ def test_the_cli_bundle_and_schemas_are_generated_from_the_published_sources() -
         ROOT / "schemas/feedback-v1.schema.json").read_bytes()
 
 
+def test_the_cli_bundle_guide_version_matches_the_worker() -> None:
+    from api.worker.src.agent_guide import GUIDE_VERSION
+
+    bundle = json.loads(agent_copy.CLI_OUT.read_text(encoding="utf-8"))
+    assert bundle["guide_version"] == GUIDE_VERSION, (
+        "cli/modelspec/agent-bundle.json guide_version differs from "
+        "api.worker.src.agent_guide.GUIDE_VERSION; regenerate with "
+        "python -m pipeline.agent_copy write"
+    )
+
+
 def test_every_mcp_tool_description_and_the_instructions_come_from_the_copy() -> None:
     registered = re.findall(r'server\.registerTool\(\s*"(\w+)",\s*\{\s*description:\s*([^\n]+)', SERVER)
     assert sorted(name for name, _ in registered) == sorted(agent_ready.MCP_TOOLS)
