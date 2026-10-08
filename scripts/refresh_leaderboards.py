@@ -50,12 +50,15 @@ from decision.verify import (
 from scripts import model_160_evidence as readers
 from scripts.model_143_evidence import evidence_id, evidence_key, measured_by
 
-#: A configuration cites the day the board was read as ``read YYYY-MM-DD``.
-_READ_DATE = re.compile(r"\bread \d{4}-\d{2}-\d{2}\b")
+#: A configuration cites the day the board was read as the standalone word ``read``
+#: and a date. A hyphenated word such as ``re-read`` is not that citation.
+_READ_DATE = re.compile(r"(?<![\w-])read \d{4}-\d{2}-\d{2}\b")
 #: The same citation in a folded YAML scalar, where the date can sit on the next line.
 _READ_DATE_FOLDED = re.compile(
-    r"\bread(?:[ \t]+|[ \t]*\n[ \t]+)(\d{4}-\d{2}-\d{2})\b"
+    r"(?<![\w-])read(?:[ \t]+|[ \t]*\n[ \t]+)(\d{4}-\d{2}-\d{2})\b"
 )
+#: Projector columns that are the row's own measurement or publish date.
+_SOURCE_DATE_KEYS = ("date", "leaderboard_publish_date", "started_at", "Started at", "release_date")
 #: Card vocabulary for a row dated by the observation. The decision contract
 #: publishes this value as ``observed``.
 OBSERVATION_DATE_TYPE = "evaluated"
@@ -163,6 +166,8 @@ class RowObservation:
     source: str
     observed_date: str
     evidence_date: str
+    #: The matched projector row supplied one of ``_SOURCE_DATE_KEYS``.
+    source_dated: bool = False
 
     @property
     def changed(self) -> bool:
@@ -260,29 +265,62 @@ def _iso_day(value: object) -> str:
     return str(value or "").split("T", 1)[0]
 
 
-def _evidence_date(board: BoardReading, row: Mapping[str, Any]) -> str:
-    """Use the row's measurement date, or the live board's observation date."""
-    for key in ("date", "leaderboard_publish_date", "started_at", "Started at", "release_date"):
+def _source_measurement_date(row: Mapping[str, Any]) -> str | None:
+    """The projector row's own measurement or publish day, when it has one."""
+    for key in _SOURCE_DATE_KEYS:
         if value := row.get(key):
             return str(value).split("T", 1)[0]
-    return board.observed_at
+    return None
 
 
-def observation_dated(evidence_date: object, observed_at: object) -> bool:
-    """True when the evidence date is the observation, not a source measurement."""
+def _evidence_date(board: BoardReading, row: Mapping[str, Any]) -> str:
+    """Use the row's measurement date, or the live board's observation date."""
+    return _source_measurement_date(row) or board.observed_at
+
+
+def observation_dated(
+    evidence_date: object, observed_at: object, *, source_dated: bool = False,
+) -> bool:
+    """True when the evidence day is the observation and the source gave no date.
+
+    A projector date stays a measurement, including when it falls on the
+    observation day.
+    """
+    if source_dated:
+        return False
     evidence, observed = _iso_day(evidence_date), _iso_day(observed_at)
     return bool(evidence) and evidence == observed
 
 
-def align_observation_dating(row: Mapping[str, Any]) -> dict[str, Any]:
+def _carried_its_own_date(before: Mapping[str, Any], after: Mapping[str, Any]) -> bool:
+    """The evidence day was already on the row, and it was not the previous observation.
+
+    The refresh copied that day from the source. Catching up ``observed_at`` to
+    the same calendar day does not make the row an observation.
+    """
+    before_day = _iso_day(before.get("evidence_date"))
+    return (
+        bool(before_day)
+        and before_day == _iso_day(after.get("evidence_date"))
+        and before_day != _iso_day(before.get("observed_at"))
+    )
+
+
+def align_observation_dating(
+    row: Mapping[str, Any], *, source_dated: bool = False,
+) -> dict[str, Any]:
     """Make configuration text and date_type match an observation-dated row.
 
-    A source measurement date is left alone, including a ``read <date>`` that
-    cites when that measurement was copied. A row dated by the observation
-    gets ``read <that date>`` and date_type ``evaluated``.
+    A row whose projector supplied a measurement or publish date is left alone,
+    even when that date is the observation day. Only a row with no per-row
+    source date gets ``read <that date>`` and date_type ``evaluated``. The
+    citation is the standalone word ``read``. ``re-read`` stays as written.
     """
     updated = dict(row)
-    if not observation_dated(updated.get("evidence_date"), updated.get("observed_at")):
+    dated_by_source = source_dated or _source_measurement_date(updated) is not None
+    if not observation_dated(
+        updated.get("evidence_date"), updated.get("observed_at"), source_dated=dated_by_source,
+    ):
         return updated
     day = _iso_day(updated.get("evidence_date"))
     configuration = updated.get("configuration")
@@ -363,6 +401,7 @@ def _plan_observations(
         if readers.numbers_agree(old, evidence.get("unit"),
                                  readers.parse_quantity(str(new), evidence.get("unit"))):
             new = old
+        source_date = _source_measurement_date(match)
         observations.append(RowObservation(
             card=card,
             model_id=model_id,
@@ -372,7 +411,8 @@ def _plan_observations(
             new_value=new,
             source=board.source_url,
             observed_date=board.observed_at,
-            evidence_date=_evidence_date(board, match),
+            evidence_date=source_date or board.observed_at,
+            source_dated=source_date is not None,
         ))
     return observations, failures
 
@@ -744,7 +784,7 @@ def run(*, observed_at: str, dry_run: bool, root: Path = ROOT,
                 new["evidence_date"] = observation.evidence_date
                 new["observed_at"] = observed_at
                 new["verified_at"] = observed_at
-                new = align_observation_dating(new)
+                new = align_observation_dating(new, source_dated=observation.source_dated)
                 new["sources"] = [SourceRef(
                     source_id=board.source_id,
                     snapshot_ref=board.snapshot_ref,
@@ -851,16 +891,22 @@ def _body(path: Path) -> str:
 def _row_allows_refresh(before: Mapping[str, Any], after: Mapping[str, Any]) -> bool:
     """A refresh may change score, dates, id and the source snapshot.
 
-    When the new evidence date is the observation date, it may also replace
-    ``read <date>`` in the configuration with that date and change date_type
-    from ``published`` to ``evaluated``.
+    When the row has no source date and the new evidence day is the observation,
+    it may also replace the standalone word ``read`` plus a date in the
+    configuration, and change date_type from ``published`` to ``evaluated``.
+    ``re-read`` is not that citation. A date the row already carried, which was
+    not the previous observation, stays a source date when the refresh day
+    catches up to it.
     """
     old, new = dict(before), dict(after)
     for key in _ALLOWED_EVIDENCE_FIELDS:
         old.pop(key, None)
         new.pop(key, None)
+    dated_by_source = _carried_its_own_date(before, after)
     if old.get("configuration") != new.get("configuration"):
-        if not observation_dated(after.get("evidence_date"), after.get("observed_at")):
+        if not observation_dated(
+            after.get("evidence_date"), after.get("observed_at"), source_dated=dated_by_source,
+        ):
             return False
         expected = _READ_DATE.sub(
             f"read {_iso_day(after.get('evidence_date'))}",
@@ -872,7 +918,9 @@ def _row_allows_refresh(before: Mapping[str, Any], after: Mapping[str, Any]) -> 
         new.pop("configuration", None)
     if old.get("date_type") != new.get("date_type"):
         if not (
-            observation_dated(after.get("evidence_date"), after.get("observed_at"))
+            observation_dated(
+                after.get("evidence_date"), after.get("observed_at"), source_dated=dated_by_source,
+            )
             and old.get("date_type") == "published"
             and new.get("date_type") == OBSERVATION_DATE_TYPE
         ):
@@ -903,8 +951,10 @@ def check_score_only(before: Path, after: Path) -> ScoreOnlyResult:
     """Mechanically prove a generated refresh did not add cards or alter identities.
 
     Existing evidence rows may change their score, observation/verification
-    date, ID and source-snapshot binding. A row dated by the observation may
-    also make its configuration ``read <date>`` and date_type match that date.
+    date, ID and source-snapshot binding. A row with no source date, dated by
+    the observation, may also make its configuration's standalone ``read <date>``
+    and date_type match that date. A ``re-read`` phrase, or a date the row
+    already carried from its source, is not that edit.
     Verification JSONL files may only grow.
     """
     old, new = _files(before), _files(after)
