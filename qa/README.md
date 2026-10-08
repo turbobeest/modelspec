@@ -382,7 +382,15 @@ The local entry points are:
 python -m qa.subscription_jobs scenarios --data-repo ~/dev/modelspec-data
 python -m qa.subscription_jobs ux --data-repo ~/dev/modelspec-data
 python -m qa.subscription_jobs aeo --business-repo ~/dev/modelspec-business
+python -m qa.subscription_jobs scenarios --data-repo ~/dev/modelspec-data --cli claude --judge claude=grok
 ```
+
+`--judge CLI=JUDGE` is repeatable and applies to the scenarios job only. It does not
+change `qa/tui_config.yaml`. The judge must be a known CLI from a different
+family, and gemini cannot judge. An unknown, same-family or gemini route refuses
+the job before a CLI starts. The override judge's doctor receipt is required.
+Report metadata records the routes used and the override. A scenarios
+`--resume` with a different judge route does not reuse the other run's checkpoint.
 
 Add `--dry-run` to any command. Previews make no model, browser, search,
 credential or PR call and write only beneath `<state-dir>/dry-run`. `--state-dir`
