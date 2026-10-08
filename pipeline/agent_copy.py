@@ -69,6 +69,12 @@ CONDUCT_RULES = (
     "One vocabulary lookup per unknown facet, then decide. Read `next` before another call.",
     "Size `task_tokens` from the user's own task, and say what you assumed. Don't copy the guide's example sizes.",
 )
+# MODEL-339. One sentence, quoted by the MCP instructions, the decide and rank
+# tool descriptions, the guide, and CLI `modelspec help agent`. Not a conduct
+# rule: those eight stay a closed list.
+SUMMARY_RULE = (
+    "Present `summary_for_user` to the user unchanged and keep every `must_mention` item."
+)
 SPEC_GUIDANCE = (
     "Call decide early with a template-based Spec; refine from reading and recovery hints. "
     "Put Musts in where: these gates exclude. Put Prefers in optimize.weights: weights rank "
@@ -86,6 +92,7 @@ REPORTING_RULES = (
     "call. A retry does not verify them. Report estimates as estimates: fits_hardware "
     "membership is not measured fit for a specific quantization and context workload. "
     "Follow reading.do_not_claim. Never claim a rank the response does not show. "
+    f"{SUMMARY_RULE} "
 )
 MINIMAL_SPEC = {"spec_version": 1, "optimize": {"min": "offering.cost_per_task"}}
 VOCAB_NEXT = {
@@ -126,7 +133,7 @@ def cli_text(root: Path = ROOT) -> dict[str, Any]:
                      "Current coverage may differ. See https://modelspec.dev/api/coverage.json."),
         "answers": ("Ask about model requirements, sourced capability evidence, cost, context, "
                     "hosting and policy constraints. Answers report ties, missing facts and reasons. "
-                    + " ".join(CONDUCT_RULES)),
+                    + " ".join(CONDUCT_RULES) + " " + SUMMARY_RULE),
         "price": "From {low_dollars} per answer. Published range ${low_usd}–${high_usd} per answer, depending on plan, pack and explanation.",
         "procurement": (key_procurement(root) + " Checkout availability is shown on the page. "
                         "For access, volume or invoicing, contact sales@modelspec.dev. "
@@ -454,12 +461,9 @@ Answer, status, warnings, coverage and the top result stay. An omission is not a
 ## Worked Specs
 
 These are starting points from the registry templates, not recommendations of a
-model. Keep only the gates and weights the user stated; do not silently adopt
-or drop a gate or invent numeric tradeoffs. If no objective was stated, disclose
-the minimal Spec's cost objective as a discovery default, not a quality recommendation.
-Capabilities and weights express broad evidence, not measured
-quality on the user's exact prompt. The hardware ID below is a registry example;
-replace it with the user's SKU after a targeted lookup.
+model. Keep only the gates and weights the user stated. If no objective was stated,
+disclose the minimal Spec's cost objective as a discovery default, not a quality
+recommendation. Replace the example hardware ID with the user's SKU.
 """
     for row in guide_examples():
         text += f"\n### {row['family']}\n\nTemplate: `{row['template']}`.\n\n```json\n{json.dumps(row['spec'], indent=2)}\n```\n"
@@ -468,15 +472,10 @@ replace it with the user's SKU after a targeted lookup.
 
 {REPORTING_RULES}
 
-`reading.tied` identifies a tie; if `reading.omitted` reports truncation, use the
-complete answer.members and request/error.issues lists. `reading.not_applied`
-names unchecked requirements. `reading.estimates` names computed estimates.
-`reading.do_not_claim` states reporting limits. These rules also apply when
-reading is absent: inspect answer, issues, and result evidence directly.
-`may_qualify` means a required fact is unknown, not that the model passes.
-`status=partial` is incomplete evidence; `no_match` is not a winner.
-No single leader is an answer: report the tie. Never fall back to the deprecated `rank`.
-Unknown policy determinations are undetermined, never permission.
+If `reading.omitted` reports truncation, use the complete answer.members and issues
+lists. `may_qualify` means a required fact is unknown, not a pass. `status=partial`
+is incomplete evidence; report the tie and do not fall back to `rank`. An
+undetermined policy is not permission.
 
 On refusal read error.issues and recovery hints, including their paths and valid
 examples. Correct the specified fields and retry. Tell the user any requirement
@@ -641,7 +640,7 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
             "Returns a shortlist with evidence_basis, input provenance, not a quality "
             f"verdict. {price([w['rank']], tiers)} "
             "Don't call it as a fallback when decide names no single leader: report "
-            "decide's tie. "
+            f"decide's tie. {SUMMARY_RULE} "
             f"Proxies POST {API}/v1/rank with this tool's arguments as the JSON body. "
             f"{NULL_RULE}"
         ),
@@ -733,7 +732,7 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
             "3. Present ties as ties, including with_estate; never invent a single winner or quality rank. "
             "4. Disclose not_applied and dropped requirements after retries; unknown is not a pass. "
             "5. Follow reading.do_not_claim, label estimates and pin snapshot. "
-            f"{BOUNDED_MCP}"
+            f"{SUMMARY_RULE} {BOUNDED_MCP}"
         ),
         "tools": tools,
         "card": card,

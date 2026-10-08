@@ -75,6 +75,7 @@ SOURCES = {
     Path("decision/relax.py"): Path("decision/relax.py"),
     Path("decision/reading.py"): Path("decision/reading.py"),
     Path("decision/bounded.py"): Path("decision/bounded.py"),
+    Path("decision/summary.py"): Path("decision/summary.py"),
     Path("decision/refinements.py"): Path("decision/refinements.py"),
     Path("decision/registry.py"): Path("decision/registry.py"),
     Path("decision/regions.py"): Path("decision/regions.py"),

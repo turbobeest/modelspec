@@ -128,14 +128,62 @@ def load_scenarios(directory: Path = HERE / "scenarios") -> list[dict]:
     return scenarios
 
 
+def agent_constraints(constraints):
+    """The constraint object the agent reads.
+
+    ``open_weights: false`` on a recall scenario means open weights are not
+    required. A boolean false reads as the opposite requirement, so the agent
+    sees the words instead. ``true`` stays "required".
+    """
+    if not isinstance(constraints, dict) or not isinstance(constraints.get("open_weights"), bool):
+        return constraints
+    rendered = dict(constraints)
+    rendered["open_weights"] = "required" if constraints["open_weights"] else "not required"
+    return rendered
+
+
 def agent_request(scenario: dict) -> str:
     # Expected answers, rubrics, fixture specs and gap annotations never enter agent context.
-    return json.dumps(
-        {k: scenario[k] for k in ("persona", "request", "constraints")}, ensure_ascii=False
-    )
+    payload = {k: scenario[k] for k in ("persona", "request", "constraints")}
+    payload["constraints"] = agent_constraints(payload["constraints"])
+    return json.dumps(payload, ensure_ascii=False)
 
 
-def expected_match(expected: dict | None, judgement: dict | None) -> bool | None:
+def seen_decision(tool_calls: list | None) -> dict | None:
+    """The last successful decide body the agent observed: status and answer."""
+    seen = None
+    for call in tool_calls or []:
+        if not isinstance(call, dict) or not _modelspec_tool(call) or _tool_label(call) != "decide":
+            continue
+        response = call.get("result")
+        if not isinstance(response, dict) or response.get("isError"):
+            continue
+        for block in response.get("content") or []:
+            envelope = status_envelope(block)
+            if envelope is None:
+                continue
+            status_code = envelope.get("status")
+            if not isinstance(status_code, int) or status_code == 0 or status_code >= 400:
+                continue
+            body = envelope.get("body")
+            if isinstance(body, dict) and "status" in body:
+                seen = {"status": body.get("status"), "answer": body.get("answer")}
+    return seen
+
+
+def _abstain_matches(expected: dict, seen: dict | None) -> bool:
+    if any("rule" in row for row in expected.get("acceptable", [])):
+        return True
+    if not isinstance(seen, dict):
+        return False
+    if seen.get("answer") is None:
+        return True
+    return seen.get("status") in ("partial", "no_feasible")
+
+
+def expected_match(
+    expected: dict | None, judgement: dict | None, *, seen: dict | None = None,
+) -> bool | None:
     if expected is None or judgement is None:
         return None
     acceptable = {
@@ -146,7 +194,7 @@ def expected_match(expected: dict | None, judgement: dict | None) -> bool | None
     prohibited = {r.get("model_id", r.get("name")) for r in expected.get("must_never", [])}
     selected = set(judgement["top_models"])
     if judgement["answer_kind"] == "abstain":
-        return not selected and any("rule" in r for r in expected["acceptable"])
+        return not selected and _abstain_matches(expected, seen)
     return bool(selected) and selected <= acceptable and not selected & prohibited
 
 
@@ -208,8 +256,14 @@ def evaluate_answer(scenario: dict, row: dict, judge, config: dict) -> None:
         row["judge"].pop("model")
     if len(selections) != 1:
         row["judge"].update(top_models=[], answer_kind="abstain")
-    row["expected_match"] = expected_match(scenario["expected"], row["judge"]) if agreed else None
-    row["success"] = row["judge"]["passed"] and row["expected_match"] is not False
+    row["expected_match"] = (
+        expected_match(
+            scenario["expected"], row["judge"], seen=seen_decision(row.get("tool_calls")),
+        )
+        if agreed else None
+    )
+    # expected_match stays a recall metric. A passing judgement is the success gate.
+    row["success"] = bool(row["judge"]["passed"])
 
 
 def live_judge(scenario: dict, budget: Budget, config: dict, client: httpx.Client):
@@ -623,9 +677,12 @@ def markdown(report: dict) -> str:
         f"Estimated spend: ${report['budget']['estimated_spend_usd']:.4f}; "
         f"cap: ${report['budget']['cap_usd']:.2f}.",
         "",
-        "Success requires a completed answer, a passing rubric judgement, and an acceptable "
-        "top model or tied subset when recall evidence exists. Recall acceptable lists are "
-        "unordered sets, not exact tied rankings. Abstentions match only explicit recall rules. "
+        "Success requires a completed answer and a passing rubric judgement. "
+        "An isolation misuse is a failure. Expected match is reported separately: it records "
+        "whether the recommendation agrees with the curated recall set, and it is not a success "
+        "gate. Recall acceptable lists are unordered sets, not exact tied rankings. "
+        "An abstention matches when the ModelSpec answer the agent saw had status partial or "
+        "no_feasible, or a null answer, or when the scenario carries an explicit rule. "
         "The judge assesses evidence separation and required uncertainty flags.",
         "",
         "Missing judgements and capped or failed runs count as failures. Expected-match rates "

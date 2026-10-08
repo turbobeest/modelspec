@@ -466,6 +466,7 @@ def decide(payload: Any, snapshot, *,
             return HTTP_OK, project_decision(
                 decision, options, detail=details[0] if details else None,
                 not_applied=sorted(set(spec.capabilities or {}) - set(snapshot.domain_ids())),
+                spec=spec,
             )
     except contract.SpecError as exc:
         return error_response(

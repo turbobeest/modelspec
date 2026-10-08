@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 
 from decision import contract
+from decision.summary import summarize
 
 ESSENTIAL_ROW_FIELDS = frozenset({"rank", "model", "offering", "warnings"})
 DEFAULT_FIELDS = ("model_rank", "cost_per_task", "estimates", "p_best")
@@ -119,7 +120,8 @@ def _answer_summary(answer: object) -> str:
 
 def project(decision: contract.Decision, options: contract.ResponseOptions, *,
             detail: contract.ModelEvidence | None = None,
-            not_applied: list[str]) -> dict:
+            not_applied: list[str],
+            spec: contract.Spec | None = None) -> dict:
     data = decision.model_dump(mode="json")
     kept = ("decision_id", "snapshot", "signature_verified", "spec_hash", "explain", "status",
             "answer", "warnings", "truncated", "out_of_lineup", "relax", "relax_to", "feedback")
@@ -154,6 +156,11 @@ def project(decision: contract.Decision, options: contract.ResponseOptions, *,
                            "note": note}
     if detail:
         body["model_evidence"] = detail.model_dump(mode="json")
+    # Computed from the full Decision, before either budget drops records.
+    summary, mentions = summarize(decision, spec, not_applied=not_applied)
+    body["summary_for_user"] = summary
+    body["must_mention"] = mentions
+    if detail:
         _bound_detail(body)
     else:
         _fit_agent_budget(body)
@@ -257,9 +264,10 @@ def _fit_agent_budget(body: dict) -> None:
     then ``may_qualify``, then any remaining result row except the top, then
     ``with_estate``, then ``reading`` and ``relax_task_tokens``, then one heavy
     field of the top result, then its other non-essential fields. ``answer``,
-    ``status``, ``warnings``, ``coverage`` and the top result's rank, model,
-    offering and warnings stay. A heavy field is removed whole. Does not return
-    a body that is still over budget: the essentials then raise ``SpecError``.
+    ``status``, ``warnings``, ``coverage``, ``summary_for_user``,
+    ``must_mention`` and the top result's rank, model, offering and warnings
+    stay. A heavy field is removed whole. Does not return a body that is still
+    over budget: the essentials then raise ``SpecError``.
     """
     if not _over(body):
         return

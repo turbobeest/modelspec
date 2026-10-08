@@ -1,7 +1,7 @@
 {
   "_generated": "by pipeline.agent_copy; run python -m pipeline.agent_copy write",
   "cli_version": "0.3.0",
-  "guide_version": "1-29ea94414b7b7402",
+  "guide_version": "1-3262dceafff184bf",
   "entity": "ModelSpec is an analysis of alternatives for AI models: it decides which models fit a job from your requirements, sourced benchmarks and real cost, and shows its work.",
   "coverage": {
     "as_of": "2026-09-23",
@@ -654,7 +654,7 @@
     "privacy": "No telemetry. The CLI never uses, sends or logs your provider API keys.",
     "package_warning": "pip install modelspec is an unrelated project. Use modelspec-dev.",
     "coverage": "Bundled public coverage summary, {as_of}: {models} catalogue cards, {providers} catalogue providers, {benchmarks} benchmarks. {summary} Current coverage may differ. See https://modelspec.dev/api/coverage.json.",
-    "answers": "Ask about model requirements, sourced capability evidence, cost, context, hosting and policy constraints. Answers report ties, missing facts and reasons. Never add a gate or constraint the user didn't state. Relax only constraints the user stated, one at a time, and say what was relaxed and why. Prefer the answer's own `relax` suggestions. A tie stays a tie. Don't promote a member by knowledge from outside the response. Cite only evidence in the response. Never add benchmark figures from memory. A null or partial answer is not a recommendation, so name no top pick and say what's missing. A null cost is unknown. Never show it as $0.00 or \"free\". One vocabulary lookup per unknown facet, then decide. Read `next` before another call. Size `task_tokens` from the user's own task, and say what you assumed. Don't copy the guide's example sizes.",
+    "answers": "Ask about model requirements, sourced capability evidence, cost, context, hosting and policy constraints. Answers report ties, missing facts and reasons. Never add a gate or constraint the user didn't state. Relax only constraints the user stated, one at a time, and say what was relaxed and why. Prefer the answer's own `relax` suggestions. A tie stays a tie. Don't promote a member by knowledge from outside the response. Cite only evidence in the response. Never add benchmark figures from memory. A null or partial answer is not a recommendation, so name no top pick and say what's missing. A null cost is unknown. Never show it as $0.00 or \"free\". One vocabulary lookup per unknown facet, then decide. Read `next` before another call. Size `task_tokens` from the user's own task, and say what you assumed. Don't copy the guide's example sizes. Present `summary_for_user` to the user unchanged and keep every `must_mention` item.",
     "price": "From {low_dollars} per answer. Published range ${low_usd}–${high_usd} per answer, depending on plan, pack and explanation.",
     "procurement": "Buy a plan or pack at https://modelspec.dev/pricing/. Stripe hosts Checkout; claim your key at the success link. Checkout availability is shown on the page. For access, volume or invoicing, contact sales@modelspec.dev. Store a key with modelspec auth set, or set MODELSPEC_API_KEY; the environment wins.",
     "human_message": "ModelSpec can check this model choice against your requirements and its published evidence. The agent needs a ModelSpec API key. Answers start at {low_dollars} at the cheapest published rate. You can provide an existing key, review https://modelspec.dev/pricing/, or look it up yourself on the free board at https://modelspec.dev/decide/.",
@@ -774,13 +774,13 @@
     }
   },
   "source_hashes": {
-    "pipeline/agent_copy.py": "973f6784dad6d45c0583d84b9fb145725b8ff2e16ac3d3a242651016e2cbdedd",
+    "pipeline/agent_copy.py": "152473aeed95ef2a49f3630c9b6986c92e871798827aff33538467c5ca1aca11",
     "pipeline/entity.py": "1649e5f95b620561511c2619045d036231b44c8ab7ff297bf4c6a21ab2b69ff3",
     "pipeline/pricing.py": "71bc6fa888ca079c186a39c2ccd15f2ed957f2ebf59599f6413f16b8f519a174",
     "pipeline/worker_flags.py": "0f3c1ff0de81710417659b86e1ec92913bbcf54af6312720fdad659e6af03429",
     "api/worker/wrangler.jsonc": "ecf7875754f3317d0b95cc7a41615847c4ea888608e899a90c9d202ec6528f84",
     "api/worker/tiers.json": "315a2ad62c5b366246675d2984e61243ed20d85d89bad6bd648e8960926b8773",
-    "docs/decision-contract.schema.json": "3faa14173f44c677088d3501d3f09bc82fc8cd8a76941865962b5e78350af86d",
+    "docs/decision-contract.schema.json": "bb627ba242dca7d155d735d2fd878c555a4a571860340f4cbcea60fd24c70674",
     "pyproject.toml": "985f27499841d558f35fbeb131bce5ddadff489e3a1ed78be7af717fecefb021",
     "schemas/feedback-v1.schema.json": "551a54ba5a954b73c38d5c35d0a48c62cf1b89d0cd9543d96103e2320450638b"
   }

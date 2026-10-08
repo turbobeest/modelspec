@@ -42,6 +42,8 @@ def test_public_default_mcp_budget(service, public_snapshot):
     assert body["reading"]
     assert body["answer"]["kind"] == "tied"
     assert body["answer"]["members"] == body["reading"]["tied"]
+    assert body["summary_for_user"].startswith("ModelSpec's answer is")
+    assert isinstance(body["must_mention"], list)
     contract.BoundedDecision.model_validate(body)
 
 
@@ -61,6 +63,9 @@ def test_projection_keeps_essentials_and_identity(service, snapshot):
     assert bounded["representation"] == "bounded"
     assert bounded["bounded_version"] == "1.0"
     assert bounded["projects_contract"] == "2.14"
+    assert bounded["summary_for_user"].startswith("ModelSpec's answer is")
+    assert isinstance(bounded["must_mention"], list)
+    assert "summary_for_user" not in complete
     assert "representation" not in complete
 
 
@@ -101,6 +106,8 @@ def test_drill_down_outside_limit_keeps_original_answer_and_budget(service, publ
     assert body["results"] == []
     assert body["model_evidence"]["model"] == target
     assert body["model_evidence"]["rank"] > 10
+    assert body["summary_for_user"].startswith("ModelSpec's answer is")
+    assert isinstance(body["must_mention"], list)
     assert len(service.serialise(body)) <= DRILL_DOWN_BYTES + 1
     assert mcp_bytes(service, body) / 4 <= 2_000
     for group in body["model_evidence"]["evidence"]:
@@ -143,6 +150,9 @@ def test_projection_retains_unapplied_requirements(service, snapshot):
     assert body["reading"]["not_applied"] == ["thread_safety"]
     assert body["explanation"]["not_applied"] == ["thread_safety"]
     assert "Do not claim not_applied requirements were evaluated." in body["reading"]["do_not_claim"]
+    assert "thread_safety was not applied; ModelSpec did not check it." in body["must_mention"]
+    assert "Not applied and not enforced: thread_safety." in body["summary_for_user"]
+    assert "thread_safety is required" not in body["summary_for_user"]
 
 
 def _pre_provenance(snapshot_bytes):

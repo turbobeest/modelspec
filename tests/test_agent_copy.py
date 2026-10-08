@@ -49,6 +49,30 @@ def test_every_mcp_tool_description_and_the_instructions_come_from_the_copy() ->
     assert set(COMMITTED["tools"]) == set(agent_ready.MCP_TOOLS) == set(COMMITTED["card"])
 
 
+def test_the_summary_rule_is_on_the_channels_an_agent_already_trusts() -> None:
+    rule = agent_copy.SUMMARY_RULE
+    assert rule == (
+        "Present `summary_for_user` to the user unchanged and keep every `must_mention` item."
+    )
+    assert len(agent_copy.CONDUCT_RULES) == 8
+    assert rule not in agent_copy.CONDUCT_RULES
+    data = agent_copy.copy()
+    guide = agent_copy.guide()[1]
+    bundle = json.loads(agent_copy.CLI_OUT.read_text(encoding="utf-8"))
+    assert data["instructions"].count(rule) == 1
+    assert data["tools"]["decide"].count(rule) == 1
+    assert data["tools"]["rank"].count(rule) == 1
+    assert rule not in data["tools"]["policy_check"]
+    assert rule not in data["tools"]["vocab"]
+    assert agent_copy.cli_text()["answers"].count(rule) == 1
+    assert guide.count(rule) == 1
+    assert COMMITTED["instructions"].count(rule) == 1
+    assert COMMITTED["tools"]["decide"].count(rule) == 1
+    assert COMMITTED["tools"]["rank"].count(rule) == 1
+    assert agent_copy.GUIDE_OUT.read_text(encoding="utf-8").count(rule) == 1
+    assert bundle["text"]["answers"].count(rule) == 1
+
+
 def test_the_instructions_open_with_the_entity_sentence_and_the_disambiguation() -> None:
     assert COMMITTED["instructions"].startswith(f"{entity.ONE_SENTENCE} {entity.DISAMBIGUATION}")
 
