@@ -2650,6 +2650,50 @@ def test_not_disclosed_on_a_kindless_licence_source_is_not_verified() -> None:
     assert result.diffs[0].found == "unknown"
 
 
+def _absence_with_readme() -> tuple[_KindRegions, verify.Claim]:
+    readme = "license: mit\nNimbus 3\n"
+    regions = _KindRegions(
+        {("nimbus-licence", "page"): MIT_TEXT, ("nimbus-readme", "page"): readme},
+        {"nimbus-licence": "licence_text", "nimbus-readme": "weights_repository"},
+        {"nimbus-licence": _MIT_URL},
+    )
+    claim = _licence_claim("licence.output_training", None, (_LICENCE, _README))
+    return regions, claim
+
+
+def test_a_deterministic_licence_absence_with_a_readme_stays_queued(tmp_path) -> None:
+    regions, claim = _absence_with_readme()
+    log = verify.VerificationLog(tmp_path / "verification")
+    queue = verify.Queue(log.directory)
+    queue.file(claim, at=NOW)
+    report = verify.run(queue, log, regions, verify.deterministic_extractors(), today=TODAY)
+    assert [result.outcome for result in report.results] == ["skipped"]
+    assert report.results[0].verification is None
+    assert report.results[0].diffs == ()
+    assert "no_extractor" in report.results[0].reason
+    assert "source_kind" not in report.results[0].reason
+    assert not log.path.exists()
+    pending, unknown = queue.pending()
+    assert unknown == []
+    assert [item.target.id for item in pending] == [claim.target.id]
+
+
+def test_a_licence_reader_error_on_an_absence_with_a_readme_is_skipped() -> None:
+    regions, claim = _absence_with_readme()
+
+    def complete(prompt: str) -> str:
+        raise verify.ExtractorError("ollama at http://127.0.0.1:11434 failed: down")
+
+    reader = verify.LicenceExtractor(
+        complete, agent="ollama", model="mistral-large", model_family="mistral",
+    )
+    result = verify.verify(claim, regions, [reader], today=TODAY)
+    assert result.outcome == "skipped"
+    assert result.verification is None
+    assert "extractor_error" in result.reason
+    assert "source_kind" not in result.reason
+
+
 def test_silence_on_output_training_verifies_not_disclosed() -> None:
     readme = "license: mit\nNimbus 3\nhttps://example.test/LICENSE\n"
     regions = _KindRegions(
@@ -3060,6 +3104,79 @@ def test_the_readme_repo_name_names_querit_4b() -> None:
         _APACHE_URL + ".txt",
         page_url="https://huggingface.co/Querit/Querit-4B/resolve/main/README.md",
         names=("Querit-4B", "querit", "querit-4b"),
+        subject="querit/querit-4b",
+    )
+    assert rule == "SPDX"
+    assert result.outcome == "verified", result
+
+
+def test_querit_does_not_match_querit_4b() -> None:
+    rule, result = _bound_readme(
+        "license: apache-2.0\nQuerit-4B\n",
+        _APACHE_URL,
+        page_url="https://huggingface.co/Querit/Querit-4B/raw/main/README.md",
+        names=("Querit", "querit"),
+        subject="querit/querit",
+    )
+    assert rule is None
+    assert result.outcome == "mismatch", result
+    assert result.diffs[0].field == "model"
+
+    bare = "license: apache-2.0\nWeights are in this repository.\n"
+    assert "querit" not in bare.casefold()
+    rule, result = _bound_readme(
+        bare,
+        _APACHE_URL,
+        page_url="https://huggingface.co/Querit/Querit-4B/resolve/main/README.md",
+        names=("Querit", "querit"),
+        subject="querit/querit",
+    )
+    assert rule is None
+    assert result.outcome == "mismatch", result
+    assert result.diffs[0].field == "model"
+
+
+def test_querit_4b_does_not_match_querit_4b_pro() -> None:
+    rule, result = _bound_readme(
+        "license: apache-2.0\nQuerit-4B-Pro\n",
+        _APACHE_URL,
+        page_url="https://huggingface.co/Querit/Querit-4B-Pro/raw/main/README.md",
+        names=("Querit-4B", "querit-4b"),
+        subject="querit/querit-4b",
+    )
+    assert rule is None
+    assert result.outcome == "mismatch", result
+    assert result.diffs[0].field == "model"
+
+    bare = "license: apache-2.0\nWeights are in this repository.\n"
+    rule, result = _bound_readme(
+        bare,
+        _APACHE_URL,
+        page_url="https://huggingface.co/Querit/Querit-4B-Pro/raw/main/README.md",
+        names=("Querit-4B", "querit-4b"),
+        subject="querit/querit-4b",
+    )
+    assert rule is None
+    assert result.outcome == "mismatch", result
+    assert result.diffs[0].field == "model"
+
+
+def test_querit_and_querit_4b_still_match_their_own_names() -> None:
+    rule, result = _bound_readme(
+        "license: apache-2.0\nQuerit\n",
+        _APACHE_URL,
+        page_url="https://example.test/not-a-hub/README.md",
+        names=("Querit", "querit"),
+        subject="querit/querit",
+    )
+    assert rule == "SPDX"
+    assert result.outcome == "verified", result
+
+    rule, result = _bound_readme(
+        "license: apache-2.0\nQuerit-4B\n",
+        _APACHE_URL,
+        page_url="https://example.test/not-a-hub/README.md",
+        names=("Querit-4B", "querit-4b"),
         subject="querit/querit-4b",
     )
     assert rule == "SPDX"

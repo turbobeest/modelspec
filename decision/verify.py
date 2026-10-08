@@ -21,7 +21,10 @@ completion function, and only from a source kind the facet permits. Other
 cited regions are binding pages, not readings. Deterministic extractors
 still read a ``licence_text`` source for every other claim. An absence
 verifies only from a source kind the facet permits; a ``licence.*`` absence
-needs that kind explicitly. Each extractor's actor (agent, model family,
+needs that kind explicitly. A region of another kind is a ``source_kind``
+mismatch only when the claim cites no permitted kind. When every permitted
+region has no extractor, or every one raises ``ExtractorError``, the claim
+is skipped. Each extractor's actor (agent, model family,
 method) is the verifier the log records. Two keys means another model family
 (MODEL-159): a reader from the collector's family is never asked, and a
 same-family ``verified`` already in the log does not count
@@ -2234,7 +2237,7 @@ _LICENSE_LINK = re.compile(
 )
 _PAGE_URL = re.compile(r"https?://[^\s\"'<>)\]]+", re.IGNORECASE)
 _HF_FILE_VERBS = frozenset({"raw", "resolve", "blob"})
-_LOOSE_NAME = re.compile(r"[-_.\s]+")
+_NAME_JOIN = re.compile(r"\s*[-_.][-_.\s]*(?=[0-9A-Za-z])")
 #: SPDX ids for the shared generic texts. ``license: other`` is not one of them.
 #: A shared text binds only through this table. A file in the page's own
 #: Hugging Face repository binds by location when the page has a ``license:`` field.
@@ -2351,11 +2354,6 @@ def _hf_file(url: str) -> bool:
     return parts[3].casefold() in _HF_FILE_VERBS and bool("/".join(parts[5:]))
 
 
-def _loose_name(name: str) -> str:
-    """Case-folded, with ``-``, ``_``, ``.`` and spaces removed."""
-    return _LOOSE_NAME.sub("", name.casefold())
-
-
 def _resolve_license_link(link: str, page_url: str | None) -> str:
     """An absolute link unchanged. A relative link resolved in the page's repository."""
     link = link.strip().strip("\"'")
@@ -2391,28 +2389,67 @@ def _binding_name_tokens(names: Sequence[str], subject: str | None) -> list[str]
     return [token for name in names if (token := normalise_name(name))]
 
 
-def _subject_name_keys(names: Sequence[str], subject: str | None) -> set[str]:
-    """Loose forms of the names that may identify the subject. Family is excluded."""
-    keys = {_loose_name(token) for token in _binding_name_tokens(names, subject)}
-    if subject:
-        keys.add(_loose_name(subject.rsplit("/", 1)[-1]))
-    keys.discard("")
-    return keys
+def _page_words(page: str) -> list[tuple[str, bool]]:
+    """``(word, joined to the next word)``. ``-``, ``_`` and ``.`` join one name."""
+    words: list[tuple[str, bool]] = []
+    for match in re.finditer(r"[0-9A-Za-z]+", page):
+        words.append((match.group(0).casefold(),
+                      _NAME_JOIN.match(page[match.end():]) is not None))
+    return words
+
+
+def _name_segments(name: str) -> tuple[str, ...]:
+    """Case-folded pieces of one name. ``-``, ``_``, ``.`` and spaces split it."""
+    return tuple(part for part in re.split(r"[-_.\s]+", name.casefold()) if part)
+
+
+def _same_whole_name(left: str, right: str) -> bool:
+    """The two names are the same whole name, not a prefix of a longer one."""
+    segments = _name_segments(left)
+    return bool(segments) and segments == _name_segments(right)
+
+
+def _whole_name_in_words(token: str, words: list[tuple[str, bool]]) -> bool:
+    """``token`` is a maximal name in ``words``. A hyphen-joined prefix does not count.
+
+    ``Querit`` does not match ``Querit-4B``. ``Querit-4B`` does not match
+    ``Querit-4B-Pro``. A space-separated phrase still matches as that phrase.
+    """
+    parts = token.split()
+    if not parts:
+        return False
+    width = len(parts)
+    for start in range(len(words) - width + 1):
+        if [words[start + offset][0] for offset in range(width)] != parts:
+            continue
+        if words[start + width - 1][1]:
+            continue
+        if start > 0 and words[start - 1][1]:
+            continue
+        return True
+    return False
 
 
 def _page_names_subject(page: str, names: Sequence[str], subject: str | None = None,
                         page_url: str | None = None) -> bool:
-    """The page names the subject by phrase, or its repository name equals one.
+    """The page names the subject by a whole name, or its repository name equals one.
 
-    The repository comparison ignores ``-``, ``_``, ``.`` and spaces. A family
-    name still does not count: the tokens are the display name and the model
-    id's last segment.
+    ``-``, ``_``, ``.`` and spaces separate segments of one name. The published
+    name or the repository name must be that whole name, not a prefix of a
+    longer hyphen-joined name. A family name still does not count: the tokens
+    are the display name and the model id's last segment.
     """
-    haystack = f" {normalise_name(page)} "
-    if any(f" {token} " in haystack for token in _binding_name_tokens(names, subject)):
+    tokens = _binding_name_tokens(names, subject)
+    words = _page_words(page)
+    if any(_whole_name_in_words(token, words) for token in tokens):
         return True
     repo = _hf_repo_name(page_url) if page_url else None
-    return bool(repo) and _loose_name(repo) in _subject_name_keys(names, subject)
+    if not repo:
+        return False
+    candidates = list(tokens)
+    if subject:
+        candidates.append(subject.rsplit("/", 1)[-1])
+    return any(_same_whole_name(repo, candidate) for candidate in candidates)
 
 
 def _license_link_matches(page: str, licence_url: str, page_url: str | None) -> bool:
@@ -2472,8 +2509,10 @@ def licence_is_bound(names: Sequence[str], pages: Sequence[str], licence_url: st
     """The rule that binds this licence to the subject, or ``None``.
 
     A page names the subject by its display name or repository id, as a whole
-    phrase, or when the page URL's repository name equals one of those with
-    ``-``, ``_``, ``.`` and spaces ignored. A family name does not count.
+    name, or when the page URL's repository name is that same whole name.
+    ``-``, ``_``, ``.`` and spaces separate segments. A prefix of a longer
+    hyphen-joined name does not count: ``Querit`` is not ``Querit-4B``.
+    A family name does not count.
 
     The licence rule is the first that holds: ``license_link`` (resolved
     against the page's repository when relative; on huggingface.co, ``raw``,
@@ -3121,6 +3160,30 @@ def _facet_or_none(field: str):
         return None
 
 
+def _binding_page(claim: Claim, regions: Regions, kind: str | None) -> bool:
+    """A licence region whose kind the facet does not permit, beside a permitted one.
+
+    The region can name the licence. It is not a reading, and it gives no
+    outcome. A ``source_kind`` mismatch is only for a claim that cites no
+    permitted kind at all.
+    """
+    if claim.value is not None or not claim.field.startswith("licence."):
+        return False
+    facet = _facet_or_none(claim.field)
+    if facet is None:
+        return False
+    permitted = set(facet.permitted_source_kinds)
+    if kind in permitted:
+        return False
+    for source in claim.sources:
+        if not source.cited_regions:
+            continue
+        _, cited = _source_kind(regions, source.source_id)
+        if cited in permitted:
+            return True
+    return False
+
+
 def _absence_block(claim: Claim, regions: Regions, source_id: str) -> list[Diff] | None:
     """Mismatch when an absence is cited to a source kind the facet does not permit.
 
@@ -3193,8 +3256,12 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
     the first that accepts a region and is independent of the collector reads it.
     A ``licence.*`` claim is the exception: only ``LicenceExtractor`` reads it,
     and only a source kind in that facet's ``permitted_source_kinds`` is a
-    reading. Its other cited regions are binding pages. Verified if any
-    reading confirms the value; otherwise the first mismatch.
+    reading. Its other cited regions are binding pages. A binding page gives
+    no outcome while the claim also cites a permitted kind. It is a
+    ``source_kind`` mismatch only when the claim cites no permitted kind.
+    Verified if any reading confirms the value; otherwise the first mismatch.
+    A claim whose permitted regions all have no extractor, or all raised
+    ``ExtractorError``, is skipped.
     """
     if isinstance(claim.value, dict) and "score" in claim.value:
         return _verify_evidence_reading(claim, regions, extractors, today=today)
@@ -3215,6 +3282,8 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
             accepting = _readers_for(ordered, claim, text, kind)
             independent = [e for e in accepting if _independent(claim, e.actor, today)]
             if not independent:
+                if _binding_page(claim, regions, kind):
+                    continue
                 if claim.value is None and claim.field.startswith("licence."):
                     blocked = _absence_block(claim, regions, source.source_id)
                     if blocked:

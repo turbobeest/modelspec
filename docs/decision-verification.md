@@ -90,7 +90,10 @@ the value is `not_disclosed`. A missing or non-verbatim clause is unparseable,
 so the region is not evidence. Any other cited region is a binding page. It
 is not a reading, for a known value or an absence. A licence does not name
 the model. The binding page names the subject by its display name or its
-repository id, as a whole phrase. A family name does not count. The page
+repository id, as a whole name. `-`, `_`, `.` and spaces separate segments
+of that name. A prefix of a longer hyphen-joined name does not count:
+Querit is not Querit-4B, and Querit-4B is not Querit-4B-Pro. A family name
+does not count. The page
 names this licence when it contains the licence URL, a `license_link` to
 that URL, or a `license:` SPDX id for a shared text: `apache-2.0` for the
 apache.org LICENSE-2.0 text, `mit` for opensource.org/license/mit. A
@@ -145,7 +148,11 @@ that case, and that question is open for Jamie.
 An absence (a null value, `not_disclosed`) verifies only from a source kind
 in the facet's `permitted_source_kinds`. A `licence.*` absence needs that
 kind on the source. A README with no kind, or a kind outside the list, is a
-mismatch on `source_kind`. Other facets still verify an absence from a source
+mismatch on `source_kind` only when the claim cites no region of a permitted
+kind. When the claim also cites a permitted kind, that README is a binding
+page and gives no outcome. If every permitted region has no extractor, or
+every one raises an extractor error, the claim is skipped: nothing is logged
+and it stays queued. Other facets still verify an absence from a source
 whose kind is unknown. A known kind outside the facet's list is a mismatch
 for every facet.
 
