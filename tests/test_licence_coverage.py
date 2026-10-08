@@ -8,7 +8,13 @@ import yaml
 
 from decision.model import Verification, VerificationActor, VerificationTarget, value_hash
 from decision.verify import VerificationLog
-from scripts.policy.licence_coverage import coverage_report, main
+from decision.sources import CopyStore
+from scripts.policy.licence_coverage import (
+    ALL_NOT_DISCLOSED_DESPITE_LINK,
+    coverage_report,
+    links_licence_file,
+    main,
+)
 
 FACETS = (
     "licence.commercial_use",
@@ -135,3 +141,60 @@ def test_a_covered_lineup_exits_zero_and_ignores_closed_weights(tmp_path) -> Non
 
     assert coverage_report(tmp_path, tmp_path / "premier.yaml")["gaps"] == []
     assert main(["--root", str(tmp_path), "--premier", str(tmp_path / "premier.yaml")]) == 0
+
+
+def _all_undisclosed(source_id: str) -> list[dict]:
+    return [_fact(facet, None, "not_disclosed", source_id) for facet in FACETS]
+
+
+def test_every_facet_not_disclosed_fails_when_the_card_links_a_licence(tmp_path) -> None:
+    _tree(tmp_path)
+    body = {
+        "model_id": "lab/open-one",
+        "display_name": "Open One",
+        "licensing": {"license_url": "https://example.test/LICENSE"},
+        "facts": _all_undisclosed("licence"),
+    }
+    (tmp_path / "models" / "lab" / "open-one.md").write_text(
+        "---\n" + yaml.safe_dump(body) + "---\n", encoding="utf-8",
+    )
+    log = VerificationLog(tmp_path / "verification")
+    for facet in FACETS:
+        _verify(log, facet, None)
+
+    report = coverage_report(tmp_path, tmp_path / "premier.yaml")
+
+    assert report["gaps"] == [
+        f"lab/open-one {facet} {ALL_NOT_DISCLOSED_DESPITE_LINK}" for facet in FACETS
+    ]
+    assert all(row["failing"] == 1 and row["not_disclosed_cited"] == 0
+               for row in report["counts"].values())
+    assert main(["--root", str(tmp_path), "--premier", str(tmp_path / "premier.yaml")]) == 1
+
+
+def test_readme_license_link_is_a_linked_licence(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("MODELSPEC_SOURCE_CACHE", str(tmp_path / "cache"))
+    readme = (
+        "---\nlicense: apache-2.0\n"
+        "license_link: https://example.test/LICENSE\n"
+        "---\nOpen One\n"
+    )
+    ref = CopyStore().put(readme.encode())
+    _tree(tmp_path)
+    rows = []
+    for facet in FACETS:
+        row = _fact(facet, None, "not_disclosed", "readme")
+        row["sources"][0]["snapshot_ref"] = ref
+        rows.append(row)
+    (tmp_path / "models" / "lab" / "open-one.md").write_text(_card(rows), encoding="utf-8")
+    log = VerificationLog(tmp_path / "verification")
+    for facet in FACETS:
+        _verify(log, facet, None)
+
+    report = coverage_report(tmp_path, tmp_path / "premier.yaml")
+
+    assert report["gaps"] == [
+        f"lab/open-one {facet} {ALL_NOT_DISCLOSED_DESPITE_LINK}" for facet in FACETS
+    ]
+    assert links_licence_file({}, [readme]) is True
+    assert links_licence_file({}, ["---\nlicense: mit\n---\n"]) is False

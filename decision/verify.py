@@ -68,6 +68,7 @@ from typing import Any, Literal, Protocol
 
 from pydantic import JsonValue, ValidationError
 
+from decision.licence_rules import licence_reading_rule
 from decision.model import (
     DETERMINISTIC,
     SourceRef,
@@ -2197,19 +2198,21 @@ LICENCE_SOURCE_KINDS = frozenset({"licence_text", "provider_terms"})
 
 LICENCE_PROMPT = """\
 You are reading a licence or terms of use. The document does not name a model.
-Answer one question from the source region only.
+Answer one question from the source region only. Follow the reading rule.
+When the reading rule and another instruction disagree, follow the reading rule.
 
 Facet: {facet_id}
 Definition: {definition}
+Reading rule: {reading_rule}
 Allowed values: {allowed}
 
 Return only a JSON object with:
-- "value": one allowed value, or "not_disclosed" when the licence does not address this
+- "value": the value the reading rule gives. It must be one allowed value.
 - "clauses": one or more verbatim quotations from the source region that support the value
 
 Do not infer from the licence's name or from knowledge outside the region.
 Every quotation must appear verbatim in the source region.
-When the licence does not address this facet, set "value" to "not_disclosed" and still quote one verbatim clause from the region.
+When the reading rule says the text does not address the facet, set "value" to "not_disclosed" and still quote one verbatim clause from the region.
 
 Source region:
 <<<
@@ -2237,6 +2240,7 @@ def _licence_prompt(claim: Claim, text: str) -> str:
     return LICENCE_PROMPT.format(
         facet_id=facet.id,
         definition=facet.definition,
+        reading_rule=licence_reading_rule(facet.id),
         allowed=", ".join(_licence_allowed(facet)),
         text=text,
     )
@@ -2287,8 +2291,9 @@ class LicenceExtractor:
     """Reads one ``licence.*`` value from a licence or terms document.
 
     It uses the same injected ``complete(prompt)``, cache and call budget as
-    ``LLMExtractor``. The prompt gives the facet's definition and allowed
-    values. It never shows the collector's value. A missing or non-verbatim
+    ``LLMExtractor``. The prompt gives the facet's definition, the reading
+    rule for that facet, and the allowed values. It never shows the collector's
+    value. A missing or non-verbatim
     clause is unparseable, so it is not evidence. A licence does not name the
     model: the reading's subject is the claim's name only when a binding page
     passes :func:`licence_is_bound`.

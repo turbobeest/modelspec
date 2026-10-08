@@ -18,6 +18,7 @@ later workflow change and is human-merged; this script adds no workflow.
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from pathlib import Path
 
@@ -25,8 +26,13 @@ import yaml
 
 from decision.model import value_hash
 from decision.registry import default as default_registry
-from decision.sources import load_sources
+from decision.sources import CopyStore, load_sources
 from decision.verify import VerificationLog
+
+#: Every licence facet is ``not_disclosed`` even though the card links a licence file.
+ALL_NOT_DISCLOSED_DESPITE_LINK = "all_not_disclosed_despite_linked_licence"
+
+_LICENSE_LINK = re.compile(r"(?im)^[ \t]*license_link:\s*\S")
 
 FACETS = (
     "licence.commercial_use",
@@ -54,12 +60,61 @@ def _front_matter(path: Path) -> dict:
     return yaml.safe_load(text.split("---", 2)[1]) or {}
 
 
-def _facts(root: Path, model_id: str) -> dict[str, dict]:
+def _card(root: Path, model_id: str) -> tuple[dict, dict[str, dict]]:
     path = root / "models" / f"{model_id}.md"
     if not path.is_file():
-        return {}
-    raw = _front_matter(path).get("facts") or []
-    return {fact["facet"]: fact for fact in raw if isinstance(fact, dict) and fact.get("facet")}
+        return {}, {}
+    front = _front_matter(path)
+    raw = front.get("facts") or []
+    facts = {fact["facet"]: fact for fact in raw if isinstance(fact, dict) and fact.get("facet")}
+    return front, facts
+
+
+def _front_chunk(text: str) -> str:
+    if not text.startswith("---"):
+        return ""
+    parts = text.split("---", 2)
+    return parts[1] if len(parts) > 2 else ""
+
+
+def links_licence_file(front: dict, readme_texts: list[str] | None = None) -> bool:
+    """The card points at a licence file.
+
+    ``licensing.license_url`` on the card, or ``license_link`` in README front matter.
+    """
+    licensing = front.get("licensing") if isinstance(front, dict) else None
+    if isinstance(licensing, dict):
+        url = licensing.get("license_url")
+        if isinstance(url, str) and url.strip():
+            return True
+    link = front.get("license_link") if isinstance(front, dict) else None
+    if isinstance(link, str) and link.strip():
+        return True
+    for text in readme_texts or []:
+        if _LICENSE_LINK.search(_front_chunk(text)):
+            return True
+    return False
+
+
+def _readme_texts(facts: dict[str, dict], sources: dict, store: CopyStore) -> list[str]:
+    """Retained README copies cited by the card, skipping licence documents."""
+    texts = []
+    seen: set[str] = set()
+    for fact in facts.values():
+        for ref in fact.get("sources") or []:
+            if not isinstance(ref, dict):
+                continue
+            snap = ref.get("snapshot_ref")
+            if not isinstance(snap, str) or snap in seen:
+                continue
+            source = sources.get(ref.get("source_id"))
+            if source is not None and source.kind == "licence_text":
+                continue
+            seen.add(snap)
+            if not store.has(snap):
+                continue
+            texts.append(store.get(snap).decode("utf-8", "replace"))
+    return texts
 
 
 def _cited_kinds(fact: dict, sources: dict) -> set[str]:
@@ -90,11 +145,22 @@ def coverage_report(root: Path, premier: Path) -> dict:
     registry = default_registry()
     sources = load_sources(root / "registry" / "sources.yaml")
     log = VerificationLog(root / "verification").latest()
+    store = CopyStore()
     counts = {facet: {"known_verified": 0, "not_disclosed_cited": 0, "failing": 0}
               for facet in FACETS}
     gaps: list[str] = []
     for model_id in open_weights_lineup(Path(premier)):
-        facts = _facts(root, model_id)
+        front, facts = _card(root, model_id)
+        linked = links_licence_file(front, _readme_texts(facts, sources, store))
+        undisclosed = [
+            facet for facet in FACETS
+            if (facts.get(facet) or {}).get("state") == "not_disclosed"
+        ]
+        if len(undisclosed) == len(FACETS) and linked:
+            for facet in FACETS:
+                gaps.append(f"{model_id} {facet} {ALL_NOT_DISCLOSED_DESPITE_LINK}")
+                counts[facet]["failing"] += 1
+            continue
         for facet in FACETS:
             fact = facts.get(facet)
             permitted = set(registry.facet(facet).permitted_source_kinds)

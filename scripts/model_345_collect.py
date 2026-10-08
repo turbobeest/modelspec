@@ -6,10 +6,10 @@ front matter names when the repo has none), retains the copy, and files the four
 ``licence.*`` facts. ``modelspec verify`` is the only writer of outcomes.
 
 Values in ``READINGS`` were read on 2026-10-08 from those licence texts. Each
-value carries a verbatim clause. The script refuses to file a value whose clause
-is not in the copy it just retained. A null value is ``not_disclosed``: the
-licence does not address that facet. A monthly-active-user figure that only
-triggers a display obligation is not ``licence.user_cap``.
+value carries a verbatim clause and the ``LICENCE_READING_RULES`` key it applied.
+The script refuses to file a value whose clause is not in the copy it just
+retained. A null value is ``not_disclosed`` when that facet's rule says the
+licence does not address it.
 """
 
 from __future__ import annotations
@@ -22,6 +22,7 @@ from pathlib import Path
 
 import yaml
 
+from decision.licence_rules import LICENCE_READING_RULES
 from decision.model import CitedRegion, Fact, RegionLocator, Source, SourceRef, VerificationActor
 from decision.normalise import NORMALISERS, normalise_document
 from decision.sources import CopyStore, Fetcher, load_sources, recheck
@@ -88,12 +89,12 @@ GLM_REVENUE = (
 )
 GLM_TUNE = "to run, deploy, fine-tune, or otherwise modify the Software and create derivative works from it"
 KALM_EU = "KaLM-Embedding IS NOT INTENDED FOR USE WITHIN THE EUROPEAN UNION."
-KALM_OUTPUT = (
-    "Google claims no rights in Outputs you generate using Gemma. You and your users "
-    "are solely responsible for Outputs and their subsequent uses."
-)
-KALM_SYNTH = (
-    "methods based on the generation of synthetic data Outputs by Gemma for training that model"
+KALM_DERIVATIVE = (
+    "any other machine learning model which is created by transfer of patterns of the "
+    "weights, parameters, operations, or Output of Gemma, to that model in order to "
+    "cause that model to perform similarly to Gemma, including distillation methods "
+    "that use intermediate data representations or methods based on the generation of "
+    "synthetic data Outputs by Gemma for training that model"
 )
 
 _LICENCE_BLOCK = re.compile(
@@ -138,7 +139,9 @@ APACHE = {
     "normaliser": "text-default",
 }
 GEMMA = {
-    # README license_link. The page body is the Apache 2.0 text.
+    # README license_link. The retained page is the Apache License 2.0.
+    # It does not incorporate Gemma Terms of Use or a Prohibited Use Policy,
+    # so commercial_use stays permitted under the commercial_use rule.
     "id": "model-345-gemma-4-license",
     "url": "https://ai.google.dev/gemma/docs/gemma_4_license",
     "normaliser": "html-default",
@@ -324,8 +327,8 @@ READINGS: dict[str, dict] = {
     },
     "tencent/kalm-embedding-gemma3-12b-2511": {
         # KaLM grant is MIT-like and bars EU use. The same file embeds the Gemma
-        # Terms of Use: Google claims no rights in outputs, and training another
-        # model on synthetic Gemma outputs is named as a Model Derivative.
+        # Terms of Use. A model trained on Gemma outputs so that it performs like
+        # Gemma is a Model Derivative, so output_training is restricted.
         "readme_source": "model-143-tencent-kalm-embedding-gemma3-12b-2511",
         "readme_repo": "tencent/KaLM-Embedding-Gemma3-12B-2511",
         "licence": _licence(
@@ -335,11 +338,18 @@ READINGS: dict[str, dict] = {
         "facets": {
             "licence.commercial_use": _reading("permitted_with_conditions", KALM_EU),
             "licence.user_cap": _reading("unbounded", MIT_NOTICE),
-            "licence.output_training": _reading("permitted", KALM_OUTPUT, KALM_SYNTH),
+            "licence.output_training": _reading("restricted", KALM_DERIVATIVE),
             "licence.fine_tuning": _reading("permitted_with_conditions", MIT_GRANT, KALM_EU),
         },
     },
 }
+
+for _row in READINGS.values():
+    for _facet, _reading in _row["facets"].items():
+        if _facet not in LICENCE_READING_RULES:
+            raise SystemExit(f"no licence reading rule for {_facet}")
+        # Each value applies LICENCE_READING_RULES[_facet], plus LICENCE_CONDITION_RULE.
+        _reading["rule"] = _facet
 
 
 def _front_matter(path: Path) -> tuple[dict, str]:
@@ -514,6 +524,8 @@ def collect(root: Path, *, dry_run: bool, report_path: Path | None) -> dict:
         facet_rows = []
         for facet in FACETS:
             reading = row["facets"][facet]
+            if reading.get("rule") != facet:
+                problems.append(f"{model_id} {facet}: rule is {reading.get('rule')}")
             for quote in reading["quotes"]:
                 if normalise_name(quote) not in normal:
                     problems.append(f"{model_id} {facet}: quote not in retained licence: {quote}")
@@ -565,6 +577,7 @@ def collect(root: Path, *, dry_run: bool, report_path: Path | None) -> dict:
                 "url": licence["url"],
                 "read_on": reading["read_on"],
                 "quotes": list(reading["quotes"]),
+                "rule": reading["rule"],
                 "licence_source": licence["id"],
                 "readme_source": readme.id,
             })

@@ -75,16 +75,53 @@ extractors still run first. They do not read a `licence_text` or
 
 A `licence.*` claim cited to one of those kinds is read by `LicenceExtractor`
 (`licence-extract:<model>`), using the same completion function, cache and
-call budget as the prose reader. The prompt gives the facet's definition and
-its allowed values, including `unbounded` for `licence.user_cap`, and asks
-for the value plus one or more verbatim clauses. It does not show the
-collector's value. `not_disclosed` is the answer when the licence does not
-address the facet. A missing or non-verbatim clause is unparseable, so the
-region is not evidence. A licence does not name the model. The region is
+call budget as the prose reader. The prompt gives the facet's definition, the
+reading rule for that facet, and its allowed values, including `unbounded`
+for `licence.user_cap`, and asks for the value plus one or more verbatim
+clauses. It does not show the collector's value. The reading rule says when
+the value is `not_disclosed`. A missing or non-verbatim clause is unparseable,
+so the region is not evidence. A licence does not name the model. The region is
 about the subject only when the claim also cites a page the identity check
 accepts and that page names the licence: Hugging Face front matter
 `license:`, or a link to the licence URL. A licence cited alone does not
 verify.
+
+### Licence reading rules
+
+`LICENCE_READING_RULES` in `decision/licence_rules.py` is one rule per
+`licence.*` facet. Each sentence is derived from that facet's registry
+definition. These readings of the definitions are pending Jamie's review.
+The licence prompt includes the rule for the claim's facet. The collector
+`scripts/model_345_collect.py` records that same rule key on every value.
+
+On every `licence.*` facet, a duty to keep a copyright, licence or change
+notice is not a condition. A condition is a display or naming duty, a
+separate agreement or licence, a security or other review, a user, revenue
+or other threshold, a territorial or field-of-use restriction, or an
+incorporated acceptable-use or prohibited-use policy.
+
+- `licence.commercial_use`. `permitted` when commercial use is granted with
+  no condition. `permitted_with_conditions` when it is granted subject to a
+  condition. `prohibited` when it is forbidden. `not_disclosed` only when
+  the text does not address commercial use or selling at all.
+- `licence.user_cap`. A number only when the licence requires a separate
+  agreement or licence once a monthly-active-user threshold is exceeded. A
+  threshold that only triggers a display, naming or attribution duty is not
+  a cap, and neither is a revenue threshold. With no such threshold the
+  value is `unbounded`, as the registry definition says. The value is never
+  `not_disclosed` when the cited region is the licence text.
+- `licence.fine_tuning`. An express grant to modify the model, the Software
+  or the Work, or to create derivative works of it, covers fine-tuning.
+  `permitted_with_conditions` when using or distributing the result is
+  subject to a condition. `permitted` when only notice retention applies.
+  `prohibited` when modification is forbidden.
+- `licence.output_training`. About using the model's outputs to train or
+  improve another model. A grant to fine-tune or modify this model says
+  nothing about it. `permitted` only when the text expressly allows it.
+  `restricted` when the text allows it only for some purposes or models, or
+  makes a model trained on outputs a derivative subject to the licence's
+  restrictions. `prohibited` when the text forbids it. `not_disclosed` when
+  the text is silent.
 
 An absence (a null value, `not_disclosed`) verifies only from a source kind
 in the facet's `permitted_source_kinds`. A `licence.*` absence needs that

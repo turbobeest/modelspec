@@ -2702,6 +2702,142 @@ def test_deterministic_extractors_do_not_claim_a_licence_region() -> None:
     assert result.diffs[0].field == "value"
 
 
+DISPLAY_TEXT = """\
+Modified MIT License
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+If the Software (or any derivative works thereof) is used for any of your
+commercial products or services that have more than 100 million monthly active
+users, you shall prominently display "Kimi K2.6" on the user interface of such
+product or service.
+"""
+DISPLAY_QUOTE = (
+    'more than 100 million monthly active users, you shall prominently display "Kimi K2.6"'
+)
+MAU_700_TEXT = """\
+Fabricated weights licence.
+
+Use of the weights is permitted.
+If the licensee serves more than 700 million monthly active users, a separate licence is required.
+Redistribution of the weights is permitted.
+"""
+MAU_700_QUOTE = (
+    "If the licensee serves more than 700 million monthly active users, "
+    "a separate licence is required."
+)
+TUNE_ONLY_TEXT = """\
+Permission is hereby granted to run, deploy, fine-tune, or otherwise modify the Software
+and create derivative works from it.
+The above copyright notice and this permission notice shall be included in all copies
+or substantial portions of the Software.
+"""
+TUNE_ONLY_QUOTE = (
+    "to run, deploy, fine-tune, or otherwise modify the Software and create derivative works"
+)
+
+
+def test_a_display_threshold_is_not_a_user_cap() -> None:
+    readme = 'license: other\nNimbus 3\nhttps://example.test/LICENSE\n'
+    regions = _KindRegions(
+        {("nimbus-licence", "page"): DISPLAY_TEXT, ("nimbus-readme", "page"): readme},
+        {"nimbus-licence": "licence_text"},
+        {"nimbus-licence": "https://example.test/LICENSE"},
+    )
+    calls: list[str] = []
+
+    def complete(prompt: str) -> str:
+        calls.append(prompt)
+        return _reply("unbounded", [DISPLAY_QUOTE])
+
+    claim = _licence_claim("licence.user_cap", "unbounded", (_LICENCE, _README),
+                           unit="monthly_active_users")
+    result = verify.verify(claim, regions, [_licence_reader(complete)], today=TODAY)
+    assert result.outcome == "verified", result
+    assert "is not a cap" in calls[0]
+    assert "Never use not_disclosed for user_cap" in calls[0]
+    assert "100000000" not in calls[0]
+
+
+def test_mit_text_reads_fine_tuning_as_permitted_and_user_cap_as_unbounded() -> None:
+    readme = "---\nlicense: mit\n---\nNimbus 3\n"
+    regions = _KindRegions(
+        {("nimbus-licence", "page"): MIT_TEXT, ("nimbus-readme", "page"): readme},
+        {"nimbus-licence": "licence_text"},
+        {"nimbus-licence": "https://example.test/LICENSE"},
+    )
+    calls: list[str] = []
+
+    def complete(prompt: str) -> str:
+        calls.append(prompt)
+        facet = re.search(r"Facet: (\S+)", prompt).group(1)
+        value = "unbounded" if facet == "licence.user_cap" else "permitted"
+        return _reply(value, [MIT_QUOTE])
+
+    for field, value in (
+        ("licence.fine_tuning", "permitted"),
+        ("licence.user_cap", "unbounded"),
+    ):
+        unit = "monthly_active_users" if field == "licence.user_cap" else None
+        claim = _licence_claim(field, value, (_LICENCE, _README), unit=unit)
+        result = verify.verify(claim, regions, [_licence_reader(complete)], today=TODAY)
+        assert result.outcome == "verified", (field, result)
+    tune = next(prompt for prompt in calls if "licence.fine_tuning" in prompt)
+    cap = next(prompt for prompt in calls if "licence.user_cap" in prompt)
+    assert "covers fine-tuning" in tune
+    assert "only notice retention applies" in tune
+    assert "value is unbounded" in cap
+
+
+def test_a_separate_licence_above_700_million_mau_is_the_user_cap() -> None:
+    readme = "license: other\nNimbus 3\nhttps://example.test/CAP\n"
+    regions = _KindRegions(
+        {("nimbus-licence", "page"): MAU_700_TEXT, ("nimbus-readme", "page"): readme},
+        {"nimbus-licence": "licence_text"},
+        {"nimbus-licence": "https://example.test/CAP"},
+    )
+    calls: list[str] = []
+
+    def complete(prompt: str) -> str:
+        calls.append(prompt)
+        return _reply(700_000_000, [MAU_700_QUOTE])
+
+    claim = _licence_claim("licence.user_cap", 700_000_000, (_LICENCE, _README),
+                           unit="monthly_active_users")
+    result = verify.verify(claim, regions, [_licence_reader(complete)], today=TODAY)
+    assert result.outcome == "verified", result
+    assert "separate agreement or licence" in calls[0]
+    assert "700000000" not in calls[0]
+
+
+def test_a_fine_tune_grant_does_not_address_output_training() -> None:
+    readme = "license: other\nNimbus 3\nhttps://example.test/LICENSE\n"
+    regions = _KindRegions(
+        {("nimbus-licence", "page"): TUNE_ONLY_TEXT, ("nimbus-readme", "page"): readme},
+        {"nimbus-licence": "licence_text"},
+        {"nimbus-licence": "https://example.test/LICENSE"},
+    )
+    calls: list[str] = []
+
+    def complete(prompt: str) -> str:
+        calls.append(prompt)
+        return _reply("not_disclosed", [TUNE_ONLY_QUOTE])
+
+    claim = _licence_claim("licence.output_training", None, (_LICENCE, _README))
+    result = verify.verify(claim, regions, [_licence_reader(complete)], today=TODAY)
+    assert result.outcome == "verified", result
+    assert "says nothing about it" in calls[0]
+    assert "not_disclosed when the text is silent" in calls[0]
+
+
 def test_an_absence_from_a_disallowed_source_kind_does_not_verify() -> None:
     from decision.model import Fact
 
