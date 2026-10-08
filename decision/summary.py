@@ -52,11 +52,11 @@ _COST_ONLY = "This answer is ordered by cost only; it is not a quality ranking."
 _TIE_COST = "Tie-breakers are conditional; cost order is not quality order."
 _QUALITY_CLAIM = "Do not claim a quality rank from this objective."
 _LATENT_UNIT = "latent capability"
-_COST_BASES = frozenset({
-    "offering.cost_per_task",
-    "offering.price.input",
-    "offering.price.output",
-})
+_NOT_CHECKED = " was not applied; ModelSpec did not check it."
+_MISSING_OBJECTIVE = (
+    "No model that meets the requirements has complete values for the objective "
+    "({objective}), so ModelSpec cannot order them."
+)
 
 
 def summarize(
@@ -168,6 +168,8 @@ def _why(
     decision: Decision, spec: Spec | None, unapplied: list[str], limits: dict[str, int],
 ) -> list[str]:
     if decision.status == "no_feasible":
+        if spec is not None and _objective_values_missing(decision, spec):
+            return [_MISSING_OBJECTIVE.format(objective=_objective_phrase(spec))]
         gates, _dont = _gates(spec, set(unapplied))
         if gates:
             listed = _bounded(gates, limits["hard"])
@@ -243,13 +245,10 @@ def _gates(spec: Spec | None, unapplied: set[str]) -> tuple[list[str], list[str]
     dont_care: list[str] = []
     phrase = f"{OPENNESS_FACET} is not required (either acceptable)."
     for condition in spec.where:
-        leaves = list(_leaves(condition))
-        if len(leaves) == 1 and _openness_either(leaves[0]):
+        if _plain_openness_either(condition):
             if phrase not in dont_care:
                 dont_care.append(phrase)
             continue
-        if any(_openness_either(leaf) for leaf in leaves) and phrase not in dont_care:
-            dont_care.append(phrase)
         gates.append(render_condition(condition))
     for facet, level in (spec.capabilities or {}).items():
         if level == "required" and facet not in unapplied:
@@ -283,13 +282,43 @@ def _leaves(condition: object):
         yield condition
 
 
-def _openness_either(condition: object) -> bool:
+def _plain_openness_either(condition: object) -> bool:
+    """A top-level positive either-set, with nothing around it that changes the meaning."""
+    if not isinstance(condition, InSet):
+        return False
     return (
-        isinstance(condition, InSet)
-        and condition.facet == OPENNESS_FACET
+        condition.facet == OPENNESS_FACET
         and condition.in_ is not None
         and set(condition.in_) == OPENNESS_EITHER
+        and condition.soft is None
+        and condition.unknown is None
     )
+
+
+def _objective_values_missing(decision: Decision, spec: Spec | None) -> bool:
+    """True when ``relax`` holds an engine diagnostic, not a requirement to drop.
+
+    A gate exclusion stores rendered conditions (``decision/relax.py``). When
+    every candidate that passed the gates lacks an objective value, the engine
+    stores the diagnostic instead and lists those candidates on ``may_qualify``.
+    """
+    if spec is None or not decision.relax or not decision.may_qualify:
+        return False
+    rendered = {render_condition(condition) for condition in spec.where}
+    if any(item in rendered for item in decision.relax):
+        return False
+    objectives = set(_objective_bases(spec))
+    if not objectives:
+        return False
+    unknowns = {name for row in decision.may_qualify for name in row.unknown}
+    return bool(unknowns) and unknowns <= objectives
+
+
+def _objective_phrase(spec: Spec) -> str:
+    bases = _objective_bases(spec)
+    if len(bases) == 1:
+        return bases[0]
+    return ", ".join(bases)
 
 
 def _unapplied(decision: Decision, extra: Iterable[str]) -> list[str]:
@@ -328,10 +357,7 @@ def _mentions(
             "its position is estimated, not measured.",
         ))
     for requirement in unapplied:
-        items.append((
-            "not_applied",
-            f"{requirement} was not applied; ModelSpec did not check it.",
-        ))
+        items.append(("not_applied", _not_checked(requirement)))
     if decision.coverage is not None:
         message = decision.coverage.message.strip() or _OUTSIDE
         if not message.endswith("."):
@@ -600,7 +626,7 @@ def _cost_only(decision: Decision, spec: Spec | None) -> bool:
     bases = _objective_bases(spec)
     if not bases:
         return claimed
-    return all(base in _COST_BASES for base in bases)
+    return all(base in _monetary_objectives() for base in bases)
 
 
 def _objective_bases(spec: Spec) -> list[str]:
@@ -719,6 +745,38 @@ def _bounded(items: list[str], limit: int) -> str:
     return text
 
 
+def _monetary_objectives() -> frozenset[str]:
+    """Addressable offering objectives whose registry unit is a currency."""
+    from decision.registry import default
+
+    registry = default()
+    money = {
+        unit.id for unit in registry.units()
+        if _currency_unit(unit.id, unit.definition)
+    }
+    return frozenset(
+        facet.id for facet in registry.facets()
+        if facet.subject == "offering" and facet.addressable and facet.unit in money
+        and facet.value_type.kind == "number"
+    )
+
+
+def _currency_unit(unit_id: str, definition: str) -> bool:
+    code, separator, _rest = unit_id.partition("_")
+    if not separator or len(code) != 3 or not code.isalpha():
+        return False
+    text = definition.casefold()
+    return any(word in text for word in ("dollar", "yuan", "euro", "pound", "yen", "currency"))
+
+
+def _not_checked(requirement: str) -> str:
+    sentence = requirement + _NOT_CHECKED
+    if len(sentence.encode("utf-8")) <= MUST_MENTION_ITEM_BYTES:
+        return sentence
+    room = MUST_MENTION_ITEM_BYTES - len(_NOT_CHECKED.encode("utf-8"))
+    return _clip_to(requirement, room) + _NOT_CHECKED
+
+
 def _clip_item(text: str) -> str:
     return _clip_to(text, MUST_MENTION_ITEM_BYTES)
 
@@ -746,13 +804,13 @@ def _clip_to(text: str, max_bytes: int) -> str:
     raw = text.encode("utf-8")
     if len(raw) <= max_bytes:
         return text
-    ellipsis = "…".encode("utf-8")
-    if max_bytes <= len(ellipsis):
-        return ellipsis.decode("utf-8")
-    cut = raw[: max_bytes - len(ellipsis)]
-    while cut and (cut[-1] & 0xC0) == 0x80:
-        cut = cut[:-1]
-    clipped = cut.decode("utf-8").rstrip() + "…"
-    if len(clipped.encode("utf-8")) > max_bytes:
-        return clipped.encode("utf-8")[:max_bytes].decode("utf-8", errors="ignore")
-    return clipped
+    mark = "…"
+    mark_len = len(mark.encode("utf-8"))
+    if max_bytes < mark_len:
+        return raw[: max(max_bytes, 0)].decode("utf-8", errors="ignore")
+    body = raw[: max_bytes - mark_len].decode("utf-8", errors="ignore").rstrip()
+    clipped = body + mark
+    encoded = clipped.encode("utf-8")
+    if len(encoded) <= max_bytes:
+        return clipped
+    return encoded[:max_bytes].decode("utf-8", errors="ignore")

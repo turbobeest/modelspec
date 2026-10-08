@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import re
 
+from pathlib import Path
+
 from decision.bounded import AGENT_BYTES, mcp_text_bytes, project
-from decision.contract import Decision, ModelEvidence, ResponseOptions, parse_spec
+from decision.contract import Decision, ModelEvidence, ResponseOptions, parse_spec, render_condition
 from decision.summary import (
     MUST_MENTION_ITEM_BYTES,
     MUST_MENTION_MAX,
@@ -182,6 +184,36 @@ def test_no_feasible_names_no_pick_and_keeps_the_relax_suggestions() -> None:
         assert re.search(rf"\b{word}\b", text, re.I) is None
 
 
+def test_missing_objective_values_are_not_reported_as_a_gate_failure() -> None:
+    decision = _decision(
+        status="no_feasible",
+        results=[],
+        answer=None,
+        relax=["no complete objective values"],
+        may_qualify=[{"model": "lab/a", "unknown": ["offering.cost_per_task"]}],
+    )
+    spec = _spec(
+        where=["model.class = text-generator"],
+        optimize={"min": "offering.cost_per_task"},
+    )
+    text, mentions = summarize(decision, spec)
+    missing = (
+        "No model that meets the requirements has complete values for the objective "
+        "(offering.cost_per_task), so ModelSpec cannot order them."
+    )
+    qualify = "1 model may qualify; unknown values."
+    assert text == (
+        f"{NO_FEASIBLE} {missing} "
+        "Requirements applied: model.class = text-generator. "
+        f"{qualify}"
+    )
+    assert "exclude every model" not in text
+    assert "Relaxing one of these" not in text
+    assert "no complete objective values" not in text
+    assert "no complete objective values" not in " ".join(mentions)
+    assert qualify in mentions
+
+
 def test_partial_names_no_pick_and_counts_models_that_may_qualify() -> None:
     decision = _decision(
         status="partial",
@@ -248,6 +280,25 @@ def test_either_weights_openness_is_echoed_as_not_required() -> None:
     assert "closed_weights" not in text
     assert "open_weights = false" not in text
     assert "closed weights required" not in text
+
+
+def test_negated_or_compound_openness_is_echoed_exactly() -> None:
+    decision = _decision(answer=_separated("lab/a"))
+    where = [
+        "not(model.weights_openness in {open_weights, closed_weights})",
+        "all(model.weights_openness in {open_weights, closed_weights}; "
+        "model.weights_openness = closed_weights)",
+        "model.weights_openness in {open_weights, closed_weights} unknown(fail)",
+    ]
+    spec = _spec(where=where, optimize={"min": "offering.cost_per_task"})
+    text, _mentions = summarize(decision, spec)
+    echoed = "; ".join(render_condition(condition) for condition in spec.where)
+    assert text == (
+        "ModelSpec's answer is lab/a. "
+        f"Requirements applied: {echoed}. "
+        f"{NO_CLASS} {COST_ONLY}"
+    )
+    assert EITHER not in text
 
 
 def test_a_closed_weights_comparison_stays_a_hard_requirement() -> None:
@@ -533,6 +584,42 @@ def test_cost_only_is_not_a_quality_ranking_and_a_cost_tie_break_says_so() -> No
     assert COST_ONLY not in tie_text
 
 
+def test_every_monetary_offering_objective_is_cost_only_and_a_mix_is_not() -> None:
+    decision = _decision(answer=_separated("lab/a"))
+    monetary = (
+        "offering.price.input",
+        "offering.price.output",
+        "offering.price.cached_input",
+        "offering.price.batch_input",
+        "offering.price.batch_output",
+        "offering.cost_per_task",
+        "offering.plan.price_monthly",
+    )
+    for facet_id in monetary:
+        text, mentions = summarize(decision, _spec(optimize={"min": facet_id}))
+        assert COST_ONLY in text and COST_ONLY in mentions, facet_id
+    speed_text, speed_mentions = summarize(
+        decision, _spec(optimize={"min": "offering.speed.throughput"}),
+    )
+    assert COST_ONLY not in speed_text and COST_ONLY not in speed_mentions
+    mixed_text, mixed_mentions = summarize(
+        decision,
+        _spec(optimize={"weights": {
+            "offering.price.cached_input": 0.5,
+            "software_engineering": 0.5,
+        }}),
+    )
+    assert COST_ONLY not in mixed_text and COST_ONLY not in mixed_mentions
+    prices_text, prices_mentions = summarize(
+        decision,
+        _spec(optimize={"weights": {
+            "offering.price.cached_input": 0.4,
+            "offering.price.batch_output": 0.6,
+        }}),
+    )
+    assert COST_ONLY in prices_text and COST_ONLY in prices_mentions
+
+
 def test_an_answered_decision_with_a_null_answer_names_no_pick() -> None:
     text, mentions = summarize(
         _decision(answer=None), _spec(where=["model.class = text-generator"]),
@@ -615,7 +702,8 @@ def _overflow() -> tuple[Decision, object, list[str]]:
 def test_must_mention_and_the_paragraph_stay_inside_their_byte_caps() -> None:
     decision, spec, unapplied = _overflow()
     text, mentions = summarize(decision, spec, not_applied=unapplied)
-    clipped = "requirement_" + ("x" * 180) + "_0 wa…"
+    caveat = " was not applied; ModelSpec did not check it."
+    item = mentions[3]
     assert len(mentions) == MUST_MENTION_MAX
     assert mentions[0] == "No single winner: 2 models are tied."
     assert mentions[1] == PROXY
@@ -623,7 +711,11 @@ def test_must_mention_and_the_paragraph_stay_inside_their_byte_caps() -> None:
         "lab/a has no leaderboard data for software_engineering; "
         "its position is estimated, not measured."
     )
-    assert mentions[3] == clipped
+    assert item.endswith(caveat)
+    assert item.startswith("requirement_")
+    assert "…" in item.split(caveat, 1)[0]
+    assert len(item.encode("utf-8")) <= MUST_MENTION_ITEM_BYTES
+    assert not item.endswith("wa…")
     assert mentions[-1] == "and 12 more."
     assert "Outside the board." in mentions
     assert "1 model may qualify; unknown values." in mentions
@@ -660,6 +752,16 @@ def test_must_mention_and_the_paragraph_stay_inside_their_byte_caps() -> None:
     assert "and 28 more" in huge_text
     assert "tied" not in huge_text
     assert "lab/" not in huge_text
+
+
+def test_the_api_reference_names_the_summary_fields_on_the_bounded_representation() -> None:
+    reference = Path(__file__).resolve().parents[1].joinpath("docs/api.md").read_text(encoding="utf-8")
+    bullet = next(
+        line for line in reference.splitlines()
+        if "decide-api.md" in line and "summary_for_user" in line
+    )
+    assert "bounded representation" in bullet
+    assert "Adds `summary_for_user` and `must_mention`." not in bullet
 
 
 def test_bounded_responses_keep_the_summary_through_trim_and_drill_down() -> None:

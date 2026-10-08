@@ -5,7 +5,8 @@ import pytest
 import yaml
 
 from decision import contract
-from decision.bounded import DEFAULT_FIELDS, DRILL_DOWN_BYTES
+from decision.bounded import DEFAULT_FIELDS, DRILL_DOWN_BYTES, mcp_default_request
+from decision.summary import SUMMARY_BYTES
 from decision.engine import decide as run_decision
 from decision.templates import template_by_id
 from tests.test_decide_worker import KEY, _load_service, _payload, snapshot, snapshot_bytes  # noqa: F401
@@ -225,6 +226,28 @@ def _sentences(paragraph: str) -> list[str]:
         else:
             found.append(part if part.endswith(".") else part)
     return found
+
+
+def test_a_long_region_value_is_clipped_on_code_points(service, snapshot):
+    """MCP default fields project a bounded summary. A region value full of
+    ". " already shortened with "…" must not split a code point."""
+    import json
+
+    value = ". ".join(["x" * 38] * 13)
+    payload = mcp_default_request({
+        "spec_version": 1,
+        "optimize": {"min": "offering.cost_per_task"},
+        "where": [f"offering.region in {{{json.dumps(value)}}}"],
+    })
+    assert payload["fields"] == list(DEFAULT_FIELDS)
+    status, body = service.decide(payload, snapshot)
+    assert status == 200, body
+    text = body["summary_for_user"]
+    raw = text.encode("utf-8")
+    assert raw.decode("utf-8") == text
+    assert len(raw) <= SUMMARY_BYTES
+    assert "…" in text
+    assert body["representation"] == "bounded"
 
 
 def test_rendered_example_summaries_do_not_repeat_a_sentence(service, public_snapshot):
