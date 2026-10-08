@@ -921,11 +921,15 @@ def test_folded_reread_is_not_a_read_date() -> None:
 def test_score_only_check_accepts_an_aligned_observation_date(tmp_path: Path) -> None:
     configuration = "Board row read {day}; tasks updated 2026-09-10."
     before_text = _card("2026-09-24").replace(
+        "https://example.test/leaderboard.json", refresh.readers.METR_URL,
+    ).replace(
         "    date_type: published\n",
         "    date_type: published\n"
         f"    configuration: {configuration.format(day='2026-09-24')}\n",
     )
     after_text = _card("2026-10-05").replace(
+        "https://example.test/leaderboard.json", refresh.readers.METR_URL,
+    ).replace(
         "evidence_date: '2026-09-01'\n",
         "evidence_date: '2026-10-05'\n",
     ).replace(
@@ -996,6 +1000,8 @@ def test_score_only_check_refuses_reread_and_carried_source_date_edits(tmp_path:
 
 def test_score_only_check_accepts_a_standalone_read_beside_reread(tmp_path: Path) -> None:
     before_text = _card("2026-09-24").replace(
+        "https://example.test/leaderboard.json", refresh.readers.MTEB_URL,
+    ).replace(
         "evidence_date: '2026-09-01'\n",
         "evidence_date: '2026-09-24'\n",
     ).replace(
@@ -1004,6 +1010,8 @@ def test_score_only_check_accepts_a_standalone_read_beside_reread(tmp_path: Path
         "    configuration: dataset re-read 2026-09-24. Board row read 2026-09-24.\n",
     )
     after_text = _card("2026-09-28").replace(
+        "https://example.test/leaderboard.json", refresh.readers.MTEB_URL,
+    ).replace(
         "evidence_date: '2026-09-01'\n",
         "evidence_date: '2026-09-28'\n",
     ).replace(
@@ -1016,12 +1024,51 @@ def test_score_only_check_accepts_a_standalone_read_beside_reread(tmp_path: Path
     assert refresh.check_score_only(before, after).ok
 
 
+ARENA_CARD_URL = "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset"
+
+
+def test_observation_sources_are_projectors_without_a_row_date() -> None:
+    urls = refresh._OBSERVATION_SOURCE_URLS
+    assert {
+        refresh.readers.METR_URL,
+        refresh.readers.MTEB_URL,
+        refresh.MTEB_API.format("MTEB(Multilingual,%20v2)"),
+        refresh.MTEB_API.format("MTEB(cmn,%20v1)"),
+        refresh.MTEB_API.format("FollowIR"),
+        refresh.readers.MATHARENA_URL,
+        refresh.MATHARENA_AIME_2025_URL,
+        "https://matharena.ai/competition_tables/overall--brokenarxiv",
+        "https://matharena.ai/competition_tables/overall--arxivmath",
+        refresh.readers.CURSOR_URL,
+        refresh.readers.DEEPSWE_URL,
+        refresh.DEEPSWE_CARD_URL,
+        refresh.readers.VENDING_URL,
+        refresh.readers.FRONTIERCODE_URL,
+        refresh.readers.OSWORLD_URL,
+        refresh.HLE_URL,
+    } <= urls
+    dated = {
+        ARENA_CARD_URL,
+        "https://epoch.ai/benchmarks/gpqa-diamond",
+        "https://epoch.ai/frontiermath",
+        "https://epoch.ai/benchmarks/swe-bench-verified",
+        "https://epoch.ai/benchmarks/simpleqa-verified",
+        "https://www.tbench.ai/leaderboard/terminal-bench/4.0",
+        refresh.readers.SCALE_URL,
+        "https://labs.scale.com/leaderboard/swe_bench_pro",
+        refresh.FINBENCH_URL,
+        refresh.readers.SWEBENCH_URL,
+        "https://example.test/leaderboard.json",
+    }
+    assert dated.isdisjoint(urls)
+
+
 def test_align_observation_cards_rewrites_stored_rows_only(tmp_path: Path) -> None:
     root = tmp_path / "repo"
     card = root / "models" / "lab" / "model.md"
     card.parent.mkdir(parents=True)
     card.write_text(
-        """---
+        f"""---
 model_id: lab/model
 benchmarks:
   evidence:
@@ -1029,7 +1076,7 @@ benchmarks:
     model_id_as_evaluated: Dated By Observation
     score: 1.0
     unit: percent
-    source_url: https://example.test/leaderboard.json
+    source_url: {refresh.readers.METR_URL}
     source_kind: benchmark_author
     evidence_date: '2026-10-05'
     date_type: published
@@ -1037,10 +1084,20 @@ benchmarks:
     configuration: Board read
       2026-09-24; tasks updated 2026-09-10.
   - benchmark_id: fixture_benchmark
-    model_id_as_evaluated: Dated By Source
+    model_id_as_evaluated: Same Day Source
     score: 2.0
     unit: percent
-    source_url: https://example.test/leaderboard.json
+    source_url: {ARENA_CARD_URL}
+    source_kind: benchmark_author
+    evidence_date: '2026-10-05'
+    date_type: published
+    observed_at: '2026-10-05'
+    configuration: dataset re-read 2026-09-24. Board row read 2026-09-24.
+  - benchmark_id: fixture_benchmark
+    model_id_as_evaluated: Older Day
+    score: 3.0
+    unit: percent
+    source_url: {refresh.readers.METR_URL}
     source_kind: benchmark_author
     evidence_date: '2026-09-01'
     date_type: published
@@ -1060,9 +1117,41 @@ benchmarks:
     assert rows[0]["configuration"] == "Board read 2026-10-05; tasks updated 2026-09-10."
     assert "    configuration: Board read\n      2026-10-05; tasks updated 2026-09-10.\n" in text
     assert rows[1]["date_type"] == "published"
-    assert rows[1]["configuration"] == "Board read 2026-09-24; published 2026-09-01."
-    assert "    configuration: Board read 2026-09-24; published 2026-09-01.\n" in text
+    assert rows[1]["configuration"] == (
+        "dataset re-read 2026-09-24. Board row read 2026-09-24."
+    )
+    assert rows[2]["date_type"] == "published"
+    assert rows[2]["configuration"] == "Board read 2026-09-24; published 2026-09-01."
     assert refresh.align_observation_cards(root) == []
+
+
+def test_score_only_check_refuses_a_same_day_source_measurement(tmp_path: Path) -> None:
+    before_text = _card("2026-09-28").replace(
+        "https://example.test/leaderboard.json", ARENA_CARD_URL,
+    ).replace(
+        "evidence_date: '2026-09-01'\n",
+        "evidence_date: '2026-09-28'\n",
+    ).replace(
+        "    date_type: published\n",
+        "    date_type: published\n"
+        "    configuration: dataset re-read 2026-09-24. Board row read 2026-09-24.\n",
+    )
+    after_text = _card("2026-09-28").replace(
+        "https://example.test/leaderboard.json", ARENA_CARD_URL,
+    ).replace(
+        "evidence_date: '2026-09-01'\n",
+        "evidence_date: '2026-09-28'\n",
+    ).replace(
+        "    date_type: published\n",
+        "    date_type: evaluated\n"
+        "    configuration: dataset re-read 2026-09-24. Board row read 2026-09-28.\n",
+    )
+    before, after = _write_guard_cards(tmp_path, before_text, after_text)
+
+    result = refresh.check_score_only(before, after)
+
+    assert not result.ok
+    assert result.errors == ("non-score card data changed: models/lab/model.md",)
 
 
 def test_unread_board_keeps_the_old_observation_date(monkeypatch, tmp_path: Path) -> None:

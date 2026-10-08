@@ -292,18 +292,14 @@ def observation_dated(
     return bool(evidence) and evidence == observed
 
 
-def _carried_its_own_date(before: Mapping[str, Any], after: Mapping[str, Any]) -> bool:
-    """The evidence day was already on the row, and it was not the previous observation.
+def _stored_row_is_source_dated(row: Mapping[str, Any]) -> bool:
+    """The stored row's projector publishes a per-row date, or the source is unknown.
 
-    The refresh copied that day from the source. Catching up ``observed_at`` to
-    the same calendar day does not make the row an observation.
+    A card does not carry ``date``, ``leaderboard_publish_date``, ``started_at``,
+    ``Started at`` or ``release_date``. The source URL names the projector.
+    ``evidence_date == observed_at`` does not make the row an observation.
     """
-    before_day = _iso_day(before.get("evidence_date"))
-    return (
-        bool(before_day)
-        and before_day == _iso_day(after.get("evidence_date"))
-        and before_day != _iso_day(before.get("observed_at"))
-    )
+    return str(row.get("source_url") or "") not in _OBSERVATION_SOURCE_URLS
 
 
 def align_observation_dating(
@@ -501,10 +497,11 @@ def _rewrite_card(
 
 
 def align_observation_cards(root: Path) -> list[str]:
-    """Rewrite stored rows already dated by their observation.
+    """Rewrite stored rows whose projector publishes no per-row date.
 
     Returns the card paths that changed, relative to ``root``. A row whose
-    evidence date is a source measurement is not touched.
+    source projector publishes a measurement or publish date is left alone,
+    including when its evidence day is already the observation day.
     """
     changed: list[str] = []
     for path in sorted((root / "models").glob("*/*.md")):
@@ -514,7 +511,9 @@ def align_observation_cards(root: Path) -> list[str]:
         for row in rows:
             if not isinstance(row, Mapping):
                 continue
-            aligned = align_observation_dating(row)
+            aligned = align_observation_dating(
+                row, source_dated=_stored_row_is_source_dated(row),
+            )
             if (
                 aligned.get("configuration") != row.get("configuration")
                 or aligned.get("date_type") != row.get("date_type")
@@ -891,18 +890,18 @@ def _body(path: Path) -> str:
 def _row_allows_refresh(before: Mapping[str, Any], after: Mapping[str, Any]) -> bool:
     """A refresh may change score, dates, id and the source snapshot.
 
-    When the row has no source date and the new evidence day is the observation,
-    it may also replace the standalone word ``read`` plus a date in the
-    configuration, and change date_type from ``published`` to ``evaluated``.
-    ``re-read`` is not that citation. A date the row already carried, which was
-    not the previous observation, stays a source date when the refresh day
-    catches up to it.
+    When the row's projector publishes no per-row date and the new evidence
+    day is the observation, it may also replace the standalone word ``read``
+    plus a date in the configuration, and change date_type from ``published``
+    to ``evaluated``. ``re-read`` is not that citation. A projector that
+    publishes a row date, and any source this refresher does not classify,
+    keeps both fields.
     """
     old, new = dict(before), dict(after)
     for key in _ALLOWED_EVIDENCE_FIELDS:
         old.pop(key, None)
         new.pop(key, None)
-    dated_by_source = _carried_its_own_date(before, after)
+    dated_by_source = _stored_row_is_source_dated(before)
     if old.get("configuration") != new.get("configuration"):
         if not observation_dated(
             after.get("evidence_date"), after.get("observed_at"), source_dated=dated_by_source,
@@ -951,10 +950,11 @@ def check_score_only(before: Path, after: Path) -> ScoreOnlyResult:
     """Mechanically prove a generated refresh did not add cards or alter identities.
 
     Existing evidence rows may change their score, observation/verification
-    date, ID and source-snapshot binding. A row with no source date, dated by
-    the observation, may also make its configuration's standalone ``read <date>``
-    and date_type match that date. A ``re-read`` phrase, or a date the row
-    already carried from its source, is not that edit.
+    date, ID and source-snapshot binding. A row whose projector publishes no
+    per-row date, dated by the observation, may also make its configuration's
+    standalone ``read <date>`` and date_type match that date. A ``re-read``
+    phrase is not that edit. A projector that publishes a row date keeps both
+    fields, including when the stored evidence day already equals ``observed_at``.
     Verification JSONL files may only grow.
     """
     old, new = _files(before), _files(after)
@@ -1138,6 +1138,32 @@ MATHARENA_BOARDS = {
     "arxivmath": ("model-233-matharena-arxivmath",
                   "https://matharena.ai/competition_tables/overall--arxivmath"),
 }
+#: AIME 2025 uses ``project_matharena``. That projector's row has no date column.
+MATHARENA_AIME_2025_URL = "https://matharena.ai/competition_tables/aime--aime_2025"
+HLE_URL = "https://labs.scale.com/leaderboard/humanitys_last_exam"
+DEEPSWE_CARD_URL = "https://deepswe.datacurve.ai/"
+#: Card source URLs whose refresher projector puts none of ``_SOURCE_DATE_KEYS``
+#: on a row. Read from each projector's row dict: ``project_metr``,
+#: ``project_mteb``, ``project_matharena``, ``project_cursorbench``,
+#: ``project_deepswe``, ``project_vending``, ``project_frontiercode`` and
+#: ``_project_frontiercode``, ``project_osworld`` and ``_project_osworld``,
+#: ``_project_scale_hle``. Arena, Epoch, Terminal-Bench, Scale SWE-bench Pro,
+#: Finance Benchmark, SWE-bench and tau-bench each emit ``date`` or
+#: ``leaderboard_publish_date``.
+_OBSERVATION_SOURCE_URLS = frozenset({
+    readers.METR_URL,
+    *(board[1] for board in MTEB_BOARDS),
+    readers.MATHARENA_URL,
+    MATHARENA_AIME_2025_URL,
+    *(url for _, url in MATHARENA_BOARDS.values()),
+    readers.CURSOR_URL,
+    readers.DEEPSWE_URL,
+    DEEPSWE_CARD_URL,
+    readers.VENDING_URL,
+    readers.FRONTIERCODE_URL,
+    readers.OSWORLD_URL,
+    HLE_URL,
+})
 
 
 FINBENCH_URL = "https://finbenchmark.ai/"
@@ -1347,12 +1373,11 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
             card_urls=(readers.OSWORLD_URL,))
 
     collect("deepswe", "model-160-deepswe-v1-1", ("deepswe_v1_1",),
-            "https://deepswe.datacurve.ai/artifacts/v1.1/leaderboard-live.json",
-            readers.DEEPSWE_URL,
+            readers.DEEPSWE_URL, readers.DEEPSWE_URL,
             lambda body, **kw: readers.project_deepswe(body, read_date=observed_at,
                                                         **{k: v for k, v in kw.items()
                                                            if k != "observed_at"}),
-            "pass_at_1", fraction=True, card_urls=("https://deepswe.datacurve.ai/",))
+            "pass_at_1", fraction=True, card_urls=(DEEPSWE_CARD_URL,))
 
     # The remaining MODEL-160 boards already have plain-HTTP projectors.
     collect("scale-pro", "model-160-scale-swe-bench-pro-public", ("swe_bench_pro",),
@@ -1361,9 +1386,8 @@ def collect_readings(observed_at: str, store: CopyStore, tau_urls: Iterable[str]
                                                       **{k: v for k, v in kw.items()
                                                          if k != "observed_at"}),
             "resolve_rate", card_urls=(readers.SCALE_URL, "https://labs.scale.com/leaderboard/swe_bench_pro"))
-    hle_url = "https://labs.scale.com/leaderboard/humanitys_last_exam"
-    collect("scale-hle", "model-143-evidence-scale-hle-json", ("hle",), hle_url,
-            hle_url, lambda body, **kw: _project_scale_hle(body.decode(), **kw), "accuracy")
+    collect("scale-hle", "model-143-evidence-scale-hle-json", ("hle",), HLE_URL,
+            HLE_URL, lambda body, **kw: _project_scale_hle(body.decode(), **kw), "accuracy")
     collect("cursorbench", "model-160-cursorbench", ("cursorbench_4",), readers.CURSOR_URL,
             readers.CURSOR_URL,
             lambda body, **kw: readers.project_cursorbench(body.decode(), read_date=observed_at,
