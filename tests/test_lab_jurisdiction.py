@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from datetime import date
 from pathlib import Path
@@ -108,6 +109,12 @@ def test_governing_law_and_entity_form_are_not_the_same_thing() -> None:
     assert jurisdiction_codes(
         "OpenAI Ireland Ltd, a company incorporated in the Republic of Ireland"
     ) == frozenset({"IE"})
+
+
+def test_an_exhibit_21_cell_is_a_whole_suffix_then_a_state() -> None:
+    assert jurisdiction_codes("Zinc | Texas") == frozenset()
+    assert jurisdiction_codes("Limited | Washington state office") == frozenset()
+    assert jurisdiction_codes("Google LLC | Delaware") == frozenset({"US"})
 
 
 def test_a_parent_label_is_read_without_its_subsidiaries() -> None:
@@ -764,7 +771,7 @@ def _verified_absence(mid: str, facet_id: str) -> dict:
 
 
 def test_a_snapshot_builds_from_labs_yaml_when_the_source_cache_is_empty(
-    tmp_path, monkeypatch, capsys,
+    tmp_path, monkeypatch, caplog,
 ) -> None:
     """``vendor.py`` builds through ``build_from_repo``. That path does not open the cache."""
     cache = tmp_path / "empty-cache"
@@ -837,15 +844,18 @@ def test_a_snapshot_builds_from_labs_yaml_when_the_source_cache_is_empty(
         "models:\n- fixturelab/one\n",
         encoding="utf-8",
     )
-    built = build_from_repo(
-        root,
-        premier=root / "premier" / "slice.yaml",
-        as_of=date(2026, 10, 8),
-        registry=registry,
-    )
-    captured = capsys.readouterr()
+    with caplog.at_level(logging.INFO, logger="decision.snapshot"):
+        built = build_from_repo(
+            root,
+            premier=root / "premier" / "slice.yaml",
+            as_of=date(2026, 10, 8),
+            registry=registry,
+        )
     assert built.snapshot_id.startswith("snap_")
-    assert "jurisdiction coverage: known 0, explicit null 1, gap 0 (labs: gaplab)" in captured.err
+    assert (
+        "premier models: known 0, explicit null 1, gap 0; "
+        "gap labs outside premier: gaplab"
+    ) in caplog.text
     assert not any(path.is_file() for path in cache.rglob("*"))
 
 

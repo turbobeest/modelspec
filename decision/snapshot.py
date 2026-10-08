@@ -38,9 +38,9 @@ import hashlib
 import hmac
 import io
 import json
+import logging
 import math
 import os
-import sys
 import warnings
 from bisect import bisect_left, bisect_right
 from collections import Counter
@@ -59,6 +59,8 @@ from decision.model import (
     value_hash,
     verification_counts,
 )
+
+logger = logging.getLogger(__name__)
 
 FORMAT = "modelspec.decision-snapshot"
 FORMAT_VERSION = 1
@@ -121,9 +123,13 @@ class JurisdictionCoverage:
     gap_labs: tuple[str, ...] = ()
 
     def __str__(self) -> str:
-        labs = ", ".join(self.gap_labs) if self.gap_labs else "none"
-        return (f"jurisdiction coverage: known {self.known}, "
-                f"explicit null {self.explicit_null}, gap {self.gap} (labs: {labs})")
+        premier_gap_labs = {model.split("/", 1)[0] for model in self.gap_models}
+        outside = [lab for lab in self.gap_labs if lab not in premier_gap_labs]
+        listed = ", ".join(outside)
+        tail = f": {listed}" if listed else ":"
+        return (f"premier models: known {self.known}, "
+                f"explicit null {self.explicit_null}, gap {self.gap}; "
+                f"gap labs outside premier{tail}")
 
 
 class CompletenessError(SnapshotBuildError):
@@ -1322,7 +1328,7 @@ def build_snapshot(inputs: SnapshotInputs, *, registry: Any = None,
         gaps = c.gaps(premier)
         if gaps:
             raise CompletenessError(gaps, coverage=coverage)
-        print(coverage, file=sys.stderr)
+        logger.info("%s", coverage)
     return _finish(c, as_of, premier, guard)
 
 
