@@ -44,6 +44,37 @@ _CANNOT_SEPARATE = re.compile(
     r"no order (?:is )?established|no .* winner|refuse to name|do not name",
     re.IGNORECASE,
 )
+_WEIGHTS_FACET = "model.weights_openness"
+
+
+def weights_gate(open_weights: bool | None) -> str | None:
+    """Contract condition for a question's ``open_weights`` flag.
+
+    ``True`` requires open weights. ``False`` means the asker did not require
+    them, so the spec has no weights condition. It does not require closed weights.
+    """
+    if open_weights is True:
+        return f"{_WEIGHTS_FACET} = open_weights"
+    if open_weights is False or open_weights is None:
+        return None
+    raise TypeError(f"open_weights must be true, false, or absent, not {open_weights!r}")
+
+
+def apply_weights_gate(where: Sequence[str], open_weights: bool | None) -> list[str]:
+    """Replace every weights condition with ``weights_gate``, or remove them all."""
+    gate = weights_gate(open_weights)
+    rewritten: list[str] = []
+    placed = gate is None
+    for line in where:
+        if _WEIGHTS_FACET in str(line):
+            if not placed and gate is not None:
+                rewritten.append(gate)
+                placed = True
+            continue
+        rewritten.append(str(line))
+    if not placed and gate is not None:
+        rewritten.append(gate)
+    return rewritten
 
 
 @dataclass(frozen=True)
