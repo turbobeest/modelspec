@@ -93,12 +93,24 @@ the model. The binding page names the subject by its display name or its
 repository id, as a whole name. `-`, `_`, `.` and spaces separate segments
 of that name. A prefix of a longer hyphen-joined name does not count:
 Querit is not Querit-4B, and Querit-4B is not Querit-4B-Pro. A family name
-does not count. The page
-names this licence when it contains the licence URL, a `license_link` to
-that URL, or a `license:` SPDX id for a shared text: `apache-2.0` for the
-apache.org LICENSE-2.0 text, `mit` for opensource.org/license/mit. A
-`license:` value of `other` names the licence only through the URL or
-`license_link`. A licence cited alone does not verify.
+does not count. The page names this licence by the first rule that holds.
+`license:` and `license_link:` are read from YAML front matter when the page
+has it. A `license_link` is exclusive. When the front matter has one, only a
+source that matches it binds. A relative link resolves against the README's
+repository. On huggingface.co, `raw`, `resolve` and `blob` name the same
+file. With no `license_link`, the page names the licence when it contains
+the licence URL, or when `license:` is an SPDX id for a shared text:
+`apache-2.0` for the apache.org LICENSE-2.0 text, `mit` for
+opensource.org/license/mit. A root file in the page's own repository also
+binds when its name starts with `LICENSE`, `LICENCE` or `COPYING`, in any
+case. `license: other`, and an id that is not in that SPDX table, binds that
+file by location. `license: mit` or `license: apache-2.0` binds it only when
+the retained text is that licence. MIT text contains "Permission is hereby
+granted, free of charge". Apache-2.0 text contains "Apache License" and
+"Version 2.0". `README.md`, `config.json` and a file in a subdirectory do
+not bind by location. `license: other` does not bind a shared text. A file
+in a different repository binds only by `license_link` or by its URL. A
+licence cited alone does not verify.
 
 ### Licence reading rules
 
@@ -143,7 +155,10 @@ tier-1 OSI mapping (MIT and Apache = permitted). The registry wording
 and that question is open for Jamie. The output-training reading follows the
 existing corpus in treating a model trained on outputs, which the licence
 makes a derivative, as restricted. The registry definition does not settle
-that case, and that question is open for Jamie.
+that case, and that question is open for Jamie. A fine-tune with a
+`base_model` may also carry the base model's licence terms. Today neither
+the rules nor the binding follow `base_model`. KaLM's file embeds the Gemma
+terms, so it reads correctly. That question is open for Jamie.
 
 An absence (a null value, `not_disclosed`) verifies only from a source kind
 in the facet's `permitted_source_kinds`. A `licence.*` absence needs that

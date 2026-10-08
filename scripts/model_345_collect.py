@@ -461,17 +461,21 @@ def _text(store: CopyStore, snapshot_ref: str, normaliser: str) -> str:
 
 
 def readme_binds_licence(readme: Source, store: CopyStore, copy_ref: str,
-                         names: tuple[str, ...], licence_url: str, subject: str) -> str | None:
+                         names: tuple[str, ...], licence_url: str, subject: str,
+                         licence_text: str | None = None) -> str | None:
     """The rule by which the cited README region binds this licence, or ``None``.
 
     The text is the cited region ``StoredRegions`` gives the verifier. The
-    judgement is :func:`decision.verify.licence_is_bound`.
+    judgement is :func:`decision.verify.licence_is_bound`. ``licence_text``
+    is the retained licence. A ``license:`` SPDX id binds a root file only
+    when that text carries the id's signature.
     """
     text = StoredRegions(store, {readme.id: readme}).text(readme.id, copy_ref, BINDING_REGION)
     if not text:
         return None
     return licence_is_bound(
         names, [text], licence_url, subject=subject, page_urls=(str(readme.url),),
+        licence_text=licence_text,
     )
 
 
@@ -536,6 +540,7 @@ def collect(root: Path, *, dry_run: bool, report_path: Path | None) -> dict:
         names = _published_names(data)
         rule = readme_binds_licence(
             readme, store, readme_snap.copy_ref, names, licence["url"], model_id,
+            licence_text,
         )
         if not rule:
             problems.append(f"{model_id}: model page does not bind the licence")

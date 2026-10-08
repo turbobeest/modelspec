@@ -2239,8 +2239,7 @@ _PAGE_URL = re.compile(r"https?://[^\s\"'<>)\]]+", re.IGNORECASE)
 _HF_FILE_VERBS = frozenset({"raw", "resolve", "blob"})
 _NAME_JOIN = re.compile(r"\s*[-_.][-_.\s]*(?=[0-9A-Za-z])")
 #: SPDX ids for the shared generic texts. ``license: other`` is not one of them.
-#: A shared text binds only through this table. A file in the page's own
-#: Hugging Face repository binds by location when the page has a ``license:`` field.
+#: A shared text binds only through this table.
 SPDX_LICENCE_URLS: dict[str, tuple[str, ...]] = {
     "apache-2.0": (
         "https://www.apache.org/licenses/LICENSE-2.0",
@@ -2248,6 +2247,14 @@ SPDX_LICENCE_URLS: dict[str, tuple[str, ...]] = {
     ),
     "mit": ("https://opensource.org/license/mit",),
 }
+#: Phrases a retained root file must contain before an id in
+#: :data:`SPDX_LICENCE_URLS` binds that file. Every phrase has to appear.
+#: An id outside the table is not checked.
+SPDX_SIGNATURES: dict[str, tuple[str, ...]] = {
+    "apache-2.0": ("Apache License", "Version 2.0"),
+    "mit": ("Permission is hereby granted, free of charge",),
+}
+_ROOT_LICENCE_NAME = re.compile(r"(?i)^(license|licence|copying)")
 
 
 def _licence_allowed(facet) -> list[str]:
@@ -2347,11 +2354,41 @@ def _hf_repo_name(url: str) -> str | None:
 
 
 def _hf_file(url: str) -> bool:
-    """A file URL: ``huggingface.co/<org>/<repo>/(raw|resolve|blob)/<rev>/<path>``."""
+    """A root licence file on huggingface.co.
+
+    ``huggingface.co/<org>/<repo>/(raw|resolve|blob)/<rev>/<name>``. ``name``
+    is one path segment and starts with ``LICENSE``, ``LICENCE`` or
+    ``COPYING``, in any case. ``README.md``, ``config.json`` and a file in a
+    subdirectory are not.
+    """
     parts = _url_parts(url)
-    if parts is None or len(parts) < 6 or parts[0].casefold() != "huggingface.co":
+    if parts is None or len(parts) != 6 or parts[0].casefold() != "huggingface.co":
         return False
-    return parts[3].casefold() in _HF_FILE_VERBS and bool("/".join(parts[5:]))
+    if parts[3].casefold() not in _HF_FILE_VERBS:
+        return False
+    return _ROOT_LICENCE_NAME.match(parts[5]) is not None
+
+
+def _front_matter(page: str) -> str:
+    """YAML front matter when the page opens with fences. Otherwise the page.
+
+    A Hugging Face README keeps ``license:`` and ``license_link:`` between
+    the fences. A region that is only those fields has no fences.
+    """
+    if not page.startswith("---"):
+        return page
+    parts = page.split("---", 2)
+    if len(parts) < 3 or parts[0].strip():
+        return page
+    return parts[1]
+
+
+def _text_is_spdx(spdx_id: str, text: str | None) -> bool:
+    """The retained text carries every signature phrase for this SPDX id."""
+    phrases = SPDX_SIGNATURES.get(spdx_id)
+    if not phrases or not text:
+        return False
+    return all(phrase in text for phrase in phrases)
 
 
 def _resolve_license_link(link: str, page_url: str | None) -> str:
@@ -2471,12 +2508,25 @@ def _page_contains_licence_url(page: str, licence_url: str) -> bool:
     return any(_licence_url_key(match.group(0)) == source_key for match in _PAGE_URL.finditer(page))
 
 
-def _repo_location_binds(page: str, page_url: str | None, licence_url: str) -> bool:
-    """The licence file sits in the page's own repository, and the page names a licence."""
-    if not page_url or _LICENSE_SPDX.search(page) is None or not _hf_file(licence_url):
+def _repo_location_binds(page: str, page_url: str | None, licence_url: str,
+                         licence_text: str | None = None) -> bool:
+    """A root licence file in the page's own repository, named by ``license:``.
+
+    An id in :data:`SPDX_LICENCE_URLS` binds that file only when
+    ``licence_text`` carries the signature in :data:`SPDX_SIGNATURES`.
+    ``license: other``, and any id outside the table, binds the file by
+    location alone.
+    """
+    match = _LICENSE_SPDX.search(_front_matter(page))
+    if not page_url or match is None or not _hf_file(licence_url):
         return False
     page_repo = _hf_repo(page_url)
-    return page_repo is not None and page_repo == _hf_repo(licence_url)
+    if page_repo is None or page_repo != _hf_repo(licence_url):
+        return False
+    spdx_id = match.group(1).casefold()
+    if spdx_id in SPDX_LICENCE_URLS:
+        return _text_is_spdx(spdx_id, licence_text)
+    return True
 
 
 def _spdx_binds(page: str, licence_url: str) -> bool:
@@ -2488,24 +2538,33 @@ def _spdx_binds(page: str, licence_url: str) -> bool:
     return False
 
 
-def _licence_rule(page: str, page_url: str | None, licence_url: str | None) -> str | None:
-    """Which rule names this licence on this page: link, url, repo, or SPDX."""
+def _licence_rule(page: str, page_url: str | None, licence_url: str | None,
+                  licence_text: str | None = None) -> str | None:
+    """Which rule names this licence on this page: link, url, repo, or SPDX.
+
+    A ``license_link`` in front matter is exclusive. A source that does not
+    match it does not bind by URL, repository location, or SPDX.
+    """
     if not licence_url:
         return None
-    if _license_link_matches(page, licence_url, page_url):
-        return "license_link"
+    matter = _front_matter(page)
+    if _LICENSE_LINK.search(matter):
+        if _license_link_matches(matter, licence_url, page_url):
+            return "license_link"
+        return None
     if _page_contains_licence_url(page, licence_url):
         return "url"
-    if _repo_location_binds(page, page_url, licence_url):
+    if _repo_location_binds(page, page_url, licence_url, licence_text):
         return "repo-location"
-    if _spdx_binds(page, licence_url):
+    if _spdx_binds(matter, licence_url):
         return "SPDX"
     return None
 
 
 def licence_is_bound(names: Sequence[str], pages: Sequence[str], licence_url: str | None, *,
                      subject: str | None = None,
-                     page_urls: Sequence[str | None] | None = None) -> str | None:
+                     page_urls: Sequence[str | None] | None = None,
+                     licence_text: str | None = None) -> str | None:
     """The rule that binds this licence to the subject, or ``None``.
 
     A page names the subject by its display name or repository id, as a whole
@@ -2514,20 +2573,31 @@ def licence_is_bound(names: Sequence[str], pages: Sequence[str], licence_url: st
     hyphen-joined name does not count: ``Querit`` is not ``Querit-4B``.
     A family name does not count.
 
-    The licence rule is the first that holds: ``license_link`` (resolved
-    against the page's repository when relative; on huggingface.co, ``raw``,
-    ``resolve`` and ``blob`` name the same file), ``url`` (that file's URL is
-    in the page), ``repo-location`` (the licence is a file in the page's own
-    repository and the page has a ``license:`` field, whatever its value), or
-    ``SPDX`` (the field names a shared text in :data:`SPDX_LICENCE_URLS`).
-    ``license: other`` does not bind a shared text. A file in a different
-    repository binds only by ``license_link`` or ``url``.
+    ``license:`` and ``license_link:`` are read from YAML front matter when
+    the page has it, and from the whole page otherwise.
+
+    The licence rule is the first that holds. A ``license_link`` is exclusive:
+    when the front matter has one, only a source that matches it binds.
+    A relative link resolves against the page URL's directory. On
+    huggingface.co, ``raw``, ``resolve`` and ``blob`` name the same file.
+
+    With no ``license_link``: ``url`` (that file's URL is in the page),
+    ``repo-location`` (a root file named ``LICENSE*``, ``LICENCE*`` or
+    ``COPYING*`` in the page's own repository, and the page has a
+    ``license:`` field), or ``SPDX`` (the field names a shared text in
+    :data:`SPDX_LICENCE_URLS`). A ``license:`` of ``mit`` or ``apache-2.0``
+    binds that root file only when ``licence_text`` contains the signature
+    in :data:`SPDX_SIGNATURES`. ``license: other``, and any id outside that
+    table, binds the root file by location. ``README.md``, ``config.json``
+    and a subdirectory do not. ``license: other`` does not bind a shared
+    text. A file in a different repository binds only by ``license_link``
+    or ``url``.
     """
     urls = tuple(page_urls or ())
     for index, page in enumerate(pages):
         page_url = urls[index] if index < len(urls) else None
         if _page_names_subject(page, names, subject, page_url):
-            rule = _licence_rule(page, page_url, licence_url)
+            rule = _licence_rule(page, page_url, licence_url, licence_text)
             if rule:
                 return rule
     return None
@@ -2587,6 +2657,7 @@ class LicenceExtractor:
             self.cache.put(store_key, reply)
         subject = claim.names[0] if licence_is_bound(
             claim.names, bindings, licence_url, subject=claim.subject, page_urls=binding_urls,
+            licence_text=text,
         ) else None
         shown: JsonValue = None if value is None else str(value)
         unit = None

@@ -2987,19 +2987,34 @@ def test_a_license_link_equal_to_the_source_url_binds() -> None:
     assert result.outcome == "verified", result
 
 
+APACHE_TEXT = """\
+Apache License
+Version 2.0, January 2004
+http://www.apache.org/licenses/
+
+TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+Licensed under the Apache License, Version 2.0.
+"""
+APACHE_QUOTE = "Licensed under the Apache License, Version 2.0."
+
+
 def _bound_readme(readme: str, licence_url: str, *, page_url: str,
                   names: tuple[str, ...] = ("Nimbus 3",),
-                  subject: str = "lab/nimbus-3"):
+                  subject: str = "lab/nimbus-3",
+                  licence_text: str = MIT_TEXT,
+                  quote: str = MIT_QUOTE):
     """The binding rule, and what ``verify`` decides when the readme URL is known."""
     rule = verify.licence_is_bound(
         names, [readme], licence_url, subject=subject, page_urls=(page_url,),
+        licence_text=licence_text,
     )
     regions = _KindRegions(
-        {("nimbus-licence", "page"): MIT_TEXT, ("nimbus-readme", "page"): readme},
+        {("nimbus-licence", "page"): licence_text, ("nimbus-readme", "page"): readme},
         {"nimbus-licence": "licence_text", "nimbus-readme": "weights_repository"},
         {"nimbus-licence": licence_url, "nimbus-readme": page_url},
     )
-    reader = _licence_reader(lambda prompt: _reply("permitted", [MIT_QUOTE]))
+    reader = _licence_reader(lambda prompt: _reply("permitted", [quote]))
     claim = verify.Claim(
         target=TargetRef(kind="fact", id=f"{subject}#licence.commercial_use"),
         subject=subject,
@@ -3059,6 +3074,90 @@ def test_a_relative_license_link_resolves_against_the_readme_repo() -> None:
     )
     assert rule == "license_link"
     assert result.outcome == "verified", result
+
+
+def test_a_conflicting_license_link_does_not_bind_the_local_mit_file() -> None:
+    rule, result = _bound_readme(
+        "license: other\n"
+        "license_link: https://huggingface.co/meta-llama/Llama-3.1-8B/blob/main/LICENSE\n"
+        "Nimbus 3\n",
+        "https://huggingface.co/lab/nimbus-3/raw/main/LICENSE",
+        page_url="https://huggingface.co/lab/nimbus-3/raw/main/README.md",
+    )
+    assert rule is None
+    assert result.outcome == "mismatch", result
+    assert result.diffs[0].field == "model"
+
+
+def test_a_matching_license_link_binds_across_raw_and_blob() -> None:
+    rule, result = _bound_readme(
+        "license: other\n"
+        "license_link: https://huggingface.co/meta-llama/Llama-3.1-8B/blob/main/LICENSE\n"
+        "Nimbus 3\n",
+        "https://huggingface.co/meta-llama/Llama-3.1-8B/raw/main/LICENSE",
+        page_url="https://huggingface.co/lab/nimbus-3/resolve/main/README.md",
+    )
+    assert rule == "license_link"
+    assert result.outcome == "verified", result
+
+
+def test_license_mit_does_not_bind_a_local_file_whose_text_is_apache() -> None:
+    rule, result = _bound_readme(
+        "license: mit\nNimbus 3\n",
+        "https://huggingface.co/lab/nimbus-3/raw/main/LICENSE",
+        page_url="https://huggingface.co/lab/nimbus-3/raw/main/README.md",
+        licence_text=APACHE_TEXT,
+        quote=APACHE_QUOTE,
+    )
+    assert rule is None
+    assert result.outcome == "mismatch", result
+    assert result.diffs[0].field == "model"
+
+
+def test_license_mit_binds_a_local_mit_file() -> None:
+    rule, result = _bound_readme(
+        "license: mit\nNimbus 3\n",
+        "https://huggingface.co/lab/nimbus-3/resolve/main/LICENSE",
+        page_url="https://huggingface.co/lab/nimbus-3/blob/main/README.md",
+    )
+    assert rule == "repo-location"
+    assert result.outcome == "verified", result
+
+
+def test_license_other_binds_a_root_licence_file() -> None:
+    for name in ("LICENSE", "LICENCE", "COPYING.txt", "License.md"):
+        rule, result = _bound_readme(
+            "license: other\nNimbus 3\n",
+            f"https://huggingface.co/lab/nimbus-3/raw/main/{name}",
+            page_url="https://huggingface.co/lab/nimbus-3/raw/main/README.md",
+        )
+        assert rule == "repo-location", name
+        assert result.outcome == "verified", (name, result)
+
+
+def test_a_readme_or_config_registered_as_licence_text_does_not_bind_by_location() -> None:
+    page = "license: other\nNimbus 3\n"
+    page_url = "https://huggingface.co/lab/nimbus-3/raw/main/README.md"
+    for name in ("README.md", "config.json"):
+        rule, result = _bound_readme(
+            page,
+            f"https://huggingface.co/lab/nimbus-3/raw/main/{name}",
+            page_url=page_url,
+        )
+        assert rule is None, name
+        assert result.outcome == "mismatch", (name, result)
+        assert result.diffs[0].field == "model"
+
+
+def test_a_licence_in_a_subdirectory_does_not_bind_by_location() -> None:
+    rule, result = _bound_readme(
+        "license: other\nNimbus 3\n",
+        "https://huggingface.co/lab/nimbus-3/raw/main/adapter/LICENSE",
+        page_url="https://huggingface.co/lab/nimbus-3/raw/main/README.md",
+    )
+    assert rule is None
+    assert result.outcome == "mismatch", result
+    assert result.diffs[0].field == "model"
 
 
 def test_a_licence_in_another_repo_does_not_bind_without_a_link() -> None:

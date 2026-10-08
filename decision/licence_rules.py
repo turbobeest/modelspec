@@ -12,6 +12,11 @@ The output-training reading follows the existing corpus in treating a model
 trained on outputs, which the licence makes a derivative, as restricted.
 The registry definition does not settle that case, and that question is open
 for Jamie.
+
+A fine-tune with a ``base_model`` may also carry the base model's licence
+terms. Today neither the rules nor the binding follow ``base_model``. KaLM's
+file embeds the Gemma terms, so it reads correctly. That question is open
+for Jamie.
 """
 
 from __future__ import annotations
