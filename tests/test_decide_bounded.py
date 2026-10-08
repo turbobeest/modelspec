@@ -179,8 +179,7 @@ def test_public_snapshot_names_an_estimated_position_and_a_natural_tie(service, 
             subjects.append(top)
         flagged = [
             item for item in body["must_mention"]
-            if item.startswith(f"{opus} has no leaderboard data for ")
-            and item.endswith("; its position is estimated, not measured.")
+            if _leaderboard_names(item) is not None and opus in _leaderboard_names(item)
         ]
         if opus in subjects:
             assert flagged
@@ -188,7 +187,7 @@ def test_public_snapshot_names_an_estimated_position_and_a_natural_tie(service, 
             assert flagged == []
         if "openai/gpt-6-astra" in members:
             assert not any(
-                item.startswith("openai/gpt-6-astra has no leaderboard data")
+                _leaderboard_names(item) is not None and "openai/gpt-6-astra" in _leaderboard_names(item)
                 for item in body["must_mention"]
             )
 
@@ -204,17 +203,29 @@ def test_public_snapshot_names_an_estimated_position_and_a_natural_tie(service, 
     scope = "No model class was required, so results span every class."
     assert summary.count(scope) == 1
     assert scope in mentions
-    for member in body["answer"]["members"]:
-        sentence = (
-            f"{member} has no leaderboard data for chat_preference; "
-            "its position is estimated, not measured."
-        )
-        assert sentence in mentions
-        assert sentence in summary
+    sentence = (
+        "anthropic/claude-opus-5-5 and anthropic/claude-fable-5 have no leaderboard data "
+        "for chat_preference; their positions are estimated, not measured."
+    )
+    assert sentence in mentions
+    assert sentence in summary
+    assert summary.count(sentence) == 1
     assert "Tie-breakers are conditional; cost order is not quality order." in summary
     assert "Tie-breakers are conditional; cost order is not quality order." in mentions
     assert "This answer is ordered by cost only; it is not a quality ranking." not in summary
     assert "model.class =" not in summary
+
+
+def _leaderboard_names(item: str) -> str | None:
+    for marker in (" have no leaderboard data for ", " has no leaderboard data for "):
+        head, separator, tail = item.partition(marker)
+        if not separator:
+            continue
+        if tail.endswith("its position is estimated, not measured.") or tail.endswith(
+            "their positions are estimated, not measured."
+        ):
+            return head
+    return None
 
 
 def _sentences(paragraph: str) -> list[str]:
@@ -270,8 +281,8 @@ def test_rendered_example_summaries_do_not_repeat_a_sentence(service, public_sna
                 for sentence in sentences:
                     if member not in sentence:
                         continue
-                    assert "has no leaderboard data for " in sentence, (name, sentence)
-                    assert "its position is estimated, not measured." in sentence
+                    names = _leaderboard_names(sentence)
+                    assert names is not None and member in names, (name, sentence)
 
 
 def test_projection_retains_unapplied_requirements(service, snapshot):

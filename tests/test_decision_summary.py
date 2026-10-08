@@ -172,9 +172,10 @@ def test_no_feasible_names_no_pick_and_keeps_the_relax_suggestions() -> None:
     assert text == (
         f"{NO_FEASIBLE} These requirements together exclude every model: "
         "offering.region = eu; model.class = text-generator. "
-        "Relaxing one of these would admit a model: "
-        "offering.region = eu; model.class = text-generator. "
-        "These are options, not an answer. "
+        "Relaxing offering.region = eu would admit a model; "
+        "that is an option, not an answer. "
+        "Relaxing model.class = text-generator would admit a model; "
+        "that is an option, not an answer. "
         "Requirements applied: offering.region = eu; model.class = text-generator."
     )
     assert mentions == []
@@ -201,14 +202,18 @@ def test_missing_objective_values_are_not_reported_as_a_gate_failure() -> None:
         "No model that meets the requirements has complete values for the objective "
         "(offering.cost_per_task), so ModelSpec cannot order them."
     )
-    qualify = "1 model may qualify; unknown values."
+    qualify = (
+        "1 more model may qualify, but ModelSpec lacks its values "
+        "for these requirements."
+    )
     assert text == (
         f"{NO_FEASIBLE} {missing} "
         "Requirements applied: model.class = text-generator. "
         f"{qualify}"
     )
     assert "exclude every model" not in text
-    assert "Relaxing one of these" not in text
+    assert "that is an option, not an answer." not in text
+    assert "Relaxing " not in text
     assert "no complete objective values" not in text
     assert "no complete objective values" not in " ".join(mentions)
     assert qualify in mentions
@@ -223,11 +228,19 @@ def test_partial_names_no_pick_and_counts_models_that_may_qualify() -> None:
     text, mentions = summarize(decision, _spec(optimize={"min": "offering.cost_per_task"}))
     assert text == (
         f"{PARTIAL} What is missing: licence.commercial_use. "
-        "1 model may qualify; unknown values. "
+        "1 more model may qualify, but ModelSpec lacks its values "
+        "for these requirements. "
         f"{NO_CLASS} {COST_ONLY}"
     )
-    assert text.count("1 model may qualify; unknown values.") == 1
-    assert mentions == [NO_CLASS, COST_ONLY, "1 model may qualify; unknown values."]
+    assert text.count(
+        "1 more model may qualify, but ModelSpec lacks its values "
+        "for these requirements."
+    ) == 1
+    assert mentions == [
+        NO_CLASS,
+        COST_ONLY,
+        "1 more model may qualify, but ModelSpec lacks its values for these requirements.",
+    ]
     assert "tied" not in text
     assert "lab/a" not in text and "lab/maybe" not in text
     for word in ("top", "best", "recommended"):
@@ -325,6 +338,84 @@ def test_a_preference_for_false_stays_false() -> None:
     assert "closed_weights" not in text
 
 
+def test_models_that_share_a_dimension_set_share_one_leaderboard_sentence() -> None:
+    models = ["lab/b", "lab/a", "lab/c"]
+    decision = _decision(
+        answer=_tied(models),
+        results=[
+            _row("lab/b", 1, contributions=[
+                {"dimension": "coding_quality", "value": None},
+                {"dimension": "chat_preference", "value": 0.2, "raw_value": 10.0, "unit": "percent"},
+            ]),
+            _row("lab/a", 2, contributions=[
+                {"dimension": "coding_quality", "value": None},
+                {"dimension": "chat_preference", "value": 0.3, "raw_value": 12.0, "unit": "percent"},
+            ]),
+            _row("lab/c", 3, contributions=[
+                {"dimension": "coding_quality", "value": 0.4, "raw_value": 20.0, "unit": "percent"},
+                {"dimension": "chat_preference", "value": None},
+            ]),
+        ],
+    )
+    text, mentions = summarize(
+        decision,
+        _spec(optimize={"weights": {"coding_quality": 0.5, "chat_preference": 0.5}}),
+    )
+    shared = (
+        "lab/b and lab/a have no leaderboard data for coding_quality; "
+        "their positions are estimated, not measured."
+    )
+    alone = (
+        "lab/c has no leaderboard data for chat_preference; "
+        "its position is estimated, not measured."
+    )
+    assert shared in mentions and shared in text
+    assert alone in mentions and alone in text
+    assert text.index(shared) < text.index(alone)
+    assert text.count("has no leaderboard data") == 1
+    assert text.count("have no leaderboard data") == 1
+
+
+def test_three_models_use_the_tie_list_in_one_leaderboard_sentence() -> None:
+    models = ["lab/a", "lab/b", "lab/c"]
+    decision = _decision(
+        answer=_tied(models),
+        results=[
+            _row(model, rank, contributions=[{"dimension": "coding_quality", "value": None}])
+            for rank, model in enumerate(models, 1)
+        ],
+    )
+    text, mentions = summarize(decision, _spec(optimize={"max": "coding_quality"}))
+    sentence = (
+        "lab/a, lab/b, and lab/c have no leaderboard data for coding_quality; "
+        "their positions are estimated, not measured."
+    )
+    assert sentence in mentions
+    assert sentence in text
+    assert text.count(sentence) == 1
+
+
+def test_a_long_leaderboard_name_list_keeps_the_fixed_wording() -> None:
+    models = [f"lab/{'m' * 30}-{index:02d}" for index in range(12)]
+    decision = _decision(
+        answer=_tied(models),
+        results=[
+            _row(model, rank, contributions=[{"dimension": "coding_quality", "value": None}])
+            for rank, model in enumerate(models, 1)
+        ],
+    )
+    _text, mentions = summarize(decision, _spec(optimize={"max": "coding_quality"}))
+    item = next(entry for entry in mentions if "leaderboard data" in entry)
+    assert item == (
+        "lab/mmmmmmmmmmmmmmmmmmmmmmmmmmmmmm-00 and "
+        "lab/mmmmmmmmmmmmmmmmmmmmmmmmmmmmmm-01, and 10 more "
+        "have no leaderboard data for coding_quality; "
+        "their positions are estimated, not measured."
+    )
+    assert "…" not in item
+    assert len(item.encode("utf-8")) <= MUST_MENTION_ITEM_BYTES
+
+
 def test_missing_board_data_is_named_for_the_answer_member() -> None:
     decision = _decision(
         answer=_separated("lab/a"),
@@ -390,13 +481,13 @@ def test_a_relaxed_gate_is_an_option_and_partial_is_not_a_tie() -> None:
     assert text == (
         f"{NO_FEASIBLE} These requirements together exclude every model: "
         "offering.price.input <= 0.5; model.class = text-generator. "
-        "Relaxing one of these would admit a model: offering.price.input <= 0.5. "
-        "These are options, not an answer. "
-        "Nearest relaxations, not an answer: offering.price.input <= 0.75. "
+        "Relaxing offering.price.input <= 0.5 to offering.price.input <= 0.75 "
+        "would admit a model; that is an option, not an answer. "
         "Requirements applied: offering.price.input <= 0.5; model.class = text-generator."
     )
     assert mentions == []
     assert "tied" not in text and "tied" not in " ".join(mentions)
+    assert "Relaxing offering.price.input <= 0.5 would admit a model;" not in text
 
     repeated = _decision(
         status="no_feasible",
@@ -424,11 +515,15 @@ def test_a_relaxed_gate_is_an_option_and_partial_is_not_a_tie() -> None:
         repeated,
         _spec(where=["offering.price.input <= 0.5"], optimize={"min": "offering.cost_per_task"}),
     )
-    nearest = next(
-        sentence for sentence in repeated_text.split(". ")
-        if sentence.startswith("Nearest relaxations")
-    )
-    assert nearest == "Nearest relaxations, not an answer: offering.price.input <= 0.75"
+    assert (
+        "Relaxing offering.price.input <= 0.5 to offering.price.input <= 0.5 "
+        "would admit a model; that is an option, not an answer."
+    ) in repeated_text
+    assert (
+        "Relaxing offering.price.input <= 0.5 to offering.price.input <= 0.75 "
+        "would admit a model; that is an option, not an answer."
+    ) in repeated_text
+    assert "Relaxing offering.price.input <= 0.5 would admit a model;" not in repeated_text
     same = _decision(
         status="no_feasible",
         results=[],
@@ -445,7 +540,11 @@ def test_a_relaxed_gate_is_an_option_and_partial_is_not_a_tie() -> None:
     same_text, _same_mentions = summarize(
         same, _spec(where=["offering.price.input <= 0.5"]),
     )
-    assert "Nearest relaxations" not in same_text
+    assert (
+        "Relaxing offering.price.input <= 0.5 to offering.price.input <= 0.5 "
+        "would admit a model; that is an option, not an answer."
+    ) in same_text
+    assert "Relaxing offering.price.input <= 0.5 would admit a model;" not in same_text
 
     partial = _decision(
         status="partial",
@@ -645,7 +744,10 @@ def test_counts_use_thousands_separators_in_both_fields() -> None:
         "ModelSpec compared only the models in its lineup; "
         "1,328 active catalogue models are outside it."
     )
-    qualify = "1,328 models may qualify; unknown values."
+    qualify = (
+        "1,328 more models may qualify, but ModelSpec lacks their values "
+        "for these requirements."
+    )
     assert lineup in mentions and text.count(lineup) == 1
     assert qualify in mentions and text.count(qualify) == 1
 
@@ -708,17 +810,20 @@ def test_must_mention_and_the_paragraph_stay_inside_their_byte_caps() -> None:
     assert mentions[0] == "No single winner: 2 models are tied."
     assert mentions[1] == PROXY
     assert mentions[2] == (
-        "lab/a has no leaderboard data for software_engineering; "
-        "its position is estimated, not measured."
+        "lab/a and lab/b have no leaderboard data for software_engineering; "
+        "their positions are estimated, not measured."
     )
     assert item.endswith(caveat)
     assert item.startswith("requirement_")
     assert "…" in item.split(caveat, 1)[0]
     assert len(item.encode("utf-8")) <= MUST_MENTION_ITEM_BYTES
     assert not item.endswith("wa…")
-    assert mentions[-1] == "and 12 more."
+    assert mentions[-1] == "and 11 more."
     assert "Outside the board." in mentions
-    assert "1 model may qualify; unknown values." in mentions
+    assert (
+        "1 more model may qualify, but ModelSpec lacks its values "
+        "for these requirements."
+    ) in mentions
     assert LINEUP_3 in mentions
     assert (
         "fits_hardware is an estimate, not a measured fit for a quantization or context workload."
@@ -744,12 +849,20 @@ def test_must_mention_and_the_paragraph_stay_inside_their_byte_caps() -> None:
     assert huge_text.startswith(NO_FEASIBLE)
     assert NO_CLASS in huge_text
     assert huge_text.count(NO_CLASS) == 1
-    assert "These are options, not an answer." in huge_text
     assert COST_ONLY not in huge_text
-    assert "facet_00 >= 0" in huge_text
-    assert "Relaxing one of these would admit a model:" in huge_text
-    assert "and 18 more" in huge_text
-    assert "and 28 more" in huge_text
+    assert huge_text.count("facet_00 >= 0; and 39 more.") == 2
+    assert (
+        "Relaxing facet_00 >= 0 would admit a model; that is an option, not an answer."
+        in huge_text
+    )
+    assert (
+        "Relaxing facet_10 >= 10 would admit a model; that is an option, not an answer."
+        in huge_text
+    )
+    assert "and 29 more." in huge_text
+    assert "Relaxing facet_11 >= 11" not in huge_text
+    assert "These are options, not an answer." not in huge_text
+    assert "Nearest relaxations" not in huge_text
     assert "tied" not in huge_text
     assert "lab/" not in huge_text
 

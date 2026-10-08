@@ -57,6 +57,17 @@ _MISSING_OBJECTIVE = (
     "No model that meets the requirements has complete values for the objective "
     "({objective}), so ModelSpec cannot order them."
 )
+_BOARD_ONE = (
+    " has no leaderboard data for {dimensions}; its position is estimated, not measured."
+)
+_BOARD_MANY = (
+    " have no leaderboard data for {dimensions}; their positions are estimated, not measured."
+)
+_OPTION_TO = (
+    "Relaxing {condition} to {relaxed} would admit a model; "
+    "that is an option, not an answer."
+)
+_OPTION = "Relaxing {condition} would admit a model; that is an option, not an answer."
 
 
 def summarize(
@@ -177,20 +188,7 @@ def _why(
         else:
             exclude = "These requirements together exclude every model."
         sentences = [exclude]
-        relax_values = list(decision.relax)
-        relax = _bounded(relax_values, limits["relax"])
-        if relax:
-            sentences.append(
-                f"Relaxing one of these would admit a model: {relax}. "
-                "These are options, not an answer."
-            )
-        stated = set(relax_values)
-        nearest = _bounded(
-            [item.relaxed for item in decision.relax_to if item.relaxed not in stated],
-            limits["relax"],
-        )
-        if nearest:
-            sentences.append(f"Nearest relaxations, not an answer: {nearest}.")
+        sentences.extend(_relaxation_options(decision, spec, limits["relax"]))
         hint = decision.relax_task_tokens
         if hint is not None:
             sentences.append(f"Task-size relaxation, not an answer: {hint.condition}.")
@@ -214,8 +212,38 @@ def _why(
 
 
 def _qualify_sentence(count: int) -> str:
-    noun = "model" if count == 1 else "models"
-    return f"{_count(count)} {noun} may qualify; unknown values."
+    if count == 1:
+        return (
+            "1 more model may qualify, but ModelSpec lacks its values "
+            "for these requirements."
+        )
+    return (
+        f"{_count(count)} more models may qualify, but ModelSpec lacks their values "
+        "for these requirements."
+    )
+
+
+def _relaxation_options(decision: Decision, spec: Spec | None, limit: int) -> list[str]:
+    """One sentence per gate option. A diagnostic relax entry is not an option."""
+    requirements = set(_gates(spec, set())[0])
+    covered = {item.condition for item in decision.relax_to}
+    options = [
+        _OPTION_TO.format(condition=item.condition, relaxed=item.relaxed)
+        for item in decision.relax_to
+    ]
+    options.extend(
+        _OPTION.format(condition=condition)
+        for condition in decision.relax
+        if condition not in covered and condition in requirements
+    )
+    if not options:
+        return []
+    shown_count = min(len(options), max(limit, 1))
+    shown = options[:shown_count]
+    rest = len(options) - shown_count
+    if rest:
+        shown.append(f"and {_count(rest)} more.")
+    return shown
 
 
 def _constraints(spec: Spec | None, unapplied: list[str], limits: dict[str, int]) -> list[str]:
@@ -350,12 +378,8 @@ def _mentions(
         items.append(("tie_cost", _TIE_COST))
     for domain, benchmarks in _proxy(decision).items():
         items.append(("proxy", _proxy_sentence(domain, benchmarks)))
-    for model, dimensions in _missing(decision, spec):
-        items.append((
-            "missing",
-            f"{model} has no leaderboard data for {dimensions}; "
-            "its position is estimated, not measured.",
-        ))
+    for models, dimensions in _missing(decision, spec):
+        items.append(("missing", _board_sentence(models, dimensions)))
     for requirement in unapplied:
         items.append(("not_applied", _not_checked(requirement)))
     if decision.coverage is not None:
@@ -439,19 +463,49 @@ def _proxy_sentence(domain: str, benchmarks: list[str]) -> str:
     return prefix + ", ".join(shown) + extra + suffix
 
 
-def _missing(decision: Decision, spec: Spec | None) -> list[tuple[str, str]]:
+def _missing(decision: Decision, spec: Spec | None) -> list[tuple[list[str], list[str]]]:
+    """Models that share a missing dimension set, in answer order."""
     dimensions = _board_dimensions(spec)
     if not dimensions:
         return []
-    pairs: list[tuple[str, str]] = []
+    groups: dict[tuple[str, ...], list[str]] = {}
+    order: list[tuple[str, ...]] = []
     for model in _subjects(decision):
-        missing = [
+        missing = tuple(
             dimension for dimension in dimensions
             if _unmeasured(decision, model, dimension)
-        ]
-        if missing:
-            pairs.append((model, _name_list(missing, 8, more=" dimensions")))
-    return pairs
+        )
+        if not missing:
+            continue
+        bucket = groups.get(missing)
+        if bucket is None:
+            groups[missing] = [model]
+            order.append(missing)
+        elif model not in bucket:
+            bucket.append(model)
+    return [(groups[key], list(key)) for key in order]
+
+
+def _board_sentence(models: list[str], dimensions: list[str]) -> str:
+    """One leaderboard caveat. Names that overflow 200 bytes shorten; the wording does not."""
+    many = len(models) > 1
+    template = _BOARD_MANY if many else _BOARD_ONE
+    name_counts = range(len(models), 0, -1) if many else (1,)
+    for name_count in name_counts:
+        names = _name_list(models, name_count, more="")
+        for dim_count in range(len(dimensions), 0, -1):
+            text = names + template.format(
+                dimensions=_name_list(dimensions, dim_count, more=" dimensions"),
+            )
+            if len(text.encode("utf-8")) <= MUST_MENTION_ITEM_BYTES:
+                return text
+    names = _name_list(models, 1, more="")
+    dims = _name_list(dimensions, 1, more=" dimensions")
+    head, _, tail = template.partition("{dimensions}")
+    room = MUST_MENTION_ITEM_BYTES - len((head + tail).encode("utf-8"))
+    names = _clip_to(names, max(room - len(dims.encode("utf-8")), 1))
+    dims = _clip_to(dims, max(room - len(names.encode("utf-8")), 1))
+    return names + head + dims + tail
 
 
 def _board_dimensions(spec: Spec | None) -> list[str]:

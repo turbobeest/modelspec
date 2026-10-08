@@ -149,8 +149,10 @@ def _check(rows: list[dict]) -> None:
     summary = empty["summary_for_user"] or ""
     if "tied" in summary or not summary.startswith(NO_FEASIBLE):
         raise SystemExit("no_feasible summary presents an answer")
-    if "These are options, not an answer." not in summary:
+    if "that is an option, not an answer." not in summary:
         raise SystemExit("no_feasible summary does not list relaxations as options")
+    if "These are options, not an answer." in summary or "Nearest relaxations" in summary:
+        raise SystemExit("no_feasible summary still uses the combined relaxation sentence")
 
     constrained = by_name["constrained"]
     text = constrained["summary_for_user"] or ""
