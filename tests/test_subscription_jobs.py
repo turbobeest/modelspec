@@ -619,7 +619,7 @@ def private_ux(tmp_path):
     if not source.exists():
         pytest.skip('Private UX helper/report contract integration runs on the operator Mac')
     repo = tmp_path / 'private'; target = repo / 'qa/ux'; target.mkdir(parents=True)
-    for name in ('core.py', 'reports.py', 'dom.js', 'run_ux_agents.py'):
+    for name in ('core.py', 'reports.py', 'dom.js', 'run_ux_agents.py', 'judge-rubric.txt'):
         shutil.copyfile(source / name, target / name)
     tasks = [{'id': f'task-{i}', 'persona': 'Visitor', 'goal': 'Choose a model', 'success_criteria': ['An answer is visible'], 'checks': [{'kind':'selector','selector':'#answer'}]} for i in range(20)]
     (target / 'tasks.yaml').write_text(yaml.safe_dump({'version':1, 'tasks':tasks}))
@@ -1661,3 +1661,213 @@ def test_main_passes_the_checkpoint_path_into_the_funded_key_check(tmp_path, mon
         '--data-repo', str(tmp_path / 'data'),
     ]) == 2
     assert seen['path'] == path
+
+
+ROUTES = {'claude': 'codex', 'codex': 'claude', 'gemini': 'claude', 'grok': 'claude'}
+OVERRIDDEN_ROUTES = {'claude': 'grok', 'codex': 'claude', 'gemini': 'claude', 'grok': 'claude'}
+
+
+def _digest(payload):
+    return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()[:16]
+
+
+def test_judge_override_is_applied_and_grok_judges_claude(config, tmp_path, monkeypatch):
+    source = (harness.HERE / 'tui_config.yaml').read_bytes()
+    assert jobs.apply_judge_overrides(config, ['claude=grok']) == {'claude': 'grok'}
+    assert config['judges'] == OVERRIDDEN_ROUTES
+    assert config['_judge_overrides'] == {'claude': 'grok'}
+    assert (harness.HERE / 'tui_config.yaml').read_bytes() == source
+    scenario = agent_harness.load_scenarios()[0]
+    checked = []
+    monkeypatch.setattr(jobs, 'require_ready', lambda cfg, clis, output: checked.append(list(clis)) or ready())
+    monkeypatch.setattr(jobs, 'git_command', lambda *a: ENGINE)
+    monkeypatch.setattr(jobs, 'network_probe', lambda *a, **k: pytest.fail('probe'))
+    seen = []
+    verdict = {
+        'passed': True, 'rationale': 'Evidence', 'answer_kind': 'abstain',
+        'top_models': [], 'missing_capabilities': [],
+    }
+
+    def launch(cli, cfg, workspace, prompt, *, mcp_enabled, **kwargs):
+        seen.append((cli, mcp_enabled))
+        return execution('Visitor answer' if mcp_enabled else json.dumps(verdict))
+
+    monkeypatch.setattr(harness, 'launch', launch)
+    report = jobs.scenario_report(config, ['claude'], [scenario], tmp_path, day=DAY)
+    assert seen == [('claude', True), ('grok', False)]
+    assert checked == [['claude', 'grok']]
+    assert 'codex' not in checked[0]
+    assert report['runs'][0]['judges'][0]['cli'] == 'grok'
+    assert report['metadata']['cli_invocations']['grok']['judge'] == 1
+    assert report['metadata']['cli_invocations']['codex']['judge'] == 0
+    assert report['metadata']['judge'] == {
+        'mode': 'single',
+        'routes': OVERRIDDEN_ROUTES,
+        'override': {'claude': 'grok'},
+    }
+    text = agent_harness.markdown(report)
+    assert '| claude | xai | grok-4.7 | 1 |' in text
+    jobs.write_pair(tmp_path / 'reports', DAY, report, text)
+    saved = json.loads((tmp_path / 'reports' / f'{DAY}.json').read_text())
+    assert saved['metadata']['judge']['override'] == {'claude': 'grok'}
+
+
+@pytest.mark.parametrize('extra,message', [
+    (['--judge', 'claude=claude'], 'claude needs a judge from a different CLI family'),
+    (['--judge', 'foo=grok'], 'Unknown CLI in judge override: foo'),
+    (['--judge', 'claude=foo'], 'Unknown judge in judge override: foo'),
+    (['--judge', 'claude=gemini'], f'gemini cannot judge: {jobs.GEMINI_RETIRED}'),
+    (['--judge', 'claude=grok', '--judge', 'claude=gemini'], 'Duplicate judge override for claude'),
+    (['--judge', 'claude=grok=extra'], 'Judge override must be CLI=JUDGE'),
+])
+def test_bad_judge_override_exits_before_ready_lock_or_cli(extra, message, tmp_path, monkeypatch, capsys):
+    ready_calls, launches, locks = [], [], []
+    monkeypatch.setattr(jobs, 'require_ready', lambda *a: ready_calls.append(list(a[1])) or ready())
+    monkeypatch.setattr(harness, 'launch', lambda *a, **k: launches.append(a[0]))
+    original = jobs.configuration
+    held = {}
+
+    def configuration(*args, **kwargs):
+        config = original(*args, **kwargs)
+        held['config'] = config
+        held['judges'] = dict(config['judges'])
+        return config
+
+    monkeypatch.setattr(jobs, 'configuration', configuration)
+
+    @contextmanager
+    def lock(*a, **k):
+        locks.append(True)
+        yield
+
+    monkeypatch.setattr(jobs, 'job_lock', lock)
+    monkeypatch.setattr(jobs, '_scenario_checkpoint', lambda *a, **k: pytest.fail('checkpoint'))
+    code = jobs.main([
+        'scenarios', '--cli', 'claude', *extra,
+        '--state-dir', str(tmp_path), '--date', DAY,
+        '--data-repo', str(tmp_path / 'data'),
+    ])
+    assert code == 2
+    assert capsys.readouterr().out == f'Subscription job refused/failed: {message}\n'
+    assert ready_calls == [] and launches == [] and locks == []
+    assert not (tmp_path / 'checkpoints').exists()
+    assert held['config']['judges'] == held['judges']
+    assert '_judge_overrides' not in held['config']
+
+
+@pytest.mark.parametrize('argv', [
+    ['aeo', '--dry-run', '--judge', 'claude=grok'],
+    ['ux', '--cli', 'codex', '--judge', 'codex=grok'],
+])
+def test_judge_override_is_scenarios_only(argv, tmp_path, monkeypatch, capsys):
+    ready_calls, launches, locks = [], [], []
+    monkeypatch.setattr(jobs, 'require_ready', lambda *a: ready_calls.append(list(a[1])) or ready())
+    monkeypatch.setattr(harness, 'launch', lambda *a, **k: launches.append(a[0]))
+    monkeypatch.setattr(jobs, 'configuration', lambda *a, **k: pytest.fail('configuration'))
+
+    @contextmanager
+    def lock(*a, **k):
+        locks.append(True)
+        yield
+
+    monkeypatch.setattr(jobs, 'job_lock', lock)
+    code = jobs.main([
+        *argv,
+        '--state-dir', str(tmp_path), '--date', DAY,
+    ])
+    assert code == 2
+    assert capsys.readouterr().out == (
+        'Subscription job refused/failed: --judge applies only to the scenarios job\n'
+    )
+    assert ready_calls == [] and launches == [] and locks == []
+
+
+def test_main_receipt_check_uses_the_override_judge(tmp_path, monkeypatch):
+    monkeypatch.delenv('MODELSPEC_API_KEY', raising=False)
+    source = (harness.HERE / 'tui_config.yaml').read_bytes()
+    checked = []
+
+    def ready_check(config, clis, state):
+        checked.append(list(clis))
+        assert config['judges'] == OVERRIDDEN_ROUTES
+        return ready()
+
+    monkeypatch.setattr(jobs, 'require_ready', ready_check)
+    monkeypatch.setattr(jobs, 'git_command', lambda *a: ENGINE)
+    monkeypatch.setattr(agent_harness, 'load_scenarios', lambda directory=None: [ALPHA])
+    used = []
+
+    class Runner:
+        def __init__(self, cfg, output, isolation):
+            self.cfg = cfg
+            self.counts = {cli: {'agent': 0, 'judge': 0} for cli in providers.CLIS}
+
+        def scenario(self, scenario, cli):
+            judge = harness.judge_for(cli, self.cfg['judges'])
+            used.append(judge)
+            self.counts[cli]['agent'] += 1
+            self.counts[judge]['judge'] += 1
+            return harness.empty_row(scenario, cli, self.cfg, 'completed')
+
+    monkeypatch.setattr(harness, 'Runner', Runner)
+
+    @contextmanager
+    def worktree(*args):
+        tree = tmp_path / 'tree'
+        tree.mkdir()
+        yield tree, 'branch'
+
+    monkeypatch.setattr(jobs, 'report_worktree', worktree)
+    monkeypatch.setattr(jobs, 'publish', lambda *a: 'https://example.test/pr/1')
+    assert jobs.main([
+        'scenarios', '--cli', 'claude', '--judge', 'claude=grok', '--scenario', 'alpha',
+        '--state-dir', str(tmp_path / 'state'), '--date', DAY,
+        '--data-repo', str(tmp_path / 'data'),
+    ]) == 0
+    assert checked == [['claude', 'grok'], ['claude', 'grok']]
+    assert all('codex' not in clis for clis in checked)
+    assert used == ['grok']
+    report = json.loads(
+        (tmp_path / 'tree/reports/agent-scenarios' / f'{DAY}.json').read_text()
+    )
+    assert report['metadata']['judge'] == {
+        'mode': 'single',
+        'routes': OVERRIDDEN_ROUTES,
+        'override': {'claude': 'grok'},
+    }
+    markdown = (tmp_path / 'tree/reports/agent-scenarios' / f'{DAY}.md').read_text()
+    assert markdown.startswith('# Agent scenarios, 2026-10-04')
+    assert (harness.HERE / 'tui_config.yaml').read_bytes() == source
+
+
+def test_checkpoint_digest_is_unchanged_without_an_override_and_differs_with_one(
+    config, tmp_path, monkeypatch,
+):
+    monkeypatch.delenv('MODELSPEC_API_KEY', raising=False)
+    offline_scenario_job(monkeypatch)
+    recording_runner(monkeypatch, config)
+    base = {
+        'clis': ['claude'],
+        'scenarios': ['alpha'],
+        'engine_sha': ENGINE,
+        'day': DAY,
+        'modelspec_key': False,
+    }
+    digest = _digest(base)
+    report = jobs.scenario_report(config, ['claude'], [ALPHA], tmp_path, day=DAY)
+    assert (tmp_path / 'checkpoints' / f'scenarios-{DAY}-{digest}.jsonl').is_file()
+    assert report['metadata']['judge'] == {'mode': 'single', 'routes': ROUTES}
+    other = jobs.configuration(tmp_path / 'state', max_runs=400)
+    assert jobs.apply_judge_overrides(other, ['claude=grok']) == {'claude': 'grok'}
+    routed = {**base, 'judges': {'claude': 'grok'}}
+    override_digest = _digest(routed)
+    assert override_digest != digest
+    out = tmp_path / 'override'
+    overridden = jobs.scenario_report(other, ['claude'], [ALPHA], out, day=DAY)
+    assert (out / 'checkpoints' / f'scenarios-{DAY}-{override_digest}.jsonl').is_file()
+    assert not (out / 'checkpoints' / f'scenarios-{DAY}-{digest}.jsonl').exists()
+    assert overridden['metadata']['judge'] == {
+        'mode': 'single',
+        'routes': OVERRIDDEN_ROUTES,
+        'override': {'claude': 'grok'},
+    }

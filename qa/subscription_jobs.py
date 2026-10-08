@@ -64,6 +64,30 @@ REPOSITORIES = {"scenarios": "turbobeest/modelspec-data", "ux": "turbobeest/mode
                 "aeo": "turbobeest/modelspec-business"}
 
 
+def apply_judge_overrides(config: dict, overrides) -> dict:
+    """Replace judge routes on this config. Does not write tui_config.yaml."""
+    applied = {}
+    for item in overrides or []:
+        if item.count("=") != 1:
+            raise ValueError("Judge override must be CLI=JUDGE")
+        cli, judge = item.split("=", 1)
+        if cli not in CLIS:
+            raise ValueError(f"Unknown CLI in judge override: {cli}")
+        if judge not in CLIS:
+            raise ValueError(f"Unknown judge in judge override: {judge}")
+        if cli in applied and applied[cli] != judge:
+            raise ValueError(f"Duplicate judge override for {cli}")
+        if judge == "gemini":
+            raise ValueError(f"gemini cannot judge: {GEMINI_RETIRED}")
+        applied[cli] = judge
+    judges = {**config["judges"], **applied}
+    for cli in applied:
+        tui_harness.judge_for(cli, judges)
+    config["judges"] = judges
+    config["_judge_overrides"] = applied
+    return applied
+
+
 def configuration(state: Path, *, browser_clis=(), quiet_hours=False, max_runs=None) -> dict:
     refuse_vendor_auth(os.environ)
     if os.environ.get("GITHUB_ACTIONS"):
@@ -149,13 +173,17 @@ def modelspec_key_present(config: dict) -> bool:
 
 
 def _scenario_checkpoint(output: Path, selected, scenarios, day: str, engine_sha: str, *, config: dict) -> Path:
-    digest = hashlib.sha256(json.dumps({
+    payload = {
         "clis": selected,
         "scenarios": [scenario["id"] for scenario in scenarios],
         "engine_sha": engine_sha,
         "day": day,
         "modelspec_key": modelspec_key_present(config),
-    }, sort_keys=True).encode()).hexdigest()[:16]
+    }
+    # Default runs keep the historical digest. An override must not resume onto it.
+    if config.get("_judge_overrides"):
+        payload["judges"] = {cli: tui_harness.judge_for(cli, config["judges"]) for cli in selected}
+    digest = hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()[:16]
     directory = output / "checkpoints"
     if directory.is_symlink():
         raise ValueError(f"Checkpoint directory must not be a symlink: {directory}")
@@ -212,8 +240,8 @@ def _append_checkpoint(path: Path, row: dict) -> None:
 def _require_checkpoint_resume_state(path: Path, *, resume: bool) -> None:
     if resume and not path.exists():
         raise ValueError(
-            f"No checkpoint at {path}. The CLIs, scenarios, --date, engine commit and "
-            "ModelSpec key presence must match the interrupted run."
+            f"No checkpoint at {path}. The CLIs, scenarios, --date, engine commit, "
+            "ModelSpec key presence and any --judge routes must match the interrupted run."
         )
     if path.exists() and not resume:
         raise ValueError(
@@ -363,8 +391,11 @@ def scenario_report(config, selected, scenarios, output, *, day, dry_run=False, 
             if checkpoint is not None:
                 row["network"] = network_tag(row)
                 _append_checkpoint(checkpoint, row)
+    judge_meta = {"mode": "single", "routes": dict(config["judges"])}
+    if config.get("_judge_overrides"):
+        judge_meta["override"] = dict(config["_judge_overrides"])
     metadata = {"agents": {AGENT_NAMES[c]: config["clis"][c] for c in selected},
-                "judge": {"mode": "single", "routes": config["judges"]},
+                "judge": judge_meta,
                 "transport": "subscription-cli", "auth": "CLI subscription",
                 "source_hashes": agent_harness.source_hashes(),
                 "cli_invocations": runner.counts,
@@ -567,11 +598,15 @@ def main(argv=None) -> int:
     parser.add_argument(
         "--resume", action="store_true",
         help="Skip scenario rows already recorded by an interrupted run "
-             "with the same CLIs, scenarios, day, engine and ModelSpec key presence",
+             "with the same CLIs, scenarios, day, engine and ModelSpec key presence"
+             " (and the same judge routes when --judge is set)",
     )
     parser.add_argument("--scheduled", action="store_true", help="Always enforces quiet hours")
     parser.add_argument("--quiet-hours", action="store_true")
     parser.add_argument("--cli", choices=CLIS, action="append")
+    parser.add_argument(
+        "--judge", action="append", metavar="CLI=JUDGE", help="Override a judge route",
+    )
     parser.add_argument("--scenario", action="append", help="Scenario ID glob; repeatable")
     parser.add_argument("--max-runs-per-cli", type=int)
     parser.add_argument("--date", default=datetime.now(timezone.utc).date().isoformat())
@@ -582,6 +617,8 @@ def main(argv=None) -> int:
             raise ValueError("--resume cannot be combined with --dry-run")
         if args.resume and args.job != "scenarios":
             raise ValueError("--resume applies only to the scenarios job")
+        if args.judge and args.job != "scenarios":
+            raise ValueError("--judge applies only to the scenarios job")
         datetime.strptime(args.date, "%Y-%m-%d")
         # Gemini CLI no longer serves Google AI Pro; see GEMINI_RETIRED.
         scenario_clis = tuple(cli for cli in CLIS if cli != "gemini")
@@ -589,10 +626,14 @@ def main(argv=None) -> int:
         config = configuration(args.state_dir, browser_clis=selected if args.job == "ux" else (),
                                quiet_hours=args.scheduled or args.quiet_hours,
                                max_runs=args.max_runs_per_cli if args.max_runs_per_cli is not None else {"scenarios": 400, "ux": 40, "aeo": 64}[args.job])
+        if args.judge:
+            apply_judge_overrides(config, args.judge)
         state = tui_harness.private_output(args.state_dir)
         with job_lock(state):
             if not args.dry_run:
-                needed = list(dict.fromkeys(selected + [config["judges"][c] for c in selected])) if args.job != "aeo" else selected
+                needed = selected if args.job == "aeo" else list(dict.fromkeys(
+                    selected + [tui_harness.judge_for(c, config["judges"]) for c in selected]
+                ))
                 require_ready(config, needed, state)
             repository = args.business_repo if args.job == "aeo" else args.data_repo
             scenarios = _selected_scenarios(args.scenario) if args.job == "scenarios" else None
