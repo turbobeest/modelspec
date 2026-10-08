@@ -952,6 +952,25 @@ def test_decide_requires_a_snapshot() -> None:
 # ── the public document, the JSON Schema and the types agree ─────────────
 
 
+def test_a_wrong_access_value_names_the_accepted_form() -> None:
+    with pytest.raises(c.SpecError) as caught:
+        c.parse_spec({
+            "spec_version": 1,
+            "access": "hosted",
+            "optimize": {"max": "model.context_window"},
+        }, facets=None)
+    assert caught.value.issues[0].reason == (
+        "access is {kind: chat_app|coding_tool|own_software|own_hardware} "
+        "or one of those kinds as a string"
+    )
+    spec = c.parse_spec({
+        "spec_version": 1,
+        "access": "own_hardware",
+        "optimize": {"max": "model.context_window"},
+    }, facets=None)
+    assert spec.access is not None and spec.access.kind == "own_hardware"
+
+
 def test_schema_file_is_generated_from_the_types() -> None:
     expected = c.render_json_schema()
     assert SCHEMA.read_text() == expected, (

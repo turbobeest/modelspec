@@ -16,6 +16,10 @@ from .errors import ClientError
 SCHEMA = json.loads(files(__package__).joinpath("spec.schema.json").read_text(encoding="utf-8"))
 VALIDATOR = Draft202012Validator(SCHEMA)
 MAX_BYTES = 64 * 1024
+ACCESS_FORM = (
+    "access is {kind: chat_app|coding_tool|own_software|own_hardware} "
+    "or one of those kinds as a string"
+)
 
 
 def load_spec(source: str) -> dict[str, Any]:
@@ -42,13 +46,13 @@ def validate_spec(value: Any) -> None:
         encoded = json.dumps(value, ensure_ascii=False, allow_nan=False)
         if len(encoded.encode("utf-8")) > MAX_BYTES:
             raise ClientError("spec_too_large", recovery="spec")
-        issues = [
-            {
-                "path": ".".join(str(part) for part in error.absolute_path) or "$",
-                "rule": error.validator,
-            }
-            for error in VALIDATOR.iter_errors(value)
-        ]
+        issues = []
+        for error in VALIDATOR.iter_errors(value):
+            path = ".".join(str(part) for part in error.absolute_path) or "$"
+            issue = {"path": path, "rule": error.validator}
+            if path == "access" or path.startswith("access."):
+                issue["message"] = ACCESS_FORM
+            issues.append(issue)
     except (TypeError, ValueError, RecursionError):
         raise ClientError("invalid_spec", recovery="spec") from None
     if issues:

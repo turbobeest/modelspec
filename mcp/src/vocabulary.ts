@@ -224,9 +224,14 @@ function searchVocabulary(vocabulary: Record<string, unknown>, args: VocabInput,
   const full = args.detail === "full" || ids.length > 0;
   const needle = normalize(search);
   const hits: { rank: number; match: Match; entry: Entry }[] = [];
+  // Record exact ids before the search-text filter. A known id that misses the
+  // text stays known; only an id absent from the searched sections is unknown.
+  const requested = new Set(ids);
+  const exactIds = new Set<string>();
   for (const name of searched) {
     for (const entry of sectionRows(vocabulary, name)) {
-      if (ids.length > 0 && !ids.includes(entry.id)) continue;
+      if (requested.has(entry.id)) exactIds.add(entry.id);
+      if (requested.size > 0 && !requested.has(entry.id)) continue;
       // A search of only separators normalises to nothing: it matches nothing, not everything.
       const field = needle ? matchFields(searchableFields(name, entry), needle)
         : search ? undefined : { matched: "id", value: null } satisfies { matched: "id"; value: null };
@@ -261,6 +266,10 @@ function searchVocabulary(vocabulary: Record<string, unknown>, args: VocabInput,
     const quoted = JSON.stringify(search || [...ids].sort(compareText).join(", "));
     const names = closest.map((item) => "value" in item ? `${item.id} (value ${typeof item.value === "boolean" ? JSON.stringify(item.value) : String(item.value)})` : item.id).join(", ") || "none";
     result.message = `No vocabulary entry matches ${quoted} in the id, label, definition or values of ${searched.join(", ")}; closest ids: ${names}.`;
+  }
+  if (requested.size > 0) {
+    const missing = [...requested].filter((id) => !exactIds.has(id)).sort(compareText);
+    if (missing.length > 0) result.unknown_ids = missing;
   }
   return result;
 }

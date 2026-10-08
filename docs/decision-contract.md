@@ -512,7 +512,10 @@ estate:
 ```
 
 `access` is `{kind, harness}`, or the bare kind as a string
-(`access: chat_app`). `harness` is a harness name from
+(`access: chat_app`). The published schema accepts both. A value outside
+`chat_app`, `coding_tool`, `own_software` and `own_hardware` is `invalid_spec`,
+and the issue says `access is {kind: chat_app|coding_tool|own_software|own_hardware} or one of those kinds as a string`.
+`harness` is a harness name from
 `registry/harnesses.yaml`, without a version, and only for `coding_tool`; an
 unregistered one is `invalid_spec` at `access.harness`.
 

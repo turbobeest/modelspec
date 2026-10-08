@@ -49,7 +49,7 @@ units:
     definition: >-
       Chinese yuan (CNY) charged for one billing period of a subscription plan,
       as the provider lists it, before taxes or promotions. Never converted to or
-      from another currency (MODEL-201).
+      from another currency.
   - id: usd_per_1m_tokens
     definition: >-
       United States dollars per 1,000,000 tokens, at the provider's list price
@@ -111,7 +111,7 @@ units:
       multiplies is named by a companion fact.
   - id: capability_scale
     definition: >-
-      The latent scale of the capability model (MODEL-129). Values are
+      The latent scale of the capability model. Values are
       comparable within one domain and one snapshot only.
 
 source_kinds:
@@ -594,11 +594,11 @@ facets:
       "global-cross-region": Global, cross-region routing
       "global-short-context": Global, short context
     definition: >-
-      The countries in which the provider documents that inference for this
-      offering runs, as ISO 3166-1 alpha-2 codes. A provider region name maps
-      to those countries through `decision/regions.py`, and global names
-      guarantee none. The provider's own region name is a qualifier on the
-      fact.
+      The provider's region name for this offering, such as global,
+      global-cross-region, global-short-context or singapore. A name maps to
+      the countries it guarantees through `decision/regions.py`, and a global
+      name guarantees none. An ISO 3166-1 alpha-2 code names a country; it is
+      not the value stored here.
     tier: guaranteed
     risk: governance
     permitted_source_kinds: [provider_documentation, provider_terms]
