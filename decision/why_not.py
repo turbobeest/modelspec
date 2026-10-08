@@ -12,6 +12,7 @@ from typing import Literal
 
 from pydantic import Field
 
+from decision.filter import strip_unverified_condition
 from decision.contract import (
     ConstraintCost,
     Decision,
@@ -92,7 +93,7 @@ def why_not(decision: Decision, model: str) -> WhyNot:
                 )
         costs = [
             c for c in decision.constraint_costs
-            if any(c.condition == text.split(": unverified")[0] for text in failed)
+            if any(c.condition == strip_unverified_condition(text) for text in failed)
         ]
         first = next(iter(failed.values()), None)
         summary = f"{model} was eliminated"

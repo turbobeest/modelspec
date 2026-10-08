@@ -79,6 +79,7 @@ jobs:
             registry/sources.yaml
             registry/providers.yaml
             registry/harnesses.yaml
+            registry/labs.yaml
             registry/release-watch-baseline.json
           signoff: true
           commit-message: 'data: publish the lagged data image (MODEL-246)'

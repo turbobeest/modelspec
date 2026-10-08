@@ -43,6 +43,7 @@ DATA_PATHS: tuple[str, ...] = (
     "registry/sources.yaml",
     "registry/providers.yaml",
     "registry/harnesses.yaml",
+    "registry/labs.yaml",
     "registry/release-watch-baseline.json",
 )
 

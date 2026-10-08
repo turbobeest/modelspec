@@ -2286,10 +2286,162 @@ def _text(value: Any) -> str | None:
     return None if value is None else str(value)
 
 
+# USPS abbreviations as the SEC writes stateOfIncorporation for a US state.
+# Kentucky is "KY" here. That is not the Cayman Islands (country KY).
+_USPS_STATE = frozenset({
+    "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA",
+    "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
+    "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT",
+    "VA", "WA", "WV", "WI", "WY", "DC",
+})
+_SEC_STATE = re.compile(r'"stateOfIncorporation"\s*:\s*"([A-Z]{2})"')
+_SEC_DESC = re.compile(r'"stateOfIncorporationDescription"\s*:\s*"([^"]+)"')
+_JURISDICTION_CUE = re.compile(
+    r"incorporat|organi[sz]ed under|laws of the state of|"
+    r"jurisdiction of incorporation|company limited by shares|handelsregister|\bgmbh\b|\bpte\.?\s*ltd",
+    re.IGNORECASE,
+)
+_US_STATE_NAME = (
+    r"delaware|california|nevada|washington|new york|texas|massachusetts|florida|"
+    r"illinois|colorado|virginia|maryland|georgia|pennsylvania|new jersey|ohio|"
+    r"north carolina|arizona|oregon|utah|michigan|minnesota|wisconsin|connecticut|"
+    r"district of columbia"
+)
+_FORMED = r"(?:incorporated|registered|formed|organi[sz]ed)"
+# A country counts only from a phrase that states incorporation, not a headquarters
+# or a governing-law mention. "laws of the state of Delaware" alone is governing law.
+# Order does not matter; the reading is sorted.
+_INCORPORATION_PHRASES: tuple[tuple[re.Pattern[str], str], ...] = (
+    (re.compile(r"(?i)\b(?:" + _US_STATE_NAME + r") (?:public benefit corporation|corporation|limited liability company|llc|company)\b"), "US"),
+    (re.compile(r"(?i)\b" + _FORMED + r" (?:in|under the laws of)(?: the)?(?: state of)? (?:" + _US_STATE_NAME + r")\b"), "US"),
+    (re.compile(r"(?i)\b(?:" + _FORMED + r" )(?:in|under the laws of) the cayman islands\b"), "KY"),
+    (re.compile(r"(?i)\bcayman islands (?:exempted )?company\b"), "KY"),
+    (re.compile(r"(?i)\b" + _FORMED + r" (?:in|under the laws of) (?:the )?(?:people's republic of china|prc)\b"), "CN"),
+    (re.compile(r"(?i)\bincorporated in (?:mainland )?china\b"), "CN"),
+    (re.compile(r"(?i)\b" + _FORMED + r" (?:in|under the laws of) hong kong\b"), "HK"),
+    (re.compile(r"(?i)\b(?:incorporated|registered) in england and wales\b"), "GB"),
+    (re.compile(r"(?i)\borgani[sz]ed under the laws of england and wales\b"), "GB"),
+    (re.compile(r"(?i)\b" + _FORMED + r" in (?:the )?united kingdom\b"), "GB"),
+    (re.compile(r"(?i)\b" + _FORMED + r" in (?:the federal republic of )?germany\b"), "DE"),
+    (re.compile(r"(?i)\bgesellschaft mit beschr[aä]nkter haftung\b"), "DE"),
+    (re.compile(r"(?i)\bgmbh\b"), "DE"),
+    (re.compile(r"(?i)\bhandelsregister\b"), "DE"),
+    (re.compile(r"(?i)\b" + _FORMED + r" (?:in|under the laws of) (?:the republic of )?singapore\b"), "SG"),
+    (re.compile(r"(?i)\bsingapore (?:private limited|pte\.? ltd)"), "SG"),
+    (re.compile(r"(?i)\bpte\.?\s*ltd\.?\b"), "SG"),
+    (re.compile(r"(?i)\b" + _FORMED + r" in japan\b"), "JP"),
+    (re.compile(r"(?i)\b" + _FORMED + r" in (?:the republic of korea|south korea)\b"), "KR"),
+    (re.compile(r"(?i)\b" + _FORMED + r" in ireland\b"), "IE"),
+    (re.compile(r"(?i)\b" + _FORMED + r" in the republic of ireland\b"), "IE"),
+    (re.compile(r"(?i)\(cayman(?: islands)?\)"), "KY"),
+    (re.compile(r"(?i)\b" + _FORMED + r" in (?:the )?netherlands\b"), "NL"),
+    (re.compile(r"(?i)\b" + _FORMED + r" (?:in|under the laws of) (?:the )?british virgin islands\b"), "VG"),
+    (re.compile(r"(?i)\b" + _FORMED + r" in bermuda\b"), "BM"),
+    (re.compile(r"(?i)\bincorporated in (?:the )?cayman islands\b"), "KY"),
+)
+# SEC submissions name the country in stateOfIncorporationDescription. A US
+# filer repeats the postal code there ("DE"). A foreign filer names the country
+# ("Cayman Islands"). Map only that field, not a prose mention of the same words.
+_SEC_DESC_COUNTRY = {
+    "cayman islands": "KY",
+    "hong kong": "HK",
+    "china": "CN",
+    "people's republic of china": "CN",
+    "singapore": "SG",
+    "ireland": "IE",
+    "united kingdom": "GB",
+    "netherlands": "NL",
+    "bermuda": "BM",
+    "british virgin islands": "VG",
+    "japan": "JP",
+    "korea": "KR",
+    "republic of korea": "KR",
+    "germany": "DE",
+    "taiwan": "TW",
+    "israel": "IL",
+    "canada": "CA",
+    "australia": "AU",
+    "france": "FR",
+    "switzerland": "CH",
+    "luxembourg": "LU",
+    "united states": "US",
+}
+# A cited region whose whole text is the incorporation jurisdiction, as on an
+# SEC cover element. A longer page that merely mentions the name does not match.
+_BARE_JURISDICTION = {
+    "cayman islands": "KY",
+    "hong kong": "HK",
+    "delaware": "US",
+    "singapore": "SG",
+    "ireland": "IE",
+    "bermuda": "BM",
+    "british virgin islands": "VG",
+    "people's republic of china": "CN",
+    "china": "CN",
+    "japan": "JP",
+    "netherlands": "NL",
+    "germany": "DE",
+    "united kingdom": "GB",
+    "england and wales": "GB",
+    "united states": "US",
+    **{name: "US" for name in _US_STATE_NAME.split("|")},
+}
+
+
+def jurisdiction_codes(text: str) -> frozenset[str]:
+    """ISO codes a legal page or registry filing states as incorporation."""
+    found: set[str] = set()
+    for match in _SEC_STATE.finditer(text):
+        if match.group(1) in _USPS_STATE:
+            found.add("US")
+    for match in _SEC_DESC.finditer(text):
+        label = match.group(1).strip()
+        if label in _USPS_STATE:
+            found.add("US")
+            continue
+        code = _SEC_DESC_COUNTRY.get(label.casefold())
+        if code:
+            found.add(code)
+    for pattern, code in _INCORPORATION_PHRASES:
+        if pattern.search(text):
+            found.add(code)
+    bare = re.sub(r"\s+", " ", text).strip().casefold()
+    code = _BARE_JURISDICTION.get(bare)
+    if code:
+        found.add(code)
+    return frozenset(found)
+
+
+class LabJurisdictionExtractor:
+    """Read country of incorporation with fixed phrases (``lab-jurisdiction@1``).
+
+    The reading's subject is the claim's published name, so a lab page verifies
+    a lab fact without the model's name appearing on it. No reading means the
+    page did not state incorporation. That does not confirm a null.
+    """
+
+    actor = VerificationActor(agent=VERIFY_AGENT, model_family=DETERMINISTIC,
+                              method="lab-jurisdiction@1")
+
+    def accepts(self, text: str) -> bool:
+        if jurisdiction_codes(text):
+            return True
+        return _JURISDICTION_CUE.search(text) is not None
+
+    def extract(self, claim: Claim, text: str) -> list[Reading]:
+        if claim.field != "origin.lab_jurisdiction":
+            return []
+        codes = jurisdiction_codes(text)
+        if not codes:
+            return []
+        return [Reading(claim.names[0], ", ".join(sorted(codes)))]
+
+
 def deterministic_extractors() -> list[Extractor]:
     return [StructuredDataExtractor(), OfferingPriceExtractor(), SubscriptionPageExtractor(),
             TableExtractor(), TransposedTableExtractor(),
-            GovernanceProseExtractor(), KeyValueExtractor(), ModelPageExtractor()]
+            GovernanceProseExtractor(), KeyValueExtractor(), ModelPageExtractor(),
+            LabJurisdictionExtractor()]
 
 
 # --- regions -------------------------------------------------------------------------------------
@@ -2983,6 +3135,7 @@ def run(queue: Queue, log: VerificationLog, regions: Regions, extractors: Sequen
 __all__ = [
     "Claim", "ClaudeCLICompletion", "CONDITION_KEYS", "Diff", "Extractor", "ExtractorError",
     "GovernanceProseExtractor", "KeyValueExtractor", "LLMCache", "LLMCallBudgetExceededError",
+    "LabJurisdictionExtractor",
     "LLMExtractor", "MISTRAL_MODEL", "ModelPageExtractor", "OLLAMA_URL", "OfferingPriceExtractor",
     "OLLAMA_JSON_MODE", "OllamaChatCompletion", "Quantity", "Queue", "Reading",
     "Regions", "Result",

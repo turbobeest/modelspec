@@ -230,9 +230,23 @@ class Locator:
         return cls("table", str(index))
 
 
+def _split_own(selector: str) -> tuple[str, bool]:
+    """``::own`` keeps an element's own text and drops descendant elements.
+
+    A corporate-structure list puts the parent in the outer item and the
+    subsidiaries inside it. Citing the item would otherwise include every
+    subsidiary. The suffix is not a published locator kind.
+    """
+    text = selector.strip()
+    if text.endswith("::own"):
+        return text[: -len("::own")].strip(), True
+    return text, False
+
+
 def _parse_selector(selector: str) -> tuple[tuple[str, _Compound], ...]:
     """Parse into ``((combinator, compound), ...)``; combinator is ``" "`` or ``">"``."""
-    tokens = re.sub(r"\s*>\s*", " > ", selector.strip()).split()
+    selector, _own = _split_own(selector)
+    tokens = re.sub(r"\s*>\s*", " > ", selector).split()
     steps: list[tuple[str, _Compound]] = []
     combinator = " "
     for token in tokens:
@@ -511,6 +525,17 @@ def _nodes_text(nodes: list[Node], rules: RuleSet) -> str:
     return _to_text(parts, rules)
 
 
+def _own_text(nodes: list[Node], rules: RuleSet) -> str:
+    """Text of each element's own children, not of the elements nested inside it."""
+    parts: list[str] = []
+    for node in nodes:
+        for child in node.children:
+            if isinstance(child, str):
+                parts.append(child)
+        parts.append("\n")
+    return _to_text(parts, rules)
+
+
 # --- documents -----------------------------------------------------------------------------------
 
 
@@ -549,8 +574,11 @@ def select_region(doc: Document, locator: Locator) -> str | None:
         index = int(locator.value)
         nodes = [tables[index]] if index < len(tables) else []
     elif locator.kind == "css":
+        _body, own = _split_own(locator.value)
         steps = _parse_selector(locator.value)
         nodes = [n for n in doc.root.elements() if _matches(n, steps)]
+        if own:
+            return (_own_text(nodes, doc.rules) or None) if nodes else None
     else:
         nodes = _heading_section(doc.root, locator.value)
     return (_nodes_text(nodes, doc.rules) or None) if nodes else None
