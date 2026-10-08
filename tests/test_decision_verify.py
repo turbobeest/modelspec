@@ -2536,26 +2536,49 @@ def _reply(value, clauses) -> str:
     return json.dumps({"value": value, "clauses": clauses})
 
 
-def test_mit_text_verifies_permitted_on_all_four_licence_facets() -> None:
-    readme = "---\nlicense: mit\n---\nNimbus 3\n"
+def _cached_reader(complete, tmp_path) -> verify.LicenceExtractor:
+    return verify.LicenceExtractor(
+        complete, agent="claude-cli", model="claude-sonnet-5", model_family="anthropic",
+        cache=verify.LLMCache(tmp_path),
+    )
+
+
+def _change_reading_rule(monkeypatch, marker: str) -> None:
+    original = verify.licence_reading_rule
+
+    def rule(facet_id: str, _original=original) -> str:
+        return _original(facet_id) + "\n" + marker
+
+    monkeypatch.setattr(verify, "licence_reading_rule", rule)
+
+
+_MIT_URL = "https://opensource.org/license/mit"
+_APACHE_URL = "https://www.apache.org/licenses/LICENSE-2.0"
+
+
+def test_mit_text_permits_use_and_tuning_silent_on_output_training() -> None:
+    readme = "license: mit\nNimbus 3\n"
     regions = _KindRegions(
         {("nimbus-licence", "page"): MIT_TEXT, ("nimbus-readme", "page"): readme},
         {"nimbus-licence": "licence_text", "nimbus-readme": "weights_repository"},
-        {"nimbus-licence": "https://example.test/LICENSE"},
+        {"nimbus-licence": _MIT_URL},
     )
     calls: list[str] = []
 
     def complete(prompt: str) -> str:
         calls.append(prompt)
         facet = re.search(r"Facet: (\S+)", prompt).group(1)
-        value = "unbounded" if facet == "licence.user_cap" else "permitted"
+        value = {
+            "licence.user_cap": "unbounded",
+            "licence.output_training": "not_disclosed",
+        }.get(facet, "permitted")
         return _reply(value, [MIT_QUOTE])
 
     reader = _licence_reader(complete)
     expected = {
         "licence.commercial_use": "permitted",
         "licence.user_cap": "unbounded",
-        "licence.output_training": "permitted",
+        "licence.output_training": None,
         "licence.fine_tuning": "permitted",
     }
     for field, value in expected.items():
@@ -2628,7 +2651,7 @@ def test_not_disclosed_on_a_kindless_licence_source_is_not_verified() -> None:
 
 
 def test_silence_on_output_training_verifies_not_disclosed() -> None:
-    readme = "license: mit\nNimbus 3\n"
+    readme = "license: mit\nNimbus 3\nhttps://example.test/LICENSE\n"
     regions = _KindRegions(
         {("nimbus-licence", "page"): MIT_TEXT, ("nimbus-readme", "page"): readme},
         {"nimbus-licence": "licence_text"},
@@ -2676,7 +2699,8 @@ def test_a_licence_cited_without_a_binding_page_does_not_verify() -> None:
 def test_deterministic_extractors_do_not_claim_a_licence_region() -> None:
     text = "Model: Nimbus 3\nCommercial use: permitted\n"
     regions = _KindRegions(
-        {("nimbus-licence", "page"): text, ("nimbus-readme", "page"): "license: mit\nNimbus 3\n"},
+        {("nimbus-licence", "page"): text,
+         ("nimbus-readme", "page"): "license: mit\nNimbus 3\nhttps://example.test/LICENSE\n"},
         {"nimbus-licence": "licence_text"},
         {"nimbus-licence": "https://example.test/LICENSE"},
     )
@@ -2745,97 +2769,338 @@ TUNE_ONLY_QUOTE = (
 )
 
 
-def test_a_display_threshold_is_not_a_user_cap() -> None:
-    readme = 'license: other\nNimbus 3\nhttps://example.test/LICENSE\n'
+def _bound_mismatch(tmp_path, monkeypatch, *, text: str, quote: str, readme: str,
+                    url: str, field: str, claimed, replied, phrases: tuple[str, ...],
+                    absent: str | None = None, unit: str | None = None) -> None:
+    """The rule is in the prompt, a reply that contradicts the claim mismatches,
+    and a changed rule asks the reader again."""
     regions = _KindRegions(
-        {("nimbus-licence", "page"): DISPLAY_TEXT, ("nimbus-readme", "page"): readme},
+        {("nimbus-licence", "page"): text, ("nimbus-readme", "page"): readme},
         {"nimbus-licence": "licence_text"},
-        {"nimbus-licence": "https://example.test/LICENSE"},
+        {"nimbus-licence": url},
     )
     calls: list[str] = []
 
     def complete(prompt: str) -> str:
         calls.append(prompt)
-        return _reply("unbounded", [DISPLAY_QUOTE])
+        return _reply(replied, [quote])
 
-    claim = _licence_claim("licence.user_cap", "unbounded", (_LICENCE, _README),
-                           unit="monthly_active_users")
-    result = verify.verify(claim, regions, [_licence_reader(complete)], today=TODAY)
-    assert result.outcome == "verified", result
-    assert "is not a cap" in calls[0]
-    assert "Never use not_disclosed for user_cap" in calls[0]
-    assert "100000000" not in calls[0]
+    claim = _licence_claim(field, claimed, (_LICENCE, _README), unit=unit)
+    reader = _cached_reader(complete, tmp_path)
+    result = verify.verify(claim, regions, [reader], today=TODAY)
+    assert result.outcome == "mismatch", result
+    assert result.diffs[0].field == "value"
+    for phrase in phrases:
+        assert phrase in calls[0]
+    if absent is not None:
+        assert absent not in calls[0]
+    verify.verify(claim, regions, [reader], today=TODAY)
+    assert len(calls) == 1
+    _change_reading_rule(monkeypatch, "RULE-CHANGED")
+    verify.verify(claim, regions, [reader], today=TODAY)
+    assert len(calls) == 2
+    assert "RULE-CHANGED" in calls[-1]
 
 
-def test_mit_text_reads_fine_tuning_as_permitted_and_user_cap_as_unbounded() -> None:
-    readme = "---\nlicense: mit\n---\nNimbus 3\n"
+def test_a_display_threshold_is_not_a_user_cap(tmp_path, monkeypatch) -> None:
+    _bound_mismatch(
+        tmp_path, monkeypatch,
+        text=DISPLAY_TEXT, quote=DISPLAY_QUOTE,
+        readme="license: other\nNimbus 3\nhttps://example.test/LICENSE\n",
+        url="https://example.test/LICENSE",
+        field="licence.user_cap", claimed="unbounded", replied=100_000_000,
+        unit="monthly_active_users", absent="100000000",
+        phrases=("is not a cap", "Never use not_disclosed for user_cap"),
+    )
+
+
+def test_fine_tuning_and_user_cap_rules_are_in_the_prompt(tmp_path, monkeypatch) -> None:
+    readme = "license: mit\nNimbus 3\n"
     regions = _KindRegions(
         {("nimbus-licence", "page"): MIT_TEXT, ("nimbus-readme", "page"): readme},
         {"nimbus-licence": "licence_text"},
-        {"nimbus-licence": "https://example.test/LICENSE"},
+        {"nimbus-licence": _MIT_URL},
     )
     calls: list[str] = []
 
     def complete(prompt: str) -> str:
         calls.append(prompt)
         facet = re.search(r"Facet: (\S+)", prompt).group(1)
-        value = "unbounded" if facet == "licence.user_cap" else "permitted"
+        value = 1 if facet == "licence.user_cap" else "prohibited"
         return _reply(value, [MIT_QUOTE])
 
-    for field, value in (
-        ("licence.fine_tuning", "permitted"),
-        ("licence.user_cap", "unbounded"),
-    ):
-        unit = "monthly_active_users" if field == "licence.user_cap" else None
-        claim = _licence_claim(field, value, (_LICENCE, _README), unit=unit)
-        result = verify.verify(claim, regions, [_licence_reader(complete)], today=TODAY)
-        assert result.outcome == "verified", (field, result)
+    reader = _cached_reader(complete, tmp_path)
+    claims = (
+        _licence_claim("licence.fine_tuning", "permitted", (_LICENCE, _README)),
+        _licence_claim("licence.user_cap", "unbounded", (_LICENCE, _README),
+                       unit="monthly_active_users"),
+    )
+    for claim in claims:
+        result = verify.verify(claim, regions, [reader], today=TODAY)
+        assert result.outcome == "mismatch", (claim.field, result)
+        assert result.diffs[0].field == "value"
     tune = next(prompt for prompt in calls if "licence.fine_tuning" in prompt)
     cap = next(prompt for prompt in calls if "licence.user_cap" in prompt)
     assert "covers fine-tuning" in tune
     assert "only notice retention applies" in tune
     assert "value is unbounded" in cap
+    held = len(calls)
+    for claim in claims:
+        verify.verify(claim, regions, [reader], today=TODAY)
+    assert len(calls) == held
+    _change_reading_rule(monkeypatch, "RULE-CHANGED")
+    verify.verify(claims[0], regions, [reader], today=TODAY)
+    assert len(calls) == held + 1
+    assert "RULE-CHANGED" in calls[-1]
 
 
-def test_a_separate_licence_above_700_million_mau_is_the_user_cap() -> None:
-    readme = "license: other\nNimbus 3\nhttps://example.test/CAP\n"
-    regions = _KindRegions(
-        {("nimbus-licence", "page"): MAU_700_TEXT, ("nimbus-readme", "page"): readme},
-        {"nimbus-licence": "licence_text"},
-        {"nimbus-licence": "https://example.test/CAP"},
+def test_a_separate_licence_above_700_million_mau_is_the_user_cap(tmp_path, monkeypatch) -> None:
+    _bound_mismatch(
+        tmp_path, monkeypatch,
+        text=MAU_700_TEXT, quote=MAU_700_QUOTE,
+        readme="license: other\nNimbus 3\nhttps://example.test/CAP\n",
+        url="https://example.test/CAP",
+        field="licence.user_cap", claimed=700_000_000, replied="not_disclosed",
+        unit="monthly_active_users", absent="700000000",
+        phrases=("separate agreement or licence",),
     )
+
+
+def test_a_fine_tune_grant_does_not_address_output_training(tmp_path, monkeypatch) -> None:
+    _bound_mismatch(
+        tmp_path, monkeypatch,
+        text=TUNE_ONLY_TEXT, quote=TUNE_ONLY_QUOTE,
+        readme="license: other\nNimbus 3\nhttps://example.test/LICENSE\n",
+        url="https://example.test/LICENSE",
+        field="licence.output_training", claimed=None, replied="permitted",
+        phrases=("says nothing about it", "not_disclosed when the text is silent"),
+    )
+
+
+def test_license_other_does_not_bind_the_apache_text() -> None:
+    readme = "license: other\nNimbus 3\n"
+    regions = _KindRegions(
+        {("nimbus-licence", "page"): MIT_TEXT, ("nimbus-readme", "page"): readme},
+        {"nimbus-licence": "licence_text"},
+        {"nimbus-licence": _APACHE_URL},
+    )
+    reader = _licence_reader(lambda prompt: _reply("permitted", [MIT_QUOTE]))
+    claim = _licence_claim("licence.commercial_use", "permitted", (_LICENCE, _README))
+    result = verify.verify(claim, regions, [reader], today=TODAY)
+    assert result.outcome == "mismatch", result
+    assert result.diffs[0].field == "model"
+
+
+def test_a_sibling_readme_does_not_bind_the_licence() -> None:
+    page = "license: apache-2.0\nGemma 4 31B IT\nGemma\n"
+    regions = _KindRegions(
+        {("nimbus-licence", "page"): MIT_TEXT, ("nimbus-readme", "page"): page},
+        {"nimbus-licence": "licence_text", "nimbus-readme": "weights_repository"},
+        {"nimbus-licence": _APACHE_URL},
+    )
+    reader = _licence_reader(lambda prompt: _reply("permitted", [MIT_QUOTE]))
+    claim = verify.Claim(
+        target=TargetRef(kind="fact", id="google/gemma-4-e2b-it#licence.commercial_use"),
+        subject="google/gemma-4-e2b-it",
+        names=("gemma 4 E2B it", "Gemma", "gemma-4-e2b-it"),
+        field="licence.commercial_use",
+        value="permitted",
+        collector=COLLECTOR,
+        sources=(_LICENCE, _README),
+    )
+    result = verify.verify(claim, regions, [reader], today=TODAY)
+    assert result.outcome == "mismatch", result
+    assert result.diffs[0].field == "model"
+
+
+def test_license_apache_2_0_binds_the_apache_org_text() -> None:
+    readme = "license: apache-2.0\nNimbus 3\n"
+    assert "apache.org" not in readme
+    regions = _KindRegions(
+        {("nimbus-licence", "page"): MIT_TEXT, ("nimbus-readme", "page"): readme},
+        {"nimbus-licence": "licence_text"},
+        {"nimbus-licence": _APACHE_URL + ".txt"},
+    )
+    reader = _licence_reader(lambda prompt: _reply("permitted", [MIT_QUOTE]))
+    claim = _licence_claim("licence.commercial_use", "permitted", (_LICENCE, _README))
+    result = verify.verify(claim, regions, [reader], today=TODAY)
+    assert result.outcome == "verified", result
+
+
+def test_a_license_link_equal_to_the_source_url_binds() -> None:
+    readme = "license_link: https://example.test/LICENSE\nNimbus 3\n"
+    source = "https://www.example.test/LICENSE"
+    assert source not in readme
+    assert "www.example.test" not in readme
+    regions = _KindRegions(
+        {("nimbus-licence", "page"): MIT_TEXT, ("nimbus-readme", "page"): readme},
+        {"nimbus-licence": "licence_text"},
+        {"nimbus-licence": source},
+    )
+    reader = _licence_reader(lambda prompt: _reply("permitted", [MIT_QUOTE]))
+    claim = _licence_claim("licence.commercial_use", "permitted", (_LICENCE, _README))
+    result = verify.verify(claim, regions, [reader], today=TODAY)
+    assert result.outcome == "verified", result
+
+
+class _ReadmeStub:
+    """A generic reader that would verify a licence from a README if asked."""
+
+    actor = VerificationActor(agent="stub", model_family="mistral", method="stub-readme")
+
+    def __init__(self) -> None:
+        self.seen: list[str] = []
+
+    def accepts(self, text: str) -> bool:
+        return "README-STUB" in text
+
+    def extract(self, claim: verify.Claim, text: str) -> list[verify.Reading]:
+        self.seen.append(text)
+        return [verify.Reading(subject="Nimbus 3", value="permitted")]
+
+
+def test_a_readme_cannot_verify_a_licence_the_licence_text_contradicts() -> None:
+    readme = "README-STUB\nlicense: mit\nNimbus 3\n" + _MIT_URL + "\n"
+    regions = _KindRegions(
+        {("nimbus-licence", "page"): MIT_TEXT, ("nimbus-readme", "page"): readme},
+        {"nimbus-licence": "licence_text", "nimbus-readme": "weights_repository"},
+        {"nimbus-licence": _MIT_URL},
+    )
+    stub = _ReadmeStub()
+    reader = _licence_reader(lambda prompt: _reply("prohibited", [MIT_QUOTE]))
+    claim = _licence_claim("licence.commercial_use", "permitted", (_LICENCE, _README))
+    result = verify.verify(claim, regions, [reader, stub], today=TODAY)
+    assert result.outcome == "mismatch", result
+    assert result.diffs[0].field == "value"
+    assert result.diffs[0].found == "prohibited"
+    assert stub.seen == []
+
+
+def test_user_cap_cited_to_provider_terms_does_not_verify() -> None:
     calls: list[str] = []
 
     def complete(prompt: str) -> str:
         calls.append(prompt)
-        return _reply(700_000_000, [MAU_700_QUOTE])
+        return _reply("unbounded", [MIT_QUOTE])
 
-    claim = _licence_claim("licence.user_cap", 700_000_000, (_LICENCE, _README),
+    readme = "Nimbus 3\nhttps://example.test/TERMS\n"
+    regions = _KindRegions(
+        {("nimbus-licence", "page"): MIT_TEXT, ("nimbus-readme", "page"): readme},
+        {"nimbus-licence": "provider_terms", "nimbus-readme": "weights_repository"},
+        {"nimbus-licence": "https://example.test/TERMS"},
+    )
+    claim = _licence_claim("licence.user_cap", "unbounded", (_LICENCE, _README),
                            unit="monthly_active_users")
     result = verify.verify(claim, regions, [_licence_reader(complete)], today=TODAY)
-    assert result.outcome == "verified", result
-    assert "separate agreement or licence" in calls[0]
-    assert "700000000" not in calls[0]
+    assert result.outcome == "skipped", result
+    assert calls == []
 
 
-def test_a_fine_tune_grant_does_not_address_output_training() -> None:
-    readme = "license: other\nNimbus 3\nhttps://example.test/LICENSE\n"
+def test_licence_cache_key_includes_the_rule_the_definition_and_the_allowed_values(
+        tmp_path, monkeypatch) -> None:
+    from dataclasses import replace
+
+    readme = "license: mit\nNimbus 3\n"
     regions = _KindRegions(
-        {("nimbus-licence", "page"): TUNE_ONLY_TEXT, ("nimbus-readme", "page"): readme},
+        {("nimbus-licence", "page"): MIT_TEXT, ("nimbus-readme", "page"): readme},
         {"nimbus-licence": "licence_text"},
-        {"nimbus-licence": "https://example.test/LICENSE"},
+        {"nimbus-licence": _MIT_URL},
     )
     calls: list[str] = []
 
     def complete(prompt: str) -> str:
         calls.append(prompt)
-        return _reply("not_disclosed", [TUNE_ONLY_QUOTE])
+        return _reply("permitted", [MIT_QUOTE])
 
-    claim = _licence_claim("licence.output_training", None, (_LICENCE, _README))
-    result = verify.verify(claim, regions, [_licence_reader(complete)], today=TODAY)
+    claim = _licence_claim("licence.commercial_use", "permitted", (_LICENCE, _README))
+    reader = _cached_reader(complete, tmp_path)
+    assert verify.verify(claim, regions, [reader], today=TODAY).outcome == "verified"
+    assert verify.verify(claim, regions, [reader], today=TODAY).outcome == "verified"
+    assert len(calls) == 1
+
+    _change_reading_rule(monkeypatch, "RULE-CHANGED")
+    assert verify.verify(claim, regions, [reader], today=TODAY).outcome == "verified"
+    assert len(calls) == 2
+    assert "RULE-CHANGED" in calls[-1]
+
+    registry = verify.default_registry()
+    original_facet = registry.facet
+
+    def facet(facet_id: str):
+        found = original_facet(facet_id)
+        if facet_id == claim.field:
+            return replace(found, definition=found.definition + " DEFINITION-CHANGED")
+        return found
+
+    monkeypatch.setattr(registry, "facet", facet)
+    assert verify.verify(claim, regions, [reader], today=TODAY).outcome == "verified"
+    assert len(calls) == 3
+    assert "DEFINITION-CHANGED" in calls[-1]
+
+    original_allowed = verify._licence_allowed
+    monkeypatch.setattr(
+        verify, "_licence_allowed",
+        lambda facet, _original=original_allowed: [*_original(facet), "extra-allowed"],
+    )
+    assert verify.verify(claim, regions, [reader], today=TODAY).outcome == "verified"
+    assert len(calls) == 4
+    assert "extra-allowed" in calls[-1]
+
+
+def test_weights_openness_and_origin_on_licence_text_keep_deterministic_extractors() -> None:
+    weights = "Nimbus 3\nlicense: apache-2.0\nYou can download the model weights.\n"
+    regions = _KindRegions(
+        {("nimbus-licence", "page"): weights},
+        {"nimbus-licence": "licence_text"},
+    )
+    claim = verify.Claim(
+        target=TargetRef(kind="fact", id="lab/nimbus-3#model.weights_openness"),
+        subject="lab/nimbus-3",
+        names=("Nimbus 3",),
+        field="model.weights_openness",
+        value="open_weights",
+        collector=COLLECTOR,
+        sources=(_LICENCE,),
+    )
+    result = verify.verify(claim, regions, verify.deterministic_extractors(), today=TODAY)
     assert result.outcome == "verified", result
-    assert "says nothing about it" in calls[0]
-    assert "not_disclosed when the text is silent" in calls[0]
+
+    origin = "Model: Nimbus 3\nLab jurisdiction: US\nlicense: apache-2.0\n"
+    origin_regions = _KindRegions(
+        {("nimbus-licence", "page"): origin},
+        {"nimbus-licence": "licence_text"},
+    )
+    origin_claim = verify.Claim(
+        target=TargetRef(kind="fact", id="lab/nimbus-3#origin.lab_jurisdiction"),
+        subject="lab/nimbus-3",
+        names=("Nimbus 3",),
+        field="origin.lab_jurisdiction",
+        label="Lab jurisdiction",
+        value=["US"],
+        collector=COLLECTOR,
+        sources=(_LICENCE,),
+    )
+    result = verify.verify(origin_claim, origin_regions, verify.deterministic_extractors(),
+                           today=TODAY)
+    assert result.outcome == "verified", result
+
+
+def test_a_non_licence_absence_on_a_kindless_source_still_verifies() -> None:
+    from decision.model import Fact
+
+    body = "Model: Nimbus 3\nContext Window: 128K tokens\n"
+    fact = Fact(
+        id="lab/nimbus-3#model.max_output_tokens",
+        subject={"kind": "model", "id": "lab/nimbus-3"},
+        facet="model.max_output_tokens",
+        state="not_disclosed",
+        sources=[{"source_id": "nimbus-readme", "snapshot_ref": "sha256:" + "b" * 64,
+                  "cited_regions": ["page"]}],
+    )
+    claim = verify.Claim.from_fact(fact, names=["Nimbus 3"], collector=COLLECTOR)
+    regions = _KindRegions({("nimbus-readme", "page"): body}, {"nimbus-readme": None})
+    result = verify.verify(claim, regions, verify.deterministic_extractors(), today=TODAY)
+    assert result.outcome == "verified", result
 
 
 def test_an_absence_from_a_disallowed_source_kind_does_not_verify() -> None:

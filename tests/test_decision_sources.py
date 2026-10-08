@@ -104,6 +104,8 @@ def test_source_kind_is_optional_and_must_be_registered() -> None:
     assert pricing_source(kind="licence_text").kind == "licence_text"
     with pytest.raises(ValidationError, match="unknown source kind"):
         pricing_source(kind="not-a-kind")
+    with pytest.raises(ValidationError, match="unknown source kind"):
+        pricing_source(kind="licence-text")
 
 
 def pricing_source(**kw: object) -> Source:

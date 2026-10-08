@@ -26,7 +26,7 @@ from decision.licence_rules import LICENCE_READING_RULES
 from decision.model import CitedRegion, Fact, RegionLocator, Source, SourceRef, VerificationActor
 from decision.normalise import NORMALISERS, normalise_document
 from decision.sources import CopyStore, Fetcher, load_sources, recheck
-from decision.verify import Claim, Queue, licence_is_bound, normalise_name
+from decision.verify import Claim, Queue, StoredRegions, licence_is_bound, normalise_name
 from scripts.policy.licence_coverage import FACETS, open_weights_lineup
 
 READ_ON = "2026-10-08"
@@ -36,6 +36,8 @@ COLLECTOR = VerificationActor(
     model_family="xai",
     method="licence-text-read@1",
 )
+#: The README region the filed fact cites, and the region the binding check reads.
+BINDING_REGION = "model-spec"
 LABELS = {
     "licence.commercial_use": "commercial use",
     "licence.user_cap": "monthly active user cap",
@@ -458,6 +460,17 @@ def _text(store: CopyStore, snapshot_ref: str, normaliser: str) -> str:
     return normalise_document(store.get(snapshot_ref), NORMALISERS[normaliser]).text
 
 
+def readme_binds_licence(readme: Source, store: CopyStore, copy_ref: str,
+                         names: tuple[str, ...], licence_url: str, subject: str) -> bool:
+    """Whether the README region the fact cites binds this licence to this model.
+
+    The text is the cited region ``StoredRegions`` gives the verifier. The
+    judgement is :func:`decision.verify.licence_is_bound`.
+    """
+    text = StoredRegions(store, {readme.id: readme}).text(readme.id, copy_ref, BINDING_REGION)
+    return bool(text) and licence_is_bound(names, [text], licence_url, subject=subject)
+
+
 def collect(root: Path, *, dry_run: bool, report_path: Path | None) -> dict:
     root = root.resolve()
     lineup = open_weights_lineup(root / "premier" / "slice-1.yaml")
@@ -478,8 +491,8 @@ def collect(root: Path, *, dry_run: bool, report_path: Path | None) -> dict:
         readme = registered.get(row["readme_source"])
         if readme is None or row["readme_repo"] not in str(readme.url):
             raise SystemExit(f"{model_id}: readme source {row['readme_source']} is not registered")
-        if "model-spec" not in {region.id for region in readme.cited_regions}:
-            raise SystemExit(f"{row['readme_source']}: no model-spec region")
+        if BINDING_REGION not in {region.id for region in readme.cited_regions}:
+            raise SystemExit(f"{row['readme_source']}: no {BINDING_REGION} region")
         cards[model_id] = (path, data, text, readme)
 
     wanted = []
@@ -516,9 +529,10 @@ def collect(root: Path, *, dry_run: bool, report_path: Path | None) -> dict:
         readme_snap = fetched.states[readme.id].snapshot
         assert licence_snap is not None and readme_snap is not None
         licence_text = _text(store, licence_snap.copy_ref, licence["normaliser"])
-        readme_text = _text(store, readme_snap.copy_ref, readme.normaliser)
         names = _published_names(data)
-        if not licence_is_bound(names, [readme_text], licence["url"]):
+        if not readme_binds_licence(
+            readme, store, readme_snap.copy_ref, names, licence["url"], model_id,
+        ):
             problems.append(f"{model_id}: model page does not bind the licence")
         normal = normalise_name(licence_text)
         facet_rows = []
@@ -535,13 +549,13 @@ def collect(root: Path, *, dry_run: bool, report_path: Path | None) -> dict:
             for fact in (data.get("facts") or [])
             if isinstance(fact, dict) and fact.get("facet") in FACETS
         }
-        # Licence region first: a confirming read returns before the model page
-        # is offered to the prose reader.
+        # The licence region is the only reading. The model page is cited so
+        # the verifier can bind that licence to this model. It is not a reading.
         refs = [
             SourceRef(source_id=licence["id"], snapshot_ref=licence_snap.copy_ref,
                       cited_regions=["page"]),
             SourceRef(source_id=readme.id, snapshot_ref=readme_snap.copy_ref,
-                      cited_regions=["model-spec"]),
+                      cited_regions=[BINDING_REGION]),
         ]
         facts = []
         disagreements = []

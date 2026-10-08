@@ -16,9 +16,10 @@ Extractors are pluggable. The deterministic ones (``TableExtractor``,
 prose through an injected completion function, so nothing here calls a model
 or the network on its own: ``claude_extractor`` (Claude Sonnet, via the Claude
 CLI) and ``mistral_extractor`` (Mistral Large, via ollama) are the two wired
-readers. ``LicenceExtractor`` reads ``licence.*`` claims cited to a
-``licence_text`` or ``provider_terms`` source through that same completion
-function. Deterministic extractors do not read those regions. An absence
+readers. ``LicenceExtractor`` reads a ``licence.*`` claim through that same
+completion function, and only from a source kind the facet permits. Other
+cited regions are binding pages, not readings. Deterministic extractors
+still read a ``licence_text`` source for every other claim. An absence
 verifies only from a source kind the facet permits; a ``licence.*`` absence
 needs that kind explicitly. Each extractor's actor (agent, model family,
 method) is the verifier the log records. Two keys means another model family
@@ -2177,15 +2178,19 @@ class LLMExtractor:
 
 
 def _load_reply(complete: Callable[[str], str], cache: LLMCache | None, template: str,
-                prompt: str, cache_key: tuple[str, ...] | None) -> tuple[str, tuple[str, ...] | None]:
+                prompt: str, cache_key: tuple[str, ...] | None, *,
+                bound: str = "") -> tuple[str, tuple[str, ...] | None]:
     """A cached reply, or a fresh ``complete(prompt)``.
 
-    The stored key includes a hash of ``template``, so a changed prompt asks again.
-    The caller stores the reply only after it parses.
+    The stored key includes a hash of ``template``. The licence reader also
+    passes ``bound``, the reading rule, the facet definition and the allowed
+    values that were filled into the prompt. A change to any of them asks
+    again. The caller stores the reply only after it parses.
     """
     store_key = None
     if cache_key:
-        digest = hashlib.sha256(template.encode("utf-8")).hexdigest()[:16]
+        material = template if not bound else f"{template}\n{bound}"
+        digest = hashlib.sha256(material.encode("utf-8")).hexdigest()[:16]
         store_key = (f"prompt:{digest}", *cache_key)
     reply = cache.get(store_key) if cache is not None and store_key else None
     if reply is None:
@@ -2220,7 +2225,21 @@ Source region:
 >>>
 """
 
-_LICENSE_FIELD = re.compile(r"(?im)^[ \t]*license:\s*\S+")
+_LICENSE_SPDX = re.compile(
+    r"(?im)^[ \t]*license:\s*[\"']?([A-Za-z0-9][A-Za-z0-9_.+-]*)"
+)
+_LICENSE_LINK = re.compile(
+    r"(?im)^[ \t]*license_link:\s*[\"']?(https?://\S+?)[\"']?\s*$"
+)
+#: SPDX ids for the shared generic texts. ``license: other`` is not here, so
+#: it binds only when the page carries the licence URL or a ``license_link``.
+SPDX_LICENCE_URLS: dict[str, tuple[str, ...]] = {
+    "apache-2.0": (
+        "https://www.apache.org/licenses/LICENSE-2.0",
+        "https://www.apache.org/licenses/LICENSE-2.0.txt",
+    ),
+    "mit": ("https://opensource.org/license/mit",),
+}
 
 
 def _licence_allowed(facet) -> list[str]:
@@ -2235,15 +2254,25 @@ def _licence_allowed(facet) -> list[str]:
     return allowed
 
 
-def _licence_prompt(claim: Claim, text: str) -> str:
+def _licence_inputs(claim: Claim) -> tuple[str, str, str, str]:
+    """Facet id, definition, reading rule and allowed values filled into the prompt."""
     facet = default_registry().facet(claim.field)
-    return LICENCE_PROMPT.format(
-        facet_id=facet.id,
-        definition=facet.definition,
-        reading_rule=licence_reading_rule(facet.id),
-        allowed=", ".join(_licence_allowed(facet)),
+    rule = licence_reading_rule(facet.id)
+    allowed = ", ".join(_licence_allowed(facet))
+    return facet.id, facet.definition, rule, allowed
+
+
+def _licence_prompt(claim: Claim, text: str) -> tuple[str, str]:
+    """The prompt, and the filled inputs the cache key hashes."""
+    facet_id, definition, rule, allowed = _licence_inputs(claim)
+    prompt = LICENCE_PROMPT.format(
+        facet_id=facet_id,
+        definition=definition,
+        reading_rule=rule,
+        allowed=allowed,
         text=text,
     )
+    return prompt, f"{rule}\n{definition}\n{allowed}"
 
 
 def _strip_fence(reply: str) -> str:
@@ -2262,27 +2291,82 @@ def _as_licence_value(raw: Any) -> JsonValue:
     return raw
 
 
-def _page_names_subject(page: str, names: Sequence[str]) -> bool:
-    """The same name check a key-value region uses: a published name occurs in the page."""
-    normal = normalise_name(page)
-    return any(token and token in normal for token in (normalise_name(name) for name in names))
+def _licence_url_key(url: str) -> str:
+    """Scheme, host case, a leading ``www.`` and a trailing ``.txt`` do not differ."""
+    text = url.strip().strip("\"'")
+    text = re.sub(r"^https?://", "", text, flags=re.I)
+    text = re.sub(r"^www\.", "", text, flags=re.I)
+    text = text.split("#", 1)[0].split("?", 1)[0].rstrip("/")
+    if text.casefold().endswith(".txt"):
+        text = text[:-4]
+    return text.casefold()
+
+
+@cache
+def _catalogue_ids() -> frozenset[str]:
+    ids: set[str] = set()
+    for group in _catalogue_model_aliases().values():
+        ids.update(group)
+    return frozenset(ids)
+
+
+def _binding_name_tokens(names: Sequence[str], subject: str | None) -> list[str]:
+    """Phrases that name this model: its display name or its repository id.
+
+    A family name such as Gemma, Qwen or DeepSeek does not count. When the
+    subject is a catalogue card, only that card's display name and repository
+    id count, each as a whole phrase. A subject the catalogue does not hold
+    uses the claim's names, still as whole phrases.
+    """
+    if subject and subject in _catalogue_ids():
+        repo = normalise_name(subject.rsplit("/", 1)[-1])
+        tokens = [repo] if repo else []
+        for label, ids in _catalogue_display_names().items():
+            if subject in ids and label:
+                tokens.append(label)
+        return list(dict.fromkeys(token for token in tokens if token))
+    return [token for name in names if (token := normalise_name(name))]
+
+
+def _page_names_subject(page: str, names: Sequence[str], subject: str | None = None) -> bool:
+    """The page contains the display name or the repository id as a whole phrase."""
+    haystack = f" {normalise_name(page)} "
+    return any(
+        f" {token} " in haystack for token in _binding_name_tokens(names, subject)
+    )
 
 
 def _page_names_licence(page: str, licence_url: str | None) -> bool:
-    if _LICENSE_FIELD.search(page):
-        return True
+    """The page names this licence source, not merely some ``license:`` field."""
     if not licence_url:
         return False
     if licence_url in page:
         return True
     bare = re.sub(r"^https?://", "", licence_url).rstrip("/")
-    return bool(bare) and bare in page
+    if bare and bare in page:
+        return True
+    source_key = _licence_url_key(licence_url)
+    for match in _LICENSE_LINK.finditer(page):
+        if _licence_url_key(match.group(1)) == source_key:
+            return True
+    for match in _LICENSE_SPDX.finditer(page):
+        canonical = SPDX_LICENCE_URLS.get(match.group(1).casefold(), ())
+        if any(_licence_url_key(url) == source_key for url in canonical):
+            return True
+    return False
 
 
-def licence_is_bound(names: Sequence[str], pages: Sequence[str], licence_url: str | None) -> bool:
-    """A licence is about the subject when another cited page names the subject and the licence."""
+def licence_is_bound(names: Sequence[str], pages: Sequence[str], licence_url: str | None, *,
+                     subject: str | None = None) -> bool:
+    """A licence is about the subject when another cited page names both.
+
+    The page names the subject by its display name or repository id, as a
+    whole phrase. It names this licence when it contains the licence URL, a
+    ``license_link`` to that URL, or a ``license:`` SPDX id in
+    :data:`SPDX_LICENCE_URLS` that maps to that URL.
+    """
     return any(
-        _page_names_subject(page, names) and _page_names_licence(page, licence_url)
+        _page_names_subject(page, names, subject) and _page_names_licence(page, licence_url)
         for page in pages
     )
 
@@ -2296,7 +2380,8 @@ class LicenceExtractor:
     value. A missing or non-verbatim
     clause is unparseable, so it is not evidence. A licence does not name the
     model: the reading's subject is the claim's name only when a binding page
-    passes :func:`licence_is_bound`.
+    passes :func:`licence_is_bound`: the page names this model's display name
+    or repository id, and names this licence source.
     """
 
     def __init__(self, complete: Callable[[str], str], *, agent: str, model: str,
@@ -2315,9 +2400,9 @@ class LicenceExtractor:
                 cache_key: tuple[str, ...] | None = None,
                 bindings: Sequence[str] = (),
                 licence_url: str | None = None) -> list[Reading]:
-        prompt = _licence_prompt(claim, text)
+        prompt, bound = _licence_prompt(claim, text)
         reply, store_key = _load_reply(
-            self.complete, self.cache, LICENCE_PROMPT, prompt, cache_key,
+            self.complete, self.cache, LICENCE_PROMPT, prompt, cache_key, bound=bound,
         )
         try:
             data = json.loads(_strip_fence(reply))
@@ -2338,7 +2423,9 @@ class LicenceExtractor:
             raise ExtractorError(f"unparseable reply from {self.actor.method}: {exc}") from exc
         if self.cache is not None and store_key:
             self.cache.put(store_key, reply)
-        subject = claim.names[0] if licence_is_bound(claim.names, bindings, licence_url) else None
+        subject = claim.names[0] if licence_is_bound(
+            claim.names, bindings, licence_url, subject=claim.subject,
+        ) else None
         shown: JsonValue = None if value is None else str(value)
         unit = None
         if shown is not None and parse_quantity(shown) is not None:
@@ -2937,18 +3024,21 @@ def _readers_for(extractors: Sequence[Extractor], claim: Claim, text: str,
                  kind: str | None) -> list[Extractor]:
     """Who may read this region.
 
-    A licence claim on a licence or terms document goes only to
-    ``LicenceExtractor``. Deterministic extractors do not claim those regions:
-    a ``Key: value`` line in a licence is not the licence's grant.
+    A ``licence.*`` claim is read only from a source kind in that facet's
+    ``permitted_source_kinds``, and only by ``LicenceExtractor``. Any other
+    cited region is a binding page. It is not a reading, for a known value or
+    an absence. Deterministic extractors still read a ``licence_text`` source
+    for every other claim, including ``model.weights_openness`` and ``origin.*``.
     """
-    licence_doc = kind in LICENCE_SOURCE_KINDS
-    if licence_doc and claim.field.startswith("licence."):
+    if claim.field.startswith("licence."):
+        facet = _facet_or_none(claim.field)
+        permitted = set(facet.permitted_source_kinds) if facet is not None else set()
+        if kind not in permitted:
+            return []
         return [extractor for extractor in extractors if isinstance(extractor, LicenceExtractor)]
     chosen = []
     for extractor in extractors:
         if isinstance(extractor, LicenceExtractor):
-            continue
-        if licence_doc and extractor.actor.model_family == DETERMINISTIC:
             continue
         if extractor.accepts(text):
             chosen.append(extractor)
@@ -2974,9 +3064,10 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
 
     Deterministic extractors are tried before the rest, whatever the order given;
     the first that accepts a region and is independent of the collector reads it.
-    A licence claim on a licence or terms source is the exception: only
-    ``LicenceExtractor`` reads it. Verified if any region confirms the value;
-    otherwise the first mismatch.
+    A ``licence.*`` claim is the exception: only ``LicenceExtractor`` reads it,
+    and only a source kind in that facet's ``permitted_source_kinds`` is a
+    reading. Its other cited regions are binding pages. Verified if any
+    reading confirms the value; otherwise the first mismatch.
     """
     if isinstance(claim.value, dict) and "score" in claim.value:
         return _verify_evidence_reading(claim, regions, extractors, today=today)
@@ -2997,6 +3088,15 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
             accepting = _readers_for(ordered, claim, text, kind)
             independent = [e for e in accepting if _independent(claim, e.actor, today)]
             if not independent:
+                if claim.value is None and claim.field.startswith("licence."):
+                    blocked = _absence_block(claim, regions, source.source_id)
+                    if blocked:
+                        found = blocked[0].found
+                        reasons.append(
+                            f"absence_source_kind:{where}: {found} is not a permitted source kind"
+                        )
+                        mismatch = mismatch or (REGION_LOOKUP, blocked)
+                        continue
                 reasons.append("no_independent_extractor" if accepting else f"no_extractor:{where}")
                 continue
             for extractor in independent:

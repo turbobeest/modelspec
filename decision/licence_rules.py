@@ -2,6 +2,16 @@
 
 Jamie has not reviewed these readings of the definitions. The sentences are
 the shared rules the collector and the licence reader both apply.
+
+The commercial-use reading follows the existing corpus and the MODEL-78
+tier-1 OSI mapping (MIT and Apache = permitted). The registry wording
+"attribution" is ambiguous on whether notice retention counts as a condition,
+and that question is open for Jamie.
+
+The output-training reading follows the existing corpus in treating a model
+trained on outputs, which the licence makes a derivative, as restricted.
+The registry definition does not settle that case, and that question is open
+for Jamie.
 """
 
 from __future__ import annotations

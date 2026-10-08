@@ -64,27 +64,38 @@ first. Deterministic extractors always run first:
 Reader replies are cached outside the repository under
 `~/.cache/modelspec/llm-reader` by the prompt's hash, source-copy hash, cited
 region, facet and the subject's published names. A changed prompt asks again.
+The licence reader's key also hashes the reading rule, the facet definition
+and the allowed values that were filled into the prompt, so a change to any
+of those asks the reader again.
 The names are in the key because the prompt carries
 them: a reader answers mostly for the named subject, so a reply cached for one
 plan or model must not answer for a sibling on the same page (MODEL-201).
 Mistral's replies are also keyed by its model and request shape, so neither
 reader answers for the other. Set `MODELSPEC_LLM_CACHE` to use another
 directory. A run stops before its 401st uncached call. Deterministic
-extractors still run first. They do not read a `licence_text` or
-`provider_terms` region.
+extractors still run first. On a `licence.*` claim they do not read the
+region: only `LicenceExtractor` does, and only when the source kind is one
+that facet permits. A `model.weights_openness` or `origin.*` claim on a
+`licence_text` source still uses the deterministic extractors.
 
-A `licence.*` claim cited to one of those kinds is read by `LicenceExtractor`
-(`licence-extract:<model>`), using the same completion function, cache and
-call budget as the prose reader. The prompt gives the facet's definition, the
+A `licence.*` claim is read by `LicenceExtractor`
+(`licence-extract:<model>`) from a source kind in that facet's
+`permitted_source_kinds`, using the same completion function, cache and
+call budget as the prose reader. `licence.user_cap` permits only
+`licence_text`. The prompt gives the facet's definition, the
 reading rule for that facet, and its allowed values, including `unbounded`
 for `licence.user_cap`, and asks for the value plus one or more verbatim
 clauses. It does not show the collector's value. The reading rule says when
 the value is `not_disclosed`. A missing or non-verbatim clause is unparseable,
-so the region is not evidence. A licence does not name the model. The region is
-about the subject only when the claim also cites a page the identity check
-accepts and that page names the licence: Hugging Face front matter
-`license:`, or a link to the licence URL. A licence cited alone does not
-verify.
+so the region is not evidence. Any other cited region is a binding page. It
+is not a reading, for a known value or an absence. A licence does not name
+the model. The binding page names the subject by its display name or its
+repository id, as a whole phrase. A family name does not count. The page
+names this licence when it contains the licence URL, a `license_link` to
+that URL, or a `license:` SPDX id for a shared text: `apache-2.0` for the
+apache.org LICENSE-2.0 text, `mit` for opensource.org/license/mit. A
+`license:` value of `other` names the licence only through the URL or
+`license_link`. A licence cited alone does not verify.
 
 ### Licence reading rules
 
@@ -122,6 +133,14 @@ incorporated acceptable-use or prohibited-use policy.
   makes a model trained on outputs a derivative subject to the licence's
   restrictions. `prohibited` when the text forbids it. `not_disclosed` when
   the text is silent.
+
+The commercial-use reading follows the existing corpus and the MODEL-78
+tier-1 OSI mapping (MIT and Apache = permitted). The registry wording
+"attribution" is ambiguous on whether notice retention counts as a condition,
+and that question is open for Jamie. The output-training reading follows the
+existing corpus in treating a model trained on outputs, which the licence
+makes a derivative, as restricted. The registry definition does not settle
+that case, and that question is open for Jamie.
 
 An absence (a null value, `not_disclosed`) verifies only from a source kind
 in the facet's `permitted_source_kinds`. A `licence.*` absence needs that
