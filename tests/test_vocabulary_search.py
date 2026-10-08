@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import copy
 import json
+import re
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -120,6 +121,45 @@ def test_every_registered_display_facet_resolves_exactly_in_lookup_and_http(disp
         assert result.get("facets") == [by_id[fid]], fid
         assert result.get("matches") == [{"section": "facets", "id": fid,
                                           "label": by_id[fid]["label"], "matched": "id"}], fid
+
+
+_DEFINITION_KEYS = {"definition", "description", "unit_definition", "purpose"}
+_TICKET_IN_TEXT = re.compile(r"MODEL-\d+")
+
+
+def _definition_text(node):
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if key in _DEFINITION_KEYS and isinstance(value, str):
+                yield value
+            else:
+                yield from _definition_text(value)
+    elif isinstance(node, list):
+        for item in node:
+            yield from _definition_text(item)
+
+
+def test_vocabulary_definitions_do_not_name_tickets(http):
+    fetch, _raw = http
+    body = fetch("").json()
+    leaked = [text for text in _definition_text(body) if _TICKET_IN_TEXT.search(text)]
+    assert leaked == []
+
+
+def test_an_id_that_is_not_exact_is_listed_as_unknown(display, http):
+    """`--ids coding` on domains is not a domain. A real id beside it still returns."""
+    fetch, _ = http
+    for result in (
+        lookup(display, section="domains", ids=["coding"]),
+        fetch("?" + urlencode({"section": "domains", "ids": "coding"})).json(),
+    ):
+        assert result["domains"] == []
+        assert result["unknown_ids"] == ["coding"]
+    mixed = lookup(display, ids=["offering.price.input", "not_a_real_id"])
+    assert "offering.price.input" in [row["id"] for row in mixed["facets"]]
+    assert mixed["unknown_ids"] == ["not_a_real_id"]
+    known = lookup(display, ids=["offering.price.input"])
+    assert "unknown_ids" not in known
 
 
 def test_misses_explain_the_search_and_suggest_price_ids(display, http):

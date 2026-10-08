@@ -1131,6 +1131,11 @@ class Estate(_ExcludeIf):
 
 
 AccessKind = Literal["chat_app", "coding_tool", "own_software", "own_hardware"]
+ACCESS_FORM = (
+    "access is {kind: chat_app|coding_tool|own_software|own_hardware} "
+    "or one of those kinds as a string"
+)
+_ACCESS_KINDS = frozenset({"chat_app", "coding_tool", "own_software", "own_hardware"})
 
 
 class Access(_ExcludeIf):
@@ -1150,7 +1155,18 @@ class Access(_ExcludeIf):
     @model_validator(mode="before")
     @classmethod
     def _bare_kind(cls, value: Any) -> Any:
-        return {"kind": value} if isinstance(value, str) else value
+        if not isinstance(value, str):
+            return value
+        if value not in _ACCESS_KINDS:
+            raise ValueError(ACCESS_FORM)
+        return {"kind": value}
+
+    @field_validator("kind", mode="before")
+    @classmethod
+    def _named_kind(cls, value: Any) -> Any:
+        if value not in _ACCESS_KINDS:
+            raise ValueError(ACCESS_FORM)
+        return value
 
     @model_validator(mode="after")
     def _harness_only_for_a_coding_tool(self) -> Access:
@@ -2493,7 +2509,7 @@ def json_schema() -> dict[str, Any]:
     refs, defs = models_json_schema([(Spec, "validation"), (Decision, "serialization"),
                                      (DecideRequest, "validation"), (BoundedDecision, "serialization")],
                                     ref_template="#/$defs/{model}")
-    return {
+    schema = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "title": "ModelSpec decision contract",
         "x-contract-version": CONTRACT_VERSION,
@@ -2502,6 +2518,26 @@ def json_schema() -> dict[str, Any]:
         "anyOf": [refs[(Spec, "validation")], refs[(Decision, "serialization")]],
         **defs,
     }
+    _widen_access(schema)
+    return schema
+
+
+def _widen_access(schema: dict[str, Any]) -> None:
+    """The request accepts a bare access kind. The Access object is unchanged."""
+    bare = {
+        "enum": ["chat_app", "coding_tool", "own_software", "own_hardware"],
+        "type": "string",
+    }
+    for name in ("Spec", "DecideRequest"):
+        prop = schema["$defs"][name]["properties"]["access"]
+        branches = prop.get("anyOf")
+        if not isinstance(branches, list):
+            continue
+        if any(branch.get("enum") == bare["enum"] for branch in branches if isinstance(branch, dict)):
+            continue
+        nulls = [branch for branch in branches if branch.get("type") == "null"]
+        rest = [branch for branch in branches if branch.get("type") != "null"]
+        prop["anyOf"] = [*rest, bare, *nulls]
 
 
 def render_json_schema() -> str:

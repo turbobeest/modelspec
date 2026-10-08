@@ -222,8 +222,11 @@ def search_vocabulary(vocabulary, *, section, search, ids, full, offset, limit):
     searched = list(SEARCH_SECTIONS) if cross_section else [section]
     needle = normalize(search)
     hits = []
+    exact_ids: set[str] = set()
     for name in searched:
         for key, row, group in section_rows(vocabulary, name):
+            if ids and key in ids:
+                exact_ids.add(key)
             if ids and key not in ids:
                 continue
             # A search of only separators normalises to nothing: it matches nothing, not everything.
@@ -261,6 +264,10 @@ def search_vocabulary(vocabulary, *, section, search, ids, full, offset, limit):
                                         if "value" in item else "")
                           for item in closest) or "none"
         result.update(suggestions=closest, message=f"No vocabulary entry matches {quoted} in the id, label, definition or values of {', '.join(searched)}; closest ids: {names}.")
+    if ids:
+        missing = sorted(set(ids) - exact_ids)
+        if missing:
+            result["unknown_ids"] = missing
     return result
 
 

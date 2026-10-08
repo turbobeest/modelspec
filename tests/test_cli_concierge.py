@@ -87,13 +87,143 @@ def test_orientation_is_keyless_offline_and_identical(args):
         }
 
 
+def test_a_no_feasible_decision_is_printed_and_exits_two(monkeypatch):
+    """Exit 2 is no matching answer. The printed body is the decision, not http_error."""
+    body = {
+        "decision_id": "dec_da88a90713652d41cfd8f196",
+        "status": "no_feasible",
+        "results": [],
+        "contract_version": "2.14",
+    }
+    monkeypatch.setattr(client, "_transport", httpx.MockTransport(
+        lambda request: httpx.Response(200, json=body)))
+    result = run(["decide", "--spec", "-", "--json"], keyed=True, input=json.dumps(SPEC))
+    assert result.exit_code == 2, result.output
+    payload = json.loads(result.stdout)
+    assert payload == body
+    assert "error" not in payload
+    assert "http_error" not in result.stdout
+    assert "The hosted API refused the request." not in result.stdout + result.stderr
+    assert "guide_version_changed" not in result.stdout + result.stderr
+
+
+@pytest.mark.parametrize("json_mode", [False, True])
+@pytest.mark.parametrize("status", ["no_feasible", "partial"])
+def test_an_exit_two_decision_prints_the_guide_notice_before_the_body(
+    monkeypatch, json_mode, status
+):
+    """A changed guide still warns on stderr when the decision itself exits 2."""
+    body = {
+        "decision_id": "dec_da88a90713652d41cfd8f196",
+        "status": status,
+        "results": [],
+        "contract_version": "2.14",
+    }
+    if status == "partial":
+        body["coverage"] = {
+            "kind": "out_of_coverage",
+            "message": "Speech is outside this snapshot.",
+        }
+    answered = {
+        "decision_id": "dec_answered000000000001",
+        "status": "answered",
+        "results": [{"rank": 1}],
+        "contract_version": "2.14",
+    }
+    args = ["decide", "--spec", "-", *(["--json"] if json_mode else [])]
+
+    def respond(payload):
+        return httpx.MockTransport(lambda request: httpx.Response(
+            200, json=payload, headers={"x-modelspec-guide-version": "new-guide"}))
+
+    monkeypatch.setattr(client, "_transport", respond(answered))
+    success = run(args, keyed=True, input=json.dumps(SPEC))
+    assert success.exit_code == 0, success.output
+
+    monkeypatch.setattr(client, "_transport", respond(body))
+    result = run(args, keyed=True, input=json.dumps(SPEC))
+    assert result.exit_code == 2, result.output
+    assert json.loads(result.stdout) == body
+    assert result.stderr == success.stderr
+    assert "pipx upgrade modelspec-dev" in result.stderr
+    # JSON names the warning code. Text prints the same sentence the success path prints.
+    marker = "guide_version_changed" if json_mode else "bundled guide"
+    assert marker in result.stderr
+    assert marker not in result.stdout
+    assert result.output.find(marker) < result.output.find(body["decision_id"])
+
+
+def test_an_answered_decision_exits_zero(monkeypatch):
+    body = {
+        "decision_id": "dec_answered000000000001",
+        "status": "answered",
+        "results": [{"rank": 1}],
+        "contract_version": "2.14",
+    }
+    monkeypatch.setattr(client, "_transport", httpx.MockTransport(
+        lambda request: httpx.Response(200, json=body)))
+    result = run(["decide", "--spec", "-", "--json"], keyed=True, input=json.dumps(SPEC))
+    assert result.exit_code == 0, result.output
+    assert json.loads(result.stdout) == body
+
+
+def test_a_real_http_failure_is_http_error(monkeypatch):
+    monkeypatch.setattr(client, "_transport", httpx.MockTransport(
+        lambda request: httpx.Response(500, json={"status": "down"})))
+    result = run(["decide", "--spec", "-", "--json"], keyed=True, input=json.dumps(SPEC))
+    payload = assert_error(result, "http_error")
+    assert payload["error"]["message"] == "The hosted API refused the request."
+
+
+def test_no_feasible_without_a_decision_id_stays_exit_two(monkeypatch):
+    body = {"status": "no_feasible", "results": []}
+    monkeypatch.setattr(client, "_transport", httpx.MockTransport(
+        lambda request: httpx.Response(200, json=body)))
+    assert run(["decide", "--spec", "-", "--json"], keyed=True, input=json.dumps(SPEC)).exit_code == 2
+
+
+_ACCESS_FORM = (
+    "access is {kind: chat_app|coding_tool|own_software|own_hardware} "
+    "or one of those kinds as a string"
+)
+
+
+def test_bare_access_kind_is_accepted_and_sent(monkeypatch):
+    seen = {}
+
+    def handler(request):
+        seen["body"] = json.loads(request.content)
+        return httpx.Response(200, text=API_TEXT)
+
+    monkeypatch.setattr(client, "_transport", httpx.MockTransport(handler))
+    spec = {**SPEC, "access": "own_hardware"}
+    result = run(["decide", "--spec", "-", "--json"], keyed=True, input=json.dumps(spec))
+    assert result.exit_code == 0, result.output
+    assert seen["body"]["access"] == "own_hardware"
+
+
+def test_a_wrong_access_value_names_the_accepted_form():
+    payload = assert_error(run(
+        ["decide", "--spec", "-", "--json"],
+        keyed=True,
+        input=json.dumps({**SPEC, "access": "hosted"}),
+    ), "invalid_spec")
+    issues = payload["error"]["issues"]
+    assert any(issue.get("path") == "access" for issue in issues)
+    assert _ACCESS_FORM in json.dumps(issues)
+
+
 @pytest.mark.parametrize("http_status, status", [(200, "no_feasible"), (200, "partial"), (400, None)])
 def test_typed_coverage_is_passed_through_and_uses_coverage_recovery(monkeypatch, http_status, status):
-    body = {"coverage": {"kind": "out_of_coverage", "message": "Speech is outside this snapshot.",
-                         "classes": [{"id": "text-generator", "models": 2}],
-                         "url": "https://modelspec.dev/api/coverage.json"}}
+    body = {
+        "decision_id": "dec_coverage000000000001",
+        "coverage": {"kind": "out_of_coverage", "message": "Speech is outside this snapshot.",
+                     "classes": [{"id": "text-generator", "models": 2}],
+                     "url": "https://modelspec.dev/api/coverage.json"},
+    }
     if status:
         body["status"] = status
+        body["results"] = []
     else:
         body["error"] = {"code": "invalid_spec", "message": "Unknown speech domain."}
     monkeypatch.setattr(client, "_transport", httpx.MockTransport(
@@ -102,7 +232,15 @@ def test_typed_coverage_is_passed_through_and_uses_coverage_recovery(monkeypatch
     assert result.exit_code == 2, result.output
     payload = json.loads(result.stdout)
     assert payload["coverage"] == body["coverage"]
-    assert "https://modelspec.dev/api/coverage.json" in " ".join(payload["next"])
+    assert payload["decision_id"] == body["decision_id"]
+    if http_status == 200:
+        assert payload == body
+        assert "error" not in payload
+        assert "http_error" not in result.stdout
+        assert "The hosted API refused the request." not in result.stdout + result.stderr
+    else:
+        assert payload["error"]["code"] == "invalid_spec"
+        assert "https://modelspec.dev/api/coverage.json" in " ".join(payload["next"])
 
 
 @pytest.mark.parametrize(
