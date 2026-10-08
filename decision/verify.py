@@ -619,6 +619,12 @@ class OfferingPriceExtractor:
             raise ExtractorError("no pricing table")
         headers = [normalise_name(cell) for cell in rows[0]]
         names = [normalise_name(name) for name in claim.names]
+        # A band-tiered table lists the token range beside the amount. The range
+        # header contains "input tokens", so the column-header scan below would
+        # read the range. The price column is the amount. The model's first row
+        # is the lowest band, which is the base price (registry/facets.yaml).
+        band_table = any(_TOKEN_BAND.search(cell) for row in rows for cell in row)
+        price_col = _band_price_column(headers, wanted) if band_table else None
         current_subject: str | None = None
         readings: list[Reading] = []
 
@@ -682,7 +688,12 @@ class OfferingPriceExtractor:
                         readings.append(Reading(subject, value, claim.unit))
 
             # AWS-style tables encode each price kind in its column header.
-            if type_i is None:
+            # On a band-tiered table that scan hits the range column first.
+            if type_i is None and price_col is not None:
+                value = row[price_col]
+                if value and _PRICE_CELL.search(value):
+                    readings.append(Reading(subject, value, claim.unit))
+            elif type_i is None:
                 terms = {
                     "input": ("input tokens",),
                     "output": ("output tokens",),
@@ -702,6 +713,35 @@ class OfferingPriceExtractor:
 
 #: A price cell: a dollar amount, however the unit after it is written.
 _PRICE_CELL = re.compile(r"\\?\$\s*[0-9]+(?:\.[0-9]+)?")
+#: A token-range cell on a band-tiered price table, such as "0<Token≤1M".
+_TOKEN_BAND = re.compile(r"(?i)<\s*tokens?\s*[≤<]")
+
+
+def _band_price_column(headers: list[str], wanted: str) -> int | None:
+    """The price column of a band-tiered table, or None when this table has none.
+
+    The amount header names the kind and the word "price" ("Input price (per 1
+    million tokens)"). The range header ("Input tokens per request") does not.
+    """
+    if wanted.endswith("output"):
+        kind = "output"
+    elif wanted.endswith("input"):
+        kind = "input"
+    else:
+        return None
+    batch = wanted.startswith("batch_")
+    cached = "cached" in wanted
+    for index, header in enumerate(headers):
+        if "price" not in header or kind not in header:
+            continue
+        if ("batch" in header) != batch:
+            continue
+        if cached != ("cache" in header):
+            continue
+        if kind == "input" and "output" in header:
+            continue
+        return index
+    return None
 
 
 def _grouped_header_tables(claim: Claim, text: str, wanted: str) -> list[Reading]:
