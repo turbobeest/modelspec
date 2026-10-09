@@ -411,7 +411,7 @@ paths:
         '200':
           description: 'A decision pinned to the snapshot that produced it: a complete Decision (contract_version
             2.15), or, when the request sends fields or evidence_for, the separate bounded representation
-            (representation: bounded, bounded_version 1.0, no contract_version).'
+            (representation: bounded, bounded_version 1.1, no contract_version).'
           content:
             application/json:
               schema:
@@ -2197,7 +2197,7 @@ components:
       additionalProperties: false
       properties:
         representation: {const: bounded, title: Representation, type: string}
-        bounded_version: {const: '1.0', title: Bounded Version, type: string}
+        bounded_version: {const: '1.1', title: Bounded Version, type: string}
         projects_contract: {const: '2.15', title: Projects Contract, type: string}
         decision_id: {title: Decision Id, type: string}
         snapshot: {title: Snapshot, type: string}
@@ -2228,6 +2228,13 @@ components:
           - {$ref: '#/components/schemas/DecisionModelEvidence'}
           - {type: 'null'}
           default: null
+        member_evidence:
+          anyOf:
+          - items: {$ref: '#/components/schemas/DecisionMemberEvidence'}
+            type: array
+          - {type: 'null'}
+          default: null
+          title: Member Evidence
         summary_for_user: {default: '', title: Summary For User, type: string}
         must_mention:
           items: {type: string}
@@ -3218,6 +3225,19 @@ components:
           type: array
       required: [model, unknown]
       title: MayQualify
+      type: object
+    DecisionMemberEvidence:
+      additionalProperties: false
+      description: Objective evidence for one answer member. Added in bounded 1.1 (MODEL-354).
+      properties:
+        model: {pattern: '^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$', title: Model, type: string}
+        evidence:
+          items: {$ref: '#/components/schemas/DecisionDomainEvidence'}
+          title: Evidence
+          type: array
+        omitted_items: {minimum: 0, title: Omitted Items, type: integer}
+      required: [model, evidence, omitted_items]
+      title: MemberEvidence
       type: object
     DecisionModelElimination:
       additionalProperties: false
@@ -4465,7 +4485,7 @@ components:
           enum: [bounded]
         bounded_version:
           type: string
-          enum: ['1.0']
+          enum: ['1.1']
         projects_contract:
           type: string
           enum: ['2.15']

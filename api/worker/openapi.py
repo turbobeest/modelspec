@@ -2976,7 +2976,7 @@ def build_spec() -> dict[str, Any]:
                                 "A decision pinned to the snapshot that produced it: a complete "
                                 "Decision (contract_version 2.15), or, when the request sends "
                                 "fields or evidence_for, the separate bounded representation "
-                                "(representation: bounded, bounded_version 1.0, no "
+                                "(representation: bounded, bounded_version 1.1, no "
                                 "contract_version).",
                                 {"anyOf": [
                                     {"$ref": "#/components/schemas/DecisionResponse"},
