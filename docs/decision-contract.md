@@ -1310,6 +1310,15 @@ three current explanation levels. Regenerate the MCP public fixture with
   a complete 2.15 decision when present. No existing field changes range, and
   `bounded_version` stays `1.1`. The budget may drop it after `reading` and
   `relax_task_tokens`.
+- **bounded 1.1 — MODEL-351:** `must_mention` also names claims the answer does
+  not support: a tie, answered or partial, is not a recommendation of any
+  member; a partial answer establishes no best fit, and names the models whose
+  values are unknown in place of the may-qualify count; `fits_hardware` is an
+  estimate, or was not required at all; and ModelSpec checked only the stated
+  requirements, with `task_type` reported as not applied. The tie (answered or
+  partial), hardware and stated-requirements lines also appear in
+  `summary_for_user`; a partial tie's paragraph line names the members.
+  Copy only: no field, range or `bounded_version` changes.
 
 ## The library and the CLI
 

@@ -32,6 +32,7 @@ NULL_ANSWER = "ModelSpec has no answer for this request, so it names no pick."
 NO_CLASS = "No model class was required, so results span every class"
 COST_ONLY = "This answer is ordered by cost only; it is not a quality ranking."
 TIE_COST = "Tie-breakers are conditional; cost order is not quality order."
+NOT_A_PICK = "this is not a recommendation of any one of them."
 
 
 def _sentences(paragraph: str) -> list[str]:
@@ -140,7 +141,12 @@ def _check(rows: list[dict]) -> None:
         raise SystemExit("Q01 was not partial: " + json.dumps(partial)[:2000])
     if not str(partial["summary_for_user"]).startswith(PARTIAL):
         raise SystemExit("partial summary names an answer")
-    if "tied" in (partial["summary_for_user"] or ""):
+    partial_text = partial["summary_for_user"] or ""
+    if partial["answer_kind"] == "tied":
+        # MODEL-351: a partial tie says, in the paragraph too, that it is not a pick.
+        if NOT_A_PICK not in partial_text:
+            raise SystemExit("partial tie does not say it is not a recommendation")
+    elif "tied" in partial_text:
         raise SystemExit("partial summary says tied")
 
     empty = by_name["no_feasible"]

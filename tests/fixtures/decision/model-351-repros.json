@@ -1,0 +1,3853 @@
+[
+ {
+  "name": "hardware-spark",
+  "scenario": "hardware-spark",
+  "decision_id": "dec_a54f9caaa762321de9efd4a6",
+  "spec": {
+   "spec_version": 1,
+   "where": [
+    "model.class = text-generator",
+    "model.weights_openness = open_weights",
+    "licence.commercial_use in {permitted, permitted_with_conditions}",
+    {
+     "facet": "model.fits_hardware",
+     "in": [
+      "nvidia_dgx_spark"
+     ]
+    }
+   ],
+   "optimize": {
+    "max": "reasoning"
+   },
+   "access": {
+    "kind": "own_hardware"
+   },
+   "estate": {
+    "devices": [
+     "nvidia_dgx_spark"
+    ]
+   },
+   "task_tokens": {
+    "input": 2000,
+    "output": 4000
+   }
+  },
+  "decision": {
+   "status": "partial",
+   "answer": null,
+   "results": [
+    {
+     "rank": 1,
+     "offering": {
+      "model": "qwen/qwen3-8-flash-next"
+     },
+     "model": "qwen/qwen3-8-flash-next",
+     "warnings": [
+      "proxy_evidence_only"
+     ],
+     "estimates": [
+      {
+       "domain": "reasoning",
+       "value": 1.0,
+       "interval": [
+        0.5,
+        1.5
+       ]
+      }
+     ],
+     "contributions": [
+      {
+       "dimension": "reasoning",
+       "refinement": null,
+       "unit": "latent capability",
+       "formula": "proxy-only monotone domain evidence estimate",
+       "weight": 1,
+       "value": 1.0,
+       "raw_value": 1.0,
+       "normalisation": "fixture",
+       "evidence": [
+        {
+         "benchmark": "gpqa_diamond",
+         "value": 1.0,
+         "measured_by": "provider_self_report",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "reasoning",
+         "record_id": "fixture"
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "may_qualify": [
+    {
+     "model": "anthropic/claude-sonnet-5-5",
+     "offering": {
+      "model": "anthropic/claude-sonnet-5-5"
+     },
+     "unknown": [
+      "model.fits_hardware",
+      "model.weights_openness"
+     ]
+    }
+   ],
+   "relax": [],
+   "relax_to": [],
+   "warnings": [],
+   "out_of_lineup": 1340,
+   "reading": {
+    "estimates": [
+     "model.fits_hardware",
+     "results.estimates"
+    ],
+    "do_not_claim": [
+     "Do not present estimates as measurements.",
+     "Do not claim fit for a specific quantization or context workload."
+    ]
+   }
+  },
+  "production_must_mention": [
+   "The evidence for reasoning is a general proxy (gpqa_diamond), not task-specific.",
+   "qwen/qwen3-8-flash-next has no leaderboard data for reasoning; its position is estimated, not measured.",
+   "1 more model may qualify, but ModelSpec lacks its values for these requirements.",
+   "ModelSpec compared only the models in its lineup; 1,340 active catalogue models are outside it.",
+   "fits_hardware is an estimate, not a measured fit for a quantization or context workload.",
+   "Some values are estimates, not measurements."
+  ],
+  "production_summary": "ModelSpec's answer is incomplete, so it names no pick. What is missing: model.fits_hardware; model.weights_openness. 1 more model may qualify, but ModelSpec lacks its values for these requirements. Requirements applied: model.class = text-generator; model.weights_openness = open_weights; licence.commercial_use in {permitted, permitted_with_conditions}; model.fits_hardware in {nvidia_dgx_spark}. The evidence for reasoning is a general proxy (gpqa_diamond), not task-specific. qwen/qwen3-8-flash-next has no leaderboard data for reasoning; its position is estimated, not measured. ModelSpec compared only the models in its lineup; 1,340 active catalogue models are outside it. fits_hardware is an estimate, not a measured fit for a quantization or context workload. Some values are estimates, not measurements."
+ },
+ {
+  "name": "prompt-maths",
+  "scenario": "prompt-maths",
+  "decision_id": "dec_00854b3d35fa5ea9ff4884c1",
+  "spec": {
+   "spec_version": 1,
+   "where": [
+    "model.class = text-generator",
+    "model.lifecycle = active"
+   ],
+   "optimize": {
+    "max": "maths"
+   },
+   "task_tokens": {
+    "input": 200,
+    "output": 800
+   }
+  },
+  "decision": {
+   "status": "partial",
+   "answer": {
+    "kind": "tied",
+    "members": [
+     "openai/gpt-6-astra",
+     "openai/gpt-6-sol",
+     "openai/gpt-5-6-sol"
+    ],
+    "basis": "probability bands: a model joins the leader when P(its score >= the leader's) >= 0.25 under the score posteriors; a weighted capability with an 80% interval wider than 2.8 is not enough evidence",
+    "tie_breakers": {
+     "cheapest": "openai/gpt-6-sol",
+     "open_weights": null,
+     "most_independently_measured": "openai/gpt-5-6-sol",
+     "fastest": null
+    },
+    "deterministic_order": [
+     "openai/gpt-6-astra",
+     "openai/gpt-6-sol",
+     "openai/gpt-5-6-sol"
+    ]
+   },
+   "results": [
+    {
+     "rank": 1,
+     "offering": {
+      "model": "openai/gpt-6-astra"
+     },
+     "model": "openai/gpt-6-astra",
+     "warnings": [
+      "not_separable"
+     ],
+     "estimates": [
+      {
+       "domain": "maths",
+       "value": 1.0,
+       "interval": [
+        0.5,
+        1.5
+       ]
+      }
+     ],
+     "contributions": [
+      {
+       "dimension": "maths",
+       "refinement": null,
+       "unit": "latent capability",
+       "formula": "monotone domain evidence estimate",
+       "weight": 1.0,
+       "value": 1.0,
+       "raw_value": 1.0,
+       "normalisation": "fixture",
+       "evidence": [
+        {
+         "benchmark": "arxivmath",
+         "value": 1.0,
+         "measured_by": "benchmark_author",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "direct",
+         "requested_domain": "maths",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "frontiermath_tiers_1_3_v2",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "direct",
+         "requested_domain": "maths",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "brokenarxiv",
+         "value": 1.0,
+         "measured_by": "benchmark_author",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "maths",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "hle",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "maths",
+         "record_id": "fixture"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "rank": 2,
+     "offering": {
+      "model": "openai/gpt-6-sol"
+     },
+     "model": "openai/gpt-6-sol",
+     "warnings": [
+      "not_separable"
+     ],
+     "estimates": [
+      {
+       "domain": "maths",
+       "value": 1.0,
+       "interval": [
+        0.5,
+        1.5
+       ]
+      }
+     ],
+     "contributions": [
+      {
+       "dimension": "maths",
+       "refinement": null,
+       "unit": "latent capability",
+       "formula": "monotone domain evidence estimate",
+       "weight": 1.0,
+       "value": 1.0,
+       "raw_value": 1.0,
+       "normalisation": "fixture",
+       "evidence": [
+        {
+         "benchmark": "arxivmath",
+         "value": 1.0,
+         "measured_by": "benchmark_author",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "direct",
+         "requested_domain": "maths",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "brokenarxiv",
+         "value": 1.0,
+         "measured_by": "benchmark_author",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "maths",
+         "record_id": "fixture"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "rank": 3,
+     "offering": {
+      "model": "openai/gpt-5-6-sol"
+     },
+     "model": "openai/gpt-5-6-sol",
+     "warnings": [
+      "not_separable"
+     ],
+     "estimates": [
+      {
+       "domain": "maths",
+       "value": 1.0,
+       "interval": [
+        0.5,
+        1.5
+       ]
+      }
+     ],
+     "contributions": [
+      {
+       "dimension": "maths",
+       "refinement": null,
+       "unit": "latent capability",
+       "formula": "monotone domain evidence estimate",
+       "weight": 1.0,
+       "value": 1.0,
+       "raw_value": 1.0,
+       "normalisation": "fixture",
+       "evidence": [
+        {
+         "benchmark": "frontiermath_tiers_1_3_v2",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "direct",
+         "requested_domain": "maths",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "arena_sc_industry_mathematical",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "maths",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "arena_sc_math",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "maths",
+         "record_id": "fixture"
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "may_qualify": [
+    {
+     "model": "qwen/qwen3-8-max-0902",
+     "offering": {
+      "model": "qwen/qwen3-8-max-0902"
+     },
+     "unknown": [
+      "maths"
+     ]
+    },
+    {
+     "model": "anthropic/claude-sonnet-5-5",
+     "offering": {
+      "model": "anthropic/claude-sonnet-5-5"
+     },
+     "unknown": [
+      "maths"
+     ]
+    },
+    {
+     "model": "anthropic/claude-sonnet-5-5",
+     "offering": {
+      "model": "anthropic/claude-sonnet-5-5"
+     },
+     "unknown": [
+      "maths"
+     ]
+    },
+    {
+     "model": "anthropic/claude-sonnet-5-5",
+     "offering": {
+      "model": "anthropic/claude-sonnet-5-5"
+     },
+     "unknown": [
+      "maths"
+     ]
+    },
+    {
+     "model": "openai/gpt-6-luna",
+     "offering": {
+      "model": "openai/gpt-6-luna"
+     },
+     "unknown": [
+      "maths"
+     ]
+    },
+    {
+     "model": "qwen/qwen3-8-flash-next",
+     "offering": {
+      "model": "qwen/qwen3-8-flash-next"
+     },
+     "unknown": [
+      "maths"
+     ]
+    }
+   ],
+   "relax": [],
+   "relax_to": [],
+   "warnings": [],
+   "out_of_lineup": 1340,
+   "reading": {
+    "tied": [
+     "openai/gpt-6-astra",
+     "openai/gpt-6-sol",
+     "openai/gpt-5-6-sol"
+    ],
+    "estimates": [
+     "results.estimates"
+    ],
+    "do_not_claim": [
+     "Do not name a single winner among tied.",
+     "Do not present estimates as measurements."
+    ]
+   },
+   "bands": {
+    "best": [
+     {
+      "model": "openai/gpt-6-astra",
+      "offering": {
+       "model": "openai/gpt-6-astra"
+      },
+      "score": 1.0,
+      "score_interval": [
+       0.5,
+       1.5
+      ],
+      "p_best": 0.5,
+      "p_beats_leader": null,
+      "cost_per_task": null,
+      "estimates": [
+       {
+        "dimension": "maths",
+        "value": 1.0,
+        "interval": [
+         0.5,
+         1.5
+        ],
+        "benchmarks": 4,
+        "direct_benchmarks": 2
+       }
+      ]
+     },
+     {
+      "model": "openai/gpt-6-sol",
+      "offering": {
+       "model": "openai/gpt-6-sol"
+      },
+      "score": 1.0,
+      "score_interval": [
+       0.5,
+       1.5
+      ],
+      "p_best": 0.5,
+      "p_beats_leader": null,
+      "cost_per_task": null,
+      "estimates": [
+       {
+        "dimension": "maths",
+        "value": 1.0,
+        "interval": [
+         0.5,
+         1.5
+        ],
+        "benchmarks": 2,
+        "direct_benchmarks": 1
+       }
+      ]
+     },
+     {
+      "model": "openai/gpt-5-6-sol",
+      "offering": {
+       "model": "openai/gpt-5-6-sol"
+      },
+      "score": 1.0,
+      "score_interval": [
+       0.5,
+       1.5
+      ],
+      "p_best": 0.5,
+      "p_beats_leader": null,
+      "cost_per_task": null,
+      "estimates": [
+       {
+        "dimension": "maths",
+        "value": 1.0,
+        "interval": [
+         0.5,
+         1.5
+        ],
+        "benchmarks": 3,
+        "direct_benchmarks": 1
+       }
+      ]
+     }
+    ],
+    "rest": [],
+    "thin": [],
+    "basis": "probability bands: a model joins the leader when P(its score >= the leader's) >= 0.25 under the score posteriors; a weighted capability with an 80% interval wider than 2.8 is not enough evidence",
+    "band_probability": 0.25,
+    "thin_interval_width": 2.8,
+    "leader": "openai/gpt-6-astra"
+   }
+  },
+  "production_must_mention": [
+   "openai/gpt-6-astra, openai/gpt-6-sol, and openai/gpt-5-6-sol have no leaderboard data for maths; their positions are estimated, not measured.",
+   "6 more models may qualify, but ModelSpec lacks their values for these requirements.",
+   "ModelSpec compared only the models in its lineup; 1,340 active catalogue models are outside it.",
+   "Some values are estimates, not measurements."
+  ],
+  "production_summary": "ModelSpec's answer is incomplete, so it names no pick. What is missing: maths. 6 more models may qualify, but ModelSpec lacks their values for these requirements. Requirements applied: model.class = text-generator; model.lifecycle = active. openai/gpt-6-astra, openai/gpt-6-sol, and openai/gpt-5-6-sol have no leaderboard data for maths; their positions are estimated, not measured. ModelSpec compared only the models in its lineup; 1,340 active catalogue models are outside it. Some values are estimates, not measurements.",
+  "restored_from_local_rerun": [
+   "may_qualify",
+   "results",
+   "bands"
+  ]
+ },
+ {
+  "name": "prompt-code",
+  "scenario": "prompt-code",
+  "decision_id": "dec_a58bfea73c7a29f557e01ccc",
+  "spec": {
+   "spec_version": 1,
+   "where": [
+    "model.class = text-generator",
+    "model.lifecycle = active",
+    {
+     "facet": "offering.provider",
+     "in": [
+      "anthropic",
+      "openai"
+     ]
+    }
+   ],
+   "optimize": {
+    "max": "software_engineering"
+   },
+   "task_type": "bug_fix",
+   "task_tokens": {
+    "input": 500,
+    "output": 1500
+   },
+   "access": {
+    "kind": "own_software"
+   },
+   "estate": {
+    "providers": [
+     "anthropic",
+     "openai"
+    ]
+   }
+  },
+  "decision": {
+   "status": "partial",
+   "answer": {
+    "kind": "tied",
+    "members": [
+     "anthropic/claude-opus-5-5",
+     "anthropic/claude-sonnet-5-5",
+     "openai/gpt-6-astra",
+     "anthropic/claude-opus-4-7"
+    ],
+    "basis": "probability bands: a model joins the leader when P(its score >= the leader's) >= 0.25 under the score posteriors; a weighted capability with an 80% interval wider than 2.8 is not enough evidence",
+    "tie_breakers": {
+     "cheapest": "anthropic/claude-sonnet-5-5",
+     "open_weights": null,
+     "most_independently_measured": "anthropic/claude-opus-4-7",
+     "fastest": null
+    },
+    "deterministic_order": [
+     "anthropic/claude-opus-5-5",
+     "anthropic/claude-sonnet-5-5",
+     "openai/gpt-6-astra",
+     "anthropic/claude-opus-4-7"
+    ]
+   },
+   "results": [
+    {
+     "rank": 1,
+     "offering": {
+      "model": "anthropic/claude-opus-5-5"
+     },
+     "model": "anthropic/claude-opus-5-5",
+     "warnings": [
+      "not_separable"
+     ],
+     "estimates": [
+      {
+       "domain": "software_engineering",
+       "value": 1.0,
+       "interval": [
+        0.5,
+        1.5
+       ]
+      }
+     ],
+     "contributions": [
+      {
+       "dimension": "software_engineering",
+       "refinement": null,
+       "unit": "latent capability",
+       "formula": "monotone domain evidence estimate",
+       "weight": 1.0,
+       "value": 1.0,
+       "raw_value": 1.0,
+       "normalisation": "fixture",
+       "evidence": [
+        {
+         "benchmark": "cursorbench_4",
+         "value": 1.0,
+         "measured_by": "benchmark_author",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "direct",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "arena_webdev",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "terminal_bench_v4_0",
+         "value": 1.0,
+         "measured_by": "provider_self_report",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "rank": 2,
+     "offering": {
+      "model": "anthropic/claude-sonnet-5-5"
+     },
+     "model": "anthropic/claude-sonnet-5-5",
+     "warnings": [
+      "not_separable"
+     ],
+     "estimates": [
+      {
+       "domain": "software_engineering",
+       "value": 1.0,
+       "interval": [
+        0.5,
+        1.5
+       ]
+      }
+     ],
+     "contributions": [
+      {
+       "dimension": "software_engineering",
+       "refinement": null,
+       "unit": "latent capability",
+       "formula": "monotone domain evidence estimate",
+       "weight": 1.0,
+       "value": 1.0,
+       "raw_value": 1.0,
+       "normalisation": "fixture",
+       "evidence": [
+        {
+         "benchmark": "cursorbench_4",
+         "value": 1.0,
+         "measured_by": "provider_self_report",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "direct",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "terminal_bench_v4_0",
+         "value": 1.0,
+         "measured_by": "provider_self_report",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "rank": 3,
+     "offering": {
+      "model": "openai/gpt-6-astra"
+     },
+     "model": "openai/gpt-6-astra",
+     "warnings": [
+      "not_separable"
+     ],
+     "estimates": [
+      {
+       "domain": "software_engineering",
+       "value": 1.0,
+       "interval": [
+        0.5,
+        1.5
+       ]
+      }
+     ],
+     "contributions": [
+      {
+       "dimension": "software_engineering",
+       "refinement": null,
+       "unit": "latent capability",
+       "formula": "monotone domain evidence estimate",
+       "weight": 1.0,
+       "value": 1.0,
+       "raw_value": 1.0,
+       "normalisation": "fixture",
+       "evidence": [
+        {
+         "benchmark": "deepswe_v1_1",
+         "value": 1.0,
+         "measured_by": "benchmark_author",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "direct",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "frontiercode_v1_1",
+         "value": 1.0,
+         "measured_by": "benchmark_author",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "direct",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "arena_webdev",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "arena_elo_coding",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "arena_sc_coding",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "arena_sc_industry_software_it_services",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "terminal_bench_v4_0",
+         "value": 1.0,
+         "measured_by": "benchmark_author",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "rank": 4,
+     "offering": {
+      "model": "anthropic/claude-opus-4-7"
+     },
+     "model": "anthropic/claude-opus-4-7",
+     "warnings": [
+      "not_separable"
+     ],
+     "estimates": [
+      {
+       "domain": "software_engineering",
+       "value": 1.0,
+       "interval": [
+        0.5,
+        1.5
+       ]
+      }
+     ],
+     "contributions": [
+      {
+       "dimension": "software_engineering",
+       "refinement": null,
+       "unit": "latent capability",
+       "formula": "monotone domain evidence estimate",
+       "weight": 1.0,
+       "value": 1.0,
+       "raw_value": 1.0,
+       "normalisation": "fixture",
+       "evidence": [
+        {
+         "benchmark": "frontiercode_v1_1",
+         "value": 1.0,
+         "measured_by": "benchmark_author",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "direct",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "swe_bench_verified",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "direct",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "arena_webdev",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "arena_sc_coding",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "arena_sc_industry_software_it_services",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "may_qualify": [
+    {
+     "model": "openai/gpt-6-luna",
+     "offering": {
+      "model": "openai/gpt-6-luna"
+     },
+     "unknown": [
+      "software_engineering"
+     ]
+    }
+   ],
+   "relax": [],
+   "relax_to": [],
+   "warnings": [],
+   "out_of_lineup": 1340,
+   "reading": {
+    "tied": [
+     "anthropic/claude-opus-5-5",
+     "anthropic/claude-sonnet-5-5",
+     "openai/gpt-6-astra",
+     "anthropic/claude-opus-4-7"
+    ],
+    "estimates": [
+     "results.estimates"
+    ],
+    "do_not_claim": [
+     "Do not name a single winner among tied.",
+     "Do not name a single winner among with_estate.answer.members; that answer is tied.",
+     "Do not present estimates as measurements."
+    ]
+   },
+   "bands": {
+    "best": [
+     {
+      "model": "anthropic/claude-opus-5-5",
+      "offering": {
+       "model": "anthropic/claude-opus-5-5"
+      },
+      "score": 1.0,
+      "score_interval": [
+       0.5,
+       1.5
+      ],
+      "p_best": 0.5,
+      "p_beats_leader": null,
+      "cost_per_task": null,
+      "estimates": [
+       {
+        "dimension": "software_engineering",
+        "value": 1.0,
+        "interval": [
+         0.5,
+         1.5
+        ],
+        "benchmarks": 3,
+        "direct_benchmarks": 1
+       }
+      ]
+     },
+     {
+      "model": "anthropic/claude-sonnet-5-5",
+      "offering": {
+       "model": "anthropic/claude-sonnet-5-5"
+      },
+      "score": 1.0,
+      "score_interval": [
+       0.5,
+       1.5
+      ],
+      "p_best": 0.5,
+      "p_beats_leader": null,
+      "cost_per_task": null,
+      "estimates": [
+       {
+        "dimension": "software_engineering",
+        "value": 1.0,
+        "interval": [
+         0.5,
+         1.5
+        ],
+        "benchmarks": 3,
+        "direct_benchmarks": 2
+       }
+      ]
+     },
+     {
+      "model": "openai/gpt-6-astra",
+      "offering": {
+       "model": "openai/gpt-6-astra"
+      },
+      "score": 1.0,
+      "score_interval": [
+       0.5,
+       1.5
+      ],
+      "p_best": 0.5,
+      "p_beats_leader": null,
+      "cost_per_task": null,
+      "estimates": [
+       {
+        "dimension": "software_engineering",
+        "value": 1.0,
+        "interval": [
+         0.5,
+         1.5
+        ],
+        "benchmarks": 7,
+        "direct_benchmarks": 2
+       }
+      ]
+     },
+     {
+      "model": "anthropic/claude-opus-4-7",
+      "offering": {
+       "model": "anthropic/claude-opus-4-7"
+      },
+      "score": 1.0,
+      "score_interval": [
+       0.5,
+       1.5
+      ],
+      "p_best": 0.5,
+      "p_beats_leader": null,
+      "cost_per_task": null,
+      "estimates": [
+       {
+        "dimension": "software_engineering",
+        "value": 1.0,
+        "interval": [
+         0.5,
+         1.5
+        ],
+        "benchmarks": 5,
+        "direct_benchmarks": 2
+       }
+      ]
+     }
+    ],
+    "rest": [],
+    "thin": [],
+    "basis": "probability bands: a model joins the leader when P(its score >= the leader's) >= 0.25 under the score posteriors; a weighted capability with an 80% interval wider than 2.8 is not enough evidence",
+    "band_probability": 0.25,
+    "thin_interval_width": 2.8,
+    "leader": "anthropic/claude-opus-5-5"
+   }
+  },
+  "production_must_mention": [
+   "anthropic/claude-opus-5-5, anthropic/claude-sonnet-5-5, and openai/gpt-6-astra, and 1 more have no leaderboard data for software_engineering; their positions are estimated, not measured.",
+   "1 more model may qualify, but ModelSpec lacks its values for these requirements.",
+   "ModelSpec compared only the models in its lineup; 1,340 active catalogue models are outside it.",
+   "Some values are estimates, not measurements."
+  ],
+  "production_summary": "ModelSpec's answer is incomplete, so it names no pick. What is missing: software_engineering. 1 more model may qualify, but ModelSpec lacks its values for these requirements. Requirements applied: model.class = text-generator; model.lifecycle = active; offering.provider in {anthropic, openai}. anthropic/claude-opus-5-5, anthropic/claude-sonnet-5-5, and openai/gpt-6-astra, and 1 more have no leaderboard data for software_engineering; their positions are estimated, not measured. ModelSpec compared only the models in its lineup; 1,340 active catalogue models are outside it. Some values are estimates, not measurements.",
+  "restored_from_local_rerun": [
+   "may_qualify",
+   "results",
+   "bands"
+  ]
+ },
+ {
+  "name": "recall-q01",
+  "scenario": "recall-q01",
+  "decision_id": "dec_49f96bfa02179a9f994fff8b",
+  "spec": {
+   "spec_version": 1,
+   "where": [
+    "model.class = text-generator"
+   ],
+   "optimize": {
+    "max": "software_engineering"
+   },
+   "task_type": "new_feature",
+   "task_tokens": {
+    "input": 150000,
+    "output": 15000
+   },
+   "access": {
+    "kind": "own_software"
+   }
+  },
+  "decision": {
+   "status": "partial",
+   "answer": {
+    "kind": "tied",
+    "members": [
+     "anthropic/claude-opus-5-5",
+     "anthropic/claude-sonnet-5-5",
+     "openai/gpt-6-astra",
+     "anthropic/claude-opus-4-7"
+    ],
+    "basis": "probability bands: a model joins the leader when P(its score >= the leader's) >= 0.25 under the score posteriors; a weighted capability with an 80% interval wider than 2.8 is not enough evidence",
+    "tie_breakers": {
+     "cheapest": "anthropic/claude-sonnet-5-5",
+     "open_weights": null,
+     "most_independently_measured": "anthropic/claude-opus-4-7",
+     "fastest": null
+    },
+    "deterministic_order": [
+     "anthropic/claude-opus-5-5",
+     "anthropic/claude-sonnet-5-5",
+     "openai/gpt-6-astra",
+     "anthropic/claude-opus-4-7"
+    ]
+   },
+   "results": [
+    {
+     "rank": 1,
+     "offering": {
+      "model": "anthropic/claude-opus-5-5"
+     },
+     "model": "anthropic/claude-opus-5-5",
+     "warnings": [
+      "not_separable"
+     ],
+     "estimates": [
+      {
+       "domain": "software_engineering",
+       "value": 1.0,
+       "interval": [
+        0.5,
+        1.5
+       ]
+      }
+     ],
+     "contributions": [
+      {
+       "dimension": "software_engineering",
+       "refinement": null,
+       "unit": "latent capability",
+       "formula": "monotone domain evidence estimate",
+       "weight": 1.0,
+       "value": 1.0,
+       "raw_value": 1.0,
+       "normalisation": "fixture",
+       "evidence": [
+        {
+         "benchmark": "cursorbench_4",
+         "value": 1.0,
+         "measured_by": "benchmark_author",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "direct",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "arena_webdev",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "terminal_bench_v4_0",
+         "value": 1.0,
+         "measured_by": "provider_self_report",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "rank": 2,
+     "offering": {
+      "model": "anthropic/claude-sonnet-5-5"
+     },
+     "model": "anthropic/claude-sonnet-5-5",
+     "warnings": [
+      "not_separable"
+     ],
+     "estimates": [
+      {
+       "domain": "software_engineering",
+       "value": 1.0,
+       "interval": [
+        0.5,
+        1.5
+       ]
+      }
+     ],
+     "contributions": [
+      {
+       "dimension": "software_engineering",
+       "refinement": null,
+       "unit": "latent capability",
+       "formula": "monotone domain evidence estimate",
+       "weight": 1.0,
+       "value": 1.0,
+       "raw_value": 1.0,
+       "normalisation": "fixture",
+       "evidence": [
+        {
+         "benchmark": "cursorbench_4",
+         "value": 1.0,
+         "measured_by": "provider_self_report",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "direct",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "terminal_bench_v4_0",
+         "value": 1.0,
+         "measured_by": "provider_self_report",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "rank": 3,
+     "offering": {
+      "model": "openai/gpt-6-astra"
+     },
+     "model": "openai/gpt-6-astra",
+     "warnings": [
+      "not_separable"
+     ],
+     "estimates": [
+      {
+       "domain": "software_engineering",
+       "value": 1.0,
+       "interval": [
+        0.5,
+        1.5
+       ]
+      }
+     ],
+     "contributions": [
+      {
+       "dimension": "software_engineering",
+       "refinement": null,
+       "unit": "latent capability",
+       "formula": "monotone domain evidence estimate",
+       "weight": 1.0,
+       "value": 1.0,
+       "raw_value": 1.0,
+       "normalisation": "fixture",
+       "evidence": [
+        {
+         "benchmark": "deepswe_v1_1",
+         "value": 1.0,
+         "measured_by": "benchmark_author",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "direct",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "frontiercode_v1_1",
+         "value": 1.0,
+         "measured_by": "benchmark_author",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "direct",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "arena_webdev",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "arena_elo_coding",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "arena_sc_coding",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "arena_sc_industry_software_it_services",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "terminal_bench_v4_0",
+         "value": 1.0,
+         "measured_by": "benchmark_author",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "rank": 4,
+     "offering": {
+      "model": "anthropic/claude-opus-4-7"
+     },
+     "model": "anthropic/claude-opus-4-7",
+     "warnings": [
+      "not_separable"
+     ],
+     "estimates": [
+      {
+       "domain": "software_engineering",
+       "value": 1.0,
+       "interval": [
+        0.5,
+        1.5
+       ]
+      }
+     ],
+     "contributions": [
+      {
+       "dimension": "software_engineering",
+       "refinement": null,
+       "unit": "latent capability",
+       "formula": "monotone domain evidence estimate",
+       "weight": 1.0,
+       "value": 1.0,
+       "raw_value": 1.0,
+       "normalisation": "fixture",
+       "evidence": [
+        {
+         "benchmark": "frontiercode_v1_1",
+         "value": 1.0,
+         "measured_by": "benchmark_author",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "direct",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "swe_bench_verified",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "direct",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "arena_webdev",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "arena_sc_coding",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "arena_sc_industry_software_it_services",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "may_qualify": [
+    {
+     "model": "deepseek/deepseek-flash",
+     "offering": {
+      "model": "deepseek/deepseek-flash"
+     },
+     "unknown": [
+      "software_engineering"
+     ]
+    },
+    {
+     "model": "openai/gpt-6-luna",
+     "offering": {
+      "model": "openai/gpt-6-luna"
+     },
+     "unknown": [
+      "software_engineering"
+     ]
+    }
+   ],
+   "relax": [],
+   "relax_to": [],
+   "warnings": [],
+   "out_of_lineup": 1340,
+   "reading": {
+    "tied": [
+     "anthropic/claude-opus-5-5",
+     "anthropic/claude-sonnet-5-5",
+     "openai/gpt-6-astra",
+     "anthropic/claude-opus-4-7"
+    ],
+    "estimates": [
+     "results.estimates"
+    ],
+    "do_not_claim": [
+     "Do not name a single winner among tied.",
+     "Do not present estimates as measurements."
+    ]
+   },
+   "bands": {
+    "best": [
+     {
+      "model": "anthropic/claude-opus-5-5",
+      "offering": {
+       "model": "anthropic/claude-opus-5-5"
+      },
+      "score": 1.0,
+      "score_interval": [
+       0.5,
+       1.5
+      ],
+      "p_best": 0.5,
+      "p_beats_leader": null,
+      "cost_per_task": null,
+      "estimates": [
+       {
+        "dimension": "software_engineering",
+        "value": 1.0,
+        "interval": [
+         0.5,
+         1.5
+        ],
+        "benchmarks": 3,
+        "direct_benchmarks": 1
+       }
+      ]
+     },
+     {
+      "model": "anthropic/claude-sonnet-5-5",
+      "offering": {
+       "model": "anthropic/claude-sonnet-5-5"
+      },
+      "score": 1.0,
+      "score_interval": [
+       0.5,
+       1.5
+      ],
+      "p_best": 0.5,
+      "p_beats_leader": null,
+      "cost_per_task": null,
+      "estimates": [
+       {
+        "dimension": "software_engineering",
+        "value": 1.0,
+        "interval": [
+         0.5,
+         1.5
+        ],
+        "benchmarks": 3,
+        "direct_benchmarks": 2
+       }
+      ]
+     },
+     {
+      "model": "openai/gpt-6-astra",
+      "offering": {
+       "model": "openai/gpt-6-astra"
+      },
+      "score": 1.0,
+      "score_interval": [
+       0.5,
+       1.5
+      ],
+      "p_best": 0.5,
+      "p_beats_leader": null,
+      "cost_per_task": null,
+      "estimates": [
+       {
+        "dimension": "software_engineering",
+        "value": 1.0,
+        "interval": [
+         0.5,
+         1.5
+        ],
+        "benchmarks": 7,
+        "direct_benchmarks": 2
+       }
+      ]
+     },
+     {
+      "model": "anthropic/claude-opus-4-7",
+      "offering": {
+       "model": "anthropic/claude-opus-4-7"
+      },
+      "score": 1.0,
+      "score_interval": [
+       0.5,
+       1.5
+      ],
+      "p_best": 0.5,
+      "p_beats_leader": null,
+      "cost_per_task": null,
+      "estimates": [
+       {
+        "dimension": "software_engineering",
+        "value": 1.0,
+        "interval": [
+         0.5,
+         1.5
+        ],
+        "benchmarks": 5,
+        "direct_benchmarks": 2
+       }
+      ]
+     }
+    ],
+    "rest": [],
+    "thin": [],
+    "basis": "probability bands: a model joins the leader when P(its score >= the leader's) >= 0.25 under the score posteriors; a weighted capability with an 80% interval wider than 2.8 is not enough evidence",
+    "band_probability": 0.25,
+    "thin_interval_width": 2.8,
+    "leader": "anthropic/claude-opus-5-5"
+   }
+  },
+  "production_must_mention": [
+   "anthropic/claude-opus-5-5, anthropic/claude-sonnet-5-5, and openai/gpt-6-astra, and 1 more have no leaderboard data for software_engineering; their positions are estimated, not measured.",
+   "2 more models may qualify, but ModelSpec lacks their values for these requirements.",
+   "ModelSpec compared only the models in its lineup; 1,340 active catalogue models are outside it.",
+   "Some values are estimates, not measurements."
+  ],
+  "production_summary": "ModelSpec's answer is incomplete, so it names no pick. What is missing: software_engineering. 2 more models may qualify, but ModelSpec lacks their values for these requirements. Requirements applied: model.class = text-generator. anthropic/claude-opus-5-5, anthropic/claude-sonnet-5-5, and openai/gpt-6-astra, and 1 more have no leaderboard data for software_engineering; their positions are estimated, not measured. ModelSpec compared only the models in its lineup; 1,340 active catalogue models are outside it. Some values are estimates, not measurements.",
+  "restored_from_local_rerun": [
+   "may_qualify",
+   "results",
+   "bands"
+  ]
+ },
+ {
+  "name": "recall-q02",
+  "scenario": "recall-q02",
+  "decision_id": "dec_b22e40eeb96554c99c6044b0",
+  "spec": {
+   "spec_version": 1,
+   "where": [
+    "model.class = text-generator"
+   ],
+   "optimize": {
+    "weights": {
+     "software_engineering/terminal_agent": 1
+    }
+   },
+   "task_tokens": {
+    "input": 150000,
+    "output": 15000
+   },
+   "task_type": "new_feature"
+  },
+  "decision": {
+   "status": "partial",
+   "answer": {
+    "kind": "tied",
+    "members": [
+     "anthropic/claude-opus-5-5",
+     "anthropic/claude-sonnet-5-5",
+     "openai/gpt-6-astra",
+     "anthropic/claude-opus-4-7",
+     "anthropic/claude-fable-5"
+    ],
+    "basis": "probability bands: a model joins the leader when P(its score >= the leader's) >= 0.25 under the score posteriors; a weighted capability with an 80% interval wider than 2.8 is not enough evidence",
+    "tie_breakers": {
+     "cheapest": "anthropic/claude-sonnet-5-5",
+     "open_weights": null,
+     "most_independently_measured": "anthropic/claude-opus-4-7",
+     "fastest": null
+    },
+    "deterministic_order": [
+     "anthropic/claude-opus-5-5",
+     "anthropic/claude-sonnet-5-5",
+     "openai/gpt-6-astra",
+     "anthropic/claude-opus-4-7",
+     "anthropic/claude-fable-5"
+    ]
+   },
+   "results": [
+    {
+     "rank": 1,
+     "offering": {
+      "model": "anthropic/claude-opus-5-5"
+     },
+     "model": "anthropic/claude-opus-5-5",
+     "warnings": [
+      "proxy_evidence_only",
+      "not_separable"
+     ],
+     "refinement_estimates": [
+      {
+       "key": "software_engineering/terminal_agent",
+       "domain": "software_engineering",
+       "refinement": "terminal_agent",
+       "value": 1.0,
+       "interval": [
+        0.5,
+        1.5
+       ],
+       "evidence_count": 1
+      }
+     ],
+     "contributions": [
+      {
+       "dimension": "software_engineering",
+       "refinement": "terminal_agent",
+       "unit": "latent capability",
+       "formula": "software_engineering estimate plus a partially pooled proxy-only terminal agent adjustment",
+       "weight": 1.0,
+       "value": 1.0,
+       "raw_value": 1.0,
+       "normalisation": "fixture",
+       "evidence": [
+        {
+         "benchmark": "terminal_bench_v4_0",
+         "value": 1.0,
+         "measured_by": "provider_self_report",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "rank": 2,
+     "offering": {
+      "model": "anthropic/claude-sonnet-5-5"
+     },
+     "model": "anthropic/claude-sonnet-5-5",
+     "warnings": [
+      "proxy_evidence_only",
+      "not_separable"
+     ],
+     "refinement_estimates": [
+      {
+       "key": "software_engineering/terminal_agent",
+       "domain": "software_engineering",
+       "refinement": "terminal_agent",
+       "value": 1.0,
+       "interval": [
+        0.5,
+        1.5
+       ],
+       "evidence_count": 1
+      }
+     ],
+     "contributions": [
+      {
+       "dimension": "software_engineering",
+       "refinement": "terminal_agent",
+       "unit": "latent capability",
+       "formula": "software_engineering estimate plus a partially pooled proxy-only terminal agent adjustment",
+       "weight": 1.0,
+       "value": 1.0,
+       "raw_value": 1.0,
+       "normalisation": "fixture",
+       "evidence": [
+        {
+         "benchmark": "terminal_bench_v4_0",
+         "value": 1.0,
+         "measured_by": "provider_self_report",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "rank": 3,
+     "offering": {
+      "model": "openai/gpt-6-astra"
+     },
+     "model": "openai/gpt-6-astra",
+     "warnings": [
+      "proxy_evidence_only",
+      "not_separable"
+     ],
+     "refinement_estimates": [
+      {
+       "key": "software_engineering/terminal_agent",
+       "domain": "software_engineering",
+       "refinement": "terminal_agent",
+       "value": 1.0,
+       "interval": [
+        0.5,
+        1.5
+       ],
+       "evidence_count": 1
+      }
+     ],
+     "contributions": [
+      {
+       "dimension": "software_engineering",
+       "refinement": "terminal_agent",
+       "unit": "latent capability",
+       "formula": "software_engineering estimate plus a partially pooled proxy-only terminal agent adjustment",
+       "weight": 1.0,
+       "value": 1.0,
+       "raw_value": 1.0,
+       "normalisation": "fixture",
+       "evidence": [
+        {
+         "benchmark": "terminal_bench_v4_0",
+         "value": 1.0,
+         "measured_by": "benchmark_author",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "rank": 4,
+     "offering": {
+      "model": "anthropic/claude-opus-4-7"
+     },
+     "model": "anthropic/claude-opus-4-7",
+     "warnings": [
+      "not_separable"
+     ],
+     "refinement_estimates": [
+      {
+       "key": "software_engineering/terminal_agent",
+       "domain": "software_engineering",
+       "refinement": "terminal_agent",
+       "value": 1.0,
+       "interval": [
+        0.5,
+        1.5
+       ],
+       "evidence_count": 0
+      }
+     ],
+     "contributions": [
+      {
+       "dimension": "software_engineering",
+       "refinement": "terminal_agent",
+       "unit": "latent capability",
+       "formula": "no terminal agent evidence: the software_engineering estimate, with a wider interval",
+       "weight": 1.0,
+       "value": 1.0,
+       "raw_value": 1.0,
+       "normalisation": "fixture",
+       "evidence": [
+        {
+         "benchmark": "frontiercode_v1_1",
+         "value": 1.0,
+         "measured_by": "benchmark_author",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "direct",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "swe_bench_verified",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "direct",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "arena_webdev",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "arena_sc_coding",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "arena_sc_industry_software_it_services",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "rank": 5,
+     "offering": {
+      "model": "anthropic/claude-fable-5"
+     },
+     "model": "anthropic/claude-fable-5",
+     "warnings": [
+      "proxy_evidence_only",
+      "not_separable"
+     ],
+     "refinement_estimates": [
+      {
+       "key": "software_engineering/terminal_agent",
+       "domain": "software_engineering",
+       "refinement": "terminal_agent",
+       "value": 1.0,
+       "interval": [
+        0.5,
+        1.5
+       ],
+       "evidence_count": 1
+      }
+     ],
+     "contributions": [
+      {
+       "dimension": "software_engineering",
+       "refinement": "terminal_agent",
+       "unit": "latent capability",
+       "formula": "software_engineering estimate plus a partially pooled proxy-only terminal agent adjustment",
+       "weight": 1.0,
+       "value": 1.0,
+       "raw_value": 1.0,
+       "normalisation": "fixture",
+       "evidence": [
+        {
+         "benchmark": "terminal_bench_v4_0",
+         "value": 1.0,
+         "measured_by": "benchmark_author",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "may_qualify": [
+    {
+     "model": "deepseek/deepseek-flash",
+     "offering": {
+      "model": "deepseek/deepseek-flash"
+     },
+     "unknown": [
+      "software_engineering"
+     ]
+    },
+    {
+     "model": "google/gemma-4-26b-a4b-it",
+     "offering": {
+      "model": "google/gemma-4-26b-a4b-it"
+     },
+     "unknown": [
+      "software_engineering"
+     ]
+    },
+    {
+     "model": "google/gemma-4-31b-it",
+     "offering": {
+      "model": "google/gemma-4-31b-it"
+     },
+     "unknown": [
+      "software_engineering"
+     ]
+    },
+    {
+     "model": "google/gemma-4-e2b-it",
+     "offering": {
+      "model": "google/gemma-4-e2b-it"
+     },
+     "unknown": [
+      "software_engineering"
+     ]
+    },
+    {
+     "model": "google/gemma-4-e4b-it",
+     "offering": {
+      "model": "google/gemma-4-e4b-it"
+     },
+     "unknown": [
+      "software_engineering"
+     ]
+    },
+    {
+     "model": "openai/gpt-6-luna",
+     "offering": {
+      "model": "openai/gpt-6-luna"
+     },
+     "unknown": [
+      "software_engineering"
+     ]
+    }
+   ],
+   "relax": [],
+   "relax_to": [],
+   "warnings": [],
+   "out_of_lineup": 1340,
+   "reading": {
+    "tied": [
+     "anthropic/claude-opus-5-5",
+     "anthropic/claude-sonnet-5-5",
+     "openai/gpt-6-astra",
+     "anthropic/claude-opus-4-7",
+     "anthropic/claude-fable-5"
+    ],
+    "estimates": [
+     "results.refinement_estimates"
+    ],
+    "do_not_claim": [
+     "Do not name a single winner among tied.",
+     "Do not present estimates as measurements."
+    ]
+   },
+   "bands": {
+    "best": [
+     {
+      "model": "anthropic/claude-opus-5-5",
+      "offering": {
+       "model": "anthropic/claude-opus-5-5"
+      },
+      "score": 1.0,
+      "score_interval": [
+       0.5,
+       1.5
+      ],
+      "p_best": 0.5,
+      "p_beats_leader": null,
+      "cost_per_task": null,
+      "estimates": [
+       {
+        "dimension": "software_engineering/terminal_agent",
+        "value": 1.0,
+        "interval": [
+         0.5,
+         1.5
+        ],
+        "benchmarks": 1,
+        "direct_benchmarks": 0
+       }
+      ]
+     },
+     {
+      "model": "anthropic/claude-sonnet-5-5",
+      "offering": {
+       "model": "anthropic/claude-sonnet-5-5"
+      },
+      "score": 1.0,
+      "score_interval": [
+       0.5,
+       1.5
+      ],
+      "p_best": 0.5,
+      "p_beats_leader": null,
+      "cost_per_task": null,
+      "estimates": [
+       {
+        "dimension": "software_engineering/terminal_agent",
+        "value": 1.0,
+        "interval": [
+         0.5,
+         1.5
+        ],
+        "benchmarks": 1,
+        "direct_benchmarks": 0
+       }
+      ]
+     },
+     {
+      "model": "openai/gpt-6-astra",
+      "offering": {
+       "model": "openai/gpt-6-astra"
+      },
+      "score": 1.0,
+      "score_interval": [
+       0.5,
+       1.5
+      ],
+      "p_best": 0.5,
+      "p_beats_leader": null,
+      "cost_per_task": null,
+      "estimates": [
+       {
+        "dimension": "software_engineering/terminal_agent",
+        "value": 1.0,
+        "interval": [
+         0.5,
+         1.5
+        ],
+        "benchmarks": 1,
+        "direct_benchmarks": 0
+       }
+      ]
+     },
+     {
+      "model": "anthropic/claude-opus-4-7",
+      "offering": {
+       "model": "anthropic/claude-opus-4-7"
+      },
+      "score": 1.0,
+      "score_interval": [
+       0.5,
+       1.5
+      ],
+      "p_best": 0.5,
+      "p_beats_leader": null,
+      "cost_per_task": null,
+      "estimates": [
+       {
+        "dimension": "software_engineering/terminal_agent",
+        "value": 1.0,
+        "interval": [
+         0.5,
+         1.5
+        ],
+        "benchmarks": 0,
+        "direct_benchmarks": 0
+       }
+      ]
+     },
+     {
+      "model": "anthropic/claude-fable-5",
+      "offering": {
+       "model": "anthropic/claude-fable-5"
+      },
+      "score": 1.0,
+      "score_interval": [
+       0.5,
+       1.5
+      ],
+      "p_best": 0.5,
+      "p_beats_leader": null,
+      "cost_per_task": null,
+      "estimates": [
+       {
+        "dimension": "software_engineering/terminal_agent",
+        "value": 1.0,
+        "interval": [
+         0.5,
+         1.5
+        ],
+        "benchmarks": 1,
+        "direct_benchmarks": 0
+       }
+      ]
+     }
+    ],
+    "rest": [],
+    "thin": [],
+    "basis": "probability bands: a model joins the leader when P(its score >= the leader's) >= 0.25 under the score posteriors; a weighted capability with an 80% interval wider than 2.8 is not enough evidence",
+    "band_probability": 0.25,
+    "thin_interval_width": 2.8,
+    "leader": "anthropic/claude-opus-5-5"
+   }
+  },
+  "production_must_mention": [
+   "The evidence for software_engineering is a general proxy (terminal_bench_v4_0), not task-specific.",
+   "The evidence for software_engineering/terminal_agent is a general proxy, not task-specific.",
+   "anthropic/claude-opus-5-5 and anthropic/claude-sonnet-5-5, and 3 more have no leaderboard data for software_engineering/terminal_agent; their positions are estimated, not measured.",
+   "6 more models may qualify, but ModelSpec lacks their values for these requirements.",
+   "ModelSpec compared only the models in its lineup; 1,340 active catalogue models are outside it.",
+   "Some values are estimates, not measurements."
+  ],
+  "production_summary": "ModelSpec's answer is incomplete, so it names no pick. What is missing: software_engineering. 6 more models may qualify, but ModelSpec lacks their values for these requirements. Requirements applied: model.class = text-generator. The evidence for software_engineering is a general proxy (terminal_bench_v4_0), not task-specific. The evidence for software_engineering/terminal_agent is a general proxy, not task-specific. anthropic/claude-opus-5-5 and anthropic/claude-sonnet-5-5, and 3 more have no leaderboard data for software_engineering/terminal_agent; their positions are estimated, not measured. ModelSpec compared only the models in its lineup; 1,340 active catalogue models are outside it. Some values are estimates, not measurements.",
+  "restored_from_local_rerun": [
+   "may_qualify",
+   "results",
+   "bands"
+  ]
+ },
+ {
+  "name": "recall-q03",
+  "scenario": "recall-q03",
+  "decision_id": "dec_8e3230e4042ddcd89aee72d8",
+  "spec": {
+   "spec_version": 1,
+   "where": [
+    "model.class = text-generator",
+    "model.lifecycle = active"
+   ],
+   "optimize": {
+    "max": "software_engineering"
+   },
+   "task_type": "review",
+   "task_tokens": {
+    "input": 30000,
+    "output": 3000
+   },
+   "access": {
+    "kind": "own_software"
+   }
+  },
+  "decision": {
+   "status": "partial",
+   "answer": {
+    "kind": "tied",
+    "members": [
+     "anthropic/claude-opus-5-5",
+     "anthropic/claude-sonnet-5-5",
+     "openai/gpt-6-astra",
+     "anthropic/claude-opus-4-7"
+    ],
+    "basis": "probability bands: a model joins the leader when P(its score >= the leader's) >= 0.25 under the score posteriors; a weighted capability with an 80% interval wider than 2.8 is not enough evidence",
+    "tie_breakers": {
+     "cheapest": "anthropic/claude-sonnet-5-5",
+     "open_weights": null,
+     "most_independently_measured": "anthropic/claude-opus-4-7",
+     "fastest": null
+    },
+    "deterministic_order": [
+     "anthropic/claude-opus-5-5",
+     "anthropic/claude-sonnet-5-5",
+     "openai/gpt-6-astra",
+     "anthropic/claude-opus-4-7"
+    ]
+   },
+   "results": [
+    {
+     "rank": 1,
+     "offering": {
+      "model": "anthropic/claude-opus-5-5"
+     },
+     "model": "anthropic/claude-opus-5-5",
+     "warnings": [
+      "not_separable"
+     ],
+     "estimates": [
+      {
+       "domain": "software_engineering",
+       "value": 1.0,
+       "interval": [
+        0.5,
+        1.5
+       ]
+      }
+     ],
+     "contributions": [
+      {
+       "dimension": "software_engineering",
+       "refinement": null,
+       "unit": "latent capability",
+       "formula": "monotone domain evidence estimate",
+       "weight": 1.0,
+       "value": 1.0,
+       "raw_value": 1.0,
+       "normalisation": "fixture",
+       "evidence": [
+        {
+         "benchmark": "cursorbench_4",
+         "value": 1.0,
+         "measured_by": "benchmark_author",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "direct",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "arena_webdev",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "terminal_bench_v4_0",
+         "value": 1.0,
+         "measured_by": "provider_self_report",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "rank": 2,
+     "offering": {
+      "model": "anthropic/claude-sonnet-5-5"
+     },
+     "model": "anthropic/claude-sonnet-5-5",
+     "warnings": [
+      "not_separable"
+     ],
+     "estimates": [
+      {
+       "domain": "software_engineering",
+       "value": 1.0,
+       "interval": [
+        0.5,
+        1.5
+       ]
+      }
+     ],
+     "contributions": [
+      {
+       "dimension": "software_engineering",
+       "refinement": null,
+       "unit": "latent capability",
+       "formula": "monotone domain evidence estimate",
+       "weight": 1.0,
+       "value": 1.0,
+       "raw_value": 1.0,
+       "normalisation": "fixture",
+       "evidence": [
+        {
+         "benchmark": "cursorbench_4",
+         "value": 1.0,
+         "measured_by": "provider_self_report",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "direct",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "terminal_bench_v4_0",
+         "value": 1.0,
+         "measured_by": "provider_self_report",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "rank": 3,
+     "offering": {
+      "model": "openai/gpt-6-astra"
+     },
+     "model": "openai/gpt-6-astra",
+     "warnings": [
+      "not_separable"
+     ],
+     "estimates": [
+      {
+       "domain": "software_engineering",
+       "value": 1.0,
+       "interval": [
+        0.5,
+        1.5
+       ]
+      }
+     ],
+     "contributions": [
+      {
+       "dimension": "software_engineering",
+       "refinement": null,
+       "unit": "latent capability",
+       "formula": "monotone domain evidence estimate",
+       "weight": 1.0,
+       "value": 1.0,
+       "raw_value": 1.0,
+       "normalisation": "fixture",
+       "evidence": [
+        {
+         "benchmark": "deepswe_v1_1",
+         "value": 1.0,
+         "measured_by": "benchmark_author",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "direct",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "frontiercode_v1_1",
+         "value": 1.0,
+         "measured_by": "benchmark_author",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "direct",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "arena_webdev",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "arena_elo_coding",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "arena_sc_coding",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "arena_sc_industry_software_it_services",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "terminal_bench_v4_0",
+         "value": 1.0,
+         "measured_by": "benchmark_author",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "rank": 4,
+     "offering": {
+      "model": "anthropic/claude-opus-4-7"
+     },
+     "model": "anthropic/claude-opus-4-7",
+     "warnings": [
+      "not_separable"
+     ],
+     "estimates": [
+      {
+       "domain": "software_engineering",
+       "value": 1.0,
+       "interval": [
+        0.5,
+        1.5
+       ]
+      }
+     ],
+     "contributions": [
+      {
+       "dimension": "software_engineering",
+       "refinement": null,
+       "unit": "latent capability",
+       "formula": "monotone domain evidence estimate",
+       "weight": 1.0,
+       "value": 1.0,
+       "raw_value": 1.0,
+       "normalisation": "fixture",
+       "evidence": [
+        {
+         "benchmark": "frontiercode_v1_1",
+         "value": 1.0,
+         "measured_by": "benchmark_author",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "direct",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "swe_bench_verified",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "direct",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "arena_webdev",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "arena_sc_coding",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "arena_sc_industry_software_it_services",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "software_engineering",
+         "record_id": "fixture"
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "may_qualify": [
+    {
+     "model": "deepseek/deepseek-flash",
+     "offering": {
+      "model": "deepseek/deepseek-flash"
+     },
+     "unknown": [
+      "software_engineering"
+     ]
+    },
+    {
+     "model": "openai/gpt-6-luna",
+     "offering": {
+      "model": "openai/gpt-6-luna"
+     },
+     "unknown": [
+      "software_engineering"
+     ]
+    }
+   ],
+   "relax": [],
+   "relax_to": [],
+   "warnings": [],
+   "out_of_lineup": 1340,
+   "reading": {
+    "tied": [
+     "anthropic/claude-opus-5-5",
+     "anthropic/claude-sonnet-5-5",
+     "openai/gpt-6-astra",
+     "anthropic/claude-opus-4-7"
+    ],
+    "estimates": [
+     "results.estimates"
+    ],
+    "do_not_claim": [
+     "Do not name a single winner among tied.",
+     "Do not present estimates as measurements."
+    ]
+   },
+   "bands": {
+    "best": [
+     {
+      "model": "anthropic/claude-opus-5-5",
+      "offering": {
+       "model": "anthropic/claude-opus-5-5"
+      },
+      "score": 1.0,
+      "score_interval": [
+       0.5,
+       1.5
+      ],
+      "p_best": 0.5,
+      "p_beats_leader": null,
+      "cost_per_task": null,
+      "estimates": [
+       {
+        "dimension": "software_engineering",
+        "value": 1.0,
+        "interval": [
+         0.5,
+         1.5
+        ],
+        "benchmarks": 3,
+        "direct_benchmarks": 1
+       }
+      ]
+     },
+     {
+      "model": "anthropic/claude-sonnet-5-5",
+      "offering": {
+       "model": "anthropic/claude-sonnet-5-5"
+      },
+      "score": 1.0,
+      "score_interval": [
+       0.5,
+       1.5
+      ],
+      "p_best": 0.5,
+      "p_beats_leader": null,
+      "cost_per_task": null,
+      "estimates": [
+       {
+        "dimension": "software_engineering",
+        "value": 1.0,
+        "interval": [
+         0.5,
+         1.5
+        ],
+        "benchmarks": 3,
+        "direct_benchmarks": 2
+       }
+      ]
+     },
+     {
+      "model": "openai/gpt-6-astra",
+      "offering": {
+       "model": "openai/gpt-6-astra"
+      },
+      "score": 1.0,
+      "score_interval": [
+       0.5,
+       1.5
+      ],
+      "p_best": 0.5,
+      "p_beats_leader": null,
+      "cost_per_task": null,
+      "estimates": [
+       {
+        "dimension": "software_engineering",
+        "value": 1.0,
+        "interval": [
+         0.5,
+         1.5
+        ],
+        "benchmarks": 7,
+        "direct_benchmarks": 2
+       }
+      ]
+     },
+     {
+      "model": "anthropic/claude-opus-4-7",
+      "offering": {
+       "model": "anthropic/claude-opus-4-7"
+      },
+      "score": 1.0,
+      "score_interval": [
+       0.5,
+       1.5
+      ],
+      "p_best": 0.5,
+      "p_beats_leader": null,
+      "cost_per_task": null,
+      "estimates": [
+       {
+        "dimension": "software_engineering",
+        "value": 1.0,
+        "interval": [
+         0.5,
+         1.5
+        ],
+        "benchmarks": 5,
+        "direct_benchmarks": 2
+       }
+      ]
+     }
+    ],
+    "rest": [],
+    "thin": [],
+    "basis": "probability bands: a model joins the leader when P(its score >= the leader's) >= 0.25 under the score posteriors; a weighted capability with an 80% interval wider than 2.8 is not enough evidence",
+    "band_probability": 0.25,
+    "thin_interval_width": 2.8,
+    "leader": "anthropic/claude-opus-5-5"
+   }
+  },
+  "production_must_mention": [
+   "anthropic/claude-opus-5-5, anthropic/claude-sonnet-5-5, and openai/gpt-6-astra, and 1 more have no leaderboard data for software_engineering; their positions are estimated, not measured.",
+   "2 more models may qualify, but ModelSpec lacks their values for these requirements.",
+   "ModelSpec compared only the models in its lineup; 1,340 active catalogue models are outside it.",
+   "Some values are estimates, not measurements."
+  ],
+  "production_summary": "ModelSpec's answer is incomplete, so it names no pick. What is missing: software_engineering. 2 more models may qualify, but ModelSpec lacks their values for these requirements. Requirements applied: model.class = text-generator; model.lifecycle = active. anthropic/claude-opus-5-5, anthropic/claude-sonnet-5-5, and openai/gpt-6-astra, and 1 more have no leaderboard data for software_engineering; their positions are estimated, not measured. ModelSpec compared only the models in its lineup; 1,340 active catalogue models are outside it. Some values are estimates, not measurements.",
+  "restored_from_local_rerun": [
+   "may_qualify",
+   "results",
+   "bands"
+  ]
+ },
+ {
+  "name": "recall-q05",
+  "scenario": "recall-q05",
+  "decision_id": "dec_126419bcb4ab5c0c86ae54d7",
+  "spec": {
+   "spec_version": 1,
+   "where": [
+    "model.class = text-generator",
+    "model.lifecycle = active"
+   ],
+   "optimize": {
+    "max": "chat_preference"
+   },
+   "task_tokens": {
+    "input": 2000,
+    "output": 500
+   }
+  },
+  "decision": {
+   "status": "partial",
+   "answer": {
+    "kind": "tied",
+    "members": [
+     "anthropic/claude-opus-5-5",
+     "anthropic/claude-fable-5"
+    ],
+    "basis": "probability bands: a model joins the leader when P(its score >= the leader's) >= 0.25 under the score posteriors; a weighted capability with an 80% interval wider than 2.8 is not enough evidence",
+    "tie_breakers": {
+     "cheapest": "anthropic/claude-opus-5-5",
+     "open_weights": null,
+     "most_independently_measured": "anthropic/claude-fable-5",
+     "fastest": null
+    },
+    "deterministic_order": [
+     "anthropic/claude-opus-5-5",
+     "anthropic/claude-fable-5"
+    ]
+   },
+   "results": [
+    {
+     "rank": 1,
+     "offering": {
+      "model": "anthropic/claude-opus-5-5"
+     },
+     "model": "anthropic/claude-opus-5-5",
+     "warnings": [
+      "not_separable"
+     ],
+     "estimates": [
+      {
+       "domain": "chat_preference",
+       "value": 1.0,
+       "interval": [
+        0.5,
+        1.5
+       ]
+      }
+     ],
+     "contributions": [
+      {
+       "dimension": "chat_preference",
+       "refinement": null,
+       "unit": "latent capability",
+       "formula": "monotone domain evidence estimate",
+       "weight": 1.0,
+       "value": 1.0,
+       "raw_value": 1.0,
+       "normalisation": "fixture",
+       "evidence": [
+        {
+         "benchmark": "arena_webdev",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "direct",
+         "requested_domain": "chat_preference",
+         "record_id": "fixture"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "rank": 2,
+     "offering": {
+      "model": "anthropic/claude-fable-5"
+     },
+     "model": "anthropic/claude-fable-5",
+     "warnings": [
+      "not_separable"
+     ],
+     "estimates": [
+      {
+       "domain": "chat_preference",
+       "value": 1.0,
+       "interval": [
+        0.5,
+        1.5
+       ]
+      }
+     ],
+     "contributions": [
+      {
+       "dimension": "chat_preference",
+       "refinement": null,
+       "unit": "latent capability",
+       "formula": "monotone domain evidence estimate",
+       "weight": 1.0,
+       "value": 1.0,
+       "raw_value": 1.0,
+       "normalisation": "fixture",
+       "evidence": [
+        {
+         "benchmark": "arena_webdev",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "direct",
+         "requested_domain": "chat_preference",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "arena_elo_style_control",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "direct",
+         "requested_domain": "chat_preference",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "arena_sc_business",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "direct",
+         "requested_domain": "chat_preference",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "arena_sc_chinese",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "direct",
+         "requested_domain": "chat_preference",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "arena_sc_coding",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "direct",
+         "requested_domain": "chat_preference",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "arena_sc_creative_writing",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "direct",
+         "requested_domain": "chat_preference",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "arena_sc_document",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "direct",
+         "requested_domain": "chat_preference",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "arena_sc_english",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "direct",
+         "requested_domain": "chat_preference",
+         "record_id": "fixture"
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "may_qualify": [
+    {
+     "model": "anthropic/claude-sonnet-5-5",
+     "offering": {
+      "model": "anthropic/claude-sonnet-5-5"
+     },
+     "unknown": [
+      "chat_preference"
+     ]
+    },
+    {
+     "model": "anthropic/claude-sonnet-5-5",
+     "offering": {
+      "model": "anthropic/claude-sonnet-5-5"
+     },
+     "unknown": [
+      "chat_preference"
+     ]
+    },
+    {
+     "model": "deepseek/deepseek-flash",
+     "offering": {
+      "model": "deepseek/deepseek-flash"
+     },
+     "unknown": [
+      "chat_preference"
+     ]
+    },
+    {
+     "model": "anthropic/claude-sonnet-5-5",
+     "offering": {
+      "model": "anthropic/claude-sonnet-5-5"
+     },
+     "unknown": [
+      "chat_preference"
+     ]
+    },
+    {
+     "model": "google/gemma-4-26b-a4b-it",
+     "offering": {
+      "model": "google/gemma-4-26b-a4b-it"
+     },
+     "unknown": [
+      "chat_preference"
+     ]
+    },
+    {
+     "model": "google/gemma-4-31b-it",
+     "offering": {
+      "model": "google/gemma-4-31b-it"
+     },
+     "unknown": [
+      "chat_preference"
+     ]
+    },
+    {
+     "model": "google/gemma-4-e2b-it",
+     "offering": {
+      "model": "google/gemma-4-e2b-it"
+     },
+     "unknown": [
+      "chat_preference"
+     ]
+    },
+    {
+     "model": "google/gemma-4-e4b-it",
+     "offering": {
+      "model": "google/gemma-4-e4b-it"
+     },
+     "unknown": [
+      "chat_preference"
+     ]
+    },
+    {
+     "model": "openai/gpt-6-luna",
+     "offering": {
+      "model": "openai/gpt-6-luna"
+     },
+     "unknown": [
+      "chat_preference"
+     ]
+    }
+   ],
+   "relax": [],
+   "relax_to": [],
+   "warnings": [],
+   "out_of_lineup": 1340,
+   "reading": {
+    "tied": [
+     "anthropic/claude-opus-5-5",
+     "anthropic/claude-fable-5"
+    ],
+    "estimates": [
+     "results.estimates"
+    ],
+    "do_not_claim": [
+     "Do not name a single winner among tied.",
+     "Do not present estimates as measurements."
+    ]
+   },
+   "bands": {
+    "best": [
+     {
+      "model": "anthropic/claude-opus-5-5",
+      "offering": {
+       "model": "anthropic/claude-opus-5-5"
+      },
+      "score": 1.0,
+      "score_interval": [
+       0.5,
+       1.5
+      ],
+      "p_best": 0.5,
+      "p_beats_leader": null,
+      "cost_per_task": null,
+      "estimates": [
+       {
+        "dimension": "chat_preference",
+        "value": 1.0,
+        "interval": [
+         0.5,
+         1.5
+        ],
+        "benchmarks": 1,
+        "direct_benchmarks": 1
+       }
+      ]
+     },
+     {
+      "model": "anthropic/claude-fable-5",
+      "offering": {
+       "model": "anthropic/claude-fable-5"
+      },
+      "score": 1.0,
+      "score_interval": [
+       0.5,
+       1.5
+      ],
+      "p_best": 0.5,
+      "p_beats_leader": null,
+      "cost_per_task": null,
+      "estimates": [
+       {
+        "dimension": "chat_preference",
+        "value": 1.0,
+        "interval": [
+         0.5,
+         1.5
+        ],
+        "benchmarks": 34,
+        "direct_benchmarks": 34
+       }
+      ]
+     }
+    ],
+    "rest": [],
+    "thin": [],
+    "basis": "probability bands: a model joins the leader when P(its score >= the leader's) >= 0.25 under the score posteriors; a weighted capability with an 80% interval wider than 2.8 is not enough evidence",
+    "band_probability": 0.25,
+    "thin_interval_width": 2.8,
+    "leader": "anthropic/claude-opus-5-5"
+   }
+  },
+  "production_must_mention": [
+   "anthropic/claude-opus-5-5 and anthropic/claude-fable-5 have no leaderboard data for chat_preference; their positions are estimated, not measured.",
+   "9 more models may qualify, but ModelSpec lacks their values for these requirements.",
+   "ModelSpec compared only the models in its lineup; 1,340 active catalogue models are outside it.",
+   "Some values are estimates, not measurements."
+  ],
+  "production_summary": "ModelSpec's answer is incomplete, so it names no pick. What is missing: chat_preference. 9 more models may qualify, but ModelSpec lacks their values for these requirements. Requirements applied: model.class = text-generator; model.lifecycle = active. anthropic/claude-opus-5-5 and anthropic/claude-fable-5 have no leaderboard data for chat_preference; their positions are estimated, not measured. ModelSpec compared only the models in its lineup; 1,340 active catalogue models are outside it. Some values are estimates, not measurements.",
+  "restored_from_local_rerun": [
+   "may_qualify",
+   "results",
+   "bands"
+  ]
+ },
+ {
+  "name": "recall-q07",
+  "scenario": "recall-q07",
+  "decision_id": "dec_f408512b12ba036e034e4e5f",
+  "spec": {
+   "spec_version": 1,
+   "where": [
+    "model.class = text-generator",
+    "model.lifecycle = active"
+   ],
+   "optimize": {
+    "weights": {
+     "maths/competition_maths": 1
+    }
+   },
+   "task_tokens": {
+    "input": 500,
+    "output": 8000
+   }
+  },
+  "decision": {
+   "status": "partial",
+   "answer": {
+    "kind": "tied",
+    "members": [
+     "openai/gpt-6-astra",
+     "openai/gpt-6-sol",
+     "openai/gpt-5-6-sol"
+    ],
+    "basis": "probability bands: a model joins the leader when P(its score >= the leader's) >= 0.25 under the score posteriors; a weighted capability with an 80% interval wider than 2.8 is not enough evidence",
+    "tie_breakers": {
+     "cheapest": "openai/gpt-6-sol",
+     "open_weights": null,
+     "most_independently_measured": "openai/gpt-5-6-sol",
+     "fastest": null
+    },
+    "deterministic_order": [
+     "openai/gpt-6-astra",
+     "openai/gpt-6-sol",
+     "openai/gpt-5-6-sol"
+    ]
+   },
+   "results": [
+    {
+     "rank": 1,
+     "offering": {
+      "model": "openai/gpt-6-astra"
+     },
+     "model": "openai/gpt-6-astra",
+     "warnings": [
+      "not_separable"
+     ],
+     "refinement_estimates": [
+      {
+       "key": "maths/competition_maths",
+       "domain": "maths",
+       "refinement": "competition_maths",
+       "value": 1.0,
+       "interval": [
+        0.5,
+        1.5
+       ],
+       "evidence_count": 0
+      }
+     ],
+     "contributions": [
+      {
+       "dimension": "maths",
+       "refinement": "competition_maths",
+       "unit": "latent capability",
+       "formula": "no competition maths evidence: the maths estimate, with a wider interval",
+       "weight": 1.0,
+       "value": 1.0,
+       "raw_value": 1.0,
+       "normalisation": "fixture",
+       "evidence": [
+        {
+         "benchmark": "arxivmath",
+         "value": 1.0,
+         "measured_by": "benchmark_author",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "direct",
+         "requested_domain": "maths",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "frontiermath_tiers_1_3_v2",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "direct",
+         "requested_domain": "maths",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "brokenarxiv",
+         "value": 1.0,
+         "measured_by": "benchmark_author",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "maths",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "hle",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "maths",
+         "record_id": "fixture"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "rank": 2,
+     "offering": {
+      "model": "openai/gpt-6-sol"
+     },
+     "model": "openai/gpt-6-sol",
+     "warnings": [
+      "not_separable"
+     ],
+     "refinement_estimates": [
+      {
+       "key": "maths/competition_maths",
+       "domain": "maths",
+       "refinement": "competition_maths",
+       "value": 1.0,
+       "interval": [
+        0.5,
+        1.5
+       ],
+       "evidence_count": 0
+      }
+     ],
+     "contributions": [
+      {
+       "dimension": "maths",
+       "refinement": "competition_maths",
+       "unit": "latent capability",
+       "formula": "no competition maths evidence: the maths estimate, with a wider interval",
+       "weight": 1.0,
+       "value": 1.0,
+       "raw_value": 1.0,
+       "normalisation": "fixture",
+       "evidence": [
+        {
+         "benchmark": "arxivmath",
+         "value": 1.0,
+         "measured_by": "benchmark_author",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "direct",
+         "requested_domain": "maths",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "brokenarxiv",
+         "value": 1.0,
+         "measured_by": "benchmark_author",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "maths",
+         "record_id": "fixture"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "rank": 3,
+     "offering": {
+      "model": "openai/gpt-5-6-sol"
+     },
+     "model": "openai/gpt-5-6-sol",
+     "warnings": [
+      "not_separable"
+     ],
+     "refinement_estimates": [
+      {
+       "key": "maths/competition_maths",
+       "domain": "maths",
+       "refinement": "competition_maths",
+       "value": 1.0,
+       "interval": [
+        0.5,
+        1.5
+       ],
+       "evidence_count": 0
+      }
+     ],
+     "contributions": [
+      {
+       "dimension": "maths",
+       "refinement": "competition_maths",
+       "unit": "latent capability",
+       "formula": "no competition maths evidence: the maths estimate, with a wider interval",
+       "weight": 1.0,
+       "value": 1.0,
+       "raw_value": 1.0,
+       "normalisation": "fixture",
+       "evidence": [
+        {
+         "benchmark": "frontiermath_tiers_1_3_v2",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "direct",
+         "requested_domain": "maths",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "arena_sc_industry_mathematical",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "maths",
+         "record_id": "fixture"
+        },
+        {
+         "benchmark": "arena_sc_math",
+         "value": 1.0,
+         "measured_by": "independent",
+         "date": "2026-10-01",
+         "date_type": "observed",
+         "source": "https://example.org/board",
+         "directness": "proxy",
+         "requested_domain": "maths",
+         "record_id": "fixture"
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "may_qualify": [
+    {
+     "model": "qwen/qwen3-8-max-0902",
+     "offering": {
+      "model": "qwen/qwen3-8-max-0902"
+     },
+     "unknown": [
+      "maths"
+     ]
+    },
+    {
+     "model": "anthropic/claude-sonnet-5-5",
+     "offering": {
+      "model": "anthropic/claude-sonnet-5-5"
+     },
+     "unknown": [
+      "maths"
+     ]
+    },
+    {
+     "model": "anthropic/claude-sonnet-5-5",
+     "offering": {
+      "model": "anthropic/claude-sonnet-5-5"
+     },
+     "unknown": [
+      "maths"
+     ]
+    },
+    {
+     "model": "anthropic/claude-sonnet-5-5",
+     "offering": {
+      "model": "anthropic/claude-sonnet-5-5"
+     },
+     "unknown": [
+      "maths"
+     ]
+    },
+    {
+     "model": "openai/gpt-6-luna",
+     "offering": {
+      "model": "openai/gpt-6-luna"
+     },
+     "unknown": [
+      "maths"
+     ]
+    },
+    {
+     "model": "qwen/qwen3-8-flash-next",
+     "offering": {
+      "model": "qwen/qwen3-8-flash-next"
+     },
+     "unknown": [
+      "maths"
+     ]
+    }
+   ],
+   "relax": [],
+   "relax_to": [],
+   "warnings": [],
+   "out_of_lineup": 1340,
+   "reading": {
+    "tied": [
+     "openai/gpt-6-astra",
+     "openai/gpt-6-sol",
+     "openai/gpt-5-6-sol"
+    ],
+    "estimates": [
+     "results.refinement_estimates"
+    ],
+    "do_not_claim": [
+     "Do not name a single winner among tied.",
+     "Do not present estimates as measurements."
+    ]
+   },
+   "bands": {
+    "best": [
+     {
+      "model": "openai/gpt-6-astra",
+      "offering": {
+       "model": "openai/gpt-6-astra"
+      },
+      "score": 1.0,
+      "score_interval": [
+       0.5,
+       1.5
+      ],
+      "p_best": 0.5,
+      "p_beats_leader": null,
+      "cost_per_task": null,
+      "estimates": [
+       {
+        "dimension": "maths/competition_maths",
+        "value": 1.0,
+        "interval": [
+         0.5,
+         1.5
+        ],
+        "benchmarks": 0,
+        "direct_benchmarks": 0
+       }
+      ]
+     },
+     {
+      "model": "openai/gpt-6-sol",
+      "offering": {
+       "model": "openai/gpt-6-sol"
+      },
+      "score": 1.0,
+      "score_interval": [
+       0.5,
+       1.5
+      ],
+      "p_best": 0.5,
+      "p_beats_leader": null,
+      "cost_per_task": null,
+      "estimates": [
+       {
+        "dimension": "maths/competition_maths",
+        "value": 1.0,
+        "interval": [
+         0.5,
+         1.5
+        ],
+        "benchmarks": 0,
+        "direct_benchmarks": 0
+       }
+      ]
+     },
+     {
+      "model": "openai/gpt-5-6-sol",
+      "offering": {
+       "model": "openai/gpt-5-6-sol"
+      },
+      "score": 1.0,
+      "score_interval": [
+       0.5,
+       1.5
+      ],
+      "p_best": 0.5,
+      "p_beats_leader": null,
+      "cost_per_task": null,
+      "estimates": [
+       {
+        "dimension": "maths/competition_maths",
+        "value": 1.0,
+        "interval": [
+         0.5,
+         1.5
+        ],
+        "benchmarks": 0,
+        "direct_benchmarks": 0
+       }
+      ]
+     }
+    ],
+    "rest": [],
+    "thin": [],
+    "basis": "probability bands: a model joins the leader when P(its score >= the leader's) >= 0.25 under the score posteriors; a weighted capability with an 80% interval wider than 2.8 is not enough evidence",
+    "band_probability": 0.25,
+    "thin_interval_width": 2.8,
+    "leader": "openai/gpt-6-astra"
+   }
+  },
+  "production_must_mention": [
+   "openai/gpt-6-astra, openai/gpt-6-sol, and openai/gpt-5-6-sol have no leaderboard data for maths/competition_maths; their positions are estimated, not measured.",
+   "6 more models may qualify, but ModelSpec lacks their values for these requirements.",
+   "ModelSpec compared only the models in its lineup; 1,340 active catalogue models are outside it.",
+   "Some values are estimates, not measurements."
+  ],
+  "production_summary": "ModelSpec's answer is incomplete, so it names no pick. What is missing: maths. 6 more models may qualify, but ModelSpec lacks their values for these requirements. Requirements applied: model.class = text-generator; model.lifecycle = active. openai/gpt-6-astra, openai/gpt-6-sol, and openai/gpt-5-6-sol have no leaderboard data for maths/competition_maths; their positions are estimated, not measured. ModelSpec compared only the models in its lineup; 1,340 active catalogue models are outside it. Some values are estimates, not measurements.",
+  "restored_from_local_rerun": [
+   "may_qualify",
+   "results",
+   "bands"
+  ]
+ },
+ {
+  "name": "recall-q10",
+  "scenario": "recall-q10",
+  "decision_id": "dec_5c23fe02d3c9047218931e6e",
+  "spec": {
+   "spec_version": 1,
+   "where": [
+    "model.class = text-generator",
+    "offering.price.input <= 0.2"
+   ],
+   "optimize": {
+    "min": "offering.cost_per_task"
+   },
+   "task_tokens": {
+    "input": 1500,
+    "output": 400
+   },
+   "access": {
+    "kind": "own_software"
+   }
+  },
+  "decision": {
+   "status": "answered",
+   "answer": {
+    "kind": "separated",
+    "members": [
+     "openai/gpt-6-luna"
+    ],
+    "leader": "openai/gpt-6-luna",
+    "basis": "probability bands: a model joins the leader when P(its score >= the leader's) >= 0.25 under the score posteriors; a weighted capability with an 80% interval wider than 2.8 is not enough evidence",
+    "tie_breakers": {
+     "cheapest": null,
+     "open_weights": null,
+     "most_independently_measured": null,
+     "fastest": null
+    },
+    "deterministic_order": [
+     "openai/gpt-6-luna"
+    ]
+   },
+   "results": [
+    {
+     "rank": 1,
+     "offering": {
+      "model": "openai/gpt-6-luna"
+     },
+     "model": "openai/gpt-6-luna",
+     "warnings": []
+    }
+   ],
+   "may_qualify": [],
+   "relax": [],
+   "relax_to": [],
+   "warnings": [],
+   "out_of_lineup": 1340,
+   "reading": {
+    "do_not_claim": [
+     "Do not claim a quality rank from this objective."
+    ]
+   }
+  },
+  "production_must_mention": [
+   "This answer is ordered by cost only; it is not a quality ranking.",
+   "ModelSpec compared only the models in its lineup; 1,340 active catalogue models are outside it."
+  ],
+  "production_summary": "ModelSpec's answer is openai/gpt-6-luna. Requirements applied: model.class = text-generator; offering.price.input <= 0.2. This answer is ordered by cost only; it is not a quality ranking. ModelSpec compared only the models in its lineup; 1,340 active catalogue models are outside it."
+ },
+ {
+  "name": "hardware-m4-gated",
+  "scenario": "hardware-m4",
+  "decision_id": "dec_63981663b53bde1ddd6a4cc1",
+  "spec": {
+   "spec_version": 1,
+   "where": [
+    "model.class = text-generator",
+    "model.lifecycle = active",
+    "model.weights_openness = open_weights",
+    "licence.commercial_use in {permitted, permitted_with_conditions}",
+    {
+     "facet": "model.fits_hardware",
+     "in": [
+      "apple_m4"
+     ]
+    }
+   ],
+   "optimize": {
+    "max": "chat_preference"
+   },
+   "access": {
+    "kind": "own_hardware"
+   },
+   "estate": {
+    "devices": [
+     "apple_m4"
+    ]
+   },
+   "task_tokens": {
+    "input": 6000,
+    "output": 1000
+   }
+  },
+  "decision": {
+   "status": "no_feasible",
+   "answer": null,
+   "results": [],
+   "may_qualify": [
+    {
+     "model": "anthropic/claude-sonnet-5-5",
+     "offering": {
+      "model": "anthropic/claude-sonnet-5-5"
+     },
+     "unknown": [
+      "model.fits_hardware",
+      "model.weights_openness"
+     ]
+    }
+   ],
+   "relax": [
+    "specify a benchmark or wait for the capability model (MODEL-129)"
+   ],
+   "relax_to": [],
+   "warnings": [],
+   "out_of_lineup": 1340,
+   "reading": {
+    "estimates": [
+     "model.fits_hardware"
+    ],
+    "do_not_claim": [
+     "Do not present estimates as measurements.",
+     "Do not claim fit for a specific quantization or context workload."
+    ]
+   }
+  },
+  "production_must_mention": [
+   "1 more model may qualify, but ModelSpec lacks its values for these requirements.",
+   "ModelSpec compared only the models in its lineup; 1,340 active catalogue models are outside it.",
+   "fits_hardware is an estimate, not a measured fit for a quantization or context workload."
+  ],
+  "production_summary": "ModelSpec found no model that meets every requirement, so it names no pick. These requirements together exclude every model: model.class = text-generator; model.lifecycle = active; model.weights_openness = open_weights; licence.commercial_use in {permitted, permitted_with_conditions}; model.fits_hardware in {apple_m4}. Requirements applied: model.class = text-generator; model.lifecycle = active; model.weights_openness = open_weights; licence.commercial_use in {permitted, permitted_with_conditions}; model.fits_hardware in {apple_m4}. 1 more model may qualify, but ModelSpec lacks its values for these requirements. ModelSpec compared only the models in its lineup; 1,340 active catalogue models are outside it. fits_hardware is an estimate, not a measured fit for a quantization or context workload."
+ },
+ {
+  "name": "hardware-m4-relaxed",
+  "scenario": "hardware-m4",
+  "decision_id": "dec_f041bd0cf0266f446c07bc1d",
+  "spec": {
+   "spec_version": 1,
+   "where": [
+    "model.class = text-generator",
+    "model.lifecycle = active",
+    "model.weights_openness = open_weights",
+    "licence.commercial_use in {permitted, permitted_with_conditions}"
+   ],
+   "optimize": {
+    "max": "chat_preference"
+   },
+   "access": {
+    "kind": "own_hardware"
+   },
+   "task_tokens": {
+    "input": 6000,
+    "output": 1000
+   }
+  },
+  "decision": {
+   "status": "partial",
+   "answer": {
+    "kind": "tied",
+    "members": [
+     "qwen/qwen3-8-flash-next",
+     "zhipu/glm-5-3"
+    ],
+    "basis": "probability bands: a model joins the leader when P(its score >= the leader's) >= 0.25 under the score posteriors; a weighted capability with an 80% interval wider than 2.8 is not enough evidence",
+    "tie_breakers": {
+     "cheapest": null,
+     "open_weights": null,
+     "most_independently_measured": "zhipu/glm-5-3",
+     "fastest": null
+    },
+    "deterministic_order": [
+     "qwen/qwen3-8-flash-next",
+     "zhipu/glm-5-3"
+    ]
+   },
+   "results": [
+    {
+     "rank": 1,
+     "offering": {
+      "model": "qwen/qwen3-8-flash-next"
+     },
+     "model": "qwen/qwen3-8-flash-next",
+     "warnings": [
+      "not_separable"
+     ],
+     "estimates": [
+      {
+       "domain": "chat_preference",
+       "value": 1.0,
+       "interval": [
+        0.5,
+        1.5
+       ]
+      }
+     ]
+    },
+    {
+     "rank": 2,
+     "offering": {
+      "model": "zhipu/glm-5-3"
+     },
+     "model": "zhipu/glm-5-3",
+     "warnings": [
+      "not_separable"
+     ],
+     "estimates": [
+      {
+       "domain": "chat_preference",
+       "value": 1.0,
+       "interval": [
+        0.5,
+        1.5
+       ]
+      }
+     ]
+    },
+    {
+     "rank": 3,
+     "offering": {
+      "model": "zhipu/glm-5-2"
+     },
+     "model": "zhipu/glm-5-2",
+     "warnings": [
+      "not_separable"
+     ],
+     "estimates": [
+      {
+       "domain": "chat_preference",
+       "value": 1.0,
+       "interval": [
+        0.5,
+        1.5
+       ]
+      }
+     ]
+    }
+   ],
+   "may_qualify": [
+    {
+     "model": "anthropic/claude-sonnet-5-5",
+     "offering": {
+      "model": "anthropic/claude-sonnet-5-5"
+     },
+     "unknown": [
+      "model.fits_hardware",
+      "model.weights_openness"
+     ]
+    },
+    {
+     "model": "deepseek/deepseek-v4-pro",
+     "offering": {
+      "model": "deepseek/deepseek-v4-pro"
+     },
+     "unknown": [
+      "model.fits_hardware"
+     ]
+    },
+    {
+     "model": "moonshot/kimi-k2-6",
+     "offering": {
+      "model": "moonshot/kimi-k2-6"
+     },
+     "unknown": [
+      "model.fits_hardware"
+     ]
+    },
+    {
+     "model": "moonshot/kimi-k3",
+     "offering": {
+      "model": "moonshot/kimi-k3"
+     },
+     "unknown": [
+      "model.fits_hardware"
+     ]
+    }
+   ],
+   "relax": [],
+   "relax_to": [],
+   "warnings": [],
+   "out_of_lineup": 1340,
+   "reading": {
+    "tied": [
+     "qwen/qwen3-8-flash-next",
+     "zhipu/glm-5-3"
+    ],
+    "estimates": [
+     "model.fits_hardware",
+     "results.estimates"
+    ],
+    "do_not_claim": [
+     "Do not name a single winner among tied.",
+     "Do not present estimates as measurements.",
+     "Do not claim fit for a specific quantization or context workload."
+    ]
+   }
+  },
+  "production_must_mention": [
+   "qwen/qwen3-8-flash-next and zhipu/glm-5-3 have no leaderboard data for chat_preference; their positions are estimated, not measured.",
+   "4 more models may qualify, but ModelSpec lacks their values for these requirements.",
+   "ModelSpec compared only the models in its lineup; 1,340 active catalogue models are outside it.",
+   "fits_hardware is an estimate, not a measured fit for a quantization or context workload.",
+   "Some values are estimates, not measurements."
+  ],
+  "production_summary": "ModelSpec's answer is incomplete, so it names no pick. What is missing: model.fits_hardware; model.weights_openness. 4 more models may qualify, but ModelSpec lacks their values for these requirements. Requirements applied: model.class = text-generator; model.lifecycle = active; model.weights_openness = open_weights; licence.commercial_use in {permitted, permitted_with_conditions}. qwen/qwen3-8-flash-next and zhipu/glm-5-3 have no leaderboard data for chat_preference; their positions are estimated, not measured. ModelSpec compared only the models in its lineup; 1,340 active catalogue models are outside it. fits_hardware is an estimate, not a measured fit for a quantization or context workload. Some values are estimates, not measurements."
+ }
+]

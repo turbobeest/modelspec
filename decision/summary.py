@@ -4,8 +4,9 @@ Deterministic templates only: the same Decision and Spec always produce the
 same bytes. No clock, no randomness, and no model call.
 
 ``summary_for_user`` is one paragraph for the end user. ``must_mention`` is the
-short list of facts a report of that answer has to carry. Both are computed
-from the full Decision, before any agent-budget trim.
+short list of facts a report of that answer has to carry, and it also names
+claims the answer does not support (MODEL-351). Both are computed from the
+full Decision, before any agent-budget trim.
 """
 
 from __future__ import annotations
@@ -46,9 +47,21 @@ _PARTIAL = "ModelSpec's answer is incomplete, so it names no pick."
 _NULL_ANSWER = "ModelSpec has no answer for this request, so it names no pick."
 _TIE_TAIL = "the evidence does not separate them."
 _ESTIMATES = "Some values are estimates, not measurements."
-_HARDWARE = (
-    "fits_hardware is an estimate, not a measured fit for a quantization or context workload."
+_HARDWARE_TAIL = (
+    " is an estimate; fit for a specific quantization, context length "
+    "or runtime headroom is not established."
 )
+_HARDWARE = "fits_hardware" + _HARDWARE_TAIL
+_HARDWARE_NOT_REQUIRED = (
+    "model.fits_hardware was not required, so no model is established to fit the target hardware."
+)
+_PARTIAL_NO_FIT = (
+    "No model is established as the best fit: "
+    "some candidates lack values ModelSpec needs."
+)
+_PARTIAL_HEAD = "No model is established as the best fit: "
+_TIE_NOT_A_PICK = " are tied; this is not a recommendation of any one of them."
+_UNCHECKED = "ModelSpec checked only the stated requirements; other needs were not checked."
 _OUTSIDE = "The request is outside coverage."
 _CLASS_FACET = "model.class"
 _TEXT_GENERATOR = "text-generator"
@@ -127,6 +140,10 @@ def summarize(
     are.
     """
     unapplied = _unapplied(decision, not_applied)
+    if spec is not None and spec.task_type is not None:
+        task = f"task_type = {spec.task_type}"
+        if task not in unapplied:
+            unapplied.append(task)
     conditions = _applied_conditions(spec, profiles)
     mentions = _mentions(
         decision, spec, unapplied, conditions, record_counts, proxy_benchmarks,
@@ -173,6 +190,7 @@ def _summary(
     limits = {
         "single": 12,
         "tie": TIE_NAME_CAP,
+        "applied": 24,
         "hard": 24,
         "prefer": 12,
         "relax": 12,
@@ -182,6 +200,7 @@ def _summary(
     floors = {
         "single": 1,
         "tie": 1,
+        "applied": 1,
         "hard": 1,
         "prefer": 1,
         "relax": 1,
@@ -202,7 +221,9 @@ def _summary(
         decision, spec, unapplied, visible, limits, conditions, joint_limit, feasible,
         omit_joint=omit_joint,
     )
-    order = ("single", "hard", "prefer", "relax", "missing", "tie", "caveat")
+    # On no_feasible "Requirements applied" repeats the exclude list, so the
+    # repeat shortens before the list that explains the empty answer (MODEL-351).
+    order = ("single", "applied", "hard", "prefer", "relax", "missing", "tie", "caveat")
     while len(text.encode("utf-8")) > SUMMARY_BYTES:
         key = next((name for name in order if limits[name] > floors[name]), None)
         single = decision.relax_single
@@ -257,10 +278,23 @@ def _paragraph_mentions(
     decision: Decision, mentions: list[tuple[str, str]],
 ) -> list[tuple[str, str]]:
     """Caveats whose fact is not already in the answer, why, or constraints."""
-    skip = {"not_applied"}
+    skip = {"not_applied", "partial"}
     if decision.status == "partial":
+        # A partial answer's tie keeps its named must_mention text (MODEL-351):
+        # the answer sentence names no members for "These N models" to refer to.
         skip.add("may_qualify")
-    return [(kind, text) for kind, text in mentions if kind not in skip]
+    visible: list[tuple[str, str]] = []
+    for kind, text in mentions:
+        if kind in skip:
+            continue
+        if kind == "tie" and decision.status == "answered" and decision.answer is not None:
+            count = _count(len(decision.answer.members))
+            text = (
+                f"These {count} models are tied; "
+                "this is not a recommendation of any one of them."
+            )
+        visible.append((kind, text))
+    return visible
 
 
 def _dedupe(parts: list[str]) -> str:
@@ -497,7 +531,7 @@ def _constraints(
     prefers = _prefers(spec, set(unapplied))
     sentences: list[str] = []
     if gates:
-        sentences.append(f"Requirements applied: {_bounded(gates, limits['hard'])}.")
+        sentences.append(f"Requirements applied: {_bounded(gates, limits['applied'])}.")
     sentences.extend(dont_care)
     if prefers:
         sentences.append(
@@ -605,9 +639,12 @@ def _mentions(
     proxy_benchmarks: Mapping[str, Iterable[str]] | None = None,
 ) -> list[tuple[str, str]]:
     items: list[tuple[str, str]] = []
-    if _presents_tie(decision) and decision.answer is not None:
-        count = len(decision.answer.members)
-        items.append(("tie", f"No single winner: {_count(count)} models are tied."))
+    tie = _tie_item(decision)
+    if tie:
+        items.append(("tie", tie))
+    partial = _partial_item(decision)
+    if partial:
+        items.append(("partial", partial))
     scope = _class_sentence(decision, spec, conditions)
     if scope:
         items.append(("class", scope))
@@ -631,14 +668,17 @@ def _mentions(
             message = _OUTSIDE
         items.append(("coverage", message))
     qualify = len(decision.may_qualify)
-    if qualify:
+    # A partial answer's own item already names the models that may qualify.
+    if qualify and decision.status != "partial":
         items.append(("may_qualify", _qualify_sentence(qualify)))
     if decision.out_of_lineup > 0:
         items.append(("out_of_lineup", _lineup_sentence(decision.out_of_lineup)))
-    if _hardware(decision, spec):
-        items.append(("hardware", _HARDWARE))
+    if _hardware(decision, spec, conditions):
+        items.append(("hardware", _hardware_item(spec, conditions)))
     if _estimates(decision):
         items.append(("estimates", _ESTIMATES))
+    if spec is not None:
+        items.append(("unchecked", _UNCHECKED))
     return _trim(items)
 
 
@@ -1048,6 +1088,56 @@ def _subjects(decision: Decision) -> list[str]:
     return models
 
 
+def _tie_item(decision: Decision) -> str:
+    answer = decision.answer
+    if answer is None or answer.kind != "tied" or decision.status not in ("answered", "partial"):
+        return ""
+    names = list(answer.deterministic_order)
+    for count in range(min(len(names), TIE_NAME_CAP), 0, -1):
+        text = _name_list(names, count, more=" in answer.members") + _TIE_NOT_A_PICK
+        if len(text.encode("utf-8")) <= MUST_MENTION_ITEM_BYTES:
+            return text
+    return _clip_item(_name_list(names, 1, more=" in answer.members") + _TIE_NOT_A_PICK)
+
+
+def _partial_item(decision: Decision) -> str:
+    if decision.status != "partial":
+        return ""
+    facets: list[str] = []
+    models: list[str] = []
+    unknown_sets: list[frozenset[str]] = []
+    for row in decision.may_qualify:
+        if row.model not in models:
+            models.append(row.model)
+        for facet in row.unknown:
+            if facet not in facets:
+                facets.append(facet)
+        unknown_sets.append(frozenset(row.unknown))
+    if not facets or not models:
+        return _PARTIAL_NO_FIT
+    return _partial_sentence(facets, models, len(set(unknown_sets)) == 1)
+
+
+def _partial_sentence(facets: list[str], models: list[str], same: bool) -> str:
+    verb = "is" if len(facets) == 1 else "are"
+    scope = "unknown for" if same else "unknown for one or more of"
+
+    def render(facet_limit: int, model_limit: int, facet_more: str) -> str:
+        facet_list = _name_list(facets, facet_limit, more=facet_more)
+        model_list = _name_list(models, model_limit, more=" in may_qualify")
+        return f"{_PARTIAL_HEAD}{facet_list} {verb} {scope} {model_list}."
+
+    for count in range(min(len(models), TIE_NAME_CAP), 0, -1):
+        text = render(len(facets), count, "")
+        if len(text.encode("utf-8")) <= MUST_MENTION_ITEM_BYTES:
+            return text
+    for count in range(min(len(facets), TIE_NAME_CAP), 0, -1):
+        text = render(count, 1, " facets")
+        if len(text.encode("utf-8")) <= MUST_MENTION_ITEM_BYTES:
+            return text
+    return _clip_item(render(1, 1, " facets"))
+
+
 def _presents_tie(decision: Decision) -> bool:
     answer = decision.answer
     return decision.status == "answered" and answer is not None and answer.kind == "tied"
@@ -1143,7 +1233,39 @@ def _cost_tie_break(decision: Decision) -> bool:
     )
 
 
-def _hardware(decision: Decision, spec: Spec | None) -> bool:
+def _hardware_item(spec: Spec | None, conditions: tuple) -> str:
+    gates = _hardware_gates(conditions)
+    if not gates and _own_hardware_without_fit(spec):
+        return _HARDWARE_NOT_REQUIRED
+    if len(gates) != 1:
+        # Several gates are already listed under "Requirements applied".
+        return _HARDWARE
+    gate = gates[0]
+    sentence = gate + _HARDWARE_TAIL
+    if len(sentence.encode("utf-8")) <= MUST_MENTION_ITEM_BYTES:
+        return sentence
+    room = MUST_MENTION_ITEM_BYTES - len(_HARDWARE_TAIL.encode("utf-8"))
+    return _clip_to(gate, room) + _HARDWARE_TAIL
+
+
+def _own_hardware_without_fit(spec: Spec | None) -> bool:
+    """Own hardware was asked for, but neither a gate nor the estate names a device."""
+    if spec is None or spec.access is None or spec.access.kind != "own_hardware":
+        return False
+    return spec.estate is None or not spec.estate.devices
+
+
+def _hardware_gates(conditions: tuple) -> list[str]:
+    """Profile rules and ``where`` conditions that name fits_hardware."""
+    gates: list[str] = []
+    for condition in conditions:
+        rendered = render_condition(condition)
+        if HARDWARE_FIT in rendered:
+            gates.append(rendered)
+    return gates
+
+
+def _hardware(decision: Decision, spec: Spec | None, conditions: tuple = ()) -> bool:
     reading = decision.reading
     if reading is not None and HARDWARE_FIT in reading.estimates:
         return True
@@ -1151,9 +1273,8 @@ def _hardware(decision: Decision, spec: Spec | None) -> bool:
         return True
     if spec is None:
         return False
-    for condition in spec.where:
-        if HARDWARE_FIT in render_condition(condition):
-            return True
+    if _hardware_gates(conditions or tuple(spec.where)):
+        return True
     objective = spec.optimize
     names = [objective.max, objective.min, *(objective.weights or {}), *(objective.pareto or [])]
     names.extend(step.facet for step in objective.lexicographic or [])

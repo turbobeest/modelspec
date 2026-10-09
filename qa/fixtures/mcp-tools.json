@@ -2,7 +2,7 @@
   "source_hashes": {
     "mcp/src/server.ts": "1c58d8c0dc84574407d0564fcd518a6e868a9ce82bb7d33e364d2d349461f4e1",
     "mcp/src/vocabulary.ts": "85e01e14eea9754b82068af188b0fc7e8b7238594f4717231bf864b004a0e0ca",
-    "mcp/test/fixtures/decide-budget.json": "7971248c447219868f72083878eae96a25487946dadead5a3ba2e89d8c7b3585",
+    "mcp/test/fixtures/decide-budget.json": "b4c9f71159f7e0aa06aba82b984c57514d26738b0d9d9fae696d06deaa0e111a",
     "docs/decision-contract.schema.json": "2dd7c6217915f49edefc5d1737ac078999f749b5290eeaa50cca9288366bf7ef",
     "api/worker/openapi.yaml": "2d9a3ed505422580ae4c949b6d89bcb05c6f5d42e975c3e5b50b6063de9a280f",
     "docs/agents.md": "35db51be2755f396c782a25cf0304e0222efa7ca63e52b6cf112adee447e2b5c",

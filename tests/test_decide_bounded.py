@@ -8,6 +8,7 @@ from datetime import date
 
 from decision import contract
 from decision.bounded import (
+    AGENT_BYTES,
     DEFAULT_FIELDS,
     DRILL_DOWN_BYTES,
     MEMBER_EVIDENCE_ITEMS,
@@ -828,7 +829,9 @@ def test_a_tie_cut_by_limit_keeps_every_members_evidence(service):
     assert wide["must_mention"] == body["must_mention"]
     assert body["summary_for_user"] == (
         "ModelSpec's answer is a tie among lab/a and lab/b; the evidence does not separate them. "
-        "No single winner: 2 models are tied. No model class was required, so results span every class."
+        "These 2 models are tied; this is not a recommendation of any one of them. "
+        "No model class was required, so results span every class. "
+        "ModelSpec checked only the stated requirements; other needs were not checked."
     )
     assert [row["model"] for row in wide["results"]] == ["lab/a", "lab/b", "lab/a", "lab/b", "lab/c"]
 
@@ -918,6 +921,7 @@ def test_high_volume_balanced_keeps_the_top_contributions(service, public_snapsh
     )
     assert status == 200, body
     assert compact_bytes(body) <= RESPONSE_BYTES
+    assert mcp_text_bytes(body) <= AGENT_BYTES
     parts = body["results"][0]["contributions"]
     assert {(part["dimension"], part["weight"]) for part in parts} == {
         ("chat_preference", 0.5),
