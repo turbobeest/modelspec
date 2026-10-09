@@ -179,6 +179,44 @@ def test_every_template_and_scenario_stays_within_the_agent_budget(service, publ
     assert not failures, "\n".join(failures[:40])
 
 
+def test_top_contribution_evidence_goes_before_the_dimension_and_weight(monkeypatch):
+    """One nested evidence item covers a shortfall. Dimension and weight stay."""
+    from decision import bounded
+
+    low = {"record_id": "r-low", "estimate_weight": 0.1, "directness": "proxy", "pad": "E" * 300}
+    high = {"record_id": "r-high", "estimate_weight": 9, "directness": "direct", "pad": "D" * 300}
+    original = {
+        "results": [{
+            "rank": 1, "model": "lab/a", "offering": {"model": "lab/a"}, "warnings": [],
+            "estimates": ["S" * 40],
+            "contributions": [{
+                "dimension": "chat_preference",
+                "weight": 0.5,
+                "evidence": [high, low],
+            }],
+        }],
+        "may_qualify": [],
+        "answer": {"kind": "separated", "members": ["lab/a"]},
+        "status": "answered",
+        "warnings": [],
+        "explanation": {"omitted": {"by_model": 1}, "note": "n", "not_applied": []},
+    }
+    target = json.loads(json.dumps(original))
+    target["results"][0]["contributions"][0]["evidence"] = [high]
+    bounded._omit(target, "results.contributions.evidence")
+    bounded._note_fetch(target)
+    monkeypatch.setattr(bounded, "RESPONSE_BYTES", compact_bytes(target))
+    body = json.loads(json.dumps(original))
+    bounded._fit_agent_budget(body)
+    assert compact_bytes(body) <= bounded.RESPONSE_BYTES
+    part = body["results"][0]["contributions"][0]
+    assert (part["dimension"], part["weight"]) == ("chat_preference", 0.5)
+    assert part["evidence"] == [high]
+    assert body["results"][0]["estimates"] == ["S" * 40]
+    assert body["explanation"]["omitted"]["results.contributions.evidence"] == 1
+    assert "results.contributions" not in body["explanation"]["omitted"]
+
+
 def test_fit_drops_other_records_before_the_top_explanation(monkeypatch):
     """A tail row and a reading must go before the top row's evidence."""
     from decision import bounded

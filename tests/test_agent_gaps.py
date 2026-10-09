@@ -208,8 +208,7 @@ def test_all_mcp_first_turns_fit_the_budget_without_keys_or_network(config, monk
     sizes = json.loads(capsys.readouterr().out)
     assert set(sizes) == {"claude", "openai", "gemini"}
     for row in sizes.values():
-        # Gemini is 10,016 after the tied/partial conduct rule (see test_agent_guide).
-        assert row["total"] <= 10_016
+        assert row["total"] <= 10_000
         assert row["components"]["guide"] > 0 and row["components"]["mcp_instructions"] > 0
         assert sum(row["components"].values()) == row["total"]
 

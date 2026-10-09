@@ -408,12 +408,23 @@ def objective_member_records(snapshot, cid, parts, capability_domains):
     every record on each contribution, before that cross-part dedupe and
     before the bounded cap of three. The map's key is the contribution
     dimension. Its value is ``(records, proxy records)``.
+
+    The third value names the benchmarks on a contribution whose evidence is
+    entirely proxy, keyed by that contribution's dimension. The summary uses
+    it when explain none has not attached those items to the Decision.
     """
     groups = domain_evidence(snapshot, cid, capability_domains)
     built = contributions(snapshot, cid, parts, groups)
     pooled: dict[str, list] = {}
+    proxy_names: dict[str, set[str]] = {}
     for part in built:
         pooled.setdefault(_contribution_dimension(part), []).extend(part.evidence)
+        evidence = part.evidence
+        if evidence and all(item.directness == "proxy" for item in evidence):
+            dimension = part.dimension.removeprefix("-")
+            proxy_names.setdefault(dimension, set()).update(
+                item.benchmark for item in evidence if item.benchmark
+            )
     counts = {key: tally_evidence_records(grouped) for key, grouped in pooled.items()}
     ranked = [item for part in built for item in part.evidence]
     ranked.sort(key=_evidence_priority)
@@ -426,7 +437,9 @@ def objective_member_records(snapshot, cid, parts, capability_domains):
                 continue
             seen.add(record_id)
         kept.append(item)
-    return kept, counts
+    return kept, counts, {
+        dimension: sorted(names) for dimension, names in proxy_names.items()
+    }
 
 
 def objective_evidence_items(snapshot, cid, parts, capability_domains) -> list[EvidenceItem]:

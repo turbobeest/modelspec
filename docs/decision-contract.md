@@ -1169,14 +1169,18 @@ appears in an earlier row; that row keeps rank, model, offering and warnings),
 then `may_qualify` rows, then `member_evidence` items from the member with the
 most items, never below one item per member while any other cut remains, then
 any remaining result row except the top, then `with_estate`, then `reading`
-and `relax_task_tokens`, then one heavy field of the top result at a time
+and `relax_task_tokens`, then, while `contributions` is the largest heavy
+field on the top result, one evidence item from inside it (worst item first,
+counted under `explanation.omitted` as `results.contributions.evidence`),
+then one heavy field of the top result at a time
 (`evidence`, `contributions`, `estimates`, `refinement_estimates`, `plans`),
 then any other field on that row besides rank, model, offering and warnings,
 then any remaining `member_evidence` items, then `member_evidence` entries
 from the end of the list. The first row of each model, and the top result,
 keep `evidence` and `contributions` until that later step. The top result's
-explanation is removed only after the earlier records are gone. A heavy field
-is removed whole, and fields inside one evidence item are never trimmed.
+explanation is removed only after the earlier records are gone. A nested
+evidence item and a heavy field are each removed whole, and fields inside
+one evidence item are never trimmed.
 Provenance inside a kept record stays intact, and no value is replaced with
 null. Each removal increments `explanation.omitted`. A tie whose
 `member_evidence` entries still do not fit loses entries from the end, and
@@ -1292,6 +1296,9 @@ three current explanation levels. Regenerate the MCP public fixture with
   fields until the later step that already applied to the top result. When a
   tie's `member_evidence` entries still do not fit, entries are removed from
   the end and counted in `explanation.omitted` under `member_evidence`.
+  While `contributions` is the largest heavy field on the top result, one
+  nested evidence item is removed before that field and counted under
+  `results.contributions.evidence`. The dimension and weight stay.
   `answer.members` stays complete.
 
 ## The library and the CLI

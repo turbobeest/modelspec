@@ -218,7 +218,7 @@ def test_public_snapshot_names_an_estimated_position_and_a_natural_tie(service, 
     assert scope in mentions
     opus_sentence = (
         "anthropic/claude-opus-5-5's position on chat_preference is estimated from 1 record, "
-        "none of them proxies."
+        "not a proxy."
     )
     fable_sentence = (
         "anthropic/claude-fable-5's position on chat_preference is estimated from 8 records, "
@@ -247,7 +247,9 @@ def _leaderboard_names(item: str) -> str | None:
             return head
     for marker in ("'s position on ", "'s positions on ", " have positions on "):
         head, separator, tail = item.partition(marker)
-        if separator and " estimated from " in tail and tail.endswith("proxies."):
+        if separator and " estimated from " in tail and (
+            tail.endswith("proxies.") or tail.endswith("a proxy.")
+        ):
             return head
     return None
 
@@ -617,6 +619,71 @@ def test_missing_objective_ignores_an_unrelated_unknown_gate(service):
     assert "exclude every model" not in body["summary_for_user"]
 
 
+def test_every_template_matches_explain_none_and_summary(service, public_snapshot):
+    """Bounded must_mention and summary_for_user do not depend on explain level."""
+    import json
+
+    from decision.templates import load_catalogue
+
+    failures = []
+    for row in load_catalogue()["templates"]:
+        spec = json.loads(json.dumps(row["spec"]))
+        none_status, none = service.decide(
+            {**spec, "explain": "none", "fields": list(DEFAULT_FIELDS)}, public_snapshot,
+        )
+        summary_status, summary = service.decide(
+            {**spec, "explain": "summary", "fields": list(DEFAULT_FIELDS)}, public_snapshot,
+        )
+        label = row["id"]
+        if none_status != 200 or summary_status != 200:
+            failures.append(f"{label} status none={none_status} summary={summary_status}")
+            continue
+        if none.get("summary_for_user") != summary.get("summary_for_user"):
+            failures.append(
+                f"{label} summary_for_user\n  none={none.get('summary_for_user')}\n"
+                f"  summary={summary.get('summary_for_user')}"
+            )
+        if none.get("must_mention") != summary.get("must_mention"):
+            failures.append(
+                f"{label} must_mention\n  none={none.get('must_mention')}\n"
+                f"  summary={summary.get('must_mention')}"
+            )
+    assert not failures, "\n".join(failures)
+
+
+def test_explain_none_treats_an_explanation_error_as_no_records(
+    service, public_snapshot, monkeypatch,
+):
+    """An ExplanationError while counting at explain none is N=0.
+
+    The caveat stays the no-leaderboard sentence. summary and full still raise.
+    """
+    import decision.explain as explain_module
+
+    def boom(*_args, **_kwargs):
+        raise explain_module.ExplanationError("retained record is unusable")
+
+    monkeypatch.setattr(explain_module, "objective_member_records", boom)
+    payload = {
+        "spec_version": 1,
+        "optimize": {"max": "software_engineering"},
+        "explain": "none",
+        "fields": ["model"],
+        "limit": 3,
+    }
+    status, body = service.decide(payload, public_snapshot)
+    assert status == 200, body
+    text = body["summary_for_user"]
+    mentions = body["must_mention"]
+    assert "no leaderboard data" in text
+    assert any("no leaderboard data" in item for item in mentions)
+    assert "estimated from" not in text
+    assert all("estimated from" not in item for item in mentions)
+    payload["explain"] = "summary"
+    with pytest.raises(explain_module.ExplanationError, match="unusable"):
+        service.decide(payload, public_snapshot)
+
+
 def test_limit_keeps_leaderboard_caveats_for_every_answer_member(service, public_snapshot):
     base = {
         "spec_version": 1,
@@ -628,7 +695,7 @@ def test_limit_keeps_leaderboard_caveats_for_every_answer_member(service, public
     _, narrow = service.decide({**base, "limit": 1}, public_snapshot)
     opus_sentence = (
         "anthropic/claude-opus-5-5's position on chat_preference is estimated from 1 record, "
-        "none of them proxies."
+        "not a proxy."
     )
     fable_sentence = (
         "anthropic/claude-fable-5's position on chat_preference is estimated from 8 records, "

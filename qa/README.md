@@ -73,7 +73,7 @@ python -m qa.agent_harness --first-turn-breakdown
 
 This builds the exact first HTTP request for every selected provider and reports the largest request over the selected public scenarios. It needs no keys and makes no HTTP calls. Components separate the system note, runtime guide, MCP initialize instructions, tool descriptions, provider schemas, user request and protocol framing. The live sender and offline builder share the same payload construction and HTTPX JSON encoding.
 
-The test budget is 10,016 estimated tokens for each MCP arm. The count uses `cl100k_base` when installed, otherwise `ceil(characters / 4)`, and records the method. Components count standalone JSON values; protocol framing includes token-boundary differences so the table sums to the total. This is a reproducible offline estimate, not a vendor-native billable token count. The runtime guide retains decision and reporting rules, minifies worked Specs, and omits client installation instructions and planning tables. The full guide remains published at https://modelspec.dev/agents.md.
+The test budget is 10,000 estimated tokens for each MCP arm. The count uses `cl100k_base` when installed, otherwise `ceil(characters / 4)`, and records the method. Components count standalone JSON values; protocol framing includes token-boundary differences so the table sums to the total. This is a reproducible offline estimate, not a vendor-native billable token count. The runtime guide retains decision and reporting rules, minifies worked Specs, and omits client installation instructions and planning tables. The full guide remains published at https://modelspec.dev/agents.md.
 
 ## Spend reservations
 

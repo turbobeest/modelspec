@@ -839,31 +839,43 @@ def _decide(
     # Counts feed the estimate caveat on every bounded summary, including
     # explain none. A snapshot that did not retain records cannot be counted;
     # that answer keeps the no-leaderboard sentence instead of failing.
+    # The summary names every model ``_subjects`` names, including a null
+    # answer's ``results[0]`` and a top result that is not an answer member.
     if (
         _capture_member_evidence is not None
-        and decision.answer is not None
-        and decision.answer.members
         and not getattr(snapshot, "explanation_rebuild_required", None)
     ):
         from decision.explain import ExplanationError, objective_member_records
+        from decision.summary import _subjects
 
-        best = {}
-        for row in ordered.results:
-            best.setdefault(snapshot.model_of(row.candidate_id), row)
-        captured = []
-        for model_id in decision.answer.members:
-            row = best.get(model_id)
-            if row is None:
-                captured.append((model_id, [], {}))
+        members = () if decision.answer is None else tuple(decision.answer.members)
+        model_ids: list[str] = []
+        seen: set[str] = set()
+        for model_id in (*members, *_subjects(decision)):
+            if model_id in seen:
                 continue
-            try:
-                items, counts = objective_member_records(
-                    snapshot, row.candidate_id, row.contributions, requested)
-            except ExplanationError:
-                if spec.explain != "none":
-                    raise
-                captured.append((model_id, [], {}))
-                continue
-            captured.append((model_id, items, counts))
-        _capture_member_evidence(captured)
+            seen.add(model_id)
+            model_ids.append(model_id)
+        if model_ids:
+            best = {}
+            for row in ordered.results:
+                best.setdefault(snapshot.model_of(row.candidate_id), row)
+            captured = []
+            for model_id in model_ids:
+                row = best.get(model_id)
+                if row is None:
+                    captured.append((model_id, [], {}))
+                    continue
+                try:
+                    items, counts, proxy_names = objective_member_records(
+                        snapshot, row.candidate_id, row.contributions, requested)
+                except ExplanationError:
+                    # explain none: an ExplanationError is N=0. Empty counts
+                    # keep the no-leaderboard sentence. summary and full raise.
+                    if spec.explain != "none":
+                        raise
+                    captured.append((model_id, [], {}))
+                    continue
+                captured.append((model_id, items, counts, proxy_names))
+            _capture_member_evidence(captured)
     return decision

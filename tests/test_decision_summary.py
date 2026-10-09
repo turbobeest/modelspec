@@ -745,7 +745,7 @@ def test_an_estimated_position_is_not_leaderboard_data() -> None:
     )
     expected = (
         "lab/a's position on chat_preference is estimated from 1 record, "
-        "none of them proxies."
+        "not a proxy."
     )
     text, mentions = summarize(
         latent, _spec(where=["model.class = text-generator"], optimize={"max": "chat_preference"}),
@@ -849,9 +849,13 @@ def test_an_estimate_names_how_many_records_it_came_from() -> None:
         _record("proxy-b", "proxy", "proxy_b"),
     ]
     one = [_record("direct", "direct", "cursorbench_4")]
-    shared = (
-        "lab/three and lab/three-again have positions on software_engineering "
-        "estimated from 3 records, 2 of them proxies."
+    three_sentence = (
+        "lab/three's position on software_engineering is estimated from 3 records, "
+        "2 of them proxies."
+    )
+    three_again = (
+        "lab/three-again's position on software_engineering is estimated from 3 records, "
+        "2 of them proxies."
     )
     all_proxy = (
         "lab/two's position on software_engineering is estimated from 2 records, "
@@ -859,7 +863,7 @@ def test_an_estimate_names_how_many_records_it_came_from() -> None:
     )
     none_proxy = (
         "lab/one's position on software_engineering is estimated from 1 record, "
-        "none of them proxies."
+        "not a proxy."
     )
     none = (
         "lab/zero has no leaderboard data for software_engineering; "
@@ -884,14 +888,106 @@ def test_an_estimate_names_how_many_records_it_came_from() -> None:
         "No single winner: 5 models are tied.",
         NO_CLASS,
         proxy,
-        shared,
+        three_sentence,
+        three_again,
         all_proxy,
         none_proxy,
         none,
     ]
-    for sentence in (shared, all_proxy, none_proxy, none):
+    for sentence in (three_sentence, three_again, all_proxy, none_proxy, none):
         assert sentence in text
-    assert text.index(shared) < text.index(all_proxy) < text.index(none_proxy) < text.index(none)
+    assert "positions on" not in text
+    assert (
+        text.index(three_sentence) < text.index(three_again) < text.index(all_proxy)
+        < text.index(none_proxy) < text.index(none)
+    )
+
+
+def test_one_proxy_among_several_records_uses_the_singular_clause() -> None:
+    evidence = [
+        _record("direct", "direct", "cursorbench_4"),
+        _record("proxy-a", "proxy", "proxy_a"),
+    ]
+    decision = _decision(
+        answer=_separated("lab/a"),
+        results=[_latent("lab/a", "software_engineering", evidence)],
+    )
+    expected = (
+        "lab/a's position on software_engineering is estimated from 2 records, "
+        "1 of them a proxy."
+    )
+    text, mentions = summarize(decision, _spec(optimize={"max": "software_engineering"}))
+    assert mentions == [NO_CLASS, expected]
+    assert expected in text
+
+
+def test_a_multi_dimension_objective_names_each_position() -> None:
+    coding = [
+        _record("direct", "direct", "cursorbench_4"),
+        _record("proxy-a", "proxy", "proxy_a"),
+    ]
+    chat = [_record("arena", "proxy", "arena")]
+    decision = _decision(
+        answer=_separated("lab/a"),
+        results=[_row("lab/a", contributions=[
+            {
+                "dimension": "coding_quality",
+                "value": 1.0,
+                "raw_value": 1.0,
+                "unit": "latent capability",
+                "formula": "monotone domain evidence estimate",
+                "evidence": coding,
+            },
+            {
+                "dimension": "chat_preference",
+                "value": 1.0,
+                "raw_value": 1.0,
+                "unit": "latent capability",
+                "formula": "monotone domain evidence estimate",
+                "evidence": chat,
+            },
+        ])],
+    )
+    coding_sentence = (
+        "lab/a's position on coding_quality is estimated from 2 records, "
+        "1 of them a proxy."
+    )
+    chat_sentence = "lab/a's position on chat_preference is estimated from 1 record, a proxy."
+    text, mentions = summarize(
+        decision,
+        _spec(optimize={"weights": {"coding_quality": 0.6, "chat_preference": 0.4}}),
+    )
+    assert coding_sentence in mentions
+    assert chat_sentence in mentions
+    assert mentions.index(coding_sentence) < mentions.index(chat_sentence)
+    assert "positions on" not in text
+    joined = " ".join(mentions)
+    assert "positions on" not in joined
+
+
+def test_a_refinement_key_is_named_in_the_record_count() -> None:
+    decision = _decision(
+        answer=_separated("lab/a"),
+        results=[_row("lab/a", contributions=[{
+            "dimension": "software_engineering",
+            "refinement": "python",
+            "value": 1.0,
+            "raw_value": 1.0,
+            "unit": "latent capability",
+            "formula": "monotone domain evidence estimate",
+        }])],
+    )
+    expected = (
+        "lab/a's position on software_engineering/python is estimated from "
+        "4 records, 1 of them a proxy."
+    )
+    text, mentions = summarize(
+        decision,
+        _spec(optimize={"weights": {"software_engineering/python": 1}}),
+        record_counts={"lab/a": {"software_engineering/python": (4, 1)}},
+    )
+    assert expected in mentions
+    assert expected in text
 
 
 def test_a_limit_cut_tie_member_uses_the_captured_record_counts() -> None:

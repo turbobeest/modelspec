@@ -70,17 +70,12 @@ def test_generated_guide_and_constants_are_stable_and_within_budget():
 
 
 def test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget(capsys):
-    """Gemini's first turn is 10,016 after the tied/partial conduct rule.
-
-    The rule is quoted in the runtime guide and the decide tool description
-    (66 characters each, 33 tokens at ceil(characters / 4)). The previous
-    sentence left Gemini at 9,983, under the old 10,000 ceiling.
-    """
+    """Each provider's first MCP turn stays within 10,000 estimated tokens."""
     from qa.agent_harness import main
     assert main(["--first-turn-breakdown"]) == 0
     report = json.loads(capsys.readouterr().out)
     assert set(report) == {"claude", "openai", "gemini"}
-    assert all(row["total"] <= 10_016 for row in report.values()), report
+    assert all(row["total"] <= 10_000 for row in report.values()), report
     guide = agent_copy.copy()["context_guide"]
     assert guide.count("https://modelspec.dev/api/coverage.json") == 1
     assert "catalogued_not_decidable" not in guide
