@@ -12,14 +12,27 @@ extractor, and compares:
 - the **conditions** (effort, harness, date) are the ones the source states.
 
 Extractors are pluggable. The deterministic ones (``TableExtractor``,
-``KeyValueExtractor``) always run before any other; ``LLMExtractor`` reads
+``KeyValueExtractor``, ``CanonicalLicenceExtractor``) always run before any
+other; ``LLMExtractor`` reads
 prose through an injected completion function, so nothing here calls a model
 or the network on its own: ``claude_extractor`` (Claude Sonnet, via the Claude
 CLI) and ``mistral_extractor`` (Mistral Large, via ollama) are the two wired
-readers. Each extractor's actor (agent, model family, method) is the verifier
-the log records. Two keys means another model family (MODEL-159): a reader
-from the collector's family is never asked, and a same-family ``verified``
-already in the log does not count (``Verification.counts``).
+readers. ``LicenceExtractor`` reads a ``licence.*`` claim through that same
+completion function, and only from a source kind the facet permits.
+``CanonicalLicenceExtractor`` reads a canonical MIT or Apache-2.0
+``licence_text`` first, and the licence reader is not asked about a text it
+accepts. Other
+cited regions are binding pages, not readings. Deterministic extractors
+still read a ``licence_text`` source for every other claim. An absence
+verifies only from a source kind the facet permits; a ``licence.*`` absence
+needs that kind explicitly. A region of another kind is a ``source_kind``
+mismatch only when the claim cites no permitted kind. When every permitted
+region has no extractor, or every one raises ``ExtractorError``, the claim
+is skipped. Each extractor's actor (agent, model family,
+method) is the verifier the log records. Two keys means another model family
+(MODEL-159): a reader from the collector's family is never asked, and a
+same-family ``verified`` already in the log does not count
+(``Verification.counts``).
 
 Outcomes are ``verified``, ``mismatch`` (with a structured diff) and
 ``unreachable`` (the copy, source or region is missing). A claim no
@@ -47,6 +60,7 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import html
 import io
 import json
 import os
@@ -59,10 +73,16 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 from functools import cache
 from pathlib import Path
-from typing import Any, Literal, Protocol
+from typing import Any, Literal, NamedTuple, Protocol
+from urllib.parse import urljoin
 
 from pydantic import JsonValue, ValidationError
 
+from decision.licence_rules import (
+    LICENCE_CONDITION_RULE,
+    LICENCE_READING_RULES,
+    licence_reading_rule,
+)
 from decision.model import (
     DETERMINISTIC,
     SourceRef,
@@ -844,6 +864,83 @@ class KeyValueExtractor:
                                     "harness": pairs.get("harness"), "date": date_})]
 
 
+#: Gap stops at a sentence or block break, so a heading cannot take the next block's count.
+_RETENTION_DAYS = re.compile(
+    r"(?is)(?:retained|stored)(?:(?![.!?](?:\s+|$)|\n).){0,100}?\b(\d+)\s*days?"
+)
+#: A clause conditioned on a model set or a mode head, not a later mention of "mode".
+_RETENTION_SCOPE_BEGIN = re.compile(
+    r"(?is)^for models requiring\b|^for the\b[^:.]+?\bmode\b\s*:"
+)
+#: A dot between digits is a version (5.1), not the end of the model list.
+_RETENTION_CURRENTLY = re.compile(
+    r"\b(?i:currently)\s+[A-Z](?:[^.:;)]|\.(?=\d))*"
+)
+#: Block-level tags whose edges are clause breaks. Other tags drop; their text stays.
+_HTML_BLOCK = re.compile(
+    r"(?i)</?p(?:\s[^>]*)?>|</?li(?:\s[^>]*)?>|<br(?:\s[^>]*)?/?>"
+    r"|</?h[1-6](?:\s[^>]*)?>|</div(?:\s[^>]*)?>|</?t[dh](?:\s[^>]*)?>"
+)
+_HTML_TAG = re.compile(r"<[^>]+>")
+_CLAUSE_BREAK = re.compile(r"[.!?](?:\s+|$)|\n+")
+
+
+def _region_prose(text: str) -> str:
+    """HTML region text as prose. Plain text, with no tag and no entity, is unchanged."""
+    if "<" not in text and "&" not in text:
+        return text
+    broken = _HTML_BLOCK.sub("\n", text)
+    return html.unescape(_HTML_TAG.sub("", broken))
+
+
+def _clause_around(text: str, start: int, end: int) -> str:
+    """The sentence or block containing ``text[start:end]``. Newlines are breaks too."""
+    begin = 0
+    for mark in _CLAUSE_BREAK.finditer(text[:start]):
+        begin = mark.end()
+    tail = _CLAUSE_BREAK.search(text[end:])
+    stop = len(text) if tail is None else end + tail.end()
+    return text[begin:stop]
+
+
+def _retention_scope(clause: str) -> str | None:
+    """The conditioning phrase, or ``None`` when the clause states a period outright."""
+    body = clause.strip()
+    parts: list[str] = []
+    if _RETENTION_SCOPE_BEGIN.match(body):
+        head, sep, _rest = body.partition(":")
+        parts.append(head if sep else body)
+    currently = _RETENTION_CURRENTLY.search(body)
+    if currently:
+        parts.append(currently.group(0))
+    return " ".join(parts) or None
+
+
+def _scope_names_subject(scope: str, names: tuple[str, ...]) -> bool:
+    normal = normalise_name(scope)
+    aliases = [alias for name in names if (alias := normalise_name(name))]
+    return any(
+        re.search(rf"(?<![0-9a-z]){re.escape(alias)}(?![0-9a-z]| \d)", normal)
+        for alias in aliases
+    )
+
+
+def _retention_days(claim: Claim, text: str) -> str | None:
+    """The first day count whose own clause is unscoped or names this subject.
+
+    A count after "For models requiring …", "For the … mode:", or "currently
+    <models>" applies only when that condition names one of ``claim.names``.
+    The clause is the one around the count, not the one around an earlier
+    "retained" or "stored".
+    """
+    text = _region_prose(text)
+    for match in _RETENTION_DAYS.finditer(text):
+        scope = _retention_scope(_clause_around(text, match.start(1), match.end(1)))
+        if scope is None or _scope_names_subject(scope, claim.names):
+            return match.group(1)
+    return None
+
+
 class GovernanceProseExtractor:
     """Read explicit provider-wide governance statements with fixed phrase rules."""
 
@@ -869,9 +966,9 @@ class GovernanceProseExtractor:
             if "never persisted to disk" in corpus or "no storage of prompts" in corpus:
                 return [Reading(subject, "true")]
         elif claim.field == "offering.data.retention":
-            match = re.search(r"(?is)(?:retained|stored).{0,100}?\b(\d+)\s*days?", text)
-            if match:
-                return [Reading(subject, match.group(1), "days")]
+            days = _retention_days(claim, text)
+            if days is not None:
+                return [Reading(subject, days, "days")]
         elif claim.field == "offering.attestation.soc2":
             if re.search(r"(?i)SOC\s*2\s*Type\s*(?:2|II)", text):
                 return [Reading(subject, "SOC 2 Type 2")]
@@ -2139,13 +2236,7 @@ class LLMExtractor:
                 cache_key: tuple[str, ...] | None = None) -> list[Reading]:
         prompt = LLM_PROMPT.format(label=claim.label or claim.field.replace("_", " "),
                                    names=", ".join(claim.names), text=text)
-        if cache_key:
-            # A reply answers the prompt it was given: a changed prompt must ask again.
-            digest = hashlib.sha256(LLM_PROMPT.encode("utf-8")).hexdigest()[:16]
-            cache_key = (f"prompt:{digest}", *cache_key)
-        reply = self.cache.get(cache_key) if self.cache is not None and cache_key else None
-        if reply is None:
-            reply = self.complete(prompt)
+        reply, store_key = _load_reply(self.complete, self.cache, LLM_PROMPT, prompt, cache_key)
         try:
             cleaned = reply.strip()
             if cleaned.startswith("```json") and cleaned.endswith("```"):
@@ -2169,11 +2260,1041 @@ class LLMExtractor:
             ]
             if not readings and claim.value is None:
                 readings = [Reading(subject=claim.names[0], value=None)]
-            if self.cache is not None and cache_key:
-                self.cache.put(cache_key, reply)
+            if self.cache is not None and store_key:
+                self.cache.put(store_key, reply)
             return readings
         except ValueError as exc:
             raise ExtractorError(f"unparseable reply from {self.actor.method}: {exc}") from exc
+
+
+def _load_reply(complete: Callable[[str], str], cache: LLMCache | None, template: str,
+                prompt: str, cache_key: tuple[str, ...] | None, *,
+                bound: str = "") -> tuple[str, tuple[str, ...] | None]:
+    """A cached reply, or a fresh ``complete(prompt)``.
+
+    The stored key includes a hash of ``template``. The licence reader also
+    passes ``bound``, the reading rule, the facet definition and the allowed
+    values that were filled into the prompt. A change to any of them asks
+    again. The caller stores the reply only after it parses.
+    """
+    store_key = None
+    if cache_key:
+        material = template if not bound else f"{template}\n{bound}"
+        digest = hashlib.sha256(material.encode("utf-8")).hexdigest()[:16]
+        store_key = (f"prompt:{digest}", *cache_key)
+    reply = cache.get(store_key) if cache is not None and store_key else None
+    if reply is None:
+        reply = complete(prompt)
+    return reply, store_key
+
+
+#: Source kinds whose text is a licence or terms document.
+LICENCE_SOURCE_KINDS = frozenset({"licence_text", "provider_terms"})
+
+LICENCE_PROMPT = """\
+You are reading a licence or terms of use. The document does not name a model.
+Answer one question from the source region only. Follow the reading rule.
+When the reading rule and another instruction disagree, follow the reading rule.
+
+Facet: {facet_id}
+Definition: {definition}
+Reading rule: {reading_rule}
+Allowed values: {allowed}
+
+Return only a JSON object with:
+- "value": the value the reading rule gives. It must be one allowed value.
+- "clauses": one or more verbatim quotations from the source region that support the value
+
+Do not infer from the licence's name or from knowledge outside the region.
+Every quotation must appear verbatim in the source region.
+When the reading rule says the text does not address the facet, set "value" to "not_disclosed" and still quote one verbatim clause from the region.
+
+Source region:
+<<<
+{text}
+>>>
+"""
+
+_LICENSE_SPDX = re.compile(
+    r"(?im)^[ \t]*license:\s*[\"']?([A-Za-z0-9][A-Za-z0-9_.+-]*)"
+)
+_LICENSE_LINK = re.compile(
+    r"(?im)^[ \t]*license_link:\s*[\"']?(\S+?)[\"']?\s*$"
+)
+_PAGE_URL = re.compile(r"https?://[^\s\"'<>)\]]+", re.IGNORECASE)
+_HF_FILE_VERBS = frozenset({"raw", "resolve", "blob"})
+_NAME_JOIN = re.compile(r"\s*[-_.][-_.\s]*(?=[0-9A-Za-z])")
+#: SPDX ids for the shared generic texts. ``license: other`` is not one of them.
+#: A shared text binds only through this table.
+SPDX_LICENCE_URLS: dict[str, tuple[str, ...]] = {
+    "apache-2.0": (
+        "https://www.apache.org/licenses/LICENSE-2.0",
+        "https://www.apache.org/licenses/LICENSE-2.0.txt",
+    ),
+    "mit": ("https://opensource.org/license/mit",),
+}
+#: Phrases a retained root file must contain before an id in
+#: :data:`SPDX_LICENCE_URLS` binds that file. Every phrase has to appear.
+#: An id outside the table is not checked.
+SPDX_SIGNATURES: dict[str, tuple[str, ...]] = {
+    "apache-2.0": ("Apache License", "Version 2.0"),
+    "mit": ("Permission is hereby granted, free of charge",),
+}
+_ROOT_LICENCE_NAME = re.compile(r"(?i)^(license|licence|copying)")
+
+
+def _licence_allowed(facet) -> list[str]:
+    """The values the registry admits for a licence facet, including ``unbounded``."""
+    value_type = facet.value_type
+    allowed: list[str] = list(value_type.values or ())
+    if value_type.kind == "number":
+        unit = f" in {facet.unit}" if facet.unit else ""
+        allowed.append(f"a number{unit}")
+        if value_type.unbounded:
+            allowed.append("unbounded")
+    return allowed
+
+
+def _licence_inputs(claim: Claim) -> tuple[str, str, str, str]:
+    """Facet id, definition, reading rule and allowed values filled into the prompt."""
+    facet = default_registry().facet(claim.field)
+    rule = licence_reading_rule(facet.id)
+    allowed = ", ".join(_licence_allowed(facet))
+    return facet.id, facet.definition, rule, allowed
+
+
+def _licence_prompt(claim: Claim, text: str) -> tuple[str, str]:
+    """The prompt, and the filled inputs the cache key hashes."""
+    facet_id, definition, rule, allowed = _licence_inputs(claim)
+    prompt = LICENCE_PROMPT.format(
+        facet_id=facet_id,
+        definition=definition,
+        reading_rule=rule,
+        allowed=allowed,
+        text=text,
+    )
+    return prompt, f"{rule}\n{definition}\n{allowed}"
+
+
+def _strip_fence(reply: str) -> str:
+    cleaned = reply.strip()
+    if cleaned.startswith("```"):
+        cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
+        cleaned = re.sub(r"\s*```$", "", cleaned)
+    return cleaned.strip()
+
+
+def _as_licence_value(raw: Any) -> JsonValue:
+    if raw is None or (isinstance(raw, str) and normalise_name(raw) == "not disclosed"):
+        return None
+    if isinstance(raw, bool) or not isinstance(raw, (str, int, float)):
+        raise ValueError("value is not a licence value")
+    return raw
+
+
+def _url_parts(url: str) -> list[str] | None:
+    """Host and path segments, without a scheme, ``www.``, query or fragment."""
+    text = url.strip().strip("\"'")
+    if not text:
+        return None
+    text = re.sub(r"^https?://", "", text, flags=re.I)
+    text = re.sub(r"^www\.", "", text, flags=re.I)
+    text = text.split("#", 1)[0].split("?", 1)[0].rstrip("/")
+    parts = [part for part in text.split("/") if part]
+    return parts or None
+
+
+def _licence_url_key(url: str) -> str:
+    """Scheme, host case, a leading ``www.`` and a trailing ``.txt`` do not differ.
+
+    On huggingface.co, ``/raw/<rev>/<path>``, ``/resolve/<rev>/<path>`` and
+    ``/blob/<rev>/<path>`` name the same file.
+    """
+    text = url.strip().strip("\"'")
+    text = re.sub(r"^https?://", "", text, flags=re.I)
+    text = re.sub(r"^www\.", "", text, flags=re.I)
+    text = text.split("#", 1)[0].split("?", 1)[0].rstrip("/")
+    if text.casefold().endswith(".txt"):
+        text = text[:-4]
+    parts = [part for part in text.split("/") if part]
+    if (len(parts) >= 4 and parts[0].casefold() == "huggingface.co"
+            and parts[3].casefold() in _HF_FILE_VERBS):
+        del parts[3]
+    return "/".join(parts).casefold()
+
+
+def _hf_repo(url: str) -> tuple[str, str, str] | None:
+    """``(host, org, repo)`` casefolded, when ``url`` is on huggingface.co."""
+    parts = _url_parts(url)
+    if parts is None or len(parts) < 3 or parts[0].casefold() != "huggingface.co":
+        return None
+    return parts[0].casefold(), parts[1].casefold(), parts[2].casefold()
+
+
+def _hf_repo_name(url: str) -> str | None:
+    """The repository segment of a huggingface.co URL, as published."""
+    parts = _url_parts(url)
+    if parts is None or len(parts) < 3 or parts[0].casefold() != "huggingface.co":
+        return None
+    return parts[2]
+
+
+def _hf_file(url: str) -> bool:
+    """A root licence file on huggingface.co.
+
+    ``huggingface.co/<org>/<repo>/(raw|resolve|blob)/<rev>/<name>``. ``name``
+    is one path segment and starts with ``LICENSE``, ``LICENCE`` or
+    ``COPYING``, in any case. ``README.md``, ``config.json`` and a file in a
+    subdirectory are not.
+    """
+    parts = _url_parts(url)
+    if parts is None or len(parts) != 6 or parts[0].casefold() != "huggingface.co":
+        return False
+    if parts[3].casefold() not in _HF_FILE_VERBS:
+        return False
+    return _ROOT_LICENCE_NAME.match(parts[5]) is not None
+
+
+def _front_matter(page: str) -> str:
+    """YAML front matter when the page opens with fences. Otherwise the page.
+
+    A Hugging Face README keeps ``license:`` and ``license_link:`` between
+    the fences. A region that is only those fields has no fences.
+    """
+    if not page.startswith("---"):
+        return page
+    parts = page.split("---", 2)
+    if len(parts) < 3 or parts[0].strip():
+        return page
+    return parts[1]
+
+
+def _text_is_spdx(spdx_id: str, text: str | None) -> bool:
+    """The retained text carries every signature phrase for this SPDX id."""
+    phrases = SPDX_SIGNATURES.get(spdx_id)
+    if not phrases or not text:
+        return False
+    return all(phrase in text for phrase in phrases)
+
+
+def _resolve_license_link(link: str, page_url: str | None) -> str:
+    """An absolute link unchanged. A relative link resolved in the page's repository."""
+    link = link.strip().strip("\"'")
+    if re.match(r"(?i)^[a-z][a-z0-9+.-]*://", link) or not page_url:
+        return link
+    base = page_url if page_url.endswith("/") else page_url.rsplit("/", 1)[0] + "/"
+    return urljoin(base, link)
+
+
+@cache
+def _catalogue_ids() -> frozenset[str]:
+    ids: set[str] = set()
+    for group in _catalogue_model_aliases().values():
+        ids.update(group)
+    return frozenset(ids)
+
+
+def _binding_name_tokens(names: Sequence[str], subject: str | None) -> list[str]:
+    """Phrases that name this model: its display name or its repository id.
+
+    A family name such as Gemma, Qwen or DeepSeek does not count. When the
+    subject is a catalogue card, only that card's display name and repository
+    id count, each as a whole phrase. A subject the catalogue does not hold
+    uses the claim's names, still as whole phrases.
+    """
+    if subject and subject in _catalogue_ids():
+        repo = normalise_name(subject.rsplit("/", 1)[-1])
+        tokens = [repo] if repo else []
+        for label, ids in _catalogue_display_names().items():
+            if subject in ids and label:
+                tokens.append(label)
+        return list(dict.fromkeys(token for token in tokens if token))
+    return [token for name in names if (token := normalise_name(name))]
+
+
+def _page_words(page: str) -> list[tuple[str, bool]]:
+    """``(word, joined to the next word)``. ``-``, ``_`` and ``.`` join one name."""
+    words: list[tuple[str, bool]] = []
+    for match in re.finditer(r"[0-9A-Za-z]+", page):
+        words.append((match.group(0).casefold(),
+                      _NAME_JOIN.match(page[match.end():]) is not None))
+    return words
+
+
+def _name_segments(name: str) -> tuple[str, ...]:
+    """Case-folded pieces of one name. ``-``, ``_``, ``.`` and spaces split it."""
+    return tuple(part for part in re.split(r"[-_.\s]+", name.casefold()) if part)
+
+
+def _same_whole_name(left: str, right: str) -> bool:
+    """The two names are the same whole name, not a prefix of a longer one."""
+    segments = _name_segments(left)
+    return bool(segments) and segments == _name_segments(right)
+
+
+def _whole_name_in_words(token: str, words: list[tuple[str, bool]]) -> bool:
+    """``token`` is a maximal name in ``words``. A hyphen-joined prefix does not count.
+
+    ``Querit`` does not match ``Querit-4B``. ``Querit-4B`` does not match
+    ``Querit-4B-Pro``. A space-separated phrase still matches as that phrase.
+    """
+    parts = token.split()
+    if not parts:
+        return False
+    width = len(parts)
+    for start in range(len(words) - width + 1):
+        if [words[start + offset][0] for offset in range(width)] != parts:
+            continue
+        if words[start + width - 1][1]:
+            continue
+        if start > 0 and words[start - 1][1]:
+            continue
+        return True
+    return False
+
+
+def _page_names_subject(page: str, names: Sequence[str], subject: str | None = None,
+                        page_url: str | None = None) -> bool:
+    """The page names the subject by a whole name, or its repository name equals one.
+
+    ``-``, ``_``, ``.`` and spaces separate segments of one name. The published
+    name or the repository name must be that whole name, not a prefix of a
+    longer hyphen-joined name. A family name still does not count: the tokens
+    are the display name and the model id's last segment.
+    """
+    tokens = _binding_name_tokens(names, subject)
+    words = _page_words(page)
+    if any(_whole_name_in_words(token, words) for token in tokens):
+        return True
+    repo = _hf_repo_name(page_url) if page_url else None
+    if not repo:
+        return False
+    candidates = list(tokens)
+    if subject:
+        candidates.append(subject.rsplit("/", 1)[-1])
+    return any(_same_whole_name(repo, candidate) for candidate in candidates)
+
+
+def _license_link_matches(page: str, licence_url: str, page_url: str | None) -> bool:
+    source_key = _licence_url_key(licence_url)
+    for match in _LICENSE_LINK.finditer(page):
+        resolved = _resolve_license_link(match.group(1), page_url)
+        if _licence_url_key(resolved) == source_key:
+            return True
+    return False
+
+
+def _page_contains_licence_url(page: str, licence_url: str) -> bool:
+    if licence_url in page:
+        return True
+    bare = re.sub(r"^https?://", "", licence_url).rstrip("/")
+    if bare and bare in page:
+        return True
+    source_key = _licence_url_key(licence_url)
+    return any(_licence_url_key(match.group(0)) == source_key for match in _PAGE_URL.finditer(page))
+
+
+def _repo_location_binds(page: str, page_url: str | None, licence_url: str,
+                         licence_text: str | None = None) -> bool:
+    """A root licence file in the page's own repository, named by ``license:``.
+
+    An id in :data:`SPDX_LICENCE_URLS` binds that file only when
+    ``licence_text`` carries the signature in :data:`SPDX_SIGNATURES`.
+    ``license: other``, and any id outside the table, binds the file by
+    location alone.
+    """
+    match = _LICENSE_SPDX.search(_front_matter(page))
+    if not page_url or match is None or not _hf_file(licence_url):
+        return False
+    page_repo = _hf_repo(page_url)
+    if page_repo is None or page_repo != _hf_repo(licence_url):
+        return False
+    spdx_id = match.group(1).casefold()
+    if spdx_id in SPDX_LICENCE_URLS:
+        return _text_is_spdx(spdx_id, licence_text)
+    return True
+
+
+def _spdx_binds(page: str, licence_url: str) -> bool:
+    source_key = _licence_url_key(licence_url)
+    for match in _LICENSE_SPDX.finditer(page):
+        canonical = SPDX_LICENCE_URLS.get(match.group(1).casefold(), ())
+        if any(_licence_url_key(url) == source_key for url in canonical):
+            return True
+    return False
+
+
+def _licence_rule(page: str, page_url: str | None, licence_url: str | None,
+                  licence_text: str | None = None) -> str | None:
+    """Which rule names this licence on this page: link, url, repo, or SPDX.
+
+    A ``license_link`` in front matter is exclusive. A source that does not
+    match it does not bind by URL, repository location, or SPDX.
+    """
+    if not licence_url:
+        return None
+    matter = _front_matter(page)
+    if _LICENSE_LINK.search(matter):
+        if _license_link_matches(matter, licence_url, page_url):
+            return "license_link"
+        return None
+    if _page_contains_licence_url(page, licence_url):
+        return "url"
+    if _repo_location_binds(page, page_url, licence_url, licence_text):
+        return "repo-location"
+    if _spdx_binds(matter, licence_url):
+        return "SPDX"
+    return None
+
+
+def licence_is_bound(names: Sequence[str], pages: Sequence[str], licence_url: str | None, *,
+                     subject: str | None = None,
+                     page_urls: Sequence[str | None] | None = None,
+                     licence_text: str | None = None) -> str | None:
+    """The rule that binds this licence to the subject, or ``None``.
+
+    A page names the subject by its display name or repository id, as a whole
+    name, or when the page URL's repository name is that same whole name.
+    ``-``, ``_``, ``.`` and spaces separate segments. A prefix of a longer
+    hyphen-joined name does not count: ``Querit`` is not ``Querit-4B``.
+    A family name does not count.
+
+    ``license:`` and ``license_link:`` are read from YAML front matter when
+    the page has it, and from the whole page otherwise.
+
+    The licence rule is the first that holds. A ``license_link`` is exclusive:
+    when the front matter has one, only a source that matches it binds.
+    A relative link resolves against the page URL's directory. On
+    huggingface.co, ``raw``, ``resolve`` and ``blob`` name the same file.
+
+    With no ``license_link``: ``url`` (that file's URL is in the page),
+    ``repo-location`` (a root file named ``LICENSE*``, ``LICENCE*`` or
+    ``COPYING*`` in the page's own repository, and the page has a
+    ``license:`` field), or ``SPDX`` (the field names a shared text in
+    :data:`SPDX_LICENCE_URLS`). A ``license:`` of ``mit`` or ``apache-2.0``
+    binds that root file only when ``licence_text`` contains the signature
+    in :data:`SPDX_SIGNATURES`. ``license: other``, and any id outside that
+    table, binds the root file by location. ``README.md``, ``config.json``
+    and a subdirectory do not. ``license: other`` does not bind a shared
+    text. A file in a different repository binds only by ``license_link``
+    or ``url``.
+    """
+    urls = tuple(page_urls or ())
+    for index, page in enumerate(pages):
+        page_url = urls[index] if index < len(urls) else None
+        if _page_names_subject(page, names, subject, page_url):
+            rule = _licence_rule(page, page_url, licence_url, licence_text)
+            if rule:
+                return rule
+    return None
+
+
+class LicenceExtractor:
+    """Reads one ``licence.*`` value from a licence or terms document.
+
+    It uses the same injected ``complete(prompt)``, cache and call budget as
+    ``LLMExtractor``. The prompt gives the facet's definition, the reading
+    rule for that facet, and the allowed values. It never shows the collector's
+    value. A missing or non-verbatim
+    clause is unparseable, so it is not evidence. A licence does not name the
+    model: the reading's subject is the claim's name only when a binding page
+    passes :func:`licence_is_bound`.
+    """
+
+    def __init__(self, complete: Callable[[str], str], *, agent: str, model: str,
+                 model_family: str, cache: LLMCache | None = None) -> None:
+        self.complete = complete
+        self.cache = cache
+        self.actor = VerificationActor(
+            agent=agent, model_family=model_family, method=f"licence-extract:{model}",
+        )
+
+    def accepts(self, text: str) -> bool:
+        # Selected only for a licence claim cited to a licence or terms source.
+        return False
+
+    def extract(self, claim: Claim, text: str, *,
+                cache_key: tuple[str, ...] | None = None,
+                bindings: Sequence[str] = (),
+                binding_urls: Sequence[str | None] | None = None,
+                licence_url: str | None = None) -> list[Reading]:
+        prompt, bound = _licence_prompt(claim, text)
+        reply, store_key = _load_reply(
+            self.complete, self.cache, LICENCE_PROMPT, prompt, cache_key, bound=bound,
+        )
+        try:
+            data = json.loads(_strip_fence(reply))
+            if isinstance(data, list) and len(data) == 1 and isinstance(data[0], dict):
+                data = data[0]
+            if not isinstance(data, dict):
+                raise ValueError("not an object")
+            clauses = data.get("clauses")
+            if not isinstance(clauses, list) or not clauses:
+                raise ValueError("clauses are missing")
+            normal_text = normalise_name(text)
+            for clause in clauses:
+                if not isinstance(clause, str) or not clause.strip() \
+                        or normalise_name(clause) not in normal_text:
+                    raise ValueError("quoted clause is missing or is not verbatim source text")
+            value = _as_licence_value(data.get("value"))
+        except (ValueError, TypeError) as exc:
+            raise ExtractorError(f"unparseable reply from {self.actor.method}: {exc}") from exc
+        if self.cache is not None and store_key:
+            self.cache.put(store_key, reply)
+        subject = claim.names[0] if licence_is_bound(
+            claim.names, bindings, licence_url, subject=claim.subject, page_urls=binding_urls,
+            licence_text=text,
+        ) else None
+        shown: JsonValue = None if value is None else str(value)
+        unit = None
+        if shown is not None and parse_quantity(shown) is not None:
+            unit = default_registry().facet(claim.field).unit
+        return [Reading(subject=subject, value=shown, unit=unit)]
+
+
+class CanonicalClause(NamedTuple):
+    """A canonical licence facet: the value, a verbatim clause, and the rule key."""
+
+    value: JsonValue
+    clause: str
+    rule: str
+
+
+_LICENCE_QUOTE_CHARS = str.maketrans({
+    "\u201c": '"',
+    "\u201d": '"',
+    "\u2018": "'",
+    "\u2019": "'",
+    "\u00a0": " ",
+})
+
+
+def _canonical_form(text: str) -> str:
+    """The licence collapsed to one spacing, and one way of writing the warranty.
+
+    Retained MIT files write the warranty as ``"AS IS"``, with curly quotes, or
+    as ``*AS IS*`` (Phi-4). Signatures and the canonical body are compared
+    after those three are the same sentence.
+    """
+    straight = text.translate(_LICENCE_QUOTE_CHARS).replace("*AS IS*", '"AS IS"')
+    return re.sub(r"\s+", " ", straight).strip()
+
+
+#: Verbatim operative sentences. Every phrase has to appear. The MIT warranty
+#: is matched on :func:`_canonical_form`, so curly quotes and ``*AS IS*`` count.
+CANONICAL_LICENCE_SIGNATURES: dict[str, tuple[str, ...]] = {
+    "mit": (
+        "Permission is hereby granted, free of charge",
+        'THE SOFTWARE IS PROVIDED "AS IS"',
+    ),
+    "apache-2.0": (
+        "Apache License",
+        "Version 2.0, January 2004",
+        "2. Grant of Copyright License. Subject to the terms and conditions of "
+        "this License, each Contributor hereby grants to You a perpetual, "
+        "worldwide, non-exclusive, no-charge, royalty-free, irrevocable "
+        "copyright license to reproduce, prepare Derivative Works of",
+    ),
+}
+
+#: A phrase that means the text adds terms the canonical licence does not have.
+#: Extra guard beside :data:`CANONICAL_LICENCE_RESIDUALS`. A short restriction
+#: can avoid every phrase here and still miss the residual list.
+CANONICAL_LICENCE_RED_FLAGS: tuple[str, ...] = (
+    "separate agreement",
+    "monthly active users",
+    "not intended for use",
+    "prohibited use",
+    "acceptable use",
+)
+
+#: Collapsed characters allowed outside the canonical body. The longest retained
+#: residual is 1,092 characters on apache.org ``LICENSE-2.0.txt`` (the space
+#: after the terms, then the appendix). 1,200 leaves a margin.
+CANONICAL_LICENCE_OUTSIDE_LIMIT = 1200
+
+_MIT_CANONICAL_TEXT = """\
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
+
+_APACHE_CANONICAL_TEXT = """\
+                                 Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      (except as stated in this section) patent license to make, have made,
+      use, offer to sell, sell, import, and otherwise transfer the Work,
+      where such license applies only to those patent claims licensable
+      by such Contributor that are necessarily infringed by their
+      Contribution(s) alone or by combination of their Contribution(s)
+      with the Work to which such Contribution(s) was submitted. If You
+      institute patent litigation against any entity (including a
+      cross-claim or counterclaim in a lawsuit) alleging that the Work
+      or a Contribution incorporated within the Work constitutes direct
+      or contributory patent infringement, then any patent licenses
+      granted to You under this License for that Work shall terminate
+      as of the date such litigation is filed.
+
+   4. Redistribution. You may reproduce and distribute copies of the
+      Work or Derivative Works thereof in any medium, with or without
+      modifications, and in Source or Object form, provided that You
+      meet the following conditions:
+
+      (a) You must give any other recipients of the Work or
+          Derivative Works a copy of this License; and
+
+      (b) You must cause any modified files to carry prominent notices
+          stating that You changed the files; and
+
+      (c) You must retain, in the Source form of any Derivative Works
+          that You distribute, all copyright, patent, trademark, and
+          attribution notices from the Source form of the Work,
+          excluding those notices that do not pertain to any part of
+          the Derivative Works; and
+
+      (d) If the Work includes a "NOTICE" text file as part of its
+          distribution, then any Derivative Works that You distribute must
+          include a readable copy of the attribution notices contained
+          within such NOTICE file, excluding those notices that do not
+          pertain to any part of the Derivative Works, in at least one
+          of the following places: within a NOTICE text file distributed
+          as part of the Derivative Works; within the Source form or
+          documentation, if provided along with the Derivative Works; or,
+          within a display generated by the Derivative Works, if and
+          wherever such third-party notices normally appear. The contents
+          of the NOTICE file are for informational purposes only and
+          do not modify the License. You may add Your own attribution
+          notices within Derivative Works that You distribute, alongside
+          or as an addendum to the NOTICE text from the Work, provided
+          that such additional attribution notices cannot be construed
+          as modifying the License.
+
+      You may add Your own copyright statement to Your modifications and
+      may provide additional or different license terms and conditions
+      for use, reproduction, or distribution of Your modifications, or
+      for any such Derivative Works as a whole, provided Your use,
+      reproduction, and distribution of the Work otherwise complies with
+      the conditions stated in this License.
+
+   5. Submission of Contributions. Unless You explicitly state otherwise,
+      any Contribution intentionally submitted for inclusion in the Work
+      by You to the Licensor shall be under the terms and conditions of
+      this License, without any additional terms or conditions.
+      Notwithstanding the above, nothing herein shall supersede or modify
+      the terms of any separate license agreement you may have executed
+      with Licensor regarding such Contributions.
+
+   6. Trademarks. This License does not grant permission to use the trade
+      names, trademarks, service marks, or product names of the Licensor,
+      except as required for reasonable and customary use in describing the
+      origin of the Work and reproducing the content of the NOTICE file.
+
+   7. Disclaimer of Warranty. Unless required by applicable law or
+      agreed to in writing, Licensor provides the Work (and each
+      Contributor provides its Contributions) on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+      implied, including, without limitation, any warranties or conditions
+      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+      PARTICULAR PURPOSE. You are solely responsible for determining the
+      appropriateness of using or redistributing the Work and assume any
+      risks associated with Your exercise of permissions under this License.
+
+   8. Limitation of Liability. In no event and under no legal theory,
+      whether in tort (including negligence), contract, or otherwise,
+      unless required by applicable law (such as deliberate and grossly
+      negligent acts) or agreed to in writing, shall any Contributor be
+      liable to You for damages, including any direct, indirect, special,
+      incidental, or consequential damages of any character arising as a
+      result of this License or out of the use or inability to use the
+      Work (including but not limited to damages for loss of goodwill,
+      work stoppage, computer failure or malfunction, or any and all
+      other commercial damages or losses), even if such Contributor
+      has been advised of the possibility of such damages.
+
+   9. Accepting Warranty or Additional Liability. While redistributing
+      the Work or Derivative Works thereof, You may choose to offer,
+      and charge a fee for, acceptance of support, warranty, indemnity,
+      or other liability obligations and/or rights consistent with this
+      License. However, in accepting such obligations, You may act only
+      on Your own behalf and on Your sole responsibility, not on behalf
+      of any other Contributor, and only if You agree to indemnify,
+      defend, and hold each Contributor harmless for any liability
+      incurred by, or claims asserted against, such Contributor by reason
+      of your accepting any such warranty or additional liability.
+
+   END OF TERMS AND CONDITIONS
+"""
+
+#: The Apache how-to appendix, through the end of the boilerplate notice.
+#: Verbatim apart from the copyright line, which the notice tells the holder
+#: to fill in (Qwen writes ``Copyright 2024 Alibaba Cloud``).
+_APACHE_APPENDIX_TEXT = """\
+   APPENDIX: How to apply the Apache License to your work.
+
+      To apply the Apache License to your work, attach the following
+      boilerplate notice, with the fields enclosed by brackets "[]"
+      replaced with your own identifying information. (Don't include
+      the brackets!)  The text should be enclosed in the appropriate
+      comment syntax for the file format. We also recommend that a
+      file or class name and description of purpose be included on the
+      same "printed page" as the copyright notice for easier
+      identification within third-party archives.
+
+   Copyright [yyyy] [name of copyright owner]
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+"""
+
+_APACHE_APPENDIX_COPYRIGHT = "Copyright [yyyy] [name of copyright owner]"
+
+CANONICAL_LICENCE_BODIES: dict[str, str] = {
+    "mit": _canonical_form(_MIT_CANONICAL_TEXT),
+    "apache-2.0": _canonical_form(_APACHE_CANONICAL_TEXT),
+}
+
+_APACHE_APPENDIX = _canonical_form(_APACHE_APPENDIX_TEXT)
+if _APACHE_APPENDIX.count(_APACHE_APPENDIX_COPYRIGHT) != 1:
+    raise RuntimeError("apache appendix copyright line is not verbatim once")
+_APPENDIX_HEAD, _APPENDIX_TAIL = _APACHE_APPENDIX.split(_APACHE_APPENDIX_COPYRIGHT, 1)
+if not _APPENDIX_HEAD.startswith("APPENDIX: How to apply the Apache License to your work."):
+    raise RuntimeError("apache appendix does not start at the how-to heading")
+if not _APPENDIX_TAIL.endswith("limitations under the License."):
+    raise RuntimeError("apache appendix does not end at the boilerplate notice")
+if _APPENDIX_HEAD in CANONICAL_LICENCE_BODIES["apache-2.0"]:
+    raise RuntimeError("apache appendix heading is inside the canonical body")
+
+
+#: Exact ``(before, after)`` text around a canonical body, after
+#: :func:`_canonical_form` and whitespace stripping. For Apache-2.0, ``after``
+#: is what remains once the canonical appendix is removed, so it is the
+#: copyright line between the how-to and the boilerplate.
+#:
+#: DeepSeek-V4-Pro, DeepSeek-V4.1-Flash, and ``model-143-deepseek-v4-license``
+#: are the same retained bytes as DeepSeek-V3.1, so they share that pair.
+#: A copyright line that is not listed here is not read by this extractor
+#: until the residual is reviewed and added in code.
+CANONICAL_LICENCE_RESIDUALS: dict[str, frozenset[tuple[str, str]]] = {
+    "mit": frozenset({
+        (
+            "Popular / Strong Community The MIT License Version N/A "
+            "SPDX short identifier: MIT Copyright <YEAR> <COPYRIGHT HOLDER>",
+            "",
+        ),
+        ("Microsoft. Copyright (c) Microsoft Corporation. MIT License", ""),
+        ("MIT License Copyright (c) 2023 DeepSeek", ""),
+        ("MIT License Copyright (c) 2026 Zhipu AI", ""),
+    }),
+    "apache-2.0": frozenset({
+        ("", "Copyright [yyyy] [name of copyright owner]"),
+        ("", "Copyright 2024 Alibaba Cloud"),
+    }),
+}
+if set(CANONICAL_LICENCE_RESIDUALS) != set(CANONICAL_LICENCE_BODIES):
+    raise RuntimeError("residual table does not match the canonical bodies")
+
+
+def _canonical_clause(value: JsonValue, clause: str, rule: str) -> CanonicalClause:
+    if rule not in LICENCE_READING_RULES:
+        raise RuntimeError(f"no licence reading rule for {rule}")
+    return CanonicalClause(value, clause, rule)
+
+
+#: Facet values for a canonical text. ``rule`` is the ``LICENCE_READING_RULES``
+#: key. ``None`` is ``not_disclosed``. Notice retention is not a condition
+#: (``LICENCE_CONDITION_RULE``), so commercial use and fine-tuning are
+#: ``permitted``.
+CANONICAL_LICENCE_READINGS: dict[str, dict[str, CanonicalClause]] = {
+    "mit": {
+        "licence.commercial_use": _canonical_clause(
+            "permitted", "sell copies of the Software", "licence.commercial_use",
+        ),
+        "licence.user_cap": _canonical_clause(
+            "unbounded",
+            "The above copyright notice and this permission notice shall be included "
+            "in all copies or substantial portions of the Software.",
+            "licence.user_cap",
+        ),
+        "licence.output_training": _canonical_clause(
+            None,
+            "to use, copy, modify, merge, publish, distribute, sublicense, and/or "
+            "sell copies of the Software",
+            "licence.output_training",
+        ),
+        "licence.fine_tuning": _canonical_clause(
+            "permitted",
+            "modify, merge, publish, distribute, sublicense, and/or sell copies "
+            "of the Software",
+            "licence.fine_tuning",
+        ),
+    },
+    "apache-2.0": {
+        "licence.commercial_use": _canonical_clause(
+            "permitted",
+            "make, have made, use, offer to sell, sell",
+            "licence.commercial_use",
+        ),
+        "licence.user_cap": _canonical_clause(
+            "unbounded",
+            "copyright license to reproduce, prepare Derivative Works of",
+            "licence.user_cap",
+        ),
+        "licence.output_training": _canonical_clause(
+            None, "prepare Derivative Works", "licence.output_training",
+        ),
+        "licence.fine_tuning": _canonical_clause(
+            "permitted", "prepare Derivative Works", "licence.fine_tuning",
+        ),
+    },
+}
+
+for _spdx, _phrases in CANONICAL_LICENCE_SIGNATURES.items():
+    _body = CANONICAL_LICENCE_BODIES[_spdx]
+    for _phrase in _phrases:
+        if _phrase not in _body:
+            raise RuntimeError(f"{_spdx} signature is not in the canonical body: {_phrase}")
+for _spdx, _rows in CANONICAL_LICENCE_READINGS.items():
+    _body = CANONICAL_LICENCE_BODIES[_spdx]
+    for _facet, _row in _rows.items():
+        if _row.rule != _facet or _row.clause not in _body:
+            raise RuntimeError(f"{_spdx} {_facet} clause is not in the canonical body")
+
+
+def _strip_apache_appendix(residual: str) -> str | None:
+    """Remove one verbatim Apache how-to and boilerplate notice.
+
+    The copyright line between them stays, so :data:`CANONICAL_LICENCE_RESIDUALS`
+    can require that line exactly. ``None`` when an ``APPENDIX:`` is present
+    and the how-to or the boilerplate is not the canonical text.
+    """
+    start = residual.find(_APPENDIX_HEAD)
+    if start < 0:
+        if "APPENDIX:" in residual:
+            return None
+        return residual
+    holder_at = start + len(_APPENDIX_HEAD)
+    tail_at = residual.find(_APPENDIX_TAIL, holder_at)
+    if tail_at < 0 or "APPENDIX:" in residual[tail_at + len(_APPENDIX_TAIL):]:
+        return None
+    holder = residual[holder_at:tail_at].strip()
+    end = tail_at + len(_APPENDIX_TAIL)
+    left = residual[:start].strip()
+    right = residual[end:].strip()
+    return " ".join(part for part in (left, holder, right) if part)
+
+
+def _canonical_licence_id(text: str) -> str | None:
+    """``mit`` or ``apache-2.0`` when the signature, body, and residual all match.
+
+    The signature has to match and the canonical body has to be present. The
+    text before and after that body, after :func:`_canonical_form` and
+    whitespace stripping, has to be a pair in :data:`CANONICAL_LICENCE_RESIDUALS`.
+    For Apache-2.0 the appendix how-to and boilerplate are removed first, and
+    the copyright line that was between them is the ``after`` value.
+
+    Returns ``None`` when the notice-retention rule is no longer the one this
+    table applies, when a red-flag phrase is present, when the text outside
+    the canonical body is longer than :data:`CANONICAL_LICENCE_OUTSIDE_LIMIT`,
+    or when the residual pair is not one this code records. A new canonical
+    file with a different copyright line is not read here until that residual
+    is reviewed and added in code. The licence reader then reads the text.
+    """
+    if "notices is not a condition" not in LICENCE_CONDITION_RULE:
+        return None
+    form = _canonical_form(text)
+    if any(flag in form.casefold() for flag in CANONICAL_LICENCE_RED_FLAGS):
+        return None
+    matched = [
+        spdx for spdx, phrases in CANONICAL_LICENCE_SIGNATURES.items()
+        if all(phrase in form for phrase in phrases)
+    ]
+    if len(matched) != 1:
+        return None
+    spdx = matched[0]
+    body = CANONICAL_LICENCE_BODIES[spdx]
+    start = form.find(body)
+    if start < 0:
+        return None
+    if len(form) - len(body) > CANONICAL_LICENCE_OUTSIDE_LIMIT:
+        return None
+    before = form[:start].strip()
+    after = form[start + len(body):].strip()
+    if spdx == "apache-2.0":
+        stripped = _strip_apache_appendix(after)
+        if stripped is None:
+            return None
+        after = stripped.strip()
+    if (before, after) not in CANONICAL_LICENCE_RESIDUALS[spdx]:
+        return None
+    return spdx
+
+
+def _text_around_body(spdx: str, before: str, after: str, *, appendix: bool) -> str:
+    body = CANONICAL_LICENCE_BODIES[spdx]
+    if appendix:
+        after = f"{_APPENDIX_HEAD}{after}{_APPENDIX_TAIL}"
+    return " ".join(part for part in (before, body, after) if part)
+
+
+for _spdx, _pairs in CANONICAL_LICENCE_RESIDUALS.items():
+    for _before, _after in _pairs:
+        _plain = _text_around_body(_spdx, _before, _after, appendix=False)
+        if _canonical_licence_id(_plain) != _spdx:
+            raise RuntimeError(f"{_spdx} residual is not recognised around the body")
+        if _spdx == "apache-2.0" and _canonical_licence_id(
+            _text_around_body(_spdx, _before, _after, appendix=True)
+        ) != _spdx:
+            raise RuntimeError(f"{_spdx} residual is not recognised with the appendix")
+
+
+class CanonicalLicenceExtractor:
+    """Reads the four ``licence.*`` facets from a canonical MIT or Apache-2.0 text.
+
+    A deterministic extractor, so it counts as an independent second key.
+    It accepts a ``licence_text`` region only. The text has to carry that
+    licence's signature and its canonical body. The text before and after the
+    body, after :func:`_canonical_form` and whitespace stripping, has to be a
+    pair in :data:`CANONICAL_LICENCE_RESIDUALS`. For Apache-2.0 the how-to
+    appendix and the boilerplate notice are removed first. The copyright line
+    that was between them is the ``after`` residual, and it has to match
+    exactly. A new canonical file with a different copyright line is not read
+    here until that residual is reviewed and added in code. The licence reader
+    then reads the region. The red-flag list is a second guard.
+
+    The value for each facet is the one ``LICENCE_READING_RULES`` gives, with
+    ``LICENCE_CONDITION_RULE`` applied: a duty to keep a notice is not a
+    condition. The table quotes the operative clause and records the rule key.
+    The reading's subject is the claim's name only when :func:`licence_is_bound`
+    passes.
+    """
+
+    actor = VerificationActor(
+        agent=VERIFY_AGENT, model_family=DETERMINISTIC, method="canonical-licence@1",
+    )
+
+    def accepts(self, text: str) -> bool:
+        return _canonical_licence_id(text) is not None
+
+    def extract(
+        self,
+        claim: Claim,
+        text: str,
+        *,
+        bindings: Sequence[str] = (),
+        binding_urls: Sequence[str | None] | None = None,
+        licence_url: str | None = None,
+        **_extra: object,
+    ) -> list[Reading]:
+        spdx = _canonical_licence_id(text)
+        if spdx is None:
+            raise ExtractorError("not a canonical MIT or Apache-2.0 licence")
+        row = CANONICAL_LICENCE_READINGS[spdx].get(claim.field)
+        if row is None or row.rule != claim.field or claim.field not in LICENCE_READING_RULES:
+            raise ExtractorError(f"no canonical reading for {claim.field}")
+        if row.clause not in _canonical_form(text):
+            raise ExtractorError("operative clause is not in the licence text")
+        subject = claim.names[0] if licence_is_bound(
+            claim.names, bindings, licence_url, subject=claim.subject, page_urls=binding_urls,
+            licence_text=text,
+        ) else None
+        shown: JsonValue = None if row.value is None else str(row.value)
+        return [Reading(subject=subject, value=shown)]
 
 
 def claude_extractor(*, cache: LLMCache | None = None,
@@ -2282,13 +3403,40 @@ def mistral_extractor(*, cache: LLMCache | None = None,
     )
 
 
+def claude_licence_extractor(*, cache: LLMCache | None = None,
+                             complete: Callable[[str], str] | None = None,
+                             max_calls: int = 400) -> LicenceExtractor:
+    """Licence reader on the same Claude CLI completion as ``claude_extractor``."""
+    return LicenceExtractor(
+        complete or ClaudeCLICompletion(max_calls=max_calls),
+        agent="claude-cli",
+        model="claude-sonnet-5",
+        model_family="anthropic",
+        cache=cache if cache is not None else LLMCache(namespace="licence"),
+    )
+
+
+def mistral_licence_extractor(*, cache: LLMCache | None = None,
+                              complete: Callable[[str], str] | None = None,
+                              max_calls: int = 400) -> LicenceExtractor:
+    """Licence reader on the same local Mistral completion as ``mistral_extractor``."""
+    return LicenceExtractor(
+        complete or OllamaChatCompletion(max_calls=max_calls),
+        agent="ollama",
+        model=MISTRAL_MODEL,
+        model_family="mistral",
+        cache=cache if cache is not None else LLMCache(
+            namespace=f"ollama:{MISTRAL_MODEL}:licence"),
+    )
+
+
 def _text(value: Any) -> str | None:
     return None if value is None else str(value)
 
 
 def deterministic_extractors() -> list[Extractor]:
-    return [StructuredDataExtractor(), OfferingPriceExtractor(), SubscriptionPageExtractor(),
-            TableExtractor(), TransposedTableExtractor(),
+    return [CanonicalLicenceExtractor(), StructuredDataExtractor(), OfferingPriceExtractor(),
+            SubscriptionPageExtractor(), TableExtractor(), TransposedTableExtractor(),
             GovernanceProseExtractor(), KeyValueExtractor(), ModelPageExtractor()]
 
 
@@ -2324,6 +3472,14 @@ class StoredRegions:
             return select_region(doc, Locator(kind, region.locator.value))
         except (UnsupportedContentError, ValueError):
             return None
+
+    def source_kind(self, source_id: str) -> str | None:
+        source = self.sources.get(source_id)
+        return None if source is None else source.kind
+
+    def source_url(self, source_id: str) -> str | None:
+        source = self.sources.get(source_id)
+        return None if source is None else str(source.url)
 
 
 # --- comparison ----------------------------------------------------------------------------------
@@ -2691,13 +3847,136 @@ def _verify_evidence_reading(
     return Result(claim.target, "skipped", reason="; ".join(reasons))
 
 
+def _source_kind(regions: Regions, source_id: str) -> tuple[bool, str | None]:
+    """``(tracked, kind)``. Untracked regions predate source kinds."""
+    method = getattr(regions, "source_kind", None)
+    if not callable(method):
+        return False, None
+    return True, method(source_id)
+
+
+def _facet_or_none(field: str):
+    try:
+        return default_registry().facet(field)
+    except KeyError:
+        return None
+
+
+def _binding_page(claim: Claim, regions: Regions, kind: str | None) -> bool:
+    """A licence region whose kind the facet does not permit, beside a permitted one.
+
+    The region can name the licence. It is not a reading, and it gives no
+    outcome. A ``source_kind`` mismatch is only for a claim that cites no
+    permitted kind at all.
+    """
+    if claim.value is not None or not claim.field.startswith("licence."):
+        return False
+    facet = _facet_or_none(claim.field)
+    if facet is None:
+        return False
+    permitted = set(facet.permitted_source_kinds)
+    if kind in permitted:
+        return False
+    for source in claim.sources:
+        if not source.cited_regions:
+            continue
+        _, cited = _source_kind(regions, source.source_id)
+        if cited in permitted:
+            return True
+    return False
+
+
+def _absence_block(claim: Claim, regions: Regions, source_id: str) -> list[Diff] | None:
+    """Mismatch when an absence is cited to a source kind the facet does not permit.
+
+    A source whose kind is unknown still supports a non-licence absence, so
+    registries written before ``kind`` keep verifying. A ``licence.*`` absence
+    needs an explicit permitted kind: a README that never states the term is
+    not evidence that the licence is silent.
+    """
+    if claim.value is not None:
+        return None
+    facet = _facet_or_none(claim.field)
+    if facet is None:
+        return None
+    permitted = list(facet.permitted_source_kinds)
+    tracked, kind = _source_kind(regions, source_id)
+    if kind in permitted:
+        return None
+    if not claim.field.startswith("licence.") and (not tracked or kind is None):
+        return None
+    return [Diff("source_kind", permitted, kind if kind is not None else "unknown")]
+
+
+def _readers_for(extractors: Sequence[Extractor], claim: Claim, text: str,
+                 kind: str | None) -> list[Extractor]:
+    """Who may read this region.
+
+    A ``licence.*`` claim is read only from a source kind in that facet's
+    ``permitted_source_kinds``. ``CanonicalLicenceExtractor`` takes a
+    ``licence_text`` region whose text is the canonical MIT licence or the
+    Apache License 2.0 terms, and the licence reader is not asked about that
+    text. ``LicenceExtractor`` reads every other permitted region. Any other
+    cited region is a binding page. It is not a reading, for a known value or
+    an absence. Deterministic extractors still read a ``licence_text`` source
+    for every other claim, including ``model.weights_openness`` and ``origin.*``.
+    """
+    if claim.field.startswith("licence."):
+        facet = _facet_or_none(claim.field)
+        permitted = set(facet.permitted_source_kinds) if facet is not None else set()
+        if kind not in permitted:
+            return []
+        if kind == "licence_text":
+            canonical = [
+                extractor for extractor in extractors
+                if isinstance(extractor, CanonicalLicenceExtractor) and extractor.accepts(text)
+            ]
+            if canonical:
+                return canonical
+        return [extractor for extractor in extractors if isinstance(extractor, LicenceExtractor)]
+    chosen = []
+    for extractor in extractors:
+        if isinstance(extractor, (LicenceExtractor, CanonicalLicenceExtractor)):
+            continue
+        if extractor.accepts(text):
+            chosen.append(extractor)
+    return chosen
+
+
+def _binding_pages(claim: Claim, regions: Regions, source_id: str,
+                   region_id: str) -> tuple[list[str], list[str | None]]:
+    """Text and source URL of the claim's other cited regions."""
+    pages: list[str] = []
+    urls: list[str | None] = []
+    url_of = getattr(regions, "source_url", None)
+    for source in claim.sources:
+        for cited in source.cited_regions:
+            if source.source_id == source_id and cited == region_id:
+                continue
+            text = regions.text(source.source_id, source.snapshot_ref, cited)
+            if text:
+                pages.append(text)
+                urls.append(url_of(source.source_id) if callable(url_of) else None)
+    return pages, urls
+
+
 def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
            today: date) -> Result:
     """Re-read ``claim`` from each cited region of its sources and compare.
 
     Deterministic extractors are tried before the rest, whatever the order given;
     the first that accepts a region and is independent of the collector reads it.
-    Verified if any region confirms the value; otherwise the first mismatch.
+    A ``licence.*`` claim is read from a source kind in that facet's
+    ``permitted_source_kinds``. ``CanonicalLicenceExtractor`` reads a
+    ``licence_text`` region when the text is the canonical MIT licence or the
+    Apache License 2.0 terms, and ``LicenceExtractor`` is not asked about that
+    text. ``LicenceExtractor`` reads the other permitted regions. Other cited
+    regions are binding pages. A binding page gives
+    no outcome while the claim also cites a permitted kind. It is a
+    ``source_kind`` mismatch only when the claim cites no permitted kind.
+    Verified if any reading confirms the value; otherwise the first mismatch.
+    A claim whose permitted regions all have no extractor, or all raised
+    ``ExtractorError``, is skipped.
     """
     if isinstance(claim.value, dict) and "score" in claim.value:
         return _verify_evidence_reading(claim, regions, extractors, today=today)
@@ -2707,6 +3986,7 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
     mismatch: tuple[VerificationActor, list[Diff]] | None = None
     reasons: list[str] = []
     for source in claim.sources:
+        _, kind = _source_kind(regions, source.source_id)
         for region_id in source.cited_regions:
             where = f"{source.source_id}#{region_id}"
             text = regions.text(source.source_id, source.snapshot_ref, region_id)
@@ -2714,14 +3994,38 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
                 reasons.append(f"unreachable:{where}")
                 continue
             reachable = True
-            accepting = [e for e in ordered if e.accepts(text)]
+            accepting = _readers_for(ordered, claim, text, kind)
             independent = [e for e in accepting if _independent(claim, e.actor, today)]
             if not independent:
+                if _binding_page(claim, regions, kind):
+                    continue
+                if claim.value is None and claim.field.startswith("licence."):
+                    blocked = _absence_block(claim, regions, source.source_id)
+                    if blocked:
+                        found = blocked[0].found
+                        reasons.append(
+                            f"absence_source_kind:{where}: {found} is not a permitted source kind"
+                        )
+                        mismatch = mismatch or (REGION_LOOKUP, blocked)
+                        continue
                 reasons.append("no_independent_extractor" if accepting else f"no_extractor:{where}")
                 continue
             for extractor in independent:
                 try:
-                    if isinstance(extractor, LLMExtractor):
+                    if isinstance(extractor, (LicenceExtractor, CanonicalLicenceExtractor)):
+                        url_of = getattr(regions, "source_url", None)
+                        pages, page_urls = _binding_pages(
+                            claim, regions, source.source_id, region_id,
+                        )
+                        readings = extractor.extract(
+                            claim,
+                            text,
+                            cache_key=(source.snapshot_ref, region_id, claim.field),
+                            bindings=pages,
+                            binding_urls=page_urls,
+                            licence_url=url_of(source.source_id) if callable(url_of) else None,
+                        )
+                    elif isinstance(extractor, LLMExtractor):
                         readings = extractor.extract(
                             claim,
                             text,
@@ -2735,6 +4039,14 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
                     continue
                 diffs = compare(claim, readings)
                 if not diffs:
+                    blocked = _absence_block(claim, regions, source.source_id)
+                    if blocked:
+                        found = blocked[0].found
+                        reasons.append(
+                            f"absence_source_kind:{where}: {found} is not a permitted source kind"
+                        )
+                        mismatch = mismatch or (extractor.actor, blocked)
+                        continue
                     return Result(claim.target, "verified",
                                   _verification(claim, extractor.actor, "verified", today))
                 mismatch = mismatch or (extractor.actor, diffs)
@@ -2981,7 +4293,8 @@ def run(queue: Queue, log: VerificationLog, regions: Regions, extractors: Sequen
 
 
 __all__ = [
-    "Claim", "ClaudeCLICompletion", "CONDITION_KEYS", "Diff", "Extractor", "ExtractorError",
+    "Claim", "CanonicalLicenceExtractor", "ClaudeCLICompletion", "CONDITION_KEYS", "Diff",
+    "Extractor", "ExtractorError",
     "GovernanceProseExtractor", "KeyValueExtractor", "LLMCache", "LLMCallBudgetExceededError",
     "LLMExtractor", "MISTRAL_MODEL", "ModelPageExtractor", "OLLAMA_URL", "OfferingPriceExtractor",
     "OLLAMA_JSON_MODE", "OllamaChatCompletion", "Quantity", "Queue", "Reading",

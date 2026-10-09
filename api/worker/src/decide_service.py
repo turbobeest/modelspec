@@ -471,11 +471,10 @@ def decide(payload: Any, snapshot, *,
         def _trace(filtered) -> None:
             surviving.append(len(filtered.feasible))
 
-        # Objective evidence for each answer member, only on a bounded answer
-        # that was explained. Drill-down and explain none do not capture it.
+        # Record counts for the estimate caveat on every bounded summary.
+        # member_evidence itself is attached only for an explained answer.
         member_rows: list | None = None
-        if (options.evidence_for is None and options.fields is not None
-                and spec.explain in ("summary", "full")):
+        if options.fields is not None:
             member_rows = []
 
             def _take_members(rows, sink=member_rows) -> None:

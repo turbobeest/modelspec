@@ -81,6 +81,14 @@ _BOARD_ONE = (
 _BOARD_MANY = (
     " have no leaderboard data for {dimensions}; their positions are estimated, not measured."
 )
+# Approved by Jamie 2026-10-08 23:22 ET. A wording change is a one-line edit.
+_COUNT_ONE_NOT_PROXY = "1 record, not a proxy"
+_COUNT_ONE_PROXY = "1 record, a proxy"
+_COUNT_NONE_PROXIES = "{records} records, none of them proxies"
+_COUNT_ALL_PROXIES = "{records} records, all of them proxies"
+_COUNT_ONE_OF_THEM_A_PROXY = "{records} records, 1 of them a proxy"
+_COUNT_SOME_PROXIES = "{records} records, {proxies} of them proxies"
+_ESTIMATED_POSITION = "{model}'s position on {dimension} is estimated from {detail}."
 _OPTION_TO = (
     "Relaxing {condition} to {relaxed} would admit a model; "
     "that is an option, not an answer."
@@ -88,6 +96,18 @@ _OPTION_TO = (
 _OPTION = "Relaxing {condition} would admit a model; that is an option, not an answer."
 _OPTION_TOGETHER = (
     "Relaxing {conditions} together would admit a model; that is an option, not an answer."
+)
+_SINGLE_GATE = (
+    "Removing only {condition} would let {n} models qualify; "
+    "every other requirement stays as you set it."
+)
+_SINGLE_GATE_ONE = (
+    "Removing only {condition} would let 1 model qualify; "
+    "every other requirement stays as you set it."
+)
+_NO_SINGLE_GATE = (
+    "No single requirement is the blocker: removing any one of them "
+    "on its own still leaves no model."
 )
 
 
@@ -98,12 +118,26 @@ def summarize(
     not_applied: Iterable[str] = (),
     profiles: Mapping[str, InventoryProfile] | None = None,
     feasible: int | None = None,
+    record_counts: Mapping[str, Mapping[str, tuple[int, int]]] | None = None,
+    proxy_benchmarks: Mapping[str, Iterable[str]] | None = None,
 ) -> tuple[str, list[str]]:
     """Return ``(summary_for_user, must_mention)``.
 
     ``feasible`` is how many candidates the gates left for the optimiser.
     ``None`` reads that from the funnel. An empty funnel is not evidence
     that the gates excluded everyone.
+
+    ``record_counts`` maps a model to a dimension to ``(records, proxy records)``
+    behind that objective position. The engine passes the capture that also
+    feeds ``member_evidence``, before the cap of three, for every model
+    ``_subjects`` names. ``None`` counts the records already on the Decision's
+    contributions.
+
+    ``proxy_benchmarks`` maps a dimension to the benchmark names on an
+    all-proxy contribution. Explain none does not attach that evidence to
+    the Decision, so a proxy sentence the bands already selected would
+    otherwise omit the names. Names already on the Decision are left as they
+    are.
     """
     unapplied = _unapplied(decision, not_applied)
     if spec is not None and spec.task_type is not None:
@@ -111,7 +145,9 @@ def summarize(
         if task not in unapplied:
             unapplied.append(task)
     conditions = _applied_conditions(spec, profiles)
-    mentions = _mentions(decision, spec, unapplied, conditions)
+    mentions = _mentions(
+        decision, spec, unapplied, conditions, record_counts, proxy_benchmarks,
+    )
     summary = _summary(
         decision, spec, unapplied, mentions, conditions, feasible=feasible,
     )
@@ -152,6 +188,7 @@ def _summary(
     feasible: int | None = None,
 ) -> str:
     limits = {
+        "single": 12,
         "tie": TIE_NAME_CAP,
         "hard": 24,
         "prefer": 12,
@@ -160,6 +197,7 @@ def _summary(
         "caveat": 0,
     }
     floors = {
+        "single": 1,
         "tie": 1,
         "hard": 1,
         "prefer": 1,
@@ -173,22 +211,37 @@ def _summary(
     # None lists every condition in the joint relaxation. Shorten that list
     # only after the other lists are at their floors, so the fixed ending stays.
     joint_limit: int | None = None
+    # One gate sentence plus the full requirement lists can sit just over the
+    # cap. The joint option yields first: a gate sentence already names a
+    # removal that admits a model (MODEL-356).
+    omit_joint = False
     text = _compose(
         decision, spec, unapplied, visible, limits, conditions, joint_limit, feasible,
+        omit_joint=omit_joint,
     )
-    order = ("hard", "prefer", "relax", "missing", "tie", "caveat")
+    order = ("single", "hard", "prefer", "relax", "missing", "tie", "caveat")
     while len(text.encode("utf-8")) > SUMMARY_BYTES:
         key = next((name for name in order if limits[name] > floors[name]), None)
-        if key is not None:
+        single = decision.relax_single
+        if (
+            key == "hard"
+            and not omit_joint
+            and single is not None
+            and single.gates
+            and _joint_conditions(decision, conditions)
+        ):
+            omit_joint = True
+        elif key is not None:
             limits[key] -= 1
         else:
             count = len(_joint_conditions(decision, conditions))
             current = count if joint_limit is None else joint_limit
-            if count <= 1 or current <= 1:
+            if count <= 1 or current <= 1 or omit_joint:
                 break
             joint_limit = current - 1
         text = _compose(
             decision, spec, unapplied, visible, limits, conditions, joint_limit, feasible,
+            omit_joint=omit_joint,
         )
     if len(text.encode("utf-8")) > SUMMARY_BYTES:
         text = _clip_paragraph(text)
@@ -204,10 +257,13 @@ def _compose(
     conditions: tuple,
     joint_limit: int | None = None,
     feasible: int | None = None,
+    *,
+    omit_joint: bool = False,
 ) -> str:
     parts = [_answer_sentence(decision, limits["tie"])]
     parts.extend(_why(
         decision, spec, unapplied, limits, conditions, joint_limit, feasible,
+        omit_joint=omit_joint,
     ))
     parts.extend(_constraints(spec, unapplied, limits, conditions))
     parts.extend(_caveats(mentions, limits["caveat"]))
@@ -269,6 +325,8 @@ def _why(
     conditions: tuple,
     joint_limit: int | None = None,
     feasible: int | None = None,
+    *,
+    omit_joint: bool = False,
 ) -> list[str]:
     if decision.status == "no_feasible":
         # A diagnostic from optimise([]) is an objective failure only when the
@@ -286,8 +344,11 @@ def _why(
             exclude = "These requirements together exclude every model."
         sentences = [exclude]
         sentences.extend(
-            _relaxation_options(decision, conditions, limits["relax"], joint_limit)
+            _relaxation_options(
+                decision, conditions, limits["relax"], joint_limit, omit_joint=omit_joint,
+            )
         )
+        sentences.extend(_single_gate_sentences(decision, limits["single"]))
         hint = decision.relax_task_tokens
         if hint is not None:
             sentences.append(f"Task-size relaxation, not an answer: {hint.condition}.")
@@ -381,18 +442,49 @@ def _joint_conditions(decision: Decision, conditions: tuple) -> list[str]:
     ]
 
 
+def _single_gate_sentences(decision: Decision, limit: int) -> list[str]:
+    """Gates whose removal alone admits models, in the order ``relax_single`` gives.
+
+    ``limit`` is this paragraph's own cap for these sentences. The trim lowers
+    it to 1 before any requirement list loses an item, and no further, so the
+    first gate stays. The none sentence is emitted only when removing every
+    relaxable gate together still admits a model and ``question_admits`` is
+    false.
+    """
+    single = decision.relax_single
+    if single is None:
+        return []
+    if single.status == "none":
+        if single.together_admits > 0 and not single.question_admits:
+            return [_NO_SINGLE_GATE]
+        return []
+    return [
+        _single_gate_sentence(gate.condition, gate.admits)
+        for gate in single.gates[:limit]
+    ]
+
+
+def _single_gate_sentence(condition: str, admits: int) -> str:
+    if admits == 1:
+        return _SINGLE_GATE_ONE.format(condition=condition)
+    return _SINGLE_GATE.format(condition=condition, n=_count(admits))
+
+
 def _relaxation_options(
     decision: Decision, conditions: tuple, limit: int, joint_limit: int | None = None,
+    *,
+    omit_joint: bool = False,
 ) -> list[str]:
     """``relax_to`` items are each enough. Uncovered ``relax`` entries are one set.
 
     ``limit`` caps how many ``relax_to`` sentences are written out. Further
     items are counted inside the last of those sentences, so each sentence
     keeps its ending. The joint option stays while any ``relax_to`` sentence
-    stays.
+    stays, unless the paragraph has already kept a single-gate sentence and
+    still does not fit.
     """
     items = list(decision.relax_to)
-    uncovered = _joint_conditions(decision, conditions)
+    uncovered = [] if omit_joint else _joint_conditions(decision, conditions)
     joint = _joint_option(uncovered, joint_limit) if uncovered else None
     if not items and joint is None:
         return []
@@ -533,7 +625,12 @@ def _unapplied(decision: Decision, extra: Iterable[str]) -> list[str]:
 
 
 def _mentions(
-    decision: Decision, spec: Spec | None, unapplied: list[str], conditions: tuple,
+    decision: Decision,
+    spec: Spec | None,
+    unapplied: list[str],
+    conditions: tuple,
+    record_counts: Mapping[str, Mapping[str, tuple[int, int]]] | None = None,
+    proxy_benchmarks: Mapping[str, Iterable[str]] | None = None,
 ) -> list[tuple[str, str]]:
     items: list[tuple[str, str]] = []
     tie = _tie_item(decision)
@@ -549,10 +646,12 @@ def _mentions(
         items.append(("cost", _COST_ONLY))
     if _cost_tie_break(decision):
         items.append(("tie_cost", _TIE_COST))
-    for domain, benchmarks in _proxy(decision).items():
+    for domain, benchmarks in _proxy(decision, proxy_benchmarks).items():
         items.append(("proxy", _proxy_sentence(domain, benchmarks)))
-    for models, dimensions in _missing(decision, spec):
-        items.append(("missing", _board_sentence(models, dimensions)))
+    for models, dimensions, records, proxies in _missing(decision, spec, record_counts):
+        items.append(("missing", _board_sentence(
+            models, dimensions, records=records, proxies=proxies,
+        )))
     for requirement in unapplied:
         items.append(("not_applied", _not_checked(requirement)))
     if decision.coverage is not None:
@@ -577,7 +676,10 @@ def _mentions(
     return _trim(items)
 
 
-def _proxy(decision: Decision) -> dict[str, list[str]]:
+def _proxy(
+    decision: Decision,
+    proxy_benchmarks: Mapping[str, Iterable[str]] | None = None,
+) -> dict[str, list[str]]:
     models = _subjects(decision)
     if not models:
         return {}
@@ -614,6 +716,15 @@ def _proxy(decision: Decision) -> dict[str, list[str]]:
         ]
         for domain in domains or ["the requested task"]:
             found.setdefault(domain, set())
+    # Explain none keeps the bands, which name the domain and not the
+    # benchmarks. The capture loaded the same all-proxy contribution evidence
+    # the summary reads. Fill only a domain that has no names yet, so a
+    # sentence that already names its benchmarks stays word for word.
+    if proxy_benchmarks:
+        for domain, names in proxy_benchmarks.items():
+            slot = found.get(domain)
+            if slot is not None and not slot:
+                slot.update(name for name in names if isinstance(name, str) and name)
     return {domain: sorted(benchmarks) for domain, benchmarks in sorted(found.items())}
 
 
@@ -639,33 +750,177 @@ def _proxy_sentence(domain: str, benchmarks: list[str]) -> str:
     return prefix + ", ".join(shown) + extra + suffix
 
 
-def _missing(decision: Decision, spec: Spec | None) -> list[tuple[list[str], list[str]]]:
-    """Models that share a missing dimension set, in answer order."""
+def _missing(
+    decision: Decision,
+    spec: Spec | None,
+    record_counts: Mapping[str, Mapping[str, tuple[int, int]]] | None,
+) -> list[tuple[list[str], list[str], int, int]]:
+    """One ``(model, dimension)`` when that position was estimated from records.
+
+    N=0 keeps the no-leaderboard sentence: models that share one set of
+    unmeasured dimensions share one item, placed where the first of them
+    appears. Order follows the answer, then the objective's dimensions.
+    """
     dimensions = _board_dimensions(spec)
     if not dimensions:
         return []
-    groups: dict[tuple[str, ...], list[str]] = {}
-    order: list[tuple[str, ...]] = []
+    items: list[tuple[list[str], list[str], int, int]] = []
+    zero_at: dict[tuple[str, ...], int] = {}
     for model in _subjects(decision):
-        missing = tuple(
+        missing = [
             dimension for dimension in dimensions
             if _unmeasured(decision, model, dimension)
-        )
+        ]
         if not missing:
             continue
-        bucket = groups.get(missing)
-        if bucket is None:
-            groups[missing] = [model]
-            order.append(missing)
-        elif model not in bucket:
-            bucket.append(model)
-    return [(groups[key], list(key)) for key in order]
+        by_count: dict[tuple[int, int], list[str]] = {}
+        count_order: list[tuple[int, int]] = []
+        for dimension in missing:
+            pair = _record_pair(decision, model, dimension, record_counts)
+            bucket = by_count.get(pair)
+            if bucket is None:
+                by_count[pair] = [dimension]
+                count_order.append(pair)
+            else:
+                bucket.append(dimension)
+        for records, proxies in count_order:
+            dims = by_count[(records, proxies)]
+            if records <= 0:
+                key = tuple(dims)
+                slot = zero_at.get(key)
+                if slot is None:
+                    zero_at[key] = len(items)
+                    items.append(([model], list(dims), 0, 0))
+                elif model not in items[slot][0]:
+                    items[slot][0].append(model)
+                continue
+            for dimension in dims:
+                items.append(([model], [dimension], records, proxies))
+    return items
 
 
-def _board_sentence(models: list[str], dimensions: list[str]) -> str:
+def record_counts_from_capture(captured) -> dict[str, dict[str, tuple[int, int]]]:
+    """Per-model dimension counts carried beside a member-evidence capture."""
+    found: dict[str, dict[str, tuple[int, int]]] = {}
+    for entry in captured:
+        counts = entry[2] if len(entry) > 2 else None
+        if isinstance(counts, dict):
+            found[entry[0]] = {
+                dimension: (int(pair[0]), int(pair[1]))
+                for dimension, pair in counts.items()
+            }
+    return found
+
+
+def proxy_benchmarks_from_capture(captured) -> dict[str, list[str]]:
+    """Benchmark names on all-proxy contributions, unioned across the capture.
+
+    The fourth element of a capture row is that map for one model. A row
+    without it contributes no names. Order is the sorted union, which is the
+    order ``_proxy`` already uses for names it read off the Decision.
+    """
+    found: dict[str, set[str]] = {}
+    for entry in captured:
+        names = entry[3] if len(entry) > 3 else None
+        if not isinstance(names, dict):
+            continue
+        for dimension, benchmarks in names.items():
+            if not isinstance(dimension, str) or not dimension:
+                continue
+            slot = found.setdefault(dimension, set())
+            for benchmark in benchmarks:
+                if isinstance(benchmark, str) and benchmark:
+                    slot.add(benchmark)
+    return {dimension: sorted(benchmarks) for dimension, benchmarks in sorted(found.items())}
+
+
+def _record_pair(
+    decision: Decision,
+    model: str,
+    dimension: str,
+    record_counts: Mapping[str, Mapping[str, tuple[int, int]]] | None,
+) -> tuple[int, int]:
+    if record_counts is not None and model in record_counts:
+        found = record_counts[model]
+        if dimension in found:
+            return _pair(found[dimension])
+        base = _dimension_base(dimension)
+        if base in found:
+            return _pair(found[base])
+        return (0, 0)
+    return _decision_record_counts(decision, model, dimension)
+
+
+def _pair(value) -> tuple[int, int]:
+    records, proxies = value
+    return int(records), int(proxies)
+
+
+def _decision_record_counts(decision: Decision, model: str, dimension: str) -> tuple[int, int]:
+    """Records on this model's unmeasured contribution for one dimension.
+
+    The same items ``contributions`` stores. A result row wins over ``top``.
+    """
+    from decision.explain import tally_evidence_records
+
+    base = _dimension_base(dimension)
+    rows = [row for row in decision.results if _row_model(row) == model]
+    if not rows:
+        rows = [row for row in decision.top if _row_model(row) == model]
+    items = []
+    for row in rows:
+        for contribution in row.contributions:
+            if not _contribution_matches(contribution, dimension, base):
+                continue
+            if _contribution_measured(contribution):
+                continue
+            items.extend(contribution.evidence)
+    return tally_evidence_records(items)
+
+
+def _estimate_detail(records: int, proxies: int) -> str:
+    if records == 1 and proxies <= 0:
+        return _COUNT_ONE_NOT_PROXY
+    if records == 1 and proxies == 1:
+        return _COUNT_ONE_PROXY
+    shown = _count(records)
+    if proxies <= 0:
+        return _COUNT_NONE_PROXIES.format(records=shown)
+    if proxies == records:
+        return _COUNT_ALL_PROXIES.format(records=shown)
+    if proxies == 1:
+        return _COUNT_ONE_OF_THEM_A_PROXY.format(records=shown)
+    return _COUNT_SOME_PROXIES.format(records=shown, proxies=_count(proxies))
+
+
+def _board_affixes(many_models: bool) -> tuple[str, str]:
+    template = _BOARD_MANY if many_models else _BOARD_ONE
+    head, _, tail = template.partition("{dimensions}")
+    return head, tail
+
+
+def _estimated_position_sentence(model: str, dimension: str, records: int, proxies: int) -> str:
+    """One approved sentence. A name that overflows 200 bytes shortens; the wording does not."""
+    detail = _estimate_detail(records, proxies)
+    text = _ESTIMATED_POSITION.format(model=model, dimension=dimension, detail=detail)
+    if len(text.encode("utf-8")) <= MUST_MENTION_ITEM_BYTES:
+        return text
+    tail = f" is estimated from {detail}."
+    head = "'s position on "
+    room = MUST_MENTION_ITEM_BYTES - len((head + tail).encode("utf-8"))
+    model_text = _clip_to(model, max(room - len(dimension.encode("utf-8")), 1))
+    dimension_text = _clip_to(dimension, max(room - len(model_text.encode("utf-8")), 1))
+    return model_text + head + dimension_text + tail
+
+
+def _board_sentence(
+    models: list[str], dimensions: list[str], *, records: int = 0, proxies: int = 0,
+) -> str:
     """One leaderboard caveat. Names that overflow 200 bytes shorten; the wording does not."""
+    if records > 0:
+        return _estimated_position_sentence(models[0], dimensions[0], records, proxies)
     many = len(models) > 1
-    template = _BOARD_MANY if many else _BOARD_ONE
+    head, tail = _board_affixes(many)
     # A 200-byte item never holds more than a handful of ids, so the search
     # starts from small caps: the cost stays bounded however large the tie or
     # objective is.
@@ -673,14 +928,11 @@ def _board_sentence(models: list[str], dimensions: list[str]) -> str:
     for name_count in name_counts:
         names = _name_list(models, name_count, more="")
         for dim_count in range(min(len(dimensions), _BOARD_DIMENSION_CAP), 0, -1):
-            text = names + template.format(
-                dimensions=_name_list(dimensions, dim_count, more=" dimensions"),
-            )
+            text = names + head + _name_list(dimensions, dim_count, more=" dimensions") + tail
             if len(text.encode("utf-8")) <= MUST_MENTION_ITEM_BYTES:
                 return text
     names = _name_list(models, 1, more="")
     dims = _name_list(dimensions, 1, more=" dimensions")
-    head, _, tail = template.partition("{dimensions}")
     room = MUST_MENTION_ITEM_BYTES - len((head + tail).encode("utf-8"))
     names = _clip_to(names, max(room - len(dims.encode("utf-8")), 1))
     dims = _clip_to(dims, max(room - len(names.encode("utf-8")), 1))

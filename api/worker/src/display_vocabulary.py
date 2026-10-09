@@ -5,6 +5,8 @@ import json
 import re
 from collections import Counter
 from copy import deepcopy
+from functools import cache
+from pathlib import Path
 
 try:
     from agent_guide import MINIMAL_SPEC, VOCAB_NEXT
@@ -60,11 +62,14 @@ def trim(vocabulary, *, model_ids, facet_values):
 
 MAX_IDS = 100
 MAX_TERM = 128
-# The suggestion pass is reachable without a key, so its work has a hard ceiling:
-# two needles of at most 32 characters, and at most this many Levenshtein cells.
-SUGGESTION_NEEDLES = 2
+# Suggestion scoring and subset matching are reachable without a key, so both
+# stop at the first 8 unique content tokens. Suggestions also cut each token to
+# 32 characters and stop after this many Levenshtein cells.
+SUGGESTION_TOKENS = 8
 SUGGESTION_NEEDLE_CHARS = 32
 SUGGESTION_CELLS = 300_000
+_KINDS = ("id", "label", "definition", "value")
+_STOPWORDS = frozenset({"use", "for", "the", "a", "and", "of", "with", "on", "in", "to"})
 
 
 def vocabulary_response(selected, section):
@@ -128,6 +133,12 @@ def searchable_fields(section, key, row):
         return fields
     labels = ("label",) if section == "facets" else (("display_name",) if section == "models" else ("name",))
     fields.extend(("label", row[label], None) for label in labels if row.get(label) is not None)
+    if section != "models" and row.get("display_name") is not None:
+        fields.append(("label", row["display_name"], None))
+    for extra in ("aliases", "synonyms"):
+        raw = row.get(extra)
+        items = [raw] if isinstance(raw, str) else raw if isinstance(raw, list) else []
+        fields.extend(("label", item, None) for item in items if isinstance(item, str))
     if section == "estate" and row.get("provider") is not None:
         fields.append(("label", row["provider"], None))
     definitions = ("purpose", "category", "tier") if section == "templates" else (
@@ -142,13 +153,54 @@ def searchable_fields(section, key, row):
     return fields
 
 
-def match_fields(fields, needle):
-    tokens = needle.split()
+def _synonym_file():
+    here = Path(__file__).resolve().parent
+    sibling = here / "pipeline" / "vocab_synonyms.json"
+    if sibling.is_file():
+        return sibling
+    repo = here.parents[2] / "pipeline" / "vocab_synonyms.json"
+    if repo.is_file():
+        return repo
+    raise FileNotFoundError("pipeline/vocab_synonyms.json")
+
+
+@cache
+def _synonym_table():
+    data = json.loads(_synonym_file().read_text(encoding="utf-8"))
+    spelling = {}
+    for canonical, variant in data.get("spelling", []):
+        spelling[normalize(variant)] = normalize(canonical)
+    phrases = []
+    for row in data.get("synonyms", []):
+        ids = tuple(row.get("ids", []))
+        for phrase in row.get("phrases", []):
+            tokens = tuple(normalize(phrase).split())
+            if tokens and ids:
+                phrases.append((tokens, ids))
+    return spelling, tuple(phrases)
+
+
+def _fold_token(token):
+    return _synonym_table()[0].get(token, token)
+
+
+def _fold(text):
+    return " ".join(_fold_token(token) for token in normalize(text).split())
+
+
+def _fold_fields(fields):
+    return [(kind, _fold(text), value) for kind, text, value in fields]
+
+
+def _match_folded(folded, folded_needle, tokens):
+    """Match a needle folded once for the request. `tokens` are its unique folded words."""
+    if not tokens:
+        return None
     prior = []
-    for kind in ("id", "label", "definition", "value"):
-        current = [(normalize(text), value) for category, text, value in fields if category == kind]
+    for kind in _KINDS:
+        current = [(text, value) for category, text, value in folded if category == kind]
         for text, value in current:
-            if needle in text:
+            if text and folded_needle in text:
                 return kind, value
         combined = prior + [text for text, _ in current]
         if current and all(any(token in text for text in combined) for token in tokens):
@@ -156,6 +208,125 @@ def match_fields(fields, needle):
             return kind, value
         prior = combined
     return None
+
+
+def _prepare_query(needle):
+    """Fold each query token once. Subset matching keeps the first 8 unique content tokens."""
+    raw = tuple(needle.split()) if needle else ()
+    folded_of = {}
+    for token in raw:
+        if token not in folded_of:
+            folded_of[token] = _fold_token(token)
+    content = []
+    seen = set()
+    for token in raw:
+        # len() counts code points, so one emoji is one character.
+        if token in _STOPWORDS or len(token) < 2 or token in seen:
+            continue
+        seen.add(token)
+        content.append(token)
+        if len(content) >= SUGGESTION_TOKENS:
+            break
+    content = tuple(content)
+    folded_all = " ".join(folded_of[token] for token in raw)
+    all_tokens = tuple(dict.fromkeys(folded_of[token] for token in raw))
+    content_folded = tuple(folded_of[token] for token in content)
+    return raw, content, folded_all, all_tokens, content_folded
+
+
+def _phrase_cover(raw, content):
+    cover, whole = {}, set()
+    content = set(content)
+    for phrase, ids in _synonym_table()[1]:
+        size = len(phrase)
+        if not size or size > len(raw):
+            continue
+        for start in range(len(raw) - size + 1):
+            if tuple(raw[start:start + size]) != phrase:
+                continue
+            hit = [token for token in phrase if token in content]
+            for key in ids:
+                cover.setdefault(key, set()).update(hit)
+            if size == len(raw):
+                whole.update(ids)
+    return cover, whole
+
+
+def _token_quality(folded, folded_token, synonym):
+    if synonym:
+        return 0
+    partial = False
+    for _, text, _ in folded:
+        if not folded_token or not text:
+            continue
+        if folded_token in text.split():
+            return 1
+        partial = partial or folded_token in text
+    return 2 if partial else 9
+
+
+def _best_kind(found):
+    kind = min((item[1] for item in found), key=_KINDS.index)
+    value = next((item[2] for item in found if item[1] == kind), None) if kind == "value" else None
+    return kind, value
+
+
+def _classify(folded, key, query, cover, whole, exact):
+    """Return a hit, or None. total counts subset and synonym hits; only a true miss is zero."""
+    raw, content, folded_all, all_tokens, content_folded = query
+    text_all = _match_folded(folded, folded_all, all_tokens) if raw else None
+    synonym_tokens = cover.get(key, set())
+    text_found = []
+    for token, folded_token in zip(content, content_folded, strict=True):
+        found = _match_folded(folded, folded_token, (folded_token,))
+        if found:
+            text_found.append((token, found[0], found[1]))
+    text_tokens = {token for token, _, _ in text_found}
+    matched = tuple(token for token in content if token in text_tokens or token in synonym_tokens)
+    synonym_full = bool(content) and set(content) <= synonym_tokens
+    whole_query = key in whole
+
+    def via(tokens):
+        return "synonym" if any(token not in text_tokens for token in tokens) else None
+
+    if exact:
+        if text_all:
+            kind, value = text_all
+            if kind != "value":
+                value = None
+        elif text_found:
+            kind, value = _best_kind(text_found)
+        elif matched or whole_query or synonym_full:
+            kind, value = "label", None
+        else:
+            return None
+        return {"tier": 0, "kind": kind, "value": value, "via": None, "matched_tokens": (), "quality": {}}
+    if text_all:
+        kind, value = text_all
+        if kind != "value":
+            value = None
+        return {"tier": 1, "kind": kind, "value": value, "via": None, "matched_tokens": (), "quality": {}}
+    if whole_query or synonym_full:
+        kind, value = _best_kind(text_found) if text_found else ("label", None)
+        return {"tier": 1, "kind": kind, "value": value, "via": via(content), "matched_tokens": (), "quality": {}}
+    if not matched:
+        return None
+    kind, value = _best_kind(text_found) if text_found else ("label", None)
+    folded_for = dict(zip(content, content_folded, strict=True))
+    quality = {token: _token_quality(folded, folded_for[token], token in synonym_tokens) for token in matched}
+    return {"tier": 2, "kind": kind, "value": value, "via": via(matched),
+            "matched_tokens": matched, "quality": quality}
+
+
+def query_hits(key, fields, search):
+    """True when the hosted search would return this id for `search`."""
+    needle = normalize(search)
+    if not needle:
+        return False
+    query = _prepare_query(needle)
+    raw, content, *_rest = query
+    cover, whole = _phrase_cover(raw, content)
+    return _classify(_fold_fields(fields), str(key), query, cover, whole, False) is not None
 
 
 def similarity(left, right):
@@ -170,41 +341,98 @@ def similarity(left, right):
     return 1 - previous[-1] / max(len(left), len(right))
 
 
+def _suggestion_tokens(needles):
+    tokens = []
+    for needle in needles:
+        for token in normalize(needle).split():
+            if not token:
+                continue
+            tokens.append(token[:SUGGESTION_NEEDLE_CHARS])
+            if len(tokens) >= SUGGESTION_TOKENS:
+                return tokens
+    return tokens
+
+
+def _folded_haystacks(text, labels):
+    # An ordered dedupe keeps the budget's stopping point the same on every run.
+    raw = dict.fromkeys([normalize(text), normalize(re.split(r"[._]", str(text))[-1]),
+                         *normalize(text).split(), *(normalize(label) for label in labels)])
+    folded, seen = [], set()
+    for item in raw:
+        hay = _fold(item)
+        if hay not in seen:
+            seen.add(hay)
+            folded.append(hay)
+    return folded
+
+
+def _score_suggestions(candidates, tokens, cover, cells, *, length_filter, ids_only):
+    scored, calls, stopped = [], 0, False
+    for (section, key, name), (text, labels, value) in candidates.items():
+        if stopped:
+            break
+        if ids_only and name is not None:
+            continue
+        haystacks = _folded_haystacks(text, labels)
+        synonym_tokens = cover.get(str(key), ()) if name is None else ()
+        score = 0.0
+        for token in tokens:
+            if token in synonym_tokens:
+                score += 1.0
+                continue
+            folded_token = _fold(token)
+            best = 0.0
+            for hay in haystacks:
+                # Levenshtein similarity is at most min/max length, so skip pairs that cannot reach 0.4.
+                if not folded_token or not hay or (
+                        length_filter and min(len(folded_token), len(hay)) < 0.4 * max(len(folded_token), len(hay))):
+                    continue
+                cost = len(folded_token) * len(hay)
+                if cells[0] + cost > SUGGESTION_CELLS:
+                    stopped = True
+                    break
+                cells[0] += cost
+                calls += 1
+                best = max(best, similarity(folded_token, hay))
+            score += best
+            if stopped:
+                break
+        if score > 0:
+            scored.append((score, section, key, name, value))
+    return scored, calls
+
+
 def suggestions(vocabulary, needles):
-    """A value suggestion names its facet id, so retrying with id= cannot dead-end."""
+    """A value suggestion names its facet id, so retrying with id= cannot dead-end.
+
+    Scores each of the first 8 tokens. Synonym ids score 1. Keeps scores of at
+    least 0.4, or the best score above zero when nothing reaches 0.4. A query
+    of only separators has no tokens and suggests nothing.
+    """
+    tokens = _suggestion_tokens(needles)
+    if not tokens:
+        return []
     candidates = {}
     for section in SEARCH_SECTIONS:
         for key, row, _ in section_rows(vocabulary, section):
             fields = searchable_fields(section, key, row)
-            candidates[(section, str(key), None)] = (str(key), [text for kind, text, _ in fields if kind == "label"], None)
+            labels = [text for kind, text, _ in fields if kind == "label"]
+            candidates[(section, str(key), None)] = (str(key), labels, None)
             for kind, text, value in fields:
-                if kind == "value":
-                    name = json.dumps(value, ensure_ascii=False) if isinstance(value, bool) else str(value)
-                    candidates.setdefault((section, str(key), name), (name, [], value))[1].append(text)
-    needles = [normalize(needle)[:SUGGESTION_NEEDLE_CHARS] for needle in needles[:SUGGESTION_NEEDLES]]
-    scored, cells = [], 0
-    for (section, key, name), (text, labels, value) in candidates.items():
-        # Token scores let a typo like "pirce" suggest offering.price.input.
-        # An ordered dedupe keeps the budget's stopping point the same on every run.
-        haystacks = dict.fromkeys([normalize(text), normalize(re.split(r"[._]", text)[-1]),
-                                   *normalize(text).split(), *(normalize(label) for label in labels)])
-        score = 0
-        for needle in needles:
-            for hay in haystacks:
-                # Levenshtein similarity is at most min/max length, so skip pairs that cannot reach 0.4.
-                if not needle or not hay or min(len(needle), len(hay)) < 0.4 * max(len(needle), len(hay)):
+                if kind != "value":
                     continue
-                cells += len(needle) * len(hay)
-                if cells > SUGGESTION_CELLS:
-                    break
-                score = max(score, similarity(needle, hay))
-        if score >= 0.4:
-            scored.append((score, section, key, name, value))
-        if cells > SUGGESTION_CELLS:
-            break
-    scored.sort(key=lambda item: (-item[0], SEARCH_SECTIONS.index(item[1]), item[2], item[3] or ""))
+                name = json.dumps(value, ensure_ascii=False) if isinstance(value, bool) else str(value)
+                candidates.setdefault((section, str(key), name), (name, [], value))[1].append(text)
+    cover, _ = _phrase_cover(tuple(tokens), tokens)
+    cells = [0]
+    scored, calls = _score_suggestions(candidates, tokens, cover, cells, length_filter=True, ids_only=False)
+    if not scored and calls == 0 and cells[0] < SUGGESTION_CELLS:
+        scored, _ = _score_suggestions(candidates, tokens, cover, cells, length_filter=False, ids_only=True)
+    strong = [item for item in scored if item[0] >= 0.4]
+    pool = strong if strong else scored
+    pool.sort(key=lambda item: (-item[0], SEARCH_SECTIONS.index(item[1]), item[2], item[3] or ""))
     return [{"section": section, "id": key, **({"value": value} if name is not None else {})}
-            for _, section, key, name, value in scored[:5]]
+            for _, section, key, name, value in pool[:5]]
 
 
 def select_rows(rows, section, full):
@@ -217,10 +445,55 @@ def select_rows(rows, section, full):
     return [row for _, row in selected]
 
 
+def _rank_hits(hits, content, searched):
+    exact = [hit for hit in hits if hit["tier"] == 0]
+    full = [hit for hit in hits if hit["tier"] == 1]
+    subset = [hit for hit in hits if hit["tier"] == 2]
+    exact.sort(key=lambda hit: (searched.index(hit["entry"]["section"]), hit["source"]))
+    full.sort(key=lambda hit: (_KINDS.index(hit["kind"]), searched.index(hit["entry"]["section"]), hit["source"]))
+    buckets = []
+    for token in content:
+        group = [hit for hit in subset if token in hit["matched_tokens"]]
+        group.sort(key=lambda hit: (hit["quality"].get(token, 9), -len(hit["matched_tokens"]),
+                                    _KINDS.index(hit["kind"]), searched.index(hit["entry"]["section"]), hit["source"]))
+        buckets.append(group)
+    interleaved, seen = [], set()
+    indexes = [0] * len(buckets)
+    while True:
+        moved = False
+        for i, group in enumerate(buckets):
+            idx = indexes[i]
+            while idx < len(group) and group[idx]["source"] in seen:
+                idx += 1
+            if idx < len(group):
+                hit = group[idx]
+                idx += 1
+                seen.add(hit["source"])
+                interleaved.append(hit)
+                moved = True
+            indexes[i] = idx
+        if not moved:
+            break
+    return exact + full + interleaved
+
+
 def search_vocabulary(vocabulary, *, section, search, ids, full, offset, limit):
+    """Search ids, labels, definitions, values and synonyms.
+
+    Every query token matching is the first tier. Otherwise a content token can
+    match; stopwords and one-character tokens count only toward the all-token
+    tier. Subset matching uses the first 8 unique content tokens, in query order.
+    Subset hits interleave so each content token's best hit leads. total
+    counts both tiers, including synonym hits, and is zero only when nothing
+    matched. A synonym hit keeps matched as label and sets via to "synonym".
+    A subset hit adds matched_tokens. Suggestions are returned only on a miss.
+    """
     cross_section = section == "starter"
     searched = list(SEARCH_SECTIONS) if cross_section else [section]
     needle = normalize(search)
+    query = _prepare_query(needle)
+    raw, content, *_rest = query
+    cover, whole = _phrase_cover(raw, content) if needle else ({}, set())
     hits = []
     exact_ids: set[str] = set()
     for name in searched:
@@ -230,32 +503,41 @@ def search_vocabulary(vocabulary, *, section, search, ids, full, offset, limit):
             if ids and key not in ids:
                 continue
             # A search of only separators normalises to nothing: it matches nothing, not everything.
-            match = (match_fields(searchable_fields(name, key, row), needle) if needle
-                     else None if search else ("id", None))
-            if match is None:
+            if needle:
+                classified = _classify(_fold_fields(searchable_fields(name, key, row)), key, query,
+                                       cover, whole, key in ids or key == search)
+            elif search:
+                classified = None
+            else:
+                classified = {"tier": 0, "kind": "id", "value": None, "via": None, "matched_tokens": (), "quality": {}}
+            if classified is None:
                 continue
-            kind, value = match
-            rank = 0 if key in ids or key == search else ("id", "label", "definition", "value").index(kind) + 1
+            kind = classified["kind"]
             label = (row.get("label", row.get("name", row.get("display_name"))) if isinstance(row, dict)
                      else row if name in {"providers", "vendors"} else None)
             entry = {"section": name, "id": key, "matched": kind}
             if label is not None:
                 entry["label"] = label
             if kind == "value":
-                entry["value"] = value
-            hits.append((rank, entry, (key, row, group)))
-    # Stable sort preserves source order within each section and match category.
-    ranked = sorted(hits, key=lambda hit: (hit[0], searched.index(hit[1]["section"])))
+                entry["value"] = classified["value"]
+            if classified["via"]:
+                entry["via"] = classified["via"]
+            if classified["matched_tokens"]:
+                entry["matched_tokens"] = list(classified["matched_tokens"])
+            hits.append({"entry": entry, "row": (key, row, group), "tier": classified["tier"], "kind": kind,
+                         "matched_tokens": classified["matched_tokens"], "quality": classified["quality"],
+                         "source": len(hits)})
+    ranked = _rank_hits(hits, content, searched)
     page = ranked[offset:offset + limit]
     if cross_section:
-        result = {name: select_rows([row for _, entry, row in page if entry["section"] == name], name, full)
+        result = {name: select_rows([hit["row"] for hit in page if hit["entry"]["section"] == name], name, full)
                   for name in searched}
         starters = set(starter_ids(vocabulary))
         result.update(vocabulary_response([row for row in result["facets"] if row["id"] in starters], "starter"))
     else:
-        rows = [row for _, _, row in hits]
+        rows = [hit["row"] for hit in hits]
         result = vocabulary_response(select_rows(rows if full else rows[offset:offset + limit], section, full), section)
-    result.update(matches=[entry for _, entry, _ in page], total=len(hits), searched=searched)
+    result.update(matches=[hit["entry"] for hit in page], total=len(hits), searched=searched)
     result["next"] = VOCAB_NEXT["lookup" if hits else "empty"]
     if not hits:
         closest = suggestions(vocabulary, [search] if search else sorted(ids))

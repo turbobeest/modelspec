@@ -158,7 +158,7 @@ def capture_tools() -> dict:
                     ],
                     "description": "Return only this vocabulary section; defaults to starter",
                 },
-                "search": {"type": "string", "description": "Case-insensitive substring over id and label or display name"},
+                "search": {"type": "string", "description": "Case- and separator-insensitive token and synonym search over ids, labels, definitions and values"},
                 "id": {"type": "string", "description": "Return full details for this exact id"},
                 "ids": {"type": "array", "items": {"type": "string"}, "description": "Return full details for these exact ids"},
                 "detail": {"type": "string", "enum": ["compact", "full"], "description": "Full returns all display details; defaults to compact"},

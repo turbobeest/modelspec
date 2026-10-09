@@ -76,12 +76,12 @@ def test_projection_keeps_essentials_and_identity(service, snapshot):
     for row in bounded["results"]:
         assert set(row) == {"rank", "model", "offering", "warnings", "cost_per_task"}
     assert bounded["explanation"]["omitted"]["by_model"] == len(complete["by_model"])
-    assert complete["contract_version"] == "2.14"
+    assert complete["contract_version"] == "2.15"
     # A distinct representation, not a 2.x minor version (MODEL-59).
     assert "contract_version" not in bounded
     assert bounded["representation"] == "bounded"
     assert bounded["bounded_version"] == "1.1"
-    assert bounded["projects_contract"] == "2.14"
+    assert bounded["projects_contract"] == "2.15"
     assert bounded["summary_for_user"].startswith("ModelSpec's answer is")
     assert isinstance(bounded["must_mention"], list)
     assert "summary_for_user" not in complete
@@ -148,7 +148,7 @@ def test_drill_down_explains_one_eliminated_model(service, snapshot):
 
 def test_limit_only_preserves_legacy_representation(service, snapshot):
     _, body = service.decide({**_payload(), "limit": 1}, snapshot)
-    assert body["contract_version"] == "2.14"
+    assert body["contract_version"] == "2.15"
     assert len(body["results"]) == 1
     assert body["truncated"] == {"offerings": 1, "models": 1}
 
@@ -217,13 +217,20 @@ def test_public_snapshot_names_an_estimated_position_and_a_natural_tie(service, 
     scope = "No model class was required, so results span every class."
     assert summary.count(scope) == 1
     assert scope in mentions
-    sentence = (
-        "anthropic/claude-opus-5-5 and anthropic/claude-fable-5 have no leaderboard data "
-        "for chat_preference; their positions are estimated, not measured."
+    opus_sentence = (
+        "anthropic/claude-opus-5-5's position on chat_preference is estimated from 1 record, "
+        "not a proxy."
     )
-    assert sentence in mentions
-    assert sentence in summary
-    assert summary.count(sentence) == 1
+    fable_sentence = (
+        "anthropic/claude-fable-5's position on chat_preference is estimated from 8 records, "
+        "none of them proxies."
+    )
+    assert opus_sentence in mentions
+    assert fable_sentence in mentions
+    assert opus_sentence in summary
+    assert fable_sentence in summary
+    assert summary.count(opus_sentence) == 1
+    assert summary.count(fable_sentence) == 1
     assert "Tie-breakers are conditional; cost order is not quality order." in summary
     assert "Tie-breakers are conditional; cost order is not quality order." in mentions
     assert "This answer is ordered by cost only; it is not a quality ranking." not in summary
@@ -237,6 +244,12 @@ def _leaderboard_names(item: str) -> str | None:
             continue
         if tail.endswith("its position is estimated, not measured.") or tail.endswith(
             "their positions are estimated, not measured."
+        ):
+            return head
+    for marker in ("'s position on ", "'s positions on ", " have positions on "):
+        head, separator, tail = item.partition(marker)
+        if separator and " estimated from " in tail and (
+            tail.endswith("proxies.") or tail.endswith("a proxy.")
         ):
             return head
     return None
@@ -607,6 +620,71 @@ def test_missing_objective_ignores_an_unrelated_unknown_gate(service):
     assert "exclude every model" not in body["summary_for_user"]
 
 
+def test_every_template_matches_explain_none_and_summary(service, public_snapshot):
+    """Bounded must_mention and summary_for_user do not depend on explain level."""
+    import json
+
+    from decision.templates import load_catalogue
+
+    failures = []
+    for row in load_catalogue()["templates"]:
+        spec = json.loads(json.dumps(row["spec"]))
+        none_status, none = service.decide(
+            {**spec, "explain": "none", "fields": list(DEFAULT_FIELDS)}, public_snapshot,
+        )
+        summary_status, summary = service.decide(
+            {**spec, "explain": "summary", "fields": list(DEFAULT_FIELDS)}, public_snapshot,
+        )
+        label = row["id"]
+        if none_status != 200 or summary_status != 200:
+            failures.append(f"{label} status none={none_status} summary={summary_status}")
+            continue
+        if none.get("summary_for_user") != summary.get("summary_for_user"):
+            failures.append(
+                f"{label} summary_for_user\n  none={none.get('summary_for_user')}\n"
+                f"  summary={summary.get('summary_for_user')}"
+            )
+        if none.get("must_mention") != summary.get("must_mention"):
+            failures.append(
+                f"{label} must_mention\n  none={none.get('must_mention')}\n"
+                f"  summary={summary.get('must_mention')}"
+            )
+    assert not failures, "\n".join(failures)
+
+
+def test_explain_none_treats_an_explanation_error_as_no_records(
+    service, public_snapshot, monkeypatch,
+):
+    """An ExplanationError while counting at explain none is N=0.
+
+    The caveat stays the no-leaderboard sentence. summary and full still raise.
+    """
+    import decision.explain as explain_module
+
+    def boom(*_args, **_kwargs):
+        raise explain_module.ExplanationError("retained record is unusable")
+
+    monkeypatch.setattr(explain_module, "objective_member_records", boom)
+    payload = {
+        "spec_version": 1,
+        "optimize": {"max": "software_engineering"},
+        "explain": "none",
+        "fields": ["model"],
+        "limit": 3,
+    }
+    status, body = service.decide(payload, public_snapshot)
+    assert status == 200, body
+    text = body["summary_for_user"]
+    mentions = body["must_mention"]
+    assert "no leaderboard data" in text
+    assert any("no leaderboard data" in item for item in mentions)
+    assert "estimated from" not in text
+    assert all("estimated from" not in item for item in mentions)
+    payload["explain"] = "summary"
+    with pytest.raises(explain_module.ExplanationError, match="unusable"):
+        service.decide(payload, public_snapshot)
+
+
 def test_limit_keeps_leaderboard_caveats_for_every_answer_member(service, public_snapshot):
     base = {
         "spec_version": 1,
@@ -616,12 +694,18 @@ def test_limit_keeps_leaderboard_caveats_for_every_answer_member(service, public
     }
     _, wide = service.decide({**base, "limit": 10}, public_snapshot)
     _, narrow = service.decide({**base, "limit": 1}, public_snapshot)
-    sentence = (
-        "anthropic/claude-opus-5-5 and anthropic/claude-fable-5 have no leaderboard data "
-        "for chat_preference; their positions are estimated, not measured."
+    opus_sentence = (
+        "anthropic/claude-opus-5-5's position on chat_preference is estimated from 1 record, "
+        "not a proxy."
     )
-    assert sentence in wide["must_mention"]
-    assert sentence in narrow["must_mention"]
+    fable_sentence = (
+        "anthropic/claude-fable-5's position on chat_preference is estimated from 8 records, "
+        "none of them proxies."
+    )
+    assert opus_sentence in wide["must_mention"]
+    assert fable_sentence in wide["must_mention"]
+    assert opus_sentence in narrow["must_mention"]
+    assert fable_sentence in narrow["must_mention"]
     assert narrow["answer"]["members"] == wide["answer"]["members"]
     assert [row["model"] for row in narrow["results"]] == ["anthropic/claude-opus-5-5"]
 
@@ -639,7 +723,7 @@ def test_drill_down_on_a_pre_provenance_snapshot_is_unavailable_not_a_crash(serv
     # Without evidence_for, explain=none still answers from the same snapshot.
     status, body = service.decide(_payload("none"), old)
     assert status == 200
-    assert body["contract_version"] == "2.14"
+    assert body["contract_version"] == "2.15"
 
 
 def _tied_offerings_snapshot():
