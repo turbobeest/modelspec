@@ -55,6 +55,30 @@ jobs:
             exit 1
           fi
           echo "sha=$pin" >> "$GITHUB_OUTPUT"
+      - name: Refuse an engine pin older than the base branch pin
+        if: github.event_name == 'pull_request'
+        working-directory: .
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PIN: ${{ steps.engine_pin.outputs.sha }}
+          GIT_NO_LAZY_FETCH: '1'
+        run: |
+          set -euo pipefail
+          check="$RUNNER_TEMP/engine-pin-check"
+          git -C data cat-file -e "$BASE_SHA^{commit}"
+          if ! git -C data cat-file -e "$BASE_SHA:.engine-pin" 2>/dev/null; then
+            # The base predates .engine-pin; this PR introduces it.
+            exit 0
+          fi
+          base_pin="$(git -C data cat-file blob "$BASE_SHA:.engine-pin")"
+          if ! [[ "$base_pin" =~ ^[0-9a-f]{40}$ ]]; then
+            echo '::error::The base branch .engine-pin is not one full commit SHA.'
+            exit 1
+          fi
+          if ! git -C "$check" merge-base --is-ancestor "$base_pin" "$PIN"; then
+            echo "::error::.engine-pin $PIN does not descend from the base pin $base_pin."
+            exit 1
+          fi
       - name: Check out the pinned public engine
         uses: actions/checkout@v4
         with:

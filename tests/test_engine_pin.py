@@ -27,6 +27,7 @@ ENGINE_REPOSITORY = "turbobeest/modelspec"
 PIN_REF = "${{ steps.engine_pin.outputs.sha }}"
 HEX40 = re.compile(r"^[0-9a-fA-F]{40}$")
 CONFIRM = "Confirm the engine checkout is the verified pin"
+DOWNGRADE = "Refuse an engine pin older than the base branch pin"
 
 
 class LocalEngine(NamedTuple):
@@ -111,7 +112,13 @@ def local_engine(tmp_path_factory: pytest.TempPathFactory) -> LocalEngine:
     return LocalEngine(repo.resolve().as_uri(), ancestor, tip, side)
 
 
-def _run_pin(script: str, work: Path, engine_repo: str, pin: str | None):
+def _run_pin(
+    script: str,
+    work: Path,
+    engine_repo: str,
+    pin: str | None,
+    lazy_fetch: bool = False,
+):
     data = work / "data"
     data.mkdir()
     if pin is not None:
@@ -124,7 +131,7 @@ def _run_pin(script: str, work: Path, engine_repo: str, pin: str | None):
             "ENGINE_REPO": engine_repo,
             "RUNNER_TEMP": str(work / "runner"),
             "GITHUB_OUTPUT": str(output),
-            "GIT_NO_LAZY_FETCH": "1",
+            "GIT_NO_LAZY_FETCH": "0" if lazy_fetch else "1",
             "GIT_TERMINAL_PROMPT": "0",
         }
     )
@@ -157,8 +164,10 @@ def test_the_pin_is_verified_before_the_engine_checkout(name: str) -> None:
     steps = job["steps"]
     data = _index(
         steps,
-        lambda step: str(step.get("uses", "")).startswith("actions/checkout")
-        and (step.get("with") or {}).get("path") == "data",
+        lambda step: (
+            str(step.get("uses", "")).startswith("actions/checkout")
+            and (step.get("with") or {}).get("path") == "data"
+        ),
     )
     pin = _index(steps, lambda step: step.get("id") == "engine_pin")
     engine = _index(
@@ -166,7 +175,8 @@ def test_the_pin_is_verified_before_the_engine_checkout(name: str) -> None:
         lambda step: (step.get("with") or {}).get("repository") == ENGINE_REPOSITORY,
     )
     assert steps[data + 1] is steps[pin]
-    assert steps[pin + 1] is steps[engine]
+    between = [step.get("name") for step in steps[pin + 1 : engine]]
+    assert between == ([DOWNGRADE] if name == "recall-private" else [])
     assert steps[engine]["with"]["ref"] == PIN_REF
     assert steps[engine]["with"]["path"] == "engine"
     confirm = steps[engine + 1]
@@ -248,3 +258,101 @@ def test_the_pin_script_accepts_only_a_commit_on_main(
     else:
         assert completed.returncode == 0, detail
         assert output == f"sha={expect_sha}\n"
+
+
+def test_a_fetchable_commit_off_main_is_refused_by_ancestry(
+    tmp_path: Path, local_engine: LocalEngine
+) -> None:
+    # GitHub serves any commit in the fork network by SHA. Model that with
+    # lazy fetch on, so the side commit reaches the clone and only
+    # `merge-base --is-ancestor` can refuse it.
+    source = Path(local_engine.url.removeprefix("file://"))
+    _git(source, "config", "uploadpack.allowAnySHA1InWant", "true")
+    try:
+        completed, output = _run_pin(
+            _pin_step()["run"], tmp_path, local_engine.url, local_engine.side + "\n", True
+        )
+        clone = tmp_path / "runner" / "engine-pin-check"
+        fetched = subprocess.run(
+            ["git", "-C", str(clone), "cat-file", "-e", local_engine.side + "^{commit}"],
+            env={**os.environ, "GIT_NO_LAZY_FETCH": "1"},
+        )
+    finally:
+        _git(source, "config", "--unset", "uploadpack.allowAnySHA1InWant")
+    assert fetched.returncode == 0, "the side commit never reached the clone"
+    assert completed.returncode != 0
+    assert "not a commit on modelspec main" in completed.stdout
+    assert output == ""
+
+
+def _downgrade_step() -> dict:
+    steps = _engine_job(_document("recall-private"))["steps"]
+    return steps[_index(steps, lambda step: step.get("name") == DOWNGRADE)]
+
+
+def test_the_downgrade_check_runs_only_on_pull_requests() -> None:
+    step = _downgrade_step()
+    assert step["if"] == "github.event_name == 'pull_request'"
+    assert step["env"]["BASE_SHA"] == "${{ github.event.pull_request.base.sha }}"
+    assert step["env"]["PIN"] == PIN_REF
+
+
+@pytest.mark.parametrize(
+    "case,base_pin,head_pin,passes",
+    [
+        ("bump", "ancestor", "tip", True),
+        ("same", "tip", "tip", True),
+        ("downgrade", "tip", "ancestor", False),
+        ("first-pin", None, "tip", True),
+        ("bad-base-pin", "main", "tip", False),
+    ],
+)
+def test_a_pull_request_cannot_move_the_pin_backwards(
+    case: str,
+    base_pin: str | None,
+    head_pin: str,
+    passes: bool,
+    tmp_path: Path,
+    local_engine: LocalEngine,
+) -> None:
+    shas = {"ancestor": local_engine.ancestor, "tip": local_engine.tip, "main": "main"}
+    data = tmp_path / "data"
+    data.mkdir()
+    subprocess.run(["git", "init", "-q", str(data)], check=True)
+    _git(data, "config", "user.email", "engine-pin-test@example.com")
+    _git(data, "config", "user.name", "Engine Pin Test")
+    _git(data, "config", "commit.gpgsign", "false")
+    if base_pin is not None:
+        (data / ".engine-pin").write_text(shas[base_pin] + "\n", encoding="utf-8")
+        _git(data, "add", ".engine-pin")
+    _git(data, "commit", "-q", "--allow-empty", "-m", "base")
+    base_sha = _git(data, "rev-parse", "HEAD")
+    (data / ".engine-pin").write_text(shas[head_pin] + "\n", encoding="utf-8")
+    runner = tmp_path / "runner"
+    runner.mkdir()
+    output = tmp_path / "github_output"
+    output.write_text("", encoding="utf-8")
+    env = {
+        **os.environ,
+        "ENGINE_REPO": local_engine.url,
+        "RUNNER_TEMP": str(runner),
+        "GITHUB_OUTPUT": str(output),
+        "GIT_NO_LAZY_FETCH": "1",
+        "GIT_TERMINAL_PROMPT": "0",
+    }
+    verified = subprocess.run(
+        ["bash", "-c", _pin_step("recall-private")["run"]],
+        cwd=tmp_path,
+        env=env,
+        capture_output=True,
+        text=True,
+    )
+    assert verified.returncode == 0, verified.stderr
+    completed = subprocess.run(
+        ["bash", "-c", _downgrade_step()["run"]],
+        cwd=tmp_path,
+        env={**env, "BASE_SHA": base_sha, "PIN": shas[head_pin]},
+        capture_output=True,
+        text=True,
+    )
+    assert (completed.returncode == 0) is passes, f"{case}: {completed.stdout}{completed.stderr}"
