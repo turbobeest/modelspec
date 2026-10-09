@@ -64,13 +64,112 @@ first. Deterministic extractors always run first:
 Reader replies are cached outside the repository under
 `~/.cache/modelspec/llm-reader` by the prompt's hash, source-copy hash, cited
 region, facet and the subject's published names. A changed prompt asks again.
+The licence reader's key also hashes the reading rule, the facet definition
+and the allowed values that were filled into the prompt, so a change to any
+of those asks the reader again.
 The names are in the key because the prompt carries
 them: a reader answers mostly for the named subject, so a reply cached for one
 plan or model must not answer for a sibling on the same page (MODEL-201).
 Mistral's replies are also keyed by its model and request shape, so neither
 reader answers for the other. Set `MODELSPEC_LLM_CACHE` to use another
 directory. A run stops before its 401st uncached call. Deterministic
-extractors still run first.
+extractors still run first. On a `licence.*` claim they do not read the
+region: only `LicenceExtractor` does, and only when the source kind is one
+that facet permits. A `model.weights_openness` or `origin.*` claim on a
+`licence_text` source still uses the deterministic extractors.
+
+A `licence.*` claim is read by `LicenceExtractor`
+(`licence-extract:<model>`) from a source kind in that facet's
+`permitted_source_kinds`, using the same completion function, cache and
+call budget as the prose reader. `licence.user_cap` permits only
+`licence_text`. The prompt gives the facet's definition, the
+reading rule for that facet, and its allowed values, including `unbounded`
+for `licence.user_cap`, and asks for the value plus one or more verbatim
+clauses. It does not show the collector's value. The reading rule says when
+the value is `not_disclosed`. A missing or non-verbatim clause is unparseable,
+so the region is not evidence. Any other cited region is a binding page. It
+is not a reading, for a known value or an absence. A licence does not name
+the model. The binding page names the subject by its display name or its
+repository id, as a whole name. `-`, `_`, `.` and spaces separate segments
+of that name. A prefix of a longer hyphen-joined name does not count:
+Querit is not Querit-4B, and Querit-4B is not Querit-4B-Pro. A family name
+does not count. The page names this licence by the first rule that holds.
+`license:` and `license_link:` are read from YAML front matter when the page
+has it. A `license_link` is exclusive. When the front matter has one, only a
+source that matches it binds. A relative link resolves against the README's
+repository. On huggingface.co, `raw`, `resolve` and `blob` name the same
+file. With no `license_link`, the page names the licence when it contains
+the licence URL, or when `license:` is an SPDX id for a shared text:
+`apache-2.0` for the apache.org LICENSE-2.0 text, `mit` for
+opensource.org/license/mit. A root file in the page's own repository also
+binds when its name starts with `LICENSE`, `LICENCE` or `COPYING`, in any
+case. `license: other`, and an id that is not in that SPDX table, binds that
+file by location. `license: mit` or `license: apache-2.0` binds it only when
+the retained text is that licence. MIT text contains "Permission is hereby
+granted, free of charge". Apache-2.0 text contains "Apache License" and
+"Version 2.0". `README.md`, `config.json` and a file in a subdirectory do
+not bind by location. `license: other` does not bind a shared text. A file
+in a different repository binds only by `license_link` or by its URL. A
+licence cited alone does not verify.
+
+### Licence reading rules
+
+`LICENCE_READING_RULES` in `decision/licence_rules.py` is one rule per
+`licence.*` facet. Each sentence is derived from that facet's registry
+definition. These readings of the definitions are pending Jamie's review.
+The licence prompt includes the rule for the claim's facet. The collector
+`scripts/model_345_collect.py` records that same rule key on every value.
+
+On every `licence.*` facet, a duty to keep a copyright, licence or change
+notice is not a condition. A condition is a display or naming duty, a
+separate agreement or licence, a security or other review, a user, revenue
+or other threshold, a territorial or field-of-use restriction, or an
+incorporated acceptable-use or prohibited-use policy.
+
+- `licence.commercial_use`. `permitted` when commercial use is granted with
+  no condition. `permitted_with_conditions` when it is granted subject to a
+  condition. `prohibited` when it is forbidden. `not_disclosed` only when
+  the text does not address commercial use or selling at all.
+- `licence.user_cap`. A number only when the licence requires a separate
+  agreement or licence once a monthly-active-user threshold is exceeded. A
+  threshold that only triggers a display, naming or attribution duty is not
+  a cap, and neither is a revenue threshold. With no such threshold the
+  value is `unbounded`, as the registry definition says. The value is never
+  `not_disclosed` when the cited region is the licence text.
+- `licence.fine_tuning`. An express grant to modify the model, the Software
+  or the Work, or to create derivative works of it, covers fine-tuning.
+  `permitted_with_conditions` when using or distributing the result is
+  subject to a condition. `permitted` when only notice retention applies.
+  `prohibited` when modification is forbidden.
+- `licence.output_training`. About using the model's outputs to train or
+  improve another model. A grant to fine-tune or modify this model says
+  nothing about it. `permitted` only when the text expressly allows it.
+  `restricted` when the text allows it only for some purposes or models, or
+  makes a model trained on outputs a derivative subject to the licence's
+  restrictions. `prohibited` when the text forbids it. `not_disclosed` when
+  the text is silent.
+
+The commercial-use reading follows the existing corpus and the MODEL-78
+tier-1 OSI mapping (MIT and Apache = permitted). The registry wording
+"attribution" is ambiguous on whether notice retention counts as a condition,
+and that question is open for Jamie. The output-training reading follows the
+existing corpus in treating a model trained on outputs, which the licence
+makes a derivative, as restricted. The registry definition does not settle
+that case, and that question is open for Jamie. A fine-tune with a
+`base_model` may also carry the base model's licence terms. Today neither
+the rules nor the binding follow `base_model`. KaLM's file embeds the Gemma
+terms, so it reads correctly. That question is open for Jamie.
+
+An absence (a null value, `not_disclosed`) verifies only from a source kind
+in the facet's `permitted_source_kinds`. A `licence.*` absence needs that
+kind on the source. A README with no kind, or a kind outside the list, is a
+mismatch on `source_kind` only when the claim cites no region of a permitted
+kind. When the claim also cites a permitted kind, that README is a binding
+page and gives no outcome. If every permitted region has no extractor, or
+every one raises an extractor error, the claim is skipped: nothing is logged
+and it stays queued. Other facets still verify an absence from a source
+whose kind is unknown. A known kind outside the facet's list is a mismatch
+for every facet.
 
 The first extractor that accepts a region and is independent of the collector
 reads it. Two keys means another model family (MODEL-140, enforced by

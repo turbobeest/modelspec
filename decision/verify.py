@@ -16,10 +16,19 @@ Extractors are pluggable. The deterministic ones (``TableExtractor``,
 prose through an injected completion function, so nothing here calls a model
 or the network on its own: ``claude_extractor`` (Claude Sonnet, via the Claude
 CLI) and ``mistral_extractor`` (Mistral Large, via ollama) are the two wired
-readers. Each extractor's actor (agent, model family, method) is the verifier
-the log records. Two keys means another model family (MODEL-159): a reader
-from the collector's family is never asked, and a same-family ``verified``
-already in the log does not count (``Verification.counts``).
+readers. ``LicenceExtractor`` reads a ``licence.*`` claim through that same
+completion function, and only from a source kind the facet permits. Other
+cited regions are binding pages, not readings. Deterministic extractors
+still read a ``licence_text`` source for every other claim. An absence
+verifies only from a source kind the facet permits; a ``licence.*`` absence
+needs that kind explicitly. A region of another kind is a ``source_kind``
+mismatch only when the claim cites no permitted kind. When every permitted
+region has no extractor, or every one raises ``ExtractorError``, the claim
+is skipped. Each extractor's actor (agent, model family,
+method) is the verifier the log records. Two keys means another model family
+(MODEL-159): a reader from the collector's family is never asked, and a
+same-family ``verified`` already in the log does not count
+(``Verification.counts``).
 
 Outcomes are ``verified``, ``mismatch`` (with a structured diff) and
 ``unreachable`` (the copy, source or region is missing). A claim no
@@ -60,9 +69,11 @@ from decimal import Decimal
 from functools import cache
 from pathlib import Path
 from typing import Any, Literal, Protocol
+from urllib.parse import urljoin
 
 from pydantic import JsonValue, ValidationError
 
+from decision.licence_rules import licence_reading_rule
 from decision.model import (
     DETERMINISTIC,
     SourceRef,
@@ -2139,13 +2150,7 @@ class LLMExtractor:
                 cache_key: tuple[str, ...] | None = None) -> list[Reading]:
         prompt = LLM_PROMPT.format(label=claim.label or claim.field.replace("_", " "),
                                    names=", ".join(claim.names), text=text)
-        if cache_key:
-            # A reply answers the prompt it was given: a changed prompt must ask again.
-            digest = hashlib.sha256(LLM_PROMPT.encode("utf-8")).hexdigest()[:16]
-            cache_key = (f"prompt:{digest}", *cache_key)
-        reply = self.cache.get(cache_key) if self.cache is not None and cache_key else None
-        if reply is None:
-            reply = self.complete(prompt)
+        reply, store_key = _load_reply(self.complete, self.cache, LLM_PROMPT, prompt, cache_key)
         try:
             cleaned = reply.strip()
             if cleaned.startswith("```json") and cleaned.endswith("```"):
@@ -2169,11 +2174,496 @@ class LLMExtractor:
             ]
             if not readings and claim.value is None:
                 readings = [Reading(subject=claim.names[0], value=None)]
-            if self.cache is not None and cache_key:
-                self.cache.put(cache_key, reply)
+            if self.cache is not None and store_key:
+                self.cache.put(store_key, reply)
             return readings
         except ValueError as exc:
             raise ExtractorError(f"unparseable reply from {self.actor.method}: {exc}") from exc
+
+
+def _load_reply(complete: Callable[[str], str], cache: LLMCache | None, template: str,
+                prompt: str, cache_key: tuple[str, ...] | None, *,
+                bound: str = "") -> tuple[str, tuple[str, ...] | None]:
+    """A cached reply, or a fresh ``complete(prompt)``.
+
+    The stored key includes a hash of ``template``. The licence reader also
+    passes ``bound``, the reading rule, the facet definition and the allowed
+    values that were filled into the prompt. A change to any of them asks
+    again. The caller stores the reply only after it parses.
+    """
+    store_key = None
+    if cache_key:
+        material = template if not bound else f"{template}\n{bound}"
+        digest = hashlib.sha256(material.encode("utf-8")).hexdigest()[:16]
+        store_key = (f"prompt:{digest}", *cache_key)
+    reply = cache.get(store_key) if cache is not None and store_key else None
+    if reply is None:
+        reply = complete(prompt)
+    return reply, store_key
+
+
+#: Source kinds whose text is a licence or terms document.
+LICENCE_SOURCE_KINDS = frozenset({"licence_text", "provider_terms"})
+
+LICENCE_PROMPT = """\
+You are reading a licence or terms of use. The document does not name a model.
+Answer one question from the source region only. Follow the reading rule.
+When the reading rule and another instruction disagree, follow the reading rule.
+
+Facet: {facet_id}
+Definition: {definition}
+Reading rule: {reading_rule}
+Allowed values: {allowed}
+
+Return only a JSON object with:
+- "value": the value the reading rule gives. It must be one allowed value.
+- "clauses": one or more verbatim quotations from the source region that support the value
+
+Do not infer from the licence's name or from knowledge outside the region.
+Every quotation must appear verbatim in the source region.
+When the reading rule says the text does not address the facet, set "value" to "not_disclosed" and still quote one verbatim clause from the region.
+
+Source region:
+<<<
+{text}
+>>>
+"""
+
+_LICENSE_SPDX = re.compile(
+    r"(?im)^[ \t]*license:\s*[\"']?([A-Za-z0-9][A-Za-z0-9_.+-]*)"
+)
+_LICENSE_LINK = re.compile(
+    r"(?im)^[ \t]*license_link:\s*[\"']?(\S+?)[\"']?\s*$"
+)
+_PAGE_URL = re.compile(r"https?://[^\s\"'<>)\]]+", re.IGNORECASE)
+_HF_FILE_VERBS = frozenset({"raw", "resolve", "blob"})
+_NAME_JOIN = re.compile(r"\s*[-_.][-_.\s]*(?=[0-9A-Za-z])")
+#: SPDX ids for the shared generic texts. ``license: other`` is not one of them.
+#: A shared text binds only through this table.
+SPDX_LICENCE_URLS: dict[str, tuple[str, ...]] = {
+    "apache-2.0": (
+        "https://www.apache.org/licenses/LICENSE-2.0",
+        "https://www.apache.org/licenses/LICENSE-2.0.txt",
+    ),
+    "mit": ("https://opensource.org/license/mit",),
+}
+#: Phrases a retained root file must contain before an id in
+#: :data:`SPDX_LICENCE_URLS` binds that file. Every phrase has to appear.
+#: An id outside the table is not checked.
+SPDX_SIGNATURES: dict[str, tuple[str, ...]] = {
+    "apache-2.0": ("Apache License", "Version 2.0"),
+    "mit": ("Permission is hereby granted, free of charge",),
+}
+_ROOT_LICENCE_NAME = re.compile(r"(?i)^(license|licence|copying)")
+
+
+def _licence_allowed(facet) -> list[str]:
+    """The values the registry admits for a licence facet, including ``unbounded``."""
+    value_type = facet.value_type
+    allowed: list[str] = list(value_type.values or ())
+    if value_type.kind == "number":
+        unit = f" in {facet.unit}" if facet.unit else ""
+        allowed.append(f"a number{unit}")
+        if value_type.unbounded:
+            allowed.append("unbounded")
+    return allowed
+
+
+def _licence_inputs(claim: Claim) -> tuple[str, str, str, str]:
+    """Facet id, definition, reading rule and allowed values filled into the prompt."""
+    facet = default_registry().facet(claim.field)
+    rule = licence_reading_rule(facet.id)
+    allowed = ", ".join(_licence_allowed(facet))
+    return facet.id, facet.definition, rule, allowed
+
+
+def _licence_prompt(claim: Claim, text: str) -> tuple[str, str]:
+    """The prompt, and the filled inputs the cache key hashes."""
+    facet_id, definition, rule, allowed = _licence_inputs(claim)
+    prompt = LICENCE_PROMPT.format(
+        facet_id=facet_id,
+        definition=definition,
+        reading_rule=rule,
+        allowed=allowed,
+        text=text,
+    )
+    return prompt, f"{rule}\n{definition}\n{allowed}"
+
+
+def _strip_fence(reply: str) -> str:
+    cleaned = reply.strip()
+    if cleaned.startswith("```"):
+        cleaned = re.sub(r"^```(?:json)?\s*", "", cleaned)
+        cleaned = re.sub(r"\s*```$", "", cleaned)
+    return cleaned.strip()
+
+
+def _as_licence_value(raw: Any) -> JsonValue:
+    if raw is None or (isinstance(raw, str) and normalise_name(raw) == "not disclosed"):
+        return None
+    if isinstance(raw, bool) or not isinstance(raw, (str, int, float)):
+        raise ValueError("value is not a licence value")
+    return raw
+
+
+def _url_parts(url: str) -> list[str] | None:
+    """Host and path segments, without a scheme, ``www.``, query or fragment."""
+    text = url.strip().strip("\"'")
+    if not text:
+        return None
+    text = re.sub(r"^https?://", "", text, flags=re.I)
+    text = re.sub(r"^www\.", "", text, flags=re.I)
+    text = text.split("#", 1)[0].split("?", 1)[0].rstrip("/")
+    parts = [part for part in text.split("/") if part]
+    return parts or None
+
+
+def _licence_url_key(url: str) -> str:
+    """Scheme, host case, a leading ``www.`` and a trailing ``.txt`` do not differ.
+
+    On huggingface.co, ``/raw/<rev>/<path>``, ``/resolve/<rev>/<path>`` and
+    ``/blob/<rev>/<path>`` name the same file.
+    """
+    text = url.strip().strip("\"'")
+    text = re.sub(r"^https?://", "", text, flags=re.I)
+    text = re.sub(r"^www\.", "", text, flags=re.I)
+    text = text.split("#", 1)[0].split("?", 1)[0].rstrip("/")
+    if text.casefold().endswith(".txt"):
+        text = text[:-4]
+    parts = [part for part in text.split("/") if part]
+    if (len(parts) >= 4 and parts[0].casefold() == "huggingface.co"
+            and parts[3].casefold() in _HF_FILE_VERBS):
+        del parts[3]
+    return "/".join(parts).casefold()
+
+
+def _hf_repo(url: str) -> tuple[str, str, str] | None:
+    """``(host, org, repo)`` casefolded, when ``url`` is on huggingface.co."""
+    parts = _url_parts(url)
+    if parts is None or len(parts) < 3 or parts[0].casefold() != "huggingface.co":
+        return None
+    return parts[0].casefold(), parts[1].casefold(), parts[2].casefold()
+
+
+def _hf_repo_name(url: str) -> str | None:
+    """The repository segment of a huggingface.co URL, as published."""
+    parts = _url_parts(url)
+    if parts is None or len(parts) < 3 or parts[0].casefold() != "huggingface.co":
+        return None
+    return parts[2]
+
+
+def _hf_file(url: str) -> bool:
+    """A root licence file on huggingface.co.
+
+    ``huggingface.co/<org>/<repo>/(raw|resolve|blob)/<rev>/<name>``. ``name``
+    is one path segment and starts with ``LICENSE``, ``LICENCE`` or
+    ``COPYING``, in any case. ``README.md``, ``config.json`` and a file in a
+    subdirectory are not.
+    """
+    parts = _url_parts(url)
+    if parts is None or len(parts) != 6 or parts[0].casefold() != "huggingface.co":
+        return False
+    if parts[3].casefold() not in _HF_FILE_VERBS:
+        return False
+    return _ROOT_LICENCE_NAME.match(parts[5]) is not None
+
+
+def _front_matter(page: str) -> str:
+    """YAML front matter when the page opens with fences. Otherwise the page.
+
+    A Hugging Face README keeps ``license:`` and ``license_link:`` between
+    the fences. A region that is only those fields has no fences.
+    """
+    if not page.startswith("---"):
+        return page
+    parts = page.split("---", 2)
+    if len(parts) < 3 or parts[0].strip():
+        return page
+    return parts[1]
+
+
+def _text_is_spdx(spdx_id: str, text: str | None) -> bool:
+    """The retained text carries every signature phrase for this SPDX id."""
+    phrases = SPDX_SIGNATURES.get(spdx_id)
+    if not phrases or not text:
+        return False
+    return all(phrase in text for phrase in phrases)
+
+
+def _resolve_license_link(link: str, page_url: str | None) -> str:
+    """An absolute link unchanged. A relative link resolved in the page's repository."""
+    link = link.strip().strip("\"'")
+    if re.match(r"(?i)^[a-z][a-z0-9+.-]*://", link) or not page_url:
+        return link
+    base = page_url if page_url.endswith("/") else page_url.rsplit("/", 1)[0] + "/"
+    return urljoin(base, link)
+
+
+@cache
+def _catalogue_ids() -> frozenset[str]:
+    ids: set[str] = set()
+    for group in _catalogue_model_aliases().values():
+        ids.update(group)
+    return frozenset(ids)
+
+
+def _binding_name_tokens(names: Sequence[str], subject: str | None) -> list[str]:
+    """Phrases that name this model: its display name or its repository id.
+
+    A family name such as Gemma, Qwen or DeepSeek does not count. When the
+    subject is a catalogue card, only that card's display name and repository
+    id count, each as a whole phrase. A subject the catalogue does not hold
+    uses the claim's names, still as whole phrases.
+    """
+    if subject and subject in _catalogue_ids():
+        repo = normalise_name(subject.rsplit("/", 1)[-1])
+        tokens = [repo] if repo else []
+        for label, ids in _catalogue_display_names().items():
+            if subject in ids and label:
+                tokens.append(label)
+        return list(dict.fromkeys(token for token in tokens if token))
+    return [token for name in names if (token := normalise_name(name))]
+
+
+def _page_words(page: str) -> list[tuple[str, bool]]:
+    """``(word, joined to the next word)``. ``-``, ``_`` and ``.`` join one name."""
+    words: list[tuple[str, bool]] = []
+    for match in re.finditer(r"[0-9A-Za-z]+", page):
+        words.append((match.group(0).casefold(),
+                      _NAME_JOIN.match(page[match.end():]) is not None))
+    return words
+
+
+def _name_segments(name: str) -> tuple[str, ...]:
+    """Case-folded pieces of one name. ``-``, ``_``, ``.`` and spaces split it."""
+    return tuple(part for part in re.split(r"[-_.\s]+", name.casefold()) if part)
+
+
+def _same_whole_name(left: str, right: str) -> bool:
+    """The two names are the same whole name, not a prefix of a longer one."""
+    segments = _name_segments(left)
+    return bool(segments) and segments == _name_segments(right)
+
+
+def _whole_name_in_words(token: str, words: list[tuple[str, bool]]) -> bool:
+    """``token`` is a maximal name in ``words``. A hyphen-joined prefix does not count.
+
+    ``Querit`` does not match ``Querit-4B``. ``Querit-4B`` does not match
+    ``Querit-4B-Pro``. A space-separated phrase still matches as that phrase.
+    """
+    parts = token.split()
+    if not parts:
+        return False
+    width = len(parts)
+    for start in range(len(words) - width + 1):
+        if [words[start + offset][0] for offset in range(width)] != parts:
+            continue
+        if words[start + width - 1][1]:
+            continue
+        if start > 0 and words[start - 1][1]:
+            continue
+        return True
+    return False
+
+
+def _page_names_subject(page: str, names: Sequence[str], subject: str | None = None,
+                        page_url: str | None = None) -> bool:
+    """The page names the subject by a whole name, or its repository name equals one.
+
+    ``-``, ``_``, ``.`` and spaces separate segments of one name. The published
+    name or the repository name must be that whole name, not a prefix of a
+    longer hyphen-joined name. A family name still does not count: the tokens
+    are the display name and the model id's last segment.
+    """
+    tokens = _binding_name_tokens(names, subject)
+    words = _page_words(page)
+    if any(_whole_name_in_words(token, words) for token in tokens):
+        return True
+    repo = _hf_repo_name(page_url) if page_url else None
+    if not repo:
+        return False
+    candidates = list(tokens)
+    if subject:
+        candidates.append(subject.rsplit("/", 1)[-1])
+    return any(_same_whole_name(repo, candidate) for candidate in candidates)
+
+
+def _license_link_matches(page: str, licence_url: str, page_url: str | None) -> bool:
+    source_key = _licence_url_key(licence_url)
+    for match in _LICENSE_LINK.finditer(page):
+        resolved = _resolve_license_link(match.group(1), page_url)
+        if _licence_url_key(resolved) == source_key:
+            return True
+    return False
+
+
+def _page_contains_licence_url(page: str, licence_url: str) -> bool:
+    if licence_url in page:
+        return True
+    bare = re.sub(r"^https?://", "", licence_url).rstrip("/")
+    if bare and bare in page:
+        return True
+    source_key = _licence_url_key(licence_url)
+    return any(_licence_url_key(match.group(0)) == source_key for match in _PAGE_URL.finditer(page))
+
+
+def _repo_location_binds(page: str, page_url: str | None, licence_url: str,
+                         licence_text: str | None = None) -> bool:
+    """A root licence file in the page's own repository, named by ``license:``.
+
+    An id in :data:`SPDX_LICENCE_URLS` binds that file only when
+    ``licence_text`` carries the signature in :data:`SPDX_SIGNATURES`.
+    ``license: other``, and any id outside the table, binds the file by
+    location alone.
+    """
+    match = _LICENSE_SPDX.search(_front_matter(page))
+    if not page_url or match is None or not _hf_file(licence_url):
+        return False
+    page_repo = _hf_repo(page_url)
+    if page_repo is None or page_repo != _hf_repo(licence_url):
+        return False
+    spdx_id = match.group(1).casefold()
+    if spdx_id in SPDX_LICENCE_URLS:
+        return _text_is_spdx(spdx_id, licence_text)
+    return True
+
+
+def _spdx_binds(page: str, licence_url: str) -> bool:
+    source_key = _licence_url_key(licence_url)
+    for match in _LICENSE_SPDX.finditer(page):
+        canonical = SPDX_LICENCE_URLS.get(match.group(1).casefold(), ())
+        if any(_licence_url_key(url) == source_key for url in canonical):
+            return True
+    return False
+
+
+def _licence_rule(page: str, page_url: str | None, licence_url: str | None,
+                  licence_text: str | None = None) -> str | None:
+    """Which rule names this licence on this page: link, url, repo, or SPDX.
+
+    A ``license_link`` in front matter is exclusive. A source that does not
+    match it does not bind by URL, repository location, or SPDX.
+    """
+    if not licence_url:
+        return None
+    matter = _front_matter(page)
+    if _LICENSE_LINK.search(matter):
+        if _license_link_matches(matter, licence_url, page_url):
+            return "license_link"
+        return None
+    if _page_contains_licence_url(page, licence_url):
+        return "url"
+    if _repo_location_binds(page, page_url, licence_url, licence_text):
+        return "repo-location"
+    if _spdx_binds(matter, licence_url):
+        return "SPDX"
+    return None
+
+
+def licence_is_bound(names: Sequence[str], pages: Sequence[str], licence_url: str | None, *,
+                     subject: str | None = None,
+                     page_urls: Sequence[str | None] | None = None,
+                     licence_text: str | None = None) -> str | None:
+    """The rule that binds this licence to the subject, or ``None``.
+
+    A page names the subject by its display name or repository id, as a whole
+    name, or when the page URL's repository name is that same whole name.
+    ``-``, ``_``, ``.`` and spaces separate segments. A prefix of a longer
+    hyphen-joined name does not count: ``Querit`` is not ``Querit-4B``.
+    A family name does not count.
+
+    ``license:`` and ``license_link:`` are read from YAML front matter when
+    the page has it, and from the whole page otherwise.
+
+    The licence rule is the first that holds. A ``license_link`` is exclusive:
+    when the front matter has one, only a source that matches it binds.
+    A relative link resolves against the page URL's directory. On
+    huggingface.co, ``raw``, ``resolve`` and ``blob`` name the same file.
+
+    With no ``license_link``: ``url`` (that file's URL is in the page),
+    ``repo-location`` (a root file named ``LICENSE*``, ``LICENCE*`` or
+    ``COPYING*`` in the page's own repository, and the page has a
+    ``license:`` field), or ``SPDX`` (the field names a shared text in
+    :data:`SPDX_LICENCE_URLS`). A ``license:`` of ``mit`` or ``apache-2.0``
+    binds that root file only when ``licence_text`` contains the signature
+    in :data:`SPDX_SIGNATURES`. ``license: other``, and any id outside that
+    table, binds the root file by location. ``README.md``, ``config.json``
+    and a subdirectory do not. ``license: other`` does not bind a shared
+    text. A file in a different repository binds only by ``license_link``
+    or ``url``.
+    """
+    urls = tuple(page_urls or ())
+    for index, page in enumerate(pages):
+        page_url = urls[index] if index < len(urls) else None
+        if _page_names_subject(page, names, subject, page_url):
+            rule = _licence_rule(page, page_url, licence_url, licence_text)
+            if rule:
+                return rule
+    return None
+
+
+class LicenceExtractor:
+    """Reads one ``licence.*`` value from a licence or terms document.
+
+    It uses the same injected ``complete(prompt)``, cache and call budget as
+    ``LLMExtractor``. The prompt gives the facet's definition, the reading
+    rule for that facet, and the allowed values. It never shows the collector's
+    value. A missing or non-verbatim
+    clause is unparseable, so it is not evidence. A licence does not name the
+    model: the reading's subject is the claim's name only when a binding page
+    passes :func:`licence_is_bound`.
+    """
+
+    def __init__(self, complete: Callable[[str], str], *, agent: str, model: str,
+                 model_family: str, cache: LLMCache | None = None) -> None:
+        self.complete = complete
+        self.cache = cache
+        self.actor = VerificationActor(
+            agent=agent, model_family=model_family, method=f"licence-extract:{model}",
+        )
+
+    def accepts(self, text: str) -> bool:
+        # Selected only for a licence claim cited to a licence or terms source.
+        return False
+
+    def extract(self, claim: Claim, text: str, *,
+                cache_key: tuple[str, ...] | None = None,
+                bindings: Sequence[str] = (),
+                binding_urls: Sequence[str | None] | None = None,
+                licence_url: str | None = None) -> list[Reading]:
+        prompt, bound = _licence_prompt(claim, text)
+        reply, store_key = _load_reply(
+            self.complete, self.cache, LICENCE_PROMPT, prompt, cache_key, bound=bound,
+        )
+        try:
+            data = json.loads(_strip_fence(reply))
+            if isinstance(data, list) and len(data) == 1 and isinstance(data[0], dict):
+                data = data[0]
+            if not isinstance(data, dict):
+                raise ValueError("not an object")
+            clauses = data.get("clauses")
+            if not isinstance(clauses, list) or not clauses:
+                raise ValueError("clauses are missing")
+            normal_text = normalise_name(text)
+            for clause in clauses:
+                if not isinstance(clause, str) or not clause.strip() \
+                        or normalise_name(clause) not in normal_text:
+                    raise ValueError("quoted clause is missing or is not verbatim source text")
+            value = _as_licence_value(data.get("value"))
+        except (ValueError, TypeError) as exc:
+            raise ExtractorError(f"unparseable reply from {self.actor.method}: {exc}") from exc
+        if self.cache is not None and store_key:
+            self.cache.put(store_key, reply)
+        subject = claim.names[0] if licence_is_bound(
+            claim.names, bindings, licence_url, subject=claim.subject, page_urls=binding_urls,
+            licence_text=text,
+        ) else None
+        shown: JsonValue = None if value is None else str(value)
+        unit = None
+        if shown is not None and parse_quantity(shown) is not None:
+            unit = default_registry().facet(claim.field).unit
+        return [Reading(subject=subject, value=shown, unit=unit)]
 
 
 def claude_extractor(*, cache: LLMCache | None = None,
@@ -2282,6 +2772,33 @@ def mistral_extractor(*, cache: LLMCache | None = None,
     )
 
 
+def claude_licence_extractor(*, cache: LLMCache | None = None,
+                             complete: Callable[[str], str] | None = None,
+                             max_calls: int = 400) -> LicenceExtractor:
+    """Licence reader on the same Claude CLI completion as ``claude_extractor``."""
+    return LicenceExtractor(
+        complete or ClaudeCLICompletion(max_calls=max_calls),
+        agent="claude-cli",
+        model="claude-sonnet-5",
+        model_family="anthropic",
+        cache=cache if cache is not None else LLMCache(namespace="licence"),
+    )
+
+
+def mistral_licence_extractor(*, cache: LLMCache | None = None,
+                              complete: Callable[[str], str] | None = None,
+                              max_calls: int = 400) -> LicenceExtractor:
+    """Licence reader on the same local Mistral completion as ``mistral_extractor``."""
+    return LicenceExtractor(
+        complete or OllamaChatCompletion(max_calls=max_calls),
+        agent="ollama",
+        model=MISTRAL_MODEL,
+        model_family="mistral",
+        cache=cache if cache is not None else LLMCache(
+            namespace=f"ollama:{MISTRAL_MODEL}:licence"),
+    )
+
+
 def _text(value: Any) -> str | None:
     return None if value is None else str(value)
 
@@ -2324,6 +2841,14 @@ class StoredRegions:
             return select_region(doc, Locator(kind, region.locator.value))
         except (UnsupportedContentError, ValueError):
             return None
+
+    def source_kind(self, source_id: str) -> str | None:
+        source = self.sources.get(source_id)
+        return None if source is None else source.kind
+
+    def source_url(self, source_id: str) -> str | None:
+        source = self.sources.get(source_id)
+        return None if source is None else str(source.url)
 
 
 # --- comparison ----------------------------------------------------------------------------------
@@ -2691,13 +3216,123 @@ def _verify_evidence_reading(
     return Result(claim.target, "skipped", reason="; ".join(reasons))
 
 
+def _source_kind(regions: Regions, source_id: str) -> tuple[bool, str | None]:
+    """``(tracked, kind)``. Untracked regions predate source kinds."""
+    method = getattr(regions, "source_kind", None)
+    if not callable(method):
+        return False, None
+    return True, method(source_id)
+
+
+def _facet_or_none(field: str):
+    try:
+        return default_registry().facet(field)
+    except KeyError:
+        return None
+
+
+def _binding_page(claim: Claim, regions: Regions, kind: str | None) -> bool:
+    """A licence region whose kind the facet does not permit, beside a permitted one.
+
+    The region can name the licence. It is not a reading, and it gives no
+    outcome. A ``source_kind`` mismatch is only for a claim that cites no
+    permitted kind at all.
+    """
+    if claim.value is not None or not claim.field.startswith("licence."):
+        return False
+    facet = _facet_or_none(claim.field)
+    if facet is None:
+        return False
+    permitted = set(facet.permitted_source_kinds)
+    if kind in permitted:
+        return False
+    for source in claim.sources:
+        if not source.cited_regions:
+            continue
+        _, cited = _source_kind(regions, source.source_id)
+        if cited in permitted:
+            return True
+    return False
+
+
+def _absence_block(claim: Claim, regions: Regions, source_id: str) -> list[Diff] | None:
+    """Mismatch when an absence is cited to a source kind the facet does not permit.
+
+    A source whose kind is unknown still supports a non-licence absence, so
+    registries written before ``kind`` keep verifying. A ``licence.*`` absence
+    needs an explicit permitted kind: a README that never states the term is
+    not evidence that the licence is silent.
+    """
+    if claim.value is not None:
+        return None
+    facet = _facet_or_none(claim.field)
+    if facet is None:
+        return None
+    permitted = list(facet.permitted_source_kinds)
+    tracked, kind = _source_kind(regions, source_id)
+    if kind in permitted:
+        return None
+    if not claim.field.startswith("licence.") and (not tracked or kind is None):
+        return None
+    return [Diff("source_kind", permitted, kind if kind is not None else "unknown")]
+
+
+def _readers_for(extractors: Sequence[Extractor], claim: Claim, text: str,
+                 kind: str | None) -> list[Extractor]:
+    """Who may read this region.
+
+    A ``licence.*`` claim is read only from a source kind in that facet's
+    ``permitted_source_kinds``, and only by ``LicenceExtractor``. Any other
+    cited region is a binding page. It is not a reading, for a known value or
+    an absence. Deterministic extractors still read a ``licence_text`` source
+    for every other claim, including ``model.weights_openness`` and ``origin.*``.
+    """
+    if claim.field.startswith("licence."):
+        facet = _facet_or_none(claim.field)
+        permitted = set(facet.permitted_source_kinds) if facet is not None else set()
+        if kind not in permitted:
+            return []
+        return [extractor for extractor in extractors if isinstance(extractor, LicenceExtractor)]
+    chosen = []
+    for extractor in extractors:
+        if isinstance(extractor, LicenceExtractor):
+            continue
+        if extractor.accepts(text):
+            chosen.append(extractor)
+    return chosen
+
+
+def _binding_pages(claim: Claim, regions: Regions, source_id: str,
+                   region_id: str) -> tuple[list[str], list[str | None]]:
+    """Text and source URL of the claim's other cited regions."""
+    pages: list[str] = []
+    urls: list[str | None] = []
+    url_of = getattr(regions, "source_url", None)
+    for source in claim.sources:
+        for cited in source.cited_regions:
+            if source.source_id == source_id and cited == region_id:
+                continue
+            text = regions.text(source.source_id, source.snapshot_ref, cited)
+            if text:
+                pages.append(text)
+                urls.append(url_of(source.source_id) if callable(url_of) else None)
+    return pages, urls
+
+
 def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
            today: date) -> Result:
     """Re-read ``claim`` from each cited region of its sources and compare.
 
     Deterministic extractors are tried before the rest, whatever the order given;
     the first that accepts a region and is independent of the collector reads it.
-    Verified if any region confirms the value; otherwise the first mismatch.
+    A ``licence.*`` claim is the exception: only ``LicenceExtractor`` reads it,
+    and only a source kind in that facet's ``permitted_source_kinds`` is a
+    reading. Its other cited regions are binding pages. A binding page gives
+    no outcome while the claim also cites a permitted kind. It is a
+    ``source_kind`` mismatch only when the claim cites no permitted kind.
+    Verified if any reading confirms the value; otherwise the first mismatch.
+    A claim whose permitted regions all have no extractor, or all raised
+    ``ExtractorError``, is skipped.
     """
     if isinstance(claim.value, dict) and "score" in claim.value:
         return _verify_evidence_reading(claim, regions, extractors, today=today)
@@ -2707,6 +3342,7 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
     mismatch: tuple[VerificationActor, list[Diff]] | None = None
     reasons: list[str] = []
     for source in claim.sources:
+        _, kind = _source_kind(regions, source.source_id)
         for region_id in source.cited_regions:
             where = f"{source.source_id}#{region_id}"
             text = regions.text(source.source_id, source.snapshot_ref, region_id)
@@ -2714,14 +3350,38 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
                 reasons.append(f"unreachable:{where}")
                 continue
             reachable = True
-            accepting = [e for e in ordered if e.accepts(text)]
+            accepting = _readers_for(ordered, claim, text, kind)
             independent = [e for e in accepting if _independent(claim, e.actor, today)]
             if not independent:
+                if _binding_page(claim, regions, kind):
+                    continue
+                if claim.value is None and claim.field.startswith("licence."):
+                    blocked = _absence_block(claim, regions, source.source_id)
+                    if blocked:
+                        found = blocked[0].found
+                        reasons.append(
+                            f"absence_source_kind:{where}: {found} is not a permitted source kind"
+                        )
+                        mismatch = mismatch or (REGION_LOOKUP, blocked)
+                        continue
                 reasons.append("no_independent_extractor" if accepting else f"no_extractor:{where}")
                 continue
             for extractor in independent:
                 try:
-                    if isinstance(extractor, LLMExtractor):
+                    if isinstance(extractor, LicenceExtractor):
+                        url_of = getattr(regions, "source_url", None)
+                        pages, page_urls = _binding_pages(
+                            claim, regions, source.source_id, region_id,
+                        )
+                        readings = extractor.extract(
+                            claim,
+                            text,
+                            cache_key=(source.snapshot_ref, region_id, claim.field),
+                            bindings=pages,
+                            binding_urls=page_urls,
+                            licence_url=url_of(source.source_id) if callable(url_of) else None,
+                        )
+                    elif isinstance(extractor, LLMExtractor):
                         readings = extractor.extract(
                             claim,
                             text,
@@ -2735,6 +3395,14 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
                     continue
                 diffs = compare(claim, readings)
                 if not diffs:
+                    blocked = _absence_block(claim, regions, source.source_id)
+                    if blocked:
+                        found = blocked[0].found
+                        reasons.append(
+                            f"absence_source_kind:{where}: {found} is not a permitted source kind"
+                        )
+                        mismatch = mismatch or (extractor.actor, blocked)
+                        continue
                     return Result(claim.target, "verified",
                                   _verification(claim, extractor.actor, "verified", today))
                 mismatch = mismatch or (extractor.actor, diffs)
