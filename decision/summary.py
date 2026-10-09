@@ -61,13 +61,7 @@ _PARTIAL_NO_FIT = (
 )
 _PARTIAL_HEAD = "No model is established as the best fit: "
 _TIE_NOT_A_PICK = " are tied; this is not a recommendation of any one of them."
-_UNCHECKED_GATES = (
-    "ModelSpec checked only the requirements listed as applied; "
-    "any other need in the request was not checked."
-)
-_UNCHECKED_NONE = (
-    "ModelSpec applied no requirement; any need in the request was not checked."
-)
+_UNCHECKED = "ModelSpec checked only the stated requirements; other needs were not checked."
 _OUTSIDE = "The request is outside coverage."
 _CLASS_FACET = "model.class"
 _TEXT_GENERATOR = "text-generator"
@@ -561,9 +555,6 @@ def _mentions(
         items.append(("missing", _board_sentence(models, dimensions)))
     for requirement in unapplied:
         items.append(("not_applied", _not_checked(requirement)))
-    if spec is not None:
-        gates, _dont_care = _gates(spec, set(unapplied), conditions)
-        items.append(("unchecked", _UNCHECKED_GATES if gates else _UNCHECKED_NONE))
     if decision.coverage is not None:
         message = decision.coverage.message.strip() or _OUTSIDE
         if not message.endswith("."):
@@ -572,14 +563,17 @@ def _mentions(
             message = _OUTSIDE
         items.append(("coverage", message))
     qualify = len(decision.may_qualify)
-    if qualify:
+    # A partial answer's own item already names the models that may qualify.
+    if qualify and decision.status != "partial":
         items.append(("may_qualify", _qualify_sentence(qualify)))
     if decision.out_of_lineup > 0:
         items.append(("out_of_lineup", _lineup_sentence(decision.out_of_lineup)))
-    if _hardware(decision, spec):
-        items.append(("hardware", _hardware_item(spec)))
+    if _hardware(decision, spec, conditions):
+        items.append(("hardware", _hardware_item(spec, conditions)))
     if _estimates(decision):
         items.append(("estimates", _ESTIMATES))
+    if spec is not None:
+        items.append(("unchecked", _UNCHECKED))
     return _trim(items)
 
 
@@ -981,8 +975,8 @@ def _cost_tie_break(decision: Decision) -> bool:
     )
 
 
-def _hardware_item(spec: Spec | None) -> str:
-    gates = _hardware_gates(spec)
+def _hardware_item(spec: Spec | None, conditions: tuple) -> str:
+    gates = _hardware_gates(conditions)
     if not gates and _own_hardware_without_fit(spec):
         return _HARDWARE_NOT_REQUIRED
     if not gates:
@@ -1002,18 +996,17 @@ def _own_hardware_without_fit(spec: Spec | None) -> bool:
     return spec.estate is None or not spec.estate.devices
 
 
-def _hardware_gates(spec: Spec | None) -> list[str]:
-    if spec is None:
-        return []
+def _hardware_gates(conditions: tuple) -> list[str]:
+    """Profile rules and ``where`` conditions that name fits_hardware."""
     gates: list[str] = []
-    for condition in spec.where:
+    for condition in conditions:
         rendered = render_condition(condition)
         if HARDWARE_FIT in rendered:
             gates.append(rendered)
     return gates
 
 
-def _hardware(decision: Decision, spec: Spec | None) -> bool:
+def _hardware(decision: Decision, spec: Spec | None, conditions: tuple = ()) -> bool:
     reading = decision.reading
     if reading is not None and HARDWARE_FIT in reading.estimates:
         return True
@@ -1021,9 +1014,8 @@ def _hardware(decision: Decision, spec: Spec | None) -> bool:
         return True
     if spec is None:
         return False
-    for condition in spec.where:
-        if HARDWARE_FIT in render_condition(condition):
-            return True
+    if _hardware_gates(conditions or tuple(spec.where)):
+        return True
     objective = spec.optimize
     names = [objective.max, objective.min, *(objective.weights or {}), *(objective.pareto or [])]
     names.extend(step.facet for step in objective.lexicographic or [])

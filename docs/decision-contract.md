@@ -1295,10 +1295,12 @@ three current explanation levels. Regenerate the MCP public fixture with
   `answer.members` stays complete.
 - **bounded 1.1 — MODEL-351:** `must_mention` also names claims the answer does
   not support: a tie, answered or partial, is not a recommendation of any
-  member; a partial answer establishes no best fit; `fits_hardware` is an
-  estimate, or was not required at all; and requirements not listed as
-  applied, including `task_type`, were not checked. Copy only: no field,
-  range or `bounded_version` changes.
+  member; a partial answer establishes no best fit, and names the models whose
+  values are unknown in place of the may-qualify count; `fits_hardware` is an
+  estimate, or was not required at all; and ModelSpec checked only the stated
+  requirements, with `task_type` reported as not applied. The answered-tie,
+  hardware and stated-requirements lines also appear in `summary_for_user`.
+  Copy only: no field, range or `bounded_version` changes.
 
 ## The library and the CLI
 

@@ -27,10 +27,7 @@ BASE = {
     "explain": "summary",
 }
 NOT_A_PICK = "; this is not a recommendation of any one of them."
-CHECKED_ONLY = (
-    "ModelSpec checked only the requirements listed as applied; "
-    "any other need in the request was not checked."
-)
+CHECKED_ONLY = "ModelSpec checked only the stated requirements; other needs were not checked."
 HEADROOM = (
     " is an estimate; fit for a specific quantization, context length "
     "or runtime headroom is not established."
@@ -147,12 +144,17 @@ def test_must_mention_names_the_unsupported_claim(fixture: dict) -> None:
         assert item in mentions
     assert len(mentions) <= MUST_MENTION_MAX
     assert all(len(item.encode("utf-8")) <= MUST_MENTION_ITEM_BYTES for item in mentions)
-    # Every fact production already carried is still carried; only the
-    # hardware sentence changed wording.
-    kept = [item for item in fixture["production_must_mention"] if item != OLD_HARDWARE]
+    # Every fact production already carried is still carried, except the
+    # reworded hardware sentence and, on a partial answer, the may-qualify
+    # count that the partial item now replaces with names.
+    partial = fixture["decision"]["status"] == "partial"
+    kept = [
+        item for item in fixture["production_must_mention"]
+        if item != OLD_HARDWARE and not (partial and " may qualify, but " in item)
+    ]
     assert [item for item in mentions if item in kept] == kept
     assert OLD_HARDWARE not in mentions
-    if fixture["decision"]["status"] == "partial":
+    if partial:
         # MODEL-339 keeps "tied" out of a partial paragraph; must_mention carries it.
         assert "tied" not in text
         assert text.startswith("ModelSpec's answer is incomplete, so it names no pick.")

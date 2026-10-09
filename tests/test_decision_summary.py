@@ -39,11 +39,7 @@ EITHER = "model.weights_openness is not required (either acceptable)."
 NO_CLASS = "No model class was required, so results span every class."
 COST_ONLY = "This answer is ordered by cost only; it is not a quality ranking."
 TIE_COST = "Tie-breakers are conditional; cost order is not quality order."
-CHECKED_ONLY = (
-    "ModelSpec checked only the requirements listed as applied; "
-    "any other need in the request was not checked."
-)
-APPLIED_NONE = "ModelSpec applied no requirement; any need in the request was not checked."
+CHECKED_ONLY = "ModelSpec checked only the stated requirements; other needs were not checked."
 HARDWARE = (
     "fits_hardware is an estimate; fit for a specific quantization, context length "
     "or runtime headroom is not established."
@@ -172,13 +168,13 @@ def test_a_long_tie_names_eight_and_counts_the_rest() -> None:
         "lab/m6, lab/m7, and lab/m8, and 2 more in answer.members; "
         "the evidence does not separate them. "
         "These 10 models are tied; this is not a recommendation of any one of them. "
-        f"{NO_CLASS} {COST_ONLY} {APPLIED_NONE}"
+        f"{NO_CLASS} {COST_ONLY} {CHECKED_ONLY}"
     )
     assert mentions == [
         named,
         NO_CLASS,
         COST_ONLY,
-        APPLIED_NONE,
+        CHECKED_ONLY,
     ]
     for word in ("better", "worse", "best", "recommended"):
         assert word not in _answer_sentence(text)
@@ -272,7 +268,7 @@ def test_missing_objective_values_are_not_reported_as_a_gate_failure() -> None:
     assert text == (
         f"{NO_FEASIBLE} {missing} "
         "Requirements applied: model.class = text-generator. "
-        f"{CHECKED_ONLY} {qualify}"
+        f"{qualify} {CHECKED_ONLY}"
     )
     assert "exclude every model" not in text
     assert "that is an option, not an answer." not in text
@@ -426,7 +422,7 @@ def test_partial_names_no_pick_and_counts_models_that_may_qualify() -> None:
         f"{PARTIAL} What is missing: licence.commercial_use. "
         "1 more model may qualify, but ModelSpec lacks its values "
         "for these requirements. "
-        f"{NO_CLASS} {COST_ONLY} {APPLIED_NONE}"
+        f"{NO_CLASS} {COST_ONLY} {CHECKED_ONLY}"
     )
     assert text.count(
         "1 more model may qualify, but ModelSpec lacks its values "
@@ -436,8 +432,7 @@ def test_partial_names_no_pick_and_counts_models_that_may_qualify() -> None:
         partial,
         NO_CLASS,
         COST_ONLY,
-        APPLIED_NONE,
-        "1 more model may qualify, but ModelSpec lacks its values for these requirements.",
+        CHECKED_ONLY,
     ]
     assert "tied" not in text
     assert "lab/a" not in text and "lab/maybe" not in text
@@ -463,15 +458,15 @@ def test_an_unapplied_requirement_is_not_described_as_applied() -> None:
         "ModelSpec's answer is lab/a. "
         "Requirements applied: software_engineering is required. "
         "Requirements not applied (ModelSpec did not check them): eu_residency. "
-        f"{NO_CLASS} {unmeasured} {CHECKED_ONLY} {ESTIMATES}"
+        f"{NO_CLASS} {unmeasured} {ESTIMATES} {CHECKED_ONLY}"
     )
     assert NOT_APPLIED not in text
     assert mentions == [
         NO_CLASS,
         unmeasured,
         NOT_APPLIED,
-        CHECKED_ONLY,
         ESTIMATES,
+        CHECKED_ONLY,
     ]
     assert "eu_residency is required" not in text
     assert "you must" not in text and "do not" not in text
@@ -486,9 +481,9 @@ def test_either_weights_openness_is_echoed_as_not_required() -> None:
     )
     text, mentions = summarize(decision, spec)
     assert text == (
-        f"ModelSpec's answer is lab/a. {EITHER} {NO_CLASS} {COST_ONLY} {APPLIED_NONE}"
+        f"ModelSpec's answer is lab/a. {EITHER} {NO_CLASS} {COST_ONLY} {CHECKED_ONLY}"
     )
-    assert mentions == [NO_CLASS, COST_ONLY, APPLIED_NONE]
+    assert mentions == [NO_CLASS, COST_ONLY, CHECKED_ONLY]
     assert "closed_weights" not in text
     assert "open_weights = false" not in text
     assert "closed weights required" not in text
@@ -621,8 +616,8 @@ def test_missing_board_data_is_named_for_the_answer_member() -> None:
         results=[_row("lab/a", contributions=[{"dimension": "coding_quality", "value": None}])],
     )
     text, mentions = summarize(decision, _spec(optimize={"max": "coding_quality"}))
-    assert text == f"ModelSpec's answer is lab/a. {NO_CLASS} {MISSING} {APPLIED_NONE}"
-    assert mentions == [NO_CLASS, MISSING, APPLIED_NONE]
+    assert text == f"ModelSpec's answer is lab/a. {NO_CLASS} {MISSING} {CHECKED_ONLY}"
+    assert mentions == [NO_CLASS, MISSING, CHECKED_ONLY]
 
 
 def test_no_class_gate_states_the_scope_and_names_other_classes() -> None:
@@ -763,7 +758,6 @@ def test_a_relaxed_gate_is_an_option_and_partial_is_not_a_tie() -> None:
         "No model is established as the best fit: "
         "licence.commercial_use is unknown for lab/maybe.",
         CHECKED_ONLY,
-        QUALIFY_ONE,
     ]
 
 
@@ -811,7 +805,7 @@ def test_an_estimated_position_is_not_leaderboard_data() -> None:
         _spec(where=["model.class = text-generator"], optimize={"max": "terminal_bench_v4_0"}),
     )
     assert "no leaderboard data" not in measured_text
-    assert measured_mentions == [CHECKED_ONLY, ESTIMATES]
+    assert measured_mentions == [ESTIMATES, CHECKED_ONLY]
 
     estimated = _decision(
         answer=_separated("lab/a"),
@@ -826,8 +820,8 @@ def test_an_estimated_position_is_not_leaderboard_data() -> None:
     )
     assert estimated_mentions == [
         MISSING,
-        CHECKED_ONLY,
         ESTIMATES,
+        CHECKED_ONLY,
     ]
 
     top = _decision(
@@ -860,13 +854,13 @@ def test_an_estimated_position_is_not_leaderboard_data() -> None:
 def test_cost_only_is_not_a_quality_ranking_and_a_cost_tie_break_says_so() -> None:
     decision = _decision(answer=_separated("lab/a"))
     text, mentions = summarize(decision, _spec(optimize={"min": "offering.cost_per_task"}))
-    assert text == f"ModelSpec's answer is lab/a. {NO_CLASS} {COST_ONLY} {APPLIED_NONE}"
+    assert text == f"ModelSpec's answer is lab/a. {NO_CLASS} {COST_ONLY} {CHECKED_ONLY}"
     assert text.count(COST_ONLY) == 1
-    assert mentions == [NO_CLASS, COST_ONLY, APPLIED_NONE]
+    assert mentions == [NO_CLASS, COST_ONLY, CHECKED_ONLY]
 
     infeasible = _decision(status="no_feasible", answer=None, results=[], relax=["model.context_window >= 10"])
     _text, infeasible_mentions = summarize(infeasible, _spec(optimize={"min": "offering.cost_per_task"}))
-    assert infeasible_mentions == [NO_CLASS, APPLIED_NONE]
+    assert infeasible_mentions == [NO_CLASS, CHECKED_ONLY]
 
     mixed = _decision(
         answer=_separated("lab/a"),
@@ -1041,7 +1035,7 @@ def test_must_mention_and_the_paragraph_stay_inside_their_byte_caps() -> None:
     ) in mentions
     assert LINEUP_3 in mentions
     assert HARDWARE in mentions
-    assert CHECKED_ONLY in mentions
+    assert ESTIMATES in mentions
     assert all(len(item.encode("utf-8")) <= MUST_MENTION_ITEM_BYTES for item in mentions)
     assert len(text.encode("utf-8")) <= SUMMARY_BYTES
     assert text.startswith(
@@ -1065,7 +1059,7 @@ def test_must_mention_and_the_paragraph_stay_inside_their_byte_caps() -> None:
     assert COST_ONLY not in huge_text
     shown = (
         "facet_00 >= 0; facet_01 >= 1; facet_02 >= 2; facet_03 >= 3; "
-        "facet_04 >= 4; and 35 more."
+        "facet_04 >= 4; facet_05 >= 5; and 34 more."
     )
     assert huge_text.count(shown) == 2
     assert CHECKED_ONLY in huge_text
@@ -1247,7 +1241,7 @@ def test_a_partial_tie_is_named_and_kept_out_of_the_paragraph() -> None:
         "Requirements applied: model.class = text-generator. "
         f"{CHECKED_ONLY}"
     )
-    assert mentions == [tie, partial, CHECKED_ONLY, QUALIFY_ONE]
+    assert mentions == [tie, partial, CHECKED_ONLY]
     assert tie not in text
     assert "tied" not in text
 
@@ -1346,7 +1340,7 @@ def test_fits_hardware_is_an_estimate_with_and_without_a_gate() -> None:
         reading={"estimates": ["model.fits_hardware"]},
     )
     plain_text, plain_mentions = summarize(plain, _spec())
-    assert plain_mentions == [NO_CLASS, APPLIED_NONE, HARDWARE]
+    assert plain_mentions == [NO_CLASS, HARDWARE, CHECKED_ONLY]
     assert HARDWARE in plain_text
 
     gated_text, gated_mentions = summarize(
@@ -1357,11 +1351,11 @@ def test_fits_hardware_is_an_estimate_with_and_without_a_gate() -> None:
         "model.fits_hardware in {nvidia_rtx_4090} is an estimate; "
         "fit for a specific quantization, context length or runtime headroom is not established."
     )
-    assert gated_mentions == [NO_CLASS, CHECKED_ONLY, gate]
+    assert gated_mentions == [NO_CLASS, gate, CHECKED_ONLY]
     assert gated_text == (
         "ModelSpec's answer is lab/a. "
         "Requirements applied: model.fits_hardware in {nvidia_rtx_4090}. "
-        f"{NO_CLASS} {CHECKED_ONLY} {gate}"
+        f"{NO_CLASS} {gate} {CHECKED_ONLY}"
     )
 
 
@@ -1374,7 +1368,7 @@ def test_own_hardware_without_a_device_says_fit_was_not_required() -> None:
     _text, mentions = summarize(
         decision, _spec(where=["model.class = text-generator"], access="own_hardware"),
     )
-    assert mentions == [CHECKED_ONLY, not_required]
+    assert mentions == [not_required, CHECKED_ONLY]
 
     # A device in the estate is fitted through with_estate, so the estimate caveat stays.
     _text, estate_mentions = summarize(
@@ -1384,7 +1378,7 @@ def test_own_hardware_without_a_device_says_fit_was_not_required() -> None:
             estate={"devices": ["nvidia_rtx_4090"]},
         ),
     )
-    assert estate_mentions == [CHECKED_ONLY, HARDWARE]
+    assert estate_mentions == [HARDWARE, CHECKED_ONLY]
 
 
 def test_task_type_is_reported_as_not_applied() -> None:
@@ -1417,8 +1411,8 @@ def test_unchecked_needs_say_whether_any_requirement_was_applied() -> None:
         f"{CHECKED_ONLY}"
     )
     open_text, open_mentions = summarize(answered, _spec())
-    assert open_mentions == [NO_CLASS, APPLIED_NONE]
-    assert open_text == f"ModelSpec's answer is lab/a. {NO_CLASS} {APPLIED_NONE}"
+    assert open_mentions == [NO_CLASS, CHECKED_ONLY]
+    assert open_text == f"ModelSpec's answer is lab/a. {NO_CLASS} {CHECKED_ONLY}"
     bare_text, bare_mentions = summarize(answered, None)
     assert bare_text == "ModelSpec's answer is lab/a."
     assert bare_mentions == []
