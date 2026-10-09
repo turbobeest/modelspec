@@ -459,7 +459,7 @@ def decide(
     _filter_trace: Callable[[FilterResult], None] | None = None,
     comparison: bool = False,
     _capture_evidence: tuple[str, Callable[[ModelEvidence], None]] | None = None,
-    _capture_member_evidence: Callable[[list[tuple[str, list]]], None] | None = None,
+    _capture_member_evidence: Callable[[list[tuple]], None] | None = None,
 ) -> Decision:
     """Return a reproducible decision. Explanation work is skipped at ``none``.
 
@@ -534,7 +534,7 @@ def _decide(
     _filter_trace: Callable[[FilterResult], None] | None = None,
     comparison: bool = False,
     _capture_evidence: tuple[str, Callable[[ModelEvidence], None]] | None = None,
-    _capture_member_evidence: Callable[[list[tuple[str, list]]], None] | None = None,
+    _capture_member_evidence: Callable[[list[tuple]], None] | None = None,
     _reach=None,
     _capture: dict | None = None,
     _identity: Spec | None = None,
@@ -836,13 +836,16 @@ def _decide(
             reasons=sorted({item.condition for item in filtered.eliminated
                             if snapshot.model_of(item.candidate) == model_id}),
         ))
+    # Counts feed the estimate caveat on every bounded summary, including
+    # explain none. A snapshot that did not retain records cannot be counted;
+    # that answer keeps the no-leaderboard sentence instead of failing.
     if (
         _capture_member_evidence is not None
-        and spec.explain != "none"
         and decision.answer is not None
         and decision.answer.members
+        and not getattr(snapshot, "explanation_rebuild_required", None)
     ):
-        from decision.explain import objective_evidence_items
+        from decision.explain import ExplanationError, objective_member_records
 
         best = {}
         for row in ordered.results:
@@ -851,9 +854,16 @@ def _decide(
         for model_id in decision.answer.members:
             row = best.get(model_id)
             if row is None:
-                captured.append((model_id, []))
+                captured.append((model_id, [], {}))
                 continue
-            captured.append((model_id, objective_evidence_items(
-                snapshot, row.candidate_id, row.contributions, requested)))
+            try:
+                items, counts = objective_member_records(
+                    snapshot, row.candidate_id, row.contributions, requested)
+            except ExplanationError:
+                if spec.explain != "none":
+                    raise
+                captured.append((model_id, [], {}))
+                continue
+            captured.append((model_id, items, counts))
         _capture_member_evidence(captured)
     return decision

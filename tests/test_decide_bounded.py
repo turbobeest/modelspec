@@ -216,13 +216,20 @@ def test_public_snapshot_names_an_estimated_position_and_a_natural_tie(service, 
     scope = "No model class was required, so results span every class."
     assert summary.count(scope) == 1
     assert scope in mentions
-    sentence = (
-        "anthropic/claude-opus-5-5 and anthropic/claude-fable-5 have no leaderboard data "
-        "for chat_preference; their positions are estimated, not measured."
+    opus_sentence = (
+        "anthropic/claude-opus-5-5's position on chat_preference is estimated from 1 record, "
+        "none of them proxies."
     )
-    assert sentence in mentions
-    assert sentence in summary
-    assert summary.count(sentence) == 1
+    fable_sentence = (
+        "anthropic/claude-fable-5's position on chat_preference is estimated from 8 records, "
+        "none of them proxies."
+    )
+    assert opus_sentence in mentions
+    assert fable_sentence in mentions
+    assert opus_sentence in summary
+    assert fable_sentence in summary
+    assert summary.count(opus_sentence) == 1
+    assert summary.count(fable_sentence) == 1
     assert "Tie-breakers are conditional; cost order is not quality order." in summary
     assert "Tie-breakers are conditional; cost order is not quality order." in mentions
     assert "This answer is ordered by cost only; it is not a quality ranking." not in summary
@@ -237,6 +244,10 @@ def _leaderboard_names(item: str) -> str | None:
         if tail.endswith("its position is estimated, not measured.") or tail.endswith(
             "their positions are estimated, not measured."
         ):
+            return head
+    for marker in ("'s position on ", "'s positions on ", " have positions on "):
+        head, separator, tail = item.partition(marker)
+        if separator and " estimated from " in tail and tail.endswith("proxies."):
             return head
     return None
 
@@ -615,12 +626,18 @@ def test_limit_keeps_leaderboard_caveats_for_every_answer_member(service, public
     }
     _, wide = service.decide({**base, "limit": 10}, public_snapshot)
     _, narrow = service.decide({**base, "limit": 1}, public_snapshot)
-    sentence = (
-        "anthropic/claude-opus-5-5 and anthropic/claude-fable-5 have no leaderboard data "
-        "for chat_preference; their positions are estimated, not measured."
+    opus_sentence = (
+        "anthropic/claude-opus-5-5's position on chat_preference is estimated from 1 record, "
+        "none of them proxies."
     )
-    assert sentence in wide["must_mention"]
-    assert sentence in narrow["must_mention"]
+    fable_sentence = (
+        "anthropic/claude-fable-5's position on chat_preference is estimated from 8 records, "
+        "none of them proxies."
+    )
+    assert opus_sentence in wide["must_mention"]
+    assert fable_sentence in wide["must_mention"]
+    assert opus_sentence in narrow["must_mention"]
+    assert fable_sentence in narrow["must_mention"]
     assert narrow["answer"]["members"] == wide["answer"]["members"]
     assert [row["model"] for row in narrow["results"]] == ["anthropic/claude-opus-5-5"]
 

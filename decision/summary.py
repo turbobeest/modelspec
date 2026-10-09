@@ -85,16 +85,22 @@ def summarize(
     not_applied: Iterable[str] = (),
     profiles: Mapping[str, InventoryProfile] | None = None,
     feasible: int | None = None,
+    record_counts: Mapping[str, Mapping[str, tuple[int, int]]] | None = None,
 ) -> tuple[str, list[str]]:
     """Return ``(summary_for_user, must_mention)``.
 
     ``feasible`` is how many candidates the gates left for the optimiser.
     ``None`` reads that from the funnel. An empty funnel is not evidence
     that the gates excluded everyone.
+
+    ``record_counts`` maps a model to a dimension to ``(records, proxy records)``
+    behind that objective position. The engine passes the capture that also
+    feeds ``member_evidence``, before the cap of three. ``None`` counts the
+    records already on the Decision's contributions.
     """
     unapplied = _unapplied(decision, not_applied)
     conditions = _applied_conditions(spec, profiles)
-    mentions = _mentions(decision, spec, unapplied, conditions)
+    mentions = _mentions(decision, spec, unapplied, conditions, record_counts)
     summary = _summary(
         decision, spec, unapplied, mentions, conditions, feasible=feasible,
     )
@@ -505,7 +511,11 @@ def _unapplied(decision: Decision, extra: Iterable[str]) -> list[str]:
 
 
 def _mentions(
-    decision: Decision, spec: Spec | None, unapplied: list[str], conditions: tuple,
+    decision: Decision,
+    spec: Spec | None,
+    unapplied: list[str],
+    conditions: tuple,
+    record_counts: Mapping[str, Mapping[str, tuple[int, int]]] | None = None,
 ) -> list[tuple[str, str]]:
     items: list[tuple[str, str]] = []
     if _presents_tie(decision) and decision.answer is not None:
@@ -520,8 +530,10 @@ def _mentions(
         items.append(("tie_cost", _TIE_COST))
     for domain, benchmarks in _proxy(decision).items():
         items.append(("proxy", _proxy_sentence(domain, benchmarks)))
-    for models, dimensions in _missing(decision, spec):
-        items.append(("missing", _board_sentence(models, dimensions)))
+    for models, dimensions, records, proxies in _missing(decision, spec, record_counts):
+        items.append(("missing", _board_sentence(
+            models, dimensions, records=records, proxies=proxies,
+        )))
     for requirement in unapplied:
         items.append(("not_applied", _not_checked(requirement)))
     if decision.coverage is not None:
@@ -605,33 +617,137 @@ def _proxy_sentence(domain: str, benchmarks: list[str]) -> str:
     return prefix + ", ".join(shown) + extra + suffix
 
 
-def _missing(decision: Decision, spec: Spec | None) -> list[tuple[list[str], list[str]]]:
-    """Models that share a missing dimension set, in answer order."""
+def _missing(
+    decision: Decision,
+    spec: Spec | None,
+    record_counts: Mapping[str, Mapping[str, tuple[int, int]]] | None,
+) -> list[tuple[list[str], list[str], int, int]]:
+    """Models that share a missing dimension set and the same record counts.
+
+    A model whose unmeasured dimensions have different counts is split, so
+    one sentence states one ``(records, proxies)`` pair. Order follows the
+    answer, then the objective's dimensions.
+    """
     dimensions = _board_dimensions(spec)
     if not dimensions:
         return []
-    groups: dict[tuple[str, ...], list[str]] = {}
-    order: list[tuple[str, ...]] = []
+    groups: dict[tuple, list[str]] = {}
+    order: list[tuple] = []
     for model in _subjects(decision):
-        missing = tuple(
+        missing = [
             dimension for dimension in dimensions
             if _unmeasured(decision, model, dimension)
-        )
+        ]
         if not missing:
             continue
-        bucket = groups.get(missing)
-        if bucket is None:
-            groups[missing] = [model]
-            order.append(missing)
-        elif model not in bucket:
-            bucket.append(model)
-    return [(groups[key], list(key)) for key in order]
+        by_count: dict[tuple[int, int], list[str]] = {}
+        count_order: list[tuple[int, int]] = []
+        for dimension in missing:
+            pair = _record_pair(decision, model, dimension, record_counts)
+            bucket = by_count.get(pair)
+            if bucket is None:
+                by_count[pair] = [dimension]
+                count_order.append(pair)
+            else:
+                bucket.append(dimension)
+        for records, proxies in count_order:
+            key = (tuple(by_count[(records, proxies)]), records, proxies)
+            models = groups.get(key)
+            if models is None:
+                groups[key] = [model]
+                order.append(key)
+            elif model not in models:
+                models.append(model)
+    return [(groups[key], list(key[0]), key[1], key[2]) for key in order]
 
 
-def _board_sentence(models: list[str], dimensions: list[str]) -> str:
+def record_counts_from_capture(captured) -> dict[str, dict[str, tuple[int, int]]]:
+    """Per-model dimension counts carried beside a member-evidence capture."""
+    found: dict[str, dict[str, tuple[int, int]]] = {}
+    for entry in captured:
+        counts = entry[2] if len(entry) > 2 else None
+        if isinstance(counts, dict):
+            found[entry[0]] = {
+                dimension: (int(pair[0]), int(pair[1]))
+                for dimension, pair in counts.items()
+            }
+    return found
+
+
+def _record_pair(
+    decision: Decision,
+    model: str,
+    dimension: str,
+    record_counts: Mapping[str, Mapping[str, tuple[int, int]]] | None,
+) -> tuple[int, int]:
+    if record_counts is not None and model in record_counts:
+        found = record_counts[model]
+        if dimension in found:
+            return _pair(found[dimension])
+        base = _dimension_base(dimension)
+        if base in found:
+            return _pair(found[base])
+        return (0, 0)
+    return _decision_record_counts(decision, model, dimension)
+
+
+def _pair(value) -> tuple[int, int]:
+    records, proxies = value
+    return int(records), int(proxies)
+
+
+def _decision_record_counts(decision: Decision, model: str, dimension: str) -> tuple[int, int]:
+    """Records on this model's unmeasured contribution for one dimension.
+
+    The same items ``contributions`` stores. A result row wins over ``top``.
+    """
+    from decision.explain import tally_evidence_records
+
+    base = _dimension_base(dimension)
+    rows = [row for row in decision.results if _row_model(row) == model]
+    if not rows:
+        rows = [row for row in decision.top if _row_model(row) == model]
+    items = []
+    for row in rows:
+        for contribution in row.contributions:
+            if not _contribution_matches(contribution, dimension, base):
+                continue
+            if _contribution_measured(contribution):
+                continue
+            items.extend(contribution.evidence)
+    return tally_evidence_records(items)
+
+
+def _estimate_detail(records: int, proxies: int) -> str:
+    noun = "record" if records == 1 else "records"
+    if proxies <= 0:
+        which = "none of them proxies"
+    elif proxies == records:
+        which = "all of them proxies"
+    else:
+        which = f"{_count(proxies)} of them proxies"
+    return f"estimated from {_count(records)} {noun}, {which}"
+
+
+def _board_affixes(many_models: bool, many_dimensions: bool, records: int, proxies: int) -> tuple[str, str]:
+    if records <= 0:
+        template = _BOARD_MANY if many_models else _BOARD_ONE
+        head, _, tail = template.partition("{dimensions}")
+        return head, tail
+    detail = _estimate_detail(records, proxies)
+    if many_models:
+        return " have positions on ", f" {detail}."
+    if many_dimensions:
+        return "'s positions on ", f" are {detail}."
+    return "'s position on ", f" is {detail}."
+
+
+def _board_sentence(
+    models: list[str], dimensions: list[str], *, records: int = 0, proxies: int = 0,
+) -> str:
     """One leaderboard caveat. Names that overflow 200 bytes shorten; the wording does not."""
     many = len(models) > 1
-    template = _BOARD_MANY if many else _BOARD_ONE
+    head, tail = _board_affixes(many, len(dimensions) > 1, records, proxies)
     # A 200-byte item never holds more than a handful of ids, so the search
     # starts from small caps: the cost stays bounded however large the tie or
     # objective is.
@@ -639,14 +755,11 @@ def _board_sentence(models: list[str], dimensions: list[str]) -> str:
     for name_count in name_counts:
         names = _name_list(models, name_count, more="")
         for dim_count in range(min(len(dimensions), _BOARD_DIMENSION_CAP), 0, -1):
-            text = names + template.format(
-                dimensions=_name_list(dimensions, dim_count, more=" dimensions"),
-            )
+            text = names + head + _name_list(dimensions, dim_count, more=" dimensions") + tail
             if len(text.encode("utf-8")) <= MUST_MENTION_ITEM_BYTES:
                 return text
     names = _name_list(models, 1, more="")
     dims = _name_list(dimensions, 1, more=" dimensions")
-    head, _, tail = template.partition("{dimensions}")
     room = MUST_MENTION_ITEM_BYTES - len((head + tail).encode("utf-8"))
     names = _clip_to(names, max(room - len(dims.encode("utf-8")), 1))
     dims = _clip_to(dims, max(room - len(names.encode("utf-8")), 1))

@@ -499,10 +499,13 @@
       "note": "Projected rows are incomplete; omissions are not eliminations or absent evidence.",
       "fetch": "explanation.omitted counts records removed from this bounded answer. Resend this spec with evidence_for: anthropic/claude-opus-5-5 for one model's evidence; narrow fields or lower limit; or POST /v1/decide without fields for the complete Decision."
     },
-    "summary_for_user": "ModelSpec's answer is incomplete, so it names no pick. What is missing: software_engineering. 12 more models may qualify, but ModelSpec lacks their values for these requirements. Requirements applied: software_engineering is required. No model class was required, so results span every class. anthropic/claude-opus-5-5, anthropic/claude-sonnet-5-5, and openai/gpt-6-astra, and 1 more have no leaderboard data for software_engineering; their positions are estimated, not measured. ModelSpec compared only the models in its lineup; 1,328 active catalogue models are outside it. Some values are estimates, not measurements.",
+    "summary_for_user": "ModelSpec's answer is incomplete, so it names no pick. What is missing: software_engineering. 12 more models may qualify, but ModelSpec lacks their values for these requirements. Requirements applied: software_engineering is required. No model class was required, so results span every class. anthropic/claude-opus-5-5's position on software_engineering is estimated from 3 records, 2 of them proxies. anthropic/claude-sonnet-5-5's position on software_engineering is estimated from 2 records, 1 of them proxies. openai/gpt-6-astra's position on software_engineering is estimated from 7 records, 5 of them proxies. anthropic/claude-opus-4-7's position on software_engineering is estimated from 5 records, 3 of them proxies. ModelSpec compared only the models in its lineup; 1,328 active catalogue models are outside it. Some values are estimates, not measurements.",
     "must_mention": [
       "No model class was required, so results span every class.",
-      "anthropic/claude-opus-5-5, anthropic/claude-sonnet-5-5, and openai/gpt-6-astra, and 1 more have no leaderboard data for software_engineering; their positions are estimated, not measured.",
+      "anthropic/claude-opus-5-5's position on software_engineering is estimated from 3 records, 2 of them proxies.",
+      "anthropic/claude-sonnet-5-5's position on software_engineering is estimated from 2 records, 1 of them proxies.",
+      "openai/gpt-6-astra's position on software_engineering is estimated from 7 records, 5 of them proxies.",
+      "anthropic/claude-opus-4-7's position on software_engineering is estimated from 5 records, 3 of them proxies.",
       "12 more models may qualify, but ModelSpec lacks their values for these requirements.",
       "ModelSpec compared only the models in its lineup; 1,328 active catalogue models are outside it.",
       "Some values are estimates, not measurements."
@@ -736,10 +739,13 @@
         "not_separable"
       ]
     },
-    "summary_for_user": "ModelSpec's answer is incomplete, so it names no pick. What is missing: software_engineering. 12 more models may qualify, but ModelSpec lacks their values for these requirements. Requirements applied: software_engineering is required. No model class was required, so results span every class. anthropic/claude-opus-5-5, anthropic/claude-sonnet-5-5, and openai/gpt-6-astra, and 1 more have no leaderboard data for software_engineering; their positions are estimated, not measured. ModelSpec compared only the models in its lineup; 1,328 active catalogue models are outside it. Some values are estimates, not measurements.",
+    "summary_for_user": "ModelSpec's answer is incomplete, so it names no pick. What is missing: software_engineering. 12 more models may qualify, but ModelSpec lacks their values for these requirements. Requirements applied: software_engineering is required. No model class was required, so results span every class. anthropic/claude-opus-5-5's position on software_engineering is estimated from 3 records, 2 of them proxies. anthropic/claude-sonnet-5-5's position on software_engineering is estimated from 2 records, 1 of them proxies. openai/gpt-6-astra's position on software_engineering is estimated from 7 records, 5 of them proxies. anthropic/claude-opus-4-7's position on software_engineering is estimated from 5 records, 3 of them proxies. ModelSpec compared only the models in its lineup; 1,328 active catalogue models are outside it. Some values are estimates, not measurements.",
     "must_mention": [
       "No model class was required, so results span every class.",
-      "anthropic/claude-opus-5-5, anthropic/claude-sonnet-5-5, and openai/gpt-6-astra, and 1 more have no leaderboard data for software_engineering; their positions are estimated, not measured.",
+      "anthropic/claude-opus-5-5's position on software_engineering is estimated from 3 records, 2 of them proxies.",
+      "anthropic/claude-sonnet-5-5's position on software_engineering is estimated from 2 records, 1 of them proxies.",
+      "openai/gpt-6-astra's position on software_engineering is estimated from 7 records, 5 of them proxies.",
+      "anthropic/claude-opus-4-7's position on software_engineering is estimated from 5 records, 3 of them proxies.",
       "12 more models may qualify, but ModelSpec lacks their values for these requirements.",
       "ModelSpec compared only the models in its lineup; 1,328 active catalogue models are outside it.",
       "Some values are estimates, not measurements."

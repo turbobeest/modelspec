@@ -744,8 +744,8 @@ def test_an_estimated_position_is_not_leaderboard_data() -> None:
         }])],
     )
     expected = (
-        "lab/a has no leaderboard data for chat_preference; "
-        "its position is estimated, not measured."
+        "lab/a's position on chat_preference is estimated from 1 record, "
+        "none of them proxies."
     )
     text, mentions = summarize(
         latent, _spec(where=["model.class = text-generator"], optimize={"max": "chat_preference"}),
@@ -817,6 +817,133 @@ def test_an_estimated_position_is_not_leaderboard_data() -> None:
         "lab/estimated has no leaderboard data for coding_quality; "
         "its position is estimated, not measured."
     ]
+
+
+def _record(record_id: str, directness: str, benchmark: str) -> dict:
+    item = _evidence(directness=directness, benchmark=benchmark)
+    item["record_id"] = record_id
+    return item
+
+
+def _latent(model: str, dimension: str, evidence: list[dict], rank: int = 1) -> dict:
+    return _row(model, rank, contributions=[{
+        "dimension": dimension,
+        "value": 1.0,
+        "raw_value": 1.0,
+        "unit": "latent capability",
+        "formula": "monotone domain evidence estimate",
+        "evidence": evidence,
+    }])
+
+
+def test_an_estimate_names_how_many_records_it_came_from() -> None:
+    dimension = "software_engineering"
+    three = [
+        _record("direct", "direct", "cursorbench_4"),
+        _record("proxy-a", "proxy", "proxy_a"),
+        _record("proxy-b", "proxy", "proxy_b"),
+        _record("proxy-a", "proxy", "proxy_a"),
+    ]
+    two = [
+        _record("proxy-a", "proxy", "proxy_a"),
+        _record("proxy-b", "proxy", "proxy_b"),
+    ]
+    one = [_record("direct", "direct", "cursorbench_4")]
+    shared = (
+        "lab/three and lab/three-again have positions on software_engineering "
+        "estimated from 3 records, 2 of them proxies."
+    )
+    all_proxy = (
+        "lab/two's position on software_engineering is estimated from 2 records, "
+        "all of them proxies."
+    )
+    none_proxy = (
+        "lab/one's position on software_engineering is estimated from 1 record, "
+        "none of them proxies."
+    )
+    none = (
+        "lab/zero has no leaderboard data for software_engineering; "
+        "its position is estimated, not measured."
+    )
+    decision = _decision(
+        answer=_tied(["lab/three", "lab/three-again", "lab/two", "lab/one", "lab/zero"]),
+        results=[
+            _latent("lab/three", dimension, three, 1),
+            _latent("lab/three-again", dimension, three[:-1], 2),
+            _latent("lab/two", dimension, two, 3),
+            _latent("lab/one", dimension, one, 4),
+            _row("lab/zero", 5, contributions=[{"dimension": dimension, "value": None}]),
+        ],
+    )
+    text, mentions = summarize(decision, _spec(optimize={"max": dimension}))
+    proxy = (
+        "The evidence for software_engineering is a general proxy (proxy_a, proxy_b), "
+        "not task-specific."
+    )
+    assert mentions == [
+        "No single winner: 5 models are tied.",
+        NO_CLASS,
+        proxy,
+        shared,
+        all_proxy,
+        none_proxy,
+        none,
+    ]
+    for sentence in (shared, all_proxy, none_proxy, none):
+        assert sentence in text
+    assert text.index(shared) < text.index(all_proxy) < text.index(none_proxy) < text.index(none)
+
+
+def test_a_limit_cut_tie_member_uses_the_captured_record_counts() -> None:
+    shown = "lab/shown"
+    cut = "lab/cut"
+    decision = _decision(
+        answer=_tied([shown, cut]),
+        results=[_row(shown, contributions=[{"dimension": "software_engineering", "value": None}])],
+        bands={
+            "basis": BASIS,
+            "band_probability": 0.8,
+            "thin_interval_width": 0.5,
+            "leader": cut,
+            "best": [{
+                "model": cut,
+                "offering": {"model": cut},
+                "score": 1.0,
+                "score_interval": [0.5, 1.5],
+                "estimates": [{
+                    "dimension": "software_engineering",
+                    "value": 1.0,
+                    "interval": [0.5, 1.5],
+                    "benchmarks": 99,
+                    "direct_benchmarks": 1,
+                }],
+            }],
+        },
+    )
+    spec = _spec(optimize={"max": "software_engineering"})
+    without, without_mentions = summarize(decision, spec)
+    shared_zero = (
+        "lab/shown and lab/cut have no leaderboard data for software_engineering; "
+        "their positions are estimated, not measured."
+    )
+    assert shared_zero in without and shared_zero in without_mentions
+    assert "99" not in without
+
+    text, mentions = summarize(
+        decision, spec, record_counts={"lab/cut": {"software_engineering": (3, 2)}},
+    )
+    shown_sentence = (
+        "lab/shown has no leaderboard data for software_engineering; "
+        "its position is estimated, not measured."
+    )
+    cut_sentence = (
+        "lab/cut's position on software_engineering is estimated from 3 records, "
+        "2 of them proxies."
+    )
+    assert shown_sentence in mentions and shown_sentence in text
+    assert cut_sentence in mentions and cut_sentence in text
+    assert text.index(shown_sentence) < text.index(cut_sentence)
+    assert "99" not in text
 
 
 def test_cost_only_is_not_a_quality_ranking_and_a_cost_tie_break_says_so() -> None:

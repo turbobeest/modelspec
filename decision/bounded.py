@@ -11,7 +11,7 @@ import json
 from collections.abc import Mapping
 
 from decision import contract
-from decision.summary import summarize
+from decision.summary import record_counts_from_capture, summarize
 
 ESSENTIAL_ROW_FIELDS = frozenset({"rank", "model", "offering", "warnings"})
 DEFAULT_FIELDS = ("model_rank", "cost_per_task", "estimates", "p_best")
@@ -167,14 +167,18 @@ def project(decision: contract.Decision, options: contract.ResponseOptions, *,
     if detail:
         body["model_evidence"] = detail.model_dump(mode="json")
     # Computed from the full Decision, before either budget drops records.
+    # Record counts come from the same capture as member_evidence, before the
+    # cap of three, so a member limit dropped from results is still counted.
     summary, mentions = summarize(
         decision, spec, not_applied=not_applied, profiles=profiles, feasible=feasible,
+        record_counts=None if member_evidence is None else record_counts_from_capture(member_evidence),
     )
     body["summary_for_user"] = summary
     body["must_mention"] = mentions
     # After the summary, which is computed from the full Decision. Drill-down
     # cites one model through model_evidence and does not carry this list.
-    if detail is None and member_evidence:
+    # explain none carries the counts into the caveat and not the item list.
+    if detail is None and member_evidence and decision.explain in ("summary", "full"):
         body["member_evidence"] = _bounded_member_evidence(body, member_evidence)
     if detail:
         _bound_detail(body)
@@ -301,7 +305,8 @@ def _bounded_member_evidence(body: dict, captured: list) -> list[dict]:
     """
     entries = []
     omitted_total = 0
-    for model_id, items in captured:
+    for entry in captured:
+        model_id, items = entry[0], entry[1]
         dumped = [_dump_evidence_item(item) for item in items]
         dumped.sort(key=_evidence_item_key)
         usable = []

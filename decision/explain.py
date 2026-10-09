@@ -374,20 +374,48 @@ def _evidence_priority(item: EvidenceItem) -> tuple:
     return (-weight, 0 if item.directness == "direct" else 1, item.record_id or "")
 
 
-def objective_evidence_items(snapshot, cid, parts, capability_domains) -> list[EvidenceItem]:
-    """Records behind one candidate's objective position.
+def _contribution_dimension(part: Contribution) -> str:
+    key = part.dimension.removeprefix("-")
+    if part.refinement:
+        return f"{key}/{part.refinement}"
+    return key
 
-    The same items ``contributions`` stores on those parts, one per
-    ``record_id`` (the highest-weight copy). Empty when the position has
-    no evidence records. ``capability_domains`` is the spec's ``capabilities``,
-    the same set ``explain`` passes into ``contributions``.
+
+def tally_evidence_records(items) -> tuple[int, int]:
+    """``(records, proxy records)``. One ``record_id`` counts once. Proxy is directness."""
+    seen: dict[str, str] = {}
+    anonymous: list[str] = []
+    for item in items:
+        if isinstance(item, dict):
+            directness = item.get("directness") or ""
+            record_id = item.get("record_id")
+        else:
+            directness = item.directness or ""
+            record_id = item.record_id
+        if isinstance(record_id, str) and record_id:
+            seen.setdefault(record_id, directness)
+        else:
+            anonymous.append(directness)
+    proxies = sum(kind == "proxy" for kind in seen.values())
+    proxies += sum(kind == "proxy" for kind in anonymous)
+    return len(seen) + len(anonymous), proxies
+
+
+def objective_member_records(snapshot, cid, parts, capability_domains):
+    """Evidence items and per-dimension record counts for one objective position.
+
+    The items are what ``objective_evidence_items`` returns. The counts are
+    every record on each contribution, before that cross-part dedupe and
+    before the bounded cap of three. The map's key is the contribution
+    dimension. Its value is ``(records, proxy records)``.
     """
     groups = domain_evidence(snapshot, cid, capability_domains)
-    ranked = [
-        item
-        for part in contributions(snapshot, cid, parts, groups)
-        for item in part.evidence
-    ]
+    built = contributions(snapshot, cid, parts, groups)
+    pooled: dict[str, list] = {}
+    for part in built:
+        pooled.setdefault(_contribution_dimension(part), []).extend(part.evidence)
+    counts = {key: tally_evidence_records(grouped) for key, grouped in pooled.items()}
+    ranked = [item for part in built for item in part.evidence]
     ranked.sort(key=_evidence_priority)
     seen: set[str] = set()
     kept: list[EvidenceItem] = []
@@ -398,7 +426,18 @@ def objective_evidence_items(snapshot, cid, parts, capability_domains) -> list[E
                 continue
             seen.add(record_id)
         kept.append(item)
-    return kept
+    return kept, counts
+
+
+def objective_evidence_items(snapshot, cid, parts, capability_domains) -> list[EvidenceItem]:
+    """Records behind one candidate's objective position.
+
+    The same items ``contributions`` stores on those parts, one per
+    ``record_id`` (the highest-weight copy). Empty when the position has
+    no evidence records. ``capability_domains`` is the spec's ``capabilities``,
+    the same set ``explain`` passes into ``contributions``.
+    """
+    return objective_member_records(snapshot, cid, parts, capability_domains)[0]
 
 
 def excluded_benchmark_impacts(snapshot, decision, result_rows, shown_domains):
