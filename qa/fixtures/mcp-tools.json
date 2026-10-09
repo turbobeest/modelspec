@@ -6,12 +6,12 @@
     "docs/decision-contract.schema.json": "2dd7c6217915f49edefc5d1737ac078999f749b5290eeaa50cca9288366bf7ef",
     "api/worker/openapi.yaml": "2d9a3ed505422580ae4c949b6d89bcb05c6f5d42e975c3e5b50b6063de9a280f",
     "docs/agents.md": "35db51be2755f396c782a25cf0304e0222efa7ca63e52b6cf112adee447e2b5c",
-    "mcp/src/agent-copy.json": "ad4cce4432fa1218b8865c2f85840ac661061ed6dd4dc10fb8f4a29f6a8b28e5"
+    "mcp/src/agent-copy.json": "358a94ad94387407817dd5ef7a508376693a74f8591ad70dcc91226bc66a6ea0"
   },
   "tools": [
     {
       "name": "rank",
-      "description": "Legacy v1; use decide. Deprecated: the retired fixed-benchmark ranking, whose scores lag the catalogue; newer models are often unranked. Which models rank highest for one fixed use-case profile? Returns a shortlist with evidence_basis, input provenance, not a quality verdict. Needs an API key (Authorization: Bearer). Costs 1 credit a call; a credit costs $0.0017–$0.004 depending on the plan or pack (https://modelspec.dev/pricing/). Don't call it as a fallback when decide names no single leader: report decide's tie. Present `summary_for_user` to the user unchanged and keep every `must_mention` item. Proxies POST https://api.modelspec.dev/v1/rank with this tool's arguments as the JSON body. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
+      "description": "Legacy v1; use decide. Deprecated: the retired fixed-benchmark ranking, whose scores lag the catalogue; newer models are often unranked. Which models rank highest for one fixed use-case profile? Returns a shortlist with evidence_basis, input provenance, not a quality verdict. Needs an API key (Authorization: Bearer). Costs 1 credit a call; a credit costs $0.0017–$0.004 depending on the plan or pack (https://modelspec.dev/pricing/). Don't call it as a fallback when decide names no single leader: report decide's tie. Present `summary_for_user` to the user unchanged and keep every `must_mention` item. Proxies POST https://api.modelspec.dev/v1/rank with this tool's arguments as the JSON body.",
       "input_schema": {
         "type": "object",
         "additionalProperties": true,
@@ -93,7 +93,7 @@
     },
     {
       "name": "model_info",
-      "description": "What does ModelSpec's card say about one model? Reads https://modelspec.dev/api/models/<model_id>.json (model_id is provider/slug). With data splitting, returns only the model's display name from the Worker vocabulary. Needs an API key. Not current evidence and not a ranking: use decide for that. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
+      "description": "What does ModelSpec's card say about one model? Reads https://modelspec.dev/api/models/<model_id>.json (model_id is provider/slug). With data splitting, returns only the model's display name from the Worker vocabulary. Needs an API key. Not current evidence and not a ranking: use decide for that.",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -109,7 +109,7 @@
     },
     {
       "name": "list_use_cases",
-      "description": "Which ranking profiles exist, and what is the ranking policy? Returns https://modelspec.dev/api/rank/profiles.json: the profiles, the evidence floors and the neutrality commitment. Needs an API key. Not a decision: use decide for that. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
+      "description": "Which ranking profiles exist, and what is the ranking policy? Returns https://modelspec.dev/api/rank/profiles.json: the profiles, the evidence floors and the neutrality commitment. Needs an API key. Not a decision: use decide for that.",
       "input_schema": {
         "type": "object",
         "properties": {}
@@ -117,7 +117,7 @@
     },
     {
       "name": "policy_check",
-      "description": "Which models, on which platforms, does my policy allow? Checks a policy document (licence, origin, data handling) per model and per platform. Returns pass, fail or undetermined for each row; undetermined is not a pass. Needs an API key (Authorization: Bearer). Costs 5 credits a call; a credit costs $0.0017–$0.004 depending on the plan or pack (https://modelspec.dev/pricing/). It doesn't choose a model: use decide to choose among the ones that pass. Proxies POST https://api.modelspec.dev/v1/policy-check with this tool's arguments as the JSON body; Authorization is forwarded. Null means not researched or not published, never a guess. Every sourced value on a card carries a URL and a read date. This tool returns the origin's JSON plus the origin URL; it does not invent fields.",
+      "description": "Which models, on which platforms, does my policy allow? Checks a policy document (licence, origin, data handling) per model and per platform. Returns pass, fail or undetermined for each row; undetermined is not a pass. Needs an API key (Authorization: Bearer). Costs 5 credits a call; a credit costs $0.0017–$0.004 depending on the plan or pack (https://modelspec.dev/pricing/). It doesn't choose a model: use decide to choose among the ones that pass. Proxies POST https://api.modelspec.dev/v1/policy-check with this tool's arguments as the JSON body; Authorization is forwarded.",
       "input_schema": {
         "type": "object",
         "additionalProperties": true,
