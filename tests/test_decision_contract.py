@@ -427,7 +427,7 @@ def test_record_only_subscription_facets_are_rejected(raw, path) -> None:
     assert issue.field == "offering.subscription.price"
     assert issue.path == path
     assert "record-only" in issue.reason
-    assert "MODEL-179" in issue.reason
+    assert "MODEL-" not in issue.reason
 
 
 # ── the spec ──────────────────────────────────────────────────────────────
@@ -815,6 +815,7 @@ def _samples() -> list:
         bounded.explanation,
         c.ModelEvidence(model=result.model, status="ranked", offering=result.offering,
                         rank=1, evidence=result.evidence, contributions=result.contributions),
+        c.MemberEvidence(model=result.model, evidence=result.evidence, omitted_items=2),
         spec,
         spec.optimize,
         c.Objective(max="software_engineering"),
@@ -950,6 +951,25 @@ def test_decide_requires_a_snapshot() -> None:
 
 
 # ── the public document, the JSON Schema and the types agree ─────────────
+
+
+def test_a_wrong_access_value_names_the_accepted_form() -> None:
+    with pytest.raises(c.SpecError) as caught:
+        c.parse_spec({
+            "spec_version": 1,
+            "access": "hosted",
+            "optimize": {"max": "model.context_window"},
+        }, facets=None)
+    assert caught.value.issues[0].reason == (
+        "access is {kind: chat_app|coding_tool|own_software|own_hardware} "
+        "or one of those kinds as a string"
+    )
+    spec = c.parse_spec({
+        "spec_version": 1,
+        "access": "own_hardware",
+        "optimize": {"max": "model.context_window"},
+    }, facets=None)
+    assert spec.access is not None and spec.access.kind == "own_hardware"
 
 
 def test_schema_file_is_generated_from_the_types() -> None:

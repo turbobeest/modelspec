@@ -35,13 +35,26 @@ from decision.contract import (
     spec_hash,
 )
 from decision.filter import FilterResult, apply
-from decision.optimise import EvidenceSelector, OptimisedResult, optimise
+from decision.optimise import (
+    OBJECTIVE_GAP_PREFIX,
+    OPTIMISER_DIAGNOSTICS,
+    SPAN_EPSILON,
+    EvidenceSelector,
+    OptimisedResult,
+    optimise,
+)
 from decision.refinements import RANKABLE, is_refinement_key, split_dimension
 from decision.refinements import evidence_state as refinement_evidence_state
 from decision.refinements import lineup as refinement_lineup
-from decision.relax import fewest, smallest_changes, task_tokens_hint
+from decision.relax import binding_constraint, fewest, smallest_changes, task_tokens_hint
 from decision.resolve import Resolved, resolve
 from decision.snapshot import ExplanationIndex
+
+
+def _objective_gap(spec: Spec) -> str:
+    names = [name.removeprefix("-") for name in _objective_names(spec)]
+    named = ", ".join(names) if names else "the objective"
+    return OBJECTIVE_GAP_PREFIX + named
 
 
 def _objective_names(spec: Spec) -> list[str]:
@@ -384,9 +397,13 @@ def _score_distribution(row: OptimisedResult):
         if estimate is None:
             continue
         has_capability = True
-        low, high = normalisation.minimum, normalisation.maximum
-        if low is not None and high is not None and high != low:
-            variance += (contribution.weight * estimate.sd / (high - low)) ** 2
+        if normalisation.zero_span():
+            span = estimate.high - estimate.low
+        else:
+            low, high = normalisation.minimum, normalisation.maximum
+            span = None if low is None or high is None else high - low
+        if span is not None and span >= SPAN_EPSILON:
+            variance += (contribution.weight * estimate.sd / span) ** 2
     if not has_capability:
         return None
     from decision.capability import CapabilityEstimate
@@ -442,6 +459,7 @@ def decide(
     _filter_trace: Callable[[FilterResult], None] | None = None,
     comparison: bool = False,
     _capture_evidence: tuple[str, Callable[[ModelEvidence], None]] | None = None,
+    _capture_member_evidence: Callable[[list[tuple[str, list]]], None] | None = None,
 ) -> Decision:
     """Return a reproducible decision. Explanation work is skipped at ``none``.
 
@@ -461,6 +479,7 @@ def decide(
             spec, snapshot, facets=facets, profiles=profiles,
             evidence_selectors=evidence_selectors, _filter_trace=_filter_trace,
             comparison=comparison, _capture_evidence=_capture_evidence,
+            _capture_member_evidence=_capture_member_evidence,
         )
     if spec.estate is not None:
         estate_module.check(spec.estate, snapshot)
@@ -474,13 +493,15 @@ def decide(
             spec, snapshot, facets=facets, profiles=profiles,
             evidence_selectors=evidence_selectors, _filter_trace=_filter_trace,
             comparison=comparison, _capture_evidence=_capture_evidence, _reach=routes,
+            _capture_member_evidence=_capture_member_evidence,
         )
     question = spec.model_copy(update={"estate": None})
     capture: dict = {}
     decision = _decide(
         question, snapshot, facets=facets, profiles=profiles,
         evidence_selectors=evidence_selectors, _filter_trace=_filter_trace,
-        comparison=comparison, _capture_evidence=_capture_evidence, _capture=capture, _identity=spec, _reach=routes,
+        comparison=comparison, _capture_evidence=_capture_evidence, _capture=capture,
+        _capture_member_evidence=_capture_member_evidence, _identity=spec, _reach=routes,
     )
 
     def run(reach, limit):
@@ -513,6 +534,7 @@ def _decide(
     _filter_trace: Callable[[FilterResult], None] | None = None,
     comparison: bool = False,
     _capture_evidence: tuple[str, Callable[[ModelEvidence], None]] | None = None,
+    _capture_member_evidence: Callable[[list[tuple[str, list]]], None] | None = None,
     _reach=None,
     _capture: dict | None = None,
     _identity: Spec | None = None,
@@ -713,10 +735,22 @@ def _decide(
     relax, relax_to, relax_task_tokens = [], [], None
     if ordered.status == "no_feasible":
         # Never the class or a requested domain: that would change the question.
+        # fewest() reruns the filter without the reach, so a reach keeps the
+        # condition that actually emptied this lineup.
         if not filtered.feasible and _reach is None:
             relax = fewest(resolved, snapshot, requested)
             relax_to = smallest_changes(resolved, snapshot, requested)
             relax_task_tokens = task_tokens_hint(resolved, relax, relax_to, spec.task_tokens)
+        # fewest() drops conditions and reruns without the reach, so it cannot
+        # see the reach condition that emptied this lineup. Name that condition
+        # only then. On the no-reach path, a condition whose removal does not
+        # make an answer feasible is not relax.
+        if not relax and not filtered.feasible and _reach is not None:
+            binding = binding_constraint(filtered.funnel, requested)
+            if binding:
+                relax = [binding]
+        if not relax and filtered.feasible and ordered.reason in OPTIMISER_DIAGNOSTICS:
+            relax = [_objective_gap(spec)]
         if not relax:
             relax = [ordered.reason or "no candidates in the snapshot"]
     decision = Decision(
@@ -802,4 +836,24 @@ def _decide(
             reasons=sorted({item.condition for item in filtered.eliminated
                             if snapshot.model_of(item.candidate) == model_id}),
         ))
+    if (
+        _capture_member_evidence is not None
+        and spec.explain != "none"
+        and decision.answer is not None
+        and decision.answer.members
+    ):
+        from decision.explain import objective_evidence_items
+
+        best = {}
+        for row in ordered.results:
+            best.setdefault(snapshot.model_of(row.candidate_id), row)
+        captured = []
+        for model_id in decision.answer.members:
+            row = best.get(model_id)
+            if row is None:
+                captured.append((model_id, []))
+                continue
+            captured.append((model_id, objective_evidence_items(
+                snapshot, row.candidate_id, row.contributions, requested)))
+        _capture_member_evidence(captured)
     return decision

@@ -4,6 +4,7 @@ from __future__ import annotations
 import asyncio
 import copy
 import json
+import re
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -120,6 +121,45 @@ def test_every_registered_display_facet_resolves_exactly_in_lookup_and_http(disp
         assert result.get("facets") == [by_id[fid]], fid
         assert result.get("matches") == [{"section": "facets", "id": fid,
                                           "label": by_id[fid]["label"], "matched": "id"}], fid
+
+
+_DEFINITION_KEYS = {"definition", "description", "unit_definition", "purpose"}
+_TICKET_IN_TEXT = re.compile(r"MODEL-\d+")
+
+
+def _definition_text(node):
+    if isinstance(node, dict):
+        for key, value in node.items():
+            if key in _DEFINITION_KEYS and isinstance(value, str):
+                yield value
+            else:
+                yield from _definition_text(value)
+    elif isinstance(node, list):
+        for item in node:
+            yield from _definition_text(item)
+
+
+def test_vocabulary_definitions_do_not_name_tickets(http):
+    fetch, _raw = http
+    body = fetch("").json()
+    leaked = [text for text in _definition_text(body) if _TICKET_IN_TEXT.search(text)]
+    assert leaked == []
+
+
+def test_an_id_that_is_not_exact_is_listed_as_unknown(display, http):
+    """`--ids coding` on domains is not a domain. A real id beside it still returns."""
+    fetch, _ = http
+    for result in (
+        lookup(display, section="domains", ids=["coding"]),
+        fetch("?" + urlencode({"section": "domains", "ids": "coding"})).json(),
+    ):
+        assert result["domains"] == []
+        assert result["unknown_ids"] == ["coding"]
+    mixed = lookup(display, ids=["offering.price.input", "not_a_real_id"])
+    assert "offering.price.input" in [row["id"] for row in mixed["facets"]]
+    assert mixed["unknown_ids"] == ["not_a_real_id"]
+    known = lookup(display, ids=["offering.price.input"])
+    assert "unknown_ids" not in known
 
 
 def test_misses_explain_the_search_and_suggest_price_ids(display, http):
@@ -315,7 +355,8 @@ def test_suggestion_work_is_bounded_by_a_cell_budget(monkeypatch):
 
     monkeypatch.setattr(display_vocabulary, "similarity", counted)
     source = catalogue()
-    needles = [f"zz{i}-model-family-instruct-xyzw" for i in range(100)]  # ~30 characters each
+    # Tokens must not occur in the catalogue, or subset matching turns the miss into hits.
+    needles = [f"zz{i}-qqqqvvvv-xyzwabcd" for i in range(100)]
     for args in ({"search": needles[0]}, {"ids": needles}, {"search": "q" * 128}):
         cells[0] = 0
         first = lookup(source, **args)
@@ -332,3 +373,118 @@ def test_boolean_value_suggestions_render_like_json():
     miss = lookup({"facets": [{"id": "flag", "allowed_values": [True, False]}]}, search="ture")
     assert miss["suggestions"][0] == {"section": "facets", "id": "flag", "value": True}
     assert "flag (value true)" in miss["message"]
+
+
+def _surfaced(result):
+    """Ids a caller can see on page 1: matches, suggestions, and full-detail values."""
+    found = set()
+    for row in result.get("matches", []):
+        found.add(row["id"])
+        if "value" in row and not isinstance(row["value"], bool):
+            found.add(str(row["value"]))
+    for item in result.get("suggestions", []):
+        found.add(item["id"])
+        if "value" in item and not isinstance(item["value"], bool):
+            found.add(str(item["value"]))
+    for rows in result.values():
+        if isinstance(rows, dict):
+            found.update(key for key in rows if isinstance(key, str))
+            for group in rows.values():
+                if isinstance(group, list):
+                    found.update(row["id"] if isinstance(row, dict) else row for row in group if isinstance(row, (dict, str)))
+            continue
+        if not isinstance(rows, list):
+            continue
+        for row in rows:
+            if isinstance(row, str):
+                found.add(row)
+            elif isinstance(row, dict) and "id" in row:
+                found.add(row["id"])
+                found.update(str(value) for value in row.get("allowed_values", []) if not isinstance(value, bool))
+                found.update(str(value.get("value") if isinstance(value, dict) else value)
+                             for value in row.get("values", []) if not isinstance(value, bool))
+    return found
+
+
+def test_synonym_targets_exist_in_the_shared_fixture(display):
+    """Every synonym id is present in the shared fixture and in the built vocabulary."""
+    from api.worker.src.display_vocabulary import section_rows
+
+    table = json.loads((Path(__file__).resolve().parents[1] / "pipeline/vocab_synonyms.json").read_text())
+    present = {str(key) for name in SEARCHED for key, _, _ in section_rows(display, name)}
+    missing = [target for row in table["synonyms"] for target in row["ids"] if target not in present]
+    assert missing == []
+
+
+def test_capped_runs_first_vocab_call_surfaces_the_needed_ids():
+    """MODEL-355. The first vocab call of each turn-capped run puts a needed id on page 1.
+
+    prompt-review's stored first call is section=starter with no search. Starter stays
+    the unchanged facet list, so the needed ids are asserted on the following searches:
+    price.input and domains software. code_review is absent from the shared fixture.
+    """
+    source = display_of(json.loads(SHARED.read_text()))
+    starter = lookup(source, section="starter")
+    assert "matches" not in starter and "software_engineering" not in [row["id"] for row in starter["starter"]]
+
+    hardware = _surfaced(lookup(source, search="rtx 5090"))
+    assert {"nvidia_rtx_5090", "model.fits_hardware"} <= hardware
+
+    dual = _surfaced(lookup(source, search="fits_hardware", detail="full"))
+    assert {"model.fits_hardware", "nvidia_rtx_4090"} <= dual
+
+    budget = _surfaced(lookup(source, search="eu residency training commercial use azure vertex", limit=20))
+    assert {"offering.region", "offering.data.trains_on_customer_data", "licence.commercial_use"} <= budget
+    assert {"azure-ai-foundry", "google-vertex-ai"} & budget
+
+    estate = _surfaced(lookup(source, section="estate", search="m4 macbook 24", detail="full", limit=20))
+    assert any(item.startswith("apple_m4") for item in estate)
+    assert "model.fits_hardware" in _surfaced(lookup(source, search="macbook m4"))
+
+    assert "software_engineering" in _surfaced(lookup(source, search="code review defect"))
+    assert "offering.price.input" in _surfaced(lookup(source, search="price.input"))
+    domains = lookup(source, section="domains", search="software")
+    assert domains["total"] == 1 and domains["matches"][0]["id"] == "software_engineering"
+    assert "software_engineering" in _surfaced(lookup(source, search="software engineering coding"))
+
+    quant = lookup(source, section="benchmarks", search="quantization")
+    assert quant["total"] == 0
+    assert any(item["id"] == "model.fits_hardware" for item in quant["suggestions"])
+    assert lookup(source, search=".")["suggestions"] == []
+
+
+def test_subset_match_work_is_bounded_like_one_token(monkeypatch):
+    """A repeated token does no more match work than that token once. No timer."""
+    from api.worker.src import display_vocabulary
+
+    match_calls, fold_calls = {"n": 0}, {"n": 0}
+    real_match, real_fold = display_vocabulary._match_folded, display_vocabulary._fold_token
+
+    def counted_match(folded, folded_needle, tokens):
+        match_calls["n"] += 1
+        return real_match(folded, folded_needle, tokens)
+
+    def counted_fold(token):
+        fold_calls["n"] += 1
+        return real_fold(token)
+
+    monkeypatch.setattr(display_vocabulary, "_match_folded", counted_match)
+    monkeypatch.setattr(display_vocabulary, "_fold_token", counted_fold)
+    source = catalogue(2000)
+
+    def measure(text):
+        match_calls["n"] = fold_calls["n"] = 0
+        result = lookup(source, search=text)
+        return result["total"], match_calls["n"], fold_calls["n"]
+
+    one_total, one_match, one_fold = measure("ab")
+    many_total, many_match, many_fold = measure("ab " * 42)
+    assert many_total == one_total
+    assert one_match > 0
+    assert many_match <= one_match
+    assert many_fold <= one_fold
+    eight = " ".join(f"q{i}" for i in range(8))
+    _, eight_match, _ = measure(eight)
+    _, nine_match, _ = measure(eight + " q8")
+    assert eight_match > 0
+    assert nine_match <= eight_match

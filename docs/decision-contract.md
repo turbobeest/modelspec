@@ -3,7 +3,7 @@
 Contract version: **2.14**
 
 The opt-in bounded HTTP response is a separate representation with its own
-version, **bounded 1.0**. It does not carry a 2.x `contract_version`. See
+version, **bounded 1.1**. It does not carry a 2.x `contract_version`. See
 [Bounded HTTP responses for agents](#bounded-http-responses-for-agents-model-293).
 
 A **spec** asks for a decision. A **decision** is the engine's answer to one
@@ -482,7 +482,7 @@ are byte-identical to the decision for the same spec without one.
 
 | Field | Meaning |
 |---|---|
-| `status` | `answered`, `partial` or `no_feasible`, as for the decision. `no_feasible` here means the estate reaches nothing that qualifies; it carries no `relax`, because the gap and `gain` say what to add. |
+| `status` | `answered`, `partial` or `no_feasible`, as for the decision, over the estate lineup. It can differ from the unrestricted status when the estate does not reach a model the unrestricted lineup left in `may_qualify`, or reaches one the unrestricted lineup did not. The ranked models can be the same in both answers. `no_feasible` here means the estate reaches nothing that qualifies; it carries no `relax`, because the gap and `gain` say what to add. |
 | `answer` | The model-level answer over the estate, as in [The answer](#the-answer). Null when the estate reaches no scored model. |
 | `results` | Ranked as the decision's results are. Each is `rank`, `offering` (a self-hosted row has no `provider`), `soft_penalty`, `warnings` and `estate`. |
 | `results[].estate` | How the estate reaches the row: `via` is `{kind, id}` with `kind` one of `provider`, `plan` or `device`; `cost_basis` is `list_price`, `plan_included` or `owned_hardware`; `marginal_cost_per_task_usd` is what one more task costs the caller (0 inside a plan or on an owned device, the list `offering.cost_per_task` on a key, null when the price is unknown). The marginal cost drives a cost objective. When several holds reach a row the plan wins, then the key, then the device. |
@@ -512,7 +512,10 @@ estate:
 ```
 
 `access` is `{kind, harness}`, or the bare kind as a string
-(`access: chat_app`). `harness` is a harness name from
+(`access: chat_app`). The published schema accepts both. A value outside
+`chat_app`, `coding_tool`, `own_software` and `own_hardware` is `invalid_spec`,
+and the issue says `access is {kind: chat_app|coding_tool|own_software|own_hardware} or one of those kinds as a string`.
+`harness` is a harness name from
 `registry/harnesses.yaml`, without a version, and only for `coding_tool`; an
 unregistered one is `invalid_spec` at `access.harness`.
 
@@ -805,12 +808,12 @@ best-band tie (`answer.members`). A `do_not_claim` line also names a tied
 | `blend` | What a scalar objective mixes: each weighted dimension, heaviest first, its `share` of the weights and who leads on it alone. Absent with `bands`. See below. Added in 2.7. |
 | `results` | Ranked results, `rank` 1 to n in order. Empty only when `no_feasible`. |
 | `by_model` | The decision grouped by model, best first. See below. |
-| `may_qualify` | Models not ranked because a condition could not be evaluated, or because they pass every condition but have no value for the objective. Each lists the facets it is `unknown` on (for a missing objective value, the objective's facet or benchmark), and an `offering` when the unknown is offering-level. A model is never ranked on an unknown objective value. |
+| `may_qualify` | Models not ranked because a condition could not be evaluated, or because they pass every condition but have no value for the objective. Each lists the facets it is `unknown` on (for a missing objective value, the objective's facet or benchmark), and an `offering` when the unknown is offering-level. A model is never ranked on an unknown objective value. A model that passed every hard condition and has no estimate for a domain objective is listed here on that objective. It is not dropped. |
 | `eliminated` | Candidates that failed a condition or were Pareto-dominated. The `funnel` reports each condition in order, the candidate count `before` and `after` it, and how many it moved to `may_qualify`. Each step also reports `models_before`, `models_after`, `offerings_before` and `offerings_after`. The `models_may_qualify` and `offerings_may_qualify` counts report what that step moved aside because a capability fact was unknown. The candidate-grained `models` list remains for compatibility. The `model_groups` list groups eliminations by model, with a nullable `model_elimination` for a bare model row and the model's `offerings` beneath it. Each offering keeps its `condition`, `value`, `values`, `unit`, `records` and `formula`. A qualifying candidate omitted by `limit` is never an elimination. |
 | `truncated` | Qualifying candidates omitted only because of `limit`. `offerings` counts omitted offering rows. `models` counts models with no row in `results`; a model with one returned offering and another omitted offering is not counted as an omitted model. Both counts are always present and are zero when the complete qualifying result set was returned. |
 | `constraint_costs` | For each condition: the `condition`, how many models relaxing it `admits`, and the `gain` on each objective dimension. Gains on refinement dimensions are in `refinement_gains`, each a `dimension`, `refinement` and `gain`; absent when there are none (2.4). |
 | `tipping_points` | The objective changes that would change the top result: a `description`, and where they apply, the `dimension`, the `threshold` and the `new_top` model. A refinement weight's point also names its `refinement` (2.4). |
-| `relax` | For `no_feasible` only: the fewest conditions whose removal gives a feasible answer. Never the model class or a condition on a requested capability domain, which would change the question; among equally few, numeric caps and floors first. |
+| `relax` | For `no_feasible` only: the fewest conditions whose removal gives a feasible answer. Never the model class or a condition on a requested capability domain, which would change the question; among equally few, numeric caps and floors first. When a reach is already in force (`access`, or an estate), this is the condition that emptied that lineup, not a relaxation computed as if the reach were absent. When models passed every hard condition and none has an objective value, it names that objective. The text does not name an internal ticket. |
 | `relax_to` | For `no_feasible` only (1.5): for each numeric cap or floor, the smallest change that admits a model. Each names the spec's `condition`, the `relaxed` condition (same facet and direction, at the nearest value an excluded candidate has), the `facet`, that `value`, its `unit`, and how many models it `admits`. |
 | `relax_task_tokens` | For `no_feasible` only, and absent otherwise (2.14): the spec gave no `task_tokens`, `relax` is a single `offering.cost_per_task` cap, and that cap fails only at the default task size. Names the cap as `condition`, the `default` task size cost was priced at (40,000 input, 4,000 output tokens), `admits_at` (the largest task at the default's input-to-output ratio that a model meets the cap at, strictly under a strict cap) and a `message`. Set `task_tokens` to the real task's size rather than copying `admits_at`. Kept in bounded answers. |
 | `warnings` | Codes about the decision as a whole. |
@@ -827,7 +830,9 @@ best-band tie (`answer.members`). A `do_not_claim` line also names a tied
   result. `warnings` says which part.
 - `no_feasible`: no candidate satisfies the hard conditions, or none that does
   has a value for the objective. `results` is empty and `relax` names the
-  fewest conditions to relax, or the reason no result could be ranked.
+  fewest conditions to relax, or the reason no result could be ranked. Models
+  that passed every hard condition and have no objective value stay in
+  `may_qualify` and `by_model`.
 
 **`coverage` (`CoverageRefusal`):** `kind` is `out_of_coverage`. `message`
 explains the scope limit; `url` links to the keyless generated summary.
@@ -850,7 +855,10 @@ A model with offerings is represented by those offerings. A model without an
 offering can rank only when its verified `model.weights_openness` is `open_weights`.
 Closed or unknown weights establish no self-host route. The engine eliminates
 those rows using `model.weights_openness = open_weights unknown(fail)` before
-the user's conditions, including when the user permits unknown values.
+the user's conditions, including when the user permits unknown values. The same
+elimination applies to a sold model's bare row when a self-host reach holds it
+(`own_hardware`, or a device). An offering does not make closed or unknown
+weights a self-host route.
 
 ### The answer
 
@@ -859,13 +867,19 @@ represented by its best offering under the spec's objective. A model's own
 offerings never compete with one another in this block.
 
 For a scalar objective, each candidate has a weighted score and a
-`score_interval`. The engine applies the same feasible-set affine transform to
+`score_interval`. Both are in feasible-set normalised units, which are
+dimensionless. The engine applies the same feasible-set affine transform to
 interval bounds that it uses for the point estimate. It does not clamp
-transformed bounds to 0 through 1. Exact facets such as cost contribute a
-point. A capability estimate contributes its 80% interval. A measured
-benchmark term contributes its source-published interval. The weighted
-interval is the sum of each transformed interval times its objective weight,
-less the exact soft penalty.
+transformed bounds to 0 through 1. A zero span, one scored value or several
+equal values, maps to the same constant the reference ranker uses: 1 when the
+objective maximises the dimension and 0 when it minimises it. When the raw
+estimate has a width, that candidate's own raw interval width is the span, so
+the interval stays dimensionless and is not a point. An exact value, such as
+cost with no published interval, contributes that constant as a point. A
+capability estimate contributes its 80% interval. A measured benchmark term
+contributes its source-published interval. The weighted interval is the sum of
+each transformed interval times its objective weight, less the exact soft
+penalty.
 
 The answer's `members` are the `best` band (below): the leader, and every model
 with enough evidence whose score is at least the leader's with probability 0.25
@@ -1008,7 +1022,7 @@ always present, and is empty when `results` and `may_qualify` are.
 | `offering` | `model`, and when the result is an offering, its `provider`, `region` and `tier`. |
 | `harness` | The harness the evidence and estimate apply to, or null. |
 | `effort` | The effort setting the evidence and estimate apply to, or null. |
-| `evidence` | For each requested `domain`, the verified evidence `items`. |
+| `evidence` | For each requested `domain` in `capabilities`, the verified evidence `items`. An objective named only through `optimize`, with no `capabilities`, leaves this list empty. Those records are on `contributions[].evidence` and, for each answer member, on `member_evidence`. |
 | `estimates` | Capability estimates per `domain`, each a `value` and an 80% `interval` `[low, high]`, with the `harness` and `effort` they apply to. Null when the snapshot has no fitted estimate. |
 | `refinement_estimates` | One per refinement key in `optimize.weights`, absent otherwise: the `key`, its parent `domain` (or `any`), the `refinement`, a `value` and an 80% `interval`, and `evidence_count`, the refinement-tagged measurements behind the adjustment. `evidence_count` 0 means no refinement evidence: the value is the parent's estimate and the interval is wider. Added in 2.4. |
 | `p_best` | The probability this model is best among the feasible models. For a weighted objective, the engine resamples each capability posterior, applies the objective's affine transform and weights, and keeps exact facets fixed. Null when the objective has no capability posterior. |
@@ -1081,7 +1095,7 @@ offering rows, not unique models, and never changes the full `answer.members`.
 #### A separate representation, versioned on its own
 
 Either non-null control opts into `BoundedDecision`, the **bounded
-representation, version 1.0**. It is not a 2.x minor version. A bounded body
+representation, version 1.1**. It is not a 2.x minor version. A bounded body
 omits lists that every 2.x Decision always carries (`by_model`, `eliminated`,
 `number_origins` and the other explanation sections), and its rows omit fields
 a 2.x `Result` requires. Under the [versioning rule](#versioning-model-59) a
@@ -1089,7 +1103,7 @@ field that may be absent is a widening, so labelling such a body as a 2.x
 contract would need a major bump. It is a different representation instead:
 
 - `representation` is always `"bounded"`. Branch on it first.
-- `bounded_version` is the bounded representation's own version, `"1.0"`. It
+- `bounded_version` is the bounded representation's own version, `"1.1"`. It
   follows the same MODEL-59 rule on its own: widening any bounded field bumps
   its major.
 - `projects_contract` names the complete contract the body is projected from,
@@ -1119,6 +1133,29 @@ elimination or a missing fact. Use a complete response to inspect those
 sections. `explain` still controls which details the engine computes; selecting
 `contributions` with `explain: none` returns an empty list.
 
+`member_evidence` is present only when the request did not send `evidence_for`,
+`explain` is `summary` or `full`, and `answer.members` is non-empty. It is
+absent when `explain` is `none`, when the decision has no answer, and on a
+drill-down. There is one entry per answer member, in `answer.members` order,
+unless the byte budget removed entries from the end; each removal is counted
+under `explanation.omitted.member_evidence`.
+Each entry has `model`, `evidence` and `omitted_items`. `evidence` is domain
+groups of the same evidence item the rest of the contract uses, with full
+provenance. The items are the records behind that member's objective position:
+the same records `contributions[].evidence` carries on the member's
+best-ranked row, one per `record_id`, highest `estimate_weight` first and a
+direct record before a proxy. A member whose row `limit` cut still has an
+entry, computed from the snapshot the same way. A member whose objective
+position has no records has `evidence` `[]`, and that empty list means there
+are no records. Each member carries at most 3 items. An item with no `requested_domain` has
+no domain group to sit in, so it is always counted in `omitted_items` and is
+never shown, including when the member is under the 3-item cap. `omitted_items`
+also counts items past that cap. When that count is not zero,
+`explanation.omitted` also counts them under `member_evidence.items`.
+`explanation.fetch` still names `evidence_for` for the records that did not
+fit. `results[].evidence` covers `capabilities` only. The objective's records
+are on `contributions[].evidence` and on `member_evidence`.
+
 The bounded body stays within the agent byte budget. That budget is 16,384
 compact UTF-8 bytes for the MCP text as a whole (the origin envelope
 `{"origin":"https://api.modelspec.dev/v1/decide","status":200,"body":…}` plus
@@ -1126,19 +1163,29 @@ the one-line `decisionSummary`). `RESPONSE_BYTES` is 16,384 minus that
 envelope and minus the longest summary line for a 61-byte model id, the
 longest id in the catalogue. When a projection is larger, whole records are removed until the compact body
 fits, and `explanation.fetch` is included in that count. The order is: result
-rows that are neither the top result nor an answer member, then `may_qualify`
-rows, then any remaining result row except the top, then `with_estate`, then
-`reading` and `relax_task_tokens`, then one heavy field of the top result at a
-time (`evidence`, `contributions`, `estimates`, `refinement_estimates`,
-`plans`), then any other field on that row besides rank, model, offering and
-warnings. A heavy field is removed whole. The top result's explanation is
-removed only after the earlier records are gone. Provenance inside a kept
-record stays intact, and no value is replaced with null. Each removal
-increments `explanation.omitted`. `answer`, `status`, `warnings`, `coverage`,
-`summary_for_user`, `must_mention`, and the top result's rank, model, offering
-and warnings remain. If those essentials still exceed the budget, the call
-returns HTTP 400 `invalid_spec` and the issue says how to request the complete
-Decision. The
+rows that are neither the top result nor an answer member, then `evidence` and
+`contributions` on a repeat offering (a later result row whose model already
+appears in an earlier row; that row keeps rank, model, offering and warnings),
+then `may_qualify` rows, then `member_evidence` items from the member with the
+most items, never below one item per member while any other cut remains, then
+any remaining result row except the top, then `with_estate`, then `reading`
+and `relax_task_tokens`, then one heavy field of the top result at a time
+(`evidence`, `contributions`, `estimates`, `refinement_estimates`, `plans`),
+then any other field on that row besides rank, model, offering and warnings,
+then any remaining `member_evidence` items, then `member_evidence` entries
+from the end of the list. The first row of each model, and the top result,
+keep `evidence` and `contributions` until that later step. The top result's
+explanation is removed only after the earlier records are gone. A heavy field
+is removed whole, and fields inside one evidence item are never trimmed.
+Provenance inside a kept record stays intact, and no value is replaced with
+null. Each removal increments `explanation.omitted`. A tie whose
+`member_evidence` entries still do not fit loses entries from the end, and
+each lost entry increments `explanation.omitted` under `member_evidence`.
+`answer.members` stays the complete tie. `answer`, `status`, `warnings`,
+`coverage`, `summary_for_user`, `must_mention`, and the top result's rank,
+model, offering and warnings remain. If those essentials still exceed the
+budget, the call returns HTTP 400 `invalid_spec` and the issue says how to
+request the complete Decision. The
 one-model drill-down keeps its own 7,400-byte cap, and that cap includes `fetch`.
 
 Drill-down returns no ranked result rows or may-qualify rows; their omission
@@ -1179,7 +1226,9 @@ the complete Decision. If that body, with the MCP envelope and summary, exceeds
 16,384 bytes, the tool returns a short bounded notice instead of the raw body.
 The notice keeps `status`, `answer`, `warnings`, `coverage`,
 `summary_for_user`, `must_mention` and the top result, and
-`explanation.fetch` tells the caller how to request the rest. The tool does
+`explanation.fetch` tells the caller how to request the rest. Before the
+notice shortens `answer.members`, it drops `member_evidence` and counts those
+entries in `explanation.omitted`. The tool does
 not call the Worker a second time. HTTP defaults remain unchanged: a request
 with no `fields` and no `evidence_for` is still the complete Decision.
 
@@ -1229,6 +1278,21 @@ three current explanation levels. Regenerate the MCP public fixture with
   is removed to fit the 16,384-byte MCP text. `summary_for_user` is one
   paragraph for the end user. `must_mention` lists the facts a report of that
   answer carries, at most 10 items.
+- **bounded 1.1 — MODEL-354:** Adds optional `member_evidence`. No existing
+  field changes range. `bounded_version` moves from `1.0` to `1.1`. One entry
+  per answer member carries that member's objective evidence, capped at 3
+  items, with `omitted_items` counting the rest. An item with no
+  `requested_domain` is always counted there and is never shown. Present only
+  on an explained bounded answer that is not a drill-down and has
+  `answer.members`. While fitting the byte budget, a selected `evidence` or
+  `contributions` field can be absent on a non-top repeat-offering row (a
+  later row of a model that already has an earlier row). Bounded 1.0 already
+  allowed the budget to remove selected heavy fields, and it counted each
+  removal in `explanation.omitted`. The first row of each model keeps those
+  fields until the later step that already applied to the top result. When a
+  tie's `member_evidence` entries still do not fit, entries are removed from
+  the end and counted in `explanation.omitted` under `member_evidence`.
+  `answer.members` stays complete.
 
 ## The library and the CLI
 

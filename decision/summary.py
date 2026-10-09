@@ -28,7 +28,7 @@ from decision.contract import (
     _render_value,
     render_condition,
 )
-from decision.optimise import OPTIMISER_DIAGNOSTICS
+from decision.optimise import OBJECTIVE_GAP_PREFIX, OPTIMISER_DIAGNOSTICS
 from decision.reading import HARDWARE_FIT
 from decision.refinements import split_dimension
 from decision.resolve import resolve
@@ -295,8 +295,15 @@ def _qualify_sentence(count: int) -> str:
 
 
 def _optimiser_diagnostic(decision: Decision) -> bool:
-    """True when ``relax`` carries a reason ``optimise`` returns for ``no_feasible``."""
-    return any(item in OPTIMISER_DIAGNOSTICS for item in decision.relax)
+    """True when ``relax`` carries a reason ``optimise`` returns for ``no_feasible``.
+
+    The engine rewrites that reason, once the gates left candidates, into a
+    sentence that names the objective. That sentence is the same failure.
+    """
+    return any(
+        item in OPTIMISER_DIAGNOSTICS or item.startswith(OBJECTIVE_GAP_PREFIX)
+        for item in decision.relax
+    )
 
 
 def _gates_left_candidates(decision: Decision, feasible: int | None = None) -> bool:

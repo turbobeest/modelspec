@@ -471,10 +471,21 @@ def decide(payload: Any, snapshot, *,
         def _trace(filtered) -> None:
             surviving.append(len(filtered.feasible))
 
+        # Objective evidence for each answer member, only on a bounded answer
+        # that was explained. Drill-down and explain none do not capture it.
+        member_rows: list | None = None
+        if (options.evidence_for is None and options.fields is not None
+                and spec.explain in ("summary", "full")):
+            member_rows = []
+
+            def _take_members(rows, sink=member_rows) -> None:
+                sink.extend(rows)
+
         decision = run_decision(
             spec, snapshot, facets=facets, profiles=profiles,
             _filter_trace=_trace,
             _capture_evidence=None if options.evidence_for is None else (options.evidence_for, details.append),
+            _capture_member_evidence=None if member_rows is None else _take_members,
         )
         if options.fields is not None or options.evidence_for is not None:
             return HTTP_OK, project_decision(
@@ -482,6 +493,7 @@ def decide(payload: Any, snapshot, *,
                 not_applied=sorted(set(spec.capabilities or {}) - set(snapshot.domain_ids())),
                 spec=spec, profiles=profiles,
                 feasible=surviving[-1] if surviving else None,
+                member_evidence=member_rows,
             )
     except contract.SpecError as exc:
         return error_response(
