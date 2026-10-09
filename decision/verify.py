@@ -3458,12 +3458,13 @@ _US_STATE_NAME = (
 _FORMED = r"(?:incorporated|registered|formed|organi[sz]ed)"
 # A country counts only from a phrase that states incorporation, not a headquarters
 # or a governing-law mention. "laws of the state of Delaware" alone is governing law.
+# The same words followed by Law, Act, or Code name a statute.
 # Order does not matter; the reading is sorted.
 _INCORPORATION_PHRASES: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(
         r"(?i)\b(?:" + _US_STATE_NAME + r") (?:public benefit corporation|"
         r"(?:(?:non-?profit|not-for-profit|nonstock) )?corporation|"
-        r"limited liability company|llc|company)\b"
+        r"limited liability company|llc|company)\b(?! (?:law|act|code)\b)"
     ), "US"),
     (re.compile(r"(?i)\b" + _FORMED + r" (?:in|under the laws of)(?: the)?(?: state of)? (?:" + _US_STATE_NAME + r")\b"), "US"),
     (re.compile(r"(?i)\b(?:" + _FORMED + r" )(?:in|under the laws of) the cayman islands\b"), "KY"),

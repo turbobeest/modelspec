@@ -2,10 +2,10 @@
 """Record OpenAI's parent jurisdiction from the Delaware AG release (MODEL-360).
 
 The training entity is OpenAI OpCo, LLC, read from the existing terms source.
-The parent is the OpenAI Foundation. The Delaware Attorney General's release
-of 2025-10-28 states that OpenAI, Inc. was incorporated as a Delaware
-nonprofit corporation in 2015. OpenAI's structure page says that nonprofit is
-now the OpenAI Foundation.
+The parent is OpenAI, Inc. (now OpenAI Foundation). The Delaware Attorney
+General's release of 2025-10-28 states that OpenAI, Inc. was incorporated as
+a Delaware nonprofit corporation in 2015. OpenAI's structure page says that
+nonprofit is now the OpenAI Foundation.
 
 The script sets ``kind`` on the 23 existing ``lab-jurisdiction-*`` sources,
 adds ``lab-jurisdiction-openai-foundation``, and rewrites only the ``openai``
@@ -188,7 +188,7 @@ def openai_block(terms_ref: str, parent_ref: str) -> str:
         "- id: openai\n"
         f"  entity: {yaml_scalar('OpenAI OpCo, LLC')}\n"
         "  entity_code: US\n"
-        f"  parent_entity: {yaml_scalar('OpenAI Foundation')}\n"
+        f"  parent_entity: {yaml_scalar('OpenAI, Inc. (now OpenAI Foundation)')}\n"
         "  parent_code: US\n"
         f"  note: {yaml_scalar(NOTE)}\n"
         f"  read_date: '{READ_DATE}'\n"

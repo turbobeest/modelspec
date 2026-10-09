@@ -91,6 +91,9 @@ def test_governing_law_and_entity_form_are_not_the_same_thing() -> None:
         "This agreement is governed by the laws of the State of Delaware."
     ) == frozenset()
     assert jurisdiction_codes("governed by the laws of the state of California") == frozenset()
+    assert jurisdiction_codes("governed by the New York Not-for-Profit Corporation Law") == frozenset()
+    assert jurisdiction_codes("California Nonprofit Corporation Law") == frozenset()
+    assert jurisdiction_codes("Delaware Limited Liability Company Act") == frozenset()
     assert jurisdiction_codes("SpaceXAI LLC is a Nevada company.") == frozenset({"US"})
     assert jurisdiction_codes(
         "Anthropic is a Delaware public benefit corporation."
@@ -1016,12 +1019,7 @@ def test_check_lab_copies_reads_the_cache_when_it_is_present() -> None:
     data = next((path for path in candidates if (path / "registry" / "labs.yaml").is_file()), None)
     if data is None:
         pytest.skip("source cache absent")
-    try:
-        labs = load_labs(data)
-    except LabRegistryError as exc:
-        if "kind" not in str(exc):
-            raise
-        pytest.skip(str(exc))
+    labs = load_labs(data)
     store = CopyStore()
     cited = [source["snapshot_ref"] for lab in labs.values() for source in lab.sources]
     if not cited or any(not store.has(ref) for ref in cited):
