@@ -132,34 +132,52 @@ There is no public-export fallback and no local vocabulary cache.
 With `--search`, `--id` or `--ids`, the default or explicit `starter` section
 searches every vocabulary section except the coverage summary. An explicit
 non-starter section keeps the lookup scoped to that section. Search covers ids,
-labels and names, definitions and purposes, template categories and tiers, and
-facet values. It ignores case and treats runs of underscores, hyphens, dots,
-slashes and whitespace as one space. A substring or all query tokens can match;
-benchmark domain links are excluded. IDs remain exact and case-sensitive.
-A requested id that is not an exact id in the searched sections is listed in
-`unknown_ids`. The field is absent when every requested id matched. An id can
-match another section: `coding` is a template category, so a starter lookup
-does not list it as unknown, and the same id in `section=domains` does.
+labels and names, definitions and purposes, template categories and tiers,
+facet values, and a fixed synonym table (British and US spellings, plus phrases
+such as residency, MacBook, quantisation, and software engineering). It ignores
+case and treats runs of underscores, hyphens, dots, slashes and whitespace as
+one space. Benchmark domain links are excluded. IDs remain exact and
+case-sensitive. A requested id that is not an exact id in the searched sections
+is listed in `unknown_ids`. The field is absent when every requested id matched.
+An id can match another section: `coding` is a template category, so a starter
+lookup does not list it as unknown, and the same id in `section=domains` does.
 Combining search with IDs intersects the two filters.
 
-Lookup responses add `matches`, `total` and `searched`. Matches rank exact ids
-first, then id text, labels and names, definitions and purposes, and values.
-Ties use section order, then source order. Cross-section `--offset` and `--limit`
-page those matches, including with full detail or IDs; each section contains
-only its rows on that page. `starter` retains starter facets on that page and
-its minimal Spec. Compact facets retain every allowed value. Section-scoped
-rows keep their source order and existing full-detail pagination behavior.
-An empty lookup adds up to five `suggestions` from all sections and a `message`
-that explains the search, with a next hint to retry. A suggestion drawn from a
-facet value names the facet in `id` and the value in `value`, so retrying with
-that `id` resolves. Search text and each ID are at most 128 characters; a search
-of only separators matches nothing. Suggestions compare
-normalized ids, id segments and labels using Levenshtein similarity, keeping
-scores of at least 0.4 and breaking ties by section order, then id. The
-pass is bounded: it compares at most two needles, each cut to 32 characters,
-and stops after 300,000 edit-distance cells, so a long miss may draw its
-suggestions only from the earlier sections. Plain
-vocabulary requests and a plain starter request keep their existing bodies.
+Lookup responses add `matches`, `total` and `searched`. A hit where every query
+token matches ranks above a hit that matches only some of them. Exact ids lead.
+Inside the all-token tier, kind order is id, then label, then definition, then
+value; ties use section order, then source order. Stopwords (`use`, `for`,
+`the`, `a`, `and`, `of`, `with`, `on`, `in`, `to`) and one-character tokens
+count toward the all-token tier and are ignored for a subset hit. A character
+is one Unicode code point. Subset matching uses the first 8 unique content
+tokens, in query order. A repeated content token counts once. Tokens after
+those 8 still count toward the all-token tier. Subset hits are interleaved so
+each content token's best hit appears before that token's later hits. `total`
+counts all-token hits, subset hits and
+in-section synonym hits, and is zero only when nothing matched. A synonym hit
+keeps `matched` as `label` and sets optional `via` to `synonym`. A subset hit
+adds optional `matched_tokens`, the content tokens it matched, in query order.
+`matched` stays `id`, `label`, `definition` or `value`. These fields are
+additive. `vocabulary_version` stays 1. The lookup response has no separate
+schema version.
+
+Cross-section `--offset` and `--limit` page those matches, including with full
+detail or IDs; each section contains only its rows on that page. `starter`
+retains starter facets on that page and its minimal Spec. Compact facets retain
+every allowed value. Section-scoped rows keep their source order and existing
+full-detail pagination behavior. An empty lookup adds up to five `suggestions`
+from all sections and a `message` that explains the search, with a next hint to
+retry. A suggestion drawn from a facet value names the facet in `id` and the
+value in `value`, so retrying with that `id` resolves. Search text and each ID
+are at most 128 characters. A search of only separators matches nothing and
+suggests nothing. Any other miss returns the nearest ids. Suggestions score
+each of the first 8 tokens, cut to 32 characters, against normalized ids, id
+segments and labels, and against synonym targets. A synonym id scores 1 for a
+token it covers. Scores of at least 0.4 are kept; when none reach 0.4 the best
+scores above zero are kept. Ties break by section order, then id. The pass
+stops after 300,000 edit-distance cells, so a long miss may draw its
+suggestions only from the earlier sections. Plain vocabulary requests and a
+plain starter request keep their existing bodies.
 
 `feedback` accepts the MCP fields, with `client: "cli"`. The published feedback
 schema supplies rating, identifier and text limits. It requires a key locally;

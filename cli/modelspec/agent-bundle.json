@@ -760,7 +760,7 @@
       "stdin": "Read the key from standard input instead of the hidden prompt.",
       "version": "Show the CLI and bundled guide versions.",
       "section": "A hosted vocabulary section; defaults to starter.",
-      "search": "Search IDs and labels in the hosted vocabulary.",
+      "search": "Search ids, labels, definitions, values and synonyms in the hosted vocabulary.",
       "id": "Return full details for this exact ID.",
       "ids": "Return full details for these IDs; repeat the option, at most 100.",
       "detail": "compact or full.",
@@ -774,11 +774,11 @@
     }
   },
   "source_hashes": {
-    "pipeline/agent_copy.py": "2a5862f07444b55480bb2c3c3aee96277c848178eb57c760aecf0e0cb162cce1",
+    "pipeline/agent_copy.py": "382386d0436c5042911adf1d9e4d9ef578aae913a635fccad92f3afefdaba3fc",
     "pipeline/entity.py": "1649e5f95b620561511c2619045d036231b44c8ab7ff297bf4c6a21ab2b69ff3",
     "pipeline/pricing.py": "71bc6fa888ca079c186a39c2ccd15f2ed957f2ebf59599f6413f16b8f519a174",
     "pipeline/worker_flags.py": "0f3c1ff0de81710417659b86e1ec92913bbcf54af6312720fdad659e6af03429",
-    "api/worker/wrangler.jsonc": "ecf7875754f3317d0b95cc7a41615847c4ea888608e899a90c9d202ec6528f84",
+    "api/worker/wrangler.jsonc": "49523d5f0721cf42618d901c27943fa5ed5705dd60aa237fba03a129836922df",
     "api/worker/tiers.json": "315a2ad62c5b366246675d2984e61243ed20d85d89bad6bd648e8960926b8773",
     "docs/decision-contract.schema.json": "2dd7c6217915f49edefc5d1737ac078999f749b5290eeaa50cca9288366bf7ef",
     "pyproject.toml": "2f903fc64f25fd96287f064775d8006a87a63a22f5f4103046ca9353e039975e",

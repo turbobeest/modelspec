@@ -242,7 +242,7 @@ def cli_text(root: Path = ROOT) -> dict[str, Any]:
             "stdin": "Read the key from standard input instead of the hidden prompt.",
             "version": "Show the CLI and bundled guide versions.",
             "section": "A hosted vocabulary section; defaults to starter.",
-            "search": "Search IDs and labels in the hosted vocabulary.",
+            "search": "Search ids, labels, definitions, values and synonyms in the hosted vocabulary.",
             "id": "Return full details for this exact ID.",
             "ids": "Return full details for these IDs; repeat the option, at most 100.",
             "detail": "compact or full.",
@@ -665,8 +665,8 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
             "Use it for missing ids, not to compare models. "
             "One vocabulary lookup per unknown facet, then decide. Read `next` before another call. "
             "section=starter returns a ready-to-send minimal Spec and a next hint. "
-            "Search covers every section's ids, labels, definitions and values with "
-            "case- and separator-insensitive matching; a miss returns suggestions. "
+            "Search covers every section's ids, labels, definitions, values and synonyms. "
+            "All tokens rank first; a content-token subset can match. A miss returns the nearest ids. "
             "An explicit non-starter section scopes the search. "
             "Use id or ids for row details, or detail=full for all display details. "
             "Use offset and limit to page matches across sections, including full details; "
