@@ -162,7 +162,7 @@ def test_objective_terms_accept_evidence_qualifiers() -> None:
         measured_by="independent", effort="default"
     )
     assert '"qualifiers"' in c.canonical_json(spec)
-    assert c.CONTRACT_VERSION == "2.14"
+    assert c.CONTRACT_VERSION == "2.15"
 
 
 def test_relative_condition_names_the_model() -> None:
@@ -899,6 +899,13 @@ def _samples() -> list:
         c.Relaxation(condition="offering.price.input <= 0.2",
                      relaxed="offering.price.input <= 0.75", facet="offering.price.input",
                      value=0.75, unit="usd_per_1m_tokens", admits=2),
+        c.SingleGate(condition="model.context_window >= 8192", admits=3),
+        c.RelaxSingle(
+            status="found",
+            gates=[c.SingleGate(condition="model.context_window >= 8192", admits=3)],
+            together_admits=3,
+            question_admits=False,
+        ),
         c.Access(kind="coding_tool", harness="claude-code"),
         band_estimate,
         band_entry,

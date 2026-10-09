@@ -498,6 +498,7 @@ export const decisionSchema = z
       "2.12",
       "2.13",
       "2.14",
+      "2.15",
     ]),
     decision_id: z.string().regex(/^dec_[0-9A-Za-z]{8,}$/),
     snapshot: z.string().regex(/^snap_[A-Za-z0-9:._-]+$/),
@@ -644,12 +645,15 @@ export const decisionSchema = z
     coverage: z.unknown().optional(),
     // 2.14 (MODEL-316): agent guidance on task size for a no_feasible cost cap.
     relax_task_tokens: z.unknown().optional(),
+    // 2.15 (MODEL-356): which single stated gate admits a model. The page does not render it.
+    relax_single: z.unknown().optional(),
   })
   .strict()
-  .transform(({ reading, coverage, relax_task_tokens, ...decision }) => {
+  .transform(({ reading, coverage, relax_task_tokens, relax_single, ...decision }) => {
     void reading;
     void coverage;
     void relax_task_tokens;
+    void relax_single;
     return decision;
   });
 

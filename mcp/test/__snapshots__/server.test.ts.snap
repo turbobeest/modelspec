@@ -1749,7 +1749,7 @@ takes its key and its plans with it.",
     "name": "decide",
   },
   {
-    "description": "What can a decide spec say? Returns the decision vocabulary: valid facet ids, benchmarks, domains, providers and task types. Compact by default, with 20 rows per page and no counts. Split-mode full details exclude per-model facts and counts. Needs an API key. Use it for missing ids, not to compare models. One vocabulary lookup per unknown facet, then decide. Read \`next\` before another call. section=starter returns a ready-to-send minimal Spec and a next hint. Search covers every section's ids, labels, definitions and values with case- and separator-insensitive matching; a miss returns suggestions. An explicit non-starter section scopes the search. Use id or ids for row details, or detail=full for all display details. Use offset and limit to page matches across sections, including full details; an empty page ends the list. ",
+    "description": "What can a decide spec say? Returns the decision vocabulary: valid facet ids, benchmarks, domains, providers and task types. Compact by default, with 20 rows per page and no counts. Split-mode full details exclude per-model facts and counts. Needs an API key. Use it for missing ids, not to compare models. One vocabulary lookup per unknown facet, then decide. Read \`next\` before another call. section=starter returns a ready-to-send minimal Spec and a next hint. Search covers every section's ids, labels, definitions, values and synonyms. All tokens rank first; a content-token subset can match. A miss returns the nearest ids. An explicit non-starter section scopes the search. Use id or ids for row details, or detail=full for all display details. Use offset and limit to page matches across sections, including full details; an empty page ends the list. ",
     "inputSchema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "properties": {
@@ -1788,7 +1788,7 @@ takes its key and its plans with it.",
           "type": "integer",
         },
         "search": {
-          "description": "Search every section's ids, labels, definitions and values by case- and separator-insensitive substring or all query tokens. A miss returns suggestions; an explicit non-starter section scopes the search",
+          "description": "Search every section's ids, labels, definitions, values and synonyms. All tokens rank first; else content tokens match, stopwords omitted. A miss returns nearest ids. A non-starter section scopes the search",
           "maxLength": 128,
           "type": "string",
         },

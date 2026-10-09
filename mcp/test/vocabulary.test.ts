@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { execFileSync } from "node:child_process";
-import { lookupVocabulary, vocabInput, vocabularyResponse } from "../src/vocabulary";
+import { lookupVocabulary, takeSearchWork, vocabInput, vocabularyResponse } from "../src/vocabulary";
 import type { VocabInput } from "../src/vocabulary";
 import vocabulary from "../../web/src/decide/__fixtures__/vocabulary.json";
 
@@ -34,8 +34,9 @@ describe("vocabulary discovery", () => {
       facets: expect.arrayContaining([expect.objectContaining({
         id: "model.fits_hardware", allowed_values: expect.arrayContaining(["nvidia_rtx_4090", "nvidia_rtx_3090"]),
       })]),
-      estate: { providers: [], devices: ["nvidia_rtx_4090"], plans: [] },
+      estate: { providers: [], devices: expect.arrayContaining(["nvidia_rtx_4090"]), plans: [] },
     });
+    if (search === "4090") expect(result.estate).toMatchObject({ devices: ["nvidia_rtx_4090"] });
   });
 
   it("finds the chat domain without matching nested Arena domains", () => {
@@ -140,9 +141,107 @@ describe("vocabulary discovery", () => {
       { ids: display.facets.map(({ id }) => id), offset: 20, limit: 3 },
       { ids: ["not_a_facet", "offering.price.inptu"] },
       { search: "nvidia rtx 4091" }, { search: "flase" }, { search: "ture" }, { section: "domains", search: "ture" }, { search: "." }, { search: "_./", section: "facets" },
+      { search: "eu residency training commercial use azure vertex" }, { search: "rtx 5090" },
+      { search: "fits_hardware", detail: "full" },
+      { section: "estate", search: "m4 macbook 24", detail: "full", limit: 20 },
+      { search: "macbook m4" }, { search: "code review defect" }, { search: "price.input" },
+      { section: "domains", search: "software" }, { search: "quantization" }, { search: "quantisation" },
+      { search: "4-bit" }, { search: "memory" }, { section: "facets", search: "residency" },
+      { section: "estate", search: "mac" }, { section: "benchmarks", search: "quantization" },
+      { search: "software engineering coding" },
     ] satisfies VocabInput[];
     expect(cases.map((args) => lookupVocabulary(display, args))).toEqual(python(display, cases));
+    const emojiSource = { facets: [{ id: "mood", label: "😀 smile" }] };
+    const emoji = lookupVocabulary(emojiSource, { search: "😀 zzz" });
+    expect(emoji.total).toBe(0);
+    expect(emoji.suggestions).toEqual(expect.any(Array));
+    expect(emoji).toEqual(python(emojiSource, [{ search: "😀 zzz" }])[0]);
   }, 20_000);
+
+  it("does no more match work for a repeated token than for that token once", () => {
+    const pad = (i: number) => String(i).padStart(4, "0");
+    const source = {
+      facets: Array.from({ length: 60 }, (_, i) => ({ id: `offering.synthetic.metric_${pad(i)}`,
+        label: `Synthetic metric number ${pad(i)}`, allowed_values: [0, 1, 2].map((j) => `value_${pad(i)}_${j}`) })),
+      models: Object.fromEntries(Array.from({ length: 2000 }, (_, i) => [`lab${String(i % 40).padStart(2, "0")}/model-family-${pad(i)}-instruct`,
+        { display_name: `Model Family ${pad(i)} Instruct` }])),
+      estate: { providers: [], devices: Array.from({ length: 200 }, (_, i) => `vendor_accelerator_${pad(i)}_96gb`), plans: [] },
+    };
+    const measure = (search: string) => {
+      takeSearchWork();
+      const result = lookupVocabulary(source, { search });
+      return { total: result.total, ...takeSearchWork() };
+    };
+    const one = measure("ab");
+    const many = measure("ab ".repeat(42));
+    expect(many.total).toBe(one.total);
+    expect(one.matchCalls).toBeGreaterThan(0);
+    expect(many.matchCalls).toBeLessThanOrEqual(one.matchCalls);
+    expect(many.foldCalls).toBeLessThanOrEqual(one.foldCalls);
+    const eight = Array.from({ length: 8 }, (_, i) => `q${i}`).join(" ");
+    const capped = measure(eight);
+    const extra = measure(`${eight} q8`);
+    expect(capped.matchCalls).toBeGreaterThan(0);
+    expect(extra.matchCalls).toBeLessThanOrEqual(capped.matchCalls);
+  });
+
+  it("puts a needed id on the first page of each turn-capped vocab call (MODEL-355)", () => {
+    const ids = (result: Record<string, unknown>) => {
+      const found = new Set<string>();
+      const lists = [result.matches, result.suggestions, result.facets, result.domains];
+      for (const rows of lists) {
+        if (!Array.isArray(rows)) continue;
+        for (const row of rows) {
+          if (typeof row === "string") found.add(row);
+          else if (row && typeof row === "object" && "id" in row && typeof row.id === "string") {
+            found.add(row.id);
+            if ("value" in row && typeof row.value === "string") found.add(row.value);
+            if ("allowed_values" in row && Array.isArray(row.allowed_values)) {
+              for (const value of row.allowed_values) if (typeof value === "string") found.add(value);
+            }
+            if ("values" in row && Array.isArray(row.values)) {
+              for (const value of row.values) {
+                if (typeof value === "string") found.add(value);
+                else if (value && typeof value === "object" && "value" in value && typeof value.value === "string") found.add(value.value);
+              }
+            }
+          }
+        }
+      }
+      const estate = result.estate;
+      if (estate && typeof estate === "object") {
+        for (const group of Object.values(estate)) {
+          if (!Array.isArray(group)) continue;
+          for (const row of group) {
+            if (typeof row === "string") found.add(row);
+            else if (row && typeof row === "object" && "id" in row && typeof row.id === "string") found.add(row.id);
+          }
+        }
+      }
+      return found;
+    };
+    expect(lookupVocabulary(display, { section: "starter" }).matches).toBeUndefined();
+    const rtx = ids(lookupVocabulary(display, { search: "rtx 5090" }));
+    expect(rtx.has("nvidia_rtx_5090")).toBe(true);
+    expect(rtx.has("model.fits_hardware")).toBe(true);
+    const dual = ids(lookupVocabulary(display, { search: "fits_hardware", detail: "full" }));
+    expect(dual.has("model.fits_hardware")).toBe(true);
+    expect(dual.has("nvidia_rtx_4090")).toBe(true);
+    const budget = ids(lookupVocabulary(display, { search: "eu residency training commercial use azure vertex", limit: 20 }));
+    for (const id of ["offering.region", "offering.data.trains_on_customer_data", "licence.commercial_use"]) {
+      expect(budget.has(id)).toBe(true);
+    }
+    expect(budget.has("azure-ai-foundry") || budget.has("google-vertex-ai")).toBe(true);
+    const estate = ids(lookupVocabulary(display, { section: "estate", search: "m4 macbook 24", detail: "full", limit: 20 }));
+    expect([...estate].some((id) => id.startsWith("apple_m4"))).toBe(true);
+    expect(ids(lookupVocabulary(display, { search: "macbook m4" })).has("model.fits_hardware")).toBe(true);
+    expect(ids(lookupVocabulary(display, { search: "code review defect" })).has("software_engineering")).toBe(true);
+    expect(ids(lookupVocabulary(display, { search: "price.input" })).has("offering.price.input")).toBe(true);
+    const software = lookupVocabulary(display, { section: "domains", search: "software" });
+    expect(software.total).toBe(1);
+    expect(ids(software).has("software_engineering")).toBe(true);
+    expect(ids(lookupVocabulary(display, { search: "software engineering coding" })).has("software_engineering")).toBe(true);
+  });
 
   it("stops suggestion scoring at the same cell budget as Python on a catalogue-sized vocabulary", () => {
     const pad = (i: number) => String(i).padStart(4, "0");
@@ -153,7 +252,7 @@ describe("vocabulary discovery", () => {
         { display_name: `Model Family ${pad(i)} Instruct` }])),
       estate: { providers: [], devices: Array.from({ length: 200 }, (_, i) => `vendor_accelerator_${pad(i)}_96gb`), plans: [] },
     };
-    const needles = Array.from({ length: 100 }, (_, i) => `zz${i}-model-family-instruct-xyzw`);
+    const needles = Array.from({ length: 100 }, (_, i) => `zz${i}-qqqqvvvv-xyzwabcd`);
     const cases = [{ search: needles[0] }, { ids: needles }, { search: "q".repeat(128) }, { search: "instrct" }] satisfies VocabInput[];
     expect(cases.map((args) => lookupVocabulary(source, args))).toEqual(python(source, cases));
   }, 20_000);

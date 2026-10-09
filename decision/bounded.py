@@ -152,7 +152,7 @@ def project(decision: contract.Decision, options: contract.ResponseOptions, *,
     body["results"] = [] if detail else [
         {key: value for key, value in row.items() if key in fields} for row in data["results"]]
     body["may_qualify"] = [] if detail else data["may_qualify"][:10]
-    for key in ("reading", "coverage", "with_estate", "relax_task_tokens"):
+    for key in ("reading", "coverage", "with_estate", "relax_task_tokens", "relax_single"):
         if key in data:
             body[key] = data[key]
     omitted = {key: len(data[key]) for key in (
@@ -517,15 +517,15 @@ def _fit_agent_budget(body: dict) -> None:
     model already appears in an earlier row), then ``may_qualify``, then
     ``member_evidence`` items from the member with the most items down to one
     item per member, then any remaining result row except the top, then
-    ``with_estate``, then ``reading`` and ``relax_task_tokens``, then the top
-    result's heavy fields in one repeated step: each pass removes the worst
-    evidence item inside ``contributions`` when ``contributions`` is the
-    largest heavy field and holds an item worth removing, otherwise the
-    largest heavy field whole, so nested and whole-field cuts can alternate;
-    then its other non-essential fields, then any remaining
-    ``member_evidence`` items, then ``member_evidence`` entries from the end
-    of the list. The first row of each model, and row 0, keep their
-    explanation until that later heavy-field step. The top result's
+    ``with_estate``, then ``reading``, ``relax_task_tokens`` and
+    ``relax_single``, then the top result's heavy fields in one repeated
+    step: each pass removes the worst evidence item inside ``contributions``
+    when ``contributions`` is the largest heavy field and holds an item worth
+    removing, otherwise the largest heavy field whole, so nested and
+    whole-field cuts can alternate; then its other non-essential fields, then
+    any remaining ``member_evidence`` items, then ``member_evidence`` entries
+    from the end of the list. The first row of each model, and row 0, keep
+    their explanation until that later heavy-field step. The top result's
     explanation is removed only after the earlier records are gone. A nested
     evidence item and a heavy field are each removed whole. Fields inside one
     evidence item are never trimmed. ``answer``, ``status``,
@@ -583,7 +583,7 @@ def _fit_agent_budget(body: dict) -> None:
             body.pop("with_estate", None)
             _omit(body, "with_estate")
 
-    for key in ("reading", "relax_task_tokens"):
+    for key in ("reading", "relax_task_tokens", "relax_single"):
         if not _over(body):
             break
         if body.get(key) is None:

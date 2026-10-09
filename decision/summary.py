@@ -84,6 +84,18 @@ _OPTION = "Relaxing {condition} would admit a model; that is an option, not an a
 _OPTION_TOGETHER = (
     "Relaxing {conditions} together would admit a model; that is an option, not an answer."
 )
+_SINGLE_GATE = (
+    "Removing only {condition} would let {n} models qualify; "
+    "every other requirement stays as you set it."
+)
+_SINGLE_GATE_ONE = (
+    "Removing only {condition} would let 1 model qualify; "
+    "every other requirement stays as you set it."
+)
+_NO_SINGLE_GATE = (
+    "No single requirement is the blocker: removing any one of them "
+    "on its own still leaves no model."
+)
 
 
 def summarize(
@@ -159,6 +171,7 @@ def _summary(
     feasible: int | None = None,
 ) -> str:
     limits = {
+        "single": 12,
         "tie": TIE_NAME_CAP,
         "hard": 24,
         "prefer": 12,
@@ -167,6 +180,7 @@ def _summary(
         "caveat": 0,
     }
     floors = {
+        "single": 1,
         "tie": 1,
         "hard": 1,
         "prefer": 1,
@@ -180,22 +194,37 @@ def _summary(
     # None lists every condition in the joint relaxation. Shorten that list
     # only after the other lists are at their floors, so the fixed ending stays.
     joint_limit: int | None = None
+    # One gate sentence plus the full requirement lists can sit just over the
+    # cap. The joint option yields first: a gate sentence already names a
+    # removal that admits a model (MODEL-356).
+    omit_joint = False
     text = _compose(
         decision, spec, unapplied, visible, limits, conditions, joint_limit, feasible,
+        omit_joint=omit_joint,
     )
-    order = ("hard", "prefer", "relax", "missing", "tie", "caveat")
+    order = ("single", "hard", "prefer", "relax", "missing", "tie", "caveat")
     while len(text.encode("utf-8")) > SUMMARY_BYTES:
         key = next((name for name in order if limits[name] > floors[name]), None)
-        if key is not None:
+        single = decision.relax_single
+        if (
+            key == "hard"
+            and not omit_joint
+            and single is not None
+            and single.gates
+            and _joint_conditions(decision, conditions)
+        ):
+            omit_joint = True
+        elif key is not None:
             limits[key] -= 1
         else:
             count = len(_joint_conditions(decision, conditions))
             current = count if joint_limit is None else joint_limit
-            if count <= 1 or current <= 1:
+            if count <= 1 or current <= 1 or omit_joint:
                 break
             joint_limit = current - 1
         text = _compose(
             decision, spec, unapplied, visible, limits, conditions, joint_limit, feasible,
+            omit_joint=omit_joint,
         )
     if len(text.encode("utf-8")) > SUMMARY_BYTES:
         text = _clip_paragraph(text)
@@ -211,10 +240,13 @@ def _compose(
     conditions: tuple,
     joint_limit: int | None = None,
     feasible: int | None = None,
+    *,
+    omit_joint: bool = False,
 ) -> str:
     parts = [_answer_sentence(decision, limits["tie"])]
     parts.extend(_why(
         decision, spec, unapplied, limits, conditions, joint_limit, feasible,
+        omit_joint=omit_joint,
     ))
     parts.extend(_constraints(spec, unapplied, limits, conditions))
     parts.extend(_caveats(mentions, limits["caveat"]))
@@ -265,6 +297,8 @@ def _why(
     conditions: tuple,
     joint_limit: int | None = None,
     feasible: int | None = None,
+    *,
+    omit_joint: bool = False,
 ) -> list[str]:
     if decision.status == "no_feasible":
         # A diagnostic from optimise([]) is an objective failure only when the
@@ -282,8 +316,11 @@ def _why(
             exclude = "These requirements together exclude every model."
         sentences = [exclude]
         sentences.extend(
-            _relaxation_options(decision, conditions, limits["relax"], joint_limit)
+            _relaxation_options(
+                decision, conditions, limits["relax"], joint_limit, omit_joint=omit_joint,
+            )
         )
+        sentences.extend(_single_gate_sentences(decision, limits["single"]))
         hint = decision.relax_task_tokens
         if hint is not None:
             sentences.append(f"Task-size relaxation, not an answer: {hint.condition}.")
@@ -377,18 +414,49 @@ def _joint_conditions(decision: Decision, conditions: tuple) -> list[str]:
     ]
 
 
+def _single_gate_sentences(decision: Decision, limit: int) -> list[str]:
+    """Gates whose removal alone admits models, in the order ``relax_single`` gives.
+
+    ``limit`` is this paragraph's own cap for these sentences. The trim lowers
+    it to 1 before any requirement list loses an item, and no further, so the
+    first gate stays. The none sentence is emitted only when removing every
+    relaxable gate together still admits a model and ``question_admits`` is
+    false.
+    """
+    single = decision.relax_single
+    if single is None:
+        return []
+    if single.status == "none":
+        if single.together_admits > 0 and not single.question_admits:
+            return [_NO_SINGLE_GATE]
+        return []
+    return [
+        _single_gate_sentence(gate.condition, gate.admits)
+        for gate in single.gates[:limit]
+    ]
+
+
+def _single_gate_sentence(condition: str, admits: int) -> str:
+    if admits == 1:
+        return _SINGLE_GATE_ONE.format(condition=condition)
+    return _SINGLE_GATE.format(condition=condition, n=_count(admits))
+
+
 def _relaxation_options(
     decision: Decision, conditions: tuple, limit: int, joint_limit: int | None = None,
+    *,
+    omit_joint: bool = False,
 ) -> list[str]:
     """``relax_to`` items are each enough. Uncovered ``relax`` entries are one set.
 
     ``limit`` caps how many ``relax_to`` sentences are written out. Further
     items are counted inside the last of those sentences, so each sentence
     keeps its ending. The joint option stays while any ``relax_to`` sentence
-    stays.
+    stays, unless the paragraph has already kept a single-gate sentence and
+    still does not fit.
     """
     items = list(decision.relax_to)
-    uncovered = _joint_conditions(decision, conditions)
+    uncovered = [] if omit_joint else _joint_conditions(decision, conditions)
     joint = _joint_option(uncovered, joint_limit) if uncovered else None
     if not items and joint is None:
         return []
