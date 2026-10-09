@@ -751,8 +751,10 @@ def test_a_relaxed_gate_is_an_option_and_partial_is_not_a_tie() -> None:
         partial, _spec(where=["model.class = text-generator"]),
     )
     assert partial_text.startswith(PARTIAL)
-    assert "tied" not in partial_text
-    assert "tie" not in partial_text.lower()
+    assert (
+        "lab/a and lab/b are tied; this is not a recommendation of any one of them."
+        in partial_text
+    )
     assert partial_mentions == [
         "lab/a and lab/b are tied; this is not a recommendation of any one of them.",
         "No model is established as the best fit: "
@@ -917,7 +919,8 @@ def test_an_estimate_names_how_many_records_it_came_from() -> None:
         "not task-specific."
     )
     assert mentions == [
-        "No single winner: 5 models are tied.",
+        "lab/three, lab/three-again, lab/two, lab/one, and lab/zero are tied; "
+        "this is not a recommendation of any one of them.",
         NO_CLASS,
         proxy,
         three_sentence,
@@ -925,6 +928,7 @@ def test_an_estimate_names_how_many_records_it_came_from() -> None:
         all_proxy,
         none_proxy,
         none,
+        CHECKED_ONLY,
     ]
     for sentence in (three_sentence, three_again, all_proxy, none_proxy, none):
         assert sentence in text
@@ -949,7 +953,7 @@ def test_one_proxy_among_several_records_uses_the_singular_clause() -> None:
         "1 of them a proxy."
     )
     text, mentions = summarize(decision, _spec(optimize={"max": "software_engineering"}))
-    assert mentions == [NO_CLASS, expected]
+    assert mentions == [NO_CLASS, expected, CHECKED_ONLY]
     assert expected in text
 
 
@@ -1280,11 +1284,11 @@ def test_must_mention_and_the_paragraph_stay_inside_their_byte_caps() -> None:
     assert NO_CLASS in huge_text
     assert huge_text.count(NO_CLASS) == 1
     assert COST_ONLY not in huge_text
-    shown = (
-        "facet_00 >= 0; facet_01 >= 1; facet_02 >= 2; facet_03 >= 3; "
-        "facet_04 >= 4; facet_05 >= 5; and 34 more."
-    )
-    assert huge_text.count(shown) == 2
+    # The exclude list explains the empty answer; its repeat under
+    # "Requirements applied" shortens first.
+    shown = ", ".join(f"facet_{i:02d} >= {i}" for i in range(11)).replace(", ", "; ")
+    assert f"exclude every model: {shown}; and 29 more." in huge_text
+    assert "Requirements applied: facet_00 >= 0; and 39 more." in huge_text
     assert CHECKED_ONLY in huge_text
     listed = ", ".join(where[:-1]) + ", and " + where[-1]
     assert (
@@ -1447,7 +1451,11 @@ def test_a_huge_tie_and_objective_keep_the_leaderboard_item_bounded_and_fast() -
     assert text.startswith("lab/model-0000")
 
 
-def test_a_partial_tie_is_named_and_kept_out_of_the_paragraph() -> None:
+def test_a_partial_tie_says_it_is_not_a_recommendation() -> None:
+    """Every failing tie in the 2026-10-08 run was partial (MODEL-351).
+
+    The answer sentence names no members, so the paragraph keeps the named item.
+    """
     decision = _decision(
         status="partial",
         answer=_tied(["openai/gpt-6-astra", "openai/gpt-6-sol", "openai/gpt-5-6-sol"]),
@@ -1462,11 +1470,9 @@ def test_a_partial_tie_is_named_and_kept_out_of_the_paragraph() -> None:
     assert text == (
         f"{PARTIAL} What is missing: maths. {QUALIFY_ONE} "
         "Requirements applied: model.class = text-generator. "
-        f"{CHECKED_ONLY}"
+        f"{tie} {CHECKED_ONLY}"
     )
     assert mentions == [tie, partial, CHECKED_ONLY]
-    assert tie not in text
-    assert "tied" not in text
 
 
 def test_a_long_tie_names_only_what_fits_in_the_item() -> None:

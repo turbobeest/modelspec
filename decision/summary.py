@@ -190,6 +190,7 @@ def _summary(
     limits = {
         "single": 12,
         "tie": TIE_NAME_CAP,
+        "applied": 24,
         "hard": 24,
         "prefer": 12,
         "relax": 12,
@@ -199,6 +200,7 @@ def _summary(
     floors = {
         "single": 1,
         "tie": 1,
+        "applied": 1,
         "hard": 1,
         "prefer": 1,
         "relax": 1,
@@ -219,7 +221,9 @@ def _summary(
         decision, spec, unapplied, visible, limits, conditions, joint_limit, feasible,
         omit_joint=omit_joint,
     )
-    order = ("single", "hard", "prefer", "relax", "missing", "tie", "caveat")
+    # On no_feasible "Requirements applied" repeats the exclude list, so the
+    # repeat shortens before the list that explains the empty answer (MODEL-351).
+    order = ("single", "applied", "hard", "prefer", "relax", "missing", "tie", "caveat")
     while len(text.encode("utf-8")) > SUMMARY_BYTES:
         key = next((name for name in order if limits[name] > floors[name]), None)
         single = decision.relax_single
@@ -276,7 +280,9 @@ def _paragraph_mentions(
     """Caveats whose fact is not already in the answer, why, or constraints."""
     skip = {"not_applied", "partial"}
     if decision.status == "partial":
-        skip.update(("may_qualify", "tie"))
+        # A partial answer's tie keeps its named must_mention text (MODEL-351):
+        # the answer sentence names no members for "These N models" to refer to.
+        skip.add("may_qualify")
     visible: list[tuple[str, str]] = []
     for kind, text in mentions:
         if kind in skip:
@@ -525,7 +531,7 @@ def _constraints(
     prefers = _prefers(spec, set(unapplied))
     sentences: list[str] = []
     if gates:
-        sentences.append(f"Requirements applied: {_bounded(gates, limits['hard'])}.")
+        sentences.append(f"Requirements applied: {_bounded(gates, limits['applied'])}.")
     sentences.extend(dont_care)
     if prefers:
         sentences.append(
@@ -1231,9 +1237,10 @@ def _hardware_item(spec: Spec | None, conditions: tuple) -> str:
     gates = _hardware_gates(conditions)
     if not gates and _own_hardware_without_fit(spec):
         return _HARDWARE_NOT_REQUIRED
-    if not gates:
+    if len(gates) != 1:
+        # Several gates are already listed under "Requirements applied".
         return _HARDWARE
-    gate = "; ".join(gates)
+    gate = gates[0]
     sentence = gate + _HARDWARE_TAIL
     if len(sentence.encode("utf-8")) <= MUST_MENTION_ITEM_BYTES:
         return sentence

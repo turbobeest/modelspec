@@ -21,7 +21,7 @@ from decision.summary import MUST_MENTION_ITEM_BYTES, MUST_MENTION_MAX, summariz
 
 FIXTURES = Path(__file__).parent / "fixtures/decision/model-351-repros.json"
 BASE = {
-    "contract_version": "2.14",
+    "contract_version": "2.15",
     "snapshot": "snap_e2b358c1663dacb6",
     "spec_hash": "sha256:" + "0" * 64,
     "explain": "summary",
@@ -145,17 +145,22 @@ def test_must_mention_names_the_unsupported_claim(fixture: dict) -> None:
     assert len(mentions) <= MUST_MENTION_MAX
     assert all(len(item.encode("utf-8")) <= MUST_MENTION_ITEM_BYTES for item in mentions)
     # Every fact production already carried is still carried, except the
-    # reworded hardware sentence and, on a partial answer, the may-qualify
-    # count that the partial item now replaces with names.
+    # reworded hardware sentence, on a partial answer the may-qualify count
+    # that the partial item now replaces with names, and the leaderboard
+    # sentence, which MODEL-354 rewrote as a record count (the fixtures keep
+    # one record per benchmark, so their counts are not production's).
     partial = fixture["decision"]["status"] == "partial"
     kept = [
         item for item in fixture["production_must_mention"]
-        if item != OLD_HARDWARE and not (partial and " may qualify, but " in item)
+        if item != OLD_HARDWARE
+        and not (partial and " may qualify, but " in item)
+        and " no leaderboard data for " not in item
     ]
     assert [item for item in mentions if item in kept] == kept
     assert OLD_HARDWARE not in mentions
     if partial:
-        # MODEL-339 keeps "tied" out of a partial paragraph; must_mention carries it.
-        assert "tied" not in text
         assert text.startswith("ModelSpec's answer is incomplete, so it names no pick.")
+    if fixture["decision"]["answer"] and fixture["decision"]["answer"]["kind"] == "tied":
+        # Every failing tie was partial: the paragraph agents quote says it too.
+        assert NOT_A_PICK.lstrip("; ") in text
     assert CHECKED_ONLY in text

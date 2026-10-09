@@ -1312,8 +1312,9 @@ three current explanation levels. Regenerate the MCP public fixture with
   member; a partial answer establishes no best fit, and names the models whose
   values are unknown in place of the may-qualify count; `fits_hardware` is an
   estimate, or was not required at all; and ModelSpec checked only the stated
-  requirements, with `task_type` reported as not applied. The answered-tie,
-  hardware and stated-requirements lines also appear in `summary_for_user`.
+  requirements, with `task_type` reported as not applied. The tie (answered or
+  partial), hardware and stated-requirements lines also appear in
+  `summary_for_user`; a partial tie's paragraph line names the members.
   Copy only: no field, range or `bounded_version` changes.
 
 ## The library and the CLI
