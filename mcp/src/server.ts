@@ -138,6 +138,105 @@ const EXPLAIN_ROW_FIELDS = ["contributions", "evidence"] as const;
 /** Compact UTF-8 budget for the MCP text: origin envelope plus decisionSummary. */
 export const AGENT_BYTES = 16_384;
 
+// Same arm as qa.contracts.CONDITION_UNION. A changed shape is refused, not served long.
+const CONDITION_UNION = [
+  { type: "string" },
+  { $ref: "#/$defs/Compare" },
+  { $ref: "#/$defs/Window" },
+  { $ref: "#/$defs/InSet" },
+  { $ref: "#/$defs/Known" },
+  { $ref: "#/$defs/AnyOf" },
+  { $ref: "#/$defs/AllOf" },
+  { $ref: "#/$defs/NotOf" },
+];
+const CONDITION_DEF_REFS = new Set(
+  CONDITION_UNION.flatMap((item) => ("$ref" in item ? [item.$ref] : [])),
+);
+const SCHEMA_MAPS = ["properties", "patternProperties", "$defs", "definitions", "dependentSchemas"];
+const SCHEMA_NODES = [
+  "items", "additionalProperties", "unevaluatedProperties", "unevaluatedItems",
+  "contains", "not", "if", "then", "else", "propertyNames", "additionalItems",
+];
+const SCHEMA_ARRAYS = ["anyOf", "oneOf", "allOf", "prefixItems"];
+
+function isSchemaRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function jsonEqual(left: unknown, right: unknown): boolean {
+  if (Object.is(left, right)) return true;
+  if (Array.isArray(left) || Array.isArray(right)) {
+    if (!Array.isArray(left) || !Array.isArray(right) || left.length !== right.length) return false;
+    return left.every((item, index) => jsonEqual(item, right[index]));
+  }
+  if (!isSchemaRecord(left) || !isSchemaRecord(right)) return false;
+  const keys = Object.keys(left);
+  if (keys.length !== Object.keys(right).length) return false;
+  return keys.every((key) => Object.hasOwn(right, key) && jsonEqual(left[key], right[key]));
+}
+
+function citesCondition(value: unknown[]): boolean {
+  return value.some((item) => (
+    isSchemaRecord(item) && typeof item.$ref === "string" && CONDITION_DEF_REFS.has(item.$ref)
+  ));
+}
+
+function replaceKey(node: Record<string, unknown>, oldKey: string, newKey: string, value: unknown): void {
+  const rebuilt: Record<string, unknown> = {};
+  for (const [key, child] of Object.entries(node)) {
+    rebuilt[key === oldKey ? newKey : key] = key === oldKey ? value : child;
+  }
+  for (const key of Object.keys(node)) delete node[key];
+  Object.assign(node, rebuilt);
+}
+
+function compactInPlace(node: unknown): number {
+  // `title` inside properties or patternProperties is a field name, not the keyword.
+  if (Array.isArray(node)) return node.reduce((found, item) => found + compactInPlace(item), 0);
+  if (!isSchemaRecord(node)) return 0;
+  let found = 0;
+  for (const key of SCHEMA_MAPS) {
+    const child = node[key];
+    if (!isSchemaRecord(child)) continue;
+    for (const sub of Object.values(child)) found += compactInPlace(sub);
+  }
+  for (const key of SCHEMA_NODES) {
+    if (key in node) found += compactInPlace(node[key]);
+  }
+  for (const key of SCHEMA_ARRAYS) {
+    const value = node[key];
+    if (!Array.isArray(value)) continue;
+    if (key === "anyOf" && jsonEqual(value, CONDITION_UNION)) {
+      replaceKey(node, "anyOf", "$ref", "#/$defs/Condition");
+      found += 1;
+      continue;
+    }
+    if (citesCondition(value)) {
+      throw new Error(
+        "decision condition union changed; refusing to serve the uncompacted decide schema",
+      );
+    }
+    for (const item of value) found += compactInPlace(item);
+  }
+  if ("title" in node) delete node.title;
+  if ("default" in node && node.default === null) delete node.default;
+  return found;
+}
+
+function addCondition(schema: unknown): void {
+  if (!isSchemaRecord(schema) || !isSchemaRecord(schema.$defs)) {
+    throw new Error("hoisted condition union but the decide schema has no $defs");
+  }
+  schema.$defs.Condition = { anyOf: structuredClone(CONDITION_UNION) };
+}
+
+/** Drop null defaults and titles, and alias the repeated condition union. */
+export function compactDecideSchema<T>(schema: T): T {
+  const compacted = structuredClone(schema);
+  if (compactInPlace(compacted) > 0) addCondition(compacted);
+  return compacted;
+}
+
 function decisionSpecJsonSchema(): JsonSchemaObject {
   if (
     decisionContract.$schema !== "https://json-schema.org/draft/2020-12/schema" ||
@@ -158,7 +257,7 @@ function decisionSpecJsonSchema(): JsonSchemaObject {
       pending.push(match[1]);
     }
   }
-  return {
+  const schema = {
     $schema: decisionContract.$schema,
     $defs: {
       ...definitions,
@@ -173,7 +272,8 @@ function decisionSpecJsonSchema(): JsonSchemaObject {
       },
     },
     $ref: "#/$defs/DecideRequest",
-  } as JsonSchemaObject;
+  };
+  return compactDecideSchema(schema) as JsonSchemaObject;
 }
 
 const decisionSpecSchema = decisionSpecJsonSchema();

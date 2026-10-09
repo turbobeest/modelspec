@@ -50,6 +50,86 @@ def _reachable_schema(document: dict, name: str) -> dict:
     return {"$schema": document["$schema"], "$defs": selected, "$ref": f"#/$defs/{name}"}
 
 
+# The condition arm repeated by DecideRequest.where, NotOf, AllOf, AnyOf and InventoryProfile.
+CONDITION_UNION = [
+    {"type": "string"},
+    {"$ref": "#/$defs/Compare"},
+    {"$ref": "#/$defs/Window"},
+    {"$ref": "#/$defs/InSet"},
+    {"$ref": "#/$defs/Known"},
+    {"$ref": "#/$defs/AnyOf"},
+    {"$ref": "#/$defs/AllOf"},
+    {"$ref": "#/$defs/NotOf"},
+]
+_CONDITION_DEF_REFS = frozenset(item["$ref"] for item in CONDITION_UNION if "$ref" in item)
+_SCHEMA_MAPS = ("properties", "patternProperties", "$defs", "definitions", "dependentSchemas")
+_SCHEMA_NODES = (
+    "items", "additionalProperties", "unevaluatedProperties", "unevaluatedItems",
+    "contains", "not", "if", "then", "else", "propertyNames", "additionalItems",
+)
+_SCHEMA_ARRAYS = ("anyOf", "oneOf", "allOf", "prefixItems")
+
+
+def _cites_condition(value) -> bool:
+    return any(
+        isinstance(item, dict) and item.get("$ref") in _CONDITION_DEF_REFS for item in value
+    )
+
+
+def _replace_key(node: dict, old: str, new: str, value) -> None:
+    rebuilt = {}
+    for key, child in node.items():
+        rebuilt[new if key == old else key] = value if key == old else child
+    node.clear()
+    node.update(rebuilt)
+
+
+def _compact_in_place(node) -> int:
+    """Drop null defaults and title keywords. ``title`` under a property map is a field name."""
+    if isinstance(node, list):
+        return sum(_compact_in_place(item) for item in node)
+    if not isinstance(node, dict):
+        return 0
+    found = 0
+    for key in _SCHEMA_MAPS:
+        child = node.get(key)
+        if isinstance(child, dict):
+            for sub in child.values():
+                found += _compact_in_place(sub)
+    for key in _SCHEMA_NODES:
+        if key in node:
+            found += _compact_in_place(node[key])
+    for key in _SCHEMA_ARRAYS:
+        value = node.get(key)
+        if not isinstance(value, list):
+            continue
+        if key == "anyOf" and value == CONDITION_UNION:
+            _replace_key(node, "anyOf", "$ref", "#/$defs/Condition")
+            found += 1
+            continue
+        if _cites_condition(value):
+            raise ValueError(
+                "decision condition union changed; refusing to serve the uncompacted decide schema"
+            )
+        for item in value:
+            found += _compact_in_place(item)
+    node.pop("title", None)
+    if "default" in node and node["default"] is None:
+        del node["default"]
+    return found
+
+
+def compact_decide_schema(schema: dict) -> dict:
+    """Alias the repeated condition union. Absent union: add nothing. Changed union: refuse."""
+    compacted = copy.deepcopy(schema)
+    if _compact_in_place(compacted):
+        definitions = compacted.get("$defs")
+        if not isinstance(definitions, dict):
+            raise ValueError("hoisted condition union but the decide schema has no $defs")
+        definitions["Condition"] = {"anyOf": copy.deepcopy(CONDITION_UNION)}
+    return compacted
+
+
 def capture_tools() -> dict:
     """Mirror the seven registered inputs; pin the source hashes to detect drift."""
     source = (ROOT / "mcp/src/server.ts").read_text()
@@ -122,6 +202,7 @@ def capture_tools() -> dict:
     defaults = json.loads((ROOT / "mcp/test/fixtures/decide-budget.json").read_text())["request"]
     for name in ("explain", "limit", "fields"):
         decide["$defs"]["DecideRequest"]["properties"][name]["default"] = defaults[name]
+    decide = compact_decide_schema(decide)
     inputs = {
         "rank": rank,
         "policy_check": policy,

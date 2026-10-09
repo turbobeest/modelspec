@@ -1,6 +1,6 @@
 {
   "source_hashes": {
-    "mcp/src/server.ts": "79144bbf9155d6dc0fc32172bf76600686c4a7ce372231de0310e6aedfcb1e46",
+    "mcp/src/server.ts": "1c58d8c0dc84574407d0564fcd518a6e868a9ce82bb7d33e364d2d349461f4e1",
     "mcp/src/vocabulary.ts": "85e01e14eea9754b82068af188b0fc7e8b7238594f4717231bf864b004a0e0ca",
     "mcp/test/fixtures/decide-budget.json": "7971248c447219868f72083878eae96a25487946dadead5a3ba2e89d8c7b3585",
     "docs/decision-contract.schema.json": "2dd7c6217915f49edefc5d1737ac078999f749b5290eeaa50cca9288366bf7ef",
@@ -314,8 +314,7 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null
+                ]
               },
               "capabilities": {
                 "anyOf": [
@@ -334,9 +333,7 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null,
-                "title": "Capabilities"
+                ]
               },
               "estate": {
                 "anyOf": [
@@ -346,8 +343,7 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null
+                ]
               },
               "evidence_for": {
                 "anyOf": [
@@ -358,16 +354,13 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null,
-                "title": "Evidence For"
+                ]
               },
               "exclude_benchmarks": {
                 "items": {
                   "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
                   "type": "string"
                 },
-                "title": "Exclude Benchmarks",
                 "type": "array"
               },
               "explain": {
@@ -377,7 +370,6 @@
                   "summary",
                   "full"
                 ],
-                "title": "Explain",
                 "type": "string"
               },
               "fields": {
@@ -417,14 +409,12 @@
                   "cost_per_task",
                   "estimates",
                   "p_best"
-                ],
-                "title": "Fields"
+                ]
               },
               "limit": {
                 "default": 10,
                 "maximum": 500,
                 "minimum": 1,
-                "title": "Limit",
                 "type": "integer"
               },
               "optimize": {
@@ -446,9 +436,7 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null,
-                "title": "Profile"
+                ]
               },
               "save_as": {
                 "anyOf": [
@@ -459,9 +447,7 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null,
-                "title": "Save As"
+                ]
               },
               "snapshot": {
                 "anyOf": [
@@ -473,12 +459,10 @@
                     "type": "string"
                   }
                 ],
-                "default": "latest",
-                "title": "Snapshot"
+                "default": "latest"
               },
               "spec_version": {
                 "const": 1,
-                "title": "Spec Version",
                 "type": "integer"
               },
               "task": {
@@ -489,9 +473,7 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null,
-                "title": "Task"
+                ]
               },
               "task_tokens": {
                 "anyOf": [
@@ -501,8 +483,7 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null
+                ]
               },
               "task_type": {
                 "anyOf": [
@@ -526,46 +507,17 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null,
-                "title": "Task Type"
+                ]
               },
               "unknowns": {
                 "const": "default",
                 "default": "default",
-                "title": "Unknowns",
                 "type": "string"
               },
               "where": {
                 "items": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "$ref": "#/$defs/Compare"
-                    },
-                    {
-                      "$ref": "#/$defs/Window"
-                    },
-                    {
-                      "$ref": "#/$defs/InSet"
-                    },
-                    {
-                      "$ref": "#/$defs/Known"
-                    },
-                    {
-                      "$ref": "#/$defs/AnyOf"
-                    },
-                    {
-                      "$ref": "#/$defs/AllOf"
-                    },
-                    {
-                      "$ref": "#/$defs/NotOf"
-                    }
-                  ]
+                  "$ref": "#/$defs/Condition"
                 },
-                "title": "Where",
                 "type": "array"
               }
             },
@@ -573,40 +525,13 @@
               "spec_version",
               "optimize"
             ],
-            "title": "DecideRequest",
             "type": "object"
           },
           "NotOf": {
             "additionalProperties": false,
             "properties": {
               "not": {
-                "anyOf": [
-                  {
-                    "type": "string"
-                  },
-                  {
-                    "$ref": "#/$defs/Compare"
-                  },
-                  {
-                    "$ref": "#/$defs/Window"
-                  },
-                  {
-                    "$ref": "#/$defs/InSet"
-                  },
-                  {
-                    "$ref": "#/$defs/Known"
-                  },
-                  {
-                    "$ref": "#/$defs/AnyOf"
-                  },
-                  {
-                    "$ref": "#/$defs/AllOf"
-                  },
-                  {
-                    "$ref": "#/$defs/NotOf"
-                  }
-                ],
-                "title": "Not"
+                "$ref": "#/$defs/Condition"
               },
               "soft": {
                 "anyOf": [
@@ -616,8 +541,7 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null
+                ]
               },
               "unknown": {
                 "anyOf": [
@@ -632,15 +556,12 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null,
-                "title": "Unknown"
+                ]
               }
             },
             "required": [
               "not"
             ],
-            "title": "NotOf",
             "type": "object"
           },
           "Soft": {
@@ -650,14 +571,12 @@
               "penalty": {
                 "exclusiveMinimum": 0,
                 "maximum": 1,
-                "title": "Penalty",
                 "type": "number"
               }
             },
             "required": [
               "penalty"
             ],
-            "title": "Soft",
             "type": "object"
           },
           "AllOf": {
@@ -665,34 +584,8 @@
             "properties": {
               "all": {
                 "items": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "$ref": "#/$defs/Compare"
-                    },
-                    {
-                      "$ref": "#/$defs/Window"
-                    },
-                    {
-                      "$ref": "#/$defs/InSet"
-                    },
-                    {
-                      "$ref": "#/$defs/Known"
-                    },
-                    {
-                      "$ref": "#/$defs/AnyOf"
-                    },
-                    {
-                      "$ref": "#/$defs/AllOf"
-                    },
-                    {
-                      "$ref": "#/$defs/NotOf"
-                    }
-                  ]
+                  "$ref": "#/$defs/Condition"
                 },
-                "title": "All",
                 "type": "array"
               },
               "soft": {
@@ -703,8 +596,7 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null
+                ]
               },
               "unknown": {
                 "anyOf": [
@@ -719,15 +611,12 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null,
-                "title": "Unknown"
+                ]
               }
             },
             "required": [
               "all"
             ],
-            "title": "AllOf",
             "type": "object"
           },
           "AnyOf": {
@@ -735,34 +624,8 @@
             "properties": {
               "any": {
                 "items": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "$ref": "#/$defs/Compare"
-                    },
-                    {
-                      "$ref": "#/$defs/Window"
-                    },
-                    {
-                      "$ref": "#/$defs/InSet"
-                    },
-                    {
-                      "$ref": "#/$defs/Known"
-                    },
-                    {
-                      "$ref": "#/$defs/AnyOf"
-                    },
-                    {
-                      "$ref": "#/$defs/AllOf"
-                    },
-                    {
-                      "$ref": "#/$defs/NotOf"
-                    }
-                  ]
+                  "$ref": "#/$defs/Condition"
                 },
-                "title": "Any",
                 "type": "array"
               },
               "soft": {
@@ -773,8 +636,7 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null
+                ]
               },
               "unknown": {
                 "anyOf": [
@@ -789,15 +651,12 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null,
-                "title": "Unknown"
+                ]
               }
             },
             "required": [
               "any"
             ],
-            "title": "AnyOf",
             "type": "object"
           },
           "Known": {
@@ -806,7 +665,6 @@
             "properties": {
               "known": {
                 "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
-                "title": "Known",
                 "type": "string"
               },
               "soft": {
@@ -817,14 +675,12 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null
+                ]
               }
             },
             "required": [
               "known"
             ],
-            "title": "Known",
             "type": "object"
           },
           "InSet": {
@@ -833,7 +689,6 @@
             "properties": {
               "facet": {
                 "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
-                "title": "Facet",
                 "type": "string"
               },
               "in": {
@@ -864,9 +719,7 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null,
-                "title": "In"
+                ]
               },
               "not_in": {
                 "anyOf": [
@@ -896,9 +749,7 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null,
-                "title": "Not In"
+                ]
               },
               "soft": {
                 "anyOf": [
@@ -908,8 +759,7 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null
+                ]
               },
               "unknown": {
                 "anyOf": [
@@ -924,15 +774,12 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null,
-                "title": "Unknown"
+                ]
               }
             },
             "required": [
               "facet"
             ],
-            "title": "InSet",
             "type": "object"
           },
           "Window": {
@@ -984,12 +831,10 @@
                     ]
                   }
                 ],
-                "title": "Between",
                 "type": "array"
               },
               "facet": {
                 "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
-                "title": "Facet",
                 "type": "string"
               },
               "qualifiers": {
@@ -1000,8 +845,7 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null
+                ]
               },
               "soft": {
                 "anyOf": [
@@ -1011,8 +855,7 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null
+                ]
               },
               "unknown": {
                 "anyOf": [
@@ -1027,16 +870,13 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null,
-                "title": "Unknown"
+                ]
               }
             },
             "required": [
               "facet",
               "between"
             ],
-            "title": "Window",
             "type": "object"
           },
           "EvidenceQualifiers": {
@@ -1045,7 +885,6 @@
             "properties": {
               "direct": {
                 "default": false,
-                "title": "Direct",
                 "type": "boolean"
               },
               "effort": {
@@ -1057,9 +896,7 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null,
-                "title": "Effort"
+                ]
               },
               "harness": {
                 "anyOf": [
@@ -1070,9 +907,7 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null,
-                "title": "Harness"
+                ]
               },
               "measured_after": {
                 "anyOf": [
@@ -1083,9 +918,7 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null,
-                "title": "Measured After"
+                ]
               },
               "measured_by": {
                 "anyOf": [
@@ -1100,12 +933,9 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null,
-                "title": "Measured By"
+                ]
               }
             },
-            "title": "EvidenceQualifiers",
             "type": "object"
           },
           "Compare": {
@@ -1114,7 +944,6 @@
             "properties": {
               "facet": {
                 "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
-                "title": "Facet",
                 "type": "string"
               },
               "op": {
@@ -1126,7 +955,6 @@
                   ">",
                   ">="
                 ],
-                "title": "Op",
                 "type": "string"
               },
               "qualifiers": {
@@ -1137,8 +965,7 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null
+                ]
               },
               "soft": {
                 "anyOf": [
@@ -1148,8 +975,7 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null
+                ]
               },
               "unknown": {
                 "anyOf": [
@@ -1164,9 +990,7 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null,
-                "title": "Unknown"
+                ]
               },
               "value": {
                 "anyOf": [
@@ -1192,8 +1016,7 @@
                   {
                     "type": "string"
                   }
-                ],
-                "title": "Value"
+                ]
               }
             },
             "required": [
@@ -1201,7 +1024,6 @@
               "op",
               "value"
             ],
-            "title": "Compare",
             "type": "object"
           },
           "BestRef": {
@@ -1210,14 +1032,12 @@
             "properties": {
               "best": {
                 "minimum": 0,
-                "title": "Best",
                 "type": "number"
               }
             },
             "required": [
               "best"
             ],
-            "title": "BestRef",
             "type": "object"
           },
           "ModelRef": {
@@ -1226,14 +1046,12 @@
             "properties": {
               "model": {
                 "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
-                "title": "Model",
                 "type": "string"
               }
             },
             "required": [
               "model"
             ],
-            "title": "ModelRef",
             "type": "object"
           },
           "TaskTokens": {
@@ -1242,12 +1060,10 @@
             "properties": {
               "input": {
                 "minimum": 0,
-                "title": "Input",
                 "type": "integer"
               },
               "output": {
                 "minimum": 0,
-                "title": "Output",
                 "type": "integer"
               }
             },
@@ -1255,7 +1071,6 @@
               "input",
               "output"
             ],
-            "title": "TaskTokens",
             "type": "object"
           },
           "InventoryProfile": {
@@ -1269,15 +1084,13 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null
+                ]
               },
               "harnesses": {
                 "items": {
                   "pattern": "^[a-z0-9][a-z0-9-]*@[0-9]+\\.[0-9]+$",
                   "type": "string"
                 },
-                "title": "Harnesses",
                 "type": "array"
               },
               "id": {
@@ -1289,66 +1102,34 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null,
-                "title": "Id"
+                ]
               },
               "local": {
                 "items": {
                   "$ref": "#/$defs/LocalModel"
                 },
-                "title": "Local",
                 "type": "array"
               },
               "offerings": {
                 "items": {
                   "$ref": "#/$defs/ProfileOffering"
                 },
-                "title": "Offerings",
                 "type": "array"
               },
               "profile_version": {
                 "const": 1,
-                "title": "Profile Version",
                 "type": "integer"
               },
               "rules": {
                 "items": {
-                  "anyOf": [
-                    {
-                      "type": "string"
-                    },
-                    {
-                      "$ref": "#/$defs/Compare"
-                    },
-                    {
-                      "$ref": "#/$defs/Window"
-                    },
-                    {
-                      "$ref": "#/$defs/InSet"
-                    },
-                    {
-                      "$ref": "#/$defs/Known"
-                    },
-                    {
-                      "$ref": "#/$defs/AnyOf"
-                    },
-                    {
-                      "$ref": "#/$defs/AllOf"
-                    },
-                    {
-                      "$ref": "#/$defs/NotOf"
-                    }
-                  ]
+                  "$ref": "#/$defs/Condition"
                 },
-                "title": "Rules",
                 "type": "array"
               }
             },
             "required": [
               "profile_version"
             ],
-            "title": "InventoryProfile",
             "type": "object"
           },
           "ProfileOffering": {
@@ -1356,11 +1137,9 @@
             "properties": {
               "model": {
                 "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
-                "title": "Model",
                 "type": "string"
               },
               "provider": {
-                "title": "Provider",
                 "type": "string"
               },
               "region": {
@@ -1371,9 +1150,7 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null,
-                "title": "Region"
+                ]
               },
               "tier": {
                 "anyOf": [
@@ -1383,16 +1160,13 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null,
-                "title": "Tier"
+                ]
               }
             },
             "required": [
               "model",
               "provider"
             ],
-            "title": "ProfileOffering",
             "type": "object"
           },
           "LocalModel": {
@@ -1406,12 +1180,10 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null
+                ]
               },
               "model": {
                 "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
-                "title": "Model",
                 "type": "string"
               },
               "runtime": {
@@ -1422,28 +1194,23 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null,
-                "title": "Runtime"
+                ]
               }
             },
             "required": [
               "model"
             ],
-            "title": "LocalModel",
             "type": "object"
           },
           "Hardware": {
             "additionalProperties": false,
             "properties": {
               "class": {
-                "title": "Class",
                 "type": "string"
               },
               "count": {
                 "default": 1,
                 "minimum": 1,
-                "title": "Count",
                 "type": "integer"
               },
               "memory_gb": {
@@ -1455,15 +1222,12 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null,
-                "title": "Memory Gb"
+                ]
               }
             },
             "required": [
               "class"
             ],
-            "title": "Hardware",
             "type": "object"
           },
           "Budget": {
@@ -1478,12 +1242,9 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null,
-                "title": "Max Cost Per Task Usd"
+                ]
               }
             },
-            "title": "Budget",
             "type": "object"
           },
           "Objective": {
@@ -1501,9 +1262,7 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null,
-                "title": "Lexicographic"
+                ]
               },
               "max": {
                 "anyOf": [
@@ -1514,9 +1273,7 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null,
-                "title": "Max"
+                ]
               },
               "min": {
                 "anyOf": [
@@ -1527,9 +1284,7 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null,
-                "title": "Min"
+                ]
               },
               "pareto": {
                 "anyOf": [
@@ -1543,9 +1298,7 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null,
-                "title": "Pareto"
+                ]
               },
               "qualifiers": {
                 "patternProperties": {
@@ -1553,7 +1306,6 @@
                     "$ref": "#/$defs/EvidenceQualifiers"
                   }
                 },
-                "title": "Qualifiers",
                 "type": "object"
               },
               "weights": {
@@ -1576,12 +1328,9 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null,
-                "title": "Weights"
+                ]
               }
             },
-            "title": "Objective",
             "type": "object"
           },
           "Preference": {
@@ -1606,12 +1355,10 @@
                   {
                     "type": "string"
                   }
-                ],
-                "title": "Prefer"
+                ]
               },
               "weight": {
                 "exclusiveMinimum": 0,
-                "title": "Weight",
                 "type": "number"
               }
             },
@@ -1619,7 +1366,6 @@
               "prefer",
               "weight"
             ],
-            "title": "Preference",
             "type": "object"
           },
           "LexStep": {
@@ -1634,9 +1380,7 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null,
-                "title": "Max"
+                ]
               },
               "min": {
                 "anyOf": [
@@ -1647,9 +1391,7 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null,
-                "title": "Min"
+                ]
               },
               "within": {
                 "anyOf": [
@@ -1659,11 +1401,9 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null
+                ]
               }
             },
-            "title": "LexStep",
             "type": "object"
           },
           "Tolerance": {
@@ -1679,9 +1419,7 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null,
-                "title": "Absolute"
+                ]
               },
               "relative": {
                 "anyOf": [
@@ -1693,12 +1431,9 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null,
-                "title": "Relative"
+                ]
               }
             },
-            "title": "Tolerance",
             "type": "object"
           },
           "Estate": {
@@ -1712,7 +1447,6 @@
                   "type": "string"
                 },
                 "maxItems": 64,
-                "title": "Devices",
                 "type": "array"
               },
               "exhausted": {
@@ -1722,7 +1456,6 @@
                   "type": "string"
                 },
                 "maxItems": 64,
-                "title": "Exhausted",
                 "type": "array"
               },
               "plans": {
@@ -1732,7 +1465,6 @@
                   "type": "string"
                 },
                 "maxItems": 64,
-                "title": "Plans",
                 "type": "array"
               },
               "providers": {
@@ -1742,11 +1474,9 @@
                   "type": "string"
                 },
                 "maxItems": 64,
-                "title": "Providers",
                 "type": "array"
               }
             },
-            "title": "Estate",
             "type": "object"
           },
           "Access": {
@@ -1762,9 +1492,7 @@
                   {
                     "type": "null"
                   }
-                ],
-                "default": null,
-                "title": "Harness"
+                ]
               },
               "kind": {
                 "enum": [
@@ -1773,15 +1501,41 @@
                   "own_software",
                   "own_hardware"
                 ],
-                "title": "Kind",
                 "type": "string"
               }
             },
             "required": [
               "kind"
             ],
-            "title": "Access",
             "type": "object"
+          },
+          "Condition": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "$ref": "#/$defs/Compare"
+              },
+              {
+                "$ref": "#/$defs/Window"
+              },
+              {
+                "$ref": "#/$defs/InSet"
+              },
+              {
+                "$ref": "#/$defs/Known"
+              },
+              {
+                "$ref": "#/$defs/AnyOf"
+              },
+              {
+                "$ref": "#/$defs/AllOf"
+              },
+              {
+                "$ref": "#/$defs/NotOf"
+              }
+            ]
           }
         },
         "$ref": "#/$defs/DecideRequest"
