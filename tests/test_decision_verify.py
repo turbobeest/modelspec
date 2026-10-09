@@ -403,6 +403,57 @@ def test_governance_prose_reader_handles_provider_wide_statements() -> None:
         assert verify.compare(claim, extractor.extract(claim, text)) == []
 
 
+# Bedrock states 30 days only for models it names. Sonnet 5.5 is default mode.
+_BEDROCK_RETENTION = (
+    "For models requiring aws_review (currently Claude Fable 5 and Claude Fable 5.1): "
+    "user prompts and completions are retained within the AWS boundary for up to 30 days "
+    "and may be reviewed by AWS to meet the human review requirement the model provider "
+    "imposes as a condition of access. Your content is not shared with the model provider. "
+    "For the legacy provider_data_share mode: Amazon Bedrock does not share your content "
+    "with model providers today, so this mode results in the same handling as aws_review "
+    "— retained within the AWS boundary for up to 30 days, and reviewed by AWS only where "
+    "the model requires it. For models under default mode: data may be retained for abuse "
+    "detection purposes — see Amazon Bedrock abuse detection for required retention details. "
+    "For retention beyond abuse detection (for example, Responses API with store=true ), "
+    "consult the documentation for that feature."
+)
+
+
+def _retention_claim(subject: str, names: tuple[str, ...]) -> verify.Claim:
+    return verify.Claim(
+        target=TargetRef(kind="fact", id=f"{subject}#offering.data.retention"),
+        subject=subject,
+        names=names,
+        field="offering.data.retention",
+        value=None,
+        unit="days",
+        collector=COLLECTOR,
+        sources=(SourceRef(source_id="model-s55-aws-retention-rendered",
+                           snapshot_ref="sha256:" + "0" * 64,
+                           cited_regions=["bedrock-policy"]),),
+    )
+
+
+def test_governance_prose_retention_period_follows_the_models_the_clause_names() -> None:
+    extractor = verify.GovernanceProseExtractor()
+    sonnet = _retention_claim(
+        "aws-bedrock/anthropic/claude-sonnet-5-5/global-cross-region/standard",
+        ("Claude Sonnet 5.5",),
+    )
+    fable = _retention_claim(
+        "aws-bedrock/anthropic/claude-fable-5-1/global/standard",
+        ("Claude Fable 5.1",),
+    )
+
+    assert extractor.extract(sonnet, _BEDROCK_RETENTION) == []
+    assert extractor.extract(fable, _BEDROCK_RETENTION) == [
+        verify.Reading("Claude Fable 5.1", "30", "days"),
+    ]
+    assert extractor.extract(sonnet, "Prompts are retained for 30 days.") == [
+        verify.Reading("Claude Sonnet 5.5", "30", "days"),
+    ]
+
+
 def test_markdown_escaped_currency_is_a_price() -> None:
     quantity = verify.parse_quantity(r"\$0.26", "usd_per_1m_tokens")
     assert quantity is not None

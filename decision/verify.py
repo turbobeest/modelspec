@@ -855,6 +855,57 @@ class KeyValueExtractor:
                                     "harness": pairs.get("harness"), "date": date_})]
 
 
+_RETENTION_DAYS = re.compile(r"(?is)(?:retained|stored).{0,100}?\b(\d+)\s*days?")
+#: A clause conditioned on a model set or a mode, not a statement about every model.
+_RETENTION_SCOPE_BEGIN = re.compile(r"(?is)^for models requiring\b|^for the\b.+?\bmode\b")
+_RETENTION_CURRENTLY = re.compile(r"\b(?i:currently)\s+[A-Z][^.:;)]*")
+
+
+def _clause_around(text: str, start: int, end: int) -> str:
+    """The sentence containing ``text[start:end]``."""
+    begin = 0
+    for mark in re.finditer(r"[.!?](?:\s+|$)", text[:start]):
+        begin = mark.end()
+    tail = re.search(r"[.!?](?:\s+|$)", text[end:])
+    stop = len(text) if tail is None else end + tail.end()
+    return text[begin:stop]
+
+
+def _retention_scope(clause: str) -> str | None:
+    """The conditioning phrase, or ``None`` when the clause states a period outright."""
+    body = clause.strip()
+    parts: list[str] = []
+    if _RETENTION_SCOPE_BEGIN.match(body):
+        head, sep, _rest = body.partition(":")
+        parts.append(head if sep else body)
+    currently = _RETENTION_CURRENTLY.search(body)
+    if currently:
+        parts.append(currently.group(0))
+    return " ".join(parts) or None
+
+
+def _scope_names_subject(scope: str, names: tuple[str, ...]) -> bool:
+    normal = normalise_name(scope)
+    aliases = [alias for name in names if (alias := normalise_name(name))]
+    return any(
+        re.search(rf"(?<![0-9a-z]){re.escape(alias)}(?![0-9a-z])", normal)
+        for alias in aliases
+    )
+
+
+def _retention_days(claim: Claim, text: str) -> str | None:
+    """The first day count whose clause is unscoped or names this subject.
+
+    A count after "For models requiring …", "For the … mode", or "currently
+    <models>" applies only when that condition names one of ``claim.names``.
+    """
+    for match in _RETENTION_DAYS.finditer(text):
+        scope = _retention_scope(_clause_around(text, match.start(), match.end()))
+        if scope is None or _scope_names_subject(scope, claim.names):
+            return match.group(1)
+    return None
+
+
 class GovernanceProseExtractor:
     """Read explicit provider-wide governance statements with fixed phrase rules."""
 
@@ -880,9 +931,9 @@ class GovernanceProseExtractor:
             if "never persisted to disk" in corpus or "no storage of prompts" in corpus:
                 return [Reading(subject, "true")]
         elif claim.field == "offering.data.retention":
-            match = re.search(r"(?is)(?:retained|stored).{0,100}?\b(\d+)\s*days?", text)
-            if match:
-                return [Reading(subject, match.group(1), "days")]
+            days = _retention_days(claim, text)
+            if days is not None:
+                return [Reading(subject, days, "days")]
         elif claim.field == "offering.attestation.soc2":
             if re.search(r"(?i)SOC\s*2\s*Type\s*(?:2|II)", text):
                 return [Reading(subject, "SOC 2 Type 2")]
