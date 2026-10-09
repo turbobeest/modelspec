@@ -130,6 +130,7 @@ function searchableFields(section: Section, { id, row }: Entry): Field[] {
 
 const KINDS = ["id", "label", "definition", "value"] satisfies Match["matched"][];
 const STOPWORDS = new Set(["use", "for", "the", "a", "and", "of", "with", "on", "in", "to"]);
+// Suggestion scoring and subset matching both stop at the first 8 unique content tokens.
 const SUGGESTION_TOKENS = 8;
 const SUGGESTION_NEEDLE_CHARS = 32;
 
@@ -165,7 +166,19 @@ function synonymTable() {
   return synonyms;
 }
 
+let matchCalls = 0;
+let foldCalls = 0;
+
+/** Counts from the last reset, so a test can bound match work without a timer. */
+export function takeSearchWork() {
+  const work = { matchCalls, foldCalls };
+  matchCalls = 0;
+  foldCalls = 0;
+  return work;
+}
+
 function foldToken(token: string) {
+  foldCalls += 1;
   return synonymTable().spelling.get(token) ?? token;
 }
 
@@ -177,9 +190,13 @@ function foldFields(fields: Field[]): Folded[] {
   return fields.map(({ kind, text, value }) => ({ kind, text: fold(text), value }));
 }
 
-function matchFolded(folded: Folded[], needle: string) {
-  const foldedNeedle = fold(needle);
-  const tokens = words(foldedNeedle);
+function codePointLength(value: string) {
+  return Array.from(value).length;
+}
+
+function matchFolded(folded: Folded[], foldedNeedle: string, tokens: string[]) {
+  // Needle is folded once per request. `tokens` are its unique folded words.
+  matchCalls += 1;
   if (tokens.length === 0) return undefined;
   let prior: string[] = [];
   for (const kind of KINDS) {
@@ -197,9 +214,39 @@ function matchFolded(folded: Folded[], needle: string) {
   return undefined;
 }
 
-function contentTokens(needle: string) {
+type Prepared = {
+  raw: string[];
+  content: string[];
+  foldedAll: string;
+  allTokens: string[];
+  contentFolded: string[];
+};
+
+function prepareQuery(needle: string): Prepared {
+  // Subset matching keeps the first 8 unique content tokens. Length is code points.
   const raw = needle ? words(needle) : [];
-  return { raw, content: raw.filter((token) => !STOPWORDS.has(token) && token.length >= 2) };
+  const foldedOf = new Map<string, string>();
+  for (const token of raw) {
+    if (!foldedOf.has(token)) foldedOf.set(token, foldToken(token));
+  }
+  const content: string[] = [];
+  const seen = new Set<string>();
+  for (const token of raw) {
+    if (STOPWORDS.has(token) || codePointLength(token) < 2 || seen.has(token)) continue;
+    seen.add(token);
+    content.push(token);
+    if (content.length >= SUGGESTION_TOKENS) break;
+  }
+  const foldedAll = raw.map((token) => foldedOf.get(token) ?? token).join(" ");
+  const allTokens: string[] = [];
+  const seenFolded = new Set<string>();
+  for (const token of raw) {
+    const folded = foldedOf.get(token) ?? token;
+    if (seenFolded.has(folded)) continue;
+    seenFolded.add(folded);
+    allTokens.push(folded);
+  }
+  return { raw, content, foldedAll, allTokens, contentFolded: content.map((token) => foldedOf.get(token) ?? token) };
 }
 
 function phraseCover(raw: string[], content: string[]) {
@@ -223,14 +270,13 @@ function phraseCover(raw: string[], content: string[]) {
   return { cover, whole };
 }
 
-function tokenQuality(folded: Folded[], token: string, synonym: boolean) {
+function tokenQuality(folded: Folded[], foldedToken: string, synonym: boolean) {
   if (synonym) return 0;
-  const needle = foldToken(token);
   let partial = false;
   for (const { text } of folded) {
-    if (!needle || !text) continue;
-    if (words(text).includes(needle)) return 1;
-    partial = partial || text.includes(needle);
+    if (!foldedToken || !text) continue;
+    if (words(text).includes(foldedToken)) return 1;
+    partial = partial || text.includes(foldedToken);
   }
   return partial ? 2 : 9;
 }
@@ -256,13 +302,17 @@ function pickHit(all: { kind: Match["matched"]; value: unknown } | undefined,
 }
 
 // total counts subset and synonym hits. Only a true miss is zero.
-function classify(folded: Folded[], key: string, raw: string[], content: string[],
+function classify(folded: Folded[], key: string, query: Prepared,
   cover: Map<string, Set<string>>, whole: Set<string>, exact: boolean): Classified | undefined {
-  const textAll = raw.length > 0 ? matchFolded(folded, raw.join(" ")) : undefined;
+  const { raw, content, foldedAll, allTokens, contentFolded } = query;
+  const textAll = raw.length > 0 ? matchFolded(folded, foldedAll, allTokens) : undefined;
   const synonymTokens = cover.get(key) ?? new Set<string>();
   const textFound: { token: string; kind: Match["matched"]; value: unknown }[] = [];
-  for (const token of content) {
-    const found = matchFolded(folded, token);
+  for (let i = 0; i < content.length; i += 1) {
+    const token = content[i];
+    const foldedToken = contentFolded[i];
+    if (token === undefined || foldedToken === undefined) continue;
+    const found = matchFolded(folded, foldedToken, [foldedToken]);
     if (found) textFound.push({ token, kind: found.matched, value: found.value });
   }
   const textTokens = new Set(textFound.map(({ token }) => token));
@@ -287,7 +337,13 @@ function classify(folded: Folded[], key: string, raw: string[], content: string[
   }
   if (matchedTokens.length === 0) return undefined;
   const picked = pickHit(undefined, textFound);
-  const quality = new Map(matchedTokens.map((token) => [token, tokenQuality(folded, token, synonymTokens.has(token))]));
+  const quality = new Map<string, number>();
+  for (let i = 0; i < content.length; i += 1) {
+    const token = content[i];
+    const foldedToken = contentFolded[i];
+    if (token === undefined || foldedToken === undefined || !matchedTokens.includes(token)) continue;
+    quality.set(token, tokenQuality(folded, foldedToken, synonymTokens.has(token)));
+  }
   return { tier: 2, kind: picked.kind, value: picked.kind === "value" ? picked.value : null,
     via: viaFor(matchedTokens, textTokens), matchedTokens, quality };
 }
@@ -444,15 +500,22 @@ function rankHits(hits: Hit[], content: string[], searched: Section[]) {
     || KINDS.indexOf(a.kind) - KINDS.indexOf(b.kind) || bySection(a) - bySection(b) || a.source - b.source));
   const interleaved: Hit[] = [];
   const seen = new Set<number>();
+  const indexes = buckets.map(() => 0);
   for (;;) {
     let moved = false;
-    for (const group of buckets) {
-      while (group.length > 0 && seen.has(group[0].source)) group.shift();
-      const hit = group.shift();
-      if (!hit) continue;
-      seen.add(hit.source);
-      interleaved.push(hit);
-      moved = true;
+    for (let i = 0; i < buckets.length; i += 1) {
+      const group = buckets[i];
+      if (!group) continue;
+      let idx = indexes[i] ?? 0;
+      while (idx < group.length && seen.has(group[idx].source)) idx += 1;
+      if (idx < group.length) {
+        const hit = group[idx];
+        idx += 1;
+        seen.add(hit.source);
+        interleaved.push(hit);
+        moved = true;
+      }
+      indexes[i] = idx;
     }
     if (!moved) break;
   }
@@ -465,8 +528,8 @@ function searchVocabulary(vocabulary: Record<string, unknown>, args: VocabInput,
   const searched = crossSection ? searchSections : [section];
   const full = args.detail === "full" || ids.length > 0;
   const needle = normalize(search);
-  const { raw, content } = contentTokens(needle);
-  const { cover, whole } = needle ? phraseCover(raw, content) : { cover: new Map<string, Set<string>>(), whole: new Set<string>() };
+  const query = prepareQuery(needle);
+  const { cover, whole } = needle ? phraseCover(query.raw, query.content) : { cover: new Map<string, Set<string>>(), whole: new Set<string>() };
   const hits: Hit[] = [];
   // Record exact ids before the search-text filter. A known id that misses the
   // text stays known; only an id absent from the searched sections is unknown.
@@ -478,7 +541,7 @@ function searchVocabulary(vocabulary: Record<string, unknown>, args: VocabInput,
       if (requested.size > 0 && !requested.has(entry.id)) continue;
       // A search of only separators normalises to nothing: it matches nothing, not everything.
       const classified = needle
-        ? classify(foldFields(searchableFields(name, entry)), entry.id, raw, content, cover, whole, ids.includes(entry.id) || entry.id === search)
+        ? classify(foldFields(searchableFields(name, entry)), entry.id, query, cover, whole, ids.includes(entry.id) || entry.id === search)
         : search ? undefined : { tier: 0, kind: "id", value: null, via: null, matchedTokens: [], quality: new Map<string, number>() } satisfies Classified;
       if (!classified) continue;
       const label = isRecord(entry.row) ? entry.row.label ?? entry.row.name ?? entry.row.display_name
@@ -495,7 +558,7 @@ function searchVocabulary(vocabulary: Record<string, unknown>, args: VocabInput,
         quality: classified.quality, source: hits.length });
     }
   }
-  const ranked = rankHits(hits, content, searched);
+  const ranked = rankHits(hits, query.content, searched);
   const offset = args.offset ?? 0, limit = args.limit ?? 20;
   const page = ranked.slice(offset, offset + limit);
   const sections = crossSection ? Object.fromEntries(searched.map((name) =>

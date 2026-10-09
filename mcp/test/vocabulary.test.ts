@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { execFileSync } from "node:child_process";
-import { lookupVocabulary, vocabInput, vocabularyResponse } from "../src/vocabulary";
+import { lookupVocabulary, takeSearchWork, vocabInput, vocabularyResponse } from "../src/vocabulary";
 import type { VocabInput } from "../src/vocabulary";
 import vocabulary from "../../web/src/decide/__fixtures__/vocabulary.json";
 
@@ -151,7 +151,39 @@ describe("vocabulary discovery", () => {
       { search: "software engineering coding" },
     ] satisfies VocabInput[];
     expect(cases.map((args) => lookupVocabulary(display, args))).toEqual(python(display, cases));
+    const emojiSource = { facets: [{ id: "mood", label: "😀 smile" }] };
+    const emoji = lookupVocabulary(emojiSource, { search: "😀 zzz" });
+    expect(emoji.total).toBe(0);
+    expect(emoji.suggestions).toEqual(expect.any(Array));
+    expect(emoji).toEqual(python(emojiSource, [{ search: "😀 zzz" }])[0]);
   }, 20_000);
+
+  it("does no more match work for a repeated token than for that token once", () => {
+    const pad = (i: number) => String(i).padStart(4, "0");
+    const source = {
+      facets: Array.from({ length: 60 }, (_, i) => ({ id: `offering.synthetic.metric_${pad(i)}`,
+        label: `Synthetic metric number ${pad(i)}`, allowed_values: [0, 1, 2].map((j) => `value_${pad(i)}_${j}`) })),
+      models: Object.fromEntries(Array.from({ length: 2000 }, (_, i) => [`lab${String(i % 40).padStart(2, "0")}/model-family-${pad(i)}-instruct`,
+        { display_name: `Model Family ${pad(i)} Instruct` }])),
+      estate: { providers: [], devices: Array.from({ length: 200 }, (_, i) => `vendor_accelerator_${pad(i)}_96gb`), plans: [] },
+    };
+    const measure = (search: string) => {
+      takeSearchWork();
+      const result = lookupVocabulary(source, { search });
+      return { total: result.total, ...takeSearchWork() };
+    };
+    const one = measure("ab");
+    const many = measure("ab ".repeat(42));
+    expect(many.total).toBe(one.total);
+    expect(one.matchCalls).toBeGreaterThan(0);
+    expect(many.matchCalls).toBeLessThanOrEqual(one.matchCalls);
+    expect(many.foldCalls).toBeLessThanOrEqual(one.foldCalls);
+    const eight = Array.from({ length: 8 }, (_, i) => `q${i}`).join(" ");
+    const capped = measure(eight);
+    const extra = measure(`${eight} q8`);
+    expect(capped.matchCalls).toBeGreaterThan(0);
+    expect(extra.matchCalls).toBeLessThanOrEqual(capped.matchCalls);
+  });
 
   it("puts a needed id on the first page of each turn-capped vocab call (MODEL-355)", () => {
     const ids = (result: Record<string, unknown>) => {

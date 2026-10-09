@@ -60,24 +60,9 @@ def _freshness(vocabulary: dict[str, Any]) -> dict[str, Any]:
 def _search(rows: list[dict[str, Any]], text: str | None) -> list[dict[str, Any]]:
     if not text:
         return rows
-    from api.worker.src.display_vocabulary import query_hits
-
-    kept = []
-    for row in rows:
-        if not isinstance(row, dict):
-            if query_hits(str(row), [("id", str(row), None)], text):
-                kept.append(row)
-            continue
-        key = str(row.get("id", ""))
-        fields = [("id", key, None)]
-        for field in ("label", "name", "display_name"):
-            if row.get(field):
-                fields.append(("label", row[field], None))
-        if row.get("definition"):
-            fields.append(("definition", row["definition"], None))
-        if query_hits(key, fields, text):
-            kept.append(row)
-    return kept
+    needle = text.casefold()
+    return [row for row in rows if needle in str(row.get("id", "")).casefold()
+            or needle in str(row.get("label") or row.get("name") or "").casefold()]
 
 
 def _filtered(vocabulary: dict[str, Any], section: str, class_id: str | None,
@@ -90,8 +75,8 @@ def _filtered(vocabulary: dict[str, Any], section: str, class_id: str | None,
     if section == "task-types":
         if not search:
             return value
-        from api.worker.src.display_vocabulary import query_hits
-        return [item for item in value if query_hits(str(item), [("id", str(item), None)], search)]
+        needle = search.casefold()
+        return [item for item in value if needle in str(item).casefold()]
     if section == "coverage":
         return value
 
@@ -173,7 +158,7 @@ def vocab(
         None, "--domain", help="Limit benchmarks to a capability domain."
     ),
     search: Optional[str] = typer.Option(  # noqa: UP045
-        None, "--search", help="Token and synonym match on ID, label, name or definition."
+        None, "--search", help="Substring match on ID and label or name."
     ),
     as_json: bool = typer.Option(
         False, "--json", help="Print the raw vocabulary or selected section."

@@ -6,7 +6,7 @@
   ],
   "synonyms": [
     {
-      "phrases": ["quantisation", "quantization", "quant", "4-bit", "8-bit", "bits"],
+      "phrases": ["quantisation", "quantization", "quant", "4-bit", "8-bit"],
       "ids": ["model.fits_hardware"]
     },
     {

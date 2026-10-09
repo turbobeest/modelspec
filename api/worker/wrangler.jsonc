@@ -19,11 +19,12 @@
   "compatibility_flags": ["python_workers", "disable_python_external_sdk"],
   // Registry files are runtime data read by decision/registry.py, and so are
   // the hardware/ files, whose names are the device IDs `estate.devices` is
-  // checked against (MODEL-203). pipeline/vocab_synonyms.json is the vocab
-  // search synonym table. Python files under src/ are discovered automatically;
-  // non-Python files need a module rule or Wrangler leaves them out of the upload.
+  // checked against (MODEL-203). The synonym table is the one file
+  // pipeline/vocab_synonyms.json; other pipeline JSON stays out of the upload.
+  // Python files under src/ are discovered automatically; non-Python files need
+  // a module rule or Wrangler leaves them out of the upload.
   "rules": [
-    { "type": "Data", "globs": ["registry/*.yaml", "hardware/*.yaml", "pipeline/*.json"], "fallthrough": true }
+    { "type": "Data", "globs": ["registry/*.yaml", "hardware/*.yaml", "pipeline/vocab_synonyms.json"], "fallthrough": true }
   ],
   "account_id": "43840d11c8c4586acdba8b048414900a",
   "workers_dev": false,

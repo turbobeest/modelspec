@@ -406,12 +406,12 @@ def _surfaced(result):
     return found
 
 
-def test_synonym_targets_exist_in_the_shared_fixture():
+def test_synonym_targets_exist_in_the_shared_fixture(display):
+    """Every synonym id is present in the shared fixture and in the built vocabulary."""
     from api.worker.src.display_vocabulary import section_rows
 
-    source = display_of(json.loads(SHARED.read_text()))
     table = json.loads((Path(__file__).resolve().parents[1] / "pipeline/vocab_synonyms.json").read_text())
-    present = {str(key) for name in SEARCHED for key, _, _ in section_rows(source, name)}
+    present = {str(key) for name in SEARCHED for key, _, _ in section_rows(display, name)}
     missing = [target for row in table["synonyms"] for target in row["ids"] if target not in present]
     assert missing == []
 
@@ -451,3 +451,40 @@ def test_capped_runs_first_vocab_call_surfaces_the_needed_ids():
     assert quant["total"] == 0
     assert any(item["id"] == "model.fits_hardware" for item in quant["suggestions"])
     assert lookup(source, search=".")["suggestions"] == []
+
+
+def test_subset_match_work_is_bounded_like_one_token(monkeypatch):
+    """A repeated token does no more match work than that token once. No timer."""
+    from api.worker.src import display_vocabulary
+
+    match_calls, fold_calls = {"n": 0}, {"n": 0}
+    real_match, real_fold = display_vocabulary._match_folded, display_vocabulary._fold_token
+
+    def counted_match(folded, folded_needle, tokens):
+        match_calls["n"] += 1
+        return real_match(folded, folded_needle, tokens)
+
+    def counted_fold(token):
+        fold_calls["n"] += 1
+        return real_fold(token)
+
+    monkeypatch.setattr(display_vocabulary, "_match_folded", counted_match)
+    monkeypatch.setattr(display_vocabulary, "_fold_token", counted_fold)
+    source = catalogue(2000)
+
+    def measure(text):
+        match_calls["n"] = fold_calls["n"] = 0
+        result = lookup(source, search=text)
+        return result["total"], match_calls["n"], fold_calls["n"]
+
+    one_total, one_match, one_fold = measure("ab")
+    many_total, many_match, many_fold = measure("ab " * 42)
+    assert many_total == one_total
+    assert one_match > 0
+    assert many_match <= one_match
+    assert many_fold <= one_fold
+    eight = " ".join(f"q{i}" for i in range(8))
+    _, eight_match, _ = measure(eight)
+    _, nine_match, _ = measure(eight + " q8")
+    assert eight_match > 0
+    assert nine_match <= eight_match

@@ -148,9 +148,12 @@ token matches ranks above a hit that matches only some of them. Exact ids lead.
 Inside the all-token tier, kind order is id, then label, then definition, then
 value; ties use section order, then source order. Stopwords (`use`, `for`,
 `the`, `a`, `and`, `of`, `with`, `on`, `in`, `to`) and one-character tokens
-count toward the all-token tier. They are ignored when a hit matches only a
-subset. Subset hits are interleaved so each content token's best hit appears
-before that token's later hits. `total` counts all-token hits, subset hits and
+count toward the all-token tier and are ignored for a subset hit. A character
+is one Unicode code point. Subset matching uses the first 8 unique content
+tokens, in query order. A repeated content token counts once. Tokens after
+those 8 still count toward the all-token tier. Subset hits are interleaved so
+each content token's best hit appears before that token's later hits. `total`
+counts all-token hits, subset hits and
 in-section synonym hits, and is zero only when nothing matched. A synonym hit
 keeps `matched` as `label` and sets optional `via` to `synonym`. A subset hit
 adds optional `matched_tokens`, the content tokens it matched, in query order.

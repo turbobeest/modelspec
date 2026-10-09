@@ -778,7 +778,7 @@
     "pipeline/entity.py": "1649e5f95b620561511c2619045d036231b44c8ab7ff297bf4c6a21ab2b69ff3",
     "pipeline/pricing.py": "71bc6fa888ca079c186a39c2ccd15f2ed957f2ebf59599f6413f16b8f519a174",
     "pipeline/worker_flags.py": "0f3c1ff0de81710417659b86e1ec92913bbcf54af6312720fdad659e6af03429",
-    "api/worker/wrangler.jsonc": "0a95a71025737af4e55317d61b0f75091bb9a35fb29609795936ebf08cd53b16",
+    "api/worker/wrangler.jsonc": "49523d5f0721cf42618d901c27943fa5ed5705dd60aa237fba03a129836922df",
     "api/worker/tiers.json": "315a2ad62c5b366246675d2984e61243ed20d85d89bad6bd648e8960926b8773",
     "docs/decision-contract.schema.json": "5fe85b41b537fc80b9660f5a28d57b591f4a89f180f6b981374f39e68772d63c",
     "pyproject.toml": "2f903fc64f25fd96287f064775d8006a87a63a22f5f4103046ca9353e039975e",

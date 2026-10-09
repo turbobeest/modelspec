@@ -62,8 +62,9 @@ def trim(vocabulary, *, model_ids, facet_values):
 
 MAX_IDS = 100
 MAX_TERM = 128
-# The suggestion pass is reachable without a key, so its work has a hard ceiling:
-# the first 8 tokens, each cut to 32 characters, and at most this many Levenshtein cells.
+# Suggestion scoring and subset matching are reachable without a key, so both
+# stop at the first 8 unique content tokens. Suggestions also cut each token to
+# 32 characters and stop after this many Levenshtein cells.
 SUGGESTION_TOKENS = 8
 SUGGESTION_NEEDLE_CHARS = 32
 SUGGESTION_CELLS = 300_000
@@ -134,8 +135,8 @@ def searchable_fields(section, key, row):
     fields.extend(("label", row[label], None) for label in labels if row.get(label) is not None)
     if section != "models" and row.get("display_name") is not None:
         fields.append(("label", row["display_name"], None))
-    for key in ("aliases", "synonyms"):
-        raw = row.get(key)
+    for extra in ("aliases", "synonyms"):
+        raw = row.get(extra)
         items = [raw] if isinstance(raw, str) else raw if isinstance(raw, list) else []
         fields.extend(("label", item, None) for item in items if isinstance(item, str))
     if section == "estate" and row.get("provider") is not None:
@@ -191,9 +192,8 @@ def _fold_fields(fields):
     return [(kind, _fold(text), value) for kind, text, value in fields]
 
 
-def _match_folded(folded, needle):
-    folded_needle = _fold(needle)
-    tokens = folded_needle.split()
+def _match_folded(folded, folded_needle, tokens):
+    """Match a needle folded once for the request. `tokens` are its unique folded words."""
     if not tokens:
         return None
     prior = []
@@ -210,10 +210,28 @@ def _match_folded(folded, needle):
     return None
 
 
-def _content_tokens(needle):
+def _prepare_query(needle):
+    """Fold each query token once. Subset matching keeps the first 8 unique content tokens."""
     raw = tuple(needle.split()) if needle else ()
-    content = tuple(token for token in raw if token not in _STOPWORDS and len(token) >= 2)
-    return raw, content
+    folded_of = {}
+    for token in raw:
+        if token not in folded_of:
+            folded_of[token] = _fold_token(token)
+    content = []
+    seen = set()
+    for token in raw:
+        # len() counts code points, so one emoji is one character.
+        if token in _STOPWORDS or len(token) < 2 or token in seen:
+            continue
+        seen.add(token)
+        content.append(token)
+        if len(content) >= SUGGESTION_TOKENS:
+            break
+    content = tuple(content)
+    folded_all = " ".join(folded_of[token] for token in raw)
+    all_tokens = tuple(dict.fromkeys(folded_of[token] for token in raw))
+    content_folded = tuple(folded_of[token] for token in content)
+    return raw, content, folded_all, all_tokens, content_folded
 
 
 def _phrase_cover(raw, content):
@@ -234,17 +252,16 @@ def _phrase_cover(raw, content):
     return cover, whole
 
 
-def _token_quality(folded, token, synonym):
+def _token_quality(folded, folded_token, synonym):
     if synonym:
         return 0
-    needle = _fold_token(token)
     partial = False
     for _, text, _ in folded:
-        if not needle or not text:
+        if not folded_token or not text:
             continue
-        if needle in text.split():
+        if folded_token in text.split():
             return 1
-        partial = partial or needle in text
+        partial = partial or folded_token in text
     return 2 if partial else 9
 
 
@@ -254,13 +271,14 @@ def _best_kind(found):
     return kind, value
 
 
-def _classify(folded, key, raw, content, cover, whole, exact):
+def _classify(folded, key, query, cover, whole, exact):
     """Return a hit, or None. total counts subset and synonym hits; only a true miss is zero."""
-    text_all = _match_folded(folded, " ".join(raw)) if raw else None
+    raw, content, folded_all, all_tokens, content_folded = query
+    text_all = _match_folded(folded, folded_all, all_tokens) if raw else None
     synonym_tokens = cover.get(key, set())
     text_found = []
-    for token in content:
-        found = _match_folded(folded, token)
+    for token, folded_token in zip(content, content_folded, strict=True):
+        found = _match_folded(folded, folded_token, (folded_token,))
         if found:
             text_found.append((token, found[0], found[1]))
     text_tokens = {token for token, _, _ in text_found}
@@ -294,7 +312,8 @@ def _classify(folded, key, raw, content, cover, whole, exact):
     if not matched:
         return None
     kind, value = _best_kind(text_found) if text_found else ("label", None)
-    quality = {token: _token_quality(folded, token, token in synonym_tokens) for token in matched}
+    folded_for = dict(zip(content, content_folded, strict=True))
+    quality = {token: _token_quality(folded, folded_for[token], token in synonym_tokens) for token in matched}
     return {"tier": 2, "kind": kind, "value": value, "via": via(matched),
             "matched_tokens": matched, "quality": quality}
 
@@ -304,9 +323,10 @@ def query_hits(key, fields, search):
     needle = normalize(search)
     if not needle:
         return False
-    raw, content = _content_tokens(needle)
+    query = _prepare_query(needle)
+    raw, content, *_rest = query
     cover, whole = _phrase_cover(raw, content)
-    return _classify(_fold_fields(fields), str(key), raw, content, cover, whole, False) is not None
+    return _classify(_fold_fields(fields), str(key), query, cover, whole, False) is not None
 
 
 def similarity(left, right):
@@ -438,16 +458,20 @@ def _rank_hits(hits, content, searched):
                                     _KINDS.index(hit["kind"]), searched.index(hit["entry"]["section"]), hit["source"]))
         buckets.append(group)
     interleaved, seen = [], set()
+    indexes = [0] * len(buckets)
     while True:
         moved = False
-        for group in buckets:
-            while group and group[0]["source"] in seen:
-                del group[0]
-            if group:
-                hit = group.pop(0)
+        for i, group in enumerate(buckets):
+            idx = indexes[i]
+            while idx < len(group) and group[idx]["source"] in seen:
+                idx += 1
+            if idx < len(group):
+                hit = group[idx]
+                idx += 1
                 seen.add(hit["source"])
                 interleaved.append(hit)
                 moved = True
+            indexes[i] = idx
         if not moved:
             break
     return exact + full + interleaved
@@ -458,7 +482,8 @@ def search_vocabulary(vocabulary, *, section, search, ids, full, offset, limit):
 
     Every query token matching is the first tier. Otherwise a content token can
     match; stopwords and one-character tokens count only toward the all-token
-    tier. Subset hits interleave so each content token's best hit leads. total
+    tier. Subset matching uses the first 8 unique content tokens, in query order.
+    Subset hits interleave so each content token's best hit leads. total
     counts both tiers, including synonym hits, and is zero only when nothing
     matched. A synonym hit keeps matched as label and sets via to "synonym".
     A subset hit adds matched_tokens. Suggestions are returned only on a miss.
@@ -466,7 +491,8 @@ def search_vocabulary(vocabulary, *, section, search, ids, full, offset, limit):
     cross_section = section == "starter"
     searched = list(SEARCH_SECTIONS) if cross_section else [section]
     needle = normalize(search)
-    raw, content = _content_tokens(needle)
+    query = _prepare_query(needle)
+    raw, content, *_rest = query
     cover, whole = _phrase_cover(raw, content) if needle else ({}, set())
     hits = []
     exact_ids: set[str] = set()
@@ -478,7 +504,7 @@ def search_vocabulary(vocabulary, *, section, search, ids, full, offset, limit):
                 continue
             # A search of only separators normalises to nothing: it matches nothing, not everything.
             if needle:
-                classified = _classify(_fold_fields(searchable_fields(name, key, row)), key, raw, content,
+                classified = _classify(_fold_fields(searchable_fields(name, key, row)), key, query,
                                        cover, whole, key in ids or key == search)
             elif search:
                 classified = None
