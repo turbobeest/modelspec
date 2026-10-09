@@ -3514,6 +3514,129 @@ def test_a_modified_mit_is_not_accepted() -> None:
         assert followed.outcome == "verified", (name, followed)
 
 
+# Measured from the retained copies, after ``_canonical_form``, outside the body.
+_OPENSOURCE_BEFORE = (
+    "Popular / Strong Community The MIT License Version N/A "
+    "SPDX short identifier: MIT Copyright <YEAR> <COPYRIGHT HOLDER> "
+)
+_PHI4_BEFORE = "Microsoft. Copyright (c) Microsoft Corporation. MIT License "
+_DEEPSEEK_BEFORE = "MIT License Copyright (c) 2023 DeepSeek "
+_GLM_BEFORE = "MIT License Copyright (c) 2026 Zhipu AI "
+_COMMONS_CLAUSE = (
+    '"Commons Clause" License Condition v1.0\n\n'
+    "The Software is provided to you by the Licensor under the License, as defined below, "
+    "subject to the following condition.\n\n"
+    "Without limiting other conditions in the License, the grant of rights under the License "
+    "will not include, and the License does not grant to you, the right to Sell the Software.\n\n"
+    "For purposes of the foregoing, \"Sell\" means practicing any or all of the rights granted "
+    "to you under the License to provide to third parties, for a fee or other consideration, "
+    "a product or service whose value derives, entirely or substantially, from the "
+    "functionality of the Software.\n"
+)
+
+
+def test_retained_canonical_residuals_are_accepted() -> None:
+    """The six retained residuals stay canonical MIT or Apache-2.0.
+
+    Each fixture is the measured residual plus the canonical body. Apache
+    copies also keep the appendix. Qwen fills in the appendix copyright line.
+    """
+    mit = verify.CANONICAL_LICENCE_BODIES["mit"]
+    apache_body = verify.CANONICAL_LICENCE_BODIES["apache-2.0"]
+    form = verify._canonical_form(_APACHE_FIXTURE.read_text(encoding="utf-8"))
+    assert form.startswith(apache_body)
+    appendix = form[len(apache_body):]
+    assert len(appendix) == 1092
+    assert appendix.lstrip() == verify._APACHE_APPENDIX
+    qwen_after = appendix.replace(
+        "Copyright [yyyy] [name of copyright owner]",
+        "Copyright 2024 Alibaba Cloud",
+    )
+    texts = {
+        "apache.org/LICENSE-2.0.txt": (apache_body + appendix, "apache-2.0"),
+        "Qwen/Qwen3-Embedding-8B": (apache_body + qwen_after, "apache-2.0"),
+        "opensource.org/license/mit": (_OPENSOURCE_BEFORE + mit, "mit"),
+        "microsoft/phi-4": (_PHI4_BEFORE + mit, "mit"),
+        "deepseek-ai/DeepSeek-V3.1": (_DEEPSEEK_BEFORE + mit, "mit"),
+        "zai-org/GLM-5.2": (_GLM_BEFORE + mit, "mit"),
+    }
+    extractor = verify.CanonicalLicenceExtractor()
+    for name, (text, spdx) in texts.items():
+        assert extractor.accepts(text), name
+        assert verify._canonical_licence_id(text) == spdx
+        url = _APACHE_URL + ".txt" if spdx == "apache-2.0" else _MIT_URL
+        regions = _canonical_regions(text, url, f"license: {spdx}\nNimbus 3\n")
+        claim = _licence_claim("licence.commercial_use", "permitted", (_LICENCE, _README))
+        result = verify.verify(claim, regions, verify.deterministic_extractors(), today=TODAY)
+        assert result.outcome == "verified", (name, result)
+        assert result.verification.verifier.method == "canonical-licence@1"
+
+
+def test_a_short_restriction_without_a_red_flag_is_not_canonical() -> None:
+    """A short restriction with none of the red-flag phrases is not canonical.
+
+    Each addition is inside the length bound, so the allow-list is what
+    rejects it. The licence reader is then asked.
+    """
+    apache = _APACHE_FIXTURE.read_text(encoding="utf-8")
+    rejected = {
+        "commons-clause": (
+            MIT_TEXT + _COMMONS_CLAUSE,
+            "the right to Sell the Software",
+        ),
+        "noncommercial": (
+            MIT_TEXT + "\nThe Software may be used for non-commercial research purposes only.\n",
+            "non-commercial research purposes only",
+        ),
+        "military": (
+            apache + "\nThe Work may not be used for military applications.\n",
+            "may not be used for military applications",
+        ),
+        "territory": (
+            MIT_TEXT + "\nThis Software is not licensed for use in the European Union.\n",
+            "not licensed for use in the European Union",
+        ),
+        "display-duty": (
+            MIT_TEXT + (
+                "\nIf your product has more than 100 million users, you must prominently "
+                "display the model name.\n"
+            ),
+            "prominently display the model name",
+        ),
+    }
+    extractor = verify.CanonicalLicenceExtractor()
+    for name, (text, quote) in rejected.items():
+        form = verify._canonical_form(text)
+        spdx = "apache-2.0" if name == "military" else "mit"
+        body = verify.CANONICAL_LICENCE_BODIES[spdx]
+        assert body in form, name
+        assert len(form) - len(body) <= verify.CANONICAL_LICENCE_OUTSIDE_LIMIT, name
+        assert not any(
+            flag in form.casefold() for flag in verify.CANONICAL_LICENCE_RED_FLAGS
+        ), name
+        assert not extractor.accepts(text), name
+        url = _APACHE_URL + ".txt" if spdx == "apache-2.0" else _MIT_URL
+        readme = f"license: {spdx}\nNimbus 3\n"
+        regions = _canonical_regions(text, url, readme)
+        claim = _licence_claim("licence.commercial_use", "permitted", (_LICENCE, _README))
+        result = verify.verify(claim, regions, verify.deterministic_extractors(), today=TODAY)
+        assert result.outcome == "skipped", (name, result)
+        assert result.verification is None
+        calls: list[str] = []
+
+        def complete(prompt: str, _calls: list[str] = calls) -> str:
+            _calls.append(prompt)
+            return _reply("permitted", [quote])
+
+        followed = verify.verify(
+            claim, regions,
+            [*verify.deterministic_extractors(), _licence_reader(complete)],
+            today=TODAY,
+        )
+        assert calls, name
+        assert followed.outcome == "verified", (name, followed)
+
+
 def test_canonical_mit_without_a_binding_page_does_not_verify() -> None:
     regions = _KindRegions(
         {("nimbus-licence", "page"): MIT_TEXT},
