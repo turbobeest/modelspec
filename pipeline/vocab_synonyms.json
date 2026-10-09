@@ -1,0 +1,40 @@
+{
+  "spelling": [
+    ["quantisation", "quantization"],
+    ["licence", "license"],
+    ["optimise", "optimize"]
+  ],
+  "synonyms": [
+    {
+      "phrases": ["quantisation", "quantization", "quant", "4-bit", "8-bit", "bits"],
+      "ids": ["model.fits_hardware"]
+    },
+    {
+      "phrases": ["residency", "data residency", "region", "eu"],
+      "ids": ["offering.region", "eu-data", "regional", "regional-budget", "regional-best"]
+    },
+    {
+      "phrases": ["macbook", "mac", "apple silicon"],
+      "ids": [
+        "apple_m1_max", "apple_m2_max", "apple_m2_ultra", "apple_m3_max", "apple_m3_ultra",
+        "apple_m4", "apple_m4_max", "apple_m4_pro", "apple_m5_max"
+      ]
+    },
+    {
+      "phrases": ["coding", "code", "swe", "software engineering", "code review"],
+      "ids": ["software_engineering"]
+    },
+    {
+      "phrases": ["training", "trains on data"],
+      "ids": ["offering.data.trains_on_customer_data"]
+    },
+    {
+      "phrases": ["commercial"],
+      "ids": ["licence.commercial_use"]
+    },
+    {
+      "phrases": ["memory", "vram"],
+      "ids": ["model.fits_hardware", "model.hardware_fit_indeterminate"]
+    }
+  ]
+}

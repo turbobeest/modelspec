@@ -1,12 +1,12 @@
 {
   "source_hashes": {
-    "mcp/src/server.ts": "7507201fc1039da15ab0acfac23a6182e1d997bc5f813dd332c15cbbad5cec34",
-    "mcp/src/vocabulary.ts": "1c6d6c5f00aa2490b64f6a979c49f97e3fe8854f759e8c43bbac9baa840d077c",
-    "mcp/test/fixtures/decide-budget.json": "ab2c5d4eba2c3300e69aceb6ff315eca564399d3f082f076d8c75a1b93a470b8",
-    "docs/decision-contract.schema.json": "5fe85b41b537fc80b9660f5a28d57b591f4a89f180f6b981374f39e68772d63c",
-    "api/worker/openapi.yaml": "fd6c45928e21c9f9a16099e4a25a3615392403b64d7205c63a1963298c58f87c",
+    "mcp/src/server.ts": "048b4acae2cd3e64a87872e3be4c712213b42cb6e36fb88aab4e30fa8e791d20",
+    "mcp/src/vocabulary.ts": "5513a60582794a602a645272c0f891aa3e91d1acf88c15edac3b932c12a7746e",
+    "mcp/test/fixtures/decide-budget.json": "f850afa5b23f19db13ee2f664c117bae11792c762715279ad7062ec39d28d0e0",
+    "docs/decision-contract.schema.json": "0a90c6990148bc3db93013437feea65d6689f5a243c92ed5617950b008d1c9c4",
+    "api/worker/openapi.yaml": "f36798400a07a626ac69b10f0a41c3a34325c47c4ffb283e77bcd0efeee75ef1",
     "docs/agents.md": "bcbc361940b327c2f5335caec8a4fb7e1981b5aa00208cae47d52e9aa4874739",
-    "mcp/src/agent-copy.json": "786bb9da20d2975b4a35282440a28c16e2683d170a6884f77fa3311dd51189bc"
+    "mcp/src/agent-copy.json": "de012c48da6808213d8f0fb3e9a8b1ac847dc681ad541fb2b33e192065c31ddb"
   },
   "tools": [
     {
@@ -1789,7 +1789,7 @@
     },
     {
       "name": "vocab",
-      "description": "What can a decide spec say? Returns the decision vocabulary: valid facet ids, benchmarks, domains, providers and task types. Compact by default, with 20 rows per page and no counts. Split-mode full details exclude per-model facts and counts. Needs an API key. Use it for missing ids, not to compare models. One vocabulary lookup per unknown facet, then decide. Read `next` before another call. section=starter returns a ready-to-send minimal Spec and a next hint. Search covers every section's ids, labels, definitions and values with case- and separator-insensitive matching; a miss returns suggestions. An explicit non-starter section scopes the search. Use id or ids for row details, or detail=full for all display details. Use offset and limit to page matches across sections, including full details; an empty page ends the list. ",
+      "description": "What can a decide spec say? Returns the decision vocabulary: valid facet ids, benchmarks, domains, providers and task types. Compact by default, with 20 rows per page and no counts. Split-mode full details exclude per-model facts and counts. Needs an API key. Use it for missing ids, not to compare models. One vocabulary lookup per unknown facet, then decide. Read `next` before another call. section=starter returns a ready-to-send minimal Spec and a next hint. Search covers every section's ids, labels, definitions, values and synonyms. All tokens rank first; a content-token subset can match. A miss returns the nearest ids. An explicit non-starter section scopes the search. Use id or ids for row details, or detail=full for all display details. Use offset and limit to page matches across sections, including full details; an empty page ends the list. ",
       "input_schema": {
         "type": "object",
         "properties": {
@@ -1815,7 +1815,7 @@
           },
           "search": {
             "type": "string",
-            "description": "Case-insensitive substring over id and label or display name"
+            "description": "Case- and separator-insensitive token and synonym search over ids, labels, definitions and values"
           },
           "id": {
             "type": "string",

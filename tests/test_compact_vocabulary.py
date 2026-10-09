@@ -84,7 +84,9 @@ def test_trim_keeps_which_way_is_better_on_number_facets_only(vocabulary, displa
     compact = lookup(display, section="facets", ids=["offering.price.input", "model.class"])["facets"]
     assert {row["id"]: row.get("better") for row in compact} == {
         "offering.price.input": "lower", "model.class": None}
-    assert lookup(display, section="facets", search="input price")["facets"][0]["better"] == "lower"
+    priced = next(row for row in lookup(display, section="facets", search="input price")["facets"]
+                  if row["id"] == "offering.price.input")
+    assert priced["better"] == "lower"
 
 
 def test_search_ids_intersection_full_detail_and_pages(display):

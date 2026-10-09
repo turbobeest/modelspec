@@ -355,7 +355,8 @@ def test_suggestion_work_is_bounded_by_a_cell_budget(monkeypatch):
 
     monkeypatch.setattr(display_vocabulary, "similarity", counted)
     source = catalogue()
-    needles = [f"zz{i}-model-family-instruct-xyzw" for i in range(100)]  # ~30 characters each
+    # Tokens must not occur in the catalogue, or subset matching turns the miss into hits.
+    needles = [f"zz{i}-qqqqvvvv-xyzwabcd" for i in range(100)]
     for args in ({"search": needles[0]}, {"ids": needles}, {"search": "q" * 128}):
         cells[0] = 0
         first = lookup(source, **args)
@@ -372,3 +373,81 @@ def test_boolean_value_suggestions_render_like_json():
     miss = lookup({"facets": [{"id": "flag", "allowed_values": [True, False]}]}, search="ture")
     assert miss["suggestions"][0] == {"section": "facets", "id": "flag", "value": True}
     assert "flag (value true)" in miss["message"]
+
+
+def _surfaced(result):
+    """Ids a caller can see on page 1: matches, suggestions, and full-detail values."""
+    found = set()
+    for row in result.get("matches", []):
+        found.add(row["id"])
+        if "value" in row and not isinstance(row["value"], bool):
+            found.add(str(row["value"]))
+    for item in result.get("suggestions", []):
+        found.add(item["id"])
+        if "value" in item and not isinstance(item["value"], bool):
+            found.add(str(item["value"]))
+    for rows in result.values():
+        if isinstance(rows, dict):
+            found.update(key for key in rows if isinstance(key, str))
+            for group in rows.values():
+                if isinstance(group, list):
+                    found.update(row["id"] if isinstance(row, dict) else row for row in group if isinstance(row, (dict, str)))
+            continue
+        if not isinstance(rows, list):
+            continue
+        for row in rows:
+            if isinstance(row, str):
+                found.add(row)
+            elif isinstance(row, dict) and "id" in row:
+                found.add(row["id"])
+                found.update(str(value) for value in row.get("allowed_values", []) if not isinstance(value, bool))
+                found.update(str(value.get("value") if isinstance(value, dict) else value)
+                             for value in row.get("values", []) if not isinstance(value, bool))
+    return found
+
+
+def test_synonym_targets_exist_in_the_shared_fixture():
+    from api.worker.src.display_vocabulary import section_rows
+
+    source = display_of(json.loads(SHARED.read_text()))
+    table = json.loads((Path(__file__).resolve().parents[1] / "pipeline/vocab_synonyms.json").read_text())
+    present = {str(key) for name in SEARCHED for key, _, _ in section_rows(source, name)}
+    missing = [target for row in table["synonyms"] for target in row["ids"] if target not in present]
+    assert missing == []
+
+
+def test_capped_runs_first_vocab_call_surfaces_the_needed_ids():
+    """MODEL-355. The first vocab call of each turn-capped run puts a needed id on page 1.
+
+    prompt-review's stored first call is section=starter with no search. Starter stays
+    the unchanged facet list, so the needed ids are asserted on the following searches:
+    price.input and domains software. code_review is absent from the shared fixture.
+    """
+    source = display_of(json.loads(SHARED.read_text()))
+    starter = lookup(source, section="starter")
+    assert "matches" not in starter and "software_engineering" not in [row["id"] for row in starter["starter"]]
+
+    hardware = _surfaced(lookup(source, search="rtx 5090"))
+    assert {"nvidia_rtx_5090", "model.fits_hardware"} <= hardware
+
+    dual = _surfaced(lookup(source, search="fits_hardware", detail="full"))
+    assert {"model.fits_hardware", "nvidia_rtx_4090"} <= dual
+
+    budget = _surfaced(lookup(source, search="eu residency training commercial use azure vertex", limit=20))
+    assert {"offering.region", "offering.data.trains_on_customer_data", "licence.commercial_use"} <= budget
+    assert {"azure-ai-foundry", "google-vertex-ai"} & budget
+
+    estate = _surfaced(lookup(source, section="estate", search="m4 macbook 24", detail="full", limit=20))
+    assert any(item.startswith("apple_m4") for item in estate)
+    assert "model.fits_hardware" in _surfaced(lookup(source, search="macbook m4"))
+
+    assert "software_engineering" in _surfaced(lookup(source, search="code review defect"))
+    assert "offering.price.input" in _surfaced(lookup(source, search="price.input"))
+    domains = lookup(source, section="domains", search="software")
+    assert domains["total"] == 1 and domains["matches"][0]["id"] == "software_engineering"
+    assert "software_engineering" in _surfaced(lookup(source, search="software engineering coding"))
+
+    quant = lookup(source, section="benchmarks", search="quantization")
+    assert quant["total"] == 0
+    assert any(item["id"] == "model.fits_hardware" for item in quant["suggestions"])
+    assert lookup(source, search=".")["suggestions"] == []
