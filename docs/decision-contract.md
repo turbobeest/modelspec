@@ -70,8 +70,8 @@ save_as: acme-rust-refactor
 | `spec_version` | `1` | required | The spec format. Only `1` exists. |
 | `snapshot` | `latest` or a snapshot ID (`snap_…`) | `latest` | Which snapshot to answer from. Pin an ID to reproduce a decision. |
 | `profile` | `profile:<name>`, or an inline profile | none | The inventory profile. Without one, the whole catalogue is the inventory. |
-| `task` | string | none | Free text for the decision model. **Not yet in slice 1:** a spec that sets it is refused. Send `task_type` and `capabilities`. |
-| `task_type` | closed set, below | none | What kind of task this is. |
+| `task` | string | none | Free text for the decision model. **Not yet in slice 1:** a spec that sets it is refused. Express the task as `where` conditions on facets and `capabilities` on domains. |
+| `task_type` | closed set, below | none | What kind of task this is. **Not yet applied:** the engine does not read it, and a bounded answer reports it as not applied. |
 | `capabilities` | map of domain ID to `required` or `preferred` | none | The capabilities the task needs. |
 | `exclude_benchmarks` | list of benchmark IDs | `[]` | Verified evidence from these benchmarks cannot filter, answer an objective or contribute to a capability estimate. Unknown IDs are refused. |
 | `task_tokens` | `{input, output}`, whole numbers ≥ 0 | `{input: 40000, output: 4000}` | Tokens one task takes. Prices `offering.cost_per_task`; see below. |
@@ -111,7 +111,8 @@ cached warm p95 below one second.
 **`task_type`** is one of `new_feature`, `bug_fix`, `refactor`,
 `test_writing`, `docs`, `migration`, `performance`, `security_fix`, `review`,
 `analysis`, `data_transform`, `config_infra`: the outcome protocol's task
-types.
+types. No filter, objective or capability estimate reads it yet, so it does not
+change which models qualify or how they rank.
 
 **Identifiers.** A facet ID is lowercase and dotted (`origin.lab_jurisdiction`). A
 model ID is `lab/model`. A harness ID is `name@major.minor`

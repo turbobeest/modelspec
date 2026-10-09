@@ -341,6 +341,23 @@ def test_rejections_include_registry_backed_recovery(service, snapshot, invalid,
             default_registry().facet(facet_id)
 
 
+def test_free_text_refusal_does_not_recommend_task_type(service, snapshot):
+    """The engine never applies task_type, so the refusal must not offer it (MODEL-351)."""
+    status, body = service.decide(_payload() | {"task": "refactor the parser"}, snapshot)
+    assert status == 400
+    [issue] = body["error"]["issues"]
+    [hint] = body["error"]["recovery"]
+    assert issue["reason"] == (
+        "free-text task is not yet in slice 1; express it as where conditions on facets "
+        "and capabilities on domains instead"
+    )
+    assert hint["accepted_shape"] == (
+        "structured facets in where and optimize, with optional capabilities on domains"
+    )
+    for text in (issue["reason"], hint["accepted_shape"], hint["guidance"]):
+        assert "task_type" not in text
+
+
 @pytest.mark.parametrize("invalid,path,shape", REJECTION_CLASSES)
 def test_every_recovery_example_parses(service, snapshot, invalid, path, shape):
     from decision.contract import parse_spec

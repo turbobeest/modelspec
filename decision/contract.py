@@ -2517,6 +2517,13 @@ def load_yaml(text: str) -> Any:
         raise SpecError([Issue(None, None, f"not valid YAML: {exc}", "")]) from None
 
 
+# task_type is not offered as a substitute: the engine never applies it (MODEL-351).
+TASK_REASON = (
+    "free-text task is not yet in slice 1; express it as where conditions on facets "
+    "and capabilities on domains instead"
+)
+
+
 def parse_spec(raw: str | Mapping[str, Any], *, facets: FacetLookup | None) -> Spec:
     """Parse and validate a spec (YAML text or a mapping).
 
@@ -2532,9 +2539,7 @@ def parse_spec(raw: str | Mapping[str, Any], *, facets: FacetLookup | None) -> S
         raise SpecError(_issues(exc)) from None
     issues = check_facets(spec, facets) if facets is not None else []
     if spec.task is not None:
-        issues.append(Issue(None, "task",
-                            "free-text task is not yet in slice 1; send task_type and "
-                            "capabilities instead", "task"))
+        issues.append(Issue(None, "task", TASK_REASON, "task"))
     if issues:
         raise SpecError(issues)
     return spec
