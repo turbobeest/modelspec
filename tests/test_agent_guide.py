@@ -69,7 +69,8 @@ def test_generated_guide_and_constants_are_stable_and_within_budget():
         assert snippet in markdown
 
 
-def test_coverage_pointer_keeps_all_three_mcp_first_turns_under_10k(capsys):
+def test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget(capsys):
+    """Each provider's first MCP turn stays within 10,000 estimated tokens."""
     from qa.agent_harness import main
     assert main(["--first-turn-breakdown"]) == 0
     report = json.loads(capsys.readouterr().out)

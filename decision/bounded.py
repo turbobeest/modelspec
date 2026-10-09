@@ -11,14 +11,23 @@ import json
 from collections.abc import Mapping
 
 from decision import contract
-from decision.summary import summarize
+from decision.summary import (
+    proxy_benchmarks_from_capture,
+    record_counts_from_capture,
+    summarize,
+)
 
 ESSENTIAL_ROW_FIELDS = frozenset({"rank", "model", "offering", "warnings"})
 DEFAULT_FIELDS = ("model_rank", "cost_per_task", "estimates", "p_best")
 # Row fields the engine fills at explain summary and full (decision/explain.py).
 EXPLAIN_ROW_FIELDS = ("contributions", "evidence")
-# Whole row fields the agent budget may remove. Items inside one of these stay
-# intact: provenance is never cut off, and a value is never replaced with null.
+# Whole row fields the agent budget may remove. One cut reaches inside a field:
+# in the top result's heavy-field loop, each pass removes one whole evidence
+# item from ``contributions`` when that is the largest heavy field, otherwise
+# the largest heavy field whole, counted under ``results.contributions.evidence``
+# or ``results.<field>`` (see ``_fit_agent_budget``).
+# Fields inside an item are never trimmed: provenance is never cut off, and a
+# value is never replaced with null.
 HEAVY_ROW_FIELDS = ("evidence", "contributions", "estimates", "refinement_estimates", "plans")
 # Evidence and contributions on a later row of a model that already has an
 # earlier row. The first row of each model keeps both until the later step.
@@ -167,15 +176,30 @@ def project(decision: contract.Decision, options: contract.ResponseOptions, *,
     if detail:
         body["model_evidence"] = detail.model_dump(mode="json")
     # Computed from the full Decision, before either budget drops records.
+    # Record counts come from the same capture as member_evidence, before the
+    # cap of three, so a member limit dropped from results is still counted.
     summary, mentions = summarize(
         decision, spec, not_applied=not_applied, profiles=profiles, feasible=feasible,
+        record_counts=None if member_evidence is None else record_counts_from_capture(member_evidence),
+        proxy_benchmarks=(
+            None if member_evidence is None else proxy_benchmarks_from_capture(member_evidence)
+        ),
     )
     body["summary_for_user"] = summary
     body["must_mention"] = mentions
     # After the summary, which is computed from the full Decision. Drill-down
     # cites one model through model_evidence and does not carry this list.
-    if detail is None and member_evidence:
-        body["member_evidence"] = _bounded_member_evidence(body, member_evidence)
+    # explain none carries the counts into the caveat and not the item list.
+    # The capture also counts models the summary names that are not members.
+    # member_evidence stays the answer members, in member order.
+    if detail is None and member_evidence and decision.explain in ("summary", "full"):
+        members = list(decision.answer.members) if decision.answer is not None else []
+        by_model = {}
+        for entry in member_evidence:
+            by_model.setdefault(entry[0], entry)
+        shown = [by_model[model_id] for model_id in members if model_id in by_model]
+        if shown:
+            body["member_evidence"] = _bounded_member_evidence(body, shown)
     if detail:
         _bound_detail(body)
     else:
@@ -301,7 +325,8 @@ def _bounded_member_evidence(body: dict, captured: list) -> list[dict]:
     """
     entries = []
     omitted_total = 0
-    for model_id, items in captured:
+    for entry in captured:
+        model_id, items = entry[0], entry[1]
         dumped = [_dump_evidence_item(item) for item in items]
         dumped.sort(key=_evidence_item_key)
         usable = []
@@ -425,6 +450,45 @@ def _trim_member_item(body: dict, *, floor: int) -> bool:
     return True
 
 
+def _drop_contribution_evidence(body: dict, row: dict) -> bool:
+    """Drop the worst evidence item nested in ``contributions``.
+
+    Called only when ``contributions`` is the largest heavy field. One record
+    then covers a shortfall that would otherwise remove the dimension and
+    weight with the field. A heavy field is still removed whole once no item
+    is large enough to pay for its omission count. Fields inside one item
+    are never trimmed.
+    """
+    parts = row.get("contributions")
+    if not isinstance(parts, list):
+        return False
+    worst = None
+    worst_key = None
+    for part_index, part in enumerate(parts):
+        evidence = part.get("evidence") if isinstance(part, dict) else None
+        if not isinstance(evidence, list):
+            continue
+        for item_index, item in enumerate(evidence):
+            encoded = len(json.dumps(
+                item, ensure_ascii=False, separators=(",", ":"),
+            ).encode("utf-8"))
+            # The omission count costs more than an empty item. Skip those.
+            if encoded <= 32:
+                continue
+            key = _evidence_item_key(item if isinstance(item, dict) else {})
+            if worst_key is None or key > worst_key:
+                worst_key = key
+                worst = (part_index, item_index)
+    if worst is None:
+        return False
+    part_index, item_index = worst
+    parts[part_index]["evidence"].pop(item_index)
+    omitted = body["explanation"]["omitted"]
+    key = "results.contributions.evidence"
+    omitted[key] = omitted.get(key, 0) + 1
+    return True
+
+
 def _drop_member_entry(body: dict) -> bool:
     """Remove the last ``member_evidence`` entry and count it.
 
@@ -454,12 +518,17 @@ def _fit_agent_budget(body: dict) -> None:
     ``member_evidence`` items from the member with the most items down to one
     item per member, then any remaining result row except the top, then
     ``with_estate``, then ``reading``, ``relax_task_tokens`` and
-    ``relax_single``, then one heavy field of the top result, then its other
-    non-essential fields, then any remaining ``member_evidence`` items, then ``member_evidence`` entries
+    ``relax_single``, then the top result's heavy fields in one repeated
+    step: each pass removes the worst evidence item inside ``contributions``
+    when ``contributions`` is the largest heavy field and holds an item worth
+    removing, otherwise the largest heavy field whole, so nested and
+    whole-field cuts can alternate; then its other non-essential fields, then
+    any remaining ``member_evidence`` items, then ``member_evidence`` entries
     from the end of the list. The first row of each model, and row 0, keep
     their explanation until that later heavy-field step. The top result's
-    explanation is removed only after the earlier records are gone. Fields
-    inside one evidence item are never trimmed. ``answer``, ``status``,
+    explanation is removed only after the earlier records are gone. A nested
+    evidence item and a heavy field are each removed whole. Fields inside one
+    evidence item are never trimmed. ``answer``, ``status``,
     ``warnings``, ``coverage``, ``summary_for_user``, ``must_mention`` and
     the top result's rank, model, offering and warnings stay. A heavy field
     is removed whole. Does not return a body that is still over budget: the
@@ -522,8 +591,12 @@ def _fit_agent_budget(body: dict) -> None:
         body.pop(key)
         _omit(body, key)
 
-    while _over(body) and results and _drop_heavy(body, results[0], "results"):
-        pass
+    while _over(body) and results:
+        row = results[0]
+        if _heavy_field(row) == "contributions" and _drop_contribution_evidence(body, row):
+            continue
+        if not _drop_heavy(body, row, "results"):
+            break
 
     if results:
         for name in [key for key in results[0] if key not in ESSENTIAL_ROW_FIELDS]:
