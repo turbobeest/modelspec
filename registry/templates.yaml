@@ -179,7 +179,7 @@ templates:
       classes: [text-generator]
       domains: [software_engineering]
     canvas: {x: "facet:model.parameters_total", y: "capability:software_engineering"}
-    teaches: Privacy is a Must on the weights and the licence; the canvas shows the model size you would have to host.
+    teaches: Privacy is a Must on the weights and the licence; the canvas shows the model size you would have to host. Lab jurisdiction is a buyer-set Must (origin.lab_jurisdiction in {…}); an unverified jurisdiction does not pass, so set the countries on the facet board. The same condition works as an inventory profile rule.
 
   # ── Writing ─────────────────────────────────────────────────────────────
   - id: writing-best
@@ -297,7 +297,7 @@ templates:
       classes: [text-generator]
       domains: [writing]
     canvas: {x: "facet:model.parameters_total", y: "capability:writing"}
-    teaches: Privacy is a Must on the weights and the licence; the canvas shows the model size you would have to host.
+    teaches: Privacy is a Must on the weights and the licence; the canvas shows the model size you would have to host. Lab jurisdiction is a buyer-set Must (origin.lab_jurisdiction in {…}); an unverified jurisdiction does not pass, so set the countries on the facet board. The same condition works as an inventory profile rule.
 
   # ── Maths and reasoning ─────────────────────────────────────────────────
   - id: maths
@@ -419,7 +419,7 @@ templates:
       classes: [text-generator]
       domains: [maths, reasoning]
     canvas: {x: "facet:model.parameters_total", y: "capability:maths"}
-    teaches: Privacy is a Must on the weights and the licence; the canvas shows the model size you would have to host.
+    teaches: Privacy is a Must on the weights and the licence; the canvas shows the model size you would have to host. Lab jurisdiction is a buyer-set Must (origin.lab_jurisdiction in {…}); an unverified jurisdiction does not pass, so set the countries on the facet board. The same condition works as an inventory profile rule.
 
   # ── Long documents ──────────────────────────────────────────────────────
   - id: documents-best
@@ -546,7 +546,7 @@ templates:
       classes: [text-generator]
       domains: [writing]
     canvas: {x: "facet:model.context_window", y: "capability:writing"}
-    teaches: Self-hosting narrows the field, so the context floor is lower and longer context becomes a Prefer.
+    teaches: Self-hosting narrows the field, so the context floor is lower and longer context becomes a Prefer. Lab jurisdiction is a buyer-set Must (origin.lab_jurisdiction in {…}); an unverified jurisdiction does not pass, so set the countries on the facet board. The same condition works as an inventory profile rule.
 
   # ── Retrieval and embeddings ────────────────────────────────────────────
   - id: retrieval-embeddings
@@ -654,7 +654,7 @@ templates:
       classes: [vectoriser]
       domains: [retrieval]
     canvas: {x: "facet:model.parameters_total", y: "capability:retrieval"}
-    teaches: Privacy is a Must on the weights and the licence; the canvas shows the model size you would have to host.
+    teaches: Privacy is a Must on the weights and the licence; the canvas shows the model size you would have to host. Lab jurisdiction is a buyer-set Must (origin.lab_jurisdiction in {…}); an unverified jurisdiction does not pass, so set the countries on the facet board. The same condition works as an inventory profile rule.
 
   # ── General assistant ───────────────────────────────────────────────────
   - id: assistant-best
@@ -775,7 +775,7 @@ templates:
       classes: [text-generator]
       domains: [chat_preference]
     canvas: {x: "facet:model.parameters_total", y: "capability:chat_preference"}
-    teaches: Use Must for deployment and licence requirements, then Prefer to balance assistant quality and cost.
+    teaches: Use Must for deployment and licence requirements, then Prefer to balance assistant quality and cost. Lab jurisdiction is a buyer-set Must (origin.lab_jurisdiction in {…}); an unverified jurisdiction does not pass, so set the countries on the facet board. The same condition works as an inventory profile rule.
 
   # ── High volume ─────────────────────────────────────────────────────────
   - id: high-volume-best

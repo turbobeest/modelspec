@@ -12,6 +12,7 @@ from decision.contract import (
 )
 from decision.refinements import is_refinement_key, split_dimension
 from decision.regions import guarantees_countries, no_guarantee_reason
+from decision.filter import UNVERIFIED_MAY_QUALIFY, governance_unverified_suffix
 from decision.optimise import Normalisation
 from decision.registry import UNREGISTERED
 from decision.registry import facet as registry_facet
@@ -61,6 +62,18 @@ UNTRACED = frozenset({"weight", "soft_penalty", "rank", "admits"})
 
 def facet_unit(facet_id):
     return registry_facet(facet_id).unit
+
+
+def _unverified_suffix(facet_id):
+    """Governance unknowns are eliminated. Capability unknowns may still qualify."""
+    if facet_id:
+        try:
+            facet = registry_facet(facet_id)
+        except KeyError:
+            facet = None
+        if facet is not None and facet.risk == "governance":
+            return governance_unverified_suffix(facet.label or facet_id)
+    return ": " + UNVERIFIED_MAY_QUALIFY
 
 
 def named_facets(resolved):
@@ -678,7 +691,7 @@ def _alternatives(decision, resolved, snapshot, filtered, ordered, selectors, do
                     ModelElimination(
                         model=ref.model,
                         offering=ref,
-                        condition=text + (": unverified: may qualify" if reason.unverified else ""),
+                        condition=text + (_unverified_suffix(reason.facet) if reason.unverified else ""),
                         value=value,
                         values=values,
                         unit=unit,
@@ -709,11 +722,16 @@ def _alternatives(decision, resolved, snapshot, filtered, ordered, selectors, do
             ref = offering_ref(snapshot, reason.candidate)
             if ref.model_dump_json() not in already:
                 is_collection = isinstance(reason.value, (tuple, list))
+                # Route and retirement rows carry a fixed string and stay bare.
+                # A where-clause unknown uses the same note as the rows above.
+                condition = reason.condition
+                if reason.unverified and not isinstance(reason._condition, str):
+                    condition += _unverified_suffix(reason.facet)
                 decision.eliminated.models.append(
                     ModelElimination(
                         model=ref.model,
                         offering=ref,
-                        condition=reason.condition,
+                        condition=condition,
                         value=None if is_collection else reason.value,
                         values=list(reason.value) if is_collection else [],
                     )

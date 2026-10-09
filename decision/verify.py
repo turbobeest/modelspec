@@ -3434,10 +3434,168 @@ def _text(value: Any) -> str | None:
     return None if value is None else str(value)
 
 
+# USPS abbreviations as the SEC writes stateOfIncorporation for a US state.
+# Kentucky is "KY" here. That is not the Cayman Islands (country KY).
+_USPS_STATE = frozenset({
+    "AL", "AK", "AZ", "AR", "CA", "CO", "CT", "DE", "FL", "GA", "HI", "ID", "IL", "IN", "IA",
+    "KS", "KY", "LA", "ME", "MD", "MA", "MI", "MN", "MS", "MO", "MT", "NE", "NV", "NH", "NJ",
+    "NM", "NY", "NC", "ND", "OH", "OK", "OR", "PA", "RI", "SC", "SD", "TN", "TX", "UT", "VT",
+    "VA", "WA", "WV", "WI", "WY", "DC",
+})
+_SEC_STATE = re.compile(r'"stateOfIncorporation"\s*:\s*"([A-Z]{2})"')
+_SEC_DESC = re.compile(r'"stateOfIncorporationDescription"\s*:\s*"([^"]+)"')
+_JURISDICTION_CUE = re.compile(
+    r"incorporat|organi[sz]ed under|laws of the state of|"
+    r"jurisdiction of incorporation|company limited by shares|\bamtsgericht\b",
+    re.IGNORECASE,
+)
+_US_STATE_NAME = (
+    r"delaware|california|nevada|washington|new york|texas|massachusetts|florida|"
+    r"illinois|colorado|virginia|maryland|georgia|pennsylvania|new jersey|ohio|"
+    r"north carolina|arizona|oregon|utah|michigan|minnesota|wisconsin|connecticut|"
+    r"district of columbia"
+)
+_FORMED = r"(?:incorporated|registered|formed|organi[sz]ed)"
+# A country counts only from a phrase that states incorporation, not a headquarters
+# or a governing-law mention. "laws of the state of Delaware" alone is governing law.
+# Order does not matter; the reading is sorted.
+_INCORPORATION_PHRASES: tuple[tuple[re.Pattern[str], str], ...] = (
+    (re.compile(r"(?i)\b(?:" + _US_STATE_NAME + r") (?:public benefit corporation|corporation|limited liability company|llc|company)\b"), "US"),
+    (re.compile(r"(?i)\b" + _FORMED + r" (?:in|under the laws of)(?: the)?(?: state of)? (?:" + _US_STATE_NAME + r")\b"), "US"),
+    (re.compile(r"(?i)\b(?:" + _FORMED + r" )(?:in|under the laws of) the cayman islands\b"), "KY"),
+    (re.compile(r"(?i)\bcayman islands (?:exempted )?company\b"), "KY"),
+    (re.compile(r"(?i)\b" + _FORMED + r" (?:in|under the laws of) (?:the )?(?:people's republic of china|prc)\b"), "CN"),
+    (re.compile(r"(?i)\bincorporated in (?:mainland )?china\b"), "CN"),
+    (re.compile(r"(?i)\b" + _FORMED + r" (?:in|under the laws of) hong kong\b"), "HK"),
+    (re.compile(r"(?i)\b(?:incorporated|registered) in england and wales\b"), "GB"),
+    (re.compile(r"(?i)\borgani[sz]ed under the laws of england and wales\b"), "GB"),
+    (re.compile(r"(?i)\b" + _FORMED + r" in (?:the )?united kingdom\b"), "GB"),
+    (re.compile(r"(?i)\b" + _FORMED + r" in (?:the federal republic of )?germany\b"), "DE"),
+    (re.compile(r"(?i)\bgesellschaft mit beschr[aä]nkter haftung\b"), "DE"),
+    (re.compile(r"(?i)\bamtsgericht\b(?:\s+\S+){0,6}\s+hrb\b"), "DE"),
+    (re.compile(r"(?i)\b" + _FORMED + r" (?:in|under the laws of) (?:the republic of )?singapore\b"), "SG"),
+    # An Exhibit 21 row is a whole legal suffix, a pipe, then the state, and the
+    # state ends the cell. "Zinc" is not "Inc". A pipe before a state name in
+    # any other table is not incorporation.
+    (re.compile(
+        r"(?i)\b(?:llc|l\.l\.c\.|inc\.?|corp\.?|corporation|ltd\.?|limited|l\.p\.)\s*\|\s*(?:"
+        + _US_STATE_NAME + r")\s*(?:\||$)"
+    ), "US"),
+    (re.compile(r"(?i)\b" + _FORMED + r" in japan\b"), "JP"),
+    (re.compile(r"(?i)\b" + _FORMED + r" in (?:the republic of korea|south korea)\b"), "KR"),
+    (re.compile(r"(?i)\b" + _FORMED + r" in ireland\b"), "IE"),
+    (re.compile(r"(?i)\b" + _FORMED + r" in the republic of ireland\b"), "IE"),
+    (re.compile(r"(?i)\(cayman(?: islands)?\)"), "KY"),
+    (re.compile(r"(?i)\b" + _FORMED + r" in (?:the )?netherlands\b"), "NL"),
+    (re.compile(r"(?i)\b" + _FORMED + r" (?:in|under the laws of) (?:the )?british virgin islands\b"), "VG"),
+    (re.compile(r"(?i)\b" + _FORMED + r" in bermuda\b"), "BM"),
+    (re.compile(r"(?i)\bincorporated in (?:the )?cayman islands\b"), "KY"),
+)
+# SEC submissions name the country in stateOfIncorporationDescription. A US
+# filer repeats the postal code there ("DE"). A foreign filer names the country
+# ("Cayman Islands"). Map only that field, not a prose mention of the same words.
+_SEC_DESC_COUNTRY = {
+    "cayman islands": "KY",
+    "hong kong": "HK",
+    "china": "CN",
+    "people's republic of china": "CN",
+    "singapore": "SG",
+    "ireland": "IE",
+    "united kingdom": "GB",
+    "netherlands": "NL",
+    "bermuda": "BM",
+    "british virgin islands": "VG",
+    "japan": "JP",
+    "korea": "KR",
+    "republic of korea": "KR",
+    "germany": "DE",
+    "taiwan": "TW",
+    "israel": "IL",
+    "canada": "CA",
+    "australia": "AU",
+    "france": "FR",
+    "switzerland": "CH",
+    "luxembourg": "LU",
+    "united states": "US",
+}
+# A cited region whose whole text is the incorporation jurisdiction, as on an
+# SEC cover element. A longer page that merely mentions the name does not match.
+_BARE_JURISDICTION = {
+    "cayman islands": "KY",
+    "hong kong": "HK",
+    "delaware": "US",
+    "singapore": "SG",
+    "ireland": "IE",
+    "bermuda": "BM",
+    "british virgin islands": "VG",
+    "people's republic of china": "CN",
+    "china": "CN",
+    "japan": "JP",
+    "netherlands": "NL",
+    "germany": "DE",
+    "united kingdom": "GB",
+    "england and wales": "GB",
+    "united states": "US",
+    # "Georgia" alone is the country as often as the US state. A state name
+    # still counts when the phrase says "Georgia corporation".
+    **{name: "US" for name in _US_STATE_NAME.split("|") if name != "georgia"},
+}
+
+
+def jurisdiction_codes(text: str) -> frozenset[str]:
+    """ISO codes a legal page or registry filing states as incorporation."""
+    found: set[str] = set()
+    for match in _SEC_STATE.finditer(text):
+        if match.group(1) in _USPS_STATE:
+            found.add("US")
+    for match in _SEC_DESC.finditer(text):
+        label = match.group(1).strip()
+        if label in _USPS_STATE:
+            found.add("US")
+            continue
+        code = _SEC_DESC_COUNTRY.get(label.casefold())
+        if code:
+            found.add(code)
+    for pattern, code in _INCORPORATION_PHRASES:
+        if pattern.search(text):
+            found.add(code)
+    bare = re.sub(r"\s+", " ", text).strip().casefold()
+    code = _BARE_JURISDICTION.get(bare)
+    if code:
+        found.add(code)
+    return frozenset(found)
+
+
+class LabJurisdictionExtractor:
+    """Read country of incorporation with fixed phrases (``lab-jurisdiction@1``).
+
+    The reading's subject is the claim's published name, so a lab page verifies
+    a lab fact without the model's name appearing on it. No reading means the
+    page did not state incorporation. That does not confirm a null.
+    """
+
+    actor = VerificationActor(agent=VERIFY_AGENT, model_family=DETERMINISTIC,
+                              method="lab-jurisdiction@1")
+
+    def accepts(self, text: str) -> bool:
+        if jurisdiction_codes(text):
+            return True
+        return _JURISDICTION_CUE.search(text) is not None
+
+    def extract(self, claim: Claim, text: str) -> list[Reading]:
+        if claim.field != "origin.lab_jurisdiction":
+            return []
+        codes = jurisdiction_codes(text)
+        if not codes:
+            return []
+        return [Reading(claim.names[0], ", ".join(sorted(codes)))]
+
+
 def deterministic_extractors() -> list[Extractor]:
     return [CanonicalLicenceExtractor(), StructuredDataExtractor(), OfferingPriceExtractor(),
             SubscriptionPageExtractor(), TableExtractor(), TransposedTableExtractor(),
-            GovernanceProseExtractor(), KeyValueExtractor(), ModelPageExtractor()]
+            GovernanceProseExtractor(), KeyValueExtractor(), ModelPageExtractor(),
+            LabJurisdictionExtractor()]
 
 
 # --- regions -------------------------------------------------------------------------------------
@@ -3847,6 +4005,80 @@ def _verify_evidence_reading(
     return Result(claim.target, "skipped", reason="; ".join(reasons))
 
 
+def _verify_jurisdiction_set(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
+                            today: date) -> Result:
+    """A lab-jurisdiction set is the union of its cited regions, not any one of them.
+
+    Every cited region has to be reachable and contribute a non-empty set of
+    codes. ``lab-jurisdiction@1`` reads the region when it returns a reading.
+    An earlier extractor that accepts the page for another facet and returns
+    nothing does not decide the claim. Each region's codes are a subset of the
+    claim. The union equals the claim. One region that states only part of the
+    set does not verify it, and a region that adds a code the claim does not
+    name is a mismatch.
+    """
+    claimed = {str(code).strip().upper() for code in claim.value}
+    union: set[str] = set()
+    actor: VerificationActor | None = None
+    reasons: list[str] = []
+    diffs: list[Diff] = []
+    unreachable = False
+    ordered = sorted(extractors, key=lambda e: e.actor.model_family != DETERMINISTIC)
+    for source in claim.sources:
+        _, kind = _source_kind(regions, source.source_id)
+        for region_id in source.cited_regions:
+            where = f"{source.source_id}#{region_id}"
+            text = regions.text(source.source_id, source.snapshot_ref, region_id)
+            if text is None:
+                unreachable = True
+                reasons.append(f"unreachable:{where}")
+                continue
+            accepting = _readers_for(ordered, claim, text, kind)
+            independent = [item for item in accepting if _independent(claim, item.actor, today)]
+            prefer = [item for item in independent if item.actor.method == "lab-jurisdiction@1"]
+            readers = prefer + [item for item in independent if item not in prefer]
+            extractor = None
+            for item in readers:
+                try:
+                    got = item.extract(claim, text)
+                except ExtractorError as exc:
+                    reasons.append(f"extractor_error:{where}: {exc}")
+                    continue
+                if got:
+                    extractor = item
+                    break
+            if extractor is None:
+                reasons.append("no_independent_extractor" if accepting else f"no_extractor:{where}")
+                diffs.append(Diff("value", sorted(claimed), None))
+                continue
+            actor = extractor.actor
+            codes = jurisdiction_codes(text)
+            if not codes:
+                reasons.append(f"no_codes:{where}")
+                diffs.append(Diff("value", sorted(claimed), None))
+                continue
+            if not codes <= claimed:
+                diffs.append(Diff("value", sorted(claimed), ", ".join(sorted(codes))))
+                continue
+            union |= set(codes)
+    if unreachable:
+        if not _independent(claim, REGION_LOOKUP, today):
+            return Result(claim.target, "skipped", reason="no_independent_extractor")
+        return Result(claim.target, "unreachable",
+                      _verification(claim, REGION_LOOKUP, "unreachable", today),
+                      reason="; ".join(reasons))
+    if union == claimed and not diffs and actor is not None:
+        return Result(claim.target, "verified",
+                      _verification(claim, actor, "verified", today))
+    if actor is not None or diffs:
+        if union != claimed and not any(d.field == "value" and d.found is not None for d in diffs):
+            diffs.append(Diff("value", sorted(claimed), ", ".join(sorted(union)) or None))
+        who = actor or REGION_LOOKUP
+        return Result(claim.target, "mismatch",
+                      _verification(claim, who, "mismatch", today, diffs), tuple(diffs))
+    return Result(claim.target, "skipped", reason="; ".join(reasons))
+
+
 def _source_kind(regions: Regions, source_id: str) -> tuple[bool, str | None]:
     """``(tracked, kind)``. Untracked regions predate source kinds."""
     method = getattr(regions, "source_kind", None)
@@ -3977,9 +4209,13 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
     Verified if any reading confirms the value; otherwise the first mismatch.
     A claim whose permitted regions all have no extractor, or all raised
     ``ExtractorError``, is skipped.
+    ``origin.lab_jurisdiction`` is the exception: the cited regions are unioned,
+    and every one of them has to contribute.
     """
     if isinstance(claim.value, dict) and "score" in claim.value:
         return _verify_evidence_reading(claim, regions, extractors, today=today)
+    if claim.field == "origin.lab_jurisdiction" and isinstance(claim.value, list):
+        return _verify_jurisdiction_set(claim, regions, extractors, today=today)
 
     ordered = sorted(extractors, key=lambda e: e.actor.model_family != DETERMINISTIC)
     reachable = False
@@ -4277,11 +4513,19 @@ def ref_str(target: TargetRef) -> str:
 
 
 def run(queue: Queue, log: VerificationLog, regions: Regions, extractors: Sequence[Extractor],
-        *, today: date, changed_only: bool = False, at: datetime | None = None) -> RunReport:
+        *, today: date, changed_only: bool = False, at: datetime | None = None,
+        only: str | None = None) -> RunReport:
     """Verify what is queued; log every outcome and mark it checked. Skipped claims stay
-    queued, unlogged and so quarantined."""
+    queued, unlogged and so quarantined.
+
+    ``only`` keeps claims whose target id starts with that prefix. Other pending
+    claims are not checked and not logged.
+    """
     at = at or datetime.now(UTC)
     claims, unknown = queue.pending(changed_only=changed_only)
+    if only:
+        claims = [claim for claim in claims if claim.target.id.startswith(only)]
+        unknown = [target for target in unknown if target.id.startswith(only)]
     report = RunReport(changed_only, unknown=unknown)
     for claim in claims:
         result = verify(claim, regions, extractors, today=today)
@@ -4296,6 +4540,7 @@ __all__ = [
     "Claim", "CanonicalLicenceExtractor", "ClaudeCLICompletion", "CONDITION_KEYS", "Diff",
     "Extractor", "ExtractorError",
     "GovernanceProseExtractor", "KeyValueExtractor", "LLMCache", "LLMCallBudgetExceededError",
+    "LabJurisdictionExtractor",
     "LLMExtractor", "MISTRAL_MODEL", "ModelPageExtractor", "OLLAMA_URL", "OfferingPriceExtractor",
     "OLLAMA_JSON_MODE", "OllamaChatCompletion", "Quantity", "Queue", "Reading",
     "Regions", "Result",

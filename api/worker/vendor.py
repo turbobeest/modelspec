@@ -30,6 +30,7 @@ The check below refuses any undeclared dependency before deployment.
 from __future__ import annotations
 
 import json
+import logging
 import traceback
 import argparse
 import os
@@ -179,9 +180,13 @@ def bundle_data(out: Path, data_dir: Path) -> None:
              "--data-dir", str(data_dir.resolve())],
             cwd=REPO_ROOT, env=env, capture_output=True,
         )
+        stderr = completed.stderr.decode("utf-8", errors="replace").splitlines()
+        for line in stderr:
+            if line.startswith("premier models:"):
+                print(line, file=sys.stderr)
         if completed.returncode:
             # The child emits only path/category diagnostics in private mode.
-            for line in completed.stderr.decode("utf-8", errors="replace").splitlines():
+            for line in stderr:
                 if line.startswith(("Worker bundle build failed: path=", "uncited policy rows:")):
                     print(line, file=sys.stderr)
             raise RuntimeError("private Worker data build failed")
@@ -202,9 +207,26 @@ def bundle_data(out: Path, data_dir: Path) -> None:
         )
 
 
+_coverage_log_ready = False
+
+
+def _show_coverage_log() -> None:
+    """Attach the snapshot logger to this child's stderr so the parent can forward it."""
+    global _coverage_log_ready
+    if _coverage_log_ready:
+        return
+    log = logging.getLogger("decision.snapshot")
+    log.setLevel(logging.INFO)
+    handler = logging.StreamHandler(sys.stderr)
+    handler.setFormatter(logging.Formatter("%(message)s"))
+    log.addHandler(handler)
+    _coverage_log_ready = True
+
+
 def export_data(out: Path, data_dir: Path) -> None:
     """Build only the exports consumed by the Worker, using the shared builders."""
     sys.path.insert(0, str(REPO_ROOT))
+    _show_coverage_log()
     from datetime import date
     from decision import registry, snapshot
     from pipeline import data_source, export, hardware, policy_export, ranking

@@ -26,6 +26,9 @@ BUILD_TIME = {
     # only loads the published one.
     ("decision/snapshot.py", "pipeline.load"),
     ("decision/snapshot.py", "decision.sources"),
+    # Lab jurisdiction is applied while the snapshot is built. The Worker
+    # loads the published snapshot and never reads registry/labs.yaml.
+    ("decision/snapshot.py", "decision.labs"),
     # The v1 graph export and a type annotation; see the comment at the import.
     ("pipeline/ranking.py", "schema.graph"),
     ("pipeline/ranking.py", "schema.card"),

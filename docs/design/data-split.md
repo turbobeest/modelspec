@@ -41,6 +41,7 @@ or vocabulary and stays public.
 | `registry/sources.yaml` | dated source-of-record entries | humans, curation |
 | `registry/providers.yaml` | provider records | humans, price-reread |
 | `registry/harnesses.yaml` | harness records | humans |
+| `registry/labs.yaml` | lab jurisdiction, one row per lab | humans |
 | `registry/release-watch-baseline.json` | last-seen release state | release-signals |
 
 Kept public on purpose:
@@ -48,7 +49,7 @@ Kept public on purpose:
 - The rest of `registry/` is vocabulary that changes in lock step with the
   engine: `domains.yaml`, `facets.yaml`, `families.yaml`, `templates.yaml`,
   `refinements.yaml`, `release-watch.yaml`. An audit on 2026-09-30 found
-  the four data files above among them and declared them data. They are
+  the data files above among them and declared them data. They are
   declared, not moved: the public copies stay where they are, frozen.
 - `decision/` is code.
 - `scripts/*.jsonl.gz` and `attribution.yaml` are historical evaluation

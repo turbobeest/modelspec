@@ -38,6 +38,7 @@ import hashlib
 import hmac
 import io
 import json
+import logging
 import math
 import os
 import warnings
@@ -58,6 +59,8 @@ from decision.model import (
     value_hash,
     verification_counts,
 )
+
+logger = logging.getLogger(__name__)
 
 FORMAT = "modelspec.decision-snapshot"
 FORMAT_VERSION = 1
@@ -109,14 +112,37 @@ class Gap:
         return f"{self.subject}: {self.facet} is {self.reason}; source: {where}"
 
 
+@dataclass(frozen=True)
+class JurisdictionCoverage:
+    """Premier models with a known lab set, an explicit null, or neither."""
+
+    known: int
+    explicit_null: int
+    gap: int
+    gap_models: tuple[str, ...] = ()
+    gap_labs: tuple[str, ...] = ()
+
+    def __str__(self) -> str:
+        premier_gap_labs = {model.split("/", 1)[0] for model in self.gap_models}
+        outside = [lab for lab in self.gap_labs if lab not in premier_gap_labs]
+        listed = ", ".join(outside)
+        tail = f": {listed}" if listed else ":"
+        return (f"premier models: known {self.known}, "
+                f"explicit null {self.explicit_null}, gap {self.gap}; "
+                f"gap labs outside premier{tail}")
+
+
 class CompletenessError(SnapshotBuildError):
     """The premier-set completeness gate failed (design §5)."""
 
-    def __init__(self, gaps: Sequence[Gap]):
+    def __init__(self, gaps: Sequence[Gap], *,
+                 coverage: JurisdictionCoverage | None = None):
         self.gaps = tuple(gaps)
+        self.coverage = coverage
         lines = "\n  ".join(str(g) for g in self.gaps)
+        extra = f"\n{coverage}" if coverage is not None else ""
         super().__init__(f"completeness gate: {len(self.gaps)} guaranteed fact(s) missing "
-                         f"for the premier set:\n  {lines}")
+                         f"for the premier set:\n  {lines}{extra}")
 
 
 # ── the values an index returns ────────────────────────────────────────────
@@ -326,6 +352,8 @@ class SnapshotInputs:
     #: The verification log. The latest verification of a target wins, over an
     #: inline one too.
     verifications: Sequence[Any] = ()
+    #: Lab id -> ``decision.labs.Lab``. Empty when the checkout has no lab registry.
+    labs: Mapping[str, Any] = field(default_factory=dict)
 
 
 def _as_dict(record: Any) -> dict[str, Any]:
@@ -696,6 +724,9 @@ class _Compiler:
         self.evidence: dict[str, list[list[Any]]] = {}
         self.records: dict[str, dict[str, Any]] = {}
         self.fact_records: dict[str, dict[str, str]] = {}
+        self.labs: Mapping[str, Any] = inputs.labs
+        #: Premier models whose lab recorded a sourced null jurisdiction.
+        self.jurisdiction_null_ok: set[str] = set()
 
     # verification ------------------------------------------------------------
 
@@ -846,7 +877,46 @@ class _Compiler:
         if mid in self.subjects:
             raise SnapshotBuildError(f"model {mid} appears twice")
         self.subjects[mid] = {"kind": "model", "model": mid, "lifecycle": lifecycle}
-        self._add_facts(mid, "model", m.get("facts"))
+        facts = self._inherit_jurisdiction(mid, list(m.get("facts") or []))
+        self._add_facts(mid, "model", facts)
+
+    def _inherit_jurisdiction(self, mid: str, facts: list[Any]) -> list[Any]:
+        """Copy the lab's jurisdiction onto this model, or fail if they disagree.
+
+        A known model value that is not the lab's set raises. The same set, or
+        no known set, is replaced by the lab fact when that fact verifies.
+        When the lab fact does not verify, an agreeing model fact is left in
+        place. An explicit sourced null is not copied; the model is exempt.
+        """
+        from decision.labs import FACET, lab_id_of, stated_codes
+
+        lab = self.labs.get(lab_id_of(mid))
+        if lab is None:
+            return facts
+        existing = [
+            _as_dict(fact) for fact in facts if str(_as_dict(fact).get("facet")) == FACET
+        ]
+        model_codes = stated_codes(existing[0]) if existing else None
+        lab_codes = lab.codes
+        if model_codes is not None and model_codes != (lab_codes or frozenset()):
+            raise SnapshotBuildError(
+                f"{mid}: {FACET} {sorted(model_codes)} disagrees with lab "
+                f"{lab.id} {None if lab_codes is None else sorted(lab_codes)}"
+            )
+        if lab_codes is None:
+            if lab.explicit_null:
+                self.jurisdiction_null_ok.add(mid)
+            return facts
+        shared = lab.fact()
+        source_ids = self._source_ids(shared.get("sources"))
+        reason = self._admit(
+            "fact", shared.get("id"), shared.get("verification"), shared.get("value"), source_ids,
+        )
+        if reason is not None:
+            return facts
+        kept = [fact for fact in facts if str(_as_dict(fact).get("facet")) != FACET]
+        kept.append(shared)
+        return kept
 
     def add_offering(self, raw: Any) -> None:
         o = _as_dict(raw)
@@ -1170,13 +1240,62 @@ class _Compiler:
                                if v["kind"] == "offering" and v["model"] == mid)
             for f in sorted(guaranteed, key=lambda f: f.id):
                 for sid in ([mid] if f.subject == "model" else offerings):
-                    if f.id in self.facts.get(sid, {}):
+                    if self._jurisdiction_satisfied(sid, f.id):
+                        continue
+                    if f.id in self.facts.get(sid, {}) and not self._jurisdiction_required(sid, f.id):
                         continue
                     reason, urls = self.rejected.get((sid, f.id), ("unknown (no fact)", ()))
                     if reason == "unknown":
                         reason = "unknown (stated as unknown)"
                     out.append(Gap(mid, sid, f.id, reason, urls))
         return out
+
+    def _jurisdiction_required(self, sid: str, facet_id: str) -> bool:
+        """True when this subject's lab registry makes a null jurisdiction a gap."""
+        from decision.labs import FACET, lab_id_of
+
+        if facet_id != FACET or sid not in self.subjects:
+            return False
+        if self.subjects[sid]["kind"] != "model":
+            return False
+        return lab_id_of(sid) in self.labs
+
+    def _jurisdiction_satisfied(self, sid: str, facet_id: str) -> bool:
+        """A known set, or an explicit sourced null, satisfies the lab gate."""
+        if not self._jurisdiction_required(sid, facet_id):
+            return False
+        if sid in self.jurisdiction_null_ok:
+            return True
+        stored = self.facts.get(sid, {}).get(facet_id)
+        return bool(stored and stored[0] == "known" and stored[1])
+
+    def jurisdiction_coverage(self, premier: Iterable[str]) -> JurisdictionCoverage:
+        """Count premier models whose lab jurisdiction is known, an explicit null, or a gap.
+
+        A gap lab with no premier model is still named. The gate is unchanged:
+        a gap model is still a missing guaranteed fact.
+        """
+        from decision.labs import FACET
+
+        known = explicit = gap = 0
+        gap_models: list[str] = []
+        for mid in sorted(set(premier)):
+            if not self._jurisdiction_required(mid, FACET):
+                continue
+            if mid in self.jurisdiction_null_ok:
+                explicit += 1
+                continue
+            stored = self.facts.get(mid, {}).get(FACET)
+            if stored and stored[0] == "known" and stored[1]:
+                known += 1
+                continue
+            gap += 1
+            gap_models.append(mid)
+        gap_labs = tuple(sorted(
+            lab.id for lab in self.labs.values()
+            if lab.codes is None and not lab.explicit_null
+        ))
+        return JurisdictionCoverage(known, explicit, gap, tuple(gap_models), gap_labs)
 
 
 def default_registry() -> Any:
@@ -1205,9 +1324,11 @@ def build_snapshot(inputs: SnapshotInputs, *, registry: Any = None,
     c = _compile(inputs, registry, guard, as_of, allow_fixture_measurements)
     premier = None if premier is None else tuple(premier)
     if premier is not None and gate:
+        coverage = c.jurisdiction_coverage(premier)
         gaps = c.gaps(premier)
         if gaps:
-            raise CompletenessError(gaps)
+            raise CompletenessError(gaps, coverage=coverage)
+        logger.info("%s", coverage)
     return _finish(c, as_of, premier, guard)
 
 
@@ -1364,11 +1485,14 @@ def collect_repo(root: Path) -> SnapshotInputs:
         for line in verification_log.read_text(encoding="utf-8").splitlines():
             if line.strip():
                 verifications.append(json.loads(line))
+    from decision.labs import load_labs
+
     return SnapshotInputs(models=models, offerings=offerings, subscriptions=subscriptions,
                           evidence=evidence, sources=sources,
                           benchmark_domains=domains, benchmark_metadata=metadata,
                           benchmark_refinements=refinements,
-                          verifications=verifications)
+                          verifications=verifications,
+                          labs=load_labs(root))
 
 
 def load_premier(path: str | Path) -> tuple[str, ...]:

@@ -6,6 +6,7 @@ from collections import defaultdict
 from typing import Any
 
 from decision.contract import Compare, Decision, InSet, Known, Window, parse_condition
+from decision.filter import strip_unverified_condition
 
 
 def _offering_key(offering: Any) -> tuple[Any, ...]:
@@ -119,7 +120,7 @@ def _values(decision: Decision) -> dict[str, dict[tuple[Any, ...], dict[str, Any
 
 def _condition_facet(condition: str) -> str | None:
     """Return the one facet named by a leaf Must, or null for a compound Must."""
-    text = condition.removesuffix(": unverified: may qualify")
+    text = strip_unverified_condition(condition)
     try:
         parsed = parse_condition(text)
     except ValueError:

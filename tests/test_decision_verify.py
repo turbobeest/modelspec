@@ -3923,7 +3923,9 @@ def test_canonical_licence_extractor_leaves_non_licence_claims() -> None:
     assert result.outcome == "verified", result
     assert result.verification.verifier.method == "model-page-label-match@1"
 
-    origin = "Model: Nimbus 3\nLab jurisdiction: US\nlicense: apache-2.0\n"
+    # MODEL-344: a jurisdiction counts only from a phrase that states incorporation.
+    origin = ("Model: Nimbus 3\nNimbus Labs, Inc. is incorporated in the State of Delaware.\n"
+              "license: apache-2.0\n")
     origin_regions = _KindRegions(
         {("nimbus-licence", "page"): origin},
         {"nimbus-licence": "licence_text"},
@@ -3942,7 +3944,7 @@ def test_canonical_licence_extractor_leaves_non_licence_claims() -> None:
         origin_claim, origin_regions, verify.deterministic_extractors(), today=TODAY,
     )
     assert result.outcome == "verified", result
-    assert result.verification.verifier.method == "key-value-match@1"
+    assert result.verification.verifier.method == "lab-jurisdiction@1"
 
 
 def test_weights_openness_and_origin_on_licence_text_keep_deterministic_extractors() -> None:
@@ -3963,7 +3965,9 @@ def test_weights_openness_and_origin_on_licence_text_keep_deterministic_extracto
     result = verify.verify(claim, regions, verify.deterministic_extractors(), today=TODAY)
     assert result.outcome == "verified", result
 
-    origin = "Model: Nimbus 3\nLab jurisdiction: US\nlicense: apache-2.0\n"
+    # MODEL-344: a jurisdiction counts only from a phrase that states incorporation.
+    origin = ("Model: Nimbus 3\nNimbus Labs, Inc. is incorporated in the State of Delaware.\n"
+              "license: apache-2.0\n")
     origin_regions = _KindRegions(
         {("nimbus-licence", "page"): origin},
         {"nimbus-licence": "licence_text"},

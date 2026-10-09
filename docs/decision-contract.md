@@ -222,7 +222,10 @@ not(licence.commercial_use = prohibited)
   values and removes duplicates. On a facet whose value is itself a set, such
   as `model.input_modalities` or `origin.lab_jurisdiction`, `in` passes when
   the model's set holds at least one listed value, and `not in` passes only
-  when it holds none of them.
+  when it holds none of them. A US-only policy over mixed sets is therefore
+  not `in {US}` alone: `{US, CN}` overlaps `{US}` and passes. That policy
+  also needs `not in` for every other country it refuses. This note does not
+  change how `in` and `not in` are evaluated.
 - **Existence:** `known(facet)` passes when the value is known. It is never
   unknown itself, so it takes no unknown policy.
 - **Relative:** `facet op model(<model ID>)` compares against another model's

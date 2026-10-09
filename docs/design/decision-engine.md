@@ -176,7 +176,7 @@ Validate the spec against the facet registry. If free-text `task` is present, th
 ### 6.2 Filter (three-valued)
 Each condition evaluates to pass, fail or unknown per candidate, using bitset intersection over the index. The unknown policy comes from the condition, else the facet's risk direction:
 - capability: unknown → **may qualify** (reported, not ranked with the results unless asked);
-- governance: unknown → **not satisfied**, shown as "unverified: may qualify".
+- governance: unknown → **not satisfied**. The eliminated row says "eliminated: <facet label> not verified" and points at `unknown(list)`. A capability unknown still says "unverified: may qualify".
 
 The grammar covers comparisons, windows, sets, `any`/`all`/`not`, existence, **relative conditions** (`coding >= model(x)`), **soft conditions** with a penalty, and **evidence conditions with qualifiers** (`swe_bench_pro >= 55 @independent @default_effort measured_after 2026-06-01`). The inventory profile's rules are applied as conditions first.
 

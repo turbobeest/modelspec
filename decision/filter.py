@@ -6,8 +6,8 @@ a fail wins over an unknown. ``any`` is Kleene OR: a pass wins over an unknown.
 
 The unknown policy comes from the condition, otherwise from the facets that
 are unknown for that candidate. Capability moves the candidate to
-``may_qualify``. A governance unknown does not pass; the elimination is
-surfaced as ``unverified: may qualify``. A known ``offering.region`` that
+``may_qualify``. A governance unknown does not pass. The explained row says
+``eliminated: <facet label> not verified; unknown(list)``. A known ``offering.region`` that
 guarantees no country is the exception: that residency constraint is
 ``may_qualify``, because the name is known and where inference runs is not.
 A governance facet the candidate already passes does not change this. A
@@ -64,6 +64,23 @@ from decision.resolve import Resolved
 
 Leg = Literal["pass", "fail", "unknown"]
 UNVERIFIED_MAY_QUALIFY = "unverified: may qualify"
+_ELIMINATED_NOT_VERIFIED = " not verified; unknown(list)"
+
+
+def governance_unverified_suffix(label: str) -> str:
+    """The condition note on an eliminated row whose governance fact is unknown."""
+    return f": eliminated: {label}{_ELIMINATED_NOT_VERIFIED}"
+
+
+def strip_unverified_condition(condition: str) -> str:
+    """The condition text without an unverified note, so it still parses."""
+    text = condition.removesuffix(": " + UNVERIFIED_MAY_QUALIFY)
+    marker = ": eliminated: "
+    if text.endswith(_ELIMINATED_NOT_VERIFIED):
+        cut = text.rfind(marker)
+        if cut != -1:
+            text = text[:cut]
+    return text
 
 # Measurers that are not the model's own lab or provider.
 _INDEPENDENT = frozenset({
