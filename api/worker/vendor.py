@@ -56,6 +56,7 @@ SOURCES = {
     Path("api/classes.py"): Path("api/classes.py"),
     Path("pipeline/__init__.py"): Path("pipeline/__init__.py"),
     Path("pipeline/ranking.py"): Path("pipeline/ranking.py"),
+    Path("pipeline/vocab_synonyms.json"): Path("pipeline/vocab_synonyms.json"),
     Path("decision/__init__.py"): Path("decision/__init__.py"),
     Path("decision/bands.py"): Path("decision/bands.py"),
     Path("decision/by_model.py"): Path("decision/by_model.py"),

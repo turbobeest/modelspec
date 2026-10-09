@@ -94,6 +94,41 @@ def source_id(model_id: str) -> str:
     return "model-163-" + re.sub(r"[^a-z0-9]+", "-", model_id.casefold()).strip("-")
 
 
+def licence_facts_on_card(model_id: str, data: dict) -> list[Fact]:
+    """Licence facts already on the card. The page collector does not replace them."""
+    found = []
+    for row in data.get("facts") or []:
+        if not isinstance(row, dict):
+            continue
+        facet = row.get("facet")
+        if not isinstance(facet, str) or not facet.startswith("licence."):
+            continue
+        found.append(Fact.model_validate({
+            **row,
+            "id": f"{model_id}#{facet}",
+            "subject": {"kind": "model", "id": model_id},
+        }))
+    return found
+
+
+def skip_page_licence_facts(
+    page_facts: list[Fact], existing: list[Fact]
+) -> tuple[list[Fact], list[Fact]]:
+    """Keep licence facts already on the card. Do not file the page's readings."""
+    kept = {fact.facet: fact for fact in existing if fact.facet.startswith("licence.")}
+    writing: list[Fact] = []
+    for fact in page_facts:
+        if fact.facet.startswith("licence."):
+            # scripts/model_345_collect.py reads the LICENSE file the card links.
+            if fact.facet in kept:
+                writing.append(kept.pop(fact.facet))
+            continue
+        writing.append(fact)
+    writing.extend(kept.values())
+    filing = [fact for fact in writing if not fact.facet.startswith("licence.")]
+    return writing, filing
+
+
 def frontmatter(path: Path) -> tuple[dict, str]:
     text = path.read_text(encoding="utf-8")
     return yaml.safe_load(text.split("---", 2)[1]), text
@@ -288,9 +323,12 @@ def main(*, base_ref: str | None) -> None:
                 )
             )
         )
-        facts = [with_checked_sources(fact) for fact in make_facts(data, ref, document.text, names)]
+        page_facts = [
+            with_checked_sources(fact) for fact in make_facts(data, ref, document.text, names)
+        ]
+        facts, filing = skip_page_licence_facts(page_facts, licence_facts_on_card(model_id, data))
         insert_facts(path, card_text, facts)
-        for fact in facts:
+        for fact in filing:
             unit = "tokens" if fact.facet in {
                 "model.context_window", "model.max_output_tokens"
             } else None

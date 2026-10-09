@@ -8,7 +8,7 @@ info:
   version: '1.0'
   summary: Decides which AI models fit a job from your requirements, sourced evidence and real cost, and
     checks them against a compliance policy.
-  description: 'Start with the compact agent guide https://modelspec.dev/agents.md (version 1-d0803ca892923617).
+  description: 'Start with the compact agent guide https://modelspec.dev/agents.md (version 1-0e4f7d2fdf880065).
     Call decide early with a template-based Spec; refine from reading and recovery hints.
 
 
@@ -410,8 +410,8 @@ paths:
       responses:
         '200':
           description: 'A decision pinned to the snapshot that produced it: a complete Decision (contract_version
-            2.14), or, when the request sends fields or evidence_for, the separate bounded representation
-            (representation: bounded, bounded_version 1.0, no contract_version).'
+            2.15), or, when the request sends fields or evidence_for, the separate bounded representation
+            (representation: bounded, bounded_version 1.1, no contract_version).'
           content:
             application/json:
               schema:
@@ -531,15 +531,15 @@ paths:
         Relax only constraints the user stated, one at a time, and say what was relaxed and why. Prefer
         the answer''s own `relax` suggestions. A tie stays a tie. Don''t promote a member by knowledge
         from outside the response. Cite only evidence in the response. Never add benchmark figures from
-        memory. A null or partial answer is not a recommendation, so name no top pick and say what''s
-        missing. A null cost is unknown. Never show it as $0.00 or "free". One vocabulary lookup per unknown
-        facet, then decide. Read `next` before another call. Size `task_tokens` from the user''s own task,
-        and say what you assumed. Don''t copy the guide''s example sizes. Template weights are examples,
-        not requirements. If the evidence basis or board does not match the task, say so: Arena web-dev
-        evidence does not establish chat quality. p_best is the probability of ranking best under the
-        Spec and evidence uncertainty, not the probability of matching the user''s task or satisfying
-        its requirements. Read reading when present. Present answer.kind=tied among all answer.members,
-        including with_estate; tie-breakers are conditional. State requirements in reading.not_applied
+        memory. Tied or partial answer: report the tie and caveats, pick no member; a null answer names
+        no pick and says what''s missing. A null cost is unknown. Never show it as $0.00 or "free". One
+        vocabulary lookup per unknown facet, then decide. Read `next` before another call. Size `task_tokens`
+        from the user''s own task, and say what you assumed. Don''t copy the guide''s example sizes. Template
+        weights are examples, not requirements. If the evidence basis or board does not match the task,
+        say so: Arena web-dev evidence does not establish chat quality. p_best is the probability of ranking
+        best under the Spec and evidence uncertainty, not the probability of matching the user''s task
+        or satisfying its requirements. Read reading when present. Present answer.kind=tied among all
+        answer.members, including with_estate; tie-breakers are conditional. State requirements in reading.not_applied
         or error.issues that were not applied, including requirements removed after a rejected call. A
         retry does not verify them. Report estimates as estimates: fits_hardware membership is not measured
         fit for a specific quantization and context workload. Follow reading.do_not_claim. Never claim
@@ -2197,8 +2197,8 @@ components:
       additionalProperties: false
       properties:
         representation: {const: bounded, title: Representation, type: string}
-        bounded_version: {const: '1.0', title: Bounded Version, type: string}
-        projects_contract: {const: '2.14', title: Projects Contract, type: string}
+        bounded_version: {const: '1.1', title: Bounded Version, type: string}
+        projects_contract: {const: '2.15', title: Projects Contract, type: string}
         decision_id: {title: Decision Id, type: string}
         snapshot: {title: Snapshot, type: string}
         signature_verified: {$ref: '#/components/schemas/DecisionResponse/properties/signature_verified'}
@@ -2220,6 +2220,7 @@ components:
         reading: {$ref: '#/components/schemas/DecisionResponse/properties/reading'}
         coverage: {$ref: '#/components/schemas/DecisionResponse/properties/coverage'}
         relax_task_tokens: {$ref: '#/components/schemas/DecisionResponse/properties/relax_task_tokens'}
+        relax_single: {$ref: '#/components/schemas/DecisionResponse/properties/relax_single'}
         with_estate: {$ref: '#/components/schemas/DecisionResponse/properties/with_estate'}
         explanation: {$ref: '#/components/schemas/DecisionBoundedExplanation'}
         model_evidence:
@@ -2227,6 +2228,13 @@ components:
           - {$ref: '#/components/schemas/DecisionModelEvidence'}
           - {type: 'null'}
           default: null
+        member_evidence:
+          anyOf:
+          - items: {$ref: '#/components/schemas/DecisionMemberEvidence'}
+            type: array
+          - {type: 'null'}
+          default: null
+          title: Member Evidence
         summary_for_user: {default: '', title: Summary For User, type: string}
         must_mention:
           items: {type: string}
@@ -2564,7 +2572,7 @@ components:
           - {$ref: '#/components/schemas/DecisionBenchmarkExclusions'}
           - {type: 'null'}
           default: null
-        contract_version: {const: '2.14', default: '2.14', title: Contract Version, type: string}
+        contract_version: {const: '2.15', default: '2.15', title: Contract Version, type: string}
         decision_id: {pattern: '^dec_[0-9A-Za-z]{8,}$', title: Decision Id, type: string}
         snapshot: {pattern: '^snap_[A-Za-z0-9:._-]+$', title: Snapshot, type: string}
         signature_verified: {default: false, title: Signature Verified, type: boolean}
@@ -2630,6 +2638,11 @@ components:
         relax_task_tokens:
           anyOf:
           - {$ref: '#/components/schemas/DecisionTaskTokensHint'}
+          - {type: 'null'}
+          default: null
+        relax_single:
+          anyOf:
+          - {$ref: '#/components/schemas/DecisionRelaxSingle'}
           - {type: 'null'}
           default: null
         warnings:
@@ -3212,6 +3225,19 @@ components:
           type: array
       required: [model, unknown]
       title: MayQualify
+      type: object
+    DecisionMemberEvidence:
+      additionalProperties: false
+      description: Objective evidence for one answer member. Added in bounded 1.1 (MODEL-354).
+      properties:
+        model: {pattern: '^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$', title: Model, type: string}
+        evidence:
+          items: {$ref: '#/components/schemas/DecisionDomainEvidence'}
+          title: Evidence
+          type: array
+        omitted_items: {minimum: 0, title: Omitted Items, type: integer}
+      required: [model, evidence, omitted_items]
+      title: MemberEvidence
       type: object
     DecisionModelElimination:
       additionalProperties: false
@@ -3857,6 +3883,44 @@ components:
       required: [dimension, refinement, gain]
       title: RefinementGain
       type: object
+    DecisionRelaxSingle:
+      additionalProperties: false
+      description: 'Whether any one relaxable hard condition, removed alone, admits a model.
+
+
+        Added in 2.15 (MODEL-356). ``found`` lists those gates, most models first,
+
+        then spec order. ``none`` lists only relaxable gates: no one of them,
+
+        removed alone, admits a model. The model class and a requested capability
+
+        domain are never gates. ``together_admits`` counts the distinct models that
+
+        qualify when every relaxable gate is removed at once, with the same reach
+
+        kept. ``0`` means those gates are not what excludes everyone: the class, a
+
+        requested capability domain, or the reach is. ``question_admits`` reports
+
+        whether the class or a requested-domain condition alone would admit a
+
+        model. No message: the status, the gates and those two facts are the whole
+
+        statement.'
+      properties:
+        status:
+          enum: [found, none]
+          title: Status
+          type: string
+        gates:
+          items: {$ref: '#/components/schemas/DecisionSingleGate'}
+          title: Gates
+          type: array
+        together_admits: {minimum: 0, title: Together Admits, type: integer}
+        question_admits: {title: Question Admits, type: boolean}
+      required: [status, together_admits, question_admits]
+      title: RelaxSingle
+      type: object
     DecisionRelaxation:
       additionalProperties: false
       description: 'The smallest change to one numeric cap or floor that admits a model. Added in 1.5.
@@ -4035,6 +4099,20 @@ components:
           type: array
       required: [facet]
       title: ShownFact
+      type: object
+    DecisionSingleGate:
+      additionalProperties: false
+      description: 'One stated hard condition whose removal alone admits models. Added in 2.15.
+
+
+        ``condition`` is rendered the same way as ``relax``. ``admits`` counts the
+
+        distinct models that pass every other condition and the same reach.'
+      properties:
+        condition: {title: Condition, type: string}
+        admits: {minimum: 1, title: Admits, type: integer}
+      required: [condition, admits]
+      title: SingleGate
       type: object
     DecisionSoft:
       additionalProperties: false
@@ -4377,7 +4455,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.14']
+          enum: ['2.15']
         endpoint:
           type: string
           enum: [decide]
@@ -4423,10 +4501,10 @@ components:
           enum: [bounded]
         bounded_version:
           type: string
-          enum: ['1.0']
+          enum: ['1.1']
         projects_contract:
           type: string
-          enum: ['2.14']
+          enum: ['2.15']
         endpoint:
           type: string
           enum: [decide]
@@ -4447,7 +4525,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.14']
+          enum: ['2.15']
         endpoint:
           type: string
           enum: [decide]
@@ -4477,7 +4555,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.14']
+          enum: ['2.15']
         endpoint:
           type: string
           enum: [decide]
@@ -4493,7 +4571,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.14']
+          enum: ['2.15']
         endpoint:
           type: string
           enum: [compare]
@@ -4523,7 +4601,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.14']
+          enum: ['2.15']
         endpoint:
           type: string
           enum: [compare]
@@ -4776,7 +4854,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.14']
+          enum: ['2.15']
         endpoint:
           type: string
           enum: [compare]
@@ -5957,4 +6035,4 @@ components:
       schema: {type: string, const: '<https://modelspec.dev/agents.md>; rel="describedby"'}
     AgentGuideVersion:
       description: Version of the byte-stable guide.
-      schema: {type: string, const: 1-d0803ca892923617}
+      schema: {type: string, const: 1-0e4f7d2fdf880065}

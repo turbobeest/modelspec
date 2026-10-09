@@ -46,7 +46,13 @@ from decision.optimise import (
 from decision.refinements import RANKABLE, is_refinement_key, split_dimension
 from decision.refinements import evidence_state as refinement_evidence_state
 from decision.refinements import lineup as refinement_lineup
-from decision.relax import binding_constraint, fewest, smallest_changes, task_tokens_hint
+from decision.relax import (
+    binding_constraint,
+    fewest,
+    single_gates,
+    smallest_changes,
+    task_tokens_hint,
+)
 from decision.resolve import Resolved, resolve
 from decision.snapshot import ExplanationIndex
 
@@ -459,6 +465,7 @@ def decide(
     _filter_trace: Callable[[FilterResult], None] | None = None,
     comparison: bool = False,
     _capture_evidence: tuple[str, Callable[[ModelEvidence], None]] | None = None,
+    _capture_member_evidence: Callable[[list[tuple]], None] | None = None,
 ) -> Decision:
     """Return a reproducible decision. Explanation work is skipped at ``none``.
 
@@ -478,6 +485,7 @@ def decide(
             spec, snapshot, facets=facets, profiles=profiles,
             evidence_selectors=evidence_selectors, _filter_trace=_filter_trace,
             comparison=comparison, _capture_evidence=_capture_evidence,
+            _capture_member_evidence=_capture_member_evidence,
         )
     if spec.estate is not None:
         estate_module.check(spec.estate, snapshot)
@@ -491,13 +499,15 @@ def decide(
             spec, snapshot, facets=facets, profiles=profiles,
             evidence_selectors=evidence_selectors, _filter_trace=_filter_trace,
             comparison=comparison, _capture_evidence=_capture_evidence, _reach=routes,
+            _capture_member_evidence=_capture_member_evidence,
         )
     question = spec.model_copy(update={"estate": None})
     capture: dict = {}
     decision = _decide(
         question, snapshot, facets=facets, profiles=profiles,
         evidence_selectors=evidence_selectors, _filter_trace=_filter_trace,
-        comparison=comparison, _capture_evidence=_capture_evidence, _capture=capture, _identity=spec, _reach=routes,
+        comparison=comparison, _capture_evidence=_capture_evidence, _capture=capture,
+        _capture_member_evidence=_capture_member_evidence, _identity=spec, _reach=routes,
     )
 
     def run(reach, limit):
@@ -506,6 +516,7 @@ def decide(
         answered = _decide(
             trial, snapshot, facets=facets, profiles=profiles,
             evidence_selectors=evidence_selectors, _reach=reach, _capture=seen,
+            _relax_single=False,
         )
         return estate_module.Ran(answered, seen["models"], seen["rows"], seen["computed"])
 
@@ -530,9 +541,11 @@ def _decide(
     _filter_trace: Callable[[FilterResult], None] | None = None,
     comparison: bool = False,
     _capture_evidence: tuple[str, Callable[[ModelEvidence], None]] | None = None,
+    _capture_member_evidence: Callable[[list[tuple]], None] | None = None,
     _reach=None,
     _capture: dict | None = None,
     _identity: Spec | None = None,
+    _relax_single: bool = True,
 ) -> Decision:
     resolved = validate(spec, snapshot, facets=facets, profiles=profiles)
     if spec.exclude_benchmarks:
@@ -728,6 +741,7 @@ def _decide(
             plans=plan_routes,
         ))
     relax, relax_to, relax_task_tokens = [], [], None
+    relax_single = None
     if ordered.status == "no_feasible":
         # Never the class or a requested domain: that would change the question.
         # fewest() reruns the filter without the reach, so a reach keeps the
@@ -748,6 +762,9 @@ def _decide(
             relax = [_objective_gap(spec)]
         if not relax:
             relax = [ordered.reason or "no candidates in the snapshot"]
+        # with_estate's probes read only status and answer: skip the extra passes.
+        if not filtered.feasible and _relax_single:
+            relax_single = single_gates(resolved, snapshot, requested, _reach)
     decision = Decision(
         decision_id="dec_"
         + hashlib.sha256((identity + snapshot.snapshot_id).encode()).hexdigest()[:24],
@@ -769,6 +786,7 @@ def _decide(
         relax=relax,
         relax_to=relax_to,
         relax_task_tokens=relax_task_tokens,
+        relax_single=relax_single,
         may_qualify=[
             MayQualify(
                 model=snapshot.model_of(cid),
@@ -831,4 +849,46 @@ def _decide(
             reasons=sorted({item.condition for item in filtered.eliminated
                             if snapshot.model_of(item.candidate) == model_id}),
         ))
+    # Counts feed the estimate caveat on every bounded summary, including
+    # explain none. A snapshot that did not retain records cannot be counted;
+    # that answer keeps the no-leaderboard sentence instead of failing.
+    # The summary names every model ``_subjects`` names, including a null
+    # answer's ``results[0]`` and a top result that is not an answer member.
+    if (
+        _capture_member_evidence is not None
+        and not getattr(snapshot, "explanation_rebuild_required", None)
+    ):
+        from decision.explain import ExplanationError, objective_member_records
+        from decision.summary import _subjects
+
+        members = () if decision.answer is None else tuple(decision.answer.members)
+        model_ids: list[str] = []
+        seen: set[str] = set()
+        for model_id in (*members, *_subjects(decision)):
+            if model_id in seen:
+                continue
+            seen.add(model_id)
+            model_ids.append(model_id)
+        if model_ids:
+            best = {}
+            for row in ordered.results:
+                best.setdefault(snapshot.model_of(row.candidate_id), row)
+            captured = []
+            for model_id in model_ids:
+                row = best.get(model_id)
+                if row is None:
+                    captured.append((model_id, [], {}))
+                    continue
+                try:
+                    items, counts, proxy_names = objective_member_records(
+                        snapshot, row.candidate_id, row.contributions, requested)
+                except ExplanationError:
+                    # explain none: an ExplanationError is N=0. Empty counts
+                    # keep the no-leaderboard sentence. summary and full raise.
+                    if spec.explain != "none":
+                        raise
+                    captured.append((model_id, [], {}))
+                    continue
+                captured.append((model_id, items, counts, proxy_names))
+            _capture_member_evidence(captured)
     return decision
