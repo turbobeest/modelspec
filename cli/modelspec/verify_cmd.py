@@ -6,7 +6,9 @@ outcome to ``verification/log.jsonl`` and prints a summary. Pass
 ``--llm-reader claude`` (Claude Sonnet) or ``--llm-reader mistral`` (Mistral
 Large on the local ollama host) to add a prose reader after the deterministic
 readers, and a licence reader for ``licence.*`` claims cited to a licence or
-terms source. A reader is only asked about values collected by another model
+terms source. Canonical MIT and Apache-2.0 texts are verified by
+``CanonicalLicenceExtractor`` without ``--llm-reader``. A reader is only asked
+about values collected by another model
 family. The two readers share one completion function and one call budget.
 """
 

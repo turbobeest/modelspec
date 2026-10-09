@@ -73,10 +73,12 @@ plan or model must not answer for a sibling on the same page (MODEL-201).
 Mistral's replies are also keyed by its model and request shape, so neither
 reader answers for the other. Set `MODELSPEC_LLM_CACHE` to use another
 directory. A run stops before its 401st uncached call. Deterministic
-extractors still run first. On a `licence.*` claim they do not read the
-region: only `LicenceExtractor` does, and only when the source kind is one
-that facet permits. A `model.weights_openness` or `origin.*` claim on a
-`licence_text` source still uses the deterministic extractors.
+extractors still run first. On a `licence.*` claim, `CanonicalLicenceExtractor`
+reads a `licence_text` region when the retained text is the canonical MIT
+licence or the Apache License 2.0 terms. `LicenceExtractor` reads every other
+permitted region, and it is not asked about a text the canonical extractor
+accepts. A `model.weights_openness` or `origin.*` claim on a
+`licence_text` source still uses the other deterministic extractors.
 
 A `licence.*` claim is read by `LicenceExtractor`
 (`licence-extract:<model>`) from a source kind in that facet's
@@ -111,6 +113,42 @@ granted, free of charge". Apache-2.0 text contains "Apache License" and
 not bind by location. `license: other` does not bind a shared text. A file
 in a different repository binds only by `license_link` or by its URL. A
 licence cited alone does not verify.
+
+### Canonical MIT and Apache texts
+
+`CanonicalLicenceExtractor` (`canonical-licence@1`) is a deterministic
+extractor, so it is an independent second key. `modelspec verify` runs it
+with no `--llm-reader`. It accepts a `licence.*` claim whose cited region
+is `licence_text` when the retained text is the canonical MIT licence or
+the Apache License 2.0 terms. The licence reader is not asked about a text
+this extractor accepts. Any other text falls through to that reader.
+
+Recognition is a signature table. MIT text contains "Permission is hereby
+granted, free of charge" and the warranty sentence `THE SOFTWARE IS PROVIDED
+"AS IS"`. Curly quotes and the `*AS IS*` spelling used in some repository
+files are the same sentence. Apache text contains "Apache License",
+"Version 2.0, January 2004", and the section 2 copyright grant, the sentence
+that grants a copyright license to prepare Derivative Works. The text has to
+contain that licence's canonical body. A copyright line, a title, or the
+Apache appendix may sit outside the body. A longer addition is not this
+licence. A text that contains "separate agreement", "monthly active users",
+"not intended for use", "prohibited use", or "acceptable use" is not this
+licence. A modified MIT text, an MIT text with an added agreement, and an
+MIT text that embeds Gemma terms are left for the licence reader.
+
+Each facet is mapped to a value with a clause quoted from the text. The
+table's rule key is that facet's key in `LICENCE_READING_RULES`.
+`LICENCE_CONDITION_RULE` applies: a duty to keep a copyright, licence, or
+change notice is not a condition. For both licences, `licence.commercial_use`
+is `permitted` ("sell copies of the Software" for MIT, and section 3 "make,
+have made, use, offer to sell, sell" for Apache-2.0). `licence.user_cap` is
+`unbounded`. `licence.output_training` is `not_disclosed`.
+`licence.fine_tuning` is `permitted` ("modify ... the Software" for MIT, and
+section 2 "prepare Derivative Works" for Apache-2.0). The notice-retention
+reading is pending Jamie's review. This extractor applies it.
+
+A reading still has to pass `licence_is_bound`. A canonical text with no
+binding page does not verify.
 
 ### Licence reading rules
 
