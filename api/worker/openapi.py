@@ -2974,7 +2974,7 @@ def build_spec() -> dict[str, Any]:
                         "200": {
                             **_json_body(
                                 "A decision pinned to the snapshot that produced it: a complete "
-                                "Decision (contract_version 2.14), or, when the request sends "
+                                "Decision (contract_version 2.15), or, when the request sends "
                                 "fields or evidence_for, the separate bounded representation "
                                 "(representation: bounded, bounded_version 1.1, no "
                                 "contract_version).",

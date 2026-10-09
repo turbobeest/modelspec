@@ -410,7 +410,7 @@ paths:
       responses:
         '200':
           description: 'A decision pinned to the snapshot that produced it: a complete Decision (contract_version
-            2.14), or, when the request sends fields or evidence_for, the separate bounded representation
+            2.15), or, when the request sends fields or evidence_for, the separate bounded representation
             (representation: bounded, bounded_version 1.1, no contract_version).'
           content:
             application/json:
@@ -2198,7 +2198,7 @@ components:
       properties:
         representation: {const: bounded, title: Representation, type: string}
         bounded_version: {const: '1.1', title: Bounded Version, type: string}
-        projects_contract: {const: '2.14', title: Projects Contract, type: string}
+        projects_contract: {const: '2.15', title: Projects Contract, type: string}
         decision_id: {title: Decision Id, type: string}
         snapshot: {title: Snapshot, type: string}
         signature_verified: {$ref: '#/components/schemas/DecisionResponse/properties/signature_verified'}
@@ -2220,6 +2220,7 @@ components:
         reading: {$ref: '#/components/schemas/DecisionResponse/properties/reading'}
         coverage: {$ref: '#/components/schemas/DecisionResponse/properties/coverage'}
         relax_task_tokens: {$ref: '#/components/schemas/DecisionResponse/properties/relax_task_tokens'}
+        relax_single: {$ref: '#/components/schemas/DecisionResponse/properties/relax_single'}
         with_estate: {$ref: '#/components/schemas/DecisionResponse/properties/with_estate'}
         explanation: {$ref: '#/components/schemas/DecisionBoundedExplanation'}
         model_evidence:
@@ -2571,7 +2572,7 @@ components:
           - {$ref: '#/components/schemas/DecisionBenchmarkExclusions'}
           - {type: 'null'}
           default: null
-        contract_version: {const: '2.14', default: '2.14', title: Contract Version, type: string}
+        contract_version: {const: '2.15', default: '2.15', title: Contract Version, type: string}
         decision_id: {pattern: '^dec_[0-9A-Za-z]{8,}$', title: Decision Id, type: string}
         snapshot: {pattern: '^snap_[A-Za-z0-9:._-]+$', title: Snapshot, type: string}
         signature_verified: {default: false, title: Signature Verified, type: boolean}
@@ -2637,6 +2638,11 @@ components:
         relax_task_tokens:
           anyOf:
           - {$ref: '#/components/schemas/DecisionTaskTokensHint'}
+          - {type: 'null'}
+          default: null
+        relax_single:
+          anyOf:
+          - {$ref: '#/components/schemas/DecisionRelaxSingle'}
           - {type: 'null'}
           default: null
         warnings:
@@ -3877,6 +3883,44 @@ components:
       required: [dimension, refinement, gain]
       title: RefinementGain
       type: object
+    DecisionRelaxSingle:
+      additionalProperties: false
+      description: 'Whether any one relaxable hard condition, removed alone, admits a model.
+
+
+        Added in 2.15 (MODEL-356). ``found`` lists those gates, most models first,
+
+        then spec order. ``none`` lists only relaxable gates: no one of them,
+
+        removed alone, admits a model. The model class and a requested capability
+
+        domain are never gates. ``together_admits`` counts the distinct models that
+
+        qualify when every relaxable gate is removed at once, with the same reach
+
+        kept. ``0`` means those gates are not what excludes everyone: the class, a
+
+        requested capability domain, or the reach is. ``question_admits`` reports
+
+        whether the class or a requested-domain condition alone would admit a
+
+        model. No message: the status, the gates and those two facts are the whole
+
+        statement.'
+      properties:
+        status:
+          enum: [found, none]
+          title: Status
+          type: string
+        gates:
+          items: {$ref: '#/components/schemas/DecisionSingleGate'}
+          title: Gates
+          type: array
+        together_admits: {minimum: 0, title: Together Admits, type: integer}
+        question_admits: {title: Question Admits, type: boolean}
+      required: [status, together_admits, question_admits]
+      title: RelaxSingle
+      type: object
     DecisionRelaxation:
       additionalProperties: false
       description: 'The smallest change to one numeric cap or floor that admits a model. Added in 1.5.
@@ -4055,6 +4099,20 @@ components:
           type: array
       required: [facet]
       title: ShownFact
+      type: object
+    DecisionSingleGate:
+      additionalProperties: false
+      description: 'One stated hard condition whose removal alone admits models. Added in 2.15.
+
+
+        ``condition`` is rendered the same way as ``relax``. ``admits`` counts the
+
+        distinct models that pass every other condition and the same reach.'
+      properties:
+        condition: {title: Condition, type: string}
+        admits: {minimum: 1, title: Admits, type: integer}
+      required: [condition, admits]
+      title: SingleGate
       type: object
     DecisionSoft:
       additionalProperties: false
@@ -4397,7 +4455,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.14']
+          enum: ['2.15']
         endpoint:
           type: string
           enum: [decide]
@@ -4446,7 +4504,7 @@ components:
           enum: ['1.1']
         projects_contract:
           type: string
-          enum: ['2.14']
+          enum: ['2.15']
         endpoint:
           type: string
           enum: [decide]
@@ -4467,7 +4525,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.14']
+          enum: ['2.15']
         endpoint:
           type: string
           enum: [decide]
@@ -4497,7 +4555,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.14']
+          enum: ['2.15']
         endpoint:
           type: string
           enum: [decide]
@@ -4513,7 +4571,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.14']
+          enum: ['2.15']
         endpoint:
           type: string
           enum: [compare]
@@ -4543,7 +4601,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.14']
+          enum: ['2.15']
         endpoint:
           type: string
           enum: [compare]
@@ -4796,7 +4854,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.14']
+          enum: ['2.15']
         endpoint:
           type: string
           enum: [compare]

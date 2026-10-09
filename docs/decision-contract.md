@@ -1,6 +1,6 @@
 # The ModelSpec decision contract
 
-Contract version: **2.14**
+Contract version: **2.15**
 
 The opt-in bounded HTTP response is a separate representation with its own
 version, **bounded 1.1**. It does not carry a 2.x `contract_version`. See
@@ -652,7 +652,7 @@ best-band tie (`answer.members`). A `do_not_claim` line also names a tied
 
 ```json decision
 {
-  "contract_version": "2.14",
+  "contract_version": "2.15",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
   "signature_verified": true,
@@ -795,7 +795,7 @@ best-band tie (`answer.members`). A `do_not_claim` line also names a tied
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"2.14"`. |
+| `contract_version` | `"2.15"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
 | `signature_verified` | `true` when this process verified either the pinned Ed25519 signature or the private Worker HMAC. |
@@ -816,6 +816,7 @@ best-band tie (`answer.members`). A `do_not_claim` line also names a tied
 | `relax` | For `no_feasible` only: the fewest conditions whose removal gives a feasible answer. Never the model class or a condition on a requested capability domain, which would change the question; among equally few, numeric caps and floors first. When a reach is already in force (`access`, or an estate), this is the condition that emptied that lineup, not a relaxation computed as if the reach were absent. When models passed every hard condition and none has an objective value, it names that objective. The text does not name an internal ticket. |
 | `relax_to` | For `no_feasible` only (1.5): for each numeric cap or floor, the smallest change that admits a model. Each names the spec's `condition`, the `relaxed` condition (same facet and direction, at the nearest value an excluded candidate has), the `facet`, that `value`, its `unit`, and how many models it `admits`. |
 | `relax_task_tokens` | For `no_feasible` only, and absent otherwise (2.14): the spec gave no `task_tokens`, `relax` is a single `offering.cost_per_task` cap, and that cap fails only at the default task size. Names the cap as `condition`, the `default` task size cost was priced at (40,000 input, 4,000 output tokens), `admits_at` (the largest task at the default's input-to-output ratio that a model meets the cap at, strictly under a strict cap) and a `message`. Set `task_tokens` to the real task's size rather than copying `admits_at`. Kept in bounded answers. |
+| `relax_single` | For `no_feasible` only, and absent otherwise (2.15). Present when no candidate passed the hard conditions. Absent when models passed every hard condition and the objective has no values, and absent from an answered decision, including the example above. `status` is `found` when `gates` is non-empty and `none` when no relaxable hard condition, removed alone, admits a model. `none` lists only relaxable gates. Each gate names the rendered `condition` and `admits`, the number of distinct models that then qualify (at least 1). Every other condition and the same reach stay in force. Gates are ordered by `admits` descending, then spec order. The model class and a condition on a requested capability domain are never gates. `together_admits` counts the distinct models that qualify when every relaxable gate is removed at once, with the same reach kept. It is `0` when there is no relaxable gate. `none` with `together_admits` `0` means the stated gates are not the blocker: the model class, a requested capability domain, or the access reach is. `question_admits` reports whether the class or a requested-domain condition alone would admit a model. Kept in bounded answers. |
 | `warnings` | Codes about the decision as a whole. |
 | `out_of_lineup` | How many active catalogue models the snapshot leaves outside its lineup, and so outside this decision. `0` when the snapshot was built without a premier list. |
 | `feedback` | Where to say whether this answer held up: send the `method` (`POST`) to the `endpoint`, with a body that follows `request_schema` and a rating from `ratings` (`reliable`, `unreliable`, `trustworthy`, `untrustworthy`, `confusing`) and this `decision_id`, or run the `cli` line. No key. The same on every decision. See [`feedback-api.md`](feedback-api.md). Added in 2.10. |
@@ -1107,20 +1108,20 @@ contract would need a major bump. It is a different representation instead:
   follows the same MODEL-59 rule on its own: widening any bounded field bumps
   its major.
 - `projects_contract` names the complete contract the body is projected from,
-  currently `"2.14"`. Every field the bounded body does carry has that
+  currently `"2.15"`. Every field the bounded body does carry has that
   contract's type and meaning.
 - A bounded body has **no** `contract_version`. A 2.x decoder that requires
   `contract_version` refuses it rather than misreading it as a complete
   Decision.
 
-Requests with only `limit`, or `fields: null`, receive complete contract 2.14
+Requests with only `limit`, or `fields: null`, receive complete contract 2.15
 responses. The decide page never sends `fields` or `evidence_for`, so its
 decoder never sees a bounded body and
 needs no change.
 
 A bounded response retains the complete `answer`, `warnings`, `reading` when
 applicable, `with_estate` when applicable, status, identity, feedback pointer,
-`truncated`, `out_of_lineup`, `relax`, `relax_to` and `relax_task_tokens` when present. It projects ranked
+`truncated`, `out_of_lineup`, `relax`, `relax_to`, `relax_task_tokens` and `relax_single` when present. It projects ranked
 `results` and shows at most 10 `may_qualify` rows. It adds required
 `explanation` with `not_applied`, explicit per-section `omitted` counts, an
 optional `fetch` string and a `note` that omitted data is incomplete. `fetch`
@@ -1168,8 +1169,8 @@ rows that are neither the top result nor an answer member, then `evidence` and
 appears in an earlier row; that row keeps rank, model, offering and warnings),
 then `may_qualify` rows, then `member_evidence` items from the member with the
 most items, never below one item per member while any other cut remains, then
-any remaining result row except the top, then `with_estate`, then `reading`
-and `relax_task_tokens`, then one heavy field of the top result at a time
+any remaining result row except the top, then `with_estate`, then `reading`,
+`relax_task_tokens` and `relax_single`, then one heavy field of the top result at a time
 (`evidence`, `contributions`, `estimates`, `refinement_estimates`, `plans`),
 then any other field on that row besides rank, model, offering and warnings,
 then any remaining `member_evidence` items, then `member_evidence` entries
@@ -1293,6 +1294,10 @@ three current explanation levels. Regenerate the MCP public fixture with
   tie's `member_evidence` entries still do not fit, entries are removed from
   the end and counted in `explanation.omitted` under `member_evidence`.
   `answer.members` stays complete.
+- **bounded 1.1 — MODEL-356:** Adds optional `relax_single`, carried over from
+  a complete 2.15 decision when present. No existing field changes range, and
+  `bounded_version` stays `1.1`. The budget may drop it after `reading` and
+  `relax_task_tokens`.
 
 ## The library and the CLI
 
@@ -1582,6 +1587,24 @@ Changes to a spec's inputs follow the same rule in reverse: refusing a spec
 that used to be accepted is a major change; accepting more is not.
 
 ## Change log
+
+- **2.15 — MODEL-356:** A `no_feasible` decision adds optional `relax_single`
+  when no candidate passes the hard conditions. `found` lists each relaxable
+  hard condition whose removal alone admits a model, most models first, then
+  spec order. Each gate names that rendered condition and how many distinct
+  models it admits. `none` lists only relaxable gates: no one of them, removed
+  alone, admits a model. `together_admits` counts the distinct models that
+  qualify when every relaxable gate is removed at once, with the same reach
+  kept, including when `status` is `found`. `none` with `together_admits` `0`
+  means the stated gates are not the blocker. `question_admits` reports whether
+  the class or a requested-domain condition alone would admit a model. The
+  model class and a requested capability domain are never listed. The same
+  reach stays in force. The field is absent when models passed every hard
+  condition and the objective has no values, and absent unless the status is
+  `no_feasible`.
+  Additive: `relax`, `relax_to`, `relax_task_tokens`, `status` and every other
+  field keep their ranges. Bounded answers carry it, and `bounded_version`
+  stays `1.0`.
 
 - **2.14 — MODEL-316:** A `no_feasible` decision adds optional
   `relax_task_tokens` when a per-task cost cap fails only because the spec gave

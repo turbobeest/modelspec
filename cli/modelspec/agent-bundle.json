@@ -780,7 +780,7 @@
     "pipeline/worker_flags.py": "0f3c1ff0de81710417659b86e1ec92913bbcf54af6312720fdad659e6af03429",
     "api/worker/wrangler.jsonc": "49523d5f0721cf42618d901c27943fa5ed5705dd60aa237fba03a129836922df",
     "api/worker/tiers.json": "315a2ad62c5b366246675d2984e61243ed20d85d89bad6bd648e8960926b8773",
-    "docs/decision-contract.schema.json": "5fe85b41b537fc80b9660f5a28d57b591f4a89f180f6b981374f39e68772d63c",
+    "docs/decision-contract.schema.json": "2dd7c6217915f49edefc5d1737ac078999f749b5290eeaa50cca9288366bf7ef",
     "pyproject.toml": "2f903fc64f25fd96287f064775d8006a87a63a22f5f4103046ca9353e039975e",
     "schemas/feedback-v1.schema.json": "551a54ba5a954b73c38d5c35d0a48c62cf1b89d0cd9543d96103e2320450638b"
   }

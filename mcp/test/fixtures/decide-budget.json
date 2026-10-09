@@ -19,7 +19,7 @@
   "default": {
     "representation": "bounded",
     "bounded_version": "1.1",
-    "projects_contract": "2.14",
+    "projects_contract": "2.15",
     "decision_id": "dec_1932b1664c177b74446ef335",
     "snapshot": "snap_be143b431be06c02",
     "signature_verified": true,
@@ -511,7 +511,7 @@
   "drill_down": {
     "representation": "bounded",
     "bounded_version": "1.1",
-    "projects_contract": "2.14",
+    "projects_contract": "2.15",
     "decision_id": "dec_1932b1664c177b74446ef335",
     "snapshot": "snap_be143b431be06c02",
     "signature_verified": true,
@@ -765,7 +765,7 @@
   "speech": {
     "representation": "bounded",
     "bounded_version": "1.1",
-    "projects_contract": "2.14",
+    "projects_contract": "2.15",
     "decision_id": "dec_36e794d2a5f775c67ca722d3",
     "snapshot": "snap_be143b431be06c02",
     "signature_verified": true,
@@ -841,6 +841,12 @@
         "transcriber"
       ],
       "requested_domains": []
+    },
+    "relax_single": {
+      "status": "none",
+      "gates": [],
+      "together_admits": 0,
+      "question_admits": true
     },
     "explanation": {
       "not_applied": [],
