@@ -815,6 +815,7 @@ def _samples() -> list:
         bounded.explanation,
         c.ModelEvidence(model=result.model, status="ranked", offering=result.offering,
                         rank=1, evidence=result.evidence, contributions=result.contributions),
+        c.MemberEvidence(model=result.model, evidence=result.evidence, omitted_items=2),
         spec,
         spec.optimize,
         c.Objective(max="software_engineering"),

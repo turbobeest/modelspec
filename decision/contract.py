@@ -1997,6 +1997,15 @@ class ModelEvidence(_Strict):
     warnings: list[Code] = Field(default_factory=list)
 
 
+class MemberEvidence(_Strict):
+    """Objective evidence for one answer member. Added in bounded 1.1 (MODEL-354)."""
+
+    model: ModelId
+    evidence: list[DomainEvidence]
+    #: Evidence items left out of ``evidence``. Nothing is dropped without a count.
+    omitted_items: int = Field(ge=0)
+
+
 class BoundedExplanation(_Strict):
     not_applied: list[str] = Field(default_factory=list)
     omitted: dict[str, int] = Field(default_factory=dict)
@@ -2010,12 +2019,12 @@ class BoundedExplanation(_Strict):
 #: it omits lists a complete Decision always carries (MODEL-59), so it never
 #: claims a `contract_version`. `projects_contract` names the complete contract
 #: its fields are projected from.
-BOUNDED_VERSION = "1.0"
+BOUNDED_VERSION = "1.1"
 
 BoundedDecision = create_model(
     "BoundedDecision", __base__=_Strict,
     representation=(Literal["bounded"], ...),
-    bounded_version=(Literal["1.0"], ...),
+    bounded_version=(Literal["1.1"], ...),
     projects_contract=(Decision.model_fields["contract_version"].annotation, ...),
     **{name: (Decision.model_fields[name].annotation, ...) for name in (
         "decision_id", "snapshot", "signature_verified", "spec_hash", "explain", "status",
@@ -2029,6 +2038,13 @@ BoundedDecision = create_model(
     with_estate=(WithEstate | None, None),
     explanation=(BoundedExplanation, ...),
     model_evidence=(ModelEvidence | None, None),
+    #: One entry per answer member, in ``answer.members`` order, unless the
+    #: byte budget removed entries from the end (counted under
+    #: ``explanation.omitted.member_evidence``). Present only
+    #: on a bounded answer with no ``evidence_for``, ``explain`` of ``summary``
+    #: or ``full``, and a non-empty ``answer.members``. Added in bounded 1.1
+    #: (MODEL-354). Absent otherwise. No existing field changes range.
+    member_evidence=(list[MemberEvidence] | None, None),
     #: One plain-language paragraph for the end user. Added in bounded 1.0 by
     #: MODEL-339. Optional: absent on a body projected before that change.
     summary_for_user=(str, ""),
@@ -2052,7 +2068,8 @@ CONTRACT_TYPES: tuple[type[BaseModel], ...] = (
     Estate, EstateHold, EstateMark, EstateResult, EstateGap, GainItem, WithEstate,
     Access, PlanPrice, PlanCoverage, PlanAllowance, PlanRoute, FeedbackPointer, Reading,
     CoveredClass, CoverageRefusal,
-    ResponseOptions, DecideRequest, ProjectedResult, ModelEvidence, BoundedExplanation, BoundedDecision,
+    ResponseOptions, DecideRequest, ProjectedResult, ModelEvidence, MemberEvidence,
+    BoundedExplanation, BoundedDecision,
 )
 
 

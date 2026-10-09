@@ -555,7 +555,7 @@
           "title": "Answer"
         },
         "bounded_version": {
-          "const": "1.0",
+          "const": "1.1",
           "title": "Bounded Version",
           "type": "string"
         },
@@ -595,6 +595,21 @@
           },
           "title": "May Qualify",
           "type": "array"
+        },
+        "member_evidence": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/MemberEvidence"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Member Evidence"
         },
         "model_evidence": {
           "anyOf": [
@@ -3051,6 +3066,36 @@
         "unknown"
       ],
       "title": "MayQualify",
+      "type": "object"
+    },
+    "MemberEvidence": {
+      "additionalProperties": false,
+      "description": "Objective evidence for one answer member. Added in bounded 1.1 (MODEL-354).",
+      "properties": {
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/DomainEvidence"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "model": {
+          "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+          "title": "Model",
+          "type": "string"
+        },
+        "omitted_items": {
+          "minimum": 0,
+          "title": "Omitted Items",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "model",
+        "evidence",
+        "omitted_items"
+      ],
+      "title": "MemberEvidence",
       "type": "object"
     },
     "ModelElimination": {

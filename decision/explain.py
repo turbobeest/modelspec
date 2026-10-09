@@ -368,6 +368,39 @@ def contributions(snapshot, cid, parts, evidence):
     return out
 
 
+def _evidence_priority(item: EvidenceItem) -> tuple:
+    """Highest estimate weight, then direct before proxy, then record id."""
+    weight = item.estimate_weight if item.estimate_weight is not None else float("-inf")
+    return (-weight, 0 if item.directness == "direct" else 1, item.record_id or "")
+
+
+def objective_evidence_items(snapshot, cid, parts, capability_domains) -> list[EvidenceItem]:
+    """Records behind one candidate's objective position.
+
+    The same items ``contributions`` stores on those parts, one per
+    ``record_id`` (the highest-weight copy). Empty when the position has
+    no evidence records. ``capability_domains`` is the spec's ``capabilities``,
+    the same set ``explain`` passes into ``contributions``.
+    """
+    groups = domain_evidence(snapshot, cid, capability_domains)
+    ranked = [
+        item
+        for part in contributions(snapshot, cid, parts, groups)
+        for item in part.evidence
+    ]
+    ranked.sort(key=_evidence_priority)
+    seen: set[str] = set()
+    kept: list[EvidenceItem] = []
+    for item in ranked:
+        record_id = item.record_id
+        if record_id is not None:
+            if record_id in seen:
+                continue
+            seen.add(record_id)
+        kept.append(item)
+    return kept
+
+
 def excluded_benchmark_impacts(snapshot, decision, result_rows, shown_domains):
     """Describe the estimate changes caused by a benchmark-exclusion view."""
     excluded = list(getattr(snapshot, "excluded_benchmarks", ()))

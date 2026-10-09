@@ -459,6 +459,7 @@ def decide(
     _filter_trace: Callable[[FilterResult], None] | None = None,
     comparison: bool = False,
     _capture_evidence: tuple[str, Callable[[ModelEvidence], None]] | None = None,
+    _capture_member_evidence: Callable[[list[tuple[str, list]]], None] | None = None,
 ) -> Decision:
     """Return a reproducible decision. Explanation work is skipped at ``none``.
 
@@ -478,6 +479,7 @@ def decide(
             spec, snapshot, facets=facets, profiles=profiles,
             evidence_selectors=evidence_selectors, _filter_trace=_filter_trace,
             comparison=comparison, _capture_evidence=_capture_evidence,
+            _capture_member_evidence=_capture_member_evidence,
         )
     if spec.estate is not None:
         estate_module.check(spec.estate, snapshot)
@@ -491,13 +493,15 @@ def decide(
             spec, snapshot, facets=facets, profiles=profiles,
             evidence_selectors=evidence_selectors, _filter_trace=_filter_trace,
             comparison=comparison, _capture_evidence=_capture_evidence, _reach=routes,
+            _capture_member_evidence=_capture_member_evidence,
         )
     question = spec.model_copy(update={"estate": None})
     capture: dict = {}
     decision = _decide(
         question, snapshot, facets=facets, profiles=profiles,
         evidence_selectors=evidence_selectors, _filter_trace=_filter_trace,
-        comparison=comparison, _capture_evidence=_capture_evidence, _capture=capture, _identity=spec, _reach=routes,
+        comparison=comparison, _capture_evidence=_capture_evidence, _capture=capture,
+        _capture_member_evidence=_capture_member_evidence, _identity=spec, _reach=routes,
     )
 
     def run(reach, limit):
@@ -530,6 +534,7 @@ def _decide(
     _filter_trace: Callable[[FilterResult], None] | None = None,
     comparison: bool = False,
     _capture_evidence: tuple[str, Callable[[ModelEvidence], None]] | None = None,
+    _capture_member_evidence: Callable[[list[tuple[str, list]]], None] | None = None,
     _reach=None,
     _capture: dict | None = None,
     _identity: Spec | None = None,
@@ -831,4 +836,24 @@ def _decide(
             reasons=sorted({item.condition for item in filtered.eliminated
                             if snapshot.model_of(item.candidate) == model_id}),
         ))
+    if (
+        _capture_member_evidence is not None
+        and spec.explain != "none"
+        and decision.answer is not None
+        and decision.answer.members
+    ):
+        from decision.explain import objective_evidence_items
+
+        best = {}
+        for row in ordered.results:
+            best.setdefault(snapshot.model_of(row.candidate_id), row)
+        captured = []
+        for model_id in decision.answer.members:
+            row = best.get(model_id)
+            if row is None:
+                captured.append((model_id, []))
+                continue
+            captured.append((model_id, objective_evidence_items(
+                snapshot, row.candidate_id, row.contributions, requested)))
+        _capture_member_evidence(captured)
     return decision
