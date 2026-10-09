@@ -1,5 +1,6 @@
 import { z } from "zod";
 import agentCopy from "./agent-copy.json";
+import synonymData from "../../pipeline/vocab_synonyms.json";
 
 export const vocabInput = z.object({
   section: z.enum([
@@ -7,7 +8,7 @@ export const vocabInput = z.object({
     "task_types", "coverage", "templates", "refinements", "estate", "vendors",
     "template_categories", "template_tiers",
   ]).optional().describe("Defaults to starter; with search or id/ids searches every section except coverage. An explicit non-starter section scopes the lookup"),
-  search: z.string().max(128).optional().describe("Search every section's ids, labels, definitions and values by case- and separator-insensitive substring or all query tokens. A miss returns suggestions; an explicit non-starter section scopes the search"),
+  search: z.string().max(128).optional().describe("Search every section's ids, labels, definitions, values and synonyms. All tokens rank first; else content tokens match, stopwords omitted. A miss returns nearest ids. A non-starter section scopes the search"),
   id: z.string().max(128).optional().describe("Full details for this exact, case-sensitive id; starter resolves across sections and intersects with search"),
   ids: z.array(z.string().max(128)).max(100).optional().describe("Full details for these exact, case-sensitive ids; starter resolves across sections and intersects with search"),
   detail: z.enum(["compact", "full"]).optional().describe("Full returns all display details; defaults to compact. Cross-section matches remain paged"),
@@ -20,7 +21,7 @@ const searchSections: Section[] = ["facets", "domains", "refinements", "benchmar
   "estate", "providers", "vendors", "models", "template_categories", "template_tiers"];
 type EstateGroup = "providers" | "devices" | "plans";
 type Entry = { id: string; row: unknown; group: EstateGroup | null };
-type Match = { section: Section; id: string; label?: string } & (
+type Match = { section: Section; id: string; label?: string; via?: "synonym"; matched_tokens?: string[] } & (
   { matched: "id" | "label" | "definition" } | { matched: "value"; value: unknown }
 );
 type Field = { kind: Match["matched"]; text: unknown; value: unknown };
@@ -99,6 +100,14 @@ function searchableFields(section: Section, { id, row }: Entry): Field[] {
   for (const label of labels) {
     if (row[label] != null) fields.push({ kind: "label", text: row[label], value: null });
   }
+  if (section !== "models" && row.display_name != null) fields.push({ kind: "label", text: row.display_name, value: null });
+  for (const key of ["aliases", "synonyms"]) {
+    const raw = row[key];
+    const items = typeof raw === "string" ? [raw] : Array.isArray(raw) ? raw : [];
+    for (const item of items) {
+      if (typeof item === "string") fields.push({ kind: "label", text: item, value: null });
+    }
+  }
   if (section === "estate" && row.provider != null) fields.push({ kind: "label", text: row.provider, value: null });
   const definitions = section === "templates" ? ["purpose", "category", "tier"]
     : section === "facets" || section === "refinements" ? ["definition"] : [];
@@ -119,13 +128,81 @@ function searchableFields(section: Section, { id, row }: Entry): Field[] {
   return fields;
 }
 
-function matchFields(fields: Field[], needle: string): Pick<Match, "matched"> & { value: unknown } | undefined {
-  const tokens = needle.split(/\s+/);
+const KINDS = ["id", "label", "definition", "value"] satisfies Match["matched"][];
+const STOPWORDS = new Set(["use", "for", "the", "a", "and", "of", "with", "on", "in", "to"]);
+// Suggestion scoring and subset matching both stop at the first 8 unique content tokens.
+const SUGGESTION_TOKENS = 8;
+const SUGGESTION_NEEDLE_CHARS = 32;
+
+type Folded = { kind: Match["matched"]; text: string; value: unknown };
+type Classified = {
+  tier: 0 | 1 | 2;
+  kind: Match["matched"];
+  value: unknown;
+  via: "synonym" | null;
+  matchedTokens: string[];
+  quality: Map<string, number>;
+};
+
+function words(value: string) {
+  return value.length === 0 ? [] : value.split(/\s+/).filter((token) => token.length > 0);
+}
+
+let synonyms: { spelling: Map<string, string>; phrases: { tokens: string[]; ids: string[] }[] } | undefined;
+function synonymTable() {
+  if (synonyms) return synonyms;
+  const spelling = new Map<string, string>();
+  for (const [canonical, variant] of synonymData.spelling) {
+    spelling.set(normalize(variant), normalize(canonical));
+  }
+  const phrases: { tokens: string[]; ids: string[] }[] = [];
+  for (const row of synonymData.synonyms) {
+    for (const phrase of row.phrases) {
+      const tokens = words(normalize(phrase));
+      if (tokens.length > 0 && row.ids.length > 0) phrases.push({ tokens, ids: [...row.ids] });
+    }
+  }
+  synonyms = { spelling, phrases };
+  return synonyms;
+}
+
+let matchCalls = 0;
+let foldCalls = 0;
+
+/** Counts from the last reset, so a test can bound match work without a timer. */
+export function takeSearchWork() {
+  const work = { matchCalls, foldCalls };
+  matchCalls = 0;
+  foldCalls = 0;
+  return work;
+}
+
+function foldToken(token: string) {
+  foldCalls += 1;
+  return synonymTable().spelling.get(token) ?? token;
+}
+
+function fold(value: unknown) {
+  return words(normalize(value)).map(foldToken).join(" ");
+}
+
+function foldFields(fields: Field[]): Folded[] {
+  return fields.map(({ kind, text, value }) => ({ kind, text: fold(text), value }));
+}
+
+function codePointLength(value: string) {
+  return Array.from(value).length;
+}
+
+function matchFolded(folded: Folded[], foldedNeedle: string, tokens: string[]) {
+  // Needle is folded once per request. `tokens` are its unique folded words.
+  matchCalls += 1;
+  if (tokens.length === 0) return undefined;
   let prior: string[] = [];
-  for (const kind of ["id", "label", "definition", "value"] satisfies Match["matched"][]) {
-    const current = fields.filter((field) => field.kind === kind).map(({ text, value }) => ({ text: normalize(text), value }));
+  for (const kind of KINDS) {
+    const current = folded.filter((field) => field.kind === kind);
     for (const { text, value } of current) {
-      if (text.includes(needle)) return { matched: kind, value };
+      if (text && text.includes(foldedNeedle)) return { matched: kind, value };
     }
     const combined = [...prior, ...current.map(({ text }) => text)];
     if (current.length > 0 && tokens.every((token) => combined.some((text) => text.includes(token)))) {
@@ -135,6 +212,140 @@ function matchFields(fields: Field[], needle: string): Pick<Match, "matched"> & 
     prior = combined;
   }
   return undefined;
+}
+
+type Prepared = {
+  raw: string[];
+  content: string[];
+  foldedAll: string;
+  allTokens: string[];
+  contentFolded: string[];
+};
+
+function prepareQuery(needle: string): Prepared {
+  // Subset matching keeps the first 8 unique content tokens. Length is code points.
+  const raw = needle ? words(needle) : [];
+  const foldedOf = new Map<string, string>();
+  for (const token of raw) {
+    if (!foldedOf.has(token)) foldedOf.set(token, foldToken(token));
+  }
+  const content: string[] = [];
+  const seen = new Set<string>();
+  for (const token of raw) {
+    if (STOPWORDS.has(token) || codePointLength(token) < 2 || seen.has(token)) continue;
+    seen.add(token);
+    content.push(token);
+    if (content.length >= SUGGESTION_TOKENS) break;
+  }
+  const foldedAll = raw.map((token) => foldedOf.get(token) ?? token).join(" ");
+  const allTokens: string[] = [];
+  const seenFolded = new Set<string>();
+  for (const token of raw) {
+    const folded = foldedOf.get(token) ?? token;
+    if (seenFolded.has(folded)) continue;
+    seenFolded.add(folded);
+    allTokens.push(folded);
+  }
+  return { raw, content, foldedAll, allTokens, contentFolded: content.map((token) => foldedOf.get(token) ?? token) };
+}
+
+function phraseCover(raw: string[], content: string[]) {
+  const cover = new Map<string, Set<string>>();
+  const whole = new Set<string>();
+  const contentSet = new Set(content);
+  for (const phrase of synonymTable().phrases) {
+    const size = phrase.tokens.length;
+    if (size === 0 || size > raw.length) continue;
+    for (let start = 0; start <= raw.length - size; start += 1) {
+      if (!phrase.tokens.every((token, index) => raw[start + index] === token)) continue;
+      const hit = phrase.tokens.filter((token) => contentSet.has(token));
+      for (const key of phrase.ids) {
+        const tokens = cover.get(key) ?? new Set<string>();
+        for (const token of hit) tokens.add(token);
+        cover.set(key, tokens);
+      }
+      if (size === raw.length) for (const key of phrase.ids) whole.add(key);
+    }
+  }
+  return { cover, whole };
+}
+
+function tokenQuality(folded: Folded[], foldedToken: string, synonym: boolean) {
+  if (synonym) return 0;
+  let partial = false;
+  for (const { text } of folded) {
+    if (!foldedToken || !text) continue;
+    if (words(text).includes(foldedToken)) return 1;
+    partial = partial || text.includes(foldedToken);
+  }
+  return partial ? 2 : 9;
+}
+
+function bestKind(found: { kind: Match["matched"]; value: unknown }[]): { kind: Match["matched"]; value: unknown } {
+  let kind: Match["matched"] = "value";
+  for (const item of found) {
+    if (KINDS.indexOf(item.kind) < KINDS.indexOf(kind)) kind = item.kind;
+  }
+  const value = kind === "value" ? found.find((item) => item.kind === kind)?.value ?? null : null;
+  return { kind, value };
+}
+
+function viaFor(tokens: string[], textTokens: Set<string>): "synonym" | null {
+  return tokens.some((token) => !textTokens.has(token)) ? "synonym" : null;
+}
+
+function pickHit(all: { kind: Match["matched"]; value: unknown } | undefined,
+  found: { kind: Match["matched"]; value: unknown }[]): { kind: Match["matched"]; value: unknown } {
+  if (all) return all;
+  if (found.length > 0) return bestKind(found);
+  return { kind: "label", value: null };
+}
+
+// total counts subset and synonym hits. Only a true miss is zero.
+function classify(folded: Folded[], key: string, query: Prepared,
+  cover: Map<string, Set<string>>, whole: Set<string>, exact: boolean): Classified | undefined {
+  const { raw, content, foldedAll, allTokens, contentFolded } = query;
+  const textAll = raw.length > 0 ? matchFolded(folded, foldedAll, allTokens) : undefined;
+  const synonymTokens = cover.get(key) ?? new Set<string>();
+  const textFound: { token: string; kind: Match["matched"]; value: unknown }[] = [];
+  for (let i = 0; i < content.length; i += 1) {
+    const token = content[i];
+    const foldedToken = contentFolded[i];
+    if (token === undefined || foldedToken === undefined) continue;
+    const found = matchFolded(folded, foldedToken, [foldedToken]);
+    if (found) textFound.push({ token, kind: found.matched, value: found.value });
+  }
+  const textTokens = new Set(textFound.map(({ token }) => token));
+  const matchedTokens = content.filter((token) => textTokens.has(token) || synonymTokens.has(token));
+  const synonymFull = content.length > 0 && content.every((token) => synonymTokens.has(token));
+  const wholeQuery = whole.has(key);
+  const fromAll = textAll ? { kind: textAll.matched, value: textAll.value } : undefined;
+  if (exact) {
+    if (!fromAll && textFound.length === 0 && matchedTokens.length === 0 && !wholeQuery && !synonymFull) return undefined;
+    const picked = pickHit(fromAll, textFound);
+    return { tier: 0, kind: picked.kind, value: picked.kind === "value" ? picked.value : null,
+      via: null, matchedTokens: [], quality: new Map() };
+  }
+  if (fromAll) {
+    return { tier: 1, kind: fromAll.kind, value: fromAll.kind === "value" ? fromAll.value : null,
+      via: null, matchedTokens: [], quality: new Map() };
+  }
+  if (wholeQuery || synonymFull) {
+    const picked = pickHit(undefined, textFound);
+    return { tier: 1, kind: picked.kind, value: picked.kind === "value" ? picked.value : null,
+      via: viaFor(content, textTokens), matchedTokens: [], quality: new Map() };
+  }
+  if (matchedTokens.length === 0) return undefined;
+  const picked = pickHit(undefined, textFound);
+  const quality = new Map<string, number>();
+  for (let i = 0; i < content.length; i += 1) {
+    const token = content[i];
+    const foldedToken = contentFolded[i];
+    if (token === undefined || foldedToken === undefined || !matchedTokens.includes(token)) continue;
+    quality.set(token, tokenQuality(folded, foldedToken, synonymTokens.has(token)));
+  }
+  return { tier: 2, kind: picked.kind, value: picked.kind === "value" ? picked.value : null,
+    via: viaFor(matchedTokens, textTokens), matchedTokens, quality };
 }
 
 function similarity(left: string, right: string) {
@@ -157,10 +368,87 @@ function compareText(left: string, right: string) {
 
 // A value suggestion names its facet id, so retrying with id= cannot dead-end.
 type Candidate = { section: Section; id: string; name: string | null; text: string; labels: unknown[]; value: unknown };
+type Scored = { score: number; section: Section; id: string; name: string | null; value: unknown };
 
 export const SUGGESTION_CELLS = 300_000;
 
+function suggestionTokens(needles: string[]) {
+  const tokens: string[] = [];
+  for (const needle of needles) {
+    for (const token of words(normalize(needle))) {
+      tokens.push(Array.from(token).slice(0, SUGGESTION_NEEDLE_CHARS).join(""));
+      if (tokens.length >= SUGGESTION_TOKENS) return tokens;
+    }
+  }
+  return tokens;
+}
+
+function foldedHaystacks(text: string, labels: unknown[]) {
+  const normalized = normalize(text);
+  const raw: string[] = [];
+  const seenRaw = new Set<string>();
+  for (const item of [normalized, normalize(text.split(/[._]/).at(-1) ?? ""), ...words(normalized), ...labels.map(normalize)]) {
+    if (seenRaw.has(item)) continue;
+    seenRaw.add(item);
+    raw.push(item);
+  }
+  const folded: string[] = [];
+  const seen = new Set<string>();
+  for (const item of raw) {
+    const hay = fold(item);
+    if (seen.has(hay)) continue;
+    seen.add(hay);
+    folded.push(hay);
+  }
+  return folded;
+}
+
+function scoreSuggestions(candidates: Map<string, Candidate>, tokens: string[], cover: Map<string, Set<string>>,
+  cells: { n: number }, lengthFilter: boolean, idsOnly: boolean) {
+  const scored: Scored[] = [];
+  let calls = 0;
+  let stopped = false;
+  for (const candidate of candidates.values()) {
+    if (stopped) break;
+    if (idsOnly && candidate.name !== null) continue;
+    const haystacks = foldedHaystacks(candidate.text, candidate.labels);
+    const synonymTokens = candidate.name === null ? cover.get(candidate.id) ?? new Set<string>() : new Set<string>();
+    let score = 0;
+    for (const token of tokens) {
+      if (synonymTokens.has(token)) {
+        score += 1;
+        continue;
+      }
+      const foldedToken = fold(token);
+      let best = 0;
+      for (const hay of haystacks) {
+        // Levenshtein similarity is at most min/max length, so skip pairs that cannot reach 0.4.
+        const n = Array.from(foldedToken).length;
+        const h = Array.from(hay).length;
+        if (!n || !h || (lengthFilter && Math.min(n, h) < 0.4 * Math.max(n, h))) continue;
+        const cost = n * h;
+        if (cells.n + cost > SUGGESTION_CELLS) {
+          stopped = true;
+          break;
+        }
+        cells.n += cost;
+        calls += 1;
+        best = Math.max(best, similarity(foldedToken, hay));
+      }
+      score += best;
+      if (stopped) break;
+    }
+    if (score > 0) scored.push({ score, section: candidate.section, id: candidate.id, name: candidate.name, value: candidate.value });
+  }
+  return { scored, calls };
+}
+
 function suggestions(vocabulary: Record<string, unknown>, needles: string[]) {
+  // Scores each of the first 8 tokens. Synonym ids score 1. Keeps scores of at
+  // least 0.4, or the best score above zero when nothing reaches 0.4. A query
+  // of only separators has no tokens and suggests nothing.
+  const tokens = suggestionTokens(needles);
+  if (tokens.length === 0) return [];
   const candidates = new Map<string, Candidate>();
   for (const section of searchSections) {
     for (const entry of sectionRows(vocabulary, section)) {
@@ -177,32 +465,15 @@ function suggestions(vocabulary: Record<string, unknown>, needles: string[]) {
       }
     }
   }
-  // The suggestion pass is reachable without a key, so its work has a hard ceiling:
-  // two needles of at most 32 characters, and at most SUGGESTION_CELLS Levenshtein cells.
-  const normalized = needles.slice(0, 2).map((needle) => Array.from(normalize(needle)).slice(0, 32).join(""));
-  const scored: (Candidate & { score: number })[] = [];
-  let cells = 0;
-  for (const candidate of candidates.values()) {
-    const { text, labels } = candidate;
-    // Token scores let a typo like "pirce" suggest offering.price.input.
-    // An ordered dedupe keeps the budget's stopping point the same on every run.
-    const haystacks = new Set([normalize(text), normalize(text.split(/[._]/).at(-1) ?? ""),
-      ...normalize(text).split(/\s+/), ...labels.map(normalize)]);
-    let score = 0;
-    scoring: for (const needle of normalized) {
-      for (const hay of haystacks) {
-        // Levenshtein similarity is at most min/max length, so skip pairs that cannot reach 0.4.
-        const [n, h] = [Array.from(needle).length, Array.from(hay).length];
-        if (!n || !h || Math.min(n, h) < 0.4 * Math.max(n, h)) continue;
-        cells += n * h;
-        if (cells > SUGGESTION_CELLS) break scoring;
-        score = Math.max(score, similarity(needle, hay));
-      }
-    }
-    if (score >= 0.4) scored.push({ ...candidate, score });
-    if (cells > SUGGESTION_CELLS) break;
+  const { cover } = phraseCover(tokens, tokens);
+  const cells = { n: 0 };
+  let { scored, calls } = scoreSuggestions(candidates, tokens, cover, cells, true, false);
+  if (scored.length === 0 && calls === 0 && cells.n < SUGGESTION_CELLS) {
+    scored = scoreSuggestions(candidates, tokens, cover, cells, false, true).scored;
   }
-  return scored.sort((a, b) => b.score - a.score || searchSections.indexOf(a.section) - searchSections.indexOf(b.section)
+  const strong = scored.filter((item) => item.score >= 0.4);
+  const pool = strong.length > 0 ? strong : scored;
+  return pool.sort((a, b) => b.score - a.score || searchSections.indexOf(a.section) - searchSections.indexOf(b.section)
     || compareText(a.id, b.id) || compareText(a.name ?? "", b.name ?? "")).slice(0, 5)
     .map(({ section, id, name, value }) => ({ section, id, ...(name === null ? {} : { value }) }));
 }
@@ -217,13 +488,49 @@ function selectRows(entries: Entry[], section: Section, full: boolean): unknown 
     ? Object.fromEntries(selected) : selected.map(([, row]) => row);
 }
 
+type Hit = { match: Match; entry: Entry; tier: 0 | 1 | 2; kind: Match["matched"]; matchedTokens: string[]; quality: Map<string, number>; source: number };
+
+function rankHits(hits: Hit[], content: string[], searched: Section[]) {
+  const bySection = (hit: Hit) => searched.indexOf(hit.match.section);
+  const exact = hits.filter((hit) => hit.tier === 0).sort((a, b) => bySection(a) - bySection(b) || a.source - b.source);
+  const full = hits.filter((hit) => hit.tier === 1).sort((a, b) => KINDS.indexOf(a.kind) - KINDS.indexOf(b.kind) || bySection(a) - bySection(b) || a.source - b.source);
+  const subset = hits.filter((hit) => hit.tier === 2);
+  const buckets = content.map((token) => subset.filter((hit) => hit.matchedTokens.includes(token)).sort((a, b) =>
+    (a.quality.get(token) ?? 9) - (b.quality.get(token) ?? 9) || b.matchedTokens.length - a.matchedTokens.length
+    || KINDS.indexOf(a.kind) - KINDS.indexOf(b.kind) || bySection(a) - bySection(b) || a.source - b.source));
+  const interleaved: Hit[] = [];
+  const seen = new Set<number>();
+  const indexes = buckets.map(() => 0);
+  for (;;) {
+    let moved = false;
+    for (let i = 0; i < buckets.length; i += 1) {
+      const group = buckets[i];
+      if (!group) continue;
+      let idx = indexes[i] ?? 0;
+      while (idx < group.length && seen.has(group[idx].source)) idx += 1;
+      if (idx < group.length) {
+        const hit = group[idx];
+        idx += 1;
+        seen.add(hit.source);
+        interleaved.push(hit);
+        moved = true;
+      }
+      indexes[i] = idx;
+    }
+    if (!moved) break;
+  }
+  return [...exact, ...full, ...interleaved];
+}
+
 function searchVocabulary(vocabulary: Record<string, unknown>, args: VocabInput, ids: string[]): Record<string, unknown> {
   const section = args.section ?? "starter", search = args.search ?? "";
   const crossSection = section === "starter";
   const searched = crossSection ? searchSections : [section];
   const full = args.detail === "full" || ids.length > 0;
   const needle = normalize(search);
-  const hits: { rank: number; match: Match; entry: Entry }[] = [];
+  const query = prepareQuery(needle);
+  const { cover, whole } = needle ? phraseCover(query.raw, query.content) : { cover: new Map<string, Set<string>>(), whole: new Set<string>() };
+  const hits: Hit[] = [];
   // Record exact ids before the search-text filter. A known id that misses the
   // text stays known; only an id absent from the searched sections is unknown.
   const requested = new Set(ids);
@@ -233,23 +540,30 @@ function searchVocabulary(vocabulary: Record<string, unknown>, args: VocabInput,
       if (requested.has(entry.id)) exactIds.add(entry.id);
       if (requested.size > 0 && !requested.has(entry.id)) continue;
       // A search of only separators normalises to nothing: it matches nothing, not everything.
-      const field = needle ? matchFields(searchableFields(name, entry), needle)
-        : search ? undefined : { matched: "id", value: null } satisfies { matched: "id"; value: null };
-      if (!field) continue;
-      const rank = ids.includes(entry.id) || entry.id === search ? 0 : ["id", "label", "definition", "value"].indexOf(field.matched) + 1;
+      const classified = needle
+        ? classify(foldFields(searchableFields(name, entry)), entry.id, query, cover, whole, ids.includes(entry.id) || entry.id === search)
+        : search ? undefined : { tier: 0, kind: "id", value: null, via: null, matchedTokens: [], quality: new Map<string, number>() } satisfies Classified;
+      if (!classified) continue;
       const label = isRecord(entry.row) ? entry.row.label ?? entry.row.name ?? entry.row.display_name
         : name === "providers" || name === "vendors" ? entry.row : undefined;
-      const base = { section: name, id: entry.id, ...(typeof label === "string" ? { label } : {}) };
-      const match: Match = field.matched === "value" ? { ...base, matched: "value", value: field.value } : { ...base, matched: field.matched };
-      hits.push({ rank, match, entry });
+      const base = {
+        section: name, id: entry.id, ...(typeof label === "string" ? { label } : {}),
+        ...(classified.via ? { via: classified.via } : {}),
+        ...(classified.matchedTokens.length > 0 ? { matched_tokens: classified.matchedTokens } : {}),
+      };
+      const match: Match = classified.kind === "value"
+        ? { ...base, matched: "value", value: classified.value }
+        : { ...base, matched: classified.kind };
+      hits.push({ match, entry, tier: classified.tier, kind: classified.kind, matchedTokens: classified.matchedTokens,
+        quality: classified.quality, source: hits.length });
     }
   }
-  const ranked = [...hits].sort((a, b) => a.rank - b.rank || searched.indexOf(a.match.section) - searched.indexOf(b.match.section));
+  const ranked = rankHits(hits, query.content, searched);
   const offset = args.offset ?? 0, limit = args.limit ?? 20;
   const page = ranked.slice(offset, offset + limit);
   const sections = crossSection ? Object.fromEntries(searched.map((name) =>
     [name, selectRows(page.filter(({ match }) => match.section === name).map(({ entry }) => entry), name, full)]))
-    : { [section]: selectRows(full ? hits.map(({ entry }) => entry) : hits.slice(offset, offset + limit).map(({ entry }) => entry), section, full) };
+    : { [section]: selectRows((full ? hits : hits.slice(offset, offset + limit)).map(({ entry }) => entry), section, full) };
   if (crossSection) {
     const starters = new Set(starterIds(vocabulary));
     sections.starter = page.filter(({ match }) => match.section === "facets" && starters.has(match.id))
