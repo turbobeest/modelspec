@@ -52,6 +52,9 @@ _HARDWARE_TAIL = (
     "or runtime headroom is not established."
 )
 _HARDWARE = "fits_hardware" + _HARDWARE_TAIL
+_HARDWARE_NOT_REQUIRED = (
+    "model.fits_hardware was not required, so no model is established to fit the target hardware."
+)
 _PARTIAL_NO_FIT = (
     "No model is established as the best fit: "
     "some candidates lack values ModelSpec needs."
@@ -980,6 +983,8 @@ def _cost_tie_break(decision: Decision) -> bool:
 
 def _hardware_item(spec: Spec | None) -> str:
     gates = _hardware_gates(spec)
+    if not gates and _own_hardware_without_fit(spec):
+        return _HARDWARE_NOT_REQUIRED
     if not gates:
         return _HARDWARE
     gate = "; ".join(gates)
@@ -988,6 +993,13 @@ def _hardware_item(spec: Spec | None) -> str:
         return sentence
     room = MUST_MENTION_ITEM_BYTES - len(_HARDWARE_TAIL.encode("utf-8"))
     return _clip_to(gate, room) + _HARDWARE_TAIL
+
+
+def _own_hardware_without_fit(spec: Spec | None) -> bool:
+    """Own hardware was asked for, but neither a gate nor the estate names a device."""
+    if spec is None or spec.access is None or spec.access.kind != "own_hardware":
+        return False
+    return spec.estate is None or not spec.estate.devices
 
 
 def _hardware_gates(spec: Spec | None) -> list[str]:

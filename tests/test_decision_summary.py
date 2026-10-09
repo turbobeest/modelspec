@@ -1365,6 +1365,28 @@ def test_fits_hardware_is_an_estimate_with_and_without_a_gate() -> None:
     )
 
 
+def test_own_hardware_without_a_device_says_fit_was_not_required() -> None:
+    not_required = (
+        "model.fits_hardware was not required, so no model is established to fit "
+        "the target hardware."
+    )
+    decision = _decision(answer=_separated("lab/a"))
+    _text, mentions = summarize(
+        decision, _spec(where=["model.class = text-generator"], access="own_hardware"),
+    )
+    assert mentions == [CHECKED_ONLY, not_required]
+
+    # A device in the estate is fitted through with_estate, so the estimate caveat stays.
+    _text, estate_mentions = summarize(
+        decision,
+        _spec(
+            where=["model.class = text-generator"], access="own_hardware",
+            estate={"devices": ["nvidia_rtx_4090"]},
+        ),
+    )
+    assert estate_mentions == [CHECKED_ONLY, HARDWARE]
+
+
 def test_task_type_is_reported_as_not_applied() -> None:
     decision = _decision(answer=_separated("lab/a"))
     spec = _spec(task_type="review", where=["model.class = text-generator"])

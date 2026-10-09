@@ -1277,10 +1277,7 @@ three current explanation levels. Regenerate the MCP public fixture with
   `1.0`. Both are written from the full Decision before trimming, and neither
   is removed to fit the 16,384-byte MCP text. `summary_for_user` is one
   paragraph for the end user. `must_mention` lists the facts a report of that
-  answer carries, at most 10 items. `must_mention` also names claims the answer
-  does not support: a tie is not a recommendation of any member, a partial
-  answer establishes no best fit, `fits_hardware` is an estimate, and
-  requirements not listed as applied, including `task_type`, were not checked.
+  answer carries, at most 10 items.
 - **bounded 1.1 — MODEL-354:** Adds optional `member_evidence`. No existing
   field changes range. `bounded_version` moves from `1.0` to `1.1`. One entry
   per answer member carries that member's objective evidence, capped at 3
@@ -1296,6 +1293,12 @@ three current explanation levels. Regenerate the MCP public fixture with
   tie's `member_evidence` entries still do not fit, entries are removed from
   the end and counted in `explanation.omitted` under `member_evidence`.
   `answer.members` stays complete.
+- **bounded 1.1 — MODEL-351:** `must_mention` also names claims the answer does
+  not support: a tie, answered or partial, is not a recommendation of any
+  member; a partial answer establishes no best fit; `fits_hardware` is an
+  estimate, or was not required at all; and requirements not listed as
+  applied, including `task_type`, were not checked. Copy only: no field,
+  range or `bounded_version` changes.
 
 ## The library and the CLI
 
