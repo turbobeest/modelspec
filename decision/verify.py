@@ -2720,8 +2720,8 @@ CANONICAL_LICENCE_SIGNATURES: dict[str, tuple[str, ...]] = {
 }
 
 #: A phrase that means the text adds terms the canonical licence does not have.
-#: Second guard, after the allow-list: a short restriction can avoid every
-#: phrase here and still be outside the list.
+#: Extra guard beside :data:`CANONICAL_LICENCE_RESIDUALS`. A short restriction
+#: can avoid every phrase here and still miss the residual list.
 CANONICAL_LICENCE_RED_FLAGS: tuple[str, ...] = (
     "separate agreement",
     "monthly active users",
@@ -2983,6 +2983,35 @@ if _APPENDIX_HEAD in CANONICAL_LICENCE_BODIES["apache-2.0"]:
     raise RuntimeError("apache appendix heading is inside the canonical body")
 
 
+#: Exact ``(before, after)`` text around a canonical body, after
+#: :func:`_canonical_form` and whitespace stripping. For Apache-2.0, ``after``
+#: is what remains once the canonical appendix is removed, so it is the
+#: copyright line between the how-to and the boilerplate.
+#:
+#: DeepSeek-V4-Pro, DeepSeek-V4.1-Flash, and ``model-143-deepseek-v4-license``
+#: are the same retained bytes as DeepSeek-V3.1, so they share that pair.
+#: A copyright line that is not listed here is not read by this extractor
+#: until the residual is reviewed and added in code.
+CANONICAL_LICENCE_RESIDUALS: dict[str, frozenset[tuple[str, str]]] = {
+    "mit": frozenset({
+        (
+            "Popular / Strong Community The MIT License Version N/A "
+            "SPDX short identifier: MIT Copyright <YEAR> <COPYRIGHT HOLDER>",
+            "",
+        ),
+        ("Microsoft. Copyright (c) Microsoft Corporation. MIT License", ""),
+        ("MIT License Copyright (c) 2023 DeepSeek", ""),
+        ("MIT License Copyright (c) 2026 Zhipu AI", ""),
+    }),
+    "apache-2.0": frozenset({
+        ("", "Copyright [yyyy] [name of copyright owner]"),
+        ("", "Copyright 2024 Alibaba Cloud"),
+    }),
+}
+if set(CANONICAL_LICENCE_RESIDUALS) != set(CANONICAL_LICENCE_BODIES):
+    raise RuntimeError("residual table does not match the canonical bodies")
+
+
 def _canonical_clause(value: JsonValue, clause: str, rule: str) -> CanonicalClause:
     if rule not in LICENCE_READING_RULES:
         raise RuntimeError(f"no licence reading rule for {rule}")
@@ -3049,108 +3078,12 @@ for _spdx, _rows in CANONICAL_LICENCE_READINGS.items():
             raise RuntimeError(f"{_spdx} {_facet} clause is not in the canonical body")
 
 
-#: Titles, SPDX lines, and opensource.org page chrome. Longest first, so
-#: ``The MIT License (MIT)`` is not read as ``The MIT License``.
-_CANONICAL_OUTSIDE_LITERALS: tuple[str, ...] = (
-    "The MIT License (MIT)",
-    "The MIT License",
-    "Apache License, Version 2.0",
-    "SPDX short identifier: Apache-2.0",
-    "SPDX short identifier: MIT",
-    "Popular / Strong Community",
-    "MIT License",
-    "Apache License",
-    "Version N/A",
-)
-
-#: Sentence verbs a copyright line must not contain. A restriction worded with
-#: one of them cannot hide in the holder field.
-_COPYRIGHT_VERB = re.compile(r"\b(?:may|must|shall|not)\b", re.IGNORECASE)
-
-#: A bare holder name: at most four capitalised words, optional final period.
-_HOLDER_NAME = re.compile(
-    r"[A-Z][A-Za-z0-9]*(?:\s+[A-Z][A-Za-z0-9]*){0,3}\.?"
-)
-
-#: Sentence ends and line breaks. A period inside ``2.0`` is not followed by
-#: whitespace, so it does not split.
-_OUTSIDE_SEGMENT = re.compile(r"[\r\n]+|(?<=[.!?])[ \t]+")
-
-
-def _is_copyright_line(text: str) -> bool:
-    """``Copyright`` plus at most 150 characters and no sentence verb.
-
-    A period is allowed only as the last character, as in ``Copyright (c)
-    Microsoft Corporation.``. Placeholders such as ``<YEAR> <COPYRIGHT HOLDER>``
-    and ``[yyyy] [name of copyright owner]`` count.
-    """
-    if not re.fullmatch(r"Copyright\b[^\n\r]{1,150}", text):
-        return False
-    suffix = text[len("Copyright"):]
-    if not suffix.strip() or _COPYRIGHT_VERB.search(suffix):
-        return False
-    core = text[:-1] if text.endswith(".") else text
-    return re.search(r"[.!?]", core) is None
-
-
-def _match_literal(text: str, literal: str) -> int:
-    if not text.startswith(literal):
-        return 0
-    if len(text) == len(literal):
-        return len(literal)
-    nxt = text[len(literal)]
-    if nxt.isspace():
-        return len(literal)
-    if nxt in ".!?":
-        return len(literal) + 1
-    return 0
-
-
-def _match_one(text: str) -> int:
-    """The length of one allow-list entry at the start of ``text``, or 0."""
-    for literal in _CANONICAL_OUTSIDE_LITERALS:
-        found = _match_literal(text, literal)
-        if found:
-            return found
-    if _is_copyright_line(text):
-        return len(text)
-    if _HOLDER_NAME.fullmatch(text):
-        return len(text)
-    return 0
-
-
-def _segment_is_allowed(segment: str) -> bool:
-    """True when ``segment`` is one allow-list entry, or several in a row.
-
-    opensource.org writes ``Version N/A`` and the SPDX line on one line, and
-    ``_canonical_form`` joins a title and a copyright line with a space. A
-    restriction that is its own sentence does not start with an entry.
-    """
-    rest = segment.strip()
-    while rest:
-        found = _match_one(rest)
-        if found <= 0:
-            return False
-        rest = rest[found:].strip()
-    return True
-
-
-def _outside_allowed(residual: str) -> bool:
-    """Every non-empty segment outside the body is on the allow-list."""
-    if not residual.strip():
-        return True
-    for segment in _OUTSIDE_SEGMENT.split(residual):
-        if segment.strip() and not _segment_is_allowed(segment.strip()):
-            return False
-    return True
-
-
 def _strip_apache_appendix(residual: str) -> str | None:
-    """Remove one canonical Apache appendix.
+    """Remove one verbatim Apache how-to and boilerplate notice.
 
-    The how-to paragraph and the boilerplate notice are verbatim. The copyright
-    line between them is the placeholder or a filled-in holder. ``None`` when
-    an ``APPENDIX:`` is present and is not that text.
+    The copyright line between them stays, so :data:`CANONICAL_LICENCE_RESIDUALS`
+    can require that line exactly. ``None`` when an ``APPENDIX:`` is present
+    and the how-to or the boilerplate is not the canonical text.
     """
     start = residual.find(_APPENDIX_HEAD)
     if start < 0:
@@ -3162,20 +3095,27 @@ def _strip_apache_appendix(residual: str) -> str | None:
     if tail_at < 0 or "APPENDIX:" in residual[tail_at + len(_APPENDIX_TAIL):]:
         return None
     holder = residual[holder_at:tail_at].strip()
-    if not _is_copyright_line(holder):
-        return None
     end = tail_at + len(_APPENDIX_TAIL)
-    return residual[:start] + residual[end:]
+    left = residual[:start].strip()
+    right = residual[end:].strip()
+    return " ".join(part for part in (left, holder, right) if part)
 
 
 def _canonical_licence_id(text: str) -> str | None:
-    """``mit`` or ``apache-2.0`` when ``text`` is that licence and nothing more.
+    """``mit`` or ``apache-2.0`` when the signature, body, and residual all match.
 
-    ``None`` when the notice-retention rule is no longer the one this table
-    applies, when a red-flag phrase is present, when the text outside the
-    canonical body is longer than :data:`CANONICAL_LICENCE_OUTSIDE_LIMIT`,
-    or when any segment outside the body and the Apache appendix is not on
-    the allow-list.
+    The signature has to match and the canonical body has to be present. The
+    text before and after that body, after :func:`_canonical_form` and
+    whitespace stripping, has to be a pair in :data:`CANONICAL_LICENCE_RESIDUALS`.
+    For Apache-2.0 the appendix how-to and boilerplate are removed first, and
+    the copyright line that was between them is the ``after`` value.
+
+    Returns ``None`` when the notice-retention rule is no longer the one this
+    table applies, when a red-flag phrase is present, when the text outside
+    the canonical body is longer than :data:`CANONICAL_LICENCE_OUTSIDE_LIMIT`,
+    or when the residual pair is not one this code records. A new canonical
+    file with a different copyright line is not read here until that residual
+    is reviewed and added in code. The licence reader then reads the text.
     """
     if "notices is not a condition" not in LICENCE_CONDITION_RULE:
         return None
@@ -3190,19 +3130,39 @@ def _canonical_licence_id(text: str) -> str | None:
         return None
     spdx = matched[0]
     body = CANONICAL_LICENCE_BODIES[spdx]
-    if body not in form:
+    start = form.find(body)
+    if start < 0:
         return None
     if len(form) - len(body) > CANONICAL_LICENCE_OUTSIDE_LIMIT:
         return None
-    residual = form.replace(body, "\n", 1)
+    before = form[:start].strip()
+    after = form[start + len(body):].strip()
     if spdx == "apache-2.0":
-        stripped = _strip_apache_appendix(residual)
+        stripped = _strip_apache_appendix(after)
         if stripped is None:
             return None
-        residual = stripped
-    if not _outside_allowed(residual):
+        after = stripped.strip()
+    if (before, after) not in CANONICAL_LICENCE_RESIDUALS[spdx]:
         return None
     return spdx
+
+
+def _text_around_body(spdx: str, before: str, after: str, *, appendix: bool) -> str:
+    body = CANONICAL_LICENCE_BODIES[spdx]
+    if appendix:
+        after = f"{_APPENDIX_HEAD}{after}{_APPENDIX_TAIL}"
+    return " ".join(part for part in (before, body, after) if part)
+
+
+for _spdx, _pairs in CANONICAL_LICENCE_RESIDUALS.items():
+    for _before, _after in _pairs:
+        _plain = _text_around_body(_spdx, _before, _after, appendix=False)
+        if _canonical_licence_id(_plain) != _spdx:
+            raise RuntimeError(f"{_spdx} residual is not recognised around the body")
+        if _spdx == "apache-2.0" and _canonical_licence_id(
+            _text_around_body(_spdx, _before, _after, appendix=True)
+        ) != _spdx:
+            raise RuntimeError(f"{_spdx} residual is not recognised with the appendix")
 
 
 class CanonicalLicenceExtractor:
@@ -3210,16 +3170,14 @@ class CanonicalLicenceExtractor:
 
     A deterministic extractor, so it counts as an independent second key.
     It accepts a ``licence_text`` region only. The text has to carry that
-    licence's signature and its canonical body. Outside that body, the text is
-    split at sentence ends and line breaks. Each segment has to be one
-    allow-list entry, or several written in a row: a title, a copyright line,
-    an SPDX line, opensource.org page chrome, or a bare holder name. The
-    Apache appendix is removed first. Its how-to paragraph and boilerplate
-    notice have to be verbatim, and the copyright line between them has to be
-    a copyright line. Added terms, including a short restriction with no
-    red-flag phrase, a modified MIT, Gemma terms, or a separate-agreement
-    paragraph, are not accepted, and the licence reader then reads the region
-    as before.
+    licence's signature and its canonical body. The text before and after the
+    body, after :func:`_canonical_form` and whitespace stripping, has to be a
+    pair in :data:`CANONICAL_LICENCE_RESIDUALS`. For Apache-2.0 the how-to
+    appendix and the boilerplate notice are removed first. The copyright line
+    that was between them is the ``after`` residual, and it has to match
+    exactly. A new canonical file with a different copyright line is not read
+    here until that residual is reviewed and added in code. The licence reader
+    then reads the region. The red-flag list is a second guard.
 
     The value for each facet is the one ``LICENCE_READING_RULES`` gives, with
     ``LICENCE_CONDITION_RULE`` applied: a duty to keep a notice is not a

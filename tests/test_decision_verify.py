@@ -3514,14 +3514,47 @@ def test_a_modified_mit_is_not_accepted() -> None:
         assert followed.outcome == "verified", (name, followed)
 
 
-# Measured from the retained copies, after ``_canonical_form``, outside the body.
-_OPENSOURCE_BEFORE = (
-    "Popular / Strong Community The MIT License Version N/A "
-    "SPDX short identifier: MIT Copyright <YEAR> <COPYRIGHT HOLDER> "
+# Measured from the retained copies, after ``_canonical_form`` and stripping.
+# DeepSeek-V4-Pro and DeepSeek-V4.1-Flash are the same bytes as V3.1.
+_RETAINED_RESIDUALS = (
+    (
+        "apache.org/LICENSE-2.0.txt",
+        "apache-2.0",
+        "",
+        "Copyright [yyyy] [name of copyright owner]",
+    ),
+    (
+        "Qwen/Qwen3-Embedding-8B",
+        "apache-2.0",
+        "",
+        "Copyright 2024 Alibaba Cloud",
+    ),
+    (
+        "opensource.org/license/mit",
+        "mit",
+        "Popular / Strong Community The MIT License Version N/A "
+        "SPDX short identifier: MIT Copyright <YEAR> <COPYRIGHT HOLDER>",
+        "",
+    ),
+    (
+        "microsoft/phi-4",
+        "mit",
+        "Microsoft. Copyright (c) Microsoft Corporation. MIT License",
+        "",
+    ),
+    (
+        "deepseek-ai/DeepSeek-V3.1",
+        "mit",
+        "MIT License Copyright (c) 2023 DeepSeek",
+        "",
+    ),
+    (
+        "zai-org/GLM-5.2",
+        "mit",
+        "MIT License Copyright (c) 2026 Zhipu AI",
+        "",
+    ),
 )
-_PHI4_BEFORE = "Microsoft. Copyright (c) Microsoft Corporation. MIT License "
-_DEEPSEEK_BEFORE = "MIT License Copyright (c) 2023 DeepSeek "
-_GLM_BEFORE = "MIT License Copyright (c) 2026 Zhipu AI "
 _COMMONS_CLAUSE = (
     '"Commons Clause" License Condition v1.0\n\n'
     "The Software is provided to you by the Licensor under the License, as defined below, "
@@ -3535,41 +3568,116 @@ _COMMONS_CLAUSE = (
 )
 
 
-def test_retained_canonical_residuals_are_accepted() -> None:
-    """The six retained residuals stay canonical MIT or Apache-2.0.
+def _around(before: str, body: str, after: str) -> str:
+    return " ".join(part for part in (before, body, after) if part)
 
-    Each fixture is the measured residual plus the canonical body. Apache
-    copies also keep the appendix. Qwen fills in the appendix copyright line.
+
+def test_retained_canonical_residuals_are_accepted() -> None:
+    """Each recorded residual plus the canonical body is that licence.
+
+    Apache ``after`` is the copyright line. The retained file wraps that line
+    in the canonical appendix, and that file is accepted too.
+    """
+    recorded = {
+        spdx: frozenset((before, after) for _name, kind, before, after in _RETAINED_RESIDUALS
+                        if kind == spdx)
+        for spdx in ("mit", "apache-2.0")
+    }
+    assert verify.CANONICAL_LICENCE_RESIDUALS == recorded
+    extractor = verify.CanonicalLicenceExtractor()
+    head, tail = verify._APPENDIX_HEAD, verify._APPENDIX_TAIL
+    for name, spdx, before, after in _RETAINED_RESIDUALS:
+        body = verify.CANONICAL_LICENCE_BODIES[spdx]
+        texts = [_around(before, body, after)]
+        if spdx == "apache-2.0":
+            texts.append(_around(before, body, f"{head}{after}{tail}"))
+        for text in texts:
+            assert extractor.accepts(text), name
+            assert verify._canonical_licence_id(text) == spdx
+            url = _APACHE_URL + ".txt" if spdx == "apache-2.0" else _MIT_URL
+            regions = _canonical_regions(text, url, f"license: {spdx}\nNimbus 3\n")
+            claim = _licence_claim("licence.commercial_use", "permitted", (_LICENCE, _README))
+            result = verify.verify(claim, regions, verify.deterministic_extractors(), today=TODAY)
+            assert result.outcome == "verified", (name, result)
+            assert result.verification.verifier.method == "canonical-licence@1"
+
+
+def _reader_is_asked(name: str, text: str, spdx: str) -> None:
+    form = verify._canonical_form(text)
+    body = verify.CANONICAL_LICENCE_BODIES[spdx]
+    assert body in form, name
+    assert len(form) - len(body) <= verify.CANONICAL_LICENCE_OUTSIDE_LIMIT, name
+    assert not any(
+        flag in form.casefold() for flag in verify.CANONICAL_LICENCE_RED_FLAGS
+    ), name
+    assert verify._canonical_licence_id(text) is None, name
+    assert not verify.CanonicalLicenceExtractor().accepts(text), name
+    url = _APACHE_URL + ".txt" if spdx == "apache-2.0" else _MIT_URL
+    regions = _canonical_regions(text, url, f"license: {spdx}\nNimbus 3\n")
+    claim = _licence_claim("licence.commercial_use", "permitted", (_LICENCE, _README))
+    result = verify.verify(claim, regions, verify.deterministic_extractors(), today=TODAY)
+    assert result.outcome == "skipped", (name, result)
+    assert result.verification is None
+    quote = (
+        "make, have made, use, offer to sell, sell" if spdx == "apache-2.0"
+        else "sell copies of the Software"
+    )
+    calls: list[str] = []
+
+    def complete(prompt: str, _calls: list[str] = calls) -> str:
+        _calls.append(prompt)
+        return _reply("permitted", [quote])
+
+    followed = verify.verify(
+        claim, regions,
+        [*verify.deterministic_extractors(), _licence_reader(complete)],
+        today=TODAY,
+    )
+    assert calls, name
+    assert followed.outcome == "verified", (name, followed)
+
+
+def test_holder_names_and_copyright_lines_outside_the_residuals_are_not_canonical() -> None:
+    """The round-2 grammar accepted each of these. The residual list does not.
+
+    Each string returned a canonical id on 47d725b5. The licence reader is asked.
     """
     mit = verify.CANONICAL_LICENCE_BODIES["mit"]
-    apache_body = verify.CANONICAL_LICENCE_BODIES["apache-2.0"]
-    form = verify._canonical_form(_APACHE_FIXTURE.read_text(encoding="utf-8"))
-    assert form.startswith(apache_body)
-    appendix = form[len(apache_body):]
-    assert len(appendix) == 1092
-    assert appendix.lstrip() == verify._APACHE_APPENDIX
-    qwen_after = appendix.replace(
-        "Copyright [yyyy] [name of copyright owner]",
-        "Copyright 2024 Alibaba Cloud",
-    )
-    texts = {
-        "apache.org/LICENSE-2.0.txt": (apache_body + appendix, "apache-2.0"),
-        "Qwen/Qwen3-Embedding-8B": (apache_body + qwen_after, "apache-2.0"),
-        "opensource.org/license/mit": (_OPENSOURCE_BEFORE + mit, "mit"),
-        "microsoft/phi-4": (_PHI4_BEFORE + mit, "mit"),
-        "deepseek-ai/DeepSeek-V3.1": (_DEEPSEEK_BEFORE + mit, "mit"),
-        "zai-org/GLM-5.2": (_GLM_BEFORE + mit, "mit"),
+    apache = verify.CANONICAL_LICENCE_BODIES["apache-2.0"]
+    prefix = "MIT License Copyright (c) 2023 DeepSeek"
+    head, tail = verify._APPENDIX_HEAD, verify._APPENDIX_TAIL
+    rejected = {
+        "no-commercial-use": (f"{prefix} {mit} No Commercial Use.", "mit"),
+        "research-use-only": (f"{prefix} {mit} Research Use Only.", "mit"),
+        "mit-license-research-use-only": (
+            f"{prefix} {mit} MIT License Research Use Only.",
+            "mit",
+        ),
+        "research-and-evaluation": (
+            f"{prefix} {mit} Copyright 2024 Acme\nFor research and evaluation use only",
+            "mit",
+        ),
+        "noncommercial-use-only": (
+            f"{prefix} {mit} Copyright (c) 2024 Acme, noncommercial use only",
+            "mit",
+        ),
+        "apache-holder-use-only": (
+            f"{apache} {head}Copyright [yyyy] [name of copyright owner] use only{tail}",
+            "apache-2.0",
+        ),
     }
-    extractor = verify.CanonicalLicenceExtractor()
-    for name, (text, spdx) in texts.items():
-        assert extractor.accepts(text), name
-        assert verify._canonical_licence_id(text) == spdx
-        url = _APACHE_URL + ".txt" if spdx == "apache-2.0" else _MIT_URL
-        regions = _canonical_regions(text, url, f"license: {spdx}\nNimbus 3\n")
-        claim = _licence_claim("licence.commercial_use", "permitted", (_LICENCE, _README))
-        result = verify.verify(claim, regions, verify.deterministic_extractors(), today=TODAY)
-        assert result.outcome == "verified", (name, result)
-        assert result.verification.verifier.method == "canonical-licence@1"
+    for name, (text, spdx) in rejected.items():
+        _reader_is_asked(name, text, spdx)
+
+
+def test_an_unrecorded_mit_copyright_line_is_not_canonical() -> None:
+    """``Copyright (c) 2025 Someone Else`` is not one of the recorded residuals."""
+    mit = verify.CANONICAL_LICENCE_BODIES["mit"]
+    _reader_is_asked(
+        "someone-else",
+        f"Copyright (c) 2025 Someone Else {mit}",
+        "mit",
+    )
 
 
 def test_a_short_restriction_without_a_red_flag_is_not_canonical() -> None:

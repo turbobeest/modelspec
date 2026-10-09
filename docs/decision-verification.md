@@ -123,18 +123,25 @@ is `licence_text` when the retained text is the canonical MIT licence or
 the Apache License 2.0 terms. The licence reader is not asked about a text
 this extractor accepts. Any other text falls through to that reader.
 
-Recognition is a signature table. MIT text contains "Permission is hereby
-granted, free of charge" and the warranty sentence `THE SOFTWARE IS PROVIDED
-"AS IS"`. Curly quotes and the `*AS IS*` spelling used in some repository
-files are the same sentence. Apache text contains "Apache License",
-"Version 2.0, January 2004", and the section 2 copyright grant, the sentence
-that grants a copyright license to prepare Derivative Works. The text has to
-contain that licence's canonical body. A copyright line, a title, or the
-Apache appendix may sit outside the body. A longer addition is not this
-licence. A text that contains "separate agreement", "monthly active users",
-"not intended for use", "prohibited use", or "acceptable use" is not this
-licence. A modified MIT text, an MIT text with an added agreement, and an
-MIT text that embeds Gemma terms are left for the licence reader.
+Recognition is a signature plus an exact residual list. MIT text contains
+"Permission is hereby granted, free of charge" and the warranty sentence
+`THE SOFTWARE IS PROVIDED "AS IS"`. Curly quotes and the `*AS IS*` spelling
+used in some repository files are the same sentence. Apache text contains
+"Apache License", "Version 2.0, January 2004", and the section 2 copyright
+grant, the sentence that grants a copyright license to prepare Derivative
+Works. The text has to contain that licence's canonical body. The text before
+and after the body, once whitespace is collapsed and stripped, has to be one
+of the pairs in `CANONICAL_LICENCE_RESIDUALS`. Those pairs are the residuals
+of the retained copies reviewed for this extractor. For Apache-2.0 the how-to
+appendix and the boilerplate notice are removed first, and the copyright line
+that was between them is the `after` value, matched exactly. A longer addition
+is not this licence. A text that contains "separate agreement", "monthly
+active users", "not intended for use", "prohibited use", or "acceptable use"
+is not this licence. A new canonical file with a different copyright line is
+not read by this extractor until that residual is reviewed and added in code.
+That fallback to the licence reader is deliberate. A modified MIT text, an
+MIT text with an added agreement, and an MIT text that embeds Gemma terms
+are left for the licence reader.
 
 Each facet is mapped to a value with a clause quoted from the text. The
 table's rule key is that facet's key in `LICENCE_READING_RULES`.
