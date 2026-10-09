@@ -92,28 +92,46 @@ def binding_constraint(funnel, domains: frozenset[str]) -> str | None:
     return None
 
 
+def _distinct_models(snapshot, candidate_ids) -> int:
+    return len({snapshot.model_of(cid) for cid in candidate_ids})
+
+
 def single_gates(resolved, snapshot, domains: frozenset[str], reach=None) -> RelaxSingle:
     """Each relaxable hard condition whose removal alone admits a model.
 
     Every other condition stays, and so does ``reach``. ``admits`` counts
     distinct models. Gates are ordered by that count, then by spec order.
-    ``none`` means no single removal admits a model.
+    ``none`` means no single removal admits a model. ``together_admits`` counts
+    the distinct models that qualify when every relaxable gate is removed at
+    once. It is 0, with no extra pass, when there are no relaxable gates.
     """
     conditions = resolved.conditions
+    relaxable = _relaxable(resolved, domains)
     found: list[tuple[int, int, str]] = []
-    for index in _relaxable(resolved, domains):
+    for index in relaxable:
         trial = replace(
             resolved,
             conditions=tuple(cond for i, cond in enumerate(conditions) if i != index),
         )
-        admitted = apply(trial, snapshot, reach).feasible
-        admits = len({snapshot.model_of(cid) for cid in admitted})
+        admits = _distinct_models(snapshot, apply(trial, snapshot, reach).feasible)
         if admits < 1:
             continue
         found.append((admits, index, render_condition(conditions[index])))
     found.sort(key=lambda item: -item[0])
     gates = [SingleGate(condition=text, admits=admits) for admits, _, text in found]
-    return RelaxSingle(status="found" if gates else "none", gates=gates)
+    together = 0
+    if relaxable:
+        dropped = set(relaxable)
+        trial = replace(
+            resolved,
+            conditions=tuple(cond for i, cond in enumerate(conditions) if i not in dropped),
+        )
+        together = _distinct_models(snapshot, apply(trial, snapshot, reach).feasible)
+    return RelaxSingle(
+        status="found" if gates else "none",
+        gates=gates,
+        together_admits=together,
+    )
 
 
 def fewest(resolved, snapshot, domains: frozenset[str]) -> list[str]:

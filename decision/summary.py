@@ -370,13 +370,15 @@ def _single_gate_sentences(decision: Decision, limit: int) -> list[str]:
     """Gates whose removal alone admits models, in the order ``relax_single`` gives.
 
     ``limit`` is the same cap as the relaxation options. The paragraph trim
-    lowers it to 1 and no further, so the first gate stays.
+    lowers it to 1 and no further, so the first gate stays. ``none`` is that
+    sentence only when removing every relaxable gate together still admits a
+    model.
     """
     single = decision.relax_single
     if single is None:
         return []
     if single.status == "none":
-        return [_NO_SINGLE_GATE]
+        return [_NO_SINGLE_GATE] if single.together_admits > 0 else []
     return [
         _single_gate_sentence(gate.condition, gate.admits)
         for gate in single.gates[:limit]

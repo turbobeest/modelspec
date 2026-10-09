@@ -141,7 +141,8 @@
   "relax_to": [],
   "relax_single": {
     "status": "none",
-    "gates": []
+    "gates": [],
+    "together_admits": 0
   },
   "warnings": [],
   "out_of_lineup": 0,

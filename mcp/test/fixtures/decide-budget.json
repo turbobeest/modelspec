@@ -844,14 +844,15 @@
     },
     "relax_single": {
       "status": "none",
-      "gates": []
+      "gates": [],
+      "together_admits": 0
     },
     "explanation": {
       "not_applied": [],
       "omitted": {},
       "note": "Projected rows are incomplete; omissions are not eliminations or absent evidence."
     },
-    "summary_for_user": "ModelSpec found no model that meets every requirement, so it names no pick. These requirements together exclude every model: model.class = transcriber. No single requirement is the blocker: removing any one of them on its own still leaves no model. Requirements applied: model.class = transcriber. The request is outside coverage. ModelSpec compared only the models in its lineup; 1,328 active catalogue models are outside it.",
+    "summary_for_user": "ModelSpec found no model that meets every requirement, so it names no pick. These requirements together exclude every model: model.class = transcriber. Requirements applied: model.class = transcriber. The request is outside coverage. ModelSpec compared only the models in its lineup; 1,328 active catalogue models are outside it.",
     "must_mention": [
       "The request is outside coverage.",
       "ModelSpec compared only the models in its lineup; 1,328 active catalogue models are outside it."

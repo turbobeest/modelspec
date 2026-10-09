@@ -903,6 +903,7 @@ def _samples() -> list:
         c.RelaxSingle(
             status="found",
             gates=[c.SingleGate(condition="model.context_window >= 8192", admits=3)],
+            together_admits=3,
         ),
         c.Access(kind="coding_tool", harness="claude-code"),
         band_estimate,

@@ -4564,7 +4564,7 @@
     },
     "RelaxSingle": {
       "additionalProperties": false,
-      "description": "Whether any one stated hard condition, removed alone, admits a model.\n\nAdded in 2.15 (MODEL-356). ``found`` lists those gates, most models first,\nthen spec order. ``none`` means no single removal admits a model. No\nmessage: the status and the gates are the whole statement.",
+      "description": "Whether any one stated hard condition, removed alone, admits a model.\n\nAdded in 2.15 (MODEL-356). ``found`` lists those gates, most models first,\nthen spec order. ``none`` means no single removal admits a model.\n``together_admits`` counts the distinct models that qualify when every\nrelaxable gate is removed at once, with the same reach kept. ``0`` means\nthose gates are not what excludes everyone: the class, a requested\ncapability domain, or the reach is. No message: the status, the gates and\nthat count are the whole statement.",
       "properties": {
         "gates": {
           "items": {
@@ -4580,10 +4580,16 @@
           ],
           "title": "Status",
           "type": "string"
+        },
+        "together_admits": {
+          "minimum": 0,
+          "title": "Together Admits",
+          "type": "integer"
         }
       },
       "required": [
-        "status"
+        "status",
+        "together_admits"
       ],
       "title": "RelaxSingle",
       "type": "object"

@@ -85,32 +85,50 @@ def test_one_hardware_gate_names_the_models_it_admits():
     assert _gates(decision) == {
         "status": "found",
         "gates": [{"condition": HARDWARE, "admits": 3}],
+        "together_admits": 3,
     }
     bounded = project(decision, ResponseOptions(fields=["cost_per_task"]), not_applied=[])
     assert bounded["relax_single"] == {
         "status": "found",
         "gates": [{"condition": HARDWARE, "admits": 3}],
+        "together_admits": 3,
     }
 
 
 def test_two_floors_that_everyone_fails_admit_nothing():
-    """Each floor excludes the whole lineup, so removing either one still leaves zero."""
+    """Each floor excludes the whole lineup, so removing either one still leaves zero.
+
+    Removing both floors together leaves the class, which these models meet.
+    """
+    where = [
+        CLASS,
+        "model.context_window >= 8192",
+        "model.context_window >= 1000000",
+    ]
     snapshot = _snapshot(
         [
             _row("lab/a", "text-generator", 1000),
             _row("lab/b", "text-generator", 2000),
         ]
     )
-    decision = _decide(
-        snapshot,
-        [
-            CLASS,
-            "model.context_window >= 8192",
-            "model.context_window >= 1000000",
-        ],
-    )
+    decision = _decide(snapshot, where)
     assert decision.status == "no_feasible"
-    assert _gates(decision) == {"status": "none", "gates": []}
+    assert _gates(decision) == {"status": "none", "gates": [], "together_admits": 2}
+    text, _mentions = summarize(decision, _spec(where))
+    assert (
+        "No single requirement is the blocker: removing any one of them "
+        "on its own still leaves no model."
+    ) in text
+
+
+def test_a_class_with_no_model_of_that_class_is_not_a_stated_gate_blocker():
+    """The class is not a relaxable gate, and nothing else is stated."""
+    where = ["model.class = decider"]
+    snapshot = _snapshot([_row("lab/a", "text-generator", 16000)])
+    decision = _decide(snapshot, where)
+    assert decision.status == "no_feasible"
+    assert _gates(decision) == {"status": "none", "gates": [], "together_admits": 0}
+    assert "No single requirement is the blocker" not in _summary(snapshot, where)
 
 
 def test_the_class_is_never_a_gate_even_when_dropping_it_would_admit_a_model():
@@ -126,6 +144,7 @@ def test_the_class_is_never_a_gate_even_when_dropping_it_would_admit_a_model():
     assert _gates(decision) == {
         "status": "found",
         "gates": [{"condition": CONTEXT, "admits": 3}],
+        "together_admits": 3,
     }
     assert CLASS not in [gate["condition"] for gate in _gates(decision)["gates"]]
 
@@ -146,6 +165,7 @@ def test_gates_are_ordered_by_how_many_models_they_admit_then_spec_order():
             {"condition": CONTEXT, "admits": 2},
             {"condition": HARDWARE, "admits": 1},
         ],
+        "together_admits": 3,
     }
     tied = _snapshot(
         [
@@ -160,6 +180,7 @@ def test_gates_are_ordered_by_how_many_models_they_admit_then_spec_order():
             {"condition": HARDWARE, "admits": 1},
             {"condition": CONTEXT, "admits": 1},
         ],
+        "together_admits": 2,
     }
 
 
@@ -174,6 +195,7 @@ def test_an_access_reach_counts_only_the_models_inside_it():
     assert _gates(decision) == {
         "status": "found",
         "gates": [{"condition": CONTEXT, "admits": 2}],
+        "together_admits": 2,
     }
 
 
@@ -188,6 +210,7 @@ def test_an_estate_keeps_the_access_reach_on_the_returned_decision():
     assert _gates(decision) == {
         "status": "found",
         "gates": [{"condition": CONTEXT, "admits": 2}],
+        "together_admits": 2,
     }
 
 

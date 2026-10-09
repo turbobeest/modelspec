@@ -3890,9 +3890,17 @@ components:
 
         Added in 2.15 (MODEL-356). ``found`` lists those gates, most models first,
 
-        then spec order. ``none`` means no single removal admits a model. No
+        then spec order. ``none`` means no single removal admits a model.
 
-        message: the status and the gates are the whole statement.'
+        ``together_admits`` counts the distinct models that qualify when every
+
+        relaxable gate is removed at once, with the same reach kept. ``0`` means
+
+        those gates are not what excludes everyone: the class, a requested
+
+        capability domain, or the reach is. No message: the status, the gates and
+
+        that count are the whole statement.'
       properties:
         status:
           enum: [found, none]
@@ -3902,7 +3910,8 @@ components:
           items: {$ref: '#/components/schemas/DecisionSingleGate'}
           title: Gates
           type: array
-      required: [status]
+        together_admits: {minimum: 0, title: Together Admits, type: integer}
+      required: [status, together_admits]
       title: RelaxSingle
       type: object
     DecisionRelaxation:
