@@ -4,8 +4,9 @@ Deterministic templates only: the same Decision and Spec always produce the
 same bytes. No clock, no randomness, and no model call.
 
 ``summary_for_user`` is one paragraph for the end user. ``must_mention`` is the
-short list of facts a report of that answer has to carry. Both are computed
-from the full Decision, before any agent-budget trim.
+short list of facts a report of that answer has to carry, and it also names
+claims the answer does not support (MODEL-351). Both are computed from the
+full Decision, before any agent-budget trim.
 """
 
 from __future__ import annotations
@@ -46,8 +47,23 @@ _PARTIAL = "ModelSpec's answer is incomplete, so it names no pick."
 _NULL_ANSWER = "ModelSpec has no answer for this request, so it names no pick."
 _TIE_TAIL = "the evidence does not separate them."
 _ESTIMATES = "Some values are estimates, not measurements."
-_HARDWARE = (
-    "fits_hardware is an estimate, not a measured fit for a quantization or context workload."
+_HARDWARE_TAIL = (
+    " is an estimate; fit for a specific quantization, context length "
+    "or runtime headroom is not established."
+)
+_HARDWARE = "fits_hardware" + _HARDWARE_TAIL
+_PARTIAL_NO_FIT = (
+    "No model is established as the best fit: "
+    "some candidates lack values ModelSpec needs."
+)
+_PARTIAL_HEAD = "No model is established as the best fit: "
+_TIE_NOT_A_PICK = " are tied; this is not a recommendation of any one of them."
+_UNCHECKED_GATES = (
+    "ModelSpec checked only the requirements listed as applied; "
+    "any other need in the request was not checked."
+)
+_UNCHECKED_NONE = (
+    "ModelSpec applied no requirement; any need in the request was not checked."
 )
 _OUTSIDE = "The request is outside coverage."
 _CLASS_FACET = "model.class"
@@ -93,6 +109,10 @@ def summarize(
     that the gates excluded everyone.
     """
     unapplied = _unapplied(decision, not_applied)
+    if spec is not None and spec.task_type is not None:
+        task = f"task_type = {spec.task_type}"
+        if task not in unapplied:
+            unapplied.append(task)
     conditions = _applied_conditions(spec, profiles)
     mentions = _mentions(decision, spec, unapplied, conditions)
     summary = _summary(
@@ -201,10 +221,21 @@ def _paragraph_mentions(
     decision: Decision, mentions: list[tuple[str, str]],
 ) -> list[tuple[str, str]]:
     """Caveats whose fact is not already in the answer, why, or constraints."""
-    skip = {"not_applied"}
+    skip = {"not_applied", "partial"}
     if decision.status == "partial":
-        skip.add("may_qualify")
-    return [(kind, text) for kind, text in mentions if kind not in skip]
+        skip.update(("may_qualify", "tie"))
+    visible: list[tuple[str, str]] = []
+    for kind, text in mentions:
+        if kind in skip:
+            continue
+        if kind == "tie" and decision.status == "answered" and decision.answer is not None:
+            count = _count(len(decision.answer.members))
+            text = (
+                f"These {count} models are tied; "
+                "this is not a recommendation of any one of them."
+            )
+        visible.append((kind, text))
+    return visible
 
 
 def _dedupe(parts: list[str]) -> str:
@@ -508,9 +539,12 @@ def _mentions(
     decision: Decision, spec: Spec | None, unapplied: list[str], conditions: tuple,
 ) -> list[tuple[str, str]]:
     items: list[tuple[str, str]] = []
-    if _presents_tie(decision) and decision.answer is not None:
-        count = len(decision.answer.members)
-        items.append(("tie", f"No single winner: {_count(count)} models are tied."))
+    tie = _tie_item(decision)
+    if tie:
+        items.append(("tie", tie))
+    partial = _partial_item(decision)
+    if partial:
+        items.append(("partial", partial))
     scope = _class_sentence(decision, spec, conditions)
     if scope:
         items.append(("class", scope))
@@ -524,6 +558,9 @@ def _mentions(
         items.append(("missing", _board_sentence(models, dimensions)))
     for requirement in unapplied:
         items.append(("not_applied", _not_checked(requirement)))
+    if spec is not None:
+        gates, _dont_care = _gates(spec, set(unapplied), conditions)
+        items.append(("unchecked", _UNCHECKED_GATES if gates else _UNCHECKED_NONE))
     if decision.coverage is not None:
         message = decision.coverage.message.strip() or _OUTSIDE
         if not message.endswith("."):
@@ -537,7 +574,7 @@ def _mentions(
     if decision.out_of_lineup > 0:
         items.append(("out_of_lineup", _lineup_sentence(decision.out_of_lineup)))
     if _hardware(decision, spec):
-        items.append(("hardware", _HARDWARE))
+        items.append(("hardware", _hardware_item(spec)))
     if _estimates(decision):
         items.append(("estimates", _ESTIMATES))
     return _trim(items)
@@ -796,6 +833,56 @@ def _subjects(decision: Decision) -> list[str]:
     return models
 
 
+def _tie_item(decision: Decision) -> str:
+    answer = decision.answer
+    if answer is None or answer.kind != "tied" or decision.status not in ("answered", "partial"):
+        return ""
+    names = list(answer.deterministic_order)
+    for count in range(min(len(names), TIE_NAME_CAP), 0, -1):
+        text = _name_list(names, count, more=" in answer.members") + _TIE_NOT_A_PICK
+        if len(text.encode("utf-8")) <= MUST_MENTION_ITEM_BYTES:
+            return text
+    return _clip_item(_name_list(names, 1, more=" in answer.members") + _TIE_NOT_A_PICK)
+
+
+def _partial_item(decision: Decision) -> str:
+    if decision.status != "partial":
+        return ""
+    facets: list[str] = []
+    models: list[str] = []
+    unknown_sets: list[frozenset[str]] = []
+    for row in decision.may_qualify:
+        if row.model not in models:
+            models.append(row.model)
+        for facet in row.unknown:
+            if facet not in facets:
+                facets.append(facet)
+        unknown_sets.append(frozenset(row.unknown))
+    if not facets or not models:
+        return _PARTIAL_NO_FIT
+    return _partial_sentence(facets, models, len(set(unknown_sets)) == 1)
+
+
+def _partial_sentence(facets: list[str], models: list[str], same: bool) -> str:
+    verb = "is" if len(facets) == 1 else "are"
+    scope = "unknown for" if same else "unknown for one or more of"
+
+    def render(facet_limit: int, model_limit: int, facet_more: str) -> str:
+        facet_list = _name_list(facets, facet_limit, more=facet_more)
+        model_list = _name_list(models, model_limit, more=" in may_qualify")
+        return f"{_PARTIAL_HEAD}{facet_list} {verb} {scope} {model_list}."
+
+    for count in range(min(len(models), TIE_NAME_CAP), 0, -1):
+        text = render(len(facets), count, "")
+        if len(text.encode("utf-8")) <= MUST_MENTION_ITEM_BYTES:
+            return text
+    for count in range(min(len(facets), TIE_NAME_CAP), 0, -1):
+        text = render(count, 1, " facets")
+        if len(text.encode("utf-8")) <= MUST_MENTION_ITEM_BYTES:
+            return text
+    return _clip_item(render(1, 1, " facets"))
+
+
 def _presents_tie(decision: Decision) -> bool:
     answer = decision.answer
     return decision.status == "answered" and answer is not None and answer.kind == "tied"
@@ -889,6 +976,29 @@ def _cost_tie_break(decision: Decision) -> bool:
         and answer is not None
         and answer.tie_breakers.cheapest is not None
     )
+
+
+def _hardware_item(spec: Spec | None) -> str:
+    gates = _hardware_gates(spec)
+    if not gates:
+        return _HARDWARE
+    gate = "; ".join(gates)
+    sentence = gate + _HARDWARE_TAIL
+    if len(sentence.encode("utf-8")) <= MUST_MENTION_ITEM_BYTES:
+        return sentence
+    room = MUST_MENTION_ITEM_BYTES - len(_HARDWARE_TAIL.encode("utf-8"))
+    return _clip_to(gate, room) + _HARDWARE_TAIL
+
+
+def _hardware_gates(spec: Spec | None) -> list[str]:
+    if spec is None:
+        return []
+    gates: list[str] = []
+    for condition in spec.where:
+        rendered = render_condition(condition)
+        if HARDWARE_FIT in rendered:
+            gates.append(rendered)
+    return gates
 
 
 def _hardware(decision: Decision, spec: Spec | None) -> bool:

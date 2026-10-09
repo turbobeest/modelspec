@@ -180,8 +180,11 @@ It is a `200`, not a transport failure.
 A request with `fields` or `evidence_for` returns the bounded representation
 instead of this complete Decision. That body adds `summary_for_user` (one
 plain-language paragraph) and `must_mention` (short facts the report carries).
-Both are additive on bounded 1.0. See the bounded section of
-[`decision-contract.md`](decision-contract.md).
+`must_mention` also names claims the answer does not support: a tie is not a
+recommendation of any member, a partial answer establishes no best fit,
+`fits_hardware` is an estimate, and requirements not listed as applied,
+including `task_type`, were not checked. Both are additive on bounded 1.0.
+See the bounded section of [`decision-contract.md`](decision-contract.md).
 
 ## Snapshot trust boundary
 

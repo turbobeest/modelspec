@@ -8,6 +8,7 @@ from datetime import date
 
 from decision import contract
 from decision.bounded import (
+    AGENT_BYTES,
     DEFAULT_FIELDS,
     DRILL_DOWN_BYTES,
     MEMBER_EVIDENCE_ITEMS,
@@ -744,7 +745,9 @@ def test_a_tie_cut_by_limit_keeps_every_members_evidence(service):
     assert wide["must_mention"] == body["must_mention"]
     assert body["summary_for_user"] == (
         "ModelSpec's answer is a tie among lab/a and lab/b; the evidence does not separate them. "
-        "No single winner: 2 models are tied. No model class was required, so results span every class."
+        "These 2 models are tied; this is not a recommendation of any one of them. "
+        "No model class was required, so results span every class. "
+        "ModelSpec applied no requirement; any need in the request was not checked."
     )
     assert [row["model"] for row in wide["results"]] == ["lab/a", "lab/b", "lab/a", "lab/b", "lab/c"]
 
@@ -825,8 +828,11 @@ def test_domain_objective_without_capabilities_carries_member_evidence(service, 
     assert wide["must_mention"] == body["must_mention"]
 
 
-def test_high_volume_balanced_keeps_the_top_contributions(service, public_snapshot):
-    """A balanced weighted template keeps the top row's dimension and weight."""
+def test_high_volume_balanced_drops_top_contributions_to_fit(service, public_snapshot):
+    """The tie, partial, and unchecked lines fill the agent budget.
+
+    The fitter then removes the top row's contributions and counts them.
+    """
     spec = template_by_id("high-volume-balanced")["spec"]
     status, body = service.decide(
         mcp_default_request({**spec, "explain": "summary"}),
@@ -834,11 +840,9 @@ def test_high_volume_balanced_keeps_the_top_contributions(service, public_snapsh
     )
     assert status == 200, body
     assert compact_bytes(body) <= RESPONSE_BYTES
-    parts = body["results"][0]["contributions"]
-    assert {(part["dimension"], part["weight"]) for part in parts} == {
-        ("chat_preference", 0.5),
-        ("-offering.cost_per_task", 0.5),
-    }
+    assert mcp_text_bytes(body) <= AGENT_BYTES
+    assert "contributions" not in body["results"][0]
+    assert body["explanation"]["omitted"]["results.contributions"] == 12
 
 
 def test_a_tie_keeps_each_members_first_row_contributions(service):
