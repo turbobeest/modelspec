@@ -1,7 +1,7 @@
 {
   "_generated": "by pipeline.agent_copy; run python -m pipeline.agent_copy write",
   "cli_version": "0.3.1",
-  "guide_version": "1-352c4b99011220c4",
+  "guide_version": "1-c755656d89c7b9f6",
   "entity": "ModelSpec is an analysis of alternatives for AI models: it decides which models fit a job from your requirements, sourced benchmarks and real cost, and shows its work.",
   "coverage": {
     "as_of": "2026-09-23",
@@ -654,7 +654,7 @@
     "privacy": "No telemetry. The CLI never uses, sends or logs your provider API keys.",
     "package_warning": "pip install modelspec is an unrelated project. Use modelspec-dev.",
     "coverage": "Bundled public coverage summary, {as_of}: {models} catalogue cards, {providers} catalogue providers, {benchmarks} benchmarks. {summary} Current coverage may differ. See https://modelspec.dev/api/coverage.json.",
-    "answers": "Ask about model requirements, sourced capability evidence, cost, context, hosting and policy constraints. Answers report ties, missing facts and reasons. Never add a gate or constraint the user didn't state. Relax only constraints the user stated, one at a time, and say what was relaxed and why. Prefer the answer's own `relax` suggestions. A tie stays a tie. Don't promote a member by knowledge from outside the response. Cite only evidence in the response. Never add benchmark figures from memory. When `answer.kind` is tied or `status` is partial, report the tie and the caveats and don't pick a member; a null answer names no pick and says what's missing. A null cost is unknown. Never show it as $0.00 or \"free\". One vocabulary lookup per unknown facet, then decide. Read `next` before another call. Size `task_tokens` from the user's own task, and say what you assumed. Don't copy the guide's example sizes. Present `summary_for_user` to the user unchanged and keep every `must_mention` item.",
+    "answers": "Ask about model requirements, sourced capability evidence, cost, context, hosting and policy constraints. Answers report ties, missing facts and reasons. Never add a gate or constraint the user didn't state. Relax only constraints the user stated, one at a time, and say what was relaxed and why. Prefer the answer's own `relax` suggestions. A tie stays a tie. Don't promote a member by knowledge from outside the response. Cite only evidence in the response. Never add benchmark figures from memory. Tied or partial answer: report the tie and caveats, pick no member; a null answer names no pick and says what's missing. A null cost is unknown. Never show it as $0.00 or \"free\". One vocabulary lookup per unknown facet, then decide. Read `next` before another call. Size `task_tokens` from the user's own task, and say what you assumed. Don't copy the guide's example sizes. Present `summary_for_user` to the user unchanged and keep every `must_mention` item.",
     "price": "From {low_dollars} per answer. Published range ${low_usd}–${high_usd} per answer, depending on plan, pack and explanation.",
     "procurement": "Buy a plan or pack at https://modelspec.dev/pricing/. Stripe hosts Checkout; claim your key at the success link. Checkout availability is shown on the page. For access, volume or invoicing, contact sales@modelspec.dev. Store a key with modelspec auth set, or set MODELSPEC_API_KEY; the environment wins.",
     "human_message": "ModelSpec can check this model choice against your requirements and its published evidence. The agent needs a ModelSpec API key. Answers start at {low_dollars} at the cheapest published rate. You can provide an existing key, review https://modelspec.dev/pricing/, or look it up yourself on the free board at https://modelspec.dev/decide/.",
@@ -747,7 +747,7 @@
       "key": "Show key procurement, published prices and a neutral message for the human.",
       "setup": "Print an MCP client configuration; --write shows a diff before confirmation.",
       "auth": "Store only a ModelSpec API key, locally. The environment takes precedence.",
-      "decide": "Send exactly your Spec to POST /v1/decide with a key. No local decision cache. Never add a gate or constraint the user didn't state. Relax only constraints the user stated, one at a time, and say what was relaxed and why. Prefer the answer's own `relax` suggestions. A tie stays a tie. Don't promote a member by knowledge from outside the response. Cite only evidence in the response. Never add benchmark figures from memory. When `answer.kind` is tied or `status` is partial, report the tie and the caveats and don't pick a member; a null answer names no pick and says what's missing. A null cost is unknown. Never show it as $0.00 or \"free\". One vocabulary lookup per unknown facet, then decide. Read `next` before another call. Size `task_tokens` from the user's own task, and say what you assumed. Don't copy the guide's example sizes.",
+      "decide": "Send exactly your Spec to POST /v1/decide with a key. No local decision cache. Never add a gate or constraint the user didn't state. Relax only constraints the user stated, one at a time, and say what was relaxed and why. Prefer the answer's own `relax` suggestions. A tie stays a tie. Don't promote a member by knowledge from outside the response. Cite only evidence in the response. Never add benchmark figures from memory. Tied or partial answer: report the tie and caveats, pick no member; a null answer names no pick and says what's missing. A null cost is unknown. Never show it as $0.00 or \"free\". One vocabulary lookup per unknown facet, then decide. Read `next` before another call. Size `task_tokens` from the user's own task, and say what you assumed. Don't copy the guide's example sizes.",
       "vocab": "Look up hosted vocabulary with a key; defaults to the compact starter section.",
       "feedback": "Rate an answer with a key present. Matches MCP fields; the feedback endpoint receives no Authorization header.",
       "json": "Emit JSON. Successful API bodies pass through unchanged; every failure has next steps.",
@@ -774,7 +774,7 @@
     }
   },
   "source_hashes": {
-    "pipeline/agent_copy.py": "760129bcf47685ee604b408de1593c615d0435242c7411fb6db1fee67ef8dd12",
+    "pipeline/agent_copy.py": "ba7a1b83f94082be8ab4e4878728d83c1b408019f0c59f7ea57d22344c1705ef",
     "pipeline/entity.py": "1649e5f95b620561511c2619045d036231b44c8ab7ff297bf4c6a21ab2b69ff3",
     "pipeline/pricing.py": "71bc6fa888ca079c186a39c2ccd15f2ed957f2ebf59599f6413f16b8f519a174",
     "pipeline/worker_flags.py": "0f3c1ff0de81710417659b86e1ec92913bbcf54af6312720fdad659e6af03429",

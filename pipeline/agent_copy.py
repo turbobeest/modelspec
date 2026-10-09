@@ -64,7 +64,7 @@ CONDUCT_RULES = (
     "Relax only constraints the user stated, one at a time, and say what was relaxed and why. Prefer the answer's own `relax` suggestions.",
     "A tie stays a tie. Don't promote a member by knowledge from outside the response.",
     "Cite only evidence in the response. Never add benchmark figures from memory.",
-    "When `answer.kind` is tied or `status` is partial, report the tie and the caveats and don't pick a member; a null answer names no pick and says what's missing.",
+    "Tied or partial answer: report the tie and caveats, pick no member; a null answer names no pick and says what's missing.",
     'A null cost is unknown. Never show it as $0.00 or "free".',
     "One vocabulary lookup per unknown facet, then decide. Read `next` before another call.",
     "Size `task_tokens` from the user's own task, and say what you assumed. Don't copy the guide's example sizes.",
