@@ -76,6 +76,18 @@ _OPTION = "Relaxing {condition} would admit a model; that is an option, not an a
 _OPTION_TOGETHER = (
     "Relaxing {conditions} together would admit a model; that is an option, not an answer."
 )
+_SINGLE_GATE = (
+    "Removing only {condition} would let {n} models qualify; "
+    "every other requirement stays as you set it."
+)
+_SINGLE_GATE_ONE = (
+    "Removing only {condition} would let 1 model qualify; "
+    "every other requirement stays as you set it."
+)
+_NO_SINGLE_GATE = (
+    "No single requirement is the blocker: removing any one of them "
+    "on its own still leaves no model."
+)
 
 
 def summarize(
@@ -260,6 +272,7 @@ def _why(
         sentences.extend(
             _relaxation_options(decision, conditions, limits["relax"], joint_limit)
         )
+        sentences.extend(_single_gate_sentences(decision, limits["relax"]))
         hint = decision.relax_task_tokens
         if hint is not None:
             sentences.append(f"Task-size relaxation, not an answer: {hint.condition}.")
@@ -351,6 +364,29 @@ def _joint_conditions(decision: Decision, conditions: tuple) -> list[str]:
         condition for condition in decision.relax
         if condition not in covered and condition in requirements
     ]
+
+
+def _single_gate_sentences(decision: Decision, limit: int) -> list[str]:
+    """Gates whose removal alone admits models, in the order ``relax_single`` gives.
+
+    ``limit`` is the same cap as the relaxation options. The paragraph trim
+    lowers it to 1 and no further, so the first gate stays.
+    """
+    single = decision.relax_single
+    if single is None:
+        return []
+    if single.status == "none":
+        return [_NO_SINGLE_GATE]
+    return [
+        _single_gate_sentence(gate.condition, gate.admits)
+        for gate in single.gates[:limit]
+    ]
+
+
+def _single_gate_sentence(condition: str, admits: int) -> str:
+    if admits == 1:
+        return _SINGLE_GATE_ONE.format(condition=condition)
+    return _SINGLE_GATE.format(condition=condition, n=_count(admits))
 
 
 def _relaxation_options(

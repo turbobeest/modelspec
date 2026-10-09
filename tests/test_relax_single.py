@@ -15,6 +15,7 @@ from decision.contract import ResponseOptions, parse_spec
 from decision.engine import decide
 from decision.registry import facet as facets
 from decision.snapshot import SnapshotInputs, build_snapshot, load_built_snapshot
+from decision.summary import summarize
 from tests.snapshot_records import SOURCES, fact, model, offering
 
 CONTEXT = "model.context_window >= 8192"
@@ -42,8 +43,8 @@ def _snapshot(models, offerings=None):
     return load_built_snapshot(built, include_archive=True, source="relax_single test")
 
 
-def _decide(snapshot, where, **extra):
-    spec = parse_spec(
+def _spec(where, **extra):
+    return parse_spec(
         {
             "spec_version": 1,
             "where": where,
@@ -53,7 +54,17 @@ def _decide(snapshot, where, **extra):
         },
         facets=facets,
     )
-    return decide(spec, snapshot, facets=facets)
+
+
+def _decide(snapshot, where, **extra):
+    return decide(_spec(where, **extra), snapshot, facets=facets)
+
+
+def _summary(snapshot, where, **extra) -> str:
+    spec = _spec(where, **extra)
+    decision = decide(spec, snapshot, facets=facets)
+    text, _mentions = summarize(decision, spec)
+    return text
 
 
 def _gates(decision):
@@ -192,6 +203,66 @@ def test_an_answered_decision_has_no_relax_single_key():
     assert "relax_single" not in decision.model_dump(mode="json")
 
 
+def test_the_summary_names_a_gate_that_alone_admits_several_models():
+    snapshot = _snapshot(
+        [
+            _row("lab/a", "text-generator", 8000, fits=["apple_m3_max"]),
+            _row("lab/b", "text-generator", 8000, fits=["apple_m3_max"]),
+            _row("lab/c", "text-generator", 8000, fits=["apple_m3_max"]),
+            _row("lab/judge", "decider", 8000, fits=["nvidia_rtx_5090"]),
+        ]
+    )
+    text = _summary(snapshot, [CLASS, HARDWARE])
+    sentence = (
+        "Removing only model.fits_hardware in {nvidia_rtx_5090} would let 3 models qualify; "
+        "every other requirement stays as you set it."
+    )
+    assert sentence in text
+    assert text.index("These requirements together exclude every model:") < text.index(sentence)
+    assert text.index(sentence) < text.index("Requirements applied:")
+
+
+def test_the_summary_names_gates_in_order_and_uses_the_singular_for_one_model():
+    snapshot = _snapshot(
+        [
+            _row("lab/wide-1", "text-generator", 1000, fits=["nvidia_rtx_5090"]),
+            _row("lab/wide-2", "text-generator", 2000, fits=["nvidia_rtx_5090"]),
+            _row("lab/tall", "text-generator", 20000, fits=["apple_m3_max"]),
+        ]
+    )
+    text = _summary(snapshot, [CLASS, HARDWARE, CONTEXT])
+    several = (
+        "Removing only model.context_window >= 8192 would let 2 models qualify; "
+        "every other requirement stays as you set it."
+    )
+    one = (
+        "Removing only model.fits_hardware in {nvidia_rtx_5090} would let 1 model qualify; "
+        "every other requirement stays as you set it."
+    )
+    assert several in text
+    assert one in text
+    assert text.index(several) < text.index(one)
+    assert "1 models" not in text
+
+
+def test_the_summary_says_when_no_single_requirement_is_the_blocker():
+    snapshot = _snapshot(
+        [
+            _row("lab/a", "text-generator", 1000),
+            _row("lab/b", "text-generator", 2000),
+        ]
+    )
+    text = _summary(
+        snapshot,
+        [CLASS, "model.context_window >= 8192", "model.context_window >= 1000000"],
+    )
+    assert (
+        "No single requirement is the blocker: removing any one of them "
+        "on its own still leaves no model."
+    ) in text
+    assert "Removing only" not in text
+
+
 def test_an_objective_with_no_values_omits_relax_single():
     snapshot = _snapshot([_row("lab/a", "text-generator", 16000)])
     spec = parse_spec(
@@ -209,6 +280,13 @@ def test_an_objective_with_no_values_omits_relax_single():
         "no model that meets the requirements has a value for arena_elo_overall",
     ]
     assert "relax_single" not in decision.model_dump(mode="json")
+    text, _mentions = summarize(decision, spec)
+    assert (
+        "No model that meets the requirements has complete values for the objective "
+        "(arena_elo_overall), so ModelSpec cannot order them."
+    ) in text
+    assert "Removing only" not in text
+    assert "No single requirement is the blocker:" not in text
 
 
 def _reach_snapshot():
