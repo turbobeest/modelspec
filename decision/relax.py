@@ -14,6 +14,9 @@ threshold moved to the nearest value an excluded candidate has.
 `task_tokens_hint` names the one case where the question itself is not the
 problem: a per-task cost cap fails only because the spec gave no `task_tokens`,
 so every model was priced as a 40,000-token task (MODEL-316).
+
+`single_gates` names each other hard condition whose removal alone, with every
+remaining condition and the same reach kept, admits a model (MODEL-356).
 """
 
 from __future__ import annotations
@@ -31,6 +34,8 @@ from decision.contract import (
     Compare,
     NotOf,
     Relaxation,
+    RelaxSingle,
+    SingleGate,
     TaskTokens,
     TaskTokensHint,
     render_condition,
@@ -85,6 +90,30 @@ def binding_constraint(funnel, domains: frozenset[str]) -> str | None:
         ):
             return step.condition
     return None
+
+
+def single_gates(resolved, snapshot, domains: frozenset[str], reach=None) -> RelaxSingle:
+    """Each relaxable hard condition whose removal alone admits a model.
+
+    Every other condition stays, and so does ``reach``. ``admits`` counts
+    distinct models. Gates are ordered by that count, then by spec order.
+    ``none`` means no single removal admits a model.
+    """
+    conditions = resolved.conditions
+    found: list[tuple[int, int, str]] = []
+    for index in _relaxable(resolved, domains):
+        trial = replace(
+            resolved,
+            conditions=tuple(cond for i, cond in enumerate(conditions) if i != index),
+        )
+        admitted = apply(trial, snapshot, reach).feasible
+        admits = len({snapshot.model_of(cid) for cid in admitted})
+        if admits < 1:
+            continue
+        found.append((admits, index, render_condition(conditions[index])))
+    found.sort(key=lambda item: -item[0])
+    gates = [SingleGate(condition=text, admits=admits) for admits, _, text in found]
+    return RelaxSingle(status="found" if gates else "none", gates=gates)
 
 
 def fewest(resolved, snapshot, domains: frozenset[str]) -> list[str]:

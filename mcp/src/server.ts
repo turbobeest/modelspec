@@ -373,11 +373,11 @@ function slimDecision(body: Record<string, unknown>): Record<string, unknown> {
         ? body.projects_contract
         : typeof body.contract_version === "string"
           ? body.contract_version
-          : "2.14";
+          : "2.15";
   }
   for (const key of [
     "decision_id", "snapshot", "signature_verified", "spec_hash", "explain", "status",
-    "answer", "warnings", "truncated", "out_of_lineup", "relax", "relax_to", "feedback",
+    "answer", "warnings", "truncated", "out_of_lineup", "relax", "relax_to", "relax_single", "feedback",
     "reading", "coverage", "summary_for_user", "must_mention",
   ]) {
     if (key in body) notice[key] = body[key];
@@ -479,7 +479,7 @@ export function fitDecideEnvelope(envelope: OriginEnvelope): OriginEnvelope {
   const fitted = { ...envelope, body: bare };
   if (withinBudget(fitted)) return fitted;
   const omitted = noticeOmitted(bare);
-  for (const key of ["reading", "feedback", "relax", "relax_to", "relax_task_tokens", "with_estate"]) {
+  for (const key of ["reading", "feedback", "relax", "relax_to", "relax_task_tokens", "relax_single", "with_estate"]) {
     if (withinBudget({ ...envelope, body: bare })) break;
     if (!(key in bare)) continue;
     addCount(omitted, key, 1);
@@ -510,7 +510,7 @@ export function fitDecideEnvelope(envelope: OriginEnvelope): OriginEnvelope {
   const minimal: Record<string, unknown> = {
     representation: "bounded",
     bounded_version: "1.0",
-    projects_contract: shortText(bare.projects_contract, shortText(bare.contract_version, "2.14"), 16),
+    projects_contract: shortText(bare.projects_contract, shortText(bare.contract_version, "2.15"), 16),
     status: shortText(bare.status, "trimmed"),
     answer: { kind: "tied", members: [] },
     warnings: [],

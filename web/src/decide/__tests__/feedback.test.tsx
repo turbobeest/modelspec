@@ -130,7 +130,7 @@ describe("the response schemas are strict", () => {
 
   it("parses the 2.10 feedback pointer on a decision, and nothing looser", () => {
     const decision = decisionSchema.parse(full);
-    expect(decision.contract_version).toBe("2.14");
+    expect(decision.contract_version).toBe("2.15");
     expect(decision.feedback?.endpoint).toBe("https://api.modelspec.dev/v1/feedback");
     expect(decisionSchema.safeParse({ ...full, feedback: { ...full.feedback, extra: 1 } }).success).toBe(false);
   });

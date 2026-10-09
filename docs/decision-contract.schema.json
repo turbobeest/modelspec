@@ -619,7 +619,7 @@
           "type": "integer"
         },
         "projects_contract": {
-          "const": "2.14",
+          "const": "2.15",
           "title": "Projects Contract",
           "type": "string"
         },
@@ -640,6 +640,17 @@
           },
           "title": "Relax",
           "type": "array"
+        },
+        "relax_single": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RelaxSingle"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "relax_task_tokens": {
           "anyOf": [
@@ -1649,8 +1660,8 @@
           "type": "array"
         },
         "contract_version": {
-          "const": "2.14",
-          "default": "2.14",
+          "const": "2.15",
+          "default": "2.15",
           "title": "Contract Version",
           "type": "string"
         },
@@ -1729,6 +1740,17 @@
           },
           "title": "Relax",
           "type": "array"
+        },
+        "relax_single": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RelaxSingle"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "relax_task_tokens": {
           "anyOf": [
@@ -4495,6 +4517,32 @@
       "title": "RefinementGain",
       "type": "object"
     },
+    "RelaxSingle": {
+      "additionalProperties": false,
+      "description": "Whether any one stated hard condition, removed alone, admits a model.\n\nAdded in 2.15 (MODEL-356). ``found`` lists those gates, most models first,\nthen spec order. ``none`` means no single removal admits a model. No\nmessage: the status and the gates are the whole statement.",
+      "properties": {
+        "gates": {
+          "items": {
+            "$ref": "#/$defs/SingleGate"
+          },
+          "title": "Gates",
+          "type": "array"
+        },
+        "status": {
+          "enum": [
+            "found",
+            "none"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "title": "RelaxSingle",
+      "type": "object"
+    },
     "Relaxation": {
       "additionalProperties": false,
       "description": "The smallest change to one numeric cap or floor that admits a model. Added in 1.5.\n\n``condition`` is the spec's condition; ``relaxed`` is the same facet and\ndirection at ``value``, in ``unit``, the nearest value any excluded\ncandidate has; ``admits`` counts the models that then qualify.",
@@ -4881,6 +4929,27 @@
         "facet"
       ],
       "title": "ShownFact",
+      "type": "object"
+    },
+    "SingleGate": {
+      "additionalProperties": false,
+      "description": "One stated hard condition whose removal alone admits models. Added in 2.15.\n\n``condition`` is rendered the same way as ``relax``. ``admits`` counts the\ndistinct models that pass every other condition and the same reach.",
+      "properties": {
+        "admits": {
+          "minimum": 1,
+          "title": "Admits",
+          "type": "integer"
+        },
+        "condition": {
+          "title": "Condition",
+          "type": "string"
+        }
+      },
+      "required": [
+        "condition",
+        "admits"
+      ],
+      "title": "SingleGate",
       "type": "object"
     },
     "Soft": {
@@ -5601,5 +5670,5 @@
   ],
   "description": "Generated from decision/contract.py by `python -m decision.schema`. Do not edit by hand. The prose is docs/decision-contract.md.",
   "title": "ModelSpec decision contract",
-  "x-contract-version": "2.14"
+  "x-contract-version": "2.15"
 }

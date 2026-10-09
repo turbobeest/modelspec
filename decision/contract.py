@@ -43,7 +43,7 @@ from pydantic import (
 )
 from pydantic.fields import FieldInfo
 
-CONTRACT_VERSION = "2.14"
+CONTRACT_VERSION = "2.15"
 
 # ── identifiers ────────────────────────────────────────────────────────────
 
@@ -1728,6 +1728,35 @@ class Relaxation(_Strict):
     admits: int = Field(ge=1)
 
 
+class SingleGate(_Strict):
+    """One stated hard condition whose removal alone admits models. Added in 2.15.
+
+    ``condition`` is rendered the same way as ``relax``. ``admits`` counts the
+    distinct models that pass every other condition and the same reach.
+    """
+
+    condition: str
+    admits: int = Field(ge=1)
+
+
+class RelaxSingle(_Strict):
+    """Whether any one stated hard condition, removed alone, admits a model.
+
+    Added in 2.15 (MODEL-356). ``found`` lists those gates, most models first,
+    then spec order. ``none`` means no single removal admits a model. No
+    message: the status and the gates are the whole statement.
+    """
+
+    status: Literal["found", "none"]
+    gates: list[SingleGate] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def _gates_match_status(self) -> RelaxSingle:
+        if (self.status == "found") != bool(self.gates):
+            raise ValueError("relax_single status is found exactly when gates is non-empty")
+        return self
+
+
 class TaskTokensHint(_Strict):
     """A per-task cost cap that fails only at the default task size. Added in 2.14.
 
@@ -1899,7 +1928,7 @@ class Decision(_ExcludeIf):
         default=None,
         exclude_if=lambda value: value is None,
     )
-    contract_version: Literal["2.14"] = CONTRACT_VERSION
+    contract_version: Literal["2.15"] = CONTRACT_VERSION
     decision_id: DecisionId
     snapshot: SnapshotId
     #: Whether this process verified a publisher signature. Added in 1.10.
@@ -1933,6 +1962,12 @@ class Decision(_ExcludeIf):
     #: no ``task_tokens``. Absent otherwise. Added in 2.14 (MODEL-316).
     relax_task_tokens: TaskTokensHint | None = Field(
         default=None, exclude_if=lambda value: value is None)
+    #: For ``no_feasible`` only, when no candidate passed the hard conditions:
+    #: each stated hard condition whose removal alone admits a model. Absent
+    #: when the objective has no values, and absent unless ``no_feasible``.
+    #: Added in 2.15 (MODEL-356).
+    relax_single: RelaxSingle | None = Field(
+        default=None, exclude_if=lambda value: value is None)
     warnings: list[Code] = Field(default_factory=list)
     #: Active models the snapshot leaves out of the lineup. Added in 1.2.
     out_of_lineup: int = Field(default=0, ge=0)
@@ -1951,7 +1986,7 @@ class Decision(_ExcludeIf):
                 raise ValueError("a no_feasible decision has no results")
             if not self.relax:
                 raise ValueError("a no_feasible decision names the fewest conditions to relax")
-        elif self.relax or self.relax_to or self.relax_task_tokens:
+        elif self.relax or self.relax_to or self.relax_task_tokens or self.relax_single:
             raise ValueError(f"relax is only for no_feasible, not {self.status}")
         ranks = [r.rank for r in self.results]
         if ranks != list(range(1, len(ranks) + 1)):
@@ -2026,6 +2061,7 @@ BoundedDecision = create_model(
     reading=(Reading | None, None),
     coverage=(CoverageRefusal | None, None),
     relax_task_tokens=(TaskTokensHint | None, None),
+    relax_single=(RelaxSingle | None, None),
     with_estate=(WithEstate | None, None),
     explanation=(BoundedExplanation, ...),
     model_evidence=(ModelEvidence | None, None),
@@ -2049,6 +2085,7 @@ CONTRACT_TYPES: tuple[type[BaseModel], ...] = (
     DimensionEstimate, BandEntry, Bands, BlendTerm,
     ModelEliminationGroup, ConstraintCost, TippingPoint, ModelRow, ModelOffering,
     NearMiss, ShownFact, CandidateValues, NumberOrigin, CitedSource, Relaxation,
+    SingleGate, RelaxSingle,
     Estate, EstateHold, EstateMark, EstateResult, EstateGap, GainItem, WithEstate,
     Access, PlanPrice, PlanCoverage, PlanAllowance, PlanRoute, FeedbackPointer, Reading,
     CoveredClass, CoverageRefusal,
