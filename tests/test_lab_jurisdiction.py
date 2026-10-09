@@ -434,17 +434,78 @@ def _registry(tmp_path, labs_yaml: str, sources_yaml: str) -> None:
     (tmp_path / "registry" / "sources.yaml").write_text(sources_yaml, encoding="utf-8")
 
 
-def _source_row(source_id: str, url: str, region: str = "incorporation") -> str:
+def _source_row(source_id: str, url: str, region: str = "incorporation",
+                kind: str | None = "provider_terms") -> str:
+    kind_line = "" if kind is None else f"  kind: {kind}\n"
     return (
         f"- id: {source_id}\n"
         f"  url: {url}\n"
         "  volatility: static\n"
         "  fetch: http\n"
         "  normaliser: html-default\n"
+        f"{kind_line}"
         "  cited_regions:\n"
         f"  - id: {region}\n"
         "    locator: {kind: page, value: ''}\n"
     )
+
+
+def _widget_null_registry(source_yaml: str) -> tuple[str, str]:
+    absent = "sha256:" + "cd" * 32
+    labs = (
+        "schema_version: 1\n"
+        "labs:\n"
+        "  - id: widget\n"
+        "    note: The terms do not state incorporation.\n"
+        "    read_date: '2026-10-08'\n"
+        "    jurisdiction:\n"
+        "      state: not_disclosed\n"
+        "      value: null\n"
+        "      sources:\n"
+        "        - {source_id: lab-jurisdiction-widget, "
+        f"snapshot_ref: '{absent}', cited_regions: [incorporation]}}\n"
+    )
+    return labs, "schema_version: 1\nsources:\n" + source_yaml
+
+
+def test_a_source_without_a_kind_is_refused(tmp_path) -> None:
+    labs, sources = _widget_null_registry(_source_row(
+        "lab-jurisdiction-widget", "https://example.com/legal/terms", kind=None,
+    ))
+    _registry(tmp_path, labs, sources)
+    with pytest.raises(LabRegistryError, match="kind") as exc:
+        load_labs(tmp_path)
+    message = str(exc.value)
+    assert "widget" in message
+    assert "lab-jurisdiction-widget" in message
+    assert "None" in message
+    for kind in facets(FACET).permitted_source_kinds:
+        assert kind in message
+
+
+def test_a_source_kind_outside_the_facet_is_refused(tmp_path) -> None:
+    assert "lab_announcement" not in facets(FACET).permitted_source_kinds
+    labs, sources = _widget_null_registry(_source_row(
+        "lab-jurisdiction-widget", "https://example.com/legal/terms", kind="lab_announcement",
+    ))
+    _registry(tmp_path, labs, sources)
+    with pytest.raises(LabRegistryError, match="lab_announcement") as exc:
+        load_labs(tmp_path)
+    message = str(exc.value)
+    assert "widget" in message
+    assert "lab-jurisdiction-widget" in message
+    for kind in facets(FACET).permitted_source_kinds:
+        assert kind in message
+
+
+def test_a_permitted_source_kind_loads(tmp_path) -> None:
+    permitted = facets(FACET).permitted_source_kinds[0]
+    labs, sources = _widget_null_registry(_source_row(
+        "lab-jurisdiction-widget", "https://example.com/legal/terms", kind=permitted,
+    ))
+    _registry(tmp_path, labs, sources)
+    loaded = load_labs(tmp_path)
+    assert loaded["widget"].explicit_null
 
 
 def test_an_explicit_null_rejects_a_readme_and_a_homepage(tmp_path) -> None:
@@ -955,7 +1016,12 @@ def test_check_lab_copies_reads_the_cache_when_it_is_present() -> None:
     data = next((path for path in candidates if (path / "registry" / "labs.yaml").is_file()), None)
     if data is None:
         pytest.skip("source cache absent")
-    labs = load_labs(data)
+    try:
+        labs = load_labs(data)
+    except LabRegistryError as exc:
+        if "kind" not in str(exc):
+            raise
+        pytest.skip(str(exc))
     store = CopyStore()
     cited = [source["snapshot_ref"] for lab in labs.values() for source in lab.sources]
     if not cited or any(not store.has(ref) for ref in cited):

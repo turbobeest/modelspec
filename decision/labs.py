@@ -13,12 +13,13 @@ null, not a shorter set.
 
 An explicit null is a lab whose own legal, terms, imprint, or privacy page, or
 an official registry, was read and does not yield a complete set. ``load_labs``
-checks that URL and nothing about the retained bytes. ``check_lab_copies``
-checks that the cited text is non-empty, and that a known code is what that
-text states. A Hugging Face README, an empty page, or a marketing homepage is
-not that source. That lab's models are exempt from the jurisdiction gate. A
-lab with no such page is a coverage gap, and the gate still requires a value
-for its models.
+checks that URL and nothing about the retained bytes. It also requires each
+cited source's ``kind`` to be one of the facet's ``permitted_source_kinds``;
+a missing kind is refused. ``check_lab_copies`` checks that the cited text is
+non-empty, and that a known code is what that text states. A Hugging Face
+README, an empty page, or a marketing homepage is not that source. That lab's
+models are exempt from the jurisdiction gate. A lab with no such page is a
+coverage gap, and the gate still requires a value for its models.
 """
 
 from __future__ import annotations
@@ -109,8 +110,9 @@ def load_labs(root: Path) -> dict[str, Lab]:
 
     The public checkout has no copy. A build from it does not invent labs.
     This checks structure only: the full set, each party's code and source,
-    and the URL rule for an explicit null. It does not read the network or
-    the source cache. Retained text is ``check_lab_copies``.
+    the source kind the facet permits, and the URL rule for an explicit null.
+    It does not read the network or the source cache. Retained text is
+    ``check_lab_copies``.
     """
     path = Path(root) / "registry" / "labs.yaml"
     if not path.is_file():
@@ -291,11 +293,17 @@ def _null_url_problem(url: str) -> str | None:
 
 
 def _check_source_urls(root: Path, labs: Mapping[str, Lab]) -> None:
-    """Each cited source is registered. An explicit null's URL is a legal page or a registry."""
+    """Each cited source is registered with a kind this facet permits.
+
+    An explicit null's URL is a legal page or a registry. A missing kind fails
+    the same check as a kind outside ``permitted_source_kinds``.
+    """
     if not any(lab.state != "gap" for lab in labs.values()):
         return
+    from decision.registry import default as default_registry
     from decision.sources import load_sources
 
+    permitted = default_registry().facet(FACET).permitted_source_kinds
     registered = load_sources(root / "registry" / "sources.yaml")
     for lab in labs.values():
         if lab.state == "gap":
@@ -304,6 +312,11 @@ def _check_source_urls(root: Path, labs: Mapping[str, Lab]) -> None:
             record = registered.get(source["source_id"])
             if record is None:
                 raise LabRegistryError(f"{lab.id}: source {source['source_id']} is not registered")
+            if record.kind not in permitted:
+                raise LabRegistryError(
+                    f"{lab.id}: source {source['source_id']} kind {record.kind!r} "
+                    f"is not one of {list(permitted)}"
+                )
             if not lab.explicit_null:
                 continue
             problem = _null_url_problem(str(record.url))
