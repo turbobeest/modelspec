@@ -68,7 +68,7 @@ _BOARD_ONE = (
 _BOARD_MANY = (
     " have no leaderboard data for {dimensions}; their positions are estimated, not measured."
 )
-# Pending Jamie's confirmation. A wording change is a one-line edit.
+# Approved by Jamie 2026-10-08 23:22 ET. A wording change is a one-line edit.
 _COUNT_ONE_NOT_PROXY = "1 record, not a proxy"
 _COUNT_ONE_PROXY = "1 record, a proxy"
 _COUNT_NONE_PROXIES = "{records} records, none of them proxies"

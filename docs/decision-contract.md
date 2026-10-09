@@ -1169,12 +1169,13 @@ appears in an earlier row; that row keeps rank, model, offering and warnings),
 then `may_qualify` rows, then `member_evidence` items from the member with the
 most items, never below one item per member while any other cut remains, then
 any remaining result row except the top, then `with_estate`, then `reading`
-and `relax_task_tokens`, then, while `contributions` is the largest heavy
-field on the top result, one evidence item from inside it (worst item first,
-counted under `explanation.omitted` as `results.contributions.evidence`),
-then one heavy field of the top result at a time
-(`evidence`, `contributions`, `estimates`, `refinement_estimates`, `plans`),
-then any other field on that row besides rank, model, offering and warnings,
+and `relax_task_tokens`, then the top result's heavy fields
+(`evidence`, `contributions`, `estimates`, `refinement_estimates`, `plans`)
+in one repeated step: each pass removes the worst evidence item inside
+`contributions` (counted under `explanation.omitted` as
+`results.contributions.evidence`) when `contributions` is the largest heavy
+field, and otherwise removes the largest heavy field whole, so the two kinds
+of cut can alternate; then any other field on that row besides rank, model, offering and warnings,
 then any remaining `member_evidence` items, then `member_evidence` entries
 from the end of the list. The first row of each model, and the top result,
 keep `evidence` and `contributions` until that later step. The top result's
@@ -1296,9 +1297,10 @@ three current explanation levels. Regenerate the MCP public fixture with
   fields until the later step that already applied to the top result. When a
   tie's `member_evidence` entries still do not fit, entries are removed from
   the end and counted in `explanation.omitted` under `member_evidence`.
-  While `contributions` is the largest heavy field on the top result, one
-  nested evidence item is removed before that field and counted under
-  `results.contributions.evidence`. The dimension and weight stay.
+  In the top result's heavy-field step, each pass removes one nested
+  evidence item from `contributions` when it is the largest heavy field,
+  counted under `results.contributions.evidence`, and otherwise the largest
+  heavy field whole. The dimension and weight stay while `contributions` does.
   `answer.members` stays complete.
 
 ## The library and the CLI

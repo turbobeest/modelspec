@@ -22,9 +22,10 @@ DEFAULT_FIELDS = ("model_rank", "cost_per_task", "estimates", "p_best")
 # Row fields the engine fills at explain summary and full (decision/explain.py).
 EXPLAIN_ROW_FIELDS = ("contributions", "evidence")
 # Whole row fields the agent budget may remove. One cut reaches inside a field:
-# while ``contributions`` is the top result's largest heavy field, whole
-# evidence items are removed from it one at a time, each counted under
-# ``results.contributions.evidence`` (see ``_fit_agent_budget`` for the order).
+# in the top result's heavy-field loop, each pass removes one whole evidence
+# item from ``contributions`` when that is the largest heavy field, otherwise
+# the largest heavy field whole, counted under ``results.contributions.evidence``
+# or ``results.<field>`` (see ``_fit_agent_budget``).
 # Fields inside an item are never trimmed: provenance is never cut off, and a
 # value is never replaced with null.
 HEAVY_ROW_FIELDS = ("evidence", "contributions", "estimates", "refinement_estimates", "plans")
@@ -516,9 +517,11 @@ def _fit_agent_budget(body: dict) -> None:
     model already appears in an earlier row), then ``may_qualify``, then
     ``member_evidence`` items from the member with the most items down to one
     item per member, then any remaining result row except the top, then
-    ``with_estate``, then ``reading`` and ``relax_task_tokens``, then, while
-    ``contributions`` is the largest heavy field on the top result, one
-    evidence item from inside it, then one heavy field of the top result,
+    ``with_estate``, then ``reading`` and ``relax_task_tokens``, then the top
+    result's heavy fields in one repeated step: each pass removes the worst
+    evidence item inside ``contributions`` when ``contributions`` is the
+    largest heavy field and holds an item worth removing, otherwise the
+    largest heavy field whole, so nested and whole-field cuts can alternate;
     then its other non-essential fields, then any remaining
     ``member_evidence`` items, then ``member_evidence`` entries from the end
     of the list. The first row of each model, and row 0, keep their
