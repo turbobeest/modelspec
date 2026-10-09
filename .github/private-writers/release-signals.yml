@@ -132,13 +132,40 @@ jobs:
           token: ${{ github.token }}
           ref: ${{ steps.recheck.outputs.ref }}
           path: data
+      - name: Verify the engine pin is on modelspec main
+        id: engine_pin
+        working-directory: .
+        env:
+          ENGINE_REPO: https://github.com/turbobeest/modelspec.git
+          GIT_NO_LAZY_FETCH: '1'
+        run: |
+          set -euo pipefail
+          pin="$(< data/.engine-pin)"
+          if ! [[ "$pin" =~ ^[0-9a-f]{40}$ ]]; then
+            echo '::error::.engine-pin must hold exactly one full 40-character lowercase commit SHA.'
+            exit 1
+          fi
+          check="$RUNNER_TEMP/engine-pin-check"
+          rm -rf "$check"
+          git clone --quiet --bare --filter=tree:0 --single-branch --branch main --no-tags \
+            "$ENGINE_REPO" "$check"
+          if ! git -C "$check" cat-file -e "$pin^{commit}" 2>/dev/null \
+            || ! git -C "$check" merge-base --is-ancestor "$pin" refs/heads/main; then
+            echo "::error::.engine-pin $pin is not a commit on modelspec main."
+            exit 1
+          fi
+          echo "sha=$pin" >> "$GITHUB_OUTPUT"
       - name: Check out the pinned public engine
         uses: actions/checkout@v4
         with:
           repository: turbobeest/modelspec
-          ref: 69871e3a554cd0affa26a0d78d5663b576f07003
+          ref: ${{ steps.engine_pin.outputs.sha }}
           path: engine
           persist-credentials: false
+      - name: Confirm the engine checkout is the verified pin
+        env:
+          PIN: ${{ steps.engine_pin.outputs.sha }}
+        run: test "$(git -C ../engine rev-parse HEAD)" = "$PIN"
       - name: Compose code into the private checkout
         run: python ../engine/scripts/prepare_data_writer.py --engine ../engine --data .
       - uses: actions/setup-python@v5

@@ -1,0 +1,134 @@
+name: Private production-data recall
+
+on:
+  pull_request:
+  schedule:
+    - cron: '43 6 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: recall-private-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  recall:
+    name: Approved answers on private data
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      MODELSPEC_REQUIRE_DATA_DIR: '1'
+      MODELSPEC_DATA_DIR: ${{ github.workspace }}/data
+      PYTHONPATH: ${{ github.workspace }}/data
+    defaults:
+      run:
+        working-directory: data
+    steps:
+      - name: Check out private data
+        uses: actions/checkout@v4
+        with:
+          path: data
+          fetch-depth: 0
+          token: ${{ github.token }}
+      - name: Verify the engine pin is on modelspec main
+        id: engine_pin
+        working-directory: .
+        env:
+          ENGINE_REPO: https://github.com/turbobeest/modelspec.git
+          GIT_NO_LAZY_FETCH: '1'
+        run: |
+          set -euo pipefail
+          pin="$(< data/.engine-pin)"
+          if ! [[ "$pin" =~ ^[0-9a-f]{40}$ ]]; then
+            echo '::error::.engine-pin must hold exactly one full 40-character lowercase commit SHA.'
+            exit 1
+          fi
+          check="$RUNNER_TEMP/engine-pin-check"
+          rm -rf "$check"
+          git clone --quiet --bare --filter=tree:0 --single-branch --branch main --no-tags \
+            "$ENGINE_REPO" "$check"
+          if ! git -C "$check" cat-file -e "$pin^{commit}" 2>/dev/null \
+            || ! git -C "$check" merge-base --is-ancestor "$pin" refs/heads/main; then
+            echo "::error::.engine-pin $pin is not a commit on modelspec main."
+            exit 1
+          fi
+          echo "sha=$pin" >> "$GITHUB_OUTPUT"
+      - name: Refuse an engine pin older than the base branch pin
+        if: github.event_name == 'pull_request'
+        working-directory: .
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PIN: ${{ steps.engine_pin.outputs.sha }}
+          GIT_NO_LAZY_FETCH: '1'
+        run: |
+          set -euo pipefail
+          check="$RUNNER_TEMP/engine-pin-check"
+          git -C data cat-file -e "$BASE_SHA^{commit}"
+          if ! git -C data cat-file -e "$BASE_SHA:.engine-pin" 2>/dev/null; then
+            # The base predates .engine-pin; this PR introduces it.
+            exit 0
+          fi
+          base_pin="$(git -C data cat-file blob "$BASE_SHA:.engine-pin")"
+          if ! [[ "$base_pin" =~ ^[0-9a-f]{40}$ ]]; then
+            echo '::error::The base branch .engine-pin is not one full commit SHA.'
+            exit 1
+          fi
+          if ! git -C "$check" merge-base --is-ancestor "$base_pin" "$PIN"; then
+            echo "::error::.engine-pin $PIN does not descend from the base pin $base_pin."
+            exit 1
+          fi
+      - name: Check out the pinned public engine
+        uses: actions/checkout@v4
+        with:
+          repository: turbobeest/modelspec
+          ref: ${{ steps.engine_pin.outputs.sha }}
+          path: engine
+          persist-credentials: false
+      - name: Confirm the engine checkout is the verified pin
+        env:
+          PIN: ${{ steps.engine_pin.outputs.sha }}
+        run: test "$(git -C ../engine rev-parse HEAD)" = "$PIN"
+      - name: Compose engine code with private data
+        run: python ../engine/scripts/prepare_data_writer.py --engine ../engine --data .
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install engine dependencies
+        run: python -m pip install -e '.[dev]'
+      - name: Load the private merge-base baseline
+        if: github.event_name == 'pull_request'
+        env:
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          merge_base="$(git merge-base "$HEAD_SHA" "$BASE_SHA")"
+          if git cat-file -e "$merge_base:reports/recall/baseline.json" 2>/dev/null; then
+            git show "$merge_base:reports/recall/baseline.json" \
+              > "$RUNNER_TEMP/approved-private-recall.json"
+          else
+            # The first baseline is seeded and reviewed in this PR.
+            cp reports/recall/baseline.json "$RUNNER_TEMP/approved-private-recall.json"
+          fi
+      - name: Score the approved answers on private data
+        run: |
+          if ! python scripts/recall_run.py --root "$PWD" \
+            --output-dir "$RUNNER_TEMP/private-recall" \
+            > "$RUNNER_TEMP/private-recall.log" 2>&1; then
+            echo '::error::Private recall did not complete.'
+            exit 1
+          fi
+      - name: Compare private baselines and summarise aggregate verdicts
+        env:
+          EVENT: ${{ github.event_name }}
+        run: |
+          args=()
+          if [ "$EVENT" = pull_request ]; then
+            args=(--approved-baseline "$RUNNER_TEMP/approved-private-recall.json")
+          fi
+          python reports/recall/check.py \
+            --report-dir "$RUNNER_TEMP/private-recall" \
+            --baseline reports/recall/baseline.json \
+            --summary "$GITHUB_STEP_SUMMARY" "${args[@]}"
