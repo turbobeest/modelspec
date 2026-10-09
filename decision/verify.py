@@ -12,12 +12,16 @@ extractor, and compares:
 - the **conditions** (effort, harness, date) are the ones the source states.
 
 Extractors are pluggable. The deterministic ones (``TableExtractor``,
-``KeyValueExtractor``) always run before any other; ``LLMExtractor`` reads
+``KeyValueExtractor``, ``CanonicalLicenceExtractor``) always run before any
+other; ``LLMExtractor`` reads
 prose through an injected completion function, so nothing here calls a model
 or the network on its own: ``claude_extractor`` (Claude Sonnet, via the Claude
 CLI) and ``mistral_extractor`` (Mistral Large, via ollama) are the two wired
 readers. ``LicenceExtractor`` reads a ``licence.*`` claim through that same
-completion function, and only from a source kind the facet permits. Other
+completion function, and only from a source kind the facet permits.
+``CanonicalLicenceExtractor`` reads a canonical MIT or Apache-2.0
+``licence_text`` first, and the licence reader is not asked about a text it
+accepts. Other
 cited regions are binding pages, not readings. Deterministic extractors
 still read a ``licence_text`` source for every other claim. An absence
 verifies only from a source kind the facet permits; a ``licence.*`` absence
@@ -68,12 +72,16 @@ from datetime import UTC, date, datetime
 from decimal import Decimal
 from functools import cache
 from pathlib import Path
-from typing import Any, Literal, Protocol
+from typing import Any, Literal, NamedTuple, Protocol
 from urllib.parse import urljoin
 
 from pydantic import JsonValue, ValidationError
 
-from decision.licence_rules import licence_reading_rule
+from decision.licence_rules import (
+    LICENCE_CONDITION_RULE,
+    LICENCE_READING_RULES,
+    licence_reading_rule,
+)
 from decision.model import (
     DETERMINISTIC,
     SourceRef,
@@ -2666,6 +2674,551 @@ class LicenceExtractor:
         return [Reading(subject=subject, value=shown, unit=unit)]
 
 
+class CanonicalClause(NamedTuple):
+    """A canonical licence facet: the value, a verbatim clause, and the rule key."""
+
+    value: JsonValue
+    clause: str
+    rule: str
+
+
+_LICENCE_QUOTE_CHARS = str.maketrans({
+    "\u201c": '"',
+    "\u201d": '"',
+    "\u2018": "'",
+    "\u2019": "'",
+    "\u00a0": " ",
+})
+
+
+def _canonical_form(text: str) -> str:
+    """The licence collapsed to one spacing, and one way of writing the warranty.
+
+    Retained MIT files write the warranty as ``"AS IS"``, with curly quotes, or
+    as ``*AS IS*`` (Phi-4). Signatures and the canonical body are compared
+    after those three are the same sentence.
+    """
+    straight = text.translate(_LICENCE_QUOTE_CHARS).replace("*AS IS*", '"AS IS"')
+    return re.sub(r"\s+", " ", straight).strip()
+
+
+#: Verbatim operative sentences. Every phrase has to appear. The MIT warranty
+#: is matched on :func:`_canonical_form`, so curly quotes and ``*AS IS*`` count.
+CANONICAL_LICENCE_SIGNATURES: dict[str, tuple[str, ...]] = {
+    "mit": (
+        "Permission is hereby granted, free of charge",
+        'THE SOFTWARE IS PROVIDED "AS IS"',
+    ),
+    "apache-2.0": (
+        "Apache License",
+        "Version 2.0, January 2004",
+        "2. Grant of Copyright License. Subject to the terms and conditions of "
+        "this License, each Contributor hereby grants to You a perpetual, "
+        "worldwide, non-exclusive, no-charge, royalty-free, irrevocable "
+        "copyright license to reproduce, prepare Derivative Works of",
+    ),
+}
+
+#: A phrase that means the text adds terms the canonical licence does not have.
+#: Extra guard beside :data:`CANONICAL_LICENCE_RESIDUALS`. A short restriction
+#: can avoid every phrase here and still miss the residual list.
+CANONICAL_LICENCE_RED_FLAGS: tuple[str, ...] = (
+    "separate agreement",
+    "monthly active users",
+    "not intended for use",
+    "prohibited use",
+    "acceptable use",
+)
+
+#: Collapsed characters allowed outside the canonical body. The longest retained
+#: residual is 1,092 characters on apache.org ``LICENSE-2.0.txt`` (the space
+#: after the terms, then the appendix). 1,200 leaves a margin.
+CANONICAL_LICENCE_OUTSIDE_LIMIT = 1200
+
+_MIT_CANONICAL_TEXT = """\
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+"""
+
+_APACHE_CANONICAL_TEXT = """\
+                                 Apache License
+                           Version 2.0, January 2004
+                        http://www.apache.org/licenses/
+
+   TERMS AND CONDITIONS FOR USE, REPRODUCTION, AND DISTRIBUTION
+
+   1. Definitions.
+
+      "License" shall mean the terms and conditions for use, reproduction,
+      and distribution as defined by Sections 1 through 9 of this document.
+
+      "Licensor" shall mean the copyright owner or entity authorized by
+      the copyright owner that is granting the License.
+
+      "Legal Entity" shall mean the union of the acting entity and all
+      other entities that control, are controlled by, or are under common
+      control with that entity. For the purposes of this definition,
+      "control" means (i) the power, direct or indirect, to cause the
+      direction or management of such entity, whether by contract or
+      otherwise, or (ii) ownership of fifty percent (50%) or more of the
+      outstanding shares, or (iii) beneficial ownership of such entity.
+
+      "You" (or "Your") shall mean an individual or Legal Entity
+      exercising permissions granted by this License.
+
+      "Source" form shall mean the preferred form for making modifications,
+      including but not limited to software source code, documentation
+      source, and configuration files.
+
+      "Object" form shall mean any form resulting from mechanical
+      transformation or translation of a Source form, including but
+      not limited to compiled object code, generated documentation,
+      and conversions to other media types.
+
+      "Work" shall mean the work of authorship, whether in Source or
+      Object form, made available under the License, as indicated by a
+      copyright notice that is included in or attached to the work
+      (an example is provided in the Appendix below).
+
+      "Derivative Works" shall mean any work, whether in Source or Object
+      form, that is based on (or derived from) the Work and for which the
+      editorial revisions, annotations, elaborations, or other modifications
+      represent, as a whole, an original work of authorship. For the purposes
+      of this License, Derivative Works shall not include works that remain
+      separable from, or merely link (or bind by name) to the interfaces of,
+      the Work and Derivative Works thereof.
+
+      "Contribution" shall mean any work of authorship, including
+      the original version of the Work and any modifications or additions
+      to that Work or Derivative Works thereof, that is intentionally
+      submitted to Licensor for inclusion in the Work by the copyright owner
+      or by an individual or Legal Entity authorized to submit on behalf of
+      the copyright owner. For the purposes of this definition, "submitted"
+      means any form of electronic, verbal, or written communication sent
+      to the Licensor or its representatives, including but not limited to
+      communication on electronic mailing lists, source code control systems,
+      and issue tracking systems that are managed by, or on behalf of, the
+      Licensor for the purpose of discussing and improving the Work, but
+      excluding communication that is conspicuously marked or otherwise
+      designated in writing by the copyright owner as "Not a Contribution."
+
+      "Contributor" shall mean Licensor and any individual or Legal Entity
+      on behalf of whom a Contribution has been received by Licensor and
+      subsequently incorporated within the Work.
+
+   2. Grant of Copyright License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      copyright license to reproduce, prepare Derivative Works of,
+      publicly display, publicly perform, sublicense, and distribute the
+      Work and such Derivative Works in Source or Object form.
+
+   3. Grant of Patent License. Subject to the terms and conditions of
+      this License, each Contributor hereby grants to You a perpetual,
+      worldwide, non-exclusive, no-charge, royalty-free, irrevocable
+      (except as stated in this section) patent license to make, have made,
+      use, offer to sell, sell, import, and otherwise transfer the Work,
+      where such license applies only to those patent claims licensable
+      by such Contributor that are necessarily infringed by their
+      Contribution(s) alone or by combination of their Contribution(s)
+      with the Work to which such Contribution(s) was submitted. If You
+      institute patent litigation against any entity (including a
+      cross-claim or counterclaim in a lawsuit) alleging that the Work
+      or a Contribution incorporated within the Work constitutes direct
+      or contributory patent infringement, then any patent licenses
+      granted to You under this License for that Work shall terminate
+      as of the date such litigation is filed.
+
+   4. Redistribution. You may reproduce and distribute copies of the
+      Work or Derivative Works thereof in any medium, with or without
+      modifications, and in Source or Object form, provided that You
+      meet the following conditions:
+
+      (a) You must give any other recipients of the Work or
+          Derivative Works a copy of this License; and
+
+      (b) You must cause any modified files to carry prominent notices
+          stating that You changed the files; and
+
+      (c) You must retain, in the Source form of any Derivative Works
+          that You distribute, all copyright, patent, trademark, and
+          attribution notices from the Source form of the Work,
+          excluding those notices that do not pertain to any part of
+          the Derivative Works; and
+
+      (d) If the Work includes a "NOTICE" text file as part of its
+          distribution, then any Derivative Works that You distribute must
+          include a readable copy of the attribution notices contained
+          within such NOTICE file, excluding those notices that do not
+          pertain to any part of the Derivative Works, in at least one
+          of the following places: within a NOTICE text file distributed
+          as part of the Derivative Works; within the Source form or
+          documentation, if provided along with the Derivative Works; or,
+          within a display generated by the Derivative Works, if and
+          wherever such third-party notices normally appear. The contents
+          of the NOTICE file are for informational purposes only and
+          do not modify the License. You may add Your own attribution
+          notices within Derivative Works that You distribute, alongside
+          or as an addendum to the NOTICE text from the Work, provided
+          that such additional attribution notices cannot be construed
+          as modifying the License.
+
+      You may add Your own copyright statement to Your modifications and
+      may provide additional or different license terms and conditions
+      for use, reproduction, or distribution of Your modifications, or
+      for any such Derivative Works as a whole, provided Your use,
+      reproduction, and distribution of the Work otherwise complies with
+      the conditions stated in this License.
+
+   5. Submission of Contributions. Unless You explicitly state otherwise,
+      any Contribution intentionally submitted for inclusion in the Work
+      by You to the Licensor shall be under the terms and conditions of
+      this License, without any additional terms or conditions.
+      Notwithstanding the above, nothing herein shall supersede or modify
+      the terms of any separate license agreement you may have executed
+      with Licensor regarding such Contributions.
+
+   6. Trademarks. This License does not grant permission to use the trade
+      names, trademarks, service marks, or product names of the Licensor,
+      except as required for reasonable and customary use in describing the
+      origin of the Work and reproducing the content of the NOTICE file.
+
+   7. Disclaimer of Warranty. Unless required by applicable law or
+      agreed to in writing, Licensor provides the Work (and each
+      Contributor provides its Contributions) on an "AS IS" BASIS,
+      WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or
+      implied, including, without limitation, any warranties or conditions
+      of TITLE, NON-INFRINGEMENT, MERCHANTABILITY, or FITNESS FOR A
+      PARTICULAR PURPOSE. You are solely responsible for determining the
+      appropriateness of using or redistributing the Work and assume any
+      risks associated with Your exercise of permissions under this License.
+
+   8. Limitation of Liability. In no event and under no legal theory,
+      whether in tort (including negligence), contract, or otherwise,
+      unless required by applicable law (such as deliberate and grossly
+      negligent acts) or agreed to in writing, shall any Contributor be
+      liable to You for damages, including any direct, indirect, special,
+      incidental, or consequential damages of any character arising as a
+      result of this License or out of the use or inability to use the
+      Work (including but not limited to damages for loss of goodwill,
+      work stoppage, computer failure or malfunction, or any and all
+      other commercial damages or losses), even if such Contributor
+      has been advised of the possibility of such damages.
+
+   9. Accepting Warranty or Additional Liability. While redistributing
+      the Work or Derivative Works thereof, You may choose to offer,
+      and charge a fee for, acceptance of support, warranty, indemnity,
+      or other liability obligations and/or rights consistent with this
+      License. However, in accepting such obligations, You may act only
+      on Your own behalf and on Your sole responsibility, not on behalf
+      of any other Contributor, and only if You agree to indemnify,
+      defend, and hold each Contributor harmless for any liability
+      incurred by, or claims asserted against, such Contributor by reason
+      of your accepting any such warranty or additional liability.
+
+   END OF TERMS AND CONDITIONS
+"""
+
+#: The Apache how-to appendix, through the end of the boilerplate notice.
+#: Verbatim apart from the copyright line, which the notice tells the holder
+#: to fill in (Qwen writes ``Copyright 2024 Alibaba Cloud``).
+_APACHE_APPENDIX_TEXT = """\
+   APPENDIX: How to apply the Apache License to your work.
+
+      To apply the Apache License to your work, attach the following
+      boilerplate notice, with the fields enclosed by brackets "[]"
+      replaced with your own identifying information. (Don't include
+      the brackets!)  The text should be enclosed in the appropriate
+      comment syntax for the file format. We also recommend that a
+      file or class name and description of purpose be included on the
+      same "printed page" as the copyright notice for easier
+      identification within third-party archives.
+
+   Copyright [yyyy] [name of copyright owner]
+
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+
+       http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+"""
+
+_APACHE_APPENDIX_COPYRIGHT = "Copyright [yyyy] [name of copyright owner]"
+
+CANONICAL_LICENCE_BODIES: dict[str, str] = {
+    "mit": _canonical_form(_MIT_CANONICAL_TEXT),
+    "apache-2.0": _canonical_form(_APACHE_CANONICAL_TEXT),
+}
+
+_APACHE_APPENDIX = _canonical_form(_APACHE_APPENDIX_TEXT)
+if _APACHE_APPENDIX.count(_APACHE_APPENDIX_COPYRIGHT) != 1:
+    raise RuntimeError("apache appendix copyright line is not verbatim once")
+_APPENDIX_HEAD, _APPENDIX_TAIL = _APACHE_APPENDIX.split(_APACHE_APPENDIX_COPYRIGHT, 1)
+if not _APPENDIX_HEAD.startswith("APPENDIX: How to apply the Apache License to your work."):
+    raise RuntimeError("apache appendix does not start at the how-to heading")
+if not _APPENDIX_TAIL.endswith("limitations under the License."):
+    raise RuntimeError("apache appendix does not end at the boilerplate notice")
+if _APPENDIX_HEAD in CANONICAL_LICENCE_BODIES["apache-2.0"]:
+    raise RuntimeError("apache appendix heading is inside the canonical body")
+
+
+#: Exact ``(before, after)`` text around a canonical body, after
+#: :func:`_canonical_form` and whitespace stripping. For Apache-2.0, ``after``
+#: is what remains once the canonical appendix is removed, so it is the
+#: copyright line between the how-to and the boilerplate.
+#:
+#: DeepSeek-V4-Pro, DeepSeek-V4.1-Flash, and ``model-143-deepseek-v4-license``
+#: are the same retained bytes as DeepSeek-V3.1, so they share that pair.
+#: A copyright line that is not listed here is not read by this extractor
+#: until the residual is reviewed and added in code.
+CANONICAL_LICENCE_RESIDUALS: dict[str, frozenset[tuple[str, str]]] = {
+    "mit": frozenset({
+        (
+            "Popular / Strong Community The MIT License Version N/A "
+            "SPDX short identifier: MIT Copyright <YEAR> <COPYRIGHT HOLDER>",
+            "",
+        ),
+        ("Microsoft. Copyright (c) Microsoft Corporation. MIT License", ""),
+        ("MIT License Copyright (c) 2023 DeepSeek", ""),
+        ("MIT License Copyright (c) 2026 Zhipu AI", ""),
+    }),
+    "apache-2.0": frozenset({
+        ("", "Copyright [yyyy] [name of copyright owner]"),
+        ("", "Copyright 2024 Alibaba Cloud"),
+    }),
+}
+if set(CANONICAL_LICENCE_RESIDUALS) != set(CANONICAL_LICENCE_BODIES):
+    raise RuntimeError("residual table does not match the canonical bodies")
+
+
+def _canonical_clause(value: JsonValue, clause: str, rule: str) -> CanonicalClause:
+    if rule not in LICENCE_READING_RULES:
+        raise RuntimeError(f"no licence reading rule for {rule}")
+    return CanonicalClause(value, clause, rule)
+
+
+#: Facet values for a canonical text. ``rule`` is the ``LICENCE_READING_RULES``
+#: key. ``None`` is ``not_disclosed``. Notice retention is not a condition
+#: (``LICENCE_CONDITION_RULE``), so commercial use and fine-tuning are
+#: ``permitted``.
+CANONICAL_LICENCE_READINGS: dict[str, dict[str, CanonicalClause]] = {
+    "mit": {
+        "licence.commercial_use": _canonical_clause(
+            "permitted", "sell copies of the Software", "licence.commercial_use",
+        ),
+        "licence.user_cap": _canonical_clause(
+            "unbounded",
+            "The above copyright notice and this permission notice shall be included "
+            "in all copies or substantial portions of the Software.",
+            "licence.user_cap",
+        ),
+        "licence.output_training": _canonical_clause(
+            None,
+            "to use, copy, modify, merge, publish, distribute, sublicense, and/or "
+            "sell copies of the Software",
+            "licence.output_training",
+        ),
+        "licence.fine_tuning": _canonical_clause(
+            "permitted",
+            "modify, merge, publish, distribute, sublicense, and/or sell copies "
+            "of the Software",
+            "licence.fine_tuning",
+        ),
+    },
+    "apache-2.0": {
+        "licence.commercial_use": _canonical_clause(
+            "permitted",
+            "make, have made, use, offer to sell, sell",
+            "licence.commercial_use",
+        ),
+        "licence.user_cap": _canonical_clause(
+            "unbounded",
+            "copyright license to reproduce, prepare Derivative Works of",
+            "licence.user_cap",
+        ),
+        "licence.output_training": _canonical_clause(
+            None, "prepare Derivative Works", "licence.output_training",
+        ),
+        "licence.fine_tuning": _canonical_clause(
+            "permitted", "prepare Derivative Works", "licence.fine_tuning",
+        ),
+    },
+}
+
+for _spdx, _phrases in CANONICAL_LICENCE_SIGNATURES.items():
+    _body = CANONICAL_LICENCE_BODIES[_spdx]
+    for _phrase in _phrases:
+        if _phrase not in _body:
+            raise RuntimeError(f"{_spdx} signature is not in the canonical body: {_phrase}")
+for _spdx, _rows in CANONICAL_LICENCE_READINGS.items():
+    _body = CANONICAL_LICENCE_BODIES[_spdx]
+    for _facet, _row in _rows.items():
+        if _row.rule != _facet or _row.clause not in _body:
+            raise RuntimeError(f"{_spdx} {_facet} clause is not in the canonical body")
+
+
+def _strip_apache_appendix(residual: str) -> str | None:
+    """Remove one verbatim Apache how-to and boilerplate notice.
+
+    The copyright line between them stays, so :data:`CANONICAL_LICENCE_RESIDUALS`
+    can require that line exactly. ``None`` when an ``APPENDIX:`` is present
+    and the how-to or the boilerplate is not the canonical text.
+    """
+    start = residual.find(_APPENDIX_HEAD)
+    if start < 0:
+        if "APPENDIX:" in residual:
+            return None
+        return residual
+    holder_at = start + len(_APPENDIX_HEAD)
+    tail_at = residual.find(_APPENDIX_TAIL, holder_at)
+    if tail_at < 0 or "APPENDIX:" in residual[tail_at + len(_APPENDIX_TAIL):]:
+        return None
+    holder = residual[holder_at:tail_at].strip()
+    end = tail_at + len(_APPENDIX_TAIL)
+    left = residual[:start].strip()
+    right = residual[end:].strip()
+    return " ".join(part for part in (left, holder, right) if part)
+
+
+def _canonical_licence_id(text: str) -> str | None:
+    """``mit`` or ``apache-2.0`` when the signature, body, and residual all match.
+
+    The signature has to match and the canonical body has to be present. The
+    text before and after that body, after :func:`_canonical_form` and
+    whitespace stripping, has to be a pair in :data:`CANONICAL_LICENCE_RESIDUALS`.
+    For Apache-2.0 the appendix how-to and boilerplate are removed first, and
+    the copyright line that was between them is the ``after`` value.
+
+    Returns ``None`` when the notice-retention rule is no longer the one this
+    table applies, when a red-flag phrase is present, when the text outside
+    the canonical body is longer than :data:`CANONICAL_LICENCE_OUTSIDE_LIMIT`,
+    or when the residual pair is not one this code records. A new canonical
+    file with a different copyright line is not read here until that residual
+    is reviewed and added in code. The licence reader then reads the text.
+    """
+    if "notices is not a condition" not in LICENCE_CONDITION_RULE:
+        return None
+    form = _canonical_form(text)
+    if any(flag in form.casefold() for flag in CANONICAL_LICENCE_RED_FLAGS):
+        return None
+    matched = [
+        spdx for spdx, phrases in CANONICAL_LICENCE_SIGNATURES.items()
+        if all(phrase in form for phrase in phrases)
+    ]
+    if len(matched) != 1:
+        return None
+    spdx = matched[0]
+    body = CANONICAL_LICENCE_BODIES[spdx]
+    start = form.find(body)
+    if start < 0:
+        return None
+    if len(form) - len(body) > CANONICAL_LICENCE_OUTSIDE_LIMIT:
+        return None
+    before = form[:start].strip()
+    after = form[start + len(body):].strip()
+    if spdx == "apache-2.0":
+        stripped = _strip_apache_appendix(after)
+        if stripped is None:
+            return None
+        after = stripped.strip()
+    if (before, after) not in CANONICAL_LICENCE_RESIDUALS[spdx]:
+        return None
+    return spdx
+
+
+def _text_around_body(spdx: str, before: str, after: str, *, appendix: bool) -> str:
+    body = CANONICAL_LICENCE_BODIES[spdx]
+    if appendix:
+        after = f"{_APPENDIX_HEAD}{after}{_APPENDIX_TAIL}"
+    return " ".join(part for part in (before, body, after) if part)
+
+
+for _spdx, _pairs in CANONICAL_LICENCE_RESIDUALS.items():
+    for _before, _after in _pairs:
+        _plain = _text_around_body(_spdx, _before, _after, appendix=False)
+        if _canonical_licence_id(_plain) != _spdx:
+            raise RuntimeError(f"{_spdx} residual is not recognised around the body")
+        if _spdx == "apache-2.0" and _canonical_licence_id(
+            _text_around_body(_spdx, _before, _after, appendix=True)
+        ) != _spdx:
+            raise RuntimeError(f"{_spdx} residual is not recognised with the appendix")
+
+
+class CanonicalLicenceExtractor:
+    """Reads the four ``licence.*`` facets from a canonical MIT or Apache-2.0 text.
+
+    A deterministic extractor, so it counts as an independent second key.
+    It accepts a ``licence_text`` region only. The text has to carry that
+    licence's signature and its canonical body. The text before and after the
+    body, after :func:`_canonical_form` and whitespace stripping, has to be a
+    pair in :data:`CANONICAL_LICENCE_RESIDUALS`. For Apache-2.0 the how-to
+    appendix and the boilerplate notice are removed first. The copyright line
+    that was between them is the ``after`` residual, and it has to match
+    exactly. A new canonical file with a different copyright line is not read
+    here until that residual is reviewed and added in code. The licence reader
+    then reads the region. The red-flag list is a second guard.
+
+    The value for each facet is the one ``LICENCE_READING_RULES`` gives, with
+    ``LICENCE_CONDITION_RULE`` applied: a duty to keep a notice is not a
+    condition. The table quotes the operative clause and records the rule key.
+    The reading's subject is the claim's name only when :func:`licence_is_bound`
+    passes.
+    """
+
+    actor = VerificationActor(
+        agent=VERIFY_AGENT, model_family=DETERMINISTIC, method="canonical-licence@1",
+    )
+
+    def accepts(self, text: str) -> bool:
+        return _canonical_licence_id(text) is not None
+
+    def extract(
+        self,
+        claim: Claim,
+        text: str,
+        *,
+        bindings: Sequence[str] = (),
+        binding_urls: Sequence[str | None] | None = None,
+        licence_url: str | None = None,
+        **_extra: object,
+    ) -> list[Reading]:
+        spdx = _canonical_licence_id(text)
+        if spdx is None:
+            raise ExtractorError("not a canonical MIT or Apache-2.0 licence")
+        row = CANONICAL_LICENCE_READINGS[spdx].get(claim.field)
+        if row is None or row.rule != claim.field or claim.field not in LICENCE_READING_RULES:
+            raise ExtractorError(f"no canonical reading for {claim.field}")
+        if row.clause not in _canonical_form(text):
+            raise ExtractorError("operative clause is not in the licence text")
+        subject = claim.names[0] if licence_is_bound(
+            claim.names, bindings, licence_url, subject=claim.subject, page_urls=binding_urls,
+            licence_text=text,
+        ) else None
+        shown: JsonValue = None if row.value is None else str(row.value)
+        return [Reading(subject=subject, value=shown)]
+
+
 def claude_extractor(*, cache: LLMCache | None = None,
                      complete: Callable[[str], str] | None = None,
                      max_calls: int = 400) -> LLMExtractor:
@@ -2804,8 +3357,8 @@ def _text(value: Any) -> str | None:
 
 
 def deterministic_extractors() -> list[Extractor]:
-    return [StructuredDataExtractor(), OfferingPriceExtractor(), SubscriptionPageExtractor(),
-            TableExtractor(), TransposedTableExtractor(),
+    return [CanonicalLicenceExtractor(), StructuredDataExtractor(), OfferingPriceExtractor(),
+            SubscriptionPageExtractor(), TableExtractor(), TransposedTableExtractor(),
             GovernanceProseExtractor(), KeyValueExtractor(), ModelPageExtractor()]
 
 
@@ -3282,7 +3835,10 @@ def _readers_for(extractors: Sequence[Extractor], claim: Claim, text: str,
     """Who may read this region.
 
     A ``licence.*`` claim is read only from a source kind in that facet's
-    ``permitted_source_kinds``, and only by ``LicenceExtractor``. Any other
+    ``permitted_source_kinds``. ``CanonicalLicenceExtractor`` takes a
+    ``licence_text`` region whose text is the canonical MIT licence or the
+    Apache License 2.0 terms, and the licence reader is not asked about that
+    text. ``LicenceExtractor`` reads every other permitted region. Any other
     cited region is a binding page. It is not a reading, for a known value or
     an absence. Deterministic extractors still read a ``licence_text`` source
     for every other claim, including ``model.weights_openness`` and ``origin.*``.
@@ -3292,10 +3848,17 @@ def _readers_for(extractors: Sequence[Extractor], claim: Claim, text: str,
         permitted = set(facet.permitted_source_kinds) if facet is not None else set()
         if kind not in permitted:
             return []
+        if kind == "licence_text":
+            canonical = [
+                extractor for extractor in extractors
+                if isinstance(extractor, CanonicalLicenceExtractor) and extractor.accepts(text)
+            ]
+            if canonical:
+                return canonical
         return [extractor for extractor in extractors if isinstance(extractor, LicenceExtractor)]
     chosen = []
     for extractor in extractors:
-        if isinstance(extractor, LicenceExtractor):
+        if isinstance(extractor, (LicenceExtractor, CanonicalLicenceExtractor)):
             continue
         if extractor.accepts(text):
             chosen.append(extractor)
@@ -3325,9 +3888,12 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
 
     Deterministic extractors are tried before the rest, whatever the order given;
     the first that accepts a region and is independent of the collector reads it.
-    A ``licence.*`` claim is the exception: only ``LicenceExtractor`` reads it,
-    and only a source kind in that facet's ``permitted_source_kinds`` is a
-    reading. Its other cited regions are binding pages. A binding page gives
+    A ``licence.*`` claim is read from a source kind in that facet's
+    ``permitted_source_kinds``. ``CanonicalLicenceExtractor`` reads a
+    ``licence_text`` region when the text is the canonical MIT licence or the
+    Apache License 2.0 terms, and ``LicenceExtractor`` is not asked about that
+    text. ``LicenceExtractor`` reads the other permitted regions. Other cited
+    regions are binding pages. A binding page gives
     no outcome while the claim also cites a permitted kind. It is a
     ``source_kind`` mismatch only when the claim cites no permitted kind.
     Verified if any reading confirms the value; otherwise the first mismatch.
@@ -3368,7 +3934,7 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
                 continue
             for extractor in independent:
                 try:
-                    if isinstance(extractor, LicenceExtractor):
+                    if isinstance(extractor, (LicenceExtractor, CanonicalLicenceExtractor)):
                         url_of = getattr(regions, "source_url", None)
                         pages, page_urls = _binding_pages(
                             claim, regions, source.source_id, region_id,
@@ -3649,7 +4215,8 @@ def run(queue: Queue, log: VerificationLog, regions: Regions, extractors: Sequen
 
 
 __all__ = [
-    "Claim", "ClaudeCLICompletion", "CONDITION_KEYS", "Diff", "Extractor", "ExtractorError",
+    "Claim", "CanonicalLicenceExtractor", "ClaudeCLICompletion", "CONDITION_KEYS", "Diff",
+    "Extractor", "ExtractorError",
     "GovernanceProseExtractor", "KeyValueExtractor", "LLMCache", "LLMCallBudgetExceededError",
     "LLMExtractor", "MISTRAL_MODEL", "ModelPageExtractor", "OLLAMA_URL", "OfferingPriceExtractor",
     "OLLAMA_JSON_MODE", "OllamaChatCompletion", "Quantity", "Queue", "Reading",
