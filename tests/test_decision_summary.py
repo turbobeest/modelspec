@@ -244,6 +244,131 @@ def test_a_covered_relaxation_stays_out_of_the_joint_option() -> None:
     assert "together would admit" not in text
 
 
+def test_an_emitted_relax_single_gate_drops_the_option_that_names_it() -> None:
+    condition = "offering.region = eu"
+    decision = _decision(
+        status="no_feasible",
+        results=[],
+        answer=None,
+        relax=[condition],
+        relax_single={
+            "status": "found",
+            "gates": [{"condition": condition, "admits": 2}],
+            "together_admits": 2,
+            "question_admits": False,
+        },
+    )
+    text, _mentions = summarize(decision, _spec(where=[condition]))
+    assert (
+        "Removing only offering.region = eu would let 2 models qualify; "
+        "every other requirement stays as you set it."
+    ) in text
+    assert (
+        "Relaxing offering.region = eu would admit a model; that is an option, not an answer."
+    ) not in text
+
+    priced = _decision(
+        status="no_feasible",
+        results=[],
+        answer=None,
+        relax=["offering.price.input <= 0.5", condition],
+        relax_to=[{
+            "condition": "offering.price.input <= 0.5",
+            "relaxed": "offering.price.input <= 0.75",
+            "facet": "offering.price.input",
+            "value": 0.75,
+            "admits": 1,
+        }],
+        relax_single={
+            "status": "found",
+            "gates": [
+                {"condition": "offering.price.input <= 0.5", "admits": 1},
+                {"condition": condition, "admits": 2},
+            ],
+            "together_admits": 2,
+            "question_admits": False,
+        },
+    )
+    priced_text, _priced_mentions = summarize(
+        priced, _spec(where=["offering.price.input <= 0.5", condition]),
+    )
+    assert (
+        "Relaxing offering.price.input <= 0.5 to offering.price.input <= 0.75 "
+        "would admit a model; that is an option, not an answer."
+    ) in priced_text
+    assert (
+        "Relaxing offering.region = eu would admit a model; that is an option, not an answer."
+    ) not in priced_text
+
+    pair = ["offering.region = eu", "model.class = text-generator"]
+    joint = _decision(
+        status="no_feasible",
+        results=[],
+        answer=None,
+        relax=pair,
+        relax_single={
+            "status": "found",
+            "gates": [{"condition": pair[0], "admits": 2}],
+            "together_admits": 2,
+            "question_admits": False,
+        },
+    )
+    joint_text, _joint_mentions = summarize(joint, _spec(where=pair))
+    assert (
+        "Relaxing offering.region = eu and model.class = text-generator together "
+        "would admit a model; that is an option, not an answer."
+    ) in joint_text
+
+
+def test_a_single_gate_for_a_different_condition_keeps_the_option() -> None:
+    decision = _decision(
+        status="no_feasible",
+        results=[],
+        answer=None,
+        relax=["offering.region = eu"],
+        relax_single={
+            "status": "found",
+            "gates": [{"condition": "model.context_window >= 8192", "admits": 1}],
+            "together_admits": 1,
+            "question_admits": False,
+        },
+    )
+    text, _mentions = summarize(
+        decision,
+        _spec(where=["offering.region = eu", "model.context_window >= 8192"]),
+    )
+    assert (
+        "Relaxing offering.region = eu would admit a model; that is an option, not an answer."
+    ) in text
+    assert (
+        "Removing only model.context_window >= 8192 would let 1 model qualify; "
+        "every other requirement stays as you set it."
+    ) in text
+
+    conditions = [f"facet_{i:02d} >= {i}" for i in range(13)]
+    beyond = _decision(
+        status="no_feasible",
+        results=[],
+        answer=None,
+        relax=[conditions[-1]],
+        relax_single={
+            "status": "found",
+            "gates": [{"condition": name, "admits": 2} for name in conditions],
+            "together_admits": 2,
+            "question_admits": False,
+        },
+    )
+    beyond_text, _beyond_mentions = summarize(beyond, _spec(where=conditions))
+    assert (
+        "Relaxing facet_12 >= 12 would admit a model; that is an option, not an answer."
+    ) in beyond_text
+    assert "Removing only facet_12 >= 12" not in beyond_text
+    assert (
+        "Removing only facet_00 >= 0 would let 2 models qualify; "
+        "every other requirement stays as you set it."
+    ) in beyond_text
+
+
 def test_missing_objective_values_are_not_reported_as_a_gate_failure() -> None:
     decision = _decision(
         status="no_feasible",

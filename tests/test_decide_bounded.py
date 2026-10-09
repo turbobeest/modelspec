@@ -411,6 +411,64 @@ def test_joint_numeric_relaxations_are_one_option(service):
     assert "Relaxing offering.price.input <= 0.2 would admit a model;" not in text
 
 
+def test_an_emitted_gate_drops_the_option_naming_the_same_condition(service):
+    status, body = service.decide({
+        "spec_version": 1,
+        "where": ["model.weights_openness = open_weights"],
+        "optimize": {"max": "arena_elo_overall"},
+        "explain": "summary",
+        "fields": ["model"],
+    }, q10_snapshot())
+    assert status == 200, body
+    assert body["status"] == "no_feasible"
+    assert body["relax"] == ["model.weights_openness = open_weights"]
+    assert body["relax_to"] == []
+    gate = body["relax_single"]["gates"][0]
+    assert gate["condition"] == "model.weights_openness = open_weights"
+    text = body["summary_for_user"]
+    count = "1 model" if gate["admits"] == 1 else f"{gate['admits']} models"
+    assert (
+        "Removing only model.weights_openness = open_weights would let "
+        f"{count} qualify; every other requirement stays as you set it."
+    ) in text
+    assert (
+        "Relaxing model.weights_openness = open_weights would admit a model; "
+        "that is an option, not an answer."
+    ) not in text
+
+
+def test_a_gate_naming_another_condition_keeps_the_option():
+    from decision.contract import RelaxSingle, SingleGate, parse_spec
+    from decision.registry import facet as facets
+    from decision.summary import summarize
+
+    spec = parse_spec({
+        "spec_version": 1,
+        "where": ["model.weights_openness = open_weights"],
+        "optimize": {"max": "arena_elo_overall"},
+        "explain": "summary",
+    }, facets=facets)
+    decision = run_decision(spec, q10_snapshot(), facets=facets)
+    assert decision.relax == ["model.weights_openness = open_weights"]
+    tweaked = decision.model_copy(update={
+        "relax_single": RelaxSingle(
+            status="found",
+            gates=[SingleGate(condition="model.context_window >= 8192", admits=1)],
+            together_admits=1,
+            question_admits=False,
+        ),
+    })
+    text, _mentions = summarize(tweaked, spec)
+    assert (
+        "Relaxing model.weights_openness = open_weights would admit a model; "
+        "that is an option, not an answer."
+    ) in text
+    assert (
+        "Removing only model.context_window >= 8192 would let 1 model qualify; "
+        "every other requirement stays as you set it."
+    ) in text
+
+
 def test_profile_rules_are_requirements_the_summary_reports(service):
     """Inline rules are gates. A referenced profile uses the same resolution."""
     status, body = service.decide({
