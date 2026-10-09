@@ -180,7 +180,7 @@ It is a `200`, not a transport failure.
 A request with `fields` or `evidence_for` returns the bounded representation
 instead of this complete Decision. That body adds `summary_for_user` (one
 plain-language paragraph) and `must_mention` (short facts the report carries).
-Both are additive on bounded 1.0. See the bounded section of
+Both were added, additively, in bounded 1.0. See the bounded section of
 [`decision-contract.md`](decision-contract.md).
 
 ## Snapshot trust boundary
