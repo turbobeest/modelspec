@@ -1613,7 +1613,7 @@ that used to be accepted is a major change; accepting more is not.
   `no_feasible`.
   Additive: `relax`, `relax_to`, `relax_task_tokens`, `status` and every other
   field keep their ranges. Bounded answers carry it, and `bounded_version`
-  stays `1.0`.
+  stays `1.1`.
 
 - **2.14 — MODEL-316:** A `no_feasible` decision adds optional
   `relax_task_tokens` when a per-task cost cap fails only because the spec gave
