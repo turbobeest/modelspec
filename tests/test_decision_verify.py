@@ -403,6 +403,125 @@ def test_governance_prose_reader_handles_provider_wide_statements() -> None:
         assert verify.compare(claim, extractor.extract(claim, text)) == []
 
 
+# Bedrock states 30 days only for models it names. Sonnet 5.5 is default mode.
+_BEDROCK_RETENTION = (
+    "For models requiring aws_review (currently Claude Fable 5 and Claude Fable 5.1): "
+    "user prompts and completions are retained within the AWS boundary for up to 30 days "
+    "and may be reviewed by AWS to meet the human review requirement the model provider "
+    "imposes as a condition of access. Your content is not shared with the model provider. "
+    "For the legacy provider_data_share mode: Amazon Bedrock does not share your content "
+    "with model providers today, so this mode results in the same handling as aws_review "
+    "— retained within the AWS boundary for up to 30 days, and reviewed by AWS only where "
+    "the model requires it. For models under default mode: data may be retained for abuse "
+    "detection purposes — see Amazon Bedrock abuse detection for required retention details. "
+    "For retention beyond abuse detection (for example, Responses API with store=true ), "
+    "consult the documentation for that feature."
+)
+# The nightly region is this HTML, not the prose above. Block tags are the clause breaks.
+_BEDROCK_RETENTION_HTML = """\
+"Condition": <span>{</span>
+"ForAnyValue:StringEquals": <span>{</span>
+"bedrock-mantle:DataRetentionMode": [
+"aws_review",
+"provider_data_share"
+}</code></pre>
+<p>Use this when your organization accepts retention for abuse detection but cannot permit human review of its content. Models that require human review will appear as <code class="code">status: "unavailable"</code> on the bedrock-mantle endpoint, and requests to them on the bedrock-runtime endpoint will fail with a <code class="code">ValidationException</code> error.</p>
+<h2 id="data-retention-what-is-retained">What data is retained and for how long</h2>
+<p>For models requiring <code class="code">aws_review</code> (currently Claude Fable 5 and Claude Fable 5.1): user prompts and completions are retained within the AWS boundary for up to 30 days and may be reviewed by AWS to meet the human review requirement the model provider imposes as a condition of access. Your content is not shared with the model provider.</p>
+<p>For the legacy <code class="code">provider_data_share</code> mode: Amazon Bedrock does not share your content with model providers today, so this mode results in the same handling as <code class="code">aws_review</code> — retained within the AWS boundary for up to 30 days, and reviewed by AWS only where the model requires it.</p>
+<p>For models under <code class="code">default</code> mode: data may be retained for abuse detection purposes — see <a href="abuse-detection.html" rel="noopener noreferrer" target="_blank">Amazon Bedrock abuse detection</a> for required retention details. For retention beyond abuse detection (for example, Responses API with <code class="code">store=true</code>), consult the model's documentation and terms.</p>
+<p>If cross-region inference is enabled for these models, retained inputs and outputs are stored in destination Regions (that is, the Region where your inference request is processed).</p>
+<p>See <a href="https://aws.amazon.com/legal/bedrock/third-party-models/" rel="noopener noreferrer" target="_blank"><span>Anthropic Terms of Service</span><awsui-icon class="awsdocs-link-icon" name="external"></awsui-icon></a> for model-specific data handling details.</p>
+<h2 id="data-retention-iam-reference">IAM actions reference</h2>
+<div class="table-container"><div class="table-contents"><table id="w639aac20c13b8c21c23b3"><thead>
+<tr>
+"""
+
+
+def _retention_claim(subject: str, names: tuple[str, ...]) -> verify.Claim:
+    return verify.Claim(
+        target=TargetRef(kind="fact", id=f"{subject}#offering.data.retention"),
+        subject=subject,
+        names=names,
+        field="offering.data.retention",
+        value=None,
+        unit="days",
+        collector=COLLECTOR,
+        sources=(SourceRef(source_id="model-s55-aws-retention-rendered",
+                           snapshot_ref="sha256:" + "0" * 64,
+                           cited_regions=["bedrock-policy"]),),
+    )
+
+
+def test_governance_prose_retention_period_follows_the_models_the_clause_names() -> None:
+    extractor = verify.GovernanceProseExtractor()
+    sonnet = _retention_claim(
+        "aws-bedrock/anthropic/claude-sonnet-5-5/global-cross-region/standard",
+        ("Claude Sonnet 5.5",),
+    )
+    fable = _retention_claim(
+        "aws-bedrock/anthropic/claude-fable-5-1/global/standard",
+        ("Claude Fable 5.1",),
+    )
+
+    for text in (_BEDROCK_RETENTION, _BEDROCK_RETENTION_HTML):
+        assert extractor.extract(sonnet, text) == []
+        assert extractor.extract(fable, text) == [
+            verify.Reading("Claude Fable 5.1", "30", "days"),
+        ]
+    assert extractor.extract(sonnet, "Prompts are retained for 30 days.") == [
+        verify.Reading("Claude Sonnet 5.5", "30", "days"),
+    ]
+
+
+def test_retention_day_count_uses_its_own_clause_after_a_retained_heading() -> None:
+    text = (
+        "<h2>What data is retained and for how long</h2>"
+        "<p>For models requiring aws_review (currently Claude Fable 5): retained for up to 30 days.</p>"
+    )
+    extractor = verify.GovernanceProseExtractor()
+    sonnet = _retention_claim(
+        "aws-bedrock/anthropic/claude-sonnet-5-5/global-cross-region/standard",
+        ("Claude Sonnet 5.5",),
+    )
+    fable = _retention_claim(
+        "aws-bedrock/anthropic/claude-fable-5/global/standard",
+        ("Claude Fable 5",),
+    )
+    assert extractor.extract(sonnet, text) == []
+    assert extractor.extract(fable, text) == [
+        verify.Reading("Claude Fable 5", "30", "days"),
+    ]
+
+
+def test_retention_scope_alias_rejects_a_following_version_digit() -> None:
+    text = "Prompts are retained for up to 30 days (currently Claude Fable 5.1)."
+    extractor = verify.GovernanceProseExtractor()
+    fable = _retention_claim(
+        "aws-bedrock/anthropic/claude-fable-5/global/standard",
+        ("Claude Fable 5",),
+    )
+    fable_point = _retention_claim(
+        "aws-bedrock/anthropic/claude-fable-5-1/global/standard",
+        ("Claude Fable 5.1",),
+    )
+    assert extractor.extract(fable, text) == []
+    assert extractor.extract(fable_point, text) == [
+        verify.Reading("Claude Fable 5.1", "30", "days"),
+    ]
+
+
+def test_retention_for_the_sentence_that_mentions_mode_later_stays_unscoped() -> None:
+    text = "For the API, data is retained for 30 days in standard mode."
+    claim = _retention_claim(
+        "provider/lab/model/global/standard",
+        ("Provider API",),
+    )
+    assert verify.GovernanceProseExtractor().extract(claim, text) == [
+        verify.Reading("Provider API", "30", "days"),
+    ]
+
+
 def test_markdown_escaped_currency_is_a_price() -> None:
     quantity = verify.parse_quantity(r"\$0.26", "usd_per_1m_tokens")
     assert quantity is not None
