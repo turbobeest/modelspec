@@ -56,6 +56,7 @@ from __future__ import annotations
 
 import csv
 import hashlib
+import html
 import io
 import json
 import os
@@ -859,14 +860,29 @@ _RETENTION_DAYS = re.compile(r"(?is)(?:retained|stored).{0,100}?\b(\d+)\s*days?"
 #: A clause conditioned on a model set or a mode, not a statement about every model.
 _RETENTION_SCOPE_BEGIN = re.compile(r"(?is)^for models requiring\b|^for the\b.+?\bmode\b")
 _RETENTION_CURRENTLY = re.compile(r"\b(?i:currently)\s+[A-Z][^.:;)]*")
+#: Block-level tags whose edges are clause breaks. Other tags drop; their text stays.
+_HTML_BLOCK = re.compile(
+    r"(?i)</?p(?:\s[^>]*)?>|</?li(?:\s[^>]*)?>|<br(?:\s[^>]*)?/?>"
+    r"|</?h[1-6](?:\s[^>]*)?>|</div(?:\s[^>]*)?>|</?t[dh](?:\s[^>]*)?>"
+)
+_HTML_TAG = re.compile(r"<[^>]+>")
+_CLAUSE_BREAK = re.compile(r"[.!?](?:\s+|$)|\n+")
+
+
+def _region_prose(text: str) -> str:
+    """HTML region text as prose. Plain text, with no tag and no entity, is unchanged."""
+    if "<" not in text and "&" not in text:
+        return text
+    broken = _HTML_BLOCK.sub("\n", text)
+    return html.unescape(_HTML_TAG.sub("", broken))
 
 
 def _clause_around(text: str, start: int, end: int) -> str:
-    """The sentence containing ``text[start:end]``."""
+    """The sentence or block containing ``text[start:end]``. Newlines are breaks too."""
     begin = 0
-    for mark in re.finditer(r"[.!?](?:\s+|$)", text[:start]):
+    for mark in _CLAUSE_BREAK.finditer(text[:start]):
         begin = mark.end()
-    tail = re.search(r"[.!?](?:\s+|$)", text[end:])
+    tail = _CLAUSE_BREAK.search(text[end:])
     stop = len(text) if tail is None else end + tail.end()
     return text[begin:stop]
 
@@ -899,6 +915,7 @@ def _retention_days(claim: Claim, text: str) -> str | None:
     A count after "For models requiring …", "For the … mode", or "currently
     <models>" applies only when that condition names one of ``claim.names``.
     """
+    text = _region_prose(text)
     for match in _RETENTION_DAYS.finditer(text):
         scope = _retention_scope(_clause_around(text, match.start(), match.end()))
         if scope is None or _scope_names_subject(scope, claim.names):
