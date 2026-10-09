@@ -21,8 +21,12 @@ ESSENTIAL_ROW_FIELDS = frozenset({"rank", "model", "offering", "warnings"})
 DEFAULT_FIELDS = ("model_rank", "cost_per_task", "estimates", "p_best")
 # Row fields the engine fills at explain summary and full (decision/explain.py).
 EXPLAIN_ROW_FIELDS = ("contributions", "evidence")
-# Whole row fields the agent budget may remove. Items inside one of these stay
-# intact: provenance is never cut off, and a value is never replaced with null.
+# Whole row fields the agent budget may remove. One cut reaches inside a field:
+# while ``contributions`` is the top result's largest heavy field, whole
+# evidence items are removed from it one at a time, each counted under
+# ``results.contributions.evidence`` (see ``_fit_agent_budget`` for the order).
+# Fields inside an item are never trimmed: provenance is never cut off, and a
+# value is never replaced with null.
 HEAVY_ROW_FIELDS = ("evidence", "contributions", "estimates", "refinement_estimates", "plans")
 # Evidence and contributions on a later row of a model that already has an
 # earlier row. The first row of each model keeps both until the later step.

@@ -217,6 +217,39 @@ def test_top_contribution_evidence_goes_before_the_dimension_and_weight(monkeypa
     assert "results.contributions" not in body["explanation"]["omitted"]
 
 
+def test_every_nested_evidence_drop_is_counted(monkeypatch):
+    """Several nested drops: each removed item is counted, nothing goes silently."""
+    from decision import bounded
+
+    items = [{"record_id": f"r-{i}", "estimate_weight": 10 - i, "directness": "direct",
+              "pad": str(i) * 300} for i in range(5)]
+    original = {
+        "results": [{
+            "rank": 1, "model": "lab/a", "offering": {"model": "lab/a"}, "warnings": [],
+            "contributions": [{"dimension": "maths", "weight": 1, "evidence": items}],
+        }],
+        "may_qualify": [],
+        "answer": {"kind": "separated", "members": ["lab/a"]},
+        "status": "answered",
+        "warnings": [],
+        "explanation": {"omitted": {"by_model": 1}, "note": "n", "not_applied": []},
+    }
+    target = json.loads(json.dumps(original))
+    target["results"][0]["contributions"][0]["evidence"] = items[:2]
+    for _ in range(3):
+        bounded._omit(target, "results.contributions.evidence")
+    bounded._note_fetch(target)
+    monkeypatch.setattr(bounded, "RESPONSE_BYTES", compact_bytes(target))
+    body = json.loads(json.dumps(original))
+    bounded._fit_agent_budget(body)
+    kept = body["results"][0]["contributions"][0]["evidence"]
+    assert [item["record_id"] for item in kept] == ["r-0", "r-1"]
+    assert kept == items[:2]
+    assert body["explanation"]["omitted"]["results.contributions.evidence"] == 3
+    assert len(kept) + body["explanation"]["omitted"]["results.contributions.evidence"] == 5
+    assert "results.contributions" not in body["explanation"]["omitted"]
+
+
 def test_fit_drops_other_records_before_the_top_explanation(monkeypatch):
     """A tail row and a reading must go before the top row's evidence."""
     from decision import bounded
