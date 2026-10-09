@@ -3885,22 +3885,28 @@ components:
       type: object
     DecisionRelaxSingle:
       additionalProperties: false
-      description: 'Whether any one stated hard condition, removed alone, admits a model.
+      description: 'Whether any one relaxable hard condition, removed alone, admits a model.
 
 
         Added in 2.15 (MODEL-356). ``found`` lists those gates, most models first,
 
-        then spec order. ``none`` means no single removal admits a model.
+        then spec order. ``none`` lists only relaxable gates: no one of them,
 
-        ``together_admits`` counts the distinct models that qualify when every
+        removed alone, admits a model. The model class and a requested capability
 
-        relaxable gate is removed at once, with the same reach kept. ``0`` means
+        domain are never gates. ``together_admits`` counts the distinct models that
 
-        those gates are not what excludes everyone: the class, a requested
+        qualify when every relaxable gate is removed at once, with the same reach
 
-        capability domain, or the reach is. No message: the status, the gates and
+        kept. ``0`` means those gates are not what excludes everyone: the class, a
 
-        that count are the whole statement.'
+        requested capability domain, or the reach is. ``question_admits`` reports
+
+        whether the class or a requested-domain condition alone would admit a
+
+        model. No message: the status, the gates and those two facts are the whole
+
+        statement.'
       properties:
         status:
           enum: [found, none]
@@ -3911,7 +3917,8 @@ components:
           title: Gates
           type: array
         together_admits: {minimum: 0, title: Together Admits, type: integer}
-      required: [status, together_admits]
+        question_admits: {title: Question Admits, type: boolean}
+      required: [status, together_admits, question_admits]
       title: RelaxSingle
       type: object
     DecisionRelaxation:

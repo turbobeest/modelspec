@@ -142,7 +142,8 @@
   "relax_single": {
     "status": "none",
     "gates": [],
-    "together_admits": 0
+    "together_admits": 0,
+    "question_admits": false
   },
   "warnings": [],
   "out_of_lineup": 0,

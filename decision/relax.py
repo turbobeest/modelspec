@@ -17,6 +17,8 @@ so every model was priced as a 40,000-token task (MODEL-316).
 
 `single_gates` names each other hard condition whose removal alone, with every
 remaining condition and the same reach kept, admits a model (MODEL-356).
+The class and a requested domain are never gates. `question_admits` records
+when removing one of those alone would admit a model.
 """
 
 from __future__ import annotations
@@ -101,19 +103,27 @@ def single_gates(resolved, snapshot, domains: frozenset[str], reach=None) -> Rel
 
     Every other condition stays, and so does ``reach``. ``admits`` counts
     distinct models. Gates are ordered by that count, then by spec order.
-    ``none`` means no single removal admits a model. ``together_admits`` counts
-    the distinct models that qualify when every relaxable gate is removed at
-    once. It is 0, with no extra pass, when there are no relaxable gates.
+    ``none`` lists only those relaxable gates. A hard condition ``_relaxable``
+    leaves out because it changes the question (the class, or a requested
+    domain) is probed the same way and never listed. ``question_admits`` is
+    true when removing one of those alone admits a model. ``together_admits``
+    counts the distinct models that qualify when every relaxable gate is
+    removed at once. It is 0, with no extra pass, when there are no relaxable
+    gates.
     """
     conditions = resolved.conditions
     relaxable = _relaxable(resolved, domains)
-    found: list[tuple[int, int, str]] = []
-    for index in relaxable:
+
+    def admits_without(index: int) -> int:
         trial = replace(
             resolved,
             conditions=tuple(cond for i, cond in enumerate(conditions) if i != index),
         )
-        admits = _distinct_models(snapshot, apply(trial, snapshot, reach).feasible)
+        return _distinct_models(snapshot, apply(trial, snapshot, reach).feasible)
+
+    found: list[tuple[int, int, str]] = []
+    for index in relaxable:
+        admits = admits_without(index)
         if admits < 1:
             continue
         found.append((admits, index, render_condition(conditions[index])))
@@ -127,10 +137,16 @@ def single_gates(resolved, snapshot, domains: frozenset[str], reach=None) -> Rel
             conditions=tuple(cond for i, cond in enumerate(conditions) if i not in dropped),
         )
         together = _distinct_models(snapshot, apply(trial, snapshot, reach).feasible)
+    question_admits = any(
+        admits_without(index) >= 1
+        for index, cond in enumerate(conditions)
+        if cond.soft is None and _changes_the_question(cond, domains)
+    )
     return RelaxSingle(
         status="found" if gates else "none",
         gates=gates,
         together_admits=together,
+        question_admits=question_admits,
     )
 
 

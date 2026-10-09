@@ -4564,7 +4564,7 @@
     },
     "RelaxSingle": {
       "additionalProperties": false,
-      "description": "Whether any one stated hard condition, removed alone, admits a model.\n\nAdded in 2.15 (MODEL-356). ``found`` lists those gates, most models first,\nthen spec order. ``none`` means no single removal admits a model.\n``together_admits`` counts the distinct models that qualify when every\nrelaxable gate is removed at once, with the same reach kept. ``0`` means\nthose gates are not what excludes everyone: the class, a requested\ncapability domain, or the reach is. No message: the status, the gates and\nthat count are the whole statement.",
+      "description": "Whether any one relaxable hard condition, removed alone, admits a model.\n\nAdded in 2.15 (MODEL-356). ``found`` lists those gates, most models first,\nthen spec order. ``none`` lists only relaxable gates: no one of them,\nremoved alone, admits a model. The model class and a requested capability\ndomain are never gates. ``together_admits`` counts the distinct models that\nqualify when every relaxable gate is removed at once, with the same reach\nkept. ``0`` means those gates are not what excludes everyone: the class, a\nrequested capability domain, or the reach is. ``question_admits`` reports\nwhether the class or a requested-domain condition alone would admit a\nmodel. No message: the status, the gates and those two facts are the whole\nstatement.",
       "properties": {
         "gates": {
           "items": {
@@ -4572,6 +4572,10 @@
           },
           "title": "Gates",
           "type": "array"
+        },
+        "question_admits": {
+          "title": "Question Admits",
+          "type": "boolean"
         },
         "status": {
           "enum": [
@@ -4589,7 +4593,8 @@
       },
       "required": [
         "status",
-        "together_admits"
+        "together_admits",
+        "question_admits"
       ],
       "title": "RelaxSingle",
       "type": "object"

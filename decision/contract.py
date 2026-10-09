@@ -1740,20 +1740,24 @@ class SingleGate(_Strict):
 
 
 class RelaxSingle(_Strict):
-    """Whether any one stated hard condition, removed alone, admits a model.
+    """Whether any one relaxable hard condition, removed alone, admits a model.
 
     Added in 2.15 (MODEL-356). ``found`` lists those gates, most models first,
-    then spec order. ``none`` means no single removal admits a model.
-    ``together_admits`` counts the distinct models that qualify when every
-    relaxable gate is removed at once, with the same reach kept. ``0`` means
-    those gates are not what excludes everyone: the class, a requested
-    capability domain, or the reach is. No message: the status, the gates and
-    that count are the whole statement.
+    then spec order. ``none`` lists only relaxable gates: no one of them,
+    removed alone, admits a model. The model class and a requested capability
+    domain are never gates. ``together_admits`` counts the distinct models that
+    qualify when every relaxable gate is removed at once, with the same reach
+    kept. ``0`` means those gates are not what excludes everyone: the class, a
+    requested capability domain, or the reach is. ``question_admits`` reports
+    whether the class or a requested-domain condition alone would admit a
+    model. No message: the status, the gates and those two facts are the whole
+    statement.
     """
 
     status: Literal["found", "none"]
     gates: list[SingleGate] = Field(default_factory=list)
     together_admits: int = Field(ge=0)
+    question_admits: bool
 
     @model_validator(mode="after")
     def _gates_match_status(self) -> RelaxSingle:
@@ -1968,9 +1972,11 @@ class Decision(_ExcludeIf):
     relax_task_tokens: TaskTokensHint | None = Field(
         default=None, exclude_if=lambda value: value is None)
     #: For ``no_feasible`` only, when no candidate passed the hard conditions:
-    #: each stated hard condition whose removal alone admits a model.
-    #: ``together_admits`` counts models that qualify with every relaxable gate
-    #: removed at once; 0 means those gates are not the blocker. Absent
+    #: each relaxable hard condition whose removal alone admits a model.
+    #: ``none`` lists only relaxable gates. ``together_admits`` counts models
+    #: that qualify with every relaxable gate removed at once; 0 means those
+    #: gates are not the blocker. ``question_admits`` reports whether the class
+    #: or a requested-domain condition alone would admit a model. Absent
     #: when the objective has no values, and absent unless ``no_feasible``.
     #: Added in 2.15 (MODEL-356).
     relax_single: RelaxSingle | None = Field(

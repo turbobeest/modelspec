@@ -845,7 +845,8 @@
     "relax_single": {
       "status": "none",
       "gates": [],
-      "together_admits": 0
+      "together_admits": 0,
+      "question_admits": true
     },
     "explanation": {
       "not_applied": [],

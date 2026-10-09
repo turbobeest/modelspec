@@ -904,6 +904,7 @@ def _samples() -> list:
             status="found",
             gates=[c.SingleGate(condition="model.context_window >= 8192", admits=3)],
             together_admits=3,
+            question_admits=False,
         ),
         c.Access(kind="coding_tool", harness="claude-code"),
         band_estimate,

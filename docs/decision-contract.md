@@ -816,7 +816,7 @@ best-band tie (`answer.members`). A `do_not_claim` line also names a tied
 | `relax` | For `no_feasible` only: the fewest conditions whose removal gives a feasible answer. Never the model class or a condition on a requested capability domain, which would change the question; among equally few, numeric caps and floors first. When a reach is already in force (`access`, or an estate), this is the condition that emptied that lineup, not a relaxation computed as if the reach were absent. When models passed every hard condition and none has an objective value, it names that objective. The text does not name an internal ticket. |
 | `relax_to` | For `no_feasible` only (1.5): for each numeric cap or floor, the smallest change that admits a model. Each names the spec's `condition`, the `relaxed` condition (same facet and direction, at the nearest value an excluded candidate has), the `facet`, that `value`, its `unit`, and how many models it `admits`. |
 | `relax_task_tokens` | For `no_feasible` only, and absent otherwise (2.14): the spec gave no `task_tokens`, `relax` is a single `offering.cost_per_task` cap, and that cap fails only at the default task size. Names the cap as `condition`, the `default` task size cost was priced at (40,000 input, 4,000 output tokens), `admits_at` (the largest task at the default's input-to-output ratio that a model meets the cap at, strictly under a strict cap) and a `message`. Set `task_tokens` to the real task's size rather than copying `admits_at`. Kept in bounded answers. |
-| `relax_single` | For `no_feasible` only, and absent otherwise (2.15). Present when no candidate passed the hard conditions. Absent when models passed every hard condition and the objective has no values, and absent from an answered decision, including the example above. `status` is `found` when `gates` is non-empty and `none` when no single stated hard condition, removed alone, admits a model. Each gate names the rendered `condition` and `admits`, the number of distinct models that then qualify (at least 1). Every other condition and the same reach stay in force. Gates are ordered by `admits` descending, then spec order. The model class and a condition on a requested capability domain are never gates. `together_admits` counts the distinct models that qualify when every relaxable gate is removed at once, with the same reach kept. It is `0` when there is no relaxable gate. `none` with `together_admits` `0` means the stated gates are not the blocker: the model class, a requested capability domain, or the access reach is. Kept in bounded answers. |
+| `relax_single` | For `no_feasible` only, and absent otherwise (2.15). Present when no candidate passed the hard conditions. Absent when models passed every hard condition and the objective has no values, and absent from an answered decision, including the example above. `status` is `found` when `gates` is non-empty and `none` when no relaxable hard condition, removed alone, admits a model. `none` lists only relaxable gates. Each gate names the rendered `condition` and `admits`, the number of distinct models that then qualify (at least 1). Every other condition and the same reach stay in force. Gates are ordered by `admits` descending, then spec order. The model class and a condition on a requested capability domain are never gates. `together_admits` counts the distinct models that qualify when every relaxable gate is removed at once, with the same reach kept. It is `0` when there is no relaxable gate. `none` with `together_admits` `0` means the stated gates are not the blocker: the model class, a requested capability domain, or the access reach is. `question_admits` reports whether the class or a requested-domain condition alone would admit a model. Kept in bounded answers. |
 | `warnings` | Codes about the decision as a whole. |
 | `out_of_lineup` | How many active catalogue models the snapshot leaves outside its lineup, and so outside this decision. `0` when the snapshot was built without a premier list. |
 | `feedback` | Where to say whether this answer held up: send the `method` (`POST`) to the `endpoint`, with a body that follows `request_schema` and a rating from `ratings` (`reliable`, `unreliable`, `trustworthy`, `untrustworthy`, `confusing`) and this `decision_id`, or run the `cli` line. No key. The same on every decision. See [`feedback-api.md`](feedback-api.md). Added in 2.10. |
@@ -1589,14 +1589,16 @@ that used to be accepted is a major change; accepting more is not.
 ## Change log
 
 - **2.15 — MODEL-356:** A `no_feasible` decision adds optional `relax_single`
-  when no candidate passes the hard conditions. `found` lists each stated hard
-  condition whose removal alone admits a model, most models first, then spec
-  order. Each gate names that rendered condition and how many distinct models
-  it admits. `none` means no single removal admits a model. `together_admits`
-  counts the distinct models that qualify when every relaxable gate is removed
-  at once, with the same reach kept, including when `status` is `found`.
-  `none` with `together_admits` `0` means the stated gates are not the blocker.
-  The model class and a requested capability domain are never listed. The same
+  when no candidate passes the hard conditions. `found` lists each relaxable
+  hard condition whose removal alone admits a model, most models first, then
+  spec order. Each gate names that rendered condition and how many distinct
+  models it admits. `none` lists only relaxable gates: no one of them, removed
+  alone, admits a model. `together_admits` counts the distinct models that
+  qualify when every relaxable gate is removed at once, with the same reach
+  kept, including when `status` is `found`. `none` with `together_admits` `0`
+  means the stated gates are not the blocker. `question_admits` reports whether
+  the class or a requested-domain condition alone would admit a model. The
+  model class and a requested capability domain are never listed. The same
   reach stays in force. The field is absent when models passed every hard
   condition and the objective has no values, and absent unless the status is
   `no_feasible`.
