@@ -856,10 +856,18 @@ class KeyValueExtractor:
                                     "harness": pairs.get("harness"), "date": date_})]
 
 
-_RETENTION_DAYS = re.compile(r"(?is)(?:retained|stored).{0,100}?\b(\d+)\s*days?")
-#: A clause conditioned on a model set or a mode, not a statement about every model.
-_RETENTION_SCOPE_BEGIN = re.compile(r"(?is)^for models requiring\b|^for the\b.+?\bmode\b")
-_RETENTION_CURRENTLY = re.compile(r"\b(?i:currently)\s+[A-Z][^.:;)]*")
+#: Gap stops at a sentence or block break, so a heading cannot take the next block's count.
+_RETENTION_DAYS = re.compile(
+    r"(?is)(?:retained|stored)(?:(?![.!?](?:\s+|$)|\n).){0,100}?\b(\d+)\s*days?"
+)
+#: A clause conditioned on a model set or a mode head, not a later mention of "mode".
+_RETENTION_SCOPE_BEGIN = re.compile(
+    r"(?is)^for models requiring\b|^for the\b[^:.]+?\bmode\b\s*:"
+)
+#: A dot between digits is a version (5.1), not the end of the model list.
+_RETENTION_CURRENTLY = re.compile(
+    r"\b(?i:currently)\s+[A-Z](?:[^.:;)]|\.(?=\d))*"
+)
 #: Block-level tags whose edges are clause breaks. Other tags drop; their text stays.
 _HTML_BLOCK = re.compile(
     r"(?i)</?p(?:\s[^>]*)?>|</?li(?:\s[^>]*)?>|<br(?:\s[^>]*)?/?>"
@@ -904,20 +912,22 @@ def _scope_names_subject(scope: str, names: tuple[str, ...]) -> bool:
     normal = normalise_name(scope)
     aliases = [alias for name in names if (alias := normalise_name(name))]
     return any(
-        re.search(rf"(?<![0-9a-z]){re.escape(alias)}(?![0-9a-z])", normal)
+        re.search(rf"(?<![0-9a-z]){re.escape(alias)}(?![0-9a-z]| \d)", normal)
         for alias in aliases
     )
 
 
 def _retention_days(claim: Claim, text: str) -> str | None:
-    """The first day count whose clause is unscoped or names this subject.
+    """The first day count whose own clause is unscoped or names this subject.
 
-    A count after "For models requiring …", "For the … mode", or "currently
+    A count after "For models requiring …", "For the … mode:", or "currently
     <models>" applies only when that condition names one of ``claim.names``.
+    The clause is the one around the count, not the one around an earlier
+    "retained" or "stored".
     """
     text = _region_prose(text)
     for match in _RETENTION_DAYS.finditer(text):
-        scope = _retention_scope(_clause_around(text, match.start(), match.end()))
+        scope = _retention_scope(_clause_around(text, match.start(1), match.end(1)))
         if scope is None or _scope_names_subject(scope, claim.names):
             return match.group(1)
     return None

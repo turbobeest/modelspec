@@ -474,6 +474,54 @@ def test_governance_prose_retention_period_follows_the_models_the_clause_names()
     ]
 
 
+def test_retention_day_count_uses_its_own_clause_after_a_retained_heading() -> None:
+    text = (
+        "<h2>What data is retained and for how long</h2>"
+        "<p>For models requiring aws_review (currently Claude Fable 5): retained for up to 30 days.</p>"
+    )
+    extractor = verify.GovernanceProseExtractor()
+    sonnet = _retention_claim(
+        "aws-bedrock/anthropic/claude-sonnet-5-5/global-cross-region/standard",
+        ("Claude Sonnet 5.5",),
+    )
+    fable = _retention_claim(
+        "aws-bedrock/anthropic/claude-fable-5/global/standard",
+        ("Claude Fable 5",),
+    )
+    assert extractor.extract(sonnet, text) == []
+    assert extractor.extract(fable, text) == [
+        verify.Reading("Claude Fable 5", "30", "days"),
+    ]
+
+
+def test_retention_scope_alias_rejects_a_following_version_digit() -> None:
+    text = "Prompts are retained for up to 30 days (currently Claude Fable 5.1)."
+    extractor = verify.GovernanceProseExtractor()
+    fable = _retention_claim(
+        "aws-bedrock/anthropic/claude-fable-5/global/standard",
+        ("Claude Fable 5",),
+    )
+    fable_point = _retention_claim(
+        "aws-bedrock/anthropic/claude-fable-5-1/global/standard",
+        ("Claude Fable 5.1",),
+    )
+    assert extractor.extract(fable, text) == []
+    assert extractor.extract(fable_point, text) == [
+        verify.Reading("Claude Fable 5.1", "30", "days"),
+    ]
+
+
+def test_retention_for_the_sentence_that_mentions_mode_later_stays_unscoped() -> None:
+    text = "For the API, data is retained for 30 days in standard mode."
+    claim = _retention_claim(
+        "provider/lab/model/global/standard",
+        ("Provider API",),
+    )
+    assert verify.GovernanceProseExtractor().extract(claim, text) == [
+        verify.Reading("Provider API", "30", "days"),
+    ]
+
+
 def test_markdown_escaped_currency_is_a_price() -> None:
     quantity = verify.parse_quantity(r"\$0.26", "usd_per_1m_tokens")
     assert quantity is not None
