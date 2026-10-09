@@ -70,12 +70,12 @@ def test_generated_guide_and_constants_are_stable_and_within_budget():
 
 
 def test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget(capsys):
-    """Each provider's first MCP turn stays within 10,000 estimated tokens."""
+    """Each provider's first MCP turn stays within 9,500 estimated tokens (MODEL-359 headroom)."""
     from qa.agent_harness import main
     assert main(["--first-turn-breakdown"]) == 0
     report = json.loads(capsys.readouterr().out)
     assert set(report) == {"claude", "openai", "gemini"}
-    assert all(row["total"] <= 10_000 for row in report.values()), report
+    assert all(row["total"] <= 9_500 for row in report.values()), report
     guide = agent_copy.copy()["context_guide"]
     assert guide.count("https://modelspec.dev/api/coverage.json") == 1
     assert "catalogued_not_decidable" not in guide

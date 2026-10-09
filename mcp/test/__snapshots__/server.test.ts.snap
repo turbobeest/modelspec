@@ -259,8 +259,6 @@ devices. A spec may give the bare kind as a string.",
                   "type": "null",
                 },
               ],
-              "default": null,
-              "title": "Harness",
             },
             "kind": {
               "enum": [
@@ -269,14 +267,12 @@ devices. A spec may give the bare kind as a string.",
                 "own_software",
                 "own_hardware",
               ],
-              "title": "Kind",
               "type": "string",
             },
           },
           "required": [
             "kind",
           ],
-          "title": "Access",
           "type": "object",
         },
         "AllOf": {
@@ -284,34 +280,8 @@ devices. A spec may give the bare kind as a string.",
           "properties": {
             "all": {
               "items": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                  },
-                  {
-                    "$ref": "#/$defs/Compare",
-                  },
-                  {
-                    "$ref": "#/$defs/Window",
-                  },
-                  {
-                    "$ref": "#/$defs/InSet",
-                  },
-                  {
-                    "$ref": "#/$defs/Known",
-                  },
-                  {
-                    "$ref": "#/$defs/AnyOf",
-                  },
-                  {
-                    "$ref": "#/$defs/AllOf",
-                  },
-                  {
-                    "$ref": "#/$defs/NotOf",
-                  },
-                ],
+                "$ref": "#/$defs/Condition",
               },
-              "title": "All",
               "type": "array",
             },
             "soft": {
@@ -323,7 +293,6 @@ devices. A spec may give the bare kind as a string.",
                   "type": "null",
                 },
               ],
-              "default": null,
             },
             "unknown": {
               "anyOf": [
@@ -339,14 +308,11 @@ devices. A spec may give the bare kind as a string.",
                   "type": "null",
                 },
               ],
-              "default": null,
-              "title": "Unknown",
             },
           },
           "required": [
             "all",
           ],
-          "title": "AllOf",
           "type": "object",
         },
         "AnyOf": {
@@ -354,34 +320,8 @@ devices. A spec may give the bare kind as a string.",
           "properties": {
             "any": {
               "items": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                  },
-                  {
-                    "$ref": "#/$defs/Compare",
-                  },
-                  {
-                    "$ref": "#/$defs/Window",
-                  },
-                  {
-                    "$ref": "#/$defs/InSet",
-                  },
-                  {
-                    "$ref": "#/$defs/Known",
-                  },
-                  {
-                    "$ref": "#/$defs/AnyOf",
-                  },
-                  {
-                    "$ref": "#/$defs/AllOf",
-                  },
-                  {
-                    "$ref": "#/$defs/NotOf",
-                  },
-                ],
+                "$ref": "#/$defs/Condition",
               },
-              "title": "Any",
               "type": "array",
             },
             "soft": {
@@ -393,7 +333,6 @@ devices. A spec may give the bare kind as a string.",
                   "type": "null",
                 },
               ],
-              "default": null,
             },
             "unknown": {
               "anyOf": [
@@ -409,14 +348,11 @@ devices. A spec may give the bare kind as a string.",
                   "type": "null",
                 },
               ],
-              "default": null,
-              "title": "Unknown",
             },
           },
           "required": [
             "any",
           ],
-          "title": "AnyOf",
           "type": "object",
         },
         "BestRef": {
@@ -426,14 +362,12 @@ that pass every other hard condition. Added in 2.11.",
           "properties": {
             "best": {
               "minimum": 0,
-              "title": "Best",
               "type": "number",
             },
           },
           "required": [
             "best",
           ],
-          "title": "BestRef",
           "type": "object",
         },
         "Budget": {
@@ -449,11 +383,8 @@ that pass every other hard condition. Added in 2.11.",
                   "type": "null",
                 },
               ],
-              "default": null,
-              "title": "Max Cost Per Task Usd",
             },
           },
-          "title": "Budget",
           "type": "object",
         },
         "Compare": {
@@ -463,7 +394,6 @@ condition.",
           "properties": {
             "facet": {
               "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
-              "title": "Facet",
               "type": "string",
             },
             "op": {
@@ -475,7 +405,6 @@ condition.",
                 ">",
                 ">=",
               ],
-              "title": "Op",
               "type": "string",
             },
             "qualifiers": {
@@ -487,7 +416,6 @@ condition.",
                   "type": "null",
                 },
               ],
-              "default": null,
             },
             "soft": {
               "anyOf": [
@@ -498,7 +426,6 @@ condition.",
                   "type": "null",
                 },
               ],
-              "default": null,
             },
             "unknown": {
               "anyOf": [
@@ -514,8 +441,6 @@ condition.",
                   "type": "null",
                 },
               ],
-              "default": null,
-              "title": "Unknown",
             },
             "value": {
               "anyOf": [
@@ -542,7 +467,6 @@ condition.",
                   "type": "string",
                 },
               ],
-              "title": "Value",
             },
           },
           "required": [
@@ -550,8 +474,35 @@ condition.",
             "op",
             "value",
           ],
-          "title": "Compare",
           "type": "object",
+        },
+        "Condition": {
+          "anyOf": [
+            {
+              "type": "string",
+            },
+            {
+              "$ref": "#/$defs/Compare",
+            },
+            {
+              "$ref": "#/$defs/Window",
+            },
+            {
+              "$ref": "#/$defs/InSet",
+            },
+            {
+              "$ref": "#/$defs/Known",
+            },
+            {
+              "$ref": "#/$defs/AnyOf",
+            },
+            {
+              "$ref": "#/$defs/AllOf",
+            },
+            {
+              "$ref": "#/$defs/NotOf",
+            },
+          ],
         },
         "DecideRequest": {
           "additionalProperties": false,
@@ -574,7 +525,6 @@ condition.",
                   "type": "null",
                 },
               ],
-              "default": null,
             },
             "capabilities": {
               "anyOf": [
@@ -594,8 +544,6 @@ condition.",
                   "type": "null",
                 },
               ],
-              "default": null,
-              "title": "Capabilities",
             },
             "estate": {
               "anyOf": [
@@ -606,7 +554,6 @@ condition.",
                   "type": "null",
                 },
               ],
-              "default": null,
             },
             "evidence_for": {
               "anyOf": [
@@ -618,15 +565,12 @@ condition.",
                   "type": "null",
                 },
               ],
-              "default": null,
-              "title": "Evidence For",
             },
             "exclude_benchmarks": {
               "items": {
                 "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
                 "type": "string",
               },
-              "title": "Exclude Benchmarks",
               "type": "array",
             },
             "explain": {
@@ -636,7 +580,6 @@ condition.",
                 "summary",
                 "full",
               ],
-              "title": "Explain",
               "type": "string",
             },
             "fields": {
@@ -677,13 +620,11 @@ condition.",
                 "estimates",
                 "p_best",
               ],
-              "title": "Fields",
             },
             "limit": {
               "default": 10,
               "maximum": 500,
               "minimum": 1,
-              "title": "Limit",
               "type": "integer",
             },
             "optimize": {
@@ -706,8 +647,6 @@ condition.",
                   "type": "null",
                 },
               ],
-              "default": null,
-              "title": "Profile",
             },
             "save_as": {
               "anyOf": [
@@ -719,8 +658,6 @@ condition.",
                   "type": "null",
                 },
               ],
-              "default": null,
-              "title": "Save As",
             },
             "snapshot": {
               "anyOf": [
@@ -733,11 +670,9 @@ condition.",
                 },
               ],
               "default": "latest",
-              "title": "Snapshot",
             },
             "spec_version": {
               "const": 1,
-              "title": "Spec Version",
               "type": "integer",
             },
             "task": {
@@ -749,8 +684,6 @@ condition.",
                   "type": "null",
                 },
               ],
-              "default": null,
-              "title": "Task",
             },
             "task_tokens": {
               "anyOf": [
@@ -761,7 +694,6 @@ condition.",
                   "type": "null",
                 },
               ],
-              "default": null,
             },
             "task_type": {
               "anyOf": [
@@ -786,45 +718,16 @@ condition.",
                   "type": "null",
                 },
               ],
-              "default": null,
-              "title": "Task Type",
             },
             "unknowns": {
               "const": "default",
               "default": "default",
-              "title": "Unknowns",
               "type": "string",
             },
             "where": {
               "items": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                  },
-                  {
-                    "$ref": "#/$defs/Compare",
-                  },
-                  {
-                    "$ref": "#/$defs/Window",
-                  },
-                  {
-                    "$ref": "#/$defs/InSet",
-                  },
-                  {
-                    "$ref": "#/$defs/Known",
-                  },
-                  {
-                    "$ref": "#/$defs/AnyOf",
-                  },
-                  {
-                    "$ref": "#/$defs/AllOf",
-                  },
-                  {
-                    "$ref": "#/$defs/NotOf",
-                  },
-                ],
+                "$ref": "#/$defs/Condition",
               },
-              "title": "Where",
               "type": "array",
             },
           },
@@ -832,7 +735,6 @@ condition.",
             "spec_version",
             "optimize",
           ],
-          "title": "DecideRequest",
           "type": "object",
         },
         "Estate": {
@@ -851,7 +753,6 @@ takes its key and its plans with it.",
                 "type": "string",
               },
               "maxItems": 64,
-              "title": "Devices",
               "type": "array",
             },
             "exhausted": {
@@ -861,7 +762,6 @@ takes its key and its plans with it.",
                 "type": "string",
               },
               "maxItems": 64,
-              "title": "Exhausted",
               "type": "array",
             },
             "plans": {
@@ -871,7 +771,6 @@ takes its key and its plans with it.",
                 "type": "string",
               },
               "maxItems": 64,
-              "title": "Plans",
               "type": "array",
             },
             "providers": {
@@ -881,11 +780,9 @@ takes its key and its plans with it.",
                 "type": "string",
               },
               "maxItems": 64,
-              "title": "Providers",
               "type": "array",
             },
           },
-          "title": "Estate",
           "type": "object",
         },
         "EvidenceQualifiers": {
@@ -894,7 +791,6 @@ takes its key and its plans with it.",
           "properties": {
             "direct": {
               "default": false,
-              "title": "Direct",
               "type": "boolean",
             },
             "effort": {
@@ -907,8 +803,6 @@ takes its key and its plans with it.",
                   "type": "null",
                 },
               ],
-              "default": null,
-              "title": "Effort",
             },
             "harness": {
               "anyOf": [
@@ -920,8 +814,6 @@ takes its key and its plans with it.",
                   "type": "null",
                 },
               ],
-              "default": null,
-              "title": "Harness",
             },
             "measured_after": {
               "anyOf": [
@@ -933,8 +825,6 @@ takes its key and its plans with it.",
                   "type": "null",
                 },
               ],
-              "default": null,
-              "title": "Measured After",
             },
             "measured_by": {
               "anyOf": [
@@ -950,24 +840,19 @@ takes its key and its plans with it.",
                   "type": "null",
                 },
               ],
-              "default": null,
-              "title": "Measured By",
             },
           },
-          "title": "EvidenceQualifiers",
           "type": "object",
         },
         "Hardware": {
           "additionalProperties": false,
           "properties": {
             "class": {
-              "title": "Class",
               "type": "string",
             },
             "count": {
               "default": 1,
               "minimum": 1,
-              "title": "Count",
               "type": "integer",
             },
             "memory_gb": {
@@ -980,14 +865,11 @@ takes its key and its plans with it.",
                   "type": "null",
                 },
               ],
-              "default": null,
-              "title": "Memory Gb",
             },
           },
           "required": [
             "class",
           ],
-          "title": "Hardware",
           "type": "object",
         },
         "InSet": {
@@ -996,7 +878,6 @@ takes its key and its plans with it.",
           "properties": {
             "facet": {
               "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
-              "title": "Facet",
               "type": "string",
             },
             "in": {
@@ -1028,8 +909,6 @@ takes its key and its plans with it.",
                   "type": "null",
                 },
               ],
-              "default": null,
-              "title": "In",
             },
             "not_in": {
               "anyOf": [
@@ -1060,8 +939,6 @@ takes its key and its plans with it.",
                   "type": "null",
                 },
               ],
-              "default": null,
-              "title": "Not In",
             },
             "soft": {
               "anyOf": [
@@ -1072,7 +949,6 @@ takes its key and its plans with it.",
                   "type": "null",
                 },
               ],
-              "default": null,
             },
             "unknown": {
               "anyOf": [
@@ -1088,14 +964,11 @@ takes its key and its plans with it.",
                   "type": "null",
                 },
               ],
-              "default": null,
-              "title": "Unknown",
             },
           },
           "required": [
             "facet",
           ],
-          "title": "InSet",
           "type": "object",
         },
         "InventoryProfile": {
@@ -1110,14 +983,12 @@ takes its key and its plans with it.",
                   "type": "null",
                 },
               ],
-              "default": null,
             },
             "harnesses": {
               "items": {
                 "pattern": "^[a-z0-9][a-z0-9-]*@[0-9]+\\.[0-9]+$",
                 "type": "string",
               },
-              "title": "Harnesses",
               "type": "array",
             },
             "id": {
@@ -1130,65 +1001,33 @@ takes its key and its plans with it.",
                   "type": "null",
                 },
               ],
-              "default": null,
-              "title": "Id",
             },
             "local": {
               "items": {
                 "$ref": "#/$defs/LocalModel",
               },
-              "title": "Local",
               "type": "array",
             },
             "offerings": {
               "items": {
                 "$ref": "#/$defs/ProfileOffering",
               },
-              "title": "Offerings",
               "type": "array",
             },
             "profile_version": {
               "const": 1,
-              "title": "Profile Version",
               "type": "integer",
             },
             "rules": {
               "items": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                  },
-                  {
-                    "$ref": "#/$defs/Compare",
-                  },
-                  {
-                    "$ref": "#/$defs/Window",
-                  },
-                  {
-                    "$ref": "#/$defs/InSet",
-                  },
-                  {
-                    "$ref": "#/$defs/Known",
-                  },
-                  {
-                    "$ref": "#/$defs/AnyOf",
-                  },
-                  {
-                    "$ref": "#/$defs/AllOf",
-                  },
-                  {
-                    "$ref": "#/$defs/NotOf",
-                  },
-                ],
+                "$ref": "#/$defs/Condition",
               },
-              "title": "Rules",
               "type": "array",
             },
           },
           "required": [
             "profile_version",
           ],
-          "title": "InventoryProfile",
           "type": "object",
         },
         "Known": {
@@ -1197,7 +1036,6 @@ takes its key and its plans with it.",
           "properties": {
             "known": {
               "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
-              "title": "Known",
               "type": "string",
             },
             "soft": {
@@ -1209,13 +1047,11 @@ takes its key and its plans with it.",
                   "type": "null",
                 },
               ],
-              "default": null,
             },
           },
           "required": [
             "known",
           ],
-          "title": "Known",
           "type": "object",
         },
         "LexStep": {
@@ -1231,8 +1067,6 @@ takes its key and its plans with it.",
                   "type": "null",
                 },
               ],
-              "default": null,
-              "title": "Max",
             },
             "min": {
               "anyOf": [
@@ -1244,8 +1078,6 @@ takes its key and its plans with it.",
                   "type": "null",
                 },
               ],
-              "default": null,
-              "title": "Min",
             },
             "within": {
               "anyOf": [
@@ -1256,10 +1088,8 @@ takes its key and its plans with it.",
                   "type": "null",
                 },
               ],
-              "default": null,
             },
           },
-          "title": "LexStep",
           "type": "object",
         },
         "LocalModel": {
@@ -1274,11 +1104,9 @@ takes its key and its plans with it.",
                   "type": "null",
                 },
               ],
-              "default": null,
             },
             "model": {
               "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
-              "title": "Model",
               "type": "string",
             },
             "runtime": {
@@ -1290,14 +1118,11 @@ takes its key and its plans with it.",
                   "type": "null",
                 },
               ],
-              "default": null,
-              "title": "Runtime",
             },
           },
           "required": [
             "model",
           ],
-          "title": "LocalModel",
           "type": "object",
         },
         "ModelRef": {
@@ -1306,47 +1131,19 @@ takes its key and its plans with it.",
           "properties": {
             "model": {
               "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
-              "title": "Model",
               "type": "string",
             },
           },
           "required": [
             "model",
           ],
-          "title": "ModelRef",
           "type": "object",
         },
         "NotOf": {
           "additionalProperties": false,
           "properties": {
             "not": {
-              "anyOf": [
-                {
-                  "type": "string",
-                },
-                {
-                  "$ref": "#/$defs/Compare",
-                },
-                {
-                  "$ref": "#/$defs/Window",
-                },
-                {
-                  "$ref": "#/$defs/InSet",
-                },
-                {
-                  "$ref": "#/$defs/Known",
-                },
-                {
-                  "$ref": "#/$defs/AnyOf",
-                },
-                {
-                  "$ref": "#/$defs/AllOf",
-                },
-                {
-                  "$ref": "#/$defs/NotOf",
-                },
-              ],
-              "title": "Not",
+              "$ref": "#/$defs/Condition",
             },
             "soft": {
               "anyOf": [
@@ -1357,7 +1154,6 @@ takes its key and its plans with it.",
                   "type": "null",
                 },
               ],
-              "default": null,
             },
             "unknown": {
               "anyOf": [
@@ -1373,14 +1169,11 @@ takes its key and its plans with it.",
                   "type": "null",
                 },
               ],
-              "default": null,
-              "title": "Unknown",
             },
           },
           "required": [
             "not",
           ],
-          "title": "NotOf",
           "type": "object",
         },
         "Objective": {
@@ -1399,8 +1192,6 @@ takes its key and its plans with it.",
                   "type": "null",
                 },
               ],
-              "default": null,
-              "title": "Lexicographic",
             },
             "max": {
               "anyOf": [
@@ -1412,8 +1203,6 @@ takes its key and its plans with it.",
                   "type": "null",
                 },
               ],
-              "default": null,
-              "title": "Max",
             },
             "min": {
               "anyOf": [
@@ -1425,8 +1214,6 @@ takes its key and its plans with it.",
                   "type": "null",
                 },
               ],
-              "default": null,
-              "title": "Min",
             },
             "pareto": {
               "anyOf": [
@@ -1441,8 +1228,6 @@ takes its key and its plans with it.",
                   "type": "null",
                 },
               ],
-              "default": null,
-              "title": "Pareto",
             },
             "qualifiers": {
               "patternProperties": {
@@ -1450,7 +1235,6 @@ takes its key and its plans with it.",
                   "$ref": "#/$defs/EvidenceQualifiers",
                 },
               },
-              "title": "Qualifiers",
               "type": "object",
             },
             "weights": {
@@ -1474,11 +1258,8 @@ takes its key and its plans with it.",
                   "type": "null",
                 },
               ],
-              "default": null,
-              "title": "Weights",
             },
           },
-          "title": "Objective",
           "type": "object",
         },
         "Preference": {
@@ -1504,11 +1285,9 @@ takes its key and its plans with it.",
                   "type": "string",
                 },
               ],
-              "title": "Prefer",
             },
             "weight": {
               "exclusiveMinimum": 0,
-              "title": "Weight",
               "type": "number",
             },
           },
@@ -1516,7 +1295,6 @@ takes its key and its plans with it.",
             "prefer",
             "weight",
           ],
-          "title": "Preference",
           "type": "object",
         },
         "ProfileOffering": {
@@ -1524,11 +1302,9 @@ takes its key and its plans with it.",
           "properties": {
             "model": {
               "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
-              "title": "Model",
               "type": "string",
             },
             "provider": {
-              "title": "Provider",
               "type": "string",
             },
             "region": {
@@ -1540,8 +1316,6 @@ takes its key and its plans with it.",
                   "type": "null",
                 },
               ],
-              "default": null,
-              "title": "Region",
             },
             "tier": {
               "anyOf": [
@@ -1552,15 +1326,12 @@ takes its key and its plans with it.",
                   "type": "null",
                 },
               ],
-              "default": null,
-              "title": "Tier",
             },
           },
           "required": [
             "model",
             "provider",
           ],
-          "title": "ProfileOffering",
           "type": "object",
         },
         "Soft": {
@@ -1570,14 +1341,12 @@ takes its key and its plans with it.",
             "penalty": {
               "exclusiveMinimum": 0,
               "maximum": 1,
-              "title": "Penalty",
               "type": "number",
             },
           },
           "required": [
             "penalty",
           ],
-          "title": "Soft",
           "type": "object",
         },
         "TaskTokens": {
@@ -1586,12 +1355,10 @@ takes its key and its plans with it.",
           "properties": {
             "input": {
               "minimum": 0,
-              "title": "Input",
               "type": "integer",
             },
             "output": {
               "minimum": 0,
-              "title": "Output",
               "type": "integer",
             },
           },
@@ -1599,7 +1366,6 @@ takes its key and its plans with it.",
             "input",
             "output",
           ],
-          "title": "TaskTokens",
           "type": "object",
         },
         "Tolerance": {
@@ -1616,8 +1382,6 @@ takes its key and its plans with it.",
                   "type": "null",
                 },
               ],
-              "default": null,
-              "title": "Absolute",
             },
             "relative": {
               "anyOf": [
@@ -1630,11 +1394,8 @@ takes its key and its plans with it.",
                   "type": "null",
                 },
               ],
-              "default": null,
-              "title": "Relative",
             },
           },
-          "title": "Tolerance",
           "type": "object",
         },
         "Window": {
@@ -1686,12 +1447,10 @@ takes its key and its plans with it.",
                   ],
                 },
               ],
-              "title": "Between",
               "type": "array",
             },
             "facet": {
               "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
-              "title": "Facet",
               "type": "string",
             },
             "qualifiers": {
@@ -1703,7 +1462,6 @@ takes its key and its plans with it.",
                   "type": "null",
                 },
               ],
-              "default": null,
             },
             "soft": {
               "anyOf": [
@@ -1714,7 +1472,6 @@ takes its key and its plans with it.",
                   "type": "null",
                 },
               ],
-              "default": null,
             },
             "unknown": {
               "anyOf": [
@@ -1730,15 +1487,12 @@ takes its key and its plans with it.",
                   "type": "null",
                 },
               ],
-              "default": null,
-              "title": "Unknown",
             },
           },
           "required": [
             "facet",
             "between",
           ],
-          "title": "Window",
           "type": "object",
         },
       },

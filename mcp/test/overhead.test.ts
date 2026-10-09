@@ -4,6 +4,34 @@ import { z } from "zod";
 import { mcpHandler } from "../src/server";
 import agentCopy from "../src/agent-copy.json";
 import decisionContract from "../../docs/decision-contract.schema.json";
+import mcpTools from "../../qa/fixtures/mcp-tools.json";
+
+const CONDITION_UNION = [
+  { type: "string" },
+  { $ref: "#/$defs/Compare" },
+  { $ref: "#/$defs/Window" },
+  { $ref: "#/$defs/InSet" },
+  { $ref: "#/$defs/Known" },
+  { $ref: "#/$defs/AnyOf" },
+  { $ref: "#/$defs/AllOf" },
+  { $ref: "#/$defs/NotOf" },
+];
+
+function reachableDefinitionNames(): string[] {
+  const selected = new Set<string>();
+  const pending = ["DecideRequest"];
+  while (pending.length) {
+    const name = pending.pop();
+    if (name === undefined || selected.has(name)) continue;
+    const definition = decisionContract.$defs[name as keyof typeof decisionContract.$defs];
+    if (definition === undefined) throw new Error(`Missing decision definition ${name}`);
+    selected.add(name);
+    for (const match of JSON.stringify(definition).matchAll(/#\/\$defs\/([^" ]+)/g)) {
+      pending.push(match[1]);
+    }
+  }
+  return [...selected];
+}
 
 const listing = z.object({
   result: z.object({
@@ -36,23 +64,17 @@ it("bounds descriptions and emits only DecideRequest-reachable definitions", asy
   expect(Math.ceil(agentCopy.instructions.length / 4)).toBeLessThanOrEqual(1000);
   const decide = tools.find(tool => tool.name === "decide");
   if (decide === undefined) throw new Error("Missing decide tool");
+  const recorded = mcpTools.tools.find(tool => tool.name === "decide");
+  if (recorded === undefined) throw new Error("mcp-tools.json is missing decide");
+  // tools/list is the schema MCP clients receive; the fixture is what the harness counts.
+  // The SDK adds a root type of object beside $ref. Every other keyword matches.
+  const listed = { ...decide.inputSchema };
+  expect(listed.type).toBe("object");
+  delete listed.type;
+  expect(listed).toEqual(recorded.input_schema);
   const definitions = z.record(z.string(), z.unknown()).parse(decide.inputSchema.$defs);
-  expect(Object.keys(definitions).length).toBeLessThan(Object.keys(decisionContract.$defs).length);
-  const original = new Map(Object.entries(decisionContract.$defs));
-  for (const [name, definition] of Object.entries(definitions)) {
-    if (name !== "DecideRequest") expect(definition).toEqual(original.get(name));
-  }
-  // DecideRequest differs only by the MCP bounded defaults (MODEL-293).
-  const request = decisionContract.$defs.DecideRequest;
-  expect(definitions.DecideRequest).toEqual({
-    ...request,
-    properties: {
-      ...request.properties,
-      explain: { ...request.properties.explain, default: "none" },
-      limit: { ...request.properties.limit, default: 10 },
-      fields: { ...request.properties.fields, default: ["model_rank", "cost_per_task", "estimates", "p_best"] },
-    },
-  });
+  expect(Object.keys(definitions).sort()).toEqual([...reachableDefinitionNames(), "Condition"].sort());
+  expect(definitions.Condition).toEqual({ anyOf: CONDITION_UNION });
   // Record actual SDK tools/list output for pipeline.agent_overhead, when requested.
   const output = process.env.MODELSPEC_TOOL_MEASURE_OUTPUT;
   if (output) writeFileSync(output, JSON.stringify(tools, null, 2) + "\n");
