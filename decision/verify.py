@@ -3460,7 +3460,11 @@ _FORMED = r"(?:incorporated|registered|formed|organi[sz]ed)"
 # or a governing-law mention. "laws of the state of Delaware" alone is governing law.
 # Order does not matter; the reading is sorted.
 _INCORPORATION_PHRASES: tuple[tuple[re.Pattern[str], str], ...] = (
-    (re.compile(r"(?i)\b(?:" + _US_STATE_NAME + r") (?:public benefit corporation|corporation|limited liability company|llc|company)\b"), "US"),
+    (re.compile(
+        r"(?i)\b(?:" + _US_STATE_NAME + r") (?:public benefit corporation|"
+        r"(?:(?:non-?profit|not-for-profit|nonstock) )?corporation|"
+        r"limited liability company|llc|company)\b"
+    ), "US"),
     (re.compile(r"(?i)\b" + _FORMED + r" (?:in|under the laws of)(?: the)?(?: state of)? (?:" + _US_STATE_NAME + r")\b"), "US"),
     (re.compile(r"(?i)\b(?:" + _FORMED + r" )(?:in|under the laws of) the cayman islands\b"), "KY"),
     (re.compile(r"(?i)\bcayman islands (?:exempted )?company\b"), "KY"),

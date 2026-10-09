@@ -95,6 +95,11 @@ def test_governing_law_and_entity_form_are_not_the_same_thing() -> None:
     assert jurisdiction_codes(
         "Anthropic is a Delaware public benefit corporation."
     ) == frozenset({"US"})
+    assert jurisdiction_codes(
+        "OpenAI, Inc. was incorporated as a Delaware nonprofit corporation in 2015."
+    ) == frozenset({"US"})
+    assert jurisdiction_codes("a Delaware non-profit corporation") == frozenset({"US"})
+    assert jurisdiction_codes("a nonprofit corporation") == frozenset()
     assert jurisdiction_codes("Jina AI GmbH") == frozenset()
     assert jurisdiction_codes("Moonshot AI PTE. LTD.") == frozenset()
     assert jurisdiction_codes(
