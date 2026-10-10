@@ -18,7 +18,8 @@ Each fact ends in one status:
   by a machine: the workflow opens a pull request for a person to review, on a
   branch ``automerge.yml`` skips.
 - ``needs_review``: the value no longer verifies and the readers find no single
-  replacement (several candidates, or a list or flag the job does not rewrite).
+  replacement (several candidates, a list or flag the job does not rewrite,
+  or free text read only from a whole-page region).
 - ``unreadable``: the page fetched but the reader no longer understands it: the
   cited region is gone, no reader accepts the page, or the subject is not found.
 - ``unreachable``: the page did not fetch.
@@ -399,11 +400,18 @@ def _candidate(old: Any, reading_value: Any, unit: str | None) -> Any:
     return None
 
 
-def _readings(claim: Claim, regions: StoredRegions) -> list[Any]:
+def _readings(claim: Claim, regions: StoredRegions, *, narrow_only: bool = False) -> list[Any]:
     """Every reading the deterministic readers take from the claim's cited regions."""
     found = []
     for source in claim.sources:
         for region_id in source.cited_regions:
+            if narrow_only:
+                registered = regions.sources.get(source.source_id)
+                if registered is None or not any(
+                    r.id == region_id and r.locator.kind != "page"
+                    for r in registered.cited_regions
+                ):
+                    continue
             text = regions.text(source.source_id, source.snapshot_ref, region_id)
             if text is None:
                 continue
@@ -417,11 +425,12 @@ def _readings(claim: Claim, regions: StoredRegions) -> list[Any]:
     return found
 
 
-def _propose(claim: Claim, regions: StoredRegions, today: date) -> tuple[list[Any], bool]:
+def _propose(claim: Claim, regions: StoredRegions, today: date, *,
+             narrow_only: bool = False) -> tuple[list[Any], bool]:
     """New values that verify for the claim's subject, and whether the readers found
     any value at all for that subject."""
     own = _own_names(claim)
-    readings = [r for r in _readings(claim, regions)
+    readings = [r for r in _readings(claim, regions, narrow_only=narrow_only)
                 if r.subject and split_model_cell(r.subject)[0] in own and r.value is not None]
     candidates: list[Any] = []
     for reading in readings:
@@ -503,6 +512,19 @@ def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetc
     if not read_any:
         return replace(base, status=Status.UNREADABLE,
                        reason=f"the readers find no value for {claim.names[0]!r}: {diff}")
+    if any(isinstance(value, str) for value in confirmed):
+        narrow, _ = _propose(claim, regions, today, narrow_only=True)
+        if not narrow:
+            page_regions = [
+                f"{source.source_id}#{region.id}"
+                for source in claim.sources
+                for region in regions.sources[source.source_id].cited_regions
+                if region.id in source.cited_regions and region.locator.kind == "page"
+            ]
+            return replace(base, status=Status.NEEDS_REVIEW,
+                           reason="a free-text value read from a whole-page region "
+                           f"({', '.join(page_regions)}) is not proposed as a change; "
+                           "cite a narrower region")
     if len(confirmed) == 1 and fact["state"] == "known":
         return replace(base, status=Status.CHANGED, new_value=confirmed[0], claim=claim)
     if len(confirmed) == 1:

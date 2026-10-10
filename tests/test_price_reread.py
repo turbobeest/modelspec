@@ -328,6 +328,92 @@ def test_a_changed_pay_per_use_price_keeps_its_type(estate) -> None:
         .target.value_hash == value_hash(2.5)
 
 
+@pytest.mark.parametrize("cited, registered, new_value, status, reason", [
+    (["page"], [("page", "page", "")], "Actual consumption varies with the model.",
+     "needs_review", "a free-text value read from a whole-page region "
+     "(example-plans#page) is not proposed as a change; cite a narrower region"),
+    (["document"], [("page", "page", ""), ("document", "page", "")],
+     "Actual consumption varies with the model.", "needs_review",
+     "a free-text value read from a whole-page region (example-plans#document) "
+     "is not proposed as a change; cite a narrower region"),
+    (["page", "document"], [("page", "page", ""), ("document", "page", "")],
+     "Actual consumption varies with the model.", "needs_review",
+     "a free-text value read from a whole-page region (example-plans#page, "
+     "example-plans#document) is not proposed as a change; cite a narrower region"),
+    (["limits"], [("page", "page", ""), ("limits", "css", "#limits")],
+     "10-hour rolling windows", "changed", None),
+    (["page", "limits"], [("page", "page", ""), ("limits", "css", "#limits")],
+     "10-hour rolling windows", "changed", None),
+    (["page", "unrelated"], [("page", "page", ""), ("unrelated", "css", "#unrelated")],
+     "Actual consumption varies with the model.", "needs_review",
+     "a free-text value read from a whole-page region (example-plans#page) "
+     "is not proposed as a change; cite a narrower region"),
+    (["page"], [("page", "css", "#limits")], "10-hour rolling windows", "changed", None),
+    (["page"], [("page", "page", "")], "5-hour rolling and weekly windows",
+     "unchanged", None),
+])
+def test_free_text_changes_must_be_read_from_a_narrow_region(
+    estate, cited, registered, new_value, status, reason,
+) -> None:
+    root, store = estate
+    registry = root / "registry/sources.yaml"
+    sources = yaml.safe_load(registry.read_text())
+    sources["sources"][0]["cited_regions"] = [
+        {"id": rid, "locator": {"kind": kind, "value": value}}
+        for rid, kind, value in registered
+    ]
+    registry.write_text(yaml.safe_dump(sources))
+
+    def allowance_page(value: str) -> bytes:
+        table = (f'<table id="limits"><tr><th>Features</th><th>Example Pro</th></tr>'
+                 f'<tr><td>Quota windows</td><td>{value}</td></tr></table>'
+                 '<section id="unrelated">Contact support for help.</section>')
+        return page("plans.html").replace(b"</body>", table.encode() + b"</body>")
+
+    fact_id = "example/subscription/pro#offering.subscription.usage_allowance"
+    old_value = "5-hour rolling and weekly windows"
+    claim = Claim(
+        target=TargetRef(kind="fact", id=fact_id), subject="example/subscription/pro",
+        names=("Example Pro",), field="offering.subscription.usage_allowance",
+        value=old_value, collector=COLLECTOR,
+        sources=(SourceRef(source_id="example-plans",
+                           snapshot_ref=store.put(allowance_page(old_value)),
+                           cited_regions=cited),),
+    )
+    path = root / "offerings/subscriptions/allowance.yaml"
+    path.write_text(yaml.safe_dump([{"kind": "subscription", "provider": "example",
+        "plan": "pro", "name": "Example Pro", "facts": [{
+            "id": fact_id, "subject": {"kind": "offering", "id": claim.subject},
+            "facet": claim.field, "state": "known", "value": old_value,
+            "sources": [s.model_dump(mode="json") for s in claim.sources],
+        }]}], sort_keys=False))
+    queue = Queue(root / "verification")
+    queue.file(claim, at=AT)
+    regions = StoredRegions(store, load_sources(registry))
+    result = verify_module.verify(claim, regions, deterministic_extractors(), today=TODAY)
+    assert result.outcome == "verified"
+    log = VerificationLog(root / "verification")
+    log.append(result.verification)
+    before = path.read_text()
+    queue_before = queue.path.read_text()
+
+    report, _ = reread(estate, [allowance_page(new_value)], write=True)
+
+    result = by_id(report)[fact_id]
+    assert result.status == status, result.reason
+    assert result.reason == reason
+    if status == "changed":
+        assert result.new_value == "10-hour rolling windows"
+        assert queue.filed()[("fact", fact_id)].value == "10-hour rolling windows"
+    else:
+        assert result.new_value is None
+        assert result.claim is None
+        assert path.read_text() == before
+        assert queue.path.read_text() == queue_before
+        assert queue.filed()[("fact", fact_id)].value == "5-hour rolling and weekly windows"
+        assert log.latest()[("fact", fact_id)].target.value_hash == value_hash(old_value)
+
+
 def test_an_unreadable_layout_raises_an_alert_and_never_guesses(estate) -> None:
     root, _ = estate
     before = (root / PLAN_FILE).read_text()
