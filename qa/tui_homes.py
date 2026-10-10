@@ -29,6 +29,8 @@ def state_directory(cli: str, config: dict) -> Path:
     except KeyError:
         raise ValueError("A private --out is required for doctor receipts") from None
     path = root / cli
+    if cli == "claude" and config.get("claude_plugin"):
+        path /= "modelspec-plugin"
     if any(p.is_symlink() for p in (path, *path.parents)):
         raise ValueError("Doctor state paths must not be symlinks")
     path.mkdir(parents=True, exist_ok=True, mode=0o700)
@@ -144,6 +146,10 @@ def binary_identity(cli: str, config: dict, workspace: Path, *, versions=None) -
         if identity != {k: versions[k] for k in identity}:
             raise ValueError("Docker image changed; rerun doctor")
         return versions
+    if cli == "claude" and config.get("claude_plugin"):
+        from qa.tui_plugins import prepare_plugin_workspace
+
+        prepare_plugin_workspace(workspace)
     result = run_cli(
         cli, config, workspace, [cli, "--version"], passed_environment(config), home=False
     )
@@ -170,6 +176,11 @@ def isolation_identity(cli: str, config: dict, binary: dict) -> str:
     }
     if "ablation" in config:
         identity["ablation"] = config["ablation"]
+    if cli == "claude" and config.get("claude_plugin"):
+        from qa.tui_plugins import plugin_digest, plugin_identity
+
+        identity["claude_plugin"] = plugin_identity(config)
+        identity["claude_plugin_sha256"] = plugin_digest(config)
     digest = hashlib.sha256(json.dumps(identity, sort_keys=True).encode())
     for path in sorted(Path(__file__).parent.glob("tui_*.py")):
         digest.update(path.read_bytes())

@@ -319,7 +319,7 @@ A request carries a profile, never a prompt. See [`rank-api.md`](rank-api.md).
 
 ## MCP
 
-Read-only remote MCP at `https://api.modelspec.dev/mcp`. Claude Code:
+Read-only MCP: `https://api.modelspec.dev/mcp`. Claude Code:
 
 ```json
 {
@@ -331,3 +331,5 @@ Read-only remote MCP at `https://api.modelspec.dev/mcp`. Claude Code:
   }
 }
 ```
+
+[Claude Code plugin](claude-plugin.md).

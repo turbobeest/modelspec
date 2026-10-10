@@ -67,6 +67,30 @@ def test_catalogue_is_sourced_and_covers_all_families_and_templates():
     assert all(n in names for n in ("RTX 5090", "DGX Spark", "M4 MacBook"))
 
 
+@pytest.mark.parametrize("count,expected", [
+    (1, [
+        "CLI truncated or unreadable tool results; the agent did not see these answers.",
+        "", "- [s01, claude]", "",
+    ]),
+    (12, [
+        "CLI truncated or unreadable tool results; the agent did not see these answers.",
+        "", "- [s01, claude]", "- [s02, claude]", "- [s03, claude]",
+        "- [s04, claude]", "- [s05, claude]", "- [s06, claude]", "- [s07, claude]",
+        "- [s08, claude]", "- [s09, claude]", "- [s10, claude]", "- (+2 more)", "",
+    ]),
+])
+def test_parse_defect_markdown_counts_only_positive_overflow(count, expected):
+    report = make_report([], [], False, Budget(1), "2026-10-10", {"agents": ["claude"]})
+    report["parse_defects"] = [
+        [f"s{number:02}", "claude", "unreadable", 1] for number in range(1, count + 1)
+    ]
+    rendered = markdown(report)
+    lines = rendered.splitlines()
+    start = lines.index(expected[0])
+    assert lines[start:lines.index("## Gap list")] == expected
+    assert "(+-" not in rendered
+
+
 def test_invented_expectations_are_rejected(tmp_path):
     scenario = copy.deepcopy(load_scenarios()[0])
     scenario["expected"] = {"id": "Q01", "acceptable": [{"model_id": "invented/winner"}]}
