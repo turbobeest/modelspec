@@ -116,6 +116,10 @@ the second Snapshot:
 }
 ```
 
+The thin keyed CLI wraps this endpoint as
+`modelspec compare --spec FILE|- --to SNAP [--json]` or
+`modelspec compare --template ID --to SNAP [--json]`.
+
 The response groups changes by model and includes entries, departures, changed
 Must values, capability estimates, and prices with their record IDs. The
 Worker reads the retained Snapshot from

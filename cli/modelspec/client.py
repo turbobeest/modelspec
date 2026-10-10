@@ -113,6 +113,8 @@ class Client:
             "guide_outdated",
         }:
             recovery = "upgrade"
+        elif response.status_code == 409 and code == "comparison_snapshot_unavailable":
+            recovery = "comparison_snapshot_unavailable"
         elif not decision and (code in {
             "out_of_coverage",
             "no_match",

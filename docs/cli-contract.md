@@ -108,13 +108,15 @@ lists sentences that describe the former CLI and need review before release.
 modelspec decide --spec FILE.yaml --json
 modelspec decide --spec - --json
 modelspec decide --template ID --json
+modelspec compare --spec FILE|- --to SNAP [--json]
+modelspec compare --template ID --to SNAP [--json]
 modelspec vocab [SECTION] [--section SECTION] [--search TEXT] [--id ID]
                 [--ids ID ...] [--detail compact|full] [--offset N] [--limit 1..20] [--json]
 modelspec feedback [DECISION_ID] --rating RATING [--note TEXT]
                   [--trying-to-decide TEXT] [--template ID] [--json]
 ```
 
-All three require a key before reading the Spec or contacting the API.
+All four require a key before reading the Spec or contacting the API.
 `decide` requires exactly one of `--spec` and `--template`. It parses JSON or
 YAML, validates structure against the bundled published
 [`DecideRequest` schema](decision-contract.schema.json), and sends exactly that
@@ -123,6 +125,21 @@ weights, task text, or wrapper. The server validates semantics and is the
 authority. The request is at most 64 KB. A template comes from a keyed
 `GET /v1/vocabulary?section=templates&id=ID&detail=full`, never a bundled or
 cached registry; its Spec is validated and sent unchanged.
+
+`compare` requires exactly one of `--spec` and `--template`, using the same
+Spec loading, validation and keyed template lookup as `decide`. `--to` is
+required and must match `^snap_[A-Za-z0-9:._-]+$`; invalid IDs are refused
+locally before reading the Spec or making a request. It sends exactly
+`{"compare_to": SNAP, "spec": Spec}` to `POST /v1/compare`, with no injected
+Spec fields. The server compares that Spec across the retained and current
+signed snapshots. Human output lists the old and new snapshot IDs and statuses,
+change counts, and one block per changed model with entered, departed or changed,
+the changed values and their record IDs. JSON output is the server body
+unchanged, without a CLI envelope. Unchanged comparisons exit 0.
+The origin does not host retained snapshots yet; a
+`409 comparison_snapshot_unavailable` adds next steps explaining that and
+suggesting `modelspec decide` for the current answer. This command is additive;
+the CLI error contract stays at 2.0.
 
 `vocab` calls keyed `GET /v1/vocabulary`, using the MCP lookup parameters.
 The default section is `starter`. `--ids` may repeat and also accepts commas.
