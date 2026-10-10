@@ -6,8 +6,143 @@ concurrency:
   group: weekly-price-reread
   cancel-in-progress: false
 jobs:
+  render:
+    name: Render price and plan pages
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    env:
+      MODELSPEC_REQUIRE_DATA_DIR: '1'
+      MODELSPEC_DATA_DIR: ${{ github.workspace }}/data
+    steps:
+      - name: Keep retained copies outside the checkout
+        run: echo "MODELSPEC_SOURCE_CACHE=$RUNNER_TEMP/source-copies" >> "$GITHUB_ENV"
+        working-directory: .
+      - uses: actions/checkout@v4
+        with:
+          path: data
+          persist-credentials: false
+          token: ${{ github.token }}
+          fetch-depth: 0
+      - name: Verify the engine pin is on modelspec main
+        id: engine_pin
+        working-directory: .
+        env:
+          ENGINE_REPO: https://github.com/turbobeest/modelspec.git
+          GIT_NO_LAZY_FETCH: '1'
+        run: |
+          set -euo pipefail
+          pin="$(< data/.engine-pin)"
+          if ! [[ "$pin" =~ ^[0-9a-f]{40}$ ]]; then
+            echo '::error::.engine-pin must hold exactly one full 40-character lowercase commit SHA.'
+            exit 1
+          fi
+          check="$RUNNER_TEMP/engine-pin-check"
+          rm -rf "$check"
+          git clone --quiet --bare --filter=tree:0 --single-branch --branch main --no-tags \
+            "$ENGINE_REPO" "$check"
+          if ! git -C "$check" cat-file -e "$pin^{commit}" 2>/dev/null \
+            || ! git -C "$check" merge-base --is-ancestor "$pin" refs/heads/main; then
+            echo "::error::.engine-pin $pin is not a commit on modelspec main."
+            exit 1
+          fi
+          echo "sha=$pin" >> "$GITHUB_OUTPUT"
+      - name: Check out the pinned public engine
+        uses: actions/checkout@v4
+        with:
+          repository: turbobeest/modelspec
+          ref: ${{ steps.engine_pin.outputs.sha }}
+          path: engine
+          persist-credentials: false
+      - name: Confirm the engine checkout is the verified pin
+        env:
+          PIN: ${{ steps.engine_pin.outputs.sha }}
+        run: test "$(git -C ../engine rev-parse HEAD)" = "$PIN"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: pip
+      - name: Link the data paths into the verified engine and put only the engine on the import path
+        working-directory: .
+        run: |
+          set -euo pipefail
+          if [ -L data ]; then
+            echo "::error::refusing symlink data"
+            exit 1
+          fi
+          if [ ! -d data/models ] || [ -L data/models ]; then
+            echo "::error::data/models is missing"
+            exit 1
+          fi
+          if [ ! -d data/benchmarks ] || [ -L data/benchmarks ]; then
+            echo "::error::data/benchmarks is missing"
+            exit 1
+          fi
+          paths="$(python -I engine/pipeline/data_source.py paths)"
+          if [ -z "$(printf '%s' "$paths" | tr -d '[:space:]')" ]; then
+            echo "::error::data paths are empty"
+            exit 1
+          fi
+          while IFS= read -r P; do
+            [ -n "$P" ] || continue
+            prefix=data
+            IFS=/ read -r -a parts <<< "$P"
+            for part in "${parts[@]}"; do
+              [ -n "$part" ] || continue
+              prefix="$prefix/$part"
+              if [ -L "$prefix" ]; then
+                echo "::error::refusing symlink $prefix"
+                exit 1
+              fi
+            done
+            if [ -e "data/$P" ]; then
+              resolved="$(realpath -e "data/$P")"
+              case "$resolved/" in
+                "$GITHUB_WORKSPACE/data/"*) ;;
+                *)
+                  echo "::error::data/$P resolves outside the data checkout ($resolved)"
+                  exit 1
+                  ;;
+              esac
+            fi
+            if [ -d "data/$P" ]; then
+              bad="$(find "data/$P" -mindepth 1 \( -type l -o \( -type f \( -name '*.py' -o -name '*.pyc' -o -name '*.pyo' -o -name '*.pth' -o -name '*.so' -o -name 'sitecustomize*' -o -name 'usercustomize*' -o -name '__init__*' -o -name 'conftest*' \) \) \) -print -quit)"
+              if [ -n "$bad" ]; then
+                echo "::error::refusing $bad"
+                exit 1
+              fi
+            fi
+            rm -rf "engine/$P"
+            if [ -e "data/$P" ]; then
+              mkdir -p "$(dirname "engine/$P")"
+              ln -s "$GITHUB_WORKSPACE/data/$P" "engine/$P"
+            fi
+          done <<< "$paths"
+          purelib="$(python -I -c 'import sysconfig; print(sysconfig.get_path("purelib"))')"
+          quoted="$(python -I -c 'import json, pathlib; print(json.dumps(str(pathlib.Path("engine").resolve())))')"
+          mkdir -p "$purelib"
+          printf 'import sys; sys.path.insert(0, %s)\n' "$quoted" > "$purelib/modelspec-engine.pth"
+      - name: Install render dependencies
+        run: |
+          python -I -m pip install pydantic pyyaml httpx
+          python -I -m pip install --require-hashes --no-deps -r "$GITHUB_WORKSPACE/engine/scripts/price-reread-render.requirements.txt"
+          python -I -m playwright install --with-deps --only-shell chromium
+      - name: Render eligible pages once
+        run: python -I -m scripts.price_reread --render-to "$RUNNER_TEMP/rendered"
+      - name: Pass rendered pages to the re-read job
+        uses: actions/upload-artifact@v4
+        with:
+          name: price-reread-rendered
+          path: ${{ runner.temp }}/rendered
+          retention-days: 1
+          if-no-files-found: error
+    defaults:
+      run:
+        working-directory: data
   reread:
     name: Re-read price and plan pages
+    needs: render
     runs-on: ubuntu-latest
     timeout-minutes: 15
     permissions:
@@ -128,8 +263,7 @@ jobs:
           printf 'import sys; sys.path.insert(0, %s)\n' "$quoted" > "$purelib/modelspec-engine.pth"
       - name: Install re-read dependencies
         run: |
-          python -I -m pip install pydantic pyyaml httpx playwright==1.63.0
-          python -I -m playwright install --with-deps --only-shell chromium
+          python -I -m pip install pydantic pyyaml httpx
       - name: Restore last week's retained copies
         env:
           GH_TOKEN: ${{ github.token }}
@@ -156,11 +290,16 @@ jobs:
               --name price-reread-copies --dir "$MODELSPEC_SOURCE_CACHE" \
               || echo "::notice::could not restore the copies from run $run_id"
           fi
+      - name: Download rendered pages
+        uses: actions/download-artifact@v4
+        with:
+          name: price-reread-rendered
+          path: ${{ runner.temp }}/rendered
       - name: Re-read every page once
         env:
           DRY_RUN: ${{ inputs.dry_run }}
         run: |
-          args=(--rendered --report-json "$RUNNER_TEMP/report.json" --report-md "$RUNNER_TEMP/report.md" --retain-only-cited)
+          args=(--rendered-from "$RUNNER_TEMP/rendered" --report-json "$RUNNER_TEMP/report.json" --report-md "$RUNNER_TEMP/report.md" --retain-only-cited)
           if [ "$DRY_RUN" != "true" ]; then
             args+=(--write)
           fi

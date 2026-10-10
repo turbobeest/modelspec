@@ -31,6 +31,14 @@ LINK_NAME = (
 )
 PIN_REF = "${{ steps.engine_pin.outputs.sha }}"
 ENGINE_REPOSITORY = "turbobeest/modelspec"
+PRICE_WORKFLOW_NAME = "Weekly price and plan re-read"
+PLAYWRIGHT_INSTALL = [
+    "python", "-I", "-m", "playwright", "install", "--with-deps", "--only-shell", "chromium",
+]
+HASHED_RENDER_INSTALL = [
+    "python", "-I", "-m", "pip", "install", "--require-hashes", "--no-deps", "-r",
+    "$GITHUB_WORKSPACE/engine/scripts/price-reread-render.requirements.txt",
+]
 PY_CMD = re.compile(r"(?<![\w./-])python3?(?=\s)")
 EDITABLE_DATA = re.compile(r"""-e\s+(?:\.|'\.\[|"\.\[)""")
 UNTRUSTED = re.compile(
@@ -45,8 +53,10 @@ UNTRUSTED = re.compile(
 # `git config` may set only `user.name`, `user.email`, and the push
 # extraheader. `python -I -c` may not call exec, eval, importlib, runpy, or
 # subprocess. `python -I -m` may only load `scripts.*`, `cli.*`,
-# `release_signals.*`, `pipeline.*`, or `pip`. The reread job may also run
-# `playwright install --with-deps --only-shell chromium`. A script path must be
+# `release_signals.*`, `pipeline.*`, or `pip`. Only the price workflow's render
+# job, with exactly contents: read, may install Chromium and its hashed Python
+# requirements. The guard identifies that workflow by its top-level name.
+# A script path must be
 # `engine/...` with no `..` and must not be a data path the link step mounts
 # (`models/`, `benchmarks/`, ...). After the link step, a redirection,
 # `cp`/`mv`/`ln` destination, `tar -C`, `unzip -d`, or
@@ -170,7 +180,8 @@ def isolation_problems(text: str) -> list[str]:
         problems.append(f"workflow permissions are {permissions!r}")
     canonical = _canonical_link()
     for job_name, job in document["jobs"].items():
-        problems.extend(_job_problems(str(job_name), job, canonical))
+        problems.extend(_job_problems(str(job_name), job, canonical,
+                                      workflow_name=document.get("name")))
     return problems
 
 
@@ -459,10 +470,6 @@ def _python_problems(job_name: str, args: list[str]) -> list[str]:
         if len(rest) < 2 or _MODULE.fullmatch(rest[1]) is None:
             return [f"{job_name}: python invocation is not an allowed isolated form"]
         if rest[1] == "playwright":
-            if job_name == "reread" and rest[2:] == [
-                "install", "--with-deps", "--only-shell", "chromium",
-            ]:
-                return []
             return [f"{job_name}: rejected playwright invocation"]
         if _MODULE_OK.fullmatch(rest[1]) is None:
             return [f"{job_name}: rejected module {rest[1]}"]
@@ -882,9 +889,15 @@ def _workdir(job: dict, step: dict) -> str:
     return str(defaults.get("working-directory") or "")
 
 
-def _job_problems(job_name: str, job: dict, canonical: dict) -> list[str]:
+def _job_problems(
+    job_name: str, job: dict, canonical: dict, *, workflow_name: str | None,
+) -> list[str]:
     problems: list[str] = []
     steps = job.get("steps") or []
+    render_install_allowed = (
+        workflow_name == PRICE_WORKFLOW_NAME and job_name == "render"
+        and job.get("permissions") == {"contents": "read"}
+    )
     runs_python = False
     for step in steps:
         run = step.get("run") or ""
@@ -903,6 +916,8 @@ def _job_problems(job_name: str, job: dict, canonical: dict) -> list[str]:
         for tokens in _commands(run):
             if tokens is None:
                 problems.append(f"{job_name}: unparseable shell")
+                continue
+            if render_install_allowed and tokens in (PLAYWRIGHT_INSTALL, HASHED_RENDER_INSTALL):
                 continue
             problems.extend(_command_problems(job_name, tokens, workdir, in_link))
         with_ = step.get("with") or {}
@@ -1019,9 +1034,14 @@ def test_a_python_job_without_the_link_step_is_rejected() -> None:
     assert "audit: runs python without the link step" in isolation_problems(text)
 
 
-def test_a_link_step_that_is_not_the_canonical_one_is_rejected() -> None:
-    text = _text("price-reread").replace("modelspec-engine.pth", "other-engine.pth", 1)
-    assert "reread: link step does not match the canonical link step" in isolation_problems(text)
+@pytest.mark.parametrize("job", ["render", "reread"])
+def test_a_link_step_that_is_not_the_canonical_one_is_rejected(job: str) -> None:
+    document = _document(_text("price-reread"))
+    link = next(step for step in document["jobs"][job]["steps"] if step.get("name") == LINK_NAME)
+    link["run"] = link["run"].replace("modelspec-engine.pth", "other-engine.pth")
+    assert f"{job}: link step does not match the canonical link step" in isolation_problems(
+        yaml.safe_dump(document)
+    )
 
 
 def test_the_link_step_must_follow_setup_python() -> None:
@@ -1188,12 +1208,68 @@ def test_a_writer_command_outside_the_allowlist_is_rejected(
         "python -I -m playwright.__main__ install --with-deps --only-shell chromium",
     ],
 )
-def test_reread_rejects_other_playwright_commands(command: str) -> None:
+def test_render_rejects_other_playwright_commands(command: str) -> None:
     install = "python -I -m playwright install --with-deps --only-shell chromium"
     text = _text("price-reread")
     assert text.count(install) == 1
     problems = isolation_problems(text.replace(install, command, 1))
-    assert any(problem.startswith("reread:") for problem in problems), problems
+    assert any(problem.startswith("render:") for problem in problems), problems
+
+
+def test_a_render_job_in_another_workflow_cannot_install_chromium() -> None:
+    document = _document(_text("price-reread"))
+    document["name"] = "Another private writer"
+    problems = isolation_problems(yaml.safe_dump(document))
+    assert "render: rejected playwright invocation" in problems
+
+
+@pytest.mark.parametrize("permissions", [None, {"contents": "write"},
+                                         {"contents": "read", "issues": "write"},
+                                         {"contents": "read", "actions": "read"}])
+def test_render_must_have_exactly_contents_read_to_install_chromium(permissions) -> None:
+    document = _document(_text("price-reread"))
+    document["jobs"]["render"]["permissions"] = permissions
+    problems = isolation_problems(yaml.safe_dump(document))
+    assert "render: rejected playwright invocation" in problems
+
+
+def test_reread_cannot_install_or_run_playwright() -> None:
+    document = _document(_text("price-reread"))
+    document["jobs"]["reread"]["steps"].append({"run": " ".join(PLAYWRIGHT_INSTALL)})
+    assert "reread: rejected playwright invocation" in isolation_problems(yaml.safe_dump(document))
+
+
+@pytest.mark.parametrize("command", [
+    'python -I -m pip install --require-hashes -r "$GITHUB_WORKSPACE/engine/scripts/price-reread-render.requirements.txt"',
+    'python -I -m pip install --no-deps -r "$GITHUB_WORKSPACE/engine/scripts/price-reread-render.requirements.txt"',
+    'python -I -m pip install --require-hashes --no-deps -r "$GITHUB_WORKSPACE/data/requirements.txt"',
+    'python -I -m pip install --require-hashes --no-deps -r "$GITHUB_WORKSPACE/engine/offerings/requirements.txt"',
+    'python -I -m pip install --require-hashes --no-deps -r "$GITHUB_WORKSPACE/engine/scripts/../requirements.txt"',
+])
+def test_render_rejects_other_requirements_installs(command: str) -> None:
+    text = _text("price-reread")
+    install = 'python -I -m pip install --require-hashes --no-deps -r "$GITHUB_WORKSPACE/engine/scripts/price-reread-render.requirements.txt"'
+    assert text.count(install) == 1
+    problems = isolation_problems(text.replace(install, command, 1))
+    assert any("render: pip install argument is not allowed" in p for p in problems), problems
+
+
+def test_price_reread_downloads_the_read_only_render_artifact() -> None:
+    document = _document(_text("price-reread"))
+    render, reread = document["jobs"]["render"], document["jobs"]["reread"]
+    assert render["permissions"] == {"contents": "read"}
+    assert render["timeout-minutes"] == reread["timeout-minutes"] == 15
+    assert reread["needs"] == "render"
+    [upload] = [s for s in render["steps"] if s.get("uses") == "actions/upload-artifact@v4"]
+    [download] = [s for s in reread["steps"] if s.get("uses") == "actions/download-artifact@v4"]
+    assert upload["with"] == {
+        "name": "price-reread-rendered", "path": "${{ runner.temp }}/rendered",
+        "retention-days": 1, "if-no-files-found": "error",
+    }
+    assert download["with"] == {
+        "name": "price-reread-rendered", "path": "${{ runner.temp }}/rendered",
+    }
+    assert all("playwright" not in s.get("run", "") for s in reread["steps"])
 
 
 def test_other_writer_jobs_cannot_install_chromium() -> None:
@@ -1498,3 +1574,10 @@ def test_the_link_step_fails_when_a_required_data_directory_is_missing(
     refused = _run_link(workspace, venv_python)
     assert refused.returncode != 0, refused.stdout + refused.stderr
     assert f"::error::data/{missing} is missing" in refused.stdout
+
+
+def test_only_the_price_workflow_carries_its_name() -> None:
+    """The Chromium allowance is keyed on the workflow name, so no other writer may reuse it."""
+    named = sorted(path.name for path in WRITERS.glob("*.yml")
+                   if _document(path.read_text(encoding="utf-8")).get("name") == PRICE_WORKFLOW_NAME)
+    assert named == ["price-reread.yml"]

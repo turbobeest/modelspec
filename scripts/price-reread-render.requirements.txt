@@ -1,0 +1,11 @@
+# Playwright renderer for CPython 3.11 on manylinux x86_64.
+# SHA-256 hashes from https://pypi.org/pypi/<package>/<version>/json.
+# Install with --require-hashes --no-deps; all runtime dependencies are listed.
+# playwright-1.63.0-py3-none-manylinux1_x86_64.whl
+playwright==1.63.0 --hash=sha256:ad21bc07516b187965a7521c5cf0df0bd657b17482eaad74335272d35a2b07de
+# greenlet-3.5.3-cp311-cp311-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl
+greenlet==3.5.3 --hash=sha256:8540f1e6205bd13ca0ce685581037219ca54a1b41a0a15d228c6c9b8ad5903d7
+# pyee-13.0.1-py3-none-any.whl
+pyee==13.0.1 --hash=sha256:af2f8fede4171ef667dfded53f96e2ed0d6e6bd7ee3bb46437f77e3b57689228
+# typing_extensions-4.15.0-py3-none-any.whl
+typing_extensions==4.15.0 --hash=sha256:f0fa19c6845758ab08074a0cfa8b7aecb71c999ca73d62883bc25cc018c4e548
