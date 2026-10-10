@@ -30,7 +30,7 @@ NAMES = (
 ENGINE_JOBS = {
     "recall-private": 1,
     "release-signals": 1,
-    "price-reread": 1,
+    "price-reread": 2,
     "leaderboard-refresh": 1,
     "daily-research": 1,
     "curation-benchmarks": 4,

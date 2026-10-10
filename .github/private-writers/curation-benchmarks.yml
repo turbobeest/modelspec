@@ -157,6 +157,7 @@ jobs:
     needs: gate
     permissions:
       contents: read
+      actions: read
     if: needs.gate.outputs.run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -213,11 +214,31 @@ jobs:
           PIN: ${{ steps.engine_pin.outputs.sha }}
         run: test "$(git -C ../engine rev-parse HEAD)" = "$PIN"
       - name: Restore watcher state
-        uses: actions/cache@v4
-        with:
-          path: data/benchmarks/_curation/state
-          key: curation-state-${{ env.AXIS }}-${{ github.run_id }}
-          restore-keys: curation-state-${{ env.AXIS }}-
+        working-directory: .
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          WORKFLOW_FILE: curation-benchmarks.yml
+          CURRENT_RUN_ID: ${{ github.run_id }}
+          STATE_ARTIFACT: curation-state-${{ env.AXIS }}
+          EVENT_SCHEDULE: schedule
+          EVENT_DISPATCH: workflow_dispatch
+        run: |
+          set -euo pipefail
+          # Repo-scoped caches can be poisoned by the price render job. Its
+          # runtime token cannot upload to an earlier curation workflow run.
+          ids="$(gh api "repos/${REPO}/actions/workflows/${WORKFLOW_FILE}/runs?branch=main&status=completed&per_page=100" \
+            --jq '.workflow_runs[] | select(.id != (env.CURRENT_RUN_ID | tonumber) and .status == "completed" and .head_branch == "main" and (.event == env.EVENT_SCHEDULE or .event == env.EVENT_DISPATCH)) | .id')"
+          while read -r id; do
+            [ -n "$id" ] || continue
+            artifact="$(gh api "repos/${REPO}/actions/runs/${id}/artifacts" \
+              --jq '.artifacts[] | select(.name == env.STATE_ARTIFACT and (.expired | not)) | .name')"
+            if [ -n "$artifact" ]; then
+              gh run download "$id" --repo "$REPO" \
+                --name "$STATE_ARTIFACT" --dir data/benchmarks/_curation/state
+              break
+            fi
+          done <<< "$ids"
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
@@ -306,6 +327,13 @@ jobs:
         with:
           name: curation-change-report-${{ env.AXIS }}-${{ github.run_id }}
           path: data/benchmarks/_curation/reports/
+      - name: Retain watcher state
+        uses: actions/upload-artifact@v4
+        with:
+          name: curation-state-${{ env.AXIS }}
+          path: data/benchmarks/_curation/state
+          retention-days: 90
+          if-no-files-found: warn
     defaults:
       run:
         working-directory: data

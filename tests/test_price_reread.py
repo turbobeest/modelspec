@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import builtins
 import json
+import os
+import subprocess
 from dataclasses import replace
 from datetime import UTC, date, datetime
 from pathlib import Path
@@ -676,6 +678,56 @@ def test_price_pull_requests_are_never_auto_merged() -> None:
     # The log-only reconfirmation branch is the one this job lets auto-merge.
     assert f"branch: {RECONFIRM_BRANCH}" in workflow
     assert RECONFIRM_BRANCH not in automerge
+
+
+@pytest.mark.parametrize("dry_run,write", [("true", False), ("false", True), ("", True)])
+def test_weekly_workflow_replays_rendered_fetches_in_every_mode(
+    tmp_path: Path, dry_run: str, write: bool,
+) -> None:
+    workflow = yaml.safe_load(
+        (ROOT / ".github" / "private-writers" / "price-reread.yml").read_text()
+    )
+    step = next(step for step in workflow["jobs"]["reread"]["steps"]
+                if step.get("name") == "Re-read every page once")
+    script = """\
+python() {
+    printf '%s\\n' "$@" > "$RUNNER_TEMP/argv"
+    printf 'fixture report\\n' > "$RUNNER_TEMP/report.md"
+}
+""" + step["run"]
+    summary = tmp_path / "summary.md"
+    subprocess.run(
+        ["bash", "-c", script], check=True, capture_output=True, text=True,
+        env={**os.environ, "DRY_RUN": dry_run, "RUNNER_TEMP": str(tmp_path),
+             "GITHUB_STEP_SUMMARY": str(summary)},
+    )
+    args = (tmp_path / "argv").read_text().splitlines()
+    assert args[:3] == ["-I", "-m", "scripts.price_reread"]
+    assert "--rendered-from" in args
+    assert args[args.index("--rendered-from") + 1] == str(tmp_path / "rendered")
+    assert "--rendered" not in args
+    assert ("--write" in args) is write
+    assert summary.read_text() == "fixture report\n"
+
+
+def test_weekly_workflow_only_renders_in_the_read_only_job(tmp_path: Path) -> None:
+    workflow = yaml.safe_load(
+        (ROOT / ".github" / "private-writers" / "price-reread.yml").read_text()
+    )
+    step = next(step for step in workflow["jobs"]["render"]["steps"]
+                if step.get("name") == "Render eligible pages once")
+    script = """\
+python() {
+    printf '%s\\n' "$@" > "$RUNNER_TEMP/argv"
+}
+""" + step["run"]
+    subprocess.run(
+        ["bash", "-c", script], check=True, capture_output=True, text=True,
+        env={**os.environ, "RUNNER_TEMP": str(tmp_path)},
+    )
+    assert (tmp_path / "argv").read_text().splitlines() == [
+        "-I", "-m", "scripts.price_reread", "--render-to", str(tmp_path / "rendered"),
+    ]
 
 
 def test_a_runner_store_keeps_only_cited_and_fetched_copies(estate) -> None:
