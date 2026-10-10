@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from dataclasses import replace
 from datetime import date
+from pathlib import Path
 
 import pytest
 
@@ -310,7 +311,7 @@ def test_unrecognised_copy_cannot_confirm_an_absence(tmp_path):
     assert result.outcome == "skipped"
 
 
-def test_gemma_null_or_unknown_expert_settings_block_dense():
+def test_gemma_null_expert_placeholders_allow_dense_but_populated_settings_block():
     reader = HFConfigExtractor()
     config = {
         "model_type": "gemma4_text",
@@ -320,9 +321,160 @@ def test_gemma_null_or_unknown_expert_settings_block_dense():
         "top_k_experts": None,
         "expert_intermediate_size": None,
     }
-    assert reader.extract(claim(), json.dumps(config), page_url=CONFIG_URL) == []
+    assert reader.extract(claim(), json.dumps(config), page_url=CONFIG_URL) == [
+        Reading("Alpha", "dense-transformer")
+    ]
     config["expert_custom"] = 1
     assert reader.extract(claim(), json.dumps(config), page_url=CONFIG_URL) == []
+
+
+@pytest.mark.parametrize(
+    "name,total,active,heads,ple_hidden",
+    [
+        ("gemma-4-31b-it", 31_273_088_876, None, 32, 0),
+        ("gemma-4-e2b-it", 5_123_178_051, 2_300_000_000, 8, 256),
+        ("gemma-4-e4b-it", 7_996_156_490, 4_500_000_000, 8, 256),
+    ],
+)
+def test_retained_gemma_configs_have_dense_backbones_and_dimension_gated_ple(
+    tmp_path, name, total, active, heads, ple_hidden
+):
+    config = (Path(__file__).parent / "fixtures" / "hf-gemma-4" / f"{name}.json").read_text()
+    text_config = json.loads(config)["text_config"]
+    assert text_config["enable_moe_block"] is False
+    assert text_config["num_experts"] is None
+    assert text_config["top_k_experts"] is None
+    assert text_config["expert_intermediate_size"] is None
+    assert text_config["num_attention_heads"] == heads
+    assert text_config["hidden_size_per_layer_input"] == ple_hidden
+    assert text_config["vocab_size_per_layer_input"] == 262144
+    repo = f"google/{name}"
+    url = f"https://huggingface.co/{repo}/resolve/main/config.json"
+    c = replace(claim(), subject=repo, names=(name, repo))
+    assert HFConfigExtractor().extract(c, config, page_url=url) == [
+        Reading(name, "dense-transformer")
+    ]
+    for facet in ("model.experts_total", "model.experts_per_token"):
+        assert HFConfigExtractor().extract(replace(c, field=facet), config, page_url=url) == []
+    card = (
+        "### Dense Models\n"
+        "| Property | E2B | E4B | 31B Dense |\n"
+        "| --- | --- | --- | --- |\n"
+        "| Total Parameters | 2.3B effective (5.1B with embeddings) | "
+        "4.5B effective (8B with embeddings) | 30.7B |\n"
+        '\nThe "E" in E2B and E4B stands for "effective" parameters.\n'
+        "### Mixture-of-Experts (MoE) Model\n"
+        "| Property | 26B A4B MoE |\n"
+        "| --- | --- |\n"
+        "| Active Parameters | 3.8B |\n"
+    )
+    api = json.dumps({"id": repo, "safetensors": {"parameters": {"BF16": total}}})
+    api_url = f"https://huggingface.co/api/models/{repo}"
+    readme_url = f"https://huggingface.co/{repo}/raw/main/README.md"
+    c = replace(c, field="model.parameters_active", unit="parameters")
+    assert ModelCardParamsExtractor().extract(c, card, page_url=readme_url) == (
+        [] if active is None else [Reading(name, active, "parameters")]
+    )
+    assert DenseActiveEqualsTotalExtractor().extract(
+        c, config, page_url=url, bindings=[(api, api_url), (card, readme_url)]
+    ) == ([] if ple_hidden > 0 else [Reading(name, 31_273_088_876, "parameters")])
+    if name == "gemma-4-31b-it":
+        regions, refs = retained(
+            tmp_path,
+            [("config", url, config), ("api", api_url, api), ("readme", readme_url, card)],
+        )
+        for sid in ("config", "api"):
+            regions.sources[sid] = regions.sources[sid].model_copy(
+                update={"normaliser": "json-default"}
+            )
+        result = verify(
+            replace(c, value=31_273_088_876, sources=tuple(refs)),
+            regions, deterministic_extractors(), today=date(2026, 10, 10),
+        )
+        assert result.outcome == "verified", result
+        assert result.verification.method == "dense-active-equals-total@1"
+
+
+@pytest.mark.parametrize(
+    "extra,expected",
+    [
+        ({"num_experts": None}, "dense-transformer"),
+        ({"num_experts": 0}, "dense-transformer"),
+        ({"num_experts": False}, "dense-transformer"),
+        ({"num_experts": 1}, "dense-transformer"),
+        ({"vision_config": {"num_experts": None}}, "dense-transformer"),
+        ({"vision_config": {"expert_intermediate_size": 128}}, None),
+        ({"enable_moe_block": False, "num_experts": 1}, None),
+        ({"enable_moe_block": False, "num_experts": 0}, None),
+        ({"enable_moe_block": False, "num_experts": 8}, "MoE"),
+        ({"enable_moe_block": True, "num_experts": None}, None),
+        ({"use_moe": False, "num_experts": None}, "dense-transformer"),
+        ({"moe_enabled": False, "other": {"top_k_experts": 1}}, None),
+        ({"enable_moe": False, "layers": [{"num_experts": 8}]}, "MoE"),
+        ({"expert_custom": False}, None),
+        ({"expert_custom": 0}, None),
+        ({"expert_custom": 1}, None),
+    ],
+)
+def test_populated_expert_settings_and_explicit_disable_conflicts(extra, expected):
+    config = {"model_type": "llama", "num_attention_heads": 8, **extra}
+    assert hf_config_architecture(config) == expected
+    text = json.dumps(config)
+    api = '{"id":"lab/Alpha","safetensors":{"parameters":{"BF16":703}}}'
+    assert DenseActiveEqualsTotalExtractor().extract(
+        claim("model.parameters_active"), text, page_url=CONFIG_URL, bindings=[(api, API_URL)]
+    ) == ([Reading("Alpha", 703, "parameters")] if expected == "dense-transformer" else [])
+
+
+@pytest.mark.parametrize("ple", [None, 0])
+@pytest.mark.parametrize("key", ["hidden_size_per_layer_input", "vocab_size_per_layer_input"])
+@pytest.mark.parametrize(
+    "card,expected",
+    [
+        ("# Alpha\nAlpha is released.", [Reading("Alpha", 703, "parameters")]),
+        ("# Beta\n| Effective Parameters | 2.3B |", [Reading("Alpha", 703, "parameters")]),
+        ("# Alpha\nBeta uses 2.3B effective parameters.", [Reading("Alpha", 703, "parameters")]),
+        ("# Alpha\nAlpha uses 2-3B effective parameters.", []),
+        ("# Alpha\n| Effective Parameters | unknown |", []),
+        (
+            "# Alpha\n| Model | Total Parameters |\n| --- | --- |\n"
+            "| Alpha | 2.3B effective |\n| Beta | 3.5B |",
+            [],
+        ),
+        (
+            "# Alpha\n| Model | Total Parameters |\n| --- | --- |\n"
+            "| Alpha | 703M |\n| Beta | 2.3B effective |",
+            [Reading("Alpha", 703, "parameters")],
+        ),
+    ],
+)
+def test_dense_equality_ignores_empty_ple_and_other_variants(ple, key, card, expected):
+    text = json.dumps({"model_type": "llama", "num_attention_heads": 8, key: ple})
+    api = '{"id":"lab/Alpha","safetensors":{"parameters":{"BF16":703}}}'
+    assert DenseActiveEqualsTotalExtractor().extract(
+        claim("model.parameters_active"), text, page_url=CONFIG_URL,
+        bindings=[(api, API_URL), (card, README_URL)],
+    ) == expected
+
+
+@pytest.mark.parametrize(
+    "ple_settings",
+    [
+        {"vocab_size_per_layer_input": 262144},
+        {"hidden_size_per_layer_input": 0, "vocab_size_per_layer_input": 262144},
+        {"hidden_size_per_layer_input": None, "vocab_size_per_layer_input": 262144},
+        {"hidden_size_per_layer_input": -1, "vocab_size_per_layer_input": 262144},
+    ],
+)
+@pytest.mark.parametrize("nested", [False, True])
+def test_dense_equality_requires_positive_ple_dimension_to_block(ple_settings, nested):
+    config = {"model_type": "llama", "num_attention_heads": 8}
+    config = {"text_config": {**config, **ple_settings}} if nested else {**config, **ple_settings}
+    api = '{"id":"lab/Alpha","safetensors":{"parameters":{"BF16":703}}}'
+    assert DenseActiveEqualsTotalExtractor().extract(
+        claim("model.parameters_active"), json.dumps(config), page_url=CONFIG_URL,
+        bindings=[(api, API_URL)],
+    ) == [Reading("Alpha", 703, "parameters")]
 
 
 def test_gemma_shared_readme_scopes_the_moe_table_to_its_variant():
@@ -633,7 +785,7 @@ def test_review_config_absence_requires_a_retained_config(tmp_path, facet, docs)
         ({"model_type": "unrecognised_decoder", "num_attention_heads": 8}, None),
         (
             {"model_type": "llama", "num_attention_heads": 8, "vision_config": {"num_experts": 1}},
-            None,
+            "dense-transformer",
         ),
         (
             {
@@ -737,7 +889,7 @@ def test_dense_rule_requires_an_unpacked_float_census(census, expected):
     "extra,card",
     [
         ({"hidden_size_per_layer_input": 256}, "# Alpha\nAlpha is released."),
-        ({"text_config": {"vocab_size_per_layer_input": 256}}, "# Alpha\nAlpha is released."),
+        ({"text_config": {"hidden_size_per_layer_input": 256}}, "# Alpha\nAlpha is released."),
         ({}, "# Alpha\nAlpha uses 2.3B active parameters."),
         ({}, "# Alpha\nAlpha uses 2.3B effective parameters."),
         ({}, "# Alpha\n| Effective parameters | 2.3B |"),

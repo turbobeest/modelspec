@@ -2127,11 +2127,41 @@ def _expert_count(config: Mapping[str, Any], keys: Sequence[str]) -> int | None:
     return values[0] if values and len(set(values)) == 1 else None
 
 
+def _expert_settings_block_dense(config: Mapping[str, Any]) -> bool:
+    flags = {"enable_moe_block", "enable_moe", "use_moe", "moe_enabled"}
+    settings = [
+        (key.casefold(), value)
+        for part in _config_maps(config)
+        for key, value in part.items()
+        if "expert" in key.casefold() or "moe" in key.casefold()
+    ]
+    disabled = any(key in flags and value is False for key, value in settings)
+    for key, value in settings:
+        if value is None or (key in flags and value is False):
+            continue
+        if not disabled and key in {*_ROUTED_EXPERTS, *_EXPERTS_PER_TOKEN, "n_shared_experts"}:
+            members = value if isinstance(value, list) else [value]
+            if members and all(n is False or (type(n) is int and n in {0, 1}) for n in members):
+                continue
+        return True
+    return False
+
+
+def _populated_ple(config: Mapping[str, Any]) -> bool:
+    return any(
+        key == "hidden_size_per_layer_input"
+        and type(value) in {int, float}
+        and value > 0
+        for part in _config_maps(config)
+        for key, value in part.items()
+    )
+
+
 def hf_config_architecture(config: Mapping[str, Any]) -> str | None:
     """Inspect every level; routed experts win, and dense decoders are allowlisted.
 
-    Shared experts never contribute to the routed count. Any expert or MoE key
-    prevents the dense rule, including an unfamiliar key or a disabled layer.
+    Shared experts never contribute to the routed count. Populated expert or
+    MoE settings block dense; null placeholders and explicit disable flags do not.
     Embedding tasks do not determine a backbone's architecture.
     """
     parts = list(_config_maps(config))
@@ -2142,7 +2172,7 @@ def hf_config_architecture(config: Mapping[str, Any]) -> str | None:
         for n in (part[key] if isinstance(part.get(key), list) else [part.get(key)])
     ):
         return ArchitectureType.MOE.value
-    if any("expert" in key.casefold() or "moe" in key.casefold() for part in parts for key in part):
+    if _expert_settings_block_dense(config):
         return None
     recurrent = re.compile(r"mamba|ssm|hybrid|rwkv|recurrent", re.I)
     if any(
@@ -2538,6 +2568,17 @@ class ModelCardParamsExtractor:
             or not page_url.endswith("/README.md")
         ):
             return []
+        return self._scan(claim, text, bindings)[0]
+
+    def wording(self, claim: Claim, text: str) -> tuple[str, ...]:
+        """Active wording scoped with the same model bindings as scalar readings."""
+        return self._scan(claim, text, ())[1]
+
+    def _scan(
+        self, claim: Claim, text: str, bindings: Sequence[tuple[str, str | None]]
+    ) -> tuple[list[Reading], tuple[str, ...]]:
+        subject = claim.names[0]
+        quotes = []
         text = re.sub(
             r"<table\b.*?</table>",
             lambda m: "\n"
@@ -2580,6 +2621,7 @@ class ModelCardParamsExtractor:
             )
 
         def read_cell(label: str, value: str) -> list[Reading]:
+            quotes.extend(active_parameter_wording(f"{label}: {value}"))
             match = _ACTIVE_VALUE.fullmatch(value) if _ACTIVE_KEY.fullmatch(label) else None
             if not match and (_ACTIVE_KEY.fullmatch(label) or _TOTAL_KEY.fullmatch(label)):
                 match = _EFFECTIVE_VALUE.fullmatch(value)
@@ -2640,6 +2682,13 @@ class ModelCardParamsExtractor:
                 for cells in table:
                     if (
                         model_col is not None
+                        and len(cells) == len(header)
+                        and own(cells[model_col])
+                    ):
+                        for label, value in zip(header, cells):
+                            quotes.extend(active_parameter_wording(f"{label}: {value}"))
+                    if (
+                        model_col is not None
                         and active_col is not None
                         and len(cells) == len(header)
                     ):
@@ -2668,6 +2717,19 @@ class ModelCardParamsExtractor:
             key_value = _PARAMETER_KEY_VALUE.fullmatch(line)
             if key_value and not foreign(heading):
                 out.extend(read_cell(key_value["label"], key_value["value"]))
+            if active_parameter_wording(line):
+                for wording in re.finditer(
+                    r"\b(?:active|activat(?:e|ed|es|ing|ion)|effective)\b", line, re.I
+                ):
+                    prefix = re.split(
+                        r"[;!?]|\.(?=\s)|\b(?:while|whereas)\b",
+                        line[:wording.start()],
+                        flags=re.I,
+                    )[-1]
+                    mentions = _card_model_mentions(prefix, names)
+                    if (mentions and mentions[-1][2]) or (not mentions and not foreign(heading)):
+                        quotes.append(line)
+                        break
             for match in _ACTIVE_PROSE.finditer(line):
                 if not _scalar_parameter_match(line, match):
                     continue
@@ -2678,7 +2740,7 @@ class ModelCardParamsExtractor:
                 if mentions and mentions[-1][2]:
                     out.append(Reading(subject, _parameter_amount(match["amount"]), "parameters"))
             index += 1
-        return out
+        return out, tuple(dict.fromkeys(quotes))
 
 
 class DenseActiveEqualsTotalExtractor:
@@ -2694,11 +2756,7 @@ class DenseActiveEqualsTotalExtractor:
         return (
             config is not None
             and hf_config_architecture(config) in DENSE_ARCHITECTURES
-            and not any(
-                key in {"hidden_size_per_layer_input", "vocab_size_per_layer_input"}
-                for part in _config_maps(config)
-                for key in part
-            )
+            and not _populated_ple(config)
         )
 
     def extract(
@@ -2722,17 +2780,11 @@ class DenseActiveEqualsTotalExtractor:
         for page, url in ((text, page_url), *bindings):
             if _hf_architecture_repo(url) != repo or _hf_bound_subject(claim, page, url) is None:
                 continue
-            if url.endswith("/README.md") and active_parameter_wording(page):
+            if url.endswith("/README.md") and ModelCardParamsExtractor().wording(claim, page):
                 return []
             config = _hf_config(page)
             if config is not None:
-                if any(
-                    "expert" in key.casefold()
-                    or "moe" in key.casefold()
-                    or key in {"hidden_size_per_layer_input", "vocab_size_per_layer_input"}
-                    for part in _config_maps(config)
-                    for key in part
-                ):
+                if _expert_settings_block_dense(config) or _populated_ple(config):
                     return []
                 architecture = hf_config_architecture(config)
                 if architecture is not None and architecture not in DENSE_ARCHITECTURES:

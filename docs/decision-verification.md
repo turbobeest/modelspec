@@ -409,9 +409,14 @@ The architecture rules inspect every config level, including the top level,
 1. Any routed-expert count greater than one means `MoE`. Recognised count
    keys are `n_routed_experts`, `num_local_experts`, `num_experts`, and
    `moe_num_experts`. This includes DBRX's nested `ffn_config`.
-2. Any other expert or MoE key blocks a dense classification, including null
-   placeholders and explicitly disabled blocks. These configs have no
-   architecture reading unless rule 1 establishes MoE.
+2. Populated expert or MoE settings block a dense classification. Null
+   placeholders do not. Recognised counts of 0, false or 1 do not establish
+   MoE or block dense on their own. An explicit false `enable_moe_block`,
+   `enable_moe`, `use_moe`, or `moe_enabled` flag permits dense when all other
+   expert settings are null or absent. A populated setting conflicts with
+   that disable flag and blocks dense; an enabled flag with null counts also
+   blocks dense. Rule 1 still takes priority for a routed count above one.
+   Unfamiliar populated expert keys block dense even with a value of 0 or 1.
 3. Explicit `mamba`, `ssm`, `hybrid`, `rwkv`, or recurrent keys or model types,
    or `linear_attention` / `linear-attention` layer types, mean
    `hybrid-SSM-transformer`. Nemotron-H's `hybrid_override_pattern`,
@@ -465,15 +470,28 @@ Active equals total only for a dense transformer or encoder-only backbone
 whose safetensors census contains exclusively `BF16`, `F16`, and `F32`
 counts. FP8 tensors and their scales, packed `I32` / `U8` weights, unknown
 dtypes, and a census with only `safetensors.total` cannot use this rule.
-It also requires no expert or recurrent settings at any config level, no
-PLE keys such as `hidden_size_per_layer_input` or
-`vocab_size_per_layer_input`, and no active or effective parameter wording
-in a retained model card. The collector cites that README when available so
+It also requires no blocking expert or recurrent settings at any config
+level, no positive PLE dimension in `hidden_size_per_layer_input`, and no
+active or effective parameter wording for the subject variant in a retained
+model card. A null or zero PLE dimension does not block equality, and
+`vocab_size_per_layer_input` alone never blocks it. A zero-width embedding
+table holds no parameters. The same table and prose binding rules used for scalar
+readings scope that wording; disclosures about other variants do not block it.
+The collector cites that README when available so
 the verifier repeats the wording check. The collector requires an existing
 verified total and agreement with the fresh retained API census. Hybrid and
 unclassified configs do not use equality. The verifier repeats the config
 classification and same-repository census comparison without reading the
 collector's value as an input.
+
+The retained Gemma 4 31B, E2B and E4B configs explicitly disable MoE and
+leave expert settings null, so all three have dense backbones. E2B and E4B
+retain their explicit effective counts. In the retained 31B config,
+`hidden_size_per_layer_input` is zero but `vocab_size_per_layer_input` is
+262144. Its zero-width PLE table does not block active = total, so its unpacked
+census gives 31,273,088,876 active parameters through
+`dense-active-equals-total@1`. The shared README's effective counts belong
+to E2B/E4B and do not block equality for 31B.
 
 All HF hardware claims use only the deterministic readers, even when an LLM
 reader is configured. The public API's `config` field is trimmed. It can
