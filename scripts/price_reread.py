@@ -69,7 +69,15 @@ from decision.normalise import (
     canonical_url,
     normalise_document,
 )
-from decision.sources import CopyStore, Fetcher, FetchMode, FetchResult, RenderedFetcher, load_sources
+from decision.sources import (
+    RENDERED_PREPARATIONS,
+    CopyStore,
+    Fetcher,
+    FetchMode,
+    FetchResult,
+    RenderedFetcher,
+    load_sources,
+)
 from decision.verify import (
     Claim,
     ExtractorError,
@@ -154,6 +162,7 @@ class SourceFetch:
     url: str
     outcome: str  # "ok", "rendered", "text_projection", "excluded", or the fetch error
     copy_ref: str | None = None
+    error: str | None = None
 
 
 @dataclass
@@ -189,7 +198,8 @@ class Report:
             "alerts": [f.to_dict() for f in self.alerts],
             "not_reread": dict(Counter(
                 f.reason or "" for f in self.facts if f.status is Status.NOT_REREAD)),
-            "sources": {sid: {"url": s.url, "outcome": s.outcome, "copy": s.copy_ref}
+            "sources": {sid: {"url": s.url, "outcome": s.outcome, "copy": s.copy_ref,
+                              "error": s.error}
                         for sid, s in sorted(self.sources.items())},
         }
 
@@ -250,18 +260,17 @@ def render_to(*, root: Path, directory: Path, rendered: RenderedFetcher) -> None
             assert claim is not None
             source_ids.update(s.source_id for s in claim.sources)
     excluded = excluded_sources()
-    urls = {
-        canonical_url(str(source.url))
-        for sid in source_ids
-        if (source := sources.get(sid)) is not None
-        and source.fetch == FetchMode.RENDERED.value
-        and NORMALISERS[source.normaliser].content == "html"
-        and not excluded.url(source.url)
-    }
+    urls: dict[str, set[str]] = {}
+    for sid in source_ids:
+        source = sources.get(sid)
+        if (source is not None and source.fetch == FetchMode.RENDERED.value
+                and NORMALISERS[source.normaliser].content == "html"
+                and not excluded.url(source.url)):
+            urls.setdefault(canonical_url(str(source.url)), set()).add(sid)
     directory.mkdir(parents=True, exist_ok=True)
     manifest = {}
-    for url in sorted(urls):
-        result = rendered.fetch(url)
+    for url, ids in sorted(urls.items()):
+        result = _fetch_rendered(rendered, url, ids)
         name = hashlib.sha256(url.encode("utf-8")).hexdigest() + ".html"
         if result.outcome == "ok":
             (directory / name).write_bytes(result.body)
@@ -340,7 +349,16 @@ class RenderedReplayFetcher:
         return FetchResult("ok", entry["status"],
                            body=_read_rendered_file(self.directory / entry["file"],
                                                     MAX_RENDERED_BODY_BYTES),
-                           content_type="text/html", charset="utf-8")
+                           content_type="text/html", charset="utf-8", error=entry["error"])
+
+
+def _fetch_rendered(rendered: RenderedFetcher | RenderedReplayFetcher, url: str,
+                    source_ids: Iterable[str]) -> FetchResult:
+    if isinstance(rendered, RenderedReplayFetcher):
+        return rendered.fetch(url)
+    preparation = next((RENDERED_PREPARATIONS[sid] for sid in sorted(source_ids)
+                        if sid in RENDERED_PREPARATIONS), None)
+    return rendered.fetch(url, prepare=preparation) if preparation else rendered.fetch(url)
 
 
 def fetch_sources(source_ids: Iterable[str], sources: Mapping[str, Any], fetcher: Fetcher,
@@ -364,11 +382,11 @@ def fetch_sources(source_ids: Iterable[str], sources: Mapping[str, Any], fetcher
             if NORMALISERS[source.normaliser].content != "html":
                 fetched[sid] = SourceFetch(sid, url, "text_projection")
                 continue
-            result = rendered.fetch(url)
+            result = _fetch_rendered(rendered, url, (sid,))
         else:
             result = fetcher.fetch(url)
         if result.outcome == "ok":
-            fetched[sid] = SourceFetch(sid, url, "ok", store.put(result.body))
+            fetched[sid] = SourceFetch(sid, url, "ok", store.put(result.body), error=result.error)
         else:
             fetched[sid] = SourceFetch(sid, url, result.error or result.outcome)
     return fetched
@@ -471,6 +489,10 @@ def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetc
                    if s.source_id in ok else s for s in old_sources)
     claim = replace(claim, sources=pinned)
     base = replace(base, copies=copies)
+
+    preparation_errors = [f"{sid}: {source.error}" for sid, source in ok.items() if source.error]
+    if preparation_errors:
+        return replace(base, status=Status.UNREADABLE, reason="; ".join(preparation_errors))
 
     result = verify(claim, regions, deterministic_extractors(), today=today)
     if result.outcome == "verified":
@@ -586,7 +608,8 @@ def run(*, root: Path = ROOT, fetcher: Fetcher, store: CopyStore, today: date,
     if retry:
         again = fetch_sources(retry, sources, fetcher, store, rendered=rendered)
         fresh = {sid for sid, f in again.items()
-                 if f.outcome == "ok" and f.copy_ref != report.sources[sid].copy_ref}
+                 if f.outcome == "ok" and (f.copy_ref != report.sources[sid].copy_ref
+                                          or f.error != report.sources[sid].error)}
         report.sources.update({sid: again[sid] for sid in fresh})
         results = [
             reread_fact(t, c, report.sources, regions, today, root, llm)

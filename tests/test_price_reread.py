@@ -24,7 +24,7 @@ from decision.model import (
     VerificationTarget,
     value_hash,
 )
-from decision.sources import CopyStore, FetchResult
+from decision.sources import RENDERED_PREPARATIONS, CopyStore, FetchResult
 from decision.verify import (
     Claim,
     Queue,
@@ -450,6 +450,100 @@ class FakeRenderer(ReplayFetcher):
 
     def __exit__(self, *exc):
         pass
+
+
+class PreparingRenderer(FakeRenderer):
+    def __init__(self, errors):
+        super().__init__({RENDERED_URL: [page("plans.html")]})
+        self.errors = list(errors)
+        self.preparations = []
+
+    def fetch(self, url, *, prepare=None):
+        self.preparations.append(prepare)
+        error = self.errors.pop(0) if len(self.errors) > 1 else self.errors[0]
+        return replace(super().fetch(url), error=error)
+
+
+def _aws_pricing_source(estate):
+    root, _ = estate
+    (root / "registry" / "sources.yaml").write_text(
+        SOURCES.replace("example-rendered", "aws-pricing"))
+    path = root / "offerings/subscriptions/rendered.yaml"
+    path.write_text(path.read_text().replace("example-rendered", "aws-pricing"))
+    queue = Queue(root / "verification")
+    claim = queue.filed()[("fact", RENDERED_PRICE)]
+    queue.file(replace(claim, sources=tuple(
+        source.model_copy(update={"source_id": "aws-pricing"}) for source in claim.sources)), at=AT)
+
+
+def test_render_to_prepares_aws_even_when_an_alias_shares_its_url(estate, tmp_path):
+    _aws_pricing_source(estate)
+    root, _ = estate
+    path = root / "registry" / "sources.yaml"
+    document = yaml.safe_load(path.read_text())
+    document["sources"].append({**document["sources"][-1], "id": "rendered-alias"})
+    path.write_text(yaml.safe_dump(document))
+    queue = Queue(root / "verification")
+    claim = queue.filed()[("fact", PRO_PRICE)]
+    queue.file(replace(claim, sources=tuple(
+        source.model_copy(update={"source_id": "rendered-alias"}) for source in claim.sources)),
+        at=AT)
+    renderer = PreparingRenderer([None])
+    artifact = tmp_path / "rendered"
+    price_reread.render_to(root=root, directory=artifact, rendered=renderer)
+
+    assert renderer.fetched == [RENDERED_URL]
+    assert renderer.preparations == [RENDERED_PREPARATIONS["aws-pricing"]]
+    assert price_reread.RenderedReplayFetcher(artifact).fetch(RENDERED_URL).body == page("plans.html")
+
+
+@pytest.mark.parametrize("replay", [False, True])
+@pytest.mark.parametrize("llm", [False, True])
+def test_failed_preparation_retains_content_and_alerts_in_direct_and_replay_runs(
+    estate, tmp_path, monkeypatch, replay, llm,
+):
+    _aws_pricing_source(estate)
+    root, store = estate
+    if llm:
+        _llm_verified(root, RENDERED_PRICE, 20)
+    error = "rendered preparation failed: pricing cells did not populate"
+    renderer = PreparingRenderer([error])
+    if replay:
+        artifact = tmp_path / "rendered"
+        price_reread.render_to(root=root, directory=artifact, rendered=renderer)
+        entry = json.loads((artifact / "manifest.json").read_text())[RENDERED_URL]
+        assert entry["error"] == error
+        assert (artifact / entry["file"]).read_bytes() == page("plans.html")
+        rendered = price_reread.RenderedReplayFetcher(artifact)
+
+        def forbidden(*args, **kwargs):
+            pytest.fail("replay must not execute a preparation")
+
+        monkeypatch.setattr(price_reread, "RENDERED_PREPARATIONS", {"aws-pricing": forbidden})
+    else:
+        rendered = renderer
+    report, _ = reread(estate, [page("plans.html")], rendered=rendered)
+
+    result = by_id(report)[RENDERED_PRICE]
+    assert result.status is Status.UNREADABLE
+    assert result.reason == f"aws-pricing: {error}"
+    assert result in report.alerts
+    assert result.verification is None
+    assert report.sources["aws-pricing"].copy_ref == store.put(page("plans.html"))
+    assert report.to_dict()["sources"]["aws-pricing"]["error"] == error
+    assert f"aws-pricing: {error}" in render_report(report)
+    assert all(p is RENDERED_PREPARATIONS["aws-pricing"] for p in renderer.preparations)
+
+
+def test_preparation_retry_can_recover_without_changing_captured_bytes(estate):
+    _aws_pricing_source(estate)
+    renderer = PreparingRenderer(["rendered preparation failed: timeout", None])
+    report, _ = reread(estate, [page("plans.html")], rendered=renderer)
+
+    assert by_id(report)[RENDERED_PRICE].status is Status.UNCHANGED
+    assert report.sources["aws-pricing"].error is None
+    assert renderer.fetched == [RENDERED_URL, RENDERED_URL]
+    assert report.alerts == []
 
 
 @pytest.mark.parametrize("body", [page("plans.html"), None])

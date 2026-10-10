@@ -570,6 +570,81 @@ def test_bad_css_selector_is_rejected_at_registration() -> None:
         Locator.css("div:has(> p)")
 
 
+@pytest.mark.parametrize("selector", [
+    'table[aria-label="Prices for models > 1B"] > tbody tr',
+    "table[aria-label='Prices for models > 1B']>tbody>tr",
+])
+def test_css_quotes_preserve_spaces_and_child_characters(selector) -> None:
+    page = (b'<table aria-label="Prices for models &gt; 1B"><tbody>'
+            b'<tr><td>Example</td><td>$4.00</td></tr></tbody></table>'
+            b'<table aria-label="Other prices"><tr><td>Wrong table</td></tr></table>')
+    doc = normalise_document(page, NORMALISERS["html-default"])
+    assert select_region(doc, Locator.css(selector)) == "Example | $4.00"
+
+
+@pytest.mark.parametrize(("selector", "expected"), [
+    ('p[data-label^="Global "]', "Intended"),
+    ('p[data-label*="Anthropic models"]', "Intended"),
+    ("p[data-label$='prices']", "Intended"),
+    ('p[data-label^="global "]', None),
+    ('p[data-label*="Missing"]', None),
+    ('p[data-label$="Global"]', None),
+    ('p[data-label^=""]', None),
+    ('p[data-label*=""]', None),
+    ('p[data-label$=""]', None),
+    ('p[data-label=""]', "Empty"),
+    ('p[data-label]', "Intended\nOther\nEmpty"),
+    ('p[data-label=Regional]', "Other"),
+])
+def test_css_attribute_operators_match_only_their_values(selector, expected) -> None:
+    page = (b'<p data-label="Global Anthropic models prices">Intended</p>'
+            b'<p data-label="Regional">Other</p><p data-label="">Empty</p>'
+            b'<p>No attribute</p>')
+    doc = normalise_document(page, NORMALISERS["html-default"])
+    assert select_region(doc, Locator.css(selector)) == expected
+
+
+def test_aws_semantic_selector_ignores_component_ids_and_other_price_tables() -> None:
+    selector = ('div.aws-table[data-pricing-markup^="<h2>Global Cross-region Inference</h2>"]'
+                '[data-pricing-markup*="<th>Anthropic models</th>"] table')
+    page = b'''<main>
+      <div class="aws-table" data-pricing-markup="&lt;h2&gt;Regional Inference&lt;/h2&gt;&lt;th&gt;Anthropic models&lt;/th&gt;">
+        <table><tr><td>Regional</td><td>$9</td></tr></table>
+      </div>
+      <div class="aws-table" data-pricing-markup="&lt;h2&gt;Global Cross-region Inference&lt;/h2&gt;&lt;th&gt;Other models&lt;/th&gt;">
+        <table><tr><td>Other provider</td><td>$8</td></tr></table>
+      </div>
+      <div class="aws-table" id="aws-element-changing-id" data-pricing-markup="&lt;h2&gt;Global Cross-region Inference&lt;/h2&gt;&lt;th&gt;Anthropic models&lt;/th&gt;">
+        <table><tr><th>Anthropic models</th><th>Input price</th></tr>
+          <tr><td>Claude Opus 5.5</td><td>$4.00</td></tr></table>
+      </div>
+      <div class="aws-table" data-pricing-markup="&lt;h2&gt;Global Cross-region Inference (long context)&lt;/h2&gt;&lt;th&gt;Anthropic models&lt;/th&gt;">
+        <table><tr><td>Long context</td><td>$7</td></tr></table>
+      </div>
+    </main>'''
+    doc = normalise_document(page, NORMALISERS["html-default"])
+    assert select_region(doc, Locator.css(selector)) == (
+        "Anthropic models | Input price\nClaude Opus 5.5 | $4.00")
+
+
+@pytest.mark.parametrize("selector", [
+    'p[data-label~="price"]', 'p[data-label|="price"]', 'p[data-label!="price"]',
+    'p[data-label="price" i]', 'p[data-label="price]', 'p[data-label=price value]',
+    'p[data-label="price"]]', 'p[[data-label]]', 'p[data-label="price"',
+    'p + table', 'p ~ table', 'p,table', '>p', 'p>', 'p>>table',
+])
+def test_css_rejects_unsupported_or_malformed_selectors(selector) -> None:
+    with pytest.raises(ValueError, match="selector"):
+        Locator.css(selector)
+
+
+@pytest.mark.parametrize("selector", [r'p[data-label="a\"b"]', r"p[data-label='a\'b']",
+                                      r'p[data-label="\41"]', r'p[data-label=a\ b]'])
+def test_css_escapes_are_explicitly_rejected(selector) -> None:
+    with pytest.raises(ValueError, match="selector escapes are unsupported"):
+        Locator.css(selector)
+
+
 def test_missing_region_is_changed(store: CopyStore) -> None:
     states = baseline(store)
     stripped = fixture("pricing_v1.html").replace(b'<h2 id="rate-limits">Rate limits</h2>', b"")

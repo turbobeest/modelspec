@@ -301,11 +301,49 @@ class Fetcher:
         return FetchResult("unreachable", error=error)
 
 
+RenderedPreparation = Callable[[Any, float], None]
+
+AWS_GLOBAL_ANTHROPIC_COMPONENT = (
+    'div.aws-table[data-pricing-markup^="<h2>Global Cross-region Inference</h2>"]'
+    '[data-pricing-markup*="<th>Anthropic models</th>"]'
+)
+
+
+def _prepare_aws_pricing(page: Any, timeout: float) -> None:
+    """AWS mounts its pricing cells after opening the provider and scrolling."""
+    deadline = time.monotonic() + timeout
+
+    def remaining_ms() -> float:
+        return max(1.0, (deadline - time.monotonic()) * 1000)
+
+    page.get_by_role("tab", name="Anthropic", exact=True).click(timeout=remaining_ms())
+    page.locator(AWS_GLOBAL_ANTHROPIC_COMPONENT).scroll_into_view_if_needed(
+        timeout=remaining_ms())
+    page.wait_for_function(
+        r"""selector => {
+            const tables = document.querySelectorAll(selector);
+            if (tables.length !== 1) return false;
+            const rows = Array.from(tables[0].querySelectorAll('tr'));
+            const header = rows.some(row => Array.from(row.querySelectorAll('th'))
+                .some(cell => cell.textContent.trim() === 'Anthropic models'));
+            const prices = rows.some(row => Array.from(row.querySelectorAll('td'))
+                .filter(cell => /^\$\d+(?:\.\d+)?$/.test(cell.textContent.trim())).length >= 2);
+            return header && prices;
+        }""",
+        arg=AWS_GLOBAL_ANTHROPIC_COMPONENT + " table", timeout=remaining_ms())
+
+
+# Preparations are engine code, never executable instructions from the registry.
+RENDERED_PREPARATIONS: Mapping[str, RenderedPreparation] = {"aws-pricing": _prepare_aws_pricing}
+
+
 class RenderedFetcher:
     """Opt-in local Chromium fetches, sharing one browser for a context-managed run.
 
     Playwright is imported only when entering the context. Network idle is best
     effort: pages with persistent connections still yield their rendered HTML.
+    An optional preparation runs before capture, within one timeout budget. If
+    it fails, the HTML is still returned with an error for the caller to report.
     """
 
     def __init__(self, *, timeout: float = 20.0, idle_timeout: float = 5.0) -> None:
@@ -336,7 +374,7 @@ class RenderedFetcher:
         finally:
             self._playwright.stop()
 
-    def fetch(self, url: str) -> FetchResult:
+    def fetch(self, url: str, *, prepare: RenderedPreparation | None = None) -> FetchResult:
         from playwright.sync_api import Error, TimeoutError
 
         page = None
@@ -352,8 +390,15 @@ class RenderedFetcher:
                 page.wait_for_load_state("networkidle", timeout=self.idle_timeout * 1000)
             except TimeoutError:
                 pass
+            preparation_error = None
+            if prepare is not None:
+                try:
+                    prepare(page, self.timeout)
+                except Error as exc:
+                    preparation_error = f"rendered preparation failed: {exc}"
             return FetchResult("ok", response.status, body=page.content().encode("utf-8"),
-                               content_type="text/html", charset="utf-8")
+                               content_type="text/html", charset="utf-8",
+                               error=preparation_error)
         except Error as exc:
             return FetchResult("unreachable", error=str(exc))
         finally:

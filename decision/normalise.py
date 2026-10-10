@@ -174,10 +174,11 @@ class UnsupportedContentError(ValueError):
 
 LocatorKind = Literal["page", "css", "heading", "table"]
 
+_ATTRIBUTE = r'''\[([\w-]+)(?:([*^$]?=)("[^"\\]*"|'[^'\\]*'|[^\s\]"'\\=<>]+))?\]'''
 _COMPOUND = re.compile(
-    r"^(?P<tag>[a-zA-Z][\w-]*|\*)?(?P<rest>(?:#[\w-]+|\.[\w-]+|\[[\w-]+(?:=(?:\"[^\"]*\"|'[^']*'|[^\]]*))?\])*)$"
+    rf"^(?P<tag>[a-zA-Z][\w-]*|\*)?(?P<rest>(?:#[\w-]+|\.[\w-]+|{_ATTRIBUTE})*)$"
 )
-_PART = re.compile(r"#([\w-]+)|\.([\w-]+)|\[([\w-]+)(?:=(\"[^\"]*\"|'[^']*'|[^\]]*))?\]")
+_PART = re.compile(rf"#([\w-]+)|\.([\w-]+)|{_ATTRIBUTE}")
 
 
 @dataclass(frozen=True)
@@ -185,7 +186,7 @@ class _Compound:
     tag: str | None
     id: str | None
     classes: tuple[str, ...]
-    attrs: tuple[tuple[str, str | None], ...]
+    attrs: tuple[tuple[str, str | None, str | None], ...]
 
 
 @dataclass(frozen=True)
@@ -193,8 +194,10 @@ class Locator:
     """Where a cited region sits in a page.
 
     ``page`` is the whole normalised page; ``css`` is a simple selector (tags, ``#id``,
-    ``.class``, ``[attr]`` or ``[attr=value]``, joined by descendant or ``>``
-    combinators); ``heading`` is a heading's id or text, and the region runs to the
+    ``.class``, ``[attr]`` or attribute tests with ``=``, ``^=``, ``*=`` and ``$=``,
+    joined by descendant or ``>`` combinators). Quoted values preserve whitespace
+    and ``>``; CSS escapes are unsupported and rejected. ``heading`` is a heading's
+    id or text, and the region runs to the
     next heading of the same or a higher level; ``table`` is the n-th table (0-based).
     """
 
@@ -268,10 +271,51 @@ def _cited_text(text: str | None, excerpt: str | None) -> str | None:
     return excerpt if excerpt in text else None
 
 
+def _selector_tokens(selector: str) -> list[str]:
+    """Split combinators only outside attributes; reject CSS escapes explicitly."""
+    tokens: list[str] = []
+    token: list[str] = []
+    quote = None
+    attribute = False
+    for char in selector:
+        if char == "\\":
+            raise ValueError(f"CSS selector escapes are unsupported: {selector!r}")
+        if quote:
+            token.append(char)
+            if char == quote:
+                quote = None
+        elif char in "\"'" and attribute:
+            quote = char
+            token.append(char)
+        elif char == "[":
+            if attribute:
+                raise ValueError(f"bad CSS selector {selector!r}")
+            attribute = True
+            token.append(char)
+        elif char == "]":
+            if not attribute:
+                raise ValueError(f"bad CSS selector {selector!r}")
+            attribute = False
+            token.append(char)
+        elif not attribute and (char.isspace() or char == ">"):
+            if token:
+                tokens.append("".join(token))
+                token = []
+            if char == ">":
+                tokens.append(char)
+        else:
+            token.append(char)
+    if quote or attribute:
+        raise ValueError(f"bad CSS selector {selector!r}")
+    if token:
+        tokens.append("".join(token))
+    return tokens
+
+
 def _parse_selector(selector: str) -> tuple[tuple[str, _Compound], ...]:
     """Parse into ``((combinator, compound), ...)``; combinator is ``" "`` or ``">"``."""
     selector, _own, _excerpt = _split_citation(selector)
-    tokens = re.sub(r"\s*>\s*", " > ", selector).split()
+    tokens = _selector_tokens(selector)
     steps: list[tuple[str, _Compound]] = []
     combinator = " "
     for token in tokens:
@@ -291,8 +335,9 @@ def _parse_selector(selector: str) -> tuple[tuple[str, _Compound], ...]:
             elif part[2]:
                 classes.append(part[2])
             else:
-                raw = part[4]
-                attrs.append((part[3].lower(), raw.strip("\"'") if raw is not None else None))
+                raw = part[5]
+                value = raw[1:-1] if raw is not None and raw.startswith(('"', "'")) else raw
+                attrs.append((part[3].lower(), part[4], value))
         steps.append(
             (combinator, _Compound(tag and tag.lower(), ident, tuple(classes), tuple(attrs)))
         )
@@ -619,9 +664,21 @@ def _matches_compound(node: Node, c: _Compound) -> bool:
         return False
     if any(cls not in node.classes for cls in c.classes):
         return False
-    for name, value in c.attrs:
-        if name not in node.attrs or (value is not None and node.attrs[name] != value):
+    for name, operator, value in c.attrs:
+        if name not in node.attrs:
             return False
+        actual = node.attrs[name]
+        if operator == "=" and actual != value:
+            return False
+        if operator in ("^=", "*=", "$="):
+            if not value:
+                return False
+            if operator == "^=" and not actual.startswith(value):
+                return False
+            if operator == "*=" and value not in actual:
+                return False
+            if operator == "$=" and not actual.endswith(value):
+                return False
     return True
 
 
