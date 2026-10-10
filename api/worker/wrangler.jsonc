@@ -134,19 +134,18 @@
     // Mainnet USDC on Base (eip155:8453). Off: Base Sepolia only. Flipping
     // this on without also setting X402_NETWORK / X402_ASSET / X402_PAY_TO
     // for mainnet is refused at request time, not silently remapped.
-    "X402_MAINNET": "false",
-    // CAIP-2 Base mainnet, staged for MODEL-333; the Worker refuses every payment
-    // on eip155:8453 while X402_MAINNET is off (x402._check_payload), so this value
-    // is inert until Jamie flips X402_ENABLED and X402_MAINNET together.
+    "X402_MAINNET": "true",
+    // CAIP-2 Base mainnet (MODEL-333). Inert while X402_ENABLED is off.
     // CDP facilitator table, read 2026-09-18:
     // https://docs.cdp.coinbase.com/x402/seller/facilitator
     "X402_NETWORK": "eip155:8453",
     // Circle native USDC on Base. Source, read 2026-10-10:
     // https://developers.circle.com/stablecoins/usdc-contract-addresses
     "X402_ASSET": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
-    // Base mainnet receiving address from Jamie's Coinbase Business account;
-    // empty until he supplies it (MODEL-333). Address only, never a private key.
-    "X402_PAY_TO": "",
+    // PLACEHOLDER: the zero address until Jamie supplies the LLC's Base mainnet
+    // receiving address (MODEL-333). test_x402 refuses it while x402 is on.
+    // EIP-55 checksummed. Address only, never a private key.
+    "X402_PAY_TO": "0x0000000000000000000000000000000000000000",
     // Coinbase CDP facilitator origin. Paths /v2/x402/verify and /v2/x402/settle
     // are appended. https://docs.cdp.coinbase.com/api-reference/v2/rest-api/x402-facilitator/x402-facilitator
     "X402_FACILITATOR_URL": "https://api.cdp.coinbase.com/platform"
