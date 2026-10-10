@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 
 import httpx
 import pytest
@@ -422,11 +423,14 @@ def test_401_exits_five_with_key_recovery(monkeypatch, as_json):
 
 
 def test_compare_help_explains_the_endpoint_and_snapshot_option():
-    result = run(["compare", "--help"], keyed=False)
+    # Rich forces colour on CI runners (GITHUB_ACTIONS); strip ANSI as test_cli_legacy does,
+    # and widen the console so the help panel does not wrap the snapshot pattern.
+    result = CliRunner().invoke(cli.app, ["compare", "--help"], env={"COLUMNS": "200"})
     assert result.exit_code == 0, result.output
-    assert "POST /v1/compare" in result.stdout
-    assert "--to" in result.stdout
-    assert "^snap_[A-Za-z0-9:._-]+$" in result.stdout
+    help_text = re.sub(r"\x1b\[[0-9;]*m", "", result.stdout)
+    assert "POST /v1/compare" in help_text
+    assert "--to" in help_text
+    assert "^snap_[A-Za-z0-9:._-]+$" in help_text
 
 
 @pytest.mark.parametrize(
