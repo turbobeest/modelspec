@@ -544,7 +544,10 @@ async def _post_overage(env, spec, customer_id: str, units: int, identifier: str
 
     Retries at most 3 uncertain entries, then the open backlog, then this
     event. Each post waits at most 5 seconds and sends `timestamp` so Stripe
-    bills the period the usage happened. The first of those sends that is not
+    bills the period the usage happened. The backlog identifier comes from the
+    ledger. When that identifier is missing, this event is parked and nothing
+    is sent under a made-up id. A blank identifier for this event is parked
+    on `overage_unreported` and is not sent. The first of those sends that is not
     accepted stops the report: the rest are skipped, and this event is parked
     with `note_uncertain` under the identifier it already has. A retry that
     gets a definite non-duplicate 4xx is removed and its units go to
@@ -605,8 +608,17 @@ async def _post_overage(env, spec, customer_id: str, units: int, identifier: str
         except Exception:
             logging.error("could not read unreported overage")
         if outstanding > 0:
-            if not backlog_id:
-                backlog_id = f"{holder}:backlog:{seq}"
+            if not str(backlog_id or "").strip():
+                logging.error("scale overage backlog has no identifier")
+                if str(identifier or "").strip():
+                    await park()
+                else:
+                    try:
+                        await ledger.note_unreported(
+                            holder, units, "unreported", customer_id, spec.meter_event)
+                    except Exception:
+                        logging.error("could not record unreported overage")
+                return
             try:
                 await send(outstanding, backlog_id, occurred)
             except Exception:
@@ -618,6 +630,13 @@ async def _post_overage(env, spec, customer_id: str, units: int, identifier: str
             except Exception:
                 logging.error("could not clear unreported overage")
 
+    if not str(identifier or "").strip():
+        try:
+            await ledger.note_unreported(
+                holder, units, "unreported", customer_id, spec.meter_event)
+        except Exception:
+            logging.error("could not record unreported overage")
+        return
     try:
         await send(units, identifier, occurred)
     except Exception as exc:
@@ -1242,15 +1261,32 @@ class Default(WorkerEntrypoint):
             # the overage is already settled and still has to be reported.
             if taken.overage:
                 try:
+                    event_id = await ledger.meter_identifier(
+                        holder, "read", int(taken.token))
                     await ledger.note_unreported(
-                        holder, int(taken.overage), f"{holder}:read:{taken.token}")
+                        holder, int(taken.overage), event_id or "read")
                 except Exception:
                     logging.error("could not record settled catalog overage")
             return None
         if taken.overage:
-            await _post_overage(
-                self.env, spec, bal.stripe_customer_id, taken.overage,
-                f"{holder}:read:{taken.token}", holder=holder)
+            event_id = ""
+            try:
+                event_id = await ledger.meter_identifier(
+                    holder, "read", int(taken.token))
+            except Exception:
+                logging.error("could not name catalog overage")
+            if event_id:
+                await _post_overage(
+                    self.env, spec, bal.stripe_customer_id, taken.overage,
+                    event_id, holder=holder)
+            else:
+                try:
+                    await ledger.note_unreported(
+                        holder, int(taken.overage), "read",
+                        bal.stripe_customer_id,
+                        getattr(spec, "meter_event", "") or "")
+                except Exception:
+                    logging.error("could not record settled catalog overage")
         return None
 
     async def _serve_catalog_as_free(self, outcome, cors, policy):

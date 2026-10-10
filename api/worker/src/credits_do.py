@@ -123,6 +123,12 @@ class CreditsObject(DurableObject):
         self._save(state)
         return ok
 
+    async def meter_identifier(self, holder: str, kind: str, counter: str) -> str:
+        state = self._load()
+        ident = state.meter_identifier(str(holder), str(kind), counter)
+        self._save(state)
+        return ident
+
     async def note_unreported(self, holder: str, units: int, identifier: str,
                               customer_id: str = "", event_name: str = "") -> bool:
         state = self._load()

@@ -666,7 +666,8 @@ def test_scale_catalog_read_reports_one_meter_event_per_settled_block(bundled_en
     assert fields["event_name"] == "modelspec_scale_overage"
     assert fields["payload[stripe_customer_id]"] == "cus_meter"
     assert fields["payload[value]"] == "1"
-    assert fields["identifier"] == f"{holder}:read:1"
+    assert fields["identifier"] == (
+        f"{env.CREDITS.state.accounts[holder].meter_id}:read:1")
     stopped = run(worker.fetch(_vocab(key)))
     assert stopped.status == 200
     assert len(calls) == 1
@@ -965,8 +966,9 @@ def test_the_next_meter_report_sends_the_backlog_then_the_new_event(entry):
     entry.fetch = fetch
     run(entry._post_overage(
         env, _overage_spec(), "cus_ok", 4, f"{holder}:read:9", holder=holder))
+    meter = env.CREDITS.state.accounts[holder].meter_id
     assert [row["identifier"] for row in calls] == [
-        f"{holder}:backlog:0", f"{holder}:read:9"]
+        f"{meter}:backlog:0", f"{holder}:read:9"]
     assert calls[0]["payload[value]"] == "3"
     assert calls[1]["payload[value]"] == "4"
     assert calls[0]["event_name"] == "modelspec_scale_overage"
@@ -1001,7 +1003,7 @@ def test_a_meter_event_timeout_records_unreported_overage_and_returns_the_catalo
     assert account.overage_unreported == 2
     assert account.overage_backlog_open == 2
     assert [row[1] for row in account.overage_uncertain] == [1]
-    assert account.overage_uncertain[0][0].startswith(f"{holder}:read:")
+    assert account.overage_uncertain[0][0] == f"{account.meter_id}:read:1"
     assert account.overage_unreconciled == 0
     assert timeouts == [5_000]
 
@@ -1041,7 +1043,7 @@ def test_a_duplicate_backlog_identifier_is_accepted_and_acked(entry):
         env, _overage_spec(), "cus_d", 1, f"{holder}:read:2", holder=holder))
     account = env.CREDITS.state.accounts[holder]
     assert [row["identifier"] for row in calls] == [
-        f"{holder}:backlog:0", f"{holder}:read:2"]
+        f"{account.meter_id}:backlog:0", f"{holder}:read:2"]
     assert account.overage_unreported == 0
     assert account.overage_backlog_open == 0
     assert account.overage_backlog_n == 1
@@ -1052,9 +1054,10 @@ def test_ack_backlog_acks_only_the_open_n():
     holder = "ack-n"
     assert run(ledger.note_unreported(
         holder, 4, "evt-0", "cus", "modelspec_scale_overage"))
-    assert run(ledger.open_backlog(holder)) == (4, 0, f"{holder}:backlog:0")
-    assert run(ledger.ack_backlog(holder, 4, 1)) is False
+    opened = run(ledger.open_backlog(holder))
     account = ledger.state.accounts[holder]
+    assert opened == (4, 0, f"{account.meter_id}:backlog:0")
+    assert run(ledger.ack_backlog(holder, 4, 1)) is False
     assert account.overage_unreported == 4
     assert account.overage_backlog_open == 4
     assert account.overage_backlog_n == 0
@@ -1064,7 +1067,8 @@ def test_ack_backlog_acks_only_the_open_n():
     assert account.overage_backlog_n == 1
     assert run(ledger.note_unreported(
         holder, 4, "evt-1", "cus", "modelspec_scale_overage"))
-    assert run(ledger.open_backlog(holder)) == (4, 1, f"{holder}:backlog:1")
+    assert run(ledger.open_backlog(holder)) == (
+        4, 1, f"{account.meter_id}:backlog:1")
     assert run(ledger.ack_backlog(holder, 4, 0)) is False
     assert account.overage_unreported == 4
     assert account.overage_backlog_open == 4
@@ -1122,7 +1126,8 @@ def test_a_failed_backlog_drain_keeps_the_unreported_total(entry):
     run(entry._post_overage(
         env, _overage_spec(), "cus_f", 1, f"{holder}:read:2", holder=holder))
     account = env.CREDITS.state.accounts[holder]
-    assert [row["identifier"] for row in calls] == [f"{holder}:backlog:0"]
+    backlog = f"{account.meter_id}:backlog:0"
+    assert [row["identifier"] for row in calls] == [backlog]
     assert calls[0]["payload[value]"] == "4"
     assert account.overage_unreported == 4
     assert [row[0] for row in account.overage_uncertain] == [f"{holder}:read:2"]
@@ -1133,7 +1138,7 @@ def test_a_failed_backlog_drain_keeps_the_unreported_total(entry):
     run(entry._post_overage(
         env, _overage_spec(), "cus_f", 1, f"{holder}:read:3", holder=holder))
     assert [row["identifier"] for row in ok_calls] == [
-        f"{holder}:read:2", f"{holder}:backlog:0", f"{holder}:read:3"]
+        f"{holder}:read:2", backlog, f"{holder}:read:3"]
     assert ok_calls[1]["payload[value]"] == "4"
     assert account.overage_unreported == 0
     assert account.overage_uncertain == []
@@ -1313,7 +1318,7 @@ def test_a_definite_4xx_goes_to_the_backlog_total(entry):
     run(entry._post_overage(
         env, _overage_spec(), "cus_r", 1, f"{holder}:read:2", holder=holder))
     assert [row["identifier"] for row in calls] == [
-        f"{holder}:backlog:0", f"{holder}:read:2"]
+        f"{account.meter_id}:backlog:0", f"{holder}:read:2"]
     assert calls[0]["payload[value]"] == "6"
     assert account.overage_unreported == 0
     assert account.overage_backlog_open == 0
@@ -1509,7 +1514,9 @@ def test_rotation_preserves_uncertain_events_and_identifiers(entry):
     env.CREDITS.state.accounts[src].overage_unreconciled = 8
     assert run(env.CREDITS.note_unreported(
         src, 5, "evt-reject", "cus_rot", "modelspec_scale_overage"))
-    assert run(env.CREDITS.open_backlog(src)) == (5, 0, "key:old:backlog:0")
+    opened = run(env.CREDITS.open_backlog(src))
+    meter = env.CREDITS.state.accounts[src].meter_id
+    assert opened == (5, 0, f"{meter}:backlog:0")
     assert run(env.CREDITS.transfer(src, dst))
     assert src not in env.CREDITS.state.accounts
     moved = env.CREDITS.state.accounts[dst]
@@ -1519,7 +1526,8 @@ def test_rotation_preserves_uncertain_events_and_identifiers(entry):
     assert moved.overage_unreconciled == 8
     assert moved.overage_backlog_open == 5
     assert moved.overage_backlog_n == 0
-    assert moved.overage_backlog_id == "key:old:backlog:0"
+    assert moved.meter_id == meter
+    assert moved.overage_backlog_id == f"{meter}:backlog:0"
 
     calls, fetch = _meter_script([200, 200, 200, 200])
     entry.fetch = fetch
@@ -1528,7 +1536,7 @@ def test_rotation_preserves_uncertain_events_and_identifiers(entry):
     assert [row["identifier"] for row in calls] == [
         "key:old:read:1",
         "key:old:read:4",
-        "key:old:backlog:0",
+        f"{meter}:backlog:0",
         "key:new:read:9",
     ]
     assert calls[2]["payload[value]"] == "5"
@@ -1543,13 +1551,16 @@ def test_transfer_onto_an_existing_holder_keeps_backlog_identifiers():
     state = credits.LedgerState()
     state.set_monthly("key:new", 1, "in_rot", "Scale")
     state.note_unreported("key:old", 5, "evt-old")
-    assert state.open_backlog("key:old") == (5, 0, "key:old:backlog:0")
+    opened_old = state.open_backlog("key:old")
+    old_meter = state.accounts["key:old"].meter_id
+    assert opened_old == (5, 0, f"{old_meter}:backlog:0")
     state.note_uncertain("key:old", 2, "key:old:read:1")
     state.accounts["key:old"].overage_unreconciled = 4
     assert state.transfer("key:old", "key:new")
     acc = state.accounts["key:new"]
     assert acc.monthly == 1
-    assert acc.overage_backlog_id == "key:old:backlog:0"
+    assert acc.meter_id == old_meter
+    assert acc.overage_backlog_id == opened_old[2]
     assert acc.overage_backlog_open == 5
     assert acc.overage_backlog_n == 0
     assert [(row[0], row[1]) for row in acc.overage_uncertain] == [("key:old:read:1", 2)]
@@ -1558,15 +1569,20 @@ def test_transfer_onto_an_existing_holder_keeps_backlog_identifiers():
 
     both = credits.LedgerState()
     both.note_unreported("key:new", 3, "evt-dest")
-    assert both.open_backlog("key:new") == (3, 0, "key:new:backlog:0")
+    dest_open = both.open_backlog("key:new")
+    dest_meter = both.accounts["key:new"].meter_id
+    assert dest_open == (3, 0, f"{dest_meter}:backlog:0")
     both.note_unreported("key:old", 5, "evt-src")
-    assert both.open_backlog("key:old") == (5, 0, "key:old:backlog:0")
+    src_open = both.open_backlog("key:old")
+    src_meter = both.accounts["key:old"].meter_id
+    assert src_open == (5, 0, f"{src_meter}:backlog:0")
     assert both.transfer("key:old", "key:new")
     merged = both.accounts["key:new"]
-    assert merged.overage_backlog_id == "key:new:backlog:0"
+    assert merged.meter_id == dest_meter
+    assert merged.overage_backlog_id == dest_open[2]
     assert merged.overage_backlog_open == 3
     assert merged.overage_unreported == 3
-    assert ("key:old:backlog:0", 5) in [(row[0], row[1]) for row in merged.overage_uncertain]
+    assert (src_open[2], 5) in [(row[0], row[1]) for row in merged.overage_uncertain]
 
 
 def test_billing_docs_name_the_unreported_overage_backlog():
@@ -1576,7 +1592,8 @@ def test_billing_docs_name_the_unreported_overage_backlog():
     assert "overage_uncertain" in text
     assert "overage_unreconciled" in text
     assert "meter event list" in text
-    assert "{holder}:backlog:{n}" in text
+    assert "{meter_id}:backlog:{n}" in text
+    assert "meter_id" in text
     prose = " ".join(text.split())
     assert (
         "The backlog drains on the account's next overage report; an account "
