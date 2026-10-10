@@ -1,6 +1,6 @@
 # The ModelSpec CLI contract
 
-MODEL-307. `modelspec-dev` 0.3.1 is a thin keyed client for the hosted API.
+MODEL-307. `modelspec-dev` 0.4.0 is a thin keyed client for the hosted API.
 The command is `modelspec`. Version 0.2.0 was yanked. Release publication is
 an operator step after review; this repository does not publish to PyPI.
 
@@ -155,7 +155,6 @@ such as residency, MacBook, quantisation, and software engineering). It ignores
 case and treats runs of underscores, hyphens, dots, slashes and whitespace as
 one space. Benchmark domain links are excluded. IDs remain exact and
 case-sensitive. A requested id that is not an exact id in the searched sections
-is listed in `unknown_ids`. The field is absent when every requested id matched.
 An id can match another section: `coding` is a template category, so a starter
 lookup does not list it as unknown, and the same id in `section=domains` does.
 Combining search with IDs intersects the two filters.
@@ -289,3 +288,21 @@ the exception below on 2026-10-04 at 11:21 ET, when the contract was at 2.13:
 The new client error contract is 2.0 because it replaces the retired offline
 CLI. It does not change the decision API contract, the legacy CLI envelope
 1.0, or `build.export_schema_version` 3.0. Those remain separately versioned.
+
+## Release notes
+
+### 0.4.0
+
+A minor release: every change is additive.
+
+- New `modelspec compare --spec FILE|- | --template ID --to SNAP [--json]` wraps `/v1/compare` and needs a key (MODEL-348, #672).
+- A `no_feasible` decision, or any decision that carries `coverage`, prints as the decision body and exits 2 instead of an `http_error` envelope; `answered` and `partial` without coverage still exit 0 (MODEL-347, #638).
+- The request schema accepts a bare `access` kind such as `"chat_app"`, and a wrong `access` value names the accepted forms (MODEL-347, #638).
+
+### 0.3.1
+
+Fixes `DecodingError` on gzip responses (MODEL-343, #634).
+
+### 0.3.0
+
+The thin keyed client that replaced the yanked 0.2.0 (MODEL-307).
