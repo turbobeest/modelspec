@@ -441,6 +441,214 @@ def test_rendered_requires_playwright_without_a_silent_fallback(monkeypatch, cap
     assert "--rendered requires Playwright" in capsys.readouterr().err
 
 
+class FakeRenderer(ReplayFetcher):
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        pass
+
+
+@pytest.mark.parametrize("body", [page("plans.html"), None])
+def test_render_to_only_writes_an_artifact_and_never_verifies(
+    estate, tmp_path, monkeypatch, capsys, body,
+) -> None:
+    root, _ = estate
+    sources_path = root / "registry" / "sources.yaml"
+    sources_path.write_text(SOURCES + """\
+- id: uncited-rendered
+  url: https://uncited.example/pricing
+  fetch: rendered
+  normaliser: html-default
+""")
+    before = {p.relative_to(root): p.read_bytes() for p in root.rglob("*") if p.is_file()}
+    renderer = FakeRenderer({RENDERED_URL: [body]})
+    monkeypatch.setattr(price_reread, "ROOT", root)
+    monkeypatch.setattr(price_reread, "RenderedFetcher", lambda: renderer)
+
+    def forbidden(*args, **kwargs):
+        pytest.fail("render-only mode must not construct a CopyStore or verify facts")
+
+    monkeypatch.setattr(price_reread, "CopyStore", forbidden)
+    monkeypatch.setattr(price_reread, "run", forbidden)
+    artifact = tmp_path / "rendered"
+    report = tmp_path / "report.json"
+    assert price_reread.main(["--render-to", str(artifact), "--report-json", str(report)]) == 0
+    manifest = json.loads((artifact / "manifest.json").read_text())
+    assert list(manifest) == [RENDERED_URL]
+    entry = manifest[RENDERED_URL]
+    assert entry["outcome"] == ("ok" if body else "unreachable")
+    assert entry["status"] == (200 if body else 503)
+    assert entry["error"] == (None if body else "HTTP 503")
+    if body:
+        assert (artifact / entry["file"]).read_bytes() == body
+    else:
+        assert not (artifact / entry["file"]).exists()
+    assert renderer.fetched == [RENDERED_URL]
+    assert before == {p.relative_to(root): p.read_bytes() for p in root.rglob("*") if p.is_file()}
+    assert not report.exists()
+    assert capsys.readouterr().out == ""
+
+
+@pytest.mark.parametrize("change", ["http", "text", "excluded", "unfiled", "quarantined"])
+def test_render_to_skips_sources_a_reread_would_not_render(estate, tmp_path, change) -> None:
+    root, _ = estate
+    path = root / "registry" / "sources.yaml"
+    if change == "http":
+        path.write_text(SOURCES.replace("fetch: rendered", "fetch: http"))
+    elif change == "text":
+        path.write_text(SOURCES.replace("fetch: rendered\n  normaliser: html-default",
+                                       "fetch: rendered\n  normaliser: text-default"))
+    elif change == "excluded":
+        path.write_text(SOURCES.replace(RENDERED_URL, "https://zapier.com/pricing"))
+    elif change == "unfiled":
+        (root / "verification" / "queue" / "events.jsonl").unlink()
+    else:
+        (root / "verification" / "log.jsonl").unlink()
+    renderer = FakeRenderer({})
+    price_reread.render_to(root=root, directory=tmp_path / "rendered", rendered=renderer)
+    assert renderer.fetched == []
+    assert json.loads((tmp_path / "rendered" / "manifest.json").read_text()) == {}
+
+
+def test_render_to_fetches_shared_canonical_urls_once(estate, tmp_path) -> None:
+    root, _ = estate
+    sources_path = root / "registry" / "sources.yaml"
+    document = yaml.safe_load(SOURCES)
+    alias = {**document["sources"][-1], "id": "rendered-alias"}
+    document["sources"].append(alias)
+    sources_path.write_text(yaml.safe_dump(document))
+    queue = Queue(root / "verification")
+    claim = queue.filed()[("fact", PRO_PRICE)]
+    queue.file(replace(claim, sources=tuple(
+        s.model_copy(update={"source_id": "rendered-alias"}) for s in claim.sources)), at=AT)
+    renderer = FakeRenderer({RENDERED_URL: [page("plans.html")]})
+    price_reread.render_to(root=root, directory=tmp_path / "rendered", rendered=renderer)
+    assert renderer.fetched == [RENDERED_URL]
+    assert list(json.loads((tmp_path / "rendered" / "manifest.json").read_text())) == [RENDERED_URL]
+
+
+def test_rendered_from_reconfirms_without_importing_playwright(estate, tmp_path, monkeypatch) -> None:
+    root, store = estate
+    artifact = tmp_path / "rendered"
+    body = page("plans.html") + b"<!-- artifact -->"
+    price_reread.render_to(root=root, directory=artifact,
+                           rendered=FakeRenderer({RENDERED_URL: [body]}))
+    original_import = builtins.__import__
+
+    def without_playwright(name, *args, **kwargs):
+        if name.startswith("playwright"):
+            pytest.fail("replay must never import playwright")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", without_playwright)
+    monkeypatch.setattr(price_reread, "ROOT", root)
+    monkeypatch.setattr(price_reread, "CopyStore", lambda: store)
+    fetcher = ReplayFetcher({PLANS_URL: [page("plans.html")], API_URL: [page("api-pricing.html")]})
+    monkeypatch.setattr(price_reread, "Fetcher", lambda **kwargs: fetcher)
+    report_path = tmp_path / "report.json"
+    assert price_reread.main(["--rendered-from", str(artifact), "--report-json", str(report_path)]) == 0
+    report = json.loads(report_path.read_text())
+    assert RENDERED_PRICE in report["reconfirmed"]
+    assert report["alerts"] == []
+    assert report["sources"]["example-rendered"]["copy"] == store.put(body)
+    assert fetcher.fetched == [API_URL, PLANS_URL]
+    replay = price_reread.RenderedReplayFetcher(artifact)
+    assert replay.fetch(RENDERED_URL) == replay.fetch(RENDERED_URL)
+
+
+@pytest.mark.parametrize("failed", [False, True])
+def test_missing_and_failed_rendered_entries_become_unreachable_alerts(estate, tmp_path, failed) -> None:
+    root, _ = estate
+    artifact = tmp_path / "rendered"
+    price_reread.render_to(root=root, directory=artifact,
+                           rendered=FakeRenderer({RENDERED_URL: [None]}))
+    if not failed:
+        (artifact / "manifest.json").write_text("{}")
+    report, _ = reread(estate, [page("plans.html")],
+                       rendered=price_reread.RenderedReplayFetcher(artifact))
+    [alert] = report.alerts
+    assert (alert.fact_id, alert.status) == (RENDERED_PRICE, "unreachable")
+    assert alert.reason == ("not rendered: HTTP 503" if failed
+                            else "not rendered: URL missing from manifest")
+
+
+def _rendered_artifact(tmp_path, **changes):
+    entry = {"file": "page.html", "outcome": "ok", "status": 200, "error": None, **changes}
+    (tmp_path / "page.html").write_bytes(page("plans.html"))
+    (tmp_path / "manifest.json").write_text(json.dumps({RENDERED_URL: entry}))
+    return tmp_path
+
+
+@pytest.mark.parametrize("name", ["../outside", "sub/page.html", "/tmp/page.html",
+                                  "sub\\page.html", "..", ".", "", "x..html",
+                                  "manifest.json", "bad\x00name"])
+def test_rendered_manifest_rejects_non_plain_file_names(tmp_path, name) -> None:
+    with pytest.raises(ValueError, match="plain name"):
+        price_reread.RenderedReplayFetcher(_rendered_artifact(tmp_path, file=name))
+
+
+@pytest.mark.parametrize("manifest", ["[]", "null", "true", '"body"', "0"])
+def test_rendered_manifest_must_be_an_object(tmp_path, manifest) -> None:
+    (tmp_path / "manifest.json").write_text(manifest)
+    with pytest.raises(ValueError, match="JSON object"):
+        price_reread.RenderedReplayFetcher(tmp_path)
+
+
+@pytest.mark.parametrize("changes", [{"status": True}, {"status": "200"}, {"error": []},
+                                     {"outcome": "surprise"}, {"extra": "field"}])
+def test_rendered_manifest_validates_entry_fields(tmp_path, changes) -> None:
+    with pytest.raises(ValueError, match="invalid rendered"):
+        price_reread.RenderedReplayFetcher(_rendered_artifact(tmp_path, **changes))
+
+
+@pytest.mark.parametrize("name", ["manifest.json", "page.html"])
+def test_rendered_manifest_rejects_symlinks(tmp_path, name) -> None:
+    artifact = _rendered_artifact(tmp_path)
+    target = tmp_path / (name + ".real")
+    (artifact / name).rename(target)
+    (artifact / name).symlink_to(target)
+    with pytest.raises(ValueError, match="symlink"):
+        price_reread.RenderedReplayFetcher(artifact)
+
+
+def test_rendered_manifest_rejects_a_symlink_directory(tmp_path) -> None:
+    directory = tmp_path / "rendered"
+    directory.mkdir()
+    _rendered_artifact(directory)
+    alias = tmp_path / "alias"
+    alias.symlink_to(directory)
+    with pytest.raises(ValueError, match="symlink"):
+        price_reread.RenderedReplayFetcher(alias)
+
+
+@pytest.mark.parametrize("name,limit", [("page.html", price_reread.MAX_RENDERED_BODY_BYTES),
+                                       ("manifest.json", price_reread.MAX_RENDERED_MANIFEST_BYTES)])
+def test_rendered_manifest_rejects_oversize_files(tmp_path, name, limit) -> None:
+    artifact = _rendered_artifact(tmp_path)
+    with (artifact / name).open("wb") as body:
+        body.truncate(limit + 1)
+    with pytest.raises(ValueError, match="exceeds"):
+        price_reread.RenderedReplayFetcher(artifact)
+
+
+def test_rendered_manifest_rejects_duplicate_urls(tmp_path) -> None:
+    entry = '{"file":"page.html","outcome":"ok","status":200,"error":null}'
+    (tmp_path / "manifest.json").write_text(f'{{"{RENDERED_URL}":{entry},"{RENDERED_URL}":{entry}}}')
+    with pytest.raises(ValueError, match="duplicate"):
+        price_reread.RenderedReplayFetcher(tmp_path)
+
+
+@pytest.mark.parametrize("args", [["--rendered", "--render-to", "out"],
+                                  ["--rendered", "--rendered-from", "out"],
+                                  ["--render-to", "out", "--rendered-from", "out"],
+                                  ["--render-to", "out", "--write"]])
+def test_rendering_flags_are_exclusive(args) -> None:
+    with pytest.raises(SystemExit) as exc:
+        price_reread.main(args)
+    assert exc.value.code == 2
+
+
 def test_the_guard_refuses_a_rewrite_of_another_fact(estate) -> None:
     root, _ = estate
     text = (root / PLAN_FILE).read_text()

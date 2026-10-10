@@ -317,6 +317,8 @@ class RenderedFetcher:
 
         self._playwright = sync_playwright().start()
         try:
+            # Keep Playwright's sandbox default. CI isolation comes from the
+            # separate read-only render job, which has no repository write token.
             self._browser = self._playwright.chromium.launch(headless=True)
             self._context = self._browser.new_context(
                 user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
