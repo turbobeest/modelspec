@@ -809,7 +809,7 @@ IN_FORCE = {
     "terms": "Version `1.6`, effective 2026-10-10.",
     "dmca": "Version `1.0`, effective 2026-10-09.",
     "neutrality": "Version `1.3`, effective 2026-09-30.",
-    "privacy": "Version `1.12`, effective 2026-10-08.",
+    "privacy": "Version `1.13`, effective 2026-10-10.",
 }
 
 

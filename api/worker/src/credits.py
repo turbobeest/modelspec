@@ -33,6 +33,7 @@ The unit is a credit.
 from __future__ import annotations
 
 import asyncio
+import secrets
 import time
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -92,9 +93,18 @@ def _uncertain_wire(data: Any) -> list[tuple[str, int, int]]:
     return out
 
 
-def _stamp_backlog_id(acc: _Account, holder: str) -> None:
+def _ensure_meter_id(acc: _Account) -> str:
+    """Random `m_` plus 32 hex chars. Reuse a stored id. Never derive one."""
+    current = str(acc.meter_id or "")
+    if current.strip():
+        return current
+    acc.meter_id = "m_" + secrets.token_hex(16)
+    return acc.meter_id
+
+
+def _stamp_backlog_id(acc: _Account) -> None:
     if acc.overage_backlog_open > 0 and not str(acc.overage_backlog_id or "").strip():
-        acc.overage_backlog_id = f"{holder}:backlog:{acc.overage_backlog_n}"
+        acc.overage_backlog_id = f"{_ensure_meter_id(acc)}:backlog:{acc.overage_backlog_n}"
 
 
 def _append_uncertain(acc: _Account, identifier: str, units: int,
@@ -114,10 +124,16 @@ def _append_uncertain(acc: _Account, identifier: str, units: int,
     return True
 
 
-def _move_meter_tail(existing: _Account, acc: _Account, src: str, dst: str) -> None:
-    """Copy meter retry state onto `dst` without giving an in-flight event a new id."""
-    _stamp_backlog_id(existing, dst)
-    _stamp_backlog_id(acc, src)
+def _move_meter_tail(existing: _Account, acc: _Account) -> None:
+    """Copy meter retry state without giving an in-flight event a new id.
+
+    The destination keeps its own `meter_id` when it has one. Otherwise it
+    inherits the source's. Identifiers already stored are copied as they are.
+    """
+    if not str(existing.meter_id or "").strip():
+        existing.meter_id = str(acc.meter_id or "")
+    _stamp_backlog_id(existing)
+    _stamp_backlog_id(acc)
     existing.overage_unreported += acc.overage_unreported
     existing.overage_unreconciled += acc.overage_unreconciled
     for ident, units, created_at in acc.overage_uncertain:
@@ -505,6 +521,7 @@ class _Account:
     plan: str = ""
     overage_used: int = 0
     stripe_customer_id: str = ""
+    meter_id: str = ""
     read_day: str = ""
     read_count: int = 0
     read_minute: str = ""
@@ -546,6 +563,7 @@ class _Account:
             "plan": self.plan,
             "overage_used": self.overage_used,
             "stripe_customer_id": self.stripe_customer_id,
+            "meter_id": self.meter_id,
             "read_day": self.read_day,
             "read_count": self.read_count,
             "read_minute": self.read_minute,
@@ -597,6 +615,7 @@ class _Account:
             plan=str(data.get("plan") or ""),
             overage_used=int(data.get("overage_used") or 0),
             stripe_customer_id=str(data.get("stripe_customer_id") or ""),
+            meter_id=str(data.get("meter_id") or ""),
             read_day=str(data.get("read_day") or ""),
             read_count=int(data.get("read_count") or 0),
             read_minute=str(data.get("read_minute") or ""),
@@ -867,7 +886,7 @@ class LedgerState:
                 rec["holder"] = dst
         existing = self.accounts.get(dst)
         if existing is None:
-            _stamp_backlog_id(acc, src)
+            _stamp_backlog_id(acc)
             self.accounts[dst] = acc
             return True
         existing.monthly += acc.monthly
@@ -898,7 +917,7 @@ class LedgerState:
         for token, taken in acc.taken_reads.items():
             existing.taken_reads[read_offset + token] = taken
         existing.next_read = read_offset + max(acc.next_read, 1)
-        _move_meter_tail(existing, acc, src, dst)
+        _move_meter_tail(existing, acc)
         return True
 
     def reserve(self, holder: str, units: int = 1, now: str = "",
@@ -1127,24 +1146,39 @@ class LedgerState:
         acc.overage_unreported += amount
         return True
 
+    def meter_identifier(self, holder: str, kind: str, counter: str | int) -> str:
+        """`{meter_id}:{kind}:{counter}`. Generate `meter_id` on first use and store it.
+
+        The id is `m_` plus 32 hex characters from `secrets.token_hex`. It is
+        not derived from the holder, the key, or the Stripe customer. A later
+        call for the same account reuses the stored id. A blank kind or
+        counter returns `""` and stores nothing.
+        """
+        label = str(kind or "").strip()
+        token = str(counter).strip()
+        if not label or token == "":
+            return ""
+        return f"{_ensure_meter_id(self._acc(holder))}:{label}:{token}"
+
     def open_backlog(self, holder: str) -> tuple[int, int, str]:
         """Units to send, the backlog `n`, and the stored identifier.
 
         The first call snapshots `overage_unreported` into
-        `overage_backlog_open` and stores `{holder}:backlog:{n}`. Until
+        `overage_backlog_open` and stores `{meter_id}:backlog:{n}`. Until
         `ack_backlog`, a later call repeats that snapshot, so a retry uses
         the same identifier and the same value after the holder is renamed.
+        An identifier already stored is not rewritten.
         """
         acc = self.accounts.get(holder)
         if acc is None:
             return 0, 0, ""
         if acc.overage_backlog_open > 0:
-            _stamp_backlog_id(acc, holder)
+            _stamp_backlog_id(acc)
             return acc.overage_backlog_open, acc.overage_backlog_n, acc.overage_backlog_id
         if acc.overage_unreported < 1:
             return 0, 0, ""
         acc.overage_backlog_open = acc.overage_unreported
-        acc.overage_backlog_id = f"{holder}:backlog:{acc.overage_backlog_n}"
+        acc.overage_backlog_id = f"{_ensure_meter_id(acc)}:backlog:{acc.overage_backlog_n}"
         return acc.overage_backlog_open, acc.overage_backlog_n, acc.overage_backlog_id
 
     def ack_backlog(self, holder: str, units: int, n: int) -> bool:
@@ -1298,6 +1332,9 @@ class Ledger(Protocol):
 
     async def keep_read(self, holder: str, token: int) -> bool: ...
 
+    async def meter_identifier(self, holder: str, kind: str,
+                               counter: str | int) -> str: ...
+
     async def note_unreported(self, holder: str, units: int, identifier: str,
                               customer_id: str = "", event_name: str = "") -> bool: ...
 
@@ -1386,6 +1423,11 @@ class MemoryLedger:
     async def keep_read(self, holder: str, token: int) -> bool:
         async with self._lock:
             return self.state.keep_read(holder, token)
+
+    async def meter_identifier(self, holder: str, kind: str,
+                               counter: str | int) -> str:
+        async with self._lock:
+            return self.state.meter_identifier(holder, kind, counter)
 
     async def note_unreported(self, holder: str, units: int, identifier: str,
                               customer_id: str = "", event_name: str = "") -> bool:
@@ -1493,6 +1535,10 @@ class UnboundLedger:
         raise StoreNotConfigured("CREDITS Durable Object is not bound")
 
     async def keep_read(self, holder: str, token: int) -> bool:
+        raise StoreNotConfigured("CREDITS Durable Object is not bound")
+
+    async def meter_identifier(self, holder: str, kind: str,
+                               counter: str | int) -> str:
         raise StoreNotConfigured("CREDITS Durable Object is not bound")
 
     async def note_unreported(self, holder: str, units: int, identifier: str,
@@ -1603,6 +1649,11 @@ class DurableLedger:
 
     async def keep_read(self, holder: str, token: int) -> bool:
         return bool(await self._stub.keep_read(holder, int(token)))
+
+    async def meter_identifier(self, holder: str, kind: str,
+                               counter: str | int) -> str:
+        return str(await self._stub.meter_identifier(
+            holder, str(kind), str(counter)) or "")
 
     async def note_unreported(self, holder: str, units: int, identifier: str,
                               customer_id: str = "", event_name: str = "") -> bool:
