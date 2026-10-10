@@ -322,10 +322,14 @@ def test_issues_job_uses_github_token():
     assert "issues" not in json.dumps(wf["jobs"]["draft"].get("permissions"))
 
 
-def test_curation_has_no_firecrawl_secret_and_uses_plain_http_without_a_key():
+def test_curation_keeps_its_existing_firecrawl_secret_and_plain_http_without_a_key():
     wf, _ = _wf()
     hits = _steps_with(wf, "FIRECRAWL_API_KEY")
-    assert hits == []
+    assert len(hits) == 1
+    job, step = hits[0]
+    assert job == "watch"
+    assert step["name"] == "Run watcher and classifier (Firecrawl cap 10, plain HTTP if no key)"
+    assert step["env"] == {"FIRECRAWL_API_KEY": "${{ secrets.FIRECRAWL_API_KEY }}"}
     run = next(s["run"] for s in wf["jobs"]["watch"]["steps"]
                if s.get("name", "").startswith("Run watcher and classifier"))
     assert run.count("--firecrawl-credit-cap 10") == 2 and run.count("--firecrawl-key-from-env") == 2

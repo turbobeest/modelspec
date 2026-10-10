@@ -49,6 +49,7 @@ import argparse
 import difflib
 import hashlib
 import json
+import os
 import re
 import stat
 import sys
@@ -175,6 +176,7 @@ class Report:
     #: source_id -> unified diff lines of its cited regions, old copy to new.
     diffs: dict[str, list[str]] = field(default_factory=dict)
     overdue: list[str] = field(default_factory=list)
+    fallback_spend: str | None = None
 
     @property
     def changes(self) -> list[FactResult]:
@@ -486,6 +488,8 @@ def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetc
           if fetched[s.source_id].outcome == "ok"}
     if not ok:
         outcomes = sorted({fetched[s.source_id].outcome for s in old_sources})
+        if "fallback was a fake run" in outcomes:
+            return replace(base, reason="fallback was a fake run")
         if set(outcomes) <= {"rendered", "text_projection", "excluded"}:
             if "text_projection" in outcomes:
                 return replace(base, reason="the retained copy is a text projection; "
@@ -867,6 +871,8 @@ def render_report(report: Report) -> str:
         "a fresh copy of its page.",
         "",
     ]
+    if report.fallback_spend is not None:
+        out += [report.fallback_spend, ""]
     if report.changes:
         out += ["### Changed values", "",
                 "A person reviews every change here before it merges; none auto-merges.", "",
@@ -917,6 +923,8 @@ def main(argv: list[str] | None = None) -> int:
                            help="fetch failed eligible pages with the capped Firecrawl fallback")
     parser.add_argument("--fallback-to", type=Path)
     parser.add_argument("--fallback-ledger", type=Path)
+    parser.add_argument("--fallback-fake", action="store_true",
+                        help="demo fallback artifacts with fake HTML, no key or network")
     parser.add_argument("--fallback-from", type=Path,
                         help="replay a validated fallback artifact, without a Firecrawl key")
     parser.add_argument("--report-json", type=Path)
@@ -932,13 +940,15 @@ def main(argv: list[str] | None = None) -> int:
                 or args.fallback_from):
             parser.error("--fallback-from-render requires --fallback-to and --fallback-ledger, "
                          "without --write or --fallback-from")
-    elif args.fallback_to is not None or args.fallback_ledger is not None:
-        parser.error("--fallback-to and --fallback-ledger require --fallback-from-render")
+    elif args.fallback_to is not None or args.fallback_ledger is not None or args.fallback_fake:
+        parser.error("--fallback-to, --fallback-ledger and --fallback-fake require "
+                     "--fallback-from-render")
     if args.fallback_from is not None and args.rendered_from is None:
         parser.error("--fallback-from requires --rendered-from")
 
     with ExitStack() as stack:
         rendered = None
+        fallback_spend = None
         if args.rendered or args.render_to is not None:
             try:
                 rendered = stack.enter_context(RenderedFetcher())
@@ -955,16 +965,25 @@ def main(argv: list[str] | None = None) -> int:
             except (OSError, ValueError) as exc:
                 parser.error(f"invalid rendered artifact: {exc}")
         if args.fallback_from_render is not None:
-            from decision.firecrawl import FirecrawlFetcher
-            from scripts.price_reread_fallback import fallback_to, monthly_allowance
+            from decision.firecrawl import FakeFirecrawlFetcher, FirecrawlFetcher
+            from scripts.price_reread_fallback import fallback_to, monthly_budget, read_fallback
 
             try:
                 rendered = RenderedReplayFetcher(args.fallback_from_render)
                 month = datetime.now(UTC).strftime("%Y-%m")
+                budget = monthly_budget(args.fallback_ledger, month)
                 fallback_to(root=ROOT, rendered=rendered, directory=args.fallback_to, month=month,
-                            plain=Fetcher(user_agent=USER_AGENT),
-                            firecrawl=FirecrawlFetcher(
-                                allowance=monthly_allowance(args.fallback_ledger, month)))
+                            # Missing plain entries are unavailable in a fake run.
+                            # Demo eligibility never makes a primary HTTP request.
+                            plain=(rendered if args.fallback_fake else
+                                   Fetcher(user_agent=USER_AGENT)),
+                            firecrawl=FakeFirecrawlFetcher() if args.fallback_fake else
+                            FirecrawlFetcher(allowance=budget.allowance), budget=budget)
+                replay, _ = read_fallback(args.fallback_to)
+                print(replay.spend_line)
+                if summary := os.environ.get("GITHUB_STEP_SUMMARY"):
+                    with Path(summary).open("a", encoding="utf-8") as output:
+                        output.write(replay.spend_line + "\n")
             except (OSError, ValueError) as exc:
                 parser.error(f"invalid fallback artifact or ledger: {exc}")
             return 0
@@ -974,6 +993,7 @@ def main(argv: list[str] | None = None) -> int:
 
             try:
                 fallback, _ = read_fallback(args.fallback_from)
+                fallback_spend = fallback.spend_line
             except (OSError, ValueError) as exc:
                 parser.error(f"invalid fallback artifact: {exc}")
             fetcher = FallbackFetcher(fetcher, fallback)
@@ -982,6 +1002,7 @@ def main(argv: list[str] | None = None) -> int:
         report = run(root=ROOT, fetcher=fetcher, store=store,
                      today=args.today or datetime.now(UTC).date(), write=args.write,
                      rendered=rendered)
+        report.fallback_spend = fallback_spend
     markdown = render_report(report)
     if args.report_md:
         args.report_md.write_text(markdown + "\n", encoding="utf-8")

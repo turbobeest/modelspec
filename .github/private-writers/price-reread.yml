@@ -143,7 +143,10 @@ jobs:
     name: Fetch failed pages with capped Firecrawl
     needs: render
     # The ledger excludes this run ID, so a rerun must not spend again.
-    if: vars.PRICE_REREAD_FIRECRAWL == 'true' && github.ref == 'refs/heads/main' && github.run_attempt == 1
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      ((github.event_name == 'schedule' && vars.PRICE_REREAD_FIRECRAWL == 'true' && github.run_attempt == 1) ||
+      (github.event_name == 'workflow_dispatch' && inputs.fallback_fake))
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     permissions:
@@ -294,9 +297,13 @@ jobs:
             fi
           done <<< "$ids"
       - name: Fetch only failed eligible pages
+        if: github.event_name == 'schedule' && vars.PRICE_REREAD_FIRECRAWL == 'true' && github.ref == 'refs/heads/main' && github.run_attempt == 1
         env:
           FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
         run: python -I -m scripts.price_reread --fallback-from-render "$RUNNER_TEMP/rendered" --fallback-to "$RUNNER_TEMP/fallback" --fallback-ledger "$RUNNER_TEMP/firecrawl-ledger"
+      - name: Fake fallback demo without credentials or network
+        if: github.event_name == 'workflow_dispatch' && inputs.fallback_fake
+        run: python -I -m scripts.price_reread --fallback-from-render "$RUNNER_TEMP/rendered" --fallback-to "$RUNNER_TEMP/fallback" --fallback-ledger "$RUNNER_TEMP/firecrawl-ledger" --fallback-fake
       - name: Retain fallback pages and monthly spend
         if: always()
         uses: actions/upload-artifact@v4
@@ -598,5 +605,9 @@ jobs:
     inputs:
       dry_run:
         description: Re-read and report without opening a pull request or an issue
+        type: boolean
+        default: false
+      fallback_fake:
+        description: Run the isolated fallback demo with fake HTML, zero credits and no key
         type: boolean
         default: false

@@ -6,6 +6,7 @@ import json
 import os
 import subprocess
 from pathlib import Path
+from types import SimpleNamespace
 
 import httpx
 import pytest
@@ -45,10 +46,15 @@ def payload(html="<html><body>fixture pricing</body></html>", status=200):
     return {"success": True, "data": {"rawHtml": html, "metadata": {"statusCode": status}}}
 
 
-def scraper(*, allowance=12, response=None, status=200, handler=None):
+def scraper(*, allowance=12, response=None, status=200, handler=None, balance_handler=None):
     calls = []
 
     def serve(request):
+        if request.url.path == "/v2/team/credit-usage":
+            assert request.method == "GET"
+            if balance_handler:
+                return balance_handler(request)
+            return httpx.Response(200, json={"success": True, "data": {"remainingCredits": 1000}})
         calls.append(request)
         assert str(request.url) == "https://api.firecrawl.dev/v2/scrape"
         if handler:
@@ -121,6 +127,206 @@ def test_no_key_means_no_request(monkeypatch):
     fetcher, calls = scraper()
     assert fetcher.fetch(PLAN).error == "FIRECRAWL_API_KEY is not configured"
     assert calls == [] and fetcher.credits_spent == 0
+
+
+@pytest.mark.parametrize(
+    "failure,reason",
+    [
+        ("network", "Firecrawl team balance request failed"),
+        ("timeout", "Firecrawl team balance read timed out"),
+        ("http", "Firecrawl team balance HTTP 503"),
+        ("redirect", "Firecrawl team balance HTTP 302"),
+        ("json", "Firecrawl team balance response is invalid"),
+        ("shape", "Firecrawl team balance response is invalid"),
+        ("duplicate", "Firecrawl team balance response is invalid"),
+        ("oversize", "Firecrawl team balance response is invalid"),
+    ],
+)
+def test_balance_failures_make_zero_scrapes_and_record_why(
+    failure, reason, allowed_estate, tmp_path, capsys, caplog
+):
+    balance_reads = []
+
+    def balance(request):
+        balance_reads.append(request)
+        if failure == "network":
+            raise httpx.ConnectError(KEY, request=request)
+        if failure == "timeout":
+            raise httpx.ReadTimeout(KEY, request=request)
+        if failure in {"http", "redirect"}:
+            return httpx.Response(503 if failure == "http" else 302, json={"error": KEY})
+        if failure == "json":
+            return httpx.Response(200, content=b"not JSON")
+        if failure == "duplicate":
+            return httpx.Response(200, content=b'{"success":true,"success":false}')
+        if failure == "oversize":
+            return httpx.Response(200, content=b"x" * (firecrawl.MAX_BALANCE_RESPONSE_BYTES + 1))
+        return httpx.Response(200, json={"success": True, "data": {"remainingCredits": True}})
+
+    paid, calls = scraper(balance_handler=balance)
+    root, _ = allowed_estate
+    output = tmp_path / "fallback"
+    fallback.fallback_to(
+        root=root,
+        rendered=price_reread.RenderedReplayFetcher(artifact(tmp_path / "render")),
+        directory=output,
+        month=MONTH,
+        plain=ReplayFetcher({PLAN: [None], API: [None]}),
+        firecrawl=paid,
+        budget=fallback.MonthlyBudget(12, 7, 1),
+    )
+    assert calls == []
+    assert len(balance_reads) == 1
+    assert balance_reads[0].headers["Authorization"] == "Bearer " + KEY
+    assert balance_reads[0].extensions["timeout"] == dict.fromkeys(
+        ("connect", "read", "write", "pool"), 10
+    )
+    assert paid.fetch(PLAN).error == reason  # No retry after a failed balance read.
+    assert len(balance_reads) == 1 and calls == []
+    replay, spent = fallback.read_fallback(output)
+    manifest = (output / "manifest.json").read_text()
+    assert spent == paid.credits_spent == 0
+    assert replay.manifest == {}
+    assert json.loads(manifest)["stop_reason"] == reason
+    assert reason in replay.spend_line and "team balance=unread" in replay.spend_line
+    assert KEY not in manifest + replay.spend_line + capsys.readouterr().out + caplog.text
+
+
+@pytest.mark.parametrize("value", [None, -1, True, "1000", [], {}, float("inf"), float("nan")])
+def test_invalid_balance_values_fail_closed(value):
+    paid, calls = scraper(
+        balance_handler=lambda _: httpx.Response(
+            200, content=json.dumps({"success": True, "data": {"remainingCredits": value}}).encode()
+        )
+    )
+    assert paid.fetch(PLAN).error == "Firecrawl team balance response is invalid"
+    assert calls == [] and paid.credits_spent == 0
+
+
+@pytest.mark.parametrize(
+    "body",
+    [
+        [],
+        {"success": False},
+        {"success": "true", "data": {}},
+        {"success": True},
+        {"success": True, "data": []},
+        {"success": True, "data": {}},
+        {"success": True, "data": {"remainingCredits": 1000}, "error": KEY},
+    ],
+)
+def test_invalid_balance_shapes_fail_closed(body):
+    paid, calls = scraper(balance_handler=lambda _: httpx.Response(200, json=body))
+    assert paid.fetch(PLAN).error == "Firecrawl team balance response is invalid"
+    assert calls == [] and paid.credits_spent == 0
+
+
+@pytest.mark.parametrize(
+    "remaining,spend", [(0, 0), (99, 0), (99.5, 0), (100, 1), (100.5, 1), (101, 1), (1000, 1)]
+)
+def test_team_balance_floor_is_one_hundred(remaining, spend):
+    assert firecrawl.FIRECRAWL_MIN_TEAM_BALANCE == 100
+    paid, calls = scraper(
+        balance_handler=lambda _: httpx.Response(
+            200, json={"success": True, "data": {"remainingCredits": remaining}}
+        )
+    )
+    result = paid.fetch(PLAN)
+    assert len(calls) == paid.credits_spent == spend
+    assert paid.team_balance == remaining
+    if spend:
+        assert result.outcome == "ok"
+    else:
+        assert result.error == "Firecrawl team balance below minimum of 100 credits"
+
+
+def test_balance_is_read_before_each_scrape_and_is_not_charged():
+    requests = []
+    balances = iter([101, 100, 99])
+
+    def serve(request):
+        requests.append((request.method, request.url.path))
+        if request.method == "GET":
+            return httpx.Response(
+                200, json={"success": True, "data": {"remainingCredits": next(balances)}}
+            )
+        return httpx.Response(200, json=payload())
+
+    paid = FirecrawlFetcher(allowance=12, transport=httpx.MockTransport(serve))
+    assert paid.fetch(PLAN).outcome == "ok"
+    assert paid.fetch(HELP).outcome == "ok"
+    assert paid.fetch(API).outcome == "unreachable"
+    assert paid.credits_spent == 2
+    assert requests == [
+        ("GET", "/v2/team/credit-usage"),
+        ("POST", "/v2/scrape"),
+        ("GET", "/v2/team/credit-usage"),
+        ("POST", "/v2/scrape"),
+        ("GET", "/v2/team/credit-usage"),
+    ]
+
+
+@pytest.mark.parametrize("remaining", [99, 99.5])
+def test_low_team_balance_is_recorded_without_reserving_a_credit(
+    remaining, allowed_estate, tmp_path
+):
+    root, _ = allowed_estate
+    paid, calls = scraper(
+        balance_handler=lambda _: httpx.Response(
+            200, json={"success": True, "data": {"remainingCredits": remaining}}
+        )
+    )
+    output = tmp_path / "fallback"
+    fallback.fallback_to(
+        root=root,
+        rendered=price_reread.RenderedReplayFetcher(artifact(tmp_path / "render")),
+        directory=output,
+        month=MONTH,
+        plain=ReplayFetcher({PLAN: [None], API: [None]}),
+        firecrawl=paid,
+        budget=fallback.MonthlyBudget(12, 0, 0),
+    )
+    replay, spent = fallback.read_fallback(output)
+    assert spent == 0 and calls == [] and replay.manifest == {}
+    assert json.loads((output / "manifest.json").read_text())["team_balance"] == remaining
+    assert f"team balance={remaining}" in replay.spend_line
+    assert "Stopped: Firecrawl team balance below minimum of 100 credits" in replay.spend_line
+
+
+@pytest.mark.parametrize(
+    "field,value",
+    [
+        ("fake", "true"),
+        ("fake", True),
+        ("credits_reserved", 0),
+        ("allowance", True),
+        ("allowance", 13),
+        ("prior_month_spend_known", -1),
+        ("unreadable_ledgers", True),
+        ("team_balance", True),
+        ("team_balance", KEY),
+        ("team_balance", float("nan")),
+        ("stop_reason", KEY),
+    ],
+)
+def test_new_artifact_accounting_rejects_forged_values_and_credentials(tmp_path, field, value):
+    directory = artifact(tmp_path, fallback_manifest=True)
+    path = directory / "manifest.json"
+    manifest = json.loads(path.read_text())
+    manifest.update(
+        schema_version=2,
+        fake=False,
+        credits_reserved=1,
+        allowance=12,
+        prior_month_spend_known=0,
+        unreadable_ledgers=0,
+        team_balance=1000,
+        stop_reason=None,
+    )
+    manifest[field] = value
+    path.write_text(json.dumps(manifest))
+    with pytest.raises(ValueError, match="invalid fallback"):
+        fallback.read_fallback(directory)
 
 
 @pytest.mark.parametrize("status", [200, 403, 503])
@@ -268,6 +474,7 @@ def test_only_actual_failed_render_entries_are_fetched(
         month=MONTH,
         plain=ReplayFetcher({PLAN: [b"ok"], API: [b"ok"]}),
         firecrawl=paid,
+        budget=fallback.MonthlyBudget(paid.allowance, 0, 0),
     )
     assert [json.loads(c.content)["url"] for c in calls] == ([] if render_ok or missing else [HELP])
     assert {p.relative_to(root): p.read_bytes() for p in root.rglob("*") if p.is_file()} == before
@@ -290,6 +497,7 @@ def test_a_not_modified_render_entry_is_not_a_failed_fetch(allowed_estate, tmp_p
         month=MONTH,
         plain=ReplayFetcher({PLAN: [b"ok"], API: [b"ok"]}),
         firecrawl=paid,
+        budget=fallback.MonthlyBudget(paid.allowance, 0, 0),
     )
     assert calls == []
 
@@ -310,6 +518,7 @@ def test_plain_http_failures_are_eligible_but_unlisted_hosts_are_filtered(estate
         month=MONTH,
         plain=plain,
         firecrawl=paid,
+        budget=fallback.MonthlyBudget(paid.allowance, 0, 0),
     )
     assert plain.fetched == [PLAN]
     assert [json.loads(c.content)["url"] for c in calls] == [PLAN]
@@ -331,6 +540,7 @@ def test_fallback_stops_before_the_next_call_exceeds_the_monthly_allowance(
         month=MONTH,
         plain=ReplayFetcher({PLAN: [None], API: [None]}),
         firecrawl=paid,
+        budget=fallback.MonthlyBudget(paid.allowance, 0, 0),
     )
     replay, spent = fallback.read_fallback(tmp_path / "fallback")
     assert len(calls) == spent == allowance
@@ -357,6 +567,7 @@ def test_spend_is_checkpointed_before_a_request_can_be_interrupted(allowed_estat
             month=MONTH,
             plain=ReplayFetcher({PLAN: [b"ok"], API: [b"ok"]}),
             firecrawl=paid,
+            budget=fallback.MonthlyBudget(paid.allowance, 0, 0),
         )
     _, spent = fallback.read_fallback(directory)
     assert spent == 1
@@ -369,9 +580,15 @@ def test_monthly_ledger_math_stops_at_sixty(tmp_path):
             urls=tuple(f"{PLAN}{n}" for n in range(spent)),
             fallback_manifest=True,
         )
-    assert fallback.monthly_allowance(tmp_path, MONTH) == 5
+    assert fallback.monthly_budget(tmp_path, MONTH).allowance == 5
     artifact(tmp_path / "last", urls=tuple(f"{PLAN}{n}" for n in range(5)), fallback_manifest=True)
-    assert fallback.monthly_allowance(tmp_path, MONTH) == 0
+    assert fallback.monthly_budget(tmp_path, MONTH).allowance == 0
+
+
+def test_monthly_accounting_keeps_known_spend_and_unreadable_count_separate(tmp_path):
+    artifact(tmp_path / "known", urls=tuple(f"{PLAN}{n}" for n in range(7)), fallback_manifest=True)
+    (tmp_path / "unreadable").mkdir()
+    assert fallback.monthly_budget(tmp_path, MONTH) == fallback.MonthlyBudget(12, 7, 1)
 
 
 @pytest.mark.parametrize(
@@ -434,12 +651,12 @@ def test_unreadable_and_forged_ledgers_reserve_twelve_instead_of_increasing_the_
         elif forgery == "traversal":
             manifest["pages"][HELP]["file"] = "../page.html"
         path.write_text(json.dumps(manifest))
-    assert fallback.monthly_allowance(tmp_path, MONTH) == 0
+    assert fallback.monthly_budget(tmp_path, MONTH).allowance == 0
 
 
 def test_empty_ledger_never_allows_more_than_twelve_and_missing_ledger_allows_nothing(tmp_path):
-    assert fallback.monthly_allowance(tmp_path, MONTH) == 12
-    assert fallback.monthly_allowance(tmp_path / "missing", MONTH) == 0
+    assert fallback.monthly_budget(tmp_path, MONTH).allowance == 12
+    assert fallback.monthly_budget(tmp_path / "missing", MONTH).allowance == 0
 
 
 @pytest.mark.parametrize("primary_ok", [True, False])
@@ -463,6 +680,7 @@ def test_cli_replay_reconfirms_without_constructing_a_paid_fetcher(
     allowed_estate,
     tmp_path,
     monkeypatch,
+    capsys,
 ):
     root, store = allowed_estate
     rendered = artifact(tmp_path / "render")
@@ -497,6 +715,7 @@ def test_cli_replay_reconfirms_without_constructing_a_paid_fetcher(
         == 0
     )
     assert json.loads(report.read_text())["counts"]["unchanged"] == 6
+    assert "Firecrawl fallback: credits reserved/used=1" in capsys.readouterr().out
 
 
 def test_cli_fallback_writes_only_an_artifact_and_redacts_error_responses(
@@ -510,6 +729,10 @@ def test_cli_fallback_writes_only_an_artifact_and_redacts_error_responses(
     rendered = artifact(tmp_path / "render")
     ledger = tmp_path / "ledger"
     ledger.mkdir()
+    artifact(ledger / "known", urls=tuple(f"{PLAN}{n}" for n in range(7)), fallback_manifest=True)
+    (ledger / "unreadable").mkdir()
+    summary = tmp_path / "step-summary.md"
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
     paid, calls = scraper(response={"success": False, "error": KEY})
     monkeypatch.setattr(price_reread, "ROOT", root)
     monkeypatch.setattr(
@@ -541,9 +764,18 @@ def test_cli_fallback_writes_only_an_artifact_and_redacts_error_responses(
     assert len(calls) == 3
     manifest = (output / "manifest.json").read_text()
     assert json.loads(manifest)["credits_spent"] == 3
+    assert json.loads(manifest)["credits_reserved"] == 3
+    assert json.loads(manifest)["allowance"] == 12
+    assert json.loads(manifest)["prior_month_spend_known"] == 7
+    assert json.loads(manifest)["unreadable_ledgers"] == 1
+    assert json.loads(manifest)["team_balance"] == 1000
+    assert summary.read_text() == (
+        "Firecrawl fallback: credits reserved/used=3; allowance=12; prior month spend known=7; "
+        "unreadable ledgers=1; team balance=1000.\n"
+    )
     assert {p.relative_to(root): p.read_bytes() for p in root.rglob("*") if p.is_file()} == before
     captured = capsys.readouterr()
-    assert KEY not in manifest + captured.out + captured.err + caplog.text
+    assert KEY not in manifest + summary.read_text() + captured.out + captured.err + caplog.text
 
 
 def test_cli_validates_the_render_artifact_before_constructing_a_paid_fetcher(
@@ -598,12 +830,16 @@ def workflow():
     return yaml.safe_load((ROOT / ".github" / "private-writers" / "price-reread.yml").read_text())
 
 
-def test_fallback_workflow_argv_uses_isolated_python_and_passes_both_artifacts_and_ledger(tmp_path):
-    step = next(
-        s
-        for s in workflow()["jobs"]["fallback"]["steps"]
-        if s.get("name") == "Fetch only failed eligible pages"
+@pytest.mark.parametrize("fake", [False, True])
+def test_fallback_workflow_argv_uses_isolated_python_and_passes_both_artifacts_and_ledger(
+    tmp_path, fake
+):
+    name = (
+        "Fake fallback demo without credentials or network"
+        if fake
+        else "Fetch only failed eligible pages"
     )
+    step = next(s for s in workflow()["jobs"]["fallback"]["steps"] if s.get("name") == name)
     script = """python() { printf '%s\\n' "$@" > "$RUNNER_TEMP/argv"; }
 """ + step["run"]
     subprocess.run(
@@ -612,7 +848,7 @@ def test_fallback_workflow_argv_uses_isolated_python_and_passes_both_artifacts_a
         capture_output=True,
         env={**os.environ, "RUNNER_TEMP": str(tmp_path)},
     )
-    assert (tmp_path / "argv").read_text().splitlines() == [
+    expected = [
         "-I",
         "-m",
         "scripts.price_reread",
@@ -623,6 +859,11 @@ def test_fallback_workflow_argv_uses_isolated_python_and_passes_both_artifacts_a
         "--fallback-ledger",
         str(tmp_path / "firecrawl-ledger"),
     ]
+    assert (tmp_path / "argv").read_text().splitlines() == expected + (
+        ["--fallback-fake"] if fake else []
+    )
+    if fake:
+        assert "secrets." not in json.dumps(step)
 
 
 def test_workflow_is_off_by_default_retains_a_full_month_and_replays_when_skipped():
@@ -642,6 +883,145 @@ def test_workflow_is_off_by_default_retains_a_full_month_and_replays_when_skippe
     )
     assert upload["if"] == "always()" and upload["with"]["retention-days"] == 35
     assert "FIRECRAWL" not in json.dumps(jobs["reread"])
+    triggers = workflow()["on"]
+    assert triggers["workflow_dispatch"]["inputs"]["fallback_fake"] == {
+        "description": "Run the isolated fallback demo with fake HTML, zero credits and no key",
+        "type": "boolean",
+        "default": False,
+    }
+
+
+@pytest.mark.parametrize(
+    "event,gate,attempt,fake,ref,job_runs,paid_runs,fake_runs",
+    [
+        ("schedule", "true", 1, False, "main", True, True, False),
+        ("schedule", "false", 1, False, "main", False, False, False),
+        ("schedule", "true", 2, False, "main", False, False, False),
+        ("schedule", "true", 1, False, "other", False, False, False),
+        ("workflow_dispatch", "true", 1, False, "main", False, False, False),
+        ("workflow_dispatch", "false", 1, False, "main", False, False, False),
+        ("workflow_dispatch", "false", 1, True, "main", True, False, True),
+        ("workflow_dispatch", "true", 1, True, "main", True, False, True),
+        ("workflow_dispatch", "false", 2, True, "main", True, False, True),
+        ("workflow_dispatch", "true", 1, True, "other", False, False, False),
+        ("pull_request", "true", 1, True, "main", False, False, False),
+    ],
+)
+def test_workflow_spends_only_on_schedule_and_allows_a_keyless_ungated_demo(
+    event, gate, attempt, fake, ref, job_runs, paid_runs, fake_runs
+):
+    job = workflow()["jobs"]["fallback"]
+    context = {
+        "github": SimpleNamespace(event_name=event, run_attempt=attempt, ref=f"refs/heads/{ref}"),
+        "vars": SimpleNamespace(PRICE_REREAD_FIRECRAWL=gate),
+        "inputs": SimpleNamespace(fallback_fake=fake),
+    }
+
+    def permits(condition):
+        return bool(
+            eval(
+                condition.replace("&&", " and ").replace("||", " or "),
+                {"__builtins__": {}},
+                context,
+            )
+        )
+
+    runs = permits(job["if"])
+    assert runs is job_runs
+    paid = next(s for s in job["steps"] if s.get("name") == "Fetch only failed eligible pages")
+    demo = next(
+        s
+        for s in job["steps"]
+        if s.get("name") == "Fake fallback demo without credentials or network"
+    )
+    assert (runs and permits(paid["if"])) is paid_runs
+    assert (runs and permits(demo["if"])) is fake_runs
+    assert "env" not in demo
+
+
+def test_cli_fake_artifact_and_reread_never_treat_fake_bodies_as_evidence(
+    allowed_estate, tmp_path, monkeypatch, capsys
+):
+    root, store = allowed_estate
+    rendered = artifact(tmp_path / "render")
+    ledger = tmp_path / "ledger"
+    ledger.mkdir()
+    output = tmp_path / "fallback"
+    summary = tmp_path / "summary.md"
+    monkeypatch.setenv("GITHUB_STEP_SUMMARY", str(summary))
+    monkeypatch.delenv("FIRECRAWL_API_KEY")
+    monkeypatch.setattr(price_reread, "ROOT", root)
+
+    def forbidden(*_, **__):
+        pytest.fail("fake fallback must not construct an HTTP client or a paid fetcher")
+
+    monkeypatch.setattr(firecrawl, "FirecrawlFetcher", forbidden)
+    monkeypatch.setattr(httpx, "Client", forbidden)
+    monkeypatch.setattr(price_reread, "Fetcher", forbidden)
+    monkeypatch.setattr(price_reread, "RenderedFetcher", forbidden)
+    before = {p.relative_to(root): p.read_bytes() for p in root.rglob("*") if p.is_file()}
+    assert (
+        price_reread.main(
+            [
+                "--fallback-from-render",
+                str(rendered),
+                "--fallback-to",
+                str(output),
+                "--fallback-ledger",
+                str(ledger),
+                "--fallback-fake",
+            ]
+        )
+        == 0
+    )
+    replay, spent = fallback.read_fallback(output)
+    assert spent == 0 and replay.fake is True
+    assert set(replay.manifest) == {PLAN, HELP, API}
+    for url, entry in replay.manifest.items():
+        body = (output / entry["file"]).read_bytes()
+        assert b"FAKE" in body and url.encode() in body
+        assert body == firecrawl.FakeFirecrawlFetcher().fetch(url).body
+    assert summary.read_text() == replay.spend_line + "\n"
+    assert "FAKE: credits reserved/used=0; allowance=0" in replay.spend_line
+    assert "team balance=unread" in replay.spend_line
+    assert KEY not in capsys.readouterr().out + summary.read_text()
+
+    # Even bodies that would verify real prices cannot become evidence when
+    # the validated artifact says the run was fake.
+    for url, entry in replay.manifest.items():
+        (output / entry["file"]).write_bytes(
+            page("api-pricing.html" if url == API else "plans.html")
+        )
+    monkeypatch.setattr(price_reread, "CopyStore", lambda: store)
+    monkeypatch.setattr(
+        price_reread, "Fetcher", lambda **_: ReplayFetcher({PLAN: [None], API: [None]})
+    )
+    report = tmp_path / "report.json"
+    markdown = tmp_path / "report.md"
+    assert (
+        price_reread.main(
+            [
+                "--rendered-from",
+                str(rendered),
+                "--fallback-from",
+                str(output),
+                "--today",
+                TODAY.isoformat(),
+                "--report-json",
+                str(report),
+                "--report-md",
+                str(markdown),
+                "--write",
+            ]
+        )
+        == 0
+    )
+    result = json.loads(report.read_text())
+    assert result["counts"]["unchanged"] == result["counts"]["changed"] == 0
+    assert result["not_reread"]["fallback was a fake run"] == 6
+    assert all(s["copy"] is None for s in result["sources"].values())
+    assert replay.spend_line in markdown.read_text()
+    assert {p.relative_to(root): p.read_bytes() for p in root.rglob("*") if p.is_file()} == before
 
 
 def test_failed_monthly_lookup_stops_the_workflow_step(tmp_path):
