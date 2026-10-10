@@ -305,11 +305,12 @@ def test_pr_creation_uses_private_repository_token():
     assert len(hits) == 1
     job, step = hits[0]
     assert job == "draft" and step["env"]["GH_TOKEN"] == "${{ secrets.GITHUB_TOKEN }}"
-    assert "propose.py" in step["run"] and "--open-prs" in step["run"]
+    assert "scripts.curation.propose" in step["run"] and "--open-prs" in step["run"]
     assert "::add-mask::" in step["run"]
     for s in wf["jobs"]["draft"]["steps"]:
         if s.get("uses", "").startswith("actions/checkout"):
-            assert s["with"].get("persist-credentials", True) is (s["with"]["path"] == "data")
+            # propose.py sets its own http extraheader, so neither checkout keeps a token.
+            assert s["with"].get("persist-credentials") is False
 
 
 def test_issues_job_uses_github_token():
@@ -503,11 +504,14 @@ def test_every_job_running_python_installs_the_same_deps():
     wf, _ = _wf()
     for job, spec in wf["jobs"].items():
         runs = " ".join(s.get("run", "") for s in spec["steps"])
-        if "scripts/curation/" not in runs:
+        if "scripts.curation" not in runs:
             continue
         uses = [s.get("uses", "") for s in spec["steps"]]
         assert any(u.startswith("actions/setup-python") for u in uses), f"{job} has no setup-python"
-        install = next(s["run"] for s in spec["steps"] if s.get("run", "").startswith("pip install"))
+        install = next(
+            s["run"] for s in spec["steps"]
+            if s.get("run", "").startswith("python -I -m pip install")
+        )
         assert "pydantic" in install and "pyyaml" in install, f"{job} does not install the deps it needs"
 
 
@@ -535,8 +539,10 @@ def test_pipefail_is_what_turns_a_crashed_gate_into_a_failed_job(tmp_path):
 
 
 def _gate_script() -> str:
-    # `python3` on PATH is not the interpreter running the tests; the script is otherwise verbatim.
-    return _run_of("gate", "ci.py gate").replace("python3 ", f"{sys.executable} ")
+    # The workflow runs isolated (`python -I`), which would ignore the stub this
+    # test plants on PYTHONPATH. Keep the module invocation; drop only `-I`.
+    script = _run_of("gate", "scripts.curation.ci gate")
+    return script.replace("python -I -m ", f"{sys.executable} -m ")
 
 
 def test_gate_step_fails_and_writes_no_decision_when_an_import_is_missing(tmp_path):
@@ -564,7 +570,8 @@ def test_gate_step_writes_run_and_reason_when_it_works(tmp_path):
 
 
 def _decision_script() -> str:
-    return _run_of("gate", "::error::")
+    # The pin step also prints ::error::. The decision step is the one about a missing run=.
+    return _run_of("gate", "The trial gate produced no run= decision")
 
 
 @pytest.mark.parametrize("run_value", ["", None])

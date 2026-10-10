@@ -1,10 +1,7 @@
 # MODEL-247: install in modelspec-data. This directory is not an Actions workflow directory.
 name: Process release signals
 permissions:
-  contents: write
-  pull-requests: write
-  issues: write
-  actions: read
+  contents: read
 concurrency:
   group: release-signals
   cancel-in-progress: false
@@ -15,21 +12,23 @@ jobs:
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
       count: ${{ steps.matrix.outputs.count }}
+    permissions:
+      contents: read
     env:
-      MODELSPEC_REQUIRE_DATA_DIR: '1'
       SIGNALS_ORIGIN: https://api.modelspec.dev
-      MODELSPEC_SIGNALS_READ_KEY: ${{ secrets.MODELSPEC_SIGNALS_READ_KEY }}
-      PYTHONPATH: ${{ github.workspace }}/data
-      MODELSPEC_DATA_DIR: ${{ github.workspace }}/data
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Refuse missing repository credentials
+        env:
+          MODELSPEC_SIGNALS_READ_KEY: ${{ secrets.MODELSPEC_SIGNALS_READ_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if [ -z "$MODELSPEC_SIGNALS_READ_KEY" ] || [ -z "$GITHUB_TOKEN" ]; then
             echo "::error::MODELSPEC_SIGNALS_READ_KEY and GITHUB_TOKEN are required."
             exit 1
           fi
       - name: Pull all pending signals and due re-checks
+        env:
+          MODELSPEC_SIGNALS_READ_KEY: ${{ secrets.MODELSPEC_SIGNALS_READ_KEY }}
         run: |
           curl --fail --silent --show-error \
             -H "Authorization: Bearer $MODELSPEC_SIGNALS_READ_KEY" \
@@ -66,15 +65,19 @@ jobs:
       max-parallel: 4
       matrix: ${{ fromJSON(needs.pending.outputs.matrix) }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
     env:
       MODELSPEC_REQUIRE_DATA_DIR: '1'
-      PYTHONPATH: ${{ github.workspace }}/data
       SIGNALS_ORIGIN: https://api.modelspec.dev
-      MODELSPEC_SIGNALS_READ_KEY: ${{ secrets.MODELSPEC_SIGNALS_READ_KEY }}
       MODELSPEC_DATA_DIR: ${{ github.workspace }}/data
-      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
     steps:
       - name: Refuse missing repository credentials
+        env:
+          MODELSPEC_SIGNALS_READ_KEY: ${{ secrets.MODELSPEC_SIGNALS_READ_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           if [ -z "$MODELSPEC_SIGNALS_READ_KEY" ] || [ -z "$GITHUB_TOKEN" ]; then
             echo "::error::MODELSPEC_SIGNALS_READ_KEY and GITHUB_TOKEN are required."
@@ -166,14 +169,40 @@ jobs:
         env:
           PIN: ${{ steps.engine_pin.outputs.sha }}
         run: test "$(git -C ../engine rev-parse HEAD)" = "$PIN"
-      - name: Compose code into the private checkout
-        run: python ../engine/scripts/prepare_data_writer.py --engine ../engine --data .
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: pip
+      - name: Link the data paths into the verified engine and put only the engine on the import path
+        working-directory: .
+        run: |
+          set -euo pipefail
+          paths="$(python -I engine/pipeline/data_source.py paths)"
+          while IFS= read -r P; do
+            [ -n "$P" ] || continue
+            if [ -L "data/$P" ]; then
+              echo "::error::data/$P is a symlink"
+              exit 1
+            fi
+            if [ -d "data/$P" ]; then
+              bad="$(find "data/$P" -mindepth 1 \( -type l -o \( -type f \( -name '*.py' -o -name '*.pyc' -o -name '*.pyo' -o -name '*.pth' -o -name '*.so' -o -name 'sitecustomize*' -o -name 'usercustomize*' -o -name '__init__*' -o -name 'conftest*' \) \) \) -print -quit)"
+              if [ -n "$bad" ]; then
+                echo "::error::refusing $bad"
+                exit 1
+              fi
+            fi
+            rm -rf "engine/$P"
+            if [ -e "data/$P" ]; then
+              mkdir -p "$(dirname "engine/$P")"
+              ln -s "$GITHUB_WORKSPACE/data/$P" "engine/$P"
+            fi
+          done <<< "$paths"
+          purelib="$(python -I -c 'import sysconfig; print(sysconfig.get_path("purelib"))')"
+          quoted="$(python -I -c 'import json, pathlib; print(json.dumps(str(pathlib.Path("engine").resolve())))')"
+          mkdir -p "$purelib"
+          printf 'import sys; sys.path.insert(0, %s)\n' "$quoted" > "$purelib/modelspec-engine.pth"
       - name: Install pipeline dependencies
-        run: python -m pip install -e '.[dev]' pyarrow
+        run: python -I -m pip install -e "$GITHUB_WORKSPACE/engine[dev]" pyarrow
       - name: Prepare the private review label
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -197,7 +226,7 @@ jobs:
           if [ "$PR_MODE" = closed ]; then
             closed_pr=(--closed-unmerged-pr "$PR_URL")
           fi
-          python scripts/process_release_signals.py \
+          python -I -m scripts.process_release_signals \
             --pending "$RUNNER_TEMP/pending.json" \
             --result "$RUNNER_TEMP/result.json" \
             --audit-json "$RUNNER_TEMP/audit.json" \
@@ -211,7 +240,7 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/after"
           cp -R models verification "$RUNNER_TEMP/after/"
-          python - "$RUNNER_TEMP/before" "$RUNNER_TEMP/after" "$RUNNER_TEMP/result.json" "$GITHUB_OUTPUT" <<'PY'
+          python -I - "$RUNNER_TEMP/before" "$RUNNER_TEMP/after" "$RUNNER_TEMP/result.json" "$GITHUB_OUTPUT" <<'PY'
           import json, sys
           from pathlib import Path
           from release_signals.pipeline import ChangePolicy
@@ -254,15 +283,15 @@ jobs:
       - name: Validate cards and run two-key verification
         if: steps.classify.outputs.changed == 'true'
         run: |
-          python scripts/validate_pr.py --all > "$RUNNER_TEMP/card-validation.json"
-          modelspec verify --json > "$RUNNER_TEMP/verification.json"
+          python -I -m scripts.validate_pr --all > "$RUNNER_TEMP/card-validation.json"
+          python -I -m cli.modelspec.legacy verify --json > "$RUNNER_TEMP/verification.json"
       - name: Run the MODEL-111 accuracy harness
         if: steps.classify.outputs.changed == 'true'
-        run: python scripts/accuracy.py --profile pr --output-dir "$RUNNER_TEMP/accuracy"
+        run: python -I -m scripts.accuracy --profile pr --output-dir "$RUNNER_TEMP/accuracy"
       - name: Run the MODEL-160 recall report
         if: steps.classify.outputs.changed == 'true'
         run: |
-          python scripts/recall_run.py \
+          python -I -m scripts.recall_run \
             --output-dir "$RUNNER_TEMP/recall" \
             --date "$(date -u +%F)"
       - name: Commit and push the isolated signal branch
@@ -295,7 +324,7 @@ jobs:
           PR_MODE: ${{ steps.recheck.outputs.mode }}
           EXISTING_PR_URL: ${{ matrix.work.pr_url }}
         run: |
-          model_id="$(python -c 'import json,os; print(json.load(open(os.environ["RUNNER_TEMP"] + "/result.json")).get("model_id") or "release signal")')"
+          model_id="$(python -I -c 'import json,os; print(json.load(open(os.environ["RUNNER_TEMP"] + "/result.json")).get("model_id") or "release signal")')"
           if [ "$PR_MODE" = open ]; then
             gh pr comment "$EXISTING_PR_URL" --body-file "$RUNNER_TEMP/result.json"
             pr_url="$EXISTING_PR_URL"
@@ -320,8 +349,9 @@ jobs:
         if: steps.classify.outputs.resolution != 'empty'
         env:
           RESULT_URL: ${{ steps.pr.outputs.url || steps.closed_pr.outputs.url || steps.uncertain.outputs.url || matrix.work.pr_url || '' }}
+          MODELSPEC_SIGNALS_READ_KEY: ${{ secrets.MODELSPEC_SIGNALS_READ_KEY }}
         run: |
-          python - "$RUNNER_TEMP/ack.json" <<'PY'
+          python -I - "$RUNNER_TEMP/ack.json" <<'PY'
           import json, os, sys
           from pathlib import Path
           result = json.load(open(os.environ["RUNNER_TEMP"] + "/result.json"))

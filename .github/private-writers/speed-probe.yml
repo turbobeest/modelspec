@@ -1,43 +1,97 @@
+# Deliberately API-billed, manual-only latency probe (Jamie's decision, MODEL-310).
 # MODEL-247: install in modelspec-data. This directory is not an Actions workflow directory.
 name: Speed probe
 permissions:
-  contents: write
-  pull-requests: write
-  issues: write
-  actions: read
+  contents: read
 concurrency:
   group: speed-probe
   cancel-in-progress: false
 env:
   SPEED_CAP_USD: '13'
   SPEED_SMOKE_CAP_USD: '0.25'
-  PYTHONPATH: ${{ github.workspace }}
 jobs:
   probe:
     name: Speed probe (${{ inputs.mode }})
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
         with:
           path: data
+          persist-credentials: false
           token: ${{ github.token }}
           fetch-depth: 0
+      - name: Verify the engine pin is on modelspec main
+        id: engine_pin
+        working-directory: .
+        env:
+          ENGINE_REPO: https://github.com/turbobeest/modelspec.git
+          GIT_NO_LAZY_FETCH: '1'
+        run: |
+          set -euo pipefail
+          pin="$(< data/.engine-pin)"
+          if ! [[ "$pin" =~ ^[0-9a-f]{40}$ ]]; then
+            echo '::error::.engine-pin must hold exactly one full 40-character lowercase commit SHA.'
+            exit 1
+          fi
+          check="$RUNNER_TEMP/engine-pin-check"
+          rm -rf "$check"
+          git clone --quiet --bare --filter=tree:0 --single-branch --branch main --no-tags \
+            "$ENGINE_REPO" "$check"
+          if ! git -C "$check" cat-file -e "$pin^{commit}" 2>/dev/null \
+            || ! git -C "$check" merge-base --is-ancestor "$pin" refs/heads/main; then
+            echo "::error::.engine-pin $pin is not a commit on modelspec main."
+            exit 1
+          fi
+          echo "sha=$pin" >> "$GITHUB_OUTPUT"
       - name: Check out the pinned public engine
         uses: actions/checkout@v4
         with:
           repository: turbobeest/modelspec
-          ref: 69871e3a554cd0affa26a0d78d5663b576f07003
+          ref: ${{ steps.engine_pin.outputs.sha }}
           path: engine
           persist-credentials: false
-      - name: Compose code into the private checkout
-        run: python ../engine/scripts/prepare_data_writer.py --engine ../engine --data .
+      - name: Confirm the engine checkout is the verified pin
+        env:
+          PIN: ${{ steps.engine_pin.outputs.sha }}
+        run: test "$(git -C ../engine rev-parse HEAD)" = "$PIN"
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: pip
+      - name: Link the data paths into the verified engine and put only the engine on the import path
+        working-directory: .
+        run: |
+          set -euo pipefail
+          paths="$(python -I engine/pipeline/data_source.py paths)"
+          while IFS= read -r P; do
+            [ -n "$P" ] || continue
+            if [ -L "data/$P" ]; then
+              echo "::error::data/$P is a symlink"
+              exit 1
+            fi
+            if [ -d "data/$P" ]; then
+              bad="$(find "data/$P" -mindepth 1 \( -type l -o \( -type f \( -name '*.py' -o -name '*.pyc' -o -name '*.pyo' -o -name '*.pth' -o -name '*.so' -o -name 'sitecustomize*' -o -name 'usercustomize*' -o -name '__init__*' -o -name 'conftest*' \) \) \) -print -quit)"
+              if [ -n "$bad" ]; then
+                echo "::error::refusing $bad"
+                exit 1
+              fi
+            fi
+            rm -rf "engine/$P"
+            if [ -e "data/$P" ]; then
+              mkdir -p "$(dirname "engine/$P")"
+              ln -s "$GITHUB_WORKSPACE/data/$P" "engine/$P"
+            fi
+          done <<< "$paths"
+          purelib="$(python -I -c 'import sysconfig; print(sysconfig.get_path("purelib"))')"
+          quoted="$(python -I -c 'import json, pathlib; print(json.dumps(str(pathlib.Path("engine").resolve())))')"
+          mkdir -p "$purelib"
+          printf 'import sys; sys.path.insert(0, %s)\n' "$quoted" > "$purelib/modelspec-engine.pth"
       - name: Install the harness dependencies
-        run: pip install pydantic pyyaml
+        run: python -I -m pip install pydantic pyyaml
       - name: Preflight (free)
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -46,7 +100,7 @@ jobs:
           XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
-        run: python -m scripts.speed preflight | tee -a "$GITHUB_STEP_SUMMARY"
+        run: python -I -m scripts.speed preflight | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Smoke, one request per offering (paid, capped)
         if: inputs.mode == 'smoke'
         env:
@@ -56,10 +110,10 @@ jobs:
           XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
-        run: python -m scripts.speed smoke | tee -a "$GITHUB_STEP_SUMMARY"
+        run: python -I -m scripts.speed smoke | tee -a "$GITHUB_STEP_SUMMARY"
       - name: The pilot's worst case against the cap (free)
         if: inputs.mode == 'pilot'
-        run: python -m scripts.speed plan | tee -a "$GITHUB_STEP_SUMMARY"
+        run: python -I -m scripts.speed plan | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Run the pilot slot (paid, capped)
         if: inputs.mode == 'pilot'
         env:
@@ -69,7 +123,7 @@ jobs:
           XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
-        run: python -m scripts.speed run --live --cap-usd "$SPEED_CAP_USD" --window measurements/speed/pilot
+        run: python -I -m scripts.speed run --live --cap-usd "$SPEED_CAP_USD" --window measurements/speed/pilot
       - name: Upload the raw runs
         if: always() && inputs.mode == 'pilot'
         uses: actions/upload-artifact@v4
@@ -81,9 +135,9 @@ jobs:
         id: aggregate
         if: inputs.mode == 'pilot'
         run: |
-          python -m scripts.speed aggregate measurements/speed/pilot
-          python -m scripts.speed verify measurements/speed/pilot
-          python -m scripts.speed report measurements/speed/pilot | tee -a "$GITHUB_STEP_SUMMARY" > "$RUNNER_TEMP/report.md"
+          python -I -m scripts.speed aggregate measurements/speed/pilot
+          python -I -m scripts.speed verify measurements/speed/pilot
+          python -I -m scripts.speed report measurements/speed/pilot | tee -a "$GITHUB_STEP_SUMMARY" > "$RUNNER_TEMP/report.md"
       - name: Write the data pull request body
         if: always() && inputs.mode == 'pilot'
         env:
@@ -118,7 +172,6 @@ jobs:
           path: data
     env:
       MODELSPEC_REQUIRE_DATA_DIR: '1'
-      PYTHONPATH: ${{ github.workspace }}/data
       MODELSPEC_DATA_DIR: ${{ github.workspace }}/data
     defaults:
       run:

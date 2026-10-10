@@ -1,10 +1,7 @@
 # MODEL-247: install in modelspec-data. This directory is not an Actions workflow directory.
 name: Daily model research
 permissions:
-  contents: write
-  pull-requests: write
-  issues: write
-  actions: read
+  contents: read
 concurrency:
   group: daily-research
   cancel-in-progress: false
@@ -12,33 +9,90 @@ jobs:
   research:
     name: Look for new models
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     steps:
       - uses: actions/checkout@v4
         with:
           path: data
+          persist-credentials: false
           token: ${{ github.token }}
           fetch-depth: 0
+      - name: Verify the engine pin is on modelspec main
+        id: engine_pin
+        working-directory: .
+        env:
+          ENGINE_REPO: https://github.com/turbobeest/modelspec.git
+          GIT_NO_LAZY_FETCH: '1'
+        run: |
+          set -euo pipefail
+          pin="$(< data/.engine-pin)"
+          if ! [[ "$pin" =~ ^[0-9a-f]{40}$ ]]; then
+            echo '::error::.engine-pin must hold exactly one full 40-character lowercase commit SHA.'
+            exit 1
+          fi
+          check="$RUNNER_TEMP/engine-pin-check"
+          rm -rf "$check"
+          git clone --quiet --bare --filter=tree:0 --single-branch --branch main --no-tags \
+            "$ENGINE_REPO" "$check"
+          if ! git -C "$check" cat-file -e "$pin^{commit}" 2>/dev/null \
+            || ! git -C "$check" merge-base --is-ancestor "$pin" refs/heads/main; then
+            echo "::error::.engine-pin $pin is not a commit on modelspec main."
+            exit 1
+          fi
+          echo "sha=$pin" >> "$GITHUB_OUTPUT"
       - name: Check out the pinned public engine
         uses: actions/checkout@v4
         with:
           repository: turbobeest/modelspec
-          ref: 69871e3a554cd0affa26a0d78d5663b576f07003
+          ref: ${{ steps.engine_pin.outputs.sha }}
           path: engine
           persist-credentials: false
-      - name: Compose code into the private checkout
-        run: python ../engine/scripts/prepare_data_writer.py --engine ../engine --data .
+      - name: Confirm the engine checkout is the verified pin
+        env:
+          PIN: ${{ steps.engine_pin.outputs.sha }}
+        run: test "$(git -C ../engine rev-parse HEAD)" = "$PIN"
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: pip
+      - name: Link the data paths into the verified engine and put only the engine on the import path
+        working-directory: .
+        run: |
+          set -euo pipefail
+          paths="$(python -I engine/pipeline/data_source.py paths)"
+          while IFS= read -r P; do
+            [ -n "$P" ] || continue
+            if [ -L "data/$P" ]; then
+              echo "::error::data/$P is a symlink"
+              exit 1
+            fi
+            if [ -d "data/$P" ]; then
+              bad="$(find "data/$P" -mindepth 1 \( -type l -o \( -type f \( -name '*.py' -o -name '*.pyc' -o -name '*.pyo' -o -name '*.pth' -o -name '*.so' -o -name 'sitecustomize*' -o -name 'usercustomize*' -o -name '__init__*' -o -name 'conftest*' \) \) \) -print -quit)"
+              if [ -n "$bad" ]; then
+                echo "::error::refusing $bad"
+                exit 1
+              fi
+            fi
+            rm -rf "engine/$P"
+            if [ -e "data/$P" ]; then
+              mkdir -p "$(dirname "engine/$P")"
+              ln -s "$GITHUB_WORKSPACE/data/$P" "engine/$P"
+            fi
+          done <<< "$paths"
+          purelib="$(python -I -c 'import sysconfig; print(sysconfig.get_path("purelib"))')"
+          quoted="$(python -I -c 'import json, pathlib; print(json.dumps(str(pathlib.Path("engine").resolve())))')"
+          mkdir -p "$purelib"
+          printf 'import sys; sys.path.insert(0, %s)\n' "$quoted" > "$purelib/modelspec-engine.pth"
       - name: Install dependencies
-        run: pip install pydantic pyyaml httpx
+        run: python -I -m pip install pydantic pyyaml httpx
       - name: What is missing?
         id: survey
         run: |
           # --new-only is not optional. Without it the seeder rewrites every
           # card in the repository and discards all curation. See MODEL-31.
-          if ! python scripts/seed_models_dev.py --new-only --dry-run > survey.txt 2>&1; then
+          if ! python -I -m scripts.seed_models_dev --new-only --dry-run > survey.txt 2>&1; then
             cat survey.txt
             echo "::error::models.dev survey failed; see output above"
             exit 1
@@ -58,14 +112,14 @@ jobs:
         if: steps.survey.outputs.count != '0' && !inputs.dry_run
         env:
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
-        run: python scripts/seed_models_dev.py --new-only --stale-notices stale-guides.md --attribution-report attribution.md
+        run: python -I -m scripts.seed_models_dev --new-only --stale-notices stale-guides.md --attribution-report attribution.md
       - name: Validate everything, not just the new cards
         if: steps.survey.outputs.count != '0' && !inputs.dry_run
         run: |
           # A new card that fails validation must not reach a pull request, and
           # neither must a change that broke an existing one.
-          python scripts/validate_pr.py --all > validation.json
-          python - <<'PY'
+          python -I -m scripts.validate_pr --all > validation.json
+          python -I - <<'PY'
           import json, sys
           report = json.load(open("validation.json"))
           print(f"{report['total']} cards, {report['valid']} valid, {report['invalid']} invalid")
@@ -144,7 +198,6 @@ jobs:
           path: data
     env:
       MODELSPEC_REQUIRE_DATA_DIR: '1'
-      PYTHONPATH: ${{ github.workspace }}/data
       MODELSPEC_DATA_DIR: ${{ github.workspace }}/data
     defaults:
       run:

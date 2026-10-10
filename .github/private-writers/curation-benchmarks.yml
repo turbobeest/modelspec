@@ -10,6 +10,8 @@ jobs:
     name: Trial gate
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    permissions:
+      contents: read
     outputs:
       run: ${{ steps.gate.outputs.run }}
       reason: ${{ steps.gate.outputs.reason }}
@@ -18,23 +20,77 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: data
+          persist-credentials: false
           token: ${{ github.token }}
           fetch-depth: 0
+      - name: Verify the engine pin is on modelspec main
+        id: engine_pin
+        working-directory: .
+        env:
+          ENGINE_REPO: https://github.com/turbobeest/modelspec.git
+          GIT_NO_LAZY_FETCH: '1'
+        run: |
+          set -euo pipefail
+          pin="$(< data/.engine-pin)"
+          if ! [[ "$pin" =~ ^[0-9a-f]{40}$ ]]; then
+            echo '::error::.engine-pin must hold exactly one full 40-character lowercase commit SHA.'
+            exit 1
+          fi
+          check="$RUNNER_TEMP/engine-pin-check"
+          rm -rf "$check"
+          git clone --quiet --bare --filter=tree:0 --single-branch --branch main --no-tags \
+            "$ENGINE_REPO" "$check"
+          if ! git -C "$check" cat-file -e "$pin^{commit}" 2>/dev/null \
+            || ! git -C "$check" merge-base --is-ancestor "$pin" refs/heads/main; then
+            echo "::error::.engine-pin $pin is not a commit on modelspec main."
+            exit 1
+          fi
+          echo "sha=$pin" >> "$GITHUB_OUTPUT"
       - name: Check out the pinned public engine
         uses: actions/checkout@v4
         with:
           repository: turbobeest/modelspec
-          ref: 69871e3a554cd0affa26a0d78d5663b576f07003
+          ref: ${{ steps.engine_pin.outputs.sha }}
           path: engine
           persist-credentials: false
-      - name: Compose code into the private checkout
-        run: python ../engine/scripts/prepare_data_writer.py --engine ../engine --data .
+      - name: Confirm the engine checkout is the verified pin
+        env:
+          PIN: ${{ steps.engine_pin.outputs.sha }}
+        run: test "$(git -C ../engine rev-parse HEAD)" = "$PIN"
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Link the data paths into the verified engine and put only the engine on the import path
+        working-directory: .
+        run: |
+          set -euo pipefail
+          paths="$(python -I engine/pipeline/data_source.py paths)"
+          while IFS= read -r P; do
+            [ -n "$P" ] || continue
+            if [ -L "data/$P" ]; then
+              echo "::error::data/$P is a symlink"
+              exit 1
+            fi
+            if [ -d "data/$P" ]; then
+              bad="$(find "data/$P" -mindepth 1 \( -type l -o \( -type f \( -name '*.py' -o -name '*.pyc' -o -name '*.pyo' -o -name '*.pth' -o -name '*.so' -o -name 'sitecustomize*' -o -name 'usercustomize*' -o -name '__init__*' -o -name 'conftest*' \) \) \) -print -quit)"
+              if [ -n "$bad" ]; then
+                echo "::error::refusing $bad"
+                exit 1
+              fi
+            fi
+            rm -rf "engine/$P"
+            if [ -e "data/$P" ]; then
+              mkdir -p "$(dirname "engine/$P")"
+              ln -s "$GITHUB_WORKSPACE/data/$P" "engine/$P"
+            fi
+          done <<< "$paths"
+          purelib="$(python -I -c 'import sysconfig; print(sysconfig.get_path("purelib"))')"
+          quoted="$(python -I -c 'import json, pathlib; print(json.dumps(str(pathlib.Path("engine").resolve())))')"
+          mkdir -p "$purelib"
+          printf 'import sys; sys.path.insert(0, %s)\n' "$quoted" > "$purelib/modelspec-engine.pth"
       - name: Install dependencies
-        run: pip install pyyaml pydantic
+        run: python -I -m pip install pyyaml pydantic
       - name: Decide whether this run proceeds
         id: gate
         env:
@@ -42,7 +98,7 @@ jobs:
           SCHEDULE: ${{ github.event.schedule }}
         run: |
           set -euo pipefail
-          python3 scripts/curation/ci.py gate --event "$EVENT" --schedule "$SCHEDULE" | tee -a "$GITHUB_OUTPUT"
+          python -I -m scripts.curation.ci gate --event "$EVENT" --schedule "$SCHEDULE" | tee -a "$GITHUB_OUTPUT"
       - name: Record the gate decision
         env:
           RUN: ${{ steps.gate.outputs.run }}
@@ -60,7 +116,6 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
     env:
       MODELSPEC_REQUIRE_DATA_DIR: '1'
-      PYTHONPATH: ${{ github.workspace }}/data
       MODELSPEC_DATA_DIR: ${{ github.workspace }}/data
     defaults:
       run:
@@ -68,6 +123,8 @@ jobs:
   watch:
     name: Watch sources
     needs: gate
+    permissions:
+      contents: read
     if: needs.gate.outputs.run == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -80,30 +137,83 @@ jobs:
       AXIS: ${{ inputs.axis || 'benchmarks' }}
       PAGES: ${{ inputs.pages || 'pilot' }}
       BRIEF: ${{ inputs.immediate_brief || '' }}
-      PYTHONPATH: ${{ github.workspace }}/data
       MODELSPEC_DATA_DIR: ${{ github.workspace }}/data
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           path: data
+          persist-credentials: false
           token: ${{ github.token }}
           fetch-depth: 0
+      - name: Verify the engine pin is on modelspec main
+        id: engine_pin
+        working-directory: .
+        env:
+          ENGINE_REPO: https://github.com/turbobeest/modelspec.git
+          GIT_NO_LAZY_FETCH: '1'
+        run: |
+          set -euo pipefail
+          pin="$(< data/.engine-pin)"
+          if ! [[ "$pin" =~ ^[0-9a-f]{40}$ ]]; then
+            echo '::error::.engine-pin must hold exactly one full 40-character lowercase commit SHA.'
+            exit 1
+          fi
+          check="$RUNNER_TEMP/engine-pin-check"
+          rm -rf "$check"
+          git clone --quiet --bare --filter=tree:0 --single-branch --branch main --no-tags \
+            "$ENGINE_REPO" "$check"
+          if ! git -C "$check" cat-file -e "$pin^{commit}" 2>/dev/null \
+            || ! git -C "$check" merge-base --is-ancestor "$pin" refs/heads/main; then
+            echo "::error::.engine-pin $pin is not a commit on modelspec main."
+            exit 1
+          fi
+          echo "sha=$pin" >> "$GITHUB_OUTPUT"
       - name: Check out the pinned public engine
         uses: actions/checkout@v4
         with:
           repository: turbobeest/modelspec
-          ref: 69871e3a554cd0affa26a0d78d5663b576f07003
+          ref: ${{ steps.engine_pin.outputs.sha }}
           path: engine
           persist-credentials: false
-      - name: Compose code into the private checkout
-        run: python ../engine/scripts/prepare_data_writer.py --engine ../engine --data .
+      - name: Confirm the engine checkout is the verified pin
+        env:
+          PIN: ${{ steps.engine_pin.outputs.sha }}
+        run: test "$(git -C ../engine rev-parse HEAD)" = "$PIN"
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Link the data paths into the verified engine and put only the engine on the import path
+        working-directory: .
+        run: |
+          set -euo pipefail
+          paths="$(python -I engine/pipeline/data_source.py paths)"
+          while IFS= read -r P; do
+            [ -n "$P" ] || continue
+            if [ -L "data/$P" ]; then
+              echo "::error::data/$P is a symlink"
+              exit 1
+            fi
+            if [ -d "data/$P" ]; then
+              bad="$(find "data/$P" -mindepth 1 \( -type l -o \( -type f \( -name '*.py' -o -name '*.pyc' -o -name '*.pyo' -o -name '*.pth' -o -name '*.so' -o -name 'sitecustomize*' -o -name 'usercustomize*' -o -name '__init__*' -o -name 'conftest*' \) \) \) -print -quit)"
+              if [ -n "$bad" ]; then
+                echo "::error::refusing $bad"
+                exit 1
+              fi
+            fi
+            rm -rf "engine/$P"
+            if [ -e "data/$P" ]; then
+              mkdir -p "$(dirname "engine/$P")"
+              ln -s "$GITHUB_WORKSPACE/data/$P" "engine/$P"
+            fi
+          done <<< "$paths"
+          purelib="$(python -I -c 'import sysconfig; print(sysconfig.get_path("purelib"))')"
+          quoted="$(python -I -c 'import json, pathlib; print(json.dumps(str(pathlib.Path("engine").resolve())))')"
+          mkdir -p "$purelib"
+          printf 'import sys; sys.path.insert(0, %s)\n' "$quoted" > "$purelib/modelspec-engine.pth"
       - name: Install dependencies
-        run: pip install pyyaml pydantic
+        run: python -I -m pip install pyyaml pydantic
       - name: Restore watcher state
         uses: actions/cache@v4
         with:
@@ -116,16 +226,16 @@ jobs:
         run: |
           set -euo pipefail
           if [ -n "$BRIEF" ]; then
-            python scripts/curation/watch.py --axis "$AXIS" --immediate-brief "$BRIEF" --firecrawl-credit-cap 10 --firecrawl-key-from-env
+            python -I -m scripts.curation.watch --axis "$AXIS" --immediate-brief "$BRIEF" --firecrawl-credit-cap 10 --firecrawl-key-from-env
           else
-            python scripts/curation/watch.py --axis "$AXIS" --pages "$PAGES" --firecrawl-credit-cap 10 --firecrawl-key-from-env
+            python -I -m scripts.curation.watch --axis "$AXIS" --pages "$PAGES" --firecrawl-credit-cap 10 --firecrawl-key-from-env
           fi
           cat benchmarks/_curation/reports/change_report.md >> "$GITHUB_STEP_SUMMARY"
       - name: Plan follow-up jobs
         id: plan
         run: |
           set -euo pipefail
-          python scripts/curation/ci.py plan --report benchmarks/_curation/reports/change_report.json | tee -a "$GITHUB_OUTPUT"
+          python -I -m scripts.curation.ci plan --report benchmarks/_curation/reports/change_report.json | tee -a "$GITHUB_OUTPUT"
       - name: Upload change report
         if: always()
         uses: actions/upload-artifact@v4
@@ -148,30 +258,83 @@ jobs:
     env:
       MODELSPEC_REQUIRE_DATA_DIR: '1'
       AXIS: ${{ inputs.axis || 'benchmarks' }}
-      PYTHONPATH: ${{ github.workspace }}/data
       MODELSPEC_DATA_DIR: ${{ github.workspace }}/data
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           path: data
+          persist-credentials: false
           token: ${{ github.token }}
           fetch-depth: 0
+      - name: Verify the engine pin is on modelspec main
+        id: engine_pin
+        working-directory: .
+        env:
+          ENGINE_REPO: https://github.com/turbobeest/modelspec.git
+          GIT_NO_LAZY_FETCH: '1'
+        run: |
+          set -euo pipefail
+          pin="$(< data/.engine-pin)"
+          if ! [[ "$pin" =~ ^[0-9a-f]{40}$ ]]; then
+            echo '::error::.engine-pin must hold exactly one full 40-character lowercase commit SHA.'
+            exit 1
+          fi
+          check="$RUNNER_TEMP/engine-pin-check"
+          rm -rf "$check"
+          git clone --quiet --bare --filter=tree:0 --single-branch --branch main --no-tags \
+            "$ENGINE_REPO" "$check"
+          if ! git -C "$check" cat-file -e "$pin^{commit}" 2>/dev/null \
+            || ! git -C "$check" merge-base --is-ancestor "$pin" refs/heads/main; then
+            echo "::error::.engine-pin $pin is not a commit on modelspec main."
+            exit 1
+          fi
+          echo "sha=$pin" >> "$GITHUB_OUTPUT"
       - name: Check out the pinned public engine
         uses: actions/checkout@v4
         with:
           repository: turbobeest/modelspec
-          ref: 69871e3a554cd0affa26a0d78d5663b576f07003
+          ref: ${{ steps.engine_pin.outputs.sha }}
           path: engine
           persist-credentials: false
-      - name: Compose code into the private checkout
-        run: python ../engine/scripts/prepare_data_writer.py --engine ../engine --data .
+      - name: Confirm the engine checkout is the verified pin
+        env:
+          PIN: ${{ steps.engine_pin.outputs.sha }}
+        run: test "$(git -C ../engine rev-parse HEAD)" = "$PIN"
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Link the data paths into the verified engine and put only the engine on the import path
+        working-directory: .
+        run: |
+          set -euo pipefail
+          paths="$(python -I engine/pipeline/data_source.py paths)"
+          while IFS= read -r P; do
+            [ -n "$P" ] || continue
+            if [ -L "data/$P" ]; then
+              echo "::error::data/$P is a symlink"
+              exit 1
+            fi
+            if [ -d "data/$P" ]; then
+              bad="$(find "data/$P" -mindepth 1 \( -type l -o \( -type f \( -name '*.py' -o -name '*.pyc' -o -name '*.pyo' -o -name '*.pth' -o -name '*.so' -o -name 'sitecustomize*' -o -name 'usercustomize*' -o -name '__init__*' -o -name 'conftest*' \) \) \) -print -quit)"
+              if [ -n "$bad" ]; then
+                echo "::error::refusing $bad"
+                exit 1
+              fi
+            fi
+            rm -rf "engine/$P"
+            if [ -e "data/$P" ]; then
+              mkdir -p "$(dirname "engine/$P")"
+              ln -s "$GITHUB_WORKSPACE/data/$P" "engine/$P"
+            fi
+          done <<< "$paths"
+          purelib="$(python -I -c 'import sysconfig; print(sysconfig.get_path("purelib"))')"
+          quoted="$(python -I -c 'import json, pathlib; print(json.dumps(str(pathlib.Path("engine").resolve())))')"
+          mkdir -p "$purelib"
+          printf 'import sys; sys.path.insert(0, %s)\n' "$quoted" > "$purelib/modelspec-engine.pth"
       - name: Install dependencies
-        run: pip install pyyaml pydantic
+        run: python -I -m pip install pyyaml pydantic
       - name: Set up Node
         uses: actions/setup-node@v4
         with:
@@ -193,7 +356,7 @@ jobs:
             echo "::error::CLAUDE_CODE_OAUTH_TOKEN is empty; run claude setup-token and store it as a repo secret."
             exit 1
           fi
-          python scripts/curation/ci.py draft --drafter claude --report benchmarks/_curation/reports/change_report.json
+          python -I -m scripts.curation.ci draft --drafter claude --report benchmarks/_curation/reports/change_report.json
       - name: Open draft PRs (one per changed page)
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -211,7 +374,7 @@ jobs:
           git config --local user.name "modelspec-curation"
           git config --local user.email "curation@modelspec.dev"
           git fetch --no-tags origin main
-          python scripts/curation/propose.py --manifest benchmarks/_curation/reports/drafts.json \
+          python -I -m scripts.curation.propose --manifest benchmarks/_curation/reports/drafts.json \
             --leads benchmarks/_curation/reports/change_report.json --repo "$REPO" --open-prs
           git config --local --unset-all http.https://github.com/.extraheader
     defaults:
@@ -229,30 +392,83 @@ jobs:
     env:
       MODELSPEC_REQUIRE_DATA_DIR: '1'
       AXIS: ${{ inputs.axis || 'benchmarks' }}
-      PYTHONPATH: ${{ github.workspace }}/data
       MODELSPEC_DATA_DIR: ${{ github.workspace }}/data
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           path: data
+          persist-credentials: false
           token: ${{ github.token }}
           fetch-depth: 0
+      - name: Verify the engine pin is on modelspec main
+        id: engine_pin
+        working-directory: .
+        env:
+          ENGINE_REPO: https://github.com/turbobeest/modelspec.git
+          GIT_NO_LAZY_FETCH: '1'
+        run: |
+          set -euo pipefail
+          pin="$(< data/.engine-pin)"
+          if ! [[ "$pin" =~ ^[0-9a-f]{40}$ ]]; then
+            echo '::error::.engine-pin must hold exactly one full 40-character lowercase commit SHA.'
+            exit 1
+          fi
+          check="$RUNNER_TEMP/engine-pin-check"
+          rm -rf "$check"
+          git clone --quiet --bare --filter=tree:0 --single-branch --branch main --no-tags \
+            "$ENGINE_REPO" "$check"
+          if ! git -C "$check" cat-file -e "$pin^{commit}" 2>/dev/null \
+            || ! git -C "$check" merge-base --is-ancestor "$pin" refs/heads/main; then
+            echo "::error::.engine-pin $pin is not a commit on modelspec main."
+            exit 1
+          fi
+          echo "sha=$pin" >> "$GITHUB_OUTPUT"
       - name: Check out the pinned public engine
         uses: actions/checkout@v4
         with:
           repository: turbobeest/modelspec
-          ref: 69871e3a554cd0affa26a0d78d5663b576f07003
+          ref: ${{ steps.engine_pin.outputs.sha }}
           path: engine
           persist-credentials: false
-      - name: Compose code into the private checkout
-        run: python ../engine/scripts/prepare_data_writer.py --engine ../engine --data .
+      - name: Confirm the engine checkout is the verified pin
+        env:
+          PIN: ${{ steps.engine_pin.outputs.sha }}
+        run: test "$(git -C ../engine rev-parse HEAD)" = "$PIN"
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+      - name: Link the data paths into the verified engine and put only the engine on the import path
+        working-directory: .
+        run: |
+          set -euo pipefail
+          paths="$(python -I engine/pipeline/data_source.py paths)"
+          while IFS= read -r P; do
+            [ -n "$P" ] || continue
+            if [ -L "data/$P" ]; then
+              echo "::error::data/$P is a symlink"
+              exit 1
+            fi
+            if [ -d "data/$P" ]; then
+              bad="$(find "data/$P" -mindepth 1 \( -type l -o \( -type f \( -name '*.py' -o -name '*.pyc' -o -name '*.pyo' -o -name '*.pth' -o -name '*.so' -o -name 'sitecustomize*' -o -name 'usercustomize*' -o -name '__init__*' -o -name 'conftest*' \) \) \) -print -quit)"
+              if [ -n "$bad" ]; then
+                echo "::error::refusing $bad"
+                exit 1
+              fi
+            fi
+            rm -rf "engine/$P"
+            if [ -e "data/$P" ]; then
+              mkdir -p "$(dirname "engine/$P")"
+              ln -s "$GITHUB_WORKSPACE/data/$P" "engine/$P"
+            fi
+          done <<< "$paths"
+          purelib="$(python -I -c 'import sysconfig; print(sysconfig.get_path("purelib"))')"
+          quoted="$(python -I -c 'import json, pathlib; print(json.dumps(str(pathlib.Path("engine").resolve())))')"
+          mkdir -p "$purelib"
+          printf 'import sys; sys.path.insert(0, %s)\n' "$quoted" > "$purelib/modelspec-engine.pth"
       - name: Install dependencies
-        run: pip install pyyaml pydantic
+        run: python -I -m pip install pyyaml pydantic
       - name: Download change report
         uses: actions/download-artifact@v4
         with:
@@ -262,7 +478,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           REPO: ${{ github.repository }}
-        run: python scripts/curation/ci.py issues --apply --repo "$REPO" --report benchmarks/_curation/reports/change_report.json
+        run: python -I -m scripts.curation.ci issues --apply --repo "$REPO" --report benchmarks/_curation/reports/change_report.json
     defaults:
       run:
         working-directory: data

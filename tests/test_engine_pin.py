@@ -22,7 +22,21 @@ NAMES = (
     "release-signals",
     "price-reread",
     "leaderboard-refresh",
+    "daily-research",
+    "curation-benchmarks",
+    "speed-probe",
+    "data-trust-audit",
 )
+ENGINE_JOBS = {
+    "recall-private": 1,
+    "release-signals": 1,
+    "price-reread": 1,
+    "leaderboard-refresh": 1,
+    "daily-research": 1,
+    "curation-benchmarks": 4,
+    "speed-probe": 1,
+    "data-trust-audit": 1,
+}
 ENGINE_REPOSITORY = "turbobeest/modelspec"
 PIN_REF = "${{ steps.engine_pin.outputs.sha }}"
 HEX40 = re.compile(r"^[0-9a-fA-F]{40}$")
@@ -41,7 +55,7 @@ def _document(name: str) -> dict:
     return yaml.safe_load((WRITERS / f"{name}.yml").read_text(encoding="utf-8"))
 
 
-def _engine_job(document: dict) -> dict:
+def _engine_jobs(document: dict) -> list[dict]:
     matched = [
         job
         for job in document["jobs"].values()
@@ -50,6 +64,12 @@ def _engine_job(document: dict) -> dict:
             for step in job.get("steps") or []
         )
     ]
+    assert matched
+    return matched
+
+
+def _engine_job(document: dict) -> dict:
+    matched = _engine_jobs(document)
     assert len(matched) == 1
     return matched[0]
 
@@ -146,8 +166,24 @@ def _run_pin(
     return completed, output.read_text(encoding="utf-8")
 
 
+def _engine_checkout_and_confirm(job: dict) -> tuple[dict, dict]:
+    steps = job["steps"]
+    engine = _index(
+        steps,
+        lambda step: (step.get("with") or {}).get("repository") == ENGINE_REPOSITORY,
+    )
+    return steps[engine], steps[engine + 1]
+
+
 def test_the_engine_pin_step_is_identical_in_every_writer() -> None:
-    steps = [_pin_step(name) for name in NAMES]
+    steps = [
+        step
+        for name in NAMES
+        for job in _engine_jobs(_document(name))
+        for step in job["steps"]
+        if step.get("id") == "engine_pin"
+    ]
+    assert steps
     assert all(step == steps[0] for step in steps)
     assert steps[0]["name"] == "Verify the engine pin is on modelspec main"
     assert steps[0]["working-directory"] == "."
@@ -155,36 +191,44 @@ def test_the_engine_pin_step_is_identical_in_every_writer() -> None:
         "ENGINE_REPO": "https://github.com/turbobeest/modelspec.git",
         "GIT_NO_LAZY_FETCH": "1",
     }
+    blocks = [
+        _engine_checkout_and_confirm(job)
+        for name in NAMES
+        for job in _engine_jobs(_document(name))
+    ]
+    assert all(block == blocks[0] for block in blocks)
 
 
 @pytest.mark.parametrize("name", NAMES)
 def test_the_pin_is_verified_before_the_engine_checkout(name: str) -> None:
     document = _document(name)
-    job = _engine_job(document)
-    steps = job["steps"]
-    data = _index(
-        steps,
-        lambda step: (
-            str(step.get("uses", "")).startswith("actions/checkout")
-            and (step.get("with") or {}).get("path") == "data"
-        ),
-    )
-    pin = _index(steps, lambda step: step.get("id") == "engine_pin")
-    engine = _index(
-        steps,
-        lambda step: (step.get("with") or {}).get("repository") == ENGINE_REPOSITORY,
-    )
-    assert steps[data + 1] is steps[pin]
-    between = [step.get("name") for step in steps[pin + 1 : engine]]
-    assert between == ([DOWNGRADE] if name == "recall-private" else [])
-    assert steps[engine]["with"]["ref"] == PIN_REF
-    assert steps[engine]["with"]["path"] == "engine"
-    confirm = steps[engine + 1]
-    assert confirm["name"] == CONFIRM
-    assert confirm["env"]["PIN"] == PIN_REF
-    assert confirm["run"] == 'test "$(git -C ../engine rev-parse HEAD)" = "$PIN"'
-    assert "working-directory" not in confirm
-    assert job["defaults"]["run"]["working-directory"] == "data"
+    jobs = _engine_jobs(document)
+    assert len(jobs) == ENGINE_JOBS[name]
+    for job in jobs:
+        steps = job["steps"]
+        data = _index(
+            steps,
+            lambda step: (
+                str(step.get("uses", "")).startswith("actions/checkout")
+                and (step.get("with") or {}).get("path") == "data"
+            ),
+        )
+        pin = _index(steps, lambda step: step.get("id") == "engine_pin")
+        engine = _index(
+            steps,
+            lambda step: (step.get("with") or {}).get("repository") == ENGINE_REPOSITORY,
+        )
+        assert steps[data + 1] is steps[pin]
+        between = [step.get("name") for step in steps[pin + 1 : engine]]
+        assert between == ([DOWNGRADE] if name == "recall-private" else [])
+        assert steps[engine]["with"]["ref"] == PIN_REF
+        assert steps[engine]["with"]["path"] == "engine"
+        confirm = steps[engine + 1]
+        assert confirm["name"] == CONFIRM
+        assert confirm["env"]["PIN"] == PIN_REF
+        assert confirm["run"] == 'test "$(git -C ../engine rev-parse HEAD)" = "$PIN"'
+        assert "working-directory" not in confirm
+        assert job["defaults"]["run"]["working-directory"] == "data"
     for step in _all_steps(document):
         ref = (step.get("with") or {}).get("ref")
         repository = (step.get("with") or {}).get("repository")

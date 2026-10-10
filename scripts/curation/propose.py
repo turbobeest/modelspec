@@ -127,7 +127,9 @@ def open_prs(manifest: list[dict], today: str, repo: str, leads: list[str] | Non
             title, body = f"benchgraph: curation census leads ({today})", census_body(added)
         else:
             title, body = pr_title(item), pr_body(item) + (census_body(added) if added else "")
-        subprocess.run(["git", "add", *paths], check=True)
+        # benchmarks/ is a symlink into the data checkout. git refuses the engine path.
+        resolved = [str(Path(path).resolve()) for path in paths]
+        subprocess.run(["git", "add", *resolved], check=True)
         subprocess.run(["git", "commit", "-m", title, "-m",
                         "Co-Authored-By: Codex (GPT-6.1 Sol) <noreply@openai.com>"], check=True)
         subprocess.run(["git", "push", "-u", "origin", branch], check=True)

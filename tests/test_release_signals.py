@@ -1053,9 +1053,9 @@ def test_hourly_workflow_keeps_github_credentials_out_of_the_signal_sender() -> 
     assert "schedule:" not in workflow
     assert "MODELSPEC_SIGNALS_READ_KEY" in workflow
     assert "secrets.GITHUB_TOKEN" in workflow
-    assert "modelspec verify --json" in workflow
-    assert "scripts/accuracy.py --profile pr" in workflow
-    assert "scripts/recall_run.py" in workflow
+    assert "python -I -m cli.modelspec.legacy verify --json" in workflow
+    assert "python -I -m scripts.accuracy --profile pr" in workflow
+    assert "python -I -m scripts.recall_run" in workflow
     assert "new-model" in workflow
     assert "--draft" in workflow
     assert "gh pr merge" not in workflow
