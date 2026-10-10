@@ -323,8 +323,8 @@ or among `targets` when that list is given.
 
 `scripts/price_reread.py`, run by `.github/workflows/price-reread.yml` on
 Tuesdays (MODEL-217). It takes every `offering.price.*` and
-`offering.subscription.*` fact whose current value was last verified by a
-deterministic reader, fetches each cited page once more over plain HTTP, pins
+`offering.subscription.*` fact whose current value was verified, fetches each
+cited page once more over plain HTTP or an opted-in local browser, pins
 the fact's filed claim to the new copy and verifies it again. Each fact ends as:
 
 - `unchanged`: the recorded value still verifies. The verification is logged
@@ -346,9 +346,28 @@ the fact's filed claim to the new copy and verifies it again. Each fact ends as:
   opens or updates one issue ("Price and plan re-read needs a person") and fails
   the run. A page is fetched a second time before its facts alert, since some
   servers now and then answer a plain fetch with a script shell or a 403.
-- `not_reread`: the page needs a rendered fetch, or an LLM reader verified the
-  value, or the value is still quarantined. A deterministic failure would say
-  nothing about the page, so these are counted in the report and never alert.
+- `not_reread`: a rendered fetch was not enabled, the value is still quarantined,
+  or the deterministic readers cannot read an LLM-verified value. The readers
+  reconfirm an LLM-verified value only when they confirm the same value. A
+  different numeric value goes to `needs_review`, never `changed`. Facts that
+  are overdue also alert when they cannot be re-read.
+
+`--rendered` fetches HTML with local Chromium. `--render-to <directory>` captures
+eligible rendered pages without verifying or writing facts. `--rendered-from
+<directory>` validates and replays that artifact without a browser. Source
+preparations are code in `decision.sources.RENDERED_PREPARATIONS`, keyed by source
+ID. They add no registry field or locator kind. The AWS Bedrock preparation opens
+the Anthropic tab, scrolls the global pricing component into view and waits for
+its header and numeric price cells within one timeout budget. A preparation
+failure retains the HTML and records the error in the artifact's existing
+`error` field. Both direct and replay runs report it as `unreadable`, including
+for LLM-verified values.
+
+CSS cited-region locators support tags, IDs, classes, existence and equality
+attributes, prefix `^=`, substring `*=` and suffix `$=` attributes, and descendant
+or child `>` combinators. Quoted values preserve spaces and `>` characters.
+Escapes, other attribute operators, selector lists and pseudo-classes are
+rejected at registration.
 
 Both keys on a new value are code in this repository: the readers that found it
 and the verifier that confirmed it. The pull request's reviewer is the check that
