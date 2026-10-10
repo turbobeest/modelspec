@@ -12,6 +12,8 @@ import { handoffDefines } from "./decide-handoff-build";
 // of api.modelspec.dev, whose CORS allows only the deployed origins.
 const exportOrigin = process.env.EXPORT_ORIGIN ?? "http://localhost:8000";
 const decideOrigin = process.env.DECIDE_API_ORIGIN ?? "https://api.modelspec.dev";
+// Your own key, from the environment only: the /v1 proxy sends it, since machine access is keyed.
+const apiKey = process.env.MODELSPEC_API_KEY;
 
 // The deployed page shares /fonts/ with the landing page (pipeline/build.py
 // copies site/fonts there). In development and in `vite preview`, which the
@@ -43,7 +45,11 @@ export default defineConfig({
     fs: { allow: [".."] },
     proxy: {
       "/api": { target: exportOrigin, changeOrigin: true },
-      "/v1": { target: decideOrigin, changeOrigin: true },
+      "/v1": {
+        target: decideOrigin,
+        changeOrigin: true,
+        headers: apiKey ? { Authorization: `Bearer ${apiKey}` } : undefined,
+      },
     },
   },
 });
