@@ -384,10 +384,13 @@ class CopyStore:
         digest = m.group(1)
         return self.root / digest[:2] / digest
 
+    # The cache directory can be restored from another run's artifact, so a file is
+    # trusted only when its bytes still hash to its name (MODEL-235).
+
     def put(self, body: bytes) -> str:
         ref = fingerprint_bytes(body)
         target = self.path(ref)
-        if not target.exists():
+        if not self.has(ref):
             target.parent.mkdir(parents=True, exist_ok=True)
             fd, tmp = tempfile.mkstemp(dir=target.parent, prefix=".tmp-")
             with os.fdopen(fd, "wb") as fh:
@@ -396,10 +399,16 @@ class CopyStore:
         return ref
 
     def get(self, ref: str) -> bytes:
-        return self.path(ref).read_bytes()
+        body = self.path(ref).read_bytes()
+        if fingerprint_bytes(body) != ref:
+            raise ValueError(f"retained copy {ref} does not match its hash")
+        return body
 
     def has(self, ref: str) -> bool:
-        return self.path(ref).exists()
+        target = self.path(ref)
+        if not target.is_file() or target.is_symlink():
+            return False
+        return fingerprint_bytes(target.read_bytes()) == ref
 
 
 def fingerprint_bytes(body: bytes) -> str:

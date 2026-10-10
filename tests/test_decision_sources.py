@@ -722,3 +722,14 @@ def test_header_buttons_keep_a_column_name_and_leave_html_default_alone():
                                  "Claude Opus 5.5 | $4 / MTok | $0.40 / MTok"]
     assert default.splitlines() == ["Name | Input |",
                                     "Claude Opus 5.5 | $4 / MTok | $0.40 / MTok"]
+
+
+def test_a_retained_copy_whose_bytes_do_not_match_its_name_is_not_trusted(tmp_path) -> None:
+    store = CopyStore(tmp_path)
+    ref = store.put(b"the real page")
+    store.path(ref).write_bytes(b"a planted page")
+    assert store.has(ref) is False
+    with pytest.raises(ValueError, match="does not match its hash"):
+        store.get(ref)
+    assert store.put(b"the real page") == ref
+    assert store.get(ref) == b"the real page"
