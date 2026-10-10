@@ -1,6 +1,6 @@
 # Privacy statement
 
-Version `1.12`, effective 2026-10-08. Adopted by Sparks & Sawdust LLC, which
+Version `1.13`, effective 2026-10-10. Adopted by Sparks & Sawdust LLC, which
 operates the service. MODEL-70. Version 1.0 was adopted on 2026-09-19; what
 changed since is listed under [Changes](#changes).
 
@@ -266,6 +266,8 @@ credited while it is off), or by an x402 payment, which runs only while
   - the Stripe customer id and the plan name from the last paid invoice. The
     plan name is cleared when the plan ends; the customer id stays with the
     balance record.
+  - a random meter id, made once for the balance record and used only to name
+    the meter events we send Stripe.
   - for Scale overage: how many overage credits the current billing period has
     used, reset on each paid invoice and when the plan ends; a count of overage
     credits not yet reported to Stripe, kept until they are reported; a count
@@ -274,8 +276,8 @@ credited while it is off), or by an x402 payment, which runs only while
     answer, each an identifier, a credit count and the time the credits were
     used. An event leaves that list when Stripe acknowledges it, or after 20
     hours, when its count moves to the reconcile-by-hand total. An identifier
-    is the holder name (the SHA-256 hash of the key, never the key) and a
-    counter.
+    is a random meter id kept with the balance record, which is not derived
+    from your key, and a counter.
   - for keyed catalog reads (`/v1/vocabulary`): the current UTC day and how
     many reads the key has made that day, the current minute and how many
     reads it has made in it, and how far it is into its current block of 10
@@ -394,8 +396,9 @@ overage, the Worker sends Stripe a Billing Meter event for each settled charge,
 so that Stripe can bill the overage on the plan's invoice
 (`api/worker/src/billing_stripe.py`). The event carries the meter's name, your
 Stripe customer id, the number of overage credits, the time they were used, and
-an identifier made from the holder name (the SHA-256 hash of your key, never the
-key) and a counter, which lets Stripe ignore a repeat of the same event. It
+an identifier made from a random meter id that we keep with your balance record
+(it is not derived from your key) and a counter, which lets Stripe ignore a
+repeat of the same event. It
 carries nothing from your request. No meter event is sent while the overage
 Price is not for sale.
 
@@ -621,6 +624,9 @@ to `DELETE /v1/feedback`, or write to us with it.
 A change to what the service records is a change to this statement, and it is
 published here before the change ships. The version above is the one in force.
 
+- **1.13, 2026-10-10.** Meter events sent to Stripe for Scale overage no
+  longer carry the hash of your key; they use a random meter id kept with the
+  balance record. Nothing else changed.
 - **1.12, 2026-10-08.** Pricing v2 (MODEL-342). *The credit ledger* lists what
   a balance now keeps for a plan, Scale overage and metered catalog reads, and
   how long. *What Stripe holds* describes the Billing Meter events sent for
