@@ -60,24 +60,42 @@ numeric literal bound to a name that reads like a limit.
 | `paid` | none (funded keys) | 60/min | yes |
 | `dpf` | unlimited | unlimited | yes |
 
-`null` is how unlimited is written, and it is a comparison that never refuses —
-not a branch that skips the meter. Every live call is counted, including the
-ones no limit will ever refuse, because usage is worth knowing for a key that
-pays nothing and for the key that is exempt. That is also why the exempt key is
-on the same handler as a paying one:
+`null` is how unlimited is written, and it is a comparison that never refuses.
+Decide, rank, policy-check and an exempt key are counted, including the calls
+no limit will ever refuse, because usage is worth knowing for a key that pays
+nothing and for the key that is exempt. A funded paid key's catalog read does
+not use this counter. It uses the credit read meter below. That is also why
+the exempt key is on the same handler as a paying one:
 `test_an_exempt_key_takes_the_same_steps_as_a_paying_key` asserts the two
 requests record an identical sequence of steps, and
 `test_no_module_branches_on_the_exempt_tier_by_name` parses the package's syntax
 tree and fails if the tier is named anywhere outside a comment or a docstring.
 
 MODEL-93 meters paid access in credits, not a daily quota. `billing.prices`
-maps each Stripe Price id to `{kind: plan|pack, credits, name}`. A funded key
-(balance > 0) gets the paid answer, including determinations. A key with zero
-credits gets the free-tier answer plus `credits.exhausted`. See
+maps each Stripe Price id to `{kind: plan|pack, credits, name}`. A funded key (remaining credits, or Scale overage room on an account Stripe
+can bill) gets the paid answer, including determinations. A key with nothing
+left to bill gets the free-tier answer plus `credits.exhausted`. See
 [`billing.md`](billing.md). The exempt row (paid, live data, null limits) is
 never metered in credits (MODEL-322): `_exempt(tier)` in `entry.py` skips the
 credit charge, so the answer carries no `credits` block and is never a 402.
 Its calls still count in the key's daily and burst counters.
+
+A funded paid key's catalog read is `GET /v1/vocabulary`. It skips the shared
+daily and burst counters above while the key can pay (remaining credits, or
+Scale overage room on an account Stripe can bill), so a lookup does not spend
+the decide burst, and uses the credit read meter instead. `credits.reads`
+charges one credit per 10 successful reads, up front at the start of each
+block (the 1st, 11th, 21st successful read). The cap is 1,000 reads a key a
+UTC day, with a burst of 30 a minute. Past either cap the response is 429
+`rate_limited`. A funded key with nothing left to bill for the next block is
+served like a free-tier key: the catalog is returned, under the free tier's
+10 a day and 5 a minute, and the response is not 402. That matches an
+unfunded decide while x402 is off. `HEAD` is the same read as `GET`: same
+gate, limits, meter and charge, and no body. A refused or failed read is not
+charged. A visit token, a free-tier key and an
+exempt key are not charged this way. Free-tier keys keep the daily limit of
+10 and the burst of 5. Reads are capped per key per day so an agent must not
+rebuild a decision from cheap reads.
 
 ## Windows and the reset boundary
 

@@ -229,26 +229,25 @@ def _price_from_session(obj: dict[str, Any]) -> str:
     return ""
 
 
-def _price_from_invoice(obj: dict[str, Any]) -> str:
-    lines = obj.get("lines")
-    rows = lines.get("data") if isinstance(lines, dict) else []
-    if isinstance(rows, list):
-        for row in rows:
-            if not isinstance(row, dict):
-                continue
-            price = row.get("price")
-            if isinstance(price, dict) and price.get("id"):
-                return str(price["id"])
-            if isinstance(price, str) and price:
-                return price
-            # Since API 2025-03-31.basil a line names its Price here instead.
-            pricing = row.get("pricing")
-            details = pricing.get("price_details") if isinstance(pricing, dict) else None
-            if isinstance(details, dict) and _id(details.get("price")):
-                return _id(details.get("price"))
+def _line_price_id(row: dict[str, Any]) -> str:
+    price = row.get("price")
+    if isinstance(price, dict) and price.get("id"):
+        return str(price["id"])
+    if isinstance(price, str) and price:
+        return price
+    # Since API 2025-03-31.basil a line names its Price here instead.
+    pricing = row.get("pricing")
+    details = pricing.get("price_details") if isinstance(pricing, dict) else None
+    if isinstance(details, dict):
+        return _id(details.get("price"))
+    return ""
+
+
+def _metadata_price(obj: dict[str, Any]) -> str:
     meta = obj.get("metadata") if isinstance(obj.get("metadata"), dict) else {}
-    if meta.get("modelspec_price_id"):
-        return str(meta["modelspec_price_id"])
+    found = str(meta.get("modelspec_price_id") or "")
+    if found:
+        return found
     # Checkout's subscription_data metadata reaches a basil+ invoice here.
     parent = obj.get("parent")
     sub_details = parent.get("subscription_details") if isinstance(parent, dict) else None
@@ -257,20 +256,80 @@ def _price_from_invoice(obj: dict[str, Any]) -> str:
     return ""
 
 
-def _price_from_subscription(obj: dict[str, Any]) -> str:
+def _line_is_proration(row: dict[str, Any]) -> bool:
+    if row.get("proration"):
+        return True
+    # Since API 2025-03-31.basil the flag sits under the line's parent.
+    parent = row.get("parent")
+    if isinstance(parent, dict):
+        for key in ("subscription_item_details", "invoice_item_details"):
+            details = parent.get(key)
+            if isinstance(details, dict) and details.get("proration"):
+                return True
+    return False
+
+
+def _line_amount(row: dict[str, Any]) -> int:
+    try:
+        return int(row.get("amount") or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _price_from_invoice(obj: dict[str, Any], metered: set[str]) -> str:
+    """The plan Price this invoice bills, or "" when it names none.
+
+    The Price billed wins over checkout metadata, so a plan changed in Stripe
+    after checkout grants what was paid for. The metered overage line is
+    skipped. A proration invoice credits the old plan (a negative line) and
+    charges the new one: the charge wins, and a regular line wins over a
+    proration line. A billed Price that is not mapped is returned as is, so
+    the caller refuses it instead of falling back to stale metadata. Metadata
+    is used only when no line names a plan Price.
+    """
+    lines = obj.get("lines")
+    rows = lines.get("data") if isinstance(lines, dict) else []
+    billed: list[tuple[str, dict[str, Any]]] = []
+    if isinstance(rows, list):
+        for row in rows:
+            if not isinstance(row, dict):
+                continue
+            price_id = _line_price_id(row)
+            if price_id and price_id not in metered:
+                billed.append((price_id, row))
+    if not billed:
+        return _metadata_price(obj)
+    charges = [entry for entry in billed if _line_amount(entry[1]) >= 0]
+    regular = [entry for entry in charges if not _line_is_proration(entry[1])]
+    if regular:
+        return regular[0][0]
+    if charges:
+        return charges[-1][0]
+    return billed[-1][0]
+
+
+def _price_from_subscription(obj: dict[str, Any], metered: set[str]) -> str:
+    """The plan Price on a subscription's items, else its metadata.
+
+    The metered overage item is skipped. An item Price that is not mapped is
+    returned as is, so the caller refuses it rather than trusting metadata.
+    """
     items = obj.get("items")
     rows = items.get("data") if isinstance(items, dict) else []
     if isinstance(rows, list):
         for row in rows:
             if not isinstance(row, dict):
                 continue
-            price = row.get("price")
-            if isinstance(price, dict) and price.get("id"):
-                return str(price["id"])
-            if isinstance(price, str) and price:
-                return price
-    meta = obj.get("metadata") if isinstance(obj.get("metadata"), dict) else {}
-    return str(meta.get("modelspec_price_id") or "")
+            price_id = _line_price_id(row)
+            if price_id and price_id not in metered:
+                return price_id
+    return _metadata_price(obj)
+
+
+def _metered_price_ids(policy: AccessPolicy) -> set[str]:
+    """Overage Prices. Their lines bill usage, never name the plan."""
+    return {row.overage.price_id for row in policy.billing.prices.values()
+            if row.overage is not None and row.overage.price_id}
 
 
 def _subscription_from_invoice(obj: dict[str, Any]) -> str:
@@ -380,18 +439,18 @@ async def apply_event(event: dict[str, Any], *, kv: Any, policy: AccessPolicy,
             if action == "tier_set":
                 action = "downgraded"
         elif status == "active":
-            price_id = _price_from_subscription(obj)
+            price_id = _price_from_subscription(obj, _metered_price_ids(policy))
             if price_id:
                 mapping, error = await _map_price_row(
                     policy, price_id, service_commit=service_commit, endpoint=endpoint)
                 if error is not None:
                     return error
+                # Restore access only. Credits come from a paid invoice or
+                # Checkout: an update (a plan change, a coupon, a cancel
+                # toggle) is not a payment, and an upgrade's prorated invoice
+                # may still be unpaid.
                 action = await store.set_subscription_tier(
                     kv, subscription_id, mapping.tier if mapping else "", policy=policy)
-                if mapping is not None and mapping.kind == "plan":
-                    await store.grant_monthly(
-                        kv, subscription_id, ledger=ledger, units=mapping.credits,
-                        invoice_id=f"sub-active:{event_id}", plan=mapping.name)
                 if action == "tier_set":
                     action = "restored"
 
@@ -486,7 +545,7 @@ async def _apply_invoice_paid(obj: dict[str, Any], *, kv: Any, policy: AccessPol
     subscription_id = _subscription_from_invoice(obj)
     if not subscription_id:
         return "ignored", None
-    price_id = _price_from_invoice(obj)
+    price_id = _price_from_invoice(obj, _metered_price_ids(policy))
     mapping, error = await _map_price_row(
         policy, price_id, service_commit=service_commit, endpoint=endpoint)
     if error is not None:
@@ -717,6 +776,15 @@ async def _bound_checkout_fingerprint(api_key: str | None, *, kv: Any,
     return keys.fingerprint(key), None
 
 
+def not_for_sale(mapping: PriceMapping) -> str | None:
+    """Why checkout must refuse this row, or None when it can be sold."""
+    if mapping.placeholder:
+        return f"{mapping.price_id} is a placeholder Price; not for sale"
+    if mapping.legacy:
+        return f"{mapping.price_id} is a legacy Price; not for sale"
+    return None
+
+
 def _omitted_price_refusal(*, policy: AccessPolicy, service_commit: str,
                            endpoint: str) -> Outcome:
     ids = policy.price_ids()
@@ -775,6 +843,14 @@ async def checkout(*, payload: Any, flag: bool, secret: str | None, origin: str,
         return _refusal(PRICE_NOT_MAPPED, str(exc),
                         service_commit=service_commit, endpoint=endpoint,
                         detail={"price_id": price_id})
+    refused = not_for_sale(mapping)
+    if refused:
+        return _refusal(PRICE_NOT_MAPPED, refused,
+                        service_commit=service_commit, endpoint=endpoint,
+                        detail={"price_id": price_id})
+    overage_price_id = ""
+    if mapping.overage is not None and mapping.overage.active:
+        overage_price_id = mapping.overage.price_id
     success_url = origin.rstrip("/") + policy.billing.success_path
     if "{CHECKOUT_SESSION_ID}" not in success_url:
         success_url += ("&" if "?" in success_url else "?") + "session_id={CHECKOUT_SESSION_ID}"
@@ -783,7 +859,8 @@ async def checkout(*, payload: Any, flag: bool, secret: str | None, origin: str,
             secret=secret, price_id=price_id, success_url=success_url,
             cancel_url=policy.billing.cancel_url, terms_url=policy.billing.terms_url,
             http=http, mode=mapping.checkout_mode,
-            key_fingerprint=fingerprint or "")
+            key_fingerprint=fingerprint or "",
+            overage_price_id=overage_price_id)
     except RuntimeError as exc:
         return _refusal(STRIPE_UNAVAILABLE, str(exc),
                         service_commit=service_commit, endpoint=endpoint)
@@ -843,13 +920,6 @@ async def checkout_form(*, raw: str, flag: bool, secret: str | None, origin: str
             service_commit=service_commit, endpoint=endpoint,
             detail={"fields": repeated, "accepted": ["price_id"]})
     payload = {name: values[0] for name, values in fields.items()}
-    price_id = payload.get("price_id")
-    if price_id and price_id in policy.billing.prices:
-        if policy.billing.prices[price_id].placeholder:
-            return _refusal(
-                PRICE_NOT_MAPPED, f"{price_id} is a placeholder Price; not for sale",
-                service_commit=service_commit, endpoint=endpoint,
-                detail={"price_id": price_id})
     outcome = await checkout(
         payload=payload, flag=flag, secret=secret, origin=origin, kv=kv,
         policy=policy, service_commit=service_commit, http=http, api_key=None)

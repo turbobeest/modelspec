@@ -115,9 +115,9 @@ Run these steps in order from the repository root.
    unset X402_SMOKE_PRIVATE_KEY MODELSPEC_API_KEY
    ```
 
-   Confirm that the script reports network `eip155:84532`, the 1,250-credit
-   pack, at least 1,250 credits before the decision, and a one-credit decrease
-   after the summary decision.
+   Confirm that the script reports network `eip155:84532`, the smallest current
+   pack (250 credits), at least 250 credits before the decision, and a
+   one-credit decrease after the summary decision.
 
 ## Stage 2: Base mainnet
 

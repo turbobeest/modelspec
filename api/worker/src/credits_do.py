@@ -66,10 +66,12 @@ class CreditsObject(DurableObject):
         return result.to_json()
 
     async def set_monthly(self, holder: str, units: int, invoice_id: str,
-                          plan: str = "") -> dict[str, Any]:
+                          plan: str = "", customer_id: str = "",
+                          reset_overage: bool = True) -> dict[str, Any]:
         state = self._load()
         result = state.set_monthly(holder, int(units), str(invoice_id),
-                                   str(plan or ""))
+                                   str(plan or ""), str(customer_id or ""),
+                                   bool(reset_overage))
         self._save(state)
         return result.to_json()
 
@@ -86,15 +88,89 @@ class CreditsObject(DurableObject):
         return ok
 
     async def reserve(self, holder: str, units: int = 1,
-                      now: str = "") -> dict[str, Any]:
+                      now: str = "", overage_cap: int = 0) -> dict[str, Any]:
         state = self._load()
-        result = state.reserve(holder, int(units), now=str(now or ""))
+        result = state.reserve(holder, int(units), now=str(now or ""),
+                               overage_cap=int(overage_cap or 0))
         self._save(state)
         return result.to_json()
 
-    async def commit(self, holder: str, reservation_id: int) -> bool:
+    async def commit(self, holder: str, reservation_id: int) -> dict[str, Any]:
         state = self._load()
-        ok = state.commit(holder, int(reservation_id))
+        result = state.commit(holder, int(reservation_id))
+        self._save(state)
+        return result.to_json()
+
+    async def take_read(self, holder: str, reads_per_credit: int, daily_cap: int,
+                        burst_limit: int, now: str = "",
+                        overage_cap: int = 0) -> dict[str, Any]:
+        state = self._load()
+        result = state.take_read(
+            holder, int(reads_per_credit), int(daily_cap), int(burst_limit),
+            now=str(now or ""), overage_cap=int(overage_cap or 0))
+        self._save(state)
+        return result.to_json()
+
+    async def release_read(self, holder: str, token: int) -> bool:
+        state = self._load()
+        ok = state.release_read(holder, int(token))
+        self._save(state)
+        return ok
+
+    async def keep_read(self, holder: str, token: int) -> bool:
+        state = self._load()
+        ok = state.keep_read(holder, int(token))
+        self._save(state)
+        return ok
+
+    async def note_unreported(self, holder: str, units: int, identifier: str,
+                              customer_id: str = "", event_name: str = "") -> bool:
+        state = self._load()
+        ok = state.note_unreported(
+            holder, int(units), str(identifier), str(customer_id or ""),
+            str(event_name or ""))
+        self._save(state)
+        return ok
+
+    async def open_backlog(self, holder: str) -> list:
+        state = self._load()
+        units, seq, ident = state.open_backlog(holder)
+        self._save(state)
+        return [units, seq, ident]
+
+    async def ack_backlog(self, holder: str, units: int, n: int) -> bool:
+        state = self._load()
+        ok = state.ack_backlog(holder, int(units), int(n))
+        self._save(state)
+        return ok
+
+    async def note_uncertain(self, holder: str, units: int, identifier: str,
+                             created_at: int = 0) -> bool:
+        state = self._load()
+        when = int(created_at) or None
+        ok = state.note_uncertain(holder, int(units), str(identifier), when)
+        self._save(state)
+        return ok
+
+    async def list_uncertain(self, holder: str) -> list:
+        return [[ident, units, created_at]
+                for ident, units, created_at in self._load().list_uncertain(holder)]
+
+    async def ack_uncertain(self, holder: str, identifier: str) -> bool:
+        state = self._load()
+        ok = state.ack_uncertain(holder, str(identifier))
+        self._save(state)
+        return ok
+
+    async def age_uncertain(self, holder: str, now: int = 0) -> list:
+        state = self._load()
+        rows = state.age_uncertain(holder, int(now or 0))
+        self._save(state)
+        return [[ident, units, created_at] for ident, units, created_at in rows]
+
+    async def unreconcile_uncertain(self, holder: str, identifier: str) -> bool:
+        state = self._load()
+        ok = state.unreconcile_uncertain(holder, str(identifier))
         self._save(state)
         return ok
 

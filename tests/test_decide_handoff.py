@@ -25,7 +25,7 @@ def test_price_anchor_uses_the_team_rate() -> None:
     data = decide_handoff.data(ROOT)
     price = pricing.format_usd(team * tiers["credits"]["weights"]["decide.summary"])
     assert data["price_line"] == f"Your agent gets this answer from {price}"
-    assert data["price_line"] == "Your agent gets this answer from $0.0017"
+    assert data["price_line"] == "Your agent gets this answer from $0.008"
     assert "¢" not in data["price_line"]
     assert data["full_credits"] == tiers["credits"]["weights"]["decide.full"]
 
@@ -40,16 +40,17 @@ def test_changed_credit_weight_scales_the_team_rate(tmp_path: Path) -> None:
     tiers["credits"]["weights"].update({"decide.summary": 3, "decide.full": 7})
     _write_tiers(tmp_path, tiers)
     data = decide_handoff.data(tmp_path)
-    assert data["price_line"] == "Your agent gets this answer from $0.005"
+    assert data["price_line"] == "Your agent gets this answer from $0.0239"
     assert data["full_credits"] == 7
 
 
 def test_rendered_price_follows_a_changed_team_rate(tmp_path: Path) -> None:
     tiers = pricing.load_tiers(ROOT)
-    team = next(row for row in tiers["billing"]["prices"].values() if row["name"] == "Team")
-    team["usd"] = 96
+    team = next(row for row in tiers["billing"]["prices"].values()
+                if row["name"] == "Team" and not row.get("legacy"))
+    team["usd"] = 250
     _write_tiers(tmp_path, tiers)
-    assert decide_handoff.data(tmp_path)["price_line"] == "Your agent gets this answer from $0.0032"
+    assert decide_handoff.data(tmp_path)["price_line"] == "Your agent gets this answer from $0.01"
 
 
 @pytest.mark.parametrize("flag,href,label,note", [
@@ -71,7 +72,9 @@ def test_key_link_uses_the_same_production_flag_as_pricing(
     page = pricing.page(tiers, billing_live=worker_flags.enabled(
         worker_flags.production_vars(tmp_path), "BILLING_ENABLED"))
     assert 'id="pricing"' in page
-    assert (f'action="{pricing.CHECKOUT_URL}"' in page) == (flag == "true")
+    sellable = any(not row.get("placeholder") and not row.get("legacy")
+                   for row in tiers["billing"]["prices"].values())
+    assert (f'action="{pricing.CHECKOUT_URL}"' in page) == (flag == "true" and sellable)
 
 
 def test_badge_quotes_the_neutrality_commitment_exactly() -> None:

@@ -120,8 +120,8 @@ def test_sepolia_smoke_runs_only_against_the_stub_in_the_suite():
     assert json.loads(completed.stdout) == {
         "stub": True,
         "statuses": [402, 400, 200, 200],
-        "pack_credits": 1250,
-        "remaining_credits": 1249,
+        "pack_credits": 250,
+        "remaining_credits": 249,
     }
 
 
@@ -180,17 +180,17 @@ def test_keyed_402_offers_every_card_pack_with_atomic_usdc_fields():
         cfg, ENVELOPE, RESOURCE, offer_packs=True, units=1)
     offers = body["error"]["packs"]
     assert body["error"]["price"]["atomic"] == 5_000_000
-    assert body["error"]["price"]["credits"] == 1250
+    assert body["error"]["price"]["credits"] == 250
     assert body["error"]["price"]["placeholder"] is False
     assert body["error"]["price"]["placeholder_note"] == (
         "Live price: keyed requests show the smallest offered pack; "
         "keyless requests show this call's weighted price."
     )
     assert [(offer["credits"], offer["price"]["atomic"]) for offer in offers] == [
-        (1250, 5_000_000),
-        (7500, 25_000_000),
-        (20000, 50_000_000),
-        (50000, 100_000_000),
+        (250, 5_000_000),
+        (1300, 25_000_000),
+        (2750, 50_000_000),
+        (6000, 100_000_000),
     ]
     assert all(offer["price"]["asset"] == cfg.asset for offer in offers)
     assert all(offer["price"]["network"] == cfg.network for offer in offers)
@@ -217,7 +217,7 @@ def test_enabled_keyed_request_discovers_packs_before_the_free_answer():
     assert status == 402
     assert produced == []
     assert [row["credits"] for row in body["error"]["packs"]] == [
-        1250, 7500, 20000, 50000,
+        250, 1300, 2750, 6000,
     ]
 
 
@@ -238,11 +238,11 @@ def test_keyless_per_call_price_uses_smallest_pack_rate_times_weight():
     })())
     body = x402.payment_required_body(
         cfg, ENVELOPE, RESOURCE, offer_packs=False, units=5)
-    assert cfg.price_atomic == 4_000
+    assert cfg.price_atomic == 20_000
     assert body["error"]["price"] == {
-        "amount": "20000",
-        "atomic": 20_000,
-        "usd": 0.02,
+        "amount": "100000",
+        "atomic": 100_000,
+        "usd": 0.10,
         "asset": cfg.asset,
         "network": cfg.network,
         "currency": "USDC",
@@ -316,8 +316,8 @@ def test_keyed_pack_payment_adds_the_exact_pack_to_the_card_balance():
         now=__import__("datetime").datetime(2026, 9, 26, tzinfo=__import__("datetime").UTC)))
     assert status == 200
     balance = _run(ledger.balance(holder))
-    assert balance.available == 1249
-    assert balance.packs == 1249
+    assert balance.available == 249
+    assert balance.packs == 249
     assert balance.grants[0].source == "x402"
     assert balance.grants[0].expires_at == "2027-09-26T00:00:00Z"
 
@@ -1093,7 +1093,7 @@ def test_entry_zero_balance_key_receives_pack_offer_even_from_site(entry):
     assert response.status == 402
     assert response.json()["error"]["code"] == "payment_required"
     assert [pack["credits"] for pack in response.json()["error"]["packs"]] == [
-        1250, 7500, 20000, 50000,
+        250, 1300, 2750, 6000,
     ]
 
 

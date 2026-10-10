@@ -25,6 +25,7 @@ from __future__ import annotations
 import json
 from collections.abc import Mapping
 from dataclasses import dataclass
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 from typing import Any
 
@@ -83,12 +84,44 @@ class TierLimits:
 
 
 @dataclass(frozen=True)
+class OverageConfig:
+    """Metered credits past a plan's allowance. Off while `placeholder` is set.
+
+    `usd_per_credit` is a decimal string. The cap is per billing period and is
+    the current table's cap at spend time, not a number frozen at purchase.
+    """
+
+    usd_per_credit: str
+    cap_credits: int
+    price_id: str
+    meter_event: str
+    placeholder: bool
+
+    @property
+    def active(self) -> bool:
+        return not self.placeholder
+
+    def rate(self) -> Decimal:
+        return Decimal(self.usd_per_credit)
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "usd_per_credit": self.usd_per_credit,
+            "cap_credits": self.cap_credits,
+            "price_id": self.price_id,
+            "meter_event": self.meter_event,
+            "placeholder": self.placeholder,
+        }
+
+
+@dataclass(frozen=True)
 class PriceMapping:
     """One Stripe Price id. Configuration, not code.
 
     `kind` is `plan` (recurring, SET monthly) or `pack` (one-off, ADD with
     expiry). `credits` is the amount that grant moves. `tier` is the access
-    row the minted key is stored under.
+    row the minted key is stored under. A legacy row still grants on a Stripe
+    webhook and is never offered at checkout.
     """
 
     price_id: str
@@ -100,13 +133,19 @@ class PriceMapping:
     interval: str
     placeholder: bool
     description: str
+    legacy: bool = False
+    overage: OverageConfig | None = None
 
     @property
     def checkout_mode(self) -> str:
         return "subscription" if self.kind == "plan" else "payment"
 
+    @property
+    def for_sale(self) -> bool:
+        return not self.placeholder and not self.legacy
+
     def to_json(self) -> dict[str, Any]:
-        return {
+        data = {
             "price_id": self.price_id,
             "kind": self.kind,
             "name": self.name,
@@ -115,8 +154,41 @@ class PriceMapping:
             "tier": self.tier,
             "interval": self.interval,
             "placeholder": self.placeholder,
+            "legacy": self.legacy,
             "description": self.description,
         }
+        if self.overage is not None:
+            data["overage"] = self.overage.to_json()
+        return data
+
+
+@dataclass(frozen=True)
+class ReadsConfig:
+    """Keyed metadata reads. One credit covers `reads_per_credit` successful reads."""
+
+    reads_per_credit: int
+    daily_cap: int
+    burst_limit: int
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "reads_per_credit": self.reads_per_credit,
+            "daily_cap": self.daily_cap,
+            "burst_limit": self.burst_limit,
+        }
+
+
+@dataclass(frozen=True)
+class X402ListPrice:
+    """Published x402 price for one decision. A decimal string, config only."""
+
+    list_usd_per_decision: str
+
+    def rate(self) -> Decimal:
+        return Decimal(self.list_usd_per_decision)
+
+    def to_json(self) -> dict[str, Any]:
+        return {"list_usd_per_decision": self.list_usd_per_decision}
 
 
 @dataclass(frozen=True)
@@ -126,6 +198,7 @@ class CreditsConfig:
     weights: Mapping[str, int]
     burst_limit: int
     pack_expiry_days: int
+    reads: ReadsConfig | None = None
 
     def weight(self, resource: str) -> int:
         try:
@@ -134,11 +207,14 @@ class CreditsConfig:
             raise PolicyError(f"credits.weights has no entry for {resource!r}") from None
 
     def to_json(self) -> dict[str, Any]:
-        return {
+        data: dict[str, Any] = {
             "weights": dict(self.weights),
             "burst_limit": self.burst_limit,
             "pack_expiry_days": self.pack_expiry_days,
         }
+        if self.reads is not None:
+            data["reads"] = self.reads.to_json()
+        return data
 
 
 @dataclass(frozen=True)
@@ -178,6 +254,7 @@ class AccessPolicy:
     tiers: Mapping[str, TierLimits]
     billing: BillingConfig
     credits: CreditsConfig
+    x402: X402ListPrice | None = None
 
     def tier(self, name: str) -> TierLimits:
         try:
@@ -213,7 +290,7 @@ class AccessPolicy:
             "tiers": {name: row.to_json() for name, row in self.tiers.items()},
             "billing": self.billing.to_json(),
             "credits": self.credits.to_json(),
-        }
+        } | ({"x402": self.x402.to_json()} if self.x402 is not None else {})
 
 
 def _limit(row: Mapping[str, Any], field: str, tier: str) -> int | None:
@@ -278,6 +355,7 @@ def policy_from_mapping(data: Mapping[str, Any]) -> AccessPolicy:
         tiers=tiers,
         billing=_billing(data.get("billing"), tiers),
         credits=_credits(data.get("credits")),
+        x402=_x402_list(data.get("x402")) if "x402" in data else None,
     )
 
 
@@ -338,7 +416,10 @@ def _billing(raw: Any, tiers: Mapping[str, TierLimits]) -> BillingConfig:
             interval=interval,
             placeholder=bool(row.get("placeholder", False)),
             description=str(row.get("description") or ""),
+            legacy=bool(row.get("legacy", False)),
+            overage=_overage(row.get("overage"), str(price_id), kind),
         )
+    _check_overage_rates(prices)
     return BillingConfig(
         downgrade_tier=downgrade,
         terms_url=str(raw.get("terms_url") or ""),
@@ -375,7 +456,118 @@ def _credits(raw: Any) -> CreditsConfig:
         weights=weights,
         burst_limit=_nonneg_int(raw, "burst_limit", where="credits"),
         pack_expiry_days=expiry,
+        reads=_reads(raw.get("reads")) if "reads" in raw else None,
     )
+
+
+def _positive_int(row: Mapping[str, Any], field: str, *, where: str) -> int:
+    value = _nonneg_int(row, field, where=where)
+    if value < 1:
+        raise PolicyError(f"{where}: {field} must be at least 1")
+    return value
+
+
+def _decimal_str(value: Any, where: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise PolicyError(f"{where} must be a positive decimal string")
+    try:
+        parsed = Decimal(value)
+    except InvalidOperation:
+        raise PolicyError(f"{where} must be a positive decimal string") from None
+    if parsed <= 0:
+        raise PolicyError(f"{where} must be a positive decimal string")
+    return value
+
+
+def _reads(raw: Any) -> ReadsConfig:
+    if not isinstance(raw, Mapping):
+        raise PolicyError("credits.reads must be an object")
+    return ReadsConfig(
+        reads_per_credit=_positive_int(raw, "reads_per_credit", where="credits.reads"),
+        daily_cap=_positive_int(raw, "daily_cap", where="credits.reads"),
+        burst_limit=_positive_int(raw, "burst_limit", where="credits.reads"),
+    )
+
+
+def _x402_list(raw: Any) -> X402ListPrice:
+    if not isinstance(raw, Mapping):
+        raise PolicyError("x402 must be an object")
+    return X402ListPrice(
+        list_usd_per_decision=_decimal_str(
+            raw.get("list_usd_per_decision"), "x402.list_usd_per_decision"),
+    )
+
+
+def _overage(raw: Any, price_id: str, kind: str) -> OverageConfig | None:
+    if raw is None:
+        return None
+    where = f"billing.prices[{price_id!r}].overage"
+    if kind != "plan":
+        raise PolicyError(f"{where} is only valid on a plan")
+    if not isinstance(raw, Mapping):
+        raise PolicyError(f"{where} must be an object")
+    price = str(raw.get("price_id") or "")
+    event = str(raw.get("meter_event") or "")
+    if not price or not event:
+        raise PolicyError(f"{where} must set price_id and meter_event")
+    return OverageConfig(
+        usd_per_credit=_decimal_str(raw.get("usd_per_credit"), f"{where}.usd_per_credit"),
+        cap_credits=_positive_int(raw, "cap_credits", where=where),
+        price_id=price,
+        meter_event=event,
+        placeholder=bool(raw.get("placeholder", False)),
+    )
+
+
+def _check_overage_rates(prices: Mapping[str, PriceMapping]) -> None:
+    """Overage sits above this plan's included rate and below every other current plan.
+
+    Legacy plans are not part of the comparison: their rates are the prices
+    existing customers already hold, and a new overage rate is not required
+    to undercut them.
+    """
+    current = [row for row in prices.values()
+               if row.kind == "plan" and not row.legacy and row.credits > 0 and row.usd > 0]
+    for row in prices.values():
+        if row.overage is None:
+            continue
+        rate = row.overage.rate()
+        included = Decimal(row.usd) / Decimal(row.credits)
+        if rate <= included:
+            raise PolicyError(
+                f"billing.prices[{row.price_id!r}].overage rate {rate} must be "
+                f"above the plan's included rate {included}")
+        for other in current:
+            if other.price_id == row.price_id:
+                continue
+            other_rate = Decimal(other.usd) / Decimal(other.credits)
+            if rate >= other_rate:
+                raise PolicyError(
+                    f"billing.prices[{row.price_id!r}].overage rate {rate} must be "
+                    f"below {other.name}'s included rate {other_rate}")
+
+
+def overage_for(policy: AccessPolicy, plan: str,
+                customer_id: str | None = None) -> tuple[int, OverageConfig | None]:
+    """Cap and overage row for a current plan of this name.
+
+    The cap is 0 while the overage Price is a placeholder, so a Scale key
+    stops at zero until that Price is configured. Passing a blank
+    `customer_id` also returns 0: overage that cannot be billed is not granted.
+    Omit `customer_id` to read the table cap alone. The cap is read from the
+    current table, not stored on the account.
+    """
+    if not plan:
+        return 0, None
+    for row in policy.billing.prices.values():
+        if (row.kind == "plan" and not row.legacy and row.name == plan
+                and row.overage is not None):
+            if row.overage.placeholder:
+                return 0, row.overage
+            if customer_id is not None and not str(customer_id).strip():
+                return 0, row.overage
+            return row.overage.cap_credits, row.overage
+    return 0, None
 
 
 def policy_from_json(text: str) -> AccessPolicy:

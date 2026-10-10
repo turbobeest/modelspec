@@ -59,7 +59,7 @@ async function assertRankedBoard(page) {
   await page.getByRole("region", { name: "Give this to my agent" }).waitFor();
   assert.equal(await page.locator(".agent-handoff").count(), 1);
   const tiers = JSON.parse(fs.readFileSync(new URL("api/worker/tiers.json", root), "utf8"));
-  const team = Object.values(tiers.billing.prices).filter((price) => price.kind === "plan" && price.name === "Team");
+  const team = Object.values(tiers.billing.prices).filter((price) => price.kind === "plan" && price.name === "Team" && !price.legacy);
   assert.equal(team.length, 1);
   const summary = team[0].usd / team[0].credits * tiers.credits.weights["decide.summary"];
   // Same four-decimal form as pipeline.pricing.format_usd.

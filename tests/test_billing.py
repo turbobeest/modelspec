@@ -12,6 +12,7 @@ import json
 import re
 import sys
 import urllib.parse
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
@@ -119,7 +120,7 @@ async def apply(kv: Any, policy: access_config.AccessPolicy, body: str, *,
 def test_the_shipped_price_map_is_real_test_mode_credits_not_limits(policy):
     row = policy.billing.prices[PRICE]
     assert row.placeholder is False
-    assert not any(p.startswith("price_PLACEHOLDER") for p in policy.billing.prices)
+    assert row.legacy is True
     assert row.kind == "plan"
     assert row.name == "Solo"
     assert row.credits == 4000
@@ -127,8 +128,15 @@ def test_the_shipped_price_map_is_real_test_mode_credits_not_limits(policy):
     assert row.tier == "paid"
     team = policy.billing.prices[TEAM_PRICE]
     assert team.kind == "plan" and team.credits == 30000 and team.usd == 50
+    assert team.legacy is True
     pack = policy.billing.prices[PACK5]
     assert pack.kind == "pack" and pack.credits == 1250 and pack.usd == 5
+    assert pack.legacy is True
+    current = policy.billing.prices["price_1UP22XBPydVRHUBjk9rrxOxN"]
+    assert current.placeholder is False and current.legacy is False
+    assert current.for_sale is True
+    assert current.kind == "plan" and current.name == "Solo"
+    assert current.credits == 2500 and current.usd == 29
     assert policy.tier("paid").paid is True
     assert policy.tier("paid").daily_limit is None
     assert policy.credits.weights["rank"] == 1
@@ -143,7 +151,7 @@ def test_x402_and_stripe_read_the_same_pack_table(policy):
     card_packs = sorted(
         ((row.name, row.credits, row.usd)
         for row in policy.billing.prices.values()
-        if row.kind == "pack"),
+        if row.kind == "pack" and not row.legacy),
         key=lambda row: row[2],
     )
     x402_packs = [
@@ -425,8 +433,17 @@ def test_billing_is_live_with_live_prices_and_access_enforcement():
     assert variables["BILLING_ENABLED"] == "true"
     assert variables["ACCESS_ENFORCED"] == "true"
     policy = json.loads((REPO_ROOT / "api" / "worker" / "tiers.json").read_text(encoding="utf-8"))
-    assert all(p.startswith("price_1UHRw") for p in policy["billing"]["prices"])
-    assert not any(row["placeholder"] for row in policy["billing"]["prices"].values())
+    legacy = {pid: row for pid, row in policy["billing"]["prices"].items() if row.get("legacy")}
+    current = {pid: row for pid, row in policy["billing"]["prices"].items() if not row.get("legacy")}
+    assert legacy and all(pid.startswith("price_1UHRw") for pid in legacy)
+    assert not any(row["placeholder"] for row in legacy.values())
+    # Pricing v2 live Prices, created by Jamie on 2026-10-10. Scale overage
+    # stays a placeholder until MODEL-357 (meter events without the key hash).
+    assert current and all(pid.startswith("price_1UP2") for pid in current)
+    assert not any(row["placeholder"] for row in current.values())
+    overage = current["price_1UP25VBPydVRHUBjzN0TInX1"]["overage"]
+    assert overage["price_id"] == "price_PLACEHOLDER_scale_overage_v2"
+    assert overage["placeholder"] is True
     assert billing.enabled("false") is False
     assert billing.enabled("true") is True
 
@@ -468,7 +485,7 @@ def test_checkout_with_a_stubbed_stripe_returns_a_hosted_url(policy):
     outcome = run(billing.checkout(
         payload={"price_id": PRICE}, flag=True, secret="sk_test_fixture",
         origin="https://api.modelspec.test",
-        kv=MemoryKV(), policy=policy, service_commit=COMMIT, http=Stripe()))
+        kv=MemoryKV(), policy=for_sale(policy, PRICE), service_commit=COMMIT, http=Stripe()))
     assert outcome.status == 200
     assert outcome.body["url"].startswith("https://checkout.stripe.com/")
     assert outcome.body["tier"] == "paid"
@@ -565,6 +582,36 @@ def _billing_env(access=None, *, flag: str = "true", secret: str = WEBHOOK_SECRE
         CREDITS=credits.MemoryLedger())
     if access is not None:
         env.ACCESS = access
+    return env
+
+
+def for_sale(policy, *price_ids):
+    """A copy that still sells the named legacy rows. The shipped file does not."""
+    prices = dict(policy.billing.prices)
+    for price_id in price_ids:
+        prices[price_id] = replace(prices[price_id], legacy=False)
+    return replace(policy, billing=replace(policy.billing, prices=prices))
+
+
+def _sellable_policy_json(*price_ids: str) -> str:
+    tiers = json.loads((REPO_ROOT / "api" / "worker" / "tiers.json").read_text(encoding="utf-8"))
+    selling_a_plan = False
+    for price_id in price_ids:
+        row = tiers["billing"]["prices"][price_id]
+        row["legacy"] = False
+        selling_a_plan = selling_a_plan or row.get("kind") == "plan"
+    if selling_a_plan:
+        # A sold legacy plan is cheaper per credit than Scale overage. Drop the
+        # overage object so this test copy still loads. Checkout of that plan
+        # does not use it.
+        for row in tiers["billing"]["prices"].values():
+            row.pop("overage", None)
+    return json.dumps(tiers)
+
+
+def _sellable_env(access=None, *price_ids: str, **kwargs):
+    env = _billing_env(access, **kwargs)
+    env.TIER_POLICY = _sellable_policy_json(*(price_ids or (PACK5,)))
     return env
 
 
@@ -769,7 +816,7 @@ def test_renewal_in_the_dahlia_invoice_shape_resets_monthly(policy):
 
 def test_price_from_a_dahlia_invoice_without_line_prices_uses_subscription_metadata():
     obj = dahlia_invoice_obj(lines={"data": []})
-    assert billing._price_from_invoice(obj) == PRICE
+    assert billing._price_from_invoice(obj, set()) == PRICE
 
 def test_pack_adds_credits_with_12_month_expiry(policy):
     kv = MemoryKV()
@@ -862,7 +909,7 @@ def test_pack_checkout_uses_payment_mode(policy):
 
     outcome = run(billing.checkout(
         payload={"price_id": PACK5}, flag=True, secret="sk_test_fixture",
-        origin="https://api.modelspec.test", kv=MemoryKV(), policy=policy,
+        origin="https://api.modelspec.test", kv=MemoryKV(), policy=for_sale(policy, PACK5),
         service_commit=COMMIT, http=Stripe()))
     assert outcome.status == 200
     assert seen["mode"] == "payment"
@@ -966,7 +1013,7 @@ def test_authenticated_pack_adds_to_existing_balance_and_does_not_mint(policy):
     stripe = _StripeCapture("cs_auth_pack")
     started = run(billing.checkout(
         payload={"price_id": PACK5}, flag=True, secret="sk_test_fixture",
-        origin="https://api.modelspec.test", kv=kv, policy=policy,
+        origin="https://api.modelspec.test", kv=kv, policy=for_sale(policy, PACK5),
         service_commit=COMMIT, http=stripe, api_key=key))
     assert started.status == 200
     assert started.body["applied_to"] == "existing_key"
@@ -1047,7 +1094,7 @@ def test_authenticated_plan_attaches_to_existing_key(policy):
     stripe = _StripeCapture("cs_auth_plan")
     started = run(billing.checkout(
         payload={"price_id": PRICE}, flag=True, secret="sk_test_fixture",
-        origin="https://api.modelspec.test", kv=kv, policy=policy,
+        origin="https://api.modelspec.test", kv=kv, policy=for_sale(policy, PRICE),
         service_commit=COMMIT, http=stripe, api_key=key))
     assert started.status == 200
     assert started.body["applied_to"] == "existing_key"
@@ -1187,7 +1234,7 @@ def test_entry_checkout_bearer_binds_fingerprint_and_does_not_call_stripe_for_a_
         kv = CloudflareKV(binding)
         key, _ = run(keys.issue(kv, tier="paid", owner="tester", now=T0, policy=policy))
         worker = entry.Default()
-        worker.env = _billing_env(binding)
+        worker.env = _sellable_env(binding, PACK5)
         response = run(worker.fetch(_Req(
             "/v1/billing/checkout",
             body=json.dumps({"price_id": PACK5}),
@@ -1291,7 +1338,7 @@ def _json_checkout_through_entry(entry, headers: dict[str, str]):
     previous = _patch_entry_fetch(entry, capture)
     try:
         worker = entry.Default()
-        worker.env = _billing_env(_Bind())
+        worker.env = _sellable_env(_Bind(), PACK5)
         return run(worker.fetch(_Req(
             "/v1/billing/checkout", body=json.dumps({"price_id": PACK5}),
             headers=headers))), capture
@@ -1336,7 +1383,8 @@ def _form_post(entry, body: str, *, env=None, content_type: str = FORM,
 @pytest.mark.parametrize("price_id", [PRICE, TEAM_PRICE, PACK5])
 def test_a_form_post_is_a_303_to_stripe_checkout(entry, price_id):
     response, capture = _form_post(
-        entry, urllib.parse.urlencode({"price_id": price_id}))
+        entry, urllib.parse.urlencode({"price_id": price_id}),
+        env=_sellable_env(_Bind(), price_id))
     assert response.status == 303
     assert response.headers["location"] == "https://checkout.stripe.com/c/pay/cs_entry_bound"
     fields = dict(urllib.parse.parse_qsl(capture["body"]))
@@ -1346,6 +1394,7 @@ def test_a_form_post_is_a_303_to_stripe_checkout(entry, price_id):
 
 def test_a_form_post_with_a_charset_parameter_is_still_a_form(entry):
     response, _ = _form_post(entry, f"price_id={PACK5}",
+                             env=_sellable_env(_Bind(), PACK5),
                              content_type=f"{FORM}; charset=UTF-8")
     assert response.status == 303
 
@@ -1355,7 +1404,7 @@ def test_a_form_post_is_anonymous_even_when_a_key_is_presented(entry, policy):
     key, _ = run(keys.issue(CloudflareKV(binding), tier="paid", owner="tester",
                             now=T0, policy=policy))
     response, capture = _form_post(
-        entry, f"price_id={PACK5}", env=_billing_env(binding),
+        entry, f"price_id={PACK5}", env=_sellable_env(binding, PACK5),
         headers={"authorization": f"Bearer {key}"})
     assert response.status == 303
     assert response.json()["applied_to"] == "new_key"

@@ -168,10 +168,12 @@ async def _stub() -> None:
 
     policy = access_config.load_policy()
     pay_to = "0x209693bc6afc0c5328ba36faf03c514ef312287c"
+    packs = x402.packs_from_policy(policy)
+    per_credit = packs[0].atomic // packs[0].credits
     cfg = x402.Config(True, False, x402.NETWORK_BASE_SEPOLIA,
-                      x402._norm_addr(x402.USDC_BASE_SEPOLIA), pay_to, 4000,
+                      x402._norm_addr(x402.USDC_BASE_SEPOLIA), pay_to, per_credit,
                       "https://stub.invalid", "https://stub.invalid",
-                      x402.packs_from_policy(policy))
+                      packs)
     ledger = credits.MemoryLedger()
     holder = x402.holder_from_key("live_stub")
     resource = "https://stub.invalid/v1/decide"

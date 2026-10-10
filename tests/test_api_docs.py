@@ -209,7 +209,7 @@ def test_payment_required_schema_accepts_keyed_and_keyless_offers(
         network=generator.x402.NETWORK_BASE_SEPOLIA,
         asset=generator.x402._norm_addr(generator.x402.USDC_BASE_SEPOLIA),
         pay_to="0x209693bc6afc0c5328ba36faf03c514ef312287c",
-        price_atomic=4_000,
+        price_atomic=20_000,
         facilitator_url=generator.x402.DEFAULT_ORIGIN,
         resource_origin="https://api.modelspec.dev",
         packs=generator.x402.packs_from_policy(generator.access_config.load_policy()),

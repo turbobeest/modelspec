@@ -1,6 +1,6 @@
 # Terms of service
 
-Version `1.5`, effective 2026-10-09. Adopted by Sparks & Sawdust LLC.
+Version `1.6`, effective 2026-10-10. Adopted by Sparks & Sawdust LLC.
 MODEL-70.
 
 ## 1. Who you are contracting with
@@ -113,13 +113,22 @@ prices and availability are published at `https://modelspec.dev/pricing`.
 Checkout asks you to accept these terms before you pay.
 
 **What you buy.** Paid access is metered in credits, one balance per API key.
-There are two ways to buy them:
 
-- **Plans** — Solo ($10 a month, 4,000 credits) and Team ($50 a month, 30,000
-  credits). A plan's monthly allowance is set to its full amount on each paid
-  invoice. It is reset, not added to: unused monthly credits do not roll over.
-- **Packs** — one-off purchases of 1,250, 7,500, 20,000 or 50,000 credits, for
+- **Plans** — Solo ($29 a month, 2,500 credits), Team ($199 a month, 25,000
+  credits) and Scale ($799 a month, 150,000 credits). A plan's monthly
+  allowance is set to its full amount on each paid invoice. It is reset, not
+  added to: unused monthly credits do not roll over. Scale may also draw
+  metered overage at $0.006 per credit, up to 150,000 credits in a billing
+  period, once that Price is for sale.
+- **Packs** — one-off purchases of 250, 1,300, 2,750 or 6,000 credits, for
   $5, $25, $50 or $100. Pack credits expire 12 months after purchase.
+- **Metadata reads** — a keyed catalog read costs $0.002, one credit per 10
+  reads, capped at 1,000 reads a key a UTC day.
+
+Customers who already bought a legacy plan or pack keep that price and
+allowance: Solo at $10 a month for 4,000 credits, Team at $50 a month for
+30,000 credits, and packs of 1,250 credits for $5, 7,500 for $25, 20,000 for
+$50, and 50,000 for $100.
 
 A call draws the monthly allowance first, then pack credits, the ones expiring
 soonest first. How many credits each kind of successful call draws is published
@@ -266,7 +275,10 @@ You may stop using the service at any time. We may suspend or end access for a
 breach of §5. §4 does not expire, is not suspended, and does not change with a
 new version of these terms.
 
-Version 1.5 (2026-10-09) adds the copyright paragraph to §12, which points to the
+Version 1.6 (2026-10-10) changed §6: new prices for Solo and Team, a Scale
+plan with metered overage, repriced packs, and priced metadata reads; plans and
+packs already bought keep the price and allowance they were bought at. No other
+term changed. Version 1.5 (2026-10-09) adds the copyright paragraph to §12, which points to the
 copyright and DMCA page; no term changed. Version 1.4 (2026-10-04) records that keys are enforced: a request for an
 answer without a key is refused, and only a person using the decide page by hand
 is served without one. No other term changed. Version 1.3 (2026-10-04) described

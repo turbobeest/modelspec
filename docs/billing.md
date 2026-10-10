@@ -41,9 +41,9 @@ A key with zero remaining credits depends on the x402 switch. When
 `X402_ENABLED` is off, it receives the free-tier answer (10 rank/day, 5/min,
 no determinations) plus a `credits.exhausted` field naming where to buy. When
 `X402_ENABLED` is on, it receives HTTP 402 with all four card-pack offers from
-`tiers.json`; it does not receive the free-tier answer. Paid keys have no daily
-cap; the burst limit is configuration (`credits.burst_limit`, 60/min as
-shipped).
+`tiers.json`; it does not receive the free-tier answer. Decide, rank and policy-check have no daily cap. Their burst limit is
+configuration (`credits.burst_limit`, 60/min as shipped). A catalog read uses
+`credits.reads` and does not spend that burst.
 
 The exempt row (paid, live data, null limits; `dpf` as shipped) draws no
 credits and never receives `credits.exhausted` or a 402 (MODEL-322). See
@@ -89,10 +89,11 @@ stale events are `400 invalid_webhook_signature`. No Stripe SDK.
 | --- | --- |
 | `checkout.session.completed` / `async_payment_succeeded`, `mode=subscription` | map the Price → plan; record the entitlement; SET monthly to the plan amount. If Checkout metadata carries `modelspec_key_fingerprint`, attach and SET on that existing key. Otherwise pending until claim mints. |
 | `checkout.session.completed` / `async_payment_succeeded`, `mode=payment` | map the Price → pack. Fingerprint present: ADD pack credits to that key immediately (claim is confirmation, not a mint). Anonymous: link the session so claim can mint and ADD. |
-| `invoice.paid` | SET monthly to the plan amount (reset, no rollover). Restores a previously failed subscription. Fingerprint on the subscription metadata attaches to that existing key the same way Checkout metadata does. |
+| `invoice.paid` | SET monthly to the plan amount (reset, no rollover). The plan is the Price billed: the overage line and a proration credit for the old plan are skipped, and a regular line wins over a proration line. A billed Price that is not mapped is refused (`price_not_mapped`), never read from checkout metadata; metadata is used only when no line names a plan Price. Restores a previously failed subscription. Fingerprint on the subscription metadata attaches to that existing key the same way Checkout metadata does. |
 | `invoice.payment_failed` | **immediate** zero of monthly; key's access row to `billing.downgrade_tier` (`free`). Packs stay |
 | `customer.subscription.deleted` | same as failed payment |
 | `customer.subscription.updated` with `canceled` / `unpaid` / `incomplete_expired` | same |
+| `customer.subscription.updated` with `active` | restore the mapped Price's tier. **No credits**: a plan change, coupon or cancel toggle is not a payment; the next `invoice.paid` sets the allowance |
 | `charge.refunded` | a **pack**: remove the refunded share of its **unspent** credits (`refunded` / `refunded_partially`). Spent credits stay spent. See [Refunds and disputes](#refunds-and-disputes) |
 | `charge.dispute.created` | a **pack**: **hold** its unspent credits while the dispute is open (`held`) |
 | `charge.dispute.closed` | `won` or `warning_closed`: give the held credits back (`restored`). `lost`: forfeit them (`forfeited`). Any other status: stay held (`held_for_review`) |
@@ -115,23 +116,124 @@ module.
 - `credits.weights.rank` / `credits.weights.policy-check` — credits drawn on a
   successful result. `credits.weights.decide.*` sets the decision weights by
   explanation level
-- `credits.burst_limit` — per-minute burst for a funded key
+- `credits.burst_limit` — per-minute burst for a funded key on decide, rank
+  and policy-check
+- `credits.reads` — catalog reads (`GET /v1/vocabulary`). `reads_per_credit`
+  successful reads share one credit, `daily_cap` is the reads a key may make
+  in a UTC day, and `burst_limit` is the reads in one UTC minute. Shipped as
+  10, 1,000 and 30. The cap is there so an agent must not rebuild a decision
+  from cheap reads
 - `credits.pack_expiry_days` — pack and x402 top-up expiry (365 as shipped)
-- `billing.prices.<stripe_price_id>` — `{kind: plan\|pack, credits, name, usd,
-  tier, placeholder}`. The ids below are **Stripe test mode** Prices on the
-  Sparks & Sawdust LLC ModelSpec **live** account. The sandbox ids they
-  replaced are in the git history of this file
+- `billing.prices.<stripe_price_id>` — `{kind: plan|pack, credits, name, usd,
+  tier, placeholder, legacy}`. A plan may also carry `overage`.
+  `placeholder: true` and `legacy: true` are not sold at checkout. A legacy
+  row still grants when Stripe sends its webhook
+- `x402.list_usd_per_decision` — the published per-decision list price, a
+  decimal string. It matches the smallest current pack. x402 stays off until
+  `X402_ENABLED` is turned on
 - `billing.downgrade_tier`, `signature_tolerance_seconds`, `event_ttl_seconds`
 - `billing.terms_url`, `billing.cancel_url`
 
-Changing a credit amount, a weight, burst, or a mapping is an edit to that
-file. Tests prove a price/credit change needs no code change.
+Changing a credit amount, a weight, a burst, a read cap, or a mapping is an
+edit to that file. Tests prove a price/credit change needs no code change.
 
-The `kind: pack` rows are also the x402 pack table. x402 sells the same four
-packs at the same prices in USDC. Both rails ADD credits to the same ledger
-bucket and use `credits.pack_expiry_days`.
+Current pack rows (`kind: pack` and not `legacy`) are the x402 pack table.
+x402 sells those four packs at the same prices in USDC. Legacy packs stay on
+the card ledger for customers who already bought them and are not offered
+again. Both rails ADD credits to the same ledger bucket and use
+`credits.pack_expiry_days`.
 
-Shipped Prices (**live**, Sparks & Sawdust LLC ModelSpec account `acct_1UHN0tBPydVRHUBj`, 2026-09-19):
+Current prices. Jamie created each as a live Stripe Price on 2026-10-10;
+checkout sells them:
+
+| Price id | Kind | Name | Credits | USD |
+| --- | --- | --- | --- | --- |
+| `price_1UP22XBPydVRHUBjk9rrxOxN` | plan | Solo | 2,500 / month | 29 |
+| `price_1UP247BPydVRHUBjgGVrchgZ` | plan | Team | 25,000 / month | 199 |
+| `price_1UP25VBPydVRHUBjzN0TInX1` | plan | Scale | 150,000 / month | 799 |
+| `price_1UP2AVBPydVRHUBjlyyyEjb1` | pack | 250-credit pack | 250 | 5 |
+| `price_1UP2FRBPydVRHUBj6VKuZzqb` | pack | 1,300-credit pack | 1,300 | 25 |
+| `price_1UP2H7BPydVRHUBjitFs1Iua` | pack | 2,750-credit pack | 2,750 | 50 |
+| `price_1UP2J5BPydVRHUBjgr7fOGIl` | pack | 6,000-credit pack | 6,000 | 100 |
+
+Scale overage is $0.006 per credit, up to 150,000 credits a billing period,
+on `price_PLACEHOLDER_scale_overage_v2` (meter event
+`modelspec_scale_overage`). While that Price is a placeholder, a Scale key
+stops at zero the same way Team does. When the Price is configured, checkout
+adds it as a second line item and the Worker reports each settled overage
+credit to Stripe as a Billing Meter event. A Scale key with overage room left
+keeps the funded decide limits past a zero allowance. Overage is not granted
+unless the account has a Stripe customer id. Only a paid invoice resets
+overage used this period.
+
+A meter event Stripe rejects with an HTTP 4xx, other than a duplicate
+identifier, was not recorded. The Worker adds its credits to
+`overage_unreported` on that account. The field is one integer. The account
+does not keep a row per such failure. The next meter report retries up to
+3 uncertain events first. When those sends are accepted, it sends this
+total as its own Billing Meter event. The identifier is
+`{holder}:backlog:{n}`, where `n` is the account's `overage_backlog_n`.
+The Worker stores that string as `overage_backlog_id`.
+While that send has not been accepted, `overage_backlog_open` is the number
+of credits in the event. The Worker subtracts those credits from
+`overage_unreported` only after Stripe accepts the event (HTTP 2xx, or a
+response that the identifier was already used), then adds one to `n` and
+clears `overage_backlog_id`. Any other result leaves the total for the next
+report, which retries the same identifier and value. The backlog drains on
+the account's next overage report; an account that never reports overage
+again needs the manual fallback already documented.
+
+A timeout, a network error, or an HTTP 5xx is not a rejection. Stripe may
+already have the event. The account keeps that event in `overage_uncertain`,
+a list of at most 20 entries. Each entry stores its identifier, its units,
+and `created_at` as unix seconds. An entry saved before `created_at` existed
+loads as created now. Before any retry, the Worker moves an entry older than
+20 hours onto `overage_unreconciled`. Stripe only guarantees that an
+identifier stays unique for about 24 hours. The report then retries at most
+3 of the entries that remain, each under its original identifier, with
+`timestamp` set to that entry's `created_at`, so the usage is billed in the
+period it happened. A first send sets `timestamp` to the event's own time.
+The Worker removes an entry after HTTP 2xx or a duplicate-identifier
+response. A retry that comes back as a definite HTTP 4xx, other than a
+duplicate identifier, is removed as well, and its units are added to
+`overage_unreconciled`. The original send might have landed, so a person
+checks those units against Stripe. The first retry, backlog send, or new
+send that is not accepted stops the report. The Worker skips the remaining
+sends and parks this request's new event on `overage_uncertain` under the
+identifier it already chose. When the list already holds 20 entries, the
+Worker adds further uncertain units to `overage_unreconciled`. The Worker
+never sends `overage_unreconciled`. That total needs manual reconciliation
+against Stripe's meter event list before anyone posts it. A new identifier
+can bill the customer twice.
+Check Stripe first even for units that aged out: a retry already in flight
+may have landed after the entry moved. A retry whose timestamp falls in a
+billing period Stripe has already invoiced may not be billed at all, so an
+outage can under-bill; it never over-bills.
+
+Key rotation copies `overage_uncertain`, `overage_unreconciled`, and an open
+backlog snapshot onto the new holder. The snapshot keeps its
+`overage_backlog_n` and `overage_backlog_id`, so the next report retries
+that same identifier.
+
+To post a rejected backlog by hand, read the account in the CREDITS ledger.
+If `overage_backlog_open` is set, post that many credits and set the
+identifier to `overage_backlog_id`. Otherwise post `overage_unreported` and
+set the identifier to `{holder}:backlog:{n}` with the account's current
+`overage_backlog_n`. Use the account's Stripe customer id and the meter
+event `modelspec_scale_overage`. The Worker's next report sends that same
+identifier. Stripe returns HTTP 2xx for the duplicate, and the Worker then
+zeroes the total. A different identifier bills the credits a second time.
+
+A metadata read (`GET /v1/vocabulary`) costs $0.002. That is one credit per
+10 successful reads, capped at 1,000 reads a key a UTC day, while the key can
+pay. With nothing left to bill, the catalog is served under the free tier's
+daily limit, not refused with 402. `HEAD /v1/vocabulary` is the same read as
+GET, with no body. A visit token stays free. A refused read is not charged.
+
+Legacy prices, kept for existing customers. Checkout refuses them. A renewal
+invoice still sets the allowance they bought. These six ids are live Prices
+on the Sparks & Sawdust LLC ModelSpec account `acct_1UHN0tBPydVRHUBj`, created
+2026-09-19:
 
 | Price id | Kind | Name | Credits | USD |
 | --- | --- | --- | --- | --- |
@@ -217,9 +319,9 @@ ACCESS record kind: the privacy statement lists those, and this needs none.
 - **Partial refunds are proportional, not refused.** The share is measured
   against the credits the pack was sold with, not against what is left, so
   refunding the value of the unused balance (terms §6.6: refunds of unused
-  prepaid balance on request) removes exactly the unused credits: 250 unused
-  credits of a 1,250-credit pack are 20 % of the price, and a refund of 20 %
-  removes 250. Rounding is up, so a fraction of a credit never stays with a
+  prepaid balance on request) removes exactly the unused credits: 50 unused
+  credits of a 250-credit pack are 20 % of the price, and a refund of 20 %
+  removes 50. Rounding is up, so a fraction of a credit never stays with a
   refunded buyer. A refund of the pre-tax price only is a little under the
   whole, and leaves the rounding remainder on the key.
 - `amount_refunded` is Stripe's running total, so the share is a target: a
@@ -261,7 +363,7 @@ means cancelling it**:
 3. For a chargeback on a plan, cancel the subscription the same way once the
    dispute opens.
 
-Plans are $10 and $50 a month, so plan refunds are expected to be rare.
+Plans are $29, $199 and $799 a month, so plan refunds are expected to be rare.
 Automate them — the index, and privacy statement 1.2 — only if that stops
 being true.
 
@@ -281,10 +383,14 @@ Human steps. This repository does not create Stripe objects and does not call
 Stripe's live API.
 
 1. Stripe Dashboard, **test mode**. Seller account: Sparks & Sawdust LLC.
-2. Two recurring monthly Prices (Solo $10 / 4,000 credits, Team $50 / 30,000)
-   and four one-off Prices (packs $5 / $25 / $50 / $100). **Done in test
-   mode** (2026-09-19); the ids are in `api/worker/tiers.json` with
-   `placeholder: false`. Live ids replace them at launch.
+2. The six live Prices created 2026-09-19 (Solo $10 / 4,000 credits, Team
+   $50 / 30,000, and packs of 1,250, 7,500, 20,000 and 50,000 credits at $5,
+   $25, $50 and $100) stay in `api/worker/tiers.json` with `legacy: true`.
+   They are kept for existing customers and are not sold. **Done in test
+   mode** (2026-09-19). The current Solo, Team, Scale and pack rows carry the live
+   Prices Jamie created on 2026-10-10. The Scale overage row stays
+   `price_PLACEHOLDER_scale_overage_v2` with `placeholder: true` until
+   MODEL-357 lands.
 3. Checkout → **Terms of service URL** =
    `https://modelspec.dev/legal/terms/` (adopted 2026-09-19; source
    `docs/legal/terms-of-service.md`; required: we send
@@ -299,8 +405,9 @@ Stripe's live API.
    `invoice.paid`, `invoice.payment_failed`, `customer.subscription.deleted`,
    `customer.subscription.updated`, and since MODEL-106 `charge.refunded`,
    `charge.dispute.created`, `charge.dispute.closed`.
-5. API keys: a **restricted** test key with Checkout Sessions write is
-   better than `sk_test_…`. Never a live key until Jamie says so.
+5. API keys: a **restricted** test key with Checkout Sessions write and
+   Billing meter events: write is better than `sk_test_…`. Never a live key
+   until Jamie says so.
 6. `npx wrangler secret put STRIPE_SECRET_KEY` and
    `npx wrangler secret put STRIPE_WEBHOOK_SECRET` in the
    `modelspec-rank` Worker (test values only). Do not put either in git or in

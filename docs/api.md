@@ -233,25 +233,25 @@ Every refusal carries `error.code` and `error.message`, and `result` is `[]`.
 
 | Status | `error.code` | Cause | Fix |
 |---|---|---|---|
-| 400 | `invalid_request` | an unaccepted field, or the wrong type | `error.fields` names them, `error.accepted` lists what exists |
+| 400 | `invalid_request` | bad field or type | `error.fields` names them, `error.accepted` lists what exists |
 | 400 | `unknown_use_case` | no such profile | pick one from `error.accepted` |
 | 400 | `unknown_hardware` | no such device id | pick one from `error.accepted` |
 | 400 | `unknown_hosting` | not `local`, `self_hosted` or `managed_api` | pick one from `error.accepted` |
 | 400 | `unknown_runtime` | no such platform id | pick one from `error.accepted`, or drop it |
 | 401 | `missing_api_key` | no key, while keys are enforced | send one; see `error.how_to_get_a_key` |
-| 401 | `invalid_api_key` | a key we do not know | check it was copied whole |
+| 401 | `invalid_api_key` | unknown key | check it was copied whole |
 | 403 | `key_revoked` | a revoked key | get a new key |
 | 404 | `not_found` | no endpoint there | use a path from `error.accepted`; paths are versioned |
 | 405 | `method_not_allowed` | wrong verb for the path | `POST` to `/v1/rank`, `GET` to `/v1/health` |
 | 413 | `payload_too_large` | body over 16384 bytes | a rank request is a few hundred bytes |
-| 422 | `no_match` | a filter eliminated every candidate | relax `error.relax`; `error.elimination_trace` has every filter in order |
-| 422 | `insufficient_evidence` | candidates survived, none has the coverage to be ordered | relaxing constraints will not help; try a broader `use_case` |
+| 422 | `no_match` | every candidate eliminated | relax `error.relax`; `error.elimination_trace` has every filter in order |
+| 422 | `insufficient_evidence` | coverage too thin to order | relaxing constraints will not help; try a broader `use_case` |
 | 429 | `rate_limited` | the key's window is spent | wait until `error.resets_at`; `test_` is unlimited |
 | 500 | `tier_not_configured` | ours | retry later; report it |
 | 500 | `access_not_configured` | ours | retry later; report it |
-| 502 | `export_unavailable` | the published export could not be read | retry; not your request |
-| 503 | `access_store_not_configured` | a live key, and this deploy has no ACCESS store | retry later; report it |
-| 403 | *(not JSON)* | Cloudflare refused the client at the edge: `error code: 1010` | common clients, `Python-urllib` included, should get through; report it. The weekly [crawler-access job](../.github/workflows/crawler-access.yml) probes them |
+| 502 | `export_unavailable` | export unreadable | retry; not your request |
+| 503 | `access_store_not_configured` | live key, no ACCESS store | retry later; report it |
+| 403 | *(not JSON)* | edge block `1010` | report it; the crawler-access job probes clients |
 
 A no-match is an answer, not an empty list:
 
@@ -291,7 +291,10 @@ vocabulary. Health and feedback stay keyless.
 Send `Authorization: Bearer <key>` or `X-API-Key`, never the query string.
 A 429 states `limit`, `resets_at` and `retry_after_seconds`. Remaining credits
 unlock policy-check [determinations](api-policy-check.md#free-and-paid); zero
-balance is the public-export answer plus `credits.exhausted`. Prices:
+balance on decide, rank or policy-check is the public-export answer plus
+`credits.exhausted` while x402 is off. Funded `GET` or `HEAD /v1/vocabulary` costs one
+credit per 10 reads, cap 1,000 a UTC day. Nothing left to bill uses the free
+daily limit. Visit tokens are free. Prices:
 [/pricing/](https://modelspec.dev/pricing/).
 
 ## Neutrality, terms and privacy
