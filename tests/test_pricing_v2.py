@@ -1768,3 +1768,50 @@ def test_an_exhausted_paid_key_reads_vocabulary_under_the_free_daily_limit(bundl
     assert body["error"]["code"] == "rate_limited"
     assert body["error"]["limit"] == 10
     assert env.CREDITS.state.accounts[holder].read_count == 0
+
+
+def test_an_invoice_grants_the_billed_plan_not_stale_checkout_metadata(policy):
+    """A Scale plan switched to Solo in Stripe keeps Scale in its metadata."""
+    kv, ledger, key = _scale_key(policy)
+    holder = _holder(key)
+    outcome = run(apply(
+        kv, policy,
+        payload("invoice.paid", invoice_obj(
+            id="in_switched_to_solo",
+            metadata={"modelspec_price_id": SCALE_V2},
+            lines={"data": [{"price": {"id": SOLO_V2}}]},
+        ), "evt_switched_invoice"),
+        ledger=ledger))
+    assert outcome.status == 200, outcome.body
+    assert run(ledger.balance(holder)).monthly == 2500
+
+
+def test_a_subscription_update_grants_the_billed_plan_not_stale_metadata(policy):
+    kv, ledger, key = _scale_key(policy)
+    holder = _holder(key)
+    outcome = run(apply(
+        kv, policy,
+        payload("customer.subscription.updated", {
+            "id": SUB, "object": "subscription", "status": "active", "customer": CUS,
+            "metadata": {"modelspec_price_id": SCALE_V2},
+            "items": {"data": [{"price": {"id": SOLO_V2}}]},
+        }, "evt_switched_sub"),
+        ledger=ledger))
+    assert outcome.status == 200, outcome.body
+    assert run(ledger.balance(holder)).monthly == 2500
+
+
+def test_an_invoice_with_no_mapped_line_falls_back_to_metadata(policy):
+    kv, ledger, key = _scale_key(policy)
+    holder = _holder(key)
+    ledger.state.accounts[holder].monthly = 0
+    outcome = run(apply(
+        kv, policy,
+        payload("invoice.paid", invoice_obj(
+            id="in_overage_only",
+            metadata={"modelspec_price_id": SCALE_V2},
+            lines={"data": [{"price": {"id": OVERAGE_PRICE}}]},
+        ), "evt_overage_only"),
+        ledger=ledger))
+    assert outcome.status == 200, outcome.body
+    assert run(ledger.balance(holder)).monthly == 150000

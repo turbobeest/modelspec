@@ -816,7 +816,7 @@ def test_renewal_in_the_dahlia_invoice_shape_resets_monthly(policy):
 
 def test_price_from_a_dahlia_invoice_without_line_prices_uses_subscription_metadata():
     obj = dahlia_invoice_obj(lines={"data": []})
-    assert billing._price_from_invoice(obj) == PRICE
+    assert billing._price_from_invoice(obj, {PRICE}) == PRICE
 
 def test_pack_adds_credits_with_12_month_expiry(policy):
     kv = MemoryKV()

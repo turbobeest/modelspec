@@ -264,11 +264,14 @@ def _metadata_price(obj: dict[str, Any], known: set[str] | None) -> str:
     return ""
 
 
-def _price_from_invoice(obj: dict[str, Any], known: set[str] | None = None) -> str:
-    """The plan or pack Price. Metadata wins; a metered overage line does not."""
-    found = _metadata_price(obj, known)
-    if found:
-        return found
+def _price_from_invoice(obj: dict[str, Any], known: set[str]) -> str:
+    """The plan or pack Price billed on this invoice.
+
+    A mapped line wins, so a plan changed in Stripe after checkout grants the
+    Price actually billed, not the one in stale checkout metadata. The metered
+    overage Price is not a mapped row, so its line is skipped. Metadata is the
+    fallback for an invoice without a mapped line.
+    """
     lines = obj.get("lines")
     rows = lines.get("data") if isinstance(lines, dict) else []
     if isinstance(rows, list):
@@ -278,14 +281,11 @@ def _price_from_invoice(obj: dict[str, Any], known: set[str] | None = None) -> s
             found = _mapped_price(_line_price_id(row), known)
             if found:
                 return found
-    return ""
+    return _metadata_price(obj, known)
 
 
-def _price_from_subscription(obj: dict[str, Any], known: set[str] | None = None) -> str:
-    """The plan Price on a subscription. Metadata wins; an overage item does not."""
-    found = _metadata_price(obj, known)
-    if found:
-        return found
+def _price_from_subscription(obj: dict[str, Any], known: set[str]) -> str:
+    """The plan Price on a subscription: a mapped item first, then metadata."""
     items = obj.get("items")
     rows = items.get("data") if isinstance(items, dict) else []
     if isinstance(rows, list):
@@ -295,7 +295,7 @@ def _price_from_subscription(obj: dict[str, Any], known: set[str] | None = None)
             found = _mapped_price(_line_price_id(row), known)
             if found:
                 return found
-    return ""
+    return _metadata_price(obj, known)
 
 
 def _subscription_from_invoice(obj: dict[str, Any]) -> str:
