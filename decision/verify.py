@@ -104,8 +104,9 @@ from decision.normalise import (
 from decision.registry import UNREGISTERED
 from decision.registry import default as default_registry
 from decision.sources import CopyStore, RecheckReport, Source, load_sources
-from decision.units import UNITS, _MAGNITUDE, unit_id
+from decision.units import _MAGNITUDE, UNITS, unit_id
 from schema import private_errors
+from schema.enums import ArchitectureType
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 DEFAULT_DIRECTORY = REPO_ROOT / "verification"
@@ -2014,6 +2015,452 @@ class ModelPageExtractor:
         return readings or [Reading(subject=subject, value=None)]
 
 
+ARCHITECTURE_FACTS = frozenset(
+    {
+        "model.architecture",
+        "model.parameters_total",
+        "model.parameters_active",
+        "model.experts_total",
+        "model.experts_per_token",
+    }
+)
+DENSE_ARCHITECTURES = frozenset(
+    {
+        ArchitectureType.DENSE_TRANSFORMER.value,
+        ArchitectureType.ENCODER_ONLY.value,
+    }
+)
+_ROUTED_EXPERTS = ("n_routed_experts", "num_local_experts", "num_experts")
+_EXPERTS_PER_TOKEN = (
+    "num_experts_per_tok",
+    "num_experts_per_token",
+    "moe_topk",
+    "top_k_experts",
+    "router_top_k",
+)
+
+
+def _hf_json(text: str) -> Mapping[str, Any] | None:
+    try:
+        data = json.loads(text)
+    except ValueError:
+        return None
+    return data if isinstance(data, Mapping) else None
+
+
+def _hf_config(text: str) -> Mapping[str, Any] | None:
+    data = _hf_json(text)
+    if data is None:
+        return None
+    if "config" in data:
+        if not isinstance(data.get("id"), str) or not isinstance(data["config"], Mapping):
+            return None
+        data = data["config"]
+    if "text_config" in data:
+        if not isinstance(data["text_config"], Mapping):
+            return None
+        data = data["text_config"]
+    if not set(data).intersection(
+        {
+            "model_type",
+            "architectures",
+            "num_attention_heads",
+            "n_head",
+            "num_heads",
+            *_ROUTED_EXPERTS,
+        }
+    ):
+        return None
+    return data
+
+
+def _expert_count(config: Mapping[str, Any], keys: Sequence[str]) -> int | None:
+    values = []
+    for key in keys:
+        if key not in config:
+            continue
+        raw = config[key]
+        members = raw if isinstance(raw, list) else [raw]
+        if not members or any(type(n) is not int or n < 0 for n in members):
+            return None
+        values.extend(members)
+    return values[0] if values and len(set(values)) == 1 else None
+
+
+def hf_config_architecture(config: Mapping[str, Any]) -> str | None:
+    """Routed experts win; then explicit encoder/SSM rules, then dense attention.
+
+    Shared experts never contribute to the routed count. Any expert or MoE key
+    prevents the dense rule, including an unfamiliar key or a disabled layer.
+    Embedding tasks do not determine a backbone's architecture.
+    """
+    routed = [
+        n
+        for key in _ROUTED_EXPERTS
+        for n in (config[key] if isinstance(config.get(key), list) else [config.get(key)])
+        if type(n) is int and n > 1
+    ]
+    if routed:
+        return ArchitectureType.MOE.value
+    expert_settings = {
+        key: value
+        for key, value in config.items()
+        if "expert" in key.casefold() or "moe" in key.casefold()
+    }
+    # Gemma serialises null expert placeholders even in explicitly disabled blocks.
+    disabled = expert_settings.get("enable_moe_block") is False and all(
+        value is None for key, value in expert_settings.items() if key != "enable_moe_block"
+    )
+    if expert_settings and not disabled:
+        return None
+    architectures = config.get("architectures") or []
+    if not isinstance(architectures, list):
+        return None
+    if any(
+        isinstance(name, str) and name.endswith("ForMaskedLM") for name in architectures
+    ) or config.get("model_type") in {
+        "bert",
+        "roberta",
+        "xlm-roberta",
+        "distilbert",
+        "albert",
+        "electra",
+        "deberta",
+        "deberta-v2",
+        "modernbert",
+        "nomic_bert",
+    }:
+        return ArchitectureType.ENCODER_ONLY.value
+    layers = config.get("layer_types", config.get("layers_block_type", []))
+    if isinstance(layers, list) and any(
+        layer
+        in {
+            "mamba",
+            "ssm",
+            "linear_attention",
+            "linear-attention",
+        }
+        for layer in layers
+        if isinstance(layer, str)
+    ):
+        return ArchitectureType.HYBRID_SSM_TRANSFORMER.value
+    if any(
+        type(config.get(key)) is int and config[key] > 0
+        for key in ("num_attention_heads", "n_head", "num_heads")
+    ):
+        return ArchitectureType.DENSE_TRANSFORMER.value
+    return None
+
+
+def _hf_architecture_repo(url: str | None) -> tuple[str, str] | None:
+    parts = _url_parts(url or "")
+    if not parts or parts[0].casefold() != "huggingface.co":
+        return None
+    path = parts[1:]
+    if len(path) in (4, 6) and path[:2] == ["api", "models"]:
+        if len(path) == 6 and path[4] != "revision":
+            return None
+        return path[2], path[3]
+    if (
+        len(path) == 5
+        and path[2] in {"raw", "resolve", "blob"}
+        and path[4] in {"config.json", "README.md"}
+    ):
+        return path[0], path[1]
+    return None
+
+
+def _hf_bound_subject(claim: Claim, text: str, page_url: str | None) -> str | None:
+    repo = _hf_architecture_repo(page_url)
+    if repo is None:
+        return None
+    full = "/".join(repo)
+    qualified = [name for name in claim.names if "/" in name]
+    if qualified:
+        bound = full.casefold() in {name.casefold() for name in qualified}
+    else:
+        bound = normalise_name(repo[1]) in {normalise_name(name) for name in claim.names}
+    if not bound:
+        return None
+    data = _hf_json(text)
+    if data is not None and ("config" in data or "safetensors" in data):
+        if not isinstance(data.get("id"), str) or data["id"].casefold() != full.casefold():
+            return None
+    return claim.names[0]
+
+
+class HFConfigExtractor:
+    """Read backbone architecture and routed expert counts from a retained config."""
+
+    actor = VerificationActor(agent=VERIFY_AGENT, model_family=DETERMINISTIC, method="hf-config@1")
+    fields = frozenset({"model.architecture", "model.experts_total", "model.experts_per_token"})
+
+    def accepts(self, text: str) -> bool:
+        return _hf_config(text) is not None
+
+    def extract(
+        self,
+        claim: Claim,
+        text: str,
+        *,
+        page_url: str | None = None,
+        bindings: Sequence[tuple[str, str | None]] = (),
+    ) -> list[Reading]:
+        if claim.field not in self.fields:
+            return []
+        config = _hf_config(text)
+        subject = _hf_bound_subject(claim, text, page_url)
+        if (
+            config is None
+            or subject is None
+            or not (page_url.endswith("/config.json") or "/api/models/" in page_url)
+        ):
+            return []
+        if claim.field == "model.architecture":
+            value = hf_config_architecture(config)
+            return [Reading(subject, value)] if value is not None else []
+        keys = _ROUTED_EXPERTS if claim.field == "model.experts_total" else _EXPERTS_PER_TOKEN
+        value = _expert_count(config, keys)
+        if (
+            value is None
+            or value <= 0
+            or hf_config_architecture(config) != ArchitectureType.MOE.value
+        ):
+            return []
+        return [Reading(subject, value, "experts")]
+
+
+def _hf_parameters(text: str) -> int | None:
+    data = _hf_json(text)
+    if data is None or not isinstance(data.get("id"), str):
+        return None
+    tensors = data.get("safetensors")
+    if not isinstance(tensors, Mapping):
+        return None
+    counts = tensors.get("parameters")
+    if isinstance(counts, Mapping) and counts:
+        if any(type(n) is not int or n < 0 for n in counts.values()):
+            return None
+        total = sum(counts.values())
+    else:
+        total = tensors.get("total")
+    return total if type(total) is int and total > 0 else None
+
+
+class HFParametersExtractor:
+    """Read the HF API tensor census, preferring per-dtype counts to index totals."""
+
+    actor = VerificationActor(
+        agent=VERIFY_AGENT, model_family=DETERMINISTIC, method="hf-safetensors@1"
+    )
+    fields = frozenset({"model.parameters_total"})
+
+    def accepts(self, text: str) -> bool:
+        return _hf_parameters(text) is not None
+
+    def extract(
+        self,
+        claim: Claim,
+        text: str,
+        *,
+        page_url: str | None = None,
+        bindings: Sequence[tuple[str, str | None]] = (),
+    ) -> list[Reading]:
+        subject = _hf_bound_subject(claim, text, page_url)
+        value = _hf_parameters(text)
+        if (
+            claim.field not in self.fields
+            or subject is None
+            or value is None
+            or "/api/models/" not in page_url
+        ):
+            return []
+        data = _hf_json(text)
+        if (
+            data is None
+            or data["id"].casefold() != "/".join(_hf_architecture_repo(page_url)).casefold()
+        ):
+            return []
+        return [Reading(subject, value, "parameters")]
+
+
+_ACTIVE_LABEL = r"(?:active|activated)\s+(?:parameters|params)"
+_PARAMETER_AMOUNT = r"\d+(?:\.\d+)?\s*(?:B|billion|M|million)"
+_ACTIVE_PROSE = re.compile(
+    rf"(?<![\w.])(?P<amount>{_PARAMETER_AMOUNT})\s+{_ACTIVE_LABEL}\b",
+    re.I,
+)
+_ACTIVE_VALUE = re.compile(rf"^(?P<amount>{_PARAMETER_AMOUNT})(?:\s+parameters)?$", re.I)
+_ACTIVE_KEY = re.compile(rf"^{_ACTIVE_LABEL}$", re.I)
+
+
+def _parameter_amount(text: str) -> int:
+    match = re.fullmatch(r"(\d+(?:\.\d+)?)\s*(B|billion|M|million)", text, re.I)
+    assert match is not None
+    scale = 10**9 if match[2].casefold() in {"b", "billion"} else 10**6
+    return int(Decimal(match[1]) * scale)
+
+
+def _hf_card_names_subject(text: str, names: Sequence[str]) -> bool:
+    words = _page_words(text)
+    return any(
+        _whole_name_in_words(" ".join(_name_segments(name.rsplit("/", 1)[-1])), words)
+        for name in names
+    )
+
+
+class ModelCardParamsExtractor:
+    """Read explicit active-parameter prose or labelled tables, never name suffixes."""
+
+    actor = VerificationActor(
+        agent=VERIFY_AGENT, model_family=DETERMINISTIC, method="model-card-params@1"
+    )
+    fields = frozenset({"model.parameters_active"})
+
+    def accepts(self, text: str) -> bool:
+        return bool(re.search(rf"\b{_ACTIVE_LABEL}\b", text, re.I)) and _hf_json(text) is None
+
+    def extract(
+        self,
+        claim: Claim,
+        text: str,
+        *,
+        page_url: str | None = None,
+        bindings: Sequence[tuple[str, str | None]] = (),
+    ) -> list[Reading]:
+        subject = _hf_bound_subject(claim, text, page_url)
+        if (
+            claim.field not in self.fields
+            or subject is None
+            or not self.accepts(text)
+            or not page_url.endswith("/README.md")
+        ):
+            return []
+        if re.search(r"<table\b", text, re.I):
+            text = re.sub(
+                r"<table\b.*?</table>",
+                lambda match: (
+                    "\n"
+                    + normalise_document(
+                        match[0].encode(),
+                        NORMALISERS["html-default"],
+                    ).text
+                    + "\n"
+                ),
+                text,
+                flags=re.I | re.S,
+            )
+        lines = [re.sub(r"[*`]", "", line).strip() for line in text.splitlines()]
+        names = list(claim.names)
+        for name in claim.names:
+            gemma = re.fullmatch(
+                r"gemma-[34]-(\d+b-a\d+b|e\d+b|\d+b)(?:-it)?", name.rsplit("/", 1)[-1], re.I
+            )
+            if gemma:
+                names.append(gemma[1].replace("-", " "))
+
+        def own(cell: str) -> bool:
+            return _hf_card_names_subject(cell, names)
+
+        out = []
+        header: list[str] = []
+        for line in lines:
+            if "|" in line:
+                body = line.removeprefix("|").removesuffix("|") if line.endswith("|") else line
+                cells = [cell.strip().lstrip("# ") for cell in re.split(r"(?<!\\)\|", body)]
+                if cells and _ACTIVE_KEY.fullmatch(cells[0]):
+                    columns = [i for i, cell in enumerate(header) if i and own(cell)]
+                    if len(cells) == 2 and (not header or header[0].casefold() != "property"):
+                        columns = [1]
+                    for column in columns:
+                        match = (
+                            _ACTIVE_VALUE.fullmatch(cells[column]) if column < len(cells) else None
+                        )
+                        if match:
+                            out.append(
+                                Reading(subject, _parameter_amount(match["amount"]), "parameters")
+                            )
+                    continue
+                if any(_ACTIVE_KEY.fullmatch(cell) for cell in cells):
+                    header = cells
+                    continue
+                if cells and (
+                    cells[0].casefold() in {"property", "model", "model name"}
+                    or not cells[0]
+                    or cells[0].casefold() == "benchmark (metric)"
+                ):
+                    header = cells
+                    continue
+                if header and len(cells) == len(header):
+                    model_col = next(
+                        (
+                            i
+                            for i, cell in enumerate(header)
+                            if cell.casefold() in {"model", "model name"}
+                        ),
+                        None,
+                    )
+                    active_col = next(
+                        (i for i, cell in enumerate(header) if _ACTIVE_KEY.fullmatch(cell)), None
+                    )
+                    if model_col is not None and active_col is not None and own(cells[model_col]):
+                        match = _ACTIVE_VALUE.fullmatch(cells[active_col])
+                        if match:
+                            out.append(
+                                Reading(subject, _parameter_amount(match["amount"]), "parameters")
+                            )
+                continue
+            header = []
+            if not own(line):
+                continue
+            for match in _ACTIVE_PROSE.finditer(line):
+                out.append(Reading(subject, _parameter_amount(match["amount"]), "parameters"))
+        return out
+
+
+class DenseActiveEqualsTotalExtractor:
+    """Recompute dense active parameters from a config and its same-repo API census."""
+
+    actor = VerificationActor(
+        agent=VERIFY_AGENT, model_family=DETERMINISTIC, method="dense-active-equals-total@1"
+    )
+    fields = frozenset({"model.parameters_active"})
+
+    def accepts(self, text: str) -> bool:
+        config = _hf_config(text)
+        return config is not None and hf_config_architecture(config) in DENSE_ARCHITECTURES
+
+    def extract(
+        self,
+        claim: Claim,
+        text: str,
+        *,
+        page_url: str | None = None,
+        bindings: Sequence[tuple[str, str | None]] = (),
+    ) -> list[Reading]:
+        subject = _hf_bound_subject(claim, text, page_url)
+        if claim.field not in self.fields or subject is None or not self.accepts(text):
+            return []
+        repo = _hf_architecture_repo(page_url)
+        counts = []
+        for page, url in ((text, page_url), *bindings):
+            if _hf_architecture_repo(url) != repo:
+                continue
+            config = _hf_config(page)
+            architecture = hf_config_architecture(config) if config is not None else None
+            if architecture is not None and architecture not in DENSE_ARCHITECTURES:
+                return []
+            total = HFParametersExtractor().extract(
+                replace(claim, field="model.parameters_total"),
+                page,
+                page_url=url,
+            )
+            counts.extend(reading.value for reading in total)
+        if not counts or len(set(counts)) != 1:
+            return []
+        return [Reading(subject, counts[0], "parameters")]
+
+
 class StructuredDataExtractor:
     """Read retained JSON or CSV board snapshots with one row per model."""
 
@@ -3858,7 +4305,9 @@ class LabJurisdictionExtractor:
 
 
 def deterministic_extractors() -> list[Extractor]:
-    return [CanonicalLicenceExtractor(), StructuredDataExtractor(), OfferingPriceExtractor(),
+    return [HFConfigExtractor(), ModelCardParamsExtractor(), DenseActiveEqualsTotalExtractor(),
+            HFParametersExtractor(), CanonicalLicenceExtractor(), StructuredDataExtractor(),
+            OfferingPriceExtractor(),
             SubscriptionPageExtractor(), TableExtractor(), TransposedTableExtractor(),
             GovernanceProseExtractor(), KeyValueExtractor(), ModelPageExtractor(),
             LabJurisdictionExtractor()]
@@ -4434,7 +4883,10 @@ def _readers_for(extractors: Sequence[Extractor], claim: Claim, text: str,
         return [extractor for extractor in extractors if isinstance(extractor, LicenceExtractor)]
     chosen = []
     for extractor in extractors:
-        if isinstance(extractor, (LicenceExtractor, CanonicalLicenceExtractor)):
+        if isinstance(extractor, (
+            LicenceExtractor, CanonicalLicenceExtractor, HFConfigExtractor,
+            HFParametersExtractor, ModelCardParamsExtractor, DenseActiveEqualsTotalExtractor,
+        )):
             continue
         if extractor.accepts(text):
             chosen.append(extractor)
@@ -4456,6 +4908,112 @@ def _binding_pages(claim: Claim, regions: Regions, source_id: str,
                 pages.append(text)
                 urls.append(url_of(source.source_id) if callable(url_of) else None)
     return pages, urls
+
+
+def _verify_architecture_fact(
+    claim: Claim, regions: Regions, extractors: Sequence[Extractor], today: date
+) -> Result:
+    """Hardware readings use only scoped HF copies and deterministic readers.
+
+    An absence needs every cited copy, a bound config/API response or model
+    README, and no explicit reading in any of them. Failed fetches are listed
+    in the fact's checked_sources by the collector, never cited as readings.
+    """
+    readers = [
+        e
+        for e in extractors
+        if isinstance(
+            e,
+            (
+                HFConfigExtractor,
+                HFParametersExtractor,
+                ModelCardParamsExtractor,
+                DenseActiveEqualsTotalExtractor,
+            ),
+        )
+        and claim.field in e.fields
+        and _independent(claim, e.actor, today)
+    ]
+    if not readers:
+        return Result(claim.target, "skipped", reason="no_independent_extractor")
+    url_of = getattr(regions, "source_url", None)
+    pages = []
+    permitted = set(default_registry().facet(claim.field).permitted_source_kinds)
+    for source in claim.sources:
+        _, kind = _source_kind(regions, source.source_id)
+        if kind is not None and kind not in permitted:
+            diffs = [Diff("source_kind", sorted(permitted), kind)]
+            return Result(
+                claim.target,
+                "mismatch",
+                _verification(claim, REGION_LOOKUP, "mismatch", today, diffs),
+                tuple(diffs),
+            )
+        url = url_of(source.source_id) if callable(url_of) else None
+        for region in source.cited_regions:
+            text = regions.text(source.source_id, source.snapshot_ref, region)
+            if text is None:
+                return Result(
+                    claim.target,
+                    "unreachable",
+                    _verification(claim, REGION_LOOKUP, "unreachable", today),
+                )
+            if _hf_bound_subject(claim, text, url) is None:
+                return Result(claim.target, "skipped", reason="unbound_hf_copy")
+            pages.append((text, url))
+    scoped = False
+    mismatch = None
+    confirmed = None
+    for text, url in pages:
+        data = _hf_json(text)
+        scoped |= (
+            _hf_config(text) is not None
+            or (
+                data is not None
+                and isinstance(data.get("id"), str)
+                and (isinstance(data.get("config"), Mapping) or _hf_parameters(text) is not None)
+            )
+            or (
+                data is None
+                and url.endswith("/README.md")
+                and _hf_card_names_subject(text, claim.names)
+            )
+        )
+        for reader in readers:
+            if not reader.accepts(text):
+                continue
+            readings = reader.extract(claim, text, page_url=url, bindings=pages)
+            if not readings:
+                continue
+            diffs = compare(
+                claim,
+                [
+                    replace(reading, value=str(reading.value))
+                    if type(reading.value) in (int, float)
+                    else reading
+                    for reading in readings
+                ],
+            )
+            if not diffs:
+                confirmed = confirmed or reader.actor
+                continue
+            mismatch = mismatch or (reader.actor, diffs)
+    if mismatch:
+        actor, diffs = mismatch
+        return Result(
+            claim.target,
+            "mismatch",
+            _verification(claim, actor, "mismatch", today, diffs),
+            tuple(diffs),
+        )
+    if confirmed is not None:
+        return Result(claim.target, "verified", _verification(claim, confirmed, "verified", today))
+    if claim.value is None and scoped:
+        actor = VerificationActor(
+            agent=VERIFY_AGENT, model_family=DETERMINISTIC, method="hf-architecture-absence@1"
+        )
+        return Result(claim.target, "verified", _verification(claim, actor, "verified", today))
+    return Result(claim.target, "skipped", reason="no_hf_reading")
 
 
 def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
@@ -4482,6 +5040,11 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
         return _verify_evidence_reading(claim, regions, extractors, today=today)
     if claim.field == "origin.lab_jurisdiction" and isinstance(claim.value, list):
         return _verify_jurisdiction_set(claim, regions, extractors, today=today)
+    url_of = getattr(regions, "source_url", None)
+    if claim.field in ARCHITECTURE_FACTS and callable(url_of) and any(
+        _hf_architecture_repo(url_of(source.source_id)) is not None for source in claim.sources
+    ):
+        return _verify_architecture_fact(claim, regions, extractors, today)
 
     ordered = sorted(extractors, key=lambda e: e.actor.model_family != DETERMINISTIC)
     reachable = False

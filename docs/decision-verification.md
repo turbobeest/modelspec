@@ -23,6 +23,19 @@ collects a value never verifies it.
 The verifier re-extracts the value. It never reads the collector's value
 first. Deterministic extractors always run first:
 
+- `HFConfigExtractor`, `hf-config@1`: retained Hugging Face configs, including
+  nested `text_config` and the public API's `config` field. It reads
+  `model.architecture`, `model.experts_total`, and `model.experts_per_token`.
+- `ModelCardParamsExtractor`, `model-card-params@1`: explicit active-parameter
+  statements or labelled model-card table cells. Total counts and model-name
+  suffixes such as `A4B` are never active-parameter readings.
+- `HFParametersExtractor`, `hf-safetensors@1`: the API's safetensors census.
+  It sums per-dtype counts when present because some sharded repositories
+  report an index-entry count in `safetensors.total`.
+- `DenseActiveEqualsTotalExtractor`, `dense-active-equals-total@1`: a dense
+  config plus a retained API census from the same repository. It recomputes
+  active parameters as total parameters. Both copies must be cited.
+
 - `TableExtractor`: tables as `decision.normalise` renders them. It needs a
   model column. The value column is the one whose header is the claim's label,
   or else the only score-like column. A unit in the header, such as
@@ -377,6 +390,78 @@ The retained copies live in the `price-reread-copies` artifact between runs;
 only the report's text diff needs them. On 2026-09-29 a run fetched 33 pages
 (16 MB), and 14 more need a rendered fetch. It took about a minute on one Linux
 runner, with no model and no paid scraper.
+
+## HF architecture collection
+
+`scripts/model_348_architecture.py --root <modelspec-data> [--dry-run]
+[--report PATH]` collects hardware facts for the open-weights premier lineup.
+It resolves the repository from the card's HF fields or its existing
+total-parameter API citation. Conflicting repositories remain unresolved.
+The source registry admits commit URLs, so config and README URLs use the
+API's 40-character commit SHA. When no SHA is available they use `main`.
+The API itself retains its existing URL and source ID.
+
+The architecture rules run in this order:
+
+1. Any routed-expert count greater than one means `MoE`. Recognised count
+   keys are `n_routed_experts`, `num_local_experts`, and `num_experts`.
+2. Without any expert or MoE keys, `*ForMaskedLM` or an explicitly listed
+   BERT-family `model_type` means `encoder-only`. Gemma's null expert
+   placeholders count as disabled only when `enable_moe_block` is explicitly
+   false and every other expert setting is null.
+3. Without expert keys, explicit `mamba`, `ssm`, `linear_attention`, or
+   `linear-attention` layer types mean `hybrid-SSM-transformer`.
+4. Without expert keys, a positive attention-head count means
+   `dense-transformer`. An embedding task does not change this classification.
+5. Otherwise there is no architecture reading.
+
+`model.experts_total` counts routed experts per layer, excluding shared
+experts such as `n_shared_experts`. `model.experts_per_token` reads
+`num_experts_per_tok`, `num_experts_per_token`, `moe_topk`, `top_k_experts`, or
+`router_top_k` in a
+config classified as MoE. A conflicting or varying per-layer count gives no
+single count. Both facets use the `experts` unit, `better: neither`, and
+capability risk. They are best effort facts, never ranking signals.
+
+Active equals total only for a dense transformer or encoder-only backbone.
+The collector requires an existing verified total and agreement with the
+fresh retained API census. Hybrid and unclassified configs do not use this
+rule. The verifier repeats the config classification and same-repository
+census comparison without reading the collector's value as an input.
+
+All HF hardware claims use only the deterministic readers, even when an LLM
+reader is configured. A gated config can fall back to the public API's
+config and the public README. An unreadable value becomes `not_disclosed`,
+with citations to retained public copies and `checked_sources` naming every
+attempted source. `hf-architecture-absence@1` repeats the absence check over
+all cited copies. It requires a scoped config, API response, or model README
+and rejects an absence when an explicit reading exists. A failed fetch is
+reported as a failed check and never used as a source reading.
+
+The collector files facts and claims, updates the legacy `architecture`
+block, and prints `DISAGREE` for changed existing values. It refuses to write
+facts that fail the retained-copy check. It never writes verification
+outcomes. A dry run keeps copies beside the report, outside the data
+checkout, and leaves cards, registries, and queues unchanged.
+
+`scripts/policy/architecture_coverage.py --root <modelspec-data>` counts
+known and verified facts, sourced and verified `not_disclosed` facts, and
+gaps for all five facets. `Fact` has no inapplicable state. Expert facets
+therefore need no facts for a model with a verified dense transformer or
+encoder-only architecture. The command reports these as `dense_exempt` and
+exits nonzero for any gap. It also counts catalogue cards with a non-null
+legacy `architecture.active_parameters`, excluding non-card Markdown files.
+Vocabulary and snapshot facet columns come from the registry automatically;
+`decision/snapshot_keys.json` contains signing keys, not facet IDs.
+
+The `json-default` normalizer preserves JSON arrays and object delimiters
+and sorts keys for stable fingerprints. The text normalizer removes lines
+containing only punctuation, which makes formatted configs invalid JSON.
+README tables can mix HTML and Markdown. The parameter reader normalizes
+HTML tables without flattening surrounding Markdown. A table's model row or
+column must match the subject; Gemma's variant labels such as `26B A4B` bind
+the table without supplying a parameter reading themselves. The sampling
+setting `top_k` never supplies an expert count.
 
 ## Fixture
 

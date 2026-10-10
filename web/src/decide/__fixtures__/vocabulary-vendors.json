@@ -350,6 +350,74 @@
       ]
     },
     {
+      "id": "model.experts_total",
+      "label": "Routed experts",
+      "definition": "The number of routed experts in each mixture-of-experts layer, excluding shared experts such as `n_shared_experts`. A single value is recorded only when the config states a uniform count across expert layers.",
+      "subject": "model",
+      "value_type": "number",
+      "unit": "experts",
+      "unit_definition": "A count of routed experts in one mixture-of-experts layer, excluding shared experts that are used for every token.",
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": true,
+      "preference": {
+        "kind": "continuous",
+        "directions": [
+          "max",
+          "min"
+        ],
+        "threshold": "where"
+      },
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 6,
+      "range": null,
+      "better": "neither"
+    },
+    {
+      "id": "model.experts_per_token",
+      "label": "Experts per token",
+      "definition": "The number of routed experts selected for one token in each mixture-of-experts layer, excluding always-active shared experts. A single value is recorded only when the config states a uniform count.",
+      "subject": "model",
+      "value_type": "number",
+      "unit": "experts",
+      "unit_definition": "A count of routed experts in one mixture-of-experts layer, excluding shared experts that are used for every token.",
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": true,
+      "preference": {
+        "kind": "continuous",
+        "directions": [
+          "max",
+          "min"
+        ],
+        "threshold": "where"
+      },
+      "risk": "capability",
+      "computed_by": null,
+      "known": 0,
+      "of": 6,
+      "range": null,
+      "better": "neither"
+    },
+    {
       "id": "licence.commercial_use",
       "label": "Commercial use",
       "definition": "Whether the licence governing the model lets a customer use the model or its outputs in a commercial product. `permitted_with_conditions` covers any condition, for example a display or naming duty, a user cap or a field-of-use limit. Attribution means a display or naming duty; keeping a copyright, licence or NOTICE notice, as MIT and Apache-2.0 require, is not a condition. The other `licence.*` facets say which condition applies. A fine-tune carries its base model's terms where the base licence requires derivatives to be distributed under, or remain subject to, those terms.",

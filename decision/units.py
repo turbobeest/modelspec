@@ -22,6 +22,7 @@ UNITS: Mapping[str, tuple[str, float]] = {
     "tokens_per_minute": ("tokens_per_minute", 1.0),
     "requests_per_minute": ("requests_per_minute", 1.0),
     "parameters": ("parameters", 1.0),
+    "experts": ("experts", 1.0),
     "m_parameters": ("parameters", 1e6),
     "b_parameters": ("parameters", 1e9),
     "days": ("days", 1.0),
@@ -70,4 +71,3 @@ def unit_id(text: str | None) -> str | None:
     if m := _PRICE.match(s):
         return f"usd_per_1{_MAGNITUDE[m.group(2)]}_tokens"
     return s
-

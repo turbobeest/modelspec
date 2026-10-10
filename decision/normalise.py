@@ -16,6 +16,7 @@ Deterministic and offline: the standard library only, no network.
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 import unicodedata
 from collections.abc import Iterator
@@ -106,7 +107,7 @@ class RuleSet:
     """A named normalisation recipe. ``content`` says which parser applies."""
 
     name: str
-    content: Literal["html", "text"]
+    content: Literal["html", "text", "json"]
     drop_tags: frozenset[str] = frozenset()
     #: Drop ``<header>``/``<footer>`` unless they sit inside an article, main or section.
     drop_page_chrome: bool = True
@@ -161,6 +162,7 @@ NORMALISERS: dict[str, RuleSet] = {
         RuleSet("html-header-buttons", "html", drop_tags=_HTML_DROP_TAGS,
                 header_buttons=True, data_buttons=True),
         RuleSet("text-default", "text"),
+        RuleSet("json-default", "json", strip_volatile=False, strip_tracking=False),
     )
 }
 
@@ -650,6 +652,13 @@ def normalise_document(body: bytes, rules: RuleSet, *, charset: str | None = Non
         raise UnsupportedContentError("pdf")
     raw = body.decode(charset or "utf-8", errors="replace")
     raw = unicodedata.normalize("NFKC", raw).replace("\r\n", "\n").replace("\r", "\n")
+    if rules.content == "json":
+        try:
+            data = json.loads(raw)
+        except ValueError as exc:
+            raise UnsupportedContentError("invalid_json") from exc
+        return Document(rules, json.dumps(data, sort_keys=True, ensure_ascii=False,
+                                         separators=(",", ":")))
     if rules.content == "text":
         return Document(rules, _to_text([raw], rules))
     builder = _TreeBuilder()
