@@ -12,8 +12,7 @@ jobs:
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
       count: ${{ steps.matrix.outputs.count }}
-    permissions:
-      contents: read
+    permissions: {}
     env:
       SIGNALS_ORIGIN: https://api.modelspec.dev
     steps:
