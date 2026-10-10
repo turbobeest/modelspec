@@ -24,24 +24,19 @@ from markdown_it import MarkdownIt
 
 from qa import agent_harness, subscription_aeo as aeo, subscription_jobs as jobs, subscription_ux as ux
 from qa import tui_harness as harness, tui_homes as homes, tui_isolation as isolation, tui_providers as providers
-from qa import tui_docker
 from qa.docker.entrypoint import VENDOR_ENV
 from qa.install_subscription_jobs import render, TEMPLATES, main as install
 from scripts.aeo.engines import Answer
 
 
 @pytest.fixture(autouse=True)
-def subscription_environment(monkeypatch, tmp_path):
+def subscription_environment(monkeypatch):
     # Tests never inherit the calling agent's credential environment or CI flag.
     for name in tuple(os.environ):
         if VENDOR_ENV.search(name) and not name.startswith('MODELSPEC_'):
             monkeypatch.delenv(name)
     monkeypatch.delenv('GITHUB_ACTIONS', raising=False)
     monkeypatch.setattr(urllib.request, 'urlopen', lambda *a, **k: pytest.fail('urlopen'))
-    # Offline scratch may stay in this worktree; production output must be private.
-    if tmp_path.resolve().is_relative_to(harness.ROOT.resolve()):
-        monkeypatch.setattr(harness, 'private_output', lambda path: path.expanduser().resolve())
-        monkeypatch.setattr(tui_docker, '__file__', str(tmp_path / 'public/qa/tui_docker.py'))
 
 
 @pytest.fixture
