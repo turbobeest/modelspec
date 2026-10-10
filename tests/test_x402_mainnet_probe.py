@@ -1,0 +1,70 @@
+"""MODEL-333. The post-flip probe passes on the expected 402 and fails on a wrong receiver."""
+
+from __future__ import annotations
+
+import base64
+import importlib.util
+import json
+import sys
+from pathlib import Path
+
+import httpx
+import pytest
+
+ROOT = Path(__file__).resolve().parents[1]
+PAY_TO = "0x69429dbeeee7218084ab5b896788f5fce452419c"
+
+
+def _probe():
+    spec = importlib.util.spec_from_file_location(
+        "x402_mainnet_probe", ROOT / "scripts" / "x402_mainnet_probe.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def _transport(pay_to: str):
+    packs = [(250, 5), (1300, 25), (2750, 50), (6000, 100)]
+    accepts = [{"scheme": "exact", "network": "eip155:8453",
+                "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
+                "payTo": pay_to, "amount": str(usd * 1_000_000)} for _, usd in packs]
+    body = {"error": {"code": "payment_required",
+                      "packs": [{"credits": credits} for credits, _ in packs]},
+            "accepts": accepts}
+    header = base64.b64encode(json.dumps({"accepts": accepts}).encode()).decode()
+
+    def handle(request: httpx.Request) -> httpx.Response:
+        keyed = "authorization" in request.headers
+        if request.url.path == "/v1/health":
+            return httpx.Response(200, json={"service_commit": "abc123"})
+        if request.url.path == "/v1/credits":
+            return httpx.Response(200, json={"available": 0})
+        if not keyed:
+            return httpx.Response(401, json={"error": {"code": "missing_api_key"}})
+        return httpx.Response(402, json=body, headers={"PAYMENT-REQUIRED": header})
+
+    return httpx.MockTransport(handle)
+
+
+def _run(monkeypatch, pay_to: str) -> None:
+    probe = _probe()
+    real = httpx.Client
+    monkeypatch.setattr(probe.httpx, "Client",
+                        lambda **kw: real(transport=_transport(pay_to), **kw))
+    monkeypatch.setenv("MODELSPEC_API_KEY", "live_probe")
+    monkeypatch.setattr(sys, "argv", ["probe", "--expect-commit", "abc123"])
+    probe.main()
+
+
+def test_probe_passes_on_the_expected_mainnet_offer(monkeypatch, capsys) -> None:
+    _run(monkeypatch, PAY_TO)
+    out = capsys.readouterr().out
+    assert "FAIL" not in out
+    assert out.strip().endswith("x402 mainnet probe passed")
+
+
+def test_probe_fails_on_another_receiver(monkeypatch, capsys) -> None:
+    with pytest.raises(SystemExit) as stop:
+        _run(monkeypatch, "0x" + "11" * 20)
+    assert stop.value.code == 1
+    assert "FAIL payTo 0x1111111111111111111111111111111111111111" in capsys.readouterr().out
