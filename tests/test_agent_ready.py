@@ -219,7 +219,7 @@ def test_auth_copy_uses_production_flags_instead_of_staging(tmp_path: Path, bill
     assert "Hosted API data tools need an API key" in text
     assert "No key is required for the hosted API" not in text
     assert "Turnstile-verified visit token" in text
-    assert "x402 prepaid credits are not live" in text
+    assert "x402" not in text.lower()
 
 
 
@@ -251,6 +251,12 @@ def test_built_robots_on_modelspec(dist: Path) -> None:
     assert "Sitemap: https://modelspec.dev/sitemap.xml" in text
     assert "contentsignals.org" in text
     assert not (dist / "benchgraph" / "robots.txt").exists()
+
+
+def test_built_tree_passes_surface_lint(dist: Path) -> None:
+    from pipeline import surface_lint
+
+    assert surface_lint.main(["--tree", str(dist / "modelspec")]) == 0
 
 
 def test_built_favicon_ico(dist: Path) -> None:

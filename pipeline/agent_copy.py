@@ -651,6 +651,13 @@ def price(weights: list[int], tiers: dict[str, Any]) -> str:
             f"costs {_usd(low)}–{_usd(high)} depending on the plan or pack ({PRICING}).")
 
 
+def card_price(weights: list[int]) -> str:
+    low, high = min(weights), max(weights)
+    amount = str(low) if low == high else f"{low}–{high}"
+    unit = "credit" if low == high == 1 else "credits"
+    return f"Key; {amount} {unit}."
+
+
 def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
     tiers = tiers or _tiers()
     w = tiers["credits"]["weights"]
@@ -725,11 +732,14 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
         ),
     }
     card = {
-        "decide": "Decide which models fit a job, with reasons and cost. Key; 1–2 credits.",
-        "rank": "Deprecated fixed-profile shortlist (legacy v1); use decide. Key; 1 credit.",
+        "decide": "Decide which models fit a job, with reasons and cost. "
+                  + card_price([w["decide.none"], w["decide.summary"], w["decide.full"]]),
+        "rank": "Deprecated fixed-profile shortlist (legacy v1); use decide. "
+                + card_price([w["rank"]]),
         "model_info": "One model's published card. Needs an API key.",
         "list_use_cases": "Ranking profiles and the published ranking policy. Needs an API key.",
-        "policy_check": "Policy pass/fail/undetermined per model and platform. Key; 5 credits.",
+        "policy_check": "Policy pass/fail/undetermined per model and platform. "
+                        + card_price([w["policy-check"]]),
         "vocab": "The valid facet ids and names for a decide spec. Needs an API key.",
         "feedback": "Say whether an answer was reliable. Free, no key.",
     }

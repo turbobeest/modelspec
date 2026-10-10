@@ -16,6 +16,7 @@ aggregateRating or review, and this site does not invent either.
 
 from __future__ import annotations
 
+import html
 import json
 import re
 from pathlib import Path
@@ -35,12 +36,12 @@ ROOT = Path(__file__).resolve().parents[1]
 #: publishes and this table omits gets no JSON-LD, and `tests/test_holding.py`
 #: fails.
 CRUMBS = {
-    "/method/": "Method",
-    "/decide/": "Decide",
+    "/method/": "How ModelSpec decides",
+    "/decide/": "Which AI model fits your job",
     "/pricing/": "Pricing",
     "/legal/terms/": "Terms",
     "/legal/privacy/": "Privacy",
-    "/legal/neutrality/": "Neutrality commitment",
+    "/legal/neutrality/": "The neutrality commitment",
     "/legal/dmca/": "Copyright and DMCA",
     "/feedback/": "Feedback",
     "/brand/": "Brand and press kit",
@@ -48,6 +49,7 @@ CRUMBS = {
 
 _BLOCK = re.compile(r'<script type="application/ld\+json" data-structured-data>.*?</script>\n?',
                     re.DOTALL)
+_COPY = re.compile(r'<details data-structured-data-copy>.*?</details>\n?', re.DOTALL)
 _HEAD_END = re.compile(r"</head\s*>", re.IGNORECASE)
 
 
@@ -152,7 +154,7 @@ def graph(path: str, tree: Path, root: Path = ROOT) -> list[dict[str, Any]]:
         nodes.append({
             "@type": "WebApplication",
             "@id": f"{BASE}/decide/#app",
-            "name": "ModelSpec Decide",
+            "name": CRUMBS[path],
             "url": f"{BASE}/decide/",
             "applicationCategory": "BusinessApplication",
             "browserRequirements": "Requires JavaScript",
@@ -171,7 +173,22 @@ def script(nodes: list[dict[str, Any]]) -> str:
 
 def strip(html: str) -> str:
     """`html` without the block `inject` writes."""
-    return _BLOCK.sub("", html)
+    return _COPY.sub("", _BLOCK.sub("", html))
+
+
+def service_copy(nodes: list[dict[str, Any]]) -> str:
+    """Let a reader inspect the same catalogue and service claims as JSON-LD."""
+    parts = []
+    for node in nodes:
+        if node["@id"] not in {f"{BASE}/#dataset", f"{BASE}/#api", f"{BASE}/#mcp"}:
+            continue
+        name = html.escape(node["name"])
+        url = node.get("url") or node["documentation"]
+        parts.append(f'<p><a href="{html.escape(url)}">{name}</a></p>')
+        if node.get("description"):
+            parts.append(f'<p>{html.escape(node["description"])}</p>')
+    return ('<details data-structured-data-copy><summary>Catalogue and machine access</summary>'
+            + "".join(parts) + '</details>\n')
 
 
 def inject(tree: Path, root: Path = ROOT) -> list[str]:
@@ -185,10 +202,15 @@ def inject(tree: Path, root: Path = ROOT) -> list[str]:
         if not page.is_file():
             continue
         html = strip(page.read_text(encoding="utf-8"))
+        nodes = graph(path, tree, root)
+        if path == "/":
+            end = re.search(r"</main\s*>|</body\s*>", html, re.I)
+            at = end.start() if end else len(html)
+            html = html[:at] + service_copy(nodes) + html[at:]
         # `</head>` is optional in HTML, and JSON-LD is valid in the body too.
         head_end = _HEAD_END.search(html)
         at = head_end.start() if head_end else len(html)
-        html = html[:at] + script(graph(path, tree, root)) + html[at:]
+        html = html[:at] + script(nodes) + html[at:]
         page.write_text(html, encoding="utf-8")
         written.append(path)
     return written
