@@ -4445,14 +4445,15 @@ def test_an_absence_from_a_disallowed_source_kind_does_not_verify() -> None:
         == "verified"
 
 
-def test_a_column_header_after_a_section_label_starts_a_new_table() -> None:
+@pytest.mark.parametrize("header", ["Name", "Model", "Model name", "Modèle", "モデル名"])
+def test_a_column_header_after_a_section_label_starts_a_new_table(header: str) -> None:
     """MODEL-369 review: a same-width header row is never read as continued data."""
     text = ("Model | Prompt caching\n"
             "Name | Input | Hits\n"
             "Claude Haiku 5.5 | $0.10 | $0.01\n"
             "$0.50 | $0.05\n"
             "Batch processing\n"
-            "Name | Input | Output\n"
+            f"{header} | Input | Output\n"
             "Claude Opus 5 | $2.50 | $12.50\n")
     claim = _price_claim("cached_input", 12.5, name="Claude Opus 5")
     assert verify.OfferingPriceExtractor().extract(claim, text) == []
