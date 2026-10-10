@@ -349,9 +349,14 @@ def _why(
         else:
             exclude = "These requirements together exclude every model."
         sentences = [exclude]
+        named: frozenset[str] = frozenset()
+        single = decision.relax_single
+        if single is not None and single.status != "none":
+            named = frozenset(gate.condition for gate in single.gates[:limits["single"]])
         sentences.extend(
             _relaxation_options(
-                decision, conditions, limits["relax"], joint_limit, omit_joint=omit_joint,
+                decision, conditions, limits["relax"], joint_limit,
+                omit_joint=omit_joint, named=named,
             )
         )
         sentences.extend(_single_gate_sentences(decision, limits["single"]))
@@ -480,6 +485,7 @@ def _relaxation_options(
     decision: Decision, conditions: tuple, limit: int, joint_limit: int | None = None,
     *,
     omit_joint: bool = False,
+    named: frozenset[str] = frozenset(),
 ) -> list[str]:
     """``relax_to`` items are each enough. Uncovered ``relax`` entries are one set.
 
@@ -487,11 +493,16 @@ def _relaxation_options(
     items are counted inside the last of those sentences, so each sentence
     keeps its ending. The joint option stays while any ``relax_to`` sentence
     stays, unless the paragraph has already kept a single-gate sentence and
-    still does not fit.
+    still does not fit. ``named`` is the conditions of the emitted single-gate
+    sentences. The one-condition joint option is left out when its condition
+    is one of them.
     """
     items = list(decision.relax_to)
     uncovered = [] if omit_joint else _joint_conditions(decision, conditions)
     joint = _joint_option(uncovered, joint_limit) if uncovered else None
+    # Drop the one-condition option an emitted gate already names (MODEL-356, Jamie 2026-10-09).
+    if len(uncovered) == 1 and uncovered[0] in named:
+        joint = None
     if not items and joint is None:
         return []
     budget = max(limit, 1)

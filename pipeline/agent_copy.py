@@ -643,8 +643,7 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
             f"verdict. {price([w['rank']], tiers)} "
             "Don't call it as a fallback when decide names no single leader: report "
             f"decide's tie. {SUMMARY_RULE} "
-            f"Proxies POST {API}/v1/rank with this tool's arguments as the JSON body. "
-            f"{NULL_RULE}"
+            f"Proxies POST {API}/v1/rank with this tool's arguments as the JSON body."
         ),
         "policy_check": (
             "Which models, on which platforms, does my policy allow? "
@@ -653,8 +652,7 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
             f"{price([w['policy-check']], tiers)} "
             "It doesn't choose a model: use decide to choose among the ones that pass. "
             f"Proxies POST {API}/v1/policy-check with this tool's arguments as the JSON body; "
-            "Authorization is forwarded. "
-            f"{NULL_RULE}"
+            "Authorization is forwarded."
         ),
         "vocab": (
             "What can a decide spec say? "
@@ -677,15 +675,13 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
             f"Reads {entity.SITE}/api/models/<model_id>.json (model_id is provider/slug). "
             "With data splitting, returns only the model's display name from the "
             "Worker vocabulary. Needs an API key. "
-            "Not current evidence and not a ranking: use decide for that. "
-            f"{NULL_RULE}"
+            "Not current evidence and not a ranking: use decide for that."
         ),
         "list_use_cases": (
             "Which ranking profiles exist, and what is the ranking policy? "
             f"Returns {entity.SITE}/api/rank/profiles.json: the profiles, the evidence floors "
             "and the neutrality commitment. Needs an API key. "
-            "Not a decision: use decide for that. "
-            f"{NULL_RULE}"
+            "Not a decision: use decide for that."
         ),
         "feedback": (
             "Was a ModelSpec answer reliable? "
