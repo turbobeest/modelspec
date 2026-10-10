@@ -13,6 +13,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Mapping
 
+from decision.capability import ANY_PARENT
 from decision.contract import (
     AllOf,
     AnyOf,
@@ -176,6 +177,26 @@ def _applied_conditions(
 
 def _count(value: int) -> str:
     return f"{value:,}"
+
+
+def _dimension_name(dimension: str) -> str:
+    parent, refinement = split_dimension(dimension)
+    return (refinement or "") if parent == ANY_PARENT else dimension
+
+
+def _unknown_names(facets: Iterable[str], spec: Spec | None) -> list[str]:
+    refinements = [
+        dimension for dimension in _board_dimensions(spec)
+        if split_dimension(dimension)[0] == ANY_PARENT
+    ]
+    names: list[str] = []
+    for facet in facets:
+        dimensions = refinements if facet == ANY_PARENT else [facet]
+        for dimension in dimensions:
+            name = _dimension_name(dimension)
+            if name and name not in names:
+                names.append(name)
+    return names
 
 
 def _summary(
@@ -366,11 +387,9 @@ def _why(
         return sentences
     if decision.status != "partial":
         return []
-    unknowns: list[str] = []
-    for row in decision.may_qualify:
-        for facet in row.unknown:
-            if facet not in unknowns:
-                unknowns.append(facet)
+    unknowns = _unknown_names(
+        (facet for row in decision.may_qualify for facet in row.unknown), spec,
+    )
     if unknowns:
         missing = f"What is missing: {_bounded(unknowns, limits['missing'])}."
     else:
@@ -431,11 +450,9 @@ def _objective_name(decision: Decision, spec: Spec | None) -> str | None:
     """
     if spec is not None:
         return _objective_phrase(spec) or None
-    names: list[str] = []
-    for row in decision.may_qualify:
-        for facet in row.unknown:
-            if facet not in names:
-                names.append(facet)
+    names = _unknown_names(
+        (facet for row in decision.may_qualify for facet in row.unknown), None,
+    )
     if not names:
         return None
     if len(names) == 1:
@@ -653,7 +670,7 @@ def _mentions(
     tie = _tie_item(decision)
     if tie:
         items.append(("tie", tie))
-    partial = _partial_item(decision)
+    partial = _partial_item(decision, spec)
     if partial:
         items.append(("partial", partial))
     scope = _class_sentence(decision, spec, conditions)
@@ -716,6 +733,8 @@ def _proxy(
             evidence = contribution.evidence
             if evidence and all(item.directness == "proxy" for item in evidence):
                 dimension = contribution.dimension.removeprefix("-")
+                if not _dimension_name(dimension) and contribution.refinement:
+                    dimension = f"{dimension}/{contribution.refinement}"
                 found.setdefault(dimension, set()).update(item.benchmark for item in evidence)
     if decision.bands is not None:
         for band in (decision.bands.best, decision.bands.rest, decision.bands.thin):
@@ -746,6 +765,7 @@ def _proxy(
 
 
 def _proxy_sentence(domain: str, benchmarks: list[str]) -> str:
+    domain = _dimension_name(domain) or "the requested task"
     if not benchmarks:
         return f"The evidence for {domain} is a general proxy, not task-specific."
     prefix = f"The evidence for {domain} is a general proxy ("
@@ -934,6 +954,7 @@ def _board_sentence(
     models: list[str], dimensions: list[str], *, records: int = 0, proxies: int = 0,
 ) -> str:
     """One leaderboard caveat. Names that overflow 200 bytes shorten; the wording does not."""
+    dimensions = [_dimension_name(dimension) for dimension in dimensions]
     if records > 0:
         return _estimated_position_sentence(models[0], dimensions[0], records, proxies)
     many = len(models) > 1
@@ -972,7 +993,11 @@ def _board_dimensions(spec: Spec | None) -> list[str]:
     dimensions: list[str] = []
     for name in names:
         base = name.removeprefix("-")
-        if base.startswith(("offering.", "licence.")) or base == HARDWARE_FIT:
+        if (
+            base.startswith(("offering.", "licence."))
+            or base == HARDWARE_FIT
+            or not _dimension_name(base)
+        ):
             continue
         if base not in dimensions:
             dimensions.append(base)
@@ -1111,7 +1136,7 @@ def _tie_item(decision: Decision) -> str:
     return _clip_item(_name_list(names, 1, more=" in answer.members") + _TIE_NOT_A_PICK)
 
 
-def _partial_item(decision: Decision) -> str:
+def _partial_item(decision: Decision, spec: Spec | None) -> str:
     if decision.status != "partial":
         return ""
     facets: list[str] = []
@@ -1120,10 +1145,11 @@ def _partial_item(decision: Decision) -> str:
     for row in decision.may_qualify:
         if row.model not in models:
             models.append(row.model)
-        for facet in row.unknown:
+        unknowns = _unknown_names(row.unknown, spec)
+        for facet in unknowns:
             if facet not in facets:
                 facets.append(facet)
-        unknown_sets.append(frozenset(row.unknown))
+        unknown_sets.append(frozenset(unknowns))
     if not facets or not models:
         return _PARTIAL_NO_FIT
     return _partial_sentence(facets, models, len(set(unknown_sets)) == 1)
@@ -1232,7 +1258,12 @@ def _objective_bases(spec: Spec) -> list[str]:
         names = [step.facet for step in objective.lexicographic]
     else:
         names = list(objective.weights or objective.pareto or [])
-    return [split_dimension(name.removeprefix("-"))[0] for name in names]
+    bases: list[str] = []
+    for name in names:
+        display = _dimension_name(name.removeprefix("-"))
+        if display:
+            bases.append(split_dimension(display)[0])
+    return bases
 
 
 def _cost_tie_break(decision: Decision) -> bool:
