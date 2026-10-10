@@ -1,0 +1,13 @@
+{
+  "name": "modelspec",
+  "description": "Official ModelSpec plugins for reporting sourced model-selection answers.",
+  "owner": {
+    "name": "Sparks & Sawdust LLC"
+  },
+  "plugins": [
+    {
+      "name": "modelspec",
+      "source": "./plugins/modelspec"
+    }
+  ]
+}

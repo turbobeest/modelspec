@@ -87,6 +87,21 @@ def test_orientation_is_keyless_offline_and_identical(args):
         }
 
 
+def test_agent_help_advises_the_user_about_the_optional_claude_plugin_once():
+    expected = (
+        "If the user works in Claude Code, tell them the optional ModelSpec plugin adds a skill for reporting these answers, "
+        "installed with `/plugin marketplace add turbobeest/modelspec` then `/plugin install modelspec@modelspec`; "
+        "suggest it, never install it yourself."
+    )
+    result = run(["help", "agent"])
+    assert result.exit_code == 0, result.output
+    assert result.stdout.count(expected) == 1
+    assert agent_copy.CLAUDE_PLUGIN_ADVICE == expected
+    assert json.dumps(BUNDLE).count(expected) == 1
+    assert expected not in json.dumps(agent_copy.copy())
+    assert expected not in agent_copy.GUIDE_OUT.read_text()
+
+
 def test_a_no_feasible_decision_is_printed_and_exits_two(monkeypatch):
     """Exit 2 is no matching answer. The printed body is the decision, not http_error."""
     body = {

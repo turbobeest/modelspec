@@ -18,6 +18,15 @@ from qa.tui_docker import GROK_USER_CONFIG, container_path, passed_environment, 
 from qa.tui_homes import (
     block_gemini_dotenv,
 )
+from qa.tui_plugins import (
+    PLUGIN_CACHE,
+    PLUGIN_ID,
+    SKILL,
+    install_plugin,
+    plugin_paths,
+    plugin_record,
+    prepare_plugin_workspace,
+)
 
 CLIS = ("claude", "codex", "gemini", "grok")
 FAMILY = {"claude": "anthropic", "codex": "openai", "gemini": "google", "grok": "xai"}
@@ -92,6 +101,7 @@ def build_command(
     *,
     isolated: bool = True,
     purpose: str = "scenario",
+    claude_plugin: str | None = None,
 ) -> list[str]:
     """Build native headless arguments; launch() separately enforces doctor evidence."""
     executable, model = settings["executable"], settings["model"]
@@ -100,6 +110,7 @@ def build_command(
     search = purpose == "search"
     server = "playwright" if purpose == "browser" else "modelspec"
     if cli == "claude":
+        plugin = plugin_record({"claude_plugin": claude_plugin}) if isolated else None
         common = [
             executable,
             "--print",
@@ -127,18 +138,42 @@ def build_command(
             if isolated
             else []
         )
+        if plugin:
+            common = ["env", f"CLAUDE_CODE_PLUGIN_CACHE_DIR={PLUGIN_CACHE}", *common]
+            controls.remove("--disable-slash-commands")
+            controls[controls.index("--settings") + 1] = json.dumps(CLAUDE_SETTINGS | {
+                "enabledPlugins": {PLUGIN_ID: True},
+                "disableBundledSkills": True,
+                # Built-in prompt commands are Skill-callable and auto-approved even
+                # under dontAsk; switch each off and deny it so only SKILL can run.
+                "skillOverrides": {name: "off" for name in sorted(CLAUDE_DENIED_SKILLS)},
+                "permissions": {"deny": [f"Skill({name})" for name in sorted(CLAUDE_DENIED_SKILLS)]},
+            })
+        tools = "WebSearch,WebFetch" if search else ""
+        allowed_tools = (
+            "WebSearch,WebFetch" if search else f"mcp__{server}__*"
+            if isolated else "mcp__model301_canary__*"
+        )
+        if plugin:
+            tools = ",".join(filter(None, (tools, "Skill")))
+            allowed_tools += f",Skill({SKILL})"
+        denied = (
+            ["--disallowedTools", ",".join(f"Skill({name})" for name in sorted(CLAUDE_DENIED_SKILLS))]
+            if plugin else []
+        )
         return (
             common
             + controls
             + (["--mcp-config", container_path(workspace, mcp_file)] if isolated else [])
             + [
                 "--tools",
-                "WebSearch,WebFetch" if search else "",
+                tools,
                 "--permission-mode",
                 "dontAsk",
                 "--allowedTools",
-                "WebSearch,WebFetch" if search else f"mcp__{server}__*" if isolated else "mcp__model301_canary__*",
+                allowed_tools,
             ]
+            + denied
         )
     if cli == "codex":
         common = [
@@ -635,8 +670,10 @@ def _allowed_servers(mcp_enabled: bool, allowed_servers) -> set:
     return set(allowed_servers)
 
 
-def _native_tools(cli: str, purpose: str) -> set:
+def _native_tools(cli: str, purpose: str, claude_plugin: str | None = None) -> set:
     native = set(SEARCH_TOOLS[cli]) if purpose == "search" else set()
+    if cli == "claude" and claude_plugin:
+        native.add("Skill")
     if cli == "grok" and purpose != "search":
         # Grok's deferred-tool lookup. It runs no tool; use_tool calls are checked by server.
         native.add("search_tool")
@@ -698,6 +735,9 @@ def _offending_call(call: dict, *, cli: str, native: set, allowed: set, purpose:
             return None
         return name
     if call.get("server") is None:
+        if cli == "claude" and name == "Skill" and name in native:
+            arguments = call.get("arguments")
+            return None if isinstance(arguments, dict) and arguments.get("skill") == SKILL else name
         return None if name in native else name
     if call.get("server") not in allowed:
         return name
@@ -706,10 +746,11 @@ def _offending_call(call: dict, *, cli: str, native: set, allowed: set, purpose:
 
 def misuse_calls(
     parsed: Transcript, *, mcp_enabled: bool, cli="claude", allowed_servers=None, purpose="scenario",
+    claude_plugin: str | None = None,
 ) -> list[tuple[str, dict]]:
     """Disallowed calls in transcript order, classified the same way as tool_misuse."""
     allowed = _allowed_servers(mcp_enabled, allowed_servers)
-    native = _native_tools(cli, purpose)
+    native = _native_tools(cli, purpose, claude_plugin)
     found = []
     for call in [*parsed.other_tool_calls, *parsed.tool_calls]:
         name = _offending_call(call, cli=cli, native=native, allowed=allowed, purpose=purpose)
@@ -720,6 +761,7 @@ def misuse_calls(
 
 def tool_misuse(
     parsed: Transcript, *, mcp_enabled: bool, cli="claude", allowed_servers=None, purpose="scenario",
+    claude_plugin: str | None = None,
 ) -> list[str]:
     """Tool names this transcript called outside the run's allowlist.
 
@@ -732,6 +774,7 @@ def tool_misuse(
     found, seen = [], set()
     for name, _call in misuse_calls(
         parsed, mcp_enabled=mcp_enabled, cli=cli, allowed_servers=allowed_servers, purpose=purpose,
+        claude_plugin=claude_plugin,
     ):
         if name not in seen:
             seen.add(name)
@@ -802,6 +845,7 @@ def misuse_error(names: list[str]) -> str:
 def guard_result(
     cli: str, parsed: Transcript, *, mcp_enabled: bool, inventory: dict | None,
     allowed_servers, purpose: str, isolated: bool,
+    claude_plugin: str | None = None,
 ) -> tuple[str | None, list[str]]:
     """Revocation reason, then tool-misuse names. A revocation hides misuse."""
     violation = subscription_violation(cli, parsed)
@@ -809,22 +853,39 @@ def guard_result(
         violation = violation or isolation_violation(
             parsed, mcp_enabled=mcp_enabled, cli=cli, inventory=inventory,
             allowed_servers=allowed_servers, purpose=purpose,
+            claude_plugin=claude_plugin,
         )
     if violation or not isolated:
         return violation, []
     return None, tool_misuse(
         parsed, mcp_enabled=mcp_enabled, cli=cli, allowed_servers=allowed_servers, purpose=purpose,
+        claude_plugin=claude_plugin,
     )
 
+
+# Without --disable-slash-commands, Claude Code lists its own commands at startup.
+# Recorded from the pinned image (claude 2.1.289) on 2026-10-10. Anything else,
+# including a planted project or user command, fails closed; a new image version
+# that adds a command fails the plugin doctor until this set is updated.
+CLAUDE_BUILTIN_COMMANDS = frozenset({
+    "agents", "auto-mode-setup", "autocompact", "clear", "color", "compact", "config",
+    "context", "effort", "extra-usage", "fast", "focus", "goal", "heapdump", "init",
+    "insights", "list-agents", "mcp", "model", "output-style", "plugin-authoring",
+    "recap", "reload-plugins", "reload-skills", "rename", "security-review",
+    "team-onboarding", "usage", "usage-credits", "workflow-launch-exec",
+    "__remote-workflow",
+})
+CLAUDE_DENIED_SKILLS = CLAUDE_BUILTIN_COMMANDS | {"doctor"}
 
 def isolation_violation(
     parsed: Transcript, *, mcp_enabled: bool, cli="claude", inventory: dict | None = None,
     allowed_servers=None, purpose="scenario",
+    claude_plugin: str | None = None,
 ) -> str | None:
     if parsed.hook_events or parsed.init and hook_event(parsed.init):
         return "CLI emitted a hook event"
     allowed = _allowed_servers(mcp_enabled, allowed_servers)
-    native = _native_tools(cli, purpose)
+    native = _native_tools(cli, purpose, claude_plugin)
     if cli == "grok" and mcp_enabled:
         if parsed.init is None:
             return "CLI did not expose its startup inventory"
@@ -853,13 +914,38 @@ def isolation_violation(
     for key in ("skills", "plugins", "mcp_servers", "tools"):
         if key not in parsed.init or not isinstance(parsed.init[key], list):
             return f"CLI startup inventory omitted or malformed {key}"
-    if parsed.init["skills"]:
-        return "CLI loaded skills"
-    if any(
-        not isinstance(plugin, dict) or plugin.get("path") != "builtin"
-        for plugin in parsed.init["plugins"]
-    ):
-        return "CLI loaded a non-builtin plugin"
+    plugin = plugin_record({"claude_plugin": claude_plugin})
+    if plugin:
+        commands = parsed.init.get("slash_commands")
+        if (
+            not isinstance(commands, list)
+            or len(commands) != len(set(map(str, commands)))
+            or any(c != SKILL and c not in CLAUDE_BUILTIN_COMMANDS for c in commands)
+        ):
+            return "CLI startup inventory omitted slash_commands or loaded another command"
+        if parsed.init["skills"] != [SKILL]:
+            return "CLI did not load exactly the ModelSpec reporting skill"
+        loaded = [
+            p for p in parsed.init["plugins"]
+            if not isinstance(p, dict) or p.get("path") != "builtin"
+        ]
+        if (
+            len(loaded) != 1
+            or not isinstance(loaded[0], dict)
+            or not isinstance(loaded[0].get("name"), str)
+            or not isinstance(loaded[0].get("path"), str)
+            or loaded[0].get("name") not in (plugin["name"], PLUGIN_ID)
+            or loaded[0].get("path") not in plugin_paths(plugin)
+        ):
+            return "CLI did not load exactly the installed ModelSpec plugin"
+    else:
+        if parsed.init["skills"]:
+            return "CLI loaded skills"
+        if any(
+            not isinstance(plugin, dict) or plugin.get("path") != "builtin"
+            for plugin in parsed.init["plugins"]
+        ):
+            return "CLI loaded a non-builtin plugin"
     if any(
         not isinstance(server, dict) or server.get("name") not in allowed
         for server in parsed.init["mcp_servers"]
@@ -961,6 +1047,7 @@ def launch(cli: str, config: dict, workspace: Path, prompt: str, *, mcp_enabled:
     violation, _misuse = guard_result(
         cli, execution.transcript, mcp_enabled=mcp_enabled, inventory=execution.inventory,
         allowed_servers=config.get("_mcp_servers"), purpose=purpose, isolated=True,
+        claude_plugin=config.get("claude_plugin"),
     )
     if execution.status in ("isolation_failed", "transcript_error") or violation:
         from qa.tui_homes import state_directory
@@ -1027,6 +1114,7 @@ def _execute(
         config["turn_cap"],
         isolated=isolated,
         purpose=purpose,
+        claude_plugin=config.get("claude_plugin"),
     )
     prompt_stdin = ""
     images = config.get("_judge_images", ())
@@ -1078,6 +1166,14 @@ def _execute(
             "isolation_failed",
             authentication.get("reason") or "Native CLI does not report subscription login",
         )
+    if cli == "claude" and isolated and config.get("claude_plugin"):
+        try:
+            install_plugin(config, workspace, run_cli)
+        except (ValueError, OSError, subprocess.TimeoutExpired) as exc:
+            return Execution(
+                Transcript(), None, (perf_counter() - started) * 1000,
+                "isolation_failed", f"Claude plugin installation failed: {exc}",
+            )
     inventory = None
     if isolated and cli != "claude":
         from qa.tui_inventory import inspect_inventory, inventory_violation
@@ -1114,6 +1210,7 @@ def _execute(
         violation, misuse = guard_result(
             cli, parsed, mcp_enabled=mcp_enabled, inventory=inventory,
             allowed_servers=config.get("_mcp_servers"), purpose=purpose, isolated=isolated,
+            claude_plugin=config.get("claude_plugin"),
         )
         limit = usage_limit(parsed, stderr, -1, [])
         if limit:
@@ -1156,6 +1253,7 @@ def _execute(
         violation, misuse = guard_result(
             cli, parsed, mcp_enabled=mcp_enabled, inventory=inventory,
             allowed_servers=config.get("_mcp_servers"), purpose=purpose, isolated=isolated,
+            claude_plugin=config.get("claude_plugin"),
         )
     except (ValueError, KeyError, TypeError, AttributeError):
         return Execution(
@@ -1239,6 +1337,8 @@ def prepare_workspace(
 ) -> None:
     from qa.tui_homes import home_config
 
+    if cli == "claude" and config.get("claude_plugin"):
+        prepare_plugin_workspace(workspace)
     if cli == "gemini":
         data = (
             json.loads(home_config(cli, config, enabled=mcp_enabled, with_token=with_token))

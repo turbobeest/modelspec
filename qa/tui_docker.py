@@ -12,6 +12,7 @@ import uuid
 from pathlib import Path
 
 from qa.docker.entrypoint import PASSED_ENV, refuse_vendor_auth
+from qa.tui_plugins import REPOSITORY, ROOT as PLUGIN_ROOT, STATE
 
 DOCKER_CONTEXT = Path(__file__).with_name("docker")
 CONTAINER_HOME = Path("/home/agent")
@@ -205,6 +206,17 @@ def container_command(
         ):
             raise ValueError("Only a private per-run workspace may be mounted at /work")
         argv += ["--mount", f"type=bind,source={resolved},target=/work"]
+        if cli == "claude" and config.get("claude_plugin") and isolated and not interactive:
+            if "," in str(PLUGIN_ROOT):
+                raise ValueError("Claude plugin repository path must not contain commas")
+            plugins = resolved / STATE / "plugins"
+            if not preview and (plugins.is_symlink() or not plugins.is_dir()):
+                raise ValueError("Claude plugin runs need their private plugin cache")
+            for relative in (".claude-plugin", "plugins/modelspec"):
+                argv += [
+                    "--mount",
+                    f"type=bind,source={PLUGIN_ROOT / relative},target={REPOSITORY / relative},readonly",
+                ]
         user_config = resolved / GROK_USER_CONFIG
         if cli == "grok" and isolated and home and not interactive:
             if not preview and (user_config.is_symlink() or not user_config.is_file()):

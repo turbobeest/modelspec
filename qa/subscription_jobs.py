@@ -31,6 +31,7 @@ from qa.tui_docker import GEMINI_RETIRED, container_command, passed_environment
 from qa.tui_isolation import isolation_result, receipt_file
 from qa.tui_homes import home_config, state_directory
 from qa.tui_providers import CLIS, build_command, prepare_workspace
+from qa.tui_plugins import install_commands, plugin_digest, plugin_record
 
 AGENT_NAMES = {"claude": "claude", "codex": "openai", "gemini": "gemini", "grok": "grok"}
 API_HEALTH_URL = "https://api.modelspec.dev/v1/health"
@@ -66,11 +67,13 @@ REPOSITORIES = {"scenarios": "turbobeest/modelspec-data", "ux": "turbobeest/mode
 
 
 def configuration(state: Path, *, browser_clis=(), quiet_hours=False, max_runs=None,
-                  ablation_proxy=None, ablation_metadata=None, dry_run=False) -> dict:
+                  ablation_proxy=None, ablation_metadata=None, dry_run=False, claude_plugin=None) -> dict:
     refuse_vendor_auth(os.environ)
     if os.environ.get("GITHUB_ACTIONS"):
         raise ValueError("Subscription jobs run locally, never in GitHub Actions")
     config = yaml.safe_load((tui_harness.HERE / "tui_config.yaml").read_text())
+    if claude_plugin is not None:
+        config["claude_plugin"] = claude_plugin
     state = tui_harness.private_output(state)
     config["_state_dir"] = str(state / ".tui-state")
     config["_state_dirs"] = {cli: str(state / ".tui-state-ux") for cli in browser_clis}
@@ -124,10 +127,19 @@ def require_ready(config: dict, clis: list[str], output: Path, *, max_age_days=3
 def preview(cli: str, config: dict, workspace: Path, prompt: str, *, purpose="scenario") -> list[str]:
     from qa.tui_providers import PROMPT_MARKER
 
+    if purpose == "judge":
+        config = config | {"claude_plugin": None}
     mcp = workspace / "modelspec-mcp.json"
     mcp.write_text(home_config(cli, config, enabled=purpose in ("scenario", "browser")))
     command = build_command(cli, config["clis"][cli], workspace, prompt, mcp,
-                            config["turn_cap"], purpose=purpose)
+                            config["turn_cap"], purpose=purpose,
+                            claude_plugin=config.get("claude_plugin"))
+    if cli == "claude" and config.get("claude_plugin"):
+        prepare_workspace(cli, config, workspace, mcp_enabled=purpose == "scenario")
+        for native in install_commands():
+            print(shlex.join(container_command(
+                cli, config, workspace, native, passed_environment(config), home=False, preview=True,
+            )))
     # The preview uses the command builder but never consults Docker.
     argv = container_command(cli, config, workspace, command, passed_environment(config), preview=True)
     # Gemini is the only preview whose argv still contains the prompt text.
@@ -150,6 +162,21 @@ def write_pair(directory: Path, day: str, report: dict, markdown: str) -> None:
         path.write_text(content, encoding="utf-8")
 
 
+def require_scenarios_ready(config: dict, selected: list[str], output: Path) -> dict:
+    """Agents use the run's receipts; judges always use the baseline ones.
+
+    With --claude-plugin on, a Claude agent holds a plugin receipt while a
+    Claude panel judge holds the baseline receipt.
+    """
+    if not config.get("claude_plugin"):
+        return require_ready(config, tui_harness.required_clis(selected, config), output)
+    judges = list(dict.fromkeys(
+        judge for cli in selected for judge in tui_harness.judges_for(cli, config["judges"])
+    ))
+    agent_isolation = require_ready(config, selected, output)
+    return require_ready(config | {"claude_plugin": None}, judges, output) | agent_isolation
+
+
 def modelspec_key_present(config: dict) -> bool:
     return bool(os.environ.get(config.get("mcp_token_env") or ""))
 
@@ -165,6 +192,9 @@ def _scenario_checkpoint(output: Path, selected, scenarios, day: str, engine_sha
     }
     if "ablation" in config:
         payload["ablation"] = config["ablation"]
+    if config.get("claude_plugin"):
+        payload["claude_plugin"] = plugin_record(config)
+        payload["claude_plugin_sha256"] = plugin_digest(config)
     digest = hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()[:16]
     directory = output / "checkpoints"
     if directory.is_symlink():
@@ -344,8 +374,7 @@ def scenario_report(config, selected, scenarios, output, *, day, dry_run=False, 
                 f"Resuming: {resumed} of {total} rows already recorded in {checkpoint}",
                 flush=True,
             )
-    needed = tui_harness.required_clis(selected, config)
-    isolation = {} if dry_run else require_ready(config, needed, output)
+    isolation = {} if dry_run else require_scenarios_ready(config, selected, output)
     runner = tui_harness.Runner(config, output, isolation)
     for scenario in scenarios:
         for cli in selected:
@@ -381,6 +410,14 @@ def scenario_report(config, selected, scenarios, output, *, day, dry_run=False, 
                 "max_runs_per_cli": config["max_runs_per_cli"], "isolation": isolation}
     if "ablation" in config:
         metadata["ablation"] = dict(config["ablation"])
+    plugin = plugin_record(config) if "claude" in selected else None
+    if plugin:
+        metadata["claude_plugin"] = plugin
+    for row in rows:
+        if plugin and row["cli"] == "claude":
+            row["claude_plugin"] = plugin
+        else:
+            row.pop("claude_plugin", None)
     report = agent_harness.make_report(rows, scenarios, dry_run, Budget(0), day, metadata)
     report["partial"] = any(
         row["status"] == "quiet_hours" or any(
@@ -586,6 +623,10 @@ def main(argv=None) -> int:
     parser.add_argument("--quiet-hours", action="store_true")
     parser.add_argument("--cli", choices=CLIS, action="append")
     parser.add_argument(
+        "--claude-plugin", choices=("modelspec",),
+        help="Install the reporting plugin for the scenarios job's Claude agent arm",
+    )
+    parser.add_argument(
         "--judge", action="append", metavar="CLI=J1,J2",
         help="Override a judge pair; CLI=J retains a single-judge override",
     )
@@ -605,6 +646,8 @@ def main(argv=None) -> int:
             raise ValueError("--ablation-proxy requires scenarios and its own private --state-dir")
         if args.ablation_metadata and not args.ablation_proxy:
             raise ValueError("--ablation-metadata requires --ablation-proxy")
+        if args.claude_plugin and args.job != "scenarios":
+            raise ValueError("--claude-plugin applies only to the scenarios job")
         datetime.strptime(args.date, "%Y-%m-%d")
         # Gemini CLI no longer serves Google AI Pro; see GEMINI_RETIRED.
         scenario_clis = tuple(cli for cli in CLIS if cli != "gemini")
@@ -613,7 +656,8 @@ def main(argv=None) -> int:
                                quiet_hours=args.scheduled or args.quiet_hours,
                                max_runs=args.max_runs_per_cli if args.max_runs_per_cli is not None else {"scenarios": 400, "ux": 40, "aeo": 64}[args.job],
                                **({"ablation_proxy": args.ablation_proxy, "ablation_metadata": args.ablation_metadata,
-                                   "dry_run": args.dry_run} if args.ablation_proxy else {}))
+                                   "dry_run": args.dry_run} if args.ablation_proxy else {}),
+                               claude_plugin=args.claude_plugin)
         if args.judge:
             apply_judge_overrides(config, args.judge)
         state = tui_harness.private_output(args.state_dir)
@@ -625,8 +669,11 @@ def main(argv=None) -> int:
                     from qa.subscription_ux import required_clis
                     needed = required_clis(selected)
                 else:
-                    needed = tui_harness.required_clis(selected, config)
-                require_ready(config, needed, state)
+                    needed = None
+                if needed is None:
+                    require_scenarios_ready(config, selected, state)
+                else:
+                    require_ready(config, needed, state)
             repository = args.business_repo if args.job == "aeo" else args.data_repo
             scenarios = _selected_scenarios(args.scenario) if args.job == "scenarios" else None
             checkpoint = None
