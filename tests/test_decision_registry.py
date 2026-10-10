@@ -242,6 +242,67 @@ def test_licence_data_handling_and_attestations_are_governance(registry):
             assert f.risk == "governance", f.id
 
 
+_INHERITS = (
+    "A fine-tune carries its base model's terms where the base licence requires "
+    "derivatives to be distributed under, or remain subject to, those terms."
+)
+
+
+def test_licence_definitions_record_the_notice_output_and_base_readings(registry):
+    """Jamie's 2026-10-09 readings. Enum values and source kinds stay put."""
+    commercial = registry.facet("licence.commercial_use")
+    assert commercial.definition == (
+        "Whether the licence governing the model lets a customer use the model or "
+        "its outputs in a commercial product. `permitted_with_conditions` covers a "
+        "display or naming duty, a user cap, or a field-of-use limit. Attribution "
+        "means a display or naming duty. Keeping a copyright, licence or NOTICE "
+        "notice, as MIT and Apache-2.0 require, is not a condition. The other "
+        "`licence.*` facets say which condition applies. " + _INHERITS
+    )
+    assert commercial.value_type.values == (
+        "permitted", "permitted_with_conditions", "prohibited",
+    )
+    assert commercial.permitted_source_kinds == ("licence_text", "provider_terms")
+    assert "not a condition" in commercial.definition
+
+    user_cap = registry.facet("licence.user_cap")
+    assert user_cap.definition == (
+        "The largest number of monthly active users a licensee may serve before the "
+        "licence requires a separate agreement. `unbounded` when the licence sets "
+        "no such cap. " + _INHERITS
+    )
+    assert user_cap.value_type.kind == "number"
+    assert user_cap.value_type.unbounded is True
+    assert user_cap.value_type.values is None
+    assert user_cap.permitted_source_kinds == ("licence_text",)
+
+    output = registry.facet("licence.output_training")
+    assert output.definition == (
+        "Whether the licence or terms let a customer use the model's outputs to "
+        "train or improve another model. `restricted` or `prohibited` only where "
+        "the licence or terms expressly address training on those outputs, on "
+        "synthetic data from them, or distillation from them. A generic "
+        "modification or derivative-works clause that never mentions outputs is "
+        "not that. Silence is not disclosed. " + _INHERITS
+    )
+    assert output.value_type.values == ("permitted", "restricted", "prohibited")
+    assert output.permitted_source_kinds == ("licence_text", "provider_terms")
+
+    tuning = registry.facet("licence.fine_tuning")
+    assert tuning.definition == (
+        "Whether the licence lets a customer modify the model's weights by further "
+        "training and use the result. Whether a provider offers fine-tuning as a "
+        "service is `offering.fine_tuning`, a different fact. " + _INHERITS
+    )
+    assert tuning.value_type.values == (
+        "permitted", "permitted_with_conditions", "prohibited",
+    )
+    assert tuning.permitted_source_kinds == ("licence_text", "provider_terms")
+    for facet in (commercial, user_cap, output, tuning):
+        assert facet.tier == "guaranteed"
+        assert facet.risk == "governance"
+
+
 def test_permitted_source_kinds_are_registered(registry):
     kinds = {k.id for k in registry.source_kinds()}
     for f in registry.facets():

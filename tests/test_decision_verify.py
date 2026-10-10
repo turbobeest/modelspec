@@ -3281,6 +3281,94 @@ def test_a_licence_in_a_subdirectory_does_not_bind_by_location() -> None:
     assert result.diffs[0].field == "model"
 
 
+_GEMMA_TERMS = (
+    '"Model Derivatives" means any model trained on synthetic data Outputs of '
+    "Gemma, including by distillation. Model Derivatives are subject to these Terms."
+)
+_GEMMA_QUOTE = "Model Derivatives are subject to these Terms."
+_GEMMA_PAGE = (
+    "base_model: google/gemma-3-12b-pt\n"
+    "https://huggingface.co/google/gemma-3-12b-pt/raw/main/LICENSE\n"
+)
+_GEMMA_URL = "https://huggingface.co/google/gemma-3-12b-pt/raw/main/LICENSE"
+_KALM = "tencent/kalm-embedding-gemma3-12b-2511"
+_GEMMA_BASE = "google/gemma-3-12b-pt"
+_GRANT_ONLY = (
+    "You may use, copy, modify, and prepare derivative works of the Software."
+)
+
+
+def _gemma_bound(base_model: str | None, text: str = _GEMMA_TERMS,
+                 subject: str = _KALM) -> str | None:
+    return verify.licence_is_bound(
+        ("KaLM Embedding Gemma3 12B 2511",),
+        [_GEMMA_PAGE],
+        _GEMMA_URL,
+        subject=subject,
+        licence_text=text,
+        base_model=base_model,
+    )
+
+
+def test_a_base_licence_binds_the_fine_tune_that_names_it() -> None:
+    """The base licence binds the fine-tune, and nobody else."""
+    assert _gemma_bound(_GEMMA_BASE) == "base-model"
+    assert _gemma_bound(None) is None
+    assert _gemma_bound("meta/llama-3", subject="lab/unrelated") is None
+    assert _gemma_bound(None, subject="lab/unrelated") is None
+    assert _gemma_bound(_GEMMA_BASE, text=MIT_TEXT) is None
+    assert _gemma_bound(_GEMMA_BASE, text=_GRANT_ONLY) is None
+    assert verify.licence_requires_derivative_terms(_GEMMA_TERMS) is True
+    assert verify.licence_requires_derivative_terms(MIT_TEXT) is False
+    assert verify.licence_requires_derivative_terms(_GRANT_ONLY) is False
+    assert verify.licence_requires_derivative_terms(
+        "Derivative works must be distributed under this licence."
+    ) is True
+    apache = (Path(__file__).parent / "fixtures" / "licences" / "apache-2.0.txt").read_text()
+    assert verify.licence_requires_derivative_terms(apache) is False
+
+    # A page that names the subject still binds by the old rule.
+    assert verify.licence_is_bound(
+        ("Nimbus 3",),
+        ["license: mit\nNimbus 3\n"],
+        "https://huggingface.co/lab/nimbus-3/raw/main/LICENSE",
+        subject="lab/nimbus-3",
+        page_urls=("https://huggingface.co/lab/nimbus-3/raw/main/README.md",),
+        licence_text=MIT_TEXT,
+        base_model=_GEMMA_BASE,
+    ) == "repo-location"
+
+
+def test_verify_uses_base_model_and_ignores_an_unrelated_model() -> None:
+    regions = _KindRegions(
+        {("nimbus-licence", "page"): _GEMMA_TERMS, ("nimbus-readme", "page"): _GEMMA_PAGE},
+        {"nimbus-licence": "licence_text", "nimbus-readme": "weights_repository"},
+        {"nimbus-licence": _GEMMA_URL},
+    )
+    reader = _licence_reader(lambda prompt: _reply("restricted", [_GEMMA_QUOTE]))
+
+    def claim(base_model: str | None, subject: str = _KALM) -> verify.Claim:
+        return verify.Claim(
+            target=TargetRef(kind="fact", id=f"{subject}#licence.output_training"),
+            subject=subject,
+            names=("KaLM Embedding Gemma3 12B 2511",),
+            field="licence.output_training",
+            value="restricted",
+            collector=COLLECTOR,
+            sources=(_LICENCE, _README),
+            base_model=base_model,
+        )
+
+    bound = verify.verify(claim(_GEMMA_BASE), regions, [reader], today=TODAY)
+    assert bound.outcome == "verified", bound
+    missing = verify.verify(claim(None), regions, [reader], today=TODAY)
+    assert missing.outcome == "mismatch", missing
+    assert missing.diffs[0].field == "model"
+    other = verify.verify(claim("meta/llama-3", subject="lab/unrelated"), regions, [reader], today=TODAY)
+    assert other.outcome == "mismatch", other
+    assert other.diffs[0].field == "model"
+
+
 def test_a_licence_in_another_repo_does_not_bind_without_a_link() -> None:
     rule, result = _bound_readme(
         "license: mit\nNimbus 3\n",

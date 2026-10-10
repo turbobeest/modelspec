@@ -145,36 +145,45 @@ are left for the licence reader.
 
 Each facet is mapped to a value with a clause quoted from the text. The
 table's rule key is that facet's key in `LICENCE_READING_RULES`.
-`LICENCE_CONDITION_RULE` applies: a duty to keep a copyright, licence, or
-change notice is not a condition. For both licences, `licence.commercial_use`
-is `permitted` ("sell copies of the Software" for MIT, and section 3 "make,
-have made, use, offer to sell, sell" for Apache-2.0). `licence.user_cap` is
-`unbounded`. `licence.output_training` is `not_disclosed`.
-`licence.fine_tuning` is `permitted` ("modify ... the Software" for MIT, and
-section 2 "prepare Derivative Works" for Apache-2.0). The notice-retention
-reading is pending Jamie's review. This extractor applies it.
+`LICENCE_CONDITION_RULE` applies. Keeping an MIT or Apache copyright, licence
+or NOTICE notice is not attribution and not a condition. A duty to keep a
+copyright, licence, or change notice is not a condition. For both licences,
+`licence.commercial_use` is `permitted` ("sell copies of the Software" for
+MIT, and section 3 "make, have made, use, offer to sell, sell" for
+Apache-2.0). `licence.user_cap` is `unbounded`. `licence.output_training` is
+`not_disclosed`. `licence.fine_tuning` is `permitted` ("modify ... the
+Software" for MIT, and section 2 "prepare Derivative Works" for Apache-2.0).
+Jamie decided that reading on 2026-10-09. This extractor applies it.
 
 A reading still has to pass `licence_is_bound`. A canonical text with no
-binding page does not verify.
+binding page does not verify. A licence bound to the claim's `base_model`
+also binds the fine-tune when that licence says derivatives, or Model
+Derivatives, must be distributed under its terms or remain subject to them.
+The returned rule is `base-model`. MIT and Apache-2.0 do not say that, so
+they do not bind by this path.
 
 ### Licence reading rules
 
 `LICENCE_READING_RULES` in `decision/licence_rules.py` is one rule per
 `licence.*` facet. Each sentence is derived from that facet's registry
-definition. These readings of the definitions are pending Jamie's review.
-The licence prompt includes the rule for the claim's facet. The collector
-`scripts/model_345_collect.py` records that same rule key on every value.
+definition. Jamie decided these readings on 2026-10-09. The licence prompt
+includes the condition rule, the rule for the claim's facet, and
+`BASE_MODEL_INHERITANCE_RULE`. The collector `scripts/model_345_collect.py`
+records that same rule key on every value, and files the card's `base_model`
+on the claim.
 
-On every `licence.*` facet, a duty to keep a copyright, licence or change
-notice is not a condition. A condition is a display or naming duty, a
-separate agreement or licence, a security or other review, a user, revenue
-or other threshold, a territorial or field-of-use restriction, or an
-incorporated acceptable-use or prohibited-use policy.
+On every `licence.*` facet, keeping an MIT or Apache copyright, licence or
+NOTICE notice is not attribution and not a condition. A duty to keep a
+copyright, licence or change notice is not a condition. A condition is a
+display or naming duty, a separate agreement or licence, a security or other
+review, a user, revenue or other threshold, a territorial or field-of-use
+restriction, or an incorporated acceptable-use or prohibited-use policy.
 
 - `licence.commercial_use`. `permitted` when commercial use is granted with
   no condition. `permitted_with_conditions` when it is granted subject to a
   condition. `prohibited` when it is forbidden. `not_disclosed` only when
-  the text does not address commercial use or selling at all.
+  the text does not address commercial use or selling at all. MIT and
+  Apache-2.0 are `permitted`.
 - `licence.user_cap`. A number only when the licence requires a separate
   agreement or licence once a monthly-active-user threshold is exceeded. A
   threshold that only triggers a display, naming or attribution duty is not
@@ -185,25 +194,31 @@ incorporated acceptable-use or prohibited-use policy.
   or the Work, or to create derivative works of it, covers fine-tuning.
   `permitted_with_conditions` when using or distributing the result is
   subject to a condition. `permitted` when only notice retention applies.
-  `prohibited` when modification is forbidden.
+  `prohibited` when modification is forbidden. MIT and Apache-2.0 are
+  `permitted`.
 - `licence.output_training`. About using the model's outputs to train or
   improve another model. A grant to fine-tune or modify this model says
-  nothing about it. `permitted` only when the text expressly allows it.
-  `restricted` when the text allows it only for some purposes or models, or
-  makes a model trained on outputs a derivative subject to the licence's
-  restrictions. `prohibited` when the text forbids it. `not_disclosed` when
-  the text is silent.
+  nothing about it. `restricted` or `prohibited` only where the text
+  expressly addresses using the model's outputs, or synthetic data or
+  distillation from those outputs, to train or improve another model, and
+  limits or forbids that use. A generic modification or derivative-works
+  clause that never mentions outputs is not that. `permitted` only when the
+  text expressly allows it. `prohibited` when the text expressly forbids it.
+  `not_disclosed` when the text is silent. The Gemma Terms define Model
+  Derivatives to include a model trained on synthetic data Outputs of Gemma,
+  or by distillation, and they subject those models to the Terms'
+  restrictions, so that text is `restricted`. MIT, Apache-2.0, and a custom
+  licence that only grants modification are `not_disclosed`.
 
-The commercial-use reading follows the existing corpus and the MODEL-78
-tier-1 OSI mapping (MIT and Apache = permitted). The registry wording
-"attribution" is ambiguous on whether notice retention counts as a condition,
-and that question is open for Jamie. The output-training reading follows the
-existing corpus in treating a model trained on outputs, which the licence
-makes a derivative, as restricted. The registry definition does not settle
-that case, and that question is open for Jamie. A fine-tune with a
-`base_model` may also carry the base model's licence terms. Today neither
-the rules nor the binding follow `base_model`. KaLM's file embeds the Gemma
-terms, so it reads correctly. That question is open for Jamie.
+A fine-tune inherits its base model's licence terms where the base licence
+requires it. The card field is `base_model`. Inheritance applies when the
+base licence says derivatives, or Model Derivatives, must be distributed
+under its terms or remain subject to them.
+tencent/kalm-embedding-gemma3-12b-2511 has `base_model`
+google/gemma-3-12b-pt, and its LICENSE.txt embeds the Gemma terms. The
+binding follows that card field. A licence bound to the base binds the
+fine-tune when the text requires derivative terms. It does not bind an
+unrelated model, and it does not bind when the card sets no `base_model`.
 
 An absence (a null value, `not_disclosed`) verifies only from a source kind
 in the facet's `permitted_source_kinds`. A `licence.*` absence needs that

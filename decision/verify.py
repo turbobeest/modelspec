@@ -125,7 +125,9 @@ class Claim:
     sits under in the source (default: ``field`` with underscores as spaces).
     ``unit`` is a unit ID (``UNITS``); ``None`` means the base unit of whatever
     dimension the source states. ``conditions`` holds ``effort``, ``harness`` and
-    ``date`` as the collector filed them.
+    ``date`` as the collector filed them. ``base_model`` is the card's
+    ``lineage.base_model`` when the subject is a fine-tune. It is empty when
+    the card names no base.
     """
 
     target: TargetRef
@@ -138,6 +140,7 @@ class Claim:
     unit: str | None = None
     label: str | None = None
     conditions: Mapping[str, str | None] = field(default_factory=dict)
+    base_model: str | None = None
 
     def __post_init__(self) -> None:
         if not self.names:
@@ -170,7 +173,8 @@ class Claim:
 
     @classmethod
     def from_fact(cls, fact: Any, *, names: Sequence[str], collector: VerificationActor,
-                  unit: str | None = None, label: str | None = None) -> Claim:
+                  unit: str | None = None, label: str | None = None,
+                  base_model: str | None = None) -> Claim:
         """A claim for a filed ``Fact``; ``unit`` is its facet's unit.
 
         A scoped source region can also confirm ``not_disclosed`` or
@@ -189,10 +193,11 @@ class Claim:
             unit=unit,
             collector=collector,
             sources=tuple(fact.sources),
+            base_model=base_model or None,
         )
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        data = {
             "target": self.target.model_dump(),
             "subject": self.subject,
             "names": list(self.names),
@@ -204,6 +209,9 @@ class Claim:
             "collector": self.collector.model_dump(),
             "sources": [s.model_dump() for s in self.sources],
         }
+        if self.base_model:
+            data["base_model"] = self.base_model
+        return data
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> Claim:
@@ -218,6 +226,7 @@ class Claim:
             conditions=data.get("conditions") or {},
             collector=VerificationActor.model_validate(data["collector"]),
             sources=tuple(SourceRef.model_validate(s) for s in data["sources"]),
+            base_model=data.get("base_model") or None,
         )
 
 
@@ -2647,10 +2656,49 @@ def _licence_rule(page: str, page_url: str | None, licence_url: str | None,
     return None
 
 
+def _bound_on_pages(names: Sequence[str], pages: Sequence[str], licence_url: str | None, *,
+                    subject: str | None = None,
+                    page_urls: Sequence[str | None] | None = None,
+                    licence_text: str | None = None) -> str | None:
+    """The link, url, repo-location or SPDX rule that binds this licence, or ``None``."""
+    urls = tuple(page_urls or ())
+    for index, page in enumerate(pages):
+        page_url = urls[index] if index < len(urls) else None
+        if _page_names_subject(page, names, subject, page_url):
+            rule = _licence_rule(page, page_url, licence_url, licence_text)
+            if rule:
+                return rule
+    return None
+
+
+#: The text names derivatives and says they stay under this licence.
+#: A grant to create derivative works does not match. MIT and Apache-2.0 do not.
+_DERIVATIVE_TERMS = re.compile(
+    r"model derivatives?.{0,500}?subject to.{0,120}?(?:these|the|this).{0,40}?(?:terms|licen[cs]e)"
+    r"|derivatives?.{0,180}?(?:must|shall).{0,80}?(?:be distributed under|remain subject to)"
+    r".{0,80}?(?:terms|licen[cs]e)",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def licence_requires_derivative_terms(text: str | None) -> bool:
+    """The licence says a derivative must be distributed under it, or stay subject to it.
+
+    A grant to modify the work or to prepare derivative works is not enough.
+    The text has to name derivatives, or Model Derivatives, and say they must
+    be distributed under these terms or remain subject to them. MIT and
+    Apache-2.0 do not say that. Keeping their notices is not this duty.
+    """
+    if not text:
+        return False
+    return _DERIVATIVE_TERMS.search(re.sub(r"\s+", " ", text)) is not None
+
+
 def licence_is_bound(names: Sequence[str], pages: Sequence[str], licence_url: str | None, *,
                      subject: str | None = None,
                      page_urls: Sequence[str | None] | None = None,
-                     licence_text: str | None = None) -> str | None:
+                     licence_text: str | None = None,
+                     base_model: str | None = None) -> str | None:
     """The rule that binds this licence to the subject, or ``None``.
 
     A page names the subject by its display name or repository id, as a whole
@@ -2678,14 +2726,33 @@ def licence_is_bound(names: Sequence[str], pages: Sequence[str], licence_url: st
     and a subdirectory do not. ``license: other`` does not bind a shared
     text. A file in a different repository binds only by ``license_link``
     or ``url``.
+
+    When none of those rules name the subject, a licence bound to
+    ``base_model`` binds the subject too. The card field is ``base_model``.
+    The same link, url, repo-location and SPDX rules have to hold for that
+    base, and :func:`licence_requires_derivative_terms` has to be true of the
+    licence text. The returned rule is ``base-model``. No ``base_model``, a
+    base the pages do not bind, or a licence that only grants modification,
+    does not bind. MIT and Apache-2.0 do not require derivative terms, so
+    they do not bind by this path. A direct rule still wins when the page
+    names the subject itself.
     """
-    urls = tuple(page_urls or ())
-    for index, page in enumerate(pages):
-        page_url = urls[index] if index < len(urls) else None
-        if _page_names_subject(page, names, subject, page_url):
-            rule = _licence_rule(page, page_url, licence_url, licence_text)
-            if rule:
-                return rule
+    direct = _bound_on_pages(
+        names, pages, licence_url, subject=subject, page_urls=page_urls,
+        licence_text=licence_text,
+    )
+    if direct:
+        return direct
+    base = (base_model or "").strip()
+    if not base or (subject and base.casefold() == subject.casefold()):
+        return None
+    if not licence_requires_derivative_terms(licence_text):
+        return None
+    if _bound_on_pages(
+        (base, base.rsplit("/", 1)[-1]), pages, licence_url, subject=base,
+        page_urls=page_urls, licence_text=licence_text,
+    ):
+        return "base-model"
     return None
 
 
@@ -2698,7 +2765,9 @@ class LicenceExtractor:
     value. A missing or non-verbatim
     clause is unparseable, so it is not evidence. A licence does not name the
     model: the reading's subject is the claim's name only when a binding page
-    passes :func:`licence_is_bound`.
+    passes :func:`licence_is_bound`. A licence bound to ``claim.base_model``
+    also names the subject when that licence requires derivatives to carry
+    its terms.
     """
 
     def __init__(self, complete: Callable[[str], str], *, agent: str, model: str,
@@ -2743,7 +2812,7 @@ class LicenceExtractor:
             self.cache.put(store_key, reply)
         subject = claim.names[0] if licence_is_bound(
             claim.names, bindings, licence_url, subject=claim.subject, page_urls=binding_urls,
-            licence_text=text,
+            licence_text=text, base_model=claim.base_model,
         ) else None
         shown: JsonValue = None if value is None else str(value)
         unit = None
@@ -3261,7 +3330,8 @@ class CanonicalLicenceExtractor:
     ``LICENCE_CONDITION_RULE`` applied: a duty to keep a notice is not a
     condition. The table quotes the operative clause and records the rule key.
     The reading's subject is the claim's name only when :func:`licence_is_bound`
-    passes.
+    passes. A licence bound to ``claim.base_model`` also names the subject
+    when that licence requires derivatives to carry its terms.
     """
 
     actor = VerificationActor(
@@ -3291,7 +3361,7 @@ class CanonicalLicenceExtractor:
             raise ExtractorError("operative clause is not in the licence text")
         subject = claim.names[0] if licence_is_bound(
             claim.names, bindings, licence_url, subject=claim.subject, page_urls=binding_urls,
-            licence_text=text,
+            licence_text=text, base_model=claim.base_model,
         ) else None
         shown: JsonValue = None if row.value is None else str(row.value)
         return [Reading(subject=subject, value=shown)]

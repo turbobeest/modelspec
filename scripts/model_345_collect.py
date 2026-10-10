@@ -350,7 +350,8 @@ for _row in READINGS.values():
     for _facet, _reading in _row["facets"].items():
         if _facet not in LICENCE_READING_RULES:
             raise SystemExit(f"no licence reading rule for {_facet}")
-        # Each value applies LICENCE_READING_RULES[_facet], plus LICENCE_CONDITION_RULE.
+        # Each value applies licence_reading_rule(_facet): the facet rule, the
+        # condition rule, and BASE_MODEL_INHERITANCE_RULE. The filed key is the facet.
         _reading["rule"] = _facet
 
 
@@ -460,22 +461,37 @@ def _text(store: CopyStore, snapshot_ref: str, normaliser: str) -> str:
     return normalise_document(store.get(snapshot_ref), NORMALISERS[normaliser]).text
 
 
+def _card_base_model(data: dict) -> str | None:
+    """The card's ``lineage.base_model``, or ``None`` when it names no base."""
+    lineage = data.get("lineage")
+    if not isinstance(lineage, dict):
+        return None
+    raw = lineage.get("base_model")
+    if not isinstance(raw, str):
+        return None
+    text = raw.strip()
+    return text or None
+
+
 def readme_binds_licence(readme: Source, store: CopyStore, copy_ref: str,
                          names: tuple[str, ...], licence_url: str, subject: str,
-                         licence_text: str | None = None) -> str | None:
+                         licence_text: str | None = None,
+                         base_model: str | None = None) -> str | None:
     """The rule by which the cited README region binds this licence, or ``None``.
 
     The text is the cited region ``StoredRegions`` gives the verifier. The
     judgement is :func:`decision.verify.licence_is_bound`. ``licence_text``
     is the retained licence. A ``license:`` SPDX id binds a root file only
-    when that text carries the id's signature.
+    when that text carries the id's signature. ``base_model`` is the card's
+    ``lineage.base_model``. A base licence binds the fine-tune when that
+    licence requires derivatives to carry its terms.
     """
     text = StoredRegions(store, {readme.id: readme}).text(readme.id, copy_ref, BINDING_REGION)
     if not text:
         return None
     return licence_is_bound(
         names, [text], licence_url, subject=subject, page_urls=(str(readme.url),),
-        licence_text=licence_text,
+        licence_text=licence_text, base_model=base_model,
     )
 
 
@@ -538,9 +554,10 @@ def collect(root: Path, *, dry_run: bool, report_path: Path | None) -> dict:
         assert licence_snap is not None and readme_snap is not None
         licence_text = _text(store, licence_snap.copy_ref, licence["normaliser"])
         names = _published_names(data)
+        base_model = _card_base_model(data)
         rule = readme_binds_licence(
             readme, store, readme_snap.copy_ref, names, licence["url"], model_id,
-            licence_text,
+            licence_text, base_model=base_model,
         )
         if not rule:
             problems.append(f"{model_id}: model page does not bind the licence")
@@ -608,14 +625,14 @@ def collect(root: Path, *, dry_run: bool, report_path: Path | None) -> dict:
                 "readme_source": readme.id,
                 "binding": rule,
             })
-        prepared.append((path, text, facts, names, disagreements))
+        prepared.append((path, text, facts, names, disagreements, base_model))
 
     if problems:
         for problem in problems:
             print(problem)
         raise SystemExit(f"{len(problems)} licence reading(s) failed the retained-copy check")
 
-    for _path, _card, _facts, _names, disagreements in prepared:
+    for _path, _card, _facts, _names, disagreements, _base_model in prepared:
         for line in disagreements:
             print(line)
     payload = {"read_on": READ_ON, "rows": report_rows}
@@ -630,13 +647,13 @@ def collect(root: Path, *, dry_run: bool, report_path: Path | None) -> dict:
     _register(registry_path, _licence_sources())
     queue = Queue(root / "verification")
     filed = 0
-    for path, text, facts, names, _disagreements in prepared:
+    for path, text, facts, names, _disagreements, base_model in prepared:
         _replace(path, text, facts)
         for fact in facts:
             unit = "monthly_active_users" if fact.facet == "licence.user_cap" else None
             queue.file(
                 Claim.from_fact(fact, names=names, collector=COLLECTOR, unit=unit,
-                                label=LABELS[fact.facet]),
+                                label=LABELS[fact.facet], base_model=base_model),
                 at=READ_AT,
             )
             filed += 1
