@@ -42,6 +42,7 @@ PIN_REF = "${{ steps.engine_pin.outputs.sha }}"
 HEX40 = re.compile(r"^[0-9a-fA-F]{40}$")
 CONFIRM = "Confirm the engine checkout is the verified pin"
 DOWNGRADE = "Refuse an engine pin older than the base branch pin"
+DESCEND = "Refuse an engine pin that does not descend from the default branch pin"
 
 
 class LocalEngine(NamedTuple):
@@ -400,3 +401,121 @@ def test_a_pull_request_cannot_move_the_pin_backwards(
         text=True,
     )
     assert (completed.returncode == 0) is passes, f"{case}: {completed.stdout}{completed.stderr}"
+
+
+def _descend_step() -> dict:
+    steps = _engine_job(_document("release-signals"))["steps"]
+    return steps[_index(steps, lambda step: step.get("name") == DESCEND)]
+
+
+def test_the_descent_check_runs_only_on_the_release_signals_process_job() -> None:
+    for name in NAMES:
+        for job_name, job in _document(name)["jobs"].items():
+            matched = [
+                index
+                for index, step in enumerate(job.get("steps") or [])
+                if step.get("name") == DESCEND
+            ]
+            if name == "release-signals" and job_name == "process":
+                assert matched == [
+                    _index(job["steps"], lambda step: step.get("name") == CONFIRM) + 1
+                ]
+                step = job["steps"][matched[0]]
+                assert str(job["steps"][matched[0] + 1].get("uses") or "").startswith(
+                    "actions/setup-python"
+                )
+                assert step["working-directory"] == "."
+                assert "origin/main:.engine-pin" in step["run"]
+                assert 'merge-base --is-ancestor "$base" "$pin"' in step["run"]
+                assert 'echo "$GH_TOKEN"' not in step["run"]
+                assert "echo $GH_TOKEN" not in step["run"]
+            else:
+                assert matched == []
+
+
+def test_release_signals_process_pushes_without_persisted_credentials() -> None:
+    job = _engine_job(_document("release-signals"))
+    checkout = next(
+        step
+        for step in job["steps"]
+        if str(step.get("uses") or "").startswith("actions/checkout")
+        and (step.get("with") or {}).get("path") == "data"
+    )
+    assert checkout["with"]["persist-credentials"] is False
+    push = next(step for step in job["steps"] if "git push" in (step.get("run") or ""))
+    assert "http.https://github.com/.extraheader" in push["run"]
+    assert "--unset-all http.https://github.com/.extraheader" in push["run"]
+    assert 'echo "$GH_TOKEN"' not in push["run"]
+    assert "echo $GH_TOKEN" not in push["run"]
+    assert push["env"]["GH_TOKEN"] == "${{ secrets.GITHUB_TOKEN }}"
+
+
+def _data_checkout(tmp_path: Path, main_pin: str, head_pin: str) -> Path:
+    work = tmp_path / "work"
+    bare = tmp_path / "origin.git"
+    data = work / "data"
+    work.mkdir()
+    subprocess.run(["git", "init", "--bare", "-q", str(bare)], check=True)
+    subprocess.run(
+        ["git", "-c", "init.defaultBranch=main", "init", "-q", str(data)],
+        check=True,
+    )
+    _git(data, "config", "user.email", "engine-pin-test@example.com")
+    _git(data, "config", "user.name", "Engine Pin Test")
+    _git(data, "config", "commit.gpgsign", "false")
+    (data / ".engine-pin").write_text(main_pin + "\n", encoding="utf-8")
+    _git(data, "add", ".engine-pin")
+    _git(data, "commit", "-q", "-m", "pin")
+    _git(data, "remote", "add", "origin", str(bare))
+    _git(data, "push", "-q", "origin", "HEAD:main")
+    _git(data, "fetch", "-q", "origin", "main")
+    if head_pin != main_pin:
+        (data / ".engine-pin").write_text(head_pin + "\n", encoding="utf-8")
+    return work
+
+
+@pytest.mark.parametrize(
+    ("case", "main_pin", "head_pin", "passes"),
+    [
+        ("equal", "ancestor", "ancestor", True),
+        ("descendant", "ancestor", "tip", True),
+        ("downgrade", "tip", "ancestor", False),
+        ("side", "tip", "side", False),
+    ],
+)
+def test_a_branch_pin_must_descend_from_the_default_branch_pin(
+    case: str,
+    main_pin: str,
+    head_pin: str,
+    passes: bool,
+    tmp_path: Path,
+    local_engine: LocalEngine,
+) -> None:
+    shas = {
+        "ancestor": local_engine.ancestor,
+        "tip": local_engine.tip,
+        "side": local_engine.side,
+    }
+    work = _data_checkout(tmp_path, shas[main_pin], shas[head_pin])
+    runner = tmp_path / "runner"
+    runner.mkdir()
+    env = {
+        **os.environ,
+        "ENGINE_REPO": local_engine.url,
+        "RUNNER_TEMP": str(runner),
+        "GH_TOKEN": "not-used",
+        "GIT_NO_LAZY_FETCH": "1",
+        "GIT_TERMINAL_PROMPT": "0",
+    }
+    completed = subprocess.run(
+        ["bash", "-c", _descend_step()["run"]],
+        cwd=work,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    detail = f"{case}: exit {completed.returncode}\n{completed.stdout}{completed.stderr}"
+    assert (completed.returncode == 0) is passes, detail
+    if not passes:
+        assert "does not descend from the default branch pin" in completed.stdout, detail

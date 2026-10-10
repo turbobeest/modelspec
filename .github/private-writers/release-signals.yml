@@ -132,6 +132,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          persist-credentials: false
           token: ${{ github.token }}
           ref: ${{ steps.recheck.outputs.ref }}
           path: data
@@ -169,6 +170,51 @@ jobs:
         env:
           PIN: ${{ steps.engine_pin.outputs.sha }}
         run: test "$(git -C ../engine rev-parse HEAD)" = "$PIN"
+      - name: Refuse an engine pin that does not descend from the default branch pin
+        working-directory: .
+        env:
+          ENGINE_REPO: https://github.com/turbobeest/modelspec.git
+          GIT_NO_LAZY_FETCH: '1'
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          pin="$(< data/.engine-pin)"
+          pin="${pin//$'\n'/}"
+          if ! [[ "$pin" =~ ^[0-9a-f]{40}$ ]]; then
+            echo '::error::.engine-pin must hold exactly one full 40-character lowercase commit SHA.'
+            exit 1
+          fi
+          if ! git -C data rev-parse --verify --quiet refs/remotes/origin/main >/dev/null; then
+            if [ -z "${GH_TOKEN:-}" ]; then
+              echo "::error::origin/main is not in the data checkout and no token is available to fetch it."
+              exit 1
+            fi
+            auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)
+            echo "::add-mask::$auth"
+            git -C data config --local http.https://github.com/.extraheader "AUTHORIZATION: basic $auth"
+            fetch_status=0
+            git -C data fetch --no-tags origin main || fetch_status=$?
+            git -C data config --local --unset-all http.https://github.com/.extraheader
+            if [ "$fetch_status" -ne 0 ]; then
+              exit "$fetch_status"
+            fi
+          fi
+          base="$(git -C data show "origin/main:.engine-pin")"
+          base="${base//$'\n'/}"
+          if ! [[ "$base" =~ ^[0-9a-f]{40}$ ]]; then
+            echo '::error::origin/main:.engine-pin must hold exactly one full 40-character lowercase commit SHA.'
+            exit 1
+          fi
+          check="$RUNNER_TEMP/engine-pin-ancestry"
+          rm -rf "$check"
+          git clone --quiet --bare --filter=tree:0 --single-branch --branch main --no-tags \
+            "$ENGINE_REPO" "$check"
+          if ! git -C "$check" cat-file -e "$base^{commit}" 2>/dev/null \
+            || ! git -C "$check" cat-file -e "$pin^{commit}" 2>/dev/null \
+            || ! git -C "$check" merge-base --is-ancestor "$base" "$pin"; then
+            echo "::error::.engine-pin $pin does not descend from the default branch pin $base."
+            exit 1
+          fi
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -177,12 +223,44 @@ jobs:
         working-directory: .
         run: |
           set -euo pipefail
+          if [ -L data ]; then
+            echo "::error::refusing symlink data"
+            exit 1
+          fi
+          if [ ! -d data/models ] || [ -L data/models ]; then
+            echo "::error::data/models is missing"
+            exit 1
+          fi
+          if [ ! -d data/benchmarks ] || [ -L data/benchmarks ]; then
+            echo "::error::data/benchmarks is missing"
+            exit 1
+          fi
           paths="$(python -I engine/pipeline/data_source.py paths)"
+          if [ -z "$(printf '%s' "$paths" | tr -d '[:space:]')" ]; then
+            echo "::error::data paths are empty"
+            exit 1
+          fi
           while IFS= read -r P; do
             [ -n "$P" ] || continue
-            if [ -L "data/$P" ]; then
-              echo "::error::data/$P is a symlink"
-              exit 1
+            prefix=data
+            IFS=/ read -r -a parts <<< "$P"
+            for part in "${parts[@]}"; do
+              [ -n "$part" ] || continue
+              prefix="$prefix/$part"
+              if [ -L "$prefix" ]; then
+                echo "::error::refusing symlink $prefix"
+                exit 1
+              fi
+            done
+            if [ -e "data/$P" ]; then
+              resolved="$(realpath -e "data/$P")"
+              case "$resolved/" in
+                "$GITHUB_WORKSPACE/data/"*) ;;
+                *)
+                  echo "::error::data/$P resolves outside the data checkout ($resolved)"
+                  exit 1
+                  ;;
+              esac
             fi
             if [ -d "data/$P" ]; then
               bad="$(find "data/$P" -mindepth 1 \( -type l -o \( -type f \( -name '*.py' -o -name '*.pyc' -o -name '*.pyo' -o -name '*.pth' -o -name '*.so' -o -name 'sitecustomize*' -o -name 'usercustomize*' -o -name '__init__*' -o -name 'conftest*' \) \) \) -print -quit)"
@@ -221,6 +299,8 @@ jobs:
           MODELSPEC_SOURCE_CACHE: ${{ runner.temp }}/source-copies
           PR_MODE: ${{ steps.recheck.outputs.mode }}
           PR_URL: ${{ matrix.work.pr_url }}
+          SIGNAL_ID: ${{ matrix.work.signal_id }}
+          RECHECK_DAY: ${{ matrix.work.recheck_day }}
         run: |
           closed_pr=()
           if [ "$PR_MODE" = closed ]; then
@@ -231,8 +311,8 @@ jobs:
             --result "$RUNNER_TEMP/result.json" \
             --audit-json "$RUNNER_TEMP/audit.json" \
             --report-json "$RUNNER_TEMP/refresh-report.json" \
-            --signal-id "${{ matrix.work.signal_id }}" \
-            --recheck-day "${{ matrix.work.recheck_day }}" \
+            --signal-id "$SIGNAL_ID" \
+            --recheck-day "$RECHECK_DAY" \
             "${closed_pr[@]}"
           cat "$RUNNER_TEMP/result.json" >> "$GITHUB_STEP_SUMMARY"
       - name: Classify the generated change
@@ -263,9 +343,10 @@ jobs:
         if: steps.classify.outputs.resolution == 'uncertain'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SIGNAL_ID: ${{ steps.classify.outputs.signal_id }}
         run: |
           issue_url="$(gh issue create \
-            --title "release signal needs identity review: ${{ steps.classify.outputs.signal_id }}" \
+            --title "release signal needs identity review: $SIGNAL_ID" \
             --label new-model \
             --body-file "$RUNNER_TEMP/result.json")"
           echo "url=$issue_url" >> "$GITHUB_OUTPUT"
@@ -274,9 +355,10 @@ jobs:
         if: steps.classify.outputs.resolution == 'closed_unmerged'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SIGNAL_ID: ${{ steps.classify.outputs.signal_id }}
         run: |
           issue_url="$(gh issue create \
-            --title "release signal PR closed without merge: ${{ steps.classify.outputs.signal_id }}" \
+            --title "release signal PR closed without merge: $SIGNAL_ID" \
             --label new-model \
             --body-file "$RUNNER_TEMP/result.json")"
           echo "url=$issue_url" >> "$GITHUB_OUTPUT"
@@ -297,6 +379,7 @@ jobs:
       - name: Commit and push the isolated signal branch
         if: steps.classify.outputs.changed == 'true'
         env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SIGNAL_ID: ${{ steps.classify.outputs.signal_id }}
           RECHECK_DAY: ${{ steps.classify.outputs.recheck_day }}
           PR_MODE: ${{ steps.recheck.outputs.mode }}
@@ -314,7 +397,15 @@ jobs:
           git commit -s \
             -m "pipeline: process release signal ${SIGNAL_ID} (MODEL-113)" \
             -m "Co-Authored-By: Codex (GPT-6.1 Sol) <noreply@openai.com>"
-          git push --set-upstream origin "HEAD:$branch"
+          auth=$(printf 'x-access-token:%s' "$GH_TOKEN" | base64 -w0)
+          echo "::add-mask::$auth"
+          git config --local http.https://github.com/.extraheader "AUTHORIZATION: basic $auth"
+          push_status=0
+          git push --set-upstream origin "HEAD:$branch" || push_status=$?
+          git config --local --unset-all http.https://github.com/.extraheader
+          if [ "$push_status" -ne 0 ]; then
+            exit "$push_status"
+          fi
           echo "BRANCH=$branch" >> "$GITHUB_ENV"
       - name: Open or update the pull request
         id: pr
@@ -323,12 +414,13 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_MODE: ${{ steps.recheck.outputs.mode }}
           EXISTING_PR_URL: ${{ matrix.work.pr_url }}
+          HUMAN: ${{ steps.classify.outputs.human }}
         run: |
           model_id="$(python -I -c 'import json,os; print(json.load(open(os.environ["RUNNER_TEMP"] + "/result.json")).get("model_id") or "release signal")')"
           if [ "$PR_MODE" = open ]; then
             gh pr comment "$EXISTING_PR_URL" --body-file "$RUNNER_TEMP/result.json"
             pr_url="$EXISTING_PR_URL"
-          elif [ "${{ steps.classify.outputs.human }}" = "true" ]; then
+          elif [ "$HUMAN" = "true" ]; then
             pr_url="$(gh pr create --draft --head "$BRANCH" --label new-model \
               --title "data: add or identify $model_id (MODEL-113)" \
               --body-file "$RUNNER_TEMP/result.json")"

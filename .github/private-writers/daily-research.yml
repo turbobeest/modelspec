@@ -61,12 +61,44 @@ jobs:
         working-directory: .
         run: |
           set -euo pipefail
+          if [ -L data ]; then
+            echo "::error::refusing symlink data"
+            exit 1
+          fi
+          if [ ! -d data/models ] || [ -L data/models ]; then
+            echo "::error::data/models is missing"
+            exit 1
+          fi
+          if [ ! -d data/benchmarks ] || [ -L data/benchmarks ]; then
+            echo "::error::data/benchmarks is missing"
+            exit 1
+          fi
           paths="$(python -I engine/pipeline/data_source.py paths)"
+          if [ -z "$(printf '%s' "$paths" | tr -d '[:space:]')" ]; then
+            echo "::error::data paths are empty"
+            exit 1
+          fi
           while IFS= read -r P; do
             [ -n "$P" ] || continue
-            if [ -L "data/$P" ]; then
-              echo "::error::data/$P is a symlink"
-              exit 1
+            prefix=data
+            IFS=/ read -r -a parts <<< "$P"
+            for part in "${parts[@]}"; do
+              [ -n "$part" ] || continue
+              prefix="$prefix/$part"
+              if [ -L "$prefix" ]; then
+                echo "::error::refusing symlink $prefix"
+                exit 1
+              fi
+            done
+            if [ -e "data/$P" ]; then
+              resolved="$(realpath -e "data/$P")"
+              case "$resolved/" in
+                "$GITHUB_WORKSPACE/data/"*) ;;
+                *)
+                  echo "::error::data/$P resolves outside the data checkout ($resolved)"
+                  exit 1
+                  ;;
+              esac
             fi
             if [ -d "data/$P" ]; then
               bad="$(find "data/$P" -mindepth 1 \( -type l -o \( -type f \( -name '*.py' -o -name '*.pyc' -o -name '*.pyo' -o -name '*.pth' -o -name '*.so' -o -name 'sitecustomize*' -o -name 'usercustomize*' -o -name '__init__*' -o -name 'conftest*' \) \) \) -print -quit)"

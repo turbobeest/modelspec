@@ -65,12 +65,44 @@ jobs:
         working-directory: .
         run: |
           set -euo pipefail
+          if [ -L data ]; then
+            echo "::error::refusing symlink data"
+            exit 1
+          fi
+          if [ ! -d data/models ] || [ -L data/models ]; then
+            echo "::error::data/models is missing"
+            exit 1
+          fi
+          if [ ! -d data/benchmarks ] || [ -L data/benchmarks ]; then
+            echo "::error::data/benchmarks is missing"
+            exit 1
+          fi
           paths="$(python -I engine/pipeline/data_source.py paths)"
+          if [ -z "$(printf '%s' "$paths" | tr -d '[:space:]')" ]; then
+            echo "::error::data paths are empty"
+            exit 1
+          fi
           while IFS= read -r P; do
             [ -n "$P" ] || continue
-            if [ -L "data/$P" ]; then
-              echo "::error::data/$P is a symlink"
-              exit 1
+            prefix=data
+            IFS=/ read -r -a parts <<< "$P"
+            for part in "${parts[@]}"; do
+              [ -n "$part" ] || continue
+              prefix="$prefix/$part"
+              if [ -L "$prefix" ]; then
+                echo "::error::refusing symlink $prefix"
+                exit 1
+              fi
+            done
+            if [ -e "data/$P" ]; then
+              resolved="$(realpath -e "data/$P")"
+              case "$resolved/" in
+                "$GITHUB_WORKSPACE/data/"*) ;;
+                *)
+                  echo "::error::data/$P resolves outside the data checkout ($resolved)"
+                  exit 1
+                  ;;
+              esac
             fi
             if [ -d "data/$P" ]; then
               bad="$(find "data/$P" -mindepth 1 \( -type l -o \( -type f \( -name '*.py' -o -name '*.pyc' -o -name '*.pyo' -o -name '*.pth' -o -name '*.so' -o -name 'sitecustomize*' -o -name 'usercustomize*' -o -name '__init__*' -o -name 'conftest*' \) \) \) -print -quit)"
@@ -180,6 +212,12 @@ jobs:
         env:
           PIN: ${{ steps.engine_pin.outputs.sha }}
         run: test "$(git -C ../engine rev-parse HEAD)" = "$PIN"
+      - name: Restore watcher state
+        uses: actions/cache@v4
+        with:
+          path: data/benchmarks/_curation/state
+          key: curation-state-${{ env.AXIS }}-${{ github.run_id }}
+          restore-keys: curation-state-${{ env.AXIS }}-
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
@@ -188,12 +226,44 @@ jobs:
         working-directory: .
         run: |
           set -euo pipefail
+          if [ -L data ]; then
+            echo "::error::refusing symlink data"
+            exit 1
+          fi
+          if [ ! -d data/models ] || [ -L data/models ]; then
+            echo "::error::data/models is missing"
+            exit 1
+          fi
+          if [ ! -d data/benchmarks ] || [ -L data/benchmarks ]; then
+            echo "::error::data/benchmarks is missing"
+            exit 1
+          fi
           paths="$(python -I engine/pipeline/data_source.py paths)"
+          if [ -z "$(printf '%s' "$paths" | tr -d '[:space:]')" ]; then
+            echo "::error::data paths are empty"
+            exit 1
+          fi
           while IFS= read -r P; do
             [ -n "$P" ] || continue
-            if [ -L "data/$P" ]; then
-              echo "::error::data/$P is a symlink"
-              exit 1
+            prefix=data
+            IFS=/ read -r -a parts <<< "$P"
+            for part in "${parts[@]}"; do
+              [ -n "$part" ] || continue
+              prefix="$prefix/$part"
+              if [ -L "$prefix" ]; then
+                echo "::error::refusing symlink $prefix"
+                exit 1
+              fi
+            done
+            if [ -e "data/$P" ]; then
+              resolved="$(realpath -e "data/$P")"
+              case "$resolved/" in
+                "$GITHUB_WORKSPACE/data/"*) ;;
+                *)
+                  echo "::error::data/$P resolves outside the data checkout ($resolved)"
+                  exit 1
+                  ;;
+              esac
             fi
             if [ -d "data/$P" ]; then
               bad="$(find "data/$P" -mindepth 1 \( -type l -o \( -type f \( -name '*.py' -o -name '*.pyc' -o -name '*.pyo' -o -name '*.pth' -o -name '*.so' -o -name 'sitecustomize*' -o -name 'usercustomize*' -o -name '__init__*' -o -name 'conftest*' \) \) \) -print -quit)"
@@ -214,12 +284,6 @@ jobs:
           printf 'import sys; sys.path.insert(0, %s)\n' "$quoted" > "$purelib/modelspec-engine.pth"
       - name: Install dependencies
         run: python -I -m pip install pyyaml pydantic
-      - name: Restore watcher state
-        uses: actions/cache@v4
-        with:
-          path: data/benchmarks/_curation/state
-          key: curation-state-${{ env.AXIS }}-${{ github.run_id }}
-          restore-keys: curation-state-${{ env.AXIS }}-
       - name: Run watcher and classifier (Firecrawl cap 10, plain HTTP if no key)
         env:
           FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
@@ -301,6 +365,11 @@ jobs:
         env:
           PIN: ${{ steps.engine_pin.outputs.sha }}
         run: test "$(git -C ../engine rev-parse HEAD)" = "$PIN"
+      - name: Download change report
+        uses: actions/download-artifact@v4
+        with:
+          name: curation-change-report-${{ env.AXIS }}-${{ github.run_id }}
+          path: data/benchmarks/_curation/reports/
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
@@ -309,12 +378,44 @@ jobs:
         working-directory: .
         run: |
           set -euo pipefail
+          if [ -L data ]; then
+            echo "::error::refusing symlink data"
+            exit 1
+          fi
+          if [ ! -d data/models ] || [ -L data/models ]; then
+            echo "::error::data/models is missing"
+            exit 1
+          fi
+          if [ ! -d data/benchmarks ] || [ -L data/benchmarks ]; then
+            echo "::error::data/benchmarks is missing"
+            exit 1
+          fi
           paths="$(python -I engine/pipeline/data_source.py paths)"
+          if [ -z "$(printf '%s' "$paths" | tr -d '[:space:]')" ]; then
+            echo "::error::data paths are empty"
+            exit 1
+          fi
           while IFS= read -r P; do
             [ -n "$P" ] || continue
-            if [ -L "data/$P" ]; then
-              echo "::error::data/$P is a symlink"
-              exit 1
+            prefix=data
+            IFS=/ read -r -a parts <<< "$P"
+            for part in "${parts[@]}"; do
+              [ -n "$part" ] || continue
+              prefix="$prefix/$part"
+              if [ -L "$prefix" ]; then
+                echo "::error::refusing symlink $prefix"
+                exit 1
+              fi
+            done
+            if [ -e "data/$P" ]; then
+              resolved="$(realpath -e "data/$P")"
+              case "$resolved/" in
+                "$GITHUB_WORKSPACE/data/"*) ;;
+                *)
+                  echo "::error::data/$P resolves outside the data checkout ($resolved)"
+                  exit 1
+                  ;;
+              esac
             fi
             if [ -d "data/$P" ]; then
               bad="$(find "data/$P" -mindepth 1 \( -type l -o \( -type f \( -name '*.py' -o -name '*.pyc' -o -name '*.pyo' -o -name '*.pth' -o -name '*.so' -o -name 'sitecustomize*' -o -name 'usercustomize*' -o -name '__init__*' -o -name 'conftest*' \) \) \) -print -quit)"
@@ -340,12 +441,8 @@ jobs:
         with:
           node-version: '22'
       - name: Install Claude Code CLI (pinned)
+        working-directory: ${{ runner.temp }}
         run: npm install -g @anthropic-ai/claude-code@2.1.267
-      - name: Download change report
-        uses: actions/download-artifact@v4
-        with:
-          name: curation-change-report-${{ env.AXIS }}-${{ github.run_id }}
-          path: data/benchmarks/_curation/reports/
       - name: Draft each change (claude -p, no tools, untrusted source)
         if: needs.watch.outputs.has_changes == 'true'
         env:
@@ -435,6 +532,11 @@ jobs:
         env:
           PIN: ${{ steps.engine_pin.outputs.sha }}
         run: test "$(git -C ../engine rev-parse HEAD)" = "$PIN"
+      - name: Download change report
+        uses: actions/download-artifact@v4
+        with:
+          name: curation-change-report-${{ env.AXIS }}-${{ github.run_id }}
+          path: data/benchmarks/_curation/reports/
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
@@ -443,12 +545,44 @@ jobs:
         working-directory: .
         run: |
           set -euo pipefail
+          if [ -L data ]; then
+            echo "::error::refusing symlink data"
+            exit 1
+          fi
+          if [ ! -d data/models ] || [ -L data/models ]; then
+            echo "::error::data/models is missing"
+            exit 1
+          fi
+          if [ ! -d data/benchmarks ] || [ -L data/benchmarks ]; then
+            echo "::error::data/benchmarks is missing"
+            exit 1
+          fi
           paths="$(python -I engine/pipeline/data_source.py paths)"
+          if [ -z "$(printf '%s' "$paths" | tr -d '[:space:]')" ]; then
+            echo "::error::data paths are empty"
+            exit 1
+          fi
           while IFS= read -r P; do
             [ -n "$P" ] || continue
-            if [ -L "data/$P" ]; then
-              echo "::error::data/$P is a symlink"
-              exit 1
+            prefix=data
+            IFS=/ read -r -a parts <<< "$P"
+            for part in "${parts[@]}"; do
+              [ -n "$part" ] || continue
+              prefix="$prefix/$part"
+              if [ -L "$prefix" ]; then
+                echo "::error::refusing symlink $prefix"
+                exit 1
+              fi
+            done
+            if [ -e "data/$P" ]; then
+              resolved="$(realpath -e "data/$P")"
+              case "$resolved/" in
+                "$GITHUB_WORKSPACE/data/"*) ;;
+                *)
+                  echo "::error::data/$P resolves outside the data checkout ($resolved)"
+                  exit 1
+                  ;;
+              esac
             fi
             if [ -d "data/$P" ]; then
               bad="$(find "data/$P" -mindepth 1 \( -type l -o \( -type f \( -name '*.py' -o -name '*.pyc' -o -name '*.pyo' -o -name '*.pth' -o -name '*.so' -o -name 'sitecustomize*' -o -name 'usercustomize*' -o -name '__init__*' -o -name 'conftest*' \) \) \) -print -quit)"
@@ -469,11 +603,6 @@ jobs:
           printf 'import sys; sys.path.insert(0, %s)\n' "$quoted" > "$purelib/modelspec-engine.pth"
       - name: Install dependencies
         run: python -I -m pip install pyyaml pydantic
-      - name: Download change report
-        uses: actions/download-artifact@v4
-        with:
-          name: curation-change-report-${{ env.AXIS }}-${{ github.run_id }}
-          path: data/benchmarks/_curation/reports/
       - name: Open or comment on one issue per page
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

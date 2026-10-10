@@ -1066,8 +1066,10 @@ def test_hourly_workflow_keeps_github_credentials_out_of_the_signal_sender() -> 
     assert "pr_url: (.pr_url // null)" in workflow
     assert 'gh pr view "$PR_URL" --json state,headRefName,headRepositoryOwner' in workflow
     assert "ref: ${{ steps.recheck.outputs.ref }}" in workflow
-    assert "--signal-id \"${{ matrix.work.signal_id }}\"" in workflow
-    assert "--recheck-day \"${{ matrix.work.recheck_day }}\"" in workflow
+    assert "SIGNAL_ID: ${{ matrix.work.signal_id }}" in workflow
+    assert "RECHECK_DAY: ${{ matrix.work.recheck_day }}" in workflow
+    assert '--signal-id "$SIGNAL_ID"' in workflow
+    assert '--recheck-day "$RECHECK_DAY"' in workflow
     assert '--closed-unmerged-pr "$PR_URL"' in workflow
     assert 'git push --set-upstream origin "HEAD:$branch"' in workflow
     assert 'gh pr comment "$EXISTING_PR_URL"' in workflow

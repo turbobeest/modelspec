@@ -70,12 +70,44 @@ jobs:
         working-directory: .
         run: |
           set -euo pipefail
+          if [ -L data ]; then
+            echo "::error::refusing symlink data"
+            exit 1
+          fi
+          if [ ! -d data/models ] || [ -L data/models ]; then
+            echo "::error::data/models is missing"
+            exit 1
+          fi
+          if [ ! -d data/benchmarks ] || [ -L data/benchmarks ]; then
+            echo "::error::data/benchmarks is missing"
+            exit 1
+          fi
           paths="$(python -I engine/pipeline/data_source.py paths)"
+          if [ -z "$(printf '%s' "$paths" | tr -d '[:space:]')" ]; then
+            echo "::error::data paths are empty"
+            exit 1
+          fi
           while IFS= read -r P; do
             [ -n "$P" ] || continue
-            if [ -L "data/$P" ]; then
-              echo "::error::data/$P is a symlink"
-              exit 1
+            prefix=data
+            IFS=/ read -r -a parts <<< "$P"
+            for part in "${parts[@]}"; do
+              [ -n "$part" ] || continue
+              prefix="$prefix/$part"
+              if [ -L "$prefix" ]; then
+                echo "::error::refusing symlink $prefix"
+                exit 1
+              fi
+            done
+            if [ -e "data/$P" ]; then
+              resolved="$(realpath -e "data/$P")"
+              case "$resolved/" in
+                "$GITHUB_WORKSPACE/data/"*) ;;
+                *)
+                  echo "::error::data/$P resolves outside the data checkout ($resolved)"
+                  exit 1
+                  ;;
+              esac
             fi
             if [ -d "data/$P" ]; then
               bad="$(find "data/$P" -mindepth 1 \( -type l -o \( -type f \( -name '*.py' -o -name '*.pyc' -o -name '*.pyo' -o -name '*.pth' -o -name '*.so' -o -name 'sitecustomize*' -o -name 'usercustomize*' -o -name '__init__*' -o -name 'conftest*' \) \) \) -print -quit)"
@@ -99,19 +131,33 @@ jobs:
       - name: Restore last week's retained copies
         env:
           GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          WORKFLOW_FILE: price-reread.yml
         run: |
           mkdir -p "$MODELSPEC_SOURCE_CACHE"
-          run_id="$(gh api "repos/${{ github.repository }}/actions/artifacts?name=price-reread-copies&per_page=1" \
-            --jq '.artifacts[0] | select(.expired | not) | .workflow_run.id // empty')"
+          run_id=""
+          ids="$(gh api "repos/${REPO}/actions/workflows/${WORKFLOW_FILE}/runs?branch=main&per_page=20" \
+            --jq '.workflow_runs[] | select(.head_branch == "main") | .id')"
+          while read -r id; do
+            [ -n "$id" ] || continue
+            if gh api "repos/${REPO}/actions/runs/${id}/artifacts" \
+              --jq '.artifacts[] | select(.name == "price-reread-copies" and (.expired | not)) | .name' \
+              | grep -q .; then
+              run_id="$id"
+              break
+            fi
+          done <<< "$ids"
           if [ -n "$run_id" ]; then
-            gh run download "$run_id" --repo "${{ github.repository }}" \
+            gh run download "$run_id" --repo "$REPO" \
               --name price-reread-copies --dir "$MODELSPEC_SOURCE_CACHE" \
               || echo "::notice::could not restore the copies from run $run_id"
           fi
       - name: Re-read every page once
+        env:
+          DRY_RUN: ${{ inputs.dry_run }}
         run: |
           args=(--report-json "$RUNNER_TEMP/report.json" --report-md "$RUNNER_TEMP/report.md" --retain-only-cited)
-          if [ "${{ inputs.dry_run }}" != "true" ]; then
+          if [ "$DRY_RUN" != "true" ]; then
             args+=(--write)
           fi
           python -I -m scripts.price_reread "${args[@]}" > /dev/null
@@ -215,8 +261,10 @@ jobs:
           fi
       - name: Fail a run with alerts
         if: steps.result.outputs.alerts != '0'
+        env:
+          ALERTS: ${{ steps.result.outputs.alerts }}
         run: |
-          echo "::error::${{ steps.result.outputs.alerts }} price or plan facts could not be re-read; see the run summary."
+          echo "::error::${ALERTS} price or plan facts could not be re-read; see the run summary."
           exit 1
     defaults:
       run:
