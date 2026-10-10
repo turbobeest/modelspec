@@ -23,6 +23,7 @@ from pathlib import Path
 import yaml
 
 from qa import agent_harness, tui_harness
+from qa.tui_harness import apply_judge_overrides
 from qa.docker.entrypoint import refuse_vendor_auth
 from qa.providers import Budget, redact, redact_structure
 from qa.tui_auth import authentication_status
@@ -62,30 +63,6 @@ DEFAULT_STATE = Path.home() / "Library/Application Support/ModelSpec/subscriptio
 REPORT_PATHS = {"scenarios": "reports/agent-scenarios", "ux": "reports/ux", "aeo": "aeo/runs"}
 REPOSITORIES = {"scenarios": "turbobeest/modelspec-data", "ux": "turbobeest/modelspec-data",
                 "aeo": "turbobeest/modelspec-business"}
-
-
-def apply_judge_overrides(config: dict, overrides) -> dict:
-    """Replace judge routes on this config. Does not write tui_config.yaml."""
-    applied = {}
-    for item in overrides or []:
-        if item.count("=") != 1:
-            raise ValueError("Judge override must be CLI=JUDGE")
-        cli, judge = item.split("=", 1)
-        if cli not in CLIS:
-            raise ValueError(f"Unknown CLI in judge override: {cli}")
-        if judge not in CLIS:
-            raise ValueError(f"Unknown judge in judge override: {judge}")
-        if cli in applied and applied[cli] != judge:
-            raise ValueError(f"Duplicate judge override for {cli}")
-        if judge == "gemini":
-            raise ValueError(f"gemini cannot judge: {GEMINI_RETIRED}")
-        applied[cli] = judge
-    judges = {**config["judges"], **applied}
-    for cli in applied:
-        tui_harness.judge_for(cli, judges)
-    config["judges"] = judges
-    config["_judge_overrides"] = applied
-    return applied
 
 
 def configuration(state: Path, *, browser_clis=(), quiet_hours=False, max_runs=None) -> dict:
@@ -179,10 +156,8 @@ def _scenario_checkpoint(output: Path, selected, scenarios, day: str, engine_sha
         "engine_sha": engine_sha,
         "day": day,
         "modelspec_key": modelspec_key_present(config),
+        "judges": {cli: tui_harness.judges_for(cli, config["judges"]) for cli in selected},
     }
-    # Default runs keep the historical digest. An override must not resume onto it.
-    if config.get("_judge_overrides"):
-        payload["judges"] = {cli: tui_harness.judge_for(cli, config["judges"]) for cli in selected}
     digest = hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()[:16]
     directory = output / "checkpoints"
     if directory.is_symlink():
@@ -241,7 +216,7 @@ def _require_checkpoint_resume_state(path: Path, *, resume: bool) -> None:
     if resume and not path.exists():
         raise ValueError(
             f"No checkpoint at {path}. The CLIs, scenarios, --date, engine commit, "
-            "ModelSpec key presence and any --judge routes must match the interrupted run."
+            "ModelSpec key presence and judge pairs must match the interrupted run."
         )
     if path.exists() and not resume:
         raise ValueError(
@@ -303,13 +278,13 @@ def _probe_target_reachable(probe: dict, url: str) -> bool:
 def network_tag(row: dict, probe=None) -> dict:
     """Tag a failed row. ``probe`` defaults to the module-level ``network_probe``."""
     failed = {"cli_error", "timeout", "transcript_error", "empty_answer"}
-    judge = row.get("judge_execution") or {}
+    judges = agent_harness.judge_executions(row)
     agent_failed = row["status"] in failed
-    judge_failed = judge.get("status") in failed
+    judge_failed = any(judge.get("status") in failed for judge in judges)
     if not agent_failed and not judge_failed:
         return {"class": "not_checked"}
     signature = bool(NETWORK_ERROR.search(" ".join(
-        str(item) for item in (row.get("error"), judge.get("error")) if item
+        str(item) for item in [row.get("error"), *(judge.get("error") for judge in judges)] if item
     )))
     result = network_probe() if probe is None else probe()
     internet_down = not _probe_target_reachable(result, INTERNET_PROBE_URL)
@@ -328,12 +303,12 @@ def _cli_invocation_totals(counts: dict, resumed_rows: list[dict]) -> dict:
     for row in resumed_rows:
         agent = row["cli"]
         total.setdefault(agent, {"agent": 0, "judge": 0})
-        total[agent]["agent"] += 1
-        judge = row.get("judge_execution")
-        if isinstance(judge, dict) and judge.get("cli"):
-            judge_cli = judge["cli"]
-            total.setdefault(judge_cli, {"agent": 0, "judge": 0})
-            total[judge_cli]["judge"] += 1
+        total[agent]["agent"] += row.get("attempts", 1)
+        for judge in agent_harness.judge_executions(row):
+            if judge.get("cli"):
+                judge_cli = judge["cli"]
+                total.setdefault(judge_cli, {"agent": 0, "judge": 0})
+                total[judge_cli]["judge"] += judge.get("attempts", 1)
     return total
 
 
@@ -362,7 +337,7 @@ def scenario_report(config, selected, scenarios, output, *, day, dry_run=False, 
                 f"Resuming: {resumed} of {total} rows already recorded in {checkpoint}",
                 flush=True,
             )
-    needed = list(dict.fromkeys(selected + [tui_harness.judge_for(c, config["judges"]) for c in selected]))
+    needed = tui_harness.required_clis(selected, config)
     isolation = {} if dry_run else require_ready(config, needed, output)
     runner = tui_harness.Runner(config, output, isolation)
     for scenario in scenarios:
@@ -374,16 +349,13 @@ def scenario_report(config, selected, scenarios, output, *, day, dry_run=False, 
             if dry_run:
                 with tempfile.TemporaryDirectory(dir=output) as d:
                     preview(cli, config, Path(d), tui_harness.scenario_prompt(scenario))
-                    judge = tui_harness.judge_for(cli, config["judges"])
-                    preview(judge, config, Path(d), "Cross-family rubric judge", purpose="judge")
+                    for judge in tui_harness.judges_for(cli, config["judges"]):
+                        preview(judge, config, Path(d), "Cross-family rubric judge", purpose="judge")
                 row = tui_harness.empty_row(scenario, cli, config, "dry_run")
             else:
                 row = runner.scenario(scenario, cli)
             row.update(agent=AGENT_NAMES[cli], cli=cli, agent_status=row["status"],
-                       estimated_cost_usd=0.0, billing_calls=[], judges=[])
-            if row["judge"]:
-                opinion = {**row["judge"], "mode": "live", "strategy": "single", "agreed": True}
-                row.update(judge=opinion, judges=[opinion])
+                       estimated_cost_usd=0.0, billing_calls=[])
             for call in row["model_calls"]:
                 call["reported_cost_usd"] = call["cost_usd"]
                 call["cost_usd"] = 0.0
@@ -391,11 +363,8 @@ def scenario_report(config, selected, scenarios, output, *, day, dry_run=False, 
             if checkpoint is not None:
                 row["network"] = network_tag(row)
                 _append_checkpoint(checkpoint, row)
-    judge_meta = {"mode": "single", "routes": dict(config["judges"])}
-    if config.get("_judge_overrides"):
-        judge_meta["override"] = dict(config["_judge_overrides"])
     metadata = {"agents": {AGENT_NAMES[c]: config["clis"][c] for c in selected},
-                "judge": judge_meta,
+                "judge": tui_harness.judge_metadata(config, selected),
                 "transport": "subscription-cli", "auth": "CLI subscription",
                 "source_hashes": agent_harness.source_hashes(),
                 "cli_invocations": runner.counts,
@@ -405,7 +374,9 @@ def scenario_report(config, selected, scenarios, output, *, day, dry_run=False, 
                 "max_runs_per_cli": config["max_runs_per_cli"], "isolation": isolation}
     report = agent_harness.make_report(rows, scenarios, dry_run, Budget(0), day, metadata)
     report["partial"] = any(
-        row["status"] == "quiet_hours" or row.get("judge_execution", {}).get("status") == "quiet_hours"
+        row["status"] == "quiet_hours" or any(
+            judge.get("status") == "quiet_hours" for judge in agent_harness.judge_executions(row)
+        )
         for row in rows
     )
     note = (
@@ -598,14 +569,14 @@ def main(argv=None) -> int:
     parser.add_argument(
         "--resume", action="store_true",
         help="Skip scenario rows already recorded by an interrupted run "
-             "with the same CLIs, scenarios, day, engine and ModelSpec key presence"
-             " (and the same judge routes when --judge is set)",
+             "with the same CLIs, scenarios, day, engine, ModelSpec key presence and judge pairs",
     )
     parser.add_argument("--scheduled", action="store_true", help="Always enforces quiet hours")
     parser.add_argument("--quiet-hours", action="store_true")
     parser.add_argument("--cli", choices=CLIS, action="append")
     parser.add_argument(
-        "--judge", action="append", metavar="CLI=JUDGE", help="Override a judge route",
+        "--judge", action="append", metavar="CLI=J1,J2",
+        help="Override a judge pair; CLI=J retains a single-judge override",
     )
     parser.add_argument("--scenario", action="append", help="Scenario ID glob; repeatable")
     parser.add_argument("--max-runs-per-cli", type=int)
@@ -631,9 +602,13 @@ def main(argv=None) -> int:
         state = tui_harness.private_output(args.state_dir)
         with job_lock(state):
             if not args.dry_run:
-                needed = selected if args.job == "aeo" else list(dict.fromkeys(
-                    selected + [tui_harness.judge_for(c, config["judges"]) for c in selected]
-                ))
+                if args.job == "aeo":
+                    needed = selected
+                elif args.job == "ux":
+                    from qa.subscription_ux import required_clis
+                    needed = required_clis(selected)
+                else:
+                    needed = tui_harness.required_clis(selected, config)
                 require_ready(config, needed, state)
             repository = args.business_repo if args.job == "aeo" else args.data_repo
             scenarios = _selected_scenarios(args.scenario) if args.job == "scenarios" else None

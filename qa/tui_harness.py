@@ -25,6 +25,8 @@ from qa.agent_harness import (
     ROOT,
     agent_context,
     agent_request,
+    aggregate_judgements,
+    judge_routes_markdown,
     expected_match,
     load_scenarios,
     seen_decision,
@@ -99,9 +101,64 @@ def quiet_hours_guard(enabled: bool, force: bool, now: datetime | None = None) -
 
 def judge_for(cli: str, routes: dict) -> str:
     judge = routes.get(cli)
-    if judge not in FAMILY or FAMILY[judge] == FAMILY[cli]:
+    if not isinstance(judge, str) or judge not in FAMILY or FAMILY[judge] == FAMILY[cli]:
         raise ValueError(f"{cli} needs a judge from a different CLI family")
+    if judge == "gemini":
+        raise ValueError(f"gemini cannot judge: {GEMINI_RETIRED}")
     return judge
+
+
+def judges_for(cli: str, routes: dict) -> list[str]:
+    route = routes.get(cli)
+    if isinstance(route, str):
+        return [judge_for(cli, routes)]
+    if not isinstance(route, list) or len(route) != 2:
+        raise ValueError(f"{cli} needs two distinct judges from different CLI families")
+    judges = [judge_for(cli, {cli: judge}) for judge in route]
+    if len({FAMILY[judge] for judge in judges}) != 2:
+        raise ValueError(f"{cli} needs two distinct judge families")
+    return judges
+
+
+def required_clis(selected: list[str], config: dict) -> list[str]:
+    return list(dict.fromkeys(selected + [
+        judge for cli in selected for judge in judges_for(cli, config["judges"])
+    ]))
+
+
+def judge_metadata(config: dict, selected: list[str]) -> dict:
+    routes = {cli: judges_for(cli, config["judges"]) for cli in config["judges"]}
+    metadata = {
+        "mode": "single" if selected and all(len(routes[cli]) == 1 for cli in selected) else "panel",
+        "routes": routes,
+    }
+    if config.get("_judge_overrides"):
+        metadata["override"] = dict(config["_judge_overrides"])
+    return metadata
+
+
+def apply_judge_overrides(config: dict, overrides) -> dict:
+    """Replace routes in memory, retaining the documented single-judge override."""
+    applied = {}
+    for item in overrides or []:
+        if item.count("=") != 1:
+            raise ValueError("Judge override must be CLI=JUDGE or CLI=J1,J2")
+        cli, value = item.split("=", 1)
+        if cli not in CLIS:
+            raise ValueError(f"Unknown CLI in judge override: {cli}")
+        route = value.split(",") if "," in value else value
+        if cli in applied and applied[cli] != route:
+            raise ValueError(f"Duplicate judge override for {cli}")
+        for judge in route if isinstance(route, list) else [route]:
+            if judge not in CLIS:
+                raise ValueError(f"Unknown judge in judge override: {judge}")
+        applied[cli] = route
+    routes = {**config["judges"], **applied}
+    for cli in applied:
+        judges_for(cli, routes)
+    config["judges"] = routes
+    config["_judge_overrides"] = applied
+    return applied
 
 
 def validate_config(config: dict) -> None:
@@ -160,7 +217,7 @@ def validate_config(config: dict) -> None:
             "max",
         }:
             raise ValueError(f"Invalid effort for {cli}")
-        judge_for(cli, config["judges"])
+        judges_for(cli, config["judges"])
 
 
 def scenario_prompt(scenario: dict) -> str:
@@ -203,6 +260,7 @@ def empty_row(
         "final_answer": "",
         "status": status,
         "judge": None,
+        "judges": [],
         "expected_match": None,
         "success": False,
         "error": error,
@@ -211,6 +269,7 @@ def empty_row(
         "wall_time_ms": None,
         "exit_code": None,
         "reported_cost_usd": None,
+        "attempts": 0,
     }
 
 
@@ -232,6 +291,7 @@ def execution_row(scenario: dict, cli: str, config: dict, execution: Execution) 
         reported_cost_usd=parsed.cost_usd,
         usage=parsed.usage,
         usage_limit=execution.limit_reason,
+        attempts=execution.attempts,
         total_tool_calls=len(parsed.tool_calls) + len(parsed.other_tool_calls),
     )
     if execution.misuse:
@@ -253,6 +313,13 @@ class StartRefusedError(ValueError):
     def __init__(self, status: str, reason: str):
         super().__init__(reason)
         self.status = status
+
+
+def _refused_judge_execution(cli: str, status: str, error: str) -> dict:
+    return {
+        "cli": cli, "status": status, "exit_code": None, "wall_time_ms": None,
+        "usage_limit": None, "error": error, "attempts": 0,
+    }
 
 
 class Runner:
@@ -320,15 +387,24 @@ class Runner:
     def scenario(self, scenario: dict, cli: str) -> dict:
         if refusal := self.refusal(cli):
             return empty_row(scenario, cli, self.config, *refusal)
-        judge = judge_for(cli, self.config["judges"])
-        if refusal := self.refusal(judge):
-            return empty_row(
+        judges = judges_for(cli, self.config["judges"])
+        unavailable = [
+            _refused_judge_execution(judge, *refusal)
+            for judge in judges if (refusal := self.refusal(judge))
+        ]
+        if unavailable:
+            first = unavailable[0]
+            row = empty_row(
                 scenario,
                 cli,
                 self.config,
-                "quiet_hours" if refusal[0] == "quiet_hours" else "judge_unavailable",
-                f"{judge}: {refusal[0]}. {refusal[1]}",
+                "quiet_hours" if first["status"] == "quiet_hours" else "judge_unavailable",
+                f"{first['cli']}: {first['status']}. {first['error']}",
             )
+            row["judge_executions"] = unavailable
+            if len(judges) == 1:
+                row["judge_execution"] = first
+            return row
         try:
             execution = self.invoke(cli, scenario_prompt(scenario), "agent")
         except StartRefusedError as exc:
@@ -340,57 +416,61 @@ class Runner:
             return row
         if execution.status != "completed":
             return row
-        try:
-            judged = self.invoke(judge, judge_prompt(scenario, row), "judge")
-        except StartRefusedError as exc:
-            row["evaluation_status"] = "judge_unavailable"
-            row["judge_execution"] = {
+        prompt = judge_prompt(scenario, row)
+        row["judge_executions"] = []
+        failures = []
+        for judge in judges:
+            try:
+                judged = self.invoke(judge, prompt, "judge")
+            except StartRefusedError as exc:
+                row["judge_executions"].append(_refused_judge_execution(judge, exc.status, str(exc)))
+                failures.append("judge_unavailable")
+                continue
+            parsed = judged.transcript
+            record = {
                 "cli": judge,
-                "status": exc.status,
-                "exit_code": None,
-                "wall_time_ms": None,
-                "usage_limit": None,
-                "error": str(exc),
+                "status": judged.status,
+                "exit_code": judged.exit_code,
+                "wall_time_ms": judged.wall_time_ms,
+                "usage_limit": judged.limit_reason,
+                "error": judged.error,
+                "attempts": judged.attempts,
             }
+            row["judge_executions"].append(record)
+            if judged.misuse:
+                record["isolation_misuse"] = list(judged.misuse)
+                row["isolation_misuse"] = sorted(set(row.get("isolation_misuse", [])) | set(judged.misuse))
+            row["model_calls"].append(
+                {
+                    "role": "judge",
+                    "family": FAMILY[judge],
+                    "model": parsed.model or self.config["clis"][judge]["model"],
+                    "tokens_in": parsed.tokens_in,
+                    "tokens_out": parsed.tokens_out,
+                    "cost_usd": parsed.cost_usd,
+                }
+            )
+            if judged.status != "completed":
+                failures.append("judge_" + judged.status)
+                continue
+            try:
+                row["judges"].append({
+                    "family": FAMILY[judge], "cli": judge,
+                    "model": parsed.model or self.config["clis"][judge]["model"],
+                    **parse_judgement(parsed.final_answer), "mode": "live",
+                })
+            except (ValueError, TypeError):
+                record.update(evaluation_status="evaluation_error", evaluation_error="Invalid judge response")
+                failures.append("evaluation_error")
+        if len(judges) == 1:
+            row["judge_execution"] = row["judge_executions"][0]
+        if failures:
+            row["evaluation_status"] = failures[0]
             return row
-        parsed = judged.transcript
-        row["judge_execution"] = {
-            "cli": judge,
-            "status": judged.status,
-            "exit_code": judged.exit_code,
-            "wall_time_ms": judged.wall_time_ms,
-            "usage_limit": judged.limit_reason,
-            "error": judged.error,
-        }
-        if judged.misuse:
-            row["isolation_misuse"] = list(judged.misuse)
-            row["judge_execution"]["isolation_misuse"] = list(judged.misuse)
-        row["model_calls"].append(
-            {
-                "role": "judge",
-                "family": FAMILY[judge],
-                "model": parsed.model or self.config["clis"][judge]["model"],
-                "tokens_in": parsed.tokens_in,
-                "tokens_out": parsed.tokens_out,
-                "cost_usd": parsed.cost_usd,
-            }
-        )
-        if judged.status != "completed":
-            row["evaluation_status"] = "judge_" + judged.status
-            return row
-        try:
-            row["judge"] = {
-                "family": FAMILY[judge],
-                "cli": judge,
-                "model": parsed.model or self.config["clis"][judge]["model"],
-                **parse_judgement(parsed.final_answer),
-            }
-        except (ValueError, TypeError):
-            row["evaluation_status"] = "evaluation_error"
-            return row
+        row["judge"] = aggregate_judgements(row["judges"], "panel" if len(judges) == 2 else "single")
         row["expected_match"] = expected_match(
             scenario["expected"], row["judge"], seen=seen_decision(row.get("tool_calls")),
-        )
+        ) if row["judge"]["agreed"] else None
         row["success"] = bool(row["judge"]["passed"])
         row["evaluation_status"] = "judged"
         return row
@@ -410,7 +490,7 @@ def report_for(
 ) -> dict:
     metadata = {
         "agents": {cli: config["clis"][cli] for cli in selected},
-        "judges": config["judges"],
+        "judge": judge_metadata(config, selected),
         "transport": "remote-mcp",
         "mcp_url": config["mcp_url"],
         "auth": "CLI subscription",
@@ -426,7 +506,7 @@ def report_for(
     report["evidence_note"] = (
         "Subscription CLI transcripts over remote MCP. Unsupported and skipped rows are explicit. "
         "No scenario runs occur in dry-run or isolation verification. Tool latency is unavailable "
-        "unless the CLI reports it; wall time measures the agent subprocess, excluding its judge. "
+        "unless the CLI reports it; wall time measures the agent subprocess, excluding its judges. "
         "CLI turn counters have different meanings; turns_basis records the source. "
         "A reported token-equivalent cost is not the subscription invoice."
     )
@@ -524,6 +604,11 @@ def markdown(report: dict) -> str:
         "final answers, "
         "usage, exit statuses, judge results, family comparisons, misuse counts and sourced gaps.",
         "",
+        "## Judges used",
+        "",
+        *judge_routes_markdown(report["metadata"]),
+        "Panel success requires both judges to pass and agree on the answer kind and top model set.",
+        "",
         "## Scenario outcomes",
         "",
         "| Scenario | CLI | Status | Evaluation | Exit |",
@@ -591,7 +676,7 @@ def dry_commands(scenarios: list[dict], selected: list[str], config: dict, outpu
                                 "environment_inherit_only": list(BASE_ENV),
                                 "eligibility": "Doctor receipt required before execution",
                                 "mcp_config": payload,
-                                "judge_cli": judge_for(cli, config["judges"]),
+                                "judge_clis": judges_for(cli, config["judges"]),
                             }
                         ),
                         ensure_ascii=False,
@@ -615,7 +700,8 @@ def main(argv=None) -> int:
     parser.add_argument("--ux-image", action="store_true", help="Build/certify the Playwright image variant")
     parser.add_argument("--scenario", action="append")
     parser.add_argument(
-        "--judge", action="append", metavar="CLI=JUDGE", help="Override a judge route"
+        "--judge", action="append", metavar="CLI=J1,J2",
+        help="Override a judge pair; CLI=J retains a single-judge override",
     )
     parser.add_argument("--max-runs-per-cli", type=int)
     parser.add_argument("--quiet-hours", action="store_true")
@@ -637,11 +723,8 @@ def main(argv=None) -> int:
                 config["clis"][cli]["image_variant"] = "ux"
         if args.max_runs_per_cli is not None:
             config["max_runs_per_cli"] = args.max_runs_per_cli
-        for override in args.judge or []:
-            cli, judge = override.split("=", 1)
-            if cli not in CLIS:
-                raise ValueError("Unknown CLI in judge route")
-            config["judges"][cli] = judge
+        if args.judge:
+            apply_judge_overrides(config, args.judge)
         validate_config(config)
         config["_quiet_hours"], config["_force"] = args.quiet_hours, args.force
         if args.action in ("login", "doctor") and len(args.cli or []) != 1:
@@ -725,7 +808,7 @@ def main(argv=None) -> int:
     needed = (
         selected
         if args.verify_isolation
-        else list(dict.fromkeys(selected + [judge_for(cli, config["judges"]) for cli in selected]))
+        else required_clis(selected, config)
     )
     isolation = {
         cli: {

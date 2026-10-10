@@ -762,7 +762,8 @@ def test_quiet_hours_local_boundaries(hour, allowed):
 
 def test_judge_routes_are_cross_family_and_configurable(config):
     for cli in providers.CLIS:
-        assert providers.FAMILY[harness.judge_for(cli, config["judges"])] != providers.FAMILY[cli]
+        for judge in harness.judges_for(cli, config["judges"]):
+            assert providers.FAMILY[judge] != providers.FAMILY[cli]
     routes = config["judges"] | {"claude": "grok"}
     assert harness.judge_for("claude", routes) == "grok"
     for value in ("claude", "unknown", None):
@@ -2165,6 +2166,7 @@ def test_shared_judge_limit_prevents_further_judging_and_wastes_no_scenario_call
 
 
 def test_judge_preserves_recall_rules_and_failed_evaluations(config, tmp_path, monkeypatch):
+    config["judges"]["claude"] = "codex"
     case = scenario("recall-q01")
     replies = iter(
         [
@@ -2304,6 +2306,7 @@ def test_dry_run_makes_no_cli_or_network_calls(config, tmp_path, monkeypatch, ca
 def test_main_runs_scenario_and_cross_family_judge_with_fake_launch(
     config, tmp_path, monkeypatch, capsys
 ):
+    config["judges"]["claude"] = "codex"
     allow_launch(config, ("claude", "codex"))
     cfg = tmp_path / "live.yaml"
     cfg.write_text(yaml.safe_dump(config))
@@ -2487,6 +2490,7 @@ def test_quiet_hours_are_checked_for_each_start(config, tmp_path, monkeypatch):
 def test_entering_quiet_hours_preserves_the_run_report(
     blocked_start, config, tmp_path, monkeypatch
 ):
+    config["judges"]["claude"] = "codex"
     checks, launched = [], []
 
     def clock_guard(*args):
@@ -3738,6 +3742,7 @@ def test_agent_tool_misuse_keeps_the_receipt_and_the_next_scenario_runs(
 
 
 def test_judge_tool_misuse_fails_only_that_row(config, tmp_path, monkeypatch, streams):
+    config["judges"]["claude"] = "codex"
     allow_launch(config, ("claude", "codex"))
     _patch_inventory(monkeypatch)
     calls = []

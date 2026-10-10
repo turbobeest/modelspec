@@ -165,6 +165,23 @@ shares scenarios and scoring with the API harness. Agents connect to
 `https://api.modelspec.dev/mcp`; cross-family judges have no ModelSpec connection.
 Every scenario and judge needs a passing doctor receipt for its built image.
 
+Subscription scenarios use a two-judge panel by default:
+
+| Agent arm | Judge CLIs |
+| --- | --- |
+| claude | grok + codex |
+| codex | grok + claude |
+| grok | codex + claude |
+
+Each judge receives the same final answer, tool evidence and rubric independently.
+Neither sees the other judge's opinion. Both must pass and agree on the extracted
+answer kind and top model set. A missing, failed, invalid or disagreeing judgement
+fails the row. `judges` stores each parsed opinion, `judge` stores the aggregate,
+and `judge_executions` records each judge's status, attempts, usage limit and error.
+Quotas, usage-limit stops and isolation refusals apply to each judge separately.
+Gemini remains retired and cannot judge. The browser UX job keeps its separate
+Claude judge and browser rubric.
+
 The TUI runner uses subscription login only. Host vendor API keys are never
 inherited. The command builder, image inspection and Linux entrypoint refuse
 vendor API-key or token environment variables, including empty variables. Native
@@ -264,6 +281,7 @@ Use the same private `--out` for doctor and subsequent runs:
 ```sh
 python -m qa.tui_harness doctor --cli codex --out /tmp/modelspec-tui
 python -m qa.tui_harness doctor --cli claude --out /tmp/modelspec-tui
+python -m qa.tui_harness doctor --cli grok --out /tmp/modelspec-tui
 python -m qa.tui_harness --smoke --cli codex --max-runs-per-cli 1 --out /tmp/modelspec-tui
 ```
 
@@ -382,15 +400,20 @@ The local entry points are:
 python -m qa.subscription_jobs scenarios --data-repo ~/dev/modelspec-data
 python -m qa.subscription_jobs ux --data-repo ~/dev/modelspec-data
 python -m qa.subscription_jobs aeo --business-repo ~/dev/modelspec-business
-python -m qa.subscription_jobs scenarios --data-repo ~/dev/modelspec-data --cli claude --judge claude=grok
+python -m qa.subscription_jobs scenarios --data-repo ~/dev/modelspec-data --cli claude --judge claude=codex,grok
 ```
 
-`--judge CLI=JUDGE` is repeatable and applies to the scenarios job only. It does not
-change `qa/tui_config.yaml`. The judge must be a known CLI from a different
-family, and gemini cannot judge. An unknown, same-family or gemini route refuses
-the job before a CLI starts. The override judge's doctor receipt is required.
-Report metadata records the routes used and the override. A scenarios
-`--resume` with a different judge route does not reuse the other run's checkpoint.
+`--judge CLI=J1,J2` is repeatable and applies to the scenarios job only. The TUI
+runner accepts the same option. Each pair must name two distinct families, and
+neither may be the agent's family. Unknown, duplicate, same-family and Gemini
+judges refuse the run before a CLI starts. The documented `--judge CLI=JUDGE`
+single-judge override remains available. Overrides do not change
+`qa/tui_config.yaml`. Every needed judge's doctor receipt is required. Report
+metadata records `judge.mode: panel` and each arm's judge list. A run containing
+only single-judge overrides records `mode: single`; each row records its strategy.
+Metadata also records overrides, and the Markdown "Judges used" table lists the
+routes. A scenarios `--resume` with different judges or a different pair order
+refuses to reuse the interrupted run's checkpoint.
 
 Add `--dry-run` to any command. Previews make no model, browser, search,
 credential or PR call and write only beneath `<state-dir>/dry-run`. `--state-dir`
@@ -522,8 +545,9 @@ The scenarios job appends each finished row to a checkpoint file under the
 private state directory. A run interrupted before its first row finishes has
 no checkpoint and restarts without `--resume`. Rerun the same command with
 `--resume` to continue a run that wrote one. Keep the same checkout and do not
-pull in between. The checkpoint key includes the engine commit and whether
-`MODELSPEC_API_KEY` is set. A resumed run skips every recorded row, including
+pull in between. The checkpoint key includes every selected arm's judge list,
+including default pairs, the engine commit and whether `MODELSPEC_API_KEY` is
+set. A resumed run skips every recorded row, including
 failures. Without `--resume`, an existing checkpoint refuses the run before a
 data-repo worktree is opened. If the key check refuses publication, delete
 that checkpoint after fixing the key, because `--resume` replays its recorded
