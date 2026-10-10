@@ -21,9 +21,9 @@ EXPORT_ORIGIN=http://127.0.0.1:8787 DECIDE_API_ORIGIN=http://127.0.0.1:8787 \
 
 To use the live Worker, set `DECIDE_API_ORIGIN=https://api.modelspec.dev` and
 export your own `MODELSPEC_API_KEY`. The `/v1` proxy sends it as
-`Authorization: Bearer <key>`; machine access is keyed. Set
-`VITE_VOCABULARY_URL=/v1/vocabulary` to fetch the live vocabulary through the
-same proxy. `?demo=1` runs the fictional sample engine and makes no request.
+`Authorization: Bearer <key>` on the page's own (same-origin) requests only;
+machine access is keyed. Set `VITE_VOCABULARY_URL=/v1/vocabulary` to fetch the
+live vocabulary through the same proxy. `?demo=1` runs the fictional sample engine and makes no request.
 
 ## Template notes (React + TypeScript + Vite)
 

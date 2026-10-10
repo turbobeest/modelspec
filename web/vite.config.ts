@@ -14,15 +14,11 @@ import { handoffDefines } from "./decide-handoff-build";
 const exportOrigin = process.env.EXPORT_ORIGIN ?? "http://localhost:8000";
 const decideOrigin = process.env.DECIDE_API_ORIGIN ?? "https://api.modelspec.dev";
 // Your own key, from the environment only: the /v1 proxy sends it, since machine
-// access is keyed. Only the page itself (same-origin) or a local non-browser
-// client gets it, so another site open in the browser cannot spend it through
-// the proxy. Vite's allowedHosts check already refuses DNS-rebound hosts.
+// access is keyed. Only the page's own requests (Sec-Fetch-Site: same-origin)
+// get it; a missing header proves nothing, so another site open in the browser
+// cannot spend it through the proxy. Vite's allowedHosts refuses rebound hosts.
 const apiKey = process.env.MODELSPEC_API_KEY;
-const mayUseKey = (req: IncomingMessage) => {
-  const site = req.headers["sec-fetch-site"];
-  if (site !== undefined) return site === "same-origin";
-  return req.headers.origin === undefined;
-};
+const mayUseKey = (req: IncomingMessage) => req.headers["sec-fetch-site"] === "same-origin";
 
 // The deployed page shares /fonts/ with the landing page (pipeline/build.py
 // copies site/fonts there). In development and in `vite preview`, which the
