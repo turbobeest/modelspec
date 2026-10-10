@@ -93,6 +93,15 @@ DOCS: tuple[LegalDoc, ...] = (
             "Profiles, not prompts; nothing from a request's content is stored."
         ),
     ),
+    LegalDoc(
+        slug="dmca",
+        source="dmca.md",
+        nav_label="Copyright",
+        description=(
+            "How to send a copyright notice or counter-notice to the designated agent "
+            "of Sparks & Sawdust LLC (DMCA-1082492), and the repeat-infringer policy."
+        ),
+    ),
 )
 
 
@@ -118,7 +127,7 @@ def split_title(text: str) -> tuple[str, str]:
 
 
 def cross_links(current: LegalDoc) -> str:
-    """The other two documents, so each page reaches the rest of the set."""
+    """The other documents, so each page reaches the rest of the set."""
     others = [d for d in DOCS if d.slug != current.slug]
     links = " &middot; ".join(
         f'<a href="{r.esc(d.url_path)}">{r.esc(d.nav_label)}</a>' for d in others

@@ -41,6 +41,7 @@ CRUMBS = {
     "/legal/terms/": "Terms",
     "/legal/privacy/": "Privacy",
     "/legal/neutrality/": "Neutrality commitment",
+    "/legal/dmca/": "Copyright and DMCA",
     "/feedback/": "Feedback",
     "/brand/": "Brand and press kit",
 }

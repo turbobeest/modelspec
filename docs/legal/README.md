@@ -7,6 +7,7 @@ MODEL-70. Three documents, **adopted and in force**:
 | `terms-of-service.md` | `/legal/terms/` | Terms for the hosted API |
 | `neutrality.md` | `/legal/neutrality/` | The honest-broker commitment |
 | `privacy.md` | `/legal/privacy/` | What the service records today |
+| `dmca.md` | `/legal/dmca/` | Designated copyright agent (DMCA-1082492), notice and counter-notice, repeat infringers (MODEL-362) |
 
 ## Adoption
 

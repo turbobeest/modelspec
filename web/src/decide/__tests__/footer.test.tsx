@@ -13,6 +13,7 @@ it("links the neutrality, terms and privacy pages on every view", () => {
     ["Neutrality", "/legal/neutrality/"],
     ["Terms", "/legal/terms/"],
     ["Privacy", "/legal/privacy/"],
+    ["Copyright", "/legal/dmca/"],
   ]) {
     expect(nav.querySelector(`a[href="${href}"]`)?.textContent).toBe(name);
   }
