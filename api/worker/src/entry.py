@@ -1261,10 +1261,7 @@ class Default(WorkerEntrypoint):
             # the overage is already settled and still has to be reported.
             if taken.overage:
                 try:
-                    event_id = await ledger.meter_identifier(
-                        holder, "read", int(taken.token))
-                    await ledger.note_unreported(
-                        holder, int(taken.overage), event_id or "read")
+                    await ledger.note_unreported(holder, int(taken.overage), "read")
                 except Exception:
                     logging.error("could not record settled catalog overage")
             return None
