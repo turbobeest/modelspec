@@ -682,6 +682,30 @@
     "setup_cancelled": "The proposed change was not applied.",
     "upgrade": "Upgrade the client: uvx --refresh --from modelspec-dev modelspec; or pipx upgrade modelspec-dev; or pip install --upgrade modelspec-dev.",
     "guide_changed": "The server's guide version differs from this CLI's bundled guide. Refresh the guide and upgrade the client.",
+    "compare_to_next": "Use --to with a snapshot ID from a prior modelspec decide response, such as snap_0123456789abcdef.",
+    "comparison": {
+      "header": "Comparison: {old} -> {new} (status: {old_status} -> {new_status})",
+      "counts": "Counts: entered={entered}, departed={left}, rank_changed={rank_changed}, may_qualify_changed={may_qualify_changed}, models_changed={models_changed}",
+      "model": "{model}: {kind}",
+      "entered": "entered",
+      "departed": "departed",
+      "changed": "changed",
+      "reason": "  reason: {reason}",
+      "rank": "  rank: {old} -> {new}",
+      "may_qualify": "  may_qualify: {old} -> {new}",
+      "value": "  {name}: {old} -> {new}",
+      "capability": "capability {domain}",
+      "offering": "  offering: {offering}",
+      "offering_change": "  offering: {old} -> {new}",
+      "offering_ref": "{model}{details}",
+      "offering_details": " ({details})",
+      "unit": "{value} {unit}",
+      "interval": "{value} [interval: {interval}]",
+      "records": "{value} [records: {records}]",
+      "unknown": "unknown",
+      "none": "none",
+      "unchanged": "No changes."
+    },
     "errors": {
       "usage_error": "The command or options could not be read.",
       "missing_api_key": "This command needs a ModelSpec API key.",
@@ -691,6 +715,7 @@
       "invalid_spec": "The Spec failed structural validation against the bundled published schema. The server validates its meaning.",
       "spec_unreadable": "The Spec file or standard input could not be read as JSON or YAML.",
       "spec_source": "Choose exactly one of --spec FILE|- and --template ID.",
+      "invalid_compare_to": "The --to value must be a snapshot ID matching ^snap_[A-Za-z0-9:._-]+$.",
       "spec_too_large": "The Spec exceeds the API's 64 KB request limit.",
       "unknown_template": "The hosted vocabulary did not return that template's Spec.",
       "invalid_feedback": "The feedback failed the published request schema. Never include prompts, keys or personal details.",
@@ -728,6 +753,10 @@
         "{upgrade}",
         "Refresh https://modelspec.dev/agents.md."
       ],
+      "comparison_snapshot_unavailable": [
+        "Retained snapshots are not hosted yet.",
+        "Run modelspec decide --spec FILE or modelspec decide --template ID for the current answer."
+      ],
       "spec": [
         "Check the reported field paths against the published schema and OpenAPI.",
         "Read https://modelspec.dev/agents.md; use modelspec vocab with a key for a targeted lookup. Tell the human about any requirement removed on retry."
@@ -748,11 +777,13 @@
       "setup": "Print an MCP client configuration; --write shows a diff before confirmation.",
       "auth": "Store only a ModelSpec API key, locally. The environment takes precedence.",
       "decide": "Send exactly your Spec to POST /v1/decide with a key. No local decision cache. Never add a gate or constraint the user didn't state. Relax only constraints the user stated, one at a time, and say what was relaxed and why. Prefer the answer's own `relax` suggestions. A tie stays a tie. Don't promote a member by knowledge from outside the response. Cite only evidence in the response. Never add benchmark figures from memory. Tied or partial answer: report the tie and caveats, pick no member; a null answer names no pick and says what's missing. A null cost is unknown. Never show it as $0.00 or \"free\". One vocabulary lookup per unknown facet, then decide. Read `next` before another call. Size `task_tokens` from the user's own task, and say what you assumed. Don't copy the guide's example sizes.",
+      "compare": "Compare your Spec across signed snapshots with a key via POST /v1/compare.",
       "vocab": "Look up hosted vocabulary with a key; defaults to the compact starter section.",
       "feedback": "Rate an answer with a key present. Matches MCP fields; the feedback endpoint receives no Authorization header.",
       "json": "Emit JSON. Successful API bodies pass through unchanged; every failure has next steps.",
       "spec": "A JSON or YAML Spec file; - reads standard input.",
       "template": "A template ID retrieved with a key from the hosted vocabulary.",
+      "to": "A retained snapshot ID matching ^snap_[A-Za-z0-9:._-]+$; compare it with the current snapshot.",
       "client": "claude-code, claude-desktop, codex, gemini, grok, cursor or generic.",
       "config": "MCP config file. Generic clients require an explicit path to write.",
       "write": "Show the diff, then ask for confirmation before writing.",
@@ -774,7 +805,7 @@
     }
   },
   "source_hashes": {
-    "pipeline/agent_copy.py": "650213cf68311474f61718b41283bc1a0f0aa1c1a1c6f43a18eb9908eb343f37",
+    "pipeline/agent_copy.py": "a95456f619b74617f14835ac2ef14eba30066ec5d6d3a8bf1ae439fa910b1c32",
     "pipeline/entity.py": "1649e5f95b620561511c2619045d036231b44c8ab7ff297bf4c6a21ab2b69ff3",
     "pipeline/pricing.py": "be0b02ad499ff2d88fc50a9a34e540299cfc2954fe8f2912a038ce8ee34223db",
     "pipeline/worker_flags.py": "0f3c1ff0de81710417659b86e1ec92913bbcf54af6312720fdad659e6af03429",

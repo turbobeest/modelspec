@@ -303,6 +303,8 @@ def test_key_prices_come_from_the_same_site_source():
     [
         ["decide", "--spec", "does-not-exist"],
         ["decide", "--template", "anything"],
+        ["compare", "--spec", "does-not-exist", "--to", "snap_old"],
+        ["compare", "--template", "anything", "--to", "snap_old"],
         ["vocab"],
         ["feedback", "--rating", "reliable"],
     ],

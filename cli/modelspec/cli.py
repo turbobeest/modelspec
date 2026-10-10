@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import json
+import re
 import sys
+from collections.abc import Callable
 from importlib.resources import files
 from typing import Any
 
@@ -201,23 +203,28 @@ def setup_mcp(
     typer.echo(json.dumps(data, ensure_ascii=False) if _json_mode(ctx, as_json) else text)
 
 
-def _response(ctx: click.Context, client: Client, response: Any, as_json: bool) -> None:
+def _response(
+    ctx: click.Context,
+    client: Client,
+    response: Any,
+    as_json: bool,
+    *,
+    human_renderer: Callable[[dict[str, Any]], str] | None = None,
+) -> None:
     if client.guide_changed:
         guide_version_notice(_json_mode(ctx, as_json))
     if _json_mode(ctx, as_json):
         typer.echo(response.text, nl=False)
     else:
-        typer.echo(json.dumps(response.json(), indent=2, ensure_ascii=False))
+        body = response.json()
+        typer.echo(
+            human_renderer(body)
+            if human_renderer is not None
+            else json.dumps(body, indent=2, ensure_ascii=False)
+        )
 
 
-@app.command("decide", cls=RecoveryCommand, help=HELP["decide"])
-def decide(
-    ctx: typer.Context,
-    spec: str | None = typer.Option(None, "--spec", help=HELP["spec"]),
-    template: str | None = typer.Option(None, "--template", help=HELP["template"]),
-    as_json: bool = typer.Option(False, "--json", help=HELP["json"]),
-) -> None:
-    client = Client(auth.require_key())
+def _spec_body(client: Client, spec: str | None, template: str | None) -> dict[str, Any]:
     if (spec is None) == (template is None):
         raise ClientError("spec_source", recovery="spec")
     if spec is not None:
@@ -244,7 +251,132 @@ def decide(
             if client.guide_changed:
                 error.next.extend(next_steps("upgrade"))
             raise
+    return body
+
+
+@app.command("decide", cls=RecoveryCommand, help=HELP["decide"])
+def decide(
+    ctx: typer.Context,
+    spec: str | None = typer.Option(None, "--spec", help=HELP["spec"]),
+    template: str | None = typer.Option(None, "--template", help=HELP["template"]),
+    as_json: bool = typer.Option(False, "--json", help=HELP["json"]),
+) -> None:
+    client = Client(auth.require_key())
+    body = _spec_body(client, spec, template)
     _response(ctx, client, client.request("POST", "/v1/decide", body=body), as_json)
+
+
+def _comparison_value(value: dict[str, Any]) -> str:
+    copy = TEXT["comparison"]
+    shown = (
+        copy["unknown"]
+        if value.get("value") is None
+        else json.dumps(value["value"], ensure_ascii=False)
+    )
+    if value.get("unit"):
+        shown = copy["unit"].format(value=shown, unit=value["unit"])
+    if value.get("interval") is not None:
+        shown = copy["interval"].format(value=shown, interval=json.dumps(value["interval"]))
+    if value.get("records"):
+        shown = copy["records"].format(value=shown, records=", ".join(value["records"]))
+    return shown
+
+
+def _comparison_offering(offering: dict[str, Any]) -> str:
+    copy = TEXT["comparison"]
+    details = ", ".join(
+        f"{name}={offering[name]}"
+        for name in ("provider", "region", "tier")
+        if offering.get(name) is not None
+    )
+    return copy["offering_ref"].format(
+        model=offering.get("model", copy["unknown"]),
+        details=copy["offering_details"].format(details=details) if details else "",
+    )
+
+
+def _comparison_text(body: dict[str, Any]) -> str:
+    copy = TEXT["comparison"]
+    result = body["result"]
+    snapshots, status = result["snapshot"], result["status"]
+    lines = [
+        copy["header"].format(
+            old=snapshots["old"]["id"],
+            new=snapshots["new"]["id"],
+            old_status=status["old"],
+            new_status=status["new"],
+        ),
+        copy["counts"].format(**result["counts"]),
+    ]
+    for model in result["models"]:
+        if model.get("entered"):
+            kind = "entered"
+        elif model.get("left"):
+            kind = "departed"
+        else:
+            kind = "changed"
+        lines.extend(["", copy["model"].format(model=model["model"], kind=copy[kind])])
+        if model.get("left"):
+            lines.append(
+                copy["reason"].format(reason=model["left"].get("reason", copy["unknown"]))
+            )
+        if model.get("rank_changed"):
+            lines.append(copy["rank"].format(**model["rank_changed"]))
+        if model.get("may_qualify"):
+            lines.append(
+                copy["may_qualify"].format(**{
+                    side: ", ".join(model["may_qualify"].get(side) or []) or copy["none"]
+                    for side in ("old", "new")
+                })
+            )
+        for change in model.get("values") or []:
+            name = change.get("kind", copy["unknown"])
+            if name == "facet":
+                name = change.get("facet", name)
+            elif name == "capability":
+                name = copy["capability"].format(domain=change.get("domain", copy["unknown"]))
+            lines.append(
+                copy["value"].format(
+                    name=name,
+                    old=_comparison_value(change.get("old") or {}),
+                    new=_comparison_value(change.get("new") or {}),
+                )
+            )
+            offering = change.get("offering")
+            if offering:
+                if "old" in offering and "new" in offering:
+                    lines.append(
+                        copy["offering_change"].format(
+                            old=_comparison_offering(offering["old"]),
+                            new=_comparison_offering(offering["new"]),
+                        )
+                    )
+                else:
+                    lines.append(copy["offering"].format(offering=_comparison_offering(offering)))
+    if not result["changed"]:
+        lines.append(copy["unchanged"])
+    return "\n".join(lines)
+
+
+@app.command("compare", cls=RecoveryCommand, help=HELP["compare"])
+def compare(
+    ctx: typer.Context,
+    spec: str | None = typer.Option(None, "--spec", help=HELP["spec"]),
+    template: str | None = typer.Option(None, "--template", help=HELP["template"]),
+    to: str = typer.Option(..., "--to", help=HELP["to"]),
+    as_json: bool = typer.Option(False, "--json", help=HELP["json"]),
+) -> None:
+    client = Client(auth.require_key())
+    if re.fullmatch(r"snap_[A-Za-z0-9:._-]+", to) is None:
+        raise ClientError("invalid_compare_to", extra_next=[TEXT["compare_to_next"]])
+    body = {"compare_to": to, "spec": _spec_body(client, spec, template)}
+    _response(
+        ctx,
+        client,
+        client.request("POST", "/v1/compare", body=body),
+        as_json,
+        human_renderer=_comparison_text,
+    )
 
 
 @app.command("vocab", cls=RecoveryCommand, help=HELP["vocab"])
