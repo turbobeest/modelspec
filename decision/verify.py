@@ -2102,13 +2102,18 @@ def _hf_config(text: str) -> Mapping[str, Any] | None:
     return data
 
 
-def _config_maps(config: Mapping[str, Any]) -> Iterable[Mapping[str, Any]]:
+def _config_maps(
+    config: Mapping[str, Any], *, text_only: bool = False,
+) -> Iterable[Mapping[str, Any]]:
     pending: list[Any] = [config]
     while pending:
         item = pending.pop()
         if isinstance(item, Mapping):
             yield item
-            pending.extend(item.values())
+            pending.extend(
+                value for key, value in item.items()
+                if not text_only or not _nontext_tower_key(key)
+            )
         elif isinstance(item, list):
             pending.extend(item)
 
@@ -2157,17 +2162,20 @@ def _populated_ple(config: Mapping[str, Any]) -> bool:
     )
 
 
+def _nontext_tower_key(key: str) -> bool:
+    return key.casefold() in {"img_processor", "audio_processor", "visual"} or bool(
+        re.search(
+            r"(?:vision|audio|image|video|speech).*?(?:config|encoder|tower)"
+            r"|(?:encoder|tower).*?(?:vision|audio|image|video|speech)",
+            key, re.I,
+        )
+    )
+
+
 def _nontext_tower(config: Mapping[str, Any]) -> bool:
     return any(
         value is not None
-        and (
-            key.casefold() in {"img_processor", "audio_processor", "visual"}
-            or re.search(
-                r"(?:vision|audio|image|video|speech).*?(?:config|encoder|tower)"
-                r"|(?:encoder|tower).*?(?:vision|audio|image|video|speech)",
-                key, re.I,
-            )
-        )
+        and _nontext_tower_key(key)
         for part in _config_maps(config)
         for key, value in part.items()
     )
@@ -2210,11 +2218,15 @@ def hf_config_architecture(config: Mapping[str, Any]) -> str | None:
         if isinstance(backbone, Mapping):
             attention = any(
                 type(part.get(key)) is int and part[key] > 0
-                for part in _config_maps(backbone)
+                for part in _config_maps(backbone, text_only=True)
                 for key in ("num_attention_heads", "n_head", "n_heads")
             ) or any(
                 layer in {"attention", "full_attention", "self_attention"}
-                for part in _config_maps(backbone)
+                or (
+                    re.search(r"(?:^|[_-])attention(?:$|[_-])", layer, re.I)
+                    and re.search(r"(?:^|[_-])hybrid(?:$|[_-])", layer, re.I)
+                )
+                for part in _config_maps(backbone, text_only=True)
                 for key in ("layer_types", "layers_block_type")
                 if isinstance(part.get(key), list)
                 for layer in part[key] if isinstance(layer, str)
@@ -2416,12 +2428,14 @@ _ACTIVE_LABEL = r"(?:active|activated|effective)\s+(?:parameters|params)"
 _TOTAL_LABEL = r"(?:number\s+of\s+)?(?:total\s+)?(?:parameters|params)"
 _PARAMETER_AMOUNT = r"\d+(?:\.\d+)?\s*(?:B|billion|M|million)"
 _ACTIVE_PROSE = re.compile(
-    rf"(?<![\w.])(?P<amount>{_PARAMETER_AMOUNT})\s+(?:{_ACTIVE_LABEL}|effective\b|activated\b)",
+    rf"(?<![\w.])(?P<amount>{_PARAMETER_AMOUNT})\s+"
+    rf"(?:{_ACTIVE_LABEL}|(?:effective|activated)(?=\s*(?:\.(?=\s|$)|[;!?]|$)))",
     re.I,
 )
 _TOTAL_PROSE = re.compile(
-    rf"(?<![\w.])(?P<amount>{_PARAMETER_AMOUNT})\s+"
-    r"(?:total(?:\s+parameters)?|parameters(?:\s+in\s+total)?|parameter(?=\s+model\b))\b",
+    rf"(?<![\w.])(?P<amount>{_PARAMETER_AMOUNT})"
+    r"(?:\s+(?:total(?:\s+parameters)?|parameters(?:\s+in\s+total)?)\b"
+    r"|(?:\s*-\s*|\s+)parameter\s+(?:language\s+)?model\b)",
     re.I,
 )
 _ACTIVE_VALUE = re.compile(rf"^(?P<amount>{_PARAMETER_AMOUNT})(?:\s+parameters)?$", re.I)
@@ -2430,6 +2444,7 @@ _EFFECTIVE_VALUE = re.compile(
     rf"(?:\s*\({_PARAMETER_AMOUNT}\s+with\s+embeddings\))?$",
     re.I,
 )
+_ACTIVATED_VALUE = re.compile(rf"^(?P<amount>{_PARAMETER_AMOUNT})\s+activated$", re.I)
 _ACTIVE_KEY = re.compile(rf"^{_ACTIVE_LABEL}$", re.I)
 _TOTAL_KEY = re.compile(rf"^{_TOTAL_LABEL}$", re.I)
 _PARAMETER_KEY_VALUE = re.compile(
@@ -2678,7 +2693,7 @@ class ModelCardParamsExtractor:
             quotes.extend(active_parameter_wording(f"{label}: {value}"))
             match = _ACTIVE_VALUE.fullmatch(value) if _ACTIVE_KEY.fullmatch(label) else None
             if not match and (_ACTIVE_KEY.fullmatch(label) or _TOTAL_KEY.fullmatch(label)):
-                match = _EFFECTIVE_VALUE.fullmatch(value)
+                match = _EFFECTIVE_VALUE.fullmatch(value) or _ACTIVATED_VALUE.fullmatch(value)
             if match:
                 return [Reading(subject, _parameter_amount(match["amount"]), "parameters")]
             shorthand = (
@@ -2734,6 +2749,10 @@ class ModelCardParamsExtractor:
                     (i for i, cell in enumerate(header)
                      if (_TOTAL_KEY if total_only else _ACTIVE_KEY).fullmatch(cell)), None
                 )
+                if active_col is None and not total_only:
+                    active_col = next(
+                        (i for i, cell in enumerate(header) if _TOTAL_KEY.fullmatch(cell)), None
+                    )
                 for cells in table:
                     if (
                         model_col is not None
@@ -2803,25 +2822,52 @@ class ModelCardParamsExtractor:
                     prefix[mentions[-1][1]:] if mentions and mentions[-1][2] else "",
                     re.I,
                 )
-                if (
-                    re.search(r"\b(?:models?\s+with|compared\s+with|unlike)\b", prefix, re.I)
-                    and not own_description
-                ):
-                    continue
-                own_total_suffix = re.fullmatch(
-                    rf"\s+out\s+of\s+{_PARAMETER_AMOUNT}\s+total\.?", suffix, re.I
-                )
-                if own_total_suffix:
-                    suffix = ""
-                if total_only and re.fullmatch(r"\s+model\.?", suffix, re.I):
-                    suffix = ""
+                model_total = total_only and re.search(r"\bparameter\s+", match[0], re.I)
+                if own_description or model_total:
+                    before, after = index, index + 1
+                    while before and lines[before - 1] and not re.match(
+                        r"^(?:#{1,6}\s|[-|])", lines[before - 1]
+                    ):
+                        before -= 1
+                    while after < len(lines) and lines[after] and not re.match(
+                        r"^(?:#{1,6}\s|[-|])", lines[after]
+                    ):
+                        after += 1
+                    clause_prefix = re.split(
+                        r"[!?]|\.(?=\s)",
+                        " ".join([*lines[before:index], line[:match.start()]]), flags=re.I,
+                    )[-1]
+                    clause_suffix = re.split(
+                        r"[!?]|\.(?=\s|$)",
+                        " ".join([line[match.end():], *lines[index + 1:after]]), flags=re.I,
+                    )[0]
+                    clause = clause_prefix + match[0] + clause_suffix
+                    if any(not is_own for _, _, is_own in _card_model_mentions(clause, names)):
+                        continue
+                    if re.search(
+                        r"\b(?:compar(?:e|ed|ing|ison)|unlike|like|versus|vs|than|"
+                        r"whereas|while|similar|as\s+(?:in|with))\b", clause, re.I,
+                    ):
+                        continue
+                    if model_total and not re.fullmatch(
+                        r"\s+is\s+(?:a|an)\s+",
+                        prefix[mentions[-1][1]:] if mentions and mentions[-1][2] else "",
+                        re.I,
+                    ):
+                        continue
+                if not total_only and not re.search(r"\b(?:parameters|params)\b", match[0], re.I):
+                    if not own_description or not re.search(
+                        rf"{_PARAMETER_AMOUNT}\s+total\s+parameters\s+with\s+$", prefix, re.I
+                    ):
+                        continue
+                if re.search(r"\b(?:models?\s+with|compared\s+with|unlike)\b", prefix, re.I):
+                    if not own_description:
+                        continue
                 if re.search(r"\b(?:of|compared\s+with|unlike|models?)\b", suffix, re.I):
                     continue
                 if _card_model_mentions(suffix, names):
                     continue
-                if (mentions and mentions[-1][2]) or (
-                    not prefix.strip() and own(heading) and own_total_suffix
-                ):
+                if mentions and mentions[-1][2]:
                     amount = match["amount"] if total_only else _parameter_amount(match["amount"])
                     out.append(Reading(subject, amount, "parameters"))
             index += 1

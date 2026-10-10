@@ -1618,8 +1618,8 @@ def test_round5_active_absence_needs_a_cited_non_dense_config(tmp_path, config, 
     "text,expected",
     [
         ("Alpha is a MoE model with 3B active parameters.", [3_000_000_000]),
-        ("Alpha has 3B active parameters out of 30B total.", [3_000_000_000]),
-        ("3B active parameters out of 30B total", [3_000_000_000]),
+        ("Alpha has 3B active parameters out of 30B total.", []),
+        ("3B active parameters out of 30B total", []),
         (
             "Alpha is a language model with 671B total parameters with 37B activated.",
             [37_000_000_000],
@@ -1719,7 +1719,6 @@ def test_round5_card_total_probes(card, expected):
     "card,value",
     [
         ("Alpha is a MoE model with 3B active parameters.", 3_000_000_000),
-        ("Alpha has 3B active parameters out of 30B total.", 3_000_000_000),
         (
             "Alpha is a language model with 671B total parameters with 37B activated.",
             37_000_000_000,
@@ -1827,3 +1826,193 @@ def test_round5_standalone_count_requires_the_subject_heading(heading):
         )
         == []
     )
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Alpha is fast, unlike Beta (22B active).",
+        "Alpha beats models with 22B active parameters.",
+        "Alpha is competitive compared with Beta's 22B active parameters.",
+        "Alpha Lite has 1B active parameters.",
+        "Alpha Lite is a MoE model with 1B active parameters.",
+        "Alpha is a MoE model with 30B total parameters.",
+        "Alpha is a model with 30B parameters.",
+        "Alpha, unlike Beta, is a MoE model with 22B active parameters.",
+        "Unlike Beta, Alpha is a MoE model with 3B active parameters.",
+        "Alpha is a MoE model with 3B active parameters compared with Beta.",
+        "Alpha is a MoE model with 3B active parameters out of 30B total compared with Beta.",
+        "Beta has 22B active parameters out of 200B total.",
+        "22B active parameters out of 200B total, unlike Alpha.",
+        "22B active parameters out of 200B total, as in Beta.",
+        "- 22B active parameters out of 200B total, the Beta configuration.",
+        (
+            "Alpha is a MoE model with 3B active parameters unlike Beta "
+            "which has 22B active parameters."
+        ),
+        "Alpha is a MoE model with 22B active parameters of Beta.",
+        "Alpha is a model with 30B total parameters with 3B activated per token.",
+        "Alpha is a MoE model with 3B activated experts.",
+        "Alpha is a MoE model with 30B total parameters with 3B activated experts.",
+        "Alpha is a MoE model with 3B activated.",
+        "Alpha is a model with 3B activated layers.",
+        "Alpha is a model with 3B activated tokens per step.",
+        "Alpha uses 3B activated parameters and Beta uses 22B activated parameters.",
+        "Alpha is a MoE model with up to 3B active parameters.",
+        "Alpha is a MoE model with 3B active parameters out of 30B total parameters.",
+        "Alpha is a MoE model with 30B total parameters with 3B activated, Beta has 9B activated.",
+        "It has 3B active parameters out of 30B total.",
+        "Beta is a MoE model with 22B active parameters.",
+        "Alpha is a MoE model with 22B active parameters, unlike Beta.",
+        "Compared with Beta, Alpha is a MoE model with 3B active parameters.",
+        "Alpha is a MoE model with 30B total parameters with 22B activated in Beta.",
+        "Alpha is a MoE model with 30B total parameters with 3B activated compared with Beta.",
+        "Alpha is a MoE model with 3B active parameters, like other models.",
+        "Alpha is a MoE model with 3B active parameters versus 9B active parameters.",
+        "Alpha is a MoE model with 3B active parameters (unlike Beta).",
+        "Alpha is a MoE model with 3B active parameters while Beta uses 22B active parameters.",
+        "Alpha is a MoE model with 3B active parameters; Beta uses 22B active parameters.",
+        "Alpha is a MoE model with 3B active parameters,\nunlike Beta.",
+        "Unlike Beta,\nAlpha is a MoE model with 3B active parameters.",
+        "Alpha is a MoE model with 30B total parameters with 3B activated,\nBeta has 9B activated.",
+        "Alpha is a MoE model with 30B total parameters with 3B activated.layers.",
+        "Alpha has 3B effective layers.",
+        "Alpha has 3B effective tokens per step.",
+        "Alpha has 3B effective experts.",
+        "Alpha has 3B effective.",
+        "Alpha has 3B activated.",
+    ],
+)
+def test_round6_false_active_prose_reads_nothing(text):
+    assert ModelCardParamsExtractor().extract(
+        claim("model.parameters_active"), "# Alpha\n" + text, page_url=README_URL
+    ) == []
+
+
+@pytest.mark.parametrize("heading", ["Alpha", "Beta", "Comparison", ""])
+@pytest.mark.parametrize(
+    "text",
+    ["3B active parameters out of 30B total.", "Alpha has 3B active parameters out of 30B total."],
+)
+def test_round6_out_of_total_stays_unreadable(heading, text):
+    assert ModelCardParamsExtractor().extract(
+        claim("model.parameters_active"), f"# {heading}\n{text}", page_url=README_URL
+    ) == []
+
+
+@pytest.mark.parametrize(
+    "text,amount",
+    [
+        ("Alpha is a MoE model with 3B active parameters.", 3_000_000_000),
+        ("Alpha is a model with 30B effective parameters.", 30_000_000_000),
+        ("Alpha is a MoE model with 30B total parameters with 3B activated.", 3_000_000_000),
+        (
+            "Alpha is a language model with 671B total parameters with 37B activated.",
+            37_000_000_000,
+        ),
+        ("Alpha has 3B activated params.", 3_000_000_000),
+        ("Alpha has 3B effective params.", 3_000_000_000),
+        ("Alpha is a MoE model with 3B active parameters. Beta has 22B active parameters.",
+         3_000_000_000),
+    ],
+)
+def test_round6_parameter_prose_with_safe_binding(text, amount):
+    assert ModelCardParamsExtractor().extract(
+        claim("model.parameters_active"), "# Alpha\n" + text, page_url=README_URL
+    ) == [Reading("Alpha", amount, "parameters")]
+
+
+@pytest.mark.parametrize("word", ["activated", "effective"])
+@pytest.mark.parametrize("label", ["Parameters", "Active Parameters", "Total Parameters"])
+@pytest.mark.parametrize("orientation", ["row", "column"])
+def test_round6_bare_active_table_value_needs_a_parameter_label(word, label, orientation):
+    if orientation == "row":
+        card = f"| Property | Alpha | Beta |\n| {label} | 3B {word} | 22B {word} |"
+    else:
+        card = f"| Model | {label} |\n| Alpha | 3B {word} |\n| Beta | 22B {word} |"
+    assert ModelCardParamsExtractor().extract(
+        claim("model.parameters_active"), "# Alpha\n" + card, page_url=README_URL
+    ) == [Reading("Alpha", 3_000_000_000, "parameters")]
+
+
+@pytest.mark.parametrize("word", ["activated", "effective"])
+@pytest.mark.parametrize("label", ["Layers", "Tokens per step", "Experts"])
+def test_round6_bare_active_table_value_rejects_nonparameter_labels(word, label):
+    card = f"| Property | Alpha | Beta |\n| {label} | 3B {word} | 22B {word} |"
+    assert ModelCardParamsExtractor().extract(
+        claim("model.parameters_active"), "# Alpha\n" + card, page_url=README_URL
+    ) == []
+
+
+@pytest.mark.parametrize("name,amount", [("gemma-4-e2b-it", 2_300_000_000),
+                                        ("gemma-4-e4b-it", 4_500_000_000)])
+def test_round6_retained_gemma_readme_effective_counts(name, amount):
+    card = (Path(__file__).parent / "fixtures/hf-gemma-4/README.md").read_text()
+    c = replace(claim("model.parameters_active"), names=(name, "google/" + name))
+    assert ModelCardParamsExtractor().extract(
+        c, card, page_url=f"https://huggingface.co/google/{name}/raw/main/README.md"
+    ) == [Reading(name, amount, "parameters")]
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Alpha distils a 70B parameter model.",
+        "Alpha is smaller than a 70B parameter model.",
+        "Alpha was trained from a 70B parameter model.",
+        "Alpha is a 6B parameter model like Beta.",
+        "Alpha beats a 70B parameter model.",
+        "Alpha is a 6B-parameter model, unlike Beta.",
+        "Alpha is a 6B parameter language model compared with Beta.",
+    ],
+)
+def test_round6_foreign_total_prose_reads_nothing(text):
+    assert ModelCardParamsExtractor()._scan(
+        claim("model.parameters_active"), "# Alpha\n" + text, (), total_only=True
+    )[0] == []
+
+
+@pytest.mark.parametrize(
+    "text,amount",
+    [
+        ("Alpha is a 6B parameter model.", "6B"),
+        ("Alpha is a 6B parameter model trained on 2T tokens.", "6B"),
+        ("Alpha is a 6B-parameter model.", "6B"),
+        ("Alpha is a 6 billion parameter model.", "6 billion"),
+        ("Alpha is a 6B parameter language model.", "6B"),
+        ("Alpha is a 6B parameter model, trained on 2T tokens.", "6B"),
+        ("Alpha is a 6B parameter model.  Beta is a 70B parameter model.", "6B"),
+        ("Alpha has 6B parameters.", "6B"),
+    ],
+)
+def test_round6_total_parameter_prose(text, amount):
+    assert ModelCardParamsExtractor()._scan(
+        claim("model.parameters_active"), "# Alpha\n" + text, (), total_only=True
+    )[0] == [Reading("Alpha", amount, "parameters")]
+
+
+@pytest.mark.parametrize(
+    "config,expected",
+    [
+        ({"model_type": "cobra", "ssm_cfg": {},
+          "vision_config": {"num_attention_heads": 16}}, "SSM"),
+        ({"model_type": "cobra", "ssm_cfg": {},
+          "vision_config": {"layer_types": ["attention"]}}, "SSM"),
+        ({"model_type": "mamba", "visual": {"num_attention_heads": 16}}, "SSM"),
+        ({"model_type": "mamba", "audio_config": {"num_attention_heads": 16}}, "SSM"),
+        ({"model_type": "mamba", "decoder": {"num_attention_heads": 16}},
+         "hybrid-SSM-transformer"),
+        ({"model_type": "wrapper", "text_config": {"model_type": "mamba"},
+          "vision_config": {"num_attention_heads": 16}}, "SSM"),
+        ({"model_type": "wrapper", "text_config": {"model_type": "mamba",
+          "vision_config": {"num_attention_heads": 16}}}, "SSM"),
+        ({"model_type": "zamba", "layers_block_type": ["mamba", "hybrid"]}, "SSM"),
+        ({"model_type": "custom", "layers_block_type": ["hybrid"]}, None),
+        ({"model_type": "mamba", "layers_block_type": ["mamba", "hybrid_attention"]},
+         "hybrid-SSM-transformer"),
+        ({"model_type": "mamba", "layer_types": ["mamba", "hybrid-attention"]},
+         "hybrid-SSM-transformer"),
+    ],
+)
+def test_round6_attention_evidence_belongs_to_the_text_backbone(config, expected):
+    assert hf_config_architecture(config) == expected
