@@ -1830,3 +1830,78 @@ def test_an_invoice_with_no_mapped_line_falls_back_to_metadata(policy):
         ledger=ledger))
     assert outcome.status == 200, outcome.body
     assert run(ledger.balance(holder)).monthly == 150000
+
+
+@pytest.mark.parametrize("old,new,granted", [
+    (SOLO_V2, SCALE_V2, 150000),
+    (SCALE_V2, SOLO_V2, 2500),
+    (PRICE, TEAM_V2, 25000),
+])
+def test_a_proration_invoice_grants_the_new_plan_not_the_credited_old_one(
+        policy, old, new, granted):
+    """An upgrade or downgrade invoice credits the old plan first, then charges the new one."""
+    kv, ledger, key = _scale_key(policy)
+    holder = _holder(key)
+    outcome = run(apply(
+        kv, policy,
+        payload("invoice.paid", invoice_obj(
+            id="in_proration_" + new[-6:],
+            metadata={"modelspec_price_id": old},
+            lines={"data": [
+                {"amount": -1500, "proration": True, "price": {"id": old}},
+                {"amount": 4200, "parent": {"subscription_item_details": {"proration": True}},
+                 "pricing": {"price_details": {"price": new}}},
+            ]},
+        ), "evt_proration_" + new[-6:]),
+        ledger=ledger))
+    assert outcome.status == 200, outcome.body
+    assert run(ledger.balance(holder)).monthly == granted
+
+
+def test_a_renewal_with_leftover_prorations_grants_the_regular_line(policy):
+    kv, ledger, key = _scale_key(policy)
+    holder = _holder(key)
+    outcome = run(apply(
+        kv, policy,
+        payload("invoice.paid", invoice_obj(
+            id="in_renewal_with_prorations",
+            lines={"data": [
+                {"amount": -900, "proration": True, "price": {"id": SOLO_V2}},
+                {"amount": 600, "proration": True, "price": {"id": TEAM_V2}},
+                {"amount": 79900, "proration": False, "price": {"id": SCALE_V2}},
+            ]},
+        ), "evt_renewal_with_prorations"),
+        ledger=ledger))
+    assert outcome.status == 200, outcome.body
+    assert run(ledger.balance(holder)).monthly == 150000
+
+
+def test_an_invoice_for_an_unmapped_price_is_refused_not_read_from_metadata(policy):
+    kv, ledger, key = _scale_key(policy)
+    holder = _holder(key)
+    before = run(ledger.balance(holder)).monthly
+    outcome = run(apply(
+        kv, policy,
+        payload("invoice.paid", invoice_obj(
+            id="in_unmapped",
+            metadata={"modelspec_price_id": SCALE_V2},
+            lines={"data": [{"price": {"id": "price_not_in_tiers"}}]},
+        ), "evt_unmapped_invoice"),
+        ledger=ledger))
+    assert outcome.status == 500
+    assert outcome.body["error"]["code"] == "price_not_mapped"
+    assert run(ledger.balance(holder)).monthly == before
+
+
+def test_a_subscription_on_an_unmapped_price_is_refused_not_read_from_metadata(policy):
+    kv, ledger, _key = _scale_key(policy)
+    outcome = run(apply(
+        kv, policy,
+        payload("customer.subscription.updated", {
+            "id": SUB, "object": "subscription", "status": "active", "customer": CUS,
+            "metadata": {"modelspec_price_id": SCALE_V2},
+            "items": {"data": [{"price": {"id": "price_not_in_tiers"}}]},
+        }, "evt_unmapped_sub"),
+        ledger=ledger))
+    assert outcome.status == 500
+    assert outcome.body["error"]["code"] == "price_not_mapped"

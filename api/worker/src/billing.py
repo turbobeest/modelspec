@@ -243,59 +243,93 @@ def _line_price_id(row: dict[str, Any]) -> str:
     return ""
 
 
-def _mapped_price(price_id: str, known: set[str] | None) -> str:
-    if not price_id:
-        return ""
-    if known is not None and price_id not in known:
-        return ""
-    return price_id
-
-
-def _metadata_price(obj: dict[str, Any], known: set[str] | None) -> str:
+def _metadata_price(obj: dict[str, Any]) -> str:
     meta = obj.get("metadata") if isinstance(obj.get("metadata"), dict) else {}
-    found = _mapped_price(str(meta.get("modelspec_price_id") or ""), known)
+    found = str(meta.get("modelspec_price_id") or "")
     if found:
         return found
     # Checkout's subscription_data metadata reaches a basil+ invoice here.
     parent = obj.get("parent")
     sub_details = parent.get("subscription_details") if isinstance(parent, dict) else None
     if isinstance(sub_details, dict):
-        return _mapped_price(str(_meta(sub_details).get("modelspec_price_id") or ""), known)
+        return str(_meta(sub_details).get("modelspec_price_id") or "")
     return ""
 
 
-def _price_from_invoice(obj: dict[str, Any], known: set[str]) -> str:
-    """The plan or pack Price billed on this invoice.
+def _line_is_proration(row: dict[str, Any]) -> bool:
+    if row.get("proration"):
+        return True
+    # Since API 2025-03-31.basil the flag sits under the line's parent.
+    parent = row.get("parent")
+    if isinstance(parent, dict):
+        for key in ("subscription_item_details", "invoice_item_details"):
+            details = parent.get(key)
+            if isinstance(details, dict) and details.get("proration"):
+                return True
+    return False
 
-    A mapped line wins, so a plan changed in Stripe after checkout grants the
-    Price actually billed, not the one in stale checkout metadata. The metered
-    overage Price is not a mapped row, so its line is skipped. Metadata is the
-    fallback for an invoice without a mapped line.
+
+def _line_amount(row: dict[str, Any]) -> int:
+    try:
+        return int(row.get("amount") or 0)
+    except (TypeError, ValueError):
+        return 0
+
+
+def _price_from_invoice(obj: dict[str, Any], metered: set[str]) -> str:
+    """The plan Price this invoice bills, or "" when it names none.
+
+    The Price billed wins over checkout metadata, so a plan changed in Stripe
+    after checkout grants what was paid for. The metered overage line is
+    skipped. A proration invoice credits the old plan (a negative line) and
+    charges the new one: the charge wins, and a regular line wins over a
+    proration line. A billed Price that is not mapped is returned as is, so
+    the caller refuses it instead of falling back to stale metadata. Metadata
+    is used only when no line names a plan Price.
     """
     lines = obj.get("lines")
     rows = lines.get("data") if isinstance(lines, dict) else []
+    billed: list[tuple[str, dict[str, Any]]] = []
     if isinstance(rows, list):
         for row in rows:
             if not isinstance(row, dict):
                 continue
-            found = _mapped_price(_line_price_id(row), known)
-            if found:
-                return found
-    return _metadata_price(obj, known)
+            price_id = _line_price_id(row)
+            if price_id and price_id not in metered:
+                billed.append((price_id, row))
+    if not billed:
+        return _metadata_price(obj)
+    charges = [entry for entry in billed if _line_amount(entry[1]) >= 0]
+    regular = [entry for entry in charges if not _line_is_proration(entry[1])]
+    if regular:
+        return regular[0][0]
+    if charges:
+        return charges[-1][0]
+    return billed[-1][0]
 
 
-def _price_from_subscription(obj: dict[str, Any], known: set[str]) -> str:
-    """The plan Price on a subscription: a mapped item first, then metadata."""
+def _price_from_subscription(obj: dict[str, Any], metered: set[str]) -> str:
+    """The plan Price on a subscription's items, else its metadata.
+
+    The metered overage item is skipped. An item Price that is not mapped is
+    returned as is, so the caller refuses it rather than trusting metadata.
+    """
     items = obj.get("items")
     rows = items.get("data") if isinstance(items, dict) else []
     if isinstance(rows, list):
         for row in rows:
             if not isinstance(row, dict):
                 continue
-            found = _mapped_price(_line_price_id(row), known)
-            if found:
-                return found
-    return _metadata_price(obj, known)
+            price_id = _line_price_id(row)
+            if price_id and price_id not in metered:
+                return price_id
+    return _metadata_price(obj)
+
+
+def _metered_price_ids(policy: AccessPolicy) -> set[str]:
+    """Overage Prices. Their lines bill usage, never name the plan."""
+    return {row.overage.price_id for row in policy.billing.prices.values()
+            if row.overage is not None and row.overage.price_id}
 
 
 def _subscription_from_invoice(obj: dict[str, Any]) -> str:
@@ -405,7 +439,7 @@ async def apply_event(event: dict[str, Any], *, kv: Any, policy: AccessPolicy,
             if action == "tier_set":
                 action = "downgraded"
         elif status == "active":
-            price_id = _price_from_subscription(obj, set(policy.billing.prices))
+            price_id = _price_from_subscription(obj, _metered_price_ids(policy))
             if price_id:
                 mapping, error = await _map_price_row(
                     policy, price_id, service_commit=service_commit, endpoint=endpoint)
@@ -511,7 +545,7 @@ async def _apply_invoice_paid(obj: dict[str, Any], *, kv: Any, policy: AccessPol
     subscription_id = _subscription_from_invoice(obj)
     if not subscription_id:
         return "ignored", None
-    price_id = _price_from_invoice(obj, set(policy.billing.prices))
+    price_id = _price_from_invoice(obj, _metered_price_ids(policy))
     mapping, error = await _map_price_row(
         policy, price_id, service_commit=service_commit, endpoint=endpoint)
     if error is not None:

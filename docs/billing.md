@@ -89,7 +89,7 @@ stale events are `400 invalid_webhook_signature`. No Stripe SDK.
 | --- | --- |
 | `checkout.session.completed` / `async_payment_succeeded`, `mode=subscription` | map the Price → plan; record the entitlement; SET monthly to the plan amount. If Checkout metadata carries `modelspec_key_fingerprint`, attach and SET on that existing key. Otherwise pending until claim mints. |
 | `checkout.session.completed` / `async_payment_succeeded`, `mode=payment` | map the Price → pack. Fingerprint present: ADD pack credits to that key immediately (claim is confirmation, not a mint). Anonymous: link the session so claim can mint and ADD. |
-| `invoice.paid` | SET monthly to the plan amount (reset, no rollover). Restores a previously failed subscription. Fingerprint on the subscription metadata attaches to that existing key the same way Checkout metadata does. |
+| `invoice.paid` | SET monthly to the plan amount (reset, no rollover). The plan is the Price billed: the overage line and a proration credit for the old plan are skipped, and a regular line wins over a proration line. A billed Price that is not mapped is refused (`price_not_mapped`), never read from checkout metadata; metadata is used only when no line names a plan Price. Restores a previously failed subscription. Fingerprint on the subscription metadata attaches to that existing key the same way Checkout metadata does. |
 | `invoice.payment_failed` | **immediate** zero of monthly; key's access row to `billing.downgrade_tier` (`free`). Packs stay |
 | `customer.subscription.deleted` | same as failed payment |
 | `customer.subscription.updated` with `canceled` / `unpaid` / `incomplete_expired` | same |
