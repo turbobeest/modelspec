@@ -658,8 +658,9 @@ def test_recheck_over_unchanged_sources_makes_zero_agent_calls(store: CopyStore)
 
 
 def test_change_detection_has_no_llm_or_agent_hook() -> None:
-    """Importing the module pulls in no LLM client, agent or paid-scrape code."""
-    forbidden = ("anthropic", "openai", "researcher", "firecrawl", "litellm", "google.generativeai")
+    """Importing the module pulls in no LLM, agent, paid scraper or optional browser."""
+    forbidden = ("anthropic", "openai", "researcher", "firecrawl", "litellm",
+                 "google.generativeai", "playwright")
     probe = (
         "import sys, decision.sources, decision.normalise;"
         f"bad = [m for m in sys.modules if m.split('.')[0] in {forbidden!r} or m in {forbidden!r}];"
@@ -674,7 +675,7 @@ def test_change_detection_has_no_llm_or_agent_hook() -> None:
         env={"PYTHONPATH": str(REPO_ROOT), "PATH": "/usr/bin:/bin"},
     )
     assert out.stdout.strip() == ""
-    # Also reject paid clients in the static imports; schema supplies error redaction.
+    # Also reject paid clients in static imports; Playwright is an opt-in local browser.
     for name in ("sources.py", "normalise.py"):
         tree = ast.parse((REPO_ROOT / "decision" / name).read_text())
         imported = {
@@ -685,7 +686,8 @@ def test_change_detection_has_no_llm_or_agent_hook() -> None:
             for alias in node.names
         }
         third_party = imported - set(sys.stdlib_module_names) - {"__future__", "decision"}
-        assert third_party <= {"httpx", "yaml", "schema"}, f"{name} imports {third_party}"
+        assert third_party <= {"httpx", "yaml", "schema", "playwright"}, \
+            f"{name} imports {third_party}"
 
 
 def test_icon_labels_render_an_icon_cell_as_its_label_and_leave_html_default_alone():

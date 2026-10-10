@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import builtins
 import json
 from dataclasses import replace
 from datetime import UTC, date, datetime
@@ -177,6 +178,7 @@ PLAN_FILE = "offerings/subscriptions/example.yaml"
 API_FILE = "offerings/example/example/example-large.yaml"
 PRO_PRICE = "example/subscription/pro#offering.subscription.price"
 LARGE_INPUT = "example/example/example-large/global/standard#offering.price.input"
+RENDERED_PRICE = "rendered/subscription/pro#offering.subscription.price"
 
 
 def page(name: str) -> bytes:
@@ -237,11 +239,12 @@ def estate(tmp_path: Path) -> tuple[Path, CopyStore]:
 
 
 def reread(estate, plans: list[bytes | None], api: list[bytes | None] | None = None, *,
-           write: bool = False) -> tuple[price_reread.Report, ReplayFetcher]:
+           write: bool = False, rendered: ReplayFetcher | None = None
+           ) -> tuple[price_reread.Report, ReplayFetcher]:
     root, store = estate
     fetcher = ReplayFetcher({PLANS_URL: plans, API_URL: api or [page("api-pricing.html")]})
     report = price_reread.run(root=root, fetcher=fetcher, store=store, today=TODAY,
-                              write=write, at=AT)
+                              write=write, at=AT, rendered=rendered)
     return report, fetcher
 
 
@@ -360,11 +363,82 @@ def test_an_unreachable_page_alerts_after_one_more_try(estate) -> None:
 
 
 def test_rendered_and_quarantined_facts_are_listed_not_reread(estate) -> None:
-    root, _ = estate
-    report, _ = reread(estate, [page("plans.html")])
+    report, fetcher = reread(estate, [page("plans.html")])
     reasons = {f.fact_id: f.reason for f in report.facts if f.status is Status.NOT_REREAD}
-    assert reasons == {"rendered/subscription/pro#offering.subscription.price":
-                       "the page needs a rendered fetch"}
+    assert reasons == {RENDERED_PRICE: "the page needs a rendered fetch"}
+    assert by_id(report)[RENDERED_PRICE].status == "not_reread"
+    assert RENDERED_URL not in fetcher.fetched
+
+
+@pytest.mark.parametrize("normaliser", ["html-default", "html-icon-labels", "html-header-buttons"])
+def test_a_rendered_html_source_is_fetched_and_reconfirmed(estate, normaliser) -> None:
+    root, store = estate
+    (root / "registry" / "sources.yaml").write_text(SOURCES.replace(
+        "fetch: rendered\n  normaliser: html-default", f"fetch: rendered\n  normaliser: {normaliser}"))
+    body = page("plans.html") + b"<!-- rendered copy -->"
+    rendered = ReplayFetcher({RENDERED_URL: [body]})
+    report, fetcher = reread(estate, [page("plans.html")], rendered=rendered)
+
+    result = by_id(report)[RENDERED_PRICE]
+    assert (result.status, result.reason) == ("unchanged", None)
+    assert result.copies["example-rendered"][1] == store.put(body)
+    assert result.verification is not None and result.verification.date == TODAY
+    assert rendered.fetched == [RENDERED_URL]
+    assert RENDERED_URL not in fetcher.fetched
+    assert report.alerts == []
+
+
+def test_a_rendered_text_projection_is_not_fetched(estate) -> None:
+    root, _ = estate
+    path = root / "registry" / "sources.yaml"
+    path.write_text(SOURCES.replace("fetch: rendered\n  normaliser: html-default",
+                                    "fetch: rendered\n  normaliser: text-default"))
+    rendered = ReplayFetcher({})
+    report, fetcher = reread(estate, [page("plans.html")], rendered=rendered)
+
+    result = by_id(report)[RENDERED_PRICE]
+    assert (result.status, result.reason) == (
+        "not_reread", "the retained copy is a text projection; "
+        "re-register the source to re-read it rendered")
+    assert rendered.fetched == []
+    assert RENDERED_URL not in fetcher.fetched
+    assert report.alerts == []
+
+
+def test_an_unreachable_rendered_source_alerts_after_one_more_try(estate) -> None:
+    rendered = ReplayFetcher({RENDERED_URL: [None]})
+    report, fetcher = reread(estate, [page("plans.html")], rendered=rendered)
+
+    [alert] = report.alerts
+    assert (alert.fact_id, alert.status, alert.reason) == (RENDERED_PRICE, "unreachable",
+                                                         "HTTP 503")
+    assert rendered.fetched == [RENDERED_URL, RENDERED_URL]
+    assert RENDERED_URL not in fetcher.fetched
+
+
+def test_a_rendered_source_recovers_on_retry(estate) -> None:
+    rendered = ReplayFetcher({RENDERED_URL: [None, page("plans.html")]})
+    report, _ = reread(estate, [page("plans.html")], rendered=rendered)
+
+    result = by_id(report)[RENDERED_PRICE]
+    assert (result.status, result.reason) == ("unchanged", None)
+    assert rendered.fetched == [RENDERED_URL, RENDERED_URL]
+    assert report.alerts == []
+
+
+def test_rendered_requires_playwright_without_a_silent_fallback(monkeypatch, capsys) -> None:
+    original_import = builtins.__import__
+
+    def without_playwright(name, *args, **kwargs):
+        if name.startswith("playwright"):
+            raise ModuleNotFoundError("No module named 'playwright'")
+        return original_import(name, *args, **kwargs)
+
+    monkeypatch.setattr(builtins, "__import__", without_playwright)
+    with pytest.raises(SystemExit) as exc:
+        price_reread.main(["--rendered"])
+    assert exc.value.code == 2
+    assert "--rendered requires Playwright" in capsys.readouterr().err
 
 
 def test_the_guard_refuses_a_rewrite_of_another_fact(estate) -> None:
