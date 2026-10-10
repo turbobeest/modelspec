@@ -1,6 +1,6 @@
 # Privacy statement
 
-Version `1.11`, effective 2026-10-04. Adopted by Sparks & Sawdust LLC, which
+Version `1.12`, effective 2026-10-08. Adopted by Sparks & Sawdust LLC, which
 operates the service. MODEL-70. Version 1.0 was adopted on 2026-09-19; what
 changed since is listed under [Changes](#changes).
 
@@ -261,6 +261,31 @@ credited while it is off), or by an x402 payment, which runs only while
   in flight when a refund arrived. These are counts and Stripe ids. They hold
   no card detail, no customer name and no reason given for a refund or a
   chargeback.
+- **For a plan, Scale overage and metered catalog reads** (MODEL-342). The
+  balance per holder also stores:
+  - the Stripe customer id and the plan name from the last paid invoice. The
+    plan name is cleared when the plan ends; the customer id stays with the
+    balance record.
+  - for Scale overage: how many overage credits the current billing period has
+    used, reset on each paid invoice and when the plan ends; a count of overage
+    credits not yet reported to Stripe, kept until they are reported; a count
+    that a person must reconcile against Stripe by hand, kept with the balance
+    record; and at most 20 meter events whose report to Stripe got no clear
+    answer, each an identifier, a credit count and the time the credits were
+    used. An event leaves that list when Stripe acknowledges it, or after 20
+    hours, when its count moves to the reconcile-by-hand total. An identifier
+    is the holder name (the SHA-256 hash of the key, never the key) and a
+    counter.
+  - for keyed catalog reads (`/v1/vocabulary`): the current UTC day and how
+    many reads the key has made that day, the current minute and how many
+    reads it has made in it, and how far it is into its current block of 10
+    reads. Each is overwritten when the day, minute or block turns over. For
+    each read in flight there is also an undo record (its day, minute and the
+    credits it drew), removed when the read completes or, at the latest, at
+    the key's next read on a later UTC day.
+
+  These are counts, times, Stripe ids and our own identifiers. They hold no
+  card detail and nothing from a request.
 
 It holds no prompt, no request body, no field of a request, no ranking or
 policy answer, no IP address and no user-agent: our code reads none of those
@@ -363,6 +388,16 @@ Checkout session, invoice, PaymentIntent, chargeback and Price ids. We do
 not copy your name, email address or billing address into our stores; they
 remain in our Stripe account, where we can see them to handle a request from
 you.
+
+**What we send Stripe for Scale overage.** When a Scale plan draws metered
+overage, the Worker sends Stripe a Billing Meter event for each settled charge,
+so that Stripe can bill the overage on the plan's invoice
+(`api/worker/src/billing_stripe.py`). The event carries the meter's name, your
+Stripe customer id, the number of overage credits, the time they were used, and
+an identifier made from the holder name (the SHA-256 hash of your key, never the
+key) and a counter, which lets Stripe ignore a repeat of the same event. It
+carries nothing from your request. No meter event is sent while the overage
+Price is not for sale.
 
 ## What Cloudflare records
 
@@ -586,6 +621,10 @@ to `DELETE /v1/feedback`, or write to us with it.
 A change to what the service records is a change to this statement, and it is
 published here before the change ships. The version above is the one in force.
 
+- **1.12, 2026-10-08.** Pricing v2 (MODEL-342). *The credit ledger* lists what
+  a balance now keeps for a plan, Scale overage and metered catalog reads, and
+  how long. *What Stripe holds* describes the Billing Meter events sent for
+  Scale overage. Nothing else changed.
 - **1.11, 2026-10-04.** Keys are enforced (MODEL-96): a request without a key or
   a valid visit token is refused and writes nothing. Updated *The API-key store*
   and the visit gate's description to match. Nothing stored changed.

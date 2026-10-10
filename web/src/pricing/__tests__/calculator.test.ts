@@ -34,7 +34,7 @@ function brutePackCost(credits: number, packs: { credits: number; usd: number }[
 }
 
 describe("pricing calculator", () => {
-  it.each([[21_000, 55], [30_000, 85]])(
+  it.each([[21_000, 355], [30_000, 500]])(
     "finds the exact packs-only cover for %i credits", (credits, usd) => {
       expect(packCost(credits, data.packs).usd).toBe(usd);
       expect(packCost(credits, [...data.packs].reverse()).usd).toBe(usd);
@@ -59,8 +59,13 @@ describe("pricing calculator", () => {
   });
 
   it("prefers a non-subscription option on an exact tie", () => {
-    const tied = calculate(data, { decisions: 100, full: false, checks: 100 });
-    expect(tied.options.filter(({ usd }: { usd: number }) => usd === 50)
+    const tied = calculate({
+      ...data,
+      payPerCall: false,
+      plans: [{ name: "Team", credits: 3_000, usd: 60 }],
+      packs: [{ credits: 1_000, usd: 20 }],
+    }, { decisions: 100, full: false, checks: 0 });
+    expect(tied.options.filter(({ usd }: { usd: number }) => usd === 60)
       .map(({ name }: { name: string }) => name)).toEqual(["Packs only", "Team plan"]);
     expect(tied.best.name).toBe("Packs only");
   });
@@ -74,18 +79,18 @@ describe("pricing calculator", () => {
   });
 
   it.each([
-    [100, false, 0, "Solo plan", 10], [100, false, 100, "Packs only", 50],
-    [100, false, 1_000, "Solo plan", 310], [100, true, 0, "Solo plan", 20],
-    [100, true, 100, "Team plan", 50], [100, true, 1_000, "Solo plan", 320],
-    [1_000, false, 0, "Team plan", 50], [1_000, false, 100, "Packs only", 100],
-    [1_000, false, 1_000, "Team plan", 350], [1_000, true, 0, "Packs only", 135],
-    [1_000, true, 100, "Team plan", 150], [1_000, true, 1_000, "Packs only", 435],
-    [10_000, false, 0, "Packs only", 600], [10_000, false, 100, "Packs only", 650],
-    [10_000, false, 1_000, "Packs only", 900], [10_000, true, 0, "Packs only", 1_200],
-    [10_000, true, 100, "Packs only", 1_250], [10_000, true, 1_000, "Packs only", 1_500],
-    [100_000, false, 0, "Packs only", 6_000], [100_000, false, 100, "Packs only", 6_050],
-    [100_000, false, 1_000, "Packs only", 6_300], [100_000, true, 0, "Packs only", 12_000],
-    [100_000, true, 100, "Packs only", 12_050], [100_000, true, 1_000, "Packs only", 12_300],
+    [100, false, 0, "Solo plan", 39], [100, false, 100, "Team plan", 199],
+    [100, false, 1_000, "Scale plan", 854], [100, true, 0, "Solo plan", 94],
+    [100, true, 100, "Team plan", 199], [100, true, 1_000, "Scale plan", 899],
+    [1_000, false, 0, "Team plan", 294], [1_000, false, 100, "Team plan", 539],
+    [1_000, false, 1_000, "Scale plan", 1_299], [1_000, true, 0, "Team plan", 794],
+    [1_000, true, 100, "Scale plan", 799], [1_000, true, 1_000, "Scale plan", 1_799],
+    [10_000, false, 0, "Scale plan", 3_299], [10_000, false, 100, "Scale plan", 3_554],
+    [10_000, false, 1_000, "Scale plan", 5_799], [10_000, true, 0, "Scale plan", 8_299],
+    [10_000, true, 100, "Scale plan", 8_554], [10_000, true, 1_000, "Scale plan", 10_799],
+    [100_000, false, 0, "Scale plan", 48_299], [100_000, false, 100, "Scale plan", 48_554],
+    [100_000, false, 1_000, "Scale plan", 50_799], [100_000, true, 0, "Scale plan", 98_299],
+    [100_000, true, 100, "Scale plan", 98_554], [100_000, true, 1_000, "Scale plan", 100_799],
   ])("chooses the exact cheapest option for %i decisions, full=%s, checks=%i", (
     decisions, full, checks, name, usd,
   ) => {

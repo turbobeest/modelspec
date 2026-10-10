@@ -54,7 +54,7 @@ def test_all_prices_credits_weights_and_x402_rate_come_from_tiers_json() -> None
     tiers = json.loads(TIERS_PATH.read_text())
     html = _page(tiers)
     data = _payload(html)
-    prices = tiers["billing"]["prices"]
+    prices = pricing.current_prices(tiers)
     assert data["plans"] == [
         {"name": row["name"], "credits": row["credits"], "usd": row["usd"]}
         for row in prices.values() if row["kind"] == "plan"]
@@ -81,7 +81,7 @@ def test_checkout_forms_keep_the_worker_contract() -> None:
     html = _page(tiers)
     forms = re.findall(r'(<form method="post" action="([^"]+)">(.*?)</form>)', html)
     expected = {pid: row for pid, row in tiers["billing"]["prices"].items()
-                if not row.get("placeholder")}
+                if not row.get("placeholder") and not row.get("legacy")}
     assert len(forms) == len(expected)
     posted = {}
     for _, action, inner in forms:
@@ -121,7 +121,7 @@ def test_billing_off_presents_a_price_list_without_purchase_language() -> None:
 def test_price_changes_need_no_page_code_change() -> None:
     tiers = json.loads(TIERS_PATH.read_text())
     price_id = next(pid for pid, row in tiers["billing"]["prices"].items()
-                    if row["kind"] == "plan")
+                    if row["kind"] == "plan" and not row.get("legacy"))
     tiers["billing"]["prices"][price_id] |= {"credits": 8, "usd": 3}
     html = _page(tiers)
     assert "8 credits" in html
@@ -131,11 +131,11 @@ def test_price_changes_need_no_page_code_change() -> None:
 
 def test_hero_names_the_cheapest_product_kind_and_matches_the_shown_rates() -> None:
     tiers = json.loads(TIERS_PATH.read_text())
-    prices = list(tiers["billing"]["prices"].values())
+    prices = list(pricing.current_prices(tiers).values())
     rates = [row["usd"] / row["credits"] for row in prices]
     cheapest = min(prices, key=lambda row: row["usd"] / row["credits"])
     html = _page(tiers, x402_live=False)
-    assert "the Team plan's rate" in html
+    assert "the Scale plan's rate" in html
     assert f"{pricing._rate(min(rates))}–{pricing._rate(max(rates))}" in html
     assert cheapest["kind"] == "plan"
 
@@ -190,7 +190,7 @@ def test_price_lists_and_answer_costs_have_table_semantics() -> None:
         assert 'role="row"' in table
         assert 'role="cell"' in table
     tiers = json.loads(TIERS_PATH.read_text())
-    prices = tiers["billing"]["prices"].values()
+    prices = pricing.current_prices(tiers).values()
     assert len(re.findall(r'<tr class="price-row plan" role="row">', tables[0])) == sum(
         row["kind"] == "plan" for row in prices)
     assert len(re.findall(r'<tr class="price-row pack" role="row">', tables[1])) == sum(
@@ -218,11 +218,16 @@ def test_production_switches_generate_what_ships_today(tmp_path: Path) -> None:
     pricing.write(tmp_path, REPO_ROOT, _build())
     html = (tmp_path / "pricing" / "index.html").read_text()
     prices = json.loads(TIERS_PATH.read_text())["billing"]["prices"]
-    for price_id, row in prices.items():
-        assert f'name="price_id" value="{price_id}"' in html
+    current = {pid: row for pid, row in prices.items() if not row.get("legacy")}
+    sellable = {pid: row for pid, row in current.items() if not row.get("placeholder")}
+    for price_id, row in current.items():
         assert f"{row['credits']:,}" in html
         assert f"${row['usd']}" in html
-    assert html.count('<form method="post"') == len(prices)
+        assert (f'name="price_id" value="{price_id}"' in html) is (price_id in sellable)
+    for price_id, row in prices.items():
+        if row.get("legacy"):
+            assert f'name="price_id" value="{price_id}"' not in html
+    assert html.count('<form method="post"') == len(sellable)
     assert "x402" not in html.lower()
     assert "Or let your agents pay as they go" not in html
     assert "Buy credits for your agents" in html
@@ -236,7 +241,7 @@ def test_production_switches_generate_what_ships_today(tmp_path: Path) -> None:
     assert "paid access is being switched on" not in html
     assert _payload(html)["payPerCall"] is False
     assert "perCall" not in _payload(html)
-    assert "coming soon" not in html.lower()
+    assert "coming soon" in html.lower()
     assert "opening soon" not in html.lower()
     assert "People decide free. Agents pay per answer." in html
     assert "People decide free. Machine access needs a key." not in html
@@ -244,7 +249,7 @@ def test_production_switches_generate_what_ships_today(tmp_path: Path) -> None:
 
 def test_billing_and_x402_render_independently() -> None:
     tiers = json.loads(TIERS_PATH.read_text())
-    form_count = sum(not row.get("placeholder")
+    form_count = sum(not row.get("placeholder") and not row.get("legacy")
                      for row in tiers["billing"]["prices"].values())
     for billing_live in (False, True):
         for x402_live in (False, True):
@@ -254,7 +259,7 @@ def test_billing_and_x402_render_independently() -> None:
             assert ("Or let your agents pay as they go" in html) is x402_live
             assert ("Pay per call" in html) is False
             assert _payload(html)["payPerCall"] is x402_live
-            assert ("to $0.004" in html) is x402_live
+            assert ("to $0.02" in html) is x402_live
             assert ("settled on Base mainnet" in html) is x402_live
             if not x402_live:
                 assert "x402" not in html.lower()

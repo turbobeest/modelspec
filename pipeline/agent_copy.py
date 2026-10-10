@@ -633,7 +633,7 @@ def _tiers(path: Path = TIERS) -> dict[str, Any]:
 def credit_usd_range(tiers: dict[str, Any]) -> tuple[float, float]:
     """The cheapest and dearest price of one credit across live plans and packs."""
     per_credit = [p["usd"] / p["credits"] for p in tiers["billing"]["prices"].values()
-                  if not p.get("placeholder") and p.get("credits")]
+                  if not p.get("legacy") and p.get("credits")]
     return min(per_credit), max(per_credit)
 
 

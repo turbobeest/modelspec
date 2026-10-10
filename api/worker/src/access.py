@@ -190,6 +190,7 @@ async def serve(
     now: datetime | None = None,
     log: Callable[[str, dict[str, Any]], None] | None = None,
     limits_for: Callable[[KeyRecord, TierLimits], Awaitable[TierLimits]] | None = None,
+    skip_limits: Callable[[KeyRecord, TierLimits], bool] | None = None,
 ) -> Outcome:
     """Classify, meter, answer. The only entry point this package offers."""
     moment = now or datetime.now(UTC)
@@ -261,11 +262,17 @@ async def serve(
     # Every live call is metered, including the ones no limit will refuse.
     # MODEL-93: a funded key drops the daily window; an unfunded billed key
     # is metered as free. `limits_for` is that choice; absent, the stored tier.
+    # `skip_limits` is the catalog read: its own meter must not share the
+    # decide burst counter.
     meter_tier = tier
-    if limits_for is not None:
-        meter_tier = await limits_for(record, tier)
-    note("limits.consume", key_id=record.key_id, tier=meter_tier.name)
-    meter = await limits.consume(kv, record.key_id, meter_tier, moment)
+    if skip_limits is not None and skip_limits(record, tier):
+        note("limits.skipped", key_id=record.key_id, tier=tier.name)
+        meter = limits.MeterOutcome(True, ())
+    else:
+        if limits_for is not None:
+            meter_tier = await limits_for(record, tier)
+        note("limits.consume", key_id=record.key_id, tier=meter_tier.name)
+        meter = await limits.consume(kv, record.key_id, meter_tier, moment)
     headers = {"x-modelspec-tier": tier.name, "x-modelspec-key-id": record.key_id,
                **_rate_limit_headers(meter, moment)}
     if not meter.allowed:
@@ -296,6 +303,7 @@ async def gate(
     limits_for: Callable[[KeyRecord, TierLimits], Awaitable[TierLimits]] | None = None,
     anonymous_id: str | None = None,
     anonymous_tier: str = "free",
+    skip_limits: Callable[[KeyRecord, TierLimits], bool] | None = None,
 ) -> Outcome:
     """The Worker's one call into this package: `serve`, behind the switch.
 
@@ -378,7 +386,7 @@ async def gate(
     try:
         return await serve(api_key=api_key, kv=kv, policy=policy, live=live_for,
                            sandbox=sandbox, envelope=shell, now=now, log=log,
-                           limits_for=limits_for)
+                           limits_for=limits_for, skip_limits=skip_limits)
     except StoreNotConfigured as exc:
         status, body = refusal(
             STORE_NOT_CONFIGURED,

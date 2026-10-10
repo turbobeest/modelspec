@@ -148,10 +148,10 @@ def test_prices_in_the_descriptions_are_the_ones_in_tiers_json() -> None:
         assert [int(n) for n in stated.split(" or ")] == credits, name
         assert f"{agent_copy._usd(low)}–{agent_copy._usd(high)}" in text, name
         assert "¢" not in text, name
-    assert (low, high) == (min(p["usd"] / p["credits"] for p in TIERS["billing"]["prices"].values()
-                               if not p.get("placeholder")),
-                           max(p["usd"] / p["credits"] for p in TIERS["billing"]["prices"].values()
-                               if not p.get("placeholder")))
+    rows = [p for p in TIERS["billing"]["prices"].values()
+            if not p.get("legacy") and p.get("credits")]
+    assert (low, high) == (min(p["usd"] / p["credits"] for p in rows),
+                           max(p["usd"] / p["credits"] for p in rows))
 
 
 def test_no_switched_off_payment_rail_is_mentioned() -> None:

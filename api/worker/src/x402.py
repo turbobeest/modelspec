@@ -65,9 +65,8 @@ USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
 USDC_DECIMALS = 6
 USDC_EXTRA = {"name": "USDC", "version": "2"}
 
-#: The smallest card pack costs $5 for 1,250 credits: $0.004 per credit.
-#: Production derives this from ``billing.prices``; the constant is only the
-#: fallback for a policy that cannot be loaded while x402 is disabled.
+#: Fallback atomic USDC per credit when no pack table is loaded. A loaded
+#: policy replaces it with the smallest current pack's rate.
 DEFAULT_PRICE_ATOMIC = 4000
 MAX_TIMEOUT_SECONDS = 60
 PRICE_COMPATIBILITY_NOTE = (
@@ -130,7 +129,7 @@ def packs_from_policy(policy: Any) -> tuple[PackOffer, ...]:
     rows = (
         PackOffer(row.name, row.credits, row.usd)
         for row in policy.billing.prices.values()
-        if row.kind == "pack"
+        if row.kind == "pack" and not row.legacy
     )
     return tuple(sorted(rows, key=lambda row: (row.usd, row.credits, row.name)))
 
@@ -468,6 +467,8 @@ async def charge(
     pack_expiry_days: int = 365,
     buy_url: str = "https://modelspec.dev/pricing",
     now: datetime | None = None,
+    overage_cap: int = 0,
+    on_overage: Callable[[int, str], Awaitable[None]] | None = None,
 ) -> tuple[int, dict[str, Any]]:
     """Verify and settle, then produce. Returns (status, body). Headers via http_headers.
 
@@ -481,6 +482,12 @@ async def charge(
     if moment.tzinfo is None:
         moment = moment.replace(tzinfo=UTC)
     clock = moment.astimezone(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
+
+    async def _settle(reserved_holder: str, reservation_id: int) -> None:
+        result = await ledger.commit(reserved_holder, reservation_id)
+        settled = int(getattr(result, "overage", 0) or 0)
+        if settled and on_overage is not None:
+            await on_overage(settled, f"{reserved_holder}:{reservation_id}")
 
     async def _unfunded(available: int) -> tuple[int, dict[str, Any]]:
         if not config.enabled and produce_unfunded is not None and holder:
@@ -499,7 +506,8 @@ async def charge(
         if not holder:
             return await produce()
         try:
-            reserved = await ledger.reserve(holder, weight, now=clock)
+            reserved = await ledger.reserve(
+                holder, weight, now=clock, overage_cap=overage_cap)
         except credits.StoreNotConfigured:
             if produce_unfunded is not None:
                 return await produce_unfunded()
@@ -509,7 +517,7 @@ async def charge(
                 return await _unfunded(reserved.available)
             return await produce()
         return await _produce_reserved(
-            ledger, holder, reserved.reservation_id, produce, log)
+            ledger, holder, reserved.reservation_id, produce, log, _settle)
 
     if not config.configured:
         log.note("misconfigured")
@@ -535,7 +543,8 @@ async def charge(
     try:
         if holder:
             try:
-                reserved = await ledger.reserve(holder, weight, now=clock)
+                reserved = await ledger.reserve(
+                    holder, weight, now=clock, overage_cap=overage_cap)
             except credits.StoreNotConfigured:
                 return _error(envelope, HTTP_STORE_UNAVAILABLE, CREDITS_STORE_NOT_CONFIGURED,
                               "x402 is enabled and the CREDITS Durable Object is not bound")
@@ -555,7 +564,7 @@ async def charge(
         status, body = await produce()
         if reservation_id is not None and reserved_holder is not None:
             if is_billable_success(status, body):
-                await ledger.commit(reserved_holder, reservation_id)
+                await _settle(reserved_holder, reservation_id)
                 log.note("commit")
                 reservation_id = None
             else:
@@ -578,6 +587,7 @@ async def _produce_reserved(
     reservation_id: int | None,
     produce: Callable[[], Awaitable[tuple[int, dict[str, Any]]]],
     log: ChargeTrace,
+    settle: Callable[[str, int], Awaitable[None]] | None = None,
 ) -> tuple[int, dict[str, Any]]:
     log.note("reserved")
     try:
@@ -585,7 +595,10 @@ async def _produce_reserved(
         status, body = await produce()
         if reservation_id is not None:
             if is_billable_success(status, body):
-                await ledger.commit(holder, reservation_id)
+                if settle is not None:
+                    await settle(holder, reservation_id)
+                else:
+                    await ledger.commit(holder, reservation_id)
                 log.note("commit")
                 reservation_id = None
             else:

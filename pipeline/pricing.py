@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import html
 import json
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -36,10 +37,19 @@ def load_tiers(root: Path) -> dict[str, Any]:
     return json.loads((Path(root) / TIERS_REL).read_text(encoding="utf-8"))
 
 
+def current_prices(tiers: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """Rows offered on the pricing page. Legacy prices still grant; they are not sold."""
+    return {price_id: row for price_id, row in tiers["billing"]["prices"].items()
+            if not row.get("legacy")}
+
+
 def procurement_data(tiers: dict[str, Any]) -> dict[str, Any]:
-    """Published plans, packs and answer rates, shared with the keyed CLI."""
-    products = [row for row in tiers["billing"]["prices"].values()
-                if not row.get("placeholder") and row.get("credits")]
+    """Published plans, packs and answer rates, shared with the keyed CLI.
+
+    Placeholders are included so the published numbers are the current table.
+    Legacy rows are not.
+    """
+    products = [row for row in current_prices(tiers).values() if row.get("credits")]
     rates = [row["usd"] / row["credits"] for row in products]
     weights = tiers["credits"]["weights"]
     return {
@@ -56,7 +66,7 @@ def procurement_data(tiers: dict[str, Any]) -> dict[str, Any]:
 
 def team_usd_per_credit(tiers: dict[str, Any]) -> float:
     """Dollars per credit on the Team plan. The decide anchor uses this rate."""
-    matches = [row for row in tiers["billing"]["prices"].values()
+    matches = [row for row in current_prices(tiers).values()
                if row.get("kind") == "plan" and row.get("name") == "Team"]
     if len(matches) != 1:
         raise ValueError(f"expected one Team plan in tiers.json, found {len(matches)}")
@@ -67,7 +77,7 @@ def team_usd_per_credit(tiers: dict[str, Any]) -> float:
 
 
 def format_usd(value: float) -> str:
-    """Four decimal dollars with trailing zeros removed, so the Team rate is $0.0017."""
+    """Four decimal dollars with trailing zeros removed."""
     return f"${value:.4f}".rstrip("0")
 
 
@@ -83,7 +93,7 @@ def _rate(value: float) -> str:
 def hero_summary(tiers: dict[str, Any], *, access_enforced: bool,
                  x402_live: bool) -> tuple[str, str]:
     """Return the flag-aware agent line and displayed per-credit rate range."""
-    prices = tuple(tiers["billing"]["prices"].values())
+    prices = tuple(current_prices(tiers).values())
     rates = [row["usd"] / row["credits"] for row in prices]
     if x402_live:
         packs = [row for row in prices if row["kind"] == "pack"]
@@ -120,7 +130,7 @@ def x402_is_live(enabled: bool, mainnet: bool) -> bool:
 
 def calculator_data(tiers: dict[str, Any], *, x402_live: bool = True) -> dict[str, Any]:
     """Return the calculator contract generated from the billing tiers."""
-    prices = tiers["billing"]["prices"]
+    prices = current_prices(tiers)
     plans = [row for row in prices.values() if row["kind"] == "plan"]
     packs = [row for row in prices.values() if row["kind"] == "pack"]
     weights = tiers["credits"]["weights"]
@@ -146,7 +156,7 @@ def page(tiers: dict[str, Any], *, build: Build | None = None,
          x402_network: str = "eip155:8453") -> str:
     """Render the responsive page. ``live`` remains accepted for old callers."""
     del build, live
-    prices = tiers["billing"]["prices"]
+    prices = current_prices(tiers)
     plans = [(pid, row) for pid, row in prices.items() if row["kind"] == "plan"]
     packs = [(pid, row) for pid, row in prices.items() if row["kind"] == "pack"]
     weights = tiers["credits"]["weights"]
@@ -238,6 +248,23 @@ def page(tiers: dict[str, Any], *, build: Build | None = None,
     calculator_best = "Cheapest way to pay" if billing_live else "Cheapest published option"
     footer_tax = ("Prices in US dollars. Sales tax may apply at checkout." if billing_live else
                   "Prices in US dollars. Sales tax may apply.")
+    scale = next((row for _, row in plans if row.get("overage")), None)
+    extra_bits: list[str] = []
+    if scale and scale.get("overage"):
+        over = scale["overage"]
+        soon = ", coming soon" if over.get("placeholder") else ""
+        extra_bits.append(
+            f"Scale overage is ${over['usd_per_credit']} per credit, up to "
+            f"{int(over['cap_credits']):,} credits a billing period{soon}.")
+    reads = (tiers.get("credits") or {}).get("reads") or {}
+    list_price = (tiers.get("x402") or {}).get("list_usd_per_decision")
+    if reads and list_price:
+        per_read = Decimal(str(list_price)) / Decimal(int(reads["reads_per_credit"]))
+        extra_bits.append(
+            f"A metadata read costs ${per_read}, one credit per "
+            f"{int(reads['reads_per_credit'])} reads, capped at "
+            f"{int(reads['daily_cap']):,} reads a key a UTC day.")
+    extra_notes = "".join(f'<p class="small">{html.escape(bit)}</p>' for bit in extra_bits)
     agents_panel = f'''<div class="card agents-card" id="agents"><h2>Or let your agents pay as they go</h2><p>No account, no key, no human in the loop. The API answers an unpaid request with HTTP 402 and a price; the agent pays in USDC over x402 and gets its answer in the same exchange.</p><div class="exchange"><div><i>→</i> POST api.modelspec.dev/v1/decide</div><div><em>←</em> 402 Payment Required <span>· 1 credit · {_rate(per_call)} USDC</span></div><div><i>→</i> retry with PAYMENT-SIGNATURE <span>· settled on {network_name}</span></div><div><mark>←</mark> 200 OK <span>· the ranked answer, and a receipt</span></div></div><ul><li>A keyless call costs {_rate(per_call)} a credit, times the answer's weight.</li><li>A keyed agent whose balance runs out is offered the same {len(packs)} packs, paid in USDC. They land in the key's pack balance.</li><li>A per-call payment is settled before the answer is produced; if the service then fails, that payment isn't refunded automatically.</li></ul><div class="endpoints"><span>Point your agent at either endpoint:</span><code>POST {DECIDE_ENDPOINT}\nMCP  {MCP_ENDPOINT}</code></div></div>''' if x402_live else ""
     return f'''<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
@@ -246,7 +273,7 @@ def page(tiers: dict[str, Any], *, build: Build | None = None,
 <link rel="stylesheet" href="/{ASSET_DIR}/pricing.css">{landing_chrome.lockup_style()}</head><body><div class="axis" aria-hidden="true"></div>
 <header>{landing_chrome.lockup()}<nav><a href="/#agents">For agents</a><a class="current" href="/pricing/" aria-current="page">Pricing</a><a class="button" href="/decide/">Open the board</a></nav><a class="button mobile-board" href="/decide/">Open the board</a></header>
 <main><section class="hero" id="pricing"><div><h1>{hero_heading}</h1><p>{hero_copy}</p>{agent_copy.install_html()}</div><div class="rate-card"><span>One decision for an agent</span>{hero_rate}<p>{hero_detail}</p></div></section>
-<section class="buy-grid"><div class="card buy-card"><h2>{buy_heading}</h2><p>{buy_copy}</p><table class="price-table" role="table"><caption>Monthly plans · allowance resets each invoice</caption><thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Plan</th><th scope="col" role="columnheader">Allowance</th><th scope="col" role="columnheader">Price</th>{purchase_header}</tr></thead><tbody role="rowgroup">{plan_rows}</tbody></table><table class="price-table" role="table"><caption>Packs · one-off, last {expiry} days</caption><thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Pack</th><th scope="col" role="columnheader">Rate</th><th scope="col" role="columnheader">Price</th>{purchase_header}</tr></thead><tbody role="rowgroup">{pack_rows}</tbody></table><p class="small">{buy_note}</p></div>
+<section class="buy-grid"><div class="card buy-card"><h2>{buy_heading}</h2><p>{buy_copy}</p><table class="price-table" role="table"><caption>Monthly plans · allowance resets each invoice</caption><thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Plan</th><th scope="col" role="columnheader">Allowance</th><th scope="col" role="columnheader">Price</th>{purchase_header}</tr></thead><tbody role="rowgroup">{plan_rows}</tbody></table><table class="price-table" role="table"><caption>Packs · one-off, last {expiry} days</caption><thead role="rowgroup"><tr role="row"><th scope="col" role="columnheader">Pack</th><th scope="col" role="columnheader">Rate</th><th scope="col" role="columnheader">Price</th>{purchase_header}</tr></thead><tbody role="rowgroup">{pack_rows}</tbody></table>{extra_notes}<p class="small">{buy_note}</p></div>
 {agents_panel}</section>
 <section class="calculator"><div class="controls"><h2>{calculator_heading}</h2><fieldset data-control="decisions"><legend>Decisions a day</legend><div>{decision_buttons}</div></fieldset><fieldset data-control="full"><legend>Explanation with each decision</legend><div><button type="button" data-value="false" aria-pressed="true">Summary · {weights['decide.summary']} credit</button><button type="button" data-value="true" aria-pressed="false">Full · {weights['decide.full']} credits</button></div></fieldset><fieldset data-control="checks"><legend>Licence and data-residency checks a day</legend><div>{check_buttons}</div></fieldset></div><div class="estimate" aria-live="polite"><span data-credits></span><div><b>{calculator_best}</b><strong><span data-best-name></span> · <span data-best-cost></span><small> a month</small></strong></div><div data-options></div><p>A month is 30 days. Prices from the published plan and pack list; the arithmetic runs in your browser. On an exact tie, the calculator prefers an option without a subscription.</p></div></section>
 <section class="costs"><div><h2>What an answer costs</h2><table class="cost-table"><caption>Credits drawn from a prepaid balance</caption><thead><tr><th scope="col">Answer</th><th scope="col">Cost</th></tr></thead><tbody><tr class="cost-row"><th scope="row">A decision<span>ranked answer with ties, no explanation or a summary</span></th><td>{weights['decide.summary']} credit</td></tr><tr class="cost-row"><th scope="row">A decision, fully explained<span>every fact, source and trade-off behind the order</span></th><td>{weights['decide.full']} credits</td></tr><tr class="cost-row"><th scope="row">A ranking<span>the ranked list for one capability</span></th><td>{weights['rank']} credit</td></tr><tr class="cost-row"><th scope="row">A licence and data-residency check<span>cited commercial-use and residency determinations</span></th><td>{weights['policy-check']} credits</td></tr><tr class="cost-row"><th scope="row">An error, a refusal, or no model fits<span>anything that is not a successful answer</span></th><td class="free">free</td></tr></tbody></table></div><div><h2>What stays free</h2><ul class="free-list"><li><b>The board, for people.</b> Every facet, every tie, every source, on this site. No account. Rate-limited, not charged.</li><li><b>The public repository.</b> The engine is MIT and the data is CC BY-SA, as a delayed image about nine months behind. Current data is served only through the hosted API and MCP server.</li><li><b>The sandbox.</b> Unlimited synthetic answers to build and test against. No signup.</li></ul></div></section>

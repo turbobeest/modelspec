@@ -53,6 +53,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 import re
 import time
 from dataclasses import replace
@@ -67,10 +68,12 @@ except ModuleNotFoundError as exc:
         raise
 
 import access
+import access_limits
 import agent_guide
 import access_config
 import access_keys
 import access_kv
+import billing_stripe
 import access_sandbox
 import billing
 import billing_page
@@ -508,6 +511,127 @@ def _billing_unconfigured(service_commit: str):
     return outcome.status, outcome.body
 
 
+def _catalog_rate_limited(begun, policy, outcome, cors):
+    """The read meter's 429, in the same shape as a tier rate limit."""
+    now = datetime.now(UTC)
+    day_bucket, day_reset = access_limits.day_window(now)
+    minute_bucket, minute_reset = access_limits.minute_window(now)
+    day = access_limits.WindowState(
+        scope=access_limits.DAY, bucket=day_bucket, limit=begun.daily_cap,
+        used=begun.read_count, resets_at=day_reset,
+        window="1 day, fixed, resetting at 00:00:00 UTC",
+        window_seconds=access_limits.DAY_SECONDS,
+    )
+    minute = access_limits.WindowState(
+        scope=access_limits.MINUTE, bucket=minute_bucket, limit=begun.burst_limit,
+        used=begun.read_burst, resets_at=minute_reset,
+        window="1 minute, fixed, resetting on the UTC minute",
+        window_seconds=access_limits.MINUTE_SECONDS,
+    )
+    refused = day if begun.reason == "daily" else minute
+    meter = access_limits.MeterOutcome(False, (day, minute), refused)
+    record = access_keys.KeyRecord(
+        key_id=getattr(outcome, "key_id", None) or "",
+        tier=getattr(outcome, "tier", None) or "",
+        owner="", created_at="")
+    status, body = access.rate_limited_body(meter, record, policy, now, {})
+    return _json_response(status, body, {**cors, **access._rate_limit_headers(meter, now)})
+
+
+async def _post_overage(env, spec, customer_id: str, units: int, identifier: str, *,
+                        holder: str = "") -> None:
+    """Report settled Scale overage. Never raises: the answer is already owed.
+
+    Retries at most 3 uncertain entries, then the open backlog, then this
+    event. Each post waits at most 5 seconds and sends `timestamp` so Stripe
+    bills the period the usage happened. The first of those sends that is not
+    accepted stops the report: the rest are skipped, and this event is parked
+    with `note_uncertain` under the identifier it already has. A retry that
+    gets a definite non-duplicate 4xx is removed and its units go to
+    `overage_unreconciled`. Entries older than 20 hours are moved there
+    before any retry. A definite HTTP 4xx on this event's own send still adds
+    its units to `overage_unreported`.
+    """
+    if spec is None or not spec.active or units < 1 or not customer_id:
+        return
+    secret = str(getattr(env, "STRIPE_SECRET_KEY", "") or "")
+    if not secret:
+        return
+    ledger = credits.ledger_from_env(env)
+    occurred = int(time.time())
+
+    async def send(value: int, event_id: str, timestamp: int) -> None:
+        await billing_stripe.create_meter_event(
+            secret=secret, event_name=spec.meter_event, customer_id=customer_id,
+            value=value, identifier=event_id, timestamp=timestamp, http=_stripe_http,
+            timeout_ms=5_000)
+
+    async def park() -> None:
+        try:
+            await ledger.note_uncertain(holder, units, identifier, occurred)
+        except Exception:
+            logging.error("could not record unreported overage")
+
+    if holder:
+        pending: list[tuple[str, int, int]] = []
+        try:
+            pending = await ledger.age_uncertain(holder, occurred)
+        except Exception:
+            logging.error("could not read uncertain overage")
+        limit = credits.UNCERTAIN_RETRIES_PER_REQUEST
+        for event_id, value, created_at in pending[:limit]:
+            try:
+                await send(value, event_id, int(created_at))
+            except Exception as exc:
+                if billing_stripe.meter_event_was_rejected(exc):
+                    try:
+                        await ledger.unreconcile_uncertain(holder, event_id)
+                    except Exception:
+                        logging.error("could not unreconcile overage")
+                else:
+                    logging.error("scale overage retry failed")
+                await park()
+                return
+            try:
+                await ledger.ack_uncertain(holder, event_id)
+            except Exception:
+                logging.error("could not clear uncertain overage")
+
+        outstanding = 0
+        seq = 0
+        backlog_id = ""
+        try:
+            outstanding, seq, backlog_id = await ledger.open_backlog(holder)
+        except Exception:
+            logging.error("could not read unreported overage")
+        if outstanding > 0:
+            if not backlog_id:
+                backlog_id = f"{holder}:backlog:{seq}"
+            try:
+                await send(outstanding, backlog_id, occurred)
+            except Exception:
+                logging.error("scale overage backlog failed")
+                await park()
+                return
+            try:
+                await ledger.ack_backlog(holder, outstanding, seq)
+            except Exception:
+                logging.error("could not clear unreported overage")
+
+    try:
+        await send(units, identifier, occurred)
+    except Exception as exc:
+        logging.error("scale overage meter event failed")
+        try:
+            if billing_stripe.meter_event_was_rejected(exc):
+                await ledger.note_unreported(
+                    holder, units, identifier, customer_id, spec.meter_event)
+            else:
+                await ledger.note_uncertain(holder, units, identifier, occurred)
+        except Exception:
+            logging.error("could not record unreported overage")
+
+
 async def _stripe_http(url: str, *, method: str, headers: dict, body: str,
                        timeout_ms: int | None = None):
     """Workers HTTP adapter, injected into billing and Turnstile tests."""
@@ -521,6 +645,8 @@ async def _stripe_http(url: str, *, method: str, headers: dict, body: str,
         options = to_js(native, dict_converter=Object.fromEntries)
     except ImportError:
         options = {"method": method, "headers": headers, "body": body}
+        if timeout_ms is not None:
+            options["timeout_ms"] = timeout_ms
     return await fetch(url, options)
 
 
@@ -778,6 +904,8 @@ class Default(WorkerEntrypoint):
                         kv=_access_store(self.env), load_policy=lambda: access_config.load_policy(self.env),
                         anonymous=allowed, live=allowed,
                         sandbox=lambda: access.refusal(access.SANDBOX_NOT_AVAILABLE, "Use a live key for vocabulary.", envelope={}),
+                        skip_limits=lambda record, tier: bool(
+                            tier.paid and not tier.unlimited),
                     )
                     if not outcome.served:
                         return _json_response(outcome.status, outcome.body, {**cors, **outcome.headers})
@@ -812,6 +940,10 @@ class Default(WorkerEntrypoint):
                         return _json_response(400, {"error": {"code": "invalid_request", "message": str(exc)}}, cors)
                     text = json.dumps({"facets": [], "domains": [], "templates": [], "models": {}, "estate": {},
                                        **selected}, ensure_ascii=False)
+                if not admitted:
+                    refusal = await self._meter_catalog_read(api_key, outcome, cors)
+                    if refusal is not None:
+                        return refusal
                 return Response("" if method == "HEAD" else text, status=200,
                                 headers={**cors, "content-type": "application/json; charset=utf-8",
                                          "cache-control": "no-store" if visit_token.enabled(self.env) else "private, max-age=3600", "vary": "Origin"})
@@ -1057,6 +1189,89 @@ class Default(WorkerEntrypoint):
             )
         return _json_response(outcome.status, outcome.body, headers)
 
+    async def _meter_catalog_read(self, api_key, outcome, cors):
+        """Charge a funded paid key for a successful vocabulary read. Others are free.
+
+        Visit tokens never reach here. HEAD is the same read as GET and has no
+        body. Free keys keep the tier's own daily limit. An exempt unlimited
+        tier draws nothing. A key with nothing left to bill is served under the
+        free tier's limits. A refused or invalid read is not counted: the caller
+        validates the query before this runs.
+        """
+        tier_name = getattr(outcome, "tier", None)
+        if not tier_name:
+            return None
+        try:
+            policy = access_config.load_policy(self.env)
+            tier = policy.tier(tier_name)
+        except access_config.PolicyError:
+            return None
+        reads = policy.credits.reads
+        if reads is None or not tier.paid or tier.unlimited:
+            return None
+        holder = x402.holder_from_key(api_key)
+        if not holder:
+            return None
+        ledger = credits.ledger_from_env(self.env)
+        try:
+            bal = await ledger.balance(holder)
+            cap, spec = access_config.overage_for(
+                policy, bal.plan, bal.stripe_customer_id)
+            taken = await ledger.take_read(
+                holder, reads.reads_per_credit, reads.daily_cap, reads.burst_limit,
+                overage_cap=cap)
+        except credits.StoreNotConfigured:
+            return _json_response(503, {"error": {
+                "code": "credits_store_not_configured",
+                "message": "the credit ledger is not bound",
+            }}, cors)
+        if not taken.ok:
+            if taken.reason == "exhausted":
+                return await self._serve_catalog_as_free(outcome, cors, policy)
+            return _catalog_rate_limited(taken, policy, outcome, cors)
+        try:
+            kept = await ledger.keep_read(holder, int(taken.token))
+        except Exception:
+            try:
+                await ledger.release_read(holder, int(taken.token))
+            except Exception:
+                logging.error("could not release catalog read")
+            raise
+        if not kept:
+            # A previous UTC day's undo ticket is dropped without a refund, so
+            # the overage is already settled and still has to be reported.
+            if taken.overage:
+                try:
+                    await ledger.note_unreported(
+                        holder, int(taken.overage), f"{holder}:read:{taken.token}")
+                except Exception:
+                    logging.error("could not record settled catalog overage")
+            return None
+        if taken.overage:
+            await _post_overage(
+                self.env, spec, bal.stripe_customer_id, taken.overage,
+                f"{holder}:read:{taken.token}", holder=holder)
+        return None
+
+    async def _serve_catalog_as_free(self, outcome, cors, policy):
+        """Nothing left to bill. Serve the catalog under the free tier's limits."""
+        try:
+            free = policy.tier("free")
+        except access_config.PolicyError:
+            return None
+        now = datetime.now(UTC)
+        meter = await access_limits.consume(
+            _access_store(self.env), getattr(outcome, "key_id", None) or "", free, now)
+        if meter.allowed:
+            return None
+        record = access_keys.KeyRecord(
+            key_id=getattr(outcome, "key_id", None) or "",
+            tier=getattr(outcome, "tier", None) or "",
+            owner="", created_at="")
+        status, body = access.rate_limited_body(meter, record, policy, now, {})
+        return _json_response(
+            status, body, {**cors, **access._rate_limit_headers(meter, now)})
+
     def _credit_params(self, path: str, payload=None) -> tuple[int, int, str]:
         try:
             policy = access_config.load_policy(self.env)
@@ -1095,7 +1310,9 @@ class Default(WorkerEntrypoint):
                 policy = access_config.load_policy(self.env)
             except access_config.PolicyError:
                 return tier
-            if bal.available > 0:
+            cap, _spec = access_config.overage_for(
+                policy, bal.plan, bal.stripe_customer_id)
+            if bal.available > 0 or cap > bal.overage_used:
                 return replace(tier, daily_limit=None,
                                burst_limit=policy.credits.burst_limit)
             try:
@@ -1248,12 +1465,33 @@ class Default(WorkerEntrypoint):
                 return await produce(*args, **kwargs)
             cfg = x402.load_config(self.env)
             holder = x402.holder_from_key(api_key) if keyed else None
+            ledger = credits.ledger_from_env(self.env)
+            cap = 0
+            spec = None
+            customer = ""
+            if holder:
+                try:
+                    policy = access_config.load_policy(self.env)
+                    bal = await ledger.balance(holder)
+                except access_config.PolicyError:
+                    policy = None
+                    bal = None
+                if policy is not None and bal is not None:
+                    cap, spec = access_config.overage_for(
+                        policy, bal.plan, bal.stripe_customer_id)
+                    customer = bal.stripe_customer_id
+
+            async def on_overage(spent: int, identifier: str) -> None:
+                await _post_overage(
+                    self.env, spec, customer, spent, identifier,
+                    holder=holder or "")
+
             unfunded = None
             if produce_unfunded is not None:
                 unfunded = lambda: produce_unfunded(*args, **kwargs)
             return await x402.charge(
                 config=cfg,
-                ledger=credits.ledger_from_env(self.env),
+                ledger=ledger,
                 facilitator=x402.facilitator_from_env(self.env, cfg),
                 get_header=lambda name: request.headers.get(name),
                 holder=holder,
@@ -1266,6 +1504,8 @@ class Default(WorkerEntrypoint):
                 pack_expiry_days=expiry_days,
                 buy_url=buy,
                 trace=trace,
+                overage_cap=cap,
+                on_overage=on_overage,
             )
 
         return wrapped

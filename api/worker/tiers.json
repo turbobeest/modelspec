@@ -39,6 +39,9 @@
       "description": "Unlimited, and deliberately on the same handler as a paid key: null limits, not a bypass."
     }
   },
+  "x402": {
+    "list_usd_per_decision": "0.02"
+  },
   "credits": {
     "weights": {
       "rank": 1,
@@ -48,7 +51,12 @@
       "decide.full": 2
     },
     "burst_limit": 60,
-    "pack_expiry_days": 365
+    "pack_expiry_days": 365,
+    "reads": {
+      "reads_per_credit": 10,
+      "daily_cap": 1000,
+      "burst_limit": 30
+    }
   },
   "billing": {
     "downgrade_tier": "free",
@@ -66,7 +74,8 @@
         "interval": "month",
         "tier": "paid",
         "placeholder": false,
-        "description": "Monthly Solo plan: 4000 credits, reset each paid invoice, no rollover."
+        "legacy": true,
+        "description": "Legacy price kept for existing customers. Monthly Solo plan: 4000 credits, reset each paid invoice, no rollover. Not for sale."
       },
       "price_1UHRwmBPydVRHUBjBYfcWhkW": {
         "kind": "plan",
@@ -76,7 +85,8 @@
         "interval": "month",
         "tier": "paid",
         "placeholder": false,
-        "description": "Monthly Team plan: 30000 credits, reset each paid invoice, no rollover."
+        "legacy": true,
+        "description": "Legacy price kept for existing customers. Monthly Team plan: 30000 credits, reset each paid invoice, no rollover. Not for sale."
       },
       "price_1UHRwmBPydVRHUBjMFS5bDPD": {
         "kind": "pack",
@@ -86,7 +96,8 @@
         "interval": "once",
         "tier": "paid",
         "placeholder": false,
-        "description": "One-off pack. Adds 1250 credits that expire 12 months after purchase."
+        "legacy": true,
+        "description": "Legacy price kept for existing customers. One-off pack. Adds 1250 credits that expire 12 months after purchase. Not for sale."
       },
       "price_1UHRwmBPydVRHUBjN2mEnzdD": {
         "kind": "pack",
@@ -96,7 +107,8 @@
         "interval": "once",
         "tier": "paid",
         "placeholder": false,
-        "description": "One-off pack. Adds 7500 credits that expire 12 months after purchase."
+        "legacy": true,
+        "description": "Legacy price kept for existing customers. One-off pack. Adds 7500 credits that expire 12 months after purchase. Not for sale."
       },
       "price_1UHRwmBPydVRHUBj08ctUUjN": {
         "kind": "pack",
@@ -106,7 +118,8 @@
         "interval": "once",
         "tier": "paid",
         "placeholder": false,
-        "description": "One-off pack. Adds 20000 credits that expire 12 months after purchase."
+        "legacy": true,
+        "description": "Legacy price kept for existing customers. One-off pack. Adds 20000 credits that expire 12 months after purchase. Not for sale."
       },
       "price_1UHRwnBPydVRHUBjhRYBngwH": {
         "kind": "pack",
@@ -116,7 +129,85 @@
         "interval": "once",
         "tier": "paid",
         "placeholder": false,
-        "description": "One-off pack. Adds 50000 credits that expire 12 months after purchase."
+        "legacy": true,
+        "description": "Legacy price kept for existing customers. One-off pack. Adds 50000 credits that expire 12 months after purchase. Not for sale."
+      },
+      "price_PLACEHOLDER_solo_v2": {
+        "kind": "plan",
+        "name": "Solo",
+        "credits": 2500,
+        "usd": 29,
+        "interval": "month",
+        "tier": "paid",
+        "placeholder": true,
+        "description": "Monthly Solo plan: 2500 credits, reset each paid invoice, no rollover."
+      },
+      "price_PLACEHOLDER_team_v2": {
+        "kind": "plan",
+        "name": "Team",
+        "credits": 25000,
+        "usd": 199,
+        "interval": "month",
+        "tier": "paid",
+        "placeholder": true,
+        "description": "Monthly Team plan: 25000 credits, reset each paid invoice, no rollover."
+      },
+      "price_PLACEHOLDER_scale_v2": {
+        "kind": "plan",
+        "name": "Scale",
+        "credits": 150000,
+        "usd": 799,
+        "interval": "month",
+        "tier": "paid",
+        "placeholder": true,
+        "description": "Monthly Scale plan: 150000 credits, reset each paid invoice, no rollover, plus metered overage.",
+        "overage": {
+          "usd_per_credit": "0.006",
+          "cap_credits": 150000,
+          "price_id": "price_PLACEHOLDER_scale_overage_v2",
+          "meter_event": "modelspec_scale_overage",
+          "placeholder": true
+        }
+      },
+      "price_PLACEHOLDER_pack_250_v2": {
+        "kind": "pack",
+        "name": "250-credit pack",
+        "credits": 250,
+        "usd": 5,
+        "interval": "once",
+        "tier": "paid",
+        "placeholder": true,
+        "description": "One-off pack. Adds 250 credits that expire 12 months after purchase."
+      },
+      "price_PLACEHOLDER_pack_1300_v2": {
+        "kind": "pack",
+        "name": "1,300-credit pack",
+        "credits": 1300,
+        "usd": 25,
+        "interval": "once",
+        "tier": "paid",
+        "placeholder": true,
+        "description": "One-off pack. Adds 1300 credits that expire 12 months after purchase."
+      },
+      "price_PLACEHOLDER_pack_2750_v2": {
+        "kind": "pack",
+        "name": "2,750-credit pack",
+        "credits": 2750,
+        "usd": 50,
+        "interval": "once",
+        "tier": "paid",
+        "placeholder": true,
+        "description": "One-off pack. Adds 2750 credits that expire 12 months after purchase."
+      },
+      "price_PLACEHOLDER_pack_6000_v2": {
+        "kind": "pack",
+        "name": "6,000-credit pack",
+        "credits": 6000,
+        "usd": 100,
+        "interval": "once",
+        "tier": "paid",
+        "placeholder": true,
+        "description": "One-off pack. Adds 6000 credits that expire 12 months after purchase."
       }
     }
   }

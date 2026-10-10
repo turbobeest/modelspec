@@ -69,6 +69,8 @@ import os
 import re
 import sys
 import urllib.request
+from dataclasses import replace
+from decimal import Decimal
 from pathlib import Path
 from typing import Any
 
@@ -1078,6 +1080,11 @@ def x402_enabled() -> bool:
     return x402.flag(found.group(1) if found else None)
 
 
+def _per_credit_atomic() -> int:
+    packs = x402.packs_from_policy(access_config.load_policy())
+    return packs[0].atomic // packs[0].credits
+
+
 def _x402() -> dict[str, Any]:
     import re
     live = _wrangler_live_lines()
@@ -1093,8 +1100,8 @@ def _x402() -> dict[str, Any]:
         "enabled": x402_enabled(),
         "mainnet": x402.flag(var("X402_MAINNET", "false")),
         "network": var("X402_NETWORK", x402.NETWORK_BASE_SEPOLIA),
-        "per_credit_atomic": packs[0].atomic // packs[0].credits,
-        "keyless_price_rule": "4000 atomic USDC per endpoint credit",
+        "per_credit_atomic": _per_credit_atomic(),
+        "keyless_price_rule": f"{_per_credit_atomic()} atomic USDC per endpoint credit",
         "packs": [{"name": row.name, "credits": row.credits,
                    "usd": row.usd, "atomic": row.atomic} for row in packs],
         "facilitator": var("X402_FACILITATOR_URL", x402.DEFAULT_ORIGIN),
@@ -1274,7 +1281,17 @@ def _billing_paths() -> dict[str, Any]:
     policy = access_config.load_policy(path=TIERS_PATH)
     now = datetime(2026, 9, 17, 14, 30, tzinfo=UTC)
     secret = "whsec_openapi_fixture"
+    # The webhook sample uses a mapped row as shipped. Legacy rows still grant.
     price = next(iter(policy.billing.prices))
+    # Checkout success needs a row that is for sale. The shipped v2 rows are
+    # placeholders, so the sample clears that flag on the current Solo plan
+    # and does not write it back.
+    sale_id = next(
+        row.price_id for row in policy.billing.prices.values()
+        if row.kind == "plan" and row.name == "Solo" and not row.legacy)
+    sale_row = replace(policy.billing.prices[sale_id], placeholder=False, legacy=False)
+    selling = replace(policy, billing=replace(
+        policy.billing, prices={**policy.billing.prices, sale_id: sale_row}))
     body = json.dumps({
         "id": "evt_spec", "object": "event", "type": "checkout.session.completed",
         "data": {"object": {
@@ -1330,22 +1347,22 @@ def _billing_paths() -> dict[str, Any]:
             session_id="cs_unknown", kv=kv, policy=policy, now=now,
             service_commit=_COMMIT)
         check = await billing_mod.checkout(
-            payload={"price_id": price}, flag=True, secret="sk_test_openapi",
+            payload={"price_id": sale_id}, flag=True, secret="sk_test_openapi",
             origin="https://api.modelspec.dev", kv=access_kv.MemoryKV(),
-            policy=policy, service_commit=_COMMIT, http=_Stripe())
+            policy=selling, service_commit=_COMMIT, http=_Stripe())
         check_omit = await billing_mod.checkout(
             payload={}, flag=True, secret="sk_test_openapi",
             origin="https://api.modelspec.dev", kv=access_kv.MemoryKV(),
             policy=policy, service_commit=_COMMIT, http=_Stripe())
         check_bad = await billing_mod.checkout(
-            payload={"price_id": price}, flag=True, secret="sk_test_openapi",
+            payload={"price_id": sale_id}, flag=True, secret="sk_test_openapi",
             origin="https://api.modelspec.dev", kv=access_kv.MemoryKV(),
-            policy=policy, service_commit=_COMMIT, http=_Stripe(),
+            policy=selling, service_commit=_COMMIT, http=_Stripe(),
             api_key="live_unknown_not_issued")
         check_form = await billing_mod.checkout_form(
-            raw=f"price_id={price}", flag=True, secret="sk_test_openapi",
+            raw=f"price_id={sale_id}", flag=True, secret="sk_test_openapi",
             origin="https://api.modelspec.dev", kv=access_kv.MemoryKV(),
-            policy=policy, service_commit=_COMMIT, http=_Stripe())
+            policy=selling, service_commit=_COMMIT, http=_Stripe())
         check_unmapped = await billing_mod.checkout_form(
             raw="price_id=price_unknown", flag=True, secret="sk_test_openapi",
             origin="https://api.modelspec.dev", kv=access_kv.MemoryKV(),
@@ -1406,8 +1423,9 @@ def _billing_paths() -> dict[str, Any]:
                     "`Authorization: Bearer` binds the payment to that key (fingerprint "
                     "only, never the key): a pack ADDs credits, a plan attaches. Unknown "
                     "or revoked key: 401, never anonymous. No key: claim mints one. "
-                    "BILLING_ENABLED off: 503 billing_not_enabled, before any call "
-                    "to Stripe. The flag gates this endpoint alone.\n\n"
+                    "A legacy or placeholder Price is refused with price_not_mapped, "
+                    "never sent to Stripe. BILLING_ENABLED off: 503 billing_not_enabled, "
+                    "before any call to Stripe. The flag gates this endpoint alone.\n\n"
                     "Form variant (MODEL-105): the buy buttons on "
                     "https://modelspec.dev/pricing post "
                     "`application/x-www-form-urlencoded` with one `price_id` field. "
@@ -1415,7 +1433,7 @@ def _billing_paths() -> dict[str, Any]:
                     "Stripe Checkout URL, so the browser goes straight to Stripe. "
                     "It is always anonymous Checkout (any Authorization header is "
                     "ignored; claim mints a new key); buying onto an existing key "
-                    "is the JSON call with the key presented. An unknown or "
+                    "is the JSON call with the key presented. An unknown, legacy, or "
                     "placeholder `price_id` is refused, never redirected, and every "
                     "refusal is the JSON call's own. A body that parses as JSON is "
                     "the JSON call whatever its content type, so `curl -d '{...}'` "
@@ -1433,7 +1451,7 @@ def _billing_paths() -> dict[str, Any]:
                                 "type": "object", "additionalProperties": False,
                                 "properties": {"price_id": {"type": "string"}},
                             },
-                            "example": {"price_id": price},
+                            "example": {"price_id": sale_id},
                         },
                         billing_mod.FORM_CONTENT_TYPE: {
                             "schema": {
@@ -1441,12 +1459,14 @@ def _billing_paths() -> dict[str, Any]:
                                 "required": ["price_id"],
                                 "properties": {"price_id": {"type": "string"}},
                             },
-                            "example": {"price_id": price},
+                            "example": {"price_id": sale_id},
                         },
                     },
                 },
                 "responses": {
-                    "200": envelope(check, "Hosted Checkout URL. Open it in a browser."),
+                    "200": envelope(check, "Hosted Checkout URL. Open it in a browser. "
+                                    "The sample sells the current Solo row with its "
+                                    "placeholder cleared; the shipped row is not for sale."),
                     str(billing_mod.HTTP_SEE_OTHER): {
                         **envelope(
                             check_form,
@@ -1465,8 +1485,8 @@ def _billing_paths() -> dict[str, Any]:
                         "A presented API key that is unknown or revoked. Never treated as anonymous."),
                     str(billing_mod.HTTP_MISCONFIGURED): envelope(
                         check_unmapped,
-                        "price_not_mapped: the price_id is not in the tier table, or "
-                        "(form post) is a placeholder. Refused, never redirected."),
+                        "price_not_mapped: the price_id is not in the tier table, or it "
+                        "is a legacy or placeholder Price. Refused, never redirected."),
                     str(billing_mod.HTTP_UNAVAILABLE): envelope(check_off, off),
                     str(service.HTTP_NOT_FOUND): _json_body(
                         "No endpoint at that path.",
@@ -2644,7 +2664,7 @@ def build_spec() -> dict[str, Any]:
             network=x402.NETWORK_BASE_SEPOLIA,
             asset=x402._norm_addr(x402.USDC_BASE_SEPOLIA),
             pay_to="0x209693bc6afc0c5328ba36faf03c514ef312287c",
-            price_atomic=4000,
+            price_atomic=_per_credit_atomic(),
             facilitator_url=x402.DEFAULT_ORIGIN,
             resource_origin=_ORIGIN,
             packs=x402.packs_from_policy(access_config.load_policy()),
@@ -3011,7 +3031,8 @@ def build_spec() -> dict[str, Any]:
                         ),
                         str(x402.HTTP_PAYMENT_REQUIRED): _json_body(
                             "Payment required when X402_ENABLED is on. A keyed caller is "
-                            "offered the card packs. A keyless caller pays 4,000 atomic "
+                            "offered the card packs. A keyless caller pays "
+                            f"{_per_credit_atomic():,} atomic "
                             "USDC per credit, multiplied by this spec's explanation weight.",
                             {"$ref": "#/components/schemas/PaymentRequired"},
                         ),
@@ -3389,6 +3410,29 @@ def apply_guide_headers(spec: dict[str, Any]) -> None:
                         response["headers"] = common
 
 
+def _catalog_read_note() -> str:
+    """One sentence for GET /v1/vocabulary, from the shipped read meter."""
+    import access_config
+    policy = access_config.load_policy()
+    reads = policy.credits.reads
+    if reads is None:
+        return ""
+    each = ""
+    if policy.x402 is not None and reads.reads_per_credit:
+        amount = policy.x402.rate() / Decimal(reads.reads_per_credit)
+        each = f" (${amount} each)"
+    return (
+        f" A funded paid key is charged one credit per {reads.reads_per_credit}"
+        f" successful GET catalog reads{each}, up front at the start of each block,"
+        f" while the key can pay, capped at {reads.daily_cap:,} reads a key a UTC day and"
+        f" {reads.burst_limit} a minute, so an agent cannot rebuild a decision"
+        " from cheap reads. HEAD is the same read as GET and has no body. A key with nothing left to bill"
+        " for the next block is served under the free tier's daily limit. A visit"
+        " token, a free-tier key and an exempt key are not charged this way. A"
+        " refused read is not charged."
+    )
+
+
 def render() -> str:
     spec = apply_agent_copy(build_spec())
     if not x402_enabled():
@@ -3417,7 +3461,7 @@ def render() -> str:
             "get": {
                 "operationId": "displayVocabulary",
                 "summary": "Display definitions and names for /decide",
-                "description": "Available with DATA_SPLIT_ENABLED. Facet definitions, benchmark and domain names, templates, and model/plan IDs and display names only. Aggregate answerability, facet/enum data availability, refinement definitions and a thin boolean are included. Benchmark min/max is included only when at least 3 models have a score on that benchmark; ranges for 1 or 2 scored models are omitted. No prices, allowances, counts, individual scores or archived model names. HUMAN_GATE_ENABLED meters the same keyed visitor Durable Object with an independent 60 per UTC day and 10 per minute budget. With VISIT_GATE_ENABLED, a key takes precedence, otherwise a valid visit token admits and meters a page caller; without either credential ACCESS_ENFORCED decides. Visit allowances are configured separately from decides. Visit replies are no-store and renew the credential in X-ModelSpec-Visit-Token and X-ModelSpec-Visit-Expires. Without the visit flag successful responses use Cache-Control: private, max-age=3600. Starter search or id/ids searches across sections except coverage. Ranked matches and matching section rows share a page of at most 20 hits; starter retains any starter facets on that page. Explicit non-starter lookups stay scoped. Search reads ids, labels, definitions, values and synonyms, excluding nested benchmark domains. All query tokens rank first; other hits match a subset of content tokens and interleave so each token's best hit leads. A synonym hit keeps matched as label and adds optional via and matched_tokens. total counts those hits. Empty lookups explain the search and suggest the nearest ids across sections. The existing required envelope fields remain present. Compact facets carry id, label, a one-line definition, value_type and the complete allowed_values list. Providers and models carry IDs and display names. The no-query response stays byte-identical for /decide.",
+                "description": "Available with DATA_SPLIT_ENABLED. Facet definitions, benchmark and domain names, templates, and model/plan IDs and display names only. Aggregate answerability, facet/enum data availability, refinement definitions and a thin boolean are included. Benchmark min/max is included only when at least 3 models have a score on that benchmark; ranges for 1 or 2 scored models are omitted. No prices, allowances, counts, individual scores or archived model names. HUMAN_GATE_ENABLED meters the same keyed visitor Durable Object with an independent 60 per UTC day and 10 per minute budget. With VISIT_GATE_ENABLED, a key takes precedence, otherwise a valid visit token admits and meters a page caller; without either credential ACCESS_ENFORCED decides. Visit allowances are configured separately from decides. Visit replies are no-store and renew the credential in X-ModelSpec-Visit-Token and X-ModelSpec-Visit-Expires. Without the visit flag successful responses use Cache-Control: private, max-age=3600. Starter search or id/ids searches across sections except coverage. Ranked matches and matching section rows share a page of at most 20 hits; starter retains any starter facets on that page. Explicit non-starter lookups stay scoped. Search reads ids, labels, definitions, values and synonyms, excluding nested benchmark domains. All query tokens rank first; other hits match a subset of content tokens and interleave so each token's best hit leads. A synonym hit keeps matched as label and adds optional via and matched_tokens. total counts those hits. Empty lookups explain the search and suggest the nearest ids across sections. The existing required envelope fields remain present. Compact facets carry id, label, a one-line definition, value_type and the complete allowed_values list. Providers and models carry IDs and display names. The no-query response stays byte-identical for /decide." + _catalog_read_note(),
                 "security": [*spec["security"], *([{"visitToken": []}] if visit_gate_enabled() else [])],
                 "parameters": [*vocabulary_parameters(), {"name": "X-ModelSpec-Visit-Token", "in": "header", "required": False, "schema": {"type": "string", "maxLength": 2048}}],
                 "responses": {
@@ -3458,8 +3502,8 @@ def render() -> str:
                         }}),
                     "403": {"description": "Key revoked"},
                     "404": {"description": "Data splitting is disabled"},
-                    "429": {"description": "Vocabulary visitor cap exceeded; Retry-After names the wait"},
-                    "503": {"description": "Visitor identity or counter unavailable"},
+                    "429": {"description": "Vocabulary visitor cap exceeded, a funded key's daily or burst catalog-read cap, or the free tier's daily limit once nothing is left to bill; Retry-After names the wait"},
+                    "503": {"description": "Visitor identity, counter or credit ledger unavailable"},
                     "502": {"description": "Bundled vocabulary unavailable"},
                 },
             },

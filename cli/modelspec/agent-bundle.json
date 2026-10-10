@@ -498,49 +498,56 @@
       {
         "kind": "plan",
         "name": "Solo",
-        "usd": 10,
-        "credits": 4000,
+        "usd": 29,
+        "credits": 2500,
         "interval": "month"
       },
       {
         "kind": "plan",
         "name": "Team",
-        "usd": 50,
-        "credits": 30000,
+        "usd": 199,
+        "credits": 25000,
+        "interval": "month"
+      },
+      {
+        "kind": "plan",
+        "name": "Scale",
+        "usd": 799,
+        "credits": 150000,
         "interval": "month"
       },
       {
         "kind": "pack",
-        "name": "1,250-credit pack",
+        "name": "250-credit pack",
         "usd": 5,
-        "credits": 1250,
+        "credits": 250,
         "interval": "once"
       },
       {
         "kind": "pack",
-        "name": "7,500-credit pack",
+        "name": "1,300-credit pack",
         "usd": 25,
-        "credits": 7500,
+        "credits": 1300,
         "interval": "once"
       },
       {
         "kind": "pack",
-        "name": "20,000-credit pack",
+        "name": "2,750-credit pack",
         "usd": 50,
-        "credits": 20000,
+        "credits": 2750,
         "interval": "once"
       },
       {
         "kind": "pack",
-        "name": "50,000-credit pack",
+        "name": "6,000-credit pack",
         "usd": 100,
-        "credits": 50000,
+        "credits": 6000,
         "interval": "once"
       }
     ],
     "usd_per_credit": {
-      "min": 0.0016666666666666668,
-      "max": 0.004
+      "min": 0.005326666666666667,
+      "max": 0.02
     },
     "answer_credits": {
       "decide.none": 1,
@@ -548,8 +555,8 @@
       "decide.full": 2
     },
     "usd_per_answer": {
-      "min": 0.0016666666666666668,
-      "max": 0.008
+      "min": 0.005326666666666667,
+      "max": 0.04
     }
   },
   "clients": {
@@ -805,12 +812,12 @@
     }
   },
   "source_hashes": {
-    "pipeline/agent_copy.py": "cae876f0c53a03a002db8139c6b40bc169ba3261fb7d0f261fce10ff2f45e895",
+    "pipeline/agent_copy.py": "3284280fee8d973a93f9e95af818a7d742adbfd8ebe432ee65be75ffc105d296",
     "pipeline/entity.py": "1649e5f95b620561511c2619045d036231b44c8ab7ff297bf4c6a21ab2b69ff3",
-    "pipeline/pricing.py": "be0b02ad499ff2d88fc50a9a34e540299cfc2954fe8f2912a038ce8ee34223db",
+    "pipeline/pricing.py": "bc635eb9f446eec209f882c1f8bb8f79ccf295431bb191f8fd632efe0a940fd8",
     "pipeline/worker_flags.py": "0f3c1ff0de81710417659b86e1ec92913bbcf54af6312720fdad659e6af03429",
     "api/worker/wrangler.jsonc": "49523d5f0721cf42618d901c27943fa5ed5705dd60aa237fba03a129836922df",
-    "api/worker/tiers.json": "315a2ad62c5b366246675d2984e61243ed20d85d89bad6bd648e8960926b8773",
+    "api/worker/tiers.json": "ed1c55f03942853519947928ddd63d0ab61c454aa0f6cc8e96ef3fb93015b5a6",
     "docs/decision-contract.schema.json": "2dd7c6217915f49edefc5d1737ac078999f749b5290eeaa50cca9288366bf7ef",
     "pyproject.toml": "2f903fc64f25fd96287f064775d8006a87a63a22f5f4103046ca9353e039975e",
     "schemas/feedback-v1.schema.json": "551a54ba5a954b73c38d5c35d0a48c62cf1b89d0cd9543d96103e2320450638b"

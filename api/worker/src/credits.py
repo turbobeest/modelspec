@@ -33,11 +33,106 @@ The unit is a credit.
 from __future__ import annotations
 
 import asyncio
+import time
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from typing import Any, Protocol
 
 LEGACY_EXPIRY = "9999-12-31T00:00:00Z"
+# Stripe may already have an uncertain meter event. Retry that identifier,
+# and stop queueing once this many are still open. One report retries at most
+# UNCERTAIN_RETRIES_PER_REQUEST of them. An identifier is unique for about a
+# day, so an entry older than UNCERTAIN_MAX_AGE_SECONDS is not retried.
+UNCERTAIN_METER_CAP = 20
+UNCERTAIN_RETRIES_PER_REQUEST = 3
+UNCERTAIN_MAX_AGE_SECONDS = 20 * 60 * 60
+
+
+def _unix_now() -> int:
+    return int(time.time())
+
+
+def _uncertain_rows(raw: Any, *, now: int | None = None) -> tuple[list[tuple[str, int, int]], int]:
+    """Keep at most `UNCERTAIN_METER_CAP` events. Further units are unreconciled.
+
+    Each kept row is `(identifier, units, created_at)`. A stored row with no
+    `created_at` loads as created at `now`.
+    """
+    clock = _unix_now() if now is None else int(now)
+    kept: list[tuple[str, int, int]] = []
+    overflow = 0
+    if not isinstance(raw, list):
+        return kept, overflow
+    for row in raw:
+        if not isinstance(row, dict):
+            continue
+        ident = str(row.get("identifier") or "").strip()
+        units = int(row.get("units") or 0)
+        if not ident or units < 1:
+            continue
+        if len(kept) >= UNCERTAIN_METER_CAP:
+            overflow += units
+            continue
+        if "created_at" not in row or row.get("created_at") in (None, ""):
+            created_at = clock
+        else:
+            created_at = int(row["created_at"])
+        kept.append((ident, units, created_at))
+    return kept, overflow
+
+
+def _uncertain_wire(data: Any) -> list[tuple[str, int, int]]:
+    """Rows from a Durable Object: identifier, units, created_at."""
+    to_py = getattr(data, "to_py", None)
+    rows = to_py() if callable(to_py) else data
+    out: list[tuple[str, int, int]] = []
+    for row in rows or []:
+        ident, units, created_at = row
+        out.append((str(ident), int(units), int(created_at)))
+    return out
+
+
+def _stamp_backlog_id(acc: _Account, holder: str) -> None:
+    if acc.overage_backlog_open > 0 and not str(acc.overage_backlog_id or "").strip():
+        acc.overage_backlog_id = f"{holder}:backlog:{acc.overage_backlog_n}"
+
+
+def _append_uncertain(acc: _Account, identifier: str, units: int,
+                      created_at: int | None = None) -> bool:
+    """Park one uncertain event. A full list adds `units` to `overage_unreconciled`."""
+    ident = str(identifier or "").strip()
+    amount = int(units)
+    if amount < 1 or not ident:
+        return False
+    if any(row[0] == ident for row in acc.overage_uncertain):
+        return True
+    if len(acc.overage_uncertain) >= UNCERTAIN_METER_CAP:
+        acc.overage_unreconciled += amount
+        return False
+    when = _unix_now() if created_at is None else int(created_at)
+    acc.overage_uncertain.append((ident, amount, when))
+    return True
+
+
+def _move_meter_tail(existing: _Account, acc: _Account, src: str, dst: str) -> None:
+    """Copy meter retry state onto `dst` without giving an in-flight event a new id."""
+    _stamp_backlog_id(existing, dst)
+    _stamp_backlog_id(acc, src)
+    existing.overage_unreported += acc.overage_unreported
+    existing.overage_unreconciled += acc.overage_unreconciled
+    for ident, units, created_at in acc.overage_uncertain:
+        _append_uncertain(existing, ident, units, created_at)
+    if acc.overage_backlog_open > 0 and existing.overage_backlog_open < 1:
+        existing.overage_backlog_open = acc.overage_backlog_open
+        existing.overage_backlog_id = acc.overage_backlog_id
+    elif acc.overage_backlog_open > 0 and existing.overage_backlog_id != acc.overage_backlog_id:
+        # Dest already has its own in-flight identifier. Keep that snapshot
+        # and retry the source snapshot under the identifier Stripe saw.
+        parked = acc.overage_backlog_open
+        existing.overage_unreported = max(0, existing.overage_unreported - parked)
+        _append_uncertain(existing, acc.overage_backlog_id, parked)
+    # n only chooses the next new identifier. Never rewind it.
+    existing.overage_backlog_n = max(existing.overage_backlog_n, acc.overage_backlog_n)
 
 
 class StoreNotConfigured(RuntimeError):
@@ -86,6 +181,67 @@ class ReserveResult:
         rid = data.get("reservation_id")
         return cls(bool(data.get("ok")), None if rid is None else int(rid),
                    int(data.get("available") or 0), int(data.get("reserved") or 0))
+
+
+@dataclass(frozen=True)
+class CommitResult:
+    """A settled reservation. `overage` is units past the prepaid balance.
+
+    Truthy when the reservation existed, so callers that only check success
+    keep working. A release never produces one of these: uncommitted overage
+    is capacity returned, not a charge.
+    """
+
+    ok: bool
+    overage: int = 0
+
+    def __bool__(self) -> bool:
+        return self.ok
+
+    def to_json(self) -> dict[str, Any]:
+        return {"ok": self.ok, "overage": self.overage}
+
+    @classmethod
+    def from_json(cls, data: Any) -> CommitResult:
+        if isinstance(data, bool):
+            return cls(data, 0)
+        if not isinstance(data, dict):
+            return cls(bool(data), 0)
+        return cls(bool(data.get("ok")), int(data.get("overage") or 0))
+
+
+@dataclass(frozen=True)
+class ReadResult:
+    """One metadata-read attempt. A refusal is not counted and not charged."""
+
+    ok: bool
+    reason: str = ""
+    token: int | None = None
+    available: int = 0
+    read_count: int = 0
+    read_burst: int = 0
+    daily_cap: int = 0
+    burst_limit: int = 0
+    overage: int = 0
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "ok": self.ok, "reason": self.reason, "token": self.token,
+            "available": self.available, "read_count": self.read_count,
+            "read_burst": self.read_burst, "daily_cap": self.daily_cap,
+            "burst_limit": self.burst_limit, "overage": self.overage,
+        }
+
+    @classmethod
+    def from_json(cls, data: dict[str, Any]) -> ReadResult:
+        token = data.get("token")
+        return cls(
+            bool(data.get("ok")), str(data.get("reason") or ""),
+            None if token is None else int(token),
+            int(data.get("available") or 0), int(data.get("read_count") or 0),
+            int(data.get("read_burst") or 0), int(data.get("daily_cap") or 0),
+            int(data.get("burst_limit") or 0), int(data.get("overage") or 0),
+        )
 
 
 @dataclass(frozen=True)
@@ -184,6 +340,10 @@ class Balance:
     monthly: int = 0
     packs: int = 0
     grants: tuple[PackGrantView, ...] = ()
+    plan: str = ""
+    overage_used: int = 0
+    stripe_customer_id: str = ""
+    overage_unreported: int = 0
 
     @property
     def total(self) -> int:
@@ -198,6 +358,10 @@ class Balance:
             "monthly": self.monthly,
             "packs": self.packs,
             "grants": [g.to_json() for g in self.grants],
+            "plan": self.plan,
+            "overage_used": self.overage_used,
+            "stripe_customer_id": self.stripe_customer_id,
+            "overage_unreported": self.overage_unreported,
         }
 
     @classmethod
@@ -219,6 +383,10 @@ class Balance:
             int(data.get("monthly") or 0),
             int(data.get("packs") or 0),
             grants,
+            str(data.get("plan") or ""),
+            int(data.get("overage_used") or 0),
+            str(data.get("stripe_customer_id") or ""),
+            int(data.get("overage_unreported") or 0),
         )
 
 
@@ -262,12 +430,14 @@ class _Reservation:
     units: int
     monthly: int = 0
     packs: list[tuple[str, int]] = field(default_factory=list)
+    overage: int = 0
 
     def to_json(self) -> dict[str, Any]:
         return {
             "units": self.units,
             "monthly": self.monthly,
             "packs": [[grant_id, amount] for grant_id, amount in self.packs],
+            "overage": self.overage,
         }
 
     @classmethod
@@ -286,6 +456,42 @@ class _Reservation:
             units=int(data.get("units") or 0),
             monthly=int(data.get("monthly") or 0),
             packs=packs,
+            overage=int(data.get("overage") or 0),
+        )
+
+
+@dataclass
+class _TakenRead:
+    """One counted catalog read, so a failed response can give that read back."""
+
+    day: str = ""
+    minute: str = ""
+    overage: int = 0
+    monthly: int = 0
+    packs: list[tuple[str, int]] = field(default_factory=list)
+    block_before: int = 0
+    block_after: int = 0
+
+    def to_json(self) -> dict[str, Any]:
+        return {
+            "day": self.day, "minute": self.minute, "overage": self.overage,
+            "monthly": self.monthly,
+            "packs": [[grant_id, amount] for grant_id, amount in self.packs],
+            "block_before": self.block_before, "block_after": self.block_after,
+        }
+
+    @classmethod
+    def from_json(cls, data: Any) -> _TakenRead:
+        if not isinstance(data, dict):
+            return cls()
+        packs = []
+        for row in data.get("packs") or []:
+            if isinstance(row, (list, tuple)) and len(row) >= 2:
+                packs.append((str(row[0]), int(row[1])))
+        return cls(
+            str(data.get("day") or ""), str(data.get("minute") or ""),
+            int(data.get("overage") or 0), int(data.get("monthly") or 0), packs,
+            int(data.get("block_before") or 0), int(data.get("block_after") or 0),
         )
 
 
@@ -297,6 +503,24 @@ class _Account:
     reservations: dict[int, _Reservation] = field(default_factory=dict)
     packs: list[_PackGrant] = field(default_factory=list)
     plan: str = ""
+    overage_used: int = 0
+    stripe_customer_id: str = ""
+    read_day: str = ""
+    read_count: int = 0
+    read_minute: str = ""
+    read_burst: int = 0
+    reads_in_block: int = 0
+    next_read: int = 1
+    taken_reads: dict[int, _TakenRead] = field(default_factory=dict)
+    overage_unreported: int = 0
+    overage_backlog_n: int = 0
+    overage_backlog_open: int = 0
+    overage_backlog_id: str = ""
+    overage_uncertain: list[tuple[str, int, int]] = field(default_factory=list)
+    overage_unreconciled: int = 0
+
+    def overage_open(self) -> int:
+        return sum(item.overage for item in self.reservations.values())
 
     def live_packs(self, now: str) -> list[_PackGrant]:
         return [g for g in self.packs if g.remaining > 0 and not _expired(g.expires_at, now)]
@@ -320,6 +544,24 @@ class _Account:
             "reservations": {str(k): v.to_json() for k, v in self.reservations.items()},
             "packs": [g.to_json() for g in self.packs],
             "plan": self.plan,
+            "overage_used": self.overage_used,
+            "stripe_customer_id": self.stripe_customer_id,
+            "read_day": self.read_day,
+            "read_count": self.read_count,
+            "read_minute": self.read_minute,
+            "read_burst": self.read_burst,
+            "reads_in_block": self.reads_in_block,
+            "next_read": self.next_read,
+            "taken_reads": {str(k): v.to_json() for k, v in self.taken_reads.items()},
+            "overage_unreported": self.overage_unreported,
+            "overage_backlog_n": self.overage_backlog_n,
+            "overage_backlog_open": self.overage_backlog_open,
+            "overage_backlog_id": self.overage_backlog_id,
+            "overage_uncertain": [
+                {"identifier": ident, "units": units, "created_at": created_at}
+                for ident, units, created_at in self.overage_uncertain
+            ],
+            "overage_unreconciled": self.overage_unreconciled,
         }
 
     @classmethod
@@ -328,6 +570,17 @@ class _Account:
         reservations = {int(k): _Reservation.from_json(v) for k, v in raw.items()}
         packs = [_PackGrant.from_json(row) for row in (data.get("packs") or [])
                  if isinstance(row, dict)]
+        raw_reads = data.get("taken_reads") or {}
+        taken = {int(k): _TakenRead.from_json(v) for k, v in raw_reads.items()
+                 if isinstance(v, dict)}
+        uncertain, uncertain_overflow = _uncertain_rows(data.get("overage_uncertain"))
+        if "overage_unreported" in data:
+            unreported = int(data.get("overage_unreported") or 0)
+        else:
+            unreported = sum(
+                int(row.get("units") or 0)
+                for row in (data.get("unreported_overage") or [])
+                if isinstance(row, dict))
         monthly = int(data.get("monthly") or 0)
         if not packs and "available" in data and "monthly" not in data:
             leftover = int(data.get("available") or 0)
@@ -342,6 +595,21 @@ class _Account:
             reservations=reservations,
             packs=packs,
             plan=str(data.get("plan") or ""),
+            overage_used=int(data.get("overage_used") or 0),
+            stripe_customer_id=str(data.get("stripe_customer_id") or ""),
+            read_day=str(data.get("read_day") or ""),
+            read_count=int(data.get("read_count") or 0),
+            read_minute=str(data.get("read_minute") or ""),
+            read_burst=int(data.get("read_burst") or 0),
+            reads_in_block=int(data.get("reads_in_block") or 0),
+            next_read=int(data.get("next_read") or 1),
+            taken_reads=taken,
+            overage_unreported=unreported,
+            overage_backlog_n=int(data.get("overage_backlog_n") or 0),
+            overage_backlog_open=int(data.get("overage_backlog_open") or 0),
+            overage_backlog_id=str(data.get("overage_backlog_id") or ""),
+            overage_uncertain=uncertain,
+            overage_unreconciled=int(data.get("overage_unreconciled") or 0) + uncertain_overflow,
         )
 
 
@@ -551,8 +819,14 @@ class LedgerState:
         return ReversalResult(True, payment_id, False, purchased, restored=units)
 
     def set_monthly(self, holder: str, units: int, invoice_id: str,
-                    plan: str = "") -> CreditResult:
-        """SET remaining monthly allowance. Reset, no rollover. Idempotent on invoice_id."""
+                    plan: str = "", customer_id: str = "",
+                    reset_overage: bool = True) -> CreditResult:
+        """SET remaining monthly allowance. Reset, no rollover. Idempotent on invoice_id.
+
+        A new invoice zeroes overage used this period unless `reset_overage` is
+        false. A subscription update refills the allowance and leaves the cap.
+        A replay does not, so a repeated webhook cannot hand the cap back.
+        """
         rec = self.payments.get(invoice_id)
         if rec is not None:
             reason = "replay" if rec.get("holder") == holder else "conflict"
@@ -565,14 +839,20 @@ class LedgerState:
         }
         acc = self._acc(holder)
         acc.monthly = int(units)
+        if reset_overage:
+            acc.overage_used = 0
         if plan:
             acc.plan = plan
+        if customer_id:
+            acc.stripe_customer_id = customer_id
         return CreditResult(True, "", int(units))
 
     def clear_monthly(self, holder: str) -> CreditResult:
-        """Zero the monthly allowance. Pack grants are untouched."""
+        """Zero the monthly allowance and stop overage. Pack grants are untouched."""
         acc = self._acc(holder)
         acc.monthly = 0
+        acc.overage_used = 0
+        acc.plan = ""
         return CreditResult(True, "cleared", 0)
 
     def transfer(self, src: str, dst: str) -> bool:
@@ -587,6 +867,7 @@ class LedgerState:
                 rec["holder"] = dst
         existing = self.accounts.get(dst)
         if existing is None:
+            _stamp_backlog_id(acc, src)
             self.accounts[dst] = acc
             return True
         existing.monthly += acc.monthly
@@ -598,14 +879,41 @@ class LedgerState:
         existing.next_res = offset + acc.next_res
         if acc.plan and not existing.plan:
             existing.plan = acc.plan
+        existing.overage_used += acc.overage_used
+        if acc.stripe_customer_id and not existing.stripe_customer_id:
+            existing.stripe_customer_id = acc.stripe_customer_id
+        if not existing.read_day or (acc.read_day and acc.read_day > existing.read_day):
+            existing.read_day = acc.read_day
+            existing.read_count = acc.read_count
+            existing.reads_in_block = acc.reads_in_block
+        elif acc.read_day and acc.read_day == existing.read_day:
+            existing.read_count += acc.read_count
+            existing.reads_in_block = 0
+        if not existing.read_minute or (acc.read_minute and acc.read_minute > existing.read_minute):
+            existing.read_minute = acc.read_minute
+            existing.read_burst = acc.read_burst
+        elif acc.read_minute and acc.read_minute == existing.read_minute:
+            existing.read_burst += acc.read_burst
+        read_offset = existing.next_read
+        for token, taken in acc.taken_reads.items():
+            existing.taken_reads[read_offset + token] = taken
+        existing.next_read = read_offset + max(acc.next_read, 1)
+        _move_meter_tail(existing, acc, src, dst)
         return True
 
-    def reserve(self, holder: str, units: int = 1, now: str = "") -> ReserveResult:
+    def reserve(self, holder: str, units: int = 1, now: str = "",
+                overage_cap: int = 0) -> ReserveResult:
         clock = now or _now_iso()
         acc = self._acc(holder)
         acc.drop_expired(clock)
         available = acc.available_at(clock)
-        if units < 1 or available < units:
+        room = 0
+        cap = int(overage_cap)
+        if cap > 0 and not str(acc.stripe_customer_id or "").strip():
+            cap = 0
+        if cap > 0:
+            room = max(0, cap - acc.overage_used - acc.overage_open())
+        if units < 1 or available + room < units:
             return ReserveResult(False, None, available, acc.reserved)
         from_monthly = min(acc.monthly, units)
         acc.monthly -= from_monthly
@@ -624,7 +932,7 @@ class LedgerState:
                 pack_draws.append((grant.grant_id, take))
                 remaining -= take
             acc.drop_expired(clock)
-        if remaining:
+        if remaining > room:
             acc.monthly += from_monthly
             for grant_id, take in pack_draws:
                 for grant in acc.packs:
@@ -632,55 +940,35 @@ class LedgerState:
                         grant.remaining += take
                         break
             return ReserveResult(False, None, acc.available_at(clock), acc.reserved)
-        acc.reserved += units
+        overage = remaining
+        prepaid = units - overage
+        acc.reserved += prepaid
         rid = acc.next_res
         acc.next_res += 1
-        acc.reservations[rid] = _Reservation(units, from_monthly, pack_draws)
+        acc.reservations[rid] = _Reservation(units, from_monthly, pack_draws, overage)
         return ReserveResult(True, rid, acc.available_at(clock), acc.reserved)
 
-    def commit(self, holder: str, reservation_id: int) -> bool:
+    def commit(self, holder: str, reservation_id: int) -> CommitResult:
         acc = self._acc(holder)
         reservation = acc.reservations.pop(int(reservation_id), None)
         if reservation is None:
-            return False
-        acc.reserved -= reservation.units
+            return CommitResult(False)
+        acc.reserved -= reservation.units - reservation.overage
         if acc.reserved < 0:
             acc.reserved = 0
-        return True
+        acc.overage_used += reservation.overage
+        return CommitResult(True, reservation.overage)
 
     def release(self, holder: str, reservation_id: int) -> bool:
         acc = self._acc(holder)
         reservation = acc.reservations.pop(int(reservation_id), None)
         if reservation is None:
             return False
-        acc.reserved -= reservation.units
+        acc.reserved -= reservation.units - reservation.overage
         acc.monthly += reservation.monthly
-        by_id = {g.grant_id: g for g in acc.packs}
-        for grant_id, amount in reservation.packs:
-            rec = self.payments.get(grant_id) or {}
-            # A refund that found these credits reserved counted them as spent
-            # (`owed`); released, they are the refund's, not the key's.
-            owed = int(rec.get("owed") or 0)
-            if owed:
-                absorbed = min(owed, amount)
-                rec["owed"] = owed - absorbed
-                amount -= absorbed
-            if amount <= 0:
-                continue
-            grant = by_id.get(grant_id)
-            if grant is None:
-                grant = _PackGrant(
-                    grant_id=grant_id, remaining=0,
-                    expires_at=str(rec.get("expires_at") or LEGACY_EXPIRY),
-                    source=str(rec.get("source") or "pack"),
-                    hold_id=str(rec.get("hold") or ""))
-                acc.packs.append(grant)
-                by_id[grant_id] = grant
-            if grant.hold_id:
-                grant.held += amount       # an open dispute holds these too
-                rec["held"] = grant.held
-            else:
-                grant.remaining += amount
+        # A refund that found these credits reserved counted them as spent
+        # (`owed`); released, they are the refund's, not the key's.
+        self._return_packs(acc, list(reservation.packs))
         if acc.reserved < 0:
             acc.reserved = 0
         return True
@@ -699,7 +987,259 @@ class LedgerState:
             packs,
             tuple(PackGrantView(g.grant_id, g.remaining, g.expires_at, g.source)
                   for g in live),
+            acc.plan,
+            acc.overage_used,
+            acc.stripe_customer_id,
+            acc.overage_unreported,
         )
+
+    def _return_packs(self, acc: _Account, packs: list[tuple[str, int]]) -> None:
+        by_id = {g.grant_id: g for g in acc.packs}
+        for grant_id, amount in packs:
+            rec = self.payments.get(grant_id) or {}
+            owed = int(rec.get("owed") or 0)
+            if owed:
+                absorbed = min(owed, amount)
+                rec["owed"] = owed - absorbed
+                amount -= absorbed
+            if amount <= 0:
+                continue
+            grant = by_id.get(grant_id)
+            if grant is None:
+                grant = _PackGrant(
+                    grant_id=grant_id, remaining=0,
+                    expires_at=str(rec.get("expires_at") or LEGACY_EXPIRY),
+                    source=str(rec.get("source") or "pack"),
+                    hold_id=str(rec.get("hold") or ""))
+                acc.packs.append(grant)
+                by_id[grant_id] = grant
+            if grant.hold_id:
+                grant.held += amount
+                rec["held"] = grant.held
+            else:
+                grant.remaining += amount
+
+    def take_read(self, holder: str, reads_per_credit: int, daily_cap: int,
+                  burst_limit: int, now: str = "", overage_cap: int = 0) -> ReadResult:
+        """Count a catalog read and charge its block credit in this one step.
+
+        The 1st, 11th, 21st… successful read draws one credit. A refusal does
+        not count and does not draw. `release_read` undoes this take if the
+        response then fails. Undo tickets from a previous UTC day are dropped
+        here, without refunding them. The isolate that took them is gone.
+        """
+        clock = now or _now_iso()
+        acc = self._acc(holder)
+        day = clock[:10]
+        minute = clock[:16]
+        for token in [token for token, taken in acc.taken_reads.items()
+                      if taken.day < day]:
+            acc.taken_reads.pop(token, None)
+        if acc.read_day != day:
+            acc.read_day = day
+            acc.read_count = 0
+        if acc.read_minute != minute:
+            acc.read_minute = minute
+            acc.read_burst = 0
+        available = acc.available_at(clock)
+        if acc.read_count >= daily_cap:
+            return ReadResult(False, "daily", available=available,
+                              read_count=acc.read_count, read_burst=acc.read_burst,
+                              daily_cap=daily_cap, burst_limit=burst_limit)
+        if acc.read_burst >= burst_limit:
+            return ReadResult(False, "burst", available=available,
+                              read_count=acc.read_count, read_burst=acc.read_burst,
+                              daily_cap=daily_cap, burst_limit=burst_limit)
+        block_before = acc.reads_in_block
+        monthly_drawn = 0
+        pack_draws: list[tuple[str, int]] = []
+        overage = 0
+        if acc.reads_in_block == 0:
+            reserved = self.reserve(holder, 1, now=clock, overage_cap=overage_cap)
+            if not reserved.ok or reserved.reservation_id is None:
+                return ReadResult(False, "exhausted", available=reserved.available,
+                                  read_count=acc.read_count, read_burst=acc.read_burst,
+                                  daily_cap=daily_cap, burst_limit=burst_limit)
+            reservation = acc.reservations[reserved.reservation_id]
+            monthly_drawn = reservation.monthly
+            pack_draws = list(reservation.packs)
+            settled = self.commit(holder, reserved.reservation_id)
+            if not settled.ok:
+                return ReadResult(False, "exhausted", available=acc.available_at(clock),
+                                  read_count=acc.read_count, read_burst=acc.read_burst,
+                                  daily_cap=daily_cap, burst_limit=burst_limit)
+            overage = settled.overage
+            available = acc.available_at(clock)
+        acc.read_count += 1
+        acc.read_burst += 1
+        acc.reads_in_block += 1
+        if reads_per_credit > 0 and acc.reads_in_block >= reads_per_credit:
+            acc.reads_in_block = 0
+        token = acc.next_read
+        acc.next_read += 1
+        acc.taken_reads[token] = _TakenRead(
+            day, minute, overage, monthly_drawn, pack_draws,
+            block_before, acc.reads_in_block)
+        return ReadResult(True, token=token, available=available, overage=overage,
+                          read_count=acc.read_count, read_burst=acc.read_burst,
+                          daily_cap=daily_cap, burst_limit=burst_limit)
+
+    def release_read(self, holder: str, token: int) -> bool:
+        """Undo one taken read: decrement its count and return a charged credit."""
+        acc = self.accounts.get(holder)
+        if acc is None:
+            return False
+        taken = acc.taken_reads.pop(int(token), None)
+        if taken is None:
+            return False
+        if acc.read_day == taken.day and acc.read_count > 0:
+            acc.read_count -= 1
+        if acc.read_minute == taken.minute and acc.read_burst > 0:
+            acc.read_burst -= 1
+        if acc.reads_in_block == taken.block_after:
+            acc.reads_in_block = taken.block_before
+        acc.monthly += taken.monthly
+        if taken.overage:
+            acc.overage_used = max(0, acc.overage_used - taken.overage)
+        self._return_packs(acc, list(taken.packs))
+        return True
+
+    def keep_read(self, holder: str, token: int) -> bool:
+        """The response succeeded. Drop the undo ticket; the count stays."""
+        acc = self.accounts.get(holder)
+        if acc is None:
+            return False
+        return acc.taken_reads.pop(int(token), None) is not None
+
+    def note_unreported(self, holder: str, units: int, identifier: str,
+                        customer_id: str = "", event_name: str = "") -> bool:
+        """Add `units` to the account's one unreported-overage total.
+
+        The Stripe customer and the meter event name already live on the
+        account and the tier table. `identifier` is the event that failed.
+        A non-positive amount or a blank identifier adds nothing. The settled
+        overage itself stays spent.
+        """
+        amount = int(units)
+        if amount < 1 or not str(identifier or "").strip():
+            return False
+        acc = self._acc(holder)
+        acc.overage_unreported += amount
+        return True
+
+    def open_backlog(self, holder: str) -> tuple[int, int, str]:
+        """Units to send, the backlog `n`, and the stored identifier.
+
+        The first call snapshots `overage_unreported` into
+        `overage_backlog_open` and stores `{holder}:backlog:{n}`. Until
+        `ack_backlog`, a later call repeats that snapshot, so a retry uses
+        the same identifier and the same value after the holder is renamed.
+        """
+        acc = self.accounts.get(holder)
+        if acc is None:
+            return 0, 0, ""
+        if acc.overage_backlog_open > 0:
+            _stamp_backlog_id(acc, holder)
+            return acc.overage_backlog_open, acc.overage_backlog_n, acc.overage_backlog_id
+        if acc.overage_unreported < 1:
+            return 0, 0, ""
+        acc.overage_backlog_open = acc.overage_unreported
+        acc.overage_backlog_id = f"{holder}:backlog:{acc.overage_backlog_n}"
+        return acc.overage_backlog_open, acc.overage_backlog_n, acc.overage_backlog_id
+
+    def ack_backlog(self, holder: str, units: int, n: int) -> bool:
+        """Stripe accepted the open backlog event for this `n`. Subtract it and advance.
+
+        A late ack whose `n` is no longer the open one does nothing, so it
+        cannot clear a later snapshot.
+        """
+        acc = self.accounts.get(holder)
+        if acc is None or acc.overage_backlog_open < 1:
+            return False
+        if int(n) != acc.overage_backlog_n:
+            return False
+        amount = min(int(units), acc.overage_backlog_open, acc.overage_unreported)
+        if amount < 1:
+            return False
+        acc.overage_unreported -= amount
+        acc.overage_backlog_open = 0
+        acc.overage_backlog_n += 1
+        acc.overage_backlog_id = ""
+        return True
+
+    def note_uncertain(self, holder: str, units: int, identifier: str,
+                       created_at: int | None = None) -> bool:
+        """Keep one meter event whose outcome Stripe may already have recorded.
+
+        The list holds at most `UNCERTAIN_METER_CAP` entries. Past that, the
+        units go to `overage_unreconciled` and nothing sends them.
+        `created_at` is unix seconds. Omit it and the entry is created now.
+        """
+        amount = int(units)
+        ident = str(identifier or "").strip()
+        if amount < 1 or not ident:
+            return False
+        return _append_uncertain(self._acc(holder), ident, amount, created_at)
+
+    def list_uncertain(self, holder: str) -> list[tuple[str, int, int]]:
+        acc = self.accounts.get(holder)
+        if acc is None:
+            return []
+        return list(acc.overage_uncertain)
+
+    def ack_uncertain(self, holder: str, identifier: str) -> bool:
+        """Stripe accepted this identifier (2xx or a duplicate). Drop that entry."""
+        acc = self.accounts.get(holder)
+        if acc is None:
+            return False
+        ident = str(identifier or "")
+        kept = [row for row in acc.overage_uncertain if row[0] != ident]
+        if len(kept) == len(acc.overage_uncertain):
+            return False
+        acc.overage_uncertain = kept
+        return True
+
+    def age_uncertain(self, holder: str, now: int = 0) -> list[tuple[str, int, int]]:
+        """Move entries older than 20 hours to `overage_unreconciled`. Return the rest.
+
+        `now` is unix seconds. Zero uses the clock. An entry created exactly
+        20 hours ago is still young enough to retry.
+        """
+        acc = self.accounts.get(holder)
+        if acc is None:
+            return []
+        clock = int(now) if int(now) else _unix_now()
+        fresh: list[tuple[str, int, int]] = []
+        for ident, units, created_at in acc.overage_uncertain:
+            if clock - int(created_at) > UNCERTAIN_MAX_AGE_SECONDS:
+                acc.overage_unreconciled += units
+            else:
+                fresh.append((ident, units, created_at))
+        acc.overage_uncertain = fresh
+        return list(fresh)
+
+    def unreconcile_uncertain(self, holder: str, identifier: str) -> bool:
+        """A retry got a definite non-duplicate 4xx. Drop it for a person to check.
+
+        Stripe rejected this retry. The original send might still have landed,
+        so the units go to `overage_unreconciled` and nothing sends them again.
+        """
+        acc = self.accounts.get(holder)
+        if acc is None:
+            return False
+        ident = str(identifier or "")
+        kept: list[tuple[str, int, int]] = []
+        moved = 0
+        for row in acc.overage_uncertain:
+            if row[0] == ident:
+                moved += row[1]
+            else:
+                kept.append(row)
+        if moved < 1:
+            return False
+        acc.overage_uncertain = kept
+        acc.overage_unreconciled += moved
+        return True
 
     def seen(self, payment_id: str) -> bool:
         return payment_id in self.payments
@@ -713,10 +1253,21 @@ class LedgerState:
     @classmethod
     def from_json(cls, data: dict[str, Any] | None) -> LedgerState:
         data = data or {}
+        raw_accounts = data.get("accounts") or {}
         accounts = {name: _Account.from_json(raw)
-                    for name, raw in (data.get("accounts") or {}).items()}
+                    for name, raw in raw_accounts.items() if isinstance(raw, dict)}
         payments = dict(data.get("payments") or {})
-        return cls(accounts, payments)
+        state = cls(accounts, payments)
+        for name, raw in raw_accounts.items():
+            if not isinstance(raw, dict):
+                continue
+            pending = raw.get("pending_reads") or {}
+            if not isinstance(pending, dict):
+                continue
+            for row in pending.values():
+                if isinstance(row, dict) and row.get("reservation_id") is not None:
+                    state.release(name, int(row["reservation_id"]))
+        return state
 
 
 class Ledger(Protocol):
@@ -725,18 +1276,45 @@ class Ledger(Protocol):
                      source: str = "x402") -> CreditResult: ...
 
     async def set_monthly(self, holder: str, units: int, invoice_id: str,
-                          plan: str = "") -> CreditResult: ...
+                          plan: str = "", customer_id: str = "",
+                          reset_overage: bool = True) -> CreditResult: ...
 
     async def clear_monthly(self, holder: str) -> CreditResult: ...
 
     async def transfer(self, src: str, dst: str) -> bool: ...
 
-    async def reserve(self, holder: str, units: int = 1,
-                      now: str = "") -> ReserveResult: ...
+    async def reserve(self, holder: str, units: int = 1, now: str = "",
+                      overage_cap: int = 0) -> ReserveResult: ...
 
-    async def commit(self, holder: str, reservation_id: int) -> bool: ...
+    async def commit(self, holder: str, reservation_id: int) -> CommitResult: ...
 
     async def release(self, holder: str, reservation_id: int) -> bool: ...
+
+    async def take_read(self, holder: str, reads_per_credit: int, daily_cap: int,
+                        burst_limit: int, now: str = "",
+                        overage_cap: int = 0) -> ReadResult: ...
+
+    async def release_read(self, holder: str, token: int) -> bool: ...
+
+    async def keep_read(self, holder: str, token: int) -> bool: ...
+
+    async def note_unreported(self, holder: str, units: int, identifier: str,
+                              customer_id: str = "", event_name: str = "") -> bool: ...
+
+    async def open_backlog(self, holder: str) -> tuple[int, int, str]: ...
+
+    async def ack_backlog(self, holder: str, units: int, n: int) -> bool: ...
+
+    async def note_uncertain(self, holder: str, units: int, identifier: str,
+                             created_at: int | None = None) -> bool: ...
+
+    async def list_uncertain(self, holder: str) -> list[tuple[str, int, int]]: ...
+
+    async def ack_uncertain(self, holder: str, identifier: str) -> bool: ...
+
+    async def age_uncertain(self, holder: str, now: int = 0) -> list[tuple[str, int, int]]: ...
+
+    async def unreconcile_uncertain(self, holder: str, identifier: str) -> bool: ...
 
     async def balance(self, holder: str, now: str = "") -> Balance: ...
 
@@ -771,9 +1349,11 @@ class MemoryLedger:
                                      expires_at=expires_at, source=source)
 
     async def set_monthly(self, holder: str, units: int, invoice_id: str,
-                          plan: str = "") -> CreditResult:
+                          plan: str = "", customer_id: str = "",
+                          reset_overage: bool = True) -> CreditResult:
         async with self._lock:
-            return self.state.set_monthly(holder, units, invoice_id, plan)
+            return self.state.set_monthly(
+                holder, units, invoice_id, plan, customer_id, reset_overage)
 
     async def clear_monthly(self, holder: str) -> CreditResult:
         async with self._lock:
@@ -783,14 +1363,64 @@ class MemoryLedger:
         async with self._lock:
             return self.state.transfer(src, dst)
 
-    async def reserve(self, holder: str, units: int = 1,
-                      now: str = "") -> ReserveResult:
+    async def reserve(self, holder: str, units: int = 1, now: str = "",
+                      overage_cap: int = 0) -> ReserveResult:
         async with self._lock:
-            return self.state.reserve(holder, units, now=now)
+            return self.state.reserve(holder, units, now=now, overage_cap=overage_cap)
 
-    async def commit(self, holder: str, reservation_id: int) -> bool:
+    async def commit(self, holder: str, reservation_id: int) -> CommitResult:
         async with self._lock:
             return self.state.commit(holder, reservation_id)
+
+    async def take_read(self, holder: str, reads_per_credit: int, daily_cap: int,
+                        burst_limit: int, now: str = "",
+                        overage_cap: int = 0) -> ReadResult:
+        async with self._lock:
+            return self.state.take_read(
+                holder, reads_per_credit, daily_cap, burst_limit, now, overage_cap)
+
+    async def release_read(self, holder: str, token: int) -> bool:
+        async with self._lock:
+            return self.state.release_read(holder, token)
+
+    async def keep_read(self, holder: str, token: int) -> bool:
+        async with self._lock:
+            return self.state.keep_read(holder, token)
+
+    async def note_unreported(self, holder: str, units: int, identifier: str,
+                              customer_id: str = "", event_name: str = "") -> bool:
+        async with self._lock:
+            return self.state.note_unreported(
+                holder, units, identifier, customer_id, event_name)
+
+    async def open_backlog(self, holder: str) -> tuple[int, int, str]:
+        async with self._lock:
+            return self.state.open_backlog(holder)
+
+    async def ack_backlog(self, holder: str, units: int, n: int) -> bool:
+        async with self._lock:
+            return self.state.ack_backlog(holder, units, n)
+
+    async def note_uncertain(self, holder: str, units: int, identifier: str,
+                             created_at: int | None = None) -> bool:
+        async with self._lock:
+            return self.state.note_uncertain(holder, units, identifier, created_at)
+
+    async def list_uncertain(self, holder: str) -> list[tuple[str, int, int]]:
+        async with self._lock:
+            return self.state.list_uncertain(holder)
+
+    async def ack_uncertain(self, holder: str, identifier: str) -> bool:
+        async with self._lock:
+            return self.state.ack_uncertain(holder, identifier)
+
+    async def age_uncertain(self, holder: str, now: int = 0) -> list[tuple[str, int, int]]:
+        async with self._lock:
+            return self.state.age_uncertain(holder, now)
+
+    async def unreconcile_uncertain(self, holder: str, identifier: str) -> bool:
+        async with self._lock:
+            return self.state.unreconcile_uncertain(holder, identifier)
 
     async def release(self, holder: str, reservation_id: int) -> bool:
         async with self._lock:
@@ -837,7 +1467,8 @@ class UnboundLedger:
         raise StoreNotConfigured("CREDITS Durable Object is not bound")
 
     async def set_monthly(self, holder: str, units: int, invoice_id: str,
-                          plan: str = "") -> CreditResult:
+                          plan: str = "", customer_id: str = "",
+                          reset_overage: bool = True) -> CreditResult:
         raise StoreNotConfigured("CREDITS Durable Object is not bound")
 
     async def clear_monthly(self, holder: str) -> CreditResult:
@@ -846,12 +1477,49 @@ class UnboundLedger:
     async def transfer(self, src: str, dst: str) -> bool:
         raise StoreNotConfigured("CREDITS Durable Object is not bound")
 
-    async def reserve(self, holder: str, units: int = 1,
-                      now: str = "") -> ReserveResult:
+    async def reserve(self, holder: str, units: int = 1, now: str = "",
+                      overage_cap: int = 0) -> ReserveResult:
         raise StoreNotConfigured("CREDITS Durable Object is not bound")
 
-    async def commit(self, holder: str, reservation_id: int) -> bool:
+    async def commit(self, holder: str, reservation_id: int) -> CommitResult:
         raise StoreNotConfigured("CREDITS Durable Object is not bound")
+
+    async def take_read(self, holder: str, reads_per_credit: int, daily_cap: int,
+                        burst_limit: int, now: str = "",
+                        overage_cap: int = 0) -> ReadResult:
+        raise StoreNotConfigured("CREDITS Durable Object is not bound")
+
+    async def release_read(self, holder: str, token: int) -> bool:
+        raise StoreNotConfigured("CREDITS Durable Object is not bound")
+
+    async def keep_read(self, holder: str, token: int) -> bool:
+        raise StoreNotConfigured("CREDITS Durable Object is not bound")
+
+    async def note_unreported(self, holder: str, units: int, identifier: str,
+                              customer_id: str = "", event_name: str = "") -> bool:
+        raise StoreNotConfigured("CREDITS Durable Object is not bound")
+
+    async def open_backlog(self, holder: str) -> tuple[int, int, str]:
+        return 0, 0, ""
+
+    async def ack_backlog(self, holder: str, units: int, n: int) -> bool:
+        return False
+
+    async def note_uncertain(self, holder: str, units: int, identifier: str,
+                             created_at: int | None = None) -> bool:
+        raise StoreNotConfigured("CREDITS Durable Object is not bound")
+
+    async def list_uncertain(self, holder: str) -> list[tuple[str, int, int]]:
+        return []
+
+    async def ack_uncertain(self, holder: str, identifier: str) -> bool:
+        return False
+
+    async def age_uncertain(self, holder: str, now: int = 0) -> list[tuple[str, int, int]]:
+        return []
+
+    async def unreconcile_uncertain(self, holder: str, identifier: str) -> bool:
+        return False
 
     async def release(self, holder: str, reservation_id: int) -> bool:
         raise StoreNotConfigured("CREDITS Durable Object is not bound")
@@ -900,8 +1568,10 @@ class DurableLedger:
         return CreditResult.from_json(dict(data))
 
     async def set_monthly(self, holder: str, units: int, invoice_id: str,
-                          plan: str = "") -> CreditResult:
-        data = await self._stub.set_monthly(holder, int(units), invoice_id, plan)
+                          plan: str = "", customer_id: str = "",
+                          reset_overage: bool = True) -> CreditResult:
+        data = await self._stub.set_monthly(
+            holder, int(units), invoice_id, plan, customer_id, bool(reset_overage))
         return CreditResult.from_json(dict(data))
 
     async def clear_monthly(self, holder: str) -> CreditResult:
@@ -911,13 +1581,62 @@ class DurableLedger:
     async def transfer(self, src: str, dst: str) -> bool:
         return bool(await self._stub.transfer(src, dst))
 
-    async def reserve(self, holder: str, units: int = 1,
-                      now: str = "") -> ReserveResult:
-        data = await self._stub.reserve(holder, int(units), now)
+    async def reserve(self, holder: str, units: int = 1, now: str = "",
+                      overage_cap: int = 0) -> ReserveResult:
+        data = await self._stub.reserve(holder, int(units), now, int(overage_cap))
         return ReserveResult.from_json(dict(data))
 
-    async def commit(self, holder: str, reservation_id: int) -> bool:
-        return bool(await self._stub.commit(holder, int(reservation_id)))
+    async def commit(self, holder: str, reservation_id: int) -> CommitResult:
+        data = await self._stub.commit(holder, int(reservation_id))
+        return CommitResult.from_json(data)
+
+    async def take_read(self, holder: str, reads_per_credit: int, daily_cap: int,
+                        burst_limit: int, now: str = "",
+                        overage_cap: int = 0) -> ReadResult:
+        data = await self._stub.take_read(
+            holder, int(reads_per_credit), int(daily_cap), int(burst_limit),
+            now, int(overage_cap))
+        return ReadResult.from_json(dict(data))
+
+    async def release_read(self, holder: str, token: int) -> bool:
+        return bool(await self._stub.release_read(holder, int(token)))
+
+    async def keep_read(self, holder: str, token: int) -> bool:
+        return bool(await self._stub.keep_read(holder, int(token)))
+
+    async def note_unreported(self, holder: str, units: int, identifier: str,
+                              customer_id: str = "", event_name: str = "") -> bool:
+        return bool(await self._stub.note_unreported(
+            holder, int(units), identifier, customer_id, event_name))
+
+    async def open_backlog(self, holder: str) -> tuple[int, int, str]:
+        data = await self._stub.open_backlog(holder)
+        to_py = getattr(data, "to_py", None)
+        row = to_py() if callable(to_py) else data
+        units, seq, ident = row
+        return int(units), int(seq), str(ident or "")
+
+    async def ack_backlog(self, holder: str, units: int, n: int) -> bool:
+        return bool(await self._stub.ack_backlog(holder, int(units), int(n)))
+
+    async def note_uncertain(self, holder: str, units: int, identifier: str,
+                             created_at: int | None = None) -> bool:
+        return bool(await self._stub.note_uncertain(
+            holder, int(units), identifier, int(created_at or 0)))
+
+    async def list_uncertain(self, holder: str) -> list[tuple[str, int, int]]:
+        data = await self._stub.list_uncertain(holder)
+        return _uncertain_wire(data)
+
+    async def ack_uncertain(self, holder: str, identifier: str) -> bool:
+        return bool(await self._stub.ack_uncertain(holder, identifier))
+
+    async def age_uncertain(self, holder: str, now: int = 0) -> list[tuple[str, int, int]]:
+        data = await self._stub.age_uncertain(holder, int(now or 0))
+        return _uncertain_wire(data)
+
+    async def unreconcile_uncertain(self, holder: str, identifier: str) -> bool:
+        return bool(await self._stub.unreconcile_uncertain(holder, identifier))
 
     async def release(self, holder: str, reservation_id: int) -> bool:
         return bool(await self._stub.release(holder, int(reservation_id)))

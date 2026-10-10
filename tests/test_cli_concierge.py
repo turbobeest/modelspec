@@ -286,10 +286,11 @@ def test_key_prices_come_from_the_same_site_source():
     contract = (agent_copy.ROOT / "docs/cli-contract.md").read_text(encoding="utf-8")
     assert low in contract
     assert "¢" not in contract
-    rates = [row["usd"] / row["credits"] for row in tiers["billing"]["prices"].values()]
+    rates = [row["usd"] / row["credits"] for row in tiers["billing"]["prices"].values()
+             if not row.get("legacy")]
     assert data["pricing"]["usd_per_answer"] == {"min": min(rates), "max": max(rates) * 2}
     changed = copy.deepcopy(tiers)
-    next(iter(changed["billing"]["prices"].values()))["usd"] = 1
+    next(row for row in changed["billing"]["prices"].values() if not row.get("legacy"))["usd"] = 1
     assert pricing.procurement_data(changed) != data["pricing"]
     assert "free board" in data["tell_the_human"]
     assert not any(
