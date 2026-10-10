@@ -22,6 +22,7 @@ from decision.contract import (
     NotOf,
     Spec,
     SpecError,
+    TASK_REASON,
     check_facets,
 )
 from decision.registry import facet as registry_facet
@@ -37,11 +38,6 @@ class Resolved:
     include_retired: bool
     facets: FacetLookup
     objective_qualifiers: Mapping[str, EvidenceQualifiers]
-
-
-_TASK_REASON = (
-    "free-text task is not yet in slice 1; send task_type and capabilities instead"
-)
 
 
 def _is_lifecycle(facet_id: str) -> bool:
@@ -96,7 +92,7 @@ def resolve(
             if issue.path.startswith("profile.rules")
         )
     if spec.task is not None:
-        issues.append(Issue(None, "task", _TASK_REASON, "task"))
+        issues.append(Issue(None, "task", TASK_REASON, "task"))
     if issues:
         raise SpecError(issues)
     rules = () if profile is None else tuple(profile.rules)

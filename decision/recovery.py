@@ -115,7 +115,7 @@ def recovery_hints(issues: list[Issue], *, facets: Callable[[str], Facet],
             if issue.reason == "a boolean preference needs true or false" or issue.reason.startswith("preferred value "):
                 path += ".prefer"
         if issue.path == "task":
-            shape = "structured facets in where and optimize, with optional task_type and capabilities"
+            shape = "structured facets in where and optimize, with optional capabilities on domains"
             guidance = ("decide takes structured facets only. Translate the request into facets via "
                         "vocab section=starter, then remove task and retry. It does not evaluate an exact prompt.")
         elif issue.path == "where":
