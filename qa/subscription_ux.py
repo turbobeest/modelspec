@@ -76,8 +76,9 @@ def parse_verdict(text, task, paths):
     return value
 
 
-def attempt(repository, report_dir, artifact, state, runner, task, cli, base_url, rubric, core):
-    result = result_for(task, cli)
+def attempt(repository, report_dir, artifact, state, runner, task, cli, base_url, rubric, core, *, result=None):
+    if result is None:
+        result = result_for(task, cli)
     judge = tui_harness.judge_for(cli, runner.config["judges"])
     if runner.refusal(judge):
         result.update(status="skipped judge unavailable", reason=str(runner.refusal(judge)))
@@ -89,8 +90,8 @@ def attempt(repository, report_dir, artifact, state, runner, task, cli, base_url
                "browse source code or manufacture a result by changing URL state.")
     if task.get("interaction") == "keyboard":
         prompt += " Use only keyboard navigation and keys after the initial page load."
-    with tempfile.TemporaryDirectory(prefix=f"ux-{cli}-", dir=state) as d:
-        workspace = Path(d)
+    workspace = Path(tempfile.mkdtemp(prefix=f"ux-{cli}-", dir=state))
+    try:
         setup = {"base_url": base_url, "viewport": result["viewport"], "checks": task.get("checks", []),
                  "interaction": task.get("interaction", "pointer"), "max_steps": 12}
         (workspace / "ux-task.json").write_text(json.dumps(setup))
@@ -104,7 +105,7 @@ def attempt(repository, report_dir, artifact, state, runner, task, cli, base_url
         finally:
             runner.config.pop("_mcp_servers", None)
         result.update(wall_time_s=execution.wall_time_ms / 1000, agent_claim=execution.transcript.final_answer,
-                      termination=execution.status, usage=[{"cli": cli, "model": execution.transcript.model,
+                      termination=execution.status, usage=[{"cli": cli, "role": "agent", "model": execution.transcript.model,
                       "tokens_in": execution.transcript.tokens_in, "tokens_out": execution.transcript.tokens_out,
                       "reported_cost_usd": execution.transcript.cost_usd, "charged_usd": 0}])
         evidence_path = workspace / "evidence/evidence.json"
@@ -145,6 +146,9 @@ def attempt(repository, report_dir, artifact, state, runner, task, cli, base_url
             judged = runner.invoke(judge, rubric + "\nReturn JSON of this shape: " + json.dumps(schema) +
                                    "\nObserved evidence:\n" + json.dumps(observed), "judge",
                                    workspace=workspace, purpose="judge", images=selected_images)
+            result["usage"].append({"cli": judge, "role": "judge", "model": judged.transcript.model,
+                                    "tokens_in": judged.transcript.tokens_in, "tokens_out": judged.transcript.tokens_out,
+                                    "reported_cost_usd": judged.transcript.cost_usd, "charged_usd": 0})
             if judged.status != "completed":
                 raise ValueError(judged.error or judged.status)
             result["judge"] = parse_verdict(judged.transcript.final_answer, task, result["screenshots"])
@@ -156,6 +160,11 @@ def attempt(repository, report_dir, artifact, state, runner, task, cli, base_url
             result["findings"].extend(verdict["findings"])
         except (ValueError, KeyError, TypeError, tui_harness.StartRefusedError) as exc:
             result.update(status="skipped judge unavailable", reason=str(exc))
+    finally:
+        try:
+            shutil.rmtree(workspace)
+        except (OSError, ValueError, KeyError, TypeError) as exc:
+            result["teardown_error"] = f"{type(exc).__name__}: {exc}"
     return result
 
 
@@ -182,8 +191,8 @@ def run(repository, output, state, config, selected, base_url, day, *, dry_run=F
                          "gated_policy": "Stop before verification; never acquire or submit Turnstile tokens"}}
     for task in tasks:
         for cli in selected:
+            result = result_for(task, cli)
             if dry_run:
-                result = result_for(task, cli)
                 result.update(status="skipped dry-run", reason="No browser or model started")
                 config["_mcp_servers"] = PLAYWRIGHT_SERVER
                 with tempfile.TemporaryDirectory(dir=state) as d:
@@ -191,10 +200,13 @@ def run(repository, output, state, config, selected, base_url, day, *, dry_run=F
                 config.pop("_mcp_servers")
             else:
                 try:
-                    result = attempt(repository, output, artifact, state, runner, task, cli, base_url, rubric, core)
+                    result = attempt(repository, output, artifact, state, runner, task, cli, base_url, rubric, core,
+                                     result=result)
                 except (ValueError, KeyError, TypeError, OSError) as exc:
-                    result = result_for(task, cli)
-                    result["reason"] = "Browser evidence unavailable: " + type(exc).__name__
+                    if result["judge"] is not None:
+                        result["teardown_error"] = f"{type(exc).__name__}: {exc}"
+                    else:
+                        result.update(status="error", reason="Browser evidence unavailable: " + type(exc).__name__)
             report["results"].append(result)
             report["aggregation"] = reports.aggregate(report["results"], report["drivers"])
             text = reports.render_markdown(report).replace("Reserved-cost accounting:", "Vendor API spend:")

@@ -16,6 +16,7 @@ import urllib.request
 from contextlib import contextmanager
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 import yaml
@@ -629,9 +630,10 @@ def private_ux(tmp_path):
 def test_ux_uses_private_catalogue_and_same_report_schema(config, private_ux, tmp_path, monkeypatch):
     repo, tasks = private_ux
     monkeypatch.setattr(ux, 'require_ready', lambda *a: ready())
-    def attempt(repository, output, artifact, state, runner, task, cli, *args):
+    def attempt(repository, output, artifact, state, runner, task, cli, *args, result=None):
         assert repository == repo and task['success_criteria'] == ['An answer is visible']
-        row = ux.result_for(task, cli); row.update(status='success', success=True)
+        row = ux.result_for(task, cli) if result is None else result
+        row.update(status='success', success=True)
         return row
     monkeypatch.setattr(ux, 'attempt', attempt)
     output = tmp_path / 'reports/ux'
@@ -669,6 +671,139 @@ def test_ux_driver_claim_cannot_override_dom_checks(config, private_ux, tmp_path
     row = ux.attempt(repo, tmp_path, tmp_path/'artifacts', tmp_path, runner, tasks[0], 'codex', 'https://modelspec.dev/decide/', ux.judge_rubric(repo), core)
     assert row['status'] == 'failed' and row['success'] is False
     assert [(c,m) for c,m,_ in observed] == [('codex',True),('claude',False)]
+
+
+@pytest.fixture
+def ux_launch(monkeypatch):
+    verdict = {'success': True, 'criteria': [
+        {'criterion': 'An answer is visible', 'passed': True, 'evidence': 'Answer is visible'},
+    ], 'rationale': 'Answer is visible', 'confusion_points': ['Answer label was unclear'],
+        'findings': [{'kind': 'confusion', 'target': '#answer', 'severity': 'minor',
+                      'title': 'Unclear answer label', 'evidence': 'Label is ambiguous',
+                      'screenshot': '', 'repro_steps': ['Choose a model']}]}
+
+    def launch(cli, cfg, workspace, prompt, *, mcp_enabled, **kwargs):
+        if mcp_enabled:
+            directory = workspace / 'evidence'
+            directory.mkdir()
+            (directory / 'shot.png').write_bytes(b'fake PNG')
+            evidence = {'states': [{'records': []}], 'steps': [],
+                        'screenshots': ['evidence/shot.png'],
+                        'checks': [{'kind': 'selector', 'selector': '#answer', 'passed': True}],
+                        'lookups': {'requests': 0, 'events': [], 'blocked': None}}
+            (directory / 'evidence.json').write_text(json.dumps(evidence))
+            visitor = execution('I succeeded')
+            visitor.transcript.model = 'visitor-model'
+            return visitor
+        observed = json.loads(prompt.split('\nObserved evidence:\n', 1)[1])
+        verdict['findings'][0]['screenshot'] = observed['screenshot_paths'][0]
+        judged = execution(json.dumps(verdict))
+        judged.transcript.model = 'judge-model'
+        judged.transcript.tokens_in = 41
+        judged.transcript.tokens_out = 9
+        judged.transcript.cost_usd = .6
+        return judged
+
+    monkeypatch.setattr(harness, 'launch', launch)
+    return verdict
+
+
+@pytest.fixture
+def ux_report(config, private_ux, tmp_path, monkeypatch):
+    repo, tasks = private_ux
+    monkeypatch.setattr(ux, 'require_ready', lambda *a: ready())
+    output = tmp_path / 'reports/ux'
+
+    def run():
+        ux.run(repo, output, tmp_path, config, ['codex'],
+               'https://modelspec.dev/decide/', '2026-10-04')
+        report = json.loads((output / '2026-10-04.json').read_text())
+        assert len(report['results']) == len(tasks)
+        return report['results'][-1]
+
+    return run
+
+
+def fail_ux_cleanup(monkeypatch):
+    remove = shutil.rmtree
+
+    def rmtree(path, *args, **kwargs):
+        remove(path, *args, **kwargs)
+        if Path(path).name.startswith('ux-codex-'):
+            raise OSError('workspace cleanup failed')
+
+    monkeypatch.setattr(shutil, 'rmtree', rmtree)
+
+
+@pytest.mark.parametrize('success', [True, False])
+def test_ux_report_keeps_judge_verdict_after_cleanup_error(ux_report, ux_launch, monkeypatch, success):
+    ux_launch['success'] = success
+    fail_ux_cleanup(monkeypatch)
+    row = ux_report()
+    assert row['status'] == ('success' if success else 'failed')
+    assert row['success'] is success
+    assert row['judge'] == ux_launch
+    assert row['findings'] == ux_launch['findings']
+    assert row['confusion_points'] == ux_launch['confusion_points']
+    assert row['teardown_error'] == 'OSError: workspace cleanup failed'
+
+
+@pytest.mark.parametrize('error', [OSError, ValueError, KeyError, TypeError])
+def test_ux_report_keeps_judge_verdict_after_late_error(ux_report, ux_launch, monkeypatch, error):
+    original_attempt = ux.attempt
+    exception = error('late evidence failure')
+
+    def attempt(*args, **kwargs):
+        original_attempt(*args, **kwargs)
+        raise exception
+
+    monkeypatch.setattr(ux, 'attempt', attempt)
+    row = ux_report()
+    assert row['status'] == 'success' and row['success'] is True
+    assert row['judge'] == ux_launch
+    assert row['findings'] == ux_launch['findings']
+    assert row['confusion_points'] == ux_launch['confusion_points']
+    assert row['teardown_error'] == f'{error.__name__}: {exception}'
+
+
+def test_ux_report_keeps_error_reason_before_any_verdict(ux_report, monkeypatch):
+    def launch(*args, **kwargs):
+        raise OSError('browser workspace unavailable')
+
+    monkeypatch.setattr(harness, 'launch', launch)
+    row = ux_report()
+    assert row['status'] == 'error' and row['success'] is None
+    assert row['judge'] is None
+    assert row['reason'] == 'Browser evidence unavailable: OSError'
+    assert 'teardown_error' not in row
+
+
+@pytest.mark.parametrize('cleanup_error', [False, True])
+def test_ux_attempt_reports_agent_and_judge_usage(config, tmp_path, monkeypatch, ux_launch, cleanup_error):
+    repo = tmp_path / 'private'
+    directory = repo / 'qa/ux'
+    directory.mkdir(parents=True)
+    (directory / 'dom.js').write_text('// Offline browser fixture')
+    task = {'id': 'task-0', 'persona': 'Visitor', 'goal': 'Choose a model',
+            'success_criteria': ['An answer is visible']}
+    core = SimpleNamespace(geometry_findings=lambda records: [])
+    runner = harness.Runner(config, tmp_path, ready())
+    if cleanup_error:
+        fail_ux_cleanup(monkeypatch)
+    row = ux.attempt(repo, tmp_path, tmp_path / 'artifacts', tmp_path, runner,
+                     task, 'codex', 'https://modelspec.dev/decide/', 'Judge the evidence', core)
+    assert row['status'] == 'success' and row['judge'] == ux_launch
+    assert row['usage'] == [
+        {'cli': 'codex', 'role': 'agent', 'model': 'visitor-model', 'tokens_in': 12,
+         'tokens_out': 3, 'reported_cost_usd': .2, 'charged_usd': 0},
+        {'cli': 'claude', 'role': 'judge', 'model': 'judge-model', 'tokens_in': 41,
+         'tokens_out': 9, 'reported_cost_usd': .6, 'charged_usd': 0},
+    ]
+    assert row['charged_usd'] == 0
+    if cleanup_error:
+        assert row['teardown_error'] == 'OSError: workspace cleanup failed'
+    else:
+        assert 'teardown_error' not in row
 
 
 def test_dry_run_scenarios_never_launch_or_publish(config, tmp_path, monkeypatch):
