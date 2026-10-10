@@ -39,7 +39,8 @@ by ``modelspec-price-reread`` and confirmed by the verifier's deterministic
 readers. Both keys are code from one repository, so the pull request's human
 reviewer is the check that the readers still read the page as intended.
 
-Nothing here calls a model or a paid scraper.
+The optional, read-only Firecrawl fallback has its own credit limits. Replays
+and ordinary re-reads never call a model or a paid scraper.
 """
 
 from __future__ import annotations
@@ -311,13 +312,14 @@ def _unique_json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
 class RenderedReplayFetcher:
     """Read untrusted rendering artifacts as bytes; HTML parsing stays in Python."""
 
-    def __init__(self, directory: Path) -> None:
+    def __init__(self, directory: Path, *, manifest: dict | None = None) -> None:
         if directory.is_symlink() or not directory.is_dir():
             raise ValueError("rendered artifact directory must be a directory, not a symlink")
         self.directory = directory
-        manifest = json.loads(
-            _read_rendered_file(directory / "manifest.json", MAX_RENDERED_MANIFEST_BYTES),
-            object_pairs_hook=_unique_json_object)
+        if manifest is None:
+            manifest = json.loads(
+                _read_rendered_file(directory / "manifest.json", MAX_RENDERED_MANIFEST_BYTES),
+                object_pairs_hook=_unique_json_object)
         if not isinstance(manifest, dict):
             raise ValueError("rendered manifest must be a JSON object")
         for url, entry in manifest.items():
@@ -911,6 +913,12 @@ def main(argv: list[str] | None = None) -> int:
                            help="render eligible pages into an artifact without verification")
     rendering.add_argument("--rendered-from", type=Path,
                            help="re-read rendered HTML from a validated artifact, without a browser")
+    rendering.add_argument("--fallback-from-render", type=Path,
+                           help="fetch failed eligible pages with the capped Firecrawl fallback")
+    parser.add_argument("--fallback-to", type=Path)
+    parser.add_argument("--fallback-ledger", type=Path)
+    parser.add_argument("--fallback-from", type=Path,
+                        help="replay a validated fallback artifact, without a Firecrawl key")
     parser.add_argument("--report-json", type=Path)
     parser.add_argument("--report-md", type=Path)
     parser.add_argument("--retain-only-cited", action="store_true",
@@ -919,6 +927,15 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     if args.render_to is not None and args.write:
         parser.error("--render-to cannot be combined with --write")
+    if args.fallback_from_render is not None:
+        if (args.write or args.fallback_to is None or args.fallback_ledger is None
+                or args.fallback_from):
+            parser.error("--fallback-from-render requires --fallback-to and --fallback-ledger, "
+                         "without --write or --fallback-from")
+    elif args.fallback_to is not None or args.fallback_ledger is not None:
+        parser.error("--fallback-to and --fallback-ledger require --fallback-from-render")
+    if args.fallback_from is not None and args.rendered_from is None:
+        parser.error("--fallback-from requires --rendered-from")
 
     with ExitStack() as stack:
         rendered = None
@@ -937,8 +954,32 @@ def main(argv: list[str] | None = None) -> int:
                 rendered = RenderedReplayFetcher(args.rendered_from)
             except (OSError, ValueError) as exc:
                 parser.error(f"invalid rendered artifact: {exc}")
+        if args.fallback_from_render is not None:
+            from decision.firecrawl import FirecrawlFetcher
+            from scripts.price_reread_fallback import fallback_to, monthly_allowance
+
+            try:
+                rendered = RenderedReplayFetcher(args.fallback_from_render)
+                month = datetime.now(UTC).strftime("%Y-%m")
+                fallback_to(root=ROOT, rendered=rendered, directory=args.fallback_to, month=month,
+                            plain=Fetcher(user_agent=USER_AGENT),
+                            firecrawl=FirecrawlFetcher(
+                                allowance=monthly_allowance(args.fallback_ledger, month)))
+            except (OSError, ValueError) as exc:
+                parser.error(f"invalid fallback artifact or ledger: {exc}")
+            return 0
+        fetcher = Fetcher(user_agent=USER_AGENT)
+        if args.fallback_from is not None:
+            from scripts.price_reread_fallback import FallbackFetcher, read_fallback
+
+            try:
+                fallback, _ = read_fallback(args.fallback_from)
+            except (OSError, ValueError) as exc:
+                parser.error(f"invalid fallback artifact: {exc}")
+            fetcher = FallbackFetcher(fetcher, fallback)
+            rendered = FallbackFetcher(rendered, fallback)
         store = CopyStore()
-        report = run(root=ROOT, fetcher=Fetcher(user_agent=USER_AGENT), store=store,
+        report = run(root=ROOT, fetcher=fetcher, store=store,
                      today=args.today or datetime.now(UTC).date(), write=args.write,
                      rendered=rendered)
     markdown = render_report(report)

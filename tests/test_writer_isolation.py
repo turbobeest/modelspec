@@ -44,6 +44,15 @@ EDITABLE_DATA = re.compile(r"""-e\s+(?:\.|'\.\[|"\.\[)""")
 UNTRUSTED = re.compile(
     r"\$\{\{\s*(?:steps\.|matrix\.|needs\.|github\.event\.|github\.head_ref|inputs\.)"
 )
+FIRECRAWL_SECRET = re.compile(
+    r"\bsecrets\s*(?:\.\s*FIRECRAWL_API_KEY\b|\[\s*['\"]FIRECRAWL_API_KEY['\"]\s*\])", re.I,
+)
+FIRECRAWL_ENV = "${{ secrets.FIRECRAWL_API_KEY }}"
+FIRECRAWL_FETCH_RUN = (
+    'python -I -m scripts.price_reread --fallback-from-render "$RUNNER_TEMP/rendered" '
+    '--fallback-to "$RUNNER_TEMP/fallback" --fallback-ledger "$RUNNER_TEMP/firecrawl-ledger"'
+)
+BROWSER = re.compile(r"\b(?:playwright|puppeteer|selenium|chromium|firefox|webkit)\b", re.I)
 # Writer `run:` text is an allowlist. `cd` is rejected: jobs set
 # `working-directory` or call `git -C`, and `cd` would hide where a later
 # relative path writes. `break` and `continue` stay because the link loop and
@@ -173,6 +182,38 @@ def cache_problems(document: dict) -> list[str]:
     return problems
 
 
+def _has_firecrawl_secret(value) -> bool:
+    if isinstance(value, dict):
+        return any(_has_firecrawl_secret(k) or _has_firecrawl_secret(v) for k, v in value.items())
+    if isinstance(value, list):
+        return any(_has_firecrawl_secret(v) for v in value)
+    return isinstance(value, str) and FIRECRAWL_SECRET.search(value) is not None
+
+
+def firecrawl_secret_problems(document: dict) -> list[str]:
+    """Only the read-only price fallback fetch step may receive the scraper key."""
+    problems = []
+    if _has_firecrawl_secret({k: v for k, v in document.items() if k != "jobs"}):
+        problems.append("workflow: Firecrawl secret outside the fallback step env")
+    for job_name, job in document["jobs"].items():
+        allowed = (document.get("name") == PRICE_WORKFLOW_NAME and job_name == "fallback"
+                   and job.get("permissions") == {"contents": "read", "actions": "read"})
+        if _has_firecrawl_secret({k: v for k, v in job.items() if k != "steps"}):
+            problems.append(f"{job_name}: Firecrawl secret outside the fallback step env")
+        for step in job.get("steps") or []:
+            copy = dict(step)
+            env = dict(step.get("env") or {})
+            if (allowed and step.get("name") == "Fetch only failed eligible pages"
+                    and not step.get("uses")
+                    and step.get("run", "").strip() == FIRECRAWL_FETCH_RUN
+                    and env.get("FIRECRAWL_API_KEY") == FIRECRAWL_ENV):
+                env.pop("FIRECRAWL_API_KEY")
+                copy["env"] = env
+            if _has_firecrawl_secret(copy):
+                problems.append(f"{job_name}: Firecrawl secret outside the fallback step env")
+    return problems
+
+
 def isolation_problems(text: str) -> list[str]:
     """Reasons a writer workflow breaks isolation. An empty list means it holds."""
     problems: list[str] = []
@@ -192,6 +233,7 @@ def isolation_problems(text: str) -> list[str]:
     if permissions != {"contents": "read"}:
         problems.append(f"workflow permissions are {permissions!r}")
     problems.extend(cache_problems(document))
+    problems.extend(firecrawl_secret_problems(document))
     canonical = _canonical_link()
     for job_name, job in document["jobs"].items():
         problems.extend(_job_problems(str(job_name), job, canonical,
@@ -915,6 +957,8 @@ def _job_problems(
     runs_python = False
     for step in steps:
         run = step.get("run") or ""
+        if workflow_name == PRICE_WORKFLOW_NAME and job_name == "fallback" and BROWSER.search(run):
+            problems.append("fallback: browser install or invocation is not allowed")
         if PY_CMD.search(run):
             runs_python = True
         if UNTRUSTED.search(run):
@@ -1309,9 +1353,10 @@ def test_price_reread_downloads_the_read_only_render_artifact() -> None:
     render, reread = document["jobs"]["render"], document["jobs"]["reread"]
     assert render["permissions"] == {"contents": "read"}
     assert render["timeout-minutes"] == reread["timeout-minutes"] == 15
-    assert reread["needs"] == "render"
+    assert reread["needs"] == ["render", "fallback"]
     [upload] = [s for s in render["steps"] if s.get("uses") == "actions/upload-artifact@v4"]
-    [download] = [s for s in reread["steps"] if s.get("uses") == "actions/download-artifact@v4"]
+    [download] = [s for s in reread["steps"] if s.get("uses") == "actions/download-artifact@v4"
+                  and s["with"]["name"] == "price-reread-rendered"]
     assert upload["with"] == {
         "name": "price-reread-rendered", "path": "${{ runner.temp }}/rendered",
         "retention-days": 1, "if-no-files-found": "error",
@@ -1320,6 +1365,82 @@ def test_price_reread_downloads_the_read_only_render_artifact() -> None:
         "name": "price-reread-rendered", "path": "${{ runner.temp }}/rendered",
     }
     assert all("playwright" not in s.get("run", "") for s in reread["steps"])
+
+
+@pytest.mark.parametrize("path", sorted(WRITERS.glob("*.yml")), ids=lambda p: p.stem)
+def test_every_private_writer_isolates_the_firecrawl_secret(path: Path) -> None:
+    assert firecrawl_secret_problems(_document(path.read_text())) == []
+
+
+@pytest.mark.parametrize("permissions", [None, {"contents": "write", "actions": "read"},
+                                         {"contents": "read"},
+                                         {"contents": "read", "actions": "write"},
+                                         {"contents": "read", "actions": "read",
+                                          "issues": "write"}])
+def test_firecrawl_requires_exactly_contents_and_actions_read(permissions) -> None:
+    document = _document(_text("price-reread"))
+    document["jobs"]["fallback"]["permissions"] = permissions
+    assert "fallback: Firecrawl secret outside the fallback step env" in isolation_problems(
+        yaml.safe_dump(document))
+
+
+@pytest.mark.parametrize("job_name", ["render", "reread", "another"])
+def test_firecrawl_secret_is_rejected_in_other_jobs(job_name) -> None:
+    document = _document(_text("price-reread"))
+    document["jobs"].setdefault(job_name, {"steps": []})["steps"].append({
+        "run": "echo fixture", "env": {"FIRECRAWL_API_KEY": FIRECRAWL_ENV}})
+    assert f"{job_name}: Firecrawl secret outside the fallback step env" in isolation_problems(
+        yaml.safe_dump(document))
+
+
+def test_firecrawl_secret_is_rejected_in_other_writers() -> None:
+    document = _document(_text("price-reread"))
+    document["name"] = "Another private writer"
+    assert "fallback: Firecrawl secret outside the fallback step env" in isolation_problems(
+        yaml.safe_dump(document))
+
+
+@pytest.mark.parametrize("placement", ["workflow-env", "job-env", "action-with", "action-env",
+                                      "run", "install-env", "alias-env", "bracket-env",
+                                      "lowercase-env", "extra-command"])
+def test_firecrawl_secret_is_rejected_outside_the_fetch_step_env(placement) -> None:
+    document = _document(_text("price-reread"))
+    job = document["jobs"]["fallback"]
+    fetch = next(s for s in job["steps"] if s.get("name") == "Fetch only failed eligible pages")
+    fetch.pop("env")
+    if placement == "workflow-env":
+        document["env"] = {"FIRECRAWL_API_KEY": FIRECRAWL_ENV}
+    elif placement == "job-env":
+        job["env"]["FIRECRAWL_API_KEY"] = FIRECRAWL_ENV
+    elif placement in {"action-with", "action-env"}:
+        fetch.pop("run")
+        fetch["uses"] = "third-party/scraper@v1"
+        fetch["with" if placement == "action-with" else "env"] = {
+            "FIRECRAWL_API_KEY": FIRECRAWL_ENV}
+    elif placement == "run":
+        fetch["run"] = "echo " + FIRECRAWL_ENV
+    elif placement == "install-env":
+        job["steps"].append({"run": "python -I -m pip install httpx",
+                             "env": {"FIRECRAWL_API_KEY": FIRECRAWL_ENV}})
+    elif placement == "extra-command":
+        fetch["env"] = {"FIRECRAWL_API_KEY": FIRECRAWL_ENV}
+        fetch["run"] += '\necho "$FIRECRAWL_API_KEY"'
+    elif placement == "lowercase-env":
+        fetch["env"] = {"FIRECRAWL_API_KEY": "${{ secrets.firecrawl_api_key }}"}
+    else:
+        fetch["env"] = ({"ALIAS": FIRECRAWL_ENV} if placement == "alias-env" else
+                        {"FIRECRAWL_API_KEY": "${{ secrets['FIRECRAWL_API_KEY'] }}"})
+    assert firecrawl_secret_problems(document)
+
+
+@pytest.mark.parametrize("command", [" ".join(PLAYWRIGHT_INSTALL), " ".join(HASHED_RENDER_INSTALL),
+                                      "playwright install chromium",
+                                      "python -I -m pip install playwright",
+                                      "python -I -m pip install selenium"])
+def test_fallback_cannot_install_a_browser(command) -> None:
+    document = _document(_text("price-reread"))
+    document["jobs"]["fallback"]["steps"].append({"run": command})
+    assert any(p.startswith("fallback:") for p in isolation_problems(yaml.safe_dump(document)))
 
 
 def test_other_writer_jobs_cannot_install_chromium() -> None:

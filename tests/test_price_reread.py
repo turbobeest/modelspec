@@ -861,8 +861,9 @@ def test_price_pull_requests_are_never_auto_merged() -> None:
 
 
 @pytest.mark.parametrize("dry_run,write", [("true", False), ("false", True), ("", True)])
+@pytest.mark.parametrize("fallback_result", ["success", "skipped"])
 def test_weekly_workflow_replays_rendered_fetches_in_every_mode(
-    tmp_path: Path, dry_run: str, write: bool,
+    tmp_path: Path, dry_run: str, write: bool, fallback_result: str,
 ) -> None:
     workflow = yaml.safe_load(
         (ROOT / ".github" / "private-writers" / "price-reread.yml").read_text()
@@ -879,6 +880,7 @@ python() {
     subprocess.run(
         ["bash", "-c", script], check=True, capture_output=True, text=True,
         env={**os.environ, "DRY_RUN": dry_run, "RUNNER_TEMP": str(tmp_path),
+             "FALLBACK_RESULT": fallback_result,
              "GITHUB_STEP_SUMMARY": str(summary)},
     )
     args = (tmp_path / "argv").read_text().splitlines()
@@ -886,6 +888,9 @@ python() {
     assert "--rendered-from" in args
     assert args[args.index("--rendered-from") + 1] == str(tmp_path / "rendered")
     assert "--rendered" not in args
+    assert ("--fallback-from" in args) is (fallback_result == "success")
+    if fallback_result == "success":
+        assert args[args.index("--fallback-from") + 1] == str(tmp_path / "fallback")
     assert ("--write" in args) is write
     assert summary.read_text() == "fixture report\n"
 

@@ -306,8 +306,6 @@ jobs:
       - name: Install dependencies
         run: python -I -m pip install pyyaml pydantic
       - name: Run watcher and classifier (Firecrawl cap 10, plain HTTP if no key)
-        env:
-          FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
         run: |
           set -euo pipefail
           if [ -n "$BRIEF" ]; then
