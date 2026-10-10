@@ -1678,7 +1678,8 @@ def test_a_scale_invoice_with_the_overage_line_first_resets_the_allowance(policy
     assert balance.overage_used == 0
 
 
-def test_subscription_updated_refills_the_allowance_without_resetting_overage(policy):
+def test_subscription_updated_restores_access_without_granting_credits(policy):
+    """Only a paid invoice or Checkout grants credits. An update is not a payment."""
     kv, ledger, key = _scale_key(policy)
     holder = _holder(key)
     account = ledger.state.accounts[holder]
@@ -1699,7 +1700,7 @@ def test_subscription_updated_refills_the_allowance_without_resetting_overage(po
         ledger=ledger))
     assert outcome.status == 200, outcome.body
     balance = run(ledger.balance(holder))
-    assert balance.monthly == policy.billing.prices[SCALE_V2].credits
+    assert balance.monthly == 0
     assert balance.overage_used == 3
 
     paid = run(apply(
@@ -1710,8 +1711,37 @@ def test_subscription_updated_refills_the_allowance_without_resetting_overage(po
         ledger=ledger))
     assert paid.status == 200, paid.body
     reset = run(ledger.balance(holder))
-    assert reset.monthly == policy.billing.prices[SCALE_V2].credits
+    assert reset.monthly == 150000
     assert reset.overage_used == 0
+
+
+def test_an_upgrade_grants_nothing_until_its_invoice_is_paid(policy):
+    kv = MemoryKV()
+    ledger = credits.MemoryLedger()
+    run(apply(
+        kv, policy,
+        payload("checkout.session.completed",
+                checkout_obj(metadata={"modelspec_price_id": SOLO_V2}), "evt_solo_claim"),
+        ledger=ledger))
+    claimed = _claim(kv, policy, ledger)
+    holder = _holder(claimed.body["key"])
+    assert run(ledger.balance(holder)).monthly == 2500
+    run(apply(
+        kv, policy,
+        payload("customer.subscription.updated", {
+            "id": SUB, "object": "subscription", "status": "active", "customer": CUS,
+            "metadata": {"modelspec_price_id": SOLO_V2},
+            "items": {"data": [{"price": {"id": SCALE_V2}}]},
+        }, "evt_upgrade"),
+        ledger=ledger))
+    assert run(ledger.balance(holder)).monthly == 2500
+    run(apply(
+        kv, policy,
+        payload("invoice.paid", invoice_obj(
+            id="in_upgrade_paid", lines={"data": [{"price": {"id": SCALE_V2}}]},
+        ), "evt_upgrade_paid"),
+        ledger=ledger))
+    assert run(ledger.balance(holder)).monthly == 150000
 
 
 def test_a_funded_vocabulary_head_is_counted_and_charged_like_a_get(bundled_entry):
@@ -1781,21 +1811,6 @@ def test_an_invoice_grants_the_billed_plan_not_stale_checkout_metadata(policy):
             metadata={"modelspec_price_id": SCALE_V2},
             lines={"data": [{"price": {"id": SOLO_V2}}]},
         ), "evt_switched_invoice"),
-        ledger=ledger))
-    assert outcome.status == 200, outcome.body
-    assert run(ledger.balance(holder)).monthly == 2500
-
-
-def test_a_subscription_update_grants_the_billed_plan_not_stale_metadata(policy):
-    kv, ledger, key = _scale_key(policy)
-    holder = _holder(key)
-    outcome = run(apply(
-        kv, policy,
-        payload("customer.subscription.updated", {
-            "id": SUB, "object": "subscription", "status": "active", "customer": CUS,
-            "metadata": {"modelspec_price_id": SCALE_V2},
-            "items": {"data": [{"price": {"id": SOLO_V2}}]},
-        }, "evt_switched_sub"),
         ledger=ledger))
     assert outcome.status == 200, outcome.body
     assert run(ledger.balance(holder)).monthly == 2500

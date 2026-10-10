@@ -411,13 +411,12 @@ async def apply_event(event: dict[str, Any], *, kv: Any, policy: AccessPolicy,
                     policy, price_id, service_commit=service_commit, endpoint=endpoint)
                 if error is not None:
                     return error
+                # Restore access only. Credits come from a paid invoice or
+                # Checkout: an update (a plan change, a coupon, a cancel
+                # toggle) is not a payment, and an upgrade's prorated invoice
+                # may still be unpaid.
                 action = await store.set_subscription_tier(
                     kv, subscription_id, mapping.tier if mapping else "", policy=policy)
-                if mapping is not None and mapping.kind == "plan":
-                    await store.grant_monthly(
-                        kv, subscription_id, ledger=ledger, units=mapping.credits,
-                        invoice_id=f"sub-active:{event_id}", plan=mapping.name,
-                        reset_overage=False)
                 if action == "tier_set":
                     action = "restored"
 

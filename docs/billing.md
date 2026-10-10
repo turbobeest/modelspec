@@ -93,6 +93,7 @@ stale events are `400 invalid_webhook_signature`. No Stripe SDK.
 | `invoice.payment_failed` | **immediate** zero of monthly; key's access row to `billing.downgrade_tier` (`free`). Packs stay |
 | `customer.subscription.deleted` | same as failed payment |
 | `customer.subscription.updated` with `canceled` / `unpaid` / `incomplete_expired` | same |
+| `customer.subscription.updated` with `active` | restore the mapped Price's tier. **No credits**: a plan change, coupon or cancel toggle is not a payment; the next `invoice.paid` sets the allowance |
 | `charge.refunded` | a **pack**: remove the refunded share of its **unspent** credits (`refunded` / `refunded_partially`). Spent credits stay spent. See [Refunds and disputes](#refunds-and-disputes) |
 | `charge.dispute.created` | a **pack**: **hold** its unspent credits while the dispute is open (`held`) |
 | `charge.dispute.closed` | `won` or `warning_closed`: give the held credits back (`restored`). `lost`: forfeit them (`forfeited`). Any other status: stay held (`held_for_review`) |
