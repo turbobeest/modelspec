@@ -814,7 +814,7 @@
   "source_hashes": {
     "pipeline/agent_copy.py": "3284280fee8d973a93f9e95af818a7d742adbfd8ebe432ee65be75ffc105d296",
     "pipeline/entity.py": "1649e5f95b620561511c2619045d036231b44c8ab7ff297bf4c6a21ab2b69ff3",
-    "pipeline/pricing.py": "bc635eb9f446eec209f882c1f8bb8f79ccf295431bb191f8fd632efe0a940fd8",
+    "pipeline/pricing.py": "d870582d19dc557ca646b6eabf12054eede51d12a6497c94c9d86588f0e2fee2",
     "pipeline/worker_flags.py": "0f3c1ff0de81710417659b86e1ec92913bbcf54af6312720fdad659e6af03429",
     "api/worker/wrangler.jsonc": "58cb1addc2e5f5e36883f7506c1461944498b87b2b51d498ddeb38496e3e45fe",
     "api/worker/tiers.json": "488d2781f0a55c756be2f4b674c3f3234e85964ce9b917a6b7b6fc63b3e3b317",

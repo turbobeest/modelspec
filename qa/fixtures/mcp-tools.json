@@ -4,7 +4,7 @@
     "mcp/src/vocabulary.ts": "85e01e14eea9754b82068af188b0fc7e8b7238594f4717231bf864b004a0e0ca",
     "mcp/test/fixtures/decide-budget.json": "b4c9f71159f7e0aa06aba82b984c57514d26738b0d9d9fae696d06deaa0e111a",
     "docs/decision-contract.schema.json": "2dd7c6217915f49edefc5d1737ac078999f749b5290eeaa50cca9288366bf7ef",
-    "api/worker/openapi.yaml": "cfbef839b074f62da61146ad5e73930a9299d58f99246668d7a68544903bff4f",
+    "api/worker/openapi.yaml": "f4241f22e9cce399aa5643d3dfa122aa50ddfd91f99e7cca3ee7c04f6e80c48e",
     "docs/agents.md": "35db51be2755f396c782a25cf0304e0222efa7ca63e52b6cf112adee447e2b5c",
     "mcp/src/agent-copy.json": "9722abf56ccb873e08ebd3cd0c8abcbf50f5385e02333261bd2964fffdb32fa1"
   },

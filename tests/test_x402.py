@@ -799,7 +799,7 @@ def test_wrangler_ships_x402_on_with_mainnet_configured():
     assert '"X402_NETWORK": "eip155:8453"' in live
     assert '"X402_ASSET": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"' in live
     assert '"class_name": "CreditsObject"' in live
-    assert '"X402_PAY_TO": "0x0000000000000000000000000000000000000000"' in live
+    assert re.search(r'"X402_PAY_TO": "0x[0-9a-fA-F]{40}"', live)
     assert "CDP_API_KEY" not in live
     assert "CDP_JWT" not in live
 
@@ -818,7 +818,7 @@ def test_production_x402_config_is_live_on_mainnet():
     assert config["vars"]["BILLING_ENABLED"] == "true"
     assert config["vars"]["X402_ENABLED"] == "true"
     assert config["vars"]["X402_MAINNET"] == "true"
-    assert config["vars"]["X402_PAY_TO"] == "0x0000000000000000000000000000000000000000"
+    assert re.fullmatch(r"0x[0-9a-fA-F]{40}", config["vars"]["X402_PAY_TO"])
     assert config["workers_dev"] is False
     assert config["routes"] == [
         {"pattern": "api.modelspec.dev/*", "zone_name": "modelspec.dev"}
@@ -936,7 +936,7 @@ def test_production_x402_is_on_for_base_mainnet() -> None:
     assert production["X402_ASSET"] == "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
     assert production["X402_ENABLED"] == "true"
     assert production["X402_MAINNET"] == "true"
-    assert production["X402_PAY_TO"] == "0x0000000000000000000000000000000000000000"
+    assert re.fullmatch(r"0x[0-9a-fA-F]{40}", production["X402_PAY_TO"])
 
     staging = config["env"]["staging"]["vars"]
     assert staging["X402_NETWORK"] == "eip155:84532"

@@ -466,8 +466,6 @@ paths:
           headers: *id001
         '402':
           description: Payment required when X402_ENABLED is on. A keyed caller is offered the card packs.
-            A keyless caller pays 20,000 atomic USDC per credit, multiplied by this spec's explanation
-            weight.
           content:
             application/json:
               schema: {$ref: '#/components/schemas/PaymentRequired'}

@@ -3033,9 +3033,10 @@ def build_spec() -> dict[str, Any]:
                         ),
                         str(x402.HTTP_PAYMENT_REQUIRED): _json_body(
                             "Payment required when X402_ENABLED is on. A keyed caller is "
-                            "offered the card packs. A keyless caller pays "
-                            f"{_per_credit_atomic():,} atomic "
-                            "USDC per credit, multiplied by this spec's explanation weight.",
+                            "offered the card packs."
+                            + ("" if access_enforced() else
+                               f" A keyless caller pays {_per_credit_atomic():,} atomic "
+                               "USDC per credit, multiplied by this spec's explanation weight."),
                             {"$ref": "#/components/schemas/PaymentRequired"},
                         ),
                         **{

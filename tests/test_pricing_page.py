@@ -52,7 +52,7 @@ def test_pricing_page_is_built_with_assets_and_indexing_metadata(tmp_path: Path)
 
 def test_all_prices_credits_weights_and_x402_rate_come_from_tiers_json() -> None:
     tiers = json.loads(TIERS_PATH.read_text())
-    html = _page(tiers)
+    html = _page(tiers, access_enforced=False)
     data = _payload(html)
     prices = pricing.current_prices(tiers)
     assert data["plans"] == [
@@ -148,7 +148,7 @@ def test_hero_names_the_cheapest_product_kind_and_matches_the_shown_rates() -> N
 
 
 def test_honesty_contracts_match_cli_billing_and_legal_docs() -> None:
-    html = _page()
+    html = _page(access_enforced=False)
     assert "A person using the board on this site pays nothing." in html
     assert "Machine access uses the keyed CLI, hosted API and MCP server" in html
     assert "No data download" in html
@@ -239,7 +239,9 @@ def test_production_switches_generate_what_ships_today(tmp_path: Path) -> None:
     assert "claim your API key at the Checkout success link" in html
     assert "access enforcement is off" not in html
     assert "paid access is being switched on" not in html
-    assert _payload(html)["payPerCall"] is True
+    assert _payload(html)["payPerCall"] is False
+    assert "Your agent keeps its API key" in html
+    assert "No account, no key" not in html
     assert "coming soon" in html.lower()
     assert "opening soon" not in html.lower()
     assert "People decide free. Agents pay per answer." in html
@@ -253,7 +255,7 @@ def test_billing_and_x402_render_independently() -> None:
     for billing_live in (False, True):
         for x402_live in (False, True):
             html = _page(tiers, billing_live=billing_live, x402_live=x402_live,
-                         x402_network="eip155:8453")
+                         access_enforced=False, x402_network="eip155:8453")
             assert len(re.findall(r"<form\b", html)) == (form_count if billing_live else 0)
             assert ("Or let your agents pay as they go" in html) is x402_live
             assert ("Pay per call" in html) is False
@@ -324,3 +326,15 @@ def test_pricing_descriptions_and_hero_require_keys_for_all_data_tools() -> None
             assert page.count(approved) == 1
             assert "Keyless API" not in description
             assert "Agents start free" not in page
+
+
+def test_x402_with_keys_enforced_offers_packs_not_keyless_calls() -> None:
+    """MODEL-333. Keys enforced: x402 sells packs to a keyed agent; nothing keyless."""
+    html = _page(x402_live=True, access_enforced=True, x402_network="eip155:8453")
+    assert "Your agent keeps its API key" in html
+    assert "A call without a key is refused before any payment is offered." in html
+    assert "No account, no key" not in html
+    assert "A keyless call costs" not in html
+    assert "per-call x402 payment" not in html
+    assert _payload(html)["payPerCall"] is False
+    assert "perCall" not in _payload(html)

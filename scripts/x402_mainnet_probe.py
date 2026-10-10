@@ -19,7 +19,7 @@ import httpx
 
 NETWORK = "eip155:8453"
 ASSET = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
-PACK_AMOUNTS = {"5000000", "25000000", "50000000", "100000000"}
+PACKS = {"5000000": 250, "25000000": 1300, "50000000": 2750, "100000000": 6000}
 
 
 def _check(ok: bool, what: str) -> None:
@@ -67,10 +67,14 @@ def main() -> None:
             _check(str(row.get("asset", "")).lower() == ASSET, f"asset {row.get('asset')}")
             _check(str(row.get("payTo", "")).lower() == args.expect_pay_to.lower(),
                    f"payTo {row.get('payTo')}")
-        amounts = {str(row.get("amount")) for row in accepts}
-        _check(amounts == PACK_AMOUNTS, f"pack amounts {sorted(amounts, key=int)}")
-        credits = sorted(int(row["credits"]) for row in body["error"]["packs"])
-        _check(credits == [250, 1300, 2750, 6000], f"pack credits {credits}")
+        _check(body.get("x402Version") == 2 and decoded.get("x402Version") == 2,
+               "x402Version 2 in body and header")
+        offered_packs = {str(row.get("amount")): int((row.get("extra") or {}).get("credits", -1))
+                         for row in accepts}
+        _check(offered_packs == PACKS, f"accepts amount->credits {offered_packs}")
+        listed = {str(row["price"]["amount"]): int(row["credits"])
+                  for row in body["error"]["packs"]}
+        _check(listed == PACKS, f"error.packs amount->credits {listed}")
     print("x402 mainnet probe passed")
 
 

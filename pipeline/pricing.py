@@ -193,7 +193,8 @@ def page(tiers: dict[str, Any], *, build: Build | None = None,
         f'{purchase_cell(pid, row)}</tr>'
         for pid, row in packs
     )
-    payload = json.dumps(calculator_data(tiers, x402_live=x402_live),
+    keyless_x402 = x402_live and not access_enforced
+    payload = json.dumps(calculator_data(tiers, x402_live=keyless_x402),
                          separators=(",", ":")).replace("<", "\\u003c")
     decision_buttons = "".join(
         f'<button type="button" data-value="{value}" aria-pressed="{str(value == 1000).lower()}">{value:,}</button>'
@@ -201,16 +202,16 @@ def page(tiers: dict[str, Any], *, build: Build | None = None,
     check_buttons = "".join(
         f'<button type="button" data-value="{value}" aria-pressed="{str(value == 0).lower()}">{"None" if value == 0 else f"{value:,}"}</button>'
         for value in (0, 100, 1000, 10000))
-    hero_payment = "prepaid credits or a per-call x402 payment" if x402_live else "prepaid credits"
+    hero_payment = "prepaid credits or a per-call x402 payment" if keyless_x402 else "prepaid credits"
     agent_line, _ = hero_summary(
-        tiers, access_enforced=access_enforced, x402_live=x402_live
+        tiers, access_enforced=access_enforced, x402_live=keyless_x402
     )
     hero_rate = (f'<div><strong>{_rate(best_rate)}</strong><b>to {_rate(per_call)}</b></div>'
-                 if x402_live else
+                 if keyless_x402 else
                  f'<div><strong>{_rate(best_rate)}–{_rate(highest_rate)}</strong></div>')
     hero_detail = (f"One credit. The low end is the {cheapest_label}'s rate; the high end "
                    "is paying per call with no account. A full explanation costs two credits."
-                   if x402_live else
+                   if keyless_x402 else
                    f"One credit. The low end is the {cheapest_label}'s rate; the range "
                    "covers the plans and packs below. A full explanation costs two credits.")
     hero_heading = f"People decide free. {agent_line}"
@@ -265,7 +266,9 @@ def page(tiers: dict[str, Any], *, build: Build | None = None,
             f"{int(reads['reads_per_credit'])} reads, capped at "
             f"{int(reads['daily_cap']):,} reads a key a UTC day.")
     extra_notes = "".join(f'<p class="small">{html.escape(bit)}</p>' for bit in extra_bits)
-    agents_panel = f'''<div class="card agents-card" id="agents"><h2>Or let your agents pay as they go</h2><p>No account, no key, no human in the loop. The API answers an unpaid request with HTTP 402 and a price; the agent pays in USDC over x402 and gets its answer in the same exchange.</p><div class="exchange"><div><i>→</i> POST api.modelspec.dev/v1/decide</div><div><em>←</em> 402 Payment Required <span>· 1 credit · {_rate(per_call)} USDC</span></div><div><i>→</i> retry with PAYMENT-SIGNATURE <span>· settled on {network_name}</span></div><div><mark>←</mark> 200 OK <span>· the ranked answer, and a receipt</span></div></div><ul><li>A keyless call costs {_rate(per_call)} a credit, times the answer's weight.</li><li>A keyed agent whose balance runs out is offered the same {len(packs)} packs, paid in USDC. They land in the key's pack balance.</li><li>A per-call payment is settled before the answer is produced; if the service then fails, that payment isn't refunded automatically.</li></ul><div class="endpoints"><span>Point your agent at either endpoint:</span><code>POST {DECIDE_ENDPOINT}\nMCP  {MCP_ENDPOINT}</code></div></div>''' if x402_live else ""
+    keyed_panel = f'''<div class="card agents-card" id="agents"><h2>Or let your agents pay as they go</h2><p>Your agent keeps its API key and needs no card. When its balance runs out, the API answers with HTTP 402 and the {len(packs)} packs; the agent pays in USDC over x402 and the credits land on its key in the same exchange.</p><div class="exchange"><div><i>→</i> POST api.modelspec.dev/v1/decide <span>· with its key</span></div><div><em>←</em> 402 Payment Required <span>· {len(packs)} packs in USDC</span></div><div><i>→</i> retry with PAYMENT-SIGNATURE <span>· settled on {network_name}</span></div><div><mark>←</mark> credits on the key <span>· then the answer</span></div></div><ul><li>The packs cost the same in USDC as by card, and expire on the same terms.</li><li>Credits are added only after the payment settles on-chain.</li><li>A call without a key is refused before any payment is offered.</li></ul><div class="endpoints"><span>Point your agent at either endpoint:</span><code>POST {DECIDE_ENDPOINT}\nMCP  {MCP_ENDPOINT}</code></div></div>'''
+    keyless_panel = f'''<div class="card agents-card" id="agents"><h2>Or let your agents pay as they go</h2><p>No account, no key, no human in the loop. The API answers an unpaid request with HTTP 402 and a price; the agent pays in USDC over x402 and gets its answer in the same exchange.</p><div class="exchange"><div><i>→</i> POST api.modelspec.dev/v1/decide</div><div><em>←</em> 402 Payment Required <span>· 1 credit · {_rate(per_call)} USDC</span></div><div><i>→</i> retry with PAYMENT-SIGNATURE <span>· settled on {network_name}</span></div><div><mark>←</mark> 200 OK <span>· the ranked answer, and a receipt</span></div></div><ul><li>A keyless call costs {_rate(per_call)} a credit, times the answer's weight.</li><li>A keyed agent whose balance runs out is offered the same {len(packs)} packs, paid in USDC. They land in the key's pack balance.</li><li>A per-call payment is settled before the answer is produced; if the service then fails, that payment isn't refunded automatically.</li></ul><div class="endpoints"><span>Point your agent at either endpoint:</span><code>POST {DECIDE_ENDPOINT}\nMCP  {MCP_ENDPOINT}</code></div></div>'''
+    agents_panel = (keyless_panel if keyless_x402 else keyed_panel) if x402_live else ""
     return f'''<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{title}</title><meta name="description" content="{description}">
