@@ -51,7 +51,11 @@ UNTRUSTED = re.compile(
 # `cp`/`mv`/`ln` destination, `tar -C`, `unzip -d`, or
 # `gh run download --dir`/`-D` whose path is under `data/` is a restore.
 # Git is exempt. A relative path that does not start with `data/` is the
-# writer's own file inside `working-directory: data`.
+# writer's own file inside `working-directory: data`. A `case` arm is
+# classified (`case x in pat) cmd`). `for name in words` is a header, and a
+# command after `do` in that segment is classified. `if`, `elif`, `then`,
+# `else`, `while`, `until`, and `do` are stripped. `select` and any other
+# unmatched form are unparseable.
 _ASSIGN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*\+?=")
 _ARRAY = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=\(")
 _CASE_ARM = re.compile(
@@ -61,7 +65,10 @@ _COMPOUND_OPEN = frozenset({
     "if", "elif", "then", "else", "while", "until", "do", "{",
 })
 _COMPOUND_CLOSE = frozenset({"fi", "done", "esac", "}", ";;"})
-_COMPOUND_SKIP = frozenset({"for", "case", "select"})
+# These end a simple command and start another one in the same segment.
+_CLAUSE_WORDS = frozenset({
+    "then", "do", "else", "elif", "fi", "done", "esac", "}",
+})
 _BUILTINS = frozenset({
     "exit", "set", "local", "export", "read", "shift", "return",
     "break", "continue", "true", "false",
@@ -526,29 +533,101 @@ def _npm_problems(job_name: str, args: list[str], workdir: str) -> list[str]:
     return [f"{job_name}: rejected command npm"]
 
 
-def _classify(
-    job_name: str, tokens: list[str], workdir: str, in_link: bool
+def _bad(job_name: str) -> list[str]:
+    return [f"{job_name}: unparseable shell"]
+
+
+def _arm_pattern(token: str) -> bool:
+    """A case pattern glued to its closing paren, such as `x)` or `*)`."""
+    return token.endswith(")") and "(" not in token and token != ")"
+
+
+def _reserved(token: str) -> bool:
+    return token in _COMPOUND_OPEN or token in _COMPOUND_CLOSE or token in {
+        "for", "case", "select", "in", "!", "(",
+    }
+
+
+def _command_end(tokens: list[str], start: int) -> int:
+    end = start + 1
+    while end < len(tokens) and tokens[end] not in _CLAUSE_WORDS:
+        end += 1
+    return end
+
+
+def _after_for(tokens: list[str], index: int) -> int | None:
+    """Index of `do`, or the end of a header-only `for`. None is unparseable."""
+    name_at = index + 1
+    if name_at >= len(tokens):
+        return None
+    name = tokens[name_at]
+    if _reserved(name) or name.startswith("-") or name.startswith("("):
+        return None
+    cursor = name_at + 1
+    if cursor < len(tokens) and tokens[cursor] == "in":
+        cursor += 1
+        while cursor < len(tokens) and tokens[cursor] != "do":
+            if _reserved(tokens[cursor]):
+                return None
+            cursor += 1
+    elif cursor < len(tokens) and tokens[cursor] != "do":
+        return None
+    return cursor
+
+
+def _after_case(tokens: list[str], index: int) -> int | None:
+    """Index of the arm command, or the end of a header-only `case`."""
+    word_at = index + 1
+    if word_at >= len(tokens) or _reserved(tokens[word_at]):
+        return None
+    inn = word_at + 1
+    if inn >= len(tokens) or tokens[inn] != "in":
+        return None
+    cursor = inn + 1
+    if cursor >= len(tokens):
+        return cursor
+    while cursor < len(tokens):
+        tok = tokens[cursor]
+        if tok == "esac":
+            return cursor
+        if tok == ")" or _arm_pattern(tok):
+            return cursor + 1
+        if _reserved(tok):
+            return None
+        cursor += 1
+    return None
+
+
+def _subshell(
+    job_name: str, tokens: list[str], index: int, workdir: str, in_link: bool
 ) -> list[str]:
-    stripped = _strip_redir(tokens)
-    index = 0
-    while index < len(stripped) and _ASSIGN.match(stripped[index]):
-        index += 1
-    if index >= len(stripped):
-        return []
-    token = stripped[index]
-    if token in _COMPOUND_SKIP or token in _COMPOUND_CLOSE or token == "in":
-        return []
-    if token in _COMPOUND_OPEN or token == "!":
-        return _classify(job_name, stripped[index + 1:], workdir, in_link)
-    if token == "(":
-        if ")" not in stripped[index + 1:]:
-            return [f"{job_name}: unparseable shell"]
-        end = len(stripped) - 1 - stripped[::-1].index(")")
-        return _classify(job_name, stripped[index + 1:end], workdir, in_link)
-    if token in _BUILTINS:
-        return []
-    args = stripped[index:]
+    depth = 0
+    close = None
+    cursor = index
+    while cursor < len(tokens):
+        if tokens[cursor] == "(":
+            depth += 1
+        elif tokens[cursor] == ")":
+            depth -= 1
+            if depth == 0:
+                close = cursor
+                break
+        cursor += 1
+    if close is None:
+        return _bad(job_name)
+    problems = _classify(job_name, tokens[index + 1:close], workdir, in_link)
+    problems.extend(_clauses(job_name, tokens, close + 1, workdir, in_link))
+    return problems
+
+
+def _simple(
+    job_name: str, args: list[str], workdir: str, in_link: bool
+) -> list[str]:
+    if not args:
+        return _bad(job_name)
     command = args[0]
+    if command in _BUILTINS:
+        return []
     base = command.rsplit("/", 1)[-1]
     if _PIP_BIN.fullmatch(base):
         return [f"{job_name}: pip install is not python -I -m pip"]
@@ -570,6 +649,45 @@ def _classify(
     if command == "npm":
         return _npm_problems(job_name, args, workdir)
     return []
+
+
+def _clauses(
+    job_name: str, tokens: list[str], index: int, workdir: str, in_link: bool
+) -> list[str]:
+    while index < len(tokens) and _ASSIGN.match(tokens[index]):
+        index += 1
+    if index >= len(tokens):
+        return []
+    token = tokens[index]
+    if token in _COMPOUND_OPEN or token == "!" or token in _COMPOUND_CLOSE:
+        return _clauses(job_name, tokens, index + 1, workdir, in_link)
+    if token == "for":
+        nxt = _after_for(tokens, index)
+        if nxt is None:
+            return _bad(job_name)
+        return _clauses(job_name, tokens, nxt, workdir, in_link)
+    if token == "case":
+        nxt = _after_case(tokens, index)
+        if nxt is None:
+            return _bad(job_name)
+        return _clauses(job_name, tokens, nxt, workdir, in_link)
+    if token in {"select", "in"}:
+        return _bad(job_name)
+    if token == "(":
+        return _subshell(job_name, tokens, index, workdir, in_link)
+    if _arm_pattern(token):
+        return _clauses(job_name, tokens, index + 1, workdir, in_link)
+    end = _command_end(tokens, index)
+    problems = _simple(job_name, tokens[index:end], workdir, in_link)
+    if end < len(tokens):
+        problems.extend(_clauses(job_name, tokens, end, workdir, in_link))
+    return problems
+
+
+def _classify(
+    job_name: str, tokens: list[str], workdir: str, in_link: bool
+) -> list[str]:
+    return _clauses(job_name, _strip_redir(tokens), 0, workdir, in_link)
 
 
 def _command_problems(
@@ -677,21 +795,39 @@ def _paired(args: list[str], names: set[str], glued: str) -> list[str]:
     return found
 
 
+def _command_at(tokens: list[str], index: int) -> int | None:
+    while index < len(tokens) and _ASSIGN.match(tokens[index]):
+        index += 1
+    if index >= len(tokens):
+        return None
+    token = tokens[index]
+    if token in _COMPOUND_OPEN or token == "!" or token in _COMPOUND_CLOSE:
+        return _command_at(tokens, index + 1)
+    if token == "for":
+        nxt = _after_for(tokens, index)
+        if nxt is None or nxt >= len(tokens):
+            return None
+        return _command_at(tokens, nxt)
+    if token == "case":
+        nxt = _after_case(tokens, index)
+        if nxt is None or nxt >= len(tokens):
+            return None
+        return _command_at(tokens, nxt)
+    if token in {"select", "in"}:
+        return None
+    if token == "(":
+        return index
+    if _arm_pattern(token):
+        return _command_at(tokens, index + 1)
+    return index
+
+
 def _command_word(tokens: list[str]) -> str | None:
     stripped = _strip_redir(tokens)
-    index = 0
-    while index < len(stripped) and _ASSIGN.match(stripped[index]):
-        index += 1
-    while index < len(stripped) and (
-        stripped[index] in _COMPOUND_OPEN or stripped[index] == "!"
-    ):
-        index += 1
-    if index >= len(stripped):
+    at = _command_at(stripped, 0)
+    if at is None:
         return None
-    token = stripped[index]
-    if token in _COMPOUND_CLOSE or token in _COMPOUND_SKIP or token == "in":
-        return None
-    return token
+    return stripped[at]
 
 
 def _segment_writes(tokens: list[str]) -> bool:
@@ -977,6 +1113,11 @@ def _with_command(command: str) -> str:
         ("exec python scripts/x.py", "rejected command exec"),
         ("timeout 60 python scripts/x.py", "rejected command timeout"),
         ("( python scripts/x.py )", "missing -I"),
+        ("case x in x) python scripts/x.py ;; esac", "missing -I"),
+        ("case x in x) python3 scripts/x.py ;; esac", "missing -I"),
+        ("if true; then python scripts/x.py; fi", "missing -I"),
+        ("for f in a; do python scripts/x.py; done", "missing -I"),
+        ("while false; do bash x.sh; done", "rejected command bash"),
         ("`python scripts/x.py`", "missing -I"),
         ("eval 'python scripts/x.py'", "rejected command eval"),
         ("bash -c 'python scripts/x.py'", "rejected command bash"),
