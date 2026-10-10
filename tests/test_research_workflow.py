@@ -40,10 +40,12 @@ def test_private_checkout_precedes_writes_and_pull_request() -> None:
     checkout = next(i for i, step in enumerate(steps)
                     if step.get("uses", "").startswith("actions/checkout")
                     and step.get("with", {}).get("path") == "data")
-    prepare = next(i for i, step in enumerate(steps)
-                   if "prepare_data_writer.py" in step.get("run", ""))
+    link_name = (
+        "Link the data paths into the verified engine and put only the engine on the import path"
+    )
+    link = next(i for i, step in enumerate(steps) if step.get("name") == link_name)
     write = next(i for i, step in enumerate(steps) if step.get("name") == "Write the new cards")
-    assert checkout < prepare < write < _create_pull_request_index(steps)
+    assert checkout < link < write < _create_pull_request_index(steps)
 
 
 def test_the_pull_request_commits_cards_and_nothing_else() -> None:

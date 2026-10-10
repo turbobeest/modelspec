@@ -1,10 +1,7 @@
 # MODEL-247: install in modelspec-data. This directory is not an Actions workflow directory.
 name: Weekly leaderboard refresh
 permissions:
-  contents: write
-  pull-requests: write
-  issues: write
-  actions: read
+  contents: read
 concurrency:
   group: weekly-leaderboard-refresh
   cancel-in-progress: false
@@ -12,15 +9,18 @@ jobs:
   refresh:
     name: Re-read live boards
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
     env:
       MODELSPEC_REQUIRE_DATA_DIR: '1'
-      PYTHONPATH: ${{ github.workspace }}/data
       MODELSPEC_DATA_DIR: ${{ github.workspace }}/data
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           path: data
+          persist-credentials: false
           token: ${{ github.token }}
       - name: Verify the engine pin is on modelspec main
         id: engine_pin
@@ -56,14 +56,72 @@ jobs:
         env:
           PIN: ${{ steps.engine_pin.outputs.sha }}
         run: test "$(git -C ../engine rev-parse HEAD)" = "$PIN"
-      - name: Compose code into the private checkout
-        run: python ../engine/scripts/prepare_data_writer.py --engine ../engine --data .
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
           cache: pip
+      - name: Link the data paths into the verified engine and put only the engine on the import path
+        working-directory: .
+        run: |
+          set -euo pipefail
+          if [ -L data ]; then
+            echo "::error::refusing symlink data"
+            exit 1
+          fi
+          if [ ! -d data/models ] || [ -L data/models ]; then
+            echo "::error::data/models is missing"
+            exit 1
+          fi
+          if [ ! -d data/benchmarks ] || [ -L data/benchmarks ]; then
+            echo "::error::data/benchmarks is missing"
+            exit 1
+          fi
+          paths="$(python -I engine/pipeline/data_source.py paths)"
+          if [ -z "$(printf '%s' "$paths" | tr -d '[:space:]')" ]; then
+            echo "::error::data paths are empty"
+            exit 1
+          fi
+          while IFS= read -r P; do
+            [ -n "$P" ] || continue
+            prefix=data
+            IFS=/ read -r -a parts <<< "$P"
+            for part in "${parts[@]}"; do
+              [ -n "$part" ] || continue
+              prefix="$prefix/$part"
+              if [ -L "$prefix" ]; then
+                echo "::error::refusing symlink $prefix"
+                exit 1
+              fi
+            done
+            if [ -e "data/$P" ]; then
+              resolved="$(realpath -e "data/$P")"
+              case "$resolved/" in
+                "$GITHUB_WORKSPACE/data/"*) ;;
+                *)
+                  echo "::error::data/$P resolves outside the data checkout ($resolved)"
+                  exit 1
+                  ;;
+              esac
+            fi
+            if [ -d "data/$P" ]; then
+              bad="$(find "data/$P" -mindepth 1 \( -type l -o \( -type f \( -name '*.py' -o -name '*.pyc' -o -name '*.pyo' -o -name '*.pth' -o -name '*.so' -o -name 'sitecustomize*' -o -name 'usercustomize*' -o -name '__init__*' -o -name 'conftest*' \) \) \) -print -quit)"
+              if [ -n "$bad" ]; then
+                echo "::error::refusing $bad"
+                exit 1
+              fi
+            fi
+            rm -rf "engine/$P"
+            if [ -e "data/$P" ]; then
+              mkdir -p "$(dirname "engine/$P")"
+              ln -s "$GITHUB_WORKSPACE/data/$P" "engine/$P"
+            fi
+          done <<< "$paths"
+          purelib="$(python -I -c 'import sysconfig; print(sysconfig.get_path("purelib"))')"
+          quoted="$(python -I -c 'import json, pathlib; print(json.dumps(str(pathlib.Path("engine").resolve())))')"
+          mkdir -p "$purelib"
+          printf 'import sys; sys.path.insert(0, %s)\n' "$quoted" > "$purelib/modelspec-engine.pth"
       - name: Install refresh dependencies
-        run: pip install pydantic pyyaml httpx pyarrow
+        run: python -I -m pip install pydantic pyyaml httpx pyarrow
       - name: Preserve the mechanically checked baseline
         run: |
           mkdir -p "$RUNNER_TEMP/before"
@@ -71,12 +129,13 @@ jobs:
       - name: Re-read every covered board once
         env:
           MODELSPEC_SOURCE_CACHE: ${{ runner.temp }}/source-copies
+          DRY_RUN: ${{ inputs.dry_run }}
         run: |
           args=(--observed-at "$(date -u +%F)" --audit-json "$RUNNER_TEMP/audit.json" --report-json "$RUNNER_TEMP/report.json")
-          if [ "${{ inputs.dry_run }}" = "true" ]; then
+          if [ "$DRY_RUN" = "true" ]; then
             args+=(--dry-run)
           fi
-          python scripts/refresh_leaderboards.py "${args[@]}" > "$RUNNER_TEMP/report.md"
+          python -I -m scripts.refresh_leaderboards "${args[@]}" > "$RUNNER_TEMP/report.md"
           cat "$RUNNER_TEMP/report.md" >> "$GITHUB_STEP_SUMMARY"
       - name: Prove the generated diff is score-only
         id: guard
@@ -84,7 +143,7 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/after"
           cp -R models verification "$RUNNER_TEMP/after/"
-          PYTHONPATH="$PWD" python - "$RUNNER_TEMP/before" "$RUNNER_TEMP/after" <<'PY'
+          python -I - "$RUNNER_TEMP/before" "$RUNNER_TEMP/after" <<'PY'
           import sys
           from pathlib import Path
           from scripts.refresh_leaderboards import check_score_only
@@ -99,7 +158,7 @@ jobs:
       - name: Count changes and verification failures
         id: result
         run: |
-          python - "$RUNNER_TEMP/report.json" "$GITHUB_OUTPUT" <<'PY'
+          python -I - "$RUNNER_TEMP/report.json" "$GITHUB_OUTPUT" <<'PY'
           import json, sys
           report = json.load(open(sys.argv[1]))
           with open(sys.argv[2], "a") as out:
@@ -146,8 +205,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_URL: ${{ steps.pr.outputs.pull-request-url }}
+          PR_NUMBER: ${{ steps.pr.outputs.pull-request-number }}
         run: |
-          python - "$RUNNER_TEMP/audit.json" "$RUNNER_TEMP/pr-body.md" <<'PY'
+          python -I - "$RUNNER_TEMP/audit.json" "$RUNNER_TEMP/pr-body.md" <<'PY'
           import json, os, sys
           audit_path, body_path = sys.argv[1:]
           rows = json.load(open(audit_path))
@@ -160,7 +220,7 @@ jobs:
           with open(body_path, "w") as out:
               out.write(body)
           PY
-          gh pr edit "${{ steps.pr.outputs.pull-request-number }}" --body-file "$RUNNER_TEMP/pr-body.md"
+          gh pr edit "$PR_NUMBER" --body-file "$RUNNER_TEMP/pr-body.md"
       - name: Upload the audit artifact
         if: steps.pr.outputs.pull-request-number
         uses: actions/upload-artifact@v4

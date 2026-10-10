@@ -102,28 +102,29 @@ def test_private_workflows_keep_writer_and_pr_operations_in_private_checkout(nam
 
     root = Path(__file__).resolve().parents[1]
     workflow = yaml.safe_load((root / ".github/private-writers" / (name + ".yml")).read_text())
+    saw_engine = False
     for job in workflow["jobs"].values():
-        steps = job.get("steps", [])
-        writer = any("prepare_data_writer.py" in step.get("run", "") for step in steps)
-        if not writer:
-            continue
-        assert job["defaults"]["run"]["working-directory"] == "data"
-        private = next(
+        steps = job.get("steps") or []
+        engines = [
             step
             for step in steps
-            if step.get("uses", "").startswith("actions/checkout")
-            and step.get("with", {}).get("path") == "data"
-        )
-        assert private["with"]["token"] == "${{ github.token }}"
-        engine = next(
-            step
-            for step in steps
-            if step.get("with", {}).get("repository") == "turbobeest/modelspec"
-        )
-        assert engine["with"]["persist-credentials"] is False
-        assert engine["with"]["path"] == "engine"
+            if (step.get("with") or {}).get("repository") == "turbobeest/modelspec"
+        ]
+        if engines:
+            saw_engine = True
+            assert job["defaults"]["run"]["working-directory"] == "data"
+            private = next(
+                step
+                for step in steps
+                if str(step.get("uses") or "").startswith("actions/checkout")
+                and (step.get("with") or {}).get("path") == "data"
+            )
+            assert private["with"]["token"] == "${{ github.token }}"
+            for engine in engines:
+                assert engine["with"]["persist-credentials"] is False
+                assert engine["with"]["path"] == "engine"
         for step in steps:
-            if step.get("uses", "").startswith("peter-evans/create-pull-request"):
+            if str(step.get("uses") or "").startswith("peter-evans/create-pull-request"):
                 assert step["with"]["path"] == "data"
                 assert step["with"]["token"] == "${{ secrets.GITHUB_TOKEN }}"
                 assert (
@@ -131,3 +132,4 @@ def test_private_workflows_keep_writer_and_pr_operations_in_private_checkout(nam
                     .strip()
                     .endswith("Co-Authored-By: Codex (GPT-6.1 Sol) <noreply@openai.com>")
                 )
+    assert saw_engine

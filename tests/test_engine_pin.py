@@ -22,12 +22,27 @@ NAMES = (
     "release-signals",
     "price-reread",
     "leaderboard-refresh",
+    "daily-research",
+    "curation-benchmarks",
+    "speed-probe",
+    "data-trust-audit",
 )
+ENGINE_JOBS = {
+    "recall-private": 1,
+    "release-signals": 1,
+    "price-reread": 1,
+    "leaderboard-refresh": 1,
+    "daily-research": 1,
+    "curation-benchmarks": 4,
+    "speed-probe": 1,
+    "data-trust-audit": 1,
+}
 ENGINE_REPOSITORY = "turbobeest/modelspec"
 PIN_REF = "${{ steps.engine_pin.outputs.sha }}"
 HEX40 = re.compile(r"^[0-9a-fA-F]{40}$")
 CONFIRM = "Confirm the engine checkout is the verified pin"
 DOWNGRADE = "Refuse an engine pin older than the base branch pin"
+DESCEND = "Refuse an engine pin that does not descend from the default branch pin"
 
 
 class LocalEngine(NamedTuple):
@@ -41,7 +56,7 @@ def _document(name: str) -> dict:
     return yaml.safe_load((WRITERS / f"{name}.yml").read_text(encoding="utf-8"))
 
 
-def _engine_job(document: dict) -> dict:
+def _engine_jobs(document: dict) -> list[dict]:
     matched = [
         job
         for job in document["jobs"].values()
@@ -50,6 +65,12 @@ def _engine_job(document: dict) -> dict:
             for step in job.get("steps") or []
         )
     ]
+    assert matched
+    return matched
+
+
+def _engine_job(document: dict) -> dict:
+    matched = _engine_jobs(document)
     assert len(matched) == 1
     return matched[0]
 
@@ -146,8 +167,24 @@ def _run_pin(
     return completed, output.read_text(encoding="utf-8")
 
 
+def _engine_checkout_and_confirm(job: dict) -> tuple[dict, dict]:
+    steps = job["steps"]
+    engine = _index(
+        steps,
+        lambda step: (step.get("with") or {}).get("repository") == ENGINE_REPOSITORY,
+    )
+    return steps[engine], steps[engine + 1]
+
+
 def test_the_engine_pin_step_is_identical_in_every_writer() -> None:
-    steps = [_pin_step(name) for name in NAMES]
+    steps = [
+        step
+        for name in NAMES
+        for job in _engine_jobs(_document(name))
+        for step in job["steps"]
+        if step.get("id") == "engine_pin"
+    ]
+    assert steps
     assert all(step == steps[0] for step in steps)
     assert steps[0]["name"] == "Verify the engine pin is on modelspec main"
     assert steps[0]["working-directory"] == "."
@@ -155,36 +192,44 @@ def test_the_engine_pin_step_is_identical_in_every_writer() -> None:
         "ENGINE_REPO": "https://github.com/turbobeest/modelspec.git",
         "GIT_NO_LAZY_FETCH": "1",
     }
+    blocks = [
+        _engine_checkout_and_confirm(job)
+        for name in NAMES
+        for job in _engine_jobs(_document(name))
+    ]
+    assert all(block == blocks[0] for block in blocks)
 
 
 @pytest.mark.parametrize("name", NAMES)
 def test_the_pin_is_verified_before_the_engine_checkout(name: str) -> None:
     document = _document(name)
-    job = _engine_job(document)
-    steps = job["steps"]
-    data = _index(
-        steps,
-        lambda step: (
-            str(step.get("uses", "")).startswith("actions/checkout")
-            and (step.get("with") or {}).get("path") == "data"
-        ),
-    )
-    pin = _index(steps, lambda step: step.get("id") == "engine_pin")
-    engine = _index(
-        steps,
-        lambda step: (step.get("with") or {}).get("repository") == ENGINE_REPOSITORY,
-    )
-    assert steps[data + 1] is steps[pin]
-    between = [step.get("name") for step in steps[pin + 1 : engine]]
-    assert between == ([DOWNGRADE] if name == "recall-private" else [])
-    assert steps[engine]["with"]["ref"] == PIN_REF
-    assert steps[engine]["with"]["path"] == "engine"
-    confirm = steps[engine + 1]
-    assert confirm["name"] == CONFIRM
-    assert confirm["env"]["PIN"] == PIN_REF
-    assert confirm["run"] == 'test "$(git -C ../engine rev-parse HEAD)" = "$PIN"'
-    assert "working-directory" not in confirm
-    assert job["defaults"]["run"]["working-directory"] == "data"
+    jobs = _engine_jobs(document)
+    assert len(jobs) == ENGINE_JOBS[name]
+    for job in jobs:
+        steps = job["steps"]
+        data = _index(
+            steps,
+            lambda step: (
+                str(step.get("uses", "")).startswith("actions/checkout")
+                and (step.get("with") or {}).get("path") == "data"
+            ),
+        )
+        pin = _index(steps, lambda step: step.get("id") == "engine_pin")
+        engine = _index(
+            steps,
+            lambda step: (step.get("with") or {}).get("repository") == ENGINE_REPOSITORY,
+        )
+        assert steps[data + 1] is steps[pin]
+        between = [step.get("name") for step in steps[pin + 1 : engine]]
+        assert between == ([DOWNGRADE] if name == "recall-private" else [])
+        assert steps[engine]["with"]["ref"] == PIN_REF
+        assert steps[engine]["with"]["path"] == "engine"
+        confirm = steps[engine + 1]
+        assert confirm["name"] == CONFIRM
+        assert confirm["env"]["PIN"] == PIN_REF
+        assert confirm["run"] == 'test "$(git -C ../engine rev-parse HEAD)" = "$PIN"'
+        assert "working-directory" not in confirm
+        assert job["defaults"]["run"]["working-directory"] == "data"
     for step in _all_steps(document):
         ref = (step.get("with") or {}).get("ref")
         repository = (step.get("with") or {}).get("repository")
@@ -356,3 +401,213 @@ def test_a_pull_request_cannot_move_the_pin_backwards(
         text=True,
     )
     assert (completed.returncode == 0) is passes, f"{case}: {completed.stdout}{completed.stderr}"
+
+
+def _descend_step() -> dict:
+    steps = _engine_job(_document("release-signals"))["steps"]
+    return steps[_index(steps, lambda step: step.get("name") == DESCEND)]
+
+
+def test_the_descent_check_runs_only_on_the_release_signals_process_job() -> None:
+    for name in NAMES:
+        for job_name, job in _document(name)["jobs"].items():
+            matched = [
+                index
+                for index, step in enumerate(job.get("steps") or [])
+                if step.get("name") == DESCEND
+            ]
+            if name == "release-signals" and job_name == "process":
+                assert matched == [
+                    _index(job["steps"], lambda step: step.get("name") == CONFIRM) + 1
+                ]
+                step = job["steps"][matched[0]]
+                assert str(job["steps"][matched[0] + 1].get("uses") or "").startswith(
+                    "actions/setup-python"
+                )
+                assert step["working-directory"] == "."
+                assert "origin/main:.engine-pin" in step["run"]
+                assert 'merge-base --is-ancestor "$base" "$pin"' in step["run"]
+                assert 'echo "$GH_TOKEN"' not in step["run"]
+                assert "echo $GH_TOKEN" not in step["run"]
+            else:
+                assert matched == []
+
+
+def test_release_signals_process_pushes_without_persisted_credentials() -> None:
+    job = _engine_job(_document("release-signals"))
+    checkout = next(
+        step
+        for step in job["steps"]
+        if str(step.get("uses") or "").startswith("actions/checkout")
+        and (step.get("with") or {}).get("path") == "data"
+    )
+    assert checkout["with"]["persist-credentials"] is False
+    push = next(step for step in job["steps"] if "git push" in (step.get("run") or ""))
+    assert "http.https://github.com/.extraheader" in push["run"]
+    assert "--unset-all http.https://github.com/.extraheader" in push["run"]
+    assert 'echo "$GH_TOKEN"' not in push["run"]
+    assert "echo $GH_TOKEN" not in push["run"]
+    assert push["env"]["GH_TOKEN"] == "${{ secrets.GITHUB_TOKEN }}"
+
+
+def _data_checkout(tmp_path: Path, main_pin: str, head_pin: str) -> Path:
+    work = tmp_path / "work"
+    bare = tmp_path / "origin.git"
+    data = work / "data"
+    work.mkdir()
+    subprocess.run(["git", "init", "--bare", "-q", str(bare)], check=True)
+    subprocess.run(
+        ["git", "-c", "init.defaultBranch=main", "init", "-q", str(data)],
+        check=True,
+    )
+    _git(data, "config", "user.email", "engine-pin-test@example.com")
+    _git(data, "config", "user.name", "Engine Pin Test")
+    _git(data, "config", "commit.gpgsign", "false")
+    (data / ".engine-pin").write_text(main_pin + "\n", encoding="utf-8")
+    _git(data, "add", ".engine-pin")
+    _git(data, "commit", "-q", "-m", "pin")
+    _git(data, "remote", "add", "origin", str(bare))
+    _git(data, "push", "-q", "origin", "HEAD:main")
+    _git(data, "fetch", "-q", "origin", "main")
+    if head_pin != main_pin:
+        (data / ".engine-pin").write_text(head_pin + "\n", encoding="utf-8")
+    return work
+
+
+@pytest.mark.parametrize(
+    ("case", "main_pin", "head_pin", "passes"),
+    [
+        ("equal", "ancestor", "ancestor", True),
+        ("descendant", "ancestor", "tip", True),
+        ("downgrade", "tip", "ancestor", False),
+        ("side", "tip", "side", False),
+    ],
+)
+def test_a_branch_pin_must_descend_from_the_default_branch_pin(
+    case: str,
+    main_pin: str,
+    head_pin: str,
+    passes: bool,
+    tmp_path: Path,
+    local_engine: LocalEngine,
+) -> None:
+    shas = {
+        "ancestor": local_engine.ancestor,
+        "tip": local_engine.tip,
+        "side": local_engine.side,
+    }
+    work = _data_checkout(tmp_path, shas[main_pin], shas[head_pin])
+    runner = tmp_path / "runner"
+    runner.mkdir()
+    env = {
+        **os.environ,
+        "ENGINE_REPO": local_engine.url,
+        "RUNNER_TEMP": str(runner),
+        "GH_TOKEN": "not-used",
+        "GIT_NO_LAZY_FETCH": "1",
+        "GIT_TERMINAL_PROMPT": "0",
+    }
+    completed = subprocess.run(
+        ["bash", "-c", _descend_step()["run"]],
+        cwd=work,
+        env=env,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    detail = f"{case}: exit {completed.returncode}\n{completed.stdout}{completed.stderr}"
+    assert (completed.returncode == 0) is passes, detail
+    if not passes:
+        assert "does not descend from the default branch pin" in completed.stdout, detail
+
+
+def _extraheader(data: Path) -> str:
+    completed = subprocess.run(
+        [
+            "git", "-C", str(data), "config", "--local", "--get-all",
+            "http.https://github.com/.extraheader",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return completed.stdout.strip()
+
+
+def _drop_origin_main(data: Path) -> None:
+    subprocess.run(
+        ["git", "-C", str(data), "update-ref", "-d", "refs/remotes/origin/main"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+def test_the_descent_fetch_unsets_the_extraheader_when_origin_main_is_missing(
+    tmp_path: Path, local_engine: LocalEngine
+) -> None:
+    work = _data_checkout(tmp_path, local_engine.ancestor, local_engine.ancestor)
+    data = work / "data"
+    _drop_origin_main(data)
+    runner = tmp_path / "runner"
+    runner.mkdir()
+    completed = subprocess.run(
+        ["bash", "-c", _descend_step()["run"]],
+        cwd=work,
+        env={
+            **os.environ,
+            "ENGINE_REPO": local_engine.url,
+            "RUNNER_TEMP": str(runner),
+            "GH_TOKEN": "fetch-token",
+            "GIT_NO_LAZY_FETCH": "1",
+            "GIT_TERMINAL_PROMPT": "0",
+        },
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    detail = f"exit {completed.returncode}\n{completed.stdout}{completed.stderr}"
+    assert completed.returncode == 0, detail
+    assert _extraheader(data) == "", detail
+    present = subprocess.run(
+        ["git", "-C", str(data), "rev-parse", "--verify", "refs/remotes/origin/main"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert present.returncode == 0, detail
+
+
+def test_the_descent_fetch_unsets_the_extraheader_when_the_fetch_fails(
+    tmp_path: Path, local_engine: LocalEngine
+) -> None:
+    work = _data_checkout(tmp_path, local_engine.ancestor, local_engine.ancestor)
+    data = work / "data"
+    _drop_origin_main(data)
+    subprocess.run(
+        ["git", "-C", str(data), "remote", "set-url", "origin", str(tmp_path / "missing.git")],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    runner = tmp_path / "runner"
+    runner.mkdir()
+    completed = subprocess.run(
+        ["bash", "-c", _descend_step()["run"]],
+        cwd=work,
+        env={
+            **os.environ,
+            "ENGINE_REPO": local_engine.url,
+            "RUNNER_TEMP": str(runner),
+            "GH_TOKEN": "fetch-token",
+            "GIT_NO_LAZY_FETCH": "1",
+            "GIT_TERMINAL_PROMPT": "0",
+        },
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    detail = f"exit {completed.returncode}\n{completed.stdout}{completed.stderr}"
+    assert completed.returncode != 0, detail
+    assert "no token is available" not in completed.stdout, detail
+    assert _extraheader(data) == "", detail

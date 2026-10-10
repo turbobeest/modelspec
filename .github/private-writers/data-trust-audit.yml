@@ -1,29 +1,37 @@
-# Deliberately API-billed, manual-only latency probe (Jamie's decision, MODEL-310).
-# MODEL-247: install in modelspec-data. This directory is not an Actions workflow directory.
-name: Speed probe
+name: Weekly data trust audit
+
+on:
+  schedule:
+    - cron: '17 6 * * 1'
+  workflow_dispatch:
+
 permissions:
   contents: read
+
 concurrency:
-  group: speed-probe
+  group: weekly-data-trust-audit
   cancel-in-progress: false
-env:
-  SPEED_CAP_USD: '13'
-  SPEED_SMOKE_CAP_USD: '0.25'
+
 jobs:
-  probe:
-    name: Speed probe (${{ inputs.mode }})
+  audit:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 30
     permissions:
       contents: write
       pull-requests: write
+    env:
+      MODELSPEC_REQUIRE_DATA_DIR: '1'
+      MODELSPEC_DATA_DIR: ${{ github.workspace }}/data
+    defaults:
+      run:
+        working-directory: data
     steps:
       - uses: actions/checkout@v4
         with:
           path: data
           persist-credentials: false
-          token: ${{ github.token }}
           fetch-depth: 0
+          token: ${{ github.token }}
       - name: Verify the engine pin is on modelspec main
         id: engine_pin
         working-directory: .
@@ -61,7 +69,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: pip
       - name: Link the data paths into the verified engine and put only the engine on the import path
         working-directory: .
         run: |
@@ -122,100 +129,70 @@ jobs:
           quoted="$(python -I -c 'import json, pathlib; print(json.dumps(str(pathlib.Path("engine").resolve())))')"
           mkdir -p "$purelib"
           printf 'import sys; sys.path.insert(0, %s)\n' "$quoted" > "$purelib/modelspec-engine.pth"
-      - name: Install the harness dependencies
-        run: python -I -m pip install pydantic pyyaml
-      - name: Preflight (free)
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
-          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-          ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
-        run: python -I -m scripts.speed preflight | tee -a "$GITHUB_STEP_SUMMARY"
-      - name: Smoke, one request per offering (paid, capped)
-        if: inputs.mode == 'smoke'
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
-          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-          ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
-        run: python -I -m scripts.speed smoke | tee -a "$GITHUB_STEP_SUMMARY"
-      - name: The pilot's worst case against the cap (free)
-        if: inputs.mode == 'pilot'
-        run: python -I -m scripts.speed plan | tee -a "$GITHUB_STEP_SUMMARY"
-      - name: Run the pilot slot (paid, capped)
-        if: inputs.mode == 'pilot'
-        env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          XAI_API_KEY: ${{ secrets.XAI_API_KEY }}
-          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-          ZAI_API_KEY: ${{ secrets.ZAI_API_KEY }}
-        run: python -I -m scripts.speed run --live --cap-usd "$SPEED_CAP_USD" --window measurements/speed/pilot
-      - name: Upload the raw runs
-        if: always() && inputs.mode == 'pilot'
-        uses: actions/upload-artifact@v4
-        with:
-          name: speed-pilot-runs-${{ github.run_id }}
-          path: data/measurements/speed/pilot/runs/
-          if-no-files-found: warn
-      - name: Aggregate, verify and report (free)
-        id: aggregate
-        if: inputs.mode == 'pilot'
+      - name: Install audit dependencies
+        run: python -I -m pip install 'pydantic>=2,<3' pyyaml httpx 'pyarrow>=14'
+      - name: Choose the UTC report date and ISO week seed
+        id: date
         run: |
-          python -I -m scripts.speed aggregate measurements/speed/pilot
-          python -I -m scripts.speed verify measurements/speed/pilot
-          python -I -m scripts.speed report measurements/speed/pilot | tee -a "$GITHUB_STEP_SUMMARY" > "$RUNNER_TEMP/report.md"
-      - name: Write the data pull request body
-        if: always() && inputs.mode == 'pilot'
+          echo "date=$(date -u +%F)" >> "$GITHUB_OUTPUT"
+          echo "seed=$(date -u +%G-W%V)" >> "$GITHUB_OUTPUT"
+      - name: Audit invariants and re-read sixty sampled claims
+        id: audit
+        continue-on-error: true
         env:
-          AGGREGATE_OUTCOME: ${{ steps.aggregate.outcome }}
+          REPORT_DATE: ${{ steps.date.outputs.date }}
+          REPORT_SEED: ${{ steps.date.outputs.seed }}
         run: |
-          {
-            echo 'The speed-v1 pilot (MODEL-212): one live slot under a $'"$SPEED_CAP_USD"' cap.'
-            echo 'One slot cannot pass the publication gates, so no speed fact enters the snapshot.'
-            echo
-            if [ "$AGGREGATE_OUTCOME" = success ]; then
-              cat "$RUNNER_TEMP/report.md"
-            else
-              echo "Aggregate outcome: $AGGREGATE_OUTCOME. This PR carries the raw runs only; see the workflow run."
-            fi
-          } > "$RUNNER_TEMP/pr-body.md"
-      - name: Open the data pull request
-        if: always() && inputs.mode == 'pilot'
+          python -I -m scripts.data_trust run --data-dir . --n 60 \
+            --date "$REPORT_DATE" --seed "$REPORT_SEED" \
+            --output-dir reports/data-trust --defect-log reports/data-trust/defects.jsonl \
+            --summary-only > "$RUNNER_TEMP/data-trust-summary.txt"
+      - name: Publish aggregate counts and prepare the report PR
+        id: counts
+        env:
+          REPORT_DATE: ${{ steps.date.outputs.date }}
+        run: |
+          python -I - <<'PY'
+          import json, os
+          from pathlib import Path
+          from scripts.data_trust.report import summary
+          day = os.environ['REPORT_DATE']
+          report = json.loads(Path(f'reports/data-trust/{day}.json').read_text())
+          aggregate = summary(report)
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as out:
+              out.write(aggregate)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as out:
+              out.write(f"errors={report['invariants']['errors']}\n")
+          body = (
+              f'Weekly data trust audit for {day} (MODEL-267).\n\n' + aggregate + '\n'
+              f'Full private report: `reports/data-trust/{day}.md` and `.json`. '
+              'Every finding is retained in the dated `.findings.jsonl.gz`; '
+              'defects are an append-only stream in `defects*.jsonl`. '
+              'Unreadable claims are excluded from the Wilson interval. '
+              'This sample cannot establish five-nines accuracy.\n\n'
+              'Served-tier invariant errors fail the job after this PR is created. '
+              'Legacy provenance gaps, reader gaps, source mismatches and unreadable sources do not fail it. '
+              'Guard assignments remain null until preventive fixes are tested. '
+              'A human reviews and merges this PR.\n'
+          )
+          Path(os.environ['RUNNER_TEMP'], 'data-trust-pr.md').write_text(body)
+          PY
+      - name: Open the private report pull request
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          branch: data/speed-pilot-${{ github.run_id }}
-          delete-branch: true
-          add-paths: |
-            measurements/speed/**
-          signoff: true
-          commit-message: |-
-            data: speed-v1 pilot run (MODEL-212)
-
-            Co-Authored-By: Codex (GPT-6.1 Sol) <noreply@openai.com>
-          title: 'data: speed-v1 pilot run (MODEL-212)'
-          body-path: ${{ runner.temp }}/pr-body.md
           path: data
-    env:
-      MODELSPEC_REQUIRE_DATA_DIR: '1'
-      MODELSPEC_DATA_DIR: ${{ github.workspace }}/data
-    defaults:
-      run:
-        working-directory: data
-'on':
-  workflow_dispatch:
-    inputs:
-      mode:
-        description: preflight (free), smoke (paid, SPEED_SMOKE_CAP_USD) or pilot (paid, SPEED_CAP_USD)
-        type: choice
-        options:
-          - preflight
-          - smoke
-          - pilot
-        default: preflight
+          branch: data/data-trust-${{ steps.date.outputs.date }}
+          delete-branch: true
+          add-paths: reports/data-trust/**
+          commit-message: |-
+            data: weekly trust audit (MODEL-267)
+
+            Co-Authored-By: GPT-6.1 Sol <noreply@openai.com>
+          title: 'data: trust audit for ${{ steps.date.outputs.date }} (MODEL-267)'
+          body-path: ${{ runner.temp }}/data-trust-pr.md
+      - name: Fail on served invariant errors after retaining the report
+        if: steps.counts.outputs.errors != '0'
+        run: |
+          echo '::error::Served invariant errors found. The private report PR contains the findings.'
+          exit 1

@@ -258,7 +258,7 @@ def test_validate_pr_all_is_what_gates_the_pull_request() -> None:
     validate_step = steps[
         _index_of(steps, lambda s: "validate everything" in (s.get("name") or "").lower())
     ]
-    assert "validate_pr.py" in validate_step["run"]
+    assert "scripts.validate_pr" in validate_step["run"]
     assert "--all" in validate_step["run"]
 
 
