@@ -565,6 +565,223 @@ def test_partial_names_no_pick_and_counts_models_that_may_qualify() -> None:
         assert re.search(rf"\b{word}\b", text, re.I) is None
 
 
+def test_partial_cross_domain_unknown_names_the_objective_refinement() -> None:
+    decision = _decision(
+        status="partial",
+        answer=_separated("lab/a"),
+        may_qualify=[{"model": "lab/maybe", "unknown": ["any"]}],
+    )
+    spec = _spec(optimize={"weights": {"any/factuality_hallucination": 1}})
+    text, mentions = summarize(decision, spec)
+    assert text == (
+        f"{PARTIAL} What is missing: factuality_hallucination. {QUALIFY_ONE} "
+        f"{NO_CLASS} {CHECKED_ONLY}"
+    )
+    assert mentions == [
+        "No model is established as the best fit: "
+        "factuality_hallucination is unknown for lab/maybe.",
+        NO_CLASS,
+        CHECKED_ONLY,
+    ]
+    for rendered in [text, *mentions]:
+        assert re.search(r"\bany\b", rendered) is None
+        assert "any/" not in rendered
+    assert decision.may_qualify[0].unknown == ["any"]
+
+
+def test_partial_cross_domain_unknown_without_a_spec_uses_the_fallback() -> None:
+    decision = _decision(
+        status="partial",
+        answer=_separated("lab/a"),
+        may_qualify=[{"model": "lab/maybe", "unknown": ["any"]}],
+    )
+    text, mentions = summarize(decision)
+    assert text == (
+        f"{PARTIAL} What is missing: complete objective values for some candidates. "
+        f"{QUALIFY_ONE}"
+    )
+    assert mentions == [
+        "No model is established as the best fit: some candidates lack values ModelSpec needs.",
+    ]
+    for rendered in [text, *mentions]:
+        assert re.search(r"\bany\b", rendered) is None
+        assert "any/" not in rendered
+    assert decision.may_qualify[0].unknown == ["any"]
+
+
+def test_partial_cross_domain_unknown_without_a_matching_objective_uses_the_fallback() -> None:
+    decision = _decision(
+        status="partial",
+        answer=_separated("lab/a"),
+        may_qualify=[{"model": "lab/maybe", "unknown": ["any"]}],
+    )
+    text, mentions = summarize(decision, _spec())
+    assert text == (
+        f"{PARTIAL} What is missing: complete objective values for some candidates. "
+        f"{QUALIFY_ONE} {NO_CLASS} {CHECKED_ONLY}"
+    )
+    assert mentions == [
+        "No model is established as the best fit: some candidates lack values ModelSpec needs.",
+        NO_CLASS,
+        CHECKED_ONLY,
+    ]
+
+
+def test_partial_cross_domain_unknown_names_each_objective_refinement() -> None:
+    decision = _decision(
+        status="partial",
+        may_qualify=[{"model": "lab/maybe", "unknown": ["any", "licence.commercial_use"]}],
+    )
+    spec = _spec(optimize={"weights": {
+        "-any/factuality_hallucination": 0.5,
+        "any/instruction_following": 0.5,
+    }})
+    text, mentions = summarize(decision, spec)
+    assert text == (
+        f"{PARTIAL} What is missing: factuality_hallucination; instruction_following; "
+        f"licence.commercial_use. {QUALIFY_ONE} {NO_CLASS} {CHECKED_ONLY}"
+    )
+    assert mentions == [
+        "No model is established as the best fit: factuality_hallucination, "
+        "instruction_following, and licence.commercial_use are unknown for lab/maybe.",
+        NO_CLASS,
+        CHECKED_ONLY,
+    ]
+
+
+def test_cross_domain_objective_failure_names_the_refinement_and_keeps_real_parents() -> None:
+    decision = _decision(
+        status="no_feasible", results=[], answer=None,
+        relax=["no complete objective values"],
+    )
+    spec = _spec(
+        where=["model.class = text-generator"],
+        optimize={"weights": {
+            "-any/factuality_hallucination": 0.5, "software_engineering/rust": 0.5,
+        }},
+    )
+    text, mentions = summarize(decision, spec)
+    assert text == (
+        f"{NO_FEASIBLE} No model that meets the requirements has complete values for the objective "
+        "(factuality_hallucination, software_engineering), so ModelSpec cannot order them. "
+        f"Requirements applied: model.class = text-generator. {CHECKED_ONLY}"
+    )
+    assert mentions == [CHECKED_ONLY]
+
+
+def test_cross_domain_objective_failure_without_a_spec_uses_the_no_name_fallback() -> None:
+    decision = _decision(
+        status="no_feasible", results=[], answer=None,
+        relax=["no complete objective values"],
+        may_qualify=[{"model": "lab/maybe", "unknown": ["any"]}],
+    )
+    text, mentions = summarize(decision)
+    assert text == f"{NO_FEASIBLE} These requirements together exclude every model. {QUALIFY_ONE}"
+    assert mentions == [QUALIFY_ONE]
+
+
+def test_cross_domain_leaderboard_caveat_names_the_refinement() -> None:
+    decision = _decision(
+        answer=_separated("lab/a"),
+        results=[_row("lab/a", contributions=[{
+            "dimension": "any", "refinement": "factuality_hallucination", "value": None,
+        }])],
+    )
+    spec = _spec(optimize={"weights": {"any/factuality_hallucination": 1}})
+    text, mentions = summarize(decision, spec)
+    caveat = (
+        "lab/a has no leaderboard data for factuality_hallucination; "
+        "its position is estimated, not measured."
+    )
+    assert text == f"ModelSpec's answer is lab/a. {NO_CLASS} {caveat} {CHECKED_ONLY}"
+    assert mentions == [NO_CLASS, caveat, CHECKED_ONLY]
+    for rendered in [text, *mentions]:
+        assert re.search(r"\bany\b", rendered) is None
+        assert "any/" not in rendered
+
+
+def test_cross_domain_record_count_and_proxy_caveats_name_the_refinement() -> None:
+    decision = _decision(
+        answer=_separated("lab/a"),
+        results=[_row("lab/a", contributions=[{
+            "dimension": "any", "refinement": "factuality_hallucination",
+            "value": 1.0, "unit": "latent capability",
+            "evidence": [_evidence()],
+        }])],
+    )
+    text, mentions = summarize(
+        decision,
+        _spec(optimize={"weights": {"any/factuality_hallucination": 1}}),
+        record_counts={"lab/a": {"any/factuality_hallucination": (4, 1)}},
+    )
+    proxy = (
+        "The evidence for factuality_hallucination is a general proxy "
+        "(general_bench), not task-specific."
+    )
+    position = (
+        "lab/a's position on factuality_hallucination is estimated from "
+        "4 records, 1 of them a proxy."
+    )
+    assert text == f"ModelSpec's answer is lab/a. {NO_CLASS} {proxy} {position} {CHECKED_ONLY}"
+    assert mentions == [NO_CLASS, proxy, position, CHECKED_ONLY]
+
+
+def test_every_rankable_cross_domain_refinement_has_no_raw_parent_in_its_summary() -> None:
+    from decision.bounded import DEFAULT_FIELDS
+    from decision.capability import ANY_PARENT
+    from decision.refinements import RANKABLE, evidence_state, lineup, split_dimension
+    from qa.decide_budget import public_snapshot
+    from tests.test_decide_worker import _load_service
+
+    snapshot = public_snapshot()
+    candidates = lineup(snapshot)
+    keys = [
+        key for key in snapshot.refinement_keys()
+        if split_dimension(key)[0] == ANY_PARENT
+        and evidence_state(
+            snapshot, candidates, snapshot.refinement_benchmarks(key),
+            snapshot.refinement_eligible_classes(key),
+        )[0] in RANKABLE
+    ]
+    assert keys
+    # A single model avoids the unrelated "any one of them" tie wording.
+    sizes: dict[int | float, set[str]] = {}
+    for candidate in candidates:
+        if snapshot.fact(candidate, "model.class").value != "text-generator":
+            continue
+        size = snapshot.fact(candidate, "model.parameters_total").value
+        if isinstance(size, (int, float)):
+            sizes.setdefault(size, set()).add(snapshot.model_of(candidate))
+    size = next(size for size, models in sizes.items() if len(models) == 1)
+    service = _load_service()
+    leaks = []
+    for key in keys:
+        status, body = service.decide({
+            "spec_version": 1,
+            "where": [
+                "model.class = text-generator",
+                "known(model.parameters_total)",
+                {"facet": "model.parameters_total", "op": "=", "value": size},
+            ],
+            "optimize": {"weights": {key: 1}},
+            "explain": "none",
+            "fields": list(DEFAULT_FIELDS),
+        }, snapshot)
+        assert status == 200, (key, body)
+        answer = body["answer"]
+        assert answer is None or answer["kind"] == "separated", (key, answer)
+        for rendered in [body["summary_for_user"], *body["must_mention"]]:
+            if re.search(r"\bany\b", rendered) or "any/" in rendered:
+                leaks.append((key, rendered))
+        assert len(body["summary_for_user"].encode("utf-8")) <= SUMMARY_BYTES
+        assert all(
+            len(item.encode("utf-8")) <= MUST_MENTION_ITEM_BYTES for item in body["must_mention"]
+        )
+    print(f"Cross-domain sweep: {len(keys)} rankable keys; {len(leaks)} text leaks.")
+    print("Keys: " + ", ".join(keys))
+    assert leaks == []
+
+
 def test_an_unapplied_requirement_is_not_described_as_applied() -> None:
     decision = _decision(
         answer=_separated("lab/a"),
