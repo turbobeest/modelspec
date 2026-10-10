@@ -1092,8 +1092,7 @@ FLAT_DMCA = flat(DMCA)
 #: here without the directory entry changing too makes the page wrong.
 REGISTERED_AGENT_FIELDS = (
     "- Legal name: Sparks & Sawdust LLC",
-    "- Alternate names listed on designation DMCA-1082492: DevMux, ModelSpec, benchgraph.dev, "
-    "dev-mux, dev-mux.com, modelspec.dev",
+    "- Alternate names listed on designation DMCA-1082492: ModelSpec, modelspec.dev",
     "- Physical street address: 700 Narragansett Park Dr, Ste 100, Pawtucket, RI 02861, USA",
     "- Agent: Copyright Agent",
     "- Mailing address: 700 Narragansett Park Dr, Ste 100, Pawtucket, RI 02861, USA",

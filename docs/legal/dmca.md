@@ -8,7 +8,7 @@ The designated agent is registered with the U.S. Copyright Office as DMCA-108249
 ## Service provider
 
 - Legal name: Sparks & Sawdust LLC
-- Alternate names listed on designation DMCA-1082492: DevMux, ModelSpec, benchgraph.dev, dev-mux, dev-mux.com, modelspec.dev
+- Alternate names listed on designation DMCA-1082492: ModelSpec, modelspec.dev
 - Physical street address: 700 Narragansett Park Dr, Ste 100, Pawtucket, RI 02861, USA
 
 ## Designated agent
