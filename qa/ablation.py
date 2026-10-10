@@ -457,7 +457,6 @@ def applied(arm: str, row: dict) -> bool:
     if (
         counts.get("proxy_error")
         or counts.get("handler_error")
-        or counts.get("upstream_projection_gap")
         or counts.get("budget_passthrough")
         or counts.get("bounded_fallback")
         or counts.get("candidates_truncated")
@@ -695,10 +694,6 @@ def main(argv=None) -> int:
                     if report_path.exists():
                         reports[arm] = json.loads(report_path.read_text())
                     counts = proxy.audit.snapshot()["counters"]
-                    if counts.get("upstream_projection_gap"):
-                        raise ValueError(
-                            "Upstream projection trimming prevents pre-#682 body equivalence"
-                        )
                     if code or counts.get("proxy_error"):
                         raise ValueError(
                             reports.get(arm, {}).get("metadata", {}).get("ablation_invalid_reason")

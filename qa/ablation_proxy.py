@@ -26,8 +26,10 @@ move removes only its exact trailing say. Every removal counts
 summary_strip_trim_gap conservatively: the reserved bytes may have shortened
 the preceding paragraph, which cannot be recovered from the response.
 Post-#682 budget omissions also count upstream_projection_gap on absent V1
-arms. Those removed records cannot be restored by stripping next_move, so
-the runner invalidates the arm rather than claiming baseline equivalence.
+arms. Those removed records cannot be restored by stripping next_move. The
+ablation compares arms over the same upstream records, so every arm sees the
+same trimmed body and differs only in its variants; the gap is reported, and
+an arm is not claimed equal to the pre-#682 server.
 Named profiles are refused when V1 needs a fetch because the complete Decision
 does not contain their rules. Inline
 profiles work. A failed complete fetch uses retained bounded fields and counts
@@ -75,8 +77,8 @@ LIMITATIONS = [
     "clipped preceding lists can differ from the server",
     "summary_strip_trim_gap: every removed move may leave a paragraph shortened "
     "by the upstream say reservation",
-    "upstream_projection_gap: post-#682 budget omissions cannot be restored "
-    "in a pre-#682 arm; narrow fields before measuring",
+    "upstream_projection_gap: post-#682 budget omissions cannot be restored; "
+    "every arm sees the same trimmed records, so arms differ only in variants",
     "bounded_fallback: a failed complete fetch leaves omitted selection inputs unavailable",
     "candidates_truncated: a complete fetch with omitted models passes through "
     "and invalidates exposure proof",

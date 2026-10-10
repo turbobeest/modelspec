@@ -330,13 +330,7 @@ def test_unexpected_harness_exception_still_continues_next_arm(tmp_path, monkeyp
 
 @pytest.mark.parametrize(
     "failure,reason",
-    [
-        ("proxy_error", "Proxy error in scenario budget-approved"),
-        (
-            "upstream_projection_gap",
-            "Upstream projection trimming prevents pre-#682 body equivalence",
-        ),
-    ],
+    [("proxy_error", "Proxy error in scenario budget-approved")],
 )
 def test_first_scenario_proxy_error_stops_arm_and_continues_next(
     tmp_path, monkeypatch, failure, reason
@@ -571,3 +565,25 @@ def test_actual_engine_stripping_and_documented_gaps(name, projection):
         no_fetch,
     )
     assert repeated.message is outcome.message
+
+
+def test_projection_gap_is_reported_but_does_not_invalidate_the_arm(tmp_path, monkeypatch):
+    launch = ablation.FixtureReplay.launch
+
+    def injected(self, cli, *args, mcp_enabled, **kwargs):
+        if mcp_enabled and not self.proxy.variants.names():
+            self.proxy.audit.record(
+                {}, Rewrite({}, counters=Counter(upstream_projection_gap=1)), before=0, after=0
+            )
+        return launch(self, cli, *args, mcp_enabled=mcp_enabled, **kwargs)
+
+    monkeypatch.setattr(ablation.FixtureReplay, "launch", injected)
+    out = tmp_path / "out"
+    ablation.main([
+        "--dry-run", "--arms", "baseline", "--scenario", "budget-approved",
+        "--out", str(out), "--state-dir", str(tmp_path / "state"),
+    ])
+    report = json.loads((out / "ablation.json").read_text())
+    assert report["arms"]["baseline"].get("status") != "INVALID"
+    assert report["runs"][0]["status"] != "INVALID"
+    assert "upstream_projection_gap" in (out / "ablation.md").read_text()

@@ -728,8 +728,6 @@ def run_scenarios(runner, scenarios, selected):
             rows.append(row)
             if runner.audit is not None and row.get("proxy_rewrites", {}).get("proxy_error"):
                 return rows, "Proxy error in scenario " + scenario["id"]
-            if runner.audit is not None and row.get("proxy_rewrites", {}).get("upstream_projection_gap"):
-                return rows, "Upstream projection trimming in scenario " + scenario["id"]
     return rows, None
 
 

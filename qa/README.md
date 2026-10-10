@@ -598,9 +598,11 @@ the second text block with audience `["user"]`. Reapplying an arm is idempotent.
 
 Post-#682 projection can also remove extra records under its smaller body
 budget. The proxy counts `upstream_projection_gap` when it detects budget cuts
-that prevent proof of the old body, and the runner marks the arm INVALID.
+that prevent proof of the old body. The arm stays valid: every arm reads the
+same trimmed upstream records, so arms differ only in their variants, and the
+report shows the count. No arm is claimed equal to the pre-#682 server.
 Ordinary projection omissions, including the ten-row may_qualify cap, do not
-trigger that counter. Narrow fields before measuring these scenarios.
+trigger that counter.
 The 16,384-byte check includes both text blocks. Private counters record
 fallback, clipping, convergence, upstream preservation and budget passthrough.
 Proxy JSONL contains call IDs, flags, rewritten field names, counters and byte
