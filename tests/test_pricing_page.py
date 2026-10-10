@@ -213,7 +213,7 @@ def test_production_switches_generate_what_ships_today(tmp_path: Path) -> None:
     variables = worker_flags.production_vars(REPO_ROOT)
     assert worker_flags.enabled(variables, "BILLING_ENABLED") is True
     assert worker_flags.enabled(variables, "X402_ENABLED") is False
-    assert worker_flags.enabled(variables, "X402_MAINNET") is False
+    assert worker_flags.enabled(variables, "X402_MAINNET") is True
     assert worker_flags.enabled(variables, "ACCESS_ENFORCED") is True
     pricing.write(tmp_path, REPO_ROOT, _build())
     html = (tmp_path / "pricing" / "index.html").read_text()
