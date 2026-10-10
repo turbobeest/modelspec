@@ -482,6 +482,7 @@ class _TreeBuilder(HTMLParser):
 def _is_furniture(node: Node, rules: RuleSet) -> bool:
     if node.tag in rules.drop_tags and not (
         rules.data_buttons and node.tag == "button" and _is_data_cell_content(node)
+        and _DATA_BUTTON_PRICE.search(_inline(node)) is not None
     ):
         return True
     if "hidden" in node.attrs or node.attrs.get("aria-hidden") == "true":
@@ -523,6 +524,11 @@ def _in_header_cell(node: Node) -> bool:
             return True
         ancestor = ancestor.parent
     return False
+
+
+#: A data-cell button is kept only when its own text is a price, such as "$0.10".
+#: A "Copy" or "Learn more" control at the start of a cell is still furniture.
+_DATA_BUTTON_PRICE = re.compile(r"[$€£]\s?\d")
 
 
 def _is_data_cell_content(node: Node) -> bool:

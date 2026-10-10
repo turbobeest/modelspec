@@ -839,3 +839,14 @@ def test_a_retained_copy_whose_bytes_do_not_match_its_name_is_not_trusted(tmp_pa
         store.get(ref)
     assert store.put(b"the real page") == ref
     assert store.get(ref) == b"the real page"
+
+
+@pytest.mark.parametrize("label", [b"Copy", b"Learn more", b"Details", b"Contact sales"])
+def test_a_leading_data_cell_button_without_a_price_is_still_dropped(label: bytes) -> None:
+    """MODEL-369: only a price-bearing button at the start of a cell is cell content."""
+    page = (b'<table><tr><th>Name</th><th>Price</th></tr>'
+            b'<tr><td>Claude Sonnet 5.5</td><td><button>' + label + b'</button></td></tr>'
+            b'<tr><td>Claude Opus 5.5</td><td><button>$0.20</button> / MTok</td></tr></table>')
+    assert normalise_document(page, NORMALISERS["html-header-buttons"]).text == (
+        "Name | Price\nClaude Sonnet 5.5 |\nClaude Opus 5.5 | $0.20 / MTok"
+    )
