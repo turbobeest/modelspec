@@ -31,6 +31,7 @@
   "tests/test_credits.py": 0.015,
   "tests/test_credits_do.py": 0.004,
   "tests/test_curation_loop.py": 16.417,
+  "tests/test_decide_dev_server.py": 92.8,
   "tests/test_decide_page_fixtures.py": 0.043,
   "tests/test_decide_page_specs.py": 14.962,
   "tests/test_decide_preview_workflow.py": 0.261,

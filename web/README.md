@@ -4,20 +4,26 @@
 
 The decide page (`decide.html`) reads what it may offer from
 `/api/decision/vocabulary.json` and posts specs to `/v1/decide`. In
-development both go through the Vite proxy (`vite.config.ts`):
+development both go through the Vite proxy (`vite.config.ts`). Run these
+commands from `web/` in separate terminals:
 
 ```bash
-# 1. The repository's own engine on the published snapshot (MODEL-153).
-curl -o /tmp/snapshot.json.gz https://modelspec.dev/api/decision/snapshot.json.gz
-PYTHONPATH=.. python ../scripts/decide_dev_server.py --snapshot /tmp/snapshot.json.gz
-
+# 1. The repository's own engine on a snapshot built from the frozen public data (offline, ~1 min).
+PYTHONPATH=.. python ../scripts/decide_dev_server.py
 # 2. The page, proxied to it.
 EXPORT_ORIGIN=http://127.0.0.1:8787 DECIDE_API_ORIGIN=http://127.0.0.1:8787 \
   VITE_DECIDE_ENDPOINT=/v1/decide npm run dev
 ```
 
-`DECIDE_API_ORIGIN=https://api.modelspec.dev` sends the specs to the live
-Worker instead. `?demo=1` runs the fictional sample engine and makes no request.
+`--snapshot FILE` uses a snapshot you already have. The public
+`/api/decision/snapshot.json.gz` is no longer published since the data split
+(MODEL-247).
+
+To use the live Worker, set `DECIDE_API_ORIGIN=https://api.modelspec.dev` and
+export your own `MODELSPEC_API_KEY`. The `/v1` proxy sends it as
+`Authorization: Bearer <key>` on the page's own (same-origin) requests only;
+machine access is keyed. Set `VITE_VOCABULARY_URL=/v1/vocabulary` to fetch the
+live vocabulary through the same proxy. `?demo=1` runs the fictional sample engine and makes no request.
 
 ## Template notes (React + TypeScript + Vite)
 
