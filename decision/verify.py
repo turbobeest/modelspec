@@ -738,7 +738,8 @@ class OfferingPriceExtractor:
                             continue
                         readings.append(Reading(subject, row[i], claim.unit))
                         break
-        return readings or _grouped_header_tables(claim, text, wanted)
+        return (readings or _peak_price_tables(claim, rows, wanted)
+                or _grouped_header_tables(claim, text, wanted))
 
 
 #: A price cell: a dollar amount, however the unit after it is written.
@@ -772,6 +773,50 @@ def _band_price_column(headers: list[str], wanted: str) -> int | None:
             continue
         return index
     return None
+
+
+def _peak_price_tables(claim: Claim, rows: list[list[str]], wanted: str) -> list[Reading]:
+    """DeepSeek's transposed table: exact model columns and PEAK list prices.
+
+    HTML rowspans leave the price kind on the first band row only. The model
+    cells and each band's prices occupy the same rightmost columns. Filed
+    standard prices have no time-band condition; OFF-PEAK is a discount.
+    """
+    kinds = {"1m input tokens cache hit": "cached_input",
+             "1m input tokens cache miss": "input", "1m output tokens": "output"}
+    if wanted not in kinds.values():
+        return []
+    names = {normalise_name(name): name for name in claim.names}
+    columns: list[tuple[int, str]] = []
+    width = 0
+    kind = None
+    readings: list[Reading] = []
+    for row in rows:
+        if normalise_name(row[0]) in {"model", "model version"}:
+            width = len(row) - 1
+            columns = [(i, names[normalise_name(cell)]) for i, cell in enumerate(row[1:])
+                       if normalise_name(cell) in names]
+            kind = None
+            continue
+        if not columns or len(row) <= width:
+            kind = None
+            continue
+        labels = [normalise_name(cell) for cell in row[:-width]]
+        stated_kind = next((kinds[label] for label in labels if label in kinds), None)
+        if stated_kind:
+            kind = stated_kind
+        elif len(labels) != 1:
+            kind = None
+        band = labels[-1]
+        if band not in {"peak", "off peak"}:
+            kind = None
+            continue
+        if band == "peak" and kind == wanted:
+            prices = row[-width:]
+            for i, name in columns:
+                if match := _PRICE_CELL.search(prices[i]):
+                    readings.append(Reading(name, match.group(0), claim.unit))
+    return readings
 
 
 def _grouped_header_tables(claim: Claim, text: str, wanted: str) -> list[Reading]:
