@@ -27,8 +27,10 @@ first. Deterministic extractors always run first:
   nested `text_config` and the public API's `config` field. It reads
   `model.architecture`, `model.experts_total`, and `model.experts_per_token`.
 - `ModelCardParamsExtractor`, `model-card-params@1`: explicit active-parameter
-  statements or labelled model-card table cells. Total counts and model-name
-  suffixes such as `A4B` are never active-parameter readings.
+  or effective-parameter statements and labelled model-card table cells.
+  A parameter-count field's `4.92B-A0.43B` notation supplies the active count
+  only when its total agrees with the retained API census. Model-name suffixes
+  such as `A4B` never supply a count.
 - `HFParametersExtractor`, `hf-safetensors@1`: the API's safetensors census.
   It sums per-dtype counts when present because some sharded repositories
   report an index-entry count in `safetensors.total`.
@@ -401,42 +403,99 @@ The source registry admits commit URLs, so config and README URLs use the
 API's 40-character commit SHA. When no SHA is available they use `main`.
 The API itself retains its existing URL and source ID.
 
-The architecture rules run in this order:
+The architecture rules inspect every config level, including the top level,
+`text_config`, other nested objects and lists. They run in this order:
 
 1. Any routed-expert count greater than one means `MoE`. Recognised count
-   keys are `n_routed_experts`, `num_local_experts`, and `num_experts`.
-2. Without any expert or MoE keys, `*ForMaskedLM` or an explicitly listed
-   BERT-family `model_type` means `encoder-only`. Gemma's null expert
-   placeholders count as disabled only when `enable_moe_block` is explicitly
-   false and every other expert setting is null.
-3. Without expert keys, explicit `mamba`, `ssm`, `linear_attention`, or
-   `linear-attention` layer types mean `hybrid-SSM-transformer`.
-4. Without expert keys, a positive attention-head count means
-   `dense-transformer`. An embedding task does not change this classification.
+   keys are `n_routed_experts`, `num_local_experts`, `num_experts`, and
+   `moe_num_experts`. This includes DBRX's nested `ffn_config`.
+2. Any other expert or MoE key blocks a dense classification, including null
+   placeholders and explicitly disabled blocks. These configs have no
+   architecture reading unless rule 1 establishes MoE.
+3. Explicit `mamba`, `ssm`, `hybrid`, `rwkv`, or recurrent keys or model types,
+   or `linear_attention` / `linear-attention` layer types, mean
+   `hybrid-SSM-transformer`. Nemotron-H's `hybrid_override_pattern`,
+   Falcon-H1's `mamba_d_ssm`, and `model_type: rwkv7` cannot be dense.
+4. Without those settings, `*ForMaskedLM` or a listed BERT-family
+   `model_type` on the text backbone means `encoder-only`. A nested vision
+   encoder cannot give that classification to a decoder. A decoder needs a positive attention
+   head count and a `model_type` in this allowlist to mean `dense-transformer`:
+   `llama`, `mistral`, `qwen2`, `qwen3`, `gemma`, `gemma2`, `gemma3`,
+   `gemma3_text`, `gemma4`, `gemma4_text`, `phi`, `phi3`, `phi4`, `gpt2`,
+   `gpt_neox`, `gptj`, `opt`, `bloom`, `falcon`, `mpt`, `olmo`, `olmo2`,
+   `stablelm`, and `starcoder2`. For multimodal configs, the decoder type and
+   heads come from `text_config`; exclusion rules still inspect every level.
+   An embedding task does not change the backbone classification.
 5. Otherwise there is no architecture reading.
 
 `model.experts_total` counts routed experts per layer, excluding shared
 experts such as `n_shared_experts`. `model.experts_per_token` reads
-`num_experts_per_tok`, `num_experts_per_token`, `moe_topk`, `top_k_experts`, or
+`num_experts_per_tok`, `num_experts_per_token`, `moe_topk`, `moe_top_k`, `top_k_experts`, or
 `router_top_k` in a
-config classified as MoE. A conflicting or varying per-layer count gives no
-single count. Both facets use the `experts` unit, `better: neither`, and
+config classified as MoE. Zero entries describe layers without routed
+experts and do not change a uniform positive count. Conflicting or varying
+positive counts give no single count. Both facets use the `experts` unit, `better: neither`, and
 capability risk. They are best effort facts, never ranking signals.
 
-Active equals total only for a dense transformer or encoder-only backbone.
-The collector requires an existing verified total and agreement with the
-fresh retained API census. Hybrid and unclassified configs do not use this
-rule. The verifier repeats the config classification and same-repository
-census comparison without reading the collector's value as an input.
+The active facet counts parameters used to process one token. An explicit
+effective count for the exact variant is therefore an active reading. For
+example, Gemma 4 E2B's `2.3B effective (5.1B with embeddings)` reads as
+2,300,000,000 active parameters. The embedding-inclusive total is not the
+active count. The E4B column's 4.5B effective count belongs only to E4B.
+
+Prose binds each count to the nearest preceding model mention in the same
+clause. Alpha's count cannot come from `Unlike Beta (22B active parameters),
+Alpha is dense`. A two-column header naming Beta cannot bind to Alpha.
+Generic `Property | Value`, `Attribute | Value`, and headerless tables bind
+to the repository subject only when the table and nearest preceding heading
+do not name another model or variant. Technical fields naming a component,
+such as a vision encoder, do not rename the subject. Model rows and columns
+must match the exact subject. Ranges, qualified bounds and phase-dependent
+counts do not become one scalar.
+
+On a line labelled `Number of Total Parameters`, `Number of Parameters`, or
+`Total Parameters`, a value `<total>-A<active>` or `<total> A<active>` can
+read the active count. The collector checks the existing verified total
+against the retained API census. The parameter reader repeats the shorthand
+total's agreement with that same-repository census using the written
+precision and the standard number tolerance. The README and API must both
+be cited. This rule does not read a model-name suffix.
+
+Active equals total only for a dense transformer or encoder-only backbone
+whose safetensors census contains exclusively `BF16`, `F16`, and `F32`
+counts. FP8 tensors and their scales, packed `I32` / `U8` weights, unknown
+dtypes, and a census with only `safetensors.total` cannot use this rule.
+It also requires no expert or recurrent settings at any config level, no
+PLE keys such as `hidden_size_per_layer_input` or
+`vocab_size_per_layer_input`, and no active or effective parameter wording
+in a retained model card. The collector cites that README when available so
+the verifier repeats the wording check. The collector requires an existing
+verified total and agreement with the fresh retained API census. Hybrid and
+unclassified configs do not use equality. The verifier repeats the config
+classification and same-repository census comparison without reading the
+collector's value as an input.
 
 All HF hardware claims use only the deterministic readers, even when an LLM
-reader is configured. A gated config can fall back to the public API's
-config and the public README. An unreadable value becomes `not_disclosed`,
-with citations to retained public copies and `checked_sources` naming every
-attempted source. `hf-architecture-absence@1` repeats the absence check over
-all cited copies. It requires a scoped config, API response, or model README
-and rejects an absence when an explicit reading exists. A failed fetch is
-reported as a failed check and never used as a source reading.
+reader is configured. The public API's `config` field is trimmed. It can
+supply a positive reading when an explicit rule holds, but it cannot
+establish absence of architecture or expert facets. Those absences require
+a retained `config.json` among the cited copies. Without it, the collector
+reports a gap and files no fact for those facets.
+
+An active-parameter absence requires a retained README with no active,
+activated, or effective parameter wording at all. If wording is present
+but cannot bind to one scalar, the collector reports a gap with the quote
+and files no fact. DeepSeek V4.1 Flash's `8B / 16B` prefill/decode counts
+remain such a gap. Only supported absences become `not_disclosed`, with
+retained-copy citations and `checked_sources` naming every attempted source.
+`hf-architecture-absence@1` repeats these checks over all cited copies. A
+failed fetch is reported as a failed check and never cited as a reading.
+
+The HF dispatch remains conservative about mixed citations. When a hardware
+claim cites both an HF copy and a non-HF document, it is skipped as
+`unbound_hf_copy` even if the HF copy alone could supply the value. The
+collector files only scoped HF citations; this work does not relax that
+dispatch rule.
 
 The collector files facts and claims, updates the legacy `architecture`
 block, and prints `DISAGREE` for changed existing values. It refuses to write
@@ -455,7 +514,9 @@ Vocabulary and snapshot facet columns come from the registry automatically;
 `decision/snapshot_keys.json` contains signing keys, not facet IDs.
 
 The `json-default` normalizer preserves JSON arrays and object delimiters
-and sorts keys for stable fingerprints. The text normalizer removes lines
+and sorts keys for stable fingerprints. Invalid JSON and recursion failures
+while decoding or serializing raise `UnsupportedContentError` with
+`invalid_json`. The text normalizer removes lines
 containing only punctuation, which makes formatted configs invalid JSON.
 README tables can mix HTML and Markdown. The parameter reader normalizes
 HTML tables without flattening surrounding Markdown. A table's model row or

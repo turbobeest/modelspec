@@ -19,6 +19,7 @@ from decision.verify import (
     Reading,
     StoredRegions,
     deterministic_extractors,
+    hf_config_architecture,
     verify,
 )
 
@@ -162,14 +163,16 @@ def test_public_api_config_is_a_gated_repo_fallback():
     text = json.dumps(
         {
             "id": "lab/Alpha",
-            "config": {"model_type": "gemma4", "text_config": {"num_experts": 128, "moe_topk": 8}},
+            "config": {
+                "architectures": ["Gemma4ForConditionalGeneration"],
+                "model_type": "gemma4",
+                "tokenizer_config": {"bos_token": "<bos>"},
+            },
         }
     )
     reader = HFConfigExtractor()
-    assert reader.extract(claim(), text, page_url=API_URL) == [Reading("Alpha", "MoE")]
-    assert reader.extract(claim("model.experts_total"), text, page_url=API_URL) == [
-        Reading("Alpha", 128, "experts"),
-    ]
+    assert reader.extract(claim(), text, page_url=API_URL) == []
+    assert reader.extract(claim("model.experts_total"), text, page_url=API_URL) == []
     assert reader.extract(claim(), text.replace("lab/Alpha", "lab/Beta"), page_url=API_URL) == []
     assert reader.extract(claim(), text, page_url=CONFIG_URL.replace("Alpha", "Beta")) == []
     assert reader.extract(claim("model.context_window"), text, page_url=API_URL) == []
@@ -307,7 +310,7 @@ def test_unrecognised_copy_cannot_confirm_an_absence(tmp_path):
     assert result.outcome == "skipped"
 
 
-def test_gemma_disabled_null_expert_settings_verify_dense_but_unknown_settings_do_not():
+def test_gemma_null_or_unknown_expert_settings_block_dense():
     reader = HFConfigExtractor()
     config = {
         "model_type": "gemma4_text",
@@ -317,9 +320,7 @@ def test_gemma_disabled_null_expert_settings_verify_dense_but_unknown_settings_d
         "top_k_experts": None,
         "expert_intermediate_size": None,
     }
-    assert reader.extract(claim(), json.dumps(config), page_url=CONFIG_URL) == [
-        Reading("Alpha", "dense-transformer"),
-    ]
+    assert reader.extract(claim(), json.dumps(config), page_url=CONFIG_URL) == []
     config["expert_custom"] = 1
     assert reader.extract(claim(), json.dumps(config), page_url=CONFIG_URL) == []
 
@@ -438,3 +439,413 @@ def test_html_comparison_tables_preserve_the_empty_corner_cell():
     ) == [
         Reading("Alpha", 6_000_000_000, "parameters"),
     ]
+
+
+@pytest.mark.parametrize(
+    "text,expected",
+    [
+        (
+            "# Alpha\n\n## Compared with Beta\n\n| Spec | Beta-235B |\n"
+            "|---|---|\n| Active Parameters | 22B |\n",
+            [],
+        ),
+        (
+            "# Alpha\n\n| Attribute | Value |\n|---|---|\n| Activated Params | 22B |\n",
+            [22_000_000_000],
+        ),
+        (
+            "Alpha uses 3B active parameters, while Beta uses 22B active parameters.\n",
+            [3_000_000_000],
+        ),
+        ("Unlike Beta (22B active parameters), Alpha is dense.\n", []),
+        ("Alpha: 30B total parameters, 3B active parameters\n", [3_000_000_000]),
+        ("Alpha has 30B parameters of which 3 B active params\n", [3_000_000_000]),
+        ("Alpha has 3B non-embedding active parameters\n", []),
+        ("Alpha has 3-4B active parameters\n", []),
+        ("Alpha has 3 to 4B active parameters\n", []),
+        ("Alpha has between 3 and 4B active parameters\n", []),
+        ("Alpha has 3 or 4B active parameters\n", []),
+        ("Alpha has 3B active parameters to 4B\n", []),
+        ("Alpha has 8B active parameters during prefill and 16B during decode\n", []),
+        ("Alpha has 8B active parameters for prefill and 16B for decode\n", []),
+        ("Alpha has up to 17B active parameters per expert\n", []),
+        (
+            "Beta uses 22B active parameters, while Alpha uses 3B active parameters.\n",
+            [3_000_000_000],
+        ),
+        ("Alpha is dense. Beta uses 22B active parameters.\n", []),
+        ("Alpha is dense; 22B active parameters belong to Beta.\n", []),
+        ("# Alpha\n\n## Beta\n\n| Property | Value |\n| Active parameters | 22B |", []),
+        ("# Alpha\n\n## Beta-235B\n\n| Attribute | Value |\n| Active parameters | 22B |", []),
+        ("# Alpha\n\n## Beta\n\n| Active parameters | 22B |", []),
+        (
+            "# Alpha\n\n## Alpha\n\n| Property | Value |\n| Active parameters | 3B |",
+            [3_000_000_000],
+        ),
+        ("# Alpha\n\n| Spec | Alpha |\n| Active parameters | 3B |", [3_000_000_000]),
+        ("# Alpha\n\n| Spec | Beta |\n| Active parameters | 22B |", []),
+        ("# Alpha\n\n| Model | Value |\n| Beta | 22B |\n| Active parameters | 22B |", []),
+        ("Alpha uses 3B active parameters, beta uses 22B active parameters.", [3_000_000_000]),
+        ("# Alpha\n\n## beta\n\n| Attribute | Value |\n| Active parameters | 22B |", []),
+        (
+            "# Alpha\n\n## 2. Model Summary\n| | |\n| Architecture | Mixture-of-Experts (MoE) |\n"
+            "| Total Parameters | 30B |\n| Activated Parameters | 3B |\n"
+            "| Selected Experts per Token | 8 |\n| Vision Encoder | MoonViT |",
+            [3_000_000_000],
+        ),
+        ("# Alpha\n| Attribute | Value |\n| Model | beta |\n| Activated Parameters | 22B |", []),
+    ],
+)
+def test_review_card_scope_and_scalar_probes(text, expected):
+    assert [
+        r.value
+        for r in ModelCardParamsExtractor().extract(
+            claim("model.parameters_active"), text, page_url=README_URL
+        )
+    ] == expected
+
+
+@pytest.mark.parametrize(
+    "text,outcome,reason",
+    [
+        (
+            "# Alpha\n- Number of Parameters: 30B with 3B activated\n",
+            "skipped",
+            "active_wording_unparsed",
+        ),
+        (
+            "# Alpha\nAlpha activates 3B parameters per token.\n",
+            "skipped",
+            "active_wording_unparsed",
+        ),
+        ("# Alpha\nActive parameters: 3B\n", "mismatch", None),
+        (
+            "# Alpha\n| Property | Alpha |\n| Activated Params | 8B / 16B |\n",
+            "skipped",
+            "active_wording_unparsed",
+        ),
+        ("# Alpha\nAlpha has 3-4B active parameters.\n", "skipped", "active_wording_unparsed"),
+        ("# Alpha\nAlpha has 2.3B effective parameters.\n", "mismatch", None),
+        (
+            "# Alpha\nAlpha has 8B active parameters during prefill and 16B during decode\n",
+            "skipped",
+            "active_wording_unparsed",
+        ),
+    ],
+)
+def test_review_active_wording_cannot_verify_an_absence(tmp_path, text, outcome, reason):
+    regions, refs = retained(tmp_path, [("readme", README_URL, text)])
+    result = verify(
+        claim("model.parameters_active", None, refs),
+        regions,
+        deterministic_extractors(),
+        today=date(2026, 10, 10),
+    )
+    assert result.outcome == outcome
+    assert result.reason == reason
+
+
+@pytest.mark.parametrize(
+    "facet", ["model.architecture", "model.experts_total", "model.experts_per_token"]
+)
+@pytest.mark.parametrize(
+    "docs",
+    [
+        [("readme", README_URL, "# Alpha\nAlpha is an MoE with 128 experts, 8 active.\n")],
+        [
+            (
+                "api",
+                API_URL,
+                '{"id":"lab/Alpha","config":{"architectures":["AlphaMoeForCausalLM"],"model_type":"alpha_moe"}}',
+            )
+        ],
+    ],
+)
+def test_review_config_absence_requires_a_retained_config(tmp_path, facet, docs):
+    regions, refs = retained(tmp_path, docs)
+    result = verify(
+        claim(facet, None, refs), regions, deterministic_extractors(), today=date(2026, 10, 10)
+    )
+    assert result.outcome == "skipped"
+    assert result.reason == "retained_config_required"
+
+
+@pytest.mark.parametrize(
+    "config,expected",
+    [
+        (
+            {
+                "model_type": "nemotron_h",
+                "num_attention_heads": 32,
+                "hybrid_override_pattern": "M-M-M*-M-",
+                "mamba_num_heads": 128,
+            },
+            "hybrid-SSM-transformer",
+        ),
+        (
+            {"model_type": "falcon_h1", "num_attention_heads": 8, "mamba_d_ssm": 1024},
+            "hybrid-SSM-transformer",
+        ),
+        (
+            {
+                "model_type": "zamba2",
+                "num_attention_heads": 32,
+                "layers_block_type": ["mamba", "hybrid"],
+            },
+            "hybrid-SSM-transformer",
+        ),
+        ({"model_type": "rwkv7", "num_attention_heads": 32}, "hybrid-SSM-transformer"),
+        (
+            {"num_local_experts": 16, "text_config": {"model_type": "x", "num_attention_heads": 8}},
+            "MoE",
+        ),
+        ({"num_experts": 1, "num_attention_heads": 8}, None),
+        (
+            {
+                "model_type": "dbrx",
+                "n_heads": 48,
+                "ffn_config": {"moe_num_experts": 16, "moe_top_k": 4},
+            },
+            "MoE",
+        ),
+        (
+            {
+                "model_type": "dbrx",
+                "num_heads": 48,
+                "ffn_config": {"moe_num_experts": 16, "moe_top_k": 4},
+            },
+            "MoE",
+        ),
+        ({"num_experts": [0, 64, 64], "num_attention_heads": 8}, "MoE"),
+        ({"model_type": "jetmoe", "num_attention_heads": 8, "num_local_experts": 8}, "MoE"),
+        ({"model_type": "switch_transformers", "num_heads": 12, "num_experts": 8}, "MoE"),
+        (
+            {
+                "num_attention_heads": 8,
+                "enable_moe_block": False,
+                "num_experts": None,
+                "top_k_experts": None,
+            },
+            None,
+        ),
+        ({"num_attention_heads": 8, "enable_moe_block": False, "num_experts": 128}, "MoE"),
+        ({"num_attention_heads": 8, "num_experts": True}, None),
+        ({"model_type": "unrecognised_decoder", "num_attention_heads": 8}, None),
+        (
+            {"model_type": "llama", "num_attention_heads": 8, "vision_config": {"num_experts": 1}},
+            None,
+        ),
+        (
+            {
+                "model_type": "llama",
+                "num_attention_heads": 8,
+                "other_config": {"model_type": "rwkv7"},
+            },
+            "hybrid-SSM-transformer",
+        ),
+        (
+            {
+                "model_type": "llama",
+                "num_attention_heads": 8,
+                "other_config": {"ssm_state_size": 16},
+            },
+            "hybrid-SSM-transformer",
+        ),
+        (
+            {
+                "model_type": "llama",
+                "num_attention_heads": 8,
+                "vision_config": {"model_type": "bert", "num_attention_heads": 12},
+            },
+            "dense-transformer",
+        ),
+    ],
+)
+def test_review_config_classification_probes(config, expected):
+    assert hf_config_architecture(config) == expected
+    assert [
+        r.value
+        for r in HFConfigExtractor().extract(claim(), json.dumps(config), page_url=CONFIG_URL)
+    ] == ([] if expected is None else [expected])
+
+
+def test_review_expert_list_excludes_layers_without_experts():
+    text = '{"num_experts":[0,64,64],"num_experts_per_tok":8,"num_attention_heads":8}'
+    assert HFConfigExtractor().extract(claim("model.experts_total"), text, page_url=CONFIG_URL) == [
+        Reading("Alpha", 64, "experts"),
+    ]
+
+
+def test_review_top_level_experts_block_the_dense_rule():
+    text = (
+        '{"num_local_experts":16,"num_experts_per_tok":1,'
+        '"text_config":{"model_type":"x","num_attention_heads":8}}'
+    )
+    assert HFConfigExtractor().extract(claim(), text, page_url=CONFIG_URL) == [
+        Reading("Alpha", "MoE")
+    ]
+    assert not DenseActiveEqualsTotalExtractor().accepts(text)
+    assert HFConfigExtractor().extract(claim("model.experts_total"), text, page_url=CONFIG_URL) == [
+        Reading("Alpha", 16, "experts")
+    ]
+    assert HFConfigExtractor().extract(
+        claim("model.experts_per_token"), text, page_url=CONFIG_URL
+    ) == [Reading("Alpha", 1, "experts")]
+
+
+def test_review_nemotron_h_cannot_use_dense_equality():
+    text = (
+        '{"model_type":"nemotron_h","num_attention_heads":32,"hybrid_override_pattern":"M-M-M*-M-"}'
+    )
+    api = '{"id":"lab/Alpha","safetensors":{"parameters":{"BF16":9000000000}}}'
+    assert (
+        DenseActiveEqualsTotalExtractor().extract(
+            claim("model.parameters_active"),
+            text,
+            page_url=CONFIG_URL,
+            bindings=[(text, CONFIG_URL), (api, API_URL)],
+        )
+        == []
+    )
+
+
+@pytest.mark.parametrize(
+    "census,expected",
+    [
+        ({"parameters": {"BF16": 700, "F16": 2, "F32": 1}}, [703]),
+        ({"parameters": {"BF16": 700, "F8_E4M3": 2, "F32": 1}}, []),
+        ({"parameters": {"BF16": 700, "I32": 2, "U8": 1}}, []),
+        ({"parameters": {"F8_E4M3": 700, "F32": 3}}, []),
+        ({"total": 703}, []),
+    ],
+)
+def test_dense_rule_requires_an_unpacked_float_census(census, expected):
+    text = '{"model_type":"llama","num_attention_heads":32}'
+    api = json.dumps({"id": "lab/Alpha", "safetensors": census})
+    assert [
+        r.value
+        for r in DenseActiveEqualsTotalExtractor().extract(
+            claim("model.parameters_active"),
+            text,
+            page_url=CONFIG_URL,
+            bindings=[(api, API_URL)],
+        )
+    ] == expected
+
+
+@pytest.mark.parametrize(
+    "extra,card",
+    [
+        ({"hidden_size_per_layer_input": 256}, "# Alpha\nAlpha is released."),
+        ({"text_config": {"vocab_size_per_layer_input": 256}}, "# Alpha\nAlpha is released."),
+        ({}, "# Alpha\nAlpha uses 2.3B active parameters."),
+        ({}, "# Alpha\nAlpha uses 2.3B effective parameters."),
+        ({}, "# Alpha\n| Effective parameters | 2.3B |"),
+        ({}, "# Alpha\nAlpha activates 2.3B parameters per token."),
+    ],
+)
+def test_dense_rule_defers_to_active_or_effective_wording_and_ple(extra, card):
+    config = json.dumps({"model_type": "gemma4_text", "num_attention_heads": 8, **extra})
+    api = '{"id":"lab/Alpha","safetensors":{"parameters":{"BF16":5123178051}}}'
+    assert (
+        DenseActiveEqualsTotalExtractor().extract(
+            claim("model.parameters_active"),
+            config,
+            page_url=CONFIG_URL,
+            bindings=[(api, API_URL), (card, README_URL)],
+        )
+        == []
+    )
+
+
+@pytest.mark.parametrize(
+    "name,amount", [("gemma-4-e2b-it", 2_300_000_000), ("gemma-4-e4b-it", 4_500_000_000)]
+)
+def test_effective_parameter_table_binds_to_the_gemma_variant(name, amount):
+    c = replace(
+        claim("model.parameters_active"), subject="google/" + name, names=(name, "google/" + name)
+    )
+    text = (
+        "# Gemma 4\n| Property | E2B | E4B |\n"
+        "| Total Parameters | 2.3B effective <br> (5.1B with embeddings) | "
+        "4.5B effective <br> (8B with embeddings) |\n"
+    )
+    url = "https://huggingface.co/google/" + name + "/raw/main/README.md"
+    assert ModelCardParamsExtractor().extract(c, text, page_url=url) == [
+        Reading(name, amount, "parameters")
+    ]
+
+
+@pytest.mark.parametrize(
+    "label", ["Number of Total Parameters", "Total Parameters", "Number of Parameters"]
+)
+@pytest.mark.parametrize("value", ["4.92B-A0.43B", "4.92B A0.43B"])
+def test_parameter_field_shorthand_requires_a_matching_tensor_total(label, value):
+    text = f"# Alpha\n- {label}: {value}\n"
+    reader = ModelCardParamsExtractor()
+    c = claim("model.parameters_active")
+    api = '{"id":"lab/Alpha","safetensors":{"parameters":{"BF16":4919641986}}}'
+    assert reader.extract(c, text, page_url=README_URL, bindings=[(api, API_URL)]) == [
+        Reading("Alpha", 430_000_000, "parameters")
+    ]
+    assert reader.extract(c, text, page_url=README_URL) == []
+    wrong = api.replace("4919641986", "4021782018")
+    assert reader.extract(c, text, page_url=README_URL, bindings=[(wrong, API_URL)]) == []
+    assert (
+        reader.extract(
+            c, text, page_url=README_URL, bindings=[(api.replace("Alpha", "Beta"), API_URL)]
+        )
+        == []
+    )
+    assert (
+        reader.extract(c, "# Alpha-4.92B-A0.43B", page_url=README_URL, bindings=[(api, API_URL)])
+        == []
+    )
+
+
+def test_json_normalizer_rejects_deeply_nested_json(monkeypatch):
+    from json.scanner import py_make_scanner
+
+    from decision.normalise import NORMALISERS, UnsupportedContentError, normalise_document
+
+    body = b'{"nested":' + b"[" * 10_000 + b"0" + b"]" * 10_000 + b"}"
+    decoder = json.JSONDecoder()
+    decoder.scan_once = py_make_scanner(decoder)
+    monkeypatch.setattr(json, "loads", decoder.decode)
+    with pytest.raises(UnsupportedContentError, match="invalid_json"):
+        normalise_document(body, NORMALISERS["json-default"])
+
+
+def test_hardware_claim_with_an_hf_and_non_hf_citation_remains_skipped(tmp_path):
+    regions, refs = retained(
+        tmp_path,
+        [
+            ("config", CONFIG_URL, '{"num_experts":8}'),
+            ("lab", "https://lab.example/Alpha", "Alpha is an MoE."),
+        ],
+    )
+    result = verify(
+        claim("model.architecture", "MoE", refs),
+        regions,
+        deterministic_extractors(),
+        today=date(2026, 10, 10),
+    )
+    assert result.outcome == "skipped"
+    assert result.reason == "unbound_hf_copy"
+
+
+def test_html_specs_with_quantization_and_modality_keep_the_repository_subject():
+    text = """# Alpha
+## 2. Model Summary
+<table>
+<tr><td>Architecture</td><td>Mixture-of-Experts (MoE)</td></tr>
+<tr><td>Activated Parameters</td><td>104B</td></tr>
+<tr><td>Vision Encoder</td><td>MoonViT-V2</td></tr>
+<tr><td>Quantization</td><td>MXFP4 weights / MXFP8 activations</td></tr>
+<tr><td>Modality</td><td>Text, Image</td></tr>
+</table>"""
+    assert ModelCardParamsExtractor().extract(
+        claim("model.parameters_active"),
+        text,
+        page_url=README_URL,
+    ) == [Reading("Alpha", 104_000_000_000, "parameters")]

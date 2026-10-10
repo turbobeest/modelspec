@@ -655,10 +655,10 @@ def normalise_document(body: bytes, rules: RuleSet, *, charset: str | None = Non
     if rules.content == "json":
         try:
             data = json.loads(raw)
-        except ValueError as exc:
+            text = json.dumps(data, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+        except (ValueError, RecursionError) as exc:
             raise UnsupportedContentError("invalid_json") from exc
-        return Document(rules, json.dumps(data, sort_keys=True, ensure_ascii=False,
-                                         separators=(",", ":")))
+        return Document(rules, text)
     if rules.content == "text":
         return Document(rules, _to_text([raw], rules))
     builder = _TreeBuilder()

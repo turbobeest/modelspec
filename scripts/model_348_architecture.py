@@ -29,6 +29,7 @@ from decision.verify import (
     Queue,
     StoredRegions,
     VerificationLog,
+    active_parameter_wording,
     verify,
 )
 from scripts.policy.architecture_coverage import EXPERT_FACETS, FACETS
@@ -52,16 +53,26 @@ LEGACY = {
 }
 
 
-def _absence_reason(facet: str, pages: list[tuple[str, str]]) -> str:
+def _absence_reason(facet: str, pages: list[tuple[str, str]], reason: str | None = None) -> str:
+    if reason == "retained_config_required":
+        return (
+            "no retained config.json; trimmed API metadata "
+            "and README cannot establish config absence"
+        )
+    if reason == "retained_readme_required":
+        return "no retained README to check for active or effective parameter wording"
     if facet == "model.parameters_active":
-        for text, url in pages:
-            if not url.endswith("/README.md"):
-                continue
-            for line in text.splitlines():
-                if re.search(r"activ(?:e|ated).*\d+(?:\.\d+)?B\s*/\s*\d+(?:\.\d+)?B", line, re.I):
-                    return (
-                        "model card gives separate active counts by phase; no single scalar reading"
-                    )
+        quotes = [
+            quote
+            for text, url in pages
+            if url.endswith("/README.md")
+            for quote in active_parameter_wording(text)
+        ]
+        if quotes:
+            return (
+                "active/effective parameter wording has no single bound scalar reading; quotes: "
+                + "\n".join(quotes)
+            )
         return "no explicit active-parameter reading for this model; dense equality does not apply"
     if facet in EXPERT_FACETS:
         return "config does not disclose a uniform routed-expert count under the registered rules"
@@ -362,12 +373,23 @@ def collect(
                         readings.extend(found)
                         citations.append(refs[url])
                         methods.append(reader.actor.method)
-                        if isinstance(reader, DenseActiveEqualsTotalExtractor):
+                        if (
+                            isinstance(
+                                reader, (DenseActiveEqualsTotalExtractor, ModelCardParamsExtractor)
+                            )
+                            and str(api.url) in refs
+                        ):
                             citations.append(refs[str(api.url)])
+                        if (
+                            isinstance(reader, DenseActiveEqualsTotalExtractor)
+                            and str(readme.url) in refs
+                        ):
+                            citations.append(refs[str(readme.url)])
             values = {r.value for r in readings}
-            if len(values) > 1:
+            ambiguous_active = facet == "model.parameters_active" and len(values) > 1
+            if len(values) > 1 and not ambiguous_active:
                 problems.append(f"{model_id} {facet}: retained readings disagree: {sorted(values)}")
-            value = readings[0].value if readings else None
+            value = readings[0].value if readings and not ambiguous_active else None
             old = existing.get(facet) or {}
             if facet == "model.parameters_total" and old.get("state") == "known":
                 if not _verified(log, model_id, facet, old.get("value")):
@@ -406,7 +428,17 @@ def collect(
             )
             claim = Claim.from_fact(fact, names=names, collector=COLLECTOR, unit=unit)
             checked = verify(claim, regions, READERS, today=now.date())
-            if checked.outcome != "verified":
+            gap = ambiguous_active or (
+                value is None
+                and checked.outcome == "skipped"
+                and checked.reason
+                in {
+                    "retained_config_required",
+                    "retained_readme_required",
+                    "active_wording_unparsed",
+                }
+            )
+            if checked.outcome != "verified" and not gap:
                 problems.append(
                     f"{model_id} {facet}: retained-copy check {checked.outcome}: {checked.reason}"
                 )
@@ -419,12 +451,13 @@ def collect(
             architecture[LEGACY[facet]] = value
             if facet == "model.architecture":
                 dense = value in DENSE_ARCHITECTURES
-            filed.append((fact, claim))
+            if not gap:
+                filed.append((fact, claim))
             rows.append(
                 {
                     "model_id": model_id,
                     "facet": facet,
-                    "state": fact.state,
+                    "state": "missing" if gap else fact.state,
                     "value": value,
                     "previous_value": prior,
                     "disagreement": disagreement,
@@ -437,7 +470,9 @@ def collect(
                     ],
                     "checked_sources": list(all_sources),
                     "failures": failures,
-                    "reason": _absence_reason(facet, pages) if value is None else None,
+                    "reason": _absence_reason(facet, pages, checked.reason)
+                    if value is None
+                    else None,
                 }
             )
         prepared.append(

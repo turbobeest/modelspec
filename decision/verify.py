@@ -2030,20 +2030,49 @@ DENSE_ARCHITECTURES = frozenset(
         ArchitectureType.ENCODER_ONLY.value,
     }
 )
-_ROUTED_EXPERTS = ("n_routed_experts", "num_local_experts", "num_experts")
+_ROUTED_EXPERTS = ("n_routed_experts", "num_local_experts", "num_experts", "moe_num_experts")
 _EXPERTS_PER_TOKEN = (
     "num_experts_per_tok",
     "num_experts_per_token",
     "moe_topk",
+    "moe_top_k",
     "top_k_experts",
     "router_top_k",
+)
+_DENSE_DECODERS = frozenset(
+    {
+        "llama",
+        "mistral",
+        "qwen2",
+        "qwen3",
+        "gemma",
+        "gemma2",
+        "gemma3",
+        "gemma3_text",
+        "gemma4",
+        "gemma4_text",
+        "phi",
+        "phi3",
+        "phi4",
+        "gpt2",
+        "gpt_neox",
+        "gptj",
+        "opt",
+        "bloom",
+        "falcon",
+        "mpt",
+        "olmo",
+        "olmo2",
+        "stablelm",
+        "starcoder2",
+    }
 )
 
 
 def _hf_json(text: str) -> Mapping[str, Any] | None:
     try:
         data = json.loads(text)
-    except ValueError:
+    except (ValueError, RecursionError):
         return None
     return data if isinstance(data, Mapping) else None
 
@@ -2059,94 +2088,115 @@ def _hf_config(text: str) -> Mapping[str, Any] | None:
     if "text_config" in data:
         if not isinstance(data["text_config"], Mapping):
             return None
-        data = data["text_config"]
-    if not set(data).intersection(
-        {
-            "model_type",
-            "architectures",
-            "num_attention_heads",
-            "n_head",
-            "num_heads",
-            *_ROUTED_EXPERTS,
-        }
-    ):
+    recognised = {
+        "model_type",
+        "architectures",
+        "num_attention_heads",
+        "n_head",
+        "n_heads",
+        "num_heads",
+        *_ROUTED_EXPERTS,
+    }
+    if not any(set(part).intersection(recognised) for part in _config_maps(data)):
         return None
     return data
 
 
+def _config_maps(config: Mapping[str, Any]) -> Iterable[Mapping[str, Any]]:
+    pending: list[Any] = [config]
+    while pending:
+        item = pending.pop()
+        if isinstance(item, Mapping):
+            yield item
+            pending.extend(item.values())
+        elif isinstance(item, list):
+            pending.extend(item)
+
+
 def _expert_count(config: Mapping[str, Any], keys: Sequence[str]) -> int | None:
     values = []
-    for key in keys:
-        if key not in config:
-            continue
-        raw = config[key]
-        members = raw if isinstance(raw, list) else [raw]
-        if not members or any(type(n) is not int or n < 0 for n in members):
-            return None
-        values.extend(members)
+    for part in _config_maps(config):
+        for key in keys:
+            if key not in part:
+                continue
+            raw = part[key]
+            members = raw if isinstance(raw, list) else [raw]
+            if not members or any(type(n) is not int or n < 0 for n in members):
+                return None
+            values.extend(n for n in members if n > 0)
     return values[0] if values and len(set(values)) == 1 else None
 
 
 def hf_config_architecture(config: Mapping[str, Any]) -> str | None:
-    """Routed experts win; then explicit encoder/SSM rules, then dense attention.
+    """Inspect every level; routed experts win, and dense decoders are allowlisted.
 
     Shared experts never contribute to the routed count. Any expert or MoE key
     prevents the dense rule, including an unfamiliar key or a disabled layer.
     Embedding tasks do not determine a backbone's architecture.
     """
-    routed = [
-        n
-        for key in _ROUTED_EXPERTS
-        for n in (config[key] if isinstance(config.get(key), list) else [config.get(key)])
-        if type(n) is int and n > 1
-    ]
-    if routed:
-        return ArchitectureType.MOE.value
-    expert_settings = {
-        key: value
-        for key, value in config.items()
-        if "expert" in key.casefold() or "moe" in key.casefold()
-    }
-    # Gemma serialises null expert placeholders even in explicitly disabled blocks.
-    disabled = expert_settings.get("enable_moe_block") is False and all(
-        value is None for key, value in expert_settings.items() if key != "enable_moe_block"
-    )
-    if expert_settings and not disabled:
-        return None
-    architectures = config.get("architectures") or []
-    if not isinstance(architectures, list):
-        return None
+    parts = list(_config_maps(config))
     if any(
-        isinstance(name, str) and name.endswith("ForMaskedLM") for name in architectures
-    ) or config.get("model_type") in {
-        "bert",
-        "roberta",
-        "xlm-roberta",
-        "distilbert",
-        "albert",
-        "electra",
-        "deberta",
-        "deberta-v2",
-        "modernbert",
-        "nomic_bert",
-    }:
-        return ArchitectureType.ENCODER_ONLY.value
-    layers = config.get("layer_types", config.get("layers_block_type", []))
-    if isinstance(layers, list) and any(
-        layer
-        in {
-            "mamba",
-            "ssm",
-            "linear_attention",
-            "linear-attention",
-        }
-        for layer in layers
-        if isinstance(layer, str)
+        type(n) is int and n > 1
+        for part in parts
+        for key in _ROUTED_EXPERTS
+        for n in (part[key] if isinstance(part.get(key), list) else [part.get(key)])
+    ):
+        return ArchitectureType.MOE.value
+    if any("expert" in key.casefold() or "moe" in key.casefold() for part in parts for key in part):
+        return None
+    recurrent = re.compile(r"mamba|ssm|hybrid|rwkv|recurrent", re.I)
+    if any(
+        recurrent.search(key)
+        or (key == "model_type" and isinstance(value, str) and recurrent.search(value))
+        or (
+            key in {"layer_types", "layers_block_type"}
+            and isinstance(value, list)
+            and any(
+                isinstance(layer, str)
+                and (recurrent.search(layer) or layer in {"linear_attention", "linear-attention"})
+                for layer in value
+            )
+        )
+        for part in parts
+        for key, value in part.items()
     ):
         return ArchitectureType.HYBRID_SSM_TRANSFORMER.value
-    if any(
-        type(config.get(key)) is int and config[key] > 0
-        for key in ("num_attention_heads", "n_head", "num_heads")
+    backbone = config.get("text_config", config)
+    if not isinstance(backbone, Mapping):
+        return None
+    if (
+        (
+            isinstance(backbone.get("model_type"), str)
+            and backbone["model_type"]
+            in {
+                "bert",
+                "roberta",
+                "xlm-roberta",
+                "distilbert",
+                "albert",
+                "electra",
+                "deberta",
+                "deberta-v2",
+                "modernbert",
+                "nomic_bert",
+            }
+        )
+        or (
+            isinstance(backbone.get("architectures"), list)
+            and any(
+                isinstance(name, str) and name.endswith("ForMaskedLM")
+                for name in backbone["architectures"]
+            )
+        )
+    ):
+        return ArchitectureType.ENCODER_ONLY.value
+    if (
+        isinstance(backbone.get("model_type"), str)
+        and backbone["model_type"] in _DENSE_DECODERS
+        and any(
+            type(backbone.get(key)) is int and backbone[key] > 0
+            for key in ("num_attention_heads", "n_head", "n_heads", "num_heads")
+        )
     ):
         return ArchitectureType.DENSE_TRANSFORMER.value
     return None
@@ -2284,14 +2334,110 @@ class HFParametersExtractor:
         return [Reading(subject, value, "parameters")]
 
 
-_ACTIVE_LABEL = r"(?:active|activated)\s+(?:parameters|params)"
+_ACTIVE_LABEL = r"(?:active|activated|effective)\s+(?:parameters|params)"
+_TOTAL_LABEL = r"(?:number\s+of\s+)?(?:total\s+)?(?:parameters|params)"
 _PARAMETER_AMOUNT = r"\d+(?:\.\d+)?\s*(?:B|billion|M|million)"
 _ACTIVE_PROSE = re.compile(
-    rf"(?<![\w.])(?P<amount>{_PARAMETER_AMOUNT})\s+{_ACTIVE_LABEL}\b",
+    rf"(?<![\w.])(?P<amount>{_PARAMETER_AMOUNT})\s+(?:{_ACTIVE_LABEL}|effective\b)",
     re.I,
 )
 _ACTIVE_VALUE = re.compile(rf"^(?P<amount>{_PARAMETER_AMOUNT})(?:\s+parameters)?$", re.I)
+_EFFECTIVE_VALUE = re.compile(
+    rf"^(?P<amount>{_PARAMETER_AMOUNT})\s+effective(?:\s+parameters)?"
+    rf"(?:\s*\({_PARAMETER_AMOUNT}\s+with\s+embeddings\))?$",
+    re.I,
+)
 _ACTIVE_KEY = re.compile(rf"^{_ACTIVE_LABEL}$", re.I)
+_TOTAL_KEY = re.compile(rf"^{_TOTAL_LABEL}$", re.I)
+_PARAMETER_KEY_VALUE = re.compile(
+    rf"^(?:-\s*)?(?P<label>{_ACTIVE_LABEL}|{_TOTAL_LABEL}):\s*(?P<value>.+)$", re.I
+)
+_PARAMETER_SHORTHAND = re.compile(
+    rf"^(?P<total>{_PARAMETER_AMOUNT})(?:\s*-\s*|\s+)A(?P<active>{_PARAMETER_AMOUNT})$",
+    re.I,
+)
+_CARD_WORDS = frozenset(
+    {
+        "active",
+        "activated",
+        "effective",
+        "total",
+        "number",
+        "of",
+        "parameters",
+        "params",
+        "property",
+        "attribute",
+        "spec",
+        "specification",
+        "value",
+        "model",
+        "models",
+        "name",
+        "overview",
+        "architecture",
+        "moe",
+        "dense",
+        "transformer",
+        "embedding",
+        "embeddings",
+        "summary",
+        "description",
+        "introduction",
+        "details",
+        "technical",
+        "specifications",
+        "mixture",
+        "layer",
+        "layers",
+        "attention",
+        "hidden",
+        "dimension",
+        "expert",
+        "experts",
+        "selected",
+        "shared",
+        "routed",
+        "token",
+        "per",
+        "latent",
+        "mechanism",
+        "activation",
+        "function",
+        "vision",
+        "encoder",
+        "composition",
+        "quantization",
+        "modality",
+        "context",
+        "length",
+        "vocabulary",
+        "size",
+        "heads",
+        "b",
+        "m",
+        "billion",
+        "million",
+        "unlike",
+        "compared",
+        "with",
+        "the",
+        "this",
+        "we",
+        "our",
+        "it",
+        "hf",
+        "download",
+        "benchmark",
+        "metric",
+        "score",
+    }
+)
+_CARD_SPEC_FIELD = re.compile(
+    r"\b(?:architecture|parameters|params|layers?|experts?|attention|dimension|vocabulary|context|"
+    r"activation|encoder|quantization|modality)\b",
+    re.I,
+)
 
 
 def _parameter_amount(text: str) -> int:
@@ -2302,15 +2448,71 @@ def _parameter_amount(text: str) -> int:
 
 
 def _hf_card_names_subject(text: str, names: Sequence[str]) -> bool:
-    words = _page_words(text)
     return any(
-        _whole_name_in_words(" ".join(_name_segments(name.rsplit("/", 1)[-1])), words)
+        _whole_name_in_words(" ".join(_name_segments(name.rsplit("/", 1)[-1])), _page_words(line))
+        for line in text.splitlines()
         for name in names
     )
 
 
+def _card_model_mentions(text: str, names: Sequence[str]) -> list[tuple[int, int, bool]]:
+    mentions = []
+    for name in names:
+        pattern = r"[-_.\s]+".join(re.escape(part) for part in _name_segments(name))
+        if pattern:
+            mentions.extend(
+                (m.start(), m.end(), True)
+                for m in re.finditer(rf"(?<![\w./-]){pattern}(?![\w.-])", text, re.I)
+            )
+    for match in re.finditer(
+        r"(?<![\w./-])(?:[A-Z][A-Za-z0-9]*(?:[-_.][A-Za-z0-9]+)*"
+        r"|[a-z][A-Za-z0-9]*(?:[-_][A-Za-z0-9]+)+"
+        r"|[a-z][A-Za-z0-9_.-]*(?=\s+(?:uses|has|is|activates|contains)\b|\s*\())(?![\w.-])",
+        text,
+    ):
+        if all(word in _CARD_WORDS for word in normalise_name(match[0]).split()) or any(
+            left <= match.start() < right for left, right, _ in mentions
+        ):
+            continue
+        mentions.append((match.start(), match.end(), False))
+    return sorted(mentions)
+
+
+def active_parameter_wording(text: str) -> tuple[str, ...]:
+    """Quotes that prevent an unreadable disclosure from being filed as absence."""
+    quotes = []
+    for line in text.splitlines():
+        plain = re.sub(r"[*`]", "", line)
+        if (
+            re.search(r"\b(?:active|activat(?:e|ed|es|ing|ion)|effective)\b", plain, re.I)
+            and re.search(rf"\b(?:parameters|params)\b|{_PARAMETER_AMOUNT}", plain, re.I)
+        ) or (
+            (match := _PARAMETER_KEY_VALUE.fullmatch(plain.strip()))
+            and _PARAMETER_SHORTHAND.fullmatch(match["value"])
+        ):
+            quotes.append(line.strip())
+    return tuple(quotes)
+
+
+def _scalar_parameter_match(line: str, match: re.Match[str]) -> bool:
+    prefix = line[: match.start()]
+    if re.search(
+        r"(?:\d+(?:\.\d+)?\s*(?:B|M|billion|million)?\s*(?:[-–—/]|\b(?:to|and|or)\b)"
+        r"|up to|at most|about|approximately|between)\s*$",
+        prefix,
+        re.I,
+    ):
+        return False
+    suffix = line[match.end() :]
+    if re.match(rf"\s*(?:[-–—/]|\bto\b)\s*{_PARAMETER_AMOUNT}", suffix, re.I):
+        return False
+    return re.match(
+        r"\s+(?:per\s+expert|(?:during|for|in)\s+(?:prefill|decode))\b", suffix, re.I
+    ) is None
+
+
 class ModelCardParamsExtractor:
-    """Read explicit active-parameter prose or labelled tables, never name suffixes."""
+    """Read a subject's explicit scalar count, never a model-name suffix."""
 
     actor = VerificationActor(
         agent=VERIFY_AGENT, model_family=DETERMINISTIC, method="model-card-params@1"
@@ -2318,7 +2520,7 @@ class ModelCardParamsExtractor:
     fields = frozenset({"model.parameters_active"})
 
     def accepts(self, text: str) -> bool:
-        return bool(re.search(rf"\b{_ACTIVE_LABEL}\b", text, re.I)) and _hf_json(text) is None
+        return bool(active_parameter_wording(text)) and _hf_json(text) is None
 
     def extract(
         self,
@@ -2336,90 +2538,151 @@ class ModelCardParamsExtractor:
             or not page_url.endswith("/README.md")
         ):
             return []
-        if re.search(r"<table\b", text, re.I):
-            text = re.sub(
-                r"<table\b.*?</table>",
-                lambda match: (
-                    "\n"
-                    + normalise_document(
-                        match[0].encode(),
-                        NORMALISERS["html-default"],
-                    ).text
-                    + "\n"
-                ),
-                text,
-                flags=re.I | re.S,
-            )
-        lines = [re.sub(r"[*`]", "", line).strip() for line in text.splitlines()]
+        text = re.sub(
+            r"<table\b.*?</table>",
+            lambda m: "\n"
+            + normalise_document(m[0].encode(), NORMALISERS["html-default"]).text
+            + "\n",
+            text,
+            flags=re.I | re.S,
+        )
+        lines = [
+            re.sub(r"[*`]", "", re.sub(r"<br\s*/?>", " ", line, flags=re.I)).strip()
+            for line in text.splitlines()
+        ]
         names = list(claim.names)
         for name in claim.names:
             gemma = re.fullmatch(
-                r"gemma-[34]-(\d+b-a\d+b|e\d+b|\d+b)(?:-it)?", name.rsplit("/", 1)[-1], re.I
+                r"gemma-[34]-(\d+b-a\d+b|e\d+b|\d+b)(?:-it)?",
+                name.rsplit("/", 1)[-1],
+                re.I,
             )
             if gemma:
                 names.append(gemma[1].replace("-", " "))
+        totals = {
+            r.value
+            for page, url in bindings
+            for r in HFParametersExtractor().extract(
+                replace(claim, field="model.parameters_total"),
+                page,
+                page_url=url,
+            )
+        }
 
         def own(cell: str) -> bool:
             return _hf_card_names_subject(cell, names)
 
-        out = []
-        header: list[str] = []
-        for line in lines:
+        def foreign(cell: str) -> bool:
+            return any(not is_own for _, _, is_own in _card_model_mentions(cell, names)) or (
+                bool(re.fullmatch(r"[a-z][\w.-]*", cell))
+                and not all(word in _CARD_WORDS for word in normalise_name(cell).split())
+                and not own(cell)
+            )
+
+        def read_cell(label: str, value: str) -> list[Reading]:
+            match = _ACTIVE_VALUE.fullmatch(value) if _ACTIVE_KEY.fullmatch(label) else None
+            if not match and (_ACTIVE_KEY.fullmatch(label) or _TOTAL_KEY.fullmatch(label)):
+                match = _EFFECTIVE_VALUE.fullmatch(value)
+            if match:
+                return [Reading(subject, _parameter_amount(match["amount"]), "parameters")]
+            shorthand = (
+                _PARAMETER_SHORTHAND.fullmatch(value) if _TOTAL_KEY.fullmatch(label) else None
+            )
+            if shorthand and len(totals) == 1:
+                quantity = parse_quantity(shorthand["total"], "parameters")
+                if quantity and numbers_agree(next(iter(totals)), "parameters", quantity):
+                    return [Reading(subject, _parameter_amount(shorthand["active"]), "parameters")]
+            return []
+
+        out, heading = [], ""
+        index = 0
+        while index < len(lines):
+            line = lines[index]
+            if re.match(r"^#{1,6}\s", line):
+                heading = line.lstrip("# ")
             if "|" in line:
-                body = line.removeprefix("|").removesuffix("|") if line.endswith("|") else line
-                cells = [cell.strip().lstrip("# ") for cell in re.split(r"(?<!\\)\|", body)]
-                if cells and _ACTIVE_KEY.fullmatch(cells[0]):
+                table = []
+                while index < len(lines) and "|" in lines[index]:
+                    body = (
+                        lines[index].removeprefix("|").removesuffix("|")
+                        if lines[index].endswith("|")
+                        else lines[index]
+                    )
+                    cells = [cell.strip().lstrip("# ") for cell in re.split(r"(?<!\\)\|", body)]
+                    if not all(re.fullmatch(r"[:\s-]*", cell) for cell in cells):
+                        table.append(cells)
+                    index += 1
+                header = table[0] if table else []
+                generic = (
+                    len(header) == 2
+                    and header[0].casefold() in {"property", "attribute", "spec"}
+                    and header[1].casefold() == "value"
+                )
+                implicit = not foreign(heading) and not any(
+                    foreign(row[0])
+                    or (
+                        not _CARD_SPEC_FIELD.search(row[0])
+                        and any(foreign(cell) for cell in row[1:])
+                    )
+                    for row in table
+                )
+                model_col = next(
+                    (
+                        i
+                        for i, cell in enumerate(header)
+                        if cell.casefold() in {"model", "model name"}
+                    ),
+                    None,
+                )
+                active_col = next(
+                    (i for i, cell in enumerate(header) if _ACTIVE_KEY.fullmatch(cell)), None
+                )
+                for cells in table:
+                    if (
+                        model_col is not None
+                        and active_col is not None
+                        and len(cells) == len(header)
+                    ):
+                        if own(cells[model_col]):
+                            out.extend(read_cell(header[active_col], cells[active_col]))
+                        continue
+                    if not cells or not (
+                        _ACTIVE_KEY.fullmatch(cells[0]) or _TOTAL_KEY.fullmatch(cells[0])
+                    ):
+                        continue
                     columns = [i for i, cell in enumerate(header) if i and own(cell)]
-                    if len(cells) == 2 and (not header or header[0].casefold() != "property"):
+                    no_header = header[0].casefold() not in {
+                        "property",
+                        "attribute",
+                        "spec",
+                        "model",
+                        "model name",
+                        "",
+                    }
+                    if len(cells) == 2 and implicit and (generic or no_header):
                         columns = [1]
                     for column in columns:
-                        match = (
-                            _ACTIVE_VALUE.fullmatch(cells[column]) if column < len(cells) else None
-                        )
-                        if match:
-                            out.append(
-                                Reading(subject, _parameter_amount(match["amount"]), "parameters")
-                            )
-                    continue
-                if any(_ACTIVE_KEY.fullmatch(cell) for cell in cells):
-                    header = cells
-                    continue
-                if cells and (
-                    cells[0].casefold() in {"property", "model", "model name"}
-                    or not cells[0]
-                    or cells[0].casefold() == "benchmark (metric)"
-                ):
-                    header = cells
-                    continue
-                if header and len(cells) == len(header):
-                    model_col = next(
-                        (
-                            i
-                            for i, cell in enumerate(header)
-                            if cell.casefold() in {"model", "model name"}
-                        ),
-                        None,
-                    )
-                    active_col = next(
-                        (i for i, cell in enumerate(header) if _ACTIVE_KEY.fullmatch(cell)), None
-                    )
-                    if model_col is not None and active_col is not None and own(cells[model_col]):
-                        match = _ACTIVE_VALUE.fullmatch(cells[active_col])
-                        if match:
-                            out.append(
-                                Reading(subject, _parameter_amount(match["amount"]), "parameters")
-                            )
+                        if column < len(cells):
+                            out.extend(read_cell(cells[0], cells[column]))
                 continue
-            header = []
-            if not own(line):
-                continue
+            key_value = _PARAMETER_KEY_VALUE.fullmatch(line)
+            if key_value and not foreign(heading):
+                out.extend(read_cell(key_value["label"], key_value["value"]))
             for match in _ACTIVE_PROSE.finditer(line):
-                out.append(Reading(subject, _parameter_amount(match["amount"]), "parameters"))
+                if not _scalar_parameter_match(line, match):
+                    continue
+                prefix = re.split(
+                    r"[;!?]|\.(?=\s)|\b(?:while|whereas)\b", line[: match.start()], flags=re.I
+                )[-1]
+                mentions = _card_model_mentions(prefix, names)
+                if mentions and mentions[-1][2]:
+                    out.append(Reading(subject, _parameter_amount(match["amount"]), "parameters"))
+            index += 1
         return out
 
 
 class DenseActiveEqualsTotalExtractor:
-    """Recompute dense active parameters from a config and its same-repo API census."""
+    """Recompute an unpacked dense total only without active wording or PLE."""
 
     actor = VerificationActor(
         agent=VERIFY_AGENT, model_family=DETERMINISTIC, method="dense-active-equals-total@1"
@@ -2428,7 +2691,15 @@ class DenseActiveEqualsTotalExtractor:
 
     def accepts(self, text: str) -> bool:
         config = _hf_config(text)
-        return config is not None and hf_config_architecture(config) in DENSE_ARCHITECTURES
+        return (
+            config is not None
+            and hf_config_architecture(config) in DENSE_ARCHITECTURES
+            and not any(
+                key in {"hidden_size_per_layer_input", "vocab_size_per_layer_input"}
+                for part in _config_maps(config)
+                for key in part
+            )
+        )
 
     def extract(
         self,
@@ -2439,23 +2710,47 @@ class DenseActiveEqualsTotalExtractor:
         bindings: Sequence[tuple[str, str | None]] = (),
     ) -> list[Reading]:
         subject = _hf_bound_subject(claim, text, page_url)
-        if claim.field not in self.fields or subject is None or not self.accepts(text):
+        if (
+            claim.field not in self.fields
+            or subject is None
+            or not self.accepts(text)
+            or not page_url.endswith("/config.json")
+        ):
             return []
         repo = _hf_architecture_repo(page_url)
         counts = []
         for page, url in ((text, page_url), *bindings):
-            if _hf_architecture_repo(url) != repo:
+            if _hf_architecture_repo(url) != repo or _hf_bound_subject(claim, page, url) is None:
                 continue
-            config = _hf_config(page)
-            architecture = hf_config_architecture(config) if config is not None else None
-            if architecture is not None and architecture not in DENSE_ARCHITECTURES:
+            if url.endswith("/README.md") and active_parameter_wording(page):
                 return []
+            config = _hf_config(page)
+            if config is not None:
+                if any(
+                    "expert" in key.casefold()
+                    or "moe" in key.casefold()
+                    or key in {"hidden_size_per_layer_input", "vocab_size_per_layer_input"}
+                    for part in _config_maps(config)
+                    for key in part
+                ):
+                    return []
+                architecture = hf_config_architecture(config)
+                if architecture is not None and architecture not in DENSE_ARCHITECTURES:
+                    return []
             total = HFParametersExtractor().extract(
                 replace(claim, field="model.parameters_total"),
                 page,
                 page_url=url,
             )
-            counts.extend(reading.value for reading in total)
+            if total:
+                dtypes = _hf_json(page)["safetensors"].get("parameters")
+                if (
+                    not isinstance(dtypes, Mapping)
+                    or not dtypes
+                    or set(dtypes) - {"BF16", "F16", "F32"}
+                ):
+                    return []
+                counts.extend(reading.value for reading in total)
         if not counts or len(set(counts)) != 1:
             return []
         return [Reading(subject, counts[0], "parameters")]
@@ -4915,9 +5210,9 @@ def _verify_architecture_fact(
 ) -> Result:
     """Hardware readings use only scoped HF copies and deterministic readers.
 
-    An absence needs every cited copy, a bound config/API response or model
-    README, and no explicit reading in any of them. Failed fetches are listed
-    in the fact's checked_sources by the collector, never cited as readings.
+    Config-facet absence needs a retained config.json. Active-parameter absence
+    needs a README without active/effective wording. Failed fetches are listed
+    in checked_sources by the collector, never cited as readings.
     """
     readers = [
         e
@@ -4961,24 +5256,17 @@ def _verify_architecture_fact(
             if _hf_bound_subject(claim, text, url) is None:
                 return Result(claim.target, "skipped", reason="unbound_hf_copy")
             pages.append((text, url))
-    scoped = False
+    retained_config = any(
+        url.endswith("/config.json") and _hf_config(text) is not None for text, url in pages
+    )
+    retained_readme = any(
+        url.endswith("/README.md") and _hf_json(text) is None for text, url in pages
+    )
+    if claim.value is None and claim.field in HFConfigExtractor.fields and not retained_config:
+        return Result(claim.target, "skipped", reason="retained_config_required")
     mismatch = None
     confirmed = None
     for text, url in pages:
-        data = _hf_json(text)
-        scoped |= (
-            _hf_config(text) is not None
-            or (
-                data is not None
-                and isinstance(data.get("id"), str)
-                and (isinstance(data.get("config"), Mapping) or _hf_parameters(text) is not None)
-            )
-            or (
-                data is None
-                and url.endswith("/README.md")
-                and _hf_card_names_subject(text, claim.names)
-            )
-        )
         for reader in readers:
             if not reader.accepts(text):
                 continue
@@ -5008,7 +5296,12 @@ def _verify_architecture_fact(
         )
     if confirmed is not None:
         return Result(claim.target, "verified", _verification(claim, confirmed, "verified", today))
-    if claim.value is None and scoped:
+    if claim.value is None and claim.field == "model.parameters_active":
+        if not retained_readme:
+            return Result(claim.target, "skipped", reason="retained_readme_required")
+        if any(active_parameter_wording(text) for text, url in pages if url.endswith("/README.md")):
+            return Result(claim.target, "skipped", reason="active_wording_unparsed")
+    if claim.value is None and (retained_config or retained_readme):
         actor = VerificationActor(
             agent=VERIFY_AGENT, model_family=DETERMINISTIC, method="hf-architecture-absence@1"
         )
