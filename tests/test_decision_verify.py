@@ -12,6 +12,7 @@ from __future__ import annotations
 import json
 import re
 import subprocess
+from dataclasses import replace
 from datetime import UTC, date, datetime
 from pathlib import Path
 
@@ -337,6 +338,8 @@ Model | Base tokens | Prompt caching
 Name | Input | Output | 5m writes | 1h writes | Hits and refreshes
 Claude Opus 5.5 For agentic coding | $4 / MTok | $20 / MTok | $5 / MTok | $8 / MTok | $0.40 / MTok
 Claude Sonnet 5.5 The best mix | $2 / MTok | $10 / MTok | $2.50 / MTok | $4 / MTok | $0.20 / MTok
+Claude Haiku 5.5 | $0.10 / MTok | $0.50 / MTok | $0.125 / MTok | $0.20 / MTok | $0.01 / MTok
+$1 / MTok | $5 / MTok | $1.25 / MTok | $2 / MTok | $0.10 / MTok
  Additional models
 Claude Opus 5 | $5 / MTok | $25 / MTok | $6.25 / MTok | $10 / MTok | $0.50 / MTok
 Claude Sonnet 5 | / MTok | / MTok | $2.50 / MTok | $4 / MTok | $0.30 / MTok
@@ -346,6 +349,74 @@ Name | Input | Output
 Claude Opus 5.5 For agentic coding | $2 / MTok | $10 / MTok
 Claude Opus 5 | $2.50 / MTok | $12.50 / MTok
 """
+
+
+@pytest.mark.parametrize(("filename", "normaliser", "locator", "name", "value"), [
+    ("anthropic_cache_button.html", "html-header-buttons", "table", "Claude Sonnet 5.5", .1),
+    ("anthropic_continuation_section.txt", "text-default", "page", "Claude Opus 5", .5),
+])
+def test_anthropic_price_fixtures_verify(
+        filename: str, normaliser: str, locator: str, name: str, value: float, store) -> None:
+    """MODEL-369: price buttons and a section after a narrower continuation row."""
+    source = Source(
+        id="pricing", url="https://pricing.example.com", normaliser=normaliser,
+        cited_regions=[CitedRegion(id="prices", locator={
+            "kind": locator, "value": "0" if locator == "table" else "",
+        })],
+    )
+    ref = store.put((FIXTURES / filename).read_bytes())
+    claim = replace(_price_claim("cached_input", value, name=name), sources=(
+        SourceRef(source_id="pricing", snapshot_ref=ref, cited_regions=["prices"]),
+    ))
+    regions = verify.StoredRegions(store, {source.id: source})
+    result = verify.verify(claim, regions, verify.deterministic_extractors(), today=TODAY)
+
+    assert result.outcome == "verified"
+    assert result.verification is not None
+    assert result.verification.method == "offering-price-table@1"
+
+
+@pytest.mark.parametrize(("name", "value"), [
+    ("Claude Opus 5", .01), ("Claude Opus 5", .05), ("Claude Haiku 5.5", .05),
+])
+def test_grouped_header_section_never_reads_a_sibling_or_continuation_price(
+        name: str, value: float) -> None:
+    text = (FIXTURES / "anthropic_continuation_section.txt").read_text()
+    claim = _price_claim("cached_input", value, name=name)
+    readings = verify.OfferingPriceExtractor().extract(claim, text)
+    assert verify.compare(claim, readings) != []
+
+
+@pytest.mark.parametrize(("name", "value", "published", "wrong_value"), [
+    ("Claude Sonnet 5.5", .1, "$0.10", .2),
+    ("Claude Opus 5.5", .2, "$0.20", .1),
+])
+def test_data_cell_button_prices_keep_their_model_row(
+        name: str, value: float, published: str, wrong_value: float) -> None:
+    body = (FIXTURES / "anthropic_cache_button.html").read_bytes().replace(
+        b"</table>", b"<tr><td>Claude Opus 5.5</td><td>$4</td>"
+        b"<td><button>$0.20</button></td></tr></table>",
+    )
+    text = normalise_document(body, NORMALISERS["html-header-buttons"]).text
+    claim = _price_claim("cached_input", value, name=name)
+    readings = verify.OfferingPriceExtractor().extract(claim, text)
+    assert [(reading.subject, reading.value) for reading in readings] == [(name, published)]
+    assert verify.compare(claim, readings) == []
+    assert verify.compare(replace(claim, value=wrong_value), readings) != []
+
+
+@pytest.mark.parametrize(("field", "wrong_value", "published"), [
+    ("input", 2.5, "$5"), ("output", 12.5, "$25"),
+    ("batch_input", 5, "$2.50"), ("batch_output", 25, "$12.50"),
+])
+def test_grouped_header_section_keeps_standard_and_batch_prices_separate(
+        field: str, wrong_value: float, published: str) -> None:
+    claim = _price_claim(field, wrong_value, name="Claude Opus 5")
+    readings = verify.OfferingPriceExtractor().extract(claim, ANTHROPIC_TABLES)
+    assert [(reading.subject, reading.value) for reading in readings] == [
+        ("Claude Opus 5", published),
+    ]
+    assert verify.compare(claim, readings) != []
 
 
 @pytest.mark.parametrize(("name", "field", "value"), [
@@ -4372,3 +4443,17 @@ def test_an_absence_from_a_disallowed_source_kind_does_not_verify() -> None:
     allowed = _KindRegions({("nimbus-spec", "spec"): body}, {"nimbus-spec": "lab_documentation"})
     assert verify.verify(claim, allowed, verify.deterministic_extractors(), today=TODAY).outcome \
         == "verified"
+
+
+@pytest.mark.parametrize("header", ["Name", "Model", "Model name", "Modèle", "モデル名"])
+def test_a_column_header_after_a_section_label_starts_a_new_table(header: str) -> None:
+    """MODEL-369 review: a same-width header row is never read as continued data."""
+    text = ("Model | Prompt caching\n"
+            "Name | Input | Hits\n"
+            "Claude Haiku 5.5 | $0.10 | $0.01\n"
+            "$0.50 | $0.05\n"
+            "Batch processing\n"
+            f"{header} | Input | Output\n"
+            "Claude Opus 5 | $2.50 | $12.50\n")
+    claim = _price_claim("cached_input", 12.5, name="Claude Opus 5")
+    assert verify.OfferingPriceExtractor().extract(claim, text) == []

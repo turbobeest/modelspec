@@ -119,6 +119,9 @@ class RuleSet:
     #: Keep the text of a ``<button>`` inside a table header cell. Anthropic's pricing
     #: table names its cache columns with buttons that open a tooltip (MODEL-235).
     header_buttons: bool = False
+    #: Keep a button that supplies the leading content of a data cell, rather
+    #: than a control beside existing content (MODEL-369).
+    data_buttons: bool = False
     #: Skip footnote reference marks (``<sup><a data-footnote-ref>2</a></sup>``), which
     #: otherwise run into the text they annotate ("Claude Fable 5.12").
     drop_footnote_refs: bool = False
@@ -156,7 +159,7 @@ NORMALISERS: dict[str, RuleSet] = {
                 drop_footnote_refs=True),
         # MODEL-235: a recipe of its own for the same reason as icon labels.
         RuleSet("html-header-buttons", "html", drop_tags=_HTML_DROP_TAGS,
-                header_buttons=True),
+                header_buttons=True, data_buttons=True),
         RuleSet("text-default", "text"),
     )
 }
@@ -477,7 +480,10 @@ class _TreeBuilder(HTMLParser):
 
 
 def _is_furniture(node: Node, rules: RuleSet) -> bool:
-    if node.tag in rules.drop_tags:
+    if node.tag in rules.drop_tags and not (
+        rules.data_buttons and node.tag == "button" and _is_data_cell_content(node)
+        and _DATA_BUTTON_PRICE.search(_inline(node)) is not None
+    ):
         return True
     if "hidden" in node.attrs or node.attrs.get("aria-hidden") == "true":
         return True
@@ -517,6 +523,27 @@ def _in_header_cell(node: Node) -> bool:
         if ancestor.tag == "th":
             return True
         ancestor = ancestor.parent
+    return False
+
+
+#: A data-cell button is kept only when its own text is a price, such as "$0.10".
+#: A "Copy" or "Learn more" control at the start of a cell is still furniture.
+_DATA_BUTTON_PRICE = re.compile(r"[$€£]\s?\d")
+
+
+def _is_data_cell_content(node: Node) -> bool:
+    content = node
+    while (parent := content.parent) is not None:
+        if parent.tag in {"th", "tr", "table"}:
+            return False
+        for sibling in parent.children:
+            if sibling is content:
+                break
+            if _inline(sibling).strip():
+                return False
+        if parent.tag == "td":
+            return True
+        content = parent
     return False
 
 
