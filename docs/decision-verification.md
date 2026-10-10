@@ -417,10 +417,13 @@ The architecture rules inspect every config level, including the top level,
    that disable flag and blocks dense; an enabled flag with null counts also
    blocks dense. Rule 1 still takes priority for a routed count above one.
    Unfamiliar populated expert keys block dense even with a value of 0 or 1.
-3. Explicit `mamba`, `ssm`, `hybrid`, `rwkv`, or recurrent keys or model types,
-   or `linear_attention` / `linear-attention` layer types, mean
-   `hybrid-SSM-transformer`. Nemotron-H's `hybrid_override_pattern`,
-   Falcon-H1's `mamba_d_ssm`, and `model_type: rwkv7` cannot be dense.
+3. Recurrent `mamba`, `mamba2`, and `rwkv*` backbones with no attention
+   heads or attention layers mean `SSM`. Mamba's `num_heads` counts SSM
+   heads and does not establish attention. Configs with recurrent and attention
+   layers remain `hybrid-SSM-transformer`. Other explicit `ssm`, `hybrid`,
+   or recurrent settings and `linear_attention` / `linear-attention` layer
+   types also prevent dense classification. Nemotron-H's
+   `hybrid_override_pattern` and Falcon-H1's `mamba_d_ssm` cannot be dense.
 4. Without those settings, `*ForMaskedLM` or a listed BERT-family
    `model_type` on the text backbone means `encoder-only`. A nested vision
    encoder cannot give that classification to a decoder. A decoder needs a positive attention
@@ -455,7 +458,12 @@ Generic `Property | Value`, `Attribute | Value`, and headerless tables bind
 to the repository subject only when the table and nearest preceding heading
 do not name another model or variant. Technical fields naming a component,
 such as a vision encoder, do not rename the subject. Model rows and columns
-must match the exact subject. Ranges, qualified bounds and phase-dependent
+must match a subject name exactly after normalization, including hyphenated
+variants. `Alpha Lite` does not bind to `Alpha`. Prose that ties a count to
+other models, including `models with`, `of <Name>`, `compared with`, `unlike`,
+or a model mention after the count in the same clause, supplies no reading.
+More than one distinct own reading for a facet is ambiguous and cannot verify
+by selecting whichever agrees. Ranges, qualified bounds and phase-dependent
 counts do not become one scalar.
 
 On a line labelled `Number of Total Parameters`, `Number of Parameters`, or
@@ -470,15 +478,17 @@ Active equals total only for a dense transformer or encoder-only backbone
 whose safetensors census contains exclusively `BF16`, `F16`, and `F32`
 counts. FP8 tensors and their scales, packed `I32` / `U8` weights, unknown
 dtypes, and a census with only `safetensors.total` cannot use this rule.
-It also requires no blocking expert or recurrent settings at any config
-level, no positive PLE dimension in `hidden_size_per_layer_input`, and no
-active or effective parameter wording for the subject variant in a retained
+A non-null non-text tower, such as `vision_config`, `audio_config`, or an
+image/audio encoder, prevents equality because the census includes parameters
+that a text token never uses. A total stated for the subject in the card must
+agree with the census at its written precision. It also requires no blocking
+expert or recurrent settings at any config level, no positive PLE dimension
+in `hidden_size_per_layer_input`, and no active or effective parameter wording for the subject variant in a retained
 model card. A null or zero PLE dimension does not block equality, and
 `vocab_size_per_layer_input` alone never blocks it. A zero-width embedding
 table holds no parameters. The same table and prose binding rules used for scalar
 readings scope that wording; disclosures about other variants do not block it.
-The collector cites that README when available so
-the verifier repeats the wording check. The collector requires an existing
+A retained README must be cited so the verifier repeats the wording check. The collector requires an existing
 verified total and agreement with the fresh retained API census. Hybrid and
 unclassified configs do not use equality. The verifier repeats the config
 classification and same-repository census comparison without reading the
@@ -488,24 +498,29 @@ The retained Gemma 4 31B, E2B and E4B configs explicitly disable MoE and
 leave expert settings null, so all three have dense backbones. E2B and E4B
 retain their explicit effective counts. In the retained 31B config,
 `hidden_size_per_layer_input` is zero but `vocab_size_per_layer_input` is
-262144. Its zero-width PLE table does not block active = total, so its unpacked
-census gives 31,273,088,876 active parameters through
-`dense-active-equals-total@1`. The shared README's effective counts belong
-to E2B/E4B and do not block equality for 31B.
+262144. Its zero-width PLE table does not block equality. Its non-null
+vision tower does, and the card's 30.7B total disagrees with the 31,273,088,876 census
+beyond its written precision. The card also lists a ~550M vision encoder.
+The active count remains a gap. The shared README's effective counts belong
+to E2B/E4B and remain their explicit active readings.
 
 All HF hardware claims use only the deterministic readers, even when an LLM
 reader is configured. The public API's `config` field is trimmed. It can
 supply a positive reading when an explicit rule holds, but it cannot
-establish absence of architecture or expert facets. Those absences require
-a retained `config.json` among the cited copies. Without it, the collector
-reports a gap and files no fact for those facets.
+establish absence of architecture or expert facets. No written rule proves
+that a retained config cannot carry these facets, so they have no
+`not_disclosed` path. An unlisted model type, varying expert counts, or a
+populated expert key without a readable count is a gap. A total-parameter
+absence is never verified from a README or config.
 
-An active-parameter absence requires a retained README with no active,
-activated, or effective parameter wording at all. If wording is present
+An active-parameter absence requires both a cited retained HF API parameter
+census and a retained README, and fails when dense equality applies.
+The README must have no active, activated, or effective parameter wording at all. If wording is present
 but cannot bind to one scalar, the collector reports a gap with the quote
 and files no fact. DeepSeek V4.1 Flash's `8B / 16B` prefill/decode counts
-remain such a gap. Only supported absences become `not_disclosed`, with
-retained-copy citations and `checked_sources` naming every attempted source.
+remain such a gap. Every no-reading outcome is a gap except an explicitly
+verified active-parameter absence. Only supported absences become
+`not_disclosed`, with retained-copy citations and `checked_sources` naming every attempted source.
 `hf-architecture-absence@1` repeats these checks over all cited copies. A
 failed fetch is reported as a failed check and never cited as a reading.
 

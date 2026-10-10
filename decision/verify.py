@@ -2157,6 +2157,19 @@ def _populated_ple(config: Mapping[str, Any]) -> bool:
     )
 
 
+def _nontext_tower(config: Mapping[str, Any]) -> bool:
+    return any(
+        value is not None
+        and re.search(
+            r"(?:vision|audio|image|video|speech).*?(?:config|encoder|tower)"
+            r"|(?:encoder|tower).*?(?:vision|audio|image|video|speech)",
+            key, re.I,
+        )
+        for part in _config_maps(config)
+        for key, value in part.items()
+    )
+
+
 def hf_config_architecture(config: Mapping[str, Any]) -> str | None:
     """Inspect every level; routed experts win, and dense decoders are allowlisted.
 
@@ -2190,6 +2203,24 @@ def hf_config_architecture(config: Mapping[str, Any]) -> str | None:
         for part in parts
         for key, value in part.items()
     ):
+        backbone = config.get("text_config", config)
+        if isinstance(backbone, Mapping):
+            pure_recurrent = re.fullmatch(
+                r"mamba2?|rwkv.*", str(backbone.get("model_type", "")), re.I
+            )
+            attention = any(
+                type(part.get(key)) is int and part[key] > 0
+                for part in _config_maps(backbone)
+                for key in ("num_attention_heads", "n_head", "n_heads")
+            ) or any(
+                layer in {"attention", "full_attention", "self_attention"}
+                for part in _config_maps(backbone)
+                for key in ("layer_types", "layers_block_type")
+                if isinstance(part.get(key), list)
+                for layer in part[key] if isinstance(layer, str)
+            )
+            if pure_recurrent and not attention:
+                return ArchitectureType.SSM.value
         return ArchitectureType.HYBRID_SSM_TRANSFORMER.value
     backbone = config.get("text_config", config)
     if not isinstance(backbone, Mapping):
@@ -2371,6 +2402,11 @@ _ACTIVE_PROSE = re.compile(
     rf"(?<![\w.])(?P<amount>{_PARAMETER_AMOUNT})\s+(?:{_ACTIVE_LABEL}|effective\b)",
     re.I,
 )
+_TOTAL_PROSE = re.compile(
+    rf"(?<![\w.])(?P<amount>{_PARAMETER_AMOUNT})\s+"
+    r"(?:total(?:\s+parameters)?|parameters(?:\s+in\s+total)?)\b",
+    re.I,
+)
 _ACTIVE_VALUE = re.compile(rf"^(?P<amount>{_PARAMETER_AMOUNT})(?:\s+parameters)?$", re.I)
 _EFFECTIVE_VALUE = re.compile(
     rf"^(?P<amount>{_PARAMETER_AMOUNT})\s+effective(?:\s+parameters)?"
@@ -2477,27 +2513,21 @@ def _parameter_amount(text: str) -> int:
     return int(Decimal(match[1]) * scale)
 
 
-def _hf_card_names_subject(text: str, names: Sequence[str]) -> bool:
-    return any(
-        _whole_name_in_words(" ".join(_name_segments(name.rsplit("/", 1)[-1])), _page_words(line))
-        for line in text.splitlines()
-        for name in names
-    )
-
-
 def _card_model_mentions(text: str, names: Sequence[str]) -> list[tuple[int, int, bool]]:
     mentions = []
     for name in names:
         pattern = r"[-_.\s]+".join(re.escape(part) for part in _name_segments(name))
         if pattern:
-            mentions.extend(
-                (m.start(), m.end(), True)
-                for m in re.finditer(rf"(?<![\w./-]){pattern}(?![\w.-])", text, re.I)
-            )
+            for match in re.finditer(rf"(?<![\w./-]){pattern}(?![\w-]|\.[\w])", text, re.I):
+                variant = re.match(r"\s+([A-Z][A-Za-z0-9-]*)\b", text[match.end():])
+                if variant and normalise_name(variant[1]) not in _CARD_WORDS:
+                    mentions.append((match.start(), match.end() + variant.end(), False))
+                else:
+                    mentions.append((match.start(), match.end(), True))
     for match in re.finditer(
         r"(?<![\w./-])(?:[A-Z][A-Za-z0-9]*(?:[-_.][A-Za-z0-9]+)*"
         r"|[a-z][A-Za-z0-9]*(?:[-_][A-Za-z0-9]+)+"
-        r"|[a-z][A-Za-z0-9_.-]*(?=\s+(?:uses|has|is|activates|contains)\b|\s*\())(?![\w.-])",
+        r"|[a-z][A-Za-z0-9_.-]*(?=\s+(?:uses|has|is|activates|contains)\b|\s*\())(?![\w-]|\.[\w])",
         text,
     ):
         if all(word in _CARD_WORDS for word in normalise_name(match[0]).split()) or any(
@@ -2575,7 +2605,8 @@ class ModelCardParamsExtractor:
         return self._scan(claim, text, ())[1]
 
     def _scan(
-        self, claim: Claim, text: str, bindings: Sequence[tuple[str, str | None]]
+        self, claim: Claim, text: str, bindings: Sequence[tuple[str, str | None]],
+        *, total_only: bool = False,
     ) -> tuple[list[Reading], tuple[str, ...]]:
         subject = claim.names[0]
         quotes = []
@@ -2599,7 +2630,8 @@ class ModelCardParamsExtractor:
                 re.I,
             )
             if gemma:
-                names.append(gemma[1].replace("-", " "))
+                alias = gemma[1].replace("-", " ")
+                names.extend((alias, alias + " dense", alias + " MoE"))
         totals = {
             r.value
             for page, url in bindings
@@ -2610,8 +2642,10 @@ class ModelCardParamsExtractor:
             )
         }
 
+        normalized_names = {normalise_name(name.rsplit("/", 1)[-1]) for name in names}
+
         def own(cell: str) -> bool:
-            return _hf_card_names_subject(cell, names)
+            return normalise_name(cell) in normalized_names
 
         def foreign(cell: str) -> bool:
             return any(not is_own for _, _, is_own in _card_model_mentions(cell, names)) or (
@@ -2621,6 +2655,9 @@ class ModelCardParamsExtractor:
             )
 
         def read_cell(label: str, value: str) -> list[Reading]:
+            if total_only:
+                match = _ACTIVE_VALUE.fullmatch(value) if _TOTAL_KEY.fullmatch(label) else None
+                return [Reading(subject, match["amount"], "parameters")] if match else []
             quotes.extend(active_parameter_wording(f"{label}: {value}"))
             match = _ACTIVE_VALUE.fullmatch(value) if _ACTIVE_KEY.fullmatch(label) else None
             if not match and (_ACTIVE_KEY.fullmatch(label) or _TOTAL_KEY.fullmatch(label)):
@@ -2677,7 +2714,8 @@ class ModelCardParamsExtractor:
                     None,
                 )
                 active_col = next(
-                    (i for i, cell in enumerate(header) if _ACTIVE_KEY.fullmatch(cell)), None
+                    (i for i, cell in enumerate(header)
+                     if (_TOTAL_KEY if total_only else _ACTIVE_KEY).fullmatch(cell)), None
                 )
                 for cells in table:
                     if (
@@ -2730,15 +2768,27 @@ class ModelCardParamsExtractor:
                     if (mentions and mentions[-1][2]) or (not mentions and not foreign(heading)):
                         quotes.append(line)
                         break
-            for match in _ACTIVE_PROSE.finditer(line):
+            prose = _TOTAL_PROSE if total_only else _ACTIVE_PROSE
+            for match in prose.finditer(line):
                 if not _scalar_parameter_match(line, match):
                     continue
                 prefix = re.split(
                     r"[;!?]|\.(?=\s)|\b(?:while|whereas)\b", line[: match.start()], flags=re.I
                 )[-1]
                 mentions = _card_model_mentions(prefix, names)
+                suffix = re.split(
+                    r"[,;!?)]|\.(?=\s)|\b(?:while|whereas)\b",
+                    line[match.end():], flags=re.I,
+                )[0]
+                if re.search(r"\b(?:models?\s+with|compared\s+with|unlike)\b", prefix, re.I):
+                    continue
+                if re.search(r"\b(?:of|compared\s+with|unlike|models?)\b", suffix, re.I):
+                    continue
+                if _card_model_mentions(suffix, names):
+                    continue
                 if mentions and mentions[-1][2]:
-                    out.append(Reading(subject, _parameter_amount(match["amount"]), "parameters"))
+                    amount = match["amount"] if total_only else _parameter_amount(match["amount"])
+                    out.append(Reading(subject, amount, "parameters"))
             index += 1
         return out, tuple(dict.fromkeys(quotes))
 
@@ -2757,6 +2807,7 @@ class DenseActiveEqualsTotalExtractor:
             config is not None
             and hf_config_architecture(config) in DENSE_ARCHITECTURES
             and not _populated_ple(config)
+            and not _nontext_tower(config)
         )
 
     def extract(
@@ -2776,15 +2827,21 @@ class DenseActiveEqualsTotalExtractor:
         ):
             return []
         repo = _hf_architecture_repo(page_url)
-        counts = []
+        counts, cards = [], []
         for page, url in ((text, page_url), *bindings):
             if _hf_architecture_repo(url) != repo or _hf_bound_subject(claim, page, url) is None:
                 continue
-            if url.endswith("/README.md") and ModelCardParamsExtractor().wording(claim, page):
-                return []
+            if url.endswith("/README.md") and _hf_json(page) is None:
+                cards.append(page)
+                if ModelCardParamsExtractor().wording(claim, page):
+                    return []
             config = _hf_config(page)
             if config is not None:
-                if _expert_settings_block_dense(config) or _populated_ple(config):
+                if (
+                    _expert_settings_block_dense(config)
+                    or _populated_ple(config)
+                    or _nontext_tower(config)
+                ):
                     return []
                 architecture = hf_config_architecture(config)
                 if architecture is not None and architecture not in DENSE_ARCHITECTURES:
@@ -2803,8 +2860,14 @@ class DenseActiveEqualsTotalExtractor:
                 ):
                     return []
                 counts.extend(reading.value for reading in total)
-        if not counts or len(set(counts)) != 1:
+        if not cards or not counts or len(set(counts)) != 1:
             return []
+        for card in cards:
+            totals = ModelCardParamsExtractor()._scan(claim, card, (), total_only=True)[0]
+            for reading in totals:
+                quantity = parse_quantity(reading.value, "parameters")
+                if quantity is None or not numbers_agree(counts[0], "parameters", quantity):
+                    return []
         return [Reading(subject, counts[0], "parameters")]
 
 
@@ -5262,8 +5325,9 @@ def _verify_architecture_fact(
 ) -> Result:
     """Hardware readings use only scoped HF copies and deterministic readers.
 
-    Config-facet absence needs a retained config.json. Active-parameter absence
-    needs a README without active/effective wording. Failed fetches are listed
+    Config facets and totals have no absence rule. Active-parameter absence
+    needs a cited census and README without active/effective wording, and no
+    dense equality reading. Failed fetches are listed
     in checked_sources by the collector, never cited as readings.
     """
     readers = [
@@ -5318,6 +5382,7 @@ def _verify_architecture_fact(
         return Result(claim.target, "skipped", reason="retained_config_required")
     mismatch = None
     confirmed = None
+    own_values = set()
     for text, url in pages:
         for reader in readers:
             if not reader.accepts(text):
@@ -5325,6 +5390,7 @@ def _verify_architecture_fact(
             readings = reader.extract(claim, text, page_url=url, bindings=pages)
             if not readings:
                 continue
+            own_values.update(reading.value for reading in readings)
             diffs = compare(
                 claim,
                 [
@@ -5346,6 +5412,8 @@ def _verify_architecture_fact(
             _verification(claim, actor, "mismatch", today, diffs),
             tuple(diffs),
         )
+    if len(own_values) > 1:
+        return Result(claim.target, "skipped", reason="ambiguous_hf_reading")
     if confirmed is not None:
         return Result(claim.target, "verified", _verification(claim, confirmed, "verified", today))
     if claim.value is None and claim.field == "model.parameters_active":
@@ -5353,7 +5421,11 @@ def _verify_architecture_fact(
             return Result(claim.target, "skipped", reason="retained_readme_required")
         if any(active_parameter_wording(text) for text, url in pages if url.endswith("/README.md")):
             return Result(claim.target, "skipped", reason="active_wording_unparsed")
-    if claim.value is None and (retained_config or retained_readme):
+        if not any(
+            "/api/models/" in url and _hf_parameters(text) is not None
+            for text, url in pages
+        ):
+            return Result(claim.target, "skipped", reason="retained_census_required")
         actor = VerificationActor(
             agent=VERIFY_AGENT, model_family=DETERMINISTIC, method="hf-architecture-absence@1"
         )

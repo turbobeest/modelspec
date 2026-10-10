@@ -205,7 +205,9 @@ def test_dense_equality_uses_both_retained_primary_inputs():
     api = '{"id":"lab/Alpha","safetensors":{"total":2,"parameters":{"BF16":700,"F32":3}}}'
     reader = DenseActiveEqualsTotalExtractor()
     c = claim("model.parameters_active", 703)
-    assert reader.extract(c, config, page_url=CONFIG_URL, bindings=[(api, API_URL)]) == [
+    assert reader.extract(
+        c, config, page_url=CONFIG_URL, bindings=[(api, API_URL), ("# Alpha\nA model.", README_URL)]
+    ) == [
         Reading("Alpha", 703, "parameters"),
     ]
     assert reader.extract(c, config, page_url=CONFIG_URL) == []
@@ -220,7 +222,15 @@ def test_dense_equality_uses_both_retained_primary_inputs():
     )
     for other in ('{"num_experts":8}', '{"model_type":"mystery"}', "not JSON"):
         assert not reader.accepts(other)
-        assert reader.extract(c, other, page_url=CONFIG_URL, bindings=[(api, API_URL)]) == []
+        assert (
+            reader.extract(
+                c,
+                other,
+                page_url=CONFIG_URL,
+                bindings=[(api, API_URL), ("# Alpha\nA model.", README_URL)],
+            )
+            == []
+        )
     assert HFParametersExtractor().extract(
         claim("model.parameters_total"), api, page_url=API_URL
     ) == [
@@ -249,6 +259,7 @@ def test_registered_dispatch_repeats_dense_equality_and_rejects_a_changed_total(
         tmp_path,
         [
             ("config", CONFIG_URL, '{"model_type":"phi3","num_attention_heads":40}'),
+            ("readme", README_URL, "# Alpha\nA model."),
             ("api", API_URL, '{"id":"lab/Alpha","safetensors":{"parameters":{"BF16":703}}}'),
         ],
     )
@@ -279,7 +290,11 @@ def test_absence_checks_all_copies_and_never_calls_an_llm(tmp_path):
     regions, refs = retained(
         tmp_path,
         [
-            ("api", API_URL, '{"id":"lab/Alpha","config":{"architectures":["MysteryModel"]}}'),
+            (
+                "api",
+                API_URL,
+                '{"id":"lab/Alpha","config":{"architectures":["MysteryModel"]},"safetensors":{"parameters":{"BF16":671000000000}}}',
+            ),
             ("readme", README_URL, "# Alpha\nAlpha has 671B total parameters."),
         ],
     )
@@ -375,9 +390,12 @@ def test_retained_gemma_configs_have_dense_backbones_and_dimension_gated_ple(
     assert ModelCardParamsExtractor().extract(c, card, page_url=readme_url) == (
         [] if active is None else [Reading(name, active, "parameters")]
     )
-    assert DenseActiveEqualsTotalExtractor().extract(
-        c, config, page_url=url, bindings=[(api, api_url), (card, readme_url)]
-    ) == ([] if ple_hidden > 0 else [Reading(name, 31_273_088_876, "parameters")])
+    assert (
+        DenseActiveEqualsTotalExtractor().extract(
+            c, config, page_url=url, bindings=[(api, api_url), (card, readme_url)]
+        )
+        == []
+    )
     if name == "gemma-4-31b-it":
         regions, refs = retained(
             tmp_path,
@@ -389,10 +407,12 @@ def test_retained_gemma_configs_have_dense_backbones_and_dimension_gated_ple(
             )
         result = verify(
             replace(c, value=31_273_088_876, sources=tuple(refs)),
-            regions, deterministic_extractors(), today=date(2026, 10, 10),
+            regions,
+            deterministic_extractors(),
+            today=date(2026, 10, 10),
         )
-        assert result.outcome == "verified", result
-        assert result.verification.method == "dense-active-equals-total@1"
+        assert result.outcome == "skipped", result
+        assert result.reason == "no_hf_reading"
 
 
 @pytest.mark.parametrize(
@@ -422,8 +442,15 @@ def test_populated_expert_settings_and_explicit_disable_conflicts(extra, expecte
     text = json.dumps(config)
     api = '{"id":"lab/Alpha","safetensors":{"parameters":{"BF16":703}}}'
     assert DenseActiveEqualsTotalExtractor().extract(
-        claim("model.parameters_active"), text, page_url=CONFIG_URL, bindings=[(api, API_URL)]
-    ) == ([Reading("Alpha", 703, "parameters")] if expected == "dense-transformer" else [])
+        claim("model.parameters_active"),
+        text,
+        page_url=CONFIG_URL,
+        bindings=[(api, API_URL), ("# Alpha\nA model.", README_URL)],
+    ) == (
+        [Reading("Alpha", 703, "parameters")]
+        if expected == "dense-transformer" and "vision_config" not in extra
+        else []
+    )
 
 
 @pytest.mark.parametrize("ple", [None, 0])
@@ -443,7 +470,7 @@ def test_populated_expert_settings_and_explicit_disable_conflicts(extra, expecte
         ),
         (
             "# Alpha\n| Model | Total Parameters |\n| --- | --- |\n"
-            "| Alpha | 703M |\n| Beta | 2.3B effective |",
+            "| Alpha | 0.000000703B |\n| Beta | 2.3B effective |",
             [Reading("Alpha", 703, "parameters")],
         ),
     ],
@@ -451,10 +478,15 @@ def test_populated_expert_settings_and_explicit_disable_conflicts(extra, expecte
 def test_dense_equality_ignores_empty_ple_and_other_variants(ple, key, card, expected):
     text = json.dumps({"model_type": "llama", "num_attention_heads": 8, key: ple})
     api = '{"id":"lab/Alpha","safetensors":{"parameters":{"BF16":703}}}'
-    assert DenseActiveEqualsTotalExtractor().extract(
-        claim("model.parameters_active"), text, page_url=CONFIG_URL,
-        bindings=[(api, API_URL), (card, README_URL)],
-    ) == expected
+    assert (
+        DenseActiveEqualsTotalExtractor().extract(
+            claim("model.parameters_active"),
+            text,
+            page_url=CONFIG_URL,
+            bindings=[(api, API_URL), (card, README_URL)],
+        )
+        == expected
+    )
 
 
 @pytest.mark.parametrize(
@@ -472,8 +504,10 @@ def test_dense_equality_requires_positive_ple_dimension_to_block(ple_settings, n
     config = {"text_config": {**config, **ple_settings}} if nested else {**config, **ple_settings}
     api = '{"id":"lab/Alpha","safetensors":{"parameters":{"BF16":703}}}'
     assert DenseActiveEqualsTotalExtractor().extract(
-        claim("model.parameters_active"), json.dumps(config), page_url=CONFIG_URL,
-        bindings=[(api, API_URL)],
+        claim("model.parameters_active"),
+        json.dumps(config),
+        page_url=CONFIG_URL,
+        bindings=[(api, API_URL), ("# Alpha\nA model.", README_URL)],
     ) == [Reading("Alpha", 703, "parameters")]
 
 
@@ -880,7 +914,7 @@ def test_dense_rule_requires_an_unpacked_float_census(census, expected):
             claim("model.parameters_active"),
             text,
             page_url=CONFIG_URL,
-            bindings=[(api, API_URL)],
+            bindings=[(api, API_URL), ("# Alpha\nA model.", README_URL)],
         )
     ] == expected
 
@@ -937,9 +971,9 @@ def test_parameter_field_shorthand_requires_a_matching_tensor_total(label, value
     reader = ModelCardParamsExtractor()
     c = claim("model.parameters_active")
     api = '{"id":"lab/Alpha","safetensors":{"parameters":{"BF16":4919641986}}}'
-    assert reader.extract(c, text, page_url=README_URL, bindings=[(api, API_URL)]) == [
-        Reading("Alpha", 430_000_000, "parameters")
-    ]
+    assert reader.extract(
+        c, text, page_url=README_URL, bindings=[(api, API_URL), ("# Alpha\nA model.", README_URL)]
+    ) == [Reading("Alpha", 430_000_000, "parameters")]
     assert reader.extract(c, text, page_url=README_URL) == []
     wrong = api.replace("4919641986", "4021782018")
     assert reader.extract(c, text, page_url=README_URL, bindings=[(wrong, API_URL)]) == []
@@ -950,7 +984,12 @@ def test_parameter_field_shorthand_requires_a_matching_tensor_total(label, value
         == []
     )
     assert (
-        reader.extract(c, "# Alpha-4.92B-A0.43B", page_url=README_URL, bindings=[(api, API_URL)])
+        reader.extract(
+            c,
+            "# Alpha-4.92B-A0.43B",
+            page_url=README_URL,
+            bindings=[(api, API_URL), ("# Alpha\nA model.", README_URL)],
+        )
         == []
     )
 
@@ -1001,3 +1040,490 @@ def test_html_specs_with_quantization_and_modality_keep_the_repository_subject()
         text,
         page_url=README_URL,
     ) == [Reading("Alpha", 104_000_000_000, "parameters")]
+
+
+@pytest.mark.parametrize(
+    "text,expected",
+    [
+        (
+            "Alpha has 3B active parameters, compared with the 22B active parameters of Beta.",
+            [3_000_000_000],
+        ),
+        (
+            "Alpha uses 3B active parameters; the previous release used 22B active parameters.",
+            [3_000_000_000],
+        ),
+        (
+            "Alpha is 30B total. For reference, 22B active parameters is typical of larger models.",
+            [],
+        ),
+        ("Alpha matches models with 22B active parameters.", []),
+        ("Alpha outperforms 22B active parameter models.", []),
+        ("Alpha (3B active parameters) beats Qwen3-235B (22B active parameters).", [3_000_000_000]),
+        ("Alpha-Base has 3B active parameters.", []),
+        ("Alpha Lite has 1B active parameters.", []),
+        ("Alpha Lite has 1B active parameters and Alpha Pro has 9B active parameters.", []),
+        ("Alpha matches the 22B active parameters of Beta.", []),
+        ("Alpha matches 22B active parameters compared with Beta.", []),
+        ("Alpha matches 22B active parameters unlike Beta.", []),
+        ("Alpha has 22B active parameters belonging to Beta.", []),
+        (
+            "Alpha has 3B active parameters. Alpha has 4B active parameters.",
+            [3_000_000_000, 4_000_000_000],
+        ),
+        (
+            "| Property | Alpha | Alpha Lite |\n|---|---|---|\n| Active Parameters | 3B | 1B |",
+            [3_000_000_000],
+        ),
+        (
+            "| Property | Alpha Lite | Alpha |\n|---|---|---|\n| Active Parameters | 1B | 3B |",
+            [3_000_000_000],
+        ),
+    ],
+)
+def test_round4_prose_and_column_probes(text, expected):
+    assert [
+        r.value
+        for r in ModelCardParamsExtractor().extract(
+            claim("model.parameters_active"),
+            "# Alpha\n" + text,
+            page_url=README_URL,
+        )
+    ] == expected
+
+
+@pytest.mark.parametrize(
+    "config,expected",
+    [
+        ({"model_type": "mamba", "hidden_size": 768, "state_size": 16}, "SSM"),
+        ({"model_type": "mamba2", "num_heads": 24}, "SSM"),
+        ({"model_type": "rwkv7"}, "SSM"),
+        ({"model_type": "mamba2", "num_attention_heads": 8}, "hybrid-SSM-transformer"),
+        (
+            {
+                "model_type": "qwen3_next",
+                "num_attention_heads": 16,
+                "layer_types": ["linear_attention", "full_attention"],
+                "num_experts": 512,
+            },
+            "MoE",
+        ),
+        (
+            {"model_type": "llama", "num_attention_heads": 8, "cache_implementation": "hybrid"},
+            "dense-transformer",
+        ),
+        (
+            {"model_type": "gemma2", "num_attention_heads": 8, "final_logit_softcapping": 30.0},
+            "dense-transformer",
+        ),
+        (
+            {
+                "model_type": "gemma3",
+                "text_config": {
+                    "model_type": "gemma3_text",
+                    "num_attention_heads": 8,
+                    "cache_implementation": "hybrid",
+                },
+            },
+            "dense-transformer",
+        ),
+    ],
+)
+def test_round4_architecture_probes(config, expected):
+    assert hf_config_architecture(config) == expected
+
+
+@pytest.mark.parametrize(
+    "facet,value,config,api,readme,outcome,reason",
+    [
+        (
+            "model.parameters_active",
+            8_030_000_000,
+            {"model_type": "llama", "num_attention_heads": 32},
+            8_030_000_000,
+            None,
+            "skipped",
+            "no_hf_reading",
+        ),
+        (
+            "model.parameters_active",
+            8_030_000_000,
+            {"model_type": "llama", "num_attention_heads": 32},
+            8_030_000_000,
+            "Alpha has 2B effective parameters (8B with embeddings).",
+            "mismatch",
+            None,
+        ),
+        ("model.parameters_total", None, None, None, "A model.", "skipped", "no_hf_reading"),
+        (
+            "model.parameters_total",
+            None,
+            {"model_type": "llama", "num_attention_heads": 32},
+            None,
+            None,
+            "skipped",
+            "no_hf_reading",
+        ),
+        (
+            "model.parameters_active",
+            None,
+            None,
+            None,
+            "A model.",
+            "skipped",
+            "retained_census_required",
+        ),
+        (
+            "model.parameters_active",
+            22_000_000_000,
+            None,
+            None,
+            "Alpha has 3B active parameters, compared with the 22B active parameters of Beta.",
+            "mismatch",
+            None,
+        ),
+        (
+            "model.parameters_active",
+            430_000_000,
+            None,
+            4_919_641_986,
+            "- Number of Parameters: 4.92B-A0.43B",
+            "verified",
+            None,
+        ),
+        (
+            "model.parameters_total",
+            8_030_000_000,
+            {"model_type": "llama", "num_attention_heads": 32},
+            8_030_000_000,
+            None,
+            "verified",
+            None,
+        ),
+        (
+            "model.experts_total",
+            1,
+            {"model_type": "llama", "num_attention_heads": 32},
+            None,
+            None,
+            "skipped",
+            "no_hf_reading",
+        ),
+        ("model.architecture", "MoE", None, None, "Alpha is an MoE.", "skipped", "no_hf_reading"),
+        (
+            "model.architecture",
+            None,
+            {"model_type": "qwen4", "num_attention_heads": 32},
+            None,
+            None,
+            "skipped",
+            "no_hf_reading",
+        ),
+        (
+            "model.experts_total",
+            None,
+            {"model_type": "qwen4", "num_attention_heads": 32},
+            None,
+            None,
+            "skipped",
+            "no_hf_reading",
+        ),
+        (
+            "model.experts_total",
+            None,
+            {"model_type": "x_moe", "num_experts": [64, 128], "num_experts_per_tok": 8},
+            None,
+            None,
+            "skipped",
+            "no_hf_reading",
+        ),
+        (
+            "model.architecture",
+            None,
+            {"model_type": "llama", "num_attention_heads": 32, "moe_intermediate_size": 1408},
+            None,
+            None,
+            "skipped",
+            "no_hf_reading",
+        ),
+        (
+            "model.experts_total",
+            None,
+            {"model_type": "llama", "num_attention_heads": 32},
+            None,
+            None,
+            "skipped",
+            "no_hf_reading",
+        ),
+        (
+            "model.parameters_active",
+            3_000_000_000,
+            None,
+            None,
+            "Alpha has 3B active parameters. Alpha has 4B active parameters.",
+            "skipped",
+            "ambiguous_hf_reading",
+        ),
+        (
+            "model.parameters_active",
+            None,
+            {"model_type": "llama", "num_attention_heads": 32},
+            8_030_000_000,
+            "A model.",
+            "mismatch",
+            None,
+        ),
+        (
+            "model.parameters_active",
+            None,
+            {"model_type": "mixtral", "num_experts": 8},
+            8_030_000_000,
+            "A model.",
+            "verified",
+            None,
+        ),
+    ],
+)
+def test_round4_verifier_probes(tmp_path, facet, value, config, api, readme, outcome, reason):
+    docs = []
+    if config is not None:
+        docs.append(("config", CONFIG_URL, json.dumps(config)))
+    if api is not None:
+        docs.append(
+            (
+                "api",
+                API_URL,
+                json.dumps({"id": "lab/Alpha", "safetensors": {"parameters": {"BF16": api}}}),
+            )
+        )
+    if readme is not None:
+        docs.append(("readme", README_URL, "# Alpha\n" + readme))
+    regions, refs = retained(tmp_path, docs)
+    result = verify(
+        claim(facet, value, refs), regions, deterministic_extractors(), today=date(2026, 10, 10)
+    )
+    assert (result.outcome, result.reason) == (outcome, reason)
+
+
+@pytest.mark.parametrize(
+    "tower", ["vision_config", "audio_config", "image_encoder", "audio_encoder_config"]
+)
+@pytest.mark.parametrize("value", [None, {}, {"model_type": "encoder"}])
+def test_round4_nontext_tower_blocks_equality(tower, value):
+    config = json.dumps({"model_type": "llama", "num_attention_heads": 32, tower: value})
+    api = '{"id":"lab/Alpha","safetensors":{"parameters":{"BF16":8030000000}}}'
+    assert DenseActiveEqualsTotalExtractor().extract(
+        claim("model.parameters_active"),
+        config,
+        page_url=CONFIG_URL,
+        bindings=[(api, API_URL), ("# Alpha\nA model.", README_URL)],
+    ) == ([Reading("Alpha", 8_030_000_000, "parameters")] if value is None else [])
+
+
+@pytest.mark.parametrize(
+    "total,expected", [("8.0B", [Reading("Alpha", 8_030_000_000, "parameters")]), ("7.0B", [])]
+)
+def test_round4_card_total_must_agree_with_census(total, expected):
+    assert (
+        DenseActiveEqualsTotalExtractor().extract(
+            claim("model.parameters_active"),
+            '{"model_type":"llama","num_attention_heads":32}',
+            page_url=CONFIG_URL,
+            bindings=[
+                ('{"id":"lab/Alpha","safetensors":{"parameters":{"BF16":8030000000}}}', API_URL),
+                (f"# Alpha\n| Property | Alpha |\n| Total Parameters | {total} |", README_URL),
+            ],
+        )
+        == expected
+    )
+
+
+@pytest.mark.parametrize(
+    "name,repo,card,expected",
+    [
+        (
+            "glm-4-5",
+            "zai-org/GLM-4.5",
+            (
+                "# GLM-4.5\n| Model | Total Parameters | Active Parameters |\n|---|---|---|\n| "
+                "GLM-4.5 | 355B | 32B |\n| GLM-4.5-Air | 106B | 12B |"
+            ),
+            [32_000_000_000],
+        ),
+        (
+            "glm-4-5-air",
+            "zai-org/GLM-4.5-Air",
+            (
+                "# GLM-4.5-Air\n| Model | Total Parameters | Active Parameters "
+                "|\n|---|---|---|\n| GLM-4.5 | 355B | 32B |\n| GLM-4.5-Air | 106B | 12B |"
+            ),
+            [12_000_000_000],
+        ),
+        (
+            "deepseek-v3-1",
+            "deepseek-ai/DeepSeek-V3.1",
+            (
+                "# DeepSeek-V3.1\n| Model | #Total Params | #Activated Params "
+                "|\n|---|---|---|\n| DeepSeek-V3.1-Base | 671B | 37B |\n| DeepSeek-V3.1 | 671B "
+                "| 37B |"
+            ),
+            [37_000_000_000],
+        ),
+        (
+            "qwen3-30b-a3b",
+            "Qwen/Qwen3-30B-A3B",
+            (
+                "# Qwen3-30B-A3B\nQwen3-30B-A3B has 3.3B activated parameters. "
+                "Qwen3-235B-A22B has 22B activated parameters."
+            ),
+            [3_300_000_000],
+        ),
+        (
+            "qwen3-30b-a3b",
+            "Qwen/Qwen3-30B-A3B",
+            (
+                "# Qwen3-30B-A3B\n- Number of Parameters: 30.5B in total and 3.3B "
+                "activated\n- Number of Activated Experts: 8"
+            ),
+            [],
+        ),
+        (
+            "gemma-4-e2b-it",
+            "google/gemma-4-e2b-it",
+            (
+                "# Gemma 4\n| Property | E2B | E4B | 31B Dense |\n|---|---|---|---|\n| Total "
+                "Parameters | 2.3B effective <br> (5.1B with embeddings) | 4.5B effective "
+                "<br> (8B with embeddings) | 30.7B |"
+            ),
+            [2_300_000_000],
+        ),
+        (
+            "gemma-4-e4b-it",
+            "google/gemma-4-e4b-it",
+            (
+                "# Gemma 4\n| Property | E2B | E4B | 31B Dense |\n|---|---|---|---|\n| Total "
+                "Parameters | 2.3B effective <br> (5.1B with embeddings) | 4.5B effective "
+                "<br> (8B with embeddings) | 30.7B |"
+            ),
+            [4_500_000_000],
+        ),
+        (
+            "gemma-4-31b-it",
+            "google/gemma-4-31b-it",
+            (
+                "# Gemma 4\n| Property | E2B | E4B | 31B Dense |\n|---|---|---|---|\n| Total "
+                "Parameters | 2.3B effective <br> (5.1B with embeddings) | 4.5B effective "
+                "<br> (8B with embeddings) | 30.7B |"
+            ),
+            [],
+        ),
+    ],
+)
+def test_round4_named_variant_probes(name, repo, card, expected):
+    c = replace(claim("model.parameters_active"), names=(name, repo))
+    assert [
+        r.value
+        for r in ModelCardParamsExtractor().extract(
+            c,
+            card,
+            page_url=f"https://huggingface.co/{repo}/raw/main/README.md",
+        )
+    ] == expected
+
+
+def test_round4_retained_gemma31_wording_and_readings():
+    card = (Path(__file__).parent / "fixtures/hf-gemma-4/README.md").read_text()
+    c = replace(claim("model.parameters_active"), names=("gemma-4-31b-it", "google/gemma-4-31B-it"))
+    assert ModelCardParamsExtractor().wording(c, card) == ()
+    assert (
+        ModelCardParamsExtractor().extract(
+            c,
+            card,
+            page_url="https://huggingface.co/google/gemma-4-31B-it/raw/main/README.md",
+        )
+        == []
+    )
+
+
+@pytest.mark.parametrize("tower", [True, False])
+def test_round4_gemma_like_verification_cannot_use_dense_equality(tmp_path, tower):
+    config = {
+        "model_type": "gemma4",
+        "text_config": {
+            "model_type": "gemma4_text",
+            "num_attention_heads": 32,
+            "hidden_size_per_layer_input": 0,
+            "vocab_size_per_layer_input": 262144,
+        },
+        "enable_moe_block": False,
+        "num_experts": None,
+    }
+    if tower:
+        config["vision_config"] = {"model_type": "gemma4_vision", "num_attention_heads": 16}
+    regions, refs = retained(
+        tmp_path,
+        [
+            ("config", CONFIG_URL, json.dumps(config)),
+            (
+                "api",
+                API_URL,
+                '{"id":"lab/Alpha","safetensors":{"parameters":{"BF16":31273088876}}}',
+            ),
+            (
+                "readme",
+                README_URL,
+                (
+                    "# Alpha\n| Property | Alpha |\n| Total Parameters | 30.7B |\n| Vision Encoder "
+                    "Parameters | ~550M |"
+                ),
+            ),
+        ],
+    )
+    result = verify(
+        claim("model.parameters_active", 31_273_088_876, refs),
+        regions,
+        deterministic_extractors(),
+        today=date(2026, 10, 10),
+    )
+    assert (result.outcome, result.reason) == ("skipped", "no_hf_reading")
+
+
+@pytest.mark.parametrize(
+    "config,expected",
+    [
+        (
+            {"model_type": "mamba2", "num_heads": 24, "layer_types": ["mamba", "attention"]},
+            "hybrid-SSM-transformer",
+        ),
+        ({"model_type": "mamba", "layer_types": None}, "SSM"),
+    ],
+)
+def test_round4_recurrent_layer_readings(config, expected):
+    assert hf_config_architecture(config) == expected
+
+
+@pytest.mark.parametrize(
+    "card,expected",
+    [
+        ("Alpha has 7.0B total parameters.", []),
+        ("Alpha has 8.0B parameters.", [Reading("Alpha", 8_030_000_000, "parameters")]),
+        ("Total Parameters: 7.0B", []),
+        (
+            "| Property | Alpha | Alpha Lite |\n| Total Parameters | 8.0B | 7.0B |",
+            [Reading("Alpha", 8_030_000_000, "parameters")],
+        ),
+    ],
+)
+def test_round4_card_total_binding_and_precision(card, expected):
+    assert (
+        DenseActiveEqualsTotalExtractor().extract(
+            claim("model.parameters_active"),
+            '{"model_type":"llama","num_attention_heads":32}',
+            page_url=CONFIG_URL,
+            bindings=[
+                ('{"id":"lab/Alpha","safetensors":{"parameters":{"BF16":8030000000}}}', API_URL),
+                ("# Alpha\n" + card, README_URL),
+            ],
+        )
+        == expected
+    )

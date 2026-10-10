@@ -29,7 +29,10 @@ from decision.verify import (
     Queue,
     StoredRegions,
     VerificationLog,
+    _hf_config,
+    _nontext_tower,
     active_parameter_wording,
+    hf_config_architecture,
     verify,
 )
 from scripts.policy.architecture_coverage import EXPERT_FACETS, FACETS
@@ -61,7 +64,26 @@ def _absence_reason(facet: str, pages: list[tuple[str, str]], reason: str | None
         )
     if reason == "retained_readme_required":
         return "no retained README to check for active or effective parameter wording"
+    if reason == "retained_census_required":
+        return "no cited retained HF API parameter census to establish active-parameter absence"
     if facet == "model.parameters_active":
+        multimodal = any(
+            (config := _hf_config(text)) is not None
+            and hf_config_architecture(config) in DENSE_ARCHITECTURES
+            and _nontext_tower(config)
+            for text, url in pages if url.endswith("/config.json")
+        )
+        if multimodal:
+            details = [
+                line.strip() for text, url in pages if url.endswith("/README.md")
+                for line in text.splitlines()
+                if re.search(r"total parameters|(?:vision|audio).*encoder.*parameters", line, re.I)
+            ]
+            return (
+                "no explicit active count for this variant; non-text encoder parameters "
+                "in the census prevent dense equality; retained card total and encoder counts: "
+                + "\n".join(details)
+            )
         quotes = [
             quote
             for text, url in pages
@@ -428,16 +450,7 @@ def collect(
             )
             claim = Claim.from_fact(fact, names=names, collector=COLLECTOR, unit=unit)
             checked = verify(claim, regions, READERS, today=now.date())
-            gap = ambiguous_active or (
-                value is None
-                and checked.outcome == "skipped"
-                and checked.reason
-                in {
-                    "retained_config_required",
-                    "retained_readme_required",
-                    "active_wording_unparsed",
-                }
-            )
+            gap = value is None and checked.outcome != "verified"
             if checked.outcome != "verified" and not gap:
                 problems.append(
                     f"{model_id} {facet}: retained-copy check {checked.outcome}: {checked.reason}"
@@ -483,7 +496,7 @@ def collect(
             )
         )
         print(
-            f"{model_id}: {architecture['type'] or 'not_disclosed'}, "
+            f"{model_id}: {architecture['type'] or 'gap'}, "
             f"active={architecture['active_parameters']}, rev={revision}"
         )
     payload = {

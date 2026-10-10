@@ -346,3 +346,81 @@ def test_dry_run_refuses_artifact_paths_inside_the_data_checkout(tmp_path):
             fetcher=FakeFetcher({"num_attention_heads": 32}),
         )
     assert bytes_in(tmp_path) == before
+
+
+@pytest.mark.parametrize(
+    "config,facet",
+    [
+        ({"model_type": "qwen4", "num_attention_heads": 32}, "model.architecture"),
+        ({"model_type": "qwen4", "num_attention_heads": 32}, "model.experts_total"),
+        (
+            {"model_type": "x_moe", "num_experts": [64, 128], "num_experts_per_tok": 8},
+            "model.experts_total",
+        ),
+        (
+            {"model_type": "llama", "num_attention_heads": 32, "moe_intermediate_size": 1408},
+            "model.architecture",
+        ),
+        ({"model_type": "mixtral", "num_experts": 8}, "model.experts_per_token"),
+    ],
+)
+def test_round4_unreadable_config_facets_are_gaps_and_never_filed(tmp_path, config, facet):
+    tree(tmp_path)
+    payload = collect(
+        tmp_path, dry_run=False, fetcher=FakeFetcher(config), store=CopyStore(tmp_path / "copies")
+    )
+    row = next(row for row in payload["rows"] if row["facet"] == facet)
+    assert (row["state"], row["value"]) == ("missing", None)
+    pending, _ = Queue(tmp_path / "verification").pending()
+    assert facet not in {c.field for c in pending}
+    front = yaml.safe_load((tmp_path / "models/lab/alpha.md").read_text().split("---", 2)[1])
+    assert facet not in {fact["facet"] for fact in front["facts"]}
+    assert payload["problems"] == []
+
+
+def test_round4_multimodal_gap_reports_card_total_and_vision_encoder(tmp_path):
+    tree(tmp_path, total=31_273_088_876)
+    payload = collect(
+        tmp_path,
+        dry_run=True,
+        fetcher=FakeFetcher(
+            {
+                "model_type": "gemma4",
+                "text_config": {
+                    "model_type": "gemma4_text",
+                    "num_attention_heads": 32,
+                    "hidden_size_per_layer_input": 0,
+                    "vocab_size_per_layer_input": 262144,
+                },
+                "vision_config": {"model_type": "gemma4_vision", "num_attention_heads": 16},
+                "enable_moe_block": False,
+                "num_experts": None,
+            },
+            (
+                "# Alpha\n| Property | Alpha |\n| Total Parameters | 30.7B |\n| Vision Encoder "
+                "Parameters | ~550M |\nBeta has 2B effective parameters."
+            ),
+            census={"parameters": {"BF16": 31_273_088_876}},
+        ),
+        store=CopyStore(tmp_path.parent / "copies"),
+    )
+    active = next(row for row in payload["rows"] if row["facet"] == "model.parameters_active")
+    assert (active["state"], active["value"]) == ("missing", None)
+    assert "30.7B" in active["reason"]
+    assert "~550M" in active["reason"]
+    assert "non-text encoder" in active["reason"]
+    assert payload["problems"] == []
+
+
+def test_round4_missing_readme_leaves_active_count_as_a_gap(tmp_path):
+    tree(tmp_path)
+    fetcher = FakeFetcher({"model_type": "llama", "num_attention_heads": 32})
+    fetcher.bodies[README] = None
+    payload = collect(
+        tmp_path, dry_run=False, fetcher=fetcher, store=CopyStore(tmp_path / "copies")
+    )
+    active = next(row for row in payload["rows"] if row["facet"] == "model.parameters_active")
+    assert (active["state"], active["value"]) == ("missing", None)
+    pending, _ = Queue(tmp_path / "verification").pending()
+    assert "model.parameters_active" not in {c.field for c in pending}
+    assert payload["problems"] == []
