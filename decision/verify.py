@@ -76,6 +76,7 @@ from pathlib import Path
 from typing import Any, Literal, NamedTuple, Protocol
 from urllib.parse import urljoin
 
+import yaml
 from pydantic import JsonValue, ValidationError
 
 from decision.licence_rules import (
@@ -125,7 +126,9 @@ class Claim:
     sits under in the source (default: ``field`` with underscores as spaces).
     ``unit`` is a unit ID (``UNITS``); ``None`` means the base unit of whatever
     dimension the source states. ``conditions`` holds ``effort``, ``harness`` and
-    ``date`` as the collector filed them.
+    ``date`` as the collector filed them. ``base_model`` is the card's
+    ``lineage.base_model`` when the subject is a fine-tune. It is empty when
+    the card names no base.
     """
 
     target: TargetRef
@@ -138,6 +141,7 @@ class Claim:
     unit: str | None = None
     label: str | None = None
     conditions: Mapping[str, str | None] = field(default_factory=dict)
+    base_model: str | None = None
 
     def __post_init__(self) -> None:
         if not self.names:
@@ -170,7 +174,8 @@ class Claim:
 
     @classmethod
     def from_fact(cls, fact: Any, *, names: Sequence[str], collector: VerificationActor,
-                  unit: str | None = None, label: str | None = None) -> Claim:
+                  unit: str | None = None, label: str | None = None,
+                  base_model: str | None = None) -> Claim:
         """A claim for a filed ``Fact``; ``unit`` is its facet's unit.
 
         A scoped source region can also confirm ``not_disclosed`` or
@@ -189,10 +194,11 @@ class Claim:
             unit=unit,
             collector=collector,
             sources=tuple(fact.sources),
+            base_model=base_model or None,
         )
 
     def to_dict(self) -> dict[str, Any]:
-        return {
+        data = {
             "target": self.target.model_dump(),
             "subject": self.subject,
             "names": list(self.names),
@@ -204,6 +210,9 @@ class Claim:
             "collector": self.collector.model_dump(),
             "sources": [s.model_dump() for s in self.sources],
         }
+        if self.base_model:
+            data["base_model"] = self.base_model
+        return data
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> Claim:
@@ -218,6 +227,7 @@ class Claim:
             conditions=data.get("conditions") or {},
             collector=VerificationActor.model_validate(data["collector"]),
             sources=tuple(SourceRef.model_validate(s) for s in data["sources"]),
+            base_model=data.get("base_model") or None,
         )
 
 
@@ -2647,10 +2657,87 @@ def _licence_rule(page: str, page_url: str | None, licence_url: str | None,
     return None
 
 
+def _bound_on_pages(names: Sequence[str], pages: Sequence[str], licence_url: str | None, *,
+                    subject: str | None = None,
+                    page_urls: Sequence[str | None] | None = None,
+                    licence_text: str | None = None) -> str | None:
+    """The link, url, repo-location or SPDX rule that binds this licence, or ``None``."""
+    urls = tuple(page_urls or ())
+    for index, page in enumerate(pages):
+        page_url = urls[index] if index < len(urls) else None
+        if _page_names_subject(page, names, subject, page_url):
+            rule = _licence_rule(page, page_url, licence_url, licence_text)
+            if rule:
+                return rule
+    return None
+
+
+#: One sentence. The subject is the derivatives. They are or remain subject to,
+#: or must or shall be distributed under, these or this terms, licence, or
+#: agreement. ``derivatives`` opens the sentence or follows whitespace, so a
+#: hyphen in ``non-derivatives`` does not count. ``not``, ``no``, ``none`` and
+#: ``need not`` anywhere in the match reject the sentence. A grant preamble
+#: and a notice-retention sentence do not match.
+_DERIVATIVE_TERMS = re.compile(
+    r"(?:^|(?<=\s))(?:model\s+)?derivatives?\b"
+    r"[^.;!?]{0,220}?"
+    r"(?:"
+    r"(?:(?:must|shall)\s+)?(?:are|remain)\s+subject\s+to"
+    r"|"
+    r"(?:must|shall)\s+be\s+distributed\s+under"
+    r")"
+    r"[^.;!?]{0,80}?"
+    r"\b(?:these|this)\b"
+    r"[^.;!?]{0,40}?"
+    r"\b(?:terms|licen[cs]es?|licences?|agreements?)\b",
+    re.IGNORECASE,
+)
+_NEGATED_DUTY = re.compile(r"\b(?:not|no|none|need\s+not)\b", re.IGNORECASE)
+#: The retained Gemma terms split this duty across the next sentence. Either
+#: sentence alone is a Llama "copy of this Agreement" or an OpenRAIL
+#: use-restriction carry-over, and neither of those matches on its own.
+_GEMMA_DERIVATIVE_TERMS = re.compile(
+    r"(?:^|(?<=\s))(?:model\s+)?derivatives?\s+are\s+subject\s+to\s+the\s+use\s+restrictions\b"
+    r".{0,240}?"
+    r"\ba\s+copy\s+of\s+this\s+agreement\b",
+    re.IGNORECASE | re.DOTALL,
+)
+
+
+def licence_requires_derivative_terms(text: str | None) -> bool:
+    """The licence says a derivative must be distributed under it, or stay subject to it.
+
+    The sentence's subject is the derivatives. It says they are or remain
+    subject to, or must or shall be distributed under, these or this terms,
+    licence, or agreement. ``derivatives`` opens the sentence or follows
+    whitespace. ``Non-derivatives`` does not count. ``not``, ``no``, ``none``
+    and ``need not`` anywhere in the match reject it. A grant to prepare
+    derivative works is not enough, and neither is a grant preamble that only
+    says the grant is subject to the licence.
+
+    The retained Gemma terms match by saying Model Derivatives are subject to
+    the use restrictions and, in the next sentence, that recipients of those
+    derivatives get a copy of this Agreement. A Llama sentence that only says
+    to provide a copy of this Agreement, and an OpenRAIL sentence that only
+    carries use restrictions onto derivatives, do not match. MIT and
+    Apache-2.0 do not say this. Keeping their notices is not this duty.
+    """
+    if not text:
+        return False
+    flat = re.sub(r"\s+", " ", text)
+    for match in _DERIVATIVE_TERMS.finditer(flat):
+        if _NEGATED_DUTY.search(match.group(0)):
+            continue
+        return True
+    gemma = _GEMMA_DERIVATIVE_TERMS.search(flat)
+    return gemma is not None and _NEGATED_DUTY.search(gemma.group(0)) is None
+
+
 def licence_is_bound(names: Sequence[str], pages: Sequence[str], licence_url: str | None, *,
                      subject: str | None = None,
                      page_urls: Sequence[str | None] | None = None,
-                     licence_text: str | None = None) -> str | None:
+                     licence_text: str | None = None,
+                     base_model: str | None = None) -> str | None:
     """The rule that binds this licence to the subject, or ``None``.
 
     A page names the subject by its display name or repository id, as a whole
@@ -2678,15 +2765,134 @@ def licence_is_bound(names: Sequence[str], pages: Sequence[str], licence_url: st
     and a subdirectory do not. ``license: other`` does not bind a shared
     text. A file in a different repository binds only by ``license_link``
     or ``url``.
+
+    When none of those rules name the subject, a licence bound to
+    ``base_model`` binds the subject too. The card field is ``base_model``.
+    The binding page declares that base in ``base_model`` (a string or a list
+    of repository ids, compared case-insensitively). Fenced YAML counts. So
+    do the leading ``key: value`` lines of a normalised page, whose fences
+    the text normaliser has already dropped, including a list written as
+    ``base_model:`` and then ``- id``. A heading, a blank line, or any other
+    line ends that block. A prose mention of the base does not count. The
+    same link, url, repo-location and SPDX rules have to hold on that page,
+    and :func:`licence_requires_derivative_terms` has to be true of the
+    licence text. The returned rule is ``base-model``. No ``base_model``, a
+    base the front matter does not list, or a licence that only grants
+    modification, does not bind. MIT and Apache-2.0 do not require
+    derivative terms, so they do not bind by this path. A direct rule still
+    wins when the page names the subject itself.
     """
+    direct = _bound_on_pages(
+        names, pages, licence_url, subject=subject, page_urls=page_urls,
+        licence_text=licence_text,
+    )
+    if direct:
+        return direct
+    base = (base_model or "").strip()
+    if not base or (subject and base.casefold() == subject.casefold()):
+        return None
+    if not licence_requires_derivative_terms(licence_text):
+        return None
     urls = tuple(page_urls or ())
     for index, page in enumerate(pages):
+        if not _page_declares_base(page, base):
+            continue
         page_url = urls[index] if index < len(urls) else None
-        if _page_names_subject(page, names, subject, page_url):
-            rule = _licence_rule(page, page_url, licence_url, licence_text)
-            if rule:
-                return rule
+        if _licence_rule(page, page_url, licence_url, licence_text):
+            return "base-model"
     return None
+
+
+# A normalised page has no fences: ``---`` is only punctuation, so text-default
+# drops it. The front matter is then the leading ``key: value`` lines. A colon
+# has to be followed by a space, so a URL (``https://``) is not a key.
+_KEY_LINE = re.compile(
+    r"^[A-Za-z_][\w-]*[ \t]*:(?:[ \t]+(?P<value>\S(?:.*\S)?)|[ \t]*)$"
+)
+_LIST_ITEM = re.compile(r"^[ \t]*-[ \t]+\S")
+_HEADING_LINE = re.compile(r"^[ \t]*#[ \t]*\S")
+
+
+def _load_mapping(text: str) -> Mapping[str, Any] | None:
+    try:
+        data = yaml.safe_load(text)
+    except yaml.YAMLError:
+        return None
+    if not isinstance(data, dict):
+        return None
+    return data
+
+
+def _fenced_front_matter(page: str) -> str | None:
+    """The text between opening fences, or ``None`` when the page has none."""
+    if not page.startswith("---"):
+        return None
+    parts = page.split("---", 2)
+    if len(parts) < 3 or parts[0].strip():
+        return None
+    return parts[1]
+
+
+def _leading_mapping_block(page: str) -> str:
+    """Leading ``key: value`` lines, including ``base_model:`` then ``- id``.
+
+    A heading, a blank line, or any other line ends the block. That is the
+    front matter left after the text normaliser drops the fences.
+    """
+    taken: list[str] = []
+    in_list = False
+    for line in page.splitlines():
+        if not line.strip():
+            if taken:
+                break
+            continue
+        if _HEADING_LINE.match(line):
+            break
+        key = _KEY_LINE.match(line)
+        if key:
+            taken.append(line)
+            in_list = key.group("value") is None
+            continue
+        if in_list and _LIST_ITEM.match(line):
+            taken.append(line)
+            continue
+        break
+    return "\n".join(taken)
+
+
+def _front_matter_mapping(page: str) -> Mapping[str, Any] | None:
+    """The page's YAML mapping, fenced or the normalised leading keys."""
+    text = page.lstrip("\ufeff")
+    fenced = _fenced_front_matter(text)
+    if fenced is not None:
+        return _load_mapping(fenced)
+    block = _leading_mapping_block(text)
+    if not block:
+        return None
+    return _load_mapping(block)
+
+
+def _declared_base_models(page: str) -> tuple[str, ...]:
+    """Repository ids in the front matter ``base_model`` string or list."""
+    data = _front_matter_mapping(page)
+    if not data or "base_model" not in data:
+        return ()
+    raw = data["base_model"]
+    if isinstance(raw, str):
+        items: tuple[Any, ...] = (raw,)
+    elif isinstance(raw, list):
+        items = tuple(raw)
+    else:
+        return ()
+    return tuple(item.strip() for item in items if isinstance(item, str) and item.strip())
+
+
+def _page_declares_base(page: str, base: str) -> bool:
+    """The front matter ``base_model`` entry lists this repository id."""
+    wanted = base.strip().casefold()
+    if not wanted:
+        return False
+    return any(item.casefold() == wanted for item in _declared_base_models(page))
 
 
 class LicenceExtractor:
@@ -2698,7 +2904,9 @@ class LicenceExtractor:
     value. A missing or non-verbatim
     clause is unparseable, so it is not evidence. A licence does not name the
     model: the reading's subject is the claim's name only when a binding page
-    passes :func:`licence_is_bound`.
+    passes :func:`licence_is_bound`. A licence bound to ``claim.base_model``
+    also names the subject when the page's YAML front matter lists that base
+    and the licence requires derivatives to carry its terms.
     """
 
     def __init__(self, complete: Callable[[str], str], *, agent: str, model: str,
@@ -2743,7 +2951,7 @@ class LicenceExtractor:
             self.cache.put(store_key, reply)
         subject = claim.names[0] if licence_is_bound(
             claim.names, bindings, licence_url, subject=claim.subject, page_urls=binding_urls,
-            licence_text=text,
+            licence_text=text, base_model=claim.base_model,
         ) else None
         shown: JsonValue = None if value is None else str(value)
         unit = None
@@ -3195,7 +3403,11 @@ def _canonical_licence_id(text: str) -> str | None:
     file with a different copyright line is not read here until that residual
     is reviewed and added in code. The licence reader then reads the text.
     """
-    if "notices is not a condition" not in LICENCE_CONDITION_RULE:
+    if (
+        "Keeping a copyright, licence, NOTICE or change notice is not attribution "
+        "and not a condition."
+        not in LICENCE_CONDITION_RULE
+    ):
         return None
     form = _canonical_form(text)
     if any(flag in form.casefold() for flag in CANONICAL_LICENCE_RED_FLAGS):
@@ -3261,7 +3473,8 @@ class CanonicalLicenceExtractor:
     ``LICENCE_CONDITION_RULE`` applied: a duty to keep a notice is not a
     condition. The table quotes the operative clause and records the rule key.
     The reading's subject is the claim's name only when :func:`licence_is_bound`
-    passes.
+    passes. A licence bound to ``claim.base_model`` also names the subject
+    when that licence requires derivatives to carry its terms.
     """
 
     actor = VerificationActor(
@@ -3291,7 +3504,7 @@ class CanonicalLicenceExtractor:
             raise ExtractorError("operative clause is not in the licence text")
         subject = claim.names[0] if licence_is_bound(
             claim.names, bindings, licence_url, subject=claim.subject, page_urls=binding_urls,
-            licence_text=text,
+            licence_text=text, base_model=claim.base_model,
         ) else None
         shown: JsonValue = None if row.value is None else str(row.value)
         return [Reading(subject=subject, value=shown)]
