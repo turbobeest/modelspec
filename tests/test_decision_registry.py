@@ -253,11 +253,11 @@ def test_licence_definitions_record_the_notice_output_and_base_readings(registry
     commercial = registry.facet("licence.commercial_use")
     assert commercial.definition == (
         "Whether the licence governing the model lets a customer use the model or "
-        "its outputs in a commercial product. `permitted_with_conditions` covers a "
-        "display or naming duty, a user cap, or a field-of-use limit. Attribution "
-        "means a display or naming duty. Keeping a copyright, licence or NOTICE "
-        "notice, as MIT and Apache-2.0 require, is not a condition. The other "
-        "`licence.*` facets say which condition applies. " + _INHERITS
+        "its outputs in a commercial product. `permitted_with_conditions` covers any "
+        "condition, for example a display or naming duty, a user cap or a "
+        "field-of-use limit. Attribution means a display or naming duty; keeping a "
+        "copyright, licence or NOTICE notice, as MIT and Apache-2.0 require, is not "
+        "a condition. The other `licence.*` facets say which condition applies. " + _INHERITS
     )
     assert commercial.value_type.values == (
         "permitted", "permitted_with_conditions", "prohibited",
@@ -282,7 +282,7 @@ def test_licence_definitions_record_the_notice_output_and_base_readings(registry
         "train or improve another model. `restricted` or `prohibited` only where "
         "the licence or terms expressly address training on those outputs, on "
         "synthetic data from them, or distillation from them. `restricted` when "
-        "the text expressly allows that only for some purposes or models, for "
+        "the text expressly allows or forbids it only for some purposes or models, for "
         "example not for a competing model, or makes a model trained on outputs a "
         "derivative subject to the licence's restrictions. `prohibited` when the "
         "text expressly forbids it for every purpose. A generic "

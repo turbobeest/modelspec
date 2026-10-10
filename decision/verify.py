@@ -76,6 +76,7 @@ from pathlib import Path
 from typing import Any, Literal, NamedTuple, Protocol
 from urllib.parse import urljoin
 
+import yaml
 from pydantic import JsonValue, ValidationError
 
 from decision.licence_rules import (
@@ -2671,12 +2672,32 @@ def _bound_on_pages(names: Sequence[str], pages: Sequence[str], licence_url: str
     return None
 
 
-#: The text names derivatives and says they stay under this licence.
-#: A grant to create derivative works does not match. MIT and Apache-2.0 do not.
+#: One sentence. The subject is the derivatives. They are or remain subject to,
+#: or must or shall be distributed under, these or this terms, licence, or
+#: agreement. ``not``, ``no`` and ``need not`` in the gap reject the sentence.
+#: A grant preamble and a notice-retention sentence do not match.
 _DERIVATIVE_TERMS = re.compile(
-    r"model derivatives?.{0,500}?subject to.{0,120}?(?:these|the|this).{0,40}?(?:terms|licen[cs]e)"
-    r"|derivatives?.{0,180}?(?:must|shall).{0,80}?(?:be distributed under|remain subject to)"
-    r".{0,80}?(?:terms|licen[cs]e)",
+    r"\b(?:model\s+)?derivatives?\b"
+    r"(?P<gap>[^.;!?]{0,220}?)"
+    r"(?:"
+    r"(?:(?:must|shall)\s+)?(?:are|remain)\s+subject\s+to"
+    r"|"
+    r"(?:must|shall)\s+be\s+distributed\s+under"
+    r")"
+    r"[^.;!?]{0,80}?"
+    r"\b(?:these|this)\b"
+    r"[^.;!?]{0,40}?"
+    r"\b(?:terms|licen[cs]es?|licences?|agreements?)\b",
+    re.IGNORECASE,
+)
+_NEGATED_DUTY = re.compile(r"\b(?:not|no|need\s+not)\b", re.IGNORECASE)
+#: The retained Gemma terms split this duty across the next sentence. Either
+#: sentence alone is a Llama "copy of this Agreement" or an OpenRAIL
+#: use-restriction carry-over, and neither of those matches on its own.
+_GEMMA_DERIVATIVE_TERMS = re.compile(
+    r"\b(?:model\s+)?derivatives?\s+are\s+subject\s+to\s+the\s+use\s+restrictions\b"
+    r".{0,240}?"
+    r"\ba\s+copy\s+of\s+this\s+agreement\b",
     re.IGNORECASE | re.DOTALL,
 )
 
@@ -2684,14 +2705,27 @@ _DERIVATIVE_TERMS = re.compile(
 def licence_requires_derivative_terms(text: str | None) -> bool:
     """The licence says a derivative must be distributed under it, or stay subject to it.
 
-    A grant to modify the work or to prepare derivative works is not enough.
-    The text has to name derivatives, or Model Derivatives, and say they must
-    be distributed under these terms or remain subject to them. MIT and
-    Apache-2.0 do not say that. Keeping their notices is not this duty.
+    The sentence's subject is the derivatives. It says they are or remain
+    subject to, or must or shall be distributed under, these or this terms,
+    licence, or agreement. ``not``, ``no`` and ``need not`` reject it. A grant
+    to prepare derivative works is not enough, and neither is a grant preamble
+    that only says the grant is subject to the licence.
+
+    The retained Gemma terms match by saying Model Derivatives are subject to
+    the use restrictions and, in the next sentence, that recipients of those
+    derivatives get a copy of this Agreement. A Llama sentence that only says
+    to provide a copy of this Agreement, and an OpenRAIL sentence that only
+    carries use restrictions onto derivatives, do not match. MIT and
+    Apache-2.0 do not say this. Keeping their notices is not this duty.
     """
     if not text:
         return False
-    return _DERIVATIVE_TERMS.search(re.sub(r"\s+", " ", text)) is not None
+    flat = re.sub(r"\s+", " ", text)
+    for match in _DERIVATIVE_TERMS.finditer(flat):
+        if _NEGATED_DUTY.search(match.group("gap")):
+            continue
+        return True
+    return _GEMMA_DERIVATIVE_TERMS.search(flat) is not None
 
 
 def licence_is_bound(names: Sequence[str], pages: Sequence[str], licence_url: str | None, *,
@@ -2729,13 +2763,16 @@ def licence_is_bound(names: Sequence[str], pages: Sequence[str], licence_url: st
 
     When none of those rules name the subject, a licence bound to
     ``base_model`` binds the subject too. The card field is ``base_model``.
-    The same link, url, repo-location and SPDX rules have to hold for that
-    base, and :func:`licence_requires_derivative_terms` has to be true of the
+    The binding page's own YAML front matter must declare that base in
+    ``base_model`` (a string or a list of repository ids, compared
+    case-insensitively). A prose mention of the base does not count. The
+    same link, url, repo-location and SPDX rules have to hold on that page,
+    and :func:`licence_requires_derivative_terms` has to be true of the
     licence text. The returned rule is ``base-model``. No ``base_model``, a
-    base the pages do not bind, or a licence that only grants modification,
-    does not bind. MIT and Apache-2.0 do not require derivative terms, so
-    they do not bind by this path. A direct rule still wins when the page
-    names the subject itself.
+    base the front matter does not list, or a licence that only grants
+    modification, does not bind. MIT and Apache-2.0 do not require
+    derivative terms, so they do not bind by this path. A direct rule still
+    wins when the page names the subject itself.
     """
     direct = _bound_on_pages(
         names, pages, licence_url, subject=subject, page_urls=page_urls,
@@ -2748,12 +2785,53 @@ def licence_is_bound(names: Sequence[str], pages: Sequence[str], licence_url: st
         return None
     if not licence_requires_derivative_terms(licence_text):
         return None
-    if _bound_on_pages(
-        (base, base.rsplit("/", 1)[-1]), pages, licence_url, subject=base,
-        page_urls=page_urls, licence_text=licence_text,
-    ):
-        return "base-model"
+    urls = tuple(page_urls or ())
+    for index, page in enumerate(pages):
+        if not _page_declares_base(page, base):
+            continue
+        page_url = urls[index] if index < len(urls) else None
+        if _licence_rule(page, page_url, licence_url, licence_text):
+            return "base-model"
     return None
+
+
+def _front_matter_mapping(page: str) -> Mapping[str, Any] | None:
+    """The fenced YAML mapping, or ``None`` when the page has no front matter."""
+    if not page.startswith("---"):
+        return None
+    parts = page.split("---", 2)
+    if len(parts) < 3 or parts[0].strip():
+        return None
+    try:
+        data = yaml.safe_load(parts[1])
+    except yaml.YAMLError:
+        return None
+    if not isinstance(data, dict):
+        return None
+    return data
+
+
+def _declared_base_models(page: str) -> tuple[str, ...]:
+    """Repository ids in the front matter ``base_model`` string or list."""
+    data = _front_matter_mapping(page)
+    if not data or "base_model" not in data:
+        return ()
+    raw = data["base_model"]
+    if isinstance(raw, str):
+        items: tuple[Any, ...] = (raw,)
+    elif isinstance(raw, list):
+        items = tuple(raw)
+    else:
+        return ()
+    return tuple(item.strip() for item in items if isinstance(item, str) and item.strip())
+
+
+def _page_declares_base(page: str, base: str) -> bool:
+    """The front matter ``base_model`` entry lists this repository id."""
+    wanted = base.strip().casefold()
+    if not wanted:
+        return False
+    return any(item.casefold() == wanted for item in _declared_base_models(page))
 
 
 class LicenceExtractor:
@@ -2766,8 +2844,8 @@ class LicenceExtractor:
     clause is unparseable, so it is not evidence. A licence does not name the
     model: the reading's subject is the claim's name only when a binding page
     passes :func:`licence_is_bound`. A licence bound to ``claim.base_model``
-    also names the subject when that licence requires derivatives to carry
-    its terms.
+    also names the subject when the page's YAML front matter lists that base
+    and the licence requires derivatives to carry its terms.
     """
 
     def __init__(self, complete: Callable[[str], str], *, agent: str, model: str,
@@ -3265,8 +3343,8 @@ def _canonical_licence_id(text: str) -> str | None:
     is reviewed and added in code. The licence reader then reads the text.
     """
     if (
-        "Keeping a copyright, licence, NOTICE or change notice, as MIT and "
-        "Apache-2.0 require, is not attribution and not a condition."
+        "Keeping a copyright, licence, NOTICE or change notice is not attribution "
+        "and not a condition."
         not in LICENCE_CONDITION_RULE
     ):
         return None

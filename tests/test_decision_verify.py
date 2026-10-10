@@ -3286,8 +3286,29 @@ _GEMMA_TERMS = (
     "Gemma, including by distillation. Model Derivatives are subject to these Terms."
 )
 _GEMMA_QUOTE = "Model Derivatives are subject to these Terms."
+# Retained Gemma Terms of Use, last modified March 24, 2025, quoted from the
+# KaLM LICENSE.txt copy. The duty is the use-restrictions sentence and the next
+# sentence, which gives recipients a copy of this Agreement.
+_GEMMA_RETAINED = (
+    '(e) "Model Derivatives" means all (i) modifications to Gemma, (ii) works based on '
+    "Gemma, or (iii) any other machine learning model which is created by transfer of "
+    "patterns of the weights, parameters, operations, or Output of Gemma, to that model "
+    "in order to cause that model to perform similarly to Gemma, including distillation "
+    "methods that use intermediate data representations or methods based on the generation "
+    "of synthetic data Outputs by Gemma for training that model. For clarity, Outputs are "
+    "not deemed Model Derivatives.\n"
+    "You must include the use restrictions referenced in Section 3.2 as an enforceable "
+    "provision in any agreement (e.g., license agreement, terms of use, etc.) governing "
+    "the use and/or distribution of Gemma or Model Derivatives and you must provide notice "
+    "to subsequent users you Distribute to that Gemma or Model Derivatives are subject to "
+    "the use restrictions in Section 3.2.\n"
+    "You must provide all third party recipients of Gemma or Model Derivatives a copy of "
+    "this Agreement."
+)
 _GEMMA_PAGE = (
+    "---\n"
     "base_model: google/gemma-3-12b-pt\n"
+    "---\n"
     "https://huggingface.co/google/gemma-3-12b-pt/raw/main/LICENSE\n"
 )
 _GEMMA_URL = "https://huggingface.co/google/gemma-3-12b-pt/raw/main/LICENSE"
@@ -3367,6 +3388,86 @@ def test_verify_uses_base_model_and_ignores_an_unrelated_model() -> None:
     other = verify.verify(claim("meta/llama-3", subject="lab/unrelated"), regions, [reader], today=TODAY)
     assert other.outcome == "mismatch", other
     assert other.diffs[0].field == "model"
+
+
+def _bound_gemma_page(page: str, text: str = _GEMMA_TERMS) -> str | None:
+    return verify.licence_is_bound(
+        ("KaLM Embedding Gemma3 12B 2511",),
+        [page],
+        _GEMMA_URL,
+        subject=_KALM,
+        licence_text=text,
+        base_model=_GEMMA_BASE,
+    )
+
+
+def test_base_model_binding_requires_front_matter() -> None:
+    """The page's YAML front matter has to list the base. Prose does not."""
+    prose = (
+        "---\n"
+        "license: other\n"
+        "---\n"
+        "unlike Gemma 3 12B (see https://ai.google.dev/gemma/terms). "
+        "The weights follow google/gemma-3-12b-pt.\n"
+        + _GEMMA_URL
+        + "\n"
+    )
+    assert _bound_gemma_page(prose) is None
+    unfenced = "base_model: google/gemma-3-12b-pt\n" + _GEMMA_URL + "\n"
+    assert _bound_gemma_page(unfenced) is None
+    assert _bound_gemma_page(_GEMMA_PAGE) == "base-model"
+    listed = (
+        "---\n"
+        "base_model:\n"
+        "  - Google/Gemma-3-12B-PT\n"
+        "---\n"
+        + _GEMMA_URL
+        + "\n"
+    )
+    assert _bound_gemma_page(listed) == "base-model"
+
+
+def test_derivative_terms_match_one_sentence_and_the_gemma_pair() -> None:
+    assert verify.licence_requires_derivative_terms(
+        "Model Derivatives are not subject to the terms of this License."
+    ) is False
+    assert verify.licence_requires_derivative_terms(
+        '"Model Derivatives" means all modifications to the model and any model '
+        "trained on its outputs. Subject to the terms and conditions of this License, "
+        "Licensor grants you a non-exclusive license to use the model."
+    ) is False
+    assert verify.licence_requires_derivative_terms(
+        "Derivatives need not be distributed under this licence; "
+        "they shall remain subject to your own license."
+    ) is False
+    assert verify.licence_requires_derivative_terms(_GEMMA_RETAINED) is True
+    assert verify.licence_requires_derivative_terms(
+        "You must provide all third party recipients of the model a copy of this Agreement."
+    ) is False
+    assert verify.licence_requires_derivative_terms(
+        "Model Derivatives are subject to the use restrictions in Section 3.2."
+    ) is False
+    assert verify.licence_requires_derivative_terms(MIT_TEXT) is False
+    apache = (Path(__file__).parent / "fixtures" / "licences" / "apache-2.0.txt").read_text()
+    assert verify.licence_requires_derivative_terms(apache) is False
+
+
+def test_a_claim_without_base_model_omits_the_key() -> None:
+    filed = verify.Claim(
+        target=TargetRef(kind="fact", id="lab/nimbus-3#licence.output_training"),
+        subject="lab/nimbus-3",
+        names=("Nimbus 3",),
+        field="licence.output_training",
+        value="restricted",
+        collector=COLLECTOR,
+        sources=(_LICENCE,),
+        base_model=_GEMMA_BASE,
+    )
+    data = filed.to_dict()
+    del data["base_model"]
+    claim = verify.Claim.from_dict(data)
+    assert claim.base_model is None
+    assert "base_model" not in claim.to_dict()
 
 
 def test_a_licence_in_another_repo_does_not_bind_without_a_link() -> None:

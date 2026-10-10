@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import hashlib
 
+import decision.licence_rules as licence_rules
 from decision.licence_rules import (
-    BASE_MODEL_INHERITANCE_RULE,
     LICENCE_CONDITION_RULE,
     LICENCE_READING_RULES,
     licence_reading_rule,
@@ -14,23 +14,33 @@ from decision.model import SourceRef, TargetRef, VerificationActor
 from decision.verify import LICENCE_PROMPT, Claim, _licence_prompt
 
 _NOTICE = (
-    "Keeping a copyright, licence, NOTICE or change notice, as MIT and "
-    "Apache-2.0 require, is not attribution and not a condition."
+    "Keeping a copyright, licence, NOTICE or change notice is not attribution "
+    "and not a condition."
 )
 _COMPETING_MODEL = (
-    "The value is restricted when the text expressly allows that only for some "
-    "purposes or models, for example not for a competing model, or makes a model "
-    "trained on outputs a derivative subject to the licence's restrictions. "
+    "The value is restricted when the text expressly allows or forbids it only "
+    "for some purposes or models, for example not for a competing model, or makes "
+    "a model trained on outputs a derivative subject to the licence's restrictions. "
     "The value is prohibited when the text expressly forbids it for every purpose."
+)
+_OUTPUT_DERIVATIVE = (
+    "A licence that defines a model trained on its outputs, on synthetic data from "
+    "them, or by distillation from them as a derivative subject to its restrictions "
+    "is restricted."
 )
 
 
 def test_notice_retention_is_not_attribution_on_every_facet() -> None:
     assert _NOTICE in LICENCE_CONDITION_RULE
+    assert "MIT" not in LICENCE_CONDITION_RULE
+    assert "Apache" not in LICENCE_CONDITION_RULE
     for facet_id in LICENCE_READING_RULES:
         rule = licence_reading_rule(facet_id)
         assert _NOTICE in rule
-        assert BASE_MODEL_INHERITANCE_RULE in rule
+        assert "base_model" not in rule
+        assert "Gemma" not in rule
+        assert "MIT" not in rule
+        assert "Apache" not in rule
 
 
 def test_output_training_keeps_a_competing_model_limit_restricted() -> None:
@@ -50,36 +60,30 @@ def test_output_training_does_not_treat_a_plain_derivative_clause_as_restricted(
         "to train or improve another model, and limits or forbids that use. "
         "A generic modification or derivative-works clause that never mentions outputs, "
         "synthetic data or distillation is not that, and the value is not_disclosed. "
-        "The Gemma Terms define Model Derivatives to include a model trained on synthetic "
-        "data Outputs of Gemma, or by distillation, and they subject those models to the "
-        "Terms' restrictions. That text is restricted. "
-        "MIT, Apache-2.0, and a custom licence that only grants modification are not_disclosed. "
+        f"{_OUTPUT_DERIVATIVE} "
         "The value is permitted only when the text expressly allows using the outputs "
         "to train or improve another model. "
-        "The value is restricted when the text expressly allows that only for some purposes "
-        "or models, for example not for a competing model, or makes a model trained on outputs "
-        "a derivative subject to the licence's restrictions. "
+        "The value is restricted when the text expressly allows or forbids it only for some "
+        "purposes or models, for example not for a competing model, or makes a model trained "
+        "on outputs a derivative subject to the licence's restrictions. "
         "The value is prohibited when the text expressly forbids it for every purpose. "
         "The value is not_disclosed when the text is silent."
     )
 
 
-def test_inheritance_is_part_of_every_reading_rule() -> None:
-    assert BASE_MODEL_INHERITANCE_RULE == (
-        "A fine-tune inherits its base model's licence terms where the base licence "
-        "requires it. The card field is base_model. Inheritance applies when the base "
-        "licence says derivatives, or Model Derivatives, must be distributed under its "
-        "terms or remain subject to them. "
-        "tencent/kalm-embedding-gemma3-12b-2511 has base_model google/gemma-3-12b-pt, "
-        "and its LICENSE.txt embeds the Gemma terms."
-    )
+def test_the_reader_rule_leaves_inheritance_to_the_binding_code() -> None:
+    """The reader only sees licence text. The KaLM example stays in the module doc."""
     for facet_id in (
         "licence.commercial_use",
         "licence.user_cap",
         "licence.fine_tuning",
         "licence.output_training",
     ):
-        assert licence_reading_rule(facet_id).endswith(BASE_MODEL_INHERITANCE_RULE)
+        rule = licence_reading_rule(facet_id)
+        assert "inherit" not in rule.casefold()
+        assert "tencent/" not in rule
+    assert "tencent/kalm-embedding-gemma3-12b-2511" in licence_rules.__doc__
+    assert "google/gemma-3-12b-pt" in licence_rules.__doc__
 
 
 def test_the_licence_reader_hashes_the_rule_text() -> None:
@@ -100,7 +104,11 @@ def test_the_licence_reader_hashes_the_rule_text() -> None:
     _prompt, bound = _licence_prompt(claim, "Permission is hereby granted.")
     assert _NOTICE in bound
     assert "not_disclosed when the text is silent" in bound
-    assert "The card field is base_model." in bound
+    assert _OUTPUT_DERIVATIVE in bound
+    assert "base_model" not in bound
+    assert "Gemma" not in bound
+    assert "MIT" not in bound
+    assert "Apache" not in bound
     material = f"{LICENCE_PROMPT}\n{bound}"
     digest = hashlib.sha256(material.encode("utf-8")).hexdigest()[:16]
     changed = hashlib.sha256(f"{material}\nRULE-CHANGED".encode("utf-8")).hexdigest()[:16]

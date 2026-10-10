@@ -350,8 +350,9 @@ for _row in READINGS.values():
     for _facet, _reading in _row["facets"].items():
         if _facet not in LICENCE_READING_RULES:
             raise SystemExit(f"no licence reading rule for {_facet}")
-        # Each value applies licence_reading_rule(_facet): the facet rule, the
-        # condition rule, and BASE_MODEL_INHERITANCE_RULE. The filed key is the facet.
+        # Each value applies licence_reading_rule(_facet): the condition rule and
+        # the facet rule. Inheritance is applied when the licence is bound.
+        # The filed key is the facet.
         _reading["rule"] = _facet
 
 

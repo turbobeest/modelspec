@@ -11,16 +11,18 @@ Apache-2.0 are permitted for commercial use and for fine-tuning.
 licence expressly addresses using the model's outputs, or synthetic data
 or distillation from those outputs, to train or improve another model, and
 limits or forbids that use. The value is restricted when the text expressly
-allows that only for some purposes or models, for example not for a
-competing model, or makes a model trained on outputs a derivative subject
-to the licence's restrictions. The value is prohibited when the text
-expressly forbids it for every purpose. A generic modification or
+allows or forbids that only for some purposes or models, for example not
+for a competing model, or makes a model trained on outputs a derivative
+subject to the licence's restrictions. The value is prohibited when the
+text expressly forbids it for every purpose. A generic modification or
 derivative-works clause that never mentions outputs is not that. A silent
 licence is not_disclosed. The Gemma Terms define Model Derivatives to
 include a model trained on synthetic data Outputs of Gemma, or by
 distillation, and they subject those models to the Terms' restrictions, so
 that text is restricted. MIT, Apache-2.0, and a custom licence that only
-grants modification are not_disclosed.
+grants modification are not_disclosed. The reader prompt does not name
+those licences. Inheritance is applied when the licence is bound, because
+the reader only sees the licence text.
 
 A fine-tune inherits its base model's licence terms where the base licence
 requires it. The card field is ``base_model``. For example,
@@ -31,11 +33,11 @@ google/gemma-3-12b-pt, and its LICENSE.txt embeds the Gemma terms.
 from __future__ import annotations
 
 #: What counts as a condition on every ``licence.*`` facet.
-#: Keeping a copyright, licence, NOTICE or change notice, as MIT and
-#: Apache-2.0 require, is not attribution and not a condition.
+#: Keeping a copyright, licence, NOTICE or change notice is not attribution
+#: and not a condition. Named licences stay out of the reader prompt.
 LICENCE_CONDITION_RULE = (
-    "Keeping a copyright, licence, NOTICE or change notice, as MIT and "
-    "Apache-2.0 require, is not attribution and not a condition. "
+    "Keeping a copyright, licence, NOTICE or change notice is not attribution "
+    "and not a condition. "
     "A condition is a display or naming duty, a separate agreement or licence, "
     "a security or other review, a user, revenue or other threshold, a territorial "
     "or field-of-use restriction, or an incorporated acceptable-use or prohibited-use policy."
@@ -74,38 +76,23 @@ LICENCE_READING_RULES: dict[str, str] = {
         "to train or improve another model, and limits or forbids that use. "
         "A generic modification or derivative-works clause that never mentions outputs, "
         "synthetic data or distillation is not that, and the value is not_disclosed. "
-        "The Gemma Terms define Model Derivatives to include a model trained on synthetic "
-        "data Outputs of Gemma, or by distillation, and they subject those models to the "
-        "Terms' restrictions. That text is restricted. "
-        "MIT, Apache-2.0, and a custom licence that only grants modification are not_disclosed. "
+        "A licence that defines a model trained on its outputs, on synthetic data from them, "
+        "or by distillation from them as a derivative subject to its restrictions is restricted. "
         "The value is permitted only when the text expressly allows using the outputs "
         "to train or improve another model. "
-        "The value is restricted when the text expressly allows that only for some purposes "
-        "or models, for example not for a competing model, or makes a model trained on outputs "
-        "a derivative subject to the licence's restrictions. "
+        "The value is restricted when the text expressly allows or forbids it only for some "
+        "purposes or models, for example not for a competing model, or makes a model trained "
+        "on outputs a derivative subject to the licence's restrictions. "
         "The value is prohibited when the text expressly forbids it for every purpose. "
         "The value is not_disclosed when the text is silent."
     ),
 }
 
-#: A fine-tune carries the base licence when that licence requires it.
-#: The card field is ``base_model``.
-BASE_MODEL_INHERITANCE_RULE = (
-    "A fine-tune inherits its base model's licence terms where the base licence "
-    "requires it. The card field is base_model. Inheritance applies when the base "
-    "licence says derivatives, or Model Derivatives, must be distributed under its "
-    "terms or remain subject to them. "
-    "tencent/kalm-embedding-gemma3-12b-2511 has base_model google/gemma-3-12b-pt, "
-    "and its LICENSE.txt embeds the Gemma terms."
-)
-
 
 def licence_reading_rule(facet_id: str) -> str:
-    """The condition rule, this facet's rule, and base-model inheritance.
+    """The condition rule and this facet's rule.
 
-    The collector and the licence reader both include this text.
+    The collector and the licence reader both include this text. The reader
+    only sees the licence text, so base-model inheritance is not part of it.
     """
-    return (
-        f"{LICENCE_CONDITION_RULE} {LICENCE_READING_RULES[facet_id]} "
-        f"{BASE_MODEL_INHERITANCE_RULE}"
-    )
+    return f"{LICENCE_CONDITION_RULE} {LICENCE_READING_RULES[facet_id]}"
