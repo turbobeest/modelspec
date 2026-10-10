@@ -427,3 +427,18 @@ def test_compare_help_explains_the_endpoint_and_snapshot_option():
     assert "POST /v1/compare" in result.stdout
     assert "--to" in result.stdout
     assert "^snap_[A-Za-z0-9:._-]+$" in result.stdout
+
+
+@pytest.mark.parametrize(
+    "body", [{"result": {"changed": True}}, {"result": {"snapshot": None}}, {"result": []}]
+)
+def test_malformed_comparison_body_is_refused_with_recovery_not_a_traceback(monkeypatch, body):
+    monkeypatch.setattr(client, "_transport", httpx.MockTransport(
+        lambda request: httpx.Response(200, json=body)
+    ))
+    monkeypatch.setattr(cli, "load_spec", lambda source: SPEC)
+    result = run(["compare", "--spec", "spec.json", "--to", "snap_old"])
+    assert result.exit_code == 1, result.output
+    assert not isinstance(result.exception, KeyError | TypeError | AttributeError)
+    assert "The hosted API did not return the expected JSON object." in result.stderr
+    assert "Next steps:" in result.stderr

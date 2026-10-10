@@ -217,11 +217,14 @@ def _response(
         typer.echo(response.text, nl=False)
     else:
         body = response.json()
-        typer.echo(
-            human_renderer(body)
-            if human_renderer is not None
-            else json.dumps(body, indent=2, ensure_ascii=False)
-        )
+        if human_renderer is None:
+            typer.echo(json.dumps(body, indent=2, ensure_ascii=False))
+            return
+        try:
+            text = human_renderer(body)
+        except (KeyError, TypeError, AttributeError, ValueError, IndexError):
+            raise ClientError("unexpected_response", recovery="network") from None
+        typer.echo(text)
 
 
 def _spec_body(client: Client, spec: str | None, template: str | None) -> dict[str, Any]:
