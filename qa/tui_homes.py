@@ -168,6 +168,8 @@ def isolation_identity(cli: str, config: dict, binary: dict) -> str:
         "mcp_url": config["mcp_url"],
         "mcp_token_env": config.get("mcp_token_env"),
     }
+    if "ablation" in config:
+        identity["ablation"] = config["ablation"]
     digest = hashlib.sha256(json.dumps(identity, sort_keys=True).encode())
     for path in sorted(Path(__file__).parent.glob("tui_*.py")):
         digest.update(path.read_bytes())

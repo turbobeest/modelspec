@@ -924,6 +924,11 @@ def _samples() -> list:
                     coverage=plan_coverage, allowance=plan_allowance,
                     break_even_tasks_per_month=303.0, basis="200 USD a month ÷ 0.66 USD a task"),
         c.FeedbackPointer(),
+        c.NextMove(
+            kind="decide_by_testing",
+            say="Next step: ModelSpec has no answer here, so decide by testing these 2 candidates on your own work.",
+            options=[], steps=[], candidates=["lab/a", "lab/b"], candidates_total=2,
+        ),
         c.CoveredClass(id="text-generator", models=2),
         c.CoverageRefusal(message="Transcription is outside this snapshot.",
                           snapshot=decision.snapshot, as_of="2026-10-03",

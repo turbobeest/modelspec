@@ -71,6 +71,7 @@ SOURCES = {
     Path("decision/explain.py"): Path("decision/explain.py"),
     Path("decision/filter.py"): Path("decision/filter.py"),
     Path("decision/model.py"): Path("decision/model.py"),
+    Path("decision/next_move.py"): Path("decision/next_move.py"),
     Path("decision/normalise.py"): Path("decision/normalise.py"),
     Path("decision/optimise.py"): Path("decision/optimise.py"),
     Path("decision/plans.py"): Path("decision/plans.py"),
@@ -87,6 +88,7 @@ SOURCES = {
     Path("decision/templates.py"): Path("decision/templates.py"),
     Path("decision/units.py"): Path("decision/units.py"),
     Path("decision/vocabulary.py"): Path("decision/vocabulary.py"),
+    Path("decision/wording.py"): Path("decision/wording.py"),
     Path("schema/__init__.py"): Path("schema/__init__.py"),
     Path("schema/applicability.py"): Path("schema/applicability.py"),
     # The decision path needs these shared definitions, not every card section.

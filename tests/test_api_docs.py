@@ -168,6 +168,17 @@ def test_openapi_keeps_machine_credit_refusals_without_advertising_a_disabled_ra
             assert generator._validate(body, schema, spec) == []
 
 
+def test_decide_response_description_uses_the_bounded_version(monkeypatch) -> None:
+    monkeypatch.setattr(generator.decide_service.contract, "BOUNDED_VERSION", "7.9")
+    description = generator.build_spec()["paths"]["/v1/decide"]["post"]["responses"]["200"]["description"]
+    assert description == (
+        "A decision pinned to the snapshot that produced it: a complete "
+        "Decision (contract_version 2.15), or, when the request sends "
+        "fields or evidence_for, the separate bounded representation "
+        "(representation: bounded, bounded_version 7.9, no contract_version)."
+    )
+
+
 def test_every_local_discriminator_mapping_resolves(spec: dict[str, Any]) -> None:
     def mappings(value: Any):
         if isinstance(value, dict):

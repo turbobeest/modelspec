@@ -1714,8 +1714,11 @@ def test_the_api_reference_names_the_summary_fields_on_the_bounded_representatio
 
 
 def test_bounded_responses_keep_the_summary_through_trim_and_drill_down() -> None:
+    from decision.next_move import build_next_move, next_move_input_from_decision
+
     models = [f"lab/m{i}" for i in range(1, 11)]
     decision, spec, unapplied = _overflow()
+    unapplied = [f"unmeasured_{i}" for i in range(12)]
     # The longest name list the paragraph spells out, plus rows the budget drops.
     raw = decision.model_dump(mode="json")
     raw["answer"] = _tied(models)
@@ -1727,7 +1730,7 @@ def test_bounded_responses_keep_the_summary_through_trim_and_drill_down() -> Non
                 rank,
                 evidence=[{
                     "domain": "software_engineering",
-                    "items": [_evidence(source="https://example.org/" + ("a" * 8000))],
+                    "items": [_evidence(source="https://example.org/" + ("a" * 20000))],
                 }],
             )
             for rank, index in enumerate(range(25), len(models) + 1)
@@ -1735,14 +1738,19 @@ def test_bounded_responses_keep_the_summary_through_trim_and_drill_down() -> Non
     ]
     fat = Decision.model_validate(raw)
     # lab/a and lab/b no longer carry the fixture evidence, so recompute.
-    text, mentions = summarize(fat, spec, not_applied=unapplied)
+    move = build_next_move(next_move_input_from_decision(fat, spec, not_applied=unapplied))
+    text, mentions = summarize(fat, spec, not_applied=unapplied, next_move=move)
     assert len(mentions) == MUST_MENTION_MAX
     assert text.startswith(
         "ModelSpec's answer is a tie among lab/m1, lab/m2, lab/m3, lab/m4, lab/m5, "
         "lab/m6, lab/m7, and lab/m8, and 2 more in answer.members; "
         "the evidence does not separate them."
     )
-    assert text.endswith("and 10 more.")
+    assert text.endswith(
+        "Next step: ModelSpec does not measure unmeasured_0 and unmeasured_1 and unmeasured_2 "
+        "and 9 more, "
+        "so decide by testing these 11 candidates on your own work."
+    )
     assert len(text.encode("utf-8")) <= SUMMARY_BYTES
 
     body = project(

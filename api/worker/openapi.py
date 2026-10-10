@@ -2996,7 +2996,7 @@ def build_spec() -> dict[str, Any]:
                                 "A decision pinned to the snapshot that produced it: a complete "
                                 "Decision (contract_version 2.15), or, when the request sends "
                                 "fields or evidence_for, the separate bounded representation "
-                                "(representation: bounded, bounded_version 1.1, no "
+                                f"(representation: bounded, bounded_version {decide_service.contract.BOUNDED_VERSION}, no "
                                 "contract_version).",
                                 {"anyOf": [
                                     {"$ref": "#/components/schemas/DecisionResponse"},

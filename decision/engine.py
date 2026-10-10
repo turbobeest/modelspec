@@ -802,6 +802,9 @@ def _decide(
         out_of_lineup=getattr(snapshot, "out_of_lineup", 0),
         coverage=coverage_for_spec(spec, snapshot, conditions=resolved.conditions),
     )
+    decision._feasible_models = tuple(sorted({
+        snapshot.model_of(cid) for cid in filtered.feasible
+    }))
     from decision.explain import named_facets
 
     quality_dimensions = domains | set(snapshot.benchmark_ids()) | {"any"}
