@@ -302,3 +302,20 @@ def test_a_missing_backlog_identifier_is_not_composed_from_the_holder(entry):
     parked = blank.CREDITS.state.accounts["plain"]
     assert parked.overage_unreported == 3
     assert parked.meter_id == ""
+
+
+def test_an_unnamed_event_survives_a_failed_retry_as_unreported(entry):
+    """The ledger could not name the new event, and the older retry times out."""
+    env = SimpleNamespace(
+        STRIPE_SECRET_KEY="sk_test_fixture", CREDITS=credits.MemoryLedger())
+    holder = "key:" + "cd" * 32
+    older = run(env.CREDITS.meter_identifier(holder, "res", 1))
+    assert run(env.CREDITS.note_uncertain(holder, 2, older))
+    calls, fetch = _meter_script(["timeout"])
+    entry.fetch = fetch
+    run(entry._post_overage(
+        env, _overage_spec(), "cus_unnamed", 3, "", holder=holder))
+    assert [row["identifier"] for row in calls] == [older]
+    account = env.CREDITS.state.accounts[holder]
+    assert [(ident, units) for ident, units, _at in account.overage_uncertain] == [(older, 2)]
+    assert account.overage_unreported == 3
