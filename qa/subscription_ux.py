@@ -18,6 +18,11 @@ from qa import tui_harness
 from qa.subscription_jobs import AGENT_NAMES, preview, require_ready, write_pair
 
 PLAYWRIGHT_SERVER = {"playwright": {"command": "node", "args": ["/opt/modelspec-harness/ux-mcp.mjs"]}}
+JUDGES = {"claude": "codex", "codex": "claude", "gemini": "claude", "grok": "claude"}
+
+
+def required_clis(selected):
+    return list(dict.fromkeys(selected + [tui_harness.judge_for(cli, JUDGES) for cli in selected]))
 
 
 def private_modules(repository: Path):
@@ -79,7 +84,7 @@ def parse_verdict(text, task, paths):
 def attempt(repository, report_dir, artifact, state, runner, task, cli, base_url, rubric, core, *, result=None):
     if result is None:
         result = result_for(task, cli)
-    judge = tui_harness.judge_for(cli, runner.config["judges"])
+    judge = tui_harness.judge_for(cli, JUDGES)
     if runner.refusal(judge):
         result.update(status="skipped judge unavailable", reason=str(runner.refusal(judge)))
         return result
@@ -178,7 +183,7 @@ def run(repository, output, state, config, selected, base_url, day, *, dry_run=F
     core, reports = private_modules(repository)
     tasks = core.load_tasks(repository / "qa/ux/tasks.yaml")
     rubric = judge_rubric(repository)
-    needed = list(dict.fromkeys(selected + [tui_harness.judge_for(c, config["judges"]) for c in selected]))
+    needed = required_clis(selected)
     ready = {} if dry_run else require_ready(config, needed, state)
     runner = tui_harness.Runner(config, state, ready)
     artifact = output / day / uuid.uuid4().hex[:12]

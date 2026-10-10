@@ -37,7 +37,7 @@ clis:
     effort: xhigh
     usage_limit_exit_codes: []
 judges:
-  claude: codex
-  codex: claude
-  gemini: claude
-  grok: claude
+  claude: [grok, codex]
+  codex: [grok, claude]
+  gemini: [codex, claude]
+  grok: [codex, claude]

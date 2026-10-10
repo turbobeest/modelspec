@@ -227,6 +227,25 @@ def judge_profiles(config: dict, agent_family: str) -> list[dict]:
             for family in config["judge"]["routes"][agent_family]]
 
 
+def aggregate_judgements(judges: list[dict], strategy: str) -> dict:
+    selections = {(j["answer_kind"], tuple(sorted(set(j["top_models"])))) for j in judges}
+    agreed = len(selections) == 1 and len({j["passed"] for j in judges}) == 1
+    result = {
+        **judges[0],
+        "strategy": strategy,
+        "agreed": agreed,
+        "passed": agreed and all(j["passed"] for j in judges),
+        "rationale": "\n".join(f"{j['family']}/{j['model']}: {j['rationale']}" for j in judges),
+        "missing_capabilities": sorted({c for j in judges for c in j["missing_capabilities"]}),
+    }
+    if len(judges) > 1:
+        for key in ("family", "model", "cli"):
+            result.pop(key, None)
+    if len(selections) != 1:
+        result.update(top_models=[], answer_kind="abstain")
+    return result
+
+
 def evaluate_answer(scenario: dict, row: dict, judge, config: dict) -> None:
     """Every panel member gets the same evidence independently; disagreement fails."""
     row["judges"] = []
@@ -240,27 +259,12 @@ def evaluate_answer(scenario: dict, row: dict, judge, config: dict) -> None:
         row["tokens_out"] += reply.tokens_out
         row["judges"].append({"family": settings["family"], "model": model,
                               **parse_judgement(reply.text)})
-    judges = row["judges"]
-    selections = {(j["answer_kind"], tuple(sorted(set(j["top_models"])))) for j in judges}
-    agreed = len(selections) == 1 and len({j["passed"] for j in judges}) == 1
-    row["judge"] = {
-        **judges[0],
-        "strategy": config["judge"]["mode"],
-        "agreed": agreed,
-        "passed": agreed and all(j["passed"] for j in judges),
-        "rationale": "\n".join(f"{j['family']}/{j['model']}: {j['rationale']}" for j in judges),
-        "missing_capabilities": sorted({c for j in judges for c in j["missing_capabilities"]}),
-    }
-    if len(judges) > 1:
-        row["judge"].pop("family")
-        row["judge"].pop("model")
-    if len(selections) != 1:
-        row["judge"].update(top_models=[], answer_kind="abstain")
+    row["judge"] = aggregate_judgements(row["judges"], config["judge"]["mode"])
     row["expected_match"] = (
         expected_match(
             scenario["expected"], row["judge"], seen=seen_decision(row.get("tool_calls")),
         )
-        if agreed else None
+        if row["judge"]["agreed"] else None
     )
     # expected_match stays a recall metric. A passing judgement is the success gate.
     row["success"] = bool(row["judge"]["passed"])
@@ -560,6 +564,12 @@ def _aggregate_parse_defects(rows: list[dict]) -> list[list]:
     return [[scenario, cli, kind, totals[(scenario, cli, kind)]] for scenario, cli, kind in order]
 
 
+def judge_executions(row: dict) -> list[dict]:
+    if "judge_executions" in row:
+        return row["judge_executions"]
+    return [row["judge_execution"]] if row.get("judge_execution") else []
+
+
 def isolation_misuse_rows(rows: list[dict]) -> list[list]:
     """[scenario, cli, role, tools] for runs that called a disallowed tool.
 
@@ -573,6 +583,10 @@ def isolation_misuse_rows(rows: list[dict]) -> list[list]:
             continue
         if row.get("status") == "isolation_misuse":
             found.append([row["scenario"], row.get("cli", row["agent"]), "agent", list(tools)])
+        elif "judge_executions" in row:
+            for judge in judge_executions(row):
+                if judge.get("isolation_misuse"):
+                    found.append([row["scenario"], judge["cli"], "judge", list(judge["isolation_misuse"])])
         else:
             judge = row.get("judge_execution") or {}
             found.append([
@@ -666,6 +680,17 @@ def make_report(
     }
 
 
+def judge_routes_markdown(metadata: dict) -> list[str]:
+    if metadata.get("transport") not in {"subscription-cli", "remote-mcp"}:
+        return []
+    routes = metadata["judge"]["routes"]
+    return [
+        "| Agent arm | Judge CLIs |", "| --- | --- |",
+        *(f"| {cli} | {' + '.join(route)} |" for cli, route in routes.items() if cli != "gemini"),
+        "",
+    ]
+
+
 def markdown(report: dict) -> str:
     lines = [
         f"# Agent scenarios, {report['report_date']}"
@@ -713,6 +738,7 @@ def markdown(report: dict) -> str:
         "",
         "## Judges used",
         "",
+        *judge_routes_markdown(report["metadata"]),
         "| Agent family | Judge family | Judge model | Evaluations |",
         "| --- | --- | --- | ---: |",
     ]

@@ -139,8 +139,9 @@ def test_weekly_scenario_report_retains_api_contract_and_labels(config, tmp_path
     assert set(old['overall']) == set(report['overall'])
     assert set(old['runs'][0]) <= report['runs'][0].keys() | {'provider_error'}
     assert report['per_agent'].keys() == {'openai', 'grok'}
-    assert seen == [('codex', True), ('claude', False), ('grok', True), ('claude', False)]
-    assert report['runs'][0]['judges'][0]['cli'] == 'claude'
+    assert seen == [('codex', True), ('grok', False), ('claude', False),
+                    ('grok', True), ('codex', False), ('claude', False)]
+    assert [j['cli'] for j in report['runs'][0]['judges']] == ['grok', 'claude']
     assert report['budget']['estimated_spend_usd'] == 0
     assert report['metadata']['cli_invocations']['claude']['judge'] == 2
     assert report['partial'] is False
@@ -1075,7 +1076,8 @@ def checkpoint_digest(selected, scenarios, day=DAY, engine=ENGINE, modelspec_key
     if modelspec_key is None:
         modelspec_key = bool(os.environ.get('MODELSPEC_API_KEY'))
     payload = {'clis': selected, 'scenarios': [scenario['id'] for scenario in scenarios],
-               'engine_sha': engine, 'day': day, 'modelspec_key': modelspec_key}
+               'engine_sha': engine, 'day': day, 'modelspec_key': modelspec_key,
+               'judges': {cli: ROUTES[cli] for cli in selected}}
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()[:16]
 
 
@@ -1615,12 +1617,14 @@ def test_resumed_run_keeps_final_invocation_counts_and_totals_checkpoint_starts(
                 raise KeyboardInterrupt
             self.counts[cli]['agent'] += 1
             row = harness.empty_row(scenario, cli, config, 'completed')
+            row['attempts'] = 1
             if scenario['id'] == 'beta':
-                row['judge_execution'] = {'status': 'completed'}
+                row['judge_executions'] = [{'status': 'completed'}]
             else:
-                judge = harness.judge_for(cli, config['judges'])
-                self.counts[judge]['judge'] += 1
-                row['judge_execution'] = {'cli': judge, 'status': 'completed'}
+                row['judge_executions'] = []
+                for judge in harness.judges_for(cli, config['judges']):
+                    self.counts[judge]['judge'] += 1
+                    row['judge_executions'].append({'cli': judge, 'status': 'completed'})
             return row
 
     monkeypatch.setattr(harness, 'Runner', Runner)
@@ -1630,7 +1634,7 @@ def test_resumed_run_keeps_final_invocation_counts_and_totals_checkpoint_starts(
         'claude': {'agent': 0, 'judge': 1},
         'codex': {'agent': 1, 'judge': 0},
         'gemini': {'agent': 0, 'judge': 0},
-        'grok': {'agent': 0, 'judge': 0},
+        'grok': {'agent': 0, 'judge': 1},
     }
     assert fresh['metadata']['cli_invocations_total'] == fresh['metadata']['cli_invocations']
     assert fresh['metadata']['cli_invocations_total'] is not fresh['metadata']['cli_invocations']
@@ -1649,13 +1653,13 @@ def test_resumed_run_keeps_final_invocation_counts_and_totals_checkpoint_starts(
         'claude': {'agent': 0, 'judge': 1},
         'codex': {'agent': 1, 'judge': 0},
         'gemini': {'agent': 0, 'judge': 0},
-        'grok': {'agent': 0, 'judge': 0},
+        'grok': {'agent': 0, 'judge': 1},
     }
     assert report['metadata']['cli_invocations_total'] == {
         'claude': {'agent': 0, 'judge': 2},
         'codex': {'agent': 3, 'judge': 0},
         'gemini': {'agent': 0, 'judge': 0},
-        'grok': {'agent': 0, 'judge': 0},
+        'grok': {'agent': 0, 'judge': 2},
     }
 
 
@@ -1663,6 +1667,7 @@ def _explicit_checkpoint_digest(key):
     payload = {
         'clis': ['codex'], 'scenarios': ['alpha'], 'engine_sha': ENGINE, 'day': DAY,
         'modelspec_key': key,
+        'judges': {'codex': ['grok', 'claude']},
     }
     return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()[:16]
 
@@ -1798,8 +1803,10 @@ def test_main_passes_the_checkpoint_path_into_the_funded_key_check(tmp_path, mon
     assert seen['path'] == path
 
 
-ROUTES = {'claude': 'codex', 'codex': 'claude', 'gemini': 'claude', 'grok': 'claude'}
-OVERRIDDEN_ROUTES = {'claude': 'grok', 'codex': 'claude', 'gemini': 'claude', 'grok': 'claude'}
+ROUTES = {'claude': ['grok', 'codex'], 'codex': ['grok', 'claude'],
+          'gemini': ['codex', 'claude'], 'grok': ['codex', 'claude']}
+OVERRIDDEN_ROUTES = {**ROUTES, 'claude': 'grok'}
+OVERRIDDEN_METADATA_ROUTES = {**ROUTES, 'claude': ['grok']}
 
 
 def _digest(payload):
@@ -1837,7 +1844,7 @@ def test_judge_override_is_applied_and_grok_judges_claude(config, tmp_path, monk
     assert report['metadata']['cli_invocations']['codex']['judge'] == 0
     assert report['metadata']['judge'] == {
         'mode': 'single',
-        'routes': OVERRIDDEN_ROUTES,
+        'routes': OVERRIDDEN_METADATA_ROUTES,
         'override': {'claude': 'grok'},
     }
     text = agent_harness.markdown(report)
@@ -1853,7 +1860,7 @@ def test_judge_override_is_applied_and_grok_judges_claude(config, tmp_path, monk
     (['--judge', 'claude=foo'], 'Unknown judge in judge override: foo'),
     (['--judge', 'claude=gemini'], f'gemini cannot judge: {jobs.GEMINI_RETIRED}'),
     (['--judge', 'claude=grok', '--judge', 'claude=gemini'], 'Duplicate judge override for claude'),
-    (['--judge', 'claude=grok=extra'], 'Judge override must be CLI=JUDGE'),
+    (['--judge', 'claude=grok=extra'], 'Judge override must be CLI=JUDGE or CLI=J1,J2'),
 ])
 def test_bad_judge_override_exits_before_ready_lock_or_cli(extra, message, tmp_path, monkeypatch, capsys):
     ready_calls, launches, locks = [], [], []
@@ -1967,7 +1974,7 @@ def test_main_receipt_check_uses_the_override_judge(tmp_path, monkeypatch):
     )
     assert report['metadata']['judge'] == {
         'mode': 'single',
-        'routes': OVERRIDDEN_ROUTES,
+        'routes': OVERRIDDEN_METADATA_ROUTES,
         'override': {'claude': 'grok'},
     }
     markdown = (tmp_path / 'tree/reports/agent-scenarios' / f'{DAY}.md').read_text()
@@ -1975,7 +1982,7 @@ def test_main_receipt_check_uses_the_override_judge(tmp_path, monkeypatch):
     assert (harness.HERE / 'tui_config.yaml').read_bytes() == source
 
 
-def test_checkpoint_digest_is_unchanged_without_an_override_and_differs_with_one(
+def test_checkpoint_digest_includes_default_judges_and_differs_with_an_override(
     config, tmp_path, monkeypatch,
 ):
     monkeypatch.delenv('MODELSPEC_API_KEY', raising=False)
@@ -1987,14 +1994,15 @@ def test_checkpoint_digest_is_unchanged_without_an_override_and_differs_with_one
         'engine_sha': ENGINE,
         'day': DAY,
         'modelspec_key': False,
+        'judges': {'claude': ['grok', 'codex']},
     }
     digest = _digest(base)
     report = jobs.scenario_report(config, ['claude'], [ALPHA], tmp_path, day=DAY)
     assert (tmp_path / 'checkpoints' / f'scenarios-{DAY}-{digest}.jsonl').is_file()
-    assert report['metadata']['judge'] == {'mode': 'single', 'routes': ROUTES}
+    assert report['metadata']['judge'] == {'mode': 'panel', 'routes': ROUTES}
     other = jobs.configuration(tmp_path / 'state', max_runs=400)
     assert jobs.apply_judge_overrides(other, ['claude=grok']) == {'claude': 'grok'}
-    routed = {**base, 'judges': {'claude': 'grok'}}
+    routed = {**base, 'judges': {'claude': ['grok']}}
     override_digest = _digest(routed)
     assert override_digest != digest
     out = tmp_path / 'override'
@@ -2003,6 +2011,6 @@ def test_checkpoint_digest_is_unchanged_without_an_override_and_differs_with_one
     assert not (out / 'checkpoints' / f'scenarios-{DAY}-{digest}.jsonl').exists()
     assert overridden['metadata']['judge'] == {
         'mode': 'single',
-        'routes': OVERRIDDEN_ROUTES,
+        'routes': OVERRIDDEN_METADATA_ROUTES,
         'override': {'claude': 'grok'},
     }
