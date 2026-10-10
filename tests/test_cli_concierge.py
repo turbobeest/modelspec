@@ -327,7 +327,7 @@ def test_decide_sends_exactly_the_supplied_spec_and_passes_the_body_through(
         assert request.method == "POST"
         assert json.loads(request.content) == SPEC
         assert request.headers["authorization"] == f"Bearer {KEY}"
-        assert request.headers["user-agent"] == "modelspec-cli/0.3.1"
+        assert request.headers["user-agent"] == "modelspec-cli/0.4.0"
         return httpx.Response(
             200, text=API_TEXT, headers={"x-modelspec-guide-version": BUNDLE["guide_version"]}
         )
