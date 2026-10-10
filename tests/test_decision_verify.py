@@ -205,6 +205,91 @@ GPT-5.4 Global | Input: $2.50 Cached Input: $0.25 Output: $15 | Input: $1.25 Out
         assert verify.compare(claim, extractor.extract(claim, text)) == []
 
 
+def _deepseek_price_text(layout: str) -> str:
+    body = (FIXTURES / f"deepseek_pricing_{layout}.html").read_bytes()
+    return normalise_document(body, NORMALISERS["html-default"]).text
+
+
+@pytest.mark.parametrize("layout", ["standard", "bands"])
+@pytest.mark.parametrize(("name", "field", "value", "published"), [
+    ("DeepSeek-V4.1-Flash", "input", .3, "$0.3"),
+    ("DeepSeek-V4.1-Flash", "output", 1.2, "$1.2"),
+    ("DeepSeek-V4.1-Flash", "cached_input", .006, "$0.006"),
+    ("DeepSeek-V4-Pro-0813", "input", 1.32, "$1.32"),
+    ("DeepSeek-V4-Pro-0813", "output", 3.96, "$3.96"),
+    ("DeepSeek-V4-Pro-0813", "cached_input", .044, "$0.044"),
+])
+def test_deepseek_price_tables_read_each_models_standard_price(
+        layout: str, name: str, field: str, value: float, published: str) -> None:
+    claim = _price_claim(field, value, name=name)
+    readings = verify.OfferingPriceExtractor().extract(claim, _deepseek_price_text(layout))
+    assert readings == [verify.Reading(name, published, "usd_per_1m_tokens")]
+    assert verify.compare(claim, readings) == []
+
+
+@pytest.mark.parametrize("layout", ["standard", "bands"])
+@pytest.mark.parametrize(("name", "field", "sibling_value"), [
+    ("DeepSeek-V4.1-Flash", "input", 1.32),
+    ("DeepSeek-V4.1-Flash", "output", 3.96),
+    ("DeepSeek-V4.1-Flash", "cached_input", .044),
+    ("DeepSeek-V4-Pro-0813", "input", .3),
+    ("DeepSeek-V4-Pro-0813", "output", 1.2),
+    ("DeepSeek-V4-Pro-0813", "cached_input", .006),
+])
+def test_deepseek_price_tables_never_verify_a_siblings_price(
+        layout: str, name: str, field: str, sibling_value: float) -> None:
+    claim = _price_claim(field, sibling_value, name=name)
+    readings = verify.OfferingPriceExtractor().extract(claim, _deepseek_price_text(layout))
+    assert verify.compare(claim, readings) != []
+
+
+@pytest.mark.parametrize(("name", "field", "discount"), [
+    ("DeepSeek-V4.1-Flash", "input", .15),
+    ("DeepSeek-V4.1-Flash", "output", .6),
+    ("DeepSeek-V4.1-Flash", "cached_input", .003),
+    ("DeepSeek-V4-Pro-0813", "input", .66),
+    ("DeepSeek-V4-Pro-0813", "output", 1.98),
+    ("DeepSeek-V4-Pro-0813", "cached_input", .022),
+])
+def test_deepseek_off_peak_discounts_never_verify_as_standard_prices(
+        name: str, field: str, discount: float) -> None:
+    claim = _price_claim(field, discount, name=name)
+    readings = verify.OfferingPriceExtractor().extract(claim, _deepseek_price_text("bands"))
+    assert verify.compare(claim, readings) != []
+
+
+@pytest.mark.parametrize(("field", "value"), [
+    ("input", .3), ("output", 1.2), ("cached_input", .006),
+])
+def test_deepseek_missing_peak_rows_never_fall_back_to_off_peak(
+        field: str, value: float) -> None:
+    text = "\n".join(line for line in _deepseek_price_text("bands").splitlines()
+                     if not line.startswith("PEAK |"))
+    claim = _price_claim(field, value, name="DeepSeek-V4.1-Flash")
+    assert verify.OfferingPriceExtractor().extract(claim, text) == []
+
+
+@pytest.mark.parametrize(("field", "value", "published"), [
+    ("input", .3, "$0.3"), ("output", 1.2, "$1.2"),
+    ("cached_input", .006, "$0.006"),
+])
+def test_deepseek_missing_peak_cells_never_fall_back_to_a_sibling(
+        field: str, value: float, published: str) -> None:
+    body = (FIXTURES / "deepseek_pricing_bands.html").read_text()
+    body = body.replace(f"<td>{published}</td>", "<td></td>")
+    text = normalise_document(body.encode(), NORMALISERS["html-default"]).text
+    claim = _price_claim(field, value, name="DeepSeek-V4.1-Flash")
+    assert verify.OfferingPriceExtractor().extract(claim, text) == []
+
+
+@pytest.mark.parametrize("field", ["input", "output", "cached_input", "batch_input",
+                                   "batch_output"])
+def test_deepseek_price_bands_require_the_exact_model_and_price_kind(field: str) -> None:
+    name = "DeepSeek-V4.1-Flash" if field.startswith("batch_") else "DeepSeek-V4"
+    claim = _price_claim(field, .3, name=name)
+    assert verify.OfferingPriceExtractor().extract(claim, _deepseek_price_text("bands")) == []
+
+
 def test_model_page_price_reader_applies_explicit_batch_discount() -> None:
     text = """\
 GPT-6 Astra
