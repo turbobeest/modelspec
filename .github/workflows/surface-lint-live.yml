@@ -31,9 +31,8 @@ jobs:
       - name: Install
         run: pip install pydantic pyyaml "httpx==0.28.1" "cryptography>=43,<46"
 
+      # Drift fails this step and the job. The issue step still runs after it.
       - name: Check live surfaces
-        id: probe
-        continue-on-error: true
         run: python -m pipeline.surface_lint --live https://modelspec.dev --report surface-report.json
 
       - name: Create, update or close the one drift issue
@@ -41,7 +40,3 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: python -m scripts.aeo.surface_drift --report surface-report.json --repo "$GITHUB_REPOSITORY"
-
-      - name: Fail on drift
-        if: ${{ steps.probe.outcome == 'failure' }}
-        run: exit 1
