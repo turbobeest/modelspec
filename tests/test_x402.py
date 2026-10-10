@@ -12,6 +12,7 @@ import time
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -789,12 +790,13 @@ def test_no_test_calls_the_network():
     assert worker_post.__name__ == "worker_post"
 
 
-def test_wrangler_ships_the_flag_off_and_sepolia():
+def test_wrangler_ships_the_flag_off_and_mainnet_staged():
     text = (REPO_ROOT / "api" / "worker" / "wrangler.jsonc").read_text(encoding="utf-8")
     live = "\n".join(l for l in text.splitlines() if not l.lstrip().startswith("//"))
     assert '"X402_ENABLED": "false"' in live
     assert '"X402_MAINNET": "false"' in live
-    assert '"X402_NETWORK": "eip155:84532"' in live
+    assert '"X402_NETWORK": "eip155:8453"' in live
+    assert '"X402_ASSET": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"' in live
     assert '"class_name": "CreditsObject"' in live
     assert '"X402_PAY_TO": ""' in live
     assert "CDP_API_KEY" not in live
@@ -820,6 +822,23 @@ def test_production_x402_config_stays_off_and_has_no_receiver():
     assert config["routes"] == [
         {"pattern": "api.modelspec.dev/*", "zone_name": "modelspec.dev"}
     ]
+
+
+def test_production_x402_staged_for_base_mainnet_with_switches_off() -> None:
+    config = _wrangler_config()
+    production = config["vars"]
+    assert production["X402_NETWORK"] == "eip155:8453"
+    assert production["X402_ASSET"] == "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+    assert production["X402_ENABLED"] == "false"
+    assert production["X402_MAINNET"] == "false"
+    assert production["X402_PAY_TO"] == ""
+
+    staging = config["env"]["staging"]["vars"]
+    assert staging["X402_NETWORK"] == "eip155:84532"
+    assert staging["X402_ASSET"] == "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
+
+    cfg = x402.load_config(SimpleNamespace(**production))
+    assert x402._check_payload({}, cfg) == "mainnet is disabled (X402_MAINNET is off)"
 
 
 def test_staging_x402_config_is_isolated_on_base_sepolia():

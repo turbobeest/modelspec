@@ -273,7 +273,7 @@ def test_x402_requires_mainnet_before_the_page_presents_it() -> None:
         html = _page(x402_live=live, x402_network="eip155:8453")
         assert live is (enabled and mainnet)
         assert ("Or let your agents pay as they go" in html) is live
-    assert worker_flags.production_vars(REPO_ROOT)["X402_NETWORK"] == "eip155:84532"
+    assert worker_flags.production_vars(REPO_ROOT)["X402_NETWORK"] == "eip155:8453"
 
 
 def test_worker_flags_read_only_top_level_production_vars(tmp_path: Path) -> None:
