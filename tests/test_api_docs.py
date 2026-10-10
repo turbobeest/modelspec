@@ -144,6 +144,30 @@ def test_the_committed_spec_is_what_the_implementation_generates() -> None:
         "`python api/worker/openapi.py` and commit the result.")
 
 
+@pytest.mark.parametrize("rail_on", [False, True])
+@pytest.mark.parametrize("human_gate_on", [False, True])
+def test_openapi_keeps_machine_credit_refusals_without_advertising_a_disabled_rail(
+        monkeypatch: pytest.MonkeyPatch, rail_on: bool, human_gate_on: bool) -> None:
+    variables = {**generator.production_vars(REPO_ROOT),
+                 "HUMAN_GATE_ENABLED": str(human_gate_on).lower()}
+    monkeypatch.setattr(generator, "production_vars", lambda root: variables)
+    monkeypatch.setattr(generator, "x402_enabled", lambda: rail_on)
+    text = generator.render()
+    spec = yaml.safe_load(text)
+    assert ("x-modelspec-x402" in spec) is rail_on
+    if not rail_on:
+        assert re.search(r"\bx402\b", text, re.I) is None
+        assert "402" not in spec["paths"]["/v1/rank"]["post"]["responses"]
+    responses = spec["paths"]["/v1/decide"]["post"]["responses"]
+    assert ("402" in responses) is (rail_on or human_gate_on)
+    if human_gate_on:
+        schema = responses["402"]["content"]["application/json"]["schema"]
+        for snapshot in (None, "snap_fixture"):
+            _, body = decide.error_response("payment_required", "Remaining credits required.",
+                                             status=402, snapshot_id=snapshot)
+            assert generator._validate(body, schema, spec) == []
+
+
 def test_every_local_discriminator_mapping_resolves(spec: dict[str, Any]) -> None:
     def mappings(value: Any):
         if isinstance(value, dict):

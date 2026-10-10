@@ -657,10 +657,11 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
     if social_cards.render_enabled():
         social_cards.render(ms, landing_data)
     (ms / "decide").mkdir(exist_ok=True)
+    from pipeline.live import decide_capsule
     (ms / "decide/index.html").write_text(
         '<!doctype html><html><head><meta name="robots" content="noindex">'
         '<link rel="canonical" href="https://modelspec.dev/decide/"></head>'
-        '<body><p>The deploy workflow installs the decision app here.</p></body></html>\n',
+        f'<body>{decide_capsule()}</body></html>\n',
         encoding="utf-8",
     )
     ms_paths.append("/decide/")

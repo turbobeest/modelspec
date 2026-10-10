@@ -2816,7 +2816,7 @@ def build_spec() -> dict[str, Any]:
             "what_is_sold": billing_mod.WHAT_YOU_BUY,
             "documented_in": "docs/billing.md",
         },
-        "x-modelspec-x402": _x402(),
+        **({"x-modelspec-x402": _x402()} if x402_enabled() else {}),
         "security": security,
         "servers": [{"url": SERVER_URL, "description": "production"}],
         "paths": {
@@ -3391,6 +3391,26 @@ def apply_guide_headers(spec: dict[str, Any]) -> None:
 
 def render() -> str:
     spec = apply_agent_copy(build_spec())
+    if not x402_enabled():
+        # Remove the dormant payment-rail offers. The machine-credit refusal
+        # below is a separate 402 and still applies with the rail off.
+        for operations in spec["paths"].values():
+            for operation in operations.values():
+                operation.get("responses", {}).pop(str(x402.HTTP_PAYMENT_REQUIRED), None)
+    if access.enforcement(production_vars(REPO_ROOT).get("HUMAN_GATE_ENABLED")):
+        code = str(x402.HTTP_PAYMENT_REQUIRED)
+        responses = spec["paths"]["/v1/decide"]["post"]["responses"]
+        message = "Machine decisions require remaining paid credits."
+        native = _merge(*[
+            _infer(decide_service.error_response("payment_required", message, status=402,
+                                                 snapshot_id=snapshot)[1])
+            for snapshot in (None, "snap_fixture")
+        ])
+        description = message
+        if code in responses:
+            description = responses[code]["description"] + " " + message
+            native = {"oneOf": [responses[code]["content"]["application/json"]["schema"], native]}
+        responses[code] = _json_body(description, native)
     from pipeline.public_data import enabled
     if enabled():
         spec["paths"]["/v1/vocabulary"] = {

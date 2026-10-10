@@ -1,0 +1,42 @@
+name: Surface consistency
+
+on:
+  schedule:
+    - cron: '41 9 * * 1'
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  issues: write
+
+concurrency:
+  group: surface-lint-live
+  cancel-in-progress: false
+
+jobs:
+  lint:
+    name: Check live copy and maintain the drift issue
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          filter: blob:none
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install
+        run: pip install pydantic pyyaml "httpx==0.28.1" "cryptography>=43,<46"
+
+      # Drift fails this step and the job. The issue step still runs after it.
+      - name: Check live surfaces
+        run: python -m pipeline.surface_lint --live https://modelspec.dev --report surface-report.json
+
+      - name: Create, update or close the one drift issue
+        if: ${{ !cancelled() }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python -m scripts.aeo.surface_drift --report surface-report.json --repo "$GITHUB_REPOSITORY"

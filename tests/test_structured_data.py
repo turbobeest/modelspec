@@ -83,7 +83,7 @@ def test_the_breadcrumb_names_the_page_and_links_home(tmp_path: Path) -> None:
 
     assert [(c["position"], c["name"], c["item"]) for c in crumbs] == [
         (1, "ModelSpec", "https://modelspec.dev/"),
-        (2, "Neutrality commitment", "https://modelspec.dev/legal/neutrality/"),
+        (2, "The neutrality commitment", "https://modelspec.dev/legal/neutrality/"),
     ]
 
 

@@ -678,7 +678,6 @@ def skill_description() -> str:
 def auth_markdown(root: Path) -> str:
     flags = wrangler_vars(root)
     billing_off = _flag_off(flags.get("BILLING_ENABLED"))
-    x402_off = _flag_off(flags.get("X402_ENABLED"))
     lines = [
         # Cloudflare Agent Readiness expects the document to open with an
         # "Auth.md" heading; it reported the old title as missing it.
@@ -747,11 +746,6 @@ def auth_markdown(root: Path) -> str:
             "https://modelspec.dev/pricing/. Stripe hosts Checkout. After payment, "
             "claim your API key at the Checkout success link. Claim and rotation "
             "remain available for earlier purchases. See `docs/billing.md`."
-        )
-    if x402_off:
-        lines.append("")
-        lines.append(
-            "**x402 prepaid credits are not live.** `X402_ENABLED` is off."
         )
     lines += [
         "",
