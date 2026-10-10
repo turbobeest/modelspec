@@ -45,7 +45,8 @@ UNTRUSTED = re.compile(
 # `git config` may set only `user.name`, `user.email`, and the push
 # extraheader. `python -I -c` may not call exec, eval, importlib, runpy, or
 # subprocess. `python -I -m` may only load `scripts.*`, `cli.*`,
-# `release_signals.*`, `pipeline.*`, or `pip`. A script path must be
+# `release_signals.*`, `pipeline.*`, or `pip`. The reread job may also run
+# `playwright install --with-deps --only-shell chromium`. A script path must be
 # `engine/...` with no `..` and must not be a data path the link step mounts
 # (`models/`, `benchmarks/`, ...). After the link step, a redirection,
 # `cp`/`mv`/`ln` destination, `tar -C`, `unzip -d`, or
@@ -457,6 +458,12 @@ def _python_problems(job_name: str, args: list[str]) -> list[str]:
     if rest[0] == "-m":
         if len(rest) < 2 or _MODULE.fullmatch(rest[1]) is None:
             return [f"{job_name}: python invocation is not an allowed isolated form"]
+        if rest[1] == "playwright":
+            if job_name == "reread" and rest[2:] == [
+                "install", "--with-deps", "--only-shell", "chromium",
+            ]:
+                return []
+            return [f"{job_name}: rejected playwright invocation"]
         if _MODULE_OK.fullmatch(rest[1]) is None:
             return [f"{job_name}: rejected module {rest[1]}"]
         if rest[1] == "pip":
@@ -1163,6 +1170,37 @@ def test_a_writer_command_outside_the_allowlist_is_rejected(
     assert any(f"research: {fragment}" == problem or fragment in problem for problem in problems), (
         problems
     )
+
+
+@pytest.mark.parametrize(
+    "command",
+    [
+        "python -m playwright install --with-deps --only-shell chromium",
+        "playwright install --with-deps --only-shell chromium",
+        "python -I -m playwright",
+        "python -I -m playwright install",
+        "python -I -m playwright install --with-deps chromium",
+        "python -I -m playwright install --with-deps --only-shell firefox",
+        "python -I -m playwright install --with-deps --only-shell chromium firefox",
+        "python -I -m playwright install --with-deps --only-shell chromium --force",
+        "python -I -m playwright install-deps chromium",
+        "python -I -m playwright codegen https://example.invalid",
+        "python -I -m playwright.__main__ install --with-deps --only-shell chromium",
+    ],
+)
+def test_reread_rejects_other_playwright_commands(command: str) -> None:
+    install = "python -I -m playwright install --with-deps --only-shell chromium"
+    text = _text("price-reread")
+    assert text.count(install) == 1
+    problems = isolation_problems(text.replace(install, command, 1))
+    assert any(problem.startswith("reread:") for problem in problems), problems
+
+
+def test_other_writer_jobs_cannot_install_chromium() -> None:
+    problems = isolation_problems(_with_command(
+        "python -I -m playwright install --with-deps --only-shell chromium"
+    ))
+    assert "research: rejected playwright invocation" in problems
 
 
 def test_an_untrusted_expression_in_a_run_script_is_rejected() -> None:

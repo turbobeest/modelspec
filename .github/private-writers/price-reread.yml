@@ -127,7 +127,9 @@ jobs:
           mkdir -p "$purelib"
           printf 'import sys; sys.path.insert(0, %s)\n' "$quoted" > "$purelib/modelspec-engine.pth"
       - name: Install re-read dependencies
-        run: python -I -m pip install pydantic pyyaml httpx
+        run: |
+          python -I -m pip install pydantic pyyaml httpx playwright==1.63.0
+          python -I -m playwright install --with-deps --only-shell chromium
       - name: Restore last week's retained copies
         env:
           GH_TOKEN: ${{ github.token }}
@@ -158,7 +160,7 @@ jobs:
         env:
           DRY_RUN: ${{ inputs.dry_run }}
         run: |
-          args=(--report-json "$RUNNER_TEMP/report.json" --report-md "$RUNNER_TEMP/report.md" --retain-only-cited)
+          args=(--rendered --report-json "$RUNNER_TEMP/report.json" --report-md "$RUNNER_TEMP/report.md" --retain-only-cited)
           if [ "$DRY_RUN" != "true" ]; then
             args+=(--write)
           fi
