@@ -96,7 +96,7 @@ Then do the live check (MODEL-333 step 5). Make one paid call for the smallest
 pack ($5) from a wallet you control. Use the same key. Confirm the settlement on
 [BaseScan](https://basescan.org), and confirm that `GET /v1/credits` on that
 key shows 250 credits. If the paying request was itself a successful
-decision, it shows 249. Only you move this money.
+decision, it shows 249 (summary) or 248 (`explain: "full"`). Only you move this money.
 
 Finally, check that the pricing page on `modelspec.dev` shows pay-per-call on
 Base mainnet after the next site build.
