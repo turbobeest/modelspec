@@ -52,8 +52,8 @@ from decision.normalise import (
 class FetchMode(StrEnum):
     HTTP = "http"
     CONDITIONAL_HTTP = "conditional_http"
-    #: Needs a rendered browser to show its content. Declared, not implemented: a
-    #: re-check records the need and fetches nothing.
+    #: Needs a rendered browser to show its content. Opt-in callers use
+    #: RenderedFetcher; the plain HTTP re-check records the need without fetching.
     RENDERED = "rendered"
 
     @property
@@ -301,6 +301,66 @@ class Fetcher:
         return FetchResult("unreachable", error=error)
 
 
+class RenderedFetcher:
+    """Opt-in local Chromium fetches, sharing one browser for a context-managed run.
+
+    Playwright is imported only when entering the context. Network idle is best
+    effort: pages with persistent connections still yield their rendered HTML.
+    """
+
+    def __init__(self, *, timeout: float = 20.0, idle_timeout: float = 5.0) -> None:
+        self.timeout = timeout
+        self.idle_timeout = idle_timeout
+
+    def __enter__(self) -> RenderedFetcher:
+        from playwright.sync_api import sync_playwright
+
+        self._playwright = sync_playwright().start()
+        try:
+            # Keep Playwright's sandbox default. CI isolation comes from the
+            # separate read-only render job, which has no repository write token.
+            self._browser = self._playwright.chromium.launch(headless=True)
+            self._context = self._browser.new_context(
+                user_agent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
+                viewport={"width": 1280, "height": 800},
+            )
+        except Exception:
+            self._playwright.stop()
+            raise
+        return self
+
+    def __exit__(self, *exc: object) -> None:
+        try:
+            self._browser.close()
+        finally:
+            self._playwright.stop()
+
+    def fetch(self, url: str) -> FetchResult:
+        from playwright.sync_api import Error, TimeoutError
+
+        page = None
+        try:
+            page = self._context.new_page()
+            response = page.goto(url, wait_until="load", timeout=self.timeout * 1000)
+            if response is None:
+                return FetchResult("unreachable", error="no HTTP response")
+            if not 200 <= response.status < 300:
+                return FetchResult("unreachable", response.status,
+                                   error=f"HTTP {response.status}")
+            try:
+                page.wait_for_load_state("networkidle", timeout=self.idle_timeout * 1000)
+            except TimeoutError:
+                pass
+            return FetchResult("ok", response.status, body=page.content().encode("utf-8"),
+                               content_type="text/html", charset="utf-8")
+        except Error as exc:
+            return FetchResult("unreachable", error=str(exc))
+        finally:
+            if page is not None:
+                page.close()
+
+
 # --- retained copies -----------------------------------------------------------------------------
 
 _REF = re.compile(r"^sha256:([0-9a-f]{64})$")
@@ -324,10 +384,13 @@ class CopyStore:
         digest = m.group(1)
         return self.root / digest[:2] / digest
 
+    # The cache directory can be restored from another run's artifact, so a file is
+    # trusted only when its bytes still hash to its name (MODEL-235).
+
     def put(self, body: bytes) -> str:
         ref = fingerprint_bytes(body)
         target = self.path(ref)
-        if not target.exists():
+        if not self.has(ref):
             target.parent.mkdir(parents=True, exist_ok=True)
             fd, tmp = tempfile.mkstemp(dir=target.parent, prefix=".tmp-")
             with os.fdopen(fd, "wb") as fh:
@@ -336,10 +399,16 @@ class CopyStore:
         return ref
 
     def get(self, ref: str) -> bytes:
-        return self.path(ref).read_bytes()
+        body = self.path(ref).read_bytes()
+        if fingerprint_bytes(body) != ref:
+            raise ValueError(f"retained copy {ref} does not match its hash")
+        return body
 
     def has(self, ref: str) -> bool:
-        return self.path(ref).exists()
+        target = self.path(ref)
+        if not target.is_file() or target.is_symlink():
+            return False
+        return fingerprint_bytes(target.read_bytes()) == ref
 
 
 def fingerprint_bytes(body: bytes) -> str:

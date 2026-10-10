@@ -3,7 +3,9 @@
 
 MODEL-201 and MODEL-205 filed plan and price facts whose values the verifier's
 deterministic readers confirmed from a retained copy of each page. This job
-fetches each of those pages again over plain HTTP and asks the same readers,
+fetches each of those pages again over plain HTTP, or local Chromium with
+``--rendered``, or replays a ``--render-to`` artifact with ``--rendered-from``.
+It asks the same readers,
 under the same two-key rules, whether the page still says what the fact says.
 Each fact ends in one status:
 
@@ -20,10 +22,11 @@ Each fact ends in one status:
 - ``unreadable``: the page fetched but the reader no longer understands it: the
   cited region is gone, no reader accepts the page, or the subject is not found.
 - ``unreachable``: the page did not fetch.
-- ``not_reread``: out of this job's reach. The page needs a rendered browser, or
-  the value is still quarantined, or an LLM reader last verified it and the
-  deterministic readers cannot read it, so their failure says nothing about the
-  page. When they can, an LLM-verified value is reconfirmed like any other, and
+- ``not_reread``: out of this job's reach. A rendered browser was not enabled,
+  the retained copy is a text projection that needs re-registering before an
+  HTML re-read, the value is still quarantined, or an LLM reader last verified it
+  and the deterministic readers cannot read it, so their failure says nothing
+  about the page. When they can, an LLM-verified value is reconfirmed like any other, and
   a value they read otherwise is ``needs_review``, never ``changed``
   (MODEL-235).
 
@@ -42,11 +45,14 @@ from __future__ import annotations
 
 import argparse
 import difflib
+import hashlib
 import json
 import re
+import stat
 import sys
 from collections import Counter
 from collections.abc import Iterable, Mapping, Sequence
+from contextlib import ExitStack
 from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime
 from enum import StrEnum
@@ -63,7 +69,7 @@ from decision.normalise import (
     canonical_url,
     normalise_document,
 )
-from decision.sources import CopyStore, Fetcher, FetchMode, load_sources
+from decision.sources import CopyStore, Fetcher, FetchMode, FetchResult, RenderedFetcher, load_sources
 from decision.verify import (
     Claim,
     ExtractorError,
@@ -93,6 +99,8 @@ REREAD = VerificationActor(
 )
 #: Lines of source diff shown per page in the report.
 DIFF_LINES = 80
+MAX_RENDERED_BODY_BYTES = 20 * 1024 * 1024
+MAX_RENDERED_MANIFEST_BYTES = 1024 * 1024
 
 
 class Status(StrEnum):
@@ -144,7 +152,7 @@ class FactResult:
 class SourceFetch:
     source_id: str
     url: str
-    outcome: str  # "ok", "rendered", "excluded", or the fetch error
+    outcome: str  # "ok", "rendered", "text_projection", "excluded", or the fetch error
     copy_ref: str | None = None
 
 
@@ -230,8 +238,114 @@ def _llm_baseline(fact: Mapping[str, Any], log_latest: Mapping) -> str | None:
 # --- fetching -----------------------------------------------------------------------------------
 
 
+def render_to(*, root: Path, directory: Path, rendered: RenderedFetcher) -> None:
+    """Render only the HTML sources an in-scope re-read would fetch, once per URL."""
+    sources = load_sources(root / "registry" / "sources.yaml")
+    filed = Queue(root / "verification").filed()
+    latest = VerificationLog(root / "verification").latest()
+    source_ids = set()
+    for tracked in tracked_facts(root):
+        claim = filed.get(("fact", tracked.fact["id"]))
+        if _in_scope(tracked.fact, claim, latest) is None:
+            assert claim is not None
+            source_ids.update(s.source_id for s in claim.sources)
+    excluded = excluded_sources()
+    urls = {
+        canonical_url(str(source.url))
+        for sid in source_ids
+        if (source := sources.get(sid)) is not None
+        and source.fetch == FetchMode.RENDERED.value
+        and NORMALISERS[source.normaliser].content == "html"
+        and not excluded.url(source.url)
+    }
+    directory.mkdir(parents=True, exist_ok=True)
+    manifest = {}
+    for url in sorted(urls):
+        result = rendered.fetch(url)
+        name = hashlib.sha256(url.encode("utf-8")).hexdigest() + ".html"
+        if result.outcome == "ok":
+            (directory / name).write_bytes(result.body)
+        manifest[url] = {"file": name, "outcome": result.outcome,
+                         "status": result.status, "error": result.error}
+    (directory / "manifest.json").write_text(
+        json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+
+def _rendered_file(path: Path, limit: int) -> None:
+    """The artifact may name regular files only, with a bounded byte count."""
+    info = path.lstat()
+    if not stat.S_ISREG(info.st_mode):
+        raise ValueError(f"rendered artifact file must be regular, not a symlink: {path.name}")
+    if info.st_size > limit:
+        raise ValueError(f"rendered artifact file exceeds {limit} bytes: {path.name}")
+
+
+def _read_rendered_file(path: Path, limit: int) -> bytes:
+    _rendered_file(path, limit)
+    with path.open("rb") as body:
+        content = body.read(limit + 1)
+    if len(content) > limit:
+        raise ValueError(f"rendered artifact file exceeds {limit} bytes: {path.name}")
+    return content
+
+
+def _unique_json_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate rendered manifest key: {key!r}")
+        result[key] = value
+    return result
+
+
+class RenderedReplayFetcher:
+    """Read untrusted rendering artifacts as bytes; HTML parsing stays in Python."""
+
+    def __init__(self, directory: Path) -> None:
+        if directory.is_symlink() or not directory.is_dir():
+            raise ValueError("rendered artifact directory must be a directory, not a symlink")
+        self.directory = directory
+        manifest = json.loads(
+            _read_rendered_file(directory / "manifest.json", MAX_RENDERED_MANIFEST_BYTES),
+            object_pairs_hook=_unique_json_object)
+        if not isinstance(manifest, dict):
+            raise ValueError("rendered manifest must be a JSON object")
+        for url, entry in manifest.items():
+            if not url.startswith(("http://", "https://")) or canonical_url(url) != url:
+                raise ValueError("rendered manifest keys must be canonical HTTP URLs")
+            if not isinstance(entry, dict) or set(entry) != {"file", "outcome", "status", "error"}:
+                raise ValueError(f"invalid rendered manifest entry for {url}")
+            name = entry["file"]
+            if (not isinstance(name, str) or not name or name == "." or ".." in name
+                    or "/" in name or "\\" in name or "\x00" in name or name == "manifest.json"):
+                raise ValueError("rendered file must be a plain name inside the artifact directory")
+            if entry["outcome"] not in ("ok", "not_modified", "unreachable"):
+                raise ValueError(f"invalid rendered outcome for {url}")
+            if entry["status"] is not None and type(entry["status"]) is not int:
+                raise ValueError(f"invalid rendered status for {url}")
+            if entry["error"] is not None and not isinstance(entry["error"], str):
+                raise ValueError(f"invalid rendered error for {url}")
+            path = directory / name
+            if entry["outcome"] == "ok" or path.exists() or path.is_symlink():
+                _rendered_file(path, MAX_RENDERED_BODY_BYTES)
+        self.manifest = manifest
+
+    def fetch(self, url: str) -> FetchResult:
+        entry = self.manifest.get(canonical_url(url))
+        if entry is None:
+            return FetchResult("unreachable", error="not rendered: URL missing from manifest")
+        if entry["outcome"] != "ok":
+            return FetchResult("unreachable", entry["status"],
+                               error=f"not rendered: {entry['error'] or entry['outcome']}")
+        return FetchResult("ok", entry["status"],
+                           body=_read_rendered_file(self.directory / entry["file"],
+                                                    MAX_RENDERED_BODY_BYTES),
+                           content_type="text/html", charset="utf-8")
+
+
 def fetch_sources(source_ids: Iterable[str], sources: Mapping[str, Any], fetcher: Fetcher,
-                  store: CopyStore) -> dict[str, SourceFetch]:
+                  store: CopyStore, rendered: RenderedFetcher | RenderedReplayFetcher | None = None
+                  ) -> dict[str, SourceFetch]:
     excluded = excluded_sources()
     fetched: dict[str, SourceFetch] = {}
     for sid in sorted(set(source_ids)):
@@ -242,14 +356,21 @@ def fetch_sources(source_ids: Iterable[str], sources: Mapping[str, Any], fetcher
         url = canonical_url(str(source.url))
         if excluded.url(url):
             fetched[sid] = SourceFetch(sid, url, "excluded")
-        elif source.fetch == FetchMode.RENDERED.value:
-            fetched[sid] = SourceFetch(sid, url, "rendered")
+            continue
+        if source.fetch == FetchMode.RENDERED.value:
+            if rendered is None:
+                fetched[sid] = SourceFetch(sid, url, "rendered")
+                continue
+            if NORMALISERS[source.normaliser].content != "html":
+                fetched[sid] = SourceFetch(sid, url, "text_projection")
+                continue
+            result = rendered.fetch(url)
         else:
             result = fetcher.fetch(url)
-            if result.outcome == "ok":
-                fetched[sid] = SourceFetch(sid, url, "ok", store.put(result.body))
-            else:
-                fetched[sid] = SourceFetch(sid, url, result.error or result.outcome)
+        if result.outcome == "ok":
+            fetched[sid] = SourceFetch(sid, url, "ok", store.put(result.body))
+        else:
+            fetched[sid] = SourceFetch(sid, url, result.error or result.outcome)
     return fetched
 
 
@@ -336,7 +457,10 @@ def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetc
           if fetched[s.source_id].outcome == "ok"}
     if not ok:
         outcomes = sorted({fetched[s.source_id].outcome for s in old_sources})
-        if set(outcomes) <= {"rendered", "excluded"}:
+        if set(outcomes) <= {"rendered", "text_projection", "excluded"}:
+            if "text_projection" in outcomes:
+                return replace(base, reason="the retained copy is a text projection; "
+                               "re-register the source to re-read it rendered")
             return replace(base, reason="the page needs a rendered fetch"
                            if "rendered" in outcomes else "excluded source")
         return replace(base, status=Status.UNREACHABLE, reason="; ".join(outcomes))
@@ -418,7 +542,8 @@ def _diff_text(result: Result) -> str:
 
 
 def run(*, root: Path = ROOT, fetcher: Fetcher, store: CopyStore, today: date,
-        write: bool = False, at: datetime | None = None) -> Report:
+        write: bool = False, at: datetime | None = None,
+        rendered: RenderedFetcher | RenderedReplayFetcher | None = None) -> Report:
     """Re-read every tracked fact. With ``write``, apply the changes to ``root``."""
     at = at or datetime.now(UTC)
     sources = load_sources(root / "registry" / "sources.yaml")
@@ -449,16 +574,17 @@ def run(*, root: Path = ROOT, fetcher: Fetcher, store: CopyStore, today: date,
                 tracked.fact["state"], tracked.fact.get("value"), reason=reason))
 
     report.sources = fetch_sources(
-        (s.source_id for _, claim, _ in scoped for s in claim.sources), sources, fetcher, store)
+        (s.source_id for _, claim, _ in scoped for s in claim.sources), sources, fetcher, store,
+        rendered=rendered)
     results = [reread_fact(t, c, report.sources, regions, today, root, llm)
                for t, c, llm in scoped]
 
-    # Some servers answer a plain fetch now and then with a script shell, a bot wall
+    # Some servers answer a fetch now and then with a script shell, a bot wall
     # or a 403. A page whose facts would alert is fetched once more first.
     retryable = {Status.UNREADABLE, Status.UNREACHABLE}
     retry = sorted({sid for r in results if r.status in retryable for sid in r.source_ids})
     if retry:
-        again = fetch_sources(retry, sources, fetcher, store)
+        again = fetch_sources(retry, sources, fetcher, store, rendered=rendered)
         fresh = {sid for sid, f in again.items()
                  if f.outcome == "ok" and f.copy_ref != report.sources[sid].copy_ref}
         report.sources.update({sid: again[sid] for sid in fresh})
@@ -733,16 +859,43 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--write", action="store_true",
                         help="apply changed values to offerings/ and verification/")
+    rendering = parser.add_mutually_exclusive_group()
+    rendering.add_argument("--rendered", action="store_true",
+                           help="re-read rendered HTML sources with local headless Chromium")
+    rendering.add_argument("--render-to", type=Path,
+                           help="render eligible pages into an artifact without verification")
+    rendering.add_argument("--rendered-from", type=Path,
+                           help="re-read rendered HTML from a validated artifact, without a browser")
     parser.add_argument("--report-json", type=Path)
     parser.add_argument("--report-md", type=Path)
     parser.add_argument("--retain-only-cited", action="store_true",
                         help="prune the copy store to cited and fetched copies (runners only)")
     parser.add_argument("--today", type=date.fromisoformat, default=None)
     args = parser.parse_args(argv)
+    if args.render_to is not None and args.write:
+        parser.error("--render-to cannot be combined with --write")
 
-    store = CopyStore()
-    report = run(fetcher=Fetcher(user_agent=USER_AGENT), store=store,
-                 today=args.today or datetime.now(UTC).date(), write=args.write)
+    with ExitStack() as stack:
+        rendered = None
+        if args.rendered or args.render_to is not None:
+            try:
+                rendered = stack.enter_context(RenderedFetcher())
+            except ImportError:
+                flag = "--render-to" if args.render_to is not None else "--rendered"
+                parser.error(f"{flag} requires Playwright; install playwright and its "
+                             "Chromium browser (python -m playwright install chromium)")
+        if args.render_to is not None:
+            render_to(root=ROOT, directory=args.render_to, rendered=rendered)
+            return 0
+        if args.rendered_from is not None:
+            try:
+                rendered = RenderedReplayFetcher(args.rendered_from)
+            except (OSError, ValueError) as exc:
+                parser.error(f"invalid rendered artifact: {exc}")
+        store = CopyStore()
+        report = run(root=ROOT, fetcher=Fetcher(user_agent=USER_AGENT), store=store,
+                     today=args.today or datetime.now(UTC).date(), write=args.write,
+                     rendered=rendered)
     markdown = render_report(report)
     if args.report_md:
         args.report_md.write_text(markdown + "\n", encoding="utf-8")
