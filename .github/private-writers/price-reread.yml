@@ -133,11 +133,13 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           WORKFLOW_FILE: price-reread.yml
+          EVENT_SCHEDULE: schedule
+          EVENT_DISPATCH: workflow_dispatch
         run: |
           mkdir -p "$MODELSPEC_SOURCE_CACHE"
           run_id=""
           ids="$(gh api "repos/${REPO}/actions/workflows/${WORKFLOW_FILE}/runs?branch=main&per_page=20" \
-            --jq '.workflow_runs[] | select(.head_branch == "main") | .id')"
+            --jq '.workflow_runs[] | select(.head_branch == "main" and (.event == env.EVENT_SCHEDULE or .event == env.EVENT_DISPATCH)) | .id')"
           while read -r id; do
             [ -n "$id" ] || continue
             if gh api "repos/${REPO}/actions/runs/${id}/artifacts" \

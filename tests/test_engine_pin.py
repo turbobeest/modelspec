@@ -519,3 +519,95 @@ def test_a_branch_pin_must_descend_from_the_default_branch_pin(
     assert (completed.returncode == 0) is passes, detail
     if not passes:
         assert "does not descend from the default branch pin" in completed.stdout, detail
+
+
+def _extraheader(data: Path) -> str:
+    completed = subprocess.run(
+        [
+            "git", "-C", str(data), "config", "--local", "--get-all",
+            "http.https://github.com/.extraheader",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return completed.stdout.strip()
+
+
+def _drop_origin_main(data: Path) -> None:
+    subprocess.run(
+        ["git", "-C", str(data), "update-ref", "-d", "refs/remotes/origin/main"],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+
+
+def test_the_descent_fetch_unsets_the_extraheader_when_origin_main_is_missing(
+    tmp_path: Path, local_engine: LocalEngine
+) -> None:
+    work = _data_checkout(tmp_path, local_engine.ancestor, local_engine.ancestor)
+    data = work / "data"
+    _drop_origin_main(data)
+    runner = tmp_path / "runner"
+    runner.mkdir()
+    completed = subprocess.run(
+        ["bash", "-c", _descend_step()["run"]],
+        cwd=work,
+        env={
+            **os.environ,
+            "ENGINE_REPO": local_engine.url,
+            "RUNNER_TEMP": str(runner),
+            "GH_TOKEN": "fetch-token",
+            "GIT_NO_LAZY_FETCH": "1",
+            "GIT_TERMINAL_PROMPT": "0",
+        },
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    detail = f"exit {completed.returncode}\n{completed.stdout}{completed.stderr}"
+    assert completed.returncode == 0, detail
+    assert _extraheader(data) == "", detail
+    present = subprocess.run(
+        ["git", "-C", str(data), "rev-parse", "--verify", "refs/remotes/origin/main"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert present.returncode == 0, detail
+
+
+def test_the_descent_fetch_unsets_the_extraheader_when_the_fetch_fails(
+    tmp_path: Path, local_engine: LocalEngine
+) -> None:
+    work = _data_checkout(tmp_path, local_engine.ancestor, local_engine.ancestor)
+    data = work / "data"
+    _drop_origin_main(data)
+    subprocess.run(
+        ["git", "-C", str(data), "remote", "set-url", "origin", str(tmp_path / "missing.git")],
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    runner = tmp_path / "runner"
+    runner.mkdir()
+    completed = subprocess.run(
+        ["bash", "-c", _descend_step()["run"]],
+        cwd=work,
+        env={
+            **os.environ,
+            "ENGINE_REPO": local_engine.url,
+            "RUNNER_TEMP": str(runner),
+            "GH_TOKEN": "fetch-token",
+            "GIT_NO_LAZY_FETCH": "1",
+            "GIT_TERMINAL_PROMPT": "0",
+        },
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    detail = f"exit {completed.returncode}\n{completed.stdout}{completed.stderr}"
+    assert completed.returncode != 0, detail
+    assert "no token is available" not in completed.stdout, detail
+    assert _extraheader(data) == "", detail

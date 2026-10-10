@@ -13,6 +13,8 @@ from pathlib import Path
 import pytest
 import yaml
 
+from pipeline.data_source import is_data_path
+
 ROOT = Path(__file__).resolve().parents[1]
 WRITERS = ROOT / ".github" / "private-writers"
 NAMES = (
@@ -32,15 +34,70 @@ ENGINE_REPOSITORY = "turbobeest/modelspec"
 PY_CMD = re.compile(r"(?<![\w./-])python3?(?=\s)")
 EDITABLE_DATA = re.compile(r"""-e\s+(?:\.|'\.\[|"\.\[)""")
 UNTRUSTED = re.compile(
-    r"\$\{\{\s*(?:steps\.|matrix\.|needs\.|github\.event\.|inputs\.)"
+    r"\$\{\{\s*(?:steps\.|matrix\.|needs\.|github\.event\.|github\.head_ref|inputs\.)"
 )
-_KEYWORDS = frozenset({
-    "if", "then", "else", "elif", "fi", "while", "until", "do", "done",
-    "for", "in", "case", "esac", "!", "{", "}", "time", "coproc", "select",
-    "function", "continue", "break", "return", "exit",
-})
+# Writer `run:` text is an allowlist. `cd` is rejected: jobs set
+# `working-directory` or call `git -C`, and `cd` would hide where a later
+# relative path writes. `break` and `continue` stay because the link loop and
+# the price-reread restore loop use them. `find -exec` / `-execdir` / `-ok` /
+# `-okdir` / `-delete` are rejected outside the link step. `git -c` is
+# rejected because it can point `core.hooksPath` at the data checkout;
+# `git config` may set only `user.name`, `user.email`, and the push
+# extraheader. `python -I -c` may not call exec, eval, importlib, runpy, or
+# subprocess. `python -I -m` may only load `scripts.*`, `cli.*`,
+# `release_signals.*`, `pipeline.*`, or `pip`. A script path must be
+# `engine/...` with no `..` and must not be a data path the link step mounts
+# (`models/`, `benchmarks/`, ...). After the link step, a redirection,
+# `cp`/`mv`/`ln` destination, `tar -C`, `unzip -d`, or
+# `gh run download --dir`/`-D` whose path is under `data/` is a restore.
+# Git is exempt. A relative path that does not start with `data/` is the
+# writer's own file inside `working-directory: data`.
 _ASSIGN = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*\+?=")
-_REDIR = re.compile(r"^(?:\d*>>?|\d*<|\d*>&\d*|\d*>&-|\d*<&\d*|<<.*|>&|>\|)$")
+_ARRAY = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*=\(")
+_CASE_ARM = re.compile(
+    r"^(?:\"(?:[^\"\\]|\\.)*\"|'(?:[^'\\]|\\.)*'|\S)+\)\s*(?:;;)?\s*$"
+)
+_COMPOUND_OPEN = frozenset({
+    "if", "elif", "then", "else", "while", "until", "do", "{",
+})
+_COMPOUND_CLOSE = frozenset({"fi", "done", "esac", "}", ";;"})
+_COMPOUND_SKIP = frozenset({"for", "case", "select"})
+_BUILTINS = frozenset({
+    "exit", "set", "local", "export", "read", "shift", "return",
+    "break", "continue", "true", "false",
+})
+_COMMANDS = frozenset({
+    "git", "gh", "jq", "curl", "echo", "printf", "test", "[", "[[",
+    "mkdir", "cat", "cp", "rm", "ln", "date", "base64", "grep", "head",
+    "tee", "find", "realpath", "openssl", "sed", "awk", "wc", "sort",
+    "tr", "cut", "basename", "dirname", "npm",
+})
+_FIND_RUN = frozenset({"-exec", "-execdir", "-ok", "-okdir", "-delete"})
+_GIT_SUBS = frozenset({
+    "clone", "cat-file", "merge-base", "rev-parse", "config", "switch",
+    "add", "commit", "push", "show", "fetch", "status", "diff",
+})
+_GIT_CONFIG_KEYS = frozenset({
+    "user.name",
+    "user.email",
+    "http.https://github.com/.extraheader",
+})
+_DANGEROUS_PY = re.compile(
+    r"\b(?:exec|eval|compile|__import__|importlib|runpy|subprocess|"
+    r"breakpoint|pickle|marshal)\b|os\.system|os\.popen"
+)
+_MODULE_OK = re.compile(
+    r"^(?:pip|(?:scripts|cli|release_signals|pipeline)(?:\.[A-Za-z_][\w.]*)?)$"
+)
+_PIP_BIN = re.compile(r"^pip\d*(?:\.\d+)*$")
+_WS_PREFIXES = (
+    "${{ github.workspace }}/",
+    "${{github.workspace}}/",
+    "$GITHUB_WORKSPACE/",
+)
+_WORKSPACE_ROOTS = frozenset({
+    "", ".", "${{ github.workspace }}", "${{github.workspace}}", "$GITHUB_WORKSPACE",
+})
 _MODULE = re.compile(r"^[A-Za-z_][\w.]*$")
 _ENGINE_PIP = re.compile(
     r"^\$GITHUB_WORKSPACE/engine(?:\[[A-Za-z0-9_,.-]+\])?(?:/\S+)?$"
@@ -50,7 +107,6 @@ _SPEC = re.compile(
     r"(?:(?:==|>=|<=|!=|~=|>|<)[A-Za-z0-9.*+!,<>=_-]+)?$"
 )
 _NPM_PIN = re.compile(r"^(?:@[A-Za-z0-9_.-]+/)?[A-Za-z0-9_.-]+@\d+\.\d+\.\d+$")
-_DATA_WRITE = re.compile(r"(?:^|[\s'\"=])data/")
 _RUNNER_TEMP = "${{ runner.temp }}"
 REALPATH_SHIM = """#!/bin/sh
 if [ "$1" = "-e" ]; then
@@ -251,51 +307,101 @@ def _split_segments(text: str) -> list[str]:
     return [part.strip() for part in parts if part.strip()]
 
 
-def _commands(text: str) -> list[list[str]]:
+def _extract_backticks(text: str) -> tuple[str, list[str]]:
+    """Pull `...` command text out. Backticks inside single quotes stay literal."""
+    out: list[str] = []
+    found: list[str] = []
+    index = 0
+    quote: str | None = None
+    while index < len(text):
+        char = text[index]
+        if quote == "'":
+            out.append(char)
+            if char == "'":
+                quote = None
+            index += 1
+            continue
+        if quote == '"':
+            if char == "\\" and index + 1 < len(text):
+                out.append(text[index:index + 2])
+                index += 2
+                continue
+            if char == "`":
+                end = text.find("`", index + 1)
+                if end == -1:
+                    found.append(text[index + 1:])
+                    return "".join(out), found
+                found.append(text[index + 1:end])
+                index = end + 1
+                continue
+            out.append(char)
+            if char == '"':
+                quote = None
+            index += 1
+            continue
+        if char in {"'", '"'}:
+            quote = char
+            out.append(char)
+            index += 1
+            continue
+        if char == "`":
+            end = text.find("`", index + 1)
+            if end == -1:
+                found.append(text[index + 1:])
+                return "".join(out), found
+            found.append(text[index + 1:end])
+            index = end + 1
+            continue
+        out.append(char)
+        index += 1
+    return "".join(out), found
+
+
+def _commands(text: str) -> list[list[str] | None]:
     text = text.replace("\\\n", " ")
     text = _strip_heredocs(text)
     lines = [line for line in text.splitlines() if not line.lstrip().startswith("#")]
     text, substitutions = _extract_substitutions("\n".join(lines))
-    found: list[list[str]] = []
-    for substitution in substitutions:
-        found.extend(_commands(substitution))
+    text, backticks = _extract_backticks(text)
+    found: list[list[str] | None] = []
+    for inner in (*substitutions, *backticks):
+        found.extend(_commands(inner))
     for segment in _split_segments(text):
+        if _ARRAY.match(segment) or _CASE_ARM.match(segment) or segment in {";;", "in"}:
+            continue
         try:
             found.append(shlex.split(segment, posix=True))
         except ValueError:
-            found.append(segment.split())
+            found.append(None)
     return found
 
 
-def _command_tokens(tokens: list[str]) -> list[str]:
-    if not tokens or tokens[0] in {"for", "case"}:
-        return []
-    index = 0
-    while index < len(tokens) and (
-        tokens[index] in _KEYWORDS or _ASSIGN.match(tokens[index])
-    ):
-        index += 1
+def _strip_redir(tokens: list[str]) -> list[str]:
     kept: list[str] = []
+    index = 0
     while index < len(tokens):
         token = tokens[index]
-        if token in _KEYWORDS:
-            index += 1
-            continue
-        if token == "<<<":
+        if token in {">", ">>", ">|", "<", "<>", "<<<"}:
             index += 2
             continue
-        if token.startswith("<<<"):
+        if token.startswith("<<<") or token.startswith("<<"):
             index += 1
             continue
-        if _REDIR.fullmatch(token):
-            glued = token.startswith("<<") or bool(
-                re.fullmatch(r"\d*>&-?|\d*<&\d+|\d*>&\d+", token)
-            )
-            index += 1 if glued else 2
+        if re.fullmatch(r"\d*>&-|\d*<&-|\d*>&?\d+|\d*<&\d+", token):
+            index += 1
+            continue
+        if re.fullmatch(r"\d*>>?[^\d&].*|\d*<[^\d&].*", token):
+            index += 1
             continue
         kept.append(token)
         index += 1
     return kept
+
+
+def _pip_token_ok(token: str) -> bool:
+    if ".." in token.split("/"):
+        return False
+    return _SPEC.fullmatch(token) is not None or _ENGINE_PIP.fullmatch(token) is not None
 
 
 def _pip_problems(job_name: str, args: list[str]) -> list[str]:
@@ -308,15 +414,31 @@ def _pip_problems(job_name: str, args: list[str]) -> list[str]:
         token = args[index]
         if token in {"-e", "--editable"}:
             nxt = args[index + 1] if index + 1 < len(args) else ""
-            if _ENGINE_PIP.fullmatch(nxt) is None:
+            if not _pip_token_ok(nxt) or _ENGINE_PIP.fullmatch(nxt) is None:
                 problems.append(f"{job_name}: pip install argument is not allowed ({token})")
             index += 2
             continue
-        allowed = _SPEC.fullmatch(token) is not None or _ENGINE_PIP.fullmatch(token) is not None
-        if token.startswith("-") or not allowed:
+        if token.startswith("-") or not _pip_token_ok(token):
             problems.append(f"{job_name}: pip install argument is not allowed ({token})")
         index += 1
     return problems
+
+
+def _script_problem(script: str) -> str | None:
+    text = script
+    prefix = "$GITHUB_WORKSPACE/"
+    if text.startswith(prefix):
+        text = text[len(prefix):]
+    parts = text.split("/")
+    if text.startswith("/") or ".." in parts or text.startswith("$"):
+        return "not an allowed isolated form"
+    norm = os.path.normpath(text)
+    if ".." in norm.split("/") or not norm.startswith("engine/"):
+        return "not an allowed isolated form"
+    relative = norm[len("engine/"):]
+    if not relative or is_data_path(relative):
+        return "not an allowed isolated form"
+    return None
 
 
 def _python_problems(job_name: str, args: list[str]) -> list[str]:
@@ -328,21 +450,21 @@ def _python_problems(job_name: str, args: list[str]) -> list[str]:
     if rest[0] == "-m":
         if len(rest) < 2 or _MODULE.fullmatch(rest[1]) is None:
             return [f"{job_name}: python invocation is not an allowed isolated form"]
-        if rest[1] in {"pytest", "tox", "nox"}:
-            return [f"{job_name}: rejected command {rest[1]}"]
+        if _MODULE_OK.fullmatch(rest[1]) is None:
+            return [f"{job_name}: rejected module {rest[1]}"]
         if rest[1] == "pip":
             return _pip_problems(job_name, rest[2:])
         return []
     if rest[0] == "-c":
-        if len(rest) < 2:
-            return [f"{job_name}: python invocation is not an allowed isolated form"]
+        if len(rest) < 2 or _DANGEROUS_PY.search(rest[1]):
+            return [f"{job_name}: rejected python -c"]
         return []
     if rest[0] == "-":
         return []
-    script = rest[0]
-    if script.startswith("$GITHUB_WORKSPACE/engine/") or script.startswith("engine/"):
-        return []
-    return [f"{job_name}: python invocation is not an allowed isolated form"]
+    problem = _script_problem(rest[0])
+    if problem:
+        return [f"{job_name}: python invocation is {problem}"]
+    return []
 
 
 def _looks_like_other_python(command: str) -> bool:
@@ -354,82 +476,267 @@ def _looks_like_other_python(command: str) -> bool:
     return command.startswith("$") and "python" in command
 
 
-def _shell_problems(job_name: str, args: list[str], workdir: str) -> list[str]:
-    command = args[0]
-    rest = args[1:]
-    if command in {"bash", "sh", "node"}:
-        if not rest or not rest[0].startswith("-"):
-            return [f"{job_name}: rejected command {command}"]
-        return []
-    if command == "source":
-        return [f"{job_name}: rejected command source"]
-    if command == "." and rest and not rest[0].startswith("-"):
-        return [f"{job_name}: rejected command ."]
-    if command.startswith("./"):
-        return [f"{job_name}: rejected command {command}"]
-    if command == "npx":
-        return [f"{job_name}: rejected command npx"]
-    if command == "npm":
-        pinned = (
-            rest == ["install", "-g", rest[2]]
-            if len(rest) == 3
-            else False
-        )
-        if pinned and _NPM_PIN.fullmatch(rest[2]) and workdir == _RUNNER_TEMP:
-            return []
-        return [f"{job_name}: rejected command npm"]
-    if command == "make":
-        return [f"{job_name}: rejected command make"]
-    if command == "uv" and rest[:1] == ["run"]:
-        return [f"{job_name}: rejected command uv"]
-    if command == "pipx" and rest[:1] == ["run"]:
-        return [f"{job_name}: rejected command pipx"]
-    if command in {"pytest", "tox", "nox"}:
-        return [f"{job_name}: rejected command {command}"]
+def _git_config_key(args: list[str]) -> str:
+    index = args.index("config") + 1
+    while index < len(args):
+        arg = args[index]
+        if arg in {"-f", "--file"}:
+            index += 2
+            continue
+        if arg.startswith("-"):
+            index += 1
+            continue
+        return arg
+    return ""
+
+
+def _git_problems(job_name: str, args: list[str]) -> list[str]:
+    index = 1
+    sub = ""
+    while index < len(args):
+        arg = args[index]
+        if arg == "-C":
+            index += 2
+            continue
+        if (
+            arg == "-c"
+            or arg.startswith("--config-env")
+            or (arg.startswith("-c") and not arg.startswith("-C"))
+        ):
+            return [f"{job_name}: rejected git -c"]
+        if arg.startswith("-"):
+            index += 1
+            continue
+        sub = arg
+        break
+    if any("hookspath" in arg.lower() for arg in args):
+        return [f"{job_name}: rejected git -c"]
+    if sub not in _GIT_SUBS:
+        return [f"{job_name}: rejected git {sub or 'git'}"]
+    if sub == "config" and _git_config_key(args) not in _GIT_CONFIG_KEYS:
+        return [f"{job_name}: rejected git config"]
     return []
 
 
-def _command_problems(job_name: str, tokens: list[str], workdir: str) -> list[str]:
-    args = _command_tokens(tokens)
-    if not args:
+def _npm_problems(job_name: str, args: list[str], workdir: str) -> list[str]:
+    rest = args[1:]
+    pinned = len(rest) == 3 and rest[:2] == ["install", "-g"] and _NPM_PIN.fullmatch(rest[2])
+    if pinned and workdir == _RUNNER_TEMP:
         return []
+    return [f"{job_name}: rejected command npm"]
+
+
+def _classify(
+    job_name: str, tokens: list[str], workdir: str, in_link: bool
+) -> list[str]:
+    stripped = _strip_redir(tokens)
+    index = 0
+    while index < len(stripped) and _ASSIGN.match(stripped[index]):
+        index += 1
+    if index >= len(stripped):
+        return []
+    token = stripped[index]
+    if token in _COMPOUND_SKIP or token in _COMPOUND_CLOSE or token == "in":
+        return []
+    if token in _COMPOUND_OPEN or token == "!":
+        return _classify(job_name, stripped[index + 1:], workdir, in_link)
+    if token == "(":
+        if ")" not in stripped[index + 1:]:
+            return [f"{job_name}: unparseable shell"]
+        end = len(stripped) - 1 - stripped[::-1].index(")")
+        return _classify(job_name, stripped[index + 1:end], workdir, in_link)
+    if token in _BUILTINS:
+        return []
+    args = stripped[index:]
     command = args[0]
     base = command.rsplit("/", 1)[-1]
-    if base in {"pip", "pip3"}:
+    if _PIP_BIN.fullmatch(base):
         return [f"{job_name}: pip install is not python -I -m pip"]
     if command in {"python", "python3"}:
         return _python_problems(job_name, args)
     if _looks_like_other_python(command):
         return [f"{job_name}: python invocation is not allowed ({command})"]
-    return _shell_problems(job_name, args, workdir)
+    if command not in _COMMANDS:
+        return [f"{job_name}: rejected command {command}"]
+    if command == "git":
+        return _git_problems(job_name, args)
+    if command == "find":
+        if in_link:
+            return []
+        for arg in args:
+            if arg in _FIND_RUN:
+                return [f"{job_name}: rejected find {arg}"]
+        return []
+    if command == "npm":
+        return _npm_problems(job_name, args, workdir)
+    return []
 
+
+def _command_problems(
+    job_name: str, tokens: list[str], workdir: str, in_link: bool
+) -> list[str]:
+    if not tokens:
+        return []
+    return _classify(job_name, tokens, workdir, in_link)
+
+
+def _path_writes_data(raw: str, *, root_counts: bool = False) -> bool:
+    text = str(raw).strip().strip("'\"")
+    if root_counts and text in _WORKSPACE_ROOTS:
+        return True
+    for prefix in _WS_PREFIXES:
+        if text.startswith(prefix):
+            text = text[len(prefix):]
+            break
+    while text.startswith("./"):
+        text = text[2:]
+    if root_counts and text in {"", "."}:
+        return True
+    return text == "data" or text.startswith("data/")
+
+
+def _action_writes_data(step: dict) -> bool:
+    uses = str(step.get("uses") or "")
+    if "upload-artifact" in uses:
+        return False
+    cache = "actions/cache" in uses or "/restore" in uses
+    download = "download-artifact" in uses
+    if not cache and not download:
+        return False
+    raw = (step.get("with") or {}).get("path")
+    if download and (raw is None or str(raw).strip() == ""):
+        return True
+    items = raw if isinstance(raw, list) else str(raw or "").splitlines()
+    return any(_path_writes_data(item, root_counts=True) for item in items)
+
+
+def _redir_targets(tokens: list[str]) -> list[str]:
+    targets: list[str] = []
+    index = 0
+    while index < len(tokens):
+        token = tokens[index]
+        if token in {">", ">>", ">|"}:
+            if index + 1 < len(tokens):
+                targets.append(tokens[index + 1])
+            index += 2
+            continue
+        matched = re.fullmatch(r"(\d*>>?)(.+)", token)
+        if matched and "&" not in token and not token.startswith("<"):
+            targets.append(matched.group(2))
+        index += 1
+    return targets
+
+
+def _destinations(args: list[str]) -> list[str]:
+    dests: list[str] = []
+    operands: list[str] = []
+    index = 1
+    while index < len(args):
+        arg = args[index]
+        if arg == "--":
+            operands.extend(args[index + 1:])
+            break
+        if arg in {"-t", "--target-directory"}:
+            if index + 1 < len(args):
+                dests.append(args[index + 1])
+            index += 2
+            continue
+        if arg.startswith("--target-directory="):
+            dests.append(arg.split("=", 1)[1])
+            index += 1
+            continue
+        if arg.startswith("-"):
+            index += 1
+            continue
+        operands.append(arg)
+        index += 1
+    return dests or operands[-1:]
+
+
+def _paired(args: list[str], names: set[str], glued: str) -> list[str]:
+    found: list[str] = []
+    index = 1
+    while index < len(args):
+        arg = args[index]
+        if arg in names:
+            if index + 1 < len(args):
+                found.append(args[index + 1])
+            index += 2
+            continue
+        for name in names:
+            if name.startswith("--") and arg.startswith(name + "="):
+                found.append(arg.split("=", 1)[1])
+        if (
+            glued
+            and not arg.startswith("--")
+            and arg.startswith(glued)
+            and len(arg) > len(glued)
+        ):
+            found.append(arg[len(glued):])
+        index += 1
+    return found
+
+
+def _command_word(tokens: list[str]) -> str | None:
+    stripped = _strip_redir(tokens)
+    index = 0
+    while index < len(stripped) and _ASSIGN.match(stripped[index]):
+        index += 1
+    while index < len(stripped) and (
+        stripped[index] in _COMPOUND_OPEN or stripped[index] == "!"
+    ):
+        index += 1
+    if index >= len(stripped):
+        return None
+    token = stripped[index]
+    if token in _COMPOUND_CLOSE or token in _COMPOUND_SKIP or token == "in":
+        return None
+    return token
+
+
+def _segment_writes(tokens: list[str]) -> bool:
+    word = _command_word(tokens)
+    if word == "git":
+        return False
+    if any(_path_writes_data(item) for item in _redir_targets(tokens)):
+        return True
+    stripped = _strip_redir(tokens)
+    if word == "(":
+        if ")" not in stripped:
+            return True
+        end = len(stripped) - 1 - stripped[::-1].index(")")
+        start = stripped.index("(")
+        return _segment_writes(stripped[start + 1:end])
+    if word in {"cp", "mv", "ln"} and any(
+        _path_writes_data(item) for item in _destinations(stripped)
+    ):
+        return True
+    if word == "tar" and any(
+        _path_writes_data(item) for item in _paired(stripped, {"-C", "--directory"}, "-C")
+    ):
+        return True
+    if word == "unzip" and any(
+        _path_writes_data(item) for item in _paired(stripped, {"-d"}, "-d")
+    ):
+        return True
+    if word == "gh" and stripped[:3] == ["gh", "run", "download"] and any(
+        _path_writes_data(item) for item in _paired(stripped, {"--dir", "-D"}, "-D")
+    ):
+        return True
+    return False
+
+
+def _run_writes_data(run: str) -> bool:
+    for tokens in _commands(run):
+        if tokens and _segment_writes(tokens):
+            return True
+    return False
 
 def _workdir(job: dict, step: dict) -> str:
     if "working-directory" in step:
         return str(step["working-directory"])
     defaults = (job.get("defaults") or {}).get("run") or {}
     return str(defaults.get("working-directory") or "")
-
-
-def _writes_under_data(step: dict) -> bool:
-    path = (step.get("with") or {}).get("path") or ""
-    paths = path if isinstance(path, list) else str(path).splitlines()
-    if any(item.strip() == "data" or item.strip().startswith("data/") for item in paths):
-        return True
-    return _DATA_WRITE.search(step.get("run") or "") is not None
-
-
-def _is_restore(step: dict) -> bool:
-    uses = str(step.get("uses") or "")
-    if "upload-artifact" in uses:
-        return False
-    name = str(step.get("name") or "")
-    return (
-        "actions/cache" in uses
-        or "download-artifact" in uses
-        or "/restore" in uses
-        or re.search(r"\b(?:restore|download)\b", name, re.IGNORECASE) is not None
-    )
 
 
 def _job_problems(job_name: str, job: dict, canonical: dict) -> list[str]:
@@ -442,16 +749,30 @@ def _job_problems(job_name: str, job: dict, canonical: dict) -> list[str]:
             runs_python = True
         if UNTRUSTED.search(run):
             problems.append(f"{job_name}: untrusted expression in run script")
+        shell = step.get("shell")
+        if shell is not None and str(shell).split()[:1] != ["bash"]:
+            problems.append(f"{job_name}: shell is not bash")
+        uses = str(step.get("uses") or "")
+        if uses.startswith("./") or uses.startswith("../"):
+            problems.append(f"{job_name}: local action {uses}")
+        in_link = step.get("name") == LINK_NAME
         workdir = _workdir(job, step)
         for tokens in _commands(run):
-            problems.extend(_command_problems(job_name, tokens, workdir))
+            if tokens is None:
+                problems.append(f"{job_name}: unparseable shell")
+                continue
+            problems.extend(_command_problems(job_name, tokens, workdir, in_link))
         with_ = step.get("with") or {}
         if with_.get("repository") == ENGINE_REPOSITORY and with_.get("ref") != PIN_REF:
             problems.append(f"{job_name}: engine checkout ref is not the verified pin")
     links = [step for step in steps if step.get("name") == LINK_NAME]
     if len(links) == 1:
         link_at = steps.index(links[0])
-        if any(_is_restore(step) and _writes_under_data(step) for step in steps[link_at + 1:]):
+        wrote = any(
+            _action_writes_data(step) or _run_writes_data(step.get("run") or "")
+            for step in steps[link_at + 1:]
+        )
+        if wrote:
             problems.append(f"{job_name}: restore writes under data/ after the link step")
         if links[0] != canonical:
             problems.append(f"{job_name}: link step does not match the canonical link step")
@@ -644,14 +965,54 @@ def _with_command(command: str) -> str:
         ("pytest", "rejected command pytest"),
         ("tox", "rejected command tox"),
         ("nox", "rejected command nox"),
-        ("python -I -m pytest", "rejected command pytest"),
-        ("python -I -m tox", "rejected command tox"),
-        ("python -I -m nox", "rejected command nox"),
+        ("python -I -m pytest", "rejected module pytest"),
+        ("python -I -m tox", "rejected module tox"),
+        ("python -I -m nox", "rejected module nox"),
         (
             "npm install -g @anthropic-ai/claude-code@2.1.267",
             "rejected command npm",
         ),
         ("npm install -g @anthropic-ai/claude-code@latest", "rejected command npm"),
+        ("env python scripts/x.py", "rejected command env"),
+        ("exec python scripts/x.py", "rejected command exec"),
+        ("timeout 60 python scripts/x.py", "rejected command timeout"),
+        ("( python scripts/x.py )", "missing -I"),
+        ("`python scripts/x.py`", "missing -I"),
+        ("eval 'python scripts/x.py'", "rejected command eval"),
+        ("bash -c 'python scripts/x.py'", "rejected command bash"),
+        ("bash -e scripts/x.sh", "rejected command bash"),
+        ("cat x | bash -s", "rejected command bash"),
+        ("sh -c ./x", "rejected command sh"),
+        ("node -e 'require(\"./scripts/x.js\")'", "rejected command node"),
+        ("python -I -m pdb scripts/x.py", "rejected module pdb"),
+        ("python -I -m runpy scripts.x", "rejected module runpy"),
+        ("python -I -m unittest discover -s scripts", "rejected module unittest"),
+        ("python -I -m cProfile scripts/x.py", "rejected module cProfile"),
+        ("python -I -m trace --run scripts/x.py", "rejected module trace"),
+        ("python -I engine/../data/scripts/x.py", "not an allowed isolated form"),
+        ("python -I engine/models/evil.yaml", "not an allowed isolated form"),
+        (
+            'python -I -m pip install "$GITHUB_WORKSPACE/engine/../data"',
+            "not allowed",
+        ),
+        (
+            "python -I -c 'exec(open(\"scripts/x.py\").read())'",
+            "rejected python -c",
+        ),
+        ("find . -name x.py -exec python {} ';'", "rejected find -exec"),
+        ("xargs python < list", "rejected command xargs"),
+        ("sudo python scripts/x.py", "rejected command sudo"),
+        ("nohup python scripts/x.py", "rejected command nohup"),
+        ("command python scripts/x.py", "rejected command command"),
+        ("builtin source scripts/x.sh", "rejected command builtin"),
+        ("perl scripts/x.pl", "rejected command perl"),
+        ("ruby scripts/x.rb", "rejected command ruby"),
+        ("deno run x.ts", "rejected command deno"),
+        ("bun x.ts", "rejected command bun"),
+        ("pip3.11 install -r r.txt", "pip install is not python -I -m pip"),
+        ("/bin/bash scripts/x.sh", "rejected command /bin/bash"),
+        ("zsh scripts/x.sh", "rejected command zsh"),
+        ("git -c core.hooksPath=hooks commit -m x", "rejected git -c"),
     ],
 )
 def test_a_writer_command_outside_the_allowlist_is_rejected(
@@ -713,6 +1074,67 @@ def test_a_restore_into_data_before_the_link_step_is_allowed() -> None:
         "          key: planted\n"
     )
     assert isolation_problems(text.replace(needle, step + needle, 1)) == []
+
+
+@pytest.mark.parametrize(
+    ("step", "fragment"),
+    [
+        (
+            "\n      - uses: ./data/.github/actions/x\n",
+            "local action ./data/.github/actions/x",
+        ),
+        (
+            "\n      - name: s\n        shell: python {0}\n        run: import scripts.x\n",
+            "shell is not bash",
+        ),
+        (
+            "\n      - uses: actions/cache@v4\n        with:\n"
+            "          path: ./data/models\n          key: k\n",
+            "restore writes under data/ after the link step",
+        ),
+        (
+            "\n      - uses: actions/cache@v4\n        with:\n"
+            "          path: ${{ github.workspace }}/data/models\n          key: k\n",
+            "restore writes under data/ after the link step",
+        ),
+        (
+            "\n      - uses: actions/download-artifact@v4\n        with:\n          name: x\n",
+            "restore writes under data/ after the link step",
+        ),
+        (
+            "\n      - uses: actions/download-artifact@v4\n        with:\n"
+            "          name: x\n          path: .\n",
+            "restore writes under data/ after the link step",
+        ),
+        (
+            "\n      - name: Fetch copies\n        run: gh run download 1 --dir data/models\n",
+            "restore writes under data/ after the link step",
+        ),
+        (
+            "\n      - name: s\n        run: echo ${{ github.head_ref }}\n",
+            "untrusted expression in run script",
+        ),
+    ],
+)
+def test_a_step_level_bypass_is_rejected(step: str, fragment: str) -> None:
+    text = _text("daily-research")
+    needle = "\n      - name: Install dependencies\n"
+    assert text.count(needle) == 1
+    problems = isolation_problems(text.replace(needle, step + needle, 1))
+    assert any(fragment in problem for problem in problems), problems
+
+
+def test_price_reread_restore_filters_events_from_the_environment() -> None:
+    step = next(
+        item
+        for item in _document(_text("price-reread"))["jobs"]["reread"]["steps"]
+        if item.get("name") == "Restore last week's retained copies"
+    )
+    assert step["env"]["EVENT_SCHEDULE"] == "schedule"
+    assert step["env"]["EVENT_DISPATCH"] == "workflow_dispatch"
+    assert "env.EVENT_SCHEDULE" in step["run"]
+    assert "env.EVENT_DISPATCH" in step["run"]
+    assert "${{" not in step["run"]
 
 
 @pytest.fixture(scope="module")
