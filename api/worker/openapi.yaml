@@ -99,6 +99,20 @@ x-modelspec-billing: {status: wired; enabled, ticket: MODEL-93, enabled: true, s
     that resets each paid invoice (no rollover), and/or pack credits that expire 12 months after purchase.
     A funded key receives the paid answer, including cited commercial-use and data-residency determinations.
     Only successful results draw credits.', documented_in: docs/billing.md}
+x-modelspec-x402:
+  wired: true
+  enabled: true
+  mainnet: true
+  network: eip155:8453
+  per_credit_atomic: 20000
+  keyless_price_rule: 20000 atomic USDC per endpoint credit
+  packs:
+  - {name: 250-credit pack, credits: 250, usd: 5, atomic: 5000000}
+  - {name: '1,300-credit pack', credits: 1300, usd: 25, atomic: 25000000}
+  - {name: '2,750-credit pack', credits: 2750, usd: 50, atomic: 50000000}
+  - {name: '6,000-credit pack', credits: 6000, usd: 100, atomic: 100000000}
+  facilitator: https://api.cdp.coinbase.com/platform
+  docs: docs/x402.md
 security:
 - &id003
   bearer: []
@@ -305,6 +319,13 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/TransportError'}
           headers: *id001
+        '402':
+          description: Payment required (MODEL-75, when X402_ENABLED). `PAYMENT-REQUIRED` header is the
+            x402 v2 object; the body names price, payTo, network and how to pay.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PaymentRequired'}
+          headers: *id001
         '401':
           description: No key while keys are enforced (missing_api_key), or a key that is not ours (invalid_api_key).
             `error.how_to_get_a_key` says where to get one.
@@ -443,6 +464,14 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/DecisionRequestRefused'}
           headers: *id001
+        '402':
+          description: Payment required when X402_ENABLED is on. A keyed caller is offered the card packs.
+            A keyless caller pays 20,000 atomic USDC per credit, multiplied by this spec's explanation
+            weight.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PaymentRequired'}
+          headers: *id001
         '401':
           description: Missing or invalid API key, human_origin_required, visit_token_invalid or visit_token_expired.
             Refresh an expired visit once, or use a key.
@@ -575,6 +604,12 @@ paths:
             application/json:
               schema: {$ref: '#/components/schemas/ComparisonRequestRefused'}
           headers: *id001
+        '402':
+          description: Payment required when X402_ENABLED is on.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PaymentRequired'}
+          headers: *id001
         '401':
           description: No key while keys are enforced (missing_api_key), or a key that is not ours (invalid_api_key).
             `error.how_to_get_a_key` says where to get one.
@@ -677,6 +712,12 @@ paths:
           content:
             application/json:
               schema: {$ref: '#/components/schemas/TransportError'}
+          headers: *id001
+        '402':
+          description: Payment required (MODEL-75, when X402_ENABLED). Same 402 as /v1/rank.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/PaymentRequired'}
           headers: *id001
         '401':
           description: No key while keys are enforced (missing_api_key), or a key that is not ours (invalid_api_key).
@@ -5655,6 +5696,7 @@ components:
                 placeholder_note: {type: string}
                 usd: {type: number}
             resource: {type: string}
+            terms_url: {type: string}
             x402Version: {type: integer}
         result:
           type: array

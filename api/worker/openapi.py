@@ -2668,12 +2668,14 @@ def build_spec() -> dict[str, Any]:
             facilitator_url=x402.DEFAULT_ORIGIN,
             resource_origin=_ORIGIN,
             packs=x402.packs_from_policy(access_config.load_policy()),
+            terms_url=access_config.load_policy().billing.terms_url,
         ),
         {"schema_version": service.SCHEMA_VERSION, "service_commit": _COMMIT},
         "https://api.modelspec.dev/v1/rank",
         offer_packs=True,
     ))["properties"]["error"]
     payment_required_error["required"].remove("packs")
+    payment_required_error["required"].remove("terms_url")
 
     def transport(status: int, description: str) -> tuple[str, dict[str, Any]]:
         return str(status), _json_body(description,

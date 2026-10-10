@@ -6,12 +6,14 @@ import asyncio
 import base64
 import json
 import logging
+import re
 import subprocess
 import sys
 import time
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any
 
 import pytest
@@ -789,14 +791,15 @@ def test_no_test_calls_the_network():
     assert worker_post.__name__ == "worker_post"
 
 
-def test_wrangler_ships_the_flag_off_and_sepolia():
+def test_wrangler_ships_x402_on_with_mainnet_configured():
     text = (REPO_ROOT / "api" / "worker" / "wrangler.jsonc").read_text(encoding="utf-8")
     live = "\n".join(l for l in text.splitlines() if not l.lstrip().startswith("//"))
-    assert '"X402_ENABLED": "false"' in live
-    assert '"X402_MAINNET": "false"' in live
-    assert '"X402_NETWORK": "eip155:84532"' in live
+    assert '"X402_ENABLED": "true"' in live
+    assert '"X402_MAINNET": "true"' in live
+    assert '"X402_NETWORK": "eip155:8453"' in live
+    assert '"X402_ASSET": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"' in live
     assert '"class_name": "CreditsObject"' in live
-    assert '"X402_PAY_TO": ""' in live
+    assert '"X402_PAY_TO": "0x0000000000000000000000000000000000000000"' in live
     assert "CDP_API_KEY" not in live
     assert "CDP_JWT" not in live
 
@@ -808,18 +811,153 @@ def _wrangler_config() -> dict[str, Any]:
     return json.loads(live)
 
 
-def test_production_x402_config_stays_off_and_has_no_receiver():
+def test_production_x402_config_is_live_on_mainnet():
     config = _wrangler_config()
     assert config["vars"]["HUMAN_GATE_ENABLED"] == "false"
     assert config["vars"]["ACCESS_ENFORCED"] == "true"
     assert config["vars"]["BILLING_ENABLED"] == "true"
-    assert config["vars"]["X402_ENABLED"] == "false"
-    assert config["vars"]["X402_MAINNET"] == "false"
-    assert config["vars"]["X402_PAY_TO"] == ""
+    assert config["vars"]["X402_ENABLED"] == "true"
+    assert config["vars"]["X402_MAINNET"] == "true"
+    assert config["vars"]["X402_PAY_TO"] == "0x0000000000000000000000000000000000000000"
     assert config["workers_dev"] is False
     assert config["routes"] == [
         {"pattern": "api.modelspec.dev/*", "zone_name": "modelspec.dev"}
     ]
+
+
+def _x402_switch_problems(production: dict[str, str]) -> list[str]:
+    """Why these production vars must not ship: X402_ENABLED on needs every mainnet value."""
+    if not x402.flag(production.get("X402_ENABLED")):
+        return []
+    wanted = {
+        "X402_MAINNET": x402.flag(production.get("X402_MAINNET")),
+        "X402_NETWORK": production.get("X402_NETWORK") == x402.NETWORK_BASE,
+        "X402_ASSET": production.get("X402_ASSET") == x402.USDC_BASE,
+        "X402_PAY_TO": re.fullmatch(r"0x[0-9a-fA-F]{40}",
+                                    production.get("X402_PAY_TO", "")) is not None
+        and int(production["X402_PAY_TO"], 16) != 0,
+    }
+    return sorted(name for name, ok in wanted.items() if not ok)
+
+
+def _keccak256(data: bytes) -> bytes:
+    """Keccak-256 as Ethereum uses it (not NIST SHA3-256, which pads differently)."""
+    rotations = [[0, 36, 3, 41, 18], [1, 44, 10, 45, 2], [62, 6, 43, 15, 61],
+                 [28, 55, 25, 21, 56], [27, 20, 39, 8, 14]]
+    constants, lfsr = [], 1
+    for _ in range(24):
+        value = 0
+        for bit in range(7):
+            if lfsr & 1:
+                value ^= 1 << ((1 << bit) - 1)
+            lfsr = ((lfsr << 1) ^ (0x71 if lfsr & 0x80 else 0)) & 0xFF
+        constants.append(value)
+    mask = (1 << 64) - 1
+
+    def rotl(value: int, shift: int) -> int:
+        return ((value << shift) | (value >> (64 - shift))) & mask if shift else value
+
+    rate = 136
+    fill = rate - len(data) % rate
+    padded = bytes(data) + (b"\x81" if fill == 1 else b"\x01" + bytes(fill - 2) + b"\x80")
+    state = [[0] * 5 for _ in range(5)]
+    for start in range(0, len(padded), rate):
+        block = padded[start:start + rate]
+        for i in range(rate // 8):
+            state[i % 5][i // 5] ^= int.from_bytes(block[8 * i:8 * i + 8], "little")
+        for constant in constants:
+            parity = [state[x][0] ^ state[x][1] ^ state[x][2] ^ state[x][3] ^ state[x][4]
+                      for x in range(5)]
+            for x in range(5):
+                delta = parity[(x - 1) % 5] ^ rotl(parity[(x + 1) % 5], 1)
+                for y in range(5):
+                    state[x][y] ^= delta
+            moved = [[0] * 5 for _ in range(5)]
+            for x in range(5):
+                for y in range(5):
+                    moved[y][(2 * x + 3 * y) % 5] = rotl(state[x][y], rotations[x][y])
+            for x in range(5):
+                for y in range(5):
+                    state[x][y] = moved[x][y] ^ (~moved[(x + 1) % 5][y] & moved[(x + 2) % 5][y])
+            state[0][0] ^= constant
+    return b"".join(state[i % 5][i // 5].to_bytes(8, "little") for i in range(4))
+
+
+def _eip55(address: str) -> str:
+    body = address[2:].lower()
+    digest = _keccak256(body.encode()).hex()
+    return "0x" + "".join(c.upper() if int(digest[i], 16) >= 8 else c
+                          for i, c in enumerate(body))
+
+
+def test_production_x402_receiver_is_an_eip55_checksummed_address() -> None:
+    """MODEL-333. A typo in a checksummed address fails here, not on-chain."""
+    assert _keccak256(b"").hex() == (
+        "c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470")
+    # EIP-55's own test vector.
+    assert _eip55("0x5aaeb6053f3e94c9b9a09f33669435e7ef1beaed") == (
+        "0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed")
+    usdc = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+    assert _eip55(usdc) == usdc
+    assert _eip55(usdc.replace("C", "c", 1)) != usdc.replace("C", "c", 1)
+    pay_to = _wrangler_config()["vars"]["X402_PAY_TO"]
+    assert _eip55(pay_to) == pay_to
+
+
+def test_production_x402_switches_are_consistent() -> None:
+    """MODEL-333. X402_ENABLED never ships without mainnet, its asset and a receiver."""
+    assert _x402_switch_problems(_wrangler_config()["vars"]) == []
+
+    staged = {"X402_ENABLED": "false", "X402_MAINNET": "false",
+              "X402_NETWORK": "eip155:8453",
+              "X402_ASSET": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+              "X402_PAY_TO": ""}
+    assert _x402_switch_problems({**staged, "X402_ENABLED": "true"}) == [
+        "X402_MAINNET", "X402_PAY_TO"]
+    receiver = "0x" + "ab" * 20
+    assert _x402_switch_problems({**staged, "X402_ENABLED": "true",
+                                  "X402_PAY_TO": receiver}) == ["X402_MAINNET"]
+    assert _x402_switch_problems({**staged, "X402_ENABLED": "true",
+                                  "X402_MAINNET": "true",
+                                  "X402_PAY_TO": receiver}) == []
+    assert _x402_switch_problems({**staged, "X402_ENABLED": "true",
+                                  "X402_MAINNET": "true",
+                                  "X402_NETWORK": "eip155:84532",
+                                  "X402_PAY_TO": receiver}) == ["X402_NETWORK"]
+    assert _x402_switch_problems({**staged, "X402_ENABLED": "true",
+                                  "X402_MAINNET": "true",
+                                  "X402_PAY_TO": "0x" + "0" * 40}) == ["X402_PAY_TO"]
+
+
+def test_production_x402_is_on_for_base_mainnet() -> None:
+    config = _wrangler_config()
+    production = config["vars"]
+    assert production["X402_NETWORK"] == "eip155:8453"
+    assert production["X402_ASSET"] == "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
+    assert production["X402_ENABLED"] == "true"
+    assert production["X402_MAINNET"] == "true"
+    assert production["X402_PAY_TO"] == "0x0000000000000000000000000000000000000000"
+
+    staging = config["env"]["staging"]["vars"]
+    assert staging["X402_NETWORK"] == "eip155:84532"
+    assert staging["X402_ASSET"] == "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
+
+    cfg = x402.load_config(SimpleNamespace(**production))
+    assert cfg.enabled is True
+    assert cfg.mainnet is True
+    real = x402.load_config(SimpleNamespace(**{**production, "X402_PAY_TO": "0x" + "ab" * 20}))
+    assert real.configured is True
+
+
+def test_a_zero_address_receiver_is_not_configured() -> None:
+    """MODEL-333. The zero-address placeholder never reaches a 402 offer."""
+    env = SimpleNamespace(X402_ENABLED="true", X402_MAINNET="true",
+                          X402_NETWORK="eip155:8453",
+                          X402_ASSET="0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+                          X402_PAY_TO="0x" + "0" * 40)
+    assert x402.load_config(env).configured is False
+    assert x402.load_config(SimpleNamespace(**{**vars(env), "X402_PAY_TO": "0x" + "ab" * 20})
+                            ).configured is True
 
 
 def test_staging_x402_config_is_isolated_on_base_sepolia():
@@ -1215,3 +1353,32 @@ def test_entry_billing_paths_are_not_x402_paid_resources(entry):
             "invalid_webhook_signature", "invalid_request",
             "access_store_not_configured",
         }, (path, response.status, code)
+
+
+def test_live_x402_is_described_by_the_approved_legal_text() -> None:
+    """MODEL-333. x402 on needs Jamie's approved terms and privacy text in the same PR.
+
+    Fails until docs/legal carries that text: the flip cannot merge without it.
+    """
+    if not x402.flag(_wrangler_config()["vars"]["X402_ENABLED"]):
+        return
+    legal = REPO_ROOT / "docs" / "legal"
+    terms = " ".join((legal / "terms-of-service.md").read_text(encoding="utf-8").split())
+    privacy = " ".join((legal / "privacy.md").read_text(encoding="utf-8").split())
+    assert "Payment by x402 is not currently offered." not in terms
+    assert "Credits can also be bought by x402" in terms
+    assert "currently empty" not in privacy
+    assert _wrangler_config()["vars"]["X402_PAY_TO"] in privacy
+
+
+def test_the_402_links_the_terms_of_service() -> None:
+    """MODEL-333. A buyer who pays by x402 sees the terms before paying."""
+    env = SimpleNamespace(X402_ENABLED="true", X402_MAINNET="true",
+                          X402_NETWORK="eip155:8453",
+                          X402_ASSET="0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+                          X402_PAY_TO="0x" + "ab" * 20)
+    body = x402.payment_required_body(
+        x402.load_config(env), {}, "https://api.modelspec.dev/v1/decide", offer_packs=True)
+    assert body["error"]["terms_url"] == "https://modelspec.dev/legal/terms/"
+    assert body["error"]["how_to_pay"].endswith(
+        "Paying accepts the terms at https://modelspec.dev/legal/terms/.")

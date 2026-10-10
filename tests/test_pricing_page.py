@@ -212,8 +212,8 @@ def test_endpoints_contact_and_no_third_party_assets() -> None:
 def test_production_switches_generate_what_ships_today(tmp_path: Path) -> None:
     variables = worker_flags.production_vars(REPO_ROOT)
     assert worker_flags.enabled(variables, "BILLING_ENABLED") is True
-    assert worker_flags.enabled(variables, "X402_ENABLED") is False
-    assert worker_flags.enabled(variables, "X402_MAINNET") is False
+    assert worker_flags.enabled(variables, "X402_ENABLED") is True
+    assert worker_flags.enabled(variables, "X402_MAINNET") is True
     assert worker_flags.enabled(variables, "ACCESS_ENFORCED") is True
     pricing.write(tmp_path, REPO_ROOT, _build())
     html = (tmp_path / "pricing" / "index.html").read_text()
@@ -228,8 +228,8 @@ def test_production_switches_generate_what_ships_today(tmp_path: Path) -> None:
         if row.get("legacy"):
             assert f'name="price_id" value="{price_id}"' not in html
     assert html.count('<form method="post"') == len(sellable)
-    assert "x402" not in html.lower()
-    assert "Or let your agents pay as they go" not in html
+    assert "settled on Base mainnet" in html
+    assert "Or let your agents pay as they go" in html
     assert "Buy credits for your agents" in html
     assert "Purchase" in html
     assert "Every machine data endpoint needs an API key" in html
@@ -239,8 +239,7 @@ def test_production_switches_generate_what_ships_today(tmp_path: Path) -> None:
     assert "claim your API key at the Checkout success link" in html
     assert "access enforcement is off" not in html
     assert "paid access is being switched on" not in html
-    assert _payload(html)["payPerCall"] is False
-    assert "perCall" not in _payload(html)
+    assert _payload(html)["payPerCall"] is True
     assert "coming soon" in html.lower()
     assert "opening soon" not in html.lower()
     assert "People decide free. Agents pay per answer." in html
@@ -273,7 +272,7 @@ def test_x402_requires_mainnet_before_the_page_presents_it() -> None:
         html = _page(x402_live=live, x402_network="eip155:8453")
         assert live is (enabled and mainnet)
         assert ("Or let your agents pay as they go" in html) is live
-    assert worker_flags.production_vars(REPO_ROOT)["X402_NETWORK"] == "eip155:84532"
+    assert worker_flags.production_vars(REPO_ROOT)["X402_NETWORK"] == "eip155:8453"
 
 
 def test_worker_flags_read_only_top_level_production_vars(tmp_path: Path) -> None:

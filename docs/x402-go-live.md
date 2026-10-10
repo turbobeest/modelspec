@@ -126,10 +126,10 @@ x402 remains off pending Jamie's approval of the mainnet receiver and payment
 check. Do not change the production x402 variables, receiver, route, KV
 bindings, or credit ledger as part of the Sepolia test.
 
-When Jamie approves the production change, use Base network `eip155:8453` and
-Base native USDC `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`, set the approved
-mainnet receiver, and make one $5 payment from a wallet funded only for that
-check. Treat that as a separate production change and review.
+The production network `eip155:8453` and Base native USDC
+`0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` are checked in with both switches
+off (MODEL-333). The flip, its order, the verification probes and the rollback
+are in [x402-mainnet-flip.md](x402-mainnet-flip.md).
 
 ## Switch staging x402 off
 
