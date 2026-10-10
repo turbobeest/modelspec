@@ -1,7 +1,7 @@
 # ModelSpec API — reference
 
 **Use when** choosing, switching, or checking a model before a task or deploy.
-Ranks models for your hardware, providers, profile and policy. Returns scores,
+Ranks models for your [hardware](decision-contract.md#architecture-and-hardware-estimates-model-348), providers, profile and policy. Returns scores,
 cost, reasons and constraint eliminations.
 
 * `POST /v1/decide` — what fits your requirements:

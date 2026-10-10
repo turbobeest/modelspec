@@ -29,12 +29,16 @@ def _compact(reading: Reading) -> Reading:
 
 
 def for_decision(decision: Decision, *, hardware_fit: bool, quality_objective: bool,
-                 not_applied: Iterable[str] = ()) -> Reading | None:
+                 not_applied: Iterable[str] = (), hardware_estimates: bool = False) -> Reading | None:
     tied = (list(decision.answer.members)
             if decision.answer is not None and decision.answer.kind == "tied" else [])
     estimates = []
     if hardware_fit:
         estimates.append(HARDWARE_FIT)
+    if hardware_estimates:
+        from decision.hardware import HARDWARE_FACETS
+
+        estimates.extend(HARDWARE_FACETS)
     if any(row.estimates for row in decision.results):
         estimates.append("results.estimates")
     if any(row.refinement_estimates for row in decision.results):
@@ -51,8 +55,10 @@ def for_decision(decision: Decision, *, hardware_fit: bool, quality_objective: b
         claims.append("Do not claim not_applied requirements were evaluated.")
     if estimates:
         claims.append("Do not present estimates as measurements.")
-    if hardware_fit:
+    if hardware_fit or hardware_estimates:
         claims.append("Do not claim fit for a specific quantization or context workload.")
+    if hardware_estimates:
+        claims.append("Quantisation is assumed; context fit and decode speed are unmeasured.")
     if decision.results and not quality_objective:
         claims.append("Do not claim a quality rank from this objective.")
     if not claims:

@@ -1,6 +1,6 @@
 {
   "vocabulary_version": 1,
-  "contract_version": "2.15",
+  "contract_version": "2.16",
   "snapshot": "snap_0fdad8b995d919c7",
   "default_task_tokens": {
     "input": 40000,
@@ -1103,6 +1103,74 @@
         "nvidia_vera_rubin_superchip",
         "qualcomm_snapdragon_x_elite"
       ]
+    },
+    {
+      "id": "hardware.weights_gb",
+      "label": "Estimated weight memory",
+      "definition": "Resident weight memory from verified total parameters at the highest-quality quantisation fitting the named device after the 25% working allowance. One estimate per explicitly named device. A scalar condition or objective requires exactly one device in estate.devices. Never measured or stored.",
+      "subject": "model",
+      "value_type": "number",
+      "unit": "gigabytes",
+      "unit_definition": "Decimal gigabytes of memory, 1,000,000,000 bytes per GB.",
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": true,
+      "preference": {
+        "kind": "continuous",
+        "directions": [
+          "max",
+          "min"
+        ],
+        "threshold": "where"
+      },
+      "risk": "capability",
+      "computed_by": "MODEL-348",
+      "known": 0,
+      "of": 6,
+      "range": null,
+      "better": "lower"
+    },
+    {
+      "id": "hardware.decode_tps_estimate",
+      "label": "Estimated decode speed",
+      "definition": "Bandwidth roofline from verified active parameters at the memory estimate's quantisation, with 70% efficiency and wide 35% to 85% scenario bounds. Unknown without active parameters, sourced bandwidth or a fitting quantisation. A scalar condition or objective requires exactly one device in estate.devices. Never measured.",
+      "subject": "model",
+      "value_type": "number",
+      "unit": "tokens_per_second",
+      "unit_definition": "Output tokens generated per second of wall-clock time, measured from the first output token to the last, for a single request.",
+      "operators": [
+        "=",
+        "!=",
+        "<",
+        "<=",
+        ">",
+        ">=",
+        "between",
+        "known"
+      ],
+      "objective": true,
+      "preference": {
+        "kind": "continuous",
+        "directions": [
+          "max",
+          "min"
+        ],
+        "threshold": "where"
+      },
+      "risk": "capability",
+      "computed_by": "MODEL-348",
+      "known": 0,
+      "of": 6,
+      "range": null,
+      "better": "higher"
     },
     {
       "id": "offering.provider",

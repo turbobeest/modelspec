@@ -18,7 +18,7 @@ afterEach(() => vi.unstubAllGlobals());
 
 describe("the compact full decision", () => {
   it("parses, with sources listed once and origins naming them by ID", () => {
-    expect(full.contract_version).toBe("2.15");
+    expect(full.contract_version).toBe("2.16");
     expect(full.answer?.kind).toBe("separated");
     expect(full.sources.map((source) => source.id)).toEqual([
       "src-board",

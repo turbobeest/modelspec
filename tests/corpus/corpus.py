@@ -156,13 +156,15 @@ def _prefer(facet: Any) -> tuple[Any, Expect]:
 
 def _facet_cases() -> Iterator[Case]:
     for facet in board_facets():
+        hardware = ({"estate": {"devices": ["apple_m3_max"]}, "access": "own_hardware"}
+                    if facet.id.startswith("hardware.") else {})
         yield Case(
             id=f"facet-must-{facet.id}",
             intent=f"{facet.id} as a Must",
             snapshot="repo",
             spec={"spec_version": 1, "where": [_must(facet)],
                   "optimize": {"max": "software_engineering"}, "explain": "summary",
-                  "limit": 5},
+                  "limit": 5, **hardware},
             expect=Expect(http=200),
             covers=(f"must:{facet.id}",),
             generated=True,
@@ -177,7 +179,7 @@ def _facet_cases() -> Iterator[Case]:
             # value preference's explanation failed only there (MODEL-203).
             spec={"spec_version": 1,
                   "optimize": {"weights": weights | {"software_engineering": 1}},
-                  "explain": "full", "limit": 5},
+                  "explain": "full", "limit": 5, **hardware},
             expect=expect,
             covers=(f"prefer:{facet.id}",),
             generated=True,

@@ -24,13 +24,14 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import yaml
 
 from schema import private_errors
 from schema.enums import DeviceClass, ModelType
-from schema.graph import CollectingSink
+if TYPE_CHECKING:
+    from schema.graph import CollectingSink
 
 #: model_type values that autoregressively decode tokens, so a tok/s figure is
 #: a meaningful prediction. Everything else (embeddings, rerankers, safety

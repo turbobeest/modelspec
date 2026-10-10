@@ -69,7 +69,46 @@
         }
       ],
       "contributions": [],
-      "evidence": []
+      "evidence": [],
+      "unknown_facets": [
+        "model.architecture",
+        "model.experts_per_token",
+        "model.experts_total",
+        "model.parameters_active",
+        "model.parameters_total"
+      ],
+      "hardware_estimates": [
+        {
+          "device": "apple_m3_max",
+          "facet": "hardware.weights_gb",
+          "value": null,
+          "unit": "gigabytes",
+          "quantisation": null,
+          "unknown_reason": "snapshot has no device memory specifications for this SKU",
+          "formula": "Estimate for apple_m3_max: unknown; device capacity and usable memory are unknown.",
+          "records": [
+            "other/huge#model.weights_openness"
+          ],
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        },
+        {
+          "device": "apple_m3_max",
+          "facet": "hardware.decode_tps_estimate",
+          "value": null,
+          "unit": "tokens_per_second",
+          "quantisation": null,
+          "unknown_reason": "snapshot has no device memory specifications for this SKU",
+          "formula": "Estimate for apple_m3_max: unknown; device capacity and usable memory are unknown.",
+          "records": [
+            "other/huge#model.weights_openness"
+          ],
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        }
+      ]
     },
     {
       "offering": {
@@ -139,7 +178,46 @@
         }
       ],
       "contributions": [],
-      "evidence": []
+      "evidence": [],
+      "unknown_facets": [
+        "model.architecture",
+        "model.experts_per_token",
+        "model.experts_total",
+        "model.parameters_active",
+        "model.parameters_total"
+      ],
+      "hardware_estimates": [
+        {
+          "device": "apple_m3_max",
+          "facet": "hardware.weights_gb",
+          "value": null,
+          "unit": "gigabytes",
+          "quantisation": null,
+          "unknown_reason": "snapshot has no device memory specifications for this SKU",
+          "formula": "Estimate for apple_m3_max: unknown; device capacity and usable memory are unknown.",
+          "records": [
+            "anthropic/claude-opus-5-5#model.weights_openness"
+          ],
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        },
+        {
+          "device": "apple_m3_max",
+          "facet": "hardware.decode_tps_estimate",
+          "value": null,
+          "unit": "tokens_per_second",
+          "quantisation": null,
+          "unknown_reason": "snapshot has no device memory specifications for this SKU",
+          "formula": "Estimate for apple_m3_max: unknown; device capacity and usable memory are unknown.",
+          "records": [
+            "anthropic/claude-opus-5-5#model.weights_openness"
+          ],
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        }
+      ]
     },
     {
       "offering": {
@@ -209,7 +287,46 @@
         }
       ],
       "contributions": [],
-      "evidence": []
+      "evidence": [],
+      "unknown_facets": [
+        "model.architecture",
+        "model.experts_per_token",
+        "model.experts_total",
+        "model.parameters_active",
+        "model.parameters_total"
+      ],
+      "hardware_estimates": [
+        {
+          "device": "apple_m3_max",
+          "facet": "hardware.weights_gb",
+          "value": null,
+          "unit": "gigabytes",
+          "quantisation": null,
+          "unknown_reason": "snapshot has no device memory specifications for this SKU",
+          "formula": "Estimate for apple_m3_max: unknown; device capacity and usable memory are unknown.",
+          "records": [
+            "anthropic/claude-sonnet-5#model.weights_openness"
+          ],
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        },
+        {
+          "device": "apple_m3_max",
+          "facet": "hardware.decode_tps_estimate",
+          "value": null,
+          "unit": "tokens_per_second",
+          "quantisation": null,
+          "unknown_reason": "snapshot has no device memory specifications for this SKU",
+          "formula": "Estimate for apple_m3_max: unknown; device capacity and usable memory are unknown.",
+          "records": [
+            "anthropic/claude-sonnet-5#model.weights_openness"
+          ],
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        }
+      ]
     },
     {
       "offering": {
@@ -279,7 +396,46 @@
         }
       ],
       "contributions": [],
-      "evidence": []
+      "evidence": [],
+      "unknown_facets": [
+        "model.architecture",
+        "model.experts_per_token",
+        "model.experts_total",
+        "model.parameters_active",
+        "model.parameters_total"
+      ],
+      "hardware_estimates": [
+        {
+          "device": "apple_m3_max",
+          "facet": "hardware.weights_gb",
+          "value": null,
+          "unit": "gigabytes",
+          "quantisation": null,
+          "unknown_reason": "snapshot has no device memory specifications for this SKU",
+          "formula": "Estimate for apple_m3_max: unknown; device capacity and usable memory are unknown.",
+          "records": [
+            "anthropic/claude-opus-5-5#model.weights_openness"
+          ],
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        },
+        {
+          "device": "apple_m3_max",
+          "facet": "hardware.decode_tps_estimate",
+          "value": null,
+          "unit": "tokens_per_second",
+          "quantisation": null,
+          "unknown_reason": "snapshot has no device memory specifications for this SKU",
+          "formula": "Estimate for apple_m3_max: unknown; device capacity and usable memory are unknown.",
+          "records": [
+            "anthropic/claude-opus-5-5#model.weights_openness"
+          ],
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        }
+      ]
     },
     {
       "offering": {
@@ -313,7 +469,46 @@
         }
       ],
       "contributions": [],
-      "evidence": []
+      "evidence": [],
+      "unknown_facets": [
+        "model.architecture",
+        "model.experts_per_token",
+        "model.experts_total",
+        "model.parameters_active",
+        "model.parameters_total"
+      ],
+      "hardware_estimates": [
+        {
+          "device": "apple_m3_max",
+          "facet": "hardware.weights_gb",
+          "value": null,
+          "unit": "gigabytes",
+          "quantisation": null,
+          "unknown_reason": "snapshot has no device memory specifications for this SKU",
+          "formula": "Estimate for apple_m3_max: unknown; device capacity and usable memory are unknown.",
+          "records": [
+            "acme/unfit#model.weights_openness"
+          ],
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        },
+        {
+          "device": "apple_m3_max",
+          "facet": "hardware.decode_tps_estimate",
+          "value": null,
+          "unit": "tokens_per_second",
+          "quantisation": null,
+          "unknown_reason": "snapshot has no device memory specifications for this SKU",
+          "formula": "Estimate for apple_m3_max: unknown; device capacity and usable memory are unknown.",
+          "records": [
+            "acme/unfit#model.weights_openness"
+          ],
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        }
+      ]
     },
     {
       "offering": {
@@ -347,7 +542,46 @@
         }
       ],
       "contributions": [],
-      "evidence": []
+      "evidence": [],
+      "unknown_facets": [
+        "model.architecture",
+        "model.experts_per_token",
+        "model.experts_total",
+        "model.parameters_active",
+        "model.parameters_total"
+      ],
+      "hardware_estimates": [
+        {
+          "device": "apple_m3_max",
+          "facet": "hardware.weights_gb",
+          "value": null,
+          "unit": "gigabytes",
+          "quantisation": null,
+          "unknown_reason": "snapshot has no device memory specifications for this SKU",
+          "formula": "Estimate for apple_m3_max: unknown; device capacity and usable memory are unknown.",
+          "records": [
+            "acme/tiny#model.weights_openness"
+          ],
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        },
+        {
+          "device": "apple_m3_max",
+          "facet": "hardware.decode_tps_estimate",
+          "value": null,
+          "unit": "tokens_per_second",
+          "quantisation": null,
+          "unknown_reason": "snapshot has no device memory specifications for this SKU",
+          "formula": "Estimate for apple_m3_max: unknown; device capacity and usable memory are unknown.",
+          "records": [
+            "acme/tiny#model.weights_openness"
+          ],
+          "source_ids": [
+            "src-lab-docs"
+          ]
+        }
+      ]
     }
   ],
   "chart": "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 800 330\" role=\"img\" aria-label=\"Objective contributions in original units\"><text x=\"8\" y=\"18\">other/huge · model.context_window: 500000 tokens</text><rect x=\"8\" y=\"27\" width=\"300\" height=\"12\" /><text x=\"8\" y=\"73\">anthropic/claude-opus-5-5 · model.context_window: 200000 tokens</text><rect x=\"8\" y=\"82\" width=\"120\" height=\"12\" /><text x=\"8\" y=\"128\">anthropic/claude-sonnet-5 · model.context_window: 200000 tokens</text><rect x=\"8\" y=\"137\" width=\"120\" height=\"12\" /><text x=\"8\" y=\"183\">anthropic/claude-opus-5-5 · model.context_window: 200000 tokens</text><rect x=\"8\" y=\"192\" width=\"120\" height=\"12\" /><text x=\"8\" y=\"238\">acme/unfit · model.context_window: 60000 tokens</text><rect x=\"8\" y=\"247\" width=\"36\" height=\"12\" /><text x=\"8\" y=\"293\">acme/tiny · model.context_window: 50000 tokens</text><rect x=\"8\" y=\"302\" width=\"30\" height=\"12\" /></svg>",
@@ -569,7 +803,7 @@
       "date": "2026-09-20"
     }
   ],
-  "contract_version": "2.15",
+  "contract_version": "2.16",
   "decision_id": "dec_8e5f0965af467b6883ac8dc2",
   "snapshot": "snap_71b689ca16c5a402",
   "signature_verified": false,
