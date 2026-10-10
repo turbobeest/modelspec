@@ -585,9 +585,13 @@ passthrough. Proxy JSONL contains call IDs, flags, rewritten field names and byt
 sizes only.
 
 Merge both PRs in the QA checkout first. V2 and combined refuse if either
-harness lacks `--claude-plugin modelspec`. Docker Desktop containers use
+harness lacks `--claude-plugin modelspec`. The Claude agent uses the default
+Grok + Codex judge panel from `tui_config.yaml`. Both judges receive identical
+prompts and must agree and pass; Claude never judges its own arm. The plugin is
+agent-only and is never passed to either judge. Docker Desktop containers use
 `http://host.docker.internal:8765/mcp`; the proxy binds `0.0.0.0`. Certify separate
-doctor receipts for every arm in a private directory, then run the tuning set:
+doctor receipts for Claude, Grok and Codex for every arm in a private directory,
+then run the tuning set:
 
 ```sh
 python -m qa.ablation doctor --arms baseline v1 v2 v3 v4 combined \
@@ -603,9 +607,11 @@ op run --env-file=qa/subscription.env.op -- \
 Doctors make subscription canary calls. `--dry-run` replays public fixtures,
 opens no sockets and launches no CLI. Its scripted pass rates are not agent
 measurements. Reports stay beneath `--out`; this command never publishes them.
-The combined JSON and Markdown include every scenario, pass rates, up to 300
-characters of judge rationale and per-row proxy counts. A pass also requires
-proof that the variant was applied. Receipts and checkpoints include the
+The combined JSON and Markdown include every scenario, both judges' verdicts,
+the unanimous aggregate result, up to 300 characters of judge rationale and
+per-row proxy counts. Per-arm pass rates use the aggregate result and also
+require proof that the variant was applied. JSON retains each judge's execution
+status and panel routes. Receipts and checkpoints include the
 variant identity; the ordinary subscription-jobs state is refused.
 
 TUNING contains budget-approved, hardware-spark, prompt-code, prompt-maths,

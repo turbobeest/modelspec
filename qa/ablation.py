@@ -9,16 +9,19 @@ in the QA checkout, the exact orchestrator command for the tuning run is:
       --state-dir /private/tmp/claude-501/m339/ablation-state \
       --out /private/tmp/claude-501/m339/ablation-tuning --port 8765
 
-Certify separate receipts first, without the shared subscription-jobs directory:
+Certify separate receipts for Claude, Grok and Codex first, without the shared
+subscription-jobs directory:
 
     /Users/terbeest/dev/modelspec/.venv/bin/python -m qa.ablation doctor \
       --arms baseline v1 v2 v3 v4 combined \
       --state-dir /private/tmp/claude-501/m339/ablation-state \
       --out /private/tmp/claude-501/m339/ablation-doctor --port 8765
 
-Doctor runs subscription canaries. A live run requires the agent's own funded
-ModelSpec key. Neither command is part of unit testing. --dry-run uses the
-recorded public engine responses and scripted agent/judge fixtures in memory;
+Doctor checks the Claude agent and its default Grok + Codex judge panel for each
+arm. Both judges must agree and pass. Doctor runs subscription canaries. A live
+run requires the agent's own funded ModelSpec key. Neither command is part of
+unit testing. --dry-run uses the recorded public engine responses and scripted
+agent/judge fixtures in memory;
 it opens no sockets, starts no containers and certifies no doctor receipts.
 Its pass rates are scripted checks, never evidence about agent behavior.
 
@@ -41,6 +44,7 @@ from datetime import date
 from pathlib import Path
 
 import httpx
+import yaml
 
 from decision.bounded import project
 from decision.contract import CONTRACT_VERSION, Decision, ResponseOptions, parse_spec, spec_hash
@@ -148,8 +152,6 @@ def harness_arguments(
         info["proxy_url"],
         "--ablation-metadata",
         str(root / "proxy" / "ablation.json"),
-        "--judge",
-        "claude=grok",
         "--max-runs-per-cli",
         str(max(32, len(scenarios) * 2)),
     ]
@@ -276,14 +278,14 @@ class FixtureReplay:
             if cli != "claude":
                 raise AssertionError("Ablation fixtures only run the Claude arm")
             return self.agent(config)
-        if cli != "grok" or self.current is None:
-            raise AssertionError("Ablation fixtures require the Grok judge")
+        if self.current is None or cli not in tui_harness.judges_for("claude", config["judges"]):
+            raise AssertionError("Ablation fixtures require a judge from the Claude panel")
         judge = self.current["judge"]
         transcript = fixture_transcript(
-            "grok",
+            cli,
             [],
             judge["text"],
-            config["clis"]["grok"]["model"],
+            config["clis"][cli]["model"],
             judge["tokens_in"],
             judge["tokens_out"],
         )
@@ -292,7 +294,8 @@ class FixtureReplay:
     def runner(self, config, output, scenarios) -> tui_harness.Runner:
         # Fixture evidence is confined to this object and never written as a receipt.
         isolation = {
-            cli: {"supported": True, "verified": True, "reason": None} for cli in ("claude", "grok")
+            cli: {"supported": True, "verified": True, "reason": None}
+            for cli in tui_harness.required_clis(["claude"], config)
         }
         return tui_harness.Runner(
             config, output, isolation, launch_fn=self.launch, audit=self.proxy.audit
@@ -398,6 +401,7 @@ def combined_report(
         rows = {row["scenario"]: row for row in report.get("runs", [])}
         for scenario in scenarios:
             row = rows.get(scenario, {})
+            judgement = row.get("judge")
             proof = applied(arm, row)
             cells.append(
                 {
@@ -405,6 +409,13 @@ def combined_report(
                     "scenario": scenario,
                     "passed": bool(row.get("success")) and proof,
                     "judge_passed": bool(row.get("success")),
+                    "judge": {**judgement, "rationale": judgement["rationale"][:300]}
+                    if judgement else None,
+                    "judges": [
+                        {**judge, "rationale": judge["rationale"][:300]}
+                        for judge in row.get("judges", [])
+                    ],
+                    "judge_executions": row.get("judge_executions", []),
                     "variant_applied": proof,
                     "rationale": (row.get("judge") or {}).get(
                         "rationale", row.get("error") or "No judgment"
@@ -426,12 +437,16 @@ def combined_report(
         "scenario_sets": {"tuning": list(TUNING), "holdout": list(HOLDOUT)},
         "evidence_note": "Scripted fixture results; no agent measurement."
         if dry_run
-        else "Claude subscription agents, Grok subscription judges, QA proxy; no deployment.",
+        else "Claude subscription agents, Grok + Codex subscription judge panels, "
+        "QA proxy; no deployment.",
         "limitations": LIMITATIONS,
         "arms": rates,
         "runs": cells,
         "proxy": audits,
         "metadata": {
+            "judge": {
+                arm: report.get("metadata", {}).get("judge") for arm, report in reports.items()
+            },
             "ablation": {
                 arm: report.get("metadata", {}).get("ablation") for arm, report in reports.items()
             }
@@ -457,16 +472,21 @@ def table(report: dict) -> str:
         lines.append(f"| {arm} | {rate['passed']} / {rate['total']} | {rate['pass_rate']:.1%} |")
     lines += [
         "",
-        "| Arm | Scenario | Result | Variant applied | Judge rationale | Proxy rewrites |",
-        "| --- | --- | --- | --- | --- | --- |",
+        "| Arm | Scenario | Result | Variant applied | Judge verdicts | Aggregate judge pass | "
+        "Judge rationale | Proxy rewrites |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- |",
     ]
     for row in report["runs"]:
         counts = ", ".join(f"{key}={value}" for key, value in sorted(row["proxy_rewrites"].items()))
+        verdicts = "; ".join(
+            f"{judge['cli']}: {'pass' if judge['passed'] else 'fail'}" for judge in row["judges"]
+        ) or "No judgment"
         lines.append(
             f"| {row['arm']} | {row['scenario']} | {'pass' if row['passed'] else 'fail'} | "
-            f"{row['variant_applied']} | {cell(row['rationale'])} | {cell(counts)} |"
+            f"{row['variant_applied']} | {cell(verdicts)} | {row['judge_passed']} | "
+            f"{cell(row['rationale'])} | {cell(counts)} |"
         )
-    lines += ["", "Pass requires the judge to pass and proxy/plugin exposure to be proven.", ""]
+    lines += ["", "Pass requires unanimous judge approval and proven proxy/plugin exposure.", ""]
     lines.extend("- " + text for text in report["limitations"])
     return "\n".join(lines) + "\n"
 
@@ -528,7 +548,8 @@ def main(argv=None) -> int:
             print(f"Ablation arm {arm}: {args.action}, {mode}.", flush=True)
             with context as proxy:
                 if args.action == "doctor":
-                    for cli in ("claude", "grok"):
+                    config = yaml.safe_load((tui_harness.HERE / "tui_config.yaml").read_text())
+                    for cli in tui_harness.required_clis(["claude"], config):
                         code = tui_harness.main(
                             harness_arguments("doctor", arm, root, state, info, scenarios, cli=cli)
                         )

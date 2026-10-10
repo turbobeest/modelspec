@@ -84,15 +84,66 @@ def test_plugin_flag_is_passed_only_for_v2_and_combined(tmp_path):
         assert ("--claude-plugin" in args) == (arm in {"v2", "combined"})
         if "--claude-plugin" in args:
             assert args[args.index("--claude-plugin") + 1] == "modelspec"
-        judge_doctor = ablation.harness_arguments(
-            "doctor", arm, tmp_path / arm, tmp_path / "state", info, ["budget-approved"], cli="grok"
-        )
-        assert "--claude-plugin" not in judge_doctor
-        assert args[args.index("--judge") + 1] == "claude=grok"
+        for judge in ("grok", "codex"):
+            judge_doctor = ablation.harness_arguments(
+                "doctor", arm, tmp_path / arm, tmp_path / "state", info,
+                ["budget-approved"], cli=judge,
+            )
+            assert "--claude-plugin" not in judge_doctor
+            assert "--judge" not in judge_doctor
+        assert "--judge" not in args
         assert args[args.index("--state-dir") + 1] == str(tmp_path / "state" / arm)
 
 
-def test_dry_run_replays_whole_tuning_path_and_proves_proxy_rewrites(tmp_path, capsys):
+@pytest.mark.parametrize("codex_exit_code,expected_exit_code", [(0, 0), (2, 2)])
+def test_doctor_checks_agent_and_both_panel_judges_in_private_arm_state(
+    tmp_path, monkeypatch, capsys, codex_exit_code, expected_exit_code,
+):
+    invocations = []
+
+    def fixture_proxy(variants, root, *, port, upstream):
+        info = metadata(variants, f"http://host.docker.internal:{port}/mcp", upstream)
+        return ablation.dry_proxy(variants, root, info)
+
+    def doctor(arguments):
+        invocations.append(arguments)
+        cli = arguments[arguments.index("--cli") + 1]
+        return codex_exit_code if cli == "codex" else 0
+
+    monkeypatch.setattr(ablation, "running_proxy", fixture_proxy)
+    monkeypatch.setattr(tui_harness, "main", doctor)
+    state = tmp_path / "private-state"
+    assert ablation.main([
+        "doctor", "--arms", "v1", "--out", str(tmp_path / "out"),
+        "--state-dir", str(state),
+    ]) == expected_exit_code
+    assert [args[args.index("--cli") + 1] for args in invocations] == [
+        "claude", "grok", "codex",
+    ]
+    for args in invocations:
+        assert args[0] == "doctor"
+        assert args[args.index("--state-dir") + 1] == str(state.resolve() / "v1")
+        assert "--judge" not in args
+        assert "--claude-plugin" not in args
+    if codex_exit_code:
+        assert "v1: codex doctor failed" in capsys.readouterr().err
+    else:
+        capsys.readouterr()
+
+
+def test_dry_run_replays_whole_tuning_path_and_proves_proxy_rewrites(
+    tmp_path, monkeypatch, capsys,
+):
+    invocations = []
+    replay_launch = ablation.FixtureReplay.launch
+
+    def capture_launch(self, cli, config, workspace, prompt, *, mcp_enabled, **kwargs):
+        invocations.append((cli, mcp_enabled, prompt))
+        return replay_launch(
+            self, cli, config, workspace, prompt, mcp_enabled=mcp_enabled, **kwargs,
+        )
+
+    monkeypatch.setattr(ablation.FixtureReplay, "launch", capture_launch)
     output, state = tmp_path / "report", tmp_path / "state"
     assert (
         ablation.main(
@@ -114,7 +165,17 @@ def test_dry_run_replays_whole_tuning_path_and_proves_proxy_rewrites(tmp_path, c
     report = json.loads((output / "ablation.json").read_text())
     assert report["mode"] == "dry-run"
     assert len(report["runs"]) == 40
-    assert set(report["arms"]) == {"baseline", "v1", "v3", "v4"}
+    assert report["arms"] == {
+        "baseline": {"passed": 0, "total": 10, "pass_rate": 0.0},
+        "v1": {"passed": 0, "total": 10, "pass_rate": 0.0},
+        "v3": {"passed": 0, "total": 10, "pass_rate": 0.0},
+        "v4": {"passed": 0, "total": 10, "pass_rate": 0.0},
+    }
+    assert [(cli, mcp_enabled) for cli, mcp_enabled, _prompt in invocations] == [
+        ("claude", True), ("grok", False), ("codex", False),
+    ] * 40
+    for index in range(0, 120, 3):
+        assert invocations[index + 1][2] == invocations[index + 2][2]
     assert "Scripted fixture" in report["evidence_note"]
     assert report["proxy"]["baseline"]["counters"].get("rewritten_calls", 0) == 0
     assert report["proxy"]["v1"]["counters"]["instructions"] == 10
@@ -130,16 +191,144 @@ def test_dry_run_replays_whole_tuning_path_and_proves_proxy_rewrites(tmp_path, c
         assert all(len(row["rationale"]) <= 300 for row in rows)
         assert all(row["ablation"] == values["ablation"] for row in rows)
         assert all(row["proxy_rewrites"]["responses"] > 0 for row in rows)
+        for row in rows:
+            assert [(judge["cli"], judge["passed"]) for judge in row["judges"]] == [
+                ("grok", False), ("codex", False),
+            ]
+            assert [execution["cli"] for execution in row["judge_executions"]] == [
+                "grok", "codex",
+            ]
+            assert all(execution["status"] == "completed" for execution in row["judge_executions"])
+            assert row["judge"]["strategy"] == "panel"
+            assert row["judge"]["agreed"] is True
+            assert row["judge"]["passed"] is False
+            assert row["judge_passed"] is False
+            assert row["passed"] is False
+            assert len(row["judge"]["rationale"]) <= 300
+            assert all(len(judge["rationale"]) <= 300 for judge in row["judges"])
         harness_report = json.loads(
             (output / arm / "report" / f"{date.today()}-tui-agent-scenarios.json").read_text()
         )
         assert harness_report["metadata"]["fixture_replay"]
-        assert harness_report["metadata"]["judges"]["claude"] == "grok"
+        assert harness_report["metadata"]["judge"] == {
+            "mode": "panel",
+            "routes": {
+                "claude": ["grok", "codex"],
+                "codex": ["grok", "claude"],
+                "gemini": ["codex", "claude"],
+                "grok": ["codex", "claude"],
+            },
+        }
+        assert report["metadata"]["judge"][arm] == harness_report["metadata"]["judge"]
+        assert harness_report["cli_invocations"] == {
+            "claude": {"agent": 10, "judge": 0},
+            "grok": {"agent": 0, "judge": 10},
+            "codex": {"agent": 0, "judge": 10},
+            "gemini": {"agent": 0, "judge": 0},
+        }
+        assert set(harness_report["isolation"]) == {"claude", "grok", "codex"}
         assert all(not value["verified"] for value in harness_report["isolation"].values())
     assert not state.exists()
     table = (output / "ablation.md").read_text()
     assert "Judge rationale | Proxy rewrites" in table
+    assert "Judge verdicts | Aggregate judge pass" in table
+    assert table.count("grok: fail; codex: fail") == 40
+    assert "unanimous judge approval" in table
     assert "Scripted fixture" in table
+    capsys.readouterr()
+
+
+@pytest.mark.parametrize(
+    "grok_passed,codex_passed,codex_models,agreed,passed,pass_rate",
+    [
+        (True, True, [], True, True, 1.0),
+        (True, False, [], False, False, 0.0),
+        (False, True, [], False, False, 0.0),
+        (True, True, ["fixture/model"], False, False, 0.0),
+    ],
+)
+def test_panel_requires_unanimous_verdicts_and_uses_aggregate_for_pass_rate(
+    tmp_path, monkeypatch, capsys, grok_passed, codex_passed, codex_models,
+    agreed, passed, pass_rate,
+):
+    replay_launch = ablation.FixtureReplay.launch
+
+    def scripted_launch(self, cli, config, workspace, prompt, *, mcp_enabled, **kwargs):
+        execution = replay_launch(
+            self, cli, config, workspace, prompt, mcp_enabled=mcp_enabled, **kwargs,
+        )
+        if not mcp_enabled:
+            models = codex_models if cli == "codex" else []
+            execution.transcript.final_answer = json.dumps({
+                "passed": codex_passed if cli == "codex" else grok_passed,
+                "rationale": f"Scripted {cli} verdict.",
+                "top_models": models,
+                "answer_kind": "single" if models else "abstain",
+                "missing_capabilities": [],
+            })
+        return execution
+
+    monkeypatch.setattr(ablation.FixtureReplay, "launch", scripted_launch)
+    output = tmp_path / "out"
+    assert ablation.main([
+        "--dry-run", "--arms", "baseline", "--scenario", "budget-approved",
+        "--out", str(output), "--state-dir", str(tmp_path / "state"),
+    ]) == 0
+    report = json.loads((output / "ablation.json").read_text())
+    row = report["runs"][0]
+    assert [(judge["cli"], judge["passed"]) for judge in row["judges"]] == [
+        ("grok", grok_passed), ("codex", codex_passed),
+    ]
+    assert row["judge"]["strategy"] == "panel"
+    assert row["judge"]["agreed"] is agreed
+    assert row["judge"]["passed"] is passed
+    assert row["judge_passed"] is passed
+    assert row["variant_applied"] is True
+    assert row["passed"] is passed
+    assert report["arms"]["baseline"] == {
+        "passed": int(passed), "total": 1, "pass_rate": pass_rate,
+    }
+    verdicts = (
+        f"grok: {'pass' if grok_passed else 'fail'}; "
+        f"codex: {'pass' if codex_passed else 'fail'}"
+    )
+    assert f"| {verdicts} | {passed} |" in (output / "ablation.md").read_text()
+    capsys.readouterr()
+
+
+def test_codex_readiness_is_required_before_the_fixture_agent_runs(tmp_path, monkeypatch, capsys):
+    replay_runner = ablation.FixtureReplay.runner
+
+    def unavailable_codex(self, config, output, scenarios):
+        runner = replay_runner(self, config, output, scenarios)
+        runner.isolation["codex"].update(verified=False, reason="Scripted Codex doctor failure")
+        return runner
+
+    monkeypatch.setattr(ablation.FixtureReplay, "runner", unavailable_codex)
+    output = tmp_path / "out"
+    assert ablation.main([
+        "--dry-run", "--arms", "baseline", "--scenario", "budget-approved",
+        "--out", str(output), "--state-dir", str(tmp_path / "state"),
+    ]) == 0
+    report = json.loads((output / "ablation.json").read_text())
+    row = report["runs"][0]
+    assert row["status"] == "judge_unavailable"
+    assert row["judges"] == []
+    assert [(execution["cli"], execution["status"]) for execution in row["judge_executions"]] == [
+        ("codex", "isolation_failed"),
+    ]
+    assert row["judge_passed"] is False
+    assert row["passed"] is False
+    assert report["arms"]["baseline"] == {"passed": 0, "total": 1, "pass_rate": 0.0}
+    harness_report = json.loads(
+        (output / "baseline/report" / f"{date.today()}-tui-agent-scenarios.json").read_text()
+    )
+    assert harness_report["cli_invocations"] == {
+        "claude": {"agent": 0, "judge": 0},
+        "grok": {"agent": 0, "judge": 0},
+        "codex": {"agent": 0, "judge": 0},
+        "gemini": {"agent": 0, "judge": 0},
+    }
     capsys.readouterr()
 
 
@@ -317,3 +506,5 @@ def test_docstring_contains_exact_launcher_and_private_doctor_command():
     assert "python -m qa.run_with_modelspec_key" in ablation.__doc__
     assert "python -m qa.ablation doctor" in ablation.__doc__
     assert "--state-dir /private/tmp/claude-501/m339/ablation-state" in ablation.__doc__
+    assert "receipts for Claude, Grok and Codex" in ablation.__doc__
+    assert "Both judges must agree and pass" in ablation.__doc__
