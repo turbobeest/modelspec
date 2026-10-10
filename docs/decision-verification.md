@@ -160,14 +160,19 @@ also binds the fine-tune when that licence says derivatives must be
 distributed under its terms or remain subject to them. The binding page's
 own YAML front matter `base_model` entry, a string or a list of repository
 ids, has to list the claimed base. The comparison is the full repository id,
-case-insensitive. A prose mention of the base does not count, and neither
-does an unfenced `base_model:` line. The returned rule is `base-model`. MIT
+case-insensitive. Fenced YAML counts. So do the leading `key: value` lines
+of a normalised page, whose fences the text normaliser has already dropped,
+including a list written as `base_model:` and then `- id`. A heading, a
+blank line, or any other line ends that block. A prose mention of the base
+does not count. The returned rule is `base-model`. MIT
 and Apache-2.0 do not say that, so they do not bind by this path.
 
 The derivative-terms check is one sentence. Its subject is the derivatives,
 and it says they are or remain subject to, or must or shall be distributed
-under, these or this terms, licence, or agreement. `not`, `no`, and `need
-not` reject the sentence. A definition of "Model Derivatives", and a later
+under, these or this terms, licence, or agreement. `derivatives` opens the
+sentence or follows whitespace. `Non-derivatives` does not count. `not`,
+`no`, `none`, and `need not` anywhere in the match reject the sentence. A
+definition of "Model Derivatives", and a later
 grant preamble ("Subject to the terms and conditions of this License,
 Licensor grants ..."), do not match. The retained Gemma terms match because
 they say Model Derivatives are subject to the use restrictions and the next

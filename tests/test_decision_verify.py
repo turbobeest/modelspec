@@ -21,6 +21,8 @@ from typer.testing import CliRunner
 
 from decision import verify
 from decision.model import (
+    CitedRegion,
+    Source,
     SourceRef,
     TargetRef,
     Verification,
@@ -28,6 +30,7 @@ from decision.model import (
     VerificationTarget,
     value_hash,
 )
+from decision.normalise import NORMALISERS, normalise_document
 from decision.sources import CopyStore, RecheckReport, SourceSnapshot, SourceState
 
 FIXTURES = Path(__file__).parent / "fixtures" / "verification"
@@ -3414,7 +3417,7 @@ def test_base_model_binding_requires_front_matter() -> None:
     )
     assert _bound_gemma_page(prose) is None
     unfenced = "base_model: google/gemma-3-12b-pt\n" + _GEMMA_URL + "\n"
-    assert _bound_gemma_page(unfenced) is None
+    assert _bound_gemma_page(unfenced) == "base-model"
     assert _bound_gemma_page(_GEMMA_PAGE) == "base-model"
     listed = (
         "---\n"
@@ -3425,6 +3428,69 @@ def test_base_model_binding_requires_front_matter() -> None:
         + "\n"
     )
     assert _bound_gemma_page(listed) == "base-model"
+
+
+def test_a_normalised_readme_still_declares_its_base_model(tmp_path) -> None:
+    """The verifier reads a StoredRegions copy. text-default has dropped the fences."""
+    readme = (
+        "---\n"
+        "license: other\n"
+        "base_model: google/gemma-3-12b-pt\n"
+        "---\n"
+        "# KaLM\n"
+        + _GEMMA_URL
+        + "\n"
+    )
+    listed = (
+        "---\n"
+        "license: other\n"
+        "base_model:\n"
+        "  - google/gemma-3-12b-pt\n"
+        "---\n"
+        "# KaLM\n"
+        + _GEMMA_URL
+        + "\n"
+    )
+    prose = (
+        "---\n"
+        "license: other\n"
+        "---\n"
+        "unlike Gemma 3 12B (see https://ai.google.dev/gemma/terms). "
+        "The weights follow google/gemma-3-12b-pt.\n"
+        + _GEMMA_URL
+        + "\n"
+    )
+
+    def region(body: str) -> str:
+        raw = b"\xef\xbb\xbf" + body.replace("\n", "\r\n").encode()
+        store = CopyStore(tmp_path)
+        source = Source(
+            id="kalm-readme",
+            url="https://huggingface.co/tencent/KaLM-Embedding-Gemma3-12B-2511/raw/main/README.md",
+            normaliser="text-default",
+            kind="weights_repository",
+            cited_regions=[
+                CitedRegion(id="model-spec", locator={"kind": "page", "value": ""}),
+            ],
+        )
+        ref = store.put(raw)
+        text = verify.StoredRegions(store, {source.id: source}).text(
+            source.id, ref, "model-spec",
+        )
+        assert text is not None
+        assert text == normalise_document(raw, NORMALISERS["text-default"]).text
+        assert not text.startswith("---")
+        return text
+
+    bound = region(readme)
+    assert bound.startswith("license: other\nbase_model: google/gemma-3-12b-pt\n")
+    assert _bound_gemma_page(bound) == "base-model"
+    listed_text = region(listed)
+    assert "base_model:\n- google/gemma-3-12b-pt\n" in listed_text
+    assert _bound_gemma_page(listed_text) == "base-model"
+    prose_text = region(prose)
+    assert "base_model:" not in prose_text
+    assert _bound_gemma_page(prose_text) is None
 
 
 def test_derivative_terms_match_one_sentence_and_the_gemma_pair() -> None:
@@ -3439,6 +3505,12 @@ def test_derivative_terms_match_one_sentence_and_the_gemma_pair() -> None:
     assert verify.licence_requires_derivative_terms(
         "Derivatives need not be distributed under this licence; "
         "they shall remain subject to your own license."
+    ) is False
+    assert verify.licence_requires_derivative_terms(
+        "Derivatives are subject to none of these terms."
+    ) is False
+    assert verify.licence_requires_derivative_terms(
+        "Non-derivatives are subject to this licence."
     ) is False
     assert verify.licence_requires_derivative_terms(_GEMMA_RETAINED) is True
     assert verify.licence_requires_derivative_terms(

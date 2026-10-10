@@ -2674,11 +2674,13 @@ def _bound_on_pages(names: Sequence[str], pages: Sequence[str], licence_url: str
 
 #: One sentence. The subject is the derivatives. They are or remain subject to,
 #: or must or shall be distributed under, these or this terms, licence, or
-#: agreement. ``not``, ``no`` and ``need not`` in the gap reject the sentence.
-#: A grant preamble and a notice-retention sentence do not match.
+#: agreement. ``derivatives`` opens the sentence or follows whitespace, so a
+#: hyphen in ``non-derivatives`` does not count. ``not``, ``no``, ``none`` and
+#: ``need not`` anywhere in the match reject the sentence. A grant preamble
+#: and a notice-retention sentence do not match.
 _DERIVATIVE_TERMS = re.compile(
-    r"\b(?:model\s+)?derivatives?\b"
-    r"(?P<gap>[^.;!?]{0,220}?)"
+    r"(?:^|(?<=\s))(?:model\s+)?derivatives?\b"
+    r"[^.;!?]{0,220}?"
     r"(?:"
     r"(?:(?:must|shall)\s+)?(?:are|remain)\s+subject\s+to"
     r"|"
@@ -2690,12 +2692,12 @@ _DERIVATIVE_TERMS = re.compile(
     r"\b(?:terms|licen[cs]es?|licences?|agreements?)\b",
     re.IGNORECASE,
 )
-_NEGATED_DUTY = re.compile(r"\b(?:not|no|need\s+not)\b", re.IGNORECASE)
+_NEGATED_DUTY = re.compile(r"\b(?:not|no|none|need\s+not)\b", re.IGNORECASE)
 #: The retained Gemma terms split this duty across the next sentence. Either
 #: sentence alone is a Llama "copy of this Agreement" or an OpenRAIL
 #: use-restriction carry-over, and neither of those matches on its own.
 _GEMMA_DERIVATIVE_TERMS = re.compile(
-    r"\b(?:model\s+)?derivatives?\s+are\s+subject\s+to\s+the\s+use\s+restrictions\b"
+    r"(?:^|(?<=\s))(?:model\s+)?derivatives?\s+are\s+subject\s+to\s+the\s+use\s+restrictions\b"
     r".{0,240}?"
     r"\ba\s+copy\s+of\s+this\s+agreement\b",
     re.IGNORECASE | re.DOTALL,
@@ -2707,9 +2709,11 @@ def licence_requires_derivative_terms(text: str | None) -> bool:
 
     The sentence's subject is the derivatives. It says they are or remain
     subject to, or must or shall be distributed under, these or this terms,
-    licence, or agreement. ``not``, ``no`` and ``need not`` reject it. A grant
-    to prepare derivative works is not enough, and neither is a grant preamble
-    that only says the grant is subject to the licence.
+    licence, or agreement. ``derivatives`` opens the sentence or follows
+    whitespace. ``Non-derivatives`` does not count. ``not``, ``no``, ``none``
+    and ``need not`` anywhere in the match reject it. A grant to prepare
+    derivative works is not enough, and neither is a grant preamble that only
+    says the grant is subject to the licence.
 
     The retained Gemma terms match by saying Model Derivatives are subject to
     the use restrictions and, in the next sentence, that recipients of those
@@ -2722,10 +2726,11 @@ def licence_requires_derivative_terms(text: str | None) -> bool:
         return False
     flat = re.sub(r"\s+", " ", text)
     for match in _DERIVATIVE_TERMS.finditer(flat):
-        if _NEGATED_DUTY.search(match.group("gap")):
+        if _NEGATED_DUTY.search(match.group(0)):
             continue
         return True
-    return _GEMMA_DERIVATIVE_TERMS.search(flat) is not None
+    gemma = _GEMMA_DERIVATIVE_TERMS.search(flat)
+    return gemma is not None and _NEGATED_DUTY.search(gemma.group(0)) is None
 
 
 def licence_is_bound(names: Sequence[str], pages: Sequence[str], licence_url: str | None, *,
@@ -2763,9 +2768,12 @@ def licence_is_bound(names: Sequence[str], pages: Sequence[str], licence_url: st
 
     When none of those rules name the subject, a licence bound to
     ``base_model`` binds the subject too. The card field is ``base_model``.
-    The binding page's own YAML front matter must declare that base in
-    ``base_model`` (a string or a list of repository ids, compared
-    case-insensitively). A prose mention of the base does not count. The
+    The binding page declares that base in ``base_model`` (a string or a list
+    of repository ids, compared case-insensitively). Fenced YAML counts. So
+    do the leading ``key: value`` lines of a normalised page, whose fences
+    the text normaliser has already dropped, including a list written as
+    ``base_model:`` and then ``- id``. A heading, a blank line, or any other
+    line ends that block. A prose mention of the base does not count. The
     same link, url, repo-location and SPDX rules have to hold on that page,
     and :func:`licence_requires_derivative_terms` has to be true of the
     licence text. The returned rule is ``base-model``. No ``base_model``, a
@@ -2795,20 +2803,73 @@ def licence_is_bound(names: Sequence[str], pages: Sequence[str], licence_url: st
     return None
 
 
-def _front_matter_mapping(page: str) -> Mapping[str, Any] | None:
-    """The fenced YAML mapping, or ``None`` when the page has no front matter."""
-    if not page.startswith("---"):
-        return None
-    parts = page.split("---", 2)
-    if len(parts) < 3 or parts[0].strip():
-        return None
+# A normalised page has no fences: ``---`` is only punctuation, so text-default
+# drops it. The front matter is then the leading ``key: value`` lines. A colon
+# has to be followed by a space, so a URL (``https://``) is not a key.
+_KEY_LINE = re.compile(
+    r"^[A-Za-z_][\w-]*[ \t]*:(?:[ \t]+(?P<value>\S(?:.*\S)?)|[ \t]*)$"
+)
+_LIST_ITEM = re.compile(r"^[ \t]*-[ \t]+\S")
+_HEADING_LINE = re.compile(r"^[ \t]*#[ \t]*\S")
+
+
+def _load_mapping(text: str) -> Mapping[str, Any] | None:
     try:
-        data = yaml.safe_load(parts[1])
+        data = yaml.safe_load(text)
     except yaml.YAMLError:
         return None
     if not isinstance(data, dict):
         return None
     return data
+
+
+def _fenced_front_matter(page: str) -> str | None:
+    """The text between opening fences, or ``None`` when the page has none."""
+    if not page.startswith("---"):
+        return None
+    parts = page.split("---", 2)
+    if len(parts) < 3 or parts[0].strip():
+        return None
+    return parts[1]
+
+
+def _leading_mapping_block(page: str) -> str:
+    """Leading ``key: value`` lines, including ``base_model:`` then ``- id``.
+
+    A heading, a blank line, or any other line ends the block. That is the
+    front matter left after the text normaliser drops the fences.
+    """
+    taken: list[str] = []
+    in_list = False
+    for line in page.splitlines():
+        if not line.strip():
+            if taken:
+                break
+            continue
+        if _HEADING_LINE.match(line):
+            break
+        key = _KEY_LINE.match(line)
+        if key:
+            taken.append(line)
+            in_list = key.group("value") is None
+            continue
+        if in_list and _LIST_ITEM.match(line):
+            taken.append(line)
+            continue
+        break
+    return "\n".join(taken)
+
+
+def _front_matter_mapping(page: str) -> Mapping[str, Any] | None:
+    """The page's YAML mapping, fenced or the normalised leading keys."""
+    text = page.lstrip("\ufeff")
+    fenced = _fenced_front_matter(text)
+    if fenced is not None:
+        return _load_mapping(fenced)
+    block = _leading_mapping_block(text)
+    if not block:
+        return None
+    return _load_mapping(block)
 
 
 def _declared_base_models(page: str) -> tuple[str, ...]:
