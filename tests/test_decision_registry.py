@@ -281,7 +281,11 @@ def test_licence_definitions_record_the_notice_output_and_base_readings(registry
         "Whether the licence or terms let a customer use the model's outputs to "
         "train or improve another model. `restricted` or `prohibited` only where "
         "the licence or terms expressly address training on those outputs, on "
-        "synthetic data from them, or distillation from them. A generic "
+        "synthetic data from them, or distillation from them. `restricted` when "
+        "the text expressly allows that only for some purposes or models, for "
+        "example not for a competing model, or makes a model trained on outputs a "
+        "derivative subject to the licence's restrictions. `prohibited` when the "
+        "text expressly forbids it for every purpose. A generic "
         "modification or derivative-works clause that never mentions outputs is "
         "not that. Silence is not disclosed. " + _INHERITS
     )

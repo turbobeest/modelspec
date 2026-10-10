@@ -3264,7 +3264,11 @@ def _canonical_licence_id(text: str) -> str | None:
     file with a different copyright line is not read here until that residual
     is reviewed and added in code. The licence reader then reads the text.
     """
-    if "notices is not a condition" not in LICENCE_CONDITION_RULE:
+    if (
+        "Keeping a copyright, licence, NOTICE or change notice, as MIT and "
+        "Apache-2.0 require, is not attribution and not a condition."
+        not in LICENCE_CONDITION_RULE
+    ):
         return None
     form = _canonical_form(text)
     if any(flag in form.casefold() for flag in CANONICAL_LICENCE_RED_FLAGS):

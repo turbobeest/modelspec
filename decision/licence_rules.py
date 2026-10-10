@@ -3,21 +3,24 @@
 Jamie decided these readings on 2026-10-09. The collector and the licence
 reader both apply them.
 
-Keeping an MIT or Apache copyright, licence or NOTICE notice is not
-attribution. Notice retention is never a condition on any ``licence.*``
-facet. MIT and Apache-2.0 are permitted for commercial use and for
-fine-tuning.
+Keeping a copyright, licence, NOTICE or change notice, as MIT and
+Apache-2.0 require, is not attribution and not a condition. MIT and
+Apache-2.0 are permitted for commercial use and for fine-tuning.
 
 ``licence.output_training`` is restricted or prohibited only where the
 licence expressly addresses using the model's outputs, or synthetic data
 or distillation from those outputs, to train or improve another model, and
-limits or forbids that use. A generic modification or derivative-works
-clause that never mentions outputs is not that. A silent licence is
-not_disclosed. The Gemma Terms define Model Derivatives to include a model
-trained on synthetic data Outputs of Gemma, or by distillation, and they
-subject those models to the Terms' restrictions, so that text is restricted.
-MIT, Apache-2.0, and a custom licence that only grants modification are
-not_disclosed.
+limits or forbids that use. The value is restricted when the text expressly
+allows that only for some purposes or models, for example not for a
+competing model, or makes a model trained on outputs a derivative subject
+to the licence's restrictions. The value is prohibited when the text
+expressly forbids it for every purpose. A generic modification or
+derivative-works clause that never mentions outputs is not that. A silent
+licence is not_disclosed. The Gemma Terms define Model Derivatives to
+include a model trained on synthetic data Outputs of Gemma, or by
+distillation, and they subject those models to the Terms' restrictions, so
+that text is restricted. MIT, Apache-2.0, and a custom licence that only
+grants modification are not_disclosed.
 
 A fine-tune inherits its base model's licence terms where the base licence
 requires it. The card field is ``base_model``. For example,
@@ -28,11 +31,11 @@ google/gemma-3-12b-pt, and its LICENSE.txt embeds the Gemma terms.
 from __future__ import annotations
 
 #: What counts as a condition on every ``licence.*`` facet.
-#: Keeping an MIT or Apache notice is not attribution and not a condition.
+#: Keeping a copyright, licence, NOTICE or change notice, as MIT and
+#: Apache-2.0 require, is not attribution and not a condition.
 LICENCE_CONDITION_RULE = (
-    "Keeping an MIT or Apache copyright, licence or NOTICE notice is not "
-    "attribution and not a condition. "
-    "A duty to keep copyright, licence or change notices is not a condition. "
+    "Keeping a copyright, licence, NOTICE or change notice, as MIT and "
+    "Apache-2.0 require, is not attribution and not a condition. "
     "A condition is a display or naming duty, a separate agreement or licence, "
     "a security or other review, a user, revenue or other threshold, a territorial "
     "or field-of-use restriction, or an incorporated acceptable-use or prohibited-use policy."
@@ -77,7 +80,10 @@ LICENCE_READING_RULES: dict[str, str] = {
         "MIT, Apache-2.0, and a custom licence that only grants modification are not_disclosed. "
         "The value is permitted only when the text expressly allows using the outputs "
         "to train or improve another model. "
-        "The value is prohibited when the text expressly forbids it. "
+        "The value is restricted when the text expressly allows that only for some purposes "
+        "or models, for example not for a competing model, or makes a model trained on outputs "
+        "a derivative subject to the licence's restrictions. "
+        "The value is prohibited when the text expressly forbids it for every purpose. "
         "The value is not_disclosed when the text is silent."
     ),
 }

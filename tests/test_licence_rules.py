@@ -14,27 +14,34 @@ from decision.model import SourceRef, TargetRef, VerificationActor
 from decision.verify import LICENCE_PROMPT, Claim, _licence_prompt
 
 _NOTICE = (
-    "Keeping an MIT or Apache copyright, licence or NOTICE notice is not "
-    "attribution and not a condition."
+    "Keeping a copyright, licence, NOTICE or change notice, as MIT and "
+    "Apache-2.0 require, is not attribution and not a condition."
 )
-_OLD_DERIVATIVE = (
-    "makes a model trained on outputs a derivative subject to the licence's restrictions"
+_COMPETING_MODEL = (
+    "The value is restricted when the text expressly allows that only for some "
+    "purposes or models, for example not for a competing model, or makes a model "
+    "trained on outputs a derivative subject to the licence's restrictions. "
+    "The value is prohibited when the text expressly forbids it for every purpose."
 )
 
 
 def test_notice_retention_is_not_attribution_on_every_facet() -> None:
     assert _NOTICE in LICENCE_CONDITION_RULE
-    assert "notices is not a condition" in LICENCE_CONDITION_RULE
     for facet_id in LICENCE_READING_RULES:
         rule = licence_reading_rule(facet_id)
         assert _NOTICE in rule
         assert BASE_MODEL_INHERITANCE_RULE in rule
 
 
+def test_output_training_keeps_a_competing_model_limit_restricted() -> None:
+    rule = LICENCE_READING_RULES["licence.output_training"]
+    assert _COMPETING_MODEL in rule
+    assert _COMPETING_MODEL in licence_reading_rule("licence.output_training")
+
+
 def test_output_training_does_not_treat_a_plain_derivative_clause_as_restricted() -> None:
     rule = LICENCE_READING_RULES["licence.output_training"]
-    assert _OLD_DERIVATIVE not in rule
-    assert _OLD_DERIVATIVE not in licence_reading_rule("licence.output_training")
+    assert "generic modification or derivative-works clause" in rule
     assert rule == (
         "This facet is about using the model's outputs to train or improve another model. "
         "A grant to fine-tune or modify this model says nothing about it. "
@@ -49,7 +56,10 @@ def test_output_training_does_not_treat_a_plain_derivative_clause_as_restricted(
         "MIT, Apache-2.0, and a custom licence that only grants modification are not_disclosed. "
         "The value is permitted only when the text expressly allows using the outputs "
         "to train or improve another model. "
-        "The value is prohibited when the text expressly forbids it. "
+        "The value is restricted when the text expressly allows that only for some purposes "
+        "or models, for example not for a competing model, or makes a model trained on outputs "
+        "a derivative subject to the licence's restrictions. "
+        "The value is prohibited when the text expressly forbids it for every purpose. "
         "The value is not_disclosed when the text is silent."
     )
 

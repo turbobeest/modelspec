@@ -145,9 +145,9 @@ are left for the licence reader.
 
 Each facet is mapped to a value with a clause quoted from the text. The
 table's rule key is that facet's key in `LICENCE_READING_RULES`.
-`LICENCE_CONDITION_RULE` applies. Keeping an MIT or Apache copyright, licence
-or NOTICE notice is not attribution and not a condition. A duty to keep a
-copyright, licence, or change notice is not a condition. For both licences,
+`LICENCE_CONDITION_RULE` applies. Keeping a copyright, licence, NOTICE or
+change notice, as MIT and Apache-2.0 require, is not attribution and not a
+condition. For both licences,
 `licence.commercial_use` is `permitted` ("sell copies of the Software" for
 MIT, and section 3 "make, have made, use, offer to sell, sell" for
 Apache-2.0). `licence.user_cap` is `unbounded`. `licence.output_training` is
@@ -172,9 +172,9 @@ includes the condition rule, the rule for the claim's facet, and
 records that same rule key on every value, and files the card's `base_model`
 on the claim.
 
-On every `licence.*` facet, keeping an MIT or Apache copyright, licence or
-NOTICE notice is not attribution and not a condition. A duty to keep a
-copyright, licence or change notice is not a condition. A condition is a
+On every `licence.*` facet, keeping a copyright, licence, NOTICE or change
+notice, as MIT and Apache-2.0 require, is not attribution and not a
+condition. A condition is a
 display or naming duty, a separate agreement or licence, a security or other
 review, a user, revenue or other threshold, a territorial or field-of-use
 restriction, or an incorporated acceptable-use or prohibited-use policy.
@@ -203,10 +203,13 @@ restriction, or an incorporated acceptable-use or prohibited-use policy.
   distillation from those outputs, to train or improve another model, and
   limits or forbids that use. A generic modification or derivative-works
   clause that never mentions outputs is not that. `permitted` only when the
-  text expressly allows it. `prohibited` when the text expressly forbids it.
-  `not_disclosed` when the text is silent. The Gemma Terms define Model
-  Derivatives to include a model trained on synthetic data Outputs of Gemma,
-  or by distillation, and they subject those models to the Terms'
+  text expressly allows it. `restricted` when the text expressly allows that
+  only for some purposes or models, for example not for a competing model,
+  or makes a model trained on outputs a derivative subject to the licence's
+  restrictions. `prohibited` when the text expressly forbids it for every
+  purpose. `not_disclosed` when the text is silent. The Gemma Terms define
+  Model Derivatives to include a model trained on synthetic data Outputs of
+  Gemma, or by distillation, and they subject those models to the Terms'
   restrictions, so that text is `restricted`. MIT, Apache-2.0, and a custom
   licence that only grants modification are `not_disclosed`.
 
