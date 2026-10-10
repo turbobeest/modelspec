@@ -62,6 +62,8 @@ def _absence_reason(facet: str, pages: list[tuple[str, str]], reason: str | None
             "no retained config.json; trimmed API metadata "
             "and README cannot establish config absence"
         )
+    if reason == "non_dense_config_required":
+        return "cited retained config does not establish a MoE, hybrid or SSM architecture"
     if reason == "retained_readme_required":
         return "no retained README to check for active or effective parameter wording"
     if reason == "retained_census_required":

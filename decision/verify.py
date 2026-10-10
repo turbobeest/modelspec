@@ -2160,10 +2160,13 @@ def _populated_ple(config: Mapping[str, Any]) -> bool:
 def _nontext_tower(config: Mapping[str, Any]) -> bool:
     return any(
         value is not None
-        and re.search(
-            r"(?:vision|audio|image|video|speech).*?(?:config|encoder|tower)"
-            r"|(?:encoder|tower).*?(?:vision|audio|image|video|speech)",
-            key, re.I,
+        and (
+            key.casefold() in {"img_processor", "audio_processor", "visual"}
+            or re.search(
+                r"(?:vision|audio|image|video|speech).*?(?:config|encoder|tower)"
+                r"|(?:encoder|tower).*?(?:vision|audio|image|video|speech)",
+                key, re.I,
+            )
         )
         for part in _config_maps(config)
         for key, value in part.items()
@@ -2205,9 +2208,6 @@ def hf_config_architecture(config: Mapping[str, Any]) -> str | None:
     ):
         backbone = config.get("text_config", config)
         if isinstance(backbone, Mapping):
-            pure_recurrent = re.fullmatch(
-                r"mamba2?|rwkv.*", str(backbone.get("model_type", "")), re.I
-            )
             attention = any(
                 type(part.get(key)) is int and part[key] > 0
                 for part in _config_maps(backbone)
@@ -2219,9 +2219,26 @@ def hf_config_architecture(config: Mapping[str, Any]) -> str | None:
                 if isinstance(part.get(key), list)
                 for layer in part[key] if isinstance(layer, str)
             )
-            if pure_recurrent and not attention:
+            if attention:
+                return ArchitectureType.HYBRID_SSM_TRANSFORMER.value
+            ssm = re.compile(r"mamba|ssm|rwkv|recurrent", re.I)
+            if any(
+                ssm.search(key)
+                or (key == "model_type" and isinstance(value, str) and ssm.search(value))
+                or (
+                    key in {"layer_types", "layers_block_type"}
+                    and isinstance(value, list)
+                    and any(
+                        isinstance(layer, str)
+                        and (ssm.search(layer) or layer in {"linear_attention", "linear-attention"})
+                        for layer in value
+                    )
+                )
+                for part in parts
+                for key, value in part.items()
+            ):
                 return ArchitectureType.SSM.value
-        return ArchitectureType.HYBRID_SSM_TRANSFORMER.value
+        return None
     backbone = config.get("text_config", config)
     if not isinstance(backbone, Mapping):
         return None
@@ -2399,12 +2416,12 @@ _ACTIVE_LABEL = r"(?:active|activated|effective)\s+(?:parameters|params)"
 _TOTAL_LABEL = r"(?:number\s+of\s+)?(?:total\s+)?(?:parameters|params)"
 _PARAMETER_AMOUNT = r"\d+(?:\.\d+)?\s*(?:B|billion|M|million)"
 _ACTIVE_PROSE = re.compile(
-    rf"(?<![\w.])(?P<amount>{_PARAMETER_AMOUNT})\s+(?:{_ACTIVE_LABEL}|effective\b)",
+    rf"(?<![\w.])(?P<amount>{_PARAMETER_AMOUNT})\s+(?:{_ACTIVE_LABEL}|effective\b|activated\b)",
     re.I,
 )
 _TOTAL_PROSE = re.compile(
     rf"(?<![\w.])(?P<amount>{_PARAMETER_AMOUNT})\s+"
-    r"(?:total(?:\s+parameters)?|parameters(?:\s+in\s+total)?)\b",
+    r"(?:total(?:\s+parameters)?|parameters(?:\s+in\s+total)?|parameter(?=\s+model\b))\b",
     re.I,
 )
 _ACTIVE_VALUE = re.compile(rf"^(?P<amount>{_PARAMETER_AMOUNT})(?:\s+parameters)?$", re.I)
@@ -2780,13 +2797,31 @@ class ModelCardParamsExtractor:
                     r"[,;!?)]|\.(?=\s)|\b(?:while|whereas)\b",
                     line[match.end():], flags=re.I,
                 )[0]
-                if re.search(r"\b(?:models?\s+with|compared\s+with|unlike)\b", prefix, re.I):
+                own_description = re.fullmatch(
+                    r"\s+is\s+(?:a|an)\s+(?:(?:MoE|language)\s+)?model\s+with\s+"
+                    rf"(?:{_PARAMETER_AMOUNT}\s+total\s+parameters\s+with\s+)?",
+                    prefix[mentions[-1][1]:] if mentions and mentions[-1][2] else "",
+                    re.I,
+                )
+                if (
+                    re.search(r"\b(?:models?\s+with|compared\s+with|unlike)\b", prefix, re.I)
+                    and not own_description
+                ):
                     continue
+                own_total_suffix = re.fullmatch(
+                    rf"\s+out\s+of\s+{_PARAMETER_AMOUNT}\s+total\.?", suffix, re.I
+                )
+                if own_total_suffix:
+                    suffix = ""
+                if total_only and re.fullmatch(r"\s+model\.?", suffix, re.I):
+                    suffix = ""
                 if re.search(r"\b(?:of|compared\s+with|unlike|models?)\b", suffix, re.I):
                     continue
                 if _card_model_mentions(suffix, names):
                     continue
-                if mentions and mentions[-1][2]:
+                if (mentions and mentions[-1][2]) or (
+                    not prefix.strip() and own(heading) and own_total_suffix
+                ):
                     amount = match["amount"] if total_only else _parameter_amount(match["amount"])
                     out.append(Reading(subject, amount, "parameters"))
             index += 1
@@ -5326,8 +5361,8 @@ def _verify_architecture_fact(
     """Hardware readings use only scoped HF copies and deterministic readers.
 
     Config facets and totals have no absence rule. Active-parameter absence
-    needs a cited census and README without active/effective wording, and no
-    dense equality reading. Failed fetches are listed
+    needs a cited non-dense config, census and README without active/effective
+    wording, and no dense equality reading. Failed fetches are listed
     in checked_sources by the collector, never cited as readings.
     """
     readers = [
@@ -5426,6 +5461,19 @@ def _verify_architecture_fact(
             for text, url in pages
         ):
             return Result(claim.target, "skipped", reason="retained_census_required")
+        if not retained_config:
+            return Result(claim.target, "skipped", reason="retained_config_required")
+        if not any(
+            url.endswith("/config.json")
+            and (config := _hf_config(text)) is not None
+            and hf_config_architecture(config) in {
+                ArchitectureType.MOE.value,
+                ArchitectureType.HYBRID_SSM_TRANSFORMER.value,
+                ArchitectureType.SSM.value,
+            }
+            for text, url in pages
+        ):
+            return Result(claim.target, "skipped", reason="non_dense_config_required")
         actor = VerificationActor(
             agent=VERIFY_AGENT, model_family=DETERMINISTIC, method="hf-architecture-absence@1"
         )

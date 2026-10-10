@@ -417,10 +417,12 @@ The architecture rules inspect every config level, including the top level,
    that disable flag and blocks dense; an enabled flag with null counts also
    blocks dense. Rule 1 still takes priority for a routed count above one.
    Unfamiliar populated expert keys block dense even with a value of 0 or 1.
-3. Recurrent `mamba`, `mamba2`, and `rwkv*` backbones with no attention
-   heads or attention layers mean `SSM`. Mamba's `num_heads` counts SSM
-   heads and does not establish attention. Configs with recurrent and attention
-   layers remain `hybrid-SSM-transformer`. Other explicit `ssm`, `hybrid`,
+3. A recurrent or SSM config with no attention heads or attention layer types
+   means `SSM`, regardless of its `model_type`. This includes `falcon_mamba`.
+   Mamba's `num_heads` counts SSM heads and does not establish attention. Configs with recurrent and attention
+   layers mean `hybrid-SSM-transformer` only with positive attention evidence.
+   A hybrid marker alone without recurrent or attention evidence gives no reading.
+   Other explicit `ssm`, `hybrid`,
    or recurrent settings and `linear_attention` / `linear-attention` layer
    types also prevent dense classification. Nemotron-H's
    `hybrid_override_pattern` and Falcon-H1's `mamba_d_ssm` cannot be dense.
@@ -462,6 +464,9 @@ must match a subject name exactly after normalization, including hyphenated
 variants. `Alpha Lite` does not bind to `Alpha`. Prose that ties a count to
 other models, including `models with`, `of <Name>`, `compared with`, `unlike`,
 or a model mention after the count in the same clause, supplies no reading.
+Own descriptions such as `Alpha is a MoE model with 3B active parameters`
+and `Alpha has 3B active parameters out of 30B total` read 3B. A subject's
+`language model with 671B total parameters with 37B activated` reads 37B.
 More than one distinct own reading for a facet is ambiguous and cannot verify
 by selecting whichever agrees. Ranges, qualified bounds and phase-dependent
 counts do not become one scalar.
@@ -478,8 +483,8 @@ Active equals total only for a dense transformer or encoder-only backbone
 whose safetensors census contains exclusively `BF16`, `F16`, and `F32`
 counts. FP8 tensors and their scales, packed `I32` / `U8` weights, unknown
 dtypes, and a census with only `safetensors.total` cannot use this rule.
-A non-null non-text tower, such as `vision_config`, `audio_config`, or an
-image/audio encoder, prevents equality because the census includes parameters
+A non-null non-text tower, such as `vision_config`, `audio_config`,
+`img_processor`, `audio_processor`, `visual`, or an image/audio encoder, prevents equality because the census includes parameters
 that a text token never uses. A total stated for the subject in the card must
 agree with the census at its written precision. It also requires no blocking
 expert or recurrent settings at any config level, no positive PLE dimension
@@ -513,8 +518,10 @@ that a retained config cannot carry these facets, so they have no
 populated expert key without a readable count is a gap. A total-parameter
 absence is never verified from a README or config.
 
-An active-parameter absence requires both a cited retained HF API parameter
-census and a retained README, and fails when dense equality applies.
+An active-parameter absence requires a cited retained config that reads `MoE`,
+`hybrid-SSM-transformer`, or `SSM`, a cited retained HF API parameter census,
+and a retained README. Unknown architectures and missing configs remain gaps.
+Absence also fails when dense equality applies.
 The README must have no active, activated, or effective parameter wording at all. If wording is present
 but cannot bind to one scalar, the collector reports a gap with the quote
 and files no fact. DeepSeek V4.1 Flash's `8B / 16B` prefill/decode counts

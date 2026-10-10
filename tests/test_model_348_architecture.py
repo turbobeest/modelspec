@@ -292,14 +292,17 @@ def test_unparsed_active_wording_is_a_reported_gap_and_never_filed(tmp_path, rea
 
 def test_missing_config_never_files_config_absence_facts(tmp_path):
     tree(tmp_path)
-    collect(
+    payload = collect(
         tmp_path,
         dry_run=False,
         fetcher=FakeFetcher(None),
         store=CopyStore(tmp_path / "copies"),
     )
     pending, _ = Queue(tmp_path / "verification").pending()
-    assert {c.field for c in pending} == {"model.parameters_total", "model.parameters_active"}
+    assert {c.field for c in pending} == {"model.parameters_total"}
+    active = next(row for row in payload["rows"] if row["facet"] == "model.parameters_active")
+    assert (active["state"], active["value"]) == ("missing", None)
+    assert "no retained config.json" in active["reason"]
 
 
 def test_parameter_field_shorthand_is_verified_from_the_card_and_verified_total(tmp_path):

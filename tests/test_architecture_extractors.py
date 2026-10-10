@@ -295,6 +295,7 @@ def test_absence_checks_all_copies_and_never_calls_an_llm(tmp_path):
                 API_URL,
                 '{"id":"lab/Alpha","config":{"architectures":["MysteryModel"]},"safetensors":{"parameters":{"BF16":671000000000}}}',
             ),
+            ("config", CONFIG_URL, '{"model_type":"mixtral","num_local_experts":8}'),
             ("readme", README_URL, "# Alpha\nAlpha has 671B total parameters."),
         ],
     )
@@ -1526,4 +1527,303 @@ def test_round4_card_total_binding_and_precision(card, expected):
             ],
         )
         == expected
+    )
+
+
+@pytest.mark.parametrize(
+    "config,expected",
+    [
+        ({"model_type": "falcon_mamba", "state_size": 16, "conv_kernel": 4}, "SSM"),
+        ({"model_type": "x", "text_config": {"model_type": "mamba"}}, "SSM"),
+        ({"model_type": "rwkv7", "attention_hidden_size": 2048}, "SSM"),
+        ({"model_type": "mamba2", "num_heads": 24, "n_groups": 1}, "SSM"),
+        ({"model_type": "jamba", "num_attention_heads": 32, "num_experts": 1}, None),
+        ({"model_type": "zamba2", "num_attention_heads": 32}, None),
+        ({"model_type": "custom", "ssm_state_size": 16}, "SSM"),
+        ({"model_type": "falcon_mamba", "num_attention_heads": 32}, "hybrid-SSM-transformer"),
+        ({"model_type": "falcon_mamba", "layer_types": ["attention"]}, "hybrid-SSM-transformer"),
+        ({"model_type": "hybrid"}, None),
+        ({"model_type": "custom", "hybrid_override_pattern": "unknown"}, None),
+    ],
+)
+def test_round5_recurrent_probes(config, expected):
+    assert hf_config_architecture(config) == expected
+
+
+@pytest.mark.parametrize(
+    "config,outcome,reason",
+    [
+        (None, "skipped", "retained_config_required"),
+        (
+            {"model_type": "granite", "num_attention_heads": 32},
+            "skipped",
+            "non_dense_config_required",
+        ),
+        (
+            {"model_type": "exaone4", "num_attention_heads": 32},
+            "skipped",
+            "non_dense_config_required",
+        ),
+        (
+            {"model_type": "cohere2", "num_attention_heads": 32},
+            "skipped",
+            "non_dense_config_required",
+        ),
+        (
+            {"model_type": "smollm3", "num_attention_heads": 32},
+            "skipped",
+            "non_dense_config_required",
+        ),
+        (
+            {"model_type": "internlm3", "num_attention_heads": 32},
+            "skipped",
+            "non_dense_config_required",
+        ),
+        ({"model_type": "falcon_mamba", "num_attention_heads": 32}, "verified", None),
+        ({"model_type": "falcon_mamba", "state_size": 16}, "verified", None),
+        ({"model_type": "mixtral", "num_experts": 8}, "verified", None),
+        (
+            {
+                "model_type": "gemma3",
+                "text_config": {"model_type": "gemma3_text", "num_attention_heads": 16},
+                "vision_config": {"model_type": "siglip"},
+            },
+            "skipped",
+            "non_dense_config_required",
+        ),
+        ({"model_type": "llama", "num_attention_heads": 32}, "mismatch", None),
+        ({"model_type": "hybrid"}, "skipped", "non_dense_config_required"),
+    ],
+)
+def test_round5_active_absence_needs_a_cited_non_dense_config(tmp_path, config, outcome, reason):
+    docs = [
+        ("readme", README_URL, "# Alpha\nA model.\n"),
+        ("api", API_URL, '{"id":"lab/Alpha","safetensors":{"parameters":{"BF16":8030000000}}}'),
+    ]
+    if config is not None:
+        docs.append(("config", CONFIG_URL, json.dumps(config)))
+    regions, refs = retained(tmp_path, docs)
+    result = verify(
+        claim("model.parameters_active", None, refs),
+        regions,
+        deterministic_extractors(),
+        today=date(2026, 10, 10),
+    )
+    assert (result.outcome, result.reason) == (outcome, reason)
+    if outcome == "verified":
+        assert result.verification.method == "hf-architecture-absence@1"
+
+
+@pytest.mark.parametrize(
+    "text,expected",
+    [
+        ("Alpha is a MoE model with 3B active parameters.", [3_000_000_000]),
+        ("Alpha has 3B active parameters out of 30B total.", [3_000_000_000]),
+        ("3B active parameters out of 30B total", [3_000_000_000]),
+        (
+            "Alpha is a language model with 671B total parameters with 37B activated.",
+            [37_000_000_000],
+        ),
+        ("Alpha activates 3B active parameters of its 30B.", []),
+        ("Alpha: 30B total, 3B active parameters.", [3_000_000_000]),
+        ("Alpha, unlike Beta, has 3B active parameters.", []),
+        ("Alpha uses 3B active parameters (Beta uses 9B active parameters).", []),
+        ("Alpha uses 3B active parameters while Beta uses 9B active parameters.", [3_000_000_000]),
+        ("Alpha uses 3B active parameters, and Beta uses 9B active parameters.", [3_000_000_000]),
+        ("Beta uses 9B active parameters, and Alpha uses 3B active parameters.", [3_000_000_000]),
+        ("Alpha and Beta use 3B and 9B active parameters respectively.", []),
+        ("Alpha uses 3B active parameters versus 9B active parameters in Beta.", []),
+        (
+            "Alpha has 3B active parameters, vs. 9B active parameters for Beta-Large.",
+            [3_000_000_000],
+        ),
+        ("Alpha has 3B active parameters, Beta 9B active parameters.", [3_000_000_000]),
+        ("Alpha matches a model with 22B active parameters.", []),
+        ("Alpha matches a language model with 671B total parameters with 37B activated.", []),
+        ("Alpha matches 3B active parameters out of Beta's 30B total.", []),
+    ],
+)
+def test_round5_subject_prose_probes(text, expected):
+    assert [
+        reading.value
+        for reading in ModelCardParamsExtractor().extract(
+            claim("model.parameters_active"),
+            "# Alpha\n" + text,
+            page_url=README_URL,
+        )
+    ] == expected
+
+
+@pytest.mark.parametrize(
+    "tower,value,expected",
+    [
+        ("mm_vision_tower", "openai/clip", []),
+        ("img_processor", {"name": "clip"}, []),
+        ("audio_processor", {"name": "conformer"}, []),
+        ("visual", {"depth": 32}, []),
+        ("vision_config", None, [Reading("Alpha", 8_030_000_000, "parameters")]),
+        ("use_vision_tower", False, []),
+        ("img_processor", None, [Reading("Alpha", 8_030_000_000, "parameters")]),
+        ("audio_processor", None, [Reading("Alpha", 8_030_000_000, "parameters")]),
+        ("visual", None, [Reading("Alpha", 8_030_000_000, "parameters")]),
+    ],
+)
+def test_round5_nontext_tower_probes(tower, value, expected):
+    assert (
+        DenseActiveEqualsTotalExtractor().extract(
+            claim("model.parameters_active"),
+            json.dumps({"model_type": "llama", "num_attention_heads": 32, tower: value}),
+            page_url=CONFIG_URL,
+            bindings=[
+                ('{"id":"lab/Alpha","safetensors":{"parameters":{"BF16":8030000000}}}', API_URL),
+                ("# Alpha\nA model.\n", README_URL),
+            ],
+        )
+        == expected
+    )
+
+
+@pytest.mark.parametrize(
+    "card,expected",
+    [
+        ("Alpha has 8B parameters.", [Reading("Alpha", 8_030_000_000, "parameters")]),
+        ("Alpha has 7B parameters.", []),
+        ("| Model | Parameters |\n|---|---|\n| Alpha | 9B |", []),
+        ("- Number of Parameters: 7.0B", []),
+        ("- Total Parameters: 6.2B", []),
+        ("Alpha is a 6B parameter model.", []),
+        ("Alpha is an 8B parameter model.", [Reading("Alpha", 8_030_000_000, "parameters")]),
+        ("| Model | Params |\n|---|---|\n| **Alpha** | 6B |", []),
+        (
+            "The model has 6.0B parameters in total.",
+            [Reading("Alpha", 8_030_000_000, "parameters")],
+        ),
+    ],
+)
+def test_round5_card_total_probes(card, expected):
+    assert (
+        DenseActiveEqualsTotalExtractor().extract(
+            claim("model.parameters_active"),
+            '{"model_type":"llama","num_attention_heads":32}',
+            page_url=CONFIG_URL,
+            bindings=[
+                ('{"id":"lab/Alpha","safetensors":{"parameters":{"BF16":8030000000}}}', API_URL),
+                ("# Alpha\n" + card, README_URL),
+            ],
+        )
+        == expected
+    )
+
+
+@pytest.mark.parametrize(
+    "card,value",
+    [
+        ("Alpha is a MoE model with 3B active parameters.", 3_000_000_000),
+        ("Alpha has 3B active parameters out of 30B total.", 3_000_000_000),
+        (
+            "Alpha is a language model with 671B total parameters with 37B activated.",
+            37_000_000_000,
+        ),
+    ],
+)
+def test_round5_own_prose_verifies_from_retained_readme(tmp_path, card, value):
+    regions, refs = retained(tmp_path, [("readme", README_URL, "# Alpha\n" + card)])
+    result = verify(
+        claim("model.parameters_active", value, refs),
+        regions,
+        deterministic_extractors(),
+        today=date(2026, 10, 10),
+    )
+    assert (result.outcome, result.reason) == ("verified", None)
+    assert result.verification.method == "model-card-params@1"
+
+
+def test_round5_uncited_config_cannot_support_active_absence(tmp_path):
+    regions, refs = retained(
+        tmp_path,
+        [
+            ("config", CONFIG_URL, '{"model_type":"mixtral","num_experts":8}'),
+            ("readme", README_URL, "# Alpha\nA model."),
+            ("api", API_URL, '{"id":"lab/Alpha","safetensors":{"parameters":{"BF16":8030000000}}}'),
+        ],
+    )
+    result = verify(
+        claim("model.parameters_active", None, refs[1:]),
+        regions,
+        deterministic_extractors(),
+        today=date(2026, 10, 10),
+    )
+    assert (result.outcome, result.reason) == ("skipped", "retained_config_required")
+
+
+@pytest.mark.parametrize(
+    "table,expected",
+    [
+        (
+            "| Property | **Alpha** | Alpha Lite |\n|---|---|---|\n| Active Parameters | 3B | 1B |",
+            [Reading("Alpha", 3_000_000_000, "parameters")],
+        ),
+        (
+            "| Property | `Alpha` |\n|---|---|\n| Active Parameters | 3B |",
+            [Reading("Alpha", 3_000_000_000, "parameters")],
+        ),
+        ("| Property | lab/Alpha |\n|---|---|\n| Active Parameters | 3B |", []),
+        (
+            "| Property | Alpha-Lite | Alpha |\n|---|---|---|\n| Active Parameters | 1B | 3B |",
+            [Reading("Alpha", 3_000_000_000, "parameters")],
+        ),
+        (
+            "| Model | Active Parameters |\n|---|---|\n| Alpha | 3B |\n| Alpha-Lite | 1B |",
+            [Reading("Alpha", 3_000_000_000, "parameters")],
+        ),
+        ("| Model | Active Parameters |\n|---|---|\n| [Alpha](https://hf.co/lab/Alpha) | 3B |", []),
+    ],
+)
+def test_round5_probe_table_bindings(table, expected):
+    assert (
+        ModelCardParamsExtractor().extract(
+            claim("model.parameters_active"),
+            "# Alpha\n\n" + table,
+            page_url=README_URL,
+        )
+        == expected
+    )
+
+
+@pytest.mark.parametrize(
+    "card,outcome,reason",
+    [
+        (
+            "Alpha has 3B active parameters.\n\n| Model | Active Parameters |\n"
+            "|---|---|\n| Alpha | 3.0B |",
+            "verified",
+            None,
+        ),
+        (
+            "Alpha has 3B active parameters.\n\nAlpha has 3.2B active parameters.",
+            "skipped",
+            "ambiguous_hf_reading",
+        ),
+    ],
+)
+def test_round5_probe_multiple_own_readings(tmp_path, card, outcome, reason):
+    regions, refs = retained(tmp_path, [("readme", README_URL, "# Alpha\n" + card)])
+    result = verify(
+        claim("model.parameters_active", 3_000_000_000, refs),
+        regions,
+        deterministic_extractors(),
+        today=date(2026, 10, 10),
+    )
+    assert (result.outcome, result.reason) == (outcome, reason)
+
+
+@pytest.mark.parametrize("heading", ["Beta", "Alpha Lite", "Alpha-Base"])
+def test_round5_standalone_count_requires_the_subject_heading(heading):
+    assert (
+        ModelCardParamsExtractor().extract(
+            claim("model.parameters_active"),
+            f"# {heading}\n3B active parameters out of 30B total",
+            page_url=README_URL,
+        )
+        == []
     )
