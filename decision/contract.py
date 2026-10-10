@@ -31,6 +31,7 @@ from pydantic import (
     ConfigDict,
     Discriminator,
     Field,
+    PrivateAttr,
     SerializerFunctionWrapHandler,
     StringConstraints,
     Tag,
@@ -1927,6 +1928,15 @@ class CoverageRefusal(_Strict):
 class Decision(_ExcludeIf):
     """The engine's answer to one spec against one snapshot."""
 
+    # Server-only inputs for testing candidates. Never serialized or ranked.
+    _feasible_models: tuple[str, ...] | None = PrivateAttr(default=None)
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, Decision):
+            return NotImplemented
+        # Runtime candidate inputs are outside the public contract's equality.
+        return all(getattr(self, name) == getattr(other, name) for name in type(self).model_fields)
+
     near_misses: list[NearMiss] = Field(default_factory=list)
     top: list[CandidateValues] = Field(default_factory=list)
     chart: str | None = None
@@ -2054,6 +2064,17 @@ class MemberEvidence(_Strict):
     omitted_items: int = Field(ge=0)
 
 
+class NextMove(_Strict):
+    """A next step that makes no quality pick. Added in bounded 1.2 (MODEL-339)."""
+
+    kind: Literal["ask_user", "decide_by_testing", "user_tiebreak"]
+    say: str
+    options: list[str]
+    steps: list[str]
+    candidates: list[ModelId] = Field(max_length=8)
+    candidates_total: int = Field(ge=0)
+
+
 class BoundedExplanation(_Strict):
     not_applied: list[str] = Field(default_factory=list)
     omitted: dict[str, int] = Field(default_factory=dict)
@@ -2067,12 +2088,12 @@ class BoundedExplanation(_Strict):
 #: it omits lists a complete Decision always carries (MODEL-59), so it never
 #: claims a `contract_version`. `projects_contract` names the complete contract
 #: its fields are projected from.
-BOUNDED_VERSION = "1.1"
+BOUNDED_VERSION = "1.2"
 
 BoundedDecision = create_model(
     "BoundedDecision", __base__=_Strict,
     representation=(Literal["bounded"], ...),
-    bounded_version=(Literal["1.1"], ...),
+    bounded_version=(Literal["1.2"], ...),
     projects_contract=(Decision.model_fields["contract_version"].annotation, ...),
     **{name: (Decision.model_fields[name].annotation, ...) for name in (
         "decision_id", "snapshot", "signature_verified", "spec_hash", "explain", "status",
@@ -2100,6 +2121,11 @@ BoundedDecision = create_model(
     #: Facts a report of this answer has to carry. Added in bounded 1.0 by
     #: MODEL-339. Optional, same rule as ``summary_for_user``.
     must_mention=(list[str], Field(default_factory=list)),
+    #: A deterministic next step on no_feasible, partial, or an answered tie
+    #: or null answer. Absent on an answered separated pick. Its say is the
+    #: fixed ending of summary_for_user. Added additively in bounded 1.2
+    #: (MODEL-339); no existing field changes range.
+    next_move=(NextMove | None, None),
 )
 
 
@@ -2118,7 +2144,7 @@ CONTRACT_TYPES: tuple[type[BaseModel], ...] = (
     Estate, EstateHold, EstateMark, EstateResult, EstateGap, GainItem, WithEstate,
     Access, PlanPrice, PlanCoverage, PlanAllowance, PlanRoute, FeedbackPointer, Reading,
     CoveredClass, CoverageRefusal,
-    ResponseOptions, DecideRequest, ProjectedResult, ModelEvidence, MemberEvidence,
+    ResponseOptions, DecideRequest, ProjectedResult, ModelEvidence, MemberEvidence, NextMove,
     BoundedExplanation, BoundedDecision,
 )
 

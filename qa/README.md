@@ -569,6 +569,59 @@ recorded as `api_reachable`. An API outage alone does not make the row
 excludable. Rows tagged `network_suspect` are listed in the report for
 explicit exclusion, and are never silently dropped or retried.
 
+### Abstention ablation (MODEL-339)
+
+`qa.ablation` measures whether Claude preserves ModelSpec's abstentions. Its
+QA-only local MCP proxy forwards the agent's Authorization header to production
+MCP and selects V1 next_move, V2 the Claude plugin, V3 the worked example, V4
+the annotated user summary, or all four. It never deploys a production change.
+V1 and combined double the keyed `/v1/decide` calls. Each agent decide call
+adds a complete fetch pinned to the same snapshot and `limit: 500`, the contract
+maximum. The proxy verifies both canonical identities and requires the complete
+answer to match the bounded answer. If the fetch still omits models, the call
+passes through, counts `candidates_truncated`, and invalidates the row's exposure
+proof. Its private counters also record fallback, clipping and budget
+passthrough. Proxy JSONL contains call IDs, flags, rewritten field names and byte
+sizes only.
+
+Merge both PRs in the QA checkout first. V2 and combined refuse if either
+harness lacks `--claude-plugin modelspec`. The Claude agent uses the default
+Grok + Codex judge panel from `tui_config.yaml`. Both judges receive identical
+prompts and must agree and pass; Claude never judges its own arm. The plugin is
+agent-only and is never passed to either judge. Docker Desktop containers use
+`http://host.docker.internal:8765/mcp`; the proxy binds `0.0.0.0`. Certify separate
+doctor receipts for Claude, Grok and Codex for every arm in a private directory,
+then run the tuning set:
+
+```sh
+python -m qa.ablation doctor --arms baseline v1 v2 v3 v4 combined \
+  --state-dir /private/tmp/claude-501/m339/ablation-state \
+  --out /private/tmp/claude-501/m339/ablation-doctor --port 8765
+op run --env-file=qa/subscription.env.op -- \
+  /Users/terbeest/dev/modelspec/.venv/bin/python -m qa.run_with_modelspec_key \
+  ablation --arms baseline v1 v2 v3 v4 combined --set tuning \
+  --state-dir /private/tmp/claude-501/m339/ablation-state \
+  --out /private/tmp/claude-501/m339/ablation-tuning --port 8765
+```
+
+Doctors make subscription canary calls. `--dry-run` replays public fixtures,
+opens no sockets and launches no CLI. Its scripted pass rates are not agent
+measurements. Reports stay beneath `--out`; this command never publishes them.
+The combined JSON and Markdown include every scenario, both judges' verdicts,
+the unanimous aggregate result, up to 300 characters of judge rationale and
+per-row proxy counts. Per-arm pass rates use the aggregate result and also
+require proof that the variant was applied. JSON retains each judge's execution
+status and panel routes. Receipts and checkpoints include the
+variant identity; the ordinary subscription-jobs state is refused.
+
+TUNING contains budget-approved, hardware-spark, prompt-code, prompt-maths,
+prompt-policy and recall-q01/q03/q04/q07/q09. HOLDOUT contains
+recall-q02/q05/q08/q10, must never tune copy, and runs only with
+`--arms baseline combined --set holdout` in a fresh output directory. The
+constants are in `qa/ablation.py`. For offline checks before PR B is merged,
+use `--dry-run --arms baseline v1 v3 v4` with fresh private `--out` and
+`--state-dir` paths.
+
 ### First manual run and schedules
 
 Build the ordinary images, then the two browser images. Login remains Jamie's

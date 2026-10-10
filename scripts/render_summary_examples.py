@@ -117,6 +117,7 @@ def render(service, snapshot) -> list[dict]:
             ),
             "summary_for_user": body.get("summary_for_user"),
             "must_mention": body.get("must_mention"),
+            "next_move": body.get("next_move"),
             "mcp_text_bytes": mcp_text_bytes(body),
         })
     return rows

@@ -65,7 +65,8 @@ REPOSITORIES = {"scenarios": "turbobeest/modelspec-data", "ux": "turbobeest/mode
                 "aeo": "turbobeest/modelspec-business"}
 
 
-def configuration(state: Path, *, browser_clis=(), quiet_hours=False, max_runs=None) -> dict:
+def configuration(state: Path, *, browser_clis=(), quiet_hours=False, max_runs=None,
+                  ablation_proxy=None, ablation_metadata=None, dry_run=False) -> dict:
     refuse_vendor_auth(os.environ)
     if os.environ.get("GITHUB_ACTIONS"):
         raise ValueError("Subscription jobs run locally, never in GitHub Actions")
@@ -79,7 +80,11 @@ def configuration(state: Path, *, browser_clis=(), quiet_hours=False, max_runs=N
     config["_receipt_max_age_days"] = 30
     if max_runs is not None:
         config["max_runs_per_cli"] = max_runs
-    tui_harness.validate_config(config)
+    if ablation_proxy:
+        tui_harness.apply_ablation_proxy(config, ablation_proxy, state,
+                                        metadata_path=ablation_metadata, dry_run=dry_run)
+    else:
+        tui_harness.validate_config(config)
     return config
 
 
@@ -158,6 +163,8 @@ def _scenario_checkpoint(output: Path, selected, scenarios, day: str, engine_sha
         "modelspec_key": modelspec_key_present(config),
         "judges": {cli: tui_harness.judges_for(cli, config["judges"]) for cli in selected},
     }
+    if "ablation" in config:
+        payload["ablation"] = config["ablation"]
     digest = hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()[:16]
     directory = output / "checkpoints"
     if directory.is_symlink():
@@ -372,6 +379,8 @@ def scenario_report(config, selected, scenarios, output, *, day, dry_run=False, 
                 "cli_invocations_scope": "final invocation only" if resumed else "whole run",
                 "engine_sha": engine_sha,
                 "max_runs_per_cli": config["max_runs_per_cli"], "isolation": isolation}
+    if "ablation" in config:
+        metadata["ablation"] = dict(config["ablation"])
     report = agent_harness.make_report(rows, scenarios, dry_run, Budget(0), day, metadata)
     report["partial"] = any(
         row["status"] == "quiet_hours" or any(
@@ -565,6 +574,8 @@ def main(argv=None) -> int:
     parser.add_argument("--business-repo", type=Path, default=Path.home() / "dev/modelspec-business")
     parser.add_argument("--state-dir", type=Path, default=DEFAULT_STATE,
                         help="The same private --out used for doctor")
+    parser.add_argument("--ablation-proxy", help="QA-only http://host.docker.internal:<port>/mcp")
+    parser.add_argument("--ablation-metadata", type=Path, help="Proxy manifest; required for proxy dry runs")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument(
         "--resume", action="store_true",
@@ -590,13 +601,19 @@ def main(argv=None) -> int:
             raise ValueError("--resume applies only to the scenarios job")
         if args.judge and args.job != "scenarios":
             raise ValueError("--judge applies only to the scenarios job")
+        if args.ablation_proxy and (args.job != "scenarios" or args.state_dir == DEFAULT_STATE):
+            raise ValueError("--ablation-proxy requires scenarios and its own private --state-dir")
+        if args.ablation_metadata and not args.ablation_proxy:
+            raise ValueError("--ablation-metadata requires --ablation-proxy")
         datetime.strptime(args.date, "%Y-%m-%d")
         # Gemini CLI no longer serves Google AI Pro; see GEMINI_RETIRED.
         scenario_clis = tuple(cli for cli in CLIS if cli != "gemini")
         selected = list(dict.fromkeys(args.cli or (("codex", "grok") if args.job == "ux" else scenario_clis)))
         config = configuration(args.state_dir, browser_clis=selected if args.job == "ux" else (),
                                quiet_hours=args.scheduled or args.quiet_hours,
-                               max_runs=args.max_runs_per_cli if args.max_runs_per_cli is not None else {"scenarios": 400, "ux": 40, "aeo": 64}[args.job])
+                               max_runs=args.max_runs_per_cli if args.max_runs_per_cli is not None else {"scenarios": 400, "ux": 40, "aeo": 64}[args.job],
+                               **({"ablation_proxy": args.ablation_proxy, "ablation_metadata": args.ablation_metadata,
+                                   "dry_run": args.dry_run} if args.ablation_proxy else {}))
         if args.judge:
             apply_judge_overrides(config, args.judge)
         state = tui_harness.private_output(args.state_dir)

@@ -8,7 +8,7 @@ info:
   version: '1.0'
   summary: Decides which AI models fit a job from your requirements, sourced evidence and real cost, and
     checks them against a compliance policy.
-  description: 'Start with the compact agent guide https://modelspec.dev/agents.md (version 1-0e4f7d2fdf880065).
+  description: 'Start with the compact agent guide https://modelspec.dev/agents.md (version 1-31f80fb67e121e42).
     Call decide early with a template-based Spec; refine from reading and recovery hints.
 
 
@@ -345,7 +345,7 @@ paths:
         an API key (Authorization: Bearer). Costs 1 credit a call; a credit costs $0.0053–$0.02 depending
         on the plan or pack (https://modelspec.dev/pricing/). Don''t call it as a fallback when decide
         names no single leader: report decide''s tie. Present `summary_for_user` to the user unchanged
-        and keep every `must_mention` item.'
+        and keep every `must_mention` item. When `next_move` is present, offer it instead of a pick.'
   /v1/decide:
     post:
       operationId: decide
@@ -391,7 +391,7 @@ paths:
         '200':
           description: 'A decision pinned to the snapshot that produced it: a complete Decision (contract_version
             2.15), or, when the request sends fields or evidence_for, the separate bounded representation
-            (representation: bounded, bounded_version 1.1, no contract_version).'
+            (representation: bounded, bounded_version 1.2, no contract_version).'
           content:
             application/json:
               schema:
@@ -516,9 +516,10 @@ paths:
         retry does not verify them. Report estimates as estimates: fits_hardware membership is not measured
         fit for a specific quantization and context workload. Follow reading.do_not_claim. Never claim
         a rank the response does not show. Present `summary_for_user` to the user unchanged and keep every
-        `must_mention` item. Needs an API key (Authorization: Bearer). Costs 1 or 2 credits a call; a
-        credit costs $0.0053–$0.02 depending on the plan or pack (https://modelspec.dev/pricing/). Not
-        a router: call it once per job or role, not per request, then route among the models it recommends.'
+        `must_mention` item. When `next_move` is present, offer it instead of a pick. Needs an API key
+        (Authorization: Bearer). Costs 1 or 2 credits a call; a credit costs $0.0053–$0.02 depending on
+        the plan or pack (https://modelspec.dev/pricing/). Not a router: call it once per job or role,
+        not per request, then route among the models it recommends.'
   /v1/compare:
     post:
       operationId: compareDecisions
@@ -2159,7 +2160,7 @@ components:
       additionalProperties: false
       properties:
         representation: {const: bounded, title: Representation, type: string}
-        bounded_version: {const: '1.1', title: Bounded Version, type: string}
+        bounded_version: {const: '1.2', title: Bounded Version, type: string}
         projects_contract: {const: '2.15', title: Projects Contract, type: string}
         decision_id: {title: Decision Id, type: string}
         snapshot: {title: Snapshot, type: string}
@@ -2202,6 +2203,11 @@ components:
           items: {type: string}
           title: Must Mention
           type: array
+        next_move:
+          anyOf:
+          - {$ref: '#/components/schemas/DecisionNextMove'}
+          - {type: 'null'}
+          default: null
       required: [representation, bounded_version, projects_contract, decision_id, snapshot, signature_verified,
         spec_hash, explain, status, answer, warnings, truncated, out_of_lineup, relax, relax_to, feedback,
         results, may_qualify, explanation]
@@ -3439,6 +3445,32 @@ components:
       required: [offering, condition]
       title: NearMiss
       type: object
+    DecisionNextMove:
+      additionalProperties: false
+      description: A next step that makes no quality pick. Added in bounded 1.2 (MODEL-339).
+      properties:
+        kind:
+          enum: [ask_user, decide_by_testing, user_tiebreak]
+          title: Kind
+          type: string
+        say: {title: Say, type: string}
+        options:
+          items: {type: string}
+          title: Options
+          type: array
+        steps:
+          items: {type: string}
+          title: Steps
+          type: array
+        candidates:
+          items: {pattern: '^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$', type: string}
+          maxItems: 8
+          title: Candidates
+          type: array
+        candidates_total: {minimum: 0, title: Candidates Total, type: integer}
+      required: [kind, say, options, steps, candidates, candidates_total]
+      title: NextMove
+      type: object
     DecisionNotOf:
       additionalProperties: false
       properties:
@@ -4463,7 +4495,7 @@ components:
           enum: [bounded]
         bounded_version:
           type: string
-          enum: ['1.1']
+          enum: ['1.2']
         projects_contract:
           type: string
           enum: ['2.15']
@@ -5997,4 +6029,4 @@ components:
       schema: {type: string, const: '<https://modelspec.dev/agents.md>; rel="describedby"'}
     AgentGuideVersion:
       description: Version of the byte-stable guide.
-      schema: {type: string, const: 1-0e4f7d2fdf880065}
+      schema: {type: string, const: 1-31f80fb67e121e42}

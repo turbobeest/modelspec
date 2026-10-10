@@ -5,7 +5,7 @@ Ranks models for your hardware, providers, profile and policy. Returns scores,
 cost, reasons and constraint eliminations.
 
 * `POST /v1/decide` — what fits your requirements:
-  [`decide-api.md`](decide-api.md). Only the bounded representation adds `summary_for_user` and `must_mention`.
+  [`decide-api.md`](decide-api.md). The bounded representation adds `summary_for_user`, `must_mention` and `next_move`.
 * `POST https://api.modelspec.dev/v1/rank` — **deprecated**; never a decide
   fallback.
 * `POST /v1/policy-check` — pass, fail or undetermined per model and platform

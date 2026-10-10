@@ -74,6 +74,12 @@ CONDUCT_RULES = (
 # rule: those eight stay a closed list.
 SUMMARY_RULE = (
     "Present `summary_for_user` to the user unchanged and keep every `must_mention` item."
+    " When `next_move` is present, offer it instead of a pick."
+)
+DECIDE_WORKED_EXAMPLE = (
+    " Example. Answer: status partial, answer.kind tied (a/x, b/y), next_move.kind decide_by_testing."
+    " Right report: summary_for_user verbatim, each must_mention item, then next_move.steps for its candidates."
+    ' Wrong: "Start with a/x", a shortlist, or a ranked table.'
 )
 SPEC_GUIDANCE = (
     "Call decide early with a template-based Spec; refine from reading and recovery hints. "
@@ -672,6 +678,7 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
             f"{BOUNDED_MCP} {BOUNDED_MCP_DETAIL}"
             "task free text is rejected; where is an array. "
             f"Call shape, examples, recovery and budgets: {GUIDE_URL}. {NULL_RULE}"
+            f"{DECIDE_WORKED_EXAMPLE}"
         ),
         "rank": (
             "Legacy v1; use decide. Deprecated: the retired fixed-benchmark "

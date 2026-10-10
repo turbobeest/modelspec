@@ -3,7 +3,7 @@
 Contract version: **2.15**
 
 The opt-in bounded HTTP response is a separate representation with its own
-version, **bounded 1.1**. It does not carry a 2.x `contract_version`. See
+version, **bounded 1.2**. It does not carry a 2.x `contract_version`. See
 [Bounded HTTP responses for agents](#bounded-http-responses-for-agents-model-293).
 
 A **spec** asks for a decision. A **decision** is the engine's answer to one
@@ -1100,7 +1100,7 @@ offering rows, not unique models, and never changes the full `answer.members`.
 #### A separate representation, versioned on its own
 
 Either non-null control opts into `BoundedDecision`, the **bounded
-representation, version 1.1**. It is not a 2.x minor version. A bounded body
+representation, version 1.2**. It is not a 2.x minor version. A bounded body
 omits lists that every 2.x Decision always carries (`by_model`, `eliminated`,
 `number_origins` and the other explanation sections), and its rows omit fields
 a 2.x `Result` requires. Under the [versioning rule](#versioning-model-59) a
@@ -1108,7 +1108,7 @@ field that may be absent is a widening, so labelling such a body as a 2.x
 contract would need a major bump. It is a different representation instead:
 
 - `representation` is always `"bounded"`. Branch on it first.
-- `bounded_version` is the bounded representation's own version, `"1.1"`. It
+- `bounded_version` is the bounded representation's own version, `"1.2"`. It
   follows the same MODEL-59 rule on its own: widening any bounded field bumps
   its major.
 - `projects_contract` names the complete contract the body is projected from,
@@ -1138,6 +1138,44 @@ elimination or a missing fact. Use a complete response to inspect those
 sections. `explain` still controls which details the engine computes; selecting
 `contributions` with `explain: none` returns an empty list.
 
+`next_move` is optional and additive in bounded 1.2. It is present on
+`no_feasible`, `partial`, and an `answered` tie or null answer, and absent on
+an answered separated pick. It has `kind` (`ask_user`, `decide_by_testing`,
+or `user_tiebreak`), `say`, `options`, `steps`, `candidates`, and
+`candidates_total`. The first applicable rule wins: `no_feasible` with computed
+`relax_single` asks which requirements can change; when `relax_single` is absent,
+it calls for testing the may-qualify models and says every model that meets the
+requirements lacks the objective values. An unmeasured need (`task_type`,
+`not_applied`, or a `fits_hardware` gate) calls for testing; a partial or null answer calls for
+testing; an answered tie offers a choice on cost, provider, or latency.
+Cost-only objectives leave out the cost choice. Hardware gates use hardware
+testing steps; soft hardware preferences do not add a need or hardware steps.
+Hardware SKUs form one need, joined as alternatives. It shows the first three
+distinct SKUs alphabetically; additional devices use `{skus} or {n} more devices`,
+or `{skus} or 1 more device` for a single additional device.
+The needs text shows at most three needs, then `and {n} more`; whole needs are
+omitted as necessary to keep that text within 600 UTF-8 bytes. At least one need
+must remain visible. If it cannot fit, the bounded request is refused with
+guidance to narrow the spec or request the complete Decision. Drop-one options
+follow the user's spec order, regardless of the order of `relax_single.gates`.
+When no single drop admits models, options list the hard gates from the spec.
+
+For null and partial answers, testing candidates come from the engine's full
+feasible set of distinct models after the hard conditions and reach, before
+objective ranking or `limit`, plus all may-qualify models. Their selection is
+independent of score and `limit`. Answered ties use the distinct answer members
+and may-qualify models. Candidates are alphabetical, capped at 8, and empty
+when fewer than 2; `candidates_total`
+counts the full set before trimming. No candidate carries a score or rank.
+When a partial answer names no missing dimension, the testing sentence names
+the objective; without an objective name, it uses the null-answer sentence.
+An `ask_user` move has no candidates. `summary_for_user` ends with exactly
+`next_move.say`. The summary reserves that ending before shortening its
+other lists; it never clips the ending. A spec whose ending and answer
+statement alone exceed the 1,200-byte summary budget is refused with guidance
+to narrow the spec or request the complete Decision. Both fields are computed
+from the full Decision before the bounded byte budget removes records.
+
 `member_evidence` is present only when the request did not send `evidence_for`,
 `explain` is `summary` or `full`, and `answer.members` is non-empty. It is
 absent when `explain` is `none`, when the decision has no answer, and on a
@@ -1164,9 +1202,14 @@ are on `contributions[].evidence` and on `member_evidence`.
 The bounded body stays within the agent byte budget. That budget is 16,384
 compact UTF-8 bytes for the MCP text as a whole (the origin envelope
 `{"origin":"https://api.modelspec.dev/v1/decide","status":200,"body":…}` plus
-the one-line `decisionSummary`). `RESPONSE_BYTES` is 16,384 minus that
-envelope and minus the longest summary line for a 61-byte model id, the
-longest id in the catalogue. When a projection is larger, whole records are removed until the compact body
+the second text content). On supported MCP protocol versions from 2024-11-05,
+that second text is exactly `summary_for_user`, with
+`annotations: { audience: ["user"] }`. A response without the paragraph or
+on an earlier protocol keeps the one-line `decisionSummary`.
+`RESPONSE_BYTES` is 16,384 minus the envelope and minus the larger of the
+1,200-byte paragraph cap and the longest legacy summary line for a 61-byte
+model id. The paragraph occurs in the JSON and in the second text, and both
+copies count. When a projection is larger, whole records are removed until the compact body
 fits, and `explanation.fetch` is included in that count. The order is: result
 rows that are neither the top result nor an answer member, then `evidence` and
 `contributions` on a repeat offering (a later result row whose model already
@@ -1192,18 +1235,19 @@ null. Each removal increments `explanation.omitted`. A tie whose
 `member_evidence` entries still do not fit loses entries from the end, and
 each lost entry increments `explanation.omitted` under `member_evidence`.
 `answer.members` stays the complete tie. `answer`, `status`, `warnings`,
-`coverage`, `summary_for_user`, `must_mention`, and the top result's rank,
+`coverage`, `summary_for_user`, `must_mention`, `next_move`, and the top result's rank,
 model, offering and warnings remain. If those essentials still exceed the
 budget, the call returns HTTP 400 `invalid_spec` and the issue says how to
 request the complete Decision. The
-one-model drill-down keeps its own 7,400-byte cap, and that cap includes `fetch`.
+one-model drill-down keeps a 6,731-byte cap including `fetch`, leaving room
+for the envelope and duplicate paragraph within its existing 2,000-token total.
 
 Drill-down returns no ranked result rows or may-qualify rows; their omission
 counts are explicit, and `model_evidence` is the one-model detail. A
 summariser reads the answer from `answer.members` and the one model from
 `model_evidence.model`, `status` and `rank`, never from the empty `results`. The complete
-answer remains unchanged. The compact UTF-8 body is capped at 7,400 bytes,
-leaving room for the MCP envelope and summary under 2,000 estimated tokens.
+answer remains unchanged. The compact UTF-8 body is capped at 6,731 bytes,
+leaving room for the MCP envelope and duplicate summary under 2,000 estimated tokens.
 If needed, whole evidence records or contributions are omitted and counted in
 `explanation.omitted`. Provenance fields are never cut off. If reporting
 necessities alone exceed this budget, the call returns HTTP 400 `invalid_spec`
@@ -1288,6 +1332,11 @@ three current explanation levels. Regenerate the MCP public fixture with
   is removed to fit the 16,384-byte MCP text. `summary_for_user` is one
   paragraph for the end user. `must_mention` lists the facts a report of that
   answer carries, at most 10 items.
+- **bounded 1.2 — MODEL-339 next_move:** Adds optional `next_move`. No existing
+  field changes range. `bounded_version` moves from `1.1` to `1.2`; neither
+  the CLI nor MCP pins `1.1`. The full Decision supplies the move before
+  trimming, and the 16,384-byte budget keeps it. `summary_for_user` reserves
+  its unchanged `say` as the fixed ending within 1,200 bytes.
 - **bounded 1.1 — MODEL-354:** Adds optional `member_evidence`. No existing
   field changes range. `bounded_version` moves from `1.0` to `1.1`. One entry
   per answer member carries that member's objective evidence, capped at 3

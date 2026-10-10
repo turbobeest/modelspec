@@ -555,7 +555,7 @@
           "title": "Answer"
         },
         "bounded_version": {
-          "const": "1.1",
+          "const": "1.2",
           "title": "Bounded Version",
           "type": "string"
         },
@@ -628,6 +628,17 @@
           },
           "title": "Must Mention",
           "type": "array"
+        },
+        "next_move": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/NextMove"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "out_of_lineup": {
           "title": "Out Of Lineup",
@@ -3605,6 +3616,63 @@
         "condition"
       ],
       "title": "NearMiss",
+      "type": "object"
+    },
+    "NextMove": {
+      "additionalProperties": false,
+      "description": "A next step that makes no quality pick. Added in bounded 1.2 (MODEL-339).",
+      "properties": {
+        "candidates": {
+          "items": {
+            "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+            "type": "string"
+          },
+          "maxItems": 8,
+          "title": "Candidates",
+          "type": "array"
+        },
+        "candidates_total": {
+          "minimum": 0,
+          "title": "Candidates Total",
+          "type": "integer"
+        },
+        "kind": {
+          "enum": [
+            "ask_user",
+            "decide_by_testing",
+            "user_tiebreak"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "options": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Options",
+          "type": "array"
+        },
+        "say": {
+          "title": "Say",
+          "type": "string"
+        },
+        "steps": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Steps",
+          "type": "array"
+        }
+      },
+      "required": [
+        "kind",
+        "say",
+        "options",
+        "steps",
+        "candidates",
+        "candidates_total"
+      ],
+      "title": "NextMove",
       "type": "object"
     },
     "NotOf": {

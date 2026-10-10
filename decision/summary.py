@@ -21,6 +21,7 @@ from decision.contract import (
     Decision,
     InSet,
     InventoryProfile,
+    Issue,
     Known,
     NotOf,
     Preference,
@@ -31,9 +32,10 @@ from decision.contract import (
     render_condition,
 )
 from decision.optimise import OBJECTIVE_GAP_PREFIX, OPTIMISER_DIAGNOSTICS
+from decision.next_move import applied_conditions as _applied_conditions, objective_is_cost_only
+from decision.wording import join_names
 from decision.reading import HARDWARE_FIT
 from decision.refinements import split_dimension
-from decision.resolve import resolve
 
 SUMMARY_BYTES = 1_200
 TIE_NAME_CAP = 8
@@ -121,6 +123,7 @@ def summarize(
     feasible: int | None = None,
     record_counts: Mapping[str, Mapping[str, tuple[int, int]]] | None = None,
     proxy_benchmarks: Mapping[str, Iterable[str]] | None = None,
+    next_move: dict | None = None,
 ) -> tuple[str, list[str]]:
     """Return ``(summary_for_user, must_mention)``.
 
@@ -151,28 +154,9 @@ def summarize(
     )
     summary = _summary(
         decision, spec, unapplied, mentions, conditions, feasible=feasible,
+        fixed_ending="" if next_move is None else next_move["say"],
     )
     return summary, [text for _kind, text in mentions]
-
-
-def _applied_conditions(
-    spec: Spec | None, profiles: Mapping[str, InventoryProfile] | None,
-) -> tuple:
-    """The condition list the engine filters on: profile rules, then ``where``.
-
-    ``resolve`` is that list. A hand-built spec the registry rejects still
-    uses the same order, so a summary of it does not drop the profile rules.
-    """
-    if spec is None:
-        return ()
-    try:
-        return tuple(resolve(spec, profiles=profiles).conditions)
-    except SpecError:
-        profile = spec.profile
-        if isinstance(profile, str):
-            profile = None if profiles is None else profiles.get(profile)
-        rules = tuple(profile.rules) if isinstance(profile, InventoryProfile) else ()
-        return rules + tuple(spec.where)
 
 
 def _count(value: int) -> str:
@@ -207,7 +191,16 @@ def _summary(
     conditions: tuple,
     *,
     feasible: int | None = None,
+    fixed_ending: str = "",
 ) -> str:
+    reserved = len((" " + fixed_ending).encode("utf-8")) if fixed_ending else 0
+    paragraph_bytes = SUMMARY_BYTES - reserved
+    if paragraph_bytes < len(_answer_sentence(decision, 1).encode("utf-8")):
+        raise SpecError([Issue(
+            None, "fields", "the next_move say and answer statement exceed the 1,200-byte summary budget; "
+            "use a narrower structured spec or POST /v1/decide without fields for the complete Decision",
+            "fields",
+        )])
     limits = {
         "single": 12,
         "tie": TIE_NAME_CAP,
@@ -245,7 +238,7 @@ def _summary(
     # On no_feasible "Requirements applied" repeats the exclude list, so the
     # repeat shortens before the list that explains the empty answer (MODEL-351).
     order = ("single", "applied", "hard", "prefer", "relax", "missing", "tie", "caveat")
-    while len(text.encode("utf-8")) > SUMMARY_BYTES:
+    while len(text.encode("utf-8")) > paragraph_bytes:
         key = next((name for name in order if limits[name] > floors[name]), None)
         single = decision.relax_single
         if (
@@ -268,9 +261,9 @@ def _summary(
             decision, spec, unapplied, visible, limits, conditions, joint_limit, feasible,
             omit_joint=omit_joint,
         )
-    if len(text.encode("utf-8")) > SUMMARY_BYTES:
-        text = _clip_paragraph(text)
-    return text
+    if len(text.encode("utf-8")) > paragraph_bytes:
+        text = _clip_paragraph(text, max_bytes=paragraph_bytes)
+    return text + (" " + fixed_ending if fixed_ending else "")
 
 
 def _compose(
@@ -1242,10 +1235,7 @@ def _cost_only(decision: Decision, spec: Spec | None) -> bool:
     claimed = reading is not None and _QUALITY_CLAIM in reading.do_not_claim
     if spec is None:
         return claimed
-    bases = _objective_bases(spec)
-    if not bases:
-        return claimed
-    return all(base in _monetary_objectives() for base in bases)
+    return objective_is_cost_only(spec)
 
 
 def _objective_bases(spec: Spec) -> list[str]:
@@ -1378,12 +1368,7 @@ def _keep_classes(items: list[tuple[str, str]], slots: int) -> list[tuple[str, s
 def _name_list(names: list[str], limit: int, *, more: str) -> str:
     shown = names[: max(limit, 1)]
     rest = len(names) - len(shown)
-    if len(shown) == 1:
-        listed = shown[0]
-    elif len(shown) == 2:
-        listed = f"{shown[0]} and {shown[1]}"
-    else:
-        listed = ", ".join(shown[:-1]) + ", and " + shown[-1]
+    listed = join_names(shown)
     if rest:
         listed += f", and {_count(rest)} more{more}"
     return listed
@@ -1400,30 +1385,6 @@ def _bounded(items: list[str], limit: int) -> str:
     return text
 
 
-def _monetary_objectives() -> frozenset[str]:
-    """Addressable offering objectives whose registry unit is a currency."""
-    from decision.registry import default
-
-    registry = default()
-    money = {
-        unit.id for unit in registry.units()
-        if _currency_unit(unit.id, unit.definition)
-    }
-    return frozenset(
-        facet.id for facet in registry.facets()
-        if facet.subject == "offering" and facet.addressable and facet.unit in money
-        and facet.value_type.kind == "number"
-    )
-
-
-def _currency_unit(unit_id: str, definition: str) -> bool:
-    code, separator, _rest = unit_id.partition("_")
-    if not separator or len(code) != 3 or not code.isalpha():
-        return False
-    text = definition.casefold()
-    return any(word in text for word in ("dollar", "yuan", "euro", "pound", "yen", "currency"))
-
-
 def _not_checked(requirement: str) -> str:
     sentence = requirement + _NOT_CHECKED
     if len(sentence.encode("utf-8")) <= MUST_MENTION_ITEM_BYTES:
@@ -1436,22 +1397,22 @@ def _clip_item(text: str) -> str:
     return _clip_to(text, MUST_MENTION_ITEM_BYTES)
 
 
-def _clip_paragraph(text: str) -> str:
+def _clip_paragraph(text: str, *, max_bytes: int = SUMMARY_BYTES) -> str:
     """Last resort: shorten the longest sentence, keeping the no-answer line."""
     parts = text.split(". ")
-    while len(". ".join(parts).encode("utf-8")) > SUMMARY_BYTES and len(parts) > 1:
+    while len(". ".join(parts).encode("utf-8")) > max_bytes and len(parts) > 1:
         index = max(range(1, len(parts)), key=lambda i: len(parts[i].encode("utf-8")))
         shortened = _clip_to(parts[index].rstrip("."), max(40, len(parts[index].encode("utf-8")) - 80))
         if shortened == parts[index]:
             break
         parts[index] = shortened if shortened.endswith(".") else shortened
     text = ". ".join(parts)
-    if len(text.encode("utf-8")) <= SUMMARY_BYTES:
+    if len(text.encode("utf-8")) <= max_bytes:
         return text
     head, _, tail = text.partition(". ")
-    room = SUMMARY_BYTES - len((head + ". ").encode("utf-8"))
+    room = max_bytes - len((head + ". ").encode("utf-8"))
     if room < 16 or not tail:
-        return _clip_to(text, SUMMARY_BYTES)
+        return _clip_to(text, max_bytes)
     return head + ". " + _clip_to(tail, room)
 
 

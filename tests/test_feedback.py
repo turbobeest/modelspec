@@ -655,7 +655,10 @@ def test_the_cli_refuses_a_bad_rating_before_the_network(cli_against_worker) -> 
     assert cli_against_worker.seen == []
 
 
-def test_the_cli_passes_the_workers_refusal_through(cli_against_worker) -> None:
+def test_the_cli_passes_the_workers_refusal_through(cli_against_worker, monkeypatch) -> None:
+    from functools import partial
+
+    monkeypatch.setattr(fb, "submit", partial(fb.submit, now=NOW))
     for _ in range(fb.BURST_LIMIT):
         assert _cli("--rating", "reliable").exit_code == 0
     result = _cli("--rating", "reliable", "--json")

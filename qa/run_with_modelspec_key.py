@@ -6,6 +6,9 @@ Run it under 1Password, which injects MODELSPEC_API_KEY into this process only:
       /Users/terbeest/dev/modelspec/.venv/bin/python -m qa.run_with_modelspec_key \
       scenarios --cli claude --cli codex --cli grok
 
+Replace ``scenarios`` with ``ablation`` to start qa.ablation through the same
+clean launcher. Its arguments follow that subcommand unchanged.
+
 The key is read from this process's environment and passed to the job by execve,
 never in argv. Everything else is dropped, including op's own variables and any
 vendor key the shell exports. A sandbox (test_) key is refused: its synthetic
@@ -41,7 +44,9 @@ def main(argv: list[str]) -> None:
     except ValueError as exc:
         print(exc, file=sys.stderr)
         raise SystemExit(2) from None
-    os.execve(sys.executable, [sys.executable, "-m", "qa.subscription_jobs", *argv], env)
+    module = "qa.ablation" if argv[:1] == ["ablation"] else "qa.subscription_jobs"
+    arguments = argv[1:] if module == "qa.ablation" else argv
+    os.execve(sys.executable, [sys.executable, "-m", module, *arguments], env)
 
 
 if __name__ == "__main__":

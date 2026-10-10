@@ -18,7 +18,7 @@
   },
   "default": {
     "representation": "bounded",
-    "bounded_version": "1.1",
+    "bounded_version": "1.2",
     "projects_contract": "2.15",
     "decision_id": "dec_1932b1664c177b74446ef335",
     "snapshot": "snap_be143b431be06c02",
@@ -499,7 +499,7 @@
       "note": "Projected rows are incomplete; omissions are not eliminations or absent evidence.",
       "fetch": "explanation.omitted counts records removed from this bounded answer. Resend this spec with evidence_for: anthropic/claude-opus-5-5 for one model's evidence; narrow fields or lower limit; or POST /v1/decide without fields for the complete Decision."
     },
-    "summary_for_user": "ModelSpec's answer is incomplete, so it names no pick. What is missing: software_engineering. 12 more models may qualify, but ModelSpec lacks their values for these requirements. Requirements applied: software_engineering is required. anthropic/claude-opus-5-5, anthropic/claude-sonnet-5-5, openai/gpt-6-astra, and anthropic/claude-opus-4-7 are tied; this is not a recommendation of any one of them. No model class was required, so results span every class. anthropic/claude-opus-5-5's position on software_engineering is estimated from 3 records, 2 of them proxies. anthropic/claude-sonnet-5-5's position on software_engineering is estimated from 2 records, 1 of them a proxy. openai/gpt-6-astra's position on software_engineering is estimated from 7 records, 5 of them proxies. anthropic/claude-opus-4-7's position on software_engineering is estimated from 5 records, 3 of them proxies. ModelSpec compared only the models in its lineup; 1,328 active catalogue models are outside it. Some values are estimates, not measurements. ModelSpec checked only the stated requirements; other needs were not checked.",
+    "summary_for_user": "ModelSpec's answer is incomplete, so it names no pick. What is missing: software_engineering. 12 more models may qualify, but ModelSpec lacks their values for these requirements. Requirements applied: software_engineering is required. anthropic/claude-opus-5-5, anthropic/claude-sonnet-5-5, openai/gpt-6-astra, and anthropic/claude-opus-4-7 are tied; this is not a recommendation of any one of them. No model class was required, so results span every class. anthropic/claude-opus-5-5's position on software_engineering is estimated from 3 records, 2 of them proxies. anthropic/claude-sonnet-5-5's position on software_engineering is estimated from 2 records, 1 of them a proxy. ModelSpec compared only the models in its lineup; 1,328 active catalogue models are outside it. Some values are estimates, not measurements. ModelSpec checked only the stated requirements; other needs were not checked. and 2 more. Next step: ModelSpec lacks software_engineering values for some candidates, so decide by testing these 40 candidates on your own work.",
     "must_mention": [
       "anthropic/claude-opus-5-5, anthropic/claude-sonnet-5-5, openai/gpt-6-astra, and anthropic/claude-opus-4-7 are tied; this is not a recommendation of any one of them.",
       "No model is established as the best fit: software_engineering is unknown for deepseek/deepseek-flash, google/gemma-4-26b-a4b-it, and google/gemma-4-31b-it, and 9 more in may_qualify.",
@@ -511,11 +511,34 @@
       "ModelSpec compared only the models in its lineup; 1,328 active catalogue models are outside it.",
       "Some values are estimates, not measurements.",
       "ModelSpec checked only the stated requirements; other needs were not checked."
-    ]
+    ],
+    "next_move": {
+      "kind": "decide_by_testing",
+      "say": "Next step: ModelSpec lacks software_engineering values for some candidates, so decide by testing these 40 candidates on your own work.",
+      "options": [],
+      "steps": [
+        "Collect 10 to 20 real examples of this task from your own work, each with the result you would accept.",
+        "Write the pass or fail criteria before running any model.",
+        "Run every candidate on the same examples with the same prompt and settings.",
+        "Score each output without knowing which model produced it.",
+        "Choose the candidate that passes most often. If candidates pass equally, choose on cost or on a provider you already use."
+      ],
+      "candidates": [
+        "anthropic/claude-fable-5",
+        "anthropic/claude-fable-5-1",
+        "anthropic/claude-opus-4-6",
+        "anthropic/claude-opus-4-7",
+        "anthropic/claude-opus-5",
+        "anthropic/claude-opus-5-5",
+        "anthropic/claude-sonnet-5-5",
+        "deepseek/deepseek-flash"
+      ],
+      "candidates_total": 40
+    }
   },
   "drill_down": {
     "representation": "bounded",
-    "bounded_version": "1.1",
+    "bounded_version": "1.2",
     "projects_contract": "2.15",
     "decision_id": "dec_1932b1664c177b74446ef335",
     "snapshot": "snap_be143b431be06c02",
@@ -592,7 +615,7 @@
         "results": 10,
         "bands": 28,
         "model_evidence.contributions": 1,
-        "model_evidence.evidence.items": 2
+        "model_evidence.evidence.items": 5
       },
       "note": "Projected rows are incomplete; omissions are not eliminations or absent evidence.",
       "fetch": "explanation.omitted counts records removed from this bounded answer. Resend this spec with evidence_for: anthropic/claude-opus-5-5 for one model's evidence; narrow fields or lower limit; or POST /v1/decide without fields for the complete Decision."
@@ -634,78 +657,6 @@
               "loading": null,
               "estimate_weight": null,
               "recency_weight": null
-            },
-            {
-              "requested_domain": "software_engineering",
-              "record_id": "anthropic/claude-opus-5-5#cursorbench_4#4ad6a2ce889e",
-              "benchmark": "cursorbench_4",
-              "version": "CursorBench 4.0",
-              "sub_category": null,
-              "value": 57.8,
-              "unit": "percent",
-              "n": null,
-              "interval": null,
-              "quality_flags": [],
-              "measured_by": "benchmark_author",
-              "effort": "max",
-              "harness": null,
-              "harness_unregistered": false,
-              "date": "2026-09-30",
-              "date_type": "observed",
-              "source": "https://cursor.com/cursorbench",
-              "source_snapshot": "sha256:b4348223b746be823e859c53f5f915636067e44aa6e798994655b8400a148bc2",
-              "directness": "direct",
-              "loading": null,
-              "estimate_weight": null,
-              "recency_weight": null
-            },
-            {
-              "requested_domain": "software_engineering",
-              "record_id": "anthropic/claude-opus-5-5#swe_bench_multilingual#0656e8a710e5",
-              "benchmark": "swe_bench_multilingual",
-              "version": "SWE-bench Multilingual",
-              "sub_category": null,
-              "value": 93.9,
-              "unit": "percent",
-              "n": null,
-              "interval": null,
-              "quality_flags": [],
-              "measured_by": "provider_self_report",
-              "effort": "max",
-              "harness": null,
-              "harness_unregistered": false,
-              "date": "2026-09-22",
-              "date_type": "published",
-              "source": "https://www.anthropic.com/claude-opus-5-5-system-card",
-              "source_snapshot": "sha256:e75849cf0ff2004f783564f245ad70f70226ff88bf4caebf25ab091b6e2983d1",
-              "directness": "direct",
-              "loading": null,
-              "estimate_weight": null,
-              "recency_weight": null
-            },
-            {
-              "requested_domain": "software_engineering",
-              "record_id": "anthropic/claude-opus-5-5#swe_bench_multimodal#5b5ebe3653cc",
-              "benchmark": "swe_bench_multimodal",
-              "version": "SWE-bench Multimodal",
-              "sub_category": null,
-              "value": 61.4,
-              "unit": "percent",
-              "n": null,
-              "interval": null,
-              "quality_flags": [],
-              "measured_by": "provider_self_report",
-              "effort": "max",
-              "harness": null,
-              "harness_unregistered": false,
-              "date": "2026-09-22",
-              "date_type": "published",
-              "source": "https://www.anthropic.com/claude-opus-5-5-system-card",
-              "source_snapshot": "sha256:e75849cf0ff2004f783564f245ad70f70226ff88bf4caebf25ab091b6e2983d1",
-              "directness": "direct",
-              "loading": null,
-              "estimate_weight": null,
-              "recency_weight": null
             }
           ]
         }
@@ -717,7 +668,7 @@
         "not_separable"
       ]
     },
-    "summary_for_user": "ModelSpec's answer is incomplete, so it names no pick. What is missing: software_engineering. 12 more models may qualify, but ModelSpec lacks their values for these requirements. Requirements applied: software_engineering is required. anthropic/claude-opus-5-5, anthropic/claude-sonnet-5-5, openai/gpt-6-astra, and anthropic/claude-opus-4-7 are tied; this is not a recommendation of any one of them. No model class was required, so results span every class. anthropic/claude-opus-5-5's position on software_engineering is estimated from 3 records, 2 of them proxies. anthropic/claude-sonnet-5-5's position on software_engineering is estimated from 2 records, 1 of them a proxy. openai/gpt-6-astra's position on software_engineering is estimated from 7 records, 5 of them proxies. anthropic/claude-opus-4-7's position on software_engineering is estimated from 5 records, 3 of them proxies. ModelSpec compared only the models in its lineup; 1,328 active catalogue models are outside it. Some values are estimates, not measurements. ModelSpec checked only the stated requirements; other needs were not checked.",
+    "summary_for_user": "ModelSpec's answer is incomplete, so it names no pick. What is missing: software_engineering. 12 more models may qualify, but ModelSpec lacks their values for these requirements. Requirements applied: software_engineering is required. anthropic/claude-opus-5-5, anthropic/claude-sonnet-5-5, openai/gpt-6-astra, and anthropic/claude-opus-4-7 are tied; this is not a recommendation of any one of them. No model class was required, so results span every class. anthropic/claude-opus-5-5's position on software_engineering is estimated from 3 records, 2 of them proxies. anthropic/claude-sonnet-5-5's position on software_engineering is estimated from 2 records, 1 of them a proxy. ModelSpec compared only the models in its lineup; 1,328 active catalogue models are outside it. Some values are estimates, not measurements. ModelSpec checked only the stated requirements; other needs were not checked. and 2 more. Next step: ModelSpec lacks software_engineering values for some candidates, so decide by testing these 40 candidates on your own work.",
     "must_mention": [
       "anthropic/claude-opus-5-5, anthropic/claude-sonnet-5-5, openai/gpt-6-astra, and anthropic/claude-opus-4-7 are tied; this is not a recommendation of any one of them.",
       "No model is established as the best fit: software_engineering is unknown for deepseek/deepseek-flash, google/gemma-4-26b-a4b-it, and google/gemma-4-31b-it, and 9 more in may_qualify.",
@@ -729,7 +680,30 @@
       "ModelSpec compared only the models in its lineup; 1,328 active catalogue models are outside it.",
       "Some values are estimates, not measurements.",
       "ModelSpec checked only the stated requirements; other needs were not checked."
-    ]
+    ],
+    "next_move": {
+      "kind": "decide_by_testing",
+      "say": "Next step: ModelSpec lacks software_engineering values for some candidates, so decide by testing these 40 candidates on your own work.",
+      "options": [],
+      "steps": [
+        "Collect 10 to 20 real examples of this task from your own work, each with the result you would accept.",
+        "Write the pass or fail criteria before running any model.",
+        "Run every candidate on the same examples with the same prompt and settings.",
+        "Score each output without knowing which model produced it.",
+        "Choose the candidate that passes most often. If candidates pass equally, choose on cost or on a provider you already use."
+      ],
+      "candidates": [
+        "anthropic/claude-fable-5",
+        "anthropic/claude-fable-5-1",
+        "anthropic/claude-opus-4-6",
+        "anthropic/claude-opus-4-7",
+        "anthropic/claude-opus-5",
+        "anthropic/claude-opus-5-5",
+        "anthropic/claude-sonnet-5-5",
+        "deepseek/deepseek-flash"
+      ],
+      "candidates_total": 40
+    }
   },
   "speech_request": {
     "spec_version": 1,
@@ -750,7 +724,7 @@
   },
   "speech": {
     "representation": "bounded",
-    "bounded_version": "1.1",
+    "bounded_version": "1.2",
     "projects_contract": "2.15",
     "decision_id": "dec_36e794d2a5f775c67ca722d3",
     "snapshot": "snap_be143b431be06c02",
@@ -839,11 +813,21 @@
       "omitted": {},
       "note": "Projected rows are incomplete; omissions are not eliminations or absent evidence."
     },
-    "summary_for_user": "ModelSpec found no model that meets every requirement, so it names no pick. These requirements together exclude every model: model.class = transcriber. Requirements applied: model.class = transcriber. The request is outside coverage. ModelSpec compared only the models in its lineup; 1,328 active catalogue models are outside it. ModelSpec checked only the stated requirements; other needs were not checked.",
+    "summary_for_user": "ModelSpec found no model that meets every requirement, so it names no pick. These requirements together exclude every model: model.class = transcriber. Requirements applied: model.class = transcriber. The request is outside coverage. ModelSpec compared only the models in its lineup; 1,328 active catalogue models are outside it. ModelSpec checked only the stated requirements; other needs were not checked. Next step: which of these requirements can change? No single change admits a model, so more than one has to give.",
     "must_mention": [
       "The request is outside coverage.",
       "ModelSpec compared only the models in its lineup; 1,328 active catalogue models are outside it.",
       "ModelSpec checked only the stated requirements; other needs were not checked."
-    ]
+    ],
+    "next_move": {
+      "kind": "ask_user",
+      "say": "Next step: which of these requirements can change? No single change admits a model, so more than one has to give.",
+      "options": [
+        "Change model.class = transcriber."
+      ],
+      "steps": [],
+      "candidates": [],
+      "candidates_total": 0
+    }
   }
 }
