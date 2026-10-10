@@ -6,6 +6,7 @@ import asyncio
 import base64
 import json
 import logging
+import re
 import subprocess
 import sys
 import time
@@ -822,6 +823,42 @@ def test_production_x402_config_stays_off_and_has_no_receiver():
     assert config["routes"] == [
         {"pattern": "api.modelspec.dev/*", "zone_name": "modelspec.dev"}
     ]
+
+
+def _x402_switch_problems(production: dict[str, str]) -> list[str]:
+    """Why these production vars must not ship: X402_ENABLED on needs every mainnet value."""
+    if not x402.flag(production.get("X402_ENABLED")):
+        return []
+    wanted = {
+        "X402_MAINNET": x402.flag(production.get("X402_MAINNET")),
+        "X402_NETWORK": production.get("X402_NETWORK") == x402.NETWORK_BASE,
+        "X402_ASSET": production.get("X402_ASSET") == x402.USDC_BASE,
+        "X402_PAY_TO": re.fullmatch(r"0x[0-9a-fA-F]{40}",
+                                    production.get("X402_PAY_TO", "")) is not None,
+    }
+    return sorted(name for name, ok in wanted.items() if not ok)
+
+
+def test_production_x402_switches_are_consistent() -> None:
+    """MODEL-333. X402_ENABLED never ships without mainnet, its asset and a receiver."""
+    assert _x402_switch_problems(_wrangler_config()["vars"]) == []
+
+    staged = {"X402_ENABLED": "false", "X402_MAINNET": "false",
+              "X402_NETWORK": "eip155:8453",
+              "X402_ASSET": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+              "X402_PAY_TO": ""}
+    assert _x402_switch_problems({**staged, "X402_ENABLED": "true"}) == [
+        "X402_MAINNET", "X402_PAY_TO"]
+    receiver = "0x" + "ab" * 20
+    assert _x402_switch_problems({**staged, "X402_ENABLED": "true",
+                                  "X402_PAY_TO": receiver}) == ["X402_MAINNET"]
+    assert _x402_switch_problems({**staged, "X402_ENABLED": "true",
+                                  "X402_MAINNET": "true",
+                                  "X402_PAY_TO": receiver}) == []
+    assert _x402_switch_problems({**staged, "X402_ENABLED": "true",
+                                  "X402_MAINNET": "true",
+                                  "X402_NETWORK": "eip155:84532",
+                                  "X402_PAY_TO": receiver}) == ["X402_NETWORK"]
 
 
 def test_production_x402_staged_for_base_mainnet_with_switches_off() -> None:

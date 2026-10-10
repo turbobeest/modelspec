@@ -15,7 +15,7 @@ Check each item. Do not start the flip while one is open.
 | 3 | The MODEL-333 config PR is merged. | Production `X402_NETWORK` is `eip155:8453` and `X402_ASSET` is `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` (Circle native USDC on Base, [Circle](https://developers.circle.com/stablecoins/usdc-contract-addresses), read 2026-10-10). |
 | 4 | The Base Sepolia smoke test passed on staging. | The output has `"network": "eip155:84532"`, a `transaction` hash, and `after` = `before` − 1. Steps are in [x402-go-live.md](x402-go-live.md), Stage 1 step 5. |
 | 5 | You have the Base mainnet receiving address. | It is a USDC address on Base from the Sparks & Sawdust LLC Coinbase Business account. Use the address only, never a private key. |
-| 6 | The legal text is approved. | Terms §6 says "Payment by x402 is not currently offered." The privacy statement, under *Not yet live*, says `X402_PAY_TO` is "currently empty". Both must change in the same PR as the flip, because `tests/test_legal.py` checks them against `X402_ENABLED`. |
+| 6 | The legal text is approved. | Terms §2 says "Payment by x402 is not currently offered", and `tests/test_legal.py` requires that sentence while `X402_ENABLED` is off. The privacy statement, under *Not yet live*, says `X402_PAY_TO` is "currently empty". Both change in commit 2 of the flip, in wording you approve. |
 
 The CDP facilitator secrets `CDP_API_KEY_ID` and `CDP_API_KEY_SECRET` are
 already set on the production Worker (names checked with
@@ -31,7 +31,8 @@ draft PR, merged by hand, in this order:
    - `"X402_PAY_TO": "<Base mainnet receiving address>"`
    - `"X402_MAINNET": "true"`
 
-   With `X402_ENABLED` still `"false"`, no request is charged.
+   With `X402_ENABLED` still `"false"`, no x402 payment is offered or
+   accepted. Card-bought credits are still drawn as before.
 2. **Commit 2, which goes live.** Set `"X402_ENABLED": "true"`. In the same
    commit:
    - Update the approved terms and privacy text.
@@ -42,9 +43,14 @@ draft PR, merged by hand, in this order:
      the off state, so make them assert the new values.
 
 Turn on `X402_ENABLED` and `X402_MAINNET` together, or `X402_MAINNET` first.
-Never turn on `X402_ENABLED` alone. The Worker would then advertise Base
-mainnet in every 402 and refuse every payment with "mainnet is disabled
-(X402_MAINNET is off)". That fails closed, but nobody can pay.
+Never turn on `X402_ENABLED` alone. With `X402_PAY_TO` empty, a keyed caller
+with no credits gets `500 x402_not_configured`. With a receiver set but
+`X402_MAINNET` off, every payment is refused with "mainnet is disabled
+(X402_MAINNET is off)" before the facilitator is called, and the published
+OpenAPI document would still name `eip155:8453`. Either way it fails closed,
+but nobody can pay. `test_production_x402_switches_are_consistent` in
+`tests/test_x402.py` fails any commit that turns on `X402_ENABLED` without
+`X402_MAINNET`, the mainnet network and asset, and a receiving address.
 
 **Behaviour change when it goes live:** a keyed caller with no credits gets
 HTTP 402 with the four pack offers. Before the flip, that caller gets the
@@ -89,7 +95,8 @@ Expect `error.code` `payment_required`, a `PAYMENT-REQUIRED` header, and four
 Then do the live check (MODEL-333 step 5). Make one paid call for the smallest
 pack ($5) from a wallet you control. Use the same key. Confirm the settlement on
 [BaseScan](https://basescan.org), and confirm that `GET /v1/credits` on that
-key shows 250 credits. Only you move this money.
+key shows 250 credits. If the paying request was itself a successful
+decision, it shows 249. Only you move this money.
 
 Finally, check that the pricing page on `modelspec.dev` shows pay-per-call on
 Base mainnet after the next site build.
@@ -104,7 +111,10 @@ overwrites a dashboard edit, so merge the same change soon after.
 
 Existing pack credits stay in the `CREDITS` ledger and are still drawn. Leave
 `X402_MAINNET`, `X402_PAY_TO`, network and asset as they are, because they do
-nothing while the flag is off. Revert the legal text in the same PR.
+nothing while the flag is off. In the same PR, put back the terms sentence
+"Payment by x402 is not currently offered." Keep the privacy statement's
+receiving address, because it is still configured, and say that x402 payments
+are off.
 
 A settlement that already happened on-chain cannot be undone. Refunds follow
 the x402 refund policy you set (MODEL-333, business decisions).
