@@ -27,11 +27,11 @@ If you believe that material on modelspec.dev or in the ModelSpec service infrin
 1. A physical or electronic signature of a person authorized to act on behalf of the owner of an exclusive right that is allegedly infringed.
 2. Identification of the copyrighted work claimed to have been infringed, or, if one notice covers several works on the site, a representative list of them.
 3. Identification of the material that is claimed to be infringing or to be the subject of infringing activity, and that is to be removed or access to which is to be disabled, with information reasonably sufficient for us to locate it. A URL is the most useful form.
-4. Information reasonably sufficient for us to contact you: an address, a telephone number and an email address.
+4. Information reasonably sufficient for us to contact you: such as an address, a telephone number and, if available, an email address.
 5. A statement that you have a good faith belief that use of the material in the manner complained of is not authorized by the copyright owner, its agent or the law.
 6. A statement that the information in the notice is accurate and, under penalty of perjury, that you are authorized to act on behalf of the owner of an exclusive right that is allegedly infringed.
 
-A notice that does not substantially include these elements may not be acted on. Under 17 U.S.C. § 512(f), a person who knowingly misrepresents that material is infringing, or that it was removed or disabled by mistake or misidentification, may be liable for damages.
+A notice that does not substantially include these elements may not be acted on. Under 17 U.S.C. § 512(f), a person who knowingly and materially misrepresents that material is infringing, or that it was removed or disabled by mistake or misidentification, may be liable for damages.
 
 When we receive a notice that substantially includes these elements, we act expeditiously to remove or disable access to the material it identifies. We then take reasonable steps to tell the person who supplied the material that we have done so, and we may send them a copy of the notice. A copy of a notice, including your contact details, may be passed to that person.
 
