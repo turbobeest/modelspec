@@ -1,0 +1,6 @@
+Model | Prompt caching
+Name | Input | Hits
+Claude Haiku 5.5 | $0.10 | $0.01
+$0.50 | $0.05
+Additional models
+Claude Opus 5 | $5 | $0.50

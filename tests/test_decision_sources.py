@@ -799,6 +799,37 @@ def test_header_buttons_keep_a_column_name_and_leave_html_default_alone():
                                     "Claude Opus 5.5 | $4 / MTok | $0.40 / MTok"]
 
 
+def test_data_cell_buttons_keep_content_inside_wrappers_and_drop_adjacent_controls() -> None:
+    page = (b'<table><tr><th>Name</th><th><button>Hits</button></th></tr>'
+            b'<tr><td><a>Claude Sonnet 5.5</a><button>Details</button></td>'
+            b'<td><div><button aria-haspopup="dialog"><span>$0.10</span></button> '
+            b'<span>/ MTok</span><button>Copy price</button></div></td></tr></table>')
+
+    text = normalise_document(page, NORMALISERS["html-header-buttons"]).text
+    assert text == "Name | Hits\nClaude Sonnet 5.5 | $0.10 / MTok"
+    assert select_region(normalise_document(page, NORMALISERS["html-default"]),
+                         Locator.table(0)) == "Name |\nClaude Sonnet 5.5 | / MTok"
+
+
+@pytest.mark.parametrize("normaliser", ["html-default", "html-icon-labels", "html-header-buttons"])
+def test_ui_buttons_outside_table_cells_are_dropped(normaliser: str) -> None:
+    page = (b'<main><button>Copy page</button><div><button>$999</button></div>'
+            b'<table><button>Switch prices</button><tr><th>Name</th><th>Price</th></tr>'
+            b'<tr><td>Claude Sonnet 5.5</td><td>$0.10</td></tr></table></main>')
+    assert normalise_document(page, NORMALISERS[normaliser]).text == (
+        "Name | Price\nClaude Sonnet 5.5 | $0.10"
+    )
+
+
+@pytest.mark.parametrize("attributes", ['hidden', 'aria-hidden="true"', 'class="cookie-banner"'])
+def test_hidden_data_cell_buttons_are_dropped(attributes: str) -> None:
+    page = (f'<table><tr><td>Claude Sonnet 5.5</td><td><button {attributes}>$999</button>'
+            f'</td></tr></table>').encode()
+    assert normalise_document(page, NORMALISERS["html-header-buttons"]).text == (
+        "Claude Sonnet 5.5 |"
+    )
+
+
 def test_a_retained_copy_whose_bytes_do_not_match_its_name_is_not_trusted(tmp_path) -> None:
     store = CopyStore(tmp_path)
     ref = store.put(b"the real page")

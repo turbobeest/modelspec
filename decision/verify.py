@@ -842,10 +842,10 @@ def _grouped_header_tables(claim: Claim, text: str, wanted: str) -> list[Reading
             current.append(cells(line))
             continue
         # A one-cell row ("Additional models") labels a section of the same table:
-        # the rows after it are as wide as the rows before it.
+        # its model rows match the column header, even after a narrower continuation.
         after = lines[i + 1] if i + 1 < len(lines) else ""
         if len(current) > 2 and line.strip() and "|" in after \
-                and len(cells(after)) == len(current[-1]):
+                and len(cells(after)) == len(current[1]):
             continue
         if current:
             tables.append(current)
