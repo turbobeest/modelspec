@@ -1182,6 +1182,37 @@ def test_a_failed_keep_does_not_report_metered_overage(bundled_entry):
     assert env.CREDITS.state.accounts[holder].overage_unreported == 0
 
 
+def test_concurrent_read_refund_keeps_charge_when_another_read_succeeds(
+        bundled_entry):
+    env = environment(HUMAN_GATE_ENABLED="false", X402_ENABLED="false")
+    key = run(_issue(env, "paid", "live_read_refund_race"))
+    holder = x402.holder_from_key(key)
+    assert run(env.CREDITS.set_monthly(holder, 2, "in_read_race", "Solo")).credited
+    worker = _decision_worker(bundled_entry, env)
+    real_keep = env.CREDITS.keep_read
+
+    async def race():
+        other_read_succeeded = asyncio.Event()
+
+        async def fail_first_keep(holder, token):
+            if token == 1:
+                await asyncio.wait_for(other_read_succeeded.wait(), timeout=2)
+                raise RuntimeError("first keep failed")
+            kept = await real_keep(holder, token)
+            other_read_succeeded.set()
+            return kept
+
+        env.CREDITS.keep_read = fail_first_keep
+        return await asyncio.gather(
+            worker.fetch(_vocab(key)), worker.fetch(_vocab(key)),
+            return_exceptions=True)
+
+    failed, succeeded = run(race())
+    assert isinstance(failed, RuntimeError) and str(failed) == "first keep failed"
+    assert succeeded.status == 200
+    assert run(env.CREDITS.balance(holder)).available == 1
+
+
 def test_post_overage_never_raises_when_the_http_stub_raises(bundled_entry):
     async def fetch(url, options=None):
         fetch.calls.append(url)
