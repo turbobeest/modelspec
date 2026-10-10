@@ -255,8 +255,23 @@ def test_the_shipped_configuration_is_enforced_and_bound():
 
 
 def test_the_deploy_hands_the_isolate_the_tier_table():
+    """The table ships in the bundle: every deploy job runs vendor.py first.
+
+    vendor.py writes `tier_policy.py` from tiers.json (a `TIER_POLICY` text var
+    is capped at 5.1 kB, which Pricing v2 exceeds).
+    """
+    import re
+
     workflow = (REPO_ROOT / ".github" / "workflows" / "rank-api.yml").read_text(encoding="utf-8")
-    assert '--var "TIER_POLICY:$(jq -c . tiers.json)"' in workflow
+    jobs = re.split(r"\n  (?=[\w-]+:\n)", workflow)
+    deploy = re.compile(r"pywrangler deploy(?! --dry-run)[^\n]*")
+    deploys = [job for job in jobs if deploy.search(job)]
+    assert len(deploys) == 2
+    for job in deploys:
+        command = deploy.search(job)
+        vendor = re.search(r"python api/worker/vendor\.py(?! --check)", job)
+        assert vendor is not None and vendor.start() < command.start()
+        assert "TIER_POLICY" not in command.group(0)
 
 
 # ── enforcement off: a presented key is checked ──────────────────────────────
