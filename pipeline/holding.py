@@ -82,7 +82,8 @@ WRITTEN = ("index.html", "404.html", "_headers", "robots.txt")
 LINE = "{site} is in preparation. Check back soon."
 OPERATOR = "Sparks & Sawdust LLC"
 #: modelspec.dev only: benchgraph.dev has no legal pages of its own.
-LEGAL_LINKS = (("Terms", "/legal/terms/"), ("Privacy", "/legal/privacy/"))
+LEGAL_LINKS = (("Terms", "/legal/terms/"), ("Privacy", "/legal/privacy/"),
+               ("Copyright", "/legal/dmca/"))
 
 HEADERS = (
     "/*\n"

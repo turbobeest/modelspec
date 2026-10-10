@@ -1157,6 +1157,7 @@ export function DesignedApp({
           <a href="/legal/neutrality/">Neutrality</a>
           <a href="/legal/terms/">Terms</a>
           <a href="/legal/privacy/">Privacy</a>
+          <a href="/legal/dmca/">Copyright</a>
           <a href={VOCABULARY_URL.includes("/v1/vocabulary") ? "/openapi.yaml" : "/api/decision/vocabulary.json"}>Data</a>
           <a href="/feedback/">Feedback</a>
         </nav>

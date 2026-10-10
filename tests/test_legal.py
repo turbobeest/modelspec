@@ -806,7 +806,8 @@ def test_the_decide_contract_refuses_its_free_text_task() -> None:
 #: commitment is a change to that; each gets a new version and date rather than
 #: a silent edit of the adopted one.
 IN_FORCE = {
-    "terms": "Version `1.4`, effective 2026-10-04.",
+    "terms": "Version `1.5`, effective 2026-10-09.",
+    "dmca": "Version `1.0`, effective 2026-10-09.",
     "neutrality": "Version `1.3`, effective 2026-09-30.",
     "privacy": "Version `1.11`, effective 2026-10-04.",
 }
@@ -909,7 +910,8 @@ def test_the_landing_page_and_every_generated_page_link_all_three() -> None:
     for doc in legal.DOCS:
         assert f'href="{doc.url_path}"' in footer, doc.slug
         assert f'href="{doc.url_path}"' in shell.split("<footer>", 1)[1], doc.slug
-        assert f"](https://modelspec.dev{doc.url_path})" in api_docs, doc.slug
+        if doc.slug != "dmca":  # the API reference points at the terms, not the copyright page
+            assert f"](https://modelspec.dev{doc.url_path})" in api_docs, doc.slug
 
 
 def test_a_missing_source_document_fails_the_build(tmp_path: Path) -> None:
@@ -1078,3 +1080,64 @@ def test_disclosed_gate_records_persist_until_the_daily_alarm(monkeypatch) -> No
     assert storage.alarm_at == 86400000
     asyncio.run(obj.alarm())
     assert storage.sql.exec("SELECT name FROM sqlite_master WHERE name = 'human_state'").toArray() == []
+
+
+# ── copyright and DMCA (MODEL-362) ───────────────────────────────────────────
+
+DMCA = _text("dmca.md")
+FLAT_DMCA = flat(DMCA)
+
+#: The agent fields exactly as registered with the U.S. Copyright Office under
+#: DMCA-1082492 (read from dmca.copyright.gov, 2026-10-09). Changing any of them
+#: here without the directory entry changing too makes the page wrong.
+REGISTERED_AGENT_FIELDS = (
+    "- Legal name: Sparks & Sawdust LLC",
+    "- Alternate names listed on designation DMCA-1082492: ModelSpec, modelspec.dev",
+    "- Physical street address: 700 Narragansett Park Dr, Ste 100, Pawtucket, RI 02861, USA",
+    "- Agent: Copyright Agent",
+    "- Mailing address: 700 Narragansett Park Dr, Ste 100, Pawtucket, RI 02861, USA",
+    "- Telephone: +1 (401) 903-0183",
+    "- Email: hello@sparksandsawdust.com",
+)
+
+
+def test_the_dmca_page_carries_the_registered_agent_fields_verbatim() -> None:
+    assert "DMCA-1082492" in DMCA
+    for line in REGISTERED_AGENT_FIELDS:
+        assert line in DMCA, line
+
+
+def test_the_dmca_page_publishes_no_other_phone_number() -> None:
+    phones = set(re.findall(r"\+1 \(\d{3}\) \d{3}-\d{4}|\(\d{3}\) \d{3}-\d{4}|\b\d{3}[-. ]\d{3}[-. ]\d{4}\b", DMCA))
+    assert phones == {"+1 (401) 903-0183"}
+
+
+def test_the_dmca_page_has_the_notice_counter_notice_and_repeat_infringer_sections() -> None:
+    assert "17 U.S.C. § 512(c)(3)(A)" in DMCA
+    assert "17 U.S.C. § 512(g)(3)" in DMCA
+    assert "## Repeat infringers" in DMCA
+    notice = DMCA.split("## How to send a notice", 1)[1].split("## How to send a counter-notice", 1)[0]
+    counter = DMCA.split("## How to send a counter-notice", 1)[1].split("## Repeat infringers", 1)[0]
+    assert len(re.findall(r"^\d\. ", notice, re.M)) == 6
+    assert len(re.findall(r"^\d\. ", counter, re.M)) == 4
+    assert "under penalty of perjury" in flat(notice)
+    assert "consent to the jurisdiction" in flat(counter)
+
+
+def test_the_dmca_page_keeps_the_ampersand_in_the_legal_name() -> None:
+    assert "Sparks & Sawdust LLC" in DMCA
+    assert "Sparks and Sawdust" not in DMCA
+
+
+def test_the_terms_point_at_the_dmca_page() -> None:
+    assert "https://modelspec.dev/legal/dmca/" in TERMS
+
+
+def test_the_dmca_page_renders_with_its_agent_fields(tmp_path: Path) -> None:
+    legal.write(tmp_path, REPO_ROOT, _build())
+    html = (tmp_path / "legal/dmca/index.html").read_text(encoding="utf-8")
+    assert '<link rel="canonical" href="https://modelspec.dev/legal/dmca/">' in html
+    for needle in ("Copyright Agent", "700 Narragansett Park Dr, Ste 100, Pawtucket, RI 02861",
+                   "+1 (401) 903-0183", "hello@sparksandsawdust.com"):
+        assert needle in html, needle
+    assert "Sparks &amp; Sawdust LLC" in html

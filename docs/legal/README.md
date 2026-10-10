@@ -1,12 +1,14 @@
 # Legal documents — adopted v1.0
 
-MODEL-70. Three documents, **adopted and in force**:
+MODEL-70. Three documents, **adopted and in force**, and the copyright page
+(MODEL-362, 2026-10-09):
 
 | File | Published at | What it is |
 | --- | --- | --- |
 | `terms-of-service.md` | `/legal/terms/` | Terms for the hosted API |
 | `neutrality.md` | `/legal/neutrality/` | The honest-broker commitment |
 | `privacy.md` | `/legal/privacy/` | What the service records today |
+| `dmca.md` | `/legal/dmca/` | Designated copyright agent (DMCA-1082492), notice and counter-notice, repeat infringers (MODEL-362) |
 
 ## Adoption
 
@@ -25,7 +27,8 @@ open. The terms' §11 now says, in the terms themselves, which of them the terms
 do not address.
 
 Contact for all three: **sales@modelspec.dev** (forwards to the operator). No
-postal address is published; the terms say it is available on request there.
+postal address is published in them; the terms say it is available on request there.
+The copyright page publishes the registered DMCA agent's address, for notices only.
 
 ## Still open — for later counsel review
 

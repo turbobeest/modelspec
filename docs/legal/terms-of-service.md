@@ -1,6 +1,6 @@
 # Terms of service
 
-Version `1.4`, effective 2026-10-04. Adopted by Sparks & Sawdust LLC.
+Version `1.5`, effective 2026-10-09. Adopted by Sparks & Sawdust LLC.
 MODEL-70.
 
 ## 1. Who you are contracting with
@@ -266,7 +266,8 @@ You may stop using the service at any time. We may suspend or end access for a
 breach of §5. §4 does not expire, is not suspended, and does not change with a
 new version of these terms.
 
-Version 1.4 (2026-10-04) records that keys are enforced: a request for an
+Version 1.5 (2026-10-09) adds the copyright paragraph to §12, which points to the
+copyright and DMCA page; no term changed. Version 1.4 (2026-10-04) records that keys are enforced: a request for an
 answer without a key is refused, and only a person using the decide page by hand
 is served without one. No other term changed. Version 1.3 (2026-10-04) described
 the command-line client, a keyed client for the service; there is still no data download. Version 1.2 (2026-09-30) corrected our legal name to Sparks & Sawdust LLC, the
@@ -289,3 +290,6 @@ the law that applies. Adding any of these later is a change under §10.
 Sparks & Sawdust LLC. Questions, cancellation and privacy requests:
 **sales@modelspec.dev**. Our postal address is available on request at
 sales@modelspec.dev.
+
+Copyright complaints: send a notice or counter-notice to our designated agent,
+as set out at [modelspec.dev/legal/dmca/](https://modelspec.dev/legal/dmca/).
