@@ -407,6 +407,22 @@ export const decisionSchema = z
                 })
                 .strict(),
             ),
+            unknown_facets: z.array(facetId).optional(),
+            hardware_estimates: z.array(z.object({
+              device: z.string(),
+              facet: facetId,
+              value: z.number().finite().nullable(),
+              unit: z.string(),
+              quantisation: z.string().nullable(),
+              interval: z.object({
+                low: z.number().finite().nonnegative(),
+                high: z.number().finite().nonnegative(),
+              }).strict().refine((value) => value.high >= value.low).optional(),
+              unknown_reason: z.string().optional(),
+              formula: z.string(),
+              records: z.array(z.string()),
+              source_ids: z.array(z.string()),
+            }).strict()).optional(),
             contributions: z.array(contributionSchema),
             evidence: z.array(
               z
@@ -499,6 +515,7 @@ export const decisionSchema = z
       "2.13",
       "2.14",
       "2.15",
+      "2.16",
     ]),
     decision_id: z.string().regex(/^dec_[0-9A-Za-z]{8,}$/),
     snapshot: z.string().regex(/^snap_[A-Za-z0-9:._-]+$/),

@@ -327,6 +327,7 @@ class ExplanationIndex(SnapshotIndex, Protocol):
     def benchmark_ids(self) -> tuple[str, ...]: ...
     def corpus_evidence(self) -> Iterator[tuple[str, EvidenceValue]]: ...
     def benchmark_domain_tags(self) -> dict[str, tuple[tuple[str, str], ...]]: ...
+    def hardware_device(self, device_id: str) -> Mapping[str, Any] | None: ...
 
 
 # ── inputs ─────────────────────────────────────────────────────────────────
@@ -354,6 +355,8 @@ class SnapshotInputs:
     verifications: Sequence[Any] = ()
     #: Lab id -> ``decision.labs.Lab``. Empty when the checkout has no lab registry.
     labs: Mapping[str, Any] = field(default_factory=dict)
+    #: Sourced hardware YAML records. Metadata, never ranking candidates.
+    hardware: Sequence[Mapping[str, Any]] = ()
 
 
 def _as_dict(record: Any) -> dict[str, Any]:
@@ -725,6 +728,7 @@ class _Compiler:
         self.records: dict[str, dict[str, Any]] = {}
         self.fact_records: dict[str, dict[str, str]] = {}
         self.labs: Mapping[str, Any] = inputs.labs
+        self.hardware: dict[str, dict[str, Any]] = {}
         #: Premier models whose lab recorded a sourced null jurisdiction.
         self.jurisdiction_null_ok: set[str] = set()
 
@@ -1073,6 +1077,68 @@ class _Compiler:
             row["benchmarks"].sort()
         return out
 
+    def add_hardware(self, raw: Mapping[str, Any]) -> None:
+        """Retain vendor specifications without inventing a fact verification."""
+        from urllib.parse import urlsplit
+
+        device_id = raw["id"]
+        memory = raw["memory"]
+        capacities = memory.get("capacity_options_gb") or [memory.get("capacity_gb")]
+
+        def positive(value):
+            return (isinstance(value, int | float) and not isinstance(value, bool)
+                    and math.isfinite(value) and value > 0)
+
+        bandwidth = memory.get("bandwidth_gb_s")
+        if not all(positive(value) for value in capacities) or (
+            bandwidth is not None and not positive(bandwidth)
+        ):
+            raise SnapshotBuildError(f"{device_id}: hardware memory must be positive and finite")
+        single = raw.get("single_device_fit", True)
+        reason = raw.get("single_device_fit_reason")
+        if not isinstance(single, bool) or (not single and not reason):
+            raise SnapshotBuildError(f"{device_id}: refused single-device fit needs a reason")
+        if raw.get("figures_are") != "vendor-specification" or _date(raw.get("verified_at")) is None:
+            raise SnapshotBuildError(f"{device_id}: hardware needs dated vendor specifications")
+        urls = raw.get("sources") or []
+        if not urls or any(urlsplit(url).scheme not in ("http", "https")
+                           or not urlsplit(url).netloc for url in urls):
+            raise SnapshotBuildError(f"{device_id}: hardware needs http(s) sources")
+        if self.guard is not None and any(self.guard.url(url) for url in urls):
+            self.hardware[device_id] = {
+                "unknown_reason": "device memory source is excluded by the snapshot source policy",
+                "record_id": None, "source_ids": [],
+            }
+            return
+        registered = {url: sid for sid, url in sorted(self.sources.items(), reverse=True)}
+        unregistered = sorted(set(urls) - registered.keys())
+        if unregistered:
+            logger.warning("%s: unregistered hardware source URLs: %s", device_id,
+                           ", ".join(unregistered))
+            self.hardware[device_id] = {
+                "unknown_reason": f"{len(unregistered)} hardware source URLs are not registered",
+                "record_id": None, "source_ids": [],
+            }
+            return
+        source_ids = sorted({registered[url] for url in urls})
+        rid = f"hardware:{device_id}#memory"
+        device = {
+            "memory_capacity_gb": float(max(capacities)),
+            "memory_bandwidth_gb_s": None if bandwidth is None else float(bandwidth),
+            "single_device_fit": single,
+            "refusal_reason": reason,
+            "record_id": rid,
+            "source_ids": sorted(source_ids),
+        }
+        self.hardware[device_id] = device
+        self.records[rid] = {
+            "id": rid, "kind": "hardware", "device": device_id,
+            "memory": dict(memory), "figures_are": raw["figures_are"],
+            "verified_at": str(raw["verified_at"]),
+            "single_device_fit": single, "single_device_fit_reason": reason,
+            "sources": [{"source_id": sid} for sid in sorted(source_ids)],
+        }
+
     def content(self, as_of: date | None, premier: Iterable[str] | None = None) -> dict[str, Any]:
         """The snapshot content. With ``premier``, the lineup is the premier set.
 
@@ -1106,6 +1172,10 @@ class _Compiler:
             for _state, _value, source_ids in self.facts.get(sid, {}).values():
                 sources.update(source_ids)
             record_ids.update(self.fact_records.get(sid, {}).values())
+        for device in self.hardware.values():
+            sources.update(device["source_ids"])
+            if device["record_id"] is not None:
+                record_ids.add(device["record_id"])
         excluded: Counter[str] = Counter()
         for sid, counts in self.excluded.items():
             if sid is None or sid in kept or sid in subscription_ids:
@@ -1188,6 +1258,7 @@ class _Compiler:
             "out_of_lineup": out_of_lineup,
             "benchmark_domains": domains,
             "capability": capability,
+            **({"hardware": dict(sorted(self.hardware.items()))} if self.hardware else {}),
             **({"refinements": refinements} if refinements else {}),
             "sources": {s: self.sources[s] for s in sorted(sources)},
             "excluded": dict(sorted(excluded.items())),
@@ -1372,6 +1443,8 @@ def _compile(inputs: SnapshotInputs, registry: Any, guard: ExcludedSources | Non
         c.add_subscription(subscription)
     for e in inputs.evidence:
         c.add_evidence(e)
+    for device in inputs.hardware:
+        c.add_hardware(device)
     return c
 
 
@@ -1406,6 +1479,7 @@ def collect_repo(root: Path) -> SnapshotInputs:
     * Sources: canonical ``registry/sources.yaml``; see ``verification/README.md``.
     * Domains: each benchmark page's ``domains`` tags.
     * The verification log: ``verification/log.jsonl``.
+    * Hardware: dated vendor memory specifications in ``hardware/*.yaml``.
     """
     from pipeline.load import load_benchmarks, load_models
 
@@ -1492,7 +1566,10 @@ def collect_repo(root: Path) -> SnapshotInputs:
                           benchmark_domains=domains, benchmark_metadata=metadata,
                           benchmark_refinements=refinements,
                           verifications=verifications,
-                          labs=load_labs(root))
+                          labs=load_labs(root),
+                          hardware=[yaml.safe_load(path.read_text(encoding="utf-8"))
+                                    for path in sorted((root / "hardware").glob("*.yaml"))
+                                    if not path.name.startswith("_")])
 
 
 def load_premier(path: str | Path) -> tuple[str, ...]:
@@ -1812,6 +1889,7 @@ class LoadedSnapshot:
             for row in content.get("subscriptions", ())
         )
         self._sources: dict[str, str] = dict(content["sources"])
+        self._hardware = content.get("hardware") or {}
         self._records = content.get("records", {})
         self._record_table = content.get("record_table")
         self.explanation_rebuild_required = (
@@ -2194,6 +2272,10 @@ class LoadedSnapshot:
         if record_id not in self._records and self._record_table is not None:
             self._records[record_id] = _unpack_record(self._record_table, record_id)
         return self._records[record_id]
+
+    def hardware_device(self, device_id: str) -> Mapping[str, Any] | None:
+        """Sourced memory metadata, unknown for snapshots built before MODEL-348."""
+        return self._hardware.get(device_id)
 
     def facet_ids(self) -> tuple[str, ...]:
         return tuple(sorted(self._facts))

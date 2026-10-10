@@ -42,7 +42,7 @@ afterEach(() => vi.unstubAllGlobals());
 describe("the decision schema", () => {
   it("accepts 2.13 coverage guidance and keeps older saved decisions readable", () => {
     const current = decisionSchema.parse(tiedFixture);
-    expect(current.contract_version).toBe("2.15");
+    expect(current.contract_version).toBe("2.16");
     expect(current).not.toHaveProperty("coverage");
     expect(decisionSchema.parse({ ...tiedFixture, contract_version: "2.12" }).contract_version).toBe("2.12");
   });

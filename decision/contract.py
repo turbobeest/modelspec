@@ -44,7 +44,7 @@ from pydantic import (
 )
 from pydantic.fields import FieldInfo
 
-CONTRACT_VERSION = "2.15"
+CONTRACT_VERSION = "2.16"
 
 # ── identifiers ────────────────────────────────────────────────────────────
 
@@ -1176,6 +1176,10 @@ class Access(_ExcludeIf):
         return self
 
 
+class _HardwareDeviceCountError(ValueError):
+    """A hardware condition or objective needs exactly one estate device."""
+
+
 class Spec(_ExcludeIf):
     """A request for a decision."""
 
@@ -1207,6 +1211,30 @@ class Spec(_ExcludeIf):
     @classmethod
     def _canonical_excluded_benchmarks(cls, value: list[str]) -> list[str]:
         return sorted(set(value))
+
+    @model_validator(mode="after")
+    def _hardware_needs_one_device(self) -> Spec:
+        def hardware_condition(cond):
+            if isinstance(cond, AllOf | AnyOf):
+                children = cond.all if isinstance(cond, AllOf) else cond.any
+                return any(hardware_condition(child) for child in children)
+            if isinstance(cond, NotOf):
+                return hardware_condition(cond.not_)
+            facet = cond.known if isinstance(cond, Known) else cond.facet
+            return facet.startswith("hardware.")
+
+        conditions = self.where + (
+            self.profile.rules if isinstance(self.profile, InventoryProfile) else [])
+        objective = self.optimize
+        names = [objective.max, objective.min,
+                 *(step.facet for step in objective.lexicographic or ()),
+                 *(objective.weights or ()), *(objective.pareto or ())]
+        hardware = any(hardware_condition(cond) for cond in conditions) or any(
+            name.removeprefix("-").startswith("hardware.") for name in names if name)
+        if hardware and (self.estate is None or len(self.estate.devices) != 1):
+            raise _HardwareDeviceCountError(
+                "hardware.* conditions and objectives require exactly one device in estate.devices")
+        return self
 
 
 # ── the decision ───────────────────────────────────────────────────────────
@@ -1671,6 +1699,19 @@ class NearMiss(_Strict):
     formula: str | None = None
 
 
+class FactInterval(_Strict):
+    """An estimate's scenario bounds in the fact's unit, not a confidence interval."""
+
+    low: float = Field(ge=0, allow_inf_nan=False)
+    high: float = Field(ge=0, allow_inf_nan=False)
+
+    @model_validator(mode="after")
+    def _ordered(self) -> FactInterval:
+        if self.high < self.low:
+            raise ValueError("interval high must be at least low")
+        return self
+
+
 class ShownFact(_Strict):
     facet: str
     value: Scalar | list[Scalar] | None = None
@@ -1685,11 +1726,30 @@ class ShownFact(_Strict):
     source_ids: list[str] = Field(default_factory=list)
 
 
-class CandidateValues(_Strict):
+class HardwareEstimate(_ExcludeIf):
+    """One device's estimate, separate from the known facts. Added in 2.16."""
+
+    device: EstateId
+    facet: FacetId
+    value: float | None = Field(allow_inf_nan=False)
+    unit: str
+    quantisation: str | None
+    interval: FactInterval | None = Field(default=None, exclude_if=lambda value: value is None)
+    unknown_reason: str | None = Field(default=None, exclude_if=lambda value: value is None)
+    formula: str
+    records: list[str] = Field(default_factory=list)
+    source_ids: list[str] = Field(default_factory=list)
+
+
+class CandidateValues(_ExcludeIf):
     offering: OfferingRef
     facts: list[ShownFact] = Field(default_factory=list)
     contributions: list[Contribution] = Field(default_factory=list)
     evidence: list[DomainEvidence] = Field(default_factory=list)
+    unknown_facets: list[FacetId] = Field(
+        default_factory=list, exclude_if=lambda value: not value)
+    hardware_estimates: list[HardwareEstimate] = Field(
+        default_factory=list, exclude_if=lambda value: not value)
 
 
 class CitedSource(_Strict):
@@ -1947,7 +2007,7 @@ class Decision(_ExcludeIf):
         default=None,
         exclude_if=lambda value: value is None,
     )
-    contract_version: Literal["2.15"] = CONTRACT_VERSION
+    contract_version: Literal["2.16"] = CONTRACT_VERSION
     decision_id: DecisionId
     snapshot: SnapshotId
     #: Whether this process verified a publisher signature. Added in 1.10.
@@ -2139,7 +2199,7 @@ CONTRACT_TYPES: tuple[type[BaseModel], ...] = (
     Truncated, TieBreakers, SeparatedAnswer, TiedAnswer,
     DimensionEstimate, BandEntry, Bands, BlendTerm,
     ModelEliminationGroup, ConstraintCost, TippingPoint, ModelRow, ModelOffering,
-    NearMiss, ShownFact, CandidateValues, NumberOrigin, CitedSource, Relaxation,
+    NearMiss, FactInterval, ShownFact, HardwareEstimate, CandidateValues, NumberOrigin, CitedSource, Relaxation,
     SingleGate, RelaxSingle,
     Estate, EstateHold, EstateMark, EstateResult, EstateGap, GainItem, WithEstate,
     Access, PlanPrice, PlanCoverage, PlanAllowance, PlanRoute, FeedbackPointer, Reading,
@@ -2244,8 +2304,8 @@ def _message(error: Mapping[str, Any]) -> str:
 def _issues(exc: ValidationError) -> list[Issue]:
     issues: list[Issue] = []
     for error in exc.errors():
-        where = _loc(error["loc"])
         nested = error.get("ctx", {}).get("error")
+        where = "estate.devices" if isinstance(nested, _HardwareDeviceCountError) else _loc(error["loc"])
         if isinstance(nested, ConditionError):
             path = _join(where, nested.path) if nested.path else where
             issues.append(Issue(nested.condition, nested.field, nested.reason, path))

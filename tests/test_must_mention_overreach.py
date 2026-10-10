@@ -21,7 +21,7 @@ from decision.summary import MUST_MENTION_ITEM_BYTES, MUST_MENTION_MAX, summariz
 
 FIXTURES = Path(__file__).parent / "fixtures/decision/model-351-repros.json"
 BASE = {
-    "contract_version": "2.15",
+    "contract_version": "2.16",
     "snapshot": "snap_e2b358c1663dacb6",
     "spec_hash": "sha256:" + "0" * 64,
     "explain": "summary",

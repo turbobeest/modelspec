@@ -454,13 +454,15 @@ def test_every_condition_and_objective_the_page_can_build_is_a_valid_spec(snapsh
     facets = lookup(snapshot)
     built = 0
     for row in [*vocabulary["facets"], *vocabulary["benchmarks"]]:
+        context = ({"estate": {"devices": ["nvidia_rtx_4090"]}}
+                   if row["id"].startswith("hardware.") else {})
         for condition in conditions_for(row):
             parse_spec({"spec_version": 1, "where": [condition], "optimize": {"max": "swe_bench_verified"},
-                        "task_tokens": vocabulary["default_task_tokens"]}, facets=facets)
+                        "task_tokens": vocabulary["default_task_tokens"], **context}, facets=facets)
             built += 1
         if row.get("objective", True):
             for signed in (row["id"], "-" + row["id"]):
-                spec = parse_spec({"spec_version": 1, "optimize": {"weights": {signed: 1}}},
+                spec = parse_spec({"spec_version": 1, "optimize": {"weights": {signed: 1}}, **context},
                                   facets=facets)
                 decide(spec, snapshot, facets=facets)
                 built += 1
