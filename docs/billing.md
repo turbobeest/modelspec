@@ -142,18 +142,18 @@ the card ledger for customers who already bought them and are not offered
 again. Both rails ADD credits to the same ledger bucket and use
 `credits.pack_expiry_days`.
 
-Current prices. Each id is a placeholder until Jamie replaces it with a live
-Stripe Price and sets `placeholder` to false. Checkout refuses them until then:
+Current prices. Jamie created each as a live Stripe Price on 2026-10-10;
+checkout sells them:
 
 | Price id | Kind | Name | Credits | USD |
 | --- | --- | --- | --- | --- |
-| `price_PLACEHOLDER_solo_v2` | plan | Solo | 2,500 / month | 29 |
-| `price_PLACEHOLDER_team_v2` | plan | Team | 25,000 / month | 199 |
-| `price_PLACEHOLDER_scale_v2` | plan | Scale | 150,000 / month | 799 |
-| `price_PLACEHOLDER_pack_250_v2` | pack | 250-credit pack | 250 | 5 |
-| `price_PLACEHOLDER_pack_1300_v2` | pack | 1,300-credit pack | 1,300 | 25 |
-| `price_PLACEHOLDER_pack_2750_v2` | pack | 2,750-credit pack | 2,750 | 50 |
-| `price_PLACEHOLDER_pack_6000_v2` | pack | 6,000-credit pack | 6,000 | 100 |
+| `price_1UP22XBPydVRHUBjk9rrxOxN` | plan | Solo | 2,500 / month | 29 |
+| `price_1UP247BPydVRHUBjgGVrchgZ` | plan | Team | 25,000 / month | 199 |
+| `price_1UP25VBPydVRHUBjzN0TInX1` | plan | Scale | 150,000 / month | 799 |
+| `price_1UP2AVBPydVRHUBjlyyyEjb1` | pack | 250-credit pack | 250 | 5 |
+| `price_1UP2FRBPydVRHUBj6VKuZzqb` | pack | 1,300-credit pack | 1,300 | 25 |
+| `price_1UP2H7BPydVRHUBjitFs1Iua` | pack | 2,750-credit pack | 2,750 | 50 |
+| `price_1UP2J5BPydVRHUBjgr7fOGIl` | pack | 6,000-credit pack | 6,000 | 100 |
 
 Scale overage is $0.006 per credit, up to 150,000 credits a billing period,
 on `price_PLACEHOLDER_scale_overage_v2` (meter event
@@ -386,9 +386,10 @@ Stripe's live API.
    $50 / 30,000, and packs of 1,250, 7,500, 20,000 and 50,000 credits at $5,
    $25, $50 and $100) stay in `api/worker/tiers.json` with `legacy: true`.
    They are kept for existing customers and are not sold. **Done in test
-   mode** (2026-09-19). The current Solo, Team, Scale and pack rows use
-   `price_PLACEHOLDER_…` ids until Jamie replaces each one with a live Price
-   and sets `placeholder` to false.
+   mode** (2026-09-19). The current Solo, Team, Scale and pack rows carry the live
+   Prices Jamie created on 2026-10-10. The Scale overage row stays
+   `price_PLACEHOLDER_scale_overage_v2` with `placeholder: true` until
+   MODEL-357 lands.
 3. Checkout → **Terms of service URL** =
    `https://modelspec.dev/legal/terms/` (adopted 2026-09-19; source
    `docs/legal/terms-of-service.md`; required: we send

@@ -973,7 +973,7 @@ paths:
               additionalProperties: false
               properties:
                 price_id: {type: string}
-            example: {price_id: price_PLACEHOLDER_solo_v2}
+            example: {price_id: price_1UP22XBPydVRHUBjk9rrxOxN}
           application/x-www-form-urlencoded:
             schema:
               type: object
@@ -981,7 +981,7 @@ paths:
               required: [price_id]
               properties:
                 price_id: {type: string}
-            example: {price_id: price_PLACEHOLDER_solo_v2}
+            example: {price_id: price_1UP22XBPydVRHUBjk9rrxOxN}
       responses:
         '200':
           description: Hosted Checkout URL. Open it in a browser. The sample sells the current Solo row

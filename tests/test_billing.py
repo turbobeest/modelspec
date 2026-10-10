@@ -132,8 +132,9 @@ def test_the_shipped_price_map_is_real_test_mode_credits_not_limits(policy):
     pack = policy.billing.prices[PACK5]
     assert pack.kind == "pack" and pack.credits == 1250 and pack.usd == 5
     assert pack.legacy is True
-    current = policy.billing.prices["price_PLACEHOLDER_solo_v2"]
-    assert current.placeholder is True and current.legacy is False
+    current = policy.billing.prices["price_1UP22XBPydVRHUBjk9rrxOxN"]
+    assert current.placeholder is False and current.legacy is False
+    assert current.for_sale is True
     assert current.kind == "plan" and current.name == "Solo"
     assert current.credits == 2500 and current.usd == 29
     assert policy.tier("paid").paid is True
@@ -436,8 +437,13 @@ def test_billing_is_live_with_live_prices_and_access_enforcement():
     current = {pid: row for pid, row in policy["billing"]["prices"].items() if not row.get("legacy")}
     assert legacy and all(pid.startswith("price_1UHRw") for pid in legacy)
     assert not any(row["placeholder"] for row in legacy.values())
-    assert current and all(pid.startswith("price_PLACEHOLDER_") for pid in current)
-    assert all(row["placeholder"] for row in current.values())
+    # Pricing v2 live Prices, created by Jamie on 2026-10-10. Scale overage
+    # stays a placeholder until MODEL-357 (meter events without the key hash).
+    assert current and all(pid.startswith("price_1UP2") for pid in current)
+    assert not any(row["placeholder"] for row in current.values())
+    overage = current["price_1UP25VBPydVRHUBjzN0TInX1"]["overage"]
+    assert overage["price_id"] == "price_PLACEHOLDER_scale_overage_v2"
+    assert overage["placeholder"] is True
     assert billing.enabled("false") is False
     assert billing.enabled("true") is True
 

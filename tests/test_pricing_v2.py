@@ -57,13 +57,13 @@ from tests.test_x402 import _Req as _VocabReq  # noqa: E402
 from tests.test_x402 import _decision_request, _decision_worker  # noqa: E402
 from tests.test_x402 import entry as _x402_entry  # noqa: E402
 
-SOLO_V2 = "price_PLACEHOLDER_solo_v2"
-TEAM_V2 = "price_PLACEHOLDER_team_v2"
-SCALE_V2 = "price_PLACEHOLDER_scale_v2"
-PACK_250 = "price_PLACEHOLDER_pack_250_v2"
-PACK_1300 = "price_PLACEHOLDER_pack_1300_v2"
-PACK_2750 = "price_PLACEHOLDER_pack_2750_v2"
-PACK_6000 = "price_PLACEHOLDER_pack_6000_v2"
+SOLO_V2 = "price_1UP22XBPydVRHUBjk9rrxOxN"
+TEAM_V2 = "price_1UP247BPydVRHUBjgGVrchgZ"
+SCALE_V2 = "price_1UP25VBPydVRHUBjzN0TInX1"
+PACK_250 = "price_1UP2AVBPydVRHUBjlyyyEjb1"
+PACK_1300 = "price_1UP2FRBPydVRHUBj6VKuZzqb"
+PACK_2750 = "price_1UP2H7BPydVRHUBjitFs1Iua"
+PACK_6000 = "price_1UP2J5BPydVRHUBjgr7fOGIl"
 OVERAGE_PRICE = "price_PLACEHOLDER_scale_overage_v2"
 LEGACY_PACKS = {
     "price_1UHRwmBPydVRHUBjMFS5bDPD": 1250,
@@ -168,8 +168,8 @@ def test_v2_rows_and_legacy_rows_parse(policy):
     for price_id, (kind, name, amount, usd) in expect.items():
         row = policy.billing.prices[price_id]
         assert (row.kind, row.name, row.credits, row.usd) == (kind, name, amount, usd)
-        assert row.placeholder is True and row.legacy is False
-        assert row.for_sale is False
+        assert row.placeholder is False and row.legacy is False
+        assert row.for_sale is True
     legacy = {
         PRICE: ("plan", "Solo", 4000, 10),
         "price_1UHRwmBPydVRHUBjBYfcWhkW": ("plan", "Team", 30000, 50),
@@ -246,9 +246,8 @@ def test_published_rates_and_x402_list_price_use_the_v2_table(policy):
     (PACK_2750, "pack", 2750, "2,750-credit pack"),
     (PACK_6000, "pack", 6000, "6,000-credit pack"),
 ])
-def test_a_v2_webhook_grants_the_row_even_while_it_is_a_placeholder(
-        policy, price_id, kind, amount, name):
-    assert policy.price(price_id).placeholder is True
+def test_a_v2_webhook_grants_the_row(policy, price_id, kind, amount, name):
+    assert policy.price(price_id).for_sale is True
     kv, ledger = MemoryKV(), credits.MemoryLedger()
     session = "cs_v2_" + price_id[-6:]
     if kind == "plan":
@@ -329,10 +328,11 @@ def test_existing_credit_balances_survive_the_v2_table(policy):
     assert after.monthly == 3999 and after.packs == 1250 and after.available == 5249
 
 
-def test_shipped_checkout_refuses_legacy_and_placeholder_prices(entry, policy):
-    assert all(not row.for_sale for row in policy.billing.prices.values())
+def test_shipped_checkout_refuses_legacy_prices(entry, policy):
+    legacy = {pid: row for pid, row in policy.billing.prices.items() if row.legacy}
+    assert legacy and all(not row.for_sale for row in legacy.values())
     env = _billing_env(_Bind())
-    for price_id, row in policy.billing.prices.items():
+    for price_id, row in legacy.items():
         capture: dict[str, str] = {}
         previous = _patch_entry_fetch(entry, capture)
         try:
@@ -348,10 +348,7 @@ def test_shipped_checkout_refuses_legacy_and_placeholder_prices(entry, policy):
             error = response.json()["error"]
             assert error["code"] == "price_not_mapped"
             assert error["price_id"] == price_id
-            if row.placeholder:
-                assert "placeholder" in error["message"]
-            else:
-                assert "legacy" in error["message"]
+            assert "legacy" in error["message"]
             assert "url" not in capture
             assert "location" not in {name.lower() for name in response.headers}
 
@@ -690,12 +687,31 @@ def test_scale_catalog_read_reports_one_meter_event_per_settled_block(bundled_en
     assert shipped_account.overage_used == 0 and shipped_account.read_count == 0
 
 
+@pytest.mark.parametrize("price_id,mode", [
+    (SOLO_V2, "subscription"), (TEAM_V2, "subscription"), (SCALE_V2, "subscription"),
+    (PACK_250, "payment"), (PACK_1300, "payment"), (PACK_2750, "payment"), (PACK_6000, "payment"),
+])
+def test_shipped_checkout_sells_each_live_v2_price(policy, price_id, mode):
+    http = _stripe_ok({"id": "cs_live", "url": "https://checkout.stripe.com/c/pay/cs_live"})
+    outcome = run(billing.checkout(
+        payload={"price_id": price_id}, flag=True, secret="sk_test_fixture",
+        origin="https://api.modelspec.test", kv=MemoryKV(), policy=policy,
+        service_commit=COMMIT, http=http))
+    assert outcome.status == 200, outcome.body
+    assert len(http.calls) == 1
+    fields = dict(urllib.parse.parse_qsl(http.calls[0][1]))
+    assert fields["mode"] == mode
+    assert fields["line_items[0][price]"] == price_id
+    # The overage Price is a placeholder until MODEL-357, so Scale sells alone.
+    assert "line_items[1][price]" not in fields
+
+
 def test_checkout_helpers_do_not_sell_a_legacy_row_through_billing_checkout(policy):
     """The entry tests above cover HTTP. This pins the function the form calls."""
     async def boom(*_args, **_kwargs):
         raise AssertionError("stripe was called")
 
-    for price_id in (PRICE, SCALE_V2):
+    for price_id in (PRICE,):
         outcome = run(billing.checkout(
             payload={"price_id": price_id}, flag=True, secret="sk_test_fixture",
             origin="https://api.modelspec.test", kv=MemoryKV(), policy=policy,
@@ -729,7 +745,7 @@ def test_checkout_helpers_do_not_sell_a_legacy_row_through_billing_checkout(poli
 
 
 def _scale_key(policy):
-    """A claimed Scale key. Checkout of the placeholder is refused; the webhook grants it."""
+    """A claimed Scale key, granted by the webhook."""
     kv = MemoryKV()
     ledger = credits.MemoryLedger()
     run(apply(
