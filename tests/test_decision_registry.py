@@ -98,6 +98,7 @@ DERIVED = {"offering.cost_per_task"}
 
 BEST_EFFORT = {
     "model.parameters_total", "model.parameters_active", "model.architecture",
+    "model.experts_total", "model.experts_per_token",
     "model.knowledge_cutoff", "model.deprecation_date", "model.languages",
     "model.fits_hardware", "offering.speed.time_to_first_token",
     "offering.speed.throughput", "offering.rate_limit.requests",

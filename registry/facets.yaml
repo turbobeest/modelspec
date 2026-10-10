@@ -69,6 +69,10 @@ units:
   - id: parameters
     definition: >-
       A count of trainable weights (not billions; 7e9 is written 7000000000).
+  - id: experts
+    definition: >-
+      A count of routed experts in one mixture-of-experts layer, excluding
+      shared experts that are used for every token.
   - id: days
     definition: >-
       Calendar days.
@@ -323,6 +327,33 @@ facets:
     definition: >-
       The model's architecture family as `ArchitectureType` in `schema/enums.py`
       names it. An undisclosed architecture is unknown, never inapplicable.
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [lab_documentation, weights_repository]
+
+  - id: model.experts_total
+    label: Routed experts
+    subject: model
+    value_type: {kind: number}
+    better: neither
+    unit: experts
+    definition: >-
+      The number of routed experts in each mixture-of-experts layer, excluding
+      shared experts such as `n_shared_experts`. A single value is recorded
+      only when the config states a uniform count across expert layers.
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [lab_documentation, weights_repository]
+  - id: model.experts_per_token
+    label: Experts per token
+    subject: model
+    value_type: {kind: number}
+    better: neither
+    unit: experts
+    definition: >-
+      The number of routed experts selected for one token in each
+      mixture-of-experts layer, excluding always-active shared experts. A
+      single value is recorded only when the config states a uniform count.
     tier: best_effort
     risk: capability
     permitted_source_kinds: [lab_documentation, weights_repository]
