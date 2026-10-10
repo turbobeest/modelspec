@@ -111,6 +111,7 @@ def test_doctor_checks_agent_and_both_panel_judges_in_private_arm_state(
         return codex_exit_code if cli == "codex" else 0
 
     monkeypatch.setattr(ablation, "running_proxy", fixture_proxy)
+    monkeypatch.setattr(ablation, "preflight", lambda proxy: {"metadata": "passed", "decide": "skipped: no key"})
     monkeypatch.setattr(tui_harness, "main", doctor)
     state = tmp_path / "private-state"
     assert ablation.main([
@@ -177,11 +178,12 @@ def test_dry_run_replays_whole_tuning_path_and_proves_proxy_rewrites(
     for index in range(0, 120, 3):
         assert invocations[index + 1][2] == invocations[index + 2][2]
     assert "Scripted fixture" in report["evidence_note"]
-    assert report["proxy"]["baseline"]["counters"].get("rewritten_calls", 0) == 0
-    assert report["proxy"]["v1"]["counters"]["instructions"] == 10
+    assert report["proxy"]["baseline"]["counters"]["v1_copy_absent"] == 22
+    assert report["proxy"]["baseline"]["counters"]["v3_absent"] == 11
+    assert report["proxy"]["v1"]["counters"]["instructions"] == 11
     assert report["proxy"]["v1"]["counters"]["body.next_move"] > 0
     assert report["proxy"]["v1"]["counters"]["complete_fetch"] == 7
-    assert report["proxy"]["v3"]["counters"]["tools.decide.description"] == 10
+    assert report["proxy"]["v3"]["counters"]["tools.decide.description"] == 11
     assert report["proxy"]["v4"]["counters"]["content.user_summary"] == 7
     for arm, values in report["proxy"].items():
         assert not values["counters"].get("bounded_fallback")
