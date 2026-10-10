@@ -62,7 +62,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: pip
       - name: Link the data paths into the verified engine and put only the engine on the import path
         working-directory: .
         run: |
@@ -200,7 +199,6 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: pip
       - name: Link the data paths into the verified engine and put only the engine on the import path
         working-directory: .
         run: |
@@ -269,13 +267,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           WORKFLOW_FILE: price-reread.yml
+          CURRENT_RUN_ID: ${{ github.run_id }}
           EVENT_SCHEDULE: schedule
           EVENT_DISPATCH: workflow_dispatch
         run: |
           mkdir -p "$MODELSPEC_SOURCE_CACHE"
           run_id=""
           ids="$(gh api "repos/${REPO}/actions/workflows/${WORKFLOW_FILE}/runs?branch=main&per_page=20" \
-            --jq '.workflow_runs[] | select(.head_branch == "main" and (.event == env.EVENT_SCHEDULE or .event == env.EVENT_DISPATCH)) | .id')"
+            --jq '.workflow_runs[] | select(.id != (env.CURRENT_RUN_ID | tonumber) and .head_branch == "main" and (.event == env.EVENT_SCHEDULE or .event == env.EVENT_DISPATCH)) | .id')"
           while read -r id; do
             [ -n "$id" ] || continue
             if gh api "repos/${REPO}/actions/runs/${id}/artifacts" \

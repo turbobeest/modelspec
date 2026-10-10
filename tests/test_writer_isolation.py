@@ -160,6 +160,19 @@ def _canonical_link() -> dict:
     raise AssertionError("daily-research has no link step")
 
 
+def cache_problems(document: dict) -> list[str]:
+    """Repo-scoped caches are writable even from a contents: read render job."""
+    problems: list[str] = []
+    for job_name, job in document["jobs"].items():
+        for step in job.get("steps") or []:
+            action = str(step.get("uses") or "").split("@", 1)[0].lower()
+            if action == "actions/setup-python" and "cache" in (step.get("with") or {}):
+                problems.append(f"{job_name}: setup-python cache input is not allowed")
+            if action == "actions/cache" or action.startswith("actions/cache/"):
+                problems.append(f"{job_name}: cache action is not allowed ({action})")
+    return problems
+
+
 def isolation_problems(text: str) -> list[str]:
     """Reasons a writer workflow breaks isolation. An empty list means it holds."""
     problems: list[str] = []
@@ -178,6 +191,7 @@ def isolation_problems(text: str) -> list[str]:
     permissions = document.get("permissions")
     if permissions != {"contents": "read"}:
         problems.append(f"workflow permissions are {permissions!r}")
+    problems.extend(cache_problems(document))
     canonical = _canonical_link()
     for job_name, job in document["jobs"].items():
         problems.extend(_job_problems(str(job_name), job, canonical,
@@ -962,6 +976,42 @@ def test_writer_workflows_keep_the_data_checkout_off_the_import_path(name: str) 
     assert isolation_problems(_text(name)) == []
 
 
+@pytest.mark.parametrize("path", sorted(WRITERS.glob("*.yml")), ids=lambda path: path.stem)
+def test_every_private_writer_rejects_shared_caches(path: Path) -> None:
+    assert cache_problems(_document(path.read_text(encoding="utf-8"))) == []
+
+
+@pytest.mark.parametrize("cache", ["pip", "pipenv", "poetry", "", None])
+@pytest.mark.parametrize("job_name", ["render", "reread"])
+def test_setup_python_cache_inputs_are_rejected(cache: str | None, job_name: str) -> None:
+    document = _document(_text("price-reread"))
+    step = next(step for step in document["jobs"][job_name]["steps"]
+                if step.get("uses") == "actions/setup-python@v5")
+    step["with"]["cache"] = cache
+    assert f"{job_name}: setup-python cache input is not allowed" in isolation_problems(
+        yaml.safe_dump(document)
+    )
+
+
+@pytest.mark.parametrize("uses", [
+    "actions/cache@v4", "actions/cache/restore@v4", "actions/cache/save@v4",
+    "actions/cache@" + "a" * 40,
+])
+@pytest.mark.parametrize("after_link", [False, True])
+def test_cache_actions_are_rejected_regardless_of_path_or_step_order(
+    uses: str, after_link: bool,
+) -> None:
+    document = _document(_text("daily-research"))
+    steps = document["jobs"]["research"]["steps"]
+    link_at = next(index for index, step in enumerate(steps) if step.get("name") == LINK_NAME)
+    steps.insert(link_at + int(after_link), {
+        "uses": uses, "with": {"path": "${{ runner.temp }}/pip", "key": "planted"},
+    })
+    assert f"research: cache action is not allowed ({uses.split('@', 1)[0]})" in isolation_problems(
+        yaml.safe_dump(document)
+    )
+
+
 def test_recall_private_stays_outside_this_guard() -> None:
     assert "recall-private" not in NAMES
     recall = (WRITERS / "recall-private.yml").read_text(encoding="utf-8")
@@ -1323,10 +1373,10 @@ def test_a_restore_into_data_before_the_link_step_is_allowed() -> None:
     needle = "\n      - uses: actions/setup-python@v5\n"
     assert text.count(needle) == 1
     step = (
-        "\n      - uses: actions/cache@v4\n"
+        "\n      - uses: actions/download-artifact@v4\n"
         "        with:\n"
         "          path: data/benchmarks/_curation/state\n"
-        "          key: planted\n"
+        "          name: retained-state\n"
     )
     assert isolation_problems(text.replace(needle, step + needle, 1)) == []
 
