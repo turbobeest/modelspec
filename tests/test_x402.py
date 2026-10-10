@@ -944,8 +944,20 @@ def test_production_x402_is_on_for_base_mainnet() -> None:
 
     cfg = x402.load_config(SimpleNamespace(**production))
     assert cfg.enabled is True
-    assert cfg.configured is True
     assert cfg.mainnet is True
+    real = x402.load_config(SimpleNamespace(**{**production, "X402_PAY_TO": "0x" + "ab" * 20}))
+    assert real.configured is True
+
+
+def test_a_zero_address_receiver_is_not_configured() -> None:
+    """MODEL-333. The zero-address placeholder never reaches a 402 offer."""
+    env = SimpleNamespace(X402_ENABLED="true", X402_MAINNET="true",
+                          X402_NETWORK="eip155:8453",
+                          X402_ASSET="0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+                          X402_PAY_TO="0x" + "0" * 40)
+    assert x402.load_config(env).configured is False
+    assert x402.load_config(SimpleNamespace(**{**vars(env), "X402_PAY_TO": "0x" + "ab" * 20})
+                            ).configured is True
 
 
 def test_staging_x402_config_is_isolated_on_base_sepolia():
@@ -1357,3 +1369,16 @@ def test_live_x402_is_described_by_the_approved_legal_text() -> None:
     assert "Credits can also be bought by x402" in terms
     assert "currently empty" not in privacy
     assert _wrangler_config()["vars"]["X402_PAY_TO"] in privacy
+
+
+def test_the_402_links_the_terms_of_service() -> None:
+    """MODEL-333. A buyer who pays by x402 sees the terms before paying."""
+    env = SimpleNamespace(X402_ENABLED="true", X402_MAINNET="true",
+                          X402_NETWORK="eip155:8453",
+                          X402_ASSET="0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913",
+                          X402_PAY_TO="0x" + "ab" * 20)
+    body = x402.payment_required_body(
+        x402.load_config(env), {}, "https://api.modelspec.dev/v1/decide", offer_packs=True)
+    assert body["error"]["terms_url"] == "https://modelspec.dev/legal/terms/"
+    assert body["error"]["how_to_pay"].endswith(
+        "Paying accepts the terms at https://modelspec.dev/legal/terms/.")

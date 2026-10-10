@@ -5696,6 +5696,7 @@ components:
                 placeholder_note: {type: string}
                 usd: {type: number}
             resource: {type: string}
+            terms_url: {type: string}
             x402Version: {type: integer}
         result:
           type: array

@@ -21,6 +21,21 @@ The CDP facilitator secrets `CDP_API_KEY_ID` and `CDP_API_KEY_SECRET` are
 already set on the production Worker (names checked with
 `wrangler secret list`, 2026-10-10). Nothing more is needed for them.
 
+## Tax on x402
+
+Stripe collects Rhode Island sales tax on card sales and shows it at Checkout.
+An x402 payment has no checkout step: the amount is fixed in the 402 response
+and settles on-chain, so tax cannot be shown or added before payment. Until
+Jamie chooses one of these, x402 stays off and packs sell by card only:
+
+1. **Tax-inclusive x402 price.** Offer x402 packs at a price that includes the
+   tax, and remit it from the receipts. One price for every buyer, so a buyer
+   outside a taxing state overpays, or the margin absorbs it.
+2. **Restrict x402 to buyers outside taxing states.** The Worker cannot know a
+   wallet's location, so this rests on a buyer declaration in the terms.
+3. **Counsel's view** on whether and where these sales are taxable before
+   choosing.
+
 ## The flip
 
 Production switches are `vars` in `api/worker/wrangler.jsonc`. A merge to
