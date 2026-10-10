@@ -155,6 +155,7 @@ such as residency, MacBook, quantisation, and software engineering). It ignores
 case and treats runs of underscores, hyphens, dots, slashes and whitespace as
 one space. Benchmark domain links are excluded. IDs remain exact and
 case-sensitive. A requested id that is not an exact id in the searched sections
+is listed in `unknown_ids`. The field is absent when every requested id matched.
 An id can match another section: `coding` is a template category, so a starter
 lookup does not list it as unknown, and the same id in `section=domains` does.
 Combining search with IDs intersects the two filters.
@@ -293,7 +294,7 @@ CLI. It does not change the decision API contract, the legacy CLI envelope
 
 ### 0.4.0
 
-A minor release: every change is additive.
+A minor release: one new command and two behaviour changes to decision output.
 
 - New `modelspec compare --spec FILE|- | --template ID --to SNAP [--json]` wraps `/v1/compare` and needs a key (MODEL-348, #672).
 - A `no_feasible` decision, or any decision that carries `coverage`, prints as the decision body and exits 2 instead of an `http_error` envelope; `answered` and `partial` without coverage still exit 0 (MODEL-347, #638).
