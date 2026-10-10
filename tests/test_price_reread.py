@@ -12,6 +12,7 @@ import pytest
 import yaml
 
 from decision import verify as verify_module
+from decision.excluded import ExcludedSources
 from decision.model import (
     DETERMINISTIC,
     SourceRef,
@@ -491,7 +492,8 @@ def test_render_to_only_writes_an_artifact_and_never_verifies(
 
 
 @pytest.mark.parametrize("change", ["http", "text", "excluded", "unfiled", "quarantined"])
-def test_render_to_skips_sources_a_reread_would_not_render(estate, tmp_path, change) -> None:
+def test_render_to_skips_sources_a_reread_would_not_render(estate, tmp_path, change,
+                                                          monkeypatch) -> None:
     root, _ = estate
     path = root / "registry" / "sources.yaml"
     if change == "http":
@@ -500,7 +502,9 @@ def test_render_to_skips_sources_a_reread_would_not_render(estate, tmp_path, cha
         path.write_text(SOURCES.replace("fetch: rendered\n  normaliser: html-default",
                                        "fetch: rendered\n  normaliser: text-default"))
     elif change == "excluded":
-        path.write_text(SOURCES.replace(RENDERED_URL, "https://zapier.com/pricing"))
+        monkeypatch.setattr(price_reread, "excluded_sources",
+                            lambda: ExcludedSources(hosts=("excluded.example",)))
+        path.write_text(SOURCES.replace(RENDERED_URL, "https://excluded.example/pricing"))
     elif change == "unfiled":
         (root / "verification" / "queue" / "events.jsonl").unlink()
     else:
