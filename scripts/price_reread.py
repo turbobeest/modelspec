@@ -359,7 +359,9 @@ class RenderedReplayFetcher:
 
 def _fetch_rendered(rendered: RenderedFetcher | RenderedReplayFetcher, url: str,
                     source_ids: Iterable[str]) -> FetchResult:
-    if isinstance(rendered, RenderedReplayFetcher):
+    # A replay, or a fallback wrapped around one, serves captured bytes: only a live
+    # browser takes a preparation.
+    if isinstance(getattr(rendered, "primary", rendered), RenderedReplayFetcher):
         return rendered.fetch(url)
     preparation = next((RENDERED_PREPARATIONS[sid] for sid in sorted(source_ids)
                         if sid in RENDERED_PREPARATIONS), None)

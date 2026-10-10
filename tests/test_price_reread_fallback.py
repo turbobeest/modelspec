@@ -1043,3 +1043,36 @@ def test_failed_monthly_lookup_stops_the_workflow_step(tmp_path):
         },
     )
     assert result.returncode == 7
+
+
+AWS_PRICING = "https://aws.amazon.com/bedrock/pricing/"
+
+
+def test_a_fallback_around_a_replay_never_passes_a_preparation(tmp_path):
+    """Run 38037233884: the AWS preparation reached FallbackFetcher(replay).fetch."""
+    rendered = tmp_path / "rendered"
+    rendered.mkdir()
+    (rendered / "aws.html").write_bytes(b"<html><body>captured</body></html>")
+    (rendered / "manifest.json").write_text(json.dumps({AWS_PRICING: {
+        "file": "aws.html", "outcome": "ok", "status": 200, "error": None}}))
+    replay, _ = fallback.read_fallback(artifact(tmp_path, fallback_manifest=True, ok=True))
+    wrapped = fallback.FallbackFetcher(price_reread.RenderedReplayFetcher(rendered), replay)
+    result = price_reread._fetch_rendered(wrapped, AWS_PRICING, ("aws-pricing",))
+    assert (result.outcome, result.body) == ("ok", b"<html><body>captured</body></html>")
+
+
+def test_a_fallback_around_a_live_renderer_keeps_the_preparation(tmp_path):
+    class LiveRenderer(price_reread.RenderedFetcher):
+        def __init__(self):
+            self.prepared = []
+
+        def fetch(self, url, *, prepare=None):
+            self.prepared.append(prepare)
+            return FetchResult("ok", 200, body=b"live", content_type="text/html")
+
+    live = LiveRenderer()
+    replay, _ = fallback.read_fallback(artifact(tmp_path, fallback_manifest=True, ok=True))
+    result = price_reread._fetch_rendered(fallback.FallbackFetcher(live, replay),
+                                          AWS_PRICING, ("aws-pricing",))
+    assert result.body == b"live"
+    assert live.prepared == [price_reread.RENDERED_PREPARATIONS["aws-pricing"]]

@@ -288,8 +288,9 @@ class FallbackFetcher:
         self.primary = primary
         self.fallback = fallback
 
-    def fetch(self, url: str) -> FetchResult:
-        result = self.primary.fetch(url)
+    def fetch(self, url: str, *, prepare=None) -> FetchResult:
+        result = (self.primary.fetch(url, prepare=prepare) if prepare is not None
+                  else self.primary.fetch(url))
         if (
             fallback_needed(result)
             and firecrawl_allowed(url)
