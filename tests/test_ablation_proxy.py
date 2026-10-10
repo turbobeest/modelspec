@@ -12,17 +12,17 @@ import httpx
 import pytest
 import yaml
 
-from decision.bounded import AGENT_BYTES, project
+from decision.bounded import AGENT_BYTES, agent_summary, project
 from decision.contract import Decision, ResponseOptions, parse_spec
 from decision.engine import decide
 from decision.registry import facet
 from decision.summary import SUMMARY_BYTES, summarize
-from pipeline.agent_copy import copy as agent_copy
 from qa import tui_harness as harness
 from qa import tui_homes as homes
 from qa.ablation_proxy import (
     DECIDE_WORKED_EXAMPLE,
     HEADER,
+    LEGACY_COPY,
     OLD_SUMMARY_RULE,
     SUMMARY_RULE,
     CompleteFetchError,
@@ -73,7 +73,7 @@ def decision_case(proxy_snapshot):
         "result": {
             "content": [
                 {"type": "text", "text": packed(envelope).decode()},
-                {"type": "text", "text": "status: partial"},
+                {"type": "text", "text": agent_summary(bounded)},
             ],
             "isError": False,
         },
@@ -96,13 +96,7 @@ def body(message):
 
 
 def legacy_copy():
-    generated = agent_copy()
-    return (
-        generated["instructions"].replace(SUMMARY_RULE, OLD_SUMMARY_RULE),
-        generated["tools"]["decide"]
-        .removesuffix(DECIDE_WORKED_EXAMPLE)
-        .replace(SUMMARY_RULE, OLD_SUMMARY_RULE),
-    )
+    return LEGACY_COPY["instructions"], LEGACY_COPY["tools"]["decide"]
 
 
 def no_fetch(*args):
@@ -124,14 +118,14 @@ def test_exact_summary_rule_and_example_match_generated_copy():
         Variants(next_move=True),
         no_fetch,
     )
-    assert initialized.message["result"]["instructions"] == agent_copy()["instructions"]
+    assert initialized.message["result"]["instructions"] == instructions.replace(OLD_SUMMARY_RULE, SUMMARY_RULE)
     for variants in (Variants(next_move=True), Variants(worked_example=True), Variants(True, True)):
         message = {
             "id": 2,
             "result": {
                 "tools": [
                     {"name": "decide", "description": description},
-                    {"name": "rank", "description": "unchanged"},
+                    {"name": "rank", "description": LEGACY_COPY["tools"]["rank"]},
                 ]
             },
         }
@@ -144,7 +138,7 @@ def test_exact_summary_rule_and_example_match_generated_copy():
         )
         expected += DECIDE_WORKED_EXAMPLE if variants.worked_example else ""
         assert actual == expected
-        assert result.message["result"]["tools"][1]["description"] == "unchanged"
+        assert result.message["result"]["tools"][1]["description"] == LEGACY_COPY["tools"]["rank"]
         assert message["result"]["tools"][0]["description"] == description
 
 
@@ -178,6 +172,7 @@ def test_complete_fetch_recovers_fields_and_verifies_pinned_identity(decision_ca
     old["results"] = []
     old["may_qualify"] = []
     message["result"]["content"][0]["text"] = packed({"status": 200, "body": old}).decode()
+    message["result"]["content"][1]["text"] = agent_summary(old)
     call["params"]["arguments"].update(fields=["model"], evidence_for="lab/a")
     seen = []
 
@@ -193,7 +188,8 @@ def test_complete_fetch_recovers_fields_and_verifies_pinned_identity(decision_ca
     assert "fields" not in seen[0] and "evidence_for" not in seen[0]
     assert updated["next_move"]["candidates"] == ["lab/a", "lab/b"]
     assert updated["summary_for_user"].endswith(" " + updated["next_move"]["say"])
-    assert result.counters == {"complete_fetch": 1, "identity_snapshot_limit_pin": 1}
+    assert result.counters == {"complete_fetch": 1, "identity_snapshot_limit_pin": 1,
+                               "next_move_added": 1, "v1_body_present": 1, "v4_absent": 1}
     assert "next_move" not in body(message)
 
 
@@ -324,9 +320,13 @@ def test_error_response_never_fetches_or_adds_annotations(decision_case):
 
 def test_budget_counts_both_texts_and_passes_through_all_or_nothing(decision_case):
     message, call, complete = decision_case
-    # A second large text keeps the original under budget but pushes V1's envelope over it.
+    # Pad the envelope, keeping the recognised legacy summary intact.
+    envelope = json.loads(message["result"]["content"][0]["text"])
+    envelope["padding"] = ""
+    message["result"]["content"][0]["text"] = packed(envelope).decode()
     base = text_bytes(message["result"])
-    message["result"]["content"][1]["text"] += "x" * (AGENT_BYTES - base - 2)
+    envelope["padding"] = "x" * (AGENT_BYTES - base - 2)
+    message["result"]["content"][0]["text"] = packed(envelope).decode()
     unchanged = copy.deepcopy(message)
     result = rewrite(message, call, Variants(next_move=True), complete)
     assert result.message == unchanged and result.message is message

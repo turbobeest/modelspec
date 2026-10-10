@@ -5,7 +5,11 @@ http://host.docker.internal:<port>/mcp. Authorization and session headers are
 forwarded in memory. Access logs and exception bodies are deliberately absent.
 Only call identifiers, flags, field names, counters and byte sizes enter JSONL.
 
-V1 fetches the complete Decision with a pinned snapshot and limit 500, the
+Every arm converges old or deployed responses to its selected target state.
+Published copy is pinned to the pre-#682 text plus the arm's variants, including
+the historical guide version and prices. Unknown copy still fails loudly.
+V1 keeps an upstream next_move without another fetch. When absent, V1 fetches
+the complete Decision with a pinned snapshot and limit 500, the
 contract maximum. Both snapshot and limit are part of canonical_json, so these
 pins can change spec_hash and decision_id. Both identities are checked against
 their respective canonical Specs, and the answer must match the bounded body.
@@ -17,8 +21,17 @@ The upstream summary retains engine-only evidence captures that even a complete
 Decision cannot reproduce. We reserve space for next_move.say and use the
 engine's last-resort paragraph clipper when necessary. Its ending is exact;
 under clipping the preceding list trimming can differ from a future server
-summary. Every such call counts summary_trim_gap. Named profiles are refused
-for V1 because the complete Decision does not contain their rules. Inline
+summary. Every such addition counts summary_trim_gap. Stripping an upstream
+move removes only its exact trailing say. Every removal counts
+summary_strip_trim_gap conservatively: the reserved bytes may have shortened
+the preceding paragraph, which cannot be recovered from the response.
+Post-#682 budget omissions also count upstream_projection_gap on absent V1
+arms. Those removed records cannot be restored by stripping next_move. The
+ablation compares arms over the same upstream records, so every arm sees the
+same trimmed body and differs only in its variants; the gap is reported, and
+an arm is not claimed equal to the pre-#682 server.
+Named profiles are refused when V1 needs a fetch because the complete Decision
+does not contain their rules. Inline
 profiles work. A failed complete fetch uses retained bounded fields and counts
 bounded_fallback, which cannot recover omitted candidates or profile rules.
 """
@@ -40,8 +53,8 @@ from urllib.parse import urlsplit, urlunsplit
 
 import httpx
 
-from decision.bounded import AGENT_BYTES, mcp_default_request
-from decision.contract import Decision, parse_spec, spec_hash
+from decision.bounded import AGENT_BYTES, agent_summary, mcp_default_request
+from decision.contract import Decision, NextMove, parse_spec, spec_hash
 from decision.next_move import (
     build_next_move,
     next_move_input_from_bounded,
@@ -56,14 +69,25 @@ METADATA_PATH = "/ablation"
 OLD_SUMMARY_RULE = (
     "Present `summary_for_user` to the user unchanged and keep every `must_mention` item."
 )
+_ROOT = Path(__file__).resolve().parents[1]
+LEGACY_COPY = json.loads((_ROOT / "qa/fixtures/ablation-pre682-copy.json").read_text())
+PUBLISHED_COPY = json.loads((_ROOT / "mcp/src/agent-copy.json").read_text())
 LIMITATIONS = [
     "summary_trim_gap: the reserved ending is exact; "
     "clipped preceding lists can differ from the server",
+    "summary_strip_trim_gap: every removed move may leave a paragraph shortened "
+    "by the upstream say reservation",
+    "upstream_projection_gap: post-#682 budget omissions cannot be restored; "
+    "every arm sees the same trimmed records, so arms differ only in variants",
     "bounded_fallback: a failed complete fetch leaves omitted selection inputs unavailable",
-    "candidates_truncated: a complete fetch with omitted models passes through and invalidates exposure proof",
+    "candidates_truncated: a complete fetch with omitted models passes through "
+    "and invalidates exposure proof",
     "named profiles are refused for V1; use inline profiles",
-    "pinning latest and limit 500 can change canonical spec_hash and decision_id; both identities and the answer are verified",
-    "V1 and combined double keyed /v1/decide calls to fetch the complete candidate set",
+    "pinning latest and limit 500 can change canonical spec_hash and decision_id; "
+    "both identities and the answer are verified",
+    "V1 and combined fetch a complete keyed Decision only when next_move is absent upstream",
+    "copy uses the pre-#682 guide version and prices to keep arm differences "
+    "confined to the selected variants",
 ]
 HOP_HEADERS = {
     "connection",
@@ -243,10 +267,36 @@ def check_identity(complete: Decision, bounded: dict, original: dict, pinned: di
     return "_".join(pins) + "_pin" if pins else "matched"
 
 
-def replace_summary_rule(text: str) -> str:
-    if not isinstance(text, str) or text.count(OLD_SUMMARY_RULE) != 1 or SUMMARY_RULE in text:
+def converge_copy(text: str, name: str, variants: Variants) -> str:
+    """Recognise either published generation and return the arm's exact copy."""
+    if name == "instructions":
+        old, current = LEGACY_COPY[name], PUBLISHED_COPY[name]
+    else:
+        if name not in LEGACY_COPY["tools"]:
+            raise CopyDriftError("Upstream tool description drifted")
+        old, current = LEGACY_COPY["tools"][name], PUBLISHED_COPY["tools"][name]
+    if not isinstance(text, str):
         raise CopyDriftError("Upstream SUMMARY_RULE drifted")
-    return text.replace(OLD_SUMMARY_RULE, SUMMARY_RULE, 1)
+    if name == "decide":
+        base = text.removesuffix(DECIDE_WORKED_EXAMPLE)
+        if not base.endswith(NULL_RULE) or DECIDE_WORKED_EXAMPLE in base:
+            raise CopyDriftError("Upstream worked example insertion point drifted")
+    recognised = set()
+    for source in (old, current):
+        base = source.removesuffix(DECIDE_WORKED_EXAMPLE).replace(SUMMARY_RULE, OLD_SUMMARY_RULE)
+        for rule in (OLD_SUMMARY_RULE, SUMMARY_RULE):
+            candidate = base.replace(OLD_SUMMARY_RULE, rule)
+            recognised.add(candidate)
+            if name == "decide":
+                recognised.add(candidate + DECIDE_WORKED_EXAMPLE)
+    if text not in recognised:
+        raise CopyDriftError("Upstream SUMMARY_RULE drifted")
+    target = old
+    if variants.next_move and name in {"instructions", "decide"}:
+        target = target.replace(OLD_SUMMARY_RULE, SUMMARY_RULE)
+    if variants.worked_example and name == "decide":
+        target += DECIDE_WORKED_EXAMPLE
+    return target
 
 
 @dataclass
@@ -267,36 +317,34 @@ def rewrite(message: dict, call: dict, variants: Variants, fetch_complete) -> Re
     if not isinstance(result, dict) or changed.get("id") != call.get("id"):
         return Rewrite(original)
     method = call.get("method")
-    if method == "initialize" and variants.next_move:
-        result["instructions"] = replace_summary_rule(result.get("instructions", ""))
-        outcome.fields.append("instructions")
-    if method == "tools/list" and (variants.next_move or variants.worked_example):
+    if method == "initialize":
+        target = converge_copy(result.get("instructions", ""), "instructions", variants)
+        if target != result.get("instructions"):
+            result["instructions"] = target
+            outcome.fields.append("instructions")
+        outcome.counters["v1_copy_present" if variants.next_move else "v1_copy_absent"] += 1
+    if method == "tools/list":
         listed = result.get("tools", [])
         if not isinstance(listed, list) or any(not isinstance(tool, dict) for tool in listed):
             raise CopyDriftError("Upstream decide tool list drifted")
         tools = [tool for tool in listed if tool.get("name") == "decide"]
         if len(tools) != 1:
             raise CopyDriftError("Upstream decide tool list drifted")
-        text = tools[0].get("description", "")
-        if variants.next_move:
-            text = replace_summary_rule(text)
-        if variants.worked_example:
-            if (
-                not isinstance(text, str)
-                or not text.endswith(NULL_RULE)
-                or DECIDE_WORKED_EXAMPLE in text
-            ):
-                raise CopyDriftError("Upstream worked example insertion point drifted")
-            text += DECIDE_WORKED_EXAMPLE
-        tools[0]["description"] = text
-        outcome.fields.append("tools.decide.description")
+        for tool in listed:
+            name = tool.get("name")
+            target = converge_copy(tool.get("description", ""), name, variants)
+            if target != tool.get("description"):
+                tool["description"] = target
+                outcome.fields.append(f"tools.{name}.description")
+        outcome.counters["v1_copy_present" if variants.next_move else "v1_copy_absent"] += 1
+        outcome.counters["v3_present" if variants.worked_example else "v3_absent"] += 1
     params = call.get("params") or {}
     if method != "tools/call" or params.get("name") != "decide" or result.get("isError"):
-        return outcome if outcome.fields else Rewrite(original)
+        if not outcome.fields:
+            outcome.message = original
+        return outcome
     outcome.before = text_bytes(result)
     outcome.after = outcome.before
-    if not (variants.next_move or variants.annotations):
-        return Rewrite(original, before=outcome.before, after=outcome.before)
     content = result.get("content", [])
     envelope = None
     for index, item in enumerate(content):
@@ -318,7 +366,50 @@ def rewrite(message: dict, call: dict, variants: Variants, fetch_complete) -> Re
         outcome.counters["unbounded_passthrough"] += 1
         outcome.message = original
         return outcome
-    if variants.next_move:
+    omitted = body.get("explanation", {}).get("omitted", {})
+    budget_omissions = {
+        "member_evidence", "reading", "relax_task_tokens", "relax_single", "with_estate",
+    }
+    if "model_evidence" not in body:
+        budget_omissions.add("results")
+        # Ordinary projection caps may_qualify at ten even without budget cuts.
+        if omitted.get("may_qualify") and len(body.get("may_qualify", [])) < 10:
+            budget_omissions.add("may_qualify")
+    if not variants.next_move and body.get("bounded_version") == "1.2" and any(
+        count and (
+            name in budget_omissions
+            or name.startswith(("results.", "with_estate.", "model_evidence."))
+        )
+        for name, count in omitted.items()
+    ):
+        outcome.counters["upstream_projection_gap"] += 1
+    old_summary = body["summary_for_user"]
+    legacy_content = {"type": "text", "text": agent_summary(body)}
+    annotated_content = {
+        "type": "text", "text": old_summary, "annotations": {"audience": ["user"]},
+    }
+    if index != 0 or len(content) > 2 or (
+        len(content) == 2 and content[1] not in (legacy_content, annotated_content)
+    ):
+        raise RewriteError("Upstream decide summary content drifted")
+    move = body.get("next_move")
+    if "next_move" in body:
+        try:
+            NextMove.model_validate(move)
+        except ValueError:
+            raise RewriteError("Upstream next_move drifted") from None
+        ending = " " + move["say"]
+        if not move["say"] or not old_summary.endswith(ending):
+            raise RewriteError("Upstream next_move summary ending drifted")
+        if variants.next_move:
+            outcome.counters["next_move_upstream"] += 1
+        else:
+            del body["next_move"]
+            body["summary_for_user"] = old_summary[:-len(ending)]
+            outcome.fields += ["body.next_move", "body.summary_for_user"]
+            outcome.counters["next_move_removed"] += 1
+            outcome.counters["summary_strip_trim_gap"] += 1
+    elif variants.next_move:
         original_spec = request_spec(params.get("arguments") or {})
         pinned = original_spec | {"snapshot": body["snapshot"], "limit": 500}
         spec = parse_spec(pinned, facets=None)
@@ -357,20 +448,34 @@ def rewrite(message: dict, call: dict, variants: Variants, fetch_complete) -> Re
                 outcome.counters["summary_trim_gap"] += 1
             body["summary_for_user"] = paragraph + ending
             outcome.fields += ["body.next_move", "body.summary_for_user"]
-            content[index]["text"] = packed(envelope).decode("utf-8")
+            outcome.counters["next_move_added"] += 1
         else:
             outcome.counters["separated_no_move"] += 1
+    outcome.counters["v1_body_present" if variants.next_move else "v1_body_absent"] += 1
+    if body.get("representation") == "bounded":
+        if body.get("bounded_version") not in {"1.1", "1.2"}:
+            raise RewriteError("Upstream bounded version drifted")
+        version = "1.2" if variants.next_move else "1.1"
+        if body["bounded_version"] != version:
+            body["bounded_version"] = version
+            outcome.fields.append("body.bounded_version")
+    if any(name.startswith("body.") for name in outcome.fields):
+        content[index]["text"] = packed(envelope).decode("utf-8")
     if variants.annotations:
-        annotated = {
+        target_content = {
             "type": "text",
             "text": body["summary_for_user"],
             "annotations": {"audience": ["user"]},
         }
-        if len(content) > index + 1 and content[index + 1].get("type") == "text":
-            content[index + 1] = annotated
-        else:
-            content.insert(index + 1, annotated)
+    else:
+        target_content = {"type": "text", "text": agent_summary(body)}
+    if len(content) == 1:
+        content.append(target_content)
         outcome.fields.append("content.user_summary")
+    elif content[1] != target_content:
+        content[1] = target_content
+        outcome.fields.append("content.user_summary")
+    outcome.counters["v4_present" if variants.annotations else "v4_absent"] += 1
     outcome.after = text_bytes(result)
     if outcome.after > AGENT_BYTES:
         outcome.message = original
@@ -509,12 +614,33 @@ class ProxyServer(ThreadingHTTPServer):
     def handle_error(self, request, client_address):
         # BaseServer's traceback can contain request values. Audit only a count.
         self.proxy.audit.record(
-            {}, Rewrite({}, counters=Counter(handler_error=1)), before=0, after=0
+            {}, Rewrite({}, counters=Counter(handler_error=1, proxy_error=1)), before=0, after=0
         )
 
 
 class Handler(BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
+    response_complete = False
+
+    def parse_request(self):
+        self.response_complete = False
+        return super().parse_request()
+
+    def handle_one_request(self):
+        # A keep-alive read can reset after the previous response was delivered.
+        # Keep its completion flag until a new request is actually parsed.
+        try:
+            if self.response_complete and self.rfile.peek(1):
+                self.response_complete = False
+            super().handle_one_request()
+        except (BrokenPipeError, ConnectionResetError):
+            counts = (
+                Counter(client_disconnect=1)
+                if self.response_complete
+                else Counter(handler_error=1, proxy_error=1)
+            )
+            self.server.proxy.audit.record({}, Rewrite({}, counters=counts), before=0, after=0)
+            self.close_connection = True
 
     def log_message(self, format, *args):
         pass
@@ -554,6 +680,8 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", str(len(raw)))
         self.end_headers()
         self.wfile.write(raw)
+        self.wfile.flush()
+        self.response_complete = True
 
     def forward(self):
         proxy = self.server.proxy
@@ -604,15 +732,19 @@ class Handler(BaseHTTPRequestHandler):
                         event.extend(chunk)
                         while match := re.search(rb"\r?\n\r?\n", event):
                             boundary = match.end()
-                            self.wfile.write(
-                                sse_event(proxy, bytes(event[:boundary]), call, authorization)
-                            )
+                            output = sse_event(proxy, bytes(event[:boundary]), call, authorization)
+                            self.wfile.write(output)
                             self.wfile.flush()
+                            self.completed_event(output, call)
                             del event[:boundary]
                         if len(event) > 16 * 1024 * 1024:
                             raise RewriteError("Upstream SSE event exceeded the proxy buffer limit")
                     if event:
-                        self.wfile.write(sse_event(proxy, bytes(event), call, authorization))
+                        output = sse_event(proxy, bytes(event), call, authorization)
+                        self.wfile.write(output)
+                        self.wfile.flush()
+                        self.completed_event(output, call)
+                    self.response_complete = True
                 else:
                     body = upstream.read()
                     if body and "json" in content_type:
@@ -649,6 +781,19 @@ class Handler(BaseHTTPRequestHandler):
                 }
                 self.wfile.write(b"event: message\ndata: " + packed(error) + b"\n\n")
                 self.wfile.flush()
+
+    def completed_event(self, event: bytes, call: dict):
+        for line in event.splitlines():
+            if not line.startswith(b"data:"):
+                continue
+            try:
+                message = json.loads(line[5:])
+            except ValueError:
+                continue
+            if isinstance(message, dict) and call.get("id") is not None and (
+                message.get("id") == call["id"] and ("result" in message or "error" in message)
+            ):
+                self.response_complete = True
 
 
 @contextmanager

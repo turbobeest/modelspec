@@ -642,18 +642,42 @@ explicit exclusion, and are never silently dropped or retried.
 
 `qa.ablation` measures whether Claude preserves ModelSpec's abstentions. Its
 QA-only local MCP proxy forwards the agent's Authorization header to production
-MCP and selects V1 next_move, V2 the Claude plugin, V3 the worked example, V4
-the annotated user summary, or all four. It never deploys a production change.
-V1 and combined double the keyed `/v1/decide` calls. Each agent decide call
-adds a complete fetch pinned to the same snapshot and `limit: 500`, the contract
-maximum. The proxy verifies both canonical identities and requires the complete
+MCP and converges each response to the arm's target state, even when production
+already contains variants. Baseline has no variants. V1 selects next_move and
+its reporting sentence, V2 selects the Claude plugin, V3 selects the worked
+example, V4 selects the annotated user summary, and combined selects all four.
+The proxy recognises the exact old and deployed copy and rejects unknown text.
+It pins descriptions, prices and the guide version to the generated copy from
+`41125577` plus exactly the arm's variants. It never deploys a production change.
+
+V1 and combined keep upstream next_move unchanged and count `next_move_upstream`.
+Only a response without next_move needs a complete keyed `/v1/decide` fetch,
+pinned to the same snapshot and `limit: 500`, the contract maximum.
+The proxy verifies both canonical identities and requires the complete
 answer to match the bounded answer. If the fetch still omits models, the call
 passes through, counts `candidates_truncated`, and invalidates the row's exposure
-proof. Its private counters also record fallback, clipping and budget
-passthrough. Proxy JSONL contains call IDs, flags, rewritten field names and byte
-sizes only.
+proof. Absent V1 removes next_move, strips only the exact trailing space and
+next_move.say, and restores bounded version 1.1. Present V1 uses version 1.2.
+Every removal conservatively counts `summary_strip_trim_gap`: the upstream
+1,200-byte paragraph may have shortened lists to reserve the say ending.
+The gap requires an offline comparison with the old engine. V3 inserts or
+removes the exact worked example. Absent V4 restores the legacy status line,
+including drill-down wording; present V4 puts the exact summary_for_user in
+the second text block with audience `["user"]`. Reapplying an arm is idempotent.
 
-Merge both PRs in the QA checkout first. V2 and combined refuse if either
+Post-#682 projection can also remove extra records under its smaller body
+budget. The proxy counts `upstream_projection_gap` when it detects budget cuts
+that prevent proof of the old body. The arm stays valid: every arm reads the
+same trimmed upstream records, so arms differ only in their variants, and the
+report shows the count. No arm is claimed equal to the pre-#682 server.
+Ordinary projection omissions, including the ten-row may_qualify cap, do not
+trigger that counter.
+The 16,384-byte check includes both text blocks. Private counters record
+fallback, clipping, convergence, upstream preservation and budget passthrough.
+Proxy JSONL contains call IDs, flags, rewritten field names, counters and byte
+sizes only. Authorization and session headers stay in memory.
+
+V2 and combined refuse if either
 harness lacks `--claude-plugin modelspec`. The Claude agent uses the default
 Grok + Codex judge panel from `tui_config.yaml`. Both judges receive identical
 prompts and must agree and pass; Claude never judges its own arm. The plugin is
@@ -683,11 +707,20 @@ require proof that the variant was applied. JSON retains each judge's execution
 status and panel routes. Receipts and checkpoints include the
 variant identity; the ordinary subscription-jobs state is refused.
 
+Before any CLI runs, every arm starts its proxy and preflights keyless initialize
+and tools/list, checking V1 copy and V3. When MODELSPEC_API_KEY is present, it
+also sends one small keyed decide and checks V1 body and V4. Metadata never
+carries Authorization. A preflight failure aborts that arm, saves its reason,
+and continues with the next arm. A proxy error stops the arm's remaining
+scenarios. Combined JSON and Markdown mark failed arms INVALID with a reason
+and no pass rate. Resets or broken pipes after a complete response count only
+as `client_disconnect`; an incomplete response remains a proxy error.
+
 TUNING contains budget-approved, hardware-spark, prompt-code, prompt-maths,
 prompt-policy and recall-q01/q03/q04/q07/q09. HOLDOUT contains
 recall-q02/q05/q08/q10, must never tune copy, and runs only with
 `--arms baseline combined --set holdout` in a fresh output directory. The
-constants are in `qa/ablation.py`. For offline checks before PR B is merged,
+constants are in `qa/ablation.py`. For offline checks without plugin arms,
 use `--dry-run --arms baseline v1 v3 v4` with fresh private `--out` and
 `--state-dir` paths.
 

@@ -749,6 +749,18 @@ def dry_commands(scenarios: list[dict], selected: list[str], config: dict, outpu
                 print(json.dumps(redact_structure(plan), ensure_ascii=False))
 
 
+def run_scenarios(runner, scenarios, selected):
+    """Stop an ablation arm as soon as a scenario encounters a proxy failure."""
+    rows = []
+    for scenario in scenarios:
+        for cli in selected:
+            row = runner.scenario(scenario, cli)
+            rows.append(row)
+            if runner.audit is not None and row.get("proxy_rewrites", {}).get("proxy_error"):
+                return rows, "Proxy error in scenario " + scenario["id"]
+    return rows, None
+
+
 def main(argv=None, *, fixture_runner_factory=None, ablation_audit=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, default=HERE / "tui_config.yaml")
@@ -923,12 +935,12 @@ def main(argv=None, *, fixture_runner_factory=None, ablation_audit=None) -> int:
         judge_isolation["claude"] = isolation_result("claude", config | {"claude_plugin": None})
     gates = [*isolation.values(), *judge_isolation.values()]
     counts = {cli: {"agent": 0, "judge": 0} for cli in CLIS}
-    blocked, rows, stopped = None, [], {}
+    blocked, rows, stopped, ablation_invalid = None, [], {}, None
     if args.dry_run:
         dry_commands(scenarios, selected, config, output)
         if fixture_runner_factory is not None:
             runner = fixture_runner_factory(config, output, scenarios)
-            rows = [runner.scenario(scenario, cli) for scenario in scenarios for cli in selected]
+            rows, ablation_invalid = run_scenarios(runner, scenarios, selected)
             counts, stopped = runner.counts, runner.stopped
     elif args.smoke and any(not info["supported"] for info in gates):
         blocked = (
@@ -943,9 +955,7 @@ def main(argv=None, *, fixture_runner_factory=None, ablation_audit=None) -> int:
         if args.smoke and any(not info["verified"] for info in gates):
             blocked = "Isolation verification failed; smoke did not start."
         elif not args.verify_isolation:
-            for scenario in scenarios:
-                for cli in selected:
-                    rows.append(runner.scenario(scenario, cli))
+            rows, ablation_invalid = run_scenarios(runner, scenarios, selected)
         counts, stopped = runner.counts, runner.stopped
     if blocked:
         rows = [
@@ -971,6 +981,8 @@ def main(argv=None, *, fixture_runner_factory=None, ablation_audit=None) -> int:
         blocked=blocked,
     )
     report["metadata"].update(smoke=args.smoke, verification_only=args.verify_isolation)
+    if ablation_invalid:
+        report["metadata"]["ablation_invalid_reason"] = ablation_invalid
     if fixture_runner_factory is not None:
         report["metadata"]["fixture_replay"] = True
         report["evidence_note"] += " Agent outputs and judge verdicts are scripted fixtures, not measurements."
@@ -981,7 +993,7 @@ def main(argv=None, *, fixture_runner_factory=None, ablation_audit=None) -> int:
     failed_verification = args.verify_isolation and any(
         not info["verified"] for info in isolation.values()
     )
-    return 2 if blocked or failed_verification else 0
+    return 2 if blocked or failed_verification or ablation_invalid else 0
 
 
 if __name__ == "__main__":
