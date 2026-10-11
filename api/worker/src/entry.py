@@ -914,13 +914,26 @@ class Default(WorkerEntrypoint):
                 if not admitted:
                     async def allowed(*args):
                         return 200, {}
+
+                    async def skip_catalog_limits(record, tier):
+                        if tier.unlimited:
+                            return False
+                        if tier.paid:
+                            return True
+                        if access_config.load_policy(self.env).credits.reads is None:
+                            return False
+                        holder = x402.holder_from_key(api_key)
+                        if not holder:
+                            return False
+                        return await credits.ledger_from_env(self.env).has_read_funding(holder)
+
                     outcome = await access.gate(
                         api_key=api_key,
                         enforced=access.enforcement(getattr(self.env, ACCESS_ENFORCED_VAR, None)),
                         kv=_access_store(self.env), load_policy=lambda: access_config.load_policy(self.env),
                         anonymous=allowed, live=allowed,
                         sandbox=lambda: access.refusal(access.SANDBOX_NOT_AVAILABLE, "Use a live key for vocabulary.", envelope={}),
-                        skip_limits=lambda record, tier: not tier.unlimited,
+                        skip_limits=skip_catalog_limits,
                     )
                     if not outcome.served:
                         return _json_response(outcome.status, outcome.body, {**cors, **outcome.headers})
@@ -1208,10 +1221,11 @@ class Default(WorkerEntrypoint):
         """Admit and charge a successful keyed vocabulary read from ledger funding.
 
         Visit tokens never reach here. HEAD is the same read as GET and has no
-        body. An exempt unlimited tier draws nothing. The ledger spends pack
-        credits and plan allowance, regardless of the key's stored tier, and
-        refuses reads it cannot fund. A refused or invalid read is not counted:
-        the caller validates the query before this runs.
+        body. An exempt unlimited tier draws nothing. Unfunded free keys have
+        already used the tier's limits at admission. Funded keys use the ledger
+        regardless of stored tier; exhausted reads retain the free fallback.
+        A refused or invalid read is not charged: the caller validates the
+        query before this runs.
         """
         tier_name = getattr(outcome, "tier", None)
         if not tier_name:
@@ -1223,6 +1237,8 @@ class Default(WorkerEntrypoint):
             return None
         reads = policy.credits.reads
         if reads is None or tier.unlimited:
+            return None
+        if outcome.meter is not None and outcome.meter.windows:
             return None
         holder = x402.holder_from_key(api_key)
         if not holder:
@@ -1242,10 +1258,7 @@ class Default(WorkerEntrypoint):
             }}, cors)
         if not taken.ok:
             if taken.reason == "exhausted":
-                return _json_response(402, {"error": {
-                    "code": "payment_required",
-                    "message": "Catalog reads require remaining credits. Use a funded API key.",
-                }}, cors)
+                return await self._serve_catalog_as_free(outcome, cors, policy)
             return _catalog_rate_limited(taken, policy, outcome, cors)
         try:
             kept = await ledger.keep_read(holder, int(taken.token))
@@ -1284,6 +1297,25 @@ class Default(WorkerEntrypoint):
                 except Exception:
                     logging.error("could not record settled catalog overage")
         return None
+
+    async def _serve_catalog_as_free(self, outcome, cors, policy):
+        """Nothing left to bill. Serve the catalog under the free tier's limits."""
+        try:
+            free = policy.tier("free")
+        except access_config.PolicyError:
+            return None
+        now = datetime.now(UTC)
+        meter = await access_limits.consume(
+            _access_store(self.env), getattr(outcome, "key_id", None) or "", free, now)
+        if meter.allowed:
+            return None
+        record = access_keys.KeyRecord(
+            key_id=getattr(outcome, "key_id", None) or "",
+            tier=getattr(outcome, "tier", None) or "",
+            owner="", created_at="")
+        status, body = access.rate_limited_body(meter, record, policy, now, {})
+        return _json_response(
+            status, body, {**cors, **access._rate_limit_headers(meter, now)})
 
     def _credit_params(self, path: str, payload=None) -> tuple[int, int, str]:
         try:
