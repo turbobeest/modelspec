@@ -484,16 +484,11 @@ async def charge(
     clock = moment.astimezone(UTC).isoformat(timespec="seconds").replace("+00:00", "Z")
 
     async def _settle(reserved_holder: str, reservation_id: int) -> None:
-        result = await ledger.commit(reserved_holder, reservation_id)
-        settled = int(getattr(result, "overage", 0) or 0)
-        if not settled or on_overage is None:
-            return
-        try:
-            ident = await ledger.meter_identifier(
-                reserved_holder, "res", reservation_id)
-        except Exception:
-            ident = ""
-        await on_overage(settled, str(ident or ""))
+        await ledger.commit(reserved_holder, reservation_id)
+        if on_overage is not None:
+            # The debit already saved its meter record. A prepaid request
+            # also drains records left by earlier lost RPC replies.
+            await on_overage(0, "")
 
     async def _unfunded(available: int) -> tuple[int, dict[str, Any]]:
         if not config.enabled and produce_unfunded is not None and holder:

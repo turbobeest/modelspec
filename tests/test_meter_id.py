@@ -196,11 +196,13 @@ def test_durable_object_loads_a_record_without_meter_id_and_keeps_it():
     assert "src" not in after["accounts"]
 
     run(moved.set_monthly("bare", 2, "in_bare", "Scale"))
+    run(moved.set_monthly("give", 0, "in_give", "Scale"))
     give = run(moved.meter_identifier("give", "read", "1")).split(":")[0]
     assert run(moved.transfer("give", "bare")) is True
     inherited = json.loads(ctx.storage.sql.table["state"])
     assert inherited["accounts"]["bare"]["meter_id"] == give
 
+    run(moved.set_monthly("whole", 0, "in_whole", "Scale"))
     whole = run(moved.meter_identifier("whole", "read", "1")).split(":")[0]
     assert run(moved.transfer("whole", "moved")) is True
     wholesale = json.loads(ctx.storage.sql.table["state"])
@@ -209,6 +211,7 @@ def test_durable_object_loads_a_record_without_meter_id_and_keeps_it():
 
 def test_transfer_keeps_or_inherits_meter_id_and_stored_identifiers():
     ledger = credits.MemoryLedger()
+    assert run(ledger.set_monthly("key:src", 0, "in_src", "Scale")).credited
     whole = run(ledger.meter_identifier("key:src", "read", 1)).split(":")[0]
     assert run(ledger.transfer("key:src", "key:moved"))
     assert ledger.state.accounts["key:moved"].meter_id == whole
@@ -216,6 +219,7 @@ def test_transfer_keeps_or_inherits_meter_id_and_stored_identifiers():
 
     assert run(ledger.set_monthly("key:dest", 1, "in_dest", "Scale", "cus_d")).credited
     dest = run(ledger.meter_identifier("key:dest", "read", 1)).split(":")[0]
+    assert run(ledger.set_monthly("key:other", 0, "in_other", "Scale")).credited
     src = run(ledger.meter_identifier("key:other", "read", 1)).split(":")[0]
     assert dest != src
     assert run(ledger.note_unreported("key:other", 3, "evt-src"))
@@ -252,6 +256,7 @@ def test_a_legacy_uncertain_identifier_is_retried_verbatim(entry):
     env = SimpleNamespace(
         STRIPE_SECRET_KEY="sk_test_fixture", CREDITS=credits.MemoryLedger())
     holder = "key:" + "ab" * 32
+    assert run(env.CREDITS.set_monthly(holder, 0, "in_legacy", "Scale")).credited
     legacy = f"{holder}:read:1"
     assert run(env.CREDITS.note_uncertain(holder, 2, legacy))
     fresh = run(env.CREDITS.meter_identifier(holder, "read", 9))
@@ -279,6 +284,7 @@ def test_a_missing_backlog_identifier_is_not_composed_from_the_holder(entry):
     env = SimpleNamespace(
         STRIPE_SECRET_KEY="sk_test_fixture", CREDITS=BlankBacklog())
     holder = "key:" + "11" * 32
+    assert run(env.CREDITS.set_monthly(holder, 0, "in_blank", "Scale")).credited
     assert run(env.CREDITS.note_unreported(
         holder, 2, "evt-old", "cus_blank", "modelspec_scale_overage"))
     fresh = run(env.CREDITS.meter_identifier(holder, "read", 4))
@@ -294,6 +300,7 @@ def test_a_missing_backlog_identifier_is_not_composed_from_the_holder(entry):
 
     blank = SimpleNamespace(
         STRIPE_SECRET_KEY="sk_test_fixture", CREDITS=credits.MemoryLedger())
+    assert run(blank.CREDITS.set_monthly("plain", 0, "in_plain", "Scale")).credited
     quiet, fetch = _meter_script([200])
     entry.fetch = fetch
     run(entry._post_overage(
@@ -309,6 +316,7 @@ def test_an_unnamed_event_survives_a_failed_retry_as_unreported(entry):
     env = SimpleNamespace(
         STRIPE_SECRET_KEY="sk_test_fixture", CREDITS=credits.MemoryLedger())
     holder = "key:" + "cd" * 32
+    assert run(env.CREDITS.set_monthly(holder, 0, "in_unnamed", "Scale")).credited
     older = run(env.CREDITS.meter_identifier(holder, "res", 1))
     assert run(env.CREDITS.note_uncertain(holder, 2, older))
     calls, fetch = _meter_script(["timeout"])

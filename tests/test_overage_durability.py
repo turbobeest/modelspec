@@ -68,6 +68,7 @@ class _Namespace:
         self.obj = credits_do.CreditsObject(
             SimpleNamespace(storage=SimpleNamespace(sql=self.sql)), env=None)
         self.lose_commit_reply = False
+        self.lose_ack_reply = ""
 
     def idFromName(self, name):  # noqa: N802 - Workers binding API
         assert name == "ledger"
@@ -85,6 +86,15 @@ class _Namespace:
         if self.lose_commit_reply:
             self.lose_commit_reply = False
             raise TimeoutError("committed debit, lost DO reply")
+        return result
+
+    async def ack_uncertain(self, holder, identifier):
+        loss, self.lose_ack_reply = self.lose_ack_reply, ""
+        if loss == "before":
+            raise TimeoutError("ack RPC did not reach DO")
+        result = await self.obj.ack_uncertain(holder, identifier)
+        if loss == "after":
+            raise TimeoutError("ack committed, lost DO reply")
         return result
 
     def restart(self):
@@ -115,14 +125,18 @@ class _Stripe:
         self.accepted = {}
         self.during_report = None
         self.lose_reply = False
+        self.reject_next = False
 
     async def fetch(self, url, options=None):
         assert url == "https://api.stripe.com/v1/billing/meter_events"
         fields = dict(urllib.parse.parse_qsl((options or {}).get("body", "")))
         self.attempts.append(fields)
+        rejected, self.reject_next = self.reject_next, False
         identifier = fields["identifier"]
         duplicate = identifier in self.accepted
-        if duplicate:
+        if rejected:
+            pass
+        elif duplicate:
             assert self.accepted[identifier] == fields
         else:
             self.accepted[identifier] = fields
@@ -134,12 +148,14 @@ class _Stripe:
             raise TimeoutError("Stripe accepted usage, lost HTTP reply")
 
         class Response:
-            ok = not duplicate
-            status = 400 if duplicate else 200
+            ok = not duplicate and not rejected
+            status = 400 if duplicate or rejected else 200
 
             async def text(self):
                 if duplicate:
                     return json.dumps({"error": {"code": "duplicate_meter_event"}})
+                if rejected:
+                    return json.dumps({"error": {"code": "resource_missing"}})
                 return "{}"
 
         return Response()
@@ -240,3 +256,145 @@ def test_meter_writes_never_create_an_unknown_account(namespace, method, args, e
     ledger = credits.DurableLedger(namespace)
     assert run(getattr(ledger, method)("unknown", *args)) == expected
     assert namespace.stored()["accounts"] == {}
+
+
+def test_rotation_onto_an_existing_account_preserves_each_naming_identity(namespace):
+    ledger = credits.DurableLedger(namespace)
+    assert run(ledger.set_monthly("src", 0, "in_src", "Scale", "cus_durable")).credited
+    assert run(ledger.set_monthly("dst", 0, "in_dst", "Scale", "cus_durable")).credited
+    src_id = run(ledger.meter_identifier("src", "read", 1))
+    dst_id = run(ledger.meter_identifier("dst", "read", 1))
+    assert src_id != dst_id
+    assert run(ledger.transfer("src", "dst"))
+    namespace.restart()
+    assert run(ledger.meter_identifier("src", "read", 1)) == src_id
+    assert run(ledger.meter_identifier("dst", "read", 1)) == dst_id
+    assert set(namespace.stored()["accounts"]) == {"dst"}
+
+
+@pytest.mark.parametrize("lose_ack", ["before", "after"])
+def test_lost_meter_acknowledgement_never_reports_usage_twice(entry, namespace, lose_ack):
+    env = SimpleNamespace(STRIPE_SECRET_KEY="sk_test_fixture", CREDITS=namespace)
+    ledger = credits.ledger_from_env(env)
+    holder = "key:ack-loss"
+    assert run(ledger.set_monthly(holder, 0, "in_ack", "Scale", "cus_durable")).credited
+    stripe = _Stripe()
+    entry.fetch = stripe.fetch
+    namespace.lose_ack_reply = lose_ack
+    assert run(_charge(entry, env, holder, units=2))[0] == 200
+    namespace.restart()
+    assert run(ledger.credit(holder, "pack_ack", 1, "tx_ack")).credited
+    assert run(_charge(entry, env, holder))[0] == 200
+    assert stripe.units() == 2
+    assert len(stripe.attempts) == (2 if lose_ack == "before" else 1)
+    assert run(ledger.list_uncertain(holder)) == []
+
+
+def test_a_rejected_first_durable_report_keeps_usage_in_the_unreported_backlog(
+        entry, namespace):
+    env = SimpleNamespace(STRIPE_SECRET_KEY="sk_test_fixture", CREDITS=namespace)
+    ledger = credits.ledger_from_env(env)
+    holder = "key:rejected"
+    assert run(ledger.set_monthly(holder, 0, "in_rejected", "Scale", "cus_durable")).credited
+    stripe = _Stripe()
+    stripe.reject_next = True
+    entry.fetch = stripe.fetch
+    assert run(_charge(entry, env, holder, units=2))[0] == 200
+    account = namespace.stored()["accounts"][holder]
+    assert account["overage_unreported"] == 2
+    assert account["overage_uncertain"] == []
+    assert account["overage_unreconciled"] == 0
+    assert run(ledger.credit(holder, "pack_rejected", 1, "tx_rejected")).credited
+    assert run(_charge(entry, env, holder))[0] == 200
+    assert stripe.units() == 2
+    assert run(ledger.balance(holder)).overage_unreported == 0
+
+
+def test_lost_commit_replies_keep_a_bounded_queue_and_report_all_overflow_once(
+        entry, namespace):
+    env = SimpleNamespace(STRIPE_SECRET_KEY="sk_test_fixture", CREDITS=namespace)
+    ledger = credits.ledger_from_env(env)
+    holder = "key:overflow"
+    assert run(ledger.set_monthly(holder, 0, "in_overflow", "Scale", "cus_durable")).credited
+    stripe = _Stripe()
+    entry.fetch = stripe.fetch
+    for _ in range(25):
+        namespace.lose_commit_reply = True
+        with pytest.raises(TimeoutError, match="committed debit, lost DO reply"):
+            run(_charge(entry, env, holder))
+    account = namespace.stored()["accounts"][holder]
+    assert len(account["overage_pending"]) == credits.PENDING_METER_CAP
+    assert account["overage_unreported"] == 5
+    assert stripe.attempts == []
+    namespace.restart()
+    assert run(ledger.credit(holder, "pack_overflow", 8, "tx_overflow")).credited
+    for _ in range(8):
+        before = len(stripe.attempts)
+        assert run(_charge(entry, env, holder))[0] == 200
+        assert len(stripe.attempts) - before <= credits.UNCERTAIN_RETRIES_PER_REQUEST + 1
+    assert stripe.units() == 25
+    assert len(stripe.attempts) == 21
+    assert run(ledger.balance(holder)).overage_used == 25
+    assert run(ledger.balance(holder)).overage_unreported == 0
+    assert run(ledger.list_uncertain(holder)) == []
+    assert namespace.stored()["accounts"][holder]["overage_pending"] == []
+
+
+def test_key_rotation_during_catalog_meter_timeout_retries_the_original_usage_once(
+        entry, namespace):
+    env = SimpleNamespace(STRIPE_SECRET_KEY="sk_test_fixture", CREDITS=namespace)
+    ledger = credits.ledger_from_env(env)
+    src, dst = "key:catalog-old", "key:catalog-new"
+    assert run(ledger.set_monthly(src, 0, "in_catalog", "Scale", "cus_durable")).credited
+    identifier = run(ledger.meter_identifier(src, "read", 1))
+    stripe = _Stripe()
+    entry.fetch = stripe.fetch
+
+    async def rotate():
+        assert await ledger.transfer(src, dst)
+
+    stripe.during_report = rotate
+    stripe.lose_reply = True
+    run(entry._post_overage(
+        env, _overage_spec(), "cus_durable", 2, identifier, holder=src))
+    assert src not in namespace.stored()["accounts"]
+    assert [(ident, value) for ident, value, _at in run(ledger.list_uncertain(dst))] == [
+        (identifier, 2)]
+    namespace.restart()
+    assert run(ledger.credit(dst, "pack_catalog", 1, "tx_catalog")).credited
+    assert run(_charge(entry, env, dst))[0] == 200
+    assert stripe.units() == 2
+    assert [row["identifier"] for row in stripe.attempts] == [identifier, identifier]
+    assert run(ledger.list_uncertain(dst)) == []
+    assert src not in namespace.stored()["accounts"]
+
+
+def test_rotation_during_backlog_report_acknowledges_only_the_source_snapshot(
+        entry, namespace):
+    env = SimpleNamespace(STRIPE_SECRET_KEY="sk_test_fixture", CREDITS=namespace)
+    ledger = credits.ledger_from_env(env)
+    src, dst = "key:backlog-old", "key:backlog-new"
+    assert run(ledger.set_monthly(src, 0, "in_backlog_old", "Scale", "cus_durable")).credited
+    assert run(ledger.set_monthly(dst, 0, "in_backlog_new", "Scale", "cus_durable")).credited
+    assert run(ledger.note_unreported(src, 2, "evt_old"))
+    assert run(ledger.note_unreported(dst, 3, "evt_new"))
+    src_backlog = run(ledger.open_backlog(src))
+    dst_backlog = run(ledger.open_backlog(dst))
+    stripe = _Stripe()
+    entry.fetch = stripe.fetch
+
+    async def rotate():
+        assert await ledger.transfer(src, dst)
+
+    stripe.during_report = rotate
+    run(entry._post_overage(env, _overage_spec(), "cus_durable", 0, "", holder=src))
+    assert run(ledger.list_uncertain(dst)) == []
+    assert run(ledger.open_backlog(dst)) == dst_backlog
+    namespace.restart()
+    assert run(ledger.credit(dst, "pack_backlog", 1, "tx_backlog")).credited
+    assert run(_charge(entry, env, dst))[0] == 200
+    assert stripe.units() == 5
+    assert [row["identifier"] for row in stripe.attempts] == [
+        src_backlog[2], dst_backlog[2]]
+    assert run(ledger.balance(dst)).overage_unreported == 0
+    assert src not in namespace.stored()["accounts"]

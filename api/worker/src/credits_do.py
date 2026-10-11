@@ -96,6 +96,7 @@ class CreditsObject(DurableObject):
         return result.to_json()
 
     async def commit(self, holder: str, reservation_id: int) -> dict[str, Any]:
+        """Save the debit and its pending meter record in the same SQL write."""
         state = self._load()
         result = state.commit(holder, int(reservation_id))
         self._save(state)
@@ -144,9 +145,10 @@ class CreditsObject(DurableObject):
         self._save(state)
         return [units, seq, ident]
 
-    async def ack_backlog(self, holder: str, units: int, n: int) -> bool:
+    async def ack_backlog(self, holder: str, units: int, n: int,
+                          identifier: str = "") -> bool:
         state = self._load()
-        ok = state.ack_backlog(holder, int(units), int(n))
+        ok = state.ack_backlog(holder, int(units), int(n), str(identifier or ""))
         self._save(state)
         return ok
 
@@ -173,6 +175,13 @@ class CreditsObject(DurableObject):
         rows = state.age_uncertain(holder, int(now or 0))
         self._save(state)
         return [[ident, units, created_at] for ident, units, created_at in rows]
+
+    async def open_meter_events(self, holder: str, now: int = 0) -> list:
+        state = self._load()
+        rows = state.open_meter_events(holder, int(now or 0))
+        self._save(state)
+        return [[ident, units, created_at, first_attempt]
+                for ident, units, created_at, first_attempt in rows]
 
     async def unreconcile_uncertain(self, holder: str, identifier: str) -> bool:
         state = self._load()
