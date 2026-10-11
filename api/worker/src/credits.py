@@ -838,12 +838,10 @@ class LedgerState:
         return ReversalResult(True, payment_id, False, purchased, restored=units)
 
     def set_monthly(self, holder: str, units: int, invoice_id: str,
-                    plan: str = "", customer_id: str = "",
-                    reset_overage: bool = True) -> CreditResult:
+                    plan: str = "", customer_id: str = "") -> CreditResult:
         """SET remaining monthly allowance. Reset, no rollover. Idempotent on invoice_id.
 
-        A new invoice zeroes overage used this period unless `reset_overage` is
-        false. A subscription update refills the allowance and leaves the cap.
+        A new invoice zeroes overage used this period.
         A replay does not, so a repeated webhook cannot hand the cap back.
         """
         rec = self.payments.get(invoice_id)
@@ -858,8 +856,7 @@ class LedgerState:
         }
         acc = self._acc(holder)
         acc.monthly = int(units)
-        if reset_overage:
-            acc.overage_used = 0
+        acc.overage_used = 0
         if plan:
             acc.plan = plan
         if customer_id:
@@ -1310,8 +1307,7 @@ class Ledger(Protocol):
                      source: str = "x402") -> CreditResult: ...
 
     async def set_monthly(self, holder: str, units: int, invoice_id: str,
-                          plan: str = "", customer_id: str = "",
-                          reset_overage: bool = True) -> CreditResult: ...
+                          plan: str = "", customer_id: str = "") -> CreditResult: ...
 
     async def clear_monthly(self, holder: str) -> CreditResult: ...
 
@@ -1386,11 +1382,10 @@ class MemoryLedger:
                                      expires_at=expires_at, source=source)
 
     async def set_monthly(self, holder: str, units: int, invoice_id: str,
-                          plan: str = "", customer_id: str = "",
-                          reset_overage: bool = True) -> CreditResult:
+                          plan: str = "", customer_id: str = "") -> CreditResult:
         async with self._lock:
             return self.state.set_monthly(
-                holder, units, invoice_id, plan, customer_id, reset_overage)
+                holder, units, invoice_id, plan, customer_id)
 
     async def clear_monthly(self, holder: str) -> CreditResult:
         async with self._lock:
@@ -1509,8 +1504,7 @@ class UnboundLedger:
         raise StoreNotConfigured("CREDITS Durable Object is not bound")
 
     async def set_monthly(self, holder: str, units: int, invoice_id: str,
-                          plan: str = "", customer_id: str = "",
-                          reset_overage: bool = True) -> CreditResult:
+                          plan: str = "", customer_id: str = "") -> CreditResult:
         raise StoreNotConfigured("CREDITS Durable Object is not bound")
 
     async def clear_monthly(self, holder: str) -> CreditResult:
@@ -1614,10 +1608,9 @@ class DurableLedger:
         return CreditResult.from_json(dict(data))
 
     async def set_monthly(self, holder: str, units: int, invoice_id: str,
-                          plan: str = "", customer_id: str = "",
-                          reset_overage: bool = True) -> CreditResult:
+                          plan: str = "", customer_id: str = "") -> CreditResult:
         data = await self._stub.set_monthly(
-            holder, int(units), invoice_id, plan, customer_id, bool(reset_overage))
+            holder, int(units), invoice_id, plan, customer_id)
         return CreditResult.from_json(dict(data))
 
     async def clear_monthly(self, holder: str) -> CreditResult:
