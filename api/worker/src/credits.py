@@ -487,6 +487,9 @@ class _TakenRead:
     packs: list[tuple[str, int]] = field(default_factory=list)
     block_before: int = 0
     block_after: int = 0
+    block: int = 0
+    block_succeeded: bool = False
+    charge_token: int = 0
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -494,6 +497,8 @@ class _TakenRead:
             "monthly": self.monthly,
             "packs": [[grant_id, amount] for grant_id, amount in self.packs],
             "block_before": self.block_before, "block_after": self.block_after,
+            "block": self.block, "block_succeeded": self.block_succeeded,
+            "charge_token": self.charge_token,
         }
 
     @classmethod
@@ -504,10 +509,15 @@ class _TakenRead:
         for row in data.get("packs") or []:
             if isinstance(row, (list, tuple)) and len(row) >= 2:
                 packs.append((str(row[0]), int(row[1])))
+        # Old tickets have no block identity or success history. Their
+        # charge cannot safely be refunded after upgrading the ledger.
         return cls(
             str(data.get("day") or ""), str(data.get("minute") or ""),
             int(data.get("overage") or 0), int(data.get("monthly") or 0), packs,
             int(data.get("block_before") or 0), int(data.get("block_after") or 0),
+            int(data.get("block") or 0),
+            bool(data.get("block_succeeded", not data.get("block"))),
+            int(data.get("charge_token") or 0),
         )
 
 
@@ -527,6 +537,8 @@ class _Account:
     read_minute: str = ""
     read_burst: int = 0
     reads_in_block: int = 0
+    read_block: int = 0
+    read_block_size: int = 0
     next_read: int = 1
     taken_reads: dict[int, _TakenRead] = field(default_factory=dict)
     overage_unreported: int = 0
@@ -569,6 +581,8 @@ class _Account:
             "read_minute": self.read_minute,
             "read_burst": self.read_burst,
             "reads_in_block": self.reads_in_block,
+            "read_block": self.read_block,
+            "read_block_size": self.read_block_size,
             "next_read": self.next_read,
             "taken_reads": {str(k): v.to_json() for k, v in self.taken_reads.items()},
             "overage_unreported": self.overage_unreported,
@@ -621,6 +635,8 @@ class _Account:
             read_minute=str(data.get("read_minute") or ""),
             read_burst=int(data.get("read_burst") or 0),
             reads_in_block=int(data.get("reads_in_block") or 0),
+            read_block=int(data.get("read_block") or 0),
+            read_block_size=int(data.get("read_block_size") or 0),
             next_read=int(data.get("next_read") or 1),
             taken_reads=taken,
             overage_unreported=unreported,
@@ -905,6 +921,8 @@ class LedgerState:
             existing.read_day = acc.read_day
             existing.read_count = acc.read_count
             existing.reads_in_block = acc.reads_in_block
+            existing.read_block = acc.read_block + existing.next_read if acc.read_block else 0
+            existing.read_block_size = acc.read_block_size
         elif acc.read_day and acc.read_day == existing.read_day:
             existing.read_count += acc.read_count
             existing.reads_in_block = 0
@@ -915,6 +933,10 @@ class LedgerState:
             existing.read_burst += acc.read_burst
         read_offset = existing.next_read
         for token, taken in acc.taken_reads.items():
+            if taken.block:
+                taken.block += read_offset
+            if taken.charge_token:
+                taken.charge_token += read_offset
             existing.taken_reads[read_offset + token] = taken
         existing.next_read = read_offset + max(acc.next_read, 1)
         _move_meter_tail(existing, acc)
@@ -1089,6 +1111,8 @@ class LedgerState:
                                   daily_cap=daily_cap, burst_limit=burst_limit)
             overage = settled.overage
             available = acc.available_at(clock)
+            acc.read_block = acc.next_read
+            acc.read_block_size = reads_per_credit
         acc.read_count += 1
         acc.read_burst += 1
         acc.reads_in_block += 1
@@ -1098,13 +1122,15 @@ class LedgerState:
         acc.next_read += 1
         acc.taken_reads[token] = _TakenRead(
             day, minute, overage, monthly_drawn, pack_draws,
-            block_before, acc.reads_in_block)
+            block_before, acc.reads_in_block, acc.read_block,
+            block_succeeded=not acc.read_block,
+            charge_token=token if block_before == 0 else 0)
         return ReadResult(True, token=token, available=available, overage=overage,
                           read_count=acc.read_count, read_burst=acc.read_burst,
                           daily_cap=daily_cap, burst_limit=burst_limit)
 
     def release_read(self, holder: str, token: int) -> bool:
-        """Undo one taken read: decrement its count and return a charged credit."""
+        """Undo one read. Refund its block only after every read in it fails."""
         acc = self.accounts.get(holder)
         if acc is None:
             return False
@@ -1115,8 +1141,26 @@ class LedgerState:
             acc.read_count -= 1
         if acc.read_minute == taken.minute and acc.read_burst > 0:
             acc.read_burst -= 1
-        if acc.reads_in_block == taken.block_after:
-            acc.reads_in_block = taken.block_before
+        if acc.read_block == taken.block:
+            if taken.block:
+                acc.reads_in_block = max(0, (acc.reads_in_block or acc.read_block_size) - 1)
+            elif acc.reads_in_block == taken.block_after:
+                acc.reads_in_block = taken.block_before
+        if taken.block_succeeded:
+            if taken.overage:
+                self.note_unreported(holder, taken.overage, "read")
+            return True
+        pending = next((read for read in acc.taken_reads.values()
+                        if read.block == taken.block), None)
+        if pending is not None:
+            pending.monthly += taken.monthly
+            pending.packs.extend(taken.packs)
+            pending.overage += taken.overage
+            if taken.charge_token:
+                pending.charge_token = taken.charge_token
+            return True
+        if acc.read_block == taken.block and (taken.monthly or taken.packs or taken.overage):
+            acc.reads_in_block = 0
         acc.monthly += taken.monthly
         if taken.overage:
             acc.overage_used = max(0, acc.overage_used - taken.overage)
@@ -1124,11 +1168,21 @@ class LedgerState:
         return True
 
     def keep_read(self, holder: str, token: int) -> bool:
-        """The response succeeded. Drop the undo ticket; the count stays."""
+        """Record a successful block read and drop its undo ticket."""
         acc = self.accounts.get(holder)
         if acc is None:
             return False
-        return acc.taken_reads.pop(int(token), None) is not None
+        taken = acc.taken_reads.pop(int(token), None)
+        if taken is None:
+            return False
+        for pending in acc.taken_reads.values():
+            if pending.block == taken.block:
+                pending.block_succeeded = True
+        if taken.overage and taken.charge_token and taken.charge_token != int(token):
+            # This response did not draw the credit, so its caller has no
+            # overage to report. The failed drawing read cannot report it.
+            self.note_unreported(holder, taken.overage, "read")
+        return True
 
     def note_unreported(self, holder: str, units: int, identifier: str,
                         customer_id: str = "", event_name: str = "") -> bool:
