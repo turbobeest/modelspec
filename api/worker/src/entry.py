@@ -542,7 +542,7 @@ async def _post_overage(env, spec, customer_id: str, units: int, identifier: str
                         holder: str = "") -> None:
     """Report settled Scale overage. Never raises: the answer is already owed.
 
-    Retries at most 3 uncertain entries, then the open backlog, then this
+    Sends at most 3 stored events, then the open backlog, then this
     event. Each post waits at most 5 seconds and sends `timestamp` so Stripe
     bills the period the usage happened. The backlog identifier comes from the
     ledger. When that identifier is missing, this event is parked and nothing
@@ -553,9 +553,9 @@ async def _post_overage(env, spec, customer_id: str, units: int, identifier: str
     gets a definite non-duplicate 4xx is removed and its units go to
     `overage_unreconciled`. Entries older than 20 hours are moved there
     before any retry. A definite HTTP 4xx on this event's own send still adds
-    its units to `overage_unreported`.
+    its units to `overage_unreported`. Zero units drains stored commits only.
     """
-    if spec is None or not spec.active or units < 1 or not customer_id:
+    if spec is None or not spec.active or not customer_id:
         return
     secret = str(getattr(env, "STRIPE_SECRET_KEY", "") or "")
     if not secret:
@@ -574,6 +574,8 @@ async def _post_overage(env, spec, customer_id: str, units: int, identifier: str
     async def park() -> None:
         """Keep this event for a later report. An unnamed one was never sent,
         so it joins the unreported total, which the next backlog names."""
+        if units < 1:
+            return
         try:
             if named:
                 await ledger.note_uncertain(holder, units, identifier, occurred)
@@ -584,19 +586,23 @@ async def _post_overage(env, spec, customer_id: str, units: int, identifier: str
             logging.error("could not record unreported overage")
 
     if holder:
-        pending: list[tuple[str, int, int]] = []
+        pending: list[tuple[str, int, int, bool]] = []
         try:
-            pending = await ledger.age_uncertain(holder, occurred)
+            pending = await ledger.open_meter_events(holder, occurred)
         except Exception:
             logging.error("could not read uncertain overage")
         limit = credits.UNCERTAIN_RETRIES_PER_REQUEST
-        for event_id, value, created_at in pending[:limit]:
+        for event_id, value, created_at, first_attempt in pending[:limit]:
             try:
                 await send(value, event_id, int(created_at))
             except Exception as exc:
                 if billing_stripe.meter_event_was_rejected(exc):
                     try:
-                        await ledger.unreconcile_uncertain(holder, event_id)
+                        if first_attempt:
+                            await ledger.note_unreported(
+                                holder, value, event_id, customer_id, spec.meter_event)
+                        else:
+                            await ledger.unreconcile_uncertain(holder, event_id)
                     except Exception:
                         logging.error("could not unreconcile overage")
                 else:
@@ -627,10 +633,12 @@ async def _post_overage(env, spec, customer_id: str, units: int, identifier: str
                 await park()
                 return
             try:
-                await ledger.ack_backlog(holder, outstanding, seq)
+                await ledger.ack_backlog(holder, outstanding, seq, backlog_id)
             except Exception:
                 logging.error("could not clear unreported overage")
 
+    if units < 1:
+        return
     if not named:
         await park()
         return

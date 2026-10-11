@@ -45,6 +45,7 @@ LEGACY_EXPIRY = "9999-12-31T00:00:00Z"
 # UNCERTAIN_RETRIES_PER_REQUEST of them. An identifier is unique for about a
 # day, so an entry older than UNCERTAIN_MAX_AGE_SECONDS is not retried.
 UNCERTAIN_METER_CAP = 20
+PENDING_METER_CAP = 20
 UNCERTAIN_RETRIES_PER_REQUEST = 3
 UNCERTAIN_MAX_AGE_SECONDS = 20 * 60 * 60
 
@@ -53,8 +54,9 @@ def _unix_now() -> int:
     return int(time.time())
 
 
-def _uncertain_rows(raw: Any, *, now: int | None = None) -> tuple[list[tuple[str, int, int]], int]:
-    """Keep at most `UNCERTAIN_METER_CAP` events. Further units are unreconciled.
+def _uncertain_rows(raw: Any, *, now: int | None = None,
+                    cap: int = UNCERTAIN_METER_CAP) -> tuple[list[tuple[str, int, int]], int]:
+    """Keep at most `cap` events and return the overflow units separately.
 
     Each kept row is `(identifier, units, created_at)`. A stored row with no
     `created_at` loads as created at `now`.
@@ -71,7 +73,7 @@ def _uncertain_rows(raw: Any, *, now: int | None = None) -> tuple[list[tuple[str
         units = int(row.get("units") or 0)
         if not ident or units < 1:
             continue
-        if len(kept) >= UNCERTAIN_METER_CAP:
+        if len(kept) >= cap:
             overflow += units
             continue
         if "created_at" not in row or row.get("created_at") in (None, ""):
@@ -91,6 +93,13 @@ def _uncertain_wire(data: Any) -> list[tuple[str, int, int]]:
         ident, units, created_at = row
         out.append((str(ident), int(units), int(created_at)))
     return out
+
+
+def _meter_events_wire(data: Any) -> list[tuple[str, int, int, bool]]:
+    to_py = getattr(data, "to_py", None)
+    rows = to_py() if callable(to_py) else data
+    return [(str(ident), int(units), int(created_at), bool(first_attempt))
+            for ident, units, created_at, first_attempt in rows or []]
 
 
 def _ensure_meter_id(acc: _Account) -> str:
@@ -136,6 +145,11 @@ def _move_meter_tail(existing: _Account, acc: _Account) -> None:
     _stamp_backlog_id(acc)
     existing.overage_unreported += acc.overage_unreported
     existing.overage_unreconciled += acc.overage_unreconciled
+    for row in acc.overage_pending:
+        if len(existing.overage_pending) < PENDING_METER_CAP:
+            existing.overage_pending.append(row)
+        else:
+            existing.overage_unreported += row[1]
     for ident, units, created_at in acc.overage_uncertain:
         _append_uncertain(existing, ident, units, created_at)
     if acc.overage_backlog_open > 0 and existing.overage_backlog_open < 1:
@@ -546,6 +560,7 @@ class _Account:
     overage_backlog_open: int = 0
     overage_backlog_id: str = ""
     overage_uncertain: list[tuple[str, int, int]] = field(default_factory=list)
+    overage_pending: list[tuple[str, int, int]] = field(default_factory=list)
     overage_unreconciled: int = 0
 
     def overage_open(self) -> int:
@@ -593,6 +608,10 @@ class _Account:
                 {"identifier": ident, "units": units, "created_at": created_at}
                 for ident, units, created_at in self.overage_uncertain
             ],
+            "overage_pending": [
+                {"identifier": ident, "units": units, "created_at": created_at}
+                for ident, units, created_at in self.overage_pending
+            ],
             "overage_unreconciled": self.overage_unreconciled,
         }
 
@@ -606,6 +625,8 @@ class _Account:
         taken = {int(k): _TakenRead.from_json(v) for k, v in raw_reads.items()
                  if isinstance(v, dict)}
         uncertain, uncertain_overflow = _uncertain_rows(data.get("overage_uncertain"))
+        pending, pending_overflow = _uncertain_rows(
+            data.get("overage_pending"), cap=PENDING_METER_CAP)
         if "overage_unreported" in data:
             unreported = int(data.get("overage_unreported") or 0)
         else:
@@ -639,11 +660,12 @@ class _Account:
             read_block_size=int(data.get("read_block_size") or 0),
             next_read=int(data.get("next_read") or 1),
             taken_reads=taken,
-            overage_unreported=unreported,
+            overage_unreported=unreported + pending_overflow,
             overage_backlog_n=int(data.get("overage_backlog_n") or 0),
             overage_backlog_open=int(data.get("overage_backlog_open") or 0),
             overage_backlog_id=str(data.get("overage_backlog_id") or ""),
             overage_uncertain=uncertain,
+            overage_pending=pending,
             overage_unreconciled=int(data.get("overage_unreconciled") or 0) + uncertain_overflow,
         )
 
@@ -654,13 +676,20 @@ class LedgerState:
 
     accounts: dict[str, _Account] = field(default_factory=dict)
     payments: dict[str, dict[str, Any]] = field(default_factory=dict)
+    meter_aliases: dict[str, tuple[str, str]] = field(default_factory=dict)
 
     def _acc(self, holder: str) -> _Account:
         acc = self.accounts.get(holder)
         if acc is None:
             acc = _Account()
             self.accounts[holder] = acc
+            self.meter_aliases.pop(holder, None)
         return acc
+
+    def _meter_acc(self, holder: str) -> _Account | None:
+        """Resolve reporting state without granting a revoked holder access."""
+        target, _meter_id = self.meter_aliases.get(holder, (holder, ""))
+        return self.accounts.get(target)
 
     def credit(self, holder: str, payment_id: str, units: int,
                tx: str, expires_at: str = "", source: str = "x402") -> CreditResult:
@@ -894,6 +923,11 @@ class LedgerState:
         acc = self.accounts.pop(src, None)
         if acc is None:
             return False
+        for alias, (target, meter_id) in list(self.meter_aliases.items()):
+            if target == src:
+                self.meter_aliases[alias] = (dst, meter_id)
+        self.meter_aliases.pop(dst, None)
+        self.meter_aliases[src] = (dst, _ensure_meter_id(acc))
         for rec in self.payments.values():
             if rec.get("holder") == src:
                 rec["holder"] = dst
@@ -986,8 +1020,11 @@ class LedgerState:
         acc.reservations[rid] = _Reservation(units, from_monthly, pack_draws, overage)
         return ReserveResult(True, rid, acc.available_at(clock), acc.reserved)
 
-    def commit(self, holder: str, reservation_id: int) -> CommitResult:
-        acc = self._acc(holder)
+    def commit(self, holder: str, reservation_id: int, *,
+               record_meter: bool = True) -> CommitResult:
+        acc = self.accounts.get(holder)
+        if acc is None:
+            return CommitResult(False)
         reservation = acc.reservations.pop(int(reservation_id), None)
         if reservation is None:
             return CommitResult(False)
@@ -995,10 +1032,19 @@ class LedgerState:
         if acc.reserved < 0:
             acc.reserved = 0
         acc.overage_used += reservation.overage
+        if reservation.overage and record_meter:
+            ident = f"{_ensure_meter_id(acc)}:res:{int(reservation_id)}"
+            if len(acc.overage_pending) < PENDING_METER_CAP:
+                acc.overage_pending.append((ident, reservation.overage, _unix_now()))
+            else:
+                # These units have never been sent, so aggregation is safe.
+                acc.overage_unreported += reservation.overage
         return CommitResult(True, reservation.overage)
 
     def release(self, holder: str, reservation_id: int) -> bool:
-        acc = self._acc(holder)
+        acc = self.accounts.get(holder)
+        if acc is None:
+            return False
         reservation = acc.reservations.pop(int(reservation_id), None)
         if reservation is None:
             return False
@@ -1107,7 +1153,7 @@ class LedgerState:
             reservation = acc.reservations[reserved.reservation_id]
             monthly_drawn = reservation.monthly
             pack_draws = list(reservation.packs)
-            settled = self.commit(holder, reserved.reservation_id)
+            settled = self.commit(holder, reserved.reservation_id, record_meter=False)
             if not settled.ok:
                 return ReadResult(False, "exhausted", available=acc.available_at(clock),
                                   read_count=acc.read_count, read_burst=acc.read_burst,
@@ -1199,8 +1245,11 @@ class LedgerState:
         amount = int(units)
         if amount < 1 or not str(identifier or "").strip():
             return False
-        acc = self._acc(holder)
+        acc = self._meter_acc(holder)
+        if acc is None:
+            return False
         acc.overage_unreported += amount
+        self.ack_uncertain(holder, identifier)
         return True
 
     def meter_identifier(self, holder: str, kind: str, counter: str | int) -> str:
@@ -1215,7 +1264,12 @@ class LedgerState:
         token = str(counter).strip()
         if not label or token == "":
             return ""
-        return f"{_ensure_meter_id(self._acc(holder))}:{label}:{token}"
+        acc = self._meter_acc(holder)
+        if acc is None:
+            return ""
+        alias = self.meter_aliases.get(holder)
+        meter_id = alias[1] if alias else _ensure_meter_id(acc)
+        return f"{meter_id}:{label}:{token}"
 
     def open_backlog(self, holder: str) -> tuple[int, int, str]:
         """Units to send, the backlog `n`, and the stored identifier.
@@ -1226,7 +1280,7 @@ class LedgerState:
         the same identifier and the same value after the holder is renamed.
         An identifier already stored is not rewritten.
         """
-        acc = self.accounts.get(holder)
+        acc = self._meter_acc(holder)
         if acc is None:
             return 0, 0, ""
         if acc.overage_backlog_open > 0:
@@ -1238,16 +1292,19 @@ class LedgerState:
         acc.overage_backlog_id = f"{_ensure_meter_id(acc)}:backlog:{acc.overage_backlog_n}"
         return acc.overage_backlog_open, acc.overage_backlog_n, acc.overage_backlog_id
 
-    def ack_backlog(self, holder: str, units: int, n: int) -> bool:
+    def ack_backlog(self, holder: str, units: int, n: int,
+                    identifier: str = "") -> bool:
         """Stripe accepted the open backlog event for this `n`. Subtract it and advance.
 
         A late ack whose `n` is no longer the open one does nothing, so it
         cannot clear a later snapshot.
         """
-        acc = self.accounts.get(holder)
+        acc = self._meter_acc(holder)
+        if acc is not None and identifier and identifier != acc.overage_backlog_id:
+            return self.ack_uncertain(holder, identifier)
         if acc is None or acc.overage_backlog_open < 1:
             return False
-        if int(n) != acc.overage_backlog_n:
+        if not identifier and int(n) != acc.overage_backlog_n:
             return False
         amount = min(int(units), acc.overage_backlog_open, acc.overage_unreported)
         if amount < 1:
@@ -1270,17 +1327,18 @@ class LedgerState:
         ident = str(identifier or "").strip()
         if amount < 1 or not ident:
             return False
-        return _append_uncertain(self._acc(holder), ident, amount, created_at)
+        acc = self._meter_acc(holder)
+        return False if acc is None else _append_uncertain(acc, ident, amount, created_at)
 
     def list_uncertain(self, holder: str) -> list[tuple[str, int, int]]:
-        acc = self.accounts.get(holder)
+        acc = self._meter_acc(holder)
         if acc is None:
             return []
         return list(acc.overage_uncertain)
 
     def ack_uncertain(self, holder: str, identifier: str) -> bool:
         """Stripe accepted this identifier (2xx or a duplicate). Drop that entry."""
-        acc = self.accounts.get(holder)
+        acc = self._meter_acc(holder)
         if acc is None:
             return False
         ident = str(identifier or "")
@@ -1296,7 +1354,7 @@ class LedgerState:
         `now` is unix seconds. Zero uses the clock. An entry created exactly
         20 hours ago is still young enough to retry.
         """
-        acc = self.accounts.get(holder)
+        acc = self._meter_acc(holder)
         if acc is None:
             return []
         clock = int(now) if int(now) else _unix_now()
@@ -1309,13 +1367,33 @@ class LedgerState:
         acc.overage_uncertain = fresh
         return list(fresh)
 
+    def open_meter_events(self, holder: str, now: int = 0) -> list[tuple[str, int, int, bool]]:
+        """Persist each event as uncertain before its first external send.
+
+        Pending commits are known unsent. Overflow is aggregated in the
+        unreported total. Once opened, a record keeps its identifier and
+        timestamp until acknowledged or moved to unreconciled usage.
+        """
+        rows = self.age_uncertain(holder, now)
+        acc = self._meter_acc(holder)
+        if acc is None:
+            return []
+        out = [(ident, units, created_at, False)
+               for ident, units, created_at in rows[:UNCERTAIN_RETRIES_PER_REQUEST]]
+        room = max(0, UNCERTAIN_RETRIES_PER_REQUEST - len(out))
+        for _ in range(min(room, len(acc.overage_pending))):
+            ident, units, created_at = acc.overage_pending.pop(0)
+            _append_uncertain(acc, ident, units, created_at)
+            out.append((ident, units, created_at, True))
+        return out
+
     def unreconcile_uncertain(self, holder: str, identifier: str) -> bool:
         """A retry got a definite non-duplicate 4xx. Drop it for a person to check.
 
         Stripe rejected this retry. The original send might still have landed,
         so the units go to `overage_unreconciled` and nothing sends them again.
         """
-        acc = self.accounts.get(holder)
+        acc = self._meter_acc(holder)
         if acc is None:
             return False
         ident = str(identifier or "")
@@ -1339,6 +1417,7 @@ class LedgerState:
         return {
             "accounts": {name: acc.to_json() for name, acc in self.accounts.items()},
             "payments": self.payments,
+            "meter_aliases": self.meter_aliases,
         }
 
     @classmethod
@@ -1348,7 +1427,9 @@ class LedgerState:
         accounts = {name: _Account.from_json(raw)
                     for name, raw in raw_accounts.items() if isinstance(raw, dict)}
         payments = dict(data.get("payments") or {})
-        state = cls(accounts, payments)
+        aliases = {str(holder): (str(target), str(meter_id))
+                   for holder, (target, meter_id) in (data.get("meter_aliases") or {}).items()}
+        state = cls(accounts, payments, aliases)
         for name, raw in raw_accounts.items():
             if not isinstance(raw, dict):
                 continue
@@ -1396,7 +1477,8 @@ class Ledger(Protocol):
 
     async def open_backlog(self, holder: str) -> tuple[int, int, str]: ...
 
-    async def ack_backlog(self, holder: str, units: int, n: int) -> bool: ...
+    async def ack_backlog(self, holder: str, units: int, n: int,
+                          identifier: str = "") -> bool: ...
 
     async def note_uncertain(self, holder: str, units: int, identifier: str,
                              created_at: int | None = None) -> bool: ...
@@ -1406,6 +1488,8 @@ class Ledger(Protocol):
     async def ack_uncertain(self, holder: str, identifier: str) -> bool: ...
 
     async def age_uncertain(self, holder: str, now: int = 0) -> list[tuple[str, int, int]]: ...
+
+    async def open_meter_events(self, holder: str, now: int = 0) -> list[tuple[str, int, int, bool]]: ...
 
     async def unreconcile_uncertain(self, holder: str, identifier: str) -> bool: ...
 
@@ -1496,9 +1580,10 @@ class MemoryLedger:
         async with self._lock:
             return self.state.open_backlog(holder)
 
-    async def ack_backlog(self, holder: str, units: int, n: int) -> bool:
+    async def ack_backlog(self, holder: str, units: int, n: int,
+                          identifier: str = "") -> bool:
         async with self._lock:
-            return self.state.ack_backlog(holder, units, n)
+            return self.state.ack_backlog(holder, units, n, identifier)
 
     async def note_uncertain(self, holder: str, units: int, identifier: str,
                              created_at: int | None = None) -> bool:
@@ -1516,6 +1601,10 @@ class MemoryLedger:
     async def age_uncertain(self, holder: str, now: int = 0) -> list[tuple[str, int, int]]:
         async with self._lock:
             return self.state.age_uncertain(holder, now)
+
+    async def open_meter_events(self, holder: str, now: int = 0) -> list[tuple[str, int, int, bool]]:
+        async with self._lock:
+            return self.state.open_meter_events(holder, now)
 
     async def unreconcile_uncertain(self, holder: str, identifier: str) -> bool:
         async with self._lock:
@@ -1608,7 +1697,8 @@ class UnboundLedger:
     async def open_backlog(self, holder: str) -> tuple[int, int, str]:
         return 0, 0, ""
 
-    async def ack_backlog(self, holder: str, units: int, n: int) -> bool:
+    async def ack_backlog(self, holder: str, units: int, n: int,
+                          identifier: str = "") -> bool:
         return False
 
     async def note_uncertain(self, holder: str, units: int, identifier: str,
@@ -1622,6 +1712,9 @@ class UnboundLedger:
         return False
 
     async def age_uncertain(self, holder: str, now: int = 0) -> list[tuple[str, int, int]]:
+        return []
+
+    async def open_meter_events(self, holder: str, now: int = 0) -> list[tuple[str, int, int, bool]]:
         return []
 
     async def unreconcile_uncertain(self, holder: str, identifier: str) -> bool:
@@ -1729,8 +1822,9 @@ class DurableLedger:
         units, seq, ident = row
         return int(units), int(seq), str(ident or "")
 
-    async def ack_backlog(self, holder: str, units: int, n: int) -> bool:
-        return bool(await self._stub.ack_backlog(holder, int(units), int(n)))
+    async def ack_backlog(self, holder: str, units: int, n: int,
+                          identifier: str = "") -> bool:
+        return bool(await self._stub.ack_backlog(holder, int(units), int(n), identifier))
 
     async def note_uncertain(self, holder: str, units: int, identifier: str,
                              created_at: int | None = None) -> bool:
@@ -1747,6 +1841,10 @@ class DurableLedger:
     async def age_uncertain(self, holder: str, now: int = 0) -> list[tuple[str, int, int]]:
         data = await self._stub.age_uncertain(holder, int(now or 0))
         return _uncertain_wire(data)
+
+    async def open_meter_events(self, holder: str, now: int = 0) -> list[tuple[str, int, int, bool]]:
+        data = await self._stub.open_meter_events(holder, int(now or 0))
+        return _meter_events_wire(data)
 
     async def unreconcile_uncertain(self, holder: str, identifier: str) -> bool:
         return bool(await self._stub.unreconcile_uncertain(holder, identifier))
