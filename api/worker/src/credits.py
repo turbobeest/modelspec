@@ -1011,6 +1011,12 @@ class LedgerState:
             acc.reserved = 0
         return True
 
+    def has_read_funding(self, holder: str, now: str = "") -> bool:
+        """Credits or the remainder of a catalog block already paid for."""
+        acc = self.accounts.get(holder)
+        return acc is not None and (
+            acc.reads_in_block > 0 or acc.available_at(now or _now_iso()) > 0)
+
     def balance(self, holder: str, now: str = "") -> Balance:
         clock = now or _now_iso()
         acc = self.accounts.get(holder) or _Account()
@@ -1403,6 +1409,8 @@ class Ledger(Protocol):
 
     async def unreconcile_uncertain(self, holder: str, identifier: str) -> bool: ...
 
+    async def has_read_funding(self, holder: str, now: str = "") -> bool: ...
+
     async def balance(self, holder: str, now: str = "") -> Balance: ...
 
     async def seen(self, payment_id: str) -> bool: ...
@@ -1517,6 +1525,10 @@ class MemoryLedger:
         async with self._lock:
             return self.state.release(holder, reservation_id)
 
+    async def has_read_funding(self, holder: str, now: str = "") -> bool:
+        async with self._lock:
+            return self.state.has_read_funding(holder, now=now)
+
     async def balance(self, holder: str, now: str = "") -> Balance:
         async with self._lock:
             return self.state.balance(holder, now=now)
@@ -1617,6 +1629,9 @@ class UnboundLedger:
 
     async def release(self, holder: str, reservation_id: int) -> bool:
         raise StoreNotConfigured("CREDITS Durable Object is not bound")
+
+    async def has_read_funding(self, holder: str, now: str = "") -> bool:
+        return False
 
     async def balance(self, holder: str, now: str = "") -> Balance:
         return Balance(holder, 0, 0)
@@ -1738,6 +1753,9 @@ class DurableLedger:
 
     async def release(self, holder: str, reservation_id: int) -> bool:
         return bool(await self._stub.release(holder, int(reservation_id)))
+
+    async def has_read_funding(self, holder: str, now: str = "") -> bool:
+        return bool(await self._stub.has_read_funding(holder, now))
 
     async def balance(self, holder: str, now: str = "") -> Balance:
         data = await self._stub.balance(holder, now)

@@ -914,14 +914,26 @@ class Default(WorkerEntrypoint):
                 if not admitted:
                     async def allowed(*args):
                         return 200, {}
+
+                    async def skip_catalog_limits(record, tier):
+                        if tier.unlimited:
+                            return False
+                        if tier.paid:
+                            return True
+                        if access_config.load_policy(self.env).credits.reads is None:
+                            return False
+                        holder = x402.holder_from_key(api_key)
+                        if not holder:
+                            return False
+                        return await credits.ledger_from_env(self.env).has_read_funding(holder)
+
                     outcome = await access.gate(
                         api_key=api_key,
                         enforced=access.enforcement(getattr(self.env, ACCESS_ENFORCED_VAR, None)),
                         kv=_access_store(self.env), load_policy=lambda: access_config.load_policy(self.env),
                         anonymous=allowed, live=allowed,
                         sandbox=lambda: access.refusal(access.SANDBOX_NOT_AVAILABLE, "Use a live key for vocabulary.", envelope={}),
-                        skip_limits=lambda record, tier: bool(
-                            tier.paid and not tier.unlimited),
+                        skip_limits=skip_catalog_limits,
                     )
                     if not outcome.served:
                         return _json_response(outcome.status, outcome.body, {**cors, **outcome.headers})
@@ -1206,13 +1218,14 @@ class Default(WorkerEntrypoint):
         return _json_response(outcome.status, outcome.body, headers)
 
     async def _meter_catalog_read(self, api_key, outcome, cors):
-        """Charge a funded paid key for a successful vocabulary read. Others are free.
+        """Admit and charge a successful keyed vocabulary read from ledger funding.
 
         Visit tokens never reach here. HEAD is the same read as GET and has no
-        body. Free keys keep the tier's own daily limit. An exempt unlimited
-        tier draws nothing. A key with nothing left to bill is served under the
-        free tier's limits. A refused or invalid read is not counted: the caller
-        validates the query before this runs.
+        body. An exempt unlimited tier draws nothing. Unfunded free keys have
+        already used the tier's limits at admission. Funded keys use the ledger
+        regardless of stored tier; exhausted reads retain the free fallback.
+        A refused or invalid read is not charged: the caller validates the
+        query before this runs.
         """
         tier_name = getattr(outcome, "tier", None)
         if not tier_name:
@@ -1223,7 +1236,9 @@ class Default(WorkerEntrypoint):
         except access_config.PolicyError:
             return None
         reads = policy.credits.reads
-        if reads is None or not tier.paid or tier.unlimited:
+        if reads is None or tier.unlimited:
+            return None
+        if outcome.meter is not None and outcome.meter.windows:
             return None
         holder = x402.holder_from_key(api_key)
         if not holder:

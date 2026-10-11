@@ -184,6 +184,9 @@ class CreditsObject(DurableObject):
         self._save(state)
         return ok
 
+    async def has_read_funding(self, holder: str, now: str = "") -> bool:
+        return self._load().has_read_funding(holder, now=str(now or ""))
+
     async def balance(self, holder: str, now: str = "") -> dict[str, Any]:
         return self._load().balance(holder, now=str(now or "")).to_json()
 
