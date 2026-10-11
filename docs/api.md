@@ -17,7 +17,7 @@ cost, reasons and constraint eliminations.
 
 ## Request
 
-Only `use_case` is required. An unknown field is refused, never ignored. `null`
+Only `use_case` is required. Unknown fields are refused. `null`
 means "not stated". At most 16384 bytes.
 
 | Field | Values |
