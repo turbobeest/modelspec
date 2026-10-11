@@ -920,8 +920,7 @@ class Default(WorkerEntrypoint):
                         kv=_access_store(self.env), load_policy=lambda: access_config.load_policy(self.env),
                         anonymous=allowed, live=allowed,
                         sandbox=lambda: access.refusal(access.SANDBOX_NOT_AVAILABLE, "Use a live key for vocabulary.", envelope={}),
-                        skip_limits=lambda record, tier: bool(
-                            tier.paid and not tier.unlimited),
+                        skip_limits=lambda record, tier: not tier.unlimited,
                     )
                     if not outcome.served:
                         return _json_response(outcome.status, outcome.body, {**cors, **outcome.headers})
@@ -1206,13 +1205,13 @@ class Default(WorkerEntrypoint):
         return _json_response(outcome.status, outcome.body, headers)
 
     async def _meter_catalog_read(self, api_key, outcome, cors):
-        """Charge a funded paid key for a successful vocabulary read. Others are free.
+        """Admit and charge a successful keyed vocabulary read from ledger funding.
 
         Visit tokens never reach here. HEAD is the same read as GET and has no
-        body. Free keys keep the tier's own daily limit. An exempt unlimited
-        tier draws nothing. A key with nothing left to bill is served under the
-        free tier's limits. A refused or invalid read is not counted: the caller
-        validates the query before this runs.
+        body. An exempt unlimited tier draws nothing. The ledger spends pack
+        credits and plan allowance, regardless of the key's stored tier, and
+        refuses reads it cannot fund. A refused or invalid read is not counted:
+        the caller validates the query before this runs.
         """
         tier_name = getattr(outcome, "tier", None)
         if not tier_name:
@@ -1223,7 +1222,7 @@ class Default(WorkerEntrypoint):
         except access_config.PolicyError:
             return None
         reads = policy.credits.reads
-        if reads is None or not tier.paid or tier.unlimited:
+        if reads is None or tier.unlimited:
             return None
         holder = x402.holder_from_key(api_key)
         if not holder:
@@ -1243,7 +1242,10 @@ class Default(WorkerEntrypoint):
             }}, cors)
         if not taken.ok:
             if taken.reason == "exhausted":
-                return await self._serve_catalog_as_free(outcome, cors, policy)
+                return _json_response(402, {"error": {
+                    "code": "payment_required",
+                    "message": "Catalog reads require remaining credits. Use a funded API key.",
+                }}, cors)
             return _catalog_rate_limited(taken, policy, outcome, cors)
         try:
             kept = await ledger.keep_read(holder, int(taken.token))
@@ -1282,25 +1284,6 @@ class Default(WorkerEntrypoint):
                 except Exception:
                     logging.error("could not record settled catalog overage")
         return None
-
-    async def _serve_catalog_as_free(self, outcome, cors, policy):
-        """Nothing left to bill. Serve the catalog under the free tier's limits."""
-        try:
-            free = policy.tier("free")
-        except access_config.PolicyError:
-            return None
-        now = datetime.now(UTC)
-        meter = await access_limits.consume(
-            _access_store(self.env), getattr(outcome, "key_id", None) or "", free, now)
-        if meter.allowed:
-            return None
-        record = access_keys.KeyRecord(
-            key_id=getattr(outcome, "key_id", None) or "",
-            tier=getattr(outcome, "tier", None) or "",
-            owner="", created_at="")
-        status, body = access.rate_limited_body(meter, record, policy, now, {})
-        return _json_response(
-            status, body, {**cors, **access._rate_limit_headers(meter, now)})
 
     def _credit_params(self, path: str, payload=None) -> tuple[int, int, str]:
         try:

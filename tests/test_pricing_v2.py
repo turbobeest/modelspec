@@ -559,8 +559,9 @@ def test_a_paid_vocabulary_read_charges_one_credit_per_block(bundled_entry):
     for _ in range(9):
         assert run(worker.fetch(_vocab(key))).status == 200
     assert env.CREDITS.state.accounts[holder].read_count == 20
-    served = run(worker.fetch(_vocab(key)))
-    assert served.status == 200
+    refused = run(worker.fetch(_vocab(key)))
+    assert refused.status == 402
+    assert refused.json()["error"]["code"] == "payment_required"
     assert env.CREDITS.state.accounts[holder].read_count == 20
     assert run(env.CREDITS.balance(holder)).available == 0
 
@@ -677,10 +678,6 @@ def test_vocabulary_free_paths_are_not_charged(bundled_entry):
     assert visit.status == 200
     assert env.CREDITS.state.accounts == {}
 
-    free = run(_issue(env, "free", "live_read_free"))
-    assert run(worker.fetch(_vocab(free))).status == 200
-    assert x402.holder_from_key(free) not in env.CREDITS.state.accounts
-
     exempt = run(_issue(env, "dpf", "live_read_exempt"))
     assert run(worker.fetch(_vocab(exempt))).status == 200
     assert x402.holder_from_key(exempt) not in env.CREDITS.state.accounts
@@ -689,6 +686,14 @@ def test_vocabulary_free_paths_are_not_charged(bundled_entry):
     assert sandbox.status == 400
     assert sandbox.json()["error"]["code"] == "sandbox_not_available"
     assert env.CREDITS.state.accounts == {}
+
+    free = run(_issue(env, "free", "live_read_free"))
+    refused = run(worker.fetch(_vocab(free)))
+    assert refused.status == 402
+    assert refused.json()["error"]["code"] == "payment_required"
+    holder = x402.holder_from_key(free)
+    assert run(env.CREDITS.balance(holder)).available == 0
+    assert env.CREDITS.state.accounts[holder].read_count == 0
 
     open_env = environment(
         VISIT_GATE_ENABLED="false", HUMAN_GATE_ENABLED="false",
@@ -734,7 +739,8 @@ def test_scale_catalog_read_reports_one_meter_event_per_settled_block(bundled_en
     assert fields["identifier"] == (
         f"{env.CREDITS.state.accounts[holder].meter_id}:read:1")
     stopped = run(worker.fetch(_vocab(key)))
-    assert stopped.status == 200
+    assert stopped.status == 402
+    assert stopped.json()["error"]["code"] == "payment_required"
     assert len(calls) == 1
     account = env.CREDITS.state.accounts[holder]
     assert account.overage_used == 1 and account.read_count == 10
@@ -746,8 +752,9 @@ def test_scale_catalog_read_reports_one_meter_event_per_settled_block(bundled_en
     assert run(shipped.CREDITS.set_monthly(
         shipped_holder, 0, "in_scale_off", "Scale", "cus_off")).credited
     off = _decision_worker(bundled_entry, shipped)
-    served = run(off.fetch(_vocab(shipped_key)))
-    assert served.status == 200
+    refused = run(off.fetch(_vocab(shipped_key)))
+    assert refused.status == 402
+    assert refused.json()["error"]["code"] == "payment_required"
     assert len(calls) == 1
     shipped_account = shipped.CREDITS.state.accounts[shipped_holder]
     assert shipped_account.overage_used == 0 and shipped_account.read_count == 0
@@ -1843,43 +1850,52 @@ def test_a_funded_vocabulary_head_is_counted_and_charged_like_a_get(bundled_entr
     assert run(env.CREDITS.balance(holder)).available == 1
 
 
-def test_a_free_keys_eleventh_vocabulary_head_in_a_day_is_rate_limited(bundled_entry):
+def test_a_funded_free_keys_vocabulary_head_uses_the_catalog_daily_cap(bundled_entry, policy):
     env = environment(HUMAN_GATE_ENABLED="false", X402_ENABLED="false")
     worker = _decision_worker(bundled_entry, env)
     free = run(_issue(env, "free", "live_head_free_day"))
+    holder = x402.holder_from_key(free)
+    assert run(env.CREDITS.set_monthly(holder, 2, "in_head_free", "Solo")).credited
     first = run(worker.fetch(_vocab(free, method="HEAD")))
     assert first.status == 200 and first.body is None
-    key_id = first.headers["x-modelspec-key-id"]
-    now = datetime.now(UTC)
-    day_bucket, _reset = access_limits.day_window(now)
-    env.ACCESS.store.data[access_limits.counter_name(
-        key_id, access_limits.DAY, day_bucket)] = "10"
+    assert run(env.CREDITS.balance(holder)).monthly == 1
+    account = env.CREDITS.state.accounts[holder]
+    clock = _stable_clock()
+    account.read_day = clock[:10]
+    account.read_count = policy.credits.reads.daily_cap
     limited = run(worker.fetch(_vocab(free, method="HEAD")))
     assert limited.status == 429 and limited.body is None
-    assert limited.headers["ratelimit-limit"] == "10"
+    assert limited.headers["ratelimit-limit"] == "1000"
     assert limited.headers["ratelimit-remaining"] == "0"
+    assert account.read_count == 1000
+    assert run(env.CREDITS.balance(holder)).monthly == 1
+    assert [name for name in env.ACCESS.store.data if name.startswith("count:")] == []
 
 
-def test_an_exhausted_paid_key_reads_vocabulary_under_the_free_daily_limit(bundled_entry):
+def test_an_exhausted_paid_key_is_refused_without_using_the_free_daily_limit(bundled_entry):
     env = environment(HUMAN_GATE_ENABLED="false", X402_ENABLED="false")
     key = run(_issue(env, "paid", "live_vocab_empty"))
     holder = x402.holder_from_key(key)
     assert run(env.CREDITS.set_monthly(holder, 0, "in_empty", "Solo")).credited
     worker = _decision_worker(bundled_entry, env)
     first = run(worker.fetch(_vocab(key)))
-    assert first.status == 200
+    assert first.status == 402
+    assert first.json()["error"]["code"] == "payment_required"
     assert env.CREDITS.state.accounts[holder].read_count == 0
     key_id = first.headers["x-modelspec-key-id"]
     now = datetime.now(UTC)
     day_bucket, _reset = access_limits.day_window(now)
     env.ACCESS.store.data[access_limits.counter_name(key_id, access_limits.DAY, day_bucket)] = "9"
-    assert run(worker.fetch(_vocab(key))).status == 200
+    assert run(worker.fetch(_vocab(key))).status == 402
+    env.ACCESS.store.data[access_limits.counter_name(key_id, access_limits.DAY, day_bucket)] = "10"
     limited = run(worker.fetch(_vocab(key)))
-    assert limited.status == 429
+    assert limited.status == 402
     body = limited.json()
-    assert body["error"]["code"] == "rate_limited"
-    assert body["error"]["limit"] == 10
+    assert body["error"]["code"] == "payment_required"
     assert env.CREDITS.state.accounts[holder].read_count == 0
+    assert run(env.CREDITS.balance(holder)).available == 0
+    assert env.ACCESS.store.data[access_limits.counter_name(
+        key_id, access_limits.DAY, day_bucket)] == "10"
 
 
 def test_an_invoice_grants_the_billed_plan_not_stale_checkout_metadata(policy):
