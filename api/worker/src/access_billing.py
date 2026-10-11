@@ -686,13 +686,8 @@ async def rotate(kv: Any, current_key: str, *, now: datetime,
 
 
 async def grant_monthly(kv: Any, subscription_id: str, *, ledger: Any,
-                        units: int, invoice_id: str, plan: str,
-                        reset_overage: bool = True) -> str:
-    """SET monthly on the claimed key, or remember it for claim. Packs untouched.
-
-    `reset_overage` is false for a subscription update, which refills the
-    allowance and leaves the overage cap. A paid invoice keeps the default.
-    """
+                        units: int, invoice_id: str, plan: str) -> str:
+    """SET monthly on the claimed key, or remember it for claim. Packs untouched."""
     stored = await load_subscription(kv, subscription_id)
     if stored is None:
         return "no_key"
@@ -700,7 +695,7 @@ async def grant_monthly(kv: Any, subscription_id: str, *, ledger: Any,
         try:
             result = await ledger.set_monthly(
                 credits.holder_from_fingerprint(stored.key_fingerprint),
-                units, invoice_id, plan, stored.customer_id, reset_overage)
+                units, invoice_id, plan, stored.customer_id)
             if result.credited and stored.pending_monthly:
                 await _write_sub(kv, replace(stored, pending_monthly=0,
                                              plan_name=plan or stored.plan_name,
