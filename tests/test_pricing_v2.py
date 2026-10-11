@@ -565,6 +565,71 @@ def test_a_paid_vocabulary_read_charges_one_credit_per_block(bundled_entry):
     assert run(env.CREDITS.balance(holder)).available == 0
 
 
+@pytest.mark.parametrize("method", ["GET", "HEAD"])
+@pytest.mark.parametrize("free_reads", [0, 10])
+def test_cancelled_key_with_pack_credits_is_admitted_and_charged(
+    bundled_entry, policy, method, free_reads,
+):
+    env = environment(HUMAN_GATE_ENABLED="false", X402_ENABLED="false")
+    kv, ledger = env.ACCESS.store, env.CREDITS
+    started = run(apply(kv, policy, payload(
+        "checkout.session.completed",
+        checkout_obj(metadata={"modelspec_price_id": SOLO_V2}),
+        "evt_catalog_plan",
+    ), ledger=ledger))
+    assert started.status == 200
+    claimed = _claim(kv, policy, ledger)
+    assert claimed.status == 200
+    key = claimed.body["key"]
+    holder = _holder(key)
+    assert run(ledger.credit(
+        holder, "catalog_pack", 2, "fixture",
+        expires_at="2027-09-17T00:00:00Z", source="pack",
+    )).credited
+    cancelled = run(apply(kv, policy, payload(
+        "customer.subscription.deleted",
+        {"id": SUB, "object": "subscription", "status": "canceled", "customer": CUS},
+        "evt_catalog_cancelled",
+    ), ledger=ledger))
+    assert cancelled.status == 200
+    record = run(access_keys.lookup(kv, key))
+    assert record is not None and record.tier == "free"
+    before = run(ledger.balance(holder))
+    assert (before.available, before.monthly, before.packs, before.plan) == (2, 0, 2, "")
+    day_bucket, _reset = access_limits.day_window(datetime.now(UTC))
+    run(kv.put(access_limits.counter_name(record.key_id, access_limits.DAY, day_bucket),
+               str(free_reads)))
+
+    worker = _decision_worker(bundled_entry, env)
+    response = run(worker.fetch(_vocab(key, method=method)))
+    assert response.status == 200
+    if method == "HEAD":
+        assert response.body is None
+    else:
+        assert response.json() == {"facets": []}
+    after = run(ledger.balance(holder))
+    assert (after.available, after.monthly, after.packs, after.plan) == (1, 0, 1, "")
+
+
+@pytest.mark.parametrize("method", ["GET", "HEAD"])
+@pytest.mark.parametrize("tier", ["free", "paid"])
+def test_key_with_no_balance_and_no_plan_is_refused(bundled_entry, method, tier):
+    env = environment(HUMAN_GATE_ENABLED="false", X402_ENABLED="false")
+    key = run(_issue(env, tier, "live_catalog_unfunded"))
+    holder = _holder(key)
+    before = run(env.CREDITS.balance(holder))
+    assert (before.available, before.monthly, before.packs, before.plan) == (0, 0, 0, "")
+
+    worker = _decision_worker(bundled_entry, env)
+    response = run(worker.fetch(_vocab(key, method=method)))
+    assert response.status == 402
+    if method == "HEAD":
+        assert response.body is None
+    else:
+        assert response.json()["error"]["code"] == "payment_required"
+    assert run(env.CREDITS.balance(holder)).to_json() == before.to_json()
+
+
 def test_a_vocabulary_read_past_the_daily_cap_or_burst_is_rate_limited(bundled_entry, policy):
     env = environment(HUMAN_GATE_ENABLED="false", X402_ENABLED="false")
     key = run(_issue(env, "paid", "live_read_cap"))
