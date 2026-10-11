@@ -398,3 +398,25 @@ def test_rotation_during_backlog_report_acknowledges_only_the_source_snapshot(
         src_backlog[2], dst_backlog[2]]
     assert run(ledger.balance(dst)).overage_unreported == 0
     assert src not in namespace.stored()["accounts"]
+
+
+@pytest.mark.parametrize("enabled", [False, True])
+def test_an_exhausted_overage_cap_still_drains_a_lost_commit_report(
+        entry, namespace, enabled):
+    env = SimpleNamespace(STRIPE_SECRET_KEY="sk_test_fixture", CREDITS=namespace)
+    ledger = credits.ledger_from_env(env)
+    holder = "key:exhausted"
+    assert run(ledger.set_monthly(holder, 0, "in_exhausted", "Scale", "cus_durable")).credited
+    stripe = _Stripe()
+    entry.fetch = stripe.fetch
+    namespace.lose_commit_reply = True
+    with pytest.raises(TimeoutError, match="committed debit, lost DO reply"):
+        run(_charge(entry, env, holder, units=100, enabled=enabled))
+    namespace.restart()
+    status, _body = run(_charge(entry, env, holder, enabled=enabled))
+    assert status == (402 if enabled else 200)
+    assert stripe.units() == 100
+    assert len(stripe.attempts) == 1
+    run(_charge(entry, env, holder, enabled=enabled))
+    assert len(stripe.attempts) == 1
+    assert run(ledger.balance(holder)).overage_used == 100

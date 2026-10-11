@@ -491,6 +491,8 @@ async def charge(
             await on_overage(0, "")
 
     async def _unfunded(available: int) -> tuple[int, dict[str, Any]]:
+        if holder and on_overage is not None:
+            await on_overage(0, "")
         if not config.enabled and produce_unfunded is not None and holder:
             log.note("unfunded_free")
             status, body = await produce_unfunded()
@@ -516,6 +518,8 @@ async def charge(
         if not reserved.ok:
             if produce_unfunded is not None:
                 return await _unfunded(reserved.available)
+            if on_overage is not None:
+                await on_overage(0, "")
             return await produce()
         return await _produce_reserved(
             ledger, holder, reserved.reservation_id, produce, log, _settle)
