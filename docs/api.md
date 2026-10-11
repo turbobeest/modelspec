@@ -17,7 +17,7 @@ cost, reasons and constraint eliminations.
 
 ## Request
 
-Only `use_case` is required. Unknown fields are refused. `null`
+Only `use_case` is required. An unknown field is refused, never ignored. `null`
 means "not stated". At most 16384 bytes.
 
 | Field | Values |
@@ -234,8 +234,8 @@ Every refusal carries `error.code` and `error.message`, and `result` is `[]`.
 | Status | `error.code` | Cause | Fix |
 |---|---|---|---|
 | 400 | `invalid_request` | bad field or type | `error.fields` names them, `error.accepted` lists what exists |
-| 400 | `unknown_use_case` | no such profile | pick one from `error.accepted` |
-| 400 | `unknown_hardware` | no such device id | pick one from `error.accepted` |
+| 400 | `unknown_use_case` | unknown profile | pick one from `error.accepted` |
+| 400 | `unknown_hardware` | unknown device id | pick one from `error.accepted` |
 | 400 | `unknown_hosting` | not `local`, `self_hosted` or `managed_api` | pick one from `error.accepted` |
 | 400 | `unknown_runtime` | no such platform id | pick one from `error.accepted`, or drop it |
 | 401 | `missing_api_key` | no key, while keys are enforced | send one; see `error.how_to_get_a_key` |
