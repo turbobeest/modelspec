@@ -288,10 +288,104 @@ def test_the_terms_neither_deny_nor_promise_that_purchase_is_open() -> None:
     assert "Current plans, prices and availability are published at" in FLAT_TERMS
 
 
-def test_the_terms_do_not_offer_x402_while_it_is_off() -> None:
-    config = _wrangler_config()
-    if '"X402_ENABLED": "false"' in config:
-        assert "Payment by x402 is not currently offered." in FLAT_TERMS
+def test_the_x402_legal_revision_is_effective_on_the_flip_date() -> None:
+    from pipeline.worker_flags import production_vars
+
+    variables = production_vars(REPO_ROOT)
+    assert variables["X402_ENABLED"] == "true"
+    assert variables["X402_MAINNET"] == "true"
+    assert "Version `1.7`, effective 2026-10-13." in FLAT_TERMS
+    assert "Version `1.14`, effective 2026-10-13." in FLAT_PRIVACY
+
+
+@pytest.mark.parametrize("approved", [
+    pytest.param(
+        "Credits can also be bought by x402: a payment in USDC on the Base network, "
+        "made by your software in reply to an HTTP 402 response (§6). We will not bill "
+        "you under terms you did not see first.", id="T1"),
+    pytest.param(
+        "- **Paid access**, metered in credits and bought through Stripe or by x402 "
+        "(§6). A key with credits remaining receives the paid answer, which includes "
+        "our commercial-use and data-residency determinations on policy-check. A key "
+        "with none left receives an HTTP 402 response that offers the credit packs "
+        "for payment by x402. That response is not charged (§6.3).", id="T2"),
+    pytest.param(
+        "**Paying by x402.** You may instead buy a pack with USDC on the Base network "
+        "under the x402 protocol. Your software signs a transfer authorization for one of "
+        "the offered amounts, and we pass it to Coinbase's x402 facilitator to verify and "
+        "settle. The pack's credits are added to the key that made the request only "
+        "after the transfer has settled on-chain. The receiving address and the amounts "
+        "are stated in the 402 response. A payment to any other address, or of any other "
+        "amount, is refused and never settled. An on-chain transfer cannot be reversed "
+        "by us or by you. By sending an x402 payment you accept these terms.", id="T3"),
+    pytest.param(
+        "There are two ways to buy them. Packs can be paid for by card through Stripe or "
+        "by x402, at the same dollar price, with one USDC counted as one US dollar:", id="T4"),
+    pytest.param(
+        "Credits bought by x402 are refunded in USDC on Base to the address the payment "
+        "came from, or to another address you prove you control, less nothing.", id="T5"),
+    pytest.param(
+        "**6.8 Taxes.** Prices are in US dollars. For pack purchases through x402, the "
+        "published pack price includes any applicable tax. The price shown before you "
+        "pay is the total amount you pay, including any applicable tax. For purchases "
+        "through Stripe, any tax charged is shown at Checkout before you pay. You are "
+        "responsible for taxes on your own side of the transaction.", id="T6"),
+    pytest.param(
+        "Version 1.7 (2026-10-13) adds payment by x402 in USDC on Base (§2, §6). No "
+        "other term changed.", id="T7"),
+])
+def test_x402_terms_use_the_exact_approved_text(approved: str) -> None:
+    assert approved in FLAT_TERMS
+
+
+@pytest.mark.parametrize("approved", [
+    pytest.param(
+        "`X402_PAY_TO`, the address that receives x402 payments, is "
+        "`0x69429dbEEEE7218084AB5B896788f5fCE452419C` on the Base network. It is held in a Coinbase "
+        "account for Sparks & Sawdust LLC. No private key for it is in this repository.",
+        id="P1"),
+    pytest.param(
+        "or by an x402 payment in USDC on Base, made with an API key (`X402_ENABLED` is on).",
+        id="P2"),
+    pytest.param(
+        "When your software pays by x402 (`api/worker/src/x402.py`), it sends us a signed "
+        "authorization for a USDC transfer on the Base network. It holds your wallet's "
+        "public address, our receiving address, the amount, a validity window, a nonce "
+        "and the signature. We do not store it. We pass it to Coinbase's x402 "
+        "facilitator (`api.cdp.coinbase.com`), which verifies and settles it, and which "
+        "handles it under Coinbase's own terms and privacy policy. The facilitator "
+        "returns a transaction hash and the paying address. We return both to you in the "
+        "`PAYMENT-RESPONSE` header and keep only what *The credit ledger* describes: the "
+        "payment id, the transaction hash, the key's hash and the credits bought. We do "
+        "not keep the paying address.", id="P3-payload"),
+    pytest.param(
+        "A settled transfer is recorded on the Base blockchain, which anyone can read "
+        "and which no one can erase. Your wallet's public address, our receiving "
+        "address, the amount and the time are public there, and anyone holding the "
+        "transaction hash can find them. Choose the wallet you pay from with that in mind.",
+        id="P3-public-transfer"),
+    pytest.param(
+        "Keys are enforced (`ACCESS_ENFORCED`), so a request without a key is refused "
+        "with 401 before any payment is offered. Nothing is paid or recorded without a "
+        "key. A separate staging copy of the API, on a `workers.dev` address that the "
+        "site never calls, runs x402 on a test network for testing.", id="P3-enforcement"),
+    pytest.param(
+        "- **1.14, 2026-10-13.** x402 payments are live (MODEL-333). The x402 bullet "
+        "moves from *Not yet live* to *What x402 payments involve*. That section "
+        "discloses what the signed payment carries, that Coinbase's facilitator "
+        "verifies and settles it, what we keep and do not keep, that a settlement is "
+        "public on Base, and the receiving address. Keys stay enforced, so neither "
+        "keyless change the earlier text predicted occurs.", id="P4"),
+])
+def test_x402_privacy_uses_the_exact_approved_text(approved: str) -> None:
+    assert approved in FLAT_PRIVACY
+
+
+def test_x402_privacy_moves_the_payment_disclosure_out_of_not_yet_live() -> None:
+    before, after = PRIVACY.split("## Not yet live", 1)
+    assert "## What x402 payments involve" in before
+    assert "- **x402 payments.**" not in after
+    assert "Coinbase Business account" not in FLAT_PRIVACY
 
 
 def test_the_privacy_statement_does_not_describe_outcome_logging_as_built() -> None:
@@ -806,10 +900,10 @@ def test_the_decide_contract_refuses_its_free_text_task() -> None:
 #: commitment is a change to that; each gets a new version and date rather than
 #: a silent edit of the adopted one.
 IN_FORCE = {
-    "terms": "Version `1.6`, effective 2026-10-10.",
+    "terms": "Version `1.7`, effective 2026-10-13.",
     "dmca": "Version `1.0`, effective 2026-10-09.",
     "neutrality": "Version `1.3`, effective 2026-09-30.",
-    "privacy": "Version `1.13`, effective 2026-10-10.",
+    "privacy": "Version `1.14`, effective 2026-10-13.",
 }
 
 

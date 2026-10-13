@@ -1,6 +1,6 @@
 # Terms of service
 
-Version `1.6`, effective 2026-10-10. Adopted by Sparks & Sawdust LLC.
+Version `1.7`, effective 2026-10-13. Adopted by Sparks & Sawdust LLC.
 MODEL-70.
 
 ## 1. Who you are contracting with
@@ -34,13 +34,15 @@ service is:
   for an answer from the API or the MCP server without a key is refused, with a
   message saying where to get one. The decide page on modelspec.dev stays free for a person
   looking things up by hand.
-- **Paid access**, metered in credits and bought through Stripe (§6). A key with
-  credits remaining receives the paid answer, which includes our commercial-use
-  and data-residency determinations on policy-check. A key with none left
-  receives the free answer, not an error.
+- **Paid access**, metered in credits and bought through Stripe or by x402
+  (§6). A key with credits remaining receives the paid answer, which includes
+  our commercial-use and data-residency determinations on policy-check. A key
+  with none left receives an HTTP 402 response that offers the credit packs
+  for payment by x402. That response is not charged (§6.3).
 
-Payment by x402 is not currently offered. We will not bill you under terms you
-did not see first.
+Credits can also be bought by x402: a payment in USDC on the Base network,
+made by your software in reply to an HTTP 402 response (§6). We will not bill
+you under terms you did not see first.
 
 **What the service is not.** We do not run inference. We do not proxy, relay or
 resell access to any model, and your prompts and inference traffic do not pass
@@ -112,7 +114,18 @@ because a statement descriptor cannot contain an ampersand. Current plans,
 prices and availability are published at `https://modelspec.dev/pricing`.
 Checkout asks you to accept these terms before you pay.
 
+**Paying by x402.** You may instead buy a pack with USDC on the Base network
+under the x402 protocol. Your software signs a transfer authorization for one of
+the offered amounts, and we pass it to Coinbase's x402 facilitator to verify and
+settle. The pack's credits are added to the key that made the request only
+after the transfer has settled on-chain. The receiving address and the amounts
+are stated in the 402 response. A payment to any other address, or of any other
+amount, is refused and never settled. An on-chain transfer cannot be reversed
+by us or by you. By sending an x402 payment you accept these terms.
+
 **What you buy.** Paid access is metered in credits, one balance per API key.
+There are two ways to buy them. Packs can be paid for by card through Stripe or
+by x402, at the same dollar price, with one USDC counted as one US dollar:
 
 - **Plans** — Solo ($29 a month, 2,500 credits), Team ($199 a month, 25,000
   credits) and Scale ($799 a month, 150,000 credits). A plan's monthly
@@ -189,16 +202,20 @@ you disliked the answer — the ranking is the product, and a ranking that only
 charged when it flattered would not be worth having. We refund: anything charged
 without a delivered result (§6.5); anything charged in error, including
 duplicate or mis-metered charges; and unused prepaid balance, on request, minus
-nothing. If we withdraw the service or these terms change to your material
+nothing. Credits bought by x402 are refunded in USDC on Base to the address the
+payment came from, or to another address you prove you control, less nothing.
+If we withdraw the service or these terms change to your material
 detriment, unused balance is refunded.
 
 **6.7 Prices.** Prices are published at `https://modelspec.dev/pricing` before
 they apply. A price change does not apply retroactively to credits you already
 bought.
 
-**6.8 Taxes.** Prices are in US dollars. Any tax charged is shown at Checkout
-before you pay. You are responsible for taxes on your own side of the
-transaction.
+**6.8 Taxes.** Prices are in US dollars. For pack purchases through x402, the
+published pack price includes any applicable tax. The price shown before you
+pay is the total amount you pay, including any applicable tax. For purchases
+through Stripe, any tax charged is shown at Checkout before you pay. You are
+responsible for taxes on your own side of the transaction.
 
 ## 7. Your data
 
@@ -274,6 +291,8 @@ you only after it is published, never before.
 You may stop using the service at any time. We may suspend or end access for a
 breach of §5. §4 does not expire, is not suspended, and does not change with a
 new version of these terms.
+
+Version 1.7 (2026-10-13) adds payment by x402 in USDC on Base (§2, §6). No other term changed.
 
 Version 1.6 (2026-10-10) changed §6: new prices for Solo and Team, a Scale
 plan with metered overage, repriced packs, and priced metadata reads; plans and

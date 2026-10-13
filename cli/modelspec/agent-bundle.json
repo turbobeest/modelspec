@@ -814,9 +814,9 @@
   "source_hashes": {
     "pipeline/agent_copy.py": "3fc9b8dad06b282aeb92e04ab6b4ebdd2723879bfeb44fa92c1ec04767261250",
     "pipeline/entity.py": "1649e5f95b620561511c2619045d036231b44c8ab7ff297bf4c6a21ab2b69ff3",
-    "pipeline/pricing.py": "bc635eb9f446eec209f882c1f8bb8f79ccf295431bb191f8fd632efe0a940fd8",
+    "pipeline/pricing.py": "d870582d19dc557ca646b6eabf12054eede51d12a6497c94c9d86588f0e2fee2",
     "pipeline/worker_flags.py": "0f3c1ff0de81710417659b86e1ec92913bbcf54af6312720fdad659e6af03429",
-    "api/worker/wrangler.jsonc": "019e868515221296f56a62223cb07ac594d5ab80cd68f824e34aa0450336cc80",
+    "api/worker/wrangler.jsonc": "421a3587d1fddf8f082e63b66ff82f3a3f23fff1ffd5f109ebf40877076baf2f",
     "api/worker/tiers.json": "488d2781f0a55c756be2f4b674c3f3234e85964ce9b917a6b7b6fc63b3e3b317",
     "docs/decision-contract.schema.json": "c17700f63f6f2fa04cc7398c947a4c99dd177bfbd447c04ab897ebc04a097c18",
     "pyproject.toml": "29365f33db7db0b2e2897b777960bccbb7a6ce1f4953c47ecef5432dda2e6187",
