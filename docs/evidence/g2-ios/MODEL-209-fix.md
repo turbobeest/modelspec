@@ -1,12 +1,14 @@
 # MODEL-209: sourced offering identifiers
 
-The corrected full Python suite exited 0: 10,009 passed, 8 skipped and
-11 warnings in 1,448.88 seconds. The full web suite exited 0 with 813 tests
-passed. This record includes the failing first run and its follow-up fixes.
+The REVIEW-718 fixes passed the full Python, web, and MCP suites, each
+with exit 0. Python passed 10,044 tests, web passed 813, and MCP passed 136.
+The review-fix section below records the new red/green tests and delivery
+checks. The original implementation evidence is retained before that section.
 
 - Base SHA: `2b0770afab18d101ea033c9259d53ae4ac42e2ce`.
 - Initial implementation: `add83fb9ee8c3fe179f9a24c57db9f17e59d9668`.
-- Final tested implementation: `63a48b01e2bb0ead5de048ca9c16ba0d5522b56a`.
+- Initial tested implementation: `63a48b01e2bb0ead5de048ca9c16ba0d5522b56a`.
+- Review-fix tested implementation: `a442167af362991194da273a2f70898116607f36`.
 - Worktree: `/Users/terbeest/dev/worktrees/model-209`.
 - Branch: `sparksandsawdust/model-209-api-model-id`.
 - Final delivery SHA: resolve the commit containing this evidence after
@@ -307,8 +309,9 @@ primary-provider, Vertex, and OpenRouter ID fields.
   creation was not called.
 - No deployment, production switch change, paid-provider call, or WSL gate
   ran. No excluded source was fetched or admitted.
-- CI and the independent cross-model review have not completed as part of
-  this executor run.
+- The initial delivery preceded the independent cross-model review.
+  REVIEW-718 findings and their fixes are recorded below. CI is separate
+  from these local verification results.
 
 ## Delivery checks
 
@@ -322,4 +325,153 @@ git diff --check
 
 The branch is delivered as a draft PR. Push uses `CI_LOCAL_SKIP=1`, as the
 executor brief requires after focused checks, while CI supplies its own gate.
-No merge or production deployment is part of this delivery.
+The initial delivery did not include a merge or production deployment.
+The later local main merge is recorded below.
+
+## REVIEW-718 fixes
+
+The Grok 4.7 review requested changes at PR head
+`6d2744381bfecf4768279e2257edfcae732e38a5`. Before changing code, the executor
+fetched and merged `origin/main`, SHA
+`3234406f0663231f02a033ce595019580134cc28`. The clean local merge is
+`e55f4042bf6fbba79d82f41c4700c52226c8e98d`. Jamie explicitly requested this
+local merge. The PR remains a draft and was not merged into main.
+
+The tested code commit is `a442167af362991194da273a2f70898116607f36`.
+The final evidence commit is resolved by the delivery-SHA command at the top
+of this record.
+
+### Finding 1: Worker identifier omission
+
+`OfferingRef` now extends `_ExcludeIf`, matching `HardwareEstimate`. Its
+existing `exclude_if` predicates omit absent identifiers on both native and
+compatibility serializers. Existing nullable provider, region, and tier
+fields retain their values.
+
+The regression is
+`test_offering_identifiers_serialize_in_pre_212_compatibility_mode`. A fresh
+subprocess moves exclusion predicates into `json_schema_extra`, prevents the
+feature probe from detecting native support, and imports the contract. It
+asserts that native exclusion is disabled. Literal expected objects pin
+omission for default and explicit null identifiers, retention of populated
+identifiers, `model_dump(mode="json")`, `model_dump_json()`, and nested
+`CandidateValues` serialization. This exercises the actual import-time
+compatibility serializer regardless of the installed pydantic version.
+
+Red, exit 1, `1 failed in 0.78s`:
+
+```text
+At index 0 diff: {'dump': {'model': 'lab/alpha', 'provider': None,
+'region': None, 'tier': None, 'api_model_id': None, 'router_slug': None}, ...}
+```
+
+Green, exit 0, `279 passed in 1.97s`, from the contract and plan suites.
+The final combined regression check also exited 0 with
+`4 passed in 11.52s`. Logs are `tmp/model-209/compat-red.log`,
+`compat-green.log`, and `review-regression-green.log`.
+
+```sh
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_decision_contract.py::test_offering_identifiers_serialize_in_pre_212_compatibility_mode
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_decision_contract.py tests/test_decision_plans.py
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_decision_contract.py::test_offering_identifiers_serialize_in_pre_212_compatibility_mode tests/test_mcp_contract_version.py
+```
+
+### Finding 2: MCP fallback version
+
+Both bounded fallbacks in `mcp/src/server.ts` now use
+`CURRENT_CONTRACT_VERSION`. `python -m decision.schema` generates
+`mcp/src/contract-version.ts` from `decision.contract.CONTRACT_VERSION`.
+The generator's `--check` mode rejects stale or missing artifacts without
+writing them. The QA MCP capture was regenerated because it hashes
+`server.ts`; only that source hash changed.
+
+The two MCP regressions are `uses contract 2.17 when a bounded trimmed body
+has neither version field` and `uses contract 2.17 when empty versions reach
+the over-budget minimal fallback`. Both assert literal `2.17` and a response
+within 16,384 bytes.
+
+Red, exit 1, `2 failed`: both expected `projects_contract: "2.17"` and
+received `"2.16"`. Green, exit 0, `2 passed`.
+
+The Python sync/generator tests were also red first, exit 1 with `3 failed`,
+because the generated module was missing and the generator lacked check-mode
+arguments. Green, exit 0, `3 passed in 0.64s`.
+
+From `mcp/`:
+
+```sh
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm test -- test/contract-version.test.ts
+```
+
+From the repository root, each final command exited 0:
+
+```sh
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_mcp_contract_version.py
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m decision.schema
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m decision.schema --check
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m qa.contracts
+```
+
+Logs are under `tmp/model-209/mcp-review/`.
+
+### Full verification after the review fixes
+
+The full Python suite exited 0: `10044 passed, 8 skipped, 11 warnings in 1090.70s (0:18:10)`. Its log is `tmp/model-209/review-python-full.log`.
+
+The full web suite exited 0, with 50 test files passed, one skipped, and
+813 tests passed in 26.35 seconds. Web installation and build each exited 0.
+The full MCP suite exited 0, with eight files and 136 tests passed in
+1.45 seconds. MCP installation and typecheck each exited 0. Exit codes came
+directly from the completed commands, not a pipe or a log-reader exit code.
+
+The full Python command, from the worktree root:
+
+```sh
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:/Users/terbeest/dev/modelspec/.venv/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4
+```
+
+From `web/`:
+
+```sh
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:/Users/terbeest/dev/modelspec/.venv/bin:$PATH npm ci
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:/Users/terbeest/dev/modelspec/.venv/bin:$PATH npm run build
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:/Users/terbeest/dev/modelspec/.venv/bin:$PATH npm test
+```
+
+From `mcp/`:
+
+```sh
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm ci
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm test
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm run typecheck
+```
+
+The schema drift check, OpenAPI check, data freeze guard against
+`origin/main`, and `git diff --check` exited 0.
+After updating this evidence, the source-exclusion suite also exited 0 with
+`5 passed, 1 skipped in 93.76s`.
+
+```sh
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/openapi.py --check
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python scripts/data_freeze_guard.py --base origin/main --head HEAD --branch sparksandsawdust/model-209-api-model-id
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_removed_sources.py
+git diff --check
+```
+
+Versions were Python 3.14.4, pydantic 2.13.5, pytest 9.1.1, Node v22.22.3,
+npm 10.9.8, and Vitest 5.0.1. MCP typecheck used TypeScript 7.0.2.
+
+### Other review points and limits
+
+The review passed the additive 2.17 contract bump, admission guards, literal
+identifier verification, distinct router placeholders, data freeze, the
+16 KB response limit, and keyed machine access. They required no behavioral
+change. The fixes leave their implementation and limits in place; the MCP
+regressions explicitly retain the same byte cap.
+
+No Pyodide boot, deployed Worker request, live provider catalogue fetch, or
+paid-provider call ran. The new Worker regression simulates the older
+pydantic metadata and serializer-registration path in CPython, rather than
+booting the locked 2.10.6 Worker runtime. CI and a second cross-model review
+are not part of these local results. All executor-started processes were
+completed before delivery.
