@@ -1,0 +1,10 @@
+schema_version: 1
+model: lab/alpha
+title: Alpha model release breakdown
+status: draft
+early_access: null
+revisions:
+- revision: 1
+  published: null
+  approved_by: null
+  approval: null

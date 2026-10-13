@@ -1590,6 +1590,128 @@ class _InlineRegions:
         return self.body
 
 
+def _offering_identifier_claim(facet: str, label: str) -> verify.Claim:
+    return verify.Claim(
+        target=TargetRef(kind="fact", id=f"offering#{facet}"),
+        subject="provider/lab/nimbus/global/standard",
+        names=("Nimbus 3",),
+        field=facet,
+        label=label,
+        value="acme/model-v1:beta",
+        collector=VerificationActor(agent="collector", model_family="openai", method="read"),
+        sources=(SourceRef(source_id="provider-models", snapshot_ref="sha256:" + "0" * 64,
+                           cited_regions=["models"]),),
+    )
+
+
+@pytest.mark.parametrize("facet,label", [
+    ("offering.api_model_id", "API model ID"),
+    ("offering.router_slug", "Router slug"),
+])
+@pytest.mark.parametrize("published,outcome", [
+    ("acme/model-v1:beta", "verified"),
+    ("Acme/model-v1:beta", "mismatch"),
+    ("acme.model_v1.beta", "mismatch"),
+    ("acme/model-v1/beta", "mismatch"),
+])
+def test_offering_identifiers_require_literal_source_values(
+    facet, label, published, outcome,
+) -> None:
+    claim = _offering_identifier_claim(facet, label)
+    regions = _InlineRegions(f"Model | {label}\nNimbus 3 | {published}\n")
+
+    result = verify.verify(claim, regions, verify.deterministic_extractors(), today=TODAY)
+
+    assert result.outcome == outcome
+    assert result.verification is not None
+    assert result.verification.target.value_hash == value_hash("acme/model-v1:beta")
+    assert [d.to_dict() for d in result.diffs] == (
+        [{"field": "value", "expected": "acme/model-v1:beta", "found": published}]
+        if outcome == "mismatch" else []
+    )
+
+
+@pytest.mark.parametrize("facet,label", [
+    ("offering.api_model_id", "API model ID"),
+    ("offering.router_slug", "Router slug"),
+])
+def test_offering_identifiers_need_an_independent_verification_family(facet, label) -> None:
+    claim = _offering_identifier_claim(facet, label)
+    text = f"Nimbus 3 uses {label} acme/model-v1:beta."
+    reply = json.dumps([{
+        "subject": "Nimbus 3", "value": "acme/model-v1:beta", "quoted_sentence": text,
+    }])
+    regions = _InlineRegions(text)
+    same_family = verify.LLMExtractor(
+        lambda prompt: reply, agent="another-agent", model="gpt-reader", model_family="openai",
+    )
+    independent = verify.LLMExtractor(
+        lambda prompt: reply, agent="another-agent", model="mistral-reader", model_family="mistral",
+    )
+
+    skipped = verify.verify(claim, regions, [same_family], today=TODAY)
+    admitted = verify.verify(claim, regions, [independent], today=TODAY)
+
+    assert skipped.outcome == "skipped"
+    assert skipped.reason == "no_independent_extractor"
+    assert skipped.verification is None
+    assert admitted.outcome == "verified"
+    assert admitted.verification is not None
+    assert admitted.verification.target.value_hash == value_hash("acme/model-v1:beta")
+
+
+@pytest.mark.parametrize("facet,label", [
+    ("offering.api_model_id", "API model ID"),
+    ("offering.router_slug", "Router slug"),
+])
+@pytest.mark.parametrize("published,quoted", [
+    ("acme.model_v1.beta", "acme/model-v1:beta"),
+    ("Acme/model-v1:beta", "acme/model-v1:beta"),
+    ("acme.model_v1.beta", "acme.model_v1.beta"),
+    ("acme/model-v1:beta-extended", "acme/model-v1:beta-extended"),
+])
+def test_offering_identifiers_reject_prose_values_missing_from_exact_source(
+    facet, label, published, quoted,
+) -> None:
+    claim = _offering_identifier_claim(facet, label)
+    source = f"Nimbus 3 uses {label} {published}."
+    reader = verify.LLMExtractor(
+        lambda prompt: json.dumps([{
+            "subject": "Nimbus 3", "value": "acme/model-v1:beta",
+            "quoted_sentence": f"Nimbus 3 uses {label} {quoted}.",
+        }]),
+        agent="another-agent", model="mistral-reader", model_family="mistral",
+    )
+
+    result = verify.verify(claim, _InlineRegions(source), [reader], today=TODAY)
+
+    assert result.outcome == "skipped"
+    assert result.verification is None
+    assert "unparseable reply" in result.reason
+
+
+@pytest.mark.parametrize("facet,label", [
+    ("offering.api_model_id", "API model ID"),
+    ("offering.router_slug", "Router slug"),
+])
+def test_offering_identifiers_accept_exact_prose_with_layout_whitespace(facet, label) -> None:
+    claim = _offering_identifier_claim(facet, label)
+    source = f"Nimbus 3  uses\n{label}\tacme/model-v1:beta."
+    reader = verify.LLMExtractor(
+        lambda prompt: json.dumps([{
+            "subject": "Nimbus 3", "value": "acme/model-v1:beta",
+            "quoted_sentence": f"Nimbus 3 uses {label} acme/model-v1:beta.",
+        }]),
+        agent="another-agent", model="mistral-reader", model_family="mistral",
+    )
+
+    result = verify.verify(claim, _InlineRegions(source), [reader], today=TODAY)
+
+    assert result.outcome == "verified"
+    assert result.verification is not None
+    assert result.verification.target.value_hash == value_hash("acme/model-v1:beta")
+
+
 def test_an_effort_named_in_the_model_cell_needs_no_condition_sentence(store) -> None:
     claim = _claim(READER_CLAIMS["nimbus-caption-max"], store)
     claim = verify.Claim(**{**claim.__dict__, "value": 66.6})

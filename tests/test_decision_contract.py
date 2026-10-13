@@ -14,7 +14,9 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
 import sys
+import textwrap
 from datetime import date
 from pathlib import Path
 
@@ -30,6 +32,65 @@ from decision.registry import facet as registry_facet  # noqa: E402
 
 DOC = REPO_ROOT / "docs" / "decision-contract.md"
 SCHEMA = REPO_ROOT / "docs" / "decision-contract.schema.json"
+
+
+def test_offering_identifiers_serialize_in_pre_212_compatibility_mode() -> None:
+    """Run the Worker's serializer even when the test env has native exclude_if."""
+    script = textwrap.dedent("""
+        import json
+        import pydantic
+        from pydantic.fields import FieldInfo
+
+        native_field = pydantic.Field
+        def legacy_field(*args, **kwargs):
+            predicate = kwargs.pop("exclude_if", None)
+            if predicate is not None:
+                extra = dict(kwargs.pop("json_schema_extra", None) or {})
+                extra["exclude_if"] = predicate
+                kwargs["json_schema_extra"] = extra
+            return native_field(*args, **kwargs)
+
+        pydantic.Field = legacy_field
+        # Hide native support from the feature probe while preserving the
+        # actual slots that pydantic needs to copy FieldInfo instances.
+        class LegacySlots(tuple):
+            def __contains__(self, name):
+                return name != "exclude_if" and super().__contains__(name)
+        FieldInfo.__slots__ = LegacySlots(FieldInfo.__slots__)
+        from decision import contract as c
+        assert c.NATIVE_EXCLUDE_IF is False
+        field = c.OfferingRef.model_fields["api_model_id"]
+        assert getattr(field, "exclude_if", None) is None
+        assert callable(field.json_schema_extra["exclude_if"])
+
+        rows = [
+            c.OfferingRef(model="lab/alpha"),
+            c.OfferingRef(model="lab/alpha", api_model_id=None, router_slug=None),
+            c.OfferingRef(model="lab/alpha", api_model_id="Alpha.API-1",
+                          router_slug="router/alpha-v1"),
+        ]
+        print(json.dumps([
+            {"dump": row.model_dump(mode="json"),
+             "json": json.loads(row.model_dump_json()),
+             "nested": c.CandidateValues(offering=row).model_dump(mode="json")}
+            for row in rows
+        ]))
+    """)
+    result = subprocess.run(
+        [sys.executable, "-c", script], cwd=REPO_ROOT,
+        capture_output=True, text=True, check=False, timeout=30,
+    )
+    assert result.returncode == 0, result.stderr
+    absent = {"model": "lab/alpha", "provider": None, "region": None, "tier": None}
+    present = absent | {"api_model_id": "Alpha.API-1", "router_slug": "router/alpha-v1"}
+    expected = []
+    for offering in (absent, absent, present):
+        expected.append({
+            "dump": offering,
+            "json": offering,
+            "nested": {"offering": offering, "facts": [], "contributions": [], "evidence": []},
+        })
+    assert json.loads(result.stdout) == expected
 
 
 # ── the DPF example, the one every section below leans on ────────────────
@@ -162,7 +223,7 @@ def test_objective_terms_accept_evidence_qualifiers() -> None:
         measured_by="independent", effort="default"
     )
     assert '"qualifiers"' in c.canonical_json(spec)
-    assert c.CONTRACT_VERSION == "2.16"
+    assert c.CONTRACT_VERSION == "2.17"
 
 
 def test_relative_condition_names_the_model() -> None:
@@ -732,10 +793,10 @@ def test_named_comparison_keeps_complete_and_bounded_decision_versions() -> None
     from decision.bounded import project
 
     decision = c.Decision.model_validate(DECISION)
-    assert decision.model_dump(mode="json")["contract_version"] == "2.16"
+    assert decision.model_dump(mode="json")["contract_version"] == "2.17"
     bounded = project(decision, c.ResponseOptions(fields=["cost_per_task"]), not_applied=[])
     assert bounded["bounded_version"] == "1.2"
-    assert bounded["projects_contract"] == "2.16"
+    assert bounded["projects_contract"] == "2.17"
     assert "contract_version" not in bounded
     c.BoundedDecision.model_validate(bounded)
 

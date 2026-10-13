@@ -49,3 +49,14 @@ def test_a_catalogue_sized_sitemap_has_no_oversized_line() -> None:
     assert max(len(line) for line in xml.splitlines()) < _MAX_LINE
     root = ET.fromstring(xml)
     assert len(root.findall("sm:url", NS)) == 1_500
+
+
+def test_blog_uses_publication_dates_instead_of_the_build_date() -> None:
+    xml = sitemap("https://modelspec.dev", ["/", "/blog/", "/blog/fixture/r1/"],
+                  date(2026, 10, 13), lastmods={
+                      "/blog/": "2026-10-01", "/blog/fixture/r1/": "2026-09-26"})
+    rows = {row.findtext("sm:loc", namespaces=NS): row.findtext("sm:lastmod", namespaces=NS)
+            for row in ET.fromstring(xml).findall("sm:url", NS)}
+    assert rows == {"https://modelspec.dev/": "2026-10-13",
+                    "https://modelspec.dev/blog/": "2026-10-01",
+                    "https://modelspec.dev/blog/fixture/r1/": "2026-09-26"}

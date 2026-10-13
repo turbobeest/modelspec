@@ -52,6 +52,8 @@ SCHEMA_TYPES = frozenset(
         "BreadcrumbList",
         "ListItem",
         "WebApplication",
+        "Article",
+        "ImageObject",
     }
 )
 USER_AGENT = "modelspec-surface-lint (+https://github.com/turbobeest/modelspec)"
