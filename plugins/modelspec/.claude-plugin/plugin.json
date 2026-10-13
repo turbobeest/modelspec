@@ -1,6 +1,6 @@
 {
   "name": "modelspec",
-  "version": "0.1.1",
+  "version": "0.1.0",
   "description": "Report ModelSpec answers with their summaries, caveats and supported next steps.",
   "author": {
     "name": "Sparks & Sawdust LLC"

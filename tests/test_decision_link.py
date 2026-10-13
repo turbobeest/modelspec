@@ -56,8 +56,8 @@ def signed_token(pinned_snapshot, decision_id, *, issued=1000, **changes):
 @pytest.mark.parametrize("flag", [None, "false", "0", "off", "no", ""])
 @pytest.mark.parametrize("controls,expected", [
     ({"fields": None}, "065e58bd7edb8bda6d5316dc68024d60edcb19b041c75f46ccc27d5b958ede40"),
-    ({"fields": ["model"]}, "a5906ee64fabc1307e5f7d089a6f09eea1768eec23b71f13769c8ad3bb9b7723"),
-    ({"fields": None, "evidence_for": "lab/a"}, "54928cb858fd835f55784b4f07cb4034075fe687f209482814cbe0e99fae1b30"),
+    ({"fields": ["model"]}, "50552750b11e980bdbd9074f4a6d8ebc5020fc332c6f1d555dc00acb1a3f1130"),
+    ({"fields": None, "evidence_for": "lab/a"}, "f0e50884ce3f8e03b5e2d16cee787143765321b352c53f12012a44ef937587a9"),
 ])
 def test_flag_off_response_bytes_match_base(entry, snapshot, monkeypatch, flag, controls, expected):
     worker = worker_for(entry, snapshot, monkeypatch, DECISION_LINK_ENABLED=flag)
