@@ -17,6 +17,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from decision import snapshot as snap
 from decision.model import value_hash
+from decision.excluded import REMOVED_HOSTS
 from decision.registry import Registry
 from decision.registry import default as default_registry
 from decision.snapshot import (
@@ -125,9 +126,11 @@ def inputs(**overrides) -> SnapshotInputs:
     return SnapshotInputs(**base)
 
 
-def build(tmp_path: Path, name="snap.json.gz", *, key=None, premier=None, **overrides) -> Path:
+def build(tmp_path: Path, name="snap.json.gz", *, key=None, premier=None,
+          guard=None, **overrides) -> Path:
     selected = COMPLETENESS_REGISTRY if premier is not None else REGISTRY
-    built = build_snapshot(inputs(**overrides), registry=selected, premier=premier, as_of=AS_OF)
+    built = build_snapshot(inputs(**overrides), registry=selected, premier=premier,
+                           as_of=AS_OF, guard=guard)
     path = tmp_path / name
     built.write(path, key=key)
     return path
@@ -1061,6 +1064,83 @@ def test_collect_repo_reads_cards_offerings_sources_and_domains(tmp_path):
     index = load(index_path)
     assert index.fact("lab/alpha", "model.context_window").value == 128000
     assert [e.value for e in index.evidence("lab/alpha", "swe_bench_pro")] == [55.0]
+
+
+@pytest.mark.parametrize(("provider", "primary_name"), [
+    ("sambanova", "SambaNova Cloud"), ("typesafe", "TypeSafe AI"), ("zai", "Z.ai"),
+])
+def test_card_identifier_candidates_need_sourced_verification_before_admission(
+    tmp_path, provider, primary_name,
+):
+    import yaml
+
+    root = _mini_repo(tmp_path)
+    path = root / "models" / "lab" / "alpha.md"
+    front = yaml.safe_load(path.read_text().split("---")[1])
+    front["availability"] = {
+        "primary_provider": {"name": primary_name, "model_id_on_platform": "Alpha-20260901"},
+        "aws_bedrock": {"available": True, "model_id": "us.lab.alpha-v2:0"},
+        "openrouter": {"available": True, "model_id": "lab/alpha-router"},
+    }
+    path.write_text("---\n" + yaml.safe_dump(front) + "---\n")
+    offering_path = root / "offerings" / provider / "lab" / "alpha.yaml"
+    if provider != "sambanova":
+        (root / "offerings" / "sambanova" / "lab" / "alpha.yaml").unlink()
+        offering_path.parent.mkdir(parents=True)
+        offering_path.write_text(yaml.safe_dump([offering("lab/alpha", provider)]))
+    bedrock = root / "offerings" / "aws-bedrock" / "lab"
+    bedrock.mkdir(parents=True)
+    (bedrock / "alpha.yaml").write_text(yaml.safe_dump([offering("lab/alpha", "aws-bedrock")]))
+    collected = snap.collect_repo(root)
+    candidates = {row["provider"]: {f["facet"]: f for f in row["facts"]}
+                  for row in collected.offerings}
+    assert candidates[provider]["offering.api_model_id"]["value"] == "Alpha-20260901"
+    assert candidates["aws-bedrock"]["offering.api_model_id"]["value"] == "us.lab.alpha-v2:0"
+    assert candidates[provider]["offering.router_slug"]["value"] == "lab/alpha-router"
+    candidate = candidates[provider]["offering.api_model_id"]
+    assert candidate["sources"] == []
+    assert candidate.get("verification") is None
+    built = build_snapshot(collected, registry=REGISTRY, as_of=AS_OF)
+    index = snap.load_snapshot_bytes(built.to_bytes(None), key=None, public_keys={})
+    oid = f"{provider}/lab/alpha/global/standard"
+    assert index.fact(oid, "offering.api_model_id") == UNKNOWN
+    assert index.fact(oid, "offering.router_slug") == UNKNOWN
+
+    # A sourced offering fact takes precedence over the legacy card candidate.
+    rows = yaml.safe_load(offering_path.read_text())
+    rows[0]["facts"].append(fact("offering", oid, "offering.api_model_id", "Alpha-corrected"))
+    offering_path.write_text(yaml.safe_dump(rows))
+    collected = snap.collect_repo(root)
+    built = build_snapshot(collected, registry=REGISTRY, as_of=AS_OF)
+    index = snap.load_snapshot_bytes(built.to_bytes(None), key=None, public_keys={})
+    admitted = index.fact(oid, "offering.api_model_id")
+    assert admitted.value == "Alpha-corrected"
+    assert admitted.record_id == oid + "#offering.api_model_id"
+    assert admitted.sources == ("src-lab-docs",)
+
+
+@pytest.mark.parametrize("facet", ["offering.api_model_id", "offering.router_slug"])
+@pytest.mark.parametrize("rejected", [
+    "same_family", "stale_hash", "unsourced", "unresolved", "excluded",
+])
+def test_identifier_facts_use_existing_two_key_and_source_guards(tmp_path, facet, rejected):
+    oid = "sambanova/lab/alpha/global/standard"
+    record = fact("offering", oid, facet, "lab/exact-id:0")
+    sources = dict(SOURCES)
+    if rejected == "same_family":
+        record["verification"]["verifier"]["model_family"] = "family-a"
+    elif rejected == "stale_hash":
+        record["verification"]["target"]["value_hash"] = value_hash("lab/old-id:0")
+    elif rejected == "unsourced":
+        record["sources"] = []
+    elif rejected == "unresolved":
+        sources.pop("src-lab-docs")
+    else:
+        sources["src-lab-docs"] = f"https://{REMOVED_HOSTS[0]}/models/example"
+    index = load(build(tmp_path, models=[model("lab/alpha")],
+                       offerings=[offering("lab/alpha", facts=[record])],
+                       evidence=[], sources=sources, guard=_guard()))
+    assert index.fact(oid, facet) == UNKNOWN
 
 
 def test_repo_verification_log_quarantine_never_enters_the_snapshot(tmp_path):

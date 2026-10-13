@@ -476,7 +476,7 @@
           "offerings": 2
         }
       ],
-      "snapshot": "snap_1ffd3f3135cd15c8",
+      "snapshot": "snap_8e980466239818b1",
       "url": "https://modelspec.dev/api/coverage.json"
     }
   },
@@ -818,7 +818,7 @@
     "pipeline/worker_flags.py": "0f3c1ff0de81710417659b86e1ec92913bbcf54af6312720fdad659e6af03429",
     "api/worker/wrangler.jsonc": "019e868515221296f56a62223cb07ac594d5ab80cd68f824e34aa0450336cc80",
     "api/worker/tiers.json": "488d2781f0a55c756be2f4b674c3f3234e85964ce9b917a6b7b6fc63b3e3b317",
-    "docs/decision-contract.schema.json": "7af34d69515b5c19c75d15958055c31d810e959331ab1dcfc2c9b21c20cc36e6",
+    "docs/decision-contract.schema.json": "c17700f63f6f2fa04cc7398c947a4c99dd177bfbd447c04ab897ebc04a097c18",
     "pyproject.toml": "29365f33db7db0b2e2897b777960bccbb7a6ce1f4953c47ecef5432dda2e6187",
     "schemas/feedback-v1.schema.json": "551a54ba5a954b73c38d5c35d0a48c62cf1b89d0cd9543d96103e2320450638b"
   }

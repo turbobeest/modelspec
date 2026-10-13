@@ -663,7 +663,7 @@
           "title": "Pick"
         },
         "projects_contract": {
-          "const": "2.16",
+          "const": "2.17",
           "title": "Projects Contract",
           "type": "string"
         },
@@ -2046,8 +2046,8 @@
           "type": "array"
         },
         "contract_version": {
-          "const": "2.16",
-          "default": "2.16",
+          "const": "2.17",
+          "default": "2.17",
           "title": "Contract Version",
           "type": "string"
         },
@@ -4528,6 +4528,18 @@
     "OfferingRef": {
       "additionalProperties": false,
       "properties": {
+        "api_model_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Api Model Id"
+        },
         "model": {
           "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
           "title": "Model",
@@ -4556,6 +4568,18 @@
           ],
           "default": null,
           "title": "Region"
+        },
+        "router_slug": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Router Slug"
         },
         "tier": {
           "anyOf": [
@@ -6345,5 +6369,5 @@
   ],
   "description": "Generated from decision/contract.py by `python -m decision.schema`. Do not edit by hand. The prose is docs/decision-contract.md.",
   "title": "ModelSpec decision contract",
-  "x-contract-version": "2.16"
+  "x-contract-version": "2.17"
 }

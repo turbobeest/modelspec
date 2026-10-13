@@ -390,7 +390,7 @@ paths:
       responses:
         '200':
           description: 'A decision pinned to the snapshot that produced it: a complete Decision (contract_version
-            2.16), with optional top[].hardware_estimates and unknown_facets; or, when the request sends
+            2.17), with optional top[].hardware_estimates and unknown_facets; or, when the request sends
             fields or evidence_for, the separate bounded representation (representation: bounded, bounded_version
             1.3, no contract_version).'
           content:
@@ -2235,7 +2235,7 @@ components:
       properties:
         representation: {const: bounded, title: Representation, type: string}
         bounded_version: {const: '1.3', title: Bounded Version, type: string}
-        projects_contract: {const: '2.16', title: Projects Contract, type: string}
+        projects_contract: {const: '2.17', title: Projects Contract, type: string}
         decision_id: {title: Decision Id, type: string}
         snapshot: {title: Snapshot, type: string}
         signature_verified: {$ref: '#/components/schemas/DecisionResponse/properties/signature_verified'}
@@ -2765,7 +2765,7 @@ components:
           - {$ref: '#/components/schemas/DecisionBenchmarkExclusions'}
           - {type: 'null'}
           default: null
-        contract_version: {const: '2.16', default: '2.16', title: Contract Version, type: string}
+        contract_version: {const: '2.17', default: '2.17', title: Contract Version, type: string}
         decision_id: {pattern: '^dec_[0-9A-Za-z]{8,}$', title: Decision Id, type: string}
         snapshot: {pattern: '^snap_[A-Za-z0-9:._-]+$', title: Snapshot, type: string}
         signature_verified: {default: false, title: Signature Verified, type: boolean}
@@ -3755,6 +3755,18 @@ components:
           - {type: 'null'}
           default: null
           title: Tier
+        api_model_id:
+          anyOf:
+          - {type: string}
+          - {type: 'null'}
+          default: null
+          title: Api Model Id
+        router_slug:
+          anyOf:
+          - {type: string}
+          - {type: 'null'}
+          default: null
+          title: Router Slug
       required: [model]
       title: OfferingRef
       type: object
@@ -4467,7 +4479,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.16']
+          enum: ['2.17']
         endpoint:
           type: string
           enum: [decide]
@@ -4518,7 +4530,7 @@ components:
           enum: ['1.3']
         projects_contract:
           type: string
-          enum: ['2.16']
+          enum: ['2.17']
         endpoint:
           type: string
           enum: [decide]
@@ -4539,7 +4551,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.16']
+          enum: ['2.17']
         endpoint:
           type: string
           enum: [decide]
@@ -4566,7 +4578,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.16']
+          enum: ['2.17']
         endpoint:
           type: string
           enum: [decide]
@@ -4582,7 +4594,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.16']
+          enum: ['2.17']
         endpoint:
           type: string
           enum: [compare]
@@ -4609,7 +4621,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.16']
+          enum: ['2.17']
         endpoint:
           type: string
           enum: [compare]
@@ -4883,7 +4895,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.16']
+          enum: ['2.17']
         endpoint:
           type: string
           enum: [compare]

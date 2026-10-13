@@ -134,7 +134,7 @@ before validating those IDs, exactly as `decide` does. This form cannot use
 `--spec`, `--template` or `--to`. It sends exactly `{"models": [A, B, ...]}`
 to `POST /v1/compare-models`; no Spec or defaults are added. Its response has
 the independent `comparison_version: "1.0"`, with no `contract_version`.
-The shared Decision contract stays at 2.16 and the bounded projection at 1.2.
+The shared Decision contract stays at 2.17 and the bounded projection at 1.2.
 The CLI error contract stays 2.0. It returns models in request order with
 sourced facts, offering facts and benchmark evidence from the current signed snapshot.
 It computes no ranking or winner. Human output uses one column per model,
