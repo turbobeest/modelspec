@@ -1,12 +1,12 @@
 {
   "source_hashes": {
-    "mcp/src/server.ts": "ad604f06d44eee194004a5d3ae1240b1e977188e916d4d8bf49f050180591197",
+    "mcp/src/server.ts": "948aa0f71ade46d9dcc21e7786d8f19d3077c1bdfe392fd4330dfc0f6bebdd25",
     "mcp/src/vocabulary.ts": "85e01e14eea9754b82068af188b0fc7e8b7238594f4717231bf864b004a0e0ca",
     "mcp/test/fixtures/decide-budget.json": "a15c1e26bd51d8f1ab9bb15782194ede4d133dcc4b2bef4b9dafd431918e2b4d",
-    "docs/decision-contract.schema.json": "71ca9ac2516e24509a5b877182c5c69bb0152cbcc004e4a4d4da90bd556c5088",
-    "api/worker/openapi.yaml": "7e2ef0091a61753e7b1a8e0b665c664d131fc1461691cd26c1e9439940d68a53",
+    "docs/decision-contract.schema.json": "6f3652acfb25236835dc3da61525ef937985d3a9dbbd4fd50854973039d1ff90",
+    "api/worker/openapi.yaml": "21c00ed07cf57e98b0e68677d0754ae617f74f5957f9a9b45605c69a63ffc4d4",
     "docs/agents.md": "b6b3273038117d903338bf62145486382a1f0bd511a2a8920df50fd2743cb6ec",
-    "mcp/src/agent-copy.json": "2f43ebd25362ed625d2940c6dfffb5d6d9b3947ade7e6d97f183bfabcc6ff146"
+    "mcp/src/agent-copy.json": "408bf5a9093e7efea7945409d9f73ce90036bf8822d43d524f9f41398b6da056"
   },
   "tools": [
     {
@@ -1539,6 +1539,31 @@
           }
         },
         "$ref": "#/$defs/DecideRequest"
+      }
+    },
+    {
+      "name": "compare_models",
+      "description": "Which facts, offerings and evidence do 2 to 4 named models have? Returns snapshot facts, offerings, evidence and sources in caller order; unknown values stay null. Needs an API key (Authorization: Bearer). Costs 2 credits a call; a credit costs $0.0053–$0.02 depending on the plan or pack (https://modelspec.dev/pricing/). It doesn't choose a model and does not rank or choose a winner. Proxies POST https://api.modelspec.dev/v1/compare-models with {models: [...]} and returns at most 16 KB.",
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "models": {
+            "items": {
+              "pattern": "^[a-z0-9][a-z0-9._-]*\\/[a-z0-9][a-z0-9._-]*$",
+              "type": "string",
+              "maxLength": 128
+            },
+            "maxItems": 4,
+            "minItems": 2,
+            "type": "array",
+            "description": "2 to 4 distinct catalogue ids, such as openai/gpt-5-6, in caller order"
+          }
+        },
+        "required": [
+          "models"
+        ],
+        "type": "object",
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
       }
     },
     {

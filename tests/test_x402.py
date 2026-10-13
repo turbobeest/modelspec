@@ -1270,6 +1270,7 @@ def _unfunded_entry_key(*, enabled, history):
 
 @pytest.mark.parametrize("path,needed", [
     ("/v1/decide", 1), ("/v1/compare", 2),
+    ("/v1/compare-models", 2),
     ("/v1/rank", 1), ("/v1/policy-check", 5),
 ])
 @pytest.mark.parametrize("enabled", ["false", "true"])
@@ -1285,8 +1286,11 @@ def test_entry_unfunded_post_endpoints_follow_x402_switch(entry, path, needed, e
             {"model_id": "example/ok"},
         ],
     }
+    if endpoint == "compare-models":
+        expected = {"comparison_version": "1.0", "endpoint": endpoint,
+                    "models": [{"model": "example/ok"}]}
 
-    async def produce(*_args):
+    async def produce(*_args, **_kwargs):
         produced.append(endpoint)
         return 200, expected
 
@@ -1326,6 +1330,41 @@ def test_entry_unfunded_post_endpoints_follow_x402_switch(entry, path, needed, e
             assert body["determinations"] == {"included": False}
         else:
             assert produced == [endpoint]
+
+
+@pytest.mark.parametrize("enabled", ["false", "true"])
+@pytest.mark.parametrize("status,models,remaining", [
+    (200, [{"model": "example/a"}, {"model": "example/b"}], 0),
+    (200, [], 2),
+    (400, [{"model": "example/a"}, {"model": "example/b"}], 2),
+])
+def test_entry_named_comparison_charges_only_for_a_nonempty_success(
+        entry, enabled, status, models, remaining):
+    env, key = _unfunded_entry_key(enabled=enabled, history="never-funded")
+    holder = x402.holder_from_key(key)
+    asyncio.run(env.CREDITS.credit(holder, "pack-test", 2, "fixture-tx"))
+    worker = _decision_worker(entry, env)
+    expected = {"comparison_version": "1.0", "endpoint": "compare-models",
+                "models": models}
+    produced = []
+
+    async def produce(*_args, **kwargs):
+        assert kwargs["compare_models"] is True
+        produced.append("compare-models")
+        return status, expected
+
+    worker._decide = produce
+    headers = {"Authorization": f"Bearer {key}"}
+    response = asyncio.run(worker.fetch(_Req(
+        "/v1/compare-models", {"models": ["example/a", "example/b"]}, headers=headers,
+    )))
+    assert response.status == status
+    assert {name: response.json()[name] for name in expected} == expected
+    assert produced == ["compare-models"]
+    balance = asyncio.run(worker.fetch(_Req("/v1/credits", method="GET", headers=headers)))
+    assert balance.status == 200
+    assert balance.json()["available"] == remaining
+    assert asyncio.run(env.CREDITS.balance(holder)).reserved == 0
 
 
 @pytest.mark.parametrize("method", ["GET", "HEAD"])

@@ -146,8 +146,10 @@ def test_the_committed_spec_is_what_the_implementation_generates() -> None:
 
 @pytest.mark.parametrize("rail_on", [False, True])
 @pytest.mark.parametrize("human_gate_on", [False, True])
+@pytest.mark.parametrize("endpoint", ["decide", "compare-models"])
 def test_openapi_keeps_machine_credit_refusals_without_advertising_a_disabled_rail(
-        monkeypatch: pytest.MonkeyPatch, rail_on: bool, human_gate_on: bool) -> None:
+        monkeypatch: pytest.MonkeyPatch, rail_on: bool, human_gate_on: bool,
+        endpoint: str) -> None:
     variables = {**generator.production_vars(REPO_ROOT),
                  "HUMAN_GATE_ENABLED": str(human_gate_on).lower()}
     monkeypatch.setattr(generator, "production_vars", lambda root: variables)
@@ -158,13 +160,13 @@ def test_openapi_keeps_machine_credit_refusals_without_advertising_a_disabled_ra
     if not rail_on:
         assert re.search(r"\bx402\b", text, re.I) is None
         assert "402" not in spec["paths"]["/v1/rank"]["post"]["responses"]
-    responses = spec["paths"]["/v1/decide"]["post"]["responses"]
+    responses = spec["paths"][f"/v1/{endpoint}"]["post"]["responses"]
     assert ("402" in responses) is (rail_on or human_gate_on)
     if human_gate_on:
         schema = responses["402"]["content"]["application/json"]["schema"]
         for snapshot in (None, "snap_fixture"):
             _, body = decide.error_response("payment_required", "Remaining credits required.",
-                                             status=402, snapshot_id=snapshot)
+                                             status=402, snapshot_id=snapshot, endpoint=endpoint)
             assert generator._validate(body, schema, spec) == []
 
 
@@ -307,6 +309,7 @@ def test_the_request_vocabulary_is_the_engines(spec: dict[str, Any]) -> None:
         "/v1/rank": service.MAX_BODY_BYTES,
         "/v1/decide": decide.MAX_BODY_BYTES,
         "/v1/compare": decide.MAX_BODY_BYTES,
+        "/v1/compare-models": decide.MAX_BODY_BYTES,
         "/v1/policy-check": policy.MAX_BODY_BYTES,
         "/v1/signals": generator.signals.MAX_BODY_BYTES,
         "/v1/signals/discovered": generator.signals.MAX_BODY_BYTES,
@@ -416,6 +419,36 @@ def test_comparison_result_schema_rejects_missing_and_malformed_fields(
     assert generator._validate(missing, schema, spec)
     assert generator._validate(malformed, schema, spec)
     assert generator._validate(nonsense, schema, spec)
+
+
+def test_named_model_comparison_documents_bounded_keyed_facts(
+        spec: dict[str, Any]) -> None:
+    from jsonschema import Draft202012Validator
+
+    operation = spec["paths"]["/v1/compare-models"]["post"]
+    assert operation["security"] == [{"bearer": []}, {"apiKey": []}]
+    assert "409" in operation["responses"]
+    assert any(parameter["name"] == "X-ModelSpec-Snapshot"
+               for parameter in operation["parameters"])
+    content = operation["requestBody"]["content"]["application/json"]
+    request_schema = generator._resolve(content["schema"], spec)
+    validator = Draft202012Validator({**request_schema, "components": spec["components"]})
+    assert validator.is_valid({"models": ["lab/a", "lab/b"]})
+    for models in (["lab/a"], ["lab/a", "lab/b", "lab/c", "lab/d", "lab/e"],
+                   ["lab/a", "lab/a"], ["not-an-id", "lab/b"]):
+        assert not validator.is_valid({"models": models})
+    assert not validator.is_valid({"models": ["lab/a", "lab/b"], "spec": {}})
+    response = operation["responses"]["200"]
+    assert response["x-max-response-bytes"] <= 14_000
+    assert "caller order" in response["description"]
+    assert "rank" in response["description"]
+    for name in ("DecisionModelComparison", "ModelComparisonRequestRefused",
+                 "ModelComparisonSnapshotUnavailable", "ModelComparisonAccessRefused"):
+        schema = spec["components"]["schemas"][name]
+        assert "comparison_version" in schema["properties"]
+        assert "contract_version" not in schema["properties"]
+        version = generator._resolve(schema["properties"]["comparison_version"], spec)
+        assert version.get("const", version.get("enum")) in ("1.0", ["1.0"])
 
 
 def test_comparison_schema_accepts_every_facet_value_and_sparse_offering(

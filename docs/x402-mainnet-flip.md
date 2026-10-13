@@ -70,7 +70,7 @@ but nobody can pay. `test_production_x402_switches_are_consistent` in
 `X402_MAINNET`, the mainnet network and asset, and a receiving address.
 
 **Behaviour change when it goes live:** an unfunded keyed caller to POST
-`/v1/decide`, `/v1/compare`, `/v1/rank` or `/v1/policy-check` gets HTTP 402 with
+`/v1/decide`, `/v1/compare`, `/v1/compare-models`, `/v1/rank` or `/v1/policy-check` gets HTTP 402 with
 the four pack offers. Before the flip, those requests get the free-tier
 response with `credits.exhausted`. GET/HEAD `/v1/vocabulary` keeps its free-tier
 catalog fallback and limits in both flag states, including for keys whose

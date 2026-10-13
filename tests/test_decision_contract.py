@@ -728,6 +728,41 @@ def test_decision_round_trips() -> None:
     assert dumped["results"][0]["evidence"][0]["items"][0]["date"] == "2026-09-20"
 
 
+def test_named_comparison_keeps_complete_and_bounded_decision_versions() -> None:
+    from decision.bounded import project
+
+    decision = c.Decision.model_validate(DECISION)
+    assert decision.model_dump(mode="json")["contract_version"] == "2.16"
+    bounded = project(decision, c.ResponseOptions(fields=["cost_per_task"]), not_applied=[])
+    assert bounded["bounded_version"] == "1.2"
+    assert bounded["projects_contract"] == "2.16"
+    assert "contract_version" not in bounded
+    c.BoundedDecision.model_validate(bounded)
+
+
+def test_named_comparison_has_an_independent_contract_version() -> None:
+    raw = {
+        "comparison_version": "1.0",
+        "endpoint": "compare-models",
+        "snapshot": "snap_compare",
+        "models": [
+            {"model": mid, "lifecycle": "active", "facts": [], "offerings": [], "evidence": []}
+            for mid in ("lab/a", "lab/b")
+        ],
+        "sources": [],
+        "omitted": {"facts": 0, "offerings": 0, "evidence": 0},
+    }
+    comparison = c.ModelComparison.model_validate(raw)
+    assert comparison.model_dump(mode="json") == raw
+    properties = c.ModelComparison.model_json_schema(mode="serialization")["properties"]
+    assert properties["comparison_version"]["const"] == "1.0"
+    assert "contract_version" not in properties
+    with pytest.raises(ValueError, match="comparison_version"):
+        c.ModelComparison.model_validate(raw | {"comparison_version": "2.0"})
+    with pytest.raises(ValueError, match="contract_version"):
+        c.ModelComparison.model_validate(raw | {"contract_version": "2.16"})
+
+
 def test_no_feasible_names_what_to_relax() -> None:
     raw = DECISION | {"status": "no_feasible", "results": [], "relax": []}
     with pytest.raises(ValueError, match="relax"):
@@ -767,6 +802,20 @@ def test_ranks_are_one_to_n() -> None:
 
 
 def _samples() -> list:
+    comparison_fact = c.ComparisonFact(
+        facet="model.context_window", state="known", value=128000, unit="tokens",
+        record_id="r_context", source_ids=["context-source"])
+    comparison_offering = c.ComparisonOffering(
+        offering=c.OfferingRef(model="lab/a", provider="provider-a"), facts=[comparison_fact])
+    comparison_evidence = c.ComparisonEvidence(
+        benchmark="gpqa_diamond", value=85.0, unit="percent", record_id="r_gpqa",
+        source_ids=["context-source"], version="1.0", effort="default", harness="eval@1.0",
+        measured_by="independent", date="2026-10-13")
+    comparison_model = c.ComparisonModel(
+        model="lab/a", lifecycle="active", facts=[comparison_fact],
+        offerings=[comparison_offering], evidence=[comparison_evidence])
+    comparison_source = c.ComparisonSource(id="context-source", url="https://example.com/context")
+    comparison_omitted = c.ComparisonOmitted(facts=0, offerings=0, evidence=0)
     plan_price = c.PlanPrice(amount=200, currency="USD", period="monthly")
     plan_coverage = c.PlanCoverage(
         family="anthropic/claude-opus", quote="Opus and Sonnet models",
@@ -808,6 +857,15 @@ def _samples() -> list:
     bounded = c.BoundedDecision.model_validate(project(decision, options, not_applied=[]))
     bounded.answer = separated_answer
     return [
+        c.ModelComparisonRequest(models=["lab/a", "lab/b"]),
+        comparison_fact,
+        comparison_offering,
+        comparison_evidence,
+        comparison_model,
+        comparison_source,
+        comparison_omitted,
+        c.ModelComparison(snapshot="snap_compare", models=[comparison_model],
+                          sources=[comparison_source], omitted=comparison_omitted),
         options,
         c.DecideRequest.model_validate({**spec.model_dump(mode="json", by_alias=True), "fields": ["cost_per_task"]}),
         bounded,

@@ -42,17 +42,18 @@ Successful calls pass through the origin. Null on a card means not researched.
 | `list_use_cases` | `GET https://modelspec.dev/api/rank/profiles.json` |
 | `policy_check` | `POST https://api.modelspec.dev/v1/policy-check` |
 | `decide` | `POST https://api.modelspec.dev/v1/decide` |
+| `compare_models` | `POST https://api.modelspec.dev/v1/compare-models` |
 | `vocab` | `GET https://modelspec.dev/api/decision/vocabulary.json` |
 | `feedback` | `POST https://api.modelspec.dev/v1/feedback` (no key; `client` is always `mcp`; the caller's address is forwarded only for the rate limit) |
 
-`rank`, `policy_check`, and `decide` use the `RANK` service binding because a
+`rank`, `policy_check`, `decide`, and `compare_models` use the `RANK` service binding because a
 same-zone Worker fetch to the public API hostname reaches the zone origin and
-returns 522. All three forward the client's `Authorization: Bearer <key>` header.
+returns 522. All four forward the client's `Authorization: Bearer <key>` header.
 The API validates presented keys and returns its auth/payment errors unchanged.
 
 `MCP_REQUIRE_API_KEY` defaults to requiring a key, including when unset. Only
 explicit `"false"` permits anonymous decision calls. With the default, `rank`,
-`policy_check` and `decide` return a 401 `missing_api_key` tool error before
+`policy_check`, `decide`, and `compare_models` return a 401 `missing_api_key` tool error before
 contacting the API when a Bearer credential is absent or malformed. This guard
 checks credentials before proxying decision calls. Machine data access,
 including `vocab`, `model_info` and `list_use_cases`, needs a ModelSpec key.
@@ -66,6 +67,14 @@ API and MCP contracts cannot drift. Read `vocab` first for valid facet ids.
 Use `where` for Musts that exclude and `optimize.weights` for Prefers that
 rank without excluding. Unknown capability values appear in `may_qualify`.
 Pin `snapshot` to reproduce a decision.
+
+`compare_models` accepts only `{models: ["lab/a", "lab/b"]}`, with 2 to 4
+distinct catalogue ids. It returns the current snapshot's sourced facts,
+offerings and evidence in caller order. It does not rank or choose a winner.
+Unknown values stay null, and `omitted` counts removed records. The entire MCP
+text stays within 16 KB. An oversized origin response becomes a compact
+`response_too_large` tool error and returns no comparison data. This named
+model comparison does not change the snapshot comparison at `/v1/compare`.
 
 ## Client config
 

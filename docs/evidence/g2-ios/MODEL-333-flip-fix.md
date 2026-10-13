@@ -475,3 +475,110 @@ The SHA, direct exit code, counts and duration are reported in the PR comment
 without changing tracked files after the gate. Push is to the existing PR
 branch without force; PR #694 stays draft. No deployment, production switch
 activation, real wallet/facilitator call or paid-provider call is performed.
+
+
+## Additional main integration: #714 and named-comparison billing
+
+The first resolved merge was committed and pushed as
+`c324be0a93cb246cb9ec3be8b097aa345eff2515`, tree
+`d4fdc6123ea02a2262111edbe5f06f127b0b90db`. Its FULL suite exited 0:
+`10044 passed, 22 skipped, 11 warnings in 1643.18s (0:27:23)`.
+`merge-full-exit.log` contains `0`. Its execution comment is
+[issuecomment-6151410935](https://github.com/turbobeest/modelspec/pull/694#issuecomment-6151410935).
+
+The post-push check found that main had advanced from #689 to
+`434dd2b0313b941bbe246bfddddf8272a7d89c4a` (#714, MODEL-364 named model
+comparison). A read-only `git merge-tree --write-tree HEAD origin/main`
+confirmed two new generated-file conflicts. `git merge --no-commit origin/main`
+then exited 1 with those same conflicts:
+
+| Conflict | Resolution |
+|---|---|
+| `api/worker/openapi.yaml` | Regenerate from the combined generator after agent-copy generation. Preserve this PR's required `terms_url` and `width=160`, plus main's named-comparison schemas and alias sharing. Generated size is 226,803 bytes, below the existing cap. |
+| `qa/fixtures/mcp-tools.json` | Regenerate with `python -m qa.contracts` after OpenAPI. Preserve the upstream named-comparison tool and refresh all source hashes from the actual merged artifacts. |
+
+The CLI bundle auto-merged but was regenerated again with
+`pipeline.agent_copy write`; no hashes were hand-edited. All nine CLI source
+hashes and seven QA fixture hashes match. Upstream `entry.py`, `access.py` and
+`decide_service.py` remain byte-identical to `434dd2b0`. All config/legal
+invariants from the preceding section still hold against this newer main.
+
+### Red/green named-comparison debit regression
+
+Independent review reproduced an integration defect: a successful
+`/v1/compare-models` response uses a nonempty `models` list. The existing
+`is_billable_success` checked only `result` and `results`, so a funded response
+released its two-credit reservation instead of charging. Both x402 flag states
+returned HTTP 200 with a balance of 2 before and after. The upstream success
+test used an exempt DPF key and did not exercise a funded debit.
+
+Added `test_entry_named_comparison_charges_only_for_a_nonempty_success` in
+`tests/test_x402.py`, six cases covering both flags and successful, empty and
+refused responses through the real Worker route. It checks the real response
+shape, calls `GET /v1/credits` to observe the debit and checks reservation
+cleanup. Red command:
+
+```bash
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q --tb=short tests/test_x402.py -k 'named_comparison_charges_only'
+```
+
+Direct exit 1: `2 failed, 4 passed, 102 deselected in 1.00s`. Both successful
+flag cases failed with `assert 2 == 0` at the observed remaining balance.
+Empty/refused responses correctly retained two credits before the fix.
+
+The narrow fix in `api/worker/src/x402.py` recognizes `models` only when
+`endpoint == "compare-models"`. Existing HTTP status/error checks and
+`result`/`results` behavior remain. The exhausted POST matrix now includes the
+new endpoint with its actual `models` response shape and two-credit weight;
+the runbook also includes the new endpoint. Green command:
+
+```bash
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q --tb=short tests/test_x402.py -k 'named_comparison_charges_only or unfunded_post_endpoints_follow_x402_switch or unfunded_catalog_reads_keep_free_limits or catalog_finishes_prepaid_block_before_free_fallback'
+```
+
+Direct exit 0: `38 passed, 70 deselected in 1.28s`. Named comparisons debit
+`2 -> 0` for nonempty successful responses and retain two credits on empty or
+refused responses under either flag. The catalog fallback and both credit
+histories remain covered. No facilitator/network call is made.
+
+### Validation before the final full rerun
+
+The same three artifact generators and OpenAPI `--check` listed above each
+exited 0. Expanded focused command:
+
+```bash
+export PATH="/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH"
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_x402.py tests/test_legal.py tests/test_decide_worker.py tests/test_pricing_page.py tests/test_api_docs.py tests/test_agent_copy.py tests/test_agent_guide.py tests/test_agent_harness.py tests/test_mcp_schema_compaction.py tests/test_x402_mainnet_probe.py tests/test_compare_models_worker.py tests/test_cli_compare_models.py tests/test_api_access.py
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.build --out dist
+```
+
+Both exit 0. Focused output: `644 passed, 3 skipped in 277.30s (0:04:37)`.
+Independent review also proved the funded debit, generated hashes, required
+terms link, staging bytes and legal bytes. No unresolved index entries remain.
+A fresh fetch before the final commit confirmed main still at `434dd2b0`.
+
+The final FULL suite is repeated after this evidence and all integration
+changes are committed, using the exact command and immediate exit-code capture
+from the preceding section. Output and captured status go to ignored
+`merge-714-full.log` and `merge-714-full-exit.log`. The final tested/pushed SHA,
+counts, direct exit and duration will be recorded in a second PR execution
+comment, with no tracked-file edit after a successful gate.
+
+### Separately observed existing API-schema mismatch
+
+Independent review observed that versioned 402 response envelopes on the
+Decision/Comparison routes do not satisfy the shared OpenAPI `PaymentRequired`
+root requirement for `schema_version`; named comparison uses
+`comparison_version`. The generator's required terms link is present. A
+read-only validation of a named-comparison payment body reported:
+
+```text
+['$.schema_version: required by the spec, absent from the response']
+```
+
+This inherited schema issue is recorded for a separate contract correction
+before the later live flip. The production rail remains disabled and the
+committed off-state OpenAPI does not advertise x402 offers. This integration
+changes the proven debit defect; it does not redesign those existing response
+schemas or alter any approved legal wording/date. No live payment, deployment
+or production switch activation is performed. PR #694 remains draft.

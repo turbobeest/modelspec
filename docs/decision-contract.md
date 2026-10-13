@@ -1633,9 +1633,71 @@ many such URLs. Source IDs are never synthesised. An excluded source produces
 an explicit source-policy reason without retaining the excluded URL.
 The stored `model.fits_hardware` facet still controls reach.
 
-The bounded representation continues at `bounded_version: "1.1"` and now
+The bounded representation continues at `bounded_version: "1.2"` and
 names `projects_contract: "2.16"`. It does not carry `top`; fetch the complete
 answer without `fields` to inspect these facts and their provenance.
+
+## Comparing named models (MODEL-364)
+
+`POST /v1/compare-models` presents sourced snapshot facts for named models.
+It accepts a `ModelComparisonRequest` with exactly one field, `models`, a list
+of two to four distinct `lab/model` IDs. It accepts no Spec. An unknown ID
+returns `400 invalid_request` with an issue at `models[n]` whose reason names
+the active lineup. Duplicate IDs, malformed IDs, extra fields, and lists
+outside the size range also return `400 invalid_request`.
+An optional `X-ModelSpec-Snapshot` header pins the expected snapshot.
+A mismatch returns `409 snapshot_changed` before the request is parsed.
+
+The endpoint always requires an API key, including when `ACCESS_ENFORCED` is
+off. A browser visit token does not admit this endpoint. Existing access
+quotas and billing apply at the `decide.full` credit weight. The CLI's named
+comparison and MCP `compare_models` tool call this endpoint.
+
+The named comparison has its own contract, version **1.0**, identified by
+`comparison_version` on success and refusal bodies. It has no
+`contract_version`. Its fields follow the same MODEL-59 versioning rule:
+widening a comparison field bumps the comparison's major version.
+No Decision field changes range, so the shared Decision stays at 2.16 and
+the bounded projection stays at 1.2 with `projects_contract: "2.16"`.
+
+The success response is a `ModelComparison` with these fields:
+
+| Field | Meaning |
+|---|---|
+| `comparison_version` | `"1.0"`, the named comparison's own contract version. |
+| `endpoint` | `"compare-models"`. |
+| `snapshot` | The verified snapshot ID. |
+| `models` | One row per requested model, in caller order. |
+| `sources` | Registered sources, each with `id` and `url`. |
+| `omitted` | Counts of whole `facts`, `offerings`, and `evidence` items removed to fit the response budget. |
+
+A model row has `model`, `lifecycle`, `facts`, `offerings`, and `evidence`.
+`lifecycle` is the snapshot's `active`, `deprecated`, or `retired` state. A fact has
+`facet`, `state`, `value`, and `unit`, plus `record_id` and `source_ids` when
+known provenance exists. `state` is `known`, `unknown`, `not_disclosed`, or
+`requires_contract`.
+Unknown values remain null. A known value can be a boolean, number, string,
+date, or list of strings. `source_ids` resolve through the response's
+`sources` list.
+
+An offering has `offering`, the existing `OfferingRef`, and its `facts`.
+Evidence has `benchmark`, `value`, `unit`, `record_id`, and `source_ids`.
+Available measurement qualifiers are `version`, `effort`, `harness`,
+`measured_by`, `date`, `subcategory`, `interval`, and `n`. `unit` may be null
+when the source does not state it. Different tasks, harnesses, and efforts
+remain visible. `interval` retains the measurement bounds and `n` the sample count.
+
+The compact UTF-8 success body is at most 14,000 bytes. The MCP origin
+envelope remains within 16,384 bytes. Every requested model row stays present
+when the response removes whole items to fit. Retained values keep their
+provenance. A known value never becomes null because of the budget.
+
+There is no rank, score, or winner. Different classes can appear side by side
+without a number ordering one class above another. A class fact describes the
+model. Benchmark evidence does not establish a quality ranking across classes.
+The existing `POST /v1/compare` still compares one Spec across two signed
+snapshots. The [design note](design/compare-models.md) explains the endpoint
+choice and the CLI release work.
 
 ## The published vocabulary (MODEL-153)
 
@@ -1786,6 +1848,13 @@ Changes to a spec's inputs follow the same rule in reverse: refusing a spec
 that used to be accepted is a major change; accepting more is not.
 
 ## Change log
+
+- **Comparison 1.0, MODEL-364:** Adds keyed named-model comparison through
+  `POST /v1/compare-models`, with caller order, sourced facts, explicit unknowns,
+  offerings, and benchmark evidence. The response uses its own
+  `comparison_version: "1.0"`. Existing Decision fields retain their ranges
+  and contract version 2.16. Bounded decisions keep version 1.2 and project
+  contract 2.16. The existing snapshot comparison remains available.
 
 - **2.16, MODEL-348:** Full answers conditionally show known, sourced architecture,
   total and active parameter facts, and expert facts when registered. Weight

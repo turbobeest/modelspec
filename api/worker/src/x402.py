@@ -368,12 +368,13 @@ def _error(envelope: dict[str, Any], status: int, code: str, message: str,
 
 
 def is_billable_success(status: int, body: dict[str, Any]) -> bool:
-    """Credits move only for an HTTP 200 with a non-empty rank or decision answer."""
+    """Credits move only for an HTTP 200 with a non-empty billable answer."""
     if status != HTTP_OK:
         return False
     if body.get("error"):
         return False
-    for name in ("result", "results"):
+    names = ("models",) if body.get("endpoint") == "compare-models" else ("result", "results")
+    for name in names:
         result = body.get(name)
         if isinstance(result, list):
             return len(result) > 0

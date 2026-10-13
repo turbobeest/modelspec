@@ -444,7 +444,7 @@ def test_published_auth_copy_requires_keys_for_machine_data(document: str) -> No
         "llms": ar.modelspec_landing_markdown([], [], BUILD),
         "skill": ar.skill_markdown(),
     }[document]
-    assert ("MCP data tools rank, policy_check, decide, vocab, model_info and "
+    assert ("MCP data tools rank, policy_check, decide, compare_models, vocab, model_info and "
             "list_use_cases require `Authorization: Bearer <key>`.") in text
     assert "Feedback stays keyless; it carries no model data." in text
     assert "Hosted API data tools need an API key" in text
@@ -455,11 +455,11 @@ def test_published_auth_copy_requires_keys_for_machine_data(document: str) -> No
     if document == "auth":
         data_tools = text.split("### Hosted API data tools (key required)")[1].split("### MCP")[0]
         assert "MCP" not in data_tools
-        assert "has 7 tools" in text
+        assert "has 8 tools" in text
 
 
 def test_documented_mcp_tools_match_registered_tools() -> None:
     source = (ROOT / "mcp/src/server.ts").read_text()
     registered = re.findall(r'server\.registerTool\(\s*"([^"]+)"', source)
     assert set(ar.MCP_TOOLS) == set(registered)
-    assert len(ar.MCP_TOOLS) == len(registered) == 7
+    assert len(ar.MCP_TOOLS) == len(registered) == 8

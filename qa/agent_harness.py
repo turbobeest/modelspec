@@ -60,6 +60,7 @@ def agent_tools(tools: list[dict], interface: str) -> list[dict]:
         return tools
     routes = {
         "decide": "POST /v1/decide", "rank": "POST /v1/rank",
+        "compare_models": "POST /v1/compare-models",
         "policy_check": "POST /v1/policy-check", "feedback": "POST /v1/feedback",
         "vocab": "GET /v1/vocabulary", "model_info": "GET /api/models/<model_id>.json",
         "list_use_cases": "GET /api/rank/profiles.json",

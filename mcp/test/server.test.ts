@@ -110,7 +110,7 @@ describe("modelspec MCP worker", () => {
     vi.unstubAllGlobals();
   });
 
-  it("tools/list returns all seven tools with object input schemas", async () => {
+  it("tools/list returns all eight tools with object input schemas", async () => {
     const listed = await rpc("tools/list", {});
     const result = listed.payload.result as {
       tools: Array<{ name: string; inputSchema: { type?: string } }>;
@@ -118,7 +118,7 @@ describe("modelspec MCP worker", () => {
     expect(result.tools.map((tool) => tool.name).sort()).toEqual(
       [...TOOL_NAMES].sort(),
     );
-    expect(result.tools).toHaveLength(7);
+    expect(result.tools).toHaveLength(8);
     expect(result.tools).toMatchSnapshot();
     for (const tool of result.tools) {
       expect(tool.inputSchema).toBeTruthy();
