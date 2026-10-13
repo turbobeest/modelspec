@@ -50,7 +50,12 @@ def trees(tmp_path_factory: pytest.TempPathFactory) -> dict[str, Path]:
     (web / "assets").mkdir(parents=True)
     (web / "decide.html").write_text(
         '<!doctype html><title>Decide</title><body><div id="root"></div></body>', encoding="utf-8")
+    (web / "decision.html").write_text(
+        '<!doctype html><meta name="robots" content="noindex, nofollow, noarchive">'
+        '<meta name="referrer" content="no-referrer"><title>Decision summary</title>'
+        '<div id="root"></div><script type="module" src="/assets/decision-x.js"></script>', encoding="utf-8")
     (web / "assets" / "decide-x.js").write_text("", encoding="utf-8")
+    (web / "assets" / "decision-x.js").write_text("", encoding="utf-8")
     (web / "assets" / "main-x.js").write_text("", encoding="utf-8")
     assert live.main(["build", "--src", str(out / "dist"), "--web", str(web),
                       "--out", str(out / "dist-live")]) == 0
@@ -259,7 +264,7 @@ def test_full_build_still_contains_every_source_page_before_composition(trees):
     assert (bg / "_redirects").read_text(encoding="utf-8") == builder.BENCHGRAPH_REDIRECTS
     assert "in preparation" not in (ms / "index.html").read_text(encoding="utf-8")
     headers = (ms / "_headers").read_text(encoding="utf-8")
-    assert "X-Robots-Tag" not in headers
+    assert "X-Robots-Tag" not in headers.split("/d/*\n", 1)[0]
     assert '</llms.txt>; rel="describedby"' in headers
     assert 'Content-Type: application/linkset+json' in headers
     assert "Sitemap:" in (ms / "robots.txt").read_text(encoding="utf-8")
@@ -375,6 +380,33 @@ def test_the_live_tree_is_an_allowlist(trees):
     assert '</llms.txt>; rel="describedby"' in headers
     assert 'Content-Type: application/linkset+json' in headers
     assert "/api/*\n  Access-Control-Allow-Origin: *\n" in headers
+
+
+def test_decision_link_shell_is_private_and_not_discoverable(trees):
+    ms = trees["live"] / "modelspec"
+    shell = ms / "d" / "index.html"
+    assert shell.is_file()
+    html = shell.read_text(encoding="utf-8")
+    assert '<meta name="referrer" content="no-referrer">' in html
+    assert 'content="noindex, nofollow, noarchive"' in html
+    assert '<div id="root"></div>' in html
+    assert "token=" not in html
+    assert "decision-x.js" in html
+    assert (ms / "assets" / "decision-x.js").is_file()
+    assert "/d/*  /d/index.html  200\n" in (ms / "_redirects").read_text(encoding="utf-8")
+    headers = (ms / "_headers").read_text(encoding="utf-8")
+    private = headers.split("/d/*\n", 1)[1].split("\n/", 1)[0]
+    assert "Cache-Control: no-store" in private
+    assert "Referrer-Policy: no-referrer" in private
+    assert "/d/" not in (ms / "sitemap.xml").read_text(encoding="utf-8")
+    policy = next(line for line in headers.splitlines() if "Content-Security-Policy:" in line)
+    assert "https://challenges.cloudflare.com" in policy
+    assert "https://api.modelspec.dev" in policy
+
+
+def test_decision_link_header_rule_prevents_indexing():
+    private = live.HEADERS.split("/d/*\n", 1)[1].split("\n/", 1)[0]
+    assert "X-Robots-Tag: noindex, nofollow, noarchive" in private
 
 
 def test_dead_links_names_a_discovery_file_the_tree_lacks(tmp_path):

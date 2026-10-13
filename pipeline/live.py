@@ -86,7 +86,7 @@ RETIRED = (
 )
 #: Paths a clean agent guessed for the agent guide, each a 404 until MODEL-316.
 GUIDE_ALIASES = ("/agents", "/docs", "/agent-guide")
-REDIRECTS = "/landing/  /  301\n" + "".join(
+REDIRECTS = "/d/*  /d/index.html  200\n/landing/  /  301\n" + "".join(
     f"{rule}{suffix}  /decide/  301\n"
     for rule in LEGACY
     for suffix in (("",) if rule.endswith("*") else ("", "/"))
@@ -123,6 +123,11 @@ HEADERS = (
     "  Access-Control-Allow-Origin: *\n"
     "/assets/*\n"
     "  Cache-Control: public, max-age=31536000, immutable\n"
+    "/d/*\n"
+    "  X-Robots-Tag: noindex, nofollow, noarchive\n"
+    "  Cache-Control: no-store\n"
+    "  ! Referrer-Policy\n"
+    "  Referrer-Policy: no-referrer\n"
 )
 
 _LINK = re.compile(re.escape(BASE) + r"(/[^\s\"'<>)`\]]*)?")
@@ -245,6 +250,8 @@ def build(src: Path, web: Path, out: Path) -> None:
         raise ValueError("web/dist/decide.html must hold exactly one empty <div id=\"root\">")
     (tree / "decide" / "index.html").write_text(
         decide.replace('<div id="root"></div>', f'<div id="root">{decide_capsule()}</div>'), encoding="utf-8")
+    (tree / "d").mkdir()
+    shutil.copy2(web / "decision.html", tree / "d" / "index.html")
     (tree / "404.html").write_text(not_found(), encoding="utf-8")
     shutil.copytree(web / "assets", tree / "assets",
                     ignore=shutil.ignore_patterns("main-*"))
