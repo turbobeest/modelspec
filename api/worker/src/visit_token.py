@@ -118,11 +118,13 @@ async def admit(request, env, origins, scope, payload=None):
         code, original = check(str(request.headers.get(HEADER) or ""), *bound) if bound else ("visit_token_invalid", None)
         if code:
             return 401, code, "Refresh human verification for this visit.", {}
-        limits(env, scope)
+        limits(env, "decide" if scope == "decision-link" else scope)
         binding = env.HUMAN_GATE
         stub = binding.get(binding.idFromName(bound[0]))
         if scope == "vocabulary":
             meter = human_gate.as_dict(await stub.take_visit_vocabulary())
+        elif scope == "decision-link":
+            meter = human_gate.as_dict(await stub.take_visit())
         else:
             meter = human_gate.as_dict(await stub.take_visit(human_gate.intent_for(request), json.dumps(payload)))
         headers = {human_gate.REMAINING_HEADER: str(meter["remaining"])}

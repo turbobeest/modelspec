@@ -427,6 +427,50 @@ def test_transient_503_is_retried_and_recovers(store: CopyStore) -> None:
     assert set(statuses(report).values()) == {RegionStatus.UNCHANGED}
 
 
+@pytest.mark.parametrize("status", [429, 503])
+def test_retry_exhaustion_retains_the_last_http_status(status: int) -> None:
+    server = Server(*(httpx.Response(status) for _ in range(3)))
+
+    result = fetcher_for(server, min_host_interval=0).fetch(URL)
+
+    assert len(server.requests) == 3
+    assert (result.outcome, result.status, result.error) == (
+        "unreachable", status, f"HTTP {status}"
+    )
+
+
+@pytest.mark.parametrize(
+    ("error", "prefix"),
+    [(httpx.ReadTimeout("slow"), "timeout:"), (httpx.ConnectError("offline"), "transport error:")],
+)
+def test_a_final_transport_failure_clears_an_earlier_http_status(
+    error: httpx.TransportError, prefix: str
+) -> None:
+    server = Server(httpx.Response(503), error)
+
+    result = fetcher_for(server, retries=1, min_host_interval=0).fetch(URL)
+
+    assert len(server.requests) == 2
+    assert (result.outcome, result.status) == ("unreachable", None)
+    assert (result.error or "").startswith(prefix)
+
+
+@pytest.mark.parametrize("status", [200, 403])
+def test_recheck_retains_the_fetch_result_for_each_source(store: CopyStore, status: int) -> None:
+    page = fixture("pricing_v1.html") if status == 200 else b""
+    server = Server(httpx.Response(status, headers={"content-type": "text/html"}, content=page))
+
+    report = run(server, store)
+
+    result = report.fetches["example-lab-pricing"]
+    assert (result.outcome, result.status, result.error, result.body) == (
+        "ok" if status == 200 else "unreachable",
+        status,
+        None if status == 200 else "HTTP 403",
+        page,
+    )
+
+
 def test_404_is_not_retried(store: CopyStore) -> None:
     server = Server(httpx.Response(404))
     run(server, store)

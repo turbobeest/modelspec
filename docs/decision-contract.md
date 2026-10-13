@@ -1138,6 +1138,14 @@ elimination or a missing fact. Use a complete response to inspect those
 sections. `explain` still controls which details the engine computes; selecting
 `contributions` with `explain: none` returns an empty list.
 
+`decision_url` is an optional HTTPS link to a read-only human summary page
+(MODEL-353, experimental). The Worker issues it only when
+`DECISION_LINK_ENABLED` is on, human-view configuration is ready, the inputs
+are shareable, and the link fits the existing byte budget. It is absent with
+the flag off and from complete decisions. Visibility and storage await Jamie's
+approval; see [the draft design](design/decision-link.md). Adding this optional
+field widens no existing field, so bounded 1.2 and complete 2.16 do not change.
+
 `next_move` is optional and additive in bounded 1.2. It is present on
 `no_feasible`, `partial`, and an `answered` tie or null answer, and absent on
 an answered separated pick. It has `kind` (`ask_user`, `decide_by_testing`,

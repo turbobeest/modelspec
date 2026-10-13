@@ -61,7 +61,7 @@ export async function visitFetch(url: string, options: RequestInit): Promise<Res
     return fetch(url, { ...options, headers, signal });
   };
   // Static vocabulary has a deadline but never receives a visit credential.
-  if (!/\/v1\/(?:decide|vocabulary)\/?(?:\?|$)/.test(url)) return send(options.headers);
+  if (!/\/v1\/(?:decide|vocabulary|decision-link)\/?(?:\?|$)/.test(url)) return send(options.headers);
   for (let attempt = 0; attempt < 2; attempt++) {
     const gated = await active();
     if (gated) await prepareVisit();
