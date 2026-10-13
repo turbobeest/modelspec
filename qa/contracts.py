@@ -12,7 +12,8 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
-TOOL_NAMES = ("rank", "model_info", "list_use_cases", "policy_check", "decide", "vocab", "feedback")
+TOOL_NAMES = ("rank", "model_info", "list_use_cases", "policy_check", "decide",
+              "compare_models", "vocab", "feedback")
 SOURCE_PATHS = (
     "mcp/src/server.ts",
     "mcp/src/vocabulary.ts",
@@ -131,7 +132,7 @@ def compact_decide_schema(schema: dict) -> dict:
 
 
 def capture_tools() -> dict:
-    """Mirror the seven registered inputs; pin the source hashes to detect drift."""
+    """Mirror the registered inputs; pin the source hashes to detect drift."""
     source = (ROOT / "mcp/src/server.ts").read_text()
     constants = {}
     for name in ("NULL_RULE", "SPEC_GUIDANCE"):
@@ -203,10 +204,21 @@ def capture_tools() -> dict:
     for name in ("explain", "limit", "fields"):
         decide["$defs"]["DecideRequest"]["properties"][name]["default"] = defaults[name]
     decide = compact_decide_schema(decide)
+    comparison = copy.deepcopy(schemas["DecisionModelComparisonRequest"])
+    _compact_in_place(comparison)
+    comparison.pop("description", None)
+    comparison["$schema"] = "https://json-schema.org/draft/2020-12/schema"
+    models = comparison["properties"]["models"]
+    # Zod's distinctness refinement is not included in its advertised JSON schema.
+    models.pop("uniqueItems", None)
+    models["description"] = "2 to 4 distinct catalogue ids, such as openai/gpt-5-6, in caller order"
+    models["items"]["maxLength"] = 128
+    models["items"]["pattern"] = models["items"]["pattern"].replace("/", r"\/")
     inputs = {
         "rank": rank,
         "policy_check": policy,
         "decide": decide,
+        "compare_models": comparison,
         "feedback": feedback,
         "model_info": {
             "type": "object",

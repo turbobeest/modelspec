@@ -52,10 +52,10 @@ MCP_NAME = "dev.modelspec/catalogue"
 MCP_NAME_PATTERN = r"^[a-zA-Z0-9.-]+/[a-zA-Z0-9._-]+$"
 MCP_DESCRIPTION_MAX = 100
 MCP_TOOLS = (
-    "decide", "rank", "model_info", "list_use_cases", "policy_check", "vocab", "feedback"
+    "decide", "rank", "model_info", "list_use_cases", "policy_check", "compare_models", "vocab", "feedback"
 )
 MCP_AUTH_DESCRIPTION = (
-    "MCP data tools rank, policy_check, decide, vocab, model_info and list_use_cases require "
+    "MCP data tools rank, policy_check, decide, compare_models, vocab, model_info and list_use_cases require "
     "`Authorization: Bearer <key>`. "
     "Feedback stays keyless; it carries no model data."
 )
@@ -702,7 +702,8 @@ def auth_markdown(root: Path) -> str:
         "### Hosted API data tools (key required)",
         "",
         "- `POST /v1/decide` — downselect from a decision spec.",
-        "- `POST /v1/compare` — compare named models under a decision spec.",
+        "- `POST /v1/compare` — compare a decision spec across snapshots.",
+        "- `POST /v1/compare-models` — compare named models' facts in caller order.",
         "- `POST /v1/rank` (legacy v1) — retired fixed-benchmark ranking, "
         "for existing callers.",
         "- `POST /v1/policy-check` — licence, origin, data handling per model and platform. "
