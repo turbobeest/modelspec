@@ -953,6 +953,7 @@ def test_production_x402_is_prepared_for_base_mainnet_with_switches_off() -> Non
     assert cfg.enabled is False
     assert cfg.mainnet is False
     assert cfg.configured is True
+    assert x402._check_payload({}, cfg) == "mainnet is disabled (X402_MAINNET is off)"
     activated = x402.load_config(SimpleNamespace(**{
         **production, "X402_ENABLED": "true", "X402_MAINNET": "true"}))
     assert activated.enabled is True

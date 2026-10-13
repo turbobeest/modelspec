@@ -27,6 +27,13 @@ def _failing_values(layer: Mapping[str, Any]) -> list[str]:
         f"- `{row['target']}`: {row['outcome']}"
         + (f" ({row['reason']})" if row.get("reason") else "")
         + "".join(f"\n  - {url}" for url in row.get("source_urls", []))
+        + "".join(
+            f"\n  - source `{source['source_id']}`; transport `{source.get('transport')}`; "
+            f"HTTP {source.get('http_status')}; error `{source.get('error_category') or 'none'}`; "
+            f"cited copy `{source.get('cited_copy_ref')}`; "
+            f"current copy `{source.get('copy_ref') or 'none'}`"
+            for source in row.get("sources", [])
+        )
         for row in sample
         if row.get("outcome") in ("mismatch", "unreachable")
     ]

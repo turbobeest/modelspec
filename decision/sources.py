@@ -256,12 +256,14 @@ class Fetcher:
             headers["if-modified-since"] = last_modified
         host = urlsplit(url).hostname or ""
         error = "no attempt"
+        status: int | None = None
         delay = 0.0
         for attempt in range(self.retries + 1):
             if attempt:
                 self.sleep(delay)
             self._wait_for_host(host)
             delay = min(self.backoff * 2**attempt, self.max_backoff)
+            status = None
             try:
                 response = self.client.get(
                     url, headers=headers, timeout=self.timeout, follow_redirects=True
@@ -272,6 +274,7 @@ class Fetcher:
             except httpx.TransportError as exc:
                 error = f"transport error: {type(exc).__name__}: {exc}"
                 continue
+            status = response.status_code
             if response.status_code == 304:
                 return FetchResult(
                     "not_modified",
@@ -298,7 +301,7 @@ class Fetcher:
                 etag=response.headers.get("etag"),
                 last_modified=response.headers.get("last-modified"),
             )
-        return FetchResult("unreachable", error=error)
+        return FetchResult("unreachable", status, error=error)
 
 
 RenderedPreparation = Callable[[Any, float], None]
@@ -529,6 +532,8 @@ class RecheckReport:
     skipped: list[Skipped] = field(default_factory=list)
     #: Every source's state after this run; persist these for the next one.
     states: dict[str, SourceState] = field(default_factory=dict)
+    #: The final fetch attempt for each source, including HTTP status and errors.
+    fetches: dict[str, FetchResult] = field(default_factory=dict)
 
 
 def recheck(
@@ -613,6 +618,7 @@ def _check_one(
         etag=previous.etag if conditional and previous else None,
         last_modified=previous.last_modified if conditional and previous else None,
     )
+    report.fetches[source.id] = result
     old = previous.region_fingerprints if previous else {}
 
     if result.outcome == "not_modified" and previous is not None:

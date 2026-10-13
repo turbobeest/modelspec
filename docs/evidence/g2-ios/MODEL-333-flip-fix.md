@@ -398,3 +398,80 @@ captures `$?` immediately and exits with that captured value. A failed full
 run requires correcting its cause and repeating the entire full command.
 There is no deployment, switch enablement, live wallet/facilitator call or
 paid-provider call. PR #694 stays draft.
+
+
+## Merge follow-up after #689 (2026-10-13)
+
+Starting branch SHA: `0d3f2c103b3d24c39742eb572b02bb82f8bc3bd8`.
+Merged main SHA: `e8eaa9ce870b4ccf21616525ab2f798ced438700` (#689).
+The final tested and pushed merge SHA and full-suite measurement are recorded
+in the merge execution comment on [PR #694](https://github.com/turbobeest/modelspec/pull/694).
+This evidence is committed before that final gate so no tracked file changes
+follow a successful full run.
+
+`git fetch origin` exited 0. `git merge --no-commit origin/main` exited 1 with
+exactly four conflicts. Each resolution preserves the upstream intent:
+
+| Conflict | Resolution |
+|---|---|
+| `api/worker/wrangler.jsonc` | Keep #689's Base mainnet network/native USDC and detailed mainnet-off refusal comment. Keep the confirmed EIP-55 receiver from this PR and both production switches `"false"`. The complete staging object and raw `env` block remain byte-identical to main. |
+| `cli/modelspec/agent-bundle.json` | Regenerate with `pipeline.agent_copy write` after config resolution. No hashes are edited by hand. All nine generated source hashes match their sources. |
+| `docs/x402-mainnet-flip.md` | Keep main's network/asset setup, verification and rollback instructions. Replace the stale unresolved-tax section, empty-receiver and old-legal claims with the approved pending legal revision and confirmed receiver. Explain the prepared off state, Jamie's later flip/date-pin updates, artifact regeneration, canonical terms URL, lower-case response receiver, pack offers and #700 catalog exception. |
+| `tests/test_x402.py` | Retain main's staged-mainnet checks and explicit runtime refusal while MAINNET is off. Keep this PR's exact confirmed-address/EIP-55 checks, nonzero guard, activated-config consistency check, zero-address rejection and both-state endpoint tests. Empty-receiver pins from main are superseded by Jamie's confirmed address. |
+
+All five files under `docs/legal/` remain byte-for-byte identical to the
+starting branch SHA. All four `<FLIP DATE>` placeholders remain, two each in
+Terms and Privacy. There is no legal wording or effective-date change in this
+merge. All eight upstream-only changed files are byte-identical to main.
+
+Resolved production values:
+
+```text
+X402_NETWORK = eip155:8453
+X402_ASSET = 0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913
+X402_PAY_TO = 0x69429dbEEEE7218084AB5B896788f5fCE452419C
+X402_ENABLED = false
+X402_MAINNET = false
+```
+
+Generators and focused validation (directly checked exit codes):
+
+```bash
+export PATH="/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH"
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.agent_copy write
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/openapi.py
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m qa.contracts
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/openapi.py --check
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_x402.py tests/test_legal.py tests/test_decide_worker.py tests/test_pricing_page.py tests/test_api_docs.py tests/test_agent_copy.py tests/test_agent_guide.py tests/test_agent_harness.py tests/test_mcp_schema_compaction.py tests/test_x402_mainnet_probe.py
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.build --out dist
+git diff --check
+git diff --exit-code 0d3f2c103b3d24c39742eb572b02bb82f8bc3bd8 -- docs/legal
+```
+
+Every generator, the OpenAPI check, site build and diff check exited 0.
+Focused suites exited 0: `444 passed, 3 skipped in 257.96s (0:04:17)`.
+Independent read-only audits also checked staging bytes, legal bytes, EIP-55,
+current bundle hashes and preservation of upstream test functions. Eight
+targeted config/checksum/zero/staging/pricing tests passed in 0.27s.
+Tools remain the versions recorded in the receiver follow-up above.
+
+No new behavioral defect is introduced or fixed in this merge; its existing
+receiver and refusal tests are retained. The earlier red/green receiver proof
+remains above. No tests are weakened to accommodate the merge.
+
+Final gate after all source/evidence changes are committed:
+
+```bash
+export PATH="/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH"
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4
+model333_test_status=$?
+exit "$model333_test_status"
+```
+
+Execution writes output to the executor's ignored `merge-full.log`, captures
+`$?` immediately in `merge-full-exit.log`, and exits with that captured value.
+Any correction after a failed gate requires repeating the entire full suite.
+The SHA, direct exit code, counts and duration are reported in the PR comment
+without changing tracked files after the gate. Push is to the existing PR
+branch without force; PR #694 stays draft. No deployment, production switch
+activation, real wallet/facilitator call or paid-provider call is performed.

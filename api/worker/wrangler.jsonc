@@ -139,7 +139,9 @@
     // this on without also setting X402_NETWORK / X402_ASSET / X402_PAY_TO
     // for mainnet is refused at request time, not silently remapped.
     "X402_MAINNET": "false",
-    // CAIP-2 Base mainnet (MODEL-333). Inert while X402_ENABLED is off.
+    // CAIP-2 Base mainnet, staged for MODEL-333; the Worker refuses every payment
+    // on eip155:8453 while X402_MAINNET is off (x402._check_payload), so this value
+    // is inert until Jamie flips X402_ENABLED and X402_MAINNET together.
     // CDP facilitator table, read 2026-09-18:
     // https://docs.cdp.coinbase.com/x402/seller/facilitator
     "X402_NETWORK": "eip155:8453",

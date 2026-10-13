@@ -1,6 +1,6 @@
 # x402 mainnet flip (MODEL-333)
 
-One page for Jamie. It turns on x402 pay-per-call in USDC on Base mainnet for
+One page for Jamie. It turns on x402 credit-pack purchases in USDC on Base mainnet for
 the production Worker at `api.modelspec.dev`. Agents prepared everything else.
 Only Jamie sets these values, approves the legal text, and pays the live check.
 
@@ -14,48 +14,50 @@ Check each item. Do not start the flip while one is open.
 | 2 | Pricing v2 (#636, MODEL-342) is merged. | `tiers.json` has the non-legacy packs 250 / 1,300 / 2,750 / 6,000 credits for $5 / $25 / $50 / $100 and `x402.list_usd_per_decision` `"0.02"`. Without #636, x402 sells 1,250 credits for $5 ($0.004 a credit). |
 | 3 | The MODEL-333 config PR is merged. | Production `X402_NETWORK` is `eip155:8453` and `X402_ASSET` is `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` (Circle native USDC on Base, [Circle](https://developers.circle.com/stablecoins/usdc-contract-addresses), read 2026-10-10). |
 | 4 | The Base Sepolia smoke test passed on staging. | The output has `"network": "eip155:84532"`, a `transaction` hash, and `after` = `before` − 1. Steps are in [x402-go-live.md](x402-go-live.md), Stage 1 step 5. |
-| 5 | You have the Base mainnet receiving address. | It is a USDC address on Base from the Sparks & Sawdust LLC Coinbase Business account. Use the address only, never a private key. |
-| 6 | The legal text is approved. | Terms §2 says "Payment by x402 is not currently offered", and `tests/test_legal.py` requires that sentence while `X402_ENABLED` is off. The privacy statement, under *Not yet live*, says `X402_PAY_TO` is "currently empty". Both change in commit 2 of the flip, in wording you approve. |
+| 5 | The confirmed Base mainnet receiving address is configured. | Jamie confirmed `0x69429dbEEEE7218084AB5B896788f5fCE452419C` on 2026-10-13. It is held in a Coinbase account for Sparks & Sawdust LLC. Use the address only, never a private key. |
+| 6 | The approved legal text is prepared. | Terms 1.7 and Privacy 1.14 contain the approved x402 text and the confirmed receiver. Their effective dates remain `<FLIP DATE>` until Jamie's flip. Terms §6.8 contains the approved tax-inclusive pricing text. |
 
 The CDP facilitator secrets `CDP_API_KEY_ID` and `CDP_API_KEY_SECRET` are
 already set on the production Worker (names checked with
 `wrangler secret list`, 2026-10-10). Nothing more is needed for them.
 
-## Tax on x402
-
-Stripe collects Rhode Island sales tax on card sales and shows it at Checkout.
-An x402 payment has no checkout step: the amount is fixed in the 402 response
-and settles on-chain, so tax cannot be shown or added before payment. Until
-Jamie chooses one of these, x402 stays off and packs sell by card only:
-
-1. **Tax-inclusive x402 price.** Offer x402 packs at a price that includes the
-   tax, and remit it from the receipts. One price for every buyer, so a buyer
-   outside a taxing state overpays, or the margin absorbs it.
-2. **Restrict x402 to buyers outside taxing states.** The Worker cannot know a
-   wallet's location, so this rests on a buyer declaration in the terms.
-3. **Counsel's view** on whether and where these sales are taxable before
-   choosing.
-
 ## The flip
 
 Production switches are `vars` in `api/worker/wrangler.jsonc`. A merge to
-`main` deploys them through the `Rank API` workflow. Make the flip as one
-draft PR, merged by hand, in this order:
+`main` deploys them through the `Rank API` workflow. Preparation keeps both
+`X402_ENABLED` and `X402_MAINNET` `"false"`, with these production values:
 
-1. **Commit 1, which stays inert.** Set top-level `vars`:
-   - `"X402_PAY_TO": "<Base mainnet receiving address>"`
-   - `"X402_MAINNET": "true"`
+- `"X402_NETWORK": "eip155:8453"`
+- `"X402_ASSET": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"`
+- `"X402_PAY_TO": "0x69429dbEEEE7218084AB5B896788f5fCE452419C"`
 
-   With `X402_ENABLED` still `"false"`, no x402 payment is offered or
-   accepted. Card-bought credits are still drawn as before.
-2. **Commit 2, which goes live.** Set `"X402_ENABLED": "true"`. In the same
-   commit:
-   - Update the approved terms and privacy text.
-   - Update `tests/test_x402.py`:
-     `test_production_x402_config_stays_off_and_has_no_receiver`,
-     `test_wrangler_ships_the_flag_off_and_mainnet_staged` and
-     `test_production_x402_staged_for_base_mainnet_with_switches_off` assert
-     the off state, so make them assert the new values.
+No x402 payment is offered or accepted in that state. Card-bought credits are
+still drawn as before. Staging stays on Base Sepolia with its existing values.
+
+Jamie makes the actual flip as a draft PR, merged by hand. Set both production
+switches to `"true"` and fill the `<FLIP DATE>` placeholders in the approved
+Terms and Privacy text with the flip date. Keep the approved wording and
+receiving address. Update the off-state assertions in:
+
+- `tests/test_x402.py::test_production_x402_config_waits_for_the_operator_flip`
+- `tests/test_x402.py::test_wrangler_stages_x402_mainnet_with_switches_off`
+- `tests/test_x402.py::test_production_x402_is_prepared_for_base_mainnet_with_switches_off`
+- `tests/test_legal.py::test_the_pending_x402_legal_revision_waits_for_the_operator_flip`
+- `tests/test_decide_worker.py::test_billing_launch_enforces_keys_and_keeps_the_free_browser_visit_gate`
+- `tests/test_pricing_page.py::test_production_switches_generate_what_ships_today`
+
+Keep the receiver checksum, zero-address rejection and switch-consistency tests.
+Update the `IN_FORCE` header dates and the exact T7/P4 history-date pins in
+`tests/test_legal.py` to the same flip date.
+
+Regenerate the artifacts from the flipped config, in this order, before
+running the full suite and site build:
+
+```bash
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.agent_copy write
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/openapi.py
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m qa.contracts
+```
 
 Turn on `X402_ENABLED` and `X402_MAINNET` together, or `X402_MAINNET` first.
 Never turn on `X402_ENABLED` alone. With `X402_PAY_TO` empty, a keyed caller
@@ -67,11 +69,13 @@ but nobody can pay. `test_production_x402_switches_are_consistent` in
 `tests/test_x402.py` fails any commit that turns on `X402_ENABLED` without
 `X402_MAINNET`, the mainnet network and asset, and a receiving address.
 
-**Behaviour change when it goes live:** a keyed caller with no credits gets
-HTTP 402 with the four pack offers. Before the flip, that caller gets the
-free-tier answer with `credits.exhausted`. `ACCESS_ENFORCED` stays on, so a
-keyless machine caller still gets `401 missing_api_key`, not a per-call 402.
-Site visitors stay free.
+**Behaviour change when it goes live:** an unfunded keyed caller to POST
+`/v1/decide`, `/v1/compare`, `/v1/rank` or `/v1/policy-check` gets HTTP 402 with
+the four pack offers. Before the flip, those requests get the free-tier
+response with `credits.exhausted`. GET/HEAD `/v1/vocabulary` keeps its free-tier
+catalog fallback and limits in both flag states, including for keys whose
+purchased credits are exhausted (#700). `ACCESS_ENFORCED` stays on, so a
+keyless machine caller still gets `401 missing_api_key`. Site visitors stay free.
 
 ## Verify
 
@@ -95,15 +99,18 @@ export MODELSPEC_API_KEY="$(op read 'op://AI-LAN/<new key item>/credential')"
 ```
 
 ```bash
-curl -s -X POST https://api.modelspec.dev/v1/decide -H "authorization: Bearer $MODELSPEC_API_KEY" -H 'content-type: application/json' -d '{"spec_version":1}' | python3 -m json.tool
+curl -sS -D /tmp/modelspec-x402-headers -o /tmp/modelspec-x402-body -X POST https://api.modelspec.dev/v1/decide -H "authorization: Bearer $MODELSPEC_API_KEY" -H 'content-type: application/json' -d '{"spec_version":1}'
+python3 -m json.tool /tmp/modelspec-x402-body
+cat /tmp/modelspec-x402-headers
 ```
 
 Expect `error.code` `payment_required`, a `PAYMENT-REQUIRED` header, and four
-`accepts` rows. Check each row:
+`accepts` rows. The required `terms_url` must be
+`https://modelspec.dev/legal/terms/`. Check each row:
 
 - `network` is `eip155:8453`.
 - `asset` is `0x833589fcd6edb6e08f4c7c32d4f71b54bda02913` (lower case).
-- `payTo` is your receiving address.
+- `payTo` is `0x69429dbeeee7218084ab5b896788f5fce452419c` (lower case).
 - `amount` is one of `5000000`, `25000000`, `50000000` or `100000000`, for 250,
   1,300, 2,750 or 6,000 credits.
 
@@ -113,7 +120,7 @@ pack ($5) from a wallet you control. Use the same key. Confirm the settlement on
 key shows 250 credits. If the paying request was itself a successful
 decision, it shows 249 (summary) or 248 (`explain: "full"`). Only you move this money.
 
-Finally, check that the pricing page on `modelspec.dev` shows pay-per-call on
+Finally, check that the pricing page on `modelspec.dev` shows x402 credit-pack offers on
 Base mainnet after the next site build.
 
 ## Roll back
@@ -126,10 +133,9 @@ overwrites a dashboard edit, so merge the same change soon after.
 
 Existing pack credits stay in the `CREDITS` ledger and are still drawn. Leave
 `X402_MAINNET`, `X402_PAY_TO`, network and asset as they are, because they do
-nothing while the flag is off. In the same PR, put back the terms sentence
-"Payment by x402 is not currently offered." Keep the privacy statement's
-receiving address, because it is still configured, and say that x402 payments
-are off.
+nothing while the flag is off. Any accompanying legal-text update needs
+Jamie's approval. Keep the privacy statement's receiving address accurate,
+because it is still configured.
 
 A settlement that already happened on-chain cannot be undone. Refunds follow
 the x402 refund policy you set (MODEL-333, business decisions).
