@@ -5,7 +5,9 @@ Executor: ChatGPT Codex, GPT-6.1 Sol. Date: 2026-10-13.
 Worktree: `/Users/terbeest/dev/worktrees/model-335-fix`.
 Branch: `sparksandsawdust/model-335-nightly-fix`.
 Base SHA: `8825a31c2f215f6737eefbc7fa2ab2927161b7b5`.
-Final implementation SHA: `3f16cd3e709f9966908c0f7246beb76f976a2f45`.
+Initial implementation SHA: `3f16cd3e709f9966908c0f7246beb76f976a2f45`.
+Initial delivery SHA, reviewed by Grok 4.7: `bbf832be7e1ed131bfb7348eaff53f0d637f1a3f`.
+Final implementation SHA after REVIEW-715: `a233d2804bfe8667d2909516bb2985bee02c6233`.
 The evidence-only delivery commit follows this tested implementation. Its final
 SHA is recorded in the PR body and executor completion marker. Resolve it locally
 with `git rev-parse sparksandsawdust/model-335-nightly-fix`.
@@ -45,7 +47,21 @@ Subject, field, conditions, base model, and semantic unit must match. An omitted
 unit can use the registry's authoritative facet unit; conflicting explicit units
 cannot match.
 
-These draws report `public_image_lag` with the target and public/private
+When a usable current reading exists, it must support the corrected value
+before the draw can report lag. The same verifier compares that value against
+the current public source copies, with the existing tolerances and conditions.
+A third value stays a mismatch against the frozen claim. A current reading
+that supports the frozen value becomes a mismatch of private-correction support.
+Its public verification retains the frozen value hash and a safe
+`private_correction: supported -> not_supported` diff. The private comparison's
+result, diffs, and verification hash are never serialized.
+
+When neither verification can obtain a usable current reading, including an
+unreachable source or a source-kind rejection without a value reading, the
+existing private proof can still replace the draw. The review explicitly permits
+that unread-source behavior.
+
+Lag draws report `public_image_lag` with the target and public/private
 verification dates. They never count as verified or assessed, and do not mutate
 the public verification log or queue. Replacement draws must still reach 12
 assessed values within the existing draw budget. Lag draws are excluded from
@@ -130,7 +146,7 @@ mutations. The first probe failed on DeepSeek's omitted unit; the final probe
 exited 0 with no stderr. Its source text was synthetic and did not replay live
 provider extraction. Scratch files and private diffs are not committed.
 
-Final focused validation:
+Initial focused validation:
 
 ```sh
 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_accuracy.py tests/test_accuracy_alert.py tests/test_decision_sources.py tests/test_rendered_sources.py tests/test_decision_verify.py tests/test_data_workflows.py
@@ -138,7 +154,7 @@ PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q test
 
 Output: `617 passed in 4.04s`. Exit 0.
 
-Required full validation:
+Initial full validation:
 
 ```sh
 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4
@@ -183,3 +199,71 @@ No live Worker, deployed private snapshot, or historical decide payload was
 examined. No data, production switch, ranking floor, legal term, or public API
 contract changed. No vendor API spend, rendered provider fetch, Linear write,
 WSL gate, SSH, SCP, merge, or real tmux operation occurred.
+
+## REVIEW-715 follow-up
+
+Read the complete Grok 4.7 verdict at
+`/Users/terbeest/.codex-g2/exec/REVIEW-715.verdict.md`.
+It has one actionable High finding. A qualifying private correction previously
+set lag without comparing the current reading, so a page containing 30 or the
+frozen 10 could clear a mismatch against the verified private correction of 20.
+
+The current source is now evaluated against both values. A verified correction
+permits lag; a readable contradiction remains gating. When the page supports the
+frozen value, the result, public verification log, and recrawl queue all record
+a safe private-correction-support mismatch. The alert includes that failure.
+Only public source diagnostics, public hashes, and verification dates are
+published. No private expected value, hash, source reference, or private
+comparison result is written to the report, alert, or public verification queue
+and log.
+
+The two new regression cases ran against unchanged production code at the
+reviewed head:
+
+```sh
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_accuracy.py::test_a_current_reading_that_rejects_the_private_correction_keeps_fidelity_red
+```
+
+Red output for both `[third_value]` and `[frozen_value]` was
+`AssertionError: assert 'pass' == 'fail'`.
+Summary: `2 failed in 7.69s`, exit 1.
+
+After the fix, both cases and the existing supported-correction, omitted-unit,
+and unread-source cases passed:
+
+```sh
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_accuracy.py::test_a_current_reading_that_rejects_the_private_correction_keeps_fidelity_red tests/test_accuracy.py::test_newer_verified_private_correction_reports_public_image_lag_and_replaces_draw tests/test_accuracy.py::test_private_licence_correction_matches_an_omitted_facet_unit tests/test_accuracy.py::test_a_newer_private_citation_replaces_a_failed_frozen_source
+```
+
+Output: `5 passed in 0.51s`, exit 0. Tests also assert alert presence, queue and
+log mismatches, equality of the public log and row diffs, retention of the public
+hash, and absence of the private comparison's value and hash in serialized files.
+
+Final focused validation:
+
+```sh
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_accuracy.py tests/test_accuracy_alert.py tests/test_decision_sources.py tests/test_rendered_sources.py tests/test_decision_verify.py tests/test_data_workflows.py
+```
+
+Output: `619 passed in 3.29s`, exit 0. Python 3.14.4 and pytest 9.1.1.
+
+Required full validation after the review fix:
+
+```sh
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4
+```
+
+Output: `9735 passed, 22 skipped, 11 warnings in 1288.24s (0:21:28)`.
+Exit 0, checked directly from the foreground command. The warnings concern
+existing unsigned vocabulary fixtures.
+
+```sh
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python scripts/data_freeze_guard.py --base bbf832be7e1ed131bfb7348eaff53f0d637f1a3f --head HEAD --branch sparksandsawdust/model-335-nightly-fix
+git diff --check
+```
+
+Data freeze output: `data freeze: ok`, exit 0. Diff check exited 0.
+No other actionable finding was listed. The unchanged floor, cap, private-data
+guard, and MODEL-376 diagnostic suites still pass. No vendor fetch or workflow
+dispatch was performed during the follow-up. PR #715 remains a draft for renewed
+cross-model review.
