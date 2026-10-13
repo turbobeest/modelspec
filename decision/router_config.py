@@ -11,9 +11,9 @@ request, and ``thin`` (not enough evidence yet) only on an explicit request,
 labelled as such. A listed model carries every ranked offering it has in the
 decision, the band's own offering first.
 
-The snapshot does not publish each provider's own model ID, or a router's, so
-those are written as ``<...>`` placeholders. A router rejects a placeholder, so
-an unedited file admits nothing rather than something ModelSpec guessed.
+Verified provider model IDs and OpenRouter slugs are used verbatim. Missing
+identifiers are written as ``<...>`` placeholders with the reason. A router
+rejects a placeholder, so an unknown ID cannot admit a guessed model.
 
 Formats, each checked against the tool's own published schema in the tests:
 
@@ -264,9 +264,10 @@ def _litellm(rows: list[Listed], audit: dict[str, object], included: list[Band])
             provider = route.offering.provider
             prefix = LITELLM_PROVIDERS.get(
                 provider or "", f"<litellm provider for {provider or 'your deployment'}>")
+            model_id = route.offering.api_model_id or placeholder(provider, row.model)
             model_list.append({
                 "model_name": row.model,
-                "litellm_params": {"model": f"{prefix}/{placeholder(provider, row.model)}"},
+                "litellm_params": {"model": f"{prefix}/{model_id}"},
                 # LiteLLM's ConfigYAML schema requires these three keys; null
                 # mode and base_model leave LiteLLM's own defaults in place.
                 "model_info": {"id": f"modelspec:{route.offering_id}", "mode": None,
@@ -286,6 +287,10 @@ def _litellm(rows: list[Listed], audit: dict[str, object], included: list[Band])
     for row in rows:
         label = " [thin: not enough evidence yet]" if row.band == "thin" else ""
         header.append(f"{row.band}: {row.model}{label}")
+        for route in row.routes:
+            if route.offering.api_model_id is None:
+                header.append(f"{placeholder(route.offering.provider, row.model)}: "
+                              "no verified offering.api_model_id in this snapshot")
     comment = "".join(f"# {line}".rstrip() + "\n" for line in header)
     body = yaml.safe_dump({"model_list": model_list}, sort_keys=False, allow_unicode=True)
     return comment + body
@@ -303,11 +308,19 @@ def _openrouter(rows: list[Listed], audit: dict[str, object], included: list[Ban
             providers.append(slug)
     unnamed = [row.model for row in rows if not any(r.offering.provider for r in row.routes)]
     thin = [row.model for row in rows if row.band == "thin"]
+    allowed_models = []
+    for row in rows:
+        slugs = list(dict.fromkeys(route.offering.router_slug for route in row.routes
+                                  if route.offering.router_slug is not None))
+        for slug in slugs or [placeholder("openrouter", row.model)]:
+            if slug not in allowed_models:
+                allowed_models.append(slug)
     description = (
         f"Written by ModelSpec (configuration only). decision {audit['decision_id']}; "
         f"spec {audit['spec_hash']}; snapshot {audit['snapshot']}; "
         f"contract {audit['contract_version']}; bands: {', '.join(included)}. "
         "Replace every <...> with the OpenRouter model slug. "
+        "A model placeholder means no verified offering.router_slug in this snapshot. "
         + ("allowed_providers applies to every allowed model, so it can admit a model "
            "through a provider where that model did not qualify."
            if providers else
@@ -324,7 +337,7 @@ def _openrouter(rows: list[Listed], audit: dict[str, object], included: list[Ban
     body: dict[str, object] = {
         "name": f"modelspec {audit['decision_id']}"[:OPENROUTER_NAME_MAX],
         "description": description,
-        "allowed_models": [placeholder("openrouter", row.model) for row in rows],
+        "allowed_models": allowed_models,
     }
     if providers:
         body["allowed_providers"] = providers
@@ -361,7 +374,20 @@ def _generic(rows: list[Listed], bands: contract.Bands, audit: dict[str, object]
                         "tier": route.offering.tier,
                         "rank": route.rank,
                         "cost_per_task": route.cost_per_task,
-                        "provider_model_id": None,
+                        "provider_model_id": route.offering.api_model_id,
+                        "provider_model_id_placeholder": (
+                            placeholder(route.offering.provider, row.model)
+                            if route.offering.api_model_id is None else None),
+                        "provider_model_id_reason": (
+                            "no verified offering.api_model_id in this snapshot"
+                            if route.offering.api_model_id is None else None),
+                        "router_slug": route.offering.router_slug,
+                        "router_slug_placeholder": (
+                            placeholder("openrouter", row.model)
+                            if route.offering.router_slug is None else None),
+                        "router_slug_reason": (
+                            "no verified offering.router_slug in this snapshot"
+                            if route.offering.router_slug is None else None),
                     }
                     for route in row.routes
                 ],

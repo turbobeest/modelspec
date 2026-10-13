@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="248" viewBox="0 0 680 248" role="img" aria-label="Lab-reported and independent readings">
+<style>
+text{font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Arial,sans-serif;font-size:12px}.t{font-size:14px;font-weight:600}
+.bg{fill:#fcfcfb}.f-s1{fill:#2a78d6}.f-s2{fill:#eb6834}.f-muted{fill:#9a9993}.k-s1{stroke:#2a78d6}.k-muted{stroke:#9a9993}.k-rule{stroke:#e4e3dd}.ring{stroke:#fcfcfb}text{fill:#52514e}.t,.v{fill:#0b0b0b}text.m{fill:#9a9993}
+@media (prefers-color-scheme: dark){.bg{fill:#1a1a19}.f-s1{fill:#3987e5}.f-s2{fill:#d95926}.f-muted{fill:#77766f}.k-s1{stroke:#3987e5}.k-muted{stroke:#77766f}.k-rule{stroke:#3a3936}.ring{stroke:#1a1a19}text{fill:#c3c2b7}.t,.v{fill:#ffffff}text.m{fill:#77766f}}
+</style>
+<rect class="bg" width="680" height="248"/>
+<text class="t" x="16" y="24">Lab-reported and independent readings</text>
+<rect class="f-s2" x="200" y="38" width="10" height="10" rx="2"/><text x="216" y="47">Lab-reported</text>
+<rect class="f-s1" x="320" y="38" width="10" height="10" rx="2"/><text x="336" y="47">Independent reading</text>
+<text class="v" x="16" y="75">cursorbench</text>
+<rect class="f-s2" x="200.0" y="64.0" width="231.0" height="14.0" rx="4"><title>55% lab-reported</title></rect>
+<text x="437.0" y="75">55%</text>
+<text class="m" x="200" y="91">no independent reading yet</text>
+<text class="v" x="16" y="119">mmlu_pro</text>
+<rect class="f-s2" x="200.0" y="108.0" width="336.0" height="14.0" rx="4"><title>80% lab-reported</title></rect>
+<text x="542.0" y="119">80%</text>
+<rect class="f-s1" x="200.0" y="124.0" width="3.3" height="14.0" rx="4"><title>0.78 independent_evaluator</title></rect>
+<text x="209.3" y="135">0.78</text>
+<text class="v" x="16" y="163">swe_bench_pro</text>
+<rect class="f-s2" x="200.0" y="152.0" width="294.0" height="14.0" rx="4"><title>70% lab-reported</title></rect>
+<text x="500.0" y="163">70%</text>
+<rect class="f-s1" x="200.0" y="168.0" width="285.2" height="14.0" rx="4"><title>67.9% independent_evaluator</title></rect>
+<text x="491.2" y="179">67.9%</text>
+<text class="v" x="16" y="207">terminal_bench</text>
+<rect class="f-s2" x="200.0" y="196.0" width="210.0" height="14.0" rx="4"><title>50% lab-reported</title></rect>
+<text x="416.0" y="207">50%</text>
+<rect class="f-s1" x="200.0" y="212.0" width="201.6" height="14.0" rx="4"><title>48% independent_evaluator</title></rect>
+<text x="407.6" y="223">48%</text>
+</svg>

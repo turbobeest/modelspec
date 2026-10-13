@@ -1466,6 +1466,38 @@ def _finish(c: _Compiler, as_of: date | None, premier: tuple[str, ...] | None,
 
 
 _LIFECYCLE_FROM_STATUS = {"deprecated": "deprecated", "sunset": "deprecated"}
+_PRIMARY_PROVIDER_ALIASES = {"typesafe": ("TypeSafe AI",), "zai": ("Z.ai",)}
+
+
+def _card_identifier_candidates(offering: dict, availability: Mapping[str, Any]) -> None:
+    """Copy legacy identifiers into unverified, unsourced offering claims.
+
+    Legacy availability has no retained-copy citations. A sourced offering
+    fact must replace the candidate before it can pass normal admission.
+    """
+    provider = offering["provider"]
+    primary = availability.get("primary_provider") or {}
+    provider_names = {provider.casefold()} | {
+        p.name.casefold() for p in default_registry().providers() if p.id == provider}
+    provider_names.update(name.casefold() for name in _PRIMARY_PROVIDER_ALIASES.get(provider, ()))
+    primary_id = (primary.get("model_id_on_platform")
+                  if str(primary.get("name", "")).casefold() in provider_names else None)
+    platform = availability.get(provider.replace("-", "_")) or {}
+    api_id = platform.get("model_id") if platform.get("available") is True else None
+    router = availability.get("openrouter") or {}
+    slug = router.get("model_id") if router.get("available") is True else None
+    candidates = {"offering.api_model_id": api_id or primary_id,
+                  "offering.router_slug": slug or (
+                      primary_id if provider == "openrouter" else None)}
+    authored = {f["facet"] for f in offering["facts"]}
+    oid = _offering_id(offering)
+    for facet_id, value in candidates.items():
+        if facet_id not in authored and isinstance(value, str) and value.strip():
+            offering["facts"].append({
+                "subject": {"kind": "offering", "id": oid},
+                "id": f"{oid}#{facet_id}", "facet": facet_id,
+                "value": value, "state": "known", "sources": [],
+            })
 
 
 def collect_repo(root: Path) -> SnapshotInputs:
@@ -1485,9 +1517,11 @@ def collect_repo(root: Path) -> SnapshotInputs:
 
     root = Path(root)
     models, evidence = [], []
+    availability = {}
     for card in load_models(root):
         mid = card.model_id
         front = card.front
+        availability[mid] = front.get("availability") or {}
         lifecycle = front.get("lifecycle") or _LIFECYCLE_FROM_STATUS.get(
             str(front.get("status") or ""), "active")
         facts = []
@@ -1507,6 +1541,7 @@ def collect_repo(root: Path) -> SnapshotInputs:
             o = dict(o)
             o["facts"] = [{"subject": {"kind": "offering", "id": oid},
                            "id": f"{oid}#{f.get('facet')}", **f} for f in o.get("facts") or []]
+            _card_identifier_candidates(o, availability.get(o["model"], {}))
             offerings.append(o)
     subscriptions = []
     for path in sorted((root / "offerings" / "subscriptions").glob("*.yaml")):
