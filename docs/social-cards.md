@@ -5,8 +5,8 @@ the Playwright Chromium installed by `web/`. The PNGs are build artifacts and
 must not be committed. The landing template receives the same `LandingData` as
 the page, so its figures cannot drift into hand-written copy.
 
-`CARD_REGISTRY` is the source of truth for rendering, page metadata, and the
-deploy allowlist. To add the pricing card, add one `CardRegistration` containing
+`CARD_REGISTRY` maps the main page cards to their renderers, page metadata, and
+deploy filenames. To add a page card, add one `CardRegistration` containing
 its filename, factory, and public page mapping. Set `source_page` for a static
 HTML page and put `social-card-meta` markers in its `<head>`; `npm run build`
 fills those markers from the registry. Python-rendered pages use
@@ -28,5 +28,5 @@ the live composition and the deploy checks. Rendering uses the existing
 The board's Share dialog offers a `Template preview` tab for the active
 starting template. That link contains only the public template ID. The preview
 page links to `/decide/?template=<id>` to adjust it against the latest
-catalogue. Saved board state takes priority over that query parameter. Custom
+catalogue. A saved board hash takes priority over that query parameter. Custom
 decision preview URLs and server rendering require a separate privacy review.
