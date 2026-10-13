@@ -644,6 +644,83 @@ def test_calibration_keeps_vendor_hardware_out_of_verified_facts(
     assert invariants.run(catalogue, registry, TODAY)["errors"] == 0
 
 
+@pytest.fixture
+def lab_catalogue(catalogue, registry, monkeypatch, tmp_path):
+    from decision.labs import Lab
+    from decision.snapshot import SnapshotInputs
+    from tests.snapshot_records import offering, verification
+
+    lab = Lab(
+        id="test", entity="Synthetic Lab", parent_entity=None,
+        note="Synthetic jurisdiction record.", read_date=TODAY.isoformat(),
+        state="known", value=("US",),
+        sources=tuple(fact("model", "lab:test", "origin.lab_jurisdiction", ["US"])["sources"]),
+    )
+    catalogue.models["test/second"] = {"model_id": "test/second"}
+    inputs = SnapshotInputs(
+        models=[{
+            "id": mid, "lifecycle": "active",
+            "facts": [
+                fact("model", mid, "model.weights_openness", "open_weights"),
+                fact("model", mid, "model.context_window", 128000),
+            ],
+        } for mid in (MID, "test/second")],
+        offerings=[offering(MID, facts=[
+            fact("offering", "sambanova/test/model/global/standard", "offering.price.input", 1),
+        ])],
+        labs={"test": lab},
+        sources={sid: row["url"] for sid, row in catalogue.sources.items()},
+        verifications=[verification("fact", "lab:test#origin.lab_jurisdiction", value=["US"])],
+    )
+    monkeypatch.setattr("decision.snapshot.collect_repo", lambda root: inputs)
+    calibrate(catalogue, tmp_path, registry, TODAY)
+    return catalogue
+
+
+def test_calibration_resolves_shared_lab_facts_without_adding_candidates(lab_catalogue, registry):
+    assert invariants.run(lab_catalogue, registry, TODAY)["findings"] == []
+    jurisdiction = [f for f in lab_catalogue.facts if f["field"] == "origin.lab_jurisdiction"]
+    assert [(f["id"], f["subject"], f["subject_id"]) for f in jurisdiction] == [
+        ("lab:test#origin.lab_jurisdiction", {"kind": "model", "id": "lab:test"}, "lab:test"),
+    ]
+    assert set(lab_catalogue.labs) == {"lab:test"}
+    assert set(lab_catalogue.models) == {"test/model", "test/second"}
+    assert set(lab_catalogue.offerings) == {"sambanova/test/model/global/standard"}
+    assert lab_catalogue.served_counts["models"] == 2
+    assert lab_catalogue.served_counts["offerings"] == 1
+    assert lab_catalogue.served_counts["facts"] == 6
+
+
+@pytest.mark.parametrize("subject", ["lab:missing", "lab:test-suffix", "test"])
+def test_unknown_lab_subject_still_errors(lab_catalogue, registry, monkeypatch, tmp_path, subject):
+    from dataclasses import replace
+
+    from decision.snapshot import collect_repo
+
+    inputs = collect_repo(tmp_path)
+    lab_catalogue.models["other/model"] = {"model_id": "other/model"}
+    inputs = replace(
+        inputs,
+        models=[*inputs.models, {
+            "id": "other/model", "lifecycle": "active",
+            "facts": [
+                fact("model", "other/model", "model.weights_openness", "open_weights"),
+                fact("model", subject, "origin.lab_jurisdiction", ["US"]),
+            ],
+        }],
+    )
+    monkeypatch.setattr("decision.snapshot.collect_repo", lambda root: inputs)
+    calibrate(lab_catalogue, tmp_path, registry, TODAY)
+    result = invariants.run(lab_catalogue, registry, TODAY)
+    assert result["errors"] == 1
+    assert result["findings"] == [{
+        "id": f"{subject}#origin.lab_jurisdiction",
+        "field": "origin.lab_jurisdiction",
+        "rule": "subject_resolves",
+        "severity": "error",
+    }]
+
+
 def test_fresh_html_uses_html_normaliser(catalogue, registry):
     class HTTP:
         def fetch(self, url):

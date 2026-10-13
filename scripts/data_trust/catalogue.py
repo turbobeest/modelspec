@@ -10,6 +10,7 @@ from typing import Any
 
 import yaml
 
+from decision.labs import Lab
 from decision.model import value_hash, verification_counts
 
 
@@ -32,6 +33,7 @@ class Finding:
 class Catalogue:
     models: dict[str, dict] = field(default_factory=dict)
     offerings: dict[str, dict] = field(default_factory=dict)
+    labs: dict[str, Lab] = field(default_factory=dict)
     boards: dict[str, dict] = field(default_factory=dict)
     sources: dict[str, dict] = field(default_factory=dict)
     facts: list[dict] = field(default_factory=list)
@@ -249,6 +251,7 @@ def calibrate(c: Catalogue, root: Path, registry, as_of: date) -> None:
     c.legacy = [f for f in c.facts if f["id"] not in admitted]
     c.facts = []
     c.verifications = {}  # The compiler already selected the winning value-hash verification.
+    c.labs = {f"lab:{lab_id}": lab for lab_id, lab in compiler.labs.items()}
     c.models = {m["id"]: c.models[m["id"]] for m in inputs.models}
     c.offerings = {}
     for o in [*inputs.offerings, *inputs.subscriptions]:
