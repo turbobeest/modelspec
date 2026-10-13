@@ -2678,6 +2678,7 @@ def build_spec() -> dict[str, Any]:
             facilitator_url=x402.DEFAULT_ORIGIN,
             resource_origin=_ORIGIN,
             packs=x402.packs_from_policy(access_config.load_policy()),
+            terms_url=access_config.load_policy().billing.terms_url,
         ),
         {"schema_version": service.SCHEMA_VERSION, "service_commit": _COMMIT},
         "https://api.modelspec.dev/v1/rank",
@@ -3052,9 +3053,10 @@ def build_spec() -> dict[str, Any]:
                         ),
                         str(x402.HTTP_PAYMENT_REQUIRED): _json_body(
                             "Payment required when X402_ENABLED is on. A keyed caller is "
-                            "offered the card packs. A keyless caller pays "
-                            f"{_per_credit_atomic():,} atomic "
-                            "USDC per credit, multiplied by this spec's explanation weight.",
+                            "offered the card packs."
+                            + ("" if access_enforced() else
+                               f" A keyless caller pays {_per_credit_atomic():,} atomic "
+                               "USDC per credit, multiplied by this spec's explanation weight."),
                             {"$ref": "#/components/schemas/PaymentRequired"},
                         ),
                         **{
@@ -3632,7 +3634,7 @@ def render() -> str:
         spec["components"]["schemas"] = _split_hardware_description(spec["components"]["schemas"])
     apply_guide_headers(spec)
     compact_schemas(spec)
-    return HEADER + yaml.safe_dump(spec, sort_keys=False, allow_unicode=True, width=100, default_flow_style=None)
+    return HEADER + yaml.safe_dump(spec, sort_keys=False, allow_unicode=True, width=160, default_flow_style=None)
 
 
 def _split_hardware_description(value):

@@ -113,11 +113,12 @@ class Config:
     facilitator_url: str
     resource_origin: str
     packs: tuple[PackOffer, ...] = ()
+    terms_url: str = ""
 
     @property
     def configured(self) -> bool:
         return (bool(self.pay_to) and _ADDR.match(self.pay_to) is not None
-                and self.price_atomic > 0)
+                and int(self.pay_to, 16) != 0 and self.price_atomic > 0)
 
     @property
     def asset_name(self) -> str:
@@ -135,9 +136,12 @@ def packs_from_policy(policy: Any) -> tuple[PackOffer, ...]:
 
 
 def load_config(env: Any) -> Config:
+    terms_url = ""
     try:
         import access_config
-        packs = packs_from_policy(access_config.load_policy(env))
+        policy = access_config.load_policy(env)
+        packs = packs_from_policy(policy)
+        terms_url = policy.billing.terms_url
     except (ImportError, access_config.PolicyError):
         packs = ()
     price = -1
@@ -158,6 +162,7 @@ def load_config(env: Any) -> Config:
         resource_origin=_attr(env, "EXPORT_ORIGIN", "https://api.modelspec.dev")
         or "https://api.modelspec.dev",
         packs=packs,
+        terms_url=terms_url,
     )
 
 
@@ -282,6 +287,7 @@ def payment_required_body(config: Config, envelope: dict[str, Any], resource_url
                           code: str = PAYMENT_REQUIRED,
                           offer_packs: bool = False,
                           units: int = 1) -> dict[str, Any]:
+    terms_url = config.terms_url or "https://modelspec.dev/legal/terms/"
     required = payment_required_object(
         config, resource_url, message=message, offer_packs=offer_packs, units=units)
     accepts = required["accepts"]
@@ -325,7 +331,9 @@ def payment_required_body(config: Config, envelope: dict[str, Any], resource_url
                 "(https://www.x402.org / specs/transports-v2/http.md). "
                 f"Pay one accepted amount in atomic USDC ({config.network}) to "
                 f"{config.pay_to}."
+                + f" Paying accepts the terms at {terms_url}."
             ),
+            "terms_url": terms_url,
         },
         "result": [],
         "x402Version": X402_VERSION,
@@ -360,12 +368,13 @@ def _error(envelope: dict[str, Any], status: int, code: str, message: str,
 
 
 def is_billable_success(status: int, body: dict[str, Any]) -> bool:
-    """Credits move only for an HTTP 200 with a non-empty rank or decision answer."""
+    """Credits move only for an HTTP 200 with a non-empty billable answer."""
     if status != HTTP_OK:
         return False
     if body.get("error"):
         return False
-    for name in ("result", "results"):
+    names = ("models",) if body.get("endpoint") == "compare-models" else ("result", "results")
+    for name in names:
         result = body.get(name)
         if isinstance(result, list):
             return len(result) > 0
