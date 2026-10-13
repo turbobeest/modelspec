@@ -73,6 +73,10 @@ def test_private_model_is_absent_from_every_public_file(private, tmp_path, monke
     web = tmp_path / "web"
     (web / "assets").mkdir(parents=True)
     (web / "decide.html").write_text('<html><body>API decision client<div id="root"></div></body></html>')
+    (web / "decision.html").write_text(
+        '<html><head><meta name="robots" content="noindex, nofollow, noarchive">'
+        '<meta name="referrer" content="no-referrer"></head>'
+        '<body><div id="root"></div></body></html>')
     live.build(out, web, tmp_path / "live")
     for tree in (out, tmp_path / "holding", tmp_path / "live"):
         for path in tree.rglob("*"):

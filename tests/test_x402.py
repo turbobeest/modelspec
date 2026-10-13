@@ -832,6 +832,7 @@ def test_staging_x402_config_is_isolated_on_base_sepolia():
     assert staging["vars"] == {
         "EXPORT_ORIGIN": "https://modelspec.dev",
         "BUILD_COMMIT": "dev",
+        "DECISION_LINK_ENABLED": "false",
         "ACCESS_ENFORCED": "false",
         "VISIT_GATE_ENABLED": "false",
         "VISIT_DECIDE_DAY_LIMIT": "300",
