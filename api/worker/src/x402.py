@@ -287,6 +287,7 @@ def payment_required_body(config: Config, envelope: dict[str, Any], resource_url
                           code: str = PAYMENT_REQUIRED,
                           offer_packs: bool = False,
                           units: int = 1) -> dict[str, Any]:
+    terms_url = config.terms_url or "https://modelspec.dev/legal/terms/"
     required = payment_required_object(
         config, resource_url, message=message, offer_packs=offer_packs, units=units)
     accepts = required["accepts"]
@@ -330,9 +331,9 @@ def payment_required_body(config: Config, envelope: dict[str, Any], resource_url
                 "(https://www.x402.org / specs/transports-v2/http.md). "
                 f"Pay one accepted amount in atomic USDC ({config.network}) to "
                 f"{config.pay_to}."
-                + (f" Paying accepts the terms at {config.terms_url}." if config.terms_url else "")
+                + f" Paying accepts the terms at {terms_url}."
             ),
-            **({"terms_url": config.terms_url} if config.terms_url else {}),
+            "terms_url": terms_url,
         },
         "result": [],
         "x402Version": X402_VERSION,

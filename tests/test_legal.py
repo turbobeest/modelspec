@@ -896,10 +896,10 @@ def test_the_decide_contract_refuses_its_free_text_task() -> None:
 #: commitment is a change to that; each gets a new version and date rather than
 #: a silent edit of the adopted one.
 IN_FORCE = {
-    "terms": "Version `1.6`, effective 2026-10-10.",
+    "terms": "Version `1.7`, effective <FLIP DATE>.",
     "dmca": "Version `1.0`, effective 2026-10-09.",
     "neutrality": "Version `1.3`, effective 2026-09-30.",
-    "privacy": "Version `1.13`, effective 2026-10-10.",
+    "privacy": "Version `1.14`, effective <FLIP DATE>.",
 }
 
 

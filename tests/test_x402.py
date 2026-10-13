@@ -1236,6 +1236,132 @@ def test_entry_zero_balance_key_receives_pack_offer_even_from_site(entry):
     ]
 
 
+def _unfunded_entry_key(*, enabled, history):
+    env = _entry_env(
+        ACCESS_ENFORCED="true", X402_ENABLED=enabled,
+        HUMAN_GATE_ENABLED="false", VISIT_GATE_ENABLED="false",
+    )
+    key = "live_unfunded_matrix"
+    policy = __import__("access_config").load_policy(env)
+    asyncio.run(__import__("access_keys").issue(
+        env.ACCESS, tier="paid" if history == "exhausted-funded" else "free",
+        owner="test", now=datetime.now(UTC), policy=policy, secret=key,
+    ))
+    if history == "exhausted-funded":
+        holder = x402.holder_from_key(key)
+        asyncio.run(env.CREDITS.credit(holder, "pack-test", 1, "fixture-tx"))
+        reserved = asyncio.run(env.CREDITS.reserve(holder, 1))
+        assert reserved.ok and reserved.reservation_id is not None
+        asyncio.run(env.CREDITS.commit(holder, reserved.reservation_id))
+    return env, key
+
+
+@pytest.mark.parametrize("path,needed", [
+    ("/v1/decide", 1), ("/v1/compare", 2),
+    ("/v1/rank", 1), ("/v1/policy-check", 5),
+])
+@pytest.mark.parametrize("enabled", ["false", "true"])
+@pytest.mark.parametrize("history", ["never-funded", "exhausted-funded"])
+def test_entry_unfunded_post_endpoints_follow_x402_switch(entry, path, needed, enabled, history):
+    env, key = _unfunded_entry_key(enabled=enabled, history=history)
+    worker = _decision_worker(entry, env)
+    produced = []
+    endpoint = path.rsplit("/", 1)[-1]
+    expected = {
+        "endpoint": endpoint,
+        "results" if endpoint in ("decide", "compare") else "result": [
+            {"model_id": "example/ok"},
+        ],
+    }
+
+    async def produce(*_args):
+        produced.append(endpoint)
+        return 200, expected
+
+    async def policy_answer(_payload, _commit, _origin, entitlement):
+        produced.append(entitlement)
+        return 200, {**expected, "determinations": {
+            "included": entitlement == "determinations",
+        }}
+
+    worker._decide = produce
+    worker._compare = produce
+    worker._rank = produce
+    worker._policy_answer = policy_answer
+    response = asyncio.run(worker.fetch(_Req(
+        path, {"task": "choose a model"},
+        headers={"Authorization": f"Bearer {key}"},
+    )))
+    body = response.json()
+
+    if enabled == "true":
+        assert response.status == 402
+        assert body["error"]["code"] == "payment_required"
+        assert [pack["credits"] for pack in body["error"]["packs"]] == [
+            250, 1300, 2750, 6000,
+        ]
+        assert produced == []
+        assert x402.PAYMENT_REQUIRED_HEADER in response.headers
+    else:
+        assert response.status == 200
+        assert {name: body[name] for name in expected} == expected
+        assert body["credits"]["exhausted"] is True
+        assert body["credits"]["available"] == 0
+        assert body["credits"]["needed"] == needed
+        assert x402.PAYMENT_REQUIRED_HEADER not in response.headers
+        if endpoint == "policy-check":
+            assert produced == ["public_export"]
+            assert body["determinations"] == {"included": False}
+        else:
+            assert produced == [endpoint]
+
+
+@pytest.mark.parametrize("method", ["GET", "HEAD"])
+@pytest.mark.parametrize("enabled", ["false", "true"])
+@pytest.mark.parametrize("history", ["never-funded", "exhausted-funded"])
+def test_entry_unfunded_catalog_reads_keep_free_limits(entry, method, enabled, history):
+    env, key = _unfunded_entry_key(enabled=enabled, history=history)
+    worker = _decision_worker(entry, env)
+    entry.bundled_data = object()
+    entry._bundled_vocabulary_text = '{"models":{"example/ok":{"name":"ok"}}}'
+    request = _Req("/v1/vocabulary", method=method,
+                   headers={"Authorization": f"Bearer {key}"})
+    responses = [asyncio.run(worker.fetch(request)) for _ in range(6)]
+
+    assert [response.status for response in responses] == [200] * 5 + [429]
+    assert all(x402.PAYMENT_REQUIRED_HEADER not in response.headers for response in responses)
+    for response in responses[:5]:
+        if method == "HEAD":
+            assert response.body is None
+        else:
+            assert response.json() == {"models": {"example/ok": {"name": "ok"}}}
+    if method == "GET":
+        assert responses[-1].json()["error"]["code"] == "rate_limited"
+
+
+@pytest.mark.parametrize("method", ["GET", "HEAD"])
+@pytest.mark.parametrize("enabled", ["false", "true"])
+def test_entry_catalog_finishes_prepaid_block_before_free_fallback(entry, method, enabled):
+    env, key = _unfunded_entry_key(enabled=enabled, history="never-funded")
+    asyncio.run(env.CREDITS.credit(x402.holder_from_key(key), "pack-test", 1, "fixture-tx"))
+    worker = _decision_worker(entry, env)
+    entry.bundled_data = object()
+    entry._bundled_vocabulary_text = '{"models":{"example/ok":{"name":"ok"}}}'
+    request = _Req("/v1/vocabulary", method=method,
+                   headers={"Authorization": f"Bearer {key}"})
+    first = asyncio.run(worker.fetch(request))
+    assert first.status == 200
+    balance = asyncio.run(worker.fetch(_Req(
+        "/v1/credits", method="GET", headers={"Authorization": f"Bearer {key}"},
+    )))
+    assert balance.status == 200
+    assert balance.json()["available"] == 0
+    responses = [first, *[asyncio.run(worker.fetch(request)) for _ in range(15)]]
+
+    assert [response.status for response in responses] == [200] * 15 + [429]
+    assert all(x402.PAYMENT_REQUIRED_HEADER not in response.headers for response in responses)
+
+
 def test_entry_unfunded_with_flag_on_is_402_and_does_not_fetch(entry):
     env = type("E", (), {})()
     env.BUILD_COMMIT = "c0ffee"
@@ -1369,7 +1495,11 @@ def test_live_x402_is_described_by_the_approved_legal_text() -> None:
     assert "Payment by x402 is not currently offered." not in terms
     assert "Credits can also be bought by x402" in terms
     assert "currently empty" not in privacy
-    assert _wrangler_config()["vars"]["X402_PAY_TO"] in privacy
+    pay_to = _wrangler_config()["vars"]["X402_PAY_TO"]
+    if pay_to == "0x" + "0" * 40:
+        assert "`<LLC Base receiving address>` on the Base network." in privacy
+    else:
+        assert pay_to in privacy
 
 
 def test_the_402_links_the_terms_of_service() -> None:

@@ -1,6 +1,6 @@
 # Privacy statement
 
-Version `1.13`, effective 2026-10-10. Adopted by Sparks & Sawdust LLC, which
+Version `1.14`, effective <FLIP DATE>. Adopted by Sparks & Sawdust LLC, which
 operates the service. MODEL-70. Version 1.0 was adopted on 2026-09-19; what
 changed since is listed under [Changes](#changes).
 
@@ -230,8 +230,8 @@ A Durable Object class `CreditsObject`, bound as `CREDITS`
 (`api/worker/wrangler.jsonc`), holds credit balances (MODEL-75, MODEL-93).
 Credits are added only by a paid Stripe purchase (a new purchase can start only
 while `BILLING_ENABLED` is on; renewals and claims of purchases already paid are
-credited while it is off), or by an x402 payment, which runs only while
-`X402_ENABLED` is on. It holds these kinds of record
+credited while it is off), or by an x402 payment in USDC on Base, made with an
+API key (`X402_ENABLED` is on). It holds these kinds of record
 (`api/worker/src/credits.py`):
 
 - **A balance per holder.** The holder name is `key:` plus the SHA-256 hash of
@@ -402,6 +402,34 @@ repeat of the same event. It
 carries nothing from your request. No meter event is sent while the overage
 Price is not for sale.
 
+## What x402 payments involve
+
+When your software pays by x402 (`api/worker/src/x402.py`), it sends us a signed
+authorization for a USDC transfer on the Base network. It holds your wallet's
+public address, our receiving address, the amount, a validity window, a nonce
+and the signature. We do not store it. We pass it to Coinbase's x402
+facilitator (`api.cdp.coinbase.com`), which verifies and settles it, and which
+handles it under Coinbase's own terms and privacy policy. The facilitator
+returns a transaction hash and the paying address. We return both to you in the
+`PAYMENT-RESPONSE` header and keep only what *The credit ledger* describes: the
+payment id, the transaction hash, the key's hash and the credits bought. We do
+not keep the paying address.
+
+A settled transfer is recorded on the Base blockchain, which anyone can read
+and which no one can erase. Your wallet's public address, our receiving
+address, the amount and the time are public there, and anyone holding the
+transaction hash can find them. Choose the wallet you pay from with that in
+mind.
+
+`X402_PAY_TO`, the address that receives x402 payments, is
+`<LLC Base receiving address>` on the Base network. It is held in a Coinbase
+account for Sparks & Sawdust LLC. No private key for it is in this repository.
+
+Keys are enforced (`ACCESS_ENFORCED`), so a request without a key is refused
+with 401 before any payment is offered. Nothing is paid or recorded without a
+key. A separate staging copy of the API, on a `workers.dev` address that the
+site never calls, runs x402 on a test network for testing.
+
 ## What Cloudflare records
 
 The API and the website run on Cloudflare, and Cloudflare records request
@@ -515,28 +543,6 @@ current CLI has none.
 Named so that this statement can be checked against the code, and so that
 nothing below is read as describing the service today:
 
-- **x402 payments.** The rail (MODEL-75) is wired behind `X402_ENABLED`, which
-  ships off: no request is charged by x402 and no x402 payment is credited.
-  Coinbase's x402 facilitator, when the flag is on, receives the signed
-  payment payload in order to verify and settle it; that payload is the
-  caller's, not a store of ours. No private key for receiving funds is in this
-  repository. `X402_PAY_TO` is an on-chain address in configuration, currently
-  empty. This describes the production service at `api.modelspec.dev`. A
-  separate staging copy of the API, on a `workers.dev` address that the site
-  never calls, runs with x402 on, on a test network, for testing; a request
-  sent to it directly can be metered as described next. Turning x402 on would
-  also change two things this statement says today. A request from a browser on
-  this site that presents no key would be metered in `ACCESS`, under counters
-  named from a visitor id: `HMAC-SHA256(VISITOR_HMAC_KEY, IP | UTC day)`, where
-  `VISITOR_HMAC_KEY` is a secret held by the Worker and not in this repository
-  (`api/worker/src/visitor.py`). The address is read transiently to derive the
-  id and is not stored; no bare hash of an address is kept. Because the key is
-  secret, the id cannot be reversed by trying every address, and because the
-  day is part of the input, the id changes each UTC day and cannot be followed
-  from one day to the next. People who share a public IP address share an id
-  for that day. And a payment made without a key would be recorded in the
-  credit ledger under the paying wallet's public address, with the credits it
-  bought, which are spent at once.
 - **The human gate on the decide page (Cloudflare Turnstile).** Built, and
   **not yet enabled**: it ships off (`HUMAN_GATE_ENABLED`) in production, and
   this describes what would happen once it is switched on. Until
@@ -623,6 +629,8 @@ to `DELETE /v1/feedback`, or write to us with it.
 
 A change to what the service records is a change to this statement, and it is
 published here before the change ships. The version above is the one in force.
+
+- **1.14, <FLIP DATE>.** x402 payments are live (MODEL-333). The x402 bullet moves from *Not yet live* to *What x402 payments involve*. That section discloses what the signed payment carries, that Coinbase's facilitator verifies and settles it, what we keep and do not keep, that a settlement is public on Base, and the receiving address. Keys stay enforced, so neither keyless change the earlier text predicted occurs.
 
 - **1.13, 2026-10-10.** Meter events sent to Stripe for Scale overage no
   longer carry the hash of your key; they use a random meter id kept with the

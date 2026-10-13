@@ -2675,7 +2675,6 @@ def build_spec() -> dict[str, Any]:
         offer_packs=True,
     ))["properties"]["error"]
     payment_required_error["required"].remove("packs")
-    payment_required_error["required"].remove("terms_url")
 
     def transport(status: int, description: str) -> tuple[str, dict[str, Any]]:
         return str(status), _json_body(description,
@@ -3541,7 +3540,7 @@ def render() -> str:
         spec["components"]["schemas"] = _split_hardware_description(spec["components"]["schemas"])
     apply_guide_headers(spec)
     compact_schemas(spec)
-    return HEADER + yaml.safe_dump(spec, sort_keys=False, allow_unicode=True, width=100, default_flow_style=None)
+    return HEADER + yaml.safe_dump(spec, sort_keys=False, allow_unicode=True, width=160, default_flow_style=None)
 
 
 def _split_hardware_description(value):
