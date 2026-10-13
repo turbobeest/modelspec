@@ -645,7 +645,7 @@
           "type": "integer"
         },
         "projects_contract": {
-          "const": "2.15",
+          "const": "2.16",
           "title": "Projects Contract",
           "type": "string"
         },
@@ -863,8 +863,23 @@
           "title": "Facts",
           "type": "array"
         },
+        "hardware_estimates": {
+          "items": {
+            "$ref": "#/$defs/HardwareEstimate"
+          },
+          "title": "Hardware Estimates",
+          "type": "array"
+        },
         "offering": {
           "$ref": "#/$defs/OfferingRef"
+        },
+        "unknown_facets": {
+          "items": {
+            "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
+            "type": "string"
+          },
+          "title": "Unknown Facets",
+          "type": "array"
         }
       },
       "required": [
@@ -1686,8 +1701,8 @@
           "type": "array"
         },
         "contract_version": {
-          "const": "2.15",
-          "default": "2.15",
+          "const": "2.16",
+          "default": "2.16",
           "title": "Contract Version",
           "type": "string"
         },
@@ -2546,6 +2561,28 @@
       "title": "EvidenceQualifiers",
       "type": "object"
     },
+    "FactInterval": {
+      "additionalProperties": false,
+      "description": "An estimate's scenario bounds in the fact's unit, not a confidence interval.",
+      "properties": {
+        "high": {
+          "minimum": 0,
+          "title": "High",
+          "type": "number"
+        },
+        "low": {
+          "minimum": 0,
+          "title": "Low",
+          "type": "number"
+        }
+      },
+      "required": [
+        "low",
+        "high"
+      ],
+      "title": "FactInterval",
+      "type": "object"
+    },
     "FeedbackPointer": {
       "additionalProperties": false,
       "description": "Where to say whether this answer held up. The same on every decision.\n\nAdded in 2.10 (MODEL-221), so that an agent holding an answer finds the\nfeedback endpoint without reading anything else. No key is needed.",
@@ -2754,6 +2791,100 @@
         "class"
       ],
       "title": "Hardware",
+      "type": "object"
+    },
+    "HardwareEstimate": {
+      "additionalProperties": false,
+      "description": "One device's estimate, separate from the known facts. Added in 2.16.",
+      "properties": {
+        "device": {
+          "maxLength": 120,
+          "minLength": 1,
+          "title": "Device",
+          "type": "string"
+        },
+        "facet": {
+          "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
+          "title": "Facet",
+          "type": "string"
+        },
+        "formula": {
+          "title": "Formula",
+          "type": "string"
+        },
+        "interval": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/FactInterval"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "quantisation": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Quantisation"
+        },
+        "records": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Records",
+          "type": "array"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "unit": {
+          "title": "Unit",
+          "type": "string"
+        },
+        "unknown_reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Unknown Reason"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        }
+      },
+      "required": [
+        "device",
+        "facet",
+        "value",
+        "unit",
+        "quantisation",
+        "formula"
+      ],
+      "title": "HardwareEstimate",
       "type": "object"
     },
     "InSet": {
@@ -5794,5 +5925,5 @@
   ],
   "description": "Generated from decision/contract.py by `python -m decision.schema`. Do not edit by hand. The prose is docs/decision-contract.md.",
   "title": "ModelSpec decision contract",
-  "x-contract-version": "2.15"
+  "x-contract-version": "2.16"
 }

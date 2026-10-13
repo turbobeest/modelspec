@@ -160,6 +160,7 @@ def validate(
     *,
     facets: FacetLookup | None = None,
     profiles: Mapping[str, InventoryProfile] | None = None,
+    _identity: Spec | None = None,
 ) -> Resolved:
     """Run the decision stages through resolve, stopping before filtering."""
     if snapshot is None:
@@ -186,6 +187,12 @@ def validate(
     if spec.explain in ("summary", "full"):
         snapshot.require_explanation_records()
     resolved = resolve(spec, facets=facets, profiles=profiles)
+    if resolved.profile is not None and isinstance(spec.profile, str):
+        named_profile = (_identity or spec).model_copy(update={"profile": resolved.profile})
+        try:
+            named_profile._hardware_needs_one_device()
+        except ValueError as exc:
+            raise SpecError([Issue(None, "estate.devices", str(exc), "estate.devices")]) from None
     _check_refinements(spec, snapshot)
     return resolved
 
@@ -516,7 +523,7 @@ def decide(
         answered = _decide(
             trial, snapshot, facets=facets, profiles=profiles,
             evidence_selectors=evidence_selectors, _reach=reach, _capture=seen,
-            _relax_single=False,
+            _relax_single=False, _identity=spec,
         )
         return estate_module.Ran(answered, seen["models"], seen["rows"], seen["computed"])
 
@@ -547,18 +554,27 @@ def _decide(
     _identity: Spec | None = None,
     _relax_single: bool = True,
 ) -> Decision:
-    resolved = validate(spec, snapshot, facets=facets, profiles=profiles)
+    resolved = validate(spec, snapshot, facets=facets, profiles=profiles, _identity=_identity)
     if spec.exclude_benchmarks:
         from decision.capability import excluding_benchmarks
 
         snapshot = excluding_benchmarks(snapshot, spec.exclude_benchmarks)
     # Computed facets (offering.cost_per_task) depend on the spec, so the
     # remaining stages use the same per-decision view validation prepared for.
+    from decision.hardware import HARDWARE_FACETS, requested_devices
+
+    context_spec = _identity or spec
+    devices = requested_devices(context_spec, resolved.conditions)
     snapshot = with_computed(
         snapshot, spec.task_tokens or DEFAULT_TASK_TOKENS,
         None if _reach is None else _reach.marginal,
         frozenset() if _reach is None else _reach.unpriced,
         None if _reach is None else _reach.plan_prices,
+        devices=devices,
+        scalar_device=(context_spec.estate.devices[0] if context_spec.estate is not None
+                       and len(context_spec.estate.devices) == 1 else None),
+        hardware_context=bool(context_spec.estate is not None and context_spec.estate.devices)
+        or (context_spec.access is not None and context_spec.access.kind == "own_hardware"),
     )
     access = spec.access
     # A chat app route is paid by the month: order and break ties on the plan's price.
@@ -815,6 +831,8 @@ def _decide(
                          or (spec.access is not None and spec.access.kind == "own_hardware")),
         "quality_objective": quality_objective,
         "not_applied": sorted(requested - domains),
+        "hardware_estimates": bool(devices) and (
+            spec.explain == "full" or bool(set(HARDWARE_FACETS) & named_facets(resolved))),
     }
     if _capture is not None:
         _capture["reading_inputs"] = reading_inputs

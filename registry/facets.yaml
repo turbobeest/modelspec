@@ -41,6 +41,9 @@
 schema_version: 2
 
 units:
+  - id: gigabytes
+    definition: >-
+      Decimal gigabytes of memory, 1,000,000,000 bytes per GB.
   - id: usd_per_billing_period
     definition: >-
       United States dollars charged for one billing period of a subscription
@@ -621,6 +624,39 @@ facets:
     tier: best_effort
     risk: capability
     permitted_source_kinds: [modelspec_estimate]
+
+  # ── Hardware: per-decision estimates (MODEL-348) ───────────────────────────
+  - id: hardware.weights_gb
+    label: Estimated weight memory
+    subject: model
+    value_type: {kind: number}
+    better: lower
+    unit: gigabytes
+    definition: >-
+      Resident weight memory from verified total parameters at the highest-quality
+      quantisation fitting the named device after the 25% working allowance.
+      One estimate per explicitly named device. A scalar condition or objective
+      requires exactly one device in estate.devices. Never measured or stored.
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [modelspec_estimate]
+    computed_by: MODEL-348
+  - id: hardware.decode_tps_estimate
+    label: Estimated decode speed
+    subject: model
+    value_type: {kind: number}
+    better: higher
+    unit: tokens_per_second
+    definition: >-
+      Bandwidth roofline from verified active parameters at the memory estimate's
+      quantisation, with 70% efficiency and wide 35% to 85% scenario bounds.
+      Unknown without active parameters, sourced bandwidth or a fitting quantisation.
+      A scalar condition or objective requires exactly one device in estate.devices.
+      Never measured.
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [modelspec_estimate]
+    computed_by: MODEL-348
 
   # ── Offering: identity ────────────────────────────────────────────────────
   - id: offering.provider

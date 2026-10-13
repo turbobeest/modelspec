@@ -565,6 +565,61 @@ def test_a_paid_vocabulary_read_charges_one_credit_per_block(bundled_entry):
     assert run(env.CREDITS.balance(holder)).available == 0
 
 
+@pytest.mark.parametrize("method", ["GET", "HEAD"])
+@pytest.mark.parametrize("free_reads", [0, 10])
+def test_cancelled_key_with_pack_credits_is_admitted_and_charged(
+    bundled_entry, policy, method, free_reads,
+):
+    env = environment(HUMAN_GATE_ENABLED="false", X402_ENABLED="false")
+    kv, ledger = env.ACCESS.store, env.CREDITS
+    started = run(apply(kv, policy, payload(
+        "checkout.session.completed",
+        checkout_obj(metadata={"modelspec_price_id": SOLO_V2}),
+        "evt_catalog_plan",
+    ), ledger=ledger))
+    assert started.status == 200
+    claimed = _claim(kv, policy, ledger)
+    assert claimed.status == 200
+    key = claimed.body["key"]
+    holder = _holder(key)
+    assert run(ledger.credit(
+        holder, "catalog_pack", 2, "fixture",
+        expires_at="2027-09-17T00:00:00Z", source="pack",
+    )).credited
+    cancelled = run(apply(kv, policy, payload(
+        "customer.subscription.deleted",
+        {"id": SUB, "object": "subscription", "status": "canceled", "customer": CUS},
+        "evt_catalog_cancelled",
+    ), ledger=ledger))
+    assert cancelled.status == 200
+    record = run(access_keys.lookup(kv, key))
+    assert record is not None and record.tier == "free"
+    before = run(ledger.balance(holder))
+    assert (before.available, before.monthly, before.packs, before.plan) == (2, 0, 2, "")
+    day_bucket, _reset = access_limits.day_window(datetime.now(UTC))
+    run(kv.put(access_limits.counter_name(record.key_id, access_limits.DAY, day_bucket),
+               str(free_reads)))
+
+    worker = _decision_worker(bundled_entry, env)
+    response = run(worker.fetch(_vocab(key, method=method)))
+    assert response.status == 200
+    if method == "HEAD":
+        assert response.body is None
+    else:
+        assert response.json() == {"facets": []}
+    after = run(ledger.balance(holder))
+    assert (after.available, after.monthly, after.packs, after.plan) == (1, 0, 1, "")
+    for _ in range(19):
+        assert run(worker.fetch(_vocab(key, method=method))).status == 200
+    assert run(ledger.balance(holder)).available == 0
+    assert ledger.state.accounts[holder].read_count == 20
+    counter = access_limits.counter_name(record.key_id, access_limits.DAY, day_bucket)
+    assert kv.data[counter] == str(free_reads)
+    exhausted = run(worker.fetch(_vocab(key, method=method)))
+    assert exhausted.status == (429 if free_reads == 10 else 200)
+    assert ledger.state.accounts[holder].read_count == 20
+
+
 def test_a_vocabulary_read_past_the_daily_cap_or_burst_is_rate_limited(bundled_entry, policy):
     env = environment(HUMAN_GATE_ENABLED="false", X402_ENABLED="false")
     key = run(_issue(env, "paid", "live_read_cap"))
@@ -666,7 +721,8 @@ def test_scale_catalog_read_reports_one_meter_event_per_settled_block(bundled_en
     assert fields["event_name"] == "modelspec_scale_overage"
     assert fields["payload[stripe_customer_id]"] == "cus_meter"
     assert fields["payload[value]"] == "1"
-    assert fields["identifier"] == f"{holder}:read:1"
+    assert fields["identifier"] == (
+        f"{env.CREDITS.state.accounts[holder].meter_id}:read:1")
     stopped = run(worker.fetch(_vocab(key)))
     assert stopped.status == 200
     assert len(calls) == 1
@@ -925,6 +981,7 @@ def _overage_env():
 def test_failed_meter_reports_are_one_unreported_integer():
     ledger = credits.MemoryLedger()
     holder = "bounded"
+    assert run(ledger.set_monthly(holder, 0, "in_bounded", "Scale")).credited
     for n in range(4):
         assert run(ledger.note_unreported(
             holder, 2, f"evt-{n}", "cus_b", "modelspec_scale_overage"))
@@ -958,6 +1015,7 @@ def test_failed_meter_reports_are_one_unreported_integer():
 def test_the_next_meter_report_sends_the_backlog_then_the_new_event(entry):
     env = SimpleNamespace(STRIPE_SECRET_KEY="sk_test_fixture", CREDITS=credits.MemoryLedger())
     holder = "key:abc"
+    assert run(env.CREDITS.set_monthly(holder, 0, "in_backlog", "Scale")).credited
     for n in range(3):
         assert run(env.CREDITS.note_unreported(
             holder, 1, f"evt-{n}", "cus_ok", "modelspec_scale_overage"))
@@ -965,8 +1023,9 @@ def test_the_next_meter_report_sends_the_backlog_then_the_new_event(entry):
     entry.fetch = fetch
     run(entry._post_overage(
         env, _overage_spec(), "cus_ok", 4, f"{holder}:read:9", holder=holder))
+    meter = env.CREDITS.state.accounts[holder].meter_id
     assert [row["identifier"] for row in calls] == [
-        f"{holder}:backlog:0", f"{holder}:read:9"]
+        f"{meter}:backlog:0", f"{holder}:read:9"]
     assert calls[0]["payload[value]"] == "3"
     assert calls[1]["payload[value]"] == "4"
     assert calls[0]["event_name"] == "modelspec_scale_overage"
@@ -1001,7 +1060,7 @@ def test_a_meter_event_timeout_records_unreported_overage_and_returns_the_catalo
     assert account.overage_unreported == 2
     assert account.overage_backlog_open == 2
     assert [row[1] for row in account.overage_uncertain] == [1]
-    assert account.overage_uncertain[0][0].startswith(f"{holder}:read:")
+    assert account.overage_uncertain[0][0] == f"{account.meter_id}:read:1"
     assert account.overage_unreconciled == 0
     assert timeouts == [5_000]
 
@@ -1009,6 +1068,7 @@ def test_a_meter_event_timeout_records_unreported_overage_and_returns_the_catalo
 def test_a_duplicate_backlog_identifier_is_accepted_and_acked(entry):
     env = SimpleNamespace(STRIPE_SECRET_KEY="sk_test_fixture", CREDITS=credits.MemoryLedger())
     holder = "key:dup"
+    assert run(env.CREDITS.set_monthly(holder, 0, "in_dup", "Scale")).credited
     assert run(env.CREDITS.note_unreported(
         holder, 4, "evt-0", "cus_d", "modelspec_scale_overage"))
     calls = []
@@ -1041,7 +1101,7 @@ def test_a_duplicate_backlog_identifier_is_accepted_and_acked(entry):
         env, _overage_spec(), "cus_d", 1, f"{holder}:read:2", holder=holder))
     account = env.CREDITS.state.accounts[holder]
     assert [row["identifier"] for row in calls] == [
-        f"{holder}:backlog:0", f"{holder}:read:2"]
+        f"{account.meter_id}:backlog:0", f"{holder}:read:2"]
     assert account.overage_unreported == 0
     assert account.overage_backlog_open == 0
     assert account.overage_backlog_n == 1
@@ -1050,11 +1110,13 @@ def test_a_duplicate_backlog_identifier_is_accepted_and_acked(entry):
 def test_ack_backlog_acks_only_the_open_n():
     ledger = credits.MemoryLedger()
     holder = "ack-n"
+    assert run(ledger.set_monthly(holder, 0, "in_ack", "Scale")).credited
     assert run(ledger.note_unreported(
         holder, 4, "evt-0", "cus", "modelspec_scale_overage"))
-    assert run(ledger.open_backlog(holder)) == (4, 0, f"{holder}:backlog:0")
-    assert run(ledger.ack_backlog(holder, 4, 1)) is False
+    opened = run(ledger.open_backlog(holder))
     account = ledger.state.accounts[holder]
+    assert opened == (4, 0, f"{account.meter_id}:backlog:0")
+    assert run(ledger.ack_backlog(holder, 4, 1)) is False
     assert account.overage_unreported == 4
     assert account.overage_backlog_open == 4
     assert account.overage_backlog_n == 0
@@ -1064,7 +1126,8 @@ def test_ack_backlog_acks_only_the_open_n():
     assert account.overage_backlog_n == 1
     assert run(ledger.note_unreported(
         holder, 4, "evt-1", "cus", "modelspec_scale_overage"))
-    assert run(ledger.open_backlog(holder)) == (4, 1, f"{holder}:backlog:1")
+    assert run(ledger.open_backlog(holder)) == (
+        4, 1, f"{account.meter_id}:backlog:1")
     assert run(ledger.ack_backlog(holder, 4, 0)) is False
     assert account.overage_unreported == 4
     assert account.overage_backlog_open == 4
@@ -1115,6 +1178,7 @@ def test_settled_overage_from_a_dropped_read_ticket_is_recorded_unreported(
 def test_a_failed_backlog_drain_keeps_the_unreported_total(entry):
     env = SimpleNamespace(STRIPE_SECRET_KEY="sk_test_fixture", CREDITS=credits.MemoryLedger())
     holder = "key:abc"
+    assert run(env.CREDITS.set_monthly(holder, 0, "in_failed_backlog", "Scale")).credited
     assert run(env.CREDITS.note_unreported(
         holder, 4, "evt-0", "cus_f", "modelspec_scale_overage"))
     calls, fetch = _meter_fetch(fail_backlog=True)
@@ -1122,7 +1186,8 @@ def test_a_failed_backlog_drain_keeps_the_unreported_total(entry):
     run(entry._post_overage(
         env, _overage_spec(), "cus_f", 1, f"{holder}:read:2", holder=holder))
     account = env.CREDITS.state.accounts[holder]
-    assert [row["identifier"] for row in calls] == [f"{holder}:backlog:0"]
+    backlog = f"{account.meter_id}:backlog:0"
+    assert [row["identifier"] for row in calls] == [backlog]
     assert calls[0]["payload[value]"] == "4"
     assert account.overage_unreported == 4
     assert [row[0] for row in account.overage_uncertain] == [f"{holder}:read:2"]
@@ -1133,7 +1198,7 @@ def test_a_failed_backlog_drain_keeps_the_unreported_total(entry):
     run(entry._post_overage(
         env, _overage_spec(), "cus_f", 1, f"{holder}:read:3", holder=holder))
     assert [row["identifier"] for row in ok_calls] == [
-        f"{holder}:read:2", f"{holder}:backlog:0", f"{holder}:read:3"]
+        f"{holder}:read:2", backlog, f"{holder}:read:3"]
     assert ok_calls[1]["payload[value]"] == "4"
     assert account.overage_unreported == 0
     assert account.overage_uncertain == []
@@ -1175,6 +1240,37 @@ def test_a_failed_keep_does_not_report_metered_overage(bundled_entry):
     assert calls == []
     assert run(env.CREDITS.balance(holder)).overage_used == before
     assert env.CREDITS.state.accounts[holder].overage_unreported == 0
+
+
+def test_concurrent_read_refund_keeps_charge_when_another_read_succeeds(
+        bundled_entry):
+    env = environment(HUMAN_GATE_ENABLED="false", X402_ENABLED="false")
+    key = run(_issue(env, "paid", "live_read_refund_race"))
+    holder = x402.holder_from_key(key)
+    assert run(env.CREDITS.set_monthly(holder, 2, "in_read_race", "Solo")).credited
+    worker = _decision_worker(bundled_entry, env)
+    real_keep = env.CREDITS.keep_read
+
+    async def race():
+        other_read_succeeded = asyncio.Event()
+
+        async def fail_first_keep(holder, token):
+            if token == 1:
+                await asyncio.wait_for(other_read_succeeded.wait(), timeout=2)
+                raise RuntimeError("first keep failed")
+            kept = await real_keep(holder, token)
+            other_read_succeeded.set()
+            return kept
+
+        env.CREDITS.keep_read = fail_first_keep
+        return await asyncio.gather(
+            worker.fetch(_vocab(key)), worker.fetch(_vocab(key)),
+            return_exceptions=True)
+
+    failed, succeeded = run(race())
+    assert isinstance(failed, RuntimeError) and str(failed) == "first keep failed"
+    assert succeeded.status == 200
+    assert run(env.CREDITS.balance(holder)).available == 1
 
 
 def test_post_overage_never_raises_when_the_http_stub_raises(bundled_entry):
@@ -1234,6 +1330,7 @@ def test_take_read_drops_undo_tickets_from_before_today():
 def test_a_timeout_retries_the_original_meter_identifier(entry):
     env = _overage_env()
     holder = "key:slow"
+    assert run(env.CREDITS.set_monthly(holder, 0, "in_slow", "Scale")).credited
     ident = f"{holder}:read:7"
     calls, fetch = _meter_script(["timeout"])
     entry.fetch = fetch
@@ -1257,6 +1354,7 @@ def test_a_timeout_retries_the_original_meter_identifier(entry):
 def test_a_5xx_retries_the_original_meter_identifier(entry):
     env = _overage_env()
     holder = "key:down"
+    assert run(env.CREDITS.set_monthly(holder, 0, "in_down", "Scale")).credited
     ident = f"{holder}:read:3"
     calls, fetch = _meter_script([500])
     entry.fetch = fetch
@@ -1278,6 +1376,7 @@ def test_a_5xx_retries_the_original_meter_identifier(entry):
 def test_a_duplicate_response_on_retry_clears_the_uncertain_entry(entry):
     env = _overage_env()
     holder = "key:dup-u"
+    assert run(env.CREDITS.set_monthly(holder, 0, "in_dup_u", "Scale")).credited
     ident = f"{holder}:read:1"
     _calls, fetch = _meter_script(["timeout"])
     entry.fetch = fetch
@@ -1298,6 +1397,7 @@ def test_a_duplicate_response_on_retry_clears_the_uncertain_entry(entry):
 def test_a_definite_4xx_goes_to_the_backlog_total(entry):
     env = _overage_env()
     holder = "key:rej"
+    assert run(env.CREDITS.set_monthly(holder, 0, "in_rej", "Scale")).credited
     ident = f"{holder}:read:1"
     calls, fetch = _meter_script([400])
     entry.fetch = fetch
@@ -1313,7 +1413,7 @@ def test_a_definite_4xx_goes_to_the_backlog_total(entry):
     run(entry._post_overage(
         env, _overage_spec(), "cus_r", 1, f"{holder}:read:2", holder=holder))
     assert [row["identifier"] for row in calls] == [
-        f"{holder}:backlog:0", f"{holder}:read:2"]
+        f"{account.meter_id}:backlog:0", f"{holder}:read:2"]
     assert calls[0]["payload[value]"] == "6"
     assert account.overage_unreported == 0
     assert account.overage_backlog_open == 0
@@ -1322,6 +1422,7 @@ def test_a_definite_4xx_goes_to_the_backlog_total(entry):
 def test_one_timeout_parks_the_new_event_without_another_send(entry):
     env = _overage_env()
     holder = "key:stall"
+    assert run(env.CREDITS.set_monthly(holder, 0, "in_stall", "Scale")).credited
     created = int(time.time())
     for n in range(5):
         assert run(env.CREDITS.note_uncertain(
@@ -1352,6 +1453,7 @@ def test_one_timeout_parks_the_new_event_without_another_send(entry):
 def test_a_request_retries_at_most_three_uncertain_entries(entry):
     env = _overage_env()
     holder = "key:bound"
+    assert run(env.CREDITS.set_monthly(holder, 0, "in_bound", "Scale")).credited
     created = int(time.time()) - 30
     for n in range(4):
         assert run(env.CREDITS.note_uncertain(holder, 1, f"{holder}:u:{n}", created))
@@ -1372,6 +1474,7 @@ def test_a_request_retries_at_most_three_uncertain_entries(entry):
 def test_a_rejected_uncertain_retry_is_unreconciled(entry):
     env = _overage_env()
     holder = "key:rej-retry"
+    assert run(env.CREDITS.set_monthly(holder, 0, "in_rej_retry", "Scale")).credited
     created = int(time.time())
     assert run(env.CREDITS.note_uncertain(holder, 6, f"{holder}:u:0", created))
     assert run(env.CREDITS.note_uncertain(holder, 2, f"{holder}:u:1", created))
@@ -1390,6 +1493,7 @@ def test_a_rejected_uncertain_retry_is_unreconciled(entry):
 def test_uncertain_entries_older_than_20_hours_are_unreconciled_before_retry(entry):
     env = _overage_env()
     holder = "key:aged"
+    assert run(env.CREDITS.set_monthly(holder, 0, "in_aged", "Scale")).credited
     now = int(time.time())
     stale_at = now - credits.UNCERTAIN_MAX_AGE_SECONDS - 5
     fresh_at = now - 10
@@ -1408,6 +1512,7 @@ def test_uncertain_entries_older_than_20_hours_are_unreconciled_before_retry(ent
 
 def test_an_uncertain_entry_is_kept_until_it_is_older_than_20_hours():
     state = credits.LedgerState()
+    assert state.set_monthly("h", 0, "in_edge", "Scale").credited
     now = 1_800_000_000
     limit = credits.UNCERTAIN_MAX_AGE_SECONDS
     state.note_uncertain("h", 1, "edge", now - limit)
@@ -1448,6 +1553,7 @@ def test_durable_ledger_keeps_created_at_and_unreconciles_a_retry():
 
     ns = Namespace()
     ledger = credits.DurableLedger(ns)
+    assert run(ledger.set_monthly("h", 0, "in_durable_retry", "Scale")).credited
     now = 1_800_000_000
     stale_at = now - credits.UNCERTAIN_MAX_AGE_SECONDS - 1
     assert run(ledger.note_uncertain("h", 4, "stale", stale_at))
@@ -1463,6 +1569,7 @@ def test_durable_ledger_keeps_created_at_and_unreconciles_a_retry():
 def test_the_21st_uncertain_event_is_unreconciled_and_never_sent(entry):
     env = _overage_env()
     holder = "key:cap"
+    assert run(env.CREDITS.set_monthly(holder, 0, "in_cap", "Scale")).credited
     for n in range(credits.UNCERTAIN_METER_CAP):
         assert run(env.CREDITS.note_uncertain(holder, 1, f"{holder}:u:{n}"))
     overflow = f"{holder}:u:overflow"
@@ -1503,13 +1610,16 @@ def test_the_21st_uncertain_event_is_unreconciled_and_never_sent(entry):
 def test_rotation_preserves_uncertain_events_and_identifiers(entry):
     env = _overage_env()
     src, dst = "key:old", "key:new"
+    assert run(env.CREDITS.set_monthly(src, 0, "in_old", "Scale")).credited
     assert run(env.CREDITS.note_uncertain(src, 2, "key:old:read:1"))
     assert run(env.CREDITS.note_uncertain(src, 3, "key:old:read:4"))
     stamped = [row[2] for row in env.CREDITS.state.accounts[src].overage_uncertain]
     env.CREDITS.state.accounts[src].overage_unreconciled = 8
     assert run(env.CREDITS.note_unreported(
         src, 5, "evt-reject", "cus_rot", "modelspec_scale_overage"))
-    assert run(env.CREDITS.open_backlog(src)) == (5, 0, "key:old:backlog:0")
+    opened = run(env.CREDITS.open_backlog(src))
+    meter = env.CREDITS.state.accounts[src].meter_id
+    assert opened == (5, 0, f"{meter}:backlog:0")
     assert run(env.CREDITS.transfer(src, dst))
     assert src not in env.CREDITS.state.accounts
     moved = env.CREDITS.state.accounts[dst]
@@ -1519,7 +1629,8 @@ def test_rotation_preserves_uncertain_events_and_identifiers(entry):
     assert moved.overage_unreconciled == 8
     assert moved.overage_backlog_open == 5
     assert moved.overage_backlog_n == 0
-    assert moved.overage_backlog_id == "key:old:backlog:0"
+    assert moved.meter_id == meter
+    assert moved.overage_backlog_id == f"{meter}:backlog:0"
 
     calls, fetch = _meter_script([200, 200, 200, 200])
     entry.fetch = fetch
@@ -1528,7 +1639,7 @@ def test_rotation_preserves_uncertain_events_and_identifiers(entry):
     assert [row["identifier"] for row in calls] == [
         "key:old:read:1",
         "key:old:read:4",
-        "key:old:backlog:0",
+        f"{meter}:backlog:0",
         "key:new:read:9",
     ]
     assert calls[2]["payload[value]"] == "5"
@@ -1542,14 +1653,18 @@ def test_rotation_preserves_uncertain_events_and_identifiers(entry):
 def test_transfer_onto_an_existing_holder_keeps_backlog_identifiers():
     state = credits.LedgerState()
     state.set_monthly("key:new", 1, "in_rot", "Scale")
+    assert state.set_monthly("key:old", 0, "in_rot_old", "Scale").credited
     state.note_unreported("key:old", 5, "evt-old")
-    assert state.open_backlog("key:old") == (5, 0, "key:old:backlog:0")
+    opened_old = state.open_backlog("key:old")
+    old_meter = state.accounts["key:old"].meter_id
+    assert opened_old == (5, 0, f"{old_meter}:backlog:0")
     state.note_uncertain("key:old", 2, "key:old:read:1")
     state.accounts["key:old"].overage_unreconciled = 4
     assert state.transfer("key:old", "key:new")
     acc = state.accounts["key:new"]
     assert acc.monthly == 1
-    assert acc.overage_backlog_id == "key:old:backlog:0"
+    assert acc.meter_id == old_meter
+    assert acc.overage_backlog_id == opened_old[2]
     assert acc.overage_backlog_open == 5
     assert acc.overage_backlog_n == 0
     assert [(row[0], row[1]) for row in acc.overage_uncertain] == [("key:old:read:1", 2)]
@@ -1557,16 +1672,23 @@ def test_transfer_onto_an_existing_holder_keeps_backlog_identifiers():
     assert acc.overage_unreported == 5
 
     both = credits.LedgerState()
+    assert both.set_monthly("key:new", 0, "in_both_new", "Scale").credited
+    assert both.set_monthly("key:old", 0, "in_both_old", "Scale").credited
     both.note_unreported("key:new", 3, "evt-dest")
-    assert both.open_backlog("key:new") == (3, 0, "key:new:backlog:0")
+    dest_open = both.open_backlog("key:new")
+    dest_meter = both.accounts["key:new"].meter_id
+    assert dest_open == (3, 0, f"{dest_meter}:backlog:0")
     both.note_unreported("key:old", 5, "evt-src")
-    assert both.open_backlog("key:old") == (5, 0, "key:old:backlog:0")
+    src_open = both.open_backlog("key:old")
+    src_meter = both.accounts["key:old"].meter_id
+    assert src_open == (5, 0, f"{src_meter}:backlog:0")
     assert both.transfer("key:old", "key:new")
     merged = both.accounts["key:new"]
-    assert merged.overage_backlog_id == "key:new:backlog:0"
+    assert merged.meter_id == dest_meter
+    assert merged.overage_backlog_id == dest_open[2]
     assert merged.overage_backlog_open == 3
     assert merged.overage_unreported == 3
-    assert ("key:old:backlog:0", 5) in [(row[0], row[1]) for row in merged.overage_uncertain]
+    assert (src_open[2], 5) in [(row[0], row[1]) for row in merged.overage_uncertain]
 
 
 def test_billing_docs_name_the_unreported_overage_backlog():
@@ -1576,7 +1698,8 @@ def test_billing_docs_name_the_unreported_overage_backlog():
     assert "overage_uncertain" in text
     assert "overage_unreconciled" in text
     assert "meter event list" in text
-    assert "{holder}:backlog:{n}" in text
+    assert "{meter_id}:backlog:{n}" in text
+    assert "meter_id" in text
     prose = " ".join(text.split())
     assert (
         "The backlog drains on the account's next overage report; an account "

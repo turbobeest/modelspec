@@ -542,17 +542,20 @@ async def _post_overage(env, spec, customer_id: str, units: int, identifier: str
                         holder: str = "") -> None:
     """Report settled Scale overage. Never raises: the answer is already owed.
 
-    Retries at most 3 uncertain entries, then the open backlog, then this
+    Sends at most 3 stored events, then the open backlog, then this
     event. Each post waits at most 5 seconds and sends `timestamp` so Stripe
-    bills the period the usage happened. The first of those sends that is not
+    bills the period the usage happened. The backlog identifier comes from the
+    ledger. When that identifier is missing, this event is parked and nothing
+    is sent under a made-up id. An event without an identifier is never sent;
+    parking it adds its units to `overage_unreported`. The first of those sends that is not
     accepted stops the report: the rest are skipped, and this event is parked
     with `note_uncertain` under the identifier it already has. A retry that
     gets a definite non-duplicate 4xx is removed and its units go to
     `overage_unreconciled`. Entries older than 20 hours are moved there
     before any retry. A definite HTTP 4xx on this event's own send still adds
-    its units to `overage_unreported`.
+    its units to `overage_unreported`. Zero units drains stored commits only.
     """
-    if spec is None or not spec.active or units < 1 or not customer_id:
+    if spec is None or not spec.active or not customer_id:
         return
     secret = str(getattr(env, "STRIPE_SECRET_KEY", "") or "")
     if not secret:
@@ -566,26 +569,40 @@ async def _post_overage(env, spec, customer_id: str, units: int, identifier: str
             value=value, identifier=event_id, timestamp=timestamp, http=_stripe_http,
             timeout_ms=5_000)
 
+    named = bool(str(identifier or "").strip())
+
     async def park() -> None:
+        """Keep this event for a later report. An unnamed one was never sent,
+        so it joins the unreported total, which the next backlog names."""
+        if units < 1:
+            return
         try:
-            await ledger.note_uncertain(holder, units, identifier, occurred)
+            if named:
+                await ledger.note_uncertain(holder, units, identifier, occurred)
+            else:
+                await ledger.note_unreported(
+                    holder, units, "unreported", customer_id, spec.meter_event)
         except Exception:
             logging.error("could not record unreported overage")
 
     if holder:
-        pending: list[tuple[str, int, int]] = []
+        pending: list[tuple[str, int, int, bool]] = []
         try:
-            pending = await ledger.age_uncertain(holder, occurred)
+            pending = await ledger.open_meter_events(holder, occurred)
         except Exception:
             logging.error("could not read uncertain overage")
         limit = credits.UNCERTAIN_RETRIES_PER_REQUEST
-        for event_id, value, created_at in pending[:limit]:
+        for event_id, value, created_at, first_attempt in pending[:limit]:
             try:
                 await send(value, event_id, int(created_at))
             except Exception as exc:
                 if billing_stripe.meter_event_was_rejected(exc):
                     try:
-                        await ledger.unreconcile_uncertain(holder, event_id)
+                        if first_attempt:
+                            await ledger.note_unreported(
+                                holder, value, event_id, customer_id, spec.meter_event)
+                        else:
+                            await ledger.unreconcile_uncertain(holder, event_id)
                     except Exception:
                         logging.error("could not unreconcile overage")
                 else:
@@ -605,8 +622,10 @@ async def _post_overage(env, spec, customer_id: str, units: int, identifier: str
         except Exception:
             logging.error("could not read unreported overage")
         if outstanding > 0:
-            if not backlog_id:
-                backlog_id = f"{holder}:backlog:{seq}"
+            if not str(backlog_id or "").strip():
+                logging.error("scale overage backlog has no identifier")
+                await park()
+                return
             try:
                 await send(outstanding, backlog_id, occurred)
             except Exception:
@@ -614,10 +633,15 @@ async def _post_overage(env, spec, customer_id: str, units: int, identifier: str
                 await park()
                 return
             try:
-                await ledger.ack_backlog(holder, outstanding, seq)
+                await ledger.ack_backlog(holder, outstanding, seq, backlog_id)
             except Exception:
                 logging.error("could not clear unreported overage")
 
+    if units < 1:
+        return
+    if not named:
+        await park()
+        return
     try:
         await send(units, identifier, occurred)
     except Exception as exc:
@@ -898,14 +922,26 @@ class Default(WorkerEntrypoint):
                 if not admitted:
                     async def allowed(*args):
                         return 200, {}
+
+                    async def skip_catalog_limits(record, tier):
+                        if tier.unlimited:
+                            return False
+                        if tier.paid:
+                            return True
+                        if access_config.load_policy(self.env).credits.reads is None:
+                            return False
+                        holder = x402.holder_from_key(api_key)
+                        if not holder:
+                            return False
+                        return await credits.ledger_from_env(self.env).has_read_funding(holder)
+
                     outcome = await access.gate(
                         api_key=api_key,
                         enforced=access.enforcement(getattr(self.env, ACCESS_ENFORCED_VAR, None)),
                         kv=_access_store(self.env), load_policy=lambda: access_config.load_policy(self.env),
                         anonymous=allowed, live=allowed,
                         sandbox=lambda: access.refusal(access.SANDBOX_NOT_AVAILABLE, "Use a live key for vocabulary.", envelope={}),
-                        skip_limits=lambda record, tier: bool(
-                            tier.paid and not tier.unlimited),
+                        skip_limits=skip_catalog_limits,
                     )
                     if not outcome.served:
                         return _json_response(outcome.status, outcome.body, {**cors, **outcome.headers})
@@ -1190,13 +1226,14 @@ class Default(WorkerEntrypoint):
         return _json_response(outcome.status, outcome.body, headers)
 
     async def _meter_catalog_read(self, api_key, outcome, cors):
-        """Charge a funded paid key for a successful vocabulary read. Others are free.
+        """Admit and charge a successful keyed vocabulary read from ledger funding.
 
         Visit tokens never reach here. HEAD is the same read as GET and has no
-        body. Free keys keep the tier's own daily limit. An exempt unlimited
-        tier draws nothing. A key with nothing left to bill is served under the
-        free tier's limits. A refused or invalid read is not counted: the caller
-        validates the query before this runs.
+        body. An exempt unlimited tier draws nothing. Unfunded free keys have
+        already used the tier's limits at admission. Funded keys use the ledger
+        regardless of stored tier; exhausted reads retain the free fallback.
+        A refused or invalid read is not charged: the caller validates the
+        query before this runs.
         """
         tier_name = getattr(outcome, "tier", None)
         if not tier_name:
@@ -1207,7 +1244,9 @@ class Default(WorkerEntrypoint):
         except access_config.PolicyError:
             return None
         reads = policy.credits.reads
-        if reads is None or not tier.paid or tier.unlimited:
+        if reads is None or tier.unlimited:
+            return None
+        if outcome.meter is not None and outcome.meter.windows:
             return None
         holder = x402.holder_from_key(api_key)
         if not holder:
@@ -1242,15 +1281,29 @@ class Default(WorkerEntrypoint):
             # the overage is already settled and still has to be reported.
             if taken.overage:
                 try:
-                    await ledger.note_unreported(
-                        holder, int(taken.overage), f"{holder}:read:{taken.token}")
+                    await ledger.note_unreported(holder, int(taken.overage), "read")
                 except Exception:
                     logging.error("could not record settled catalog overage")
             return None
         if taken.overage:
-            await _post_overage(
-                self.env, spec, bal.stripe_customer_id, taken.overage,
-                f"{holder}:read:{taken.token}", holder=holder)
+            event_id = ""
+            try:
+                event_id = await ledger.meter_identifier(
+                    holder, "read", int(taken.token))
+            except Exception:
+                logging.error("could not name catalog overage")
+            if event_id:
+                await _post_overage(
+                    self.env, spec, bal.stripe_customer_id, taken.overage,
+                    event_id, holder=holder)
+            else:
+                try:
+                    await ledger.note_unreported(
+                        holder, int(taken.overage), "read",
+                        bal.stripe_customer_id,
+                        getattr(spec, "meter_event", "") or "")
+                except Exception:
+                    logging.error("could not record settled catalog overage")
         return None
 
     async def _serve_catalog_as_free(self, outcome, cors, policy):

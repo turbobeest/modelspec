@@ -390,8 +390,9 @@ paths:
       responses:
         '200':
           description: 'A decision pinned to the snapshot that produced it: a complete Decision (contract_version
-            2.15), or, when the request sends fields or evidence_for, the separate bounded representation
-            (representation: bounded, bounded_version 1.2, no contract_version).'
+            2.16), with optional top[].hardware_estimates and unknown_facets; or, when the request sends
+            fields or evidence_for, the separate bounded representation (representation: bounded, bounded_version
+            1.2, no contract_version).'
           content:
             application/json:
               schema:
@@ -2161,7 +2162,7 @@ components:
       properties:
         representation: {const: bounded, title: Representation, type: string}
         bounded_version: {const: '1.2', title: Bounded Version, type: string}
-        projects_contract: {const: '2.15', title: Projects Contract, type: string}
+        projects_contract: {const: '2.16', title: Projects Contract, type: string}
         decision_id: {title: Decision Id, type: string}
         snapshot: {title: Snapshot, type: string}
         signature_verified: {$ref: '#/components/schemas/DecisionResponse/properties/signature_verified'}
@@ -2260,6 +2261,14 @@ components:
         evidence:
           items: {$ref: '#/components/schemas/DecisionDomainEvidence'}
           title: Evidence
+          type: array
+        unknown_facets:
+          items: {pattern: '^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$', type: string}
+          title: Unknown Facets
+          type: array
+        hardware_estimates:
+          items: {$ref: '#/components/schemas/DecisionHardwareEstimate'}
+          title: Hardware Estimates
           type: array
       required: [offering]
       title: CandidateValues
@@ -2540,7 +2549,7 @@ components:
           - {$ref: '#/components/schemas/DecisionBenchmarkExclusions'}
           - {type: 'null'}
           default: null
-        contract_version: {const: '2.15', default: '2.15', title: Contract Version, type: string}
+        contract_version: {const: '2.16', default: '2.16', title: Contract Version, type: string}
         decision_id: {pattern: '^dec_[0-9A-Za-z]{8,}$', title: Decision Id, type: string}
         snapshot: {pattern: '^snap_[A-Za-z0-9:._-]+$', title: Snapshot, type: string}
         signature_verified: {default: false, title: Signature Verified, type: boolean}
@@ -2953,6 +2962,15 @@ components:
         direct: {default: false, title: Direct, type: boolean}
       title: EvidenceQualifiers
       type: object
+    DecisionFactInterval:
+      additionalProperties: false
+      description: An estimate's scenario bounds in the fact's unit, not a confidence interval.
+      properties:
+        low: {minimum: 0, title: Low, type: number}
+        high: {minimum: 0, title: High, type: number}
+      required: [low, high]
+      title: FactInterval
+      type: object
     DecisionFeedbackPointer:
       additionalProperties: false
       description: 'Where to say whether this answer held up. The same on every decision.
@@ -3035,6 +3053,46 @@ components:
           title: Memory Gb
       required: [class]
       title: Hardware
+      type: object
+    DecisionHardwareEstimate:
+      additionalProperties: false
+      description: One device's estimate, separate from the known facts. Added in 2.16.
+      properties:
+        device: {maxLength: 120, minLength: 1, title: Device, type: string}
+        facet: {pattern: '^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$', title: Facet, type: string}
+        value:
+          anyOf:
+          - {type: number}
+          - {type: 'null'}
+          title: Value
+        unit: {title: Unit, type: string}
+        quantisation:
+          anyOf:
+          - {type: string}
+          - {type: 'null'}
+          title: Quantisation
+        interval:
+          anyOf:
+          - {$ref: '#/components/schemas/DecisionFactInterval'}
+          - {type: 'null'}
+          default: null
+        unknown_reason:
+          anyOf:
+          - {type: string}
+          - {type: 'null'}
+          default: null
+          title: Unknown Reason
+        formula: {title: Formula, type: string}
+        records:
+          items: {type: string}
+          title: Records
+          type: array
+        source_ids:
+          items: {type: string}
+          title: Source Ids
+          type: array
+      required: [device, facet, value, unit, quantisation, formula]
+      title: HardwareEstimate
       type: object
     DecisionInSet:
       additionalProperties: false
@@ -4449,7 +4507,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.15']
+          enum: ['2.16']
         endpoint:
           type: string
           enum: [decide]
@@ -4498,7 +4556,7 @@ components:
           enum: ['1.2']
         projects_contract:
           type: string
-          enum: ['2.15']
+          enum: ['2.16']
         endpoint:
           type: string
           enum: [decide]
@@ -4519,7 +4577,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.15']
+          enum: ['2.16']
         endpoint:
           type: string
           enum: [decide]
@@ -4549,7 +4607,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.15']
+          enum: ['2.16']
         endpoint:
           type: string
           enum: [decide]
@@ -4565,7 +4623,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.15']
+          enum: ['2.16']
         endpoint:
           type: string
           enum: [compare]
@@ -4595,7 +4653,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.15']
+          enum: ['2.16']
         endpoint:
           type: string
           enum: [compare]
@@ -4848,7 +4906,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.15']
+          enum: ['2.16']
         endpoint:
           type: string
           enum: [compare]

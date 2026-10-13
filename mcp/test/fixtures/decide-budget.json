@@ -19,9 +19,9 @@
   "default": {
     "representation": "bounded",
     "bounded_version": "1.2",
-    "projects_contract": "2.15",
-    "decision_id": "dec_1932b1664c177b74446ef335",
-    "snapshot": "snap_be143b431be06c02",
+    "projects_contract": "2.16",
+    "decision_id": "dec_3f4cebe9dbd4c32f475d168f",
+    "snapshot": "snap_f2bc200545ea3aff",
     "signature_verified": true,
     "spec_hash": "sha256:f5c9c985f23a5bf06c3b6252825be21990d9eeebbd0470652bfff5a6572ba587",
     "explain": "none",
@@ -93,7 +93,7 @@
             "effort": null
           }
         ],
-        "p_best": 0.19140625,
+        "p_best": 0.19921875,
         "warnings": [
           "not_separable"
         ]
@@ -121,7 +121,7 @@
             "effort": null
           }
         ],
-        "p_best": 0.19140625,
+        "p_best": 0.19921875,
         "warnings": [
           "not_separable"
         ]
@@ -149,7 +149,7 @@
             "effort": null
           }
         ],
-        "p_best": 0.19140625,
+        "p_best": 0.19921875,
         "warnings": [
           "not_separable"
         ]
@@ -177,7 +177,7 @@
             "effort": null
           }
         ],
-        "p_best": 0.1484375,
+        "p_best": 0.09765625,
         "warnings": [
           "not_separable"
         ]
@@ -205,7 +205,7 @@
             "effort": null
           }
         ],
-        "p_best": 0.1484375,
+        "p_best": 0.09765625,
         "warnings": [
           "not_separable"
         ]
@@ -233,7 +233,7 @@
             "effort": null
           }
         ],
-        "p_best": 0.1484375,
+        "p_best": 0.09765625,
         "warnings": [
           "not_separable"
         ]
@@ -261,7 +261,7 @@
             "effort": null
           }
         ],
-        "p_best": 0.03515625,
+        "p_best": 0.01953125,
         "warnings": [
           "not_separable"
         ]
@@ -289,7 +289,7 @@
             "effort": null
           }
         ],
-        "p_best": 0.03515625,
+        "p_best": 0.01953125,
         "warnings": [
           "not_separable"
         ]
@@ -317,7 +317,7 @@
             "effort": null
           }
         ],
-        "p_best": 0.01953125,
+        "p_best": 0.0390625,
         "warnings": [
           "not_separable"
         ]
@@ -345,7 +345,7 @@
             "effort": null
           }
         ],
-        "p_best": 0.01953125,
+        "p_best": 0.0390625,
         "warnings": [
           "not_separable"
         ]
@@ -539,9 +539,9 @@
   "drill_down": {
     "representation": "bounded",
     "bounded_version": "1.2",
-    "projects_contract": "2.15",
-    "decision_id": "dec_1932b1664c177b74446ef335",
-    "snapshot": "snap_be143b431be06c02",
+    "projects_contract": "2.16",
+    "decision_id": "dec_3f4cebe9dbd4c32f475d168f",
+    "snapshot": "snap_f2bc200545ea3aff",
     "signature_verified": true,
     "spec_hash": "sha256:f5c9c985f23a5bf06c3b6252825be21990d9eeebbd0470652bfff5a6572ba587",
     "explain": "none",
@@ -725,9 +725,9 @@
   "speech": {
     "representation": "bounded",
     "bounded_version": "1.2",
-    "projects_contract": "2.15",
-    "decision_id": "dec_36e794d2a5f775c67ca722d3",
-    "snapshot": "snap_be143b431be06c02",
+    "projects_contract": "2.16",
+    "decision_id": "dec_0e0e90d968ed814db267bdb6",
+    "snapshot": "snap_f2bc200545ea3aff",
     "signature_verified": true,
     "spec_hash": "sha256:c8366abe7134cc3b9b60ca4e08abb0b7e3a22dbedc06a1867f14548e86f5c38b",
     "explain": "none",
@@ -762,7 +762,7 @@
       "kind": "out_of_coverage",
       "message": "The decision board cannot decide transcriber from this snapshot. Covered classes: decider (1 models), orderer (2 models), text-generator (35 models), vectoriser (6 models). Catalogue presence is not decision coverage.",
       "url": "https://modelspec.dev/api/coverage.json",
-      "snapshot": "snap_be143b431be06c02",
+      "snapshot": "snap_f2bc200545ea3aff",
       "as_of": "2026-10-02",
       "classes": [
         {

@@ -86,6 +86,9 @@ def recovery_hints(issues: list[Issue], *, facets: Callable[[str], Facet],
             shape = "a valid facet ID from vocab section=starter"
             guidance = "Look up the suggested IDs in vocab before choosing the facet that matches your requirement."
         if info is not None and info.addressable:
+            if info.id.startswith("hardware."):
+                example["estate"] = {"devices": ["apple_m3_max"]}
+                example["access"] = "own_hardware"
             condition, value_shape = _condition(info)
             example["where"] = [condition]
             if not nearest:

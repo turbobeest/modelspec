@@ -7,6 +7,7 @@ import hashlib
 import json
 import os
 import plistlib
+import re
 import shlex
 import shutil
 import subprocess
@@ -40,7 +41,8 @@ def subscription_environment(monkeypatch):
 
 
 @pytest.fixture
-def config(tmp_path):
+def config(tmp_path, monkeypatch):
+    monkeypatch.setattr("qa.tui_plugins.checkout_sha", lambda: "0123456789abcdef0123456789abcdef01234567")
     return jobs.configuration(tmp_path, max_runs=400)
 
 
@@ -60,6 +62,142 @@ def search_execution(cli):
         'arguments': {'query': 'choose'}, 'result_observed': True, 'result': {'isError': False},
     }]
     return result
+
+
+@pytest.mark.parametrize("plugin,plugin_rows", [
+    (None, [False, False, False]),
+    ("modelspec", [True, False, False]),
+])
+def test_scenario_plugin_reports_and_previews_are_explicit_and_offline(
+    plugin, plugin_rows, config, tmp_path, monkeypatch, capsys,
+):
+    if plugin:
+        config["claude_plugin"] = plugin
+    monkeypatch.setattr(harness, "launch", lambda *a, **k: pytest.fail("live CLI"))
+    monkeypatch.setattr(jobs, "require_ready", lambda *a, **k: pytest.fail("doctor in dry run"))
+    monkeypatch.setattr(jobs, "publish", lambda *a, **k: pytest.fail("publish in dry run"))
+    report = jobs.scenario_report(
+        config, ["claude", "codex", "grok"], harness.load_scenarios()[:1], tmp_path,
+        day="2026-10-10", dry_run=True,
+    )
+    assert ["claude_plugin" in row for row in report["runs"]] == plugin_rows
+    rendered = jobs.agent_harness.markdown(report)
+    previews = capsys.readouterr().out
+    if plugin:
+        record = {
+            "name": "modelspec", "version": "0.1.0", "source": "./plugins/modelspec",
+            "sha256": "fc3aa8baeb4cc1bbfcbe957b8f78fa794db0026169a59a4155584124a2b73733",
+            "git_sha": "0123456789abcdef0123456789abcdef01234567",
+            "install_commands": [
+                ["claude", "plugin", "marketplace", "add", "."],
+                ["claude", "plugin", "install", "modelspec@modelspec"],
+            ],
+            "skill": "modelspec:report-modelspec-answer", "role": "agent",
+        }
+        assert report["metadata"]["claude_plugin"] == record
+        assert report["runs"][0]["claude_plugin"] == record
+        assert "/Users/" not in json.dumps(report) + rendered
+        assert not re.search(r'"(?:/|[A-Za-z_]+=\/)', json.dumps(report))
+        assert "Claude arm: plugin modelspec 0.1.0 planned from the checkout via" in rendered
+        assert "claude plugin marketplace add /modelspec" in previews
+        assert "claude plugin install modelspec@modelspec" in previews
+        assert previews.count("claude plugin marketplace add /modelspec") == 1
+        assert previews.count("claude plugin install modelspec@modelspec") == 1
+        report["mode"] = "live"
+        assert "Claude arm: plugin modelspec 0.1.0 installed from the checkout via" in jobs.agent_harness.markdown(report)
+    else:
+        assert '"claude_plugin"' not in json.dumps(report)
+        assert "Claude arm: plugin" not in rendered
+        assert "claude plugin marketplace" not in previews
+
+
+def test_plugin_judge_preview_matches_baseline(config, tmp_path, capsys):
+    baseline = jobs.preview("claude", config, tmp_path, "judge fixture", purpose="judge")
+    baseline_output = capsys.readouterr().out
+    config["claude_plugin"] = "modelspec"
+    argv = jobs.preview("claude", config, tmp_path, "judge fixture", purpose="judge")
+    assert argv == baseline
+    assert capsys.readouterr().out == baseline_output
+    assert not (tmp_path / ".modelspec-claude-plugin").exists()
+    assert config["claude_plugin"] == "modelspec"
+
+
+@pytest.mark.parametrize("selected,expected", [
+    (["claude", "codex"], [
+        ("claude", "modelspec", True), ("grok", None, False), ("codex", None, False),
+        ("codex", None, True), ("grok", None, False), ("claude", None, False),
+    ]),
+    (["codex"], [("codex", None, True), ("grok", None, False), ("claude", None, False)]),
+])
+def test_plugin_scenarios_check_agent_and_baseline_judge_receipts_separately(
+    selected, expected, config, tmp_path, monkeypatch,
+):
+    config["claude_plugin"] = "modelspec"
+    stamp = json.dumps({"certified_at": datetime.now(timezone.utc).isoformat()})
+    baseline = config | {"claude_plugin": None}
+    for cli in ("claude", "codex", "grok"):
+        isolation.receipt_file(homes.state_directory(cli, baseline)).write_text(stamp)
+    if "claude" in selected:
+        isolation.receipt_file(homes.state_directory("claude", config)).write_text(stamp)
+    monkeypatch.setattr(jobs, "isolation_result", lambda *a: ready()["claude"])
+    monkeypatch.setattr(harness, "isolation_result", lambda *a: ready()["claude"])
+    monkeypatch.setattr(jobs, "authentication_status", lambda *a: {"verified": True, "logged_in": True})
+    calls = []
+    verdict = json.dumps({
+        "passed": True, "rationale": "Fixture", "answer_kind": "abstain",
+        "top_models": [], "missing_capabilities": [],
+    })
+
+    def launch(cli, cfg, workspace, prompt, *, mcp_enabled):
+        calls.append((cli, cfg.get("claude_plugin"), mcp_enabled))
+        return execution("Visitor answer" if mcp_enabled else verdict)
+
+    monkeypatch.setattr(harness, "launch", launch)
+    report = jobs.scenario_report(
+        config, selected, harness.load_scenarios()[:1], tmp_path, day="2026-10-10",
+    )
+    assert calls == expected
+    assert all(row["success"] for row in report["runs"])
+    assert ["claude_plugin" in row for row in report["runs"]] == [cli == "claude" for cli in selected]
+    for row in report["runs"]:
+        assert "claude_plugin" not in row["judge"]
+        assert all("claude_plugin" not in item for item in row["judge_executions"])
+        assert all("claude_plugin" not in item for item in row["judges"])
+        assert all("claude_plugin" not in call for call in row["model_calls"])
+    if "claude" not in selected:
+        assert '"claude_plugin"' not in json.dumps(report)
+
+
+def test_plugin_checkpoints_and_receipts_are_distinct_from_baseline(config, tmp_path):
+    scenarios = [{"id": "alpha"}]
+    baseline = jobs._scenario_checkpoint(tmp_path, ["claude"], scenarios, "2026-10-10", "engine", config=config)
+    baseline_home = homes.state_directory("claude", config)
+    config["claude_plugin"] = "modelspec"
+    enabled = jobs._scenario_checkpoint(tmp_path, ["claude"], scenarios, "2026-10-10", "engine", config=config)
+    assert enabled != baseline
+    assert homes.state_directory("claude", config) == baseline_home / "modelspec-plugin"
+    config.pop("claude_plugin")
+    assert jobs._scenario_checkpoint(tmp_path, ["claude"], scenarios, "2026-10-10", "engine", config=config) == baseline
+
+
+def test_plugin_configuration_and_job_flag_match_doctor(config, tmp_path, monkeypatch):
+    configured = jobs.configuration(tmp_path, claude_plugin="modelspec")
+    assert configured["claude_plugin"] == "modelspec"
+    assert configured["clis"] == config["clis"]
+    assert configured["judges"] == config["judges"]
+    captured = []
+    monkeypatch.setattr(jobs, "scenario_report", lambda cfg, *a, **k: captured.append(cfg) or {})
+    monkeypatch.setattr(jobs, "write_pair", lambda *a, **k: None)
+    monkeypatch.setattr(jobs.agent_harness, "markdown", lambda *a: "Preview")
+    monkeypatch.setattr(jobs, "scenario_summary", lambda *a: "Preview")
+    assert jobs.main([
+        "scenarios", "--dry-run", "--claude-plugin", "modelspec", "--cli", "claude",
+        "--scenario", "budget-approved", "--state-dir", str(tmp_path),
+    ]) == 0
+    assert captured[0]["claude_plugin"] == "modelspec"
+    assert jobs.main([
+        "aeo", "--dry-run", "--claude-plugin", "modelspec", "--state-dir", str(tmp_path),
+    ]) == 2
 
 
 @pytest.mark.parametrize('cli', providers.CLIS)
@@ -2014,3 +2152,37 @@ def test_checkpoint_digest_includes_default_judges_and_differs_with_an_override(
         'routes': OVERRIDDEN_METADATA_ROUTES,
         'override': {'claude': 'grok'},
     }
+
+
+def test_plugin_command_preflight_accepts_a_baseline_claude_judge(config, tmp_path, monkeypatch):
+    config["claude_plugin"] = "modelspec"
+    stamp = json.dumps({"certified_at": datetime.now(timezone.utc).isoformat()})
+    baseline = config | {"claude_plugin": None}
+    for cli in ("claude", "codex", "grok"):
+        isolation.receipt_file(homes.state_directory(cli, baseline)).write_text(stamp)
+    monkeypatch.setattr(jobs, "isolation_result", lambda *a: ready()["claude"])
+    monkeypatch.setattr(jobs, "authentication_status", lambda *a: {"verified": True, "logged_in": True})
+    checked = jobs.require_scenarios_ready(config, ["codex"], tmp_path)
+    assert sorted(checked) == ["claude", "codex", "grok"]
+    assert not isolation.receipt_file(homes.state_directory("claude", config)).exists()
+
+
+def test_plugin_scenarios_command_preflight_passes_with_only_baseline_judge_receipts(
+    config, tmp_path, monkeypatch, capsys,
+):
+    stamp = json.dumps({"certified_at": datetime.now(timezone.utc).isoformat()})
+    monkeypatch.setattr(jobs, "configuration", lambda *a, **k: config)
+    for cli in ("claude", "codex", "grok"):
+        isolation.receipt_file(homes.state_directory(cli, config)).write_text(stamp)
+    monkeypatch.setattr(jobs, "isolation_result", lambda *a: ready()["claude"])
+    monkeypatch.setattr(jobs, "authentication_status", lambda *a: {"verified": True, "logged_in": True})
+
+    def after_preflight(*a):
+        raise ValueError("preflight passed")
+
+    monkeypatch.setattr(jobs, "_selected_scenarios", after_preflight)
+    assert jobs.main([
+        "scenarios", "--cli", "codex", "--claude-plugin", "modelspec",
+        "--scenario", "budget-approved", "--state-dir", str(tmp_path),
+    ]) == 2
+    assert "preflight passed" in capsys.readouterr().out

@@ -43,7 +43,8 @@ def _readme_command() -> tuple[list[str], dict[str, str]]:
 
 def _wait_for_ready(process: subprocess.Popen[str], stderr: Path) -> tuple[str, int]:
     assert process.stdout is not None
-    deadline = monotonic() + 240
+    # The frozen-data and premier build can take several minutes on loaded CI runners.
+    deadline = monotonic() + 600
     lines = []
     with selectors.DefaultSelector() as selector:
         selector.register(process.stdout, selectors.EVENT_READ)

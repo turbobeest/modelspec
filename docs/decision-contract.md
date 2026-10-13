@@ -1,6 +1,6 @@
 # The ModelSpec decision contract
 
-Contract version: **2.15**
+Contract version: **2.16**
 
 The opt-in bounded HTTP response is a separate representation with its own
 version, **bounded 1.2**. It does not carry a 2.x `contract_version`. See
@@ -656,7 +656,7 @@ best-band tie (`answer.members`). A `do_not_claim` line also names a tied
 
 ```json decision
 {
-  "contract_version": "2.15",
+  "contract_version": "2.16",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
   "signature_verified": true,
@@ -799,7 +799,7 @@ best-band tie (`answer.members`). A `do_not_claim` line also names a tied
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"2.15"`. |
+| `contract_version` | `"2.16"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
 | `signature_verified` | `true` when this process verified either the pinned Ed25519 signature or the private Worker HMAC. |
@@ -1112,13 +1112,13 @@ contract would need a major bump. It is a different representation instead:
   follows the same MODEL-59 rule on its own: widening any bounded field bumps
   its major.
 - `projects_contract` names the complete contract the body is projected from,
-  currently `"2.15"`. Every field the bounded body does carry has that
+  currently `"2.16"`. Every field the bounded body does carry has that
   contract's type and meaning.
 - A bounded body has **no** `contract_version`. A 2.x decoder that requires
   `contract_version` refuses it rather than misreading it as a complete
   Decision.
 
-Requests with only `limit`, or `fields: null`, receive complete contract 2.15
+Requests with only `limit`, or `fields: null`, receive complete contract 2.16
 responses. The decide page never sends `fields` or `evidence_for`, so its
 decoder never sees a bounded body and
 needs no change.
@@ -1458,8 +1458,9 @@ contract version. Version 1.1 retains them.
 - `top` contains up to 20 optimised candidates independently of the result
   limit, with `offering`, `facts`, `contributions` and domain `evidence`.
   From 1.4 it is compact (MODEL-163):
-  - `facts` are the known facets the spec names, in its conditions (profile
-    rules included) and its objective, plus a fixed display set: context
+  - `facts` are the known facets the spec names, each at most once per row,
+    in its conditions (profile rules included) and its objective, plus a fixed
+    display set: context
     window, class, lifecycle, weights openness, release date, commercial-use
     licence, lab jurisdiction, input and output price, `$ per task`,
     throughput, time to first token and data retention. Not every value the
@@ -1467,7 +1468,13 @@ contract version. Version 1.1 retains them.
   - Shown facts carry `facet`, `value`, `unit`, and `record_id`; a computed
     fact (1.3) has no `record_id` and carries `records` and `formula` instead.
     Each carries `source_ids` (1.4): its record's registered sources, as IDs
-    into `sources`.
+    into `sources`. Stored facts have a `record_id`; computed facts have a
+    numeric value. Unknown values are omitted from `facts`.
+  - From 2.16, `unknown_facets` optionally lists unknown architecture and
+    parameter facets relevant to this question. It is absent when empty.
+    `hardware_estimates` optionally lists estimates per named device. It is
+    absent when no device estimates are requested. These lists are separate
+    from `facts`.
   - `evidence` is limited to the benchmarks the spec names, grouped under the
     requested domain that tags them, or else the first domain that does.
   - `contributions` is empty for a candidate that `results` ranks: its
@@ -1508,6 +1515,119 @@ arguments for the registry and explicit benchmark/version/sub-category bindings.
 Ambiguous benchmark measurements remain missing. Capability objectives have no
 composite until MODEL-129. Requested domains come from `capabilities` and use
 snapshot domain tags, never a fixed benchmark list.
+
+### Architecture and hardware estimates (MODEL-348)
+
+A full answer adds architecture facts to each `top[].facts` when the spec has
+`estate.devices`, uses `access.kind: own_hardware`, names `model.fits_hardware`,
+or names any architecture facet in a condition or objective. The facts are
+`model.architecture`, `model.parameters_total` and `model.parameters_active`,
+plus `model.experts_total` and `model.experts_per_token` if the registry defines
+them. Known stored facts carry their `record_id` and `source_ids`. Unknown
+architecture and parameter facets appear in the optional `top[].unknown_facets`
+list, absent when empty. Unknowns never appear in `facts`. These facts do not expand
+the fixed display set for other questions.
+
+Architecture is filterable through ordinary Must and Prefer conditions. For
+example, `model.architecture = MoE`, `model.architecture != MoE`, a mapping with
+`facet: model.architecture` and `in: [MoE, SSM]`, and
+`model.parameters_active <= 4000000000` use the normal unknown policy. An
+unknown hard condition remains `may_qualify` by default. If every candidate
+has an unknown required value, the existing engine returns `no_feasible`,
+lists those candidates and missing facets in `may_qualify`, and names the
+unevaluable condition in `relax`. It adds no warning code. A `soft` condition or
+an explicit value preference can change the order. Architecture and hardware
+estimates have no default ranking weight, including in `rank_score`.
+The existing preference policies apply: a soft condition records unknown
+separately from failing and charges its conservative penalty. A value
+preference keeps an unknown model in `results` with `preference_status:
+unknown` and `unknown_preference_value`, as described under objectives.
+
+For each device explicitly named by `estate.devices` or a `model.fits_hardware`
+condition, a full answer adds `top[].hardware_estimates` with these estimates:
+
+| Facet | Unit | Value |
+| --- | --- | --- |
+| `hardware.weights_gb` | `gigabytes` | Resident weights from total parameters at the highest-quality fitting quantisation. |
+| `hardware.decode_tps_estimate` | `tokens_per_second` | A bandwidth roofline point estimate using active parameters. |
+
+They carry `formula`, the input `records`, and `source_ids` into the answer's
+`sources` table. The parameter inputs are verified facts. Device inputs are
+dated vendor specifications retained from `hardware/*.yaml` in the snapshot,
+with every source URL resolved through `registry/sources.yaml`. A hardware
+record does not claim an independent fact verification. Every formula labels
+its value an estimate and names the assumed quantisation when one can be
+selected. Otherwise `quantisation` is null, and `unknown_reason` explains why
+the estimate is unknown.
+
+The new optional `hardware_estimates` list is separate from `ShownFact`.
+Each entry has these fields:
+
+| Field | Meaning |
+| --- | --- |
+| `device` | Hardware SKU ID for this estimate. |
+| `facet` | `hardware.weights_gb` or `hardware.decode_tps_estimate`. |
+| `value` | A finite number, or null when the estimate is unknown. |
+| `unit` | `gigabytes` or `tokens_per_second`. |
+| `quantisation` | Assumed quantisation, or null if none can be selected. |
+| `interval` | Optional `low` and `high` bounds in the estimate's unit, finite and nonnegative with `high >= low`. Absent unless bounds are known. Efficiency scenarios, not measured confidence limits. |
+| `unknown_reason` | Present when `value` is null. Names the missing input or refusal. |
+| `formula` | Arithmetic, assumptions, device capacity used and usable memory. |
+| `records` | Input snapshot record IDs. |
+| `source_ids` | Registered source IDs into `Decision.sources`. |
+
+With several devices, `hardware_estimates` has one entry per facet per device,
+in blocks by facet with devices sorted by ID. Each formula and hardware record names
+that device; memory is never pooled across them. A condition or objective using
+any `hardware.*` facet requires exactly one device in `estate.devices`.
+Otherwise the spec is refused with `SpecError`. The scalar refers to that
+estate device, even if a fit condition names other devices. Bare `own_hardware`
+shows the architecture facts but cannot estimate an unspecified device.
+
+Let `P_total` and `P_active` be parameter counts, `C` device capacity in decimal
+GB, `B` memory bandwidth in GB/s, and `q` bytes per parameter. The arithmetic
+uses `pipeline/hardware.py`:
+
+```text
+usable_memory_gb = C * (1 - WORKING_ALLOWANCE)
+weights_gb = round_to_3_significant_figures(P_total * q / 1e9)
+decode_tps_estimate = round(B * BANDWIDTH_EFFICIENCY / (P_active * q / 1e9), 1)
+interval.low = round(B * DECODE_EFFICIENCY_LOW / (P_active * q / 1e9), 1)
+interval.high = round(B * DECODE_EFFICIENCY_HIGH / (P_active * q / 1e9), 1)
+```
+
+`WORKING_ALLOWANCE = 0.25`. The engine selects the first quantisation whose
+weights fit usable memory in this order: `bf16`, `fp16`, `fp8`, `int8`, `q6`,
+`q5`, `q4`, with respectively 2, 2, 1, 1, 0.75, 0.625 and 0.5 bytes per
+parameter. Quantisation selection uses unrounded weight memory. Reporting
+uses three significant figures, preserving nonzero memory for tiny models.
+The snapshot has no layer/head geometry, so KV cache is inside
+this allowance. This estimate does not establish a context length or a
+workload-specific fit. Devices with capacity options use their largest
+listed memory configuration. Every estimate's formula states that assumption,
+the capacity used and the usable memory after the allowance. Weight memory
+is a model's resident weights, without adding a device-dependent working set.
+
+`BANDWIDTH_EFFICIENCY = 0.70` is the existing roofline point.
+`DECODE_EFFICIENCY_LOW = 0.35` and `DECODE_EFFICIENCY_HIGH = 0.85` provide wide
+scenario bounds until measurements exist. Kernels, expert routing, compute
+limits and shared-memory contention can change actual throughput. The bounds
+are assumptions, not a measured coverage guarantee. Memory always uses total
+parameters because all experts must be resident. Decode always uses active
+parameters; missing active parameters never fall back to total, even for a
+dense model. Missing bandwidth, missing total parameters, closed or unknown
+weights openness, a refused single-memory-pool device, or no fitting
+quantisation leaves the affected estimate unknown, with an explicit
+`unknown_reason` and the reason in `formula`. An unregistered hardware source
+also makes the device estimates unknown while allowing the snapshot to build,
+until the data registry registers the URL. The current hardware catalogue has
+many such URLs. Source IDs are never synthesised. An excluded source produces
+an explicit source-policy reason without retaining the excluded URL.
+The stored `model.fits_hardware` facet still controls reach.
+
+The bounded representation continues at `bounded_version: "1.1"` and now
+names `projects_contract: "2.16"`. It does not carry `top`; fetch the complete
+answer without `fields` to inspect these facts and their provenance.
 
 ## The published vocabulary (MODEL-153)
 
@@ -1658,6 +1778,19 @@ Changes to a spec's inputs follow the same rule in reverse: refusing a spec
 that used to be accepted is a major change; accepting more is not.
 
 ## Change log
+
+- **2.16, MODEL-348:** Full answers conditionally show known, sourced architecture,
+  total and active parameter facts, and expert facts when registered. Weight
+  memory and decode speed are computed per explicitly named
+  device, with the chosen quantisation, formulas and input provenance. Memory
+  uses total parameters; decode uses active parameters with no total fallback.
+  Two new optional per-row lists, `unknown_facets` and `hardware_estimates`,
+  keep unknowns and per-device estimates separate from the known, unique
+  entries in `facts`. Estimate entries include `device`, `quantisation`, optional
+  `interval` and `unknown_reason`, formulas and registered provenance. Hardware
+  conditions and objectives require exactly one estate device. No existing
+  field widens and no default ranking weight changes, so the contract moves
+  from 2.15 to 2.16. The bounded representation keeps its own version (1.2 since MODEL-339) and projects 2.16.
 
 - **2.15 — MODEL-356:** A `no_feasible` decision adds optional `relax_single`
   when no candidate passes the hard conditions. `found` lists each relaxable

@@ -1180,6 +1180,25 @@ def test_invoice_paid_with_fingerprint_attaches_to_existing_key(policy):
     assert run(ledger.balance(_holder(key))).monthly == 4000
 
 
+def test_a_paid_invoice_grants_monthly_through_an_invoice_only_ledger(policy):
+    class InvoiceLedger(credits.MemoryLedger):
+        async def set_monthly(self, holder, units, invoice_id, plan="", customer_id=""):
+            return await super().set_monthly(holder, units, invoice_id, plan, customer_id)
+
+    kv = MemoryKV()
+    ledger = InvoiceLedger()
+    key = _issue(kv, policy, tier="free")
+    obj = invoice_obj(parent={"subscription_details": {
+        "subscription": SUB,
+        "metadata": {"modelspec_key_fingerprint": keys.fingerprint(key)},
+    }})
+    outcome = run(apply(kv, policy, payload("invoice.paid", obj, "evt_invoice_only"),
+                        ledger=ledger))
+    assert outcome.status == 200
+    assert run(ledger.balance(_holder(key))).monthly == 4000
+    assert serve(key, kv, policy).tier == "paid"
+
+
 def test_a_plaintext_key_in_stripe_metadata_is_not_treated_as_a_fingerprint(policy):
     kv = MemoryKV()
     ledger = credits.MemoryLedger()
@@ -1456,7 +1475,10 @@ def test_a_malformed_form_is_refused_before_stripe(entry, body):
     assert "body" not in capture
 
 
-def test_a_form_post_when_billing_is_off_is_refused_the_same_way_as_json(entry):
+@pytest.mark.parametrize("isolate_served", [False, True], ids=["cold", "warm"])
+def test_a_form_post_when_billing_is_off_is_refused_the_same_way_as_json(
+        entry, monkeypatch, isolate_served):
+    monkeypatch.setattr(entry, "_isolate_served", isolate_served)
     form, form_capture = _form_post(
         entry, f"price_id={PACK5}", env=_billing_env(_Bind(), flag="false"))
     capture: dict[str, str] = {}
@@ -1472,7 +1494,10 @@ def test_a_form_post_when_billing_is_off_is_refused_the_same_way_as_json(entry):
     assert form.status == as_json.status == 503
     assert form.json()["error"]["code"] == "billing_not_enabled"
     assert form.body == as_json.body
-    assert form.headers == as_json.headers
+    assert {key: value for key, value in form.headers.items()
+            if key.lower() != "server-timing"} == {
+                key: value for key, value in as_json.headers.items()
+                if key.lower() != "server-timing"}
     assert "body" not in form_capture and "body" not in capture
 
 

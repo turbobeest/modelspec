@@ -342,6 +342,75 @@ three attempts. Each attempt counts as a canary run, and the receipt records
 `Grok misuse probe did not observe a refused disallowed tool`.
 `--force` overrides quiet hours only, never evidence or authentication.
 
+### Opt in to the Claude reporting plugin
+
+Use `--claude-plugin modelspec` to install this checkout's official plugin in
+isolated Claude agent invocations. Claude judges use the baseline arguments,
+startup inventory rules and doctor receipt. Other CLIs keep their existing
+controls. Doctor with the flag certifies the agent profile. Certify that profile
+separately before running it:
+
+```sh
+python -m qa.tui_harness doctor --cli claude --out /tmp/modelspec-tui
+python -m qa.tui_harness doctor --cli claude --claude-plugin modelspec --out /tmp/modelspec-tui
+python -m qa.tui_harness --dry-run --cli claude --claude-plugin modelspec --max-runs-per-cli 1 --out /tmp/modelspec-tui
+python -m qa.subscription_jobs scenarios --dry-run --cli claude --claude-plugin modelspec --state-dir /tmp/modelspec-tui
+```
+
+The subscription jobs flag applies to `scenarios`. Doctor receipts for the
+agent plugin profile live under `.tui-state/claude/modelspec-plugin/`, alongside
+the baseline receipt in `.tui-state/claude/`. A run with Claude judges also needs
+the baseline receipt, certified by doctor without `--claude-plugin`. The receipt
+identity and resume checkpoint include the plugin version and a hash of its
+manifests and skill.
+The flag must match when resuming an interrupted run.
+
+Each isolated Claude agent execution mounts only this checkout's
+`.claude-plugin/` and `plugins/modelspec/` directories read-only under
+`/modelspec`. It runs these native installation commands through the same Docker
+launcher, using a temporary HOME without mounting the shared login volume:
+
+```sh
+env CLAUDE_CONFIG_DIR=/work/.modelspec-claude-plugin claude plugin marketplace add /modelspec
+env CLAUDE_CONFIG_DIR=/work/.modelspec-claude-plugin claude plugin install modelspec@modelspec
+```
+
+Only the installers use `CLAUDE_CONFIG_DIR`. Their settings and plugin cache
+live in that execution's private workspace. Agent invocations set
+`CLAUDE_CODE_PLUGIN_CACHE_DIR=/work/.modelspec-claude-plugin/plugins` to read
+that cache. The [Claude environment variable reference](https://code.claude.com/docs/en/env-vars)
+documents this plugin root override. No plugin directory is mounted inside
+the shared login volume. Subscription authentication keeps its native HOME.
+The harness does not read or copy authentication state.
+Removing the temporary workspace removes the install. Later baseline runs
+mount their original HOME volume without the plugin cache or checkout.
+The plugin has no MCP server; the harness keeps its existing ModelSpec MCP
+configuration.
+
+Baseline argv and doctor controls stay the same. With the flag on, the Claude
+agent keeps `--setting-sources ""` and the existing hook, memory and MCP controls. It omits
+`--disable-slash-commands`, enables only `modelspec@modelspec` in the explicit
+settings, sets `disableBundledSkills: true` and `skillOverrides: {"doctor": "off"}`,
+and adds `Skill` to `--tools` with only
+`Skill(modelspec:report-modelspec-answer)` permitted. The
+[Claude skills reference](https://code.claude.com/docs/en/skills) documents the
+bundled-skill setting and permission syntax. Startup inventory must contain
+exactly that reporting skill and one ModelSpec plugin at its private installed
+cache or checkout path. The plugin doctor profile plants a
+`.claude/commands/model301_command_canary.md` command. Startup must report a
+`slash_commands` list containing only the reporting skill or no commands.
+Other commands, skills, custom plugins, hooks, MCP servers and tools still
+fail isolation. Calls to any other skill fail the row as tool misuse.
+The positive doctor canary keeps its original discovery controls.
+
+Plugin scenario reports record `claude_plugin` only in metadata and Claude
+agent rows. The record contains the name, version, relative source
+`./plugins/modelspec`, content SHA-256, checkout git SHA, skill and a relative
+installation recipe from the checkout. It includes `role: "agent"`. Baseline
+reports omit the field. Other CLI rows and judge records omit it too.
+Markdown states that judges use the baseline profile. Dry runs label
+installation as planned and print the container commands without starting a CLI.
+
 Unauthenticated inventories can be inspected without touching login volumes:
 
 ```sh

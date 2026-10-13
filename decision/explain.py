@@ -129,19 +129,26 @@ def checked_record(snapshot, rid):
     if not rid:
         raise ExplanationError("snapshot lacks retained provenance; rebuild it before explaining")
     record = snapshot.record(rid)
-    if record["verification"]["outcome"] != "verified":
-        raise ExplanationError(f"{rid}: not verified")
-    verification = record["verification"]
-    collector, verifier = verification.get("collector", {}), verification.get("verifier", {})
-    if (
-        not collector.get("agent")
-        or not verifier.get("agent")
-        or collector["agent"] == verifier["agent"]
-        or not collector.get("method")
-        or not verifier.get("method")
-        or collector["method"] == verifier["method"]
-    ):
-        raise ExplanationError(f"{rid}: verification must use a different agent and method")
+    if record.get("kind") == "hardware":
+        # Hardware YAML has dated vendor specifications, not MODEL-134 fact
+        # verifications. Keep that provenance distinct instead of fabricating
+        # a collector/verifier pair for an estimate's bandwidth input.
+        if record.get("figures_are") != "vendor-specification" or not record.get("verified_at"):
+            raise ExplanationError(f"{rid}: hardware lacks dated vendor specifications")
+    else:
+        if record["verification"]["outcome"] != "verified":
+            raise ExplanationError(f"{rid}: not verified")
+        verification = record["verification"]
+        collector, verifier = verification.get("collector", {}), verification.get("verifier", {})
+        if (
+            not collector.get("agent")
+            or not verifier.get("agent")
+            or collector["agent"] == verifier["agent"]
+            or not collector.get("method")
+            or not verifier.get("method")
+            or collector["method"] == verifier["method"]
+        ):
+            raise ExplanationError(f"{rid}: verification must use a different agent and method")
     if not record.get("sources"):
         raise ExplanationError(f"{rid}: no source")
     from urllib.parse import urlsplit
@@ -786,34 +793,69 @@ def _alternatives(decision, resolved, snapshot, filtered, ordered, selectors, do
 def _full(decision, snapshot, ordered, requested, named, *, comparison=False):
     """Facts and evidence for the full explanation or an internal comparison."""
     from decision.computed import COMPUTED_FACETS
-    from decision.contract import CandidateValues, ShownFact
+    from decision.contract import CandidateValues, FactInterval, HardwareEstimate, ShownFact
     from decision.engine import offering_ref
+    from decision.hardware import ARCHITECTURE_FACETS, HARDWARE_FACETS
 
     shown = named | set(DISPLAY_FACETS)
+    architecture = set()
+    if (named & set(ARCHITECTURE_FACETS) or "model.fits_hardware" in named
+            or snapshot.hardware_context):
+        for facet in ARCHITECTURE_FACETS:
+            try:
+                registry_facet(facet)
+            except KeyError:
+                continue  # Expert facets arrive with the separate data slice.
+            architecture.add(facet)
+        shown |= architecture
     stored = [facet for facet in snapshot.facet_ids() if facet in shown]
+    stored += sorted(architecture - set(stored))
     benchmarks = named & set(snapshot.benchmark_ids())
     ranked = len(decision.results)
     rows = ordered.results[:ranked] if comparison else ordered.results[:20]
     for position, row in enumerate(rows):
         cid = row.candidate_id
         facts = []
+        unknown_facets = []
+        model_architecture = snapshot.fact(cid, "model.architecture")
         for facet in stored:
+            if (facet in {"model.experts_per_token", "model.experts_total"}
+                    and model_architecture.state == "known"
+                    and model_architecture.value != "MoE"):
+                continue
             fact = snapshot.fact(cid, facet)
             if fact.state != "known":
+                if facet in architecture:
+                    unknown_facets.append(facet)
                 continue
             unit = None
-            if fact.record_id:
+            if fact.record_id or facet in architecture:
                 unit = facet_unit(facet)
             facts.append(ShownFact(
-                facet=facet, value=fact.value, unit=unit, record_id=fact.record_id,
+                facet=facet, value=fact.value,
+                unit=unit, record_id=fact.record_id,
                 source_ids=source_ids(snapshot, [fact.record_id] if fact.record_id else [])))
         for facet in COMPUTED_FACETS:
+            if facet in HARDWARE_FACETS:
+                continue
             found = computed(snapshot, cid, facet) if facet in shown else None
-            if found is not None:
+            if found is not None and found.value is not None:
                 records, unit, formula = fact_provenance(snapshot, cid, facet)
                 facts.append(ShownFact(facet=facet, value=found.value, unit=unit,
                                        records=records, formula=formula,
                                        source_ids=source_ids(snapshot, records)))
+        hardware_estimates = []
+        for facet, estimates in snapshot.hardware_estimates(cid).items():
+            for estimate in estimates:
+                records = list(estimate.records)
+                hardware_estimates.append(HardwareEstimate(
+                    facet=facet, value=estimate.value, unit=facet_unit(facet),
+                    records=records, formula=estimate.formula,
+                    source_ids=source_ids(snapshot, records), device=estimate.device,
+                    quantisation=estimate.quantisation, unknown_reason=estimate.unknown_reason,
+                    interval=None if estimate.interval is None else FactInterval(
+                        low=estimate.interval[0], high=estimate.interval[1]),
+                ))
         # Group each named benchmark under the requested domains that tag it,
         # or, when none does, under the first domain that does.
         domains = set(requested)
@@ -827,6 +869,8 @@ def _full(decision, snapshot, ordered, requested, named, *, comparison=False):
             CandidateValues(
                 offering=offering_ref(snapshot, cid),
                 facts=facts,
+                unknown_facets=sorted(unknown_facets),
+                hardware_estimates=hardware_estimates,
                 evidence=evidence,
                 # A ranked candidate's contributions are in ``results``, not repeated.
                 contributions=[] if position < ranked else contributions(
@@ -1011,10 +1055,13 @@ def cited_sources(decision, snapshot):
             records.update(fact.records)
             if fact.record_id:
                 records.add(fact.record_id)
+        for estimate in row.hardware_estimates:
+            records.update(estimate.records)
     verified = {}
     for rid in records:
         record = snapshot.record(rid)
-        day = record["verification"].get("date")
+        day = (record.get("verified_at") if record.get("kind") == "hardware"
+               else record["verification"].get("date"))
         for source in record["sources"]:
             sid = source["source_id"]
             verified.setdefault(sid, None)
@@ -1221,6 +1268,13 @@ def render_html(decision, snapshot):
                     else "Identity"
                 )
                 out.append(f"<p>{esc(fact.facet)}: {value}. {provenance}</p>")
+            if row.unknown_facets:
+                out.append(f"<p>Unknown: {esc(', '.join(row.unknown_facets))}.</p>")
+            for estimate in row.hardware_estimates:
+                out.append(
+                    f"<p>{esc(estimate.device)} · {esc(estimate.facet)}: "
+                    f"{quantity(estimate.value, estimate.unit)}. "
+                    f"{esc(estimate.formula)} {links(estimate.records)}</p>")
             out.append(parts(shown) + evidence(row.evidence))
         out.append("</section>")
     out.append("</body></html>")
