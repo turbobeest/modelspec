@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import fixtureJson from "../__fixtures__/full-decision.json";
 import liveBudgetCodingJson from "../__fixtures__/live-budget-coding-full.json";
@@ -20,6 +21,7 @@ import {
 } from "./vocab-fixtures";
 import { VOCABULARY_URL, realBaseSpec, vocabularySchema } from "../vocabulary";
 import { decodeBoardState, encodeBoardSpec, writeEstate } from "../facet-board/model";
+import { decodeSpec } from "../state/spec";
 import { LEGACY_PERMALINKS } from "../__fixtures__/legacy-permalinks";
 import { capabilityRow, findTemplateCell, openGroup, templateCell } from "./board-helpers";
 
@@ -264,6 +266,51 @@ it("explains the snapshot in the page header and share dialog", async () => {
   const dialog = screen.getByRole("dialog", { name: "Share" });
   const sharedSnapshot = within(dialog).getByText(fixture.snapshot);
   expect(sharedSnapshot).toHaveAccessibleDescription("The data version this answer used");
+});
+
+it("copies a public template preview without the customized task, board, estate or URL state", async () => {
+  const user = userEvent.setup();
+  const clipboard = vi.spyOn(navigator.clipboard, "writeText").mockResolvedValue();
+  const privateTask = "Private procurement plan 9866";
+  const hash = encodeBoardSpec({ ...realBaseSpec(smallVocabulary), task: privateTask, conds: [] }, "task$", {
+    selections: {}, mustOrder: [], estate: providerEstate,
+  });
+  history.replaceState(null, "", `/decide/?theme=light&private-note=9866${hash}`);
+  vi.stubGlobal("fetch", routeFetch({ decide: (init) => json(decisionFor(init)) }));
+  render(<DesignedApp />);
+  fireEvent.click(await findTemplateCell(BUDGET_CODING));
+  openGroup("Size of work");
+  const context = document.querySelector<HTMLElement>('[data-facet="model.context_window"]');
+  if (!context) throw new Error("The context facet did not render");
+  fireEvent.change(within(context).getByLabelText("Threshold"), { target: { value: "300000" } });
+  fireEvent.click(screen.getByRole("button", { name: "Share" }));
+  const dialog = screen.getByRole("dialog", { name: "Share" });
+  const permalink = within(dialog).getByRole("tabpanel", { name: "Permalink" }).querySelector("pre")?.textContent;
+  if (!permalink) throw new Error("The ordinary permalink is missing");
+  const saved = new URL(permalink);
+  expect(saved.search).toBe("?theme=light&private-note=9866");
+  expect(decodeSpec(saved.hash)?.spec.task).toBe(privateTask);
+  expect(decodeBoardState(saved.hash)?.estate).toEqual(providerEstate);
+  expect(decodeBoardState(saved.hash)?.selections["model.context_window"].value).toBe(300000);
+
+  fireEvent.click(within(dialog).getByRole("tab", { name: "Template preview" }));
+  const preview = within(dialog).getByRole("tabpanel", { name: "Template preview" });
+  expect(preview).toHaveTextContent("Shares the public starting template and its frozen answer");
+  expect(preview).toHaveTextContent("Your changes and holdings are not included");
+  expect(preview.querySelector("pre")?.textContent).toBe("https://modelspec.dev/decide/templates/budget-coding/");
+  await user.click(within(preview).getByRole("button", { name: "Copy" }));
+  expect(clipboard).toHaveBeenLastCalledWith("https://modelspec.dev/decide/templates/budget-coding/");
+  expect(preview).not.toHaveTextContent(privateTask);
+  clipboard.mockRestore();
+});
+
+it("offers no public template preview for a saved board without an active template", async () => {
+  savedEmptyBoard();
+  vi.stubGlobal("fetch", routeFetch({ decide: (init) => json(decisionFor(init)) }));
+  render(<DesignedApp />);
+  await screen.findByLabelText("Facet board answer");
+  fireEvent.click(screen.getByRole("button", { name: "Share" }));
+  expect(within(screen.getByRole("dialog", { name: "Share" })).queryByRole("tab", { name: "Template preview" })).not.toBeInTheDocument();
 });
 
 it("folds invalid refinement weights into the parent without losing board state", async () => {

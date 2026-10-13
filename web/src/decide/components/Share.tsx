@@ -8,7 +8,7 @@ import type { Axis } from "../state/spec";
 import { toDecisionSpec } from "../adapter/view-model";
 import { boardHasPreference, encodeBoardSpec, toBoardDecisionSpec } from "../facet-board/model";
 import type { BoardUrlState } from "../facet-board/model";
-const tabs = [
+const baseTabs = [
   "Permalink",
   "API call",
   "Spec YAML",
@@ -21,6 +21,7 @@ export function Share({
   axis,
   row,
   demo,
+  templateId,
   refinementsFolded = false,
   humanGateEnabled = false,
   boardPermalink,
@@ -31,12 +32,17 @@ export function Share({
   axis: Axis;
   row: Row | null;
   demo: boolean;
+  templateId?: string;
   refinementsFolded?: boolean;
   humanGateEnabled?: boolean;
   boardPermalink?: { spec: Spec; state: BoardUrlState };
   onClose: () => void;
 }) {
   const { label } = useVocab();
+  const templateLink = !demo && templateId
+    ? `https://modelspec.dev/decide/templates/${encodeURIComponent(templateId)}/`
+    : "";
+  const tabs = [...baseTabs, ...(templateLink ? ["Template preview"] : [])];
   const [tab, setTab] = useState("Permalink"),
     [copied, setCopied] = useState(""),
     [saved, setSaved] = useState(false),
@@ -114,18 +120,20 @@ export function Share({
         `limit: ${contractSpec.limit ?? 500}`,
       ].join("\n");
   const code =
-    tab === "Permalink"
-      ? location.origin +
-        location.pathname +
-        location.search +
-        (boardPermalink
-          ? encodeBoardSpec(boardPermalink.spec, axis, boardPermalink.state)
-          : encodeSpec(spec, axis))
-      : tab === "API call"
-        ? demo
-          ? `# Fictional sample preview; this payload is not sent.\ncurl https://api.modelspec.example/v1/decide \\\n  -H 'Authorization: Bearer <API_KEY>' \\\n  -H 'Content-Type: application/json' \\\n  -d '${JSON.stringify(sample, null, 2).replaceAll("'", "'\\''")}'`
-          : `${unrankedBoard ? "# unranked: no Prefer set; the objective below only lets the spec run, it does not rank\n" : ""}curl https://api.modelspec.dev/v1/decide \\\n  -H 'Authorization: Bearer <API_KEY>' \\\n  -H 'Content-Type: application/json' \\\n  -d '${JSON.stringify(sharedContractSpec, null, 2).replaceAll("'", "'\\''")}'`
-        : yaml;
+    tab === "Template preview"
+      ? templateLink
+      : tab === "Permalink"
+        ? location.origin +
+          location.pathname +
+          location.search +
+          (boardPermalink
+            ? encodeBoardSpec(boardPermalink.spec, axis, boardPermalink.state)
+            : encodeSpec(spec, axis))
+        : tab === "API call"
+          ? demo
+            ? `# Fictional sample preview; this payload is not sent.\ncurl https://api.modelspec.example/v1/decide \\\n  -H 'Authorization: Bearer <API_KEY>' \\\n  -H 'Content-Type: application/json' \\\n  -d '${JSON.stringify(sample, null, 2).replaceAll("'", "'\\''")}'`
+            : `${unrankedBoard ? "# unranked: no Prefer set; the objective below only lets the spec run, it does not rank\n" : ""}curl https://api.modelspec.dev/v1/decide \\\n  -H 'Authorization: Bearer <API_KEY>' \\\n  -H 'Content-Type: application/json' \\\n  -d '${JSON.stringify(sharedContractSpec, null, 2).replaceAll("'", "'\\''")}'`
+          : yaml;
   const clauses = row
     ? spec.conds.map((c, i) => {
         const t = row.best.t[i],
@@ -212,17 +220,19 @@ export function Share({
         <p className="muted">
           {tab === "Permalink"
             ? "The whole spec is encoded in the link. Anyone who opens it can change it."
-            : tab === "Save and alert"
-              ? demo
-                ? "Try alert preferences for this fictional spec. This preview saves them in this browser; no monitoring service is connected."
-                : "Alert preferences are saved in this browser. Server monitoring is not enabled."
-              : tab === "Procurement review"
-                ? `Yes, no or unknown per clause for ${row?.m.name || "the selected model"}, with returned evidence. Unknowns are listed, not assumed.`
-                : demo
-                  ? "Fictional sample format."
-                  : "This is the contract sent to the hosted decision backend."}
+            : tab === "Template preview"
+              ? "Shares the public starting template and its frozen answer. Your changes and holdings are not included."
+              : tab === "Save and alert"
+                ? demo
+                  ? "Try alert preferences for this fictional spec. This preview saves them in this browser; no monitoring service is connected."
+                  : "Alert preferences are saved in this browser. Server monitoring is not enabled."
+                : tab === "Procurement review"
+                  ? `Yes, no or unknown per clause for ${row?.m.name || "the selected model"}, with returned evidence. Unknowns are listed, not assumed.`
+                  : demo
+                    ? "Fictional sample format."
+                    : "This is the contract sent to the hosted decision backend."}
         </p>
-        {tabs.indexOf(tab) < 4 && (
+        {(tabs.indexOf(tab) < 4 || tab === "Template preview") && (
           <>
             <pre>{code}</pre>
             <button

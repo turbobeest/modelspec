@@ -9,8 +9,9 @@ import subprocess
 import sys
 import tempfile
 from dataclasses import dataclass
+from datetime import date
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Callable, Sequence
 
 from pipeline import entity
 
@@ -52,6 +53,127 @@ class CardRegistration:
     filename: str
     factory: Callable[[LandingData | None], SocialCard]
     source_page: Path | None = None
+
+
+@dataclass(frozen=True)
+class TemplatePreview:
+    """The public starting template's answer on the frozen site snapshot."""
+
+    id: str
+    name: str
+    tradeoff: str
+    as_of: str
+    models: tuple[str, ...]
+    unavailable_reason: str | None
+
+    @property
+    def path(self) -> str:
+        return f"/decide/templates/{self.id}/"
+
+    @property
+    def filename(self) -> str:
+        return f"og-card-template-{self.id}.png"
+
+    @property
+    def answer(self) -> str:
+        if self.unavailable_reason:
+            return self.unavailable_reason
+        if not self.models:
+            return "Best now: none has enough evidence yet"
+        names = " · ".join(self.models[:3])
+        more = f" +{len(self.models) - 3} more" if len(self.models) > 3 else ""
+        tied = " (tied)" if len(self.models) > 1 else ""
+        return f"Best now: {names}{more}{tied}"
+
+
+def build_template_previews(root: Path, as_of: date) -> list[TemplatePreview]:
+    """Use the same public template availability and leading group as Decide."""
+    from decision.contract import parse_spec
+    from decision.engine import decide
+    from decision.registry import load
+    from decision.snapshot import build_from_repo, load_built_snapshot
+    from decision.vocabulary import build_vocabulary
+    from pipeline.load import load_models
+
+    registry = load(root / "registry", repo_root=root)
+    snapshot = load_built_snapshot(
+        build_from_repo(root, premier=None, as_of=as_of, registry=registry, gate=False),
+        source="template-preview build",
+    )
+    names = {model.model_id: model.display_name for model in load_models(root)}
+    previews = []
+    for template in build_vocabulary(snapshot, registry=registry)["templates"]:
+        models = ()
+        if template["available"]:
+            spec = parse_spec(template["spec"] | {"explain": "none"}, facets=registry.facet)
+            decision = decide(spec, snapshot, facets=registry.facet)
+            leading = ([entry.model for entry in decision.bands.best] if decision.bands
+                       else decision.answer.deterministic_order if decision.answer else [])
+            models = tuple(names[model] for model in leading)
+        previews.append(TemplatePreview(
+            id=template["id"], name=template["name"], tradeoff=template["tradeoff"],
+            as_of=as_of.isoformat(), models=models,
+            unavailable_reason=template["unavailable_reason"],
+        ))
+    return previews
+
+
+def template_card_filenames() -> tuple[str, ...]:
+    from decision.templates import load_templates
+
+    return tuple(f'og-card-template-{template["id"]}.png' for template in load_templates())
+
+
+def template_card(preview: TemplatePreview) -> SocialCard:
+    """Keep the card's copy identical to the static public preview."""
+    if preview.models:
+        answer = '<ul class="template-models">' + "".join(
+            f"<li>{html.escape(name)}</li>" for name in preview.models[:3]
+        ) + "</ul>"
+        if len(preview.models) > 1:
+            more = f"+{len(preview.models) - 3} more · " if len(preview.models) > 3 else ""
+            answer += f'<p class="template-note">{more}Tied on the evidence</p>'
+    else:
+        answer = f'<p class="template-empty">{html.escape(preview.answer)}</p>'
+    return SocialCard(
+        filename=preview.filename,
+        alt=f"ModelSpec. {preview.name}. {preview.tradeoff} {preview.answer}. Frozen public snapshot {preview.as_of}.",
+        headline=html.escape(preview.name), headline_class="template",
+        content=(f'<div class="template-answer" data-content-block>'
+                 f'<p class="template-tradeoff">{html.escape(preview.tradeoff)}</p>{answer}</div>'
+                 f'<p class="template-date" data-content-block>Frozen public snapshot · {preview.as_of}</p>'),
+    )
+
+
+def template_page(preview: TemplatePreview) -> str:
+    from pipeline import brand
+
+    esc = html.escape
+    card = template_card(preview)
+    title = esc(f"{preview.name} · ModelSpec")
+    meta = brand.social_meta(title, path=preview.path, image_name=preview.filename,
+                             image_alt=esc(card.alt))
+    return f'''<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>{title}</title>
+<meta name="description" content="{esc(preview.tradeoff)}">
+<link rel="canonical" href="https://modelspec.dev{preview.path}">{brand.head_links()}{meta}
+<style>body{{margin:0;background:#0B1426;color:#EEF2F7;font:20px/1.5 system-ui,sans-serif}}
+main{{max-width:900px;margin:auto;padding:48px 24px;border-left:3px solid #F2C94C}}
+a{{color:#5AA9EC}}h1{{font-size:clamp(32px,5vw,52px);line-height:1.2}}.answer{{font-size:28px}}
+.snapshot{{color:#C7D1E0;font-size:16px}}.adjust{{display:inline-block;padding:12px 20px;border:1px solid #3FB68B}}</style>
+</head><body><main><a href="/">ModelSpec</a><h1>{esc(preview.name)}</h1>
+<p>{esc(preview.tradeoff)}</p><p class="answer">{esc(preview.answer)}</p>
+<p class="snapshot">Frozen public snapshot · {preview.as_of}. This preview uses the public starting template.
+The board uses the latest catalogue; its answer can change as evidence changes.</p>
+<a class="adjust" href="/decide/?template={preview.id}">Adjust this template</a>
+</main></body></html>\n'''
+
+
+def write_template_previews(tree: Path, previews: Sequence[TemplatePreview]) -> None:
+    for preview in previews:
+        page = tree / preview.path.lstrip("/") / "index.html"
+        page.parent.mkdir(parents=True, exist_ok=True)
+        page.write_text(template_page(preview), encoding="utf-8")
 
 
 def landing_tie_line(data: LandingData) -> str:
@@ -253,6 +375,11 @@ def card_filenames() -> tuple[str, ...]:
     return tuple(item.filename for item in CARD_REGISTRY)
 
 
+def all_card_filenames() -> tuple[str, ...]:
+    """All build-rendered cards that the live composition must preserve."""
+    return (*card_filenames(), *template_card_filenames())
+
+
 def social_meta_for_page(page: str, data: LandingData | None = None) -> str:
     """Build a page's social tags from its registered card mapping."""
     from pipeline import brand
@@ -274,6 +401,14 @@ def render_card_html(card: SocialCard) -> str:
         encoding="utf-8"
     )
     mark = mark.replace("<metadata>", '<metadata style="display:none">', 1)
+    template_style = """
+h1.template{width:100%;font-size:46px;line-height:58px;letter-spacing:-1.5px;margin:30px 0 18px;max-height:116px}
+.template-answer{width:100%}.template-tradeoff{font:22px/30px Instrument;color:#C7D1E0;margin:0 0 18px}
+.template-models{list-style:none;margin:0;padding:0;font:600 28px/40px Instrument;color:#3FB68B}
+.template-empty{font:26px/34px Instrument;margin:0;max-width:980px}
+.template-note{font:20px/28px Instrument;color:#C7D1E0;margin:8px 0 0}
+.template-date{position:absolute;bottom:58px;left:92px;font:18px/26px JetBrains;color:#8491A5;margin:0}
+""" if card.headline_class == "template" else ""
     return f'''<!doctype html><html><head><meta charset="utf-8"><style>
 @font-face{{font-family:Instrument;src:url("{font_root}/instrument-sans-latin-wdth-normal.woff2")}}
 @font-face{{font-family:JetBrains;src:url("{font_root}/jetbrains-mono-latin.woff2")}}
@@ -289,7 +424,7 @@ h1{{font-size:64px;line-height:78px;letter-spacing:-2.7px;margin:68px 0 22px;wid
 .facets{{position:absolute;right:78px;top:182px;width:335px;margin:0;padding:0;list-style:none;font:24px JetBrains}}
 .facets li{{display:flex;align-items:center;gap:18px;border-bottom:1px solid #2A3B5C;padding:20px 5px}}.facets i{{width:22px;height:22px;border:2px solid #5AA9EC;border-radius:3px}}.facets li:nth-child(2) i{{background:#F2C94C;border-color:#F2C94C}}.facets li:nth-child(3) i{{background:#3FB68B;border-color:#3FB68B}}
 .pricing-rate{{position:absolute;right:78px;top:322px;width:420px;border-left:3px solid #5AA9EC;padding:10px 0 10px 24px}}.pricing-rate span{{display:block;color:#8491A5;font:18px JetBrains;margin-bottom:8px}}.pricing-rate strong{{display:block;color:#EEF2F7;font:600 30px Instrument}}
-</style></head><body><div class="brand" data-content-block>{mark}<b>Model<span>Spec</span></b></div><h1 class="{card.headline_class}" data-content-block>{card.headline}</h1>{card.content.replace('class="tie-line"', 'class="tie-line" data-content-block').replace('class="plot"', 'class="plot" data-content-block').replace('class="facets"', 'class="facets" data-content-block')}</body></html>'''
+{template_style}</style></head><body><div class="brand" data-content-block>{mark}<b>Model<span>Spec</span></b></div><h1 class="{card.headline_class}" data-content-block>{card.headline}</h1>{card.content.replace('class="tie-line"', 'class="tie-line" data-content-block').replace('class="plot"', 'class="plot" data-content-block').replace('class="facets"', 'class="facets" data-content-block')}</body></html>'''
 
 
 def _render_jobs(jobs: list[dict[str, str]]) -> list[dict[str, object]]:
@@ -319,6 +454,14 @@ def render_card(card: SocialCard, out_path: Path) -> dict[str, object]:
 def render(tree: Path, data: LandingData) -> list[SocialCard]:
     """Render all current cards to ``tree`` and fail on any browser error."""
     cards = [item.factory(data) for item in CARD_REGISTRY]
+    return _render_cards(tree, cards)
+
+
+def render_template_cards(tree: Path, previews: Sequence[TemplatePreview]) -> list[SocialCard]:
+    return _render_cards(tree, [template_card(preview) for preview in previews])
+
+
+def _render_cards(tree: Path, cards: list[SocialCard]) -> list[SocialCard]:
     tree.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="modelspec-social-cards-") as directory:
         scratch = Path(directory)
@@ -353,7 +496,7 @@ def sync_page_meta() -> None:
 if __name__ == "__main__":
     command = sys.argv[1] if len(sys.argv) > 1 else ""
     if command == "filenames":
-        print(" ".join(card_filenames()))
+        print(" ".join(all_card_filenames()))
     elif command == "sync-meta":
         sync_page_meta()
     else:

@@ -654,8 +654,11 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
     method_counts = method.write(ms, root, landing_data)
     ms_paths.extend(method_counts["sitemap_paths"])
     from pipeline import social_cards
+    template_previews = social_cards.build_template_previews(Path(args.root).resolve(), today)
+    social_cards.write_template_previews(ms, template_previews)
     if social_cards.render_enabled():
         social_cards.render(ms, landing_data)
+        social_cards.render_template_cards(ms, template_previews)
     (ms / "decide").mkdir(exist_ok=True)
     from pipeline.live import decide_capsule
     (ms / "decide/index.html").write_text(
