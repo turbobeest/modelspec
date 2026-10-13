@@ -12,6 +12,8 @@ export const offeringRefSchema = z
     provider: nullableString,
     region: nullableString,
     tier: nullableString,
+    api_model_id: nullableString.optional(),
+    router_slug: nullableString.optional(),
   })
   .strict();
 
@@ -516,6 +518,7 @@ export const decisionSchema = z
       "2.14",
       "2.15",
       "2.16",
+      "2.17",
     ]),
     decision_id: z.string().regex(/^dec_[0-9A-Za-z]{8,}$/),
     snapshot: z.string().regex(/^snap_[A-Za-z0-9:._-]+$/),

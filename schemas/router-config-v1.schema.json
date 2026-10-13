@@ -76,9 +76,14 @@
                 "rank": {"type": ["integer", "null"], "minimum": 1},
                 "cost_per_task": {"type": ["number", "null"]},
                 "provider_model_id": {
-                  "description": "The provider's own model ID. Null: the snapshot does not publish it yet.",
+                  "description": "The provider's verified API model ID, or null when unknown.",
                   "type": ["string", "null"]
-                }
+                },
+                "provider_model_id_placeholder": {"type": ["string", "null"]},
+                "provider_model_id_reason": {"type": ["string", "null"]},
+                "router_slug": {"type": ["string", "null"]},
+                "router_slug_placeholder": {"type": ["string", "null"]},
+                "router_slug_reason": {"type": ["string", "null"]}
               }
             }
           },
