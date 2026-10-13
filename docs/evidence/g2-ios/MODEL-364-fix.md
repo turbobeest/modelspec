@@ -1,9 +1,14 @@
 # MODEL-364 execution evidence
 
-Status: BLOCKED by the executor's file scope. No claim that the full suite passes.
+Status: READY. Required full Python and MCP runs each exited 0;
+cross-model review remains pending.
 
 Base SHA: `8825a31c2f215f6737eefbc7fa2ab2927161b7b5`.
 Implementation checkpoint SHA: `5fb59ceaf4a74d5422d76c80506c02dd6948b875`.
+Follow-up base SHA: `37a607e78016ab2b2d1e860c0abf1ec987160cab`.
+Follow-up implementation SHA: `516bdb4b8c3effcc6c085b0dba78e39c9cfd7a6d`.
+Fixture and QA checkpoint SHA: `cfb0d016a556b9c6147b236a26bff9980dde0f2b`.
+Final tested code SHA: `3d5cef3dd588aa4fe9e9bf43560fb47ed233143c`.
 The final delivery SHA is the commit containing this report. Resolve it with
 `git log -1 --format=%H -- docs/evidence/g2-ios/MODEL-364-fix.md`.
 The final executor message also records that SHA. This avoids embedding a
@@ -25,24 +30,18 @@ not admit it. Existing access quotas and billing apply. Successful HTTP bodies
 fit 14,000 compact UTF-8 bytes, and MCP responses fit 16,384 bytes.
 The existing snapshot comparison remains available and its tests pass.
 
-## Scope blocker
+## Resolved scope restriction
 
 The executor brief says: "Stay inside the paths the spec names. If you need a
 file outside them, stop and report it."
 
-The existing `tests/test_agent_copy.py` requires every MCP tool description to
-come from `pipeline/agent_copy.py` and the published tool list to match
-`pipeline/agent_ready.py`. The new tool needs entries in those files. They are
-outside the paths named in the spec, so neither file was changed. Scope
-expansion was requested and had not been authorized when this report was
-written. The current local tool description is temporary and fails that
-existing check. No test was relaxed to accept it.
-
-The CLI bundle and its request schema were regenerated through the existing
-generator functions without changing generator source or other output paths.
-This corrects the bundle's decision-schema source hash and allows wheel tests
-to pass. Centralizing the new CLI help and MCP description still needs the
-generator changes.
+The initial delivery stopped because `tests/test_agent_copy.py` requires every
+MCP description to come from `pipeline/agent_copy.py` and its published tool
+list to match `pipeline/agent_ready.py`. The orchestrator authorized changes
+to those files and their tests in the follow-up. The new tool now belongs to
+the generated copy and the published catalogue. Its price uses the existing
+`decide.full` credit weight. Existing assertions also cover the new tool's key
+requirement, price, and eight-tool catalogue. No existing check was relaxed.
 
 ## Red-first observations
 
@@ -97,12 +96,12 @@ Final scoped Python check, exit 0, 436 passed and 2 skipped:
 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_compare_models_worker.py tests/test_cli_compare_models.py tests/test_cli_compare.py tests/test_decision_contract.py tests/test_api_docs.py tests/test_decision_cli.py tests/test_decision_cli_output.py tests/test_cli_wheel.py
 ```
 
-Adding `tests/test_agent_copy.py` to that exact command returned exit 1,
+Initially, adding `tests/test_agent_copy.py` to that exact command returned exit 1,
 451 passed, 2 skipped, and one failure:
 `test_every_mcp_tool_description_and_the_instructions_come_from_the_copy`.
 Its generated tool list lacks `compare_models`, and the description is local.
 
-The required full-suite command was attempted:
+The initial full-suite command was:
 
 ```sh
 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4
@@ -182,7 +181,9 @@ worker's narrower Ruff check returned exit 0. Formatting used:
 /Users/terbeest/dev/modelspec/.venv/bin/python -m ruff format tests/test_compare_models_worker.py
 ```
 
-Raw red and green logs remain in `.scratch/MODEL-364/` in this worktree.
+Raw red and green logs were collected in `.scratch/MODEL-364/` during the
+runs. The follow-up requires removing that untracked directory after recording
+the results here. It is not part of the commits.
 
 Delivery uses a second commit for the fixture labels, bundle hash, current
 version assertions, and this evidence report. Its commit message ends with
@@ -193,14 +194,228 @@ CI_LOCAL_SKIP=1 git push -u origin sparksandsawdust/model-364-compare-models
 gh pr create --draft --base main --title 'MODEL-364: compare named models side by side' --body-file .scratch/MODEL-364/root/pr-body.md
 ```
 
-The final message reports whether those delivery commands succeeded. The PR
-stays draft and explicitly records the scope blocker.
+Those initial delivery commands succeeded and opened draft PR #714. The
+follow-up keeps that PR a draft and replaces its body with final validation
+results.
 
 ## Limits of observation
 
 No production deployment, deployed endpoint comparison, PyPI release,
 provider API spend, device operation, or production switch change was made.
 The wsl gate was not run. No Linear write, SSH, SCP, curl, wget, or merge was
-performed. The whole Python suite did not complete and is not claimed green.
+performed. The initial full Python attempt did not complete. The follow-up's
+final suite results are recorded separately below.
 Independent review in this session found the omission and evidence metadata
 issues above. The requested cross-model review remains pending.
+
+## Authorized follow-up
+
+The orchestrator granted generator scope and required a complete Python run,
+MCP tests, scratch cleanup, and an updated draft PR body. The two remaining
+test factory labels in `tests/test_decision_summary.py` and
+`tests/test_must_mention_overreach.py` still sent 2.16 through the current
+`Decision.model_validate`. Their unchanged focused command reproduced the
+failure, then passed after updating only the version labels:
+
+```sh
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_decision_summary.py tests/test_must_mention_overreach.py
+```
+
+Red exit 1: 66 failed, 4 passed in 49.48 seconds. The validation message was
+`Input should be '3.0'` for the fixture's `2.16`. Green exit 0: 70 passed in
+54.56 seconds. Archived MODEL-351 scenario values and expected behavior did
+not change. The current MCP budget fixture already projects 3.0.
+
+The existing generated-copy checks were extended to include the new paid
+tool's key requirement and `decide.full` price, and the published catalogue
+count of eight. Against the unchanged generator source, the focused command
+returned exit 1 with 8 failed, 27 passed, and 14 deselected:
+
+```sh
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_agent_copy.py tests/test_agent_ready.py -k 'not built'
+```
+
+The new tool's description and card come from `pipeline/agent_copy.py`.
+`pipeline/agent_ready.py` includes it in the tool catalogue and keyed data
+description. The server reads `agentCopy.tools.compare_models`. Generation
+uses the existing command:
+
+```sh
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.agent_copy write
+```
+
+The focused copy check then returned exit 0, 35 passed and 14 deselected in
+2.25 seconds. Generation and `python -m pipeline.agent_copy check` each
+returned exit 0. The initial broad red command was stopped with SIGINT at
+its own Python PID after 4 failures and 26 passes, exit 2. The completed
+focused red command supplies the failure evidence.
+
+The generated tool description changed the existing tools/list snapshot. Its
+refresh returned exit 0, one passed and 104 skipped. The focused MCP check
+returned exit 0, 135 passed. Typecheck returned exit 0. These commands ran
+from `mcp/` with the required Node path:
+
+```sh
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm test -- test/server.test.ts -t 'tools/list returns all eight tools with object input schemas' --update
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm test -- test/compare-models.test.ts test/server.test.ts
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm run typecheck
+```
+
+The first follow-up MCP run, from `mcp/`, returned exit 0, 164 passed across 8 files in
+1.79 seconds:
+
+```sh
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm test
+```
+
+The first complete follow-up Python run returned exit 1 with 35 failed,
+9,733 passed, and 22 skipped in 1,206.31 seconds. Its failures identified
+current synthetic page fixtures, the captured MCP tool list and its source
+hashes, the smoke check's tool list, disabled-route goldens, and the OpenAPI
+byte budget. The page fixtures still carried 2.16; the API now returns 3.0.
+The OpenAPI artifact measured 245,272 bytes against its existing 233,000-byte
+limit. Neither that limit nor the MCP first-turn token limit was increased.
+
+The page and disabled-route fixture check reproduced 19 failures, then
+passed all 26 tests after refreshing only metadata. The existing generator
+changed exactly 13 page `contract_version` labels. Six disabled-route 404
+responses gained `POST /v1/compare-models` in their accepted endpoint lists.
+Live captured page scenarios and archived model goldens were left intact.
+
+```sh
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_decide_page_fixtures.py tests/test_visit_gate_off.py
+MODELSPEC_WRITE_FIXTURES=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_decide_page_fixtures.py
+```
+
+The focused check's red exit was 1 and green exit was 0. Generation returned
+exit 0 with 13 passed. The smoke check's existing assertion reproduced the
+missing eighth tool with exit 1. Adding it to the checker left its validation
+strict and made the 11-test smoke suite pass, exit 0:
+
+```sh
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_mcp_ci.py::test_the_smoke_check_expects_exactly_the_servers_tools
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_mcp_ci.py
+```
+
+The existing OpenAPI size check reproduced the 245,272-byte failure, exit 1.
+The generator's existing compactor now shares exact repeated nested schema
+dictionaries through YAML aliases. This reduced the generated artifact to
+228,638 bytes, below the unchanged 233,000-byte ceiling. Parsing the artifact
+before and after the change produced identical values, including validation
+constraints, descriptions, examples, and response headers. The API documentation
+suite and existing compaction and budget checks passed, exit 0, with 49 passed
+and 2 skipped. The generator consistency check also returned exit 0.
+The equivalence command ran before the fixture and QA checkpoint commit;
+`HEAD` still referred to `516bdb4b8c3effcc6c085b0dba78e39c9cfd7a6d`.
+
+```sh
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_agent_guide.py::test_openapi_size_and_all_response_header_descriptions
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/openapi.py
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_api_docs.py tests/test_agent_guide.py::test_schema_compaction_preserves_every_original_rule tests/test_agent_guide.py::test_openapi_size_and_all_response_header_descriptions
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/openapi.py --check
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python - <<'PY'
+import subprocess
+from pathlib import Path
+import yaml
+before = subprocess.run(['git', 'show', 'HEAD:api/worker/openapi.yaml'], check=True, capture_output=True).stdout
+after = Path('api/worker/openapi.yaml').read_bytes()
+assert yaml.safe_load(before) == yaml.safe_load(after)
+PY
+```
+
+The QA metadata capture and offline shims now include all eight MCP tools.
+The comparison schema derives from the existing request contract and matches
+the schema advertised by the server. Its keyed shim forwards caller order to
+`POST /v1/compare-models`; keyless calls fail before HTTP. No historical replay
+data changed. Capture drift, the wrong GET route, and the missing HTTP route
+were reproduced before the fixes. The routing red command returned exit 1
+with 2 failed; its green command returned exit 0 with 7 passed.
+
+```sh
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_agent_harness.py::test_mcp_capture_matches_current_public_sources tests/test_agent_guide.py::test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget tests/test_agent_guide.py::test_openapi_size_and_all_response_header_descriptions
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_agent_harness.py::test_tool_shim_routes_all_eight_tools_and_keeps_keys_out_of_feedback 'tests/test_agent_guide.py::test_harness_prompt_arms_replay_offline[http-False]'
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_agent_harness.py::test_tool_shim_routes_all_eight_tools_and_keeps_keys_out_of_feedback tests/test_agent_harness.py::test_mcp_capture_matches_current_public_sources tests/test_agent_guide.py::test_harness_prompt_arms_replay_offline tests/test_agent_guide.py::test_coverage_pointer_keeps_all_three_mcp_first_turns_under_budget
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m qa.contracts
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_agent_harness.py tests/test_agent_gaps.py tests/test_agent_guide.py
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m qa.agent_harness --first-turn-breakdown
+```
+
+The first three-file QA check returned exit 1 with 3 failed and 138 passed:
+each provider's valid-request examples lacked `compare_models`. Adding the
+literal request to that current test fixture made the unchanged behavior
+assertions pass. The final capture regeneration returned exit 0. The final
+three-file QA check returned exit 0 with 141 passed in 18.58 seconds.
+First-turn accounting returned exit 0: Claude 9,200, OpenAI 9,285, and Gemini
+9,361 estimated tokens, all below the unchanged 9,500-token gate.
+
+The second complete follow-up Python run used the required full command and
+returned exit 1: 1 failed, 9,768 passed, 22 skipped, and 11 warnings in
+1,034.46 seconds. Its only failure was
+`tests/test_gemini_driver.py::test_sanitised_mcp_schemas_use_the_documented_json_schema_field`:
+the current capture exposed all eight tools while its assertion still
+expected seven declarations. The earlier capture-drift refusal had prevented
+this assertion from observing the regenerated catalogue.
+
+The whole Gemini driver test file reproduced that failure, exit 1, with
+1 failed and 35 passed in 15.73 seconds. Updating only its literal expected
+tool count from seven to eight made all 36 tests pass, exit 0, in 0.92 seconds.
+Its schema keyword and request-format assertions remain unchanged. An audit
+of adjacent current provider catalogue-count assertions found no other stale
+seven-tool expectation.
+
+```sh
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_gemini_driver.py
+```
+
+The MCP run alongside that full Python attempt returned exit 0: 164 passed
+across 8 files in 1.22 seconds. Its command was `npm test`, from `mcp/` with
+the required Node path.
+
+## Final follow-up results
+
+The final full Python run completed with exit 0: 9,769 passed, 22 skipped,
+and 11 warnings in 1,408.09 seconds. The warnings concern the existing unsigned
+vocabulary fixtures in the CLI snapshot tests. The final MCP run completed
+with exit 0: 164 passed across 8 files in 1.36 seconds. Both exit codes came
+directly from the completed execution sessions. Output was redirected to
+scratch logs without piping either test command.
+
+```sh
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4
+```
+
+The MCP command ran from `/Users/terbeest/dev/worktrees/model-364/mcp`:
+
+```sh
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm test
+```
+
+| Final check | Exit | Result |
+|---|---:|---|
+| Full Python suite, `-q -n 4` | 0 | 9,769 passed, 22 skipped |
+| MCP suite, `npm test` | 0 | 164 passed, 8 files |
+| MCP typecheck | 0 | TypeScript accepted the new tool and schema adapter |
+| Generated agent-copy check | 0 | Outputs match `pipeline/agent_copy.py` |
+| OpenAPI generator consistency | 0 | Generated artifact matches its source |
+| Offline QA and provider prompt budget checks | 0 | Eight tools fit the existing limits |
+
+The tested code remains in the assigned worktree and branch. The final commit
+adds this report; it does not change the tested code. The follow-up authorizes
+updating the existing PR body and removing the untracked scratch directory.
+Delivery uses these commands, preserving PR #714 as a draft and replacing its
+old scope restriction note with the final test results:
+
+```sh
+git diff --check
+CI_LOCAL_SKIP=1 git push -u origin sparksandsawdust/model-364-compare-models
+gh pr edit 714 --body-file .scratch/MODEL-364/root/pr-body.md
+rm -rf .scratch
+test ! -e .scratch
+git status --short --branch
+gh pr view 714 --json number,url,isDraft,headRefName,headRefOid,state
+```
+
+The red and green commands and output summaries above retain the verification
+evidence after scratch cleanup. Scratch files are not committed. No production
+deployment, CLI release, paid provider call, ranking-floor change, legal-text
+change, or merge is part of this delivery.
