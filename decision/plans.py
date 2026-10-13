@@ -13,8 +13,8 @@ so an explanation can say why a model counts as covered.
 A spec's ``access`` picks the surfaces that count: ``chat_app`` matches the
 chat, desktop and mobile apps; ``coding_tool`` matches ``coding_tool:<harness>``
 (any harness when the spec names none) and ``coding_tool:*`` when the page's
-list of tools is open-ended; ``own_software`` matches ``api``; ``own_hardware``
-matches no plan.
+list of tools is open-ended and its quote is a known, non-empty string;
+``own_software`` matches ``api``; ``own_hardware`` matches no plan.
 """
 
 from __future__ import annotations
@@ -69,6 +69,13 @@ def _number(value: float) -> str:
     return f"{round(value, 6):,.6g}"
 
 
+def _routable_quote(quote: str | None) -> str | None:
+    """The page's coding-tool sentence when it can be shown, else ``None``."""
+    if isinstance(quote, str) and quote:
+        return quote
+    return None
+
+
 @dataclass(frozen=True)
 class Plan:
     """One subscription plan's facts, as the engine reads them."""
@@ -101,8 +108,14 @@ class Plan:
 
         Call only when ``surfaces`` is known. A harness the page names beats
         ``coding_tool:*``, so a named tool is not reported as the open list.
+        ``coding_tool:*`` routes only when the page's quote is a known,
+        non-empty string. Without that quote the open token is not a route
+        and nothing on it is confirmed.
         """
-        matched = [s for s in self.surfaces or () if matches(access, s)]
+        available = self.surfaces or ()
+        if _routable_quote(self.coding_tools_quote) is None:
+            available = tuple(item for item in available if item != CODING_TOOL_OPEN)
+        matched = [s for s in available if matches(access, s)]
         if access.kind == "coding_tool" and access.harness is not None:
             named = CODING_TOOL + access.harness
             if named in matched:
@@ -213,10 +226,11 @@ def _allowance_text(allowance: PlanAllowance) -> str:
 def tool_listing(plan: Plan, surface: str | None, access: Access) -> str | None:
     """How an open-ended coding-tool list applies to the harness ``access`` names.
 
-    ``None`` when the plan has no ``coding_tool:*``, or the spec names no
+    ``None`` when the plan has no ``coding_tool:*`` or the spec names no
     harness. A harness the page also names is confirmed. Any other harness
-    routes through the open list and is not confirmed; the sentence quotes
-    the page.
+    routes through the open list only when the page's quote is a known,
+    non-empty string, and that route is not confirmed. The sentence quotes
+    the page. An open list with no such quote produces no sentence.
     """
     if (access.kind != "coding_tool" or access.harness is None or surface is None
             or not plan.surfaces or CODING_TOOL_OPEN not in plan.surfaces):
@@ -224,7 +238,9 @@ def tool_listing(plan: Plan, surface: str | None, access: Access) -> str | None:
     if surface == CODING_TOOL + access.harness:
         return "confirmed"
     if surface == CODING_TOOL_OPEN:
-        quoted = plan.coding_tools_quote or "…"
+        quoted = _routable_quote(plan.coding_tools_quote)
+        if quoted is None:
+            return None
         return ("tool not named by the provider: provider lists tools such as "
                 f"{quoted}; your tool isn't named")
     return None

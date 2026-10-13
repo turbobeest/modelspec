@@ -2,12 +2,15 @@
 
 A plan page that says the coding tools it works with are an open list ("such
 as …", "More tools") records ``coding_tool:*``. The quote of that wording is
-``offering.subscription.coding_tools_quote``. A harness the page also names is
+``offering.subscription.coding_tools_quote``. The open list routes only when
+that quote is a known, non-empty string. A harness the page also names is
 confirmed. Any other harness still routes, labelled as not named by the
 provider, and is never called confirmed.
 """
 
 from __future__ import annotations
+
+import pytest
 
 from decision import contract as c
 from decision.contract import parse_spec
@@ -26,7 +29,7 @@ NAMED = {"kind": "coding_tool", "harness": "claude-code"}
 UNLISTED = {"kind": "coding_tool", "harness": "aider"}
 
 
-def _plan() -> dict:
+def _plan(quote: str = "present") -> dict:
     row = subscription("zai", "glm-coding")
     row["name"] = "GLM Coding"
 
@@ -37,11 +40,20 @@ def _plan() -> dict:
 
     put("models_covered", [GLM])
     put("surfaces", ["coding_tool:claude-code", OPEN])
-    put("coding_tools_quote", QUOTE)
+    full = "offering.subscription.coding_tools_quote"
+    if quote == "present":
+        put("coding_tools_quote", QUOTE)
+    elif quote == "unknown":
+        row["facts"].append(fact("offering", PLAN, full, None, state="unknown", source=None,
+                                 outcome=None))
+    elif quote == "empty":
+        put("coding_tools_quote", "")
+    elif quote != "absent":
+        raise AssertionError(quote)
     return row
 
 
-def _snapshot():
+def _snapshot(plan: dict | None = None):
     built = build_snapshot(SnapshotInputs(
         models=[model(GLM, facts=[
             fact("model", GLM, CONTEXT, 200_000),
@@ -49,7 +61,7 @@ def _snapshot():
         ])],
         offerings=[offering(GLM, "zai", price=1.0)],
         sources=SOURCES,
-        subscriptions=[_plan()],
+        subscriptions=[_plan() if plan is None else plan],
     ), registry=default())
     return load_snapshot_bytes(built.to_bytes(key=KEY), key=KEY, source="MODEL-210 test snapshot")
 
@@ -123,3 +135,32 @@ def test_an_open_coding_tool_list_does_not_serve_another_access() -> None:
     for access in ("chat_app", "own_software", "own_hardware"):
         held = _decide(snapshot, access, {"plans": [PLAN]}).with_estate
         assert held.results == [], access
+
+
+@pytest.mark.parametrize("quote", ["absent", "unknown", "empty"])
+def test_an_unlisted_harness_does_not_take_the_open_list_without_a_provider_quote(
+        quote: str) -> None:
+    decision = _decide(_snapshot(_plan(quote)), UNLISTED, {"plans": [PLAN]})
+
+    wildcard = [route for result in decision.results for route in result.plans
+                if route.plan == PLAN and route.surface == OPEN]
+    texts = [route.basis for result in decision.results for route in result.plans]
+    texts += [row.estate.coverage.rule for row in decision.with_estate.results
+              if row.estate.coverage is not None]
+
+    assert wildcard == []
+    assert decision.with_estate.results == []
+    assert all("confirmed" not in text for text in texts)
+    assert all("provider lists tools such as …" not in text for text in texts)
+
+
+@pytest.mark.parametrize("quote", ["absent", "unknown", "empty"])
+def test_a_named_harness_stays_confirmed_when_the_open_quote_is_missing(quote: str) -> None:
+    row, route = _held(_snapshot(_plan(quote)), NAMED)
+
+    assert route.surface == "coding_tool:claude-code"
+    assert route.surface != OPEN
+    assert "confirmed" in row.estate.coverage.rule
+    assert "confirmed" in route.basis
+    assert "tool not named" not in row.estate.coverage.rule
+    assert "tool not named" not in route.basis
