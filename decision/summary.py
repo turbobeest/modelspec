@@ -32,7 +32,11 @@ from decision.contract import (
     render_condition,
 )
 from decision.optimise import OBJECTIVE_GAP_PREFIX, OPTIMISER_DIAGNOSTICS
-from decision.next_move import applied_conditions as _applied_conditions, objective_is_cost_only
+from decision.next_move import (
+    applied_conditions as _applied_conditions,
+    objective_is_cost_only,
+    offers_tie_breakers,
+)
 from decision.wording import join_names
 from decision.reading import HARDWARE_FIT
 from decision.refinements import split_dimension
@@ -151,6 +155,7 @@ def summarize(
     conditions = _applied_conditions(spec, profiles)
     mentions = _mentions(
         decision, spec, unapplied, conditions, record_counts, proxy_benchmarks,
+        tie_breakers=offers_tie_breakers(next_move),
     )
     summary = _summary(
         decision, spec, unapplied, mentions, conditions, feasible=feasible,
@@ -658,6 +663,8 @@ def _mentions(
     conditions: tuple,
     record_counts: Mapping[str, Mapping[str, tuple[int, int]]] | None = None,
     proxy_benchmarks: Mapping[str, Iterable[str]] | None = None,
+    *,
+    tie_breakers: bool = True,
 ) -> list[tuple[str, str]]:
     items: list[tuple[str, str]] = []
     tie = _tie_item(decision)
@@ -671,7 +678,7 @@ def _mentions(
         items.append(("class", scope))
     if _cost_only(decision, spec):
         items.append(("cost", _COST_ONLY))
-    if _cost_tie_break(decision):
+    if tie_breakers and _cost_tie_break(decision):
         items.append(("tie_cost", _TIE_COST))
     for domain, benchmarks in _proxy(decision, proxy_benchmarks).items():
         items.append(("proxy", _proxy_sentence(domain, benchmarks)))

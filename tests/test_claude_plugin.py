@@ -20,7 +20,7 @@ def test_marketplace_resolves_the_official_plugin() -> None:
     }
     assert (ROOT / marketplace["plugins"][0]["source"]).resolve() == PLUGIN
     assert manifest["name"] == "modelspec"
-    assert manifest["version"] == "0.1.0"
+    assert manifest["version"] == "0.1.1"
     assert manifest["author"] == marketplace["owner"]
     assert manifest["homepage"] == "https://modelspec.dev"
     assert manifest["repository"] == "https://github.com/turbobeest/modelspec"

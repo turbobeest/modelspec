@@ -530,7 +530,7 @@ function slimDecision(body: Record<string, unknown>): Record<string, unknown> {
   const notice: Record<string, unknown> = {};
   if (body.representation === "bounded" || typeof body.contract_version === "string" || typeof body.projects_contract === "string") {
     notice.representation = "bounded";
-    notice.bounded_version = "1.2";
+    notice.bounded_version = "1.3";
     notice.projects_contract =
       typeof body.projects_contract === "string"
         ? body.projects_contract

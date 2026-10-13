@@ -3,7 +3,7 @@
 Contract version: **2.16**
 
 The opt-in bounded HTTP response is a separate representation with its own
-version, **bounded 1.2**. It does not carry a 2.x `contract_version`. See
+version, **bounded 1.3**. It does not carry a 2.x `contract_version`. See
 [Bounded HTTP responses for agents](#bounded-http-responses-for-agents-model-293).
 
 A **spec** asks for a decision. A **decision** is the engine's answer to one
@@ -1100,7 +1100,7 @@ offering rows, not unique models, and never changes the full `answer.members`.
 #### A separate representation, versioned on its own
 
 Either non-null control opts into `BoundedDecision`, the **bounded
-representation, version 1.2**. It is not a 2.x minor version. A bounded body
+representation, version 1.3**. It is not a 2.x minor version. A bounded body
 omits lists that every 2.x Decision always carries (`by_model`, `eliminated`,
 `number_origins` and the other explanation sections), and its rows omit fields
 a 2.x `Result` requires. Under the [versioning rule](#versioning-model-59) a
@@ -1108,7 +1108,7 @@ field that may be absent is a widening, so labelling such a body as a 2.x
 contract would need a major bump. It is a different representation instead:
 
 - `representation` is always `"bounded"`. Branch on it first.
-- `bounded_version` is the bounded representation's own version, `"1.2"`. It
+- `bounded_version` is the bounded representation's own version, `"1.3"`. It
   follows the same MODEL-59 rule on its own: widening any bounded field bumps
   its major.
 - `projects_contract` names the complete contract the body is projected from,
@@ -1123,7 +1123,8 @@ responses. The decide page never sends `fields` or `evidence_for`, so its
 decoder never sees a bounded body and
 needs no change.
 
-A bounded response retains the complete `answer`, `warnings`, `reading` when
+A bounded response retains the complete `answer` (except withheld
+tie-breakers, below), `warnings`, `reading` when
 applicable, `with_estate` when applicable, status, identity, feedback pointer,
 `truncated`, `out_of_lineup`, `relax`, `relax_to`, `relax_task_tokens` and `relax_single` when present. It projects ranked
 `results` and shows at most 10 `may_qualify` rows. It adds required
@@ -1183,6 +1184,24 @@ other lists; it never clips the ending. A spec whose ending and answer
 statement alone exceed the 1,200-byte summary budget is refused with guidance
 to narrow the spec or request the complete Decision. Both fields are computed
 from the full Decision before the bounded byte budget removes records.
+
+`pick` is added in bounded 1.3 (MODEL-339). It is the model ModelSpec names:
+`answer.leader` when `status` is `answered` and the answer is `separated`, and
+null otherwise. A `partial` answer whose `answer.kind` is `separated` has a
+null `pick`: its leader is not a pick, because models that may qualify could
+still change it. `pick` is non-null exactly when `next_move` is absent and
+`answer` is not null. A body projected before 1.3 has no `pick`.
+
+From bounded 1.3 the answer's tie-breakers are withheld when `next_move.kind`
+is `decide_by_testing` or `ask_user`. A tie-breaker chooses within a settled
+tie, which is the `user_tiebreak` move; when the next step is a test or a
+question, the tie is not settled for this request. All four
+`answer.tie_breakers` values, and those of `with_estate.answer`, are then null
+in the bounded body, and `explanation.omitted` counts the withheld non-null
+values under `answer.tie_breakers` and `with_estate.answer.tie_breakers`.
+The complete Decision keeps them. Null is already in each value's range, so no
+field widens. The `must_mention` item about conditional tie-breakers appears
+only when the tie-breakers are shown.
 
 `member_evidence` is present only when the request did not send `evidence_for`,
 `explain` is `summary` or `full`, and `answer.members` is non-empty. It is
@@ -1340,6 +1359,12 @@ three current explanation levels. Regenerate the MCP public fixture with
   is removed to fit the 16,384-byte MCP text. `summary_for_user` is one
   paragraph for the end user. `must_mention` lists the facts a report of that
   answer carries, at most 10 items.
+- **bounded 1.3 — MODEL-339 pick:** Adds optional `pick`, the named model or
+  null. Withholds `answer.tie_breakers` and `with_estate.answer.tie_breakers`
+  (all null, counted in `explanation.omitted`) when `next_move` is a test or a
+  question; the complete Decision is unchanged. No existing field changes
+  range. `bounded_version` moves from `1.2` to `1.3`. The QA ablation proxy
+  pins 1.1 and 1.2 upstream bodies and refuses 1.3.
 - **bounded 1.2 — MODEL-339 next_move:** Adds optional `next_move`. No existing
   field changes range. `bounded_version` moves from `1.1` to `1.2`; neither
   the CLI nor MCP pins `1.1`. The full Decision supplies the move before
@@ -1633,7 +1658,7 @@ many such URLs. Source IDs are never synthesised. An excluded source produces
 an explicit source-policy reason without retaining the excluded URL.
 The stored `model.fits_hardware` facet still controls reach.
 
-The bounded representation continues at `bounded_version: "1.2"` and
+That change left the bounded representation at `bounded_version: "1.2"`, which
 names `projects_contract: "2.16"`. It does not carry `top`; fetch the complete
 answer without `fields` to inspect these facts and their provenance.
 
