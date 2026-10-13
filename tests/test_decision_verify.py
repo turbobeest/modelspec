@@ -31,7 +31,7 @@ from decision.model import (
     VerificationTarget,
     value_hash,
 )
-from decision.normalise import NORMALISERS, normalise_document
+from decision.normalise import NORMALISERS, Locator, normalise_document, select_region
 from decision.sources import CopyStore, RecheckReport, SourceSnapshot, SourceState
 
 FIXTURES = Path(__file__).parent / "fixtures" / "verification"
@@ -516,6 +516,36 @@ def test_band_tiered_table_reads_the_price_column_of_the_lowest_band() -> None:
     for field in ("cached_input", "batch_input", "batch_output"):
         claim = _price_claim(field, 2, name="qwen3.8-max-0902")
         assert extractor.extract(claim, text) == []
+
+
+def test_retained_alibaba_singapore_table_reads_the_price_column() -> None:
+    """MODEL-329: the price column is $2 when the request-size band sits beside it.
+
+    The HTML fixture is synthetic. It is not a copy of the vendor page.
+    Column "Input tokens per request" is the band 0<Token≤1M. The input price
+    is the next column. The stored value stays 2.0.
+    """
+    body = (FIXTURES / "alibaba-singapore-band-price.html").read_bytes()
+    assert len(body) < 1000
+    assert b"://" not in body
+    rules = replace(NORMALISERS["html-default"], strip_volatile=False)
+    text = select_region(normalise_document(body, rules), Locator("table", "0"))
+    assert text is not None
+    headers = [cell.strip() for cell in text.splitlines()[0].split("|")]
+    band_i = headers.index("Input tokens per request")
+    price_i = next(i for i, header in enumerate(headers) if header.startswith("Input price"))
+    assert price_i == band_i + 1
+    row = next(line for line in text.splitlines() if line.startswith("qwen3.8-max-0902"))
+    cells = [cell.strip() for cell in row.split("|")]
+    assert cells[band_i] == "0<Token≤1M"
+    assert cells[price_i] == "$2"
+    claim = _price_claim("input", 2.0, name="qwen3.8-max-0902")
+    readings = verify.OfferingPriceExtractor().extract(claim, text)
+    assert [reading.value for reading in readings] == [cells[price_i]]
+    assert readings[0].value != cells[band_i]
+    assert verify.compare(claim, readings) == []
+    band = _price_claim("input", 0, name="qwen3.8-max-0902")
+    assert verify.compare(band, readings) != []
 
 
 def test_scoped_provider_price_table_and_free_output_are_read() -> None:
