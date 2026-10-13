@@ -181,7 +181,7 @@ Day = date
 #: ``Field(exclude_if=...)`` arrived in pydantic 2.12. Older versions, such as
 #: the 2.10.6 that Pyodide gives the Worker, keep the predicate in
 #: ``json_schema_extra`` and emit the field anyway, so the Worker's bytes drifted
-#: from the CLI's. On those versions ``_Strict`` applies the predicate itself.
+#: from the CLI's. On those versions ``_ExcludeIf`` applies the predicate itself.
 NATIVE_EXCLUDE_IF = "exclude_if" in FieldInfo.__slots__
 
 
@@ -1240,7 +1240,7 @@ class Spec(_ExcludeIf):
 # ── the decision ───────────────────────────────────────────────────────────
 
 
-class OfferingRef(_Strict):
+class OfferingRef(_ExcludeIf):
     model: ModelId
     provider: str | None = None
     region: str | None = None
