@@ -86,6 +86,9 @@
     // smoke test refuses to pass until /v1/health reports the sha it pushed.
     // "dev" is the local-development placeholder.
     "BUILD_COMMIT": "dev",
+    // MODEL-353. Draft decision links; Jamie approves visibility and storage first.
+    // DECISION_LINK_HMAC_KEY is a separate Worker secret. See docs/design/decision-link.md.
+    "DECISION_LINK_ENABLED": "false",
     // MODEL-96. Access enforcement is live. A machine data request with no key
     // gets 401 missing_api_key naming where to buy one. Known keys are metered;
     // unknown or revoked keys are refused. The free decide page uses MODEL-292
@@ -189,6 +192,7 @@
       "vars": {
         "EXPORT_ORIGIN": "https://modelspec.dev",
         "BUILD_COMMIT": "dev",
+        "DECISION_LINK_ENABLED": "false",
         "ACCESS_ENFORCED": "false",
         // MODEL-292. Ships OFF; VISIT_TOKEN_HMAC_KEY is a new Wrangler secret.
         "VISIT_GATE_ENABLED": "false",
