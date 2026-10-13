@@ -138,7 +138,7 @@ _HREF = re.compile(r'(?:href|src|content)="(?:' + re.escape(BASE) + r')?(/(?!/)[
 #: (MODELSPEC_RENDER_SOCIAL_CARDS) and the decision snapshot needs the signing
 #: keys. A pull request's tree lacks them. The workflow checks the cards exist
 #: before it deploys, and the post-deploy smoke reads the snapshot.
-MAIN_ONLY = (*(f"/{name}" for name in social_cards.card_filenames()), "/api/decision/")
+MAIN_ONLY = (*(f"/{name}" for name in social_cards.all_card_filenames()), "/api/decision/")
 BLOG_CARD = re.compile(r"/blog/[a-z0-9-]+/r[1-9][0-9]*/og-card\.png")
 
 
@@ -273,7 +273,7 @@ def build(src: Path, web: Path, out: Path) -> None:
         shutil.copytree(real / "blog", tree / "blog")
     # Rendered in CI only (MODELSPEC_RENDER_SOCIAL_CARDS); the workflow checks
     # every one is present before it deploys.
-    for rel in social_cards.card_filenames():
+    for rel in social_cards.all_card_filenames():
         if (real / rel).is_file():
             shutil.copy2(real / rel, tree / rel)
     (tree / "decide").mkdir()
@@ -282,6 +282,9 @@ def build(src: Path, web: Path, out: Path) -> None:
         raise ValueError("web/dist/decide.html must hold exactly one empty <div id=\"root\">")
     (tree / "decide" / "index.html").write_text(
         decide.replace('<div id="root"></div>', f'<div id="root">{decide_capsule()}</div>'), encoding="utf-8")
+    templates = real / "decide" / "templates"
+    if templates.is_dir():
+        shutil.copytree(templates, tree / "decide" / "templates")
     (tree / "d").mkdir()
     shutil.copy2(web / "decision.html", tree / "d" / "index.html")
     (tree / "404.html").write_text(not_found(), encoding="utf-8")

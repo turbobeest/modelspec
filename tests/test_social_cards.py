@@ -342,6 +342,98 @@ def test_ci_installs_chromium_on_the_shard_that_renders_cards() -> None:
     assert "grep -qxE 'tests/test_(landing|social_cards)\\.py' shard-files.txt" in workflow
 
 
+def test_build_emits_every_template_preview_and_card(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from decision.templates import load_templates
+    from pipeline import build as builder
+
+    monkeypatch.setenv(social_cards.RENDER_ENV, "1")
+    out = tmp_path / "dist"
+    assert builder.main(["--out", str(out), "--root", str(ROOT)]) == 0
+    tree = out / "modelspec"
+    templates = load_templates()
+    assert templates
+    for template in templates:
+        template_id = template["id"]
+        page = tree / "decide" / "templates" / template_id / "index.html"
+        assert page.is_file(), f"missing public preview for {template_id}"
+        source = page.read_text(encoding="utf-8")
+        image = f"og-card-template-{template_id}.png"
+        assert f'property="og:image" content="https://modelspec.dev/{image}"' in source
+        assert f'name="twitter:image" content="https://modelspec.dev/{image}"' in source
+        assert f'property="og:url" content="https://modelspec.dev/decide/templates/{template_id}/"' in source
+        assert f'href="https://modelspec.dev/decide/templates/{template_id}/"' in source
+        assert html.escape(template["name"]) in source
+        assert html.escape(template["tradeoff"]) in source
+        assert f'href="/decide/?template={template_id}"' in source
+        assert _png_size(tree / image) == (1200, 630)
+
+
+def test_template_card_and_page_preserve_large_ties_and_escape_public_copy() -> None:
+    preview = social_cards.TemplatePreview(
+        id="budget-coding", name='Coding <tools> & "budget"',
+        tradeoff='Cost <= $0.05 & enough context for "code".',
+        as_of="2026-10-13", models=("One", "Two", "Three", "Four"),
+        unavailable_reason=None,
+    )
+    page = social_cards.template_page(preview)
+    card = social_cards.template_card(preview)
+    text = html.unescape(re.sub(r"<[^>]+>", " ", social_cards.render_card_html(card)))
+    assert "Best now: One · Two · Three +1 more (tied)" in page
+    assert "+1 more · Tied on the evidence" in text
+    assert "Four" not in text
+    assert preview.name in text
+    assert preview.tradeoff in text
+    assert 'Coding &lt;tools&gt; &amp; &quot;budget&quot;' in page
+    assert 'property="og:image:alt" content="ModelSpec. Coding &lt;tools&gt; &amp; &quot;budget&quot;' in page
+    assert "Frozen public snapshot · 2026-10-13" in page
+
+
+@pytest.mark.parametrize("reason", [None, "No offering has a known throughput yet"])
+def test_template_card_does_not_invent_a_model_when_no_leader_is_known(reason) -> None:
+    preview = social_cards.TemplatePreview(
+        id="coding-fastest", name="Coding, fastest", tradeoff="Speed among strong coders.",
+        as_of="2026-10-13", models=(), unavailable_reason=reason,
+    )
+    expected = reason or "Best now: none has enough evidence yet"
+    assert expected in social_cards.template_page(preview)
+    card = social_cards.template_card(preview)
+    assert expected in card.content
+    assert "template-models" not in card.content
+
+
+def test_every_frozen_template_card_has_clean_chromium_layout(tmp_path: Path) -> None:
+    previews = social_cards.build_template_previews(ROOT, date.today())
+    for preview in previews:
+        report = social_cards.render_card(social_cards.template_card(preview), tmp_path / preview.filename)
+        _assert_clean_layout(report)
+
+
+def test_template_preview_ignores_an_ambient_private_registry(tmp_path: Path) -> None:
+    from decision import registry
+
+    private = tmp_path / "private-registry"
+    shutil.copytree(ROOT / "registry", private / "registry")
+    for directory in ("benchmarks", "hardware"):
+        (private / directory).symlink_to(ROOT / directory, target_is_directory=True)
+    facets = private / "registry" / "facets.yaml"
+    text = facets.read_text(encoding="utf-8")
+    assert text.count("    label: Output throughput\n") == 1
+    sentinel = "PRIVATE_REGISTRY_LABEL_306"
+    facets.write_text(text.replace("    label: Output throughput\n", f"    label: {sentinel}\n"), encoding="utf-8")
+    previous = registry.REPO_ROOT
+    try:
+        registry.use_root(private)
+        previews = social_cards.build_template_previews(ROOT, date.today())
+    finally:
+        registry.use_root(previous)
+    assert previews
+    for preview in previews:
+        assert sentinel not in social_cards.template_page(preview), preview.id
+        assert sentinel not in social_cards.template_card(preview).alt, preview.id
+
+
 def test_blog_fixture_is_readable_at_phone_and_desktop_with_a_social_card(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
