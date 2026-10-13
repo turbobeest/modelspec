@@ -487,8 +487,9 @@ def test_disconnect_before_complete_response_is_a_proxy_error(tmp_path, monkeypa
 
 @pytest.mark.parametrize("error", [BrokenPipeError, ConnectionResetError, ConnectionAbortedError])
 @pytest.mark.parametrize("terminated", [False, True])
+@pytest.mark.parametrize("multiline", [False, True])
 def test_sse_disconnect_after_complete_rpc_is_not_a_proxy_error(
-    tmp_path, monkeypatch, error, terminated
+    tmp_path, monkeypatch, error, terminated, multiline
 ):
     setup = Handler.setup
 
@@ -506,6 +507,8 @@ def test_sse_disconnect_after_complete_rpc_is_not_a_proxy_error(
     message = packed(
         {"id": 1, "result": ablation.METADATA_FIXTURE["results"]["initialize"]}
     )
+    if multiline:
+        message = message.replace(b",", b",\ndata: ", 1)
     event = b"event: message\ndata: " + message + (b"\n\n" if terminated else b"")
     upstream = httpx.Client(
         transport=httpx.MockTransport(
@@ -519,7 +522,7 @@ def test_sse_disconnect_after_complete_rpc_is_not_a_proxy_error(
     ) as proxy:
         reply = httpx.post(
             f"http://127.0.0.1:{proxy_port(proxy.audit.info['proxy_url'])}/mcp",
-            json={"id": 1, "method": "initialize"},
+            json={"id": 1, "method": "ping" if multiline else "initialize"},
             trust_env=False,
         )
         assert reply.status_code == 200 and b'"result"' in reply.content

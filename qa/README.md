@@ -597,8 +597,12 @@ including drill-down wording; present V4 puts the exact summary_for_user in
 the second text block with audience `["user"]`. Reapplying an arm is idempotent.
 
 Post-#682 projection can also remove extra records under its smaller body
-budget. The proxy counts `upstream_projection_gap` when it detects budget cuts
-that prevent proof of the old body. The arm stays valid: every arm reads the
+budget. The proxy counts `upstream_projection_gap` only when an exact body match
+in the pinned pre/post fixture proves changed records. This comparison excludes
+the variant fields and the summary, whose possible trimming has its own counter.
+It includes the decision identity and every retained record. Other bodies with
+budget omissions count `upstream_projection_unverified`: their cuts may already
+have existed before #682. The arm stays valid: every arm reads the
 same trimmed upstream records, so arms differ only in their variants, and the
 report shows the count. No arm is claimed equal to the pre-#682 server.
 Ordinary projection omissions, including the ten-row may_qualify cap, do not

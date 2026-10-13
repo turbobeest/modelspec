@@ -25,8 +25,10 @@ summary. Every such addition counts summary_trim_gap. Stripping an upstream
 move removes only its exact trailing say. Every removal counts
 summary_strip_trim_gap conservatively: the reserved bytes may have shortened
 the preceding paragraph, which cannot be recovered from the response.
-Post-#682 budget omissions also count upstream_projection_gap on absent V1
-arms. Those removed records cannot be restored by stripping next_move. The
+An exact pinned pre/post comparison counts upstream_projection_gap on absent
+V1 arms. Other budget omissions count upstream_projection_unverified because
+the same records may already have been cut before #682. Removed records cannot
+be restored by stripping next_move. The
 ablation compares arms over the same upstream records, so every arm sees the
 same trimmed body and differs only in its variants; the gap is reported, and
 an arm is not claimed equal to the pre-#682 server.
@@ -40,6 +42,7 @@ from __future__ import annotations
 
 import argparse
 import copy
+import gzip
 import hashlib
 import json
 import re
@@ -47,6 +50,7 @@ import threading
 from collections import Counter
 from contextlib import contextmanager
 from dataclasses import dataclass, field
+from functools import cache
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
@@ -77,8 +81,10 @@ LIMITATIONS = [
     "clipped preceding lists can differ from the server",
     "summary_strip_trim_gap: every removed move may leave a paragraph shortened "
     "by the upstream say reservation",
-    "upstream_projection_gap: post-#682 budget omissions cannot be restored; "
+    "upstream_projection_gap: a pinned pre/post comparison proves changed records; "
     "every arm sees the same trimmed records, so arms differ only in variants",
+    "upstream_projection_unverified: budget omissions lack an exact pinned reference; "
+    "they may already have existed before #682",
     "bounded_fallback: a failed complete fetch leaves omitted selection inputs unavailable",
     "candidates_truncated: a complete fetch with omitted models passes through "
     "and invalidates exposure proof",
@@ -117,6 +123,28 @@ class CopyDriftError(RewriteError):
 
 def packed(value) -> bytes:
     return json.dumps(value, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+
+
+def projection_key(body: dict) -> str:
+    records = {
+        key: value for key, value in body.items()
+        if key not in {"bounded_version", "next_move", "summary_for_user"}
+    }
+    return json.dumps(records, sort_keys=True, ensure_ascii=False, separators=(",", ":"))
+
+
+@cache
+def reference_projection_gaps() -> dict[str, bool]:
+    fixtures = json.loads(gzip.decompress(
+        (_ROOT / "qa/fixtures/ablation-decide.json.gz").read_bytes()
+    ))
+    return {
+        projection_key(row["post"]["body"]): (
+            projection_key(row["pre"]["body"]) != projection_key(row["post"]["body"])
+        )
+        for projection in ("default", "fields_model")
+        for row in fixtures[projection].values()
+    }
 
 
 def text_bytes(result: dict) -> int:
@@ -382,7 +410,11 @@ def rewrite(message: dict, call: dict, variants: Variants, fetch_complete) -> Re
         )
         for name, count in omitted.items()
     ):
-        outcome.counters["upstream_projection_gap"] += 1
+        gap = reference_projection_gaps().get(projection_key(body))
+        if gap is None:
+            outcome.counters["upstream_projection_unverified"] += 1
+        elif gap:
+            outcome.counters["upstream_projection_gap"] += 1
     old_summary = body["summary_for_user"]
     legacy_content = {"type": "text", "text": agent_summary(body)}
     annotated_content = {
@@ -585,12 +617,16 @@ class Proxy:
         return output, row
 
 
+def sse_data(event: bytes) -> bytes:
+    return b"\n".join(
+        line[5:].lstrip(b" ") for line in event.splitlines() if line.startswith(b"data:")
+    )
+
+
 def sse_event(proxy: Proxy, event: bytes, call: dict, authorization: str | None) -> bytes:
     """Preserve event/id/retry/comment lines and the original bytes on passthrough."""
     lines = event.splitlines(keepends=True)
-    data = b"\n".join(
-        line[5:].lstrip(b" ").rstrip(b"\r\n") for line in lines if line.startswith(b"data:")
-    )
+    data = sse_data(event)
     if not data or data == b"[DONE]":
         return event
     output, _row = proxy.transform(data, call, authorization)
@@ -630,10 +666,8 @@ class Handler(BaseHTTPRequestHandler):
         # A keep-alive read can reset after the previous response was delivered.
         # Keep its completion flag until a new request is actually parsed.
         try:
-            if self.response_complete and self.rfile.peek(1):
-                self.response_complete = False
             super().handle_one_request()
-        except (BrokenPipeError, ConnectionResetError):
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError):
             counts = (
                 Counter(client_disconnect=1)
                 if self.response_complete
@@ -679,9 +713,11 @@ class Handler(BaseHTTPRequestHandler):
         )
         self.send_header("Content-Length", str(len(raw)))
         self.end_headers()
+        # With no body, end_headers already delivered the whole response.
+        self.response_complete = not raw
         self.wfile.write(raw)
-        self.wfile.flush()
         self.response_complete = True
+        self.wfile.flush()
 
     def forward(self):
         proxy = self.server.proxy
@@ -734,16 +770,16 @@ class Handler(BaseHTTPRequestHandler):
                             boundary = match.end()
                             output = sse_event(proxy, bytes(event[:boundary]), call, authorization)
                             self.wfile.write(output)
-                            self.wfile.flush()
                             self.completed_event(output, call)
+                            self.wfile.flush()
                             del event[:boundary]
                         if len(event) > 16 * 1024 * 1024:
                             raise RewriteError("Upstream SSE event exceeded the proxy buffer limit")
                     if event:
                         output = sse_event(proxy, bytes(event), call, authorization)
                         self.wfile.write(output)
-                        self.wfile.flush()
                         self.completed_event(output, call)
+                        self.wfile.flush()
                     self.response_complete = True
                 else:
                     body = upstream.read()
@@ -783,17 +819,14 @@ class Handler(BaseHTTPRequestHandler):
                 self.wfile.flush()
 
     def completed_event(self, event: bytes, call: dict):
-        for line in event.splitlines():
-            if not line.startswith(b"data:"):
-                continue
-            try:
-                message = json.loads(line[5:])
-            except ValueError:
-                continue
-            if isinstance(message, dict) and call.get("id") is not None and (
-                message.get("id") == call["id"] and ("result" in message or "error" in message)
-            ):
-                self.response_complete = True
+        try:
+            message = json.loads(sse_data(event))
+        except ValueError:
+            return
+        if isinstance(message, dict) and call.get("id") is not None and (
+            message.get("id") == call["id"] and ("result" in message or "error" in message)
+        ):
+            self.response_complete = True
 
 
 @contextmanager
