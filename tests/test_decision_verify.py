@@ -9,7 +9,6 @@ exercised with a fake completion.
 
 from __future__ import annotations
 
-import hashlib
 import json
 import re
 import subprocess
@@ -519,24 +518,23 @@ def test_band_tiered_table_reads_the_price_column_of_the_lowest_band() -> None:
         assert extractor.extract(claim, text) == []
 
 
-_ALIBABA_SG_SHA = "914aa685dc8ae8f32ed92b506792e5396983f633e4d5703c8925260131527c9f"
-_ALIBABA_SG_COPY = Path(__file__).parent / "fixtures" / "verification" / f"{_ALIBABA_SG_SHA}.html"
-
-
 def test_retained_alibaba_singapore_table_reads_the_price_column() -> None:
-    """MODEL-329: the retained Singapore Qwen-Max table prices qwen3.8-max-0902 at $2.
+    """MODEL-329: the price column is $2 when the request-size band sits beside it.
 
-    Column "Input tokens per request" is the band 0<Token≤1M. The input price is
-    the next column. The stored value stays 2.0.
+    The HTML fixture is synthetic. It is not a copy of the vendor page.
+    Column "Input tokens per request" is the band 0<Token≤1M. The input price
+    is the next column. The stored value stays 2.0.
     """
-    body = _ALIBABA_SG_COPY.read_bytes()
-    assert hashlib.sha256(body).hexdigest() == _ALIBABA_SG_SHA
+    body = (FIXTURES / "alibaba-singapore-band-price.html").read_bytes()
+    assert len(body) < 1000
+    assert b"://" not in body
     rules = replace(NORMALISERS["html-default"], strip_volatile=False)
     text = select_region(normalise_document(body, rules), Locator("table", "0"))
     assert text is not None
     headers = [cell.strip() for cell in text.splitlines()[0].split("|")]
     band_i = headers.index("Input tokens per request")
     price_i = next(i for i, header in enumerate(headers) if header.startswith("Input price"))
+    assert price_i == band_i + 1
     row = next(line for line in text.splitlines() if line.startswith("qwen3.8-max-0902"))
     cells = [cell.strip() for cell in row.split("|")]
     assert cells[band_i] == "0<Token≤1M"
