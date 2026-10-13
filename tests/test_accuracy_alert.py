@@ -79,6 +79,23 @@ def test_a_run_that_wrote_no_report_still_alerts(tmp_path: Path) -> None:
     )
 
 
+def test_the_alert_preserves_failure_transport_status_source_and_copies() -> None:
+    report = _report("fail", [{
+        "target": "fact:lab/blocked#context", "outcome": "unreachable",
+        "reason": "unreachable:source#table", "source_urls": ["https://example.test/source"],
+        "sources": [{
+            "source_id": "source", "transport": "http", "declared_fetch": "http",
+            "http_status": 403, "error_category": "http_error", "copy_ref": None,
+            "cited_copy_ref": "sha256:" + "a" * 64,
+        }],
+    }])
+
+    text = accuracy_alert.body(report, RUN)
+    assert "fact:lab/blocked#context" in text
+    assert "source `source`; transport `http`; HTTP 403; error `http_error`" in text
+    assert "cited copy `sha256:" + "a" * 64 + "`; current copy `none`" in text
+
+
 def test_main_reads_the_written_report(tmp_path: Path) -> None:
     path = tmp_path / "accuracy.json"
     path.write_text(json.dumps(_report("pass", [])))

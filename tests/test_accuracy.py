@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import replace
-from datetime import date
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 import pytest
@@ -14,7 +14,7 @@ from typer.testing import CliRunner
 from cli.modelspec import legacy as cli_mod
 from decision.model import SourceRef, TargetRef, VerificationActor
 from decision.sources import CopyStore, FetchResult, Source
-from decision.verify import Claim, KeyValueExtractor, Queue, StoredRegions, VerificationLog
+from decision.verify import Claim, KeyValueExtractor, Queue, StoredRegions, VerificationLog, verify
 from scripts import accuracy
 from scripts.recall_run import Finding, QuestionResult
 
@@ -551,6 +551,7 @@ def _sourced(target: str, source_id: str, snapshot: str = "b") -> Claim:
 
 def _run_fidelity_fetch(tmp_path: Path, sources, claims, responses):
     store = CopyStore(tmp_path / "copies")
+    fetch_diagnostics = {}
     current, unread = accuracy._current_copies(
         [(claim, "key-value-match@1") for claim in claims],
         sources=sources,
@@ -558,6 +559,7 @@ def _run_fidelity_fetch(tmp_path: Path, sources, claims, responses):
         fetcher=_FetchResults(responses),
         as_of=date(2026, 10, 6),
         nightly_methods=frozenset({"key-value-match@1"}),
+        fetch_diagnostics=fetch_diagnostics,
     )
     queue = Queue(tmp_path / "verification")
     log = VerificationLog(tmp_path / "verification")
@@ -570,6 +572,7 @@ def _run_fidelity_fetch(tmp_path: Path, sources, claims, responses):
         today=date(2026, 10, 6),
         source_urls={source_id: str(source.url) for source_id, source in sources.items()},
         unread=unread,
+        fetch_diagnostics=fetch_diagnostics,
     )
     return result, unread, queue, log
 
@@ -647,7 +650,8 @@ def test_a_rendered_source_403_is_undetermined_and_the_layer_passes(tmp_path: Pa
     assert unread[("fact", "lab/blocked#context")] == "render_required"
     assert result.details[0]["outcome"] == "undetermined"
     assert result.details[0]["reason"] == "render_required"
-    assert result.counts == {"verified": 12, "mismatch": 0, "unreachable": 0, "undetermined": 1}
+    assert result.counts == {"verified": 12, "mismatch": 0, "unreachable": 0, "undetermined": 1,
+                             "public_image_lag": 0}
     assert result.status == "pass"
     assert set(log.latest()) == {("fact", claim.target.id) for claim in others}
     assert queue.recrawl_requests() == []
@@ -658,6 +662,294 @@ def test_a_rendered_source_403_is_undetermined_and_the_layer_passes(tmp_path: Pa
     )
     assert (status, round(share, 3)) == ("pass", 0.077)
     assert "1 of 13 draws (8%) were undetermined" in summary
+
+
+def test_a_rendered_http_failure_retains_transport_and_copy_in_the_report(tmp_path: Path) -> None:
+    claim = _sourced("lab/blocked#context", "rendered")
+    result, _, _, _ = _run_fidelity_fetch(
+        tmp_path,
+        {"rendered": _text_source("rendered", "rendered")},
+        [claim],
+        {"https://example.test/rendered": _FORBIDDEN},
+    )
+
+    assert result.details[0]["sources"] == [{
+        "source_id": "rendered",
+        "url": "https://example.test/rendered",
+        "declared_fetch": "rendered",
+        "transport": "http",
+        "http_status": 403,
+        "error_category": "http_error",
+        "copy_ref": None,
+        "cited_copy_ref": "sha256:" + "b" * 64,
+    }]
+    report = accuracy.AccuracyReport(
+        generated_at="2026-10-06T00:00:00Z", profile="nightly", snapshot=None,
+        layers=(result,),
+    )
+    markdown, payload = accuracy.write_report(report, tmp_path / "report")
+    for path in (markdown, payload):
+        text = path.read_text()
+        assert '"transport": "http"' in text
+        assert '"http_status": 403' in text
+        assert "fact:lab/blocked#context" in text
+        assert "sha256:" + "b" * 64 in text
+
+
+def _file_verified(root: Path, claim: Claim, day: date) -> None:
+    Queue(root / "verification").file(
+        claim, at=datetime.combine(day, datetime.min.time(), tzinfo=UTC)
+    )
+    result = verify(
+        claim, DictRegions(f"Model: Model\ncontext: {claim.value}"),
+        [KeyValueExtractor()], today=day,
+    )
+    assert result.verification is not None
+    VerificationLog(root / "verification").append(result.verification)
+
+
+def _public_and_private_fidelity(tmp_path: Path, monkeypatch, *, corrected_value=20,
+                                 corrected_date=date(2026, 10, 10)):
+    from decision import sources as source_module
+
+    public, private = tmp_path / "public", tmp_path / "private"
+    sources = {sid: _text_source(sid, "http") for sid in ("lag", "plain")}
+    registry = public / "registry" / "sources.yaml"
+    registry.parent.mkdir(parents=True)
+    registry.write_text(yaml.safe_dump({
+        "schema_version": 1,
+        "sources": [source.model_dump(mode="json") for source in sources.values()],
+    }))
+    lag = _sourced("lab/lag#context", "lag")
+    claims = [lag, *[_sourced(f"lab/ok-{i}#context", "plain") for i in range(12)]]
+    for claim in claims:
+        _file_verified(public, claim, date(2026, 10, 6))
+    _file_verified(private, replace(lag, value=corrected_value), corrected_date)
+    monkeypatch.setattr(source_module, "Fetcher", lambda: _FetchResults({
+        "https://example.test/lag": FetchResult(
+            "ok", 200, body=b"Model: Model\ncontext: 20\n", content_type="text/plain"
+        ),
+        "https://example.test/plain": FetchResult(
+            "ok", 200, body=_PAGE, content_type="text/plain"
+        ),
+    }))
+    return public, private, lag
+
+
+def test_newer_verified_private_correction_reports_public_image_lag_and_replaces_draw(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    public, private, lag = _public_and_private_fidelity(tmp_path, monkeypatch)
+    result = accuracy.data_fidelity(
+        public, as_of=date(2026, 10, 13),
+        config=accuracy.load_config().data_fidelity, seed="model335",
+        private_data_root=private,
+    )
+
+    assert result.status == "pass"
+    assert result.counts == {
+        "verified": 12, "mismatch": 0, "unreachable": 0, "undetermined": 0,
+        "public_image_lag": 1,
+    }
+    row = next(row for row in result.details["sample"] if row["target"] == "fact:" + lag.target.id)
+    assert row["outcome"] == "public_image_lag"
+    assert row["reason"] == "newer_verified_private_correction"
+    assert row["private_correction"]["verified_date"] == "2026-10-10"
+    assert row["private_correction"]["public_verified_date"] == "2026-10-06"
+    assert result.details["actual_sample_size"] == 12
+    assert result.details["values_drawn"] == 13
+    assert "1 draw(s) lagged a newer verified private correction" in result.summary
+    assert VerificationLog(public / "verification").latest()[("fact", lag.target.id)].outcome == "verified"
+    assert Queue(public / "verification").recrawl_requests() == []
+
+
+def test_private_licence_correction_matches_an_omitted_facet_unit(tmp_path: Path) -> None:
+    claim = _claim("deepseek/deepseek-v3-1#licence.user_cap", "licence.user_cap", None,
+                   subject="deepseek/deepseek-v3-1")
+    correction = replace(claim, value="unbounded", unit="monthly_active_users")
+    result = accuracy.verify_fidelity_sample(
+        [claim], regions=DictRegions("README without a licence"), extractors=[KeyValueExtractor()],
+        queue=Queue(tmp_path / "verification"), log=VerificationLog(tmp_path / "verification"),
+        today=date(2026, 10, 13), source_urls={"source": "https://example.test/readme"},
+        private_corrections={
+            ("fact", claim.target.id): (correction, date(2026, 9, 26), date(2026, 10, 8))
+        },
+    )
+
+    assert result.details[0]["outcome"] == "public_image_lag"
+    assert result.counts["mismatch"] == 0
+
+
+def test_a_newer_private_citation_replaces_a_failed_frozen_source(tmp_path: Path, monkeypatch) -> None:
+    from decision import sources as source_module
+
+    public, private, lag = _public_and_private_fidelity(tmp_path, monkeypatch)
+    corrected = replace(lag, value=20, sources=(SourceRef(
+        source_id="corrected-licence", snapshot_ref="sha256:" + "f" * 64,
+        cited_regions=["page"],
+    ),))
+    Queue(private / "verification").file(corrected, at=datetime(2026, 10, 10, tzinfo=UTC))
+    monkeypatch.setattr(source_module, "Fetcher", lambda: _FetchResults({
+        "https://example.test/lag": _FORBIDDEN,
+        "https://example.test/plain": FetchResult(
+            "ok", 200, body=_PAGE, content_type="text/plain"
+        ),
+    }))
+    result = accuracy.data_fidelity(
+        public, as_of=date(2026, 10, 13), config=accuracy.load_config().data_fidelity,
+        seed="model335", private_data_root=private,
+    )
+
+    assert result.status == "pass"
+    assert result.counts["public_image_lag"] == 1
+    assert result.counts["unreachable"] == 0
+    assert result.details["actual_sample_size"] == 12
+    assert result.details["values_drawn"] == 13
+    row = next(row for row in result.details["sample"] if row["outcome"] == "public_image_lag")
+    assert row["sources"][0]["http_status"] == 403
+    assert row["sources"][0]["copy_ref"] is None
+    assert "value_hash" not in row["private_correction"]
+    assert "corrected-licence" not in json.dumps(result.details)
+    assert VerificationLog(public / "verification").latest()[("fact", lag.target.id)].outcome == "verified"
+    assert Queue(public / "verification").recrawl_requests() == []
+
+
+def test_nightly_cli_loads_private_corrections(tmp_path: Path, monkeypatch) -> None:
+    public, private, _ = _public_and_private_fidelity(tmp_path, monkeypatch)
+    output = tmp_path / "report"
+
+    assert accuracy.main([
+        "--root", str(public), "--profile", "nightly", "--layers", "data_fidelity",
+        "--private-data-root", str(private), "--date", "2026-10-13",
+        "--seed", "model335", "--output-dir", str(output),
+    ]) == 0
+    report = json.loads((output / "accuracy.json").read_text())
+    assert report["layers"][0]["counts"]["public_image_lag"] == 1
+
+
+@pytest.mark.parametrize(("value", "verified_date"), [
+    (20, date(2026, 10, 5)), (20, date(2026, 10, 6)),
+    (20, date(2026, 10, 14)), (10, date(2026, 10, 10)),
+])
+def test_private_records_that_do_not_prove_newer_value_lag_leave_mismatches_gating(
+    tmp_path: Path, monkeypatch, value, verified_date,
+) -> None:
+    public, private, _ = _public_and_private_fidelity(
+        tmp_path, monkeypatch, corrected_value=value, corrected_date=verified_date
+    )
+    result = accuracy.data_fidelity(
+        public, as_of=date(2026, 10, 13), config=accuracy.load_config().data_fidelity,
+        seed="model335", private_data_root=private,
+    )
+
+    assert result.status == "fail"
+    assert result.counts["mismatch"] == 1
+    assert result.counts["public_image_lag"] == 0
+
+
+@pytest.mark.parametrize("invalid_proof", [
+    "unverified", "other_target", "hash_mismatch", "conditions", "subject", "field", "unit", "base_model",
+])
+def test_a_private_correction_must_match_the_verified_target_value_and_scope(
+    tmp_path: Path, monkeypatch, invalid_proof,
+) -> None:
+    public, private, lag = _public_and_private_fidelity(tmp_path, monkeypatch)
+    log = VerificationLog(private / "verification")
+    record = log.latest()[("fact", lag.target.id)]
+    if invalid_proof == "unverified":
+        log.append(record.model_copy(update={"outcome": "unreachable", "date": date(2026, 10, 11)}))
+    elif invalid_proof == "other_target":
+        log.path.unlink()
+        _file_verified(private, replace(lag, target=TargetRef(kind="fact", id="lab:other"), value=20),
+                       date(2026, 10, 10))
+    else:
+        changes = {
+            "hash_mismatch": {"value": 30}, "conditions": {"conditions": {"harness": "other"}},
+            "subject": {"subject": "lab/other"}, "field": {"field": "other"},
+            "unit": {"unit": "usd"}, "base_model": {"base_model": "lab/base"},
+        }
+        changed = replace(lag, **{"value": 20, **changes[invalid_proof]})
+        Queue(private / "verification").file(changed, at=datetime(2026, 10, 11, tzinfo=UTC))
+    result = accuracy.data_fidelity(
+        public, as_of=date(2026, 10, 13), config=accuracy.load_config().data_fidelity,
+        seed="model335", private_data_root=private,
+    )
+
+    assert result.status == "fail"
+    assert result.counts["mismatch"] == 1
+    assert result.counts["public_image_lag"] == 0
+
+
+def test_public_image_lag_does_not_count_towards_the_assessed_floor(tmp_path: Path, monkeypatch) -> None:
+    public, private, _ = _public_and_private_fidelity(tmp_path, monkeypatch)
+    result = accuracy.data_fidelity(
+        public, as_of=date(2026, 10, 13),
+        config=replace(accuracy.load_config().data_fidelity, max_values_drawn=12),
+        seed="model335", private_data_root=private,
+    )
+
+    assert result.status == "fail"
+    assert result.details["actual_sample_size"] == 11
+    assert "Only 11 of 12 values could be assessed" in result.summary
+
+
+def test_public_image_lag_does_not_dilute_the_undetermined_share() -> None:
+    counts = {"verified": 12, "mismatch": 0, "unreachable": 0,
+              "undetermined": 20, "public_image_lag": 80}
+    status, summary, share = accuracy.fidelity_verdict(
+        counts, drawn=112, wanted=12, config=accuracy.load_config().data_fidelity,
+    )
+
+    assert (status, share) == ("fail", 0.625)
+    assert "20 of 32 draws (62%) were undetermined" in summary
+    assert "That is above the 60% limit" in summary
+
+
+def test_a_missing_private_verification_checkout_cannot_silently_disable_lag_detection(
+    tmp_path: Path, monkeypatch,
+) -> None:
+    public, private, _ = _public_and_private_fidelity(tmp_path, monkeypatch)
+    (private / "verification" / "log.jsonl").unlink()
+
+    with pytest.raises(ValueError, match="missing verification records"):
+        accuracy.data_fidelity(
+            public, as_of=date(2026, 10, 13), config=accuracy.load_config().data_fidelity,
+            private_data_root=private,
+        )
+
+
+def test_private_queue_validation_errors_hide_private_claim_content(tmp_path: Path, monkeypatch) -> None:
+    public, private, lag = _public_and_private_fidelity(tmp_path, monkeypatch)
+    claim = lag.to_dict()
+    claim["target"]["id"] = "private-sentinel-target"
+    claim["names"] = []
+    path = private / "verification" / "queue" / "events.jsonl"
+    path.write_text(json.dumps({"event": "collected", "claim": claim}) + "\n")
+
+    with pytest.raises(ValueError) as caught:
+        accuracy.data_fidelity(
+            public, as_of=date(2026, 10, 13), config=accuracy.load_config().data_fidelity,
+            private_data_root=private,
+        )
+    assert "private-sentinel-target" not in str(caught.value)
+    assert str(caught.value) == "private correction verification records could not be read"
+
+
+def test_nightly_checks_out_private_verification_for_the_correction_reader() -> None:
+    workflow = yaml.load(
+        Path(".github/workflows/accuracy-nightly.yml").read_text(), Loader=yaml.BaseLoader
+    )
+    steps = workflow["jobs"]["accuracy"]["steps"]
+    checkouts = [step for step in steps
+                 if step.get("with", {}).get("repository") == "turbobeest/modelspec-data"]
+    assert len(checkouts) == 1
+    checkout = checkouts[0]
+    assert checkout["with"]["token"] == "${{ secrets.MODELSPEC_DATA_TOKEN }}"
+    assert checkout["with"]["persist-credentials"] == "false"
+    assert checkout["if"] == "vars.DATA_SPLIT_ENABLED == 'true'"
+    command = next(step["run"] for step in steps if step.get("name") == "Run network accuracy layers")
+    assert "--private-data-root " + checkout["with"]["path"] in command
+    assert '"$DATA_SPLIT_ENABLED" = "true"' in command
 
 
 def test_a_rendered_source_that_answers_and_contradicts_the_value_is_a_mismatch(
@@ -680,7 +972,8 @@ def test_a_rendered_source_that_answers_and_contradicts_the_value_is_a_mismatch(
     assert unread[("fact", "lab/answered#context")] == "source_changed"
     assert result.status == "fail"
     assert result.details[0]["outcome"] == "mismatch"
-    assert result.counts == {"verified": 0, "mismatch": 1, "unreachable": 0, "undetermined": 0}
+    assert result.counts == {"verified": 0, "mismatch": 1, "unreachable": 0, "undetermined": 0,
+                             "public_image_lag": 0}
     assert queue.recrawl_requests() == [(claim.target, "mismatch")]
 
 
@@ -699,7 +992,8 @@ def test_a_plain_http_source_403_is_still_unreachable(tmp_path: Path) -> None:
     assert result.status == "fail"
     assert result.details[0]["outcome"] == "unreachable"
     assert result.details[0]["reason"] == "unreachable:plain#table"
-    assert result.counts == {"verified": 0, "mismatch": 0, "unreachable": 1, "undetermined": 0}
+    assert result.counts == {"verified": 0, "mismatch": 0, "unreachable": 1, "undetermined": 0,
+                             "public_image_lag": 0}
     assert queue.recrawl_requests() == [(claim.target, "unreachable")]
     assert log.latest()[("fact", "lab/blocked#context")].outcome == "unreachable"
     assert queue.pending() == ([], [])
@@ -788,7 +1082,8 @@ def test_fidelity_fails_when_render_required_draws_exceed_the_undetermined_share
     )
 
     assert unread == {("fact", claim.target.id): "render_required" for claim in claims}
-    assert result.counts == {"verified": 0, "mismatch": 0, "unreachable": 0, "undetermined": 20}
+    assert result.counts == {"verified": 0, "mismatch": 0, "unreachable": 0, "undetermined": 20,
+                             "public_image_lag": 0}
     assert [row["reason"] for row in result.details] == ["render_required"] * 20
     assert log.latest() == {}
     assert queue.recrawl_requests() == []
