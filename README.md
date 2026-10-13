@@ -23,7 +23,7 @@ pip install modelspec-dev
 ```
 
 `pip install modelspec` is an unrelated project. Use `modelspec-dev`.
-Version 0.2.0 was yanked; 0.4.0 is the thin keyed client and adds `modelspec compare`.
+Version 0.2.0 was yanked. 1.0.0 is the thin keyed client. It keeps `modelspec compare`. `decide` sends the bounded row list when the Spec omits `fields`.
 
 Run `modelspec` or `modelspec help agent --json` for orientation,
 `modelspec key` for prices and access, and `modelspec auth set` to store a key
