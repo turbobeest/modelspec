@@ -88,7 +88,7 @@ describe("compare_models MCP tool", () => {
     ["lab/d", "lab/b", "lab/c", "lab/a"],
   ])("forwards named models in caller order and preserves snapshot facts: %j", async (...models) => {
     const body = {
-      contract_version: "3.0", endpoint: "compare-models", snapshot: "snap_test",
+      comparison_version: "1.0", endpoint: "compare-models", snapshot: "snap_test",
       models: models.map(model => ({
         model, facts: [{ facet: "model.context_window", value: null }], offerings: [], evidence: [],
       })),

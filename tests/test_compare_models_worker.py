@@ -16,7 +16,8 @@ from tests.test_x402 import _Req, _entry_env, entry
 def test_named_comparison_preserves_order_facts_prices_and_verified_evidence(service, snapshot):
     status, body = service.compare_models({"models": ["lab/b", "lab/a"]}, snapshot)
     assert status == 200
-    assert body["contract_version"] == "3.0"
+    assert body["comparison_version"] == "1.0"
+    assert "contract_version" not in body
     assert body["endpoint"] == "compare-models"
     assert body["snapshot"] == snapshot.snapshot_id
     assert [row["model"] for row in body["models"]] == ["lab/b", "lab/a"]
@@ -121,6 +122,51 @@ def test_named_comparison_never_admits_a_keyless_machine_or_visit_token(entry, e
     )
     assert response.status == 401
     assert response.json()["error"]["code"] == "missing_api_key"
+
+
+@pytest.mark.parametrize("x402_enabled", ["false", "true"])
+@pytest.mark.parametrize("enforced", ["false", "true"])
+@pytest.mark.parametrize("visit_enabled", ["false", "true"])
+@pytest.mark.parametrize("human_enabled", ["false", "true"])
+@pytest.mark.parametrize("site_headers", [False, True])
+@pytest.mark.parametrize("visit_header", [False, True])
+def test_named_comparison_keyless_probe_matrix(
+    entry, x402_enabled, enforced, visit_enabled, human_enabled, site_headers, visit_header
+):
+    import visit_token
+
+    worker = entry.Default()
+    worker.env = _entry_env(
+        ACCESS_ENFORCED=enforced,
+        X402_ENABLED=x402_enabled,
+        VISIT_GATE_ENABLED=visit_enabled,
+        HUMAN_GATE_ENABLED=human_enabled,
+        VISIT_TOKEN_HMAC_KEY="fixture-model364-visit-secret-0123456789",
+    )
+    site = {"Origin": "https://modelspec.dev", "CF-Connecting-IP": "203.0.113.8"}
+    headers = dict(site) if site_headers else {}
+    if visit_header:
+        credential = visit_token.credential(
+            _Req("/v1/compare-models", headers=site), worker.env, entry.CORS_ORIGINS
+        )
+        headers[visit_token.HEADER] = visit_token.issue(*credential)[0]
+    produced = []
+    original = worker._decide
+
+    async def answer(*args, **kwargs):
+        produced.append("compare-models")
+        return await original(*args, **kwargs)
+
+    worker._decide = answer
+    response = asyncio.run(worker.fetch(_Req(
+        "/v1/compare-models", {"models": ["lab/a", "lab/b"]}, headers=headers
+    )))
+    assert response.status == 401, response.json()
+    assert response.json()["error"]["code"] == "missing_api_key"
+    assert response.json()["comparison_version"] == "1.0"
+    assert "contract_version" not in response.json()
+    assert produced == []
+    assert worker.env.ACCESS.store.data == {}
 
 
 def test_named_comparison_routes_a_keyed_request_through_signed_snapshot(

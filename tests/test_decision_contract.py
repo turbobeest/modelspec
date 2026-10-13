@@ -162,7 +162,7 @@ def test_objective_terms_accept_evidence_qualifiers() -> None:
         measured_by="independent", effort="default"
     )
     assert '"qualifiers"' in c.canonical_json(spec)
-    assert c.CONTRACT_VERSION == "3.0"
+    assert c.CONTRACT_VERSION == "2.16"
 
 
 def test_relative_condition_names_the_model() -> None:
@@ -726,6 +726,41 @@ def test_decision_round_trips() -> None:
     dumped = decision.model_dump(mode="json", by_alias=True)
     assert c.Decision.model_validate(dumped) == decision
     assert dumped["results"][0]["evidence"][0]["items"][0]["date"] == "2026-09-20"
+
+
+def test_named_comparison_keeps_complete_and_bounded_decision_versions() -> None:
+    from decision.bounded import project
+
+    decision = c.Decision.model_validate(DECISION)
+    assert decision.model_dump(mode="json")["contract_version"] == "2.16"
+    bounded = project(decision, c.ResponseOptions(fields=["cost_per_task"]), not_applied=[])
+    assert bounded["bounded_version"] == "1.2"
+    assert bounded["projects_contract"] == "2.16"
+    assert "contract_version" not in bounded
+    c.BoundedDecision.model_validate(bounded)
+
+
+def test_named_comparison_has_an_independent_contract_version() -> None:
+    raw = {
+        "comparison_version": "1.0",
+        "endpoint": "compare-models",
+        "snapshot": "snap_compare",
+        "models": [
+            {"model": mid, "lifecycle": "active", "facts": [], "offerings": [], "evidence": []}
+            for mid in ("lab/a", "lab/b")
+        ],
+        "sources": [],
+        "omitted": {"facts": 0, "offerings": 0, "evidence": 0},
+    }
+    comparison = c.ModelComparison.model_validate(raw)
+    assert comparison.model_dump(mode="json") == raw
+    properties = c.ModelComparison.model_json_schema(mode="serialization")["properties"]
+    assert properties["comparison_version"]["const"] == "1.0"
+    assert "contract_version" not in properties
+    with pytest.raises(ValueError, match="comparison_version"):
+        c.ModelComparison.model_validate(raw | {"comparison_version": "2.0"})
+    with pytest.raises(ValueError, match="contract_version"):
+        c.ModelComparison.model_validate(raw | {"contract_version": "2.16"})
 
 
 def test_no_feasible_names_what_to_relax() -> None:

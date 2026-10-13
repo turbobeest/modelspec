@@ -317,6 +317,12 @@ def _facets(*snapshots):
     return lookup
 
 
+def version_fields(endpoint: str) -> dict[str, str]:
+    if endpoint == "compare-models":
+        return {"comparison_version": contract.MODEL_COMPARISON_VERSION}
+    return {"contract_version": contract.CONTRACT_VERSION}
+
+
 def error_response(
     code: str,
     message: str,
@@ -336,7 +342,7 @@ def error_response(
         error["recovery"] = recovery
         error["recovery_omitted"] = len(issues or []) - len(recovery)
     body = {
-        "contract_version": contract.CONTRACT_VERSION,
+        **version_fields(endpoint),
         "endpoint": endpoint,
         "snapshot": snapshot_id,
         "error": error,
@@ -368,7 +374,7 @@ def bounded_unavailable(message: str, *, snapshot_id: str) -> tuple[int, dict[st
 def no_snapshot(message: str, *, endpoint: str = "decide") -> tuple[int, dict[str, Any]]:
     """Return the temporary state used until Pages publishes a signed snapshot."""
     return HTTP_SERVICE_UNAVAILABLE, {
-        "contract_version": contract.CONTRACT_VERSION,
+        **version_fields(endpoint),
         "endpoint": endpoint,
         "snapshot": None,
         "error": "no_snapshot",
@@ -376,7 +382,9 @@ def no_snapshot(message: str, *, endpoint: str = "decide") -> tuple[int, dict[st
     }
 
 
-def snapshot_changed(requested: str, snapshot) -> tuple[int, dict[str, Any]]:
+def snapshot_changed(
+    requested: str, snapshot, *, endpoint: str = "decide"
+) -> tuple[int, dict[str, Any]]:
     """The caller's vocabulary describes another snapshot: reload it and ask again."""
     status, body = error_response(
         "snapshot_changed",
@@ -384,6 +392,7 @@ def snapshot_changed(requested: str, snapshot) -> tuple[int, dict[str, Any]]:
         f"{snapshot.snapshot_id}; reload the vocabulary and retry",
         status=HTTP_CONFLICT,
         snapshot_id=snapshot.snapshot_id,
+        endpoint=endpoint,
     )
     body["error"]["requested"] = requested
     body["error"]["current"] = snapshot.snapshot_id
@@ -588,9 +597,7 @@ def compare_models(
     from decision.snapshot import SnapshotError
 
     if expected_snapshot and expected_snapshot != snapshot.snapshot_id:
-        status, body = snapshot_changed(expected_snapshot, snapshot)
-        body["endpoint"] = "compare-models"
-        return status, body
+        return snapshot_changed(expected_snapshot, snapshot, endpoint="compare-models")
     try:
         request = contract.ModelComparisonRequest.model_validate(payload)
     except ValidationError as exc:
@@ -701,7 +708,7 @@ def compare_models(
             }
         )
     body = {
-        "contract_version": contract.CONTRACT_VERSION,
+        **version_fields("compare-models"),
         "endpoint": "compare-models",
         "snapshot": snapshot.snapshot_id,
         "models": rows,

@@ -1,9 +1,9 @@
 # The ModelSpec decision contract
 
-Contract version: **3.0**
+Contract version: **2.16**
 
 The opt-in bounded HTTP response is a separate representation with its own
-version, **bounded 1.2**. It does not carry a 3.x `contract_version`. See
+version, **bounded 1.2**. It does not carry a 2.x `contract_version`. See
 [Bounded HTTP responses for agents](#bounded-http-responses-for-agents-model-293).
 
 A **spec** asks for a decision. A **decision** is the engine's answer to one
@@ -656,7 +656,7 @@ best-band tie (`answer.members`). A `do_not_claim` line also names a tied
 
 ```json decision
 {
-  "contract_version": "3.0",
+  "contract_version": "2.16",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
   "signature_verified": true,
@@ -799,7 +799,7 @@ best-band tie (`answer.members`). A `do_not_claim` line also names a tied
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"3.0"`. |
+| `contract_version` | `"2.16"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
 | `signature_verified` | `true` when this process verified either the pinned Ed25519 signature or the private Worker HMAC. |
@@ -1100,11 +1100,11 @@ offering rows, not unique models, and never changes the full `answer.members`.
 #### A separate representation, versioned on its own
 
 Either non-null control opts into `BoundedDecision`, the **bounded
-representation, version 1.2**. It is not a 3.x minor version. A bounded body
-omits lists that every 3.x Decision always carries (`by_model`, `eliminated`,
+representation, version 1.2**. It is not a 2.x minor version. A bounded body
+omits lists that every 2.x Decision always carries (`by_model`, `eliminated`,
 `number_origins` and the other explanation sections), and its rows omit fields
-a 3.x `Result` requires. Under the [versioning rule](#versioning-model-59) a
-field that may be absent is a widening, so labelling such a body as a 3.x
+a 2.x `Result` requires. Under the [versioning rule](#versioning-model-59) a
+field that may be absent is a widening, so labelling such a body as a 2.x
 contract would need a major bump. It is a different representation instead:
 
 - `representation` is always `"bounded"`. Branch on it first.
@@ -1112,13 +1112,13 @@ contract would need a major bump. It is a different representation instead:
   follows the same MODEL-59 rule on its own: widening any bounded field bumps
   its major.
 - `projects_contract` names the complete contract the body is projected from,
-  currently `"3.0"`. Every field the bounded body does carry has that
+  currently `"2.16"`. Every field the bounded body does carry has that
   contract's type and meaning.
-- A bounded body has **no** `contract_version`. A 3.x decoder that requires
+- A bounded body has **no** `contract_version`. A 2.x decoder that requires
   `contract_version` refuses it rather than misreading it as a complete
   Decision.
 
-Requests with only `limit`, or `fields: null`, receive complete contract 3.0
+Requests with only `limit`, or `fields: null`, receive complete contract 2.16
 responses. The decide page never sends `fields` or `evidence_for`, so its
 decoder never sees a bounded body and
 needs no change.
@@ -1266,7 +1266,7 @@ against it returns HTTP 503 `explanation_unavailable`; retry without
 `evidence_for`. Only a request that sends `evidence_for` can receive this code,
 so it belongs to the bounded representation: its body carries `representation`,
 `bounded_version` and `projects_contract` instead of a `contract_version`, and
-the 3.x decision error enum is unchanged.
+the 2.x decision error enum is unchanged.
 
 No decision store is added. `decision_id` remains a citation, not a lookup
 handle. Pin `snapshot` before the first call for reproducibility and resend the
@@ -1634,7 +1634,7 @@ an explicit source-policy reason without retaining the excluded URL.
 The stored `model.fits_hardware` facet still controls reach.
 
 The bounded representation continues at `bounded_version: "1.2"` and
-names `projects_contract: "3.0"`. It does not carry `top`; fetch the complete
+names `projects_contract: "2.16"`. It does not carry `top`; fetch the complete
 answer without `fields` to inspect these facts and their provenance.
 
 ## Comparing named models (MODEL-364)
@@ -1653,11 +1653,18 @@ off. A browser visit token does not admit this endpoint. Existing access
 quotas and billing apply at the `decide.full` credit weight. The CLI's named
 comparison and MCP `compare_models` tool call this endpoint.
 
-The response is a `ModelComparison` with these fields:
+The named comparison has its own contract, version **1.0**, identified by
+`comparison_version` on success and refusal bodies. It has no
+`contract_version`. Its fields follow the same MODEL-59 versioning rule:
+widening a comparison field bumps the comparison's major version.
+No Decision field changes range, so the shared Decision stays at 2.16 and
+the bounded projection stays at 1.2 with `projects_contract: "2.16"`.
+
+The success response is a `ModelComparison` with these fields:
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"3.0"`. |
+| `comparison_version` | `"1.0"`, the named comparison's own contract version. |
 | `endpoint` | `"compare-models"`. |
 | `snapshot` | The verified snapshot ID. |
 | `models` | One row per requested model, in caller order. |
@@ -1842,12 +1849,12 @@ that used to be accepted is a major change; accepting more is not.
 
 ## Change log
 
-- **3.0, MODEL-364:** Adds keyed named-model comparison through
+- **Comparison 1.0, MODEL-364:** Adds keyed named-model comparison through
   `POST /v1/compare-models`, with caller order, sourced facts, explicit unknowns,
-  offerings, and benchmark evidence. The new comparison contract takes a major
-  version as required by MODEL-59. Existing decisions retain their shapes and
-  the snapshot comparison remains available. Bounded decisions keep version
-  1.2 and project contract 3.0.
+  offerings, and benchmark evidence. The response uses its own
+  `comparison_version: "1.0"`. Existing Decision fields retain their ranges
+  and contract version 2.16. Bounded decisions keep version 1.2 and project
+  contract 2.16. The existing snapshot comparison remains available.
 
 - **2.16, MODEL-348:** Full answers conditionally show known, sourced architecture,
   total and active parameter facts, and expert facts when registered. Weight

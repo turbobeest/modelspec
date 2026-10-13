@@ -887,7 +887,7 @@ class Default(WorkerEntrypoint):
             headers = _cors_headers(request, self.env)
             if not headers:
                 return _json_response(service.HTTP_NOT_FOUND, {
-                    "contract_version": decider.contract.CONTRACT_VERSION,
+                    **decider.version_fields(path.rsplit("/", 1)[-1]),
                     "endpoint": path.rsplit("/", 1)[-1],
                     "snapshot": None,
                     "error": {"code": "origin_not_allowed",
@@ -1099,7 +1099,7 @@ class Default(WorkerEntrypoint):
         elif decider is not None:
             endpoint = path.rsplit("/", 1)[-1]
             envelope = {
-                "contract_version": decider.contract.CONTRACT_VERSION,
+                **decider.version_fields(endpoint),
                 "endpoint": endpoint,
                 "snapshot": getattr(_decision_holder(origin).snapshot, "snapshot_id", None),
                 "service_commit": service_commit,
@@ -1207,8 +1207,8 @@ class Default(WorkerEntrypoint):
 
         outcome = await access.gate(
             api_key=access_keys.extract(lambda name: request.headers.get(name)),
-            enforced=(path == "/v1/compare-models" or
-                      access.enforcement(getattr(self.env, ACCESS_ENFORCED_VAR, None))),
+            enforced=access.enforcement(getattr(self.env, ACCESS_ENFORCED_VAR, None)),
+            require_key=path == "/v1/compare-models",
             kv=_access_store(self.env),
             load_policy=lambda: access_config.load_policy(self.env),
             anonymous=anonymous, live=live, sandbox=sandbox, envelope=envelope,

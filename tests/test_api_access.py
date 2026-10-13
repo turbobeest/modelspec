@@ -666,6 +666,33 @@ async def _anonymous() -> tuple[int, dict[str, Any]]:
     return 200, {**ENVELOPE, "tier_served": "anonymous", "result": [{"rank": 1}]}
 
 
+@pytest.mark.parametrize("enforced", [False, True])
+@pytest.mark.parametrize("anonymous_id", [None, "visitor:model364"])
+def test_required_key_refuses_anonymous_admission_before_data_or_metering(
+    policy, enforced, anonymous_id
+):
+    produced = []
+
+    async def anonymous():
+        produced.append("anonymous")
+        return 200, {"models": ["lab/a", "lab/b"]}
+
+    outcome = run(access.gate(
+        api_key=None,
+        enforced=enforced,
+        require_key=True,
+        kv=ExplodingKV(),
+        load_policy=lambda: policy,
+        anonymous=anonymous,
+        live=_never_live,
+        sandbox=_sandbox_answer,
+        anonymous_id=anonymous_id,
+    ))
+    assert outcome.status == 401
+    assert outcome.body["error"]["code"] == "missing_api_key"
+    assert produced == []
+
+
 async def _gate(key, kv, policy, *, enforced, live=None, load_policy=None):
     async def live_with_tier(record, tier):
         return await (live or _live_answer())(record)

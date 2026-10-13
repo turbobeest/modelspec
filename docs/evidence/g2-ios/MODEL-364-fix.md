@@ -1,14 +1,16 @@
 # MODEL-364 execution evidence
 
-Status: READY. Required full Python and MCP runs each exited 0;
-cross-model review remains pending.
+Status: review fixes implemented; final full-suite verification in progress.
 
 Base SHA: `8825a31c2f215f6737eefbc7fa2ab2927161b7b5`.
 Implementation checkpoint SHA: `5fb59ceaf4a74d5422d76c80506c02dd6948b875`.
 Follow-up base SHA: `37a607e78016ab2b2d1e860c0abf1ec987160cab`.
 Follow-up implementation SHA: `516bdb4b8c3effcc6c085b0dba78e39c9cfd7a6d`.
 Fixture and QA checkpoint SHA: `cfb0d016a556b9c6147b236a26bff9980dde0f2b`.
-Final tested code SHA: `3d5cef3dd588aa4fe9e9bf43560fb47ed233143c`.
+Pre-review tested code SHA: `3d5cef3dd588aa4fe9e9bf43560fb47ed233143c`.
+Grok review base SHA: `f296221dbbc078860f85d178c6ffc7c6a8fc7bfb`.
+Merged main SHA: `2b0770afab18d101ea033c9259d53ae4ac42e2ce`.
+Merge checkpoint SHA: `d0afc29433934a76915375f38b8c9c7c5ded578d`.
 The final delivery SHA is the commit containing this report. Resolve it with
 `git log -1 --format=%H -- docs/evidence/g2-ios/MODEL-364-fix.md`.
 The final executor message also records that SHA. This avoids embedding a
@@ -21,7 +23,10 @@ Option B adds keyed `POST /v1/compare-models`, the CLI form
 two to four requested models in caller order, with facts, offering prices,
 benchmark evidence, provenance, explicit unknowns, and omission counts.
 It reads the verified snapshot without running an objective or ranking models.
-The decision contract is 3.0. The bounded representation remains 1.2.
+The comparison has its own `comparison_version: "1.0"`. The shared Decision
+contract remains 2.16, and the bounded representation remains 1.2, projecting
+2.16. The original 3.0 migration described in the historical runs below was
+reverted after the orchestrator's review decision.
 The CLI package version remains 0.4.0. The design and release requirements are
 in `docs/design/compare-models.md`.
 

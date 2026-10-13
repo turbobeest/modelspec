@@ -14,7 +14,7 @@ from cli.modelspec import cli, client
 KEY = "live_model364_test_secret"
 MODELS = ["lab/first", "other/second"]
 COMPARISON = {
-    "contract_version": "3.0",
+    "comparison_version": "1.0",
     "endpoint": "compare-models",
     "snapshot": "snap_current",
     "models": [

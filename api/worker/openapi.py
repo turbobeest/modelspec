@@ -2216,14 +2216,15 @@ def _decision_schemas() -> dict[str, Any]:
     from decision.recovery import MAX_RECOVERY_HINTS, Recovery
     schemas["DecisionRecovery"] = Recovery.model_json_schema()
     def refused(endpoint: str, codes: set[str]) -> dict[str, Any]:
+        version_key, version = next(iter(decide_service.version_fields(endpoint).items()))
         return {
             "type": "object",
             "additionalProperties": False,
-            "required": ["contract_version", "endpoint", "snapshot", "error"],
+            "required": [version_key, "endpoint", "snapshot", "error"],
             "properties": {
-                "contract_version": {
+                version_key: {
                     "type": "string",
-                    "enum": [decide_service.contract.CONTRACT_VERSION],
+                    "enum": [version],
                 },
                 "endpoint": {"type": "string", "enum": [endpoint]},
                 "snapshot": {"anyOf": [
@@ -2256,14 +2257,15 @@ def _decision_schemas() -> dict[str, Any]:
         }
 
     def snapshot_unavailable(endpoint: str) -> dict[str, Any]:
+        version_key, version = next(iter(decide_service.version_fields(endpoint).items()))
         return {
             "type": "object",
             "additionalProperties": False,
-            "required": ["contract_version", "endpoint", "snapshot", "error", "message"],
+            "required": [version_key, "endpoint", "snapshot", "error", "message"],
             "properties": {
-                "contract_version": {
+                version_key: {
                     "type": "string",
-                    "enum": [decide_service.contract.CONTRACT_VERSION],
+                    "enum": [version],
                 },
                 "endpoint": {"type": "string", "enum": [endpoint]},
                 "snapshot": {"type": "null"},

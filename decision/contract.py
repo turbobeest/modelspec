@@ -44,7 +44,8 @@ from pydantic import (
 )
 from pydantic.fields import FieldInfo
 
-CONTRACT_VERSION = "3.0"
+CONTRACT_VERSION = "2.16"
+MODEL_COMPARISON_VERSION = "1.0"
 
 # ── identifiers ────────────────────────────────────────────────────────────
 
@@ -2257,7 +2258,7 @@ class ComparisonOmitted(_Strict):
 
 
 class ModelComparison(_Strict):
-    contract_version: Literal[CONTRACT_VERSION] = CONTRACT_VERSION
+    comparison_version: Literal[MODEL_COMPARISON_VERSION] = MODEL_COMPARISON_VERSION
     endpoint: Literal["compare-models"] = "compare-models"
     snapshot: SnapshotId
     models: list[ComparisonModel]

@@ -390,7 +390,7 @@ paths:
       responses:
         '200':
           description: 'A decision pinned to the snapshot that produced it: a complete Decision (contract_version
-            3.0), with optional top[].hardware_estimates and unknown_facets; or, when the request sends
+            2.16), with optional top[].hardware_estimates and unknown_facets; or, when the request sends
             fields or evidence_for, the separate bounded representation (representation: bounded, bounded_version
             1.2, no contract_version).'
           content:
@@ -2235,7 +2235,7 @@ components:
       properties:
         representation: {const: bounded, title: Representation, type: string}
         bounded_version: {const: '1.2', title: Bounded Version, type: string}
-        projects_contract: {const: '3.0', title: Projects Contract, type: string}
+        projects_contract: {const: '2.16', title: Projects Contract, type: string}
         decision_id: {title: Decision Id, type: string}
         snapshot: {title: Snapshot, type: string}
         signature_verified: {$ref: '#/components/schemas/DecisionResponse/properties/signature_verified'}
@@ -2759,7 +2759,7 @@ components:
           - {$ref: '#/components/schemas/DecisionBenchmarkExclusions'}
           - {type: 'null'}
           default: null
-        contract_version: {const: '3.0', default: '3.0', title: Contract Version, type: string}
+        contract_version: {const: '2.16', default: '2.16', title: Contract Version, type: string}
         decision_id: {pattern: '^dec_[0-9A-Za-z]{8,}$', title: Decision Id, type: string}
         snapshot: {pattern: '^snap_[A-Za-z0-9:._-]+$', title: Snapshot, type: string}
         signature_verified: {default: false, title: Signature Verified, type: boolean}
@@ -3385,7 +3385,7 @@ components:
     DecisionModelComparison:
       additionalProperties: false
       properties:
-        contract_version: {const: '3.0', default: '3.0', title: Contract Version, type: string}
+        comparison_version: {const: '1.0', default: '1.0', title: Comparison Version, type: string}
         endpoint: {const: compare-models, default: compare-models, title: Endpoint, type: string}
         snapshot: {pattern: '^snap_[A-Za-z0-9:._-]+$', title: Snapshot, type: string}
         models:
@@ -4461,7 +4461,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['3.0']
+          enum: ['2.16']
         endpoint:
           type: string
           enum: [decide]
@@ -4512,7 +4512,7 @@ components:
           enum: ['1.2']
         projects_contract:
           type: string
-          enum: ['3.0']
+          enum: ['2.16']
         endpoint:
           type: string
           enum: [decide]
@@ -4533,7 +4533,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['3.0']
+          enum: ['2.16']
         endpoint:
           type: string
           enum: [decide]
@@ -4560,7 +4560,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['3.0']
+          enum: ['2.16']
         endpoint:
           type: string
           enum: [decide]
@@ -4576,7 +4576,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['3.0']
+          enum: ['2.16']
         endpoint:
           type: string
           enum: [compare]
@@ -4603,7 +4603,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['3.0']
+          enum: ['2.16']
         endpoint:
           type: string
           enum: [compare]
@@ -4615,11 +4615,11 @@ components:
     ModelComparisonRequestRefused:
       type: object
       additionalProperties: false
-      required: [contract_version, endpoint, snapshot, error]
+      required: [comparison_version, endpoint, snapshot, error]
       properties:
-        contract_version:
+        comparison_version:
           type: string
-          enum: ['3.0']
+          enum: ['1.0']
         endpoint:
           type: string
           enum: [compare-models]
@@ -4642,11 +4642,11 @@ components:
     ModelComparisonSnapshotUnavailable:
       type: object
       additionalProperties: false
-      required: [contract_version, endpoint, snapshot, error, message]
+      required: [comparison_version, endpoint, snapshot, error, message]
       properties:
-        contract_version:
+        comparison_version:
           type: string
-          enum: ['3.0']
+          enum: ['1.0']
         endpoint:
           type: string
           enum: [compare-models]
@@ -4877,7 +4877,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['3.0']
+          enum: ['2.16']
         endpoint:
           type: string
           enum: [compare]
@@ -4919,9 +4919,9 @@ components:
     ModelComparisonAccessRefused:
       type: object
       additionalProperties: false
-      required: [contract_version, endpoint, snapshot, error]
+      required: [comparison_version, endpoint, snapshot, error]
       properties:
-        contract_version: {$ref: '#/components/schemas/ModelComparisonRequestRefused/properties/contract_version'}
+        comparison_version: {$ref: '#/components/schemas/ModelComparisonRequestRefused/properties/comparison_version'}
         endpoint: {$ref: '#/components/schemas/ModelComparisonRequestRefused/properties/endpoint'}
         snapshot: {$ref: '#/components/schemas/ModelComparisonRequestRefused/properties/snapshot'}
         error: {$ref: '#/components/schemas/AccessRefused/properties/error'}

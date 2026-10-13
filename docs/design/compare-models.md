@@ -29,9 +29,11 @@ uses `decide` with their own requirements and objective.
 
 ## Contracts and access
 
-The decision contract advances from 2.16 to 3.0 for the new comparison request
-and response. The bounded decision representation remains at 1.2 and names
-`projects_contract: "3.0"`. The CLI package version does not change in this
+The named comparison has its own contract, `comparison_version: "1.0"`, on
+success and refusal bodies. MODEL-59 applies to comparison fields under that
+version. No shared Decision field widens, so its contract stays at 2.16. The
+bounded decision representation stays at 1.2 and names
+`projects_contract: "2.16"`. The CLI package version does not change in this
 ticket.
 
 The endpoint requires an API key even when `ACCESS_ENFORCED` is off. Browser

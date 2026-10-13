@@ -650,7 +650,7 @@
           "type": "integer"
         },
         "projects_contract": {
-          "const": "3.0",
+          "const": "2.16",
           "title": "Projects Contract",
           "type": "string"
         },
@@ -2033,8 +2033,8 @@
           "type": "array"
         },
         "contract_version": {
-          "const": "3.0",
-          "default": "3.0",
+          "const": "2.16",
+          "default": "2.16",
           "title": "Contract Version",
           "type": "string"
         },
@@ -3597,10 +3597,10 @@
     "ModelComparison": {
       "additionalProperties": false,
       "properties": {
-        "contract_version": {
-          "const": "3.0",
-          "default": "3.0",
-          "title": "Contract Version",
+        "comparison_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Comparison Version",
           "type": "string"
         },
         "endpoint": {
@@ -6332,5 +6332,5 @@
   ],
   "description": "Generated from decision/contract.py by `python -m decision.schema`. Do not edit by hand. The prose is docs/decision-contract.md.",
   "title": "ModelSpec decision contract",
-  "x-contract-version": "3.0"
+  "x-contract-version": "2.16"
 }
