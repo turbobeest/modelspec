@@ -308,8 +308,11 @@ def _mark(computed: Any, cid: str, current: Reach, access: Access | None) -> Est
         cost = 0
     coverage = None
     if kind == "plan" and access is not None:
-        coverage = next((c for plan_id, _, c in current.routes.get(cid, ()) if plan_id == hold_id),
-                        None)
+        match = next((item for item in current.routes.get(cid, ()) if item[0] == hold_id), None)
+        if match is not None:
+            _, surface, coverage = match
+            coverage = plans_module.listed_coverage(
+                coverage, plans_module.tool_listing(current.plans[hold_id], surface, access))
     return EstateMark(
         via=EstateHold(kind=kind, id=hold_id), cost_basis=_COST_BASIS[kind],
         marginal_cost_per_task_usd=cost, coverage=coverage)

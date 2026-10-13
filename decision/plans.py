@@ -12,8 +12,9 @@ so an explanation can say why a model counts as covered.
 
 A spec's ``access`` picks the surfaces that count: ``chat_app`` matches the
 chat, desktop and mobile apps; ``coding_tool`` matches ``coding_tool:<harness>``
-(any harness when the spec names none); ``own_software`` matches ``api``;
-``own_hardware`` matches no plan.
+(any harness when the spec names none) and ``coding_tool:*`` when the page's
+list of tools is open-ended; ``own_software`` matches ``api``; ``own_hardware``
+matches no plan.
 """
 
 from __future__ import annotations
@@ -31,13 +32,14 @@ from decision.contract import (
     PlanRoute,
     SpecError,
 )
-from decision.registry import CODING_TOOL
+from decision.registry import CODING_TOOL, CODING_TOOL_OPEN
 from decision.registry import default as default_registry
 
 MODELS_COVERED = "offering.subscription.models_covered"
 SURFACES = "offering.subscription.surfaces"
 FAMILIES = "offering.subscription.families_covered"
 QUOTE = "offering.subscription.coverage_quote"
+CODING_TOOLS_QUOTE = "offering.subscription.coding_tools_quote"
 PRICE = "offering.subscription.price"
 PERIOD = "offering.subscription.billing_period"
 ALLOWANCE = {
@@ -79,6 +81,8 @@ class Plan:
     surfaces: frozenset[str] | None
     coverage: tuple[PlanCoverage, ...] | None
     allowance: PlanAllowance
+    #: The page's open-ended coding-tool sentence, when it records ``coding_tool:*``.
+    coding_tools_quote: str | None = None
 
     @property
     def models(self) -> frozenset[str] | None:
@@ -95,8 +99,15 @@ class Plan:
     def surface(self, access: Access) -> str | None:
         """The surface ``access`` uses this plan through, or ``None``.
 
-        Call only when ``surfaces`` is known."""
-        return next((s for s in sorted(self.surfaces or ()) if matches(access, s)), None)
+        Call only when ``surfaces`` is known. A harness the page names beats
+        ``coding_tool:*``, so a named tool is not reported as the open list.
+        """
+        matched = [s for s in self.surfaces or () if matches(access, s)]
+        if access.kind == "coding_tool" and access.harness is not None:
+            named = CODING_TOOL + access.harness
+            if named in matched:
+                return named
+        return min(matched) if matched else None
 
     def monthly_formula(self) -> str | None:
         if self.price is None or self.monthly is None:
@@ -112,6 +123,8 @@ def matches(access: Access, surface: str) -> bool:
     if access.kind == "chat_app":
         return surface in CHAT_SURFACES
     if access.kind == "coding_tool":
+        if surface == CODING_TOOL_OPEN:
+            return True
         if access.harness is None:
             return surface.startswith(CODING_TOOL)
         return surface == CODING_TOOL + access.harness
@@ -153,12 +166,14 @@ def _plan(raw: Mapping[str, Any], lineup: list[str], registry: Any) -> Plan:
         price = PlanPrice(amount=float(amount), currency="USD", period=period)
         monthly = float(amount) if period == "monthly" else round(float(amount) / 12, 6)
     surfaces = _value(facts, SURFACES)
+    tools_quote = _value(facts, CODING_TOOLS_QUOTE)
     return Plan(
         id=raw["id"], provider=raw["provider"], name=raw["name"], price=price, monthly=monthly,
         surfaces=None if surfaces is None else frozenset(surfaces),
         coverage=_coverage(facts, lineup, registry),
         allowance=PlanAllowance(**{part: _value(facts, facet)
                                    for part, facet in ALLOWANCE.items()}),
+        coding_tools_quote=tools_quote if isinstance(tools_quote, str) else None,
     )
 
 
@@ -195,6 +210,33 @@ def _allowance_text(allowance: PlanAllowance) -> str:
             "tasks fit inside the plan is unknown.")
 
 
+def tool_listing(plan: Plan, surface: str | None, access: Access) -> str | None:
+    """How an open-ended coding-tool list applies to the harness ``access`` names.
+
+    ``None`` when the plan has no ``coding_tool:*``, or the spec names no
+    harness. A harness the page also names is confirmed. Any other harness
+    routes through the open list and is not confirmed; the sentence quotes
+    the page.
+    """
+    if (access.kind != "coding_tool" or access.harness is None or surface is None
+            or not plan.surfaces or CODING_TOOL_OPEN not in plan.surfaces):
+        return None
+    if surface == CODING_TOOL + access.harness:
+        return "confirmed"
+    if surface == CODING_TOOL_OPEN:
+        quoted = plan.coding_tools_quote or "…"
+        return ("tool not named by the provider: provider lists tools such as "
+                f"{quoted}; your tool isn't named")
+    return None
+
+
+def listed_coverage(coverage: PlanCoverage | None, note: str | None) -> PlanCoverage | None:
+    """``coverage`` with ``note`` appended to its rule, or ``coverage`` unchanged."""
+    if coverage is None or not note:
+        return coverage
+    return coverage.model_copy(update={"rule": f"{coverage.rule} {note}"})
+
+
 def route(plan: Plan, surface: str, coverage: PlanCoverage, access: Access,
           cost_per_task: float | None, where: str, *, bare: bool = False) -> PlanRoute:
     """``plan`` as a route to one row. ``cost_per_task`` is the row's pay-per-use
@@ -221,6 +263,10 @@ def route(plan: Plan, surface: str, coverage: PlanCoverage, access: Access,
                  f"{_number(cost_per_task)} USD pay-per-use on {where} at list price, so the "
                  f"plan pays for itself above {_number(break_even)} tasks a month."
                  + _allowance_text(plan.allowance))
+    note = tool_listing(plan, surface, access)
+    if note:
+        basis = f"{basis} {note}"
+        coverage = listed_coverage(coverage, note)
     return PlanRoute(
         plan=plan.id, name=plan.name, surface=surface, price=plan.price,
         price_monthly_usd=plan.monthly, coverage=coverage, allowance=plan.allowance,

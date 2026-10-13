@@ -53,9 +53,12 @@ SHOWN_BY = ("address", "incorporation", "governing_law")
 BASES = ("service_terms", "website_terms")
 REFINEMENT_KINDS = ("language", "task", "mode", "material")
 #: The surfaces a subscription plan can be used through (MODEL-200), besides
-#: ``coding_tool:<harness>`` for each harness in harnesses.yaml.
+#: ``coding_tool:<harness>`` for each harness in harnesses.yaml and
+#: ``coding_tool:*`` when the page's coding-tool list is open-ended (MODEL-210).
 PLAN_SURFACES = ("chat_app", "desktop_app", "mobile_app", "api")
 CODING_TOOL = "coding_tool:"
+#: Works in coding tools; the provider's list is open-ended, not a harness id.
+CODING_TOOL_OPEN = "coding_tool:*"
 
 #: Each registry document has its own compatibility gate. Facets moved to v2
 #: when MODEL-173 added ``string`` to the closed ``value_type.kind`` range;
@@ -433,7 +436,7 @@ def _named_lists(repo_root: Path, raw: Mapping[str, list[dict]]) -> dict[str, Ca
 
     def plan_surfaces() -> frozenset[str]:
         harnesses = (str(h.get("id")) for h in raw.get("harnesses", []))
-        return frozenset((*PLAN_SURFACES, *(CODING_TOOL + h for h in harnesses)))
+        return frozenset((*PLAN_SURFACES, CODING_TOOL_OPEN, *(CODING_TOOL + h for h in harnesses)))
 
     def model_classes() -> frozenset[str]:
         from api.classes import CLASS_BY_ID

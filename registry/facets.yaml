@@ -1051,9 +1051,25 @@ facets:
     definition: >-
       Where the provider documents the plan as usable: chat_app (the web chat),
       desktop_app, mobile_app, coding_tool:<harness> for a harness registered
-      in registry/harnesses.yaml, and api for the customer's own software. A
-      surface the plan page does not name is absent; without api the plan does
-      not cover the customer's own software.
+      in registry/harnesses.yaml, coding_tool:* when the page's list of coding
+      tools is open-ended ("such as", "More tools"), and api for the customer's
+      own software. A surface the plan page does not name is absent; without
+      api the plan does not cover the customer's own software. The page's
+      open-ended wording is offering.subscription.coding_tools_quote.
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [provider_documentation, provider_terms]
+  - id: offering.subscription.coding_tools_quote
+    label: Coding tools wording
+    subject: offering
+    addressable: false
+    value_type: {kind: string}
+    definition: >-
+      The plan page's exact open-ended wording of the coding tools the plan
+      works in, copied verbatim from a cited source, when
+      offering.subscription.surfaces includes coding_tool:*. A reader checks
+      that token against this sentence. A harness the sentence names is still
+      recorded as coding_tool:<harness> when that harness is registered.
     tier: best_effort
     risk: capability
     permitted_source_kinds: [provider_documentation, provider_terms]
