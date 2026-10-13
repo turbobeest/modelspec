@@ -36,7 +36,7 @@ jobs:
             exit 1
           fi
 
-      - name: Skip pull requests that change workflow files
+      - name: Skip pull requests that change workflow or blog files
         id: workflow_files
         env:
           GH_TOKEN: ${{ secrets.RESEARCH_PR_TOKEN }}
@@ -49,7 +49,7 @@ jobs:
           skip=false
           while IFS= read -r path; do
             case "$path" in
-              .github/workflows/*)
+              .github/workflows/*|blog/*)
                 skip=true
                 echo "$path" >> workflow-paths.txt
                 ;;
@@ -57,7 +57,7 @@ jobs:
           done < changed-paths.txt
 
           if [ "$skip" = true ]; then
-            echo "Skipping auto-merge: this PR changes files under .github/workflows/. CI changes must be merged by a person."
+            echo "Skipping auto-merge: changes under .github/workflows/ or blog/ require a human merge."
             cat workflow-paths.txt
             echo "skip=true" >> "$GITHUB_OUTPUT"
           else

@@ -2,6 +2,7 @@
 import argparse
 import gzip
 import json
+import re
 import sys
 import urllib.error
 import urllib.request
@@ -43,6 +44,11 @@ PROBES = (
 )
 
 
+def is_retained_snapshot(path: str) -> bool:
+    """A versioned, public blog snapshot, relative to the API directory."""
+    return re.fullmatch(r"decision/snapshots/snap_[0-9a-f]{16}\.json\.gz", path) is not None
+
+
 def cache_headers(headers: str) -> str:
     """Apply the split cache policy once, preserving unrelated header rules."""
     headers = headers.replace(HEADERS, "")
@@ -58,7 +64,8 @@ def restrict(tree: Path) -> None:
     """Replace bulk API routes with tombstones and stop caching data responses."""
     api = tree / "api"
     for path in api.rglob("*"):
-        if path.is_file() and path.relative_to(api).as_posix() not in KEEP_API:
+        relative = path.relative_to(api).as_posix()
+        if path.is_file() and relative not in KEEP_API and not is_retained_snapshot(relative):
             path.unlink()
     raw = (json.dumps(TOMBSTONE, separators=(",", ":")) + "\n").encode()
     for route in (*REMOVED, TOMBSTONE_PATH):

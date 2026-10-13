@@ -5,7 +5,9 @@ from __future__ import annotations
 import html
 import os
 import re
+import shutil
 import struct
+import subprocess
 from dataclasses import replace
 from datetime import date
 from pathlib import Path
@@ -338,3 +340,37 @@ def test_build_with_the_flag_renders_and_fails_hard(
 def test_ci_installs_chromium_on_the_shard_that_renders_cards() -> None:
     workflow = (ROOT / ".github" / "workflows" / "test.yml").read_text(encoding="utf-8")
     assert "grep -qxE 'tests/test_(landing|social_cards)\\.py' shard-files.txt" in workflow
+
+
+def test_blog_fixture_is_readable_at_phone_and_desktop_with_a_social_card(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from pipeline import blog
+    from tests.test_blog import BUILD, FIXTURE, KEYS, SLUG, publish
+
+    if not (ROOT / "web" / "node_modules" / "playwright").is_dir():
+        if os.environ.get("CI"):
+            pytest.fail("blog browser test requires npm ci in web/")
+        pytest.skip("blog browser test requires npm ci in web/")
+    root = tmp_path / "source"
+    shutil.copytree(FIXTURE, root / "blog")
+    standard = root / "docs" / "method" / "release-breakdown-standard.md"
+    standard.parent.mkdir(parents=True)
+    shutil.copy2(ROOT / "docs" / "method" / standard.name, standard)
+    publish(root)
+    monkeypatch.setenv("BLOG_ENABLED", "true")
+    monkeypatch.setenv(social_cards.RENDER_ENV, "1")
+    tree = tmp_path / "site"
+    blog.write(tree, root, BUILD, public_keys=KEYS)
+    shutil.copytree(ROOT / "site" / "fonts", tree / "fonts")
+    result = subprocess.run(
+        ["node", str(ROOT / "web" / "scripts" / "blog-browser.mjs"),
+         str(tree), SLUG, str(tmp_path / "screenshots")],
+        cwd=ROOT, check=True, capture_output=True, text=True, timeout=90,
+    )
+    import json
+    checks = json.loads(result.stdout)
+    assert set(checks) == {"390", "1440"}
+    for viewport, values in checks.items():
+        assert all(values.values()), (viewport, values)
+    assert _png_size(tree / "blog" / SLUG / "r1" / "og-card.png") == (1200, 630)

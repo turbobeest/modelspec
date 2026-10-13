@@ -1994,7 +1994,8 @@ def catalogue_page(benchmarks: list[Benchmark], catalogue: Catalogue, build: Bui
 
 # ── shared furniture ─────────────────────────────────────────────────────────
 
-def sitemap(base: str, paths: Iterable[str], today: date) -> str:
+def sitemap(base: str, paths: Iterable[str], today: date, *,
+            lastmods: dict[str, str] | None = None) -> str:
     """Pretty-print so a large catalogue cannot become one 100k+ line.
 
     Search Console read the 100,405-byte one-line benchgraph sitemap and
@@ -2003,8 +2004,9 @@ def sitemap(base: str, paths: Iterable[str], today: date) -> str:
     difference that matches; one URL per line stays far under that.
     """
     lastmod = today.isoformat()
+    lastmods = lastmods or {}
     entries = "\n".join(
-        f"<url><loc>{esc(base + p)}</loc><lastmod>{lastmod}</lastmod></url>"
+        f"<url><loc>{esc(base + p)}</loc><lastmod>{esc(lastmods.get(p, lastmod))}</lastmod></url>"
         for p in paths
     )
     return (
