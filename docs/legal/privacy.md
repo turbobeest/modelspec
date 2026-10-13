@@ -422,7 +422,7 @@ transaction hash can find them. Choose the wallet you pay from with that in
 mind.
 
 `X402_PAY_TO`, the address that receives x402 payments, is
-`<LLC Base receiving address>` on the Base network. It is held in a Coinbase
+`0x69429dbEEEE7218084AB5B896788f5fCE452419C` on the Base network. It is held in a Coinbase
 account for Sparks & Sawdust LLC. No private key for it is in this repository.
 
 Keys are enforced (`ACCESS_ENFORCED`), so a request without a key is refused
