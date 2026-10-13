@@ -1,6 +1,9 @@
 # Decision links for human lookup
 
-Draft — awaiting Jamie's approval
+Approved by Jamie on 2026-10-13 ("approve decision-link.md"). The approval covers
+the visibility, lifetime and storage decisions below. Production activation
+still follows the steps in "Contract publication and activation", including
+separate approval of any privacy wording, and `DECISION_LINK_ENABLED` stays off.
 
 MODEL-353 prepares a read-only human page for a bounded `/v1/decide` answer.
 Jamie owns both decisions below. The implementation follows the ticket's
