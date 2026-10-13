@@ -709,7 +709,7 @@ def _file_verified(root: Path, claim: Claim, day: date) -> None:
 
 
 def _public_and_private_fidelity(tmp_path: Path, monkeypatch, *, corrected_value=20,
-                                 corrected_date=date(2026, 10, 10)):
+                                 corrected_date=date(2026, 10, 10), page_value=20):
     from decision import sources as source_module
 
     public, private = tmp_path / "public", tmp_path / "private"
@@ -727,7 +727,7 @@ def _public_and_private_fidelity(tmp_path: Path, monkeypatch, *, corrected_value
     _file_verified(private, replace(lag, value=corrected_value), corrected_date)
     monkeypatch.setattr(source_module, "Fetcher", lambda: _FetchResults({
         "https://example.test/lag": FetchResult(
-            "ok", 200, body=b"Model: Model\ncontext: 20\n", content_type="text/plain"
+            "ok", 200, body=f"Model: Model\ncontext: {page_value}\n".encode(), content_type="text/plain"
         ),
         "https://example.test/plain": FetchResult(
             "ok", 200, body=_PAGE, content_type="text/plain"
@@ -761,6 +761,53 @@ def test_newer_verified_private_correction_reports_public_image_lag_and_replaces
     assert "1 draw(s) lagged a newer verified private correction" in result.summary
     assert VerificationLog(public / "verification").latest()[("fact", lag.target.id)].outcome == "verified"
     assert Queue(public / "verification").recrawl_requests() == []
+
+
+@pytest.mark.parametrize("page_value", [30, 10], ids=["third_value", "frozen_value"])
+def test_a_current_reading_that_rejects_the_private_correction_keeps_fidelity_red(
+    tmp_path: Path, monkeypatch, page_value,
+) -> None:
+    from scripts import accuracy_alert
+
+    public, private, claim = _public_and_private_fidelity(
+        tmp_path, monkeypatch, page_value=page_value,
+    )
+    result = accuracy.data_fidelity(
+        public, as_of=date(2026, 10, 13), config=accuracy.load_config().data_fidelity,
+        seed="model335", private_data_root=private,
+    )
+
+    assert result.status == "fail"
+    assert result.counts["mismatch"] == 1
+    assert result.counts["public_image_lag"] == 0
+    row = next(row for row in result.details["sample"] if row["target"] == "fact:" + claim.target.id)
+    assert row["outcome"] == "mismatch"
+    assert Queue(public / "verification").recrawl_requests() == [(claim.target, "mismatch")]
+    record = VerificationLog(public / "verification").latest()[("fact", claim.target.id)]
+    assert record.outcome == "mismatch"
+    assert json.loads(record.diff) == row["diff"]
+    from decision.model import value_hash
+    assert record.target.value_hash == value_hash(10)
+    assert record.target.value_hash != value_hash(20)
+    if page_value == 30:
+        assert row["diff"] == [{"field": "value", "expected": "10", "found": "30"}]
+    else:
+        assert row["reason"] == "private_correction_not_supported"
+        assert row["diff"] == [{
+            "field": "private_correction", "expected": "supported", "found": "not_supported",
+        }]
+    report = accuracy.AccuracyReport(
+        generated_at="2026-10-13T00:00:00Z", profile="nightly", snapshot=None, layers=(result,),
+    )
+    markdown, payload = accuracy.write_report(report, tmp_path / "report")
+    alert = accuracy_alert.body(report.to_dict(), "https://example.test/run")
+    assert "fact:" + claim.target.id in alert
+    assert "mismatch" in alert
+    for text in (markdown.read_text(), payload.read_text(), alert,
+                 Queue(public / "verification").path.read_text(),
+                 VerificationLog(public / "verification").path.read_text()):
+        assert '"expected": "20"' not in text
+        assert value_hash(20) not in text
 
 
 def test_private_licence_correction_matches_an_omitted_facet_unit(tmp_path: Path) -> None:

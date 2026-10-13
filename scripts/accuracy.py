@@ -872,6 +872,15 @@ def _read_nothing(result: Any) -> bool:
     )
 
 
+def _has_current_reading(result: Any) -> bool:
+    """A source-kind rejection does not read the claim's value."""
+    return result.outcome == "verified" or (
+        result.outcome == "mismatch"
+        and not _read_nothing(result)
+        and any(diff.field != "source_kind" for diff in result.diffs)
+    )
+
+
 def verify_fidelity_sample(
     claims: Sequence[Any],
     *,
@@ -891,10 +900,11 @@ def verify_fidelity_sample(
     because its source is unchanged or changed (the default), or a ``mismatch``.
     ``render_required`` turns ``unreachable`` into ``undetermined``: the draw is
     replaced, and it is not logged, checked, or re-queued.
-    A matching private correction reports ``public_image_lag`` without writing
-    a verification or changing the public queue. Its newer citation may differ.
+    A current reading must support a matching private correction before reporting
+    ``public_image_lag``. With no usable current reading the prior private proof
+    can replace the draw. Lag never writes a verification or changes the queue.
     """
-    from decision.verify import ref_str, verify
+    from decision.verify import Diff, ref_str, verify
 
     unread = unread or {}
     now = datetime.now(UTC)
@@ -931,12 +941,33 @@ def verify_fidelity_sample(
                 for field in ("subject", "field", "conditions", "base_model")
             )
             if same_fact and same_unit:
-                outcome = "public_image_lag"
-                undetermined = "newer_verified_private_correction"
                 correction_details = {
                     "public_verified_date": public_date.isoformat(),
                     "verified_date": private_date.isoformat(),
                 }
+                corrected = verify(
+                    replace(claim, value=correction.value,
+                            unit=correction.unit if correction.unit is not None else claim.unit),
+                    regions, extractors, today=today,
+                )
+                if corrected.outcome == "verified" or (
+                    not _has_current_reading(result) and not _has_current_reading(corrected)
+                ):
+                    outcome = "public_image_lag"
+                    undetermined = "newer_verified_private_correction"
+                elif not _has_current_reading(result) or result.outcome == "verified":
+                    diffs = (Diff("private_correction", "supported", "not_supported"),)
+                    verification = result.verification
+                    if verification is not None:
+                        verification = verification.model_copy(update={
+                            "outcome": "mismatch",
+                            "diff": json.dumps([diff.to_dict() for diff in diffs]),
+                        })
+                    result = replace(
+                        result, outcome="mismatch", diffs=diffs, verification=verification,
+                        reason="private_correction_not_supported",
+                    )
+                    outcome, undetermined = "mismatch", None
         counts[outcome] += 1
         if outcome in ("verified", *_FIDELITY_FAILURES) and result.verification is not None:
             log.append(result.verification)
