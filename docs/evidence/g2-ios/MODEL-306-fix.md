@@ -262,7 +262,7 @@ The direct check used this local ignored script, with exit code 0:
 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python .artifacts/model-306/executor/verify-artifacts.py > .artifacts/model-306/executor/artifact-verification.log 2>&1
 ```
 
-The equivalent source below uses the repository exclusion pattern in place of
+The revised source below uses the repository exclusion pattern in place of
 the initial script's literal name checks, so this report follows the tracked-file
 guard. The initial run passed those literal checks. The baseline path refers to the red-first build
 fixture retained in this worktree; the source and live paths refer to the final
@@ -383,7 +383,287 @@ private Worker snapshot and can include the visitor's holdings. Its answer can
 differ; the preview states that it is the public starting template and shows its
 snapshot date.
 
-I did not observe deployed pages, live Worker responses, actual social-crawler
-previews, hosted CI completion, or a cross-model review. I did not run the wsl
+At initial delivery, I had not observed deployed pages, live Worker responses,
+actual social-crawler previews, hosted CI completion, or a cross-model review. I did not run the wsl
 gate or call devices or paid providers. GitHub delivery is authorized by the
 execution brief. No production switch, Worker implementation, legal text, ranking floor, or frozen data changed.
+
+## Review follow-up on 2026-10-13
+
+Grok's review in `REVIEW-721.verdict.md` passed all five product checks and
+returned CHANGES for two merge conflicts after main's blog change, PR #719. The user authorized merging
+`origin/main`, keeping the blog and template changes together, rerunning the
+site build and full suite, pushing without force, retaining draft status, and
+commenting with the SHA.
+
+Premerge head: `653dbd73e754a3f4c11c4726e63f33206358f41a`.
+Fetched main: `e6a1b94c30af39cb2bbf7b91233f9691cfa98329`.
+Tested merge commit: `01dc90375334c1165a4a6476779722c9662411b8`.
+Its parents are the premerge head and fetched main. The final delivery commit
+adds this evidence; resolve its SHA with the report's `git log` command above.
+The PR comment and executor completion record that final SHA.
+
+I read `/Users/terbeest/.codex-g2/exec/REVIEW-721.verdict.md` in full. These
+commands fetched the reviewed main and reproduced the conflict:
+
+```bash
+git fetch origin main
+git merge --no-commit --no-ff origin/main
+```
+
+Fetch returned 0. Merge returned 1:
+
+```text
+CONFLICT (content): Merge conflict in pipeline/live.py
+CONFLICT (content): Merge conflict in tests/test_social_cards.py
+Automatic merge failed; fix conflicts and then commit the result.
+```
+
+The resolution keeps `MAIN_ONLY` and the card copy loop on
+`social_cards.all_card_filenames()`. It retains main's `BLOG_CARD` pattern and
+its `BLOG_CARD.fullmatch(path)` exemption in `dead_links()`. The test file
+retains the blog fixture browser test and every template test. No assertion or
+test function body changed. An independent read-only agent audit agreed.
+
+The following local ignored script checks those preservation claims against
+the pinned parents. Its command returned 0:
+
+```bash
+/Users/terbeest/dev/modelspec/.venv/bin/python .artifacts/model-306/merge-review-721/executor/verify-merge.py > .artifacts/model-306/merge-review-721/executor/merge-audit.log 2>&1
+```
+
+```python
+import ast
+import subprocess
+from pathlib import Path
+
+premerge = '653dbd73e754a3f4c11c4726e63f33206358f41a'
+main = 'e6a1b94c30af39cb2bbf7b91233f9691cfa98329'
+def functions(source):
+    return {node.name: ast.dump(node, include_attributes=False) for node in ast.parse(source).body if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))}
+path = 'tests/test_social_cards.py'
+merged = functions(Path(path).read_text())
+for revision in (premerge, main):
+    original = functions(subprocess.check_output(['git', 'show', f'{revision}:{path}'], text=True))
+    for name, source in original.items():
+        assert merged.get(name) == source, (revision, name)
+    print(revision, len(original), 'function bodies preserved unchanged')
+assert len(merged) == 25
+live = Path('pipeline/live.py').read_text()
+main_live = subprocess.check_output(['git', 'show', f'{main}:pipeline/live.py'], text=True)
+assert functions(live)['dead_links'] == functions(main_live)['dead_links']
+def assignment(source, name):
+    return next(ast.dump(node, include_attributes=False) for node in ast.parse(source).body if isinstance(node, ast.Assign) and any(isinstance(target, ast.Name) and target.id == name for target in node.targets))
+assert assignment(live, 'BLOG_CARD') == assignment(main_live, 'BLOG_CARD')
+assert 'MAIN_ONLY = (*(f"/{name}" for name in social_cards.all_card_filenames()), "/api/decision/")' in live
+assert 'for rel in social_cards.all_card_filenames():' in live
+assert 'shutil.copytree(templates, tree / "decide" / "templates")' in live
+for path in ['pipeline/live.py', 'tests/test_social_cards.py']:
+    assert not any(line.startswith(('<<<<<<<', '=======', '>>>>>>>')) for line in Path(path).read_text().splitlines())
+print('25 functions retained; BLOG_CARD and dead_links match main; template copy/allowlist retained')
+```
+
+```text
+653dbd73e754a3f4c11c4726e63f33206358f41a 24 function bodies preserved unchanged
+e6a1b94c30af39cb2bbf7b91233f9691cfa98329 20 function bodies preserved unchanged
+25 functions retained; BLOG_CARD and dead_links match main; template copy/allowlist retained
+```
+
+The focused suite returned 0:
+
+```bash
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:/Users/terbeest/dev/modelspec/.venv/bin:$PATH TZ=UTC PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_social_cards.py::test_blog_fixture_is_readable_at_phone_and_desktop_with_a_social_card tests/test_social_cards.py::test_build_emits_every_template_preview_and_card tests/test_holding.py::test_live_preserves_every_public_template_preview tests/test_blog_deployment.py > .artifacts/model-306/merge-review-721/executor/focused.log 2>&1
+```
+
+```text
+17 passed in 562.81s (0:09:22)
+```
+
+After resolving the conflicts, the staged whitespace check returned 0 and the
+merge commit returned 0. It ends with the required coauthor line:
+
+```bash
+git add pipeline/live.py tests/test_social_cards.py
+git diff --cached --check
+git commit -F .artifacts/model-306/merge-review-721/executor/merge-commit.txt
+git merge-base --is-ancestor e6a1b94c30af39cb2bbf7b91233f9691cfa98329 HEAD
+```
+
+The ancestor check returned 0. The commit message was:
+
+```text
+MODEL-306: merge origin/main and preserve blog cards
+
+Keep BLOG_CARD and its fullmatch exemption alongside all template card filenames. Preserve both the blog fixture test and the template tests.
+
+Co-Authored-By: ChatGPT Codex <noreply@openai.com>
+```
+
+Web installation, build, and tests all returned 0, with these commands in `web/`:
+
+```bash
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:/Users/terbeest/dev/modelspec/.venv/bin:$PATH npm ci > ../.artifacts/model-306/merge-review-721/executor/npm-ci.log 2>&1
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:/Users/terbeest/dev/modelspec/.venv/bin:$PATH npm run build > ../.artifacts/model-306/merge-review-721/executor/web-build.log 2>&1
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:/Users/terbeest/dev/modelspec/.venv/bin:$PATH npm test > ../.artifacts/model-306/merge-review-721/executor/web-test.log 2>&1
+```
+
+```text
+Test Files  49 passed | 1 skipped (50)
+Tests  819 passed (819)
+Duration  24.15s
+```
+
+The rendered site build and live composition both returned 0:
+
+```bash
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:/Users/terbeest/dev/modelspec/.venv/bin:$PATH MODELSPEC_RENDER_SOCIAL_CARDS=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.build --out dist > .artifacts/model-306/merge-review-721/executor/site-build.log 2>&1
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:/Users/terbeest/dev/modelspec/.venv/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.live build --src dist --web web/dist --out .artifacts/model-306/merge-review-721/executor/live-site > .artifacts/model-306/merge-review-721/executor/live-site.log 2>&1
+```
+
+Live composition reported `modelspec: 2705 files; discovery links resolve`.
+This postmerge build used the normal public root with the blog production flag
+unset. The focused blog fixture tests exercised the enabled blog path locally.
+
+The postmerge artifact check returned 0:
+
+```bash
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python .artifacts/model-306/merge-review-721/executor/verify-artifacts.py > .artifacts/model-306/merge-review-721/executor/artifact-verification.log 2>&1
+```
+
+```python
+import struct
+from pathlib import Path
+from decision.excluded import REMOVED_TEXT
+from decision.templates import load_templates
+from pipeline.social_cards import all_card_filenames
+
+source = Path('dist/modelspec')
+live = Path('.artifacts/model-306/merge-review-721/executor/live-site/modelspec')
+templates = load_templates()
+assert len(templates) == 40
+for template in templates:
+    template_id = template['id']
+    page = Path('decide/templates') / template_id / 'index.html'
+    image = f'og-card-template-{template_id}.png'
+    for tree in (source, live):
+        text = (tree / page).read_text()
+        assert f'property="og:image" content="https://modelspec.dev/{image}"' in text
+        assert f'name="twitter:image" content="https://modelspec.dev/{image}"' in text
+        assert f'property="og:url" content="https://modelspec.dev/decide/templates/{template_id}/"' in text
+        assert REMOVED_TEXT.search(text) is None
+        png = (tree / image).read_bytes()
+        assert png[:8] == bytes([137, 80, 78, 71, 13, 10, 26, 10])
+        assert struct.unpack('>II', png[16:24]) == (1200, 630)
+    assert (source / page).read_bytes() == (live / page).read_bytes(), template_id
+    assert (source / image).read_bytes() == (live / image).read_bytes(), template_id
+assert len(all_card_filenames()) == 43
+assert all((live / name).is_file() for name in all_card_filenames())
+print('40 template pages and 1200x630 PNGs verified in source/live; 43 deploy cards present')
+```
+
+```text
+40 template pages and 1200x630 PNGs verified in source/live; 43 deploy cards present
+```
+
+The full Python suite ran on the committed merge, using default temporary
+directories and the same tool versions recorded above:
+
+```bash
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:/Users/terbeest/dev/modelspec/.venv/bin:$PATH TZ=UTC PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile > .artifacts/model-306/merge-review-721/executor/full-python.log 2>&1
+```
+
+The first postmerge full run returned exit code 1:
+
+```text
+FAILED tests/test_removed_sources.py::test_no_tracked_file_names_a_removed_source
+1 failed, 10258 passed, 8 skipped, 11 warnings in 1637.10s (0:27:17)
+```
+
+The sole failure was in the initial execution report, which named a removed
+source in prose and in its reproduced script. The guard forbids those literal
+names in tracked files outside its own allowlist. The diagnostics below replace
+the prohibited name with `<removed-source name>` so this evidence also follows
+the guard:
+
+```text
+E AssertionError: docs/evidence/g2-ios/MODEL-306-fix.md:254: <removed-source name>
+```
+
+The focused reproduction returned exit code 1, `1 failed in 3.93s`:
+
+```bash
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:/Users/terbeest/dev/modelspec/.venv/bin:$PATH TZ=UTC PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_removed_sources.py::test_no_tracked_file_names_a_removed_source > .artifacts/model-306/merge-review-721/executor/report-guard-red.log 2>&1
+```
+
+I reworded the report, and its revised reproduction code now uses the
+repository's `REMOVED_TEXT` exclusion pattern. No guard allowlist, assertion,
+product code, or test changed. The focused guard then returned exit code 0,
+`1 passed in 3.72s`:
+
+```bash
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:/Users/terbeest/dev/modelspec/.venv/bin:$PATH TZ=UTC PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_removed_sources.py::test_no_tracked_file_names_a_removed_source > .artifacts/model-306/merge-review-721/executor/report-guard-green.log 2>&1
+```
+
+The strengthened postmerge artifact check, using the same canonical exclusion
+pattern, also returned 0. The report-only correction was committed as
+`1fe32a635ab2f7932e7808988b004b9fd013c141`. This check returned 0:
+
+```bash
+git diff --exit-code 01dc90375334c1165a4a6476779722c9662411b8 HEAD -- pipeline tests web
+```
+
+The complete suite reran on that committed correction:
+
+```bash
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:/Users/terbeest/dev/modelspec/.venv/bin:$PATH TZ=UTC PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile > .artifacts/model-306/merge-review-721/executor/full-python-rerun.log 2>&1
+```
+
+The complete rerun returned exit code 0:
+
+```text
+10259 passed, 8 skipped, 11 warnings in 1316.93s (0:21:56)
+```
+
+The following scope and whitespace checks returned 0:
+
+```bash
+git diff --exit-code origin/main -- models offerings benchmarks registry hardware premier verification api/ranking/engine.py pipeline/security_headers.py docs/legal
+git diff --check origin/main
+git diff --exit-code e6a1b94c30af39cb2bbf7b91233f9691cfa98329 -- models offerings benchmarks registry hardware premier verification api/ranking/engine.py pipeline/security_headers.py docs/legal api/worker
+```
+
+The imported main commits include #689, #714, and #719. No additional change to
+main's Worker configuration, published legal terms, ranking floors, frozen data,
+or CSP was made for this resolution.
+
+The Mac's leading load average reached 53.79 during focused validation. I ran
+`sleep 120` in the foreground, awaited exit 0, and rechecked the load. It was
+10.75 before starting the full suite. All test/build exit codes were read
+directly from the execution tool, with no output pipe.
+
+The completed report was checked again before the final evidence commit.
+The tracked-file guard and whitespace check returned 0:
+
+```bash
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:/Users/terbeest/dev/modelspec/.venv/bin:$PATH TZ=UTC PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_removed_sources.py::test_no_tracked_file_names_a_removed_source > .artifacts/model-306/merge-review-721/executor/final-report-guard.log 2>&1
+git diff --check e6a1b94c30af39cb2bbf7b91233f9691cfa98329
+```
+
+The following delivery commands retain draft status and push without force.
+The PR comment records the final delivery SHA and validation exit codes; the
+executor completion links that comment.
+
+```bash
+git add docs/evidence/g2-ios/MODEL-306-fix.md
+git commit -F .artifacts/model-306/merge-review-721/executor/final-report-commit.txt
+CI_LOCAL_SKIP=1 git push -u origin sparksandsawdust/model-306-share-cards
+gh pr view 721 --json number,url,isDraft,headRefOid,mergeable > .artifacts/model-306/merge-review-721/executor/pr.json
+gh pr comment 721 --body-file .artifacts/model-306/merge-review-721/executor/pr-comment.md
+git status --short
+```
+
+The final delivery changes only this report relative to the complete green
+rerun's commit. The product source and all test bodies stay unchanged.
+
+Not observed in this follow-up: a production deploy, actual social-crawler
+previews, or hosted CI completion. No vendor API or device calls were made.
