@@ -1,6 +1,7 @@
 # MODEL-364 execution evidence
 
-Status: review fixes implemented; final full-suite verification in progress.
+Status: READY. All three Grok review findings are fixed; the complete Python
+and MCP suites returned exit 0 on the merged branch.
 
 Base SHA: `8825a31c2f215f6737eefbc7fa2ab2927161b7b5`.
 Implementation checkpoint SHA: `5fb59ceaf4a74d5422d76c80506c02dd6948b875`.
@@ -11,6 +12,8 @@ Pre-review tested code SHA: `3d5cef3dd588aa4fe9e9bf43560fb47ed233143c`.
 Grok review base SHA: `f296221dbbc078860f85d178c6ffc7c6a8fc7bfb`.
 Merged main SHA: `2b0770afab18d101ea033c9259d53ae4ac42e2ce`.
 Merge checkpoint SHA: `d0afc29433934a76915375f38b8c9c7c5ded578d`.
+Final merged main SHA: `3234406f0663231f02a033ce595019580134cc28`.
+Final tested integration SHA: `d669729ddcb10bafa339fcc81031371bb90b5177`.
 The final delivery SHA is the commit containing this report. Resolve it with
 `git log -1 --format=%H -- docs/evidence/g2-ios/MODEL-364-fix.md`.
 The final executor message also records that SHA. This avoids embedding a
@@ -115,7 +118,7 @@ PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4
 It was deliberately interrupted after the known scope blocker was established,
 and returned exit 2 with 675 passed and two old version assertions failing.
 Those assertions in `tests/test_architecture_facts.py` expected 2.16; the
-implementation correctly returned 3.0. Other current-version assertions were
+implementation then returned 3.0. Other current-version assertions were
 updated to 3.0 without changing their behavioral expectations. The current
 bounded budget fixture also needed its `projects_contract` labels changed to
 3.0. Historical response mocks were left intact. The focused migration command was:
@@ -203,7 +206,7 @@ Those initial delivery commands succeeded and opened draft PR #714. The
 follow-up keeps that PR a draft and replaces its body with final validation
 results.
 
-## Limits of observation
+## Initial delivery's limits of observation
 
 No production deployment, deployed endpoint comparison, PyPI release,
 provider API spend, device operation, or production switch change was made.
@@ -376,7 +379,7 @@ The MCP run alongside that full Python attempt returned exit 0: 164 passed
 across 8 files in 1.22 seconds. Its command was `npm test`, from `mcp/` with
 the required Node path.
 
-## Final follow-up results
+## Pre-review final follow-up results
 
 The final full Python run completed with exit 0: 9,769 passed, 22 skipped,
 and 11 warnings in 1,408.09 seconds. The warnings concern the existing unsigned
@@ -450,3 +453,202 @@ The red and green commands and output summaries above retain the verification
 evidence after scratch cleanup. Scratch files are not committed. No production
 deployment, CLI release, paid provider call, ranking-floor change, legal-text
 change, or merge is part of this delivery.
+
+## Grok review fixes
+
+The orchestrator supplied `REVIEW-714.verdict.md`, verdict CHANGES, and
+explicitly authorized merging `origin/main` into this branch. That authorization
+overrides the executor brief's general merge restriction for this integration;
+the PR itself remains a draft and is not merged. The orchestrator also decided
+that no existing Decision field widened: the shared contract must stay at 2.16,
+bounded at 1.2, and the new comparison must have its own version.
+
+Review fixes are tested on code commit
+`28cfcf7c1b9716f2fea8e53d49ca5376ae1de473`.
+
+| Finding | Fix | Red observation | Focused green |
+|---|---|---|---|
+| Shared Decision 3.0 broke the page without a widened Decision field | Restore shared 2.16, bounded 1.2 projecting 2.16; comparison success and refusal bodies carry `comparison_version: "1.0"`. Restore current fixtures and regenerate schemas. | Two new protocol tests failed; web contract/compact tests failed in two files with five failures. | Protocol tests 2 passed; full contract and QA checks 388 passed; full web suite 809 passed. |
+| x402-on site Origin and connecting IP admitted a keyless comparison | `access.gate(require_key=True)` prevents both anonymous branches for this route. Entry sets that requirement on the merged main code. | Four valid-token/header matrix cases reached the producer and returned 503 `no_snapshot`; four direct gate regressions lacked the required-key policy parameter. | All 64 request combinations and four direct gate cases pass; Worker, access, and main decision-link suites total 195 passed. |
+| Branch conflicted with main after #716 | Merge main `2b0770af` at `d0afc294`; retain main's decision-link route/attachment and the named comparison; regenerate conflicting CLI bundle and MCP capture. | `git merge --no-commit origin/main` returned 1, with the three reported conflicts. | No unresolved paths; `git merge-base --is-ancestor origin/main HEAD` returned 0. Main decision-link behavior passes after restoring the shared version. |
+
+### Version and page regression commands
+
+```sh
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_decision_contract.py -k 'named_comparison'
+```
+
+Red exit 1, 2 failed and 245 deselected: Decision serialized 3.0 rather than
+2.16, and the old comparison rejected `comparison_version: "1.0"` as extra.
+Green exit 0, 2 passed and 245 deselected. The tests also reject a future
+comparison major and a shared Decision version field on a named comparison.
+
+The existing web tests ran from `web/`, with Node v22.22.3:
+
+```sh
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm ci
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm test -- src/decide/__tests__/contract.test.ts src/decide/__tests__/compact.test.ts
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm test
+```
+
+Installation exit 0. Focused red exit 1: 2 failed files and 5 failed tests.
+The page enum refused the 3.0 fixtures, and the generated schema refused the
+existing 2.16 sample. After restoring only shared-version metadata and
+regenerating, the full web suite returned exit 0: 809 passed, 49 passed files
+and 1 skipped file, in 35.41 seconds. The page enum and MCP fallbacks remain
+2.16. The 13 synthetic page fixtures and bounded MCP fixture match main;
+archival fixtures and export-schema versions are unchanged.
+
+```sh
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 tests/test_architecture_facts.py tests/test_cli_compare_models.py tests/test_decide_bounded.py tests/test_decision_cli.py tests/test_decision_cli_output.py tests/test_decision_compact_explain.py tests/test_decision_cost_per_task.py tests/test_decision_estate.py tests/test_decision_plans.py tests/test_decision_relax.py tests/test_decision_summary.py tests/test_must_mention_overreach.py
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_decide_page_fixtures.py tests/test_api_docs.py
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_decision_contract.py tests/test_agent_harness.py tests/test_agent_gaps.py tests/test_agent_guide.py
+```
+
+These checks returned exit 0: respectively 355 passed, 60 passed and 2 skipped,
+and 388 passed. The last includes all 247 contract checks after regeneration.
+The named OpenAPI version check also reproduced the old 3.0 schema with exit 1
+before canonical regeneration. It now checks the comparison's own version in
+success, input-refusal, snapshot-unavailable, and access-refusal schemas.
+
+### Keyless probe commands
+
+```sh
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_compare_models_worker.py::test_named_comparison_keyless_probe_matrix tests/test_api_access.py::test_required_key_refuses_anonymous_admission_before_data_or_metering
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_compare_models_worker.py tests/test_api_access.py tests/test_decision_link.py
+```
+
+The first command's completed valid-fixture red returned exit 1: 8 failed,
+60 passed in 1.39 seconds. Four Worker cases returned 503 `no_snapshot` instead
+of 401 `missing_api_key`. Four direct gate cases lacked the new required-key
+parameter. The initial draft used an undersized synthetic signing secret;
+that fixture was corrected before the valid-token red run, without changing
+runtime code.
+
+The matrix crosses x402, access enforcement, visit gate, human gate, site
+Origin plus connecting IP, and the presence of a valid signed visit token.
+Every keyless case must return 401 before its producer or anonymous meter is
+used. Four direct gate cases also use a store that raises if touched. The
+second command returned exit 0: 195 passed in 4.55 seconds. The existing keyed
+signed-snapshot comparison still returns 200 and preserves caller order.
+
+Main's MCP copy checkpoint separately returned exit 1 after the version was
+restored: its hash predated the authorized eighth-tool copy. Only that literal
+hash was refreshed to the generated eight-tool value; the unchanged guide and
+CLI hashes still match. All three byte assertions now pass in the 195-test
+run. No decision-link production flag changed.
+
+### Merge and generated-artifact commands
+
+```sh
+git fetch origin main
+git merge --no-commit origin/main
+git restore --ours -- cli/modelspec/agent-bundle.json qa/fixtures/mcp-tools.json
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m decision.schema
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/openapi.py
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.agent_copy write
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m qa.contracts
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/openapi.py --check
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.agent_copy check
+git diff --cached --check
+git merge-base --is-ancestor origin/main HEAD
+```
+
+Fetch and all generation/check commands returned exit 0; merge returned 1
+until the three conflicts were resolved. Choosing the branch copies was only
+a generator starting point. Both final JSON artifacts came from the combined
+sources. Entry retains main's decision-link behavior and attaches links only
+to ordinary decisions. The merged focused check initially returned exit 1,
+20 failed and 42 passed, reproducing the version and copy-checkpoint problems;
+the final 195-test check clears them.
+
+The machine load initially exceeded 30. The executor paused for 120 seconds
+in foreground waits and rechecked at 24.47 before continuing new test work.
+The load was 20.25 before launching the full suite. No WSL gate, paid provider,
+live Worker probe, deployment, release, legal-text change, ranking-floor
+change, production-flag change, or PR merge was performed.
+
+The first complete post-review Python run returned exit 1: 10,095 passed,
+8 skipped, 11 warnings, and 12 setup errors in 1,508.26 seconds. All errors
+were instances of `test_landing_behaviour_in_browser`; its fixture attempted
+to copy `web/dist/decide.html`, which had not been built. Installing the web
+dependencies had enabled browser checks that earlier runs skipped. The
+correction is to build the web bundle before those tests, preserving every
+browser assertion.
+
+The post-review MCP installation and full suite returned exit 0. The full
+suite passed 164 tests across 8 files in 1.61 seconds. MCP typecheck also
+returned exit 0. Commands ran from `mcp/`:
+
+```sh
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm ci
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm test
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm run typecheck
+```
+
+The web build returned exit 0 and `test -f web/dist/decide.html` returned 0.
+The complete landing suite then returned exit 0: 32 passed in 184.62 seconds.
+The twelve browser cases repeated under the exact Node v22.22.3 PATH returned
+exit 0: 12 passed and 20 deselected in 23.65 seconds. No test or runtime source
+was changed to address the missing build artifact.
+
+```sh
+# Working directory web:
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm run build
+# Working directory repo:
+test -f web/dist/decide.html
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_landing.py
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_landing.py -k landing_behaviour_in_browser
+```
+
+Before the final rerun, `git fetch origin main` observed #715 at
+`3234406f0663231f02a033ce595019580134cc28`. Its diagnostics changes merged
+without conflicts at `d669729ddcb10bafa339fcc81031371bb90b5177`. The ancestor
+check again returned exit 0. That update did not change the Decision versions,
+access entry point, comparison implementation, or web source. The final full
+Python run supplies the prescribed Node path to all Node subprocesses as well
+as the required Python interpreter and `-q -n 4` arguments.
+
+## Final post-review verification
+
+The complete Python run on integration SHA
+`d669729ddcb10bafa339fcc81031371bb90b5177` completed with direct exit **0**:
+**10,138 passed, 8 skipped, 11 warnings in 1,597.38 seconds (26:37)**. The
+warnings came from existing CLI fixtures fetching unsigned decision vocabulary.
+All twelve landing browser cases ran successfully with the built web bundle.
+
+```sh
+# Working directory repo:
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 > .scratch/MODEL-364-review/root/full-python-final.log 2>&1
+# Working directory mcp:
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm test > ../.scratch/MODEL-364-review/root/mcp-tests-final.log 2>&1
+```
+
+The final MCP run completed with direct exit **0**: **164 passed across 8
+files in 2.12 seconds**. Both execution sessions were fully drained; the Python
+result was read after pytest's summary, rather than inferred from 100% progress.
+The final full runs required no runtime or test changes.
+
+| Final check | Exit | Result |
+|---|---|---|
+| Complete Python, `-q -n 4` | 0 | 10,138 passed, 8 skipped, 11 warnings |
+| Complete MCP | 0 | 164 passed, 8 files |
+| Complete web | 0 | 809 passed, 49 passed files, 1 skipped file |
+| MCP typecheck | 0 | `tsc --noEmit` |
+| Worker, access, decision-link focused checks | 0 | 195 passed |
+| Contract and agent QA focused checks | 0 | 388 passed |
+| OpenAPI and generated agent-copy consistency | 0 each | Canonical outputs match |
+| Latest main ancestor check | 0 | Includes `3234406` |
+
+A final read-only audit found no runtime, protocol, admission, merge, or
+generated-capture defect. It confirmed both version families, both required-key
+guards, the valid signed-token matrix, and the CLI/QA capture source hashes.
+Two historical evidence phrases were clarified; no code changed after the
+tested integration SHA.
+
+Final delivery uses the authorized same-branch push, PR body update, and
+finding-by-finding comment. PR #714 stays a draft. The untracked `.scratch/`
+directory is removed using the previously recorded guarded Python cleanup;
+its logs are summarized here and are not committed. No live Worker, provider
+API, deployment, release, legal-text edit, ranking-floor edit, production switch,
+or PR merge was performed.
