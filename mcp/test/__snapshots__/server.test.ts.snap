@@ -1,6 +1,6 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
-exports[`modelspec MCP worker > tools/list returns all seven tools with object input schemas 1`] = `
+exports[`modelspec MCP worker > tools/list returns all eight tools with object input schemas 1`] = `
 [
   {
     "description": "Legacy v1; use decide. Deprecated: the retired fixed-benchmark ranking, whose scores lag the catalogue; newer models are often unranked. Which models rank highest for one fixed use-case profile? Returns a shortlist with evidence_basis, input provenance, not a quality verdict. Needs an API key (Authorization: Bearer). Costs 1 credit a call; a credit costs $0.0053–$0.02 depending on the plan or pack (https://modelspec.dev/pricing/). Don't call it as a fallback when decide names no single leader: report decide's tie. Present \`summary_for_user\` to the user unchanged and keep every \`must_mention\` item. When \`next_move\` is present, offer it instead of a pick. Proxies POST https://api.modelspec.dev/v1/rank with this tool's arguments as the JSON body.",
@@ -1501,6 +1501,31 @@ takes its key and its plans with it.",
       "type": "object",
     },
     "name": "decide",
+  },
+  {
+    "description": "Compare 2 to 4 named models side by side using current snapshot facts, offerings, evidence and sources. Models stay in caller order; this tool does not rank or choose a winner. Unknown values stay null. Needs an API key (Authorization: Bearer). Proxies POST https://api.modelspec.dev/v1/compare-models with {models: [...]} and returns at most 16 KB.",
+    "inputSchema": {
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "additionalProperties": false,
+      "properties": {
+        "models": {
+          "description": "2 to 4 distinct catalogue ids, such as openai/gpt-5-6, in caller order",
+          "items": {
+            "maxLength": 128,
+            "pattern": "^[a-z0-9][a-z0-9._-]*\\/[a-z0-9][a-z0-9._-]*$",
+            "type": "string",
+          },
+          "maxItems": 4,
+          "minItems": 2,
+          "type": "array",
+        },
+      },
+      "required": [
+        "models",
+      ],
+      "type": "object",
+    },
+    "name": "compare_models",
   },
   {
     "description": "What can a decide spec say? Returns the decision vocabulary: valid facet ids, benchmarks, domains, providers and task types. Compact by default, with 20 rows per page and no counts. Split-mode full details exclude per-model facts and counts. Needs an API key. Use it for missing ids, not to compare models. One vocabulary lookup per unknown facet, then decide. Read \`next\` before another call. section=starter returns a ready-to-send minimal Spec and a next hint. Search covers every section's ids, labels, definitions, values and synonyms. All tokens rank first; a content-token subset can match. A miss returns the nearest ids. An explicit non-starter section scopes the search. Use id or ids for row details, or detail=full for all display details. Use offset and limit to page matches across sections, including full details; an empty page ends the list. ",

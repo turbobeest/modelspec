@@ -162,7 +162,7 @@ def test_objective_terms_accept_evidence_qualifiers() -> None:
         measured_by="independent", effort="default"
     )
     assert '"qualifiers"' in c.canonical_json(spec)
-    assert c.CONTRACT_VERSION == "2.16"
+    assert c.CONTRACT_VERSION == "3.0"
 
 
 def test_relative_condition_names_the_model() -> None:
@@ -767,6 +767,20 @@ def test_ranks_are_one_to_n() -> None:
 
 
 def _samples() -> list:
+    comparison_fact = c.ComparisonFact(
+        facet="model.context_window", state="known", value=128000, unit="tokens",
+        record_id="r_context", source_ids=["context-source"])
+    comparison_offering = c.ComparisonOffering(
+        offering=c.OfferingRef(model="lab/a", provider="provider-a"), facts=[comparison_fact])
+    comparison_evidence = c.ComparisonEvidence(
+        benchmark="gpqa_diamond", value=85.0, unit="percent", record_id="r_gpqa",
+        source_ids=["context-source"], version="1.0", effort="default", harness="eval@1.0",
+        measured_by="independent", date="2026-10-13")
+    comparison_model = c.ComparisonModel(
+        model="lab/a", lifecycle="active", facts=[comparison_fact],
+        offerings=[comparison_offering], evidence=[comparison_evidence])
+    comparison_source = c.ComparisonSource(id="context-source", url="https://example.com/context")
+    comparison_omitted = c.ComparisonOmitted(facts=0, offerings=0, evidence=0)
     plan_price = c.PlanPrice(amount=200, currency="USD", period="monthly")
     plan_coverage = c.PlanCoverage(
         family="anthropic/claude-opus", quote="Opus and Sonnet models",
@@ -808,6 +822,15 @@ def _samples() -> list:
     bounded = c.BoundedDecision.model_validate(project(decision, options, not_applied=[]))
     bounded.answer = separated_answer
     return [
+        c.ModelComparisonRequest(models=["lab/a", "lab/b"]),
+        comparison_fact,
+        comparison_offering,
+        comparison_evidence,
+        comparison_model,
+        comparison_source,
+        comparison_omitted,
+        c.ModelComparison(snapshot="snap_compare", models=[comparison_model],
+                          sources=[comparison_source], omitted=comparison_omitted),
         options,
         c.DecideRequest.model_validate({**spec.model_dump(mode="json", by_alias=True), "fields": ["cost_per_task"]}),
         bounded,

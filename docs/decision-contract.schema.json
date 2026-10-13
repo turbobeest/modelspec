@@ -645,7 +645,7 @@
           "type": "integer"
         },
         "projects_contract": {
-          "const": "2.16",
+          "const": "3.0",
           "title": "Projects Contract",
           "type": "string"
         },
@@ -1028,6 +1028,333 @@
         "value"
       ],
       "title": "Compare",
+      "type": "object"
+    },
+    "ComparisonEvidence": {
+      "additionalProperties": false,
+      "properties": {
+        "benchmark": {
+          "title": "Benchmark",
+          "type": "string"
+        },
+        "date": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Date"
+        },
+        "effort": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Effort"
+        },
+        "harness": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Harness"
+        },
+        "interval": {
+          "anyOf": [
+            {
+              "maxItems": 2,
+              "minItems": 2,
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Interval"
+        },
+        "measured_by": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Measured By"
+        },
+        "n": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "N"
+        },
+        "record_id": {
+          "title": "Record Id",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "subcategory": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Subcategory"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Unit"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        },
+        "version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Version"
+        }
+      },
+      "required": [
+        "benchmark",
+        "value",
+        "unit",
+        "record_id",
+        "source_ids"
+      ],
+      "title": "ComparisonEvidence",
+      "type": "object"
+    },
+    "ComparisonFact": {
+      "additionalProperties": false,
+      "properties": {
+        "facet": {
+          "pattern": "^[a-z][a-z0-9_-]*(\\.[a-z0-9_-]+)*$",
+          "title": "Facet",
+          "type": "string"
+        },
+        "record_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Record Id"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "state": {
+          "enum": [
+            "known",
+            "unknown",
+            "not_disclosed",
+            "requires_contract"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Unit"
+        },
+        "value": {
+          "title": "Value"
+        }
+      },
+      "required": [
+        "facet",
+        "state",
+        "value",
+        "unit"
+      ],
+      "title": "ComparisonFact",
+      "type": "object"
+    },
+    "ComparisonModel": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/ComparisonEvidence"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "facts": {
+          "items": {
+            "$ref": "#/$defs/ComparisonFact"
+          },
+          "title": "Facts",
+          "type": "array"
+        },
+        "lifecycle": {
+          "enum": [
+            "active",
+            "deprecated",
+            "retired"
+          ],
+          "title": "Lifecycle",
+          "type": "string"
+        },
+        "model": {
+          "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+          "title": "Model",
+          "type": "string"
+        },
+        "offerings": {
+          "items": {
+            "$ref": "#/$defs/ComparisonOffering"
+          },
+          "title": "Offerings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "model",
+        "lifecycle",
+        "facts",
+        "offerings",
+        "evidence"
+      ],
+      "title": "ComparisonModel",
+      "type": "object"
+    },
+    "ComparisonOffering": {
+      "additionalProperties": false,
+      "properties": {
+        "facts": {
+          "items": {
+            "$ref": "#/$defs/ComparisonFact"
+          },
+          "title": "Facts",
+          "type": "array"
+        },
+        "offering": {
+          "$ref": "#/$defs/OfferingRef"
+        }
+      },
+      "required": [
+        "offering",
+        "facts"
+      ],
+      "title": "ComparisonOffering",
+      "type": "object"
+    },
+    "ComparisonOmitted": {
+      "additionalProperties": false,
+      "properties": {
+        "evidence": {
+          "minimum": 0,
+          "title": "Evidence",
+          "type": "integer"
+        },
+        "facts": {
+          "minimum": 0,
+          "title": "Facts",
+          "type": "integer"
+        },
+        "offerings": {
+          "minimum": 0,
+          "title": "Offerings",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "facts",
+        "offerings",
+        "evidence"
+      ],
+      "title": "ComparisonOmitted",
+      "type": "object"
+    },
+    "ComparisonSource": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "url": {
+          "title": "Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "url"
+      ],
+      "title": "ComparisonSource",
       "type": "object"
     },
     "ConstraintCost": {
@@ -1701,8 +2028,8 @@
           "type": "array"
         },
         "contract_version": {
-          "const": "2.16",
-          "default": "2.16",
+          "const": "3.0",
+          "default": "3.0",
           "title": "Contract Version",
           "type": "string"
         },
@@ -3260,6 +3587,75 @@
         "omitted_items"
       ],
       "title": "MemberEvidence",
+      "type": "object"
+    },
+    "ModelComparison": {
+      "additionalProperties": false,
+      "properties": {
+        "contract_version": {
+          "const": "3.0",
+          "default": "3.0",
+          "title": "Contract Version",
+          "type": "string"
+        },
+        "endpoint": {
+          "const": "compare-models",
+          "default": "compare-models",
+          "title": "Endpoint",
+          "type": "string"
+        },
+        "models": {
+          "items": {
+            "$ref": "#/$defs/ComparisonModel"
+          },
+          "title": "Models",
+          "type": "array"
+        },
+        "omitted": {
+          "$ref": "#/$defs/ComparisonOmitted"
+        },
+        "snapshot": {
+          "pattern": "^snap_[A-Za-z0-9:._-]+$",
+          "title": "Snapshot",
+          "type": "string"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/ComparisonSource"
+          },
+          "title": "Sources",
+          "type": "array"
+        }
+      },
+      "required": [
+        "snapshot",
+        "models",
+        "sources",
+        "omitted"
+      ],
+      "title": "ModelComparison",
+      "type": "object"
+    },
+    "ModelComparisonRequest": {
+      "additionalProperties": false,
+      "description": "Two to four distinct model IDs, in the caller's display order.",
+      "properties": {
+        "models": {
+          "items": {
+            "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+            "type": "string"
+          },
+          "maxItems": 4,
+          "minItems": 2,
+          "title": "Models",
+          "type": "array",
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "models"
+      ],
+      "title": "ModelComparisonRequest",
       "type": "object"
     },
     "ModelElimination": {
@@ -5921,9 +6317,15 @@
     },
     {
       "$ref": "#/$defs/Decision"
+    },
+    {
+      "$ref": "#/$defs/ModelComparisonRequest"
+    },
+    {
+      "$ref": "#/$defs/ModelComparison"
     }
   ],
   "description": "Generated from decision/contract.py by `python -m decision.schema`. Do not edit by hand. The prose is docs/decision-contract.md.",
   "title": "ModelSpec decision contract",
-  "x-contract-version": "2.16"
+  "x-contract-version": "3.0"
 }

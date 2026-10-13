@@ -57,8 +57,8 @@ info:
     human_day_limit: 429, human_gate_unavailable: 503, human_intent_limit: 429, human_origin_required: 401,
     human_sweep_limit: 429, method_not_allowed: 405, not_found: 404, origin_not_allowed: 404, visit_token_expired: 401,
     visit_token_invalid: 401}
-  x-max-request-bytes: {/v1/rank: 16384, /v1/decide: 65536, /v1/compare: 65536, /v1/policy-check: 262144,
-    /v1/signals: 4096, /v1/signals/discovered: 4096, /v1/feedback: 4096}
+  x-max-request-bytes: {/v1/rank: 16384, /v1/decide: 65536, /v1/compare: 65536, /v1/compare-models: 65536,
+    /v1/policy-check: 262144, /v1/signals: 4096, /v1/signals/discovered: 4096, /v1/feedback: 4096}
 x-modelspec-access:
   status: wired; enforced
   ticket: MODEL-69
@@ -390,7 +390,7 @@ paths:
       responses:
         '200':
           description: 'A decision pinned to the snapshot that produced it: a complete Decision (contract_version
-            2.16), with optional top[].hardware_estimates and unknown_facets; or, when the request sends
+            3.0), with optional top[].hardware_estimates and unknown_facets; or, when the request sends
             fields or evidence_for, the separate bounded representation (representation: bounded, bounded_version
             1.2, no contract_version).'
           content:
@@ -615,6 +615,113 @@ paths:
                   - {$ref: '#/components/schemas/ComparisonSnapshotUnavailable'}
                   - {$ref: '#/components/schemas/ComparisonRequestRefused'}
                 - {$ref: '#/components/schemas/ComparisonAccessRefused'}
+          headers:
+            Retry-After:
+              description: Seconds before retrying a no_snapshot response.
+              schema: {type: integer, minimum: 1}
+            Link: *id005
+            x-modelspec-guide-version: *id006
+  /v1/compare-models:
+    post:
+      operationId: compareModels
+      summary: Present sourced facts for two to four named models side by side.
+      description: Requires an API key even when ACCESS_ENFORCED is off. Browser visit tokens do not admit
+        it. Costs the decide.full credit weight. The request has only models and accepts no Spec.
+      security:
+      - bearer: []
+      - apiKey: []
+      parameters:
+      - name: X-ModelSpec-Snapshot
+        in: header
+        required: false
+        description: The snapshot the caller expects. A mismatch returns 409 snapshot_changed.
+        schema: {type: string, pattern: '^snap_[A-Za-z0-9:._-]+$'}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/DecisionModelComparisonRequest'}
+            example:
+              models: [anthropic/claude-opus-5-5, openai/gpt-6-sol]
+      responses:
+        '200':
+          description: Model rows in caller order, with facts, offerings, benchmark evidence and registered
+            sources. No rank, score or winner. Whole omitted items are counted without changing retained
+            values.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/DecisionModelComparison'}
+          x-max-response-bytes: 14000
+          headers: *id008
+        '400':
+          description: 'Invalid request: two to four distinct model IDs are required. An unknown ID reports
+            its models[n] issue against the active lineup.'
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ModelComparisonRequestRefused'}
+          headers: *id001
+        '409':
+          description: 'snapshot_changed: X-ModelSpec-Snapshot names another snapshot than the one answering.'
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ModelComparisonRequestRefused'}
+          headers: *id001
+        '404': *id002
+        '405':
+          description: /v1/compare-models takes POST.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/TransportError'}
+          headers: *id001
+        '413':
+          description: The body is over 65536 bytes.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ModelComparisonRequestRefused'}
+          headers: *id001
+        '502':
+          description: The published snapshot could not be fetched.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ModelComparisonRequestRefused'}
+          headers: *id001
+        '401':
+          description: No key while keys are enforced (missing_api_key), or a key that is not ours (invalid_api_key).
+            `error.how_to_get_a_key` says where to get one.
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ModelComparisonAccessRefused'}
+          headers: *id001
+        '403':
+          description: 'key_revoked: a key we know and will not serve. Retrying will not help.'
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ModelComparisonAccessRefused'}
+          headers: *id001
+        '429':
+          description: 'rate_limited: the key''s daily or per-minute window is spent. States the limit,
+            the window and `resets_at`; `Retry-After` is set.'
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ModelComparisonAccessRefused'}
+          headers: *id001
+        '500':
+          description: 'Ours, not the caller''s: the key names a tier the service does not carry (tier_not_configured),
+            or the deployment has no tier table (access_not_configured).'
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ModelComparisonAccessRefused'}
+          headers: *id001
+        '503':
+          description: The verified snapshot or access store is unavailable. Retry later.
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - oneOf:
+                  - {$ref: '#/components/schemas/ModelComparisonSnapshotUnavailable'}
+                  - {$ref: '#/components/schemas/ModelComparisonRequestRefused'}
+                - {$ref: '#/components/schemas/ModelComparisonAccessRefused'}
           headers:
             Retry-After:
               description: Seconds before retrying a no_snapshot response.
@@ -2162,7 +2269,7 @@ components:
       properties:
         representation: {const: bounded, title: Representation, type: string}
         bounded_version: {const: '1.2', title: Bounded Version, type: string}
-        projects_contract: {const: '2.16', title: Projects Contract, type: string}
+        projects_contract: {const: '3.0', title: Projects Contract, type: string}
         decision_id: {title: Decision Id, type: string}
         snapshot: {title: Snapshot, type: string}
         signature_verified: {$ref: '#/components/schemas/DecisionResponse/properties/signature_verified'}
@@ -2334,6 +2441,155 @@ components:
           title: Unknown
       required: [facet, op, value]
       title: Compare
+      type: object
+    DecisionComparisonEvidence:
+      additionalProperties: false
+      properties:
+        benchmark: {title: Benchmark, type: string}
+        value: {title: Value, type: number}
+        unit:
+          anyOf:
+          - {type: string}
+          - {type: 'null'}
+          title: Unit
+        record_id: {title: Record Id, type: string}
+        source_ids:
+          items: {type: string}
+          title: Source Ids
+          type: array
+        version:
+          anyOf:
+          - {type: string}
+          - {type: 'null'}
+          default: null
+          title: Version
+        effort:
+          anyOf:
+          - {type: string}
+          - {type: 'null'}
+          default: null
+          title: Effort
+        harness:
+          anyOf:
+          - {type: string}
+          - {type: 'null'}
+          default: null
+          title: Harness
+        measured_by:
+          anyOf:
+          - {type: string}
+          - {type: 'null'}
+          default: null
+          title: Measured By
+        date:
+          anyOf:
+          - {type: string}
+          - {type: 'null'}
+          default: null
+          title: Date
+        subcategory:
+          anyOf:
+          - {type: string}
+          - {type: 'null'}
+          default: null
+          title: Subcategory
+        interval:
+          anyOf:
+          - maxItems: 2
+            minItems: 2
+            prefixItems:
+            - {type: number}
+            - {type: number}
+            type: array
+          - {type: 'null'}
+          default: null
+          title: Interval
+        n:
+          anyOf:
+          - {type: integer}
+          - {type: 'null'}
+          default: null
+          title: N
+      required: [benchmark, value, unit, record_id, source_ids]
+      title: ComparisonEvidence
+      type: object
+    DecisionComparisonFact:
+      additionalProperties: false
+      properties:
+        facet: {pattern: '^[a-z][a-z0-9_-]*(\.[a-z0-9_-]+)*$', title: Facet, type: string}
+        state:
+          enum: [known, unknown, not_disclosed, requires_contract]
+          title: State
+          type: string
+        value: {title: Value}
+        unit:
+          anyOf:
+          - {type: string}
+          - {type: 'null'}
+          title: Unit
+        record_id:
+          anyOf:
+          - {type: string}
+          - {type: 'null'}
+          default: null
+          title: Record Id
+        source_ids:
+          items: {type: string}
+          title: Source Ids
+          type: array
+      required: [facet, state, value, unit]
+      title: ComparisonFact
+      type: object
+    DecisionComparisonModel:
+      additionalProperties: false
+      properties:
+        model: {pattern: '^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$', title: Model, type: string}
+        lifecycle:
+          enum: [active, deprecated, retired]
+          title: Lifecycle
+          type: string
+        facts:
+          items: {$ref: '#/components/schemas/DecisionComparisonFact'}
+          title: Facts
+          type: array
+        offerings:
+          items: {$ref: '#/components/schemas/DecisionComparisonOffering'}
+          title: Offerings
+          type: array
+        evidence:
+          items: {$ref: '#/components/schemas/DecisionComparisonEvidence'}
+          title: Evidence
+          type: array
+      required: [model, lifecycle, facts, offerings, evidence]
+      title: ComparisonModel
+      type: object
+    DecisionComparisonOffering:
+      additionalProperties: false
+      properties:
+        offering: {$ref: '#/components/schemas/DecisionOfferingRef'}
+        facts:
+          items: {$ref: '#/components/schemas/DecisionComparisonFact'}
+          title: Facts
+          type: array
+      required: [offering, facts]
+      title: ComparisonOffering
+      type: object
+    DecisionComparisonOmitted:
+      additionalProperties: false
+      properties:
+        facts: {minimum: 0, title: Facts, type: integer}
+        offerings: {minimum: 0, title: Offerings, type: integer}
+        evidence: {minimum: 0, title: Evidence, type: integer}
+      required: [facts, offerings, evidence]
+      title: ComparisonOmitted
+      type: object
+    DecisionComparisonSource:
+      additionalProperties: false
+      properties:
+        id: {title: Id, type: string}
+        url: {title: Url, type: string}
+      required: [id, url]
+      title: ComparisonSource
       type: object
     DecisionConstraintCost:
       additionalProperties: false
@@ -2549,7 +2805,7 @@ components:
           - {$ref: '#/components/schemas/DecisionBenchmarkExclusions'}
           - {type: 'null'}
           default: null
-        contract_version: {const: '2.16', default: '2.16', title: Contract Version, type: string}
+        contract_version: {const: '3.0', default: '3.0', title: Contract Version, type: string}
         decision_id: {pattern: '^dec_[0-9A-Za-z]{8,}$', title: Decision Id, type: string}
         snapshot: {pattern: '^snap_[A-Za-z0-9:._-]+$', title: Snapshot, type: string}
         signature_verified: {default: false, title: Signature Verified, type: boolean}
@@ -3264,6 +3520,38 @@ components:
         omitted_items: {minimum: 0, title: Omitted Items, type: integer}
       required: [model, evidence, omitted_items]
       title: MemberEvidence
+      type: object
+    DecisionModelComparison:
+      additionalProperties: false
+      properties:
+        contract_version: {const: '3.0', default: '3.0', title: Contract Version, type: string}
+        endpoint: {const: compare-models, default: compare-models, title: Endpoint, type: string}
+        snapshot: {pattern: '^snap_[A-Za-z0-9:._-]+$', title: Snapshot, type: string}
+        models:
+          items: {$ref: '#/components/schemas/DecisionComparisonModel'}
+          title: Models
+          type: array
+        sources:
+          items: {$ref: '#/components/schemas/DecisionComparisonSource'}
+          title: Sources
+          type: array
+        omitted: {$ref: '#/components/schemas/DecisionComparisonOmitted'}
+      required: [snapshot, models, sources, omitted]
+      title: ModelComparison
+      type: object
+    DecisionModelComparisonRequest:
+      additionalProperties: false
+      description: Two to four distinct model IDs, in the caller's display order.
+      properties:
+        models:
+          items: {pattern: '^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$', type: string}
+          maxItems: 4
+          minItems: 2
+          title: Models
+          type: array
+          uniqueItems: true
+      required: [models]
+      title: ModelComparisonRequest
       type: object
     DecisionModelElimination:
       additionalProperties: false
@@ -4507,7 +4795,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.16']
+          enum: ['3.0']
         endpoint:
           type: string
           enum: [decide]
@@ -4556,7 +4844,7 @@ components:
           enum: ['1.2']
         projects_contract:
           type: string
-          enum: ['2.16']
+          enum: ['3.0']
         endpoint:
           type: string
           enum: [decide]
@@ -4577,7 +4865,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.16']
+          enum: ['3.0']
         endpoint:
           type: string
           enum: [decide]
@@ -4607,7 +4895,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.16']
+          enum: ['3.0']
         endpoint:
           type: string
           enum: [decide]
@@ -4623,7 +4911,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.16']
+          enum: ['3.0']
         endpoint:
           type: string
           enum: [compare]
@@ -4653,10 +4941,56 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.16']
+          enum: ['3.0']
         endpoint:
           type: string
           enum: [compare]
+        snapshot: {type: 'null'}
+        error:
+          type: string
+          enum: [no_snapshot]
+        message: {type: string}
+    ModelComparisonRequestRefused:
+      type: object
+      additionalProperties: false
+      required: [contract_version, endpoint, snapshot, error]
+      properties:
+        contract_version:
+          type: string
+          enum: ['3.0']
+        endpoint:
+          type: string
+          enum: [compare-models]
+        snapshot:
+          anyOf:
+          - {type: string, pattern: '^snap_[A-Za-z0-9:._-]+$'}
+          - {type: 'null'}
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum: [invalid_request, origin_not_allowed, payload_too_large, snapshot_changed, snapshot_refused,
+                snapshot_unavailable]
+            message: {type: string}
+            issues:
+              type: array
+              items: {type: object}
+            requested: {type: string, description: 'snapshot_changed only: the X-ModelSpec-Snapshot sent.'}
+            current: {type: string, description: 'snapshot_changed only: the snapshot that answers now.'}
+    ModelComparisonSnapshotUnavailable:
+      type: object
+      additionalProperties: false
+      required: [contract_version, endpoint, snapshot, error, message]
+      properties:
+        contract_version:
+          type: string
+          enum: ['3.0']
+        endpoint:
+          type: string
+          enum: [compare-models]
         snapshot: {type: 'null'}
         error:
           type: string
@@ -4906,7 +5240,7 @@ components:
       properties:
         contract_version:
           type: string
-          enum: ['2.16']
+          enum: ['3.0']
         endpoint:
           type: string
           enum: [compare]
@@ -4938,6 +5272,21 @@ components:
         contract_version: {$ref: '#/components/schemas/ComparisonRequestRefused/properties/contract_version'}
         endpoint: {$ref: '#/components/schemas/ComparisonRequestRefused/properties/endpoint'}
         snapshot: {$ref: '#/components/schemas/ComparisonRequestRefused/properties/snapshot'}
+        error: {$ref: '#/components/schemas/AccessRefused/properties/error'}
+        service_commit: {type: string}
+        export_origin: {type: string}
+        result:
+          type: array
+          items: {}
+          maxItems: 0
+    ModelComparisonAccessRefused:
+      type: object
+      additionalProperties: false
+      required: [contract_version, endpoint, snapshot, error]
+      properties:
+        contract_version: {$ref: '#/components/schemas/ModelComparisonRequestRefused/properties/contract_version'}
+        endpoint: {$ref: '#/components/schemas/ModelComparisonRequestRefused/properties/endpoint'}
+        snapshot: {$ref: '#/components/schemas/ModelComparisonRequestRefused/properties/snapshot'}
         error: {$ref: '#/components/schemas/AccessRefused/properties/error'}
         service_commit: {type: string}
         export_origin: {type: string}
