@@ -511,6 +511,9 @@ def reread_fact(tracked: Tracked, claim: Claim, fetched: Mapping[str, SourceFetc
     if preparation_errors:
         return replace(base, status=Status.UNREADABLE, reason="; ".join(preparation_errors))
 
+    # Each candidate verifies against the same copies and normaliser rules.
+    # Release the parsed documents when this fact's re-read returns.
+    regions = StoredRegions(regions.store, regions.sources, cache_documents=True)
     result = verify(claim, regions, deterministic_extractors(), today=today)
     if result.outcome == "verified":
         return replace(base, status=Status.UNCHANGED, verification=result.verification)

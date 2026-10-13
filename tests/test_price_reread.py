@@ -338,7 +338,7 @@ def test_many_coverage_readings_parse_each_document_once(tmp_path, monkeypatch) 
     # Repeated feature groups give hundreds of distinct candidates without
     # retaining any provider's page. Nested spans make parsing measurable.
     body = ('<main id="coverage"><p>Example Pro $20/month</p>' + ''.join(
-        f'<p>Feature {i % 32}: ' + '<span>included </span>' * 20 + '</p>'
+        f'<p>Feature {i % 32}: included' + '<span></span>' * 20 + '</p>'
         for i in range(220)
     ) + '</main>').encode()
     copy_ref = store.put(body)
@@ -394,6 +394,10 @@ def test_many_coverage_readings_parse_each_document_once(tmp_path, monkeypatch) 
     assert after.verification == before.verification
     print(f"MODEL-235 synthetic timing: {before_calls} -> {len(calls)} normalisations; "
           f"{before_seconds:.3f}s -> {after_seconds:.3f}s; {len(readings)} readings")
+    assert len(calls) == 1
+    calls.clear()
+    again = price_reread.reread_fact(tracked, claim, fetched, regions, TODAY, tmp_path)
+    assert json.dumps(again.to_dict()) == json.dumps(after.to_dict())
     assert len(calls) == 1
 
 
