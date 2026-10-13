@@ -1503,7 +1503,7 @@ takes its key and its plans with it.",
     "name": "decide",
   },
   {
-    "description": "Compare 2 to 4 named models side by side using current snapshot facts, offerings, evidence and sources. Models stay in caller order; this tool does not rank or choose a winner. Unknown values stay null. Needs an API key (Authorization: Bearer). Proxies POST https://api.modelspec.dev/v1/compare-models with {models: [...]} and returns at most 16 KB.",
+    "description": "Which facts, offerings and evidence do 2 to 4 named models have? Returns snapshot facts, offerings, evidence and sources in caller order; unknown values stay null. Needs an API key (Authorization: Bearer). Costs 2 credits a call; a credit costs $0.0053–$0.02 depending on the plan or pack (https://modelspec.dev/pricing/). It doesn't choose a model and does not rank or choose a winner. Proxies POST https://api.modelspec.dev/v1/compare-models with {models: [...]} and returns at most 16 KB.",
     "inputSchema": {
       "$schema": "https://json-schema.org/draft/2020-12/schema",
       "additionalProperties": false,

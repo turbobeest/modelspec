@@ -858,10 +858,7 @@ export function createModelspecServer(env: Env, mcpCtx: McpFactoryContext = {}) 
   server.registerTool(
     "compare_models",
     {
-      description: "Compare 2 to 4 named models side by side using current snapshot facts, offerings, evidence and sources. " +
-        "Models stay in caller order; this tool does not rank or choose a winner. Unknown values stay null. " +
-        "Needs an API key (Authorization: Bearer). Proxies POST https://api.modelspec.dev/v1/compare-models " +
-        "with {models: [...]} and returns at most 16 KB.",
+      description: agentCopy.tools.compare_models,
       inputSchema: compareModelsToolInput,
     },
     async (args) => {

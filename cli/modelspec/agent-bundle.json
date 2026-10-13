@@ -812,7 +812,7 @@
     }
   },
   "source_hashes": {
-    "pipeline/agent_copy.py": "864b12eb495297daf01613effe352d9854b1e03c34e5d3e8fca4db2f0a840dd2",
+    "pipeline/agent_copy.py": "1e835ffd7885e795a0549a2f59805a9cd0d4edd41827216b8251dd88893ed75a",
     "pipeline/entity.py": "1649e5f95b620561511c2619045d036231b44c8ab7ff297bf4c6a21ab2b69ff3",
     "pipeline/pricing.py": "bc635eb9f446eec209f882c1f8bb8f79ccf295431bb191f8fd632efe0a940fd8",
     "pipeline/worker_flags.py": "0f3c1ff0de81710417659b86e1ec92913bbcf54af6312720fdad659e6af03429",
