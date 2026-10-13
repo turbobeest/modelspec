@@ -39,12 +39,24 @@ const siteFonts = (): Plugin => ({
   configurePreviewServer: serveFonts,
 });
 
+const serveDecisionPage = (server: ViteDevServer | PreviewServer) => {
+  server.middlewares.use((req, _res, next) => {
+    if (/^\/d(?:\/|\?|$)/.test(req.url ?? "")) req.url = "/decision.html";
+    next();
+  });
+};
+const decisionPage = (): Plugin => ({
+  name: "modelspec-decision-page",
+  configureServer: serveDecisionPage,
+  configurePreviewServer: serveDecisionPage,
+});
+
 // https://vite.dev/config/
 export default defineConfig({
   define: handoffDefines(),
-  plugins: [react(), tailwindcss(), siteFonts()],
+  plugins: [react(), tailwindcss(), siteFonts(), decisionPage()],
   build: {
-    rolldownOptions: { input: { main: "index.html", decide: "decide.html" } },
+    rolldownOptions: { input: { main: "index.html", decide: "decide.html", decision: "decision.html" } },
   },
   server: {
     fs: { allow: [".."] },

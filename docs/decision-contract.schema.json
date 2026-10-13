@@ -574,6 +574,11 @@
           "title": "Decision Id",
           "type": "string"
         },
+        "decision_url": {
+          "default": "",
+          "title": "Decision Url",
+          "type": "string"
+        },
         "explain": {
           "enum": [
             "none",

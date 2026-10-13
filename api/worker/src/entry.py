@@ -79,6 +79,7 @@ import billing
 import billing_page
 import credits
 import decide_service
+import decision_link
 import display_vocabulary
 import feedback_service
 import human_gate
@@ -873,6 +874,9 @@ class Default(WorkerEntrypoint):
         origin = str(getattr(self.env, "EXPORT_ORIGIN", "") or "https://modelspec.dev")
         path = urlparse(str(request.url)).path.rstrip("/") or "/"
         method = str(request.method).upper()
+
+        if path == "/v1/decision-link" and decision_link.enabled(self.env):
+            return await self._decision_link(request, method, origin, service_commit)
 
         decider = None
         decision_transport = _DecisionTransport()
@@ -1755,6 +1759,8 @@ class Default(WorkerEntrypoint):
             )
         answer = decider.compare_models if compare_models else decider.decide
         status, body = answer(payload, snapshot, expected_snapshot=expected)
+        if status == decider.HTTP_OK and not compare_models:
+            decision_link.attach(body, payload, snapshot, self.env)
         if status == decider.HTTP_OK and transport is not None:
             transport.body = body
             transport.serialised = decider.serialise(body)
@@ -1764,6 +1770,41 @@ class Default(WorkerEntrypoint):
             if snapshot_timings:
                 transport.headers["Server-Timing"] = f"snapshot;dur={sum(snapshot_timings):.1f}"
         return status, body
+
+    async def _decision_link(self, request, method, origin, service_commit):
+        cors = _cors_headers(request, self.env)
+        headers = {**cors, "cache-control": "no-store", "referrer-policy": "no-referrer",
+                   "x-robots-tag": "noindex, nofollow", "vary": "Origin"}
+        if method == "OPTIONS":
+            return Response("", status=204 if cors else 403, headers=headers)
+        if method != "POST":
+            return _json_response(405, {"error": {"message": "Use POST for this human view."}}, headers)
+        key = decision_link.secret_for(self.env)
+        if key is None or not visit_token.enabled(self.env):
+            return _json_response(503, {"error": {"message": "Decision link viewing is unavailable."}}, headers)
+        status, code, message, gate_headers = await visit_token.admit(
+            request, self.env, CORS_ORIGINS, "decision-link")
+        headers.update(gate_headers)
+        if status != 200:
+            return _json_response(status, {"error": {"code": code, "message": message}}, headers)
+        try:
+            raw = await request.text()
+            if len(raw.encode()) > decision_link.MAX_TOKEN_CHARS + 256:
+                return _json_response(413, {"error": {"message": "Decision link is too large."}}, headers)
+            payload = json.loads(raw)
+            if not isinstance(payload, dict):
+                raise decision_link.LinkRefusal(404, "This decision link is invalid.")
+            capsule = decision_link.verify(payload.get("token"), payload.get("decision_id"), key)
+            snapshot_key = str(getattr(self.env, SNAPSHOT_KEY_VAR, "") or "") or None
+            snapshot = await _decision_holder(origin).current(snapshot_key)
+            body = decision_link.replay(capsule, snapshot, service_commit)
+        except decision_link.LinkRefusal as exc:
+            return _json_response(exc.status, {"error": {"message": str(exc)}}, headers)
+        except (ValueError, TypeError):
+            return _json_response(404, {"error": {"message": "This decision link is invalid."}}, headers)
+        except Exception:
+            return _json_response(503, {"error": {"message": "The pinned decision is unavailable."}}, headers)
+        return _json_response(200, body, headers)
 
     async def _compare(self, payload, origin: str, expected: str | None = None):
         """``POST /v1/compare`` against the current and one named snapshot."""

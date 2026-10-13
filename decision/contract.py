@@ -2178,6 +2178,9 @@ BoundedDecision = create_model(
     #: One plain-language paragraph for the end user. Added in bounded 1.0 by
     #: MODEL-339. Optional: absent on a body projected before that change.
     summary_for_user=(str, ""),
+    #: Experimental human summary link. MODEL-353 issues it only with the
+    #: Worker flag enabled; absent by default, including every library projection.
+    decision_url=(str, ""),
     #: Facts a report of this answer has to carry. Added in bounded 1.0 by
     #: MODEL-339. Optional, same rule as ``summary_for_user``.
     must_mention=(list[str], Field(default_factory=list)),
