@@ -1,0 +1,3597 @@
+{
+  "source_commit": "41125577",
+  "renderer_sha256": "c5227afddf0ef5302b4333ffcae6e0897d249ab1111a9987da840d9e66eebdc5",
+  "cases": [
+    {
+      "name": "budget-approved",
+      "body": {
+        "status": "no_feasible",
+        "answer": null,
+        "results": [],
+        "may_qualify": [
+          {
+            "model": "deepseek/deepseek-v3-1",
+            "offering": {
+              "model": "deepseek/deepseek-v3-1",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.cost_per_task",
+              "offering.provider"
+            ]
+          },
+          {
+            "model": "google/gemma-4-26b-a4b-it",
+            "offering": {
+              "model": "google/gemma-4-26b-a4b-it",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.cost_per_task",
+              "offering.provider"
+            ]
+          },
+          {
+            "model": "google/gemma-4-31b-it",
+            "offering": {
+              "model": "google/gemma-4-31b-it",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.cost_per_task",
+              "offering.provider"
+            ]
+          },
+          {
+            "model": "google/gemma-4-e2b-it",
+            "offering": {
+              "model": "google/gemma-4-e2b-it",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.cost_per_task",
+              "offering.provider"
+            ]
+          },
+          {
+            "model": "google/gemma-4-e4b-it",
+            "offering": {
+              "model": "google/gemma-4-e4b-it",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.cost_per_task",
+              "offering.provider"
+            ]
+          },
+          {
+            "model": "microsoft/phi-4",
+            "offering": {
+              "model": "microsoft/phi-4",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.cost_per_task",
+              "offering.provider"
+            ]
+          },
+          {
+            "model": "moonshot/kimi-k2-6",
+            "offering": {
+              "model": "moonshot/kimi-k2-6",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.cost_per_task",
+              "offering.provider"
+            ]
+          },
+          {
+            "model": "moonshot/kimi-k3",
+            "offering": {
+              "model": "moonshot/kimi-k3",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.cost_per_task",
+              "offering.provider"
+            ]
+          },
+          {
+            "model": "qwen/qwen3-8-flash-next",
+            "offering": {
+              "model": "qwen/qwen3-8-flash-next",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.cost_per_task",
+              "offering.provider"
+            ]
+          }
+        ]
+      },
+      "summary": "status: no_feasible; top models: none; may qualify: 9"
+    },
+    {
+      "name": "hardware-spark",
+      "body": {
+        "status": "partial",
+        "answer": null,
+        "results": [
+          {
+            "rank": 1,
+            "offering": {
+              "model": "qwen/qwen3-8-flash-next",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "model": "qwen/qwen3-8-flash-next",
+            "model_rank": 1,
+            "cost_per_task": null,
+            "evidence": [],
+            "estimates": [
+              {
+                "domain": "software_engineering",
+                "value": 0.10893319,
+                "interval": [
+                  -1.890392324,
+                  2.108258704
+                ],
+                "harness": null,
+                "effort": null
+              }
+            ],
+            "p_best": 0.75,
+            "contributions": [
+              {
+                "raw_value": 0.10893319,
+                "unit": "latent capability",
+                "records": [
+                  "qwen/qwen3-8-flash-next#arena_webdev#84237997c1be"
+                ],
+                "dimension": "software_engineering",
+                "weight": 1,
+                "value": 1,
+                "normalisation": "feasible min-max; max; minimum=-1.338058994 latent capability; maximum=0.10893319 latent capability; a zero span maps to 1 (max) or 0 (min) dimensionless",
+                "evidence": [
+                  {
+                    "requested_domain": "software_engineering",
+                    "record_id": "qwen/qwen3-8-flash-next#arena_webdev#84237997c1be",
+                    "benchmark": "arena_webdev",
+                    "version": "webdev / overall, latest split, revision 1880dbebff5b",
+                    "sub_category": null,
+                    "value": 1636.27,
+                    "unit": "Arena score (Elo scale)",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "independent",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-23",
+                    "date_type": "published",
+                    "source": "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset",
+                    "source_snapshot": "sha256:31b3d323e3968c31c3238ed5782c805c2ae4be8758520c2e6837e2f3cb7633cb",
+                    "directness": "proxy",
+                    "loading": 0.35,
+                    "estimate_weight": 1,
+                    "recency_weight": 0.984922553
+                  }
+                ],
+                "formula": "monotone domain evidence estimate",
+                "preferred_value": null,
+                "preference_status": null
+              }
+            ],
+            "warnings": [
+              "not_separable"
+            ]
+          },
+          {
+            "rank": 2,
+            "offering": {
+              "model": "microsoft/phi-4",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "model": "microsoft/phi-4",
+            "model_rank": 2,
+            "cost_per_task": null,
+            "evidence": [],
+            "estimates": [
+              {
+                "domain": "software_engineering",
+                "value": -1.338058994,
+                "interval": [
+                  -3.041971156,
+                  0.365853168
+                ],
+                "harness": null,
+                "effort": null
+              }
+            ],
+            "p_best": 0.25,
+            "contributions": [
+              {
+                "raw_value": -1.338058994,
+                "unit": "latent capability",
+                "records": [
+                  "microsoft/phi-4#arena_sc_coding#746e9a34fd5c",
+                  "microsoft/phi-4#arena_sc_industry_software_it_services#626f7b4df1c8"
+                ],
+                "dimension": "software_engineering",
+                "weight": 1,
+                "value": 0,
+                "normalisation": "feasible min-max; max; minimum=-1.338058994 latent capability; maximum=0.10893319 latent capability; a zero span maps to 1 (max) or 0 (min) dimensionless",
+                "evidence": [
+                  {
+                    "requested_domain": "software_engineering",
+                    "record_id": "microsoft/phi-4#arena_sc_coding#746e9a34fd5c",
+                    "benchmark": "arena_sc_coding",
+                    "version": "text_style_control / coding, latest split, revision 1880dbebff5b",
+                    "sub_category": null,
+                    "value": 1306.3,
+                    "unit": "Arena score (Elo scale)",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "independent",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-13",
+                    "date_type": "published",
+                    "source": "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet",
+                    "source_snapshot": "sha256:089deb374ac3c4b394209968c2abcb3cf655a1b9a30a4131b30ac8c829a701b0",
+                    "directness": "proxy",
+                    "loading": 0.35,
+                    "estimate_weight": 0.5,
+                    "recency_weight": 0.966395024
+                  },
+                  {
+                    "requested_domain": "software_engineering",
+                    "record_id": "microsoft/phi-4#arena_sc_industry_software_it_services#626f7b4df1c8",
+                    "benchmark": "arena_sc_industry_software_it_services",
+                    "version": null,
+                    "sub_category": null,
+                    "value": 1289.908362519899,
+                    "unit": "Arena score (Elo scale)",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "independent",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-13",
+                    "date_type": "observed",
+                    "source": "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet",
+                    "source_snapshot": "sha256:eea47e91c8bc87fe0b61f2a3c0e4eba132c33a7b65597a78092fce12744d989a",
+                    "directness": "proxy",
+                    "loading": 0.35,
+                    "estimate_weight": 0.5,
+                    "recency_weight": 0.966395024
+                  }
+                ],
+                "formula": "monotone domain evidence estimate",
+                "preferred_value": null,
+                "preference_status": null
+              }
+            ],
+            "warnings": [
+              "not_separable"
+            ]
+          }
+        ],
+        "may_qualify": [
+          {
+            "model": "anthropic/claude-sonnet-5-5",
+            "offering": {
+              "model": "anthropic/claude-sonnet-5-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "model.weights_openness",
+              "model.fits_hardware"
+            ]
+          },
+          {
+            "model": "anthropic/claude-sonnet-5-5",
+            "offering": {
+              "model": "anthropic/claude-sonnet-5-5",
+              "provider": "aws-bedrock",
+              "region": "global-cross-region",
+              "tier": "standard"
+            },
+            "unknown": [
+              "model.weights_openness",
+              "model.fits_hardware"
+            ]
+          },
+          {
+            "model": "google/gemini-2-5-flash",
+            "offering": {
+              "model": "google/gemini-2-5-flash",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "model.weights_openness",
+              "model.fits_hardware"
+            ]
+          },
+          {
+            "model": "anthropic/claude-sonnet-5-5",
+            "offering": {
+              "model": "anthropic/claude-sonnet-5-5",
+              "provider": "google-vertex-ai",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "model.weights_openness",
+              "model.fits_hardware"
+            ]
+          },
+          {
+            "model": "google/gemma-4-26b-a4b-it",
+            "offering": {
+              "model": "google/gemma-4-26b-a4b-it",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "software_engineering"
+            ]
+          },
+          {
+            "model": "google/gemma-4-31b-it",
+            "offering": {
+              "model": "google/gemma-4-31b-it",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "software_engineering"
+            ]
+          },
+          {
+            "model": "google/gemma-4-e2b-it",
+            "offering": {
+              "model": "google/gemma-4-e2b-it",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "software_engineering"
+            ]
+          },
+          {
+            "model": "google/gemma-4-e4b-it",
+            "offering": {
+              "model": "google/gemma-4-e4b-it",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "software_engineering"
+            ]
+          },
+          {
+            "model": "kingsoft/qzhou-embedding",
+            "offering": {
+              "model": "kingsoft/qzhou-embedding",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "software_engineering"
+            ]
+          },
+          {
+            "model": "microsoft/harrier-oss-v1-27b",
+            "offering": {
+              "model": "microsoft/harrier-oss-v1-27b",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "software_engineering"
+            ]
+          }
+        ]
+      },
+      "summary": "status: partial; top models: qwen/qwen3-8-flash-next, microsoft/phi-4; may qualify: 10"
+    },
+    {
+      "name": "prompt-code",
+      "body": {},
+      "summary": "status: unknown; top models: none; may qualify: 0"
+    },
+    {
+      "name": "prompt-maths",
+      "body": {},
+      "summary": "status: unknown; top models: none; may qualify: 0"
+    },
+    {
+      "name": "prompt-policy",
+      "body": {},
+      "summary": "status: unknown; top models: none; may qualify: 0"
+    },
+    {
+      "name": "recall-q01",
+      "body": {
+        "status": "partial",
+        "answer": {
+          "kind": "separated",
+          "members": [
+            "openai/gpt-6-astra"
+          ],
+          "leader": "openai/gpt-6-astra",
+          "basis": "probability bands: a model joins the leader when P(its score >= the leader's) >= 0.25 under the score posteriors; a weighted capability with an 80% interval wider than 2.8 is not enough evidence",
+          "tie_breakers": {
+            "cheapest": null,
+            "open_weights": null,
+            "most_independently_measured": null,
+            "fastest": null
+          },
+          "deterministic_order": [
+            "openai/gpt-6-astra"
+          ]
+        },
+        "results": [
+          {
+            "rank": 1,
+            "offering": {
+              "model": "openai/gpt-6-astra",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "model": "openai/gpt-6-astra",
+            "model_rank": 1,
+            "cost_per_task": 0.6,
+            "evidence": [
+              {
+                "domain": "agentic_tool_use",
+                "items": [
+                  {
+                    "requested_domain": "agentic_tool_use",
+                    "record_id": "openai/gpt-6-astra#browsecomp#94cdf470d3b1",
+                    "benchmark": "browsecomp",
+                    "version": "BrowseComp",
+                    "sub_category": null,
+                    "value": 91.5,
+                    "unit": "percent",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "provider_self_report",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-03",
+                    "date_type": "published",
+                    "source": "https://openai.com/index/gpt-6-astra/",
+                    "source_snapshot": "sha256:c08d1944a8ad41e9e3770da6839d713019084a508efa1d90092d9125367a74d7",
+                    "directness": "direct",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  },
+                  {
+                    "requested_domain": "agentic_tool_use",
+                    "record_id": "openai/gpt-6-astra#hle_tools#805138af131f",
+                    "benchmark": "hle_tools",
+                    "version": "Humanity's Last Exam (w/ tools)",
+                    "sub_category": null,
+                    "value": 57.2,
+                    "unit": "percent",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "provider_self_report",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-03",
+                    "date_type": "published",
+                    "source": "https://openai.com/index/gpt-6-astra/",
+                    "source_snapshot": "sha256:c08d1944a8ad41e9e3770da6839d713019084a508efa1d90092d9125367a74d7",
+                    "directness": "proxy",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  },
+                  {
+                    "requested_domain": "agentic_tool_use",
+                    "record_id": "openai/gpt-6-astra#terminal_bench_science#93e5f8d4a64b",
+                    "benchmark": "terminal_bench_science",
+                    "version": "Terminal-Bench Science 0.1",
+                    "sub_category": null,
+                    "value": 64.6,
+                    "unit": "percent",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "provider_self_report",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-03",
+                    "date_type": "published",
+                    "source": "https://openai.com/index/gpt-6-astra/",
+                    "source_snapshot": "sha256:c08d1944a8ad41e9e3770da6839d713019084a508efa1d90092d9125367a74d7",
+                    "directness": "direct",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  },
+                  {
+                    "requested_domain": "agentic_tool_use",
+                    "record_id": "openai/gpt-6-astra#terminal_bench_v4_0#18ac0bc3f26f",
+                    "benchmark": "terminal_bench_v4_0",
+                    "version": "Terminal-Bench 4.0",
+                    "sub_category": null,
+                    "value": 58.18,
+                    "unit": "percent",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "benchmark_author",
+                    "effort": "max",
+                    "harness": null,
+                    "harness_unregistered": true,
+                    "date": "2026-09-03",
+                    "date_type": "published",
+                    "source": "https://www.tbench.ai/",
+                    "source_snapshot": "sha256:8583c498abed21892f796662082ec3497bf9829d0d98b952fa9f956ac6c8d582",
+                    "directness": "direct",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  },
+                  {
+                    "requested_domain": "agentic_tool_use",
+                    "record_id": "openai/gpt-6-astra#vending_bench_2#58efa4f20476",
+                    "benchmark": "vending_bench_2",
+                    "version": "Vending-Bench 2, mean final balance over 5 runs",
+                    "sub_category": null,
+                    "value": 15514.7,
+                    "unit": "USD",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "benchmark_author",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-30",
+                    "date_type": "observed",
+                    "source": "https://andonlabs.com/evals/vending-bench-2",
+                    "source_snapshot": "sha256:56dc9c006a5dd8343157e3122937b85758f2d208dec87e0c61a3eab1c750efbf",
+                    "directness": "direct",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  }
+                ]
+              },
+              {
+                "domain": "software_engineering",
+                "items": [
+                  {
+                    "requested_domain": "software_engineering",
+                    "record_id": "openai/gpt-6-astra#arena_elo_coding#6be85fb8212e",
+                    "benchmark": "arena_elo_coding",
+                    "version": "Text Arena coding category, raw (not style-controlled)",
+                    "sub_category": null,
+                    "value": 1488.58,
+                    "unit": "Arena score (Elo scale)",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "independent",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-13",
+                    "date_type": "published",
+                    "source": "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text/latest-00000-of-00001.parquet",
+                    "source_snapshot": "sha256:58733a4c25231aa976ad6e615cfa3ced1e2bc97fbbcb92d0a0e04878093fc22e",
+                    "directness": "proxy",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  },
+                  {
+                    "requested_domain": "software_engineering",
+                    "record_id": "openai/gpt-6-astra#arena_sc_coding#d77eca534944",
+                    "benchmark": "arena_sc_coding",
+                    "version": "text_style_control / coding, latest split, revision 1880dbebff5b",
+                    "sub_category": null,
+                    "value": 1542.88,
+                    "unit": "Arena score (Elo scale)",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "independent",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-13",
+                    "date_type": "published",
+                    "source": "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet",
+                    "source_snapshot": "sha256:089deb374ac3c4b394209968c2abcb3cf655a1b9a30a4131b30ac8c829a701b0",
+                    "directness": "proxy",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  },
+                  {
+                    "requested_domain": "software_engineering",
+                    "record_id": "openai/gpt-6-astra#arena_sc_industry_software_it_services#a1509fd86656",
+                    "benchmark": "arena_sc_industry_software_it_services",
+                    "version": "text_style_control / industry_software_and_it_services, latest split, revision 1880dbebff5b",
+                    "sub_category": null,
+                    "value": 1518.11,
+                    "unit": "Arena score (Elo scale)",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "independent",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-13",
+                    "date_type": "published",
+                    "source": "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet",
+                    "source_snapshot": "sha256:eea47e91c8bc87fe0b61f2a3c0e4eba132c33a7b65597a78092fce12744d989a",
+                    "directness": "proxy",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  },
+                  {
+                    "requested_domain": "software_engineering",
+                    "record_id": "openai/gpt-6-astra#arena_webdev#a96e60e409a2",
+                    "benchmark": "arena_webdev",
+                    "version": "webdev / overall, latest split, revision 1880dbebff5b",
+                    "sub_category": null,
+                    "value": 1792.18,
+                    "unit": "Arena score (Elo scale)",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "independent",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-23",
+                    "date_type": "published",
+                    "source": "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset",
+                    "source_snapshot": "sha256:31b3d323e3968c31c3238ed5782c805c2ae4be8758520c2e6837e2f3cb7633cb",
+                    "directness": "proxy",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  },
+                  {
+                    "requested_domain": "software_engineering",
+                    "record_id": "openai/gpt-6-astra#deepswe_v1_1#68d46007fa6d",
+                    "benchmark": "deepswe_v1_1",
+                    "version": "DeepSWE v1.1, pass@1, mini-swe-agent",
+                    "sub_category": null,
+                    "value": 73.23,
+                    "unit": "percent",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "benchmark_author",
+                    "effort": "max",
+                    "harness": null,
+                    "harness_unregistered": true,
+                    "date": "2026-09-30",
+                    "date_type": "observed",
+                    "source": "https://deepswe.datacurve.ai/artifacts/v1.1/leaderboard-live.json",
+                    "source_snapshot": "sha256:893865e2bda8e1a02a8e7115c6e02a8f8c843dd0763b8fbb1db3af6c017860f9",
+                    "directness": "direct",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  },
+                  {
+                    "requested_domain": "software_engineering",
+                    "record_id": "openai/gpt-6-astra#frontiercode_v1_1#2876ececbc34",
+                    "benchmark": "frontiercode_v1_1",
+                    "version": "FrontierCode 1.1, main score (Mean@5)",
+                    "sub_category": null,
+                    "value": 53.3,
+                    "unit": "percent",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "benchmark_author",
+                    "effort": "max",
+                    "harness": null,
+                    "harness_unregistered": true,
+                    "date": "2026-09-30",
+                    "date_type": "observed",
+                    "source": "https://cognition.com/frontiercode",
+                    "source_snapshot": "sha256:180805c4c77aad0b5cb157e5e209a8c9818dc3ff2284b75c635063e1f9fc92df",
+                    "directness": "direct",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  },
+                  {
+                    "requested_domain": "software_engineering",
+                    "record_id": "openai/gpt-6-astra#terminal_bench_v4_0#18ac0bc3f26f",
+                    "benchmark": "terminal_bench_v4_0",
+                    "version": "Terminal-Bench 4.0",
+                    "sub_category": null,
+                    "value": 58.18,
+                    "unit": "percent",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "benchmark_author",
+                    "effort": "max",
+                    "harness": null,
+                    "harness_unregistered": true,
+                    "date": "2026-09-03",
+                    "date_type": "published",
+                    "source": "https://www.tbench.ai/",
+                    "source_snapshot": "sha256:8583c498abed21892f796662082ec3497bf9829d0d98b952fa9f956ac6c8d582",
+                    "directness": "proxy",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  }
+                ]
+              }
+            ],
+            "estimates": [
+              {
+                "domain": "agentic_tool_use",
+                "value": 1.386134925,
+                "interval": [
+                  0.626354763,
+                  2.145915087
+                ],
+                "harness": null,
+                "effort": null
+              },
+              {
+                "domain": "software_engineering",
+                "value": 0.722453619,
+                "interval": [
+                  0.056286522,
+                  1.388620715
+                ],
+                "harness": null,
+                "effort": null
+              }
+            ],
+            "p_best": null,
+            "contributions": [
+              {
+                "raw_value": 58.18,
+                "unit": "percent",
+                "records": [
+                  "openai/gpt-6-astra#terminal_bench_v4_0#18ac0bc3f26f"
+                ],
+                "dimension": "terminal_bench_v4_0",
+                "weight": 1,
+                "value": 1,
+                "normalisation": "feasible min-max; max; minimum=11.21 percent; maximum=58.18 percent; a zero span maps to 1 (max) or 0 (min) dimensionless",
+                "evidence": [
+                  {
+                    "requested_domain": "agentic_tool_use",
+                    "record_id": "openai/gpt-6-astra#terminal_bench_v4_0#18ac0bc3f26f",
+                    "benchmark": "terminal_bench_v4_0",
+                    "version": "Terminal-Bench 4.0",
+                    "sub_category": null,
+                    "value": 58.18,
+                    "unit": "percent",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "benchmark_author",
+                    "effort": "max",
+                    "harness": null,
+                    "harness_unregistered": true,
+                    "date": "2026-09-03",
+                    "date_type": "published",
+                    "source": "https://www.tbench.ai/",
+                    "source_snapshot": "sha256:8583c498abed21892f796662082ec3497bf9829d0d98b952fa9f956ac6c8d582",
+                    "directness": "direct",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  }
+                ],
+                "formula": null,
+                "preferred_value": null,
+                "preference_status": null
+              }
+            ],
+            "warnings": []
+          },
+          {
+            "rank": 2,
+            "offering": {
+              "model": "openai/gpt-6-astra",
+              "provider": "openai",
+              "region": "global",
+              "tier": "standard"
+            },
+            "model": "openai/gpt-6-astra",
+            "model_rank": 1,
+            "cost_per_task": 0.6,
+            "estimates": [
+              {
+                "domain": "agentic_tool_use",
+                "value": 1.386134925,
+                "interval": [
+                  0.626354763,
+                  2.145915087
+                ],
+                "harness": null,
+                "effort": null
+              },
+              {
+                "domain": "software_engineering",
+                "value": 0.722453619,
+                "interval": [
+                  0.056286522,
+                  1.388620715
+                ],
+                "harness": null,
+                "effort": null
+              }
+            ],
+            "p_best": null,
+            "warnings": []
+          }
+        ],
+        "may_qualify": [
+          {
+            "model": "qwen/qwen3-8-max-0902",
+            "offering": {
+              "model": "qwen/qwen3-8-max-0902",
+              "provider": "alibaba-model-studio",
+              "region": "singapore",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-4-6",
+            "offering": {
+              "model": "anthropic/claude-opus-4-6",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-4-7",
+            "offering": {
+              "model": "anthropic/claude-opus-4-7",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "anthropic/claude-sonnet-5-5",
+            "offering": {
+              "model": "anthropic/claude-sonnet-5-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-4-6",
+            "offering": {
+              "model": "anthropic/claude-opus-4-6",
+              "provider": "aws-bedrock",
+              "region": "global-cross-region",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5-5",
+              "provider": "aws-bedrock",
+              "region": "global-cross-region",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "anthropic/claude-sonnet-5-5",
+            "offering": {
+              "model": "anthropic/claude-sonnet-5-5",
+              "provider": "aws-bedrock",
+              "region": "global-cross-region",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "openai/gpt-5-4",
+            "offering": {
+              "model": "openai/gpt-5-4",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "openai/gpt-6-sol",
+            "offering": {
+              "model": "openai/gpt-6-sol",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          }
+        ]
+      },
+      "summary": "status: partial; top models: openai/gpt-6-astra; may qualify: 10"
+    },
+    {
+      "name": "recall-q02",
+      "body": {
+        "status": "partial",
+        "answer": {
+          "kind": "separated",
+          "members": [
+            "openai/gpt-6-astra"
+          ],
+          "leader": "openai/gpt-6-astra",
+          "basis": "probability bands: a model joins the leader when P(its score >= the leader's) >= 0.25 under the score posteriors; a weighted capability with an 80% interval wider than 2.8 is not enough evidence",
+          "tie_breakers": {
+            "cheapest": null,
+            "open_weights": null,
+            "most_independently_measured": null,
+            "fastest": null
+          },
+          "deterministic_order": [
+            "openai/gpt-6-astra"
+          ]
+        },
+        "results": [
+          {
+            "rank": 1,
+            "offering": {
+              "model": "openai/gpt-6-astra",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "model": "openai/gpt-6-astra",
+            "model_rank": 1,
+            "cost_per_task": 0.6,
+            "evidence": [
+              {
+                "domain": "agentic_tool_use",
+                "items": [
+                  {
+                    "requested_domain": "agentic_tool_use",
+                    "record_id": "openai/gpt-6-astra#browsecomp#94cdf470d3b1",
+                    "benchmark": "browsecomp",
+                    "version": "BrowseComp",
+                    "sub_category": null,
+                    "value": 91.5,
+                    "unit": "percent",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "provider_self_report",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-03",
+                    "date_type": "published",
+                    "source": "https://openai.com/index/gpt-6-astra/",
+                    "source_snapshot": "sha256:c08d1944a8ad41e9e3770da6839d713019084a508efa1d90092d9125367a74d7",
+                    "directness": "direct",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  },
+                  {
+                    "requested_domain": "agentic_tool_use",
+                    "record_id": "openai/gpt-6-astra#hle_tools#805138af131f",
+                    "benchmark": "hle_tools",
+                    "version": "Humanity's Last Exam (w/ tools)",
+                    "sub_category": null,
+                    "value": 57.2,
+                    "unit": "percent",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "provider_self_report",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-03",
+                    "date_type": "published",
+                    "source": "https://openai.com/index/gpt-6-astra/",
+                    "source_snapshot": "sha256:c08d1944a8ad41e9e3770da6839d713019084a508efa1d90092d9125367a74d7",
+                    "directness": "proxy",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  },
+                  {
+                    "requested_domain": "agentic_tool_use",
+                    "record_id": "openai/gpt-6-astra#terminal_bench_science#93e5f8d4a64b",
+                    "benchmark": "terminal_bench_science",
+                    "version": "Terminal-Bench Science 0.1",
+                    "sub_category": null,
+                    "value": 64.6,
+                    "unit": "percent",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "provider_self_report",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-03",
+                    "date_type": "published",
+                    "source": "https://openai.com/index/gpt-6-astra/",
+                    "source_snapshot": "sha256:c08d1944a8ad41e9e3770da6839d713019084a508efa1d90092d9125367a74d7",
+                    "directness": "direct",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  },
+                  {
+                    "requested_domain": "agentic_tool_use",
+                    "record_id": "openai/gpt-6-astra#terminal_bench_v4_0#18ac0bc3f26f",
+                    "benchmark": "terminal_bench_v4_0",
+                    "version": "Terminal-Bench 4.0",
+                    "sub_category": null,
+                    "value": 58.18,
+                    "unit": "percent",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "benchmark_author",
+                    "effort": "max",
+                    "harness": null,
+                    "harness_unregistered": true,
+                    "date": "2026-09-03",
+                    "date_type": "published",
+                    "source": "https://www.tbench.ai/",
+                    "source_snapshot": "sha256:8583c498abed21892f796662082ec3497bf9829d0d98b952fa9f956ac6c8d582",
+                    "directness": "direct",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  },
+                  {
+                    "requested_domain": "agentic_tool_use",
+                    "record_id": "openai/gpt-6-astra#vending_bench_2#58efa4f20476",
+                    "benchmark": "vending_bench_2",
+                    "version": "Vending-Bench 2, mean final balance over 5 runs",
+                    "sub_category": null,
+                    "value": 15514.7,
+                    "unit": "USD",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "benchmark_author",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-30",
+                    "date_type": "observed",
+                    "source": "https://andonlabs.com/evals/vending-bench-2",
+                    "source_snapshot": "sha256:56dc9c006a5dd8343157e3122937b85758f2d208dec87e0c61a3eab1c750efbf",
+                    "directness": "direct",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  }
+                ]
+              },
+              {
+                "domain": "software_engineering",
+                "items": [
+                  {
+                    "requested_domain": "software_engineering",
+                    "record_id": "openai/gpt-6-astra#arena_elo_coding#6be85fb8212e",
+                    "benchmark": "arena_elo_coding",
+                    "version": "Text Arena coding category, raw (not style-controlled)",
+                    "sub_category": null,
+                    "value": 1488.58,
+                    "unit": "Arena score (Elo scale)",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "independent",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-13",
+                    "date_type": "published",
+                    "source": "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text/latest-00000-of-00001.parquet",
+                    "source_snapshot": "sha256:58733a4c25231aa976ad6e615cfa3ced1e2bc97fbbcb92d0a0e04878093fc22e",
+                    "directness": "proxy",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  },
+                  {
+                    "requested_domain": "software_engineering",
+                    "record_id": "openai/gpt-6-astra#arena_sc_coding#d77eca534944",
+                    "benchmark": "arena_sc_coding",
+                    "version": "text_style_control / coding, latest split, revision 1880dbebff5b",
+                    "sub_category": null,
+                    "value": 1542.88,
+                    "unit": "Arena score (Elo scale)",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "independent",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-13",
+                    "date_type": "published",
+                    "source": "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet",
+                    "source_snapshot": "sha256:089deb374ac3c4b394209968c2abcb3cf655a1b9a30a4131b30ac8c829a701b0",
+                    "directness": "proxy",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  },
+                  {
+                    "requested_domain": "software_engineering",
+                    "record_id": "openai/gpt-6-astra#arena_sc_industry_software_it_services#a1509fd86656",
+                    "benchmark": "arena_sc_industry_software_it_services",
+                    "version": "text_style_control / industry_software_and_it_services, latest split, revision 1880dbebff5b",
+                    "sub_category": null,
+                    "value": 1518.11,
+                    "unit": "Arena score (Elo scale)",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "independent",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-13",
+                    "date_type": "published",
+                    "source": "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet",
+                    "source_snapshot": "sha256:eea47e91c8bc87fe0b61f2a3c0e4eba132c33a7b65597a78092fce12744d989a",
+                    "directness": "proxy",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  },
+                  {
+                    "requested_domain": "software_engineering",
+                    "record_id": "openai/gpt-6-astra#arena_webdev#a96e60e409a2",
+                    "benchmark": "arena_webdev",
+                    "version": "webdev / overall, latest split, revision 1880dbebff5b",
+                    "sub_category": null,
+                    "value": 1792.18,
+                    "unit": "Arena score (Elo scale)",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "independent",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-23",
+                    "date_type": "published",
+                    "source": "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset",
+                    "source_snapshot": "sha256:31b3d323e3968c31c3238ed5782c805c2ae4be8758520c2e6837e2f3cb7633cb",
+                    "directness": "proxy",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  },
+                  {
+                    "requested_domain": "software_engineering",
+                    "record_id": "openai/gpt-6-astra#deepswe_v1_1#68d46007fa6d",
+                    "benchmark": "deepswe_v1_1",
+                    "version": "DeepSWE v1.1, pass@1, mini-swe-agent",
+                    "sub_category": null,
+                    "value": 73.23,
+                    "unit": "percent",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "benchmark_author",
+                    "effort": "max",
+                    "harness": null,
+                    "harness_unregistered": true,
+                    "date": "2026-09-30",
+                    "date_type": "observed",
+                    "source": "https://deepswe.datacurve.ai/artifacts/v1.1/leaderboard-live.json",
+                    "source_snapshot": "sha256:893865e2bda8e1a02a8e7115c6e02a8f8c843dd0763b8fbb1db3af6c017860f9",
+                    "directness": "direct",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  },
+                  {
+                    "requested_domain": "software_engineering",
+                    "record_id": "openai/gpt-6-astra#frontiercode_v1_1#2876ececbc34",
+                    "benchmark": "frontiercode_v1_1",
+                    "version": "FrontierCode 1.1, main score (Mean@5)",
+                    "sub_category": null,
+                    "value": 53.3,
+                    "unit": "percent",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "benchmark_author",
+                    "effort": "max",
+                    "harness": null,
+                    "harness_unregistered": true,
+                    "date": "2026-09-30",
+                    "date_type": "observed",
+                    "source": "https://cognition.com/frontiercode",
+                    "source_snapshot": "sha256:180805c4c77aad0b5cb157e5e209a8c9818dc3ff2284b75c635063e1f9fc92df",
+                    "directness": "direct",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  },
+                  {
+                    "requested_domain": "software_engineering",
+                    "record_id": "openai/gpt-6-astra#terminal_bench_v4_0#18ac0bc3f26f",
+                    "benchmark": "terminal_bench_v4_0",
+                    "version": "Terminal-Bench 4.0",
+                    "sub_category": null,
+                    "value": 58.18,
+                    "unit": "percent",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "benchmark_author",
+                    "effort": "max",
+                    "harness": null,
+                    "harness_unregistered": true,
+                    "date": "2026-09-03",
+                    "date_type": "published",
+                    "source": "https://www.tbench.ai/",
+                    "source_snapshot": "sha256:8583c498abed21892f796662082ec3497bf9829d0d98b952fa9f956ac6c8d582",
+                    "directness": "proxy",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  }
+                ]
+              }
+            ],
+            "estimates": [
+              {
+                "domain": "agentic_tool_use",
+                "value": 1.386134925,
+                "interval": [
+                  0.626354763,
+                  2.145915087
+                ],
+                "harness": null,
+                "effort": null
+              },
+              {
+                "domain": "software_engineering",
+                "value": 0.722453619,
+                "interval": [
+                  0.056286522,
+                  1.388620715
+                ],
+                "harness": null,
+                "effort": null
+              }
+            ],
+            "p_best": null,
+            "contributions": [
+              {
+                "raw_value": 58.18,
+                "unit": "percent",
+                "records": [
+                  "openai/gpt-6-astra#terminal_bench_v4_0#18ac0bc3f26f"
+                ],
+                "dimension": "terminal_bench_v4_0",
+                "weight": 1,
+                "value": 1,
+                "normalisation": "feasible min-max; max; minimum=11.21 percent; maximum=58.18 percent; a zero span maps to 1 (max) or 0 (min) dimensionless",
+                "evidence": [
+                  {
+                    "requested_domain": "agentic_tool_use",
+                    "record_id": "openai/gpt-6-astra#terminal_bench_v4_0#18ac0bc3f26f",
+                    "benchmark": "terminal_bench_v4_0",
+                    "version": "Terminal-Bench 4.0",
+                    "sub_category": null,
+                    "value": 58.18,
+                    "unit": "percent",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "benchmark_author",
+                    "effort": "max",
+                    "harness": null,
+                    "harness_unregistered": true,
+                    "date": "2026-09-03",
+                    "date_type": "published",
+                    "source": "https://www.tbench.ai/",
+                    "source_snapshot": "sha256:8583c498abed21892f796662082ec3497bf9829d0d98b952fa9f956ac6c8d582",
+                    "directness": "direct",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  }
+                ],
+                "formula": null,
+                "preferred_value": null,
+                "preference_status": null
+              }
+            ],
+            "warnings": []
+          },
+          {
+            "rank": 2,
+            "offering": {
+              "model": "openai/gpt-6-astra",
+              "provider": "openai",
+              "region": "global",
+              "tier": "standard"
+            },
+            "model": "openai/gpt-6-astra",
+            "model_rank": 1,
+            "cost_per_task": 0.6,
+            "estimates": [
+              {
+                "domain": "agentic_tool_use",
+                "value": 1.386134925,
+                "interval": [
+                  0.626354763,
+                  2.145915087
+                ],
+                "harness": null,
+                "effort": null
+              },
+              {
+                "domain": "software_engineering",
+                "value": 0.722453619,
+                "interval": [
+                  0.056286522,
+                  1.388620715
+                ],
+                "harness": null,
+                "effort": null
+              }
+            ],
+            "p_best": null,
+            "warnings": []
+          }
+        ],
+        "may_qualify": [
+          {
+            "model": "qwen/qwen3-8-max-0902",
+            "offering": {
+              "model": "qwen/qwen3-8-max-0902",
+              "provider": "alibaba-model-studio",
+              "region": "singapore",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-4-6",
+            "offering": {
+              "model": "anthropic/claude-opus-4-6",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-4-7",
+            "offering": {
+              "model": "anthropic/claude-opus-4-7",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "anthropic/claude-sonnet-5-5",
+            "offering": {
+              "model": "anthropic/claude-sonnet-5-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-4-6",
+            "offering": {
+              "model": "anthropic/claude-opus-4-6",
+              "provider": "aws-bedrock",
+              "region": "global-cross-region",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5-5",
+              "provider": "aws-bedrock",
+              "region": "global-cross-region",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "anthropic/claude-sonnet-5-5",
+            "offering": {
+              "model": "anthropic/claude-sonnet-5-5",
+              "provider": "aws-bedrock",
+              "region": "global-cross-region",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "openai/gpt-5-4",
+            "offering": {
+              "model": "openai/gpt-5-4",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          },
+          {
+            "model": "openai/gpt-6-sol",
+            "offering": {
+              "model": "openai/gpt-6-sol",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "terminal_bench_v4_0"
+            ]
+          }
+        ]
+      },
+      "summary": "status: partial; top models: openai/gpt-6-astra; may qualify: 10"
+    },
+    {
+      "name": "recall-q03",
+      "body": {
+        "status": "partial",
+        "answer": {
+          "kind": "separated",
+          "members": [
+            "anthropic/claude-opus-4-6"
+          ],
+          "leader": "anthropic/claude-opus-4-6",
+          "basis": "probability bands: a model joins the leader when P(its score >= the leader's) >= 0.25 under the score posteriors; a weighted capability with an 80% interval wider than 2.8 is not enough evidence",
+          "tie_breakers": {
+            "cheapest": null,
+            "open_weights": null,
+            "most_independently_measured": null,
+            "fastest": null
+          },
+          "deterministic_order": [
+            "anthropic/claude-opus-4-6"
+          ]
+        },
+        "results": [
+          {
+            "rank": 1,
+            "offering": {
+              "model": "anthropic/claude-opus-4-6",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "model": "anthropic/claude-opus-4-6",
+            "model_rank": 1,
+            "cost_per_task": 0.3,
+            "evidence": [
+              {
+                "domain": "software_engineering",
+                "items": [
+                  {
+                    "requested_domain": "software_engineering",
+                    "record_id": "anthropic/claude-opus-4-6#arena_elo_coding#ddbef3ec3108",
+                    "benchmark": "arena_elo_coding",
+                    "version": "Text Arena coding category, raw (not style-controlled)",
+                    "sub_category": null,
+                    "value": 1535.27,
+                    "unit": "Arena score (Elo scale)",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "independent",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-13",
+                    "date_type": "published",
+                    "source": "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text/latest-00000-of-00001.parquet",
+                    "source_snapshot": "sha256:58733a4c25231aa976ad6e615cfa3ced1e2bc97fbbcb92d0a0e04878093fc22e",
+                    "directness": "proxy",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  },
+                  {
+                    "requested_domain": "software_engineering",
+                    "record_id": "anthropic/claude-opus-4-6#arena_sc_coding#c015d6c17151",
+                    "benchmark": "arena_sc_coding",
+                    "version": "text_style_control / coding, latest split, revision 1880dbebff5b",
+                    "sub_category": null,
+                    "value": 1551.28,
+                    "unit": "Arena score (Elo scale)",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "independent",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-13",
+                    "date_type": "published",
+                    "source": "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet",
+                    "source_snapshot": "sha256:089deb374ac3c4b394209968c2abcb3cf655a1b9a30a4131b30ac8c829a701b0",
+                    "directness": "proxy",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  },
+                  {
+                    "requested_domain": "software_engineering",
+                    "record_id": "anthropic/claude-opus-4-6#arena_sc_industry_software_it_services#d21d80c521e6",
+                    "benchmark": "arena_sc_industry_software_it_services",
+                    "version": "text_style_control / industry_software_and_it_services, latest split, revision 1880dbebff5b",
+                    "sub_category": null,
+                    "value": 1540.43,
+                    "unit": "Arena score (Elo scale)",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "independent",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-13",
+                    "date_type": "published",
+                    "source": "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet",
+                    "source_snapshot": "sha256:eea47e91c8bc87fe0b61f2a3c0e4eba132c33a7b65597a78092fce12744d989a",
+                    "directness": "proxy",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  },
+                  {
+                    "requested_domain": "software_engineering",
+                    "record_id": "anthropic/claude-opus-4-6#arena_webdev#bb14bf191c8c",
+                    "benchmark": "arena_webdev",
+                    "version": "webdev / overall, latest split, revision 1880dbebff5b",
+                    "sub_category": null,
+                    "value": 1546.61,
+                    "unit": "Arena score (Elo scale)",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "independent",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-23",
+                    "date_type": "published",
+                    "source": "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset",
+                    "source_snapshot": "sha256:31b3d323e3968c31c3238ed5782c805c2ae4be8758520c2e6837e2f3cb7633cb",
+                    "directness": "proxy",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  },
+                  {
+                    "requested_domain": "software_engineering",
+                    "record_id": "anthropic/claude-opus-4-6#frontiercode_v1_1#7dd694febaff",
+                    "benchmark": "frontiercode_v1_1",
+                    "version": "FrontierCode 1.1, main score (Mean@5)",
+                    "sub_category": null,
+                    "value": 26.6,
+                    "unit": "percent",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "benchmark_author",
+                    "effort": "high",
+                    "harness": null,
+                    "harness_unregistered": true,
+                    "date": "2026-09-30",
+                    "date_type": "observed",
+                    "source": "https://cognition.com/frontiercode",
+                    "source_snapshot": "sha256:180805c4c77aad0b5cb157e5e209a8c9818dc3ff2284b75c635063e1f9fc92df",
+                    "directness": "direct",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  },
+                  {
+                    "requested_domain": "software_engineering",
+                    "record_id": "anthropic/claude-opus-4-6#metr_time_horizon_50#dfe940b5a865",
+                    "benchmark": "metr_time_horizon_50",
+                    "version": "METR-Horizon-v1.1",
+                    "sub_category": null,
+                    "value": 718.80683,
+                    "unit": "minutes",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "benchmark_author",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-30",
+                    "date_type": "published",
+                    "source": "https://metr.org/assets/benchmark_results_1_1.yaml",
+                    "source_snapshot": "sha256:fd42a3e290ee11fecfabc5aaac8242be8b5b9525f66f09ff20f9660f7f251641",
+                    "directness": "proxy",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  },
+                  {
+                    "requested_domain": "software_engineering",
+                    "record_id": "anthropic/claude-opus-4-6#metr_time_horizon_80#7149f6a18da2",
+                    "benchmark": "metr_time_horizon_80",
+                    "version": "METR-Horizon-v1.1",
+                    "sub_category": null,
+                    "value": 69.874587,
+                    "unit": "minutes",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "benchmark_author",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-30",
+                    "date_type": "published",
+                    "source": "https://metr.org/assets/benchmark_results_1_1.yaml",
+                    "source_snapshot": "sha256:fd42a3e290ee11fecfabc5aaac8242be8b5b9525f66f09ff20f9660f7f251641",
+                    "directness": "proxy",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  },
+                  {
+                    "requested_domain": "software_engineering",
+                    "record_id": "anthropic/claude-opus-4-6#swe_bench_multilingual#444da90309b1",
+                    "benchmark": "swe_bench_multilingual",
+                    "version": "SWE-bench Multilingual, bash-only (mini-SWE-agent), official leaderboard",
+                    "sub_category": null,
+                    "value": 72,
+                    "unit": "percent",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "benchmark_author",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": true,
+                    "date": "2026-02-13",
+                    "date_type": "observed",
+                    "source": "https://www.swebench.com/",
+                    "source_snapshot": "sha256:6d6dda2306f4b91abbd697b135dc4486d471d7ef6e5b3b44195b7cd5c9a5e958",
+                    "directness": "direct",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  },
+                  {
+                    "requested_domain": "software_engineering",
+                    "record_id": "anthropic/claude-opus-4-6#swe_bench_pro#b4dfc5009bfa",
+                    "benchmark": "swe_bench_pro",
+                    "version": "SWE-Bench Pro, public dataset, Scale Labs leaderboard",
+                    "sub_category": null,
+                    "value": 51.9,
+                    "unit": "percent",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "independent",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": true,
+                    "date": "2026-04-08",
+                    "date_type": "observed",
+                    "source": "https://labs.scale.com/leaderboard/swe_bench_pro_public",
+                    "source_snapshot": "sha256:711c55aa9c54fb56cd3c012095af53a1a1b5daffed5a71ddcd46e5eb090e7b6a",
+                    "directness": "direct",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  },
+                  {
+                    "requested_domain": "software_engineering",
+                    "record_id": "anthropic/claude-opus-4-6#swe_bench_verified#1db9ca7311f6",
+                    "benchmark": "swe_bench_verified",
+                    "version": "SWE-bench Verified, bash-only (mini-SWE-agent), official leaderboard",
+                    "sub_category": null,
+                    "value": 75.6,
+                    "unit": "percent",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "benchmark_author",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": true,
+                    "date": "2026-02-17",
+                    "date_type": "observed",
+                    "source": "https://www.swebench.com/",
+                    "source_snapshot": "sha256:7b95a3056937cfe16e0927fb5ef8822b30067c0eb28840dc8562e8cfeef5e4b7",
+                    "directness": "direct",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  },
+                  {
+                    "requested_domain": "software_engineering",
+                    "record_id": "anthropic/claude-opus-4-6#swe_bench_verified#1eb4e528dee4",
+                    "benchmark": "swe_bench_verified",
+                    "version": "SWE-bench Verified (Epoch AI run)",
+                    "sub_category": null,
+                    "value": 78.72,
+                    "unit": "percent",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "independent",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-02-18",
+                    "date_type": "observed",
+                    "source": "https://epoch.ai/benchmarks/swe-bench-verified",
+                    "source_snapshot": "sha256:ed1a16e9654e811735e5fd8ad2d3342b57cff954a552e663f601990b90f9febc",
+                    "directness": "direct",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  }
+                ]
+              }
+            ],
+            "estimates": [
+              {
+                "domain": "software_engineering",
+                "value": -0.269738368,
+                "interval": [
+                  -0.883104952,
+                  0.343628215
+                ],
+                "harness": null,
+                "effort": null
+              }
+            ],
+            "p_best": null,
+            "contributions": [
+              {
+                "raw_value": 1535.27,
+                "unit": "Arena score (Elo scale)",
+                "records": [
+                  "anthropic/claude-opus-4-6#arena_elo_coding#ddbef3ec3108"
+                ],
+                "dimension": "arena_elo_coding",
+                "weight": 1,
+                "value": 1,
+                "normalisation": "feasible min-max; max; minimum=1423.43 Arena score (Elo scale); maximum=1535.27 Arena score (Elo scale); a zero span maps to 1 (max) or 0 (min) dimensionless",
+                "evidence": [
+                  {
+                    "requested_domain": "software_engineering",
+                    "record_id": "anthropic/claude-opus-4-6#arena_elo_coding#ddbef3ec3108",
+                    "benchmark": "arena_elo_coding",
+                    "version": "Text Arena coding category, raw (not style-controlled)",
+                    "sub_category": null,
+                    "value": 1535.27,
+                    "unit": "Arena score (Elo scale)",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "independent",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-13",
+                    "date_type": "published",
+                    "source": "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text/latest-00000-of-00001.parquet",
+                    "source_snapshot": "sha256:58733a4c25231aa976ad6e615cfa3ced1e2bc97fbbcb92d0a0e04878093fc22e",
+                    "directness": "proxy",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  }
+                ],
+                "formula": null,
+                "preferred_value": null,
+                "preference_status": null
+              }
+            ],
+            "warnings": []
+          },
+          {
+            "rank": 2,
+            "offering": {
+              "model": "anthropic/claude-opus-4-6",
+              "provider": "aws-bedrock",
+              "region": "global-cross-region",
+              "tier": "standard"
+            },
+            "model": "anthropic/claude-opus-4-6",
+            "model_rank": 1,
+            "cost_per_task": 0.3,
+            "estimates": [
+              {
+                "domain": "software_engineering",
+                "value": -0.269738368,
+                "interval": [
+                  -0.883104952,
+                  0.343628215
+                ],
+                "harness": null,
+                "effort": null
+              }
+            ],
+            "p_best": null,
+            "warnings": []
+          },
+          {
+            "rank": 3,
+            "offering": {
+              "model": "anthropic/claude-opus-4-6",
+              "provider": "google-vertex-ai",
+              "region": "global",
+              "tier": "standard"
+            },
+            "model": "anthropic/claude-opus-4-6",
+            "model_rank": 1,
+            "cost_per_task": 0.3,
+            "estimates": [
+              {
+                "domain": "software_engineering",
+                "value": -0.269738368,
+                "interval": [
+                  -0.883104952,
+                  0.343628215
+                ],
+                "harness": null,
+                "effort": null
+              }
+            ],
+            "p_best": null,
+            "warnings": []
+          }
+        ],
+        "may_qualify": [
+          {
+            "model": "qwen/qwen3-8-max-0902",
+            "offering": {
+              "model": "qwen/qwen3-8-max-0902",
+              "provider": "alibaba-model-studio",
+              "region": "singapore",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_coding"
+            ]
+          },
+          {
+            "model": "anthropic/claude-fable-5",
+            "offering": {
+              "model": "anthropic/claude-fable-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_coding"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-4-7",
+            "offering": {
+              "model": "anthropic/claude-opus-4-7",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_coding"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_coding"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_coding"
+            ]
+          },
+          {
+            "model": "anthropic/claude-sonnet-5-5",
+            "offering": {
+              "model": "anthropic/claude-sonnet-5-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_coding"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5-5",
+              "provider": "aws-bedrock",
+              "region": "global-cross-region",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_coding"
+            ]
+          },
+          {
+            "model": "anthropic/claude-sonnet-5-5",
+            "offering": {
+              "model": "anthropic/claude-sonnet-5-5",
+              "provider": "aws-bedrock",
+              "region": "global-cross-region",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_coding"
+            ]
+          },
+          {
+            "model": "openai/gpt-5-6-sol",
+            "offering": {
+              "model": "openai/gpt-5-6-sol",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_elo_coding"
+            ]
+          }
+        ]
+      },
+      "summary": "status: partial; top models: anthropic/claude-opus-4-6; may qualify: 9"
+    },
+    {
+      "name": "recall-q04",
+      "body": {
+        "status": "partial",
+        "answer": {
+          "kind": "separated",
+          "members": [
+            "anthropic/claude-fable-5-1"
+          ],
+          "leader": "anthropic/claude-fable-5-1",
+          "basis": "probability bands: a model joins the leader when P(its score >= the leader's) >= 0.25 under the score posteriors; a weighted capability with an 80% interval wider than 2.8 is not enough evidence",
+          "tie_breakers": {
+            "cheapest": null,
+            "open_weights": null,
+            "most_independently_measured": null,
+            "fastest": null
+          },
+          "deterministic_order": [
+            "anthropic/claude-fable-5-1"
+          ]
+        },
+        "results": [
+          {
+            "rank": 1,
+            "offering": {
+              "model": "anthropic/claude-fable-5-1",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "model": "anthropic/claude-fable-5-1",
+            "model_rank": 1,
+            "cost_per_task": 0.6,
+            "estimates": [
+              {
+                "domain": "chat_preference",
+                "value": 0.774737007,
+                "interval": [
+                  0.618012652,
+                  0.931461363
+                ],
+                "harness": null,
+                "effort": null
+              }
+            ],
+            "p_best": null,
+            "contributions": [
+              {
+                "raw_value": 1507.58,
+                "unit": "Arena score (Elo scale)",
+                "records": [
+                  "anthropic/claude-fable-5-1#arena_elo_overall#9661fc6241b2"
+                ],
+                "dimension": "arena_elo_overall",
+                "weight": 1,
+                "value": 1,
+                "normalisation": "feasible min-max; max; minimum=1417.27 Arena score (Elo scale); maximum=1507.58 Arena score (Elo scale); a zero span maps to 1 (max) or 0 (min) dimensionless",
+                "evidence": [
+                  {
+                    "requested_domain": "chat_preference",
+                    "record_id": "anthropic/claude-fable-5-1#arena_elo_overall#9661fc6241b2",
+                    "benchmark": "arena_elo_overall",
+                    "version": "Text Arena overall, raw (not style-controlled)",
+                    "sub_category": null,
+                    "value": 1507.58,
+                    "unit": "Arena score (Elo scale)",
+                    "n": 5783,
+                    "interval": [
+                      1499.43,
+                      1515.73
+                    ],
+                    "quality_flags": [],
+                    "measured_by": "independent",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-13",
+                    "date_type": "published",
+                    "source": "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text/latest-00000-of-00001.parquet",
+                    "source_snapshot": "sha256:c75f97c00af5cdce1b735cd74bc058988e6afb9d411c400e70b3420557519012",
+                    "directness": "direct",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  }
+                ],
+                "formula": null,
+                "preferred_value": null,
+                "preference_status": null
+              }
+            ],
+            "warnings": [
+              "not_separable"
+            ]
+          }
+        ],
+        "may_qualify": []
+      },
+      "summary": "status: partial; top models: anthropic/claude-fable-5-1; may qualify: 0"
+    },
+    {
+      "name": "recall-q05",
+      "body": {
+        "status": "partial",
+        "answer": {
+          "kind": "separated",
+          "members": [
+            "anthropic/claude-fable-5-1"
+          ],
+          "leader": "anthropic/claude-fable-5-1",
+          "basis": "probability bands: a model joins the leader when P(its score >= the leader's) >= 0.25 under the score posteriors; a weighted capability with an 80% interval wider than 2.8 is not enough evidence",
+          "tie_breakers": {
+            "cheapest": null,
+            "open_weights": null,
+            "most_independently_measured": null,
+            "fastest": null
+          },
+          "deterministic_order": [
+            "anthropic/claude-fable-5-1"
+          ]
+        },
+        "results": [
+          {
+            "rank": 1,
+            "offering": {
+              "model": "anthropic/claude-fable-5-1",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "model": "anthropic/claude-fable-5-1",
+            "model_rank": 1,
+            "cost_per_task": 0.6,
+            "estimates": [
+              {
+                "domain": "chat_preference",
+                "value": 0.774737007,
+                "interval": [
+                  0.618012652,
+                  0.931461363
+                ],
+                "harness": null,
+                "effort": null
+              }
+            ],
+            "p_best": null,
+            "contributions": [
+              {
+                "raw_value": 1507.58,
+                "unit": "Arena score (Elo scale)",
+                "records": [
+                  "anthropic/claude-fable-5-1#arena_elo_overall#9661fc6241b2"
+                ],
+                "dimension": "arena_elo_overall",
+                "weight": 1,
+                "value": 1,
+                "normalisation": "feasible min-max; max; minimum=1417.27 Arena score (Elo scale); maximum=1507.58 Arena score (Elo scale); a zero span maps to 1 (max) or 0 (min) dimensionless",
+                "evidence": [
+                  {
+                    "requested_domain": "chat_preference",
+                    "record_id": "anthropic/claude-fable-5-1#arena_elo_overall#9661fc6241b2",
+                    "benchmark": "arena_elo_overall",
+                    "version": "Text Arena overall, raw (not style-controlled)",
+                    "sub_category": null,
+                    "value": 1507.58,
+                    "unit": "Arena score (Elo scale)",
+                    "n": 5783,
+                    "interval": [
+                      1499.43,
+                      1515.73
+                    ],
+                    "quality_flags": [],
+                    "measured_by": "independent",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-13",
+                    "date_type": "published",
+                    "source": "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text/latest-00000-of-00001.parquet",
+                    "source_snapshot": "sha256:c75f97c00af5cdce1b735cd74bc058988e6afb9d411c400e70b3420557519012",
+                    "directness": "direct",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  }
+                ],
+                "formula": null,
+                "preferred_value": null,
+                "preference_status": null
+              }
+            ],
+            "warnings": [
+              "not_separable"
+            ]
+          }
+        ],
+        "may_qualify": []
+      },
+      "summary": "status: partial; top models: anthropic/claude-fable-5-1; may qualify: 0"
+    },
+    {
+      "name": "recall-q07",
+      "body": {
+        "status": "no_feasible",
+        "answer": null,
+        "results": [],
+        "may_qualify": [
+          {
+            "model": "qwen/qwen3-8-max-0902",
+            "offering": {
+              "model": "qwen/qwen3-8-max-0902",
+              "provider": "alibaba-model-studio",
+              "region": "singapore",
+              "tier": "standard"
+            },
+            "unknown": [
+              "aime_2026"
+            ]
+          },
+          {
+            "model": "anthropic/claude-fable-5-1",
+            "offering": {
+              "model": "anthropic/claude-fable-5-1",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "aime_2026"
+            ]
+          },
+          {
+            "model": "anthropic/claude-fable-5",
+            "offering": {
+              "model": "anthropic/claude-fable-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "aime_2026"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-4-6",
+            "offering": {
+              "model": "anthropic/claude-opus-4-6",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "aime_2026"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-4-7",
+            "offering": {
+              "model": "anthropic/claude-opus-4-7",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "aime_2026"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "aime_2026"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "aime_2026"
+            ]
+          },
+          {
+            "model": "anthropic/claude-sonnet-5-5",
+            "offering": {
+              "model": "anthropic/claude-sonnet-5-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "aime_2026"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-4-6",
+            "offering": {
+              "model": "anthropic/claude-opus-4-6",
+              "provider": "aws-bedrock",
+              "region": "global-cross-region",
+              "tier": "standard"
+            },
+            "unknown": [
+              "aime_2026"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5-5",
+              "provider": "aws-bedrock",
+              "region": "global-cross-region",
+              "tier": "standard"
+            },
+            "unknown": [
+              "aime_2026"
+            ]
+          }
+        ]
+      },
+      "summary": "status: no_feasible; top models: none; may qualify: 10"
+    },
+    {
+      "name": "recall-q08",
+      "body": {
+        "status": "partial",
+        "answer": {
+          "kind": "separated",
+          "members": [
+            "anthropic/claude-opus-4-6"
+          ],
+          "leader": "anthropic/claude-opus-4-6",
+          "basis": "probability bands: a model joins the leader when P(its score >= the leader's) >= 0.25 under the score posteriors; a weighted capability with an 80% interval wider than 2.8 is not enough evidence",
+          "tie_breakers": {
+            "cheapest": null,
+            "open_weights": null,
+            "most_independently_measured": null,
+            "fastest": null
+          },
+          "deterministic_order": [
+            "anthropic/claude-opus-4-6"
+          ]
+        },
+        "results": [
+          {
+            "rank": 1,
+            "offering": {
+              "model": "anthropic/claude-opus-4-6",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "model": "anthropic/claude-opus-4-6",
+            "model_rank": 1,
+            "cost_per_task": 0.3,
+            "evidence": [],
+            "estimates": null,
+            "p_best": null,
+            "contributions": [
+              {
+                "raw_value": 1524.11,
+                "unit": "Arena score (Elo scale)",
+                "records": [
+                  "anthropic/claude-opus-4-6#arena_sc_longer_query#0191df4d5a1a"
+                ],
+                "dimension": "arena_sc_longer_query",
+                "weight": 1,
+                "value": 1,
+                "normalisation": "feasible min-max; max; minimum=1471.54 Arena score (Elo scale); maximum=1524.11 Arena score (Elo scale); a zero span maps to 1 (max) or 0 (min) dimensionless",
+                "evidence": [
+                  {
+                    "requested_domain": "chat_preference",
+                    "record_id": "anthropic/claude-opus-4-6#arena_sc_longer_query#0191df4d5a1a",
+                    "benchmark": "arena_sc_longer_query",
+                    "version": "text_style_control / longer_query, latest split, revision 1880dbebff5b",
+                    "sub_category": null,
+                    "value": 1524.11,
+                    "unit": "Arena score (Elo scale)",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "independent",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-13",
+                    "date_type": "published",
+                    "source": "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet",
+                    "source_snapshot": "sha256:f27585ee7eee36757893f733b338f207eabe2f9fb0349b6b539f7cb5c60fd4ab",
+                    "directness": "direct",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  }
+                ],
+                "formula": null,
+                "preferred_value": null,
+                "preference_status": null
+              }
+            ],
+            "warnings": []
+          },
+          {
+            "rank": 2,
+            "offering": {
+              "model": "anthropic/claude-opus-4-6",
+              "provider": "aws-bedrock",
+              "region": "global-cross-region",
+              "tier": "standard"
+            },
+            "model": "anthropic/claude-opus-4-6",
+            "model_rank": 1,
+            "cost_per_task": 0.3,
+            "evidence": [],
+            "estimates": null,
+            "p_best": null,
+            "contributions": [
+              {
+                "raw_value": 1524.11,
+                "unit": "Arena score (Elo scale)",
+                "records": [
+                  "anthropic/claude-opus-4-6#arena_sc_longer_query#0191df4d5a1a"
+                ],
+                "dimension": "arena_sc_longer_query",
+                "weight": 1,
+                "value": 1,
+                "normalisation": "feasible min-max; max; minimum=1471.54 Arena score (Elo scale); maximum=1524.11 Arena score (Elo scale); a zero span maps to 1 (max) or 0 (min) dimensionless",
+                "evidence": [
+                  {
+                    "requested_domain": "chat_preference",
+                    "record_id": "anthropic/claude-opus-4-6#arena_sc_longer_query#0191df4d5a1a",
+                    "benchmark": "arena_sc_longer_query",
+                    "version": "text_style_control / longer_query, latest split, revision 1880dbebff5b",
+                    "sub_category": null,
+                    "value": 1524.11,
+                    "unit": "Arena score (Elo scale)",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "independent",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-13",
+                    "date_type": "published",
+                    "source": "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet",
+                    "source_snapshot": "sha256:f27585ee7eee36757893f733b338f207eabe2f9fb0349b6b539f7cb5c60fd4ab",
+                    "directness": "direct",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  }
+                ],
+                "formula": null,
+                "preferred_value": null,
+                "preference_status": null
+              }
+            ],
+            "warnings": []
+          },
+          {
+            "rank": 3,
+            "offering": {
+              "model": "anthropic/claude-opus-4-6",
+              "provider": "google-vertex-ai",
+              "region": "global",
+              "tier": "standard"
+            },
+            "model": "anthropic/claude-opus-4-6",
+            "model_rank": 1,
+            "cost_per_task": 0.3,
+            "evidence": [],
+            "estimates": null,
+            "p_best": null,
+            "contributions": [
+              {
+                "raw_value": 1524.11,
+                "unit": "Arena score (Elo scale)",
+                "records": [
+                  "anthropic/claude-opus-4-6#arena_sc_longer_query#0191df4d5a1a"
+                ],
+                "dimension": "arena_sc_longer_query",
+                "weight": 1,
+                "value": 1,
+                "normalisation": "feasible min-max; max; minimum=1471.54 Arena score (Elo scale); maximum=1524.11 Arena score (Elo scale); a zero span maps to 1 (max) or 0 (min) dimensionless",
+                "evidence": [
+                  {
+                    "requested_domain": "chat_preference",
+                    "record_id": "anthropic/claude-opus-4-6#arena_sc_longer_query#0191df4d5a1a",
+                    "benchmark": "arena_sc_longer_query",
+                    "version": "text_style_control / longer_query, latest split, revision 1880dbebff5b",
+                    "sub_category": null,
+                    "value": 1524.11,
+                    "unit": "Arena score (Elo scale)",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "independent",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-13",
+                    "date_type": "published",
+                    "source": "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet",
+                    "source_snapshot": "sha256:f27585ee7eee36757893f733b338f207eabe2f9fb0349b6b539f7cb5c60fd4ab",
+                    "directness": "direct",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  }
+                ],
+                "formula": null,
+                "preferred_value": null,
+                "preference_status": null
+              }
+            ],
+            "warnings": []
+          },
+          {
+            "rank": 4,
+            "offering": {
+              "model": "anthropic/claude-fable-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "model": "anthropic/claude-fable-5",
+            "model_rank": 2,
+            "cost_per_task": 0.6,
+            "evidence": [],
+            "estimates": null,
+            "p_best": null,
+            "contributions": [
+              {
+                "raw_value": 1521.41,
+                "unit": "Arena score (Elo scale)",
+                "records": [
+                  "anthropic/claude-fable-5#arena_sc_longer_query#17784fed28db"
+                ],
+                "dimension": "arena_sc_longer_query",
+                "weight": 1,
+                "value": 0.9486399086931744,
+                "normalisation": "feasible min-max; max; minimum=1471.54 Arena score (Elo scale); maximum=1524.11 Arena score (Elo scale); a zero span maps to 1 (max) or 0 (min) dimensionless",
+                "evidence": [
+                  {
+                    "requested_domain": "chat_preference",
+                    "record_id": "anthropic/claude-fable-5#arena_sc_longer_query#17784fed28db",
+                    "benchmark": "arena_sc_longer_query",
+                    "version": "text_style_control / longer_query, latest split, revision 1880dbebff5b",
+                    "sub_category": null,
+                    "value": 1521.41,
+                    "unit": "Arena score (Elo scale)",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "independent",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-13",
+                    "date_type": "published",
+                    "source": "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet",
+                    "source_snapshot": "sha256:f27585ee7eee36757893f733b338f207eabe2f9fb0349b6b539f7cb5c60fd4ab",
+                    "directness": "direct",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  }
+                ],
+                "formula": null,
+                "preferred_value": null,
+                "preference_status": null
+              }
+            ],
+            "warnings": []
+          },
+          {
+            "rank": 5,
+            "offering": {
+              "model": "anthropic/claude-fable-5",
+              "provider": "google-vertex-ai",
+              "region": "global",
+              "tier": "standard"
+            },
+            "model": "anthropic/claude-fable-5",
+            "model_rank": 2,
+            "cost_per_task": 0.6,
+            "evidence": [],
+            "estimates": null,
+            "p_best": null,
+            "contributions": [
+              {
+                "raw_value": 1521.41,
+                "unit": "Arena score (Elo scale)",
+                "records": [
+                  "anthropic/claude-fable-5#arena_sc_longer_query#17784fed28db"
+                ],
+                "dimension": "arena_sc_longer_query",
+                "weight": 1,
+                "value": 0.9486399086931744,
+                "normalisation": "feasible min-max; max; minimum=1471.54 Arena score (Elo scale); maximum=1524.11 Arena score (Elo scale); a zero span maps to 1 (max) or 0 (min) dimensionless",
+                "evidence": [
+                  {
+                    "requested_domain": "chat_preference",
+                    "record_id": "anthropic/claude-fable-5#arena_sc_longer_query#17784fed28db",
+                    "benchmark": "arena_sc_longer_query",
+                    "version": "text_style_control / longer_query, latest split, revision 1880dbebff5b",
+                    "sub_category": null,
+                    "value": 1521.41,
+                    "unit": "Arena score (Elo scale)",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "independent",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-13",
+                    "date_type": "published",
+                    "source": "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet",
+                    "source_snapshot": "sha256:f27585ee7eee36757893f733b338f207eabe2f9fb0349b6b539f7cb5c60fd4ab",
+                    "directness": "direct",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  }
+                ],
+                "formula": null,
+                "preferred_value": null,
+                "preference_status": null
+              }
+            ],
+            "warnings": []
+          }
+        ],
+        "may_qualify": [
+          {
+            "model": "qwen/qwen3-8-max-0902",
+            "offering": {
+              "model": "qwen/qwen3-8-max-0902",
+              "provider": "alibaba-model-studio",
+              "region": "singapore",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "anthropic/claude-sonnet-5-5",
+            "offering": {
+              "model": "anthropic/claude-sonnet-5-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5-5",
+              "provider": "aws-bedrock",
+              "region": "global-cross-region",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "anthropic/claude-sonnet-5-5",
+            "offering": {
+              "model": "anthropic/claude-sonnet-5-5",
+              "provider": "aws-bedrock",
+              "region": "global-cross-region",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "openai/gpt-6-sol",
+            "offering": {
+              "model": "openai/gpt-6-sol",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "deepseek/deepseek-v3-1",
+            "offering": {
+              "model": "deepseek/deepseek-v3-1",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "model.context_window"
+            ]
+          },
+          {
+            "model": "deepseek/deepseek-flash",
+            "offering": {
+              "model": "deepseek/deepseek-flash",
+              "provider": "deepseek",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "model.context_window"
+            ]
+          },
+          {
+            "model": "google/gemini-2-5-flash",
+            "offering": {
+              "model": "google/gemini-2-5-flash",
+              "provider": "google-gemini-api",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "model.context_window"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5-5",
+              "provider": "google-vertex-ai",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          }
+        ]
+      },
+      "summary": "status: partial; top models: anthropic/claude-opus-4-6, anthropic/claude-fable-5; may qualify: 10"
+    },
+    {
+      "name": "recall-q09",
+      "body": {
+        "status": "partial",
+        "answer": {
+          "kind": "separated",
+          "members": [
+            "anthropic/claude-opus-4-6"
+          ],
+          "leader": "anthropic/claude-opus-4-6",
+          "basis": "probability bands: a model joins the leader when P(its score >= the leader's) >= 0.25 under the score posteriors; a weighted capability with an 80% interval wider than 2.8 is not enough evidence",
+          "tie_breakers": {
+            "cheapest": null,
+            "open_weights": null,
+            "most_independently_measured": null,
+            "fastest": null
+          },
+          "deterministic_order": [
+            "anthropic/claude-opus-4-6"
+          ]
+        },
+        "results": [
+          {
+            "rank": 1,
+            "offering": {
+              "model": "anthropic/claude-opus-4-6",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "model": "anthropic/claude-opus-4-6",
+            "model_rank": 1,
+            "cost_per_task": 0.3,
+            "evidence": [
+              {
+                "domain": "writing",
+                "items": [
+                  {
+                    "requested_domain": "writing",
+                    "record_id": "anthropic/claude-opus-4-6#arena_sc_creative_writing#7a017cc809c4",
+                    "benchmark": "arena_sc_creative_writing",
+                    "version": "text_style_control / creative_writing, latest split, revision 1880dbebff5b",
+                    "sub_category": null,
+                    "value": 1499.75,
+                    "unit": "Arena score (Elo scale)",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "independent",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-13",
+                    "date_type": "published",
+                    "source": "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet",
+                    "source_snapshot": "sha256:fc5f6716f31834193f7b2136ea74bde411ae5ba90fc4ac118d482310e61b38d2",
+                    "directness": "proxy",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  },
+                  {
+                    "requested_domain": "writing",
+                    "record_id": "anthropic/claude-opus-4-6#arena_sc_industry_entertainment_sports_media#bcbb1ba64c16",
+                    "benchmark": "arena_sc_industry_entertainment_sports_media",
+                    "version": "text_style_control / industry_entertainment_and_sports_and_media, latest split, revision 1880dbebff5b",
+                    "sub_category": null,
+                    "value": 1492.69,
+                    "unit": "Arena score (Elo scale)",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "independent",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-13",
+                    "date_type": "published",
+                    "source": "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet",
+                    "source_snapshot": "sha256:dd31fbcb0b964ee4faa128a3bcac1f1ad740ec5fa6755b63a7cdd8654950bf11",
+                    "directness": "proxy",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  },
+                  {
+                    "requested_domain": "writing",
+                    "record_id": "anthropic/claude-opus-4-6#arena_sc_writing#2b96598f1fca",
+                    "benchmark": "arena_sc_writing",
+                    "version": "text_style_control / industry_writing_and_literature_and_language, latest split, revision 1880dbebff5b",
+                    "sub_category": null,
+                    "value": 1499.84,
+                    "unit": "Arena score (Elo scale)",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "independent",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-13",
+                    "date_type": "published",
+                    "source": "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet",
+                    "source_snapshot": "sha256:60b89142370aecd9137ff982bd144e8628dc8abadd10f41b90d334d34878bae0",
+                    "directness": "proxy",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  }
+                ]
+              }
+            ],
+            "estimates": [
+              {
+                "domain": "writing",
+                "value": 0.687067432,
+                "interval": [
+                  -0.819563033,
+                  2.193697897
+                ],
+                "harness": null,
+                "effort": null
+              }
+            ],
+            "p_best": null,
+            "contributions": [
+              {
+                "raw_value": 1524.11,
+                "unit": "Arena score (Elo scale)",
+                "records": [
+                  "anthropic/claude-opus-4-6#arena_sc_longer_query#0191df4d5a1a"
+                ],
+                "dimension": "arena_sc_longer_query",
+                "weight": 1,
+                "value": 1,
+                "normalisation": "feasible min-max; max; minimum=1266.76 Arena score (Elo scale); maximum=1524.11 Arena score (Elo scale); a zero span maps to 1 (max) or 0 (min) dimensionless",
+                "evidence": [
+                  {
+                    "requested_domain": "chat_preference",
+                    "record_id": "anthropic/claude-opus-4-6#arena_sc_longer_query#0191df4d5a1a",
+                    "benchmark": "arena_sc_longer_query",
+                    "version": "text_style_control / longer_query, latest split, revision 1880dbebff5b",
+                    "sub_category": null,
+                    "value": 1524.11,
+                    "unit": "Arena score (Elo scale)",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "independent",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-13",
+                    "date_type": "published",
+                    "source": "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet",
+                    "source_snapshot": "sha256:f27585ee7eee36757893f733b338f207eabe2f9fb0349b6b539f7cb5c60fd4ab",
+                    "directness": "direct",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  }
+                ],
+                "formula": null,
+                "preferred_value": null,
+                "preference_status": null
+              }
+            ],
+            "warnings": [
+              "proxy_evidence_only"
+            ]
+          },
+          {
+            "rank": 2,
+            "offering": {
+              "model": "anthropic/claude-opus-4-6",
+              "provider": "aws-bedrock",
+              "region": "global-cross-region",
+              "tier": "standard"
+            },
+            "model": "anthropic/claude-opus-4-6",
+            "model_rank": 1,
+            "cost_per_task": 0.3,
+            "evidence": [
+              {
+                "domain": "writing",
+                "items": [
+                  {
+                    "requested_domain": "writing",
+                    "record_id": "anthropic/claude-opus-4-6#arena_sc_creative_writing#7a017cc809c4",
+                    "benchmark": "arena_sc_creative_writing",
+                    "version": "text_style_control / creative_writing, latest split, revision 1880dbebff5b",
+                    "sub_category": null,
+                    "value": 1499.75,
+                    "unit": "Arena score (Elo scale)",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "independent",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-13",
+                    "date_type": "published",
+                    "source": "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet",
+                    "source_snapshot": "sha256:fc5f6716f31834193f7b2136ea74bde411ae5ba90fc4ac118d482310e61b38d2",
+                    "directness": "proxy",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  },
+                  {
+                    "requested_domain": "writing",
+                    "record_id": "anthropic/claude-opus-4-6#arena_sc_industry_entertainment_sports_media#bcbb1ba64c16",
+                    "benchmark": "arena_sc_industry_entertainment_sports_media",
+                    "version": "text_style_control / industry_entertainment_and_sports_and_media, latest split, revision 1880dbebff5b",
+                    "sub_category": null,
+                    "value": 1492.69,
+                    "unit": "Arena score (Elo scale)",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "independent",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-13",
+                    "date_type": "published",
+                    "source": "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet",
+                    "source_snapshot": "sha256:dd31fbcb0b964ee4faa128a3bcac1f1ad740ec5fa6755b63a7cdd8654950bf11",
+                    "directness": "proxy",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  },
+                  {
+                    "requested_domain": "writing",
+                    "record_id": "anthropic/claude-opus-4-6#arena_sc_writing#2b96598f1fca",
+                    "benchmark": "arena_sc_writing",
+                    "version": "text_style_control / industry_writing_and_literature_and_language, latest split, revision 1880dbebff5b",
+                    "sub_category": null,
+                    "value": 1499.84,
+                    "unit": "Arena score (Elo scale)",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "independent",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-13",
+                    "date_type": "published",
+                    "source": "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet",
+                    "source_snapshot": "sha256:60b89142370aecd9137ff982bd144e8628dc8abadd10f41b90d334d34878bae0",
+                    "directness": "proxy",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  }
+                ]
+              }
+            ],
+            "estimates": [
+              {
+                "domain": "writing",
+                "value": 0.687067432,
+                "interval": [
+                  -0.819563033,
+                  2.193697897
+                ],
+                "harness": null,
+                "effort": null
+              }
+            ],
+            "p_best": null,
+            "contributions": [
+              {
+                "raw_value": 1524.11,
+                "unit": "Arena score (Elo scale)",
+                "records": [
+                  "anthropic/claude-opus-4-6#arena_sc_longer_query#0191df4d5a1a"
+                ],
+                "dimension": "arena_sc_longer_query",
+                "weight": 1,
+                "value": 1,
+                "normalisation": "feasible min-max; max; minimum=1266.76 Arena score (Elo scale); maximum=1524.11 Arena score (Elo scale); a zero span maps to 1 (max) or 0 (min) dimensionless",
+                "evidence": [
+                  {
+                    "requested_domain": "chat_preference",
+                    "record_id": "anthropic/claude-opus-4-6#arena_sc_longer_query#0191df4d5a1a",
+                    "benchmark": "arena_sc_longer_query",
+                    "version": "text_style_control / longer_query, latest split, revision 1880dbebff5b",
+                    "sub_category": null,
+                    "value": 1524.11,
+                    "unit": "Arena score (Elo scale)",
+                    "n": null,
+                    "interval": null,
+                    "quality_flags": [],
+                    "measured_by": "independent",
+                    "effort": null,
+                    "harness": null,
+                    "harness_unregistered": false,
+                    "date": "2026-09-13",
+                    "date_type": "published",
+                    "source": "https://huggingface.co/datasets/lmarena-ai/leaderboard-dataset/resolve/1880dbebff5ba3e2dd3865ecf6fc43539c2099db/text_style_control/latest-00000-of-00001.parquet",
+                    "source_snapshot": "sha256:f27585ee7eee36757893f733b338f207eabe2f9fb0349b6b539f7cb5c60fd4ab",
+                    "directness": "direct",
+                    "loading": null,
+                    "estimate_weight": null,
+                    "recency_weight": null
+                  }
+                ],
+                "formula": null,
+                "preferred_value": null,
+                "preference_status": null
+              }
+            ],
+            "warnings": [
+              "proxy_evidence_only"
+            ]
+          },
+          {
+            "rank": 3,
+            "offering": {
+              "model": "anthropic/claude-opus-4-6",
+              "provider": "google-vertex-ai",
+              "region": "global",
+              "tier": "standard"
+            },
+            "model": "anthropic/claude-opus-4-6",
+            "model_rank": 1,
+            "cost_per_task": 0.3,
+            "estimates": [
+              {
+                "domain": "writing",
+                "value": 0.687067432,
+                "interval": [
+                  -0.819563033,
+                  2.193697897
+                ],
+                "harness": null,
+                "effort": null
+              }
+            ],
+            "p_best": null,
+            "warnings": [
+              "proxy_evidence_only"
+            ]
+          }
+        ],
+        "may_qualify": [
+          {
+            "model": "qwen/qwen3-8-max-0902",
+            "offering": {
+              "model": "qwen/qwen3-8-max-0902",
+              "provider": "alibaba-model-studio",
+              "region": "singapore",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "anthropic/claude-sonnet-5-5",
+            "offering": {
+              "model": "anthropic/claude-sonnet-5-5",
+              "provider": "anthropic",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5-5",
+              "provider": "aws-bedrock",
+              "region": "global-cross-region",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "anthropic/claude-sonnet-5-5",
+            "offering": {
+              "model": "anthropic/claude-sonnet-5-5",
+              "provider": "aws-bedrock",
+              "region": "global-cross-region",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "openai/gpt-6-sol",
+            "offering": {
+              "model": "openai/gpt-6-sol",
+              "provider": "azure-ai-foundry",
+              "region": "global-short-context",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "deepseek/deepseek-flash",
+            "offering": {
+              "model": "deepseek/deepseek-flash",
+              "provider": "deepseek",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "anthropic/claude-opus-5-5",
+            "offering": {
+              "model": "anthropic/claude-opus-5-5",
+              "provider": "google-vertex-ai",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "anthropic/claude-sonnet-5-5",
+            "offering": {
+              "model": "anthropic/claude-sonnet-5-5",
+              "provider": "google-vertex-ai",
+              "region": "global",
+              "tier": "standard"
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          },
+          {
+            "model": "google/gemma-4-26b-a4b-it",
+            "offering": {
+              "model": "google/gemma-4-26b-a4b-it",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "arena_sc_longer_query"
+            ]
+          }
+        ]
+      },
+      "summary": "status: partial; top models: anthropic/claude-opus-4-6; may qualify: 10"
+    },
+    {
+      "name": "recall-q10",
+      "body": {
+        "status": "no_feasible",
+        "answer": null,
+        "results": [],
+        "may_qualify": [
+          {
+            "model": "deepseek/deepseek-v3-1",
+            "offering": {
+              "model": "deepseek/deepseek-v3-1",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "google/gemma-4-26b-a4b-it",
+            "offering": {
+              "model": "google/gemma-4-26b-a4b-it",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "google/gemma-4-31b-it",
+            "offering": {
+              "model": "google/gemma-4-31b-it",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "google/gemma-4-e2b-it",
+            "offering": {
+              "model": "google/gemma-4-e2b-it",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "google/gemma-4-e4b-it",
+            "offering": {
+              "model": "google/gemma-4-e4b-it",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "microsoft/phi-4",
+            "offering": {
+              "model": "microsoft/phi-4",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "moonshot/kimi-k2-6",
+            "offering": {
+              "model": "moonshot/kimi-k2-6",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "moonshot/kimi-k3",
+            "offering": {
+              "model": "moonshot/kimi-k3",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          },
+          {
+            "model": "qwen/qwen3-8-flash-next",
+            "offering": {
+              "model": "qwen/qwen3-8-flash-next",
+              "provider": null,
+              "region": null,
+              "tier": null
+            },
+            "unknown": [
+              "offering.price.input"
+            ]
+          }
+        ]
+      },
+      "summary": "status: no_feasible; top models: none; may qualify: 9"
+    },
+    {
+      "name": "server-test-normal",
+      "body": {
+        "status": "partial",
+        "results": [
+          {
+            "offering": {
+              "model": "google/gemini-3-7-flash"
+            }
+          },
+          {
+            "offering": {
+              "model": "openai/gpt-6-sol"
+            }
+          }
+        ],
+        "may_qualify": [
+          {}
+        ]
+      },
+      "summary": "status: partial; top models: google/gemini-3-7-flash, openai/gpt-6-sol; may qualify: 1"
+    },
+    {
+      "name": "drill-down-tied",
+      "body": {
+        "status": "partial",
+        "answer": {
+          "kind": "tied",
+          "members": [
+            "anthropic/claude-opus-5-5",
+            "anthropic/claude-sonnet-5-5",
+            "openai/gpt-6-astra",
+            "anthropic/claude-opus-4-7"
+          ]
+        },
+        "model_evidence": {
+          "model": "anthropic/claude-opus-5-5",
+          "status": "ranked",
+          "rank": 1
+        }
+      },
+      "summary": "status: partial; answer: tied among anthropic/claude-opus-5-5, anthropic/claude-sonnet-5-5, openai/gpt-6-astra, anthropic/claude-opus-4-7; evidence for: anthropic/claude-opus-5-5 (ranked, rank 1)"
+    },
+    {
+      "name": "drill-down-eliminated",
+      "body": {
+        "status": "partial",
+        "model_evidence": {
+          "model": "lab/b",
+          "status": "eliminated",
+          "rank": null
+        }
+      },
+      "summary": "status: partial; answer: none; evidence for: lab/b (eliminated, unranked)"
+    },
+    {
+      "name": "unicode-duplicates-cap",
+      "body": {
+        "status": "partial",
+        "results": [
+          {
+            "offering": {
+              "model": "lab/é"
+            }
+          },
+          {
+            "offering": {
+              "model": "lab/é"
+            }
+          },
+          {
+            "offering": {
+              "model": "lab/b"
+            }
+          },
+          {
+            "offering": {
+              "model": "lab/c"
+            }
+          },
+          {
+            "offering": {
+              "model": "lab/d"
+            }
+          },
+          {
+            "offering": {
+              "model": "lab/e"
+            }
+          },
+          {
+            "offering": {
+              "model": "lab/f"
+            }
+          }
+        ],
+        "may_qualify": [
+          {},
+          {}
+        ]
+      },
+      "summary": "status: partial; top models: lab/é, lab/b, lab/c, lab/d, lab/e; may qualify: 2"
+    },
+    {
+      "name": "drill-down-over-five",
+      "body": {
+        "status": "answered",
+        "answer": {
+          "kind": "tied",
+          "members": [
+            "lab/0",
+            "lab/1",
+            "lab/2",
+            "lab/3",
+            "lab/4",
+            "lab/5",
+            "lab/6"
+          ]
+        },
+        "model_evidence": {
+          "model": "lab/0",
+          "status": "ranked",
+          "rank": 1
+        }
+      },
+      "summary": "status: answered; answer: tied among lab/0, lab/1, lab/2, lab/3, lab/4 and 2 more in answer.members; evidence for: lab/0 (ranked, rank 1)"
+    },
+    {
+      "name": "unknown",
+      "body": {},
+      "summary": "status: unknown; top models: none; may qualify: 0"
+    }
+  ]
+}

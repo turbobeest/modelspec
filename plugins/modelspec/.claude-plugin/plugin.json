@@ -1,0 +1,11 @@
+{
+  "name": "modelspec",
+  "version": "0.1.0",
+  "description": "Report ModelSpec answers with their summaries, caveats and supported next steps.",
+  "author": {
+    "name": "Sparks & Sawdust LLC"
+  },
+  "homepage": "https://modelspec.dev",
+  "repository": "https://github.com/turbobeest/modelspec",
+  "license": "MIT"
+}

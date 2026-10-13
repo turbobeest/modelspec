@@ -15,6 +15,7 @@ from pipeline import brand, live as live_site, social_cards, structured_data  # 
 ROOT = Path(__file__).resolve().parents[1]
 WORKFLOW = ROOT / '.github/workflows/deploy-sites.yml'
 DECIDE = Path(__file__).resolve().parents[1] / 'web' / 'decide.html'
+DECISION = ROOT / 'web' / 'decision.html'
 
 
 def workflow():
@@ -74,7 +75,9 @@ def test_live_assembly_matches_internal_and_preserves_holding_byte_for_byte(tmp_
         'web/dist/index.html': b'old graph app, do not replace the site',
         # As Vite writes it: the source entry becomes the hashed bundle.
         'web/dist/decide.html': DECIDE.read_bytes().replace(b'/src/decide/main.tsx', b'/assets/decide-abc.js'),
+        'web/dist/decision.html': DECISION.read_bytes().replace(b'/src/decision-link/main.tsx', b'/assets/decision-abc.js'),
         'web/dist/assets/decide-abc.js': b'decide bundle',
+        'web/dist/assets/decision-abc.js': b'decision link bundle',
         'web/dist/assets/decide-abc.css': b'decide styles',
         'web/dist/assets/main-old.js': b'old graph bundle, harmless but unreachable',
         'web/dist/favicon.svg': b'old graph app icon',

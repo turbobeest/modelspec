@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { isCallToolResult } from "@modelcontextprotocol/server";
 
 import { workerFetch } from "../src/index";
 import { USER_AGENT } from "../src/origin";
@@ -451,6 +452,70 @@ describe("modelspec MCP worker", () => {
     expect(originFetch).not.toHaveBeenCalled();
   });
 
+  it.each(["2024-11-05", "2025-03-26", "2025-06-18", "2025-11-25"])(
+    "decide returns the exact user paragraph with annotations on protocol %s", async (protocolVersion) => {
+      originFetch.mockResolvedValueOnce(jsonResponse(200, budget.default));
+      const { payload } = await rpc("tools/call", { name: "decide", arguments: budget.request }, 1,
+        { authorization: "Bearer decide_key", "mcp-protocol-version": protocolVersion });
+      const result = payload.result;
+      if (!isCallToolResult(result)) throw new Error("expected an MCP tool result");
+      expect(result.content).toEqual([
+        { type: "text", text: JSON.stringify({ origin: "https://api.modelspec.dev/v1/decide", status: 200, body: budget.default }) },
+        { type: "text", text: budget.default.summary_for_user, annotations: { audience: ["user"] } },
+      ]);
+    },
+  );
+
+  it("decide keeps the legacy status text on an earlier protocol without adding annotations", async () => {
+    originFetch.mockResolvedValueOnce(jsonResponse(200, {
+      status: "answered", answer: null, results: [], may_qualify: [],
+      summary_for_user: "ModelSpec has no answer for this request, so it names no pick.",
+    }));
+    const { payload } = await rpc("tools/call", { name: "decide", arguments: budget.request }, 1,
+      { authorization: "Bearer decide_key", "mcp-protocol-version": "2024-10-07" });
+    const result = payload.result;
+    if (!isCallToolResult(result)) throw new Error("expected an MCP tool result");
+    expect(result.content[1]).toEqual({ type: "text", text: "status: answered; top models: none; may qualify: 0" });
+  });
+
+  it("decide counts both copies of the paragraph and keeps next_move through oversized origin trimming", async () => {
+    const evidence = [{ items: [{ note: "é".repeat(20000) }] }];
+    const originBody = {
+      ...budget.default,
+      results: [{ ...budget.default.results[0], evidence }, ...budget.default.results.slice(1)],
+    };
+    originFetch.mockResolvedValueOnce(jsonResponse(200, originBody));
+    const { payload } = await rpc("tools/call", { name: "decide", arguments: budget.request }, 1,
+      { authorization: "Bearer decide_key" });
+    const result = payload.result;
+    if (!isCallToolResult(result)) throw new Error("expected an MCP tool result");
+    expect(result.content).toHaveLength(2);
+    expect(result.content[1]).toEqual({ type: "text", text: budget.default.summary_for_user, annotations: { audience: ["user"] } });
+    expect(result.content.reduce((total, block) => total + (block.type === "text" ? Buffer.byteLength(block.text, "utf8") : 0), 0)).toBeLessThanOrEqual(AGENT_BYTES);
+    expect(envelopeFromCall(payload).body).toMatchObject({
+      summary_for_user: budget.default.summary_for_user, next_move: budget.default.next_move,
+      must_mention: budget.default.must_mention,
+    });
+    expect(envelopeFromCall(payload).body).toHaveProperty("explanation.omitted", {
+      ...originBody.explanation.omitted,
+      results: originBody.results.length - 1,
+      may_qualify: originBody.explanation.omitted.may_qualify + originBody.may_qualify.length,
+      "results.evidence": evidence.length,
+      "results.estimates": originBody.results[0].estimates.length,
+    });
+  });
+
+  it("decide never adds an annotated summary to an origin error", async () => {
+    const body = { error: { code: "missing_api_key", message: "Send a key." }, summary_for_user: "Do not report this as an answer." };
+    originFetch.mockResolvedValueOnce(jsonResponse(401, body));
+    const { payload } = await rpc("tools/call", { name: "decide", arguments: budget.request }, 1,
+      { authorization: "Bearer decide_key" });
+    const result = payload.result;
+    if (!isCallToolResult(result)) throw new Error("expected an MCP tool result");
+    expect(result.isError).toBe(true);
+    expect(result.content).toEqual([{ type: "text", text: JSON.stringify({ origin: "https://api.modelspec.dev/v1/decide", status: 401, body }) }]);
+  });
+
   it("decide proxies the spec and summarizes the decision", async () => {
     const originBody = {
       status: "partial",
@@ -503,7 +568,7 @@ describe("modelspec MCP worker", () => {
     expect(envelopeFromCall(payload).body).toEqual({ reading: { do_not_claim: ["Keep the tie"] } });
   });
 
-  it("decide summarises a real drill-down from its answer and model_evidence", async () => {
+  it("decide returns the exact annotated paragraph on a real drill-down", async () => {
     // results and may_qualify are empty on a drill-down by design.
     expect(budget.drill_down.results).toEqual([]);
     expect(budget.drill_down.may_qualify).toEqual([]);
@@ -512,16 +577,15 @@ describe("modelspec MCP worker", () => {
       name: "decide",
       arguments: { ...budget.request, evidence_for: budget.drill_down.model_evidence.model },
     });
-    const result = payload.result as { content: Array<{ text: string }> };
-    expect(result.content[1].text).toBe(
-      "status: partial; answer: tied among anthropic/claude-opus-5-5, anthropic/claude-sonnet-5-5, " +
-        "openai/gpt-6-astra, anthropic/claude-opus-4-7; " +
-        "evidence for: anthropic/claude-opus-5-5 (ranked, rank 1)",
-    );
-    expect(result.content[1].text).not.toContain("top models: none");
+    const result = payload.result;
+    if (!isCallToolResult(result)) throw new Error("expected an MCP tool result");
+    expect(result.content[1]).toEqual({ type: "text", text: budget.drill_down.summary_for_user, annotations: { audience: ["user"] } });
+    expect(envelopeFromCall(payload).body).toMatchObject({
+      model_evidence: { model: "anthropic/claude-opus-5-5", status: "ranked", rank: 1 },
+    });
   });
 
-  it("decide summarises an eliminated model's drill-down as unranked", async () => {
+  it("decide keeps eliminated drill-down status in JSON and annotates the unchanged paragraph", async () => {
     const body = {
       ...budget.drill_down,
       model_evidence: { ...budget.drill_down.model_evidence, model: "lab/b", status: "eliminated", rank: null },
@@ -530,8 +594,10 @@ describe("modelspec MCP worker", () => {
     const { payload } = await rpc("tools/call", {
       name: "decide", arguments: { ...budget.request, evidence_for: "lab/b" },
     });
-    const result = payload.result as { content: Array<{ text: string }> };
-    expect(result.content[1].text).toMatch(/; evidence for: lab\/b \(eliminated, unranked\)$/);
+    const result = payload.result;
+    if (!isCallToolResult(result)) throw new Error("expected an MCP tool result");
+    expect(result.content[1]).toEqual({ type: "text", text: body.summary_for_user, annotations: { audience: ["user"] } });
+    expect(envelopeFromCall(payload).body).toMatchObject({ model_evidence: { model: "lab/b", status: "eliminated", rank: null } });
   });
 
   it.each([

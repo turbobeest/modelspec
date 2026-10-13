@@ -33,6 +33,7 @@ The unit is a credit.
 from __future__ import annotations
 
 import asyncio
+import secrets
 import time
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
@@ -44,6 +45,7 @@ LEGACY_EXPIRY = "9999-12-31T00:00:00Z"
 # UNCERTAIN_RETRIES_PER_REQUEST of them. An identifier is unique for about a
 # day, so an entry older than UNCERTAIN_MAX_AGE_SECONDS is not retried.
 UNCERTAIN_METER_CAP = 20
+PENDING_METER_CAP = 20
 UNCERTAIN_RETRIES_PER_REQUEST = 3
 UNCERTAIN_MAX_AGE_SECONDS = 20 * 60 * 60
 
@@ -52,8 +54,9 @@ def _unix_now() -> int:
     return int(time.time())
 
 
-def _uncertain_rows(raw: Any, *, now: int | None = None) -> tuple[list[tuple[str, int, int]], int]:
-    """Keep at most `UNCERTAIN_METER_CAP` events. Further units are unreconciled.
+def _uncertain_rows(raw: Any, *, now: int | None = None,
+                    cap: int = UNCERTAIN_METER_CAP) -> tuple[list[tuple[str, int, int]], int]:
+    """Keep at most `cap` events and return the overflow units separately.
 
     Each kept row is `(identifier, units, created_at)`. A stored row with no
     `created_at` loads as created at `now`.
@@ -70,7 +73,7 @@ def _uncertain_rows(raw: Any, *, now: int | None = None) -> tuple[list[tuple[str
         units = int(row.get("units") or 0)
         if not ident or units < 1:
             continue
-        if len(kept) >= UNCERTAIN_METER_CAP:
+        if len(kept) >= cap:
             overflow += units
             continue
         if "created_at" not in row or row.get("created_at") in (None, ""):
@@ -92,9 +95,25 @@ def _uncertain_wire(data: Any) -> list[tuple[str, int, int]]:
     return out
 
 
-def _stamp_backlog_id(acc: _Account, holder: str) -> None:
+def _meter_events_wire(data: Any) -> list[tuple[str, int, int, bool]]:
+    to_py = getattr(data, "to_py", None)
+    rows = to_py() if callable(to_py) else data
+    return [(str(ident), int(units), int(created_at), bool(first_attempt))
+            for ident, units, created_at, first_attempt in rows or []]
+
+
+def _ensure_meter_id(acc: _Account) -> str:
+    """Random `m_` plus 32 hex chars. Reuse a stored id. Never derive one."""
+    current = str(acc.meter_id or "")
+    if current.strip():
+        return current
+    acc.meter_id = "m_" + secrets.token_hex(16)
+    return acc.meter_id
+
+
+def _stamp_backlog_id(acc: _Account) -> None:
     if acc.overage_backlog_open > 0 and not str(acc.overage_backlog_id or "").strip():
-        acc.overage_backlog_id = f"{holder}:backlog:{acc.overage_backlog_n}"
+        acc.overage_backlog_id = f"{_ensure_meter_id(acc)}:backlog:{acc.overage_backlog_n}"
 
 
 def _append_uncertain(acc: _Account, identifier: str, units: int,
@@ -114,12 +133,23 @@ def _append_uncertain(acc: _Account, identifier: str, units: int,
     return True
 
 
-def _move_meter_tail(existing: _Account, acc: _Account, src: str, dst: str) -> None:
-    """Copy meter retry state onto `dst` without giving an in-flight event a new id."""
-    _stamp_backlog_id(existing, dst)
-    _stamp_backlog_id(acc, src)
+def _move_meter_tail(existing: _Account, acc: _Account) -> None:
+    """Copy meter retry state without giving an in-flight event a new id.
+
+    The destination keeps its own `meter_id` when it has one. Otherwise it
+    inherits the source's. Identifiers already stored are copied as they are.
+    """
+    if not str(existing.meter_id or "").strip():
+        existing.meter_id = str(acc.meter_id or "")
+    _stamp_backlog_id(existing)
+    _stamp_backlog_id(acc)
     existing.overage_unreported += acc.overage_unreported
     existing.overage_unreconciled += acc.overage_unreconciled
+    for row in acc.overage_pending:
+        if len(existing.overage_pending) < PENDING_METER_CAP:
+            existing.overage_pending.append(row)
+        else:
+            existing.overage_unreported += row[1]
     for ident, units, created_at in acc.overage_uncertain:
         _append_uncertain(existing, ident, units, created_at)
     if acc.overage_backlog_open > 0 and existing.overage_backlog_open < 1:
@@ -471,6 +501,9 @@ class _TakenRead:
     packs: list[tuple[str, int]] = field(default_factory=list)
     block_before: int = 0
     block_after: int = 0
+    block: int = 0
+    block_succeeded: bool = False
+    charge_token: int = 0
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -478,6 +511,8 @@ class _TakenRead:
             "monthly": self.monthly,
             "packs": [[grant_id, amount] for grant_id, amount in self.packs],
             "block_before": self.block_before, "block_after": self.block_after,
+            "block": self.block, "block_succeeded": self.block_succeeded,
+            "charge_token": self.charge_token,
         }
 
     @classmethod
@@ -488,10 +523,15 @@ class _TakenRead:
         for row in data.get("packs") or []:
             if isinstance(row, (list, tuple)) and len(row) >= 2:
                 packs.append((str(row[0]), int(row[1])))
+        # Old tickets have no block identity or success history. Their
+        # charge cannot safely be refunded after upgrading the ledger.
         return cls(
             str(data.get("day") or ""), str(data.get("minute") or ""),
             int(data.get("overage") or 0), int(data.get("monthly") or 0), packs,
             int(data.get("block_before") or 0), int(data.get("block_after") or 0),
+            int(data.get("block") or 0),
+            bool(data.get("block_succeeded", not data.get("block"))),
+            int(data.get("charge_token") or 0),
         )
 
 
@@ -505,11 +545,14 @@ class _Account:
     plan: str = ""
     overage_used: int = 0
     stripe_customer_id: str = ""
+    meter_id: str = ""
     read_day: str = ""
     read_count: int = 0
     read_minute: str = ""
     read_burst: int = 0
     reads_in_block: int = 0
+    read_block: int = 0
+    read_block_size: int = 0
     next_read: int = 1
     taken_reads: dict[int, _TakenRead] = field(default_factory=dict)
     overage_unreported: int = 0
@@ -517,6 +560,7 @@ class _Account:
     overage_backlog_open: int = 0
     overage_backlog_id: str = ""
     overage_uncertain: list[tuple[str, int, int]] = field(default_factory=list)
+    overage_pending: list[tuple[str, int, int]] = field(default_factory=list)
     overage_unreconciled: int = 0
 
     def overage_open(self) -> int:
@@ -546,11 +590,14 @@ class _Account:
             "plan": self.plan,
             "overage_used": self.overage_used,
             "stripe_customer_id": self.stripe_customer_id,
+            "meter_id": self.meter_id,
             "read_day": self.read_day,
             "read_count": self.read_count,
             "read_minute": self.read_minute,
             "read_burst": self.read_burst,
             "reads_in_block": self.reads_in_block,
+            "read_block": self.read_block,
+            "read_block_size": self.read_block_size,
             "next_read": self.next_read,
             "taken_reads": {str(k): v.to_json() for k, v in self.taken_reads.items()},
             "overage_unreported": self.overage_unreported,
@@ -560,6 +607,10 @@ class _Account:
             "overage_uncertain": [
                 {"identifier": ident, "units": units, "created_at": created_at}
                 for ident, units, created_at in self.overage_uncertain
+            ],
+            "overage_pending": [
+                {"identifier": ident, "units": units, "created_at": created_at}
+                for ident, units, created_at in self.overage_pending
             ],
             "overage_unreconciled": self.overage_unreconciled,
         }
@@ -574,6 +625,8 @@ class _Account:
         taken = {int(k): _TakenRead.from_json(v) for k, v in raw_reads.items()
                  if isinstance(v, dict)}
         uncertain, uncertain_overflow = _uncertain_rows(data.get("overage_uncertain"))
+        pending, pending_overflow = _uncertain_rows(
+            data.get("overage_pending"), cap=PENDING_METER_CAP)
         if "overage_unreported" in data:
             unreported = int(data.get("overage_unreported") or 0)
         else:
@@ -597,18 +650,22 @@ class _Account:
             plan=str(data.get("plan") or ""),
             overage_used=int(data.get("overage_used") or 0),
             stripe_customer_id=str(data.get("stripe_customer_id") or ""),
+            meter_id=str(data.get("meter_id") or ""),
             read_day=str(data.get("read_day") or ""),
             read_count=int(data.get("read_count") or 0),
             read_minute=str(data.get("read_minute") or ""),
             read_burst=int(data.get("read_burst") or 0),
             reads_in_block=int(data.get("reads_in_block") or 0),
+            read_block=int(data.get("read_block") or 0),
+            read_block_size=int(data.get("read_block_size") or 0),
             next_read=int(data.get("next_read") or 1),
             taken_reads=taken,
-            overage_unreported=unreported,
+            overage_unreported=unreported + pending_overflow,
             overage_backlog_n=int(data.get("overage_backlog_n") or 0),
             overage_backlog_open=int(data.get("overage_backlog_open") or 0),
             overage_backlog_id=str(data.get("overage_backlog_id") or ""),
             overage_uncertain=uncertain,
+            overage_pending=pending,
             overage_unreconciled=int(data.get("overage_unreconciled") or 0) + uncertain_overflow,
         )
 
@@ -619,13 +676,20 @@ class LedgerState:
 
     accounts: dict[str, _Account] = field(default_factory=dict)
     payments: dict[str, dict[str, Any]] = field(default_factory=dict)
+    meter_aliases: dict[str, tuple[str, str]] = field(default_factory=dict)
 
     def _acc(self, holder: str) -> _Account:
         acc = self.accounts.get(holder)
         if acc is None:
             acc = _Account()
             self.accounts[holder] = acc
+            self.meter_aliases.pop(holder, None)
         return acc
+
+    def _meter_acc(self, holder: str) -> _Account | None:
+        """Resolve reporting state without granting a revoked holder access."""
+        target, _meter_id = self.meter_aliases.get(holder, (holder, ""))
+        return self.accounts.get(target)
 
     def credit(self, holder: str, payment_id: str, units: int,
                tx: str, expires_at: str = "", source: str = "x402") -> CreditResult:
@@ -819,12 +883,10 @@ class LedgerState:
         return ReversalResult(True, payment_id, False, purchased, restored=units)
 
     def set_monthly(self, holder: str, units: int, invoice_id: str,
-                    plan: str = "", customer_id: str = "",
-                    reset_overage: bool = True) -> CreditResult:
+                    plan: str = "", customer_id: str = "") -> CreditResult:
         """SET remaining monthly allowance. Reset, no rollover. Idempotent on invoice_id.
 
-        A new invoice zeroes overage used this period unless `reset_overage` is
-        false. A subscription update refills the allowance and leaves the cap.
+        A new invoice zeroes overage used this period.
         A replay does not, so a repeated webhook cannot hand the cap back.
         """
         rec = self.payments.get(invoice_id)
@@ -839,8 +901,7 @@ class LedgerState:
         }
         acc = self._acc(holder)
         acc.monthly = int(units)
-        if reset_overage:
-            acc.overage_used = 0
+        acc.overage_used = 0
         if plan:
             acc.plan = plan
         if customer_id:
@@ -862,12 +923,17 @@ class LedgerState:
         acc = self.accounts.pop(src, None)
         if acc is None:
             return False
+        for alias, (target, meter_id) in list(self.meter_aliases.items()):
+            if target == src:
+                self.meter_aliases[alias] = (dst, meter_id)
+        self.meter_aliases.pop(dst, None)
+        self.meter_aliases[src] = (dst, _ensure_meter_id(acc))
         for rec in self.payments.values():
             if rec.get("holder") == src:
                 rec["holder"] = dst
         existing = self.accounts.get(dst)
         if existing is None:
-            _stamp_backlog_id(acc, src)
+            _stamp_backlog_id(acc)
             self.accounts[dst] = acc
             return True
         existing.monthly += acc.monthly
@@ -886,6 +952,8 @@ class LedgerState:
             existing.read_day = acc.read_day
             existing.read_count = acc.read_count
             existing.reads_in_block = acc.reads_in_block
+            existing.read_block = acc.read_block + existing.next_read if acc.read_block else 0
+            existing.read_block_size = acc.read_block_size
         elif acc.read_day and acc.read_day == existing.read_day:
             existing.read_count += acc.read_count
             existing.reads_in_block = 0
@@ -896,9 +964,13 @@ class LedgerState:
             existing.read_burst += acc.read_burst
         read_offset = existing.next_read
         for token, taken in acc.taken_reads.items():
+            if taken.block:
+                taken.block += read_offset
+            if taken.charge_token:
+                taken.charge_token += read_offset
             existing.taken_reads[read_offset + token] = taken
         existing.next_read = read_offset + max(acc.next_read, 1)
-        _move_meter_tail(existing, acc, src, dst)
+        _move_meter_tail(existing, acc)
         return True
 
     def reserve(self, holder: str, units: int = 1, now: str = "",
@@ -948,8 +1020,11 @@ class LedgerState:
         acc.reservations[rid] = _Reservation(units, from_monthly, pack_draws, overage)
         return ReserveResult(True, rid, acc.available_at(clock), acc.reserved)
 
-    def commit(self, holder: str, reservation_id: int) -> CommitResult:
-        acc = self._acc(holder)
+    def commit(self, holder: str, reservation_id: int, *,
+               record_meter: bool = True) -> CommitResult:
+        acc = self.accounts.get(holder)
+        if acc is None:
+            return CommitResult(False)
         reservation = acc.reservations.pop(int(reservation_id), None)
         if reservation is None:
             return CommitResult(False)
@@ -957,10 +1032,19 @@ class LedgerState:
         if acc.reserved < 0:
             acc.reserved = 0
         acc.overage_used += reservation.overage
+        if reservation.overage and record_meter:
+            ident = f"{_ensure_meter_id(acc)}:res:{int(reservation_id)}"
+            if len(acc.overage_pending) < PENDING_METER_CAP:
+                acc.overage_pending.append((ident, reservation.overage, _unix_now()))
+            else:
+                # These units have never been sent, so aggregation is safe.
+                acc.overage_unreported += reservation.overage
         return CommitResult(True, reservation.overage)
 
     def release(self, holder: str, reservation_id: int) -> bool:
-        acc = self._acc(holder)
+        acc = self.accounts.get(holder)
+        if acc is None:
+            return False
         reservation = acc.reservations.pop(int(reservation_id), None)
         if reservation is None:
             return False
@@ -972,6 +1056,12 @@ class LedgerState:
         if acc.reserved < 0:
             acc.reserved = 0
         return True
+
+    def has_read_funding(self, holder: str, now: str = "") -> bool:
+        """Credits or the remainder of a catalog block already paid for."""
+        acc = self.accounts.get(holder)
+        return acc is not None and (
+            acc.reads_in_block > 0 or acc.available_at(now or _now_iso()) > 0)
 
     def balance(self, holder: str, now: str = "") -> Balance:
         clock = now or _now_iso()
@@ -1063,13 +1153,15 @@ class LedgerState:
             reservation = acc.reservations[reserved.reservation_id]
             monthly_drawn = reservation.monthly
             pack_draws = list(reservation.packs)
-            settled = self.commit(holder, reserved.reservation_id)
+            settled = self.commit(holder, reserved.reservation_id, record_meter=False)
             if not settled.ok:
                 return ReadResult(False, "exhausted", available=acc.available_at(clock),
                                   read_count=acc.read_count, read_burst=acc.read_burst,
                                   daily_cap=daily_cap, burst_limit=burst_limit)
             overage = settled.overage
             available = acc.available_at(clock)
+            acc.read_block = acc.next_read
+            acc.read_block_size = reads_per_credit
         acc.read_count += 1
         acc.read_burst += 1
         acc.reads_in_block += 1
@@ -1079,13 +1171,15 @@ class LedgerState:
         acc.next_read += 1
         acc.taken_reads[token] = _TakenRead(
             day, minute, overage, monthly_drawn, pack_draws,
-            block_before, acc.reads_in_block)
+            block_before, acc.reads_in_block, acc.read_block,
+            block_succeeded=not acc.read_block,
+            charge_token=token if block_before == 0 else 0)
         return ReadResult(True, token=token, available=available, overage=overage,
                           read_count=acc.read_count, read_burst=acc.read_burst,
                           daily_cap=daily_cap, burst_limit=burst_limit)
 
     def release_read(self, holder: str, token: int) -> bool:
-        """Undo one taken read: decrement its count and return a charged credit."""
+        """Undo one read. Refund its block only after every read in it fails."""
         acc = self.accounts.get(holder)
         if acc is None:
             return False
@@ -1096,8 +1190,26 @@ class LedgerState:
             acc.read_count -= 1
         if acc.read_minute == taken.minute and acc.read_burst > 0:
             acc.read_burst -= 1
-        if acc.reads_in_block == taken.block_after:
-            acc.reads_in_block = taken.block_before
+        if acc.read_block == taken.block:
+            if taken.block:
+                acc.reads_in_block = max(0, (acc.reads_in_block or acc.read_block_size) - 1)
+            elif acc.reads_in_block == taken.block_after:
+                acc.reads_in_block = taken.block_before
+        if taken.block_succeeded:
+            if taken.overage:
+                self.note_unreported(holder, taken.overage, "read")
+            return True
+        pending = next((read for read in acc.taken_reads.values()
+                        if read.block == taken.block), None)
+        if pending is not None:
+            pending.monthly += taken.monthly
+            pending.packs.extend(taken.packs)
+            pending.overage += taken.overage
+            if taken.charge_token:
+                pending.charge_token = taken.charge_token
+            return True
+        if acc.read_block == taken.block and (taken.monthly or taken.packs or taken.overage):
+            acc.reads_in_block = 0
         acc.monthly += taken.monthly
         if taken.overage:
             acc.overage_used = max(0, acc.overage_used - taken.overage)
@@ -1105,11 +1217,21 @@ class LedgerState:
         return True
 
     def keep_read(self, holder: str, token: int) -> bool:
-        """The response succeeded. Drop the undo ticket; the count stays."""
+        """Record a successful block read and drop its undo ticket."""
         acc = self.accounts.get(holder)
         if acc is None:
             return False
-        return acc.taken_reads.pop(int(token), None) is not None
+        taken = acc.taken_reads.pop(int(token), None)
+        if taken is None:
+            return False
+        for pending in acc.taken_reads.values():
+            if pending.block == taken.block:
+                pending.block_succeeded = True
+        if taken.overage and taken.charge_token and taken.charge_token != int(token):
+            # This response did not draw the credit, so its caller has no
+            # overage to report. The failed drawing read cannot report it.
+            self.note_unreported(holder, taken.overage, "read")
+        return True
 
     def note_unreported(self, holder: str, units: int, identifier: str,
                         customer_id: str = "", event_name: str = "") -> bool:
@@ -1123,40 +1245,66 @@ class LedgerState:
         amount = int(units)
         if amount < 1 or not str(identifier or "").strip():
             return False
-        acc = self._acc(holder)
+        acc = self._meter_acc(holder)
+        if acc is None:
+            return False
         acc.overage_unreported += amount
+        self.ack_uncertain(holder, identifier)
         return True
+
+    def meter_identifier(self, holder: str, kind: str, counter: str | int) -> str:
+        """`{meter_id}:{kind}:{counter}`. Generate `meter_id` on first use and store it.
+
+        The id is `m_` plus 32 hex characters from `secrets.token_hex`. It is
+        not derived from the holder, the key, or the Stripe customer. A later
+        call for the same account reuses the stored id. A blank kind or
+        counter returns `""` and stores nothing.
+        """
+        label = str(kind or "").strip()
+        token = str(counter).strip()
+        if not label or token == "":
+            return ""
+        acc = self._meter_acc(holder)
+        if acc is None:
+            return ""
+        alias = self.meter_aliases.get(holder)
+        meter_id = alias[1] if alias else _ensure_meter_id(acc)
+        return f"{meter_id}:{label}:{token}"
 
     def open_backlog(self, holder: str) -> tuple[int, int, str]:
         """Units to send, the backlog `n`, and the stored identifier.
 
         The first call snapshots `overage_unreported` into
-        `overage_backlog_open` and stores `{holder}:backlog:{n}`. Until
+        `overage_backlog_open` and stores `{meter_id}:backlog:{n}`. Until
         `ack_backlog`, a later call repeats that snapshot, so a retry uses
         the same identifier and the same value after the holder is renamed.
+        An identifier already stored is not rewritten.
         """
-        acc = self.accounts.get(holder)
+        acc = self._meter_acc(holder)
         if acc is None:
             return 0, 0, ""
         if acc.overage_backlog_open > 0:
-            _stamp_backlog_id(acc, holder)
+            _stamp_backlog_id(acc)
             return acc.overage_backlog_open, acc.overage_backlog_n, acc.overage_backlog_id
         if acc.overage_unreported < 1:
             return 0, 0, ""
         acc.overage_backlog_open = acc.overage_unreported
-        acc.overage_backlog_id = f"{holder}:backlog:{acc.overage_backlog_n}"
+        acc.overage_backlog_id = f"{_ensure_meter_id(acc)}:backlog:{acc.overage_backlog_n}"
         return acc.overage_backlog_open, acc.overage_backlog_n, acc.overage_backlog_id
 
-    def ack_backlog(self, holder: str, units: int, n: int) -> bool:
+    def ack_backlog(self, holder: str, units: int, n: int,
+                    identifier: str = "") -> bool:
         """Stripe accepted the open backlog event for this `n`. Subtract it and advance.
 
         A late ack whose `n` is no longer the open one does nothing, so it
         cannot clear a later snapshot.
         """
-        acc = self.accounts.get(holder)
+        acc = self._meter_acc(holder)
+        if acc is not None and identifier and identifier != acc.overage_backlog_id:
+            return self.ack_uncertain(holder, identifier)
         if acc is None or acc.overage_backlog_open < 1:
             return False
-        if int(n) != acc.overage_backlog_n:
+        if not identifier and int(n) != acc.overage_backlog_n:
             return False
         amount = min(int(units), acc.overage_backlog_open, acc.overage_unreported)
         if amount < 1:
@@ -1179,17 +1327,18 @@ class LedgerState:
         ident = str(identifier or "").strip()
         if amount < 1 or not ident:
             return False
-        return _append_uncertain(self._acc(holder), ident, amount, created_at)
+        acc = self._meter_acc(holder)
+        return False if acc is None else _append_uncertain(acc, ident, amount, created_at)
 
     def list_uncertain(self, holder: str) -> list[tuple[str, int, int]]:
-        acc = self.accounts.get(holder)
+        acc = self._meter_acc(holder)
         if acc is None:
             return []
         return list(acc.overage_uncertain)
 
     def ack_uncertain(self, holder: str, identifier: str) -> bool:
         """Stripe accepted this identifier (2xx or a duplicate). Drop that entry."""
-        acc = self.accounts.get(holder)
+        acc = self._meter_acc(holder)
         if acc is None:
             return False
         ident = str(identifier or "")
@@ -1205,7 +1354,7 @@ class LedgerState:
         `now` is unix seconds. Zero uses the clock. An entry created exactly
         20 hours ago is still young enough to retry.
         """
-        acc = self.accounts.get(holder)
+        acc = self._meter_acc(holder)
         if acc is None:
             return []
         clock = int(now) if int(now) else _unix_now()
@@ -1218,13 +1367,33 @@ class LedgerState:
         acc.overage_uncertain = fresh
         return list(fresh)
 
+    def open_meter_events(self, holder: str, now: int = 0) -> list[tuple[str, int, int, bool]]:
+        """Persist each event as uncertain before its first external send.
+
+        Pending commits are known unsent. Overflow is aggregated in the
+        unreported total. Once opened, a record keeps its identifier and
+        timestamp until acknowledged or moved to unreconciled usage.
+        """
+        rows = self.age_uncertain(holder, now)
+        acc = self._meter_acc(holder)
+        if acc is None:
+            return []
+        out = [(ident, units, created_at, False)
+               for ident, units, created_at in rows[:UNCERTAIN_RETRIES_PER_REQUEST]]
+        room = max(0, UNCERTAIN_RETRIES_PER_REQUEST - len(out))
+        for _ in range(min(room, len(acc.overage_pending))):
+            ident, units, created_at = acc.overage_pending.pop(0)
+            _append_uncertain(acc, ident, units, created_at)
+            out.append((ident, units, created_at, True))
+        return out
+
     def unreconcile_uncertain(self, holder: str, identifier: str) -> bool:
         """A retry got a definite non-duplicate 4xx. Drop it for a person to check.
 
         Stripe rejected this retry. The original send might still have landed,
         so the units go to `overage_unreconciled` and nothing sends them again.
         """
-        acc = self.accounts.get(holder)
+        acc = self._meter_acc(holder)
         if acc is None:
             return False
         ident = str(identifier or "")
@@ -1248,6 +1417,7 @@ class LedgerState:
         return {
             "accounts": {name: acc.to_json() for name, acc in self.accounts.items()},
             "payments": self.payments,
+            "meter_aliases": self.meter_aliases,
         }
 
     @classmethod
@@ -1257,7 +1427,9 @@ class LedgerState:
         accounts = {name: _Account.from_json(raw)
                     for name, raw in raw_accounts.items() if isinstance(raw, dict)}
         payments = dict(data.get("payments") or {})
-        state = cls(accounts, payments)
+        aliases = {str(holder): (str(target), str(meter_id))
+                   for holder, (target, meter_id) in (data.get("meter_aliases") or {}).items()}
+        state = cls(accounts, payments, aliases)
         for name, raw in raw_accounts.items():
             if not isinstance(raw, dict):
                 continue
@@ -1276,8 +1448,7 @@ class Ledger(Protocol):
                      source: str = "x402") -> CreditResult: ...
 
     async def set_monthly(self, holder: str, units: int, invoice_id: str,
-                          plan: str = "", customer_id: str = "",
-                          reset_overage: bool = True) -> CreditResult: ...
+                          plan: str = "", customer_id: str = "") -> CreditResult: ...
 
     async def clear_monthly(self, holder: str) -> CreditResult: ...
 
@@ -1298,12 +1469,16 @@ class Ledger(Protocol):
 
     async def keep_read(self, holder: str, token: int) -> bool: ...
 
+    async def meter_identifier(self, holder: str, kind: str,
+                               counter: str | int) -> str: ...
+
     async def note_unreported(self, holder: str, units: int, identifier: str,
                               customer_id: str = "", event_name: str = "") -> bool: ...
 
     async def open_backlog(self, holder: str) -> tuple[int, int, str]: ...
 
-    async def ack_backlog(self, holder: str, units: int, n: int) -> bool: ...
+    async def ack_backlog(self, holder: str, units: int, n: int,
+                          identifier: str = "") -> bool: ...
 
     async def note_uncertain(self, holder: str, units: int, identifier: str,
                              created_at: int | None = None) -> bool: ...
@@ -1314,7 +1489,11 @@ class Ledger(Protocol):
 
     async def age_uncertain(self, holder: str, now: int = 0) -> list[tuple[str, int, int]]: ...
 
+    async def open_meter_events(self, holder: str, now: int = 0) -> list[tuple[str, int, int, bool]]: ...
+
     async def unreconcile_uncertain(self, holder: str, identifier: str) -> bool: ...
+
+    async def has_read_funding(self, holder: str, now: str = "") -> bool: ...
 
     async def balance(self, holder: str, now: str = "") -> Balance: ...
 
@@ -1349,11 +1528,10 @@ class MemoryLedger:
                                      expires_at=expires_at, source=source)
 
     async def set_monthly(self, holder: str, units: int, invoice_id: str,
-                          plan: str = "", customer_id: str = "",
-                          reset_overage: bool = True) -> CreditResult:
+                          plan: str = "", customer_id: str = "") -> CreditResult:
         async with self._lock:
             return self.state.set_monthly(
-                holder, units, invoice_id, plan, customer_id, reset_overage)
+                holder, units, invoice_id, plan, customer_id)
 
     async def clear_monthly(self, holder: str) -> CreditResult:
         async with self._lock:
@@ -1387,6 +1565,11 @@ class MemoryLedger:
         async with self._lock:
             return self.state.keep_read(holder, token)
 
+    async def meter_identifier(self, holder: str, kind: str,
+                               counter: str | int) -> str:
+        async with self._lock:
+            return self.state.meter_identifier(holder, kind, counter)
+
     async def note_unreported(self, holder: str, units: int, identifier: str,
                               customer_id: str = "", event_name: str = "") -> bool:
         async with self._lock:
@@ -1397,9 +1580,10 @@ class MemoryLedger:
         async with self._lock:
             return self.state.open_backlog(holder)
 
-    async def ack_backlog(self, holder: str, units: int, n: int) -> bool:
+    async def ack_backlog(self, holder: str, units: int, n: int,
+                          identifier: str = "") -> bool:
         async with self._lock:
-            return self.state.ack_backlog(holder, units, n)
+            return self.state.ack_backlog(holder, units, n, identifier)
 
     async def note_uncertain(self, holder: str, units: int, identifier: str,
                              created_at: int | None = None) -> bool:
@@ -1418,6 +1602,10 @@ class MemoryLedger:
         async with self._lock:
             return self.state.age_uncertain(holder, now)
 
+    async def open_meter_events(self, holder: str, now: int = 0) -> list[tuple[str, int, int, bool]]:
+        async with self._lock:
+            return self.state.open_meter_events(holder, now)
+
     async def unreconcile_uncertain(self, holder: str, identifier: str) -> bool:
         async with self._lock:
             return self.state.unreconcile_uncertain(holder, identifier)
@@ -1425,6 +1613,10 @@ class MemoryLedger:
     async def release(self, holder: str, reservation_id: int) -> bool:
         async with self._lock:
             return self.state.release(holder, reservation_id)
+
+    async def has_read_funding(self, holder: str, now: str = "") -> bool:
+        async with self._lock:
+            return self.state.has_read_funding(holder, now=now)
 
     async def balance(self, holder: str, now: str = "") -> Balance:
         async with self._lock:
@@ -1467,8 +1659,7 @@ class UnboundLedger:
         raise StoreNotConfigured("CREDITS Durable Object is not bound")
 
     async def set_monthly(self, holder: str, units: int, invoice_id: str,
-                          plan: str = "", customer_id: str = "",
-                          reset_overage: bool = True) -> CreditResult:
+                          plan: str = "", customer_id: str = "") -> CreditResult:
         raise StoreNotConfigured("CREDITS Durable Object is not bound")
 
     async def clear_monthly(self, holder: str) -> CreditResult:
@@ -1495,6 +1686,10 @@ class UnboundLedger:
     async def keep_read(self, holder: str, token: int) -> bool:
         raise StoreNotConfigured("CREDITS Durable Object is not bound")
 
+    async def meter_identifier(self, holder: str, kind: str,
+                               counter: str | int) -> str:
+        raise StoreNotConfigured("CREDITS Durable Object is not bound")
+
     async def note_unreported(self, holder: str, units: int, identifier: str,
                               customer_id: str = "", event_name: str = "") -> bool:
         raise StoreNotConfigured("CREDITS Durable Object is not bound")
@@ -1502,7 +1697,8 @@ class UnboundLedger:
     async def open_backlog(self, holder: str) -> tuple[int, int, str]:
         return 0, 0, ""
 
-    async def ack_backlog(self, holder: str, units: int, n: int) -> bool:
+    async def ack_backlog(self, holder: str, units: int, n: int,
+                          identifier: str = "") -> bool:
         return False
 
     async def note_uncertain(self, holder: str, units: int, identifier: str,
@@ -1518,11 +1714,17 @@ class UnboundLedger:
     async def age_uncertain(self, holder: str, now: int = 0) -> list[tuple[str, int, int]]:
         return []
 
+    async def open_meter_events(self, holder: str, now: int = 0) -> list[tuple[str, int, int, bool]]:
+        return []
+
     async def unreconcile_uncertain(self, holder: str, identifier: str) -> bool:
         return False
 
     async def release(self, holder: str, reservation_id: int) -> bool:
         raise StoreNotConfigured("CREDITS Durable Object is not bound")
+
+    async def has_read_funding(self, holder: str, now: str = "") -> bool:
+        return False
 
     async def balance(self, holder: str, now: str = "") -> Balance:
         return Balance(holder, 0, 0)
@@ -1568,10 +1770,9 @@ class DurableLedger:
         return CreditResult.from_json(dict(data))
 
     async def set_monthly(self, holder: str, units: int, invoice_id: str,
-                          plan: str = "", customer_id: str = "",
-                          reset_overage: bool = True) -> CreditResult:
+                          plan: str = "", customer_id: str = "") -> CreditResult:
         data = await self._stub.set_monthly(
-            holder, int(units), invoice_id, plan, customer_id, bool(reset_overage))
+            holder, int(units), invoice_id, plan, customer_id)
         return CreditResult.from_json(dict(data))
 
     async def clear_monthly(self, holder: str) -> CreditResult:
@@ -1604,6 +1805,11 @@ class DurableLedger:
     async def keep_read(self, holder: str, token: int) -> bool:
         return bool(await self._stub.keep_read(holder, int(token)))
 
+    async def meter_identifier(self, holder: str, kind: str,
+                               counter: str | int) -> str:
+        return str(await self._stub.meter_identifier(
+            holder, str(kind), str(counter)) or "")
+
     async def note_unreported(self, holder: str, units: int, identifier: str,
                               customer_id: str = "", event_name: str = "") -> bool:
         return bool(await self._stub.note_unreported(
@@ -1616,8 +1822,9 @@ class DurableLedger:
         units, seq, ident = row
         return int(units), int(seq), str(ident or "")
 
-    async def ack_backlog(self, holder: str, units: int, n: int) -> bool:
-        return bool(await self._stub.ack_backlog(holder, int(units), int(n)))
+    async def ack_backlog(self, holder: str, units: int, n: int,
+                          identifier: str = "") -> bool:
+        return bool(await self._stub.ack_backlog(holder, int(units), int(n), identifier))
 
     async def note_uncertain(self, holder: str, units: int, identifier: str,
                              created_at: int | None = None) -> bool:
@@ -1635,11 +1842,18 @@ class DurableLedger:
         data = await self._stub.age_uncertain(holder, int(now or 0))
         return _uncertain_wire(data)
 
+    async def open_meter_events(self, holder: str, now: int = 0) -> list[tuple[str, int, int, bool]]:
+        data = await self._stub.open_meter_events(holder, int(now or 0))
+        return _meter_events_wire(data)
+
     async def unreconcile_uncertain(self, holder: str, identifier: str) -> bool:
         return bool(await self._stub.unreconcile_uncertain(holder, identifier))
 
     async def release(self, holder: str, reservation_id: int) -> bool:
         return bool(await self._stub.release(holder, int(reservation_id)))
+
+    async def has_read_funding(self, holder: str, now: str = "") -> bool:
+        return bool(await self._stub.has_read_funding(holder, now))
 
     async def balance(self, holder: str, now: str = "") -> Balance:
         data = await self._stub.balance(holder, now)

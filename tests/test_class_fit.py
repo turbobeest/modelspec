@@ -144,6 +144,17 @@ def test_candidates_are_returned_in_sorted_order_so_no_ranking_hides_in_it() -> 
     assert len(ids) > 1
 
 
+def test_next_move_carries_only_a_count_and_never_scores_candidate_models() -> None:
+    from decision.next_move import NextMoveInput, build_next_move
+
+    move = build_next_move(NextMoveInput(
+        "answered", feasible_models=("lab/transcriber", "lab/generator", "lab/classifier"),
+    ))
+    assert move["candidates"] == ["lab/classifier", "lab/generator", "lab/transcriber"]
+    assert _numbers(move) == [".candidates_total"]
+    assert move["candidates_total"] == 3
+
+
 def test_the_answer_never_claims_to_order_classes() -> None:
     answer = cf.class_fit(emits="choice", consumes=["structured_state"])
     assert answer["policy"]["orders_classes"] is False

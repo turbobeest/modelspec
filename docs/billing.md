@@ -172,8 +172,9 @@ identifier, was not recorded. The Worker adds its credits to
 does not keep a row per such failure. The next meter report retries up to
 3 uncertain events first. When those sends are accepted, it sends this
 total as its own Billing Meter event. The identifier is
-`{holder}:backlog:{n}`, where `n` is the account's `overage_backlog_n`.
-The Worker stores that string as `overage_backlog_id`.
+`{meter_id}:backlog:{n}`, where `meter_id` is the account's stored meter id
+and `n` is `overage_backlog_n`. The Worker stores that string as
+`overage_backlog_id`.
 While that send has not been accepted, `overage_backlog_open` is the number
 of credits in the event. The Worker subtracts those credits from
 `overage_unreported` only after Stripe accepts the event (HTTP 2xx, or a
@@ -205,24 +206,39 @@ Worker adds further uncertain units to `overage_unreconciled`. The Worker
 never sends `overage_unreconciled`. That total needs manual reconciliation
 against Stripe's meter event list before anyone posts it. A new identifier
 can bill the customer twice.
+
+Each balance record stores `meter_id`. The value is `m_` plus 32 hex
+characters, chosen with a random generator the first time that account needs
+a meter-event identifier, then stored and reused. It is not derived from the
+API key, the holder name, or the Stripe customer id. A record saved before
+the field existed loads with `meter_id` empty and receives one on the next
+meter use. A new catalog read uses `{meter_id}:read:{token}`. A settled
+decide or x402 charge uses `{meter_id}:res:{reservation_id}`. A backlog total
+uses `{meter_id}:backlog:{n}`. An identifier already stored on
+`overage_uncertain` or `overage_backlog_id` is retried exactly as stored,
+including one written before meter ids existed.
+
 Check Stripe first even for units that aged out: a retry already in flight
 may have landed after the entry moved. A retry whose timestamp falls in a
 billing period Stripe has already invoiced may not be billed at all, so an
 outage can under-bill; it never over-bills.
 
 Key rotation copies `overage_uncertain`, `overage_unreconciled`, and an open
-backlog snapshot onto the new holder. The snapshot keeps its
+backlog snapshot onto the destination balance. The snapshot keeps its
 `overage_backlog_n` and `overage_backlog_id`, so the next report retries
-that same identifier.
+that same identifier. The destination keeps its own `meter_id` when it has
+one. Otherwise it takes the source balance's `meter_id`. A rotation that
+moves the whole balance record keeps that record's `meter_id`.
 
 To post a rejected backlog by hand, read the account in the CREDITS ledger.
 If `overage_backlog_open` is set, post that many credits and set the
 identifier to `overage_backlog_id`. Otherwise post `overage_unreported` and
-set the identifier to `{holder}:backlog:{n}` with the account's current
-`overage_backlog_n`. Use the account's Stripe customer id and the meter
-event `modelspec_scale_overage`. The Worker's next report sends that same
-identifier. Stripe returns HTTP 2xx for the duplicate, and the Worker then
-zeroes the total. A different identifier bills the credits a second time.
+set the identifier to `{meter_id}:backlog:{n}` with the account's stored
+`meter_id` and its current `overage_backlog_n`. Use the account's Stripe
+customer id and the meter event `modelspec_scale_overage`. The Worker's next
+report sends that same identifier. Stripe returns HTTP 2xx for the duplicate,
+and the Worker then zeroes the total. A different identifier bills the credits
+a second time.
 
 A metadata read (`GET /v1/vocabulary`) costs $0.002. That is one credit per
 10 successful reads, capped at 1,000 reads a key a UTC day, while the key can
@@ -445,4 +461,6 @@ No secret belongs in this repository. Tests sign fixtures with a throwaway
 ACCESS record kinds this path writes are listed in
 `docs/legal/privacy.md`. Card numbers never appear; Stripe is the processor.
 No plaintext key is stored, even before claim. Monthly remaining, pack grants
-and their expiry live in the CREDITS Durable Object, not in ACCESS.
+and their expiry live in the CREDITS Durable Object, not in ACCESS. That
+balance record also stores `meter_id`, the random id Billing Meter event
+identifiers are built from.

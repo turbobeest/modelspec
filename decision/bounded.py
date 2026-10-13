@@ -1,4 +1,4 @@
-"""The bounded representation (1.1): opt-in HTTP projections of a complete 2.x Decision.
+"""The bounded representation (1.2): opt-in HTTP projections of a complete 2.x Decision.
 
 It is not a 2.x minor version. It omits lists every 2.x Decision carries, so it
 names itself with ``representation`` and ``bounded_version`` and points at the
@@ -11,7 +11,9 @@ import json
 from collections.abc import Mapping
 
 from decision import contract
+from decision.next_move import build_next_move, next_move_input_from_decision
 from decision.summary import (
+    SUMMARY_BYTES,
     proxy_benchmarks_from_capture,
     record_counts_from_capture,
     summarize,
@@ -35,13 +37,9 @@ HEAVY_ROW_FIELDS = ("evidence", "contributions", "estimates", "refinement_estima
 _MEMBER_ROW_HEAVY = ("evidence", "contributions")
 # Items kept per answer member before the byte budget trims further (MODEL-354).
 MEMBER_EVIDENCE_ITEMS = 3
-# Leave space for the MCP origin envelope and its short text summary.
-DRILL_DOWN_BYTES = 7_400
-
 # Compact UTF-8 agent budget (MODEL-334). The MCP text is
-# JSON.stringify({origin, status, body}) plus decisionSummary. The body is
-# capped so those two together stay within AGENT_BYTES even at the longest
-# summary the MCP emits for a 61-byte model id (the longest catalogue id).
+# JSON.stringify({origin, status, body}) plus an annotated summary_for_user,
+# or decisionSummary on a legacy response. Reserve the larger maximum.
 AGENT_BYTES = 16_384
 MCP_ORIGIN = "https://api.modelspec.dev/v1/decide"
 _ENVELOPE_PREFIX = '{"origin":"' + MCP_ORIGIN + '","status":200,"body":'
@@ -55,7 +53,10 @@ _SUMMARY_TEXT = (
     f"evidence for: {_SUMMARY_MODEL_ID} (eliminated, unranked)"
 )
 SUMMARY_RESERVE_BYTES = len(_SUMMARY_TEXT.encode("utf-8"))
-RESPONSE_BYTES = AGENT_BYTES - MCP_ENVELOPE_BYTES - SUMMARY_RESERVE_BYTES
+MCP_CONTENT_RESERVE_BYTES = max(SUMMARY_RESERVE_BYTES, SUMMARY_BYTES)
+RESPONSE_BYTES = AGENT_BYTES - MCP_ENVELOPE_BYTES - MCP_CONTENT_RESERVE_BYTES
+# The drill-down's existing 2,000-token total includes the duplicate paragraph.
+DRILL_DOWN_BYTES = 8_000 - MCP_ENVELOPE_BYTES - MCP_CONTENT_RESERVE_BYTES
 
 
 def row_fields_for(explain: str) -> list[str]:
@@ -113,14 +114,17 @@ def agent_summary(body: dict) -> str:
 
 
 def mcp_text_bytes(body: dict, *, status: int = 200) -> int:
-    """Bytes of the MCP text: the origin envelope, plus ``decisionSummary`` on success."""
+    """Origin envelope plus the user paragraph, or the legacy status line."""
     packed = json.dumps(
         {"origin": MCP_ORIGIN, "status": status, "body": body},
         ensure_ascii=False, separators=(",", ":"),
     ).encode("utf-8")
     if status == 0 or status >= 400:
         return len(packed)
-    return len(packed) + len(agent_summary(body).encode("utf-8"))
+    report = body.get("summary_for_user")
+    if not isinstance(report, str):
+        report = agent_summary(body)
+    return len(packed) + len(report.encode("utf-8"))
 
 
 def _answer_summary(answer: object) -> str:
@@ -178,12 +182,18 @@ def project(decision: contract.Decision, options: contract.ResponseOptions, *,
     # Computed from the full Decision, before either budget drops records.
     # Record counts come from the same capture as member_evidence, before the
     # cap of three, so a member limit dropped from results is still counted.
+    next_move = build_next_move(next_move_input_from_decision(
+        decision, spec, not_applied=not_applied, profiles=profiles,
+    ))
+    if next_move is not None:
+        body["next_move"] = next_move
     summary, mentions = summarize(
         decision, spec, not_applied=not_applied, profiles=profiles, feasible=feasible,
         record_counts=None if member_evidence is None else record_counts_from_capture(member_evidence),
         proxy_benchmarks=(
             None if member_evidence is None else proxy_benchmarks_from_capture(member_evidence)
         ),
+        next_move=next_move,
     )
     body["summary_for_user"] = summary
     body["must_mention"] = mentions
@@ -529,7 +539,7 @@ def _fit_agent_budget(body: dict) -> None:
     explanation is removed only after the earlier records are gone. A nested
     evidence item and a heavy field are each removed whole. Fields inside one
     evidence item are never trimmed. ``answer``, ``status``,
-    ``warnings``, ``coverage``, ``summary_for_user``, ``must_mention`` and
+    ``warnings``, ``coverage``, ``summary_for_user``, ``must_mention``, ``next_move`` and
     the top result's rank, model, offering and warnings stay. A heavy field
     is removed whole. Does not return a body that is still over budget: the
     essentials then raise ``SpecError``.
@@ -617,7 +627,8 @@ def _fit_agent_budget(body: dict) -> None:
     if _over(body):
         raise contract.SpecError([contract.Issue(
             None, "fields",
-            "the answer, status, warnings, coverage and top result exceed the 16 KB agent budget; "
+            "the answer, status, warnings, coverage, summary_for_user, must_mention, next_move "
+            "and top result exceed the 16 KB agent budget; "
             "narrow fields or lower limit, resend with evidence_for for one model, "
             "or POST /v1/decide without fields for the complete Decision",
             "fields")])

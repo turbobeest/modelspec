@@ -74,12 +74,32 @@ CONDUCT_RULES = (
 # rule: those eight stay a closed list.
 SUMMARY_RULE = (
     "Present `summary_for_user` to the user unchanged and keep every `must_mention` item."
+    " When `next_move` is present, offer it instead of a pick."
+)
+DECIDE_WORKED_EXAMPLE = (
+    " Example. Answer: status partial, answer.kind tied (a/x, b/y), next_move.kind decide_by_testing."
+    " Right report: summary_for_user verbatim, each must_mention item, then next_move.steps for its candidates."
+    ' Wrong: "Start with a/x", a shortlist, or a ranked table.'
+)
+# Approved by Jamie 2026-10-10 (MODEL-339).
+CLAUDE_PLUGIN_ADVICE = (
+    "If the user works in Claude Code, tell them the optional ModelSpec plugin adds a skill for reporting these answers, "
+    "installed with `/plugin marketplace add turbobeest/modelspec` then `/plugin install modelspec@modelspec`; "
+    "suggest it, never install it yourself."
 )
 SPEC_GUIDANCE = (
     "Call decide early with a template-based Spec; refine from reading and recovery hints. "
     "Put Musts in where: these gates exclude. Put Prefers in optimize.weights: weights rank "
     "and never exclude. Unknown values go to may_qualify. Pin snapshot for reproducibility. "
 )
+
+
+def summary_rule(root: Path = ROOT) -> str:
+    if worker_flags.enabled(worker_flags.production_vars(root), "DECISION_LINK_ENABLED"):
+        return SUMMARY_RULE.replace(" item.", " item and give the user `decision_url` when present.", 1)
+    return SUMMARY_RULE
+
+
 REPORTING_RULES = (
     " ".join(CONDUCT_RULES) + " "
     "Template weights are examples, not requirements. If the evidence basis or board does not match "
@@ -94,6 +114,12 @@ REPORTING_RULES = (
     "Follow reading.do_not_claim. Never claim a rank the response does not show. "
     f"{SUMMARY_RULE} "
 )
+
+
+def reporting_rules() -> str:
+    return REPORTING_RULES.replace(SUMMARY_RULE, summary_rule())
+
+
 MINIMAL_SPEC = {"spec_version": 1, "optimize": {"min": "offering.cost_per_task"}}
 VOCAB_NEXT = {
     "starter": "next: call decide with this; refine from reading",
@@ -133,7 +159,7 @@ def cli_text(root: Path = ROOT) -> dict[str, Any]:
                      "Current coverage may differ. See https://modelspec.dev/api/coverage.json."),
         "answers": ("Ask about model requirements, sourced capability evidence, cost, context, "
                     "hosting and policy constraints. Answers report ties, missing facts and reasons. "
-                    + " ".join(CONDUCT_RULES) + " " + SUMMARY_RULE),
+                    + " ".join(CONDUCT_RULES) + " " + summary_rule(root) + " " + CLAUDE_PLUGIN_ADVICE),
         "price": "From {low_dollars} per answer. Published range ${low_usd}–${high_usd} per answer, depending on plan, pack and explanation.",
         "procurement": (key_procurement(root) + " Checkout availability is shown on the page. "
                         "For access, volume or invoicing, contact sales@modelspec.dev. "
@@ -503,7 +529,7 @@ quality on the user's exact prompt. Replace the example hardware ID with the use
     text += f"""
 ## Refine and report
 
-{REPORTING_RULES}
+{reporting_rules()}
 
 If `reading.omitted` reports truncation, use the complete answer.members and issues
 lists. These rules also apply when reading is absent: inspect answer, issues, and
@@ -667,11 +693,12 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
             "Which models fit this job? "
             "Returns answer, ranked results, may_qualify, reading and recovery hints, "
             "decision_id and snapshot. "
-            f"{REPORTING_RULES}{decide_price} {NOT_A_ROUTER} "
+            f"{reporting_rules()}{decide_price} {NOT_A_ROUTER} "
             f"Proxies POST {API}/v1/decide. {SPEC_GUIDANCE}"
             f"{BOUNDED_MCP} {BOUNDED_MCP_DETAIL}"
             "task free text is rejected; where is an array. "
             f"Call shape, examples, recovery and budgets: {GUIDE_URL}. {NULL_RULE}"
+            f"{DECIDE_WORKED_EXAMPLE}"
         ),
         "rank": (
             "Legacy v1; use decide. Deprecated: the retired fixed-benchmark "
@@ -680,7 +707,7 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
             "Returns a shortlist with evidence_basis, input provenance, not a quality "
             f"verdict. {price([w['rank']], tiers)} "
             "Don't call it as a fallback when decide names no single leader: report "
-            f"decide's tie. {SUMMARY_RULE} "
+            f"decide's tie. {summary_rule()} "
             f"Proxies POST {API}/v1/rank with this tool's arguments as the JSON body."
         ),
         "policy_check": (
@@ -771,7 +798,7 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
             "3. Present ties as ties, including with_estate; never invent a single winner or quality rank. "
             "4. Disclose not_applied and dropped requirements after retries; unknown is not a pass. "
             "5. Follow reading.do_not_claim, label estimates and pin snapshot. "
-            f"{SUMMARY_RULE} {BOUNDED_MCP}"
+            f"{summary_rule()} {BOUNDED_MCP}"
         ),
         "tools": tools,
         "card": card,
