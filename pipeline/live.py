@@ -35,6 +35,7 @@ import shutil
 import sys
 import urllib.error
 import urllib.request
+import xml.etree.ElementTree as ET
 from datetime import date
 from pathlib import Path
 
@@ -138,6 +139,7 @@ _HREF = re.compile(r'(?:href|src|content)="(?:' + re.escape(BASE) + r')?(/(?!/)[
 #: keys. A pull request's tree lacks them. The workflow checks the cards exist
 #: before it deploys, and the post-deploy smoke reads the snapshot.
 MAIN_ONLY = (*(f"/{name}" for name in social_cards.card_filenames()), "/api/decision/")
+BLOG_CARD = re.compile(r"/blog/[a-z0-9-]+/r[1-9][0-9]*/og-card\.png")
 
 
 def lastmod(path: str, root: Path = REPO_ROOT, today: date | None = None) -> str:
@@ -149,13 +151,40 @@ def lastmod(path: str, root: Path = REPO_ROOT, today: date | None = None) -> str
     return stamp if out.returncode == 0 and stamp else (today or date.today()).isoformat()
 
 
-def sitemap(dates: dict[str, str] | None = None) -> str:
+def blog_pages(tree: Path) -> tuple[str, ...]:
+    """The static blog pages present in a built publication tree."""
+    return tuple("/" + page.parent.relative_to(tree).as_posix() + "/"
+                 for page in sorted((tree / "blog").rglob("index.html")))
+
+
+def blog_sitemap_dates(tree: Path) -> dict[str, str]:
+    """Keep the blog's source publication dates in the reduced sitemap."""
+    pages = set(blog_pages(tree))
+    if not pages:
+        return {}
+    namespace = {"s": "http://www.sitemaps.org/schemas/sitemap/0.9"}
+    dates = {}
+    for row in ET.parse(tree / "sitemap.xml").findall("s:url", namespace):
+        url = row.findtext("s:loc", "", namespace)
+        path = url.removeprefix(BASE)
+        if url.startswith(BASE + "/blog/") and path in pages:
+            dates[path] = row.findtext("s:lastmod", date.today().isoformat(), namespace)
+    if pages != dates.keys():
+        raise ValueError("every built blog page must have a source sitemap entry")
+    return dates
+
+
+def sitemap(dates: dict[str, str] | None = None, *,
+            blog_dates: dict[str, str] | None = None) -> str:
     dates = dates if dates is not None else {path: lastmod(path) for path in PAGES}
     return (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
         '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
         + "".join(f"  <url><loc>{BASE}{path}</loc><lastmod>{dates[path]}</lastmod></url>\n"
                   for path in PAGES)
+        + "".join(f"  <url><loc>{BASE}{html.escape(path)}</loc>"
+                  f"<lastmod>{html.escape(stamp)}</lastmod></url>\n"
+                  for path, stamp in (blog_dates or {}).items())
         + "</urlset>\n"
     )
 
@@ -238,6 +267,10 @@ def build(src: Path, web: Path, out: Path) -> None:
         shutil.copytree(real / rel, tree / rel)
     for rel in KEEP_FILES:
         shutil.copy2(real / rel, tree / rel)
+    blog_dates = {}
+    if os.environ.get("BLOG_ENABLED") == "true" and (real / "blog/index.html").is_file():
+        blog_dates = blog_sitemap_dates(real)
+        shutil.copytree(real / "blog", tree / "blog")
     # Rendered in CI only (MODELSPEC_RENDER_SOCIAL_CARDS); the workflow checks
     # every one is present before it deploys.
     for rel in social_cards.card_filenames():
@@ -257,7 +290,26 @@ def build(src: Path, web: Path, out: Path) -> None:
     redirects = (public_data.REDIRECTS if public_data.enabled() else "") + REDIRECTS
     (tree / "_redirects").write_text(redirects, encoding="utf-8")
     (tree / "robots.txt").write_text(ROBOTS, encoding="utf-8")
-    (tree / "sitemap.xml").write_text(sitemap(), encoding="utf-8")
+    (tree / "sitemap.xml").write_text(sitemap(blog_dates=blog_dates), encoding="utf-8")
+    if blog_dates:
+        for page in tree.rglob("*.html"):
+            if page.relative_to(tree).parts[0] == "legal":
+                continue
+            text = page.read_text(encoding="utf-8")
+
+            def add_blog(match: re.Match[str]) -> str:
+                nav = match.group(0)
+                if 'href="/blog/"' in nav:
+                    return nav
+                link = '<a href="/blog/">Blog</a>'
+                if '<div class="links">' in nav:
+                    return nav.replace("</div>", link + "</div>", 1)
+                return nav.replace("</nav>", link + "</nav>", 1)
+
+            page.write_text(re.sub(r"<nav\b[^>]*>.*?</nav>", add_blog, text,
+                                   count=1, flags=re.S), encoding="utf-8")
+    from pipeline import blog_indexnow
+    blog_indexnow.write_key(tree)
     structured_data.inject(tree)
     headers = (real / "_headers").read_text(encoding="utf-8")
     headers = headers.rstrip("\n") + "\n" + HEADERS
@@ -296,7 +348,7 @@ def dead_links(tree: Path) -> list[str]:
                            if headers.is_file() else ""):
         if not resolves(tree, path):
             dead.append(f"_headers: {path}")
-    for page in PAGES:
+    for page in (*PAGES, *blog_pages(tree)):
         rel = page.lstrip("/") + "index.html"
         if not (tree / rel).is_file():
             dead.append(f"{rel}: missing")
@@ -304,7 +356,10 @@ def dead_links(tree: Path) -> list[str]:
         html = (tree / rel).read_text(encoding="utf-8")
         paths = {m.group(1) for m in _HREF.finditer(html)}
         dead.extend(f"{rel}: {path}" for path in sorted(paths)
-                    if not resolves(tree, path) and not path.startswith(MAIN_ONLY))
+                    if not resolves(tree, path)
+                    and not (path.startswith(MAIN_ONLY)
+                             and not path.startswith("/api/decision/snapshots/"))
+                    and not BLOG_CARD.fullmatch(path))
     return dead
 
 

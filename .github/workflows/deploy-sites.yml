@@ -34,6 +34,7 @@ permissions:
 env:
   SITE_MODE: ${{ vars.SITE_MODE }}
   DATA_SPLIT_ENABLED: ${{ vars.DATA_SPLIT_ENABLED }}
+  BLOG_ENABLED: ${{ vars.BLOG_ENABLED }}
 
 concurrency:
   group: deploy-sites-${{ github.ref }}
@@ -170,6 +171,7 @@ jobs:
         id: build
         env:
           MODELSPEC_RENDER_SOCIAL_CARDS: '1'
+          INDEXNOW_KEY: ${{ github.event_name != 'pull_request' && secrets.INDEXNOW_KEY || '' }}
           MODELSPEC_SNAPSHOT_KEY: ${{ github.event_name != 'pull_request' && secrets.MODELSPEC_SNAPSHOT_KEY || '' }}
           MODELSPEC_SNAPSHOT_ED25519_KEY: ${{ github.event_name != 'pull_request' && secrets.MODELSPEC_SNAPSHOT_ED25519_KEY || '' }}
         run: |
@@ -214,6 +216,8 @@ jobs:
           } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Assemble the live and internal decide sites
+        env:
+          INDEXNOW_KEY: ${{ github.event_name != 'pull_request' && secrets.INDEXNOW_KEY || '' }}
         run: |
           # Holding must derive from the untouched full build above. Live is a
           # whitelist (pipeline/live.py) so a new v1 page cannot reappear merely
@@ -473,6 +477,14 @@ jobs:
             echo "ready=true" >> "$GITHUB_OUTPUT"
           fi
 
+      - uses: actions/checkout@v4
+        if: steps.creds.outputs.ready == 'true' && needs.build.outputs.mode == 'live' && vars.BLOG_ENABLED == 'true'
+
+      - uses: actions/setup-python@v5
+        if: steps.creds.outputs.ready == 'true' && needs.build.outputs.mode == 'live' && vars.BLOG_ENABLED == 'true'
+        with:
+          python-version: '3.11'
+
       - uses: actions/download-artifact@v4
         if: steps.creds.outputs.ready == 'true'
         with:
@@ -510,6 +522,12 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy ${{ needs.build.outputs.production || 'dist-holding' }}/benchgraph --project-name=benchgraph --branch=main
+
+      - name: Notify IndexNow after the production blog is live
+        if: steps.creds.outputs.ready == 'true' && needs.build.outputs.mode == 'live' && vars.BLOG_ENABLED == 'true'
+        env:
+          INDEXNOW_KEY: ${{ secrets.INDEXNOW_KEY }}
+        run: python -m pipeline.blog_indexnow --tree dist/modelspec
 
       # The same composition as live, always, on `internal` for testing.
       - name: Deploy the real modelspec site to the internal preview

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="76" viewBox="0 0 680 76" role="img" aria-label="Cost per task, list price">
+<style>
+text{font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Arial,sans-serif;font-size:12px}.t{font-size:14px;font-weight:600}
+.bg{fill:#fcfcfb}.f-s1{fill:#2a78d6}.f-s2{fill:#eb6834}.f-muted{fill:#9a9993}.k-s1{stroke:#2a78d6}.k-muted{stroke:#9a9993}.k-rule{stroke:#e4e3dd}.ring{stroke:#fcfcfb}text{fill:#52514e}.t,.v{fill:#0b0b0b}text.m{fill:#9a9993}
+@media (prefers-color-scheme: dark){.bg{fill:#1a1a19}.f-s1{fill:#3987e5}.f-s2{fill:#d95926}.f-muted{fill:#77766f}.k-s1{stroke:#3987e5}.k-muted{stroke:#77766f}.k-rule{stroke:#3a3936}.ring{stroke:#1a1a19}text{fill:#c3c2b7}.t,.v{fill:#ffffff}text.m{fill:#77766f}}
+</style>
+<rect class="bg" width="680" height="76"/>
+<text class="t" x="16" y="24">Cost per task, list price</text>
+<text class="v" x="16" y="55">sambanova · global · standard</text>
+<rect class="f-s1" x="300.0" y="44.0" width="260.9" height="14.0" rx="4"><title>sambanova/lab/alpha/global/standard: $0.112</title></rect>
+<text x="566.9" y="55">$0.112</text>
+</svg>

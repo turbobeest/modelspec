@@ -674,8 +674,17 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
     brand_counts = brand_page.write(ms)
     ms_paths.extend(brand_counts["sitemap_paths"])
 
+    from pipeline import blog
+    # Posts and retained snapshots are public repository artifacts. A data
+    # overlay must never provide the source of blog content.
+    blog_counts = blog.write(ms, Path(args.root).resolve(), build)
+    ms_paths.extend(blog_counts["sitemap_paths"])
+
     (ms / "sitemap.xml").write_text(
-        r.sitemap("https://modelspec.dev", ms_paths, today), encoding="utf-8")
+        r.sitemap("https://modelspec.dev", ms_paths, today,
+                  lastmods=blog_counts.get("sitemap_dates")), encoding="utf-8")
+    from pipeline import blog_indexnow
+    blog_indexnow.write_key(ms)
     # robots.txt is written once, by agent_ready.ship below (MODEL-253).
     (ms / "404.html").write_text(
         r.not_found("ModelSpec", build, r.MS_NAV, "https://modelspec.dev/"), encoding="utf-8")
@@ -718,6 +727,7 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
         "agent_ready": agent_counts,
         "feedback": feedback_counts,
         "brand": brand_counts,
+        "blog": blog_counts,
     }
     print(json.dumps(summary, indent=1))
     return 0
