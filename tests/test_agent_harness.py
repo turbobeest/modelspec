@@ -359,7 +359,7 @@ def test_production_or_credential_origins_are_rejected(origin):
         require_nonproduction(origin)
 
 
-def test_tool_shim_routes_all_seven_tools_and_keeps_keys_out_of_feedback(config, definitions):
+def test_tool_shim_routes_all_eight_tools_and_keeps_keys_out_of_feedback(config, definitions):
     requests = []
 
     def handler(request):
@@ -383,6 +383,7 @@ def test_tool_shim_routes_all_seven_tools_and_keeps_keys_out_of_feedback(config,
             ("list_use_cases", {}),
             ("rank", {"use_case": "coding"}),
             ("decide", {"spec_version": 1, "optimize": {"max": "reasoning"}}),
+            ("compare_models", {"models": ["lab/b", "lab/a"]}),
             ("policy_check", {"policy": {"commercial_use": {"required": True}}}),
             ("feedback", {"rating": "confusing"}),
         ]:
@@ -394,10 +395,13 @@ def test_tool_shim_routes_all_seven_tools_and_keeps_keys_out_of_feedback(config,
             "/api/rank/profiles.json",
             "/v1/rank",
             "/v1/decide",
+            "/v1/compare-models",
             "/v1/policy-check",
             "/v1/feedback",
         ]
-        for index in (0, 1, 3, 4, 5):
+        assert requests[5].method == "POST"
+        assert json.loads(requests[5].content) == {"models": ["lab/b", "lab/a"]}
+        for index in (0, 1, 3, 4, 5, 6):
             assert requests[index].headers["authorization"] == "Bearer secret-key"
         assert "authorization" not in requests[2].headers
         assert "authorization" not in requests[-1].headers
@@ -852,6 +856,7 @@ def test_provider_schemas_preserve_valid_mcp_arguments(family, definitions):
         "policy_check": {"policy": {"commercial_use": {"required": True}}},
         "vocab": {"section": "providers"},
         "feedback": {"rating": "confusing"},
+        "compare_models": {"models": ["lab/b", "lab/a"]},
         "decide": {
             "spec_version": 1,
             "capabilities": {"software_engineering": "required"},
@@ -1081,6 +1086,7 @@ def test_live_vocabulary_compacts_a_legacy_worker_during_rollout(config, definit
     ("rank", {"use_case": "coding"}),
     ("policy_check", {"policy": {}}),
     ("decide", {"spec_version": 1, "optimize": {"min": "offering.cost_per_task"}}),
+    ("compare_models", {"models": ["lab/a", "lab/b"]}),
 ])
 def test_data_shim_without_a_key_names_the_env_var_before_http(config, definitions, name, args):
     with httpx.Client(transport=httpx.MockTransport(

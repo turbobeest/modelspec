@@ -3406,10 +3406,11 @@ def vocabulary_parameters():
 
 
 def compact_schemas(spec: dict[str, Any]) -> dict[str, Any]:
-    """Factor identical nested object schemas without changing their validation rules.
+    """Share identical nested schemas without changing their validation rules.
 
     Component roots keep their public names. Fingerprints include descriptions,
-    defaults and all constraints; no merely similar schemas are merged.
+    defaults and all constraints; no merely similar schemas are merged. Smaller
+    repeated property schemas share a dictionary so YAML can emit aliases.
     """
     import hashlib
     from collections import Counter
@@ -3443,13 +3444,22 @@ def compact_schemas(spec: dict[str, Any]) -> dict[str, Any]:
         collect(root)
     names = {key: "Shared" + hashlib.sha256(key.encode()).hexdigest()[:12]
              for key, count in sorted(counts.items()) if count > 1}
+    properties: dict[str, Any] = {}
 
     def replace(node, *, root=False):
         if isinstance(node, dict):
             key = fingerprint(node)
             if not root and key in names:
                 return {"$ref": "#/components/schemas/" + names[key]}
-            return {key: replace(value) for key, value in node.items()}
+            share = not root and len(key) >= 80 and any(
+                field in node for field in ("type", "anyOf", "oneOf", "allOf")
+            )
+            if share and key in properties:
+                return properties[key]
+            result = {key: replace(value) for key, value in node.items()}
+            if share:
+                properties[key] = result
+            return result
         if isinstance(node, list):
             return [replace(value) for value in node]
         return node

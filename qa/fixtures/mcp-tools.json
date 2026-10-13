@@ -1,12 +1,12 @@
 {
   "source_hashes": {
-    "mcp/src/server.ts": "ad604f06d44eee194004a5d3ae1240b1e977188e916d4d8bf49f050180591197",
+    "mcp/src/server.ts": "948aa0f71ade46d9dcc21e7786d8f19d3077c1bdfe392fd4330dfc0f6bebdd25",
     "mcp/src/vocabulary.ts": "85e01e14eea9754b82068af188b0fc7e8b7238594f4717231bf864b004a0e0ca",
-    "mcp/test/fixtures/decide-budget.json": "a15c1e26bd51d8f1ab9bb15782194ede4d133dcc4b2bef4b9dafd431918e2b4d",
-    "docs/decision-contract.schema.json": "588c279e6c59459f11f878d7c82d8a47d1c10ab938f68ef84c68a6a0380489b5",
-    "api/worker/openapi.yaml": "c2d18a57509896eb50b57072f6330de2a5fccabff8e42649ec9bde26d75dc1c7",
+    "mcp/test/fixtures/decide-budget.json": "5097e624a9551b4bbc998837357e382692ca9697950aad56e88bdf75b9c02945",
+    "docs/decision-contract.schema.json": "c7e2e67b00b75806058f6fe6bd789bad2a543b39cc82548f88a3c24ceb85be27",
+    "api/worker/openapi.yaml": "8a794043b52e3bcf04cc6eed2c7bcb1bf769b73e0e4337d9df9f299fab20c7df",
     "docs/agents.md": "b6b3273038117d903338bf62145486382a1f0bd511a2a8920df50fd2743cb6ec",
-    "mcp/src/agent-copy.json": "2f43ebd25362ed625d2940c6dfffb5d6d9b3947ade7e6d97f183bfabcc6ff146"
+    "mcp/src/agent-copy.json": "408bf5a9093e7efea7945409d9f73ce90036bf8822d43d524f9f41398b6da056"
   },
   "tools": [
     {
@@ -1539,6 +1539,31 @@
           }
         },
         "$ref": "#/$defs/DecideRequest"
+      }
+    },
+    {
+      "name": "compare_models",
+      "description": "Which facts, offerings and evidence do 2 to 4 named models have? Returns snapshot facts, offerings, evidence and sources in caller order; unknown values stay null. Needs an API key (Authorization: Bearer). Costs 2 credits a call; a credit costs $0.0053–$0.02 depending on the plan or pack (https://modelspec.dev/pricing/). It doesn't choose a model and does not rank or choose a winner. Proxies POST https://api.modelspec.dev/v1/compare-models with {models: [...]} and returns at most 16 KB.",
+      "input_schema": {
+        "additionalProperties": false,
+        "properties": {
+          "models": {
+            "items": {
+              "pattern": "^[a-z0-9][a-z0-9._-]*\\/[a-z0-9][a-z0-9._-]*$",
+              "type": "string",
+              "maxLength": 128
+            },
+            "maxItems": 4,
+            "minItems": 2,
+            "type": "array",
+            "description": "2 to 4 distinct catalogue ids, such as openai/gpt-5-6, in caller order"
+          }
+        },
+        "required": [
+          "models"
+        ],
+        "type": "object",
+        "$schema": "https://json-schema.org/draft/2020-12/schema"
       }
     },
     {
