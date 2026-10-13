@@ -74,6 +74,12 @@ def test_flag_off_agent_copy_bytes_match_base():
     assert hashlib.sha256(raw).hexdigest() == "10a1d742de8ec6bf43b6c80f3863ada4ef538480a41b81a98149bad18e9db502"
 
 
+def test_decision_link_flag_is_off_in_every_deployed_config():
+    config = worker_flags.parse_jsonc((ROOT / "api/worker/wrangler.jsonc").read_text())
+    assert config["vars"]["DECISION_LINK_ENABLED"] == "false"
+    assert config["env"]["staging"]["vars"]["DECISION_LINK_ENABLED"] == "false"
+
+
 def test_flag_on_copy_adds_decision_url_on_trusted_channels(monkeypatch):
     original = worker_flags.production_vars(ROOT)
     monkeypatch.setattr(worker_flags, "production_vars", lambda root: {**original, "DECISION_LINK_ENABLED": "true"})

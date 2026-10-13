@@ -3,11 +3,14 @@ import { spawn, spawnSync } from "node:child_process";
 import { mkdir, readFile } from "node:fs/promises";
 import { once } from "node:events";
 import { fileURLToPath } from "node:url";
-import { chromium } from "playwright";
+import { createRequire } from "node:module";
+
+const webRequire = createRequire(new URL("../web/package.json", import.meta.url));
+const { chromium } = webRequire("playwright");
 
 // Build with VITE_VISIT_GATE_ENABLED=true VITE_TURNSTILE_SITE_KEY=public-test-key.
 // Run from any directory with MODELSPEC_TEST_PYTHON pointing at the repo Python.
-const cwd = fileURLToPath(new URL("../../", import.meta.url));
+const cwd = fileURLToPath(new URL("../", import.meta.url));
 const artifacts = `${cwd}/.scratch/model-353-page`;
 await mkdir(artifacts, { recursive: true });
 const server = spawn(process.execPath, ["node_modules/vite/bin/vite.js", "preview", "--host", "127.0.0.1", "--port", "5193", "--strictPort"], { cwd: `${cwd}/web`, stdio: "ignore" });
