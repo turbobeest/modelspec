@@ -55,9 +55,9 @@ def signed_token(pinned_snapshot, decision_id, *, issued=1000, **changes):
 
 @pytest.mark.parametrize("flag", [None, "false", "0", "off", "no", ""])
 @pytest.mark.parametrize("controls,expected", [
-    ({"fields": None}, "065e58bd7edb8bda6d5316dc68024d60edcb19b041c75f46ccc27d5b958ede40"),
-    ({"fields": ["model"]}, "a5906ee64fabc1307e5f7d089a6f09eea1768eec23b71f13769c8ad3bb9b7723"),
-    ({"fields": None, "evidence_for": "lab/a"}, "54928cb858fd835f55784b4f07cb4034075fe687f209482814cbe0e99fae1b30"),
+    ({"fields": None}, "3dbe68054a3b321009d03eb836960864293a75f254450e8f81d3f034feecc657"),
+    ({"fields": ["model"]}, "015da0308b4e316d51a7416f7ccc5eaa6a069ed36cb33a19cb5f402eb04be780"),
+    ({"fields": None, "evidence_for": "lab/a"}, "3050864b9ee7db9161718a10204fea8dc0a8a39a2adc7fe46acc10b9207757cf"),
 ])
 def test_flag_off_response_bytes_match_base(entry, snapshot, monkeypatch, flag, controls, expected):
     worker = worker_for(entry, snapshot, monkeypatch, DECISION_LINK_ENABLED=flag)
@@ -190,7 +190,7 @@ def test_sensitive_inputs_do_not_get_links(entry, snapshot, monkeypatch, private
 def test_complete_and_drill_down_keep_their_budgets(entry, snapshot, monkeypatch):
     worker = worker_for(entry, snapshot, monkeypatch, DECISION_LINK_ENABLED="true")
     complete = decide(worker, fields=None)
-    assert hashlib.sha256(complete.body.encode()).hexdigest() == "065e58bd7edb8bda6d5316dc68024d60edcb19b041c75f46ccc27d5b958ede40"
+    assert hashlib.sha256(complete.body.encode()).hexdigest() == "3dbe68054a3b321009d03eb836960864293a75f254450e8f81d3f034feecc657"
     drill = decide(worker, fields=None, evidence_for="lab/a").json()
     assert drill.get("decision_url")
     assert len(json.dumps(drill, ensure_ascii=False, separators=(",", ":")).encode()) <= DRILL_DOWN_BYTES

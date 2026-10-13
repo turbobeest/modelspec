@@ -17,6 +17,7 @@ from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 
 from decision import snapshot as snap
 from decision.model import value_hash
+from decision.excluded import REMOVED_HOSTS
 from decision.registry import Registry
 from decision.registry import default as default_registry
 from decision.snapshot import (
@@ -1135,7 +1136,7 @@ def test_identifier_facts_use_existing_two_key_and_source_guards(tmp_path, facet
     elif rejected == "unresolved":
         sources.pop("src-lab-docs")
     else:
-        sources["src-lab-docs"] = "https://artificialanalysis.ai/models/example"
+        sources["src-lab-docs"] = f"https://{REMOVED_HOSTS[0]}/models/example"
     index = load(build(tmp_path, models=[model("lab/alpha")],
                        offerings=[offering("lab/alpha", facts=[record])],
                        evidence=[], sources=sources, guard=_guard()))
