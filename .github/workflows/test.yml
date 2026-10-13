@@ -27,6 +27,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Published blog revisions are checked against origin/main.
+          fetch-depth: 0
       - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
