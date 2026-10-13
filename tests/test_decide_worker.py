@@ -947,8 +947,8 @@ def test_billing_launch_enforces_keys_and_keeps_the_free_browser_visit_gate() ->
     assert variables["BILLING_ENABLED"] == "true"
     assert variables["VISIT_GATE_ENABLED"] == "true"
     assert variables["HUMAN_GATE_ENABLED"] == "false"
-    assert variables["X402_ENABLED"] == "false"
-    assert variables["X402_MAINNET"] == "false"
+    assert variables["X402_ENABLED"] == "true"
+    assert variables["X402_MAINNET"] == "true"
 
 
 def test_an_evidence_row_without_measured_by_is_kept_out_and_no_decision_breaks():

@@ -582,3 +582,94 @@ committed off-state OpenAPI does not advertise x402 offers. This integration
 changes the proven debit defect; it does not redesign those existing response
 schemas or alter any approved legal wording/date. No live payment, deployment
 or production switch activation is performed. PR #694 remains draft.
+
+
+## Authorised production flip (2026-10-13)
+
+The orchestrator follow-up reports Jamie's direct 13:01 EDT instruction,
+"flip x402", and explicitly authorises this flip commit, a normal push and
+marking PR #694 ready after the full suite passes. This supersedes the earlier
+preparation-only/off-switch/draft instructions.
+
+Base SHA: `1e1297a2a8a575b5962402a973beef02763c0ad7`.
+The existing merge is conflict-free. `git merge-tree --write-tree HEAD
+origin/main` exited 0 against main `e6a1b94c30af39cb2bbf7b91233f9691cfa98329`.
+No additional merge commit is needed; the flip is one commit on this base.
+The final flip SHA and direct full-suite measurement are recorded in the PR
+execution comment/body after the gate, avoiding tracked edits after success.
+
+The configuration changes exactly two production values:
+`X402_ENABLED` and `X402_MAINNET` from `"false"` to `"true"`. Every other config
+byte is unchanged. Network remains `eip155:8453`, native USDC remains
+`0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913`, and the confirmed receiver remains
+`0x69429dbEEEE7218084AB5B896788f5fCE452419C`. Entire staging objects and raw
+blocks are byte-identical to the base and main.
+
+Every file under `docs/legal/` is exactly its base-SHA byte sequence with
+`<FLIP DATE>` replaced by `2026-10-13`: four replacements, in the Terms 1.7 and
+Privacy 1.14 headers and change entries. No placeholder remains and no other
+legal byte or version changes.
+
+Only the four test files that pin production off or the pending dates change.
+They now assert both flags true, the active pricing panel and dated legal
+text. The production-test names reflect the active state. The mainnet-off
+runtime refusal assertion is retained through a separate disabled config copy.
+All assertion counts are unchanged, and unrelated test functions are
+AST-identical. The checksum/exact receiver, zero rejection, switch consistency,
+keyed access, Stripe, visit gate, both-state endpoint and catalog fallback tests
+are retained. The synthetic off-fixture and unsafe-meter checks stay unchanged.
+
+Red/green command:
+
+```bash
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q --tb=short tests/test_x402.py tests/test_legal.py tests/test_decide_worker.py tests/test_pricing_page.py -k 'wrangler_enables or production_x402 or x402_legal_revision_is_effective or x402_terms_use_the_exact_approved_text or x402_privacy_uses_the_exact_approved_text or version_statement or billing_launch_enforces_keys or production_switches_generate'
+```
+
+Red direct exit 1: `8 failed, 13 passed, 262 deselected in 14.24s`. Production
+pins failed with `'false' == 'true'`, and exact T7/P4 date pins failed against
+the pending legal placeholders. Green direct exit 0:
+`21 passed, 262 deselected in 0.82s` after the authorised flag/date changes.
+
+Generated artifacts are regenerated, never hand-edited:
+
+```bash
+export PATH="/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH"
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.agent_copy write
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/openapi.py
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m qa.contracts
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/openapi.py --check
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_x402.py tests/test_legal.py tests/test_decide_worker.py tests/test_pricing_page.py tests/test_api_docs.py tests/test_agent_copy.py tests/test_agent_guide.py tests/test_agent_harness.py tests/test_mcp_schema_compaction.py tests/test_x402_mainnet_probe.py
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.build --out dist
+git diff --check
+```
+
+All generators, OpenAPI check, focused suites, site build and diff check exited
+0. Focused output: `460 passed, 3 skipped in 139.31s (0:02:19)`. All nine CLI
+source hashes and seven QA source hashes match. OpenAPI is 228,661 bytes, below
+its 233,000-byte cap, advertises live 402 offers for all five POST endpoints
+and retains required `terms_url`. Tools remain the versions recorded above.
+Independent legal/config/test audits exited 0 and confirmed the exact byte
+transformations and retained assertions.
+
+Final FULL gate after this evidence and all source changes are in the single
+flip commit:
+
+```bash
+export PATH="/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH"
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4
+model333_test_status=$?
+exit "$model333_test_status"
+```
+
+Execution redirects output to ignored `flip-full.log`, captures `$?`
+immediately in `flip-full-exit.log` and exits with that captured value. A
+correction requires repeating the entire suite. Final SHA/counts/direct exit
+are recorded on the PR without changing tracked files after the gate.
+
+Before editing PR metadata, the executor scanned its title/body/labels and all
+four comments: no "DO NOT MERGE" wording remained. The stale off-state title
+and body will be updated after the successful push, then the explicitly
+requested `gh pr ready 694 -R turbobeest/modelspec` will mark it ready. The
+executor never merges the PR. No deployment command, real wallet/facilitator
+payment or paid-provider call is performed. The previously recorded inherited
+402 envelope/schema issue is outside this narrow flip and remains unchanged.

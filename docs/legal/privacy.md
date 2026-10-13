@@ -1,6 +1,6 @@
 # Privacy statement
 
-Version `1.14`, effective <FLIP DATE>. Adopted by Sparks & Sawdust LLC, which
+Version `1.14`, effective 2026-10-13. Adopted by Sparks & Sawdust LLC, which
 operates the service. MODEL-70. Version 1.0 was adopted on 2026-09-19; what
 changed since is listed under [Changes](#changes).
 
@@ -630,7 +630,7 @@ to `DELETE /v1/feedback`, or write to us with it.
 A change to what the service records is a change to this statement, and it is
 published here before the change ships. The version above is the one in force.
 
-- **1.14, <FLIP DATE>.** x402 payments are live (MODEL-333). The x402 bullet moves from *Not yet live* to *What x402 payments involve*. That section discloses what the signed payment carries, that Coinbase's facilitator verifies and settles it, what we keep and do not keep, that a settlement is public on Base, and the receiving address. Keys stay enforced, so neither keyless change the earlier text predicted occurs.
+- **1.14, 2026-10-13.** x402 payments are live (MODEL-333). The x402 bullet moves from *Not yet live* to *What x402 payments involve*. That section discloses what the signed payment carries, that Coinbase's facilitator verifies and settles it, what we keep and do not keep, that a settlement is public on Base, and the receiving address. Keys stay enforced, so neither keyless change the earlier text predicted occurs.
 
 - **1.13, 2026-10-10.** Meter events sent to Stripe for Scale overage no
   longer carry the hash of your key; they use a random meter id kept with the

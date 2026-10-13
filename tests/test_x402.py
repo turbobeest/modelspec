@@ -791,12 +791,12 @@ def test_no_test_calls_the_network():
     assert worker_post.__name__ == "worker_post"
 
 
-def test_wrangler_stages_x402_mainnet_with_switches_off():
+def test_wrangler_enables_x402_on_base_mainnet():
     text = (REPO_ROOT / "api" / "worker" / "wrangler.jsonc").read_text(encoding="utf-8")
     live = "\n".join(l for l in text.splitlines() if not l.lstrip().startswith("//"))
     production = _wrangler_config()["vars"]
-    assert production["X402_ENABLED"] == "false"
-    assert production["X402_MAINNET"] == "false"
+    assert production["X402_ENABLED"] == "true"
+    assert production["X402_MAINNET"] == "true"
     assert '"X402_NETWORK": "eip155:8453"' in live
     assert '"X402_ASSET": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"' in live
     assert '"class_name": "CreditsObject"' in live
@@ -812,13 +812,13 @@ def _wrangler_config() -> dict[str, Any]:
     return json.loads(live)
 
 
-def test_production_x402_config_waits_for_the_operator_flip():
+def test_production_x402_config_is_live():
     config = _wrangler_config()
     assert config["vars"]["HUMAN_GATE_ENABLED"] == "false"
     assert config["vars"]["ACCESS_ENFORCED"] == "true"
     assert config["vars"]["BILLING_ENABLED"] == "true"
-    assert config["vars"]["X402_ENABLED"] == "false"
-    assert config["vars"]["X402_MAINNET"] == "false"
+    assert config["vars"]["X402_ENABLED"] == "true"
+    assert config["vars"]["X402_MAINNET"] == "true"
     assert re.fullmatch(r"0x[0-9a-fA-F]{40}", config["vars"]["X402_PAY_TO"])
     assert config["workers_dev"] is False
     assert config["routes"] == [
@@ -936,13 +936,13 @@ def test_production_x402_switches_are_consistent() -> None:
                                   "X402_PAY_TO": "0x" + "0" * 40}) == ["X402_PAY_TO"]
 
 
-def test_production_x402_is_prepared_for_base_mainnet_with_switches_off() -> None:
+def test_production_x402_is_live_on_base_mainnet() -> None:
     config = _wrangler_config()
     production = config["vars"]
     assert production["X402_NETWORK"] == "eip155:8453"
     assert production["X402_ASSET"] == "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
-    assert production["X402_ENABLED"] == "false"
-    assert production["X402_MAINNET"] == "false"
+    assert production["X402_ENABLED"] == "true"
+    assert production["X402_MAINNET"] == "true"
     assert re.fullmatch(r"0x[0-9a-fA-F]{40}", production["X402_PAY_TO"])
 
     staging = config["env"]["staging"]["vars"]
@@ -950,10 +950,11 @@ def test_production_x402_is_prepared_for_base_mainnet_with_switches_off() -> Non
     assert staging["X402_ASSET"] == "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
 
     cfg = x402.load_config(SimpleNamespace(**production))
-    assert cfg.enabled is False
-    assert cfg.mainnet is False
+    assert cfg.enabled is True
+    assert cfg.mainnet is True
     assert cfg.configured is True
-    assert x402._check_payload({}, cfg) == "mainnet is disabled (X402_MAINNET is off)"
+    disabled = x402.load_config(SimpleNamespace(**{**production, "X402_MAINNET": "false"}))
+    assert x402._check_payload({}, disabled) == "mainnet is disabled (X402_MAINNET is off)"
     activated = x402.load_config(SimpleNamespace(**{
         **production, "X402_ENABLED": "true", "X402_MAINNET": "true"}))
     assert activated.enabled is True

@@ -288,14 +288,14 @@ def test_the_terms_neither_deny_nor_promise_that_purchase_is_open() -> None:
     assert "Current plans, prices and availability are published at" in FLAT_TERMS
 
 
-def test_the_pending_x402_legal_revision_waits_for_the_operator_flip() -> None:
+def test_the_x402_legal_revision_is_effective_on_the_flip_date() -> None:
     from pipeline.worker_flags import production_vars
 
     variables = production_vars(REPO_ROOT)
-    assert variables["X402_ENABLED"] == "false"
-    assert variables["X402_MAINNET"] == "false"
-    assert "Version `1.7`, effective <FLIP DATE>." in FLAT_TERMS
-    assert "Version `1.14`, effective <FLIP DATE>." in FLAT_PRIVACY
+    assert variables["X402_ENABLED"] == "true"
+    assert variables["X402_MAINNET"] == "true"
+    assert "Version `1.7`, effective 2026-10-13." in FLAT_TERMS
+    assert "Version `1.14`, effective 2026-10-13." in FLAT_PRIVACY
 
 
 @pytest.mark.parametrize("approved", [
@@ -331,7 +331,7 @@ def test_the_pending_x402_legal_revision_waits_for_the_operator_flip() -> None:
         "through Stripe, any tax charged is shown at Checkout before you pay. You are "
         "responsible for taxes on your own side of the transaction.", id="T6"),
     pytest.param(
-        "Version 1.7 (<FLIP DATE>) adds payment by x402 in USDC on Base (§2, §6). No "
+        "Version 1.7 (2026-10-13) adds payment by x402 in USDC on Base (§2, §6). No "
         "other term changed.", id="T7"),
 ])
 def test_x402_terms_use_the_exact_approved_text(approved: str) -> None:
@@ -370,7 +370,7 @@ def test_x402_terms_use_the_exact_approved_text(approved: str) -> None:
         "key. A separate staging copy of the API, on a `workers.dev` address that the "
         "site never calls, runs x402 on a test network for testing.", id="P3-enforcement"),
     pytest.param(
-        "- **1.14, <FLIP DATE>.** x402 payments are live (MODEL-333). The x402 bullet "
+        "- **1.14, 2026-10-13.** x402 payments are live (MODEL-333). The x402 bullet "
         "moves from *Not yet live* to *What x402 payments involve*. That section "
         "discloses what the signed payment carries, that Coinbase's facilitator "
         "verifies and settles it, what we keep and do not keep, that a settlement is "
@@ -900,10 +900,10 @@ def test_the_decide_contract_refuses_its_free_text_task() -> None:
 #: commitment is a change to that; each gets a new version and date rather than
 #: a silent edit of the adopted one.
 IN_FORCE = {
-    "terms": "Version `1.7`, effective <FLIP DATE>.",
+    "terms": "Version `1.7`, effective 2026-10-13.",
     "dmca": "Version `1.0`, effective 2026-10-09.",
     "neutrality": "Version `1.3`, effective 2026-09-30.",
-    "privacy": "Version `1.14`, effective <FLIP DATE>.",
+    "privacy": "Version `1.14`, effective 2026-10-13.",
 }
 
 

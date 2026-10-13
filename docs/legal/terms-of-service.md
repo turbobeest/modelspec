@@ -1,6 +1,6 @@
 # Terms of service
 
-Version `1.7`, effective <FLIP DATE>. Adopted by Sparks & Sawdust LLC.
+Version `1.7`, effective 2026-10-13. Adopted by Sparks & Sawdust LLC.
 MODEL-70.
 
 ## 1. Who you are contracting with
@@ -292,7 +292,7 @@ You may stop using the service at any time. We may suspend or end access for a
 breach of §5. §4 does not expire, is not suspended, and does not change with a
 new version of these terms.
 
-Version 1.7 (<FLIP DATE>) adds payment by x402 in USDC on Base (§2, §6). No other term changed.
+Version 1.7 (2026-10-13) adds payment by x402 in USDC on Base (§2, §6). No other term changed.
 
 Version 1.6 (2026-10-10) changed §6: new prices for Solo and Team, a Scale
 plan with metered overage, repriced packs, and priced metadata reads; plans and
