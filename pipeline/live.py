@@ -124,7 +124,6 @@ HEADERS = (
     "/assets/*\n"
     "  Cache-Control: public, max-age=31536000, immutable\n"
     "/d/*\n"
-    "  X-Robots-Tag: noindex, nofollow, noarchive\n"
     "  Cache-Control: no-store\n"
     "  ! Referrer-Policy\n"
     "  Referrer-Policy: no-referrer\n"

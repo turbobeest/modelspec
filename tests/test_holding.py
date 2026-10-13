@@ -264,7 +264,7 @@ def test_full_build_still_contains_every_source_page_before_composition(trees):
     assert (bg / "_redirects").read_text(encoding="utf-8") == builder.BENCHGRAPH_REDIRECTS
     assert "in preparation" not in (ms / "index.html").read_text(encoding="utf-8")
     headers = (ms / "_headers").read_text(encoding="utf-8")
-    assert "X-Robots-Tag" not in headers.split("/d/*\n", 1)[0]
+    assert "X-Robots-Tag" not in headers
     assert '</llms.txt>; rel="describedby"' in headers
     assert 'Content-Type: application/linkset+json' in headers
     assert "Sitemap:" in (ms / "robots.txt").read_text(encoding="utf-8")
@@ -402,11 +402,6 @@ def test_decision_link_shell_is_private_and_not_discoverable(trees):
     policy = next(line for line in headers.splitlines() if "Content-Security-Policy:" in line)
     assert "https://challenges.cloudflare.com" in policy
     assert "https://api.modelspec.dev" in policy
-
-
-def test_decision_link_header_rule_prevents_indexing():
-    private = live.HEADERS.split("/d/*\n", 1)[1].split("\n/", 1)[0]
-    assert "X-Robots-Tag: noindex, nofollow, noarchive" in private
 
 
 def test_dead_links_names_a_discovery_file_the_tree_lacks(tmp_path):

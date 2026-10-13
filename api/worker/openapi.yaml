@@ -2200,6 +2200,7 @@ components:
           default: null
           title: Member Evidence
         summary_for_user: {default: '', title: Summary For User, type: string}
+        decision_url: {default: '', title: Decision Url, type: string}
         must_mention:
           items: {type: string}
           title: Must Mention
