@@ -1,5 +1,8 @@
 # MODEL-306 execution evidence
 
+The following sections record initial implementation and delivery before the
+review follow-up appended below.
+
 MODEL-306 adds prebuilt template previews at `/decide/templates/<id>/`, with
 1200×630 PNG cards and OG/Twitter metadata. Each preview uses the public frozen
 repository snapshot, including its registry. The card shows the board's leading
@@ -15,7 +18,7 @@ privacy review.
 Worktree: `/Users/terbeest/dev/worktrees/model-306`.
 Branch: `sparksandsawdust/model-306-share-cards`.
 Base SHA: `3234406f0663231f02a033ce595019580134cc28`.
-Final tested implementation SHA: `de41d8d7fa3835d183ed67463a98154310fc2b8a`.
+Initial tested implementation SHA: `de41d8d7fa3835d183ed67463a98154310fc2b8a`.
 
 The delivery commit adds documentation to the tested implementation.
 Resolve its final SHA with
@@ -251,7 +254,7 @@ The live build reported `modelspec: 2705 files; discovery links resolve`.
 A direct file check verified all 40 preview pages, their OG/Twitter image
 targets, and 1200×630 PNGs in both the source and live trees. The live files
 matched the source bytes, and all 43 deploy-allowlisted cards existed. No
-template page contained Artificial Analysis or Zapier references.
+template page contained a removed-source reference.
 
 The direct check used this local ignored script, with exit code 0:
 
@@ -259,7 +262,9 @@ The direct check used this local ignored script, with exit code 0:
 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python .artifacts/model-306/executor/verify-artifacts.py > .artifacts/model-306/executor/artifact-verification.log 2>&1
 ```
 
-Its source is reproduced here. The baseline path refers to the red-first build
+The equivalent source below uses the repository exclusion pattern in place of
+the initial script's literal name checks, so this report follows the tracked-file
+guard. The initial run passed those literal checks. The baseline path refers to the red-first build
 fixture retained in this worktree; the source and live paths refer to the final
 builds above.
 
@@ -268,6 +273,7 @@ import json
 import struct
 from pathlib import Path
 
+from decision.excluded import REMOVED_TEXT
 from decision.templates import load_templates
 from pipeline.social_cards import all_card_filenames
 
@@ -288,7 +294,7 @@ for template in load_templates():
         png = (tree / image).read_bytes()
         assert png[:8] == b'\x89PNG\r\n\x1a\n'
         assert struct.unpack('>II', png[16:24]) == (1200, 630)
-        assert not any(term in text.lower() for term in ('artificial analysis', 'artificialanalysis', 'zapier'))
+        assert REMOVED_TEXT.search(text) is None
     assert (source / page).read_bytes() == (live / page).read_bytes(), template_id
     assert (source / image).read_bytes() == (live / image).read_bytes(), template_id
 assert len(all_card_filenames()) == 43
