@@ -68,7 +68,9 @@ def test_only_release_pypi_publishes_and_only_by_trusted_publishing() -> None:
         if "pypa/gh-action-pypi-publish" in text:
             publishers.append(path.name)
     assert publishers == ["release-pypi.yml"]
-    workflow = yaml.safe_load((REPO_ROOT / ".github" / "workflows" / "release-pypi.yml").read_text())
+    workflow = yaml.safe_load(
+        (REPO_ROOT / ".github" / "workflows" / "release-pypi.yml").read_text()
+    )
     job = workflow["jobs"]["publish"]
     assert job["environment"] == "pypi"
     assert job["permissions"] == {"contents": "read", "id-token": "write"}
@@ -95,6 +97,23 @@ def test_ci_builds_and_installs_the_wheel_in_a_fresh_environment() -> None:
     assert "scripts/package_smoke.py" in commands
     assert "modelspec snapshot fetch" not in commands
     assert "decision.registry" not in commands
+
+
+def test_package_smoke_runs_against_the_current_cli(tmp_path, monkeypatch, capsys) -> None:
+    from cli.modelspec import client
+    from scripts.package_smoke import main
+
+    monkeypatch.setattr(client, "_transport", None)
+    monkeypatch.setenv("MODELSPEC_API_KEY", "")
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "config"))
+    monkeypatch.chdir(tmp_path)
+
+    main()
+
+    assert capsys.readouterr().out == (
+        "Installed wheel: offline guidance, key gate, bounded default, explicit fields "
+        "and hosted response verified.\n"
+    )
 
 
 def test_public_install_instructions_name_the_owned_package_and_three_paths() -> None:
