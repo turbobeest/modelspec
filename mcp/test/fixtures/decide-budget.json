@@ -19,7 +19,7 @@
   "default": {
     "representation": "bounded",
     "bounded_version": "1.2",
-    "projects_contract": "2.16",
+    "projects_contract": "3.0",
     "decision_id": "dec_3f4cebe9dbd4c32f475d168f",
     "snapshot": "snap_f2bc200545ea3aff",
     "signature_verified": true,
@@ -539,7 +539,7 @@
   "drill_down": {
     "representation": "bounded",
     "bounded_version": "1.2",
-    "projects_contract": "2.16",
+    "projects_contract": "3.0",
     "decision_id": "dec_3f4cebe9dbd4c32f475d168f",
     "snapshot": "snap_f2bc200545ea3aff",
     "signature_verified": true,
@@ -725,7 +725,7 @@
   "speech": {
     "representation": "bounded",
     "bounded_version": "1.2",
-    "projects_contract": "2.16",
+    "projects_contract": "3.0",
     "decision_id": "dec_0e0e90d968ed814db267bdb6",
     "snapshot": "snap_f2bc200545ea3aff",
     "signature_verified": true,
