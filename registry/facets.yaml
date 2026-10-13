@@ -669,6 +669,30 @@ facets:
     tier: guaranteed
     risk: capability
     permitted_source_kinds: [provider_documentation]
+  - id: offering.api_model_id
+    label: API model ID
+    subject: offering
+    value_type: {kind: string}
+    addressable: false
+    definition: >-
+      The exact model identifier the provider publishes for API requests to
+      this offering, including any cloud deployment or inference profile ID.
+      It is never derived from the catalogue model name or a router slug.
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [provider_documentation]
+  - id: offering.router_slug
+    label: OpenRouter model slug
+    subject: offering
+    value_type: {kind: string}
+    addressable: false
+    definition: >-
+      The exact OpenRouter model slug published for this offering's model in
+      OpenRouter documentation or its model catalogue, independently sourced
+      from the provider's API model identifier.
+    tier: best_effort
+    risk: capability
+    permitted_source_kinds: [provider_documentation]
   - id: offering.region
     label: Inference region
     subject: offering

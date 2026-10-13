@@ -35,7 +35,7 @@ are the Worker's declared Python dependencies.
 
 The JSON body is a Spec from [`decision-contract.md`](decision-contract.md).
 `spec_version` is the integer `1`; the current compatible contract release is
-`2.4`.
+`2.17`.
 
 ```http
 POST /v1/decide
@@ -132,7 +132,7 @@ available through `modelspec decide --compare-to`.
 ## Response
 
 A successful body is the decision contract's Decision object without a Worker
-wrapper, as compact JSON (contract 1.4). This keeps it byte-identical to the
+wrapper, as compact JSON (contract 2.17). This keeps it byte-identical to the
 JSON printed by `modelspec decide --json` for the same Spec and Snapshot. It is
 shown indented here for reading.
 
@@ -143,7 +143,7 @@ shown indented here for reading.
   "chart": null,
   "number_origins": [],
   "sources": [],
-  "contract_version": "2.4",
+  "contract_version": "2.17",
   "decision_id": "dec_0123456789abcdef01234567",
   "snapshot": "snap_0123456789abcdef",
   "spec_hash": "sha256:0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef",
@@ -171,6 +171,13 @@ by the decision contract:
   provenance with each source listed once, and a chart. On the live
   snapshot's default coding task at `limit: 20` it is about 230 KB (MODEL-163;
   before 1.4 it was 7.5 MB and exhausted the Worker).
+
+Offering references may include `api_model_id` and a separate `router_slug`
+when the snapshot holds verified `offering.api_model_id` and
+`offering.router_slug` facts. Each string is absent when its fact is missing
+or unverified. Full answers also show known identifiers in `top[].facts`,
+with their retained provenance. See
+[Offering references](decision-contract.md#offering-references-model-209).
 
 A request that exhausts the Worker's resources gets Cloudflare's own error
 page (`1102`, HTTP 503, not JSON, no CORS header), not a contract error. The
@@ -265,7 +272,7 @@ confusing `400 invalid_spec`, the page sends `X-ModelSpec-Snapshot`:
 
 ```json
 {
-  "contract_version": "2.4",
+  "contract_version": "2.17",
   "endpoint": "decide",
   "snapshot": "snap_new0123456789ab",
   "error": {

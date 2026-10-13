@@ -657,7 +657,7 @@ export function DesignedApp({
       return;
     }
     const base = realBaseSpec(vocabulary);
-    const template = openingTemplate(vocabulary, initial !== null);
+    const template = openingTemplate(vocabulary, initial !== null, new URLSearchParams(location.search).get("template"));
     const converted = template ? templateToBoard(template, vocabulary) : null;
     const openingBoard = sanitizeBoardState(
       { selections: converted?.selections ?? {}, mustOrder: converted?.mustOrder ?? [], estate },
@@ -1227,6 +1227,7 @@ export function DesignedApp({
           axis={shownAxis}
           row={row}
           demo={false}
+          templateId={activeTemplate?.id}
           refinementsFolded={refinementFallbackKeys.size > 0}
           boardPermalink={{
             spec: boardBaseSpec,

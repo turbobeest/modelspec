@@ -1,6 +1,6 @@
 # The ModelSpec decision contract
 
-Contract version: **2.16**
+Contract version: **2.17**
 
 The opt-in bounded HTTP response is a separate representation with its own
 version, **bounded 1.2**. It does not carry a 2.x `contract_version`. See
@@ -662,7 +662,7 @@ best-band tie (`answer.members`). A `do_not_claim` line also names a tied
 
 ```json decision
 {
-  "contract_version": "2.16",
+  "contract_version": "2.17",
   "decision_id": "dec_01J8ZK3Q7Y",
   "snapshot": "snap_2026-09-24T06:00Z",
   "signature_verified": true,
@@ -805,7 +805,7 @@ best-band tie (`answer.members`). A `do_not_claim` line also names a tied
 
 | Field | Meaning |
 |---|---|
-| `contract_version` | `"2.16"`. |
+| `contract_version` | `"2.17"`. |
 | `decision_id` | `dec_<id>`. Cite it in outcome records. |
 | `snapshot` | The snapshot ID the decision was computed from. Never `latest`. |
 | `signature_verified` | `true` when this process verified either the pinned Ed25519 signature or the private Worker HMAC. |
@@ -1022,6 +1022,39 @@ At `none` and `summary`, `by_model` holds ranked and may-qualify models only.
 `cost_per_task` is null when the offering has no priced task. The field is
 always present, and is empty when `results` and `may_qualify` are.
 
+### Offering references (MODEL-209)
+
+Every `OfferingRef` identifies a `model` and, for an offering, its `provider`,
+`region`, and `tier`. It may also carry these verified identifiers:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `api_model_id` | optional string or null | The provider's API model ID for this exact offering, from `offering.api_model_id`. |
+| `router_slug` | optional string or null | The router's model slug for this offering, from `offering.router_slug`. The current router is OpenRouter. |
+
+Each identifier is absent when the snapshot has no verified fact for it.
+The fields are independent: a provider API ID never supplies a router slug.
+The engine does not derive either identifier from a model name or a pattern.
+
+The snapshot admits both facts under the existing
+[two-key verification rules](decision-verification.md). A collector files the
+claim, and an independent reader checks the retained source copy. The winning
+verification must match the claimed value and cite registered, non-excluded
+sources. Existing card availability IDs are candidates that require this
+verification before admission.
+
+At `explain: full`, known identifiers also appear in `top[].facts` as
+`offering.api_model_id` and `offering.router_slug`, with `record_id` and
+`source_ids`. Those IDs resolve to the retained provenance and winning
+verification record. Unknown identifiers are omitted from `facts`.
+
+`modelspec decide --emit-router-config` uses the provider ID for LiteLLM and
+the separate router slug for OpenRouter. A missing identifier keeps its
+`<...>` placeholder and states `no verified offering.api_model_id in this
+snapshot` or `no verified offering.router_slug in this snapshot`. The generic
+JSON configuration carries the null identifier, its placeholder, and its
+reason for each route.
+
 ### A result
 
 | Field | Meaning |
@@ -1030,7 +1063,7 @@ always present, and is empty when `results` and `may_qualify` are.
 | `model` | The offering's model ID, flat, so an agent need not open `offering`. Always equal to `offering.model`. |
 | `model_rank` | 1-based position among models: the model's best offering's place. Ties are expressed only by `answer`. |
 | `cost_per_task` | The offering's exact cost of one task in USD, or null when it cannot be priced. Filled at every explanation level. |
-| `offering` | `model`, and when the result is an offering, its `provider`, `region` and `tier`. |
+| `offering` | An offering reference with `model`, and when the result is an offering, its `provider`, `region` and `tier`. Optional `api_model_id` and `router_slug` carry verified identifiers as described above. |
 | `harness` | The harness the evidence and estimate apply to, or null. |
 | `effort` | The effort setting the evidence and estimate apply to, or null. |
 | `evidence` | For each requested `domain` in `capabilities`, the verified evidence `items`. An objective named only through `optimize`, with no `capabilities`, leaves this list empty. Those records are on `contributions[].evidence` and, for each answer member, on `member_evidence`. |
@@ -1118,13 +1151,13 @@ contract would need a major bump. It is a different representation instead:
   follows the same MODEL-59 rule on its own: widening any bounded field bumps
   its major.
 - `projects_contract` names the complete contract the body is projected from,
-  currently `"2.16"`. Every field the bounded body does carry has that
+  currently `"2.17"`. Every field the bounded body does carry has that
   contract's type and meaning.
 - A bounded body has **no** `contract_version`. A 2.x decoder that requires
   `contract_version` refuses it rather than misreading it as a complete
   Decision.
 
-Requests with only `limit`, or `fields: null`, receive complete contract 2.16
+Requests with only `limit`, or `fields: null`, receive complete contract 2.17
 responses. The decide page never sends `fields` or `evidence_for`, so its
 decoder never sees a bounded body and
 needs no change.
@@ -1150,7 +1183,7 @@ sections. `explain` still controls which details the engine computes; selecting
 are shareable, and the link fits the existing byte budget. It is absent with
 the flag off and from complete decisions. Visibility and storage await Jamie's
 approval; see [the draft design](design/decision-link.md). Adding this optional
-field widens no existing field, so bounded 1.2 and complete 2.16 do not change.
+field widens no existing field, so bounded 1.2 and complete 2.17 do not change.
 
 `next_move` is optional and additive in bounded 1.2. It is present on
 `no_feasible`, `partial`, and an `answered` tie or null answer, and absent on
@@ -1477,7 +1510,8 @@ contract version. Version 1.1 retains them.
     display set: context
     window, class, lifecycle, weights openness, release date, commercial-use
     licence, lab jurisdiction, input and output price, `$ per task`,
-    throughput, time to first token and data retention. Not every value the
+    throughput, time to first token, data retention, provider API model ID,
+    and router slug. Not every value the
     candidate holds.
   - Shown facts carry `facet`, `value`, `unit`, and `record_id`; a computed
     fact (1.3) has no `record_id` and carries `records` and `formula` instead.
@@ -1640,7 +1674,7 @@ an explicit source-policy reason without retaining the excluded URL.
 The stored `model.fits_hardware` facet still controls reach.
 
 The bounded representation continues at `bounded_version: "1.2"` and
-names `projects_contract: "2.16"`. It does not carry `top`; fetch the complete
+names `projects_contract: "2.17"`. It does not carry `top`; fetch the complete
 answer without `fields` to inspect these facts and their provenance.
 
 ## Comparing named models (MODEL-364)
@@ -1663,8 +1697,8 @@ The named comparison has its own contract, version **1.0**, identified by
 `comparison_version` on success and refusal bodies. It has no
 `contract_version`. Its fields follow the same MODEL-59 versioning rule:
 widening a comparison field bumps the comparison's major version.
-No Decision field changes range, so the shared Decision stays at 2.16 and
-the bounded projection stays at 1.2 with `projects_contract: "2.16"`.
+No Decision field changes range. The shared Decision contract is 2.17.
+The bounded projection stays at 1.2 with `projects_contract: "2.17"`.
 
 The success response is a `ModelComparison` with these fields:
 
@@ -1855,19 +1889,29 @@ that used to be accepted is a major change; accepting more is not.
 
 ## Change log
 
-- **MODEL-210, under 2.16 without a version change:** `plan_surfaces` gains
+- **MODEL-210, under 2.17 without a version change:** `plan_surfaces` gains
   the registry token `coding_tool:*`. `PlanRoute.surface` stays an
   unconstrained string, so this is not a new enum value and
-  `contract_version` stays 2.16. No response field is added. The open-list
+  `contract_version` stays 2.17. No response field is added. The open-list
   sentence is written into the existing `basis` string and the coverage
   `rule`.
+
+- **2.17, MODEL-209:** Offering references add optional `api_model_id` and
+  `router_slug` strings from the separate `offering.api_model_id` and
+  `offering.router_slug` facts. The snapshot admits these facts only after
+  existing two-key verification. Missing identifiers are absent from offering
+  references. Full answers show known identifiers with retained provenance in
+  `top[].facts`. Router configurations use verified identifiers and keep a
+  `<...>` placeholder with a no-verified-fact reason for each missing ID.
+  These fields are additive. The bounded representation remains version 1.2
+  and projects complete contract 2.17.
 
 - **Comparison 1.0, MODEL-364:** Adds keyed named-model comparison through
   `POST /v1/compare-models`, with caller order, sourced facts, explicit unknowns,
   offerings, and benchmark evidence. The response uses its own
   `comparison_version: "1.0"`. Existing Decision fields retain their ranges
-  and contract version 2.16. Bounded decisions keep version 1.2 and project
-  contract 2.16. The existing snapshot comparison remains available.
+  and contract version 2.17. Bounded decisions keep version 1.2 and project
+  contract 2.17. The existing snapshot comparison remains available.
 
 - **2.16, MODEL-348:** Full answers conditionally show known, sourced architecture,
   total and active parameter facts, and expert facts when registered. Weight

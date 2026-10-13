@@ -503,10 +503,8 @@ def build_vocabulary(snapshot: Any, *, pages: Mapping[str, Mapping[str, Any]] | 
                for kind in ("model", "offering")}
     facets = []
     for facet in registry.facets():
-        # Subscription facts are snapshot metadata until MODEL-179 teaches the
-        # holder-cost engine how to compare allowances and plan prices.
         # offering.plan.price_monthly exists only for a spec with access (MODEL-200).
-        if facet.id.startswith(("offering.subscription.", "offering.plan.")):
+        if not facet.addressable or facet.id.startswith("offering.plan."):
             continue
         if facet.parameter is not None:
             continue
