@@ -210,6 +210,38 @@ def test_every_local_discriminator_mapping_resolves(spec: dict[str, Any]) -> Non
     assert dangling == []
 
 
+def test_payment_required_schema_requires_the_canonical_terms_url(
+        spec: dict[str, Any]) -> None:
+    from api.ranking.engine import neutrality_commitment
+
+    error = spec["components"]["schemas"]["PaymentRequired"]["properties"]["error"]
+    assert "terms_url" in error["required"]
+    assert error["properties"]["terms_url"]["type"] == "string"
+    assert neutrality_commitment()["terms_url"] == "https://modelspec.dev/legal/terms/"
+
+
+@pytest.mark.parametrize("offer_packs", [False, True])
+def test_payment_required_always_links_terms_before_payment(offer_packs: bool) -> None:
+    config = generator.x402.Config(
+        enabled=True,
+        mainnet=False,
+        network=generator.x402.NETWORK_BASE_SEPOLIA,
+        asset=generator.x402._norm_addr(generator.x402.USDC_BASE_SEPOLIA),
+        pay_to="0x209693bc6afc0c5328ba36faf03c514ef312287c",
+        price_atomic=20_000,
+        facilitator_url=generator.x402.DEFAULT_ORIGIN,
+        resource_origin="https://api.modelspec.dev",
+        packs=generator.x402.packs_from_policy(generator.access_config.load_policy()),
+        terms_url="",
+    )
+    body = generator.x402.payment_required_body(
+        config, {}, "https://api.modelspec.dev/v1/decide", offer_packs=offer_packs)
+
+    assert body["error"]["terms_url"] == "https://modelspec.dev/legal/terms/"
+    assert body["error"]["how_to_pay"].endswith(
+        "Paying accepts the terms at https://modelspec.dev/legal/terms/.")
+
+
 def test_payment_required_schema_accepts_keyed_and_keyless_offers(
         spec: dict[str, Any]) -> None:
     schema = spec["components"]["schemas"]["PaymentRequired"]
