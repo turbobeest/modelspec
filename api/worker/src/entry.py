@@ -151,7 +151,7 @@ STRIPE_SECRET_KEY_VAR = "STRIPE_SECRET_KEY"
 #: is named. `/v1/policy-check` (MODEL-80) is on this list for the same reason
 #: `/v1/rank` is: a caller who mistypes it must be told it exists.
 ACCEPTED_ENDPOINTS = (
-    "POST /v1/rank", "POST /v1/decide", "POST /v1/compare",
+    "POST /v1/rank", "POST /v1/decide", "POST /v1/compare", "POST /v1/compare-models",
     "POST /v1/policy-check", "POST /v1/feedback", "DELETE /v1/feedback", "GET /v1/health",
     "POST /v1/signals", "POST /v1/signals/discovered",
     "GET /v1/signals/pending", "POST /v1/signals/ack",
@@ -172,7 +172,7 @@ def _accepted_endpoints(env) -> list[str]:
 #: The subset that takes a body. All refuse a wrong verb through the one
 #: `_method_not_allowed` below, and a path outside this tuple is a 404 before
 #: anything is read or fetched.
-POST_ENDPOINTS = ("/v1/rank", "/v1/decide", "/v1/compare", "/v1/policy-check")
+POST_ENDPOINTS = ("/v1/rank", "/v1/decide", "/v1/compare", "/v1/compare-models", "/v1/policy-check")
 
 # The browser clients: the production site (what SITE_MODE=live serves on the
 # apex and www) and the private Pages preview branch deployed by
@@ -880,14 +880,14 @@ class Default(WorkerEntrypoint):
 
         decider = None
         decision_transport = _DecisionTransport()
-        if path in ("/v1/decide", "/v1/compare"):
+        if path in ("/v1/decide", "/v1/compare", "/v1/compare-models"):
             decider = _decide_service()
 
         if decider is not None and method == "OPTIONS":
             headers = _cors_headers(request, self.env)
             if not headers:
                 return _json_response(service.HTTP_NOT_FOUND, {
-                    "contract_version": decider.contract.CONTRACT_VERSION,
+                    **decider.version_fields(path.rsplit("/", 1)[-1]),
                     "endpoint": path.rsplit("/", 1)[-1],
                     "snapshot": None,
                     "error": {"code": "origin_not_allowed",
@@ -1099,7 +1099,7 @@ class Default(WorkerEntrypoint):
         elif decider is not None:
             endpoint = path.rsplit("/", 1)[-1]
             envelope = {
-                "contract_version": decider.contract.CONTRACT_VERSION,
+                **decider.version_fields(endpoint),
                 "endpoint": endpoint,
                 "snapshot": getattr(_decision_holder(origin).snapshot, "snapshot_id", None),
                 "service_commit": service_commit,
@@ -1112,6 +1112,8 @@ class Default(WorkerEntrypoint):
             async def _answer():
                 if path == "/v1/compare":
                     return await self._compare(payload, origin, expected)
+                if path == "/v1/compare-models":
+                    return await self._decide(payload, origin, expected, compare_models=True)
                 return await self._decide(payload, origin, expected, decision_transport)
 
             async def _anonymous():
@@ -1121,11 +1123,11 @@ class Default(WorkerEntrypoint):
                 return await _answer()
 
             async def _live_unfunded(record, tier):
-                if path == "/v1/decide" and human_gate.enabled(self.env):
+                if path in ("/v1/decide", "/v1/compare-models") and human_gate.enabled(self.env):
                     return decider.error_response(
                         "payment_required", "Machine decisions require remaining paid credits. "
                         "Use a funded API key or the paid MCP service.",
-                        status=402, snapshot_id=envelope["snapshot"])
+                        status=402, snapshot_id=envelope["snapshot"], endpoint=endpoint)
                 return await _answer()
 
             def sandbox():
@@ -1206,6 +1208,7 @@ class Default(WorkerEntrypoint):
         outcome = await access.gate(
             api_key=access_keys.extract(lambda name: request.headers.get(name)),
             enforced=access.enforcement(getattr(self.env, ACCESS_ENFORCED_VAR, None)),
+            require_key=path == "/v1/compare-models",
             kv=_access_store(self.env),
             load_policy=lambda: access_config.load_policy(self.env),
             anonymous=anonymous, live=live, sandbox=sandbox, envelope=envelope,
@@ -1218,7 +1221,7 @@ class Default(WorkerEntrypoint):
                 outcome.status, outcome.body, settlement=x402_trace.settlement
             ),
         }
-        if path in ("/v1/decide", "/v1/compare"):
+        if path in ("/v1/decide", "/v1/compare", "/v1/compare-models"):
             if outcome.status == decider.HTTP_SERVICE_UNAVAILABLE \
                     and outcome.body.get("error") == "no_snapshot":
                 headers["retry-after"] = str(decider.RETRY_AFTER_SECONDS)
@@ -1341,7 +1344,7 @@ class Default(WorkerEntrypoint):
                     if isinstance(payload, dict) else "summary"
                 )
                 resource = f"decide.{explain}"
-            elif clean_path.endswith("compare"):
+            elif clean_path.endswith("compare") or clean_path.endswith("compare-models"):
                 resource = "decide.full"
             else:
                 resource = "rank"
@@ -1715,7 +1718,7 @@ class Default(WorkerEntrypoint):
             return service.error_response(exc, candidates, service_commit, origin)
 
     async def _decide(self, payload, origin: str, expected: str | None = None,
-                      transport: _DecisionTransport | None = None):
+                      transport: _DecisionTransport | None = None, *, compare_models: bool = False):
         """``POST /v1/decide`` against the isolate's verified snapshot.
 
         ``expected`` is the snapshot the caller's vocabulary names. When this
@@ -1723,11 +1726,12 @@ class Default(WorkerEntrypoint):
         deployed it. Still different, the caller gets ``snapshot_changed``.
         """
         decider = _decide_service()
+        endpoint = "compare-models" if compare_models else "decide"
         key = str(getattr(self.env, SNAPSHOT_KEY_VAR, "") or "") or None
         if key is None:
             return decider.no_snapshot(
                 "no signed decision snapshot is published because the verification key "
-                "is not configured"
+                "is not configured", endpoint=endpoint
             )
         holder = _decision_holder(origin)
         snapshot_timings = []
@@ -1736,13 +1740,14 @@ class Default(WorkerEntrypoint):
             if expected and expected != snapshot.snapshot_id:
                 snapshot = await holder.current(key, force=True, timings=snapshot_timings)
         except decider.SnapshotMissingError:
-            return decider.no_snapshot("the published decision snapshot does not exist")
+            return decider.no_snapshot("the published decision snapshot does not exist", endpoint=endpoint)
         except decider.SnapshotRefusalError as exc:
             return decider.error_response(
                 "snapshot_refused",
                 str(exc),
                 status=decider.HTTP_SERVICE_UNAVAILABLE,
                 snapshot_id=None,
+                endpoint=endpoint,
             )
         except Exception as exc:  # noqa: BLE001 - the fetched path is named to the caller
             return decider.error_response(
@@ -1750,9 +1755,11 @@ class Default(WorkerEntrypoint):
                 f"could not read the published decision snapshot: {exc}",
                 status=decider.HTTP_BAD_GATEWAY,
                 snapshot_id=None,
+                endpoint=endpoint,
             )
-        status, body = decider.decide(payload, snapshot, expected_snapshot=expected)
-        if status == decider.HTTP_OK:
+        answer = decider.compare_models if compare_models else decider.decide
+        status, body = answer(payload, snapshot, expected_snapshot=expected)
+        if status == decider.HTTP_OK and not compare_models:
             decision_link.attach(body, payload, snapshot, self.env)
         if status == decider.HTTP_OK and transport is not None:
             transport.body = body

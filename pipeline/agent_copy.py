@@ -700,6 +700,15 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
             f"Call shape, examples, recovery and budgets: {GUIDE_URL}. {NULL_RULE}"
             f"{DECIDE_WORKED_EXAMPLE}"
         ),
+        "compare_models": (
+            "Which facts, offerings and evidence do 2 to 4 named models have? "
+            "Returns snapshot facts, offerings, evidence and sources in caller order; "
+            "unknown values stay null. "
+            f"{price([w['decide.full']], tiers)} "
+            "It doesn't choose a model and does not rank or choose a winner. "
+            f"Proxies POST {API}/v1/compare-models with {{models: [...]}} "
+            "and returns at most 16 KB."
+        ),
         "rank": (
             "Legacy v1; use decide. Deprecated: the retired fixed-benchmark "
             "ranking, whose scores lag the catalogue; newer models are often unranked. "
@@ -761,6 +770,8 @@ def copy(tiers: dict[str, Any] | None = None) -> dict[str, Any]:
     card = {
         "decide": "Decide which models fit a job, with reasons and cost. "
                   + card_price([w["decide.none"], w["decide.summary"], w["decide.full"]]),
+        "compare_models": "Compare 2 to 4 named models' facts in caller order. "
+                          + card_price([w["decide.full"]]),
         "rank": "Deprecated fixed-profile shortlist (legacy v1); use decide. "
                 + card_price([w["rank"]]),
         "model_info": "One model's published card. Needs an API key.",

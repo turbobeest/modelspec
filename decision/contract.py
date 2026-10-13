@@ -45,6 +45,7 @@ from pydantic import (
 from pydantic.fields import FieldInfo
 
 CONTRACT_VERSION = "2.17"
+MODEL_COMPARISON_VERSION = "1.0"
 
 # ── identifiers ────────────────────────────────────────────────────────────
 
@@ -2009,7 +2010,7 @@ class Decision(_ExcludeIf):
         default=None,
         exclude_if=lambda value: value is None,
     )
-    contract_version: Literal["2.17"] = CONTRACT_VERSION
+    contract_version: Literal[CONTRACT_VERSION] = CONTRACT_VERSION
     decision_id: DecisionId
     snapshot: SnapshotId
     #: Whether this process verified a publisher signature. Added in 1.10.
@@ -2194,6 +2195,79 @@ BoundedDecision = create_model(
 )
 
 
+class ModelComparisonRequest(_Strict):
+    """Two to four distinct model IDs, in the caller's display order."""
+
+    models: list[Annotated[ModelId, Field(max_length=128)]] = Field(
+        min_length=2, max_length=4, json_schema_extra={"uniqueItems": True}
+    )
+
+    @field_validator("models")
+    @classmethod
+    def _distinct_models(cls, models: list[str]) -> list[str]:
+        if len(set(models)) != len(models):
+            raise ValueError("models must contain distinct IDs")
+        return models
+
+
+class ComparisonFact(_Strict):
+    facet: FacetId
+    state: Literal["known", "unknown", "not_disclosed", "requires_contract"]
+    value: Any
+    unit: str | None
+    record_id: str | None = None
+    source_ids: list[str] = Field(default_factory=list)
+
+
+class ComparisonOffering(_Strict):
+    offering: OfferingRef
+    facts: list[ComparisonFact]
+
+
+class ComparisonEvidence(_Strict):
+    benchmark: str
+    value: float
+    unit: str | None
+    record_id: str
+    source_ids: list[str]
+    version: str | None = None
+    effort: str | None = None
+    harness: str | None = None
+    measured_by: str | None = None
+    date: str | None = None
+    subcategory: str | None = None
+    interval: tuple[float, float] | None = None
+    n: int | None = None
+
+
+class ComparisonModel(_Strict):
+    model: ModelId
+    lifecycle: Literal["active", "deprecated", "retired"]
+    facts: list[ComparisonFact]
+    offerings: list[ComparisonOffering]
+    evidence: list[ComparisonEvidence]
+
+
+class ComparisonSource(_Strict):
+    id: str
+    url: str
+
+
+class ComparisonOmitted(_Strict):
+    facts: int = Field(ge=0)
+    offerings: int = Field(ge=0)
+    evidence: int = Field(ge=0)
+
+
+class ModelComparison(_Strict):
+    comparison_version: Literal[MODEL_COMPARISON_VERSION] = MODEL_COMPARISON_VERSION
+    endpoint: Literal["compare-models"] = "compare-models"
+    snapshot: SnapshotId
+    models: list[ComparisonModel]
+    sources: list[ComparisonSource]
+    omitted: ComparisonOmitted
+
+
 CONTRACT_TYPES: tuple[type[BaseModel], ...] = (
     Spec, TaskTokens, Objective, Preference, LexStep, Tolerance, EvidenceQualifiers, Soft, ModelRef,
     BestRef, Compare, Window, InSet, Known, AnyOf, AllOf, NotOf,
@@ -2211,6 +2285,8 @@ CONTRACT_TYPES: tuple[type[BaseModel], ...] = (
     CoveredClass, CoverageRefusal,
     ResponseOptions, DecideRequest, ProjectedResult, ModelEvidence, MemberEvidence, NextMove,
     BoundedExplanation, BoundedDecision,
+    ModelComparisonRequest, ComparisonFact, ComparisonOffering, ComparisonEvidence,
+    ComparisonModel, ComparisonSource, ComparisonOmitted, ModelComparison,
 )
 
 
@@ -2670,7 +2746,9 @@ def json_schema() -> dict[str, Any]:
     from pydantic.json_schema import models_json_schema
 
     refs, defs = models_json_schema([(Spec, "validation"), (Decision, "serialization"),
-                                     (DecideRequest, "validation"), (BoundedDecision, "serialization")],
+                                     (DecideRequest, "validation"), (BoundedDecision, "serialization"),
+                                     (ModelComparisonRequest, "validation"),
+                                     (ModelComparison, "serialization")],
                                     ref_template="#/$defs/{model}")
     schema = {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -2678,7 +2756,9 @@ def json_schema() -> dict[str, Any]:
         "x-contract-version": CONTRACT_VERSION,
         "description": "Generated from decision/contract.py by `python -m decision.schema`. "
                        "Do not edit by hand. The prose is docs/decision-contract.md.",
-        "anyOf": [refs[(Spec, "validation")], refs[(Decision, "serialization")]],
+        "anyOf": [refs[(Spec, "validation")], refs[(Decision, "serialization")],
+                  refs[(ModelComparisonRequest, "validation")],
+                  refs[(ModelComparison, "serialization")]],
         **defs,
     }
     _widen_access(schema)

@@ -122,6 +122,10 @@ EXAMPLE_COMPARE_REQUEST: dict[str, Any] = {
     "spec": EXAMPLE_DECIDE_REQUEST,
 }
 
+EXAMPLE_COMPARE_MODELS_REQUEST: dict[str, Any] = {
+    "models": ["anthropic/claude-opus-5-5", "openai/gpt-6-sol"],
+}
+
 
 def _load(name: str):
     """Import a Worker module from its path; it is not an installed package."""
@@ -2212,14 +2216,15 @@ def _decision_schemas() -> dict[str, Any]:
     from decision.recovery import MAX_RECOVERY_HINTS, Recovery
     schemas["DecisionRecovery"] = Recovery.model_json_schema()
     def refused(endpoint: str, codes: set[str]) -> dict[str, Any]:
+        version_key, version = next(iter(decide_service.version_fields(endpoint).items()))
         return {
             "type": "object",
             "additionalProperties": False,
-            "required": ["contract_version", "endpoint", "snapshot", "error"],
+            "required": [version_key, "endpoint", "snapshot", "error"],
             "properties": {
-                "contract_version": {
+                version_key: {
                     "type": "string",
-                    "enum": [decide_service.contract.CONTRACT_VERSION],
+                    "enum": [version],
                 },
                 "endpoint": {"type": "string", "enum": [endpoint]},
                 "snapshot": {"anyOf": [
@@ -2252,14 +2257,15 @@ def _decision_schemas() -> dict[str, Any]:
         }
 
     def snapshot_unavailable(endpoint: str) -> dict[str, Any]:
+        version_key, version = next(iter(decide_service.version_fields(endpoint).items()))
         return {
             "type": "object",
             "additionalProperties": False,
-            "required": ["contract_version", "endpoint", "snapshot", "error", "message"],
+            "required": [version_key, "endpoint", "snapshot", "error", "message"],
             "properties": {
-                "contract_version": {
+                version_key: {
                     "type": "string",
-                    "enum": [decide_service.contract.CONTRACT_VERSION],
+                    "enum": [version],
                 },
                 "endpoint": {"type": "string", "enum": [endpoint]},
                 "snapshot": {"type": "null"},
@@ -2340,6 +2346,9 @@ def _decision_schemas() -> dict[str, Any]:
         },
     )
     schemas["ComparisonSnapshotUnavailable"] = snapshot_unavailable("compare")
+    schemas["ModelComparisonRequestRefused"] = refused(
+        "compare-models", shared_refusals | {"invalid_request", "snapshot_changed"})
+    schemas["ModelComparisonSnapshotUnavailable"] = snapshot_unavailable("compare-models")
     schemas["ComparisonRequest"] = {
         "type": "object",
         "additionalProperties": False,
@@ -2621,7 +2630,8 @@ def build_spec() -> dict[str, Any]:
     access_error = _describe(access_error, "AccessRefusedError", used)
     access_error["properties"]["code"]["enum"] = sorted(access.REFUSALS)
     for name, source in (("DecisionAccessRefused", "DecisionRequestRefused"),
-                         ("ComparisonAccessRefused", "ComparisonRequestRefused")):
+                         ("ComparisonAccessRefused", "ComparisonRequestRefused"),
+                         ("ModelComparisonAccessRefused", "ModelComparisonRequestRefused")):
         schema = copy.deepcopy(decision_schemas[source])
         schema["properties"] = {
             field: {"$ref": f"#/components/schemas/{source}/properties/{field}"}
@@ -2731,6 +2741,15 @@ def build_spec() -> dict[str, Any]:
         schema="ComparisonAccessRefused",
     )
     comparison_unavailable["headers"] = copy.deepcopy(decision_unavailable["headers"])
+    model_comparison_unavailable = refused_by_access(
+        "The verified snapshot or access store is unavailable. Retry later.",
+        {"oneOf": [
+            {"$ref": "#/components/schemas/ModelComparisonSnapshotUnavailable"},
+            {"$ref": "#/components/schemas/ModelComparisonRequestRefused"},
+        ]},
+        schema="ModelComparisonAccessRefused",
+    )
+    model_comparison_unavailable["headers"] = copy.deepcopy(decision_unavailable["headers"])
     decide_snapshot_headers = {
         "X-ModelSpec-Snapshot": {
             "description": "The verified snapshot that answered (MODEL-159).",
@@ -2821,6 +2840,7 @@ def build_spec() -> dict[str, Any]:
             "x-max-request-bytes": {"/v1/rank": service.MAX_BODY_BYTES,
                                     "/v1/decide": decide_service.MAX_BODY_BYTES,
                                     "/v1/compare": decide_service.MAX_BODY_BYTES,
+                                    "/v1/compare-models": decide_service.MAX_BODY_BYTES,
                                     "/v1/policy-check": policy.MAX_BODY_BYTES,
                                     "/v1/signals": signals.MAX_BODY_BYTES,
                                     "/v1/signals/discovered": signals.MAX_BODY_BYTES,
@@ -2994,9 +3014,7 @@ def build_spec() -> dict[str, Any]:
                         "200": {
                             **_json_body(
                                 "A decision pinned to the snapshot that produced it: a complete "
-                                "Decision (contract_version "
-                                f"{decide_service.contract.CONTRACT_VERSION}), "
-                                "with optional "
+                                f"Decision (contract_version {decide_service.contract.CONTRACT_VERSION}), with optional "
                                 "top[].hardware_estimates and unknown_facets; or, when the request sends "
                                 "fields or evidence_for, the separate bounded representation "
                                 f"(representation: bounded, bounded_version {decide_service.contract.BOUNDED_VERSION}, no "
@@ -3114,6 +3132,69 @@ def build_spec() -> dict[str, Any]:
                         ),
                         **access_responses("ComparisonAccessRefused"),
                         str(access.HTTP_STORE_UNAVAILABLE): comparison_unavailable,
+                    },
+                },
+            },
+            "/v1/compare-models": {
+                "post": {
+                    "operationId": "compareModels",
+                    "summary": "Present sourced facts for two to four named models side by side.",
+                    "description": (
+                        "Requires an API key even when ACCESS_ENFORCED is off. Browser visit "
+                        "tokens do not admit it. Costs the decide.full credit weight. "
+                        "The request has only models and accepts no Spec."
+                    ),
+                    "security": [{"bearer": []}, {"apiKey": []}],
+                    "parameters": [{
+                        "name": "X-ModelSpec-Snapshot", "in": "header", "required": False,
+                        "description": "The snapshot the caller expects. A mismatch returns 409 snapshot_changed.",
+                        "schema": {"type": "string", "pattern": "^snap_[A-Za-z0-9:._-]+$"},
+                    }],
+                    "requestBody": {
+                        "required": True,
+                        "content": {"application/json": {
+                            "schema": {"$ref": "#/components/schemas/DecisionModelComparisonRequest"},
+                            "example": EXAMPLE_COMPARE_MODELS_REQUEST,
+                        }},
+                    },
+                    "responses": {
+                        "200": {
+                            **_json_body(
+                                "Model rows in caller order, with facts, offerings, benchmark "
+                                "evidence and registered sources. No rank, score or winner. "
+                                "Whole omitted items are counted without changing retained values.",
+                                {"$ref": "#/components/schemas/DecisionModelComparison"},
+                            ),
+                            "x-max-response-bytes": decide_service.MODEL_COMPARISON_BYTES,
+                            "headers": decide_snapshot_headers,
+                        },
+                        str(decide_service.HTTP_BAD_REQUEST): _json_body(
+                            "Invalid request: two to four distinct model IDs are required. "
+                            "An unknown ID reports its models[n] issue against the active lineup.",
+                            {"$ref": "#/components/schemas/ModelComparisonRequestRefused"},
+                        ),
+                        str(decide_service.HTTP_CONFLICT): _json_body(
+                            "snapshot_changed: X-ModelSpec-Snapshot names another snapshot than the one answering.",
+                            {"$ref": "#/components/schemas/ModelComparisonRequestRefused"},
+                        ),
+                        not_found[0]: not_found[1],
+                        str(service.HTTP_METHOD_NOT_ALLOWED): transport(
+                            service.HTTP_METHOD_NOT_ALLOWED, "/v1/compare-models takes POST."
+                        )[1],
+                        str(service.HTTP_PAYLOAD_TOO_LARGE): _json_body(
+                            f"The body is over {decide_service.MAX_BODY_BYTES} bytes.",
+                            {"$ref": "#/components/schemas/ModelComparisonRequestRefused"},
+                        ),
+                        str(decide_service.HTTP_BAD_GATEWAY): _json_body(
+                            "The published snapshot could not be fetched.",
+                            {"$ref": "#/components/schemas/ModelComparisonRequestRefused"},
+                        ),
+                        str(x402.HTTP_PAYMENT_REQUIRED): _json_body(
+                            "Payment required when X402_ENABLED is on.",
+                            {"$ref": "#/components/schemas/PaymentRequired"},
+                        ),
+                        **access_responses("ModelComparisonAccessRefused"),
+                        str(access.HTTP_STORE_UNAVAILABLE): model_comparison_unavailable,
                     },
                 },
             },
@@ -3327,10 +3408,11 @@ def vocabulary_parameters():
 
 
 def compact_schemas(spec: dict[str, Any]) -> dict[str, Any]:
-    """Factor identical nested object schemas without changing their validation rules.
+    """Share identical nested schemas without changing their validation rules.
 
     Component roots keep their public names. Fingerprints include descriptions,
-    defaults and all constraints; no merely similar schemas are merged.
+    defaults and all constraints; no merely similar schemas are merged. Smaller
+    repeated property schemas share a dictionary so YAML can emit aliases.
     """
     import hashlib
     from collections import Counter
@@ -3364,13 +3446,22 @@ def compact_schemas(spec: dict[str, Any]) -> dict[str, Any]:
         collect(root)
     names = {key: "Shared" + hashlib.sha256(key.encode()).hexdigest()[:12]
              for key, count in sorted(counts.items()) if count > 1}
+    properties: dict[str, Any] = {}
 
     def replace(node, *, root=False):
         if isinstance(node, dict):
             key = fingerprint(node)
             if not root and key in names:
                 return {"$ref": "#/components/schemas/" + names[key]}
-            return {key: replace(value) for key, value in node.items()}
+            share = not root and len(key) >= 80 and any(
+                field in node for field in ("type", "anyOf", "oneOf", "allOf")
+            )
+            if share and key in properties:
+                return properties[key]
+            result = {key: replace(value) for key, value in node.items()}
+            if share:
+                properties[key] = result
+            return result
         if isinstance(node, list):
             return [replace(value) for value in node]
         return node
@@ -3446,18 +3537,19 @@ def render() -> str:
                 operation.get("responses", {}).pop(str(x402.HTTP_PAYMENT_REQUIRED), None)
     if access.enforcement(production_vars(REPO_ROOT).get("HUMAN_GATE_ENABLED")):
         code = str(x402.HTTP_PAYMENT_REQUIRED)
-        responses = spec["paths"]["/v1/decide"]["post"]["responses"]
         message = "Machine decisions require remaining paid credits."
-        native = _merge(*[
-            _infer(decide_service.error_response("payment_required", message, status=402,
-                                                 snapshot_id=snapshot)[1])
-            for snapshot in (None, "snap_fixture")
-        ])
-        description = message
-        if code in responses:
-            description = responses[code]["description"] + " " + message
-            native = {"oneOf": [responses[code]["content"]["application/json"]["schema"], native]}
-        responses[code] = _json_body(description, native)
+        for endpoint in ("decide", "compare-models"):
+            responses = spec["paths"][f"/v1/{endpoint}"]["post"]["responses"]
+            native = _merge(*[
+                _infer(decide_service.error_response("payment_required", message, status=402,
+                                                     snapshot_id=snapshot, endpoint=endpoint)[1])
+                for snapshot in (None, "snap_fixture")
+            ])
+            description = message
+            if code in responses:
+                description = responses[code]["description"] + " " + message
+                native = {"oneOf": [responses[code]["content"]["application/json"]["schema"], native]}
+            responses[code] = _json_body(description, native)
     from pipeline.public_data import enabled
     if enabled():
         spec["paths"]["/v1/vocabulary"] = {

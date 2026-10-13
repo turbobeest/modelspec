@@ -108,6 +108,7 @@ lists sentences that describe the former CLI and need review before release.
 modelspec decide --spec FILE.yaml --json
 modelspec decide --spec - --json
 modelspec decide --template ID --json
+modelspec compare LAB/MODEL LAB/MODEL [LAB/MODEL LAB/MODEL] [--json]
 modelspec compare --spec FILE|- --to SNAP [--json]
 modelspec compare --template ID --to SNAP [--json]
 modelspec vocab [SECTION] [--section SECTION] [--search TEXT] [--id ID]
@@ -126,9 +127,27 @@ authority. The request is at most 64 KB. A template comes from a keyed
 `GET /v1/vocabulary?section=templates&id=ID&detail=full`, never a bundled or
 cached registry; its Spec is validated and sent unchanged.
 
-`compare` requires exactly one of `--spec` and `--template`, using the same
-Spec loading, validation and keyed template lookup as `decide`. `--to` is
-required and must match `^snap_[A-Za-z0-9:._-]+$`; invalid IDs are refused
+`compare A B [C D]` puts 2 to 4 distinct model IDs side by side. Each ID
+is at most 128 characters and matches
+`^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$`. The CLI requires a key
+before validating those IDs, exactly as `decide` does. This form cannot use
+`--spec`, `--template` or `--to`. It sends exactly `{"models": [A, B, ...]}`
+to `POST /v1/compare-models`; no Spec or defaults are added. Its response has
+the independent `comparison_version: "1.0"`, with no `contract_version`.
+The shared Decision contract stays at 2.17 and the bounded projection at 1.2.
+The CLI error contract stays 2.0. It returns models in request order with
+sourced facts, offering facts and benchmark evidence from the current signed snapshot.
+It computes no ranking or winner. Human output uses one column per model,
+shows lifecycle and explicit unknown values, labels absent response records
+"not shown", keeps evidence with different measurement conditions on separate
+rows, and lists source URLs and omitted record counts.
+JSON output preserves the server body unchanged. This form is present in the
+repository; the CLI package version remains 0.4.0 pending release review.
+
+The snapshot form of `compare` requires exactly one of `--spec` and
+`--template`, using the same Spec loading, validation and keyed template
+lookup as `decide`. `--to` is required for this form and must match
+`^snap_[A-Za-z0-9:._-]+$`; invalid IDs are refused
 locally before reading the Spec or making a request. It sends exactly
 `{"compare_to": SNAP, "spec": Spec}` to `POST /v1/compare`, with no injected
 Spec fields. The server compares that Spec across the retained and current

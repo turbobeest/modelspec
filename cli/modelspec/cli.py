@@ -361,15 +361,126 @@ def _comparison_text(body: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-@app.command("compare", cls=RecoveryCommand, help=HELP["compare"])
+def _model_comparison_value(record: dict[str, Any]) -> str:
+    state = record.get("state", "known")
+    if state != "known" or record["value"] is None:
+        return "unknown" if state in {"known", "unknown"} else f"unknown ({state})"
+    shown = json.dumps(record["value"], ensure_ascii=False)
+    if record.get("unit"):
+        shown += f" {record['unit']}"
+    if record.get("interval") is not None:
+        shown += f" [interval: {json.dumps(record['interval'])}]"
+    if record.get("n") is not None:
+        shown += f" [n: {record['n']}]"
+    if record.get("record_id"):
+        shown += f" [record: {record['record_id']}]"
+    if record.get("source_ids"):
+        shown += f" [sources: {', '.join(record['source_ids'])}]"
+    return shown
+
+
+def _model_comparison_text(body: dict[str, Any]) -> str:
+    models = body["models"]
+    if not isinstance(models, list) or not 2 <= len(models) <= 4:
+        raise ValueError("Expected 2 to 4 compared models")
+    rows: dict[str, list[list[str]]] = {}
+
+    def add(label: str, column: int, value: str) -> None:
+        rows.setdefault(label, [[] for _ in models])[column].append(value)
+
+    for column, model in enumerate(models):
+        add("lifecycle", column, model["lifecycle"])
+        for fact in model["facts"]:
+            add(fact["facet"], column, _model_comparison_value(fact))
+        for offering in model["offerings"]:
+            ref = offering["offering"]
+            details = ", ".join(
+                f"{key}={ref[key]}"
+                for key in ("provider", "region", "tier")
+                if ref.get(key) is not None
+            )
+            add(f"offering ({details})", column, "available")
+            for fact in offering["facts"]:
+                add(f"{fact['facet']} ({details})", column, _model_comparison_value(fact))
+        for evidence in model["evidence"]:
+            qualifiers = ", ".join(
+                f"{key}={evidence[key]}"
+                for key in ("version", "subcategory", "effort", "harness", "measured_by", "date")
+                if evidence.get(key) is not None
+            )
+            label = evidence["benchmark"] + (f" ({qualifiers})" if qualifiers else "")
+            add(label, column, _model_comparison_value(evidence))
+
+    def table_row(cells: list[str]) -> str:
+        escaped = (cell.replace("|", "\\|").replace("\n", " ") for cell in cells)
+        return "| " + " | ".join(escaped) + " |"
+
+    lines = [
+        f"Model comparison: {body['snapshot']}",
+        table_row(["Fact or evidence", *(model["model"] for model in models)]),
+        table_row(["---"] * (len(models) + 1)),
+    ]
+    for label, columns in rows.items():
+        lines.append(table_row([label, *("; ".join(values) or "not shown" for values in columns)]))
+    lines.append(
+        "Omitted: " + ", ".join(
+            f"{kind}={body['omitted'][kind]}" for kind in ("facts", "offerings", "evidence")
+        )
+    )
+    if body["sources"]:
+        lines.append("Sources:")
+        lines.extend(f"  {source['id']}: {source['url']}" for source in body["sources"])
+    return "\n".join(lines)
+
+
+@app.command(
+    "compare",
+    cls=RecoveryCommand,
+    help="Compare 2 to 4 named models with POST /v1/compare-models. "
+    "Model IDs cannot be combined with --spec, --template or --to. " + HELP["compare"],
+)
 def compare(
     ctx: typer.Context,
+    models: list[str] | None = typer.Argument(None, help="2 to 4 distinct lab/model IDs."),
     spec: str | None = typer.Option(None, "--spec", help=HELP["spec"]),
     template: str | None = typer.Option(None, "--template", help=HELP["template"]),
-    to: str = typer.Option(..., "--to", help=HELP["to"]),
+    to: str | None = typer.Option(None, "--to", help=HELP["to"]),
     as_json: bool = typer.Option(False, "--json", help=HELP["json"]),
 ) -> None:
+    if not models and to is None:
+        _usage(ctx)
     client = Client(auth.require_key())
+    if models:
+        if spec is not None or template is not None or to is not None:
+            _usage(ctx)
+        if (
+            not 2 <= len(models) <= 4
+            or len(set(models)) != len(models)
+            or any(
+                len(model) > 128
+                or re.fullmatch(r"[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*", model) is None
+                for model in models
+            )
+        ):
+            raise ClientError(
+                "invalid_compare_models",
+                body={
+                    "error": {
+                        "code": "invalid_compare_models",
+                        "message": "Choose 2 to 4 distinct lowercase lab/model IDs, "
+                        "at most 128 characters each.",
+                    }
+                },
+                extra_next=["Run modelspec compare LAB/MODEL LAB/MODEL [LAB/MODEL LAB/MODEL]."],
+            )
+        _response(
+            ctx,
+            client,
+            client.request("POST", "/v1/compare-models", body={"models": models}),
+            as_json,
+            human_renderer=_model_comparison_text,
+        )
+        return
     if re.fullmatch(r"snap_[A-Za-z0-9:._-]+", to) is None:
         raise ClientError("invalid_compare_to", extra_next=[TEXT["compare_to_next"]])
     body = {"compare_to": to, "spec": _spec_body(client, spec, template)}

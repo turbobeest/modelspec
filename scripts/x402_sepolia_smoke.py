@@ -114,6 +114,17 @@ def _sign(requirement: dict[str, Any], private_key: str) -> dict[str, Any]:
     }
 
 
+def _settlement(header: str | None) -> dict[str, Any]:
+    """The decoded PAYMENT-RESPONSE header: the facilitator's settlement record."""
+    if not header:
+        return {}
+    try:
+        decoded = json.loads(base64.b64decode(header))
+    except ValueError:
+        return {}
+    return decoded if isinstance(decoded, dict) else {}
+
+
 def _live(base_url: str) -> None:
     import httpx
 
@@ -144,6 +155,7 @@ def _live(base_url: str) -> None:
             raise SystemExit(
                 f"pack settlement failed: {credited.status_code} {credited.text[:300]}"
             )
+        settlement = _settlement(credited.headers.get("PAYMENT-RESPONSE"))
         before = client.get("/v1/credits", headers=headers).json()
         if int(before.get("available", 0)) < int(pack["credits"]):
             raise SystemExit(f"pack was not credited: {before}")
@@ -154,6 +166,7 @@ def _live(base_url: str) -> None:
         print(json.dumps({
             "network": requirement["network"],
             "pack_credits": pack["credits"],
+            "transaction": settlement.get("transaction"),
             "before": before["available"],
             "after": after["available"],
         }))
