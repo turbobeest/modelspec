@@ -1,152 +1,127 @@
 # MODEL-329 execution evidence
 
-Status: the engine guard is a test on the retained Alibaba Singapore copy.
-`OfferingPriceExtractor` already selects the price column (MODEL-341,
-`081d7967976ce689ffc6c5cda2015061b27b2201`, an ancestor of the base). The
-stored input price stays 2.0. The ledger closure is the companion
-`modelspec-data` pull request.
+The engine guard reads a synthetic HTML table. The retained vendor page is
+gone. `OfferingPriceExtractor` already selects the price column. That reader
+landed in MODEL-341, commit `081d7967976ce689ffc6c5cda2015061b27b2201`, which
+is an ancestor of this branch. The stored input price stays 2.0. The ledger
+closure stays in the companion `modelspec-data` pull request.
 
-Base SHA: `faed1e6a9d5cb6461c214c2d195e650b2fe1c486`.
-The final delivery SHA is the commit that contains this report. Resolve it
-with `git log -1 --format=%H -- docs/evidence/g2-ios/MODEL-329-fix.md`.
-This file does not embed that hash.
+Fix base SHA: `dfa4694f9c70621f602521c6f99dbcf88676efad`.
+Code SHA: `211552cd516678f323da541050b4539fcfa14c08`.
+The final SHA is the commit that contains this report. Resolve it with
+`git log -1 --format=%H -- docs/evidence/g2-ios/MODEL-329-fix.md`.
 
-## What the retained copy says
+GitHub's pull request base at review time was
+`543bc4f4e4b0802bc606bd2bc710d2cb23931ebc`. The merge-base with the local
+`origin/main` during this run was `faed1e6a9d5cb6461c214c2d195e650b2fe1c486`.
 
-File: `tests/fixtures/verification/914aa685dc8ae8f32ed92b506792e5396983f633e4d5703c8925260131527c9f.html`.
-sha256: `914aa685dc8ae8f32ed92b506792e5396983f633e4d5703c8925260131527c9f`.
-Size: 667046 bytes.
+## Defect
 
-The audit normaliser is `html-default` with `strip_volatile=False`, then table
-locator `0` (source region `singapore-qwen-max`). On the row whose model id
-starts with `qwen3.8-max-0902`:
+`tests/fixtures/verification/914aa685dc8ae8f32ed92b506792e5396983f633e4d5703c8925260131527c9f.html`
+was a 667046-byte vendor HTML page committed in `dfa4694f`. `CONTRIBUTING.md`
+requires third-party material to name its source and a licence that permits
+the use. No such licence is recorded for that page. The file is deleted.
 
-- Column "Input tokens per request" is the request-size band `0<Token≤1M`.
-- Column "Input price (per 1 million tokens)" is `$2`.
-- The output price on that row is `$6`. This change does not touch it.
+The replacement is `tests/fixtures/verification/alibaba-singapore-band-price.html`,
+187 bytes, written for this test. After `html-default` with
+`strip_volatile=False` and table locator `0`:
 
-The stored fact
-`alibaba-model-studio/qwen/qwen3-8-max-0902/singapore/standard#offering.price.input`
-stays `2.0` / `known`, cited to this snapshot. The copy agrees with that value.
-`verification/log.jsonl` line 19437 records `offering-price-table@1` verified
-on 2026-10-10 with an empty diff.
+- The header `Input tokens per request` is the band `0<Token≤1M`.
+- The next header, `Input price (per 1 million tokens)`, is `$2`.
+- The row begins with `qwen3.8-max-0902`.
 
-## Defects
+## Red and green
 
-| Defect | Red observation | Green observation |
+| Defect | Red | Green |
 |---|---|---|
-| Alibaba input price read the band cell | The pre-`081d7967` header scan, replayed on this copy, selects header `input tokens per request` and value `0<Token≤1M`. The new test cannot fail on this branch: the current extractor already returns `$2` and `compare` against stored `2.0` is empty. Probe exit 0. | `test_retained_alibaba_singapore_table_reads_the_price_column` and the existing synthetic band test: exit 0, 2 passed in 0.48s. Full suite with `CI` unset: exit 0, 10342 passed, 23 skipped, 11 warnings in 1039.68s. |
-| Azure gpt-5-4 SOC 2 ledger row still open | No engine reader change. The open `defects.jsonl` row is left as written. Data pull request 35 already stored `type_2` / `known` on source `azure-soc2`, snapshot `sha256:5a2cbf331a059528bc07306b5b735c3492ff9e9f68ee395dd533da8682cd8e94`. `verification/log.jsonl` line 19340: `governance-prose@1`, outcome `verified`, date 2026-10-08, diff null. | The data pull request appends a resolution row. It does not edit the open row and does not add a compliance inference. |
+| Retained vendor page has no reuse licence | `test_retained_alibaba_singapore_table_reads_the_price_column` on the 667046-byte file, with `assert len(body) < 1000` added. `AssertionError: assert 667046 < 1000`. 1 failed in 0.38s. `RED_EXIT:1`. | Same test on the 187-byte table, plus `test_band_tiered_table_reads_the_price_column_of_the_lowest_band`. 2 passed in 0.38s. `FOCUSED_EXIT:0`. |
+| The pre-MODEL-341 header scan reads the band cell | Historical `OfferingPriceExtractor` from `081d7967^`, loaded into the current module and run on the synthetic table. `AssertionError: assert ['0<Token≤1M'] == ['$2']`. 1 failed in 0.21s. `HISTORICAL_EXTRACTOR_TEST_EXIT=1`. | The current extractor returns `$2`, and `compare` against stored 2.0 is empty. Covered by the focused run above. |
 
-## Commands and results
+`tests/test_decision_verify.py` then passed: 390 passed in 1.28s.
+`VERIFY_MODULE_EXIT:0`.
 
-Commands ran in `/Users/terbeest/dev/worktrees/model-329` unless noted.
-`PYTHONPATH=$PWD`. The interpreter is
-`/Users/terbeest/dev/modelspec/.venv/bin/python`. Exit codes were read from
-the shell variable `ec` or `PROBE_EXIT` / `FOCUSED_EXIT`. `status` is
-read-only in this zsh, so it was not used.
+`git diff --check` on the code commit was exit 0.
 
-Tool versions: Python 3.14.4, pytest 9.1.1, Ruff 0.16.6, Git 2.50.1, gh 2.102.0.
+The first full suite, run on `211552cd` while this file still named a removed
+source, exited 1. `tests/test_removed_sources.py::test_no_tracked_file_names_a_removed_source`
+failed. 1 failed, 10341 passed, 23 skipped, 11 warnings in 1268.78s.
+Exit file `/tmp/model-329-fix-pytest.exit` contained `1`. This rewrite drops
+that name. The rerun exited 0: 10342 passed, 23 skipped, 11 warnings in
+1236.91s (0:20:36). Exit file `/tmp/model-329-fix-pytest2.exit` contained `0`.
+These counts were written after that run. The removed-source guard was run
+again on this finished text.
 
-Historical scan and current reader, exit 0. The old scan is the loop at
-`decision/verify.py` as of `081d7967^` (first header containing `input tokens`):
+## Commands
 
-```sh
-PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python - <<'PY'
-import hashlib
-from dataclasses import replace
-from pathlib import Path
-from decision.normalise import NORMALISERS, Locator, normalise_document, select_region
-from decision import verify
+Commands ran in `/Users/terbeest/dev/worktrees/model-329`. `PYTHONPATH=$PWD`.
+The interpreter is `/Users/terbeest/dev/modelspec/.venv/bin/python`. Exit codes
+were the shell status of the pytest process, written to `RED_EXIT`,
+`FOCUSED_EXIT`, `VERIFY_MODULE_EXIT`, or `/tmp/model-329-fix-pytest.exit`.
+No pipe sat between pytest and that status.
 
-sha = "914aa685dc8ae8f32ed92b506792e5396983f633e4d5703c8925260131527c9f"
-body = Path(f"tests/fixtures/verification/{sha}.html").read_bytes()
-print("sha_ok", hashlib.sha256(body).hexdigest() == sha)
-rules = replace(NORMALISERS["html-default"], strip_volatile=False)
-text = select_region(normalise_document(body, rules), Locator("table", "0"))
-rows = [[c.strip() for c in line.split("|")] for line in text.splitlines() if line.strip()]
-headers = [verify.normalise_name(cell) for cell in rows[0]]
-row = next(r for r in rows if r[0].startswith("qwen3.8-max-0902"))
-for i, header in enumerate(headers):
-    flat = header.replace("price per 1m ", "")
-    if "inputtokens" in flat.replace(" ", ""):
-        if "batch" in header:
-            continue
-        print(f"old_scan_header={header}")
-        print(f"old_scan_value={row[i]}")
-        break
-claim = verify.Claim(
-    target=verify.TargetRef(kind="fact", id="offering#input"),
-    subject="provider/lab/model/global/standard",
-    names=("qwen3.8-max-0902",),
-    field="offering.price.input",
-    label="Input",
-    value=2.0,
-    unit="usd_per_1m_tokens",
-    collector=verify.VerificationActor(agent="probe", model_family="none", method="probe"),
-    sources=(verify.SourceRef(source_id="pricing", snapshot_ref="sha256:" + "0" * 64, cited_regions=["prices"]),),
-)
-readings = verify.OfferingPriceExtractor().extract(claim, text)
-print("current_reading", [r.value for r in readings])
-print("compare_stored_2", verify.compare(claim, readings))
-PY
-```
+Tool versions: Python 3.14.4, pytest 9.1.1, Ruff 0.16.6 from the venv,
+Git 2.50.1, gh 2.102.0.
 
-Printed:
-
-```text
-sha_ok True
-old_scan_header=input tokens per request
-old_scan_value=0<Token≤1M
-current_reading ['$2']
-compare_stored_2 []
-PROBE_EXIT:0
-```
-
-Focused tests, exit 0:
+Red, exit 1:
 
 ```sh
-PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q \
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider \
+  tests/test_decision_verify.py::test_retained_alibaba_singapore_table_reads_the_price_column
+```
+
+Focused, exit 0:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider \
   tests/test_decision_verify.py::test_retained_alibaba_singapore_table_reads_the_price_column \
   tests/test_decision_verify.py::test_band_tiered_table_reads_the_price_column_of_the_lowest_band
 ```
 
-```text
-2 passed in 0.48s
-FOCUSED_EXIT:0
+Verify module, exit 0:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -p no:cacheprovider \
+  tests/test_decision_verify.py
 ```
 
-Full suite. The harness exports `CI=true`, and
-`tests/test_social_cards.py` plus `tests/test_landing.py` then fail when
-Playwright is absent from `web/node_modules`. That is the same class MODEL-341
-recorded. Playwright was not installed and those tests were not edited.
-With `CI` unset they skip.
+Historical extractor, exit 1, expected:
+
+```sh
+PYTHONDONTWRITEBYTECODE=1 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python - <<'PY'
+import ast
+import subprocess
+import sys
+from unittest.mock import patch
+import pytest
+from decision import verify
+
+historical_ref = '081d7967976ce689ffc6c5cda2015061b27b2201^:decision/verify.py'
+source = subprocess.run(['git', 'show', historical_ref], check=True, capture_output=True, text=True).stdout
+node = next(n for n in ast.parse(source).body if isinstance(n, ast.ClassDef) and n.name == 'OfferingPriceExtractor')
+namespace = dict(vars(verify))
+exec(compile(ast.Module(body=[node], type_ignores=[]), historical_ref, 'exec'), namespace)
+with patch.object(verify, 'OfferingPriceExtractor', namespace['OfferingPriceExtractor']):
+    result = pytest.main(['-q', '-p', 'no:cacheprovider', 'tests/test_decision_verify.py::test_retained_alibaba_singapore_table_reads_the_price_column'])
+print(f'HISTORICAL_EXTRACTOR_TEST_EXIT={result}')
+sys.exit(result)
+PY
+```
+
+Full suite, `CI` unset. The first run is the failure recorded above.
 
 ```sh
 env -u CI PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4
 ```
 
-```text
-10342 passed, 23 skipped, 11 warnings in 1039.68s (0:17:19)
-```
-
-Exit file `/tmp/model-329-pytest-noci.exit` contains `0`.
-
-The same command with the harness `CI=true` logged
-`3 failed, 10342 passed, 8 skipped, 11 warnings, 12 errors in 1236.82s`.
-Every failure and error is the Playwright guard above.
-
-`ruff format` was not run on `tests/test_decision_verify.py`. The file was
-already outside the formatter, and formatting it would rewrite pre-existing
-lines. `ruff check` still reports pre-existing E501 lines that this edit did
-not introduce. The new test lines are within the 100-character limit.
+`ruff check tests/test_decision_verify.py --select E501` reports pre-existing
+long lines. The lines this edit added are within 100 characters. `ruff format`
+was not run on the file.
 
 ## What was not observed
 
-- The live Alibaba and Microsoft pages were not fetched. No Firecrawl, no
-  Artificial Analysis, and no Zapier.
-- The trust-audit sampler was not re-run. `decision/verify.py` was not edited.
-- The offering value `2.0` was not changed.
-- Linear was not edited. Neither pull request was merged.
-- A `CI=true` browser pass was not run, because Playwright is not installed
-  in `web/node_modules`.
+- The live vendor pages were not fetched. No paid provider call was made.
+- `decision/verify.py` was not edited. The offering value 2.0 was not changed.
+- Offering files that cite snapshot `sha256:914aa685dc8ae8f32ed92b506792e5396983f633e4d5703c8925260131527c9f` were not edited. They cite the collected snapshot. They do not contain the page.
+- `modelspec-data` pull request 69 was not edited. Its resolution row still says `test_retained_alibaba_singapore_table_reads_the_price_column` runs on that retained snapshot. The test name remains. The bytes it reads are now the synthetic table.
+- Linear was not edited. Pull request 730 was not merged.
+- A browser pass with `CI=true` was not run. Playwright is not installed under `web/node_modules`.
