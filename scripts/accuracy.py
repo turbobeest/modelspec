@@ -785,6 +785,34 @@ def _verified_claims(root: Path) -> list[tuple[Any, str]]:
     ]
 
 
+def _private_corrections(
+    root: Path, private: Path, as_of: date
+) -> dict[tuple[str, str], tuple[Any, date, date]]:
+    """Match frozen targets to independently verified, newer private values."""
+    from decision.verify import VerificationLog
+
+    for path in (private / "verification" / "log.jsonl",
+                 private / "verification" / "queue" / "events.jsonl"):
+        if not path.is_file():
+            raise ValueError("private correction checkout is missing verification records")
+    public_log = VerificationLog(root / "verification").latest()
+    try:
+        private_log = VerificationLog(private / "verification").latest()
+        private_claims = _verified_claims(private)
+    except (ValueError, KeyError, TypeError):
+        raise ValueError("private correction verification records could not be read") from None
+    corrections = {}
+    for claim, _ in private_claims:
+        key = (claim.target.kind, claim.target.id)
+        previous = public_log.get(key)
+        current = private_log[key]
+        if (claim.target.kind == "fact" and previous is not None
+                and previous.date < current.date <= as_of
+                and previous.target.value_hash != current.target.value_hash):
+            corrections[key] = (claim, previous.date, current.date)
+    return corrections
+
+
 #: What the nightly can say about one re-read value. ``verified``, ``mismatch`` and
 #: ``unreachable`` are ``decision.verify``'s. ``undetermined`` is a re-read in which
 #: no nightly reader found the value at all. It is never a pass: finding nothing
@@ -799,7 +827,9 @@ def _verified_claims(root: Path) -> list[tuple[Any, str]]:
 #:   declared rendered. A 403 from a page that needs a renderer says nothing about
 #:   the value, so the draw is replaced. A failed ``fetch: http`` source stays
 #:   ``unreachable``.
-FIDELITY_OUTCOMES = ("verified", "mismatch", "unreachable", "undetermined")
+#: ``public_image_lag`` is an older public fact superseded by a newer verified
+#: private value. It replaces a draw and does not count as assessed or undetermined.
+FIDELITY_OUTCOMES = ("verified", "mismatch", "unreachable", "undetermined", "public_image_lag")
 _FIDELITY_FAILURES = ("mismatch", "unreachable")
 _ASSESSED = ("verified", "mismatch", "unreachable")
 Unread = Literal["source_unchanged", "source_changed", "mismatch", "render_required"]
@@ -842,6 +872,15 @@ def _read_nothing(result: Any) -> bool:
     )
 
 
+def _has_current_reading(result: Any) -> bool:
+    """A source-kind rejection does not read the claim's value."""
+    return result.outcome == "verified" or (
+        result.outcome == "mismatch"
+        and not _read_nothing(result)
+        and any(diff.field != "source_kind" for diff in result.diffs)
+    )
+
+
 def verify_fidelity_sample(
     claims: Sequence[Any],
     *,
@@ -852,6 +891,8 @@ def verify_fidelity_sample(
     today: date,
     source_urls: Mapping[str, str],
     unread: Mapping[tuple[str, str], Unread] | None = None,
+    fetch_diagnostics: Mapping[tuple[str, str], list[dict[str, Any]]] | None = None,
+    private_corrections: Mapping[tuple[str, str], tuple[Any, date, date]] | None = None,
 ) -> LayerResult:
     """Re-read sampled claims and route failures through MODEL-140's recrawl queue.
 
@@ -859,8 +900,11 @@ def verify_fidelity_sample(
     because its source is unchanged or changed (the default), or a ``mismatch``.
     ``render_required`` turns ``unreachable`` into ``undetermined``: the draw is
     replaced, and it is not logged, checked, or re-queued.
+    A current reading must support a matching private correction before reporting
+    ``public_image_lag``. With no usable current reading the prior private proof
+    can replace the draw. Lag never writes a verification or changes the queue.
     """
-    from decision.verify import ref_str, verify
+    from decision.verify import Diff, ref_str, verify
 
     unread = unread or {}
     now = datetime.now(UTC)
@@ -870,6 +914,7 @@ def verify_fidelity_sample(
         result = verify(claim, regions, extractors, today=today)
         outcome, undetermined = result.outcome, None
         key = (claim.target.kind, claim.target.id)
+        correction_details = None
         if _read_nothing(result):
             undetermined = unread.get(key, "source_changed")
             if undetermined == "mismatch":
@@ -880,6 +925,49 @@ def verify_fidelity_sample(
                 outcome = "undetermined"
         elif outcome == "unreachable" and unread.get(key) == "render_required":
             outcome, undetermined = "undetermined", "render_required"
+        if key in (private_corrections or {}):
+            correction, public_date, private_date = private_corrections[key]
+            same_unit = claim.unit == correction.unit
+            if not same_unit and (claim.unit is None or correction.unit is None):
+                from decision.registry import UnknownIdError, facet
+
+                try:
+                    unit = facet(claim.field).unit
+                except UnknownIdError:
+                    unit = None
+                same_unit = unit is not None and (claim.unit or unit) == (correction.unit or unit)
+            same_fact = all(
+                getattr(claim, field) == getattr(correction, field)
+                for field in ("subject", "field", "conditions", "base_model")
+            )
+            if same_fact and same_unit:
+                correction_details = {
+                    "public_verified_date": public_date.isoformat(),
+                    "verified_date": private_date.isoformat(),
+                }
+                corrected = verify(
+                    replace(claim, value=correction.value,
+                            unit=correction.unit if correction.unit is not None else claim.unit),
+                    regions, extractors, today=today,
+                )
+                if corrected.outcome == "verified" or (
+                    not _has_current_reading(result) and not _has_current_reading(corrected)
+                ):
+                    outcome = "public_image_lag"
+                    undetermined = "newer_verified_private_correction"
+                elif not _has_current_reading(result) or result.outcome == "verified":
+                    diffs = (Diff("private_correction", "supported", "not_supported"),)
+                    verification = result.verification
+                    if verification is not None:
+                        verification = verification.model_copy(update={
+                            "outcome": "mismatch",
+                            "diff": json.dumps([diff.to_dict() for diff in diffs]),
+                        })
+                    result = replace(
+                        result, outcome="mismatch", diffs=diffs, verification=verification,
+                        reason="private_correction_not_supported",
+                    )
+                    outcome, undetermined = "mismatch", None
         counts[outcome] += 1
         if outcome in ("verified", *_FIDELITY_FAILURES) and result.verification is not None:
             log.append(result.verification)
@@ -887,26 +975,39 @@ def verify_fidelity_sample(
             queue.checked(result, at=now)
         elif undetermined == "source_changed":
             queue.requeue([claim.target], at=now)
-        details.append(
-            {
-                "target": ref_str(result.target),
-                "category": claim_category(claim),
-                "outcome": outcome,
-                "diff": [row.to_dict() for row in result.diffs],
-                "reason": undetermined or result.reason,
-                "source_urls": sorted(
-                    {
-                        source_urls[source.source_id]
-                        for source in claim.sources
-                        if source.source_id in source_urls
-                    }
-                ),
-                "read_date": today.isoformat(),
-                "verifier": result.verification.verifier.model_dump()
-                if result.verification is not None and outcome != "undetermined"
-                else None,
-            }
-        )
+        detail = {
+            "target": ref_str(result.target),
+            "category": claim_category(claim),
+            "outcome": outcome,
+            "diff": [row.to_dict() for row in result.diffs],
+            "reason": undetermined or result.reason,
+            "source_urls": sorted(
+                {
+                    source_urls[source.source_id]
+                    for source in claim.sources
+                    if source.source_id in source_urls
+                }
+            ),
+            "sources": (fetch_diagnostics or {}).get(key, [
+                {
+                    "source_id": source.source_id,
+                    "url": source_urls.get(source.source_id),
+                    "transport": None,
+                    "http_status": None,
+                    "error_category": "not_recorded",
+                    "copy_ref": source.snapshot_ref,
+                    "cited_copy_ref": source.snapshot_ref,
+                }
+                for source in claim.sources
+            ]),
+            "read_date": today.isoformat(),
+            "verifier": result.verification.verifier.model_dump()
+                if result.verification is not None and outcome in _ASSESSED
+            else None,
+        }
+        if correction_details is not None:
+            detail["private_correction"] = correction_details
+        details.append(detail)
     failed = sum(counts[name] for name in _FIDELITY_FAILURES)
     return LayerResult(
         "data_fidelity",
@@ -927,6 +1028,7 @@ def _current_copies(
     fetcher: Any,
     as_of: date,
     nightly_methods: frozenset[str],
+    fetch_diagnostics: dict[tuple[str, str], list[dict[str, Any]]] | None = None,
 ) -> tuple[list[Any], dict[tuple[str, str], Unread]]:
     """Fetch each claim's sources with plain HTTP and pin the claim to the new copies.
 
@@ -980,6 +1082,33 @@ def _current_copies(
         )
         failed = [s.source_id for s in claim.sources if s.source_id not in fetched]
         key = (claim.target.kind, claim.target.id)
+        if fetch_diagnostics is not None:
+            diagnostics = []
+            for source in claim.sources:
+                response = report.fetches[source.source_id]
+                error_category = None
+                if response.status is not None and response.status >= 400:
+                    error_category = "http_error"
+                elif response.error:
+                    error_category = (
+                        "timeout" if response.error.startswith("timeout:") else "transport_error"
+                    )
+                elif source.source_id not in refs:
+                    error_category = next(
+                        (row.reason for row in report.skipped if row.source_id == source.source_id),
+                        "no_copy",
+                    )
+                diagnostics.append({
+                    "source_id": source.source_id,
+                    "url": str(sources[source.source_id].url),
+                    "declared_fetch": str(sources[source.source_id].fetch),
+                    "transport": "http",
+                    "http_status": response.status,
+                    "error_category": error_category,
+                    "copy_ref": refs.get(source.source_id),
+                    "cited_copy_ref": source.snapshot_ref,
+                })
+            fetch_diagnostics[key] = diagnostics
         if failed and len(failed) == len(claim.sources) and all(
             sources[source_id].fetch == FetchMode.RENDERED for source_id in failed
         ):
@@ -1001,10 +1130,11 @@ def fidelity_verdict(
     more undetermined draws than ``max_undetermined_share``."""
     assessed = sum(counts[name] for name in _ASSESSED)
     failed = sum(counts[name] for name in _FIDELITY_FAILURES)
-    share = counts["undetermined"] / drawn if drawn else 0.0
+    current_draws = drawn - counts.get("public_image_lag", 0)
+    share = counts["undetermined"] / current_draws if current_draws else 0.0
     summary = (
         f"Re-read {assessed} verified values from current source copies; "
-        f"{failed} did not verify. {counts['undetermined']} of {drawn} draws "
+        f"{failed} did not verify. {counts['undetermined']} of {current_draws} draws "
         f"({share:.0%}) were undetermined: no nightly reader found the value."
     )
     status: Status = "fail" if failed else "pass"
@@ -1025,6 +1155,7 @@ def data_fidelity(
     sample_size: int | None = None,
     seed: str | None = None,
     llm_reader: str | None = None,
+    private_data_root: Path | None = None,
 ) -> LayerResult:
     """Nightly source re-read. Plain HTTP is attempted before any paid renderer.
 
@@ -1038,6 +1169,9 @@ def data_fidelity(
     silently reducing N when fewer than N values can be assessed, and fails when
     more than ``max_undetermined_share`` of the draws were undetermined: a harness
     that can read nothing must not pass.
+    Newer verified private facts are reported as ``public_image_lag`` and replaced.
+    Those draws count towards the draw budget, but cannot satisfy the assessed
+    floor or dilute the undetermined share.
     """
     from decision.excluded import excluded_sources
     from decision.sources import CopyStore, Fetcher
@@ -1052,6 +1186,9 @@ def data_fidelity(
     )
 
     wanted = sample_size or config.sample_size
+    private_corrections = (
+        _private_corrections(root, private_data_root, as_of) if private_data_root else {}
+    )
     sources = load_sources(root / "registry" / "sources.yaml")
     excluded = excluded_sources()
     eligible = [
@@ -1094,6 +1231,7 @@ def data_fidelity(
             batch = order[drawn : drawn + wanted - assessed]
             drawn += len(batch)
             fetched_sources.update(s.source_id for claim, _ in batch for s in claim.sources)
+            fetch_diagnostics: dict[tuple[str, str], list[dict[str, Any]]] = {}
             current, unread = _current_copies(
                 batch,
                 sources=sources,
@@ -1101,6 +1239,7 @@ def data_fidelity(
                 fetcher=fetcher,
                 as_of=as_of,
                 nightly_methods=nightly_methods,
+                fetch_diagnostics=fetch_diagnostics,
             )
             result = verify_fidelity_sample(
                 current,
@@ -1111,6 +1250,8 @@ def data_fidelity(
                 today=as_of,
                 source_urls=source_urls,
                 unread=unread,
+                fetch_diagnostics=fetch_diagnostics,
+                private_corrections=private_corrections,
             )
             for name, count in result.counts.items():
                 counts[name] += count
@@ -1119,6 +1260,9 @@ def data_fidelity(
     # Rendered sources the nightly cannot read stay visible each night (MODEL-336).
     render_required = sum(row["reason"] == "render_required" for row in sample)
     summary += f" {render_required} draw(s) needed a renderer (render_required)."
+    summary += (
+        f" {counts['public_image_lag']} draw(s) lagged a newer verified private correction."
+    )
     assessed = sum(counts[name] for name in _ASSESSED)
     return LayerResult(
         "data_fidelity",
@@ -1430,6 +1574,7 @@ def run_profile(
     sample_size: int | None = None,
     random_seed: str | None = None,
     approved_recall_baseline: Path | None = None,
+    private_data_root: Path | None = None,
 ) -> AccuracyReport:
     del output_dir
     root = Path(root).resolve()
@@ -1469,6 +1614,7 @@ def run_profile(
                     sample_size=sample_size,
                     seed=random_seed,
                     llm_reader=llm_reader,
+                    private_data_root=private_data_root,
                 )
             )
         elif layer == "reference_agreement":
@@ -1504,6 +1650,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     )
     parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT)
     parser.add_argument("--snapshot-file", type=Path)
+    parser.add_argument(
+        "--private-data-root", type=Path,
+        help="Read newer verified corrections without replacing the public data image.",
+    )
     parser.add_argument(
         "--approved-recall-baseline",
         type=Path,
@@ -1588,6 +1738,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         sample_size=args.sample_size,
         random_seed=args.seed,
         approved_recall_baseline=args.approved_recall_baseline,
+        private_data_root=args.private_data_root,
     )
     if args.stage_failure:
         report = replace(report, layers=(*report.layers, STAGED_FAILURE))

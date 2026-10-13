@@ -32,15 +32,30 @@ jobs:
       issues: write
     env:
       STAGE_FAILURE: ${{ inputs.stage_failure }}
+      DATA_SPLIT_ENABLED: ${{ vars.DATA_SPLIT_ENABLED }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Require the private checkout credential
+        if: vars.DATA_SPLIT_ENABLED == 'true'
+        env:
+          DATA_TOKEN: ${{ secrets.MODELSPEC_DATA_TOKEN }}
+        run: test -n "$DATA_TOKEN"
+
+      - name: Read private verification records
+        if: vars.DATA_SPLIT_ENABLED == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: turbobeest/modelspec-data
+          token: ${{ secrets.MODELSPEC_DATA_TOKEN }}
+          path: .accuracy-private
+          persist-credentials: false
 
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: pip
 
       - name: Install dependencies
         run: python -m pip install -e '.[dev]'
@@ -50,22 +65,11 @@ jobs:
         run: |
           stage=()
           if [ "$STAGE_FAILURE" = "true" ]; then stage=(--stage-failure); fi
-          python scripts/accuracy.py --profile nightly --output-dir accuracy-report "${stage[@]}"
-
-      - name: Summarise the layers on the run page
-        if: always()
-        # The coverage report links failing runs here: the layer table, not the details.
-        run: |
-          if [ -f accuracy-report/accuracy.md ]; then
-            sed '/^## /,$d' accuracy-report/accuracy.md >> "$GITHUB_STEP_SUMMARY"
+          corrections=()
+          if [ "$DATA_SPLIT_ENABLED" = "true" ]; then
+            corrections=(--private-data-root .accuracy-private)
           fi
-
-      - name: Upload accuracy report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: decision-accuracy-nightly
-          path: accuracy-report/
+          python scripts/accuracy.py --profile nightly --output-dir accuracy-report "${stage[@]}" "${corrections[@]}"
 
       - name: Alert the orchestrator
         if: failure() && github.ref == 'refs/heads/main'
