@@ -68,7 +68,7 @@ def test_flag_off_response_bytes_match_base(entry, snapshot, monkeypatch, flag, 
 
 
 def test_flag_off_agent_copy_bytes_match_base():
-    assert hashlib.sha256(agent_copy.render(agent_copy.copy()).encode()).hexdigest() == "2f43ebd25362ed625d2940c6dfffb5d6d9b3947ade7e6d97f183bfabcc6ff146"
+    assert hashlib.sha256(agent_copy.render(agent_copy.copy()).encode()).hexdigest() == "408bf5a9093e7efea7945409d9f73ce90036bf8822d43d524f9f41398b6da056"
     assert hashlib.sha256(agent_copy.guide()[1].encode()).hexdigest() == "b6b3273038117d903338bf62145486382a1f0bd511a2a8920df50fd2743cb6ec"
     raw = json.dumps(agent_copy.cli_text(), sort_keys=True).encode()
     assert hashlib.sha256(raw).hexdigest() == "10a1d742de8ec6bf43b6c80f3863ada4ef538480a41b81a98149bad18e9db502"

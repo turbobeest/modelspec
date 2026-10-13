@@ -303,6 +303,7 @@ async def gate(
     limits_for: Callable[[KeyRecord, TierLimits], Awaitable[TierLimits]] | None = None,
     anonymous_id: str | None = None,
     anonymous_tier: str = "free",
+    require_key: bool = False,
     skip_limits: Callable[[KeyRecord, TierLimits], Awaitable[bool]] | None = None,
 ) -> Outcome:
     """The Worker's one call into this package: `serve`, behind the switch.
@@ -311,6 +312,9 @@ async def gate(
     request to a named tier. The gate meters it under that identifier before
     producing an answer. This is the browser free tier; the identifier is a
     one-way digest of the connecting IP, never the address itself.
+
+    `require_key` prevents both anonymous paths regardless of the enforcement
+    switch or an admitted browser identity.
 
     **Enforcement off** (the shipped default, until keys can be obtained): a
     request with no key is answered by `anonymous` exactly as it was before this
@@ -330,7 +334,7 @@ async def gate(
     unaffected, because neither reads the store.
     """
     shell = dict(envelope or {})
-    if keys.normalise(api_key) is None and anonymous_id is not None:
+    if not require_key and keys.normalise(api_key) is None and anonymous_id is not None:
         moment = now or datetime.now(UTC)
         try:
             policy = load_policy()
@@ -367,7 +371,7 @@ async def gate(
                        ("key.absent", "limits.consume", "serve.anonymous"),
                        tier=tier.name, meter=meter)
 
-    if keys.normalise(api_key) is None and not enforced:
+    if not require_key and keys.normalise(api_key) is None and not enforced:
         status, body = await anonymous()
         return Outcome(status, body, {}, ("key.absent", "serve.anonymous"))
 
