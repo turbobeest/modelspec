@@ -435,6 +435,43 @@ def test_clean_launcher_routes_ablation_and_keeps_default_job_argv(arguments, mo
     assert env["MODELSPEC_API_KEY"] == "live-fixture-secret"
 
 
+@pytest.mark.parametrize(
+    "arm,copy_counter,body_counter,example_counter,annotation_counter",
+    [
+        ("baseline", "v1_copy_absent", "v1_body_absent", "v3_absent", "v4_absent"),
+        ("v1", "v1_copy_present", "v1_body_present", "v3_absent", "v4_absent"),
+        ("v2", "v1_copy_absent", "v1_body_absent", "v3_absent", "v4_absent"),
+        ("v3", "v1_copy_absent", "v1_body_absent", "v3_present", "v4_absent"),
+        ("v4", "v1_copy_absent", "v1_body_absent", "v3_absent", "v4_present"),
+        ("combined", "v1_copy_present", "v1_body_present", "v3_present", "v4_present"),
+    ],
+)
+@pytest.mark.parametrize("observation", ["v1_body", "v4"])
+@pytest.mark.parametrize("missing_state", ["missing", "zero", "opposite"])
+def test_applied_requires_selected_decide_body_observations(
+    arm, copy_counter, body_counter, example_counter, annotation_counter,
+    observation, missing_state,
+):
+    counts = {
+        "responses": 3,
+        copy_counter: 2,
+        body_counter: 1,
+        example_counter: 1,
+        annotation_counter: 1,
+    }
+    row = {"proxy_rewrites": counts, "claude_plugin": {"name": "modelspec"}}
+    assert ablation.applied(arm, row) is True
+
+    counter = body_counter if observation == "v1_body" else annotation_counter
+    del counts[counter]
+    if missing_state == "zero":
+        counts[counter] = 0
+    elif missing_state == "opposite":
+        prefix, state = counter.rsplit("_", 1)
+        counts[f"{prefix}_{'absent' if state == 'present' else 'present'}"] = 1
+    assert ablation.applied(arm, row) is False
+
+
 @pytest.mark.parametrize("failure", ["budget_passthrough", "bounded_fallback", "candidates_truncated"])
 def test_pass_requires_variant_exposure_and_preserves_judge_rationale(failure):
     row = {

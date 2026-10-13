@@ -466,9 +466,11 @@ def applied(arm: str, row: dict) -> bool:
         return False
     if counts.get("v1_copy_present" if variants.next_move else "v1_copy_absent", 0) < 2:
         return False
+    if not counts.get("v1_body_present" if variants.next_move else "v1_body_absent"):
+        return False
     if not counts.get("v3_present" if variants.worked_example else "v3_absent"):
         return False
-    if variants.annotations and not counts.get("v4_present"):
+    if not counts.get("v4_present" if variants.annotations else "v4_absent"):
         return False
     if variants.plugin and (row.get("claude_plugin") or {}).get("name") != "modelspec":
         return False

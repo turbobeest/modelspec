@@ -7,11 +7,11 @@ import gzip
 import http.client
 import json
 import os
-import socket
-import struct
 import time
 from collections import Counter
+from contextlib import closing
 from pathlib import Path
+from types import SimpleNamespace
 
 import httpx
 import pytest
@@ -23,6 +23,7 @@ from qa.ablation_proxy import (
     LEGACY_COPY,
     OLD_SUMMARY_RULE,
     SUMMARY_RULE,
+    Audit,
     Handler,
     Rewrite,
     RewriteError,
@@ -386,10 +387,57 @@ def wait_for_count(proxy, name):
     pytest.fail("Expected handler counter " + name)
 
 
+@pytest.mark.parametrize("error", [BrokenPipeError, ConnectionResetError, ConnectionAbortedError])
+def test_keepalive_reset_before_next_request_parse_preserves_completion(tmp_path, error):
+    class ResetReader:
+        def peek(self, size):
+            return b"partial request line"
+
+        def readline(self, size):
+            raise error()
+
+    audit = Audit(tmp_path / "proxy", {"variants": []})
+    handler = Handler.__new__(Handler)
+    handler.server = SimpleNamespace(proxy=SimpleNamespace(audit=audit))
+    handler.rfile = ResetReader()
+    handler.response_complete = True
+    handler.close_connection = False
+    handler.handle_one_request()
+    counts = audit.snapshot()["counters"]
+    assert counts["client_disconnect"] == 1
+    assert not counts.get("proxy_error") and not counts.get("handler_error")
+    assert handler.close_connection
+
+
 @pytest.mark.parametrize("method", ["POST", "DELETE"])
-def test_client_reset_after_complete_response_is_not_a_proxy_error(tmp_path, method):
+@pytest.mark.parametrize("error", [BrokenPipeError, ConnectionResetError, ConnectionAbortedError])
+@pytest.mark.parametrize("boundary", ["empty_write", "flush"])
+def test_client_reset_after_complete_response_is_not_a_proxy_error(
+    tmp_path, monkeypatch, method, error, boundary
+):
+    setup = Handler.setup
+
+    def setup_disconnect(self):
+        setup(self)
+        operation = "write" if boundary == "empty_write" else "flush"
+        original = getattr(self.wfile, operation)
+
+        def disconnected(*args):
+            if boundary == "empty_write" and args != (b"",):
+                return original(*args)
+            # The full response has already reached the client.
+            # Raise once so handler cleanup cannot add another error.
+            monkeypatch.setattr(self.wfile, operation, original)
+            raise error()
+
+        monkeypatch.setattr(self.wfile, operation, disconnected)
+
+    monkeypatch.setattr(Handler, "setup", setup_disconnect)
+
+    raw = b"complete" if method == "POST" and boundary == "flush" else b""
+
     def upstream(request):
-        return httpx.Response(200 if request.method == "POST" else 204)
+        return httpx.Response(200 if request.method == "POST" else 204, content=raw)
 
     with running_proxy(
         Variants(),
@@ -397,29 +445,26 @@ def test_client_reset_after_complete_response_is_not_a_proxy_error(tmp_path, met
         port=0,
         client=httpx.Client(transport=httpx.MockTransport(upstream)),
     ) as proxy:
-        connection = http.client.HTTPConnection(
-            "127.0.0.1", proxy_port(proxy.audit.info["proxy_url"])
-        )
-        connection.request(method, "/mcp", body=b"{}" if method == "POST" else None)
-        response = connection.getresponse()
-        assert response.status in {200, 204}
-        assert response.read() == b""
-        connection.sock.setsockopt(
-            socket.SOL_SOCKET, socket.SO_LINGER, struct.pack("ii", 1, 0)
-        )
-        connection.close()
+        with closing(http.client.HTTPConnection(
+            "127.0.0.1", proxy_port(proxy.audit.info["proxy_url"]), timeout=2
+        )) as connection:
+            connection.request(method, "/mcp", body=b"{}" if method == "POST" else None)
+            response = connection.getresponse()
+            assert response.status == (200 if method == "POST" else 204)
+            assert response.read() == raw
         counts = wait_for_count(proxy, "client_disconnect")
         assert counts["client_disconnect"] == 1
         assert not counts.get("handler_error") and not counts.get("proxy_error")
 
 
-def test_disconnect_before_complete_response_is_a_proxy_error(tmp_path, monkeypatch):
+@pytest.mark.parametrize("error", [BrokenPipeError, ConnectionResetError, ConnectionAbortedError])
+def test_disconnect_before_complete_response_is_a_proxy_error(tmp_path, monkeypatch, error):
     def incomplete(self, status, raw, headers, marker=None):
         self.send_response(200)
         self.send_header("Content-Length", "20")
         self.end_headers()
         self.wfile.write(b"partial")
-        raise BrokenPipeError()
+        raise error()
 
     monkeypatch.setattr(Handler, "reply", incomplete)
     with running_proxy(
@@ -440,19 +485,28 @@ def test_disconnect_before_complete_response_is_a_proxy_error(tmp_path, monkeypa
         assert not counts.get("client_disconnect")
 
 
-def test_sse_disconnect_after_complete_rpc_is_not_a_proxy_error(tmp_path, monkeypatch):
-    complete = Handler.completed_event
+@pytest.mark.parametrize("error", [BrokenPipeError, ConnectionResetError, ConnectionAbortedError])
+@pytest.mark.parametrize("terminated", [False, True])
+def test_sse_disconnect_after_complete_rpc_is_not_a_proxy_error(
+    tmp_path, monkeypatch, error, terminated
+):
+    setup = Handler.setup
 
-    def disconnected(self, event, call):
-        complete(self, event, call)
-        assert self.response_complete
-        raise ConnectionResetError()
+    def setup_disconnect(self):
+        setup(self)
+        flush = self.wfile.flush
 
-    monkeypatch.setattr(Handler, "completed_event", disconnected)
+        def disconnected():
+            monkeypatch.setattr(self.wfile, "flush", flush)
+            raise error()
+
+        monkeypatch.setattr(self.wfile, "flush", disconnected)
+
+    monkeypatch.setattr(Handler, "setup", setup_disconnect)
     message = packed(
         {"id": 1, "result": ablation.METADATA_FIXTURE["results"]["initialize"]}
     )
-    event = b"event: message\ndata: " + message + b"\n\n"
+    event = b"event: message\ndata: " + message + (b"\n\n" if terminated else b"")
     upstream = httpx.Client(
         transport=httpx.MockTransport(
             lambda request: httpx.Response(
@@ -495,6 +549,33 @@ DECIDE_FIXTURES = json.loads(
         ).read_bytes()
     )
 )
+
+
+@pytest.mark.parametrize("name", ["recall-q04", "recall-q09"])
+@pytest.mark.parametrize("change", ["identity", "records"])
+def test_unknown_projection_reports_uncertainty_instead_of_a_proven_gap(name, change):
+    row = DECIDE_FIXTURES["default"][name]
+    current = copy.deepcopy(row["post"]["body"])
+    if change == "identity":
+        current["snapshot"] = "unrecorded-snapshot"
+    else:
+        current["results"][0]["model"] = "unrecorded/model"
+    message = {
+        "id": 1,
+        "result": {"content": [
+            {"type": "text", "text": packed({"status": 200, "body": current}).decode()},
+            {"type": "text", "text": current["summary_for_user"],
+             "annotations": {"audience": ["user"]}},
+        ]},
+    }
+    outcome = rewrite(
+        message,
+        {"id": 1, "method": "tools/call", "params": {"name": "decide"}},
+        Variants(),
+        no_fetch,
+    )
+    assert outcome.counters["upstream_projection_unverified"] == 1
+    assert not outcome.counters.get("upstream_projection_gap")
 
 
 @pytest.mark.parametrize("name", ablation.TUNING + ablation.HOLDOUT)
@@ -547,7 +628,7 @@ def test_actual_engine_stripping_and_documented_gaps(name, projection):
     if projection == "default" and name in budget_gaps:
         allowed |= budget_gaps[name]
         assert outcome.counters["upstream_projection_gap"] == 1
-    if projection == "fields_model":
+    else:
         assert not outcome.counters.get("upstream_projection_gap")
     assert differences == allowed
     if name == "budget-approved":
