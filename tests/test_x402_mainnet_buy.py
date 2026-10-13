@@ -18,7 +18,7 @@ from tests.test_x402 import _eip55
 
 ROOT = Path(__file__).resolve().parents[1]
 FLAG = "--i-understand-this-spends-real-usdc"
-PAYER_KEY = "0x" + "11" * 32  # Public test vector, never a funded wallet.
+PAYER_KEY = "0x" + "11" * 32  # Public test vector, used only with mocks.
 API_KEY = "live_test_only"
 RECEIVER = "0x69429dbEEEE7218084AB5B896788f5fCE452419C"
 ASSET = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
