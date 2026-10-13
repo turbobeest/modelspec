@@ -57,3 +57,21 @@ def validate_spec(value: Any) -> None:
         raise ClientError("invalid_spec", recovery="spec") from None
     if issues:
         raise ClientError("invalid_spec", recovery="spec", issues=issues)
+
+
+def bound_decide_request(spec: dict[str, Any]) -> dict[str, Any]:
+    """Add the bounded row list when the caller did not set ``fields``.
+
+    An explicit ``fields`` value, including null, is sent unchanged. An omitted
+    ``explain`` is the server default, summary, so the list includes the
+    explanation row fields. The wheel does not import the engine. The concierge
+    test pins this list to ``decision.bounded.row_fields_for`` and to
+    ``mcp/test/fixtures/default-decide-request.json``.
+    """
+    if "fields" in spec:
+        return spec
+    explain = spec.get("explain", "summary")
+    fields = ["model_rank", "cost_per_task", "estimates", "p_best"]
+    if explain in ("summary", "full"):
+        fields.extend(("contributions", "evidence"))
+    return {**spec, "fields": fields}

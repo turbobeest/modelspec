@@ -1,6 +1,6 @@
 # The ModelSpec CLI contract
 
-MODEL-307. `modelspec-dev` 0.4.0 is a thin keyed client for the hosted API.
+MODEL-307. `modelspec-dev` 1.0.0 is a thin keyed client for the hosted API.
 The command is `modelspec`. Version 0.2.0 was yanked. Release publication is
 an operator step after review; this repository does not publish to PyPI.
 
@@ -119,12 +119,18 @@ modelspec feedback [DECISION_ID] --rating RATING [--note TEXT]
 All four require a key before reading the Spec or contacting the API.
 `decide` requires exactly one of `--spec` and `--template`. It parses JSON or
 YAML, validates structure against the bundled published
-[`DecideRequest` schema](decision-contract.schema.json), and sends exactly that
-Spec as the body of `POST /v1/decide`. It injects no defaults, constraints,
-weights, task text, or wrapper. The server validates semantics and is the
-authority. The request is at most 64 KB. A template comes from a keyed
+[`DecideRequest` schema](decision-contract.schema.json), and sends that
+Spec as the body of `POST /v1/decide`. It injects no constraints,
+weights, task text, or wrapper. When the Spec omits `fields`, the CLI adds
+the bounded row list (`model_rank`, `cost_per_task`, `estimates`, `p_best`,
+plus `contributions` and `evidence` when `explain` is omitted, `summary`, or
+`full`). An omitted `explain` is the server default, summary. An explicit
+`fields` value, including null, is sent unchanged. The server validates
+semantics and is the authority. The request is at most 64 KB. A template comes
+from a keyed
 `GET /v1/vocabulary?section=templates&id=ID&detail=full`, never a bundled or
-cached registry; its Spec is validated and sent unchanged.
+cached registry. Its Spec is validated the same way, and `fields` is added
+only when that Spec omits it.
 
 `compare` requires exactly one of `--spec` and `--template`, using the same
 Spec loading, validation and keyed template lookup as `decide`. `--to` is
@@ -205,7 +211,11 @@ unchanged. The API's `recorded` or `not_recorded` response is passed through.
 ## Output and recovery
 
 `--json` works before the command or on the command. Successful keyed output
-is the API response body itself, without an envelope or extra fields. CLI-owned
+is the API response body itself, without an envelope or extra fields. A Spec
+that omitted `fields` is answered in the bounded representation.
+`explanation.omitted` counts records left out of that answer, and
+`explanation.fetch`, when present, says how to request the complete Decision.
+CLI-owned
 orientation and procurement are guidance objects with `guide_version` and
 `next`. CLI-owned errors use `schema_version: "2.0"`, `command`, `error`, and
 `next: [...]` on stdout. Hosted refusals keep the API body and add `next`.
@@ -290,7 +300,22 @@ The new client error contract is 2.0 because it replaces the retired offline
 CLI. It does not change the decision API contract, the legacy CLI envelope
 1.0, or `build.export_schema_version` 3.0. Those remain separately versioned.
 
+`modelspec-dev` 1.0.0 changes the default `decide --json` body. When the Spec
+omits `fields`, the CLI asks for the bounded representation instead of the
+complete Decision. MODEL-59 counts that result-shape change as a major bump
+of this package. Exit codes and the error object are unchanged, so the CLI
+error contract stays at 2.0. The decision API contract is unchanged. The
+server already returned this representation when a request set `fields`.
+
 ## Release notes
+
+### 1.0.0
+
+A major release. The default `decide --json` body is the bounded representation when the Spec omits `fields`.
+
+- When the Spec omits `fields`, `modelspec decide` sends `model_rank`, `cost_per_task`, `estimates`, and `p_best`. Omitted `explain`, `summary`, and `full` also send `contributions` and `evidence`. An explicit `fields` value, including null, is sent unchanged (MODEL-337).
+- The printed answer carries `explanation.omitted`. When records were left out, it also carries `explanation.fetch`.
+- The CLI error contract stays at 2.0. The decision API contract is unchanged. A missing key still refuses before any request.
 
 ### 0.4.0
 

@@ -7,6 +7,7 @@ import gzip
 import json
 import stat
 import tomllib
+from pathlib import Path
 from types import SimpleNamespace
 
 import httpx
@@ -16,6 +17,7 @@ from typer.testing import CliRunner
 from cli.modelspec import auth, client, setup
 from cli.modelspec.cli import app
 from cli.modelspec.guidance import BUNDLE
+from decision.bounded import row_fields_for
 from pipeline import agent_copy, entity, pricing
 
 KEY = "live_model307_test_secret"
@@ -343,7 +345,7 @@ def test_decide_sends_exactly_the_supplied_spec_and_passes_the_body_through(
         assert request.method == "POST"
         assert json.loads(request.content) == SPEC
         assert request.headers["authorization"] == f"Bearer {KEY}"
-        assert request.headers["user-agent"] == "modelspec-cli/0.4.0"
+        assert request.headers["user-agent"] == "modelspec-cli/1.0.0"
         return httpx.Response(
             200, text=API_TEXT, headers={"x-modelspec-guide-version": BUNDLE["guide_version"]}
         )
@@ -366,6 +368,72 @@ def test_decide_sends_exactly_the_supplied_spec_and_passes_the_body_through(
     assert result.stdout == API_TEXT
     assert len(calls) == 1
     assert set(tmp_path.rglob("*")) == before
+
+
+def test_decide_adds_bounded_fields_only_when_the_spec_omits_them(monkeypatch):
+    """Omitted fields use the shared row list. Explicit fields, including null, stay."""
+    fixture_path = (
+        Path(__file__).resolve().parents[1]
+        / "mcp/test/fixtures/default-decide-request.json"
+    )
+    fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
+    summary_fields = [*fixture["default_fields"], *fixture["explain_row_fields"]]
+    assert row_fields_for("none") == fixture["default_fields"]
+    assert row_fields_for("summary") == summary_fields
+    assert row_fields_for("full") == summary_fields
+    unset = next(case for case in fixture["requests"] if case["name"] == "unset")
+    # MCP fills explain "none" when the spec omits it. The CLI leaves explain unset.
+    assert unset["request"]["fields"] == row_fields_for("none")
+
+    fetch = "POST /v1/decide without fields for the complete Decision."
+    seen = {}
+
+    def handler(request):
+        body = json.loads(request.content)
+        seen["body"] = body
+        payload = {
+            "decision_id": "dec_bounded000000000001",
+            "status": "answered",
+            "results": [{"rank": 1}],
+        }
+        if isinstance(body.get("fields"), list):
+            payload["explanation"] = {"omitted": {"results": 4}, "fetch": fetch}
+        return httpx.Response(
+            200, json=payload, headers={"x-modelspec-guide-version": BUNDLE["guide_version"]}
+        )
+
+    keyless = run(
+        ["decide", "--spec", "-", "--json"],
+        input=json.dumps({"spec_version": 1, "optimize": {"max": "software_engineering"}}),
+    )
+    assert_error(keyless, "missing_api_key")
+
+    monkeypatch.setattr(client, "_transport", httpx.MockTransport(handler))
+    for case in fixture["requests"]:
+        spec = dict(case["spec"])
+        if "optimize" not in spec:
+            spec["optimize"] = {"max": "software_engineering"}
+        result = run(["decide", "--spec", "-", "--json"], keyed=True, input=json.dumps(spec))
+        assert result.exit_code == 0, result.output
+        sent = seen["body"]
+        printed = json.loads(result.stdout)
+        if "fields" in case["spec"]:
+            assert sent == spec
+            assert sent["fields"] == case["request"]["fields"]
+        else:
+            explain = case["spec"].get("explain", "summary")
+            expected = row_fields_for(explain)
+            if "explain" in case["spec"]:
+                assert expected == case["request"]["fields"]
+            else:
+                assert expected == summary_fields
+            assert sent.get("fields") == expected
+            assert {key: value for key, value in sent.items() if key != "fields"} == spec
+        if isinstance(sent.get("fields"), list):
+            assert printed["explanation"]["omitted"] == {"results": 4}
+            assert printed["explanation"]["fetch"] == fetch
+        else:
+            assert "explanation" not in printed
 
 
 def test_template_is_looked_up_with_a_key_then_sent_unchanged(monkeypatch):
@@ -551,7 +619,9 @@ def test_server_validates_semantics_and_requirements_are_never_removed(monkeypat
     spec = {"spec_version": 1, "optimize": {"max": "unsupported.facet"}, "task": "not supported"}
 
     def handler(request):
-        assert json.loads(request.content) == spec
+        sent = json.loads(request.content)
+        assert {key: value for key, value in sent.items() if key != "fields"} == spec
+        assert sent["fields"] == row_fields_for("summary")
         return httpx.Response(
             400,
             json={
