@@ -592,6 +592,19 @@ def test_canonical_url_drops_tracking_parameters() -> None:
     assert canonical_url("https://a.example/p") == "https://a.example/p"
 
 
+def test_canonical_url_returns_an_unparseable_url_unchanged() -> None:
+    assert canonical_url("http://[foo/bar") == "http://[foo/bar"
+
+
+def test_normalise_document_survives_malformed_urls_in_page_text() -> None:
+    doc = normalise_document(
+        b"<html><body><p>See http://[::1 and https://[bad for notes</p></body></html>",
+        NORMALISERS["html-default"],
+    )
+    assert "http://[::1" in doc.text
+    assert "https://[bad" in doc.text
+
+
 def test_locators_select_regions() -> None:
     doc = normalise_document(fixture("pricing_v1.html"), NORMALISERS["html-default"])
     table = select_region(doc, Locator.table(0))
