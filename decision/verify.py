@@ -3243,8 +3243,18 @@ class LLMExtractor:
             subjects = [split_model_cell(str(r["subject"]))[0] for r in rows if r.get("subject")]
             for row in rows:
                 quote = row.get("quoted_sentence")
-                if not isinstance(quote, str) or not quote.strip() or \
-                        normalise_name(quote) not in normalise_name(text):
+                if not isinstance(quote, str) or not quote.strip():
+                    raise ValueError("quoted_sentence is missing or is not verbatim source text")
+                if claim.field in {"offering.api_model_id", "offering.router_slug"}:
+                    if " ".join(quote.split()) not in " ".join(text.split()):
+                        raise ValueError("quoted_sentence is not verbatim source text")
+                    identifier = _text(row.get("value"))
+                    if identifier is not None and re.search(
+                        rf"(?<![\w./:@+-]){re.escape(identifier)}"
+                        r"(?=$|[^\w./:@+-]|\.(?=\s|$))", quote,
+                    ) is None:
+                        raise ValueError("identifier is not stated literally in quoted_sentence")
+                elif normalise_name(quote) not in normalise_name(text):
                     raise ValueError("quoted_sentence is missing or is not verbatim source text")
                 _check_effort_is_stated(claim, row, text, subjects)
             readings = [
@@ -4935,6 +4945,8 @@ def _value_diff(claim: Claim, reading: Reading) -> Diff | None:
     expected, value = _show(claim), claim.value
     if reading.value is None:
         return None if value is None else Diff("value", expected, None)
+    if claim.field in {"offering.api_model_id", "offering.router_slug"}:
+        return None if value == reading.value else Diff("value", expected, reading.value)
     if isinstance(value, bool):
         s = reading.value.strip().casefold()
         explicit_no_training = (

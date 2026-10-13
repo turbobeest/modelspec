@@ -83,7 +83,7 @@ def offering_ref(snapshot, cid: str) -> OfferingRef:
         model=snapshot.model_of(cid),
         **{
             key: snapshot.fact(cid, "offering." + key).value
-            for key in ("provider", "region", "tier")
+            for key in ("provider", "region", "tier", "api_model_id", "router_slug")
         },
     )
 

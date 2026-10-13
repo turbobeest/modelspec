@@ -62,7 +62,7 @@ def _schema(path: Path) -> jsonschema.Draft202012Validator:
 
 
 @pytest.fixture
-def budget_cache(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
+def budget_cache(tmp_path: Path, monkeypatch: pytest.MonkeyPatch, request) -> Path:
     models, offerings, rows = [], [], []
     for mid, repo, patch, proxy, price, providers in LINEUP:
         models.append(model(mid, facts=[
@@ -77,6 +77,8 @@ def budget_cache(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:
                 fact("offering", oid, "offering.price.input", dearer, source="src-pricing"),
                 fact("offering", oid, "offering.price.output", 4 * dearer, source="src-pricing"),
             ]))
+            for facet, value, outcome in getattr(request, "param", {}).get((mid, provider), []):
+                offerings[-1]["facts"].append(fact("offering", oid, facet, value, outcome=outcome))
         for benchmark, score in (("repo_work", repo), ("patch_work", patch),
                                  ("preference_proxy", proxy)):
             if score is not None:
@@ -188,6 +190,104 @@ def test_generic_json_passes_its_schema_and_carries_routes_and_reasons(decision)
         "openai/lab/solid/global/standard", "azure-ai-foundry/lab/solid/global/standard"]
     assert all(route["provider_model_id"] is None for route in solid["routes"])
     assert solid["reasons"][0] == "passed every Must"
+
+
+@pytest.mark.parametrize("budget_cache", [{
+    ("lab/frontier", "anthropic"): [
+        ("offering.api_model_id", "frontier-20260901", "verified"),
+        ("offering.router_slug", "lab/frontier-router", "verified"),
+    ],
+    ("lab/frontier", "aws-bedrock"): [
+        ("offering.api_model_id", "us.lab.frontier-v2:0", "verified"),
+    ],
+}], indirect=True)
+def test_verified_ids_are_emitted_and_router_slugs_stay_separate(budget_cache) -> None:
+    result = _run("--emit-router-config", "litellm")
+    assert result.exit_code == 0, result.output
+    config = yaml.safe_load(result.stdout)
+    _schema(SCHEMAS / "litellm-config-yaml.schema.json").validate(config)
+    frontier = [row for row in config["model_list"] if row["model_name"] == "lab/frontier"]
+    assert [row["litellm_params"]["model"] for row in frontier] == [
+        "anthropic/frontier-20260901", "bedrock/us.lab.frontier-v2:0"]
+    result = _run("--emit-router-config", "openrouter")
+    assert result.exit_code == 0, result.output
+    guardrail = json.loads(result.stdout)
+    _schema(SCHEMAS / "openrouter-create-guardrail-request.schema.json").validate(guardrail)
+    assert set(guardrail["allowed_models"]) == {
+        "<openrouter model id for lab/solid>", "lab/frontier-router",
+        "<openrouter model id for lab/budget>"}
+    result = _run("--emit-router-config", "json")
+    assert result.exit_code == 0, result.output
+    generic = json.loads(result.stdout)
+    _schema(REPO_ROOT / "schemas" / "router-config-v1.schema.json").validate(generic)
+    routes = next(row["routes"] for row in generic["models"] if row["model"] == "lab/frontier")
+    assert [route["provider_model_id"] for route in routes] == [
+        "frontier-20260901", "us.lab.frontier-v2:0"]
+    assert routes[0]["router_slug"] == "lab/frontier-router"
+    result = _run("--json", "--explain", "full")
+    assert result.exit_code == 0, result.output
+    decision = json.loads(result.stdout)
+    ref = next(row["offering"] for row in decision["results"]
+               if row["offering"]["model"] == "lab/frontier"
+               and row["offering"]["provider"] == "anthropic")
+    assert ref["api_model_id"] == "frontier-20260901"
+    assert ref["router_slug"] == "lab/frontier-router"
+    top = next(row for row in decision["top"] if row["offering"] == ref)
+    facts = {row["facet"]: row for row in top["facts"]}
+    for facet in ("offering.api_model_id", "offering.router_slug"):
+        assert facts[facet]["record_id"] == f"anthropic/lab/frontier/global/standard#{facet}"
+        assert facts[facet]["source_ids"] == ["src-lab-docs"]
+
+
+@pytest.mark.parametrize("budget_cache", [{
+    ("lab/frontier", "anthropic"): [
+        ("offering.api_model_id", "unverified-provider-id", None),
+        ("offering.router_slug", "unverified/router-slug", None),
+    ],
+    ("lab/frontier", "aws-bedrock"): [
+        ("offering.api_model_id", None, None),
+    ],
+}], indirect=True)
+def test_unverified_or_null_ids_keep_placeholders_with_reasons(budget_cache) -> None:
+    for fmt in router_config.FORMATS:
+        result = _run("--emit-router-config", fmt)
+        assert result.exit_code == 0, result.output
+        assert "unverified-provider-id" not in result.stdout
+        assert "unverified/router-slug" not in result.stdout
+        assert "no verified offering." in result.stdout
+    litellm = yaml.safe_load(_run("--emit-router-config", "litellm").stdout)
+    frontier = [row for row in litellm["model_list"] if row["model_name"] == "lab/frontier"]
+    assert [row["litellm_params"]["model"] for row in frontier] == [
+        "anthropic/<anthropic model id for lab/frontier>",
+        "bedrock/<aws-bedrock model id for lab/frontier>"]
+
+
+@pytest.mark.parametrize("budget_cache", [{
+    ("lab/frontier", "anthropic"): [
+        ("offering.api_model_id", "provider-id-only", "verified"),
+    ],
+}], indirect=True)
+def test_provider_id_cannot_fill_an_unknown_router_slug(budget_cache) -> None:
+    result = _run("--emit-router-config", "openrouter")
+    assert result.exit_code == 0, result.output
+    assert "provider-id-only" not in result.stdout
+    assert "<openrouter model id for lab/frontier>" in json.loads(result.stdout)["allowed_models"]
+
+
+@pytest.mark.parametrize("budget_cache", [{
+    ("lab/frontier", "anthropic"): [
+        ("offering.router_slug", "lab/router-only", "verified"),
+    ],
+}], indirect=True)
+def test_router_slug_cannot_fill_an_unknown_provider_id(budget_cache) -> None:
+    result = _run("--emit-router-config", "litellm")
+    assert result.exit_code == 0, result.output
+    assert "lab/router-only" not in result.stdout
+    config = yaml.safe_load(result.stdout)
+    frontier = [row for row in config["model_list"] if row["model_name"] == "lab/frontier"]
+    assert [row["litellm_params"]["model"] for row in frontier] == [
+        "anthropic/<anthropic model id for lab/frontier>",
+        "bedrock/<aws-bedrock model id for lab/frontier>"]
 
 
 def test_include_rest_adds_the_rest_band_after_the_best(decision) -> None:
