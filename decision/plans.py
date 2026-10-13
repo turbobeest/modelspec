@@ -70,8 +70,12 @@ def _number(value: float) -> str:
 
 
 def _routable_quote(quote: str | None) -> str | None:
-    """The page's coding-tool sentence when it can be shown, else ``None``."""
-    if isinstance(quote, str) and quote:
+    """The recorded quote when ``strip()`` leaves text, else ``None``.
+
+    The return value is the original string. A displayed quote keeps its
+    surrounding whitespace. A quote of only whitespace is not routable.
+    """
+    if isinstance(quote, str) and quote.strip():
         return quote
     return None
 
@@ -108,9 +112,9 @@ class Plan:
 
         Call only when ``surfaces`` is known. A harness the page names beats
         ``coding_tool:*``, so a named tool is not reported as the open list.
-        ``coding_tool:*`` routes only when the page's quote is a known,
-        non-empty string. Without that quote the open token is not a route
-        and nothing on it is confirmed.
+        ``coding_tool:*`` routes only when the page's quote is a known
+        string and ``strip()`` leaves text. Without that quote the open
+        token is not a route and nothing on it is confirmed.
         """
         available = self.surfaces or ()
         if _routable_quote(self.coding_tools_quote) is None:
@@ -228,9 +232,10 @@ def tool_listing(plan: Plan, surface: str | None, access: Access) -> str | None:
 
     ``None`` when the plan has no ``coding_tool:*`` or the spec names no
     harness. A harness the page also names is confirmed. Any other harness
-    routes through the open list only when the page's quote is a known,
-    non-empty string, and that route is not confirmed. The sentence quotes
-    the page. An open list with no such quote produces no sentence.
+    routes through the open list only when the page's quote is a known
+    string and ``strip()`` leaves text, and that route is not confirmed.
+    The sentence quotes the page. An open list with no such quote produces
+    no sentence.
     """
     if (access.kind != "coding_tool" or access.harness is None or surface is None
             or not plan.surfaces or CODING_TOOL_OPEN not in plan.surfaces):

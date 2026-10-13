@@ -3,9 +3,9 @@
 A plan page that says the coding tools it works with are an open list ("such
 as …", "More tools") records ``coding_tool:*``. The quote of that wording is
 ``offering.subscription.coding_tools_quote``. The open list routes only when
-that quote is a known, non-empty string. A harness the page also names is
-confirmed. Any other harness still routes, labelled as not named by the
-provider, and is never called confirmed.
+that quote is a known string and stripping it leaves text. A harness the
+page also names is confirmed. Any other harness still routes, labelled as
+not named by the provider, and is never called confirmed.
 """
 
 from __future__ import annotations
@@ -48,6 +48,8 @@ def _plan(quote: str = "present") -> dict:
                                  outcome=None))
     elif quote == "empty":
         put("coding_tools_quote", "")
+    elif quote == "whitespace":
+        put("coding_tools_quote", "   ")
     elif quote != "absent":
         raise AssertionError(quote)
     return row
@@ -137,7 +139,7 @@ def test_an_open_coding_tool_list_does_not_serve_another_access() -> None:
         assert held.results == [], access
 
 
-@pytest.mark.parametrize("quote", ["absent", "unknown", "empty"])
+@pytest.mark.parametrize("quote", ["absent", "unknown", "empty", "whitespace"])
 def test_an_unlisted_harness_does_not_take_the_open_list_without_a_provider_quote(
         quote: str) -> None:
     decision = _decide(_snapshot(_plan(quote)), UNLISTED, {"plans": [PLAN]})
@@ -154,7 +156,7 @@ def test_an_unlisted_harness_does_not_take_the_open_list_without_a_provider_quot
     assert all("provider lists tools such as …" not in text for text in texts)
 
 
-@pytest.mark.parametrize("quote", ["absent", "unknown", "empty"])
+@pytest.mark.parametrize("quote", ["absent", "unknown", "empty", "whitespace"])
 def test_a_named_harness_stays_confirmed_when_the_open_quote_is_missing(quote: str) -> None:
     row, route = _held(_snapshot(_plan(quote)), NAMED)
 
