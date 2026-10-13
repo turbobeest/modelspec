@@ -288,10 +288,14 @@ def test_the_terms_neither_deny_nor_promise_that_purchase_is_open() -> None:
     assert "Current plans, prices and availability are published at" in FLAT_TERMS
 
 
-def test_the_terms_do_not_offer_x402_while_it_is_off() -> None:
-    config = _wrangler_config()
-    if '"X402_ENABLED": "false"' in config:
-        assert "Payment by x402 is not currently offered." in FLAT_TERMS
+def test_the_pending_x402_legal_revision_waits_for_the_operator_flip() -> None:
+    from pipeline.worker_flags import production_vars
+
+    variables = production_vars(REPO_ROOT)
+    assert variables["X402_ENABLED"] == "false"
+    assert variables["X402_MAINNET"] == "false"
+    assert "Version `1.7`, effective <FLIP DATE>." in FLAT_TERMS
+    assert "Version `1.14`, effective <FLIP DATE>." in FLAT_PRIVACY
 
 
 @pytest.mark.parametrize("approved", [
@@ -337,7 +341,7 @@ def test_x402_terms_use_the_exact_approved_text(approved: str) -> None:
 @pytest.mark.parametrize("approved", [
     pytest.param(
         "`X402_PAY_TO`, the address that receives x402 payments, is "
-        "`<LLC Base receiving address>` on the Base network. It is held in a Coinbase "
+        "`0x69429dbEEEE7218084AB5B896788f5fCE452419C` on the Base network. It is held in a Coinbase "
         "account for Sparks & Sawdust LLC. No private key for it is in this repository.",
         id="P1"),
     pytest.param(

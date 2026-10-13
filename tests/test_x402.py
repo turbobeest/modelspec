@@ -791,11 +791,12 @@ def test_no_test_calls_the_network():
     assert worker_post.__name__ == "worker_post"
 
 
-def test_wrangler_ships_x402_on_with_mainnet_configured():
+def test_wrangler_stages_x402_mainnet_with_switches_off():
     text = (REPO_ROOT / "api" / "worker" / "wrangler.jsonc").read_text(encoding="utf-8")
     live = "\n".join(l for l in text.splitlines() if not l.lstrip().startswith("//"))
-    assert '"X402_ENABLED": "true"' in live
-    assert '"X402_MAINNET": "true"' in live
+    production = _wrangler_config()["vars"]
+    assert production["X402_ENABLED"] == "false"
+    assert production["X402_MAINNET"] == "false"
     assert '"X402_NETWORK": "eip155:8453"' in live
     assert '"X402_ASSET": "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"' in live
     assert '"class_name": "CreditsObject"' in live
@@ -811,13 +812,13 @@ def _wrangler_config() -> dict[str, Any]:
     return json.loads(live)
 
 
-def test_production_x402_config_is_live_on_mainnet():
+def test_production_x402_config_waits_for_the_operator_flip():
     config = _wrangler_config()
     assert config["vars"]["HUMAN_GATE_ENABLED"] == "false"
     assert config["vars"]["ACCESS_ENFORCED"] == "true"
     assert config["vars"]["BILLING_ENABLED"] == "true"
-    assert config["vars"]["X402_ENABLED"] == "true"
-    assert config["vars"]["X402_MAINNET"] == "true"
+    assert config["vars"]["X402_ENABLED"] == "false"
+    assert config["vars"]["X402_MAINNET"] == "false"
     assert re.fullmatch(r"0x[0-9a-fA-F]{40}", config["vars"]["X402_PAY_TO"])
     assert config["workers_dev"] is False
     assert config["routes"] == [
@@ -901,12 +902,18 @@ def test_production_x402_receiver_is_an_eip55_checksummed_address() -> None:
     assert _eip55(usdc) == usdc
     assert _eip55(usdc.replace("C", "c", 1)) != usdc.replace("C", "c", 1)
     pay_to = _wrangler_config()["vars"]["X402_PAY_TO"]
+    assert pay_to == "0x69429dbEEEE7218084AB5B896788f5fCE452419C"
+    assert re.fullmatch(r"0x[0-9a-fA-F]{40}", pay_to)
+    assert int(pay_to, 16) != 0
     assert _eip55(pay_to) == pay_to
 
 
 def test_production_x402_switches_are_consistent() -> None:
     """MODEL-333. X402_ENABLED never ships without mainnet, its asset and a receiver."""
-    assert _x402_switch_problems(_wrangler_config()["vars"]) == []
+    production = _wrangler_config()["vars"]
+    assert _x402_switch_problems(production) == []
+    assert _x402_switch_problems({**production, "X402_ENABLED": "true",
+                                  "X402_MAINNET": "true"}) == []
 
     staged = {"X402_ENABLED": "false", "X402_MAINNET": "false",
               "X402_NETWORK": "eip155:8453",
@@ -929,13 +936,13 @@ def test_production_x402_switches_are_consistent() -> None:
                                   "X402_PAY_TO": "0x" + "0" * 40}) == ["X402_PAY_TO"]
 
 
-def test_production_x402_is_on_for_base_mainnet() -> None:
+def test_production_x402_is_prepared_for_base_mainnet_with_switches_off() -> None:
     config = _wrangler_config()
     production = config["vars"]
     assert production["X402_NETWORK"] == "eip155:8453"
     assert production["X402_ASSET"] == "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
-    assert production["X402_ENABLED"] == "true"
-    assert production["X402_MAINNET"] == "true"
+    assert production["X402_ENABLED"] == "false"
+    assert production["X402_MAINNET"] == "false"
     assert re.fullmatch(r"0x[0-9a-fA-F]{40}", production["X402_PAY_TO"])
 
     staging = config["env"]["staging"]["vars"]
@@ -943,10 +950,14 @@ def test_production_x402_is_on_for_base_mainnet() -> None:
     assert staging["X402_ASSET"] == "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
 
     cfg = x402.load_config(SimpleNamespace(**production))
-    assert cfg.enabled is True
-    assert cfg.mainnet is True
-    real = x402.load_config(SimpleNamespace(**{**production, "X402_PAY_TO": "0x" + "ab" * 20}))
-    assert real.configured is True
+    assert cfg.enabled is False
+    assert cfg.mainnet is False
+    assert cfg.configured is True
+    activated = x402.load_config(SimpleNamespace(**{
+        **production, "X402_ENABLED": "true", "X402_MAINNET": "true"}))
+    assert activated.enabled is True
+    assert activated.mainnet is True
+    assert activated.configured is True
 
 
 def test_a_zero_address_receiver_is_not_configured() -> None:
@@ -1482,13 +1493,11 @@ def test_entry_billing_paths_are_not_x402_paid_resources(entry):
         }, (path, response.status, code)
 
 
-def test_live_x402_is_described_by_the_approved_legal_text() -> None:
+def test_x402_is_described_by_the_approved_legal_text() -> None:
     """MODEL-333. x402 on needs Jamie's approved terms and privacy text in the same PR.
 
     Fails until docs/legal carries that text: the flip cannot merge without it.
     """
-    if not x402.flag(_wrangler_config()["vars"]["X402_ENABLED"]):
-        return
     legal = REPO_ROOT / "docs" / "legal"
     terms = " ".join((legal / "terms-of-service.md").read_text(encoding="utf-8").split())
     privacy = " ".join((legal / "privacy.md").read_text(encoding="utf-8").split())
@@ -1496,10 +1505,8 @@ def test_live_x402_is_described_by_the_approved_legal_text() -> None:
     assert "Credits can also be bought by x402" in terms
     assert "currently empty" not in privacy
     pay_to = _wrangler_config()["vars"]["X402_PAY_TO"]
-    if pay_to == "0x" + "0" * 40:
-        assert "`<LLC Base receiving address>` on the Base network." in privacy
-    else:
-        assert pay_to in privacy
+    assert pay_to in privacy
+    assert "<LLC Base receiving address>" not in privacy
 
 
 def test_the_402_links_the_terms_of_service() -> None:
