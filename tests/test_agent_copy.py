@@ -64,6 +64,7 @@ def test_the_summary_rule_is_on_the_channels_an_agent_already_trusts() -> None:
     rule = agent_copy.SUMMARY_RULE
     assert rule == (
         "Present `summary_for_user` to the user unchanged and keep every `must_mention` item."
+        " When `next_move` is present, offer it instead of a pick."
     )
     assert len(agent_copy.CONDUCT_RULES) == 8
     assert rule not in agent_copy.CONDUCT_RULES
@@ -82,6 +83,17 @@ def test_the_summary_rule_is_on_the_channels_an_agent_already_trusts() -> None:
     assert COMMITTED["tools"]["rank"].count(rule) == 1
     assert agent_copy.GUIDE_OUT.read_text(encoding="utf-8").count(rule) == 1
     assert bundle["text"]["answers"].count(rule) == 1
+
+
+def test_only_decide_has_the_exact_next_move_worked_example() -> None:
+    example = (
+        "Example. Answer: status partial, answer.kind tied (a/x, b/y), next_move.kind decide_by_testing. "
+        "Right report: summary_for_user verbatim, each must_mention item, then next_move.steps for its "
+        'candidates. Wrong: "Start with a/x", a shortlist, or a ranked table.'
+    )
+    tools = agent_copy.copy()["tools"]
+    assert tools["decide"].count(example) == 1
+    assert all(example not in description for name, description in tools.items() if name != "decide")
 
 
 def test_the_instructions_open_with_the_entity_sentence_and_the_disambiguation() -> None:

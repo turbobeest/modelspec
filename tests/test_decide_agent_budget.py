@@ -35,6 +35,77 @@ def public_snapshot():
     return build_public_snapshot()
 
 
+def test_public_objective_without_values_returns_a_testing_move(service, public_snapshot):
+    status, body = service.decide({
+        "spec_version": 1, "optimize": {"max": "ai2d"}, "fields": ["model"], "explain": "none",
+    }, public_snapshot)
+    assert status == 200
+    assert body["status"] == "no_feasible"
+    assert "relax_single" not in body
+    assert body["next_move"]["kind"] == "decide_by_testing"
+    assert body["next_move"]["say"] == "Next step: ModelSpec lacks ai2d values for every model that meets your requirements, so decide by testing these 40 candidates on your own work."
+    assert body["next_move"]["options"] == []
+    assert body["next_move"]["candidates"] == [
+        "anthropic/claude-fable-5", "anthropic/claude-fable-5-1", "anthropic/claude-opus-4-6",
+        "anthropic/claude-opus-4-7", "anthropic/claude-opus-5", "anthropic/claude-opus-5-5",
+        "anthropic/claude-sonnet-5-5", "deepseek/deepseek-flash",
+    ]
+    assert body["next_move"]["candidates_total"] == 40
+
+
+def test_public_testing_candidates_do_not_change_with_limit(service, public_snapshot):
+    request = {"spec_version": 1, "task_type": "review", "optimize": {"max": "reasoning"},
+               "fields": ["model"], "explain": "none"}
+    status3, body3 = service.decide(request | {"limit": 3}, public_snapshot)
+    status10, body10 = service.decide(request | {"limit": 10}, public_snapshot)
+    assert status3 == status10 == 200
+    assert body3["next_move"] == body10["next_move"]
+    assert body3["next_move"]["say"] == "Next step: ModelSpec does not measure review quality, so decide by testing these 40 candidates on your own work."
+    assert body3["next_move"]["candidates_total"] == 40
+
+
+def test_fourteen_hardware_skus_return_a_bounded_testing_move(service, public_snapshot):
+    skus = ["amd_instinct_mi210", "amd_instinct_mi250x", "amd_instinct_mi300x", "amd_instinct_mi325x",
+            "amd_instinct_mi355x", "amd_rx_7900_xt", "amd_rx_7900_xtx", "amd_rx_9070_xt",
+            "amd_ryzen_ai_max_plus_395", "apple_m1_max", "apple_m2_max", "apple_m2_ultra",
+            "apple_m3_max", "apple_m3_ultra"]
+    status, body = service.decide({
+        "spec_version": 1, "optimize": {"max": "reasoning"},
+        "where": [{"facet": "model.fits_hardware", "in": skus}], "fields": ["model"], "explain": "none",
+    }, public_snapshot)
+    assert status == 200
+    assert body["next_move"]["kind"] == "decide_by_testing"
+    assert body["next_move"]["say"] == "Next step: ModelSpec does not measure fit on amd_instinct_mi210, amd_instinct_mi250x, amd_instinct_mi300x or 11 more devices for your quantization, context length and runtime, so decide by testing these 18 candidates on your own work."
+    assert body["next_move"]["candidates_total"] == 18
+    assert body["summary_for_user"].endswith(body["next_move"]["say"])
+    assert compact_bytes(body) <= AGENT_BYTES
+    assert mcp_text_bytes(body) <= AGENT_BYTES
+
+
+@pytest.mark.parametrize("task_type,expected", [
+    (None, "Next step: ModelSpec does not measure fit on amd_instinct_mi210, amd_instinct_mi250x, amd_instinct_mi300x or 61 more devices for your quantization, context length and runtime, so decide by testing these 21 candidates on your own work."),
+    ("review", "Next step: ModelSpec does not measure review quality and fit on amd_instinct_mi210, amd_instinct_mi250x, amd_instinct_mi300x or 61 more devices for your quantization, context length and runtime, so decide by testing these 21 candidates on your own work."),
+])
+def test_all_registered_hardware_skus_name_the_need_with_and_without_task_type(
+    service, public_snapshot, task_type, expected,
+):
+    hardware = Path(__file__).resolve().parents[1] / "hardware"
+    skus = sorted(path.stem for path in hardware.glob("*.yaml") if not path.stem.startswith("_"))
+    assert len(skus) == 64
+    request = {"spec_version": 1, "optimize": {"max": "reasoning"},
+               "where": [{"facet": "model.fits_hardware", "in": skus}],
+               "fields": ["model"], "explain": "none"}
+    if task_type is not None:
+        request["task_type"] = task_type
+    status, body = service.decide(request, public_snapshot)
+    assert status == 200
+    assert body["next_move"]["kind"] == "decide_by_testing"
+    assert body["next_move"]["say"] == expected
+    assert body["summary_for_user"].endswith(expected)
+    assert compact_bytes(body) <= AGENT_BYTES
+    assert mcp_text_bytes(body) <= AGENT_BYTES
+
+
 def _cases():
     catalogue = load_catalogue()["templates"]
     templates = {row["id"]: row["spec"] for row in catalogue}

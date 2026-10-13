@@ -11,7 +11,22 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from types import MappingProxyType
 
-from pipeline.hardware import QUANT_BYTES, WORKING_ALLOWANCE, fitting_quants, weights_gb
+from pipeline.hardware import (
+    QUANT_BYTES, WORKING_ALLOWANCE, fitting_quants, predicted_decode_tps, weights_gb,
+)
+
+# Scenario bounds, not measured confidence limits. The wide band allows for
+# kernels, expert routing and shared-memory contention that the roofline omits.
+DECODE_EFFICIENCY_LOW = 0.35
+DECODE_EFFICIENCY_HIGH = 0.85
+
+ARCHITECTURE_FACETS = (
+    "model.architecture", "model.parameters_total", "model.parameters_active",
+    "model.experts_total", "model.experts_per_token",
+)
+WEIGHTS_GB = "hardware.weights_gb"
+DECODE_TPS = "hardware.decode_tps_estimate"
+HARDWARE_FACETS = (WEIGHTS_GB, DECODE_TPS)
 
 FORMULA = (
     "parameters_total * bytes_per_parameter <= "
@@ -113,6 +128,40 @@ def compute_fit(
             "has_device_unknowns": str(has_unknown).lower(),
         }),
     )
+
+
+def decode_estimate(bandwidth_gb_s: float, active: float, quant: str):
+    """The existing 70% roofline and wide scenario bounds, using active weights."""
+    per_token = weights_gb(active, quant)
+    return predicted_decode_tps(bandwidth_gb_s, active, quant), (
+        round(bandwidth_gb_s * DECODE_EFFICIENCY_LOW / per_token, 1),
+        round(bandwidth_gb_s * DECODE_EFFICIENCY_HIGH / per_token, 1),
+    )
+
+
+def requested_devices(spec, conditions):
+    """SKU IDs explicitly named by the estate or a fits-hardware condition."""
+    from decision.contract import AllOf, AnyOf, Compare, InSet, NotOf
+
+    devices = set(spec.estate.devices if spec.estate is not None else ())
+
+    def walk(condition):
+        if isinstance(condition, AllOf | AnyOf):
+            for child in condition.all if isinstance(condition, AllOf) else condition.any:
+                walk(child)
+        elif isinstance(condition, NotOf):
+            walk(condition.not_)
+        elif getattr(condition, "facet", None) == "model.fits_hardware":
+            if isinstance(condition, InSet):
+                devices.update(condition.in_ or condition.not_in or ())
+            elif isinstance(condition, Compare):
+                value = condition.value
+                if isinstance(value, str):
+                    devices.add(value)
+
+    for condition in conditions:
+        walk(condition)
+    return tuple(sorted(devices))
 
 
 __all__ = ["DeviceFit", "DeviceInput", "FORMULA", "HardwareFit", "compute_fit"]

@@ -226,6 +226,7 @@ G = guaranteed for the premier set. B = best effort. Governance facets default t
 |---|---|---|
 | Model | class and output; modalities; context; maximum output | G |
 | Model | open or closed weights; parameters; architecture | G / B |
+| Model | routed experts (`model.experts_total`); routed experts per token (`model.experts_per_token`) | B |
 | Model | licence rights (commercial use, user caps, output-training limits, fine-tuning) | G, governance |
 | Model | origin (lab jurisdiction, base lineage, weights hosting; each defined separately) | G, governance |
 | Model | release, knowledge cutoff, deprecation, lifecycle | G / B |

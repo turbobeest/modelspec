@@ -249,9 +249,12 @@ function sourceRecords(decision: Decision): Map<string, string[]> {
   };
   for (const origin of decision.number_origins)
     add(origin.records, [...origin.sources, ...resolve(origin.source_ids)]);
-  for (const candidate of decision.top)
+  for (const candidate of decision.top) {
     for (const fact of candidate.facts)
       add(fact.record_id ? [fact.record_id] : (fact.records ?? []), resolve(fact.source_ids));
+    for (const estimate of candidate.hardware_estimates ?? [])
+      add(estimate.records, resolve(estimate.source_ids));
+  }
   return new Map(
     [...byRecord].map(([record, sources]) => [record, [...sources].sort()]),
   );

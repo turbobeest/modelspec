@@ -342,6 +342,75 @@ three attempts. Each attempt counts as a canary run, and the receipt records
 `Grok misuse probe did not observe a refused disallowed tool`.
 `--force` overrides quiet hours only, never evidence or authentication.
 
+### Opt in to the Claude reporting plugin
+
+Use `--claude-plugin modelspec` to install this checkout's official plugin in
+isolated Claude agent invocations. Claude judges use the baseline arguments,
+startup inventory rules and doctor receipt. Other CLIs keep their existing
+controls. Doctor with the flag certifies the agent profile. Certify that profile
+separately before running it:
+
+```sh
+python -m qa.tui_harness doctor --cli claude --out /tmp/modelspec-tui
+python -m qa.tui_harness doctor --cli claude --claude-plugin modelspec --out /tmp/modelspec-tui
+python -m qa.tui_harness --dry-run --cli claude --claude-plugin modelspec --max-runs-per-cli 1 --out /tmp/modelspec-tui
+python -m qa.subscription_jobs scenarios --dry-run --cli claude --claude-plugin modelspec --state-dir /tmp/modelspec-tui
+```
+
+The subscription jobs flag applies to `scenarios`. Doctor receipts for the
+agent plugin profile live under `.tui-state/claude/modelspec-plugin/`, alongside
+the baseline receipt in `.tui-state/claude/`. A run with Claude judges also needs
+the baseline receipt, certified by doctor without `--claude-plugin`. The receipt
+identity and resume checkpoint include the plugin version and a hash of its
+manifests and skill.
+The flag must match when resuming an interrupted run.
+
+Each isolated Claude agent execution mounts only this checkout's
+`.claude-plugin/` and `plugins/modelspec/` directories read-only under
+`/modelspec`. It runs these native installation commands through the same Docker
+launcher, using a temporary HOME without mounting the shared login volume:
+
+```sh
+env CLAUDE_CONFIG_DIR=/work/.modelspec-claude-plugin claude plugin marketplace add /modelspec
+env CLAUDE_CONFIG_DIR=/work/.modelspec-claude-plugin claude plugin install modelspec@modelspec
+```
+
+Only the installers use `CLAUDE_CONFIG_DIR`. Their settings and plugin cache
+live in that execution's private workspace. Agent invocations set
+`CLAUDE_CODE_PLUGIN_CACHE_DIR=/work/.modelspec-claude-plugin/plugins` to read
+that cache. The [Claude environment variable reference](https://code.claude.com/docs/en/env-vars)
+documents this plugin root override. No plugin directory is mounted inside
+the shared login volume. Subscription authentication keeps its native HOME.
+The harness does not read or copy authentication state.
+Removing the temporary workspace removes the install. Later baseline runs
+mount their original HOME volume without the plugin cache or checkout.
+The plugin has no MCP server; the harness keeps its existing ModelSpec MCP
+configuration.
+
+Baseline argv and doctor controls stay the same. With the flag on, the Claude
+agent keeps `--setting-sources ""` and the existing hook, memory and MCP controls. It omits
+`--disable-slash-commands`, enables only `modelspec@modelspec` in the explicit
+settings, sets `disableBundledSkills: true` and `skillOverrides: {"doctor": "off"}`,
+and adds `Skill` to `--tools` with only
+`Skill(modelspec:report-modelspec-answer)` permitted. The
+[Claude skills reference](https://code.claude.com/docs/en/skills) documents the
+bundled-skill setting and permission syntax. Startup inventory must contain
+exactly that reporting skill and one ModelSpec plugin at its private installed
+cache or checkout path. The plugin doctor profile plants a
+`.claude/commands/model301_command_canary.md` command. Startup must report a
+`slash_commands` list containing only the reporting skill or no commands.
+Other commands, skills, custom plugins, hooks, MCP servers and tools still
+fail isolation. Calls to any other skill fail the row as tool misuse.
+The positive doctor canary keeps its original discovery controls.
+
+Plugin scenario reports record `claude_plugin` only in metadata and Claude
+agent rows. The record contains the name, version, relative source
+`./plugins/modelspec`, content SHA-256, checkout git SHA, skill and a relative
+installation recipe from the checkout. It includes `role: "agent"`. Baseline
+reports omit the field. Other CLI rows and judge records omit it too.
+Markdown states that judges use the baseline profile. Dry runs label
+installation as planned and print the container commands without starting a CLI.
+
 Unauthenticated inventories can be inspected without touching login volumes:
 
 ```sh
@@ -568,6 +637,96 @@ as `CLI timed out` or `network access disabled` does not match. A row is
 recorded as `api_reachable`. An API outage alone does not make the row
 excludable. Rows tagged `network_suspect` are listed in the report for
 explicit exclusion, and are never silently dropped or retried.
+
+### Abstention ablation (MODEL-339)
+
+`qa.ablation` measures whether Claude preserves ModelSpec's abstentions. Its
+QA-only local MCP proxy forwards the agent's Authorization header to production
+MCP and converges each response to the arm's target state, even when production
+already contains variants. Baseline has no variants. V1 selects next_move and
+its reporting sentence, V2 selects the Claude plugin, V3 selects the worked
+example, V4 selects the annotated user summary, and combined selects all four.
+The proxy recognises the exact old and deployed copy and rejects unknown text.
+It pins descriptions, prices and the guide version to the generated copy from
+`41125577` plus exactly the arm's variants. It never deploys a production change.
+
+V1 and combined keep upstream next_move unchanged and count `next_move_upstream`.
+Only a response without next_move needs a complete keyed `/v1/decide` fetch,
+pinned to the same snapshot and `limit: 500`, the contract maximum.
+The proxy verifies both canonical identities and requires the complete
+answer to match the bounded answer. If the fetch still omits models, the call
+passes through, counts `candidates_truncated`, and invalidates the row's exposure
+proof. Absent V1 removes next_move, strips only the exact trailing space and
+next_move.say, and restores bounded version 1.1. Present V1 uses version 1.2.
+Every removal conservatively counts `summary_strip_trim_gap`: the upstream
+1,200-byte paragraph may have shortened lists to reserve the say ending.
+The gap requires an offline comparison with the old engine. V3 inserts or
+removes the exact worked example. Absent V4 restores the legacy status line,
+including drill-down wording; present V4 puts the exact summary_for_user in
+the second text block with audience `["user"]`. Reapplying an arm is idempotent.
+
+Post-#682 projection can also remove extra records under its smaller body
+budget. The proxy counts `upstream_projection_gap` only when an exact body match
+in the pinned pre/post fixture proves changed records. This comparison excludes
+the variant fields and the summary, whose possible trimming has its own counter.
+It includes the decision identity and every retained record. Other bodies with
+budget omissions count `upstream_projection_unverified`: their cuts may already
+have existed before #682. The arm stays valid: every arm reads the
+same trimmed upstream records, so arms differ only in their variants, and the
+report shows the count. No arm is claimed equal to the pre-#682 server.
+Ordinary projection omissions, including the ten-row may_qualify cap, do not
+trigger that counter.
+The 16,384-byte check includes both text blocks. Private counters record
+fallback, clipping, convergence, upstream preservation and budget passthrough.
+Proxy JSONL contains call IDs, flags, rewritten field names, counters and byte
+sizes only. Authorization and session headers stay in memory.
+
+V2 and combined refuse if either
+harness lacks `--claude-plugin modelspec`. The Claude agent uses the default
+Grok + Codex judge panel from `tui_config.yaml`. Both judges receive identical
+prompts and must agree and pass; Claude never judges its own arm. The plugin is
+agent-only and is never passed to either judge. Docker Desktop containers use
+`http://host.docker.internal:8765/mcp`; the proxy binds `0.0.0.0`. Certify separate
+doctor receipts for Claude, Grok and Codex for every arm in a private directory,
+then run the tuning set:
+
+```sh
+python -m qa.ablation doctor --arms baseline v1 v2 v3 v4 combined \
+  --state-dir /private/tmp/claude-501/m339/ablation-state \
+  --out /private/tmp/claude-501/m339/ablation-doctor --port 8765
+op run --env-file=qa/subscription.env.op -- \
+  /Users/terbeest/dev/modelspec/.venv/bin/python -m qa.run_with_modelspec_key \
+  ablation --arms baseline v1 v2 v3 v4 combined --set tuning \
+  --state-dir /private/tmp/claude-501/m339/ablation-state \
+  --out /private/tmp/claude-501/m339/ablation-tuning --port 8765
+```
+
+Doctors make subscription canary calls. `--dry-run` replays public fixtures,
+opens no sockets and launches no CLI. Its scripted pass rates are not agent
+measurements. Reports stay beneath `--out`; this command never publishes them.
+The combined JSON and Markdown include every scenario, both judges' verdicts,
+the unanimous aggregate result, up to 300 characters of judge rationale and
+per-row proxy counts. Per-arm pass rates use the aggregate result and also
+require proof that the variant was applied. JSON retains each judge's execution
+status and panel routes. Receipts and checkpoints include the
+variant identity; the ordinary subscription-jobs state is refused.
+
+Before any CLI runs, every arm starts its proxy and preflights keyless initialize
+and tools/list, checking V1 copy and V3. When MODELSPEC_API_KEY is present, it
+also sends one small keyed decide and checks V1 body and V4. Metadata never
+carries Authorization. A preflight failure aborts that arm, saves its reason,
+and continues with the next arm. A proxy error stops the arm's remaining
+scenarios. Combined JSON and Markdown mark failed arms INVALID with a reason
+and no pass rate. Resets or broken pipes after a complete response count only
+as `client_disconnect`; an incomplete response remains a proxy error.
+
+TUNING contains budget-approved, hardware-spark, prompt-code, prompt-maths,
+prompt-policy and recall-q01/q03/q04/q07/q09. HOLDOUT contains
+recall-q02/q05/q08/q10, must never tune copy, and runs only with
+`--arms baseline combined --set holdout` in a fresh output directory. The
+constants are in `qa/ablation.py`. For offline checks without plugin arms,
+use `--dry-run --arms baseline v1 v3 v4` with fresh private `--out` and
+`--state-dir` paths.
 
 ### First manual run and schedules
 

@@ -54,6 +54,7 @@ from qa.tui_homes import (
 )
 from qa.tui_isolation import isolation_result
 from qa.tui_isolation import verify_isolation as doctor_isolation
+from qa.tui_plugins import install_commands, install_plugin, plugin_record, report_line
 from qa.tui_providers import (
     BASE_ENV,
     CLIS,
@@ -161,7 +162,9 @@ def apply_judge_overrides(config: dict, overrides) -> dict:
     return applied
 
 
-def validate_config(config: dict) -> None:
+def validate_config(config: dict, *, ablation_proxy: str | None = None) -> None:
+    if config.get("claude_plugin") not in (None, "modelspec"):
+        raise ValueError("--claude-plugin must be modelspec")
     if set(config["clis"]) != set(CLIS):
         raise ValueError("Configure claude, codex, gemini and grok")
     if config["concurrency_per_cli"] != 1:
@@ -175,7 +178,13 @@ def validate_config(config: dict) -> None:
     from urllib.parse import urlsplit
 
     url = urlsplit(config["mcp_url"])
-    if (
+    if ablation_proxy is not None:
+        from qa.ablation_proxy import proxy_port
+
+        proxy_port(ablation_proxy)
+        if config["mcp_url"] != ablation_proxy:
+            raise ValueError("mcp_url must match the explicit --ablation-proxy")
+    elif (
         url.scheme != "https"
         or not url.hostname
         or url.username
@@ -220,6 +229,19 @@ def validate_config(config: dict) -> None:
         judges_for(cli, config["judges"])
 
 
+def apply_ablation_proxy(config: dict, url: str, state: Path, *,
+                         metadata_path: Path | None = None, dry_run: bool = False) -> None:
+    from qa.ablation_proxy import read_metadata
+
+    state = private_output(state)
+    ordinary = Path.home() / "Library/Application Support/ModelSpec/subscription-jobs"
+    if state.is_relative_to(ordinary.resolve()):
+        raise ValueError("Ablation needs its own private --state-dir outside subscription-jobs")
+    config["mcp_url"] = url
+    validate_config(config, ablation_proxy=url)
+    config["ablation"] = read_metadata(url, metadata_path, dry_run=dry_run)
+
+
 def scenario_prompt(scenario: dict) -> str:
     return agent_context() + "\nUser request:\n" + agent_request(scenario)
 
@@ -248,7 +270,7 @@ def verify_isolation(cli: str, config: dict, output: Path) -> dict:
 def empty_row(
     scenario: dict, cli: str, config: dict, status: str, error: str | None = None
 ) -> dict:
-    return {
+    row = {
         "scenario": scenario["id"],
         "family": scenario["family"],
         "agent": cli,
@@ -271,6 +293,11 @@ def empty_row(
         "reported_cost_usd": None,
         "attempts": 0,
     }
+    if "ablation" in config:
+        row["ablation"] = dict(config["ablation"])
+    if cli == "claude" and config.get("claude_plugin"):
+        row["claude_plugin"] = plugin_record(config)
+    return row
 
 
 def execution_row(scenario: dict, cli: str, config: dict, execution: Execution) -> dict:
@@ -325,8 +352,10 @@ def _refused_judge_execution(cli: str, status: str, error: str) -> dict:
 class Runner:
     """One serial owner of scenario and judge quotas, including shared judges."""
 
-    def __init__(self, config: dict, output: Path, isolation: dict):
+    def __init__(self, config: dict, output: Path, isolation: dict, *, launch_fn=None, audit=None):
         self.config, self.output, self.isolation = config, output, isolation
+        self.launch_fn = launch_fn
+        self.audit = audit
         self.counts = {cli: {"agent": 0, "judge": 0} for cli in CLIS}
         self.stopped = {
             cli: info["reason"]
@@ -334,10 +363,12 @@ class Runner:
             if info.get("status") == "usage_limit"
         }
 
-    def refusal(self, cli: str) -> tuple[str, str] | None:
+    def refusal(self, cli: str, role: str = "agent") -> tuple[str, str] | None:
         if cli in self.stopped:
             return "usage_limit_skipped", self.stopped[cli]
         info = self.isolation[cli]
+        if cli == "claude" and role == "judge" and self.config.get("claude_plugin"):
+            info = isolation_result(cli, self.config | {"claude_plugin": None})
         if not info["supported"]:
             return "unsupported", info["reason"]
         if not info["verified"]:
@@ -354,13 +385,15 @@ class Runner:
 
     def invoke(self, cli: str, prompt: str, role: str, *, workspace=None, purpose=None, images=()) -> Execution:
         refuse_vendor_auth(os.environ)
-        if refusal := self.refusal(cli):
+        if refusal := self.refusal(cli, role):
             raise StartRefusedError(*refusal)
         self.counts[cli][role] += 1
         def execute(directory):
             run_config = self.config | ({"_judge_images": images} if images else {})
+            if cli != "claude" or role != "agent":
+                run_config = run_config | {"claude_plugin": None}
             try:
-                execution = launch(
+                execution = (self.launch_fn or launch)(
                     cli, run_config, Path(directory), prompt, mcp_enabled=role == "agent",
                     **({"purpose": purpose} if purpose else {}),
                 )
@@ -375,7 +408,9 @@ class Runner:
         self.counts[cli][role] += execution.attempts - 1
         if execution.status == "usage_limit":
             self.stopped[cli] = execution.limit_reason or "CLI usage limit"
-        elif execution.status in ("isolation_failed", "transcript_error"):
+        elif execution.status in ("isolation_failed", "transcript_error") and not (
+            cli == "claude" and role == "judge" and self.config.get("claude_plugin")
+        ):
             self.isolation[cli] = {
                 **self.isolation[cli],
                 "supported": False,
@@ -385,12 +420,21 @@ class Runner:
         return execution
 
     def scenario(self, scenario: dict, cli: str) -> dict:
+        before = self.audit.snapshot()["counters"] if self.audit is not None else {}
+        row = self._scenario(scenario, cli)
+        if self.audit is not None:
+            after = self.audit.snapshot()["counters"]
+            row["proxy_rewrites"] = {key: count - before.get(key, 0) for key, count in after.items()
+                                     if count != before.get(key, 0)}
+        return row
+
+    def _scenario(self, scenario: dict, cli: str) -> dict:
         if refusal := self.refusal(cli):
             return empty_row(scenario, cli, self.config, *refusal)
         judges = judges_for(cli, self.config["judges"])
         unavailable = [
             _refused_judge_execution(judge, *refusal)
-            for judge in judges if (refusal := self.refusal(judge))
+            for judge in judges if (refusal := self.refusal(judge, "judge"))
         ]
         if unavailable:
             first = unavailable[0]
@@ -502,6 +546,16 @@ def report_for(
         "source_hashes": source_hashes(),
         "blocked_reason": blocked,
     }
+    if "ablation" in config:
+        metadata["ablation"] = dict(config["ablation"])
+    plugin = plugin_record(config) if "claude" in selected else None
+    if plugin:
+        metadata["claude_plugin"] = plugin
+    for row in rows:
+        if plugin and row["agent"] == "claude":
+            row["claude_plugin"] = plugin
+        else:
+            row.pop("claude_plugin", None)
     report = make_report(rows, scenarios, dry_run, Budget(0), date.today().isoformat(), metadata)
     report["evidence_note"] = (
         "Subscription CLI transcripts over remote MCP. Unsupported and skipped rows are explicit. "
@@ -562,6 +616,10 @@ def markdown(report: dict) -> str:
     ]
     if report["metadata"]["blocked_reason"]:
         lines += ["", "Start refused: " + report["metadata"]["blocked_reason"]]
+    if line := report_line(
+        report["metadata"].get("claude_plugin"), dry_run=report["mode"] == "dry-run",
+    ):
+        lines += ["", line]
     lines += [
         "",
         "| CLI | Isolation | Attempts | Success | Mean tools | Mean turns | First decide "
@@ -657,34 +715,53 @@ def dry_commands(scenarios: list[dict], selected: list[str], config: dict, outpu
                     scenario_prompt(scenario),
                     mcp_file,
                     config["turn_cap"],
+                    claude_plugin=config.get("claude_plugin"),
                 )
+                planned_installs = []
+                if cli == "claude" and config.get("claude_plugin"):
+                    planned_installs = [
+                        shlex.join(container_command(
+                            cli, config, workspace, native, passed_environment(config),
+                            home=False, preview=True,
+                        ))
+                        for native in install_commands()
+                    ]
                 command = container_command(
                     cli, config, workspace, command, passed_environment(config, token=True)
                 )
                 prompt = scenario_prompt(scenario)
                 shown = [PROMPT_MARKER if part == prompt else part for part in command]
-                print(
-                    json.dumps(
-                        redact_structure(
-                            {
-                                "cli": cli,
-                                "scenario": scenario["id"],
-                                "cwd": str(workspace),
-                                "command": shlex.join(shown),
-                                "stdin": PROMPT_MARKER if cli in ("claude", "codex") else "",
-                                "prompt": PROMPT_MARKER,
-                                "environment_inherit_only": list(BASE_ENV),
-                                "eligibility": "Doctor receipt required before execution",
-                                "mcp_config": payload,
-                                "judge_clis": judges_for(cli, config["judges"]),
-                            }
-                        ),
-                        ensure_ascii=False,
-                    )
-                )
+                plan = {
+                    "cli": cli,
+                    "scenario": scenario["id"],
+                    "cwd": str(workspace),
+                    "command": shlex.join(shown),
+                    "stdin": PROMPT_MARKER if cli in ("claude", "codex") else "",
+                    "prompt": PROMPT_MARKER,
+                    "environment_inherit_only": list(BASE_ENV),
+                    "eligibility": "Doctor receipt required before execution",
+                    "mcp_config": payload,
+                    "judge_clis": judges_for(cli, config["judges"]),
+                }
+                if cli == "claude" and config.get("claude_plugin"):
+                    plan["claude_plugin"] = plugin_record(config)
+                    plan["install_commands"] = planned_installs
+                print(json.dumps(redact_structure(plan), ensure_ascii=False))
 
 
-def main(argv=None) -> int:
+def run_scenarios(runner, scenarios, selected):
+    """Stop an ablation arm as soon as a scenario encounters a proxy failure."""
+    rows = []
+    for scenario in scenarios:
+        for cli in selected:
+            row = runner.scenario(scenario, cli)
+            rows.append(row)
+            if runner.audit is not None and row.get("proxy_rewrites", {}).get("proxy_error"):
+                return rows, "Proxy error in scenario " + scenario["id"]
+    return rows, None
+
+
+def main(argv=None, *, fixture_runner_factory=None, ablation_audit=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--config", type=Path, default=HERE / "tui_config.yaml")
     parser.add_argument(
@@ -697,6 +774,13 @@ def main(argv=None) -> int:
         "--out", type=Path, help="Private report directory, required except for build-images/login"
     )
     parser.add_argument("--cli", choices=CLIS, action="append")
+    parser.add_argument("--state-dir", type=Path, help="Private doctor receipts; defaults to --out")
+    parser.add_argument("--ablation-proxy", help="QA-only http://host.docker.internal:<port>/mcp")
+    parser.add_argument("--ablation-metadata", type=Path, help="Proxy manifest; required for proxy dry runs")
+    parser.add_argument(
+        "--claude-plugin", choices=("modelspec",),
+        help="Install the reporting plugin in isolated Claude agent runs",
+    )
     parser.add_argument("--ux-image", action="store_true", help="Build/certify the Playwright image variant")
     parser.add_argument("--scenario", action="append")
     parser.add_argument(
@@ -718,6 +802,10 @@ def main(argv=None) -> int:
     try:
         refuse_vendor_auth(os.environ)
         config = yaml.safe_load(args.config.read_text())
+        if args.claude_plugin:
+            if args.action in ("build-images", "login"):
+                raise ValueError("--claude-plugin applies to run, doctor and inventory")
+            config["claude_plugin"] = args.claude_plugin
         if args.ux_image:
             for cli in args.cli or CLIS:
                 config["clis"][cli]["image_variant"] = "ux"
@@ -725,7 +813,17 @@ def main(argv=None) -> int:
             config["max_runs_per_cli"] = args.max_runs_per_cli
         if args.judge:
             apply_judge_overrides(config, args.judge)
-        validate_config(config)
+        if args.ablation_proxy:
+            if args.state_dir is None:
+                raise ValueError("--ablation-proxy requires a separate private --state-dir")
+            apply_ablation_proxy(config, args.ablation_proxy, args.state_dir,
+                                 metadata_path=args.ablation_metadata, dry_run=args.dry_run)
+        else:
+            if args.ablation_metadata:
+                raise ValueError("--ablation-metadata requires --ablation-proxy")
+            validate_config(config)
+        if fixture_runner_factory is not None and not args.dry_run:
+            raise ValueError("Fixture runners are only allowed with --dry-run")
         config["_quiet_hours"], config["_force"] = args.quiet_hours, args.force
         if args.action in ("login", "doctor") and len(args.cli or []) != 1:
             raise ValueError("login and doctor require exactly one --cli")
@@ -756,7 +854,8 @@ def main(argv=None) -> int:
                 raise ValueError("doctor cannot be combined with run modes")
             args.verify_isolation = True
         output = private_output(args.out)
-        config["_state_dir"] = str(output / (".tui-state-ux" if args.ux_image else ".tui-state"))
+        state = private_output(args.state_dir) if args.state_dir else output
+        config["_state_dir"] = str(state / (".tui-state-ux" if args.ux_image else ".tui-state"))
         if args.action == "inventory":
             if args.dry_run or args.smoke or args.verify_isolation:
                 raise ValueError("inventory cannot be combined with run modes")
@@ -772,6 +871,10 @@ def main(argv=None) -> int:
                     mcp_file = workspace / "modelspec-mcp.json"
                     mcp_file.write_text(home_config(cli, config))
                     prepare_workspace(cli, config, workspace, mcp_enabled=True)
+                    if cli == "claude" and config.get("claude_plugin"):
+                        from qa.tui_docker import run_cli
+
+                        install_plugin(config, workspace, run_cli)
                     info = inspect_inventory(
                         cli,
                         config,
@@ -819,14 +922,27 @@ def main(argv=None) -> int:
             "canary_runs": 0,
         }
         if args.dry_run
-        else isolation_result(cli, config)
+        else isolation_result(cli, config if cli in selected else config | {"claude_plugin": None})
         for cli in needed
     }
+    # With the plugin on, a Claude agent and a Claude judge hold different receipts.
+    judge_isolation = {}
+    if (
+        not args.dry_run and not args.verify_isolation and config.get("claude_plugin")
+        and "claude" in selected
+        and any("claude" in judges_for(cli, config["judges"]) for cli in selected)
+    ):
+        judge_isolation["claude"] = isolation_result("claude", config | {"claude_plugin": None})
+    gates = [*isolation.values(), *judge_isolation.values()]
     counts = {cli: {"agent": 0, "judge": 0} for cli in CLIS}
-    blocked, rows, stopped = None, [], {}
+    blocked, rows, stopped, ablation_invalid = None, [], {}, None
     if args.dry_run:
         dry_commands(scenarios, selected, config, output)
-    elif args.smoke and any(not info["supported"] for info in isolation.values()):
+        if fixture_runner_factory is not None:
+            runner = fixture_runner_factory(config, output, scenarios)
+            rows, ablation_invalid = run_scenarios(runner, scenarios, selected)
+            counts, stopped = runner.counts, runner.stopped
+    elif args.smoke and any(not info["supported"] for info in gates):
         blocked = (
             "Smoke requires verified isolation for every selected CLI and every judge; "
             "unsupported CLIs remain."
@@ -835,13 +951,11 @@ def main(argv=None) -> int:
         if args.verify_isolation:
             for cli in needed:
                 isolation[cli] = verify_isolation(cli, config, output)
-        runner = Runner(config, output, isolation)
-        if args.smoke and any(not info["verified"] for info in isolation.values()):
+        runner = Runner(config, output, isolation, **({"audit": ablation_audit} if ablation_audit else {}))
+        if args.smoke and any(not info["verified"] for info in gates):
             blocked = "Isolation verification failed; smoke did not start."
         elif not args.verify_isolation:
-            for scenario in scenarios:
-                for cli in selected:
-                    rows.append(runner.scenario(scenario, cli))
+            rows, ablation_invalid = run_scenarios(runner, scenarios, selected)
         counts, stopped = runner.counts, runner.stopped
     if blocked:
         rows = [
@@ -867,12 +981,19 @@ def main(argv=None) -> int:
         blocked=blocked,
     )
     report["metadata"].update(smoke=args.smoke, verification_only=args.verify_isolation)
+    if ablation_invalid:
+        report["metadata"]["ablation_invalid_reason"] = ablation_invalid
+    if fixture_runner_factory is not None:
+        report["metadata"]["fixture_replay"] = True
+        report["evidence_note"] += " Agent outputs and judge verdicts are scripted fixtures, not measurements."
+    if judge_isolation:
+        report["metadata"]["judge_isolation"] = judge_isolation
     js, md = write_report(report, output)
     print(f"Reports: {js} and {md}. Scenario invocations: {report['executed_runs']}.")
     failed_verification = args.verify_isolation and any(
         not info["verified"] for info in isolation.values()
     )
-    return 2 if blocked or failed_verification else 0
+    return 2 if blocked or failed_verification or ablation_invalid else 0
 
 
 if __name__ == "__main__":

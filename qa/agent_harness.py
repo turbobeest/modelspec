@@ -692,6 +692,8 @@ def judge_routes_markdown(metadata: dict) -> list[str]:
 
 
 def markdown(report: dict) -> str:
+    from qa.tui_plugins import report_line
+
     lines = [
         f"# Agent scenarios, {report['report_date']}"
         + (" (partial: quiet_hours)" if report.get("partial") else ""),
@@ -701,6 +703,12 @@ def markdown(report: dict) -> str:
         f"Mode: {report['mode']}. Runs: {report['completed_runs']}/{report['scheduled_runs']}. "
         f"Estimated spend: ${report['budget']['estimated_spend_usd']:.4f}; "
         f"cap: ${report['budget']['cap_usd']:.2f}.",
+    ]
+    if line := report_line(
+        report["metadata"].get("claude_plugin"), dry_run=report["mode"] == "dry-run",
+    ):
+        lines += ["", line]
+    lines += [
         "",
         "Success requires a completed answer and a passing rubric judgement. "
         "An isolation misuse is a failure. Expected match is reported separately: it records "
@@ -768,7 +776,7 @@ def markdown(report: dict) -> str:
         lines += ["", PARSE_DEFECT_NOTE, ""]
         lines.extend(f"- {pair}" for pair in pairs[:10])
         extra = len(pairs) - 10
-        if extra:
+        if extra > 0:
             lines.append(f"- (+{extra} more)")
     lines += [
         "",

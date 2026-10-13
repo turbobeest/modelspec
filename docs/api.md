@@ -1,11 +1,11 @@
 # ModelSpec API — reference
 
 **Use when** choosing, switching, or checking a model before a task or deploy.
-Ranks models for your hardware, providers, profile and policy. Returns scores,
+Ranks models for your [hardware](decision-contract.md#architecture-and-hardware-estimates-model-348), providers, profile and policy. Returns scores,
 cost, reasons and constraint eliminations.
 
 * `POST /v1/decide` — what fits your requirements:
-  [`decide-api.md`](decide-api.md). Only the bounded representation adds `summary_for_user` and `must_mention`.
+  [`decide-api.md`](decide-api.md). The bounded representation adds `summary_for_user`, `must_mention` and `next_move`.
 * `POST https://api.modelspec.dev/v1/rank` — **deprecated**; never a decide
   fallback.
 * `POST /v1/policy-check` — pass, fail or undetermined per model and platform
@@ -234,8 +234,8 @@ Every refusal carries `error.code` and `error.message`, and `result` is `[]`.
 | Status | `error.code` | Cause | Fix |
 |---|---|---|---|
 | 400 | `invalid_request` | bad field or type | `error.fields` names them, `error.accepted` lists what exists |
-| 400 | `unknown_use_case` | no such profile | pick one from `error.accepted` |
-| 400 | `unknown_hardware` | no such device id | pick one from `error.accepted` |
+| 400 | `unknown_use_case` | unknown profile | pick one from `error.accepted` |
+| 400 | `unknown_hardware` | unknown device id | pick one from `error.accepted` |
 | 400 | `unknown_hosting` | not `local`, `self_hosted` or `managed_api` | pick one from `error.accepted` |
 | 400 | `unknown_runtime` | no such platform id | pick one from `error.accepted`, or drop it |
 | 401 | `missing_api_key` | no key, while keys are enforced | send one; see `error.how_to_get_a_key` |
@@ -319,7 +319,7 @@ A request carries a profile, never a prompt. See [`rank-api.md`](rank-api.md).
 
 ## MCP
 
-Read-only remote MCP at `https://api.modelspec.dev/mcp`. Claude Code:
+Read-only MCP: `https://api.modelspec.dev/mcp`. Claude Code:
 
 ```json
 {
@@ -331,3 +331,5 @@ Read-only remote MCP at `https://api.modelspec.dev/mcp`. Claude Code:
   }
 }
 ```
+
+[Claude Code plugin](claude-plugin.md).

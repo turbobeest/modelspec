@@ -394,7 +394,7 @@ class Source(Record):
                 )
             kind = "heading" if locator.kind == "heading_anchor" else locator.kind
             Locator(kind, locator.value)
-            if NORMALISERS[self.normaliser].content == "text" and kind != "page":
+            if NORMALISERS[self.normaliser].content in {"text", "json"} and kind != "page":
                 raise ValueError("text sources support only page locators")
         if self.kind is not None:
             from decision.registry import default as default_registry

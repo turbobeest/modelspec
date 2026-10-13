@@ -56,6 +56,7 @@ SOURCES = {
     Path("api/classes.py"): Path("api/classes.py"),
     Path("pipeline/__init__.py"): Path("pipeline/__init__.py"),
     Path("pipeline/ranking.py"): Path("pipeline/ranking.py"),
+    Path("pipeline/hardware.py"): Path("pipeline/hardware.py"),
     Path("pipeline/vocab_synonyms.json"): Path("pipeline/vocab_synonyms.json"),
     Path("decision/__init__.py"): Path("decision/__init__.py"),
     Path("decision/bands.py"): Path("decision/bands.py"),
@@ -70,7 +71,9 @@ SOURCES = {
     Path("decision/excluded.py"): Path("decision/excluded.py"),
     Path("decision/explain.py"): Path("decision/explain.py"),
     Path("decision/filter.py"): Path("decision/filter.py"),
+    Path("decision/hardware.py"): Path("decision/hardware.py"),
     Path("decision/model.py"): Path("decision/model.py"),
+    Path("decision/next_move.py"): Path("decision/next_move.py"),
     Path("decision/normalise.py"): Path("decision/normalise.py"),
     Path("decision/optimise.py"): Path("decision/optimise.py"),
     Path("decision/plans.py"): Path("decision/plans.py"),
@@ -87,6 +90,7 @@ SOURCES = {
     Path("decision/templates.py"): Path("decision/templates.py"),
     Path("decision/units.py"): Path("decision/units.py"),
     Path("decision/vocabulary.py"): Path("decision/vocabulary.py"),
+    Path("decision/wording.py"): Path("decision/wording.py"),
     Path("schema/__init__.py"): Path("schema/__init__.py"),
     Path("schema/applicability.py"): Path("schema/applicability.py"),
     # The decision path needs these shared definitions, not every card section.
@@ -162,11 +166,29 @@ def build(destination: Path | None = None, *, data_dir: Path | None = None) -> P
         dest.parent.mkdir(parents=True, exist_ok=True)
         source_root = data_root if source in private or source.parts[0] == "hardware" else REPO_ROOT
         shutil.copyfile(source_root / source, dest)
+    write_tier_policy(out)
     embedded = out / "bundled_data.py"
     embedded.unlink(missing_ok=True)
     if data_dir is not None:
         bundle_data(out, data_dir)
     return out
+
+
+def write_tier_policy(out: Path) -> None:
+    """Embed `tiers.json` as a module. A Worker text var is capped at 5.1 kB.
+
+    The isolate has no filesystem copy of the table, and since Pricing v2 the
+    compact JSON is over Cloudflare's limit for a `--var` (code 10054), so the
+    deploy no longer passes `TIER_POLICY`. `access_config.load_policy` reads
+    this module when no file is reachable.
+    """
+    text = json.dumps(json.loads((WORKER_ROOT / "tiers.json").read_text(encoding="utf-8")),
+                      separators=(",", ":"), ensure_ascii=False)
+    (out / "tier_policy.py").write_text(
+        "# Generated from api/worker/tiers.json by vendor.py. Do not edit.\n"
+        + "TEXT = " + repr(text) + "\n",
+        encoding="utf-8",
+    )
 
 
 def bundle_data(out: Path, data_dir: Path) -> None:

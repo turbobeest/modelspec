@@ -188,7 +188,13 @@ Both were added, additively, in bounded 1.0. `must_mention` also names claims
 the answer does not support: a tie is not a recommendation of any member, a
 partial answer establishes no best fit, `fits_hardware` is an estimate, and
 ModelSpec checked only the stated requirements (`task_type` is reported as not
-applied). See the bounded section of [`decision-contract.md`](decision-contract.md).
+applied). Bounded 1.2 adds optional `next_move` when the answer names no pick:
+`ask_user`, `decide_by_testing`, or `user_tiebreak`, with `say`, `options`,
+`steps`, alphabetical `candidates` (at most 8, empty below 2), and the full
+`candidates_total`. It makes no quality pick. `summary_for_user` ends with
+exactly `next_move.say`, reserved within its 1,200-byte budget. The 16,384-byte
+bounded budget keeps `next_move` along with the summary and reporting facts.
+See the bounded section of [`decision-contract.md`](decision-contract.md).
 
 ## Snapshot trust boundary
 

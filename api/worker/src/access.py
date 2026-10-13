@@ -190,7 +190,7 @@ async def serve(
     now: datetime | None = None,
     log: Callable[[str, dict[str, Any]], None] | None = None,
     limits_for: Callable[[KeyRecord, TierLimits], Awaitable[TierLimits]] | None = None,
-    skip_limits: Callable[[KeyRecord, TierLimits], bool] | None = None,
+    skip_limits: Callable[[KeyRecord, TierLimits], Awaitable[bool]] | None = None,
 ) -> Outcome:
     """Classify, meter, answer. The only entry point this package offers."""
     moment = now or datetime.now(UTC)
@@ -265,7 +265,7 @@ async def serve(
     # `skip_limits` is the catalog read: its own meter must not share the
     # decide burst counter.
     meter_tier = tier
-    if skip_limits is not None and skip_limits(record, tier):
+    if skip_limits is not None and await skip_limits(record, tier):
         note("limits.skipped", key_id=record.key_id, tier=tier.name)
         meter = limits.MeterOutcome(True, ())
     else:
@@ -303,7 +303,7 @@ async def gate(
     limits_for: Callable[[KeyRecord, TierLimits], Awaitable[TierLimits]] | None = None,
     anonymous_id: str | None = None,
     anonymous_tier: str = "free",
-    skip_limits: Callable[[KeyRecord, TierLimits], bool] | None = None,
+    skip_limits: Callable[[KeyRecord, TierLimits], Awaitable[bool]] | None = None,
 ) -> Outcome:
     """The Worker's one call into this package: `serve`, behind the switch.
 

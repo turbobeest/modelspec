@@ -66,12 +66,10 @@ class CreditsObject(DurableObject):
         return result.to_json()
 
     async def set_monthly(self, holder: str, units: int, invoice_id: str,
-                          plan: str = "", customer_id: str = "",
-                          reset_overage: bool = True) -> dict[str, Any]:
+                          plan: str = "", customer_id: str = "") -> dict[str, Any]:
         state = self._load()
         result = state.set_monthly(holder, int(units), str(invoice_id),
-                                   str(plan or ""), str(customer_id or ""),
-                                   bool(reset_overage))
+                                   str(plan or ""), str(customer_id or ""))
         self._save(state)
         return result.to_json()
 
@@ -96,6 +94,7 @@ class CreditsObject(DurableObject):
         return result.to_json()
 
     async def commit(self, holder: str, reservation_id: int) -> dict[str, Any]:
+        """Save the debit and its pending meter record in the same SQL write."""
         state = self._load()
         result = state.commit(holder, int(reservation_id))
         self._save(state)
@@ -123,6 +122,12 @@ class CreditsObject(DurableObject):
         self._save(state)
         return ok
 
+    async def meter_identifier(self, holder: str, kind: str, counter: str) -> str:
+        state = self._load()
+        ident = state.meter_identifier(str(holder), str(kind), counter)
+        self._save(state)
+        return ident
+
     async def note_unreported(self, holder: str, units: int, identifier: str,
                               customer_id: str = "", event_name: str = "") -> bool:
         state = self._load()
@@ -138,9 +143,10 @@ class CreditsObject(DurableObject):
         self._save(state)
         return [units, seq, ident]
 
-    async def ack_backlog(self, holder: str, units: int, n: int) -> bool:
+    async def ack_backlog(self, holder: str, units: int, n: int,
+                          identifier: str = "") -> bool:
         state = self._load()
-        ok = state.ack_backlog(holder, int(units), int(n))
+        ok = state.ack_backlog(holder, int(units), int(n), str(identifier or ""))
         self._save(state)
         return ok
 
@@ -168,6 +174,13 @@ class CreditsObject(DurableObject):
         self._save(state)
         return [[ident, units, created_at] for ident, units, created_at in rows]
 
+    async def open_meter_events(self, holder: str, now: int = 0) -> list:
+        state = self._load()
+        rows = state.open_meter_events(holder, int(now or 0))
+        self._save(state)
+        return [[ident, units, created_at, first_attempt]
+                for ident, units, created_at, first_attempt in rows]
+
     async def unreconcile_uncertain(self, holder: str, identifier: str) -> bool:
         state = self._load()
         ok = state.unreconcile_uncertain(holder, str(identifier))
@@ -179,6 +192,9 @@ class CreditsObject(DurableObject):
         ok = state.release(holder, int(reservation_id))
         self._save(state)
         return ok
+
+    async def has_read_funding(self, holder: str, now: str = "") -> bool:
+        return self._load().has_read_funding(holder, now=str(now or ""))
 
     async def balance(self, holder: str, now: str = "") -> dict[str, Any]:
         return self._load().balance(holder, now=str(now or "")).to_json()

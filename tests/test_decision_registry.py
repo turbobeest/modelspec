@@ -98,6 +98,7 @@ DERIVED = {"offering.cost_per_task"}
 
 BEST_EFFORT = {
     "model.parameters_total", "model.parameters_active", "model.architecture",
+    "model.experts_total", "model.experts_per_token",
     "model.knowledge_cutoff", "model.deprecation_date", "model.languages",
     "model.fits_hardware", "offering.speed.time_to_first_token",
     "offering.speed.throughput", "offering.rate_limit.requests",
@@ -201,12 +202,14 @@ LOWER_IS_BETTER = {
     "offering.speed.time_to_first_token", "offering.data.retention",
     "offering.subscription.price", "offering.subscription.price_cny",
     "offering.plan.price_monthly",
+    "hardware.weights_gb",
 }
 HIGHER_IS_BETTER = {
     "model.context_window", "model.max_output_tokens", "licence.user_cap",
     "offering.speed.throughput", "offering.rate_limit.requests", "offering.rate_limit.tokens",
     "offering.sla_uptime", "offering.subscription.allowance.multiplier",
     "offering.subscription.allowance.tokens", "evidence.outcome",
+    "hardware.decode_tps_estimate",
 }
 
 
