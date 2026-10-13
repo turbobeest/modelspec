@@ -259,6 +259,9 @@ def calibrate(c: Catalogue, root: Path, registry, as_of: date) -> None:
         )
         c.offerings[oid] = o
     for rid, raw in sorted(compiler.records.items()):
+        # Hardware retains vendor specifications without independent fact verification.
+        if raw.get("kind") == "hardware":
+            continue
         kind = "fact" if "facet" in raw else "evidence"
         subject = raw["subject"]["id"]
         parent = c.models.get(subject) or c.offerings.get(subject) or {}

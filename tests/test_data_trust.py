@@ -602,6 +602,48 @@ def test_calibration_uses_engine_admission(catalogue, registry, monkeypatch, tmp
     assert result["legacy_provenance"]["sourced"] == 1
 
 
+def test_calibration_keeps_vendor_hardware_out_of_verified_facts(
+    catalogue, registry, monkeypatch, tmp_path
+):
+    from decision import snapshot
+
+    inputs = snapshot.SnapshotInputs(
+        models=[{
+            "id": MID, "lifecycle": "active",
+            "facts": [
+                fact("model", MID, "model.weights_openness", "open_weights"),
+                fact("model", MID, "model.context_window", 128000),
+            ],
+        }],
+        hardware=[{
+            "id": "test-device",
+            "memory": {"capacity_gb": 128, "bandwidth_gb_s": 273},
+            "figures_are": "vendor-specification",
+            "verified_at": "2026-09-20",
+            "sources": ["https://example.test/docs"],
+        }],
+        sources={sid: row["url"] for sid, row in catalogue.sources.items()},
+    )
+    built = snapshot.build_snapshot(inputs, registry=registry, as_of=TODAY)
+    index = snapshot.load_built_snapshot(built)
+    hardware = index.record("hardware:test-device#memory")
+    assert hardware["kind"] == "hardware"
+    assert hardware["device"] == "test-device"
+    assert hardware["memory"] == {"capacity_gb": 128, "bandwidth_gb_s": 273}
+    assert hardware["sources"] == [{"source_id": "src-lab-docs"}]
+    assert "verification" not in hardware
+
+    monkeypatch.setattr(snapshot, "collect_repo", lambda root: inputs)
+    calibrate(catalogue, tmp_path, registry, TODAY)
+    assert {f["id"] for f in catalogue.facts} == {
+        "test/model#model.weights_openness",
+        "test/model#model.context_window",
+    }
+    assert catalogue.served_counts["facts"] == 2
+    assert catalogue.served_counts["evidence"] == 0
+    assert invariants.run(catalogue, registry, TODAY)["errors"] == 0
+
+
 def test_fresh_html_uses_html_normaliser(catalogue, registry):
     class HTTP:
         def fetch(self, url):
