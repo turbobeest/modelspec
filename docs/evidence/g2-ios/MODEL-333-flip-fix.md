@@ -1,5 +1,12 @@
 # MODEL-333-flip execution evidence
 
+The confirmed-receiver follow-up is recorded at the end of this file. Both
+production switches are now off and the confirmed address replaces the zero
+placeholder. The initial execution below describes the earlier state through
+`a5d2f578f0dbf84324cc06b59d24eb0feecc59a9`; its blocked result is historical.
+
+## Initial execution before receiver confirmation
+
 The approved x402 legal text is applied. The 402 schema requires `terms_url`,
 and payment offers include the canonical terms link even when the supplied
 configuration leaves it empty. The existing response behavior needs no change.
@@ -296,3 +303,98 @@ CI_LOCAL_SKIP=1 git push -u origin HEAD:model-333-x402-flip-pending
 gh pr comment 694 --body-file docs/evidence/g2-ios/.MODEL-333-flip/root/pr-comment.md
 gh pr view 694 --json number,url,isDraft,headRefName,headRefOid
 ```
+
+## Orchestrator follow-up with confirmed receiver
+
+Jamie confirmed the receiver directly at 10:54 EDT, relayed by the orchestrator
+in this conversation. This authorization supersedes the earlier instruction
+to retain the zero placeholder. The production configuration and approved P1/P3
+privacy text now name exactly
+`0x69429dbEEEE7218084AB5B896788f5fCE452419C`.
+
+- Follow-up starting SHA: `a5d2f578f0dbf84324cc06b59d24eb0feecc59a9`.
+- Red-first test commit: `6ba57ac3`.
+- Receiver/config implementation SHA: `8cff5c1ddd06110b9723528cdbceee63541d172b`.
+- Production `X402_ENABLED`: `"false"`.
+- Production `X402_MAINNET`: `"false"`.
+- Production Base network and USDC asset retained.
+- All other production variables and the complete Sepolia staging configuration
+  are unchanged from the follow-up starting SHA.
+- Terms is byte-for-byte unchanged. Privacy's normalized text changes only the
+  receiver placeholder to the confirmed address. Both legal versions and
+  `<FLIP DATE>` placeholders are retained.
+
+The receiver test checks the exact confirmed value, 40 hex digits, nonzero
+value, and EIP-55. The existing consistency test also activates both switches
+in a copy of the real prepared config and requires that copy to pass, so off
+flags cannot hide an invalid receiver. The existing zero-address rejection
+and negative consistency cases remain.
+
+The legal-address check runs even when x402 is off. The obsolete off-state
+legal pin now checks the approved future effective date and both off flags.
+Production pricing and billing-state assertions reflect the requested off
+state while their existing access, Stripe, visit-gate and both-state tests stay.
+
+The same targeted command ran red and green:
+
+```bash
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q --tb=short tests/test_x402.py tests/test_legal.py tests/test_decide_worker.py tests/test_pricing_page.py -k 'wrangler_stages or production_x402 or described_by_the_approved_legal_text or pending_x402_legal_revision or x402_privacy_uses_the_exact_approved_text or billing_launch_enforces_keys or production_switches_generate'
+```
+
+Red: exit 1, `10 failed, 5 passed, 258 deselected in 2.75s`. The failures were
+the exact receiver/checksum pin, the zero-address consistency guard, the
+config/privacy address match, the P1 exact address paragraph, and six
+production-off pins. Representative output:
+
+```text
+assert '0x0000000000000000000000000000000000000000' == '0x69429dbEEEE7218084AB5B896788f5fCE452419C'
+AssertionError: assert ['X402_PAY_TO'] == []
+AssertionError: assert 'true' == 'false'
+```
+
+Green: exit 0, `15 passed, 258 deselected in 0.71s`. This includes
+`test_production_x402_receiver_is_an_eip55_checksummed_address` and
+`test_production_x402_switches_are_consistent`, which now pass with the real
+receiver.
+
+The generated artifacts and focused checks were completed before the final
+full-suite gate:
+
+```bash
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.agent_copy write
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/openapi.py
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m qa.contracts
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_x402.py tests/test_legal.py tests/test_decide_worker.py tests/test_pricing_page.py tests/test_api_docs.py tests/test_agent_copy.py tests/test_agent_guide.py tests/test_agent_harness.py tests/test_mcp_schema_compaction.py tests/test_x402_mainnet_probe.py
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.build --out dist
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/openapi.py --check
+git diff --check
+```
+
+Each generator, the site build, OpenAPI check and diff check exited 0. The
+focused suites exited 0 with `444 passed, 3 skipped in 141.29s`. Inspection of
+the actual built pages confirmed the receiving address and pending dates in
+Privacy, with the exact approved account sentence, and no x402 mainnet offers
+on Pricing while Stripe purchases remain available.
+
+Tools remain Python 3.14.4, pytest 9.1.1, pytest-xdist 3.8.0, PyYAML 6.0.3,
+git 2.50.1, GitHub CLI 2.102.0 and pinned Node 22.22.3.
+
+The final full suite runs after this evidence and every source change are
+committed. The directly measured exit code, counts, tested SHA and pushed SHA
+are recorded in the receiver-confirmation execution comment on
+[PR #694](https://github.com/turbobeest/modelspec/pull/694). Recording the final
+measurement there avoids any tracked-file change after the successful gate.
+The exact final command is:
+
+```bash
+export PATH="/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH"
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4
+model333_test_status=$?
+exit "$model333_test_status"
+```
+
+The actual execution redirects output to the executor's ignored scratch log,
+captures `$?` immediately and exits with that captured value. A failed full
+run requires correcting its cause and repeating the entire full command.
+There is no deployment, switch enablement, live wallet/facilitator call or
+paid-provider call. PR #694 stays draft.
