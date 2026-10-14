@@ -1,0 +1,81 @@
+{
+  "private-red": {
+    "exit_code": 1,
+    "receipt": "private-red.log.gz",
+    "sha256": "5c6f3b73a53276b7204bdec9b3c5726ccb3e80eb58490801abb80fd61cf02940",
+    "summary": "2 failed in 37.16s"
+  },
+  "public-focused": {
+    "exit_code": 0,
+    "receipt": "public-focused.log.gz",
+    "sha256": "62d4dc8d7e4f407c76d4cb11a60085d244752907a2ddc8d7ccc67bd50630dc0e",
+    "summary": "6 passed in 34.34s"
+  },
+  "private-focused": {
+    "exit_code": 0,
+    "receipt": "private-focused.log.gz",
+    "sha256": "662f62f86d795dfcf5bdf725cd8446e453d8345bd172fea965c23a84b2663c13",
+    "summary": "6 passed in 31.67s"
+  },
+  "public-ci-focused": {
+    "exit_code": 0,
+    "receipt": "public-ci-focused.log.gz",
+    "sha256": "d2d9491b71419fa216a8833c6f3c9c64fbd76e1d12016da3d39dc4af816c5da3",
+    "summary": "6 passed in 50.82s"
+  },
+  "private-ci-focused": {
+    "exit_code": 0,
+    "receipt": "private-ci-focused.log.gz",
+    "sha256": "f9822b37fc8369282d7b7054ccf00bd4e6fa9b4624dbb05d746356bdb399d8a2",
+    "summary": "6 passed in 49.31s"
+  },
+  "shards": {
+    "exit_code": 0,
+    "receipt": "shards.log.gz",
+    "sha256": "fa598e3ea90468bd481884cc8b40c904c051d23c75105d30363aa7f4ea70287c"
+  },
+  "lint": {
+    "exit_code": 0,
+    "receipt": "lint.log.gz",
+    "sha256": "f3af4d142827f5aad2eb0c72d556d325488a57fb6219aac10afeb51085667d53"
+  },
+  "format": {
+    "exit_code": 0,
+    "receipt": "format.log.gz",
+    "sha256": "f140afd39e06ad8a0462e6690dc99d04e26f90c8c3ded45d10199f0ca35805f6"
+  },
+  "mutation-missing-file": {
+    "exit_code": 1,
+    "expected_exit_code": 1,
+    "receipt": "mutation-missing-file.log.gz",
+    "sha256": "af3538865e9593bb7c886b30f2a1b3d55c3c35f0ec6a75800b52f73ef5ec1d87",
+    "summary": "2 failed in 0.48s"
+  },
+  "mutation-unsourced-fact": {
+    "exit_code": 1,
+    "expected_exit_code": 1,
+    "receipt": "mutation-unsourced-fact.log.gz",
+    "sha256": "5ee7910178dc929b1b0b85333adae53f1058d43e2fa43c782f424d4a4a724b6b",
+    "summary": "2 failed in 0.86s"
+  },
+  "mutations": {
+    "exit_code": 0,
+    "receipt": "mutations.json",
+    "sha256": "1869294307103951d7c60ab973ca1b6b30e57ca2b822ad9c4aad2f8c6be1294c"
+  },
+  "targeted-assertions": {
+    "exit_code": 0,
+    "receipt": "targeted-assertions.json",
+    "sha256": "4d20991c268dfc49fd11e5ba59705de292dd6693446627bbce020987b019f7ad"
+  },
+  "public_engine_base": "fe5f62392507ed86667dd41d53b350608859e018",
+  "private_main": "85e71131d455d5517bcf9eb50630a649dfbedccb",
+  "full-engine": {
+    "exit_code": 0,
+    "summary": "11071 passed, 9 skipped, 11 warnings in 1184.97s (0:19:44)",
+    "command": "PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile",
+    "receipt": "full-engine.log.gz",
+    "sha256": "15d34e1bea9dc4151938ed92ea931908b72972c85aed3d173dfb996ae53ff516"
+  },
+  "result": "READY"
+}

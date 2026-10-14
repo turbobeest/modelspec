@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 
 
@@ -9,6 +11,11 @@ import pytest
 def _clear_modelspec_cache_env(monkeypatch: pytest.MonkeyPatch) -> None:
     """A leftover MODELSPEC_CACHE would point another CLI test at the same snapshot."""
     monkeypatch.delenv("MODELSPEC_CACHE", raising=False)
+
+
+@pytest.fixture
+def subscription_repository() -> Path:
+    return Path(__file__).resolve().parents[1]
 
 
 def pytest_configure(config):
