@@ -51,7 +51,9 @@ def _read(claim: verify.Claim, text: str) -> verify.Result:
     )
 
 
-def _fidelity(claim: verify.Claim, text: str, tmp_path: Path):
+def _fidelity(
+    claim: verify.Claim, text: str, tmp_path: Path, unread_outcome: str | None = None,
+):
     directory = tmp_path / "verification"
     return verify_fidelity_sample(
         [claim],
@@ -61,6 +63,7 @@ def _fidelity(claim: verify.Claim, text: str, tmp_path: Path):
         log=verify.VerificationLog(directory),
         today=TODAY,
         source_urls={"synthetic-source": "https://source.example.test/rows"},
+        unread={(claim.target.kind, claim.target.id): unread_outcome} if unread_outcome else None,
     )
 
 
@@ -83,27 +86,32 @@ def test_benchmark_key_value_reader_uses_explicit_source_unit() -> None:
     assert result.outcome == "verified", result
 
 
+@pytest.mark.parametrize("unread_outcome", [None, "mismatch"], ids=["changed", "unchanged"])
 @pytest.mark.parametrize(
     "conditions",
     ["Date: 2026-01-02\n", "Effort: max\n", ""],
     ids=["missing-effort", "missing-date", "missing-both"],
 )
 def test_benchmark_missing_optional_conditions_has_no_determination(
-    conditions: str, tmp_path: Path,
+    conditions: str, tmp_path: Path, unread_outcome: str | None,
 ) -> None:
     result = _fidelity(
-        _evidence_claim(), "Model: Aurora\npass_1: 42.13456789%\n" + conditions, tmp_path
+        _evidence_claim(), "Model: Aurora\npass_1: 42.13456789%\n" + conditions,
+        tmp_path, unread_outcome,
     )
 
     assert result.counts["undetermined"] == 1, result
     assert result.counts["mismatch"] == result.counts["verified"] == 0
 
 
-def test_benchmark_without_source_unit_has_no_determination(tmp_path: Path) -> None:
+@pytest.mark.parametrize("unread_outcome", [None, "mismatch"], ids=["changed", "unchanged"])
+def test_benchmark_without_source_unit_has_no_determination(
+    tmp_path: Path, unread_outcome: str | None,
+) -> None:
     result = _fidelity(
         _evidence_claim(),
         "Model: Aurora\npass_1: 42.13456789\nEffort: max\nDate: 2026-01-02\n",
-        tmp_path,
+        tmp_path, unread_outcome,
     )
 
     assert result.counts["undetermined"] == 1, result
@@ -150,9 +158,10 @@ def test_benchmark_stated_disagreement_with_missing_metadata_is_a_mismatch(
     assert any(diff["field"] == diff_field for diff in result.details[0]["diff"])
 
 
+@pytest.mark.parametrize("unread_outcome", [None, "mismatch"], ids=["changed", "unchanged"])
 @pytest.mark.parametrize("metadata", [{"interval": [41.9, 42.4]}, {"n": 120}])
 def test_composite_benchmark_missing_optional_metadata_has_no_determination(
-    metadata: dict, tmp_path: Path,
+    metadata: dict, tmp_path: Path, unread_outcome: str | None,
 ) -> None:
     claim = replace(
         _evidence_claim(),
@@ -163,7 +172,7 @@ def test_composite_benchmark_missing_optional_metadata_has_no_determination(
         claim,
         '[{"model": "Aurora", "accuracy": 42.13456789, '
         '"effort": "max", "date": "2026-01-02"}]',
-        tmp_path,
+        tmp_path, unread_outcome,
     )
 
     assert result.counts["undetermined"] == 1, result
@@ -235,6 +244,23 @@ def test_price_reader_does_not_borrow_when_the_models_row_is_absent(tmp_path: Pa
         SIBLING_PRICE_TABLE + "\nAurora\nUsage | Price per 1M tokens\nOutput | $6.00\n",
         tmp_path,
     )
+
+    assert result.counts["undetermined"] == 1, result
+    assert result.counts["mismatch"] == result.counts["verified"] == 0
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "Aurora\n" + SIBLING_PRICE_TABLE,
+        "Models: Aurora 2\nUsage | Price per 1M tokens\nInput | $7.50\n",
+    ],
+    ids=["sibling-heading-before-first-table", "longer-sibling-in-model-list"],
+)
+def test_price_reader_requires_the_table_owners_exact_model(
+    text: str, tmp_path: Path,
+) -> None:
+    result = _fidelity(_price_claim("input", 7.50), text, tmp_path)
 
     assert result.counts["undetermined"] == 1, result
     assert result.counts["mismatch"] == result.counts["verified"] == 0

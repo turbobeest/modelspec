@@ -935,9 +935,11 @@ def verify_fidelity_sample(
         correction_details = None
         if _incomplete_evidence_reading(result):
             outcome, undetermined = "undetermined", "missing_source_metadata"
-        elif result.outcome == "mismatch" and result.diffs and all(
-            diff.field == "source_kind" and diff.found == "unknown" for diff in result.diffs
-        ):
+        elif (
+            result.outcome == "mismatch" and result.diffs and all(
+                diff.field == "source_kind" and diff.found == "unknown" for diff in result.diffs
+            )
+        ) or (_read_nothing(result) and claim.field.startswith("offering.subscription.")):
             outcome = "undetermined"
             undetermined = unread.get(key, "source_changed")
             if undetermined == "mismatch":

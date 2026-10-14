@@ -588,19 +588,19 @@ class OfferingPriceExtractor:
         simple_label = {"input": "input", "output": "output",
                         "cached_input": "cached input"}.get(wanted)
         if scoped_subject and simple_label:
-            start = next((i for i, line in enumerate(lines)
-                          if normalise_name(line.lstrip("#")) == normalise_name(scoped_subject)
-                          or (re.match(r"(?i)^models?\s*:", line)
-                              and normalise_name(scoped_subject) in normalise_name(line))), None)
             markdown = False
-            in_table = False
-            for i in range(start + 1, len(lines)) if start is not None else ():
-                line = lines[i]
-                if in_table and "|" not in line:
-                    break
+            table_subject = None
+            for i, line in enumerate(lines):
                 if "|" in line and (i == 0 or "|" not in lines[i - 1]):
                     markdown = line.startswith("|")  # the table's header row
-                    in_table = True
+                    heading = lines[i - 1].lstrip("#").strip() if i else ""
+                    declared = re.sub(r"(?i)^models?\s*:\s*", "", heading)
+                    names = {normalise_name(n.rstrip("."))
+                             for n in declared.split(",")}
+                    table_subject = scoped_subject if normalise_name(scoped_subject) in names \
+                        else None
+                if table_subject is None:
+                    continue
                 # In an HTML table a leading pipe is an empty first cell: the row
                 # continues the model named above it (Vertex), so it is not this
                 # page's own price (MODEL-235). Markdown rows all start with one.
@@ -609,7 +609,7 @@ class OfferingPriceExtractor:
                 cells = [cell.strip() for cell in line.strip("| ").split("|")]
                 if len(cells) >= 2 and normalise_name(cells[0]) == simple_label:
                     if match := re.search(r"\\?\$\s*[0-9]+(?:\.[0-9]+)?", cells[1]):
-                        return [Reading(scoped_subject, match.group(0), claim.unit)]
+                        return [Reading(table_subject, match.group(0), claim.unit)]
         if scoped_subject and "price per btok per mtok" in normalise_name(text):
             if wanted == "input":
                 match = re.search(r"(?im)^\|?\s*Price \(per Btok / per Mtok\).*?"
@@ -1075,7 +1075,7 @@ class SubscriptionPageExtractor:
         if claim.field == "offering.subscription.surfaces" and isinstance(claim.value, list) \
                 and "coding_tool:*" in claim.value:
             return []
-        if re.search(r"(?i)<!doctype\b|</?(?:html|head|body|div|script)\b", text):
+        if _HTML_TAG.search(text):
             return []
         text = _content_block(text)
         readings = self._page_layouts(claim, text)
@@ -1084,15 +1084,21 @@ class SubscriptionPageExtractor:
             readings += [r for r in more if r not in readings]
         if claim.field in {"offering.subscription.usage_allowance",
                            "offering.subscription.programmatic_or_agent_use"}:
+            wording = (r"\b(?:usage|allowances?|limits?|credits?|requests?|messages?|"
+                       r"tokens?|quota|uses|queries|tasks?|completions?|unlimited|more)\b"
+                       if claim.field.endswith("usage_allowance") else
+                       r"\b(?:codex|claude code|kimi code|grok build|ai studio|antigravity|"
+                       r"jules|agents?|api|cli|bots?|terminal|coding|tools?|programmatic)\b")
             readings = [r for r in readings if r.value and not re.fullmatch(
                 r"(?i)(?:[$¥]\s*[0-9,.]+(?:\s*/\s*(?:mo|month|year))?|"
                 r"/\s*(?:mo|month|year).*|get .+|pricing)", r.value.strip()
-            )]
+            ) and re.search(wording, r.value, re.IGNORECASE)]
         if claim.field == "offering.subscription.models_covered":
-            readings = [r for r in readings if r.value and any(
+            readings = [r for r in readings if r.value and (
+                normalise_name(r.value) in _FALSE or any(
                 _catalogue_model_matches(item.strip())
                 for item in re.split(r",|;|\band\b", r.value) if item.strip()
-            )]
+            ))]
         return readings
 
     def _page_layouts(self, claim: Claim, text: str) -> list[Reading]:
