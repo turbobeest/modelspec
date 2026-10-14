@@ -252,3 +252,9 @@ with `Co-Authored-By: GPT-6.1 Sol <noreply@openai.com>` last. Delivery uses
 "price re-read: read MiniMax allowances and Mistral coding access (MODEL-235)"
 --body-file .artifacts/model-235-readers/executor/pr-body.md`.
 The PR remains a draft for independent review.
+
+## Review correction
+
+The first card-boundary fix failed Grok's neighbouring-plan probes. The follow-up
+[R2 evidence](MODEL-235-readers-r2-fix.md) records the structural correction,
+red-first A/B regressions, verdict controls, and unchanged replay results.
