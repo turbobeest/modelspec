@@ -1065,7 +1065,7 @@ class SubscriptionPageExtractor:
         """Possible recrawl replacements, each requiring separate verification."""
         if claim.field != "offering.subscription.coverage_quote":
             raise ExtractorError("not a coverage quote")
-        if _HTML_TAG.search(text):
+        if _HTML_TAG.search(text.replace("<API Key>", "")):
             return []
         lines = [line.strip().lstrip("#").strip() for line in _content_block(text).splitlines()
                  if line.strip()]
@@ -1107,7 +1107,8 @@ class SubscriptionPageExtractor:
         if claim.field == "offering.subscription.surfaces" and isinstance(claim.value, list) \
                 and "coding_tool:*" in claim.value:
             return []
-        if _HTML_TAG.search(text):
+        # Normalized code examples can contain this literal credential placeholder.
+        if _HTML_TAG.search(text.replace("<API Key>", "")):
             return []
         if claim.field == "offering.subscription.coverage_quote":
             return [r for r in self.quote_candidates(claim, text)
@@ -1764,7 +1765,9 @@ def _card_lines(lines: list[str], aliases: set[str]) -> list[str]:
             short = len(later.split()) <= 3 and not has_amount and not re.search(r"[0-9]", later)
             # A short line with a bare price close after it is the next card's name;
             # a priced heading ("Allegretto — ¥199/month") ends the card itself.
-            upcoming = next((n for n in lines[j + 1:j + 5] if re.search(r"[$¥]\s?[0-9]", n)), None)
+            upcoming = next((n for n in lines[j + 1:j + 5] if re.fullmatch(
+                r"[$¥]\s?[0-9,.]+(?:\s*/\s*(?:user/)?(?:mo(?:nth)?|year))?", n
+            )), None)
             if short and upcoming is not None and not _PRICED_HEADING.match(upcoming):
                 break
             out.append(re.sub(r"^[-*•]\s+", "", later))

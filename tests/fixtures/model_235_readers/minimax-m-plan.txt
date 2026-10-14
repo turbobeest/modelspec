@@ -1,0 +1,16 @@
+Skip to main content
+Quick overview
+M Plan overview
+Learn about M Plan tiers, available models, usage, and supported products.
+M Plan is an AI subscription designed for individuals, bringing together MiniMax’s leading models for text, video, image, and audio generation to help you with both work and personal interests. Choose from three tiers—Go, Explore, and Build—based on how much you use AI.
+Available models
+Model | Go | Explore | Build
+Text model | M3.1 Flash Preview | M3.1 Flash Preview | M3.1 Flash Preview
+Video model | Not included | H3 | H3
+Other modalities | Image and audio models | Image and audio models | Image and audio models
+Usage limits
+Actual consumption varies with the model, context length, and task complexity. Video generation consumes far more than text, so frequent video generation brings you to your usage limit faster. Use the table below to choose a tier that suits your usage habits and tasks.
+Tier | Usage relative to Go | Usage guide
+Go | - | Getting started with simple research, light writing, or small code changes.
+Explore | 3x | Daily use for coding, writing, organizing information, and multi-turn tasks.
+Build | 7.5x | Frequent use for long-context work, complex coding tasks, or extensive multimodal creation.

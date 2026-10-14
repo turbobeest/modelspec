@@ -1,0 +1,17 @@
+Skip to main content
+Quick overview
+FAQ
+Find answers to common questions about M Plan tiers, usage, Subscription Keys, and usage rules.
+Which M Plan tiers are available?
+The available subscription tiers are Go, Explore, and Build.
+Tier | Intended usage | Usage relative to Go
+Go | Getting started | 1x (baseline)
+Explore | Everyday use | 3x
+Build | Intensive use | 7.5x
+Do I need a separate subscription or API Key to use MiniMax Code?
+No. After subscribing to M Plan, sign in to MiniMax Code to get your member benefits. No separate subscription or Subscription Key is needed. You only need a Subscription Key to use M Plan in other AI tools such as Claude Code or Cursor.
+How can I check M Plan usage?
+You can check M Plan usage in three ways: Method 1: Visit the usage page Visit the usage page to view your plan, usage limits, Credits, and usage history. Method 2: Use MiniMax CLI
+mmx quota
+Method 3: Use the API endpoint
+curl --location 'https://www.minimax.io/v1/token_plan/remains' \ --header 'Authorization: Bearer <API Key>' \ --header 'Content-Type: application/json'

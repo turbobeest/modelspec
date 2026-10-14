@@ -1,0 +1,20 @@
+Gemini 3.5 Flash-Lite
+gemini-3.5-flash-lite
+Try it in Google AI Studio
+A cost-efficient model, optimized for high-volume agentic tasks, translation, and simple data processing.
+Standard
+| Free Tier | Paid Tier, per 1M tokens in USD
+Input price | Free of charge | $0.30 (text / image / video / audio)
+Output price (including thinking tokens) | Free of charge | $2.50
+Context caching price | Not available | $0.03 $1.00 / 1,000,000 tokens per hour (storage price)
+Grounding with Google Search * | Not available ** | 5,000 free search requests per month (shared across all Gemini 3 and newer models), then $14 per 1,000 requests.
+Grounding with Google Maps | Not available ** | 5,000 requests per month (free, shared across all Gemini 3 and newer models), then $14 / 1,000 search queries.
+Used to improve our products | Yes | No
+Batch
+| Free Tier | Paid Tier, per 1M tokens in USD
+Input price | Free of charge | $0.15 (text / image / video / audio)
+Output price (including thinking tokens) | Free of charge | $1.25
+Context caching price | Not available | $0.02 $1.00 / 1,000,000 tokens per hour (storage price)
+Grounding with Google Search * | Not available ** | 5,000 free search requests per month (shared across all Gemini 3 and newer models), then $14 per 1,000 requests.
+Grounding with Google Maps | Not available ** | 5,000 requests per month (free, shared across all Gemini 3 and newer models), then $14 / 1,000 search queries.
+Used to improve our products | Yes | No
