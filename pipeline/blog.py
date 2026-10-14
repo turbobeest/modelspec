@@ -181,7 +181,8 @@ def _shell(title: str, body: str, path: str, build: Build, *, preview=False) -> 
     )
 
 
-def _posts(root: Path, *, public_keys=None, preview_slug=None) -> list[Post]:
+def _posts(root: Path, *, public_keys=None, preview_slug=None, today: date | None = None) -> list[Post]:
+    published_through = today if today is not None else datetime.now(UTC).date()
     posts = []
     for path in sorted((root / "blog" / "posts").glob("*/post.yaml")):
         slug = path.parent.name
@@ -210,7 +211,7 @@ def _posts(root: Path, *, public_keys=None, preview_slug=None) -> list[Post]:
                     or not revision.approval.startswith(blog_markdown.REPO + "/")
                 ):
                     raise ValueError("published blog revision needs an approval")
-                if revision.published > date.today():
+                if revision.published > published_through:
                     raise ValueError("blog publication date is in the future")
             folder = path.parent / f"r{revision.revision}"
             b = Breakdown.model_validate_json((folder / "breakdown.json").read_bytes())
@@ -432,7 +433,7 @@ def _feeds(tree: Path, posts: list[Post]) -> None:
         _write(tree, path, ET.tostring(element, encoding="unicode", xml_declaration=True) + "\n")
 
 
-def write(tree: Path, root: Path, build: Build, *, public_keys=None) -> dict:
+def write(tree: Path, root: Path, build: Build, *, public_keys=None, today: date | None = None) -> dict:
     # The snapshots are public committed artifacts, never read from a private data checkout.
     paths = []
     dates = {}
@@ -446,7 +447,7 @@ def write(tree: Path, root: Path, build: Build, *, public_keys=None) -> dict:
         shutil.copy2(snapshot, destination)
     if not enabled():
         return {"posts": 0, "sitemap_paths": paths}
-    posts = _posts(root, public_keys=public_keys)
+    posts = _posts(root, public_keys=public_keys, today=today)
     by_slug = {}
     for post in posts:
         by_slug.setdefault(post.slug, []).append(post)
