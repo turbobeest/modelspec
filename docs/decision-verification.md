@@ -93,9 +93,9 @@ reads a `licence_text` region when the retained text is the canonical MIT
 licence or the Apache License 2.0 terms. The complete Apache operative terms
 can omit the optional application appendix. An appendix that is present must
 retain its recognized copyright line. Added restrictions still fail the
-canonical match. `LicenceTermsExtractor`, `licence-terms@2`, reads a small
-registry of exact operative-sentence hashes. The six seeds come from four
-provider-term families needed by data PR #80. Each record holds its source URL,
+canonical match. `LicenceTermsExtractor`, `licence-terms@3`, reads a small
+registry of exact operative-sentence hashes. The seven seeds come from four
+provider-term families needed by data PR #80 and MODEL-393. Each record holds its source URL,
 reviewed cited-region hash, sentence hash, facet, value, and a short paraphrase
 label. The engine stores no retained private terms. Whitespace, quote forms,
 and case normalize identically at seeding and matching; sentence punctuation
@@ -110,6 +110,19 @@ region, ending in a period. A contextual example or hypothetical is unread.
 It does not infer an unbounded cap or fine-tuning rights from silence. Source-kind
 and model-binding checks remain the same. The offline seed derivation command is
 in `docs/evidence/g2-ios/MODEL-390-engine-sentence-seeds.py`.
+
+MODEL-393 adds the exact Meta competing-model output-training restriction,
+including its authorization exception and surrounding prohibition context.
+`docs/evidence/g2-ios/MODEL-393-seed.py --data <private-data-root> --check`
+reproduces its hashes and checks the retained region and adversarial edits
+without network or completion calls.
+
+The opt-in `html-links` source normalizer preserves visible HTML anchors as
+Markdown links, including links in table cells. Default source fingerprints
+stay unchanged. Licence binding resolves these links against the binding
+source's URL and compares the complete destination. A wrong host or similar
+path does not bind. The link's displayed label and nested query URLs cannot
+supply a different destination.
 
 `LicenceExtractor` reads every other permitted region, and it is not asked about
 a text the canonical extractor

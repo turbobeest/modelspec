@@ -3541,6 +3541,7 @@ _LICENSE_LINK = re.compile(
     r"(?im)^[ \t]*license_link:\s*[\"']?(\S+?)[\"']?\s*$"
 )
 _PAGE_URL = re.compile(r"https?://[^\s\"'<>)\]]+", re.IGNORECASE)
+_PAGE_LINK = re.compile(r"\[(?:\\.|[^\]\\\n])*\]\(([^()\s]+)\)")
 _HF_FILE_VERBS = frozenset({"raw", "resolve", "blob"})
 _NAME_JOIN = re.compile(r"\s*[-_.][-_.\s]*(?=[0-9A-Za-z])")
 #: SPDX ids for the shared generic texts. ``license: other`` is not one of them.
@@ -3803,14 +3804,16 @@ def _license_link_matches(page: str, licence_url: str, page_url: str | None) -> 
     return False
 
 
-def _page_contains_licence_url(page: str, licence_url: str) -> bool:
-    if licence_url in page:
-        return True
-    bare = re.sub(r"^https?://", "", licence_url).rstrip("/")
-    if bare and bare in page:
-        return True
+def _page_contains_licence_url(page: str, licence_url: str, page_url: str | None) -> bool:
     source_key = _licence_url_key(licence_url)
-    return any(_licence_url_key(match.group(0)) == source_key for match in _PAGE_URL.finditer(page))
+    for match in _PAGE_LINK.finditer(page):
+        resolved = _resolve_license_link(match.group(1), page_url)
+        if _licence_url_key(resolved) == source_key:
+            return True
+    # A link's label or nested query URL cannot bind a different destination.
+    plain = _PAGE_LINK.sub("", page)
+    return any(_licence_url_key(match.group(0).rstrip(".,;:!?")) == source_key
+               for match in _PAGE_URL.finditer(plain))
 
 
 def _repo_location_binds(page: str, page_url: str | None, licence_url: str,
@@ -3857,7 +3860,7 @@ def _licence_rule(page: str, page_url: str | None, licence_url: str | None,
         if _license_link_matches(matter, licence_url, page_url):
             return "license_link"
         return None
-    if _page_contains_licence_url(page, licence_url):
+    if _page_contains_licence_url(page, licence_url, page_url):
         return "url"
     if _repo_location_binds(page, page_url, licence_url, licence_text):
         return "repo-location"
@@ -4291,6 +4294,15 @@ LICENCE_SENTENCE_TEMPLATES: tuple[LicenceSentenceTemplate, ...] = (
         facet="licence.commercial_use",
         value="permitted_with_conditions",
         label="Conditional integrated-product grant",
+    ),
+    LicenceSentenceTemplate(
+        source_family="meta-api-terms",
+        source_url="https://dev.meta.ai/legal/terms-of-service",
+        region_sha256="d2c86ed7725d564d163114111fb629b28bd4e5989eeb893137aff91bbdfc70d4",
+        sentence_sha256="cce2c816c4a0e5ea24e80f446806a927ae1909dcf244add087230fb4da86928c",
+        facet="licence.output_training",
+        value="restricted",
+        label="Competing-model output training limits with authorization exception",
     ),
 )
 

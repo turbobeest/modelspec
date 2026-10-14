@@ -23,7 +23,7 @@ from collections.abc import Iterator
 from dataclasses import dataclass, field
 from html.parser import HTMLParser
 from typing import Literal
-from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+from urllib.parse import parse_qsl, quote, urlencode, urlsplit, urlunsplit
 
 # --- rule sets -----------------------------------------------------------------------------------
 
@@ -126,6 +126,8 @@ class RuleSet:
     #: Skip footnote reference marks (``<sup><a data-footnote-ref>2</a></sup>``), which
     #: otherwise run into the text they annotate ("Claude Fable 5.12").
     drop_footnote_refs: bool = False
+    #: Preserve visible anchors for sources used to bind models to legal terms.
+    link_urls: bool = False
 
 
 _HTML_DROP_TAGS = frozenset(
@@ -154,6 +156,7 @@ NORMALISERS: dict[str, RuleSet] = {
     rules.name: rules
     for rules in (
         RuleSet("html-default", "html", drop_tags=_HTML_DROP_TAGS),
+        RuleSet("html-links", "html", drop_tags=_HTML_DROP_TAGS, link_urls=True),
         # MODEL-205: a copy's fingerprint depends on its rules, so icon labels are a
         # recipe of their own; html-default's text, and every source's, is unchanged.
         RuleSet("html-icon-labels", "html", drop_tags=_HTML_DROP_TAGS, label_icons=True,
@@ -572,31 +575,42 @@ def _prune(node: Node, rules: RuleSet) -> None:
 # --- rendering to text ---------------------------------------------------------------------------
 
 
-def _inline(node: Node | str) -> str:
+def _inline(node: Node | str, rules: RuleSet | None = None) -> str:
     if isinstance(node, str):
         return node
     if node.tag == "br":
         return " "
-    return " ".join(_inline(c) for c in node.children)
+    label = " ".join(_inline(c, rules) for c in node.children)
+    if rules is not None and rules.link_urls and node.tag == "a":
+        href = node.attrs.get("href", "").strip()
+        if href:
+            href = quote(href, safe="/:?#@!$&'*+,;=%~-_")
+            label = _SPACE.sub(" ", label).strip()
+            label = label.replace("\\", "\\\\").replace("[", "\\[").replace("]", "\\]")
+            return f"[{label}]({href})"
+    return label
 
 
-def _render(node: Node | str, out: list[str]) -> None:
+def _render(node: Node | str, out: list[str], rules: RuleSet) -> None:
     """Append text to ``out``; a ``"\\n"`` entry is a block boundary."""
     if isinstance(node, str):
         out.append(_SPACE.sub(" ", node))
         return
     if node.tag == "tr":
         cells = [c for c in node.children if isinstance(c, Node) and c.tag in ("td", "th")]
-        out += ["\n", " | ".join(_SPACE.sub(" ", _inline(c)).strip() for c in cells), "\n"]
+        out += ["\n", " | ".join(_SPACE.sub(" ", _inline(c, rules)).strip() for c in cells), "\n"]
         return
     if node.tag == "br":
         out.append("\n")
+        return
+    if rules.link_urls and node.tag == "a":
+        out.append(_inline(node, rules))
         return
     block = node.tag in BLOCK
     if block:
         out.append("\n")
     for child in node.children:
-        _render(child, out)
+        _render(child, out, rules)
     if block:
         out.append("\n")
 
@@ -619,7 +633,7 @@ def _to_text(parts: list[str], rules: RuleSet) -> str:
 def _nodes_text(nodes: list[Node], rules: RuleSet) -> str:
     parts: list[str] = []
     for node in nodes:
-        _render(node, parts)
+        _render(node, parts, rules)
         parts.append("\n")
     return _to_text(parts, rules)
 
