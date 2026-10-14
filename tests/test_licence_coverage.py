@@ -70,6 +70,7 @@ def _tree(tmp_path) -> None:
 sources:
   - id: readme
     url: https://example.test/README.md
+    kind: weights_repository
     normaliser: text-default
     fetch: http
   - id: terms
@@ -100,7 +101,7 @@ def test_gaps_are_absent_unknown_unverified_and_not_disclosed_from_the_wrong_kin
     _tree(tmp_path)
     (tmp_path / "models" / "lab" / "open-one.md").write_text(_card([
         _fact("licence.commercial_use", None, "not_disclosed", "terms"),
-        _fact("licence.user_cap", None, "not_disclosed", "terms"),
+        _fact("licence.user_cap", None, "not_disclosed", "readme"),
         _fact("licence.output_training", None, "not_disclosed", "licence"),
         _fact("licence.fine_tuning", "permitted", "known", "readme"),
     ]), encoding="utf-8")

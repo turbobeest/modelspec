@@ -3958,6 +3958,196 @@ class LicenceExtractor:
         return [Reading(subject=subject, value=shown, unit=unit)]
 
 
+class LicenceTermsExtractor:
+    """Read explicit legal clauses. Silence in a prose excerpt gives no reading.
+
+    The source-kind check and the existing licence binding are still required.
+    Unlike an exact canonical licence, an excerpt cannot establish an absence.
+    """
+
+    actor = VerificationActor(
+        agent=VERIFY_AGENT, model_family=DETERMINISTIC, method="licence-terms@1",
+    )
+
+    def accepts(self, text: str) -> bool:
+        return bool(re.search(
+            r"(?i)\b(?:licen[cs]e|terms|agreement|outputs?|services|model weights|"
+            r"grounded results)\b",
+            text,
+        ))
+
+    def values(self, field: str, text: str) -> set[str]:
+        prose = _region_prose(text).translate(_LICENCE_QUOTE_CHARS)
+        corpus = re.sub(r"\s+", " ", prose).strip().casefold()
+        values: set[str] = set()
+        clauses = [re.sub(r"\s+", " ", clause).strip().casefold()
+                   for clause in _CLAUSE_BREAK.split(prose)]
+        gemma_grant = (
+            "you may use, reproduce, modify, distribute gemma and model derivatives, "
+            "subject to these terms" in clauses
+            or re.search(
+                r"\byou may use, reproduce, modify, distribute(?:, perform or| and) display "
+                r"(?:any of the )?gemma services only in accordance with "
+                r"(?:the terms of )?this agreement\b", corpus,
+            ) is not None
+        )
+        gemma_policy = (
+            "you must comply with the gemma prohibited use policy" in clauses
+            or re.search(
+                r"\byou must not use (?:any of the )?gemma services\b"
+                r"[^.!?]{0,130}\bgemma prohibited use policy\b", corpus,
+            ) is not None
+        )
+        if re.search(
+            r"\b(?:this|the) (?:restriction|threshold|grant|permission) "
+            r"(?:has been revoked|does not apply)\b", corpus,
+        ):
+            return values
+        if field == "licence.user_cap":
+            for clause in _CLAUSE_BREAK.split(prose):
+                match = re.fullmatch(
+                    r"\s*if (?:you|the licensee) (?:exceed|serve more than) "
+                    r"((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?(?: (?:million|billion))?) "
+                    r"monthly active users, (?:you must obtain a separate (?:agreement|licen[cs]e)"
+                    r"|a separate (?:agreement|licen[cs]e) is required)\s*",
+                    clause, re.IGNORECASE,
+                )
+                if match:
+                    number, _, magnitude = match.group(1).casefold().partition(" ")
+                    scale = {"": 1, "million": 1_000_000, "billion": 1_000_000_000}[magnitude]
+                    values.add(str(Decimal(number.replace(",", "")) * scale))
+            if "no separate agreement is required at any number of monthly active users" in clauses:
+                values.add("unbounded")
+        elif field == "licence.commercial_use":
+            if re.search(
+                r"\b(?:commercial use is (?:prohibited|forbidden)|non-commercial|noncommercial|"
+                r"for (?:evaluation|research|personal) use only)\b", corpus,
+            ):
+                return values
+            for clause in clauses:
+                if re.fullmatch(
+                    r"(?:subject to (?:these terms|this agreement), you may use the services "
+                    r"in your applications|we grant you a right to access and use the services, "
+                    r"subject to this agreement|you may use the api for business purposes "
+                    r"in compliance with these terms)", clause,
+                ):
+                    values.add("permitted_with_conditions")
+            grants = list(re.finditer(
+                r"\bgrants? (?:you|customer) a non-exclusive right to access and use the services\b"
+                r"|\bgrants?(?: to)? customer a\b[^;.!?]{0,120}\blicen[cs]e during the term to: "
+                r"\(a\) access and use the services\b", corpus,
+            ))
+            if any(re.search(
+                r"\b(?:does? not|nothing\b[^.!?]{0,100})\s*$", corpus[:grant.start()],
+            ) for grant in grants):
+                return set()
+            integration = re.search(
+                r"\bapi\b[^.!?]{0,240}\b(?:customer applications|end users|end-user)\b"
+                r"|\bdevelop other software applications\b[^.!?]{0,240}\bend users\b", corpus,
+            )
+            conditioned = re.search(
+                r"\b(?:subject to|in accordance with)\b[^.!?]{0,100}\b(?:terms|agreement)\b",
+                corpus,
+            )
+            if grants and integration and conditioned:
+                values.add("permitted_with_conditions")
+            if re.search(
+                r"\buse of\b[^;.!?]{0,80}\bis for developers building with\b"
+                r"[^;.!?]{0,80}\bfor professional or business purposes\b", corpus,
+            ):
+                values.add("permitted_with_conditions")
+            if gemma_grant and gemma_policy:
+                values.add("permitted_with_conditions")
+        elif field == "licence.output_training":
+            for clause in clauses:
+                if re.fullmatch(
+                    r"(?:you may not use outputs? to develop models that compete with our models|"
+                    r"customer shall not use outputs to train or improve a competing ai model|"
+                    r"you must not train machine learning models on grounded results and "
+                    r"search suggestions|you may not use google maps data from outputs to "
+                    r"train an ai model)", clause,
+                ):
+                    values.add("restricted")
+            # Keep block breaks: a colon governs its inline sentence and adjacent
+            # enumerated paragraphs, never an unrelated paragraph after that list.
+            blocks = [re.sub(r"\s+", " ", block).strip().casefold()
+                      for block in prose.splitlines() if block.strip()]
+            actions: list[str] = []
+            for index, block in enumerate(blocks):
+                lead = re.search(
+                    r"\b(?:customer|you) "
+                    r"(?:(?:agree|agrees) that (?:customer|you) )?"
+                    r"(?:will|shall|must|may) not(?= do\b|\s*[,(:])[^:;.!?]{0,300}:", block,
+                )
+                if lead is None:
+                    continue
+                inline = block[lead.end():].strip()
+                if re.match(r"\((?:[a-z]|[ivx]+)\)", inline):
+                    actions.append(_CLAUSE_BREAK.split(inline, maxsplit=1)[0])
+                for following in blocks[index + 1:]:
+                    if not re.match(r"\((?:[a-z]|[ivx]+)\)", following):
+                        break
+                    actions.append(following)
+            for action in actions:
+                if re.search(
+                    r"\boutputs?(?: of (?:the )?services)?(?:\s*\([^)]{0,60}\))?\s*,? "
+                    r"to (?:train\b|develop\b|perform model distillation\b)"
+                    r"[^;.!?]{0,360}\bcompet(?:e(?:s)?|ing)\b", action,
+                ):
+                    values.add("restricted")
+                if re.search(
+                    r"\b(?:train|training)\b[^;.!?]{0,140}\bgoogle maps data\b"
+                    r"|\bgoogle maps data\b[^;.!?]{0,140}\b(?:train|training)\b",
+                    action,
+                ):
+                    values.add("restricted")
+            if re.search(
+                r"\byou will not, and will not allow\b[^:;.!?]{0,140}\bto,\s*"
+                r"[^;.!?]{0,140}\btrain on, or otherwise learn from grounded results "
+                r"or search suggestions\b", corpus,
+            ):
+                values.add("restricted")
+            if (
+                (
+                    "model derivatives include models trained on synthetic data outputs of gemma "
+                    "or by distillation" in clauses
+                    or re.search(
+                        r'"?model derivatives"? means\b[^.!?]{0,850}'
+                        r"\bsynthetic data outputs by gemma for training that model\b", corpus,
+                    ) is not None
+                )
+                and (
+                    "model derivatives remain subject to these terms" in clauses
+                    or "gemma or model derivatives are subject to the use restrictions "
+                    "in section 3.2" in corpus
+                )
+                and gemma_policy
+            ):
+                values.add("restricted")
+        elif field == "licence.fine_tuning":
+            if (
+                "customer shall not modify or create derivative works of the model weights"
+                in clauses
+            ):
+                values.add("prohibited")
+            if gemma_grant and gemma_policy:
+                values.add("permitted_with_conditions")
+        return values
+
+    def extract(self, claim: Claim, text: str, *, bindings: Sequence[str] = (),
+                binding_urls: Sequence[str | None] | None = None,
+                licence_url: str | None = None, **_extra: object) -> list[Reading]:
+        values = self.values(claim.field, text)
+        if len(values) != 1:
+            raise ExtractorError(f"no unambiguous explicit terms reading for {claim.field}")
+        subject = claim.names[0] if licence_is_bound(
+            claim.names, bindings, licence_url, subject=claim.subject, page_urls=binding_urls,
+            licence_text=text, base_model=claim.base_model,
+        ) else None
+        unit = "monthly_active_users" if claim.field == "licence.user_cap" else None
+        return [Reading(subject, values.pop(), unit)]
+
+
 class CanonicalClause(NamedTuple):
     """A canonical licence facet: the value, a verbatim clause, and the rule key."""
 
@@ -4288,6 +4478,7 @@ CANONICAL_LICENCE_RESIDUALS: dict[str, frozenset[tuple[str, str]]] = {
         ("MIT License Copyright (c) 2026 Zhipu AI", ""),
     }),
     "apache-2.0": frozenset({
+        ("", ""),  # Complete operative terms; the application appendix is optional.
         ("", "Copyright [yyyy] [name of copyright owner]"),
         ("", "Copyright 2024 Alibaba Cloud"),
     }),
@@ -4369,6 +4560,8 @@ def _strip_apache_appendix(residual: str) -> str | None:
     can require that line exactly. ``None`` when an ``APPENDIX:`` is present
     and the how-to or the boilerplate is not the canonical text.
     """
+    if residual == _canonical_form(_APPENDIX_HEAD + _APPENDIX_TAIL):
+        return ""
     start = residual.find(_APPENDIX_HEAD)
     if start < 0:
         if "APPENDIX:" in residual:
@@ -4824,7 +5017,8 @@ class LabJurisdictionExtractor:
 
 def deterministic_extractors() -> list[Extractor]:
     return [HFConfigExtractor(), ModelCardParamsExtractor(), DenseActiveEqualsTotalExtractor(),
-            HFParametersExtractor(), CanonicalLicenceExtractor(), StructuredDataExtractor(),
+            HFParametersExtractor(), CanonicalLicenceExtractor(), LicenceTermsExtractor(),
+            StructuredDataExtractor(),
             OfferingPriceExtractor(),
             SubscriptionPageExtractor(), TableExtractor(), TransposedTableExtractor(),
             GovernanceProseExtractor(), KeyValueExtractor(), ModelPageExtractor(),
@@ -5408,11 +5602,13 @@ def _readers_for(extractors: Sequence[Extractor], claim: Claim, text: str,
             ]
             if canonical:
                 return canonical
-        return [extractor for extractor in extractors if isinstance(extractor, LicenceExtractor)]
+        return [extractor for extractor in extractors if isinstance(extractor, LicenceExtractor)
+                or isinstance(extractor, LicenceTermsExtractor)
+                and len(extractor.values(claim.field, text)) == 1]
     chosen = []
     for extractor in extractors:
         if isinstance(extractor, (
-            LicenceExtractor, CanonicalLicenceExtractor, HFConfigExtractor,
+            LicenceExtractor, CanonicalLicenceExtractor, LicenceTermsExtractor, HFConfigExtractor,
             HFParametersExtractor, ModelCardParamsExtractor, DenseActiveEqualsTotalExtractor,
         )):
             continue
@@ -5625,7 +5821,8 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
                 continue
             for extractor in independent:
                 try:
-                    if isinstance(extractor, (LicenceExtractor, CanonicalLicenceExtractor)):
+                    if isinstance(extractor, (LicenceExtractor, CanonicalLicenceExtractor,
+                                              LicenceTermsExtractor)):
                         url_of = getattr(regions, "source_url", None)
                         pages, page_urls = _binding_pages(
                             claim, regions, source.source_id, region_id,
@@ -5917,7 +6114,7 @@ __all__ = [
     "Claim", "CanonicalLicenceExtractor", "ClaudeCLICompletion", "CONDITION_KEYS", "Diff",
     "Extractor", "ExtractorError",
     "GovernanceProseExtractor", "KeyValueExtractor", "LLMCache", "LLMCallBudgetExceededError",
-    "LabJurisdictionExtractor",
+    "LabJurisdictionExtractor", "LicenceTermsExtractor",
     "LLMExtractor", "MISTRAL_MODEL", "ModelPageExtractor", "OLLAMA_URL", "OfferingPriceExtractor",
     "OLLAMA_JSON_MODE", "OllamaChatCompletion", "Quantity", "Queue", "Reading",
     "Regions", "Result",

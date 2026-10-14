@@ -252,7 +252,7 @@ _INHERITS = (
 
 
 def test_licence_definitions_record_the_notice_output_and_base_readings(registry):
-    """Jamie's 2026-10-09 readings. Enum values and source kinds stay put."""
+    """Jamie's readings, with MODEL-390's provider-terms cap permission."""
     commercial = registry.facet("licence.commercial_use")
     assert commercial.definition == (
         "Whether the licence governing the model lets a customer use the model or "
@@ -277,7 +277,7 @@ def test_licence_definitions_record_the_notice_output_and_base_readings(registry
     assert user_cap.value_type.kind == "number"
     assert user_cap.value_type.unbounded is True
     assert user_cap.value_type.values is None
-    assert user_cap.permitted_source_kinds == ("licence_text",)
+    assert user_cap.permitted_source_kinds == ("licence_text", "provider_terms")
 
     output = registry.facet("licence.output_training")
     assert output.definition == (
