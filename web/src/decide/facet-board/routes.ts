@@ -331,6 +331,21 @@ export const offeringKey = (ref: OfferingRef): string =>
   [ref.model, ref.provider, ref.region, ref.tier].map((part) => part ?? "").join("|");
 
 /**
+ * Bands belong to the unrestricted answer. Keep them on the estate view only
+ * when they already name that answer's leader or tie, in that order. Otherwise
+ * the heading would reuse the unrestricted band.
+ */
+function estateBands(decision: Decision, estate: NonNullable<Decision["with_estate"]>): Decision["bands"] {
+  const bands = decision.bands;
+  const answer = estate.answer;
+  if (!bands || !answer) return null;
+  const best = bands.best.map((entry) => entry.model);
+  const order = answer.deterministic_order;
+  if (best.length === order.length && best.every((model, index) => model === order[index])) return bands;
+  return null;
+}
+
+/**
  * The estate answer as a decision the board can draw: `with_estate`'s rows,
  * each joined to the unrestricted result for the same offering (its evidence
  * and estimates), ranked and warned as the estate answer ranks them.
@@ -371,6 +386,7 @@ export function estateAsDecision(decision: Decision): { decision: Decision; mark
       ...decision,
       status: estate.status,
       answer: estate.answer ?? null,
+      bands: estateBands(decision, estate),
       results,
       by_model: [],
       may_qualify: estate.may_qualify,
