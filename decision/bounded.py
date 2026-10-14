@@ -1,4 +1,4 @@
-"""The bounded representation (1.3): opt-in HTTP projections of a complete 2.x Decision.
+"""The bounded representation (1.5): opt-in HTTP projections of a complete 2.x Decision.
 
 It is not a 2.x minor version. It omits lists every 2.x Decision carries, so it
 names itself with ``representation`` and ``bounded_version`` and points at the
@@ -12,6 +12,7 @@ from collections.abc import Mapping
 
 from decision import contract
 from decision.next_move import build_next_move, next_move_input_from_decision, offers_tie_breakers
+from decision.router_config import render as render_router_config
 from decision.summary import (
     SUMMARY_BYTES,
     proxy_benchmarks_from_capture,
@@ -152,6 +153,12 @@ def project(decision: contract.Decision, options: contract.ResponseOptions, *,
     body = {"representation": "bounded", "bounded_version": contract.BOUNDED_VERSION,
             "projects_contract": data["contract_version"]}
     body.update({key: data[key] for key in kept})
+    if options.router_config is not None:
+        requested = options.router_config
+        body["router_config"] = render_router_config(
+            decision, requested.format,
+            include_rest=requested.include_rest, include_thin=requested.include_thin,
+        )
     fields = ESSENTIAL_ROW_FIELDS | set(options.fields or DEFAULT_FIELDS)
     body["results"] = [] if detail else [
         {key: value for key, value in row.items() if key in fields} for row in data["results"]]
@@ -653,6 +660,12 @@ def _fit_agent_budget(body: dict) -> None:
         pass
 
     if _over(body):
+        if "router_config" in body:
+            raise contract.SpecError([contract.Issue(
+                None, "router_config",
+                "the complete router config and required decision fields exceed the 16 KB "
+                "agent budget; narrow the models with where or omit include_rest/include_thin",
+                "router_config")])
         raise contract.SpecError([contract.Issue(
             None, "fields",
             "the answer, status, warnings, coverage, summary_for_user, must_mention, next_move "
@@ -679,6 +692,12 @@ def _bound_detail(body: dict) -> None:
             return
         available = [(name, rows) for name, rows in lists if rows]
         if not available:
+            if "router_config" in body:
+                raise contract.SpecError([contract.Issue(
+                    None, "router_config",
+                    "the complete router config and required evidence fields exceed the "
+                    "drill-down byte budget; narrow the models with where or omit "
+                    "include_rest/include_thin", "router_config")])
             raise contract.SpecError([contract.Issue(
                 None, "evidence_for", "the reporting essentials exceed the drill-down byte budget; "
                 "use a narrower structured spec", "evidence_for")])

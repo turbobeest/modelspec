@@ -21,6 +21,7 @@ from decision.engine import decide as run_decision
 from decision.registry import facet
 from decision.reading import for_refusal
 from decision.recovery import recovery_hints
+from decision.router_config import EmptyAllowListError
 from decision.snapshot import (
     SnapshotError,
     SnapshotIntegrityError,
@@ -418,7 +419,8 @@ def decide(payload: Any, snapshot, *,
     raw_spec = payload
     try:
         if isinstance(payload, dict):
-            controls = {key: payload[key] for key in ("fields", "evidence_for") if key in payload}
+            controls = {key: payload[key] for key in ("fields", "evidence_for", "router_config")
+                        if key in payload}
             try:
                 options = contract.ResponseOptions.model_validate(controls)
             except ValidationError as exc:
@@ -483,7 +485,7 @@ def decide(payload: Any, snapshot, *,
         # Record counts for the estimate caveat on every bounded summary.
         # member_evidence itself is attached only for an explained answer.
         member_rows: list | None = None
-        if options.fields is not None:
+        if options.fields is not None or options.router_config is not None:
             member_rows = []
 
             def _take_members(rows, sink=member_rows) -> None:
@@ -495,7 +497,8 @@ def decide(payload: Any, snapshot, *,
             _capture_evidence=None if options.evidence_for is None else (options.evidence_for, details.append),
             _capture_member_evidence=None if member_rows is None else _take_members,
         )
-        if options.fields is not None or options.evidence_for is not None:
+        if (options.fields is not None or options.evidence_for is not None
+                or options.router_config is not None):
             return HTTP_OK, project_decision(
                 decision, options, detail=details[0] if details else None,
                 not_applied=sorted(set(spec.capabilities or {}) - set(snapshot.domain_ids())),
@@ -503,6 +506,15 @@ def decide(payload: Any, snapshot, *,
                 feasible=surviving[-1] if surviving else None,
                 member_evidence=member_rows,
             )
+    except EmptyAllowListError as exc:
+        return HTTP_BAD_REQUEST, {
+            "representation": "bounded",
+            "bounded_version": contract.BOUNDED_VERSION,
+            "projects_contract": contract.CONTRACT_VERSION,
+            "endpoint": "decide",
+            "snapshot": snapshot.snapshot_id,
+            "error": {"code": exc.code, "message": str(exc)},
+        }
     except contract.SpecError as exc:
         return error_response(
             "invalid_spec",

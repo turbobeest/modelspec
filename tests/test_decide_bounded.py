@@ -88,7 +88,7 @@ def test_projection_keeps_essentials_and_identity(service, snapshot):
     # A distinct representation, not a 2.x minor version (MODEL-59).
     assert "contract_version" not in bounded
     assert bounded["representation"] == "bounded"
-    assert bounded["bounded_version"] == "1.3"
+    assert bounded["bounded_version"] == "1.5"
     assert bounded["projects_contract"] == "2.18"
     assert bounded["summary_for_user"].startswith("ModelSpec's answer is")
     assert isinstance(bounded["must_mention"], list)
@@ -862,7 +862,7 @@ def test_a_tie_cut_by_limit_keeps_every_members_evidence(service):
     }
     status, body = service.decide(payload, snap)
     assert status == 200, body
-    assert body["bounded_version"] == "1.3"
+    assert body["bounded_version"] == "1.5"
     assert body["answer"]["kind"] == "tied"
     assert body["answer"]["members"] == ["lab/a", "lab/b"]
     assert body["results"] == [{

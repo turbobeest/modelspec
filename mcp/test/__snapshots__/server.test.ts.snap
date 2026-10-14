@@ -648,6 +648,16 @@ condition.",
                 },
               ],
             },
+            "router_config": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/RouterConfigOptions",
+                },
+                {
+                  "type": "null",
+                },
+              ],
+            },
             "save_as": {
               "anyOf": [
                 {
@@ -1331,6 +1341,31 @@ takes its key and its plans with it.",
           "required": [
             "model",
             "provider",
+          ],
+          "type": "object",
+        },
+        "RouterConfigOptions": {
+          "additionalProperties": false,
+          "properties": {
+            "format": {
+              "enum": [
+                "litellm",
+                "openrouter",
+                "json",
+              ],
+              "type": "string",
+            },
+            "include_rest": {
+              "default": false,
+              "type": "boolean",
+            },
+            "include_thin": {
+              "default": false,
+              "type": "boolean",
+            },
+          },
+          "required": [
+            "format",
           ],
           "type": "object",
         },

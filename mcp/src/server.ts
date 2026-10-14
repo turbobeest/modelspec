@@ -171,7 +171,7 @@ const EXPLAIN_ROW_FIELDS = ["contributions", "evidence"] as const;
 export const AGENT_BYTES = 16_384;
 
 /** Bounded representation both overflow notices stamp. */
-const CURRENT_BOUNDED_VERSION = "1.3";
+const CURRENT_BOUNDED_VERSION = "1.5";
 
 // Same arm as qa.contracts.CONDITION_UNION. A changed shape is refused, not served long.
 const CONDITION_UNION = [

@@ -7,6 +7,7 @@ import re
 import sys
 from collections.abc import Callable
 from importlib.resources import files
+from pathlib import Path
 from typing import Any
 
 import click
@@ -263,10 +264,49 @@ def decide(
     spec: str | None = typer.Option(None, "--spec", help=HELP["spec"]),
     template: str | None = typer.Option(None, "--template", help=HELP["template"]),
     as_json: bool = typer.Option(False, "--json", help=HELP["json"]),
+    router_format: str | None = typer.Option(
+        None, "--emit-router-config", metavar="FORMAT", help=HELP["router_format"]
+    ),
+    out: Path | None = typer.Option(None, "--out", help=HELP["router_out"]),
+    include_rest: bool = typer.Option(False, "--include-rest", help=HELP["include_rest"]),
+    include_thin: bool = typer.Option(False, "--include-thin", help=HELP["include_thin"]),
 ) -> None:
     client = Client(auth.require_key())
+    message = None
+    if router_format is None:
+        if out is not None or include_rest or include_thin:
+            message = TEXT["router"]["needs_format"]
+    elif router_format not in ("litellm", "openrouter", "json"):
+        message = TEXT["router"]["unknown_format"].format(format=repr(router_format))
+    elif _json_mode(ctx, as_json) and out is None:
+        message = TEXT["router"]["json_needs_out"]
+    if message is not None:
+        raise ClientError("router_config_usage", body={"error": {
+            "code": "router_config_usage", "message": message,
+        }}, extra_next=[TEXT["command_help"].format(command=ctx.command_path)])
     body = bound_decide_request(_spec_body(client, spec, template))
-    _response(ctx, client, client.request("POST", "/v1/decide", body=body), as_json)
+    if router_format is not None:
+        body = {**body, "router_config": {
+            "format": router_format, "include_rest": include_rest, "include_thin": include_thin,
+        }}
+    response = client.request("POST", "/v1/decide", body=body)
+    if router_format is not None:
+        config = response.json().get("router_config")
+        if not isinstance(config, str) or not config:
+            raise ClientError("unexpected_response", recovery="network")
+        if out is None:
+            if client.guide_changed:
+                guide_version_notice(_json_mode(ctx, as_json))
+            typer.echo(config, nl=False)
+            return
+        try:
+            out.write_text(config, encoding="utf-8")
+        except OSError:
+            raise ClientError("unwritable", extra_next=[
+                TEXT["router"]["write_next"].format(path=out),
+            ]) from None
+        typer.echo(TEXT["router"]["written"].format(format=router_format, path=out), err=True)
+    _response(ctx, client, response, as_json)
 
 
 def _comparison_value(value: dict[str, Any]) -> str:

@@ -204,6 +204,13 @@ def cli_text(root: Path = ROOT) -> dict[str, Any]:
         "upgrade": "Upgrade the client: uvx --refresh --from modelspec-dev modelspec; or pipx upgrade modelspec-dev; or pip install --upgrade modelspec-dev.",
         "guide_changed": "The server's guide version differs from this CLI's bundled guide. Refresh the guide and upgrade the client.",
         "compare_to_next": "Use --to with a snapshot ID from a prior modelspec decide response, such as snap_0123456789abcdef.",
+        "router": {
+            "needs_format": "--out, --include-rest and --include-thin need --emit-router-config",
+            "unknown_format": "unknown router config format {format}; valid: litellm, openrouter, json",
+            "json_needs_out": "--emit-router-config with --json needs --out PATH",
+            "written": "wrote {format} router config to {path}",
+            "write_next": "Choose a writable --out path with an existing parent directory: {path}.",
+        },
         "comparison": {
             "header": "Comparison: {old} -> {new} (status: {old_status} -> {new_status})",
             "counts": "Counts: entered={entered}, departed={left}, rank_changed={rank_changed}, may_qualify_changed={may_qualify_changed}, models_changed={models_changed}",
@@ -249,6 +256,7 @@ def cli_text(root: Path = ROOT) -> dict[str, Any]:
             "invalid_client": "Choose a supported MCP client.",
             "config_unreadable": "The MCP configuration is not a readable JSON or TOML object. No file was changed.",
             "config_unwritable": "The MCP configuration could not be written.",
+            "unwritable": "The router configuration could not be written.",
             "config_changed": "The MCP configuration changed after the diff was prepared. No file was changed.",
             "config_path_required": "This client needs an explicit --config FILE for --write.",
             "confirmation_required": "Writing requires confirmation, or --yes after reviewing the diff.",
@@ -291,6 +299,11 @@ def cli_text(root: Path = ROOT) -> dict[str, Any]:
             "json": "Emit JSON. Successful API bodies pass through unchanged; every failure has next steps.",
             "spec": "A JSON or YAML Spec file; - reads standard input.",
             "template": "A template ID retrieved with a key from the hosted vocabulary.",
+            "router_format": ("Emit the best band as a Worker-rendered router config: "
+                              "litellm, openrouter or json."),
+            "router_out": "Write the router config here instead of stdout. Required with --json.",
+            "include_rest": "Also list the rest band, the other models that passed every Must.",
+            "include_thin": "Also list models with not enough evidence yet, labelled thin.",
             "to": "A retained snapshot ID matching ^snap_[A-Za-z0-9:._-]+$; compare it with the current snapshot.",
             "client": "claude-code, claude-desktop, codex, gemini, grok, cursor or generic.",
             "config": "MCP config file. Generic clients require an explicit path to write.",

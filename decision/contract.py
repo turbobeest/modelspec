@@ -2104,9 +2104,16 @@ RowField = Literal[
 ]
 
 
+class RouterConfigOptions(_Strict):
+    format: Literal["litellm", "openrouter", "json"]
+    include_rest: bool = False
+    include_thin: bool = False
+
+
 class ResponseOptions(_Strict):
     fields: list[RowField] | None = Field(default=None, min_length=1, max_length=16)
     evidence_for: ModelId | None = None
+    router_config: RouterConfigOptions | None = None
 
 
 class DecideRequest(Spec, ResponseOptions):
@@ -2167,12 +2174,12 @@ class BoundedExplanation(_Strict):
 #: it omits lists a complete Decision always carries (MODEL-59), so it never
 #: claims a `contract_version`. `projects_contract` names the complete contract
 #: its fields are projected from.
-BOUNDED_VERSION = "1.3"
+BOUNDED_VERSION = "1.5"
 
 BoundedDecision = create_model(
     "BoundedDecision", __base__=_Strict,
     representation=(Literal["bounded"], ...),
-    bounded_version=(Literal["1.3"], ...),
+    bounded_version=(Literal["1.5"], ...),
     projects_contract=(Decision.model_fields["contract_version"].annotation, ...),
     **{name: (Decision.model_fields[name].annotation, ...) for name in (
         "decision_id", "snapshot", "signature_verified", "spec_hash", "explain", "status", "answer",
@@ -2208,6 +2215,10 @@ BoundedDecision = create_model(
     #: Experimental human summary link. MODEL-353 issues it only with the
     #: Worker flag enabled; absent by default, including every library projection.
     decision_url=(str, ""),
+    #: Complete router configuration, present only when explicitly requested.
+    #: The byte budget may refuse it, but never removes entries from the list.
+    #: Added additively in bounded 1.4 (MODEL-381).
+    router_config=(str, ""),
     #: Facts a report of this answer has to carry. Added in bounded 1.0 by
     #: MODEL-339. Optional, same rule as ``summary_for_user``.
     must_mention=(list[str], Field(default_factory=list)),

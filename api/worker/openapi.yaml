@@ -384,8 +384,8 @@ paths:
       responses:
         '200':
           description: 'A decision pinned to the snapshot that produced it: a complete Decision (contract_version 2.18), with optional top[].hardware_estimates and
-            unknown_facets; or, when the request sends fields or evidence_for, the separate bounded representation (representation: bounded, bounded_version 1.3,
-            no contract_version).'
+            unknown_facets; or, when the request sends fields, evidence_for or router_config, the separate bounded representation (representation: bounded, bounded_version
+            1.5, no contract_version).'
           content:
             application/json:
               schema:
@@ -403,10 +403,14 @@ paths:
             Link: *id005
             x-modelspec-guide-version: *id006
         '400':
-          description: The body is not a valid decision spec. This includes a refinement weight whose evidence_state is not live or thin.
+          description: The body is not a valid decision spec. This includes a refinement weight whose evidence_state is not live or thin. An explicit router_config
+            request can also refuse with no_bands, empty_allow_list or no_qualifying_models in the bounded representation.
           content:
             application/json:
-              schema: {$ref: '#/components/schemas/DecisionRequestRefused'}
+              schema:
+                anyOf:
+                - {$ref: '#/components/schemas/DecisionRequestRefused'}
+                - {$ref: '#/components/schemas/DecisionRouterConfigRefused'}
           headers: *id001
         '409':
           description: 'snapshot_not_loaded: the spec pinned a snapshot this isolate has not loaded. snapshot_changed: the X-ModelSpec-Snapshot header names another
@@ -2158,7 +2162,7 @@ components:
       additionalProperties: false
       properties:
         representation: {const: bounded, title: Representation, type: string}
-        bounded_version: {const: '1.3', title: Bounded Version, type: string}
+        bounded_version: {const: '1.5', title: Bounded Version, type: string}
         projects_contract: {const: '2.18', title: Projects Contract, type: string}
         decision_id: {title: Decision Id, type: string}
         snapshot: {title: Snapshot, type: string}
@@ -2205,6 +2209,7 @@ components:
           title: Member Evidence
         summary_for_user: {default: '', title: Summary For User, type: string}
         decision_url: {default: '', title: Decision Url, type: string}
+        router_config: {default: '', title: Router Config, type: string}
         must_mention:
           items: {type: string}
           title: Must Mention
@@ -2637,6 +2642,11 @@ components:
           - {type: 'null'}
           default: null
           title: Evidence For
+        router_config:
+          anyOf:
+          - {$ref: '#/components/schemas/DecisionRouterConfigOptions'}
+          - {type: 'null'}
+          default: null
         spec_version: {$ref: '#/components/schemas/DecisionSpec/properties/spec_version'}
         snapshot: {$ref: '#/components/schemas/DecisionSpec/properties/snapshot'}
         profile: {$ref: '#/components/schemas/DecisionSpec/properties/profile'}
@@ -4056,6 +4066,18 @@ components:
       required: [rank, offering]
       title: Result
       type: object
+    DecisionRouterConfigOptions:
+      additionalProperties: false
+      properties:
+        format:
+          enum: [litellm, openrouter, json]
+          title: Format
+          type: string
+        include_rest: {default: false, title: Include Rest, type: boolean}
+        include_thin: {default: false, title: Include Thin, type: boolean}
+      required: [format]
+      title: RouterConfigOptions
+      type: object
     DecisionSeparatedAnswer:
       additionalProperties: false
       properties:
@@ -4460,7 +4482,7 @@ components:
           enum: [bounded]
         bounded_version:
           type: string
-          enum: ['1.3']
+          enum: ['1.5']
         projects_contract:
           type: string
           enum: ['2.18']
@@ -4476,6 +4498,33 @@ components:
             code:
               type: string
               enum: [explanation_unavailable]
+            message: {type: string}
+    DecisionRouterConfigRefused:
+      type: object
+      additionalProperties: false
+      required: [representation, bounded_version, projects_contract, endpoint, snapshot, error]
+      properties:
+        representation:
+          type: string
+          enum: [bounded]
+        bounded_version:
+          type: string
+          enum: ['1.5']
+        projects_contract:
+          type: string
+          enum: ['2.18']
+        endpoint:
+          type: string
+          enum: [decide]
+        snapshot: {type: string, pattern: '^snap_[A-Za-z0-9:._-]+$'}
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum: [empty_allow_list, no_bands, no_qualifying_models]
             message: {type: string}
     HumanGateRefused:
       type: object

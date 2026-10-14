@@ -690,6 +690,13 @@
     "upgrade": "Upgrade the client: uvx --refresh --from modelspec-dev modelspec; or pipx upgrade modelspec-dev; or pip install --upgrade modelspec-dev.",
     "guide_changed": "The server's guide version differs from this CLI's bundled guide. Refresh the guide and upgrade the client.",
     "compare_to_next": "Use --to with a snapshot ID from a prior modelspec decide response, such as snap_0123456789abcdef.",
+    "router": {
+      "needs_format": "--out, --include-rest and --include-thin need --emit-router-config",
+      "unknown_format": "unknown router config format {format}; valid: litellm, openrouter, json",
+      "json_needs_out": "--emit-router-config with --json needs --out PATH",
+      "written": "wrote {format} router config to {path}",
+      "write_next": "Choose a writable --out path with an existing parent directory: {path}."
+    },
     "comparison": {
       "header": "Comparison: {old} -> {new} (status: {old_status} -> {new_status})",
       "counts": "Counts: entered={entered}, departed={left}, rank_changed={rank_changed}, may_qualify_changed={may_qualify_changed}, models_changed={models_changed}",
@@ -733,6 +740,7 @@
       "invalid_client": "Choose a supported MCP client.",
       "config_unreadable": "The MCP configuration is not a readable JSON or TOML object. No file was changed.",
       "config_unwritable": "The MCP configuration could not be written.",
+      "unwritable": "The router configuration could not be written.",
       "config_changed": "The MCP configuration changed after the diff was prepared. No file was changed.",
       "config_path_required": "This client needs an explicit --config FILE for --write.",
       "confirmation_required": "Writing requires confirmation, or --yes after reviewing the diff.",
@@ -790,6 +798,10 @@
       "json": "Emit JSON. Successful API bodies pass through unchanged; every failure has next steps.",
       "spec": "A JSON or YAML Spec file; - reads standard input.",
       "template": "A template ID retrieved with a key from the hosted vocabulary.",
+      "router_format": "Emit the best band as a Worker-rendered router config: litellm, openrouter or json.",
+      "router_out": "Write the router config here instead of stdout. Required with --json.",
+      "include_rest": "Also list the rest band, the other models that passed every Must.",
+      "include_thin": "Also list models with not enough evidence yet, labelled thin.",
       "to": "A retained snapshot ID matching ^snap_[A-Za-z0-9:._-]+$; compare it with the current snapshot.",
       "client": "claude-code, claude-desktop, codex, gemini, grok, cursor or generic.",
       "config": "MCP config file. Generic clients require an explicit path to write.",
@@ -812,13 +824,13 @@
     }
   },
   "source_hashes": {
-    "pipeline/agent_copy.py": "3fc9b8dad06b282aeb92e04ab6b4ebdd2723879bfeb44fa92c1ec04767261250",
+    "pipeline/agent_copy.py": "63376c13b36dd48bc035cfe095e2eaf3bc94f7a3940d8987ec9f237453d47b5e",
     "pipeline/entity.py": "1649e5f95b620561511c2619045d036231b44c8ab7ff297bf4c6a21ab2b69ff3",
     "pipeline/pricing.py": "d870582d19dc557ca646b6eabf12054eede51d12a6497c94c9d86588f0e2fee2",
     "pipeline/worker_flags.py": "0f3c1ff0de81710417659b86e1ec92913bbcf54af6312720fdad659e6af03429",
     "api/worker/wrangler.jsonc": "421a3587d1fddf8f082e63b66ff82f3a3f23fff1ffd5f109ebf40877076baf2f",
     "api/worker/tiers.json": "488d2781f0a55c756be2f4b674c3f3234e85964ce9b917a6b7b6fc63b3e3b317",
-    "docs/decision-contract.schema.json": "a43e4c4bb3505ee06b39ea975ea4770f4c78e2d3a6d256a5d6c2cf1e657e7da9",
+    "docs/decision-contract.schema.json": "1168a7427010b79dd3bffad40c61540bdc4848913a22388f1bdc52a45055d7b0",
     "pyproject.toml": "a46fc2e372197134c4dc7a2063f43ac080c24a0ad53fa8d3ecf516bf3dba127e",
     "schemas/feedback-v1.schema.json": "551a54ba5a954b73c38d5c35d0a48c62cf1b89d0cd9543d96103e2320450638b"
   }

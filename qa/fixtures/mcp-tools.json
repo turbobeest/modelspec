@@ -1,10 +1,10 @@
 {
   "source_hashes": {
-    "mcp/src/server.ts": "a9e1f7da4c754667b6053de4f06ffc14f64553651c7fe7150ee8ca11be088371",
+    "mcp/src/server.ts": "779fe82a16819b711026d841d570b1f6dca8c38bdb196147e8d27f972ded5b7e",
     "mcp/src/vocabulary.ts": "85e01e14eea9754b82068af188b0fc7e8b7238594f4717231bf864b004a0e0ca",
-    "mcp/test/fixtures/decide-budget.json": "914d3968f5ae562b1583623b211b1ceeb7a552d1ab225a02e609d5293a43d860",
-    "docs/decision-contract.schema.json": "a43e4c4bb3505ee06b39ea975ea4770f4c78e2d3a6d256a5d6c2cf1e657e7da9",
-    "api/worker/openapi.yaml": "052b49dcbf9f8963bc39e9fa94e58f9025959719c2067e227052030b38aee1ba",
+    "mcp/test/fixtures/decide-budget.json": "f31563680b34217d82e0732fb14923d55336d6572d6872b4ede2f74c6bbeeaa6",
+    "docs/decision-contract.schema.json": "1168a7427010b79dd3bffad40c61540bdc4848913a22388f1bdc52a45055d7b0",
+    "api/worker/openapi.yaml": "db930b26cdb0c827910189751057fbf278ee02f5da3a8bf6e7d1bb33ddbe2ff0",
     "docs/agents.md": "b6b3273038117d903338bf62145486382a1f0bd511a2a8920df50fd2743cb6ec",
     "mcp/src/agent-copy.json": "408bf5a9093e7efea7945409d9f73ce90036bf8822d43d524f9f41398b6da056"
   },
@@ -432,6 +432,16 @@
                         "$ref": "#/$defs/InventoryProfile"
                       }
                     ]
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "router_config": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/RouterConfigOptions"
                   },
                   {
                     "type": "null"
@@ -1070,6 +1080,31 @@
             "required": [
               "input",
               "output"
+            ],
+            "type": "object"
+          },
+          "RouterConfigOptions": {
+            "additionalProperties": false,
+            "properties": {
+              "format": {
+                "enum": [
+                  "litellm",
+                  "openrouter",
+                  "json"
+                ],
+                "type": "string"
+              },
+              "include_rest": {
+                "default": false,
+                "type": "boolean"
+              },
+              "include_thin": {
+                "default": false,
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "format"
             ],
             "type": "object"
           },
