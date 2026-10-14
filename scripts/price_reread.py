@@ -87,6 +87,7 @@ from decision.verify import (
     Queue,
     Result,
     StoredRegions,
+    SubscriptionPageExtractor,
     VerificationLog,
     deterministic_extractors,
     normalise_name,
@@ -425,7 +426,7 @@ def _candidate(old: Any, reading_value: Any, unit: str | None) -> Any:
 
 
 def _readings(claim: Claim, regions: StoredRegions, *, narrow_only: bool = False) -> list[Any]:
-    """Every reading the deterministic readers take from the claim's cited regions."""
+    """Possible replacements from the claim's cited regions, verified by `_propose`."""
     found = []
     for source in claim.sources:
         for region_id in source.cited_regions:
@@ -443,7 +444,11 @@ def _readings(claim: Claim, regions: StoredRegions, *, narrow_only: bool = False
                 if not extractor.accepts(text):
                     continue
                 try:
-                    found += extractor.extract(claim, text)
+                    if isinstance(extractor, SubscriptionPageExtractor) \
+                            and claim.field == "offering.subscription.coverage_quote":
+                        found += extractor.quote_candidates(claim, text)
+                    else:
+                        found += extractor.extract(claim, text)
                 except ExtractorError:
                     continue
     return found

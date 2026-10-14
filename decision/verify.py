@@ -1058,6 +1058,22 @@ class SubscriptionPageExtractor:
     actor = VerificationActor(agent=VERIFY_AGENT, model_family=DETERMINISTIC,
                               method="subscription-page@1")
 
+    @staticmethod
+    def quote_candidates(claim: Claim, text: str) -> list[Reading]:
+        """Possible recrawl replacements, each requiring separate verification."""
+        if claim.field != "offering.subscription.coverage_quote":
+            raise ExtractorError("not a coverage quote")
+        if _HTML_TAG.search(text):
+            return []
+        lines = [line.strip().lstrip("#").strip() for line in _content_block(text).splitlines()
+                 if line.strip()]
+        candidates = [*lines, *(s for line in lines for s in _sentences(line)),
+                      *(c.strip() for line in lines if "|" in line for c in line.split("|"))]
+        candidates += ["\n".join(lines[i:i + n]) for n in range(2, 9)
+                       for i in range(len(lines) - n + 1)]
+        return [Reading(subject=claim.names[0], value=c)
+                for c in dict.fromkeys(candidates) if c]
+
     def accepts(self, text: str) -> bool:
         return bool(re.search(
             r"(?im)(?:\$[0-9.]+/(?:month|year)|billing cycle\s*\||plan\s*\|\s*limit|"
@@ -1079,6 +1095,9 @@ class SubscriptionPageExtractor:
             return []
         if _HTML_TAG.search(text):
             return []
+        if claim.field == "offering.subscription.coverage_quote":
+            return [r for r in self.quote_candidates(claim, text)
+                    if normalise_name(r.value) == normalise_name(str(claim.value))]
         text = _content_block(text)
         readings = self._page_layouts(claim, text)
         for more in (_plan_cards(claim, text), _plan_facts(claim, text),
@@ -1837,17 +1856,6 @@ def _plan_facts(claim: Claim, text: str) -> list[Reading]:
     subject, field = claim.names[0], claim.field
     provider = claim.subject.split("/", 1)[0]
     readings: list[Reading] = []
-
-    if field == "offering.subscription.coverage_quote":
-        # The facet is the page's own wording, so any line, sentence, table cell or
-        # run of consecutive lines of the region is a candidate.
-        bare = [line.lstrip("#").strip() for line in lines]
-        candidates = [*bare, *(s for line in bare for s in _sentences(line)),
-                      *(c.strip() for line in bare if "|" in line for c in line.split("|"))]
-        candidates += ["\n".join(bare[i:i + n]) for n in range(2, 9)
-                       for i in range(len(bare) - n + 1)]
-        return [Reading(subject=subject, value=c) for c in dict.fromkeys(candidates)
-                if c and normalise_name(c) == normalise_name(str(claim.value))]
 
     if field in {"offering.subscription.usage_allowance",
                  "offering.subscription.programmatic_or_agent_use"}:
