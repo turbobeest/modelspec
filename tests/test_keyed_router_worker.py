@@ -84,7 +84,7 @@ def test_verified_router_ids_survive_a_bounded_projection(service, snapshot):
     status, body = service.decide(_request() | {"limit": 20}, snapshot)
     assert status == 200, body
     assert body["representation"] == "bounded"
-    assert body["bounded_version"] == "1.2"
+    assert body["bounded_version"] == "1.4"
     assert body["projects_contract"] == "2.17"
     assert body["signature_verified"] is True
     assert len(body["results"]) == 7
@@ -180,7 +180,7 @@ def test_unrenderable_router_decisions_have_their_own_refusal(service, snapshot,
     status, body = service.decide(_request() | patch, snapshot)
     assert status == 400, body
     assert body["representation"] == "bounded"
-    assert body["bounded_version"] == "1.2"
+    assert body["bounded_version"] == "1.4"
     assert body["projects_contract"] == "2.17"
     assert "contract_version" not in body
     assert body["error"]["code"] == code

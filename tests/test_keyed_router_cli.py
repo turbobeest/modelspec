@@ -38,7 +38,7 @@ def worker(monkeypatch, tmp_path):
     seen = []
     body = {
         "representation": "bounded",
-        "bounded_version": "1.2",
+        "bounded_version": "1.4",
         "projects_contract": "2.17",
         "decision_id": "dec_router381",
         "snapshot": "snap_router381",

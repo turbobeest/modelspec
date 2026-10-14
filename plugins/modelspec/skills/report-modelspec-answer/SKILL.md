@@ -11,8 +11,9 @@ not improve on them.
 
 1. Open with `summary_for_user`, unchanged.
 2. Keep every `must_mention` item.
-3. Name a model as the pick only when `answer.kind` is `separated`. A tie, a
-   partial answer, a null answer and `no_feasible` name no pick. Don't
+3. Name a model as the pick only when `status` is `answered` and `answer.kind`
+   is `separated`. A tie, a partial answer, a null answer and `no_feasible`
+   name no pick, even when a partial answer's `answer.kind` is `separated`. Don't
    recommend, shortlist, rank or "start with" a member. Don't break a tie with
    knowledge from outside the response.
 4. When `next_move` is present, end with it in place of a pick:

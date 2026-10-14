@@ -105,8 +105,8 @@ def _offer(response: httpx.Response) -> dict[str, Any]:
     if (not isinstance(extra, dict) or type(extra.get("credits")) is not int
             or extra["credits"] != PACK_CREDITS):
         raise BuyError("$5 offer must buy exactly 250 credits")
-    if extra.get("name") != "USDC" or extra.get("version") != "2":
-        raise BuyError("offer must use the USDC version 2 signing domain")
+    if extra.get("name") != "USD Coin" or extra.get("version") != "2":
+        raise BuyError("offer must use the USD Coin version 2 signing domain")
     error = body.get("error")
     packs = error.get("packs") if isinstance(error, dict) else None
     if not isinstance(packs, list):
@@ -164,7 +164,8 @@ def _sign(requirement: dict[str, Any], private_key: str) -> dict[str, Any]:
             ],
         },
         "primaryType": "TransferWithAuthorization",
-        "domain": {"name": "USDC", "version": "2", "chainId": 8453,
+        "domain": {"name": requirement["extra"]["name"],
+                   "version": requirement["extra"]["version"], "chainId": 8453,
                    "verifyingContract": requirement["asset"]},
         "message": authorization,
     }

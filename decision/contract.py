@@ -2158,16 +2158,23 @@ class BoundedExplanation(_Strict):
 #: it omits lists a complete Decision always carries (MODEL-59), so it never
 #: claims a `contract_version`. `projects_contract` names the complete contract
 #: its fields are projected from.
-BOUNDED_VERSION = "1.2"
+BOUNDED_VERSION = "1.4"
 
 BoundedDecision = create_model(
     "BoundedDecision", __base__=_Strict,
     representation=(Literal["bounded"], ...),
-    bounded_version=(Literal["1.2"], ...),
+    bounded_version=(Literal["1.4"], ...),
     projects_contract=(Decision.model_fields["contract_version"].annotation, ...),
     **{name: (Decision.model_fields[name].annotation, ...) for name in (
-        "decision_id", "snapshot", "signature_verified", "spec_hash", "explain", "status",
-        "answer", "warnings", "truncated", "out_of_lineup", "relax", "relax_to", "feedback",
+        "decision_id", "snapshot", "signature_verified", "spec_hash", "explain", "status", "answer",
+    )},
+    #: The model ModelSpec names: ``answer.leader`` when status is ``answered``
+    #: and the answer is separated, otherwise null, including a partial answer
+    #: whose kind is ``separated``. Added additively in bounded 1.3 (MODEL-339);
+    #: absent on a body projected before that change.
+    pick=(ModelId | None, None),
+    **{name: (Decision.model_fields[name].annotation, ...) for name in (
+        "warnings", "truncated", "out_of_lineup", "relax", "relax_to", "feedback",
     )},
     results=(list[ProjectedResult], ...),
     may_qualify=(list[MayQualify], ...),
@@ -2193,6 +2200,7 @@ BoundedDecision = create_model(
     decision_url=(str, ""),
     #: Complete router configuration, present only when explicitly requested.
     #: The byte budget may refuse it, but never removes entries from the list.
+    #: Added additively in bounded 1.4 (MODEL-381).
     router_config=(str, ""),
     #: Facts a report of this answer has to carry. Added in bounded 1.0 by
     #: MODEL-339. Optional, same rule as ``summary_for_user``.

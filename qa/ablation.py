@@ -52,7 +52,6 @@ import yaml
 
 from decision.bounded import project
 from decision.contract import CONTRACT_VERSION, Decision, ResponseOptions, parse_spec, spec_hash
-from decision.summary import summarize
 from qa import subscription_jobs, tui_harness
 from qa.ablation_proxy import (
     DECIDE_WORKED_EXAMPLE,
@@ -66,6 +65,7 @@ from qa.ablation_proxy import (
     Variants,
     agent_summary,
     decision_identity,
+    legacy_bounded,
     metadata,
     packed,
     private_directory,
@@ -326,18 +326,12 @@ class FixtureReplay:
                         spec_hash=digest, decision_id=decision_identity(digest, body["snapshot"])
                     )
                     self.complete_body = Decision.model_validate(body)
-                    bounded = project(
+                    envelope["body"] = legacy_bounded(self.complete_body, spec, project(
                         self.complete_body,
                         ResponseOptions(fields=["model"]),
                         spec=spec,
                         not_applied=[],
-                    )
-                    bounded.pop("next_move", None)
-                    bounded["bounded_version"] = "1.1"
-                    bounded["summary_for_user"], bounded["must_mention"] = summarize(
-                        self.complete_body, spec
-                    )
-                    envelope["body"] = bounded
+                    ))
                 result = {
                     "content": [{"type": "text", "text": packed(envelope).decode()}],
                     "isError": envelope["status"] >= 400,

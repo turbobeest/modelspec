@@ -16,7 +16,7 @@ from decision.bounded import AGENT_BYTES, agent_summary, project
 from decision.contract import Decision, ResponseOptions, parse_spec
 from decision.engine import decide
 from decision.registry import facet
-from decision.summary import SUMMARY_BYTES, summarize
+from decision.summary import SUMMARY_BYTES
 from qa import tui_harness as harness
 from qa import tui_homes as homes
 from qa.ablation_proxy import (
@@ -29,6 +29,7 @@ from qa.ablation_proxy import (
     CopyDriftError,
     RewriteError,
     Variants,
+    legacy_bounded,
     metadata,
     packed,
     proxy_port,
@@ -62,10 +63,7 @@ def decision_case(proxy_snapshot):
     }
     spec = parse_spec(arguments, facets=None)
     full = decide(spec, proxy_snapshot)
-    bounded = project(full, ResponseOptions(fields=["model"]), spec=spec, not_applied=[])
-    bounded.pop("next_move", None)
-    bounded["bounded_version"] = "1.1"
-    bounded["summary_for_user"], bounded["must_mention"] = summarize(full, spec)
+    bounded = legacy_bounded(full, spec, project(full, ResponseOptions(fields=["model"]), spec=spec, not_applied=[]))
     envelope = {"origin": "https://api.modelspec.dev/v1/decide", "status": 200, "body": bounded}
     message = {
         "jsonrpc": "2.0",
@@ -231,9 +229,9 @@ def test_serialized_complete_fetch_matches_server_move_before_agent_limit(where)
     spec = parse_spec(arguments, facets=facet)
     full = decide(spec, snapshot, facets=facet)
     assert full.answer is None and full.truncated.models > 0
-    server = project(full, ResponseOptions(fields=["model"]), spec=spec, not_applied=[])
-    expected = packed(server.pop("next_move"))
-    server["summary_for_user"], server["must_mention"] = summarize(full, spec)
+    projected = project(full, ResponseOptions(fields=["model"]), spec=spec, not_applied=[])
+    expected = packed(projected["next_move"])
+    server = legacy_bounded(full, spec, projected, version="1.2")
     message = {"id": 7, "result": {"content": [
         {"type": "text", "text": packed({"status": 200, "body": server}).decode()},
     ]}}

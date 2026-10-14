@@ -96,7 +96,9 @@ from decision.model import (
 )
 from decision.normalise import (
     NORMALISERS,
+    Document,
     Locator,
+    RuleSet,
     UnsupportedContentError,
     normalise_document,
     select_region,
@@ -4829,9 +4831,12 @@ class StoredRegions:
     times) kept: a date the verifier must compare is not boilerplate here.
     """
 
-    def __init__(self, store: CopyStore, sources: Mapping[str, Source]) -> None:
+    def __init__(self, store: CopyStore, sources: Mapping[str, Source], *,
+                 cache_documents: bool = False) -> None:
         self.store = store
         self.sources = sources
+        self._documents: dict[tuple[str, RuleSet], Document] | None = \
+            {} if cache_documents else None
 
     def text(self, source_id: str, copy_ref: str, region_id: str) -> str | None:
         source = self.sources.get(source_id)
@@ -4841,7 +4846,12 @@ class StoredRegions:
             return None
         rules = replace(NORMALISERS[source.normaliser], strip_volatile=False)
         try:
-            doc = normalise_document(self.store.get(copy_ref), rules)
+            key = (copy_ref, rules)
+            doc = self._documents.get(key) if self._documents is not None else None
+            if doc is None:
+                doc = normalise_document(self.store.get(copy_ref), rules)
+                if self._documents is not None:
+                    self._documents[key] = doc
             kind = "heading" if region.locator.kind == "heading_anchor" else region.locator.kind
             return select_region(doc, Locator(kind, region.locator.value))
         except (UnsupportedContentError, ValueError):

@@ -555,7 +555,7 @@
           "title": "Answer"
         },
         "bounded_version": {
-          "const": "1.2",
+          "const": "1.4",
           "title": "Bounded Version",
           "type": "string"
         },
@@ -648,6 +648,19 @@
         "out_of_lineup": {
           "title": "Out Of Lineup",
           "type": "integer"
+        },
+        "pick": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pick"
         },
         "projects_contract": {
           "const": "2.17",

@@ -127,7 +127,7 @@ def run(c: Catalogue, registry: Registry, as_of: date, snapshot: dict | None = N
         subject, name = f["subject_id"], f["field"]
         if name == "model.weights_openness":
             weights_by_model[subject].append(f)
-        if subject not in c.models and subject not in c.offerings:
+        if subject not in c.models and subject not in c.offerings and subject not in c.labs:
             add(f, "subject_resolves")
         unknown = f.get("state") == "unknown"
         # Unknown is absence of a claim, so it needs no fabricated source/date.

@@ -64,7 +64,7 @@ from decision.next_move import (
     next_move_input_from_bounded,
     next_move_input_from_decision,
 )
-from decision.summary import SUMMARY_BYTES, _clip_paragraph
+from decision.summary import SUMMARY_BYTES, _clip_paragraph, summarize
 from pipeline.agent_copy import DECIDE_WORKED_EXAMPLE, NULL_RULE, SUMMARY_RULE
 
 UPSTREAM = "https://api.modelspec.dev/mcp"
@@ -123,6 +123,30 @@ class CopyDriftError(RewriteError):
 
 def packed(value) -> bytes:
     return json.dumps(value, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+
+
+def legacy_bounded(complete: Decision, spec, bounded: dict, version: str = "1.1") -> dict:
+    """A current projection as a pre-#682 server sent it: no next_move or pick.
+
+    Bounded 1.3 withholds tie-breakers beside a test or question move; the
+    1.1 and 1.2 servers carried the complete answer, so it is restored here.
+    """
+    body = copy.deepcopy(bounded)
+    body.pop("next_move", None)
+    body.pop("pick", None)
+    complete_body = complete.model_dump(mode="json")
+    if body.get("answer") is not None:
+        body["answer"] = complete_body["answer"]
+    if (body.get("with_estate") or {}).get("answer") is not None:
+        body["with_estate"]["answer"] = complete_body["with_estate"]["answer"]
+    explanation = body["explanation"]
+    for key in ("answer.tie_breakers", "with_estate.answer.tie_breakers"):
+        explanation["omitted"].pop(key, None)
+    if not explanation["omitted"]:
+        explanation.pop("fetch", None)
+    body["bounded_version"] = version
+    body["summary_for_user"], body["must_mention"] = summarize(complete, spec)
+    return body
 
 
 def projection_key(body: dict) -> str:

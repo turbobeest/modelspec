@@ -385,7 +385,7 @@ paths:
         '200':
           description: 'A decision pinned to the snapshot that produced it: a complete Decision (contract_version 2.17), with optional top[].hardware_estimates and
             unknown_facets; or, when the request sends fields, evidence_for or router_config, the separate bounded representation (representation: bounded, bounded_version
-            1.2, no contract_version).'
+            1.4, no contract_version).'
           content:
             application/json:
               schema:
@@ -2162,7 +2162,7 @@ components:
       additionalProperties: false
       properties:
         representation: {const: bounded, title: Representation, type: string}
-        bounded_version: {const: '1.2', title: Bounded Version, type: string}
+        bounded_version: {const: '1.4', title: Bounded Version, type: string}
         projects_contract: {const: '2.17', title: Projects Contract, type: string}
         decision_id: {title: Decision Id, type: string}
         snapshot: {title: Snapshot, type: string}
@@ -2171,6 +2171,12 @@ components:
         explain: {$ref: '#/components/schemas/DecisionResponse/properties/explain'}
         status: {$ref: '#/components/schemas/DecisionResponse/properties/status'}
         answer: {$ref: '#/components/schemas/DecisionResponse/properties/answer'}
+        pick:
+          anyOf:
+          - {pattern: '^[a-z0-9][a-z0-9._-]*/[a-z0-9][a-z0-9._-]*$', type: string}
+          - {type: 'null'}
+          default: null
+          title: Pick
         warnings: {$ref: '#/components/schemas/DecisionResponse/properties/warnings'}
         truncated: {$ref: '#/components/schemas/DecisionResponse/properties/truncated'}
         out_of_lineup: {title: Out Of Lineup, type: integer}
@@ -4454,7 +4460,7 @@ components:
           enum: [bounded]
         bounded_version:
           type: string
-          enum: ['1.2']
+          enum: ['1.4']
         projects_contract:
           type: string
           enum: ['2.17']
@@ -4481,7 +4487,7 @@ components:
           enum: [bounded]
         bounded_version:
           type: string
-          enum: ['1.2']
+          enum: ['1.4']
         projects_contract:
           type: string
           enum: ['2.17']
