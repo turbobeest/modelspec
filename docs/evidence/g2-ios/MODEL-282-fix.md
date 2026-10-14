@@ -347,3 +347,22 @@ Stripe wire shapes were checked against the primary
 Stripe entitlement reads were not exercised. Jamie still owns Stripe setup,
 restricted-key permissions, deployment configuration, and tester terms adoption.
 The draft PR awaits independent cross-model review.
+
+## Delivery conflict
+
+Draft PR: https://github.com/turbobeest/modelspec/pull/744.
+After push, `gh pr view 744 -R turbobeest/modelspec --json
+baseRefOid,headRefOid,isDraft,mergeable` confirmed `isDraft: true` and
+`mergeable: CONFLICTING`. A read-only `git fetch origin main` identified the
+new main head as `e078f6562ce69099724a025a05b4016e8a1e5e4d`, which includes
+MODEL-381's keyed router-config work merged during execution. It overlaps
+`api/worker/openapi.py`, `api/worker/openapi.yaml`, `api/worker/src/entry.py`,
+`cli/modelspec/agent-bundle.json`, and `qa/fixtures/mcp-tools.json`.
+
+The full green result above applies to the requested base plus this ticket's
+implementation, not an integration with that newer main. The executor brief
+says "Never merge. No force-push" and forbids editing the PR. No merge,
+rebase, force-push, ready transition, or production change was attempted.
+The branch and draft PR are preserved for the orchestrator's integration and
+cross-model review. Executor delivery status is `BLOCKED` on that integration;
+the implemented feature and its requested-base verification are complete.
