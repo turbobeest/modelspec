@@ -15,8 +15,12 @@ AVAILABILITY = "offering.subscription.availability"
 KEY = b"model-384-test-key"
 
 
-def snapshot_for(value=None, *, state="known", max_coverage=True):
+def snapshot_for(value=None, *, state="known", max_coverage=True, surfaces=None):
     catalogue = inputs()
+    if surfaces is not None:
+        for row in catalogue.subscriptions[0]["facts"]:
+            if row["facet"] == "offering.subscription.surfaces":
+                row["value"] = surfaces
     if not max_coverage:
         catalogue.subscriptions[0]["facts"] = [
             row for row in catalogue.subscriptions[0]["facts"]
@@ -45,7 +49,8 @@ def answer(snapshot, access="chat_app", estate=None, **overrides):
 
 @pytest.mark.parametrize("access", ["chat_app", "coding_tool", "own_software"])
 def test_new_buyer_cannot_route_through_closed_plan(access):
-    decision = answer(snapshot_for("existing_subscribers_only"), access)
+    decision = answer(snapshot_for("existing_subscribers_only",
+                                   surfaces=["api"] if access == "own_software" else None), access)
 
     assert all(route.plan != MAX for row in decision.results for route in row.plans)
     [excluded] = decision.excluded_plans
