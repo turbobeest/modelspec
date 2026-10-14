@@ -66,11 +66,19 @@ def test_public_default_mcp_budget(service, public_snapshot):
     contract.BoundedDecision.model_validate(body)
 
 
+def _projected_answer(answer: dict | None, move: dict | None) -> dict | None:
+    """MODEL-339: a bounded answer keeps tie-breakers only beside a user_tiebreak move."""
+    if answer is None or move is None or move["kind"] == "user_tiebreak":
+        return answer
+    return {**answer, "tie_breakers": dict.fromkeys(answer["tie_breakers"])}
+
+
 def test_projection_keeps_essentials_and_identity(service, snapshot):
     payload = _payload("summary")
     _, complete = service.decide(payload, snapshot)
     _, bounded = service.decide({**payload, "fields": ["cost_per_task"]}, snapshot)
-    for key in ("answer", "reading", "warnings", "decision_id", "spec_hash", "truncated"):
+    assert bounded["answer"] == _projected_answer(complete["answer"], bounded.get("next_move"))
+    for key in ("reading", "warnings", "decision_id", "spec_hash", "truncated"):
         assert bounded.get(key) == complete.get(key)
     assert len(bounded["results"]) == len(complete["results"])
     for row in bounded["results"]:
@@ -80,7 +88,7 @@ def test_projection_keeps_essentials_and_identity(service, snapshot):
     # A distinct representation, not a 2.x minor version (MODEL-59).
     assert "contract_version" not in bounded
     assert bounded["representation"] == "bounded"
-    assert bounded["bounded_version"] == "1.2"
+    assert bounded["bounded_version"] == "1.3"
     assert bounded["projects_contract"] == "2.17"
     assert bounded["summary_for_user"].startswith("ModelSpec's answer is")
     assert isinstance(bounded["must_mention"], list)
@@ -119,7 +127,7 @@ def test_drill_down_outside_limit_keeps_original_answer_and_budget(service, publ
     status, body = service.decide({**payload, "snapshot": public_snapshot.snapshot_id,
                                    "evidence_for": target}, public_snapshot)
     assert status == 200
-    assert body["answer"] == complete["answer"]
+    assert body["answer"] == _projected_answer(complete["answer"], body.get("next_move"))
     assert body["reading"] == complete["reading"]
     assert body["spec_hash"] == complete["spec_hash"]
     assert body["results"] == []
@@ -854,7 +862,7 @@ def test_a_tie_cut_by_limit_keeps_every_members_evidence(service):
     }
     status, body = service.decide(payload, snap)
     assert status == 200, body
-    assert body["bounded_version"] == "1.2"
+    assert body["bounded_version"] == "1.3"
     assert body["answer"]["kind"] == "tied"
     assert body["answer"]["members"] == ["lab/a", "lab/b"]
     assert body["results"] == [{
