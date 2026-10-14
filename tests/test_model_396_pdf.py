@@ -30,7 +30,8 @@ RECIPE = "pdf-pypdf-6.19.0-v1"
 
 
 def pdf_bytes(*, text="Mistral Small 4", image=None, encrypted=False, blank_page=False,
-              form=False, hidden_text=False):
+              form=False, hidden_text=False, pattern=False, annotation=False, softmask=False,
+              type3=False):
     writer = PdfWriter()
     page = writer.add_blank_page(width=612, height=792)
     font = DictionaryObject({
@@ -60,7 +61,77 @@ def pdf_bytes(*, text="Mistral Small 4", image=None, encrypted=False, blank_page
         objects = DictionaryObject({NameObject("/Scan"): writer._add_object(raster)})
         width, height = image
         placement = f"q {width} 0 0 {height} 0 0 cm /Scan Do Q\n".encode()
-        if form:
+        if type3:
+            glyph = DecodedStreamObject()
+            glyph.set_data(b"612 0 d0\n" + placement)
+            bitmap_font = DictionaryObject({
+                NameObject("/Type"): NameObject("/Font"),
+                NameObject("/Subtype"): NameObject("/Type3"),
+                NameObject("/FontBBox"): ArrayObject([FloatObject(n) for n in (0, 0, 612, 792)]),
+                NameObject("/FontMatrix"): ArrayObject([
+                    FloatObject(n) for n in (1, 0, 0, 1, 0, 0)
+                ]),
+                NameObject("/CharProcs"): DictionaryObject({
+                    NameObject("/A"): writer._add_object(glyph),
+                }),
+                NameObject("/Encoding"): DictionaryObject({NameObject("/Differences"): ArrayObject(
+                    [NumberObject(65), NameObject("/A")],
+                )}),
+                NameObject("/FirstChar"): NumberObject(65),
+                NameObject("/LastChar"): NumberObject(65),
+                NameObject("/Widths"): ArrayObject([NumberObject(612)]),
+                NameObject("/Resources"): DictionaryObject({NameObject("/XObject"): objects}),
+            })
+            resources["/Font"][NameObject("/Fg")] = writer._add_object(bitmap_font)
+            objects = DictionaryObject()
+            placement = b"BT /Fg 1 Tf 1 0 0 1 50 700 Tm (A) Tj ET\n"
+        elif annotation or softmask:
+            appearance = DecodedStreamObject()
+            appearance.set_data(placement)
+            appearance.update({
+                NameObject("/Type"): NameObject("/XObject"),
+                NameObject("/Subtype"): NameObject("/Form"),
+                NameObject("/BBox"): ArrayObject([FloatObject(n) for n in (0, 0, 612, 792)]),
+                NameObject("/Resources"): DictionaryObject({NameObject("/XObject"): objects}),
+            })
+            ref = writer._add_object(appearance)
+            if annotation:
+                stamp = DictionaryObject({
+                    NameObject("/Type"): NameObject("/Annot"),
+                    NameObject("/Subtype"): NameObject("/Stamp"),
+                    NameObject("/Rect"): ArrayObject([FloatObject(n) for n in (0, 0, 612, 792)]),
+                    NameObject("/AP"): DictionaryObject({NameObject("/N"): ref}),
+                })
+                page[NameObject("/Annots")] = ArrayObject([writer._add_object(stamp)])
+                placement = b""
+            else:
+                mask = DictionaryObject({NameObject("/S"): NameObject("/Luminosity"),
+                                         NameObject("/G"): ref})
+                graphics = DictionaryObject({NameObject("/SMask"): mask})
+                resources[NameObject("/ExtGState")] = DictionaryObject({
+                    NameObject("/GS"): writer._add_object(graphics),
+                })
+                placement = b"/GS gs 0 0 612 792 re f\n"
+            objects = DictionaryObject()
+        elif pattern:
+            tile = DecodedStreamObject()
+            tile.set_data(placement)
+            tile.update({
+                NameObject("/Type"): NameObject("/Pattern"),
+                NameObject("/PatternType"): NumberObject(1),
+                NameObject("/PaintType"): NumberObject(1),
+                NameObject("/TilingType"): NumberObject(1),
+                NameObject("/BBox"): ArrayObject([FloatObject(n) for n in (0, 0, 612, 792)]),
+                NameObject("/XStep"): NumberObject(612),
+                NameObject("/YStep"): NumberObject(792),
+                NameObject("/Resources"): DictionaryObject({NameObject("/XObject"): objects}),
+            })
+            resources[NameObject("/Pattern")] = DictionaryObject({
+                NameObject("/P"): writer._add_object(tile),
+            })
+            objects = DictionaryObject()
+            placement = b"/Pattern cs /P scn 0 0 612 792 re f\n"
+        elif form:
             container = DecodedStreamObject()
             container.set_data(placement)
             container.update({
@@ -196,3 +267,25 @@ def test_pdf_extractor_version_mismatch_fails_closed(monkeypatch):
     monkeypatch.setattr(pypdf, "__version__", "0.0.0")
     with pytest.raises(UnsupportedContentError, match="pdf_extractor_version"):
         normalise_document(pdf_bytes(), NORMALISERS[RECIPE])
+
+
+def test_scan_painted_through_pattern_cannot_supply_text_overlay():
+    with pytest.raises(UnsupportedContentError):
+        normalise_document(pdf_bytes(image=(612, 792), pattern=True), NORMALISERS[RECIPE])
+
+
+@pytest.mark.parametrize("container", ["annotation", "softmask"])
+def test_scan_in_unsupported_rendering_container_fails_closed(container):
+    with pytest.raises(UnsupportedContentError):
+        normalise_document(pdf_bytes(image=(612, 792), **{container: True}), NORMALISERS[RECIPE])
+
+
+def test_type3_font_cannot_paint_scan_behind_extractable_text():
+    with pytest.raises(UnsupportedContentError):
+        normalise_document(pdf_bytes(image=(612, 792), type3=True), NORMALISERS[RECIPE])
+
+
+def test_small_type3_bitmap_glyph_is_supported():
+    assert normalise_document(pdf_bytes(image=(10, 8), type3=True), NORMALISERS[RECIPE]).text == (
+        "Mistral Small 4\nA"
+    )

@@ -27,6 +27,12 @@ if any page has no machine-readable text. Permit only small raster decorations
 whose drawn edge lengths are at most 16 points and whose aggregate area is less
 than one percent of the page. Larger images, inline images and invisible text
 rendering modes are unsupported, including a scan with an existing text overlay.
+Pattern resources, annotation appearances and graphics-state soft masks are
+unsupported because their rendering can carry raster scans outside ordinary
+image placement. Plain link annotations and small image masks remain supported.
+Type 3 bitmap glyphs use the same size and area limits, with their font, text
+and page transforms applied. Every glyph in a used Type 3 font is checked;
+an unused oversized bitmap glyph also makes that font unsupported.
 Calculate image coverage from PDF placement transforms, including nested form
 objects, rather than pixel dimensions. This conservative rule can reject a
 legitimate image-heavy technical report. Small checkbox images in Mistral's
