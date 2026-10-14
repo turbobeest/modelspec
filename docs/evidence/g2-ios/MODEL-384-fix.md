@@ -1,24 +1,27 @@
 # MODEL-384 execution evidence
 
 Base SHA: `56c39ac3a826af6f79f8755c49ed52b68bad37c4`.
-Final implementation SHA: `ec145f41c6d02dc3cde71f4b952e55fc4e699724`, before this evidence-only commit.
-Required full-suite SHA: `68ef6bb66e49ac74a417dae02624c314f2a818d2`.
+Initial delivery SHA: `365627fbcb7ffc63afe42261ac42c8eb8251f358`.
+Follow-up implementation SHA: `016c57d00003fe519982f947eab69302da77398c`, before the follow-up evidence commit.
+Follow-up full-suite SHA: `37ae52fe5ce9a9ec5a3dc993c80b5d211f1b07cd`.
 The final delivery SHA is the commit containing this file. Resolve it with
 `git log -1 --format=%H -- docs/evidence/g2-ios/MODEL-384-fix.md`.
 
-Delivery status: **BLOCKED**. The web decoder and generated page fixtures
-need changes outside the paths authorized by the executor brief. The decoder
-accepts only complete contracts through 2.17 and uses strict object schemas.
-It therefore rejects every 2.18 response and has no schemas for the new
-optional exclusion and holding fields. `hosted.ts` calls this decoder and
-reports `invalid_response` when parsing fails. The scope request is pending;
-no web source or fixture was changed.
+The orchestrator authorized the decoder, its tests and current generated web
+fixtures on 2026-10-14. That original scope boundary is resolved. The decoder
+now accepts complete 2.18 while retaining every previously supported version,
+including 2.17. It strictly validates optional `excluded_plans` at both answer
+levels and the nullable/optional holding availability enum. Existing strict
+object schemas remain strict; no unknown-field catch-all was added.
 
-Required follow-up paths are `web/src/decide/adapter/contract.ts`, its tests,
-and the generated decision/vocabulary fixtures under
-`web/src/decide/__fixtures__/`. The executor
-brief says: "If you need a file outside them, stop and report it."
-The requested draft PR records the permitted implementation and this blocker.
+A separate rendering scope request is pending for
+`web/src/decide/facet-board/routes.ts` and `web/src/decide/App.tsx`. The current
+page hides availability reasons and the closed-holder label. Running the
+actual board adapter also reproduces an inherited unrestricted heading:
+the estate answer names Opus and Sonnet, but the heading names `other/huge`.
+The converted estate decision also retains the new-buyer exclusion for its
+usable held plan. Those two files were not changed. The executor brief says:
+"If you need a file outside them, stop and report it."
 
 The engine now reads the sourced `offering.subscription.availability` fact.
 Unrestricted routes exclude `existing_subscribers_only` and `retired`; held
@@ -43,6 +46,46 @@ deterministic reader accepts explicit plan-scoped statements and labelled
 table cells. Other subscription fields retain their previous reader dispatch.
 
 ## Red and green results
+
+The follow-up decoder regression file is
+`web/src/decide/__tests__/contract-availability.test.ts`. Before the decoder
+edit, its positive 2.18 cases failed: exit 1, `6 failed, 6 passed` in 650ms.
+The failures cover the 2.18 version, both exclusion arrays, and the holding's
+three enum values and null. The same suite passed after the edit: exit 0,
+`12 passed` in 457ms. Two additional malformed-ID cases check the contract's
+one-to-120-character constraint. The final web suite includes all 14 cases.
+The deliberate older-version tests remain; no compatibility case was replaced
+with a current-version assertion.
+
+Current web fixtures were regenerated with their documented writer: exit 0,
+`13 passed in 0.53s`. Exactly 13 committed fixtures changed. Historical live
+captures, older sample decisions and `ui-specs.json` remain byte-identical to
+the initial delivery. The ignored corpus was also regenerated locally: exit
+0 in 44.10s, 319 decisions, five vocabularies and an index. The generated
+current-engine answers use contract 2.18.
+
+`npm ci` exited 0 and installed 346 packages. `npm run build` exited 0.
+The first full web suite exposed two remaining current-fixture assertions
+expecting 2.17: exit 1, `2 failed, 1234 passed` across 52 files in 20.79s.
+Only those version assertions were changed. The final `npm test` exited 0:
+`1236 passed` across 52 files in 19.04s, including the generated corpus.
+All non-web generators ran again, and their outputs had no additional real
+diffs. Schema, OpenAPI and agent-copy checks exited 0.
+
+Follow-up full pytest at `37ae52f`, with the built web app, exited **0**:
+`10547 passed, 8 skipped, 11 warnings in 1243.34s (0:20:43)`.
+The previous 13 stale-fixture and two missing-Playwright-package failures are
+resolved. The skipped count fell from 23 to eight with the web build present.
+After that run, main advanced to MODEL-385's jurisdiction-reader fix at
+`60c26c62`. It merged without conflicts through `016c57d0`. The subscription
+reader and web changes were preserved. Post-merge verification exited 0:
+`468 passed, 1 skipped in 12.56s` across jurisdiction, subscription-availability
+reader and general verifier tests. Generated schema, OpenAPI and agent-copy
+checks also exited 0. The full suite was not rerun after that reader-only
+merge or this evidence-only commit.
+
+The earlier execution results below are retained as history. The original
+decoder/fixture failures no longer describe the follow-up implementation.
 
 The initial engine tests ran against the unchanged checkout before any
 implementation edit: exit 1, `19 failed, 3 passed in 0.72s`. An unknown-coverage
@@ -114,8 +157,8 @@ Thirteen failures are the generated decision/vocabulary page fixtures that
 still expect 2.17 responses or the vocabulary without `estate.plan_facets`.
 Two failures are social card builds whose Node process cannot import
 `@playwright/test`. No engine, reader, registry, contract, bounded or MCP
-test failed. The scope extension remains necessary for the strict live
-decoder even after the page fixtures are regenerated.
+test failed. At the initial delivery, the scope extension was necessary for
+the strict live decoder even after regenerating the page fixtures.
 
 After this run, the final delivery merge incorporated MODEL-383 at `3e7003d7`.
 It changed only site/date code, its tests and its evidence; the MODEL-384
@@ -131,7 +174,7 @@ Its 48 QA copy-guard failures came from the unnecessary guide sentence;
 removing that sentence restored the guards without editing their expected
 copy. One registry count failure and 20 decision-link failures were fixed
 while preserving the old response hashes apart from asserted version metadata.
-Thirteen page fixture failures require the scope extension above. Two social
+Thirteen page fixture failures required the scope extension above. Two social
 card failures reported missing `@playwright/test` in the uninstalled web
 dependencies.
 
@@ -142,7 +185,107 @@ old decision package and collected archived tests. That invocation exited 1:
 The archive was removed before either clean full run. This invalid run is
 recorded as an executor error, not a product regression.
 
-## Commands and versions
+## Follow-up commands
+
+The follow-up began with `git fetch origin && git merge --no-commit
+origin/main`, which reported `Already up to date.`. The user explicitly
+authorized updating PR #742's body, overriding the original brief's ban on
+`gh pr edit` for that action only. The PR remains a draft.
+
+From `web/`, with Node 22 on `PATH`:
+
+```sh
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:/Users/terbeest/dev/modelspec/.venv/bin:$PATH npm ci --no-audit --no-fund
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm test -- src/decide/__tests__/contract-availability.test.ts
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:/Users/terbeest/dev/modelspec/.venv/bin:$PATH PYTHONPATH=/Users/terbeest/dev/worktrees/model-384 npm run build
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm test
+```
+
+From the worktree root:
+
+```sh
+MODELSPEC_WRITE_FIXTURES=1 TZ=UTC PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_decide_page_fixtures.py
+TZ=UTC PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m tests.corpus decisions --out web/src/decide/__corpus__
+TZ=UTC PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m decision.schema
+TZ=UTC PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.agent_copy write
+TZ=UTC PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/openapi.py
+TZ=UTC PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m qa.decide_budget
+TZ=UTC PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python qa/contracts.py
+TZ=UTC PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m decision.schema --check
+TZ=UTC PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/openapi.py --check
+TZ=UTC PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.agent_copy check
+TZ=UTC PYTHONPATH=$PWD PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
+TZ=UTC PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_lab_jurisdiction.py tests/test_decision_verify.py tests/test_subscription_availability_reader.py
+```
+
+The running adapter probe uses Vite's local SSR loader and closes the server
+in `finally`. Its first two attempts used the legacy benchmark view without
+matching benchmark evidence; their errors were setup errors, not rendering
+defects. The corrected probe sets `boardWeights: {}` to select the actual
+facet-board view. It constructs a validated 2.18 decision from the generated
+coding and band fixtures, makes `other/huge` the unrestricted band leader,
+and marks the held Max plan `existing_subscribers_only`. It calls the real
+`estateAsDecision`, `mapDecisionToViewModel`, `leadingModels` and
+`estateRouteView` functions. The output is:
+
+```json
+{
+  "estate_answer": ["anthropic/claude-opus-5-5", "anthropic/claude-sonnet-5"],
+  "rendered_heading_models": ["other/huge"],
+  "inherited_new_buyer_exclusions": [{
+    "plan": "anthropic/subscription/max-20x",
+    "reason": "Claude Max 20x is closed to new buyers; only existing subscribers can use it."
+  }],
+  "held_plan_route": {
+    "figure": "included in your plan",
+    "column": "$0 per task"
+  }
+}
+```
+
+The held route has no availability note, and its explanation has no closure
+label. This is a local module probe using synthetic fixtures, not a browser
+observation or a live API call. The final probe exited 0 and closed its server.
+Its exact successful command, run from `web/`, is:
+
+```sh
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH node --input-type=module <<'JS'
+import { readFileSync } from 'node:fs';
+import { createServer } from 'vite';
+const server = await createServer({ configFile: 'vitest.config.ts', server: { watch: null } });
+try {
+  const { decisionSchema } = await server.ssrLoadModule('/src/decide/adapter/contract.ts');
+  const { estateAsDecision, estateRouteView } = await server.ssrLoadModule('/src/decide/facet-board/routes.ts');
+  const { leadingModels } = await server.ssrLoadModule('/src/decide/facet-board/leading.ts');
+  const { mapDecisionToViewModel } = await server.ssrLoadModule('/src/decide/adapter/view-model.ts');
+  const { baseSpec } = await server.ssrLoadModule('/src/decide/state/spec.ts');
+  const { planVocabulary } = await server.ssrLoadModule('/src/decide/__tests__/plan-vocabulary.ts');
+  const read = name => JSON.parse(readFileSync('src/decide/__fixtures__/' + name + '.json', 'utf8'));
+  const coding = read('plans-coding-full');
+  const banded = read('compact-bands-full');
+  const best = coding.results.find(row => row.offering.model === 'other/huge');
+  const band = banded.bands?.best[0];
+  if (!best || !band) throw new Error('Expected unrestricted leader fixtures');
+  const decision = decisionSchema.parse({ ...coding,
+    results: coding.results.map(row => ({ ...row, plans: row.plans?.filter(plan => plan.plan !== 'anthropic/subscription/max-20x') })),
+    bands: { ...banded.bands, leader: 'other/huge', best: [{ ...band, model: 'other/huge', offering: best.offering }], rest: [], thin: [] },
+    excluded_plans: [{ plan: 'anthropic/subscription/max-20x', reason: 'Claude Max 20x is closed to new buyers; only existing subscribers can use it.' }],
+    with_estate: { ...coding.with_estate, results: coding.with_estate.results.map(row => ({ ...row, estate: { ...row.estate, availability: 'existing_subscribers_only' } })) },
+  });
+  const held = estateAsDecision(decision);
+  if (!held) throw new Error('Expected an estate view');
+  const view = mapDecisionToViewModel(held.decision, { ...baseSpec, boardWeights: {} }, { axis: 'task$', dismissed: [] });
+  const row = decision.with_estate.results[0];
+  if (!row) throw new Error('Expected a held plan result');
+  process.stdout.write(JSON.stringify({ estate_answer: decision.with_estate.answer.members, rendered_heading_models: leadingModels(view), inherited_new_buyer_exclusions: held.decision.excluded_plans, held_plan_route: estateRouteView({ vocabulary: planVocabulary }, row.estate, undefined, row.offering) }, null, 2) + '\n');
+} finally { await server.close(); }
+JS
+```
+
+Observed follow-up package versions from their installed `package.json`
+files: Vite 8.0.3, Vitest 5.0.1, TypeScript 5.9.3 and Playwright 1.63.0.
+
+## Initial commands and versions
 
 All Python commands used `/Users/terbeest/dev/modelspec/.venv/bin/python` in
 this worktree with `TZ=UTC` and `PYTHONPATH=$PWD`, apart from the archived
