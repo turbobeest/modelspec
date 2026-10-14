@@ -1076,8 +1076,11 @@ class SubscriptionPageExtractor:
 
     def accepts(self, text: str) -> bool:
         return self._accepts_layout(text) or bool(re.search(
-            r"(?im)\bavailability\b|\bnew (?:subscribers|subscriptions|customers|buyers)\b|"
-            r"\bexisting subscribers\b|\bplan\b.{0,80}\bretired\b|"
+            r"(?im)\bavailability\b|"
+            r"\bnew (?:subscribers|subscriptions|customers|buyers|purchases?|"
+            r"sign[- ]ups?|signups)\b|"
+            r"\bexisting subscribers\b|\b(?:no longer|not) offered to new\b|"
+            r"\bplan\b.{0,80}\bretired\b|"
             r"^\s*retired\.?\s*$|\bdiscontinued for all subscribers\b",
             text,
         ))
@@ -1380,6 +1383,60 @@ class SubscriptionPageExtractor:
         return [Reading(subject=wanted, value=", ".join(models))] if models else []
 
 
+#: The last word of a tier. "Plus" makes "Token Plan Plus" a tier of "Token
+#: Plan". "Pro" in "Token Pro" does not, because that name has no family tokens
+#: in front of the tier word.
+_TIER_WORDS = frozenset({
+    "plus", "max", "ultra", "pro", "lite", "team", "free", "basic", "premium",
+    "standard", "starter", "enterprise", "business", "individual", "personal",
+    "heavy", "go", "mini",
+})
+
+
+def _plan_family_names(names: set[str]) -> set[str]:
+    """A plan family a tier also answers to.
+
+    The family is two or more whole tokens immediately before one tier word.
+    "Token Plan" covers "Token Plan Plus" and "MiniMax Token Plan Plus". It
+    does not cover "M Plan" or "Token Pro". Characters inside a token do not
+    count: "MyToken Plan" is not "Token Plan".
+    """
+    families: set[str] = set()
+    for name in names:
+        tokens = name.split()
+        if len(tokens) < 3 or tokens[-1] not in _TIER_WORDS:
+            continue
+        stem = tokens[:-1]
+        for length in range(2, len(stem) + 1):
+            families.add(" ".join(stem[-length:]))
+    return families
+
+
+def _availability_predicate(sentence: str, subjects: set[str]) -> str | None:
+    """Words after a subject that opens the sentence or follows a comma.
+
+    "With the launch of M Plan, Token Plan is no longer ..." names Token Plan.
+    The predicate runs to the end of the sentence, so a later qualification
+    still has to match an availability phrase exactly. A question has none.
+    """
+    if "?" in sentence:
+        return None
+    text = sentence.strip()
+    for subject in sorted(subjects, key=len, reverse=True):
+        tokens = subject.split()
+        if not tokens:
+            continue
+        body = r"[^0-9A-Za-z]+".join(re.escape(token) for token in tokens)
+        match = re.search(
+            rf"(?:^|[,;]\s*)(?:the\s+)?(?<![0-9A-Za-z]){body}(?:\s+plan)?\s+(.*)$",
+            text,
+            re.IGNORECASE,
+        )
+        if match:
+            return match.group(1)
+    return None
+
+
 def _availability_value(statement: str) -> str | None:
     """An explicit current availability statement, never a missing price or plan."""
     if "?" in statement:
@@ -1389,6 +1446,8 @@ def _availability_value(statement: str) -> str | None:
     if wording in {"open", "existing subscribers only", "retired"}:
         return wording.replace(" ", "_")
     audience = r"new (?:subscribers|customers|buyers)"
+    purchases = r"new purchases?"
+    signups = r"new sign ?ups|new signups"
     if re.fullmatch(
         rf"(?:open to {audience}|available to {audience}|available for new subscriptions)",
         wording,
@@ -1396,8 +1455,10 @@ def _availability_value(statement: str) -> str | None:
         return "open"
     if re.fullmatch(
         rf"(?:available only to existing subscribers|only available to existing subscribers|"
-        rf"closed to {audience}|(?:no longer|not) available "
-        rf"(?:to {audience}|for new subscriptions))",
+        rf"closed to (?:{audience}|{signups})|"
+        rf"(?:no longer|not) available "
+        rf"(?:to {audience}|for new subscriptions|for {purchases})|"
+        rf"(?:no longer|not) offered to {audience})",
         wording,
     ):
         return "existing_subscribers_only"
@@ -1409,12 +1470,13 @@ def _availability_value(statement: str) -> str | None:
 def _plan_availability(claim: Claim, text: str) -> list[Reading]:
     """Availability in a named statement, plan section or labelled table cell.
 
-    A name must be the statement's subject or an exact heading/cell. Mentioning
-    the plan as the replacement's predecessor does not scope that statement.
+    A name must be the statement's subject or an exact heading/cell. A family
+    name applies to a tier when the tier's name is that family plus one tier
+    word ("Token Plan" applies to "Token Plan Plus"). Mentioning the plan as
+    the replacement's predecessor does not scope that statement.
     """
     aliases = {normalise_name(name) for name in claim.names}
-    names = "|".join(re.escape(alias) for alias in sorted(aliases, key=len, reverse=True))
-    named = re.compile(rf"^(?:the )?(?:{names})(?:\s+plan)?\s+(.+)$")
+    subjects = aliases | _plan_family_names(aliases)
     lines = [line.strip() for line in text.splitlines()]
     statements: list[str] = []
     header: list[str] = []
@@ -1456,9 +1518,9 @@ def _plan_availability(claim: Claim, text: str) -> list[Reading]:
         for sentence in _sentences(line):
             if "?" in sentence:
                 continue
-            match = named.match(normalise_name(sentence))
-            if match:
-                statements.append(match.group(1))
+            predicate = _availability_predicate(sentence, subjects)
+            if predicate is not None:
+                statements.append(predicate)
             elif in_plan:
                 statements.append(sentence)
     values = list(dict.fromkeys(value for statement in statements
