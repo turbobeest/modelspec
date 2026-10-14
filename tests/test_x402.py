@@ -129,6 +129,28 @@ def test_sepolia_smoke_runs_only_against_the_stub_in_the_suite():
 
 # ── 402 discovery ────────────────────────────────────────────────────────────
 
+@pytest.mark.parametrize("network,asset,name", [
+    (x402.NETWORK_BASE, x402.USDC_BASE, "USD Coin"),
+    (x402.NETWORK_BASE_SEPOLIA, x402.USDC_BASE_SEPOLIA, "USDC"),
+])
+@pytest.mark.parametrize("offer_packs", [False, True])
+def test_402_signing_domain_matches_the_network(network, asset, name, offer_packs):
+    policy = __import__("access_config").load_policy()
+    cfg = _cfg(network=network, asset=asset, packs=x402.packs_from_policy(policy))
+    body = x402.payment_required_body(cfg, ENVELOPE, RESOURCE, offer_packs=offer_packs)
+    decoded = json.loads(base64.b64decode(
+        x402.http_headers(402, body)[x402.PAYMENT_REQUIRED_HEADER]))
+    assert len(body["accepts"]) == (4 if offer_packs else 1)
+    assert decoded["accepts"] == body["accepts"]
+    for requirement in body["accepts"]:
+        assert requirement["network"] == network
+        assert requirement["asset"] == asset
+        assert requirement["extra"]["name"] == name
+        assert requirement["extra"]["version"] == "2"
+    assert body["error"]["price"]["currency"] == "USDC"
+    assert cfg.asset_name == name
+
+
 def test_unfunded_request_returns_well_formed_402_naming_price_and_how_to_pay():
     produced = []
 

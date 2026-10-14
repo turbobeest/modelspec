@@ -30,7 +30,7 @@ def _transport(pay_to: str, swap: bool = False):
     accepts = [{"scheme": "exact", "network": "eip155:8453",
                 "asset": "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913",
                 "payTo": pay_to, "amount": str(usd * 1_000_000),
-                "extra": {"name": "USDC", "version": "2", "credits": credits}}
+                "extra": {"name": "USD Coin", "version": "2", "credits": credits}}
                for credits, usd in packs]
     body = {"x402Version": 2,
             "error": {"code": "payment_required",
