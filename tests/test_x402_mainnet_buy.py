@@ -18,7 +18,7 @@ from tests.test_x402 import _eip55
 
 ROOT = Path(__file__).resolve().parents[1]
 FLAG = "--i-understand-this-spends-real-usdc"
-PAYER_KEY = "0x" + "11" * 32  # Public test vector, used only with mocks.
+PAYER_KEY = "0x" + "11" * 32  # Public test vector, never used on a network.
 API_KEY = "live_test_only"
 RECEIVER = "0x69429dbEEEE7218084AB5B896788f5fCE452419C"
 ASSET = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
@@ -29,7 +29,7 @@ def offer():
     accepts = [
         {"scheme": "exact", "network": "eip155:8453", "asset": ASSET.lower(),
          "payTo": RECEIVER.lower(), "amount": str(amount), "maxTimeoutSeconds": 60,
-         "extra": {"name": "USDC", "version": "2", "credits": credits}}
+         "extra": {"name": "USD Coin", "version": "2", "credits": credits}}
         for amount, credits in [(5_000_000, 250), (25_000_000, 1300),
                                 (50_000_000, 2750), (100_000_000, 6000)]
     ]
@@ -42,6 +42,16 @@ def offer():
 
 def encoded(value):
     return base64.b64encode(json.dumps(value).encode()).decode()
+
+
+def _buy():
+    path = ROOT / "scripts" / "x402_mainnet_buy.py"
+    assert path.is_file(), "MODEL-333 buy CLI has not been implemented"
+    spec = importlib.util.spec_from_file_location("x402_mainnet_buy", path)
+    assert spec is not None and spec.loader is not None
+    buy = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(buy)
+    return buy
 
 
 @pytest.fixture
@@ -81,12 +91,7 @@ def run_buy(monkeypatch, capsys):
     def run(args=(), *, body=None, before=0, after=250, discovery_status=402,
             settlement=None, payment_status=400, payment_error=None,
             before_status=200, after_status=200, required_header=None):
-        path = ROOT / "scripts" / "x402_mainnet_buy.py"
-        assert path.is_file(), "MODEL-333 buy CLI has not been implemented"
-        spec = importlib.util.spec_from_file_location("x402_mainnet_buy", path)
-        assert spec is not None and spec.loader is not None
-        buy = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(buy)
+        buy = _buy()
         body = copy.deepcopy(offer() if body is None else body)
         settle = {"success": True, "network": "eip155:8453", "transaction": TX}
         if settlement is not None:
@@ -145,6 +150,51 @@ def test_dry_run_prints_exact_live_offer_without_signing(run_buy, monkeypatch):
     assert shown["offer"] == offer()["accepts"][0]
     assert shown["pack_credits"] == 250
     assert all("PAYMENT-SIGNATURE" not in r.headers for r in result.requests)
+
+
+@pytest.mark.parametrize("field,value", [
+    ("name", "USDC"), ("name", None), ("version", "1"), ("version", None),
+])
+def test_refuses_wrong_mainnet_signing_domain_before_signing(run_buy, field, value):
+    body = offer()
+    body["accepts"][0]["extra"][field] = value
+    result = run_buy([FLAG], body=body)
+    assert result.code != 0
+    assert "USD Coin version 2 signing domain" in result.out
+    assert result.signed == result.from_keys == []
+
+
+def test_signs_the_usd_coin_typed_data_domain(run_buy):
+    result = run_buy()
+    _buy()._sign(offer()["accepts"][0], PAYER_KEY)
+    assert len(result.typed) == 1
+    assert result.typed[0]["domain"] == {
+        "name": "USD Coin", "version": "2", "chainId": 8453,
+        "verifyingContract": ASSET.lower()}
+
+
+def test_usd_coin_domain_recovers_the_offline_test_signer():
+    account = pytest.importorskip("eth_account").Account
+    encode = pytest.importorskip("eth_account.messages").encode_typed_data
+    payload = _buy()._sign(offer()["accepts"][0], PAYER_KEY)["payload"]
+    authorization = payload["authorization"]
+    message = encode(
+        domain_data={"name": "USD Coin", "version": "2", "chainId": 8453,
+                     "verifyingContract": ASSET.lower()},
+        message_types={"TransferWithAuthorization": [
+            {"name": "from", "type": "address"},
+            {"name": "to", "type": "address"},
+            {"name": "value", "type": "uint256"},
+            {"name": "validAfter", "type": "uint256"},
+            {"name": "validBefore", "type": "uint256"},
+            {"name": "nonce", "type": "bytes32"},
+        ]},
+        message_data={**authorization, "value": int(authorization["value"]),
+                      "validAfter": int(authorization["validAfter"]),
+                      "validBefore": int(authorization["validBefore"])},
+    )
+    assert account.recover_message(message, signature=payload["signature"]) == (
+        account.from_key(PAYER_KEY).address)
 
 
 @pytest.mark.parametrize("field,value,message", [
@@ -230,7 +280,7 @@ def test_buys_one_pack_and_checks_exact_balance_increase(run_buy, receiver):
     assert payload["payload"]["authorization"]["value"] == "5000000"
     assert payload["payload"]["authorization"]["to"] == receiver
     assert result.typed[0]["domain"] == {
-        "name": "USDC", "version": "2", "chainId": 8453,
+        "name": "USD Coin", "version": "2", "chainId": 8453,
         "verifyingContract": ASSET.lower()}
     assert result.typed[0]["primaryType"] == "TransferWithAuthorization"
     assert [r.url.path for r in result.requests] == [
