@@ -119,6 +119,48 @@ def test_governing_law_and_entity_form_are_not_the_same_thing() -> None:
     ) == frozenset({"IE"})
 
 
+_MISTRAL_TERMS = (
+    "provided by Mistral AI, a French limited joint-stock corporation, "
+    "incorporated in Paris, under number 952 418 325, having its registered "
+    "offices at 15 rue des Halles, 75001 Paris, France"
+)
+_MISTRAL_PRIVACY = (
+    "Mistral AI is a French company incorporated in Paris, under number "
+    "952 418 325, having its registered offices at 15 rue des Halles, 75001 Paris"
+)
+
+
+def test_french_incorporation_reads_as_fr() -> None:
+    assert jurisdiction_codes(_MISTRAL_TERMS) == frozenset({"FR"})
+    assert jurisdiction_codes(_MISTRAL_PRIVACY) == frozenset({"FR"})
+    assert jurisdiction_codes("incorporated in France") == frozenset({"FR"})
+    assert jurisdiction_codes(
+        "organised under the laws of the French Republic"
+    ) == frozenset({"FR"})
+    assert jurisdiction_codes("incorporated in Paris") == frozenset({"FR"})
+    assert jurisdiction_codes("société par actions simplifiée") == frozenset({"FR"})
+    assert jurisdiction_codes("R.C.S. Paris") == frozenset({"FR"})
+    assert jurisdiction_codes("RCS Paris") == frozenset({"FR"})
+    assert jurisdiction_codes(
+        "It is a French société anonyme, registered under number 952 418 325."
+    ) == frozenset({"FR"})
+    assert jurisdiction_codes(
+        "It is a French SAS, incorporated in 2023."
+    ) == frozenset({"FR"})
+
+
+def test_french_language_place_and_governing_law_are_not_incorporation() -> None:
+    assert jurisdiction_codes("French language") == frozenset()
+    assert jurisdiction_codes("French translation") == frozenset()
+    assert jurisdiction_codes("in French") == frozenset()
+    assert jurisdiction_codes("Paris") == frozenset()
+    assert jurisdiction_codes("governed by French law") == frozenset()
+    assert jurisdiction_codes("This agreement is governed by the laws of France.") == frozenset()
+    assert jurisdiction_codes("under the laws of France") == frozenset()
+    assert jurisdiction_codes("a French SAS") == frozenset()
+    assert jurisdiction_codes("a French company law") == frozenset()
+
+
 def test_an_exhibit_21_cell_is_a_whole_suffix_then_a_state() -> None:
     assert jurisdiction_codes("Zinc | Texas") == frozenset()
     assert jurisdiction_codes("Limited | Washington state office") == frozenset()

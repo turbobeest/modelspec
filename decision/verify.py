@@ -4786,6 +4786,21 @@ _INCORPORATION_PHRASES: tuple[tuple[re.Pattern[str], str], ...] = (
     (re.compile(r"(?i)\b" + _FORMED + r" in (?:the federal republic of )?germany\b"), "DE"),
     (re.compile(r"(?i)\bgesellschaft mit beschr[aä]nkter haftung\b"), "DE"),
     (re.compile(r"(?i)\bamtsgericht\b(?:\s+\S+){0,6}\s+hrb\b"), "DE"),
+    # Formation next to France or Paris, a French legal form the same sentence
+    # says was incorporated or registered, or the Paris RCS entry. "French" as
+    # a language and "governed by French law" are not incorporation.
+    (re.compile(
+        r"(?i)\b" + _FORMED + r" (?:in|under the laws of) (?:the french republic|france)\b"
+    ), "FR"),
+    (re.compile(r"(?i)\b" + _FORMED + r" in paris\b"), "FR"),
+    (re.compile(
+        r"(?i)\ba french (?:"
+        r"limited joint-stock corporation|société par actions simplifiée|société anonyme|"
+        r"company|corporation|sas|sa)\b(?! (?:law|act|code)\b)"
+        r"[^.]*\b(?:incorporated|registered)\b"
+    ), "FR"),
+    (re.compile(r"(?i)\bsociété par actions simplifiée\b"), "FR"),
+    (re.compile(r"(?i)\br\.?c\.?s\.?\s+paris\b"), "FR"),
     (re.compile(r"(?i)\b" + _FORMED + r" (?:in|under the laws of) (?:the republic of )?singapore\b"), "SG"),
     # An Exhibit 21 row is a whole legal suffix, a pipe, then the state, and the
     # state ends the cell. "Zinc" is not "Inc". A pipe before a state name in
