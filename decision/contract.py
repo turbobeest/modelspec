@@ -2088,9 +2088,16 @@ RowField = Literal[
 ]
 
 
+class RouterConfigOptions(_Strict):
+    format: Literal["litellm", "openrouter", "json"]
+    include_rest: bool = False
+    include_thin: bool = False
+
+
 class ResponseOptions(_Strict):
     fields: list[RowField] | None = Field(default=None, min_length=1, max_length=16)
     evidence_for: ModelId | None = None
+    router_config: RouterConfigOptions | None = None
 
 
 class DecideRequest(Spec, ResponseOptions):
@@ -2184,6 +2191,9 @@ BoundedDecision = create_model(
     #: Experimental human summary link. MODEL-353 issues it only with the
     #: Worker flag enabled; absent by default, including every library projection.
     decision_url=(str, ""),
+    #: Complete router configuration, present only when explicitly requested.
+    #: The byte budget may refuse it, but never removes entries from the list.
+    router_config=(str, ""),
     #: Facts a report of this answer has to carry. Added in bounded 1.0 by
     #: MODEL-339. Optional, same rule as ``summary_for_user``.
     must_mention=(list[str], Field(default_factory=list)),

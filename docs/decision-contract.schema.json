@@ -713,6 +713,11 @@
           "title": "Results",
           "type": "array"
         },
+        "router_config": {
+          "default": "",
+          "title": "Router Config",
+          "type": "string"
+        },
         "signature_verified": {
           "title": "Signature Verified",
           "type": "boolean"
@@ -1820,6 +1825,17 @@
           ],
           "default": null,
           "title": "Profile"
+        },
+        "router_config": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RouterConfigOptions"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "save_as": {
           "anyOf": [
@@ -5445,6 +5461,35 @@
         "offering"
       ],
       "title": "Result",
+      "type": "object"
+    },
+    "RouterConfigOptions": {
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "enum": [
+            "litellm",
+            "openrouter",
+            "json"
+          ],
+          "title": "Format",
+          "type": "string"
+        },
+        "include_rest": {
+          "default": false,
+          "title": "Include Rest",
+          "type": "boolean"
+        },
+        "include_thin": {
+          "default": false,
+          "title": "Include Thin",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "format"
+      ],
+      "title": "RouterConfigOptions",
       "type": "object"
     },
     "SeparatedAnswer": {

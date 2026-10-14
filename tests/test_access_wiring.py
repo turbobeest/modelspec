@@ -438,6 +438,7 @@ def test_with_no_tier_table_a_key_is_refused_and_anonymous_is_unaffected(
         entry, data, monkeypatch, tmp_path):
     import access_config
     monkeypatch.setattr(access_config, "DEFAULT_POLICY_PATH", tmp_path / "absent.json")
+    monkeypatch.setitem(sys.modules, "tier_policy", None)
     env = _env(access=WorkersKV(), tier_policy=False)
     keyed = _call(entry, env, Request(*RANK, key="live_x"))
     assert keyed.status == 500

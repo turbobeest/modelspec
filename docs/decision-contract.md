@@ -1152,13 +1152,15 @@ offering rows, not unique models, and never changes the full `answer.members`.
 - `router_config`: `{format: litellm|openrouter|json, include_rest: false,
   include_thin: false}`. `format` is required. Both band switches are optional
   booleans, default false. A non-null value opts into bounded output even
-  with `fields: null`. The Worker renders the complete decision before
+  with `fields: null`. It requires an API key even when access enforcement
+  is off; a human or visit token does not admit a router-config request.
+  The Worker renders the complete decision before
   trimming and returns the text as optional `router_config`. It uses the
   existing verified identifier and placeholder rules above. The spec hash
   and ranking are unchanged. The configuration counts toward the existing
   16,384-byte MCP text budget and is never shortened or omitted. If it cannot
   fit with the essentials, HTTP 400 `invalid_spec` names `router_config` and
-  asks for fewer bands or a narrower spec. Empty selections return HTTP 400
+  asks for fewer bands or a narrower spec. Unrenderable decisions return HTTP 400
   with bounded identity and `no_qualifying_models`, `no_bands` or
   `empty_allow_list`; these codes belong only to the new opt-in
   `DecisionRouterConfigRefused` schema. Existing refusal enums are unchanged.

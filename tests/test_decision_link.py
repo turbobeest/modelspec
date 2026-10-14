@@ -71,7 +71,7 @@ def test_flag_off_agent_copy_bytes_match_base():
     assert hashlib.sha256(agent_copy.render(agent_copy.copy()).encode()).hexdigest() == "408bf5a9093e7efea7945409d9f73ce90036bf8822d43d524f9f41398b6da056"
     assert hashlib.sha256(agent_copy.guide()[1].encode()).hexdigest() == "b6b3273038117d903338bf62145486382a1f0bd511a2a8920df50fd2743cb6ec"
     raw = json.dumps(agent_copy.cli_text(), sort_keys=True).encode()
-    assert hashlib.sha256(raw).hexdigest() == "10a1d742de8ec6bf43b6c80f3863ada4ef538480a41b81a98149bad18e9db502"
+    assert hashlib.sha256(raw).hexdigest() == "8732c38e5dc3047469dfae98ee50a83ab8c0538d6f4162ec9cda0fb6368e2793"
 
 
 def test_decision_link_flag_is_off_in_every_deployed_config():
