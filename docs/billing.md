@@ -545,7 +545,7 @@ No secret belongs in this repository. Tests sign fixtures with a throwaway
 
 ## Sale alerts
 
-A confirmed Stripe sale, or an x402 settlement whose credits the ledger accepts, schedules one Pushover notice. The message is the catalog price and product, then `card` or `x402` plus a 6-character transaction prefix. `ttl` defaults to 900 seconds and is clamped to 60–86400. Priority is 0. The notice leaves out the API key, email, card number, wallet, and full transaction hash. A failed push leaves the sale as recorded. A webhook retry or a replayed settlement does not push a second time. `SALE_ALERTS_ENABLED` ships as `"0"`.
+A confirmed Stripe sale, or an x402 settlement whose credits the ledger accepts, schedules one Pushover notice. The message is the catalog price and product, then `card` or `x402` plus a 6-character transaction prefix. The notification auto-deletes after 5 seconds. `ttl` defaults to 5 seconds and is clamped to 1–86400. No sale history is kept beyond the dedupe marker. Priority is 0. The notice leaves out the API key, email, card number, wallet, and full transaction hash. A failed push leaves the sale as recorded. A webhook retry or a replayed settlement does not push a second time. `SALE_ALERTS_ENABLED` ships as `"0"`.
 
 Jamie's steps:
 

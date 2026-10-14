@@ -163,8 +163,10 @@
     // CDP_JWT is a local-testing override used only when those two secrets are
     // absent, and it is refused when X402_MAINNET is on.
     // MODEL-391. Sale alerts stay off until Jamie sets the Pushover secrets.
+    // The notice auto-deletes after 5 seconds. Nothing here keeps a sale
+    // history beyond the dedupe marker in the sale stores.
     "SALE_ALERTS_ENABLED": "0",
-    "SALE_ALERT_TTL_SECONDS": "900"
+    "SALE_ALERT_TTL_SECONDS": "5"
   },
   // MODEL-75. One Durable Object for the credit ledger. Workers KV cannot
   // keep a balance non-negative under concurrent requests (no compare-and-set,
@@ -218,8 +220,9 @@
         "X402_ASSET": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
         "X402_PAY_TO": "0x1e62c42388271C68ce55e7E39d85912ACB918529",
         "X402_FACILITATOR_URL": "https://api.cdp.coinbase.com/platform",
+        // MODEL-391. Same 5-second auto-delete as production.
         "SALE_ALERTS_ENABLED": "0",
-        "SALE_ALERT_TTL_SECONDS": "900"
+        "SALE_ALERT_TTL_SECONDS": "5"
       },
       "durable_objects": {
         "bindings": [

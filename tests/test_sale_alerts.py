@@ -143,7 +143,7 @@ def fields(body: str) -> dict[str, list[str]]:
     return parse_qs(body, keep_blank_values=True)
 
 
-def test_a_stripe_pack_sale_pushes_once_with_ttl_900(policy, pushes):
+def test_a_stripe_pack_sale_pushes_once_with_ttl_5(policy, pushes):
     kv = access_kv.MemoryKV()
     ctx = Ctx()
     env = alert_env()
@@ -167,7 +167,7 @@ def test_a_stripe_pack_sale_pushes_once_with_ttl_900(policy, pushes):
     assert form["user"] == [USER]
     assert form["title"] == ["ModelSpec sale"]
     assert form["priority"] == ["0"]
-    assert form["ttl"] == ["900"]
+    assert form["ttl"] == ["5"]
     assert form["message"] == ["$5.00 · 250-credit pack · card"]
     assert EMAIL not in raw
     assert API_KEY not in raw
@@ -279,13 +279,12 @@ def test_off_or_missing_secrets_do_not_fetch(policy, pushes):
 
 
 @pytest.mark.parametrize("raw,ttl", [
-    (None, "900"),
-    ("", "900"),
-    ("nope", "900"),
-    ("900", "900"),
-    ("59", "60"),
-    ("0", "60"),
-    ("60", "60"),
+    (None, "5"),
+    ("", "5"),
+    ("nope", "5"),
+    ("5", "5"),
+    ("0", "1"),
+    ("1", "1"),
     ("86400", "86400"),
     ("86401", "86400"),
 ])
@@ -364,7 +363,7 @@ def test_x402_settle_pushes_once_and_a_replay_does_not(pushes):
     assert len(pushes.calls) == 1
     form = fields(pushes.calls[0][1])
     assert form["message"] == ["$5.00 · 250-credit pack · x402 · tx 0x1a2b…"]
-    assert form["ttl"] == ["900"]
+    assert form["ttl"] == ["5"]
     raw_body = pushes.calls[0][1]
     assert TX not in raw_body
     assert PAYER not in raw_body
@@ -526,9 +525,9 @@ def test_sale_alerts_ship_off():
     live = "\n".join(line for line in text.splitlines() if not line.lstrip().startswith("//"))
     config = json.loads(live)
     assert config["vars"]["SALE_ALERTS_ENABLED"] == "0"
-    assert config["vars"]["SALE_ALERT_TTL_SECONDS"] == "900"
+    assert config["vars"]["SALE_ALERT_TTL_SECONDS"] == "5"
     assert config["env"]["staging"]["vars"]["SALE_ALERTS_ENABLED"] == "0"
-    assert config["env"]["staging"]["vars"]["SALE_ALERT_TTL_SECONDS"] == "900"
+    assert config["env"]["staging"]["vars"]["SALE_ALERT_TTL_SECONDS"] == "5"
     assert "PUSHOVER_APP_TOKEN" not in live
     assert "PUSHOVER_USER_KEY" not in live
 

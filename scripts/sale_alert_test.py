@@ -5,7 +5,7 @@
 
 Reads PUSHOVER_APP_TOKEN and PUSHOVER_USER_KEY from the environment and exits
 before any network call when either is missing. Does not print those values.
-Optional SALE_ALERT_TTL_SECONDS defaults to 900 and is clamped to 60–86400.
+Optional SALE_ALERT_TTL_SECONDS defaults to 5 and is clamped to 1–86400.
 """
 
 from __future__ import annotations
@@ -16,8 +16,8 @@ from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 
 URL = "https://api.pushover.net/1/messages.json"
-_TTL_DEFAULT = 900
-_TTL_MIN = 60
+_TTL_DEFAULT = 5
+_TTL_MIN = 1
 _TTL_MAX = 86_400
 
 

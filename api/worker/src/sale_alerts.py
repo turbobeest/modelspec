@@ -28,8 +28,8 @@ import access
 
 PUSHOVER_URL = "https://api.pushover.net/1/messages.json"
 TIMEOUT_MS = 5_000
-_TTL_DEFAULT = 900
-_TTL_MIN = 60
+_TTL_DEFAULT = 5
+_TTL_MIN = 1
 _TTL_MAX = 86_400
 _seen: set[str] = set()
 
