@@ -2,10 +2,22 @@
 
 Base SHA: `56c39ac3a826af6f79f8755c49ed52b68bad37c4`.
 Initial delivery SHA: `365627fbcb7ffc63afe42261ac42c8eb8251f358`.
-Follow-up implementation SHA: `016c57d00003fe519982f947eab69302da77398c`, before the follow-up evidence commits.
-Follow-up full-suite SHA: `37ae52fe5ce9a9ec5a3dc993c80b5d211f1b07cd`.
+Decoder-follow-up implementation SHA: `016c57d00003fe519982f947eab69302da77398c`, before its evidence commits.
+Decoder-follow-up full-suite SHA: `37ae52fe5ce9a9ec5a3dc993c80b5d211f1b07cd`.
+MODEL-381 merge source: `e078f6562ce69099724a025a05b4016e8a1e5e4d`.
+Resolved merge and latest full-suite SHA: `55ffdfb59d1df9e9b5b3bab3de980b190f9f56b6`.
 The final delivery SHA is the commit containing this file. Resolve it with
 `git log -1 --format=%H -- docs/evidence/g2-ios/MODEL-384-fix.md`.
+
+The latest follow-up merges MODEL-381's router configuration with MODEL-384.
+Complete contract remains 2.18. Bounded advances from main's 1.4 to 1.5 under
+the orchestrator's explicit exception: main lacks `excluded_plans`,
+`with_estate.excluded_plans` and
+`with_estate.results[].estate.availability`. These optional fields reach
+bounded responses, so the combined representation adds fields to 1.4.
+Existing ranges remain unchanged. The merge preserves `router_config`,
+`pick`, intact configuration text, budget refusals and availability trimming.
+The web decoder is unchanged from the approved decoder follow-up.
 
 The orchestrator authorized the decoder, its tests and current generated web
 fixtures on 2026-10-14. That original scope boundary is resolved. The decoder
@@ -39,8 +51,9 @@ Complete contract 2.17 becomes 2.18. New optional fields are
 `Decision.excluded_plans`, `WithEstate.excluded_plans` and
 `EstateMark.availability`. Exclusions contain a plan ID and a reason. Ranked
 holders of a closed plan receive its availability and a sentence in
-`with_estate.gap.summary`. Bounded 1.3 adds optional exclusions and projects
-2.18; its existing fields retain their ranges. Main's MODEL-339 bounded 1.3,
+`with_estate.gap.summary`. The initial bounded 1.3 implementation added
+optional exclusions and projected 2.18; the latest merge records these
+additions as bounded 1.5 after main's 1.4. Main's MODEL-339 bounded 1.3,
 optional `pick` and withheld tie-breakers were preserved during the required
 merge. Unknown availability adds no
 availability field and preserves existing routes.
@@ -50,6 +63,99 @@ and known values under `estate.plans[].availability`. Exact facet lookup,
 compact search and the display projection retain these additions. The
 deterministic reader accepts explicit plan-scoped statements and labelled
 table cells. Other subscription fields retain their previous reader dispatch.
+
+## MODEL-381 merge follow-up
+
+The orchestrator reported cross-model approval of PR #742 and explicitly
+authorized resolving its conflicts with main, regenerating artifacts,
+verifying the combined branch and commenting on the PR. Its draft state was
+`true` before this follow-up. No ready/draft action was taken.
+
+`git fetch origin && git merge origin/main` exited 1 because ten files
+conflicted. Main was `e078f6562ce69099724a025a05b4016e8a1e5e4d`; branch HEAD
+was `ff3e62c180f6bb1ad7f644052903c1a88c92e4fc`. The resolution preserves both
+parents through merge commit `55ffdfb59d1df9e9b5b3bab3de980b190f9f56b6`.
+Version conflicts keep complete 2.18. Generated conflicts were regenerated
+from the combined source. Router rendering and both intact-config budget
+refusals match main; availability projection and whole-record trimming match
+the approved branch. The web decoder is unchanged.
+
+The bounded version is **1.5**. Direct comparison of main's schema and
+source shows that 1.4 includes `router_config` but lacks top-level
+`excluded_plans`, estate `excluded_plans` and holding `availability`.
+MODEL-384 adds those optional bounded fields, so the orchestrator's explicit
+exception requires an additive minor bump. Existing field ranges are
+unchanged. Both Python's version constant and literal schema and MCP's
+current-version constant are 1.5, with `projects_contract: "2.18"`.
+The MODEL-381 1.4 history remains in the documentation.
+
+Red-first version check:
+`test_bounded_worker_answer_keeps_plan_exclusion_reason` now also checks
+bounded identity, 1.5 and projection of 2.18. Before the version update it
+exited 1, `1 failed, 28 deselected in 0.37s`, with `assert '1.4' == '1.5'`.
+After the update it exited 0, `1 passed, 28 deselected in 0.34s`.
+Decision-link hash tests assert the live 2.18/1.5 metadata, then normalize
+exactly those version values to main's 2.17/1.4 before checking the original
+main hashes. All remaining bytes retain their hash protection.
+
+Schema, OpenAPI, agent copy, the MCP budget fixture and MCP tool fixtures
+were regenerated; all commands exited 0. Schema and OpenAPI checks also
+exited 0. The documented web writer exited 0, `13 passed in 0.45s`, and
+produced no committed diffs because those fixtures were already current.
+The ignored corpus was regenerated with exit 0 in 39.76s: 319 decisions,
+five vocabularies and an index. All 286 answered decisions and all five
+vocabularies use complete 2.18; this corpus contains no bounded responses.
+
+MCP `npm ci` exited 0, adding 236 packages. Typecheck exited 0. `npm test`
+exited 0, `166 passed` across nine files in 955ms. Web `npm ci` exited 0,
+adding 346 packages. Build exited 0; the existing unresolved font-reference
+warnings remain. Web `npm test` exited 0, `1236 passed` across 52 files in
+18.51s. Focused Python checks exited 0, `520 passed, 3 skipped in 38.09s`.
+Full pytest with the built web app at `55ffdfb5` exited **0**:
+`10598 passed, 9 skipped, 11 warnings in 1138.50s (0:18:58)`.
+Only the evidence changed after this validation revision. All started
+generator and test processes completed and their final statuses were read.
+
+Exact commands, from the worktree root unless a directory is specified:
+
+```sh
+git fetch origin && git merge origin/main
+TZ=UTC PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_subscription_availability.py -k bounded_worker
+TZ=UTC PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m decision.schema
+TZ=UTC PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/openapi.py
+TZ=UTC PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.agent_copy write
+TZ=UTC PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m qa.decide_budget
+TZ=UTC PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python qa/contracts.py
+MODELSPEC_WRITE_FIXTURES=1 TZ=UTC PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_decide_page_fixtures.py
+TZ=UTC PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m tests.corpus decisions --out web/src/decide/__corpus__
+TZ=UTC PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m decision.schema --check
+TZ=UTC PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/openapi.py --check
+TZ=UTC PYTHONPATH=$PWD PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_subscription_availability.py tests/test_decide_bounded.py tests/test_bounded_pick.py tests/test_decision_contract.py tests/test_architecture_facts.py tests/test_keyed_router_worker.py tests/test_keyed_router_cli.py tests/test_decision_link.py tests/test_api_docs.py
+TZ=UTC PYTHONPATH=$PWD PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
+```
+
+From `mcp/`, with Node 22 on PATH:
+
+```sh
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm ci
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm run typecheck
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm test
+```
+
+From `web/`:
+
+```sh
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:/Users/terbeest/dev/modelspec/.venv/bin:$PATH npm ci --no-audit --no-fund
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:/Users/terbeest/dev/modelspec/.venv/bin:$PATH PYTHONPATH=/Users/terbeest/dev/worktrees/model-384 npm run build
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm test
+```
+
+Each test exit was read directly from the process return code. The root
+shell saved `$?` immediately before displaying its log. No output pipe
+determined success. Tool versions match the earlier recorded versions.
+No live vendor, deployment, private-data or paid-provider observation was
+added by this follow-up.
+
 
 ## Red and green results
 
@@ -408,4 +514,5 @@ facts were added to the frozen public data. New facts belong in
 `modelspec-data`; engine routing changes only when the snapshot carries them.
 No production switch or ranking floor changed. No paid-provider, device or
 upload call, WSL gate, SSH, SCP, Linear write or PR merge was performed.
-Cross-model review remains pending on the draft PR.
+The orchestrator reported cross-model approval before the MODEL-381 merge
+follow-up. The PR's draft state is preserved.
