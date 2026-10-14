@@ -76,7 +76,7 @@ from functools import cache
 from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any, Literal, NamedTuple, Protocol
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlsplit
 
 import yaml
 from pydantic import JsonValue, ValidationError
@@ -2226,6 +2226,145 @@ class ModelPageExtractor:
             if any(phrase in corpus for phrase in phrases):
                 readings.append(Reading(subject=subject, value="supported"))
         return readings or [Reading(subject=subject, value=None)]
+
+
+def _model_spec_subject(claim: Claim, text: str) -> str | None:
+    """An exact model title or explicit model-name cell, never a name prefix."""
+    names = {normalise_name(name): name for name in claim.names}
+    for line in text.splitlines():
+        title = re.sub(r"^#{1,6}\s+", "", line.strip())
+        cells = [cell.strip() for cell in title.strip("| ").split("|")]
+        if len(cells) == 2 and normalise_name(cells[0]) in _SUBJECT_KEYS:
+            title = cells[1]
+        elif match := re.fullmatch(r"(?i)(?:model|model name|name)\s*:\s*(.+)", title):
+            title = match.group(1)
+        if normalise_name(title) in names:
+            return names[normalise_name(title)]
+    return None
+
+
+class MistralOutputModalitiesExtractor:
+    """Mistral's exact Reasoning output label describes a feature (MODEL-396)."""
+
+    actor = VerificationActor(agent=VERIFY_AGENT, model_family=DETERMINISTIC,
+                              method="mistral-output-labels@1")
+    _BOUNDARIES = frozenset({
+        "features", "input", "context", "context length", "price", "pricing", "licenses",
+        "license", "open weights", "speed rating", "performance rating", "status", "type",
+        "version", "release date", "api names",
+    })
+
+    @staticmethod
+    def bound_to(claim: Claim, kind: str | None, source_url: str | None) -> bool:
+        if claim.field != "model.output_modalities" or not claim.subject.startswith("mistral/") \
+                or kind != "lab_documentation" or source_url is None:
+            return False
+        try:
+            url = urlsplit(source_url)
+            return url.scheme == "https" and url.netloc == "docs.mistral.ai" \
+                and url.path.startswith("/models/") and len(url.path) > len("/models/")
+        except ValueError:
+            return False
+
+    @staticmethod
+    def _output_value(line: str) -> str | None:
+        line = re.sub(r"^[-*]\s+", "", line.strip())
+        if match := re.fullmatch(r"(?i)Output\s*:\s*(.*)", line):
+            return match.group(1)
+        cells = [cell.strip() for cell in line.strip("| ").split("|")]
+        if len(cells) == 2 and cells[0].casefold() == "output":
+            return cells[1]
+        return "" if line.casefold() == "output" else None
+
+    def accepts(self, text: str) -> bool:
+        return any(self._output_value(line) is not None for line in text.splitlines())
+
+    def extract(self, claim: Claim, text: str) -> list[Reading]:
+        if claim.field != "model.output_modalities":
+            return []
+        subject = _model_spec_subject(claim, text)
+        if subject is None:
+            return []
+        lines = [line.strip() for line in text.splitlines() if line.strip()]
+        blocks: list[set[str]] = []
+        for i, line in enumerate(lines):
+            value = self._output_value(line)
+            if value is None:
+                continue
+            if not value:
+                following = []
+                for other in lines[i + 1:]:
+                    label = normalise_name(re.split(r"[:|]", other, maxsplit=1)[0])
+                    if self._output_value(other) is not None or label in self._BOUNDARIES:
+                        break
+                    following.append(other)
+                value = ", ".join(following)
+            blocks.append({item.strip().casefold()
+                           for item in re.split(r",|;|\band\b", value, flags=re.IGNORECASE)
+                           if item.strip()})
+        if not blocks or any(block != blocks[0] for block in blocks[1:]):
+            return []
+        outputs = blocks[0] - {"reasoning"}
+        allowed = default_registry().facet("model.output_modalities").value_type.values
+        if not outputs.intersection(allowed):
+            return []
+        return [Reading(subject, ", ".join(sorted(outputs)))]
+
+
+class ModelPropertiesOutputLimitExtractor:
+    """Read the text output cell in a four-column model-properties table."""
+
+    actor = VerificationActor(agent=VERIFY_AGENT, model_family=DETERMINISTIC,
+                              method="model-properties-output-limit@1")
+    _HEADER = ["input type", "maximum size", "output type", "maximum size"]
+    _TOKENS = re.compile(r"(?i)\d[\d,]*(?:\.\d+)?\s*(?:[km]\s*)?tokens?")
+
+    @staticmethod
+    def _cells(line: str) -> list[str]:
+        return [cell.strip() for cell in line.strip("| ").split("|")]
+
+    def accepts(self, text: str) -> bool:
+        return any([normalise_name(cell) for cell in self._cells(line)] == self._HEADER
+                   for line in text.splitlines())
+
+    def extract(self, claim: Claim, text: str) -> list[Reading]:
+        if claim.field != "model.max_output_tokens":
+            return []
+        subject = _model_spec_subject(claim, text)
+        if subject is None:
+            return []
+        lines = text.splitlines()
+        values: list[tuple[str, float]] = []
+        for i, line in enumerate(lines):
+            if [normalise_name(cell) for cell in self._cells(line)] != self._HEADER:
+                continue
+            found_text = False
+            for row in lines[i + 1:]:
+                if not row.strip():
+                    continue
+                if "|" not in row:
+                    break
+                cells = self._cells(row)
+                if [normalise_name(cell) for cell in cells] == self._HEADER:
+                    break
+                if len(cells) != 4:
+                    return []
+                if all(re.fullmatch(r"[-:]+", cell) for cell in cells):
+                    continue
+                if normalise_name(cells[2]) != "text":
+                    continue
+                quantity = parse_quantity(cells[3])
+                if self._TOKENS.fullmatch(cells[3]) is None or quantity is None \
+                        or quantity.unit not in {"tokens", "k_tokens", "m_tokens"} \
+                        or quantity.number <= 0:
+                    return []
+                values.append((cells[3], quantity.number * UNITS[quantity.unit][1]))
+                found_text = True
+            if not found_text:
+                return []
+        if not values or any(value[1] != values[0][1] for value in values[1:]):
+            return []
+        return [Reading(subject, values[0][0])]
 
 
 ARCHITECTURE_FACTS = frozenset(
@@ -5288,6 +5427,7 @@ def deterministic_extractors() -> list[Extractor]:
             OfferingPriceExtractor(),
             SubscriptionPageExtractor(), TableExtractor(), TransposedTableExtractor(),
             GovernanceProseExtractor(), KeyValueExtractor(), ModelPageExtractor(),
+            MistralOutputModalitiesExtractor(), ModelPropertiesOutputLimitExtractor(),
             LabJurisdictionExtractor()]
 
 
@@ -5872,11 +6012,20 @@ def _readers_for(extractors: Sequence[Extractor], claim: Claim, text: str,
         return [extractor for extractor in extractors if isinstance(extractor, LicenceExtractor)
                 or isinstance(extractor, LicenceTermsExtractor)
                 and len(extractor.values(claim.field, text, licence_url=source_url)) == 1]
+    specialized = [extractor for extractor in extractors if (
+        isinstance(extractor, MistralOutputModalitiesExtractor)
+        and extractor.bound_to(claim, kind, source_url)
+        or isinstance(extractor, ModelPropertiesOutputLimitExtractor)
+        and claim.field == "model.max_output_tokens" and kind == "lab_documentation"
+    ) and extractor.accepts(text)]
+    if specialized:
+        return specialized
     chosen = []
     for extractor in extractors:
         if isinstance(extractor, (
             LicenceExtractor, CanonicalLicenceExtractor, LicenceTermsExtractor, HFConfigExtractor,
             HFParametersExtractor, ModelCardParamsExtractor, DenseActiveEqualsTotalExtractor,
+            MistralOutputModalitiesExtractor, ModelPropertiesOutputLimitExtractor,
         )):
             continue
         accepts = extractor.accepts
@@ -6075,10 +6224,7 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
                 reasons.append(f"unreachable:{where}")
                 continue
             reachable = True
-            source_url = None
-            if claim.field.startswith("licence."):
-                url_of = getattr(regions, "source_url", None)
-                source_url = url_of(source.source_id) if callable(url_of) else None
+            source_url = url_of(source.source_id) if callable(url_of) else None
             accepting = _readers_for(ordered, claim, text, kind, source_url=source_url)
             independent = [e for e in accepting if _independent(claim, e.actor, today)]
             if not independent:
