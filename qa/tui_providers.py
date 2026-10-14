@@ -198,10 +198,15 @@ def build_command(
             common += codex_config_args(settings, mcp_file)
             common += ["-c", 'web_search="live"' if search else 'web_search="disabled"']
         else:
+            # A persisted untrusted grant for /work drops cwd AGENTS.md. This
+            # override applies to the positive control only and does not write
+            # the login volume. Isolated and scenario commands pin untrusted.
             common += [
                 "--dangerously-bypass-hook-trust",
                 "-c",
                 f"model_reasoning_effort={settings['effort']}",
+                "-c",
+                'projects={"/work"={trust_level="trusted"}}',
             ]
         return common + ["--", "-"]
     if cli == "gemini":
