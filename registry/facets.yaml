@@ -396,7 +396,7 @@ facets:
       to, those terms.
     tier: guaranteed
     risk: governance
-    permitted_source_kinds: [licence_text]
+    permitted_source_kinds: [licence_text, provider_terms]
   - id: licence.output_training
     label: Training on outputs
     subject: model

@@ -21,7 +21,8 @@ readers. ``LicenceExtractor`` reads a ``licence.*`` claim through that same
 completion function, and only from a source kind the facet permits.
 ``CanonicalLicenceExtractor`` reads a canonical MIT or Apache-2.0
 ``licence_text`` first, and the licence reader is not asked about a text it
-accepts. Other
+accepts. ``LicenceTermsExtractor`` reads registered operative-sentence hashes
+before the completion reader. It does not infer silence from prose. Other
 cited regions are binding pages, not readings. Deterministic extractors
 still read a ``licence_text`` source for every other claim. An absence
 verifies only from a source kind the facet permits; a ``licence.*`` absence
@@ -72,6 +73,7 @@ from dataclasses import dataclass, field, replace
 from datetime import UTC, date, datetime
 from decimal import Decimal
 from functools import cache
+from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any, Literal, NamedTuple, Protocol
 from urllib.parse import urljoin
@@ -4166,6 +4168,190 @@ class LicenceExtractor:
         return [Reading(subject=subject, value=shown, unit=unit)]
 
 
+class LicenceSentenceTemplate(NamedTuple):
+    """One curated sentence in a reviewed source region; no retained legal text."""
+
+    source_family: str
+    source_url: str
+    region_sha256: str
+    sentence_sha256: str
+    facet: str
+    value: str
+    label: str
+
+
+class _LicenceProseParser(HTMLParser):
+    """Remove markup once, preserving element text and literal angle brackets."""
+
+    _blocks = frozenset({"p", "li", "br", "div", "td", "th", "h1", "h2", "h3",
+                         "h4", "h5", "h6"})
+
+    def __init__(self) -> None:
+        super().__init__(convert_charrefs=True)
+        self.parts: list[str] = []
+
+    def handle_data(self, data: str) -> None:
+        self.parts.append(data)
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        if tag in self._blocks:
+            self.parts.append("\n")
+
+    def handle_endtag(self, tag: str) -> None:
+        if tag in self._blocks:
+            self.parts.append("\n")
+
+    def handle_comment(self, data: str) -> None:
+        # HTML comments are not rendered. Their words cannot alter the visible
+        # operative sentence, even when they contain tags, bans or negation.
+        pass
+
+
+def _licence_prose(text: str) -> str:
+    parser = _LicenceProseParser()
+    parser.feed(text)
+    parser.close()
+    return "".join(parser.parts)
+
+
+def _fold_licence_prose(prose: str) -> str:
+    return re.sub(r"\s+", " ", prose.translate(_LICENCE_QUOTE_CHARS)).strip().casefold()
+
+
+def normalise_licence_sentence(text: str) -> str:
+    """Fold visible text, whitespace, quote forms and case, retaining punctuation."""
+    return _fold_licence_prose(_licence_prose(text))
+
+
+def licence_sentences(text: str) -> tuple[str, ...]:
+    """Normalised plain sentences; decoded visible text is never parsed again."""
+    prose = _licence_prose(text)
+    return tuple(_fold_licence_prose(part)
+                 for part in re.split(r"(?<=[.!?])\s+|\n+", prose) if part.strip())
+
+
+def licence_sentence_hash(text: str) -> str:
+    return hashlib.sha256(normalise_licence_sentence(text).encode("utf-8")).hexdigest()
+
+
+# Seeded offline from data PR #80's retained regions. Sentence and context hashes
+# are exact; labels paraphrase the rights read. No private source text is stored.
+LICENCE_SENTENCE_TEMPLATES: tuple[LicenceSentenceTemplate, ...] = (
+    LicenceSentenceTemplate(
+        source_family="gemini-api-terms",
+        source_url="https://ai.google.dev/gemini-api/terms",
+        region_sha256="6c0e3166eca75ffdae0b11e7e6d35ffd2b49f643e7282f2bfb629a736a2734a5",
+        sentence_sha256="5fd684fb3615098c9385a5f7fb6c021a205c9633a7841d72dd5c8ffc144097bc",
+        facet="licence.output_training",
+        value="restricted",
+        label="Grounded-search output training restriction",
+    ),
+    LicenceSentenceTemplate(
+        source_family="openai-services-agreement",
+        source_url="https://openai.com/policies/services-agreement/",
+        region_sha256="8a06c8a88c1e26e848092604bdd6fcb3f534aec80dd96e4f5462aedff9ac6c7f",
+        sentence_sha256="3407fbe7a3601cb59daa07eb28a6fc746e868179c54be5318ae63e425ddc979f",
+        facet="licence.commercial_use",
+        value="permitted_with_conditions",
+        label="Customer access under agreement",
+    ),
+    LicenceSentenceTemplate(
+        source_family="openai-services-agreement",
+        source_url="https://openai.com/policies/services-agreement/",
+        region_sha256="8a06c8a88c1e26e848092604bdd6fcb3f534aec80dd96e4f5462aedff9ac6c7f",
+        sentence_sha256="fb9af22e755b31e4e967593a89796a263bdb0ba2408dfd0bcf8e2494456af9a1",
+        facet="licence.output_training",
+        value="restricted",
+        label="Competing-model output limits with exceptions",
+    ),
+    LicenceSentenceTemplate(
+        source_family="typesafe-mca",
+        source_url="https://typesafe.ai/legal/mca",
+        region_sha256="04680bf41c2aa2a4393a6856e228dd7800613118c638fc53a7200404a201e423",
+        sentence_sha256="1276aa3df0476534ea590a4d7d0aaf94aea70be305982114333f2a73c5179da0",
+        facet="licence.commercial_use",
+        value="permitted_with_conditions",
+        label="Conditional customer/API licence",
+    ),
+    LicenceSentenceTemplate(
+        source_family="typesafe-mca",
+        source_url="https://typesafe.ai/legal/mca",
+        region_sha256="04680bf41c2aa2a4393a6856e228dd7800613118c638fc53a7200404a201e423",
+        sentence_sha256="86a6044662850300e9c71196059b4749c5f58e4e7157fcf711495e7edc7e54f9",
+        facet="licence.output_training",
+        value="restricted",
+        label="Customer output distillation and imitation limits",
+    ),
+    LicenceSentenceTemplate(
+        source_family="meta-api-terms",
+        source_url="https://dev.meta.ai/legal/terms-of-service",
+        region_sha256="d2c86ed7725d564d163114111fb629b28bd4e5989eeb893137aff91bbdfc70d4",
+        sentence_sha256="748e8183fa0d3d264be2749157edd784eb57beb7ff5a2d9d6a6b6bee7b015af8",
+        facet="licence.commercial_use",
+        value="permitted_with_conditions",
+        label="Conditional integrated-product grant",
+    ),
+)
+
+
+class LicenceTermsExtractor:
+    """Read registered operative sentences within their reviewed source context.
+
+    A changed sentence or region requires another review. Unknown clauses do not
+    imply rights, prohibitions or an absent cap. Source-kind and binding checks
+    still apply. A numeric MAU agreement clause can also stand alone.
+    """
+
+    actor = VerificationActor(
+        agent=VERIFY_AGENT, model_family=DETERMINISTIC, method="licence-terms@3",
+    )
+
+    def __init__(self, *, templates: Sequence[LicenceSentenceTemplate] | None = None) -> None:
+        self.templates = tuple(LICENCE_SENTENCE_TEMPLATES if templates is None else templates)
+
+    def accepts(self, text: str) -> bool:
+        return False  # Licence claims dispatch by source kind, URL and registered reading.
+
+    def values(self, field: str, text: str, *, licence_url: str | None = None) -> set[str]:
+        region_hash = licence_sentence_hash(text)
+        hashes = {hashlib.sha256(sentence.encode("utf-8")).hexdigest()
+                  for sentence in licence_sentences(text)}
+        values = {
+            template.value for template in self.templates
+            if template.source_url == licence_url and template.facet == field
+            and template.region_sha256 == region_hash and template.sentence_sha256 in hashes
+        }
+        if field == "licence.user_cap":
+            # The entire cited region must be this one statement, with no other
+            # context that could make the threshold illustrative or nonoperative.
+            sentence = normalise_licence_sentence(text)
+            match = re.fullmatch(
+                r"if (?:you|the licensee) (?:exceed|serve more than) "
+                r"((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?(?: (?:million|billion))?) "
+                r"monthly active users, (?:you must obtain a separate (?:agreement|licen[cs]e)"
+                r"|a separate (?:agreement|licen[cs]e) is required)\.",
+                sentence,
+            )
+            if match:
+                number, _, magnitude = match.group(1).partition(" ")
+                scale = {"": 1, "million": 1_000_000, "billion": 1_000_000_000}[magnitude]
+                values.add(str(Decimal(number.replace(",", "")) * scale))
+        return values
+
+    def extract(self, claim: Claim, text: str, *, bindings: Sequence[str] = (),
+                binding_urls: Sequence[str | None] | None = None,
+                licence_url: str | None = None, **_extra: object) -> list[Reading]:
+        values = self.values(claim.field, text, licence_url=licence_url)
+        if len(values) != 1:
+            raise ExtractorError(f"no unambiguous registered sentence for {claim.field}")
+        subject = claim.names[0] if licence_is_bound(
+            claim.names, bindings, licence_url, subject=claim.subject, page_urls=binding_urls,
+            licence_text=text, base_model=claim.base_model,
+        ) else None
+        unit = "monthly_active_users" if claim.field == "licence.user_cap" else None
+        return [Reading(subject, values.pop(), unit)]
+
+
 class CanonicalClause(NamedTuple):
     """A canonical licence facet: the value, a verbatim clause, and the rule key."""
 
@@ -4478,7 +4664,8 @@ if _APPENDIX_HEAD in CANONICAL_LICENCE_BODIES["apache-2.0"]:
 #: Exact ``(before, after)`` text around a canonical body, after
 #: :func:`_canonical_form` and whitespace stripping. For Apache-2.0, ``after``
 #: is what remains once the canonical appendix is removed, so it is the
-#: copyright line between the how-to and the boilerplate.
+#: copyright line between the how-to and the boilerplate, or empty for complete
+#: operative terms without that optional appendix.
 #:
 #: DeepSeek-V4-Pro, DeepSeek-V4.1-Flash, and ``model-143-deepseek-v4-license``
 #: are the same retained bytes as DeepSeek-V3.1, so they share that pair.
@@ -4496,6 +4683,7 @@ CANONICAL_LICENCE_RESIDUALS: dict[str, frozenset[tuple[str, str]]] = {
         ("MIT License Copyright (c) 2026 Zhipu AI", ""),
     }),
     "apache-2.0": frozenset({
+        ("", ""),  # Complete operative terms; the application appendix is optional.
         ("", "Copyright [yyyy] [name of copyright owner]"),
         ("", "Copyright 2024 Alibaba Cloud"),
     }),
@@ -4587,6 +4775,8 @@ def _strip_apache_appendix(residual: str) -> str | None:
     if tail_at < 0 or "APPENDIX:" in residual[tail_at + len(_APPENDIX_TAIL):]:
         return None
     holder = residual[holder_at:tail_at].strip()
+    if not holder:
+        return None
     end = tail_at + len(_APPENDIX_TAIL)
     left = residual[:start].strip()
     right = residual[end:].strip()
@@ -4599,8 +4789,9 @@ def _canonical_licence_id(text: str) -> str | None:
     The signature has to match and the canonical body has to be present. The
     text before and after that body, after :func:`_canonical_form` and
     whitespace stripping, has to be a pair in :data:`CANONICAL_LICENCE_RESIDUALS`.
-    For Apache-2.0 the appendix how-to and boilerplate are removed first, and
-    the copyright line that was between them is the ``after`` value.
+    For Apache-2.0 an optional appendix how-to and boilerplate are removed first,
+    and the copyright line that was between them is the ``after`` value.
+    The complete operative terms alone have an empty residual pair.
 
     Returns ``None`` when the notice-retention rule is no longer the one this
     table applies, when a red-flag phrase is present, when the text outside
@@ -4655,7 +4846,7 @@ for _spdx, _pairs in CANONICAL_LICENCE_RESIDUALS.items():
         _plain = _text_around_body(_spdx, _before, _after, appendix=False)
         if _canonical_licence_id(_plain) != _spdx:
             raise RuntimeError(f"{_spdx} residual is not recognised around the body")
-        if _spdx == "apache-2.0" and _canonical_licence_id(
+        if _spdx == "apache-2.0" and _after and _canonical_licence_id(
             _text_around_body(_spdx, _before, _after, appendix=True)
         ) != _spdx:
             raise RuntimeError(f"{_spdx} residual is not recognised with the appendix")
@@ -5032,7 +5223,8 @@ class LabJurisdictionExtractor:
 
 def deterministic_extractors() -> list[Extractor]:
     return [HFConfigExtractor(), ModelCardParamsExtractor(), DenseActiveEqualsTotalExtractor(),
-            HFParametersExtractor(), CanonicalLicenceExtractor(), StructuredDataExtractor(),
+            HFParametersExtractor(), CanonicalLicenceExtractor(), LicenceTermsExtractor(),
+            StructuredDataExtractor(),
             OfferingPriceExtractor(),
             SubscriptionPageExtractor(), TableExtractor(), TransposedTableExtractor(),
             GovernanceProseExtractor(), KeyValueExtractor(), ModelPageExtractor(),
@@ -5592,14 +5784,15 @@ def _absence_block(claim: Claim, regions: Regions, source_id: str) -> list[Diff]
 
 
 def _readers_for(extractors: Sequence[Extractor], claim: Claim, text: str,
-                 kind: str | None) -> list[Extractor]:
+                 kind: str | None, *, source_url: str | None = None) -> list[Extractor]:
     """Who may read this region.
 
     A ``licence.*`` claim is read only from a source kind in that facet's
     ``permitted_source_kinds``. ``CanonicalLicenceExtractor`` takes a
     ``licence_text`` region whose text is the canonical MIT licence or the
     Apache License 2.0 terms, and the licence reader is not asked about that
-    text. ``LicenceExtractor`` reads every other permitted region. Any other
+    text. ``LicenceTermsExtractor`` reads registered operative sentences before
+    ``LicenceExtractor`` on other permitted regions. Any other
     cited region is a binding page. It is not a reading, for a known value or
     an absence. Deterministic extractors still read a ``licence_text`` source
     for every other claim, including ``model.weights_openness`` and ``origin.*``.
@@ -5616,11 +5809,13 @@ def _readers_for(extractors: Sequence[Extractor], claim: Claim, text: str,
             ]
             if canonical:
                 return canonical
-        return [extractor for extractor in extractors if isinstance(extractor, LicenceExtractor)]
+        return [extractor for extractor in extractors if isinstance(extractor, LicenceExtractor)
+                or isinstance(extractor, LicenceTermsExtractor)
+                and len(extractor.values(claim.field, text, licence_url=source_url)) == 1]
     chosen = []
     for extractor in extractors:
         if isinstance(extractor, (
-            LicenceExtractor, CanonicalLicenceExtractor, HFConfigExtractor,
+            LicenceExtractor, CanonicalLicenceExtractor, LicenceTermsExtractor, HFConfigExtractor,
             HFParametersExtractor, ModelCardParamsExtractor, DenseActiveEqualsTotalExtractor,
         )):
             continue
@@ -5786,7 +5981,8 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
     ``permitted_source_kinds``. ``CanonicalLicenceExtractor`` reads a
     ``licence_text`` region when the text is the canonical MIT licence or the
     Apache License 2.0 terms, and ``LicenceExtractor`` is not asked about that
-    text. ``LicenceExtractor`` reads the other permitted regions. Other cited
+    text. ``LicenceTermsExtractor`` reads registered operative sentences before
+    ``LicenceExtractor`` on the other permitted regions. Other cited
     regions are binding pages. A binding page gives
     no outcome while the claim also cites a permitted kind. It is a
     ``source_kind`` mismatch only when the claim cites no permitted kind.
@@ -5819,7 +6015,11 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
                 reasons.append(f"unreachable:{where}")
                 continue
             reachable = True
-            accepting = _readers_for(ordered, claim, text, kind)
+            source_url = None
+            if claim.field.startswith("licence."):
+                url_of = getattr(regions, "source_url", None)
+                source_url = url_of(source.source_id) if callable(url_of) else None
+            accepting = _readers_for(ordered, claim, text, kind, source_url=source_url)
             independent = [e for e in accepting if _independent(claim, e.actor, today)]
             if not independent:
                 if _binding_page(claim, regions, kind):
@@ -5837,8 +6037,8 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
                 continue
             for extractor in independent:
                 try:
-                    if isinstance(extractor, (LicenceExtractor, CanonicalLicenceExtractor)):
-                        url_of = getattr(regions, "source_url", None)
+                    if isinstance(extractor, (LicenceExtractor, CanonicalLicenceExtractor,
+                                              LicenceTermsExtractor)):
                         pages, page_urls = _binding_pages(
                             claim, regions, source.source_id, region_id,
                         )
@@ -5848,7 +6048,7 @@ def verify(claim: Claim, regions: Regions, extractors: Sequence[Extractor], *,
                             cache_key=(source.snapshot_ref, region_id, claim.field),
                             bindings=pages,
                             binding_urls=page_urls,
-                            licence_url=url_of(source.source_id) if callable(url_of) else None,
+                            licence_url=source_url,
                         )
                     elif isinstance(extractor, LLMExtractor):
                         readings = extractor.extract(
@@ -6129,7 +6329,7 @@ __all__ = [
     "Claim", "CanonicalLicenceExtractor", "ClaudeCLICompletion", "CONDITION_KEYS", "Diff",
     "Extractor", "ExtractorError",
     "GovernanceProseExtractor", "KeyValueExtractor", "LLMCache", "LLMCallBudgetExceededError",
-    "LabJurisdictionExtractor",
+    "LabJurisdictionExtractor", "LicenceTermsExtractor",
     "LLMExtractor", "MISTRAL_MODEL", "ModelPageExtractor", "OLLAMA_URL", "OfferingPriceExtractor",
     "OLLAMA_JSON_MODE", "OllamaChatCompletion", "Quantity", "Queue", "Reading",
     "Regions", "Result",

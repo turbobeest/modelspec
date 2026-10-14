@@ -4084,7 +4084,7 @@ def test_a_readme_cannot_verify_a_licence_the_licence_text_contradicts() -> None
     assert stub.seen == []
 
 
-def test_user_cap_cited_to_provider_terms_does_not_verify() -> None:
+def test_user_cap_cited_to_lab_documentation_does_not_verify() -> None:
     calls: list[str] = []
 
     def complete(prompt: str) -> str:
@@ -4094,7 +4094,7 @@ def test_user_cap_cited_to_provider_terms_does_not_verify() -> None:
     readme = "Nimbus 3\nhttps://example.test/TERMS\n"
     regions = _KindRegions(
         {("nimbus-licence", "page"): MIT_TEXT, ("nimbus-readme", "page"): readme},
-        {"nimbus-licence": "provider_terms", "nimbus-readme": "weights_repository"},
+        {"nimbus-licence": "lab_documentation", "nimbus-readme": "weights_repository"},
         {"nimbus-licence": "https://example.test/TERMS"},
     )
     claim = _licence_claim("licence.user_cap", "unbounded", (_LICENCE, _README),
@@ -4284,6 +4284,7 @@ def test_a_modified_mit_is_not_accepted() -> None:
 # Measured from the retained copies, after ``_canonical_form`` and stripping.
 # DeepSeek-V4-Pro and DeepSeek-V4.1-Flash are the same bytes as V3.1.
 _RETAINED_RESIDUALS = (
+    ("complete-apache-operative-terms", "apache-2.0", "", ""),
     (
         "apache.org/LICENSE-2.0.txt",
         "apache-2.0",
@@ -4356,7 +4357,7 @@ def test_retained_canonical_residuals_are_accepted() -> None:
     for name, spdx, before, after in _RETAINED_RESIDUALS:
         body = verify.CANONICAL_LICENCE_BODIES[spdx]
         texts = [_around(before, body, after)]
-        if spdx == "apache-2.0":
+        if spdx == "apache-2.0" and after:
             texts.append(_around(before, body, f"{head}{after}{tail}"))
         for text in texts:
             assert extractor.accepts(text), name

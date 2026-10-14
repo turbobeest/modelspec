@@ -7,8 +7,8 @@ fact is absent, unknown, unverified in the log, or ``not_disclosed`` without
 a citation whose source kind is in that facet's ``permitted_source_kinds``.
 Exits non-zero when any model is listed.
 
-``licence.user_cap`` permits ``licence_text`` only. The other three also
-permit ``provider_terms``. A verified ``not_disclosed`` cited only to a
+All four facets permit ``licence_text`` and ``provider_terms``.
+A verified ``not_disclosed`` cited only to a
 README is still a gap.
 
 modelspec-data's data-trust audit should call this. Wiring that audit is a

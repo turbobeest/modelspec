@@ -83,7 +83,8 @@ def test_core_verification_refuses_licence_absence_without_source_kind(tmp_path:
 
     assert result.outcome == "mismatch"
     assert [diff.to_dict() for diff in result.diffs] == [{
-        "field": "source_kind", "expected": ["licence_text"], "found": "unknown",
+        "field": "source_kind", "expected": ["licence_text", "provider_terms"],
+        "found": "unknown",
     }]
 
 
@@ -104,7 +105,8 @@ def test_known_disallowed_licence_source_kind_remains_mismatch(
 
     assert result.details[0]["outcome"] == "mismatch"
     assert result.details[0]["diff"] == [{
-        "field": "source_kind", "expected": ["licence_text"], "found": "weights_repository",
+        "field": "source_kind", "expected": ["licence_text", "provider_terms"],
+        "found": "weights_repository",
     }]
     assert queue.recrawl_requests() == [(claim.target, "mismatch")]
     assert log.latest()[("fact", claim.target.id)].outcome == "mismatch"
