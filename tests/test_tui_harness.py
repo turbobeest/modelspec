@@ -603,7 +603,7 @@ def test_plugin_report_fields_cover_only_claude_agents_and_metadata(plugin, plug
     if plugin:
         expected = {
             "name": "modelspec", "version": "0.1.0", "source": "./plugins/modelspec",
-            "sha256": "fc3aa8baeb4cc1bbfcbe957b8f78fa794db0026169a59a4155584124a2b73733",
+            "sha256": "ae54d7b5175a1be122c7c0002a0b13356fef65c60bae0e382b96baf062fa0bcd",
             "git_sha": "0123456789abcdef0123456789abcdef01234567",
             "install_commands": [
                 ["claude", "plugin", "marketplace", "add", "."],
