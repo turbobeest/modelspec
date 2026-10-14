@@ -7,7 +7,7 @@ info:
   title: ModelSpec API
   version: '1.0'
   summary: Decides which AI models fit a job from your requirements, sourced evidence and real cost, and checks them against a compliance policy.
-  description: 'Start with the compact agent guide https://modelspec.dev/agents.md (version 1-a3bb2bee669261e7). Call decide early with a template-based Spec; refine
+  description: 'Start with the compact agent guide https://modelspec.dev/agents.md (version 1-31f80fb67e121e42). Call decide early with a template-based Spec; refine
     from reading and recovery hints.
 
 
@@ -499,11 +499,10 @@ paths:
         uncertainty, not the probability of matching the user''s task or satisfying its requirements. Read reading when present. Present answer.kind=tied among all
         answer.members, including with_estate; tie-breakers are conditional. State requirements in reading.not_applied or error.issues that were not applied, including
         requirements removed after a rejected call. A retry does not verify them. Report estimates as estimates: fits_hardware membership is not measured fit for
-        a specific quantization and context workload. Follow reading.do_not_claim. Never claim a rank the response does not show. Respect excluded_plans and their
-        reasons. A plan marked existing_subscribers_only is usable only through an existing estate holding; retired plans never route. Present `summary_for_user`
-        to the user unchanged and keep every `must_mention` item. When `next_move` is present, offer it instead of a pick. Needs an API key (Authorization: Bearer).
-        Costs 1 or 2 credits a call; a credit costs $0.0053–$0.02 depending on the plan or pack (https://modelspec.dev/pricing/). Not a router: call it once per job
-        or role, not per request, then route among the models it recommends.'
+        a specific quantization and context workload. Follow reading.do_not_claim. Never claim a rank the response does not show. Present `summary_for_user` to the
+        user unchanged and keep every `must_mention` item. When `next_move` is present, offer it instead of a pick. Needs an API key (Authorization: Bearer). Costs
+        1 or 2 credits a call; a credit costs $0.0053–$0.02 depending on the plan or pack (https://modelspec.dev/pricing/). Not a router: call it once per job or
+        role, not per request, then route among the models it recommends.'
   /v1/compare:
     post:
       operationId: compareDecisions
@@ -5914,4 +5913,4 @@ components:
       schema: {type: string, const: '<https://modelspec.dev/agents.md>; rel="describedby"'}
     AgentGuideVersion:
       description: Version of the byte-stable guide.
-      schema: {type: string, const: 1-a3bb2bee669261e7}
+      schema: {type: string, const: 1-31f80fb67e121e42}

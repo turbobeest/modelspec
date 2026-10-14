@@ -53,6 +53,16 @@ def signed_token(pinned_snapshot, decision_id, *, issued=1000, **changes):
     return encoded + "." + signature
 
 
+def _response_bytes_at_base_contract(response):
+    body = response.body
+    data = response.json()
+    field = "projects_contract" if data.get("representation") == "bounded" else "contract_version"
+    assert data[field] == "2.18"
+    current = f'"{field}":"2.18"'
+    assert body.count(current) == 1
+    return body.replace(current, f'"{field}":"2.17"', 1).encode()
+
+
 @pytest.mark.parametrize("flag", [None, "false", "0", "off", "no", ""])
 @pytest.mark.parametrize("controls,expected", [
     ({"fields": None}, "3dbe68054a3b321009d03eb836960864293a75f254450e8f81d3f034feecc657"),
@@ -63,7 +73,7 @@ def test_flag_off_response_bytes_match_base(entry, snapshot, monkeypatch, flag, 
     worker = worker_for(entry, snapshot, monkeypatch, DECISION_LINK_ENABLED=flag)
     response = decide(worker, **controls)
     assert response.status == 200
-    assert hashlib.sha256(response.body.encode()).hexdigest() == expected
+    assert hashlib.sha256(_response_bytes_at_base_contract(response)).hexdigest() == expected
     assert "decision_url" not in response.json()
 
 
@@ -190,7 +200,7 @@ def test_sensitive_inputs_do_not_get_links(entry, snapshot, monkeypatch, private
 def test_complete_and_drill_down_keep_their_budgets(entry, snapshot, monkeypatch):
     worker = worker_for(entry, snapshot, monkeypatch, DECISION_LINK_ENABLED="true")
     complete = decide(worker, fields=None)
-    assert hashlib.sha256(complete.body.encode()).hexdigest() == "3dbe68054a3b321009d03eb836960864293a75f254450e8f81d3f034feecc657"
+    assert hashlib.sha256(_response_bytes_at_base_contract(complete)).hexdigest() == "3dbe68054a3b321009d03eb836960864293a75f254450e8f81d3f034feecc657"
     drill = decide(worker, fields=None, evidence_for="lab/a").json()
     assert drill.get("decision_url")
     assert len(json.dumps(drill, ensure_ascii=False, separators=(",", ":")).encode()) <= DRILL_DOWN_BYTES

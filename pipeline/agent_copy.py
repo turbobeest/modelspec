@@ -112,8 +112,6 @@ REPORTING_RULES = (
     "call. A retry does not verify them. Report estimates as estimates: fits_hardware "
     "membership is not measured fit for a specific quantization and context workload. "
     "Follow reading.do_not_claim. Never claim a rank the response does not show. "
-    "Respect excluded_plans and their reasons. A plan marked existing_subscribers_only "
-    "is usable only through an existing estate holding; retired plans never route. "
     f"{SUMMARY_RULE} "
 )
 
