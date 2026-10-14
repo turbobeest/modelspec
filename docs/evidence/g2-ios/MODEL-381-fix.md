@@ -3,7 +3,8 @@
 Worktree: `/Users/terbeest/dev/worktrees/model-381`.
 Branch: `sparksandsawdust/model-381-router-config-keyed`.
 Base SHA: `d5569420b07ab8c7dd8efa2117789afb36505197`.
-Final implementation SHA: `b00af6608bcadb328b388f5ef05949ebd99c7afb`.
+Initial implementation SHA: `b00af6608bcadb328b388f5ef05949ebd99c7afb`.
+Final implementation SHA: `8745d8346097ea62a17ff1b3d4666a8f3ad6b33d`.
 The evidence-only delivery commit follows the implementation commit. Resolve
 the delivery SHA with `git rev-parse HEAD` on this branch.
 
@@ -28,7 +29,8 @@ site, visit, or human credential. Existing keyed quotas and billing apply.
 Verified provider IDs and separate router slugs retain their exact values.
 Unknown IDs retain their fail-closed placeholder and reason.
 
-Complete contract 2.17 and bounded 1.2 retain their versions. Existing fields
+The initial delivery retained complete contract 2.17 and bounded 1.2. The
+approved follow-up below advances the bounded representation to 1.4. Existing fields
 and refusal enums keep their ranges. The new optional control, response field,
 and separate `DecisionRouterConfigRefused` schema are additive. Ordinary
 decision bytes and spec hashes are unchanged. The existing renderer still
@@ -238,3 +240,109 @@ schema. No production deployment, provider inference, router upload, paid API
 probe, or live billing behavior was exercised. The WSL gate was not run.
 No production switches, credentials, frozen data, legal terms, or ranking
 floors changed. Cross-model review remains pending, and the PR remains draft.
+
+## Follow-up after MODEL-339 merged
+
+The orchestrator approved PR #738's design and requested a merge of main,
+followed by a bounded minor bump for the optional `router_config` field.
+Follow-up base: `7457726c76d455fd338e6daa260cc740926d95f1`.
+Merged main: `36144120e6a77d0b1ad47cd58fba3c7928e999ea`.
+The merge commit is `8745d8346097ea62a17ff1b3d4666a8f3ad6b33d`, with
+those two commits as its parents. This is a merge, not a rebase.
+
+The resolved projection keeps MODEL-339's optional `pick`, tie-breaker
+withholding, and omission counts. Router rendering still consumes the complete
+Decision before projection. Bounded success and refusal bodies now report 1.4;
+complete decisions and `projects_contract` remain 2.17. Both MCP overflow
+notices use the shared `CURRENT_BOUNDED_VERSION` constant at 1.4.
+The bounded history records 1.3 to 1.4 for `router_config`. Historical entries
+for `pick` at 1.3 and `next_move` at 1.2 remain intact.
+
+Source conflicts were in `decision/bounded.py`'s imports and the bounded
+representation paragraph in `docs/decision-contract.md`. Both intents were
+preserved. The conflicted OpenAPI, CLI bundle, and MCP public fixture were
+regenerated. The budget fixture was regenerated too and differs from main
+only in its three version values. `qa/ablation_proxy.py`,
+`decision/next_move.py`, and `decision/summary.py` exactly match merged main;
+`git diff --quiet origin/main --` those three files exited 0.
+
+Red-first version checks:
+
+- MCP `contract-version.test.ts` tests for the trimmed body and minimal
+  fallback expected 1.4 and received 1.3. Exit 1, 2 failed.
+- Python `test_partial_tie_withholds_tie_breakers_and_names_no_pick` and
+  `test_named_comparison_keeps_complete_and_bounded_decision_versions`
+  expected 1.4 and received 1.3. Exit 1, 2 failed in 0.70s.
+- The disabled-link wire hash checks exposed the two changed bounded bodies.
+  Exit 1, 12 failed, 7 passed, 28 deselected in 1.55s. Only the two measured
+  bounded hashes were repinned. The complete-response and all agent-copy
+  hashes still matched and were kept.
+
+Green verification:
+
+- MCP install, typecheck, and complete tests each exited 0. 9 files and
+  166 tests passed.
+- Focused Python checks exited 0. 108 passed, 1 skipped in 16.15s.
+- Decision-schema and OpenAPI checks and `git diff --check` exited 0.
+- Full Python suite exited 0. 10527 passed, 9 skipped, 11 warnings in
+  1464.80s (0:24:24). The shell captured pytest's exit code immediately and
+  returned that saved code after printing the log summary.
+
+Follow-up commands, using the tool versions listed above:
+
+```sh
+git fetch origin
+git merge origin/main -m 'Merge origin/main into MODEL-381 for bounded pick support' -m 'Co-Authored-By: ChatGPT Codex <noreply@openai.com>'
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm --prefix mcp test -- test/contract-version.test.ts
+TZ=UTC PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_bounded_pick.py::test_partial_tie_withholds_tie_breakers_and_names_no_pick tests/test_decision_contract.py::test_named_comparison_keeps_complete_and_bounded_decision_versions
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m decision.schema
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/openapi.py
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.agent_copy write
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m qa.decide_budget
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python qa/contracts.py
+TZ=UTC PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_decision_link.py -k 'flag_off_response_bytes_match_base or flag_off_agent_copy_bytes_match_base'
+TZ=UTC PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_bounded_pick.py tests/test_keyed_router_cli.py tests/test_keyed_router_worker.py tests/test_decision_link.py tests/test_decision_contract.py::test_named_comparison_keeps_complete_and_bounded_decision_versions tests/test_architecture_facts.py::test_optional_interval_is_absent_unless_set_and_bounded_version_is_unchanged tests/test_decide_bounded.py::test_projection_keeps_essentials_and_identity tests/test_decide_bounded.py::test_a_tie_cut_by_limit_keeps_every_members_evidence
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m decision.schema --check
+PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python api/worker/openapi.py --check
+git diff --check
+git diff --cached --check
+git diff --quiet origin/main -- qa/ablation_proxy.py decision/next_move.py decision/summary.py
+TZ=UTC PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
+```
+
+From `mcp/`:
+
+```sh
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm ci
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm run typecheck
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm test
+```
+
+Version strings changed in these 15 files:
+
+```text
+api/worker/openapi.yaml
+decision/bounded.py
+decision/contract.py
+docs/cli-contract.md
+docs/decision-contract.md
+docs/decision-contract.schema.json
+mcp/src/server.ts
+mcp/test/contract-version.test.ts
+mcp/test/fixtures/decide-budget.json
+tests/test_architecture_facts.py
+tests/test_bounded_pick.py
+tests/test_decide_bounded.py
+tests/test_decision_contract.py
+tests/test_keyed_router_cli.py
+tests/test_keyed_router_worker.py
+```
+
+`cli/modelspec/agent-bundle.json` and `qa/fixtures/mcp-tools.json` changed
+source hashes after regeneration. They contain no changed version strings.
+No live service or provider was called. The optional LiteLLM runtime test still
+skips because the package is absent. Machine load reached 200.94 before
+generation; two successive two-minute waits brought the load below 30.
+Near the end, read-only `ps` and `lsof` checks confirmed pytest's cwd was
+this worktree and the remaining worker's CPU usage was 99%. The run then
+completed normally. No owned background process was left running.
