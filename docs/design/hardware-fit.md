@@ -85,7 +85,8 @@ CUDA and runtime do not decide fit.
 
 ## Unchanged
 
-The registry still exposes two hardware estimate facets,
-`hardware.weights_gb` and `hardware.decode_tps_estimate`. Contract
-version stays 2.17. The bounded representation stays 1.2 and still names
-`projects_contract` 2.17. Ranking floors are unchanged.
+This closeout adds no registry facet. The two hardware estimate facets
+remain `hardware.weights_gb` and `hardware.decode_tps_estimate`. The
+decision contract stays 2.17. The bounded representation stays at its
+current version, 1.3, and this note does not change it. Ranking floors
+are unchanged.
