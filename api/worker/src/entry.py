@@ -1078,6 +1078,10 @@ class Default(WorkerEntrypoint):
         # on the access gate decides. It runs before either export is fetched,
         # so the sandbox never reaches data and a refused key costs nothing.
         api_key = access_keys.extract(lambda name: request.headers.get(name))
+        require_key = path == "/v1/compare-models" or (
+            path == "/v1/decide" and isinstance(payload, dict)
+            and payload.get("router_config") is not None
+        )
         if path == "/v1/policy-check":
             envelope = policy_service._envelope({}, service_commit, origin)
 
@@ -1159,7 +1163,7 @@ class Default(WorkerEntrypoint):
                     return service.error_response(exc, None, service_commit, origin)
                 return access_sandbox.rank_response(parsed, envelope=envelope)
 
-        if path == "/v1/decide" and api_key is None and visit_token.enabled(self.env) and request.headers.get(visit_token.HEADER):
+        if path == "/v1/decide" and not require_key and api_key is None and visit_token.enabled(self.env) and request.headers.get(visit_token.HEADER):
             status, code, message, gate_headers = await visit_token.admit(
                 request, self.env, CORS_ORIGINS, "decide", payload)
             if status == 200:
@@ -1171,7 +1175,7 @@ class Default(WorkerEntrypoint):
                 return _json_response(status, {**envelope, "error": {"code": code, "message": message}},
                                       {**gate_headers, **_cors_headers(request, self.env)})
 
-        if path == "/v1/decide" and api_key is None and human_gate.enabled(self.env) and not visit_token.enabled(self.env):
+        if path == "/v1/decide" and not require_key and api_key is None and human_gate.enabled(self.env) and not visit_token.enabled(self.env):
             site_origin = str(request.headers.get("origin") or "") in CORS_ORIGINS
             # Other callers can still pay per call through x402 when it is on.
             if site_origin or not x402.load_config(self.env).enabled:
@@ -1195,7 +1199,7 @@ class Default(WorkerEntrypoint):
         # and settle run before either of them writes an answer. The sandbox
         # is not wrapped. X402_ENABLED default off is a no-op.
         x402_trace = x402.ChargeTrace()
-        free_visitor = _site_free_visitor(
+        free_visitor = None if require_key else _site_free_visitor(
             request, api_key, x402.load_config(self.env).enabled, self.env)
         anonymous = (
             _anonymous
@@ -1211,7 +1215,7 @@ class Default(WorkerEntrypoint):
         outcome = await access.gate(
             api_key=access_keys.extract(lambda name: request.headers.get(name)),
             enforced=access.enforcement(getattr(self.env, ACCESS_ENFORCED_VAR, None)),
-            require_key=path == "/v1/compare-models",
+            require_key=require_key,
             kv=_access_store(self.env),
             load_policy=lambda: access_config.load_policy(self.env),
             anonymous=anonymous, live=live, sandbox=sandbox, envelope=envelope,

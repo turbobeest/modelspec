@@ -85,6 +85,7 @@ SOURCES = {
     Path("decision/registry.py"): Path("decision/registry.py"),
     Path("decision/regions.py"): Path("decision/regions.py"),
     Path("decision/recovery.py"): Path("decision/recovery.py"),
+    Path("decision/router_config.py"): Path("decision/router_config.py"),
     Path("decision/resolve.py"): Path("decision/resolve.py"),
     Path("decision/snapshot.py"): Path("decision/snapshot.py"),
     Path("decision/templates.py"): Path("decision/templates.py"),

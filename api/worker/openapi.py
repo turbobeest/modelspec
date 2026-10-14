@@ -2337,6 +2337,12 @@ def _decision_schemas() -> dict[str, Any]:
             },
         },
     }
+    # Explicit router_config requests have their own refusal codes. Keep the
+    # complete Decision and drill-down refusal enums unchanged.
+    schemas["DecisionRouterConfigRefused"] = copy.deepcopy(schemas["DecisionBoundedRefused"])
+    schemas["DecisionRouterConfigRefused"]["properties"]["error"]["properties"]["code"] = {
+        "type": "string", "enum": ["empty_allow_list", "no_bands", "no_qualifying_models"],
+    }
     schemas["HumanGateRefused"] = refused("decide", set(human_error_codes()))
     schemas["DecisionSnapshotUnavailable"] = snapshot_unavailable("decide")
     schemas["ComparisonRequestRefused"] = refused(
@@ -3018,7 +3024,7 @@ def build_spec() -> dict[str, Any]:
                                 "A decision pinned to the snapshot that produced it: a complete "
                                 f"Decision (contract_version {decide_service.contract.CONTRACT_VERSION}), with optional "
                                 "top[].hardware_estimates and unknown_facets; or, when the request sends "
-                                "fields or evidence_for, the separate bounded representation "
+                                "fields, evidence_for or router_config, the separate bounded representation "
                                 f"(representation: bounded, bounded_version {decide_service.contract.BOUNDED_VERSION}, no "
                                 "contract_version).",
                                 {"anyOf": [
@@ -3030,8 +3036,13 @@ def build_spec() -> dict[str, Any]:
                         },
                         str(decide_service.HTTP_BAD_REQUEST): _json_body(
                             "The body is not a valid decision spec. This includes a "
-                            "refinement weight whose evidence_state is not live or thin.",
-                            {"$ref": "#/components/schemas/DecisionRequestRefused"},
+                            "refinement weight whose evidence_state is not live or thin. "
+                            "An explicit router_config request can also refuse with no_bands, "
+                            "empty_allow_list or no_qualifying_models in the bounded representation.",
+                            {"anyOf": [
+                                {"$ref": "#/components/schemas/DecisionRequestRefused"},
+                                {"$ref": "#/components/schemas/DecisionRouterConfigRefused"},
+                            ]},
                         ),
                         str(decide_service.HTTP_CONFLICT): _json_body(
                             "snapshot_not_loaded: the spec pinned a snapshot this isolate "
