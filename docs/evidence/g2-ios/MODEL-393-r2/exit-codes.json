@@ -1,0 +1,12 @@
+{
+  "red_binding": 1,
+  "red_url_aliases": 1,
+  "green_binding": 0,
+  "focused": 0,
+  "seed_check": 0,
+  "sentence_labels": 0,
+  "lint_delta": 0,
+  "browser_tests": 0,
+  "interrupted_full_run": 2,
+  "full_engine_suite": 0
+}

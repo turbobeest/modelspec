@@ -1,0 +1,17 @@
+{
+  "decision/verify.py": {
+    "baseline_findings": 8,
+    "current_findings": 8,
+    "new_findings": 0
+  },
+  "decision/normalise.py": {
+    "baseline_findings": 1,
+    "current_findings": 1,
+    "new_findings": 0
+  },
+  "tests/test_decision_verify.py": {
+    "baseline_findings": 30,
+    "current_findings": 30,
+    "new_findings": 0
+  }
+}

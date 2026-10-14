@@ -1,0 +1,22 @@
+[
+  {
+    "sentence_index": 20,
+    "sentence_sha256": "748e8183fa0d3d264be2749157edd784eb57beb7ff5a2d9d6a6b6bee7b015af8",
+    "label": "Conditional service-use grant"
+  },
+  {
+    "sentence_index": 138,
+    "sentence_sha256": "b8ce230673cb166a4c5c92260dcb8605b4fb4eace7cc8d89e05aeac82bdaf41f",
+    "label": "Prohibited-use list introduction"
+  },
+  {
+    "sentence_index": 148,
+    "sentence_sha256": "cce2c816c4a0e5ea24e80f446806a927ae1909dcf244add087230fb4da86928c",
+    "label": "Competing-model output training limits with authorization exception"
+  },
+  {
+    "sentence_index": 149,
+    "sentence_sha256": "93fa12ea9a22d034b1f3ac3595114a3d857955ccad21d81b0c5fb72c46875980",
+    "label": "Evaluation exception"
+  }
+]

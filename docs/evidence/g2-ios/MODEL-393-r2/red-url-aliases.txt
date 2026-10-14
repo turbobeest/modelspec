@@ -1,0 +1,718 @@
+.FFFFFFF.FFFFFFF                                                         [100%]
+=================================== FAILURES ===================================
+_ test_terms_url_alias_never_bypasses_reviewed_policy_or_id[page-wide-url-trailing-slash] _
+
+retained_policy = <function retained_policy.<locals>.check at 0x108b20720>
+terms_url = 'https://example.test/legal/terms/'
+page = 'Nimbus 3 is governed by these terms: https://example.test/legal/terms'
+
+    @pytest.mark.parametrize("terms_url", [
+        TERMS_URL,
+        TERMS_URL + "/",
+        TERMS_URL + ".txt",
+        TERMS_URL + "?v=1",
+        TERMS_URL + "#terms",
+        TERMS_URL.replace("https://", "http://"),
+        TERMS_URL.replace("example.test", "EXAMPLE.TEST"),
+        TERMS_URL.replace("example.test", "www.example.test"),
+    ], ids=["canonical", "trailing-slash", "txt-suffix", "query", "fragment",
+            "http", "uppercase-host", "www-host"])
+    @pytest.mark.parametrize("page", [
+        f"Nimbus 3 is governed by these terms: {TERMS_URL}",
+        f"license: other\nlicense_link: {TERMS_URL}\nNimbus 3 documentation.",
+    ], ids=["page-wide-url", "frontmatter-license-link"])
+    def test_terms_url_alias_never_bypasses_reviewed_policy_or_id(
+        retained_policy, terms_url, page,
+    ):
+        reader = verify.LicenceExtractor(
+            lambda _prompt: json.dumps({
+                "value": "permitted_with_conditions", "clauses": [SENTENCE],
+            }),
+            agent="fixture-reader", model="fixture", model_family="anthropic",
+        )
+        # Both policy mutations remain outside the immutable reviewed region, and
+        # this canonical id is outside that region's explicit model list as well.
+>       assert_unbound(retained_policy(
+            page, model_id="lab/unlisted", terms_url=terms_url, reader=reader,
+        ))
+
+tests/test_model_393_exact_binding.py:226:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = Result(target=TargetRef(kind='fact', id='lab/unlisted#licence.commercial_use'), outcome='verified', verification=Verif...hod='licence-extract:fixture', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/unlisted#licence.commercial_use'), outcome='verified', verification=Verif...hod='licence-extract:fixture', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E
+E         - mismatch
+E         + verified
+
+tests/test_model_393_exact_binding.py:96: AssertionError
+_ test_terms_url_alias_never_bypasses_reviewed_policy_or_id[page-wide-url-txt-suffix] _
+
+retained_policy = <function retained_policy.<locals>.check at 0x108ea8250>
+terms_url = 'https://example.test/legal/terms.txt'
+page = 'Nimbus 3 is governed by these terms: https://example.test/legal/terms'
+
+    @pytest.mark.parametrize("terms_url", [
+        TERMS_URL,
+        TERMS_URL + "/",
+        TERMS_URL + ".txt",
+        TERMS_URL + "?v=1",
+        TERMS_URL + "#terms",
+        TERMS_URL.replace("https://", "http://"),
+        TERMS_URL.replace("example.test", "EXAMPLE.TEST"),
+        TERMS_URL.replace("example.test", "www.example.test"),
+    ], ids=["canonical", "trailing-slash", "txt-suffix", "query", "fragment",
+            "http", "uppercase-host", "www-host"])
+    @pytest.mark.parametrize("page", [
+        f"Nimbus 3 is governed by these terms: {TERMS_URL}",
+        f"license: other\nlicense_link: {TERMS_URL}\nNimbus 3 documentation.",
+    ], ids=["page-wide-url", "frontmatter-license-link"])
+    def test_terms_url_alias_never_bypasses_reviewed_policy_or_id(
+        retained_policy, terms_url, page,
+    ):
+        reader = verify.LicenceExtractor(
+            lambda _prompt: json.dumps({
+                "value": "permitted_with_conditions", "clauses": [SENTENCE],
+            }),
+            agent="fixture-reader", model="fixture", model_family="anthropic",
+        )
+        # Both policy mutations remain outside the immutable reviewed region, and
+        # this canonical id is outside that region's explicit model list as well.
+>       assert_unbound(retained_policy(
+            page, model_id="lab/unlisted", terms_url=terms_url, reader=reader,
+        ))
+
+tests/test_model_393_exact_binding.py:226:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = Result(target=TargetRef(kind='fact', id='lab/unlisted#licence.commercial_use'), outcome='verified', verification=Verif...hod='licence-extract:fixture', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/unlisted#licence.commercial_use'), outcome='verified', verification=Verif...hod='licence-extract:fixture', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E
+E         - mismatch
+E         + verified
+
+tests/test_model_393_exact_binding.py:96: AssertionError
+_ test_terms_url_alias_never_bypasses_reviewed_policy_or_id[page-wide-url-query] _
+
+retained_policy = <function retained_policy.<locals>.check at 0x108ea8720>
+terms_url = 'https://example.test/legal/terms?v=1'
+page = 'Nimbus 3 is governed by these terms: https://example.test/legal/terms'
+
+    @pytest.mark.parametrize("terms_url", [
+        TERMS_URL,
+        TERMS_URL + "/",
+        TERMS_URL + ".txt",
+        TERMS_URL + "?v=1",
+        TERMS_URL + "#terms",
+        TERMS_URL.replace("https://", "http://"),
+        TERMS_URL.replace("example.test", "EXAMPLE.TEST"),
+        TERMS_URL.replace("example.test", "www.example.test"),
+    ], ids=["canonical", "trailing-slash", "txt-suffix", "query", "fragment",
+            "http", "uppercase-host", "www-host"])
+    @pytest.mark.parametrize("page", [
+        f"Nimbus 3 is governed by these terms: {TERMS_URL}",
+        f"license: other\nlicense_link: {TERMS_URL}\nNimbus 3 documentation.",
+    ], ids=["page-wide-url", "frontmatter-license-link"])
+    def test_terms_url_alias_never_bypasses_reviewed_policy_or_id(
+        retained_policy, terms_url, page,
+    ):
+        reader = verify.LicenceExtractor(
+            lambda _prompt: json.dumps({
+                "value": "permitted_with_conditions", "clauses": [SENTENCE],
+            }),
+            agent="fixture-reader", model="fixture", model_family="anthropic",
+        )
+        # Both policy mutations remain outside the immutable reviewed region, and
+        # this canonical id is outside that region's explicit model list as well.
+>       assert_unbound(retained_policy(
+            page, model_id="lab/unlisted", terms_url=terms_url, reader=reader,
+        ))
+
+tests/test_model_393_exact_binding.py:226:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = Result(target=TargetRef(kind='fact', id='lab/unlisted#licence.commercial_use'), outcome='verified', verification=Verif...hod='licence-extract:fixture', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/unlisted#licence.commercial_use'), outcome='verified', verification=Verif...hod='licence-extract:fixture', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E
+E         - mismatch
+E         + verified
+
+tests/test_model_393_exact_binding.py:96: AssertionError
+_ test_terms_url_alias_never_bypasses_reviewed_policy_or_id[page-wide-url-fragment] _
+
+retained_policy = <function retained_policy.<locals>.check at 0x108ea80f0>
+terms_url = 'https://example.test/legal/terms#terms'
+page = 'Nimbus 3 is governed by these terms: https://example.test/legal/terms'
+
+    @pytest.mark.parametrize("terms_url", [
+        TERMS_URL,
+        TERMS_URL + "/",
+        TERMS_URL + ".txt",
+        TERMS_URL + "?v=1",
+        TERMS_URL + "#terms",
+        TERMS_URL.replace("https://", "http://"),
+        TERMS_URL.replace("example.test", "EXAMPLE.TEST"),
+        TERMS_URL.replace("example.test", "www.example.test"),
+    ], ids=["canonical", "trailing-slash", "txt-suffix", "query", "fragment",
+            "http", "uppercase-host", "www-host"])
+    @pytest.mark.parametrize("page", [
+        f"Nimbus 3 is governed by these terms: {TERMS_URL}",
+        f"license: other\nlicense_link: {TERMS_URL}\nNimbus 3 documentation.",
+    ], ids=["page-wide-url", "frontmatter-license-link"])
+    def test_terms_url_alias_never_bypasses_reviewed_policy_or_id(
+        retained_policy, terms_url, page,
+    ):
+        reader = verify.LicenceExtractor(
+            lambda _prompt: json.dumps({
+                "value": "permitted_with_conditions", "clauses": [SENTENCE],
+            }),
+            agent="fixture-reader", model="fixture", model_family="anthropic",
+        )
+        # Both policy mutations remain outside the immutable reviewed region, and
+        # this canonical id is outside that region's explicit model list as well.
+>       assert_unbound(retained_policy(
+            page, model_id="lab/unlisted", terms_url=terms_url, reader=reader,
+        ))
+
+tests/test_model_393_exact_binding.py:226:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = Result(target=TargetRef(kind='fact', id='lab/unlisted#licence.commercial_use'), outcome='verified', verification=Verif...hod='licence-extract:fixture', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/unlisted#licence.commercial_use'), outcome='verified', verification=Verif...hod='licence-extract:fixture', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E
+E         - mismatch
+E         + verified
+
+tests/test_model_393_exact_binding.py:96: AssertionError
+_ test_terms_url_alias_never_bypasses_reviewed_policy_or_id[page-wide-url-http] _
+
+retained_policy = <function retained_policy.<locals>.check at 0x108ea92d0>
+terms_url = 'http://example.test/legal/terms'
+page = 'Nimbus 3 is governed by these terms: https://example.test/legal/terms'
+
+    @pytest.mark.parametrize("terms_url", [
+        TERMS_URL,
+        TERMS_URL + "/",
+        TERMS_URL + ".txt",
+        TERMS_URL + "?v=1",
+        TERMS_URL + "#terms",
+        TERMS_URL.replace("https://", "http://"),
+        TERMS_URL.replace("example.test", "EXAMPLE.TEST"),
+        TERMS_URL.replace("example.test", "www.example.test"),
+    ], ids=["canonical", "trailing-slash", "txt-suffix", "query", "fragment",
+            "http", "uppercase-host", "www-host"])
+    @pytest.mark.parametrize("page", [
+        f"Nimbus 3 is governed by these terms: {TERMS_URL}",
+        f"license: other\nlicense_link: {TERMS_URL}\nNimbus 3 documentation.",
+    ], ids=["page-wide-url", "frontmatter-license-link"])
+    def test_terms_url_alias_never_bypasses_reviewed_policy_or_id(
+        retained_policy, terms_url, page,
+    ):
+        reader = verify.LicenceExtractor(
+            lambda _prompt: json.dumps({
+                "value": "permitted_with_conditions", "clauses": [SENTENCE],
+            }),
+            agent="fixture-reader", model="fixture", model_family="anthropic",
+        )
+        # Both policy mutations remain outside the immutable reviewed region, and
+        # this canonical id is outside that region's explicit model list as well.
+>       assert_unbound(retained_policy(
+            page, model_id="lab/unlisted", terms_url=terms_url, reader=reader,
+        ))
+
+tests/test_model_393_exact_binding.py:226:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = Result(target=TargetRef(kind='fact', id='lab/unlisted#licence.commercial_use'), outcome='verified', verification=Verif...hod='licence-extract:fixture', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/unlisted#licence.commercial_use'), outcome='verified', verification=Verif...hod='licence-extract:fixture', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E
+E         - mismatch
+E         + verified
+
+tests/test_model_393_exact_binding.py:96: AssertionError
+_ test_terms_url_alias_never_bypasses_reviewed_policy_or_id[page-wide-url-uppercase-host] _
+
+retained_policy = <function retained_policy.<locals>.check at 0x108ea96f0>
+terms_url = 'https://EXAMPLE.TEST/legal/terms'
+page = 'Nimbus 3 is governed by these terms: https://example.test/legal/terms'
+
+    @pytest.mark.parametrize("terms_url", [
+        TERMS_URL,
+        TERMS_URL + "/",
+        TERMS_URL + ".txt",
+        TERMS_URL + "?v=1",
+        TERMS_URL + "#terms",
+        TERMS_URL.replace("https://", "http://"),
+        TERMS_URL.replace("example.test", "EXAMPLE.TEST"),
+        TERMS_URL.replace("example.test", "www.example.test"),
+    ], ids=["canonical", "trailing-slash", "txt-suffix", "query", "fragment",
+            "http", "uppercase-host", "www-host"])
+    @pytest.mark.parametrize("page", [
+        f"Nimbus 3 is governed by these terms: {TERMS_URL}",
+        f"license: other\nlicense_link: {TERMS_URL}\nNimbus 3 documentation.",
+    ], ids=["page-wide-url", "frontmatter-license-link"])
+    def test_terms_url_alias_never_bypasses_reviewed_policy_or_id(
+        retained_policy, terms_url, page,
+    ):
+        reader = verify.LicenceExtractor(
+            lambda _prompt: json.dumps({
+                "value": "permitted_with_conditions", "clauses": [SENTENCE],
+            }),
+            agent="fixture-reader", model="fixture", model_family="anthropic",
+        )
+        # Both policy mutations remain outside the immutable reviewed region, and
+        # this canonical id is outside that region's explicit model list as well.
+>       assert_unbound(retained_policy(
+            page, model_id="lab/unlisted", terms_url=terms_url, reader=reader,
+        ))
+
+tests/test_model_393_exact_binding.py:226:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = Result(target=TargetRef(kind='fact', id='lab/unlisted#licence.commercial_use'), outcome='verified', verification=Verif...hod='licence-extract:fixture', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/unlisted#licence.commercial_use'), outcome='verified', verification=Verif...hod='licence-extract:fixture', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E
+E         - mismatch
+E         + verified
+
+tests/test_model_393_exact_binding.py:96: AssertionError
+_ test_terms_url_alias_never_bypasses_reviewed_policy_or_id[page-wide-url-www-host] _
+
+retained_policy = <function retained_policy.<locals>.check at 0x108ea9a60>
+terms_url = 'https://www.example.test/legal/terms'
+page = 'Nimbus 3 is governed by these terms: https://example.test/legal/terms'
+
+    @pytest.mark.parametrize("terms_url", [
+        TERMS_URL,
+        TERMS_URL + "/",
+        TERMS_URL + ".txt",
+        TERMS_URL + "?v=1",
+        TERMS_URL + "#terms",
+        TERMS_URL.replace("https://", "http://"),
+        TERMS_URL.replace("example.test", "EXAMPLE.TEST"),
+        TERMS_URL.replace("example.test", "www.example.test"),
+    ], ids=["canonical", "trailing-slash", "txt-suffix", "query", "fragment",
+            "http", "uppercase-host", "www-host"])
+    @pytest.mark.parametrize("page", [
+        f"Nimbus 3 is governed by these terms: {TERMS_URL}",
+        f"license: other\nlicense_link: {TERMS_URL}\nNimbus 3 documentation.",
+    ], ids=["page-wide-url", "frontmatter-license-link"])
+    def test_terms_url_alias_never_bypasses_reviewed_policy_or_id(
+        retained_policy, terms_url, page,
+    ):
+        reader = verify.LicenceExtractor(
+            lambda _prompt: json.dumps({
+                "value": "permitted_with_conditions", "clauses": [SENTENCE],
+            }),
+            agent="fixture-reader", model="fixture", model_family="anthropic",
+        )
+        # Both policy mutations remain outside the immutable reviewed region, and
+        # this canonical id is outside that region's explicit model list as well.
+>       assert_unbound(retained_policy(
+            page, model_id="lab/unlisted", terms_url=terms_url, reader=reader,
+        ))
+
+tests/test_model_393_exact_binding.py:226:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = Result(target=TargetRef(kind='fact', id='lab/unlisted#licence.commercial_use'), outcome='verified', verification=Verif...hod='licence-extract:fixture', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/unlisted#licence.commercial_use'), outcome='verified', verification=Verif...hod='licence-extract:fixture', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E
+E         - mismatch
+E         + verified
+
+tests/test_model_393_exact_binding.py:96: AssertionError
+_ test_terms_url_alias_never_bypasses_reviewed_policy_or_id[frontmatter-license-link-trailing-slash] _
+
+retained_policy = <function retained_policy.<locals>.check at 0x108b07740>
+terms_url = 'https://example.test/legal/terms/'
+page = 'license: other\nlicense_link: https://example.test/legal/terms\nNimbus 3 documentation.'
+
+    @pytest.mark.parametrize("terms_url", [
+        TERMS_URL,
+        TERMS_URL + "/",
+        TERMS_URL + ".txt",
+        TERMS_URL + "?v=1",
+        TERMS_URL + "#terms",
+        TERMS_URL.replace("https://", "http://"),
+        TERMS_URL.replace("example.test", "EXAMPLE.TEST"),
+        TERMS_URL.replace("example.test", "www.example.test"),
+    ], ids=["canonical", "trailing-slash", "txt-suffix", "query", "fragment",
+            "http", "uppercase-host", "www-host"])
+    @pytest.mark.parametrize("page", [
+        f"Nimbus 3 is governed by these terms: {TERMS_URL}",
+        f"license: other\nlicense_link: {TERMS_URL}\nNimbus 3 documentation.",
+    ], ids=["page-wide-url", "frontmatter-license-link"])
+    def test_terms_url_alias_never_bypasses_reviewed_policy_or_id(
+        retained_policy, terms_url, page,
+    ):
+        reader = verify.LicenceExtractor(
+            lambda _prompt: json.dumps({
+                "value": "permitted_with_conditions", "clauses": [SENTENCE],
+            }),
+            agent="fixture-reader", model="fixture", model_family="anthropic",
+        )
+        # Both policy mutations remain outside the immutable reviewed region, and
+        # this canonical id is outside that region's explicit model list as well.
+>       assert_unbound(retained_policy(
+            page, model_id="lab/unlisted", terms_url=terms_url, reader=reader,
+        ))
+
+tests/test_model_393_exact_binding.py:226:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = Result(target=TargetRef(kind='fact', id='lab/unlisted#licence.commercial_use'), outcome='verified', verification=Verif...hod='licence-extract:fixture', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/unlisted#licence.commercial_use'), outcome='verified', verification=Verif...hod='licence-extract:fixture', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E
+E         - mismatch
+E         + verified
+
+tests/test_model_393_exact_binding.py:96: AssertionError
+_ test_terms_url_alias_never_bypasses_reviewed_policy_or_id[frontmatter-license-link-txt-suffix] _
+
+retained_policy = <function retained_policy.<locals>.check at 0x108b06fb0>
+terms_url = 'https://example.test/legal/terms.txt'
+page = 'license: other\nlicense_link: https://example.test/legal/terms\nNimbus 3 documentation.'
+
+    @pytest.mark.parametrize("terms_url", [
+        TERMS_URL,
+        TERMS_URL + "/",
+        TERMS_URL + ".txt",
+        TERMS_URL + "?v=1",
+        TERMS_URL + "#terms",
+        TERMS_URL.replace("https://", "http://"),
+        TERMS_URL.replace("example.test", "EXAMPLE.TEST"),
+        TERMS_URL.replace("example.test", "www.example.test"),
+    ], ids=["canonical", "trailing-slash", "txt-suffix", "query", "fragment",
+            "http", "uppercase-host", "www-host"])
+    @pytest.mark.parametrize("page", [
+        f"Nimbus 3 is governed by these terms: {TERMS_URL}",
+        f"license: other\nlicense_link: {TERMS_URL}\nNimbus 3 documentation.",
+    ], ids=["page-wide-url", "frontmatter-license-link"])
+    def test_terms_url_alias_never_bypasses_reviewed_policy_or_id(
+        retained_policy, terms_url, page,
+    ):
+        reader = verify.LicenceExtractor(
+            lambda _prompt: json.dumps({
+                "value": "permitted_with_conditions", "clauses": [SENTENCE],
+            }),
+            agent="fixture-reader", model="fixture", model_family="anthropic",
+        )
+        # Both policy mutations remain outside the immutable reviewed region, and
+        # this canonical id is outside that region's explicit model list as well.
+>       assert_unbound(retained_policy(
+            page, model_id="lab/unlisted", terms_url=terms_url, reader=reader,
+        ))
+
+tests/test_model_393_exact_binding.py:226:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = Result(target=TargetRef(kind='fact', id='lab/unlisted#licence.commercial_use'), outcome='verified', verification=Verif...hod='licence-extract:fixture', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/unlisted#licence.commercial_use'), outcome='verified', verification=Verif...hod='licence-extract:fixture', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E
+E         - mismatch
+E         + verified
+
+tests/test_model_393_exact_binding.py:96: AssertionError
+_ test_terms_url_alias_never_bypasses_reviewed_policy_or_id[frontmatter-license-link-query] _
+
+retained_policy = <function retained_policy.<locals>.check at 0x108b068d0>
+terms_url = 'https://example.test/legal/terms?v=1'
+page = 'license: other\nlicense_link: https://example.test/legal/terms\nNimbus 3 documentation.'
+
+    @pytest.mark.parametrize("terms_url", [
+        TERMS_URL,
+        TERMS_URL + "/",
+        TERMS_URL + ".txt",
+        TERMS_URL + "?v=1",
+        TERMS_URL + "#terms",
+        TERMS_URL.replace("https://", "http://"),
+        TERMS_URL.replace("example.test", "EXAMPLE.TEST"),
+        TERMS_URL.replace("example.test", "www.example.test"),
+    ], ids=["canonical", "trailing-slash", "txt-suffix", "query", "fragment",
+            "http", "uppercase-host", "www-host"])
+    @pytest.mark.parametrize("page", [
+        f"Nimbus 3 is governed by these terms: {TERMS_URL}",
+        f"license: other\nlicense_link: {TERMS_URL}\nNimbus 3 documentation.",
+    ], ids=["page-wide-url", "frontmatter-license-link"])
+    def test_terms_url_alias_never_bypasses_reviewed_policy_or_id(
+        retained_policy, terms_url, page,
+    ):
+        reader = verify.LicenceExtractor(
+            lambda _prompt: json.dumps({
+                "value": "permitted_with_conditions", "clauses": [SENTENCE],
+            }),
+            agent="fixture-reader", model="fixture", model_family="anthropic",
+        )
+        # Both policy mutations remain outside the immutable reviewed region, and
+        # this canonical id is outside that region's explicit model list as well.
+>       assert_unbound(retained_policy(
+            page, model_id="lab/unlisted", terms_url=terms_url, reader=reader,
+        ))
+
+tests/test_model_393_exact_binding.py:226:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = Result(target=TargetRef(kind='fact', id='lab/unlisted#licence.commercial_use'), outcome='verified', verification=Verif...hod='licence-extract:fixture', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/unlisted#licence.commercial_use'), outcome='verified', verification=Verif...hod='licence-extract:fixture', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E
+E         - mismatch
+E         + verified
+
+tests/test_model_393_exact_binding.py:96: AssertionError
+_ test_terms_url_alias_never_bypasses_reviewed_policy_or_id[frontmatter-license-link-fragment] _
+
+retained_policy = <function retained_policy.<locals>.check at 0x108b062a0>
+terms_url = 'https://example.test/legal/terms#terms'
+page = 'license: other\nlicense_link: https://example.test/legal/terms\nNimbus 3 documentation.'
+
+    @pytest.mark.parametrize("terms_url", [
+        TERMS_URL,
+        TERMS_URL + "/",
+        TERMS_URL + ".txt",
+        TERMS_URL + "?v=1",
+        TERMS_URL + "#terms",
+        TERMS_URL.replace("https://", "http://"),
+        TERMS_URL.replace("example.test", "EXAMPLE.TEST"),
+        TERMS_URL.replace("example.test", "www.example.test"),
+    ], ids=["canonical", "trailing-slash", "txt-suffix", "query", "fragment",
+            "http", "uppercase-host", "www-host"])
+    @pytest.mark.parametrize("page", [
+        f"Nimbus 3 is governed by these terms: {TERMS_URL}",
+        f"license: other\nlicense_link: {TERMS_URL}\nNimbus 3 documentation.",
+    ], ids=["page-wide-url", "frontmatter-license-link"])
+    def test_terms_url_alias_never_bypasses_reviewed_policy_or_id(
+        retained_policy, terms_url, page,
+    ):
+        reader = verify.LicenceExtractor(
+            lambda _prompt: json.dumps({
+                "value": "permitted_with_conditions", "clauses": [SENTENCE],
+            }),
+            agent="fixture-reader", model="fixture", model_family="anthropic",
+        )
+        # Both policy mutations remain outside the immutable reviewed region, and
+        # this canonical id is outside that region's explicit model list as well.
+>       assert_unbound(retained_policy(
+            page, model_id="lab/unlisted", terms_url=terms_url, reader=reader,
+        ))
+
+tests/test_model_393_exact_binding.py:226:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = Result(target=TargetRef(kind='fact', id='lab/unlisted#licence.commercial_use'), outcome='verified', verification=Verif...hod='licence-extract:fixture', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/unlisted#licence.commercial_use'), outcome='verified', verification=Verif...hod='licence-extract:fixture', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E
+E         - mismatch
+E         + verified
+
+tests/test_model_393_exact_binding.py:96: AssertionError
+_ test_terms_url_alias_never_bypasses_reviewed_policy_or_id[frontmatter-license-link-http] _
+
+retained_policy = <function retained_policy.<locals>.check at 0x108b07530>
+terms_url = 'http://example.test/legal/terms'
+page = 'license: other\nlicense_link: https://example.test/legal/terms\nNimbus 3 documentation.'
+
+    @pytest.mark.parametrize("terms_url", [
+        TERMS_URL,
+        TERMS_URL + "/",
+        TERMS_URL + ".txt",
+        TERMS_URL + "?v=1",
+        TERMS_URL + "#terms",
+        TERMS_URL.replace("https://", "http://"),
+        TERMS_URL.replace("example.test", "EXAMPLE.TEST"),
+        TERMS_URL.replace("example.test", "www.example.test"),
+    ], ids=["canonical", "trailing-slash", "txt-suffix", "query", "fragment",
+            "http", "uppercase-host", "www-host"])
+    @pytest.mark.parametrize("page", [
+        f"Nimbus 3 is governed by these terms: {TERMS_URL}",
+        f"license: other\nlicense_link: {TERMS_URL}\nNimbus 3 documentation.",
+    ], ids=["page-wide-url", "frontmatter-license-link"])
+    def test_terms_url_alias_never_bypasses_reviewed_policy_or_id(
+        retained_policy, terms_url, page,
+    ):
+        reader = verify.LicenceExtractor(
+            lambda _prompt: json.dumps({
+                "value": "permitted_with_conditions", "clauses": [SENTENCE],
+            }),
+            agent="fixture-reader", model="fixture", model_family="anthropic",
+        )
+        # Both policy mutations remain outside the immutable reviewed region, and
+        # this canonical id is outside that region's explicit model list as well.
+>       assert_unbound(retained_policy(
+            page, model_id="lab/unlisted", terms_url=terms_url, reader=reader,
+        ))
+
+tests/test_model_393_exact_binding.py:226:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = Result(target=TargetRef(kind='fact', id='lab/unlisted#licence.commercial_use'), outcome='verified', verification=Verif...hod='licence-extract:fixture', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/unlisted#licence.commercial_use'), outcome='verified', verification=Verif...hod='licence-extract:fixture', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E
+E         - mismatch
+E         + verified
+
+tests/test_model_393_exact_binding.py:96: AssertionError
+_ test_terms_url_alias_never_bypasses_reviewed_policy_or_id[frontmatter-license-link-uppercase-host] _
+
+retained_policy = <function retained_policy.<locals>.check at 0x1083eb3d0>
+terms_url = 'https://EXAMPLE.TEST/legal/terms'
+page = 'license: other\nlicense_link: https://example.test/legal/terms\nNimbus 3 documentation.'
+
+    @pytest.mark.parametrize("terms_url", [
+        TERMS_URL,
+        TERMS_URL + "/",
+        TERMS_URL + ".txt",
+        TERMS_URL + "?v=1",
+        TERMS_URL + "#terms",
+        TERMS_URL.replace("https://", "http://"),
+        TERMS_URL.replace("example.test", "EXAMPLE.TEST"),
+        TERMS_URL.replace("example.test", "www.example.test"),
+    ], ids=["canonical", "trailing-slash", "txt-suffix", "query", "fragment",
+            "http", "uppercase-host", "www-host"])
+    @pytest.mark.parametrize("page", [
+        f"Nimbus 3 is governed by these terms: {TERMS_URL}",
+        f"license: other\nlicense_link: {TERMS_URL}\nNimbus 3 documentation.",
+    ], ids=["page-wide-url", "frontmatter-license-link"])
+    def test_terms_url_alias_never_bypasses_reviewed_policy_or_id(
+        retained_policy, terms_url, page,
+    ):
+        reader = verify.LicenceExtractor(
+            lambda _prompt: json.dumps({
+                "value": "permitted_with_conditions", "clauses": [SENTENCE],
+            }),
+            agent="fixture-reader", model="fixture", model_family="anthropic",
+        )
+        # Both policy mutations remain outside the immutable reviewed region, and
+        # this canonical id is outside that region's explicit model list as well.
+>       assert_unbound(retained_policy(
+            page, model_id="lab/unlisted", terms_url=terms_url, reader=reader,
+        ))
+
+tests/test_model_393_exact_binding.py:226:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = Result(target=TargetRef(kind='fact', id='lab/unlisted#licence.commercial_use'), outcome='verified', verification=Verif...hod='licence-extract:fixture', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/unlisted#licence.commercial_use'), outcome='verified', verification=Verif...hod='licence-extract:fixture', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E
+E         - mismatch
+E         + verified
+
+tests/test_model_393_exact_binding.py:96: AssertionError
+_ test_terms_url_alias_never_bypasses_reviewed_policy_or_id[frontmatter-license-link-www-host] _
+
+retained_policy = <function retained_policy.<locals>.check at 0x1083eab90>
+terms_url = 'https://www.example.test/legal/terms'
+page = 'license: other\nlicense_link: https://example.test/legal/terms\nNimbus 3 documentation.'
+
+    @pytest.mark.parametrize("terms_url", [
+        TERMS_URL,
+        TERMS_URL + "/",
+        TERMS_URL + ".txt",
+        TERMS_URL + "?v=1",
+        TERMS_URL + "#terms",
+        TERMS_URL.replace("https://", "http://"),
+        TERMS_URL.replace("example.test", "EXAMPLE.TEST"),
+        TERMS_URL.replace("example.test", "www.example.test"),
+    ], ids=["canonical", "trailing-slash", "txt-suffix", "query", "fragment",
+            "http", "uppercase-host", "www-host"])
+    @pytest.mark.parametrize("page", [
+        f"Nimbus 3 is governed by these terms: {TERMS_URL}",
+        f"license: other\nlicense_link: {TERMS_URL}\nNimbus 3 documentation.",
+    ], ids=["page-wide-url", "frontmatter-license-link"])
+    def test_terms_url_alias_never_bypasses_reviewed_policy_or_id(
+        retained_policy, terms_url, page,
+    ):
+        reader = verify.LicenceExtractor(
+            lambda _prompt: json.dumps({
+                "value": "permitted_with_conditions", "clauses": [SENTENCE],
+            }),
+            agent="fixture-reader", model="fixture", model_family="anthropic",
+        )
+        # Both policy mutations remain outside the immutable reviewed region, and
+        # this canonical id is outside that region's explicit model list as well.
+>       assert_unbound(retained_policy(
+            page, model_id="lab/unlisted", terms_url=terms_url, reader=reader,
+        ))
+
+tests/test_model_393_exact_binding.py:226:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = Result(target=TargetRef(kind='fact', id='lab/unlisted#licence.commercial_use'), outcome='verified', verification=Verif...hod='licence-extract:fixture', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/unlisted#licence.commercial_use'), outcome='verified', verification=Verif...hod='licence-extract:fixture', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E
+E         - mismatch
+E         + verified
+
+tests/test_model_393_exact_binding.py:96: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_model_393_exact_binding.py::test_terms_url_alias_never_bypasses_reviewed_policy_or_id[page-wide-url-trailing-slash]
+FAILED tests/test_model_393_exact_binding.py::test_terms_url_alias_never_bypasses_reviewed_policy_or_id[page-wide-url-txt-suffix]
+FAILED tests/test_model_393_exact_binding.py::test_terms_url_alias_never_bypasses_reviewed_policy_or_id[page-wide-url-query]
+FAILED tests/test_model_393_exact_binding.py::test_terms_url_alias_never_bypasses_reviewed_policy_or_id[page-wide-url-fragment]
+FAILED tests/test_model_393_exact_binding.py::test_terms_url_alias_never_bypasses_reviewed_policy_or_id[page-wide-url-http]
+FAILED tests/test_model_393_exact_binding.py::test_terms_url_alias_never_bypasses_reviewed_policy_or_id[page-wide-url-uppercase-host]
+FAILED tests/test_model_393_exact_binding.py::test_terms_url_alias_never_bypasses_reviewed_policy_or_id[page-wide-url-www-host]
+FAILED tests/test_model_393_exact_binding.py::test_terms_url_alias_never_bypasses_reviewed_policy_or_id[frontmatter-license-link-trailing-slash]
+FAILED tests/test_model_393_exact_binding.py::test_terms_url_alias_never_bypasses_reviewed_policy_or_id[frontmatter-license-link-txt-suffix]
+FAILED tests/test_model_393_exact_binding.py::test_terms_url_alias_never_bypasses_reviewed_policy_or_id[frontmatter-license-link-query]
+FAILED tests/test_model_393_exact_binding.py::test_terms_url_alias_never_bypasses_reviewed_policy_or_id[frontmatter-license-link-fragment]
+FAILED tests/test_model_393_exact_binding.py::test_terms_url_alias_never_bypasses_reviewed_policy_or_id[frontmatter-license-link-http]
+FAILED tests/test_model_393_exact_binding.py::test_terms_url_alias_never_bypasses_reviewed_policy_or_id[frontmatter-license-link-uppercase-host]
+FAILED tests/test_model_393_exact_binding.py::test_terms_url_alias_never_bypasses_reviewed_policy_or_id[frontmatter-license-link-www-host]
+14 failed, 2 passed, 32 deselected in 0.72s

@@ -1,0 +1,10 @@
+{
+  "normalise_matches_original_base": true,
+  "sha256": "db4651f3947007837581eacddbda6a8b5d4abc976c165aea2d648c2e5af62420",
+  "binding_registry_rows": 4,
+  "meta_model_ids": [
+    "meta/muse-spark-1-1",
+    "meta/muse-spark-1-3"
+  ],
+  "engine_implementation_sha": "25ee05c772f3cc3f0528de5e7b8f7d704593d5a2"
+}
