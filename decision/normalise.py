@@ -7,10 +7,10 @@ relative dates ("3 days ago"), tracking query strings, attribute order and
 whitespace. The output is text only, one block per line and table cells joined
 by `` | ``, so markup churn never reaches a fingerprint.
 
-A rule set is chosen by name on each source (``Source.normaliser``). HTML and
-plain text are handled; PDF is not yet (see ``UnsupportedContentError``).
+A rule set is chosen by name on each source (``Source.normaliser``). PDF is
+opt-in through a pinned, versioned text extraction recipe.
 
-Deterministic and offline: the standard library only, no network.
+Deterministic and offline. Only the PDF recipe needs the pinned pypdf dependency.
 """
 
 from __future__ import annotations
@@ -107,7 +107,7 @@ class RuleSet:
     """A named normalisation recipe. ``content`` says which parser applies."""
 
     name: str
-    content: Literal["html", "text", "json"]
+    content: Literal["html", "text", "json", "pdf"]
     drop_tags: frozenset[str] = frozenset()
     #: Drop ``<header>``/``<footer>`` unless they sit inside an article, main or section.
     drop_page_chrome: bool = True
@@ -163,12 +163,13 @@ NORMALISERS: dict[str, RuleSet] = {
                 header_buttons=True, data_buttons=True),
         RuleSet("text-default", "text"),
         RuleSet("json-default", "json", strip_volatile=False, strip_tracking=False),
+        RuleSet("pdf-pypdf-6.19.0-v1", "pdf"),
     )
 }
 
 
 class UnsupportedContentError(ValueError):
-    """The content type has no normaliser yet (PDF, for now)."""
+    """The content is unsupported by the selected normalization recipe."""
 
     def __init__(self, kind: str) -> None:
         super().__init__(f"unsupported content: {kind}")
@@ -648,6 +649,12 @@ class Document:
 
 
 def normalise_document(body: bytes, rules: RuleSet, *, charset: str | None = None) -> Document:
+    if rules.content == "pdf":
+        from decision.pdf_text import extract_pdf
+
+        raw = unicodedata.normalize("NFKC", extract_pdf(body))
+        rows = [re.sub(r" {2,}", " | ", line.strip()) for line in raw.splitlines()]
+        return Document(rules, _to_text(["\n".join(rows)], rules))
     if body.lstrip().startswith(b"%PDF"):
         raise UnsupportedContentError("pdf")
     raw = body.decode(charset or "utf-8", errors="replace")

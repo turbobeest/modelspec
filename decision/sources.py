@@ -645,7 +645,7 @@ def _check_one(
 
     rules = NORMALISERS[source.normaliser]
     try:
-        if "pdf" in result.content_type.lower():
+        if "pdf" in result.content_type.lower() and rules.content != "pdf":
             raise UnsupportedContentError("pdf")
         doc = normalise_document(result.body, rules, charset=result.charset)
     except UnsupportedContentError as exc:

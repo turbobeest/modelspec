@@ -23,8 +23,10 @@ selectors or headings. Changes to the extractor, its options or this recipe
 require a new recipe name.
 
 Reject encrypted, malformed, empty and image-only documents. Reject a document
-if any page has no machine-readable text or if its raster images cover at least
-half the page, including a scanned page with an existing OCR text overlay.
+if any page has no machine-readable text. Permit only small raster decorations
+whose drawn edge lengths are at most 16 points and whose aggregate area is less
+than one percent of the page. Larger images, inline images and invisible text
+rendering modes are unsupported, including a scan with an existing text overlay.
 Calculate image coverage from PDF placement transforms, including nested form
 objects, rather than pixel dimensions. This conservative rule can reject a
 legitimate image-heavy technical report. Small checkbox images in Mistral's
