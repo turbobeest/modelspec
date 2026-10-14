@@ -4,11 +4,17 @@ Base SHA: `e078f6562ce69099724a025a05b4016e8a1e5e4d`.
 The final delivery SHA is the commit that contains this file. Resolve it with
 `git log -1 --format=%H -- docs/evidence/g2-ios/MODEL-389-fix.md`.
 
-`git fetch origin && git merge origin/main` reported `Already up to date.`
+The first `git fetch origin && git merge origin/main` reported `Already up to date.`
 `origin/main` was `e078f656`. PR #742 (`sparksandsawdust/model-384-plan-availability`)
 was still open, with no merge commit. Its decide diff adds optional contract
 fields in `web/src/decide/adapter/contract.ts` and does not change
 `estateAsDecision`, `leadingModels`, or `TieAwareAnswer`.
+
+A later fetch found `822aa83a` on `origin/main` (MODEL-387, PR #745).
+`git merge origin/main` used the ort strategy and reported no conflicts.
+The incoming files were `qa/README.md`, `qa/tui_providers.py`, and
+`tests/test_tui_harness.py`. No decide-page file changed, and the web suite
+was not rerun after that merge.
 
 ## Defect
 
