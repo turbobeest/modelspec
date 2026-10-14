@@ -1,14 +1,14 @@
 import { render, screen, within } from "@testing-library/react";
 import { expect, it } from "vitest";
+import chatJson from "../__fixtures__/plans-chat-app-full.json";
 import codingJson from "../__fixtures__/plans-coding-full.json";
 import ownSoftwareJson from "../__fixtures__/plans-own-software-full.json";
 import vendorCodingJson from "../__fixtures__/plans-vendor-coding-full.json";
 import { decisionSchema } from "../adapter/contract";
-import type { Decision } from "../adapter/contract";
+import type { Decision, EstateMark } from "../adapter/contract";
 import { mapDecisionToViewModel } from "../adapter/view-model";
 import { RankedAnswer } from "../facet-board/RankedAnswer";
 import { estateAsDecision } from "../facet-board/routes";
-import type { EstateMark } from "../adapter/contract";
 import { realBaseSpec } from "../vocabulary";
 import { planVocabulary } from "./plan-vocabulary";
 
@@ -87,6 +87,36 @@ it("names a separated estate leader when that leader is not the unrestricted one
   const heading = bestHeading();
   expect(heading).toHaveTextContent("Best for your weights: Claude Sonnet 5");
   expect(heading).not.toHaveTextContent(UNRESTRICTED);
+});
+
+it("keeps the band headings when the estate tie is the same models in another order", () => {
+  const decision = decisionSchema.parse(chatJson);
+  const estate = decision.with_estate;
+  const bands = decision.bands;
+  if (!estate?.answer || estate.answer.kind !== "tied" || !bands) throw new Error("fixture has no tied estate answer");
+  const reversed = [...estate.answer.deterministic_order].reverse();
+  const reordered = decisionSchema.parse({
+    ...decision,
+    with_estate: {
+      ...estate,
+      answer: { ...estate.answer, members: reversed, deterministic_order: reversed },
+    },
+  });
+  const held = estateAsDecision(reordered);
+  if (!held) throw new Error("expected an estate answer");
+  show(held.decision, held.marks);
+
+  const heading = bestHeading();
+  expect(heading).toHaveTextContent("Best for your weights: these 2. The evidence can't separate them.");
+  const block = heading.closest("section");
+  if (!block) throw new Error("expected the answer section");
+  const group = block.querySelector(".board-tie-group");
+  if (!(group instanceof HTMLElement)) throw new Error("expected the tied members");
+  expect(within(group).getAllByRole("listitem").map((item) => item.querySelector("strong")?.textContent))
+    .toEqual(["Claude Opus 5.5", "Claude Sonnet 5"]);
+  expect(screen.getAllByRole("heading").map((item) => item.textContent)).toEqual([
+    "Best for your weights: these 2. The evidence can't separate them.",
+  ]);
 });
 
 it("keeps the estate heading when the estate leader is the unrestricted leader", () => {

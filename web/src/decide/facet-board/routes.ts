@@ -332,8 +332,9 @@ export const offeringKey = (ref: OfferingRef): string =>
 
 /**
  * Bands belong to the unrestricted answer. Keep them on the estate view only
- * when they already name that answer's leader or tie, in that order. Otherwise
- * the heading would reuse the unrestricted band.
+ * when they name that answer's leader or tie. A different order is still
+ * that tie. Any other model belongs to the unrestricted answer, and the
+ * heading reads bands first.
  */
 function estateBands(decision: Decision, estate: NonNullable<Decision["with_estate"]>): Decision["bands"] {
   const bands = decision.bands;
@@ -341,7 +342,9 @@ function estateBands(decision: Decision, estate: NonNullable<Decision["with_esta
   if (!bands || !answer) return null;
   const best = bands.best.map((entry) => entry.model);
   const order = answer.deterministic_order;
-  if (best.length === order.length && best.every((model, index) => model === order[index])) return bands;
+  const named = new Set(order);
+  if (best.length === order.length && named.size === order.length && best.every((model) => named.has(model)))
+    return bands;
   return null;
 }
 
