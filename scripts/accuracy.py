@@ -827,6 +827,8 @@ def _private_corrections(
 #:   declared rendered. A 403 from a page that needs a renderer says nothing about
 #:   the value, so the draw is replaced. A failed ``fetch: http`` source stays
 #:   ``unreachable``.
+#: - ``missing_source_metadata``: an evidence reading lacks a recognised unit or
+#:   the optional scoring metadata needed to determine agreement.
 #: ``public_image_lag`` is an older public fact superseded by a newer verified
 #: private value. It replaces a draw and does not count as assessed or undetermined.
 FIDELITY_OUTCOMES = ("verified", "mismatch", "unreachable", "undetermined", "public_image_lag")
@@ -1310,7 +1312,8 @@ def data_fidelity(
             "max_undetermined_share": config.max_undetermined_share,
             "undetermined_reasons": {
                 reason: sum(row["reason"] == reason for row in sample)
-                for reason in ("source_unchanged", "source_changed", "render_required")
+                for reason in ("source_unchanged", "source_changed", "render_required",
+                               "missing_source_metadata")
             },
             "plain_http_sources": len(fetched_sources),
             "firecrawl_credits_used": 0,

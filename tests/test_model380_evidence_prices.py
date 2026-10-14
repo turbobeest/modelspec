@@ -6,8 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from decision import verify
+from decision import sources, verify
 from decision.model import SourceRef, TargetRef, VerificationActor
+from scripts import accuracy
 from scripts.accuracy import verify_fidelity_sample
 
 
@@ -308,3 +309,46 @@ def test_benchmark_unknown_unit_does_not_hide_a_stated_condition_disagreement(
     assert result.counts["mismatch"] == 1, result
     assert result.counts["undetermined"] == result.counts["verified"] == 0
     assert any(diff["field"] == "effort" for diff in result.details[0]["diff"])
+
+
+def test_fidelity_report_counts_missing_metadata_reason(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    registry = tmp_path / "registry"
+    registry.mkdir()
+    (registry / "sources.yaml").write_text("""\
+schema_version: 1
+sources:
+  - id: synthetic-source
+    url: https://source.example.test/rows
+    fetch: http
+    normaliser: text-default
+    cited_regions:
+      - id: rows
+        locator: {kind: page, value: ''}
+""")
+
+    class SourcePage:
+        def fetch(self, url, *, etag=None, last_modified=None):
+            return sources.FetchResult(
+                "ok", 200, body=b"Model: Aurora\npass_1: 42.13456789%\n",
+                content_type="text/plain",
+            )
+
+    monkeypatch.setattr(
+        accuracy, "_verified_claims", lambda root: [(_evidence_claim(), "key-value-match@1")],
+    )
+    monkeypatch.setattr(sources, "Fetcher", SourcePage)
+    config = replace(accuracy.load_config().data_fidelity, sample_size=1, max_values_drawn=1)
+
+    report = accuracy.data_fidelity(tmp_path, as_of=TODAY, config=config)
+
+    assert report.status == "fail"
+    assert report.counts["undetermined"] == 1
+    assert report.details["sample"][0]["reason"] == "missing_source_metadata"
+    assert report.details["undetermined_reasons"] == {
+        "source_unchanged": 0,
+        "source_changed": 0,
+        "render_required": 0,
+        "missing_source_metadata": 1,
+    }
