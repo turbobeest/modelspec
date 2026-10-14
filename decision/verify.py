@@ -3981,30 +3981,26 @@ class LicenceTermsExtractor:
         prose = _region_prose(text).translate(_LICENCE_QUOTE_CHARS)
         corpus = re.sub(r"\s+", " ", prose).strip().casefold()
         values: set[str] = set()
-        clauses = [re.sub(r"\s+", " ", clause).strip().casefold()
-                   for clause in _CLAUSE_BREAK.split(prose)]
+        clauses = [clause for raw in _CLAUSE_BREAK.split(prose)
+                   if (clause := re.sub(r"\s+", " ", raw).strip().casefold())]
 
-        def affirmative(pattern: str) -> bool:
-            matches = list(re.finditer(pattern, corpus))
-            return bool(matches) and not any(re.search(
-                r"\b(?:not|never|false|untrue|incorrect|nothing)\b[^.!?]*$",
-                corpus[:match.start()],
-            ) for match in matches)
+        def stated(pattern: str) -> bool:
+            return any(re.fullmatch(pattern, clause) for clause in clauses)
 
-        gemma_grant = (
+        gemma_model_grant = (
             "you may use, reproduce, modify, distribute gemma and model derivatives, "
             "subject to these terms" in clauses
-            or affirmative(
-                r"\byou may use, reproduce, modify, distribute(?:, perform or| and) display "
-                r"(?:any of the )?gemma services only in accordance with "
-                r"(?:the terms of )?this agreement\b",
-            )
+        )
+        gemma_services_grant = stated(
+            r"you may use, reproduce, modify, distribute(?:, perform or| and) display "
+            r"(?:any of the )?gemma services only in accordance with "
+            r"(?:the terms of )?this agreement",
         )
         gemma_policy = (
             "you must comply with the gemma prohibited use policy" in clauses
-            or affirmative(
-                r"\byou must not use (?:any of the )?gemma services\b"
-                r"[^.!?]{0,130}\bgemma prohibited use policy\b",
+            or stated(
+                r"you must not use (?:any of the )?gemma services for uses restricted by "
+                r"(?:the )?gemma prohibited use policy",
             )
         )
         if re.search(
@@ -4013,23 +4009,28 @@ class LicenceTermsExtractor:
         ):
             return values
         if field == "licence.user_cap":
-            for clause in _CLAUSE_BREAK.split(prose):
+            for index, clause in enumerate(clauses):
+                if index and re.search(r"\b(?:example|sample|illustration)\b", clauses[index - 1]):
+                    continue
                 match = re.fullmatch(
                     r"\s*if (?:you|the licensee) (?:exceed|serve more than) "
                     r"((?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?(?: (?:million|billion))?) "
                     r"monthly active users, (?:you must obtain a separate (?:agreement|licen[cs]e)"
                     r"|a separate (?:agreement|licen[cs]e) is required)\s*",
-                    clause, re.IGNORECASE,
+                    clause,
                 )
                 if match:
                     number, _, magnitude = match.group(1).casefold().partition(" ")
                     scale = {"": 1, "million": 1_000_000, "billion": 1_000_000_000}[magnitude]
                     values.add(str(Decimal(number.replace(",", "")) * scale))
-            if "no separate agreement is required at any number of monthly active users" in clauses:
-                values.add("unbounded")
+                if clause == (
+                    "no separate agreement is required at any number of monthly active users"
+                ):
+                    values.add("unbounded")
         elif field == "licence.commercial_use":
             if re.search(
-                r"\b(?:commercial use is (?:prohibited|forbidden)|non-commercial|noncommercial|"
+                r"\b(?:commercial use(?: of [^;.!?]+)? is (?:prohibited|forbidden)|"
+                r"non-commercial|noncommercial|"
                 r"for (?:evaluation|research|personal) use only)\b", corpus,
             ):
                 return values
@@ -4041,27 +4042,31 @@ class LicenceTermsExtractor:
                     r"in compliance with these terms)", clause,
                 ):
                     values.add("permitted_with_conditions")
-            grant = affirmative(
-                r"\bgrants? (?:you|customer) a non-exclusive right to access and use the services\b"
-                r"|\bgrants?(?: to)? customer a\b[^;.!?]{0,120}\blicen[cs]e during the term to: "
-                r"\(a\) access and use the services\b",
+            grant_prefix = (
+                r"subject to (?:these terms|this agreement), "
+                r"[a-z][\w&'-]*(?: [a-z][\w&'-]*){0,3} grants?(?: to)? customer "
             )
-            integration = re.search(
-                r"\bapi\b[^.!?]{0,240}\b(?:customer applications|end users|end-user)\b"
-                r"|\bdevelop other software applications\b[^.!?]{0,240}\bend users\b", corpus,
+            integration = (
+                r"customer may use the api to integrate (?:the services )?into customer "
+                r"applications for end users"
             )
-            conditioned = re.search(
-                r"\b(?:subject to|in accordance with)\b[^.!?]{0,100}\b(?:terms|agreement)\b",
-                corpus,
-            )
-            if grant and integration and conditioned:
-                values.add("permitted_with_conditions")
-            if re.search(
-                r"\buse of\b[^;.!?]{0,80}\bis for developers building with\b"
-                r"[^;.!?]{0,80}\bfor professional or business purposes\b", corpus,
-            ):
-                values.add("permitted_with_conditions")
-            if gemma_grant and gemma_policy:
+            for index, clause in enumerate(clauses):
+                if re.search(r"\b(?:no|nobody|neither|not|never|false|untrue|incorrect|nothing)\b",
+                             clause):
+                    continue
+                if re.fullmatch(
+                    grant_prefix + r"a non-exclusive right to access and use the services",
+                    clause,
+                ) and index + 1 < len(clauses) and re.fullmatch(integration, clauses[index + 1]):
+                    values.add("permitted_with_conditions")
+                if re.fullmatch(
+                    grant_prefix + r"a limited licen[cs]e during the term to: "
+                    r"\(a\) access and use the services; \(b\) integrate the api into "
+                    r"customer applications for end users",
+                    clause,
+                ):
+                    values.add("permitted_with_conditions")
+            if (gemma_model_grant or gemma_services_grant) and gemma_policy:
                 values.add("permitted_with_conditions")
         elif field == "licence.output_training":
             for clause in clauses:
@@ -4079,10 +4084,12 @@ class LicenceTermsExtractor:
                       for block in prose.splitlines() if block.strip()]
             actions: list[str] = []
             for index, block in enumerate(blocks):
-                lead = re.search(
-                    r"\b(?:customer|you) "
+                lead = re.match(
+                    r"(?:customer|you) "
                     r"(?:(?:agree|agrees) that (?:customer|you) )?"
-                    r"(?:will|shall|must|may) not(?= do\b|\s*[,(:])[^:;.!?]{0,300}:", block,
+                    r"(?:will|shall|must|may) not"
+                    r"(?: do the following|, and will not permit end users to|"
+                    r" \(or allow others to\))?\s*:", block,
                 )
                 if lead is None:
                     continue
@@ -4096,61 +4103,64 @@ class LicenceTermsExtractor:
             items = [item.strip() for action in actions for item in re.split(
                 r"\s*;?\s+(?=\((?:[a-z]|[ivx]+)\)\s)", action,
             )]
+            output = (
+                r"use (?:any )?outputs?(?: of (?:the )?services)?"
+                r"(?: \(defined below\))?\s*,? to "
+            )
+            model = (
+                r"(?:any |a |an )?(?:competing (?:ai |artificial intelligence |"
+                r"machine learning )?models?|(?:ai |artificial intelligence |"
+                r"machine learning )?models? that compet(?:e|es) with (?:our models|ours))"
+            )
             for item in items:
-                action = re.sub(r"^\((?:[a-z]|[ivx]+)\)\s*", "", item)
-                if not re.match(r"(?:except [^,;.!?]{1,100}, )?use\b", action):
-                    continue
-                if re.search(
-                    r"\boutputs?(?: of (?:the )?services)?(?:\s*\([^)]{0,60}\))?\s*,? "
-                    r"to (?:train(?:,? (?:fine-tune|distill|or otherwise improve or create|"
-                    r"or otherwise improve|or create)){0,4} (?:any |a |an )?"
-                    r"(?:(?:artificial intelligence|machine learning|ai)"
-                    r"(?: or machine learning)? )?models?\b|"
-                    r"develop (?:artificial intelligence |machine learning |ai )?models?\b|"
-                    r"perform model distillation\b)"
-                    r"[^;.!?]{0,360}\bcompet(?:e(?:s)?|ing)\b", action,
-                ):
-                    values.add("restricted")
-                if re.search(
-                    r"\b(?:train|training)\b[^;.!?]{0,140}\bgoogle maps data\b"
-                    r"|\bgoogle maps data\b[^;.!?]{0,140}\b(?:train|training)\b",
+                action = re.sub(r"^\((?:[a-z]|[ivx]+)\)\s*", "", item).rstrip(".;")
+                if re.fullmatch(
+                    r"(?:except under a separate authorization, )?" + output
+                    + r"(?:(?:train(?:,? (?:fine-tune|distill|or otherwise improve or create|"
+                    r"or otherwise improve|or create)){0,4}|develop) " + model
+                    + r"|perform model distillation (?:of |or develop )" + model + r")",
                     action,
                 ):
                     values.add("restricted")
-            if re.search(
-                r"\byou will not, and will not allow\b[^:;.!?]{0,140}\bto,\s*"
-                r"[^;.!?]{0,140}\btrain on, or otherwise learn from grounded results "
-                r"or search suggestions\b", corpus,
+                if re.fullmatch(
+                    r"use google maps data from outputs to train (?:a|an) "
+                    r"(?:ai|artificial intelligence|machine learning) model",
+                    action,
+                ):
+                    values.add("restricted")
+            if stated(
+                r"you will not, and will not allow (?:your users|contractors|your contractors|"
+                r"end users|any third party|third parties|others) to, train on, or otherwise "
+                r"learn from grounded results or search suggestions",
             ):
                 values.add("restricted")
             if (
                 (
                     "model derivatives include models trained on synthetic data outputs of gemma "
                     "or by distillation" in clauses
-                    or re.search(
-                        r'"?model derivatives"? means\b'
-                        r'(?:(?!\b(?:not|never|except|excluding)\b)[^.!?]){0,850}'
-                        r"\bsynthetic data outputs by gemma for training that model\b", corpus,
-                    ) is not None
+                    or stated(
+                        r'"?model derivatives"? means models made by distillation or '
+                        r"synthetic data outputs by gemma for training that model",
+                    )
                 )
                 and (
                     "model derivatives remain subject to these terms" in clauses
-                    or "gemma or model derivatives are subject to the use restrictions "
-                    "in section 3.2" in corpus
+                    or "you must notify recipients that gemma or model derivatives are subject "
+                    "to the use restrictions in section 3.2" in clauses
                 )
                 and gemma_policy
-                and not re.search(
-                    r"use restrictions in section 3\.2[^.!?]{0,100}\bexcept\b", corpus,
-                )
             ):
                 values.add("restricted")
         elif field == "licence.fine_tuning":
-            if (
-                "customer shall not modify or create derivative works of the model weights"
-                in clauses
-            ):
+            weights_ban = stated(
+                r"(?:customer|you) (?:shall|must|may) not modify "
+                r"(?:or create derivative works of )?the model weights",
+            )
+            if weights_ban and (gemma_model_grant or gemma_services_grant):
+                return values
+            if weights_ban:
                 values.add("prohibited")
-            if gemma_grant and gemma_policy:
+            if gemma_model_grant and gemma_policy:
                 values.add("permitted_with_conditions")
         return values
 
@@ -4581,8 +4591,6 @@ def _strip_apache_appendix(residual: str) -> str | None:
     can require that line exactly. ``None`` when an ``APPENDIX:`` is present
     and the how-to or the boilerplate is not the canonical text.
     """
-    if residual == _canonical_form(_APPENDIX_HEAD + _APPENDIX_TAIL):
-        return ""
     start = residual.find(_APPENDIX_HEAD)
     if start < 0:
         if "APPENDIX:" in residual:
@@ -4593,6 +4601,8 @@ def _strip_apache_appendix(residual: str) -> str | None:
     if tail_at < 0 or "APPENDIX:" in residual[tail_at + len(_APPENDIX_TAIL):]:
         return None
     holder = residual[holder_at:tail_at].strip()
+    if not holder:
+        return None
     end = tail_at + len(_APPENDIX_TAIL)
     left = residual[:start].strip()
     right = residual[end:].strip()
@@ -4662,7 +4672,7 @@ for _spdx, _pairs in CANONICAL_LICENCE_RESIDUALS.items():
         _plain = _text_around_body(_spdx, _before, _after, appendix=False)
         if _canonical_licence_id(_plain) != _spdx:
             raise RuntimeError(f"{_spdx} residual is not recognised around the body")
-        if _spdx == "apache-2.0" and _canonical_licence_id(
+        if _spdx == "apache-2.0" and _after and _canonical_licence_id(
             _text_around_body(_spdx, _before, _after, appendix=True)
         ) != _spdx:
             raise RuntimeError(f"{_spdx} residual is not recognised with the appendix")

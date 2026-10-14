@@ -4357,7 +4357,7 @@ def test_retained_canonical_residuals_are_accepted() -> None:
     for name, spdx, before, after in _RETAINED_RESIDUALS:
         body = verify.CANONICAL_LICENCE_BODIES[spdx]
         texts = [_around(before, body, after)]
-        if spdx == "apache-2.0":
+        if spdx == "apache-2.0" and after:
             texts.append(_around(before, body, f"{head}{after}{tail}"))
         for text in texts:
             assert extractor.accepts(text), name

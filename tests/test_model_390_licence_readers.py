@@ -160,8 +160,6 @@ def test_unrelated_modification_and_product_features_do_not_read_fine_tuning(tex
     "Subject to this agreement, Acme grants to Customer a limited licence during the Term "
     "to: (a) access and use the Services; (b) integrate the API into Customer Applications "
     "for End Users.",
-    "Use of the Services is for developers building with AI models for professional or "
-    "business purposes. Use must comply with the prohibited-use policy.",
 ])
 def test_provider_grant_and_customer_application_clause_families(text):
     result = check("licence.commercial_use", "permitted_with_conditions", text)
@@ -175,7 +173,7 @@ def test_provider_grant_and_customer_application_clause_families(text):
     "You shall not do the following: (i) misuse the service; (ii) use Outputs of the Services "
     "to train, fine-tune or otherwise improve a model that competes with our models.",
     "Customer shall not (or allow others to): (a) resell access; (b) use any Output "
-    "(defined below) to perform model distillation or develop a competing product.",
+    "(defined below) to perform model distillation or develop a competing AI model.",
     "You will not, and will not allow your users to, train on, or otherwise learn from "
     "Grounded Results or Search Suggestions.",
 ])
@@ -264,7 +262,8 @@ GEMMA_DISTRIBUTION = (
 ])
 def test_gemma_use_grant_and_distribution_restrictions(field, value):
     result = check(field, value, GEMMA_DISTRIBUTION, "licence_text")
-    assert result.outcome == "verified", result
+    expected = "skipped" if field == "licence.fine_tuning" else "verified"
+    assert result.outcome == expected, result
 
 
 @pytest.mark.parametrize("text", [
@@ -352,3 +351,138 @@ def test_quoted_false_gemma_grant_remains_unread():
     text = GEMMA_DISTRIBUTION.replace("You may use", "It is false that you may use")
     for field in ("licence.commercial_use", "licence.fine_tuning"):
         assert check(field, "permitted_with_conditions", text, "licence_text").outcome == "skipped"
+
+
+@pytest.mark.parametrize("text", [
+    "Use of this status page is for developers building with the example client for "
+    "professional or business purposes.",
+    "Use of this status page is for developers building with the example client for "
+    "professional or business purposes. Commercial use of the model weights is prohibited.",
+    "Use of the Services is for developers building with AI models for professional or "
+    "business purposes. Use must comply with the prohibited-use policy.",
+    "Subject to these terms, you may use the services in your applications. "
+    "Commercial use of the model weights is prohibited.",
+    "Commercial use of these Services is forbidden. "
+    "We grant you a right to access and use the services, subject to this agreement.",
+])
+def test_review747_audience_descriptions_and_commercial_bans_do_not_grant_use(text):
+    assert check("licence.commercial_use", "permitted_with_conditions", text).outcome == "skipped"
+
+
+@pytest.mark.parametrize("text", [
+    "Subject to this agreement, Acme grants Customer a non-exclusive right to access and "
+    "use the Services for backup of logs. The status API returns incident data to "
+    "Customer Applications for End Users.",
+    "Subject to this agreement, Acme grants Customer a non-exclusive right to access and "
+    "use the Services. The status API returns incident data to Customer Applications "
+    "for End Users.",
+    "Acme grants Customer a non-exclusive right to access and use the Services. "
+    "Customer may use the API to integrate the services into Customer Applications for "
+    "End Users, subject to these terms.",
+    "Subject to this agreement, Acme grants Customer a non-exclusive right to access and "
+    "use the Services. The next section describes billing. Customer may use the API to "
+    "integrate the services into Customer Applications for End Users.",
+    "Subject to this agreement, Acme grants Customer a non-exclusive right to access and "
+    "use the Services. Customer may not use the API to integrate the services into "
+    "Customer Applications for End Users.",
+    "It is false that, subject to this agreement, Acme grants Customer a non-exclusive "
+    "right to access and use the Services. Customer may use the API to integrate the "
+    "services into Customer Applications for End Users.",
+])
+def test_review747_grant_condition_and_application_permission_share_their_scope(text):
+    assert check("licence.commercial_use", "permitted_with_conditions", text).outcome == "skipped"
+
+
+@pytest.mark.parametrize("issuer", ["no provider", "nobody"])
+def test_review747_negative_grant_subject_is_not_a_provider_permission(issuer):
+    text = (f"Subject to this agreement, {issuer} grants Customer a non-exclusive right to "
+            "access and use the Services. Customer may use the API to integrate the services "
+            "into Customer Applications for End Users.")
+    assert check("licence.commercial_use", "permitted_with_conditions", text).outcome == "skipped"
+
+
+@pytest.mark.parametrize("suffix", [
+    "",
+    " Customer shall not modify the model weights.",
+    " Customer shall not modify or create derivative works of the model weights.",
+])
+def test_review747_gemma_services_grant_does_not_grant_weight_modification(suffix):
+    text = (
+        "You may use, reproduce, modify, distribute and display Gemma Services only in "
+        "accordance with this Agreement. You must not use Gemma Services for uses restricted "
+        "by the Gemma Prohibited Use Policy."
+    ) + suffix
+    assert check("licence.fine_tuning", "permitted_with_conditions", text,
+                 "licence_text").outcome == "skipped"
+
+
+@pytest.mark.parametrize("ban", [
+    "Customer shall not modify the model weights.",
+    "Customer shall not modify or create derivative works of the model weights.",
+])
+def test_review747_gemma_model_grant_and_weight_ban_are_ambiguous(ban):
+    for value in ("permitted_with_conditions", "prohibited"):
+        assert check("licence.fine_tuning", value, GEMMA_TERMS + " " + ban,
+                     "licence_text").outcome == "skipped"
+
+
+@pytest.mark.parametrize("text", [
+    "Customer will not: (a) use Output to develop AI models of record and compete with "
+    "our sales team for the account.",
+    "Customer will not: (a) use Output to perform model distillation of public-domain "
+    "texts or compete in chess tournaments.",
+    "Customer will not: (a) use Output to train AI models and compete in chess tournaments.",
+    "Customer will not: (a) use Output to develop AI models; (b) compete with our models.",
+    "Customer will not: (a) use Output to perform model distillation or develop a "
+    "competing product.",
+    "Customer will not: (a) use Output to claim that AI models compete with our models.",
+])
+def test_review747_competition_must_modify_the_model_being_trained(text):
+    assert check("licence.output_training", "restricted", text).outcome == "skipped"
+
+
+@pytest.mark.parametrize("action", [
+    "disclose that we train",
+    "report that contractors train",
+    "claim that you train",
+    "reveal whether we train",
+])
+def test_review747_grounded_results_ban_must_prohibit_the_customer_training_act(action):
+    text = (f"You will not, and will not allow contractors to, {action} on, or otherwise "
+            "learn from Grounded Results or Search Suggestions.")
+    assert check("licence.output_training", "restricted", text).outcome == "skipped"
+
+
+@pytest.mark.parametrize("text", [
+    "It is false that Customer will not: (a) use Output to develop AI models that compete "
+    "with our models.",
+    "It is incorrect that you will not, and will not allow contractors to, train on, or "
+    "otherwise learn from Grounded Results or Search Suggestions.",
+    "Customer will not: (a) use Output to disclose that employees train on Google Maps data.",
+    GEMMA_DISTRIBUTION.replace("You must notify recipients that", "You must not notify "
+                               "recipients that"),
+])
+def test_review747_training_restrictions_require_an_operative_actor_and_action(text):
+    assert check("licence.output_training", "restricted", text, "licence_text").outcome == "skipped"
+
+
+@pytest.mark.parametrize("label", ["This is an example.", "This is a sample.", "Illustration:\n"])
+@pytest.mark.parametrize("clause,value", [
+    ("If you exceed 200 million monthly active users, you must obtain a separate licence.",
+     200_000_000),
+    ("No separate agreement is required at any number of monthly active users.", "unbounded"),
+])
+def test_review747_example_cap_clauses_do_not_state_an_operative_cap(label, clause, value):
+    assert check("licence.user_cap", value, label + " " + clause).outcome == "skipped"
+
+
+@pytest.mark.parametrize(("field", "value"), [
+    ("licence.commercial_use", "permitted"),
+    ("licence.fine_tuning", "permitted"),
+    ("licence.output_training", None),
+    ("licence.user_cap", "unbounded"),
+])
+def test_review747_apache_appendix_requires_its_copyright_line(field, value):
+    text = (Path(__file__).parent / "fixtures/licences/apache-2.0.txt").read_text()
+    text = text.replace("Copyright [yyyy] [name of copyright owner]", "")
+    assert check(field, value, text, "licence_text").outcome == "skipped"

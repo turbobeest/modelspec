@@ -91,11 +91,19 @@ directory. A run stops before its 401st uncached call. Deterministic
 extractors still run first. On a `licence.*` claim, `CanonicalLicenceExtractor`
 reads a `licence_text` region when the retained text is the canonical MIT
 licence or the Apache License 2.0 terms. The complete Apache operative terms
-can omit the optional application appendix. Added restrictions still fail the
+can omit the optional application appendix. An appendix that is present must
+retain its recognized copyright line. Added restrictions still fail the
 canonical match. `LicenceTermsExtractor`, `licence-terms@1`, reads explicit
 Gemma grants, prohibited-use duties, output-derived model restrictions, provider
 commercial grants, scoped output-training prohibitions, model-weight modification
 prohibitions, and explicit monthly-user agreement thresholds. It requires the
+matched clauses themselves to state the right or restriction. An audience
+description is not a grant. A provider grant must include its condition and
+either an application-integration permission in the same clause or an explicit
+permission in the immediately following sentence. A services-modification grant
+does not grant weight-modification rights. Competition must describe the model
+being trained, and a disclosure duty does not prohibit training. Caps introduced
+as examples, samples, or illustrations remain unread. The reader requires the
 same permitted source kind and model binding as the completion reader. It does
 not infer an absent cap or undisclosed fine-tuning rights from prose silence.
 `LicenceExtractor` reads every other permitted region, and it is not asked about
