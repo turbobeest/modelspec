@@ -170,6 +170,9 @@ const EXPLAIN_ROW_FIELDS = ["contributions", "evidence"] as const;
 /** Compact UTF-8 budget for the MCP text: origin envelope plus decisionSummary. */
 export const AGENT_BYTES = 16_384;
 
+/** Bounded representation both overflow notices stamp. */
+const CURRENT_BOUNDED_VERSION = "1.3";
+
 // Same arm as qa.contracts.CONDITION_UNION. A changed shape is refused, not served long.
 const CONDITION_UNION = [
   { type: "string" },
@@ -531,7 +534,7 @@ function slimDecision(body: Record<string, unknown>): Record<string, unknown> {
   const notice: Record<string, unknown> = {};
   if (body.representation === "bounded" || typeof body.contract_version === "string" || typeof body.projects_contract === "string") {
     notice.representation = "bounded";
-    notice.bounded_version = "1.3";
+    notice.bounded_version = CURRENT_BOUNDED_VERSION;
     notice.projects_contract =
       typeof body.projects_contract === "string"
         ? body.projects_contract
@@ -682,7 +685,7 @@ export function fitDecideEnvelope(envelope: OriginEnvelope): OriginEnvelope {
   const priorTrimmed = omitted.trimmed;
   const minimal: Record<string, unknown> = {
     representation: "bounded",
-    bounded_version: "1.2",
+    bounded_version: CURRENT_BOUNDED_VERSION,
     projects_contract: shortText(bare.projects_contract, shortText(bare.contract_version, CURRENT_CONTRACT_VERSION), 16),
     status: shortText(bare.status, "trimmed"),
     answer: { kind: "tied", members: [] },

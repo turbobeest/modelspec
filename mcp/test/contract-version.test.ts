@@ -16,7 +16,7 @@ it("uses contract 2.17 when a bounded trimmed body has neither version field", (
 
   expect(fitted.body).toMatchObject({
     representation: "bounded",
-    bounded_version: "1.2",
+    bounded_version: "1.3",
     projects_contract: "2.17",
     status: "answered",
     answer: { kind: "tied", members: ["lab/a", "lab/b"] },
@@ -42,7 +42,7 @@ it("uses contract 2.17 when empty versions reach the over-budget minimal fallbac
 
   expect(fitted.body).toMatchObject({
     representation: "bounded",
-    bounded_version: "1.2",
+    bounded_version: "1.3",
     projects_contract: "2.17",
     status: "partial",
     answer: { kind: "tied", members: [] },
