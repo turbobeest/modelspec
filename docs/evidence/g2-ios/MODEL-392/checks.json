@@ -1,0 +1,32 @@
+{
+  "red": {
+    "exit_code": 1,
+    "summary": "4 failed, 3 passed, 59 deselected in 0.57s",
+    "receipt": "red.log.gz",
+    "sha256": "b987fe2b5cb0738900625fa913abfa34ad5dfbbf145d333a9cb75ff15d158471"
+  },
+  "focused": {
+    "exit_code": 0,
+    "summary": "347 passed in 40.03s",
+    "receipt": "focused.log.gz",
+    "sha256": "69b6e5a1b85bbfbbca6c074dd35704645e5b6d48d399dc3cc15a234d33582e17"
+  },
+  "full-initial": {
+    "exit_code": 1,
+    "summary": "2 failed, 11050 passed, 24 skipped, 11 warnings in 1623.74s (0:27:03)",
+    "receipt": "full-initial.log.gz",
+    "sha256": "1eb4520fb41daadc0f8a46306d5b1dc3db509d5200148a63cc77bda05bcf59db"
+  },
+  "social-cards-green": {
+    "exit_code": 0,
+    "summary": "2 passed in 190.17s (0:03:10)",
+    "receipt": "social-cards-green.log.gz",
+    "sha256": "05c0cfc22e437f064fd413df6a69f18b289a0b354c40c69e2f65cca9bf1e16f8"
+  },
+  "full-prepared": {
+    "exit_code": 0,
+    "summary": "11067 passed, 9 skipped, 11 warnings in 1166.34s (0:19:26)",
+    "receipt": "full-prepared.log.gz",
+    "sha256": "c4cf43b35a27a5f88eedd797dd2b033b3dec9e9c8a30075bf387f835f9488363"
+  }
+}
