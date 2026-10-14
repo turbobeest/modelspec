@@ -202,7 +202,7 @@ def test_exempt_is_decided_from_loaded_tier_data(entry):
 
     assert {
         name: entry._exempt(tier) for name, tier in policy.tiers.items()
-    } == {"dpf": True, "free": False, "sandbox": False, "paid": False}
+    } == {"dpf": True, "friends": True, "free": False, "sandbox": False, "paid": False}
     assert entry._exempt(None) is False
     assert entry._exempt(replace(policy.tier("dpf"), name="another_paid_tier")) is True
     assert entry._exempt(replace(policy.tier("paid"), name="dpf")) is False

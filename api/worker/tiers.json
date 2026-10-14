@@ -31,6 +31,14 @@
       "burst_limit": 60,
       "description": "Funded key: paid answer including determinations. No daily limit; burst is configuration. Entitlement follows remaining credits, not this flag alone."
     },
+    "friends": {
+      "live_data": true,
+      "paid": true,
+      "credits_exempt": true,
+      "daily_limit": null,
+      "burst_limit": 60,
+      "description": "Friends and family: live paid access without credit charges. No daily limit; the paid tier's burst cap applies. Usage is recorded."
+    },
     "dpf": {
       "live_data": true,
       "paid": true,
@@ -59,6 +67,8 @@
     }
   },
   "billing": {
+    "friends_price_ids": [],
+    "friends_promotion_code_prefix": "",
     "downgrade_tier": "free",
     "terms_url": "https://modelspec.dev/legal/terms/",
     "cancel_url": "https://modelspec.dev/pricing",

@@ -57,10 +57,10 @@ x-modelspec-access:
   effect_today: 'Every machine data endpoint needs an API key: a request without one is refused 401 missing_api_key, naming https://modelspec.dev/pricing. GET /v1/health
     and POST /v1/feedback stay keyless. The free decide page uses the human browser visit gate: with VISIT_GATE_ENABLED, a Turnstile-verified visit token admits only
     decide and vocabulary for its bound visitor and origin. The ACCESS key store is bound. Existing live keys are checked against it; test_ keys use the sandbox.'
-  policy_check_paid_entitlement: {status: 'granted to a presented key with remaining credits, or an unlimited paid tier', granted_by: 'entry.py::_entitlement', effect_today: 'Public-export
-      evidence has determinations.entitlement public_export; checks they cannot settle come back undetermined with why: tier and available_in_tier: paid. A funded
-      key reads the determinations, or gets HTTP 503 determinations_unavailable when the store cannot be read. A key with zero credits gets the public-export answer
-      plus credits.exhausted.'}
+  policy_check_paid_entitlement: {status: 'granted to a presented key with remaining credits, or a credit-exempt paid tier', granted_by: 'entry.py::_entitlement',
+    effect_today: 'Public-export evidence has determinations.entitlement public_export; checks they cannot settle come back undetermined with why: tier and available_in_tier:
+      paid. A funded key reads the determinations, or gets HTTP 503 determinations_unavailable when the store cannot be read. A credit-exempt paid tier also reads
+      the determinations without a balance. Other keys with zero credits get the public-export answer plus credits.exhausted.'}
   present_key_as: ['Authorization: Bearer <key>', 'X-API-Key: <key>']
   never: a key in the query string
   policy_version: access-v1
@@ -71,6 +71,8 @@ x-modelspec-access:
     dpf: {daily_limit: null, burst_limit_per_minute: null, live_data: true, description: 'Unlimited, and deliberately on the same handler as a paid key: null limits,
         not a bypass.'}
     free: {daily_limit: 10, burst_limit_per_minute: 5, live_data: true, description: 'Live rankings. Enough for a genuine decision, not for a build loop. No determinations.'}
+    friends: {daily_limit: null, burst_limit_per_minute: 60, live_data: true, description: 'Friends and family: live paid access without credit charges. No daily
+        limit; the paid tier''s burst cap applies. Usage is recorded.'}
     paid: {daily_limit: null, burst_limit_per_minute: 60, live_data: true, description: 'Funded key: paid answer including determinations. No daily limit; burst is
         configuration. Entitlement follows remaining credits, not this flag alone.'}
     sandbox: {daily_limit: null, burst_limit_per_minute: null, live_data: false, description: 'Fixed, obviously synthetic results. Unlimited, no signup, no live data.'}

@@ -70,6 +70,7 @@ class TierLimits:
     live_data: bool
     paid: bool
     description: str
+    credits_exempt: bool = False
 
     @property
     def unlimited(self) -> bool:
@@ -83,6 +84,7 @@ class TierLimits:
             "live_data": self.live_data,
             "paid": self.paid,
             "description": self.description,
+            "credits_exempt": self.credits_exempt,
         }
 
 
@@ -165,6 +167,15 @@ class PriceMapping:
         return data
 
 
+def friends_price(price_id: str) -> PriceMapping:
+    """An explicitly configured, credit-free recurring entitlement."""
+    return PriceMapping(
+        price_id=price_id, kind="plan", name="Friends & Family", credits=0,
+        usd=0, tier="friends", interval="month", placeholder=False,
+        description="Live API access without a credit balance, subject to the tier's burst limit.",
+    )
+
+
 @dataclass(frozen=True)
 class ReadsConfig:
     """Keyed metadata reads. One credit covers `reads_per_credit` successful reads."""
@@ -231,6 +242,8 @@ class BillingConfig:
     signature_tolerance_seconds: int
     event_ttl_seconds: int
     prices: Mapping[str, PriceMapping]
+    friends_price_ids: tuple[str, ...] = ()
+    friends_promotion_code_prefix: str = ""
 
     def to_json(self) -> dict[str, Any]:
         return {
@@ -241,6 +254,8 @@ class BillingConfig:
             "signature_tolerance_seconds": self.signature_tolerance_seconds,
             "event_ttl_seconds": self.event_ttl_seconds,
             "prices": {price_id: row.to_json() for price_id, row in self.prices.items()},
+            "friends_price_ids": list(self.friends_price_ids),
+            "friends_promotion_code_prefix": self.friends_promotion_code_prefix,
         }
 
 
@@ -269,6 +284,8 @@ class AccessPolicy:
         return self.urls.get(name, "")
 
     def price(self, price_id: str) -> PriceMapping:
+        if price_id in self.billing.friends_price_ids:
+            return friends_price(price_id)
         row = self.billing.prices.get(price_id)
         if row is None:
             raise PolicyError(f"no Stripe price {price_id!r} in the tier table")
@@ -333,6 +350,7 @@ def policy_from_mapping(data: Mapping[str, Any]) -> AccessPolicy:
             live_data=bool(row.get("live_data", True)),
             paid=bool(row.get("paid", False)),
             description=str(row.get("description") or ""),
+            credits_exempt=row.get("credits_exempt") is True,
         )
 
     sandbox_prefix = str(data.get("sandbox_prefix") or "")
@@ -381,6 +399,17 @@ def _billing(raw: Any, tiers: Mapping[str, TierLimits]) -> BillingConfig:
         )
     if not isinstance(raw, Mapping):
         raise PolicyError("billing must be a JSON object")
+    friends_ids = raw.get("friends_price_ids", [])
+    prefix = raw.get("friends_promotion_code_prefix", "")
+    if (not isinstance(friends_ids, list)
+            or any(not isinstance(item, str) or not item.startswith("price_")
+                   for item in friends_ids)):
+        raise PolicyError("billing.friends_price_ids must be a list of Stripe Price ids")
+    if not isinstance(prefix, str) or (prefix and not prefix.strip()):
+        raise PolicyError(
+            "billing.friends_promotion_code_prefix must be a nonblank string or empty")
+    if (friends_ids or prefix) and "friends" not in tiers:
+        raise PolicyError("friends billing configuration requires the friends tier")
     downgrade = str(raw.get("downgrade_tier") or "")
     if not downgrade or downgrade not in tiers:
         raise PolicyError(f"billing.downgrade_tier {downgrade!r} is not a row in the tier table")
@@ -432,6 +461,8 @@ def _billing(raw: Any, tiers: Mapping[str, TierLimits]) -> BillingConfig:
             raw, "signature_tolerance_seconds", where="billing"),
         event_ttl_seconds=_nonneg_int(raw, "event_ttl_seconds", where="billing"),
         prices=prices,
+        friends_price_ids=tuple(friends_ids),
+        friends_promotion_code_prefix=prefix,
     )
 
 

@@ -133,9 +133,96 @@ module.
   `X402_ENABLED` is turned on
 - `billing.downgrade_tier`, `signature_tolerance_seconds`, `event_ttl_seconds`
 - `billing.terms_url`, `billing.cancel_url`
+- `billing.friends_price_ids`, `billing.friends_promotion_code_prefix` identify
+  friends entitlements. Both ship empty. See the friends section below.
 
 Changing a credit amount, a weight, a burst, a read cap, or a mapping is an
 edit to that file. Tests prove a price/credit change needs no code change.
+
+## Friends and family (MODEL-282)
+
+The `friends` tier receives live paid answers without spending credits. It has
+no daily limit and a 60/minute burst cap, matching the highest finite paid-tier
+burst. Usage still passes through the access counters. It is separate from
+`dpf`, requires a live API key, and supports existing key rotation and revocation.
+
+Stripe issuance ships inert. The following settings in `api/worker/tiers.json`
+under `billing`, or the corresponding injected `TIER_POLICY`, opt into issuance:
+
+| Configuration | Default | Effect |
+| --- | --- | --- |
+| `friends_price_ids` | `[]` | Exact Stripe Price ids for a recurring $0 Friends & Family plan. These map to `friends` with zero credits. |
+| `friends_promotion_code_prefix` | `""` | Case-insensitive prefix of the customer-facing promotion code. Only a matching code backed by a 100%-off, `forever` coupon maps a subscription to `friends`. |
+
+Either setting works independently, and both may be set. A verified Stripe
+webhook resolves the entitlement before the existing one-time
+`/v1/billing/claim` mints the key. A caller cannot nominate a tier or promotion
+in the claim body. Anonymous claim shows the key once. An authenticated
+subscription Checkout updates the existing key. Cancellation and failed
+payment downgrade it through the existing subscription path.
+
+The public Checkout endpoint neither lists nor sells friends Prices. Jamie
+shares their Dashboard Payment Links directly with invitees. Holders of an
+invitation promotion code can enter it on the normal recurring-plan Checkout.
+
+When the prefix is configured, Checkout accepts promotion-code entry. Stripe
+snapshot events can contain only promotion ids or omit Payment Link line
+items. The webhook uses read-only Stripe retrieval with `STRIPE_SECRET_KEY`
+to resolve those fields. A failed read returns `503 stripe_unavailable` so
+Stripe retries, and claim remains unready. Empty friends settings introduce
+no Stripe reads and map no purchase to `friends`.
+
+Jamie's setup steps:
+
+1. In the Stripe Dashboard, create a recurring monthly $0 Friends & Family
+   Price and put its id in `billing.friends_price_ids`. Alternatively, create
+   a coupon with 100% off and duration Forever, create an invite promotion
+   code for that coupon, and set `billing.friends_promotion_code_prefix` to
+   its code prefix. The promotion applies to a recurring plan.
+2. For a Dashboard Payment Link, set its post-checkout redirect to
+   `https://api.modelspec.dev/v1/billing/claim?session_id={CHECKOUT_SESSION_ID}`.
+   Worker-created Checkout already uses that success URL. Use the existing
+   configured webhook destination and signing secret. A restricted Stripe key
+   also needs read access to Checkout Sessions, promotion codes and coupons,
+   invoices, and subscriptions for entitlement expansion.
+3. Adopt tester terms before inviting testers.
+
+**TODO (Jamie): tester terms are pending Jamie's adoption.** This change
+does not create or amend legal text, production switches, or live Stripe ids.
+
+The operator fallback uses the existing scripts:
+
+```bash
+python scripts/issue_api_key.py --owner <operator-label> --tier friends --put
+python scripts/revoke_api_key.py <full-sha256-fingerprint> --put
+```
+
+For monthly reporting, `scripts/friends_usage_summary.py --month YYYY-MM`
+reads the ACCESS store and lists per-key admitted request counts, including
+revoked friends keys. It prints key ids and active status, without owner
+labels. These are access-meter counts, so they include admitted calls even
+when the endpoint later returns an error. The KV meter is eventually consistent.
+
+Daily counters expire after two days under the existing privacy policy.
+A live read cannot reconstruct an expired month and is explicitly marked
+`partial`. To retain a complete month without changing server retention,
+capture the previous UTC day after 00:01 UTC every day, including the first
+day of the following month, on the operator's machine:
+
+```bash
+python scripts/friends_usage_summary.py --month 2026-10 --snapshot > <private-capture.json>
+python scripts/friends_usage_summary.py --month 2026-10 --input <capture-1.json> --input <capture-2.json>
+```
+
+Repeat `--input` for each capture. Offline merging takes the maximum observed
+count for each key and UTC day so overlapping captures never double-count.
+`covered_days` and `missing_days` show whether all days have a completed-day
+capture. Snapshots include only friends-key fingerprints, active status, and
+daily counts. Keep them outside the public repository. Keys must carry the
+friends tier when captured; tier history cannot be recovered from current
+records. No automatic capture job is installed by this change.
+
+## Credit prices
 
 Current pack rows (`kind: pack` and not `legacy`) are the x402 pack table.
 x402 sells those four packs at the same prices in USDC. Legacy packs stay on
