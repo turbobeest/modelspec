@@ -207,8 +207,12 @@ def test_subscription_data_does_not_change_an_existing_decision(tmp_path):
     assert after.eliminated == before.eliminated
 
 
-def test_production_snapshot_admits_supported_subscription_facts(tmp_path):
-    collected = snap.collect_repo(REPO_ROOT)
+def test_production_snapshot_admits_supported_subscription_facts(tmp_path, subscription_repository):
+    from tests.subscription_sources import admitted_subscription_facts, source_subscriptions
+
+    source = source_subscriptions(subscription_repository, REGISTRY)
+    expected = admitted_subscription_facts(subscription_repository, source, date(2026, 9, 28))
+    collected = snap.collect_repo(subscription_repository)
     path = tmp_path / "production.json.gz"
     build_snapshot(collected, registry=REGISTRY, as_of=date(2026, 9, 28)).write(path)
     index = load(path)
@@ -216,13 +220,8 @@ def test_production_snapshot_admits_supported_subscription_facts(tmp_path):
     vendors = {vendor.id for vendor in REGISTRY.vendors()}  # MODEL-205 pins its own
     subscriptions = {row["id"]: row for row in index.subscription_offerings()
                      if row["provider"] not in vendors}
-    assert len(subscriptions) == 34
-    facts = [fact for subscription in subscriptions.values()
-             for fact in subscription["facts"].values()]
-    assert len(facts) == 218
-    # MODEL-201: 10 verbatim access and allowance strings on multi-plan pages
-    # await a second key and are left out, like every unknown plan fact.
-    assert sum(fact.state == "known" for fact in facts) == 183
+    assert set(subscriptions) == set(source)
+    assert {sid: row["facts"] for sid, row in subscriptions.items()} == expected
     assert subscriptions["anthropic/subscription/max-20x"]["facts"][
         "offering.subscription.price"
     ] == FactValue("known", 200, ("model-201-anthropic-max-plan",))
@@ -249,18 +248,8 @@ def test_production_snapshot_admits_supported_subscription_facts(tmp_path):
         if fact.state == "known"
     }
     assert known_facets == {
-        "offering.subscription.price",
-        "offering.subscription.billing_period",
-        "offering.subscription.models_covered",
-        "offering.subscription.usage_allowance",
-        "offering.subscription.programmatic_or_agent_use",
-        "offering.subscription.surfaces",
-        "offering.subscription.families_covered",
-        "offering.subscription.coverage_quote",
-        "offering.subscription.allowance.relative_to",
-        "offering.subscription.allowance.multiplier",
-        "offering.subscription.allowance.window",
-        "offering.subscription.price_cny",
+        facet_id for facts in expected.values() for facet_id, fact in facts.items()
+        if fact.state == "known"
     }
     assert not set(subscriptions).intersection(index.candidates())
 

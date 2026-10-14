@@ -680,60 +680,34 @@ def test_subscription_known_facts_require_sources(context):
         SubscriptionOffering.model_validate(data, context=context)
 
 
-def test_repository_subscription_offerings_validate_against_the_real_registry():
+def test_repository_subscription_offerings_validate_against_the_real_registry(subscription_repository):
     from decision.model import load_subscription_offerings
     from decision.registry import default
+    from tests.subscription_sources import json_record, source_subscriptions
 
-    root = Path(__file__).resolve().parents[1] / "offerings" / "subscriptions"
-    vendors = {vendor.id for vendor in default().vendors()}  # MODEL-205 pins its own
+    registry = default()
+    expected = source_subscriptions(subscription_repository, registry)
+    root = subscription_repository / "offerings/subscriptions"
+    vendors = {vendor.id for vendor in registry.vendors()}  # MODEL-205 pins its own
     loaded = [
         subscription
         for path in sorted(root.glob("*.yaml"))
-        for subscription in load_subscription_offerings(path, registry=default())
+        for subscription in load_subscription_offerings(path, registry=registry)
         if subscription.provider not in vendors
     ]
 
-    assert [subscription.id for subscription in loaded] == [
-        "alibaba-model-studio/subscription/coding-pro",
-        "anthropic/subscription/pro",
-        "anthropic/subscription/max-5x",
-        "anthropic/subscription/max-20x",
-        "anthropic/subscription/team-standard",
-        "anthropic/subscription/team-premium",
-        "anthropic/subscription/enterprise",
-        "google-gemini-api/subscription/ai-plus",
-        "google-gemini-api/subscription/ai-pro",
-        "google-gemini-api/subscription/ai-ultra-5x",
-        "google-gemini-api/subscription/ai-ultra-20x",
-        "minimax/subscription/token-plus",
-        "minimax/subscription/token-max",
-        "minimax/subscription/token-ultra",
-        "mistral/subscription/pro",
-        "mistral/subscription/team",
-        "moonshot/subscription/andante",
-        "moonshot/subscription/moderato",
-        "moonshot/subscription/allegretto",
-        "moonshot/subscription/allegro",
-        "openai/subscription/plus",
-        "openai/subscription/pro-5x",
-        "openai/subscription/pro-20x",
-        "openai/subscription/go",
-        "openai/subscription/business-standard",
-        "openai/subscription/business-premium",
-        "xai/subscription/supergrok",
-        "xai/subscription/supergrok-plus",
-        "xai/subscription/supergrok-lite",
-        "xai/subscription/supergrok-heavy",
-        "xai/subscription/business",
-        "zai/subscription/glm-coding-lite",
-        "zai/subscription/glm-coding-pro",
-        "zai/subscription/glm-coding-max",
-    ]
+    assert [subscription.id for subscription in loaded] == list(expected)
+    for subscription in loaded:
+        raw = expected[subscription.id]
+        assert (subscription.kind, subscription.provider, subscription.plan, subscription.name) == (
+            raw["kind"], raw["provider"], raw["plan"], raw["name"],
+        )
+        assert len(subscription.facts) == len(raw["facts"])
+        assert [
+            {key: fact.model_dump(mode="json")[key] for key in source}
+            for fact, source in zip(subscription.facts, raw["facts"], strict=True)
+        ] == json_record(raw["facts"])
     facts = [fact for subscription in loaded for fact in subscription.facts]
-    # 34 plans with MODEL-173's five facets each (170), plus 108 plan facts:
-    # MODEL-200's seven on the ten of its 11 plans that remain (ai-ultra was
-    # split), and those MODEL-201 researched on the plans it added.
-    assert len(facts) == 5 * 34 + 108
     assert all(fact.sources for fact in facts if fact.state == "known")
     assert all(
         fact.value is None and (fact.checked_sources or fact.state == "unknown")
@@ -741,31 +715,24 @@ def test_repository_subscription_offerings_validate_against_the_real_registry():
         if fact.state != "known"
     )
     assert {fact.facet for fact in facts if fact.state == "known"} == {
-        "offering.subscription.price",
-        "offering.subscription.billing_period",
-        "offering.subscription.models_covered",
-        "offering.subscription.usage_allowance",
-        "offering.subscription.programmatic_or_agent_use",
-        "offering.subscription.surfaces",
-        "offering.subscription.allowance.relative_to",
-        "offering.subscription.allowance.multiplier",
-        # MODEL-201
-        "offering.subscription.families_covered",
-        "offering.subscription.coverage_quote",
-        "offering.subscription.allowance.window",
-        "offering.subscription.price_cny",
+        fact["facet"] for row in expected.values() for fact in row["facts"]
+        if fact["state"] == "known"
     }
+    xai_ids = {"xai/subscription/supergrok", "xai/subscription/supergrok-plus"}
+    assert xai_ids <= {subscription.id for subscription in loaded}
     xai_programmatic = [
         fact
         for subscription in loaded
-        if subscription.id in {"xai/subscription/supergrok", "xai/subscription/supergrok-plus"}
+        if subscription.id in xai_ids
         for fact in subscription.facts
         if fact.facet == "offering.subscription.programmatic_or_agent_use"
     ]
+    assert len(xai_programmatic) == len(xai_ids)
     assert all(
         "model-173-xai-consumer-terms" in {source.source_id for source in fact.sources}
         for fact in xai_programmatic
     )
+
 
 
 def test_fake_offering_covers_provider_dependent_facts(context):
