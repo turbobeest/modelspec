@@ -502,12 +502,14 @@ def decide(
     routes = (None if spec.access is None
               else estate_module.access_reach(catalogue, spec.access))
     if spec.estate is None:
-        return _decide(
+        decision = _decide(
             spec, snapshot, facets=facets, profiles=profiles,
             evidence_selectors=evidence_selectors, _filter_trace=_filter_trace,
             comparison=comparison, _capture_evidence=_capture_evidence, _reach=routes,
             _capture_member_evidence=_capture_member_evidence,
         )
+        decision.excluded_plans = list(routes.excluded_plans) if routes is not None else []
+        return decision
     question = spec.model_copy(update={"estate": None})
     capture: dict = {}
     decision = _decide(
@@ -516,6 +518,7 @@ def decide(
         comparison=comparison, _capture_evidence=_capture_evidence, _capture=capture,
         _capture_member_evidence=_capture_member_evidence, _identity=spec, _reach=routes,
     )
+    decision.excluded_plans = list(routes.excluded_plans) if routes is not None else []
 
     def run(reach, limit):
         trial = question.model_copy(update={"explain": "none", "limit": limit})
