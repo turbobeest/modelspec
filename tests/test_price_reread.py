@@ -9,6 +9,7 @@ import subprocess
 from dataclasses import replace
 from datetime import UTC, date, datetime
 from pathlib import Path
+from time import perf_counter
 
 import pytest
 import yaml
@@ -326,6 +327,78 @@ def test_a_changed_pay_per_use_price_keeps_its_type(estate) -> None:
     assert "    value: 2.5\n" in text and "    value: 15.0\n" in text
     assert VerificationLog(root / "verification").latest()[("fact", LARGE_INPUT)] \
         .target.value_hash == value_hash(2.5)
+
+
+def test_many_coverage_readings_parse_each_document_once(tmp_path, monkeypatch) -> None:
+    """MODEL-235: keep the old verdict while parsing a 220-line page once."""
+    store = CopyStore(tmp_path / "copies")
+    registry = tmp_path / "sources.yaml"
+    registry.write_text(SOURCES)
+    sources = load_sources(registry)
+    # Repeated feature groups give hundreds of distinct candidates without
+    # retaining any provider's page. Nested spans make parsing measurable.
+    body = ('<main id="coverage"><p>Example Pro $20/month</p>' + ''.join(
+        f'<p>Feature {i % 32}: included' + '<span></span>' * 20 + '</p>'
+        for i in range(220)
+    ) + '</main>').encode()
+    copy_ref = store.put(body)
+    fact_id = "example/subscription/pro#offering.subscription.coverage_quote"
+    claim = Claim(
+        target=TargetRef(kind="fact", id=fact_id), subject="example/subscription/pro",
+        names=("Example Pro",), field="offering.subscription.coverage_quote",
+        value="The previous coverage wording.", collector=COLLECTOR,
+        sources=(SourceRef(source_id="example-plans", snapshot_ref=copy_ref,
+                           cited_regions=["page"]),),
+    )
+    tracked = price_reread.Tracked(tmp_path / PLAN_FILE, {
+        "id": fact_id, "facet": claim.field, "state": "known", "value": claim.value,
+    })
+    fetched = {"example-plans": price_reread.SourceFetch(
+        "example-plans", PLANS_URL, "ok", copy_ref,
+    )}
+    regions = StoredRegions(store, sources)
+    readings = price_reread._readings(claim, regions)
+    assert len(readings) > 200
+    assert len({reading.value for reading in readings}) > 200
+
+    calls = []
+    original_normalise = verify_module.normalise_document
+
+    def count_normalise(body, rules):
+        calls.append((body, rules))
+        return original_normalise(body, rules)
+
+    monkeypatch.setattr(verify_module, "normalise_document", count_normalise)
+    # Disable the opt-in memo to replay the old per-reading path, including
+    # proposals and region selection, through the same public reread interface.
+    with monkeypatch.context() as legacy:
+        legacy.setattr(price_reread, "StoredRegions",
+                       lambda store, sources, **kwargs: StoredRegions(store, sources))
+        start = perf_counter()
+        before = price_reread.reread_fact(tracked, claim, fetched, regions, TODAY, tmp_path)
+        before_seconds = perf_counter() - start
+    before_calls = len(calls)
+    assert before.status == Status.NEEDS_REVIEW
+    assert before.reason == (
+        "a free-text value read from a whole-page region (example-plans#page) "
+        "is not proposed as a change; cite a narrower region"
+    )
+    assert before_calls > 200
+    calls.clear()
+
+    start = perf_counter()
+    after = price_reread.reread_fact(tracked, claim, fetched, regions, TODAY, tmp_path)
+    after_seconds = perf_counter() - start
+    assert json.dumps(after.to_dict()) == json.dumps(before.to_dict())
+    assert after.claim == before.claim
+    assert after.verification == before.verification
+    print(f"MODEL-235 synthetic timing: {before_calls} -> {len(calls)} normalisations; "
+          f"{before_seconds:.3f}s -> {after_seconds:.3f}s; {len(readings)} readings")
+    assert len(calls) == 1
+    calls.clear()
+    again = price_reread.reread_fact(tracked, claim, fetched, regions, TODAY, tmp_path)
+    assert json.dumps(again.to_dict()) == json.dumps(after.to_dict())
+    assert len(calls) == 1
 
 
 @pytest.mark.parametrize("cited, registered, new_value, status, reason", [
