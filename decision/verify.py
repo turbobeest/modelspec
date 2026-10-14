@@ -4051,7 +4051,8 @@ class LicenceTermsExtractor:
                 r"applications for end users"
             )
             for index, clause in enumerate(clauses):
-                if re.search(r"\b(?:no|nobody|neither|not|never|false|untrue|incorrect|nothing)\b",
+                if re.search(r"\b(?:no|none|nobody|neither|nothing|zero|not|never|false|untrue|"
+                             r"incorrect)\b",
                              clause):
                     continue
                 if re.fullmatch(

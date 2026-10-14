@@ -393,7 +393,9 @@ def test_review747_grant_condition_and_application_permission_share_their_scope(
     assert check("licence.commercial_use", "permitted_with_conditions", text).outcome == "skipped"
 
 
-@pytest.mark.parametrize("issuer", ["no provider", "nobody"])
+@pytest.mark.parametrize("issuer", [
+    "no provider", "nobody", "none of the providers", "zero providers",
+])
 def test_review747_negative_grant_subject_is_not_a_provider_permission(issuer):
     text = (f"Subject to this agreement, {issuer} grants Customer a non-exclusive right to "
             "access and use the Services. Customer may use the API to integrate the services "
