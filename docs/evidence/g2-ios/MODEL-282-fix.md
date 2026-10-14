@@ -429,5 +429,50 @@ TZ=UTC PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PW
 The command's exit code was read directly: 0.
 Result: `10583 passed, 9 skipped, 11 warnings in 1126.77s (0:18:46)`.
 The warnings concern unsigned CLI vocabulary fixtures. Logs are in the ignored
-`tmp/model-282-merge/` directory. The only subsequent change is this evidence
-update. No live Stripe calls or production deployment were exercised.
+`tmp/model-282-merge/` directory. The later main integration below has its own
+full-suite result. No live Stripe calls or production deployment were exercised.
+
+## Integration after #742 and #743 merged
+
+Main advanced during the first integration run. A final PR check reported
+another conflict, so the authorized merge was repeated with main
+`c40d0f2627e1c344af3b96f414850a409f9dc246`, including #742 and #743.
+The second merge commit is `f9799842b15b2ea5f3ce80e4f837af06229a465b`.
+Its first parent is `93baebb69f108dc5277d29dc2cdafd956b42acbc`.
+
+The same two generated files conflicted, with the same resolution method:
+
+- `cli/modelspec/agent-bundle.json`: regenerated with main's complete contract
+  2.18 schema hash and the friends tier hash. Main's router guidance remains.
+- `qa/fixtures/mcp-tools.json`: regenerated with main's bounded 1.5 schema and
+  updated fixture hashes, plus the combined OpenAPI hash.
+
+OpenAPI and agent artifacts were regenerated with the commands above, each
+exiting 0. The web build was repeated with the same pinned Node and Python PATH,
+also exiting 0. The reviewed friends billing, configuration, reporting script,
+documentation, and friends tests remain unchanged. No manual behavior changes
+were needed for either merge.
+
+The expanded focused run exited 0:
+
+```bash
+TZ=UTC PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_friends_access.py tests/test_friends_billing.py tests/test_friends_billing_wiring.py tests/test_friends_usage_summary.py tests/test_exempt_credits.py tests/test_keyed_router_worker.py tests/test_keyed_router_cli.py tests/test_subscription_availability.py tests/test_subscription_availability_reader.py
+```
+
+Result: `199 passed, 1 skipped in 9.42s`.
+
+The requested full suite ran again against the second merge commit with the
+updated web build present:
+
+```bash
+TZ=UTC PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
+```
+
+The exit code was read directly: 0.
+Result: `10727 passed, 9 skipped, 11 warnings in 1238.63s (0:20:38)`.
+The warnings again concern unsigned CLI vocabulary fixtures. Logs are saved as
+`focused-latest.log`, `full-pytest-latest.log`, `web-build-latest.log`,
+`openapi-latest.log`, and `agent-copy-latest.log` in `tmp/model-282-merge/`.
+After the run, `git fetch origin` confirmed main remained at `c40d0f26`.
+Only this evidence update follows the tested merge. No live Stripe calls or
+production deployment were exercised.
