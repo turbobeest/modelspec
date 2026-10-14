@@ -695,7 +695,9 @@ async def webhook(*, payload: str, signature: str | None, secret: str | None,
         return _refusal(INVALID_REQUEST, "the Stripe event must be a JSON object",
                         service_commit=service_commit, endpoint=endpoint)
     try:
-        if not await store.seen(kv, str(event.get("id") or "")):
+        friends_configured = (policy.billing.friends_price_ids
+                              or policy.billing.friends_promotion_code_prefix)
+        if friends_configured and not await store.seen(kv, str(event.get("id") or "")):
             try:
                 event = await _resolve_friends_event(
                     event, policy=policy, secret=stripe_secret, http=http)

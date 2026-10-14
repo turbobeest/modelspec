@@ -182,7 +182,9 @@ Jamie's setup steps:
 2. For a Dashboard Payment Link, set its post-checkout redirect to
    `https://api.modelspec.dev/v1/billing/claim?session_id={CHECKOUT_SESSION_ID}`.
    Worker-created Checkout already uses that success URL. Use the existing
-   configured webhook destination and signing secret.
+   configured webhook destination and signing secret. A restricted Stripe key
+   also needs read access to Checkout Sessions, promotion codes and coupons,
+   invoices, and subscriptions for entitlement expansion.
 3. Adopt tester terms before inviting testers.
 
 **TODO (Jamie): tester terms are pending Jamie's adoption.** This change
