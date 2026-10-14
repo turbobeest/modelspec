@@ -7,9 +7,10 @@ mismatches. No comparison tolerance or accuracy threshold changed.
 ## Revision and environment
 
 - Base SHA: `a333ce7e798972488eac1ab62021065116681567`.
-- Final implementation SHA: `7a2b48d48b2badf86a214be828cfacd43bc4fa8b`.
+- Final implementation SHA: `43ad0d25ad609e9435cd32cd50e40f8a1edac42f`.
 - Full-suite and census SHA: `9abeb4a231167ccc4208a6a08ea022570a3346f7`.
-  The final implementation adds only the diagnostic reason count and its test.
+  The reason-map correction is `7a2b48d48b2badf86a214be828cfacd43bc4fa8b`;
+  the final merge also includes main's MODEL-383 build-date correction.
 - The delivery SHA is the head of this PR. The evidence commit follows the tested
   implementation commit, so the document does not attempt to contain its own hash.
 - Worktree: `/Users/terbeest/dev/worktrees/model-380-engine`.
@@ -155,6 +156,7 @@ TZ=UTC PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest 
 TZ=UTC PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_model380_evidence_prices.py -k fidelity_report_counts_missing_metadata_reason
 TZ=UTC PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_model380_licence_metadata.py tests/test_model380_subscription_quotes.py tests/test_model380_subscription_types.py tests/test_model380_evidence_prices.py tests/test_model380_cursor_wording.py tests/test_decision_verify.py tests/test_accuracy.py tests/test_price_reread.py tests/test_price_reread_fallback.py
 PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python scripts/pytest_shards.py --shard-count 4 --summary
+env -u FIRECRAWL_API_KEY -u ANTHROPIC_API_KEY -u MISTRAL_API_KEY TZ=UTC PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile tests/test_pipeline.py tests/test_landing.py tests/test_model380_licence_metadata.py tests/test_model380_subscription_quotes.py tests/test_model380_subscription_types.py tests/test_model380_evidence_prices.py tests/test_model380_cursor_wording.py tests/test_decision_verify.py tests/test_accuracy.py tests/test_price_reread.py tests/test_price_reread_fallback.py
 
 # From web/:
 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm ci
@@ -262,6 +264,11 @@ command and environment. Output remains at
 `/tmp/model-380-engine/full-pytest-delivery.log`. The subsequent reporting-only
 change was checked by the 777-test focused run, including the actual public
 fidelity-report path, rather than repeating unchanged build and browser tests.
+The last pre-delivery fetch found MODEL-383 on main. After merging it, the reader,
+pipeline, and landing suites exit 0 with `857 passed in 161.85s (0:02:41)` on
+the final implementation SHA. This includes the landing browser coverage and
+the new deterministic build-date tests. Output remains at
+`/tmp/model-380-engine/merged-delivery-check.log`.
 
 The final live sweep uses the same private archive and all eligible frozen public
 verified values. Its command is:
@@ -343,3 +350,7 @@ A final pre-validation fetch and merge integrated main
 `9abeb4a231167ccc4208a6a08ea022570a3346f7`, used by the full suite and census.
 No conflict occurred. The shard summary exits 0 with 65, 64, 64, and 64
 test files, respectively.
+The last `git fetch origin` and merge integrated main
+`3e7003d7` (MODEL-383) without conflict as the final implementation SHA above.
+It changed no MODEL-380 comparison or classification code. The merged checks
+cover its changed pipeline and landing behavior as well as the reader suites.
