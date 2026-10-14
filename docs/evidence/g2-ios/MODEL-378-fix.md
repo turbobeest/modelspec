@@ -2,7 +2,7 @@
 
 Base SHA: `629f7533068d2ab2b0f793be2eaa5aea3152ddf6`.
 Initial implementation SHA: `3dbc2b66e795053cbc16bf596923bff80cd90625`.
-Latest verified source SHA: `94c21d8b4b79f89f5c7c67198fc2217d85a6cc47`.
+Full-suite verified source SHA: `94c21d8b4b79f89f5c7c67198fc2217d85a6cc47`.
 The latest delivery commit updates this evidence report. Its SHA is recorded in the
 executor completion line and can be read with `git log -1 --format=%H --
 docs/evidence/g2-ios/MODEL-378-fix.md`.
@@ -76,6 +76,27 @@ never committed. The temporary archives and replay directories were also removed
 The historical results and commands below describe the earlier finish run.
 Their old scratch paths no longer exist. The audit sampled zero claims and does
 not establish sampled accuracy. PR #734 remains draft; its body was not changed.
+
+### Final main integration
+
+Main advanced during verification. The conflict-free merge of
+`a333ce7e798972488eac1ab62021065116681567` produced
+`d1e1e6662be8c88b48dd780f3ab6a3677e7277e4`, bringing in the x402 domain fix
+and malformed-URL normalization fix. The MODEL-378 implementation is unchanged.
+Post-merge checks exited 0 with `354 passed, 3 skipped in 56.47s` and
+`479 passed in 18.54s`. The offline audit at that merge also exited 0 with the
+same final summary above. The full-suite result above is from `94c21d8b`,
+before this final upstream integration; the changed upstream modules received
+these focused checks rather than another full run.
+
+```bash
+TZ=UTC PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_data_trust.py tests/test_slice1_offerings.py tests/test_lab_jurisdiction.py tests/test_architecture_facts.py tests/test_decision_router_config.py tests/test_x402.py tests/test_x402_mainnet_buy.py tests/test_x402_mainnet_probe.py
+TZ=UTC PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_decision_sources.py tests/test_decision_verify.py
+MODELSPEC_ENGINE=$PWD PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m scripts.data_trust data --data-dir .scratch/model-378-integration/data-main --summary-only --date 2026-10-14
+```
+
+The integration audit again used an archive of private main `20c154d8`,
+isolated outside `docs`; that temporary scratch was removed after verification.
 
 ## Changes and contract
 
