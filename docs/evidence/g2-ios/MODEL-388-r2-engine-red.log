@@ -1,0 +1,192 @@
+FFFFFFF                                                                  [100%]
+=================================== FAILURES ===================================
+________ test_mistral_governance_accepts_primary_documents[mistral.ai] _________
+
+tmp_path = PosixPath('/Users/terbeest/dev/worktrees/model-388-engine/.model-388-engine-scratch/red/test_mistral_governance_accept0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10c8aac40>
+host = 'mistral.ai'
+
+    @pytest.mark.parametrize("host", [
+        "mistral.ai", "docs.mistral.ai", "legal.mistral.ai", "help.mistral.ai",
+    ])
+    def test_mistral_governance_accepts_primary_documents(tmp_path, monkeypatch, host):
+        _write_governance_documents(tmp_path, "mistral", host)
+        monkeypatch.setattr(f"{__name__}.ROOT", tmp_path)
+>       test_governance_facts_only_use_the_serving_providers_own_documents()
+
+tests/test_slice1_offerings.py:126: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def test_governance_facts_only_use_the_serving_providers_own_documents() -> None:
+        sources = load_sources(ROOT / "registry/sources.yaml")
+        for offering in _offerings():
+>           assert offering.provider in GOVERNANCE_DOMAINS, (
+                f"{offering.provider}: add the provider's own document domains to GOVERNANCE_DOMAINS"
+            )
+E           AssertionError: mistral: add the provider's own document domains to GOVERNANCE_DOMAINS
+E           assert 'mistral' in {'alibaba-model-studio': ('alibabacloud.com',), 'anthropic': ('claude.com',), 'aws-bedrock': ('aws.amazon.com',), 'deepseek': ('deepseek.com',), ...}
+E            +  where 'mistral' = Offering(model='test/model', provider='mistral', region='global', tier='standard', facts=[Fact(id='mistral/test/model/...ethod='re-read'), method='re-read the cited region', outcome='verified', date=datetime.date(2026, 9, 20), diff=None))]).provider
+
+tests/test_slice1_offerings.py:69: AssertionError
+______ test_mistral_governance_accepts_primary_documents[docs.mistral.ai] ______
+
+tmp_path = PosixPath('/Users/terbeest/dev/worktrees/model-388-engine/.model-388-engine-scratch/red/test_mistral_governance_accept1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10c8aab10>
+host = 'docs.mistral.ai'
+
+    @pytest.mark.parametrize("host", [
+        "mistral.ai", "docs.mistral.ai", "legal.mistral.ai", "help.mistral.ai",
+    ])
+    def test_mistral_governance_accepts_primary_documents(tmp_path, monkeypatch, host):
+        _write_governance_documents(tmp_path, "mistral", host)
+        monkeypatch.setattr(f"{__name__}.ROOT", tmp_path)
+>       test_governance_facts_only_use_the_serving_providers_own_documents()
+
+tests/test_slice1_offerings.py:126: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def test_governance_facts_only_use_the_serving_providers_own_documents() -> None:
+        sources = load_sources(ROOT / "registry/sources.yaml")
+        for offering in _offerings():
+>           assert offering.provider in GOVERNANCE_DOMAINS, (
+                f"{offering.provider}: add the provider's own document domains to GOVERNANCE_DOMAINS"
+            )
+E           AssertionError: mistral: add the provider's own document domains to GOVERNANCE_DOMAINS
+E           assert 'mistral' in {'alibaba-model-studio': ('alibabacloud.com',), 'anthropic': ('claude.com',), 'aws-bedrock': ('aws.amazon.com',), 'deepseek': ('deepseek.com',), ...}
+E            +  where 'mistral' = Offering(model='test/model', provider='mistral', region='global', tier='standard', facts=[Fact(id='mistral/test/model/...ethod='re-read'), method='re-read the cited region', outcome='verified', date=datetime.date(2026, 9, 20), diff=None))]).provider
+
+tests/test_slice1_offerings.py:69: AssertionError
+_____ test_mistral_governance_accepts_primary_documents[legal.mistral.ai] ______
+
+tmp_path = PosixPath('/Users/terbeest/dev/worktrees/model-388-engine/.model-388-engine-scratch/red/test_mistral_governance_accept2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10c975eb0>
+host = 'legal.mistral.ai'
+
+    @pytest.mark.parametrize("host", [
+        "mistral.ai", "docs.mistral.ai", "legal.mistral.ai", "help.mistral.ai",
+    ])
+    def test_mistral_governance_accepts_primary_documents(tmp_path, monkeypatch, host):
+        _write_governance_documents(tmp_path, "mistral", host)
+        monkeypatch.setattr(f"{__name__}.ROOT", tmp_path)
+>       test_governance_facts_only_use_the_serving_providers_own_documents()
+
+tests/test_slice1_offerings.py:126: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def test_governance_facts_only_use_the_serving_providers_own_documents() -> None:
+        sources = load_sources(ROOT / "registry/sources.yaml")
+        for offering in _offerings():
+>           assert offering.provider in GOVERNANCE_DOMAINS, (
+                f"{offering.provider}: add the provider's own document domains to GOVERNANCE_DOMAINS"
+            )
+E           AssertionError: mistral: add the provider's own document domains to GOVERNANCE_DOMAINS
+E           assert 'mistral' in {'alibaba-model-studio': ('alibabacloud.com',), 'anthropic': ('claude.com',), 'aws-bedrock': ('aws.amazon.com',), 'deepseek': ('deepseek.com',), ...}
+E            +  where 'mistral' = Offering(model='test/model', provider='mistral', region='global', tier='standard', facts=[Fact(id='mistral/test/model/...ethod='re-read'), method='re-read the cited region', outcome='verified', date=datetime.date(2026, 9, 20), diff=None))]).provider
+
+tests/test_slice1_offerings.py:69: AssertionError
+______ test_mistral_governance_accepts_primary_documents[help.mistral.ai] ______
+
+tmp_path = PosixPath('/Users/terbeest/dev/worktrees/model-388-engine/.model-388-engine-scratch/red/test_mistral_governance_accept3')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10cb31260>
+host = 'help.mistral.ai'
+
+    @pytest.mark.parametrize("host", [
+        "mistral.ai", "docs.mistral.ai", "legal.mistral.ai", "help.mistral.ai",
+    ])
+    def test_mistral_governance_accepts_primary_documents(tmp_path, monkeypatch, host):
+        _write_governance_documents(tmp_path, "mistral", host)
+        monkeypatch.setattr(f"{__name__}.ROOT", tmp_path)
+>       test_governance_facts_only_use_the_serving_providers_own_documents()
+
+tests/test_slice1_offerings.py:126: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def test_governance_facts_only_use_the_serving_providers_own_documents() -> None:
+        sources = load_sources(ROOT / "registry/sources.yaml")
+        for offering in _offerings():
+>           assert offering.provider in GOVERNANCE_DOMAINS, (
+                f"{offering.provider}: add the provider's own document domains to GOVERNANCE_DOMAINS"
+            )
+E           AssertionError: mistral: add the provider's own document domains to GOVERNANCE_DOMAINS
+E           assert 'mistral' in {'alibaba-model-studio': ('alibabacloud.com',), 'anthropic': ('claude.com',), 'aws-bedrock': ('aws.amazon.com',), 'deepseek': ('deepseek.com',), ...}
+E            +  where 'mistral' = Offering(model='test/model', provider='mistral', region='global', tier='standard', facts=[Fact(id='mistral/test/model/...ethod='re-read'), method='re-read the cited region', outcome='verified', date=datetime.date(2026, 9, 20), diff=None))]).provider
+
+tests/test_slice1_offerings.py:69: AssertionError
+________ test_mistral_governance_rejects_other_domains[not-mistral.ai] _________
+
+tmp_path = PosixPath('/Users/terbeest/dev/worktrees/model-388-engine/.model-388-engine-scratch/red/test_mistral_governance_reject0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10cb319d0>
+host = 'not-mistral.ai'
+
+    @pytest.mark.parametrize("host", [
+        "not-mistral.ai", "docs.mistral.ai.example.test", "deepseek.com",
+    ])
+    def test_mistral_governance_rejects_other_domains(tmp_path, monkeypatch, host):
+        _write_governance_documents(tmp_path, "mistral", host)
+        monkeypatch.setattr(f"{__name__}.ROOT", tmp_path)
+        with pytest.raises(AssertionError) as error:
+            test_governance_facts_only_use_the_serving_providers_own_documents()
+>       assert "GOVERNANCE_DOMAINS" not in str(error.value)
+E       AssertionError: assert 'GOVERNANCE_DOMAINS' not in 'mistral: ad...)]).provider'
+E         
+E         'GOVERNANCE_DOMAINS' is contained here:
+E           omains to GOVERNANCE_DOMAINS
+E           assert 'mistral' in {'alibaba-model-studio': ('alibabacloud.com',), 'anthropic': ('claude.com',), 'aws-bedrock': ('aws.amazon.com',), 'deepseek': ('deepseek.com',), ...}
+E            +  where 'mistral' = Offering(model='test/model', provider='mistral', region='global', tier='standard', facts=[Fact(id='mistral/test/model/...ethod='re-read'), method='re-read the cited region', outcome='verified', date=datetime.date(2026, 9, 20), diff=None))]).provider
+
+tests/test_slice1_offerings.py:137: AssertionError
+_ test_mistral_governance_rejects_other_domains[docs.mistral.ai.example.test] __
+
+tmp_path = PosixPath('/Users/terbeest/dev/worktrees/model-388-engine/.model-388-engine-scratch/red/test_mistral_governance_reject1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10ca3eb50>
+host = 'docs.mistral.ai.example.test'
+
+    @pytest.mark.parametrize("host", [
+        "not-mistral.ai", "docs.mistral.ai.example.test", "deepseek.com",
+    ])
+    def test_mistral_governance_rejects_other_domains(tmp_path, monkeypatch, host):
+        _write_governance_documents(tmp_path, "mistral", host)
+        monkeypatch.setattr(f"{__name__}.ROOT", tmp_path)
+        with pytest.raises(AssertionError) as error:
+            test_governance_facts_only_use_the_serving_providers_own_documents()
+>       assert "GOVERNANCE_DOMAINS" not in str(error.value)
+E       AssertionError: assert 'GOVERNANCE_DOMAINS' not in 'mistral: ad...)]).provider'
+E         
+E         'GOVERNANCE_DOMAINS' is contained here:
+E           omains to GOVERNANCE_DOMAINS
+E           assert 'mistral' in {'alibaba-model-studio': ('alibabacloud.com',), 'anthropic': ('claude.com',), 'aws-bedrock': ('aws.amazon.com',), 'deepseek': ('deepseek.com',), ...}
+E            +  where 'mistral' = Offering(model='test/model', provider='mistral', region='global', tier='standard', facts=[Fact(id='mistral/test/model/...ethod='re-read'), method='re-read the cited region', outcome='verified', date=datetime.date(2026, 9, 20), diff=None))]).provider
+
+tests/test_slice1_offerings.py:137: AssertionError
+_________ test_mistral_governance_rejects_other_domains[deepseek.com] __________
+
+tmp_path = PosixPath('/Users/terbeest/dev/worktrees/model-388-engine/.model-388-engine-scratch/red/test_mistral_governance_reject2')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10ca3f450>
+host = 'deepseek.com'
+
+    @pytest.mark.parametrize("host", [
+        "not-mistral.ai", "docs.mistral.ai.example.test", "deepseek.com",
+    ])
+    def test_mistral_governance_rejects_other_domains(tmp_path, monkeypatch, host):
+        _write_governance_documents(tmp_path, "mistral", host)
+        monkeypatch.setattr(f"{__name__}.ROOT", tmp_path)
+        with pytest.raises(AssertionError) as error:
+            test_governance_facts_only_use_the_serving_providers_own_documents()
+>       assert "GOVERNANCE_DOMAINS" not in str(error.value)
+E       AssertionError: assert 'GOVERNANCE_DOMAINS' not in 'mistral: ad...)]).provider'
+E         
+E         'GOVERNANCE_DOMAINS' is contained here:
+E           omains to GOVERNANCE_DOMAINS
+E           assert 'mistral' in {'alibaba-model-studio': ('alibabacloud.com',), 'anthropic': ('claude.com',), 'aws-bedrock': ('aws.amazon.com',), 'deepseek': ('deepseek.com',), ...}
+E            +  where 'mistral' = Offering(model='test/model', provider='mistral', region='global', tier='standard', facts=[Fact(id='mistral/test/model/...ethod='re-read'), method='re-read the cited region', outcome='verified', date=datetime.date(2026, 9, 20), diff=None))]).provider
+
+tests/test_slice1_offerings.py:137: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_slice1_offerings.py::test_mistral_governance_accepts_primary_documents[mistral.ai]
+FAILED tests/test_slice1_offerings.py::test_mistral_governance_accepts_primary_documents[docs.mistral.ai]
+FAILED tests/test_slice1_offerings.py::test_mistral_governance_accepts_primary_documents[legal.mistral.ai]
+FAILED tests/test_slice1_offerings.py::test_mistral_governance_accepts_primary_documents[help.mistral.ai]
+FAILED tests/test_slice1_offerings.py::test_mistral_governance_rejects_other_domains[not-mistral.ai]
+FAILED tests/test_slice1_offerings.py::test_mistral_governance_rejects_other_domains[docs.mistral.ai.example.test]
+FAILED tests/test_slice1_offerings.py::test_mistral_governance_rejects_other_domains[deepseek.com]
+7 failed, 10 deselected in 0.41s
