@@ -45,21 +45,32 @@ def claim(value):
     )
 
 
-def test_mistral_pro_reads_coding_access_before_api_credit_feature():
-    text = (PAGES / "mistral-pro.txt").read_text()
-    result = verify(
-        claim("All-day coding in the CLI, IDE, or on web."),
-        Page(text),
-        deterministic_extractors(),
-        today=date(2026, 10, 14),
-    )
-    assert result.outcome == "verified", result
-
-
 def test_mistral_pro_does_not_borrow_team_feature():
     text = (PAGES / "mistral-pro.txt").read_text()
     result = verify(
         claim("Domain name verification."),
+        Page(text),
+        deterministic_extractors(),
+        today=date(2026, 10, 14),
+    )
+    assert result.outcome == "mismatch", result
+
+
+@pytest.mark.parametrize("feature", ["Generate Spreadsheets", "Free"])
+def test_mistral_heading_like_feature_keeps_pinned_mismatch(feature):
+    text = f"""\
+Pro
+$14.99
+/mo
+Faster responses.
+{feature}
+All-day coding in the CLI, IDE, or on web.
+Generate spreadsheets and slides.
+Better image generation and editing.
+$25.5 /mo in API credits.
+"""
+    result = verify(
+        claim("All-day coding in the CLI, IDE, or on web."),
         Page(text),
         deterministic_extractors(),
         today=date(2026, 10, 14),

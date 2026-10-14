@@ -1,42 +1,14 @@
 Pro
-Education plan
-Full access to Vibe for all-day coding and long-running tasks.
 $14.99
 /mo
-Excluding taxes
-Including taxes
-Subject to fair usage limits and Mistral's Terms of Service.
-Valid for a maximum of 12 months for verified students at accredited higher institutions and if you haven't used Vibe (or Le Chat) before. Price not inclusive of taxes.
-I'm a student
-More access and usage.
-More messages and web searches.
 Faster responses.
 All-day coding in the CLI, IDE, or on web.
 Generate spreadsheets and slides.
 Better image generation and editing.
 $25.5 /mo in API credits.
 Chat and email support.
-More access and usage.
-More messages and web searches.
-Get more complex tasks done.
-All-day coding in the CLI, IDE, or on web.
-More image generations.
-$15 /mo in API credits.
-Chat and email support.
-Start now
 Team
 Secure, collaborative workspace for teams building with AI.
 $24.99
 /user/mo
-Excluding taxes
-Including taxes
-Subject to fair usage limits and Mistral's Terms of Service.
-Even higher limits.
-Even faster responses.
-Up to 30GB of storage /user.
 Domain name verification.
-Data export.
-$50
-/mo
-Users
-Start now

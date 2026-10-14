@@ -13,12 +13,16 @@ The copy digests identify the complete original bytes.
 | `minimax-faq.txt` | `https://platform.minimax.io/docs/m-plan/faq` | `111e69be5a5db7cff93a08658d762203fd66b00d772a9bd90f3a4e6c561e1d06` |
 | `moonshot-current-plans.txt` | `https://www.kimi.com/en/help/membership/membership-pricing` | `e36f1b22c4c6ac45962dccda6076f1ed63c043d6dcd8d91853cf11f19380d6e8` |
 
-The Mistral excerpt keeps the Pro card and its following Team card. The MiniMax
-FAQ excerpt keeps its exact tier table, a sentence that identifies the supported
-subscription tools, and the code example with the literal `<API Key>` placeholder.
-The other excerpts prove that a missing model or legacy plan cannot borrow a
-newer model or plan's price. Vertex table 38 is the table selected by the filed
-`partner-anthropic-regional` citation, even though it now contains Codey.
+The Mistral excerpt keeps the Pro card's early features and the following Team
+card's name, price, and domain-verification feature. It supports only the safety
+check; the Pro positive test was removed when the boundary changes were reverted.
+The MiniMax FAQ excerpt keeps its exact tier table, a sentence that identifies
+the supported subscription tools, and the code example with the literal
+`<API Key>` placeholder. The other excerpts prove that a missing model or legacy
+plan cannot borrow a newer model or plan's price.
 
-Only the Mistral and MiniMax FAQ regressions failed before the reader changes.
-The absent-subject tests are safety checks and passed before the changes.
+The three MiniMax FAQ regressions fail on the pinned reader and pass with the
+placeholder fix. All retained Mistral tests pass on the pinned reader. Synthetic
+review probes A and B and the conservative heading-like-feature cases are in the
+test module. The no-nearby-currency probes are documented as existing pinned
+limitations; they are not represented by passing safety assertions.
