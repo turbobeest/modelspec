@@ -464,6 +464,7 @@ def _plan_record(plan: Any) -> dict[str, Any]:
     """A plan as the engine reads it (MODEL-200): each part null when not known."""
     return {
         "id": plan.id, "provider": plan.provider, "name": plan.name,
+        **({"availability": plan.availability} if plan.availability is not None else {}),
         "price": None if plan.price is None else plan.price.model_dump(mode="json"),
         "surfaces": None if plan.surfaces is None else sorted(plan.surfaces),
         "coverage": None if plan.coverage is None else [
@@ -473,14 +474,21 @@ def _plan_record(plan: Any) -> dict[str, Any]:
 
 
 def _estate_ids(snapshot: Any, registry: Any) -> dict[str, Any]:
-    from decision.plans import load_plans
+    from decision.plans import AVAILABILITY, load_plans
 
     fits = registry.allowed_values(registry.facet("model.fits_hardware")) or frozenset()
     plans = load_plans(snapshot, registry)
+    availability = registry.facet(AVAILABILITY)
     return {
         "providers": sorted(p.id for p in registry.providers()),
         "plans": [_plan_record(plans[plan_id]) for plan_id in sorted(plans)],
         "devices": sorted(fits),
+        "plan_facets": [{
+            "id": availability.id, "name": availability.label,
+            "definition": availability.definition, "value_type": availability.value_type.kind,
+            "allowed_values": sorted(registry.allowed_values(availability)),
+            "addressable": False,
+        }],
     }
 
 

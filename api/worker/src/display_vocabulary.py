@@ -55,7 +55,12 @@ def trim(vocabulary, *, model_ids, facet_values):
                         vocabulary.get("models", {}).items() if mid in model_ids}
     estate = vocabulary.get("estate", {})
     result["estate"] = {"providers": estate.get("providers", []), "devices": estate.get("devices", []),
-                        "plans": [pick(row, ("id", "provider", "name")) for row in estate.get("plans", [])]}
+                        "plans": [pick(row, ("id", "provider", "name", "availability"))
+                                  for row in estate.get("plans", [])]}
+    if estate.get("plan_facets"):
+        result["estate"]["plan_facets"] = [
+            pick(row, ("id", "name", "definition", "value_type", "allowed_values", "addressable"))
+            for row in estate["plan_facets"]]
     result["templates"] = [pick(row, TEMPLATE_FIELDS) for row in vocabulary.get("templates", [])]
     return result
 
@@ -102,7 +107,10 @@ def compact(row, section):
     if section == "models":
         return pick(row, ("display_name",))
     if isinstance(row, dict):
-        return pick(row, ("id", "name", "label"))
+        fields = ("id", "name", "label")
+        if section == "estate":
+            fields += ("availability",)
+        return pick(row, fields)
     return row
 
 
@@ -113,7 +121,7 @@ def normalize(value):
 def section_rows(vocabulary, section):
     source = vocabulary.get(section, {})
     if section == "estate":
-        for group in ("providers", "devices", "plans"):
+        for group in ("providers", "devices", "plans", "plan_facets"):
             for row in source.get(group, []):
                 yield row["id"] if isinstance(row, dict) else row, row, group
     elif isinstance(source, dict):
@@ -437,8 +445,11 @@ def suggestions(vocabulary, needles):
 
 def select_rows(rows, section, full):
     if section == "estate":
+        groups = ("providers", "devices", "plans")
+        if any(group == "plan_facets" for _, _, group in rows):
+            groups += ("plan_facets",)
         return {group: [row if full else compact(row, section) for _, row, own_group in rows if own_group == group]
-                for group in ("providers", "devices", "plans")}
+                for group in groups}
     selected = [(key, row if full else compact(row, section)) for key, row, _ in rows]
     if section in {"providers", "vendors", "models", "coverage"}:
         return dict(selected)
@@ -575,6 +586,9 @@ def lookup(vocabulary, *, section="starter", search="", ids=(), detail="compact"
         return vocabulary_response({}, section)
     if section == "estate" and detail == "compact" and not ids:
         source = {key: vocabulary.get("estate", {}).get(key, []) for key in ("providers", "devices")}
+        plan_facets = vocabulary.get("estate", {}).get("plan_facets")
+        if plan_facets:
+            source["plan_facets"] = plan_facets
     if section == "starter":
         by_id = {row["id"]: row for row in vocabulary.get("facets", [])}
         source = [by_id[fid] for fid in starter_ids(vocabulary)]

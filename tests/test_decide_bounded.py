@@ -84,12 +84,12 @@ def test_projection_keeps_essentials_and_identity(service, snapshot):
     for row in bounded["results"]:
         assert set(row) == {"rank", "model", "offering", "warnings", "cost_per_task"}
     assert bounded["explanation"]["omitted"]["by_model"] == len(complete["by_model"])
-    assert complete["contract_version"] == "2.17"
+    assert complete["contract_version"] == "2.18"
     # A distinct representation, not a 2.x minor version (MODEL-59).
     assert "contract_version" not in bounded
     assert bounded["representation"] == "bounded"
-    assert bounded["bounded_version"] == "1.4"
-    assert bounded["projects_contract"] == "2.17"
+    assert bounded["bounded_version"] == "1.5"
+    assert bounded["projects_contract"] == "2.18"
     assert bounded["summary_for_user"].startswith("ModelSpec's answer is")
     assert isinstance(bounded["must_mention"], list)
     assert "summary_for_user" not in complete
@@ -156,7 +156,7 @@ def test_drill_down_explains_one_eliminated_model(service, snapshot):
 
 def test_limit_only_preserves_legacy_representation(service, snapshot):
     _, body = service.decide({**_payload(), "limit": 1}, snapshot)
-    assert body["contract_version"] == "2.17"
+    assert body["contract_version"] == "2.18"
     assert len(body["results"]) == 1
     assert body["truncated"] == {"offerings": 1, "models": 1}
 
@@ -789,7 +789,7 @@ def test_drill_down_on_a_pre_provenance_snapshot_is_unavailable_not_a_crash(serv
     # Without evidence_for, explain=none still answers from the same snapshot.
     status, body = service.decide(_payload("none"), old)
     assert status == 200
-    assert body["contract_version"] == "2.17"
+    assert body["contract_version"] == "2.18"
 
 
 def _tied_offerings_snapshot():
@@ -862,7 +862,7 @@ def test_a_tie_cut_by_limit_keeps_every_members_evidence(service):
     }
     status, body = service.decide(payload, snap)
     assert status == 200, body
-    assert body["bounded_version"] == "1.4"
+    assert body["bounded_version"] == "1.5"
     assert body["answer"]["kind"] == "tied"
     assert body["answer"]["members"] == ["lab/a", "lab/b"]
     assert body["results"] == [{

@@ -44,6 +44,7 @@ from decision.contract import (
     EstateResult,
     GainItem,
     Issue,
+    PlanExclusion,
     SpecError,
     WithEstate,
 )
@@ -77,6 +78,7 @@ class Reach:
     plan_prices: Mapping[str, Computed] = field(default_factory=dict)
     #: The plans ``routes`` names, by ID.
     plans: Mapping[str, Any] = field(default_factory=dict)
+    excluded_plans: tuple[PlanExclusion, ...] = ()
 
     def holds(self, cid: str) -> bool:
         return cid in self.via or cid in self.unknown
@@ -176,6 +178,7 @@ def reach(catalogue: Catalogue, providers: Iterable[str], plans: Iterable[str],
     routes: dict[str, list[tuple[str, str | None, Any]]] = {}
     paid: set[str] = set()
     marginal: dict[str, str] = {}
+    excluded_plans = []
 
     def unknown_on(rows: Iterable[str], facet: str) -> None:
         for cid in rows:
@@ -188,6 +191,10 @@ def reach(catalogue: Catalogue, providers: Iterable[str], plans: Iterable[str],
     use_devices = access is None or access.kind == "own_hardware"
     for plan_id in sorted(plans) if use_plans else ():
         plan = catalogue.plans[plan_id]
+        reason = plan.exclusion(held=held)
+        if reason is not None:
+            excluded_plans.append(PlanExclusion(plan=plan_id, reason=reason))
+            continue
         covered = plan.models
         surface = None
         if access is not None:
@@ -236,7 +243,8 @@ def reach(catalogue: Catalogue, providers: Iterable[str], plans: Iterable[str],
         cid for cid in (*via, *unknown) if cid in catalogue.bare)
     signature = frozenset((*(("row", cid) for cid in via), *(("unk", cid) for cid in unknown)))
     return Reach(via, unknown, hosted, marginal, signature, unpriced,
-                 {cid: tuple(r) for cid, r in routes.items()}, plan_prices, catalogue.plans)
+                 {cid: tuple(r) for cid, r in routes.items()}, plan_prices, catalogue.plans,
+                 tuple(excluded_plans))
 
 
 def access_reach(catalogue: Catalogue, access: Access) -> Reach:
@@ -315,7 +323,8 @@ def _mark(computed: Any, cid: str, current: Reach, access: Access | None) -> Est
                 coverage, plans_module.tool_listing(current.plans[hold_id], surface, access))
     return EstateMark(
         via=EstateHold(kind=kind, id=hold_id), cost_basis=_COST_BASIS[kind],
-        marginal_cost_per_task_usd=cost, coverage=coverage)
+        marginal_cost_per_task_usd=cost, coverage=coverage,
+        availability=current.plans[hold_id].availability if kind == "plan" else None)
 
 
 def _label(answer: Any, models: list[str]) -> str:
@@ -378,6 +387,13 @@ def with_estate(
     gap = EstateGap(
         same_answer=same, unreachable_models=unreachable,
         summary=_summary(same, unrestricted, ran, unreachable))
+    used_closed_plans = sorted({
+        row.estate.via.id for row in results
+        if row.estate.availability == "existing_subscribers_only"
+    })
+    for plan_id in used_closed_plans:
+        plan = catalogue.plans[plan_id]
+        gap.summary += f" {plan.name} ({plan_id}) is closed to new buyers; your existing subscription remains usable."
     gain = _gain(catalogue, estate, (providers, plans, devices), current, ran, run, access)
     warnings = []
     if access is not None and access.kind == "own_software" and any(
@@ -389,7 +405,7 @@ def with_estate(
     return WithEstate(
         status=decision.status, answer=decision.answer, results=results,
         may_qualify=decision.may_qualify, truncated=decision.truncated, gap=gap, gain=gain,
-        warnings=warnings)
+        warnings=warnings, excluded_plans=list(current.excluded_plans))
 
 
 def _gain(catalogue, estate, holds, current, ran, run, access=None):
@@ -404,7 +420,8 @@ def _gain(catalogue, estate, holds, current, ran, run, access=None):
     for plan_id in sorted(catalogue.plans):
         provider = plan_id.partition("/subscription/")[0]
         if (plan_id in plans or plan_id in estate.exhausted or provider in estate.exhausted
-                or plan_id in estate.plans):
+                or plan_id in estate.plans
+                or catalogue.plans[plan_id].exclusion(held=False) is not None):
             continue
         candidates.append((
             EstateHold(kind="plan", id=plan_id),

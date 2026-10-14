@@ -593,9 +593,18 @@ class OfferingPriceExtractor:
                         "cached_input": "cached input"}.get(wanted)
         if scoped_subject and simple_label:
             markdown = False
+            table_subject = None
             for i, line in enumerate(lines):
                 if "|" in line and (i == 0 or "|" not in lines[i - 1]):
                     markdown = line.startswith("|")  # the table's header row
+                    heading = lines[i - 1].lstrip("#").strip() if i else ""
+                    declared = re.sub(r"(?i)^models?\s*:\s*", "", heading)
+                    names = {normalise_name(n.rstrip("."))
+                             for n in declared.split(",")}
+                    table_subject = scoped_subject if normalise_name(scoped_subject) in names \
+                        else None
+                if table_subject is None:
+                    continue
                 # In an HTML table a leading pipe is an empty first cell: the row
                 # continues the model named above it (Vertex), so it is not this
                 # page's own price (MODEL-235). Markdown rows all start with one.
@@ -604,7 +613,7 @@ class OfferingPriceExtractor:
                 cells = [cell.strip() for cell in line.strip("| ").split("|")]
                 if len(cells) >= 2 and normalise_name(cells[0]) == simple_label:
                     if match := re.search(r"\\?\$\s*[0-9]+(?:\.[0-9]+)?", cells[1]):
-                        return [Reading(scoped_subject, match.group(0), claim.unit)]
+                        return [Reading(table_subject, match.group(0), claim.unit)]
         if scoped_subject and "price per btok per mtok" in normalise_name(text):
             if wanted == "input":
                 match = re.search(r"(?im)^\|?\s*Price \(per Btok / per Mtok\).*?"
@@ -923,6 +932,7 @@ class KeyValueExtractor:
             ), None)
         date_ = next((v for k, v in pairs.items() if k in _DATE_KEYS), None)
         return [Reading(subject=subject, value=pairs.get(_label(claim)),
+                        unit=pairs.get("unit"),
                         conditions={"effort": pairs.get("effort"),
                                     "harness": pairs.get("harness"), "date": date_})]
 
@@ -1050,7 +1060,35 @@ class SubscriptionPageExtractor:
     actor = VerificationActor(agent=VERIFY_AGENT, model_family=DETERMINISTIC,
                               method="subscription-page@1")
 
+    @staticmethod
+    def quote_candidates(claim: Claim, text: str) -> list[Reading]:
+        """Possible recrawl replacements, each requiring separate verification."""
+        if claim.field != "offering.subscription.coverage_quote":
+            raise ExtractorError("not a coverage quote")
+        if _HTML_TAG.search(text):
+            return []
+        lines = [line.strip().lstrip("#").strip() for line in _content_block(text).splitlines()
+                 if line.strip()]
+        candidates = [*lines, *(s for line in lines for s in _sentences(line)),
+                      *(c.strip() for line in lines if "|" in line for c in line.split("|"))]
+        candidates += ["\n".join(lines[i:i + n]) for n in range(2, 9)
+                       for i in range(len(lines) - n + 1)]
+        return [Reading(subject=claim.names[0], value=c)
+                for c in dict.fromkeys(candidates) if c]
+
     def accepts(self, text: str) -> bool:
+        return self._accepts_layout(text) or bool(re.search(
+            r"(?im)\bavailability\b|"
+            r"\bnew (?:subscribers|subscriptions|customers|buyers|purchases?|"
+            r"sign[- ]ups?|signups)\b|"
+            r"\bexisting subscribers\b|\b(?:no longer|not) offered to new\b|"
+            r"\bplan\b.{0,80}\bretired\b|"
+            r"^\s*retired\.?\s*$|\bdiscontinued for all subscribers\b",
+            text,
+        ))
+
+    def _accepts_layout(self, text: str) -> bool:
+        """The established page layouts for every other subscription facet."""
         return bool(re.search(
             r"(?im)(?:\$[0-9.]+/(?:month|year)|billing cycle\s*\||plan\s*\|\s*limit|"
             r"everything in .+?, plus|\bcodex\b|claude code|more usage than pro|"
@@ -1066,11 +1104,46 @@ class SubscriptionPageExtractor:
     def extract(self, claim: Claim, text: str) -> list[Reading]:
         if not claim.field.startswith("offering.subscription."):
             raise ExtractorError("not a subscription claim")
+        if claim.field == "offering.subscription.surfaces" and isinstance(claim.value, list) \
+                and "coding_tool:*" in claim.value:
+            return []
+        if _HTML_TAG.search(text):
+            return []
+        if claim.field == "offering.subscription.coverage_quote":
+            return [r for r in self.quote_candidates(claim, text)
+                    if normalise_name(r.value) == normalise_name(str(claim.value))]
+        if re.search(r"\bteams?\b", claim.subject.rsplit("/", 1)[-1]):
+            names = tuple(name for name in claim.names
+                          if len(normalise_name(name).split()) >= 2
+                          or re.search(r"\bteams?\b", name, re.IGNORECASE))
+            if not names:
+                return []
+            claim = replace(claim, names=names)
         text = _content_block(text)
+        if claim.field == "offering.subscription.availability":
+            return _plan_availability(claim, text)
         readings = self._page_layouts(claim, text)
         for more in (_plan_cards(claim, text), _plan_facts(claim, text),
                      _vendor_layouts(claim, text)):
             readings += [r for r in more if r not in readings]
+        if claim.field in {"offering.subscription.usage_allowance",
+                           "offering.subscription.programmatic_or_agent_use"}:
+            wording = (r"\b(?:usage|allowances?|limits?|credits?|requests?|messages?|"
+                       r"tokens?|quota|uses|queries|tasks?|completions?|consumption|"
+                       r"windows?|unlimited|more)\b"
+                       if claim.field.endswith("usage_allowance") else
+                       r"\b(?:codex|claude code|kimi code|grok build|ai studio|antigravity|"
+                       r"jules|agents?|api|cli|bots?|terminal|coding|tools?|programmatic)\b")
+            readings = [r for r in readings if r.value and not re.fullmatch(
+                r"(?i)(?:[$¥]\s*[0-9,.]+(?:\s*/\s*(?:mo|month|year))?|"
+                r"/\s*(?:mo|month|year).*|get .+|pricing)", r.value.strip()
+            ) and re.search(wording, r.value, re.IGNORECASE)]
+        if claim.field == "offering.subscription.models_covered":
+            readings = [r for r in readings if r.value and (
+                normalise_name(r.value) in _FALSE or any(
+                _catalogue_model_matches(item.strip())
+                for item in re.split(r",|;|\band\b", r.value) if item.strip()
+            ))]
         return readings
 
     def _page_layouts(self, claim: Claim, text: str) -> list[Reading]:
@@ -1310,6 +1383,151 @@ class SubscriptionPageExtractor:
         ]
         models = list(dict.fromkeys(models))
         return [Reading(subject=wanted, value=", ".join(models))] if models else []
+
+
+#: The last word of a tier. "Plus" makes "Token Plan Plus" a tier of "Token
+#: Plan". "Pro" in "Token Pro" does not, because that name has no family tokens
+#: in front of the tier word.
+_TIER_WORDS = frozenset({
+    "plus", "max", "ultra", "pro", "lite", "team", "free", "basic", "premium",
+    "standard", "starter", "enterprise", "business", "individual", "personal",
+    "heavy", "go", "mini",
+})
+
+
+def _plan_family_names(names: set[str]) -> set[str]:
+    """A plan family a tier also answers to.
+
+    The family is two or more whole tokens immediately before one tier word.
+    "Token Plan" covers "Token Plan Plus" and "MiniMax Token Plan Plus". It
+    does not cover "M Plan" or "Token Pro". Characters inside a token do not
+    count: "MyToken Plan" is not "Token Plan".
+    """
+    families: set[str] = set()
+    for name in names:
+        tokens = name.split()
+        if len(tokens) < 3 or tokens[-1] not in _TIER_WORDS:
+            continue
+        stem = tokens[:-1]
+        for length in range(2, len(stem) + 1):
+            families.add(" ".join(stem[-length:]))
+    return families
+
+
+def _availability_predicate(sentence: str, subjects: set[str]) -> str | None:
+    """Words after a subject that opens the sentence or follows a comma.
+
+    "With the launch of M Plan, Token Plan is no longer ..." names Token Plan.
+    The predicate runs to the end of the sentence, so a later qualification
+    still has to match an availability phrase exactly. A question has none.
+    """
+    if "?" in sentence:
+        return None
+    text = sentence.strip()
+    for subject in sorted(subjects, key=len, reverse=True):
+        tokens = subject.split()
+        if not tokens:
+            continue
+        body = r"[^0-9A-Za-z]+".join(re.escape(token) for token in tokens)
+        match = re.search(
+            rf"(?:^|[,;]\s*)(?:the\s+)?(?<![0-9A-Za-z]){body}(?:\s+plan)?\s+(.*)$",
+            text,
+            re.IGNORECASE,
+        )
+        if match:
+            return match.group(1)
+    return None
+
+
+def _availability_value(statement: str) -> str | None:
+    """An explicit current availability statement, never a missing price or plan."""
+    if "?" in statement:
+        return None
+    wording = normalise_name(statement)
+    wording = re.sub(r"^(?:is (?:now )?|has been )", "", wording)
+    if wording in {"open", "existing subscribers only", "retired"}:
+        return wording.replace(" ", "_")
+    audience = r"new (?:subscribers|customers|buyers)"
+    purchases = r"new purchases?"
+    signups = r"new sign ?ups|new signups"
+    if re.fullmatch(
+        rf"(?:open to {audience}|available to {audience}|available for new subscriptions)",
+        wording,
+    ):
+        return "open"
+    if re.fullmatch(
+        rf"(?:available only to existing subscribers|only available to existing subscribers|"
+        rf"closed to (?:{audience}|{signups})|"
+        rf"(?:no longer|not) available "
+        rf"(?:to {audience}|for new subscriptions|for {purchases})|"
+        rf"(?:no longer|not) offered to {audience})",
+        wording,
+    ):
+        return "existing_subscribers_only"
+    if wording == "discontinued for all subscribers":
+        return "retired"
+    return None
+
+
+def _plan_availability(claim: Claim, text: str) -> list[Reading]:
+    """Availability in a named statement, plan section or labelled table cell.
+
+    A name must be the statement's subject or an exact heading/cell. A family
+    name applies to a tier when the tier's name is that family plus one tier
+    word ("Token Plan" applies to "Token Plan Plus"). Mentioning the plan as
+    the replacement's predecessor does not scope that statement.
+    """
+    aliases = {normalise_name(name) for name in claim.names}
+    subjects = aliases | _plan_family_names(aliases)
+    lines = [line.strip() for line in text.splitlines()]
+    statements: list[str] = []
+    header: list[str] = []
+    in_plan = False
+    for i, line in enumerate(lines):
+        if not line:
+            header = []
+            continue
+        if "|" in line:
+            in_plan = False
+            cells = [cell.strip() for cell in line.strip("|").split("|")]
+            labels = [normalise_name(cell) for cell in cells]
+            if not header:
+                header = labels
+            elif "availability" in labels or labels[0] in {"plan", "features"}:
+                if labels[0] == "availability":
+                    statements += [cell for j, cell in enumerate(cells)
+                                   if j < len(header) and header[j] in aliases]
+                else:
+                    header = labels
+            elif labels[0] in aliases:
+                statements += [cell for j, cell in enumerate(cells)
+                               if j < len(header) and header[j] == "availability"]
+            continue
+        header = []
+        if _card_heading(line, aliases):
+            in_plan = True
+            header = []
+            continue
+        # Stop at the next plan section/card, including bare plan names.
+        if (line.startswith("#") or _PRICED_HEADING.match(line)
+                or re.fullmatch(r"[\w -]+ [Pp]lan(?: [\w -]+)?", line.strip("*_"))
+                or (len(line.split()) <= 3 and re.fullmatch(r"[\w -]+", line.strip("*_"))
+                    and _availability_value(line) is None)
+                or (len(line.split()) <= 3 and i + 1 < len(lines)
+                    and re.match(r"[$¥]\s?[0-9]", lines[i + 1]))):
+            in_plan = False
+            header = []
+        for sentence in _sentences(line):
+            if "?" in sentence:
+                continue
+            predicate = _availability_predicate(sentence, subjects)
+            if predicate is not None:
+                statements.append(predicate)
+            elif in_plan:
+                statements.append(sentence)
+    values = list(dict.fromkeys(value for statement in statements
+                                if (value := _availability_value(statement)) is not None))
+    return [Reading(subject=claim.names[0], value=value) for value in values]
 
 
 #: An amount in a currency symbol; ``$ 50``, ``$117.6`` and ``¥99`` included.
@@ -1806,16 +2024,6 @@ def _plan_facts(claim: Claim, text: str) -> list[Reading]:
     subject, field = claim.names[0], claim.field
     provider = claim.subject.split("/", 1)[0]
     readings: list[Reading] = []
-
-    if field == "offering.subscription.coverage_quote":
-        # The facet is the page's own wording, so any line, sentence, table cell or
-        # run of consecutive lines of the region is a candidate.
-        bare = [line.lstrip("#").strip() for line in lines]
-        candidates = [*bare, *(s for line in bare for s in _sentences(line)),
-                      *(c.strip() for line in bare if "|" in line for c in line.split("|"))]
-        candidates += ["\n".join(bare[i:i + n]) for n in range(2, 9)
-                       for i in range(len(bare) - n + 1)]
-        return [Reading(subject=subject, value=c) for c in dict.fromkeys(candidates) if c]
 
     if field in {"offering.subscription.usage_allowance",
                  "offering.subscription.programmatic_or_agent_use"}:
@@ -5611,7 +5819,11 @@ def _readers_for(extractors: Sequence[Extractor], claim: Claim, text: str,
             HFParametersExtractor, ModelCardParamsExtractor, DenseActiveEqualsTotalExtractor,
         )):
             continue
-        if extractor.accepts(text):
+        accepts = extractor.accepts
+        if isinstance(extractor, SubscriptionPageExtractor) \
+                and claim.field != "offering.subscription.availability":
+            accepts = extractor._accepts_layout
+        if accepts(text):
             chosen.append(extractor)
     return chosen
 

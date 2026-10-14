@@ -27,6 +27,7 @@ from decision.contract import (
     Access,
     Issue,
     PlanAllowance,
+    PlanAvailability,
     PlanCoverage,
     PlanPrice,
     PlanRoute,
@@ -49,6 +50,7 @@ ALLOWANCE = {
     "tokens": "offering.subscription.allowance.tokens",
 }
 PRICE_MONTHLY = "offering.plan.price_monthly"
+AVAILABILITY = "offering.subscription.availability"
 
 CHAT_SURFACES = frozenset({"chat_app", "desktop_app", "mobile_app"})
 API = "api"
@@ -94,6 +96,15 @@ class Plan:
     allowance: PlanAllowance
     #: The page's open-ended coding-tool sentence, when it records ``coding_tool:*``.
     coding_tools_quote: str | None = None
+    availability: PlanAvailability | None = None
+
+    def exclusion(self, *, held: bool) -> str | None:
+        """Why this plan cannot be used, or ``None`` when it remains a route."""
+        if self.availability == "retired":
+            return f"{self.name} ({self.id}) is retired and cannot be used, even by existing subscribers."
+        if self.availability == "existing_subscribers_only" and not held:
+            return f"{self.name} ({self.id}) is closed to new buyers; only existing subscribers can use it."
+        return None
 
     @property
     def models(self) -> frozenset[str] | None:
@@ -191,6 +202,7 @@ def _plan(raw: Mapping[str, Any], lineup: list[str], registry: Any) -> Plan:
         allowance=PlanAllowance(**{part: _value(facts, facet)
                                    for part, facet in ALLOWANCE.items()}),
         coding_tools_quote=tools_quote if isinstance(tools_quote, str) else None,
+        availability=_value(facts, AVAILABILITY),
     )
 
 

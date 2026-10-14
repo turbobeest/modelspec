@@ -141,6 +141,13 @@ const planRouteSchema = z
   })
   .strict();
 
+const planExclusionSchema = z
+  .object({
+    plan: z.string().min(1).max(120),
+    reason: z.string(),
+  })
+  .strict();
+
 const resultSchema = z
   .object({
     rank: z.number().int().positive(),
@@ -303,6 +310,7 @@ const estateMarkSchema = z
     cost_basis: z.enum(["list_price", "plan_included", "owned_hardware"]),
     marginal_cost_per_task_usd: z.number().nonnegative().nullable().optional(),
     coverage: planCoverageSchema.nullable().optional(),
+    availability: z.enum(["open", "existing_subscribers_only", "retired"]).nullish(),
   })
   .strict();
 
@@ -347,6 +355,7 @@ export const withEstateSchema = z
       .optional()
       .default([]),
     warnings: z.array(z.string().regex(/^[a-z0-9_]+$/)).optional().default([]),
+    excluded_plans: z.array(planExclusionSchema).optional(),
   })
   .strict();
 
@@ -471,6 +480,7 @@ export const decisionSchema = z
       .default([]),
     // MODEL-179 estate answer, present when the spec sent an `estate`.
     with_estate: withEstateSchema.nullish(),
+    excluded_plans: z.array(planExclusionSchema).optional(),
     benchmark_exclusions: z
       .object({
         benchmarks: z.array(facetId),
@@ -519,6 +529,7 @@ export const decisionSchema = z
       "2.15",
       "2.16",
       "2.17",
+      "2.18",
     ]),
     decision_id: z.string().regex(/^dec_[0-9A-Za-z]{8,}$/),
     snapshot: z.string().regex(/^snap_[A-Za-z0-9:._-]+$/),

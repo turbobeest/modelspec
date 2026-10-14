@@ -22,7 +22,7 @@ import access_keys as keys
 import billing_reversals
 import billing_stripe
 import credits
-from access_config import AccessPolicy, PolicyError, PriceMapping
+from access_config import AccessPolicy, PolicyError, PriceMapping, friends_price
 from access_kv import StoreNotConfigured, UnboundKV
 from billing_stripe import SignatureError
 
@@ -112,6 +112,8 @@ APPLIED_NEW = "new_key"
 def what_you_buy(mapping: PriceMapping | None = None) -> str:
     if mapping is None:
         return WHAT_YOU_BUY
+    if mapping.tier == "friends":
+        return "Friends & Family: live API access subject to the friends tier's burst limit."
     if mapping.kind == "plan":
         return (
             f"{mapping.name}: {mapping.credits} credits each paid month, "
@@ -354,17 +356,98 @@ async def _map_price(policy: AccessPolicy, price_id: str, *, service_commit: str
 
 
 async def _map_price_row(policy: AccessPolicy, price_id: str, *, service_commit: str,
-                         endpoint: str) -> tuple[PriceMapping | None, Outcome | None]:
+                         endpoint: str, obj: dict[str, Any] | None = None
+                         ) -> tuple[PriceMapping | None, Outcome | None]:
     if not price_id:
         return None, _refusal(
             PRICE_NOT_MAPPED, "the Stripe event names no Price id we can map",
             service_commit=service_commit, endpoint=endpoint)
     try:
-        return policy.price(price_id), None
+        mapping = policy.price(price_id)
+        if (mapping.kind == "plan" and obj is not None
+                and obj.get("mode") != "payment" and _friends_promotion(obj, policy)):
+            return friends_price(price_id), None
+        return mapping, None
     except PolicyError as exc:
         return None, _refusal(
             PRICE_NOT_MAPPED, str(exc), service_commit=service_commit, endpoint=endpoint,
             detail={"price_id": price_id})
+
+
+def _promotion_coupon(promotion: dict[str, Any]) -> Any:
+    source = promotion.get("promotion")
+    return source.get("coupon") if isinstance(source, dict) else promotion.get("coupon")
+
+
+def _friends_promotion(obj: dict[str, Any], policy: AccessPolicy) -> bool:
+    prefix = policy.billing.friends_promotion_code_prefix
+    if not prefix:
+        return False
+    discounts = obj.get("discounts")
+    for discount in discounts if isinstance(discounts, list) else []:
+        promo = discount.get("promotion_code") if isinstance(discount, dict) else None
+        if not isinstance(promo, dict):
+            continue
+        coupon = _promotion_coupon(promo)
+        if (str(promo.get("code") or "").casefold().startswith(prefix.casefold())
+                and isinstance(coupon, dict) and coupon.get("percent_off") == 100
+                and coupon.get("duration") == "forever"):
+            return True
+    return False
+
+
+async def _resolve_friends_event(event: dict[str, Any], *, policy: AccessPolicy,
+                                 secret: str | None, http: Any) -> dict[str, Any]:
+    """Expand only signed entitlement events, and only with friends configured."""
+    cfg = policy.billing
+    if not (cfg.friends_price_ids or cfg.friends_promotion_code_prefix):
+        return event
+    kind = event.get("type")
+    data = event.get("data")
+    obj = data.get("object") if isinstance(data, dict) else None
+    if not isinstance(obj, dict):
+        return event
+    if kind == "customer.subscription.updated" and obj.get("status") == "active":
+        resource = "subscriptions"
+    elif kind == "invoice.paid":
+        resource = "invoices"
+    elif kind in {"checkout.session.completed", "checkout.session.async_payment_succeeded"}:
+        if obj.get("payment_status") not in (None, "paid", "no_payment_required"):
+            return event
+        resource = "checkout/sessions"
+    else:
+        return event
+    if resource == "checkout/sessions" and not _price_from_session(obj):
+        expanded = await billing_stripe.retrieve(
+            resource=resource, identifier=_id(obj), expand=["line_items"], secret=secret, http=http)
+        obj = {**obj, "line_items": expanded.get("line_items"),
+               "discounts": expanded.get("discounts", obj.get("discounts"))}
+    discounts = obj.get("discounts")
+    if (obj.get("mode") != "payment" and cfg.friends_promotion_code_prefix
+            and isinstance(discounts, list)):
+        if any(isinstance(item, str) for item in discounts):
+            expanded = await billing_stripe.retrieve(
+                resource=resource, identifier=_id(obj), expand=["discounts.promotion_code"],
+                secret=secret, http=http)
+            discounts = expanded.get("discounts")
+            if not isinstance(discounts, list) or any(not isinstance(d, dict) for d in discounts):
+                raise RuntimeError("Stripe entitlement read did not expand discounts")
+        resolved = []
+        for discount in discounts:
+            if not isinstance(discount, dict):
+                continue
+            promo = discount.get("promotion_code")
+            if isinstance(promo, str) or (isinstance(promo, dict)
+                                          and not isinstance(_promotion_coupon(promo), dict)):
+                promo = await billing_stripe.retrieve(
+                    resource="promotion_codes", identifier=_id(promo),
+                    expand=["promotion.coupon"], secret=secret, http=http)
+                if not isinstance(_promotion_coupon(promo), dict):
+                    raise RuntimeError(
+                        "Stripe entitlement read did not expand the promotion coupon")
+            resolved.append({**discount, "promotion_code": promo})
+        obj = {**obj, "discounts": resolved}
+    return {**event, "data": {**event.get("data", {}), "object": obj}}
 
 
 def _ledger(ledger: Any) -> Any:
@@ -442,7 +525,7 @@ async def apply_event(event: dict[str, Any], *, kv: Any, policy: AccessPolicy,
             price_id = _price_from_subscription(obj, _metered_price_ids(policy))
             if price_id:
                 mapping, error = await _map_price_row(
-                    policy, price_id, service_commit=service_commit, endpoint=endpoint)
+                    policy, price_id, service_commit=service_commit, endpoint=endpoint, obj=obj)
                 if error is not None:
                     return error
                 # Restore access only. Credits come from a paid invoice or
@@ -469,7 +552,7 @@ async def _apply_checkout(obj: dict[str, Any], *, kv: Any, policy: AccessPolicy,
         return "ignored", None
     price_id = _price_from_session(obj)
     mapping, error = await _map_price_row(
-        policy, price_id, service_commit=service_commit, endpoint=endpoint)
+        policy, price_id, service_commit=service_commit, endpoint=endpoint, obj=obj)
     if error is not None:
         return "ignored", error
     assert mapping is not None
@@ -547,7 +630,7 @@ async def _apply_invoice_paid(obj: dict[str, Any], *, kv: Any, policy: AccessPol
         return "ignored", None
     price_id = _price_from_invoice(obj, _metered_price_ids(policy))
     mapping, error = await _map_price_row(
-        policy, price_id, service_commit=service_commit, endpoint=endpoint)
+        policy, price_id, service_commit=service_commit, endpoint=endpoint, obj=obj)
     if error is not None:
         return "ignored", error
     assert mapping is not None
@@ -573,7 +656,8 @@ async def _apply_invoice_paid(obj: dict[str, Any], *, kv: Any, policy: AccessPol
 
 async def webhook(*, payload: str, signature: str | None, secret: str | None,
                   kv: Any, policy: AccessPolicy, now: datetime,
-                  service_commit: str, ledger: Any = None) -> Outcome:
+                  service_commit: str, ledger: Any = None,
+                  stripe_secret: str | None = None, http: Any = None) -> Outcome:
     """Apply one signed Stripe event, whatever `BILLING_ENABLED` says.
 
     The flag closes the shop: it gates `checkout` and nothing after it. Every
@@ -611,6 +695,15 @@ async def webhook(*, payload: str, signature: str | None, secret: str | None,
         return _refusal(INVALID_REQUEST, "the Stripe event must be a JSON object",
                         service_commit=service_commit, endpoint=endpoint)
     try:
+        friends_configured = (policy.billing.friends_price_ids
+                              or policy.billing.friends_promotion_code_prefix)
+        if friends_configured and not await store.seen(kv, str(event.get("id") or "")):
+            try:
+                event = await _resolve_friends_event(
+                    event, policy=policy, secret=stripe_secret, http=http)
+            except (RuntimeError, OSError, ValueError) as exc:
+                return _refusal(STRIPE_UNAVAILABLE, str(exc),
+                                service_commit=service_commit, endpoint=endpoint)
         return await apply_event(event, kv=kv, policy=policy, now=now,
                                  service_commit=service_commit, ledger=ledger)
     except StoreNotConfigured as exc:
@@ -679,13 +772,16 @@ async def claim(*, session_id: str, kv: Any, policy: AccessPolicy,
             mapping = policy.price(record.price_id)
         except PolicyError:
             mapping = None
+    if record.tier == "friends":
+        mapping = friends_price(record.price_id)
     kind = mapping.kind if mapping is not None else (
         "pack" if record.subscription_id.startswith("pack:") else "plan")
     body: dict[str, Any] = {
         "key_id": record.key_id,
         "tier": record.tier,
         "plan": record.plan_name or (mapping.name if mapping is not None else ""),
-        "credits": record.plan_credits or (mapping.credits if mapping is not None else 0),
+        "credits": (0 if record.tier == "friends" else
+                    record.plan_credits or (mapping.credits if mapping is not None else 0)),
         "kind": kind,
         "what_you_bought": what_you_buy(mapping),
         "how": "Authorization: Bearer <key>",
@@ -778,6 +874,8 @@ async def _bound_checkout_fingerprint(api_key: str | None, *, kv: Any,
 
 def not_for_sale(mapping: PriceMapping) -> str | None:
     """Why checkout must refuse this row, or None when it can be sold."""
+    if mapping.tier == "friends":
+        return "Friends & Family Prices require a Stripe invitation link"
     if mapping.placeholder:
         return f"{mapping.price_id} is a placeholder Price; not for sale"
     if mapping.legacy:
@@ -860,7 +958,9 @@ async def checkout(*, payload: Any, flag: bool, secret: str | None, origin: str,
             cancel_url=policy.billing.cancel_url, terms_url=policy.billing.terms_url,
             http=http, mode=mapping.checkout_mode,
             key_fingerprint=fingerprint or "",
-            overage_price_id=overage_price_id)
+            overage_price_id=overage_price_id,
+            allow_promotion_codes=(mapping.kind == "plan"
+                                   and bool(policy.billing.friends_promotion_code_prefix)))
     except RuntimeError as exc:
         return _refusal(STRIPE_UNAVAILABLE, str(exc),
                         service_commit=service_commit, endpoint=endpoint)

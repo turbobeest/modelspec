@@ -43,7 +43,7 @@ def test_partial_tie_withholds_tie_breakers_and_names_no_pick():
         may_qualify=[{"model": "lab/c", "unknown": ["software_engineering"]}],
     )
     body = _project(decision)
-    assert body["bounded_version"] == "1.4"
+    assert body["bounded_version"] == "1.5"
     assert body["next_move"]["kind"] == "decide_by_testing"
     assert body["pick"] is None
     assert body["answer"]["tie_breakers"] == NULL_BREAKERS

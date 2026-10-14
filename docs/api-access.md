@@ -58,6 +58,7 @@ numeric literal bound to a name that reads like a limit.
 | `sandbox` (`test_…`) | unlimited | unlimited | no |
 | `free` | 10 | 5/min | yes |
 | `paid` | none (funded keys) | 60/min | yes |
+| `friends` | unlimited | 60/min | yes |
 | `dpf` | unlimited | unlimited | yes |
 
 `null` is how unlimited is written, and it is a comparison that never refuses.
@@ -79,6 +80,15 @@ left to bill gets the free-tier answer plus `credits.exhausted`. See
 never metered in credits (MODEL-322): `_exempt(tier)` in `entry.py` skips the
 credit charge, so the answer carries no `credits` block and is never a 402.
 Its calls still count in the key's daily and burst counters.
+
+The `friends` tier has `paid: true`, `live_data: true`, and
+`credits_exempt: true`. It receives the paid answer without a credit balance,
+including with x402 enabled. Its daily limit is unlimited, and its burst cap
+is 60/minute, matching the highest finite paid-tier burst. Every admitted call
+uses the access counters, including vocabulary reads. Revocation uses the
+same key record and refusal as every other live key. Friends access always
+requires a key. Stripe issuance is inert until Jamie configures the mappings
+described in [billing](billing.md#friends-and-family-model-282).
 
 A funded paid key's catalog read is `GET /v1/vocabulary`. It skips the shared
 daily and burst counters above while the key can pay (remaining credits, or
