@@ -22,6 +22,7 @@ import access_keys as keys
 import billing_reversals
 import billing_stripe
 import credits
+import sale_alerts
 from access_config import AccessPolicy, PolicyError, PriceMapping, friends_price
 from access_kv import StoreNotConfigured, UnboundKV
 from billing_stripe import SignatureError
@@ -454,9 +455,35 @@ def _ledger(ledger: Any) -> Any:
     return ledger if ledger is not None else credits.UnboundLedger()
 
 
+_SALE_ACTIONS = frozenset({"entitled", "credited"})
+
+
+def _sale_notice(type_: str, obj: dict[str, Any], policy: AccessPolicy
+                 ) -> tuple[str, int] | None:
+    """Catalog name and USD for a provision event that recorded a sale."""
+    if type_.startswith("checkout.session."):
+        if obj.get("payment_status") not in (None, "paid", "no_payment_required"):
+            return None
+        price_id = _price_from_session(obj)
+    else:
+        price_id = _price_from_invoice(obj, _metered_price_ids(policy))
+    if not price_id:
+        return None
+    try:
+        mapping = policy.price(price_id)
+    except PolicyError:
+        return None
+    name = mapping.name
+    if (mapping.kind == "plan" and mapping.interval == "month"
+            and "month" not in name.casefold()):
+        name = f"{name} monthly"
+    return name, mapping.usd
+
+
 async def apply_event(event: dict[str, Any], *, kv: Any, policy: AccessPolicy,
                       now: datetime, service_commit: str,
-                      ledger: Any = None) -> Outcome:
+                      ledger: Any = None, env: Any = None,
+                      alert_ctx: Any = None) -> Outcome:
     """Apply one verified Stripe event. Idempotent on `event.id`."""
     endpoint = "billing.stripe-webhook"
     event_id = str(event.get("id") or "")
@@ -538,6 +565,12 @@ async def apply_event(event: dict[str, Any], *, kv: Any, policy: AccessPolicy,
                     action = "restored"
 
     await store.remember(kv, event_id, type_, action, now=now, policy=policy)
+    if action in _SALE_ACTIONS and type_ in PROVISION_TYPES:
+        notice = _sale_notice(type_, obj, policy)
+        if notice is not None:
+            sale_alerts.notify_sale(
+                env, alert_ctx, channel="card", product=notice[0],
+                amount_usd=notice[1], ref=event_id)
     return Outcome(HTTP_OK, _envelope(endpoint, service_commit, {
         "received": True, "duplicate": False, "event_id": event_id, "type": type_,
         "action": action, **extra,
@@ -657,7 +690,8 @@ async def _apply_invoice_paid(obj: dict[str, Any], *, kv: Any, policy: AccessPol
 async def webhook(*, payload: str, signature: str | None, secret: str | None,
                   kv: Any, policy: AccessPolicy, now: datetime,
                   service_commit: str, ledger: Any = None,
-                  stripe_secret: str | None = None, http: Any = None) -> Outcome:
+                  stripe_secret: str | None = None, http: Any = None,
+                  env: Any = None, alert_ctx: Any = None) -> Outcome:
     """Apply one signed Stripe event, whatever `BILLING_ENABLED` says.
 
     The flag closes the shop: it gates `checkout` and nothing after it. Every
@@ -705,7 +739,8 @@ async def webhook(*, payload: str, signature: str | None, secret: str | None,
                 return _refusal(STRIPE_UNAVAILABLE, str(exc),
                                 service_commit=service_commit, endpoint=endpoint)
         return await apply_event(event, kv=kv, policy=policy, now=now,
-                                 service_commit=service_commit, ledger=ledger)
+                                 service_commit=service_commit, ledger=ledger,
+                                 env=env, alert_ctx=alert_ctx)
     except StoreNotConfigured as exc:
         return _refusal(STORE_NOT_CONFIGURED, str(exc),
                         service_commit=service_commit, endpoint=endpoint)

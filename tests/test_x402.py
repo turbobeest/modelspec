@@ -1021,6 +1021,8 @@ def test_staging_x402_config_is_isolated_on_base_sepolia():
         "X402_ASSET": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
         "X402_PAY_TO": "0x1e62c42388271C68ce55e7E39d85912ACB918529",
         "X402_FACILITATOR_URL": "https://api.cdp.coinbase.com/platform",
+        "SALE_ALERTS_ENABLED": "0",
+        "SALE_ALERT_TTL_SECONDS": "5",
     }
 
     production_kv = {row["binding"]: row for row in config["kv_namespaces"]}

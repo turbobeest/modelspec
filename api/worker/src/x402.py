@@ -19,10 +19,12 @@ import json
 import re
 from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
+from decimal import Decimal
 from typing import Any, Awaitable, Callable
 from urllib.parse import urlparse
 
 import credits
+import sale_alerts
 from cdp_auth import auth_from_env
 from x402_facilitator import (
     DEFAULT_ORIGIN,
@@ -484,6 +486,8 @@ async def charge(
     now: datetime | None = None,
     overage_cap: int = 0,
     on_overage: Callable[[int, str], Awaitable[None]] | None = None,
+    env: Any = None,
+    alert_ctx: Any = None,
 ) -> tuple[int, dict[str, Any]]:
     """Verify and settle, then produce. Returns (status, body). Headers via http_headers.
 
@@ -554,7 +558,8 @@ async def charge(
     if payload is not None:
         status, body, oneshot = await _settle_and_credit(
             config, ledger, facilitator, payload, holder, resource_url, envelope, log,
-            pack_expiry_days=pack_expiry_days, now=moment, units=weight)
+            pack_expiry_days=pack_expiry_days, now=moment, units=weight,
+            env=env, alert_ctx=alert_ctx)
         if status is not None:
             return status, body
 
@@ -647,6 +652,8 @@ async def _settle_and_credit(
     pack_expiry_days: int = 365,
     now: datetime | None = None,
     units: int = 1,
+    env: Any = None,
+    alert_ctx: Any = None,
 ) -> tuple[int | None, dict[str, Any], bool]:
     """Verify, settle, credit. Returns (status, body, oneshot). status set means stop."""
     problem = _check_payload(payload, config)
@@ -748,6 +755,16 @@ async def _settle_and_credit(
             config, envelope, resource_url,
             message="that payment has already been settled",
             offer_packs=bool(holder), units=units), False
+
+    if result.credited:
+        if pack is not None:
+            product, amount = pack.name, pack.usd
+        else:
+            product = "paid result"
+            amount = Decimal(paid_atomic) / (Decimal(10) ** USDC_DECIMALS)
+        sale_alerts.notify_sale(
+            env, alert_ctx, channel="x402", product=product,
+            amount_usd=amount, ref=str(settled.transaction or ""))
 
     if holder is None:
         burned = await ledger.reserve(credit_holder, bought_units)
