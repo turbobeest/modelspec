@@ -24,6 +24,39 @@ it("chooses the available balanced assistant only for a fresh visit", () => {
   expect(openingTemplate({ ...realVocabulary, templates: realVocabulary.templates?.map((template) => ({ ...template, available: false })) }, false)).toBeNull();
 });
 
+it("uses the requested available template without substituting another starting point", () => {
+  expect(openingTemplate(realVocabulary, false, "budget-coding")?.id).toBe("budget-coding");
+  expect(openingTemplate(realVocabulary, true, "budget-coding")).toBeNull();
+  expect(openingTemplate(realVocabulary, false, "unknown-template")).toBeNull();
+  expect(openingTemplate(realVocabulary, false, "coding-fastest")).toBeNull();
+  expect(openingTemplate(realVocabulary, false, "")).toBeNull();
+});
+
+it.each(["coding-balanced", "budget-coding"])("opens the requested %s template from its public preview", async (id) => {
+  vi.useFakeTimers();
+  const requested = realVocabulary.templates?.find((template) => template.id === id);
+  if (!requested) throw new Error(`The ${id} template is missing`);
+  history.replaceState(null, "", `/decide/?template=${id}`);
+  const fetch = routeFetch({ vocabulary: () => json(realVocabulary), decide: () => json(decision) });
+  vi.stubGlobal("fetch", fetch);
+  render(<DesignedApp />);
+  await settle();
+  expect(document.querySelector(".template-active")).toHaveTextContent(`Starting from: ${requested.name}`);
+  expect(sentSpecs(fetch)[0]).toMatchObject({ where: requested.spec.where, optimize: requested.spec.optimize });
+  expect(screen.getByLabelText("Y axis")).toHaveValue("capability:software_engineering");
+});
+
+it.each(["unknown-template", "coding-fastest", ""])("keeps an unavailable or unknown query template (%s) from opening a different template", async (id) => {
+  vi.useFakeTimers();
+  history.replaceState(null, "", `/decide/?template=${id}`);
+  const fetch = routeFetch({ vocabulary: () => json(realVocabulary), decide: () => json(decision) });
+  vi.stubGlobal("fetch", fetch);
+  render(<DesignedApp />);
+  await settle();
+  expect(document.querySelector(".template-active")).not.toBeInTheDocument();
+  expect(sentSpecs(fetch)[0]).toMatchObject({ where: [], optimize: { weights: { "-offering.cost_per_task": 1 } } });
+});
+
 it("selects four balanced jobs, budget volume and private assistant, in that order", () => {
   expect(fastTrackTemplates(realVocabulary).map((template) => template.id)).toEqual([
     "assistant-balanced", "coding-balanced", "writing-balanced", "long-documents", "high-volume", "private-self-host",
@@ -71,7 +104,9 @@ it("applies and labels the default before the normal three requests, then clears
   expect(within(screen.getByRole("region", { name: "Decision table" })).getByText("Not ranked yet: listed alphabetically")).toBeInTheDocument();
 });
 
-it.each(["empty", "coding"] as const)("restores a saved %s board instead of the assistant default", async (kind) => {
+it.each(["empty", "coding"].flatMap((kind) =>
+  ["", "?template=writing-balanced"].map((query) => ({ kind, query })),
+))("restores a saved $kind board instead of the assistant default with query '$query'", async ({ kind, query }) => {
   vi.useFakeTimers();
   const coding = realVocabulary.templates?.find((template) => template.id === "coding-balanced");
   if (!coding) throw new Error("The coding template is missing");
@@ -79,7 +114,7 @@ it.each(["empty", "coding"] as const)("restores a saved %s board instead of the 
   const hash = encodeBoardSpec({ ...realBaseSpec(realVocabulary), conds: [] }, "task$", {
     ...converted, estate: emptyEstate, canvas: { x: "facet:model.context_window", y: "capability:software_engineering" },
   });
-  history.replaceState(null, "", `/decide/${hash}`);
+  history.replaceState(null, "", `/decide/${query}${hash}`);
   const fetch = routeFetch({ vocabulary: () => json(realVocabulary), decide: () => json(decision) });
   vi.stubGlobal("fetch", fetch);
   const app = render(<DesignedApp />);

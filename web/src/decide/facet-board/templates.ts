@@ -49,9 +49,9 @@ export function fastTrackTemplates(vocabulary: Vocabulary): VocabTemplate[] {
 }
 
 /** Only a fresh visit gets a default. Restored boards, including empty ones, win. */
-export function openingTemplate(vocabulary: Vocabulary, hasSavedDecision: boolean): VocabTemplate | null {
+export function openingTemplate(vocabulary: Vocabulary, hasSavedDecision: boolean, requestedId: string | null = null): VocabTemplate | null {
   return hasSavedDecision ? null
-    : availableTemplates(vocabulary).find((template) => template.id === DEFAULT_TEMPLATE_ID) ?? null;
+    : availableTemplates(vocabulary).find((template) => template.id === (requestedId ?? DEFAULT_TEMPLATE_ID)) ?? null;
 }
 
 /** A ranked template opens on capability versus task cost, using existing axes.

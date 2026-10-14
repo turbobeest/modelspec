@@ -526,7 +526,7 @@ unregistered one is `invalid_spec` at `access.harness`.
 | `kind` | Routes that count |
 |---|---|
 | `chat_app` | Subscription plans whose surfaces include `chat_app`, `desktop_app` or `mobile_app`. Ranked on capability. A plan has no per-task price, so `cost_per_task` is null; the plan's monthly price is the `where` facet `offering.plan.price_monthly` and breaks ties (`answer.tie_breakers.cheapest` is the model with the cheapest plan). |
-| `coding_tool` | Pay-per-use offerings, and plans whose surfaces include `coding_tool:<harness>` (any harness when `harness` is absent). Each result lists its plans with a break-even. |
+| `coding_tool` | Pay-per-use offerings, and plans whose surfaces include `coding_tool:<harness>` (any harness when `harness` is absent) or `coding_tool:*` (the page's tool list is open-ended, so every harness routes). Each result lists its plans with a break-even. A harness the page also names is confirmed. A harness it does not name is not confirmed: the basis quotes the page and says your tool isn't named. |
 | `own_software` | Pay-per-use offerings, and plans whose surfaces include `api`. A plan without `api` does not cover the caller's own software. |
 | `own_hardware` | Self-hosting only: models with a published fit on some device. An open-weights model with no published fit is `may_qualify` on `model.fits_hardware`; a closed-weights one is not a route. |
 
@@ -553,7 +553,13 @@ fact and two-key rules, each null until published:
   covers the union of the models named and the families resolved. Coverage is
   unknown only when both facts are.
 - **surfaces**: `offering.subscription.surfaces`, from `chat_app`,
-  `desktop_app`, `mobile_app`, `coding_tool:<harness>` and `api`.
+  `desktop_app`, `mobile_app`, `coding_tool:<harness>`, `coding_tool:*` and
+  `api`. `coding_tool:*` means the page leaves its coding-tool list open.
+  The page's own open-ended sentence is
+  `offering.subscription.coding_tools_quote`. A harness the page also names
+  is recorded as `coding_tool:<harness>` and the answer calls that harness
+  confirmed. Any other harness still routes through `coding_tool:*` and is
+  not confirmed.
 - **allowance**: `offering.subscription.allowance.relative_to` (a plan ID),
   `.multiplier`, `.window` and `.tokens`. `tokens` is null unless the provider
   publishes it; it is never derived.
@@ -1908,6 +1914,13 @@ that used to be accepted is a major change; accepting more is not.
 
 ## Change log
 
+- **MODEL-210, under 2.17 without a version change:** `plan_surfaces` gains
+  the registry token `coding_tool:*`. `PlanRoute.surface` stays an
+  unconstrained string, so this is not a new enum value and
+  `contract_version` stays 2.17. No response field is added. The open-list
+  sentence is written into the existing `basis` string and the coverage
+  `rule`.
+
 - **2.17, MODEL-209:** Offering references add optional `api_model_id` and
   `router_slug` strings from the separate `offering.api_model_id` and
   `offering.router_slug` facts. The snapshot admits these facts only after
@@ -1917,6 +1930,7 @@ that used to be accepted is a major change; accepting more is not.
   `<...>` placeholder with a no-verified-fact reason for each missing ID.
   These fields are additive. The bounded representation remains version 1.2
   and projects complete contract 2.17.
+
 - **Comparison 1.0, MODEL-364:** Adds keyed named-model comparison through
   `POST /v1/compare-models`, with caller order, sourced facts, explicit unknowns,
   offerings, and benchmark evidence. The response uses its own

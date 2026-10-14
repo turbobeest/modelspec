@@ -71,6 +71,18 @@ def _visible_text(raw: str) -> str:
     return _TAG.sub(" ", _STYLE_OR_SCRIPT.sub(" ", raw))
 
 
+def test_live_preserves_every_public_template_preview(trees):
+    from decision.templates import load_templates
+
+    for template in load_templates():
+        rel = f'decide/templates/{template["id"]}/index.html'
+        real = trees["real"] / "modelspec" / rel
+        published = trees["live"] / "modelspec" / rel
+        assert published.is_file(), f'missing live preview for {template["id"]}'
+        assert published.read_bytes() == real.read_bytes()
+        assert f'https://modelspec.dev/og-card-template-{template["id"]}.png' in published.read_text()
+
+
 # ── the switch ───────────────────────────────────────────────────────────────
 
 @pytest.mark.parametrize("raw", [None, "", "holding", "LIVE", "Live", " live", "live\n",
