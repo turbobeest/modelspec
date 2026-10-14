@@ -784,14 +784,21 @@ def _heading_section(root: Node, anchor: str) -> list[Node]:
 
 
 def canonical_url(url: str) -> str:
-    """``url`` without tracking query parameters or a fragment."""
-    parts = urlsplit(url)
-    query = [
-        (k, v)
-        for k, v in parse_qsl(parts.query, keep_blank_values=True)
-        if k.lower() not in TRACKING_PARAMS and not k.lower().startswith(TRACKING_PREFIXES)
-    ]
-    return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), ""))
+    """``url`` without tracking query parameters or a fragment.
+
+    Page text can contain a URL ``urlsplit`` or ``urlunsplit`` rejects. That
+    input comes back unchanged so one bad match cannot abort a source re-check.
+    """
+    try:
+        parts = urlsplit(url)
+        query = [
+            (k, v)
+            for k, v in parse_qsl(parts.query, keep_blank_values=True)
+            if k.lower() not in TRACKING_PARAMS and not k.lower().startswith(TRACKING_PREFIXES)
+        ]
+        return urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(query), ""))
+    except ValueError:
+        return url
 
 
 def fingerprint(text: str) -> str:
