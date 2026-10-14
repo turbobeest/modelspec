@@ -1573,6 +1573,8 @@ class Default(WorkerEntrypoint):
                 trace=trace,
                 overage_cap=cap,
                 on_overage=on_overage,
+                env=self.env,
+                alert_ctx=getattr(self, "ctx", None),
             )
 
         return wrapped
@@ -1632,7 +1634,9 @@ class Default(WorkerEntrypoint):
                 service_commit=service_commit,
                 stripe_secret=str(getattr(self.env, STRIPE_SECRET_KEY_VAR, "") or "") or None,
                 http=_stripe_http,
-                ledger=credits.ledger_from_env(self.env))
+                ledger=credits.ledger_from_env(self.env),
+                env=self.env,
+                alert_ctx=getattr(self, "ctx", None))
             return _json_response(outcome.status, outcome.body, outcome.headers)
 
         if path == "/v1/billing/claim":

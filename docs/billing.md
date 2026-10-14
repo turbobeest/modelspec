@@ -543,6 +543,19 @@ accountant's answer: `dev-mux/docs/ri-sales-tax-decision.md`.
 No secret belongs in this repository. Tests sign fixtures with a throwaway
 `whsec_test_…` string.
 
+## Sale alerts
+
+A confirmed Stripe sale, or an x402 settlement whose credits the ledger accepts, schedules one Pushover notice. The message is the catalog price and product, then `card` or `x402` plus a 6-character transaction prefix. `ttl` defaults to 900 seconds and is clamped to 60–86400. Priority is 0. The notice leaves out the API key, email, card number, wallet, and full transaction hash. A failed push leaves the sale as recorded. A webhook retry or a replayed settlement does not push a second time. `SALE_ALERTS_ENABLED` ships as `"0"`.
+
+Jamie's steps:
+
+1. Install Pushover and create an application token.
+2. `wrangler secret put PUSHOVER_APP_TOKEN`
+3. `wrangler secret put PUSHOVER_USER_KEY`
+4. Set `SALE_ALERTS_ENABLED=1`.
+
+`scripts/sale_alert_test.py` sends one test notice from those environment variables. Jamie runs `op run -- python scripts/sale_alert_test.py`. CI does not run it. The script exits before any network call when either value is missing, and it does not print them.
+
 ## Privacy
 
 ACCESS record kinds this path writes are listed in
