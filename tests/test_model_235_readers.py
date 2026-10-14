@@ -1,5 +1,6 @@
 """Trimmed 2026-10-14 page projections for the MODEL-235 offline re-read."""
 
+from dataclasses import replace
 from datetime import date
 from pathlib import Path
 
@@ -64,6 +65,90 @@ def test_mistral_pro_does_not_borrow_team_feature():
         today=date(2026, 10, 14),
     )
     assert result.outcome == "mismatch", result
+
+
+PROBE_A = """\
+Pro
+$14.99
+/mo
+Faster responses.
+Generate spreadsheets and slides.
+Scale
+$25.5 /mo in API credits.
+All-day coding in the CLI, IDE, and on web.
+Extra coding tools for this neighbouring plan.
+One more neighbouring feature.
+Team
+$24.99
+/user/mo
+All-day coding in the CLI, IDE, or on web.
+Domain name verification.
+"""
+
+PROBE_B = """\
+Pro
+$14.99
+/mo
+Faster responses.
+Team
+$25.5 /mo in API credits.
+All-day coding in the CLI, IDE, or on web.
+Shared coding workspace details.
+Another feature line here.
+$24.99
+/user/mo
+"""
+
+
+@pytest.mark.parametrize(
+    "text,neighbour_sentence",
+    [
+        (PROBE_A, "All-day coding in the CLI, IDE, and on web."),
+        (PROBE_B, "All-day coding in the CLI, IDE, or on web."),
+    ],
+    ids=["probe_a", "probe_b"],
+)
+def test_mistral_pro_does_not_borrow_card_with_api_credit_currency(text, neighbour_sentence):
+    result = verify(
+        claim(neighbour_sentence), Page(text), deterministic_extractors(), today=date(2026, 10, 14)
+    )
+    assert result.outcome == "mismatch", result
+
+    team = replace(
+        claim("All-day coding in the CLI, IDE, or on web."),
+        target=TargetRef(
+            kind="fact",
+            id="mistral/subscription/team#offering.subscription.programmatic_or_agent_use",
+        ),
+        subject="mistral/subscription/team",
+        names=("Mistral Team", "Team", "team"),
+    )
+    result = verify(team, Page(text), deterministic_extractors(), today=date(2026, 10, 14))
+    assert result.outcome == "verified", result
+
+
+@pytest.mark.parametrize("scale", ["Scale", "## Scale"])
+def test_mistral_card_boundary_control_keeps_bare_price_and_markdown_heading(scale):
+    text = PROBE_A.replace("Scale\n$25.5", f"{scale}\n$19\n$25.5")
+    near = "All-day coding in the CLI, IDE, and on web."
+    exact = "All-day coding in the CLI, IDE, or on web."
+    for value in (near, exact):
+        result = verify(
+            claim(value), Page(text), deterministic_extractors(), today=date(2026, 10, 14)
+        )
+        assert result.outcome == "mismatch", result
+    for value, expected in ((exact, "verified"), (near, "mismatch")):
+        team = replace(
+            claim(value),
+            target=TargetRef(
+                kind="fact",
+                id="mistral/subscription/team#offering.subscription.programmatic_or_agent_use",
+            ),
+            subject="mistral/subscription/team",
+            names=("Mistral Team", "Team", "team"),
+        )
+        result = verify(team, Page(text), deterministic_extractors(), today=date(2026, 10, 14))
+        assert result.outcome == expected, result
 
 
 @pytest.mark.parametrize(

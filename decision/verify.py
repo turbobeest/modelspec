@@ -1743,8 +1743,9 @@ def _card_heading(line: str, aliases: set[str]) -> bool:
 def _card_lines(lines: list[str], aliases: set[str]) -> list[str]:
     """The lines of the plan's card after its price, up to the next card.
 
-    The next card starts at a markdown heading, a priced heading, or a short line
-    (three words or fewer, no amount) that a price follows within four lines.
+    The next card starts at a markdown heading, a priced heading, or a short plan
+    name followed by a currency amount within four lines. A plan name is a known
+    tier or capitalized words, not a feature sentence.
     """
     out: list[str] = []
     for i, line in enumerate(lines):
@@ -1763,12 +1764,13 @@ def _card_lines(lines: list[str], aliases: set[str]) -> list[str]:
                 break
             taken += 1
             short = len(later.split()) <= 3 and not has_amount and not re.search(r"[0-9]", later)
-            # A short line with a bare price close after it is the next card's name;
+            plan_name = short and (normalise_name(later) in _TIER_WORDS or all(
+                word.rstrip("+").isalpha() and word[0].isupper() for word in later.split()
+            ))
+            # A plan name with a currency amount close after it starts the next card;
             # a priced heading ("Allegretto — ¥199/month") ends the card itself.
-            upcoming = next((n for n in lines[j + 1:j + 5] if re.fullmatch(
-                r"[$¥]\s?[0-9,.]+(?:\s*/\s*(?:user/)?(?:mo(?:nth)?|year))?", n
-            )), None)
-            if short and upcoming is not None and not _PRICED_HEADING.match(upcoming):
+            upcoming = next((n for n in lines[j + 1:j + 5] if re.search(r"[$¥]\s?[0-9]", n)), None)
+            if plan_name and upcoming is not None and not _PRICED_HEADING.match(upcoming):
                 break
             out.append(re.sub(r"^[-*•]\s+", "", later))
     return out
