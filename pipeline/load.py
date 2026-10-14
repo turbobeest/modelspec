@@ -18,7 +18,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass, field
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -214,7 +214,7 @@ def load_catalogue(root: Path | None = None) -> Catalogue:
     """
     path = (root or REPO_ROOT) / "benchmarks/_census/eligibility/current-report.json"
     if not path.is_file():
-        return Catalogue(as_of=date.today())
+        return Catalogue(as_of=datetime.now(timezone.utc).date())
     report = json.loads(path.read_text(encoding="utf-8"))
     as_of = date.fromisoformat(str(report["as_of"]))
     dispositions: dict[str, Disposition] = {}

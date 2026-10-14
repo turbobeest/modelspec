@@ -17,7 +17,7 @@ import json
 import subprocess
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -88,6 +88,18 @@ def make_build(catalogue: Catalogue, root: Path | None = None) -> Build:
         built_at=datetime.now(UTC).isoformat(timespec="seconds"),
         as_of=catalogue.as_of,
     )
+
+
+def build_day(build: Build) -> date:
+    """UTC calendar day of the ``built_at`` instant.
+
+    Pages and the sitemap use this day. The surface lint requires those
+    dates to match ``built_at``.
+    """
+    stamp = datetime.fromisoformat(build.built_at.replace("Z", "+00:00"))
+    if stamp.tzinfo is None:
+        stamp = stamp.replace(tzinfo=timezone.utc)
+    return stamp.astimezone(timezone.utc).date()
 
 
 #: What an evidence record says about its own score beyond the date and source.

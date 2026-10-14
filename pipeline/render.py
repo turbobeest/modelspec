@@ -20,12 +20,12 @@ import posixpath
 import re
 from collections import defaultdict
 from collections.abc import Callable, Collection, Iterable
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from pipeline import landing_chrome
-from pipeline.export import Build, models_reporting
+from pipeline.export import Build, build_day, models_reporting
 from pipeline.load import Benchmark, Catalogue, Model
 from schema.applicability import FIELD_RULES
 from schema.card import applicability_block
@@ -1497,7 +1497,11 @@ def freshness_notice(models: list[Model], build: Build | None = None) -> str:
         except ValueError:
             newest_d = None
         if newest_d is not None:
-            days = (date.today() - newest_d).days
+            if build is not None:
+                today = build_day(build)
+            else:
+                today = datetime.now(timezone.utc).date()
+            days = (today - newest_d).days
             if days >= 45:
                 parts.append(
                     '<div class="notice">The newest model in this catalogue was released on '

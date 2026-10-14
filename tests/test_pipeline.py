@@ -115,6 +115,41 @@ def test_future_dated_report_refuses_to_publish(tmp_path: Path, monkeypatch) -> 
     assert builder.main(["--out", str(tmp_path / "dist")]) == 2
 
 
+def test_the_build_day_matches_built_at_when_the_local_date_lags(monkeypatch) -> None:
+    """Sitemap and page dates use the UTC day of built_at when the local date is behind."""
+    from xml.etree.ElementTree import fromstring
+
+    from pipeline import export as exporter
+    from pipeline.render import sitemap
+
+    local = date(2026, 4, 1)
+
+    class LocalDay:
+        @staticmethod
+        def today() -> date:
+            return local
+
+        @staticmethod
+        def fromisoformat(value: str) -> date:
+            return date.fromisoformat(value)
+
+    monkeypatch.setattr(builder, "date", LocalDay)
+    monkeypatch.setattr(exporter, "date", LocalDay)
+    monkeypatch.setattr("pipeline.render.date", LocalDay)
+    built = Build(
+        commit="a" * 40,
+        built_at="2026-04-02T01:30:00+00:00",
+        as_of=date(2026, 4, 1),
+    )
+    day = builder.build_day(built)
+    assert day == date(2026, 4, 2)
+    lastmod = fromstring(sitemap("https://modelspec.dev", ["/"], day)).findtext(
+        "{http://www.sitemaps.org/schemas/sitemap/0.9}url/"
+        "{http://www.sitemaps.org/schemas/sitemap/0.9}lastmod"
+    )
+    assert lastmod == "2026-04-02"
+
+
 # ── derivation, not authorship ───────────────────────────────────────────────
 
 def test_coverage_is_derived_from_the_cards() -> None:

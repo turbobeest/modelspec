@@ -450,6 +450,11 @@ def main(argv: list[str] | None = None) -> int:
             decision_registry.use_root(saved)
 
 
+def build_day(build: exporter.Build) -> date:
+    """UTC calendar day of the ``built_at`` instant. See ``exporter.build_day``."""
+    return exporter.build_day(build)
+
+
 def build_site(args: argparse.Namespace, root: Path) -> int:
     out = Path(args.out).resolve()
     if out.exists():
@@ -460,7 +465,7 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
     catalogue = load_catalogue(root)
     build = exporter.make_build(catalogue, root)
 
-    today = date.today()
+    today = build_day(build)
     if catalogue.as_of > today:
         print(f"error: eligibility report is dated {catalogue.as_of}, which is in the future; "
               "refusing to publish", file=sys.stderr)
@@ -680,7 +685,7 @@ def build_site(args: argparse.Namespace, root: Path) -> int:
     from pipeline import blog
     # Posts and retained snapshots are public repository artifacts. A data
     # overlay must never provide the source of blog content.
-    blog_counts = blog.write(ms, Path(args.root).resolve(), build)
+    blog_counts = blog.write(ms, Path(args.root).resolve(), build, today=today)
     ms_paths.extend(blog_counts["sitemap_paths"])
 
     (ms / "sitemap.xml").write_text(
