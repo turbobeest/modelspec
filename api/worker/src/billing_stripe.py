@@ -7,11 +7,11 @@ data never reaches this process: hosted Checkout collects it on Stripe's origin.
 
 from __future__ import annotations
 
-import hmac
 import hashlib
+import hmac
 from datetime import datetime
 from typing import Any
-from urllib.parse import urlencode
+from urllib.parse import quote, urlencode
 
 #: Stripe's current API version. Sent on Checkout Session creates only; the
 #: webhook payload is whatever the Dashboard endpoint was created with.
@@ -92,7 +92,8 @@ def verify_signature(payload: str, header: str | None, secret: str, *,
 
 def checkout_form(*, price_id: str, success_url: str, cancel_url: str,
                   terms_url: str, mode: str = "subscription",
-                  key_fingerprint: str = "", overage_price_id: str = "") -> str:
+                  key_fingerprint: str = "", overage_price_id: str = "",
+                  allow_promotion_codes: bool = False) -> str:
     """`application/x-www-form-urlencoded` body for a Checkout Session.
 
     `mode` is `subscription` for a monthly plan or `payment` for a one-off pack.
@@ -116,7 +117,7 @@ def checkout_form(*, price_id: str, success_url: str, cancel_url: str,
             f"I agree to the ModelSpec terms of service at {terms_url}"
         ),
         "metadata[modelspec_price_id]": price_id,
-        "allow_promotion_codes": "false",
+        "allow_promotion_codes": "true" if allow_promotion_codes else "false",
         # Sparks & Sawdust LLC's tax rule, the same as dev-mux: Stripe Tax on
         # every Checkout, which needs a billing address for the jurisdiction.
         # With no active registration Stripe computes zero tax, silently.
@@ -140,14 +141,16 @@ async def create_checkout_session(*, secret: str, price_id: str, success_url: st
                                   cancel_url: str, terms_url: str,
                                   http: Any, mode: str = "subscription",
                                   key_fingerprint: str = "",
-                                  overage_price_id: str = "") -> dict[str, Any]:
+                                  overage_price_id: str = "",
+                                  allow_promotion_codes: bool = False) -> dict[str, Any]:
     """POST /v1/checkout/sessions. `http` is injected; tests never call Stripe."""
     if not secret:
         raise RuntimeError("STRIPE_SECRET_KEY is not configured")
     body = checkout_form(price_id=price_id, success_url=success_url,
                          cancel_url=cancel_url, terms_url=terms_url, mode=mode,
                          key_fingerprint=key_fingerprint,
-                         overage_price_id=overage_price_id)
+                         overage_price_id=overage_price_id,
+                         allow_promotion_codes=allow_promotion_codes)
     response = await http(
         STRIPE_API_BASE + CHECKOUT_SESSIONS_PATH,
         method="POST",
@@ -167,6 +170,27 @@ async def create_checkout_session(*, secret: str, price_id: str, success_url: st
     data = json.loads(text)
     if not isinstance(data, dict) or not data.get("id") or not data.get("url"):
         raise RuntimeError("Stripe Checkout Session create returned no id/url")
+    return data
+
+
+async def retrieve(*, resource: str, identifier: str, expand: list[str],
+                   secret: str | None, http: Any) -> dict[str, Any]:
+    """Read a Stripe object needed to resolve a verified event's entitlement."""
+    if not secret or http is None:
+        raise RuntimeError("STRIPE_SECRET_KEY is required to resolve friends billing details")
+    query = urlencode([("expand[]", path) for path in expand])
+    response = await http(
+        f"{STRIPE_API_BASE}/{resource}/{quote(identifier, safe='')}?{query}",
+        method="GET", headers={"authorization": f"Bearer {secret}",
+                               "stripe-version": STRIPE_API_VERSION}, body="",
+    )
+    status = int(getattr(response, "status", 0) or 0)
+    if not 200 <= status < 300:
+        raise RuntimeError(f"Stripe entitlement read returned HTTP {status}")
+    import json
+    data = json.loads(await response.text())
+    if not isinstance(data, dict) or data.get("id") != identifier:
+        raise RuntimeError("Stripe entitlement read returned an invalid object")
     return data
 
 

@@ -1168,7 +1168,7 @@ def _access() -> dict[str, Any]:
         "key_store_bound": bound,
         "effect_today": effect,
         "policy_check_paid_entitlement": {
-            "status": "granted to a presented key with remaining credits, or an unlimited paid tier",
+            "status": "granted to a presented key with remaining credits, or a credit-exempt paid tier",
             "granted_by": "entry.py::_entitlement",
             "effect_today": (
                 f"Public-export evidence has determinations.entitlement "
@@ -1176,8 +1176,9 @@ def _access() -> dict[str, Any]:
                 "undetermined with why: tier and available_in_tier: paid. A funded key "
                 f"reads the determinations, or gets HTTP "
                 f"{policy.HTTP_DETERMINATIONS_UNAVAILABLE} determinations_unavailable when "
-                "the store cannot be read. A key with zero credits gets the public-export "
-                "answer plus credits.exhausted."
+                "the store cannot be read. A credit-exempt paid tier also reads the "
+                "determinations without a balance. Other keys with zero credits get "
+                "the public-export answer plus credits.exhausted."
             ),
         },
         "present_key_as": ["Authorization: Bearer <key>", "X-API-Key: <key>"],

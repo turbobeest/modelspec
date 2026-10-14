@@ -476,15 +476,16 @@ async def _load_determinations(env):
 
 
 def _exempt(tier) -> bool:
-    return tier is not None and tier.paid and tier.live_data and tier.unlimited
+    return (tier is not None and tier.paid and tier.live_data
+            and (tier.unlimited or tier.credits_exempt))
 
 
 def _entitlement(tier, *, funded: bool = False) -> str:
     """Which store this request may read. The one place the private store is granted.
 
     A funded key (credits remaining for this call) gets the determinations.
-    An unlimited paid tier (null daily and burst — the exempt row) still does,
-    because that row is data, not a name we branch on. Everything else,
+    A credit-exempt paid tier still does. Exemption is configured on its row
+    or follows unlimited limits. Everything else,
     anonymous included, is the free tier: a complete and labelled answer
     (`determinations.included: false`), not a degraded one.
     """
@@ -660,16 +661,18 @@ async def _post_overage(env, spec, customer_id: str, units: int, identifier: str
 async def _stripe_http(url: str, *, method: str, headers: dict, body: str,
                        timeout_ms: int | None = None):
     """Workers HTTP adapter, injected into billing and Turnstile tests."""
+    native = {"method": method, "headers": headers}
+    if method not in {"GET", "HEAD"}:
+        native["body"] = body
     try:  # pragma: no cover - isolate only
         from js import Object  # type: ignore[import-not-found]
         from pyodide.ffi import to_js  # type: ignore[import-not-found]
-        native = {"method": method, "headers": headers, "body": body}
         if timeout_ms is not None:
             from js import AbortSignal
             native["signal"] = AbortSignal.timeout(timeout_ms)
         options = to_js(native, dict_converter=Object.fromEntries)
     except ImportError:
-        options = {"method": method, "headers": headers, "body": body}
+        options = native
         if timeout_ms is not None:
             options["timeout_ms"] = timeout_ms
     return await fetch(url, options)
@@ -928,7 +931,7 @@ class Default(WorkerEntrypoint):
                         return 200, {}
 
                     async def skip_catalog_limits(record, tier):
-                        if tier.unlimited:
+                        if tier.unlimited or _exempt(tier):
                             return False
                         if tier.paid:
                             return True
@@ -1236,7 +1239,7 @@ class Default(WorkerEntrypoint):
         """Admit and charge a successful keyed vocabulary read from ledger funding.
 
         Visit tokens never reach here. HEAD is the same read as GET and has no
-        body. An exempt unlimited tier draws nothing. Unfunded free keys have
+        body. A credit-exempt tier draws nothing. Unfunded free keys have
         already used the tier's limits at admission. Funded keys use the ledger
         regardless of stored tier; exhausted reads retain the free fallback.
         A refused or invalid read is not charged: the caller validates the
@@ -1251,7 +1254,7 @@ class Default(WorkerEntrypoint):
         except access_config.PolicyError:
             return None
         reads = policy.credits.reads
-        if reads is None or tier.unlimited:
+        if reads is None or tier.unlimited or _exempt(tier):
             return None
         if outcome.meter is not None and outcome.meter.windows:
             return None
@@ -1357,7 +1360,7 @@ class Default(WorkerEntrypoint):
         """Funded keys drop the daily window; unfunded billed keys use free limits."""
 
         async def limits_for(record, tier):
-            if tier.unlimited:
+            if tier.unlimited or _exempt(tier):
                 return tier
             holder = x402.holder_from_key(api_key)
             if not holder:
@@ -1623,6 +1626,8 @@ class Default(WorkerEntrypoint):
                 secret=str(getattr(self.env, STRIPE_WEBHOOK_SECRET_VAR, "") or "") or None,
                 kv=kv, policy=policy, now=now,
                 service_commit=service_commit,
+                stripe_secret=str(getattr(self.env, STRIPE_SECRET_KEY_VAR, "") or "") or None,
+                http=_stripe_http,
                 ledger=credits.ledger_from_env(self.env))
             return _json_response(outcome.status, outcome.body, outcome.headers)
 
