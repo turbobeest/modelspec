@@ -346,9 +346,12 @@ Stripe wire shapes were checked against the primary
 [Discount](https://docs.stripe.com/api/discounts/object) references. Actual
 Stripe entitlement reads were not exercised. Jamie still owns Stripe setup,
 restricted-key permissions, deployment configuration, and tester terms adoption.
-The draft PR awaits independent cross-model review.
+The draft PR initially awaited independent cross-model review.
 
 ## Delivery conflict
+
+This section records the initial delivery. The authorized integration below
+resolves that blocker.
 
 Draft PR: https://github.com/turbobeest/modelspec/pull/744.
 After push, `gh pr view 744 -R turbobeest/modelspec --json
@@ -366,3 +369,65 @@ rebase, force-push, ready transition, or production change was attempted.
 The branch and draft PR are preserved for the orchestrator's integration and
 cross-model review. Executor delivery status is `BLOCKED` on that integration;
 the implemented feature and its requested-base verification are complete.
+
+## Authorized main integration
+
+The orchestrator reported cross-model security approval with no findings and
+explicitly authorized merging `origin/main` into this branch. The merge commit
+is `9032c3787b0390ab5eba00298fb92f6dca356384`. Its parents are the reviewed
+friends head `af53525d71977b365912760bc9011a403dc0dd95` and main
+`7d4f5bd8ede369ec237d83f3c0bb18bdd489c2a4`.
+
+Two generated files conflicted:
+
+- `cli/modelspec/agent-bundle.json`: regenerated from the combined sources.
+  This retains main's router guidance and bounded 1.4 schema hash, with the
+  friends tier hash.
+- `qa/fixtures/mcp-tools.json`: regenerated after OpenAPI and agent artifacts.
+  This retains main's router schema and fixture changes, with the hash of the
+  combined OpenAPI document.
+
+`api/worker/src/entry.py` and `api/worker/openapi.py` merged automatically.
+Inspection confirmed both main's keyed router behavior and the friends credit
+exemption. The friends configuration, billing implementation, reporting script,
+documentation, and friends test files are unchanged from the reviewed head.
+No production switches, live Stripe IDs, legal text, or Linear state changed.
+
+Commands ran in the assigned worktree, using the same tool versions recorded
+above:
+
+```bash
+git fetch origin
+git merge --no-commit origin/main
+/Users/terbeest/dev/modelspec/.venv/bin/python api/worker/openapi.py
+/Users/terbeest/dev/modelspec/.venv/bin/python -m pipeline.agent_copy write
+/Users/terbeest/dev/modelspec/.venv/bin/python -m qa.contracts
+```
+
+The merge exited 1 with the two conflicts listed above. Each generator exited
+0. The generated OpenAPI retains both router-config responses and the friends
+tier. Files regenerated without a content change were not committed.
+
+The web build ran from `web`, with exit 0:
+
+```bash
+PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:/Users/terbeest/dev/modelspec/.venv/bin:$PATH npm run build
+```
+
+The focused run covered the four friends test modules, `test_exempt_credits.py`,
+`test_keyed_router_worker.py`, and `test_keyed_router_cli.py`. It exited 0 with
+`138 passed, 1 skipped in 9.88s`. An earlier attempt started before the bundle
+generator finished and exited 2 during collection because the bundle still
+contained conflict markers. The completed generator resolved that condition.
+
+The full suite ran against the merge commit, with the web build present:
+
+```bash
+TZ=UTC PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
+```
+
+The command's exit code was read directly: 0.
+Result: `10583 passed, 9 skipped, 11 warnings in 1126.77s (0:18:46)`.
+The warnings concern unsigned CLI vocabulary fixtures. Logs are in the ignored
+`tmp/model-282-merge/` directory. The only subsequent change is this evidence
+update. No live Stripe calls or production deployment were exercised.
