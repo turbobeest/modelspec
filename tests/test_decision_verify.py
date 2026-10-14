@@ -69,6 +69,85 @@ def regions(store) -> verify.StoredRegions:
     return verify.StoredRegions(store, verify.load_sources(FIXTURES / "sources.yaml"))
 
 
+def test_cached_documents_keep_normaliser_rules_and_verifier_dates(store, monkeypatch) -> None:
+    ref = store.put(
+        b'<main><p>Last updated: October 6, 2026 07:41 UTC</p>'
+        b'<p>Plan <svg role="img" aria-label="Yes"></svg></p></main>'
+    )
+    sources = {name: Source(
+        id=name, url=f"https://{name}.example/pricing", normaliser=normaliser,
+        cited_regions=[CitedRegion(id="page", locator={"kind": "page", "value": ""})],
+    ) for name, normaliser in [("plain", "html-default"), ("icons", "html-icon-labels")]}
+    calls = []
+
+    def counted(body, rules):
+        calls.append(rules)
+        return normalise_document(body, rules)
+
+    monkeypatch.setattr(verify, "normalise_document", counted)
+    cached = verify.StoredRegions(store, sources, cache_documents=True)
+    for _ in range(2):
+        assert cached.text("plain", ref, "page") == (
+            "Last updated: October 6, 2026 07:41 UTC\nPlan"
+        )
+        assert cached.text("icons", ref, "page") == (
+            "Last updated: October 6, 2026 07:41 UTC\nPlan Yes"
+        )
+    assert len(calls) == 2
+    assert all(not rules.strip_volatile for rules in calls)
+
+
+def test_cached_document_reuses_regions_after_a_missing_locator(store, monkeypatch) -> None:
+    ref = store.put(
+        b'<main><h2 id="coverage">Coverage</h2><p id="limits">Usage limit</p>'
+        b'<table><tr><th>Plan</th><th>Quota</th></tr>'
+        b'<tr><td>Pro</td><td>20</td></tr></table></main>'
+    )
+    expected = {
+        "missing": None,
+        "limits": "Usage limit",
+        "table": "Plan | Quota\nPro | 20",
+        "heading": "Coverage\nUsage limit\nPlan | Quota\nPro | 20",
+        "page": "Coverage\nUsage limit\nPlan | Quota\nPro | 20",
+    }
+    source = Source(id="plans", url="https://plans.example/pricing", normaliser="html-default",
+                    cited_regions=[CitedRegion(id=name, locator={"kind": kind, "value": value})
+                                   for name, kind, value in [
+                                       ("missing", "css", "#missing"),
+                                       ("limits", "css", "#limits"),
+                                       ("table", "table", "0"),
+                                       ("heading", "heading_anchor", "coverage"),
+                                       ("page", "page", ""),
+                                   ]])
+    uncached = verify.StoredRegions(store, {source.id: source})
+    assert {rid: uncached.text(source.id, ref, rid) for rid in expected} == expected
+    calls = []
+
+    def counted(body, rules):
+        calls.append(rules)
+        return normalise_document(body, rules)
+
+    monkeypatch.setattr(verify, "normalise_document", counted)
+    cached = verify.StoredRegions(store, {source.id: source}, cache_documents=True)
+    for _ in range(2):
+        assert {rid: cached.text(source.id, ref, rid) for rid in expected} == expected
+    assert len(calls) == 1
+
+
+@pytest.mark.parametrize("damage", ["delete", "corrupt"])
+def test_cached_document_rechecks_retained_copy_integrity(store, damage) -> None:
+    ref = store.put(b"<p>Example Pro $20/month</p>")
+    source = Source(id="plans", url="https://plans.example/pricing", normaliser="html-default",
+                    cited_regions=[CitedRegion(id="page", locator={"kind": "page", "value": ""})])
+    cached = verify.StoredRegions(store, {source.id: source}, cache_documents=True)
+    assert cached.text(source.id, ref, "page") == "Example Pro $20/month"
+    if damage == "delete":
+        store.path(ref).unlink()
+    else:
+        store.path(ref).write_bytes(b"<p>Different content</p>")
+    assert cached.text(source.id, ref, "page") is None
+
+
 @pytest.fixture
 def log(tmp_path) -> verify.VerificationLog:
     return verify.VerificationLog(tmp_path / "verification")
