@@ -63,7 +63,11 @@ NETWORK_BASE = "eip155:8453"
 USDC_BASE_SEPOLIA = "0x036CbD53842c5426634e7929541eC2318f3dCF7e"
 USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
 USDC_DECIMALS = 6
-USDC_EXTRA = {"name": "USDC", "version": "2"}
+#: Native USDC name() and version() read on-chain 2026-10-13 on each network.
+USDC_EXTRA_BY_NETWORK = {
+    NETWORK_BASE: {"name": "USD Coin", "version": "2"},
+    NETWORK_BASE_SEPOLIA: {"name": "USDC", "version": "2"},
+}
 
 #: Fallback atomic USDC per credit when no pack table is loaded. A loaded
 #: policy replaces it with the smallest current pack's rate.
@@ -122,7 +126,8 @@ class Config:
 
     @property
     def asset_name(self) -> str:
-        return "USDC"
+        return USDC_EXTRA_BY_NETWORK.get(
+            self.network, USDC_EXTRA_BY_NETWORK[NETWORK_BASE_SEPOLIA])["name"]
 
 
 def packs_from_policy(policy: Any) -> tuple[PackOffer, ...]:
@@ -244,7 +249,8 @@ def requirements_for(config: Config, resource_url: str, description: str, *,
         "payTo": config.pay_to,
         "maxTimeoutSeconds": MAX_TIMEOUT_SECONDS,
         "extra": {
-            **USDC_EXTRA,
+            **USDC_EXTRA_BY_NETWORK.get(
+                config.network, USDC_EXTRA_BY_NETWORK[NETWORK_BASE_SEPOLIA]),
             **({"credits": credits_bought} if credits_bought is not None else {}),
         },
         # v1 clients still look for these:
