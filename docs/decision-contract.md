@@ -16,7 +16,7 @@ companion `vocab` tool before constructing a spec.
 - JSON Schema, generated from the types:
   [`decision-contract.schema.json`](decision-contract.schema.json). Regenerate
   it with `python -m decision.schema`. Do not edit it by hand.
-- Design: `docs/design/decision-engine.md` §6–§7. Terms: `CONTEXT.md`.
+- Design: `docs/design/decision-engine.md` §6–§7. Hardware-fit dispositions: [`docs/design/hardware-fit.md`](design/hardware-fit.md). Terms: `CONTEXT.md`.
 
 `tests/test_decision_contract.py` fails if this document, the schema and the
 types disagree: every field and every closed value below must appear here, and
@@ -1590,6 +1590,10 @@ composite until MODEL-129. Requested domains come from `capabilities` and use
 snapshot domain tags, never a fixed benchmark list.
 
 ### Architecture and hardware estimates (MODEL-348)
+
+Caller-selected precision, workload memory, KV fit and runtime
+compatibility are decided in [`docs/design/hardware-fit.md`](design/hardware-fit.md).
+The behavior below is unchanged.
 
 A full answer adds architecture facts to each `top[].facts` when the spec has
 `estate.devices`, uses `access.kind: own_hardware`, names `model.fits_hardware`,

@@ -248,6 +248,8 @@ G = guaranteed for the premier set. B = best effort. Governance facets default t
 
 **Out of scope:** exact download artifacts (specific quantized files). The engine names the model and offering; resolving a download is an optional post-process.
 
+Weight memory, decode speed, precision selection, KV fit and runtime compatibility are decided in [hardware-fit.md](hardware-fit.md). Architecture facts stay filters. They take no ranking weight.
+
 ---
 
 ## 9. Our own measurements and the outcome protocol
