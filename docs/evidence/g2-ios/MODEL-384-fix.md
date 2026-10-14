@@ -2,7 +2,7 @@
 
 Base SHA: `56c39ac3a826af6f79f8755c49ed52b68bad37c4`.
 Initial delivery SHA: `365627fbcb7ffc63afe42261ac42c8eb8251f358`.
-Follow-up implementation SHA: `016c57d00003fe519982f947eab69302da77398c`, before the follow-up evidence commit.
+Follow-up implementation SHA: `016c57d00003fe519982f947eab69302da77398c`, before the follow-up evidence commits.
 Follow-up full-suite SHA: `37ae52fe5ce9a9ec5a3dc993c80b5d211f1b07cd`.
 The final delivery SHA is the commit containing this file. Resolve it with
 `git log -1 --format=%H -- docs/evidence/g2-ios/MODEL-384-fix.md`.
@@ -14,14 +14,20 @@ including 2.17. It strictly validates optional `excluded_plans` at both answer
 levels and the nullable/optional holding availability enum. Existing strict
 object schemas remain strict; no unknown-field catch-all was added.
 
-A separate rendering scope request is pending for
-`web/src/decide/facet-board/routes.ts` and `web/src/decide/App.tsx`. The current
-page hides availability reasons and the closed-holder label. Running the
-actual board adapter also reproduces an inherited unrestricted heading:
-the estate answer names Opus and Sonnet, but the heading names `other/huge`.
-The converted estate decision also retains the new-buyer exclusion for its
-usable held plan. Those two files were not changed. The executor brief says:
-"If you need a file outside them, stop and report it."
+A local probe identified a separate, pre-existing estate heading bug: the
+estate answer names Opus and Sonnet, but the heading names the unrestricted
+band leader `other/huge`. A paired probe of 2.18 with the new fields and 2.17
+without them produces identical headings and held-plan routes. The current
+page displays neither exclusion reasons nor holding availability; its
+"included in your plan" text remains truthful for a closed plan's existing
+holder. It displays no inappropriate new-buyer exclusion reason to that
+holder. This does not block the authorized decoder follow-up.
+
+A separate rendering scope request was sent for
+`web/src/decide/facet-board/routes.ts` and `web/src/decide/App.tsx`; it remains
+unanswered. Those files were not changed. The heading bug is reported for
+separate work. The executor brief says: "If you need a file outside them,
+stop and report it."
 
 The engine now reads the sourced `offering.subscription.availability` fact.
 Unrestricted routes exclude `existing_subscribers_only` and `retired`; held
@@ -244,9 +250,14 @@ and marks the held Max plan `existing_subscribers_only`. It calls the real
 ```
 
 The held route has no availability note, and its explanation has no closure
-label. This is a local module probe using synthetic fixtures, not a browser
-observation or a live API call. The final probe exited 0 and closed its server.
-Its exact successful command, run from `web/`, is:
+label. The same displayed route and heading occur after decoding the equivalent
+2.17 decision with both exclusion fields and holding availability removed.
+The paired comparison exits 0 and prints `availability_metadata_changes_display: false`.
+Thus the heading bug predates the new fields, and "included in your
+plan" remains truthful for an existing subscriber. This is a local module
+probe using synthetic fixtures, not a browser observation or a live API call.
+The final probe exited 0 and closed its server. Its exact successful command,
+run from `web/`, is:
 
 ```sh
 PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH node --input-type=module <<'JS'
@@ -278,6 +289,22 @@ try {
   const row = decision.with_estate.results[0];
   if (!row) throw new Error('Expected a held plan result');
   process.stdout.write(JSON.stringify({ estate_answer: decision.with_estate.answer.members, rendered_heading_models: leadingModels(view), inherited_new_buyer_exclusions: held.decision.excluded_plans, held_plan_route: estateRouteView({ vocabulary: planVocabulary }, row.estate, undefined, row.offering) }, null, 2) + '\n');
+  const legacy = structuredClone(decision);
+  legacy.contract_version = '2.17';
+  delete legacy.excluded_plans;
+  delete legacy.with_estate.excluded_plans;
+  for (const result of legacy.with_estate.results) delete result.estate.availability;
+  const previous = decisionSchema.parse(legacy);
+  const previousHeld = estateAsDecision(previous);
+  if (!previousHeld) throw new Error('Expected the 2.17 estate view');
+  const previousView = mapDecisionToViewModel(previousHeld.decision, { ...baseSpec, boardWeights: {} }, { axis: 'task$', dismissed: [] });
+  const previousRow = previous.with_estate.results[0];
+  if (!previousRow) throw new Error('Expected the 2.17 held plan result');
+  const currentDisplay = { heading: leadingModels(view), route: estateRouteView({ vocabulary: planVocabulary }, row.estate, undefined, row.offering) };
+  const previousDisplay = { heading: leadingModels(previousView), route: estateRouteView({ vocabulary: planVocabulary }, previousRow.estate, undefined, previousRow.offering) };
+  const changed = JSON.stringify(currentDisplay) !== JSON.stringify(previousDisplay);
+  process.stdout.write(JSON.stringify({ availability_metadata_changes_display: changed }) + '\n');
+  if (changed) throw new Error('Availability metadata changed the displayed estate result');
 } finally { await server.close(); }
 JS
 ```
