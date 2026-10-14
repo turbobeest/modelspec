@@ -1,5 +1,6 @@
 """MODEL-390 deterministic legal readings, using synthetic clause fixtures."""
 
+import hashlib
 from datetime import date
 from pathlib import Path
 
@@ -30,7 +31,7 @@ class TermsRegions:
 
 
 def check(field: str, value, text: str, kind: str = "provider_terms", *, bound: bool = True,
-          unit: str | None = None):
+          unit: str | None = None, readers=None):
     claim = verify.Claim(
         target=TargetRef(kind="fact", id=f"lab/nimbus-3#{field}"),
         subject="lab/nimbus-3", names=("Nimbus 3",), field=field, value=value,
@@ -40,7 +41,8 @@ def check(field: str, value, text: str, kind: str = "provider_terms", *, bound: 
         unit=unit or ("monthly_active_users" if field == "licence.user_cap" else None),
     )
     return verify.verify(claim, TermsRegions(text, kind, bound=bound),
-                         verify.deterministic_extractors(), today=date(2026, 10, 14))
+                         verify.deterministic_extractors() if readers is None else readers,
+                         today=date(2026, 10, 14))
 
 
 @pytest.mark.parametrize(("field", "value"), [
@@ -92,11 +94,9 @@ def test_non_agreement_thresholds_and_silence_do_not_read_a_user_cap(text):
     "We grant you a right to access and use the services, subject to this agreement.",
     "You may use the API for business purposes in compliance with these terms.",
 ])
-def test_conditional_service_grants_read_commercial_use(text):
-    assert check("licence.commercial_use", "permitted_with_conditions", text).outcome == "verified"
-    wrong = check("licence.commercial_use", "permitted", text)
-    assert wrong.outcome == "mismatch", wrong
-    assert wrong.diffs[0].field == "value"
+def test_unregistered_conditional_service_grants_remain_unread(text):
+    for value in ("permitted_with_conditions", "permitted"):
+        assert check("licence.commercial_use", value, text).outcome == "skipped"
 
 
 @pytest.mark.parametrize("text", [
@@ -117,10 +117,10 @@ def test_ownership_and_noncommercial_or_negated_grants_do_not_verify_commercial_
     "You must not train machine learning models on grounded results and search suggestions.",
     "You may not use Google Maps data from outputs to train an AI model.",
 ])
-def test_output_training_subset_restrictions(text):
+def test_unregistered_output_training_restrictions_remain_unread(text):
     result = check("licence.output_training", "restricted", text)
-    assert result.outcome == "verified", result
-    assert check("licence.output_training", "prohibited", text).outcome == "mismatch"
+    assert result.outcome == "skipped", result
+    assert check("licence.output_training", "prohibited", text).outcome == "skipped"
 
 
 @pytest.mark.parametrize("text", [
@@ -135,9 +135,9 @@ def test_unrelated_training_or_modification_clauses_do_not_read_output_training(
     assert check("licence.output_training", "restricted", text).outcome == "skipped"
 
 
-def test_model_modification_prohibition_reads_fine_tuning():
+def test_unregistered_model_modification_prohibition_remains_unread():
     text = "Customer shall not modify or create derivative works of the model weights."
-    assert check("licence.fine_tuning", "prohibited", text).outcome == "verified"
+    assert check("licence.fine_tuning", "prohibited", text).outcome == "skipped"
     assert check("licence.output_training", "restricted", text).outcome == "skipped"
 
 
@@ -161,9 +161,9 @@ def test_unrelated_modification_and_product_features_do_not_read_fine_tuning(tex
     "to: (a) access and use the Services; (b) integrate the API into Customer Applications "
     "for End Users.",
 ])
-def test_provider_grant_and_customer_application_clause_families(text):
+def test_unregistered_provider_grant_and_application_clauses_remain_unread(text):
     result = check("licence.commercial_use", "permitted_with_conditions", text)
-    assert result.outcome == "verified", result
+    assert result.outcome == "skipped", result
 
 
 @pytest.mark.parametrize("text", [
@@ -177,12 +177,12 @@ def test_provider_grant_and_customer_application_clause_families(text):
     "You will not, and will not allow your users to, train on, or otherwise learn from "
     "Grounded Results or Search Suggestions.",
 ])
-def test_prohibition_list_and_grounded_output_clause_families(text):
+def test_unregistered_prohibition_list_and_grounded_output_clauses_remain_unread(text):
     result = check("licence.output_training", "restricted", text)
-    assert result.outcome == "verified", result
+    assert result.outcome == "skipped", result
 
 
-def test_prohibition_prefix_covers_adjacent_enumerated_paragraphs():
+def test_prohibition_prefix_does_not_supply_a_reading_for_unregistered_sentences():
     text = (
         "You agree that you will not do the following:\n"
         "(i) Resell the service.\n"
@@ -191,7 +191,7 @@ def test_prohibition_prefix_covers_adjacent_enumerated_paragraphs():
         "The following section describes payment."
     )
     result = check("licence.output_training", "restricted", text)
-    assert result.outcome == "verified", result
+    assert result.outcome == "skipped", result
 
 
 @pytest.mark.parametrize("text", [
@@ -223,9 +223,9 @@ GEMMA_TERMS = (
     ("licence.output_training", "restricted"),
     ("licence.user_cap", "unbounded"),
 ])
-def test_gemma_clause_families(field, value):
+def test_unregistered_gemma_clause_families_remain_unread(field, value):
     result = check(field, value, GEMMA_TERMS, "licence_text")
-    assert result.outcome == "verified", result
+    assert result.outcome == "skipped", result
 
 
 @pytest.mark.parametrize("text", [
@@ -260,10 +260,9 @@ GEMMA_DISTRIBUTION = (
     ("licence.fine_tuning", "permitted_with_conditions"),
     ("licence.output_training", "restricted"),
 ])
-def test_gemma_use_grant_and_distribution_restrictions(field, value):
+def test_unregistered_gemma_use_grant_and_distribution_restrictions_remain_unread(field, value):
     result = check(field, value, GEMMA_DISTRIBUTION, "licence_text")
-    expected = "skipped" if field == "licence.fine_tuning" else "verified"
-    assert result.outcome == expected, result
+    assert result.outcome == "skipped", result
 
 
 @pytest.mark.parametrize("text", [
@@ -308,8 +307,8 @@ def test_cap_reading_uses_the_published_unit(unit):
 
 
 def test_explicit_clause_still_requires_model_binding_and_permitted_source_kind():
-    text = "Subject to these terms, you may use the services in your applications."
-    result = check("licence.commercial_use", "permitted_with_conditions", text, bound=False)
+    text = "If you exceed 200 million monthly active users, you must obtain a separate licence."
+    result = check("licence.user_cap", 200_000_000, text, bound=False)
     assert result.outcome == "mismatch", result
     assert result.diffs[0].field == "model"
     result = check("licence.user_cap", None, text, "lab_documentation")
@@ -488,3 +487,256 @@ def test_review747_apache_appendix_requires_its_copyright_line(field, value):
     text = (Path(__file__).parent / "fixtures/licences/apache-2.0.txt").read_text()
     text = text.replace("Copyright [yyyy] [name of copyright owner]", "")
     assert check(field, value, text, "licence_text").outcome == "skipped"
+
+
+@pytest.mark.parametrize("grantor", [
+    "Acme cannot grant", "Acme won't grant", "Acme doesn't grant", "Acme refuses to grant",
+    "if Acme grants", "unless Acme grants", "until Acme grants", "before Acme grants",
+    "except where Acme grants",
+])
+def test_review747b_denied_and_subordinate_limited_grants_remain_unread(grantor):
+    text = (f"Subject to this agreement, {grantor} Customer a limited licence during the "
+            "Term to: (a) access and use the Services; (b) integrate the API into Customer "
+            "Applications for End Users.")
+    assert check("licence.commercial_use", "permitted_with_conditions", text).outcome == "skipped"
+
+
+@pytest.mark.parametrize("grantor", ["Acme cannot grant", "if Acme grants", "noone grants"])
+def test_review747b_denied_or_hypothetical_access_with_integration_remains_unread(grantor):
+    text = (f"Subject to this agreement, {grantor} Customer a non-exclusive right to access "
+            "and use the Services. Customer may use the API to integrate the services into "
+            "Customer Applications for End Users.")
+    assert check("licence.commercial_use", "permitted_with_conditions", text).outcome == "skipped"
+
+
+@pytest.mark.parametrize("text", [
+    "Commercial use is banned. Subject to these terms, you may use the services in "
+    "your applications.",
+    "Commercial use is not allowed. Subject to these terms, you may use the services in "
+    "your applications.",
+    "Commercial use of the model weights is not permitted. We grant you a right to access "
+    "and use the services, subject to this agreement.",
+])
+def test_review747b_commercial_bans_are_not_permissions(text):
+    assert check("licence.commercial_use", "permitted_with_conditions", text).outcome == "skipped"
+
+
+@pytest.mark.parametrize("repeal", [
+    "This prohibition has been revoked.", "This prohibition is void.",
+])
+def test_review747b_repealed_prohibitions_remain_unread(repeal):
+    text = "You may not use output to develop models that compete with our models. " + repeal
+    assert check("licence.output_training", "restricted", text).outcome == "skipped"
+
+
+@pytest.mark.parametrize("field,value,text", [
+    ("licence.commercial_use", "permitted_with_conditions",
+     "Subject to these terms, you may use the services in your applications?"),
+    ("licence.output_training", "restricted", "Customer will not: (a) use Output to develop "
+     "AI models that compete with our models?"),
+    ("licence.output_training", "restricted", "You will not, and will not allow your users "
+     "to, train on, or otherwise learn from Grounded Results or Search Suggestions?"),
+    ("licence.fine_tuning", "prohibited", "Customer shall not modify the model weights?"),
+    ("licence.user_cap", 200_000_000, "If you exceed 200 million monthly active users, "
+     "you must obtain a separate licence?"),
+    ("licence.user_cap", "unbounded", "No separate agreement is required at any number "
+     "of monthly active users?"),
+])
+def test_review747b_questions_are_not_operative_statements(field, value, text):
+    assert check(field, value, text).outcome == "skipped"
+
+
+@pytest.mark.parametrize("field,value,text", [
+    ("licence.user_cap", 200_000_000, "The following is illustrative. If you exceed 200 "
+     "million monthly active users, you must obtain a separate licence."),
+    ("licence.user_cap", 200_000_000, "It is false that. If you exceed 200 million monthly "
+     "active users, you must obtain a separate licence."),
+    ("licence.user_cap", 200_000_000, "This is not an example. If you exceed 200 million "
+     "monthly active users, you must obtain a separate licence."),
+    ("licence.fine_tuning", "prohibited", "It is false that. Customer shall not modify "
+     "the model weights."),
+    ("licence.fine_tuning", "prohibited", "This is an example. Customer shall not modify "
+     "the model weights."),
+])
+def test_review747b_nonoperative_context_does_not_prove_a_value(field, value, text):
+    assert check(field, value, text).outcome == "skipped"
+
+
+@pytest.mark.parametrize("text", [
+    "Customer will not: (a) except as permitted in section 4, use Output to develop "
+    "AI models that compete with our models.",
+    "Customer will not: (a) use Output to develop AI models that compete with our models "
+    "except as the research addendum allows.",
+    "Customer will not: (a) use Output to not develop AI models that compete with our models.",
+    "The brochure claims Customer will not: (a) use Output to develop AI models that "
+    "compete with our models.",
+    "Customer will not: (a) use Output to develop AI models that compete with our sales models.",
+    "Customer will not: (a) use Output to develop AI models; (b) compete with our models "
+    "in a footnote.",
+    "If the addendum says so, Customer will not: (a) use Output to develop AI models that "
+    "compete with our models.",
+    "You will not, and will not allow contractors to, train on, or otherwise learn from "
+    "Grounded Results or Search Suggestions, except as the addendum allows.",
+    "You will not, and will not allow contractors to, disclose whether we train on, or "
+    "otherwise learn from Grounded Results or Search Suggestions.",
+])
+def test_review747b_previously_held_training_probes_stay_unread(text):
+    assert check("licence.output_training", "restricted", text).outcome == "skipped"
+
+
+@pytest.mark.parametrize("text", [
+    "Customer shall not modify the model weights, except as section 5 permits.",
+    "Customer cannot modify the model weights.",
+    "You may modify Gemma Services.",
+    "Customer shall not modify the model weights of the example diagram.",
+])
+def test_review747b_previously_held_modification_probes_stay_unread(text):
+    for value in ("prohibited", "permitted_with_conditions"):
+        assert check("licence.fine_tuning", value, text).outcome == "skipped"
+
+
+@pytest.mark.parametrize("text", [
+    "If you do not exceed 200 million monthly active users, you must obtain a separate licence.",
+    "If you exceed 200 million monthly active users, you must obtain a separate licence, "
+    "except as section 5 permits.",
+    "If you exceed 200 million monthly active users of the status page, you must obtain "
+    "a separate licence.",
+    "No separate agreement is required at any number of monthly active users, except enterprises.",
+    "For example if you exceed 200 million monthly active users, you must obtain "
+    "a separate licence.",
+])
+def test_review747b_previously_held_cap_probes_stay_unread(text):
+    for value in (200_000_000, "unbounded"):
+        assert check("licence.user_cap", value, text).outcome == "skipped"
+
+
+@pytest.mark.parametrize("prefix", [
+    "Subject to this agreement, Acme will not grant",
+    "Subject to this agreement, Acme does not grant",
+    "It is false that, subject to this agreement, Acme grants",
+    "Subject to this agreement, except as follows, Acme grants",
+])
+def test_review747b_previously_held_grant_probes_stay_unread(prefix):
+    text = (prefix + " Customer a limited licence during the Term to: (a) access and use "
+            "the Services; (b) integrate the API into Customer Applications for End Users.")
+    assert check("licence.commercial_use", "permitted_with_conditions", text).outcome == "skipped"
+
+
+def test_review747b_integration_sentence_alone_does_not_supply_a_grant():
+    text = ("Customer may use the API to integrate the services into Customer Applications "
+            "for End Users.")
+    assert check("licence.commercial_use", "permitted_with_conditions", text).outcome == "skipped"
+
+
+@pytest.fixture(params=[
+    ("licence.commercial_use", "permitted_with_conditions", "Subject to these terms, "
+     'you may use the "Services" in your applications.'),
+    ("licence.output_training", "restricted", "Customer shall not use outputs to train "
+     "a competing AI model."),
+    ("licence.fine_tuning", "prohibited", "Customer shall not modify the model weights."),
+])
+def registered_sentence(request):
+    field, value, sentence = request.param
+    # Fixture digests are prepared from these literal sentences independently
+    # of the production normalizer. They are never added to the seeded registry.
+    digest = hashlib.sha256(sentence.casefold().encode()).hexdigest()
+    template = verify.LicenceSentenceTemplate(
+        source_family="synthetic-terms", source_url="https://example.test/terms",
+        region_sha256=digest, sentence_sha256=digest,
+        facet=field, value=value, label="Synthetic operative statement",
+    )
+    return field, value, sentence, template
+
+
+def test_registered_exact_sentence_verifies_and_wrong_value_mismatches(registered_sentence):
+    field, value, sentence, template = registered_sentence
+    readers = [verify.LicenceTermsExtractor(templates=(template,))]
+    result = check(field, value, sentence, readers=readers)
+    assert result.outcome == "verified", result
+    assert result.verification.verifier.method == "licence-terms@2"
+    wrong = "permitted" if field != "licence.output_training" else "prohibited"
+    result = check(field, wrong, sentence, readers=readers)
+    assert result.outcome == "mismatch", result
+    assert result.diffs[0].field == "value"
+
+
+def test_registered_sentence_folds_spacing_case_and_quote_forms(registered_sentence):
+    field, value, sentence, template = registered_sentence
+    text = sentence.replace('"Services"', '“Services”').swapcase().replace(" ", "   ")
+    readers = [verify.LicenceTermsExtractor(templates=(template,))]
+    assert check(field, value, text, readers=readers).outcome == "verified"
+
+
+@pytest.mark.parametrize("word", ["not", "except", "if"])
+def test_registered_sentence_with_one_word_inserted_has_no_reading(registered_sentence, word):
+    field, value, sentence, template = registered_sentence
+    modified = word + " " + sentence
+    # Also approve the changed container in this synthetic test. The original
+    # sentence digest must independently reject the changed operative wording.
+    changed = template._replace(
+        region_sha256=hashlib.sha256(modified.casefold().encode()).hexdigest(),
+    )
+    readers = [verify.LicenceTermsExtractor(templates=(changed,))]
+    result = check(field, value, modified, readers=readers)
+    assert result.outcome == "skipped", result
+    assert result.verification is None
+
+
+def test_registered_statement_as_a_question_has_no_reading(registered_sentence):
+    field, value, sentence, template = registered_sentence
+    question = sentence[:-1] + "?"
+    changed = template._replace(
+        region_sha256=hashlib.sha256(question.casefold().encode()).hexdigest(),
+    )
+    result = check(field, value, question,
+                   readers=[verify.LicenceTermsExtractor(templates=(changed,))])
+    assert result.outcome == "skipped", result
+
+
+@pytest.mark.parametrize("context", [
+    "Commercial use is banned. ", "Commercial use is not allowed. ",
+    "It is false that. ", "This is an example. ", "The following is illustrative. ",
+])
+def test_registered_sentence_in_changed_context_has_no_reading(registered_sentence, context):
+    field, value, sentence, template = registered_sentence
+    result = check(field, value, context + sentence,
+                   readers=[verify.LicenceTermsExtractor(templates=(template,))])
+    assert result.outcome == "skipped", result
+
+
+@pytest.mark.parametrize("suffix", [
+    " This prohibition has been revoked.", " This prohibition is void.",
+    " Commercial use of the model weights is not permitted.",
+])
+def test_registered_sentence_with_repeal_or_ban_has_no_reading(registered_sentence, suffix):
+    field, value, sentence, template = registered_sentence
+    result = check(field, value, sentence + suffix,
+                   readers=[verify.LicenceTermsExtractor(templates=(template,))])
+    assert result.outcome == "skipped", result
+
+
+def test_registered_sentence_cannot_be_borrowed_from_another_source_family(registered_sentence):
+    field, value, sentence, template = registered_sentence
+    other = template._replace(source_url="https://other.example.test/terms")
+    result = check(field, value, sentence,
+                   readers=[verify.LicenceTermsExtractor(templates=(other,))])
+    assert result.outcome == "skipped", result
+
+
+def test_registered_sentence_still_requires_binding_and_source_kind(registered_sentence):
+    field, value, sentence, template = registered_sentence
+    readers = [verify.LicenceTermsExtractor(templates=(template,))]
+    result = check(field, value, sentence, bound=False, readers=readers)
+    assert result.outcome == "mismatch", result
+    assert result.diffs[0].field == "model"
+    result = check(field, value, sentence, "lab_documentation", readers=readers)
+    assert result.outcome == "skipped", result
+    assert result.verification is None
+
+
+def test_conflicting_registered_values_produce_no_reading(registered_sentence):
+    field, value, sentence, template = registered_sentence
+    other = template._replace(value="permitted")
+    result = check(field, value, sentence,
+                   readers=[verify.LicenceTermsExtractor(templates=(template, other))])
+    assert result.outcome == "skipped", result

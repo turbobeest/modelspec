@@ -93,19 +93,24 @@ reads a `licence_text` region when the retained text is the canonical MIT
 licence or the Apache License 2.0 terms. The complete Apache operative terms
 can omit the optional application appendix. An appendix that is present must
 retain its recognized copyright line. Added restrictions still fail the
-canonical match. `LicenceTermsExtractor`, `licence-terms@1`, reads explicit
-Gemma grants, prohibited-use duties, output-derived model restrictions, provider
-commercial grants, scoped output-training prohibitions, model-weight modification
-prohibitions, and explicit monthly-user agreement thresholds. It requires the
-matched clauses themselves to state the right or restriction. An audience
-description is not a grant. A provider grant must include its condition and
-either an application-integration permission in the same clause or an explicit
-permission in the immediately following sentence. A services-modification grant
-does not grant weight-modification rights. Competition must describe the model
-being trained, and a disclosure duty does not prohibit training. Caps introduced
-as examples, samples, or illustrations remain unread. The reader requires the
-same permitted source kind and model binding as the completion reader. It does
-not infer an absent cap or undisclosed fine-tuning rights from prose silence.
+canonical match. `LicenceTermsExtractor`, `licence-terms@2`, reads a small
+registry of exact operative-sentence hashes. The six seeds come from four
+provider-term families needed by data PR #80. Each record holds its source URL,
+reviewed cited-region hash, sentence hash, facet, value, and a short paraphrase
+label. The engine stores no retained private terms. Whitespace, quote forms,
+and case normalize identically at seeding and matching; sentence punctuation
+remains, so a question cannot become a statement.
+
+A reading requires both the registered sentence and its reviewed source context.
+Changing one word, adding an exception, or appending a repeal invalidates it.
+Unknown sentences cannot supply a grant, a condition, or a prohibition for
+another sentence. The reader has no prose windows or grantor slots. The numeric
+monthly-user agreement rule is retained as a full match of the entire cited
+region, ending in a period. A contextual example or hypothetical is unread.
+It does not infer an unbounded cap or fine-tuning rights from silence. Source-kind
+and model-binding checks remain the same. The offline seed derivation command is
+in `docs/evidence/g2-ios/MODEL-390-engine-sentence-seeds.py`.
+
 `LicenceExtractor` reads every other permitted region, and it is not asked about
 a text the canonical extractor
 accepts. A `model.weights_openness` or `origin.*` claim on a
