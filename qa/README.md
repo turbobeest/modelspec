@@ -301,7 +301,10 @@ MCP discovery. Grok's positive control disables the folder-trust gate for that
 process, without using the persistent `--trust` grant. Its isolated control
 enables the gate, uses a generated gitignore for instructions, and requires
 native inventory to show no active skills or hooks. Existing trust grants that
-activate customizations cause refusal. A vacuous positive control fails.
+activate customizations cause refusal. Codex's positive control sets
+`projects."/work".trust_level` to `trusted` with a session `-c` override and
+does not write the login volume. Isolated runs still pin `/work` untrusted.
+A vacuous positive control fails.
 
 | CLI | Effective inventory required for certification |
 | --- | --- |

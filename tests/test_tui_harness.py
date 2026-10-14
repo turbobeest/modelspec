@@ -979,6 +979,32 @@ def test_codex_controls_disable_account_apps_and_pin_the_workspace_untrusted(con
         assert value in values
 
 
+def test_codex_positive_control_trusts_its_process_only(config, tmp_path):
+    """Codex drops cwd AGENTS.md when /work is untrusted. The positive control
+    must set trust for that process. Isolated and scenario commands stay untrusted.
+    """
+    mcp = tmp_path / "mcp.toml"
+    mcp.write_text(homes.home_config("codex", config))
+    settings = config["clis"]["codex"]
+    trusted = 'projects={"/work"={trust_level="trusted"}}'
+    untrusted = 'projects={"/work"={trust_level="untrusted"}}'
+
+    def overrides(argv):
+        return [argv[index + 1] for index, value in enumerate(argv) if value == "-c"]
+
+    positive = providers.build_command(
+        "codex", settings, tmp_path, "prompt", mcp, 3, isolated=False,
+    )
+    isolated_command = providers.build_command(
+        "codex", settings, tmp_path, "prompt", mcp, 3, isolated=True,
+    )
+    assert trusted in overrides(positive)
+    assert untrusted not in overrides(positive)
+    assert "--ignore-user-config" not in positive
+    assert untrusted in overrides(isolated_command)
+    assert trusted not in overrides(isolated_command)
+
+
 def test_environment_cannot_inherit_vendor_keys_or_agent_customizations(
     config, monkeypatch, tmp_path
 ):
