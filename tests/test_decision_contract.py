@@ -795,7 +795,7 @@ def test_named_comparison_keeps_complete_and_bounded_decision_versions() -> None
     decision = c.Decision.model_validate(DECISION)
     assert decision.model_dump(mode="json")["contract_version"] == "2.18"
     bounded = project(decision, c.ResponseOptions(fields=["cost_per_task"]), not_applied=[])
-    assert bounded["bounded_version"] == "1.2"
+    assert bounded["bounded_version"] == "1.3"
     assert bounded["projects_contract"] == "2.18"
     assert "contract_version" not in bounded
     c.BoundedDecision.model_validate(bounded)

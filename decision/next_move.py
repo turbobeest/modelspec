@@ -165,6 +165,16 @@ def build_next_move(inp: NextMoveInput) -> dict | None:
     }
 
 
+def offers_tie_breakers(move: Mapping | None) -> bool:
+    """A tie-breaker chooses within a settled tie, the user_tiebreak move.
+
+    A test or a question as the next step means the tie is not settled for
+    this request, so bounded answers withhold ``answer.tie_breakers`` then.
+    No move means a separated pick or no answer: nothing to break.
+    """
+    return move is None or move.get("kind") == "user_tiebreak"
+
+
 def _bounded_needs(needs: Iterable[str]) -> str:
     items = list(dict.fromkeys(needs))
     shown = items[:NEEDS_CAP]

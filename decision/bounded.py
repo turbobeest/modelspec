@@ -1,4 +1,4 @@
-"""The bounded representation (1.2): opt-in HTTP projections of a complete 2.x Decision.
+"""The bounded representation (1.3): opt-in HTTP projections of a complete 2.x Decision.
 
 It is not a 2.x minor version. It omits lists every 2.x Decision carries, so it
 names itself with ``representation`` and ``bounded_version`` and points at the
@@ -11,7 +11,7 @@ import json
 from collections.abc import Mapping
 
 from decision import contract
-from decision.next_move import build_next_move, next_move_input_from_decision
+from decision.next_move import build_next_move, next_move_input_from_decision, offers_tie_breakers
 from decision.summary import (
     SUMMARY_BYTES,
     proxy_benchmarks_from_capture,
@@ -187,6 +187,12 @@ def project(decision: contract.Decision, options: contract.ResponseOptions, *,
     ))
     if next_move is not None:
         body["next_move"] = next_move
+    answer = decision.answer
+    body["pick"] = (
+        answer.leader if next_move is None and answer is not None and answer.kind == "separated" else None
+    )
+    if not offers_tie_breakers(next_move):
+        _withhold_tie_breakers(body)
     summary, mentions = summarize(
         decision, spec, not_applied=not_applied, profiles=profiles, feasible=feasible,
         record_counts=None if member_evidence is None else record_counts_from_capture(member_evidence),
@@ -216,6 +222,24 @@ def project(decision: contract.Decision, options: contract.ResponseOptions, *,
         _fit_agent_budget(body)
     # Validate the new representation without weakening the legacy Decision/Result types.
     return contract.BoundedDecision.model_validate(body).model_dump(mode="json", exclude_unset=True)
+
+
+def _withhold_tie_breakers(body: dict) -> None:
+    """Null the answer's tie-breakers and count each one withheld (MODEL-339).
+
+    The complete Decision keeps them. In the bounded answer they would name a
+    member to start with while next_move asks for a test or a question.
+    """
+    sources = (("answer", body.get("answer")),
+               ("with_estate.answer", (body.get("with_estate") or {}).get("answer")))
+    for prefix, answer in sources:
+        if not answer:
+            continue
+        breakers = answer["tie_breakers"]
+        withheld = sum(value is not None for value in breakers.values())
+        if withheld:
+            answer["tie_breakers"] = dict.fromkeys(breakers)
+            body["explanation"]["omitted"][f"{prefix}.tie_breakers"] = withheld
 
 
 def _nbytes(body: dict) -> int:
