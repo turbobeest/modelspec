@@ -1,0 +1,627 @@
+..FFF.FFFFFFFF.....FFFFFFF.F....                                         [100%]
+=================================== FAILURES ===================================
+_______ test_review_1_sibling_terms_link_never_binds[table-sibling-link] _______
+
+retained_policy = <function retained_policy.<locals>.check at 0x10b090670>
+page = '<main><table><tr><th>Model</th><th>Terms</th></tr><tr><td>Nimbus 3</td><td><a href="/legal/other">other terms</a></td></tr><tr><td>Nimbus 4</td><td><a href="/legal/terms">these terms</a></td></tr></table></main>'
+
+    @pytest.mark.parametrize("page", [
+        '<main><table><tr><th>Model</th><th>Terms</th></tr>'
+        '<tr><td>Nimbus 3</td><td><a href="/legal/other">other terms</a></td></tr>'
+        '<tr><td>Nimbus 4</td><td><a href="/legal/terms">these terms</a></td></tr>'
+        '</table></main>',
+        '<main><p>Nimbus 3 is listed in this catalogue.</p>'
+        '<p>Nimbus 4 is governed by <a href="/legal/terms">these terms</a>.</p></main>',
+    ], ids=["table-sibling-link", "paragraph-sibling-link"])
+    def test_review_1_sibling_terms_link_never_binds(retained_policy, page):
+>       assert_unbound(retained_policy(page))
+
+tests/test_model_393_exact_binding.py:115:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E
+E         - mismatch
+E         + verified
+
+tests/test_model_393_exact_binding.py:92: AssertionError
+_____ test_review_1_sibling_terms_link_never_binds[paragraph-sibling-link] _____
+
+retained_policy = <function retained_policy.<locals>.check at 0x10b092b90>
+page = '<main><p>Nimbus 3 is listed in this catalogue.</p><p>Nimbus 4 is governed by <a href="/legal/terms">these terms</a>.</p></main>'
+
+    @pytest.mark.parametrize("page", [
+        '<main><table><tr><th>Model</th><th>Terms</th></tr>'
+        '<tr><td>Nimbus 3</td><td><a href="/legal/other">other terms</a></td></tr>'
+        '<tr><td>Nimbus 4</td><td><a href="/legal/terms">these terms</a></td></tr>'
+        '</table></main>',
+        '<main><p>Nimbus 3 is listed in this catalogue.</p>'
+        '<p>Nimbus 4 is governed by <a href="/legal/terms">these terms</a>.</p></main>',
+    ], ids=["table-sibling-link", "paragraph-sibling-link"])
+    def test_review_1_sibling_terms_link_never_binds(retained_policy, page):
+>       assert_unbound(retained_policy(page))
+
+tests/test_model_393_exact_binding.py:115:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E
+E         - mismatch
+E         + verified
+
+tests/test_model_393_exact_binding.py:92: AssertionError
+________ test_review_2_longer_sibling_name_never_binds[Nimbus 3 Ultra] _________
+
+retained_policy = <function retained_policy.<locals>.check at 0x10b092e50>
+name = 'Nimbus 3 Ultra'
+
+    @pytest.mark.parametrize("name", ["Nimbus 3 Ultra", "Nimbus 3.1"])
+    def test_review_2_longer_sibling_name_never_binds(retained_policy, name):
+        page = f'<main><p>{name} is governed by <a href="/legal/terms">these terms</a>.</p></main>'
+>       assert_unbound(retained_policy(page))
+
+tests/test_model_393_exact_binding.py:121:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E
+E         - mismatch
+E         + verified
+
+tests/test_model_393_exact_binding.py:92: AssertionError
+__________ test_review_2_bare_muse_spark_never_binds_versioned_policy __________
+
+retained_policy = <function retained_policy.<locals>.check at 0x10b0933d0>
+
+    def test_review_2_bare_muse_spark_never_binds_versioned_policy(retained_policy):
+        page = '<main><p>Muse Spark 1.1 is governed by <a href="/legal/terms">these terms</a>.</p></main>'
+>       assert_unbound(retained_policy(page, model_id="meta/muse-spark", name="Muse Spark"))
+
+tests/test_model_393_exact_binding.py:126:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = Result(target=TargetRef(kind='fact', id='meta/muse-spark#licence.commercial_use'), outcome='verified', verification=Ve...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='meta/muse-spark#licence.commercial_use'), outcome='verified', verification=Ve...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E
+E         - mismatch
+E         + verified
+
+tests/test_model_393_exact_binding.py:92: AssertionError
+_____ test_review_3_hidden_styled_or_empty_link_never_binds[display-none] ______
+
+retained_policy = <function retained_policy.<locals>.check at 0x10b093d70>
+link = '<a style="display:none" href="/legal/terms">these terms</a>'
+
+    @pytest.mark.parametrize("link", [
+        '<a style="display:none" href="/legal/terms">these terms</a>',
+        '<a style="visibility:hidden" href="/legal/terms">these terms</a>',
+        '<div style="display:none"><a href="/legal/terms">these terms</a></div>',
+        '<a aria-hidden="TRUE" href="/legal/terms">these terms</a>',
+        '<a aria-hidden="true " href="/legal/terms">these terms</a>',
+        '<a href="/legal/terms"></a>',
+        '<a href="/legal/terms">   </a>',
+        '<!-- <a href="/legal/terms">these terms</a> -->',
+        '<template><a href="/legal/terms">these terms</a></template>',
+        '<a hidden href="/legal/terms">these terms</a>',
+        '<a hidden="false" href="/legal/terms">these terms</a>',
+        '<a aria-hidden="true" href="/legal/terms">these terms</a>',
+    ], ids=["display-none", "visibility-hidden", "hidden-wrapper", "aria-uppercase",
+            "aria-trailing-space", "empty-anchor", "whitespace-anchor", "comment",
+            "template", "hidden", "hidden-false", "aria-exact"])
+    def test_review_3_hidden_styled_or_empty_link_never_binds(retained_policy, link):
+>       assert_unbound(retained_policy(f"<main><p>Nimbus 3 documentation.</p>{link}</main>"))
+
+tests/test_model_393_exact_binding.py:146:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E
+E         - mismatch
+E         + verified
+
+tests/test_model_393_exact_binding.py:92: AssertionError
+___ test_review_3_hidden_styled_or_empty_link_never_binds[visibility-hidden] ___
+
+retained_policy = <function retained_policy.<locals>.check at 0x10b0fc300>
+link = '<a style="visibility:hidden" href="/legal/terms">these terms</a>'
+
+    @pytest.mark.parametrize("link", [
+        '<a style="display:none" href="/legal/terms">these terms</a>',
+        '<a style="visibility:hidden" href="/legal/terms">these terms</a>',
+        '<div style="display:none"><a href="/legal/terms">these terms</a></div>',
+        '<a aria-hidden="TRUE" href="/legal/terms">these terms</a>',
+        '<a aria-hidden="true " href="/legal/terms">these terms</a>',
+        '<a href="/legal/terms"></a>',
+        '<a href="/legal/terms">   </a>',
+        '<!-- <a href="/legal/terms">these terms</a> -->',
+        '<template><a href="/legal/terms">these terms</a></template>',
+        '<a hidden href="/legal/terms">these terms</a>',
+        '<a hidden="false" href="/legal/terms">these terms</a>',
+        '<a aria-hidden="true" href="/legal/terms">these terms</a>',
+    ], ids=["display-none", "visibility-hidden", "hidden-wrapper", "aria-uppercase",
+            "aria-trailing-space", "empty-anchor", "whitespace-anchor", "comment",
+            "template", "hidden", "hidden-false", "aria-exact"])
+    def test_review_3_hidden_styled_or_empty_link_never_binds(retained_policy, link):
+>       assert_unbound(retained_policy(f"<main><p>Nimbus 3 documentation.</p>{link}</main>"))
+
+tests/test_model_393_exact_binding.py:146:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E
+E         - mismatch
+E         + verified
+
+tests/test_model_393_exact_binding.py:92: AssertionError
+____ test_review_3_hidden_styled_or_empty_link_never_binds[hidden-wrapper] _____
+
+retained_policy = <function retained_policy.<locals>.check at 0x10b0fcbf0>
+link = '<div style="display:none"><a href="/legal/terms">these terms</a></div>'
+
+    @pytest.mark.parametrize("link", [
+        '<a style="display:none" href="/legal/terms">these terms</a>',
+        '<a style="visibility:hidden" href="/legal/terms">these terms</a>',
+        '<div style="display:none"><a href="/legal/terms">these terms</a></div>',
+        '<a aria-hidden="TRUE" href="/legal/terms">these terms</a>',
+        '<a aria-hidden="true " href="/legal/terms">these terms</a>',
+        '<a href="/legal/terms"></a>',
+        '<a href="/legal/terms">   </a>',
+        '<!-- <a href="/legal/terms">these terms</a> -->',
+        '<template><a href="/legal/terms">these terms</a></template>',
+        '<a hidden href="/legal/terms">these terms</a>',
+        '<a hidden="false" href="/legal/terms">these terms</a>',
+        '<a aria-hidden="true" href="/legal/terms">these terms</a>',
+    ], ids=["display-none", "visibility-hidden", "hidden-wrapper", "aria-uppercase",
+            "aria-trailing-space", "empty-anchor", "whitespace-anchor", "comment",
+            "template", "hidden", "hidden-false", "aria-exact"])
+    def test_review_3_hidden_styled_or_empty_link_never_binds(retained_policy, link):
+>       assert_unbound(retained_policy(f"<main><p>Nimbus 3 documentation.</p>{link}</main>"))
+
+tests/test_model_393_exact_binding.py:146:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E
+E         - mismatch
+E         + verified
+
+tests/test_model_393_exact_binding.py:92: AssertionError
+____ test_review_3_hidden_styled_or_empty_link_never_binds[aria-uppercase] _____
+
+retained_policy = <function retained_policy.<locals>.check at 0x10b0fd2d0>
+link = '<a aria-hidden="TRUE" href="/legal/terms">these terms</a>'
+
+    @pytest.mark.parametrize("link", [
+        '<a style="display:none" href="/legal/terms">these terms</a>',
+        '<a style="visibility:hidden" href="/legal/terms">these terms</a>',
+        '<div style="display:none"><a href="/legal/terms">these terms</a></div>',
+        '<a aria-hidden="TRUE" href="/legal/terms">these terms</a>',
+        '<a aria-hidden="true " href="/legal/terms">these terms</a>',
+        '<a href="/legal/terms"></a>',
+        '<a href="/legal/terms">   </a>',
+        '<!-- <a href="/legal/terms">these terms</a> -->',
+        '<template><a href="/legal/terms">these terms</a></template>',
+        '<a hidden href="/legal/terms">these terms</a>',
+        '<a hidden="false" href="/legal/terms">these terms</a>',
+        '<a aria-hidden="true" href="/legal/terms">these terms</a>',
+    ], ids=["display-none", "visibility-hidden", "hidden-wrapper", "aria-uppercase",
+            "aria-trailing-space", "empty-anchor", "whitespace-anchor", "comment",
+            "template", "hidden", "hidden-false", "aria-exact"])
+    def test_review_3_hidden_styled_or_empty_link_never_binds(retained_policy, link):
+>       assert_unbound(retained_policy(f"<main><p>Nimbus 3 documentation.</p>{link}</main>"))
+
+tests/test_model_393_exact_binding.py:146:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E
+E         - mismatch
+E         + verified
+
+tests/test_model_393_exact_binding.py:92: AssertionError
+__ test_review_3_hidden_styled_or_empty_link_never_binds[aria-trailing-space] __
+
+retained_policy = <function retained_policy.<locals>.check at 0x10b0fdb10>
+link = '<a aria-hidden="true " href="/legal/terms">these terms</a>'
+
+    @pytest.mark.parametrize("link", [
+        '<a style="display:none" href="/legal/terms">these terms</a>',
+        '<a style="visibility:hidden" href="/legal/terms">these terms</a>',
+        '<div style="display:none"><a href="/legal/terms">these terms</a></div>',
+        '<a aria-hidden="TRUE" href="/legal/terms">these terms</a>',
+        '<a aria-hidden="true " href="/legal/terms">these terms</a>',
+        '<a href="/legal/terms"></a>',
+        '<a href="/legal/terms">   </a>',
+        '<!-- <a href="/legal/terms">these terms</a> -->',
+        '<template><a href="/legal/terms">these terms</a></template>',
+        '<a hidden href="/legal/terms">these terms</a>',
+        '<a hidden="false" href="/legal/terms">these terms</a>',
+        '<a aria-hidden="true" href="/legal/terms">these terms</a>',
+    ], ids=["display-none", "visibility-hidden", "hidden-wrapper", "aria-uppercase",
+            "aria-trailing-space", "empty-anchor", "whitespace-anchor", "comment",
+            "template", "hidden", "hidden-false", "aria-exact"])
+    def test_review_3_hidden_styled_or_empty_link_never_binds(retained_policy, link):
+>       assert_unbound(retained_policy(f"<main><p>Nimbus 3 documentation.</p>{link}</main>"))
+
+tests/test_model_393_exact_binding.py:146:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E
+E         - mismatch
+E         + verified
+
+tests/test_model_393_exact_binding.py:92: AssertionError
+_____ test_review_3_hidden_styled_or_empty_link_never_binds[empty-anchor] ______
+
+retained_policy = <function retained_policy.<locals>.check at 0x10b0fe2a0>
+link = '<a href="/legal/terms"></a>'
+
+    @pytest.mark.parametrize("link", [
+        '<a style="display:none" href="/legal/terms">these terms</a>',
+        '<a style="visibility:hidden" href="/legal/terms">these terms</a>',
+        '<div style="display:none"><a href="/legal/terms">these terms</a></div>',
+        '<a aria-hidden="TRUE" href="/legal/terms">these terms</a>',
+        '<a aria-hidden="true " href="/legal/terms">these terms</a>',
+        '<a href="/legal/terms"></a>',
+        '<a href="/legal/terms">   </a>',
+        '<!-- <a href="/legal/terms">these terms</a> -->',
+        '<template><a href="/legal/terms">these terms</a></template>',
+        '<a hidden href="/legal/terms">these terms</a>',
+        '<a hidden="false" href="/legal/terms">these terms</a>',
+        '<a aria-hidden="true" href="/legal/terms">these terms</a>',
+    ], ids=["display-none", "visibility-hidden", "hidden-wrapper", "aria-uppercase",
+            "aria-trailing-space", "empty-anchor", "whitespace-anchor", "comment",
+            "template", "hidden", "hidden-false", "aria-exact"])
+    def test_review_3_hidden_styled_or_empty_link_never_binds(retained_policy, link):
+>       assert_unbound(retained_policy(f"<main><p>Nimbus 3 documentation.</p>{link}</main>"))
+
+tests/test_model_393_exact_binding.py:146:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E
+E         - mismatch
+E         + verified
+
+tests/test_model_393_exact_binding.py:92: AssertionError
+___ test_review_3_hidden_styled_or_empty_link_never_binds[whitespace-anchor] ___
+
+retained_policy = <function retained_policy.<locals>.check at 0x10b0fea30>
+link = '<a href="/legal/terms">   </a>'
+
+    @pytest.mark.parametrize("link", [
+        '<a style="display:none" href="/legal/terms">these terms</a>',
+        '<a style="visibility:hidden" href="/legal/terms">these terms</a>',
+        '<div style="display:none"><a href="/legal/terms">these terms</a></div>',
+        '<a aria-hidden="TRUE" href="/legal/terms">these terms</a>',
+        '<a aria-hidden="true " href="/legal/terms">these terms</a>',
+        '<a href="/legal/terms"></a>',
+        '<a href="/legal/terms">   </a>',
+        '<!-- <a href="/legal/terms">these terms</a> -->',
+        '<template><a href="/legal/terms">these terms</a></template>',
+        '<a hidden href="/legal/terms">these terms</a>',
+        '<a hidden="false" href="/legal/terms">these terms</a>',
+        '<a aria-hidden="true" href="/legal/terms">these terms</a>',
+    ], ids=["display-none", "visibility-hidden", "hidden-wrapper", "aria-uppercase",
+            "aria-trailing-space", "empty-anchor", "whitespace-anchor", "comment",
+            "template", "hidden", "hidden-false", "aria-exact"])
+    def test_review_3_hidden_styled_or_empty_link_never_binds(retained_policy, link):
+>       assert_unbound(retained_policy(f"<main><p>Nimbus 3 documentation.</p>{link}</main>"))
+
+tests/test_model_393_exact_binding.py:146:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E
+E         - mismatch
+E         + verified
+
+tests/test_model_393_exact_binding.py:92: AssertionError
+______ test_review_3_foreign_base_never_binds[foreign-base-absolute-path] ______
+
+retained_policy = <function retained_policy.<locals>.check at 0x10b0ffb60>
+base = 'https://evil.test/', href = '/legal/terms'
+
+    @pytest.mark.parametrize(("base", "href"), [
+        ("https://evil.test/", "/legal/terms"),
+        ("https://evil.test/legal/", "terms"),
+    ], ids=["foreign-base-absolute-path", "foreign-base-directory-relative"])
+    def test_review_3_foreign_base_never_binds(retained_policy, base, href):
+        page = (
+            f'<html><head><base href="{base}"></head><body><main>'
+            f'<p>Nimbus 3 is governed by <a href="{href}">these terms</a>.</p>'
+            '</main></body></html>'
+        )
+>       assert_unbound(retained_policy(page))
+
+tests/test_model_393_exact_binding.py:159:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E
+E         - mismatch
+E         + verified
+
+tests/test_model_393_exact_binding.py:92: AssertionError
+___ test_review_3_foreign_base_never_binds[foreign-base-directory-relative] ____
+
+retained_policy = <function retained_policy.<locals>.check at 0x10b0933d0>
+base = 'https://evil.test/legal/', href = 'terms'
+
+    @pytest.mark.parametrize(("base", "href"), [
+        ("https://evil.test/", "/legal/terms"),
+        ("https://evil.test/legal/", "terms"),
+    ], ids=["foreign-base-absolute-path", "foreign-base-directory-relative"])
+    def test_review_3_foreign_base_never_binds(retained_policy, base, href):
+        page = (
+            f'<html><head><base href="{base}"></head><body><main>'
+            f'<p>Nimbus 3 is governed by <a href="{href}">these terms</a>.</p>'
+            '</main></body></html>'
+        )
+>       assert_unbound(retained_policy(page))
+
+tests/test_model_393_exact_binding.py:159:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E
+E         - mismatch
+E         + verified
+
+tests/test_model_393_exact_binding.py:92: AssertionError
+________ test_changed_reviewed_region_hash_never_binds[operative-word] _________
+
+retained_policy = <function retained_policy.<locals>.check at 0x10b092cf0>
+page = '<main><p>Nimbus 3 is restricted by <a href="/legal/terms">these terms</a>.</p><p>Nimbus 4 is governed by <a href="/legal/terms">these terms</a>.</p></main>'
+
+    @pytest.mark.parametrize("page", [
+        REVIEWED_POLICY.replace("governed", "restricted", 1),
+        REVIEWED_POLICY.replace("/legal/terms", "/legal/other", 1),
+        REVIEWED_POLICY.replace("<main>", '<main style="display:none">'),
+        REVIEWED_POLICY + "<p>A later policy notice.</p>",
+    ], ids=["operative-word", "one-href", "style-attribute", "added-context"])
+    def test_changed_reviewed_region_hash_never_binds(retained_policy, page):
+>       assert_unbound(retained_policy(page))
+
+tests/test_model_393_exact_binding.py:169:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E
+E         - mismatch
+E         + verified
+
+tests/test_model_393_exact_binding.py:92: AssertionError
+___________ test_changed_reviewed_region_hash_never_binds[one-href] ____________
+
+retained_policy = <function retained_policy.<locals>.check at 0x10b017320>
+page = '<main><p>Nimbus 3 is governed by <a href="/legal/other">these terms</a>.</p><p>Nimbus 4 is governed by <a href="/legal/terms">these terms</a>.</p></main>'
+
+    @pytest.mark.parametrize("page", [
+        REVIEWED_POLICY.replace("governed", "restricted", 1),
+        REVIEWED_POLICY.replace("/legal/terms", "/legal/other", 1),
+        REVIEWED_POLICY.replace("<main>", '<main style="display:none">'),
+        REVIEWED_POLICY + "<p>A later policy notice.</p>",
+    ], ids=["operative-word", "one-href", "style-attribute", "added-context"])
+    def test_changed_reviewed_region_hash_never_binds(retained_policy, page):
+>       assert_unbound(retained_policy(page))
+
+tests/test_model_393_exact_binding.py:169:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E
+E         - mismatch
+E         + verified
+
+tests/test_model_393_exact_binding.py:92: AssertionError
+________ test_changed_reviewed_region_hash_never_binds[style-attribute] ________
+
+retained_policy = <function retained_policy.<locals>.check at 0x10b016b90>
+page = '<main style="display:none"><p>Nimbus 3 is governed by <a href="/legal/terms">these terms</a>.</p><p>Nimbus 4 is governed by <a href="/legal/terms">these terms</a>.</p></main>'
+
+    @pytest.mark.parametrize("page", [
+        REVIEWED_POLICY.replace("governed", "restricted", 1),
+        REVIEWED_POLICY.replace("/legal/terms", "/legal/other", 1),
+        REVIEWED_POLICY.replace("<main>", '<main style="display:none">'),
+        REVIEWED_POLICY + "<p>A later policy notice.</p>",
+    ], ids=["operative-word", "one-href", "style-attribute", "added-context"])
+    def test_changed_reviewed_region_hash_never_binds(retained_policy, page):
+>       assert_unbound(retained_policy(page))
+
+tests/test_model_393_exact_binding.py:169:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E
+E         - mismatch
+E         + verified
+
+tests/test_model_393_exact_binding.py:92: AssertionError
+_________ test_changed_reviewed_region_hash_never_binds[added-context] _________
+
+retained_policy = <function retained_policy.<locals>.check at 0x10b016400>
+page = '<main><p>Nimbus 3 is governed by <a href="/legal/terms">these terms</a>.</p><p>Nimbus 4 is governed by <a href="/legal/terms">these terms</a>.</p></main><p>A later policy notice.</p>'
+
+    @pytest.mark.parametrize("page", [
+        REVIEWED_POLICY.replace("governed", "restricted", 1),
+        REVIEWED_POLICY.replace("/legal/terms", "/legal/other", 1),
+        REVIEWED_POLICY.replace("<main>", '<main style="display:none">'),
+        REVIEWED_POLICY + "<p>A later policy notice.</p>",
+    ], ids=["operative-word", "one-href", "style-attribute", "added-context"])
+    def test_changed_reviewed_region_hash_never_binds(retained_policy, page):
+>       assert_unbound(retained_policy(page))
+
+tests/test_model_393_exact_binding.py:169:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E
+E         - mismatch
+E         + verified
+
+tests/test_model_393_exact_binding.py:92: AssertionError
+______________ test_unlisted_canonical_id_never_binds[unknown-id] ______________
+
+retained_policy = <function retained_policy.<locals>.check at 0x10b015f30>
+model_id = 'lab/unlisted', name = 'Nimbus 3'
+
+    @pytest.mark.parametrize(("model_id", "name"), [
+        ("lab/unlisted", "Nimbus 3"),
+        ("lab/nimbus-3-1", "Nimbus 3.1"),
+        ("lab/nimbus-3-1", "Nimbus 3"),
+        ("meta/muse-spark", "Muse Spark"),
+        ("meta/muse-spark-1-2", "Muse Spark 1.2"),
+    ], ids=["unknown-id", "sibling-version", "sibling-display-alias", "bare-meta", "unlisted-meta-1-2"])
+    def test_unlisted_canonical_id_never_binds(retained_policy, model_id, name):
+>       assert_unbound(retained_policy(model_id=model_id, name=name))
+
+tests/test_model_393_exact_binding.py:180:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = Result(target=TargetRef(kind='fact', id='lab/unlisted#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/unlisted#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E
+E         - mismatch
+E         + verified
+
+tests/test_model_393_exact_binding.py:92: AssertionError
+________ test_unlisted_canonical_id_never_binds[sibling-display-alias] _________
+
+retained_policy = <function retained_policy.<locals>.check at 0x10b015170>
+model_id = 'lab/nimbus-3-1', name = 'Nimbus 3'
+
+    @pytest.mark.parametrize(("model_id", "name"), [
+        ("lab/unlisted", "Nimbus 3"),
+        ("lab/nimbus-3-1", "Nimbus 3.1"),
+        ("lab/nimbus-3-1", "Nimbus 3"),
+        ("meta/muse-spark", "Muse Spark"),
+        ("meta/muse-spark-1-2", "Muse Spark 1.2"),
+    ], ids=["unknown-id", "sibling-version", "sibling-display-alias", "bare-meta", "unlisted-meta-1-2"])
+    def test_unlisted_canonical_id_never_binds(retained_policy, model_id, name):
+>       assert_unbound(retained_policy(model_id=model_id, name=name))
+
+tests/test_model_393_exact_binding.py:180:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+result = Result(target=TargetRef(kind='fact', id='lab/nimbus-3-1#licence.commercial_use'), outcome='verified', verification=Ver...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/nimbus-3-1#licence.commercial_use'), outcome='verified', verification=Ver...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E
+E         - mismatch
+E         + verified
+
+tests/test_model_393_exact_binding.py:92: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_model_393_exact_binding.py::test_review_1_sibling_terms_link_never_binds[table-sibling-link]
+FAILED tests/test_model_393_exact_binding.py::test_review_1_sibling_terms_link_never_binds[paragraph-sibling-link]
+FAILED tests/test_model_393_exact_binding.py::test_review_2_longer_sibling_name_never_binds[Nimbus 3 Ultra]
+FAILED tests/test_model_393_exact_binding.py::test_review_2_bare_muse_spark_never_binds_versioned_policy
+FAILED tests/test_model_393_exact_binding.py::test_review_3_hidden_styled_or_empty_link_never_binds[display-none]
+FAILED tests/test_model_393_exact_binding.py::test_review_3_hidden_styled_or_empty_link_never_binds[visibility-hidden]
+FAILED tests/test_model_393_exact_binding.py::test_review_3_hidden_styled_or_empty_link_never_binds[hidden-wrapper]
+FAILED tests/test_model_393_exact_binding.py::test_review_3_hidden_styled_or_empty_link_never_binds[aria-uppercase]
+FAILED tests/test_model_393_exact_binding.py::test_review_3_hidden_styled_or_empty_link_never_binds[aria-trailing-space]
+FAILED tests/test_model_393_exact_binding.py::test_review_3_hidden_styled_or_empty_link_never_binds[empty-anchor]
+FAILED tests/test_model_393_exact_binding.py::test_review_3_hidden_styled_or_empty_link_never_binds[whitespace-anchor]
+FAILED tests/test_model_393_exact_binding.py::test_review_3_foreign_base_never_binds[foreign-base-absolute-path]
+FAILED tests/test_model_393_exact_binding.py::test_review_3_foreign_base_never_binds[foreign-base-directory-relative]
+FAILED tests/test_model_393_exact_binding.py::test_changed_reviewed_region_hash_never_binds[operative-word]
+FAILED tests/test_model_393_exact_binding.py::test_changed_reviewed_region_hash_never_binds[one-href]
+FAILED tests/test_model_393_exact_binding.py::test_changed_reviewed_region_hash_never_binds[style-attribute]
+FAILED tests/test_model_393_exact_binding.py::test_changed_reviewed_region_hash_never_binds[added-context]
+FAILED tests/test_model_393_exact_binding.py::test_unlisted_canonical_id_never_binds[unknown-id]
+FAILED tests/test_model_393_exact_binding.py::test_unlisted_canonical_id_never_binds[sibling-display-alias]
+19 failed, 13 passed in 1.14s

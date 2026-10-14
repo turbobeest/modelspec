@@ -3102,7 +3102,7 @@ def test_mit_text_permits_use_and_tuning_silent_on_output_training() -> None:
 
 
 def test_a_mau_cap_is_read_as_the_number_and_the_claim_is_not_in_the_prompt() -> None:
-    readme = "license: other\nNimbus 3\nhttps://example.test/CAP\n"
+    readme = "license: other\nlicense_link: https://example.test/CAP\nNimbus 3\n"
     regions = _KindRegions(
         {("nimbus-licence", "page"): CAP_TEXT, ("nimbus-readme", "page"): readme},
         {"nimbus-licence": "licence_text"},
@@ -3206,7 +3206,7 @@ def test_a_licence_reader_error_on_an_absence_with_a_readme_is_skipped() -> None
 
 
 def test_silence_on_output_training_verifies_not_disclosed() -> None:
-    readme = "license: mit\nNimbus 3\nhttps://example.test/LICENSE\n"
+    readme = "license: mit\nlicense_link: https://example.test/LICENSE\nNimbus 3\n"
     regions = _KindRegions(
         {("nimbus-licence", "page"): MIT_TEXT, ("nimbus-readme", "page"): readme},
         {"nimbus-licence": "licence_text"},
@@ -3241,7 +3241,7 @@ def test_a_licence_cited_without_a_binding_page_does_not_verify() -> None:
     assert result.outcome == "mismatch"
     assert result.diffs[0].field == "model"
 
-    linked = "Nimbus 3\nhttps://example.test/LICENSE\n"
+    linked = "license_link: https://example.test/LICENSE\nNimbus 3\n"
     bound = _KindRegions(
         {("nimbus-licence", "page"): MIT_TEXT, ("nimbus-readme", "page"): linked},
         {"nimbus-licence": "licence_text"},
@@ -3251,11 +3251,26 @@ def test_a_licence_cited_without_a_binding_page_does_not_verify() -> None:
     assert result.outcome == "verified", result
 
 
+def test_a_raw_page_url_does_not_bind_a_licence() -> None:
+    regions = _KindRegions(
+        {("nimbus-licence", "page"): MIT_TEXT,
+         ("nimbus-readme", "page"): "Nimbus 3\nhttps://example.test/LICENSE\n"},
+        {"nimbus-licence": "licence_text"},
+        {"nimbus-licence": "https://example.test/LICENSE"},
+    )
+    reader = _licence_reader(lambda prompt: _reply("permitted", [MIT_QUOTE]))
+    claim = _licence_claim("licence.commercial_use", "permitted", (_LICENCE, _README))
+    result = verify.verify(claim, regions, [reader], today=TODAY)
+    assert result.outcome == "mismatch", result
+    assert [(diff.field, diff.found) for diff in result.diffs] == [("model", None)]
+
+
 def test_deterministic_extractors_do_not_claim_a_licence_region() -> None:
     text = "Model: Nimbus 3\nCommercial use: permitted\n"
     regions = _KindRegions(
         {("nimbus-licence", "page"): text,
-         ("nimbus-readme", "page"): "license: mit\nNimbus 3\nhttps://example.test/LICENSE\n"},
+         ("nimbus-readme", "page"): (
+             "license: mit\nlicense_link: https://example.test/LICENSE\nNimbus 3\n")},
         {"nimbus-licence": "licence_text"},
         {"nimbus-licence": "https://example.test/LICENSE"},
     )
@@ -3361,7 +3376,7 @@ def test_a_display_threshold_is_not_a_user_cap(tmp_path, monkeypatch) -> None:
     _bound_mismatch(
         tmp_path, monkeypatch,
         text=DISPLAY_TEXT, quote=DISPLAY_QUOTE,
-        readme="license: other\nNimbus 3\nhttps://example.test/LICENSE\n",
+        readme="license: other\nlicense_link: https://example.test/LICENSE\nNimbus 3\n",
         url="https://example.test/LICENSE",
         field="licence.user_cap", claimed="unbounded", replied=100_000_000,
         unit="monthly_active_users", absent="100000000",
@@ -3413,7 +3428,7 @@ def test_a_separate_licence_above_700_million_mau_is_the_user_cap(tmp_path, monk
     _bound_mismatch(
         tmp_path, monkeypatch,
         text=MAU_700_TEXT, quote=MAU_700_QUOTE,
-        readme="license: other\nNimbus 3\nhttps://example.test/CAP\n",
+        readme="license: other\nlicense_link: https://example.test/CAP\nNimbus 3\n",
         url="https://example.test/CAP",
         field="licence.user_cap", claimed=700_000_000, replied="not_disclosed",
         unit="monthly_active_users", absent="700000000",
@@ -3425,7 +3440,7 @@ def test_a_fine_tune_grant_does_not_address_output_training(tmp_path, monkeypatc
     _bound_mismatch(
         tmp_path, monkeypatch,
         text=TUNE_ONLY_TEXT, quote=TUNE_ONLY_QUOTE,
-        readme="license: other\nNimbus 3\nhttps://example.test/LICENSE\n",
+        readme="license: other\nlicense_link: https://example.test/LICENSE\nNimbus 3\n",
         url="https://example.test/LICENSE",
         field="licence.output_training", claimed=None, replied="permitted",
         phrases=("says nothing about it", "not_disclosed when the text is silent"),
@@ -3698,6 +3713,7 @@ _GEMMA_RETAINED = (
 _GEMMA_PAGE = (
     "---\n"
     "base_model: google/gemma-3-12b-pt\n"
+    "license_link: https://huggingface.co/google/gemma-3-12b-pt/raw/main/LICENSE\n"
     "---\n"
     "https://huggingface.co/google/gemma-3-12b-pt/raw/main/LICENSE\n"
 )
@@ -3796,6 +3812,7 @@ def test_base_model_binding_requires_front_matter() -> None:
     prose = (
         "---\n"
         "license: other\n"
+        "license_link: https://huggingface.co/google/gemma-3-12b-pt/raw/main/LICENSE\n"
         "---\n"
         "unlike Gemma 3 12B (see https://ai.google.dev/gemma/terms). "
         "The weights follow google/gemma-3-12b-pt.\n"
@@ -3803,13 +3820,17 @@ def test_base_model_binding_requires_front_matter() -> None:
         + "\n"
     )
     assert _bound_gemma_page(prose) is None
-    unfenced = "base_model: google/gemma-3-12b-pt\n" + _GEMMA_URL + "\n"
+    unfenced = (
+        "base_model: google/gemma-3-12b-pt\n"
+        "license_link: " + _GEMMA_URL + "\n"
+    )
     assert _bound_gemma_page(unfenced) == "base-model"
     assert _bound_gemma_page(_GEMMA_PAGE) == "base-model"
     listed = (
         "---\n"
         "base_model:\n"
         "  - Google/Gemma-3-12B-PT\n"
+        "license_link: https://huggingface.co/google/gemma-3-12b-pt/raw/main/LICENSE\n"
         "---\n"
         + _GEMMA_URL
         + "\n"
@@ -3823,6 +3844,7 @@ def test_a_normalised_readme_still_declares_its_base_model(tmp_path) -> None:
         "---\n"
         "license: other\n"
         "base_model: google/gemma-3-12b-pt\n"
+        "license_link: https://huggingface.co/google/gemma-3-12b-pt/raw/main/LICENSE\n"
         "---\n"
         "# KaLM\n"
         + _GEMMA_URL
@@ -3833,6 +3855,7 @@ def test_a_normalised_readme_still_declares_its_base_model(tmp_path) -> None:
         "license: other\n"
         "base_model:\n"
         "  - google/gemma-3-12b-pt\n"
+        "license_link: https://huggingface.co/google/gemma-3-12b-pt/raw/main/LICENSE\n"
         "---\n"
         "# KaLM\n"
         + _GEMMA_URL
@@ -3841,6 +3864,7 @@ def test_a_normalised_readme_still_declares_its_base_model(tmp_path) -> None:
     prose = (
         "---\n"
         "license: other\n"
+        "license_link: https://huggingface.co/google/gemma-3-12b-pt/raw/main/LICENSE\n"
         "---\n"
         "unlike Gemma 3 12B (see https://ai.google.dev/gemma/terms). "
         "The weights follow google/gemma-3-12b-pt.\n"

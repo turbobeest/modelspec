@@ -1,0 +1,120 @@
+FFFF..                                                                   [100%]
+=================================== FAILURES ===================================
+_ test_markdown_delimiters_in_anchor_label_cannot_replace_its_real_href[bad](https://example.test/legal/terms)] _
+
+tmp_path = PosixPath('/Users/terbeest/dev/worktrees/model-393/.scratch/model-393-engine-review/pytest-label-red/test_markdown_delimiters_in_an0')
+label = 'bad](https://example.test/legal/terms)'
+
+    @pytest.mark.parametrize("label", [
+        "bad](" + TERMS_URL + ")",
+        "[these terms](" + TERMS_URL + ")",
+        "bad](/legal/terms)",
+        "[these terms](/legal/terms)",
+    ])
+    def test_markdown_delimiters_in_anchor_label_cannot_replace_its_real_href(tmp_path, label):
+>       assert_unbound(check(tmp_path, binding_page("/legal/other", label=label)))
+
+tests/test_model_393_licence_binding.py:165: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+result = Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_model_393_licence_binding.py:76: AssertionError
+_ test_markdown_delimiters_in_anchor_label_cannot_replace_its_real_href[[these terms](https://example.test/legal/terms)] _
+
+tmp_path = PosixPath('/Users/terbeest/dev/worktrees/model-393/.scratch/model-393-engine-review/pytest-label-red/test_markdown_delimiters_in_an1')
+label = '[these terms](https://example.test/legal/terms)'
+
+    @pytest.mark.parametrize("label", [
+        "bad](" + TERMS_URL + ")",
+        "[these terms](" + TERMS_URL + ")",
+        "bad](/legal/terms)",
+        "[these terms](/legal/terms)",
+    ])
+    def test_markdown_delimiters_in_anchor_label_cannot_replace_its_real_href(tmp_path, label):
+>       assert_unbound(check(tmp_path, binding_page("/legal/other", label=label)))
+
+tests/test_model_393_licence_binding.py:165: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+result = Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_model_393_licence_binding.py:76: AssertionError
+_ test_markdown_delimiters_in_anchor_label_cannot_replace_its_real_href[bad](/legal/terms)] _
+
+tmp_path = PosixPath('/Users/terbeest/dev/worktrees/model-393/.scratch/model-393-engine-review/pytest-label-red/test_markdown_delimiters_in_an2')
+label = 'bad](/legal/terms)'
+
+    @pytest.mark.parametrize("label", [
+        "bad](" + TERMS_URL + ")",
+        "[these terms](" + TERMS_URL + ")",
+        "bad](/legal/terms)",
+        "[these terms](/legal/terms)",
+    ])
+    def test_markdown_delimiters_in_anchor_label_cannot_replace_its_real_href(tmp_path, label):
+>       assert_unbound(check(tmp_path, binding_page("/legal/other", label=label)))
+
+tests/test_model_393_licence_binding.py:165: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+result = Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_model_393_licence_binding.py:76: AssertionError
+_ test_markdown_delimiters_in_anchor_label_cannot_replace_its_real_href[[these terms](/legal/terms)] _
+
+tmp_path = PosixPath('/Users/terbeest/dev/worktrees/model-393/.scratch/model-393-engine-review/pytest-label-red/test_markdown_delimiters_in_an3')
+label = '[these terms](/legal/terms)'
+
+    @pytest.mark.parametrize("label", [
+        "bad](" + TERMS_URL + ")",
+        "[these terms](" + TERMS_URL + ")",
+        "bad](/legal/terms)",
+        "[these terms](/legal/terms)",
+    ])
+    def test_markdown_delimiters_in_anchor_label_cannot_replace_its_real_href(tmp_path, label):
+>       assert_unbound(check(tmp_path, binding_page("/legal/other", label=label)))
+
+tests/test_model_393_licence_binding.py:165: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+result = Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+
+    def assert_unbound(result):
+>       assert result.outcome == "mismatch", result
+E       AssertionError: Result(target=TargetRef(kind='fact', id='lab/nimbus-3#licence.commercial_use'), outcome='verified', verification=Verif...3'), method='licence-terms@3', outcome='verified', date=datetime.date(2026, 10, 14), diff=None), diffs=(), reason=None)
+E       assert 'verified' == 'mismatch'
+E         
+E         - mismatch
+E         + verified
+
+tests/test_model_393_licence_binding.py:76: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_model_393_licence_binding.py::test_markdown_delimiters_in_anchor_label_cannot_replace_its_real_href[bad](https://example.test/legal/terms)]
+FAILED tests/test_model_393_licence_binding.py::test_markdown_delimiters_in_anchor_label_cannot_replace_its_real_href[[these terms](https://example.test/legal/terms)]
+FAILED tests/test_model_393_licence_binding.py::test_markdown_delimiters_in_anchor_label_cannot_replace_its_real_href[bad](/legal/terms)]
+FAILED tests/test_model_393_licence_binding.py::test_markdown_delimiters_in_anchor_label_cannot_replace_its_real_href[[these terms](/legal/terms)]
+4 failed, 2 passed, 39 deselected in 2.49s

@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/Users/terbeest/dev/worktrees/model-393/docs/evidence/g2-ios/MODEL-393-seed.py", line 83, in <module>
+    derive(args.data.resolve(), args.check)
+    ~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/terbeest/dev/worktrees/model-393/docs/evidence/g2-ios/MODEL-393-seed.py", line 64, in derive
+    assert reader.values(row["facet"], text, licence_url=SOURCE_URL) == {"restricted"}, \
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: test_retained_meta_competing_output_clause_reads_restricted
