@@ -40,9 +40,17 @@ def check(field: str, value, text: str, kind: str = "provider_terms", *, bound: 
                                 cited_regions=["page"]) for source in ("terms", "model")),
         unit=unit or ("monthly_active_users" if field == "licence.user_cap" else None),
     )
-    return verify.verify(claim, TermsRegions(text, kind, bound=bound),
-                         verify.deterministic_extractors() if readers is None else readers,
-                         today=date(2026, 10, 14))
+    reviewed = "Nimbus 3 API is subject to these terms: https://example.test/terms"
+    binding = verify.LicenceBindingTemplate(
+        source_url="https://example.test/model",
+        region_sha256=hashlib.sha256(reviewed.encode()).hexdigest(),
+        terms_url="https://example.test/terms", model_ids=("lab/nimbus-3",),
+    )
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(verify, "LICENCE_BINDING_TEMPLATES", (binding,))
+        return verify.verify(claim, TermsRegions(text, kind, bound=bound),
+                             verify.deterministic_extractors() if readers is None else readers,
+                             today=date(2026, 10, 14))
 
 
 @pytest.mark.parametrize(("field", "value"), [

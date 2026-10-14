@@ -43,7 +43,7 @@ def refuse_network(event, _args):
         raise RuntimeError("The seed check is offline")
 
 
-def derive(root, check):
+def derive(root, check, sentence_labels=False):
     sys.addaudithook(refuse_network)
     body = gzip.decompress((root / "research/model-390/copies" / (COPY_SHA + ".gz")).read_bytes())
     if hashlib.sha256(body).hexdigest() != COPY_SHA:
@@ -60,6 +60,20 @@ def derive(root, check):
     sentence = sentences[148]
     if not sentence.endswith("."):
         raise ValueError("The operative item must be complete")
+    if sentence_labels:
+        labels = (
+            (20, "Conditional service-use grant"),
+            (138, "Prohibited-use list introduction"),
+            (148, "Competing-model output training limits with authorization exception"),
+            (149, "Evaluation exception"),
+        )
+        print(json.dumps([
+            {"sentence_index": index,
+             "sentence_sha256": hashlib.sha256(sentences[index].encode()).hexdigest(),
+             "label": label}
+            for index, label in labels
+        ], indent=2))
+        return
     row = dict(source_family="meta-api-terms", source_url=SOURCE_URL, region_sha256=REGION_SHA,
                sentence_sha256=hashlib.sha256(sentence.encode()).hexdigest(),
                facet="licence.output_training", value="restricted",
@@ -92,5 +106,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--data", type=Path, required=True)
     parser.add_argument("--check", action="store_true")
+    parser.add_argument("--sentence-labels", action="store_true")
     args = parser.parse_args()
-    derive(args.data.resolve(), args.check)
+    derive(args.data.resolve(), args.check, args.sentence_labels)

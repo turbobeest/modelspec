@@ -108,7 +108,7 @@ another sentence. The reader has no prose windows or grantor slots. The numeric
 monthly-user agreement rule is retained as a full match of the entire cited
 region, ending in a period. A contextual example or hypothetical is unread.
 It does not infer an unbounded cap or fine-tuning rights from silence. Source-kind
-and model-binding checks remain the same. The offline seed derivation command is
+checks still apply. The offline seed derivation command is
 in `docs/evidence/g2-ios/MODEL-390-engine-sentence-seeds.py`.
 
 MODEL-393 adds the exact Meta competing-model output-training restriction,
@@ -117,12 +117,22 @@ including its authorization exception and surrounding prohibition context.
 reproduces its hashes and checks the retained region and adversarial edits
 without network or completion calls.
 
-The opt-in `html-links` source normalizer preserves visible HTML anchors as
-Markdown links, including links in table cells. Default source fingerprints
-stay unchanged. Licence binding resolves these links against the binding
-source's URL and compares the complete destination. A wrong host or similar
-path does not bind. The link's displayed label and nested query URLs cannot
-supply a different destination.
+Provider-term sentence readings require an exact binding template as well.
+`LICENCE_BINDING_TEMPLATES` records the reviewed policy source URL, SHA-256 of
+the complete normalized cited region, governing terms URL, and explicit
+canonical model ids. All four must match. It stores no vendor text. The Meta
+entry lists only `meta/muse-spark-1-1` and `meta/muse-spark-1-3`; version 1.2
+and the bare April `meta/muse-spark` are excluded.
+
+These binding sources use `text-default`, which retains HTML attributes in
+the policy region. A changed href, hidden style, base element or model row
+changes the hash and requires review. Verification neither matches model
+names on these pages nor resolves their links. Registered governing URLs,
+including alternate URL spellings, cannot fall back to licence metadata
+binding. The original exact URL is still required by the template.
+The `html-links` normalizer and the page-wide URL binding rule are removed.
+Other licence texts retain the explicit `license_link`, repository-location
+and SPDX metadata rules described below.
 
 `LicenceExtractor` reads every other permitted region, and it is not asked about
 a text the canonical extractor
@@ -205,7 +215,9 @@ Apache-2.0). `licence.user_cap` is `unbounded`. `licence.output_training` is
 Software" for MIT, and section 2 "prepare Derivative Works" for Apache-2.0).
 Jamie decided that reading on 2026-10-09. This extractor applies it.
 
-A reading still has to pass `licence_is_bound`. A canonical text with no
+A canonical or other unregistered licence text still has to pass
+`licence_is_bound` through explicit licence metadata. A plain URL somewhere
+on a page does not bind. A canonical text with no
 binding page does not verify. A licence bound to the claim's `base_model`
 also binds the fine-tune when that licence says derivatives must be
 distributed under its terms or remain subject to them. The binding page's

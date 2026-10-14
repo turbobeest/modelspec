@@ -3540,8 +3540,6 @@ _LICENSE_SPDX = re.compile(
 _LICENSE_LINK = re.compile(
     r"(?im)^[ \t]*license_link:\s*[\"']?(\S+?)[\"']?\s*$"
 )
-_PAGE_URL = re.compile(r"https?://[^\s\"'<>)\]]+", re.IGNORECASE)
-_PAGE_LINK = re.compile(r"\[(?:\\.|[^\]\\\n])*\]\(([^()\s]+)\)")
 _HF_FILE_VERBS = frozenset({"raw", "resolve", "blob"})
 _NAME_JOIN = re.compile(r"\s*[-_.][-_.\s]*(?=[0-9A-Za-z])")
 #: SPDX ids for the shared generic texts. ``license: other`` is not one of them.
@@ -3804,18 +3802,6 @@ def _license_link_matches(page: str, licence_url: str, page_url: str | None) -> 
     return False
 
 
-def _page_contains_licence_url(page: str, licence_url: str, page_url: str | None) -> bool:
-    source_key = _licence_url_key(licence_url)
-    for match in _PAGE_LINK.finditer(page):
-        resolved = _resolve_license_link(match.group(1), page_url)
-        if _licence_url_key(resolved) == source_key:
-            return True
-    # A link's label or nested query URL cannot bind a different destination.
-    plain = _PAGE_LINK.sub("", page)
-    return any(_licence_url_key(match.group(0).rstrip(".,;:!?")) == source_key
-               for match in _PAGE_URL.finditer(plain))
-
-
 def _repo_location_binds(page: str, page_url: str | None, licence_url: str,
                          licence_text: str | None = None) -> bool:
     """A root licence file in the page's own repository, named by ``license:``.
@@ -3848,10 +3834,10 @@ def _spdx_binds(page: str, licence_url: str) -> bool:
 
 def _licence_rule(page: str, page_url: str | None, licence_url: str | None,
                   licence_text: str | None = None) -> str | None:
-    """Which rule names this licence on this page: link, url, repo, or SPDX.
+    """Which metadata rule names this licence: license_link, repo, or SPDX.
 
     A ``license_link`` in front matter is exclusive. A source that does not
-    match it does not bind by URL, repository location, or SPDX.
+    match it does not bind by repository location or SPDX.
     """
     if not licence_url:
         return None
@@ -3860,8 +3846,6 @@ def _licence_rule(page: str, page_url: str | None, licence_url: str | None,
         if _license_link_matches(matter, licence_url, page_url):
             return "license_link"
         return None
-    if _page_contains_licence_url(page, licence_url, page_url):
-        return "url"
     if _repo_location_binds(page, page_url, licence_url, licence_text):
         return "repo-location"
     if _spdx_binds(matter, licence_url):
@@ -3873,7 +3857,7 @@ def _bound_on_pages(names: Sequence[str], pages: Sequence[str], licence_url: str
                     subject: str | None = None,
                     page_urls: Sequence[str | None] | None = None,
                     licence_text: str | None = None) -> str | None:
-    """The link, url, repo-location or SPDX rule that binds this licence, or ``None``."""
+    """The metadata rule that binds this licence, or ``None``."""
     urls = tuple(page_urls or ())
     for index, page in enumerate(pages):
         page_url = urls[index] if index < len(urls) else None
@@ -3952,6 +3936,10 @@ def licence_is_bound(names: Sequence[str], pages: Sequence[str], licence_url: st
                      base_model: str | None = None) -> str | None:
     """The rule that binds this licence to the subject, or ``None``.
 
+    Registered provider terms require an exact binding template. Its source
+    URL, complete retained region hash, governing URL and canonical model id
+    must match. No legacy link, name or base-model rule can be its fallback.
+
     A page names the subject by its display name or repository id, as a whole
     name, or when the page URL's repository name is that same whole name.
     ``-``, ``_``, ``.`` and spaces separate segments. A prefix of a longer
@@ -3966,8 +3954,8 @@ def licence_is_bound(names: Sequence[str], pages: Sequence[str], licence_url: st
     A relative link resolves against the page URL's directory. On
     huggingface.co, ``raw``, ``resolve`` and ``blob`` name the same file.
 
-    With no ``license_link``: ``url`` (that file's URL is in the page),
-    ``repo-location`` (a root file named ``LICENSE*``, ``LICENCE*`` or
+    With no ``license_link``: ``repo-location`` (a root file named
+    ``LICENSE*``, ``LICENCE*`` or
     ``COPYING*`` in the page's own repository, and the page has a
     ``license:`` field), or ``SPDX`` (the field names a shared text in
     :data:`SPDX_LICENCE_URLS`). A ``license:`` of ``mit`` or ``apache-2.0``
@@ -3975,8 +3963,7 @@ def licence_is_bound(names: Sequence[str], pages: Sequence[str], licence_url: st
     in :data:`SPDX_SIGNATURES`. ``license: other``, and any id outside that
     table, binds the root file by location. ``README.md``, ``config.json``
     and a subdirectory do not. ``license: other`` does not bind a shared
-    text. A file in a different repository binds only by ``license_link``
-    or ``url``.
+    text. A file in a different repository binds only by ``license_link``.
 
     When none of those rules name the subject, a licence bound to
     ``base_model`` binds the subject too. The card field is ``base_model``.
@@ -3986,7 +3973,7 @@ def licence_is_bound(names: Sequence[str], pages: Sequence[str], licence_url: st
     the text normaliser has already dropped, including a list written as
     ``base_model:`` and then ``- id``. A heading, a blank line, or any other
     line ends that block. A prose mention of the base does not count. The
-    same link, url, repo-location and SPDX rules have to hold on that page,
+    same license_link, repo-location and SPDX rules have to hold on that page,
     and :func:`licence_requires_derivative_terms` has to be true of the
     licence text. The returned rule is ``base-model``. No ``base_model``, a
     base the front matter does not list, or a licence that only grants
@@ -3994,6 +3981,12 @@ def licence_is_bound(names: Sequence[str], pages: Sequence[str], licence_url: st
     derivative terms, so they do not bind by this path. A direct rule still
     wins when the page names the subject itself.
     """
+    # Reviewed provider terms never fall back to page-wide name/link inference.
+    if licence_url and any(_licence_url_key(template.terms_url) == _licence_url_key(licence_url)
+                           for template in LICENCE_BINDING_TEMPLATES):
+        return "exact-template" if exact_licence_binding(
+            subject, pages, page_urls, licence_url,
+        ) else None
     direct = _bound_on_pages(
         names, pages, licence_url, subject=subject, page_urls=page_urls,
         licence_text=licence_text,
@@ -4184,6 +4177,60 @@ class LicenceSentenceTemplate(NamedTuple):
     label: str
 
 
+class LicenceBindingTemplate(NamedTuple):
+    """One reviewed policy region and the canonical model ids it binds."""
+
+    source_url: str
+    region_sha256: str
+    terms_url: str
+    model_ids: tuple[str, ...]
+
+
+# Hash the complete StoredRegions text, retaining HTML attributes through the
+# source's text-default normalizer. No rendered-name or href inference occurs.
+LICENCE_BINDING_TEMPLATES: tuple[LicenceBindingTemplate, ...] = (
+    LicenceBindingTemplate(
+        source_url="https://dev.meta.ai/legal/geographic-use-policy",
+        region_sha256="c52b1e5030e616c5753a228a847dc958cf05c473cabb2e377f7479ae3a114d1c",
+        terms_url="https://dev.meta.ai/legal/terms-of-service",
+        model_ids=("meta/muse-spark-1-1", "meta/muse-spark-1-3"),
+    ),
+    LicenceBindingTemplate(
+        source_url="https://ai.google.dev/gemini-api/docs/pricing",
+        region_sha256="b5a8f056b86b0b8d816c4d1b6f940460961ac2e0be9c80826458ab20bb78abd1",
+        terms_url="https://ai.google.dev/gemini-api/terms",
+        model_ids=("google/gemini-2-5-flash",),
+    ),
+    LicenceBindingTemplate(
+        source_url="https://help.openai.com/en/articles/12003714-chatgpt-business-models-and-limits",
+        region_sha256="c17bfc527d6d8089ef90dd127a6ba1c7eecbeb6327d1efc381e2249eb3391e8e",
+        terms_url="https://openai.com/policies/services-agreement/",
+        model_ids=("openai/gpt-6-luna",),
+    ),
+    LicenceBindingTemplate(
+        source_url="https://docs.typesafe.ai/llms-full.txt",
+        region_sha256="0269039d9ad6da4305d61a245ebfe54e98fd21b341b6cbb9a6efdea9cbe83ba0",
+        terms_url="https://typesafe.ai/legal/mca",
+        model_ids=("typesafe/jev-1-13",),
+    ),
+)
+
+
+def exact_licence_binding(subject: str | None, pages: Sequence[str],
+                          page_urls: Sequence[str | None] | None,
+                          terms_url: str | None) -> bool:
+    """Bind only a registered canonical id at its reviewed source and region."""
+    urls = tuple(page_urls or ())
+    for index, page in enumerate(pages):
+        source_url = urls[index] if index < len(urls) else None
+        digest = hashlib.sha256(page.encode("utf-8")).hexdigest()
+        if any(template.source_url == source_url and template.region_sha256 == digest
+               and template.terms_url == terms_url and subject in template.model_ids
+               for template in LICENCE_BINDING_TEMPLATES):
+            return True
+    return False
+
+
 class _LicenceProseParser(HTMLParser):
     """Remove markup once, preserving element text and literal angle brackets."""
 
@@ -4311,8 +4358,9 @@ class LicenceTermsExtractor:
     """Read registered operative sentences within their reviewed source context.
 
     A changed sentence or region requires another review. Unknown clauses do not
-    imply rights, prohibitions or an absent cap. Source-kind and binding checks
-    still apply. A numeric MAU agreement clause can also stand alone.
+    imply rights, prohibitions or an absent cap. Source-kind checks still apply.
+    Binding requires an exact reviewed policy region and an explicit canonical
+    model id. A numeric MAU agreement clause can also stand alone.
     """
 
     actor = VerificationActor(
@@ -4357,9 +4405,8 @@ class LicenceTermsExtractor:
         values = self.values(claim.field, text, licence_url=licence_url)
         if len(values) != 1:
             raise ExtractorError(f"no unambiguous registered sentence for {claim.field}")
-        subject = claim.names[0] if licence_is_bound(
-            claim.names, bindings, licence_url, subject=claim.subject, page_urls=binding_urls,
-            licence_text=text, base_model=claim.base_model,
+        subject = claim.names[0] if exact_licence_binding(
+            claim.subject, bindings, binding_urls, licence_url,
         ) else None
         unit = "monthly_active_users" if claim.field == "licence.user_cap" else None
         return [Reading(subject, values.pop(), unit)]
