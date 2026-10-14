@@ -1,6 +1,6 @@
 # MODEL-388 r2 engine governance domains
 
-The offering data check now accepts governance sources on `mistral.ai` and its subdomains for the existing `mistral` provider. The implementation adds one entry to `GOVERNANCE_DOMAINS` in `tests/test_slice1_offerings.py`.
+The offering data check now accepts governance sources on `mistral.ai` and its subdomains for the existing `mistral` provider. The implementation adds one entry to `GOVERNANCE_DOMAINS` in `tests/test_slice1_offerings.py`. The final full engine suite passed: `11175 passed, 9 skipped, 11 warnings in 745.33s`, direct exit code 0.
 
 ## Scope and revisions
 
@@ -9,6 +9,7 @@ The offering data check now accepts governance sources on `mistral.ai` and its s
 - Base SHA: `d29d1c6cf7c3671e51f9191f3f2594afe4afbb6b`.
 - Final implementation SHA: `01eb1b02d89733200fdfd30df2598db7a115ce97`.
 - Final PR SHA: the head of `model-388-mistral-domains`, resolved with `git rev-parse HEAD` after the evidence commit and recorded in the executor output.
+- Draft engine PR: [registry: Mistral governance domains (MODEL-388), #759](https://github.com/turbobeest/modelspec/pull/759).
 
 The existing rule that every API offering belongs to the premier set is unchanged. An AST comparison of `test_slice1_offerings_have_every_guaranteed_facet_once` against the base confirmed the same function. This engine PR supplies only the requested domain mapping and regression tests. It does not file model or offering facts.
 
@@ -24,9 +25,9 @@ After adding `"mistral": ("mistral.ai",)`, the whole focused module passed: `17 
 
 ## Broader verification and environment correction
 
-The first full run used `--basetemp` inside the public engine worktree. It returned exit code 1 with `227 failed, 10842 passed, 24 skipped, 91 errors in 754.07s`. This was an invalid setup for the QA, policy, and feedback tests: their privacy guards require temporary workspaces outside a public git checkout. Source-error redaction tests also distinguish public paths from private paths. The tracebacks name these path checks directly.
+The first full run used `--basetemp` inside the public engine worktree. It returned exit code 1 with `227 failed, 10842 passed, 24 skipped, 11 warnings, 91 errors in 754.07s`. This was an invalid setup for the QA, policy, and feedback tests: their privacy guards require temporary workspaces outside a public git checkout. Source-error redaction tests also distinguish public paths from private paths. The tracebacks name these path checks directly.
 
-The standard full command, with pytest's normal temporary directory, returned exit code 1 with `2 failed, 11158 passed, 24 skipped in 780.12s`. Its only failures were:
+The standard full command, with pytest's normal temporary directory, returned exit code 1 with `2 failed, 11158 passed, 24 skipped, 11 warnings in 780.12s`. Its only failures were:
 
 - `tests/test_social_cards.py::test_build_emits_every_template_preview_and_card`.
 - `tests/test_social_cards.py::test_every_frozen_template_card_has_clean_chromium_layout`.
@@ -37,13 +38,15 @@ The first run's latency assertion compared `0.023786` against `0.019232 * 1.15`.
 
 `npm ci --prefix web` installed the existing lockfile's dependencies with Node v22.22.3 and npm 10.9.8, exit code 0. The package manifest and lockfile are unchanged. Both failed social-card tests then passed: `2 passed in 185.74s`, exit code 0. The installed Playwright Chromium executable is available.
 
-The final fully configured full-suite result is pending. The code change and focused regression tests are complete.
+The post-dependency-install full run returned exit code 1 with `11163 passed, 9 skipped, 11 warnings, 12 errors in 749.61s`. Installing Playwright enabled twelve landing-browser checks that were previously skipped. Their shared fixture raised `FileNotFoundError` for `web/dist/decide.html`. The [CI setup](../../../.github/workflows/test.yml) runs `npm ci` and `npm run build` before the browser tests. Running that [web build](MODEL-388-r2-engine-web-build.log) locally returned exit code 0 and created the missing assets without changing tracked source files. All [twelve landing-browser cases](MODEL-388-r2-engine-post-build-landing.log) then passed in 8.49s, exit code 0.
 
-Complete earlier outputs are retained as gzip artifacts: [initial full run](MODEL-388-r2-engine-full-pytest.log.gz), [standard full run](MODEL-388-r2-engine-full-standard-pytest.log.gz), and [unchanged-base comparison](MODEL-388-r2-engine-base-non-qa.log.gz). Their uncompressed SHA-256 hashes, byte lengths, and exit codes are in the [log manifest](MODEL-388-r2-engine-log-manifest.json). `gzip -dc <artifact>` reproduces each original output. The [post-setup social output](MODEL-388-r2-engine-post-setup-social.log) records both resolved dependency failures.
+After installing the existing locked dependencies and building the web assets, the final full engine suite passed: `11175 passed, 9 skipped, 11 warnings in 745.33s`, direct exit code 0. The [complete final output](MODEL-388-r2-engine-full-ready.log.gz) contains no failures or errors. The warnings concern unsigned decision-vocabulary fixtures in existing CLI snapshot tests.
+
+Complete earlier outputs are retained as gzip artifacts: [initial full run](MODEL-388-r2-engine-full-pytest.log.gz), [standard full run](MODEL-388-r2-engine-full-standard-pytest.log.gz), [unchanged-base comparison](MODEL-388-r2-engine-base-non-qa.log.gz), and [post-dependency-install full run](MODEL-388-r2-engine-post-npm-full.log.gz). The five compressed logs' uncompressed SHA-256 hashes, byte lengths, and exit codes are in the [log manifest](MODEL-388-r2-engine-log-manifest.json). `gzip -dc <artifact>` reproduces each original output. The [post-setup social output](MODEL-388-r2-engine-post-setup-social.log) records both resolved dependency failures.
 
 ## Commands and versions
 
-All commands ran from the engine worktree. The initial red command used pytest's default temporary directory. The recorded red run repeats it with a worktree-local temporary directory.
+Unless noted, commands ran from the engine worktree. The initial red command used pytest's default temporary directory. The recorded red run repeats it with a worktree-local temporary directory.
 
 ```sh
 PYTHONPATH="$PWD" PATH="/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH" /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_slice1_offerings.py -k mistral --basetemp="$PWD/.model-388-engine-scratch/red" > docs/evidence/g2-ios/MODEL-388-r2-engine-red.log 2>&1
@@ -81,11 +84,37 @@ run_rc=$?
 printf '%s\n' "$run_rc" > .model-388-engine-scratch/full-configured-pytest.rc
 exit "$run_rc"
 
+PATH="/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH" npm run build --prefix web > .model-388-engine-scratch/web-build.log 2>&1
+run_rc=$?
+printf '%s\n' "$run_rc" > .model-388-engine-scratch/web-build.rc
+exit "$run_rc"
+
+PYTHONPATH="$PWD" PATH="/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH" /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_landing.py::test_landing_behaviour_in_browser > .model-388-engine-scratch/post-build-landing.log 2>&1
+run_rc=$?
+printf '%s\n' "$run_rc" > .model-388-engine-scratch/post-build-landing.rc
+exit "$run_rc"
+
+PYTHONPATH="$PWD" PATH="/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH" /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n auto --dist loadfile > .model-388-engine-scratch/full-ready-pytest.log 2>&1
+run_rc=$?
+printf '%s\n' "$run_rc" > .model-388-engine-scratch/full-ready-pytest.rc
+exit "$run_rc"
+
 git diff --check
 git diff --exit-code d29d1c6c -- decision docs/decision-contract.md docs/decision-contract.schema.json docs/cli-contract.md registry/facets.yaml premier/slice-1.yaml
 
 git add tests/test_slice1_offerings.py
 git -c core.hooksPath=/dev/null commit -m 'test: recognize Mistral governance documents (MODEL-388)' -m 'Co-Authored-By: GPT-6.1 Sol <noreply@openai.com>'
+
+CI_LOCAL_SKIP=1 git push -u origin model-388-mistral-domains < /dev/null
+GH_PROMPT_DISABLED=1 gh pr create --draft --base main --title 'registry: Mistral governance domains (MODEL-388)' --body-file .model-388-engine-scratch/engine-pr-body.md < /dev/null
+
+git add docs/evidence/g2-ios/MODEL-388-r2-engine-fix.md docs/evidence/g2-ios/MODEL-388-r2-engine-log-manifest.json docs/evidence/g2-ios/MODEL-388-r2-engine-post-npm-full.log.gz docs/evidence/g2-ios/MODEL-388-r2-engine-full-ready.log.gz docs/evidence/g2-ios/MODEL-388-r2-engine-process-audit.json
+git add -f docs/evidence/g2-ios/MODEL-388-r2-engine-web-build.log docs/evidence/g2-ios/MODEL-388-r2-engine-post-build-landing.log
+git -c core.hooksPath=/dev/null commit -m 'docs: complete MODEL-388 engine verification' -m 'Co-Authored-By: GPT-6.1 Sol <noreply@openai.com>'
+CI_LOCAL_SKIP=1 git push origin model-388-mistral-domains < /dev/null
+git rev-parse HEAD
+GH_PROMPT_DISABLED=1 gh pr view 759 --json number,isDraft,headRefName,headRefOid,url < /dev/null
+git status --porcelain
 ```
 
 The runtime versions were Python 3.14.4, pytest 9.1.1, Node v22.22.3, npm 10.9.8, git 2.50.1, and GitHub CLI 2.102.0. Version commands were `/Users/terbeest/dev/modelspec/.venv/bin/python --version`, the same Python with `-m pytest --version`, `/Users/terbeest/.nvm/versions/node/v22.22.3/bin/node --version`, `npm --version` with the prescribed Node PATH, `git --version`, and `gh --version`.
@@ -131,4 +160,6 @@ This change affects a test's governance-source domain map. It changes no product
 
 These tests verify source-host acceptance and rejection. They do not verify a Mistral price, governance statement, model's weights, premier completeness, or an FR decision route. Those data tasks belong to the separate data worktree and PR.
 
-No provider model endpoint, paid API, Firecrawl, or workflow dispatch was used. No Linear write, merge, force-push, or data `.engine-pin` change was made. All test commands ran in the foreground. Process cleanup is checked after the full suite.
+No provider model endpoint, paid API, Firecrawl, or workflow dispatch was used. No Linear write, merge, force-push, or data `.engine-pin` change was made. All test commands ran in the foreground and have exited. The [process audit](MODEL-388-r2-engine-process-audit.json) checked 38 previously captured pytest processes by PID, start time and executable; none remained. An `lsof` current-directory check also found no live processes in the engine worktree other than the audit itself. The agent created no background shell jobs.
+
+The temporary archive and run files under `.model-388-engine-scratch` are removed after copying the complete evidence artifacts. The dependency installation and web build remain local, ignored environment files. The final executor output records the pushed SHA, draft state and clean tracked worktree.

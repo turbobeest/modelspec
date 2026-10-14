@@ -19,5 +19,19 @@
     "artifact": "MODEL-388-r2-engine-base-non-qa.log.gz",
     "uncompressed_sha256": "378bda54cee03ea08557d6d8e0502e51aa8dbbd42cf20e05e29344ef0098df0e",
     "uncompressed_bytes": 72168
+  },
+  {
+    "phase": "post-dependency-install-before-web-build",
+    "exit_code": 1,
+    "artifact": "MODEL-388-r2-engine-post-npm-full.log.gz",
+    "uncompressed_sha256": "59a89292373b678dbcfd3126df18507f5f1a5d16e80077c82ac72c1f8d667c54",
+    "uncompressed_bytes": 76162
+  },
+  {
+    "phase": "fully-configured-final",
+    "exit_code": 0,
+    "artifact": "MODEL-388-r2-engine-full-ready.log.gz",
+    "uncompressed_sha256": "265babaa8cab1d334119d13a75a4d080f3b3fcb43631292f9bc19cb8787a5ebf",
+    "uncompressed_bytes": 13650
   }
 ]

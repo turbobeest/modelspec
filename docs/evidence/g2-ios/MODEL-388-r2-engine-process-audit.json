@@ -1,0 +1,270 @@
+{
+  "captured_processes_checked": 38,
+  "matching_captured_processes_remaining": [],
+  "live_processes_with_worktree_cwd_excluding_audit": [],
+  "foreground_sessions": {
+    "invalid-public-temp": 54704,
+    "standard-before-npm": 27415,
+    "unchanged-base-before-npm": 76117,
+    "npm-ci": 20478,
+    "post-setup-social": 37403,
+    "post-dependency-install-before-web-build": 61317,
+    "web-build": 4835,
+    "post-build-landing": 80196,
+    "fully-configured-final": 66521
+  },
+  "available_recorded_phase_exit_codes": {
+    "invalid-public-temp": 1,
+    "standard-before-npm": 1,
+    "unchanged-base-before-npm": 1,
+    "post-setup-social": 0,
+    "post-dependency-install-before-web-build": 1,
+    "web-build": 0,
+    "post-build-landing": 0,
+    "fully-configured-final": 0
+  },
+  "captured_processes": [
+    {
+      "pid": 97760,
+      "ppid": 97750,
+      "started": "Wed Oct 14 17:08:28 2026",
+      "comm": "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 97761,
+      "ppid": 97760,
+      "started": "Wed Oct 14 17:08:28 2026",
+      "comm": "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 97762,
+      "ppid": 97760,
+      "started": "Wed Oct 14 17:08:28 2026",
+      "comm": "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 97763,
+      "ppid": 97760,
+      "started": "Wed Oct 14 17:08:28 2026",
+      "comm": "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 97764,
+      "ppid": 97760,
+      "started": "Wed Oct 14 17:08:28 2026",
+      "comm": "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 97765,
+      "ppid": 97760,
+      "started": "Wed Oct 14 17:08:28 2026",
+      "comm": "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 97769,
+      "ppid": 97760,
+      "started": "Wed Oct 14 17:08:28 2026",
+      "comm": "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 97772,
+      "ppid": 97760,
+      "started": "Wed Oct 14 17:08:28 2026",
+      "comm": "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 97775,
+      "ppid": 97760,
+      "started": "Wed Oct 14 17:08:28 2026",
+      "comm": "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 97778,
+      "ppid": 97760,
+      "started": "Wed Oct 14 17:08:28 2026",
+      "comm": "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 97781,
+      "ppid": 97760,
+      "started": "Wed Oct 14 17:08:28 2026",
+      "comm": "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 97785,
+      "ppid": 97760,
+      "started": "Wed Oct 14 17:08:28 2026",
+      "comm": "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 97787,
+      "ppid": 97760,
+      "started": "Wed Oct 14 17:08:28 2026",
+      "comm": "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 97790,
+      "ppid": 97760,
+      "started": "Wed Oct 14 17:08:28 2026",
+      "comm": "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 97794,
+      "ppid": 97760,
+      "started": "Wed Oct 14 17:08:28 2026",
+      "comm": "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 97796,
+      "ppid": 97760,
+      "started": "Wed Oct 14 17:08:28 2026",
+      "comm": "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 97800,
+      "ppid": 97760,
+      "started": "Wed Oct 14 17:08:29 2026",
+      "comm": "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 97802,
+      "ppid": 97760,
+      "started": "Wed Oct 14 17:08:29 2026",
+      "comm": "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 97805,
+      "ppid": 97760,
+      "started": "Wed Oct 14 17:08:29 2026",
+      "comm": "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 15424,
+      "ppid": 15372,
+      "started": "Wed Oct 14 17:41:34 2026",
+      "comm": "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 15640,
+      "ppid": 15424,
+      "started": "Wed Oct 14 17:41:34 2026",
+      "comm": "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 15662,
+      "ppid": 15424,
+      "started": "Wed Oct 14 17:41:34 2026",
+      "comm": "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 15663,
+      "ppid": 15424,
+      "started": "Wed Oct 14 17:41:35 2026",
+      "comm": "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 15664,
+      "ppid": 15424,
+      "started": "Wed Oct 14 17:41:35 2026",
+      "comm": "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 15666,
+      "ppid": 15424,
+      "started": "Wed Oct 14 17:41:35 2026",
+      "comm": "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 15669,
+      "ppid": 15424,
+      "started": "Wed Oct 14 17:41:35 2026",
+      "comm": "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 15672,
+      "ppid": 15424,
+      "started": "Wed Oct 14 17:41:35 2026",
+      "comm": "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 15674,
+      "ppid": 15424,
+      "started": "Wed Oct 14 17:41:35 2026",
+      "comm": "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 15677,
+      "ppid": 15424,
+      "started": "Wed Oct 14 17:41:35 2026",
+      "comm": "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 15680,
+      "ppid": 15424,
+      "started": "Wed Oct 14 17:41:35 2026",
+      "comm": "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 15684,
+      "ppid": 15424,
+      "started": "Wed Oct 14 17:41:35 2026",
+      "comm": "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 15687,
+      "ppid": 15424,
+      "started": "Wed Oct 14 17:41:35 2026",
+      "comm": "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 15691,
+      "ppid": 15424,
+      "started": "Wed Oct 14 17:41:35 2026",
+      "comm": "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 15693,
+      "ppid": 15424,
+      "started": "Wed Oct 14 17:41:35 2026",
+      "comm": "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 15696,
+      "ppid": 15424,
+      "started": "Wed Oct 14 17:41:35 2026",
+      "comm": "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 15699,
+      "ppid": 15424,
+      "started": "Wed Oct 14 17:41:35 2026",
+      "comm": "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 15702,
+      "ppid": 15424,
+      "started": "Wed Oct 14 17:41:35 2026",
+      "comm": "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+    },
+    {
+      "pid": 15706,
+      "ppid": 15424,
+      "started": "Wed Oct 14 17:41:35 2026",
+      "comm": "/opt/homebrew/Cellar/python@3.14/3.14.4_1/Frameworks/Python.framework/Versions/3.14/Resources/Python.app/Contents/MacOS/Python"
+    }
+  ],
+  "process_commands": [
+    [
+      "ps",
+      "-axo",
+      "pid,ppid,lstart,comm"
+    ],
+    [
+      "/usr/sbin/lsof",
+      "-a",
+      "-d",
+      "cwd",
+      "-Fpn"
+    ]
+  ]
+}
