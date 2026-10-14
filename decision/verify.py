@@ -1085,7 +1085,8 @@ class SubscriptionPageExtractor:
         if claim.field in {"offering.subscription.usage_allowance",
                            "offering.subscription.programmatic_or_agent_use"}:
             wording = (r"\b(?:usage|allowances?|limits?|credits?|requests?|messages?|"
-                       r"tokens?|quota|uses|queries|tasks?|completions?|unlimited|more)\b"
+                       r"tokens?|quota|uses|queries|tasks?|completions?|consumption|"
+                       r"windows?|unlimited|more)\b"
                        if claim.field.endswith("usage_allowance") else
                        r"\b(?:codex|claude code|kimi code|grok build|ai studio|antigravity|"
                        r"jules|agents?|api|cli|bots?|terminal|coding|tools?|programmatic)\b")
