@@ -1,21 +1,26 @@
 # MODEL-235-readers execution evidence
 
-Two reader defects are fixed. Mistral Pro's exact coding-access sentence now
-verifies beside an API-credit feature. MiniMax's Go, Explore, and Build usage
-allowances now verify when their FAQ contains the literal `<API Key>` placeholder.
-The offline replay changes exactly these four facts from `unreadable` to
-`unchanged`. It proposes no price changes.
+The final production change fixes only MiniMax's literal `<API Key>` placeholder
+handling. Go, Explore, and Build's exact usage allowances verify. Both reviews
+confirmed that fix. All Mistral card-boundary changes have been withdrawn:
+`_card_lines` matches `ee16bf40` byte-for-byte.
 
-The ticket remains **BLOCKED**. Unreadable falls from 120 to 116 on the same
-saved inputs, above the requested ceiling of 15. Fifty facts cite locators that no longer
-match the pages. Other facts cite obsolete tables, absent prices, or facets for
-which the deterministic reader still lacks coverage. Data was not changed.
+The offline replay changes three facts from unreadable to unchanged, with no
+proposed price changes. It now reports 117 unreadable facts. Mistral Pro's
+coding-access fact is intentionally left unreadable for the data side to re-cite
+to a scoped region. Any future engine fix must segment actual plan cards in the
+parsed DOM, rather than infer their ownership from line windows.
+
+The ≤15 target remains blocked. The complete rollback, safety cases, legacy
+limitations, current checks, and final scope are recorded in the
+[R3 evidence](MODEL-235-readers-r3-fix.md). The earlier attempts and their withdrawn
+results are historical, not claims about the final implementation.
 
 ## Revisions and inputs
 
 - Engine base: `e37578f7e162fdec9ef93b21fbfe06e7ffa77598`.
 - Run's engine pin: `ee16bf40666a6673d17af9a20b3e3b0ec10e786f`.
-- Implementation commit: `1fa662b0b19d30a1dad6f256cc177b78f29bf0e0`.
+- Final implementation commit: `892931a767fc0acf56953d917a8485dad46ebac8`.
 - Final delivery SHA is the commit containing this report. Resolve it with
   `git log -1 --format=%H -- docs/evidence/g2-ios/MODEL-235-readers-fix.md`.
   The executor's final output also records that SHA.
@@ -48,42 +53,30 @@ come from HTTP 403 entries in the rendered manifest.
 |---|---:|---:|---:|---:|---:|---:|
 | Run 38572656013, as supplied in the spec | 327 | 0 | 21 | 120 | 43 | 44 |
 | Saved-input replay, data `4d4f709`, engine pin `ee16bf40` | 335 | 0 | 13 | 120 | 43 | 44 |
-| Same replay, final readers | 339 | 0 | 13 | 116 | 43 | 44 |
+| Same replay, final MiniMax-only readers | 338 | 0 | 13 | 117 | 43 | 44 |
 
 The supplied run table sums to 555, not 575. The replay reproduces both requested
 failure reasons and all 50 missing-region failures. It does not reproduce the
 reported unchanged/needs-review split bit-for-bit: eight more facts verify in the
 replay. The artifacts do not record the run's exact data revision or a plain HTTP
-URL/outcome manifest. The same-input before/after delta is four facts, verified
+URL/outcome manifest. The same-input before/after delta is three facts, verified
 by comparing every serialized fact result. The initially checked-out October 6
 revision produced `272 | 1 | 17 | 89 | 34 | 111`; that was superseded when the
 newer locally available data revision was found.
 
 ## Repaired engine defects
 
-### Mistral Pro card boundaries
+### Mistral changes withdrawn
 
-`_card_lines()` stopped at `Faster responses.` because a later feature contained
-`$25.5 /mo in API credits.`. The next-card heuristic accepted any nearby dollar
-amount as a card price. The exact filed sentence,
-`All-day coding in the CLI, IDE, or on web.`, occurs after that premature boundary.
+Both attempts to recover Mistral Pro's coding-access sentence changed plan
+ownership incorrectly. The orchestrator directed restoration of the exact
+pinned `_card_lines` implementation. The positive test was removed; the safety
+checks that pass on the pin remain. This PR recovers no Mistral fact.
 
-The boundary now requires a complete price line, with an optional billing suffix.
-The dollar amount inside the API-credit feature cannot end the card. A following
-Team card's bare price still ends it. Comparison rules, model matching, and
-numeric equality are unchanged.
-
-Red test:
-`test_mistral_pro_reads_coding_access_before_api_credit_feature`.
-
-```text
-E       assert 'mismatch' == 'verified'
-FAILED tests/test_model_235_readers.py::test_mistral_pro_reads_coding_access_before_api_credit_feature
-1 failed, 1 passed in 0.28s
-```
-
-The sibling-plan check, `test_mistral_pro_does_not_borrow_team_feature`, passed
-before and after. The final positive test verifies the exact filed sentence.
+The data side must re-cite the Mistral Pro coding-access fact to a scoped region
+and independently verify it. If that requires engine support, the follow-up is
+proper plan-card segmentation using the parsed DOM structure, not another
+line-window boundary rule.
 
 ### MiniMax FAQ literal credential placeholder
 
@@ -111,7 +104,8 @@ E       assert 'mismatch' == 'verified'
 ```
 
 The green test also wraps the same text in `<div>...</div>` and requires the raw
-markup to fail verification. Final regression module: `9 passed in 0.20s`, exit 0.
+markup to fail verification. The three MiniMax positive cases remain. Current
+regression and full-suite results are in the R3 evidence.
 
 An earlier fixture trim removed the layout detector's trigger. That trim also
 failed after the placeholder fix, so it was corrected using the real FAQ
@@ -131,7 +125,7 @@ changed the assigned branch.
 | Vertex Sonnet 5.5 input, global partner selector | unreadable, missing region | unreadable, missing region | unreadable, missing region |
 | MiniMax Token Plan Plus price | unreadable | unreadable | unreadable |
 | MiniMax M Plan Go usage allowance | unchanged | unreadable | unchanged |
-| Mistral Pro coding access | needs_review | unreadable | unchanged |
+| Mistral Pro coding access | needs_review | unreadable | unreadable |
 | Moonshot Andante CNY price | unreadable | unreadable | unreadable |
 
 #743 added the subscription raw-markup rejection that blocks the MiniMax FAQ.
@@ -142,10 +136,11 @@ persist before #743, so no broader bisect was necessary.
 
 ## Remaining unreadable facts and actions
 
-These groups account for all 116 remaining unreadable facts.
+These groups account for all 117 remaining unreadable facts.
 
 | Count | Group | Evidence and next action |
 |---:|---|---|
+| 1 | Mistral Pro coding access | Re-cite to a scoped Pro region and independently verify it. The card-boundary change is withdrawn. Any engine follow-up must use parsed DOM card segmentation. |
 | 35 | Vertex partner-Anthropic global locator | The filed CSS selector includes `aria-labelledby="tab-ucj-200-g1-t0"`. That generated ID is absent from the new HTML. Re-collect and register a stable, correctly scoped global-table locator, then independently verify every price. |
 | 9 | Z.ai coding-plan locator | Filed `#plan-cards` is absent from the rendered page. Re-register a current plan-card region and verify the three plans' prices, billing periods, and allowances. |
 | 6 | MiniMax Token Plan quota locator | Filed `usage-quota` heading is absent after the Token Plan URL redirects to M Plan. Re-cite authoritative legacy-plan quota evidence; the M Plan quota is not evidence for Token Plan. |
@@ -171,90 +166,13 @@ It would be incorrect to manufacture positive red/green tests for values absent
 from their filed regions. Fixture provenance is recorded in
 `tests/fixtures/model_235_readers/README.md`.
 
-## Checks and reproducible commands
+## Current checks and delivery
 
-Tools: Python 3.14.4, pytest 9.1.1, pytest-xdist 3.8.0, Pydantic 2.13.5,
-PyYAML 6.0.3, Ruff 0.16.6, Git 2.50.1, GitHub CLI 2.102.0, Node 22.22.3.
-Commands run from the assigned worktree unless noted. Exit codes come from
-command completion, without a pipeline.
+The [R3 evidence](MODEL-235-readers-r3-fix.md) records the exact pin comparison,
+the seven pinned Mistral cases, all retained tests, current focused and full-suite
+exit codes, replay commands, and delivery commands. The final PR title and body
+refer to the MiniMax-only production change and the 117-unreadable replay.
 
-The local archive exports were made with Python's `tarfile`, using
-`subprocess.run(['git', ... 'archive', revision], check=True, capture_output=True)`
-and `extractall(worktree_scratch_directory, filter='data')`. Revisions exported
-were data `origin/main`, `6e5b9bb6^`, `ee16bf40^`, and `ee16bf40`.
-
-```bash
-# Source comparison and revisions:
-git diff ee16bf40 e37578f7 -- decision/verify.py scripts/price_reread.py
-git -C /Users/terbeest/dev/modelspec-data rev-parse HEAD origin/main
-
-# Initial Mistral red, before production changes, exit 1:
-PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_model_235_readers.py
-
-# Finalized MiniMax red against the exported pin, exit 1.
-# Working directory: .artifacts/model-235-readers/executor/pin
-PYTHONPATH=/Users/terbeest/dev/worktrees/model-235-readers/.artifacts/model-235-readers/executor/pin /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest --import-mode=importlib -q /Users/terbeest/dev/worktrees/model-235-readers/tests/test_model_235_readers.py -k minimax_faq
-
-# Green and focused suites, exits 0:
-PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_model_235_readers.py
-PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q tests/test_model_235_readers.py tests/test_price_reread.py tests/test_price_reread_fallback.py tests/test_decision_verify.py tests/test_decision_sources.py tests/test_model380_subscription_quotes.py tests/test_model380_subscription_types.py
-
-# From web/, prepare dependencies and the bundle required by browser tests:
-PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm ci
-PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH npm run build
-
-# From the worktree root, final full check:
-TZ=UTC PATH=/Users/terbeest/.nvm/versions/node/v22.22.3/bin:$PATH PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python -m pytest -q -n 4 --dist loadfile
-
-/Users/terbeest/dev/modelspec/.venv/bin/python -m ruff check tests/test_model_235_readers.py docs/evidence/g2-ios/MODEL-235-readers-replay.py
-/Users/terbeest/dev/modelspec/.venv/bin/python scripts/pytest_shards.py --shard-count 4 --summary
-git diff --check
-```
-
-Focused result: `762 passed in 11.87s`, exit 0. The first full run started before
-the MiniMax fix and was interrupted to restart against both fixes. It returned
-exit 2 with `9346 passed, 5 skipped, 4 warnings in 611.62s`. Its process tree was
-stopped. Two initial focused commands named nonexistent normaliser test files
-and returned exit 4; the corrected command above uses `test_decision_sources.py`.
-Ruff and whitespace checks pass. The new file appears in the shard summary,
-which reports 67, 68, 67, and 67 files with approximately 3521.48 seconds each.
-`TZ=UTC` avoids the repository's separately recorded local/UTC site-date mismatch.
-
-Final full-suite result: `11055 passed, 9 skipped, 11 warnings in 1255.98s
-(0:20:55)`, exit 0. The warnings are the existing unsigned decision-vocabulary
-warnings exercised by CLI tests.
-
-The complete replay invocation is:
-
-```bash
-PYTHONPATH=$PWD /Users/terbeest/dev/modelspec/.venv/bin/python docs/evidence/g2-ios/MODEL-235-readers-replay.py --data-root .artifacts/model-235-readers/executor/data-main --copies /private/tmp/claude-501/-Users-terbeest-dev-modelspec/6b307b20-b183-41a5-91e6-14f65d035cbc/scratchpad/rr-38572656013/price-reread-copies --rendered /private/tmp/claude-501/-Users-terbeest-dev-modelspec/6b307b20-b183-41a5-91e6-14f65d035cbc/scratchpad/rr-38572656013/price-reread-rendered --out .artifacts/model-235-readers/executor/final-after-2
-```
-
-The same command with `PYTHONPATH=$PWD/.artifacts/model-235-readers/executor/pin`
-and `--out .artifacts/model-235-readers/executor/final-before` produces the pinned
-baseline. Historical probes use `PYTHONPATH` pointing to the corresponding
-export and repeat `--fact <exact-id>` for the six fact IDs in the historical table.
-All completed replay commands returned exit 0.
-
-## Observation limits and delivery
-
-No live provider page, scheduled workflow, production read, vendor API,
-Firecrawl, or device was exercised. No source URL was fetched. No Linear write,
-workflow dispatch, production switch, frozen data change, merge, or PR ready
-transition ran. The data repo was not modified. The full suite exercises local
-mock servers and installed browser tooling; the socket block is specific to the
-offline replay.
-
-The source commit and evidence commit end with both required author trailers,
-with `Co-Authored-By: GPT-6.1 Sol <noreply@openai.com>` last. Delivery uses
-`CI_LOCAL_SKIP=1 git push -u origin model-235-readers` after the checks and
-`gh pr create --draft --base main --head model-235-readers --title
-"price re-read: read MiniMax allowances and Mistral coding access (MODEL-235)"
---body-file .artifacts/model-235-readers/executor/pr-body.md`.
-The PR remains a draft for independent review.
-
-## Review correction
-
-The first card-boundary fix failed Grok's neighbouring-plan probes. The follow-up
-[R2 evidence](MODEL-235-readers-r2-fix.md) records the structural correction,
-red-first A/B regressions, verdict controls, and unchanged replay results.
+No live provider page, paid API, Firecrawl, Linear write, workflow dispatch,
+production switch, frozen data change, ready transition, or merge ran. The private
+data checkout remained read-only. The PR remains a draft.

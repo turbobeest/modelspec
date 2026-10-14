@@ -1,5 +1,8 @@
 # MODEL-235-readers-r2 review correction
 
+Historical attempt, withdrawn after REV-751b. The final production scope and
+rollback are recorded in [R3 evidence](MODEL-235-readers-r3-fix.md).
+
 Grok's REV-751 finding 1 reproduced a false verification introduced by the first
 card-boundary fix. Pro could verify a neighbouring plan's coding sentence when
 the neighbour's nearest currency line was an API-credit feature. This revision
