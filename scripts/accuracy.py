@@ -884,7 +884,7 @@ def _has_current_reading(result: Any) -> bool:
 
 def _incomplete_evidence_reading(result: Any) -> bool:
     """Missing source metadata cannot establish an evidence disagreement."""
-    from decision.verify import parse_quantity
+    from decision.verify import UNITS, parse_quantity
 
     if result.target.kind != "evidence" or result.outcome != "mismatch" or not result.diffs:
         return False
@@ -893,7 +893,7 @@ def _incomplete_evidence_reading(result: Any) -> bool:
             continue
         if diff.field == "unit" and isinstance(diff.found, str):
             quantity = parse_quantity(diff.found)
-            if quantity is not None and quantity.unit is None:
+            if quantity is not None and quantity.unit not in UNITS:
                 continue
         return False
     return True

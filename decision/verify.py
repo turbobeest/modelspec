@@ -1098,6 +1098,13 @@ class SubscriptionPageExtractor:
         if claim.field == "offering.subscription.coverage_quote":
             return [r for r in self.quote_candidates(claim, text)
                     if normalise_name(r.value) == normalise_name(str(claim.value))]
+        if re.search(r"\bteams?\b", claim.subject.rsplit("/", 1)[-1]):
+            names = tuple(name for name in claim.names
+                          if len(normalise_name(name).split()) >= 2
+                          or re.search(r"\bteams?\b", name, re.IGNORECASE))
+            if not names:
+                return []
+            claim = replace(claim, names=names)
         text = _content_block(text)
         readings = self._page_layouts(claim, text)
         for more in (_plan_cards(claim, text), _plan_facts(claim, text),

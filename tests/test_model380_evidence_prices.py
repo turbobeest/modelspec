@@ -264,3 +264,47 @@ def test_price_reader_requires_the_table_owners_exact_model(
 
     assert result.counts["undetermined"] == 1, result
     assert result.counts["mismatch"] == result.counts["verified"] == 0
+
+
+@pytest.mark.parametrize(
+    "source_text",
+    [
+        "Model: Aurora\npass_1: 42.13456789 ,\n",
+        "Model: Aurora\npass_1: 42.13456789\nUnit: synthetic units\n",
+    ],
+    ids=["trailing-comma", "unknown-explicit-unit"],
+)
+def test_benchmark_unrecognized_source_unit_has_no_determination(
+    source_text: str, tmp_path: Path,
+) -> None:
+    result = _fidelity(_evidence_claim(), source_text, tmp_path)
+
+    assert result.counts["undetermined"] == 1, result
+    assert result.counts["mismatch"] == result.counts["verified"] == 0
+
+
+@pytest.mark.parametrize("source_unit", ["fraction", "tokens"])
+def test_benchmark_stated_known_unit_disagreement_remains_a_mismatch(
+    source_unit: str, tmp_path: Path,
+) -> None:
+    result = _fidelity(
+        _evidence_claim(),
+        f"Model: Aurora\npass_1: 42.13456789\nUnit: {source_unit}\n",
+        tmp_path,
+    )
+
+    assert result.counts["mismatch"] == 1, result
+    assert result.counts["undetermined"] == result.counts["verified"] == 0
+    assert any(diff["field"] == "unit" for diff in result.details[0]["diff"])
+
+
+def test_benchmark_unknown_unit_does_not_hide_a_stated_condition_disagreement(
+    tmp_path: Path,
+) -> None:
+    result = _fidelity(
+        _evidence_claim(), "Model: Aurora\npass_1: 42.13456789 ,\nEffort: high\n", tmp_path
+    )
+
+    assert result.counts["mismatch"] == 1, result
+    assert result.counts["undetermined"] == result.counts["verified"] == 0
+    assert any(diff["field"] == "effort" for diff in result.details[0]["diff"])
