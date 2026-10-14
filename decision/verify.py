@@ -588,10 +588,19 @@ class OfferingPriceExtractor:
         simple_label = {"input": "input", "output": "output",
                         "cached_input": "cached input"}.get(wanted)
         if scoped_subject and simple_label:
+            start = next((i for i, line in enumerate(lines)
+                          if normalise_name(line.lstrip("#")) == normalise_name(scoped_subject)
+                          or (re.match(r"(?i)^models?\s*:", line)
+                              and normalise_name(scoped_subject) in normalise_name(line))), None)
             markdown = False
-            for i, line in enumerate(lines):
+            in_table = False
+            for i in range(start + 1, len(lines)) if start is not None else ():
+                line = lines[i]
+                if in_table and "|" not in line:
+                    break
                 if "|" in line and (i == 0 or "|" not in lines[i - 1]):
                     markdown = line.startswith("|")  # the table's header row
+                    in_table = True
                 # In an HTML table a leading pipe is an empty first cell: the row
                 # continues the model named above it (Vertex), so it is not this
                 # page's own price (MODEL-235). Markdown rows all start with one.
@@ -919,6 +928,7 @@ class KeyValueExtractor:
             ), None)
         date_ = next((v for k, v in pairs.items() if k in _DATE_KEYS), None)
         return [Reading(subject=subject, value=pairs.get(_label(claim)),
+                        unit=pairs.get("unit"),
                         conditions={"effort": pairs.get("effort"),
                                     "harness": pairs.get("harness"), "date": date_})]
 
@@ -1062,11 +1072,27 @@ class SubscriptionPageExtractor:
     def extract(self, claim: Claim, text: str) -> list[Reading]:
         if not claim.field.startswith("offering.subscription."):
             raise ExtractorError("not a subscription claim")
+        if claim.field == "offering.subscription.surfaces" and isinstance(claim.value, list) \
+                and "coding_tool:*" in claim.value:
+            return []
+        if re.search(r"(?i)<!doctype\b|</?(?:html|head|body|div|script)\b", text):
+            return []
         text = _content_block(text)
         readings = self._page_layouts(claim, text)
         for more in (_plan_cards(claim, text), _plan_facts(claim, text),
                      _vendor_layouts(claim, text)):
             readings += [r for r in more if r not in readings]
+        if claim.field in {"offering.subscription.usage_allowance",
+                           "offering.subscription.programmatic_or_agent_use"}:
+            readings = [r for r in readings if r.value and not re.fullmatch(
+                r"(?i)(?:[$¥]\s*[0-9,.]+(?:\s*/\s*(?:mo|month|year))?|"
+                r"/\s*(?:mo|month|year).*|get .+|pricing)", r.value.strip()
+            )]
+        if claim.field == "offering.subscription.models_covered":
+            readings = [r for r in readings if r.value and any(
+                _catalogue_model_matches(item.strip())
+                for item in re.split(r",|;|\band\b", r.value) if item.strip()
+            )]
         return readings
 
     def _page_layouts(self, claim: Claim, text: str) -> list[Reading]:
@@ -1811,7 +1837,8 @@ def _plan_facts(claim: Claim, text: str) -> list[Reading]:
                       *(c.strip() for line in bare if "|" in line for c in line.split("|"))]
         candidates += ["\n".join(bare[i:i + n]) for n in range(2, 9)
                        for i in range(len(bare) - n + 1)]
-        return [Reading(subject=subject, value=c) for c in dict.fromkeys(candidates) if c]
+        return [Reading(subject=subject, value=c) for c in dict.fromkeys(candidates)
+                if c and normalise_name(c) == normalise_name(str(claim.value))]
 
     if field in {"offering.subscription.usage_allowance",
                  "offering.subscription.programmatic_or_agent_use"}:

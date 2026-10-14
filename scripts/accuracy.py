@@ -873,12 +873,30 @@ def _read_nothing(result: Any) -> bool:
 
 
 def _has_current_reading(result: Any) -> bool:
-    """A source-kind rejection does not read the claim's value."""
+    """Unsupported kinds and incomplete evidence do not establish current values."""
     return result.outcome == "verified" or (
         result.outcome == "mismatch"
         and not _read_nothing(result)
+        and not _incomplete_evidence_reading(result)
         and any(diff.field != "source_kind" for diff in result.diffs)
     )
+
+
+def _incomplete_evidence_reading(result: Any) -> bool:
+    """Missing source metadata cannot establish an evidence disagreement."""
+    from decision.verify import parse_quantity
+
+    if result.target.kind != "evidence" or result.outcome != "mismatch" or not result.diffs:
+        return False
+    for diff in result.diffs:
+        if diff.field in {"effort", "date", "interval", "n"} and diff.found is None:
+            continue
+        if diff.field == "unit" and isinstance(diff.found, str):
+            quantity = parse_quantity(diff.found)
+            if quantity is not None and quantity.unit is None:
+                continue
+        return False
+    return True
 
 
 def verify_fidelity_sample(
@@ -915,7 +933,16 @@ def verify_fidelity_sample(
         outcome, undetermined = result.outcome, None
         key = (claim.target.kind, claim.target.id)
         correction_details = None
-        if _read_nothing(result):
+        if _incomplete_evidence_reading(result):
+            outcome, undetermined = "undetermined", "missing_source_metadata"
+        elif result.outcome == "mismatch" and result.diffs and all(
+            diff.field == "source_kind" and diff.found == "unknown" for diff in result.diffs
+        ):
+            outcome = "undetermined"
+            undetermined = unread.get(key, "source_changed")
+            if undetermined == "mismatch":
+                undetermined = "source_unchanged"
+        elif _read_nothing(result):
             undetermined = unread.get(key, "source_changed")
             if undetermined == "mismatch":
                 # The queue records what the nightly concluded, not verify's "skipped".
