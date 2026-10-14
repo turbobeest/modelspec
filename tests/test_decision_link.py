@@ -56,8 +56,8 @@ def signed_token(pinned_snapshot, decision_id, *, issued=1000, **changes):
 @pytest.mark.parametrize("flag", [None, "false", "0", "off", "no", ""])
 @pytest.mark.parametrize("controls,expected", [
     ({"fields": None}, "3dbe68054a3b321009d03eb836960864293a75f254450e8f81d3f034feecc657"),
-    ({"fields": ["model"]}, "5cda63231b6aedbad6b8e552b4a6c3f94ea04eaf4d8aedce4cb947867294493a"),
-    ({"fields": None, "evidence_for": "lab/a"}, "f4459b3461c0488c1244d6233a8e5e5a7700fe794a2012a96d10fc998894d164"),
+    ({"fields": ["model"]}, "a1a9d9368d44471a8df735a172e72cd1097503eb97963e96b5eba3a6d7fa7e02"),
+    ({"fields": None, "evidence_for": "lab/a"}, "53882129c52ad97377f85e828b63fe01b86f344e23c3954a70ebc758736b4dd3"),
 ])
 def test_flag_off_response_bytes_match_base(entry, snapshot, monkeypatch, flag, controls, expected):
     worker = worker_for(entry, snapshot, monkeypatch, DECISION_LINK_ENABLED=flag)
@@ -71,7 +71,7 @@ def test_flag_off_agent_copy_bytes_match_base():
     assert hashlib.sha256(agent_copy.render(agent_copy.copy()).encode()).hexdigest() == "408bf5a9093e7efea7945409d9f73ce90036bf8822d43d524f9f41398b6da056"
     assert hashlib.sha256(agent_copy.guide()[1].encode()).hexdigest() == "b6b3273038117d903338bf62145486382a1f0bd511a2a8920df50fd2743cb6ec"
     raw = json.dumps(agent_copy.cli_text(), sort_keys=True).encode()
-    assert hashlib.sha256(raw).hexdigest() == "10a1d742de8ec6bf43b6c80f3863ada4ef538480a41b81a98149bad18e9db502"
+    assert hashlib.sha256(raw).hexdigest() == "8732c38e5dc3047469dfae98ee50a83ab8c0538d6f4162ec9cda0fb6368e2793"
 
 
 def test_decision_link_flag_is_off_in_every_deployed_config():
