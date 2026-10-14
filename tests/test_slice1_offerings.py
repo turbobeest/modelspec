@@ -32,6 +32,7 @@ GOVERNANCE_DOMAINS = {
     "google-gemini-api": ("google.dev", "google.com"),
     "google-vertex-ai": ("google.com",),
     "meta-model-api": ("meta.com",),
+    "mistral": ("mistral.ai",),
     "moonshot": ("kimi.ai",),
     "openai": ("openai.com",),
     "typesafe": ("typesafe.ai",),
@@ -115,6 +116,26 @@ def test_moonshot_governance_rejects_other_domains(tmp_path, monkeypatch, host):
     monkeypatch.setattr(f"{__name__}.ROOT", tmp_path)
     with pytest.raises(AssertionError):
         test_governance_facts_only_use_the_serving_providers_own_documents()
+
+
+@pytest.mark.parametrize("host", [
+    "mistral.ai", "docs.mistral.ai", "legal.mistral.ai", "help.mistral.ai",
+])
+def test_mistral_governance_accepts_primary_documents(tmp_path, monkeypatch, host):
+    _write_governance_documents(tmp_path, "mistral", host)
+    monkeypatch.setattr(f"{__name__}.ROOT", tmp_path)
+    test_governance_facts_only_use_the_serving_providers_own_documents()
+
+
+@pytest.mark.parametrize("host", [
+    "not-mistral.ai", "docs.mistral.ai.example.test", "deepseek.com",
+])
+def test_mistral_governance_rejects_other_domains(tmp_path, monkeypatch, host):
+    _write_governance_documents(tmp_path, "mistral", host)
+    monkeypatch.setattr(f"{__name__}.ROOT", tmp_path)
+    with pytest.raises(AssertionError) as error:
+        test_governance_facts_only_use_the_serving_providers_own_documents()
+    assert "GOVERNANCE_DOMAINS" not in str(error.value)
 
 
 def test_unknown_governance_provider_has_a_clear_failure(tmp_path, monkeypatch):

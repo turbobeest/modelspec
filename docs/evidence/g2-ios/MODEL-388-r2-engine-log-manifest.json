@@ -1,0 +1,37 @@
+[
+  {
+    "phase": "invalid-public-temp",
+    "exit_code": 1,
+    "artifact": "MODEL-388-r2-engine-full-pytest.log.gz",
+    "uncompressed_sha256": "a4a818419a2d1db7f999c972f27d9b8494c66fdcbaa2d1cd9cc0fab210d7b1f9",
+    "uncompressed_bytes": 1016191
+  },
+  {
+    "phase": "standard-before-npm",
+    "exit_code": 1,
+    "artifact": "MODEL-388-r2-engine-full-standard-pytest.log.gz",
+    "uncompressed_sha256": "d776035e7ce9f1fba146d12bbcdb50ad3067ce68df20075c3881b7d4eea2cfd5",
+    "uncompressed_bytes": 56671
+  },
+  {
+    "phase": "unchanged-base-before-npm",
+    "exit_code": 1,
+    "artifact": "MODEL-388-r2-engine-base-non-qa.log.gz",
+    "uncompressed_sha256": "378bda54cee03ea08557d6d8e0502e51aa8dbbd42cf20e05e29344ef0098df0e",
+    "uncompressed_bytes": 72168
+  },
+  {
+    "phase": "post-dependency-install-before-web-build",
+    "exit_code": 1,
+    "artifact": "MODEL-388-r2-engine-post-npm-full.log.gz",
+    "uncompressed_sha256": "59a89292373b678dbcfd3126df18507f5f1a5d16e80077c82ac72c1f8d667c54",
+    "uncompressed_bytes": 76162
+  },
+  {
+    "phase": "fully-configured-final",
+    "exit_code": 0,
+    "artifact": "MODEL-388-r2-engine-full-ready.log.gz",
+    "uncompressed_sha256": "265babaa8cab1d334119d13a75a4d080f3b3fcb43631292f9bc19cb8787a5ebf",
+    "uncompressed_bytes": 13650
+  }
+]
